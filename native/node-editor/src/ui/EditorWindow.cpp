@@ -1146,6 +1146,7 @@ EditorWindow::~EditorWindow() {
     }
     disconnect(this, &EditorWindow::panelChanged, this, &EditorWindow::syncChatContext);
     disconnect(this, &EditorWindow::tabsChanged, this, &EditorWindow::syncChatContext);
+    disconnect(&document_, &node_editor::WorkflowDocument::changed, this, &EditorWindow::syncChatContext);
   if (!tabOwner_) {
     for (const auto &host : retainedChatHosts_) {
         // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand

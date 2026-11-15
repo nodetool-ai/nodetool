@@ -9,7 +9,7 @@
 export const DEFAULT_TRACK_HEIGHT_PX = 64;
 export const FX_PANEL_HEIGHT_PX = 280;
 /** The range a track row can be resized to. */
-export const MIN_TRACK_HEIGHT_PX = 48;
+export const MIN_TRACK_HEIGHT_PX = 24;
 export const MAX_TRACK_HEIGHT_PX = 300;
 
 /** A track's stored height moved by `deltaPx`, kept within the resize range. */

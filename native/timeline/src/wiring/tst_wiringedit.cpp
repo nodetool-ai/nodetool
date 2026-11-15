@@ -77,7 +77,7 @@ private slots:
     void resize_data() {
         QTest::addColumn<double>("zoom"); QTest::addColumn<int>("delta"); QTest::addColumn<double>("expected");
         QTest::newRow("B11-zoom") << 2.0 << 40 << 100.0;
-        QTest::newRow("B11-min") << 1.0 << -70 << 48.0;
+        QTest::newRow("B11-min") << 1.0 << -70 << 24.0;
         QTest::newRow("B11-max") << 1.0 << 280 << 300.0;
     }
     void resize() {

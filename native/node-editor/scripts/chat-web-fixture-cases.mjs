@@ -320,7 +320,7 @@ export const CHAT_FIXTURES = {
     nativeTools: [
         "ui_get_graph", "ui_add_node", "ui_connect_nodes", "ui_move_node", "ui_set_node_title",
         "ui_delete_node", "ui_delete_edge", "ui_update_node_data", "ui_search_nodes", "ui_search_models",
-        "ui_switch_tab", "ui_copy", "ui_paste", "ui_open_workflow", "ui_run_workflow", "ui_open_document"
+        "ui_switch_tab", "ui_copy", "ui_paste", "ui_open_workflow", "ui_new_workflow", "ui_run_workflow", "ui_open_document", "ui_apply_graph_patch", "ui_focus_nodes", "ui_undo"
     ],
     catalogs,
     searchCases,

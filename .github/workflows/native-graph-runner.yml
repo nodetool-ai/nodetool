@@ -7,10 +7,16 @@
 # The image adapter pins libvips 8.18.7 and libwebp 1.6.0 exactly, and OCR
 # needs Tesseract 5.5.3 or newer. Ubuntu ships older versions, so the deps step
 # builds these three from SHA-256-pinned sources into a cached prefix.
+#
+# Pull requests and pushes to main run only the tests their changed files
+# affect. The nightly run tests everything once a day when main changed its
+# paths in the last 25 hours (the `changes` job).
 name: Native graph runner
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "50 3 * * *"
   pull_request:
     paths:
       - "native/graph-runner/**"
@@ -38,7 +44,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: native-graph-runner-${{ github.ref }}
+  # The event is part of the group so a queued push run and the nightly run
+  # never replace each other: a group keeps only one pending run.
+  group: native-graph-runner-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -53,9 +61,49 @@ env:
   CCACHE_MAXSIZE: 2G
 
 jobs:
+  # Decides whether a scheduled run has anything new to test. Every other
+  # event already passed its paths filter, so it always runs.
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          REF: ${{ github.ref_name }}
+          # The push paths filter above, as one path per word.
+          WATCHED_PATHS: >-
+            native/graph-runner native/jobs native/kernels native/node-editor
+            packages/audio-nodes packages/kernels native/realtime .github/workflows/native-graph-runner.yml
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT" != "schedule" ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          since=$(date -u -d '25 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+          for path in $WATCHED_PATHS; do
+            count=$(gh api -X GET "repos/$REPO/commits" -f sha="$REF" -f path="$path" -f since="$since" -f per_page=1 --jq length)
+            if [[ "$count" != "0" ]]; then
+              echo "$path changed since $since"
+              echo "run=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo "No watched path changed since $since"
+          echo "run=false" >> "$GITHUB_OUTPUT"
+
   # The legs run in the native CI image (docker/ci-native/) instead of
   # installing their system packages with apt.
   ci-image:
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
     uses: ./.github/workflows/ci-image.yml
     with:
       image: ci-native
@@ -65,7 +113,8 @@ jobs:
 
   build:
     name: ${{ matrix.name }}
-    needs: ci-image
+    needs: [changes, ci-image]
+    if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     permissions:
@@ -110,8 +159,8 @@ jobs:
       run:
         shell: bash
     steps:
-      # Depth 2 keeps the merge commit's first parent, the base the test
-      # selection diffs against.
+      # Depth 2 keeps the merge commit's first parent, the base a pull
+      # request's test selection diffs against.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -274,18 +323,28 @@ jobs:
           TSAN_OPTIONS=halt_on_error=1:second_deadlock_stack=1 \
             node native/realtime/scripts/cli-check.mjs native/graph-runner/build/nodetool-graph-runner
 
-      # A pull request runs only the tests that depend on its changed files:
-      # the selection of `npm run test:affected:native`, read from this
-      # build's target model and compiler depfiles. Changes to CI or to the
-      # selection scripts run every test, as manual runs do. If the selection
-      # fails, every test runs.
+      # A pull request or a push to main runs only the tests that depend on
+      # its changed files: the selection of `npm run test:affected:native`,
+      # read from this build's target model and compiler depfiles. A pull
+      # request diffs against its merge commit's first parent, a push against
+      # the commit main pointed to before it. Changes to CI or to the
+      # selection scripts run every test, as scheduled and manual runs do. If
+      # the selection fails, for example because the push's base commit cannot
+      # be fetched, every test runs.
       - name: Select affected tests
         id: select
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
         continue-on-error: true
+        env:
+          PUSH_BEFORE: ${{ github.event.before }}
         run: |
+          base=HEAD^1
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            base="$PUSH_BEFORE"
+            git fetch --no-tags --depth=1 origin "$base"
+          fi
           node scripts/native-ci-test-selection.mjs --project graph-runner --build native/graph-runner/build \
-            --base HEAD^1 \
+            --base "$base" \
             --force .github/workflows/native-graph-runner.yml --force scripts/test-affected-native.mjs \
             --force scripts/test-affected.mjs --force scripts/native-ci-test-selection.mjs
 

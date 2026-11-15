@@ -2,7 +2,7 @@
 // and stops it when the app quits. Used by native/node-editor/scripts/run.mjs
 // and native/timeline/scripts/run.mjs.
 import { spawn, spawnSync } from "node:child_process";
-import { closeSync, openSync } from "node:fs";
+import { closeSync, mkdirSync, openSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -41,6 +41,12 @@ export async function startServer(log) {
   if (await serverReady()) {
     console.log(`Using the server at ${serverUrl}`);
     return undefined;
+  }
+  // The server imports workspace packages from dist/. A stale build fails at
+  // import time with a missing export, so rebuild stale workspaces first.
+  const rebuild = spawnSync(process.execPath, ["scripts/build-stale-websocket-workspaces.mjs"], { cwd: root, stdio: "inherit" });
+  if (rebuild.status !== 0) {
+    throw new Error(`Rebuilding stale workspace packages failed (${rebuild.signal || rebuild.status}).`);
   }
   const fd = openSync(log, "a");
   const database = databaseEnv();
@@ -128,4 +134,69 @@ export function runApp(binary, args, server, options = {}) {
     app.once("error", (error) => fail(new Error(`Cannot execute ${binary}: ${error.message}`, { cause: error })));
     app.once("exit", (code) => done(code ?? 1));
   });
+}
+
+// Windows that the app opens itself (New Timeline, Open Timeline) quit the
+// launched process and start a detached one. They share the native apps'
+// bundled-server users folder protocol (native/timeline/src/server/BundledServer.cpp):
+// each window holds a QLockFile named <pid>.lock, and a window that opens
+// the next one writes a .handoff marker first.
+const handoffMs = 30_000;
+
+export function createUsersDir(dir) {
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+function processAlive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error.code === "EPERM";
+  }
+}
+
+function usersPresent(dir) {
+  let entries;
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return false;
+  }
+  const now = Date.now();
+  return entries.some((name) => {
+    const path = join(dir, name);
+    try {
+      if (name.endsWith(".handoff")) {
+        return now - statSync(path).mtimeMs < handoffMs;
+      }
+      if (name.endsWith(".lock")) {
+        const pid = Number.parseInt(readFileSync(path, "utf8").split("\n")[0], 10);
+        return Number.isInteger(pid) && pid > 0 && processAlive(pid);
+      }
+    } catch {
+      return false;
+    }
+    return false;
+  });
+}
+
+// Resolves when no app window uses the server, or on Ctrl-C.
+export async function waitForUsers(dir) {
+  if (!usersPresent(dir)) {
+    return;
+  }
+  console.log("A timeline window is still open. The server keeps running until it closes (Ctrl-C stops it).");
+  let interrupted = false;
+  const onInterrupt = () => { interrupted = true; };
+  process.on("SIGINT", onInterrupt);
+  try {
+    while (!interrupted && usersPresent(dir)) {
+      await new Promise((done) => setTimeout(done, 500));
+    }
+  } finally {
+    process.off("SIGINT", onInterrupt);
+  }
 }

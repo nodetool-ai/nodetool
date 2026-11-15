@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { COMFY_NODE_PREFIX } from "@nodetool-ai/protocol";
 
 import useMetadataStore from "../stores/MetadataStore";
+import { useNotificationStore } from "../stores/NotificationStore";
 import type { NodeMetadata } from "../stores/ApiTypes";
 import { restFetch } from "../lib/rest-fetch";
 import { createConnectabilityMatrix } from "../components/node_menu/typeFilterUtils";
@@ -122,4 +123,23 @@ export const useComfyNodeMetadata = (enabled: boolean): ComfyCatalogState => {
   }, [enabled, metadata]);
 
   return state;
+};
+
+/**
+ * {@link useComfyNodeMetadata} for an editor canvas: a catalog that fails to
+ * load is reported once as an error notification. Used by Comfy workflows and
+ * by subgraphs that hold ComfyUI nodes.
+ */
+export const useComfyCatalogForCanvas = (enabled: boolean): ComfyCatalogState => {
+  const catalogState = useComfyNodeMetadata(enabled);
+  const error = catalogState.status === "error" ? catalogState.error : null;
+  useEffect(() => {
+    if (!error) return;
+    useNotificationStore.getState().addNotification({
+      type: "error",
+      alert: true,
+      content: `Comfy nodes could not load: ${error}`
+    });
+  }, [error]);
+  return catalogState;
 };

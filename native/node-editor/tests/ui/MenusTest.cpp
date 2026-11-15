@@ -186,8 +186,8 @@ private slots:
         QApplication::clipboard()->clear();
         auto *menu = contextAt(window, QPoint(30, 100));
         QVERIFY(menu);
-        QCOMPARE(layout(menu), (QStringList{"paste", "fit", "-", "add-constant", "add-input", "-", "add-comment", "add-group", "add-workflow", "add-subgraph", "add-app"}));
-        QCOMPARE(labels(menu), (QStringList{"Paste", "Fit screen", "Add constant node", "Add input node", "Add comment", "Add group", "Add workflow", "Add subgraph", "Add app"}));
+        QCOMPARE(layout(menu), (QStringList{"paste", "fit", "-", "add-constant", "add-input", "-", "add-comment", "add-group", "add-workflow", "add-subgraph", "add-comfy-subgraph", "add-app"}));
+        QCOMPARE(labels(menu), (QStringList{"Paste", "Fit screen", "Add constant node", "Add input node", "Add comment", "Add group", "Add workflow", "Add subgraph", "Add Comfy subgraph", "Add app"}));
         QVERIFY(!enabled(menu, "paste"));
         QVERIFY(entry(menu, "paste")->property("reasonText").toString().contains("No valid node data"));
         QVERIFY(enabled(menu, "fit"));

@@ -69,6 +69,19 @@ NodeTool derives the contract from the graph. It finds one input per `LoadImage`
 one output per `Save*` node. A second input or output of the same kind gets a
 numbered name, such as `image_2`, so adding a node can change a name.
 
+### Keep the Comfy graph inside a normal workflow
+
+To edit ComfyUI nodes in place instead of in a separate workflow, right-click
+the canvas and choose **Add Comfy subgraph**. The new Subgraph node starts as
+ComfyUI's text-to-image graph and shows its derived `prompt` input and image
+`output`. Open it to edit the ComfyUI nodes: the node menu then lists the Comfy
+target's node classes, as it does in a Comfy workflow.
+
+A subgraph runs as one Comfy job when it holds ComfyUI nodes and no other
+runnable nodes besides Input and Output nodes. Put any NodeTool nodes the job
+needs, such as an LLM that writes the prompt, outside the subgraph and connect
+them to its inputs.
+
 ---
 
 ## When to reach for a ComfyUI node

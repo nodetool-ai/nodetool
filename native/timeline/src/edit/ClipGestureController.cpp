@@ -1001,7 +1001,7 @@ void ClipGestureController::pasteAttributes(const QVariantMap& source, const QSt
 }
 
 double ClipGestureController::resizedTrackHeight(const Gesture& g) const {
-    return std::clamp(g.trackHeightAtStart + (g.lastY - g.startY) / m_view->verticalZoom(), 48.0, 300.0);
+    return std::clamp(g.trackHeightAtStart + (g.lastY - g.startY) / m_view->verticalZoom(), 24.0, 300.0);
 }
 
 bool ClipGestureController::pressTrack(const QString& id, const QString& kind, double sceneX, double sceneY) {

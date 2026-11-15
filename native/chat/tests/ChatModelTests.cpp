@@ -306,6 +306,18 @@ private slots:
         QCOMPARE(parts->rowCount(), 3);
         QCOMPARE(partAt(parts, 2)["label"].toString(), "Working · 0/2");
         QVERIFY(partAt(parts, 2)["running"].toBool());
+        // ToolCallRow: the verb and the thing it acted on are separate, each
+        // row names its glyph, and the rail ties the first row to the second.
+        QCOMPARE(partAt(parts, 0)["verb"].toString(), "Searched");
+        QCOMPARE(partAt(parts, 0)["detail"].toString(), "a");
+        QCOMPARE(partAt(parts, 0)["icon"].toString(), "search");
+        QVERIFY(partAt(parts, 0)["connected"].toBool());
+        QVERIFY(!partAt(parts, 0)["afterTool"].toBool());
+        QCOMPARE(partAt(parts, 1)["icon"].toString(), "code");
+        QCOMPARE(partAt(parts, 1)["detail"].toString(), "");
+        QVERIFY(partAt(parts, 1)["afterTool"].toBool());
+        QVERIFY(!partAt(parts, 1)["connected"].toBool());
+        QVERIFY(partAt(parts, 2)["afterTool"].toBool());
         model.upsert({{"id", "r1"}, {"role", "tool"}, {"tool_call_id", "one"}, {"content", "done"}, {"created_at", "2026-11-13T10:00:03.000Z"}});
         model.upsert({{"id", "r2"}, {"role", "tool"}, {"tool_call_id", "two"}, {"content", "2"}, {"created_at", "2026-11-13T10:00:42.000Z"}});
         parts = partsFor(model);
@@ -318,6 +330,8 @@ private slots:
         qobject_cast<PartModel *>(parts)->toggleExpanded(parts->rowCount() - 1);
         QVERIFY(!partAt(parts, parts->rowCount() - 1)["expanded"].toBool());
         QVERIFY(partAt(parts, 0)["timelineHidden"].toBool());
+        // Folded, nothing sits above the footer to join it.
+        QVERIFY(!partAt(parts, parts->rowCount() - 1)["afterTool"].toBool());
         QVERIFY(partAt(parts, 1)["timelineHidden"].toBool());
         MessageModel single;
         single.upsert({{"id", "one"}, {"role", "assistant"}, {"content", ""},

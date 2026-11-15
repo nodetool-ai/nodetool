@@ -329,6 +329,56 @@ private slots:
     QVERIFY(derived["dynamic_inputs"].toObject().contains("custom"));
     QVERIFY(derived["dynamic_outputs"].toObject().contains("Output"));
   }
+  void comfyWorkflowPorts() {
+    // A Comfy workflow saved without Input or Output nodes gets the ports the
+    // server derives when it runs it (exposeComfyInterface).
+    const QJsonArray nodes{
+        QJsonObject{{"id", "1"}, {"type", "comfy.CLIPTextEncode"}, {"data", QJsonObject{{"text", "a fox"}}}},
+        QJsonObject{{"id", "2"}, {"type", "comfy.KSampler"}, {"data", QJsonObject{}}},
+        QJsonObject{{"id", "3"}, {"type", "comfy.LoadImage"}, {"data", QJsonObject{{"image", "x.png"}}}},
+        QJsonObject{{"id", "4"}, {"type", "comfy.SaveImage"}, {"data", QJsonObject{}}},
+        QJsonObject{{"id", "5"}, {"type", "comfy.SaveImage"}, {"data", QJsonObject{}}}};
+    const QJsonArray edges{QJsonObject{{"source", "1"}, {"sourceHandle", "CONDITIONING"}, {"target", "2"}, {"targetHandle", "positive"}}};
+    const QJsonObject workflow{{"id", "comfy-wf"}, {"name", "Comfy"}, {"graph", QJsonObject{{"nodes", nodes}, {"edges", edges}}}};
+    const QJsonObject node{{"id", "w"}, {"type", "nodetool.workflows.workflow_node.Workflow"},
+                           {"data", QJsonObject{{"workflow_json", workflow}}}};
+    const auto derived = withChildPorts(node);
+    const auto inputs = derived["dynamic_inputs"].toObject();
+    QCOMPARE(inputs.keys(), (QStringList{"image", "prompt"}));
+    QCOMPARE(inputs["prompt"].toObject()["type"].toObject()["type"].toString(), QString("str"));
+    QCOMPARE(inputs["image"].toObject()["type"].toObject()["type"].toString(), QString("image"));
+    QCOMPARE(derived["dynamic_properties"].toObject()["prompt"].toString(), QString("a fox"));
+    QCOMPARE(derived["dynamic_outputs"].toObject().keys(), (QStringList{"output", "output_2"}));
+    // A graph with its own Input or Output nodes keeps them as they are.
+    auto mixed = nodes;
+    mixed.append(QJsonObject{{"id", "in"}, {"type", "nodetool.input.StringInput"}, {"data", QJsonObject{{"name", "text"}}}});
+    QCOMPARE(exposeComfyInterface(QJsonObject{{"nodes", mixed}})["nodes"].toArray().size(), mixed.size());
+    // Any other graph is unchanged.
+    const QJsonObject plain{{"nodes", QJsonArray{QJsonObject{{"id", "a"}, {"type", "test.Source"}}}}};
+    QCOMPARE(exposeComfyInterface(plain), plain);
+    QVERIFY(isComfyGraph(QJsonObject{{"nodes", nodes}}));
+    QVERIFY(isComfyGraph(QJsonObject{{"nodes", mixed}}));
+    QVERIFY(!isComfyGraph(plain));
+  }
+  // SubgraphTabsStore.ts buildSubgraphWorkflow: a subgraph of ComfyUI nodes
+  // runs as one Comfy job, so its surface edits it as a Comfy workflow.
+  void comfySubgraphSurfaceEditsAsComfyWorkflow() {
+    EditorWindow window;
+    window.show();
+    auto child = subgraph();
+    child["data"] = QJsonObject{{"graph", QJsonObject{
+        {"nodes", QJsonArray{QJsonObject{{"id", "1"}, {"type", "comfy.CLIPTextEncode"}, {"data", QJsonObject{{"text", "a fox"}}}}}},
+        {"edges", QJsonArray{}}}}};
+    QVERIFY(window.document()->load(
+        {{"name", "Host"},
+         {"graph", QJsonObject{{"nodes", QJsonArray{child}}, {"edges", QJsonArray{}}}}}));
+    auto parent = window.document();
+    QVERIFY(window.selectNode("child"));
+    QVERIFY(click(window, "selection-open-child"));
+    QVERIFY(window.document() != parent);
+    QCOMPARE(window.document()->snapshot()["run_mode"].toString(), QString("comfy"));
+    QVERIFY(parent->snapshot()["run_mode"].toString() != QLatin1String("comfy"));
+  }
   void stripCloseCascadeAndRestore() {
       QTemporaryDir files;
       QVERIFY(files.isValid());

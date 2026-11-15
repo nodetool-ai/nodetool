@@ -8,6 +8,7 @@ import type { NodeStore } from "../../../../stores/NodeStore";
 import type { NodeData } from "../../../../stores/NodeData";
 import { SUBGRAPH_NODE_TYPE } from "../../../../constants/nodeTypes";
 import { SubgraphSync } from "../SubgraphSync";
+import { comfyStarterGraph } from "../../../../lib/comfy/comfyStarterGraph";
 
 const innerInput = (name: string) => ({
   id: `in-${name}`,
@@ -121,5 +122,26 @@ describe("SubgraphSync", () => {
       "src-b",
       "out-dst"
     ]);
+  });
+
+  it("derives the prompt and image ports of a subgraph of ComfyUI nodes", () => {
+    // The starter graph has a positive and a negative text encoder, so the
+    // prompt is found only by following the edges to the sampler.
+    const sub = subgraphNode([]);
+    sub.data = {
+      ...sub.data,
+      properties: { graph: comfyStarterGraph() },
+      dynamic_properties: {},
+      dynamic_outputs: {}
+    };
+    const store = createNodeStore(undefined, { nodes: [sub], edges: [] });
+    act(() => {
+      renderSync(store);
+    });
+
+    const data = store.getState().findNode("sub")?.data;
+    expect(Object.keys(data?.dynamic_inputs ?? {})).toEqual(["prompt"]);
+    expect(String(data?.dynamic_properties.prompt)).toMatch(/lighthouse/);
+    expect(Object.keys(data?.dynamic_outputs ?? {})).toEqual(["output"]);
   });
 });

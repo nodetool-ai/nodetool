@@ -66,7 +66,8 @@ TestCase {
         verify(card !== null)
         tryVerify(() => findText(card, "Code") !== null)
         compare(findText(card, "Code · "), null)
-        verify(findText(card, "Done") !== null)
+        // ToolCallRow names no status for a finished call, only its timing.
+        compare(findText(card, "Done"), null)
         for (const pair of [["running", "Running"], ["completed", "Done"], ["failed", "Failed"], ["waiting", "Waiting"]])
             compare(card.statusLabel(pair[0]), pair[1])
     }
@@ -98,7 +99,7 @@ TestCase {
         compare(failures.join("\n"), "")
         if (["tool-presentation", "thinking", "tool-approval", "sub-agents"].indexOf(data.fixture) >= 0) {
             for (let i = 0; i < 12; ++i) {
-                const button = findText(panel, "Show details")
+                const button = findText(panel, "Show details") || findToolRow(panel, false)
                 if (!button) break
                 button.clicked()
                 wait(30)
@@ -204,6 +205,17 @@ TestCase {
             return settled
         })
         mouseClick(findVisible(panel, name))
+    }
+    // MessageView.tsx ToolCallRow: the whole header row folds a call open.
+    function findToolRow(item, open) {
+        if (!item.visible) return null
+        if (typeof item.objectName === "string" && item.objectName.startsWith("toolDetails_") && item.open !== undefined
+                && item.enabled && (open === undefined || item.open === open)) return item
+        for (let i = 0; i < item.children.length; ++i) {
+            const found = findToolRow(item.children[i], open)
+            if (found) return found
+        }
+        return null
     }
     function findText(item, text) {
         if (!item.visible) return null
@@ -607,9 +619,13 @@ TestCase {
             list.forceLayout()
             // visible does not imply that a ListView descendant is inside its viewport.
             const point = button.mapToItem(list, 0, 0)
-            list.contentY = Math.max(list.originY, Math.min(list.originY + list.contentHeight - list.height,
+            const target = Math.max(list.originY, Math.min(list.originY + list.contentHeight - list.height,
                 list.contentY + point.y - (list.height - button.height) / 2))
-            verify(waitForRendering(button))
+            // An unchanged view renders no new frame, so only a scroll is waited on.
+            if (Math.abs(target - list.contentY) >= 1) {
+                list.contentY = target
+                verify(waitForRendering(button))
+            }
             const position = button.mapToItem(list, 0, 0)
             verify(position.y >= 0 && position.y + button.height <= list.height)
             mouseClick(button, button.width / 2, button.height / 2, Qt.LeftButton, Qt.NoModifier, 0)
@@ -642,7 +658,7 @@ TestCase {
         const list = findChild(panel, "chatMessages")
         tryCompare(list, "count", 1)
         tryVerify(function() { return findText(panel, "Ran 3 searches") !== null })
-        mouseClick(findText(panel, "Show details"))
+        mouseClick(findToolRow(panel, false))
         const toggle = findVisible(panel, "groupCall_00000000000000000000000000000002")
         verify(toggle !== null)
         wait(80)
@@ -672,7 +688,7 @@ TestCase {
         wait(80)
         const first = findVisible(panel, "message_0")
         verify(first !== null)
-        mouseClick(findText(first, "Show details"))
+        mouseClick(findToolRow(first, false))
         tryVerify(function() { return findText(first, "Arguments") !== null })
         list.positionViewAtEnd()
         wait(80)
@@ -685,7 +701,7 @@ TestCase {
         const restored = findVisible(panel, "message_0")
         verify(restored !== null)
         verify(findText(restored, "Arguments") !== null)
-        mouseClick(findText(restored, "Hide details"))
+        mouseClick(findToolRow(restored, true))
         tryVerify(function() { return findText(restored, "Arguments") === null })
     }
     function test_collapsedFailureAndScreenshots() {
@@ -709,16 +725,15 @@ TestCase {
         tryVerify(function() { return findText(panel, "Read notes.txt") !== null })
         compare(findText(panel, "Arguments"), null)
         compare(findText(panel, "Result"), null)
-        mouseClick(findText(panel, "Show details"))
+        mouseClick(findText(panel, "Read notes.txt"))
         tryVerify(function() { return findText(panel, "Arguments") !== null })
         verify(findText(panel, "Result") !== null)
-        verify(findText(panel, "Done") !== null)
     }
     function test_executionCodeAndCopy() {
         testDriver.replay("code-execution")
-        tryVerify(function() { return findText(panel, "Show details") !== null })
+        tryVerify(function() { return findToolRow(panel, false) !== null })
         compare(findText(panel, "Code · javascript"), null)
-        mouseClick(findText(panel, "Show details"))
+        mouseClick(findToolRow(panel, false))
         tryVerify(function() { return findText(panel, "Code · javascript") !== null })
         wait(80)
         const copy = findText(panel, "Copy code")
@@ -1097,6 +1112,171 @@ TestCase {
         testSession.selectThread("b")
         tryCompare(conversation, "titleMenuShown", false)
         testSession.selectThread("a")
+    }
+    // useChatScrollAnchor.ts: a sent prompt is held near the top of the view
+    // while the reply grows below it, and the jump button stays hidden.
+    function test_sentPromptIsHeldNearTheTop() {
+        test.width = 1100
+        testSession.selectThread("a")
+        testDriver.history("a", 30)
+        const conversation = findChild(panel, "chatConversation")
+        const view = findChild(panel, "chatMessages")
+        tryCompare(view, "count", 30)
+        conversation.followBottom = true
+        view.positionViewAtEnd()
+        wait(30)
+        testDriver.userTurn("a", "anchored-prompt", "Where is my prompt?")
+        tryCompare(conversation, "anchoringTurn", true)
+        verify(conversation.tailHeight > 0)
+        tryVerify(function() {
+            const row = view.itemAtIndex(view.count - 1)
+            if (!row) return false
+            const top = row.mapToItem(view, 0, 0).y
+            return top >= 0 && top < view.height * 0.25
+        }, 2000)
+        compare(findChild(conversation, "chatScrollToLatest").visible, false)
+        testDriver.stream("a", "A short reply.", true)
+        wait(50)
+        const row = view.itemAtIndex(view.count - 2)
+        verify(row !== null)
+        verify(row.mapToItem(view, 0, 0).y < view.height * 0.25)
+        conversation.releaseTurnAnchor()
+        conversation.followBottom = true
+        view.positionViewAtEnd()
+    }
+    // ScrollToBottomButton.tsx: scrolled up, a round arrow jumps to the end.
+    function test_jumpToLatestFloatsOverTheMessages() {
+        test.width = 1100
+        testSession.selectThread("a")
+        testDriver.history("a", 30)
+        const conversation = findChild(panel, "chatConversation")
+        const view = findChild(panel, "chatMessages")
+        tryCompare(view, "count", 30)
+        const composer = findChild(conversation, "chatComposer")
+        const composerTop = composer.mapToItem(conversation, 0, 0).y
+        view.positionViewAtBeginning()
+        conversation.followBottom = false
+        const jump = findChild(conversation, "chatScrollToLatest")
+        tryCompare(jump, "visible", true)
+        compare(composer.mapToItem(conversation, 0, 0).y, composerTop)
+        mouseClick(jump)
+        tryCompare(view, "atYEnd", true)
+        compare(conversation.followBottom, true)
+        compare(jump.visible, false)
+    }
+    // MessageView.tsx ToolCallRow: a glyph on the rail, the verb in sans,
+    // the thing it acted on in mono, and the whole row folds details open.
+    function test_toolCallsReadAsATimeline() {
+        testDriver.replay("tool-calls")
+        tryVerify(function() { return findText(panel, "Read notes.txt") !== null })
+        const row = findText(panel, "Read notes.txt")
+        compare(findChild(row, "toolRowLabel").text, "Read")
+        const detail = findChild(row, "toolRowDetail")
+        compare(detail.text, "notes.txt")
+        compare(detail.role, Ui.Typography.MonoCaption)
+        verify(findVisible(panel, "toolGlyph") !== null)
+        compare(findText(panel, "Show details"), null)
+        compare(row.open, false)
+        compare(row.Accessible.expanded, false)
+        mouseClick(row)
+        tryCompare(row, "open", true)
+        verify(findText(panel, "Arguments") !== null)
+        const directory = testDriver.screenshotDirectory()
+        if (directory) grabImage(panel).save(directory + "/tool-timeline.png")
+    }
+    // useChatScrollAnchor.ts free-scrolling: a reader who scrolled up keeps
+    // their place while the reply streams, until they jump back.
+    function test_streamingLeavesAScrolledUpReaderInPlace() {
+        test.width = 1100
+        testSession.selectThread("a")
+        testDriver.history("a", 30)
+        const conversation = findChild(panel, "chatConversation")
+        const view = findChild(panel, "chatMessages")
+        tryCompare(view, "count", 30)
+        conversation.followBottom = true
+        view.positionViewAtEnd()
+        wait(30)
+        // Wheel scrolling is movement too. A drag over the rows would select
+        // their text instead.
+        for (let i = 0; i < 10; ++i) {
+            mouseWheel(view, view.width / 2, view.height / 2, 0, 120)
+            wait(20)
+        }
+        tryCompare(view, "moving", false)
+        compare(conversation.followBottom, false)
+        const jump = findChild(conversation, "chatScrollToLatest")
+        tryCompare(jump, "visible", true)
+        const before = view.contentY
+        for (let i = 0; i < 20; ++i) {
+            testDriver.stream("a", "More streamed text that grows the reply. ", false)
+            wait(10)
+        }
+        wait(50)
+        verify(Math.abs(view.contentY - before) < 1, "moved from " + before + " to " + view.contentY)
+        compare(conversation.followBottom, false)
+        testDriver.stream("a", "", true)
+        mouseClick(jump)
+        tryCompare(view, "atYEnd", true)
+        compare(conversation.followBottom, true)
+    }
+    // A position set in code, such as a jump to a row, is the reader's
+    // position too, so the next reflow keeps it.
+    function test_codePositionSurvivesReflow() {
+        test.width = 1100
+        testSession.selectThread("a")
+        testDriver.history("a", 30)
+        const conversation = findChild(panel, "chatConversation")
+        const view = findChild(panel, "chatMessages")
+        tryCompare(view, "count", 30)
+        conversation.followBottom = true
+        view.positionViewAtEnd()
+        wait(30)
+        // The reader stops a little above the end, close enough that the
+        // streaming reply stays instantiated.
+        conversation.enterFreeScrolling()
+        view.contentY = conversation.contentEnd - view.height - 400
+        conversation.settleScroll()
+        compare(conversation.followBottom, false)
+        view.contentY -= view.height / 2
+        const placed = view.contentY
+        const heightBefore = view.contentHeight
+        for (let i = 0; i < 20; ++i) {
+            testDriver.stream("a", "More streamed text that grows the reply. ", false)
+            wait(10)
+        }
+        verify(view.contentHeight > heightBefore, "the reply grew the content")
+        wait(50)
+        verify(Math.abs(view.contentY - placed) < 1, "moved from " + placed + " to " + view.contentY)
+        testDriver.stream("a", "", true)
+    }
+    // Dragging the scroll bar hands the position to the reader too, and
+    // letting go near the end follows new content again.
+    function test_scrollBarDragStopsFollowing() {
+        test.width = 1100
+        testSession.selectThread("a")
+        testDriver.history("a", 30)
+        const conversation = findChild(panel, "chatConversation")
+        const view = findChild(panel, "chatMessages")
+        tryCompare(view, "count", 30)
+        conversation.followBottom = true
+        view.positionViewAtEnd()
+        wait(30)
+        const bar = findChild(conversation, "chatMessagesScrollBar")
+        verify(bar !== null)
+        mousePress(bar, bar.width / 2, bar.height - Ui.Metrics.xl)
+        tryCompare(bar, "pressed", true)
+        compare(conversation.followBottom, false)
+        mouseRelease(bar, bar.width / 2, bar.height - Ui.Metrics.xl)
+        tryCompare(bar, "pressed", false)
+        // Released at the end: within the follow threshold again.
+        view.positionViewAtEnd()
+        conversation.settleScroll()
+        compare(conversation.followBottom, true)
+        view.positionViewAtBeginning()
+        conversation.settleScroll()
+        compare(conversation.followBottom, false)
+        conversation.followBottom = true
+        view.positionViewAtEnd()
     }
     function test_messagesHaveNoCopyButtons() {
         testDriver.codeHistory("a", "int value = 0;\n")

@@ -31,6 +31,8 @@ import "${web}/lib/tools/builtin/updateNodeData.ts";
 import "${web}/lib/tools/builtin/deleteNode.ts";
 import "${web}/lib/tools/builtin/deleteEdge.ts";
 import "${web}/lib/tools/builtin/moveNode.ts";
+import "${web}/lib/tools/builtin/applyGraphPatch.ts";
+import "${web}/lib/tools/builtin/canvasActions.ts";
 import "${web}/lib/tools/builtin/setNodeTitle.ts";
 import "${web}/lib/tools/builtin/searchModels.ts";
 import "${web}/lib/tools/builtin/uiActions.ts";

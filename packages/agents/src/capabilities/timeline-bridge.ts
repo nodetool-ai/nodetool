@@ -1574,6 +1574,14 @@ export function createTimelineToolBridge(
       editOp("delete_marker", args)
     ),
 
+    sharedTool("ui_timeline_set_track", async (args) => editOp("set_track", args)),
+
+    sharedTool("ui_timeline_ripple_delete", async (args) => editOp("ripple_delete", args)),
+
+    sharedTool("ui_timeline_close_gap", async (args) => editOp("close_gap", args)),
+
+    sharedTool("ui_timeline_cut_transcript", async (args) => editOp("cut_transcript", args)),
+
     sharedTool("ui_timeline_set_markers_from_beats", async (args) =>
       editOp("set_markers_from_beats", args)
     ),

@@ -527,10 +527,11 @@ void ChatSession::loadHistory(const QString &id, bool prepend) {
   }
   QJsonObject input{{"thread_id", id}, {"limit", 100}, {"reverse", true}};
   if (prepend) {
-    if (s.cursor.isEmpty()) {
+    if (s.cursor.isEmpty() || s.loadingEarlier) {
       return;
     }
     input["cursor"] = s.cursor;
+    s.loadingEarlier = true;
   }
   if (!prepend) {
     s.reconciling = true;
@@ -539,6 +540,9 @@ void ChatSession::loadHistory(const QString &id, bool prepend) {
   m_client.call("messages.list", input, false,
                 // native-rules #12: async callback captures raw this, not a QPointer
                 [this, id, prepend](QJsonValue result, QString error) {
+                  if (prepend) {
+                    state(id).loadingEarlier = false;
+                  }
                   if (!error.isEmpty()) {
                     state(id).reconciling = false;
                     state(id).bufferedEvents = {};
@@ -777,6 +781,7 @@ bool ChatSession::dispatch(const QJsonArray &content) {
   s.error.clear();
   m_threads.setStatus(m_selected, s.status);
   emit stateChanged();
+  emit promptSent(m_selected);
   return true;
 }
 void ChatSession::resendFrom(const QString &messageId, const QString &text) {

@@ -211,10 +211,14 @@ signals:
     void providerSetupRequested();
     void providerKeySaved(QString provider);
     void versionsChanged();
+    // This view sent a prompt; its row is now the thread's last row.
+    void promptSent(QString threadId);
 
 private:
   struct State {
     bool reconciling = false;
+    // An earlier page is on its way; scrolling to the top asks only once.
+    bool loadingEarlier = false;
     bool reloadHistory = false;
     bool uncertainReplay = false;
     QJsonArray bufferedEvents;

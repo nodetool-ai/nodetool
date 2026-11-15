@@ -1,8 +1,12 @@
 import { z } from "zod";
-import { uiOpenWorkflowParams, uiRunWorkflowParams, uiSwitchTabParams, uiCopyParams } from "@nodetool-ai/protocol";
+import { uiNewWorkflowParams, uiOpenWorkflowParams, uiRunWorkflowParams, uiSwitchTabParams, uiCopyParams } from "@nodetool-ai/protocol";
 import { getWorkflowRunnerStore } from "../../../stores/WorkflowRunner";
 import { FrontendToolRegistry } from "../frontendTools";
 import { openDocument } from "./openDocument";
+import { waitForRunReport, type RunReportNode } from "./runReport";
+import { isRecord, isString } from "../../../utils/typePredicates";
+
+const DEFAULT_RUN_WAIT_SECONDS = 300;
 
 async function writeClipboardText(
   text: string,
@@ -57,15 +61,58 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
-  name: "ui_run_workflow",
-  description: "Run a workflow by id.",
-  parameters: z.object(uiRunWorkflowParams),
-  async execute({ workflow_id, params }, ctx) {
+  name: "ui_new_workflow",
+  description:
+    "Create an empty workflow, open it in a new editor tab, and switch to it. " +
+    "Returns its `workflow_id` for the graph tools.",
+  parameters: z.object(uiNewWorkflowParams),
+  async execute({ name }, ctx) {
     const state = ctx.getState();
+    const draft = { ...state.newWorkflow(), name: name?.trim() || "New Workflow" };
+    state.addWorkflow(draft);
+    // The server creates the row on this first save: the update route upserts
+    // when no expected_updated_at is sent.
+    await state.saveWorkflow(draft);
+    const opened = await openDocument("workflow", draft.id, ctx);
+    return { ok: true, workflow_id: opened.id, url: opened.url };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_run_workflow",
+  description:
+    "Run a workflow in the editor, where the user sees each node run. Pass `wait: true` to get " +
+    "the status, outputs keyed by output name, and node errors when the run ends.",
+  parameters: z.object(uiRunWorkflowParams),
+  async execute({ workflow_id, params, wait, timeout_seconds }, ctx) {
+    const state = ctx.getState();
+    const finish = async (jobId: string) => {
+      if (!wait) {
+        return { ok: true, workflow_id, job_id: jobId };
+      }
+      const nodes = (state.getNodeStore(workflow_id)?.getState().nodes ?? []).map(
+        (node): RunReportNode => {
+          const data: Record<string, unknown> = isRecord(node.data) ? node.data : {};
+          return {
+            id: node.id,
+            type: node.type,
+            title: isString(data.title) ? data.title : undefined,
+            properties: isRecord(data.properties) ? data.properties : undefined
+          };
+        }
+      );
+      const report = await waitForRunReport(
+        workflow_id,
+        jobId,
+        nodes,
+        (timeout_seconds ?? DEFAULT_RUN_WAIT_SECONDS) * 1000,
+        ctx.abortSignal
+      );
+      return { ok: true, workflow_id, ...report };
+    };
 
     if (state.runWorkflow) {
-      const jobId = await state.runWorkflow(workflow_id, params, ctx.abortSignal);
-      return { ok: true, workflow_id, job_id: jobId };
+      return finish(await state.runWorkflow(workflow_id, params, ctx.abortSignal));
     }
 
     await state.fetchWorkflow(workflow_id);
@@ -87,7 +134,7 @@ FrontendToolRegistry.register({
       await getWorkflowRunnerStore(workflow_id).getState().cancelJob(jobId);
     }
 
-    return { ok: true, workflow_id, job_id: jobId };
+    return finish(jobId);
   }
 });
 

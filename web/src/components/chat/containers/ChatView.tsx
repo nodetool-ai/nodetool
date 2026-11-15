@@ -132,6 +132,12 @@ const styles = (theme: Theme) =>
       maxWidth: `${CHAT_COLUMN_MAX_WIDTH}px`,
       alignSelf: "center"
     },
+    // The conversation scrolls across the whole panel, so the wheel works over
+    // the margins and the scrollbar sits at the panel edge. The message list
+    // keeps itself to the reading column.
+    ".chat-thread-container.has-thread": {
+      maxWidth: "none"
+    },
     // The new chat: greeting and composer as one block in the middle, a
     // little above centre so the composer sits at eye height.
     ".chat-main.empty-centered": {
@@ -680,7 +686,9 @@ const ChatView = ({
             )}
           </FlexRow>
         )}
-        <div className="chat-thread-container">
+        <div
+          className={`chat-thread-container${messages.length > 0 ? " has-thread" : ""}`}
+        >
           {messages.length > 0 ? (
             <ChatThreadView
               threadId={effectiveThreadId}
