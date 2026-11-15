@@ -358,9 +358,13 @@ one the host granted.
 - **Host modules load no external resources.** `sandbox-fabric` refuses image
   sources that are not inline raster `data:` URIs and SVG that references
   anything outside itself, because Fabric's Node build would otherwise read
-  `file://` paths and request internal hosts past the `fetch` guard. One
-  rasterized output is capped at 4096 x 4096 pixels, since encoding runs on the
-  host's main thread.
+  `file://` paths and request internal hosts past the `fetch` guard. A source
+  that is not a string is refused too, since Fabric would stringify it. Fabric
+  renders and encodes on the host's main thread, so one rasterized output is
+  capped at 4096 x 4096 pixels, a scene at 2000 objects and a shadow blur at
+  100, and shadows plus image filters at 32 and, times the output size, at two
+  full 4096 x 4096 passes (`assertRenderBudget` in
+  `packages/agents/src/host-modules/fabric.ts`).
 - **Bridges are the boundary, not the hiding.** The host and WASM module
   dispatchers validate module identity, export name and argument list before any
   implementation loads, and their bindings are deleted before user code starts.

@@ -24,7 +24,11 @@ import {
   registeredSandboxHostModuleIds,
   sandboxHostModuleDrift
 } from "../src/host-modules/registry.js";
-import { assertSvgHasNoExternalResources } from "../src/host-modules/fabric.js";
+import {
+  MAX_FABRIC_EFFECT_PIXELS,
+  assertRenderBudget,
+  assertSvgHasNoExternalResources
+} from "../src/host-modules/fabric.js";
 import { MAX_UNZIP_TOTAL_BYTES } from "../src/host-modules/zip.js";
 import {
   DEFAULT_SELECT_HTML_LIMIT,
@@ -1228,6 +1232,95 @@ describe("sandbox-fabric in the guest", () => {
     );
     expect(result.success).toBe(false);
     expect(String(result.error)).toMatch(/at most 16777216 pixels/);
+  });
+
+  it("refuses an image source given as an array or other non-string value", async () => {
+    // Fabric assigns `src` to an image as is, so an array stringifies to the
+    // URL it holds and would load it.
+    for (const src of [["file:///etc/hostname"], ["http://127.0.0.1:1/x.png"], { toString: "x" }, 1]) {
+      const result = await run(
+        `import { render } from "@nodetool-ai/sandbox-fabric";
+         return await render({
+           width: 4,
+           height: 4,
+           objects: [{ type: "Image", src: ${JSON.stringify(src)} }]
+         });`,
+        "fabric"
+      );
+      expect(result.success).toBe(false);
+      expect(String(result.error)).toMatch(/src must be a string/);
+    }
+  });
+
+  it("refuses a scene with more shadows than the output size allows", () => {
+    const shadowed = (count: number) => ({
+      objects: Array.from({ length: count }, () => ({
+        type: "rect",
+        width: 10,
+        height: 10,
+        shadow: { color: "#000", blur: 20, offsetX: 1, offsetY: 1 }
+      }))
+    });
+    const large = 4096 * 4096;
+    expect(() => assertRenderBudget("test", shadowed(2), large)).not.toThrow();
+    expect(() => assertRenderBudget("test", shadowed(3), large)).toThrow(/too many shadows and image filters/);
+    // A small canvas affords more, up to a fixed count.
+    expect(() => assertRenderBudget("test", shadowed(32), 512 * 512)).not.toThrow();
+    expect(() => assertRenderBudget("test", shadowed(33), 16)).toThrow(/too many shadows and image filters/);
+  });
+
+  it("counts shadows and filters inside groups", () => {
+    const scene = {
+      objects: [{
+        type: "group",
+        objects: [
+          { type: "image", src: "data:image/png;base64,iVBORw0KGgo=", filters: [{ type: "Blur" }, { type: "Grayscale" }] },
+          { type: "rect", shadow: "rgba(0,0,0,0.5) 2px 2px 10px" },
+          { type: "rect", shadow: { blur: 5 } }
+        ]
+      }]
+    };
+    expect(() => assertRenderBudget("test", scene, MAX_FABRIC_EFFECT_PIXELS / 4)).not.toThrow();
+    expect(() => assertRenderBudget("test", scene, MAX_FABRIC_EFFECT_PIXELS / 3)).toThrow(/too many shadows/);
+  });
+
+  it("refuses a shadow blur over the limit, in object or string form", () => {
+    for (const shadow of [{ blur: 2000 }, "#000000 1px 1px 2000px"]) {
+      expect(() =>
+        assertRenderBudget("test", { objects: [{ type: "rect", shadow }] }, 16)
+      ).toThrow(/shadow blur must be at most 100/);
+    }
+  });
+
+  it("refuses a scene with too many objects", () => {
+    const objects = Array.from({ length: 2001 }, () => ({ type: "rect", width: 1, height: 1 }));
+    expect(() => assertRenderBudget("test", { objects }, 16)).toThrow(/at most 2000 objects/);
+  });
+
+  it("applies the render budget to guest calls", async () => {
+    const result = await run(
+      `import { render } from "@nodetool-ai/sandbox-fabric";
+       const objects = [];
+       for (let i = 0; i < 20; i++) {
+         objects.push({ type: "rect", width: 4096, height: 4096, shadow: { color: "#000", blur: 100 } });
+       }
+       return await render({ width: 4096, height: 4096, objects });`,
+      "fabric"
+    );
+    expect(result.success).toBe(false);
+    expect(String(result.error)).toMatch(/too many shadows and image filters/);
+  });
+
+  it("returns plain objects from loadSVG", async () => {
+    const result = await run(
+      `import { loadSVG } from "@nodetool-ai/sandbox-fabric";
+       const parsed = await loadSVG('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10"><rect x="1" y="2" width="5" height="4" fill="#ff0000"/></svg>');
+       return { count: parsed.objects.length, type: parsed.objects[0].type, fill: parsed.objects[0].fill };`,
+      "fabric"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toMatchObject({ count: 1, fill: "#ff0000" });
+    expect(String((result.result as { type: string }).type).toLowerCase()).toBe("rect");
   });
 });
 
