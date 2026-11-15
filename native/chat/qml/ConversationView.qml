@@ -14,6 +14,9 @@ Item {
     property var scrollPositions: ({})
     property string previousThread: ""
     property bool followBottom: true
+    // The row the reader was looking at when following stopped, so reflow
+    // that comes later holds that view rather than an older one.
+    onFollowBottomChanged: if (!followBottom && !anchoringTurn) captureAnchor()
     property int anchorIndex: 0
     property real anchorOffset: 0
     // A reply is on its way: ChatThreadView.tsx shows a quiet pulse at the
@@ -75,7 +78,7 @@ Item {
         const offset = anchorOffset;
         holdingViewport = true;
         messages.forceLayout();
-        messages.positionViewAtIndex(anchorIndex, ListView.Beginning);
+        messages.positionViewAtIndex(Math.max(0, anchorIndex), ListView.Beginning);
         messages.contentY += offset;
         holdingViewport = false;
     }
@@ -530,9 +533,19 @@ Item {
             oldHeight = messages.contentHeight;
             oldY = messages.contentY;
         }
+        // Replaced content leaves no row to hold, so the position on screen
+        // becomes the anchor.
+        function onModelReset() {
+            root.anchorIndex = -1;
+            if (!root.followBottom && !root.anchoringTurn) {
+                Qt.callLater(root.captureAnchor);
+            }
+        }
         function onRowsInserted(parent, first, last) {
             if (prepending) {
-                root.anchorIndex += last - first + 1;
+                if (root.anchorIndex >= 0) {
+                    root.anchorIndex += last - first + 1;
+                }
                 Qt.callLater(function () {
                     messages.contentY = oldY + messages.contentHeight - oldHeight;
                 });
