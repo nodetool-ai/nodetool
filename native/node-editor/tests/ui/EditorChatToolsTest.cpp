@@ -548,6 +548,18 @@ class EditorChatToolsTest final : public QObject {
         QVERIFY(post->contains("\"name\":\"Spiral\""));
         QCOMPARE(window.document()->snapshot()["id"].toString(), CreatedWorkflowId);
     }
+    // An agent passes the 12-character id; the server replies with the full id.
+    void openWorkflowAcceptsIdPrefix() {
+        ChatServer server;
+        nodetool::EditorWindow window;
+        setup(window, server);
+        window.session()->connectToServer(server.url(), {}, "fixture-user");
+        QTRY_VERIFY(window.session()->connected());
+        const auto opened = call(window, server, "ui_open_workflow", {{"workflow_id", CreatedWorkflowId.left(12)}});
+        QVERIFY2(opened["ok"].toBool(), qPrintable(QString::fromUtf8(QJsonDocument(opened).toJson())));
+        QCOMPARE(opened["result"].toObject()["workflow_id"].toString(), CreatedWorkflowId);
+        QCOMPARE(window.document()->snapshot()["id"].toString(), CreatedWorkflowId);
+    }
     void graphPatchIsOneUndoStep() {
         ChatServer server;
         nodetool::EditorWindow window;
