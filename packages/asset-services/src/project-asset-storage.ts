@@ -14,6 +14,7 @@ import type {
   StorageAdapter,
   StorageListResult,
   StorageStat,
+  StoreIfAbsentOptions,
   UploadTarget,
   UploadUrlOptions
 } from "@nodetool-ai/storage";
@@ -46,7 +47,8 @@ export class ProjectAssetStorageAdapter implements StorageAdapter {
   storeIfAbsent?: (
     key: string,
     data: Uint8Array,
-    contentType?: string
+    contentType?: string,
+    options?: StoreIfAbsentOptions
   ) => Promise<string | null>;
   createUploadUrl?: (
     key: string,
@@ -64,8 +66,9 @@ export class ProjectAssetStorageAdapter implements StorageAdapter {
     // Callers test for these methods to choose an upload or download path,
     // so each exists here only when the wrapped adapter has it.
     if (inner.storeIfAbsent) {
-      this.storeIfAbsent = (key, data, contentType) =>
-        inner.storeIfAbsent?.(key, data, contentType) ?? Promise.resolve(null);
+      this.storeIfAbsent = (key, data, contentType, options) =>
+        inner.storeIfAbsent?.(key, data, contentType, options) ??
+        Promise.resolve(null);
     }
     if (inner.createUploadUrl) {
       this.createUploadUrl = (key, opts) =>

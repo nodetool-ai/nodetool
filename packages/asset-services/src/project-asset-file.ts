@@ -11,6 +11,7 @@ import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { open } from "node:fs/promises";
 import {
+  WORKSPACE_MOVE_SOURCE_KEY,
   WORKSPACE_MOVE_TARGET_KEY,
   isFiniteNumber
 } from "@nodetool-ai/protocol";
@@ -142,8 +143,10 @@ export const WORKSPACE_OFFLINE_KEY = "workspace_offline";
 export const WORKSPACE_SERVER_KEYS = [
   ...WORKSPACE_FINGERPRINT_KEYS,
   WORKSPACE_OFFLINE_KEY,
-  // Where the bytes of an asset from before project folders are moving to.
-  WORKSPACE_MOVE_TARGET_KEY
+  // Where the bytes of an asset from before project folders are moving to,
+  // and the hash of the legacy object that was copied.
+  WORKSPACE_MOVE_TARGET_KEY,
+  WORKSPACE_MOVE_SOURCE_KEY
 ] as const;
 
 /**

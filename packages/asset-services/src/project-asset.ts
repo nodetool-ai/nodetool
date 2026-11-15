@@ -235,7 +235,8 @@ function joinPath(directory: string, fileName: string): string {
  * `beforeWrite` runs with each candidate path right before the create is
  * tried there. A caller that must be able to find its file again after a
  * crash records the path in it. Throwing from it stops the claim with
- * nothing written.
+ * nothing written. `stagingName` is passed to `Workspace.writeNew`, so the
+ * claimed name holds the whole file or nothing.
  */
 export async function claimFile(
   workspace: Workspace,
@@ -245,7 +246,8 @@ export async function claimFile(
   extension: string,
   bytes: Uint8Array,
   contentType: string,
-  beforeWrite?: (path: string) => Promise<void>
+  beforeWrite?: (path: string) => Promise<void>,
+  stagingName?: string
 ): Promise<string> {
   const taken = new Set(
     (await workspace.list(directory)).map((entry) => entry.name.toLowerCase())
@@ -262,7 +264,13 @@ export async function claimFile(
     );
     if (rows.length > 0) continue;
     await beforeWrite?.(path);
-    if (await workspace.writeNew(path, bytes, contentType)) return path;
+    const written = await workspace.writeNew(
+      path,
+      bytes,
+      contentType,
+      stagingName === undefined ? undefined : { stagingName }
+    );
+    if (written) return path;
   }
   throw new Error(
     `No free file name for "${stem}${suffix}" in ${directory || "the project folder"}`

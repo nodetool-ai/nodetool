@@ -7,7 +7,16 @@
  * between two steps of one asset's move, the way a process that dies there
  * stops, and a new job instance stands for the restarted process.
  */
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import {
+  link,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  stat,
+  writeFile
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -19,6 +28,7 @@ import {
   moveTargetOf
 } from "@nodetool-ai/models";
 import {
+  WORKSPACE_MOVE_SOURCE_KEY,
   WORKSPACE_MOVE_TARGET_KEY,
   projectDirectoryId
 } from "@nodetool-ai/protocol";
@@ -42,6 +52,7 @@ import {
 } from "@nodetool-ai/asset-services/asset-paths";
 import { lookupExternalAssetPath } from "@nodetool-ai/asset-services/external-asset-lookup";
 import {
+  legacyAssetStagingName,
   moveLegacyAssetIntoFolder,
   type LegacyAssetMoveStep
 } from "@nodetool-ai/asset-services/legacy-asset-move";
@@ -209,9 +220,66 @@ async function folderFiles(
 }
 
 function newJob(
-  afterStep?: (step: LegacyAssetMoveStep, assetId: string) => void | Promise<void>
+  afterStep?: (step: LegacyAssetMoveStep, assetId: string) => void | Promise<void>,
+  storage?: StorageAdapter
 ): ProjectAssetMoveJob {
-  return new ProjectAssetMoveJob({ settleMs: 0, afterStep });
+  return new ProjectAssetMoveJob({
+    settleMs: 0,
+    afterStep,
+    storage: storage ? () => storage : undefined
+  });
+}
+
+function sha256(bytes: Uint8Array): string {
+  return createHash("sha256").update(bytes).digest("hex");
+}
+
+/** The stored object of a legacy asset, read without the lookup through rows. */
+function storedObject(asset: Asset): Promise<Uint8Array | null> {
+  return rawAssets.retrieve(
+    rawAssets.uriForKey(getAssetStorageKey(USER, asset.id, asset.content_type))
+  );
+}
+
+/** Store new bytes under the asset's key, as a bytes update of a legacy asset does. */
+async function updateStoredBytes(asset: Asset, bytes: Uint8Array): Promise<void> {
+  await rawAssets.store(
+    getAssetStorageKey(USER, asset.id, asset.content_type),
+    bytes,
+    asset.content_type
+  );
+}
+
+/** A folder that hands `corrupt(data)` to the exclusive create instead of the data. */
+function folderWriting(
+  real: Workspace,
+  corrupt: (data: Uint8Array) => Uint8Array
+): Workspace {
+  const writeNew: Workspace["writeNew"] = (path, data, contentType, options) =>
+    real.writeNew(
+      path,
+      typeof data === "string" ? data : corrupt(data),
+      contentType,
+      options
+    );
+  return new Proxy(real, {
+    get(target, property) {
+      if (property === "writeNew") return writeNew;
+      const value: unknown = Reflect.get(target, property);
+      return typeof value === "function" ? value.bind(target) : value;
+    }
+  });
+}
+
+/** The asset store with every read of an object failing, as an outage does. */
+function storeFailingReads(real: StorageAdapter): StorageAdapter {
+  return new Proxy(real, {
+    get(target, property) {
+      if (property === "retrieve") return async () => null;
+      const value: unknown = Reflect.get(target, property);
+      return typeof value === "function" ? value.bind(target) : value;
+    }
+  });
 }
 
 /** A job that dies after `step` of the `nth` asset that reaches it. */
@@ -514,13 +582,16 @@ describe.each(["local", "storage"] as const)(
       expect(await folderFiles(kind)).toEqual([]);
     });
 
-    it("finishes a copy that stopped part way without leaving a second file", async () => {
+    it("removes its own staging file that a copy cut short left behind", async () => {
       const content = bytesOf(++seq, 4096);
       const asset = await legacyAsset({ name: "fox", bytes: content });
       asset.metadata = { [WORKSPACE_MOVE_TARGET_KEY]: "fox.png" };
       await asset.save();
-      // The process died while it wrote the copy.
-      await folder(kind).write("fox.png", content.subarray(0, 1500));
+      // The process died while it wrote the copy under its staging name.
+      await folder(kind).write(
+        legacyAssetStagingName(asset.id),
+        content.subarray(0, 1500)
+      );
 
       const report = await newJob().run(PROJECT, USER);
 
@@ -532,7 +603,55 @@ describe.each(["local", "storage"] as const)(
       expect(await storedKeys()).toEqual([]);
     });
 
+    it("publishes every copy through its own staging name, on a first copy and on a resumed one", async () => {
+      const first = await legacyAsset({ name: "fox" });
+      const resumed = await legacyAsset({ name: "owl" });
+      resumed.metadata = { [WORKSPACE_MOVE_TARGET_KEY]: "owl.png" };
+      await resumed.save();
+      const staged = new Map<string, string | undefined>();
+      const real = folder(kind);
+      const writeNew: Workspace["writeNew"] = (path, data, contentType, options) => {
+        staged.set(path, options?.stagingName);
+        return real.writeNew(path, data, contentType, options);
+      };
+      workspaces.set(
+        PROJECT,
+        new Proxy(real, {
+          get(target, property) {
+            if (property === "writeNew") return writeNew;
+            const value: unknown = Reflect.get(target, property);
+            return typeof value === "function" ? value.bind(target) : value;
+          }
+        })
+      );
+
+      await newJob().run(PROJECT, USER);
+
+      // The name carries the asset id, so no two assets share one.
+      expect(Object.fromEntries(staged)).toEqual({
+        "fox.png": `.${first.id}.nodetool-move.tmp`,
+        "owl.png": `.${resumed.id}.nodetool-move.tmp`
+      });
+      expect(legacyAssetStagingName(first.id)).toBe(staged.get("fox.png"));
+    });
+
+    it("leaves no staging file in the folder after a move", async () => {
+      const seeded = await seedProject();
+
+      await newJob().run(PROJECT, USER);
+
+      const names = (await folder(kind).list("", { recursive: true })).map(
+        (entry) => entry.name
+      );
+      expect(names.filter((name) => name.endsWith(".tmp"))).toEqual([]);
+      await expectMoved(kind, seeded);
+    });
+
     it.each([
+      // An empty file is the start of every asset, and so is a file that
+      // holds the first bytes. Both are files a creator can have made.
+      ["an empty file", () => new Uint8Array()],
+      ["a file that holds the beginning of the bytes", (c: Uint8Array) => new Uint8Array(c.subarray(0, 1500))],
       ["a shorter file with other content", (c: Uint8Array) => bytesOf(777, c.byteLength - 10)],
       ["a file of the same length with other content", (c: Uint8Array) => bytesOf(778, c.byteLength)],
       ["a longer file", (c: Uint8Array) => bytesOf(779, c.byteLength + 10)]
@@ -584,21 +703,10 @@ describe.each(["local", "storage"] as const)(
     it("keeps the legacy object and removes the copy when the copy does not verify", async () => {
       const content = bytesOf(++seq, 4096);
       const asset = await legacyAsset({ name: "fox", bytes: content });
-      const real = folder(kind);
       // A folder that stores less than it was given.
-      const writeShort: Workspace["writeNew"] = (path, data, contentType) =>
-        real.writeNew(
-          path,
-          typeof data === "string" ? data : data.subarray(0, data.byteLength - 1),
-          contentType
-        );
-      const lossy = new Proxy(real, {
-        get(target, property) {
-          if (property === "writeNew") return writeShort;
-          const value: unknown = Reflect.get(target, property);
-          return typeof value === "function" ? value.bind(target) : value;
-        }
-      });
+      const lossy = folderWriting(folder(kind), (data) =>
+        data.subarray(0, data.byteLength - 1)
+      );
       workspaces.set(PROJECT, lossy);
 
       const report = await newJob().run(PROJECT, USER);
@@ -620,7 +728,7 @@ describe.each(["local", "storage"] as const)(
       expect((await reload(asset)).workspace_path).toBe("fox.png");
     });
 
-    it("keeps the legacy object when the row changed while the bytes were copied", async () => {
+    it("keeps the legacy object and removes its copy when the row changed while the bytes were copied", async () => {
       const content = bytesOf(++seq);
       const asset = await legacyAsset({ name: "fox", bytes: content });
       const job = newJob(async (step) => {
@@ -640,14 +748,183 @@ describe.each(["local", "storage"] as const)(
       expect(await storedKeys()).toHaveLength(1);
       const read = await readById(asset);
       expect(Buffer.from(read ?? []).equals(Buffer.from(content))).toBe(true);
+      // The copy has no row. Left in the folder, it would be indexed as a
+      // second asset.
+      expect(await folderFiles(kind)).toEqual([]);
+      expect((await reconcileProjectIndex(PROJECT, USER)).created).toEqual([]);
+      expect((await Asset.listByProject(USER, PROJECT)).length).toBe(1);
 
-      // The next run finds the copy it made and uses it: no second file.
+      // The next run moves the asset under the name it would have had.
       const next = await newJob().run(PROJECT, USER);
       expect(next.moved).toEqual([asset.id]);
       expect((await reload(asset)).workspace_path).toBe("fox.png");
       expect((await reload(asset)).metadata?.["note"]).toBe("edited");
       expect(await folderFiles(kind)).toEqual(["fox.png"]);
       expect(await storedKeys()).toEqual([]);
+    });
+
+    it.each(["copied", "verified", "switched"] as const)(
+      "never deletes bytes stored under the asset's key after the %s step",
+      async (step) => {
+        const content = bytesOf(++seq, 4096);
+        // The same length, so only the content tells the two apart.
+        const updated = bytesOf(++seq, 4096);
+        const asset = await legacyAsset({ name: "fox", bytes: content });
+        const job = newJob(async (reached) => {
+          // A bytes update of the asset lands while its move runs. The row
+          // names no file yet, so the new bytes go under the legacy key.
+          if (reached === step) await updateStoredBytes(asset, updated);
+        });
+
+        const report = await job.run(PROJECT, USER);
+
+        expect(report.moved).toEqual([]);
+        expect(report.failed).toEqual([asset.id]);
+        // The new bytes are still stored, and they are what the asset reads.
+        const stored = await storedObject(asset);
+        expect(Buffer.from(stored ?? []).equals(Buffer.from(updated))).toBe(true);
+        const read = await readById(asset);
+        expect(Buffer.from(read ?? []).equals(Buffer.from(updated))).toBe(true);
+        // The row names no file, and the copy of the old bytes is gone.
+        expect((await reload(asset)).workspace_path).toBeNull();
+        expect(await folderFiles(kind)).toEqual([]);
+
+        // A later pass moves the new bytes.
+        const next = await newJob().run(PROJECT, USER);
+        expect(next.moved).toEqual([asset.id]);
+        expect((await reload(asset)).workspace_path).toBe("fox.png");
+        const file = await folder(kind).read("fox.png");
+        expect(Buffer.from(file ?? []).equals(Buffer.from(updated))).toBe(true);
+        const after = await readById(asset);
+        expect(Buffer.from(after ?? []).equals(Buffer.from(updated))).toBe(true);
+        expect(await storedKeys()).toEqual([]);
+      }
+    );
+
+    it("never deletes bytes stored under the asset's key between a stop and the restart", async () => {
+      const content = bytesOf(++seq, 4096);
+      const updated = bytesOf(++seq, 4096);
+      const asset = await legacyAsset({ name: "fox", bytes: content });
+      await jobKilledAfter("switched").run(PROJECT, USER);
+      expect((await reload(asset)).workspace_path).toBe("fox.png");
+      await updateStoredBytes(asset, updated);
+
+      const report = await newJob().run(PROJECT, USER);
+
+      // Neither side is the other's copy, so both are kept.
+      expect(report.moved).toEqual([]);
+      expect(report.failed).toEqual([asset.id]);
+      const stored = await storedObject(asset);
+      expect(Buffer.from(stored ?? []).equals(Buffer.from(updated))).toBe(true);
+      const file = await folder(kind).read("fox.png");
+      expect(Buffer.from(file ?? []).equals(Buffer.from(content))).toBe(true);
+      const read = await readById(asset);
+      expect(Buffer.from(read ?? []).equals(Buffer.from(updated))).toBe(true);
+    });
+
+    it("keeps a stored object it cannot read, also with a file of the same size at the recorded target", async () => {
+      const content = bytesOf(++seq, 4096);
+      const asset = await legacyAsset({ name: "fox", bytes: content });
+      asset.metadata = { [WORKSPACE_MOVE_TARGET_KEY]: "fox.png" };
+      await asset.save();
+      // A creator's file of the same length sits where the copy was to go.
+      const creators = bytesOf(++seq, 4096);
+      await folder(kind).write("fox.png", creators);
+      const before = (await reload(asset)).toRow();
+
+      // Every read of the asset store fails. The store answers null, as it
+      // does for a key with no object.
+      const report = await newJob(
+        undefined,
+        storeFailingReads(assetStore)
+      ).run(PROJECT, USER);
+
+      expect(report.moved).toEqual([]);
+      expect(report.withoutBytes).toEqual([]);
+      expect(report.failed).toEqual([asset.id]);
+      expect((await reload(asset)).toRow()).toEqual(before);
+      const stored = await storedObject(asset);
+      expect(Buffer.from(stored ?? []).equals(Buffer.from(content))).toBe(true);
+      const kept = await folder(kind).read("fox.png");
+      expect(Buffer.from(kept ?? []).equals(Buffer.from(creators))).toBe(true);
+
+      // With the store readable again, the asset moves beside that file.
+      expect((await newJob().run(PROJECT, USER)).moved).toEqual([asset.id]);
+      expect((await reload(asset)).workspace_path).toBe("fox-2.png");
+      expect(await storedKeys()).toEqual([]);
+    });
+
+    it("keeps the stored object when it cannot be read after the row names the file", async () => {
+      const content = bytesOf(++seq, 4096);
+      const asset = await legacyAsset({ name: "fox", bytes: content });
+      await jobKilledAfter("switched").run(PROJECT, USER);
+
+      const report = await newJob(
+        undefined,
+        storeFailingReads(assetStore)
+      ).run(PROJECT, USER);
+
+      expect(report.moved).toEqual([]);
+      expect(report.failed).toEqual([asset.id]);
+      const stored = await storedObject(asset);
+      expect(Buffer.from(stored ?? []).equals(Buffer.from(content))).toBe(true);
+    });
+
+    it("points a row whose stored object is gone at the file its move recorded, and at no other", async () => {
+      const content = bytesOf(++seq, 4096);
+      const make = async (name: string, fileBytes: Uint8Array): Promise<Asset> => {
+        const asset = await Asset.create<Asset>({
+          user_id: USER,
+          project_id: PROJECT,
+          name,
+          content_type: "image/png",
+          size: content.byteLength,
+          // A stale save put the row back after its stored object was deleted.
+          metadata: {
+            [WORKSPACE_MOVE_TARGET_KEY]: `${name}.png`,
+            [WORKSPACE_MOVE_SOURCE_KEY]: sha256(content)
+          }
+        });
+        await folder(kind).write(`${name}.png`, fileBytes);
+        return asset;
+      };
+      const own = await make("own", content);
+      // The same size as the asset, and not its bytes.
+      const other = await make("other", bytesOf(++seq, 4096));
+
+      const report = await newJob().run(PROJECT, USER);
+
+      expect(report.moved).toEqual([own.id]);
+      expect(report.withoutBytes).toEqual([other.id]);
+      expect((await reload(own)).workspace_path).toBe("own.png");
+      expect(moveTargetOf(await reload(own))).toBeNull();
+      expect((await reload(other)).workspace_path).toBeNull();
+      expect(await folderFiles(kind)).toEqual(["other.png", "own.png"]);
+    });
+
+    it("keeps the legacy object when the copy differs only in the middle of a large file", async () => {
+      // Longer than both partial-hash spans. The size and the first and last
+      // 1 MiB of the copy are right, and one byte between them is not.
+      const content = bytesOf(++seq, 2 * MIB + 4096);
+      const asset = await legacyAsset({ name: "take", bytes: content });
+      workspaces.set(
+        PROJECT,
+        folderWriting(folder(kind), (data) => {
+          // A copy of its own: `slice` on a Buffer shares the bytes.
+          const copy = new Uint8Array(data);
+          copy[MIB + 100] = (copy[MIB + 100] ?? 0) ^ 0xff;
+          return copy;
+        })
+      );
+
+      const report = await newJob().run(PROJECT, USER);
+
+      expect(report.moved).toEqual([]);
+      expect(report.failed).toEqual([asset.id]);
+      expect((await reload(asset)).workspace_path).toBeNull();
+      const stored = await storedObject(asset);
+      expect(Buffer.from(stored ?? []).equals(Buffer.from(content))).toBe(true);
+      expect(await folderFiles(kind)).toEqual([]);
     });
 
     it("leaves no file behind for an asset that was deleted while its bytes were copied", async () => {
@@ -768,6 +1045,31 @@ describe.each(["local", "storage"] as const)(
     });
   }
 );
+
+describe("a local project folder", () => {
+  it("finishes a move that stopped after the copy was published and before its staging name was removed", async () => {
+    useFolders("local");
+    const content = bytesOf(++seq, 4096);
+    const asset = await legacyAsset({ name: "fox", bytes: content });
+    asset.metadata = { [WORKSPACE_MOVE_TARGET_KEY]: "fox.png" };
+    await asset.save();
+    const directory = join(root, "projects", PROJECT);
+    await mkdir(directory, { recursive: true });
+    const staging = join(directory, legacyAssetStagingName(asset.id));
+    await writeFile(staging, content);
+    await link(staging, join(directory, "fox.png"));
+
+    const report = await newJob().run(PROJECT, USER);
+
+    expect(report.moved).toEqual([asset.id]);
+    expect((await reload(asset)).workspace_path).toBe("fox.png");
+    expect(await folderFiles("local")).toEqual(["fox.png"]);
+    expect((await stat(join(directory, "fox.png"))).nlink).toBe(1);
+    const read = await readById(asset);
+    expect(Buffer.from(read ?? []).equals(Buffer.from(content))).toBe(true);
+    expect(await storedKeys()).toEqual([]);
+  });
+});
 
 describe("one asset's move", () => {
   it("moves nothing for an asset of another project", async () => {

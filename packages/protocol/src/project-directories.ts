@@ -25,6 +25,15 @@ export const PROJECT_DIRECTORY_ID_PREFIX = "dir:";
  */
 export const WORKSPACE_MOVE_TARGET_KEY = "workspace_move_target";
 
+/**
+ * The asset metadata key that records, next to
+ * {@link WORKSPACE_MOVE_TARGET_KEY}, the SHA-256 of the legacy object the
+ * move copied. The legacy object is deleted only while it still has this
+ * hash, so bytes stored under the legacy key after the copy are never lost.
+ * Server-owned, and removed together with the target.
+ */
+export const WORKSPACE_MOVE_SOURCE_KEY = "workspace_move_source";
+
 /** A directory of a project folder, as a directory folder id names it. */
 export interface ProjectDirectoryRef {
   projectId: string;

@@ -6,12 +6,17 @@
  * `<owner>/<assetId>.<ext>`, or under the older flat key `<assetId>.<ext>`.
  * {@link moveLegacyAssetIntoFolder} moves one asset in these steps:
  *
- * 1. Record the target path on the row ({@link WORKSPACE_MOVE_TARGET_KEY}).
- * 2. Copy the legacy object to the target with an exclusive create.
- * 3. Verify the copy by size and partial hash.
- * 4. Set `workspace_path` and the fingerprint on the row.
- * 5. Delete the legacy object.
- * 6. Remove the recorded target from the row.
+ * 1. Record the target path and the SHA-256 of the legacy object on the row
+ *    ({@link WORKSPACE_MOVE_TARGET_KEY}, {@link WORKSPACE_MOVE_SOURCE_KEY}).
+ * 2. Copy the legacy object to the target. The bytes are written under a
+ *    staging name beside the target and the target is given them in one
+ *    exclusive step.
+ * 3. Verify the copy by reading it back and comparing every byte.
+ * 4. Set `workspace_path` and the fingerprint on the row, when the legacy
+ *    object is still the one that was read.
+ * 5. Read the legacy object again and delete it, when it still has the
+ *    recorded hash.
+ * 6. Remove the recorded target and hash from the row.
  *
  * The asset is readable at every point. Readers ask the asset store for the
  * id key. The legacy object answers until step 5, and from then on the key
@@ -23,39 +28,53 @@
  * | Row | Folder | Next run |
  * | --- | --- | --- |
  * | No `workspace_path`, target recorded | Nothing at the target | Copies to the target. |
- * | No `workspace_path`, target recorded | A beginning of the bytes at the target | Removes that interrupted copy and copies again. |
  * | No `workspace_path`, target recorded | The whole bytes at the target | Verifies and continues with step 4. |
+ * | No `workspace_path`, target recorded | Anything else at the target | Leaves it and copies to the next free name. |
  * | `workspace_path` set, target recorded | The file | Deletes the legacy object and removes the target. |
  *
- * No file is ever replaced. A file at the target that is neither the bytes
- * nor a beginning of them belongs to someone else: it stays, and the copy
- * takes the next free name. The only file removed from the folder is a
- * shorter file at the recorded target whose every byte is the start of the
- * asset's bytes, which is a copy this move left unfinished.
+ * Nothing at a target is ever replaced or deleted. A target holds the whole
+ * copy or nothing, because the copy is published in one step, so a file
+ * that is there and is not the whole bytes is someone else's. The only
+ * files this module removes from a folder are its own staging name, which
+ * carries the asset id, and a copy the same call created and could not use.
  *
- * A file that is already in the asset's directory under a name the copy
- * could have taken, holds exactly the asset's bytes and has no row is used
- * as the copy. That is what an earlier run leaves when another writer saves
- * the row over the recorded target.
+ * Bytes stored under the legacy key while the move runs are never deleted.
+ * An update of the asset's bytes writes there for as long as the row names
+ * no file. The legacy object is deleted only while it still hashes to what
+ * step 1 recorded, or holds exactly the bytes of the file. Otherwise the row
+ * is pointed back at the legacy object and a later pass moves the new bytes.
+ *
+ * A legacy object that cannot be read is not a missing one. The asset store
+ * answers a failed read like a missing key, so absence is confirmed with a
+ * `stat` of every legacy key before the asset is treated as having none.
  *
  * External assets, folder rows and assets of another project are never
  * touched. Thumbnails and other derived objects stay in the asset store.
  */
+import { createHash } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
 import { Asset, moveTargetOf } from "@nodetool-ai/models";
 import {
+  WORKSPACE_MOVE_SOURCE_KEY,
   WORKSPACE_MOVE_TARGET_KEY,
   assetFileNameCandidates,
   directoryFolderId,
+  isNonEmptyString,
+  joinDirectory,
   parentDirectory,
   type ProjectDirectoryResolver
 } from "@nodetool-ai/protocol";
 import type { Workspace, WorkspaceStat } from "@nodetool-ai/runtime";
-import { assetKeyCandidates, type StorageAdapter } from "@nodetool-ai/storage";
 import {
+  assetKeyCandidates,
+  type StorageAdapter,
+  type StorageStat
+} from "@nodetool-ai/storage";
+import {
+  WORKSPACE_FINGERPRINT_KEYS,
+  WORKSPACE_OFFLINE_KEY,
   isProjectAssetOffline,
   partialContentHash,
-  partialContentHashOfWorkspaceFile,
   withWorkspaceFingerprint,
   type WorkspaceFingerprint
 } from "./project-asset-file.js";
@@ -74,7 +93,7 @@ export type LegacyAssetMoveStep =
   | "claimed"
   /** The bytes are at the target. */
   | "copied"
-  /** The copy has the size and partial hash of the legacy object. */
+  /** The copy holds exactly the bytes of the legacy object. */
   | "verified"
   /** The row names the file. The legacy object is still there. */
   | "switched"
@@ -141,6 +160,14 @@ export function legacyAssetDirectory(
   return legacyFolderDirectory(resolver.directoryOfParent(parentId));
 }
 
+/**
+ * The file name the copy of an asset is staged under, beside its target. It
+ * carries the asset id, so the name is this move's own in any directory.
+ */
+export function legacyAssetStagingName(assetId: string): string {
+  return `.${assetId}.nodetool-move.tmp`;
+}
+
 /** The asset store keys an asset's legacy object can be under, newest first. */
 function legacyKeys(asset: Asset): string[] {
   return assetFileNameCandidates(asset.id, asset.content_type).flatMap(
@@ -148,21 +175,56 @@ function legacyKeys(asset: Asset): string[] {
   );
 }
 
+function sha256(bytes: Uint8Array): string {
+  return createHash("sha256").update(bytes).digest("hex");
+}
+
+function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
+  return a.byteLength === b.byteLength && Buffer.compare(a, b) === 0;
+}
+
+/** The legacy object being moved, with what the copy is compared to. */
+interface MoveSource {
+  /** The key the object was read from, as a URI of the asset store. */
+  uri: string;
+  /** What the store reported about the object right before it was read. */
+  stat: StorageStat;
+  bytes: Uint8Array;
+  /** SHA-256 of `bytes`: what the legacy object must still be to be deleted. */
+  sha: string;
+}
+
+type LegacyObject =
+  | ({ state: "found" } & MoveSource)
+  /** A legacy key holds an object that could not be read whole. */
+  | { state: "unreadable" }
+  /** No legacy key holds an object, confirmed by a `stat` of each. */
+  | { state: "absent" };
+
 /**
- * The bytes of the legacy object of `asset`, or null when no legacy key holds
- * one. Call it only for a row with no `workspace_path` and no
- * `external_path`: the asset store then has nothing but the object to answer
- * with.
+ * The legacy object of `asset`. Call it only for a row with no
+ * `workspace_path` and no `external_path`: the asset store then has nothing
+ * but the object to answer with.
+ *
+ * The store answers a failed read with null, as it does for a missing key.
+ * So a key is taken for empty only when `stat` finds nothing under it, and an
+ * object that `stat` finds and `retrieve` does not return is unreadable.
  */
 async function readLegacyObject(
   storage: StorageAdapter,
   asset: Asset
-): Promise<Uint8Array | null> {
+): Promise<LegacyObject> {
   for (const key of legacyKeys(asset)) {
-    const bytes = await storage.retrieve(storage.uriForKey(key));
-    if (bytes) return bytes;
+    const uri = storage.uriForKey(key);
+    const stat = await storage.stat(uri);
+    if (!stat) continue;
+    const bytes = await storage.retrieve(uri);
+    // A length other than the one reported is an object that changed while
+    // it was read.
+    if (!bytes || bytes.byteLength !== stat.size) return { state: "unreadable" };
+    return { state: "found", uri, stat, bytes, sha: sha256(bytes) };
   }
-  return null;
+  return { state: "absent" };
 }
 
 async function statFile(
@@ -178,19 +240,23 @@ async function statFile(
   }
 }
 
-function startsWith(bytes: Uint8Array, start: Uint8Array): boolean {
-  if (start.byteLength > bytes.byteLength) return false;
-  for (let i = 0; i < start.byteLength; i++) {
-    if (bytes[i] !== start[i]) return false;
-  }
-  return true;
+/** The SHA-256 a move recorded on `asset` for its legacy object, or null. */
+function recordedSourceOf(asset: Asset): string | null {
+  const recorded = asset.metadata?.[WORKSPACE_MOVE_SOURCE_KEY];
+  return isNonEmptyString(recorded) ? recorded : null;
 }
 
-/** The bytes being moved, with what the copy is compared to. */
-interface MoveSource {
-  bytes: Uint8Array;
-  hash: string;
+function withoutKeys(
+  metadata: Record<string, unknown> | null,
+  keys: readonly string[]
+): Record<string, unknown> {
+  const dropped = new Set(keys);
+  return Object.fromEntries(
+    Object.entries(metadata ?? {}).filter(([key]) => !dropped.has(key))
+  );
 }
+
+const MOVE_KEYS = [WORKSPACE_MOVE_TARGET_KEY, WORKSPACE_MOVE_SOURCE_KEY];
 
 /** The file a move copies into. `written` says this call created it. */
 interface MoveTarget {
@@ -200,6 +266,7 @@ interface MoveTarget {
 
 class LegacyAssetMove {
   private readonly workspace: Workspace;
+  private readonly storage: StorageAdapter;
 
   constructor(
     private readonly userId: string,
@@ -207,6 +274,7 @@ class LegacyAssetMove {
     private readonly options: LegacyAssetMoveOptions
   ) {
     this.workspace = options.workspace;
+    this.storage = options.storage;
   }
 
   private async step(step: LegacyAssetMoveStep): Promise<void> {
@@ -226,16 +294,21 @@ class LegacyAssetMove {
     }
     const recorded = moveTargetOf(asset);
     if (asset.workspace_path) {
-      return recorded ? this.finish(asset) : { status: "settled" };
+      return recorded ? this.finish(asset, false) : { status: "settled" };
     }
 
-    const bytes = await readLegacyObject(this.options.storage, asset);
-    if (!bytes) {
+    const source = await readLegacyObject(this.storage, asset);
+    if (source.state === "unreadable") {
+      return {
+        status: "waiting",
+        reason: "the stored bytes could not be read, so they are kept where they are"
+      };
+    }
+    if (source.state === "absent") {
       return recorded
         ? this.adoptWithoutSource(asset, recorded)
         : { status: "no_bytes" };
     }
-    const source: MoveSource = { bytes, hash: partialContentHash(bytes) };
 
     const target =
       (recorded ? await this.resume(asset, recorded, source) : null) ??
@@ -245,85 +318,79 @@ class LegacyAssetMove {
     const fingerprint = await this.verify(target, source);
     await this.step("verified");
 
-    if (!(await this.pointRowAt(asset, target.path, fingerprint))) {
-      // An asset deleted meanwhile must not come back as a file with no row,
-      // which the reconcile would index as a new asset.
-      const deleted = (await Asset.find(asset.user_id, asset.id)) === null;
-      if (deleted && target.written) await this.workspace.delete(target.path);
+    // Bytes stored under the legacy key since it was read belong to the
+    // asset now. The copy holds the earlier ones and must not be named.
+    if (!(await this.isStillTheObjectRead(source))) {
+      await this.removeOwnCopy(target);
       return {
         status: "waiting",
-        reason: deleted
-          ? "the asset was deleted while its bytes were copied"
-          : "the asset changed while its bytes were copied"
+        reason: "the stored bytes changed while they were copied"
+      };
+    }
+    if (!(await this.pointRowAt(asset, target.path, fingerprint))) {
+      // A copy with no row would be indexed as a second asset, and the copy
+      // of a deleted asset would bring it back.
+      await this.removeOwnCopy(target);
+      return {
+        status: "waiting",
+        reason: "the asset changed or was deleted while its bytes were copied"
       };
     }
     await this.step("switched");
 
-    return this.finish(asset);
+    return this.finish(asset, target.written);
+  }
+
+  /** Remove a copy this call created. A file it found is left where it is. */
+  private async removeOwnCopy(target: MoveTarget): Promise<void> {
+    if (target.written) await this.workspace.delete(target.path);
+  }
+
+  /** Whether the legacy object is the one `source` was read from. */
+  private async isStillTheObjectRead(source: MoveSource): Promise<boolean> {
+    const now = await this.storage.stat(source.uri);
+    return (
+      now !== null &&
+      now.size === source.stat.size &&
+      now.modifiedAt === source.stat.modifiedAt
+    );
   }
 
   /**
-   * Continue with the target an earlier run recorded. Null when that path
-   * cannot be used any more, and the caller then claims a new one.
+   * Remove this asset's staging file beside `path`. A process that died
+   * while it published a copy can leave it, hard-linked to the copy, and the
+   * copy cannot be read until the second name is gone.
    */
-  private async resume(
-    asset: Asset,
-    recorded: string,
-    source: MoveSource
-  ): Promise<MoveTarget | null> {
-    let path: string;
-    try {
-      path = this.workspace.key(recorded);
-    } catch {
-      return null;
-    }
-    const owners = await Asset.findByWorkspacePath(
-      asset.user_id,
-      asset.project_id,
-      path
+  private async removeStaging(path: string): Promise<void> {
+    await this.workspace.delete(
+      joinDirectory(parentDirectory(path), legacyAssetStagingName(this.assetId))
     );
-    // Another asset took the name before the copy was made.
-    if (owners.length > 0) return null;
-
-    const info = await this.workspace.stat(path);
-    if (info?.isDirectory) return null;
-    if (info) {
-      const size = source.bytes.byteLength;
-      if (info.size > size) return null;
-      if (info.size === size) {
-        // The whole copy, or a file of someone else's with the same length.
-        return (await this.holdsBytes(path, source))
-          ? { path, written: false }
-          : null;
-      }
-      const existing = await this.workspace.read(path);
-      if (!existing || !startsWith(source.bytes, existing)) return null;
-      // A copy that stopped part way. Every byte of it is in the legacy
-      // object, and no row names it.
-      await this.workspace.delete(path);
-    }
-    const written = await this.workspace.writeNew(
-      path,
-      source.bytes,
-      asset.content_type
-    );
-    return written ? { path, written: true } : null;
   }
 
   /** Whether the file at `path` holds exactly the bytes being moved. */
   private async holdsBytes(path: string, source: MoveSource): Promise<boolean> {
     const existing = await this.workspace.read(path);
-    return (
-      existing !== null &&
-      existing.byteLength === source.bytes.byteLength &&
-      startsWith(source.bytes, existing)
-    );
+    return existing !== null && sameBytes(existing, source.bytes);
   }
 
-  /** Record `path` on the row as where the bytes are going. */
-  private async record(asset: Asset, path: string): Promise<void> {
+  /**
+   * Record on the row where the bytes are going and what they hash to.
+   * Nothing is written when the row already records both.
+   */
+  private async record(
+    asset: Asset,
+    path: string,
+    source: MoveSource
+  ): Promise<void> {
+    if (moveTargetOf(asset) === path && recordedSourceOf(asset) === source.sha) {
+      return;
+    }
     const read = asset.metadata;
-    asset.metadata = { ...(read ?? {}), [WORKSPACE_MOVE_TARGET_KEY]: path };
+    asset.metadata = {
+      ...(read ?? {}),
+      [WORKSPACE_MOVE_TARGET_KEY]: path,
+      [WORKSPACE_MOVE_SOURCE_KEY]: source.sha
+    };
     const saved = await asset.saveMoveStateIf({
       workspace_path: null,
       metadata: read
@@ -338,88 +405,76 @@ class LegacyAssetMove {
   }
 
   /**
-   * A file in `directory` under one of the names the asset could have been
-   * copied to that holds exactly its bytes and that no row names or waits
-   * for. It is the copy of an earlier run whose recorded target was lost,
-   * when another writer saved the row over it. Using it again keeps that
-   * copy from staying behind as a second file.
+   * Continue with the target an earlier run recorded. Null when that path
+   * cannot be used any more, and the caller then claims a new one.
+   *
+   * Whatever is at the path stays there. It is the copy only when it holds
+   * exactly the bytes, and anything else, an empty file included, is someone
+   * else's file.
    */
-  private async earlierCopy(
+  private async resume(
     asset: Asset,
-    source: MoveSource,
-    directory: string,
-    stem: string,
-    extension: string
-  ): Promise<string | null> {
-    const suffix = extension ? `.${extension}` : "";
-    const first = `${stem}${suffix}`.toLowerCase();
-    const numbered = `${stem}-`.toLowerCase();
-    const entries = await this.workspace.list(directory);
-    for (const entry of entries.sort((a, b) => (a.name < b.name ? -1 : 1))) {
-      if (entry.isDirectory || entry.size !== source.bytes.byteLength) continue;
-      const name = entry.name.toLowerCase();
-      const counter =
-        name.startsWith(numbered) && name.endsWith(suffix.toLowerCase())
-          ? name.slice(numbered.length, name.length - suffix.length)
-          : null;
-      if (name !== first && (counter === null || !/^\d+$/.test(counter))) {
-        continue;
-      }
-      const path = this.workspace.key(entry.path);
-      const owner = { userId: asset.user_id, projectId: asset.project_id };
-      const named = await Asset.findByWorkspacePath(
-        owner.userId,
-        owner.projectId,
-        path
-      );
-      const awaited = await Asset.findMovingTo(
-        owner.userId,
-        owner.projectId,
-        path
-      );
-      if (named.length > 0 || awaited.length > 0) continue;
-      if (await this.holdsBytes(path, source)) return path;
+    recorded: string,
+    source: MoveSource
+  ): Promise<MoveTarget | null> {
+    let path: string;
+    try {
+      path = this.workspace.key(recorded);
+    } catch {
+      return null;
     }
-    return null;
+    await this.removeStaging(path);
+    const owners = await Asset.findByWorkspacePath(
+      asset.user_id,
+      asset.project_id,
+      path
+    );
+    // Another asset took the name before the copy was made.
+    if (owners.length > 0) return null;
+
+    const info = await this.workspace.stat(path);
+    if (info) {
+      const isCopy =
+        !info.isDirectory &&
+        info.size === source.bytes.byteLength &&
+        (await this.holdsBytes(path, source));
+      if (!isCopy) return null;
+      await this.record(asset, path, source);
+      return { path, written: false };
+    }
+    await this.record(asset, path, source);
+    const written = await this.workspace.writeNew(
+      path,
+      source.bytes,
+      asset.content_type,
+      { stagingName: legacyAssetStagingName(asset.id) }
+    );
+    return written ? { path, written: true } : null;
   }
 
   /** Record a free name in the asset's directory and copy the bytes there. */
   private async claim(asset: Asset, source: MoveSource): Promise<MoveTarget> {
-    const folderPath = legacyAssetDirectory(
+    const directory = legacyAssetDirectory(
       this.options.resolver,
       asset.parent_id
     );
-    const directory = folderPath ? this.workspace.key(folderPath) : "";
-    const stem = projectAssetFileStem(asset.name, asset.content_type);
-    const extension = assetFileExtension(asset.content_type);
-
-    const earlier = await this.earlierCopy(
-      asset,
-      source,
-      directory,
-      stem,
-      extension
-    );
-    if (earlier) {
-      await this.record(asset, earlier);
-      return { path: earlier, written: false };
-    }
     const path = await claimFile(
       this.workspace,
       { userId: asset.user_id, projectId: asset.project_id },
-      directory,
-      stem,
-      extension,
+      directory ? this.workspace.key(directory) : "",
+      projectAssetFileStem(asset.name, asset.content_type),
+      assetFileExtension(asset.content_type),
       source.bytes,
       asset.content_type,
-      (candidate) => this.record(asset, candidate)
+      (candidate) => this.record(asset, candidate, source),
+      legacyAssetStagingName(asset.id)
     );
     return { path, written: true };
   }
 
   /**
-   * The fingerprint of the copy, once its size and partial hash equal those
-   * of the legacy object. A copy this call wrote that does not match is
+   * The fingerprint of the copy, once it has been read back and holds every
+   * byte of the legacy object. A copy this call wrote that does not match is
    * removed. Throws when they differ, and the row is left as it was.
    */
   private async verify(
@@ -427,12 +482,12 @@ class LegacyAssetMove {
     source: MoveSource
   ): Promise<WorkspaceFingerprint> {
     const info = await statFile(this.workspace, target.path);
-    const hash =
-      info && info.size === source.bytes.byteLength
-        ? await partialContentHashOfWorkspaceFile(this.workspace, target.path)
-        : null;
-    if (!info || hash !== source.hash) {
-      if (target.written) await this.workspace.delete(target.path);
+    const matches =
+      info !== null &&
+      info.size === source.bytes.byteLength &&
+      (await this.holdsBytes(target.path, source));
+    if (!info || !matches) {
+      await this.removeOwnCopy(target);
       throw new Error(
         `The copy of asset ${this.assetId} at ${target.path} does not match its stored bytes`
       );
@@ -440,13 +495,13 @@ class LegacyAssetMove {
     return {
       workspace_size: info.size,
       workspace_mtime: info.modifiedAt,
-      workspace_hash: hash
+      workspace_hash: partialContentHash(source.bytes)
     };
   }
 
   /**
-   * Name the file on the row. The recorded target stays until the legacy
-   * object is gone. False when the row is no longer what was read.
+   * Name the file on the row. The recorded target and hash stay until the
+   * legacy object is gone. False when the row is no longer what was read.
    */
   private async pointRowAt(
     asset: Asset,
@@ -484,10 +539,19 @@ class LegacyAssetMove {
 
   /**
    * Delete the legacy object of an asset whose row names its file, then
-   * remove the recorded target. The row is read again first: the object is
-   * deleted only while the row still names a file that is in the folder.
+   * remove what the move recorded. `ownCopy` says this call created the file.
+   *
+   * The row is read again first, and so is every legacy object. An object is
+   * deleted only when it still hashes to what was recorded before the copy,
+   * or holds exactly the bytes of the file. One that holds anything else was
+   * stored after the copy and is the asset's newest bytes: nothing is
+   * deleted, and the row goes back to it. An object that cannot be read is
+   * kept, and so is every object when the file has left the folder.
    */
-  private async finish(moved: Asset): Promise<LegacyAssetMoveOutcome> {
+  private async finish(
+    moved: Asset,
+    ownCopy: boolean
+  ): Promise<LegacyAssetMoveOutcome> {
     const asset = await Asset.find(moved.user_id, moved.id);
     const path = asset?.workspace_path;
     if (!asset || !path || asset.external_path) {
@@ -496,78 +560,154 @@ class LegacyAssetMove {
         reason: "the asset changed after its row was pointed at the file"
       };
     }
-    const { storage } = this.options;
-    const uris = legacyKeys(asset).map((key) => storage.uriForKey(key));
+    const uris = legacyKeys(asset).map((key) => this.storage.uriForKey(key));
     const present =
       !isProjectAssetOffline(asset) &&
       (await statFile(this.workspace, path)) !== null;
     if (!present) {
       // With the file gone, the store answers a key only from its own object.
       for (const uri of uris) {
-        if (await storage.stat(uri)) {
+        if (await this.storage.stat(uri)) {
           return {
             status: "waiting",
             reason: `the file ${path} is not in the project folder, so the stored bytes are kept`
           };
         }
       }
-    } else {
-      for (const uri of uris) await storage.delete(uri);
-      await this.step("legacy_deleted");
+      return this.clearRecorded(asset, path, { status: "settled" });
     }
 
+    const recorded = recordedSourceOf(asset);
+    let fileBytes: Uint8Array | null | undefined;
+    const deletable: string[] = [];
+    for (const uri of uris) {
+      // A key with no object of its own is answered from the file.
+      const stored = await this.storage.retrieve(uri);
+      if (stored === null) {
+        if ((await this.storage.stat(uri)) === null) continue;
+        return {
+          status: "waiting",
+          reason: "the stored bytes could not be read, so they are kept"
+        };
+      }
+      if (recorded !== null && sha256(stored) === recorded) {
+        deletable.push(uri);
+        continue;
+      }
+      if (fileBytes === undefined) fileBytes = await this.workspace.read(path);
+      if (fileBytes !== null && sameBytes(stored, fileBytes)) {
+        deletable.push(uri);
+        continue;
+      }
+      return this.pointRowBack(asset, path, recorded, ownCopy);
+    }
+    for (const uri of deletable) await this.storage.delete(uri);
+    await this.step("legacy_deleted");
+
+    return this.clearRecorded(asset, path, { status: "moved", path });
+  }
+
+  /** Remove the recorded target and hash from a row that names its file. */
+  private async clearRecorded(
+    asset: Asset,
+    path: string,
+    done: LegacyAssetMoveOutcome
+  ): Promise<LegacyAssetMoveOutcome> {
     const read = asset.metadata;
-    asset.metadata = Object.fromEntries(
-      Object.entries(read ?? {}).filter(
-        ([key]) => key !== WORKSPACE_MOVE_TARGET_KEY
-      )
-    );
+    asset.metadata = withoutKeys(read, MOVE_KEYS);
     const cleared = await asset.saveMoveStateIf({
       workspace_path: path,
       metadata: read
     });
-    if (cleared) return present ? { status: "moved", path } : { status: "settled" };
+    return cleared
+      ? done
+      : {
+          status: "waiting",
+          reason: "the asset changed while its stored bytes were removed"
+        };
+  }
+
+  /**
+   * The legacy object holds bytes that are neither the ones copied nor the
+   * ones in the file: they were stored under the asset's key after the copy.
+   * Nothing is deleted from the asset store.
+   *
+   * When this call created the file and the file still holds what it wrote,
+   * the row is pointed back at the legacy object and that copy is removed,
+   * so a later pass moves the new bytes. In every other case the row, the
+   * file and the object stay as they are for a person to resolve.
+   */
+  private async pointRowBack(
+    asset: Asset,
+    path: string,
+    recorded: string | null,
+    ownCopy: boolean
+  ): Promise<LegacyAssetMoveOutcome> {
+    const fileBytes = ownCopy ? await this.workspace.read(path) : null;
+    if (!fileBytes || recorded === null || sha256(fileBytes) !== recorded) {
+      log.warn(
+        "An asset's stored bytes changed after they were copied. Both are kept.",
+        { assetId: asset.id, path }
+      );
+      return {
+        status: "waiting",
+        reason: "bytes were stored for the asset after its copy was made, so both are kept"
+      };
+    }
+    const read = asset.metadata;
+    asset.workspace_path = null;
+    asset.content_hash = null;
+    asset.metadata = withoutKeys(read, [
+      ...WORKSPACE_FINGERPRINT_KEYS,
+      WORKSPACE_OFFLINE_KEY
+    ]);
+    const reverted = await asset.saveFilePlacementIf({
+      workspace_path: path,
+      metadata: read
+    });
+    if (reverted) await this.workspace.delete(path);
     return {
       status: "waiting",
-      reason: "the asset changed while its stored bytes were removed"
+      reason: "bytes were stored for the asset after its copy was made, so the move starts over"
     };
   }
 
   /**
-   * A row with a recorded target and no legacy object: its row was written
-   * back to an earlier state after the object was deleted. The file at the
-   * target is the asset's when no other row names it and it has the size the
-   * row holds, and the row is pointed at it again.
+   * A row with a recorded target and no legacy object under any key: the row
+   * was written back to an earlier state after the object was deleted. The
+   * file at the target is the asset's when no other row names it and it
+   * hashes to what the move recorded. The row is pointed at it again.
+   *
+   * Nothing is deleted on this path.
    */
   private async adoptWithoutSource(
     asset: Asset,
-    recorded: string
+    recordedTarget: string
   ): Promise<LegacyAssetMoveOutcome> {
     let path: string;
     try {
-      path = this.workspace.key(recorded);
+      path = this.workspace.key(recordedTarget);
     } catch {
       return { status: "no_bytes" };
     }
+    const recorded = recordedSourceOf(asset);
     const info = await statFile(this.workspace, path);
     const owners = await Asset.findByWorkspacePath(
       asset.user_id,
       asset.project_id,
       path
     );
-    if (
-      !info ||
-      owners.length > 0 ||
-      asset.size === null ||
-      asset.size !== info.size
-    ) {
+    if (!info || owners.length > 0 || recorded === null) {
       return { status: "no_bytes" };
     }
-    const hash = await partialContentHashOfWorkspaceFile(this.workspace, path);
+    const fileBytes = await this.workspace.read(path);
+    if (!fileBytes || sha256(fileBytes) !== recorded) {
+      return { status: "no_bytes" };
+    }
     const pointed = await this.pointRowAt(asset, path, {
       workspace_size: info.size,
       workspace_mtime: info.modifiedAt,
-      workspace_hash: hash
+      workspace_hash: partialContentHash(fileBytes)
     });
     if (!pointed) {
       return {
@@ -579,7 +719,7 @@ class LegacyAssetMove {
       assetId: asset.id,
       path
     });
-    return this.finish(asset);
+    return this.clearRecorded(asset, path, { status: "moved", path });
   }
 }
 

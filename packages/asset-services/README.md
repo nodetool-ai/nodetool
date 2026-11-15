@@ -51,11 +51,15 @@ See [the asset index follows the folder](../../docs/workspaces.md#the-asset-inde
 
 `moveLegacyAssetIntoFolder` in `legacy-asset-move` moves the bytes of one asset
 from before project folders out of the asset store and into its project's
-folder. It records the target path in the row's metadata under
-`workspace_move_target`, copies the object with `claimFile`, verifies the copy
-by size and partial hash, names the file on the row with
-`Asset.saveFilePlacementIf`, deletes the legacy object and then removes the
-recorded target. A call that finds a recorded target continues that move. The
+folder. It records the target path and the SHA-256 of the legacy object in the
+row's metadata under `workspace_move_target` and `workspace_move_source`. It
+copies the object with `claimFile`, passing a staging name to
+`Workspace.writeNew` so that the target holds the whole file or nothing. It
+verifies the copy byte for byte, names the file on the row with
+`Asset.saveFilePlacementIf`, deletes the legacy object while it still has the
+recorded hash, and then removes what it recorded. A call that finds a recorded
+target continues that move. It never deletes a file at a target, and it never
+deletes a legacy object it could not read or that changed after the copy. The
 job in
 [`@nodetool-ai/project-services`](../project-services/src/project-asset-move-job.ts)
 runs it for every asset of a project and deletes the folder rows that are left
