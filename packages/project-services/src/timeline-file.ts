@@ -53,6 +53,8 @@ export const TIMELINE_FILE_SUFFIX = ".timeline.json";
 export const TIMELINE_FILE_FORMAT = "nodetool.timeline";
 /** The name of the version that keeps a timeline as it was before an import. */
 export const TIMELINE_FILE_EDIT_VERSION_NAME = "Before file edit";
+/** The name of the version that keeps a file edit a save in NodeTool replaced. */
+export const TIMELINE_FILE_REPLACED_VERSION_NAME = "File edit replaced by a save";
 
 /** The render settings a new timeline gets when its file names none. */
 const DEFAULT_SETTINGS = { fps: 30, width: 1920, height: 1080 };
@@ -168,11 +170,29 @@ export const timelineFileAdapter: DocumentFileAdapter<
   // asks for the exact ID only.
   exists: (id) => TimelineSequence.existsExactly(id),
 
-  async snapshot(row) {
-    await TimelineSequenceVersion.snapshot(row, {
-      saveType: "manual",
-      name: TIMELINE_FILE_EDIT_VERSION_NAME
-    });
+  async snapshot(row, reason = "before-import") {
+    // For a replaced file the row is a copy that carries the file's fields,
+    // so its document is the object the file holds and not the stored text.
+    const document: unknown = row.document;
+    await TimelineSequenceVersion.snapshot(
+      {
+        id: row.id,
+        user_id: row.user_id,
+        fps: row.fps,
+        width: row.width,
+        height: row.height,
+        duration_ms: row.duration_ms,
+        document:
+          typeof document === "string" ? document : JSON.stringify(document)
+      },
+      {
+        saveType: "manual",
+        name:
+          reason === "replaced-file"
+            ? TIMELINE_FILE_REPLACED_VERSION_NAME
+            : TIMELINE_FILE_EDIT_VERSION_NAME
+      }
+    );
   },
 
   update(row, fields, name) {

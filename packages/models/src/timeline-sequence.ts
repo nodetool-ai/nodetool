@@ -16,6 +16,7 @@ import {
   ModelChangeEvent,
   ModelChangeMeta,
   ModelObserver,
+  computeEtag,
   createTimeOrderedUuid,
   nextUpdatedAtAfter
 } from "./base-model.js";
@@ -141,8 +142,10 @@ export class TimelineSequence extends DBModel {
   /** The timeline's file, relative to its project's folder. */
   declare file_path: string | null;
   /**
-   * SHA-256 of the file content last synced with this row. Null when the row
-   * is newer than its file, which the next reconcile then writes.
+   * SHA-256 of the file as NodeTool last wrote or imported it. A file with
+   * another hash holds an edit NodeTool has not seen. Null until the row is
+   * first synced with a file. A host with no file sync leaves it as it is,
+   * and the reconcile then finds the row newer than its untouched file.
    */
   declare file_hash: string | null;
   /** What the last reconcile found wrong with the file, or null. */
@@ -168,11 +171,24 @@ export class TimelineSequence extends DBModel {
     this.updated_at ??= now;
   }
 
+  /**
+   * The etag of the timeline, without the state of its file. Where the file
+   * is, its hash and what the last reconcile found wrong with it are records
+   * about the file and no content of the timeline. Recording them must not
+   * read as a change of the timeline to a client that holds its etag.
+   */
+  override getEtag(): string {
+    const {
+      file_path: _path,
+      file_hash: _hash,
+      file_error: _error,
+      ...content
+    } = this.toRow();
+    return computeEtag(content);
+  }
+
   /** Every create and save of a timeline row writes its file afterwards. */
   protected override async persist(event: ModelChangeEvent): Promise<this> {
-    // A host with no file sync cannot write the file. The hash is cleared so
-    // that a reconcile on a host that has one writes the file from this row.
-    if (!timelineFileSync) this.file_hash = null;
     await super.persist(event);
     await this.syncFile(this.previousFile());
     return this;
@@ -294,14 +310,17 @@ export class TimelineSequence extends DBModel {
       )
       .limit(1);
     if (!before) return false;
-    const changes: { project_id: string; file_hash?: null } = {
-      project_id: projectId
-    };
-    // See `persist`: without a file sync the row becomes newer than its file.
-    if (!timelineFileSync) changes.file_hash = null;
+    const moves = before.project_id !== projectId;
     const rows = await db
       .update(timelineSequences)
-      .set(changes)
+      .set({
+        project_id: projectId,
+        // A host with no file sync cannot take the file along. The path and
+        // the hash name a file of the folder the timeline left, so the row
+        // forgets them and the reconcile of its new folder writes a file.
+        ...(!timelineFileSync &&
+          moves && { file_path: null, file_hash: null, file_error: null })
+      })
       .where(
         and(eq(timelineSequences.id, id), eq(timelineSequences.user_id, userId))
       )
@@ -310,7 +329,7 @@ export class TimelineSequence extends DBModel {
     if (!row) return false;
     const moved = new TimelineSequence(row);
     await moved.syncFile(
-      before.file_path && before.project_id !== projectId
+      before.file_path && moves
         ? { project_id: before.project_id, file_path: before.file_path }
         : null
     );
@@ -517,10 +536,7 @@ export class TimelineSequence extends DBModel {
         document: JSON.stringify(doc),
         duration_ms: timelineDocumentDurationMs(doc),
         revision: sql`${timelineSequences.revision} + 1`,
-        updated_at: now,
-        // See `persist`: without a file sync the row becomes newer than its
-        // file.
-        ...(!timelineFileSync && { file_hash: null })
+        updated_at: now
       })
       .where(
         and(
@@ -575,10 +591,7 @@ export class TimelineSequence extends DBModel {
       .set({
         ...write,
         revision: sql`${timelineSequences.revision} + 1`,
-        updated_at: now,
-        // See `persist`: without a file sync the row becomes newer than its
-        // file.
-        ...(!timelineFileSync && { file_hash: null })
+        updated_at: now
       })
       .where(
         and(

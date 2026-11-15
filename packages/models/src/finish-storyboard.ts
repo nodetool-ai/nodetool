@@ -21,10 +21,7 @@ export async function commitFinishedStoryboard(input: FinishStoryboardWrite): Pr
   const id = input.timeline?.id ?? createTimeOrderedUuid();
   const now = new Date(Math.max(Date.now(), Date.parse(input.board.updated_at) + 1, Date.parse(input.timeline?.updated_at ?? "") + 1 || 0)).toISOString();
   const boardFields = { timeline_id: id, revision: input.board.revision + 1, updated_at: now, ...(input.boardDocument !== undefined && { document: input.boardDocument }) };
-  // The row is written here, outside the model. Its file is written after the
-  // commit. Until then the hash is cleared, so the row reads as newer than the
-  // file and a reconcile in between does not import the file it replaces.
-  const timelineFields = { document: JSON.stringify(input.document), duration_ms: input.durationMs, updated_at: now, file_hash: null };
+  const timelineFields = { document: JSON.stringify(input.document), duration_ms: input.durationMs, updated_at: now };
   const initial = { ...timelineFields, id, user_id: input.board.user_id, project_id: input.board.project_id, name: input.board.name, fps: 30, width: input.width, height: input.height, revision: 0, created_at: now };
   if (connection.dialect === "sqlite") {
     const { storyboards, timelineSequences } = connection.schema;
@@ -50,6 +47,7 @@ export async function commitFinishedStoryboard(input: FinishStoryboardWrite): Pr
   const board = await Storyboard.findById(input.board.id);
   const timeline = await TimelineSequence.findById(id);
   if (!board || !timeline) throw new Error("Finished resources disappeared before confirmation.");
+  // The row was written outside the model, so its file is written here.
   await timeline.syncFile();
   ModelObserver.notify(board, ModelChangeEvent.UPDATED);
   ModelObserver.notify(timeline, input.timeline ? ModelChangeEvent.UPDATED : ModelChangeEvent.CREATED);

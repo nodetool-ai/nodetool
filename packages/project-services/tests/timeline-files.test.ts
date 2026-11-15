@@ -51,6 +51,7 @@ import {
 } from "../src/project-index.js";
 import {
   TIMELINE_FILE_EDIT_VERSION_NAME,
+  TIMELINE_FILE_REPLACED_VERSION_NAME,
   migrateTimelineFiles,
   timelineFileAdapter
 } from "../src/timeline-file.js";
@@ -261,6 +262,52 @@ function agentRun(kind: Kind): ReturnType<typeof createCapabilityRun> {
     postMessage: () => undefined
   } as unknown as ProcessingContext;
   return createCapabilityRun({ context, gate: UNGATED });
+}
+
+/** The versions of a timeline, newest first, as name and first clip name. */
+async function versionNames(id: string): Promise<Array<[string | null, unknown]>> {
+  return (await versionsOf(id)).map((version) => [
+    version.name,
+    (JSON.parse(version.document) as TestDocument).clips[0]?.name
+  ]);
+}
+
+/**
+ * `inner` as a folder that ignores case, as macOS and Windows folders do: a
+ * file answers to its path in any case, and a listing shows the name the
+ * file has.
+ */
+function ignoringCase(inner: Workspace): Workspace {
+  const actual = async (path: string): Promise<string> => {
+    const key = inner.key(path);
+    const slash = key.lastIndexOf("/");
+    const entries = await inner
+      .list(slash < 0 ? "" : key.slice(0, slash))
+      .catch(() => []);
+    const match = entries.find(
+      (entry) => entry.path.toLowerCase() === key.toLowerCase()
+    );
+    return match?.path ?? key;
+  };
+  const folded: Partial<Workspace> = {
+    read: async (path) => inner.read(await actual(path)),
+    readText: async (path) => inner.readText(await actual(path)),
+    stat: async (path) => inner.stat(await actual(path)),
+    exists: async (path) => inner.exists(await actual(path)),
+    write: async (path, data, type) => inner.write(await actual(path), data, type),
+    writeNew: async (path, data, type) =>
+      inner.writeNew(await actual(path), data, type),
+    delete: async (path) => inner.delete(await actual(path)),
+    materialize: async (path) => inner.materialize(await actual(path))
+  };
+  return new Proxy(inner, {
+    get(target, property, receiver): unknown {
+      const override = folded[property as keyof Workspace];
+      if (override) return override;
+      const value: unknown = Reflect.get(target, property, receiver);
+      return typeof value === "function" ? value.bind(target) : value;
+    }
+  });
 }
 
 /** Let the time a copy waits to be told apart from a move pass. */
@@ -543,9 +590,9 @@ describe.each(["local", "storage"] as const)("timeline files (%s folder)", (kind
         { document: JSON.stringify(documentOf(clip("c1", "offline edit"))) }
       );
 
-      // The row is saved and marked newer than its file.
+      // The row is saved. Its hash still names the file as last written.
       expect(saved && documentIn(saved).clips[0]?.name).toBe("offline edit");
-      expect((await reload(timeline.id)).file_hash).toBeNull();
+      expect((await reload(timeline.id)).file_hash).toBe(timeline.file_hash);
       expect((await jsonOf(kind, pathOf("Fox"))).document.clips[0]?.name).toBe("hello");
 
       unreachable = false;
@@ -562,7 +609,7 @@ describe.each(["local", "storage"] as const)("timeline files (%s folder)", (kind
       expect(stored.revision).toBe(saved?.revision);
     });
 
-    it("marks the row newer than its file when a host without the sync saves it", async () => {
+    it("writes the file of a row that a host without the sync saved", async () => {
       const timeline = await makeTimeline("Fox");
       setTimelineFileSync(null);
 
@@ -571,11 +618,11 @@ describe.each(["local", "storage"] as const)("timeline files (%s folder)", (kind
         timeline.updated_at,
         { document: JSON.stringify(documentOf(clip("c1", "from the cli"))) }
       );
-      expect(saved?.file_hash).toBeNull();
+      expect(saved?.file_hash).toBe(timeline.file_hash);
       const loaded = await reload(timeline.id);
       loaded.fps = 25;
       await loaded.save();
-      expect((await reload(timeline.id)).file_hash).toBeNull();
+      expect((await reload(timeline.id)).file_hash).toBe(timeline.file_hash);
 
       setTimelineFileSync(documentFileSync(timelineFileAdapter));
       expect(await reconcile()).toMatchObject({ written: [timeline.id], imported: [] });
@@ -705,7 +752,20 @@ describe.each(["local", "storage"] as const)("timeline files (%s folder)", (kind
       expect((await reload(timeline.id)).file_error).toBe(
         "fps must be a positive number."
       );
+      // So is a document the validation of set_timeline_document refuses.
+      await folder(kind).write(
+        pathOf("Fox"),
+        JSON.stringify({
+          ...file,
+          document: documentOf({ ...clip("c1", "x"), mediaType: "hologram" })
+        })
+      );
+      await reconcile();
+      expect((await reload(timeline.id)).file_error).toMatch(
+        /^The document has 1 error\nclips\.0\.mediaType: /
+      );
       expect((await reload(timeline.id)).revision).toBe(before.revision);
+      expect((await reload(timeline.id)).document).toBe(before.document);
 
       // Fixing the file clears the error and imports it.
       await folder(kind).write(
@@ -1120,6 +1180,218 @@ describe.each(["local", "storage"] as const)("timeline files (%s folder)", (kind
     });
   });
 
+  describe("a file edit NodeTool has not seen", () => {
+    const named = (name: string): string =>
+      JSON.stringify(documentOf(clip("c1", name)));
+
+    it("keeps the edit as a version when a save replaces the file", async () => {
+      // The file changes while no client has the project open, as after a
+      // `git pull`, and nothing reconciles it before the next save.
+      const timeline = await makeTimeline("Fox");
+      await editFile(kind, pathOf("Fox"), (file) => {
+        file.document.clips[0]!.name = "pulled from git";
+        file.fps = 24;
+      });
+
+      const written = (await agentRun(kind).invoke("set_timeline_document", {
+        timeline_id: timeline.id,
+        document: documentOf(clip("c1", "saved in NodeTool"))
+      })) as Record<string, unknown>;
+      expect(written).toMatchObject({ ok: true, written: true });
+
+      // The save is stored and written, and the edit it replaced is a version
+      // beside the one the tool keeps of the row.
+      const stored = await reload(timeline.id);
+      expect(documentIn(stored).clips[0]?.name).toBe("saved in NodeTool");
+      expect((await jsonOf(kind, pathOf("Fox"))).document.clips[0]?.name).toBe(
+        "saved in NodeTool"
+      );
+      expect(stored.file_hash).toBe(sha256(await textOf(kind, pathOf("Fox"))));
+      expect(await versionNames(timeline.id)).toEqual([
+        [TIMELINE_FILE_REPLACED_VERSION_NAME, "pulled from git"],
+        ["Before set_timeline_document", "hello"]
+      ]);
+      // The version holds the edit as the file had it, settings included.
+      expect((await versionsOf(timeline.id))[0]).toMatchObject({
+        fps: 24,
+        duration_ms: 1000,
+        save_type: "manual"
+      });
+      expect(await reconcile()).toMatchObject({ unchanged: 1, imported: [] });
+    });
+
+    it("keeps the edit when the timeline is renamed or a field outside the file is saved", async () => {
+      const renamed = await makeTimeline("Fox");
+      const linked = await makeTimeline("Owl");
+      await editFile(kind, pathOf("Fox"), (file) => {
+        file.document.clips[0]!.name = "fox edit";
+      });
+      await editFile(kind, pathOf("Owl"), (file) => {
+        file.document.clips[0]!.name = "owl edit";
+      });
+
+      // A rename writes the new file and deletes the old one.
+      await TimelineSequence.updateFieldsIfUnchanged(renamed.id, renamed.updated_at, {
+        name: "Arctic fox"
+      });
+      // The linked workflow is not in the file at all.
+      await TimelineSequence.updateFieldsIfUnchanged(linked.id, linked.updated_at, {
+        workflow_id: "workflow-1"
+      });
+
+      expect(await fileNames(kind)).toEqual([
+        "Arctic fox.timeline.json",
+        "Owl.timeline.json"
+      ]);
+      expect(await versionNames(renamed.id)).toEqual([
+        [TIMELINE_FILE_REPLACED_VERSION_NAME, "fox edit"]
+      ]);
+      expect(await versionNames(linked.id)).toEqual([
+        [TIMELINE_FILE_REPLACED_VERSION_NAME, "owl edit"]
+      ]);
+    });
+
+    it("keeps no version when the file holds the row's content in another layout", async () => {
+      const timeline = await makeTimeline("Fox");
+      const compact = JSON.stringify(await jsonOf(kind, pathOf("Fox")));
+      await folder(kind).write(pathOf("Fox"), compact);
+
+      await TimelineSequence.updateFieldsIfUnchanged(timeline.id, timeline.updated_at, {
+        workflow_id: "workflow-1"
+      });
+
+      expect(await versionNames(timeline.id)).toEqual([]);
+      expect((await reload(timeline.id)).file_hash).toBe(
+        sha256(await textOf(kind, pathOf("Fox")))
+      );
+    });
+
+    it("leaves a file that failed validation alone when the timeline is saved", async () => {
+      const timeline = await makeTimeline("Fox");
+      // The user's edit in progress: a clip of a media type that does not exist.
+      const inProgress = await editFile(kind, pathOf("Fox"), (file) => {
+        file.document.clips.push({
+          ...clip("c2", "draft", 1000),
+          mediaType: "hologram"
+        });
+      });
+      expect(await reconcile()).toMatchObject({ invalid: [timeline.id] });
+      const refused = await reload(timeline.id);
+
+      const saved = await TimelineSequence.updateFieldsIfUnchanged(
+        timeline.id,
+        refused.updated_at,
+        { document: named("saved in NodeTool") }
+      );
+      const renamed = await TimelineSequence.updateFieldsIfUnchanged(
+        timeline.id,
+        saved?.updated_at ?? "",
+        { name: "Arctic fox" }
+      );
+
+      // The row is saved. The file is the user's, untouched and not renamed.
+      expect(renamed).toMatchObject({ name: "Arctic fox", file_path: pathOf("Fox") });
+      expect(renamed && documentIn(renamed).clips[0]?.name).toBe("saved in NodeTool");
+      expect(await fileNames(kind)).toEqual(["Fox.timeline.json"]);
+      expect(await textOf(kind, pathOf("Fox"))).toBe(inProgress);
+      const stored = await reload(timeline.id);
+      expect(stored.file_error).toBe(refused.file_error);
+      expect(stored.file_hash).toBe(timeline.file_hash);
+      // The reconcile leaves it alone as well.
+      expect(await reconcile()).toMatchObject({ invalid: [timeline.id], written: [] });
+      expect(await textOf(kind, pathOf("Fox"))).toBe(inProgress);
+
+      // Once the file is valid it is imported, and the saves made meanwhile
+      // are the version.
+      await editFile(kind, pathOf("Fox"), (file) => {
+        file.document.clips[1]!.mediaType = "shape";
+      });
+      expect(await reconcile()).toMatchObject({ imported: [timeline.id] });
+      const imported = await reload(timeline.id);
+      expect(documentIn(imported).clips.map((c) => c.name)).toEqual(["hello", "draft"]);
+      expect(imported.file_error).toBeNull();
+      expect(await versionNames(timeline.id)).toEqual([
+        [TIMELINE_FILE_EDIT_VERSION_NAME, "saved in NodeTool"]
+      ]);
+    });
+
+    it("records the error of an invalid file that a save finds first", async () => {
+      const timeline = await makeTimeline("Fox");
+      await folder(kind).write(pathOf("Fox"), "{ half an edit");
+
+      const saved = await TimelineSequence.updateFieldsIfUnchanged(
+        timeline.id,
+        timeline.updated_at,
+        { fps: 25 }
+      );
+
+      expect(saved?.file_error).toMatch(/^The file is not valid JSON/);
+      expect(await textOf(kind, pathOf("Fox"))).toBe("{ half an edit");
+      expect(await reload(timeline.id)).toMatchObject({
+        fps: 25,
+        file_hash: timeline.file_hash
+      });
+    });
+
+    it("imports the edit when a host without the sync saved the row as well", async () => {
+      const timeline = await makeTimeline("Fox");
+      setTimelineFileSync(null);
+      await TimelineSequence.updateFieldsIfUnchanged(timeline.id, timeline.updated_at, {
+        document: named("from the cli")
+      });
+      setTimelineFileSync(documentFileSync(timelineFileAdapter));
+      const edited = await editFile(kind, pathOf("Fox"), (file) => {
+        file.document.clips[0]!.name = "edited on disk";
+      });
+
+      const report = await reconcile();
+
+      // The file is not written from the row: it is imported, and what the
+      // other host saved is the version.
+      expect(report).toMatchObject({ imported: [timeline.id], written: [] });
+      expect(await textOf(kind, pathOf("Fox"))).toBe(edited);
+      expect(documentIn(await reload(timeline.id)).clips[0]?.name).toBe(
+        "edited on disk"
+      );
+      expect(await versionNames(timeline.id)).toEqual([
+        [TIMELINE_FILE_EDIT_VERSION_NAME, "from the cli"]
+      ]);
+    });
+
+    it("keeps an invalid edit when a host without the sync saved the row as well", async () => {
+      const timeline = await makeTimeline("Fox");
+      setTimelineFileSync(null);
+      await TimelineSequence.updateFieldsIfUnchanged(timeline.id, timeline.updated_at, {
+        document: named("from the cli")
+      });
+      setTimelineFileSync(documentFileSync(timelineFileAdapter));
+      await folder(kind).write(pathOf("Fox"), "{ half an edit");
+
+      expect(await reconcile()).toMatchObject({ invalid: [timeline.id], written: [] });
+
+      expect(await textOf(kind, pathOf("Fox"))).toBe("{ half an edit");
+      expect(documentIn(await reload(timeline.id)).clips[0]?.name).toBe("from the cli");
+    });
+
+    it("renames the file of a timeline that was renamed while the folder was away", async () => {
+      const timeline = await makeTimeline("Fox");
+      unreachable = true;
+      await TimelineSequence.updateFieldsIfUnchanged(timeline.id, timeline.updated_at, {
+        name: "Arctic fox"
+      });
+      unreachable = false;
+
+      expect(await reconcile()).toMatchObject({ written: [timeline.id], renamed: [] });
+
+      expect(await fileNames(kind)).toEqual(["Arctic fox.timeline.json"]);
+      expect(await reload(timeline.id)).toMatchObject({
+        name: "Arctic fox",
+        file_path: pathOf("Arctic fox")
+      });
+      expect(await reconcile()).toMatchObject({ unchanged: 1, written: [], created: [] });
+    });
+  });
+
   describe("duplicating and moving a file", () => {
     it("makes a second timeline with a new ID from a duplicated file", async () => {
       const timeline = await makeTimeline("Fox");
@@ -1173,15 +1445,19 @@ describe.each(["local", "storage"] as const)("timeline files (%s folder)", (kind
         timeline_id: timeline.id,
         name: "v1"
       });
-      const changed = await TimelineSequence.updateFieldsIfUnchanged(
-        timeline.id,
-        timeline.updated_at,
-        {
-          document: JSON.stringify(documentOf(clip("c1", "second draft", 0, 5000))),
-          fps: 24
-        }
+      // The second draft is saved through a loaded instance, so the restore
+      // is the only write here that takes the conditional update.
+      const changed = await reload(timeline.id);
+      changed.document = JSON.stringify(
+        documentOf(clip("c1", "second draft", 0, 5000))
       );
-      expect(changed).not.toBeNull();
+      changed.duration_ms = 5000;
+      changed.fps = 24;
+      await changed.save();
+      expect(await jsonOf(kind, pathOf("Fox"))).toMatchObject({
+        fps: 24,
+        duration_ms: 5000
+      });
 
       const restored = (await run.invoke("restore_timeline_version", {
         timeline_id: timeline.id,
@@ -1197,7 +1473,7 @@ describe.each(["local", "storage"] as const)("timeline files (%s folder)", (kind
       expect(file).toMatchObject({ fps: 30, duration_ms: 1000 });
       expect(after.file_hash).toBe(sha256(await textOf(kind, pathOf("Fox"))));
       // The restore is a write, so open editors reload.
-      expect(after.revision).toBe((changed?.revision ?? 0) + 1);
+      expect(after.revision).toBe(changed.revision + 1);
 
       const report = await reconcile();
 
@@ -1257,6 +1533,33 @@ describe.each(["local", "storage"] as const)("timeline files (%s folder)", (kind
       });
       expect(gone).toMatchObject({ files: 0, missing: [owl.id] });
       expect((await reload(fox.id)).file_error).toBeNull();
+    });
+  });
+
+  describe("a row whose file is missing", () => {
+    it("gets its file back from a changed path alone, and makes no second timeline", async () => {
+      const timeline = await makeTimeline("Fox");
+      const text = await textOf(kind, pathOf("Fox"));
+      await folder(kind).delete(pathOf("Fox"));
+      expect(await reconcile()).toMatchObject({ missing: [timeline.id] });
+
+      // The file comes back under another name, and the watcher names only
+      // the path that appeared.
+      await folder(kind).write(pathOf("Arctic fox"), text);
+      const report = await reconcileDocumentFiles(
+        [timelineFileAdapter],
+        PROJECT,
+        USER,
+        { paths: [pathOf("Arctic fox")] }
+      );
+
+      expect(report).toMatchObject({ renamed: [timeline.id], reassigned: [], created: [] });
+      expect(await rows()).toHaveLength(1);
+      expect(await reload(timeline.id)).toMatchObject({
+        name: "Arctic fox",
+        file_path: pathOf("Arctic fox"),
+        file_error: null
+      });
     });
   });
 
@@ -1325,5 +1628,121 @@ describe.each(["local", "storage"] as const)("timeline files (%s folder)", (kind
       expect(await fileNames(kind)).toEqual(["Fox.timeline.json"]);
       expect(await reconcile()).toMatchObject({ unchanged: 1, written: [] });
     });
+  });
+});
+
+/**
+ * File names that differ in case only. The folder is the object store, whose
+ * keys keep case apart on every host, so the cases do not depend on the file
+ * system the tests run on. `ignoringCase` makes it answer as a macOS or
+ * Windows folder does.
+ */
+describe("timeline file names that differ in case only", () => {
+  const kind = "storage";
+  beforeEach(() => useFolders(kind));
+
+  describe("a folder that ignores case", () => {
+    beforeEach(() => {
+      workspaces.set(PROJECT, ignoringCase(kinds[kind](PROJECT)));
+    });
+
+    /** Rename the file in case only, as Finder or Explorer does. */
+    async function renameInCase(from: string, to: string): Promise<void> {
+      const inner = kinds[kind](PROJECT);
+      await inner.move(from, to);
+    }
+
+    it("follows a rename in case only and makes no second timeline", async () => {
+      const timeline = await makeTimeline("Foo");
+      await renameInCase(pathOf("Foo"), pathOf("foo"));
+      // The old path still reads, which is what made the file look like a copy.
+      expect(await folder(kind).exists(pathOf("Foo"))).toBe(true);
+      expect(await fileNames(kind)).toEqual(["foo.timeline.json"]);
+
+      const report = await reconcile();
+
+      expect(report).toMatchObject({
+        renamed: [timeline.id],
+        deferred: [],
+        reassigned: [],
+        created: []
+      });
+      expect(await reload(timeline.id)).toMatchObject({
+        name: "foo",
+        file_path: pathOf("foo"),
+        file_error: null
+      });
+
+      passCopyGrace();
+      expect(await reconcile()).toMatchObject({
+        unchanged: 1,
+        renamed: [],
+        reassigned: [],
+        created: []
+      });
+      expect(await rows()).toHaveLength(1);
+      expect((await jsonOf(kind, pathOf("foo"))).id).toBe(timeline.id);
+      expect(await versionsOf(timeline.id)).toHaveLength(0);
+    });
+
+    it("follows it when the watcher names both paths", async () => {
+      const timeline = await makeTimeline("Foo");
+      await renameInCase(pathOf("Foo"), pathOf("foo"));
+
+      const report = await reconcileDocumentFiles(
+        [timelineFileAdapter],
+        PROJECT,
+        USER,
+        { paths: [pathOf("Foo"), pathOf("foo")] }
+      );
+
+      expect(report).toMatchObject({ renamed: [timeline.id], deferred: [], reassigned: [] });
+      passCopyGrace();
+      expect(
+        await reconcileDocumentFiles([timelineFileAdapter], PROJECT, USER, {
+          paths: [pathOf("Foo"), pathOf("foo")]
+        })
+      ).toMatchObject({ unchanged: 1, reassigned: [], created: [] });
+      expect(await rows()).toHaveLength(1);
+      expect(await reload(timeline.id)).toMatchObject({
+        name: "foo",
+        file_path: pathOf("foo")
+      });
+    });
+
+    it("imports an edit made with the rename", async () => {
+      const timeline = await makeTimeline("Foo");
+      await renameInCase(pathOf("Foo"), pathOf("foo"));
+      await editFile(kind, pathOf("foo"), (file) => {
+        file.document.clips[0]!.name = "edited too";
+      });
+
+      expect(await reconcile()).toMatchObject({
+        renamed: [timeline.id],
+        imported: [timeline.id],
+        reassigned: []
+      });
+      const stored = await reload(timeline.id);
+      expect(documentIn(stored).clips[0]?.name).toBe("edited too");
+      expect(stored.revision).toBe(timeline.revision + 1);
+      expect(await rows()).toHaveLength(1);
+    });
+  });
+
+  it("keeps two files that differ in case apart on a folder that does not ignore it", async () => {
+    const upper = await makeTimeline("Foo");
+    await folder(kind).copy(pathOf("Foo"), pathOf("foo"));
+
+    // Both files are listed, so the second is a copy and waits.
+    expect(await reconcile()).toMatchObject({
+      unchanged: 1,
+      renamed: [],
+      deferred: [pathOf("foo")]
+    });
+    passCopyGrace();
+    const report = await reconcile();
+    expect(report.reassigned).toHaveLength(1);
+    expect(await reload(upper.id)).toMatchObject({ name: "Foo", file_path: pathOf("Foo") });
+    expect(await rows()).toHaveLength(2);
   });
 });

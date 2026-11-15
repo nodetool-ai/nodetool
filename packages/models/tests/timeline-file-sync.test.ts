@@ -11,6 +11,7 @@ import {
   Storyboard,
   TimelineSequence,
   commitFinishedStoryboard,
+  computeEtag,
   initTestDb,
   moveDocumentToProject,
   reassignProjectDocuments,
@@ -204,44 +205,98 @@ describe("the timeline file sync hook", () => {
     expect(events).toEqual([]);
   });
 
-  it("marks the row newer than its file when no sync is installed", async () => {
+  it("keeps the recorded file state when no sync is installed", async () => {
     const timeline = await makeTimeline();
-    expect(timeline.file_hash).not.toBeNull();
+    const state = {
+      file_path: "Timelines/Cut.timeline.json",
+      file_hash: timeline.file_hash
+    };
+    expect(state.file_hash).not.toBeNull();
     setTimelineFileSync(null);
 
+    // The hash still names the file as it was last synced. A reconcile on a
+    // host that has the sync compares the file with it and never takes an
+    // edited file for an untouched one.
     const updated = await TimelineSequence.updateFieldsIfUnchanged(
       timeline.id,
       timeline.updated_at,
       { fps: 25 }
     );
-    expect(updated?.file_hash).toBeNull();
+    expect(updated).toMatchObject(state);
+    const replaced = await TimelineSequence.updateDocumentIfUnchanged(
+      timeline.id,
+      updated?.updated_at ?? "",
+      EMPTY
+    );
+    expect(replaced).toMatchObject(state);
+    const again = await reload(timeline.id);
+    again.fps = 24;
+    await again.save();
+    expect(await reload(timeline.id)).toMatchObject({ fps: 24, ...state });
+  });
+
+  it("forgets the file of a timeline that a host without the sync moved", async () => {
+    const timeline = await makeTimeline();
+    setTimelineFileSync(null);
+
+    // A move within the project keeps the file state.
+    await moveDocumentToProject(USER, "timeline", timeline.id, "project-a");
     expect((await reload(timeline.id)).file_path).toBe(
       "Timelines/Cut.timeline.json"
     );
 
-    recordingSync();
-    const again = await reload(timeline.id);
-    await again.save();
-    expect(again.file_hash).not.toBeNull();
-    setTimelineFileSync(null);
-    const replaced = await TimelineSequence.updateDocumentIfUnchanged(
-      again.id,
-      again.updated_at,
-      EMPTY
-    );
-    expect(replaced?.file_hash).toBeNull();
-
-    recordingSync();
-    await (await reload(timeline.id)).save();
-    setTimelineFileSync(null);
-    await (await reload(timeline.id)).save();
-    expect((await reload(timeline.id)).file_hash).toBeNull();
-
-    recordingSync();
-    await (await reload(timeline.id)).save();
-    setTimelineFileSync(null);
+    // The path and the hash name a file of the folder the timeline left.
     await moveDocumentToProject(USER, "timeline", timeline.id, "project-b");
-    expect((await reload(timeline.id)).file_hash).toBeNull();
+    expect(await reload(timeline.id)).toMatchObject({
+      project_id: "project-b",
+      file_path: null,
+      file_hash: null,
+      file_error: null
+    });
+  });
+
+  it("leaves the file state out of the etag", async () => {
+    setTimelineFileSync(null);
+    const timeline = await makeTimeline();
+    const etag = timeline.getEtag();
+    // The etag a timeline had before it had a file: the row without the
+    // three columns that describe the file.
+    const {
+      file_path: _path,
+      file_hash: _hash,
+      file_error: _error,
+      ...content
+    } = timeline.toRow();
+    expect(etag).toBe(computeEtag(content));
+
+    // Writing, importing and losing the file change the row, not the etag.
+    await TimelineSequence.setFileState(timeline.id, {
+      file_path: "Timelines/Cut.timeline.json",
+      file_hash: "a".repeat(64)
+    });
+    expect((await reload(timeline.id)).getEtag()).toBe(etag);
+    await TimelineSequence.setFileState(timeline.id, { file_error: "File missing" });
+    expect((await reload(timeline.id)).getEtag()).toBe(etag);
+
+    // The sync records the file on the instance after the save was announced.
+    recordingSync();
+    const announced: string[] = [];
+    ModelObserver.subscribe(
+      (instance) => announced.push(instance.getEtag()),
+      "TimelineSequence"
+    );
+    const created = await makeTimeline({ name: "Owl" });
+    expect(created.file_path).toBe("Timelines/Owl.timeline.json");
+    expect(announced).toEqual([created.getEtag()]);
+    expect((await reload(created.id)).getEtag()).toBe(created.getEtag());
+
+    // Content still changes it.
+    const changed = await TimelineSequence.updateFieldsIfUnchanged(
+      timeline.id,
+      timeline.updated_at,
+      { fps: 25 }
+    );
+    expect(changed?.getEtag()).not.toBe(etag);
   });
 
   it("writes the file of the timeline a finished storyboard produced and replaced", async () => {
@@ -270,7 +325,7 @@ describe("the timeline file sync hook", () => {
 
     const saved = { kind: "saved", id: first.timeline.id, name: "Board", previous: null };
     expect(calls).toEqual([saved, saved]);
-    // The replaced row does not keep the hash of the file it had before.
+    // The replaced row records the file written for it.
     expect(second.timeline.revision).toBe(first.timeline.revision + 1);
     expect(second.timeline.file_hash).toBe(
       `hash of Board at revision ${second.timeline.revision}`

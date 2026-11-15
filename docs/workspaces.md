@@ -205,6 +205,8 @@ Every save of a timeline writes its file: the editor's save, the tRPC and REST A
 
 Renaming, deleting, a name that is taken, and a folder that cannot be reached behave as they do for a workflow. Moving a timeline to another project moves its file to that project's folder. Copying a timeline into another project writes a file for the copy.
 
+A save never replaces a file edit NodeTool has not seen, as for a workflow. A valid file that was edited since NodeTool last wrote or imported it is kept as a version named "File edit replaced by a save", with the settings the file had, before the save is written. A file that is not valid is left as it is, and its error is recorded in `file_error`. The timeline is saved in the database either way.
+
 ### Editing the file updates the timeline
 
 The comparison is the one in [Editing the file updates the workflow](#editing-the-file-updates-the-workflow), with the same table, and it runs at the same times. For a timeline the rows mean this:
@@ -212,7 +214,8 @@ The comparison is the one in [Editing the file updates the workflow](#editing-th
 | File | Result |
 | --- | --- |
 | Its hash differs and the file is valid | The timeline as it was is kept as a version named "Before file edit". The file's content is stored, and `revision` and `updated_at` are raised. |
-| Its hash differs and the file is not valid | The timeline is kept as it was, with its `revision`. The reason is recorded in `file_error`. |
+| Its hash differs and the file is not valid | The timeline is kept as it was, with its `revision`. The reason is recorded in `file_error`. The file is not written again until it is valid. |
+| The file was renamed or moved in the folder | The timeline follows it and takes the new file name as its name. A rename that changes only the case of the name counts, also in a folder that ignores case. |
 | A new file with an ID no timeline has | A timeline is created in this project. |
 | A new file with the ID of another timeline | The file gets a new ID, is rewritten with it, and becomes a new timeline. |
 
