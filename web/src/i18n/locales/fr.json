@@ -15408,7 +15408,6 @@
       "csv": "Fichier CSV",
       "unknown": "Type de fichier inconnu",
       "unknownContentType": "Type de contenu inconnu",
-      "offline": "Médias hors ligne",
       "thumbnail": "Miniature",
       "folder": "Dossier"
     },
@@ -20467,5 +20466,20 @@
     "saveFailed": "Impossible d’enregistrer cette autorisation.",
     "loadFailed": "Impossible de charger la liste des outils.",
     "noMatches": "Aucun outil ne correspond à votre recherche."
+  },
+  "assetFileStatus": {
+    "missing": "Manquant",
+    "missingTooltip": "Le fichier n'est pas là où cette ressource l'attend. Reliez-la au nouvel emplacement du fichier ou retirez la ressource.",
+    "linked": "Lié",
+    "linkedTooltip": "Cette ressource utilise sur place un fichier situé hors du dossier du projet.",
+    "relink": "Relier",
+    "relinkTooltip": "Choisissez le nouvel emplacement du fichier",
+    "relinkNoPath": "Impossible de lire l'emplacement de ce fichier. Choisissez un fichier sur cet ordinateur.",
+    "relinkFailed": "Échec de la liaison : {{error}}",
+    "remove": "Retirer",
+    "removeTooltip": "Retirer cette ressource de NodeTool",
+    "removeTitle": "Retirer « {{name}} » ?",
+    "removeBody": "La ressource est retirée de NodeTool. Les documents qui l'utilisent ne peuvent plus l'afficher.",
+    "cancel": "Annuler"
   }
 }

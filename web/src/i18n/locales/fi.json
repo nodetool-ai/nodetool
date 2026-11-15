@@ -15137,7 +15137,6 @@
       "csv": "CSV-tiedosto",
       "unknown": "Tuntematon tiedostotyyppi",
       "unknownContentType": "Tuntematon sisältötyyppi",
-      "offline": "Media ei saatavilla",
       "thumbnail": "Pikkukuva",
       "folder": "Kansio"
     },
@@ -20156,5 +20155,20 @@
     "saveFailed": "Käyttöoikeuden tallennus epäonnistui.",
     "loadFailed": "Työkaluluettelon lataus epäonnistui.",
     "noMatches": "Yksikään työkalu ei vastaa hakuasi."
+  },
+  "assetFileStatus": {
+    "missing": "Puuttuu",
+    "missingTooltip": "Tiedosto ei ole siellä, missä tämä aineisto odottaa sitä. Linkitä se tiedoston uuteen sijaintiin tai poista aineisto.",
+    "linked": "Linkitetty",
+    "linkedTooltip": "Tämä aineisto käyttää projektikansion ulkopuolista tiedostoa sen omalla paikalla.",
+    "relink": "Linkitä uudelleen",
+    "relinkTooltip": "Valitse tiedoston uusi sijainti",
+    "relinkNoPath": "Tiedoston sijaintia ei voitu lukea. Valitse tiedosto tältä tietokoneelta.",
+    "relinkFailed": "Uudelleenlinkitys epäonnistui: {{error}}",
+    "remove": "Poista",
+    "removeTooltip": "Poista tämä aineisto NodeToolista",
+    "removeTitle": "Poistetaanko ”{{name}}”?",
+    "removeBody": "Aineisto poistetaan NodeToolista. Sitä käyttävät dokumentit eivät voi enää näyttää sitä.",
+    "cancel": "Peruuta"
   }
 }

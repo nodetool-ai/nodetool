@@ -15137,7 +15137,6 @@
       "csv": "CSV file",
       "unknown": "Unknown file type",
       "unknownContentType": "Unknown content type",
-      "offline": "Media offline",
       "thumbnail": "Thumbnail",
       "folder": "Folder"
     },
@@ -20156,5 +20155,20 @@
     "saveFailed": "Could not save this permission.",
     "loadFailed": "Could not load the tool list.",
     "noMatches": "No tools match your search."
+  },
+  "assetFileStatus": {
+    "missing": "Missing",
+    "missingTooltip": "The file is not where this asset expects it. Relink it to the file's new location, or remove the asset.",
+    "linked": "Linked",
+    "linkedTooltip": "This asset uses a file outside the project folder in place.",
+    "relink": "Relink",
+    "relinkTooltip": "Pick the file's new location",
+    "relinkNoPath": "Could not read that file's location. Pick a file on this computer.",
+    "relinkFailed": "Relink failed: {{error}}",
+    "remove": "Remove",
+    "removeTooltip": "Remove this asset from NodeTool",
+    "removeTitle": "Remove \"{{name}}\"?",
+    "removeBody": "The asset is removed from NodeTool. Documents that use it can no longer show it.",
+    "cancel": "Cancel"
   }
 }

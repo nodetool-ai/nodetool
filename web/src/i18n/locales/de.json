@@ -15137,7 +15137,6 @@
       "csv": "CSV-Datei",
       "unknown": "Unbekannter Dateityp",
       "unknownContentType": "Unbekannter Inhaltstyp",
-      "offline": "Medium offline",
       "thumbnail": "Miniaturansicht",
       "folder": "Ordner"
     },
@@ -20156,5 +20155,20 @@
     "saveFailed": "Diese Berechtigung konnte nicht gespeichert werden.",
     "loadFailed": "Die Tool-Liste konnte nicht geladen werden.",
     "noMatches": "Keine Tools passen zu deiner Suche."
+  },
+  "assetFileStatus": {
+    "missing": "Fehlt",
+    "missingTooltip": "Die Datei liegt nicht dort, wo dieses Asset sie erwartet. Verknüpfe es mit dem neuen Speicherort der Datei oder entferne das Asset.",
+    "linked": "Verknüpft",
+    "linkedTooltip": "Dieses Asset verwendet eine Datei außerhalb des Projektordners an ihrem Ort.",
+    "relink": "Neu verknüpfen",
+    "relinkTooltip": "Wähle den neuen Speicherort der Datei",
+    "relinkNoPath": "Der Speicherort dieser Datei konnte nicht gelesen werden. Wähle eine Datei auf diesem Computer.",
+    "relinkFailed": "Neu verknüpfen fehlgeschlagen: {{error}}",
+    "remove": "Entfernen",
+    "removeTooltip": "Dieses Asset aus NodeTool entfernen",
+    "removeTitle": "„{{name}}“ entfernen?",
+    "removeBody": "Das Asset wird aus NodeTool entfernt. Dokumente, die es verwenden, können es nicht mehr anzeigen.",
+    "cancel": "Abbrechen"
   }
 }

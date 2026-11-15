@@ -439,9 +439,47 @@ export class StorageWorkspace implements Workspace {
     await this.write(to, bytes, st?.contentType);
   }
 
+  /**
+   * Move a file, or a directory with everything under it. A directory is
+   * never moved into itself or onto anything that exists, except onto a name
+   * that differs from its own only in case. A local directory is renamed in
+   * one step, so the files keep their bytes and modification times. On an
+   * object store each file is copied to its new key, then removed.
+   */
   async move(from: string, to: string): Promise<void> {
-    await this.copy(from, to);
-    await this.delete(from);
+    await this.assertContained(from);
+    const fromKey = this.key(from);
+    if (await this.storage.stat(this.storage.uriForKey(fromKey))) {
+      await this.copy(from, to);
+      await this.delete(from);
+      return;
+    }
+    const source = await this.stat(fromKey);
+    if (!source?.isDirectory) {
+      throw new Error(`Cannot move '${from}': it does not exist`);
+    }
+    await this.assertContained(to);
+    const toKey = this.key(to);
+    if (toKey === fromKey || toKey.startsWith(`${fromKey}/`)) {
+      throw new Error(`Cannot move '${from}' into itself`);
+    }
+    const caseOnly = toKey.toLowerCase() === fromKey.toLowerCase();
+    if (!caseOnly && (await this.stat(toKey))) {
+      throw new Error(`Cannot move '${from}' to '${to}': it already exists`);
+    }
+    if (this.localDir) {
+      const { fs, path } = requireNode();
+      const target = resolvePath(this.localDir, toKey);
+      await fs.mkdir(path.dirname(target), { recursive: true });
+      await fs.rename(resolvePath(this.localDir, fromKey), target);
+      return;
+    }
+    const listing = await this.storage.list(`${fromKey}/`);
+    for (const entry of listing.entries) {
+      const moved = `${toKey}/${entry.key.slice(fromKey.length + 1)}`;
+      await this.copy(entry.key, moved);
+      await this.storage.delete(entry.uri);
+    }
   }
 
   materialize(path: string): Promise<string> {

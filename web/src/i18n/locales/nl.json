@@ -15137,7 +15137,6 @@
       "csv": "CSV-bestand",
       "unknown": "Onbekend bestandstype",
       "unknownContentType": "Onbekend inhoudstype",
-      "offline": "Offline media",
       "thumbnail": "Miniatuur",
       "folder": "Map"
     },
@@ -20156,5 +20155,20 @@
     "saveFailed": "Deze machtiging kon niet worden opgeslagen.",
     "loadFailed": "De lijst met tools kon niet worden geladen.",
     "noMatches": "Geen tools komen overeen met je zoekopdracht."
+  },
+  "assetFileStatus": {
+    "missing": "Ontbreekt",
+    "missingTooltip": "Het bestand staat niet waar dit item het verwacht. Koppel het opnieuw aan de nieuwe locatie van het bestand of verwijder het item.",
+    "linked": "Gekoppeld",
+    "linkedTooltip": "Dit item gebruikt een bestand buiten de projectmap op de plek waar het staat.",
+    "relink": "Opnieuw koppelen",
+    "relinkTooltip": "Kies de nieuwe locatie van het bestand",
+    "relinkNoPath": "De locatie van dat bestand kon niet worden gelezen. Kies een bestand op deze computer.",
+    "relinkFailed": "Opnieuw koppelen mislukt: {{error}}",
+    "remove": "Verwijderen",
+    "removeTooltip": "Dit item uit NodeTool verwijderen",
+    "removeTitle": "\"{{name}}\" verwijderen?",
+    "removeBody": "Het item wordt uit NodeTool verwijderd. Documenten die het gebruiken, kunnen het niet meer tonen.",
+    "cancel": "Annuleren"
   }
 }

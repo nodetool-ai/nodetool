@@ -92,6 +92,10 @@ export interface Workspace {
   /** No-op on an object store; creates the directory on a local one. */
   mkdir(path: string): Promise<void>;
   copy(from: string, to: string): Promise<void>;
+  /**
+   * Move a file, or a directory with everything under it. A directory is
+   * never moved into itself or onto an existing entry.
+   */
   move(from: string, to: string): Promise<void>;
 
   /**

@@ -29,6 +29,12 @@ import {
   projectAssetFile
 } from "@nodetool-ai/asset-services/project-asset-file";
 import { storageKeyForUri } from "@nodetool-ai/asset-services/project-asset-storage";
+import {
+  directoryFolderId,
+  directoryName,
+  listsByDirectory,
+  parentDirectory
+} from "@nodetool-ai/protocol";
 
 let cachedConfig: StorageConfig | null = null;
 let cachedBuilder: AssetUrlBuilder | null = null;
@@ -67,6 +73,22 @@ async function assetUrlKey(asset: Asset, fileName: string): Promise<string> {
     ? storageKeyForUri(adapter, file.workspace.uri(file.path))
     : null;
   return fileKey ?? idKey;
+}
+
+/**
+ * The folder an asset lists in. Inside a project, an asset with a file sits
+ * in the directory of that file, whatever `parent_id` the row holds, so a
+ * client that sends the parent back unchanged never moves the file.
+ */
+function responseParentId(asset: Asset): string | null {
+  if (asset.workspace_path && listsByDirectory(asset.project_id)) {
+    return directoryFolderId(
+      asset.user_id,
+      asset.project_id,
+      parentDirectory(asset.workspace_path)
+    );
+  }
+  return asset.parent_id ?? null;
 }
 
 export async function toAssetResponse(asset: Asset): Promise<AssetResponse> {
@@ -108,7 +130,7 @@ export async function toAssetResponse(asset: Asset): Promise<AssetResponse> {
     id: asset.id,
     user_id: asset.user_id,
     workflow_id: asset.workflow_id ?? null,
-    parent_id: asset.parent_id ?? null,
+    parent_id: responseParentId(asset),
     name: asset.name,
     content_type: asset.content_type,
     size: asset.size ?? null,
@@ -129,6 +151,7 @@ export async function toAssetResponse(asset: Asset): Promise<AssetResponse> {
   // whose file the reconciler found missing from its project folder.
   if (asset.external_path) {
     response.offline = await isExternalAssetOffline(asset);
+    response.linked = true;
   } else if (isProjectAssetOffline(asset)) {
     response.offline = true;
   }
@@ -145,4 +168,37 @@ export async function toAssetResponse(asset: Asset): Promise<AssetResponse> {
         : null;
   }
   return response;
+}
+
+/** A directory of a project folder as the folder entry the browser lists. */
+export function directoryFolderResponse(
+  userId: string,
+  projectId: string,
+  directory: { path: string; modifiedAt: number | null }
+): AssetResponse {
+  const created = new Date(directory.modifiedAt ?? 0).toISOString();
+  return {
+    id: directoryFolderId(userId, projectId, directory.path),
+    user_id: userId,
+    workflow_id: null,
+    parent_id: directoryFolderId(
+      userId,
+      projectId,
+      parentDirectory(directory.path)
+    ),
+    name: directoryName(directory.path),
+    content_type: "folder",
+    size: null,
+    metadata: null,
+    sketch_document_id: null,
+    created_at: created,
+    updated_at: created,
+    get_url: null,
+    thumb_url: null,
+    duration: null,
+    node_id: null,
+    job_id: null,
+    timeline_id: null,
+    project_id: projectId
+  };
 }

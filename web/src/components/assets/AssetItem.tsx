@@ -14,7 +14,6 @@ import { Asset } from "../../stores/ApiTypes";
 import {
   DeleteButton,
   FavoriteButton,
-  StatusPill,
   Text,
   MOTION,
   BORDER_RADIUS,
@@ -31,6 +30,7 @@ import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { formatFileSize } from "../../utils/formatUtils";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useAssetActions } from "./useAssetActions";
+import AssetFileStatus from "./AssetFileStatus";
 import { useSetAssetFavorite } from "../../serverState/useAssetFavorite";
 import { useActivateOnKey } from "../../hooks/useActivateOnKey";
 import { useVideoThumbnail } from "../../hooks/useVideoThumbnail";
@@ -269,6 +269,13 @@ const styles = (theme: Theme) =>
       padding: `0 ${getSpacingPx(SPACING.micro)}`,
       borderRadius: "0 !important",
       backgroundColor: "transparent"
+    },
+    ".asset-file-status": {
+      position: "absolute",
+      top: getSpacingPx(SPACING.xs),
+      left: getSpacingPx(SPACING.xs),
+      maxWidth: `calc(100% - ${getSpacingPx(SPACING.xs)} * 2)`,
+      zIndex: Z_INDEX.raised
     },
     ".asset-favorite": {
       position: "absolute",
@@ -669,19 +676,12 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             {metaLine && <Text className="meta">{metaLine}</Text>}
           </div>
         )}
-        {asset.offline === true && (
-          <StatusPill
-            tone="failed"
-            data-testid="asset-media-offline"
-            sx={{
-              position: "absolute",
-              top: getSpacingPx(SPACING.xs),
-              left: getSpacingPx(SPACING.xs),
-              zIndex: Z_INDEX.raised
-            }}
-          >
-            {t("fileTypes.offline")}
-          </StatusPill>
+        {!isParent && (
+          <AssetFileStatus
+            asset={asset}
+            showActions={assetItemSize > 1}
+            className="asset-file-status"
+          />
         )}
       </div>
       {showInfo && (
@@ -728,6 +728,7 @@ export default memo(AssetItem, (prevProps, nextProps) => {
   const assetChanged =
     prevProps.asset.id !== nextProps.asset.id ||
     prevProps.asset.offline !== nextProps.asset.offline ||
+    prevProps.asset.linked !== nextProps.asset.linked ||
     prevProps.asset.favorite !== nextProps.asset.favorite;
   const functionsChanged =
     prevProps.onSelect !== nextProps.onSelect ||

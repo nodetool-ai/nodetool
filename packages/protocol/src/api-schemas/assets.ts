@@ -49,6 +49,11 @@ export const assetResponse = z.object({
    */
   offline: z.boolean().optional(),
   /**
+   * True on an asset that references a file outside its project folder in
+   * place (linked media). Absent on every other asset.
+   */
+  linked: z.boolean().optional(),
+  /**
    * Present only on a video asset on a local server: the state of its
    * all-intra preview proxy. `ready` means `proxy_url` plays it. A proxy made
    * from an earlier version of the file is not ready.
