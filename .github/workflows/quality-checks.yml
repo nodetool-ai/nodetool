@@ -157,10 +157,12 @@ jobs:
   #        test legs do.
   #
   # `test-packages-websocket`:
-  #   The five backend test shards. Each runs `turbo run test` over a
+  #   The backend test shards. Each runs `turbo run test` over a
   #   disjoint slice of the workspace graph: the two heaviest packages
   #   alone, the node packages (`./packages/*-nodes` plus the packages
-  #   only they use), the game suites, and everything else. The `game`
+  #   only they use), the game suites, the CLI packages with the
+  #   reliability harness (`cli`), the execution packages (`engine`), and
+  #   everything else (`core`). The `game`
   #   shard runs game-runtime, game-renderer, and cli one package and one
   #   test file at a time (`NODETOOL_TEST_WORKERS=1`): game scripts run
   #   against a 50 ms wall-clock batch budget, which parallel test files
@@ -168,9 +170,14 @@ jobs:
   #   capture diagnostics like the harness gate. They used to run at the
   #   head of the `core` shard, which put them and the rest of `core` on
   #   one critical path. `core` also carries the two root-level suites
-  #   (`test:oxlint-rules`, `test:scripts`). The `nodes`, `game` and
-  #   `core` filter lists partition the same set: a package added to one
-  #   must be removed from another, or it runs twice or not at all.
+  #   (`test:oxlint-rules`, `test:scripts`). `cli` and `engine` were part
+  #   of `core`, which ran two packages at a time on one runner and took
+  #   about twice as long as any other leg. The three keep its settings.
+  #   The `nodes`, `game`, `cli`, `engine` and `core` filter lists
+  #   partition the same set: a package added to one must be removed from
+  #   another, or it runs twice or not at all.
+  #   scripts/__tests__/test-packages-shards.test.mjs checks the partition
+  #   against turbo's own resolution of the filters.
   #
   #   `$TURBO_AFFECTED` (set on the `built` Run step) is `--affected`
   #   when there is a base commit and the plan's `turbo_affected` is
@@ -196,6 +203,11 @@ jobs:
   #   Media tests need no ffmpeg: libav runs in process.
   #
   # `test-packages-nodes`:
+  #   `--concurrency=4`: one package per core of the runner. Without a
+  #   limit turbo ran up to ten packages at once, each with a vitest worker
+  #   per core. Their tests then timed out against wall-clock limits, their
+  #   workers failed to stop in time, and the runner sometimes stopped
+  #   reporting until the job timeout.
   #   CI installs no Blender, so the Blender integration suites
   #   (`packages/blender-nodes/tests/*`) skip here. EEVEE on the
   #   GPU-less runner took about 20 s a frame and the render suites
@@ -262,7 +274,7 @@ jobs:
           set -euo pipefail
           if ! jq -e 'type == "object"' <<<"${PLAN:-null}" >/dev/null 2>&1; then
             echo "::notice::No usable plan; running every leg."
-            PLAN='{"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"packages_game":true,"integration":true,"workflow_runner_e2e":true,"tsc6":true,"docker":true,"blender":true}'
+            PLAN='{"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"packages_cli":true,"packages_engine":true,"packages_game":true,"integration":true,"workflow_runner_e2e":true,"tsc6":true,"docker":true,"blender":true,"node_catalog":true}'
           fi
           select_legs() {
             jq -c --argjson p "$PLAN" --arg skip "${SKIP_TESTS:-false}" '
@@ -282,12 +294,14 @@ jobs:
             {
               "check": "lint",
               "command": "npm run lint && npm run lint:anti-slop:check && node scripts/check-workspace-deps.mjs && node scripts/check-circular-deps.mjs && node scripts/check-key-boundaries.mjs && node scripts/check-coupled-deps.mjs && node scripts/check-lockfile-sync.mjs && node scripts/check-execution-boundary.mjs && npm run check:lockfile-libc && npm run check:document-sync && npm run check:agents-docs",
-              "when": "always"
+              "when": "always",
+              "timeout": 20
             },
             {
               "check": "typescript-6-fallback",
               "command": "npm run build:tsc6",
-              "when": "tsc6"
+              "when": "tsc6",
+              "timeout": 30
             }
           ]
           JSON
@@ -300,6 +314,7 @@ jobs:
               "mobile-deps": "true",
               "is-test": "false",
               "fetch-depth": "1",
+              "timeout": 20,
               "when": "always",
               "jest-cache": ""
             },
@@ -309,45 +324,84 @@ jobs:
               "mobile-deps": "false",
               "is-test": "true",
               "fetch-depth": "0",
+              "timeout": 30,
               "when": "packages_websocket",
               "jest-cache": ""
             },
             {
               "check": "test-packages-agents",
-              "command": "npx turbo run test --filter=@nodetool-ai/agents $TURBO_AFFECTED -- --shard=1/2",
+              "command": "npx turbo run test --filter=@nodetool-ai/agents $TURBO_AFFECTED -- --shard=1/3",
               "shard": "1",
+              "shards": "3",
               "mobile-deps": "false",
               "is-test": "true",
               "fetch-depth": "0",
+              "timeout": 30,
               "when": "packages_agents",
               "jest-cache": ""
             },
             {
               "check": "test-packages-agents",
-              "command": "npx turbo run test --filter=@nodetool-ai/agents $TURBO_AFFECTED -- --shard=2/2",
+              "command": "npx turbo run test --filter=@nodetool-ai/agents $TURBO_AFFECTED -- --shard=2/3",
               "shard": "2",
+              "shards": "3",
               "mobile-deps": "false",
               "is-test": "true",
               "fetch-depth": "0",
+              "timeout": 30,
+              "when": "packages_agents",
+              "jest-cache": ""
+            },
+            {
+              "check": "test-packages-agents",
+              "command": "npx turbo run test --filter=@nodetool-ai/agents $TURBO_AFFECTED -- --shard=3/3",
+              "shard": "3",
+              "shards": "3",
+              "mobile-deps": "false",
+              "is-test": "true",
+              "fetch-depth": "0",
+              "timeout": 30,
               "when": "packages_agents",
               "jest-cache": ""
             },
             {
               "check": "test-packages-nodes",
-              "command": "npx turbo run test --filter='./packages/*-nodes' --filter=@nodetool-ai/gpu --filter=@nodetool-ai/workflow-runner --filter=@nodetool-ai/nodes-utils $TURBO_AFFECTED",
+              "command": "npx turbo run test --filter='./packages/*-nodes' --filter=@nodetool-ai/gpu --filter=@nodetool-ai/workflow-runner --filter=@nodetool-ai/nodes-utils --concurrency=4 $TURBO_AFFECTED",
               "mobile-deps": "false",
               "is-test": "true",
               "fetch-depth": "0",
+              "timeout": 30,
               "when": "packages_nodes",
               "jest-cache": ""
             },
             {
               "check": "test-packages-core",
-              "command": "npm run test:oxlint-rules && npm run test:scripts && npx turbo run test --filter='./packages/*' --filter='./reliability/*' --filter='!./packages/*-nodes' --filter='!@nodetool-ai/gpu' --filter='!@nodetool-ai/workflow-runner' --filter='!@nodetool-ai/nodes-utils' --filter='!@nodetool-ai/websocket' --filter='!@nodetool-ai/agents' --filter='!@nodetool-ai/game-runtime' --filter='!@nodetool-ai/game-renderer' --filter='!@nodetool-ai/cli-game' --concurrency=2 $TURBO_AFFECTED",
+              "command": "npm run test:oxlint-rules && npm run test:scripts && npx turbo run test --filter='./packages/*' --filter='!./packages/*-nodes' --filter='!@nodetool-ai/gpu' --filter='!@nodetool-ai/workflow-runner' --filter='!@nodetool-ai/nodes-utils' --filter='!@nodetool-ai/websocket' --filter='!@nodetool-ai/agents' --filter='!@nodetool-ai/game-runtime' --filter='!@nodetool-ai/game-renderer' --filter='!@nodetool-ai/cli-game' --filter='!./packages/cli' --filter='!./packages/cli-*' --filter='!@nodetool-ai/runtime' --filter='!@nodetool-ai/models' --filter='!@nodetool-ai/execution' --filter='!@nodetool-ai/kernel' --filter='!@nodetool-ai/node-sdk' --filter='!@nodetool-ai/protocol' --concurrency=2 $TURBO_AFFECTED",
               "mobile-deps": "false",
               "is-test": "true",
               "fetch-depth": "0",
+              "timeout": 30,
               "when": "packages_core",
+              "jest-cache": ""
+            },
+            {
+              "check": "test-packages-cli",
+              "command": "npx turbo run test --filter='./packages/cli' --filter='./packages/cli-*' --filter='./reliability/*' --filter='!@nodetool-ai/cli-game' --concurrency=2 $TURBO_AFFECTED",
+              "mobile-deps": "false",
+              "is-test": "true",
+              "fetch-depth": "0",
+              "timeout": 30,
+              "when": "packages_cli",
+              "jest-cache": ""
+            },
+            {
+              "check": "test-packages-engine",
+              "command": "npx turbo run test --filter=@nodetool-ai/runtime --filter=@nodetool-ai/models --filter=@nodetool-ai/execution --filter=@nodetool-ai/kernel --filter=@nodetool-ai/node-sdk --filter=@nodetool-ai/protocol --concurrency=2 $TURBO_AFFECTED",
+              "mobile-deps": "false",
+              "is-test": "true",
+              "fetch-depth": "0",
+              "timeout": 30,
+              "when": "packages_engine",
               "jest-cache": ""
             },
             {
@@ -356,6 +410,7 @@ jobs:
               "mobile-deps": "false",
               "is-test": "true",
               "fetch-depth": "0",
+              "timeout": 35,
               "when": "packages_game",
               "jest-cache": ""
             },
@@ -365,8 +420,9 @@ jobs:
               "mobile-deps": "false",
               "is-test": "true",
               "fetch-depth": "1",
-              "jest-cache": "web-1",
-              "when": "web_full"
+              "timeout": 25,
+              "when": "web_full",
+              "jest-cache": "web-1"
             },
             {
               "check": "test-web-2",
@@ -374,8 +430,9 @@ jobs:
               "mobile-deps": "false",
               "is-test": "true",
               "fetch-depth": "1",
-              "jest-cache": "web-2",
-              "when": "web_full"
+              "timeout": 25,
+              "when": "web_full",
+              "jest-cache": "web-2"
             },
             {
               "check": "test-web-3",
@@ -383,17 +440,45 @@ jobs:
               "mobile-deps": "false",
               "is-test": "true",
               "fetch-depth": "1",
-              "jest-cache": "web-3",
-              "when": "web_full"
+              "timeout": 25,
+              "when": "web_full",
+              "jest-cache": "web-3"
             },
             {
               "check": "test-web",
-              "command": "node scripts/ci-plan.mjs run web --base \"$CI_BASE_SHA\"",
+              "command": "node scripts/ci-plan.mjs run web --base \"$CI_BASE_SHA\" -- --shard=1/3 --cacheDirectory=\"$GITHUB_WORKSPACE/.jest-cache\"",
+              "shard": "1",
+              "shards": "3",
               "mobile-deps": "false",
               "is-test": "true",
               "fetch-depth": "1",
+              "timeout": 25,
               "when": "web_related",
-              "jest-cache": ""
+              "jest-cache": "web-1"
+            },
+            {
+              "check": "test-web",
+              "command": "node scripts/ci-plan.mjs run web --base \"$CI_BASE_SHA\" -- --shard=2/3 --cacheDirectory=\"$GITHUB_WORKSPACE/.jest-cache\"",
+              "shard": "2",
+              "shards": "3",
+              "mobile-deps": "false",
+              "is-test": "true",
+              "fetch-depth": "1",
+              "timeout": 25,
+              "when": "web_related",
+              "jest-cache": "web-2"
+            },
+            {
+              "check": "test-web",
+              "command": "node scripts/ci-plan.mjs run web --base \"$CI_BASE_SHA\" -- --shard=3/3 --cacheDirectory=\"$GITHUB_WORKSPACE/.jest-cache\"",
+              "shard": "3",
+              "shards": "3",
+              "mobile-deps": "false",
+              "is-test": "true",
+              "fetch-depth": "1",
+              "timeout": 25,
+              "when": "web_related",
+              "jest-cache": "web-3"
             },
             {
               "check": "harness-gate",
@@ -401,6 +486,7 @@ jobs:
               "mobile-deps": "false",
               "is-test": "false",
               "fetch-depth": "0",
+              "timeout": 60,
               "when": "always",
               "jest-cache": ""
             }
@@ -438,7 +524,9 @@ jobs:
         - /usr/local/lib/android:/reclaim/android
         - /opt/ghc:/reclaim/ghc
         - /usr/local/.ghcup:/reclaim/ghcup
-    timeout-minutes: 30
+    # Each leg's limit is in its `timeout` field, about twice its 95th
+    # percentile. See "Timeouts" in the workflows README.
+    timeout-minutes: ${{ matrix.timeout }}
     strategy:
       fail-fast: ${{ inputs.fail-fast }}
       matrix: ${{ fromJSON(needs.changes.outputs.static) }}
@@ -504,7 +592,7 @@ jobs:
         - /usr/local/lib/android:/reclaim/android
         - /opt/ghc:/reclaim/ghc
         - /usr/local/.ghcup:/reclaim/ghcup
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -570,8 +658,8 @@ jobs:
   # `--timeout` bounds each selfcheck so a hang fails the leg
   # instead of the job's own timeout cutting it off with no verdict. The cap is
   # 1500 s because `game-flow` runs all nine of its legs when the game editor
-  # shell changes, which takes longer than 900 s. It stays under the job's
-  # 45-minute limit with the other selfchecks run after it. A PR that
+  # shell changes, which takes longer than 900 s. It stays under the leg's
+  # 60-minute limit with the other selfchecks run after it. A PR that
   # touches nothing the registry maps runs no selfcheck at all — intended, not
   # a gap: see docs/HARNESS_FIRST.md. With no base (the nightly full run) the
   # leg runs every selfcheck instead (`--all`). Either way the
@@ -586,8 +674,8 @@ jobs:
   # caller ever sets `skip-tests: true`, add `--include-suites` below, because
   # this leg is `is-test: "false"` and would then be the only one left.
   #
-  # The backend suite goes the other way: it is split across five runners
-  # (`test-packages-*`). As one leg it was the gate's critical path by about
+  # The backend suite goes the other way: it is split across its
+  # `test-packages-*` runners. As one leg it was the gate's critical path by about
   # ten minutes — every other leg finished within six minutes of `build`, that
   # one took fourteen — because ~58 vitest processes, each spawning a worker
   # per core, shared four cores. `websocket` (251 files) and `agents` (245
@@ -597,21 +685,26 @@ jobs:
   # suites, and everything else split the remaining three. `agents` runs one
   # test file at a time (`NODETOOL_TEST_WORKERS=1`), which made it the gate's
   # longest leg by several minutes, so vitest's `--shard` splits its files
-  # across two runners. Both legs keep
-  # the check name, and the `shard` field names the job and keeps their
-  # test-results caches apart.
+  # across three runners. The package's sequencer
+  # (packages/agents/tests/_helpers/weighted-shards.ts) assigns the files by
+  # recorded duration, because vitest's own split by file count left one
+  # shard more than twice as long as the other. The legs keep
+  # the check name, and the `shard` and `shards` fields name the job and
+  # keep their test-results caches apart.
   #
-  # The web Jest suite (~1,600 files, ~7.5 min on one runner) is split the
+  # The web Jest suite (~7.5 min on one runner) is split the
   # same way, three `--shard`s, when a package it depends on changed. When
-  # only files under web/src changed, one `test-web` leg runs the tests
-  # related to them (`scripts/ci-plan.mjs run web`). Electron and mobile are
-  # small suites and run at the end of the `typecheck` leg.
+  # only files under web/src changed, three `test-web` legs run the tests
+  # related to them (`scripts/ci-plan.mjs run web -- --shard=N/3`). A
+  # change to a widely imported file relates to about 940 suites, which
+  # took one runner longer than the three full shards. Electron and mobile
+  # are small suites and run at the end of the `typecheck` leg.
   #
   # The Chromium suites keep the browser's sandbox, which needs a privileged
   # container (see .github/actions/chromium-sandbox), so the whole matrix runs
   # with `--privileged`.
   built:
-    name: ${{ matrix.shard && format('{0} ({1}/2)', matrix.check, matrix.shard) || matrix.check }}
+    name: ${{ matrix.shard && format('{0} ({1}/{2})', matrix.check, matrix.shard, matrix.shards) || matrix.check }}
     needs: [changes, build, ci-image]
     runs-on: ubuntu-latest
     container:
@@ -625,9 +718,12 @@ jobs:
         - /usr/local/lib/android:/reclaim/android
         - /opt/ghc:/reclaim/ghc
         - /usr/local/.ghcup:/reclaim/ghcup
-    # harness-gate runs its selfchecks one at a time. A diff that selects the
-    # game-flow and capability suites needs about 40 minutes of selfchecks.
-    timeout-minutes: ${{ matrix.check == 'harness-gate' && 60 || 45 }}
+    # Each leg's limit is in its `timeout` field, about twice its 95th
+    # percentile: a leg that stops reporting holds its runner, and the run's
+    # concurrency group, until this limit. harness-gate keeps 60 minutes. It
+    # runs its selfchecks one at a time, and a diff that selects the game-flow
+    # and capability suites needs about 40 minutes of them.
+    timeout-minutes: ${{ matrix.timeout }}
     strategy:
       fail-fast: ${{ inputs.fail-fast }}
       matrix: ${{ fromJSON(needs.changes.outputs.built) }}
@@ -651,11 +747,11 @@ jobs:
           build-packages: "false"
 
       - name: Install Chromium for native 3D and timeline browser tests
-        if: matrix.check == 'test-packages-core' || matrix.check == 'test-packages-game' || matrix.check == 'test-packages-agents' || matrix.check == 'test-packages-nodes' || matrix.check == 'harness-gate'
+        if: matrix.check == 'test-packages-core' || matrix.check == 'test-packages-cli' || matrix.check == 'test-packages-engine' || matrix.check == 'test-packages-game' || matrix.check == 'test-packages-agents' || matrix.check == 'test-packages-nodes' || matrix.check == 'harness-gate'
         run: npx playwright install chromium
 
       - name: Enable and verify the Chromium sandbox
-        if: matrix.check == 'test-packages-core' || matrix.check == 'test-packages-game' || matrix.check == 'test-packages-agents' || matrix.check == 'test-packages-nodes' || matrix.check == 'harness-gate'
+        if: matrix.check == 'test-packages-core' || matrix.check == 'test-packages-cli' || matrix.check == 'test-packages-engine' || matrix.check == 'test-packages-game' || matrix.check == 'test-packages-agents' || matrix.check == 'test-packages-nodes' || matrix.check == 'harness-gate'
         uses: ./.github/actions/chromium-sandbox
 
       - name: Download package dist
@@ -730,9 +826,9 @@ jobs:
         uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: .turbo/test-results
-          key: ${{ runner.os }}-test-results-v2-${{ matrix.check }}${{ matrix.shard && format('-{0}', matrix.shard) || '' }}-${{ github.sha }}
+          key: ${{ runner.os }}-test-results-v3-${{ matrix.check }}${{ matrix.shard && format('-{0}', matrix.shard) || '' }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-test-results-v2-${{ matrix.check }}${{ matrix.shard && format('-{0}', matrix.shard) || '' }}-
+            ${{ runner.os }}-test-results-v3-${{ matrix.check }}${{ matrix.shard && format('-{0}', matrix.shard) || '' }}-
 
       # `--update=none`: a hash already in the cache dir (a build entry) is never
       # overwritten. The marker's mtime is what "written during the run"
@@ -770,7 +866,7 @@ jobs:
           CI_BASE_SHA: ${{ inputs.base-sha }}
           NODETOOL_HARNESS_INCLUDE_SUITES: ${{ inputs.skip-tests && '--include-suites' || '' }}
           # Avoid competing file workers around game script wall-clock budgets.
-          NODETOOL_TEST_WORKERS: ${{ (matrix.check == 'harness-gate' || matrix.check == 'test-packages-core' || matrix.check == 'test-packages-game' || matrix.check == 'test-packages-agents') && '1' || '' }}
+          NODETOOL_TEST_WORKERS: ${{ (matrix.check == 'harness-gate' || matrix.check == 'test-packages-core' || matrix.check == 'test-packages-cli' || matrix.check == 'test-packages-engine' || matrix.check == 'test-packages-game' || matrix.check == 'test-packages-agents') && '1' || '' }}
           NODETOOL_CHECK_COMMAND: ${{ matrix.command }}
           NODETOOL_GAME_GOLDEN_ARTIFACTS: ${{ (matrix.check == 'harness-gate' || matrix.check == 'test-packages-game') && format('{0}/native-game-golden-diagnostics', runner.temp) || '' }}
         run: |
@@ -803,7 +899,7 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .turbo/test-results
-          key: ${{ runner.os }}-test-results-v2-${{ matrix.check }}${{ matrix.shard && format('-{0}', matrix.shard) || '' }}-${{ github.sha }}
+          key: ${{ runner.os }}-test-results-v3-${{ matrix.check }}${{ matrix.shard && format('-{0}', matrix.shard) || '' }}-${{ github.sha }}
 
       - name: Save Jest transform cache
         if: matrix.jest-cache != '' && github.event_name != 'pull_request' && !cancelled()
@@ -834,7 +930,7 @@ jobs:
     # Pinned: ubuntu-latest now resolves to 26.04, where Playwright 1.60 has
     # no Chromium build ("Playwright does not support chromium on ubuntu26.04-x64").
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 25
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -964,7 +1060,7 @@ jobs:
         - /usr/local/lib/android:/reclaim/android
         - /opt/ghc:/reclaim/ghc
         - /usr/local/.ghcup:/reclaim/ghcup
-    timeout-minutes: 45
+    timeout-minutes: 25
 
     steps:
       - name: Checkout code
@@ -1018,12 +1114,17 @@ jobs:
   # The generated catalog must come out byte-identical on macOS too. The Linux
   # check is the last step of the `typecheck` leg, which already has the built
   # packages, so a Linux row here ran the same command on a second runner.
+  #
+  # Runs when the diff reaches one of the generator's inputs
+  # (`reachesNodeCatalog` in scripts/ci-plan.mjs) and in every full run. A
+  # diff that reaches none of them cannot change the bytes, and macOS runners
+  # are few: this leg waited up to 15 minutes for one.
   node-catalog:
     name: Node catalog (${{ matrix.platform }})
     needs: changes
     if: ${{ !inputs.docs-only && inputs.shared && needs.changes.outputs.node-catalog == 'true' }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
