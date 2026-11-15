@@ -267,6 +267,27 @@ describe("project files", () => {
     expect(records).not.toContain(root);
   });
 
+  it("imports a workflow as newer than its file, so the file is written from the row", async () => {
+    const seeded = await seedProject();
+    const [source] = await Workflow.listForProjects(owner, [seeded.projectId]);
+    await Workflow.setFileState(source!.id, {
+      file_path: "Workflows/Launch.workflow.json",
+      file_hash: "a".repeat(64),
+      file_error: "File missing"
+    });
+    const { bytes } = await exportProject(owner, seeded.projectId);
+
+    const { project } = await importArchive(bytes);
+
+    // The hash names a file of the folder the archive was made from.
+    const [imported] = await Workflow.listForProjects(importer, [project.id]);
+    expect(imported).toMatchObject({
+      file_path: "Workflows/Launch.workflow.json",
+      file_hash: null,
+      file_error: null
+    });
+  });
+
   it("imports as a new project with every id and reference rewritten", async () => {
     const seeded = await seedProject();
     const { bytes } = await exportProject(owner, seeded.projectId);

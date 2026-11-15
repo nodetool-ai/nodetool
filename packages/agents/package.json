@@ -185,6 +185,12 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./workflow-graph-save": {
+      "nodetool-dev": "./src/workflow-graph-save.ts",
+      "types": "./dist/workflow-graph-save.d.ts",
+      "import": "./dist/workflow-graph-save.js",
+      "default": "./dist/workflow-graph-save.js"
+    },
     "./tool": {
       "nodetool-dev": "./src/tools/base-tool.ts",
       "types": "./dist/tools/base-tool.d.ts",

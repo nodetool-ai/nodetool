@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import { SQLITE_CORE_BASELINE_SQL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ASSET_WORKSPACE_PATH_DDL, ASSET_CONTENT_HASH_DDL } from "@nodetool-ai/models-core";
+import { SQLITE_CORE_BASELINE_SQL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ASSET_WORKSPACE_PATH_DDL, ASSET_CONTENT_HASH_DDL, WORKFLOW_FILE_PATH_DDL, WORKFLOW_FILE_HASH_DDL, WORKFLOW_FILE_ERROR_DDL } from "@nodetool-ai/models-core";
 
 interface ColumnInfo {
   readonly name: string;
@@ -83,6 +83,27 @@ export function migrateSqliteCore(sqlite: Database.Database): void {
         version: "20261118_000000",
         up() {
           if (!hasColumn(sqlite, "nodetool_assets", "content_hash")) { sqlite.exec(ASSET_CONTENT_HASH_DDL); }
+        }
+      },
+      {
+        // A project workflow is a JSON file in its project's folder.
+        version: "20261119_000000",
+        up() {
+          if (!hasColumn(sqlite, "nodetool_workflows", "file_path")) { sqlite.exec(WORKFLOW_FILE_PATH_DDL); }
+        }
+      },
+      {
+        // The hash of the workflow file content last synced with the row.
+        version: "20261120_000000",
+        up() {
+          if (!hasColumn(sqlite, "nodetool_workflows", "file_hash")) { sqlite.exec(WORKFLOW_FILE_HASH_DDL); }
+        }
+      },
+      {
+        // What the last reconcile found wrong with a workflow's file.
+        version: "20261121_000000",
+        up() {
+          if (!hasColumn(sqlite, "nodetool_workflows", "file_error")) { sqlite.exec(WORKFLOW_FILE_ERROR_DDL); }
         }
       }
     ];

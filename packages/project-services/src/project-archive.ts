@@ -600,8 +600,15 @@ export async function importProjectArchive(
     // the asset would then delete or rename that file.
     row["workspace_path"] = null;
   }
-  // An import never publishes anything.
-  for (const row of imported.workflows) row["access"] = "private";
+  for (const row of imported.workflows) {
+    // An import never publishes anything.
+    row["access"] = "private";
+    // The hash is of the file in the folder the archive was made from. The
+    // imported row is what the workflow holds, so the reconcile of the new
+    // folder writes the file from it and reads nothing as an outside edit.
+    row["file_hash"] = null;
+    row["file_error"] = null;
+  }
 
   const missing: string[] = [];
   const checksumMismatches: string[] = [];

@@ -22,7 +22,9 @@ describe("PostgreSQL repository on the real embedded PostgreSQL engine", () => {
       expect(await repository.get("workflows", "bob", workflow.id)).toBeNull();
       await expect(repository.put("workflows", "bob", { id: workflow.id, graph: { nodes: [], edges: [] } })).rejects.toThrow("already owned");
       expect(await repository.delete("workflows", "bob", workflow.id)).toBe(false);
-      expect(await repository.get("workflows", "alice", workflow.id)).toMatchObject({ graph });
+      expect(await repository.get("workflows", "alice", workflow.id)).toMatchObject({ graph, file_path: null, file_hash: null, file_error: null });
+      const filed = await repository.put("workflows", "alice", { name: "on disk", graph, project_id: "film", file_path: "Workflows/on disk.workflow.json", file_hash: "b".repeat(64) });
+      expect(await repository.get("workflows", "alice", filed.id)).toMatchObject({ file_path: "Workflows/on disk.workflow.json", file_hash: "b".repeat(64) });
       const asset = await repository.put("assets", "alice", { name: "binary", metadata: { binary: true }, favorite: true });
       expect(await repository.get("assets", "alice", asset.id)).toMatchObject({ metadata: { binary: true }, favorite: true, workspace_path: null, content_hash: null });
       const file = await repository.put("assets", "alice", { name: "fox in snow", project_id: "film", workspace_path: "Generated/fox-in-snow.png", content_hash: "a".repeat(64) });

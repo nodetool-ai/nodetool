@@ -852,6 +852,12 @@ export {
   toSlotTypeRecord,
   type SlotTypeLookup
 } from "./dynamic-slots.js";
+export {
+  prepareWorkflowGraphForSave,
+  unknownNodeTypeError,
+  type WorkflowGraphSaveOptions,
+  type WorkflowGraphSaveResult
+} from "./workflow-graph-save.js";
 export { normalizeModelProperties } from "./normalize-model-properties.js";
 export type { ModelPropertyRegistry } from "./normalize-model-properties.js";
 export { authorGraph, AUTHOR_GRAPH_MAX_ITERATIONS } from "./author-graph.js";

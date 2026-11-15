@@ -358,6 +358,10 @@ from inside an agent:
   `debug`. `create_workflow` and `POST /api/workflows/:id/run|debug` apply the
   provider/model half of this check themselves, so a hallucinated model id is
   refused at save and at run rather than surfacing mid-execution.
+  `create_workflow` and `update_workflow` also refuse a node type the registry
+  does not have. A workflow file edited in a project folder passes the same
+  checks before it is stored
+  ([Workflows are files in the folder](workspaces.md#workflows-are-files-in-the-folder)).
 - **`debug_workflow`** — run a workflow and return status, outputs, errors, job
   logs, and a graph overview in one call.
 - **`debug_app`** — validate a mini app's bindings, simulate it, and return each

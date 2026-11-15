@@ -73,11 +73,13 @@ import {
   refreshAssetThumbnail
 } from "@nodetool-ai/asset-services/thumbnail";
 import { DebouncedRuns } from "./debounced-runs.js";
+import { reconcileDocumentFiles } from "./document-file-sync.js";
 import { projectHashJob, scheduleProjectHashing } from "./project-hash-job.js";
 import {
   flushAssetManifestWrites,
   scheduleAssetManifestWrite
 } from "./project-manifest.js";
+import { workflowFileAdapter } from "./workflow-file.js";
 
 const log = createLogger("nodetool.project-services.project-index");
 
@@ -102,7 +104,7 @@ const DOCUMENT_TYPES: Record<string, string> = {
 };
 
 /** One file the scan found. `path` is relative to the project folder. */
-interface FolderFile {
+export interface FolderFile {
   path: string;
   size: number;
   modifiedAt: number;
@@ -171,7 +173,7 @@ function contentTypeOfFile(path: string): string {
  * `WorkspacePathError` and skipped. Any other listing failure ends the scan,
  * so a directory that could not be read never makes its files look deleted.
  */
-async function scanFolder(
+export async function scanFolder(
   workspace: Workspace,
   start = "",
   files = new Map<string, FolderFile>()
@@ -394,6 +396,22 @@ interface ReconcileScope {
   rows: Asset[];
   /** The project's other rows, which this reconcile does not compare. */
   others: Asset[];
+  /**
+   * The changed paths that are not a file: what was at or below them is
+   * gone, or they are directories. Null when the whole folder was scanned.
+   */
+  places: ReadonlySet<string> | null;
+}
+
+/**
+ * What a reconcile found in the folder. The document files are compared with
+ * it afterwards, so the folder is listed once for both.
+ */
+export interface ScannedFolder {
+  /** Files that were there, by path. */
+  files: ReadonlyMap<string, FolderFile>;
+  /** See {@link ReconcileScope.places}. */
+  places: ReadonlySet<string> | null;
 }
 
 /** Time a path the folder refused is given before it is looked at again. */
@@ -404,7 +422,7 @@ const REFUSED_PATH_RETRY_MS = 50;
  * refuses counts as nothing. It is asked twice, because a path inside a
  * directory that is being created at that moment can be refused once.
  */
-async function probePath(
+export async function probePath(
   workspace: Workspace,
   path: string
 ): Promise<FolderFile | "directory" | null> {
@@ -423,7 +441,7 @@ async function probePath(
 }
 
 /** Whether `path` or one of the directories above it is in `directories`. */
-function isAtOrUnder(path: string, directories: ReadonlySet<string>): boolean {
+export function isAtOrUnder(path: string, directories: ReadonlySet<string>): boolean {
   if (directories.has(path)) return true;
   for (let slash = path.lastIndexOf("/"); slash > 0; ) {
     const parent = path.slice(0, slash);
@@ -441,7 +459,7 @@ async function wholeFolder(
 ): Promise<ReconcileScope> {
   const files = await scanFolder(workspace);
   const rows = await Asset.listProjectFiles(userId, projectId);
-  return { files, rows, others: [] };
+  return { files, rows, others: [], places: null };
 }
 
 /**
@@ -488,7 +506,7 @@ async function changedPaths(
       path !== null && (files.has(path) || isAtOrUnder(path, places));
     (inScope ? rows : others).push(asset);
   }
-  return { files, rows, others };
+  return { files, rows, others, places };
 }
 
 /**
@@ -637,11 +655,21 @@ export async function reconcileProjectIndex(
   userId: string,
   options: ReconcileOptions = {}
 ): Promise<ProjectIndexReport> {
+  return (await reconcileAndScan(projectId, userId, options)).report;
+}
+
+/** {@link reconcileProjectIndex}, with what it found in the folder. */
+async function reconcileAndScan(
+  projectId: string | null | undefined,
+  userId: string,
+  options: ReconcileOptions
+): Promise<{ report: ProjectIndexReport; scanned: ScannedFolder }> {
   const folder = await requireProjectFolder(projectId, userId);
   const { workspace } = folder;
   const project = folder.projectId;
   /** Rows whose file has new contents, for the change listeners. */
   const changed: Asset[] = [];
+  let scanned: ScannedFolder = { files: new Map(), places: null };
 
   const report = await withProjectFolderLock(userId, project, async () => {
     const report: ProjectIndexReport = {
@@ -662,13 +690,14 @@ export async function reconcileProjectIndex(
     const waitingSince = waitingCopies.get(projectKey);
     // A file waiting for its row is looked at with every set of changed
     // paths: the delete that ends its move names only the file that went.
-    const { files, rows, others } = options.paths
+    const { files, rows, others, places } = options.paths
       ? await changedPaths(workspace, userId, project, [
           ...options.paths,
           ...[...(waitingSince?.keys() ?? [])].map(waitingPath)
         ])
       : await wholeFolder(workspace, userId, project);
     report.files = files.size;
+    scanned = { files, places };
 
     // Rows whose file is where they say.
     const indexed = new Set<string>();
@@ -828,7 +857,7 @@ export async function reconcileProjectIndex(
   });
 
   await notifyFileChanged(changed);
-  return report;
+  return { report, scanned };
 }
 
 /**
@@ -911,16 +940,30 @@ const reconciles = new DebouncedRuns({
 /**
  * Reconcile as a background trigger does: bring the rows in line, then write
  * the folder's asset manifest and hash the files that have no full hash yet,
- * both in the background.
+ * both in the background. The documents that are files in the folder are
+ * reconciled with their files in the same pass.
  */
 export async function reconcileInBackground(
   projectId: string,
   userId: string,
   options: ReconcileOptions = {}
 ): Promise<ProjectIndexReport> {
-  const report = await reconcileProjectIndex(projectId, userId, options);
+  const { report, scanned } = await reconcileAndScan(projectId, userId, options);
   scheduleAssetManifestWrite(report.projectId, userId);
   scheduleProjectHashing(report.projectId, userId);
+  // The documents that are files in the folder follow the same triggers, and
+  // are compared with the files this reconcile found. A failure there leaves
+  // the asset index as it was reconciled.
+  try {
+    await reconcileDocumentFiles(
+      [workflowFileAdapter],
+      report.projectId,
+      userId,
+      { scanned }
+    );
+  } catch (error) {
+    logReconcileFailure(error);
+  }
   return report;
 }
 
@@ -939,7 +982,7 @@ export function scheduleProjectReconcile(
  * reconcile is already scheduled. That one schedules the next when files are
  * still waiting.
  */
-function scheduleFollowUp(projectId: string, userId: string): void {
+export function scheduleFollowUp(projectId: string, userId: string): void {
   reconciles.scheduleUnlessPending(
     `project\u0000${scheduleKey(projectId, userId)}`,
     COPY_GRACE_MS,
