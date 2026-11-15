@@ -8,9 +8,9 @@
  * has the document open.
  */
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { readEntityMarker } from "@nodetool-ai/protocol";
-import { Asset } from "./asset.js";
+import { Asset, saveAssetInProject } from "./asset.js";
 import { Game } from "./game.js";
 import { getPortableDb } from "./db.js";
 import { applications } from "./schema/applications.js";
@@ -205,13 +205,33 @@ export async function reassignProjectDocuments(
   }
   const db = getPortableDb();
   let moved = 0;
+  // An asset that is a file in the project's folder takes its file along, one
+  // asset at a time. A column write would leave the file behind.
+  const fileAssets = await db
+    .select()
+    .from(assets)
+    .where(
+      and(
+        eq(assets.project_id, fromProjectId),
+        eq(assets.user_id, userId),
+        isNotNull(assets.workspace_path)
+      )
+    );
+  for (const row of fileAssets) {
+    await saveAssetInProject(new Asset(row), toProjectId);
+    moved += 1;
+  }
   for (const table of DOCUMENT_TABLES) {
+    const owned = and(
+      eq(table.project_id, fromProjectId),
+      eq(table.user_id, userId)
+    );
     // Only the id comes back: a moved document would otherwise ship its whole
     // stored text column across just to be counted.
     const rows = await db
       .update(table)
       .set({ project_id: toProjectId })
-      .where(and(eq(table.project_id, fromProjectId), eq(table.user_id, userId)))
+      .where(table === assets ? and(owned, isNull(assets.workspace_path)) : owned)
       .returning({ id: table.id });
     moved += rows.length;
   }
@@ -233,14 +253,13 @@ export async function moveDocumentToProject(
   const fields = { project_id: projectId };
   switch (type) {
     case "entity": {
-      // An entity is its asset, so the move is a column write like every other
-      // — but only the assets carrying the marker are entities, and an asset
-      // that carries none reads as a miss rather than being quietly filed
-      // into a project that would never show it.
+      // An entity is its asset. Only the assets carrying the marker are
+      // entities, and an asset that carries none reads as a miss rather than
+      // being quietly filed into a project that would never show it. An asset
+      // that is a file in its project folder takes the file along.
       const asset = await Asset.find(userId, documentId);
       if (!asset || !readEntityMarker(asset.metadata)) return false;
-      asset.project_id = projectId;
-      await asset.save();
+      await saveAssetInProject(asset, projectId);
       return true;
     }
     case "storyboard": {

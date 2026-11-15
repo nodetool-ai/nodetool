@@ -25,6 +25,22 @@ Personal's folder is your default workspace, unless a native game uses it. Then 
 
 A native game never writes into a project folder. Each game workspace is its own row under the managed workspaces folder. Deleting a project leaves the files in its project folder in place.
 
+### Open a folder as a project
+
+On the desktop app, **New project → Open folder…** makes a folder you already have into a project (`projects.openFolder({ path, name? })`). No file moves. NodeTool writes only `.nodetool/project.json`, and only when the folder has none. The folder must be inside `NODETOOL_LOCAL_FILE_ROOTS` (your home folder by default), exist, and be writable. A folder that is another project's folder, sits inside one, or contains one is refused with that project's name. The check compares real paths, so a symlink into a project folder is refused too. A server with `NODETOOL_ENV=production` refuses it and shows no **Open folder** entry.
+
+When the folder already has `.nodetool/project.json`:
+
+| The manifest's project | Result |
+| --- | --- |
+| Unknown on this install | The project is created under that id |
+| Yours, and its recorded folder is gone | The project moves to this folder |
+| Yours, and its recorded folder still exists | Refused: `This folder is a copy of project "<name>"` |
+
+### Locate a moved folder
+
+A project whose folder is renamed, moved or on an unplugged drive shows **Folder not found** on its card and above its Files. Runs in it do not start. **Locate** points the project at the folder's new place (`projects.relocate({ project_id, path })`) with the same checks as opening a folder. It refuses a folder whose `.nodetool/project.json` names a different project, and writes the manifest into a folder that has none.
+
 The project API returns `folder: { path, origin, is_accessible }`, where `origin` is `created` or `adopted`. `path` is null for a cloud folder and for every folder on a server with `NODETOOL_ENV=production`, which also ignores a `PROJECTS_DIR` saved in a user's Settings.
 
 ## Where runs read and write
@@ -47,7 +63,9 @@ NodeTool owns `.nodetool/` in every folder. Agent file tools, the Code node, JS 
 
 A workflow output or an asset a node saves is one file in its project's folder plus an asset row. The file goes to `Generated/`, which stays flat. Its name is the asset's name with whitespace as dashes and the extension of its content type, so an image named "fox in snow" is `Generated/fox-in-snow.png`. A second asset of the same name is `fox-in-snow-2.png`. An auto-saved output takes the title of its node, or `<kind>_<node id>` when the node has none.
 
-The row keeps the asset's ID and the file's path in `workspace_path`. URLs and document references use the ID, so they stay valid when the file is renamed. Renaming the asset in NodeTool renames its file, and deleting the asset deletes its file. Both are refused while the folder is unreachable. An asset created before project folders, or by an upload or an agent tool, keeps its bytes in [asset storage](storage.md) and reads as before.
+The row keeps the asset's ID and the file's path in `workspace_path`. URLs and document references use the ID, so they stay valid when the file is renamed. Renaming the asset in NodeTool renames its file, and deleting the asset deletes its file. Moving an asset to another project, as assigning an entity does, moves its file into that project's folder under the same directory. Each of these is refused while a folder it needs is unreachable.
+
+NodeTool never replaces a file when it picks a name. The file is created exclusively, so when another NodeTool process took the name first, or a file with it already exists in the destination folder, the new file gets the next free suffix. An asset created before project folders, or by an upload or an agent tool, keeps its bytes in [asset storage](storage.md) and reads as before.
 
 ### The asset index follows the folder
 
@@ -108,7 +126,11 @@ The tRPC `workspace` router has `list`, `create`, `update`, `delete`, `listFiles
 | `Absolute paths not allowed, use relative paths` | A file procedure got a path starting with `/` |
 | `Path traversal not allowed` (`403`) | A relative path escaped the workspace root |
 | `Cannot delete the default workspace`, `Cannot delete workspace with linked workflows` | Delete refused |
-| `Project folder not found: <folder>` | A run's project folder is missing, unreachable or not recorded. Reconnect the drive or restore the folder, then run again |
+| `Project folder not found: <folder>` | A run's project folder is missing, unreachable or not recorded. Reconnect the drive, restore the folder, or use **Locate**, then run again |
+| `This folder is inside the folder of project "<name>"`, `contains the folder of`, `is already the folder of` | Opening or locating a folder that overlaps another project's folder |
+| `This folder is a copy of project "<name>"` | The folder's manifest names a project whose folder still exists |
+| `This folder belongs to project "<name>"` | Locate was given another project's folder |
+| `Opening a folder as a project is disabled on this server` | Open folder or Locate with `NODETOOL_ENV=production` |
 | `Path '<path>' is inside .nodetool/, which NodeTool reserves for its own files` | A tool, node or script used a path in `.nodetool/` |
 
 ## Related docs

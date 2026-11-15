@@ -34,6 +34,16 @@ export class InMemoryStorageAdapter implements StorageAdapter {
     return `memory://${normalized}`;
   }
 
+  async storeIfAbsent(
+    key: string,
+    data: Uint8Array,
+    contentType?: string
+  ): Promise<string | null> {
+    // One synchronous check-and-set: nothing can run between the two.
+    if (this._store.has(normalizeStorageKey(key))) return null;
+    return this.store(key, data, contentType);
+  }
+
   async retrieve(uri: string): Promise<Uint8Array | null> {
     if (!uri.startsWith("memory://")) return null;
     const key = uri.slice("memory://".length);

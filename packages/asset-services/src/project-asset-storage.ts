@@ -43,6 +43,11 @@ export function storageKeyForUri(
 }
 
 export class ProjectAssetStorageAdapter implements StorageAdapter {
+  storeIfAbsent?: (
+    key: string,
+    data: Uint8Array,
+    contentType?: string
+  ) => Promise<string | null>;
   createUploadUrl?: (
     key: string,
     opts?: UploadUrlOptions
@@ -58,6 +63,10 @@ export class ProjectAssetStorageAdapter implements StorageAdapter {
   ) {
     // Callers test for these methods to choose an upload or download path,
     // so each exists here only when the wrapped adapter has it.
+    if (inner.storeIfAbsent) {
+      this.storeIfAbsent = (key, data, contentType) =>
+        inner.storeIfAbsent?.(key, data, contentType) ?? Promise.resolve(null);
+    }
     if (inner.createUploadUrl) {
       this.createUploadUrl = (key, opts) =>
         inner.createUploadUrl?.(key, opts) ?? Promise.resolve(null);

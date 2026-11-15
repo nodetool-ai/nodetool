@@ -255,6 +255,35 @@ export class StorageWorkspace implements Workspace {
     );
   }
 
+  writeNew(
+    path: string,
+    data: Uint8Array | string,
+    contentType?: string
+  ): Promise<boolean> {
+    const bytes = typeof data === "string" ? textEncoder.encode(data) : data;
+    return withTaskSpan(
+      "io",
+      "workspace.write_new",
+      { "nodetool.workspace.bytes": bytes.byteLength },
+      async () => {
+        await this.assertContained(path);
+        if (!this.storage.storeIfAbsent) {
+          // Never a check followed by `store`: that is the overwrite this
+          // method exists to rule out.
+          throw new Error(
+            "This workspace's storage cannot create a file without replacing one"
+          );
+        }
+        const uri = await this.storage.storeIfAbsent(
+          this.key(path),
+          bytes,
+          contentType
+        );
+        return uri !== null;
+      }
+    );
+  }
+
   async exists(path: string): Promise<boolean> {
     try {
       await this.assertContained(path);

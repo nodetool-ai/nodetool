@@ -42,6 +42,23 @@ export class PrefixedStorageAdapter implements StorageAdapter {
     return this.inner.store(this.scope(key), data, contentType);
   }
 
+  /**
+   * Exclusive create under the prefix. Null when the key is taken, and also
+   * the inner adapter's own answer when it has no such operation.
+   */
+  storeIfAbsent(
+    key: string,
+    data: Uint8Array,
+    contentType?: string
+  ): Promise<string | null> {
+    if (!this.inner.storeIfAbsent) {
+      return Promise.reject(
+        new Error("The storage behind this prefix has no exclusive create")
+      );
+    }
+    return this.inner.storeIfAbsent(this.scope(key), data, contentType);
+  }
+
   retrieve(uri: string): Promise<Uint8Array | null> {
     return this.inner.retrieve(uri);
   }
