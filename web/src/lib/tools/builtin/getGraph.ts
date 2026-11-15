@@ -300,15 +300,18 @@ FrontendToolRegistry.register({
       });
     }
 
-    return {
+    const result: Record<string, unknown> = {
       ok: true,
       workflow_id: workflowId,
       source,
-      ...(shownJob ? { last_run_job_id: shownJob } : {}),
       document_revision: workflowDocumentRevision(workflowId, nodes, edges),
       nodes,
       edges,
       validation
     };
+    if (shownJob) {
+      result.last_run_job_id = shownJob;
+    }
+    return result;
   }
 });
