@@ -363,6 +363,7 @@ export {
 } from "./project-summary.js";
 export type {
   CategorySpend,
+  ProjectDocumentListEntry,
   ProjectDocumentPage,
   ProjectDocumentRef,
   ProjectEntitySummary,
@@ -380,6 +381,17 @@ export type {
   TimelineStatus
 } from "./project-summary.js";
 export { listDocumentIndex } from "./document-index.js";
+export {
+  DOCUMENT_FILE_MISSING,
+  documentFileOf,
+  findDocumentByFile,
+  listDocumentFiles
+} from "./document-file-state.js";
+export type {
+  DocumentOfFile,
+  FileDocumentType,
+  ProjectDocumentFile
+} from "./document-file-state.js";
 export type {
   DocumentIndex,
   DocumentIndexEntry,
