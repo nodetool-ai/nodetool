@@ -225,7 +225,7 @@ TestCase {
         function respondToAction(id, allow, feedback) { responses = responses.concat([{id: id, allow: allow, feedback: feedback}]) }
         function openProviderSettings() { responses = responses.concat([{settings: true}]) }
         function saveSecret(id, value) { responses = responses.concat([{id: id, secret: value}]) }
-        function allowActionForChat(id) { responses = responses.concat([{id: id, forChat: true}]) }
+        function allowActionAlways(id) { responses = responses.concat([{id: id, always: true}]) }
         property var resolvedMedia: ({})
         property bool embeddedMedia: false
         function resolveImage(source) {}

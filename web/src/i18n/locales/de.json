@@ -13203,8 +13203,9 @@
         },
         "showCode": "Code anzeigen",
         "showArguments": "Argumente anzeigen",
-        "allow": "Erlauben",
-        "allowForChat": "Für diesen Chat erlauben",
+        "allowOnce": "Einmal erlauben",
+        "allowAlways": "Immer erlauben",
+        "allowAlwaysHint": "{{tool}} ab jetzt ohne Nachfrage ausführen. Du kannst das unter Einstellungen › Berechtigungen ändern.",
         "deny": "Ablehnen"
       }
     }
@@ -20119,5 +20120,17 @@
       "unsupportedTitle": "Keine KI-Werkzeuge für diesen Clip",
       "unsupported": "Wähle einen Video- oder Bildclip oder einen generierten Clip aus."
     }
+  },
+  "toolPermissions": {
+    "tab": "Berechtigungen",
+    "title": "Tool-Berechtigungen",
+    "sidebarCategory": "Tools",
+    "intro": "Lege fest, welche Tools der Assistent ohne Nachfrage nutzen darf. Bei einem Tool mit „Fragen“ erscheint vor der Ausführung eine Abfrage im Chat.",
+    "modes": "Im Standardmodus fragt jedes Tool mit „Fragen“ zuerst nach. Im Auto-Modus laufen Tools ohne Nachfrage, außer eine Code-Aktion löscht, veröffentlicht oder gibt Geld aus. Stelle „Execute code“ auf „Immer erlauben“, um auch diese Abfrage abzuschalten. Der Planmodus blockiert jede Änderung, unabhängig von der Regel.",
+    "alwaysAllow": "Immer erlauben",
+    "ask": "Fragen",
+    "saveFailed": "Diese Berechtigung konnte nicht gespeichert werden.",
+    "loadFailed": "Die Tool-Liste konnte nicht geladen werden.",
+    "noMatches": "Keine Tools passen zu deiner Suche."
   }
 }

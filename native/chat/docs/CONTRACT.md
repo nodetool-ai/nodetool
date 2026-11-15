@@ -51,8 +51,8 @@ continues the agent turn. Tool results, planning, task, workflow, and media
 events retain their original payloads.
 
 `tool_approval_request` and `plan_approval_request` carry authoritative
-`approval_id` values. Replies use `tool_approval_response` with `allow` or
-`deny`, or `plan_approval_response` with `approve` or `reject` and optional
+`approval_id` values. Replies use `tool_approval_response` with `allow`
+(once), `allow_always` (saved for the user) or `deny`, or `plan_approval_response` with `approve` or `reject` and optional
 `feedback`. Secret values never travel in a secret-request response. A
 `secret_request_response` reports only `saved` or `declined` after a separate
 settings write.

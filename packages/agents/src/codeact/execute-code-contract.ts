@@ -37,7 +37,11 @@ import {
 } from "@nodetool-ai/protocol";
 
 import type { CapabilityGate } from "../capabilities/types.js";
-import { TOOL_PERMISSION_CATEGORIES } from "../tools/tool-permissions.js";
+import {
+  TOOL_PERMISSION_CATEGORIES,
+  grantsStandingApproval,
+  isPreapproved
+} from "../tools/tool-permissions.js";
 import { isString } from "../utils/type-guards.js";
 
 export const EXECUTE_CODE_TOOL_NAME = "execute_code";
@@ -230,9 +234,10 @@ const ALLOWED: ActionAdmission = { allowed: true };
  *
  * Only auto mode asks: without a gate (a headless step loop) or in plan /
  * default mode the per-call ladder inside the action is the gate, unchanged.
- * "Allow for this chat" is keyed on `execute_code` itself, so granting it once
- * makes every later high-risk action in the thread run unattended — which is
- * the user saying "stop asking", the same meaning it has for any other tool.
+ * "Allow for this chat" and "Always allow" are keyed on `execute_code` itself,
+ * so granting either once makes every later high-risk action in the thread
+ * (or, for "Always allow", in every chat) run unattended — which is the user
+ * saying "stop asking", the same meaning it has for any other tool.
  */
 export async function admitCodeAction(
   gate: CapabilityGate | undefined,
@@ -241,7 +246,7 @@ export async function admitCodeAction(
   if (!gate || gate.mode !== "auto") return ALLOWED;
   const risk = await effectiveActionRisk(args);
   if (risk === "low") return ALLOWED;
-  if (gate.sessionAllow.has(EXECUTE_CODE_TOOL_NAME)) return ALLOWED;
+  if (isPreapproved(gate, EXECUTE_CODE_TOOL_NAME)) return ALLOWED;
 
   const answer = await gate.requestApproval({
     toolName: EXECUTE_CODE_TOOL_NAME,
@@ -264,7 +269,7 @@ export async function admitCodeAction(
         "narrower action that avoids the destructive or costly part."
     };
   }
-  if (answer === "allow_for_chat") {
+  if (grantsStandingApproval(answer)) {
     gate.sessionAllow.add(EXECUTE_CODE_TOOL_NAME);
   }
   return ALLOWED;

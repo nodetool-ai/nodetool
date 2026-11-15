@@ -100,12 +100,10 @@ describe("ToolApprovalCard", () => {
   it("reports each decision under the approval id", async () => {
     const user = userEvent.setup();
     renderCard();
-    await user.click(screen.getByRole("button", { name: "Allow" }));
+    await user.click(screen.getByRole("button", { name: "Allow once" }));
     expect(onResolve).toHaveBeenCalledWith("appr_1", "allow");
-    await user.click(
-      screen.getByRole("button", { name: "Allow for this chat" })
-    );
-    expect(onResolve).toHaveBeenCalledWith("appr_1", "allow_for_chat");
+    await user.click(screen.getByRole("button", { name: "Always allow" }));
+    expect(onResolve).toHaveBeenCalledWith("appr_1", "allow_always");
     await user.click(screen.getByRole("button", { name: "Deny" }));
     expect(onResolve).toHaveBeenCalledWith("appr_1", "deny");
   });

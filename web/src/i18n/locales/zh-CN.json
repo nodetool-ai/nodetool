@@ -13203,8 +13203,9 @@
         },
         "showCode": "显示代码",
         "showArguments": "显示参数",
-        "allow": "允许",
-        "allowForChat": "在此聊天中始终允许",
+        "allowOnce": "允许一次",
+        "allowAlways": "始终允许",
+        "allowAlwaysHint": "从现在起运行 {{tool}} 时不再询问。可在 设置 › 权限 中更改。",
         "deny": "拒绝"
       }
     }
@@ -20119,5 +20120,17 @@
       "unsupportedTitle": "此片段没有可用的 AI 工具",
       "unsupported": "选择视频或图像片段，或已生成的片段。"
     }
+  },
+  "toolPermissions": {
+    "tab": "权限",
+    "title": "工具权限",
+    "sidebarCategory": "工具",
+    "intro": "选择助手无需询问即可使用的工具。设为“询问”的工具在运行前会在聊天中显示提示。",
+    "modes": "在默认模式下，每个设为“询问”的工具都会先提示。在自动模式下，工具无需询问即可运行，但删除、发布或花费资金的代码操作除外。将 Execute code 设为“始终允许”可同时关闭该提示。计划模式会阻止所有更改，不论规则如何。",
+    "alwaysAllow": "始终允许",
+    "ask": "询问",
+    "saveFailed": "无法保存此权限。",
+    "loadFailed": "无法加载工具列表。",
+    "noMatches": "没有与搜索匹配的工具。"
   }
 }

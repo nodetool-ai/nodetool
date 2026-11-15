@@ -15,6 +15,8 @@ import type { VectorCollection } from "@nodetool-ai/vectorstore";
 import { injectUserMessageField, Tool } from "../tools/base-tool.js";
 import {
   decidePermission,
+  grantsStandingApproval,
+  isPreapproved,
   type PermissionCategory
 } from "../tools/tool-permissions.js";
 import { validateCapabilityArgs, withSnakeCaseAliases } from "./args.js";
@@ -287,7 +289,7 @@ async function invokeCapabilityImpl(
   }
 
   // decision === "ask"
-  if (run.gate.sessionAllow.has(spec.name)) {
+  if (isPreapproved(run.gate, spec.name)) {
     return runImpl(run, entry, args, category);
   }
 
@@ -312,7 +314,7 @@ async function invokeCapabilityImpl(
     };
   }
 
-  if (answer === "allow_for_chat") {
+  if (grantsStandingApproval(answer)) {
     run.gate.sessionAllow.add(spec.name);
   }
 

@@ -229,3 +229,34 @@ export const onePasswordFieldOption = z.object({
   reference: z.string()
 });
 export type OnePasswordFieldOption = z.infer<typeof onePasswordFieldOption>;
+
+// ── Tool permissions (Settings › Permissions, chat "Always allow") ──
+
+/** A saved rule for one tool: run without asking, or ask first. */
+export const toolPermissionRule = z.enum(["always_allow", "ask"]);
+export type ToolPermissionRule = z.infer<typeof toolPermissionRule>;
+
+export const toolPermissionEntry = z.object({
+  /** Rule key: a tool name, or `tool:target` for a narrowed approval. */
+  name: z.string(),
+  description: z.string(),
+  category: z.enum(["write", "execute", "external"]),
+  rule: toolPermissionRule
+});
+export type ToolPermissionEntry = z.infer<typeof toolPermissionEntry>;
+
+export const toolPermissionGroup = z.object({
+  id: z.string(),
+  title: z.string(),
+  tools: z.array(toolPermissionEntry)
+});
+export type ToolPermissionGroup = z.infer<typeof toolPermissionGroup>;
+
+export const toolPermissionsListOutput = z.object({
+  groups: z.array(toolPermissionGroup)
+});
+
+export const toolPermissionsSetInput = z.object({
+  name: z.string().min(1).max(256),
+  rule: toolPermissionRule
+});

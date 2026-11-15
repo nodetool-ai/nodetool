@@ -168,6 +168,48 @@ describe("GatedTool", () => {
     expect(second.ran).toBe(true);
   });
 
+  it("runs a tool the user saved as Always allow without asking", async () => {
+    const approve = vi.fn(async () => "deny" as ApprovalDecision);
+    const inner = new FakeTool("write_file");
+    await gateLegacyTools([inner], {
+      mode: "default",
+      sessionAllow: new Set<string>(),
+      alwaysAllow: new Set(["write_file"]),
+      requestApproval: approve
+    })[0].process(ctx, {});
+    expect(approve).not.toHaveBeenCalled();
+    expect(inner.ran).toBe(true);
+  });
+
+  it("still blocks an Always allow tool in plan mode", async () => {
+    const approve = vi.fn(async () => "allow" as ApprovalDecision);
+    const inner = new FakeTool("write_file");
+    const result = (await gateLegacyTools([inner], {
+      mode: "plan",
+      sessionAllow: new Set<string>(),
+      alwaysAllow: new Set(["write_file"]),
+      requestApproval: approve
+    })[0].process(ctx, {})) as { error?: string };
+    expect(result.error).toBe("blocked_in_plan_mode");
+    expect(inner.ran).toBe(false);
+  });
+
+  it("treats an 'allow_always' answer as standing for the rest of the chat", async () => {
+    const approve = vi.fn(async () => "allow_always" as ApprovalDecision);
+    const sessionAllow = new Set<string>();
+    const opts = { mode: "default" as PermissionMode, sessionAllow, requestApproval: approve };
+
+    const first = new FakeTool("write_file");
+    await gateLegacyTools([first], opts)[0].process(ctx, {});
+    expect(first.ran).toBe(true);
+    expect(sessionAllow.has("write_file")).toBe(true);
+
+    const second = new FakeTool("write_file");
+    await gateLegacyTools([second], opts)[0].process(ctx, {});
+    expect(approve).toHaveBeenCalledTimes(1);
+    expect(second.ran).toBe(true);
+  });
+
   it("passes the stripped args and resolved message to the approval prompt", async () => {
     let captured: ApprovalRequest | null = null;
     const approve = async (r: ApprovalRequest) => {

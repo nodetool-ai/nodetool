@@ -1498,7 +1498,7 @@ async function executeToolCall(
  */
 export async function sendToolApprovalResponse(
   approvalId: string,
-  decision: "allow" | "allow_for_chat" | "deny"
+  decision: "allow" | "allow_for_chat" | "allow_always" | "deny"
 ): Promise<void> {
   try {
     await globalWebSocketManager.send({

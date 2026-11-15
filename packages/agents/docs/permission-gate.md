@@ -118,6 +118,40 @@ does not cover. It also asserts that the three sites it names by hand were
 found, so it cannot pass on a walk that matched nothing. The walk used to stop
 at this package, which is why the Code node's ungated mount sat outside it.
 
+## Saved tool rules
+
+A user can answer an approval prompt three ways: **Allow once** (`allow`),
+**Always allow** (`allow_always`) and **Deny** (`deny`). `allow_for_chat`
+stays valid on the wire for the CLI and older clients. Every ladder site asks
+`isPreapproved(gate, ruleKey)` (`@nodetool-ai/runtime`) instead of reading
+`sessionAllow`, and treats `allow_for_chat` and `allow_always` alike through
+`grantsStandingApproval`, so the call runs and the key joins `sessionAllow`.
+
+`gate.alwaysAllow` holds the rule keys the user saved. The chat turn loads it
+once per turn from the user's settings row `tool_permissions.always_allow`
+(`packages/websocket/src/tool-permission-rules.ts`). When the client answers
+`allow_always`, the turn adds the key to that set and saves it. A failed save
+is logged and the call still runs. The Settings page lists the same rules
+through `settings.toolPermissions.list` and `set`: every non-read capability,
+plus `execute_code` and `run_node`, grouped by module, with saved keys no
+catalog entry owns under "Other".
+
+The rule key is `request.ruleKey ?? request.toolName`. A capability that asks
+about one target of a tool narrows it: the Apify actor policy asks with
+`run_apify_actor:<actor>`, so "Always allow" approves that actor, not every
+actor.
+
+How a saved rule meets each mode:
+
+| Mode | Tool set to Ask | Tool set to Always allow |
+|---|---|---|
+| `plan` | blocked | blocked, because the category decides before any allow-list is read |
+| `default` | prompt | runs |
+| `auto` | runs, except the escalations (`admitCodeAction` for a high-risk `execute_code`, an un-allowlisted Apify actor) | runs, and the escalation for that key is skipped |
+
+Read-class tools never ask, so they have no rule. Hosts other than the chat
+turn set no `alwaysAllow`, and their behaviour is unchanged.
+
 ## Approving a plan is the permission gate
 
 There is no plan-approval callback. `execute_plan` is classified `external` in

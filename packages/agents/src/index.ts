@@ -75,7 +75,10 @@ export {
   permissionCategoryFor,
   decidePermission,
   headlessGate,
-  headlessDenialReason
+  headlessDenialReason,
+  APPROVAL_DECISIONS,
+  grantsStandingApproval,
+  isPreapproved
 } from "./tools/tool-permissions.js";
 export { gateLegacyTools, capabilityRunForLegacyTool, capabilityRunForTools } from "./capabilities/legacy-tools.js";
 export { gateFromContext } from "./capabilities/gate-from-context.js";
