@@ -130,6 +130,7 @@ describe("projects.openFolder and projects.relocate", () => {
 
     expect(project.name).toBe("Footage Film");
     expect(project.folder).toEqual({
+      workspace_id: expect.any(String),
       path: folder,
       origin: "adopted",
       is_accessible: true
@@ -255,6 +256,7 @@ describe("projects.openFolder and projects.relocate", () => {
 
     expect(opened.id).toBe(created.id);
     expect(opened.folder).toEqual({
+      workspace_id: expect.any(String),
       path: moved,
       origin: "created",
       is_accessible: true
@@ -319,6 +321,7 @@ describe("projects.openFolder and projects.relocate", () => {
     });
 
     expect(located.folder).toEqual({
+      workspace_id: expect.any(String),
       path: renamed,
       origin: "created",
       is_accessible: true

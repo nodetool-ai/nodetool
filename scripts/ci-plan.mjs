@@ -10,6 +10,8 @@
  *
  *   - a changed file outside every workspace that is not documentation, or a
  *     change to the gate's own workflow files, selects everything;
+ *   - the macOS node catalog check runs when the diff reaches a pack the
+ *     generator imports, node-sdk, the catalog package or the generator;
  *   - a backend shard runs when the diff affects a package in its slice, with
  *     turbo's `--affected` only when every changed file sits in a workspace
  *     directory (`turbo_affected`), since turbo cannot attribute any other
@@ -24,14 +26,16 @@
  *   node scripts/ci-plan.mjs plan [--base <sha>] [--head <sha>]
  *     Print the plan as JSON and, under GitHub Actions, write it to
  *     $GITHUB_OUTPUT as `plan`. No `--base` means a full run.
- *   node scripts/ci-plan.mjs run <web|electron|mobile...> [--base <sha>]
- *     Run the test step the plan chose for each app, in order.
+ *   node scripts/ci-plan.mjs run <web|electron|mobile...> [--base <sha>] [-- <args>]
+ *     Run the test step the plan chose for each app, in order. Arguments
+ *     after `--` are appended to each step, as in `-- --shard=1/3`.
  */
 import { execFileSync, spawnSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { CATALOG_PACKS } from "./node-catalog/packs.mjs";
 import { APPS, DOC_ONLY, buildPlan, fullPlan, readPackages } from "./test-affected.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -59,6 +63,44 @@ export const TSC6_FILES = /(^|\/)(package\.json|tsconfig[^/]*\.json)$|^package-l
  */
 export const BLENDER_FILES = /^packages\/blender-nodes\//;
 
+/** The catalog generator's own files. PATH_CHECKS keeps them out of the global set. */
+export const NODE_CATALOG_FILES = /^scripts\/(node-catalog\/|generate-node-catalog\.mjs$)/;
+
+/**
+ * Packages whose code the generator loads: the packs it imports to read their
+ * registrations, the registry they register into, and the catalog package
+ * that holds the checked-in data. A change to one of them or to a package it
+ * depends on can alter the bytes `npm run check:node-catalog` compares.
+ */
+export const NODE_CATALOG_PACKAGES = new Set([
+  ...CATALOG_PACKS.filter((pack) => pack.kind !== "cli-feature").map((pack) => pack.npmName),
+  "@nodetool-ai/node-sdk",
+  "@nodetool-ai/node-catalog"
+]);
+
+/**
+ * Manifests the generator reads without importing the package: every pack's,
+ * for its version and dependencies, and the CLI's, for the core version.
+ */
+export const NODE_CATALOG_MANIFESTS = new Set(
+  [...CATALOG_PACKS.map((pack) => pack.npmName), "@nodetool-ai/cli"].map(
+    (name) => `packages/${name.slice("@nodetool-ai/".length)}/package.json`
+  )
+);
+
+/**
+ * Whether the diff can change the generated catalog. The Linux check runs in
+ * the `typecheck` leg of every run. This decides the macOS copy, which is
+ * skipped only when the diff reaches none of the generator's inputs, so the
+ * bytes it would compare are those of the last run that did.
+ */
+export function reachesNodeCatalog(files, affected) {
+  return (
+    files.some((f) => NODE_CATALOG_FILES.test(f) || NODE_CATALOG_MANIFESTS.has(f)) ||
+    affected.some((name) => NODE_CATALOG_PACKAGES.has(name))
+  );
+}
+
 /** Web files whose change can alter any test, not just the ones importing them. */
 const WEB_GLOBAL = /^web\/src\/(setupTests\.ts$|__mocks__\/)/;
 
@@ -80,6 +122,24 @@ const NODES_SHARD = new Set([
 ]);
 
 /**
+ * The execution packages with the longest suites of the former `core` shard.
+ * `core` ran them, the CLI packages and everything else two at a time on one
+ * runner and took about twice as long as any other leg. They are a positive
+ * list: a new package lands in `core` until someone moves it here.
+ */
+const ENGINE_SHARD = new Set([
+  "@nodetool-ai/runtime",
+  "@nodetool-ai/models",
+  "@nodetool-ai/execution",
+  "@nodetool-ai/kernel",
+  "@nodetool-ai/node-sdk",
+  "@nodetool-ai/protocol"
+]);
+
+/** `packages/cli` and `packages/cli-*`, as the `cli` shard's turbo filters name them. */
+const CLI_DIR = /^packages\/cli(-[^/]+)?$/;
+
+/**
  * The `test-packages-*` leg that tests a workspace, or null for one no
  * backend shard covers. Mirrors the shards' turbo filters in
  * quality-checks.yml; scripts/__tests__/test-packages-shards.test.mjs holds
@@ -91,6 +151,8 @@ export function shardOf(name, dir) {
   if (name === "@nodetool-ai/agents") return "test-packages-agents";
   if (GAME_SHARD.has(name)) return "test-packages-game";
   if (/^packages\/[^/]+-nodes$/.test(dir) || NODES_SHARD.has(name)) return "test-packages-nodes";
+  if (ENGINE_SHARD.has(name)) return "test-packages-engine";
+  if (CLI_DIR.test(dir) || dir.startsWith("reliability/")) return "test-packages-cli";
   return "test-packages-core";
 }
 
@@ -105,6 +167,8 @@ export function fullCiPlan() {
     packages_agents: true,
     packages_nodes: true,
     packages_core: true,
+    packages_cli: true,
+    packages_engine: true,
     packages_game: true,
     integration: true,
     workflow_runner_e2e: true,
@@ -183,13 +247,15 @@ export function buildCiPlan(files, packages, computeAffected) {
     packages_agents: shards.has("test-packages-agents"),
     packages_nodes: shards.has("test-packages-nodes"),
     packages_core: shards.has("test-packages-core"),
+    packages_cli: shards.has("test-packages-cli"),
+    packages_engine: shards.has("test-packages-engine"),
     packages_game: shards.has("test-packages-game"),
     integration: affected.includes("@nodetool-ai/base-nodes"),
     workflow_runner_e2e: affected.includes("@nodetool-ai/workflow-runner"),
     tsc6: files.some((f) => TSC6_FILES.test(f)),
     docker,
     blender: files.some((f) => BLENDER_FILES.test(f)),
-    node_catalog: true,
+    node_catalog: reachesNodeCatalog(files, affected),
     turbo_affected: !outsideWorkspaces
   };
 }
@@ -239,7 +305,10 @@ async function main(argv) {
   }
 
   if (mode === "run") {
-    const apps = rest.filter((a, i) => !a.startsWith("--") && !rest[i - 1]?.startsWith("--"));
+    const separator = rest.indexOf("--");
+    const own = separator < 0 ? rest : rest.slice(0, separator);
+    const extra = separator < 0 ? [] : rest.slice(separator + 1);
+    const apps = own.filter((a, i) => !a.startsWith("--") && !own[i - 1]?.startsWith("--"));
     const unknown = apps.filter((a) => !(a in APPS));
     if (apps.length === 0 || unknown.length > 0) {
       console.error(`run needs app names from: ${Object.keys(APPS).join(", ")}`);
@@ -255,13 +324,17 @@ async function main(argv) {
         continue;
       }
       console.log(`\n${step.label}`);
-      const { status } = spawnSync(step.command, step.args, { cwd: repoRoot, stdio: "inherit" });
+      // A full-suite step has no `--` of its own. npm needs one before
+      // arguments meant for the test runner.
+      const args =
+        extra.length === 0 ? step.args : [...step.args, ...(step.args.includes("--") ? [] : ["--"]), ...extra];
+      const { status } = spawnSync(step.command, args, { cwd: repoRoot, stdio: "inherit" });
       if (status !== 0) return status ?? 1;
     }
     return 0;
   }
 
-  console.error("Usage: node scripts/ci-plan.mjs <plan|run> [apps...] [--base <sha>] [--head <sha>] [--defer-to-queue]");
+  console.error("Usage: node scripts/ci-plan.mjs <plan|run> [apps...] [--base <sha>] [--head <sha>] [--defer-to-queue] [-- <test args>]");
   return 2;
 }
 
