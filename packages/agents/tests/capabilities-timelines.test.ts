@@ -620,6 +620,34 @@ describe("timelines capability behaviour", () => {
     expect((await TimelineSequence.findById(row.id))!.toDocument().clips).toEqual([]);
   });
 
+  it("sets a track and closes gaps with set_track, close_gap, ripple_delete and cut_transcript", async () => {
+    const doc = JSON.parse(document());
+    doc.tracks.push({ ...doc.tracks[0], id: "track-2", name: "Voice", type: "audio", index: 1 });
+    doc.clips.push(
+      { ...doc.clips[0], id: "clip-2", name: "Shot 2", startMs: 3000 },
+      { ...doc.clips[0], id: "clip-3", trackId: "track-2", name: "VO", mediaType: "audio", startMs: 6000 }
+    );
+    const row = await makeTimeline({ document: JSON.stringify(doc) });
+    const result = await run().invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [
+        { op: "set_track", track: "Voice", muted: true, volumeDb: -6 },
+        { op: "close_gap", track: "Video 1", atMs: 2500 },
+        { op: "ripple_delete", targets: ["Shot 1"] },
+        { op: "cut_transcript", startMs: 3000, endMs: 3500 }
+      ]
+    });
+    expect(result).toMatchObject({ applied: 4, failed: 0 });
+    const stored = (await TimelineSequence.findById(row.id))!.toDocument();
+    expect(stored.tracks.find((t) => t.id === "track-2")).toMatchObject({ muted: true, volumeDb: -6 });
+    // Both ripples pull Shot 2 to 0 and VO from 6000 to 3000. The cut then
+    // removes VO's first 500 ms.
+    expect(stored.clips.map((c) => [c.trackId, c.name, c.startMs, c.durationMs])).toEqual([
+      ["track-1", "Shot 2", 0, 2000],
+      ["track-2", "VO", 3000, 1500]
+    ]);
+  });
+
   it.each(["clip", "track"] as const)("rejects ambiguous compact %s IDs without changing state", async (kind) => {
     const row = await makeTimeline();
     const doc = row.toDocument();
