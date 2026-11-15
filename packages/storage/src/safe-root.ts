@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import {
-  copyFile,
   link,
   lstat,
   mkdir,
@@ -414,6 +413,19 @@ class SafeRootImpl implements SafeRoot {
     if (options.stagingName !== undefined) {
       return this.createStaged(parent, name, options.stagingName, data);
     }
+    return this.createInPlace(parent, target, data);
+  }
+
+  /**
+   * Open `target` exclusively and write `data` into it. False when something
+   * is at `target`. A file is removed again only after the exclusive open
+   * made it, so nothing another writer put there is ever touched.
+   */
+  private async createInPlace(
+    parent: string,
+    target: string,
+    data: Uint8Array
+  ): Promise<boolean> {
     let handle: FileHandle;
     try {
       handle = await open(
@@ -451,8 +463,8 @@ class SafeRootImpl implements SafeRoot {
    * process that dies at any point leaves either no target or the whole
    * file, plus at most the staging file, which the next call removes.
    *
-   * A file system without hard links gets an exclusive copy instead. The
-   * target is then written in place, as in the unstaged create.
+   * A file system without hard links gets the unstaged create instead: the
+   * target is opened exclusively and written in place.
    */
   private async createStaged(
     parent: string,
@@ -497,26 +509,13 @@ class SafeRootImpl implements SafeRoot {
         const code = errorCode(error);
         if (code === "EEXIST") return false;
         if (code === undefined || !NO_HARD_LINKS.has(code)) throw error;
-        if (!(await this.copyExclusive(staging, target))) return false;
+        return await this.createInPlace(parent, target, data);
       }
     } finally {
       await rm(staging, { force: true }).catch(() => {});
     }
     await syncDirectory(parent);
     return true;
-  }
-
-  /** Copy `source` to `target` only when nothing is at `target`. */
-  private async copyExclusive(source: string, target: string): Promise<boolean> {
-    try {
-      await copyFile(source, target, constants.COPYFILE_EXCL);
-      return true;
-    } catch (error) {
-      if (errorCode(error) === "EEXIST") return false;
-      // The exclusive copy made this file, so it is this call's to remove.
-      await rm(target, { force: true }).catch(() => {});
-      throw error;
-    }
   }
 
   private async replaceFile(
