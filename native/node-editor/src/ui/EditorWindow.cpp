@@ -155,6 +155,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
               metaObject()->method(metaObject()->indexOfMethod("showToolTip(QString)")));
     }
     newTab();
+    // The start-up tab resumes the workflow's conversation. Only tabs opened later start fresh.
+    activeEditor_->chat_.setFreshThreadPending(false);
     installTabShortcuts();
     installApplicationMenu();
     // The shared Generations list asks the active tab, which holds the session.
