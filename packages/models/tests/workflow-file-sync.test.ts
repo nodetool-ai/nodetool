@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   ModelObserver,
   Workflow,
+  computeEtag,
   initTestDb,
   setWorkflowFileSync,
   type DocumentFileLocation
@@ -176,6 +177,50 @@ describe("the workflow file sync hook", () => {
       file_path: "Workflows/Fox.workflow.json",
       file_hash: "hash of Fox"
     });
+  });
+
+  it("leaves the file state out of the etag", async () => {
+    setWorkflowFileSync(null);
+    const workflow = await makeWorkflow();
+    const etag = workflow.getEtag();
+    // The etag a workflow had before it had a file: the row without the
+    // three columns that describe the file.
+    const {
+      file_path: _path,
+      file_hash: _hash,
+      file_error: _error,
+      ...content
+    } = workflow.toRow();
+    expect(etag).toBe(computeEtag(content));
+
+    // Writing, importing and losing the file change the row, not the etag.
+    await Workflow.setFileState(workflow.id, {
+      file_path: "Workflows/Fox.workflow.json",
+      file_hash: "a".repeat(64)
+    });
+    expect((await reload(workflow.id)).getEtag()).toBe(etag);
+    await Workflow.setFileState(workflow.id, { file_error: "File missing" });
+    expect((await reload(workflow.id)).getEtag()).toBe(etag);
+
+    // The sync records the file on the instance after the save was announced.
+    recordingSync();
+    const announced: string[] = [];
+    ModelObserver.subscribe(
+      (instance) => announced.push(instance.getEtag()),
+      "Workflow"
+    );
+    const created = await makeWorkflow({ name: "Owl" });
+    expect(created.file_path).toBe("Workflows/Owl.workflow.json");
+    expect(announced).toEqual([created.getEtag()]);
+    expect((await reload(created.id)).getEtag()).toBe(created.getEtag());
+
+    // Content still changes it.
+    const changed = await Workflow.updateFieldsIfUnchanged(
+      workflow.id,
+      workflow.updated_at,
+      { description: "changed" }
+    );
+    expect(changed?.getEtag()).not.toBe(etag);
   });
 
   it("lists the projects that hold a workflow with no file", async () => {
