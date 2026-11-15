@@ -170,7 +170,9 @@ private slots:
         auto* animate = named(panel, "motionPanelAnimate"); QVERIFY(animate);
         QTRY_VERIFY(animate->isVisible());
         QVERIFY(!empty->isVisible());
-        for (const auto* name : {"advancedMotion", "inspectorReframe"}) { QVERIFY2(named(panel, QString::fromLatin1(name)), name); }
+        QVERIFY(named(panel, "advancedMotion"));
+        // Smart reframe runs a tracking model, so it sits in the AI panel.
+        QVERIFY(!named(panel, "inspectorReframe"));
         auto* inspector = named(e.root(), "timelineInspector");
         for (const auto* name : {"motionPanelAnimate", "advancedMotion", "inspectorReframe"}) { QVERIFY2(!named(inspector, QString::fromLatin1(name)), name); }
         QVERIFY(e.grab(panel, "motion-video-clip"));
@@ -208,6 +210,7 @@ private slots:
         auto* section = named(panel, "inspectorAiSection"); QVERIFY(section);
         QVERIFY(section->isVisible());
         QTRY_VERIFY(named(section, "inspectorReviewTakes"));
+        QVERIFY(named(panel, "inspectorReframe"));
         QVERIFY(!named(named(e.root(), "timelineInspector"), "inspectorAiSection"));
         QVERIFY(e.grab(panel, "ai-video-clip"));
         e.gestures()->setSelection({"sound"});

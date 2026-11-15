@@ -65,6 +65,11 @@ export { generateStructured } from "guest-real:@nodetool-ai/runtime/providers/st
 export { parseWithTypeCoercion } from "@nodetool-ai/protocol/zod-schema";
 export { budgetFromContext, createRunBudget } from "guest-real:@nodetool-ai/runtime/turn-budget.js";
 export { BaseProvider } from "guest-real:@nodetool-ai/runtime/providers/base-provider.js";
+export { creditBlockReason } from "guest-real:@nodetool-ai/runtime/providers/provider-credits.js";
+export {
+  RESERVED_WORKSPACE_DIR,
+  setProjectFolderResolver
+} from "guest-real:@nodetool-ai/runtime-core/workspace.js";
 export { PERMISSION_GATE_CONTEXT_KEY } from "guest-real:@nodetool-ai/runtime/permission-gate.js";
 export { getRunTraceScope, withRunTrace, recordTraceEvent } from "guest-real:@nodetool-ai/runtime/run-trace-context.js";
 export { stringifyTraceContent } from "guest-real:@nodetool-ai/runtime/run-trace-serialization.js";
@@ -86,6 +91,42 @@ export {
 export * from "./media-native.mjs";
 
 export { isBlockedIpLiteral, isSafePublicHttpsUrl } from "guest-real:@nodetool-ai/runtime/providers/safe-url.js";
+
+// As ensureRunFile and saveRunFileAsset in @nodetool-ai/runtime, which share
+// a file with the project folder only when the run's workspace is that
+// folder. The native runner keeps no project folders, so the file always goes
+// to the run's workspace (the files capability) and the asset, when there is
+// one, to the assets capability. The runtime's own module would bring the
+// whole runtime-core package into the bundle for a resolver that is never
+// installed here.
+export async function ensureRunFile(context, bytes, path, contentType) {
+  if (!context.workspace) return null;
+  await context.workspace.write(path, bytes, contentType);
+  return path;
+}
+
+export async function saveRunFileAsset(context, bytes, opts) {
+  let assetId = null;
+  let assetError;
+  if (context.hasModelInterface?.("createAsset")) {
+    try {
+      const created = await context.createAsset({
+        name: opts.name,
+        contentType: opts.contentType,
+        content: bytes,
+        path: opts.path,
+        metadata: opts.metadata ?? null
+      });
+      assetId = typeof created?.id === "string" && created.id ? created.id : null;
+    } catch (error) {
+      assetError = error instanceof Error ? error.message : String(error);
+    }
+  }
+  const path = await ensureRunFile(context, bytes, opts.path, opts.contentType);
+  const saved = { asset_id: assetId, path };
+  if (assetError !== undefined) saved.asset_error = assetError;
+  return saved;
+}
 
 // The server caps concurrent timeline renders across jobs. The native runner
 // renders inside its own run, so the guest honours the signal and renders.

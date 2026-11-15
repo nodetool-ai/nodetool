@@ -103,9 +103,12 @@ import { normalizeAssetContentType } from "./lib/asset-paths.js";
 import { toAssetResponse } from "./lib/asset-response.js";
 import {
   createAssetModelInterface,
-  createStoredAsset,
   updateAssetBytesModelInterface
 } from "./lib/asset-model-interface.js";
+import {
+  IMPORTED_DIRECTORY,
+  saveProjectAsset
+} from "@nodetool-ai/asset-services/project-asset";
 import type { McpServerOptions } from "./mcp-server.js";
 import type { FrontendRendererService } from "./frontend-renderer-registry.js";
 import { isRecord, isString } from "./lib/wire-values.js";
@@ -409,6 +412,40 @@ async function signedAssetUrl(asset: Asset): Promise<string | null> {
   return url && /^https:\/\//i.test(url) ? url : null;
 }
 
+/**
+ * The tool response for a direct tool's result. A binary tool answers with
+ * the asset it saved as `asset://<id>.<ext>`, which only NodeTool's own chat
+ * resolves, and a remote MCP client renders only a public https URL. That URI
+ * is swapped for the signed URL the asset's listing carries, in `asset_url`
+ * and in the `display_markdown` that embeds it. A server with no signed URLs
+ * keeps the URI.
+ */
+async function toSignedAssetToolResponse(
+  result: unknown,
+  userId: string
+): Promise<CallToolResult> {
+  if (
+    !isRecord(result) ||
+    !isString(result["asset_id"]) ||
+    !isString(result["asset_url"]) ||
+    !result["asset_url"].startsWith("asset://")
+  ) {
+    return toToolResponse(result);
+  }
+  const asset = await Asset.find(userId, result["asset_id"]);
+  const url = asset ? await signedAssetUrl(asset) : null;
+  if (!url) return toToolResponse(result);
+  const assetUri = result["asset_url"];
+  const signed: Record<string, unknown> = { ...result, asset_url: url };
+  if (isString(result["display_markdown"])) {
+    signed["display_markdown"] = result["display_markdown"].replaceAll(
+      assetUri,
+      url
+    );
+  }
+  return toToolResponse(signed);
+}
+
 const STORAGE_ROUTE_PREFIX = "/api/storage/";
 
 /**
@@ -622,19 +659,22 @@ class ImportAssetTool extends Tool {
         : sourceName;
     let result: unknown;
     if (isString(path)) {
-      const bytes = await readFile(path);
-      const asset = await createStoredAsset({
+      // An imported file: copied once into `Imported/` of the project.
+      const asset = await saveProjectAsset({
+        projectId: context.projectId,
         userId: context.userId,
         name,
         contentType: isString(params["content_type"])
           ? params["content_type"]
           : "",
-        content: bytes
+        localPath: path,
+        directory: IMPORTED_DIRECTORY,
+        parentId: context.userId
       });
       result = {
         asset_id: asset.id,
         asset_uri: `asset://${asset.id}`,
-        size: bytes.length
+        size: asset.size
       };
     } else {
       const saveParams: Record<string, unknown> = {
@@ -834,12 +874,13 @@ class RenderDemoSurfaceTool extends Tool {
           maxBuffer: 2 * 1024 * 1024
         }
       );
-      const bytes = await readFile(output);
-      const asset = await createStoredAsset({
+      const asset = await saveProjectAsset({
+        projectId: context.projectId,
         userId: context.userId,
         name: `${surface}-surface.mp4`,
         contentType: "video/mp4",
-        content: bytes
+        localPath: output,
+        parentId: context.userId
       });
       return {
         asset_id: asset.id,
@@ -1152,7 +1193,7 @@ export function registerAgentMcpTools(
           }
           const result = await runBridgedTool(tool, input, extra?.signal);
           if (!isImageTool) {
-            return toToolResponse(result);
+            return toSignedAssetToolResponse(result, scope.userId);
           }
           if (isRecord(result) && imageId && !isErrorResult(result)) {
             result["image_id"] = imageId.startsWith("data:")
@@ -1493,14 +1534,18 @@ export function registerAgentMcpTools(
         const bytes = file_path
           ? await readFile(file_path)
           : Buffer.from(content_base64 ?? "", "base64");
-        const asset = await createStoredAsset({
+        // An upload: one file in `Imported/` of the user's Personal project.
+        const asset = await saveProjectAsset({
+          projectId: null,
           userId: scope.userId,
           name: assetName,
           contentType: normalizeAssetContentType(
             content_type ?? "",
             file_path ?? assetName
           ),
-          content: bytes
+          bytes,
+          directory: IMPORTED_DIRECTORY,
+          parentId: scope.userId
         });
         return toToolResponse({
           asset_id: asset.id,
