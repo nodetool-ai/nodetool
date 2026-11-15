@@ -696,61 +696,15 @@
   },
   "batch2_1": {
     "common": {
-      "workspace": "工作区",
       "loading": "正在加载…",
       "refresh": "刷新",
       "remove": "移除",
       "cancel": "取消"
     },
-    "page": {
-      "title": "工作区",
-      "subtitle": "供智能体和工作流读取、写入和整理文件的沙盒文件夹。"
-    },
-    "folderPicker": {
-      "title": "选择工作区文件夹"
-    },
-    "notifications": {
-      "added": "已添加工作区",
-      "removed": "已移除工作区"
-    },
-    "errors": {
-      "loadTitle": "无法加载工作区",
-      "loadSummary": "工作区加载失败",
-      "loadDescription": "请检查网络连接，然后重试。",
-      "operation": "工作区操作失败：{{error}}"
-    },
-    "manager": {
-      "inaccessible": "无法访问",
-      "defaultWorkspace": "默认工作区",
-      "setDefault": "设为默认",
-      "emptyTitle": "尚未配置工作区",
-      "emptyCanManage": "添加工作区以允许智能体访问本地文件夹",
-      "emptyManaged": "此部署会为你管理工作区",
-      "adding": "正在添加…",
-      "addWorkspace": "添加工作区",
-      "removeTitle": "移除此工作区？",
-      "removeDescription": "此工作区将从 NodeTool 中移除，但不会删除文件夹本身。"
-    },
-    "select": {
-      "defaultWithPath": "默认（{{path}}）",
-      "description": "执行期间，智能体会在此读取和写入文件，包括已保存的图像、文本、数据及其他输出。请在“工作区”面板中浏览结果。智能体只能访问此文件夹中的文件。工作流选择“默认”时会使用你的默认工作区。",
-      "createNew": "创建新工作区",
-      "addWorkspace": "添加工作区…"
-    },
     "tree": {
       "loading": "正在加载…",
       "accessDenied": "⚠️ 无法访问",
-      "title": "工作区浏览器",
-      "manage": "管理工作区",
-      "goToRoot": "转到工作区根目录",
-      "openInFolder": "在文件夹中打开",
-      "openExternally": "在外部打开",
-      "noneSelected": "未选择工作区",
-      "selectOrCreate": "请在上方选择或创建工作区。",
-      "createWorkspace": "创建工作区",
-      "fileBrowser": "工作区文件浏览器",
-      "emptyTitle": "工作区为空",
-      "emptyDescription": "将文件添加到工作区文件夹后，它们会显示在这里。"
+      "openExternally": "在外部打开"
     }
   },
   "batch2_10": {
@@ -1760,7 +1714,6 @@
       "packageManager": "软件包管理器",
       "assets": "素材",
       "collections": "集合",
-      "workspaces": "工作区",
       "memory": "记忆",
       "settings": "设置",
       "help": "帮助",
@@ -6646,8 +6599,6 @@
       "runModeTool": "工具",
       "runModeDescription": "此工作流的运行方式及触发方式",
       "advanced": "高级",
-      "workspace": "工作区",
-      "workspaceDescription": "将工作区文件夹关联到此工作流，供代理访问",
       "toolName": "工具名称",
       "toolNameDescription": "用于 API/工具调用的标识符。仅限字母、数字和下划线。",
       "toolNamePlaceholder": "my_workflow_tool",
@@ -10670,9 +10621,9 @@
         "jsScripts": "JS 脚本",
         "skills": "技能",
         "assets": "资源",
-        "workspace": "工作区",
         "library": "素材库",
-        "more": "更多"
+        "more": "更多",
+        "files": "文件"
       },
       "categoryDescriptions": {
         "documents": "浏览当前项目中的所有文档。",
@@ -10692,9 +10643,9 @@
         "jsScripts": "创建和管理可重复使用的 JavaScript 代码。",
         "skills": "代理技能：根据目标匹配的 Markdown 指令。",
         "assets": "浏览当前上下文中可用的资源。",
-        "workspace": "浏览所选工作区文件夹中的文件。",
         "library": "浏览当前项目中的资源。",
-        "more": "打开其他工作流、编辑器、开发者和工作区面板。"
+        "more": "打开更多工作流、编辑器和开发者面板。",
+        "files": "浏览项目文件夹中的文件。"
       }
     },
     "queue": {
@@ -14005,8 +13956,7 @@
       "search": "搜索所有面板",
       "group": {
         "workflow-tools": "工作流工具",
-        "agent-tools": "代理工具",
-        "workspace": "工作区"
+        "agent-tools": "代理工具"
       },
       "category": {
         "favorites": {
@@ -14024,10 +13974,6 @@
         "skills": {
           "label": "技能",
           "description": "代理技能：根据目标匹配的 Markdown 指令。"
-        },
-        "workspace-files": {
-          "label": "工作区",
-          "description": "浏览所选工作区文件夹中的文件。"
         }
       }
     },
@@ -14683,9 +14629,6 @@
       "runGroup": {
         "groupRunning": "组正在运行",
         "runGroup": "运行组"
-      },
-      "saveDestinationHint": {
-        "workspace": "工作区"
       }
     }
   },
@@ -15904,9 +15847,9 @@
       "jsscripts": "JS 脚本",
       "skills": "技能",
       "assets": "资源",
-      "workspace-files": "工作区",
       "library": "库",
-      "more": "更多"
+      "more": "更多",
+      "files": "文件"
     }
   },
   "i18n-next55": {
@@ -16033,7 +15976,6 @@
         "models": "模型管理器",
         "packages": "包管理器",
         "collections": "集合",
-        "workspaces": "工作区",
         "entities": "实体",
         "memory": "记忆",
         "settings": "设置",
@@ -18621,7 +18563,7 @@
   },
   "i18n-next110": {
     "workspaceFile": {
-      "invalidReference": "工作区文件引用无效"
+      "invalidReference": "无效的文件引用"
     }
   },
   "i18n-next109": {
@@ -20147,5 +20089,23 @@
     "saveFailed": "无法保存此权限。",
     "loadFailed": "无法加载工具列表。",
     "noMatches": "没有与搜索匹配的工具。"
+  },
+  "projectFolder": {
+    "name": "项目文件夹",
+    "picker": {
+      "title": "选择文件夹"
+    },
+    "tree": {
+      "title": "文件",
+      "goToRoot": "转到项目文件夹根目录",
+      "fileBrowser": "项目文件",
+      "emptyTitle": "项目文件夹为空",
+      "emptyDescription": "将文件添加到项目文件夹后，会显示在这里。",
+      "noFolderTitle": "没有项目文件夹",
+      "noFolderDescription": "此项目还没有文件夹。",
+      "revealInFinder": "在 Finder 中显示",
+      "revealInExplorer": "在文件资源管理器中显示",
+      "revealInFileManager": "在文件管理器中显示"
+    }
   }
 }

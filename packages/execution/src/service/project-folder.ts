@@ -48,6 +48,8 @@ export interface ProjectManifest {
 
 /** What the project API reports about a project's folder. */
 export interface ProjectFolderInfo {
+  /** The workspace row clients list and read the folder's files through. */
+  workspace_id: string;
   /**
    * The absolute directory, or null for a folder in object storage and for
    * every folder on a production deployment, whose callers are not local.
@@ -122,6 +124,7 @@ export class ProjectFolderError extends Error {
 /** What the project API reports about a workspace row that is a folder. */
 export function describeProjectFolder(row: WorkspaceRow): ProjectFolderInfo {
   return {
+    workspace_id: row.id,
     path: row.isVirtual() || !isLocalDeployment() ? null : row.path,
     origin: row.origin,
     is_accessible: row.isAccessible()

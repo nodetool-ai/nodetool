@@ -5,7 +5,7 @@ permalink: /projects
 description: "Group the documents for one job under a project, start a project from a skill, and file, copy, export, import, archive, or delete them."
 ---
 
-A project groups the documents for one job (storyboard, script, cut, key art, mini app) and owns no content itself. A document belongs to a project by carrying its id, and the project card reads status, stills, and spend from those documents. A [workspace](workspaces.md) is different: a folder of files a run reads and writes.
+A project groups the documents for one job (storyboard, script, cut, key art, mini app) and owns no content itself. A document belongs to a project by carrying its id, and the project card reads status, stills, and spend from those documents. Each project also has a [project folder](workspaces.md), the folder of files its runs read and write.
 
 ## The Personal project
 
@@ -68,7 +68,7 @@ On a document card, **Copy** opens a dialog with a **Destination project** field
 **Export** on a project card downloads the whole project as one
 `.nodetool-project` file. The file holds the project's documents, workflows,
 mini apps, games, and JavaScript scripts with their version history, its
-conversations, its assets with their media, and every file in its workspaces.
+conversations, its assets with their media, and every file in its project folder.
 Jobs, run history, and spend records are not included.
 
 **Import project** at the top of the project list reads such a file and

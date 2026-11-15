@@ -10,9 +10,11 @@ import { timelineTrack } from "./timeline.js";
  * The project's folder. `path` is the absolute directory, or null for a cloud
  * project, whose folder is a key prefix in object storage. `origin` is
  * `created` when NodeTool made the folder and `adopted` when the user brought
- * it.
+ * it. `workspace_id` names the workspace row a client lists and reads the
+ * folder's files through.
  */
 export const projectFolder = z.object({
+  workspace_id: z.string(),
   path: z.string().nullable(),
   origin: z.enum(["created", "adopted"]),
   is_accessible: z.boolean()

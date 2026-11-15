@@ -696,61 +696,15 @@
   },
   "batch2_1": {
     "common": {
-      "workspace": "Arbeidsområde",
       "loading": "Laster inn …",
       "refresh": "Oppdater",
       "remove": "Fjern",
       "cancel": "Avbryt"
     },
-    "page": {
-      "title": "Arbeidsområder",
-      "subtitle": "Sandkassemapper som agenter og arbeidsflyter kan lese, skrive og organisere filer i."
-    },
-    "folderPicker": {
-      "title": "Velg arbeidsområdemappe"
-    },
-    "notifications": {
-      "added": "Arbeidsområde lagt til",
-      "removed": "Arbeidsområdet er fjernet"
-    },
-    "errors": {
-      "loadTitle": "Kunne ikke laste inn arbeidsområder",
-      "loadSummary": "Arbeidsområder kunne ikke lastes inn",
-      "loadDescription": "Sjekk tilkoblingen og prøv igjen.",
-      "operation": "Arbeidsområdeoperasjon mislyktes: {{error}}"
-    },
-    "manager": {
-      "inaccessible": "Utilgjengelig",
-      "defaultWorkspace": "Standard arbeidsområde",
-      "setDefault": "Sett som standard",
-      "emptyTitle": "Ingen arbeidsområder er konfigurert",
-      "emptyCanManage": "Legg til et arbeidsområde for å gi agenter tilgang til lokale mapper",
-      "emptyManaged": "Denne distribusjonen administrerer arbeidsområdet ditt for deg",
-      "adding": "Legger til …",
-      "addWorkspace": "Legg til arbeidsområde",
-      "removeTitle": "Vil du fjerne dette arbeidsområdet?",
-      "removeDescription": "Arbeidsområdet vil bli fjernet fra NodeTool. Selve mappen vil ikke bli slettet."
-    },
-    "select": {
-      "defaultWithPath": "Standard ({{path}})",
-      "description": "Agenter leser og skriver filer her under kjøring, inkludert lagrede bilder, tekst, data og andre utdata. Bla gjennom resultatene i Workspace-panelet. Agenter har bare tilgang til filer i denne mappen. En arbeidsflyt igjen på Standard bruker standardarbeidsområdet ditt.",
-      "createNew": "Opprett nytt arbeidsområde",
-      "addWorkspace": "Legg til arbeidsområde …"
-    },
     "tree": {
       "loading": "Laster inn …",
       "accessDenied": "⚠️ Tilgang nektet",
-      "title": "Arbeidsområdeutforsker",
-      "manage": "Administrer arbeidsområder",
-      "goToRoot": "Gå til arbeidsområderoten",
-      "openInFolder": "Åpne i mappe",
-      "openExternally": "Åpne eksternt",
-      "noneSelected": "Ingen arbeidsområde er valgt",
-      "selectOrCreate": "Velg et arbeidsområde ovenfor eller lag et.",
-      "createWorkspace": "Lag arbeidsområde",
-      "fileBrowser": "Workspace filleser",
-      "emptyTitle": "Arbeidsområdet er tomt",
-      "emptyDescription": "Legg til filer i arbeidsområdemappen for å se dem her."
+      "openExternally": "Åpne eksternt"
     }
   },
   "batch2_10": {
@@ -1760,7 +1714,6 @@
       "packageManager": "Pakkeansvarlig",
       "assets": "Eiendeler",
       "collections": "Samlinger",
-      "workspaces": "Arbeidsområder",
       "memory": "Minne",
       "settings": "Innstillinger",
       "help": "Hjelp",
@@ -6646,8 +6599,6 @@
       "runModeTool": "Verktøy",
       "runModeDescription": "Hvordan denne arbeidsflyten kjører og kan utløses",
       "advanced": "Avansert",
-      "workspace": "Arbeidsområde",
-      "workspaceDescription": "Knytt en arbeidsområdemappe til denne arbeidsflyten for agenttilgang",
       "toolName": "Verktøynavn",
       "toolNameDescription": "Identifikator for API/verktøybruk. Kun bokstaver, tall, understreker.",
       "toolNamePlaceholder": "mitt_arbeidsflytverktøy",
@@ -10670,9 +10621,9 @@
         "jsScripts": "JS-skript",
         "skills": "Ferdigheter",
         "assets": "Eiendeler",
-        "workspace": "Arbeidsområde",
         "library": "Bibliotek",
-        "more": "Mer"
+        "more": "Mer",
+        "files": "Filer"
       },
       "categoryDescriptions": {
         "documents": "Bla gjennom hvert dokument i det gjeldende prosjektet.",
@@ -10692,9 +10643,9 @@
         "jsScripts": "Opprett og administrer gjenbrukbar JavaScript-kode.",
         "skills": "Agentferdigheter – instruksjoner for nedvurdering samsvarer med målet.",
         "assets": "Bla gjennom ressurser som er tilgjengelige i gjeldende kontekst.",
-        "workspace": "Bla gjennom filene i den valgte arbeidsområdemappen.",
         "library": "Bla gjennom eiendeler i det gjeldende prosjektet.",
-        "more": "Åpne flere paneler for arbeidsflyt, redigering, utvikler og arbeidsområde."
+        "more": "Åpne flere paneler for arbeidsflyt, redigering og utvikling.",
+        "files": "Bla gjennom filene i prosjektmappen."
       }
     },
     "queue": {
@@ -14005,8 +13956,7 @@
       "search": "Søk i alle paneler",
       "group": {
         "workflow-tools": "Arbeidsflytverktøy",
-        "agent-tools": "Agentverktøy",
-        "workspace": "Arbeidsområde"
+        "agent-tools": "Agentverktøy"
       },
       "category": {
         "favorites": {
@@ -14024,10 +13974,6 @@
         "skills": {
           "label": "Ferdigheter",
           "description": "Agentferdigheter – instruksjoner for nedvurdering samsvarer med målet."
-        },
-        "workspace-files": {
-          "label": "Arbeidsområde",
-          "description": "Bla gjennom filene i den valgte arbeidsområdemappen."
         }
       }
     },
@@ -14683,9 +14629,6 @@
       "runGroup": {
         "groupRunning": "Gruppen kjører",
         "runGroup": "Kjør gruppe"
-      },
-      "saveDestinationHint": {
-        "workspace": "Arbeidsområde"
       }
     }
   },
@@ -15904,9 +15847,9 @@
       "jsscripts": "JS-skript",
       "skills": "Ferdigheter",
       "assets": "Eiendeler",
-      "workspace-files": "Arbeidsområde",
       "library": "Bibliotek",
-      "more": "Mer"
+      "more": "Mer",
+      "files": "Filer"
     }
   },
   "i18n-next55": {
@@ -16033,7 +15976,6 @@
         "models": "Modellsjef",
         "packages": "Pakkeansvarlig",
         "collections": "Samlinger",
-        "workspaces": "Arbeidsområder",
         "entities": "Enheter",
         "memory": "Minne",
         "settings": "Innstillinger",
@@ -18621,7 +18563,7 @@
   },
   "i18n-next110": {
     "workspaceFile": {
-      "invalidReference": "Ugyldig arbeidsområdefilreferanse"
+      "invalidReference": "Ugyldig filreferanse"
     }
   },
   "i18n-next109": {
@@ -20147,5 +20089,23 @@
     "saveFailed": "Kunne ikke lagre tillatelsen.",
     "loadFailed": "Kunne ikke laste inn verktøylisten.",
     "noMatches": "Ingen verktøy samsvarer med søket ditt."
+  },
+  "projectFolder": {
+    "name": "Prosjektmappe",
+    "picker": {
+      "title": "Velg en mappe"
+    },
+    "tree": {
+      "title": "Filer",
+      "goToRoot": "Gå til roten av prosjektmappen",
+      "fileBrowser": "Prosjektfiler",
+      "emptyTitle": "Prosjektmappen er tom",
+      "emptyDescription": "Legg filer i prosjektmappen for å se dem her.",
+      "noFolderTitle": "Ingen prosjektmappe",
+      "noFolderDescription": "Dette prosjektet har ingen mappe ennå.",
+      "revealInFinder": "Vis i Finder",
+      "revealInExplorer": "Vis i Filutforsker",
+      "revealInFileManager": "Vis i filbehandleren"
+    }
   }
 }
