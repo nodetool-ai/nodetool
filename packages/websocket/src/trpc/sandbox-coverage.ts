@@ -1579,20 +1579,6 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "workflows.versions.delete": { capability: "delete_workflow_version" },
   "workflows.versions.list": { capability: "list_workflow_versions" },
   "workflows.versions.restore": { capability: "restore_workflow_version" },
-  "workspace.create": {
-    withheld:
-      "A workspace names an absolute path on the host filesystem, so " +
-      "creating one and listing it is arbitrary host-path read. The " +
-      "sandbox has its own workspace API, contained to the run's " +
-      "directory, which is the point of it."
-  },
-  "workspace.delete": {
-    withheld:
-      "A workspace names an absolute path on the host filesystem, so " +
-      "creating one and listing it is arbitrary host-path read. The " +
-      "sandbox has its own workspace API, contained to the run's " +
-      "directory, which is the point of it."
-  },
   "workspace.list": {
     withheld:
       "A workspace names an absolute path on the host filesystem, so " +
@@ -1621,10 +1607,4 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "own workspace API, contained to the run's directory, which is the " +
       "point of it."
   },
-  "workspace.update": {
-    withheld:
-      "A workspace names an absolute path on the host filesystem, so " +
-      "creating one and listing it is arbitrary host-path read. The " +
-      "sandbox has its own workspace API, contained to the run's " +
-      "directory, which is the point of it."
-  },};
+};
