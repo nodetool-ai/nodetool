@@ -13,8 +13,8 @@ import { join } from "node:path";
 import {
   Game,
   Project,
+  Setting,
   Workspace as WorkspaceRow,
-  clearSecretCache,
   getPortableDb,
   initTestDb,
   projects,
@@ -23,6 +23,8 @@ import {
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import {
   PROJECT_MANIFEST_PATH,
+  ProjectFolderError,
+  describeProjectFolder,
   ensureProjectFolder,
   migrateProjectFolders,
   projectFolderName
@@ -42,6 +44,7 @@ interface Mode {
 }
 
 const ENV_KEYS = [
+  "NODETOOL_ENV",
   "NODETOOL_WORKSPACE_STORAGE",
   "NODETOOL_WORKSPACES_DIR",
   "PROJECTS_DIR"
@@ -55,11 +58,12 @@ const MODES: Mode[] = [
   { name: "cloud", folderPath: (label) => `workspaces/${USER}/elsewhere/${label}` }
 ];
 
-/** Point new project folders at `path`. `getSecret` caches the setting. */
+/** Point new project folders at `path`, as the operator's environment does. */
 function setProjectsDir(path: string): void {
   process.env["PROJECTS_DIR"] = path;
-  clearSecretCache(USER, "PROJECTS_DIR");
 }
+
+const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
 
 function rowFolder(row: WorkspaceRow) {
   const workspace = workspaceFromRow(row);
@@ -134,7 +138,6 @@ afterEach(async () => {
     if (savedEnv[key] === undefined) delete process.env[key];
     else process.env[key] = savedEnv[key];
   }
-  clearSecretCache(USER, "PROJECTS_DIR");
   setWorkspaceCloudStorage(null);
   await rm(root, { recursive: true, force: true });
 });
@@ -300,6 +303,32 @@ describe.each(MODES)("project folders ($name)", (mode) => {
     expect((await WorkspaceRow.find(USER, gameRow.id))?.project_id).toBe(other.id);
   });
 
+  it("gives Personal a new folder when a Personal game uses the default workspace", async () => {
+    const personal = await Project.ensurePersonal(USER);
+    const defaultRow = await WorkspaceRow.ensureDefault(USER);
+    defaultRow.project_id = personal.id;
+    await defaultRow.save();
+    await rowFolder(defaultRow).write("games/a/game.json", "{}");
+    await Game.insertNew({
+      id: "9".repeat(32),
+      userId: USER,
+      projectId: personal.id,
+      workspaceId: defaultRow.id,
+      name: "Personal game",
+      revision: "8".repeat(32)
+    });
+    const before = await WorkspaceRow.find(USER, defaultRow.id);
+
+    const folder = await ensureProjectFolder(personal);
+
+    expect(folder.id).not.toBe(defaultRow.id);
+    expect(folder.origin).toBe("created");
+    expect(folder.path).not.toBe(defaultRow.path);
+    expect(await WorkspaceRow.find(USER, defaultRow.id)).toEqual(before);
+    expect(await rowFolder(defaultRow).exists(PROJECT_MANIFEST_PATH)).toBe(false);
+    expect(await rowFolder(folder).exists("games/a/game.json")).toBe(false);
+  });
+
   it("keeps a manifest that is already there", async () => {
     const project = await insertProject("Has manifest");
     const row = await legacyWorkspace(mode, project.id, "existing", "2026-01-01T00:00:00.000Z");
@@ -321,6 +350,43 @@ describe.each(MODES)("project folders ($name)", (mode) => {
 });
 
 describe("cloud project folders", () => {
+  it("never shares the managed key of a game workspace", async () => {
+    process.env["NODETOOL_WORKSPACE_STORAGE"] = "cloud";
+    setWorkspaceCloudStorage(new InMemoryStorageAdapter());
+    const project = await insertProject("Game first");
+    const gameKey = `workspaces/${USER}/projects/${sha256(project.id)}`;
+    const gameRow = (await WorkspaceRow.create({
+      user_id: USER,
+      project_id: project.id,
+      name: "Game workspace",
+      path: gameKey
+    })) as WorkspaceRow;
+    await rowFolder(gameRow).write("games/a/game.json", "{}");
+    await Game.insertNew({
+      id: "7".repeat(32),
+      userId: USER,
+      projectId: project.id,
+      workspaceId: gameRow.id,
+      name: "Game",
+      revision: "6".repeat(32)
+    });
+
+    await migrateProjectFolders();
+
+    const folder = await WorkspaceRow.find(
+      USER,
+      (await Project.get<Project>(project.id))?.workspace_id ?? ""
+    );
+    expect(folder?.path).toBe(
+      `workspaces/${USER}/projects/${sha256(`${project.id}:2`)}`
+    );
+    expect(folder?.isManaged()).toBe(true);
+    expect(await rowFolder(folder as WorkspaceRow).list("", { recursive: true })).toEqual([
+      expect.objectContaining({ path: PROJECT_MANIFEST_PATH })
+    ]);
+    expect(await rowFolder(gameRow).exists(PROJECT_MANIFEST_PATH)).toBe(false);
+  });
+
   it("leaves no row when the folder cannot be written", async () => {
     process.env["NODETOOL_WORKSPACE_STORAGE"] = "cloud";
     // No object storage: the row is created, then the manifest write fails.
@@ -337,6 +403,49 @@ describe("cloud project folders", () => {
 describe("local project folders", () => {
   beforeEach(() => {
     process.env["NODETOOL_WORKSPACE_STORAGE"] = "local";
+  });
+
+  it("creates folders in the user's PROJECTS_DIR setting on a local install", async () => {
+    const chosen = join(root, "chosen");
+    await rowFolder(new WorkspaceRow({ user_id: USER, path: root })).write("chosen/.keep", "");
+    await Setting.upsert({ userId: USER, key: "PROJECTS_DIR", value: chosen });
+
+    const row = await ensureProjectFolder(await insertProject("Mine"));
+
+    expect(row.path).toBe(join(chosen, "Mine"));
+    expect(describeProjectFolder(row).path).toBe(join(chosen, "Mine"));
+  });
+
+  it("ignores the user's PROJECTS_DIR setting and hides the path on a production server", async () => {
+    process.env["NODETOOL_ENV"] = "production";
+    const chosen = join(root, "chosen");
+    await rowFolder(new WorkspaceRow({ user_id: USER, path: root })).write("chosen/.keep", "");
+    await Setting.upsert({ userId: USER, key: "PROJECTS_DIR", value: chosen });
+
+    const row = await ensureProjectFolder(await insertProject("Server"));
+
+    expect(row.path).toBe(join(root, "NodeTool", "Server"));
+    expect(describeProjectFolder(row).path).toBeNull();
+  });
+
+  it.each([
+    ["a relative path", "relative/projects", /absolute/],
+    ["a missing directory", "missing", /does not exist/],
+    ["a file", "file.txt", /not a directory/]
+  ])("refuses a PROJECTS_DIR setting naming %s", async (_label, value, message) => {
+    await rowFolder(new WorkspaceRow({ user_id: USER, path: root })).write("file.txt", "x");
+    const setting = value.startsWith("relative") ? value : join(root, value);
+    await Setting.upsert({ userId: USER, key: "PROJECTS_DIR", value: setting });
+    const project = await insertProject("Refused");
+
+    const attempt = ensureProjectFolder(project);
+
+    await expect(attempt).rejects.toBeInstanceOf(ProjectFolderError);
+    await expect(attempt).rejects.toThrow(message);
+    expect(await WorkspaceRow.listByProject(USER, project.id)).toEqual([]);
+    if (value === "missing") {
+      expect(await rowFolder(new WorkspaceRow({ user_id: USER, path: root })).exists("missing")).toBe(false);
+    }
   });
 
   it("adds a numeric suffix when the name is taken", async () => {

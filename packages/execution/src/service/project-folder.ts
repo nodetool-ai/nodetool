@@ -3,15 +3,15 @@
  * `projects.workspace_id`.
  *
  * A local project folder is a directory under the `PROJECTS_DIR` setting. A
- * cloud one is a key prefix in the deployment's object storage, with the same
- * managed key shape native games use. `.nodetool/project.json` inside the
- * folder names the project it belongs to. See docs/project-folders/prd.md (T1
- * and T9).
+ * cloud one is a key prefix in the deployment's object storage, with the
+ * managed key shape native games use, and never the same key as a game's.
+ * `.nodetool/project.json` inside the folder names the project it belongs to.
+ * See docs/project-folders/prd.md (T1 and T9).
  */
 
-import { createHash } from "node:crypto";
-import { mkdir, rm } from "node:fs/promises";
-import { join } from "node:path";
+import { access, mkdir, rm, stat } from "node:fs/promises";
+import { constants } from "node:fs";
+import { isAbsolute, join } from "node:path";
 import {
   createLogger,
   getProjectsDir,
@@ -22,8 +22,8 @@ import {
   LOOSE_PROJECT_ID,
   PERSONAL_PROJECT_KIND,
   Project,
+  Setting,
   Workspace as WorkspaceRow,
-  getSecret,
   type WorkspaceOrigin
 } from "@nodetool-ai/models";
 import { RESERVED_WORKSPACE_DIR, type Workspace } from "@nodetool-ai/runtime";
@@ -47,7 +47,10 @@ export interface ProjectManifest {
 
 /** What the project API reports about a project's folder. */
 export interface ProjectFolderInfo {
-  /** The absolute directory, or null for a folder in object storage. */
+  /**
+   * The absolute directory, or null for a folder in object storage and for
+   * every folder on a production deployment, whose callers are not local.
+   */
   path: string | null;
   origin: WorkspaceOrigin;
   is_accessible: boolean;
@@ -98,10 +101,27 @@ export function projectManifest(project: Project): ProjectManifest {
   };
 }
 
+/** The setting that names the directory new local project folders go in. */
+export const PROJECTS_DIR_SETTING = "PROJECTS_DIR";
+
+/**
+ * True when the people calling this server run it themselves, so a host path
+ * is theirs to see and choose. A production deployment serves other people:
+ * the workspace router refuses folder management there for the same reason.
+ */
+export function isLocalDeployment(): boolean {
+  return process.env["NODETOOL_ENV"] !== "production";
+}
+
+/** A project folder could not be made, for a reason safe to show any caller. */
+export class ProjectFolderError extends Error {
+  override name = "ProjectFolderError";
+}
+
 /** What the project API reports about a workspace row that is a folder. */
 export function describeProjectFolder(row: WorkspaceRow): ProjectFolderInfo {
   return {
-    path: row.isVirtual() ? null : row.path,
+    path: row.isVirtual() || !isLocalDeployment() ? null : row.path,
     origin: row.origin,
     is_accessible: row.isAccessible()
   };
@@ -189,7 +209,6 @@ async function claim(
  * cannot both claim it.
  */
 async function claimLocalFolder(parent: string, name: string): Promise<string> {
-  await mkdir(parent, { recursive: true });
   for (let n = 1; n <= MAX_FOLDER_SUFFIX; n++) {
     const path = join(parent, n === 1 ? name : `${name} ${n}`);
     if (await WorkspaceRow.isPathTaken(path)) continue;
@@ -201,7 +220,50 @@ async function claimLocalFolder(parent: string, name: string): Promise<string> {
       throw error;
     }
   }
-  throw new Error(`No free folder name for "${name}" in ${parent}`);
+  throw new ProjectFolderError(`No free folder name for "${name}"`);
+}
+
+/**
+ * The directory new local project folders go in, checked the way the
+ * workspace router checks a folder a user adds: absolute, a directory, and
+ * writable.
+ *
+ * A user's `PROJECTS_DIR` setting is honoured only on a local deployment. On a
+ * production server it would let any user have the server create folders
+ * wherever its process may write, so there the operator's environment variable
+ * or the default applies. A directory the user named must already exist. The
+ * operator's directory or the default is created when missing.
+ */
+async function projectsParent(userId: string): Promise<string> {
+  const configured =
+    (await Setting.find(userId, PROJECTS_DIR_SETTING))?.value.trim() || null;
+  const stored = isLocalDeployment() ? configured : null;
+  if (configured && !stored) {
+    log.warn("Ignoring a user's PROJECTS_DIR setting on a production server", {
+      userId
+    });
+  }
+  const parent = getProjectsDir(stored);
+  if (!isAbsolute(parent)) {
+    throw new ProjectFolderError("The projects folder must be an absolute path");
+  }
+  let info = await stat(parent).catch(() => null);
+  if (!info && !stored) {
+    await mkdir(parent, { recursive: true });
+    info = await stat(parent).catch(() => null);
+  }
+  if (!info) {
+    throw new ProjectFolderError("The projects folder does not exist");
+  }
+  if (!info.isDirectory()) {
+    throw new ProjectFolderError("The projects folder is not a directory");
+  }
+  try {
+    await access(parent, constants.W_OK);
+  } catch {
+    throw new ProjectFolderError("The projects folder is not writable");
+  }
+  return parent;
 }
 
 /** Create a new folder for the project and record it. */
@@ -209,12 +271,14 @@ async function createFolder(project: Project): Promise<WorkspaceRow> {
   let path: string;
   let createdDir: string | null = null;
   if (workspaceStorageKind() === "cloud") {
-    const segment = createHash("sha256").update(project.id).digest("hex");
-    path = `${managedWorkspaceKey(project.user_id)}/projects/${segment}`;
+    const managed = managedWorkspaceKey(project.user_id);
+    path = await WorkspaceRow.freeManagedProjectPath(
+      project.id,
+      (segment) => `${managed}/projects/${segment}`
+    );
   } else {
-    const setting = await getSecret("PROJECTS_DIR", project.user_id);
     path = await claimLocalFolder(
-      getProjectsDir(setting),
+      await projectsParent(project.user_id),
       projectFolderName(project.name)
     );
     createdDir = path;
@@ -233,8 +297,9 @@ async function createFolder(project: Project): Promise<WorkspaceRow> {
     await writeManifest(requireNodetoolDir(row), project);
     const folder = await claim(project, row);
     if (folder.id !== row.id) {
-      // A concurrent caller recorded its folder first. A cloud folder shares
-      // the winner's key, so only a local directory of our own is removed.
+      // A concurrent caller recorded its folder first. Two cloud callers that
+      // raced picked the same free key, so only a local directory of our own
+      // is removed.
       await row.delete();
       if (createdDir) await rm(createdDir, { recursive: true, force: true });
     }
@@ -252,7 +317,8 @@ async function createFolder(project: Project): Promise<WorkspaceRow> {
  * - A project whose `workspace_id` names an existing row keeps that row.
  * - Personal uses the user's default workspace and claims that row for itself
  *   when the row is in no project or already Personal's, and no game uses it.
- *   No files move.
+ *   No files move. Otherwise Personal gets a new folder and the row is left as
+ *   it is.
  * - Any other project keeps its oldest workspace row that no game uses. Other
  *   rows and their files are left as they are.
  * - Otherwise a new folder is created.
@@ -275,20 +341,19 @@ export async function ensureProjectFolder(
   if (project.kind === PERSONAL_PROJECT_KIND) {
     // `ensureDefault` promotes a user's first workspace when none is the
     // default, and that row can belong to another project or a game. Personal
-    // takes only a row in no project or already its own, and otherwise gets
-    // a folder like any other project.
+    // takes only a row in no project or already its own that no game uses,
+    // and otherwise gets a new folder, leaving the game's workspace alone.
     const row = await WorkspaceRow.ensureDefault(project.user_id);
     const claimable =
       (row.project_id === project.id || row.project_id === LOOSE_PROJECT_ID) &&
       !(await WorkspaceRow.isUsedByGame(row.id));
-    if (claimable) {
-      if (row.project_id !== project.id) {
-        row.project_id = project.id;
-        await row.save();
-      }
-      await writeManifestIfAbsent(row, project);
-      return claim(project, row);
+    if (!claimable) return createFolder(project);
+    if (row.project_id !== project.id) {
+      row.project_id = project.id;
+      await row.save();
     }
+    await writeManifestIfAbsent(row, project);
+    return claim(project, row);
   }
 
   const candidate = await WorkspaceRow.oldestProjectFolderCandidate(

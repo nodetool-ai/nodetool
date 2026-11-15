@@ -94,7 +94,7 @@ s(
 s(
   "PROJECTS_DIR",
   "Folders",
-  "Folder new projects are created in. Each project gets its own folder here, named after the project. Defaults to ~/NodeTool. Existing projects keep their folders when this changes."
+  "Folder new projects are created in. Each project gets its own folder here, named after the project. Must be an absolute path to an existing, writable folder. Defaults to ~/NodeTool. Existing projects keep their folders when this changes. Ignored on a production server."
 );
 s(
   "VECTORSTORE_DB_PATH",

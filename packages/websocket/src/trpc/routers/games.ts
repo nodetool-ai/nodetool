@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { z } from "zod";
 import { loadSharpOrThrow } from "@nodetool-ai/runtime";
 import { importPack } from "@nodetool-ai/node-catalog";
@@ -211,8 +211,11 @@ async function persistGameAsset(
 }
 
 async function projectWorkspace(userId: string, projectId: string): Promise<Workspace> {
+  // The project folder belongs to the project. A game keeps its own row, so
+  // its sources never land in the folder.
+  const folderId = (await Project.findOwned(userId, projectId))?.workspace_id ?? null;
   const rows = await Workspace.listByProject(userId, projectId);
-  const existing = rows.find((row) => row.isAccessible() && (process.env["NODETOOL_ENV"] !== "production" || row.isManaged()));
+  const existing = rows.find((row) => row.id !== folderId && row.isAccessible() && (process.env["NODETOOL_ENV"] !== "production" || row.isManaged()));
   if (existing) return existing;
   const defaultRow = await Workspace.ensureDefault(userId);
   const managed = defaultRow.isManaged() ? defaultRow : new Workspace({
@@ -227,15 +230,16 @@ async function projectWorkspace(userId: string, projectId: string): Promise<Work
   if (!root) {
     throwApiError(ApiErrorCode.SERVICE_UNAVAILABLE, "Managed workspace is unavailable");
   }
-  const segment = createHash("sha256").update(projectId).digest("hex");
-  await root.mkdir(`projects/${segment}`);
+  // A cloud project folder uses the same managed key shape, so take the
+  // first segment no row holds yet.
+  const path = await Workspace.freeManagedProjectPath(projectId, (segment) =>
+    managed.isVirtual() ? `${managed.path}/projects/${segment}` : join(managed.path, "projects", segment));
+  await root.mkdir(`projects/${basename(path)}`);
   return (await Workspace.create({
     user_id: userId,
     project_id: projectId,
     name: "Game workspace",
-    path: managed.isVirtual()
-      ? `${managed.path}/projects/${segment}`
-      : join(managed.path, "projects", segment),
+    path,
     is_default: false
   })) as Workspace;
 }

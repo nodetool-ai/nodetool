@@ -43,9 +43,12 @@ export type {
 
 export {
   PROJECT_MANIFEST_PATH,
+  PROJECTS_DIR_SETTING,
+  ProjectFolderError,
   describeProjectFolder,
   ensurePersonalProject,
   ensureProjectFolder,
+  isLocalDeployment,
   migrateProjectFolders,
   projectFolderName,
   projectManifest

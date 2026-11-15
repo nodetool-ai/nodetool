@@ -18,8 +18,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   initTestDb,
-  clearSecretCache,
   Asset,
+  Game,
   LOOSE_PROJECT_ID,
   ModelObserver,
   Prediction,
@@ -570,14 +570,35 @@ describe("projects router", () => {
 });
 
 describe("projects router: project folders", () => {
-  const ENV_KEYS = ["PROJECTS_DIR", "NODETOOL_WORKSPACE_STORAGE"] as const;
+  const ENV_KEYS = [
+    "PROJECTS_DIR",
+    "NODETOOL_WORKSPACE_STORAGE",
+    "NODETOOL_ENV"
+  ] as const;
   let saved: Record<string, string | undefined> = {};
   let root = "";
 
-  /** Point new project folders at `path`. `getSecret` caches the setting. */
+  /** Point new project folders at `path`, as the operator's environment does. */
   function setProjectsDir(path: string): void {
     process.env["PROJECTS_DIR"] = path;
-    clearSecretCache("user-1", "PROJECTS_DIR");
+  }
+
+  function useCloud(): void {
+    process.env["NODETOOL_WORKSPACE_STORAGE"] = "cloud";
+    setWorkspaceCloudStorage(new InMemoryStorageAdapter());
+  }
+
+  async function folderRow(projectId: string): Promise<Workspace> {
+    const project = await Project.get<Project>(projectId);
+    const row = await Workspace.find("user-1", project?.workspace_id ?? "");
+    if (!row) throw new Error("project has no folder");
+    return row;
+  }
+
+  function filesOf(row: Workspace) {
+    const workspace = workspaceFromRow(row);
+    if (!workspace) throw new Error("no workspace for row");
+    return workspace;
   }
 
   async function manifest(workspaceId: string): Promise<unknown> {
@@ -601,7 +622,6 @@ describe("projects router: project folders", () => {
       if (saved[key] === undefined) delete process.env[key];
       else process.env[key] = saved[key];
     }
-    clearSecretCache("user-1", "PROJECTS_DIR");
     setWorkspaceCloudStorage(null);
     ModelObserver.clear();
     await rm(root, { recursive: true, force: true });
@@ -705,6 +725,139 @@ describe("projects router: project folders", () => {
       "kept"
     );
     expect(await manifest(older.id)).toMatchObject({ id: legacy?.id });
+  });
+
+  it("never makes a game's workspace a project folder", async () => {
+    const legacy = await Project.insertNew({ user_id: "user-1", name: "Legacy" });
+    const gameDir = join(root, "game");
+    const plainDir = join(root, "plain");
+    await mkdir(gameDir, { recursive: true });
+    await mkdir(plainDir, { recursive: true });
+    const gameRow = await Workspace.create<Workspace>({
+      user_id: "user-1",
+      project_id: legacy?.id,
+      name: "game",
+      path: gameDir,
+      created_at: "2026-01-01T00:00:00.000Z"
+    });
+    await Game.insertNew({
+      id: "a".repeat(32),
+      userId: "user-1",
+      projectId: legacy?.id ?? "",
+      workspaceId: gameRow.id,
+      name: "Game",
+      revision: "b".repeat(32)
+    });
+    await Workspace.create<Workspace>({
+      user_id: "user-1",
+      project_id: legacy?.id,
+      name: "plain",
+      path: plainDir,
+      created_at: "2026-02-01T00:00:00.000Z"
+    });
+
+    await migrateProjectFolders();
+
+    const detail = await caller().projects.get({ id: legacy?.id ?? "" });
+    expect(detail.project.folder?.path).toBe(plainDir);
+  });
+
+  it.each(["local", "cloud"] as const)(
+    "keeps a new game out of the project folder (%s)",
+    async (mode) => {
+      if (mode === "cloud") useCloud();
+      const project = await caller().projects.create({ name: "With game" });
+      const folder = await folderRow(project.id);
+
+      const created = await caller().games.create({
+        projectId: project.id,
+        name: "Room"
+      });
+
+      const game = await Game.findOwned("user-1", created.game.id);
+      const gameRow = await Workspace.find("user-1", game?.workspace_id ?? "");
+      expect(gameRow?.id).not.toBe(folder.id);
+      expect(gameRow?.path).not.toBe(folder.path);
+      expect(gameRow?.isManaged()).toBe(true);
+      expect(await filesOf(folder).list("", { recursive: true })).toEqual([
+        expect.objectContaining({ path: PROJECT_MANIFEST_PATH })
+      ]);
+    }
+  );
+
+  it("gives Personal its own folder when a Personal game uses the default workspace", async () => {
+    const personal = await Project.ensurePersonal("user-1");
+    const defaultRow = await Workspace.ensureDefault("user-1");
+    defaultRow.project_id = personal.id;
+    await defaultRow.save();
+    await Game.insertNew({
+      id: "c".repeat(32),
+      userId: "user-1",
+      projectId: personal.id,
+      workspaceId: defaultRow.id,
+      name: "Personal game",
+      revision: "d".repeat(32)
+    });
+    const before = await Workspace.find("user-1", defaultRow.id);
+
+    const listed = await caller().projects.list({});
+
+    const folder = listed.find((p) => p.isPersonal)?.folder;
+    expect(folder?.path).toBe(join(root, "NodeTool", "Personal"));
+    expect(folder?.origin).toBe("created");
+    expect(await Workspace.find("user-1", defaultRow.id)).toEqual(before);
+  });
+
+  it.each(["local", "cloud"] as const)(
+    "keeps the project folder's files when the project is deleted (%s)",
+    async (mode) => {
+      if (mode === "cloud") useCloud();
+      const project = await caller().projects.create({ name: "Doomed" });
+      const folder = await folderRow(project.id);
+      await filesOf(folder).write("footage/take.txt", "keep");
+      const extra = await Workspace.create<Workspace>({
+        user_id: "user-1",
+        project_id: project.id,
+        name: "extra",
+        path:
+          mode === "cloud"
+            ? "workspaces/user-1/extra"
+            : await mkdtemp(join(root, "extra-"))
+      });
+      await filesOf(extra).write("scratch.txt", "wipe");
+
+      await caller().projects.delete({ id: project.id });
+
+      expect(await filesOf(folder).readText("footage/take.txt")).toBe("keep");
+      expect(await filesOf(extra).exists("scratch.txt")).toBe(false);
+    }
+  );
+
+  it("hides server paths from callers of a production server", async () => {
+    process.env["NODETOOL_ENV"] = "production";
+    process.env["NODETOOL_WORKSPACE_STORAGE"] = "local";
+
+    const created = await caller().projects.create({ name: "Hosted" });
+    expect(created.folder).toEqual({
+      path: null,
+      origin: "created",
+      is_accessible: true
+    });
+
+    await writeFile(join(root, "blocker"), "not a directory");
+    setProjectsDir(join(root, "blocker", "projects"));
+    const failure = caller().projects.create({ name: "Blocked" });
+    await expect(failure).rejects.toThrow("Could not create the project folder");
+    await expect(failure).rejects.not.toThrow(root);
+  });
+
+  it("names the failing path to a local caller", async () => {
+    await writeFile(join(root, "blocker"), "not a directory");
+    setProjectsDir(join(root, "blocker", "projects"));
+
+    await expect(caller().projects.create({ name: "Blocked" })).rejects.toThrow(
+      join(root, "blocker")
+    );
   });
 
   it("gives Personal a folder the first time it is listed", async () => {
