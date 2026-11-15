@@ -20,6 +20,9 @@ import { setDefaultModelInterfaces } from "@nodetool-ai/runtime";
 export async function localModelInterfaces(): Promise<ProcessingContextModelInterfaces> {
   const { createAssetModelInterface, updateAssetBytesModelInterface } =
     await import("@nodetool-ai/asset-services");
+  // `createAsset` saves a file into the run's project folder. Loading the
+  // folder service installs the resolver asset services reach it through.
+  await import("@nodetool-ai/execution/service");
   // Storyboards, the entity library and the game templates, from the same
   // module the server installs — a harness run has to write the rows a server
   // run writes, or it proves nothing about the server.

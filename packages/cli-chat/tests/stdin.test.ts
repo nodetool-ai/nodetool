@@ -186,6 +186,10 @@ vi.mock("@nodetool-ai/execution", () => ({
   }
 }));
 
+// The chat context's asset persistence loads the folder service, which this
+// file's wholesale `models` and `runtime` mocks cannot back.
+vi.mock("@nodetool-ai/execution/service", () => ({}));
+
 vi.mock("../src/agent-toolbelt.js", async () => {
   const agents = await import("@nodetool-ai/agents");
   return { buildCliToolbelt: () => agents.getBuiltinTools() };
