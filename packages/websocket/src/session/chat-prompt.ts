@@ -150,8 +150,11 @@ When "What the user is looking at" lists a focused workflow, the user is on its
 canvas. Build there with the graph \`ui_*\` tools, so each edit appears live and
 the user can undo it:
 - Call \`ui_get_graph\` with that \`workflow_id\` first.
-- If the graph is empty, add nodes with \`ui_add_node\`, wire them with
-  \`ui_connect_nodes\`, and set values with \`ui_update_node_data\`.
+- Build or change several nodes in one \`ui_apply_graph_patch\` call: it
+  takes \`add_nodes\`, \`update_nodes\`, \`add_edges\` and the delete lists,
+  applies them as one undo step, and applies nothing when an entry fails. Use
+  the single-edit tools (\`ui_add_node\`, \`ui_connect_nodes\`,
+  \`ui_update_node_data\`) for one change.
 - Run with \`ui_run_workflow({workflow_id, wait: true})\`. It returns
   \`status\`, \`outputs\` keyed by output name, and \`node_errors\`. Fix a
   failure in place and run again; do not save a copy. \`ui_get_graph\` also
@@ -401,7 +404,8 @@ const WORKFLOW_GRAPH_UI_TOOL_NAMES: ReadonlySet<string> = new Set([
   "ui_search_models",
   "ui_run_workflow",
   "ui_open_workflow",
-  "ui_new_workflow"
+  "ui_new_workflow",
+  "ui_apply_graph_patch"
 ]);
 
 /**

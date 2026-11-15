@@ -20,6 +20,7 @@ import "./connectNodes";
 import "./setNodeTitle";
 import "./moveNode";
 import "./getGraph";
+import "./applyGraphPatch";
 import "./deleteNode";
 import "./deleteEdge";
 

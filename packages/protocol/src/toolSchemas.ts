@@ -123,6 +123,38 @@ export const uiOpenWorkflowParams = {
   workflow_id: z.string().describe("Id of the workflow to open.")
 };
 
+/** A single-edit shape without the target fields, which the patch carries once. */
+const withoutTarget = <T extends z.ZodRawShape>(shape: T) => {
+  const { workflow_id: _workflowId, based_on_revision: _revision, ...entry } = shape;
+  return z.object(entry);
+};
+
+export const uiApplyGraphPatchParams = {
+  delete_edge_ids: z.array(z.string()).optional().describe("Edge ids to delete. Applied first."),
+  delete_node_ids: z
+    .array(z.string())
+    .optional()
+    .describe("Node ids to delete, with their edges. Applied second."),
+  add_nodes: z
+    .array(withoutTarget(uiAddNodeParams))
+    .optional()
+    .describe("Nodes to add, each as ui_add_node takes it."),
+  update_nodes: z
+    .array(withoutTarget(uiUpdateNodeDataParams))
+    .optional()
+    .describe("Node data overlays, each as ui_update_node_data takes it. A Code node's body goes here before its edges."),
+  move_nodes: z
+    .array(withoutTarget(uiMoveNodeParams))
+    .optional()
+    .describe("Node moves, each as ui_move_node takes it."),
+  add_edges: z
+    .array(withoutTarget(uiConnectNodesParams))
+    .optional()
+    .describe("Connections, each as ui_connect_nodes takes it. Applied last, so they can use nodes added above."),
+  workflow_id: optionalWorkflowIdSchema,
+  based_on_revision: basedOnWorkflowRevisionSchema
+};
+
 export const uiNewWorkflowParams = {
   name: z
     .string()
@@ -262,6 +294,11 @@ export const uiToolSchemas: Record<string, UiToolSchema> = {
     description:
       "Open a workflow tab and switch to it. Required: `workflow_id`.",
     parameters: uiOpenWorkflowParams
+  },
+  ui_apply_graph_patch: {
+    description:
+      "Apply several graph edits as one undo step, in this order: delete_edge_ids, delete_node_ids, add_nodes, update_nodes, move_nodes, add_edges. Each entry takes the arguments of the matching single-edit tool. If one entry fails, no edit is applied and the error names the entry.",
+    parameters: uiApplyGraphPatchParams
   },
   ui_new_workflow: {
     description:

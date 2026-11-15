@@ -343,6 +343,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   track_object: "write",
   transcribe_audio: "write",
   ui_add_node: "write",
+  ui_apply_graph_patch: "write",
   ui_connect_nodes: "write",
   ui_delete_edge: "write",
   ui_delete_node: "write",

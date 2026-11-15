@@ -69,6 +69,187 @@
     }
   },
   {
+    "name": "ui_apply_graph_patch",
+    "description": "Apply several graph edits as one undo step, in this order: delete_edge_ids, delete_node_ids, add_nodes, update_nodes, move_nodes, add_edges. Each entry takes the arguments of the matching single-edit tool. If one entry fails, no edit is applied and the error names the entry.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "delete_edge_ids": {
+          "description": "Edge ids to delete. Applied first.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "delete_node_ids": {
+          "description": "Node ids to delete, with their edges. Applied second.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "add_nodes": {
+          "description": "Nodes to add, each as ui_add_node takes it.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Unique node id within the workflow. Must be a stable, model-chosen string (e.g. 'llm_1', 'image_out')."
+              },
+              "type": {
+                "type": "string",
+                "description": "Node type identifier from `ui_search_nodes` (e.g. 'nodetool.text.Format'). Same as `node_type` in search results."
+              },
+              "position": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "x": {
+                        "type": "number"
+                      },
+                      "y": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "x",
+                      "y"
+                    ]
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "description": "Canvas coordinates: `{ x: number, y: number }`. Space nodes ~240px horizontally, ~160px vertically."
+              },
+              "properties": {
+                "description": "Optional initial property values keyed by property name. Required properties left unset will be reported as warnings.",
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "position"
+            ]
+          }
+        },
+        "update_nodes": {
+          "description": "Node data overlays, each as ui_update_node_data takes it. A Code node's body goes here before its edges.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "node_id": {
+                "type": "string",
+                "description": "Id of the node to update."
+              },
+              "data": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {},
+                "description": "Partial node-data overlay merged into `data` (e.g. `{ properties: { x: 1 }, title: 'New' }`). Unspecified keys are preserved."
+              }
+            },
+            "required": [
+              "node_id",
+              "data"
+            ]
+          }
+        },
+        "move_nodes": {
+          "description": "Node moves, each as ui_move_node takes it.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "node_id": {
+                "type": "string",
+                "description": "Id of the node to move."
+              },
+              "position": {
+                "type": "object",
+                "properties": {
+                  "x": {
+                    "type": "number"
+                  },
+                  "y": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "x",
+                  "y"
+                ],
+                "description": "Absolute canvas coordinates `{x, y}` (numbers, not a string)."
+              }
+            },
+            "required": [
+              "node_id",
+              "position"
+            ]
+          }
+        },
+        "add_edges": {
+          "description": "Connections, each as ui_connect_nodes takes it. Applied last, so they can use nodes added above.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source_node_id": {
+                "type": "string",
+                "description": "Id of the node producing the value."
+              },
+              "source_handle": {
+                "type": "string",
+                "description": "Output port name on the source node (from `outputs[].name` in ui_search_nodes)."
+              },
+              "target_node_id": {
+                "type": "string",
+                "description": "Id of the node consuming the value."
+              },
+              "target_handle": {
+                "type": "string",
+                "description": "Input port name on the target node (the property name from `properties[].name` in ui_search_nodes)."
+              }
+            },
+            "required": [
+              "source_node_id",
+              "source_handle",
+              "target_node_id",
+              "target_handle"
+            ]
+          }
+        },
+        "workflow_id": {
+          "description": "Optional workflow id; when omitted/null, the current workflow is used.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "based_on_revision": {
+          "description": "Revision returned by ui_get_graph or the previous mutation. Refuse this edit if the graph has changed. Covers the graph fields exposed by ui_get_graph.",
+          "type": "string",
+          "pattern": "^graph:[a-f0-9]{64}$"
+        }
+      }
+    }
+  },
+  {
     "name": "ui_connect_nodes",
     "description": "Connect two nodes by port name. Required: source/target node ids and handle (port) names. On a Code node, any name the body reads as `inputs.<name>` or `stream(\"<name>\")` is already a target handle — do not add a dynamic input first. On a node that accepts dynamic inputs (Concat, Prompt, Images To List…), a new target handle name declares that input, typed after the source output.",
     "parameters": {

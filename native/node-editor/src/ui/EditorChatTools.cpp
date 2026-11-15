@@ -311,6 +311,7 @@ void EditorWindow::initializeChatTools() {
         {"ui_paste", {}},
         {"ui_open_workflow", {"workflow_id"}},
         {"ui_new_workflow", {}},
+        {"ui_apply_graph_patch", {}},
         {"ui_run_workflow", {"workflow_id"}},
         {"ui_open_document", {"type", "id"}}};
     // The manifest is the web registry's own JSON schema for these tools,
@@ -806,162 +807,213 @@ void EditorWindow::initializeChatTools() {
                                    [finish] { finish(QStringLiteral("running"), QString()); });
                 return;
             }
-            QJsonObject command;
-            QJsonObject result{{"ok", true}};
-            const auto id = input["node_id"].toString();
-            if (name == "ui_add_node") {
-                const auto meta = metaFor(input["type"].toString());
-                if (meta.isEmpty()) {
-                    fail("Node type not found: " + input["type"].toString() +
-                         ". Use ui_search_nodes to find the correct type.");
-                    return;
-                }
-                if (input.contains("properties") && !input["properties"].isObject()) {
-                    fail("Invalid input: properties");
-                    return;
-                }
-                auto position = input["position"].toObject();
-                if (input["position"].isObject() &&
-                    (!position["x"].isDouble() || !position["y"].isDouble() ||
-                     !std::isfinite(position["x"].toDouble()) || !std::isfinite(position["y"].toDouble()))) {
-                    fail("Invalid input: position");
-                    return;
-                }
-                if (input["position"].isString()) {
-                    const auto text = input["position"].toString();
-                    position = QJsonDocument::fromJson(text.toUtf8()).object();
-                    if (position.isEmpty()) {
-                        auto match = QRegularExpression("(-?\\d+(?:\\.\\d+)?)[^\\d-]+(-?\\d+(?:\\.\\d+)?)")
-                                         .match(text);
-                        if (match.hasMatch()) {
-                            position = {{"x", match.captured(1).toDouble()},
-                                        {"y", match.captured(2).toDouble()}};
+            // One graph edit: validates `input` for tool `name`, applies one document
+            // command, and returns the tool result or the error to report.
+            struct Mutation {
+                QJsonObject result;
+                QString error;
+            };
+            const auto mutate = [&](const QString &name, const QJsonObject &input) -> Mutation {
+                QJsonObject command;
+                QJsonObject result{{"ok", true}};
+                const auto id = input["node_id"].toString();
+                if (name == "ui_add_node") {
+                    const auto meta = metaFor(input["type"].toString());
+                    if (meta.isEmpty()) {
+                        return Mutation{{}, "Node type not found: " + input["type"].toString() +
+                             ". Use ui_search_nodes to find the correct type."};
+                    }
+                    if (input.contains("properties") && !input["properties"].isObject()) {
+                        return Mutation{{}, "Invalid input: properties"};
+                    }
+                    auto position = input["position"].toObject();
+                    if (input["position"].isObject() &&
+                        (!position["x"].isDouble() || !position["y"].isDouble() ||
+                         !std::isfinite(position["x"].toDouble()) || !std::isfinite(position["y"].toDouble()))) {
+                        return Mutation{{}, "Invalid input: position"};
+                    }
+                    if (input["position"].isString()) {
+                        const auto text = input["position"].toString();
+                        position = QJsonDocument::fromJson(text.toUtf8()).object();
+                        if (position.isEmpty()) {
+                            auto match = QRegularExpression("(-?\\d+(?:\\.\\d+)?)[^\\d-]+(-?\\d+(?:\\.\\d+)?)")
+                                             .match(text);
+                            if (match.hasMatch()) {
+                                position = {{"x", match.captured(1).toDouble()},
+                                            {"y", match.captured(2).toDouble()}};
+                            }
                         }
                     }
+                    if (!position["x"].isDouble() || !position["y"].isDouble()) {
+                        const auto count = document.nodeCount();
+                        position = {{"x", 120 + (count % 6) * 240}, {"y", 120 + (count / 6) * 160}};
+                    }
+                    QJsonArray warnings;
+                    const auto provided = input["properties"].toObject();
+                    for (const auto &entry : meta["properties"].toArray()) {
+                        const auto property = entry.toObject();
+                        const auto key = property["name"].toString();
+                        if (provided.contains(key) && !valueMatches(provided[key], property["type"].toObject())) {
+                            return Mutation{{}, "Value for property " + key + " does not match type " +
+                                 property["type"].toObject()["type"].toString()};
+                        }
+                        const auto value = property["default"];
+                        if (property["required"].toBool() && !provided.contains(key) &&
+                            (value.isNull() || value.isUndefined() || value == "" ||
+                             (value.isObject() && value.toObject().isEmpty()))) {
+                            warnings.append("Required property '" + key +
+                                            "' is not set. Use ui_update_node_data to set it.");
+                        }
+                    }
+                    if (!warnings.isEmpty()) {
+                        result["warnings"] = warnings;
+                    }
+                    NodeCreationOptions options;
+                    options.id = input["id"].toString();
+                    auto node = createNativeNode(meta, {position["x"].toDouble(), position["y"].toDouble()}, {},
+                                                 input["properties"].toObject(), options);
+                    node = node_editor::withInferredCodePorts(node);
+                    command = {{"op", "addNode"}, {"node", node}};
+                } else if (name == "ui_connect_nodes") {
+                    const auto source = document.node(input["source_node_id"].toString());
+                    const auto targetNode = document.node(input["target_node_id"].toString());
+                    if (source.isEmpty() || targetNode.isEmpty()) {
+                        return Mutation{{}, "Connection endpoint not found"};
+                    }
+                    const auto sourceHandle = input["source_handle"].toString();
+                    const auto targetHandle = input["target_handle"].toString();
+                    const auto sourceType =
+                        handleType(source, metaFor(source["type"].toString()), sourceHandle, true);
+                    const auto targetMeta = metaFor(targetNode["type"].toString());
+                    const auto targetType = handleType(targetNode, targetMeta, targetHandle, false);
+                    if (sourceType.isEmpty()) {
+                        return Mutation{{}, "Source handle '" + sourceHandle + "' not found"};
+                    }
+                    QJsonArray commands;
+                    if (targetType.isEmpty()) {
+                        const auto type = targetNode["type"].toString();
+                        if (!targetMeta["supports_dynamic_inputs"].toBool() || targetHandle.trimmed().isEmpty() ||
+                            type == "nodetool.code.Code" || schemaOnlyInputs(type) ||
+                            targetNode["dynamic_outputs"].toObject().contains(targetHandle)) {
+                            return Mutation{{}, "Target handle '" + targetHandle + "' not found"};
+                        }
+                        commands.append(QJsonObject{{"op", "addDynamicInput"},
+                                                    {"id", targetNode["id"]},
+                                                    {"name", targetHandle},
+                                                    {"type", sourceType}});
+                        result["declared_input"] = targetHandle;
+                    }
+                    for (const auto &value : document.edges()) {
+                        const auto edge = value.toObject();
+                        if (edge["source"] == source["id"] && edge["target"] == targetNode["id"] &&
+                            edge["sourceHandle"] == sourceHandle && edge["targetHandle"] == targetHandle) {
+                            return Mutation{{{"ok", true}, {"edge_id", edge["id"]}, {"note", "edge already exists"}}, {}};
+                        }
+                    }
+                    const auto edgeId = QUuid::createUuid().toString(QUuid::Id128);
+                    commands.append(QJsonObject{{"op", "addEdge"},
+                                                {"edge", QJsonObject{{"id", edgeId},
+                                                                     {"source", source["id"]},
+                                                                     {"target", targetNode["id"]},
+                                                                     {"sourceHandle", sourceHandle},
+                                                                     {"targetHandle", targetHandle}}}});
+                    command = {{"op", "batch"}, {"commands", commands}};
+                    result["edge_id"] = edgeId;
+                } else if (name == "ui_move_node") {
+                    const auto position = input["position"].toObject();
+                    if (!position["x"].isDouble() || !position["y"].isDouble()) {
+                        return Mutation{{}, "Invalid input: position"};
+                    }
+                    command = {
+                        {"op", "moveNodes"}, {"space", "absolute"}, {"positions", QJsonObject{{id, position}}}};
+                    result["position"] = position;
+                } else if (name == "ui_set_node_title") {
+                    command = {
+                        {"op", "patchChatData"}, {"id", id}, {"data", QJsonObject{{"title", input["title"]}}}};
+                    result["title"] = input["title"];
+                } else if (name == "ui_delete_node") {
+                    command = {{"op", "removeNodes"}, {"ids", QJsonArray{id}}};
+                } else if (name == "ui_delete_edge") {
+                    command = {{"op", "removeEdge"}, {"id", input["edge_id"]}};
+                    result["edge_id"] = input["edge_id"];
+                } else if (name == "ui_update_node_data") {
+                    const auto properties = input["data"].toObject()["properties"].toObject();
+                    const auto meta = metaFor(document.node(id)["type"].toString());
+                    const QSet<QString> models{"language_model", "image_model",     "tts_model",
+                                               "asr_model",      "embedding_model", "video_model"};
+                    for (const auto &entry : meta["properties"].toArray()) {
+                        const auto property = entry.toObject();
+                        const auto field = property["name"].toString();
+                        const auto type = property["type"].toObject()["type"].toString();
+                        if (models.contains(type) && properties[field].isString()) {
+                            return Mutation{{}, "Property '" + field + "' is a " + type +
+                                 " object, not a string. Pass the full object from ui_search_models."};
+                        }
+                    }
+                    command = {{"op", "patchChatData"}, {"id", id}, {"data", input["data"]}};
                 }
-                if (!position["x"].isDouble() || !position["y"].isDouble()) {
-                    const auto count = document.nodeCount();
-                    position = {{"x", 120 + (count % 6) * 240}, {"y", 120 + (count / 6) * 160}};
+                if (!id.isEmpty()) {
+                    result["node_id"] = id;
                 }
-                QJsonArray warnings;
-                const auto provided = input["properties"].toObject();
-                for (const auto &entry : meta["properties"].toArray()) {
-                    const auto property = entry.toObject();
-                    const auto key = property["name"].toString();
-                    if (provided.contains(key) && !valueMatches(provided[key], property["type"].toObject())) {
-                        fail("Value for property " + key + " does not match type " +
-                             property["type"].toObject()["type"].toString());
+                const auto edited = document.applyCommand(command, name);
+                if (!edited) {
+                    return Mutation{{}, edited.error};
+                }
+                return Mutation{result, {}};
+            };
+            if (name == "ui_apply_graph_patch") {
+                QJsonArray applied;
+                // One undo step for the whole patch. A failed operation undoes the
+                // operations before it, so the patch applies whole or not at all.
+                const auto undoIndex = document.undoStack()->index();
+                document.undoStack()->beginMacro(QStringLiteral("Agent graph patch"));
+                QString failure;
+                const auto run = [&](const char *key, const QString &tool, const auto &toInput) {
+                    if (!failure.isEmpty()) {
                         return;
                     }
-                    const auto value = property["default"];
-                    if (property["required"].toBool() && !provided.contains(key) &&
-                        (value.isNull() || value.isUndefined() || value == "" ||
-                         (value.isObject() && value.toObject().isEmpty()))) {
-                        warnings.append("Required property '" + key +
-                                        "' is not set. Use ui_update_node_data to set it.");
+                    const auto entries = input[QLatin1String(key)].toArray();
+                    for (qsizetype index = 0; index < entries.size() && failure.isEmpty(); ++index) {
+                        const auto edit = mutate(tool, toInput(entries[index]));
+                        if (!edit.error.isEmpty()) {
+                            failure = QStringLiteral("%1[%2]: %3").arg(QLatin1String(key)).arg(index).arg(edit.error);
+                            return;
+                        }
+                        auto entry = edit.result;
+                        entry.remove("ok");
+                        entry["op"] = QLatin1String(key);
+                        applied.append(entry);
                     }
-                }
-                if (!warnings.isEmpty()) {
-                    result["warnings"] = warnings;
-                }
-                NodeCreationOptions options;
-                options.id = input["id"].toString();
-                auto node = createNativeNode(meta, {position["x"].toDouble(), position["y"].toDouble()}, {},
-                                             input["properties"].toObject(), options);
-                node = node_editor::withInferredCodePorts(node);
-                command = {{"op", "addNode"}, {"node", node}};
-            } else if (name == "ui_connect_nodes") {
-                const auto source = document.node(input["source_node_id"].toString());
-                const auto targetNode = document.node(input["target_node_id"].toString());
-                if (source.isEmpty() || targetNode.isEmpty()) {
-                    fail("Connection endpoint not found");
+                };
+                const auto asObject = [](const QJsonValue &value) { return value.toObject(); };
+                run("delete_edge_ids", "ui_delete_edge",
+                    [](const QJsonValue &value) { return QJsonObject{{"edge_id", value}}; });
+                run("delete_node_ids", "ui_delete_node",
+                    [](const QJsonValue &value) { return QJsonObject{{"node_id", value}}; });
+                run("add_nodes", "ui_add_node", asObject);
+                run("update_nodes", "ui_update_node_data", asObject);
+                run("move_nodes", "ui_move_node", asObject);
+                run("add_edges", "ui_connect_nodes", asObject);
+                document.undoStack()->endMacro();
+                if (!failure.isEmpty()) {
+                    if (document.undoStack()->index() > undoIndex) {
+                        document.undo();
+                    }
+                    fail(failure + " No change was applied.");
                     return;
                 }
-                const auto sourceHandle = input["source_handle"].toString();
-                const auto targetHandle = input["target_handle"].toString();
-                const auto sourceType =
-                    handleType(source, metaFor(source["type"].toString()), sourceHandle, true);
-                const auto targetMeta = metaFor(targetNode["type"].toString());
-                const auto targetType = handleType(targetNode, targetMeta, targetHandle, false);
-                if (sourceType.isEmpty()) {
-                    fail("Source handle '" + sourceHandle + "' not found");
-                    return;
-                }
-                QJsonArray commands;
-                if (targetType.isEmpty()) {
-                    const auto type = targetNode["type"].toString();
-                    if (!targetMeta["supports_dynamic_inputs"].toBool() || targetHandle.trimmed().isEmpty() ||
-                        type == "nodetool.code.Code" || schemaOnlyInputs(type) ||
-                        targetNode["dynamic_outputs"].toObject().contains(targetHandle)) {
-                        fail("Target handle '" + targetHandle + "' not found");
-                        return;
-                    }
-                    commands.append(QJsonObject{{"op", "addDynamicInput"},
-                                                {"id", targetNode["id"]},
-                                                {"name", targetHandle},
-                                                {"type", sourceType}});
-                    result["declared_input"] = targetHandle;
-                }
-                for (const auto &value : document.edges()) {
-                    const auto edge = value.toObject();
-                    if (edge["source"] == source["id"] && edge["target"] == targetNode["id"] &&
-                        edge["sourceHandle"] == sourceHandle && edge["targetHandle"] == targetHandle) {
-                        complete({{"ok", true}, {"edge_id", edge["id"]}, {"note", "edge already exists"}});
-                        return;
-                    }
-                }
-                const auto edgeId = QUuid::createUuid().toString(QUuid::Id128);
-                commands.append(QJsonObject{{"op", "addEdge"},
-                                            {"edge", QJsonObject{{"id", edgeId},
-                                                                 {"source", source["id"]},
-                                                                 {"target", targetNode["id"]},
-                                                                 {"sourceHandle", sourceHandle},
-                                                                 {"targetHandle", targetHandle}}}});
-                command = {{"op", "batch"}, {"commands", commands}};
-                result["edge_id"] = edgeId;
-            } else if (name == "ui_move_node") {
-                const auto position = input["position"].toObject();
-                if (!position["x"].isDouble() || !position["y"].isDouble()) {
-                    fail("Invalid input: position");
-                    return;
-                }
-                command = {
-                    {"op", "moveNodes"}, {"space", "absolute"}, {"positions", QJsonObject{{id, position}}}};
-                result["position"] = position;
-            } else if (name == "ui_set_node_title") {
-                command = {
-                    {"op", "patchChatData"}, {"id", id}, {"data", QJsonObject{{"title", input["title"]}}}};
-                result["title"] = input["title"];
-            } else if (name == "ui_delete_node") {
-                command = {{"op", "removeNodes"}, {"ids", QJsonArray{id}}};
-            } else if (name == "ui_delete_edge") {
-                command = {{"op", "removeEdge"}, {"id", input["edge_id"]}};
-                result["edge_id"] = input["edge_id"];
-            } else if (name == "ui_update_node_data") {
-                const auto properties = input["data"].toObject()["properties"].toObject();
-                const auto meta = metaFor(document.node(id)["type"].toString());
-                const QSet<QString> models{"language_model", "image_model",     "tts_model",
-                                           "asr_model",      "embedding_model", "video_model"};
-                for (const auto &entry : meta["properties"].toArray()) {
-                    const auto property = entry.toObject();
-                    const auto field = property["name"].toString();
-                    const auto type = property["type"].toObject()["type"].toString();
-                    if (models.contains(type) && properties[field].isString()) {
-                        fail("Property '" + field + "' is a " + type +
-                             " object, not a string. Pass the full object from ui_search_models.");
-                        return;
-                    }
-                }
-                command = {{"op", "patchChatData"}, {"id", id}, {"data", input["data"]}};
-            }
-            if (!id.isEmpty()) {
-                result["node_id"] = id;
-            }
-            const auto edited = document.applyCommand(command, name);
-            if (!edited) {
-                fail(edited.error);
+                complete({{"ok", true},
+                          {"applied", applied},
+                          {"source", "editor"},
+                          {"document_revision", documentRevision(document)}});
                 return;
             }
+            const auto edit = mutate(name, input);
+            if (!edit.error.isEmpty()) {
+                fail(edit.error);
+                return;
+            }
+            auto result = edit.result;
             result["source"] = "editor";
             result["document_revision"] = documentRevision(document);
             complete(result);

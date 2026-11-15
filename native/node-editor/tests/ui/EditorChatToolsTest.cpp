@@ -548,6 +548,31 @@ class EditorChatToolsTest final : public QObject {
         QVERIFY(post->contains("\"name\":\"Spiral\""));
         QCOMPARE(window.document()->snapshot()["id"].toString(), CreatedWorkflowId);
     }
+    void graphPatchIsOneUndoStep() {
+        ChatServer server;
+        nodetool::EditorWindow window;
+        setup(window, server);
+        const auto edge = QJsonObject{{"source_node_id", "a"}, {"source_handle", "out"},
+                                      {"target_node_id", "b"}, {"target_handle", "text"}};
+        const auto result = call(window, server, "ui_apply_graph_patch",
+                                 {{"add_nodes", QJsonArray{add("a"), add("b")}}, {"add_edges", QJsonArray{edge}}});
+        QVERIFY2(result["ok"].toBool(), qPrintable(QString::fromUtf8(QJsonDocument(result).toJson())));
+        QCOMPARE(result["result"].toObject()["applied"].toArray().size(), 3);
+        QCOMPARE(window.document()->nodeCount(), 2);
+        QCOMPARE(window.document()->edges().size(), 1);
+        window.document()->undo();
+        QCOMPARE(window.document()->nodeCount(), 0);
+        QCOMPARE(window.document()->edges().size(), 0);
+
+        const auto before = window.document()->snapshot();
+        auto broken = edge;
+        broken["source_handle"] = "missing";
+        const auto failed = call(window, server, "ui_apply_graph_patch",
+                                 {{"add_nodes", QJsonArray{add("a"), add("b")}}, {"add_edges", QJsonArray{broken}}});
+        QVERIFY(!failed["ok"].toBool());
+        QVERIFY(failed["error"].toString().startsWith("add_edges[0]: "));
+        QCOMPARE(window.document()->snapshot()["graph"], before["graph"]);
+    }
     void resourcePrefixes() {
         ChatServer server;
         nodetool::EditorWindow window;
@@ -621,7 +646,7 @@ class EditorChatToolsTest final : public QObject {
                                       "ui_delete_edge",    "ui_update_node_data", "ui_search_nodes",
                                       "ui_search_models",  "ui_switch_tab",       "ui_copy",
                                       "ui_paste",          "ui_open_workflow",    "ui_run_workflow",
-                                      "ui_open_document",  "ui_new_workflow"};
+                                      "ui_open_document",  "ui_new_workflow",     "ui_apply_graph_patch"};
         QCOMPARE(web.size(), implemented.size());
         ChatServer server;
         nodetool::EditorWindow window;

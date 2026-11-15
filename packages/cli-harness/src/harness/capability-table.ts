@@ -3621,7 +3621,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "ui_get_graph",
     module: "ui",
     impl: "packages/agents/src/capabilities/ui.ts",
-    contract: "d3925ec6efe2",
+    contract: "36f194f62b3e",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-declared-workflow-contracts.test.ts",
@@ -3759,6 +3759,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
         file: "packages/agents/src/evals/tool-loop-cases.ts",
         cases: ["rewire-and-relabel"],
       },
+    ],
+  },
+  {
+    name: "ui_apply_graph_patch",
+    module: "ui",
+    impl: "packages/agents/src/capabilities/ui.ts",
+    contract: "966ffff451ba",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-graph-patch.test.ts",
     ],
   },
   {

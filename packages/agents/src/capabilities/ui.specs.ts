@@ -35,7 +35,8 @@ const UI_CATEGORIES: Readonly<
   ui_delete_node: "write",
   ui_delete_edge: "write",
   ui_move_node: "write",
-  ui_set_node_title: "write"
+  ui_set_node_title: "write",
+  ui_apply_graph_patch: "write"
 };
 
 /** The Zod schema one document tool validates its arguments against. */
