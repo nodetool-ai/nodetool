@@ -12,6 +12,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   Game,
+  PERSONAL_PROJECT_KIND,
+  PERSONAL_PROJECT_NAME,
   Project,
   Setting,
   Workspace as WorkspaceRow,
@@ -87,6 +89,21 @@ const MANIFEST_FILE = PROJECT_MANIFEST_PATH.slice(".nodetool/".length);
 async function manifestOf(row: WorkspaceRow): Promise<unknown> {
   const text = await nodetoolDir(row).readText(MANIFEST_FILE);
   return text === null ? null : JSON.parse(text);
+}
+
+/**
+ * A Personal project as it stood before project folders: no folder yet.
+ * `Project.ensurePersonal` now gives a new Personal its folder at once.
+ */
+async function legacyPersonal(userId: string): Promise<Project> {
+  const project = await Project.insertNew({
+    id: `personal:${userId}`,
+    user_id: userId,
+    name: PERSONAL_PROJECT_NAME,
+    kind: PERSONAL_PROJECT_KIND
+  });
+  if (!project) throw new Error("insert failed");
+  return project;
 }
 
 async function insertProject(
@@ -189,7 +206,7 @@ describe.each(MODES)("project folders ($name)", (mode) => {
   it("gives every project a folder, and a second run changes nothing", async () => {
     const first = await insertProject("Aurora");
     const second = await insertProject("Borealis");
-    const personal = await Project.ensurePersonal(USER);
+    const personal = await legacyPersonal(USER);
 
     const report = await migrateProjectFolders();
 
@@ -304,7 +321,7 @@ describe.each(MODES)("project folders ($name)", (mode) => {
   });
 
   it("gives Personal a new folder when a Personal game uses the default workspace", async () => {
-    const personal = await Project.ensurePersonal(USER);
+    const personal = await legacyPersonal(USER);
     const defaultRow = await WorkspaceRow.ensureDefault(USER);
     defaultRow.project_id = personal.id;
     await defaultRow.save();

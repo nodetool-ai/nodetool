@@ -294,6 +294,16 @@ describe.each(["local", "cloud"] as const)("runs in the project folder (%s)", (m
     expect(await namesIn(a.folder)).toEqual([]);
   });
 
+  it("an agent turn creates Personal with its folder when nothing else has", async () => {
+    const thread = await Thread.create({ user_id: USER, project_id: "default", title: "" });
+
+    const { errors } = await agentTurn(thread.id);
+
+    expect(errors).toEqual([]);
+    const personal = await personalWithFolder(USER);
+    expect(await fileIn(personal.folder, "agent.txt")).toBe("first");
+  });
+
   it("an editor run of a workflow in project A writes A's folder", async () => {
     const a = await projectWithFolder(USER, "Film A");
     const b = await projectWithFolder(USER, "Film B");

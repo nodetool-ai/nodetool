@@ -24,6 +24,7 @@ import {
   Project,
   Setting,
   Workspace as WorkspaceRow,
+  setPersonalFolderProvider,
   type WorkspaceOrigin
 } from "@nodetool-ai/models";
 import { RESERVED_WORKSPACE_DIR, type Workspace } from "@nodetool-ai/runtime";
@@ -380,6 +381,12 @@ export async function ensurePersonalProject(userId: string): Promise<Project> {
   await ensureProjectFolder(personal);
   return personal;
 }
+
+// A Personal project gets its folder when `Project.ensurePersonal` creates it,
+// wherever that happens first, so every host that loads project folders installs
+// this. `ensureProjectFolder` reads the project row it was handed, never
+// `ensurePersonal`, so the call cannot recurse.
+setPersonalFolderProvider(ensureProjectFolder);
 
 export interface ProjectFolderMigrationReport {
   /** Projects that had no folder when the migration reached them. */

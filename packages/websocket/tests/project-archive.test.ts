@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import nodePath from "node:path";
@@ -23,6 +25,10 @@ import {
 } from "@nodetool-ai/models";
 import { createLocalWorkspace } from "@nodetool-ai/runtime";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
+import {
+  ensureProjectFolder,
+  resolveProjectWorkspace
+} from "@nodetool-ai/execution/service";
 import { getAssetStorageKey } from "../src/lib/asset-paths.js";
 import {
   importProjectArchive,
@@ -458,6 +464,49 @@ describe("project files", () => {
     entries["records.json"] = strToU8(JSON.stringify(records));
     await expect(importArchive(zipSync(entries))).rejects.toThrow(/thread_id/);
     expect(await Project.listByUser(importer)).toEqual([]);
+  });
+
+  it("skips .nodetool/ entries from an archive written before the directory was reserved", async () => {
+    const seeded = await seedProject();
+    const { bytes } = await exportProject(owner, seeded.projectId);
+    // An older export listed the exporting project's manifest as a file.
+    const entries = unzipSync(bytes);
+    const manifest = JSON.parse(strFromU8(entries["manifest.json"]!));
+    const stale = strToU8('{"format":"nodetool.project","version":1,"id":"old","name":"Old"}');
+    const file = `workspaces/${seeded.workspace.id}/.nodetool/project.json`;
+    entries[file] = stale;
+    manifest.workspace_files.push({
+      workspace_id: seeded.workspace.id,
+      path: ".nodetool/project.json",
+      file,
+      bytes: stale.byteLength,
+      sha256: createHash("sha256").update(stale).digest("hex")
+    });
+    entries["manifest.json"] = strToU8(JSON.stringify(manifest));
+
+    const result = await importArchive(zipSync(entries));
+
+    const { readProjectArchiveRecords } = await import("@nodetool-ai/models");
+    const records = await readProjectArchiveRecords(importer, result.project.id);
+    const imported = new Workspace(records.workspaces[0]!);
+    expect(await createLocalWorkspace(imported.path).readText("notes/readme.txt")).toBe("hello");
+    expect(existsSync(nodePath.join(imported.path, ".nodetool", "project.json"))).toBe(false);
+  });
+
+  it("gives the imported project a folder its runs can use", async () => {
+    const seeded = await seedProject();
+    const { bytes } = await exportProject(owner, seeded.projectId);
+
+    const result = await importProjectArchive(bytes, {
+      userId: importer,
+      storage,
+      openWorkspace,
+      workspacePath,
+      ensureFolder: ensureProjectFolder
+    });
+
+    const folder = await resolveProjectWorkspace(result.project.id, importer);
+    expect(folder).toMatchObject({ ok: true, projectId: result.project.id });
   });
 
   it("rehashes current and historical drafts after rewriting game references", async () => {

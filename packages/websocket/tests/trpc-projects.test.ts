@@ -787,7 +787,14 @@ describe("projects router: project folders", () => {
   );
 
   it("gives Personal its own folder when a Personal game uses the default workspace", async () => {
-    const personal = await Project.ensurePersonal("user-1");
+    // A Personal from before project folders, which has none yet.
+    const personal = await Project.insertNew({
+      id: "personal:user-1",
+      user_id: "user-1",
+      name: "Personal",
+      kind: "personal"
+    });
+    if (!personal) throw new Error("insert failed");
     const defaultRow = await Workspace.ensureDefault("user-1");
     defaultRow.project_id = personal.id;
     await defaultRow.save();

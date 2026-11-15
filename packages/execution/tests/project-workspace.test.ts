@@ -166,6 +166,15 @@ describe.each(["local", "cloud"] as const)("project folders for runs (%s)", (mod
     }
   });
 
+  it("gives Personal its folder when it is created after startup", async () => {
+    // Whatever first needs Personal creates it: no list, no migration ran.
+    const personal = await Project.ensurePersonal(USER);
+
+    expect(personal.workspace_id).toBeTruthy();
+    const resolved = await resolveProjectWorkspace(null, USER);
+    expect(resolved).toMatchObject({ ok: true, projectId: personal.id });
+  });
+
   it("refuses a project that has no folder, and creates none", async () => {
     const project = await Project.insertNew({ user_id: USER, name: "Bare" });
     if (!project) throw new Error("insert failed");

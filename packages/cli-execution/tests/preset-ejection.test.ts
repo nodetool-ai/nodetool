@@ -11,6 +11,10 @@ import { runOnServer } from "../src/debug/server-runner.js";
 
 const catalog = createCatalog(JSON.parse(readFileSync(new URL("../../presets/preset-catalog.json", import.meta.url), "utf8")));
 const dir = mkdtempSync(join(tmpdir(), "preset-ejection-"));
+// A run with no stored workflow works in Personal's folder, which the run
+// creates on first use. Keep it out of the real home and data directories.
+process.env["PROJECTS_DIR"] = join(dir, "projects");
+process.env["NODETOOL_WORKSPACES_DIR"] = join(dir, "workspaces");
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 const modes: PresetMode[] = ["video", "image_to_video", "reference_to_video", "image", "image_edit", "video_edit"];
 function modelFor(mode: PresetMode) {
