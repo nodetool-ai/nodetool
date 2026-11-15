@@ -1,5 +1,6 @@
 import { createLogger } from "@nodetool-ai/config";
 import type { BaseProvider } from "./base-provider.js";
+import { creditAccountFor } from "./provider-credits.js";
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not a behavioural contract.
 const log = createLogger("nodetool.runtime.provider-registry");
@@ -155,7 +156,16 @@ export async function getProvider(
     kwargs[key] = fallback;
   }
 
-  return new registration.cls(kwargs);
+  const provider = new registration.cls(kwargs);
+  const secretKey = getProviderSecretKey(providerId);
+  const credential = secretKey ? kwargs[secretKey] : undefined;
+  // Test doubles registered here need not extend BaseProvider.
+  if (typeof provider.bindCreditAccount === "function") {
+    provider.bindCreditAccount(
+      creditAccountFor(providerId, typeof credential === "string" ? credential : undefined)
+    );
+  }
+  return provider;
 }
 
 /** Get the secret key name required by a provider (e.g. "OPENAI_API_KEY"), or null. */

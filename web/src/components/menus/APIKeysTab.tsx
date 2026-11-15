@@ -48,6 +48,8 @@ import LocalComfyConnect from "../comfy/LocalComfyConnect";
 import { CustomProvidersSection } from "./CustomProvidersSection";
 import { OnePasswordPicker, type OnePasswordPick } from "./OnePasswordPicker";
 import { useOnePasswordStatus } from "../../serverState/useOnePassword";
+import { useProviderCredit } from "../../serverState/useProviderCredits";
+import { formatCreditAmount } from "../../utils/formatProviderCredit";
 
 import {
   PROVIDER_META,
@@ -118,6 +120,9 @@ const ApiKeyProviderCard = memo(function ApiKeyProviderCard({
   const { t, i18n } = useTranslation();
   const oauth = useOAuthConnection(meta.oauth ?? null);
   const validateSecret = useSecretsStore((s) => s.validateSecret);
+  const { credit, refresh: refreshCredit } = useProviderCredit(
+    secret.is_configured ? meta.providerId : undefined
+  );
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<SecretValidation | null>(null);
   // A card has two ways to be connected and they are independent: a stored
@@ -182,10 +187,34 @@ const ApiKeyProviderCard = memo(function ApiKeyProviderCard({
   const handleTest = useCallback(async () => {
     setTesting(true);
     setTestResult(null);
-    const result = await validateSecret(meta.key);
+    const [result] = await Promise.all([
+      validateSecret(meta.key),
+      // A test after a top-up is how a card leaves the out-of-credit state.
+      refreshCredit().catch(() => undefined)
+    ]);
     setTestResult(result);
     setTesting(false);
-  }, [validateSecret, meta.key]);
+  }, [validateSecret, refreshCredit, meta.key]);
+
+  const creditText = useMemo(() => {
+    if (!credit) return null;
+    if (credit.state === "exhausted") {
+      return t(
+        credit.source === "call_failure"
+          ? "i18n-cont-settings-01.apiKeys.creditRefused"
+          : "i18n-cont-settings-01.apiKeys.creditExhausted",
+        { provider: meta.name }
+      );
+    }
+    if (credit.remaining === undefined) return null;
+    const amount = formatCreditAmount(credit.remaining, credit, i18n.language);
+    return credit.limit === undefined
+      ? t("i18n-cont-settings-01.apiKeys.creditLeft", { amount })
+      : t("i18n-cont-settings-01.apiKeys.creditLeftOf", {
+          amount,
+          limit: formatCreditAmount(credit.limit, credit, i18n.language)
+        });
+  }, [credit, meta.name, t, i18n.language]);
 
   return (
     <FlexColumn
@@ -343,6 +372,25 @@ const ApiKeyProviderCard = memo(function ApiKeyProviderCard({
               }}
             >
               {t(hasKey ? "i18n-cont-settings-01.apiKeys.keyStoredUnavailable" : "i18n-cont-settings-01.apiKeys.signedInUnavailable", { provider: meta.name })}
+            </Caption>
+          )}
+          {hasKey && creditText && (
+            <Caption
+              size="smaller"
+              color={
+                credit?.state === "exhausted"
+                  ? "error"
+                  : credit?.state === "low"
+                    ? "warning"
+                    : "secondary"
+              }
+              sx={{
+                lineHeight: 1.5,
+                maxWidth: 280,
+                overflowWrap: "anywhere"
+              }}
+            >
+              {creditText}
             </Caption>
           )}
           {testResult && (

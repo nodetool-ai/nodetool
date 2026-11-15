@@ -27,7 +27,12 @@ import {
   readCredentialEnv,
   getRegisteredProvider,
   listRegisteredProviderIds,
-  isProviderConfigured
+  isProviderConfigured,
+  getProviderSecretKey,
+  resolveCredentialValue,
+  creditAccountFor,
+  hasCreditEndpoint,
+  readProviderCredit
 } from "@nodetool-ai/runtime";
 import { ApiErrorCode } from "../../error-codes.js";
 import { onePasswordRouter } from "./onepassword.js";
@@ -54,6 +59,9 @@ import {
   updateStorageHistoryInput,
   cleanupStorageHistoryOutput,
   compactStorageHistoryOutput,
+  providerCreditsInput,
+  providerCreditsOutput,
+  type ProviderCreditsOutput,
   toolPermissionsListOutput,
   toolPermissionsSetInput,
   type SecretResponse
@@ -364,6 +372,41 @@ export const settingsRouter = router({
         });
       }
       return providers;
+    }),
+
+  /**
+   * Remaining credit for each provider the user holds a key for. Providers
+   * with a balance endpoint are asked (cached for ten minutes unless
+   * `refresh`). Others report only a payment refusal the runtime recorded.
+   */
+  providerCredits: protectedProcedure
+    .input(providerCreditsInput)
+    .output(providerCreditsOutput)
+    .query(async ({ ctx, input }) => {
+      const cloud = isCloudProfile();
+      const targets = listRegisteredProviderIds().flatMap((provider) => {
+        if (input?.provider && provider !== input.provider) return [];
+        if (isCustomProviderId(provider) || (cloud && !isCloudProvider(provider))) return [];
+        const secretKey = getProviderSecretKey(provider);
+        return secretKey ? [{ provider, secretKey }] : [];
+      });
+      const credentials = await getSecrets(
+        [...new Set(targets.map((t) => t.secretKey))],
+        ctx.userId
+      );
+      const rows = await Promise.all(
+        targets.map(async ({ provider, secretKey }) => {
+          const value = await resolveCredentialValue(secretKey, (key) =>
+            credentials.get(key));
+          if (!value) return null;
+          const credit = await readProviderCredit(
+            creditAccountFor(provider, value),
+            { refresh: input?.refresh === true }
+          );
+          return { provider, supported: hasCreditEndpoint(provider), credit };
+        })
+      );
+      return rows.filter((row): row is ProviderCreditsOutput[number] => row !== null);
     }),
 
   list: protectedProcedure.output(listOutput).query(async ({ ctx }) => {
