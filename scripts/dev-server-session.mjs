@@ -42,6 +42,12 @@ export async function startServer(log) {
     console.log(`Using the server at ${serverUrl}`);
     return undefined;
   }
+  // The server imports workspace packages from dist/. A stale build fails at
+  // import time with a missing export, so rebuild stale workspaces first.
+  const rebuild = spawnSync(process.execPath, ["scripts/build-stale-websocket-workspaces.mjs"], { cwd: root, stdio: "inherit" });
+  if (rebuild.status !== 0) {
+    throw new Error(`Rebuilding stale workspace packages failed (${rebuild.signal || rebuild.status}).`);
+  }
   const fd = openSync(log, "a");
   const database = databaseEnv();
   console.log(`Starting the development server on ${serverUrl}, log: ${log}`);
