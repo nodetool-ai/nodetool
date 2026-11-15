@@ -42,8 +42,9 @@ export const assetResponse = z.object({
   /** The user starred this asset. */
   favorite: z.boolean().optional(),
   /**
-   * Present only on an asset that references a local file in place: true when
-   * that file is missing or has changed since import or relink. An offline
+   * Present on an asset that references a local file in place: true when
+   * that file is missing or has changed since import or relink. Also true on
+   * an asset whose file is missing from its project folder. An offline
    * asset's `get_url` answers 404 until `relinkExternal` points it at a file.
    */
   offline: z.boolean().optional(),
@@ -192,13 +193,18 @@ export type CreateExternalInput = z.infer<typeof createExternalInput>;
 export const createExternalOutput = assetResponse;
 export type CreateExternalOutput = z.infer<typeof createExternalOutput>;
 
-// ── relinkExternal (point an in-place asset at another file) ─────
-// Keeps the asset id and `get_url`. The path is validated again against the
-// local file roots, and the file's size and mtime are recorded anew.
+// ── relinkExternal (point an asset at another file) ──────────────
+// Keeps the asset id and `get_url`. An absolute path is validated again
+// against the local file roots, and the file's size and mtime are recorded
+// anew. An asset whose file is in its project folder is pointed at a file in
+// that folder, or at a file outside it, which is copied in.
 
 export const relinkExternalInput = z.object({
   id: z.string().min(1),
-  /** Absolute path of the replacement file on the server's disk. */
+  /**
+   * Absolute path of the replacement file on the server's disk. For an asset
+   * in a project folder, a relative path names a file in that folder.
+   */
   path: z.string().min(1)
 });
 export type RelinkExternalInput = z.infer<typeof relinkExternalInput>;

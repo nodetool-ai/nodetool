@@ -49,6 +49,25 @@ A workflow output or an asset a node saves is one file in its project's folder p
 
 The row keeps the asset's ID and the file's path in `workspace_path`. URLs and document references use the ID, so they stay valid when the file is renamed. Renaming the asset in NodeTool renames its file, and deleting the asset deletes its file. Both are refused while the folder is unreachable. An asset created before project folders, or by an upload or an agent tool, keeps its bytes in [asset storage](storage.md) and reads as before.
 
+### The asset index follows the folder
+
+NodeTool compares a project's folder with its asset rows when the project is opened and after NodeTool writes a file into the folder. It applies these rules:
+
+| Folder | Asset row | Result |
+| --- | --- | --- |
+| The file is at the row's path and unchanged | Exists | Nothing changes. |
+| The file is at the row's path and changed | Exists | The row records the new size, modification time and partial hash. The asset keeps its ID. |
+| The file is gone and exactly one file with no row has the same content | Exists | The row points at that file. A file moved or renamed outside NodeTool keeps its asset ID. |
+| The file is gone and no file, or more than one, has the same content | Exists | The asset is marked offline. It reports as missing and its URL serves nothing. |
+| An image, video, audio or 3D file | None | A row is created. No thumbnail is built. |
+| Any other file | None | No row is created. The file gets a row the first time something uses it as an asset. |
+
+The comparison never deletes a row and never changes a file. It skips `.nodetool/`, every directory whose name starts with a dot, and `node_modules/`. It does not follow symbolic links. A row that already names a file in a skipped directory is still checked.
+
+An offline asset comes back when a file appears at its path again, or when it is relinked. Relink (`assets.relinkExternal`) takes a path relative to the folder, or on a local server an absolute path. A file inside the folder is used where it is. A file outside the folder is copied in next to where the asset's file was. Removing an offline asset deletes its row.
+
+A change made outside NodeTool is picked up the next time the project is opened or NodeTool writes into the folder.
+
 ## Manage workspaces in the app
 
 Workspaces have their own full-screen page at `/workspaces` (not a Settings tab):
