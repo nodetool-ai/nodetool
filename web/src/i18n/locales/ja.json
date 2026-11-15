@@ -6525,7 +6525,16 @@
         "couldNotLoadDocuments": "ドキュメントをロードできませんでした",
         "noDocuments": "まだ書類がありません",
         "noMatchingDocuments": "一致する文書がありません",
-        "searchProjectsAndDocuments": "プロジェクトとドキュメントを検索する"
+        "searchProjectsDocumentsAndChats": "プロジェクト、ドキュメント、チャットを検索",
+        "documentsAndChats": "ドキュメントとチャット",
+        "chats": "チャット",
+        "loadingChats": "チャットを読み込み中…",
+        "couldNotLoadChats": "チャットを読み込めませんでした",
+        "noChats": "チャットはまだありません",
+        "noMatchingChats": "一致するチャットはありません",
+        "allChats": "すべてのチャット",
+        "untitledChat": "無題のチャット",
+        "searchShort": "検索"
       },
       "rail": {
         "projects": "プロジェクト"

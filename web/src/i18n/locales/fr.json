@@ -6621,7 +6621,16 @@
         "couldNotLoadDocuments": "Impossible de charger les documents",
         "noDocuments": "Aucun document pour l'instant",
         "noMatchingDocuments": "Aucun document correspondant",
-        "searchProjectsAndDocuments": "Rechercher des projets et des documents"
+        "searchProjectsDocumentsAndChats": "Rechercher des projets, des documents et des chats",
+        "documentsAndChats": "Documents et chats",
+        "chats": "Chats",
+        "loadingChats": "Chargement des chats…",
+        "couldNotLoadChats": "Impossible de charger les chats",
+        "noChats": "Aucun chat pour l’instant",
+        "noMatchingChats": "Aucun chat correspondant",
+        "allChats": "Tous les chats",
+        "untitledChat": "Chat sans titre",
+        "searchShort": "Rechercher"
       },
       "rail": {
         "projects": "Projets"

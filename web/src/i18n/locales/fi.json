@@ -6525,7 +6525,16 @@
         "couldNotLoadDocuments": "Dokumentteja ei voitu ladata",
         "noDocuments": "Ei vielä dokumentteja",
         "noMatchingDocuments": "Ei vastaavia dokumentteja",
-        "searchProjectsAndDocuments": "Hae projekteja ja dokumentteja"
+        "searchProjectsDocumentsAndChats": "Hae projekteja, dokumentteja ja keskusteluja",
+        "documentsAndChats": "Dokumentit ja keskustelut",
+        "chats": "Keskustelut",
+        "loadingChats": "Ladataan keskusteluja…",
+        "couldNotLoadChats": "Keskusteluja ei voitu ladata",
+        "noChats": "Ei vielä keskusteluja",
+        "noMatchingChats": "Ei vastaavia keskusteluja",
+        "allChats": "Kaikki keskustelut",
+        "untitledChat": "Nimetön keskustelu",
+        "searchShort": "Hae"
       },
       "rail": {
         "projects": "Projektit"

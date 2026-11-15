@@ -6717,7 +6717,16 @@
         "couldNotLoadDocuments": "Nie można załadować dokumentów",
         "noDocuments": "Nie ma jeszcze dokumentów",
         "noMatchingDocuments": "Brak pasujących dokumentów",
-        "searchProjectsAndDocuments": "Wyszukaj projekty i dokumenty"
+        "searchProjectsDocumentsAndChats": "Wyszukaj projekty, dokumenty i czaty",
+        "documentsAndChats": "Dokumenty i czaty",
+        "chats": "Czaty",
+        "loadingChats": "Ładowanie czatów…",
+        "couldNotLoadChats": "Nie udało się wczytać czatów",
+        "noChats": "Nie ma jeszcze czatów",
+        "noMatchingChats": "Brak pasujących czatów",
+        "allChats": "Wszystkie czaty",
+        "untitledChat": "Czat bez tytułu",
+        "searchShort": "Szukaj"
       },
       "rail": {
         "projects": "Projekty"

@@ -6525,7 +6525,16 @@
         "couldNotLoadDocuments": "दस्तावेज़ लोड नहीं कर सकता",
         "noDocuments": "अभी तक कोई दस्तावेज नहीं",
         "noMatchingDocuments": "कोई मिलान दस्तावेज नहीं",
-        "searchProjectsAndDocuments": "परियोजना और दस्तावेज"
+        "searchProjectsDocumentsAndChats": "परियोजनाएँ, दस्तावेज़ और चैट खोजें",
+        "documentsAndChats": "दस्तावेज़ और चैट",
+        "chats": "चैट",
+        "loadingChats": "चैट लोड हो रही हैं…",
+        "couldNotLoadChats": "चैट लोड नहीं हो सकीं",
+        "noChats": "अभी कोई चैट नहीं",
+        "noMatchingChats": "कोई मेल खाती चैट नहीं",
+        "allChats": "सभी चैट",
+        "untitledChat": "बिना शीर्षक की चैट",
+        "searchShort": "खोजें"
       },
       "rail": {
         "projects": "परियोजना"

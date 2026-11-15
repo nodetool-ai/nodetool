@@ -6525,7 +6525,16 @@
         "couldNotLoadDocuments": "无法加载文档",
         "noDocuments": "暂无文档",
         "noMatchingDocuments": "没有匹配的文档",
-        "searchProjectsAndDocuments": "搜索项目和文档"
+        "searchProjectsDocumentsAndChats": "搜索项目、文档和聊天",
+        "documentsAndChats": "文档和聊天",
+        "chats": "聊天",
+        "loadingChats": "正在加载聊天…",
+        "couldNotLoadChats": "无法加载聊天",
+        "noChats": "暂无聊天",
+        "noMatchingChats": "没有匹配的聊天",
+        "allChats": "所有聊天",
+        "untitledChat": "未命名聊天",
+        "searchShort": "搜索"
       },
       "rail": {
         "projects": "项目"
