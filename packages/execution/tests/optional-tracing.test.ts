@@ -99,13 +99,15 @@ describe("automatic durable tracing", () => {
       import { NodeRegistry } from '@nodetool-ai/node-sdk';
       import { ConstantStringNode } from '@nodetool-ai/core-nodes';
       import { runWorkflow } from './packages/execution/src/service/workflow-run.ts';
+      import { createWorkspace } from '@nodetool-ai/runtime';
+      import { InMemoryStorageAdapter } from '@nodetool-ai/storage';
       initTestDb();
       const registry = new NodeRegistry();
       registry.register(ConstantStringNode);
       const workflow = await Workflow.create({ user_id: 'owner', name: 'Core without tracing', graph: {
         nodes: [{ id: 'constant', type: ConstantStringNode.nodeType, properties: { value: 'core-only-success' } }], edges: []
       } });
-      const outcome = await runWorkflow({ workflowId: workflow.id, userId: 'owner', environment: { registry }, resolveWorkspace: async () => null });
+      const outcome = await runWorkflow({ workflowId: workflow.id, userId: 'owner', environment: { registry }, resolveWorkspace: async (projectId) => ({ ok: true, projectId: projectId ?? '', workspace: createWorkspace(new InMemoryStorageAdapter()) }) });
       if (outcome.kind !== 'payload' || !JSON.stringify(outcome.payload).includes('core-only-success')) throw new Error(JSON.stringify(outcome));
     `, "@opentelemetry/core");
     expect(result.status, result.stderr).toBe(0);

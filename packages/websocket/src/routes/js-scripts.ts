@@ -84,7 +84,7 @@ import type { HttpApiOptions } from "../http-api.js";
 import { getUserId } from "../lib/http-user-id.js";
 import { getExampleAppBundle } from "../lib/example-apps.js";
 import { getAssetAdapter } from "../lib/storage.js";
-import { resolveWorkflowWorkspace } from "../lib/workflow-workspace.js";
+import { resolveProjectWorkspace } from "../lib/workflow-workspace.js";
 import { isJsonContentType } from "../lib/json-body.js";
 
 interface RouteOptions {
@@ -317,13 +317,23 @@ async function executeScriptDocumentInner(
     }
   }
 
+  // The script reads and writes its own project's folder, resolved once for
+  // the whole run. An unreachable folder refuses the run.
+  const folder = await resolveProjectWorkspace(projectId, userId);
+  if (!folder.ok) {
+    if (appRun) {
+      await settleAppRunIfPresent(userId, appRun.run.id, {
+        status: "failed",
+        error: folder.reason
+      });
+    }
+    return jsonResponse({ detail: folder.reason }, 409);
+  }
+  const workspace = folder.workspace;
   const lines = stream ? new PassThrough() : null;
   const send = (line: ScriptStreamLine): void => {
     lines?.write(`${JSON.stringify(line)}\n`);
   };
-  // Host media tools (concat, mux, probe) run in a workspace directory. A
-  // script has no workflow, so it gets the user's default workspace.
-  const workspace = await resolveWorkflowWorkspace(null, userId);
   const context = new ProcessingContext({
     jobId: appRun?.run.id ?? `js-script-${id}-${Date.now()}`,
     ...(appRun && {

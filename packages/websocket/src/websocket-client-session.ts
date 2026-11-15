@@ -31,9 +31,9 @@ import {
   activeModelLoads,
   fetchExternalMedia,
   subscribeModelLoads,
-  type ModelLoadUpdate,
-  type Workspace
+  type ModelLoadUpdate
 } from "@nodetool-ai/runtime";
+import type { ProjectWorkspaceResolution } from "@nodetool-ai/execution/service";
 import type { NodeDescriptor } from "@nodetool-ai/protocol";
 import type {
   UnifiedCommandType,
@@ -342,14 +342,14 @@ export interface WebSocketClientSessionOptions {
    */
   systemStatsEnabled?: boolean;
   /**
-   * Resolve the workspace directory for a run. `workflowId` is null for a chat
-   * turn, which resolves to the user's default workspace — chat writes files
-   * too, and they belong somewhere the user can find them.
+   * Resolve the folder of the project a run belongs to. Called once when a
+   * job or a chat turn starts. A run whose folder is unreachable is refused
+   * with the reason this returns.
    */
   workspaceResolver?: (
-    workflowId: string | null,
+    projectId: string | null,
     userId: string
-  ) => Promise<Workspace | null>;
+  ) => Promise<ProjectWorkspaceResolution>;
   /** Called before a workflow job starts — used to lazily connect the Python bridge. */
   beforeRunJob?: (graph: {
     nodes: ReadonlyArray<NodeDescriptor>;

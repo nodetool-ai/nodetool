@@ -13,7 +13,7 @@ A workspace is a folder root that workflow runs, agent tasks, and chat sessions 
 
 ## Project folders
 
-Every project has one folder, recorded as a workspace row. Creating a project creates `<PROJECTS_DIR>/<project name>` (default `~/NodeTool`, see [Configuration](configuration.md#environment-variables-index)) and adds ` 2`, ` 3` and so on when the name is taken. The projects folder must be an absolute path to a writable directory. A folder you name in Settings must already exist. With `NODETOOL_WORKSPACE_STORAGE=cloud` the folder is the key prefix `workspaces/<user>/projects/<sha256 of the project id>` in the asset bucket, or the next free `projects/` key when a game already uses that one. If the folder cannot be created, the project is not created either.
+Every project has one folder, recorded as a workspace row. Creating a project creates `<PROJECTS_DIR>/<project name>` (default `~/NodeTool`, see [Configuration](configuration.md#environment-variables-index)) and adds ` 2`, ` 3` and so on when the name is taken. The projects folder must be an absolute path to a writable directory. A folder you name in Settings must already exist. With `NODETOOL_WORKSPACE_STORAGE=cloud` the folder is the key prefix `workspaces/<user>/projects/<sha256 of the project id>` in the asset bucket, or the next free `projects/` key when a game already uses that one. If the folder cannot be created, the project is not created either. Personal gets its folder when it is first created, and an imported project gets one at import. When either folder cannot be made, the project stays, runs in it report the missing folder, and the next startup tries again.
 
 Each folder holds `.nodetool/project.json`, which names the project:
 
@@ -27,7 +27,21 @@ A native game never writes into a project folder. Each game workspace is its own
 
 The project API returns `folder: { path, origin, is_accessible }`, where `origin` is `created` or `adopted`. `path` is null for a cloud folder and for every folder on a server with `NODETOOL_ENV=production`, which also ignores a `PROJECTS_DIR` saved in a user's Settings.
 
-Runs and agents resolve their workspace as described below, not from the project folder.
+## Where runs read and write
+
+Every run reads and writes the folder of its own project:
+
+| Run | Project |
+| --- | --- |
+| Chat turn, agent run | The thread's project |
+| Workflow run | The workflow's project |
+| Job, headless run | The job's project |
+| JS script run | The script's project |
+| `nodetool workflows run <file>` with no stored workflow | Personal |
+
+A record with no project of its own runs in Personal. The folder is chosen once, when the run starts. A run started in one project keeps writing there after you switch to another project. When the folder is unreachable, the run does not start and reports `Project folder not found: <folder>`. No other folder is used in its place.
+
+NodeTool owns `.nodetool/` in every folder. Agent file tools, the Code node, JS scripts and save nodes cannot read, write, list or delete anything in it, and listings leave it out.
 
 ## Manage workspaces in the app
 
@@ -40,7 +54,7 @@ Workspaces have their own full-screen page at `/workspaces` (not a Settings tab)
 
 ![Workspaces page](assets/screenshots/workspaces-page.png)
 
-A row marked **Inaccessible** points at a folder the server can no longer reach. Workspaces also appear in the **Workspace** view of the left panel (a file tree of the current one) and under **Advanced** in the workflow form, which pins a workflow to one. Every user gets a default workspace the first time the list loads.
+A row marked **Inaccessible** points at a folder the server can no longer reach. Workspaces also appear in the **Workspace** view of the left panel (a file tree of the current one) and under **Advanced** in the workflow form. Runs no longer read the workflow form's workspace. Every user gets a default workspace the first time the list loads.
 
 ## What a cloud deployment allows
 
@@ -67,6 +81,8 @@ The tRPC `workspace` router has `list`, `create`, `update`, `delete`, `listFiles
 | `Absolute paths not allowed, use relative paths` | A file procedure got a path starting with `/` |
 | `Path traversal not allowed` (`403`) | A relative path escaped the workspace root |
 | `Cannot delete the default workspace`, `Cannot delete workspace with linked workflows` | Delete refused |
+| `Project folder not found: <folder>` | A run's project folder is missing, unreachable or not recorded. Reconnect the drive or restore the folder, then run again |
+| `Path '<path>' is inside .nodetool/, which NodeTool reserves for its own files` | A tool, node or script used a path in `.nodetool/` |
 
 ## Related docs
 

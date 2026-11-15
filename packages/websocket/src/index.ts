@@ -43,7 +43,7 @@ export {
   type FrontendRendererService
 } from "./frontend-renderer-registry.js";
 export {
-  resolveWorkflowWorkspace,
+  resolveProjectWorkspace,
   buildWorkspaceExecutionContext
 } from "./lib/workflow-workspace.js";
 export {

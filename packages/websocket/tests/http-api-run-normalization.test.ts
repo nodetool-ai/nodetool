@@ -6,7 +6,6 @@
  * editor's `type` key executed as a data edge.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import os from "node:os";
 import { initTestDb, Workflow, Job } from "@nodetool-ai/models";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 
@@ -14,9 +13,15 @@ vi.mock("../src/lib/workflow-workspace.js", async () => {
   const actual = await vi.importActual<
     typeof import("../src/lib/workflow-workspace.js")
   >("../src/lib/workflow-workspace.js");
+  const { createWorkspace } = await import("@nodetool-ai/runtime");
+  const { InMemoryStorageAdapter } = await import("@nodetool-ai/storage");
   return {
     ...actual,
-    resolveWorkflowWorkspace: async () => os.tmpdir()
+    resolveProjectWorkspace: async (projectId: string | null) => ({
+      ok: true,
+      projectId: projectId ?? "",
+      workspace: createWorkspace(new InMemoryStorageAdapter())
+    })
   };
 });
 

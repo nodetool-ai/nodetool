@@ -110,6 +110,36 @@ export class WorkspacePathError extends Error {
   }
 }
 
+/**
+ * The directory NodeTool owns inside every workspace (PRD D11). It holds the
+ * project manifest and, later, caches. No workspace method reaches it: run
+ * code (agent tools, Code nodes, save nodes) gets a {@link Workspace}, and
+ * NodeTool writes here through a separate workspace rooted at this directory.
+ */
+export const RESERVED_WORKSPACE_DIR = ".nodetool";
+
+/**
+ * True when a normalized workspace key lies in {@link RESERVED_WORKSPACE_DIR}.
+ *
+ * Compared without case, because macOS and Windows folders ignore case and
+ * `.NodeTool/x` names the same file there.
+ */
+export function isReservedWorkspaceKey(key: string): boolean {
+  const first = key.split("/", 1)[0] ?? "";
+  return first.toLowerCase() === RESERVED_WORKSPACE_DIR;
+}
+
+/** Thrown when a path names the directory NodeTool reserves for itself. */
+export class WorkspaceReservedPathError extends Error {
+  constructor(path: string) {
+    super(
+      `Path '${path}' is inside ${RESERVED_WORKSPACE_DIR}/, which NodeTool ` +
+        `reserves for its own files. Choose another folder.`
+    );
+    this.name = "WorkspaceReservedPathError";
+  }
+}
+
 /** Thrown when an operation needs a real directory and the workspace is virtual. */
 export class WorkspaceNotLocalError extends Error {
   constructor(what: string) {

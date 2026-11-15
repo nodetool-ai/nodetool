@@ -27,6 +27,7 @@ import {
   ModelObserver,
   createTimeOrderedUuid
 } from "./base-model.js";
+import { createLogger } from "@nodetool-ai/config";
 import { executeRaw, getPortableDb } from "./db.js";
 import { projects } from "./schema/projects.js";
 import { jobs } from "./schema/jobs.js";
@@ -58,6 +59,24 @@ export const LOOSE_PROJECT_ID = "default";
 
 export const PERSONAL_PROJECT_KIND = "personal";
 export const PERSONAL_PROJECT_NAME = "Personal";
+
+const log = createLogger("nodetool.models.project");
+
+/** Gives a newly created Personal project its folder. */
+type PersonalFolderProvider = (project: Project) => Promise<unknown>;
+
+let personalFolderProvider: PersonalFolderProvider | null = null;
+
+/**
+ * Install what gives a new Personal project its folder (PRD D1). Project
+ * folders live in `@nodetool-ai/execution`, which depends on this package, so
+ * it installs `ensureProjectFolder` here rather than this package importing it.
+ */
+export function setPersonalFolderProvider(
+  provider: PersonalFolderProvider | null
+): void {
+  personalFolderProvider = provider;
+}
 
 /**
  * The rows the Personal migration may claim: never assigned, or assigned to the
@@ -296,7 +315,21 @@ export class Project extends DBModel {
       name: PERSONAL_PROJECT_NAME,
       kind: PERSONAL_PROJECT_KIND
     });
-    if (created) return created;
+    if (created) {
+      // Personal is created lazily, by whatever first needs it. Its folder is
+      // made here, with the row, so no run in it finds the project without one.
+      // A folder that cannot be made is logged: the startup migration retries
+      // it, and a run reports the missing folder rather than writing elsewhere.
+      try {
+        await personalFolderProvider?.(created);
+      } catch (error) {
+        log.warn("Could not give the Personal project a folder", {
+          projectId: created.id,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+      return created;
+    }
 
     const resolved = await db
       .select()

@@ -17,6 +17,7 @@ import {
   beforeAll,
   afterAll,
   beforeEach,
+  afterEach,
   vi
 } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -24,6 +25,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { initTestDb } from "@nodetool-ai/models";
+import {
+  personalWithFolder,
+  useProjectFolders,
+  type ProjectFolderFixture
+} from "./project-folder-fixture.js";
 import type {
   ApprovalRequest,
   PermissionGateOptions
@@ -243,6 +249,16 @@ describe("MCP installed authoring discovery", () => {
 });
 
 describe("MCP run_node", () => {
+  // The node runs with no project of its own, so in Personal's folder.
+  let folders: ProjectFolderFixture;
+  beforeEach(async () => {
+    folders = await useProjectFolders([scope.userId]);
+    await personalWithFolder(scope.userId);
+  });
+  afterEach(async () => {
+    await folders.cleanup();
+  });
+
   class Shout extends BaseNode {
     static readonly nodeType = "test.mcp.Shout";
     static readonly title = "Shout";

@@ -24,15 +24,19 @@ import {
   Project,
   Setting,
   Workspace as WorkspaceRow,
+  setPersonalFolderProvider,
   type WorkspaceOrigin
 } from "@nodetool-ai/models";
-import type { Workspace } from "@nodetool-ai/runtime";
-import { workspaceFromRow } from "./workflow-workspace.js";
+import { RESERVED_WORKSPACE_DIR, type Workspace } from "@nodetool-ai/runtime";
+import { nodetoolDirFromRow } from "./workflow-workspace.js";
 
 const log = createLogger("nodetool.execution.project-folder");
 
+/** The manifest's file name inside the folder's reserved directory. */
+const PROJECT_MANIFEST_FILE = "project.json";
+
 /** Where the manifest that identifies a project folder lives in it. */
-export const PROJECT_MANIFEST_PATH = ".nodetool/project.json";
+export const PROJECT_MANIFEST_PATH = `${RESERVED_WORKSPACE_DIR}/${PROJECT_MANIFEST_FILE}`;
 
 /** The contents of `.nodetool/project.json`. */
 export interface ProjectManifest {
@@ -124,8 +128,12 @@ export function describeProjectFolder(row: WorkspaceRow): ProjectFolderInfo {
   };
 }
 
-function requireWorkspace(row: WorkspaceRow): Workspace {
-  const workspace = workspaceFromRow(row);
+/**
+ * The folder's reserved directory. Run code cannot reach the manifest through
+ * the folder's own workspace, so NodeTool writes it through this one.
+ */
+function requireNodetoolDir(row: WorkspaceRow): Workspace {
+  const workspace = nodetoolDirFromRow(row);
   if (!workspace) {
     throw new Error("Project folder storage is not configured");
   }
@@ -133,11 +141,11 @@ function requireWorkspace(row: WorkspaceRow): Workspace {
 }
 
 async function writeManifest(
-  workspace: Workspace,
+  nodetoolDir: Workspace,
   project: Project
 ): Promise<void> {
-  await workspace.write(
-    PROJECT_MANIFEST_PATH,
+  await nodetoolDir.write(
+    PROJECT_MANIFEST_FILE,
     `${JSON.stringify(projectManifest(project), null, 2)}\n`,
     "application/json"
   );
@@ -156,9 +164,9 @@ async function writeManifestIfAbsent(
 ): Promise<void> {
   if (!row.isAccessible()) return;
   try {
-    const workspace = requireWorkspace(row);
-    if (await workspace.exists(PROJECT_MANIFEST_PATH)) return;
-    await writeManifest(workspace, project);
+    const nodetoolDir = requireNodetoolDir(row);
+    if (await nodetoolDir.exists(PROJECT_MANIFEST_FILE)) return;
+    await writeManifest(nodetoolDir, project);
   } catch (error) {
     log.warn("Could not write the project manifest", {
       projectId: project.id,
@@ -287,7 +295,7 @@ async function createFolder(project: Project): Promise<WorkspaceRow> {
       origin: "created",
       is_default: false
     })) as WorkspaceRow;
-    await writeManifest(requireWorkspace(row), project);
+    await writeManifest(requireNodetoolDir(row), project);
     const folder = await claim(project, row);
     if (folder.id !== row.id) {
       // A concurrent caller recorded its folder first. Two cloud callers that
@@ -360,6 +368,25 @@ export async function ensureProjectFolder(
 
   return createFolder(project);
 }
+
+/**
+ * The user's Personal project, with its folder.
+ *
+ * Host setup, not run resolution: the CLI calls it before a run that has no
+ * stored record, the way the server gives Personal its folder when projects
+ * are first listed. The run then resolves the folder like any other.
+ */
+export async function ensurePersonalProject(userId: string): Promise<Project> {
+  const personal = await Project.ensurePersonal(userId);
+  await ensureProjectFolder(personal);
+  return personal;
+}
+
+// A Personal project gets its folder when `Project.ensurePersonal` creates it,
+// wherever that happens first, so every host that loads project folders installs
+// this. `ensureProjectFolder` reads the project row it was handed, never
+// `ensurePersonal`, so the call cannot recurse.
+setPersonalFolderProvider(ensureProjectFolder);
 
 export interface ProjectFolderMigrationReport {
   /** Projects that had no folder when the migration reached them. */

@@ -14,7 +14,7 @@ vi.mock("@nodetool-ai/execution/service", () => ({
   },
   setWorkspaceCloudStorage: vi.fn(),
   usesCloudWorkspaces: () => false,
-  resolveWorkflowWorkspace: vi.fn(),
+  resolveProjectWorkspace: vi.fn(),
   workspaceFromRow: vi.fn(),
   buildWorkspaceExecutionContext: vi.fn()
 }));

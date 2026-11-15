@@ -26,6 +26,7 @@ import nodePath from "node:path";
 import { strFromU8, strToU8, unzipSync } from "fflate";
 import { z } from "zod";
 import {
+  createLogger,
   getManagedWorkspaceDir,
   managedWorkspaceKey,
   workspaceStorageKind
@@ -47,7 +48,10 @@ import {
   type ProjectArchiveTableName
 } from "@nodetool-ai/models";
 import { getAssetFileName } from "@nodetool-ai/protocol";
-import type { Workspace as RuntimeWorkspace } from "@nodetool-ai/runtime";
+import {
+  WorkspaceReservedPathError,
+  type Workspace as RuntimeWorkspace
+} from "@nodetool-ai/runtime";
 import type { StorageAdapter } from "@nodetool-ai/storage";
 import {
   getAssetStorageKey,
@@ -62,6 +66,8 @@ import {
   type ExportSource,
   type ZipStreamWriter
 } from "./zip-stream.js";
+
+const log = createLogger("nodetool.project-services.archive");
 
 export const PROJECT_ARCHIVE_FORMAT = "nodetool-project";
 export const PROJECT_ARCHIVE_VERSION = 1;
@@ -422,6 +428,12 @@ export interface ImportProjectArchiveOptions {
   }) => Promise<void>;
   /** Removes every object created by the asset hook, including thumbnails. */
   readonly removeAssetBytes?: (userId: string, assetId: string, contentType: string) => Promise<void>;
+  /**
+   * Gives the imported project its folder (PRD D1), so its runs find one
+   * without waiting for the startup migration. The host passes
+   * `ensureProjectFolder`, which adopts the imported project workspace.
+   */
+  readonly ensureFolder?: (project: Project) => Promise<unknown>;
   readonly maxBytes?: number;
 }
 
@@ -672,7 +684,13 @@ export async function importProjectArchive(
       const data = path.endsWith(".json")
         ? remapJsonText(bytes, remap)
         : bytes;
-      await workspace.write(path, data);
+      try {
+        await workspace.write(path, data);
+      } catch (error) {
+        // An archive written before `.nodetool/` was reserved carries the old
+        // project's manifest. The imported project gets a manifest of its own.
+        if (!(error instanceof WorkspaceReservedPathError)) throw error;
+      }
     }
 
     const project = new Project({
@@ -704,6 +722,17 @@ export async function importProjectArchive(
       },
       records: imported
     });
+    // The rows are committed, so a folder that cannot be made does not undo
+    // the import. The startup migration retries it, and a run reports the
+    // missing folder rather than writing elsewhere.
+    try {
+      await options.ensureFolder?.(project);
+    } catch (error) {
+      log.warn("Could not give the imported project a folder", {
+        projectId: project.id,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
 
     const counts: Record<string, number> = {};
     for (const name of PROJECT_ARCHIVE_TABLE_NAMES) {

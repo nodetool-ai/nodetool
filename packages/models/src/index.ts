@@ -334,7 +334,8 @@ export {
   Project,
   LOOSE_PROJECT_ID,
   PERSONAL_PROJECT_KIND,
-  PERSONAL_PROJECT_NAME
+  PERSONAL_PROJECT_NAME,
+  setPersonalFolderProvider
 } from "./project.js";
 export type { PersonalMigrationReport, ProjectResponse } from "./project.js";
 export {

@@ -9,6 +9,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { memoryFolder } from "./_helpers/memory-folder.js";
 import {
   BaseNode,
   NodeRegistry,
@@ -199,7 +200,7 @@ async function run(
         persisted.push(generation);
       }
     },
-    resolveWorkspace: async () => null,
+    resolveWorkspace: memoryFolder,
     ...options
   });
 }

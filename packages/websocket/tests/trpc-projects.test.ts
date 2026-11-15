@@ -32,8 +32,8 @@ import {
   Workspace
 } from "@nodetool-ai/models";
 import {
-  PROJECT_MANIFEST_PATH,
   migrateProjectFolders,
+  nodetoolDirFromRow,
   setWorkspaceCloudStorage,
   workspaceFromRow
 } from "@nodetool-ai/execution/service";
@@ -604,8 +604,10 @@ describe("projects router: project folders", () => {
 
   async function manifest(workspaceId: string): Promise<unknown> {
     const row = await Workspace.find("user-1", workspaceId);
-    const workspace = row ? workspaceFromRow(row) : null;
-    const text = await workspace?.readText(PROJECT_MANIFEST_PATH);
+    // Read the way NodeTool writes it: the folder's own workspace refuses
+    // every path in `.nodetool/`.
+    const nodetoolDir = row ? nodetoolDirFromRow(row) : null;
+    const text = await nodetoolDir?.readText("project.json");
     return text ? JSON.parse(text) : null;
   }
 
@@ -778,14 +780,21 @@ describe("projects router: project folders", () => {
       expect(gameRow?.id).not.toBe(folder.id);
       expect(gameRow?.path).not.toBe(folder.path);
       expect(gameRow?.isManaged()).toBe(true);
-      expect(await filesOf(folder).list("", { recursive: true })).toEqual([
-        expect.objectContaining({ path: PROJECT_MANIFEST_PATH })
-      ]);
+      // Only the manifest, which listings leave out with the rest of `.nodetool/`.
+      expect(await filesOf(folder).list("", { recursive: true })).toEqual([]);
+      expect(await manifest(folder.id)).toMatchObject({ id: project.id });
     }
   );
 
   it("gives Personal its own folder when a Personal game uses the default workspace", async () => {
-    const personal = await Project.ensurePersonal("user-1");
+    // A Personal from before project folders, which has none yet.
+    const personal = await Project.insertNew({
+      id: "personal:user-1",
+      user_id: "user-1",
+      name: "Personal",
+      kind: "personal"
+    });
+    if (!personal) throw new Error("insert failed");
     const defaultRow = await Workspace.ensureDefault("user-1");
     defaultRow.project_id = personal.id;
     await defaultRow.save();

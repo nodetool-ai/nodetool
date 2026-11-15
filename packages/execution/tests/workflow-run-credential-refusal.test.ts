@@ -9,6 +9,7 @@
  */
 
 import { describe, expect, it, vi, afterEach } from "vitest";
+import { memoryFolder } from "./_helpers/memory-folder.js";
 import {
   BaseNode,
   NodeRegistry,
@@ -142,7 +143,7 @@ async function run(): Promise<
     workflowId: "wf-1",
     userId: "user-7",
     environment: { registry: makeRegistry() },
-    resolveWorkspace: async () => null
+    resolveWorkspace: memoryFolder
   });
 }
 
@@ -199,7 +200,7 @@ describe("runWorkflow credential refusal", () => {
         edges: []
       },
       environment: { registry: makeRegistry() },
-      resolveWorkspace: async () => null
+      resolveWorkspace: memoryFolder
     });
     expect(outcome.kind).toBe("error");
     if (outcome.kind !== "error") return;

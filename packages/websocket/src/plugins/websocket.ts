@@ -17,7 +17,7 @@ import {
 import type { WorkerManager } from "@nodetool-ai/compute";
 import { getSecret as getStoredSecret, Workflow } from "@nodetool-ai/models";
 import type { HttpApiOptions } from "../http-api.js";
-import { resolveWorkflowWorkspace } from "../lib/workflow-workspace.js";
+import { resolveProjectWorkspace } from "../lib/workflow-workspace.js";
 import { packWebSocketMessage } from "../messagepack.js";
 import type { SdkLiveRunnerRegistry } from "../sdk/sdk-live-runner-registry.js";
 import {
@@ -213,7 +213,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
       },
       resolveNodeType: graphNodeTypeResolver,
       resolveProvider,
-      workspaceResolver: resolveWorkflowWorkspace,
+      workspaceResolver: resolveProjectWorkspace,
       getNodeMetadata: (nodeType) => registry.getMetadata(nodeType),
       validateNode: registry.createNodeValidator(),
       nodeRegistry: registry,

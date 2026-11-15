@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const workflowFind = vi.fn();
+const findOwned = vi.fn();
+const ensurePersonal = vi.fn();
 const workspaceFind = vi.fn();
 const ensureDefault = vi.fn();
 
@@ -10,28 +11,20 @@ vi.mock("@nodetool-ai/execution/service", () =>
 );
 
 vi.mock("@nodetool-ai/models", () => ({
-  Workflow: { find: (u: string, id: string) => workflowFind(u, id) },
+  LOOSE_PROJECT_ID: "default",
+  Project: {
+    findOwned: (u: string, id: string) => findOwned(u, id),
+    ensurePersonal: (u: string) => ensurePersonal(u)
+  },
   Workspace: {
     find: (u: string, id: string) => workspaceFind(u, id),
     ensureDefault: (u: string) => ensureDefault(u)
   }
 }));
 
-class FakeProcessingContext {
-  opts: unknown;
-  constructor(opts: unknown) {
-    this.opts = opts;
-  }
-}
-class FakeFileStorageAdapter {
-  dir: string;
-  constructor(dir: string) {
-    this.dir = dir;
-  }
-}
-
 vi.mock("@nodetool-ai/runtime", () => ({
   PERMISSION_GATE_CONTEXT_KEY: "nodetool_permission_gate",
+  RESERVED_WORKSPACE_DIR: ".nodetool",
   headlessGate: (hostName: string) => ({
     mode: "auto",
     sessionAllow: new Set<string>(),
@@ -48,12 +41,6 @@ vi.mock("@nodetool-ai/runtime", () => ({
       this.variables[key] = value;
     }
   },
-  FileStorageAdapter: class {
-    dir: string;
-    constructor(dir: string) {
-      this.dir = dir;
-    }
-  },
   // The resolver builds a Workspace rather than handing back a path; these
   // stand in for the real factories so the test can read `localDir` off what
   // comes back.
@@ -65,85 +52,146 @@ vi.mock("@nodetool-ai/runtime", () => ({
 }));
 
 import {
-  resolveWorkflowWorkspace,
+  resolveProjectWorkspace,
   buildWorkspaceExecutionContext
 } from "../src/lib/workflow-workspace.js";
 
-describe("resolveWorkflowWorkspace", () => {
+function folderRow(path: string, accessible = true) {
+  return {
+    id: "ws1",
+    user_id: "user",
+    path,
+    isAccessible: () => accessible,
+    isVirtual: () => !path.startsWith("/")
+  };
+}
+
+describe("resolveProjectWorkspace", () => {
   beforeEach(() => {
-    workflowFind.mockReset();
+    findOwned.mockReset();
+    ensurePersonal.mockReset();
     workspaceFind.mockReset();
     ensureDefault.mockReset();
-    ensureDefault.mockResolvedValue({
-      path: "/abs/default",
-      isAccessible: () => true,
-      isVirtual: () => false
+    ensurePersonal.mockResolvedValue({
+      id: "personal:user",
+      name: "Personal",
+      workspace_id: "personal-ws"
     });
   });
 
-  it("falls back to the default workspace when the workflow is not found", async () => {
-    workflowFind.mockResolvedValue(null);
-    expect(await resolveWorkflowWorkspace("wf", "user")).toMatchObject({ localDir: "/abs/default" });
+  it("returns the folder named by the project's workspace_id", async () => {
+    findOwned.mockResolvedValue({ id: "pA", name: "A", workspace_id: "ws1" });
+    workspaceFind.mockResolvedValue(folderRow("/abs/A"));
+    expect(await resolveProjectWorkspace("pA", "user")).toMatchObject({
+      ok: true,
+      projectId: "pA",
+      workspace: { localDir: "/abs/A" }
+    });
+    expect(workspaceFind).toHaveBeenCalledWith("user", "ws1");
   });
 
-  it("falls back to the default workspace when the workflow has none", async () => {
-    workflowFind.mockResolvedValue({ workspace_id: null });
-    expect(await resolveWorkflowWorkspace("wf", "user")).toMatchObject({ localDir: "/abs/default" });
+  it.each([null, undefined, "", "default", "personal:user"])(
+    "uses the Personal project for %s",
+    async (projectId) => {
+      workspaceFind.mockResolvedValue(folderRow("/abs/personal"));
+      expect(await resolveProjectWorkspace(projectId, "user")).toMatchObject({
+        ok: true,
+        projectId: "personal:user",
+        workspace: { localDir: "/abs/personal" }
+      });
+      expect(workspaceFind).toHaveBeenCalledWith("user", "personal-ws");
+      expect(findOwned).not.toHaveBeenCalled();
+    }
+  );
+
+  it("refuses a project it cannot find", async () => {
+    findOwned.mockResolvedValue(null);
+    expect(await resolveProjectWorkspace("gone", "user")).toEqual({
+      ok: false,
+      projectId: "gone",
+      reason: "Project not found: gone"
+    });
+  });
+
+  it("refuses a project with no folder and creates none", async () => {
+    findOwned.mockResolvedValue({ id: "pA", name: "A", workspace_id: null });
+    expect(await resolveProjectWorkspace("pA", "user")).toEqual({
+      ok: false,
+      projectId: "pA",
+      reason: 'Project folder not found: project "A" has no folder'
+    });
     expect(workspaceFind).not.toHaveBeenCalled();
   });
 
-  it("falls back to the default workspace for a run with no workflow", async () => {
-    expect(await resolveWorkflowWorkspace(null, "user")).toMatchObject({ localDir: "/abs/default" });
-    expect(workflowFind).not.toHaveBeenCalled();
-    expect(ensureDefault).toHaveBeenCalledWith("user");
-  });
-
-  it("falls back to the default workspace when the workspace is not found", async () => {
-    workflowFind.mockResolvedValue({ workspace_id: "ws1" });
+  it("refuses a folder whose row is gone", async () => {
+    findOwned.mockResolvedValue({ id: "pA", name: "A", workspace_id: "ws1" });
     workspaceFind.mockResolvedValue(null);
-    expect(await resolveWorkflowWorkspace("wf", "user")).toMatchObject({ localDir: "/abs/default" });
-  });
-
-  it("falls back to the default workspace when the chosen one is unusable", async () => {
-    workflowFind.mockResolvedValue({ workspace_id: "ws1" });
-    workspaceFind.mockResolvedValue({
-      path: "/ws",
-      isAccessible: () => false,
-      isVirtual: () => false
-    });
-    expect(await resolveWorkflowWorkspace("wf", "user")).toMatchObject({ localDir: "/abs/default" });
-  });
-
-  it("returns null when even the default workspace is unusable", async () => {
-    workflowFind.mockResolvedValue({ workspace_id: null });
-    ensureDefault.mockResolvedValue({
-      path: "/abs/default",
-      isAccessible: () => false,
-      isVirtual: () => false
-    });
-    expect(await resolveWorkflowWorkspace("wf", "user")).toBeNull();
-  });
-
-  it("returns the workflow's own workspace when accessible", async () => {
-    workflowFind.mockResolvedValue({ workspace_id: "ws1" });
-    workspaceFind.mockResolvedValue({
-      path: "/abs/workspace",
-      isAccessible: () => true,
-      isVirtual: () => false
-    });
-    expect(await resolveWorkflowWorkspace("wf", "user")).toMatchObject({
-      localDir: "/abs/workspace"
+    expect(await resolveProjectWorkspace("pA", "user")).toMatchObject({
+      ok: false,
+      reason: 'Project folder not found: project "A" has no folder'
     });
   });
 
-  it("returns null and swallows errors when a lookup throws", async () => {
-    workflowFind.mockRejectedValue(new Error("db down"));
-    expect(await resolveWorkflowWorkspace("wf", "user")).toBeNull();
+  it("names an unreachable local folder by its path", async () => {
+    findOwned.mockResolvedValue({ id: "pA", name: "A", workspace_id: "ws1" });
+    workspaceFind.mockResolvedValue(folderRow("/abs/unplugged", false));
+    expect(await resolveProjectWorkspace("pA", "user")).toEqual({
+      ok: false,
+      projectId: "pA",
+      reason: "Project folder not found: /abs/unplugged"
+    });
+  });
+
+  it("names no host path on a production server", async () => {
+    const previous = process.env["NODETOOL_ENV"];
+    process.env["NODETOOL_ENV"] = "production";
+    try {
+      findOwned.mockResolvedValue({ id: "pA", name: "A", workspace_id: "ws1" });
+      workspaceFind.mockResolvedValue(folderRow("/srv/data/A", false));
+      expect(await resolveProjectWorkspace("pA", "user")).toMatchObject({
+        ok: false,
+        reason: 'Project folder not found: the folder of project "A"'
+      });
+    } finally {
+      if (previous === undefined) delete process.env["NODETOOL_ENV"];
+      else process.env["NODETOOL_ENV"] = previous;
+    }
+  });
+
+  it("refuses a cloud folder when no cloud storage is configured", async () => {
+    findOwned.mockResolvedValue({ id: "pA", name: "A", workspace_id: "ws1" });
+    workspaceFind.mockResolvedValue(folderRow("workspaces/user/projects/x"));
+    expect(await resolveProjectWorkspace("pA", "user")).toMatchObject({
+      ok: false,
+      reason: "Project folder not found: cloud folder storage is not configured"
+    });
+  });
+
+  it("never falls back to the user's default workspace", async () => {
+    findOwned.mockResolvedValue({ id: "pA", name: "A", workspace_id: null });
+    await resolveProjectWorkspace("pA", "user");
+    findOwned.mockResolvedValue(null);
+    await resolveProjectWorkspace("pB", "user");
+    workspaceFind.mockResolvedValue(folderRow("/abs/unplugged", false));
+    await resolveProjectWorkspace(null, "user");
+    expect(ensureDefault).not.toHaveBeenCalled();
+  });
+
+  it("reports a lookup that throws instead of rejecting", async () => {
+    findOwned.mockRejectedValue(new Error("db down"));
+    expect(await resolveProjectWorkspace("pA", "user")).toEqual({
+      ok: false,
+      projectId: "pA",
+      reason: "Project folder not found: db down"
+    });
   });
 
   it("handles non-Error thrown values", async () => {
-    workflowFind.mockRejectedValue("string failure");
-    expect(await resolveWorkflowWorkspace("wf", "user")).toBeNull();
+    findOwned.mockRejectedValue("string failure");
+    expect(await resolveProjectWorkspace("pA", "user")).toMatchObject({
+      ok: false,
+      reason: "Project folder not found: string failure"
+    });
   });
 });
 

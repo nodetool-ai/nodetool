@@ -624,6 +624,29 @@ describe("workspace path resolution", () => {
     );
   });
 
+  it.each([
+    ".nodetool/project.json",
+    "/workspace/.nodetool/x",
+    "/.nodetool/x",
+    "out/../.NodeTool/x",
+    ".nodetool"
+  ])("refuses %s inside the reserved directory", (path) => {
+    const root = "/tmp/nodetool-workspace";
+    expect(() => resolveWorkspacePath(root, path)).toThrow(
+      "reserves for its own files"
+    );
+  });
+
+  it("refuses an absolute path into the reserved directory", async () => {
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      workspaceDir: "/tmp/nodetool-workspace"
+    });
+    await expect(
+      ctx.sandboxToAsset("/tmp/nodetool-workspace/.nodetool/project.json")
+    ).rejects.toThrow("reserves for its own files");
+  });
+
   it("context.resolveWorkspacePath delegates to helper", () => {
     const ctx = new ProcessingContext({
       jobId: "j1",
