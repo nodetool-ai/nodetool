@@ -607,9 +607,13 @@ TestCase {
             list.forceLayout()
             // visible does not imply that a ListView descendant is inside its viewport.
             const point = button.mapToItem(list, 0, 0)
-            list.contentY = Math.max(list.originY, Math.min(list.originY + list.contentHeight - list.height,
+            const target = Math.max(list.originY, Math.min(list.originY + list.contentHeight - list.height,
                 list.contentY + point.y - (list.height - button.height) / 2))
-            verify(waitForRendering(button))
+            // An unchanged view renders no new frame, so only a scroll is waited on.
+            if (Math.abs(target - list.contentY) >= 1) {
+                list.contentY = target
+                verify(waitForRendering(button))
+            }
             const position = button.mapToItem(list, 0, 0)
             verify(position.y >= 0 && position.y + button.height <= list.height)
             mouseClick(button, button.width / 2, button.height / 2, Qt.LeftButton, Qt.NoModifier, 0)
