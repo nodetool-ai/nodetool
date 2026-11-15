@@ -99,6 +99,23 @@ describe("saveWorkflow first save", () => {
     expect(updateMutate.mock.calls[1][0].expected_updated_at).toBeUndefined();
   });
 
+  it("never sends workspace_id: runs work in the project folder", async () => {
+    const store = createWorkflowManagerStore(new QueryClient());
+    const workflow = await store.getState().createNew("project-a");
+    // A workflow row from before project folders still carries the field.
+    const legacy = { ...workflow, workspace_id: "ws-legacy" } as Workflow;
+    expect(workflow).not.toHaveProperty("workspace_id");
+
+    updateMutate.mockResolvedValue({ ...legacy });
+    await store.getState().saveWorkflow(legacy);
+    expect(updateMutate.mock.calls[0][0]).not.toHaveProperty("workspace_id");
+
+    const copy = await store.getState().copy(legacy);
+    createMutate.mockResolvedValue(copy);
+    await store.getState().create(copy);
+    expect(createMutate.mock.calls[0][0]).not.toHaveProperty("workspace_id");
+  });
+
   it("keeps a workflow copy in the source project", async () => {
     const store = createWorkflowManagerStore(new QueryClient());
     const original = await store.getState().createNew("project-a");

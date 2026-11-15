@@ -229,7 +229,7 @@
       url: "/indexing"
     - title: "Collections"
       url: "/collections"
-    - title: "Workspaces"
+    - title: "Project folders"
       url: "/workspaces"
     - title: "Asset Management"
       url: "/asset-management"
