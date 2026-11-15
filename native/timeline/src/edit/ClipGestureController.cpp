@@ -1206,7 +1206,7 @@ void ClipGestureController::finishGesture(bool completed, Qt::KeyboardModifiers 
         emit gestureChanged();
         if (completed && g.dragging && m_timeline && m_view) {
             if (g.kind == u"resize") {
-                const double height = std::clamp(g.trackHeightAtStart + (g.lastY - g.startY) / m_view->verticalZoom(), 48.0, 300.0);
+                const double height = std::clamp(g.trackHeightAtStart + (g.lastY - g.startY) / m_view->verticalZoom(), 24.0, 300.0);
                 if (height != g.trackHeightAtStart) {
                     m_timeline->applyEdit("setTrackHeight", {{"trackId", g.clipId}, {"heightPx", height}});
                 }

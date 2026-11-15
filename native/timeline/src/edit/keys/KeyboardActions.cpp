@@ -37,7 +37,7 @@ constexpr double DEFAULT_AUDIO_TRANSITION_MS = 500;
 // TracksRegion.tsx TRACK_HEIGHT_STEP, as a vertical zoom.
 constexpr double TRACK_ZOOM_STEP = 0.25;
 constexpr double AUDIO_TRACK_HEIGHT_STEP_PX = 12;
-constexpr double MIN_TRACK_HEIGHT_PX = 48;
+constexpr double MIN_TRACK_HEIGHT_PX = 24;
 constexpr double MAX_TRACK_HEIGHT_PX = 300;
 constexpr double DEFAULT_TRACK_HEIGHT_PX = 64;
 constexpr double LARGE_VOLUME_STEP_DB = 6;
