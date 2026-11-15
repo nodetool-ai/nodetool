@@ -473,12 +473,23 @@ tests. Its allocation stack enters LLVM MCJIT. The inherited graph-host filter
 ignores LLVM calls while Gallium calls remain visible, which may hide one side
 of the mutex operations.
 
-The private-device GPU CTests and realtime CLI matrix now run with complete
-TSan tracking, without the legacy graph-host suppression file. Error and
-deadlock reporting remain enabled. A fresh CMake configuration confirms both
-CTest environments. Linux CI must verify this hypothesis before merge. No
-driver finding is suppressed or counted as passing, and driver allocation and
-hardware qualification remain deferred.
+An unfiltered run at `9c85c72ef3` passes 66 CTests but exposes the prebuilt
+lavapipe queue-mutex teardown report already documented in the inherited host
+filter. It does not pass the GPU qualification. Release, ASan/UBSan and the
+aggregate quality gate pass at that revision.
+
+The private-device CTests and realtime CLI matrix now derive their filters
+from the existing host file with only the LLVM exclusion removed. This adds
+no library exclusion and retains the existing prebuilt-driver boundary while
+restoring LLVM/Gallium mutex tracking. Error and deadlock reporting remain
+enabled. TSan runs the two GPU checks before the long host suite so a driver
+tracking regression fails early. Linux CI must verify the narrower inherited
+configuration before merge. Unfiltered driver verification, driver allocation
+and hardware qualification remain open.
+
+A fresh CMake inventory verifies both GPU test environments. Comparing active
+filter entries proves exactly the LLVM exclusion was removed and none added.
+Both targeted Windows Release GPU CTests pass with the generated configuration.
 
 ## Provisional progress gate
 

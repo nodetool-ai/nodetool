@@ -69,10 +69,16 @@ target_compile_definitions(realtime-offline-render-test PRIVATE NT_GPU_CATALOG="
 add_dependencies(realtime-offline-render-test realtime-gpu-catalog)
 add_test(NAME realtime-offline-render-export COMMAND realtime-offline-render-test)
 set_tests_properties(realtime-offline-render-export PROPERTIES TIMEOUT 300)
-# Private-device tests need complete driver mutex tracking. The full host's
-# legacy LLVM library filter can hide a lock whose Gallium unlock remains visible.
+# Retain the host's existing prebuilt-library filters, except LLVM. Ignoring
+# LLVM hides a lock whose Gallium unlock remains visible in the private device.
+set(_rt_host_tsan "${CMAKE_CURRENT_LIST_DIR}/../../graph-runner/tools/tsan.supp")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_rt_host_tsan}")
+file(STRINGS "${_rt_host_tsan}" _rt_tsan_lines)
+list(FILTER _rt_tsan_lines EXCLUDE REGEX "^called_from_lib:libLLVM[.]so$")
+list(JOIN _rt_tsan_lines "\n" _rt_tsan_filters)
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/private-device-tsan.supp" "${_rt_tsan_filters}\n")
 set_tests_properties(realtime-offline-gpu realtime-offline-render-export PROPERTIES
-  ENVIRONMENT "TSAN_OPTIONS=halt_on_error=1:second_deadlock_stack=1")
+  ENVIRONMENT "TSAN_OPTIONS=halt_on_error=1:second_deadlock_stack=1:suppressions=${CMAKE_CURRENT_BINARY_DIR}/private-device-tsan.supp")
 target_link_libraries(nodetool_realtime_offline_gpu PUBLIC nodetool_realtime PRIVATE nt_realtime_wgpu)
 foreach(target nodetool_realtime_offline_gpu realtime-offline-render-test)
   if(MSVC)

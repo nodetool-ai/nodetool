@@ -250,6 +250,13 @@ jobs:
             native/graph-runner/build/audio-parity.log
           if-no-files-found: error
 
+      # Catch private-driver tracking regressions before the long host suite.
+      - name: Check private realtime GPU mutex tracking
+        if: matrix.name == 'TSan'
+        run: |
+          env -u DISPLAY ctest --test-dir native/graph-runner/build \
+            -R '^realtime-offline-(gpu|render-export)$' --no-tests=error --output-on-failure
+
       # A pull request runs only the tests that depend on its changed files:
       # the selection of `npm run test:affected:native`, read from this
       # build's target model and compiler depfiles. Changes to CI or to the
@@ -280,10 +287,10 @@ jobs:
           env -u DISPLAY ctest --test-dir build --output-on-failure --timeout 900 "${sel[@]}"
 
       - name: Verify realtime command dispatch
-        # Private realtime devices require both sides of driver mutex operations.
-        env:
-          TSAN_OPTIONS: halt_on_error=1:second_deadlock_stack=1
-        run: node native/realtime/scripts/cli-check.mjs native/graph-runner/build/nodetool-graph-runner
+        # Use the existing host filters with LLVM tracking restored.
+        run: |
+          TSAN_OPTIONS="halt_on_error=1:second_deadlock_stack=1:suppressions=$GITHUB_WORKSPACE/native/graph-runner/build/realtime/private-device-tsan.supp" \
+            node native/realtime/scripts/cli-check.mjs native/graph-runner/build/nodetool-graph-runner
 
       - name: Install Qt for the node editor
         id: editor_qt
