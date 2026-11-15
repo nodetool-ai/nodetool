@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 
+#include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkReply>
@@ -89,7 +90,8 @@ void ExampleGallery::setServerExamples(const QJsonArray &workflows) {
                 .name = workflow["name"].toString(),
                 .description = workflow["description"].toString(),
                 .thumbnail = workflow["thumbnail_url"].toString(),
-                .tags = stringList(workflow["tags"])};
+                .tags = stringList(workflow["tags"]),
+                .graph = workflow["graph"].toObject()};
         // isComfyExample in web/src/components/examples/useExampleGroups.ts.
         row.group = row.tags.contains(QStringLiteral("comfy")) ? QStringLiteral("comfy") : QStringLiteral("workflows");
         row.secondary = row.description.isEmpty()
@@ -215,6 +217,19 @@ void ExampleGallery::refresh() {
         }
         setServerExamples(document.object()["workflows"].toArray());
     });
+}
+
+QJsonObject ExampleGallery::graph(const QString &key) const {
+    for (const auto &row : server_) {
+        if (row.key == key) { return row.graph; }
+    }
+    for (const auto &row : bundled_) {
+        if (row.key != key) { continue; }
+        QFile file(row.resource);
+        if (!file.open(QIODevice::ReadOnly)) { return {}; }
+        return QJsonDocument::fromJson(file.readAll()).object()["graph"].toObject();
+    }
+    return {};
 }
 
 void ExampleGallery::open(const QString &key) {

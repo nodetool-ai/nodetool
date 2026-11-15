@@ -4489,3 +4489,13 @@ test_host = "native/node-editor/tests/ui/WorkersPanelTest.cpp"
 test_scope = "build/import"
 qml_callers = ["native/node-editor/qml/WorkerProfilesDialog.qml", "native/node-editor/qml/WorkersPanel.qml"]
 replacement = "NodeTool.UiPrimitives"
+
+[[file]]
+path = "native/node-editor/qml/QueuePanel.qml"
+category = "chrome"
+controls = []
+signals = ["closeRequested"]
+test_host = "native/node-editor/tests/ui/QueueUiTest.cpp"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives"

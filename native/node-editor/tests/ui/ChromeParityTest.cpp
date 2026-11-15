@@ -481,14 +481,14 @@ private slots:
         click(status, find(root, "status-versions"));
         QTRY_VERIFY(window.findChild<QDockWidget *>(QStringLiteral("workflow-versions-dock")));
         QTRY_VERIFY(window.findChild<QDockWidget *>(QStringLiteral("workflow-versions-dock"))->isVisible());
-        // Queue opens with no jobs, as the web QueuePanel does, and closes on a second click.
-        auto *overlay = panel(window, QStringLiteral("QueueOverlay"));
-        QVERIFY(overlay);
+        // Queue opens its bottom panel with no jobs, as the web QueuePanel does, and closes on a second click.
         QVERIFY(!window.queueAvailable());
         click(status, find(root, "status-queue"));
-        QTRY_VERIFY(overlay->rootObject()->property("presented").toBool());
+        QTRY_VERIFY(window.findChild<QDockWidget *>(QStringLiteral("queue-dock")));
         QTRY_VERIFY(find(root, "status-queue")->property("active").toBool());
-        QVERIFY(find(overlay->rootObject(), "queue-active-empty")->isVisible());
+        auto *queuePanel = panel(window, QStringLiteral("QueuePanel"));
+        QVERIFY(queuePanel);
+        QTRY_VERIFY(find(queuePanel->rootObject(), "queue-active-empty")->isVisible());
         click(status, find(root, "status-queue"));
         QTRY_VERIFY(!find(root, "status-queue")->property("active").toBool());
         // Generations opens its bottom panel and closes it again.
@@ -541,7 +541,7 @@ private slots:
         peer->sendBinaryMessage(node_editor::encodeMsgPack(QJsonObject{{"type", "system_stats"},
             {"stats", QJsonObject{{"cpu_percent", 7.0}, {"memory_percent", 63.0}}}}));
         QTRY_COMPARE(find(root, "status-memory-value")->property("text").toString(), QString("63%"));
-        // A started run shows the queue summary, and the tab expands the queue panel.
+        // A started run shows the queue summary on the canvas, and the tab opens the queue panel.
         auto *queue = find(root, "status-queue");
         QCOMPARE(queue->property("disabledReason").toString(), QString());
         window.action("Run");
@@ -549,9 +549,11 @@ private slots:
         QTRY_VERIFY(window.queueAvailable());
         auto *overlay = panel(window, QStringLiteral("QueueOverlay"));
         QVERIFY(overlay);
+        QTRY_VERIFY(overlay->rootObject()->property("presented").toBool());
         QVERIFY(!overlay->rootObject()->property("expanded").toBool());
         click(status, queue);
-        QTRY_VERIFY(overlay->rootObject()->property("expanded").toBool());
+        QTRY_VERIFY(window.queueVisible());
+        QVERIFY(panel(window, QStringLiteral("QueuePanel")));
         // A dropped socket drops the stats, and the web names a started but closed connection offline.
         peer->close();
         QTRY_COMPARE(find(root, "status-connection")->property("text").toString(), QString("Offline"));

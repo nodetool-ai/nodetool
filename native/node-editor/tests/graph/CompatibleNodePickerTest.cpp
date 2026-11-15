@@ -250,6 +250,57 @@ private slots:
   }
   // OutputContextMenu.tsx "Transform this output…" and InputContextMenu.tsx "Create value with AI…"
   // (useCodeGenFromHandle.ts): a Code node with one slot typed from the handle, wired in one step.
+  // KeyboardConnectionPicker.tsx: the handle's compatible ports on the nodes in
+  // the graph come first, then the catalog. A wire that exists or would close a
+  // cycle is left out, and Disconnect removes the handle's wires.
+  void keyboardPickerListsExistingPortsAndDisconnects() {
+    const auto node=[](const QString &id,const QString &type,int x,int y) {
+      return QJsonObject{{"id",id},{"type",type},{"data",QJsonObject{}},
+        {"ui_properties",QJsonObject{{"position",QJsonObject{{"x",x},{"y",y}}}}}};
+    };
+    const QJsonObject workflow{{"name","Keyboard"},{"graph",QJsonObject{{"nodes",QJsonArray{
+        node("origin","Fixed",100,100),node("multi","Multi",500,100),node("down","Fixed",500,400)}},
+      {"edges",QJsonArray{QJsonObject{{"id","e1"},{"source","origin"},{"sourceHandle","out"},{"target","down"},{"targetHandle","in"}}}}}}};
+    Fixture f(picker_fixture::catalog(),workflow);
+    f.picker.openKeyboard(f.node,PortType::Out,0,QPointF(400,200)); QApplication::processEvents();
+    QVERIFY(f.picker.active()); QVERIFY(f.picker.keyboard());
+    QCOMPARE(f.picker.title(),QString("Connect Out"));
+    auto rows=f.picker.rows();
+    // Reading order: Multi (y 100) before the already wired Fixed (y 400).
+    QCOMPARE(rows[0].toMap()["key"].toString(),QString("existing\nmulti\nleft"));
+    QCOMPARE(rows[1].toMap()["key"].toString(),QString("existing\nmulti\nright"));
+    QCOMPARE(rows[0].toMap()["portLabel"].toString(),QString("Left"));
+    QVERIFY(key(rows,"Fixed","in").isEmpty() || !key(rows,"Fixed","in").startsWith("existing"));
+    QVERIFY(!key(rows,"Receiver","prompt").isEmpty());
+    QCOMPARE(f.picker.fixedRows().size(),1);
+    QCOMPARE(f.picker.fixedRows()[0].toMap()["label"].toString(),QString("Disconnect 1 edge"));
+    f.picker.setQuery("multi right"); rows=f.picker.rows();
+    QCOMPARE(rows[0].toMap()["key"].toString(),QString("existing\nmulti\nright"));
+    // Disconnect stays while the query filters the ports.
+    QCOMPARE(f.picker.fixedRows().size(),1);
+    f.picker.choose("existing\nmulti\nright",f.picker.generation());
+    QVERIFY(!f.picker.active());
+    QCOMPARE(f.document.edges().size(),2);
+    QCOMPARE(f.document.undoStack()->count(),1);
+    // The new wire leaves the list, and Disconnect counts both.
+    f.picker.openKeyboard(f.node,PortType::Out,0,QPointF(400,200));
+    rows=f.picker.rows();
+    QCOMPARE(rows[0].toMap()["key"].toString(),QString("existing\nmulti\nleft"));
+    QVERIFY(rows[1].toMap()["key"].toString()!="existing\nmulti\nright");
+    QCOMPARE(f.picker.fixedRows()[0].toMap()["label"].toString(),QString("Disconnect 2 edges"));
+    f.picker.choose("fixed\ndisconnect",f.picker.generation());
+    QCOMPARE(f.document.edges().size(),0);
+    QCOMPARE(f.document.undoStack()->count(),2);
+    f.document.undo();
+    QCOMPARE(f.document.edges().size(),2);
+    // From origin's input, down's output would close origin -> down -> origin.
+    f.model.project(f.document.snapshot(),f.catalog);
+    f.picker.openKeyboard(f.node,PortType::In,0,QPointF(100,200));
+    for (const auto &value:f.picker.rows()) { QVERIFY(value.toMap()["key"].toString()!="existing\ndown\nout"); }
+    QVERIFY(f.picker.fixedRows().isEmpty());
+    f.picker.cancel();
+    QVERIFY(!f.picker.keyboard());
+  }
   void aiRowsCreateASeededCodeNode() {
     auto catalog=picker_fixture::staticCatalog();
     catalog.append(QJsonObject{{"node_type","nodetool.code.Code"},{"title","Code"},

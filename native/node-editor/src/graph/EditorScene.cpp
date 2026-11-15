@@ -799,6 +799,18 @@ private:
         painter->drawEllipse(QPointF(x, y), handleCollectFeather, handleCollectFeather);
       }
       painter->restore();
+      // Tab focus on a handle (HandleTooltip's focusable wrapper) draws a warning
+      // ring, the color of the keyboard-focused card's edge.
+      const auto &focusedHandle = model.focusedHandle();
+      if (focusedHandle.side == side && index < ports.size() && !model.focusedNode().isEmpty()
+          && model.focusedNode() == model.resourceId(id) && ports[index].toObject()["name"].toString() == focusedHandle.name) {
+        painter->save();
+        // Inside the card's handle margin (handleDiameter / 2 + 2), so the bounds hold it.
+        painter->setPen(QPen(theme.warning, 1.5));
+        painter->setBrush(Qt::NoBrush);
+        painter->drawEllipse(QPointF(x, y), nm::handleDiameter / 2 + 1, nm::handleDiameter / 2 + 1);
+        painter->restore();
+      }
     };
     // The control handle sits at the top center of a card and the bottom center of a controller.
     const auto handleAt = [&](PortType type, int index, double x, double y) {

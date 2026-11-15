@@ -73,6 +73,16 @@ public:
   // Steps back to the previously focused node. False when there is none.
   bool focusBack();
   qsizetype focusHistorySize() const { return focusHistory_.size(); }
+  // The handle of the focused node that Tab has reached (web HandleTooltip's
+  // tabIndex=0 wrapper). Enter opens the keyboard connection picker for it.
+  // A focus change to another node clears it.
+  struct FocusedHandle { QtNodes::PortType side = QtNodes::PortType::None; QString name; };
+  const FocusedHandle &focusedHandle() const { return focusedHandle_; }
+  void setFocusedHandle(QtNodes::PortType side, const QString &name);
+  // Moves the handle focus to the next (or previous) visible handle of the
+  // focused node: inputs top to bottom, then outputs. False at either end,
+  // which clears the handle focus, as Tab leaves the node's handles.
+  bool focusNextHandle(bool backwards);
   // `secretKeys` lists every secret the server knows, configured or not.
   void setConfiguredSecrets(const QStringList &keys, bool known, const QStringList &secretKeys = {});
   // Thumbnails and load states of the media values cards show, from CardMediaLoader.
@@ -207,6 +217,7 @@ private:
   QSet<QString> secretKeys_;
   QString focusedNode_;
   QStringList focusHistory_;
+  FocusedHandle focusedHandle_;
   // How many input nodes carry each name, for InputNodeNameWarning.tsx.
   QHash<QString, int> inputNames_;
   CardMediaStore cardMedia_;
