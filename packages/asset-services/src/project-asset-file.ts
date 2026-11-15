@@ -10,6 +10,7 @@
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { open } from "node:fs/promises";
+import { isFiniteNumber } from "@nodetool-ai/protocol";
 import { getProjectFolderResolver, type Workspace } from "@nodetool-ai/runtime";
 
 /** The row fields that place an asset's file in a project folder. */
@@ -166,7 +167,7 @@ export function projectAssetMtime(asset: {
 }): number | null {
   if (!asset.workspace_path) return null;
   const mtime = asset.metadata?.["workspace_mtime"];
-  return typeof mtime === "number" ? mtime : null;
+  return isFiniteNumber(mtime) ? mtime : null;
 }
 
 export interface WorkspaceFingerprint {
@@ -286,7 +287,10 @@ export async function contentHashOfFile(
     highWaterMark: CONTENT_HASH_CHUNK,
     signal
   });
-  for await (const chunk of stream) hash.update(chunk as Uint8Array);
+  for await (const chunk of stream) {
+    // SAFETY: a read stream opened without an encoding yields Buffers.
+    hash.update(chunk as Uint8Array);
+  }
   return hash.digest("hex");
 }
 

@@ -63,12 +63,18 @@ const watchDirectory: FolderWatchFactory = (directory, onChange, onError) => {
   return watcher;
 };
 
+/**
+ * One connection that can have a project open. The owner of the connection
+ * makes the symbol and keeps it for as long as the connection lives.
+ */
+export type ProjectClient = symbol;
+
 interface WatchedFolder {
   key: string;
   projectId: string;
   userId: string;
   /** The connections that have the project open. */
-  clients: Set<object>;
+  clients: Set<ProjectClient>;
   /** Null for a folder with no directory on this host. */
   handle: FolderWatchHandle | null;
   /** Paths changed since the last reconcile. */
@@ -90,7 +96,7 @@ function folderKey(projectId: string, userId: string): string {
 
 export class ProjectFolderWatchers {
   private readonly folders = new Map<string, WatchedFolder>();
-  private readonly clients = new Map<object, ClientState>();
+  private readonly clients = new Map<ProjectClient, ClientState>();
   private readonly runs = new DebouncedRuns({
     debounceMs: WATCH_DEBOUNCE_MS,
     maxWaitMs: WATCH_MAX_WAIT_MS,
@@ -106,7 +112,7 @@ export class ProjectFolderWatchers {
    * missing or loose project id names Personal. Never throws.
    */
   async setOpenProject(
-    client: object,
+    client: ProjectClient,
     userId: string,
     projectId: string | null
   ): Promise<void> {
@@ -156,7 +162,7 @@ export class ProjectFolderWatchers {
    * Record that `client` is gone. The folder of its project stops being
    * watched when no other client has that project open.
    */
-  release(client: object): void {
+  release(client: ProjectClient): void {
     const state = this.clients.get(client);
     if (!state) return;
     this.clients.delete(client);
@@ -187,7 +193,7 @@ export class ProjectFolderWatchers {
     this.clients.clear();
   }
 
-  private leave(client: object, state: ClientState): void {
+  private leave(client: ProjectClient, state: ClientState): void {
     const key = state.key;
     state.key = null;
     const watched = key === null ? undefined : this.folders.get(key);

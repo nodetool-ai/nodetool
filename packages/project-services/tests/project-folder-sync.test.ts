@@ -276,7 +276,7 @@ describe("the folder watcher", () => {
     const before = await thumbnailOf(asset);
     expect(before).not.toBeNull();
     const watchers = new ProjectFolderWatchers();
-    const client = {};
+    const client = Symbol("client");
     try {
       await watchers.setOpenProject(client, USER, PROJECT);
       expect(watchers.isWatching(PROJECT, USER)).toBe(true);
@@ -312,7 +312,7 @@ describe("the folder watcher", () => {
     const asset = await saveImage("a");
     const watchers = new ProjectFolderWatchers();
     try {
-      await watchers.setOpenProject({}, USER, PROJECT);
+      await watchers.setOpenProject(Symbol("client"), USER, PROJECT);
       await flushProjectReconciles();
 
       await mkdir(join(directoryOf(), "shots"), { recursive: true });
@@ -342,7 +342,7 @@ describe("the folder watcher", () => {
     const recorded = recordingWatch();
     const watchers = new ProjectFolderWatchers(recorded.watch);
 
-    await watchers.setOpenProject({}, USER, PROJECT);
+    await watchers.setOpenProject(Symbol("client"), USER, PROJECT);
 
     expect(recorded.directories).toEqual([]);
     expect(watchers.isWatching(PROJECT, USER)).toBe(false);
@@ -356,8 +356,8 @@ describe("the folder watcher", () => {
     useFolders("local");
     const recorded = recordingWatch();
     const watchers = new ProjectFolderWatchers(recorded.watch);
-    const first = {};
-    const second = {};
+    const first = Symbol("first");
+    const second = Symbol("second");
 
     expect(watchers.watching).toBe(0);
     await watchers.setOpenProject(first, USER, PROJECT);
@@ -379,7 +379,7 @@ describe("the folder watcher", () => {
     useFolders("local");
     const recorded = recordingWatch();
     const watchers = new ProjectFolderWatchers(recorded.watch);
-    const client = {};
+    const client = Symbol("client");
 
     await watchers.setOpenProject(client, USER, PROJECT);
     await watchers.setOpenProject(client, USER, "project-b");
@@ -399,7 +399,7 @@ describe("the folder watcher", () => {
     useFolders("local");
     const recorded = recordingWatch();
     const watchers = new ProjectFolderWatchers(recorded.watch);
-    const client = {};
+    const client = Symbol("client");
 
     const opening = watchers.setOpenProject(client, USER, PROJECT);
     watchers.release(client);
@@ -420,7 +420,7 @@ describe("the folder watcher", () => {
     const watchers = new ProjectFolderWatchers(recorded.watch);
 
     await expect(
-      watchers.setOpenProject({}, USER, PROJECT)
+      watchers.setOpenProject(Symbol("client"), USER, PROJECT)
     ).resolves.toBeUndefined();
     expect(recorded.directories).toEqual([]);
   });
@@ -430,12 +430,12 @@ describe("the folder watcher", () => {
     const recorded = recordingWatch();
     const watchers = new ProjectFolderWatchers(recorded.watch);
 
-    await watchers.setOpenProject({}, USER, PROJECT);
+    await watchers.setOpenProject(Symbol("client"), USER, PROJECT);
     recorded.fail(directoryOf(), new Error("the directory is gone"));
     expect(watchers.isWatching(PROJECT, USER)).toBe(false);
     expect(recorded.closed).toEqual([directoryOf()]);
 
-    await watchers.setOpenProject({}, USER, PROJECT);
+    await watchers.setOpenProject(Symbol("client"), USER, PROJECT);
     expect(watchers.isWatching(PROJECT, USER)).toBe(true);
     expect(recorded.directories).toEqual([directoryOf(), directoryOf()]);
   });
@@ -450,7 +450,7 @@ describe("the folder watcher", () => {
     async function open(): Promise<void> {
       recorded = recordingWatch();
       watchers = new ProjectFolderWatchers(recorded.watch);
-      await watchers.setOpenProject({}, USER, PROJECT);
+      await watchers.setOpenProject(Symbol("client"), USER, PROJECT);
       await flushProjectReconciles();
       vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
     }
@@ -517,6 +517,7 @@ describe("the folder watcher", () => {
       const workspace = folder("local");
       const stats = vi.spyOn(workspace, "stat");
       const lists = vi.spyOn(workspace, "list");
+      const rowQueries = vi.spyOn(Asset, "listProjectFiles");
 
       recorded.change(directoryOf(), ".nodetool/assets.json");
       recorded.change(directoryOf(), ".NodeTool/assets.json.tmp");
@@ -525,8 +526,10 @@ describe("the folder watcher", () => {
       await vi.advanceTimersByTimeAsync(WATCH_MAX_WAIT_MS);
       await watchers.flush();
 
+      // No reconcile ran at all: the folder was not read and no row was.
       expect(stats).not.toHaveBeenCalled();
       expect(lists).not.toHaveBeenCalled();
+      expect(rowQueries).not.toHaveBeenCalled();
     });
 
     it("scans the whole folder when an event names no path, or too many paths changed", async () => {
@@ -673,6 +676,34 @@ describe.each(["local", "storage"] as const)(
       expect(report.offline).toEqual([]);
       expect((await reload(first)).workspace_path).toBe("selects/day-1/one.png");
       expect((await reload(second)).workspace_path).toBe("selects/two.png");
+    });
+
+    it("a move seen as a copy first and a delete later keeps the asset, though the delete names only the old path", async () => {
+      const asset = await saveImage("fox");
+      const workspace = folder(kind);
+      // The copy half of a move. Its original is not among the changed paths.
+      await workspace.copy("Generated/fox.png", "shots/hero.png");
+
+      const first = await reconcileProjectIndex(PROJECT, USER, {
+        paths: ["shots/hero.png"]
+      });
+      expect(first).toMatchObject({
+        created: [],
+        moved: [],
+        deferred: ["shots/hero.png"]
+      });
+
+      // The delete half arrives on its own.
+      await workspace.delete("Generated/fox.png");
+      const second = await reconcileProjectIndex(PROJECT, USER, {
+        paths: ["Generated/fox.png"]
+      });
+
+      expect(second).toMatchObject({ moved: [asset.id], offline: [], created: [] });
+      const rows = await rowsOf();
+      expect(rows.map((row) => row.id)).toEqual([asset.id]);
+      expect(rows[0]?.workspace_path).toBe("shots/hero.png");
+      expect(isProjectAssetOffline(rows[0]!)).toBe(false);
     });
 
     it("leaves out a path in NodeTool's own directory, in a skipped directory, or outside the folder", async () => {

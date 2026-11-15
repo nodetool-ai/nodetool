@@ -388,6 +388,8 @@ export interface WebSocketClientSessionOptions {
 
 export class WebSocketClientSession implements ClientSession {
   websocket: WebSocketConnection | null = null;
+  /** This connection's identity to the watchers of open project folders. */
+  private readonly projectClient = Symbol("project-client");
   mode: WebSocketMode = "binary";
   userId: string | null;
   authToken: string | null;
@@ -623,7 +625,7 @@ export class WebSocketClientSession implements ClientSession {
         clearModels: () => this.clearModels(),
         setOpenProject: (projectId) =>
           projectFolderWatchers.setOpenProject(
-            this,
+            this.projectClient,
             this.requireUserId(),
             projectId
           ),
@@ -779,7 +781,7 @@ export class WebSocketClientSession implements ClientSession {
     this.rendererToolBridge.cancelAll();
     // The connection no longer has a project open, so its folder is watched
     // only while another connection has it open.
-    projectFolderWatchers.release(this);
+    projectFolderWatchers.release(this.projectClient);
     // An RPC has no session to detach into and no client left to answer, so
     // it is always cancelled — unlike a resilient chat turn below.
     this.cancelRpcCalls();
