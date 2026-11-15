@@ -45,6 +45,17 @@ private slots:
         QCOMPARE(automationBreakpoints(points, 0).size(), 3);
         QCOMPARE(automationValueAt({}, 10, 17), 17.);
     }
+    void breakpointsShareOneGrid() {
+        // B73: a play start inside an eased segment ramps through the same cuts as a start at zero.
+        const QJsonArray points{QJsonObject{{"timeMs",0},{"value",0}},QJsonObject{{"timeMs",1000},{"value",1},{"easing","easeIn"}}};
+        const QJsonObject options{{"maxStepMs",30}};
+        const auto fromZero = automationBreakpoints(points, 0, options);
+        auto fromInside = automationBreakpoints(points, 245, options);
+        fromInside.removeFirst();
+        QJsonArray expected;
+        for (const auto& bp : fromZero) { if (bp.toObject()["timeMs"].toDouble() > 245) { expected.append(bp); } }
+        QCOMPARE(fromInside, expected);
+    }
     void pointEdits() {
         const auto added = addAutomationPoint({}, {{"timeMs",-2},{"value",3},{"easing","linear"}});
         QCOMPARE(added.value("index").toInt(-1), 0);

@@ -481,4 +481,106 @@ QJsonObject applyMergeDocument(const QJsonObject& serverRaw, const QJsonObject& 
     }
     return result;
 }
+
+namespace {
+// Port of rebaseList with whole-unit replacement: the timeline adapter
+// declares no unit fields.
+QJsonArray rebaseList(const QJsonArray& snapshot, const QJsonArray& before, const QJsonArray& after)
+{
+    const auto byId = [](const QJsonArray& items) {
+        QHash<QString, QJsonValue> map;
+        map.reserve(items.size());
+        for (const auto& item : items) { map.insert(idOf(item), item); }
+        return map;
+    };
+    const auto beforeMap = byId(before);
+    const auto afterMap = byId(after);
+    const auto snapshotMap = byId(snapshot);
+    const auto removed = [&](const QString& id) { return beforeMap.contains(id) && !afterMap.contains(id); };
+    const auto adopted = [&](const QString& id) {
+        const auto a = afterMap.constFind(id);
+        if (a == afterMap.cend()) { return false; }
+        const auto b = beforeMap.constFind(id);
+        return b == beforeMap.cend() || *b != *a;
+    };
+    const auto isAnchor = [&](const QString& id) { return snapshotMap.contains(id) && !removed(id); };
+
+    // Additions this checkpoint predates go before the next surviving anchor,
+    // else after the previous one, else at the end.
+    QList<QString> nextAnchor(after.size());
+    QString anchor;
+    for (qsizetype i = after.size() - 1; i >= 0; --i) {
+        const auto id = idOf(after.at(i));
+        if (isAnchor(id)) { anchor = id; }
+        nextAnchor[i] = anchor;
+    }
+    QHash<QString, QJsonArray> pendingBefore;
+    QHash<QString, QJsonArray> pendingAfter;
+    QJsonArray pendingAtEnd;
+    QString previousAnchor;
+    for (qsizetype i = 0; i < after.size(); ++i) {
+        const auto id = idOf(after.at(i));
+        if (isAnchor(id)) {
+            previousAnchor = id;
+            continue;
+        }
+        if (!adopted(id)) { continue; }
+        const auto item = afterMap.value(id);
+        if (!nextAnchor[i].isEmpty()) { pendingBefore[nextAnchor[i]].append(item); }
+        else if (!previousAnchor.isEmpty()) { pendingAfter[previousAnchor].append(item); }
+        else { pendingAtEnd.append(item); }
+    }
+    bool changed = !pendingAtEnd.isEmpty() || !pendingBefore.isEmpty() || !pendingAfter.isEmpty();
+    QJsonArray next;
+    for (const auto& item : snapshot) {
+        const auto id = idOf(item);
+        for (const auto& pending : pendingBefore.value(id)) { next.append(pending); }
+        if (removed(id)) {
+            changed = true;
+            continue;
+        }
+        const auto a = afterMap.constFind(id);
+        const auto b = beforeMap.constFind(id);
+        if (a != afterMap.cend() && (b == beforeMap.cend() || *b != *a)) {
+            next.append(*a);
+            changed = changed || *a != item;
+        } else {
+            next.append(item);
+        }
+        for (const auto& pending : pendingAfter.value(id)) { next.append(pending); }
+    }
+    for (const auto& pending : pendingAtEnd) { next.append(pending); }
+    return changed ? next : snapshot;
+}
+} // namespace
+
+QJsonObject rebaseHistoryDocument(const QJsonObject& snapshot, const QJsonObject& before, const QJsonObject& after)
+{
+    auto next = snapshot;
+    QSet<QString> listFields;
+    for (const auto& collection : collections) {
+        const QString field = QLatin1StringView(collection.field);
+        listFields.insert(field);
+        const auto b = before.value(field).toArray();
+        const auto a = after.value(field).toArray();
+        if (b == a) {
+            // The merge writes every collection, empty ones too.
+            if (!next.contains(field) && after.contains(field)) { next.insert(field, after.value(field)); }
+            continue;
+        }
+        next.insert(field, rebaseList(snapshot.value(field).toArray(), b, a));
+    }
+    // Every other top-level value is last-write-wins, like the merge scalars.
+    // A raw sequence also carries row fields the server owns (name, updatedAt).
+    QSet<QString> keys;
+    for (auto it = before.begin(); it != before.end(); ++it) { keys.insert(it.key()); }
+    for (auto it = after.begin(); it != after.end(); ++it) { keys.insert(it.key()); }
+    for (const auto& key : keys) {
+        if (listFields.contains(key) || before.value(key) == after.value(key)) { continue; }
+        if (after.contains(key)) { next.insert(key, after.value(key)); }
+        else { next.remove(key); }
+    }
+    return next;
+}
+
 } // namespace nt::server::sync

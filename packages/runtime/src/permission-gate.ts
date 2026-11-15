@@ -40,8 +40,35 @@ export type PermissionMode = "plan" | "default" | "auto";
 /** What the gate decides to do with a single call before any user prompt. */
 export type PermissionDecision = "allow" | "ask" | "block";
 
-/** The user's answer to an approval prompt. */
-export type ApprovalDecision = "allow" | "allow_for_chat" | "deny";
+/**
+ * The user's answer to an approval prompt. `allow` runs this call only,
+ * `allow_for_chat` adds the rule key to the thread's `sessionAllow`, and
+ * `allow_always` does the same and asks the host to persist the rule for the
+ * user, so later chats start with it in {@link PermissionGateOptions.alwaysAllow}.
+ */
+export type ApprovalDecision =
+  | "allow"
+  | "allow_for_chat"
+  | "allow_always"
+  | "deny";
+
+/** Every {@link ApprovalDecision}, for hosts that validate a wire value. */
+export const APPROVAL_DECISIONS: readonly ApprovalDecision[] = [
+  "allow",
+  "allow_for_chat",
+  "allow_always",
+  "deny"
+];
+
+/** Whether an answer lets the call run. */
+export function isApprovingDecision(decision: ApprovalDecision): boolean {
+  return decision !== "deny";
+}
+
+/** Whether an answer should stop the prompt for this rule key in this chat. */
+export function grantsStandingApproval(decision: ApprovalDecision): boolean {
+  return decision === "allow_for_chat" || decision === "allow_always";
+}
 
 /**
  * The matrix: `read` always runs; in `auto` everything runs; in `plan`
@@ -76,6 +103,13 @@ export interface ApprovalRequest {
    * `description`); most calls have none and the dialog shows `message`.
    */
   description?: string;
+  /**
+   * The key a standing answer ("Allow for this chat", "Always allow") is
+   * stored under. Defaults to `toolName`. A capability that asks about one
+   * target of a tool (an Apify actor) narrows it, so approving one actor
+   * forever does not approve every actor.
+   */
+  ruleKey?: string;
 }
 
 export type RequestApproval = (
@@ -128,6 +162,14 @@ export interface PermissionGateOptions {
    * reference) across a thread so "Allow for this chat" sticks between turns.
    */
   sessionAllow: Set<string>;
+  /**
+   * Rule keys the user set to "Always allow", loaded by the host from the
+   * user's saved tool rules. Consulted wherever `sessionAllow` is: a listed
+   * tool runs without a prompt in `default` mode and skips the auto-mode
+   * escalations. Plan mode still blocks it, because plan mode blocks by
+   * category before any allow-list is read. Absent means no saved rules.
+   */
+  alwaysAllow?: ReadonlySet<string>;
   /** Round-trips an approval prompt to the UI and resolves with the answer. */
   requestApproval: RequestApproval;
   /**
@@ -155,6 +197,18 @@ export interface PermissionGateOptions {
    * empty transcript. Only invoked when {@link securityMonitor} is set.
    */
   recentTranscript?: () => string;
+}
+
+/**
+ * Whether the user already approved this rule key, for this chat or always.
+ * Every ladder site asks this instead of reading `sessionAllow` directly, so
+ * a saved "Always allow" rule reaches the same places a chat grant does.
+ */
+export function isPreapproved(
+  gate: Pick<PermissionGateOptions, "sessionAllow" | "alwaysAllow">,
+  ruleKey: string
+): boolean {
+  return gate.sessionAllow.has(ruleKey) || gate.alwaysAllow?.has(ruleKey) === true;
 }
 
 /**

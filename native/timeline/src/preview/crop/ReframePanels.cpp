@@ -4,7 +4,7 @@
 namespace {
 const bool registered = [] {
     using nt::inspector::registerInspectorSection;
-    registerInspectorSection("reframe", QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/Inspector/ReframeSection.qml"), 87, "Smart reframe", "motion");
+    registerInspectorSection("reframe", QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/Inspector/ReframeSection.qml"), 87, "Smart reframe", "ai");
     nt::app::registerPanel({"preview", "reframeFocus",
         QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/Inspector/ReframePreview.qml"), 20, "Reframe focus"});
     return true;

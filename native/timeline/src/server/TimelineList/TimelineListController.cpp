@@ -49,8 +49,8 @@ QVariantMap TimelineListController::find(const QString& id) const {
 }
 
 QString TimelineListController::dateGroup(const QString& updatedAt) {
-    const auto date = QDateTime::fromString(updatedAt, Qt::ISODateWithMs).toUTC().date();
-    const auto now = QDateTime::currentDateTimeUtc().date();
+    const auto date = QDateTime::fromString(updatedAt, Qt::ISODateWithMs).toLocalTime().date();
+    const auto now = QDateTime::currentDateTime().date();  // local days, as relativeDateGroup on the web
     const auto days = date.daysTo(now);
     if (!date.isValid()) {
         return {};

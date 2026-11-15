@@ -75,6 +75,10 @@ public:
         : QUndoCommand(text), m_model(model), m_before(std::move(before)), m_after(std::move(after)) {}
     void redo() override { m_model->replaceMarkers(m_after); }
     void undo() override { m_model->replaceMarkers(m_before); }
+    void rebase(const TimelineModel::HistoryRebase& rebase) {
+        m_before = rebase(QJsonObject{{"markers", m_before}}).value("markers").toArray();
+        m_after = rebase(QJsonObject{{"markers", m_after}}).value("markers").toArray();
+    }
 
 private:
     TimelineModel* m_model;
@@ -102,6 +106,10 @@ public:
     }
     quint64 token() const { return m_token; }
     void settle(const QJsonObject& document) { m_after = document; }
+    void rebase(const TimelineModel::HistoryRebase& rebase) {
+        m_before = rebase(m_before);
+        m_after = rebase(m_after);
+    }
 private:
     QJsonObject m_before;
     QJsonObject m_after;
@@ -142,6 +150,32 @@ void TimelineModel::setEffectMattePreview(const QString& clipId, const QString& 
 }
 
 void TimelineModel::setTimeline(nt::Timeline timeline) {
+    installTimeline(std::move(timeline), nullptr);
+}
+
+void TimelineModel::adoptExternalTimeline(nt::Timeline timeline, const HistoryRebase& rebase) {
+    installTimeline(std::move(timeline), &rebase);
+}
+
+bool TimelineModel::rebaseHistory(const HistoryRebase& rebase) {
+    QList<QUndoCommand*> commands;
+    for (int i = 0; i < m_undo->count(); ++i) {
+        // QUndoStack exposes commands as const, but owns the mutable command.
+        auto* command = const_cast<QUndoCommand*>(m_undo->command(i));
+        if (command->childCount() > 0
+            || (!dynamic_cast<DocumentCommand*>(command) && !dynamic_cast<MarkersCommand*>(command))) {
+            return false;
+        }
+        commands.append(command);
+    }
+    for (auto* command : commands) {
+        if (auto* document = dynamic_cast<DocumentCommand*>(command)) { document->rebase(rebase); }
+        else { static_cast<MarkersCommand*>(command)->rebase(rebase); }
+    }
+    return true;
+}
+
+void TimelineModel::installTimeline(nt::Timeline timeline, const HistoryRebase* rebase) {
     timeline.matteClipId.clear();
     timeline.matteEffectId.clear();
     m_media.clear();
@@ -158,7 +192,9 @@ void TimelineModel::setTimeline(nt::Timeline timeline) {
     ++m_generation;
     emit effectMatteChanged();
     emit documentReplaced();
-    m_undo->clear();
+    // An external change keeps undo when every checkpoint can take its delta
+    // (web useTimelineExternalSync rebases the zundo history the same way).
+    if (!rebase || !rebaseHistory(*rebase)) { m_undo->clear(); }
     m_tracks->reset(m_timeline.get());
     // A new document replaces the clips too: lane models that outlive the
     // reset must drop the old snapshot.

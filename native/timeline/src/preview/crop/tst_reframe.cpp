@@ -243,7 +243,7 @@ class TestReframe : public QObject {
             while (item && item->objectName() != panel) { item = item->parentItem(); }
             return item != nullptr;
         };
-        QVERIFY(within(section, "motionPanel"));
+        QVERIFY(within(section, "aiPanel"));
         auto* gestures = object->findChild<ClipGestureController*>();
         QVERIFY(gestures);
         gestures->setSelection({"c"});

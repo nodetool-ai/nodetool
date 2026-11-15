@@ -9,6 +9,7 @@
 #include <QSet>
 #include <QUndoStack>
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -40,6 +41,11 @@ public:
     explicit TimelineModel(QObject* parent = nullptr);
 
     void setTimeline(nt::Timeline timeline);
+    // Rewrites one undo checkpoint (a raw sequence) for an adopted external change.
+    using HistoryRebase = std::function<QJsonObject(const QJsonObject&)>;
+    // Replace the document with an adopted external change and rebase the
+    // undo history instead of clearing it.
+    void adoptExternalTimeline(nt::Timeline timeline, const HistoryRebase& rebase);
     // Replaces the document with an empty one: every clip leaves the preview,
     // so its decoders close.
     void close();
@@ -148,6 +154,8 @@ private:
     bool replaceDocument(const QJsonObject& raw);
     // An undo or redo step: the document, keeping the current project.
     bool replaceFromHistory(QJsonObject raw);
+    void installTimeline(nt::Timeline timeline, const HistoryRebase* rebase);
+    bool rebaseHistory(const HistoryRebase& rebase);
     bool applyClips(const QJsonArray& clips, const std::vector<int>& reuse, bool sameIds, bool transient = false);
     bool patch(const QJsonArray& changed, bool transient);
     // The clips and tracks the transient snapshots changed since the last full notification.

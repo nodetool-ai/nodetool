@@ -569,9 +569,9 @@ Timing. Text shows for a text clip, Shape for a shape and Caption for a caption.
 when a transition is selected, which means its clip's start edit point: click the hatched wedge of an
 incoming transition, or the clip's start edge to set one up. Any other click on the clip clears it.
 
-The Motion panel owns how a clip moves over time: Animate, Advanced motion, Follow object and Smart
-reframe. The AI panel owns generation for the selected clip, and it is the tab next to the Assistant,
-which stays a chat surface. Open them from Window > Motion and Window > AI. No Premiere key applies.
+The Motion panel owns how a clip moves over time: Animate and Advanced motion. The AI panel owns
+generation for the selected clip and the tools that run a tracking model, Follow object and Smart
+reframe, as on the web. It is the tab next to the Assistant, which stays a chat surface. Open them from Window > Motion and Window > AI. No Premiere key applies.
 Export Frame's Use as start frame opens the AI panel on image to video. A group clip's Inspector shows
 the Group section and Timing, and its animation is in the Motion panel.
 

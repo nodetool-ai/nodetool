@@ -149,13 +149,26 @@ describe("code is node-level trimmed; text is whole-listed minus file I/O", () =
     );
   });
 
+  it("drops the asset-folder loaders that read a host directory", () => {
+    // LoadImageAssets, LoadAudioAssets and LoadVideoAssets resolve the folder
+    // ref's uri to a host path and read it with fs, like their *Folder
+    // siblings. They do not go through the asset store.
+    for (const nodeType of [
+      "nodetool.image.LoadImageAssets",
+      "nodetool.audio.LoadAudioAssets",
+      "nodetool.video.LoadVideoAssets",
+      "nodetool.text.LoadTextAssets"
+    ]) {
+      expect(isCloudNodeType(nodeType)).toBe(false);
+    }
+  });
+
   it("keeps the asset-store counterparts of the dropped file nodes", () => {
     // Assets, not host paths, are how the cloud moves files around. Dropping
     // the disk nodes must not take these with them.
     for (const nodeType of [
       "nodetool.input.AssetFolderInput",
       "nodetool.input.DocumentInput",
-      "nodetool.image.LoadImageAssets",
       "nodetool.image.SaveImage",
       "nodetool.audio.SaveAudio",
       "nodetool.video.SaveVideo"

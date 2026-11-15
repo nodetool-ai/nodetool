@@ -182,9 +182,10 @@ public:
     // GenerationBatchProgress.tsx: a batch's counts, time left and item rows
     // at nowMs, so the view can tick once a second.
     Q_INVOKABLE QVariantMap batchProgress(const QVariantMap &batch, double nowMs) const;
-    // ToolApprovalCard.tsx: Allow for this chat grants the tool for the rest
-    // of the conversation (decision allow_for_chat).
-    Q_INVOKABLE void allowActionForChat(const QString &id);
+    // ToolApprovalCard.tsx: Always allow saves the tool for the user, so no
+    // chat asks about it again until Settings › Permissions sets it back to
+    // Ask (decision allow_always).
+    Q_INVOKABLE void allowActionAlways(const QString &id);
     // SecretRequestCard.tsx: saves the key with settings.secrets.upsert, then
     // answers the request with saved. A failure keeps the request open.
     Q_INVOKABLE void saveSecret(const QString &id, const QString &value);

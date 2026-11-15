@@ -13203,8 +13203,9 @@
         },
         "showCode": "コードを表示",
         "showArguments": "引数を表示",
-        "allow": "許可する",
-        "allowForChat": "このチャットを許可する",
+        "allowOnce": "今回のみ許可",
+        "allowAlways": "常に許可",
+        "allowAlwaysHint": "今後は確認せずに {{tool}} を実行します。設定 › 権限 で変更できます。",
         "deny": "拒否する"
       }
     }
@@ -16759,8 +16760,8 @@
         "extendEdit": "編集ポイントを再生ヘッドまで拡張します",
         "trimEditLeft": "編集点を 1 フレーム前にトリム",
         "trimEditRight": "編集点を 1 フレーム上でトリム",
-        "trimEditLeftLarge": "編集ポイントを 10 フレーム後ろにトリム",
-        "trimEditRightLarge": "編集点を 10 フレームでトリム",
+        "trimEditLeftLarge": "編集ポイントを 5 フレーム後ろにトリム",
+        "trimEditRightLarge": "編集点を 5 フレームでトリム",
         "duplicate": "選択後に複製",
         "duplicateWithGap": "1秒間隔で複製",
         "applyDefaultTransition": "選択したクリップにクロスフェードします",
@@ -20119,5 +20120,17 @@
       "unsupportedTitle": "このクリップに使える AI ツールはありません",
       "unsupported": "ビデオまたは画像のクリップ、または生成されたクリップを選択してください。"
     }
+  },
+  "toolPermissions": {
+    "tab": "権限",
+    "title": "ツールの権限",
+    "sidebarCategory": "ツール",
+    "intro": "アシスタントが確認なしで使えるツールを選びます。「確認する」に設定したツールは、実行前にチャットで確認を求めます。",
+    "modes": "デフォルトモードでは、「確認する」に設定したツールはすべて先に確認します。自動モードでは、削除・公開・支出を伴うコードアクションを除き、ツールは確認なしで実行されます。Execute code を「常に許可」にすると、その確認も表示されなくなります。プランモードでは、ルールに関係なくすべての変更がブロックされます。",
+    "alwaysAllow": "常に許可",
+    "ask": "確認する",
+    "saveFailed": "この権限を保存できませんでした。",
+    "loadFailed": "ツール一覧を読み込めませんでした。",
+    "noMatches": "検索に一致するツールはありません。"
   }
 }

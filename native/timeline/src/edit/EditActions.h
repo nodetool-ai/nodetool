@@ -99,7 +99,8 @@ std::optional<std::vector<ClipPatch>> planSlip(const EditDoc& doc, const QJsonOb
                                                std::optional<double> sourceDurationMs, bool linked);
 ClipList applyPatches(const ClipList& clips, const std::vector<ClipPatch>& patches);
 
-// TracksRegion.tsx frameStepMs: the frame grid point `frames` frames away.
+// TracksRegion.tsx frameStepMs: the frame grid point `frames` frames away, as
+// the whole ms at or just before that frame's time.
 double frameStepMs(double ms, double frames, double fps);
 
 }  // namespace nt::edit

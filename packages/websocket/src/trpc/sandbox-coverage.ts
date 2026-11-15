@@ -1134,6 +1134,18 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "by name and never sees what they type; nodetool.secrets.get " +
       "reads only names the run declared."
   },
+  "settings.toolPermissions.list": {
+    withheld:
+      "Tool permission rules decide which tools run without asking the " +
+      "user. Sandboxed code must not read or change the rules that gate " +
+      "its own actions."
+  },
+  "settings.toolPermissions.set": {
+    withheld:
+      "Tool permission rules decide which tools run without asking the " +
+      "user. Sandboxed code must not read or change the rules that gate " +
+      "its own actions."
+  },
   "settings.update": { capability: "set_setting" },
   "skills.create": { capability: "create_skill" },
   "skills.delete": { capability: "delete_skill" },

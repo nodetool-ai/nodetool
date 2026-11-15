@@ -155,7 +155,7 @@ A turn streams these frames, each tagged with the `thread_id`:
 - `message` – a persisted assistant or tool message
 - `tool_call_update` and `tool_result_update` – a server-side tool call and its result
 - `tool_call` – a tool the client owns. Reply with a `tool_result` frame
-- `tool_approval_request` – a gated tool call. Reply with `tool_approval_response` and `decision` of `allow`, `allow_for_chat`, or `deny`
+- `tool_approval_request` – a gated tool call. Reply with `tool_approval_response` and `decision` of `allow` (this call), `allow_always` (saved for the user, editable under Settings › Permissions), `allow_for_chat`, or `deny`
 - `secret_request` – the model needs a credential. Reply with `secret_request_response`
 - `task_update`, `planning_update`, `todo_update` – agent progress
 - `error` – the turn failed

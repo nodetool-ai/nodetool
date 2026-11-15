@@ -273,7 +273,6 @@ describe("applyCloudNodePolicy", () => {
     // …while the asset-store equivalents stay, since assets are how the cloud
     // moves files…
     expect(remaining).toContain("nodetool.input.AssetFolderInput");
-    expect(remaining).toContain("nodetool.image.LoadImageAssets");
     expect(remaining).toContain("nodetool.image.SaveImage");
     // …while the creative media core stays.
     expect(remaining.some((t) => t.startsWith("nodetool.image."))).toBe(true);

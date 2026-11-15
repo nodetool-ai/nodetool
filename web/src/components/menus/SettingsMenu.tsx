@@ -74,6 +74,10 @@ import {
 } from "../themes/themeContrasts";
 import LanguageSetting from "../settings/LanguageSetting";
 import StorageHistorySettings from "../settings/StorageHistorySettings";
+import ToolPermissionsSettings, {
+  toolPermissionGroupAnchor
+} from "../settings/ToolPermissionsSettings";
+import { useToolPermissions } from "../../serverState/useToolPermissions";
 import {
   SETTINGS_TAB_ITEMS,
   matchesSearch,
@@ -99,6 +103,7 @@ const settingsDocsTopic = (section: SettingsSection): DocsTopic =>
 const SETTINGS_TAB_KEYS = {
   general: "screens4_6.settings.tabs.general",
   providers: "screens4_6.settings.tabs.providers",
+  permissions: "toolPermissions.tab",
   integrations: "screens4_6.settings.tabs.integrations",
   privacy: "screens4_6.settings.tabs.privacy",
   about: "screens4_6.settings.tabs.about"
@@ -605,10 +610,29 @@ function SettingsPage() {
     ];
   }, [remoteSettings, session?.access_token]);
 
+  // The Permissions sidebar lists the same tool groups the panel renders.
+  const { groups: toolPermissionGroups } = useToolPermissions({
+    enabled: section === "permissions"
+  });
+  const permissionsSidebarSections = useMemo(
+    () => [
+      {
+        category: t("toolPermissions.sidebarCategory"),
+        items: toolPermissionGroups.map((group) => ({
+          id: toolPermissionGroupAnchor(group.id),
+          label: group.title
+        }))
+      }
+    ],
+    [t, toolPermissionGroups]
+  );
+
   const allSidebarSections =
     section === "general"
       ? generalSidebarSections
-      : section === "integrations"
+      : section === "permissions"
+        ? permissionsSidebarSections
+        : section === "integrations"
         ? integrationsSidebarSections
         : section === "about"
           ? getAboutSidebarSections()
@@ -1208,6 +1232,12 @@ function SettingsPage() {
                   <Box sx={{ marginTop: theme.spacing(SPACING.xxl) }}>
                     <SecurityNotice />
                   </Box>
+                </TabPanel>
+
+                <TabPanel section="permissions" current={section}>
+                  {section === "permissions" && (
+                    <ToolPermissionsSettings search={searchTerm} />
+                  )}
                 </TabPanel>
 
                 <TabPanel section="integrations" current={section}>

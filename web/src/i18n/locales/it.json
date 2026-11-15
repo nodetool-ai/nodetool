@@ -13415,8 +13415,9 @@
         },
         "showCode": "Mostra codice",
         "showArguments": "Mostra argomenti",
-        "allow": "Consenti",
-        "allowForChat": "Consenti questa chat",
+        "allowOnce": "Consenti una volta",
+        "allowAlways": "Consenti sempre",
+        "allowAlwaysHint": "Esegui {{tool}} senza chiedere d’ora in poi. Puoi cambiarlo in Impostazioni › Autorizzazioni.",
         "deny": "Negare"
       }
     }
@@ -17051,8 +17052,8 @@
         "extendEdit": "Estendi il punto di modifica alla testina di riproduzione",
         "trimEditLeft": "Taglia il punto di modifica un fotogramma indietro",
         "trimEditRight": "Taglia il punto di modifica di un fotogramma",
-        "trimEditLeftLarge": "Taglia il punto di montaggio dieci fotogrammi indietro",
-        "trimEditRightLarge": "Taglia il punto di montaggio su dieci fotogrammi",
+        "trimEditLeftLarge": "Taglia il punto di montaggio cinque fotogrammi indietro",
+        "trimEditRightLarge": "Taglia il punto di montaggio su cinque fotogrammi",
         "duplicate": "Duplica dopo la selezione",
         "duplicateWithGap": "Duplicare con un intervallo di 1 s",
         "applyDefaultTransition": "Dissolvenza incrociata nelle clip selezionate",
@@ -20430,5 +20431,17 @@
       "unsupportedTitle": "Nessuno strumento IA per questa clip",
       "unsupported": "Seleziona una clip video o immagine, oppure una clip generata."
     }
+  },
+  "toolPermissions": {
+    "tab": "Autorizzazioni",
+    "title": "Autorizzazioni degli strumenti",
+    "sidebarCategory": "Strumenti",
+    "intro": "Scegli quali strumenti l’assistente può usare senza chiedere. Uno strumento impostato su Chiedi mostra una richiesta nella chat prima di essere eseguito.",
+    "modes": "In modalità predefinita, ogni strumento impostato su Chiedi chiede prima conferma. In modalità automatica, gli strumenti vengono eseguiti senza chiedere, tranne un’azione di codice che elimina, pubblica o spende denaro. Imposta Execute code su Consenti sempre per eliminare anche quella richiesta. La modalità piano blocca ogni modifica, qualunque sia la regola.",
+    "alwaysAllow": "Consenti sempre",
+    "ask": "Chiedi",
+    "saveFailed": "Impossibile salvare questa autorizzazione.",
+    "loadFailed": "Impossibile caricare l’elenco degli strumenti.",
+    "noMatches": "Nessuno strumento corrisponde alla ricerca."
   }
 }

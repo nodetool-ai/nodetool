@@ -77,6 +77,8 @@ Controls.Control {
     }
     Keys.forwardTo: tracksHost.item ? [tracksHost.item] : []
     Binding { target: root.clock; property: "durationMs"; value: root.timeline.contentEndMs }
+    // Restart-at-end detection measures one frame of the document's rate (B15).
+    Binding { target: root.clock; property: "fps"; value: root.timeline.fps }
     DockLayoutStore { id: layoutStore; objectName: "dockLayoutStore" }
     function toggleChat() {
         layoutStore.dispatch({type: chatOpen ? "hide" : "reveal", panelId: "assistant"})

@@ -54,6 +54,8 @@ import {
   updateStorageHistoryInput,
   cleanupStorageHistoryOutput,
   compactStorageHistoryOutput,
+  toolPermissionsListOutput,
+  toolPermissionsSetInput,
   type SecretResponse
 } from "@nodetool-ai/protocol/api-schemas/settings.js";
 import {
@@ -62,6 +64,11 @@ import {
   saveStorageRetentionPolicy
 } from "../../storage-retention.js";
 import { requirePermission } from "../../lib/permissions.js";
+import {
+  loadAlwaysAllowedTools,
+  setToolRule,
+  toolPermissionCatalog
+} from "../../tool-permission-rules.js";
 
 // ── Secret response helpers ────────────────────────────────────────
 
@@ -290,6 +297,28 @@ const historyRouter = router({
     })
 });
 
+/**
+ * Saved tool rules: the Settings page lists every tool that can ask, grouped,
+ * with "Always allow" or "Ask" each. The chat card's "Always allow" writes the
+ * same row over the WebSocket, so both surfaces read one store.
+ */
+const toolPermissionsRouter = router({
+  list: protectedProcedure
+    .output(toolPermissionsListOutput)
+    .query(async ({ ctx }) => ({
+      groups: toolPermissionCatalog(await loadAlwaysAllowedTools(ctx.userId))
+    })),
+
+  set: protectedProcedure
+    .input(toolPermissionsSetInput)
+    .output(toolPermissionsListOutput)
+    .mutation(async ({ ctx, input }) => ({
+      groups: toolPermissionCatalog(
+        await setToolRule(ctx.userId, input.name, input.rule)
+      )
+    }))
+});
+
 // ── Root settings router ───────────────────────────────────────────
 
 export const settingsRouter = router({
@@ -455,5 +484,6 @@ export const settingsRouter = router({
 
   secrets: secretsRouter,
   history: historyRouter,
+  toolPermissions: toolPermissionsRouter,
   onepassword: onePasswordRouter
 });

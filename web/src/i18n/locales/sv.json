@@ -13203,8 +13203,9 @@
         },
         "showCode": "Visa kod",
         "showArguments": "Visa argument",
-        "allow": "Tillåt",
-        "allowForChat": "Tillåt den här chatten",
+        "allowOnce": "Tillåt en gång",
+        "allowAlways": "Tillåt alltid",
+        "allowAlwaysHint": "Kör {{tool}} utan att fråga från och med nu. Du kan ändra det under Inställningar › Behörigheter.",
         "deny": "Förneka"
       }
     }
@@ -16759,8 +16760,8 @@
         "extendEdit": "Utöka redigeringspunkten till spelhuvudet",
         "trimEditLeft": "Trimma redigeringspunkten en ram bakåt",
         "trimEditRight": "Trimma redigeringspunkt en ram på",
-        "trimEditLeftLarge": "Trimma redigeringspunkten tio bildrutor bakåt",
-        "trimEditRightLarge": "Trimma redigeringspunkt tio ramar på",
+        "trimEditLeftLarge": "Trimma redigeringspunkten fem bildrutor bakåt",
+        "trimEditRightLarge": "Trimma redigeringspunkt fem ramar på",
         "duplicate": "Duplicera efter valet",
         "duplicateWithGap": "Duplicera med 1 s mellanrum",
         "applyDefaultTransition": "Cross-fade in i valda klipp",
@@ -20119,5 +20120,17 @@
       "unsupportedTitle": "Inga AI-verktyg för det här klippet",
       "unsupported": "Markera ett video- eller bildklipp, eller ett genererat klipp."
     }
+  },
+  "toolPermissions": {
+    "tab": "Behörigheter",
+    "title": "Verktygsbehörigheter",
+    "sidebarCategory": "Verktyg",
+    "intro": "Välj vilka verktyg assistenten får använda utan att fråga. Ett verktyg inställt på Fråga visar en fråga i chatten innan det körs.",
+    "modes": "I standardläget frågar varje verktyg inställt på Fråga först. I autoläget körs verktyg utan att fråga, utom en kodåtgärd som raderar, publicerar eller spenderar pengar. Ställ Execute code på Tillåt alltid för att stänga av även den frågan. Planläget blockerar alla ändringar, oavsett regel.",
+    "alwaysAllow": "Tillåt alltid",
+    "ask": "Fråga",
+    "saveFailed": "Det gick inte att spara behörigheten.",
+    "loadFailed": "Det gick inte att läsa in verktygslistan.",
+    "noMatches": "Inga verktyg matchar din sökning."
   }
 }

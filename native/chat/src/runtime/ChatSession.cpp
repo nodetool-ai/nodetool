@@ -1040,11 +1040,11 @@ void ChatSession::answerAction(const QString &id, const QJsonObject &response, c
   state(action["thread_id"].toString()).messages->addPart(part);
   emit stateChanged();
 }
-void ChatSession::allowActionForChat(const QString &id) {
+void ChatSession::allowActionAlways(const QString &id) {
   const auto action = m_actions.value(id);
   if (action["type"] != "tool_approval_request" || !m_client.ready()) { return; }
-  answerAction(id, {{"type", "tool_approval_response"}, {"approval_id", id}, {"decision", "allow_for_chat"}},
-               "allowed for this chat");
+  answerAction(id, {{"type", "tool_approval_response"}, {"approval_id", id}, {"decision", "allow_always"}},
+               "always allowed");
 }
 void ChatSession::saveSecret(const QString &id, const QString &value) {
   const auto action = m_actions.value(id);

@@ -13415,8 +13415,9 @@
         },
         "showCode": "Mostrar código",
         "showArguments": "Mostrar argumentos",
-        "allow": "Permitir",
-        "allowForChat": "Permitir este chat",
+        "allowOnce": "Permitir una vez",
+        "allowAlways": "Permitir siempre",
+        "allowAlwaysHint": "Ejecutar {{tool}} sin preguntar a partir de ahora. Puedes cambiarlo en Ajustes › Permisos.",
         "deny": "Negar"
       }
     }
@@ -17051,8 +17052,8 @@
         "extendEdit": "Extender el punto de edición al cabezal de reproducción",
         "trimEditLeft": "Recortar el punto de edición un cuadro hacia atrás",
         "trimEditRight": "Recortar el punto de edición un fotograma",
-        "trimEditLeftLarge": "Recortar el punto de edición diez fotogramas hacia atrás",
-        "trimEditRightLarge": "Recortar el punto de edición diez fotogramas",
+        "trimEditLeftLarge": "Recortar el punto de edición cinco fotogramas hacia atrás",
+        "trimEditRightLarge": "Recortar el punto de edición cinco fotogramas",
         "duplicate": "Duplicar después de la selección.",
         "duplicateWithGap": "Duplicar con un intervalo de 1 s",
         "applyDefaultTransition": "Fundido cruzado en clips seleccionados",
@@ -20430,5 +20431,17 @@
       "unsupportedTitle": "No hay herramientas de IA para este clip",
       "unsupported": "Selecciona un clip de vídeo o imagen, o un clip generado."
     }
+  },
+  "toolPermissions": {
+    "tab": "Permisos",
+    "title": "Permisos de herramientas",
+    "sidebarCategory": "Herramientas",
+    "intro": "Elige qué herramientas puede usar el asistente sin preguntar. Una herramienta configurada como Preguntar muestra un aviso en el chat antes de ejecutarse.",
+    "modes": "En el modo predeterminado, cada herramienta configurada como Preguntar pide confirmación primero. En el modo automático, las herramientas se ejecutan sin preguntar, salvo una acción de código que borra, publica o gasta dinero. Configura Execute code como Permitir siempre para quitar también ese aviso. El modo plan bloquea cualquier cambio, sea cual sea la regla.",
+    "alwaysAllow": "Permitir siempre",
+    "ask": "Preguntar",
+    "saveFailed": "No se pudo guardar este permiso.",
+    "loadFailed": "No se pudo cargar la lista de herramientas.",
+    "noMatches": "Ninguna herramienta coincide con tu búsqueda."
   }
 }
