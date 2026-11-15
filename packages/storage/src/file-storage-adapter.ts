@@ -14,7 +14,8 @@ import type {
   StorageAdapter,
   StorageEntry,
   StorageListResult,
-  StorageStat
+  StorageStat,
+  StoreIfAbsentOptions
 } from "./storage-adapter.js";
 import { compareStorageKeys, normalizeStorageKey } from "./storage-keys.js";
 import { getMaxLocalUploadBytes } from "./storage-limits.js";
@@ -179,7 +180,8 @@ export class FileStorageAdapter implements StorageAdapter {
   async storeIfAbsent(
     key: string,
     data: Uint8Array,
-    _contentType?: string
+    _contentType?: string,
+    options: StoreIfAbsentOptions = {}
   ): Promise<string | null> {
     const max = getMaxLocalUploadBytes();
     if (data.byteLength > max) {
@@ -190,7 +192,10 @@ export class FileStorageAdapter implements StorageAdapter {
     }
     const r = await this.rootPromise;
     const rel = normalizeStorageKey(key);
-    return (await r.create(rel, data)) ? this.uriForKey(rel) : null;
+    const created = await r.create(rel, data, {
+      stagingName: options.stagingName
+    });
+    return created ? this.uriForKey(rel) : null;
   }
 
   async retrieve(uri: string): Promise<Uint8Array | null> {

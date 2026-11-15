@@ -24,7 +24,8 @@ export interface StorageAdapter {
   storeIfAbsent?(
     key: string,
     data: Uint8Array,
-    contentType?: string
+    contentType?: string,
+    options?: StoreIfAbsentOptions
   ): Promise<string | null>;
 
   /** Retrieve an asset by URI (as returned by store). */
@@ -98,6 +99,18 @@ export interface StorageAdapter {
     uri: string,
     opts?: DownloadUrlOptions
   ): Promise<string | null>;
+}
+
+export interface StoreIfAbsentOptions {
+  /**
+   * A file name beside the key that belongs to the caller alone. A backend
+   * that writes a file in steps writes the bytes under this name first and
+   * gives them to the key in one step, so the key holds the whole object or
+   * nothing, also when the process dies during the write. Whatever is under
+   * the name when the call starts is what such a writer left, and is removed.
+   * A backend whose exclusive create is already one step ignores it.
+   */
+  stagingName?: string;
 }
 
 export interface DownloadUrlOptions {

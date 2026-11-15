@@ -13,6 +13,7 @@ export type {
   StorageEntry,
   StorageListResult,
   StorageStat,
+  StoreIfAbsentOptions,
   UploadTarget,
   UploadUrlOptions
 } from "./storage-adapter.js";

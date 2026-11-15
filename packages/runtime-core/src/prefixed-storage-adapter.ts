@@ -2,7 +2,8 @@ import { normalizeStorageKey } from "@nodetool-ai/storage/storage-keys";
 import {
   type StorageAdapter,
   type StorageListResult,
-  type StorageStat
+  type StorageStat,
+  type StoreIfAbsentOptions
 } from "@nodetool-ai/storage";
 
 /**
@@ -49,14 +50,20 @@ export class PrefixedStorageAdapter implements StorageAdapter {
   storeIfAbsent(
     key: string,
     data: Uint8Array,
-    contentType?: string
+    contentType?: string,
+    options?: StoreIfAbsentOptions
   ): Promise<string | null> {
     if (!this.inner.storeIfAbsent) {
       return Promise.reject(
         new Error("The storage behind this prefix has no exclusive create")
       );
     }
-    return this.inner.storeIfAbsent(this.scope(key), data, contentType);
+    return this.inner.storeIfAbsent(
+      this.scope(key),
+      data,
+      contentType,
+      options
+    );
   }
 
   retrieve(uri: string): Promise<Uint8Array | null> {
