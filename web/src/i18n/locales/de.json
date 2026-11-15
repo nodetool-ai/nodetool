@@ -20115,6 +20115,20 @@
       "revealInFinder": "Im Finder anzeigen",
       "revealInExplorer": "Im Datei-Explorer anzeigen",
       "revealInFileManager": "Im Dateimanager anzeigen"
+    },
+    "documentFile": {
+      "invalidTitle": "Diese Datei hat einen Fehler",
+      "invalidBody": "{{path}} wurde nicht geladen: {{error}}. Die letzte gültige Version bleibt geöffnet und läuft weiter.",
+      "openFile": "Datei öffnen",
+      "missingTitle": "Datei fehlt",
+      "missingBody": "{{path}} liegt nicht mehr im Projektordner. Wiederherstellen schreibt sie aus diesem Dokument neu.",
+      "restore": "Wiederherstellen",
+      "delete": "Löschen",
+      "cancel": "Abbrechen",
+      "deleteTitle": "{{name}} löschen?",
+      "deleteDescription": "„{{name}}“ und sein Versionsverlauf werden endgültig gelöscht.",
+      "restoreFailed": "Die Datei wurde nicht wiederhergestellt: {{error}}",
+      "deleteFailed": "Das Dokument wurde nicht gelöscht: {{error}}"
     }
   }
 }

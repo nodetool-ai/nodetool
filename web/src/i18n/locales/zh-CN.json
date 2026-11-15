@@ -20115,6 +20115,20 @@
       "revealInFinder": "在 Finder 中显示",
       "revealInExplorer": "在文件资源管理器中显示",
       "revealInFileManager": "在文件管理器中显示"
+    },
+    "documentFile": {
+      "invalidTitle": "此文件有错误",
+      "invalidBody": "未加载 {{path}}：{{error}}。最后一个有效版本保持打开，仍可运行。",
+      "openFile": "打开文件",
+      "missingTitle": "文件缺失",
+      "missingBody": "{{path}} 已不在项目文件夹中。恢复会根据此文档重新写入该文件。",
+      "restore": "恢复",
+      "delete": "删除",
+      "cancel": "取消",
+      "deleteTitle": "删除 {{name}}？",
+      "deleteDescription": "“{{name}}”及其版本历史将被永久删除。",
+      "restoreFailed": "文件未恢复：{{error}}",
+      "deleteFailed": "文档未删除：{{error}}"
     }
   }
 }

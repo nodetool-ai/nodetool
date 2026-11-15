@@ -161,7 +161,7 @@ A workflow file can be edited by hand, replaced by git, or changed by an agent w
 | Its hash equals `file_hash` | Nothing changes. |
 | Its hash differs and the file is valid | The workflow as it was is kept as a version named "Before file edit". The file's content is stored and open editors are told. |
 | Its hash differs and the file is not valid | The workflow is kept as it was. The reason is recorded in `file_error`. The file is not written again until it is valid. |
-| The file is gone | `file_error` reads "File missing". The workflow is kept. Saving it in NodeTool writes the file again. |
+| The file is gone | `file_error` reads "File missing". The workflow is kept. Saving it in NodeTool, or **Restore** above its editor, writes the file again. |
 | The file was renamed or moved in the folder | The workflow follows it and takes the new file name as its name. A rename that changes only the case of the name counts, also in a folder that ignores case. |
 | A new file with an ID no workflow has | A workflow is created in this project. |
 | A new file with the ID of another workflow | The file gets a new ID, is rewritten with it, and becomes a new workflow. Duplicating a workflow file does this. |
@@ -175,6 +175,15 @@ All edits made to a file between two comparisons are stored as one change and le
 An exact copy of a workflow file waits 10 seconds before it becomes a workflow, as a copied media file does. When the original is gone by then, the copy is where the workflow moved to.
 
 When a workflow was saved by a host that writes no files and its file was edited as well, the file is imported and the saved workflow is the version. Restoring a version in NodeTool writes the row and the file together, so the restored graph is not taken for a file edit.
+
+### What the editor shows
+
+The workflow and timeline editors show the state of the document's file above the canvas. It updates within a few seconds of the change on disk.
+
+- An invalid file shows its error and **Open file**, which opens the file in a file tab. The document keeps its last valid version, and that version still runs. Fixing the file clears the error.
+- A missing file shows **File missing** with **Restore** and **Delete**. Restore writes the file again from the document. A document that did not change since its file was last written gets a byte-identical file. Delete asks first, then deletes the document.
+
+An editor open on a document whose file was imported takes the new content. An editor with unsaved changes keeps them. A node or clip that both the file and the draft changed keeps the draft's value and is listed in the conflict banner, where the file's value can be taken instead.
 
 ### Workflows from before project folders
 
@@ -235,6 +244,8 @@ A timeline that has no file gets one when the server starts and when its project
 
 The left panel lists **Chats**, **Documents** and **Files** under the name of the open project. Files is a tree of the project folder. It updates when a run or a tool adds a file, and it hides `.nodetool/`.
 
+Double-click a file to open it. A `.workflow.json` file opens the workflow editor on its workflow, and a `.timeline.json` file opens the timeline editor on its timeline. The document is the one whose `file_path` is that file. Any other file opens in a file tab, and so does a document file that no workflow or timeline owns yet.
+
 Right-click a file or folder to reveal it in your file manager. The menu reads **Reveal in Finder** on macOS, **Show in File Explorer** on Windows and **Show in file manager** on Linux. It appears in the desktop app only. The browser app and a cloud deployment show the tree without it, because the files are not on your machine.
 
 New project folders go under `PROJECTS_DIR`. The old `/workspaces` page and its folder picker no longer exist, and its address opens the Files section.
@@ -251,6 +262,8 @@ A folder on the host would let a user browse the server's filesystem, so `NODETO
 ## API
 
 Projects create and adopt their folders through `projects.create`, so no API creates, repoints or deletes a folder. The tRPC `workspace` router has `list`, `listFiles`, `readFile`, and `writeFile` (`packages/websocket/src/trpc/routers/workspace.ts`). Paths passed to the file procedures are workspace-relative. Absolute paths are refused and traversal answers `403`. Binary reads use `GET /api/workspaces/:id/download/:path` (`packages/websocket/src/workspace-api.ts`).
+
+`projects.documents` returns each workflow and timeline with `file: { path, state, error }`, where `state` is `ok`, `invalid` or `missing`. `projects.documentByFile({ id, path })` returns the workflow or timeline whose file is `path` in the project's folder, or null. `projects.restoreDocumentFile({ type, ref })` writes a document's file again from its row. When the reconcile records a new `file_error`, or clears one, the owner's clients get a `resource_change` with `resource_type: "documentfile"`.
 
 ## If it fails
 

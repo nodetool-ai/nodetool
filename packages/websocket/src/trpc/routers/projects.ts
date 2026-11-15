@@ -66,10 +66,12 @@ import {
   projectDocumentByFileInput,
   projectDocumentListEntry,
   projectDocumentPageInput,
+  projectDocumentRef,
   projectFileDocument,
   projectResponse,
   relocateProjectInput,
   restoreDocumentFileInput,
+  type ProjectDocumentRef,
   type ProjectResponse
 } from "@nodetool-ai/protocol/api-schemas/projects.js";
 import { ApiErrorCode } from "../../error-codes.js";
@@ -462,10 +464,15 @@ export const projectsRouter = router({
    */
   unassigned: protectedProcedure
     .input(listInput)
-    .output(z.array(projectDocumentListEntry))
+    .output(z.array(projectDocumentRef))
     .query(async ({ ctx }) => {
       await prepareUser(ctx.userId);
-      return listProjectDocuments(ctx.userId, LOOSE_PROJECT_ID);
+      // The strip of loose documents assigns them by drag, which workflows
+      // do not take part in.
+      const documents = await listProjectDocuments(ctx.userId, LOOSE_PROJECT_ID);
+      return documents.filter(
+        (document): document is ProjectDocumentRef => document.type !== "workflow"
+      );
     }),
 
   /**

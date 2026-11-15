@@ -398,6 +398,14 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
     return;
   }
 
+  // The file of a workflow or timeline became invalid, went missing, or is
+  // fine again. The state is no content of the document, so nothing else
+  // announces it. The project's document list reports it.
+  if (resource_type === "documentfile") {
+    invalidateProjectViews(projectId);
+    return;
+  }
+
   if (resource_type === "project") {
     invalidateProjectViews(projectId);
     invalidateDocumentIndex();

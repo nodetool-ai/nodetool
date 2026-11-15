@@ -20115,6 +20115,20 @@
       "revealInFinder": "Visa i Finder",
       "revealInExplorer": "Visa i Utforskaren",
       "revealInFileManager": "Visa i filhanteraren"
+    },
+    "documentFile": {
+      "invalidTitle": "Den här filen har ett fel",
+      "invalidBody": "{{path}} lästes inte in: {{error}}. Den senaste giltiga versionen förblir öppen och kan fortfarande köras.",
+      "openFile": "Öppna fil",
+      "missingTitle": "Filen saknas",
+      "missingBody": "{{path}} finns inte längre i projektmappen. Återställ skriver den igen från det här dokumentet.",
+      "restore": "Återställ",
+      "delete": "Ta bort",
+      "cancel": "Avbryt",
+      "deleteTitle": "Ta bort {{name}}?",
+      "deleteDescription": "”{{name}}” och dess versionshistorik tas bort permanent.",
+      "restoreFailed": "Filen återställdes inte: {{error}}",
+      "deleteFailed": "Dokumentet togs inte bort: {{error}}"
     }
   }
 }

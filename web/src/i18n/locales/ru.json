@@ -20737,6 +20737,20 @@
       "revealInFinder": "Показать в Finder",
       "revealInExplorer": "Показать в проводнике",
       "revealInFileManager": "Показать в файловом менеджере"
+    },
+    "documentFile": {
+      "invalidTitle": "В этом файле ошибка",
+      "invalidBody": "{{path}} не загружен: {{error}}. Последняя корректная версия остаётся открытой и продолжает работать.",
+      "openFile": "Открыть файл",
+      "missingTitle": "Файл отсутствует",
+      "missingBody": "{{path}} больше нет в папке проекта. «Восстановить» снова запишет его из этого документа.",
+      "restore": "Восстановить",
+      "delete": "Удалить",
+      "cancel": "Отмена",
+      "deleteTitle": "Удалить {{name}}?",
+      "deleteDescription": "«{{name}}» и история его версий будут удалены безвозвратно.",
+      "restoreFailed": "Файл не восстановлен: {{error}}",
+      "deleteFailed": "Документ не удалён: {{error}}"
     }
   }
 }
