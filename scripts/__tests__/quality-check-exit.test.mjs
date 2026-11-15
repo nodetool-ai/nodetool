@@ -33,11 +33,14 @@ describe("quality check matrix exit status", () => {
     const game = turboRuns("test-packages-game");
     expect(game).toHaveLength(1);
     expect(game[0]).toMatch(/--concurrency=1(?: |$)/);
-    const core = turboRuns("test-packages-core");
-    expect(core).toHaveLength(1);
-    expect(core[0]).toMatch(/--concurrency=2(?: |$)/);
+    // `cli` and `engine` were part of `core` and keep its limits.
+    for (const check of ["test-packages-core", "test-packages-cli", "test-packages-engine"]) {
+      const runs = turboRuns(check);
+      expect(runs, check).toHaveLength(1);
+      expect(runs[0], check).toMatch(/--concurrency=2(?: |$)/);
+    }
     const builtJob = source.slice(source.indexOf("\n  built:"));
-    expect(builtJob).toContain("NODETOOL_TEST_WORKERS: ${{ (matrix.check == 'harness-gate' || matrix.check == 'test-packages-core' || matrix.check == 'test-packages-game' || matrix.check == 'test-packages-agents') && '1' || '' }}");
+    expect(builtJob).toContain("NODETOOL_TEST_WORKERS: ${{ (matrix.check == 'harness-gate' || matrix.check == 'test-packages-core' || matrix.check == 'test-packages-cli' || matrix.check == 'test-packages-engine' || matrix.check == 'test-packages-game' || matrix.check == 'test-packages-agents') && '1' || '' }}");
   });
 
   it("bounds harness concurrency in both diff and full-run paths", () => {
@@ -54,8 +57,10 @@ describe("quality check matrix exit status", () => {
       expect(path).toMatch(/--timeout 1500(?: |$)/);
     }
     const builtJob = source.slice(source.indexOf("\n  built:"));
-    expect(builtJob).toMatch(/timeout-minutes: 45/);
-    expect(builtJob).toContain("NODETOOL_TEST_WORKERS: ${{ (matrix.check == 'harness-gate' || matrix.check == 'test-packages-core' || matrix.check == 'test-packages-game' || matrix.check == 'test-packages-agents') && '1' || '' }}");
+    // The leg's own limit covers the two 1500 s selfcheck budgets it may run.
+    expect(builtJob).toContain("timeout-minutes: ${{ matrix.timeout }}");
+    expect(source).toMatch(/"check": "harness-gate",\n(?:\s+"[\w-]+": .+,\n)*?\s+"timeout": 60,/);
+    expect(builtJob).toContain("NODETOOL_TEST_WORKERS: ${{ (matrix.check == 'harness-gate' || matrix.check == 'test-packages-core' || matrix.check == 'test-packages-cli' || matrix.check == 'test-packages-engine' || matrix.check == 'test-packages-game' || matrix.check == 'test-packages-agents') && '1' || '' }}");
     expect(builtJob).toContain("NODETOOL_HARNESS_INCLUDE_SUITES: ${{ inputs.skip-tests && '--include-suites' || '' }}");
     for (const base of ["", "fixture-base"]) {
       for (const skipTests of [false, true]) {

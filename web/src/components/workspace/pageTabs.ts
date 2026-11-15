@@ -9,7 +9,6 @@ export type PageTabKey =
   | "models"
   | "packages"
   | "collections"
-  | "workspaces"
   | "entities"
   | "lipsync"
   | "effects"
@@ -25,7 +24,6 @@ export const PAGE_TAB_TITLES = {
   models: "Model manager",
   packages: "Package manager",
   collections: "Collections",
-  workspaces: "Workspaces",
   entities: "Entities",
   lipsync: "Lipsync",
   effects: "Effects",
