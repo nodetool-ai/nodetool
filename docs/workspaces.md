@@ -98,6 +98,8 @@ A folder in object storage is not watched, because only NodeTool writes to it. I
 
 When an asset's file is gone and exactly one file with no row has its partial fingerprint, the row points at that file. When several do, the stored SHA-256 decides: each candidate is read in full and the one that matches is the asset's file. When the asset has no SHA-256 yet, or no candidate matches, the asset is marked offline.
 
+Known limit: a single candidate is matched on the partial fingerprint alone, even when the asset has a SHA-256, because reading the whole candidate during a comparison would hold up every other change to the folder. A file that was deleted and replaced by a different file of equal size with equal first and last 1 MiB is therefore read as a move, and the asset points at the new file. The background job then stores the new file's SHA-256.
+
 #### The asset manifest
 
 Each project folder carries `.nodetool/assets.json`, next to `.nodetool/project.json`. It lists every asset whose file is in the folder:

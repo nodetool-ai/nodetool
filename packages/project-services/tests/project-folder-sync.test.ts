@@ -336,6 +336,33 @@ describe("the folder watcher", () => {
     }
   }, 30_000);
 
+  it("a file deleted and later dropped back at another path keeps its asset while the project is open", async () => {
+    useFolders("local");
+    const asset = await saveImage("a");
+    const watchers = new ProjectFolderWatchers();
+    try {
+      await watchers.setOpenProject(Symbol("client"), USER, PROJECT);
+      await flushProjectReconciles();
+
+      await rm(join(directoryOf(), "Generated", "a.png"));
+      await until("the asset to go offline", 5_000, async () =>
+        isProjectAssetOffline(await reload(asset))
+      );
+
+      await mkdir(join(directoryOf(), "selects"), { recursive: true });
+      await writeFile(join(directoryOf(), "selects", "a.png"), red);
+      await until("the asset to follow its file", 5_000, async () => {
+        const row = await reload(asset);
+        return (
+          row.workspace_path === "selects/a.png" && !isProjectAssetOffline(row)
+        );
+      });
+      expect((await rowsOf()).map((row) => row.id)).toEqual([asset.id]);
+    } finally {
+      watchers.closeAll();
+    }
+  }, 30_000);
+
   it("no watcher exists for a cloud folder", async () => {
     useFolders("storage");
     await saveImage("a");
@@ -676,6 +703,53 @@ describe.each(["local", "storage"] as const)(
       expect(report.offline).toEqual([]);
       expect((await reload(first)).workspace_path).toBe("selects/day-1/one.png");
       expect((await reload(second)).workspace_path).toBe("selects/two.png");
+    });
+
+    it("a file that comes back at another path goes to its offline row, though only the new path is named", async () => {
+      const asset = await saveImage("fox");
+      const workspace = folder(kind);
+      // The file leaves in one set of changes.
+      await workspace.delete("Generated/fox.png");
+      const gone = await reconcileProjectIndex(PROJECT, USER, {
+        paths: ["Generated/fox.png"]
+      });
+      expect(gone.offline).toEqual([asset.id]);
+
+      // It comes back somewhere else in a later one.
+      await workspace.write("selects/fox.png", red);
+      const back = await reconcileProjectIndex(PROJECT, USER, {
+        paths: ["selects/fox.png"]
+      });
+
+      expect(back).toMatchObject({ moved: [asset.id], created: [], offline: [] });
+      const rows = await rowsOf();
+      expect(rows.map((row) => row.id)).toEqual([asset.id]);
+      expect(rows[0]?.workspace_path).toBe("selects/fox.png");
+      expect(isProjectAssetOffline(rows[0]!)).toBe(false);
+      // A whole scan finds nothing left to do.
+      expect(await reconcileProjectIndex(PROJECT, USER)).toMatchObject({
+        moved: [],
+        created: [],
+        offline: []
+      });
+    });
+
+    it("an offline row stays offline when the changed file is not its file", async () => {
+      const asset = await saveImage("fox");
+      const workspace = folder(kind);
+      await workspace.delete("Generated/fox.png");
+      await reconcileProjectIndex(PROJECT, USER);
+
+      await workspace.write("selects/other.png", blue);
+      const report = await reconcileProjectIndex(PROJECT, USER, {
+        paths: ["selects/other.png"]
+      });
+
+      expect(report.moved).toEqual([]);
+      expect(report.created).toHaveLength(1);
+      const row = await reload(asset);
+      expect(row.workspace_path).toBe("Generated/fox.png");
+      expect(isProjectAssetOffline(row)).toBe(true);
     });
 
     it("a move seen as a copy first and a delete later keeps the asset, though the delete names only the old path", async () => {
