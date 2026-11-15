@@ -1184,6 +1184,22 @@ describe.each(["local", "storage"] as const)(
       });
     });
 
+    it("is written by a reconcile that leaves nothing to hash", async () => {
+      const asset = await saveImage("fox");
+      scheduleProjectReconcile(PROJECT, USER);
+      await flushProjectReconciles();
+      expect((await reload(asset)).content_hash).toBe(sha256(red));
+      // The manifest is lost, and every file already has its full hash.
+      await nodetoolDir(kind).delete(ASSET_MANIFEST_FILE);
+
+      scheduleProjectReconcile(PROJECT, USER);
+      await flushProjectReconciles();
+
+      expect((await readManifest()).assets.map((entry) => entry.id)).toEqual([
+        asset.id
+      ]);
+    });
+
     it("leaves out the full hash of a file that has none yet, and keeps an offline asset", async () => {
       const asset = await saveImage("fox");
       await folder(kind).delete("Generated/fox.png");
