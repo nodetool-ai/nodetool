@@ -696,61 +696,15 @@
   },
   "batch2_1": {
     "common": {
-      "workspace": "Arbetsyta",
       "loading": "Laddar...",
       "refresh": "Uppdatera",
       "remove": "Ta bort",
       "cancel": "Avbryt"
     },
-    "page": {
-      "title": "Arbetsytor",
-      "subtitle": "Sandlådemappar som agenter och arbetsflöden kan läsa, skriva och organisera filer i."
-    },
-    "folderPicker": {
-      "title": "Välj arbetsytamapp"
-    },
-    "notifications": {
-      "added": "Arbetsyta har lagts till",
-      "removed": "Arbetsytan har tagits bort"
-    },
-    "errors": {
-      "loadTitle": "Det gick inte att läsa in arbetsytor",
-      "loadSummary": "Det gick inte att läsa in arbetsytor",
-      "loadDescription": "Kontrollera din anslutning och försök igen.",
-      "operation": "Arbetsytan misslyckades: {{error}}"
-    },
-    "manager": {
-      "inaccessible": "Otillgänglig",
-      "defaultWorkspace": "Standardarbetsyta",
-      "setDefault": "Ställ in som standard",
-      "emptyTitle": "Inga arbetsytor har konfigurerats",
-      "emptyCanManage": "Lägg till en arbetsyta för att ge agenter åtkomst till lokala mappar",
-      "emptyManaged": "Den här distributionen hanterar din arbetsyta åt dig",
-      "adding": "Lägger till...",
-      "addWorkspace": "Lägg till arbetsyta",
-      "removeTitle": "Vill du ta bort den här arbetsytan?",
-      "removeDescription": "Arbetsytan kommer att tas bort från NodeTool. Själva mappen kommer inte att raderas."
-    },
-    "select": {
-      "defaultWithPath": "Standard ({{path}})",
-      "description": "Agenter läser och skriver filer här under körning, inklusive sparade bilder, text, data och andra utdata. Bläddra bland resultat i panelen Arbetsyta. Agenter kan bara komma åt filer i den här mappen. Ett arbetsflöde kvar på Standard använder din standardarbetsyta.",
-      "createNew": "Skapa ny arbetsyta",
-      "addWorkspace": "Lägg till arbetsyta..."
-    },
     "tree": {
       "loading": "Laddar...",
       "accessDenied": "⚠️ Åtkomst nekad",
-      "title": "Workspace explorer",
-      "manage": "Hantera arbetsytor",
-      "goToRoot": "Gå till root för arbetsytan",
-      "openInFolder": "Öppna i mapp",
-      "openExternally": "Öppna externt",
-      "noneSelected": "Ingen arbetsyta har valts",
-      "selectOrCreate": "Välj en arbetsyta ovan eller skapa en.",
-      "createWorkspace": "Skapa arbetsyta",
-      "fileBrowser": "Arbetsyta filläsare",
-      "emptyTitle": "Arbetsytan är tom",
-      "emptyDescription": "Lägg till filer i din arbetsytamapp för att se dem här."
+      "openExternally": "Öppna externt"
     }
   },
   "batch2_10": {
@@ -1760,7 +1714,6 @@
       "packageManager": "Pakethanterare",
       "assets": "Tillgångar",
       "collections": "Samlingar",
-      "workspaces": "Arbetsytor",
       "memory": "Minne",
       "settings": "Inställningar",
       "help": "Hjälp",
@@ -6663,8 +6616,6 @@
       "runModeTool": "Verktyg",
       "runModeDescription": "Hur detta arbetsflöde körs och kan utlösas",
       "advanced": "Avancerat",
-      "workspace": "Arbetsyta",
-      "workspaceDescription": "Koppla en arbetsytamapp till detta arbetsflöde för agentåtkomst",
       "toolName": "Verktygets namn",
       "toolNameDescription": "Identifierare för API/verktygsanvändning. Endast bokstäver, siffror, understreck.",
       "toolNamePlaceholder": "mitt_arbetsflödesverktyg",
@@ -10687,9 +10638,9 @@
         "jsScripts": "JS-skript",
         "skills": "Färdigheter",
         "assets": "Tillgångar",
-        "workspace": "Arbetsyta",
         "library": "Bibliotek",
-        "more": "Mer"
+        "more": "Mer",
+        "files": "Filer"
       },
       "categoryDescriptions": {
         "documents": "Bläddra i alla dokument i det aktuella projektet.",
@@ -10709,9 +10660,9 @@
         "jsScripts": "Skapa och hantera återanvändbar JavaScript-kod.",
         "skills": "Agentfärdigheter — nedskrivningsinstruktioner som matchar målet.",
         "assets": "Bläddra bland tillgångar som är tillgängliga i det aktuella sammanhanget.",
-        "workspace": "Bläddra bland filerna i den valda arbetsytans mapp.",
         "library": "Bläddra bland tillgångar i det aktuella projektet.",
-        "more": "Öppna ytterligare paneler för arbetsflöde, redigerare, utvecklare och arbetsytor."
+        "more": "Öppna fler paneler för arbetsflöden, redigerare och utveckling.",
+        "files": "Bläddra bland filerna i projektmappen."
       }
     },
     "queue": {
@@ -14022,8 +13973,7 @@
       "search": "Sök igenom alla paneler",
       "group": {
         "workflow-tools": "Arbetsflödesverktyg",
-        "agent-tools": "Agentverktyg",
-        "workspace": "Arbetsyta"
+        "agent-tools": "Agentverktyg"
       },
       "category": {
         "favorites": {
@@ -14041,10 +13991,6 @@
         "skills": {
           "label": "Färdigheter",
           "description": "Agentfärdigheter — nedskrivningsinstruktioner som matchar målet."
-        },
-        "workspace-files": {
-          "label": "Arbetsyta",
-          "description": "Bläddra bland filerna i den valda arbetsytans mapp."
         }
       }
     },
@@ -14700,9 +14646,6 @@
       "runGroup": {
         "groupRunning": "Gruppen är igång",
         "runGroup": "Kör grupp"
-      },
-      "saveDestinationHint": {
-        "workspace": "Arbetsyta"
       }
     }
   },
@@ -15921,9 +15864,9 @@
       "jsscripts": "JS-skript",
       "skills": "Färdigheter",
       "assets": "Tillgångar",
-      "workspace-files": "Arbetsyta",
       "library": "Bibliotek",
-      "more": "Mer"
+      "more": "Mer",
+      "files": "Filer"
     }
   },
   "i18n-next55": {
@@ -16050,7 +15993,6 @@
         "models": "Modellchef",
         "packages": "Pakethanterare",
         "collections": "Samlingar",
-        "workspaces": "Arbetsytor",
         "entities": "Entiteter",
         "memory": "Minne",
         "settings": "Inställningar",
@@ -18638,7 +18580,7 @@
   },
   "i18n-next110": {
     "workspaceFile": {
-      "invalidReference": "Ogiltig arbetsytefilreferens"
+      "invalidReference": "Ogiltig filreferens"
     }
   },
   "i18n-next109": {
@@ -20164,5 +20106,23 @@
     "saveFailed": "Det gick inte att spara behörigheten.",
     "loadFailed": "Det gick inte att läsa in verktygslistan.",
     "noMatches": "Inga verktyg matchar din sökning."
+  },
+  "projectFolder": {
+    "name": "Projektmapp",
+    "picker": {
+      "title": "Välj en mapp"
+    },
+    "tree": {
+      "title": "Filer",
+      "goToRoot": "Gå till projektmappens rot",
+      "fileBrowser": "Projektfiler",
+      "emptyTitle": "Projektmappen är tom",
+      "emptyDescription": "Lägg till filer i projektmappen för att se dem här.",
+      "noFolderTitle": "Ingen projektmapp",
+      "noFolderDescription": "Det här projektet har ingen mapp än.",
+      "revealInFinder": "Visa i Finder",
+      "revealInExplorer": "Visa i Utforskaren",
+      "revealInFileManager": "Visa i filhanteraren"
+    }
   }
 }

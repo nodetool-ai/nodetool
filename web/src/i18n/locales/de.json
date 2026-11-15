@@ -696,61 +696,15 @@
   },
   "batch2_1": {
     "common": {
-      "workspace": "Arbeitsbereich",
       "loading": "Wird geladen …",
       "refresh": "Aktualisieren",
       "remove": "Entfernen",
       "cancel": "Abbrechen"
     },
-    "page": {
-      "title": "Arbeitsbereiche",
-      "subtitle": "Abgeschirmte Ordner, in denen Agenten und Workflows Dateien lesen, schreiben und organisieren können."
-    },
-    "folderPicker": {
-      "title": "Arbeitsbereichsordner auswählen"
-    },
-    "notifications": {
-      "added": "Arbeitsbereich hinzugefügt",
-      "removed": "Arbeitsbereich entfernt"
-    },
-    "errors": {
-      "loadTitle": "Arbeitsbereiche konnten nicht geladen werden",
-      "loadSummary": "Arbeitsbereiche konnten nicht geladen werden",
-      "loadDescription": "Überprüfe deine Verbindung und versuche es erneut.",
-      "operation": "Arbeitsbereichsvorgang fehlgeschlagen: {{error}}"
-    },
-    "manager": {
-      "inaccessible": "Nicht zugänglich",
-      "defaultWorkspace": "Standardarbeitsbereich",
-      "setDefault": "Als Standard festlegen",
-      "emptyTitle": "Keine Arbeitsbereiche eingerichtet",
-      "emptyCanManage": "Füge einen Arbeitsbereich hinzu, damit Agenten auf lokale Ordner zugreifen können",
-      "emptyManaged": "Diese Bereitstellung verwaltet deinen Arbeitsbereich für dich",
-      "adding": "Wird hinzugefügt…",
-      "addWorkspace": "Arbeitsbereich hinzufügen",
-      "removeTitle": "Diesen Arbeitsbereich entfernen?",
-      "removeDescription": "Der Arbeitsbereich wird aus NodeTool entfernt. Der Ordner selbst wird nicht gelöscht."
-    },
-    "select": {
-      "defaultWithPath": "Standard ({{path}})",
-      "description": "Agenten lesen und schreiben hier während der Ausführung Dateien, darunter gespeicherte Bilder, Texte, Daten und andere Ausgaben. Sieh dir die Ergebnisse im Arbeitsbereichsfenster an. Agenten können nur auf Dateien in diesem Ordner zugreifen. Ein Workflow mit der Einstellung „Standard“ verwendet deinen Standardarbeitsbereich.",
-      "createNew": "Neuen Arbeitsbereich erstellen",
-      "addWorkspace": "Arbeitsbereich hinzufügen…"
-    },
     "tree": {
       "loading": "Wird geladen …",
       "accessDenied": "⚠️ Zugriff verweigert",
-      "title": "Arbeitsbereich-Explorer",
-      "manage": "Arbeitsbereiche verwalten",
-      "goToRoot": "Zum Stammordner des Arbeitsbereichs",
-      "openInFolder": "Im Ordner öffnen",
-      "openExternally": "Extern öffnen",
-      "noneSelected": "Kein Arbeitsbereich ausgewählt",
-      "selectOrCreate": "Wähle oben einen Arbeitsbereich aus oder erstelle einen.",
-      "createWorkspace": "Arbeitsbereich erstellen",
-      "fileBrowser": "Dateibrowser des Arbeitsbereichs",
-      "emptyTitle": "Arbeitsbereich ist leer",
-      "emptyDescription": "Füge Dateien zum Arbeitsbereichsordner hinzu, damit sie hier angezeigt werden."
+      "openExternally": "Extern öffnen"
     }
   },
   "batch2_10": {
@@ -1760,7 +1714,6 @@
       "packageManager": "Paketverwaltung",
       "assets": "Assets",
       "collections": "Sammlungen",
-      "workspaces": "Arbeitsbereiche",
       "memory": "Erinnerung",
       "settings": "Einstellungen",
       "help": "Hilfe",
@@ -6663,8 +6616,6 @@
       "runModeTool": "Tool",
       "runModeDescription": "So wird dieser Workflow ausgeführt und ausgelöst",
       "advanced": "Erweitert",
-      "workspace": "Arbeitsbereich",
-      "workspaceDescription": "Verknüpfe einen Arbeitsordner mit diesem Workflow, damit der Agent darauf zugreifen kann",
       "toolName": "Toolname",
       "toolNameDescription": "Kennung für API- und Tool-Nutzung. Nur Buchstaben, Zahlen und Unterstriche.",
       "toolNamePlaceholder": "mein_workflow_tool",
@@ -10687,9 +10638,9 @@
         "jsScripts": "JS-Skripte",
         "skills": "Skills",
         "assets": "Assets",
-        "workspace": "Arbeitsbereich",
         "library": "Bibliothek",
-        "more": "Mehr"
+        "more": "Mehr",
+        "files": "Dateien"
       },
       "categoryDescriptions": {
         "documents": "Alle Dokumente im aktuellen Projekt durchsuchen.",
@@ -10709,9 +10660,9 @@
         "jsScripts": "Wiederverwendbaren JavaScript-Code erstellen und verwalten.",
         "skills": "Agenten-Skills — Markdown-Anweisungen passend zum Ziel.",
         "assets": "Im aktuellen Kontext verfügbare Assets durchsuchen.",
-        "workspace": "Dateien im ausgewählten Arbeitsordner durchsuchen.",
         "library": "Assets im aktuellen Projekt durchsuchen.",
-        "more": "Weitere Workflow-, Editor-, Entwickler- und Arbeitsbereich-Panels öffnen."
+        "more": "Weitere Workflow-, Editor- und Entwicklerpanels öffnen.",
+        "files": "Dateien im Projektordner durchsuchen."
       }
     },
     "queue": {
@@ -14022,8 +13973,7 @@
       "search": "Alle Bereiche durchsuchen",
       "group": {
         "workflow-tools": "Workflow-Tools",
-        "agent-tools": "Agenten-Tools",
-        "workspace": "Arbeitsbereich"
+        "agent-tools": "Agenten-Tools"
       },
       "category": {
         "favorites": {
@@ -14041,10 +13991,6 @@
         "skills": {
           "label": "Skills",
           "description": "Agenten-Skills — Markdown-Anweisungen passend zum Ziel."
-        },
-        "workspace-files": {
-          "label": "Arbeitsbereich",
-          "description": "Dateien im ausgewählten Arbeitsordner durchsuchen."
         }
       }
     },
@@ -14700,9 +14646,6 @@
       "runGroup": {
         "groupRunning": "Gruppe wird ausgeführt",
         "runGroup": "Gruppe ausführen"
-      },
-      "saveDestinationHint": {
-        "workspace": "Arbeitsbereich"
       }
     }
   },
@@ -15921,9 +15864,9 @@
       "jsscripts": "JS-Skripte",
       "skills": "Skills",
       "assets": "Assets",
-      "workspace-files": "Arbeitsbereich",
       "library": "Bibliothek",
-      "more": "Mehr"
+      "more": "Mehr",
+      "files": "Dateien"
     }
   },
   "i18n-next55": {
@@ -16050,7 +15993,6 @@
         "models": "Modellverwaltung",
         "packages": "Paketverwaltung",
         "collections": "Sammlungen",
-        "workspaces": "Arbeitsbereiche",
         "entities": "Entitäten",
         "memory": "Erinnerung",
         "settings": "Einstellungen",
@@ -18638,7 +18580,7 @@
   },
   "i18n-next110": {
     "workspaceFile": {
-      "invalidReference": "Ungültiger Dateiverweis im Arbeitsbereich"
+      "invalidReference": "Ungültiger Dateiverweis"
     }
   },
   "i18n-next109": {
@@ -20164,5 +20106,23 @@
     "saveFailed": "Diese Berechtigung konnte nicht gespeichert werden.",
     "loadFailed": "Die Tool-Liste konnte nicht geladen werden.",
     "noMatches": "Keine Tools passen zu deiner Suche."
+  },
+  "projectFolder": {
+    "name": "Projektordner",
+    "picker": {
+      "title": "Ordner auswählen"
+    },
+    "tree": {
+      "title": "Dateien",
+      "goToRoot": "Zum Projektordner wechseln",
+      "fileBrowser": "Projektdateien",
+      "emptyTitle": "Der Projektordner ist leer",
+      "emptyDescription": "Füge dem Projektordner Dateien hinzu, damit sie hier erscheinen.",
+      "noFolderTitle": "Kein Projektordner",
+      "noFolderDescription": "Dieses Projekt hat noch keinen Ordner.",
+      "revealInFinder": "Im Finder anzeigen",
+      "revealInExplorer": "Im Datei-Explorer anzeigen",
+      "revealInFileManager": "Im Dateimanager anzeigen"
+    }
   }
 }

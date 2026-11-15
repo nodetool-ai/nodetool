@@ -634,6 +634,7 @@ describe("projects router: project folders", () => {
     const second = await caller().projects.create({ name: "My Film" });
 
     expect(first.folder).toEqual({
+      workspace_id: expect.any(String),
       path: join(root, "NodeTool", "My Film"),
       origin: "created",
       is_accessible: true,
@@ -679,6 +680,7 @@ describe("projects router: project folders", () => {
     const project = await caller().projects.create({ name: "Cloud Film" });
 
     expect(project.folder).toEqual({
+      workspace_id: expect.any(String),
       path: null,
       origin: "created",
       is_accessible: true,
@@ -722,6 +724,7 @@ describe("projects router: project folders", () => {
     // The row predates project folders, so its `created` is the column
     // default. The folder is one the user added, and a delete keeps it.
     expect(byName.get("Legacy")?.folder).toEqual({
+      workspace_id: expect.any(String),
       path: olderDir,
       origin: "created",
       is_accessible: true,
@@ -828,6 +831,7 @@ describe("projects router: project folders", () => {
 
     const created = await caller().projects.create({ name: "Hosted" });
     expect(created.folder).toEqual({
+      workspace_id: expect.any(String),
       path: null,
       origin: "created",
       is_accessible: true,

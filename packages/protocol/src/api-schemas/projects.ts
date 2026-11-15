@@ -19,10 +19,12 @@ export type ProjectFolderDeletePlan = z.infer<typeof projectFolderDeletePlan>;
  * The project's folder. `path` is the absolute directory, or null for a cloud
  * project, whose folder is a key prefix in object storage. `origin` is
  * `created` when NodeTool made the folder and `adopted` when the user brought
- * it. `on_delete` is what the server does to the folder when the project is
- * deleted, which the confirmation dialog states.
+ * it. `workspace_id` names the workspace row a client lists and reads the
+ * folder's files through. `on_delete` is what the server does to the folder
+ * when the project is deleted, which the confirmation dialog states.
  */
 export const projectFolder = z.object({
+  workspace_id: z.string(),
   path: z.string().nullable(),
   origin: z.enum(["created", "adopted"]),
   is_accessible: z.boolean(),

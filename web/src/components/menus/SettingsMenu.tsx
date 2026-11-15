@@ -1246,7 +1246,7 @@ function SettingsPage() {
 
                   {!isCloudProfile() &&
                     matchesSearch(
-                    "folders assets workspace directory storage",
+                    "folders assets project folder directory storage",
                     search
                   ) && (
                     <>

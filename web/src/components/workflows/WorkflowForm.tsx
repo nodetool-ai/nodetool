@@ -18,7 +18,6 @@ import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
-import WorkspaceSelect from "../workspaces/WorkspaceSelect";
 
 const DEFAULT_TAG_SUGGESTIONS = [
   "image",
@@ -191,13 +190,6 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
     [applyChange]
   );
 
-  const handleWorkspaceChange = useCallback(
-    (workspaceId: string | undefined) => {
-      applyChange({ workspace_id: workspaceId || null }, true);
-    },
-    [applyChange]
-  );
-
   return (
     <div css={styles(theme)} className="workflow-form">
       <FormSection className="settings-section">
@@ -246,13 +238,6 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
       </FormSection>
 
       <FormSection label={t("pass3_37.workflowForm.advanced")} className="settings-section">
-        <WorkspaceSelect
-          label={t("pass3_37.workflowForm.workspace")}
-          value={localWorkflow.workspace_id ?? undefined}
-          onChange={handleWorkspaceChange}
-          helperText={t("pass3_37.workflowForm.workspaceDescription")}
-        />
-
         <TextInput
           label={t("pass3_37.workflowForm.toolName")}
           helperText={t("pass3_37.workflowForm.toolNameDescription")}
