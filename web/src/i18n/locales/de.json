@@ -20124,5 +20124,13 @@
       "revealInExplorer": "Im Datei-Explorer anzeigen",
       "revealInFileManager": "Im Dateimanager anzeigen"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "Asset-Quelle",
+    "projectTab": "Dieses Projekt",
+    "personalTab": "Persönlich",
+    "personalHint": "Wenn du aus „Persönlich“ auswählst, wird die Datei in dieses Projekt kopiert.",
+    "copying": "Wird in dieses Projekt kopiert…",
+    "copyFailed": "Das Asset konnte nicht in dieses Projekt kopiert werden."
   }
 }

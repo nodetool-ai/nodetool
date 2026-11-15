@@ -20124,5 +20124,13 @@
       "revealInExplorer": "파일 탐색기에서 보기",
       "revealInFileManager": "파일 관리자에서 보기"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "에셋 출처",
+    "projectTab": "이 프로젝트",
+    "personalTab": "개인",
+    "personalHint": "개인에서 선택하면 파일이 이 프로젝트로 복사됩니다.",
+    "copying": "이 프로젝트로 복사하는 중…",
+    "copyFailed": "에셋을 이 프로젝트로 복사하지 못했습니다."
   }
 }

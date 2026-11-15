@@ -20124,5 +20124,13 @@
       "revealInExplorer": "Näytä Resurssienhallinnassa",
       "revealInFileManager": "Näytä tiedostonhallinnassa"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "Aineiston lähde",
+    "projectTab": "Tämä projekti",
+    "personalTab": "Henkilökohtainen",
+    "personalHint": "Kun valitset Henkilökohtaisesta, tiedosto kopioidaan tähän projektiin.",
+    "copying": "Kopioidaan tähän projektiin…",
+    "copyFailed": "Aineistoa ei voitu kopioida tähän projektiin."
   }
 }

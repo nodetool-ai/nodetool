@@ -2,9 +2,12 @@
  * EntityAssetPickerDialog — pick the image asset an entity is tagged onto.
  * Shared by the entities page and the sidebar panel so both start the same
  * "pick an image, then describe it" flow.
+ *
+ * In a named project it also offers Personal. An image picked there is
+ * copied into the project, and `onPick` receives the copy's id.
  */
 
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
@@ -23,10 +26,12 @@ import {
 import type { Asset } from "../../stores/ApiTypes";
 import { trpcClient } from "../../trpc/client";
 import ImageRefPreview from "../node/ImageRefPreview";
+import { AssetPickSourceTabs } from "../assets/AssetPickSourceTabs";
+import ErrorBanner from "../support/ErrorBanner";
 import {
-  LOOSE_PROJECT_ID,
-  useWorkspaceTabsStore
-} from "../../stores/WorkspaceTabsStore";
+  useProjectAssetPick,
+  type AssetPickSource
+} from "../../hooks/assets/useProjectAssetPick";
 
 interface EntityAssetPickerDialogProps {
   readonly open: boolean;
@@ -60,18 +65,24 @@ const EntityAssetPickerDialogInternal: React.FC<
 }) => {
   const { t } = useTranslation();
   const theme = useTheme();
-  const activeProjectId =
-    useWorkspaceTabsStore((state) => state.activeProjectId) ?? LOOSE_PROJECT_ID;
-  const scopedProjectId = projectId ?? activeProjectId;
+  const pick = useProjectAssetPick(projectId);
+  const [source, setSource] = useState<AssetPickSource>("project");
+  const [copying, setCopying] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
+  // A picker limited to given ids offers only those, so it has no library tab.
+  const personalProjectId = assetIds ? null : pick.personalProjectId;
+  const fromPersonal = source === "personal" && personalProjectId !== null;
+  const listedProjectId =
+    fromPersonal && personalProjectId ? personalProjectId : pick.projectId;
   const allowed = assetIds ? new Set(assetIds) : null;
   const excluded = excludedAssetIds ? new Set(excludedAssetIds) : null;
   const { data, isLoading } = useQuery({
-    queryKey: ["entity-asset-picker", scopedProjectId],
+    queryKey: ["entity-asset-picker", listedProjectId],
     queryFn: async (): Promise<Asset[]> => {
       const result = await trpcClient.assets.search.query({
         query: "",
         page_size: 500,
-        project_id: scopedProjectId
+        project_id: listedProjectId
       });
       return (result.assets as Asset[]).filter((a) =>
         (a.content_type ?? "").startsWith("image/")
@@ -87,6 +98,18 @@ const EntityAssetPickerDialogInternal: React.FC<
       (excluded === null || !excluded.has(asset.id))
   );
 
+  const handlePick = async (assetId: string): Promise<void> => {
+    setCopyError(null);
+    setCopying(true);
+    try {
+      onPick(await pick.idForProject(assetId, fromPersonal ? "personal" : "project"));
+    } catch (error) {
+      setCopyError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setCopying(false);
+    }
+  };
+
   return (
     <Dialog
       open={open}
@@ -100,7 +123,26 @@ const EntityAssetPickerDialogInternal: React.FC<
         />
       }
     >
-      {isLoading ? (
+      {personalProjectId !== null && (
+        <AssetPickSourceTabs value={source} onChange={setSource} />
+      )}
+      {copyError !== null && (
+        <ErrorBanner
+          report={{
+            source: "operation-failure",
+            summary: "Could not copy a Personal asset into the project",
+            errorText: copyError
+          }}
+          onDismiss={() => setCopyError(null)}
+        >
+          {t("assetPicker.copyFailed")}
+        </ErrorBanner>
+      )}
+      {copying ? (
+        <FlexRow align="center" justify="center" sx={{ p: SPACING.lg }}>
+          <LoadingSpinner text={t("assetPicker.copying")} />
+        </FlexRow>
+      ) : isLoading ? (
         <FlexRow align="center" justify="center" sx={{ p: SPACING.lg }}>
           <LoadingSpinner text={t("screens4_22.entities.loadingImages")} />
         </FlexRow>
@@ -123,7 +165,7 @@ const EntityAssetPickerDialogInternal: React.FC<
                 aria-label={t("screens4_22.entities.pickImage", {
                   name: asset.name
                 })}
-                onClick={() => onPick(asset.id)}
+                onClick={() => void handlePick(asset.id)}
                 style={{
                   border: `1px solid ${theme.vars.palette.divider}`,
                   borderRadius: BORDER_RADIUS.sm,

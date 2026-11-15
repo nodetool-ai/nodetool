@@ -20124,5 +20124,13 @@
       "revealInExplorer": "エクスプローラーで表示",
       "revealInFileManager": "ファイルマネージャーで表示"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "アセットの参照元",
+    "projectTab": "このプロジェクト",
+    "personalTab": "個人",
+    "personalHint": "個人から選ぶと、ファイルがこのプロジェクトにコピーされます。",
+    "copying": "このプロジェクトにコピーしています…",
+    "copyFailed": "アセットをこのプロジェクトにコピーできませんでした。"
   }
 }

@@ -20124,5 +20124,13 @@
       "revealInExplorer": "Vis i Filutforsker",
       "revealInFileManager": "Vis i filbehandleren"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "Ressurskilde",
+    "projectTab": "Dette prosjektet",
+    "personalTab": "Personlig",
+    "personalHint": "Når du velger fra Personlig, kopieres filen til dette prosjektet.",
+    "copying": "Kopierer til dette prosjektet…",
+    "copyFailed": "Kunne ikke kopiere ressursen til dette prosjektet."
   }
 }

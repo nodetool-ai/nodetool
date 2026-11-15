@@ -20746,5 +20746,13 @@
       "revealInExplorer": "Pokaż w Eksploratorze plików",
       "revealInFileManager": "Pokaż w menedżerze plików"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "Źródło zasobu",
+    "projectTab": "Ten projekt",
+    "personalTab": "Osobiste",
+    "personalHint": "Wybranie z Osobistych kopiuje plik do tego projektu.",
+    "copying": "Kopiowanie do tego projektu…",
+    "copyFailed": "Nie udało się skopiować zasobu do tego projektu."
   }
 }
