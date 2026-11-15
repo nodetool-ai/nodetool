@@ -1508,8 +1508,10 @@ server serves the same format at `GET /api/projects/:id/export` and
 **Subcommands:**
 
 - `list [--archived] [--json]` — projects, newest first.
-- `export <project_id> [-o <file>] [--json]` — write the project to a file.
-  The default name is `<project name>.nodetool-project`.
+- `export <project_id> [-o <file>] [--collect] [--json]` — write the project
+  to a file. The default name is `<project name>.nodetool-project`. A project
+  that links files from outside its folder is refused with their names.
+  `--collect` copies them into the folder's `Imported/` directory first.
 - `import <file> [--name <name>] [--json]` — create a new project from a file
   and print its id.
 

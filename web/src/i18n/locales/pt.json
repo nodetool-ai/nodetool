@@ -6566,7 +6566,8 @@
           "export": "Exportar",
           "archive": "Arquivo",
           "restore": "Restaurar",
-          "delete": "Excluir"
+          "delete": "Excluir",
+          "collect": "Reunir arquivos"
         },
         "projectActions": "Ações do projeto",
         "actionsForProject": "Ações para {{projectName}}",
@@ -6575,7 +6576,24 @@
         "confirmDeleteTitle": "Excluir {{projectName}}?",
         "confirmDeleteBody": "Exclua {{projectName}} e todos os seus documentos, conversas, saídas geradas, ativos, trabalhos e arquivos de projeto.",
         "deleteIrreversible": "Isto não pode ser desfeito.",
-        "error": "Não foi possível {{action}} {{projectName}}: {{error}}"
+        "error": "Não foi possível {{action}} {{projectName}}: {{error}}",
+        "collecting": "Reunindo arquivos…",
+        "collectResult": "Arquivos reunidos em {{projectName}}: {{copied}} copiados, {{skipped}} ignorados, {{failed}} com falha.",
+        "linkedTitle": "{{projectName}} vincula arquivos fora da sua pasta",
+        "linkedBody": "Uma exportação contém a pasta do projeto. Estes arquivos estão vinculados de outro lugar e não estão nela:",
+        "linkedChoice": "Reunir e exportar os copia para a pasta Imported e depois exporta. Cancelar mantém os vínculos e não exporta nada.",
+        "collectAndExport": "Reunir e exportar"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Copiar ou vincular?",
+        "confirm": "Importar",
+        "copy": "Copiar para a pasta do projeto",
+        "copyHint": "O projeto mantém a própria cópia. Alterações no original não chegam a ela.",
+        "link": "Vincular no local",
+        "linkHint": "Nada é copiado. O projeto lê o arquivo onde ele está. Reunir arquivos o copia depois.",
+        "threshold": "Arquivos de {{size}} ou mais são vinculados por padrão."
       }
     }
   },

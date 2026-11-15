@@ -211,6 +211,34 @@ export type RelinkExternalInput = z.infer<typeof relinkExternalInput>;
 export const relinkExternalOutput = assetResponse;
 export type RelinkExternalOutput = z.infer<typeof relinkExternalOutput>;
 
+// ── collect (copy a project's linked files into its folder) ──────
+// Each linked file is copied into `Imported/`, verified, and its row pointed
+// at the copy. Asset ids stay. A linked file that is offline is skipped.
+
+export const collectInput = z.object({
+  project_id: z.string().min(1)
+});
+export type CollectInput = z.infer<typeof collectInput>;
+
+const uncollectedAsset = z.object({
+  id: z.string(),
+  name: z.string(),
+  reason: z.string()
+});
+
+export const collectOutput = z.object({
+  copied: z.array(
+    z.object({ id: z.string(), name: z.string(), workspace_path: z.string() })
+  ),
+  /** Linked files that are missing or changed since they were linked. */
+  skipped: z.array(uncollectedAsset),
+  /** Linked files whose copy could not be written or verified. */
+  failed: z.array(uncollectedAsset),
+  /** The request was cancelled before every linked file was tried. */
+  interrupted: z.boolean()
+});
+export type CollectOutput = z.infer<typeof collectOutput>;
+
 // ── ensureProxy (preview proxy for a video asset) ─────────────────
 // Queues an all-intra preview proxy for a video asset at any size and answers
 // the current state. Local server only.

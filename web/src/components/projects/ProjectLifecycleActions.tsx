@@ -8,6 +8,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
+import CreateNewFolderOutlinedIcon from "@mui/icons-material/CreateNewFolderOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -27,11 +28,16 @@ import {
 } from "../ui_primitives";
 import {
   useArchiveProject,
+  useCollectProjectFiles,
   useDeleteProject,
   useExportProject,
   useRestoreProject
 } from "../../hooks/useProjects";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import {
+  ProjectLinkedFilesError,
+  type LinkedProjectFile
+} from "../../utils/projectArchive";
 
 interface ErrorWithMessage {
   readonly message: string;
@@ -60,7 +66,10 @@ interface ProjectLifecycleActionsProps {
 const stopBubbling = (event: SyntheticEvent) => event.stopPropagation();
 const stopKeyBubbling = (event: KeyboardEvent) => event.stopPropagation();
 
-/** Export, archive, or permanently delete a named project from its management surface. */
+/**
+ * Export, collect linked files into, archive, or permanently delete a named
+ * project from its management surface.
+ */
 const ProjectLifecycleActions = ({
   project,
   layout = "buttons"
@@ -68,11 +77,16 @@ const ProjectLifecycleActions = ({
   const { t } = useTranslation();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  // Linked files that stopped an export, while the creator chooses.
+  const [linkedFiles, setLinkedFiles] = useState<LinkedProjectFile[] | null>(
+    null
+  );
   const closeMenu = useCallback(() => setMenuAnchor(null), []);
   const archive = useArchiveProject();
   const restore = useRestoreProject();
   const remove = useDeleteProject();
   const exportProject = useExportProject();
+  const collect = useCollectProjectFiles();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -80,7 +94,7 @@ const ProjectLifecycleActions = ({
   const stop = (event: MouseEvent<HTMLElement>) => event.stopPropagation();
   const reportError = useCallback(
     (
-      action: "export" | "archive" | "restore" | "delete",
+      action: "export" | "collect" | "archive" | "restore" | "delete",
       error: ErrorWithMessage
     ) =>
       addNotification({
@@ -100,10 +114,59 @@ const ProjectLifecycleActions = ({
       setMenuAnchor(null);
       exportProject.mutate(
         { id: project.id, name: project.name },
-        { onError: (error) => reportError("export", error) }
+        {
+          onError: (error) =>
+            error instanceof ProjectLinkedFilesError
+              ? setLinkedFiles(error.files)
+              : reportError("export", error)
+        }
       );
     },
     [exportProject, project.id, project.name, reportError]
+  );
+  const collectAndExport = useCallback(() => {
+    exportProject.mutate(
+      { id: project.id, name: project.name, collectLinked: true },
+      {
+        onSuccess: () => setLinkedFiles(null),
+        onError: (error) => {
+          if (error instanceof ProjectLinkedFilesError) {
+            // Offline or failed files are still linked. Show what is left.
+            setLinkedFiles(error.files);
+          } else {
+            setLinkedFiles(null);
+            reportError("export", error);
+          }
+        }
+      }
+    );
+  }, [exportProject, project.id, project.name, reportError]);
+  const handleCollect = useCallback(
+    (event: MouseEvent<HTMLElement>) => {
+      stop(event);
+      setMenuAnchor(null);
+      collect.mutate(
+        { project_id: project.id },
+        {
+          onSuccess: (result) =>
+            addNotification({
+              type:
+                result.failed.length > 0 || result.skipped.length > 0
+                  ? "warning"
+                  : "success",
+              alert: result.failed.length > 0,
+              content: t("pass3_33.projects.lifecycle.collectResult", {
+                projectName: project.name,
+                copied: result.copied.length,
+                skipped: result.skipped.length,
+                failed: result.failed.length
+              })
+            }),
+          onError: (error) => reportError("collect", error)
+        }
+      );
+    },
+    [addNotification, collect, project.id, project.name, reportError, t]
   );
   const handleArchive = useCallback(
     (event: MouseEvent<HTMLElement>) => {
@@ -177,6 +240,16 @@ const ProjectLifecycleActions = ({
             disabled={exportProject.isPending}
             onClick={handleExport}
           />
+          <MenuItemPrimitive
+            label={
+              collect.isPending
+                ? t("pass3_33.projects.lifecycle.collecting")
+                : t("pass3_33.projects.lifecycle.actions.collect")
+            }
+            icon={<CreateNewFolderOutlinedIcon />}
+            disabled={collect.isPending}
+            onClick={handleCollect}
+          />
           {project.archivedAt ? (
             <MenuItemPrimitive
               label={t("pass3_33.projects.lifecycle.actions.restore")}
@@ -210,6 +283,16 @@ const ProjectLifecycleActions = ({
           {exportProject.isPending
             ? t("pass3_33.projects.lifecycle.exporting")
             : t("pass3_33.projects.lifecycle.actions.export")}
+        </EditorButton>
+        <EditorButton
+          density="compact"
+          variant="text"
+          onClick={handleCollect}
+          loading={collect.isPending}
+        >
+          {collect.isPending
+            ? t("pass3_33.projects.lifecycle.collecting")
+            : t("pass3_33.projects.lifecycle.actions.collect")}
         </EditorButton>
         {project.archivedAt ? (
           <EditorButton
@@ -247,6 +330,32 @@ const ProjectLifecycleActions = ({
       sx={{ display: "contents" }}
     >
       {actions}
+      <Dialog
+        open={linkedFiles !== null}
+        onClose={() => !exportProject.isPending && setLinkedFiles(null)}
+        title={t("pass3_33.projects.lifecycle.linkedTitle", {
+          projectName: project.name
+        })}
+        onConfirm={collectAndExport}
+        confirmText={t("pass3_33.projects.lifecycle.collectAndExport")}
+        isLoading={exportProject.isPending}
+      >
+        <FlexColumn gap={SPACING.md}>
+          <Text size="small">
+            {t("pass3_33.projects.lifecycle.linkedBody")}
+          </Text>
+          <FlexColumn component="ul" gap={SPACING.xs} sx={{ m: 0, pl: SPACING.lg }}>
+            {(linkedFiles ?? []).map((file) => (
+              <Text key={file.id} component="li" size="small">
+                {file.name}
+              </Text>
+            ))}
+          </FlexColumn>
+          <Text size="small">
+            {t("pass3_33.projects.lifecycle.linkedChoice")}
+          </Text>
+        </FlexColumn>
+      </Dialog>
       <Dialog
         open={confirmingDelete}
         onClose={() => !remove.isPending && setConfirmingDelete(false)}

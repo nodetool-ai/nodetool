@@ -325,6 +325,36 @@ describe("AssetStore", () => {
         expect(mockRestFetch).toHaveBeenCalled();
       });
 
+      it("links a file below the threshold when Link was chosen", async () => {
+        configQuery.mockResolvedValue({ enabled: true, threshold_bytes: 1000 });
+        const file = new File(["test content"], "clip.mp4", {
+          type: "video/mp4"
+        });
+        const result = await useAssetStore
+          .getState()
+          .createAsset(file, undefined, undefined, undefined, "file", "project-a", undefined, "link");
+        expect(createExternalMutate).toHaveBeenCalledWith(
+          expect.objectContaining({ path: "/media/clip.mp4", project_id: "project-a" })
+        );
+        expect(mockRestFetch).not.toHaveBeenCalled();
+        expect(result.id).toBe("external-id");
+      });
+
+      it("copies a file at or above the threshold when Copy was chosen", async () => {
+        mockRestFetch.mockResolvedValue({
+          ok: true,
+          json: jest.fn().mockResolvedValue(external)
+        });
+        const file = new File(["test content"], "clip.mp4", {
+          type: "video/mp4"
+        });
+        await useAssetStore
+          .getState()
+          .createAsset(file, undefined, undefined, undefined, "file", "project-a", undefined, "copy");
+        expect(createExternalMutate).not.toHaveBeenCalled();
+        expect(mockRestFetch).toHaveBeenCalled();
+      });
+
       it("uploads when the server does not offer external references", async () => {
         configQuery.mockResolvedValue({ enabled: false, threshold_bytes: 10 });
         mockRestFetch.mockResolvedValue({

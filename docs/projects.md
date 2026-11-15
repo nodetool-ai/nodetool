@@ -78,12 +78,36 @@ references between them are rewritten to point at the new copies, so the
 same file can be imported twice. Imported workflows are private, and a
 project exported from Personal arrives as an ordinary named project.
 
+A project that links media from outside its folder (see
+[Link or copy media](#link-or-copy-media)) is not exported as it stands. The
+export dialog names the linked files. **Collect and export** copies them into
+the folder and then exports. **Cancel** keeps the links and exports nothing.
+
 The same files move through the command line with `nodetool projects export`
 and `nodetool projects import`. See the [CLI reference](cli.md#nodetool-projects).
 
+## Link or copy media
+
+On the desktop app, importing files into the asset browser asks **Copy into
+the project folder** or **Link in place**. Copy writes the file into the
+folder's `Imported/` directory. Link copies nothing: the asset reads the file
+where it is, which suits large footage. A file at or above the link
+threshold (`NODETOOL_EXTERNAL_ASSET_THRESHOLD_BYTES`, default 1 GiB) starts
+on Link. In a browser, and on a server with `NODETOOL_ENV=production`,
+import always copies.
+
+**Collect files** on a project card copies every linked file into
+`Imported/` and points its asset at the copy. Asset ids stay the same, so
+every document that uses them keeps working, and the original files are left
+where they were. Each copy is checked against the original before the link
+is dropped. A linked file that is missing or changed is skipped. When it
+finishes, a notice reports how many files were copied, skipped, and failed.
+Running it again after an interruption finishes the rest without copying a
+file twice.
+
 ## Archive, restore, and delete
 
-Each card carries **Export**, **Archive**, and **Delete** buttons. They are absent for Personal.
+Each card carries **Export**, **Collect files**, **Archive**, and **Delete** buttons. They are absent for Personal.
 
 - **Archive** hides the project from the selector and deletes nothing. Archived projects are listed under **Archived projects** at the end of the list, where **Restore** brings one back.
 - **Delete** asks for confirmation in a dialog titled "Delete *name*?". It removes the project and all of its documents, conversations, generated outputs, assets, jobs, and project files. This cannot be undone.

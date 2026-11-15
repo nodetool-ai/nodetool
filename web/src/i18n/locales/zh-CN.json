@@ -6471,7 +6471,8 @@
           "export": "导出",
           "archive": "归档",
           "restore": "恢复",
-          "delete": "删除"
+          "delete": "删除",
+          "collect": "收集文件"
         },
         "projectActions": "项目操作",
         "actionsForProject": "{{projectName}}的操作",
@@ -6480,7 +6481,24 @@
         "confirmDeleteTitle": "删除{{projectName}}？",
         "confirmDeleteBody": "删除{{projectName}}及其所有文档、对话、生成的输出、资源、任务和项目文件。",
         "deleteIrreversible": "此操作无法撤销。",
-        "error": "无法{{action}}{{projectName}}：{{error}}"
+        "error": "无法{{action}}{{projectName}}：{{error}}",
+        "collecting": "正在收集文件…",
+        "collectResult": "已将文件收集到 {{projectName}}：已复制 {{copied}} 个，已跳过 {{skipped}} 个，失败 {{failed}} 个。",
+        "linkedTitle": "{{projectName}} 链接了其文件夹之外的文件",
+        "linkedBody": "导出包含项目文件夹。以下文件从其他位置链接，不在文件夹中：",
+        "linkedChoice": "“收集并导出”会将它们复制到文件夹的 Imported 目录，然后导出。“取消”保留链接，不导出任何内容。",
+        "collectAndExport": "收集并导出"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "复制还是链接？",
+        "confirm": "导入",
+        "copy": "复制到项目文件夹",
+        "copyHint": "项目会保留自己的副本。对原文件的更改不会影响它。",
+        "link": "原位链接",
+        "linkHint": "不复制任何内容。项目从文件所在位置读取它。“收集文件”可以稍后将其复制进来。",
+        "threshold": "{{size}} 及以上的文件默认链接。"
       }
     }
   },

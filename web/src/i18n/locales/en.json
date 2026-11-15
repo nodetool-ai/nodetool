@@ -6471,7 +6471,8 @@
           "export": "Export",
           "archive": "Archive",
           "restore": "Restore",
-          "delete": "Delete"
+          "delete": "Delete",
+          "collect": "Collect files"
         },
         "projectActions": "Project actions",
         "actionsForProject": "Actions for {{projectName}}",
@@ -6480,7 +6481,24 @@
         "confirmDeleteTitle": "Delete {{projectName}}?",
         "confirmDeleteBody": "Delete {{projectName}} and all of its documents, conversations, generated outputs, assets, jobs, and project files.",
         "deleteIrreversible": "This cannot be undone.",
-        "error": "Could not {{action}} {{projectName}}: {{error}}"
+        "error": "Could not {{action}} {{projectName}}: {{error}}",
+        "collecting": "Collecting files…",
+        "collectResult": "Collected files into {{projectName}}: {{copied}} copied, {{skipped}} skipped, {{failed}} failed.",
+        "linkedTitle": "{{projectName}} links files outside its folder",
+        "linkedBody": "An export holds the project folder. These files are linked from somewhere else and are not in it:",
+        "linkedChoice": "Collect and export copies them into the folder's Imported directory, then exports. Cancel keeps the links and exports nothing.",
+        "collectAndExport": "Collect and export"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Copy or link?",
+        "confirm": "Import",
+        "copy": "Copy into the project folder",
+        "copyHint": "The project keeps its own copy. Changes to the original do not reach it.",
+        "link": "Link in place",
+        "linkHint": "Nothing is copied. The project reads the file where it is. Collect files copies it in later.",
+        "threshold": "Files of {{size}} or more are linked by default."
       }
     }
   },

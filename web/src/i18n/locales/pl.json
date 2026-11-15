@@ -6661,7 +6661,8 @@
           "export": "Eksportuj",
           "archive": "Archiwum",
           "restore": "Przywróć",
-          "delete": "Usuń"
+          "delete": "Usuń",
+          "collect": "Zbierz pliki"
         },
         "projectActions": "Działania projektowe",
         "actionsForProject": "Działania dla {{projectName}}",
@@ -6670,7 +6671,24 @@
         "confirmDeleteTitle": "Usunąć {{projectName}}?",
         "confirmDeleteBody": "Usuń {{projectName}} i wszystkie jego dokumenty, rozmowy, wygenerowane wyniki, zasoby, zadania i pliki projektu.",
         "deleteIrreversible": "Tego nie można cofnąć.",
-        "error": "Nie można {{action}} {{projectName}}: {{error}}"
+        "error": "Nie można {{action}} {{projectName}}: {{error}}",
+        "collecting": "Zbieranie plików…",
+        "collectResult": "Zebrano pliki w {{projectName}}: skopiowane {{copied}}, pominięte {{skipped}}, nieudane {{failed}}.",
+        "linkedTitle": "{{projectName}} łączy pliki spoza swojego folderu",
+        "linkedBody": "Eksport zawiera folder projektu. Te pliki są połączone z innego miejsca i nie ma ich w nim:",
+        "linkedChoice": "Zbierz i eksportuj kopiuje je do katalogu Imported w folderze, a potem eksportuje. Anuluj zachowuje połączenia i niczego nie eksportuje.",
+        "collectAndExport": "Zbierz i eksportuj"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Skopiować czy połączyć?",
+        "confirm": "Importuj",
+        "copy": "Skopiuj do folderu projektu",
+        "copyHint": "Projekt zachowuje własną kopię. Zmiany w oryginale do niej nie trafiają.",
+        "link": "Połącz w miejscu",
+        "linkHint": "Nic nie jest kopiowane. Projekt czyta plik tam, gdzie się znajduje. Zbierz pliki skopiuje go później.",
+        "threshold": "Pliki o rozmiarze {{size}} lub większym są domyślnie łączone."
       }
     }
   },

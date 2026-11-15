@@ -6471,7 +6471,8 @@
           "export": "Eksporter",
           "archive": "Arkiv",
           "restore": "Gjenopprett",
-          "delete": "Slett"
+          "delete": "Slett",
+          "collect": "Samle filer"
         },
         "projectActions": "Prosjekthandlinger",
         "actionsForProject": "Handlinger for {{projectName}}",
@@ -6480,7 +6481,24 @@
         "confirmDeleteTitle": "Vil du slette {{projectName}}?",
         "confirmDeleteBody": "Slett {{projectName}} og alle dens dokumenter, samtaler, genererte utdata, eiendeler, jobber og prosjektfiler.",
         "deleteIrreversible": "Dette kan ikke angres.",
-        "error": "Kunne ikke {{action}} {{projectName}}: {{error}}"
+        "error": "Kunne ikke {{action}} {{projectName}}: {{error}}",
+        "collecting": "Samler filer…",
+        "collectResult": "Filer samlet i {{projectName}}: {{copied}} kopiert, {{skipped}} hoppet over, {{failed}} mislyktes.",
+        "linkedTitle": "{{projectName}} lenker til filer utenfor mappen sin",
+        "linkedBody": "En eksport inneholder prosjektmappen. Disse filene er lenket fra et annet sted og ligger ikke i den:",
+        "linkedChoice": "Samle og eksporter kopierer dem til mappen Imported og eksporterer deretter. Avbryt beholder lenkene og eksporterer ingenting.",
+        "collectAndExport": "Samle og eksporter"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Kopiere eller lenke?",
+        "confirm": "Importer",
+        "copy": "Kopier til prosjektmappen",
+        "copyHint": "Prosjektet beholder sin egen kopi. Endringer i originalen når ikke frem til den.",
+        "link": "Lenk på stedet",
+        "linkHint": "Ingenting kopieres. Prosjektet leser filen der den ligger. Samle filer kopierer den inn senere.",
+        "threshold": "Filer på {{size}} eller mer lenkes som standard."
       }
     }
   },

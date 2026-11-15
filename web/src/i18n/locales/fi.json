@@ -6471,7 +6471,8 @@
           "export": "Vie",
           "archive": "Arkistoi",
           "restore": "Palauta",
-          "delete": "Poista"
+          "delete": "Poista",
+          "collect": "Kokoa tiedostot"
         },
         "projectActions": "Projektin toiminnot",
         "actionsForProject": "Toiminnot projektille {{projectName}}",
@@ -6480,7 +6481,24 @@
         "confirmDeleteTitle": "Poistetaanko {{projectName}}?",
         "confirmDeleteBody": "Poista {{projectName}} ja kaikki sen dokumentit, keskustelut, generoidut tulokset, aineistot, työt ja projektitiedostot.",
         "deleteIrreversible": "Tätä ei voi kumota.",
-        "error": "Toiminto {{action}} epäonnistui projektille {{projectName}}: {{error}}"
+        "error": "Toiminto {{action}} epäonnistui projektille {{projectName}}: {{error}}",
+        "collecting": "Kootaan tiedostoja…",
+        "collectResult": "Tiedostot koottu projektiin {{projectName}}: {{copied}} kopioitu, {{skipped}} ohitettu, {{failed}} epäonnistui.",
+        "linkedTitle": "{{projectName}} linkittää tiedostoja kansionsa ulkopuolelta",
+        "linkedBody": "Vienti sisältää projektikansion. Nämä tiedostot on linkitetty muualta, eivätkä ne ole kansiossa:",
+        "linkedChoice": "Kokoa ja vie kopioi ne kansion Imported-hakemistoon ja vie sitten projektin. Peruuta säilyttää linkit eikä vie mitään.",
+        "collectAndExport": "Kokoa ja vie"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Kopioidaanko vai linkitetäänkö?",
+        "confirm": "Tuo",
+        "copy": "Kopioi projektikansioon",
+        "copyHint": "Projekti säilyttää oman kopionsa. Alkuperäisen muutokset eivät näy siinä.",
+        "link": "Linkitä paikallaan",
+        "linkHint": "Mitään ei kopioida. Projekti lukee tiedoston sen nykyisestä sijainnista. Kokoa tiedostot kopioi sen myöhemmin.",
+        "threshold": "Vähintään {{size}} kokoiset tiedostot linkitetään oletuksena."
       }
     }
   },

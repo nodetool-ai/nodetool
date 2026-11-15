@@ -6471,7 +6471,8 @@
           "export": "Exportieren",
           "archive": "Archiv",
           "restore": "Wiederherstellen",
-          "delete": "Löschen"
+          "delete": "Löschen",
+          "collect": "Dateien einsammeln"
         },
         "projectActions": "Projektaktionen",
         "actionsForProject": "Aktionen für {{projectName}}",
@@ -6480,7 +6481,24 @@
         "confirmDeleteTitle": "{{projectName}} löschen?",
         "confirmDeleteBody": "{{projectName}} und alle zugehörigen Dokumente, Unterhaltungen, generierten Ausgaben, Assets, Jobs und Projektdateien löschen.",
         "deleteIrreversible": "Das kann nicht rückgängig gemacht werden.",
-        "error": "{{projectName}} konnte nicht {{action}} werden: {{error}}"
+        "error": "{{projectName}} konnte nicht {{action}} werden: {{error}}",
+        "collecting": "Dateien werden eingesammelt…",
+        "collectResult": "Dateien in {{projectName}} eingesammelt: {{copied}} kopiert, {{skipped}} übersprungen, {{failed}} fehlgeschlagen.",
+        "linkedTitle": "{{projectName}} verknüpft Dateien außerhalb seines Ordners",
+        "linkedBody": "Ein Export enthält den Projektordner. Diese Dateien sind von anderswo verknüpft und liegen nicht darin:",
+        "linkedChoice": "„Einsammeln und exportieren“ kopiert sie in den Ordner Imported und exportiert dann. „Abbrechen“ behält die Verknüpfungen und exportiert nichts.",
+        "collectAndExport": "Einsammeln und exportieren"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Kopieren oder verknüpfen?",
+        "confirm": "Importieren",
+        "copy": "In den Projektordner kopieren",
+        "copyHint": "Das Projekt behält eine eigene Kopie. Änderungen am Original erreichen sie nicht.",
+        "link": "An Ort und Stelle verknüpfen",
+        "linkHint": "Es wird nichts kopiert. Das Projekt liest die Datei dort, wo sie liegt. „Dateien einsammeln“ kopiert sie später hinein.",
+        "threshold": "Dateien ab {{size}} werden standardmäßig verknüpft."
       }
     }
   },

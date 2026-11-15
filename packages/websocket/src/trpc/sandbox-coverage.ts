@@ -327,6 +327,13 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "starts billing them against its budget. A run that could cut a " +
       "release could spend money in someone else's name."
   },
+  "assets.collect": {
+    gap:
+      "Copies a project's linked files into its folder. A creator runs it " +
+      "from the project menu or before an export. A run cannot create " +
+      "linked assets, and their bytes are already readable through " +
+      "read_asset, so nothing is withheld. Nothing headless calls it yet."
+  },
   "assets.createUpload": {
     elsewhere:
       "save_asset writes an asset from bytes, a workspace file or a " +

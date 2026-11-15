@@ -11,6 +11,9 @@
  *
  * Export copies rows whole, minus the owner and project columns, and the
  * workspace path, which only means something on the exporting machine.
+ * A project with linked files (assets with `external_path`) is not exported:
+ * the caller collects them into the project folder first, or the export is
+ * refused with their names (`prepareProjectExport`).
  *
  * Import always creates a new project. Every row gets a fresh id, and every
  * reference to an exported id is rewritten wherever it appears: id columns,
@@ -58,6 +61,10 @@ import {
   localAssetPath,
   retrieveAssetBytes
 } from "@nodetool-ai/asset-services/asset-paths";
+import {
+  collectLinkedAssets,
+  type CollectLinkedAssetsResult
+} from "@nodetool-ai/asset-services/project-asset";
 import { unzipBounded } from "./timeline-bundle.js";
 import {
   exportSourceSize,
@@ -185,9 +192,83 @@ function stripOwner(row: ProjectArchiveRow): ProjectArchiveRow {
   return copy;
 }
 
+// ---------------------------------------------------------------------------
+// Linked files
+// ---------------------------------------------------------------------------
+
+/** An asset that references a file outside the project folder. */
+export interface LinkedProjectFile {
+  id: string;
+  name: string;
+}
+
+/**
+ * Thrown when a project still has linked files at export. An export carries
+ * the project folder, and a linked file is not in it, so the creator collects
+ * the files first or does not export.
+ */
+export class ProjectLinkedFilesError extends Error {
+  readonly files: LinkedProjectFile[];
+  constructor(files: LinkedProjectFile[]) {
+    super(
+      `The project links ${files.length} file(s) outside its folder: ` +
+        files.map((file) => file.name).join(", ")
+    );
+    this.name = "ProjectLinkedFilesError";
+    this.files = files;
+  }
+}
+
+function linkedFilesOf(rows: Iterable<Asset>): LinkedProjectFile[] {
+  const linked: LinkedProjectFile[] = [];
+  for (const asset of rows) {
+    if (asset.external_path && asset.content_type !== "folder") {
+      linked.push({ id: asset.id, name: asset.name });
+    }
+  }
+  return linked;
+}
+
+/** The project's assets that link a file outside its folder. */
+export async function linkedProjectFiles(
+  userId: string,
+  projectId: string
+): Promise<LinkedProjectFile[]> {
+  return linkedFilesOf(await Asset.listByProject(userId, projectId));
+}
+
+/** What an export does with linked files: copy them in first, or refuse. */
+export type LinkedFilesChoice = "collect" | "refuse";
+
+/**
+ * Get a project ready to export. With `collect`, every linked file is copied
+ * into the project folder first. Throws {@link ProjectLinkedFilesError}
+ * naming the files that are still linked: all of them with `refuse`, and
+ * with `collect` the ones that were offline or failed to copy. Returns the
+ * collect result, or null when nothing was linked or `refuse` found nothing.
+ */
+export async function prepareProjectExport(options: {
+  userId: string;
+  projectId: string;
+  linkedFiles: LinkedFilesChoice;
+}): Promise<CollectLinkedAssetsResult | null> {
+  const { userId, projectId } = options;
+  const linked = await linkedProjectFiles(userId, projectId);
+  if (linked.length === 0) return null;
+  if (options.linkedFiles === "refuse") {
+    throw new ProjectLinkedFilesError(linked);
+  }
+  const collected = await collectLinkedAssets({ userId, projectId });
+  const remaining = await linkedProjectFiles(userId, projectId);
+  if (remaining.length > 0) throw new ProjectLinkedFilesError(remaining);
+  return collected;
+}
+
 /**
  * Write a project to `writer`. The caller has checked that `userId` owns the
- * project. Returns the manifest that was written.
+ * project and run {@link prepareProjectExport}. Returns the manifest that
+ * was written. Throws {@link ProjectLinkedFilesError} before writing anything
+ * when the project still has linked files.
  */
 export async function writeProjectArchive(
   options: WriteProjectArchiveOptions,
@@ -197,6 +278,8 @@ export async function writeProjectArchive(
   const project = await Project.findOwned(userId, options.projectId);
   if (!project) throw new Error("Project not found");
   const records = await readProjectArchiveRecords(userId, project.id);
+  const linked = linkedFilesOf(records.assets.map((row) => new Asset(row)));
+  if (linked.length > 0) throw new ProjectLinkedFilesError(linked);
   let totalBytes = 0;
   let totalEntries = 0;
   let directoryBytes = 22;

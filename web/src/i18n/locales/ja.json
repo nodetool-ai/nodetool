@@ -6471,7 +6471,8 @@
           "export": "エクスポート",
           "archive": "アーカイブ",
           "restore": "復元",
-          "delete": "削除"
+          "delete": "削除",
+          "collect": "ファイルを収集"
         },
         "projectActions": "プロジェクトのアクション",
         "actionsForProject": "{{projectName}} のアクション",
@@ -6480,7 +6481,24 @@
         "confirmDeleteTitle": "{{projectName}} を削除しますか?",
         "confirmDeleteBody": "{{projectName}} とそのすべてのドキュメント、会話、生成された出力、アセット、ジョブ、プロジェクト ファイルを削除します。",
         "deleteIrreversible": "これを元に戻すことはできません。",
-        "error": "{{action}} {{projectName}} できませんでした: {{error}}"
+        "error": "{{action}} {{projectName}} できませんでした: {{error}}",
+        "collecting": "ファイルを収集しています…",
+        "collectResult": "{{projectName}} にファイルを収集しました: コピー {{copied}} 件、スキップ {{skipped}} 件、失敗 {{failed}} 件。",
+        "linkedTitle": "{{projectName}} はフォルダー外のファイルをリンクしています",
+        "linkedBody": "エクスポートにはプロジェクトフォルダーが含まれます。次のファイルは別の場所からリンクされており、フォルダー内にありません:",
+        "linkedChoice": "「収集してエクスポート」はファイルをフォルダーの Imported ディレクトリにコピーしてからエクスポートします。「キャンセル」はリンクを残し、何もエクスポートしません。",
+        "collectAndExport": "収集してエクスポート"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "コピーしますか、リンクしますか?",
+        "confirm": "インポート",
+        "copy": "プロジェクトフォルダーにコピー",
+        "copyHint": "プロジェクトは独自のコピーを保持します。元のファイルの変更は反映されません。",
+        "link": "その場所でリンク",
+        "linkHint": "何もコピーしません。プロジェクトはファイルを現在の場所から読み込みます。「ファイルを収集」で後からコピーできます。",
+        "threshold": "{{size}} 以上のファイルは既定でリンクされます。"
       }
     }
   },

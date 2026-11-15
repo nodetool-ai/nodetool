@@ -6471,7 +6471,8 @@
           "export": "Exporteren",
           "archive": "Archief",
           "restore": "Herstellen",
-          "delete": "Verwijderen"
+          "delete": "Verwijderen",
+          "collect": "Bestanden verzamelen"
         },
         "projectActions": "Projectacties",
         "actionsForProject": "Acties voor {{projectName}}",
@@ -6480,7 +6481,24 @@
         "confirmDeleteTitle": "{{projectName}} verwijderen?",
         "confirmDeleteBody": "Verwijder {{projectName}} en al zijn documenten, gesprekken, gegenereerde resultaten, activa, taken en projectbestanden.",
         "deleteIrreversible": "Dit kan niet ongedaan worden gemaakt.",
-        "error": "Kon {{action}} {{projectName}} niet: {{error}}"
+        "error": "Kon {{action}} {{projectName}} niet: {{error}}",
+        "collecting": "Bestanden verzamelen…",
+        "collectResult": "Bestanden verzameld in {{projectName}}: {{copied}} gekopieerd, {{skipped}} overgeslagen, {{failed}} mislukt.",
+        "linkedTitle": "{{projectName}} koppelt bestanden buiten de eigen map",
+        "linkedBody": "Een export bevat de projectmap. Deze bestanden zijn van elders gekoppeld en staan er niet in:",
+        "linkedChoice": "Verzamelen en exporteren kopieert ze naar de map Imported en exporteert daarna. Annuleren behoudt de koppelingen en exporteert niets.",
+        "collectAndExport": "Verzamelen en exporteren"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Kopiëren of koppelen?",
+        "confirm": "Importeren",
+        "copy": "Naar de projectmap kopiëren",
+        "copyHint": "Het project houdt een eigen kopie. Wijzigingen in het origineel komen daar niet in.",
+        "link": "Ter plaatse koppelen",
+        "linkHint": "Er wordt niets gekopieerd. Het project leest het bestand waar het staat. Bestanden verzamelen kopieert het later.",
+        "threshold": "Bestanden van {{size}} of meer worden standaard gekoppeld."
       }
     }
   },
