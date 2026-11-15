@@ -39,8 +39,11 @@ export type { WorkspaceFileChange } from "./workflow-workspace.js";
 
 export {
   PROJECT_MANIFEST_PATH,
+  PROJECTS_DIR_SETTING,
+  ProjectFolderError,
   describeProjectFolder,
   ensureProjectFolder,
+  isLocalDeployment,
   migrateProjectFolders,
   projectFolderName,
   projectManifest

@@ -62,11 +62,21 @@ async function deleteProjectAssetObjects(
   );
 }
 
+/**
+ * Wipe the files of the project's workspaces, except its project folder.
+ *
+ * A project folder can be one the user brought, and what happens to it on
+ * delete (OS trash or kept) is decided by its origin, not here. A row that
+ * records the same path is skipped too, since wiping it wipes the folder.
+ */
 async function deleteProjectWorkspaceFiles(
-  workspaces: readonly Workspace[]
+  workspaces: readonly Workspace[],
+  folder: Workspace | null
 ): Promise<void> {
   await Promise.all(
-    workspaces.map(async (row) => workspaceFromRow(row)?.deleteAll(""))
+    workspaces
+      .filter((row) => row.id !== folder?.id && row.path !== folder?.path)
+      .map(async (row) => workspaceFromRow(row)?.deleteAll(""))
   );
 }
 
@@ -83,11 +93,12 @@ export async function deleteProjectForUser(
   // match exactly, so they take the full id.
   const id = target.id;
   await Project.tombstoneOwned(userId, id);
-  const [jobs, threads, assets, workspaces] = await Promise.all([
+  const [jobs, threads, assets, workspaces, folder] = await Promise.all([
     Job.listByProject(userId, id),
     Thread.listByProject(userId, id),
     Asset.listByProject(userId, id),
-    Workspace.listByProject(userId, id)
+    Workspace.listByProject(userId, id),
+    target.workspace_id ? Workspace.find(userId, target.workspace_id) : null
   ]);
   options.cancelLiveWork?.({
     userId,
@@ -99,7 +110,7 @@ export async function deleteProjectForUser(
   // A failed request can then be retried with every object identifier intact.
   await Promise.all([
     deleteProjectAssetObjects(assets),
-    deleteProjectWorkspaceFiles(workspaces)
+    deleteProjectWorkspaceFiles(workspaces, folder)
   ]);
   const deleted = await Project.deleteOwned(userId, id);
   return deleted ? "deleted" : "not_found";

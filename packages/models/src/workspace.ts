@@ -4,6 +4,7 @@
  * Port of Python's `nodetool.models.workspace`.
  */
 
+import { createHash } from "node:crypto";
 import { existsSync, accessSync, constants, mkdirSync } from "node:fs";
 import { eq, and, notInArray } from "drizzle-orm";
 import { isAbsolute } from "node:path";
@@ -174,6 +175,27 @@ export class Workspace extends DBModel {
       .where(eq(games.workspace_id, workspaceId))
       .limit(1);
     return row != null;
+  }
+
+  /**
+   * The first managed path for a project that no workspace row records yet.
+   *
+   * Native game workspaces and cloud project folders both live at
+   * `<managed>/projects/<segment>`. The segment is `sha256(projectId)` when
+   * that path is free, then `sha256("<projectId>:2")`, `:3` and so on, so a
+   * game and a project folder of one project never share a directory or key
+   * prefix. Every segment is 64 hex characters, which `isManaged` requires.
+   */
+  static async freeManagedProjectPath(
+    projectId: string,
+    pathFor: (segment: string) => string
+  ): Promise<string> {
+    for (let n = 1; n <= 1000; n++) {
+      const seed = n === 1 ? projectId : `${projectId}:${n}`;
+      const path = pathFor(createHash("sha256").update(seed).digest("hex"));
+      if (!(await Workspace.isPathTaken(path))) return path;
+    }
+    throw new Error("No free managed path for this project");
   }
 
   /** True when any workspace row records `path` as its folder. */

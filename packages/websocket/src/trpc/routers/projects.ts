@@ -23,8 +23,10 @@
 import { z } from "zod";
 import { createLogger } from "@nodetool-ai/config";
 import {
+  ProjectFolderError,
   describeProjectFolder,
-  ensureProjectFolder
+  ensureProjectFolder,
+  isLocalDeployment
 } from "@nodetool-ai/execution/service";
 import {
   LOOSE_PROJECT_ID,
@@ -183,6 +185,20 @@ async function prepareUser(userId: string): Promise<void> {
       error: error instanceof Error ? error.message : String(error)
     });
   }
+}
+
+/**
+ * Why a project folder could not be made, in words safe for this caller. A
+ * file-system error names server paths, which only a local caller may see.
+ */
+function projectFolderFailure(error: unknown): string {
+  const prefix = "Could not create the project folder";
+  if (error instanceof ProjectFolderError) return `${prefix}: ${error.message}`;
+  log.warn("Project folder creation failed", {
+    error: error instanceof Error ? error.message : String(error)
+  });
+  if (!isLocalDeployment()) return prefix;
+  return `${prefix}: ${error instanceof Error ? error.message : String(error)}`;
 }
 
 /** The project as the API returns it, with its folder. */
@@ -357,9 +373,7 @@ export const projectsRouter = router({
           await project.delete();
           throwApiError(
             ApiErrorCode.SERVICE_UNAVAILABLE,
-            `Could not create the project folder: ${
-              error instanceof Error ? error.message : String(error)
-            }`
+            projectFolderFailure(error)
           );
         }
         return toResponse(project);
