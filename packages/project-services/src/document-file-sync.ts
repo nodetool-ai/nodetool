@@ -4,8 +4,9 @@
  * A document of a kind that lives in the folder is a readable JSON file
  * there. The database row is the cache the runtime reads. This module keeps
  * the two in step, in both directions, for every kind through one
- * {@link DocumentFileAdapter}. Workflows are the first kind
- * (`workflow-file.ts`). A new kind adds an adapter and nothing here.
+ * {@link DocumentFileAdapter}. Workflows (`workflow-file.ts`) and timelines
+ * (`timeline-file.ts`) are the kinds. A new kind adds an adapter and nothing
+ * here.
  *
  * NodeTool to file: the model calls {@link documentFileSync} after it saved
  * or deleted a row. A save writes the file and records its path and the hash
@@ -100,6 +101,12 @@ export type DocumentFileState = Partial<
   Pick<DocumentRow, "file_path" | "file_hash" | "file_error">
 >;
 
+/** The user and project whose folder holds a document file. */
+export interface DocumentFileOwner {
+  userId: string;
+  projectId: string;
+}
+
 /** What an adapter makes of a file's body: fields to store, or a refusal. */
 export type DocumentFileContent<Fields> =
   | { ok: true; fields: Fields }
@@ -129,12 +136,14 @@ export interface DocumentFileAdapter<Row extends DocumentRow, Fields> {
   body(fields: Fields): Record<string, unknown>;
   /**
    * Check the body of a file and bring it into the stored shape. `row` is the
-   * document the file belongs to, or null for a new file. The check is the
-   * one the kind's update tool runs.
+   * document the file belongs to, or null for a new file. `owner` is the user
+   * whose folder holds the file. The check is the one the kind's update tool
+   * runs.
    */
   parse(
     body: Record<string, unknown>,
-    row: Row | null
+    row: Row | null,
+    owner: DocumentFileOwner
   ): Promise<DocumentFileContent<Fields>>;
   /** The rows whose project is one of `projectIds`. */
   list(userId: string, projectIds: readonly string[]): Promise<Row[]>;
@@ -658,7 +667,10 @@ async function importFile<Row extends DocumentRow, Fields>(
   options: { rename?: string; rewrite?: boolean } = {}
 ): Promise<Row | null> {
   const { adapter, report } = run;
-  const content = await adapter.parse(body, row);
+  const content = await adapter.parse(body, row, {
+    userId: run.userId,
+    projectId: run.projectId
+  });
   if (!content.ok) {
     await recordInvalid(run, row, content.error);
     return null;
@@ -842,7 +854,10 @@ async function reconcileKind<Row extends DocumentRow, Fields>(
     const taken = id !== null && (present.has(id) || (await adapter.exists(id)));
     const reassigned = id === null || taken;
     if (reassigned) id = newDocumentId();
-    const content = await adapter.parse(parsed.body, null);
+    const content = await adapter.parse(parsed.body, null, {
+      userId,
+      projectId
+    });
     if (!content.ok || id === null) {
       report.rejected.push(file.path);
       continue;

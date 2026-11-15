@@ -79,6 +79,7 @@ import {
   flushAssetManifestWrites,
   scheduleAssetManifestWrite
 } from "./project-manifest.js";
+import { timelineFileAdapter } from "./timeline-file.js";
 import { workflowFileAdapter } from "./workflow-file.js";
 
 const log = createLogger("nodetool.project-services.project-index");
@@ -956,7 +957,7 @@ export async function reconcileInBackground(
   // the asset index as it was reconciled.
   try {
     await reconcileDocumentFiles(
-      [workflowFileAdapter],
+      [workflowFileAdapter, timelineFileAdapter],
       report.projectId,
       userId,
       { scanned }

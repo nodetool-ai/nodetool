@@ -609,6 +609,11 @@ export async function importProjectArchive(
     row["file_hash"] = null;
     row["file_error"] = null;
   }
+  for (const row of imported.timeline_sequences) {
+    // As for a workflow: the imported row is newer than any file.
+    row["file_hash"] = null;
+    row["file_error"] = null;
+  }
 
   const missing: string[] = [];
   const checksumMismatches: string[] = [];

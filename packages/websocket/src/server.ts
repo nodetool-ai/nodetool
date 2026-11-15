@@ -88,6 +88,7 @@ import {
   migrateWorkflowFiles,
   setWorkflowFileNodeRegistry
 } from "@nodetool-ai/project-services/workflow-file";
+import { migrateTimelineFiles } from "@nodetool-ai/project-services/timeline-file";
 import { serverModelInterfaces } from "./websocket-client-session.js";
 import {
   WorkerManager,
@@ -1825,6 +1826,11 @@ void migrateProjectFolders()
   })
   .then((written) => {
     if (written > 0) log.info(`Workflow files: ${written} written`);
+    // Timelines from before project folders, the same way.
+    return migrateTimelineFiles();
+  })
+  .then((written) => {
+    if (written > 0) log.info(`Timeline files: ${written} written`);
   })
   .catch((error: unknown) => {
     log.warn(

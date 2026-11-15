@@ -176,6 +176,54 @@ A save in NodeTool replaces the file. An edit to the file that was not compared 
 
 A workflow that has no file gets one when the server starts and when its project is next compared. The step writes one file per workflow and records `file_path` and `file_hash`. Running it again writes nothing. A workflow that belongs to no project gets its file in the Personal folder once the Personal project exists.
 
+## Timelines are files in the folder
+
+Each timeline of a project is a JSON file in the project's folder, `Timelines/<name>.timeline.json`. It follows the rules of a workflow file: the file is the document, the database row is the copy NodeTool renders from, and the same save and compare steps keep the two in step.
+
+```json
+{
+  "format": "nodetool.timeline",
+  "version": 1,
+  "id": "<timeline id>",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "duration_ms": 0,
+  "document": { "tracks": [], "clips": [], "markers": [] }
+}
+```
+
+The file name is the timeline's name, and the file has no `name` field. `document` is the timeline document that `get_timeline` returns. A clip names its media by asset ID in `currentAssetId`, as the stored document does, so the file holds no media and no path. Owner, the linked workflow, `revision` and timestamps stay in the database. Version history stays in the database too.
+
+### Saving a timeline writes the file
+
+Every save of a timeline writes its file: the editor's save, the tRPC and REST API, `edit_timeline`, `set_timeline_document` and the other agent tools that change a timeline, a finished storyboard, and restoring a version. The write happens in the `TimelineSequence` model, after the row is saved. The row records `file_path`, `file_hash` and `file_error` as a workflow row does. Recording them does not raise `revision` or `updated_at`.
+
+Renaming, deleting, a name that is taken, and a folder that cannot be reached behave as they do for a workflow. Moving a timeline to another project moves its file to that project's folder. Copying a timeline into another project writes a file for the copy.
+
+### Editing the file updates the timeline
+
+The comparison is the one in [Editing the file updates the workflow](#editing-the-file-updates-the-workflow), with the same table, and it runs at the same times. For a timeline the rows mean this:
+
+| File | Result |
+| --- | --- |
+| Its hash differs and the file is valid | The timeline as it was is kept as a version named "Before file edit". The file's content is stored, and `revision` and `updated_at` are raised. |
+| Its hash differs and the file is not valid | The timeline is kept as it was, with its `revision`. The reason is recorded in `file_error`. |
+| A new file with an ID no timeline has | A timeline is created in this project. |
+| A new file with the ID of another timeline | The file gets a new ID, is rewritten with it, and becomes a new timeline. |
+
+An editor that has the timeline open reloads when `revision` rises. A save that still names the state from before the file edit is refused with `Timeline has been modified since last load`, and a write that carries the old `revision` is refused as a conflict. An edit to the file that changes no content raises neither.
+
+An edited document passes the checks `set_timeline_document` runs before it is stored. Fields a hand-written document leaves out are filled in, such as a track's `index` and a clip's `status`. A track that a clip names and the file does not declare is added. An asset reference in the form the asset tools print, `asset://<short id>.<ext>`, becomes the asset's full ID. A document with validation errors is refused, and `file_error` lists the errors that tool reports.
+
+`fps`, `width` and `height` are stored as the file gives them. A file that leaves one out keeps the value the timeline has. `duration_ms` is the end of the last clip. NodeTool computes it from the document when it imports the file, so an edit to the clips need not update it.
+
+Restoring a version writes the row and the file together and raises `revision`. The restored document is not taken for a file edit.
+
+### Timelines from before project folders
+
+A timeline that has no file gets one when the server starts and when its project is next compared, as a workflow does. Running the step again writes nothing.
+
 ## Manage workspaces in the app
 
 Workspaces have their own full-screen page at `/workspaces` (not a Settings tab):

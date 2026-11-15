@@ -272,6 +272,7 @@ export type {
 export {
   TimelineSequence,
   TimelineSequenceConflictError,
+  setTimelineFileSync,
   timelineDocumentDurationMs
 } from "./timeline-sequence.js";
 export type {
