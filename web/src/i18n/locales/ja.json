@@ -20156,5 +20156,13 @@
     "saveFailed": "この権限を保存できませんでした。",
     "loadFailed": "ツール一覧を読み込めませんでした。",
     "noMatches": "検索に一致するツールはありません。"
+  },
+  "assetPicker": {
+    "sourceTabs": "アセットの参照元",
+    "projectTab": "このプロジェクト",
+    "personalTab": "個人",
+    "personalHint": "個人から選ぶと、ファイルがこのプロジェクトにコピーされます。",
+    "copying": "このプロジェクトにコピーしています…",
+    "copyFailed": "アセットをこのプロジェクトにコピーできませんでした。"
   }
 }

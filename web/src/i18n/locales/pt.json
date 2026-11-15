@@ -20467,5 +20467,13 @@
     "saveFailed": "Não foi possível salvar esta permissão.",
     "loadFailed": "Não foi possível carregar a lista de ferramentas.",
     "noMatches": "Nenhuma ferramenta corresponde à sua busca."
+  },
+  "assetPicker": {
+    "sourceTabs": "Origem do recurso",
+    "projectTab": "Este projeto",
+    "personalTab": "Pessoal",
+    "personalHint": "Escolher em Pessoal copia o arquivo para este projeto.",
+    "copying": "Copiando para este projeto…",
+    "copyFailed": "Não foi possível copiar o recurso para este projeto."
   }
 }

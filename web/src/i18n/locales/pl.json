@@ -20778,5 +20778,13 @@
     "saveFailed": "Nie udało się zapisać tego uprawnienia.",
     "loadFailed": "Nie udało się wczytać listy narzędzi.",
     "noMatches": "Żadne narzędzie nie pasuje do wyszukiwania."
+  },
+  "assetPicker": {
+    "sourceTabs": "Źródło zasobu",
+    "projectTab": "Ten projekt",
+    "personalTab": "Osobiste",
+    "personalHint": "Wybranie z Osobistych kopiuje plik do tego projektu.",
+    "copying": "Kopiowanie do tego projektu…",
+    "copyFailed": "Nie udało się skopiować zasobu do tego projektu."
   }
 }

@@ -20467,5 +20467,13 @@
     "saveFailed": "No se pudo guardar este permiso.",
     "loadFailed": "No se pudo cargar la lista de herramientas.",
     "noMatches": "Ninguna herramienta coincide con tu búsqueda."
+  },
+  "assetPicker": {
+    "sourceTabs": "Origen del recurso",
+    "projectTab": "Este proyecto",
+    "personalTab": "Personal",
+    "personalHint": "Al elegir de Personal, el archivo se copia en este proyecto.",
+    "copying": "Copiando en este proyecto…",
+    "copyFailed": "No se pudo copiar el recurso en este proyecto."
   }
 }

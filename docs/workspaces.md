@@ -67,6 +67,12 @@ A file dropped on a directory in the Files tree is saved in that directory. A fi
 
 The row keeps the asset's ID and the file's path in `workspace_path`. URLs and document references use the ID, so they stay valid when the file is renamed. Renaming the asset in NodeTool renames its file, and deleting the asset deletes its file. Moving an asset to another project, as assigning an entity does, moves its file into that project's folder under the same directory. Each of these is refused while a folder it needs is unreachable.
 
+### Use a Personal asset in a project
+
+Personal is the library. In a named project, the image pickers (entity images, timeline references, **Replace clip…**) show **This project** and **Personal** tabs. Picking from Personal copies the file into the project's `Imported/` directory as a new asset, and the document stores the copy's ID. The copy is independent: editing or deleting it leaves the Personal original unchanged, and the reverse. Picking the same unchanged asset again returns the same copy. The copy's metadata records the source asset's ID and content hash (`copied_from_asset_id`, `copied_from_hash`), and a client cannot change them. A copied entity stays an entity, and its swapped reference image is copied with it.
+
+Agent tools follow the same rule. When `edit_storyboard`, `edit_timeline`, `set_timeline_document`, the timeline code tools (`set_timeline_code`, `edit_timeline_code`, `rebake_timeline_code`) or `edit_sketch` stores an asset of another project, it copies the asset first, stores the copy's ID, and returns `copied_assets: [{ source_asset_id, asset_id }]`. The server function behind both is `copyAssetToProject` in `@nodetool-ai/asset-services`, reached from the web through `assets.copyToProject`.
+
 NodeTool never replaces a file when it picks a name. The file is created exclusively, so when another NodeTool process took the name first, or a file with it already exists in the destination folder, the new file gets the next free suffix. An asset created before project folders keeps its bytes in [asset storage](storage.md) and reads as before.
 
 ## Manage workspaces in the app

@@ -20156,5 +20156,13 @@
     "saveFailed": "Käyttöoikeuden tallennus epäonnistui.",
     "loadFailed": "Työkaluluettelon lataus epäonnistui.",
     "noMatches": "Yksikään työkalu ei vastaa hakuasi."
+  },
+  "assetPicker": {
+    "sourceTabs": "Aineiston lähde",
+    "projectTab": "Tämä projekti",
+    "personalTab": "Henkilökohtainen",
+    "personalHint": "Kun valitset Henkilökohtaisesta, tiedosto kopioidaan tähän projektiin.",
+    "copying": "Kopioidaan tähän projektiin…",
+    "copyFailed": "Aineistoa ei voitu kopioida tähän projektiin."
   }
 }

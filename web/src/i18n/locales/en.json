@@ -20156,5 +20156,13 @@
     "saveFailed": "Could not save this permission.",
     "loadFailed": "Could not load the tool list.",
     "noMatches": "No tools match your search."
+  },
+  "assetPicker": {
+    "sourceTabs": "Asset source",
+    "projectTab": "This project",
+    "personalTab": "Personal",
+    "personalHint": "Picking from Personal copies the file into this project.",
+    "copying": "Copying into this project…",
+    "copyFailed": "Could not copy the asset into this project."
   }
 }

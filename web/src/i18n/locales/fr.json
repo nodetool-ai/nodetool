@@ -20467,5 +20467,13 @@
     "saveFailed": "Impossible d’enregistrer cette autorisation.",
     "loadFailed": "Impossible de charger la liste des outils.",
     "noMatches": "Aucun outil ne correspond à votre recherche."
+  },
+  "assetPicker": {
+    "sourceTabs": "Source de la ressource",
+    "projectTab": "Ce projet",
+    "personalTab": "Personnel",
+    "personalHint": "Choisir dans Personnel copie le fichier dans ce projet.",
+    "copying": "Copie dans ce projet…",
+    "copyFailed": "Impossible de copier la ressource dans ce projet."
   }
 }

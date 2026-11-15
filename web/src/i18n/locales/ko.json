@@ -20156,5 +20156,13 @@
     "saveFailed": "이 권한을 저장하지 못했습니다.",
     "loadFailed": "도구 목록을 불러오지 못했습니다.",
     "noMatches": "검색과 일치하는 도구가 없습니다."
+  },
+  "assetPicker": {
+    "sourceTabs": "에셋 출처",
+    "projectTab": "이 프로젝트",
+    "personalTab": "개인",
+    "personalHint": "개인에서 선택하면 파일이 이 프로젝트로 복사됩니다.",
+    "copying": "이 프로젝트로 복사하는 중…",
+    "copyFailed": "에셋을 이 프로젝트로 복사하지 못했습니다."
   }
 }

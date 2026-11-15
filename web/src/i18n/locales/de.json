@@ -20156,5 +20156,13 @@
     "saveFailed": "Diese Berechtigung konnte nicht gespeichert werden.",
     "loadFailed": "Die Tool-Liste konnte nicht geladen werden.",
     "noMatches": "Keine Tools passen zu deiner Suche."
+  },
+  "assetPicker": {
+    "sourceTabs": "Asset-Quelle",
+    "projectTab": "Dieses Projekt",
+    "personalTab": "Persönlich",
+    "personalHint": "Wenn du aus „Persönlich“ auswählst, wird die Datei in dieses Projekt kopiert.",
+    "copying": "Wird in dieses Projekt kopiert…",
+    "copyFailed": "Das Asset konnte nicht in dieses Projekt kopiert werden."
   }
 }

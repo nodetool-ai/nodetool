@@ -20156,5 +20156,13 @@
     "saveFailed": "Deze machtiging kon niet worden opgeslagen.",
     "loadFailed": "De lijst met tools kon niet worden geladen.",
     "noMatches": "Geen tools komen overeen met je zoekopdracht."
+  },
+  "assetPicker": {
+    "sourceTabs": "Bron van het asset",
+    "projectTab": "Dit project",
+    "personalTab": "Persoonlijk",
+    "personalHint": "Kiezen uit Persoonlijk kopieert het bestand naar dit project.",
+    "copying": "Kopiëren naar dit project…",
+    "copyFailed": "Het asset kon niet naar dit project worden gekopieerd."
   }
 }
