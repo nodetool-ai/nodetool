@@ -11,6 +11,7 @@ import {
   usesCloudWorkspaces,
   type WorkspaceFileChange
 } from "@nodetool-ai/execution/service";
+import { scheduleWorkspaceReconcile } from "@nodetool-ai/project-services/project-index";
 import { getAssetAdapter } from "./storage.js";
 import { notifyResourceChange } from "../resource-events.js";
 
@@ -56,9 +57,14 @@ const pendingWorkspaceChanges = new Map<
  * the Workspace Explorer had no way to learn that a chat turn had written one —
  * it showed whatever the panel happened to fetch when it mounted. This closes
  * that gap with the emitter the other non-DBModel resources already use.
+ *
+ * A write into a project folder also reconciles that project's asset index,
+ * debounced, so a media file an agent or a node wrote gets its asset row and
+ * a file it moved keeps its asset.
  */
 export function initWorkspaceChangeEvents(): void {
   setWorkspaceChangeNotifier((change: WorkspaceFileChange) => {
+    scheduleWorkspaceReconcile(change.workspaceId, change.userId);
     const pending = pendingWorkspaceChanges.get(change.workspaceId);
     if (pending) return;
     const timer = setTimeout(() => {

@@ -5,7 +5,7 @@
  */
 
 import { isDeepStrictEqual } from "node:util";
-import { eq, and, or, like, desc, isNull, lt, inArray } from "drizzle-orm";
+import { eq, and, or, like, desc, isNull, isNotNull, lt, inArray } from "drizzle-orm";
 import { isShortResourceId, isSystemEntityMetadata } from "@nodetool-ai/protocol";
 import {
   DBModel,
@@ -228,6 +228,27 @@ export class Asset extends DBModel {
           eq(assets.user_id, userId),
           eq(assets.project_id, projectId),
           eq(assets.workspace_path, workspacePath)
+        )
+      );
+    return rows.map((row) => new Asset(row));
+  }
+
+  /**
+   * Every asset of the user in `projectId` that keeps its file in the project
+   * folder, in one query. The reconciler compares this list with the folder.
+   */
+  static async listProjectFiles(
+    userId: string,
+    projectId: string
+  ): Promise<Asset[]> {
+    const rows = await getPortableDb()
+      .select()
+      .from(assets)
+      .where(
+        and(
+          eq(assets.user_id, userId),
+          eq(assets.project_id, projectId),
+          isNotNull(assets.workspace_path)
         )
       );
     return rows.map((row) => new Asset(row));

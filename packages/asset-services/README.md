@@ -39,3 +39,12 @@ through `installAssetFolderLookup`, which `getAssetAdapter` and the CLI's
 `installLocalModelInterfaces` call.
 `createStoredAsset` remains for a `createAsset` call with no content, which
 creates a row and no file.
+
+The index is kept in line with the folder by `reconcileProjectIndex` in
+[`@nodetool-ai/project-services`](../project-services/src/project-index.ts). It
+marks a row whose file is gone with `workspace_offline` in the row's metadata,
+and `projectAssetFile` then answers null, so every reader reports the bytes as
+missing. `relinkProjectAsset` points such an asset at another file under the
+same id. Asset writers and the reconcile share `withProjectFolderLock`, and a
+path whose row is still being saved is reported by `isProjectAssetPathInFlux`.
+See [the asset index follows the folder](../../docs/workspaces.md#the-asset-index-follows-the-folder).
