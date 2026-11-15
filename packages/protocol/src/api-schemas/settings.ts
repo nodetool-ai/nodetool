@@ -120,6 +120,46 @@ export const secretValidateOutput = z.object({
 });
 export type SecretValidateOutput = z.infer<typeof secretValidateOutput>;
 
+// ── providerCredits ──────────────────────────────────────────────
+// Remaining credit per configured provider, read from the provider's balance
+// endpoint where one exists and cached on the server.
+export const providerCreditsInput = z
+  .object({
+    /** Ask the providers again instead of answering from the cache. */
+    refresh: z.boolean().optional(),
+    /** Limit the answer, and a refresh, to one provider id. */
+    provider: z.string().min(1).optional()
+  })
+  .optional();
+export type ProviderCreditsInput = z.infer<typeof providerCreditsInput>;
+
+export const providerCreditSchema = z.object({
+  /** `available`, `low` (under a tenth of the limit or one currency unit) or `exhausted`. */
+  state: z.enum(["available", "low", "exhausted"]),
+  remaining: z.number().optional(),
+  limit: z.number().optional(),
+  unit: z.enum(["currency", "credits", "characters"]).optional(),
+  /** ISO 4217 code for `unit: "currency"`. */
+  currency: z.string().optional(),
+  /** `balance_endpoint`: read from the provider. `call_failure`: a call was refused for payment. */
+  source: z.enum(["balance_endpoint", "call_failure"]),
+  summary: z.string(),
+  /** Milliseconds since the epoch. */
+  checkedAt: z.number()
+});
+export type ProviderCreditResponse = z.infer<typeof providerCreditSchema>;
+
+export const providerCreditsOutput = z.array(
+  z.object({
+    provider: z.string(),
+    /** Whether NodeTool can read this provider's balance. */
+    supported: z.boolean(),
+    /** Null when nothing is known. */
+    credit: providerCreditSchema.nullable()
+  })
+);
+export type ProviderCreditsOutput = z.infer<typeof providerCreditsOutput>;
+
 // ── Local history retention and database maintenance ────────────────
 
 export const storageRetentionPolicy = z.object({
