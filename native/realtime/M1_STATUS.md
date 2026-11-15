@@ -501,6 +501,17 @@ driver threading. TSan error and deadlock detection remain enabled. CI must
 verify this bounded configuration before merge, and threaded driver verification
 remains deferred.
 
+## Provider-job fixture ordering
+
+The Release integration run at `c4a82051ad` passes realtime and editor checks
+but fails the existing provider-job fixture's immediate cancellation-count
+assertion. One closed worker can free a slot before the other reports its
+cancellation. The fixture now waits for both observations, with its wait mutex
+released before the final report so no callback still needs that mutex when
+the fixture returns. The cancellation assertion and capacity checks remain.
+CI repeats the Release job-state suite before the full host suite. This fixes
+test ordering and does not change provider-job behavior.
+
 ## Provisional progress gate
 
 The user accepts [WP09's scoped M1 evidence](https://github.com/nodetool-ai/nodetool/issues/7400)

@@ -257,6 +257,12 @@ jobs:
           env -u DISPLAY ctest --test-dir native/graph-runner/build \
             -R '^realtime-offline-(gpu|render-export)$' --no-tests=error --output-on-failure
 
+      - name: Check provider job-state ordering
+        if: matrix.name == 'Release'
+        run: |
+          ctest --test-dir native/graph-runner/build -R '^gr_provider_job_state_tests$' \
+            --repeat until-fail:20 --no-tests=error --output-on-failure
+
       - name: Verify realtime command dispatch
         # Match the unfiltered private CTests, including their serial TSan driver.
         env:
