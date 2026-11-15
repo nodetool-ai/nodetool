@@ -296,7 +296,7 @@ private slots:
         QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::KeyboardModifiers(mods), to);
         auto selected = gestures()->selection(); selected.sort();
         const auto expected = large ? QStringList({"many1", "many2", "many3", "many4"})
-                                    : mods ? QStringList({"c", "d", "e"}) : QStringList({"c", "e"});
+                                    : mods == Qt::ShiftModifier ? QStringList({"c", "d", "e"}) : QStringList({"c", "e"});
         QCOMPARE(selected, expected);
         QVERIFY(!item("rubberBand")->isVisible()); QCOMPARE(doc(), before); QCOMPARE(model.undoStack()->count(), 0);
     }

@@ -419,8 +419,8 @@ const bool registered = [] {
         }},
         {"trimEditLeft", "Trim edit point one frame back", "Editing", [](C g, V c) { return trimEditByFrames(g, -1, c); }},
         {"trimEditRight", "Trim edit point one frame on", "Editing", [](C g, V c) { return trimEditByFrames(g, 1, c); }},
-        {"trimEditLeftLarge", "Trim edit point ten frames back", "Editing", [](C g, V c) { return trimEditByFrames(g, -10, c); }},
-        {"trimEditRightLarge", "Trim edit point ten frames on", "Editing", [](C g, V c) { return trimEditByFrames(g, 10, c); }},
+        {"trimEditLeftLarge", "Trim edit point five frames back", "Editing", [](C g, V c) { return trimEditByFrames(g, -5, c); }},
+        {"trimEditRightLarge", "Trim edit point five frames on", "Editing", [](C g, V c) { return trimEditByFrames(g, 5, c); }},
         {"audioGain", "Audio gain of selected clips", "Editing", [](C g, V) {
             if (g.selection().isEmpty()) return false;
             auto* host = nt::wiring::w::windowItem(&g, "audioGainHost");
