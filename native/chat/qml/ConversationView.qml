@@ -437,6 +437,8 @@ Item {
     }
     Connections {
         target: root.session
+        // Test doubles for the session may not declare promptSent.
+        ignoreUnknownSignals: true
         function onStateChanged() {
             if (root.session.selectedThreadId !== root.previousThread) {
                 root.savePosition();
