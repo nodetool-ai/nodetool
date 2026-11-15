@@ -165,6 +165,17 @@ export class Workspace extends DBModel {
     return row ? new Workspace(row) : null;
   }
 
+  /** True when a native game keeps its sources in this workspace. */
+  static async isUsedByGame(workspaceId: string): Promise<boolean> {
+    const db = getPortableDb();
+    const [row] = await db
+      .select({ id: games.id })
+      .from(games)
+      .where(eq(games.workspace_id, workspaceId))
+      .limit(1);
+    return row != null;
+  }
+
   /** True when any workspace row records `path` as its folder. */
   static async isPathTaken(path: string): Promise<boolean> {
     const db = getPortableDb();

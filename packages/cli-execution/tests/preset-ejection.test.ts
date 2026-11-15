@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { createCatalog, presetSchema, presetToWorkflow, type PresetMode } from "@nodetool-ai/presets";
-import { initDb, closeDb } from "@nodetool-ai/models";
+import { initDb, closeDb, migrateSqliteDb } from "@nodetool-ai/models";
 import { createFakeContext } from "@nodetool-ai/runtime";
 import { runValidate } from "../src/validate/index.js";
 import { normalizeGraph } from "../src/debug/target.js";
@@ -53,7 +53,11 @@ describe("preset ejection validation", () => {
 
   it("runs an ejected graph on the nodetool debug server surface with the fake provider", async () => {
     const preset = presetSchema.parse({ id: "look.fixture", version: 1, kind: "look", name: "Fixture", description: "Fixture", modes: ["image"], prompt: { default: "Soft light." } });
-    initDb(":memory:");
+    // Open the database the way `nodetool debug` does: migrated, then opened.
+    // A bare `initDb` leaves every column added after the baseline missing.
+    const dbPath = join(dir, "debug.db");
+    await migrateSqliteDb(dbPath);
+    initDb(dbPath);
     const fake = createFakeContext({ persistOutputAssets: false });
     try {
       const provider = await fake.context.getProvider("fake");

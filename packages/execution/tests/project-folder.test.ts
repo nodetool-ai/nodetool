@@ -264,6 +264,28 @@ describe.each(MODES)("project folders ($name)", (mode) => {
     expect(await manifestOf(defaultRow)).toMatchObject({ id: personal.id, name: "Personal" });
   });
 
+  it("never gives Personal another project's or a game's workspace", async () => {
+    const other = await insertProject("Games");
+    // The user's only workspace belongs to another project and a game uses it.
+    // `ensureDefault` promotes it to the default workspace.
+    const gameRow = await legacyWorkspace(mode, other.id, "game", "2026-01-01T00:00:00.000Z");
+    await Game.insertNew({
+      id: "e".repeat(32),
+      userId: USER,
+      projectId: other.id,
+      workspaceId: gameRow.id,
+      name: "Game",
+      revision: "f".repeat(32)
+    });
+    const personal = await Project.ensurePersonal(USER);
+
+    const folder = await ensureProjectFolder(personal);
+
+    expect(folder.id).not.toBe(gameRow.id);
+    expect(folder.project_id).toBe(personal.id);
+    expect((await WorkspaceRow.find(USER, gameRow.id))?.project_id).toBe(other.id);
+  });
+
   it("keeps a manifest that is already there", async () => {
     const project = await insertProject("Has manifest");
     const row = await legacyWorkspace(mode, project.id, "existing", "2026-01-01T00:00:00.000Z");

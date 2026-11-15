@@ -19,6 +19,7 @@ import {
   workspaceStorageKind
 } from "@nodetool-ai/config";
 import {
+  LOOSE_PROJECT_ID,
   PERSONAL_PROJECT_KIND,
   Project,
   Workspace as WorkspaceRow,
@@ -242,7 +243,8 @@ async function createFolder(project: Project): Promise<WorkspaceRow> {
  * The project's folder, created or assigned when it has none. Idempotent.
  *
  * - A project whose `workspace_id` names an existing row keeps that row.
- * - Personal uses the user's default workspace and claims that row for itself.
+ * - Personal uses the user's default workspace and claims that row for itself
+ *   when the row is in no project or already Personal's, and no game uses it.
  *   No files move.
  * - Any other project keeps its oldest workspace row that no game uses. Other
  *   rows and their files are left as they are.
@@ -264,13 +266,22 @@ export async function ensureProjectFolder(
   }
 
   if (project.kind === PERSONAL_PROJECT_KIND) {
+    // `ensureDefault` promotes a user's first workspace when none is the
+    // default, and that row can belong to another project or a game. Personal
+    // takes only a row in no project or already its own, and otherwise gets
+    // a folder like any other project.
     const row = await WorkspaceRow.ensureDefault(project.user_id);
-    if (row.project_id !== project.id) {
-      row.project_id = project.id;
-      await row.save();
+    const claimable =
+      (row.project_id === project.id || row.project_id === LOOSE_PROJECT_ID) &&
+      !(await WorkspaceRow.isUsedByGame(row.id));
+    if (claimable) {
+      if (row.project_id !== project.id) {
+        row.project_id = project.id;
+        await row.save();
+      }
+      await writeManifestIfAbsent(row, project);
+      return claim(project, row);
     }
-    await writeManifestIfAbsent(row, project);
-    return claim(project, row);
   }
 
   const candidate = await WorkspaceRow.oldestProjectFolderCandidate(
