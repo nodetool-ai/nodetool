@@ -55,10 +55,17 @@ class TestKeyframes : public QObject {
         QCOMPARE(nt::keyframes::times(clip).size(), count);
         const auto moved = nt::keyframes::helper("moveKeyframes", {clip, QJsonArray{"offsetX"}, 0, 30000});
         clip.insert("animations", moved);
-        // moveKeyframes in the TypeScript oracle returns 31993 keys: its
-        // normalized-time tolerance also replaces the target's near neighbours.
-        QCOMPARE(nt::keyframes::times(clip).size(), 31993);
+        // Keys 1 ms apart stay apart under the half-millisecond tolerance:
+        // only the key already at the target is replaced.
+        QCOMPARE(nt::keyframes::times(clip).size(), count - 1);
         QCOMPARE(nt::keyframes::times(clip).first().toInt(), 1);
+    }
+    void nearKeysOnLongClip() {
+        // B204: on a ten-minute clip, a key one frame from another is its own key.
+        QJsonObject clip{{"durationMs", 600000}};
+        clip.insert("animations", nt::keyframes::helper("setKeyframe", {clip, "opacity", 1000, 0.2}));
+        clip.insert("animations", nt::keyframes::helper("setKeyframe", {clip, "opacity", 1033, 0.8}));
+        QCOMPARE(nt::keyframes::times(clip).size(), 2);
     }
     void spatialFieldsUndo() {
         for (const auto& field :

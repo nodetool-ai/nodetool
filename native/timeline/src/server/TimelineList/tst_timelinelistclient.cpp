@@ -1,3 +1,4 @@
+#include <ctime>
 #include "server/TimelineList/TimelineListController.h"
 #include "TestHttpServer.h"
 #include <QJsonArray>
@@ -140,6 +141,23 @@ private slots:
         QCOMPARE(group(7), QString("1 week ago"));
         QCOMPARE(nt::server::TimelineListController::dateGroup(now.addMonths(-1).toString(Qt::ISODateWithMs)), QString("1 month ago"));
         QCOMPARE(nt::server::TimelineListController::dateGroup(now.addYears(-1).toString(Qt::ISODateWithMs)), QString("1 year ago"));
+    }
+    void dateGroupsUseLocalDays() {
+        // B80: a document saved just after local midnight is from today, even
+        // where that instant is still yesterday in UTC.
+        const QByteArray previous = qgetenv("TZ");
+        qputenv("TZ", "Pacific/Auckland");
+        tzset();
+        const auto restore = qScopeGuard([&] {
+            if (previous.isNull()) { qunsetenv("TZ"); } else { qputenv("TZ", previous); }
+            tzset();
+        });
+        const auto today = QDate::currentDate();
+        const auto at = [](QDate day, QTime time) {
+            return QDateTime(day, time).toUTC().toString(Qt::ISODateWithMs);
+        };
+        QCOMPARE(nt::server::TimelineListController::dateGroup(at(today, QTime(0, 0, 30))), QString("Today"));
+        QCOMPARE(nt::server::TimelineListController::dateGroup(at(today.addDays(-1), QTime(23, 59, 30))), QString("Yesterday"));
     }
     void noServerAndWrongInstance() {
         nt::server::TimelineListController absent(QUrl(), "", "");

@@ -497,7 +497,8 @@ private slots:
     void rounded_frame_edges_in_monitor() {
         for (double fps : {24.0, 30000.0 / 1001}) {
             auto doc = fixture();
-            const double cut = frameStepMs(0, 49, fps);
+            // Documents can hold edges rounded up past the frame time.
+            const double cut = std::round(49 * 1000.0 / fps);
             doc.clips[0].insert("durationMs", cut);
             doc.clips[2].insert("startMs", cut);
             const auto info = monitorInfo(doc, {"v0", true, Kind::Roll}, fps);
@@ -506,7 +507,7 @@ private slots:
             // 2042 ms at 24 fps and 1635 ms at NTSC both lie after frame 49.
             QCOMPARE(info.outgoing->frameTimeMs, frame(49, fps));
             QCOMPARE(info.incoming->frameTimeMs, frame(50, fps));
-            doc.clips[0].insert("durationMs", frameStepMs(0, 50, fps));
+            doc.clips[0].insert("durationMs", std::round(50 * 1000.0 / fps));
             const auto last = monitorInfo(doc, {"v0", true, Kind::Trim}, fps);
             QVERIFY(last.outgoing);
             QCOMPARE(last.outgoing->frameTimeMs, frame(49, fps));

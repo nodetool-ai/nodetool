@@ -1043,6 +1043,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "list_secrets exposes credential names and configured status; " +
       "list_models and list_provider_models expose provider discovery."
   },
+  "settings.providerCredits": {
+    elsewhere:
+      "list_providers reports each provider's remaining credit, read with " +
+      "the run's own provider instances."
+  },
   "settings.history.get": {
     withheld:
       "Database size, retention policy, and cleanup status are host " +

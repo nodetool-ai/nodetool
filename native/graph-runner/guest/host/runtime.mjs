@@ -74,7 +74,14 @@ export { isChunk } from "@nodetool-ai/protocol";
 export { loadCanvas } from "./canvas.mjs";
 export { getTracer } from "guest-real:@nodetool-ai/runtime/telemetry.js";
 export { suppressRunTraceContent } from "guest-real:@nodetool-ai/runtime/run-trace-context.js";
-export { decidePermission, headlessGate } from "guest-real:@nodetool-ai/runtime/permission-gate.js";
+export {
+  APPROVAL_DECISIONS,
+  decidePermission,
+  grantsStandingApproval,
+  headlessGate,
+  isApprovingDecision,
+  isPreapproved
+} from "guest-real:@nodetool-ai/runtime/permission-gate.js";
 
 export * from "./media-native.mjs";
 

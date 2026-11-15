@@ -254,12 +254,14 @@ private slots:
         save.setAutosave(false);
         save.setQuitFallbackDirs({});
         PlaybackClock clock;
+        clock.setFps(12);
         QQmlEngine engine;
         engine.rootContext()->setContextProperty("autosave", &save);
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/TimelineEditor.qml"));
         const auto object = std::unique_ptr<QObject>(component.createWithInitialProperties({{"timeline", QVariant::fromValue(&model)},
             {"clock", QVariant::fromValue(&clock)}, {"width", 1280}, {"height", 800}}));
         QVERIFY2(object, qPrintable(component.errorString()));
+        QCOMPARE(clock.fps(), model.fps());
         auto* root = qobject_cast<QQuickItem*>(object.get());
         QVERIFY(root);
         auto* banner = findItem(root, "externalConflictsBanner");
@@ -287,8 +289,24 @@ private slots:
         }
         save.externalChanged("updated", "u1", ops, true);
         QTRY_COMPARE(save.baseUpdatedAt(), QString("u1"));
-        QVERIFY(!model.undoStack()->canUndo());
-        model.undoStack()->undo();
+        // B54: an external change rebases the local history instead of clearing it.
+        QCOMPARE(model.undoStack()->count(), mode == "clean" ? 0 : mode == "discard" ? 2 : 1);
+        if (mode != "clean") {
+            const auto merged = model.timeline().raw;
+            model.undoStack()->undo();
+            // Undo takes back only the local edit. An adopted server value stays.
+            if (mode == "dirty") {
+                QCOMPARE(model.timeline().clips[0].startMs, 500.0);
+                QCOMPARE(model.timeline().clips[1].startMs, 1500.0);
+            } else if (mode == "accept") {
+                QCOMPARE(model.timeline().clips[0].startMs, 0.0);
+            } else {
+                QCOMPARE(model.timeline().clips[0].startMs, 100.0);
+                QCOMPARE(model.timeline().clips[1].startMs, 1500.0);
+            }
+            model.undoStack()->redo();
+            QCOMPARE(model.timeline().raw, merged);
+        }
         if (mode == "accept" || mode == "discard") {
             QCOMPARE(model.timeline().clips[0].startMs, 100.0);
             QCOMPARE(save.externalConflicts().size(), mode == "discard" ? 2 : 1);
@@ -298,7 +316,7 @@ private slots:
                 QVERIFY(accept);
                 QVERIFY(QMetaObject::invokeMethod(accept, "clicked"));
                 QCOMPARE(model.timeline().clips[0].startMs, 500.0);
-                QCOMPARE(model.undoStack()->count(), 1);
+                QCOMPARE(model.undoStack()->count(), 2);
                 QCOMPARE(save.externalConflicts().size(), 0);
                 model.undoStack()->undo();
                 QCOMPARE(model.timeline().clips[0].startMs, 100.0);

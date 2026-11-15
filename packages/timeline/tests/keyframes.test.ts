@@ -54,6 +54,15 @@ describe("keyframes", () => {
     expect(keyframeValueAt(c, "opacity", 500)).toBe(0.4);
   });
 
+  it("keeps a key one frame from its neighbour on a long clip", () => {
+    // Ten minutes: 1e-4 of the clip was 60 ms, so the second key replaced the first.
+    let c = clip({ durationMs: 600_000 });
+    c = { ...c, animations: setKeyframe(c, "opacity", 1000, 0.2) };
+    c = { ...c, animations: setKeyframe(c, "opacity", 1033, 0.8) };
+    expect(keyframeTimesMs(c).map(Math.round)).toEqual([1000, 1033]);
+    expect(hasKeyframeAt(c, "opacity", 1033.4)).toBe(true);
+  });
+
   it("keeps one animation for every property and spans the clip", () => {
     let c = clip();
     c = { ...c, animations: setKeyframe(c, "opacity", 0, 1) };

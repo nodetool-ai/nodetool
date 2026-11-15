@@ -611,22 +611,32 @@ void ComfyBackend::loadCatalog(std::function<void(QJsonArray, QString)> done) {
     });
 }
 
-void ComfyBackend::createWorkflow(const QString &projectId) {
-    if (creating_) { return; }
-    creating_ = true;
+void ComfyBackend::starterGraph(std::function<void(QJsonObject, QString)> done) {
     // starterCheckpointForTarget: only the user's own server has a checkpoint list.
     const auto checkpoint = kind() == QLatin1String("server") && statusState_ == QLatin1String("connected")
                                 ? pickStarterCheckpoint(stringList(status_["models"].toObject()["checkpoints"]))
                                 : QString{};
-    // A fresh seed per workflow, so a first run is never a cached result.
+    // A fresh seed per graph, so a first run is never a cached result.
     const auto prompt = comfyStarterPrompt(checkpoint, static_cast<int>(QRandomGenerator::global()->bounded(1u << 31)));
+    rest("POST", QStringLiteral("/api/comfy/import-graph"), {{"workflow", prompt}}, [done = std::move(done)](const QJsonValue &graph, const QString &error) {
+        if (!error.isEmpty() || !graph.toObject()["nodes"].isArray()) {
+            done({}, error.isEmpty() ? QStringLiteral("Invalid graph") : error);
+            return;
+        }
+        done(graph.toObject(), {});
+    });
+}
+
+void ComfyBackend::createWorkflow(const QString &projectId) {
+    if (creating_) { return; }
+    creating_ = true;
     const auto fail = [this](const QString &error) {
         creating_ = false;
         emit errorOccurred(tr("Could not create Comfy workflow: %1").arg(error));
     };
-    rest("POST", QStringLiteral("/api/comfy/import-graph"), {{"workflow", prompt}}, [this, projectId, fail](const QJsonValue &graph, const QString &error) {
-        if (!error.isEmpty() || !graph.toObject()["nodes"].isArray()) {
-            fail(error.isEmpty() ? QStringLiteral("Invalid graph") : error);
+    starterGraph([this, projectId, fail](const QJsonObject &graph, const QString &error) {
+        if (!error.isEmpty()) {
+            fail(error);
             return;
         }
         QJsonObject body{{"name", "New Comfy Workflow"}, {"access", "private"}, {"run_mode", "comfy"}, {"graph", graph}};

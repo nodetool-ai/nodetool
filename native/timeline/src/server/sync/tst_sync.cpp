@@ -85,6 +85,20 @@ QJsonObject serialized(const MergeResult& result)
 class SyncTest : public QObject {
     Q_OBJECT
 private slots:
+    void historyRebaseKeepsLocalOrderAndAdoptedUnits() {
+        const auto unit = [](const char* id, int start) { return QJsonObject{{"id", id}, {"startMs", start}}; };
+        // Draft a,b,c. The server changed b, removed c, inserted x after a, and renamed the row.
+        const QJsonObject draft{{"name", "Old"}, {"fps", 30}, {"clips", QJsonArray{unit("a", 0), unit("b", 10), unit("c", 20)}}};
+        const QJsonObject merged{{"name", "New"}, {"fps", 30},
+            {"clips", QJsonArray{unit("a", 0), unit("x", 5), unit("b", 99)}}};
+        // A checkpoint from before a local reorder: c,b,a, with a local value for a.
+        const QJsonObject snapshot{{"name", "Old"}, {"fps", 30}, {"clips", QJsonArray{unit("c", 20), unit("b", 10), unit("a", 7)}}};
+        const auto rebased = rebaseHistoryDocument(snapshot, draft, merged);
+        QCOMPARE(rebased.value("name").toString(), QString("New"));
+        QCOMPARE(rebased.value("clips").toArray(), (QJsonArray{unit("x", 5), unit("b", 99), unit("a", 7)}));
+        // No delta leaves the checkpoint as it was.
+        QCOMPARE(rebaseHistoryDocument(snapshot, draft, draft), snapshot);
+    }
     void syncDiagnosticsUseQtLogging() {
         QTemporaryDir cache;
         QUndoStack undo;

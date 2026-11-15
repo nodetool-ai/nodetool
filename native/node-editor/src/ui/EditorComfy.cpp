@@ -2,6 +2,8 @@
 // node catalog and new Comfy workflows. See ComfyTargetSelector.tsx,
 // useComfyNodeMetadata.ts and useStartComfyWorkflow.ts on the web.
 #include "ui/EditorWindow.h"
+#include "document/ChildPorts.h"
+#include "graph/NodeCreation.h"
 #include <QActionGroup>
 #include <QCursor>
 #include <QInputDialog>
@@ -216,6 +218,41 @@ void EditorWindow::newComfyWorkflow() {
         return;
     }
     comfy->createWorkflow(activeProject());
+}
+
+void EditorWindow::addComfySubgraphAt(const QPointF &position) {
+    if (!tabOwner_) {
+        activeEditor_->addComfySubgraphAt(position);
+        return;
+    }
+    auto *comfy = comfyBackend();
+    if (!comfy->configured()) {
+        notify(QStringLiteral("error"), tr("Connect to a server to add a Comfy subgraph."));
+        return;
+    }
+    const auto epoch = documentEpoch_;
+    QPointer<EditorWindow> self(this);
+    comfy->starterGraph([self, epoch, position](const QJsonObject &graph, const QString &error) {
+        if (!self || epoch != self->documentEpoch_ || self->readOnly()) { return; }
+        if (!error.isEmpty()) {
+            self->notify(QStringLiteral("error"), tr("Could not add Comfy subgraph: %1").arg(error));
+            return;
+        }
+        static const auto subgraphType = QStringLiteral("nodetool.workflows.subgraph.Subgraph");
+        for (const auto &entry : self->metadata_) {
+            const auto metadata = entry.toObject();
+            if (metadata["node_type"].toString(metadata["type"].toString()) != subgraphType) { continue; }
+            auto node = createNativeNode(metadata, position, self->document_.nodes(), {{"graph", graph}});
+            auto ui = node["ui_properties"].toObject();
+            ui["title"] = QStringLiteral("Comfy subgraph");
+            node["ui_properties"] = ui;
+            // The prompt input and image output the server derives on a run.
+            node = node_editor::withChildPorts(node, self->metadata_);
+            if (self->apply({{"op", "addNode"}, {"node", node}})) { self->rememberRecentNode(subgraphType); }
+            return;
+        }
+        self->notify(QStringLiteral("error"), tr("The node catalog has no Subgraph node."));
+    });
 }
 
 }  // namespace nodetool

@@ -59,6 +59,7 @@ interface SecretsStore {
 const invalidateProviderDependentCaches = (): void => {
   queryClient.invalidateQueries({ queryKey: ["secrets"] });
   queryClient.invalidateQueries({ queryKey: ["providers"] });
+  queryClient.invalidateQueries({ queryKey: ["settings", "provider-credits"] });
   queryClient.invalidateQueries({ queryKey: ["language-models"] });
   queryClient.invalidateQueries({ queryKey: ["embedding-models"] });
   queryClient.invalidateQueries({ queryKey: ["image-models"] });

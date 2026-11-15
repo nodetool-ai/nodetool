@@ -945,7 +945,9 @@ void ClipGestureController::pressEmptyLane(const QString& trackId, double sceneX
     g.before = m_timeline->clipsJson();
     g.generation = m_timeline->documentGeneration();
     const auto mods = Qt::KeyboardModifiers(modifiers);
-    g.additiveSelection = mods & (Qt::ShiftModifier | Qt::ControlModifier | Qt::MetaModifier);
+    // TrackLane.tsx: only Shift keeps the previous selection. A Ctrl/Cmd band
+    // replaces it, so a following Delete removes only what was boxed.
+    g.additiveSelection = mods & Qt::ShiftModifier;
     if (g.additiveSelection) { g.selectionAtStart = m_selection; }
     const auto p = m_viewport->mapFromScene({sceneX, sceneY});
     g.laneStart = {p.x() + m_view->scrollLeftPx(), p.y() + m_view->scrollTopPx()};
