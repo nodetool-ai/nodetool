@@ -1,5 +1,6 @@
 // nt-panel: slot=right id=motion order=6 title="Motion"
-// How a selected clip moves over time: Animate, Advanced motion, Follow object and Smart reframe.
+// How a selected clip moves over time: Animate and Advanced motion. Follow
+// object and Smart reframe, which run tracking models, sit in the AI panel.
 // Effect Controls holds the clip's fixed transform and its keyframes.
 pragma ComponentBehavior: Bound
 import QtQuick

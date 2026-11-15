@@ -217,6 +217,8 @@ const TOOL_FOR_ACTION: Record<
 /** How much one expand or shrink keypress changes the track-height scale. */
 const TRACK_HEIGHT_STEP = 0.25;
 /** Premiere's default preroll and postroll for Play Around and the rolled in-to-out play. */
+// Premiere's large trim offset.
+const LARGE_TRIM_FRAMES = 5;
 const PREROLL_MS = 3000;
 const POSTROLL_MS = 2000;
 /** What Make Audio Tracks Taller / Shorter adds to each audio row. */
@@ -1213,9 +1215,11 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         };
         // The ms of the frame `frames` away from `ms`'s nearest frame, so
         // repeated steps land on the frame grid instead of drifting by the
-        // rounding of a fractional frame length.
+        // rounding of a fractional frame length. It is the whole ms at or just
+        // before the frame's time: a frame shows the clips with start <= time,
+        // so an edge rounded up would leave that frame on the wrong side.
         const frameStepMs = (ms: number, frames: number): number =>
-          Math.round(Math.round(ms / frameMs + frames) * frameMs);
+          Math.floor(Math.round(ms / frameMs + frames) * frameMs + 1e-6);
         const trimEditByFrames = (frames: number): boolean => {
           const edit = ui.selectedEdit;
           const target = edit
@@ -1371,10 +1375,10 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             if (trimEditByFrames(1)) e.preventDefault();
             return;
           case "trimEditLeftLarge":
-            if (trimEditByFrames(-10)) e.preventDefault();
+            if (trimEditByFrames(-LARGE_TRIM_FRAMES)) e.preventDefault();
             return;
           case "trimEditRightLarge":
-            if (trimEditByFrames(10)) e.preventDefault();
+            if (trimEditByFrames(LARGE_TRIM_FRAMES)) e.preventDefault();
             return;
 
           case "stepFrameBack":

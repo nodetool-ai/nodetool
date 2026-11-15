@@ -42,4 +42,12 @@ MergeResult mergeTimelineDocuments(const QJsonObject& base, const QJsonObject& d
 // Absent fields are removed. Null setup is omitted, as in the web payload.
 QJsonObject applyMergeDocument(const QJsonObject& serverRaw, const QJsonObject& merged);
 
+// Rebase an undo checkpoint (a raw sequence) with the external delta from
+// before (the draft) to after (the adopted document), as
+// web/src/stores/documentMerge.ts rebaseDocumentSnapshots does: changed units
+// are replaced, removed units dropped, adopted units inserted next to the same
+// neighbours, and changed top-level values overwritten. A refused conflict has
+// no delta, so it never leaks into undo or redo.
+QJsonObject rebaseHistoryDocument(const QJsonObject& snapshot, const QJsonObject& before, const QJsonObject& after);
+
 } // namespace nt::server::sync
