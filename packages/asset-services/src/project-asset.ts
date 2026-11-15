@@ -383,6 +383,8 @@ export async function saveProjectAsset(
         { ...(existing[0]?.metadata ?? {}), ...(args.metadata ?? {}) },
         fingerprint
       );
+      // New bytes: the full hash is the background hash job's to compute.
+      asset.content_hash = null;
       const provenance = args.provenance ?? {};
       if (!existing[0] || provenance.workflow_id !== undefined) {
         asset.workflow_id = provenance.workflow_id ?? null;
@@ -599,7 +601,8 @@ export async function replaceProjectAssetBytes(
     const previous = {
       path: asset.workspace_path,
       metadata: asset.metadata,
-      size: asset.size
+      size: asset.size,
+      contentHash: asset.content_hash
     };
     try {
       // The asset's own file, replaced in place.
@@ -612,6 +615,7 @@ export async function replaceProjectAssetBytes(
       asset.workspace_path = to;
       asset.size = fingerprint.workspace_size;
       asset.metadata = withWorkspaceFingerprint(asset.metadata, fingerprint);
+      asset.content_hash = null;
       await storeAssetThumbnail(asset.user_id, asset.id, asset.content_type, {
         bytes
       });
@@ -637,6 +641,7 @@ export async function replaceProjectAssetBytes(
         asset.workspace_path = previous.path;
         asset.metadata = previous.metadata;
         asset.size = previous.size;
+        asset.content_hash = previous.contentHash;
         // Bytes written over the file in place cannot be taken back.
         try {
           if (moves) {
@@ -761,7 +766,8 @@ export async function relinkProjectAsset(
       path: asset.workspace_path,
       metadata: asset.metadata,
       size: asset.size,
-      duration: asset.duration
+      duration: asset.duration,
+      contentHash: asset.content_hash
     };
     try {
       const fingerprint = await fingerprintOf(
@@ -780,12 +786,14 @@ export async function relinkProjectAsset(
             : await workspace.materialize(to)
       });
       asset.metadata = withWorkspaceFingerprint(asset.metadata, fingerprint);
+      asset.content_hash = null;
       await asset.save();
     } catch (error) {
       asset.workspace_path = previous.path;
       asset.metadata = previous.metadata;
       asset.size = previous.size;
       asset.duration = previous.duration;
+      asset.content_hash = previous.contentHash;
       // Only a copy this call made is removed. A file in the folder stays.
       if ("localPath" in source) {
         await removeFile(
