@@ -702,61 +702,15 @@
   },
   "batch2_1": {
     "common": {
-      "workspace": "Espacio de trabajo",
       "loading": "Cargando…",
       "refresh": "Actualizar",
       "remove": "Quitar",
       "cancel": "Cancelar"
     },
-    "page": {
-      "title": "Espacios de trabajo",
-      "subtitle": "Carpetas protegidas en las que los agentes y los flujos de trabajo pueden leer, escribir y organizar archivos."
-    },
-    "folderPicker": {
-      "title": "Seleccionar carpeta del espacio de trabajo"
-    },
-    "notifications": {
-      "added": "Espacio de trabajo agregado",
-      "removed": "Espacio de trabajo eliminado"
-    },
-    "errors": {
-      "loadTitle": "No se pudieron cargar los espacios de trabajo",
-      "loadSummary": "Los espacios de trabajo no se pudieron cargar",
-      "loadDescription": "Comprueba tu conexión y vuelve a intentarlo.",
-      "operation": "Error en la operación del espacio de trabajo: {{error}}"
-    },
-    "manager": {
-      "inaccessible": "Inaccesible",
-      "defaultWorkspace": "Espacio de trabajo predeterminado",
-      "setDefault": "Establecer como predeterminado",
-      "emptyTitle": "No hay espacios de trabajo configurados",
-      "emptyCanManage": "Agregue un espacio de trabajo para permitir que los agentes accedan a las carpetas locales",
-      "emptyManaged": "Esta implementación administra su espacio de trabajo por usted",
-      "adding": "Añadiendo…",
-      "addWorkspace": "Agregar espacio de trabajo",
-      "removeTitle": "¿Eliminar este espacio de trabajo?",
-      "removeDescription": "El espacio de trabajo se eliminará de NodeTool. La carpeta en sí no se eliminará."
-    },
-    "select": {
-      "defaultWithPath": "Predeterminado ({{path}})",
-      "description": "Los agentes leen y escriben archivos aquí durante la ejecución, incluidas imágenes guardadas, texto, datos y otros resultados. Explore los resultados en el panel del espacio de trabajo. Los agentes solo pueden acceder a los archivos dentro de esta carpeta. Un flujo de trabajo que se deja en Predeterminado utiliza su espacio de trabajo predeterminado.",
-      "createNew": "Crear nuevo espacio de trabajo",
-      "addWorkspace": "Agregar espacio de trabajo…"
-    },
     "tree": {
       "loading": "Cargando…",
       "accessDenied": "⚠️ Acceso denegado",
-      "title": "Explorador del espacio de trabajo",
-      "manage": "Administrar espacios de trabajo",
-      "goToRoot": "Ir a la raíz del espacio de trabajo",
-      "openInFolder": "Abrir en carpeta",
-      "openExternally": "Abierto externamente",
-      "noneSelected": "Ningún espacio de trabajo seleccionado",
-      "selectOrCreate": "Seleccione un espacio de trabajo arriba o cree uno.",
-      "createWorkspace": "Crear espacio de trabajo",
-      "fileBrowser": "Explorador de archivos del espacio de trabajo",
-      "emptyTitle": "El espacio de trabajo está vacío",
-      "emptyDescription": "Agregue archivos a la carpeta de su espacio de trabajo para verlos aquí."
+      "openExternally": "Abierto externamente"
     }
   },
   "batch2_10": {
@@ -1772,7 +1726,6 @@
       "packageManager": "Administrador de paquetes",
       "assets": "Activos",
       "collections": "Colecciones",
-      "workspaces": "Espacios de trabajo",
       "memory": "Memoria",
       "settings": "Configuración",
       "help": "Ayuda",
@@ -6573,8 +6526,16 @@
         "exporting": "Exportando…",
         "deleteProject": "Eliminar proyecto",
         "confirmDeleteTitle": "¿Eliminar {{projectName}}?",
-        "confirmDeleteBody": "Elimine {{projectName}} y todos sus documentos, conversaciones, resultados generados, activos, trabajos y archivos de proyecto.",
+        "confirmDeleteBody": "Elimine {{projectName}} y todos sus documentos, conversaciones, trabajos y activos almacenados fuera de la carpeta del proyecto.",
         "deleteIrreversible": "Esto no se puede deshacer.",
+        "deleteFolderTrash": "La carpeta del proyecto se mueve a la papelera.",
+        "deleteFolderRemove": "La carpeta del proyecto y todos sus archivos se eliminan del almacenamiento en la nube.",
+        "deleteFolderKeep": "La carpeta del proyecto se queda donde está con todos sus archivos. NodeTool solo elimina la carpeta .nodetool que contiene.",
+        "deleteFolderMissing": "No se puede acceder a la carpeta del proyecto, así que NodeTool la deja como está.",
+        "folderMovedAsideTo": "No se pudo acceder a la papelera. La carpeta del proyecto se movió a {{path}}.",
+        "folderMovedAside": "No se pudo acceder a la papelera. La carpeta del proyecto se movió a la carpeta .trash de la carpeta de proyectos.",
+        "folderTrashFailedAt": "No se pudo mover la carpeta del proyecto a la papelera. Sigue en {{path}}.",
+        "folderTrashFailed": "No se pudo mover la carpeta del proyecto a la papelera. Sigue donde estaba.",
         "error": "No se pudo {{action}} {{projectName}}: {{error}}"
       }
     }
@@ -6752,8 +6713,6 @@
       "runModeTool": "Herramienta",
       "runModeDescription": "Cómo se ejecuta y se puede activar este flujo de trabajo",
       "advanced": "Avanzado",
-      "workspace": "Espacio de trabajo",
-      "workspaceDescription": "Asociar una carpeta de espacio de trabajo con este flujo de trabajo para el acceso del agente",
       "toolName": "Nombre de la herramienta",
       "toolNameDescription": "Identificador para el uso de API/herramienta. Letras, números y guiones bajos únicamente.",
       "toolNamePlaceholder": "mi_herramienta_flujo_de_trabajo",
@@ -10842,9 +10801,9 @@
         "jsScripts": "secuencias de comandos JS",
         "skills": "Habilidades",
         "assets": "Activos",
-        "workspace": "Espacio de trabajo",
         "library": "Biblioteca",
-        "more": "Más"
+        "more": "Más",
+        "files": "Archivos"
       },
       "categoryDescriptions": {
         "documents": "Explore todos los documentos del proyecto actual.",
@@ -10864,9 +10823,9 @@
         "jsScripts": "Cree y administre código JavaScript reutilizable.",
         "skills": "Habilidades del agente: instrucciones de rebajas que coinciden con el objetivo.",
         "assets": "Explore los activos disponibles en el contexto actual.",
-        "workspace": "Explore los archivos en la carpeta del espacio de trabajo seleccionado.",
         "library": "Explorar activos en el proyecto actual.",
-        "more": "Abra paneles adicionales de flujo de trabajo, editor, desarrollador y espacio de trabajo."
+        "more": "Abre más paneles de flujos de trabajo, editor y desarrollo.",
+        "files": "Explora los archivos de la carpeta del proyecto."
       }
     },
     "queue": {
@@ -14256,8 +14215,7 @@
       "search": "Buscar en todos los paneles",
       "group": {
         "workflow-tools": "Herramientas de flujo de trabajo",
-        "agent-tools": "Herramientas del agente",
-        "workspace": "Espacio de trabajo"
+        "agent-tools": "Herramientas del agente"
       },
       "category": {
         "favorites": {
@@ -14275,10 +14233,6 @@
         "skills": {
           "label": "Habilidades",
           "description": "Habilidades del agente: instrucciones de rebajas que coinciden con el objetivo."
-        },
-        "workspace-files": {
-          "label": "Espacio de trabajo",
-          "description": "Explore los archivos en la carpeta del espacio de trabajo seleccionado."
         }
       }
     },
@@ -14947,9 +14901,6 @@
       "runGroup": {
         "groupRunning": "El grupo esta corriendo",
         "runGroup": "Ejecutar grupo"
-      },
-      "saveDestinationHint": {
-        "workspace": "Espacio de trabajo"
       }
     }
   },
@@ -16188,9 +16139,9 @@
       "jsscripts": "secuencias de comandos JS",
       "skills": "Habilidades",
       "assets": "Activos",
-      "workspace-files": "Espacio de trabajo",
       "library": "Biblioteca",
-      "more": "Más"
+      "more": "Más",
+      "files": "Archivos"
     }
   },
   "i18n-next55": {
@@ -16321,7 +16272,6 @@
         "models": "Gerente de modelos",
         "packages": "Administrador de paquetes",
         "collections": "Colecciones",
-        "workspaces": "Espacios de trabajo",
         "entities": "Entidades",
         "memory": "Memoria",
         "settings": "Configuración",
@@ -18938,7 +18888,7 @@
   },
   "i18n-next110": {
     "workspaceFile": {
-      "invalidReference": "Referencia de archivo de espacio de trabajo no válida"
+      "invalidReference": "Referencia de archivo no válida"
     }
   },
   "i18n-next109": {
@@ -20467,5 +20417,23 @@
     "saveFailed": "No se pudo guardar este permiso.",
     "loadFailed": "No se pudo cargar la lista de herramientas.",
     "noMatches": "Ninguna herramienta coincide con tu búsqueda."
+  },
+  "projectFolder": {
+    "name": "Carpeta del proyecto",
+    "picker": {
+      "title": "Seleccionar una carpeta"
+    },
+    "tree": {
+      "title": "Archivos",
+      "goToRoot": "Ir a la raíz de la carpeta del proyecto",
+      "fileBrowser": "Archivos del proyecto",
+      "emptyTitle": "La carpeta del proyecto está vacía",
+      "emptyDescription": "Añade archivos a la carpeta del proyecto para verlos aquí.",
+      "noFolderTitle": "Sin carpeta de proyecto",
+      "noFolderDescription": "Este proyecto aún no tiene carpeta.",
+      "revealInFinder": "Mostrar en el Finder",
+      "revealInExplorer": "Mostrar en el Explorador de archivos",
+      "revealInFileManager": "Mostrar en el administrador de archivos"
+    }
   }
 }

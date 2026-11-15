@@ -37,9 +37,11 @@ const project = (isAccessible: boolean) => ({
   id: "p1",
   name: "Aurora",
   folder: {
+    workspace_id: "ws-aurora",
     path: "/Users/me/NodeTool/Aurora",
     origin: "created" as const,
-    is_accessible: isAccessible
+    is_accessible: isAccessible,
+    on_delete: "trash" as const
   }
 });
 

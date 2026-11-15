@@ -7,7 +7,15 @@
  *   records.json                 — every project row, table by table
  *                                  (`PROJECT_ARCHIVE_TABLES` in models)
  *   assets/<asset id><ext>       — stored bytes of each non-folder asset
- *   workspaces/<workspace id>/…  — every file in the project's workspaces
+ *   workspaces/<workspace id>/…  — every file in the project folder, and in
+ *                                  any other workspace filed under the
+ *                                  project, such as a game's
+ *
+ * The project folder is a workspace row of the project, so its files travel
+ * under `workspaces/`. `.nodetool/` is NodeTool's own and stays out: an
+ * imported project gets a manifest of its own. Storyboards, scripts, sketches,
+ * apps, JS scripts and chats live in the database and travel in
+ * `records.json`.
  *
  * Export copies rows whole, minus the owner and project columns, and the
  * workspace path, which only means something on the exporting machine.
@@ -434,6 +442,12 @@ export interface ImportProjectArchiveOptions {
    * `ensureProjectFolder`, which adopts the imported project workspace.
    */
   readonly ensureFolder?: (project: Project) => Promise<unknown>;
+  /**
+   * Records in an imported workspace's folder that NodeTool created it. The
+   * host passes `markFolderCreated`. Without the record, deleting the
+   * imported project keeps the folder as if the user had brought it.
+   */
+  readonly markCreatedFolder?: (row: Workspace) => Promise<void>;
   readonly maxBytes?: number;
 }
 
@@ -612,6 +626,10 @@ export async function importProjectArchive(
     for (const [index, row] of imported.workspaces.entries()) {
       row["path"] = await workspacePath(userId, String(row["id"]));
       row["is_default"] = false;
+      // NodeTool makes this folder, whoever made the exported one. Deleting
+      // the imported project reads `origin` and the record `markCreatedFolder`
+      // writes to decide what happens to it.
+      row["origin"] = "created";
       const opened = options.openWorkspace(new Workspace(row));
       if (!opened) {
         if (workspaceStorageKind() !== "cloud") await rm(String(row["path"]), { recursive: true, force: true });
@@ -731,6 +749,9 @@ export async function importProjectArchive(
     // the import. The startup migration retries it, and a run reports the
     // missing folder rather than writing elsewhere.
     try {
+      for (const row of imported.workspaces) {
+        await options.markCreatedFolder?.(new Workspace(row));
+      }
       await options.ensureFolder?.(project);
     } catch (error) {
       log.warn("Could not give the imported project a folder", {

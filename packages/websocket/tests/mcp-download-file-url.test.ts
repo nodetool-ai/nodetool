@@ -13,6 +13,20 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Asset, initTestDb } from "@nodetool-ai/models";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
+// The hosted server's asset listing signs each asset's URL, as an object
+// store deployment's does; the test's file backend would answer a relative
+// `/api/storage` route instead.
+vi.mock("../src/lib/asset-response.js", async (orig) => {
+  const actual = await orig<typeof import("../src/lib/asset-response.js")>();
+  return {
+    ...actual,
+    toAssetResponse: async (asset: Asset) => ({
+      ...(await actual.toAssetResponse(asset)),
+      get_url: `https://objects.test/${asset.user_id}/${asset.id}.jpg?signature=abc`
+    })
+  };
+});
+
 import { registerAgentMcpTools } from "../src/mcp-agent-tools.js";
 import * as storage from "../src/lib/storage.js";
 
@@ -111,8 +125,10 @@ describe("download_file on a remote MCP session", () => {
     };
 
     expect(result.success).toBe(true);
+    // The download is saved as one asset; the client gets that asset's
+    // signed URL rather than the `asset://` URI only NodeTool resolves.
     expect(result.asset_url).toMatch(
-      /^https:\/\/objects\.test\/downloads\/[0-9a-f-]+\.jpg\?signature=abc$/
+      /^https:\/\/objects\.test\/1\/[0-9a-f]{32}\.jpg\?signature=abc$/
     );
     expect(result.display_markdown).toBe(`![still.jpg](${result.asset_url})`);
   });

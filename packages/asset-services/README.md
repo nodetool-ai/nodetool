@@ -12,7 +12,10 @@ through named subpaths. Full server compatibility exports delegate here.
 
 `saveProjectAsset` creates an asset as one file in its project's folder plus an
 index row with `project_id` and `workspace_path`. It is the function behind
-`context.createAsset` and workflow output auto-save. `renameProjectAssetFile`,
+`context.createAsset`, workflow output auto-save, uploads and imports
+(`uploadDirectory` picks the directory), the agent media tools and Save-file
+nodes. With `path` the file is at that project-relative path; with `asset` an
+existing row gets the file, which is how a direct upload is finalized. `renameProjectAssetFile`,
 `replaceProjectAssetBytes` and `deleteProjectAssetFile` keep the file and the
 row together afterwards. A new file name is claimed with `Workspace.writeNew`,
 an exclusive create, so no save, rename or move replaces a file.
@@ -30,8 +33,12 @@ loads. A host that wires `createAssetModelInterface` must load that module.
 A key-based reader asks the asset store for `<owner>/<assetId>.<ext>`. When no
 object is there, the lookup in `external-asset-lookup` resolves the key through
 the asset row: `workspace_path` in the project folder, then `external_path`.
-`createStoredAsset` still writes under the storage key for callers that have not
-moved to project files.
+`getAssetAdapter` is built with the lookup. A host that builds its own
+`FileStorageAdapter` over the asset folder, as the CLI commands do, gets it
+through `installAssetFolderLookup`, which `getAssetAdapter` and the CLI's
+`installLocalModelInterfaces` call.
+`createStoredAsset` remains for a `createAsset` call with no content, which
+creates a row and no file.
 
 The index is kept in line with the folder by `reconcileProjectIndex` in
 [`@nodetool-ai/project-services`](../project-services/src/project-index.ts). It

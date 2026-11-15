@@ -130,9 +130,12 @@ describe("projects.openFolder and projects.relocate", () => {
 
     expect(project.name).toBe("Footage Film");
     expect(project.folder).toEqual({
+      workspace_id: expect.any(String),
       path: folder,
       origin: "adopted",
-      is_accessible: true
+      is_accessible: true,
+      // Deleting the project keeps a folder the user brought.
+      on_delete: "keep"
     });
     const after = await snapshot(folder);
     const manifestPath = join(".nodetool", "project.json");
@@ -255,9 +258,12 @@ describe("projects.openFolder and projects.relocate", () => {
 
     expect(opened.id).toBe(created.id);
     expect(opened.folder).toEqual({
+      workspace_id: expect.any(String),
       path: moved,
       origin: "created",
-      is_accessible: true
+      is_accessible: true,
+      // The moved folder still carries the record that NodeTool created it.
+      on_delete: "trash"
     });
     expect(
       (await caller().projects.list({})).map((p) => p.name).sort()
@@ -319,9 +325,12 @@ describe("projects.openFolder and projects.relocate", () => {
     });
 
     expect(located.folder).toEqual({
+      workspace_id: expect.any(String),
       path: renamed,
       origin: "created",
-      is_accessible: true
+      is_accessible: true,
+      // The renamed folder still carries the record that NodeTool created it.
+      on_delete: "trash"
     });
     const resolved = await resolveProjectWorkspace(created.id, "user-1");
     expect(resolved.ok).toBe(true);

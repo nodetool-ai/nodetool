@@ -28,6 +28,7 @@ import {
   ProjectFolderError,
   describeProjectFolder,
   ensureProjectFolder,
+  isFolderMarkedCreated,
   migrateProjectFolders,
   projectFolderName
 } from "../src/service/project-folder.js";
@@ -193,6 +194,18 @@ describe.each(MODES)("project folders ($name)", (mode) => {
       id: project.id,
       name: "My Film"
     });
+    // The record a project delete requires before it moves or removes the
+    // folder, bound to the project the folder was created for.
+    expect(await isFolderMarkedCreated(row)).toBe(true);
+    expect(
+      JSON.parse((await nodetoolDir(row).readText("created.json")) ?? "null")
+    ).toEqual({
+      format: "nodetool.folder-created",
+      version: 1,
+      project_id: project.id
+    });
+    row.project_id = "another-project";
+    expect(await isFolderMarkedCreated(row)).toBe(false);
     if (mode.name === "local") {
       expect(row.path).toBe(join(root, "NodeTool", "My Film"));
       expect(row.isVirtual()).toBe(false);
@@ -234,6 +247,10 @@ describe.each(MODES)("project folders ($name)", (mode) => {
     const migrated = await Project.get<Project>(project.id);
     expect(migrated?.workspace_id).toBe(older.id);
     expect(await manifestOf(older)).toMatchObject({ id: project.id });
+    // A folder the project already had gets the manifest and no record that
+    // NodeTool created it, so a delete keeps its files.
+    expect(older.origin).toBe("created");
+    expect(await isFolderMarkedCreated(older)).toBe(false);
     expect(await rowFolder(older).readText("notes.txt")).toBe("older notes");
     // The other row, and its files, are exactly as they were.
     expect(await WorkspaceRow.find(USER, newer.id)).toEqual(newerBefore);

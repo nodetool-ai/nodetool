@@ -287,6 +287,7 @@ private:
     double playheadMs() const;
     void nudge(double deltaMs, bool merge);
     void dropGesture();
+    double resizedTrackHeight(const Gesture& g) const;
     std::optional<double> sourceCap(const QJsonObject& clip);
     void probeSources(bool all = true);
     void syncPlaybackRange();

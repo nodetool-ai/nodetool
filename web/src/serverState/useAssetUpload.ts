@@ -11,6 +11,11 @@ type UploadFileInput = {
   workflow_id?: string;
   project_id?: string;
   parent_id?: string;
+  /**
+   * Directory in the project folder the file was dropped on (`.` is the
+   * folder itself). Omitted, the server saves the upload in `Imported/`.
+   */
+  directory?: string;
   source?: UploadSource;
   onCompleted?: (asset: Asset) => void;
   onFailed?: (error: string) => void;
@@ -112,7 +117,8 @@ export const useAssetUpload = create<UploadState>((set, get) => ({
         get().updateStatus(nextUploadIndex, progress, "uploading");
       },
       uploadFile.source,
-      uploadFile.project_id
+      uploadFile.project_id,
+      uploadFile.directory
     )
       .then((asset: Asset) => {
         get().updateStatus(nextUploadIndex, 100, "completed");
