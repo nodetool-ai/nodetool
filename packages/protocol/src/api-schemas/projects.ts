@@ -67,6 +67,23 @@ export const createProjectInput = z.object({
 });
 export type CreateProjectInput = z.infer<typeof createProjectInput>;
 
+/**
+ * Open an existing local folder as a project. `name` defaults to the name in
+ * the folder's `.nodetool/project.json`, then to the folder's own name.
+ */
+export const openProjectFolderInput = z.object({
+  path: z.string().min(1).max(4096),
+  name: z.string().trim().min(1).max(200).optional()
+});
+export type OpenProjectFolderInput = z.infer<typeof openProjectFolderInput>;
+
+/** Point a project at the new place of its folder. */
+export const relocateProjectInput = z.object({
+  project_id: z.string().min(1),
+  path: z.string().min(1).max(4096)
+});
+export type RelocateProjectInput = z.infer<typeof relocateProjectInput>;
+
 export const patchProjectInput = z
   .object({
     name: z.string().min(1).max(200).optional(),
