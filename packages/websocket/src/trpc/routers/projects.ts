@@ -14,13 +14,18 @@
  *   documents      (query)    — ProjectDocumentRef[]
  *   unassigned     (query)    — ProjectDocumentRef[] in the loose bucket
  *   thread         (mutation) — { threadId } (the project's agent thread)
- *   create         (mutation) — ProjectResponse
+ *   create         (mutation) — ProjectResponse (creates the project folder)
  *   update         (mutation) — ProjectResponse
  *   delete         (mutation) — { ok: true }
  *   assignDocument (mutation) — { ok: true }
  */
 
 import { z } from "zod";
+import { createLogger } from "@nodetool-ai/config";
+import {
+  describeProjectFolder,
+  ensureProjectFolder
+} from "@nodetool-ai/execution/service";
 import {
   LOOSE_PROJECT_ID,
   Project,
@@ -51,7 +56,8 @@ import {
   projectDocumentPage,
   projectDocumentPageInput,
   projectDocumentRef,
-  projectResponse
+  projectResponse,
+  type ProjectResponse
 } from "@nodetool-ai/protocol/api-schemas/projects.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
@@ -64,6 +70,8 @@ import {
 } from "../../lib/project-document-copy.js";
 import { deleteProjectForUser } from "../../lib/project-delete.js";
 import { workspaceFromRow } from "../../lib/workflow-workspace.js";
+
+const log = createLogger("nodetool.websocket.projects");
 
 const listInput = z.object({});
 const idInput = z.object({ id: z.string() });
@@ -163,7 +171,29 @@ async function isOwnedRestorableTab(
 }
 
 async function prepareUser(userId: string): Promise<void> {
-  await Project.migrateToPersonal(userId);
+  const { project: personal } = await Project.migrateToPersonal(userId);
+  if (personal.workspace_id) return;
+  // Personal is created lazily, after the startup migration has run, so its
+  // folder is assigned the first time it is seen without one.
+  try {
+    await ensureProjectFolder(personal);
+  } catch (error) {
+    log.warn("Could not give the Personal project a folder", {
+      userId,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+/** The project as the API returns it, with its folder. */
+async function toResponse(project: Project): Promise<ProjectResponse> {
+  const row = project.workspace_id
+    ? await Workspace.find(project.user_id, project.workspace_id)
+    : null;
+  return projectResponse.parse({
+    ...project.toResponse(),
+    folder: row ? describeProjectFolder(row) : null
+  });
 }
 
 async function loadOwned(userId: string, id: string): Promise<Project> {
@@ -179,7 +209,7 @@ export const projectsRouter = router({
     .query(async ({ ctx }) => {
       await prepareUser(ctx.userId);
       const items = await Project.listByUser(ctx.userId);
-      return items.map((item) => item.toResponse());
+      return Promise.all(items.map(toResponse));
     }),
 
   /** Archived projects stay discoverable in project management, not the selector. */
@@ -189,7 +219,7 @@ export const projectsRouter = router({
     .query(async ({ ctx }) => {
       await prepareUser(ctx.userId);
       const items = await Project.listByUser(ctx.userId, 100, true);
-      return items.map((item) => item.toResponse());
+      return Promise.all(items.map(toResponse));
     }),
 
   /**
@@ -207,7 +237,7 @@ export const projectsRouter = router({
         projects.map(async (project) => {
           const summary = await summarizeProject(ctx.userId, project.id);
           return projectDetail.parse({
-            project: project.toResponse(),
+            project: await toResponse(project),
             documents: summary.documents,
             documentsPartial: summary.documentsPartial,
             entities: summary.entities,
@@ -225,7 +255,7 @@ export const projectsRouter = router({
       const project = await loadOwned(ctx.userId, input.id);
       const summary = await summarizeProject(ctx.userId, project.id);
       return projectDetail.parse({
-        project: project.toResponse(),
+        project: await toResponse(project),
         documents: summary.documents,
         documentsPartial: summary.documentsPartial,
         entities: summary.entities,
@@ -318,7 +348,22 @@ export const projectsRouter = router({
         name: input.name,
         kind: input.kind
       });
-      if (project) return projectResponse.parse(project.toResponse());
+      if (project) {
+        // The folder is part of the create. A project whose folder cannot be
+        // made is removed again, so no project exists without one.
+        try {
+          await ensureProjectFolder(project);
+        } catch (error) {
+          await project.delete();
+          throwApiError(
+            ApiErrorCode.SERVICE_UNAVAILABLE,
+            `Could not create the project folder: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          );
+        }
+        return toResponse(project);
+      }
 
       const existing = input.id ? await Project.findById(input.id) : null;
       if (!existing) {
@@ -335,7 +380,7 @@ export const projectsRouter = router({
       if (existing.user_id !== ctx.userId) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
       }
-      return projectResponse.parse(existing.toResponse());
+      return toResponse(existing);
     }),
 
   update: protectedProcedure
@@ -349,7 +394,7 @@ export const projectsRouter = router({
       if (input.kind !== undefined) fields.kind = input.kind;
       const updated = await Project.updateOwned(ctx.userId, input.id, fields);
       if (!updated) throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
-      return projectResponse.parse(updated.toResponse());
+      return toResponse(updated);
     }),
 
   archive: protectedProcedure
@@ -359,7 +404,7 @@ export const projectsRouter = router({
       await prepareUser(ctx.userId);
       const archived = await Project.archiveOwned(ctx.userId, input.id);
       if (!archived) throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
-      return projectResponse.parse(archived.toResponse());
+      return toResponse(archived);
     }),
 
   restore: protectedProcedure
@@ -369,7 +414,7 @@ export const projectsRouter = router({
       await prepareUser(ctx.userId);
       const restored = await Project.restoreOwned(ctx.userId, input.id);
       if (!restored) throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
-      return projectResponse.parse(restored.toResponse());
+      return toResponse(restored);
     }),
 
   delete: protectedProcedure

@@ -18,6 +18,8 @@ export const projects = sqliteTable(
      * thread row would be indistinguishable from a conversation nobody read.
      */
     thread_id: text("thread_id"),
+    /** The one workspace row that is this project's folder. */
+    workspace_id: text("workspace_id"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

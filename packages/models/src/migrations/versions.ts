@@ -325,6 +325,15 @@ const MESSAGE_BRANCH_DDL: readonly string[] = [
   "ALTER TABLE nodetool_messages ADD COLUMN branch_after TEXT"
 ];
 
+/**
+ * A project's folder is one workspace row, and the row records whether
+ * NodeTool made the folder or the user brought it.
+ */
+const PROJECT_FOLDER_DDL: readonly string[] = [
+  "ALTER TABLE projects ADD COLUMN workspace_id TEXT",
+  "ALTER TABLE nodetool_workspaces ADD COLUMN origin TEXT NOT NULL DEFAULT 'created'"
+];
+
 const USER_PERMISSIONS_DDL: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS nodetool_user_permissions (
     user_id TEXT PRIMARY KEY NOT NULL,
@@ -343,7 +352,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   "ALTER TABLE nodetool_predictions ADD COLUMN key_source TEXT",
   ...USER_PERMISSIONS_DDL,
   THREAD_KIND_DDL,
-  ...MESSAGE_BRANCH_DDL
+  ...MESSAGE_BRANCH_DDL,
+  ...PROJECT_FOLDER_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -4433,6 +4443,30 @@ export const migrations: MigrationDef[] = [
     },
     async down() {
       // no-op: dropping columns is unsafe across dialects and versions
+    }
+  },
+
+  // Every project has one folder: `projects.workspace_id` names its workspace
+  // row, and `nodetool_workspaces.origin` says who made the folder.
+  {
+    version: "20261116_000000",
+    name: "add_project_folder",
+    createsTables: [],
+    modifiesTables: ["projects", "nodetool_workspaces"],
+    async up(db) {
+      const columns: Array<[string, string]> = [
+        ["projects", "workspace_id"],
+        ["nodetool_workspaces", "origin"]
+      ];
+      for (const [index, [table, column]] of columns.entries()) {
+        if (!(await db.tableExists(table))) continue;
+        if (!(await db.columnExists(table, column))) {
+          await db.execute(PROJECT_FOLDER_DDL[index]);
+        }
+      }
+    },
+    async down() {
+      // Keep both columns: dropping them would lose which folder is a project's.
     }
   }
 ];

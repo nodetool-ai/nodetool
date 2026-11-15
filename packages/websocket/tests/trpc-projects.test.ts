@@ -6,15 +6,24 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtemp, writeFile, access, rm } from "node:fs/promises";
+import {
+  mkdtemp,
+  mkdir,
+  writeFile,
+  access,
+  readFile,
+  rm
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   initTestDb,
+  clearSecretCache,
   Asset,
   LOOSE_PROJECT_ID,
   ModelObserver,
   Prediction,
+  Project,
   Script,
   Storyboard,
   Thread,
@@ -22,6 +31,13 @@ import {
   Workflow,
   Workspace
 } from "@nodetool-ai/models";
+import {
+  PROJECT_MANIFEST_PATH,
+  migrateProjectFolders,
+  setWorkspaceCloudStorage,
+  workspaceFromRow
+} from "@nodetool-ai/execution/service";
+import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
@@ -551,5 +567,151 @@ describe("projects router", () => {
         ref: notMine.id
       })
     ).rejects.toThrow(/not found/i);
+  });
+});
+
+describe("projects router: project folders", () => {
+  const ENV_KEYS = ["PROJECTS_DIR", "NODETOOL_WORKSPACE_STORAGE"] as const;
+  let saved: Record<string, string | undefined> = {};
+  let root = "";
+
+  /** Point new project folders at `path`. `getSecret` caches the setting. */
+  function setProjectsDir(path: string): void {
+    process.env["PROJECTS_DIR"] = path;
+    clearSecretCache("user-1", "PROJECTS_DIR");
+  }
+
+  async function manifest(workspaceId: string): Promise<unknown> {
+    const row = await Workspace.find("user-1", workspaceId);
+    const workspace = row ? workspaceFromRow(row) : null;
+    const text = await workspace?.readText(PROJECT_MANIFEST_PATH);
+    return text ? JSON.parse(text) : null;
+  }
+
+  beforeEach(async () => {
+    saved = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));
+    root = await mkdtemp(join(tmpdir(), "nodetool-project-folders-"));
+    setProjectsDir(join(root, "NodeTool"));
+    initTestDb();
+  });
+
+  afterEach(async () => {
+    for (const key of ENV_KEYS) {
+      if (saved[key] === undefined) delete process.env[key];
+      else process.env[key] = saved[key];
+    }
+    clearSecretCache("user-1", "PROJECTS_DIR");
+    setWorkspaceCloudStorage(null);
+    ModelObserver.clear();
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("creates <PROJECTS_DIR>/<name>/.nodetool/project.json, suffixing a taken name", async () => {
+    const first = await caller().projects.create({ name: "My Film" });
+    const second = await caller().projects.create({ name: "My Film" });
+
+    expect(first.folder).toEqual({
+      path: join(root, "NodeTool", "My Film"),
+      origin: "created",
+      is_accessible: true
+    });
+    expect(second.folder?.path).toBe(join(root, "NodeTool", "My Film 2"));
+    const written = JSON.parse(
+      await readFile(
+        join(root, "NodeTool", "My Film", ".nodetool", "project.json"),
+        "utf8"
+      )
+    ) as unknown;
+    expect(written).toEqual({
+      format: "nodetool.project",
+      version: 1,
+      id: first.id,
+      name: "My Film"
+    });
+    expect(
+      (await caller().projects.get({ id: first.id })).project.folder?.path
+    ).toBe(join(root, "NodeTool", "My Film"));
+  });
+
+  it("fails a create whose folder cannot be written and keeps no project row", async () => {
+    await writeFile(join(root, "blocker"), "not a directory");
+    setProjectsDir(join(root, "blocker", "projects"));
+
+    await expect(
+      caller().projects.create({ id: "unwritable", name: "Unwritable" })
+    ).rejects.toThrow(/project folder/i);
+
+    expect(await Project.get("unwritable")).toBeNull();
+    expect(await Workspace.listByProject("user-1", "unwritable")).toEqual([]);
+    expect((await caller().projects.list({})).map((p) => p.name)).toEqual([
+      "Personal"
+    ]);
+  });
+
+  it("gives a cloud project a virtual folder whose manifest reads through the workspace", async () => {
+    process.env["NODETOOL_WORKSPACE_STORAGE"] = "cloud";
+    setWorkspaceCloudStorage(new InMemoryStorageAdapter());
+
+    const project = await caller().projects.create({ name: "Cloud Film" });
+
+    expect(project.folder).toEqual({
+      path: null,
+      origin: "created",
+      is_accessible: true
+    });
+    const stored = await Project.get<Project>(project.id);
+    expect(await manifest(stored?.workspace_id ?? "")).toEqual({
+      format: "nodetool.project",
+      version: 1,
+      id: project.id,
+      name: "Cloud Film"
+    });
+  });
+
+  it("reports the folder the migration assigned, and Personal's default workspace", async () => {
+    const defaultRow = await Workspace.ensureDefault("user-1");
+    await writeFile(join(defaultRow.path, "draft.md"), "kept");
+    const legacy = await Project.insertNew({ user_id: "user-1", name: "Legacy" });
+    const olderDir = join(root, "older");
+    const older = await Workspace.create<Workspace>({
+      user_id: "user-1",
+      project_id: legacy?.id,
+      name: "older",
+      path: olderDir,
+      created_at: "2026-01-01T00:00:00.000Z"
+    });
+    await Workspace.create<Workspace>({
+      user_id: "user-1",
+      project_id: legacy?.id,
+      name: "newer",
+      path: join(root, "newer"),
+      created_at: "2026-02-01T00:00:00.000Z"
+    });
+    await mkdir(olderDir, { recursive: true });
+    await Project.ensurePersonal("user-1");
+
+    await migrateProjectFolders();
+
+    const listed = await caller().projects.list({});
+    const byName = new Map(listed.map((p) => [p.name, p]));
+    expect(byName.get("Legacy")?.folder).toEqual({
+      path: olderDir,
+      origin: "created",
+      is_accessible: true
+    });
+    expect(byName.get("Personal")?.folder?.path).toBe(defaultRow.path);
+    expect(await readFile(join(defaultRow.path, "draft.md"), "utf8")).toBe(
+      "kept"
+    );
+    expect(await manifest(older.id)).toMatchObject({ id: legacy?.id });
+  });
+
+  it("gives Personal a folder the first time it is listed", async () => {
+    const listed = await caller().projects.list({});
+    const personal = listed.find((p) => p.isPersonal);
+    const defaultRow = await Workspace.getDefault("user-1");
+
+    expect(personal?.folder?.path).toBe(defaultRow?.path);
+    expect(defaultRow?.project_id).toBe(personal?.id);
   });
 });

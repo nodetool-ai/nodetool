@@ -9,6 +9,8 @@ export const workspaces = sqliteTable(
     path: text("path").notNull().default(""),
     project_id: text("project_id").notNull().default("default"),
     is_default: integer("is_default", { mode: "boolean" }).default(false),
+    /** `created` when NodeTool made the folder, `adopted` when the user brought it. */
+    origin: text("origin").notNull().default("created"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

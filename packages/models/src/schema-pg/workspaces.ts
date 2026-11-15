@@ -12,6 +12,8 @@ export const workspaces = pgTable(
     project_id: text("project_id").notNull().default("default"),
     // Drizzle Kit does not apply custom encoders when rendering DDL defaults.
     is_default: integerBoolean("is_default").default(sql`0`),
+    /** `created` when NodeTool made the folder, `adopted` when the user brought it. */
+    origin: text("origin").notNull().default("created"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

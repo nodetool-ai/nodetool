@@ -37,6 +37,20 @@ export {
 } from "./workflow-workspace.js";
 export type { WorkspaceFileChange } from "./workflow-workspace.js";
 
+export {
+  PROJECT_MANIFEST_PATH,
+  describeProjectFolder,
+  ensureProjectFolder,
+  migrateProjectFolders,
+  projectFolderName,
+  projectManifest
+} from "./project-folder.js";
+export type {
+  ProjectFolderInfo,
+  ProjectFolderMigrationReport,
+  ProjectManifest
+} from "./project-folder.js";
+
 export { createAppServerRunner } from "./app-run-server.js";
 export {
   cancelActiveRuns,

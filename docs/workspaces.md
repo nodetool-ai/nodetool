@@ -11,6 +11,20 @@ A workspace is a folder root that workflow runs, agent tasks, and chat sessions 
 ~/projects/campaign           # a workspace you added in the app
 ```
 
+## Project folders
+
+Every project has one folder, recorded as a workspace row. Creating a project creates `<PROJECTS_DIR>/<project name>` (default `~/NodeTool`, see [Configuration](configuration.md#environment-variables-index)) and adds ` 2`, ` 3` and so on when the name is taken. With `NODETOOL_WORKSPACE_STORAGE=cloud` the folder is the key prefix `workspaces/<user>/projects/<sha256 of the project id>` in the asset bucket. If the folder cannot be created, the project is not created either.
+
+Each folder holds `.nodetool/project.json`, which names the project:
+
+```json
+{ "format": "nodetool.project", "version": 1, "id": "<project id>", "name": "My Film" }
+```
+
+Personal's folder is your default workspace. On startup, each project from before project folders keeps its oldest workspace that no game uses, or gets a new folder when it has none. Its other workspaces and their files stay as they are. The project API returns `folder: { path, origin, is_accessible }`, where `path` is null for a cloud folder and `origin` is `created` or `adopted`.
+
+Runs and agents resolve their workspace as described below, not from the project folder.
+
 ## Manage workspaces in the app
 
 Workspaces have their own full-screen page at `/workspaces` (not a Settings tab):

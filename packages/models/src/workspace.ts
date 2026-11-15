@@ -5,7 +5,7 @@
  */
 
 import { existsSync, accessSync, constants, mkdirSync } from "node:fs";
-import { eq, and } from "drizzle-orm";
+import { eq, and, notInArray } from "drizzle-orm";
 import { isAbsolute } from "node:path";
 import {
   getManagedWorkspaceDir,
@@ -16,6 +16,10 @@ import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getPortableDb } from "./db.js";
 import { workspaces } from "./schema/workspaces.js";
 import { workflows } from "./schema/workflows.js";
+import { games } from "./schema/games.js";
+
+/** Who made a workspace's folder: NodeTool, or the user who brought it. */
+export type WorkspaceOrigin = "created" | "adopted";
 
 export class Workspace extends DBModel {
   static override table = workspaces;
@@ -26,6 +30,7 @@ export class Workspace extends DBModel {
   declare path: string;
   declare project_id: string;
   declare is_default: boolean;
+  declare origin: WorkspaceOrigin;
   declare created_at: string;
   declare updated_at: string;
 
@@ -41,6 +46,7 @@ export class Workspace extends DBModel {
       this.is_default = rawIsDefault !== 0;
     }
     this.is_default ??= false;
+    this.origin ??= "created";
     this.created_at ??= now;
     this.updated_at ??= now;
   }
@@ -128,6 +134,46 @@ export class Workspace extends DBModel {
         )
       );
     return rows.map((row) => new Workspace(row));
+  }
+
+  /**
+   * The oldest of a project's workspace rows that no native game uses, or null.
+   *
+   * This is the row a project that predates project folders keeps as its
+   * folder. A game's workspace stays the game's.
+   */
+  static async oldestProjectFolderCandidate(
+    userId: string,
+    projectId: string
+  ): Promise<Workspace | null> {
+    const db = getPortableDb();
+    const [row] = await db
+      .select()
+      .from(workspaces)
+      .where(
+        and(
+          eq(workspaces.user_id, userId),
+          eq(workspaces.project_id, projectId),
+          notInArray(
+            workspaces.id,
+            db.select({ id: games.workspace_id }).from(games)
+          )
+        )
+      )
+      .orderBy(workspaces.created_at, workspaces.id)
+      .limit(1);
+    return row ? new Workspace(row) : null;
+  }
+
+  /** True when any workspace row records `path` as its folder. */
+  static async isPathTaken(path: string): Promise<boolean> {
+    const db = getPortableDb();
+    const [row] = await db
+      .select({ id: workspaces.id })
+      .from(workspaces)
+      .where(eq(workspaces.path, path))
+      .limit(1);
+    return row != null;
   }
 
   static async getDefault(userId: string): Promise<Workspace | null> {
