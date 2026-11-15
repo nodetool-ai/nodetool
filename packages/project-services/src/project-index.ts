@@ -20,6 +20,16 @@
  * changed with a conditional update, so a row that was deleted or changed
  * while the scan ran is left as it is.
  *
+ * A move is often a copy followed by a delete: `Workspace.move` works that
+ * way and so do some sync clients. A scan between the two steps sees the
+ * asset's file and a second media file with the same content. Giving that
+ * second file a row would leave two assets on one file once the delete lands,
+ * and removing either could delete the file. So a media file whose size and
+ * partial hash equal those of a row whose file is present gets no row yet.
+ * The row's path is looked at again: when its file is gone the row is pointed
+ * at the new file, and otherwise the new file waits {@link COPY_GRACE_MS} for
+ * a follow-up reconcile. A copy that is still a copy then gets its own row.
+ *
  * The folder is read through its `Workspace`, so a local directory and a
  * storage-backed folder reconcile the same way. Each directory is listed
  * once. Rows are loaded in one query and compared through a path map, and a
@@ -90,6 +100,11 @@ export interface ProjectIndexReport {
   restored: string[];
   /** Rows created for media files that had none. */
   created: string[];
+  /**
+   * Paths of media files that got no row yet, because their content is that
+   * of an indexed file and the move they may be part of has not finished.
+   */
+  deferred: string[];
 }
 
 function fileName(path: string): string {
@@ -220,15 +235,13 @@ function fingerprintOf(file: FolderFile, hash: string): WorkspaceFingerprint {
   };
 }
 
-/** Create the row of a file that has none. Null when the file is unreadable. */
-async function createRow(
-  workspace: Workspace,
+/** Create the row of a file that has none. `hash` is its partial hash. */
+function createRow(
   userId: string,
   projectId: string,
-  file: FolderFile
-): Promise<Asset | null> {
-  const hash = await hashFile(workspace, file.path);
-  if (hash === null) return null;
+  file: FolderFile,
+  hash: string
+): Promise<Asset> {
   return Asset.create<Asset>({
     user_id: userId,
     project_id: projectId,
@@ -281,6 +294,60 @@ class MovedFileIndex {
 }
 
 /**
+ * The rows whose file is present, by fingerprint, for telling whether a media
+ * file with no row has the content of an indexed file. Each row's path is
+ * looked at again at most once per fingerprint, so the cost stays linear.
+ */
+class CopiedFiles {
+  private byFingerprint: Map<string, Asset[]> | null = null;
+  private readonly checked = new Map<string, { gone: Asset[] }>();
+
+  constructor(
+    private readonly workspace: Workspace,
+    private readonly rows: readonly Asset[],
+    private readonly indexed: ReadonlySet<string>
+  ) {}
+
+  /**
+   * The rows whose present file has the size and partial hash of `file`, as
+   * the ones whose file has gone since the folder was listed. Null when no
+   * row has that fingerprint.
+   */
+  async originalsOf(
+    file: FolderFile,
+    hash: string
+  ): Promise<{ gone: Asset[] } | null> {
+    if (!this.byFingerprint) {
+      this.byFingerprint = new Map();
+      for (const asset of this.rows) {
+        const path = asset.workspace_path;
+        if (!path || !this.indexed.has(path)) continue;
+        const recorded = recordedFingerprint(asset);
+        if (recorded.size === null || recorded.hash === null) continue;
+        const key = `${recorded.size}:${recorded.hash}`;
+        const bucket = this.byFingerprint.get(key);
+        if (bucket) bucket.push(asset);
+        else this.byFingerprint.set(key, [asset]);
+      }
+    }
+    const key = `${file.size}:${hash}`;
+    const same = this.byFingerprint.get(key);
+    if (!same) return null;
+    let checked = this.checked.get(key);
+    if (!checked) {
+      const gone: Asset[] = [];
+      for (const asset of same) {
+        const path = asset.workspace_path;
+        if (path && !(await statFile(this.workspace, path))) gone.push(asset);
+      }
+      checked = { gone };
+      this.checked.set(key, checked);
+    }
+    return checked;
+  }
+}
+
+/**
  * Compare the folder of `projectId` with its asset rows and apply the table
  * at the top of this module. A missing or loose project id names Personal.
  *
@@ -305,7 +372,8 @@ export async function reconcileProjectIndex(
       moved: [],
       offline: [],
       restored: [],
-      created: []
+      created: [],
+      deferred: []
     };
     const inFlux = (path: string): boolean =>
       isProjectAssetPathInFlux(userId, project, path);
@@ -396,14 +464,56 @@ export async function reconcileProjectIndex(
     }
 
     // Media files with no row get one. Other files wait for first use.
+    const copies = new CopiedFiles(workspace, rows, indexed);
+    const projectKey = scheduleKey(project, userId);
+    const waitingSince = waitingCopies.get(projectKey);
+    const stillWaiting = new Map<string, number>();
     for (const file of files.values()) {
       if (indexed.has(file.path) || inFlux(file.path)) continue;
       if (!INDEXED_MEDIA.test(contentTypeOfFile(file.path))) continue;
-      const asset = await createRow(workspace, userId, project, file);
-      if (asset) report.created.push(asset.id);
+      const hash = await hashFile(workspace, file.path);
+      if (hash === null) continue;
+
+      // The file may be the copy half of a move that is not finished.
+      const originals = await copies.originalsOf(file, hash);
+      if (originals) {
+        const [moved] = originals.gone;
+        if (moved && originals.gone.length === 1) {
+          const read = moved.metadata;
+          moved.workspace_path = file.path;
+          moved.metadata = withWorkspaceFingerprint(
+            read,
+            fingerprintOf(file, hash)
+          );
+          indexed.add(file.path);
+          originals.gone.length = 0;
+          if (await moved.saveIfMetadataMatches(read)) {
+            report.moved.push(moved.id);
+          }
+          continue;
+        }
+        const waitKey = `${file.path}\u0000${hash}`;
+        const since = waitingSince?.get(waitKey) ?? Date.now();
+        // Several rows lost their file at once: the next pass sorts them
+        // out by the rule for missing files. Otherwise the copy waits.
+        if (originals.gone.length > 1 || Date.now() - since < COPY_GRACE_MS) {
+          stillWaiting.set(waitKey, since);
+          report.deferred.push(file.path);
+          continue;
+        }
+      }
+      const asset = await createRow(userId, project, file, hash);
+      indexed.add(file.path);
+      report.created.push(asset.id);
+    }
+    if (stillWaiting.size > 0) {
+      waitingCopies.set(projectKey, stillWaiting);
+      scheduleFollowUp(project, userId);
+    } else {
+      waitingCopies.delete(projectKey);
     }
 
-    lastReconciled.set(scheduleKey(project, userId), Date.now());
+    lastReconciled.set(projectKey, Date.now());
     return report;
   });
 }
@@ -430,9 +540,9 @@ export async function ensureAssetForPath(
     if (existing[0]) return existing[0];
     const file = await statFile(workspace, key);
     if (!file) throw new Error(`No file at ${key} in the project folder`);
-    const asset = await createRow(workspace, userId, project, file);
-    if (!asset) throw new Error(`The file ${key} could not be read`);
-    return asset;
+    const hash = await hashFile(workspace, key);
+    if (hash === null) throw new Error(`The file ${key} could not be read`);
+    return createRow(userId, project, file, hash);
   });
 }
 
@@ -444,6 +554,12 @@ export const RECONCILE_DEBOUNCE_MS = 500;
 export const RECONCILE_MAX_WAIT_MS = 5_000;
 /** A project opened again within this time is not scanned again, in ms. */
 export const OPEN_RECONCILE_INTERVAL_MS = 10_000;
+/**
+ * How long a media file with the content of an indexed file waits for its
+ * row, in ms. A move seen half done finishes within this time, and the row of
+ * the file that moved then follows it.
+ */
+export const COPY_GRACE_MS = 10_000;
 
 interface Scheduled {
   timer: NodeJS.Timeout;
@@ -454,6 +570,8 @@ interface Scheduled {
 const scheduled = new Map<string, Scheduled>();
 const running = new Set<Promise<void>>();
 const lastReconciled = new Map<string, number>();
+/** Per project: when each waiting copy (`path`, NUL, hash) was first seen. */
+const waitingCopies = new Map<string, Map<string, number>>();
 
 function scheduleKey(projectId: string, userId: string): string {
   return `${userId}\u0000${projectId}`;
@@ -508,6 +626,25 @@ export function scheduleProjectReconcile(
 }
 
 /**
+ * Reconcile the project again once {@link COPY_GRACE_MS} has passed, unless a
+ * reconcile is already scheduled. That one schedules the next when files are
+ * still waiting.
+ */
+function scheduleFollowUp(projectId: string, userId: string): void {
+  const key = `project\u0000${scheduleKey(projectId, userId)}`;
+  if (scheduled.has(key)) return;
+  const timer = setTimeout(() => start(key), COPY_GRACE_MS);
+  timer.unref?.();
+  scheduled.set(key, {
+    timer,
+    firstAt: Date.now(),
+    run: async () => {
+      await reconcileProjectIndex(projectId, userId);
+    }
+  });
+}
+
+/**
  * Reconcile on project open. A project opened again shortly after a
  * reconcile finished is not scanned again.
  */
@@ -543,6 +680,12 @@ export async function flushProjectReconciles(): Promise<void> {
   while (running.size > 0) await Promise.all([...running]);
 }
 
+/** Drop every scheduled reconcile without running it. */
+export function cancelProjectReconciles(): void {
+  for (const entry of scheduled.values()) clearTimeout(entry.timer);
+  scheduled.clear();
+}
+
 /** The asset index of a project folder. */
 export const ProjectIndex = {
   reconcile: reconcileProjectIndex,
@@ -550,5 +693,6 @@ export const ProjectIndex = {
   schedule: scheduleProjectReconcile,
   scheduleForWorkspace: scheduleWorkspaceReconcile,
   onProjectOpen: reconcileProjectOnOpen,
-  flush: flushProjectReconciles
+  flush: flushProjectReconciles,
+  cancel: cancelProjectReconciles
 } as const;

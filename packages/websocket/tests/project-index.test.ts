@@ -43,6 +43,7 @@ import { ProjectAssetStorageAdapter } from "@nodetool-ai/asset-services/project-
 import { saveProjectAsset } from "@nodetool-ai/asset-services/project-asset";
 import { isProjectAssetOffline } from "@nodetool-ai/asset-services/project-asset-file";
 import {
+  cancelProjectReconciles,
   flushProjectReconciles,
   reconcileProjectIndex
 } from "@nodetool-ai/project-services/project-index";
@@ -144,6 +145,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   await flushProjectReconciles();
+  cancelProjectReconciles();
   vi.unstubAllEnvs();
   ModelObserver.clear();
   setWorkspaceChangeNotifier(null);
@@ -311,6 +313,24 @@ describe.each(["local", "cloud"] as const)(
       expect((await reload(asset)).workspace_path).toBe(
         "Generated/fox-final.png"
       );
+      expect(await bytesOf(asset)).toEqual(PNG);
+    });
+
+    it("a file an agent moves through the workspace keeps its asset", async () => {
+      initWorkspaceChangeEvents();
+      const { project } = await projectWithFolder(USER, "Film");
+      const asset = await saveFox(project.id);
+      const resolved = await resolveProjectWorkspace(project.id, USER);
+      if (!resolved.ok) throw new Error(resolved.reason);
+
+      // Copy, then delete. Each step reports a change.
+      await resolved.workspace.move("Generated/fox.png", "shots/hero.png");
+      await flushProjectReconciles();
+
+      const rows = await Asset.listProjectFiles(USER, project.id);
+      expect(rows.map((row) => row.id)).toEqual([asset.id]);
+      expect(rows[0]?.workspace_path).toBe("shots/hero.png");
+      expect(isProjectAssetOffline(rows[0]!)).toBe(false);
       expect(await bytesOf(asset)).toEqual(PNG);
     });
 
