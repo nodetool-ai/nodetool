@@ -27,6 +27,9 @@ public slots:
 signals:
   void nodeChanged(QString nodeId);
   void projectionChanged();
+  // One edge's state changed in the shown run. Edge states never change a card's
+  // layout, so this does not project the run again.
+  void edgeChanged(QString edgeId);
 private:
   struct Run {
     QHash<QString, QJsonObject> nodes;

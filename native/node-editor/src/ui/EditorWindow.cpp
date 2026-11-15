@@ -145,6 +145,15 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     resize(1440, 900);
     tabStack_ = new QStackedWidget(this);
     setCentralWidget(tabStack_);
+    engine_ = new QQmlEngine(this);
+    // Panels are QQuickWidgets sized to their strip, so an overlay tooltip clips there.
+    // Ui.Tooltip hands its text to the window, which forwards it to the active tab.
+    if (auto *tooltips = engine_->singletonInstance<QObject *>("NodeTool.UiPrimitives", "TooltipHost")) {
+      tooltips->setProperty("routeToHost", true);
+      const auto *meta = tooltips->metaObject();
+      connect(tooltips, meta->method(meta->indexOfSignal("requested(QString)")), this,
+              metaObject()->method(metaObject()->indexOfMethod("showToolTip(QString)")));
+    }
     newTab();
     installTabShortcuts();
     installApplicationMenu();
@@ -315,15 +324,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&viewport_, &node_editor::Viewport::closePopupRequested, this, &EditorWindow::closeMiniMapPopup);
   connect(&firstWorkflowGuide_, &node_editor::FirstWorkflowGuide::actionRequested, this, &EditorWindow::setupAction);
   connect(&nodeCatalog_, &node_editor::NodeCatalog::runtimesRequested, this, [this] { setupAction("dependencies"); });
-  engine_ = new QQmlEngine(this);
-  // Panels are QQuickWidgets sized to their strip, so an overlay tooltip clips there.
-  // Ui.Tooltip hands its text to the window when the overlay cannot hold it.
-  if (auto *tooltips = engine_->singletonInstance<QObject *>("NodeTool.UiPrimitives", "TooltipHost")) {
-    tooltips->setProperty("routeToHost", true);
-    const auto *meta = tooltips->metaObject();
-    connect(tooltips, meta->method(meta->indexOfSignal("requested(QString)")), this,
-            metaObject()->method(metaObject()->indexOfMethod("showToolTip(QString)")));
-  }
+  engine_ = tabOwner_->engine_;
   // The property editors, the inspector's history and the card editors reach
   // the resolver and the pickers through the property host.
   nodeInspector_.fields()->setServices({.media = &mediaResolver_,
@@ -916,6 +917,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(this, &EditorWindow::zoomChanged, this, followInfo);
   connect(&model_, &WorkflowGraphModel::nodePositionUpdated, this, followInfo);
   connect(&model_, &WorkflowGraphModel::runtimeChanged, this, &EditorWindow::syncNodeInfo);
+  connect(&model_, &WorkflowGraphModel::runtimeNodeChanged, this, &EditorWindow::syncNodeInfo);
   connect(inspectorDock_, &QDockWidget::visibilityChanged, this, [this] { schedulePanelChanged(); });
   connect(outputDock_, &QDockWidget::visibilityChanged, this,
           [this] { schedulePanelChanged(); });

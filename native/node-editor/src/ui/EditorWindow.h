@@ -722,6 +722,9 @@ private:
   QPointer<QDialog> setupDialog_;
   bool guideStarted_ = false, guideDismissed_ = false;
   QQuickWidget *setupGuide_ = nullptr;
+  // The window owner creates the one engine its tabs share, so the compiled QML
+  // types and the Theme singleton exist once. It outlives the tabs, which the
+  // owner deletes in its destructor body.
   QQmlEngine *engine_ = nullptr;
   QMainWindow *dockHost_ = nullptr;
   // The node library overlays the canvas column, as the fixed web left panel does.

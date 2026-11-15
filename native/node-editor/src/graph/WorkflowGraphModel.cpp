@@ -371,7 +371,15 @@ void WorkflowGraphModel::setRuntimeModel(node_editor::NodeRuntimeModel *runtime)
   runningSince_.clear();
   runningTimer_.stop();
   if (runtime_) {
-    connect(runtime_, &node_editor::NodeRuntimeModel::nodeChanged, this, [this](const QString &id) { refreshRuntimeNode(id); emit runtimeChanged(); });
+    connect(runtime_, &node_editor::NodeRuntimeModel::nodeChanged, this, [this](const QString &id) {
+      refreshRuntimeNode(id);
+      if (const auto found = ids_.constFind(id); found != ids_.cend() && nodes_.contains(*found)) { emit runtimeNodeChanged(*found); }
+    });
+    connect(runtime_, &node_editor::NodeRuntimeModel::edgeChanged, this, [this](const QString &edgeId) {
+      for (const auto &[connection, edge] : edgeByConnection_) {
+        if (edge["id"].toString() == edgeId) { emit runtimeEdgeChanged(connection); }
+      }
+    });
     // Previews stay across a run change. EditorWindow::syncRuntimePreviews
     // replaces or removes each one, so a card keeps its image until the next loads.
     connect(runtime_, &node_editor::NodeRuntimeModel::projectionChanged, this, [this] {
