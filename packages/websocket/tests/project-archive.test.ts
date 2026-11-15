@@ -432,6 +432,34 @@ describe("project files", () => {
     expect(assets.find((a) => a.name === "secrets")?.external_path).toBeNull();
   });
 
+  it("never keeps a project folder path from the file", async () => {
+    const seeded = await seedProject();
+    const { bytes } = await exportProject(owner, seeded.projectId);
+    const entries = unzipSync(bytes);
+    const records = JSON.parse(strFromU8(entries["records.json"]!)) as Record<
+      string,
+      Array<Record<string, unknown>>
+    >;
+    // A kept path would tie the row to whatever file has it in the new
+    // folder, and deleting the asset would then delete that file.
+    records["assets"]!.push({
+      id: "d".repeat(32),
+      parent_id: null,
+      name: "fox",
+      content_type: "image/png",
+      workspace_path: "Generated/fox-in-snow.png",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+    entries["records.json"] = strToU8(JSON.stringify(records));
+
+    const result = await importArchive(zipSync(entries));
+    const assets = await Asset.listByProject(importer, result.project.id);
+    const fox = assets.find((a) => a.name === "fox");
+    expect(fox).toBeDefined();
+    expect(fox?.workspace_path).toBeNull();
+  });
+
   it("removes stored bytes and workspace files when the rows fail to insert", async () => {
     const seeded = await seedProject();
     const { bytes } = await exportProject(owner, seeded.projectId);

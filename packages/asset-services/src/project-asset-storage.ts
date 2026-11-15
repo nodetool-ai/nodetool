@@ -51,8 +51,6 @@ export class ProjectAssetStorageAdapter implements StorageAdapter {
     uri: string,
     opts?: DownloadUrlOptions
   ) => Promise<string | null>;
-  /** Adapter-specific and duck-typed by its callers, so forwarded as found. */
-  getPublicUrl?: (uri: string) => string | null;
 
   constructor(
     readonly inner: StorageAdapter,
@@ -67,11 +65,6 @@ export class ProjectAssetStorageAdapter implements StorageAdapter {
     if (inner.createDownloadUrl) {
       this.createDownloadUrl = (uri, opts) =>
         inner.createDownloadUrl?.(uri, opts) ?? Promise.resolve(null);
-    }
-    const publicUrl = (inner as { getPublicUrl?: (uri: string) => string | null })
-      .getPublicUrl;
-    if (typeof publicUrl === "function") {
-      this.getPublicUrl = (uri) => publicUrl.call(inner, uri);
     }
   }
 
