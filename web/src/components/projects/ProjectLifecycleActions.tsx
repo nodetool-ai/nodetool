@@ -43,12 +43,21 @@ interface ErrorWithMessage {
   readonly message: string;
 }
 
+/** The project folder as the project API reports it. */
+interface ProjectFolder {
+  readonly path: string | null;
+  readonly is_accessible: boolean;
+  /** What the server does to the folder when the project is deleted. */
+  readonly on_delete: "trash" | "remove" | "keep";
+}
+
 interface ProjectLifecycleActionsProps {
   readonly project: {
     id: string;
     name: string;
     isPersonal: boolean;
     archivedAt: string | null;
+    folder?: ProjectFolder | null;
   };
   /**
    * `buttons` lays the actions out as text buttons, for a list row.
@@ -57,6 +66,24 @@ interface ProjectLifecycleActionsProps {
    */
   readonly layout?: "buttons" | "menu";
 }
+
+/**
+ * Which sentence the delete dialog shows about the project folder. A folder
+ * the server cannot reach is left as it is, whoever made it.
+ */
+const folderMessageKey = (folder: ProjectFolder) => {
+  if (!folder.is_accessible) {
+    return "pass3_33.projects.lifecycle.deleteFolderMissing" as const;
+  }
+  switch (folder.on_delete) {
+    case "trash":
+      return "pass3_33.projects.lifecycle.deleteFolderTrash" as const;
+    case "remove":
+      return "pass3_33.projects.lifecycle.deleteFolderRemove" as const;
+    case "keep":
+      return "pass3_33.projects.lifecycle.deleteFolderKeep" as const;
+  }
+};
 
 /**
  * The card around the actions opens its project on click and on Enter. The
@@ -199,11 +226,30 @@ const ProjectLifecycleActions = ({
     remove.mutate(
       { id: project.id },
       {
-        onSuccess: () => setConfirmingDelete(false),
+        onSuccess: (result) => {
+          setConfirmingDelete(false);
+          // The dialog promised the trash. Say so when the folder went
+          // somewhere else, with the place it is in now.
+          const { action, path } = result.folder;
+          if (action !== "moved_aside" && action !== "trash_failed") {
+            return;
+          }
+          const movedAside = path
+            ? t("pass3_33.projects.lifecycle.folderMovedAsideTo", { path })
+            : t("pass3_33.projects.lifecycle.folderMovedAside");
+          const trashFailed = path
+            ? t("pass3_33.projects.lifecycle.folderTrashFailedAt", { path })
+            : t("pass3_33.projects.lifecycle.folderTrashFailed");
+          addNotification({
+            type: action === "moved_aside" ? "info" : "error",
+            alert: true,
+            content: action === "moved_aside" ? movedAside : trashFailed
+          });
+        },
         onError: (error) => reportError("delete", error)
       }
     );
-  }, [project.id, remove, reportError]);
+  }, [addNotification, project.id, remove, reportError, t]);
 
   if (project.isPersonal) return null;
 
@@ -373,6 +419,21 @@ const ProjectLifecycleActions = ({
               projectName: project.name
             })}
           </Text>
+          {project.folder ? (
+            <FlexColumn gap={SPACING.xs}>
+              <Text size="small">{t(folderMessageKey(project.folder))}</Text>
+              {project.folder.path ? (
+                <Text
+                  size="small"
+                  family="secondary"
+                  color="secondary"
+                  sx={{ overflowWrap: "anywhere" }}
+                >
+                  {project.folder.path}
+                </Text>
+              ) : null}
+            </FlexColumn>
+          ) : null}
           <Text size="small">
             {t("pass3_33.projects.lifecycle.deleteIrreversible")}
           </Text>

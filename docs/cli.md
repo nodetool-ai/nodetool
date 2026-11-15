@@ -1518,8 +1518,9 @@ server serves the same format at `GET /api/projects/:id/export` and
 A project file holds every row filed under the project: workflows and their
 versions, storyboards, scripts, timelines, sketches, mini apps, JavaScript
 scripts, and games, each with its version history. It also holds chats with
-their messages, assets with their stored bytes, and every file in the
-project's workspaces. Jobs, run traces, and spend records stay behind.
+their messages, assets with their stored bytes, and every file in the project
+folder and the project's other workspaces. Jobs, run traces, and spend records
+stay behind.
 
 Import never overwrites. It creates a new project and gives every row a new
 id, then rewrites each reference to an exported id: id columns, document JSON,

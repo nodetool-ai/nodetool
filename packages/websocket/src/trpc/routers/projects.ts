@@ -18,7 +18,7 @@
  *   openFolder     (mutation) — ProjectResponse (adopts an existing folder)
  *   relocate       (mutation) — ProjectResponse (points at a moved folder)
  *   update         (mutation) — ProjectResponse
- *   delete         (mutation) — { ok: true }
+ *   delete         (mutation) — { ok: true, folder } (what happened to the folder)
  *   assignDocument (mutation) — { ok: true }
  */
 
@@ -55,6 +55,7 @@ import {
   copyProjectDocumentInput,
   copyProjectDocumentOutput,
   createProjectInput,
+  deleteProjectOutput,
   openProjectFolderInput,
   patchProjectInput,
   projectDetail,
@@ -75,6 +76,7 @@ import {
   copyProjectDocument,
   ProjectCopyError
 } from "../../lib/project-document-copy.js";
+import { planProjectFolderDelete } from "@nodetool-ai/project-services/project-delete";
 import { deleteProjectForUser } from "../../lib/project-delete.js";
 import {
   ProjectFolderOpenError,
@@ -218,7 +220,12 @@ async function toResponse(project: Project): Promise<ProjectResponse> {
     : null;
   return projectResponse.parse({
     ...project.toResponse(),
-    folder: row ? describeProjectFolder(row) : null
+    folder: row
+      ? {
+          ...describeProjectFolder(row),
+          on_delete: await planProjectFolderDelete(row)
+        }
+      : null
   });
 }
 
@@ -486,17 +493,20 @@ export const projectsRouter = router({
 
   delete: protectedProcedure
     .input(idInput)
-    .output(okOutput)
+    .output(deleteProjectOutput)
     .mutation(async ({ ctx, input }) => {
       await prepareUser(ctx.userId);
-      const outcome = await deleteProjectForUser(ctx.userId, input.id);
-      if (outcome === "personal") {
-        throwApiError(ApiErrorCode.INVALID_INPUT, "Personal cannot be deleted");
-      }
-      if (outcome === "not_found") {
+      const result = await deleteProjectForUser(ctx.userId, input.id);
+      if (result.outcome !== "deleted") {
+        if (result.outcome === "personal") {
+          throwApiError(
+            ApiErrorCode.INVALID_INPUT,
+            "Personal cannot be deleted"
+          );
+        }
         throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
       }
-      return { ok: true as const };
+      return { ok: true as const, folder: result.folder };
     }),
 
   /**
