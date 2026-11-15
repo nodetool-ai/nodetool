@@ -70,6 +70,7 @@ import ProjectsRailButton from "../projects/ProjectsRailButton";
 import MorePanel from "./MorePanel";
 import DocumentsTree from "./DocumentsTree";
 import WorkspaceTree from "../workspaces/WorkspaceTree";
+import { ProjectFolderNoticeById } from "../projects/ProjectFolderNotice";
 
 import {
   LeftPanelView,
@@ -471,6 +472,7 @@ const PanelContent = memo(function PanelContent({
             overflow: "hidden"
           }}
         >
+          <ProjectFolderNoticeById projectId={projectId} />
           <WorkspaceTree projectId={projectId} />
         </FlexColumn>
       )}

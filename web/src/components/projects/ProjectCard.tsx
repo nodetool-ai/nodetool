@@ -27,6 +27,7 @@ import {
   type ProjectDocument
 } from "./projectStatus";
 import { TYPE_COLOR, TYPE_GLYPH } from "../workspace/tabTypeIdentity";
+import ProjectFolderNotice from "./ProjectFolderNotice";
 import ProjectLifecycleActions from "./ProjectLifecycleActions";
 
 const MEDIA_HEIGHT = 176;
@@ -213,6 +214,7 @@ const ProjectCard = ({ detail, onOpen, onDropDocument }: ProjectCardProps) => {
         >
           {statusLine}
         </TruncatedText>
+        <ProjectFolderNotice project={project} compact />
         <FlexRow
           align="center"
           gap={SPACING.md}

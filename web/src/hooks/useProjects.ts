@@ -70,6 +70,18 @@ export const useCreateProject = () => {
   return trpc.projects.create.useMutation({ onSuccess: invalidate });
 };
 
+/** Open an existing local folder as a project. Local installs only. */
+export const useOpenProjectFolder = () => {
+  const invalidate = useInvalidateProjects();
+  return trpc.projects.openFolder.useMutation({ onSuccess: invalidate });
+};
+
+/** Point a project whose folder moved at its new place. */
+export const useRelocateProject = () => {
+  const invalidate = useInvalidateProjects();
+  return trpc.projects.relocate.useMutation({ onSuccess: invalidate });
+};
+
 export const useAssignDocument = () => {
   const invalidate = useInvalidateProjects();
   return trpc.projects.assignDocument.useMutation({ onSuccess: invalidate });
