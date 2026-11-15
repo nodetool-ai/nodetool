@@ -109,6 +109,7 @@ describe("WorkersPanel", () => {
       id: "minimax-h3",
       label: "MiniMax H3",
       profileName: "ComfyUI MiniMax H3",
+      gpus: ["NVIDIA RTX PRO 4500 Blackwell", "NVIDIA GeForce RTX 5090"],
       hourlyUsd: { min: 0.72, max: 1.19 },
       maxLifetimeMinutes: 120
     };
