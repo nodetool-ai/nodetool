@@ -231,15 +231,21 @@ function joinPath(directory: string, fileName: string): string {
  * compare without case, because macOS and Windows folders ignore it. A name
  * is also skipped when an asset row still records it although its file is
  * gone, so a new asset never takes over the path of one that is missing.
+ *
+ * `beforeWrite` runs with each candidate path right before the create is
+ * tried there. A caller that must be able to find its file again after a
+ * crash records the path in it. Throwing from it stops the claim with
+ * nothing written.
  */
-async function claimFile(
+export async function claimFile(
   workspace: Workspace,
   owner: { userId: string; projectId: string },
   directory: string,
   stem: string,
   extension: string,
   bytes: Uint8Array,
-  contentType: string
+  contentType: string,
+  beforeWrite?: (path: string) => Promise<void>
 ): Promise<string> {
   const taken = new Set(
     (await workspace.list(directory)).map((entry) => entry.name.toLowerCase())
@@ -255,6 +261,7 @@ async function claimFile(
       path
     );
     if (rows.length > 0) continue;
+    await beforeWrite?.(path);
     if (await workspace.writeNew(path, bytes, contentType)) return path;
   }
   throw new Error(

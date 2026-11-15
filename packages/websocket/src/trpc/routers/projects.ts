@@ -78,6 +78,10 @@ import {
 import { deleteProjectForUser } from "../../lib/project-delete.js";
 import { reconcileProjectOnOpen } from "@nodetool-ai/project-services/project-index";
 import {
+  prepareProjectAssetMove,
+  projectAssetMoveProgress
+} from "@nodetool-ai/project-services/project-asset-move-job";
+import {
   ProjectFolderOpenError,
   openProjectFolder,
   relocateProjectFolder
@@ -217,10 +221,13 @@ async function toResponse(project: Project): Promise<ProjectResponse> {
   const row = project.workspace_id
     ? await Workspace.find(project.user_id, project.workspace_id)
     : null;
-  return projectResponse.parse({
-    ...project.toResponse(),
-    folder: row ? describeProjectFolder(row) : null
-  });
+  const folder: ProjectResponse["folder"] = row
+    ? describeProjectFolder(row)
+    : null;
+  // Set only while assets from before project folders move into the folder.
+  const moving = projectAssetMoveProgress(project.id, project.user_id);
+  if (folder && moving) folder.moving = moving;
+  return projectResponse.parse({ ...project.toResponse(), folder });
 }
 
 const FOLDER_OPEN_ERROR_CODES = {
@@ -259,6 +266,9 @@ async function loadOwned(userId: string, id: string): Promise<Project> {
 async function loadOpened(userId: string, id: string): Promise<Project> {
   const project = await loadOwned(userId, id);
   reconcileProjectOnOpen(project.id, userId);
+  // Assets from before project folders move into the folder in the
+  // background. Looking for them here lets this response show the move.
+  await prepareProjectAssetMove(project.id, userId);
   return project;
 }
 

@@ -6192,7 +6192,9 @@
         "notFound": "Fant ikke mappen",
         "notFoundDetail": "Mappen til {{name}} er flyttet, har fått nytt navn eller ligger på en stasjon som ikke er tilkoblet. Kjøringer starter ikke før du finner den.",
         "locate": "Finn",
-        "locateError": "Kunne ikke finne mappen: {{error}}"
+        "locateError": "Kunne ikke finne mappen: {{error}}",
+        "moving": "Flytter filer til prosjektmappen",
+        "movingDetail": "{{done}} av {{total}} filer flyttet. Ressursene dine er tilgjengelige mens dette pågår."
       },
       "home": {
         "homeTab": "Hjem",

@@ -6271,7 +6271,9 @@
         "notFound": "Dossier introuvable",
         "notFoundDetail": "Le dossier de {{name}} a été déplacé, renommé ou se trouve sur un disque non connecté. Les exécutions ne démarrent pas tant que vous ne l'avez pas localisé.",
         "locate": "Localiser",
-        "locateError": "Impossible de localiser le dossier : {{error}}"
+        "locateError": "Impossible de localiser le dossier : {{error}}",
+        "moving": "Déplacement des fichiers vers le dossier du projet",
+        "movingDetail": "{{done}} fichiers déplacés sur {{total}}. Vos ressources restent disponibles pendant l'opération."
       },
       "home": {
         "homeTab": "Accueil",

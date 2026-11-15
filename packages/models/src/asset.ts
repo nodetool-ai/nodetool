@@ -5,9 +5,10 @@
  */
 
 import { isDeepStrictEqual } from "node:util";
-import { eq, and, or, like, desc, isNull, isNotNull, lt, inArray, sql } from "drizzle-orm";
+import { eq, and, or, like, desc, isNull, isNotNull, lt, ne, inArray, sql } from "drizzle-orm";
 import {
   PROJECT_DIRECTORY_ID_PREFIX,
+  WORKSPACE_MOVE_TARGET_KEY,
   isShortResourceId,
   isSystemEntityMetadata
 } from "@nodetool-ai/protocol";
@@ -19,6 +20,12 @@ import {
 } from "./base-model.js";
 import { getPortableDb, getDatabase } from "./db.js";
 import { assets } from "./schema/assets.js";
+
+/** What an asset row says about where its bytes are. */
+export interface AssetFilePlacement {
+  workspace_path: string | null;
+  metadata: Record<string, unknown> | null;
+}
 
 export type AssetRow = typeof assets.$inferSelect;
 export type AssetInsert = typeof assets.$inferInsert;
@@ -165,6 +172,90 @@ export class Asset extends DBModel {
     if (updated.length === 0) return false;
     this.content_hash = contentHash;
     return true;
+  }
+
+  /**
+   * Write where this asset's bytes are, but only while the persisted row
+   * still holds `expected`, has no `external_path`, and belongs to the same
+   * project. Only `workspace_path`, `parent_id`, `size`, `content_hash` and
+   * `metadata` are written, so a change another writer made to any other
+   * column stays. `updated_at` is left alone: it versions the asset's URL,
+   * and the bytes are the ones the asset had.
+   *
+   * False when the row is gone or no longer what the caller read. Nothing is
+   * written then.
+   */
+  async saveFilePlacementIf(expected: AssetFilePlacement): Promise<boolean> {
+    const saved = await this.updateIfPlaced(expected, {
+      workspace_path: this.workspace_path,
+      parent_id: this.parent_id,
+      size: this.size,
+      content_hash: this.content_hash,
+      metadata: this.storedMetadata()
+    });
+    if (saved) ModelObserver.notify(this, ModelChangeEvent.UPDATED);
+    return saved;
+  }
+
+  /**
+   * Write `metadata` alone, under the conditions of
+   * {@link saveFilePlacementIf}. No change event is sent: it records a step of
+   * the move of the asset's bytes, which no client reads.
+   */
+  saveMoveStateIf(expected: AssetFilePlacement): Promise<boolean> {
+    return this.updateIfPlaced(expected, { metadata: this.storedMetadata() });
+  }
+
+  private storedMetadata(): Record<string, unknown> | null {
+    return this.metadata === null
+      ? null
+      : JSON.parse(JSON.stringify(this.metadata));
+  }
+
+  private async updateIfPlaced(
+    expected: AssetFilePlacement,
+    values: Partial<
+      Pick<
+        AssetInsert,
+        "workspace_path" | "parent_id" | "size" | "content_hash" | "metadata"
+      >
+    >
+  ): Promise<boolean> {
+    const db = getPortableDb();
+    const owner = and(eq(assets.id, this.id), eq(assets.user_id, this.user_id));
+    const current = await db
+      .select({
+        metadata: assets.metadata,
+        workspace_path: assets.workspace_path
+      })
+      .from(assets)
+      .where(owner)
+      .limit(1);
+    if (
+      !current[0] ||
+      current[0].workspace_path !== expected.workspace_path ||
+      !isDeepStrictEqual(current[0].metadata, expected.metadata)
+    ) {
+      return false;
+    }
+    // Guard with the stored key order so an intervening write still loses the CAS.
+    const stored = current[0].metadata;
+    const updated = await db
+      .update(assets)
+      .set(values)
+      .where(
+        and(
+          owner,
+          eq(assets.project_id, this.project_id),
+          isNull(assets.external_path),
+          expected.workspace_path === null
+            ? isNull(assets.workspace_path)
+            : eq(assets.workspace_path, expected.workspace_path),
+          stored === null ? isNull(assets.metadata) : eq(assets.metadata, stored)
+        )
+      )
+      .returning({ id: assets.id });
+    return updated.length > 0;
   }
 
   override toRow(): AssetInsert & Record<string, unknown> {
@@ -333,6 +424,92 @@ export class Asset extends DBModel {
         )
       )
       .returning({ id: assets.id });
+    return rows.length;
+  }
+
+  /**
+   * The rows of the user in `projectId` whose bytes are not in the project
+   * folder yet, or whose move there is not finished: a row with no
+   * `workspace_path` and no `external_path` that is not a folder, and any row
+   * that still carries {@link WORKSPACE_MOVE_TARGET_KEY}. Oldest first.
+   */
+  static async listAwaitingFolderMove(
+    userId: string,
+    projectId: string
+  ): Promise<Asset[]> {
+    const rows = await getPortableDb()
+      .select()
+      .from(assets)
+      .where(
+        and(
+          eq(assets.user_id, userId),
+          eq(assets.project_id, projectId),
+          awaitingFolderMove()
+        )
+      )
+      .orderBy(assets.created_at, assets.id);
+    return rows
+      .map((row) => new Asset(row))
+      .filter((asset) => !asset.workspace_path || moveTargetOf(asset) !== null);
+  }
+
+  /**
+   * Every user and project that has a row {@link listAwaitingFolderMove}
+   * returns. Deliberately not user-scoped, for the startup job, so it must
+   * never back a request handler.
+   */
+  static async listProjectsAwaitingFolderMove(): Promise<
+    { userId: string; projectId: string }[]
+  > {
+    const rows = await getPortableDb()
+      .selectDistinct({
+        userId: assets.user_id,
+        projectId: assets.project_id
+      })
+      .from(assets)
+      .where(awaitingFolderMove());
+    return rows;
+  }
+
+  /**
+   * The rows of the user in `projectId` whose bytes are on their way to
+   * `workspacePath` and have no file in the folder yet. The file at that path
+   * is theirs, so nothing else may take it for a new asset.
+   */
+  static async findMovingTo(
+    userId: string,
+    projectId: string,
+    workspacePath?: string
+  ): Promise<Asset[]> {
+    const rows = await getPortableDb()
+      .select()
+      .from(assets)
+      .where(
+        and(
+          eq(assets.user_id, userId),
+          eq(assets.project_id, projectId),
+          isNull(assets.workspace_path),
+          carriesMoveTarget()
+        )
+      );
+    return rows
+      .map((row) => new Asset(row))
+      .filter((asset) => {
+        const target = moveTargetOf(asset);
+        return (
+          target !== null &&
+          (workspacePath === undefined || target === workspacePath)
+        );
+      });
+  }
+
+  /** How many rows of the user name `parentId` as their parent. */
+  static async countChildren(userId: string, parentId: string): Promise<number> {
+    const rows = await getPortableDb()
+      .select({ id: assets.id })
+      .from(assets)
+      .where(and(eq(assets.user_id, userId), eq(assets.parent_id, parentId)))
+      .limit(1);
     return rows.length;
   }
 
@@ -763,6 +940,33 @@ export class Asset extends DBModel {
 
     return { assets: [folderDict] };
   }
+}
+
+/** The path {@link WORKSPACE_MOVE_TARGET_KEY} records on `asset`, or null. */
+export function moveTargetOf(asset: {
+  metadata: Record<string, unknown> | null;
+}): string | null {
+  const target = asset.metadata?.[WORKSPACE_MOVE_TARGET_KEY];
+  return typeof target === "string" && target !== "" ? target : null;
+}
+
+/** Rows whose stored metadata names {@link WORKSPACE_MOVE_TARGET_KEY}. */
+function carriesMoveTarget() {
+  // The metadata column is JSON text on both dialects, so the key is found
+  // as text. A value that merely holds the word is filtered out after the read.
+  return sql`${assets.metadata} LIKE ${`%"${WORKSPACE_MOVE_TARGET_KEY}"%`}`;
+}
+
+/** Rows with bytes outside their project folder, or a move not finished. */
+function awaitingFolderMove() {
+  return or(
+    and(
+      isNull(assets.workspace_path),
+      isNull(assets.external_path),
+      ne(assets.content_type, "folder")
+    ),
+    carriesMoveTarget()
+  );
 }
 
 /** A file move that waits for its asset row. */

@@ -16,6 +16,15 @@
 /** Prefix of a directory folder id. Generated resource ids never start so. */
 export const PROJECT_DIRECTORY_ID_PREFIX = "dir:";
 
+/**
+ * The asset metadata key that records where the bytes of an asset from before
+ * project folders are being moved to: a path relative to its project folder.
+ * It is written before the first byte is copied and removed after the legacy
+ * object is deleted, so a move that was interrupted is found and finished.
+ * Server-owned: a client metadata update never writes it.
+ */
+export const WORKSPACE_MOVE_TARGET_KEY = "workspace_move_target";
+
 /** A directory of a project folder, as a directory folder id names it. */
 export interface ProjectDirectoryRef {
   projectId: string;

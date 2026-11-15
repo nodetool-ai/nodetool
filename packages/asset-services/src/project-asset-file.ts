@@ -10,7 +10,10 @@
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { open } from "node:fs/promises";
-import { isFiniteNumber } from "@nodetool-ai/protocol";
+import {
+  WORKSPACE_MOVE_TARGET_KEY,
+  isFiniteNumber
+} from "@nodetool-ai/protocol";
 import { getProjectFolderResolver, type Workspace } from "@nodetool-ai/runtime";
 
 /** The row fields that place an asset's file in a project folder. */
@@ -138,7 +141,9 @@ export const WORKSPACE_OFFLINE_KEY = "workspace_offline";
 /** Every metadata key the server owns on an asset in a project folder. */
 export const WORKSPACE_SERVER_KEYS = [
   ...WORKSPACE_FINGERPRINT_KEYS,
-  WORKSPACE_OFFLINE_KEY
+  WORKSPACE_OFFLINE_KEY,
+  // Where the bytes of an asset from before project folders are moving to.
+  WORKSPACE_MOVE_TARGET_KEY
 ] as const;
 
 /**

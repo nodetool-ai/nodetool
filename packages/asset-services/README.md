@@ -49,6 +49,19 @@ thumbnail of a file that changed in place, and `projectAssetMtime` versions
 the thumbnail URL.
 See [the asset index follows the folder](../../docs/workspaces.md#the-asset-index-follows-the-folder).
 
+`moveLegacyAssetIntoFolder` in `legacy-asset-move` moves the bytes of one asset
+from before project folders out of the asset store and into its project's
+folder. It records the target path in the row's metadata under
+`workspace_move_target`, copies the object with `claimFile`, verifies the copy
+by size and partial hash, names the file on the row with
+`Asset.saveFilePlacementIf`, deletes the legacy object and then removes the
+recorded target. A call that finds a recorded target continues that move. The
+job in
+[`@nodetool-ai/project-services`](../project-services/src/project-asset-move-job.ts)
+runs it for every asset of a project and deletes the folder rows that are left
+empty. See
+[existing assets move into the folder](../../docs/workspaces.md#existing-assets-move-into-the-folder).
+
 Within a project the asset browser's folders are directories of the folder.
 `project-asset-directories` lists a project by directory, makes a directory
 for a new folder, and moves a directory with `moveProjectDirectory`, which

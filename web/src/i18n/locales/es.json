@@ -6271,7 +6271,9 @@
         "notFound": "Carpeta no encontrada",
         "notFoundDetail": "La carpeta de {{name}} se movió, se renombró o está en una unidad no conectada. Las ejecuciones no empiezan hasta que la localices.",
         "locate": "Localizar",
-        "locateError": "No se pudo localizar la carpeta: {{error}}"
+        "locateError": "No se pudo localizar la carpeta: {{error}}",
+        "moving": "Moviendo archivos a la carpeta del proyecto",
+        "movingDetail": "{{done}} de {{total}} archivos movidos. Tus recursos siguen disponibles mientras tanto."
       },
       "home": {
         "homeTab": "Inicio",
