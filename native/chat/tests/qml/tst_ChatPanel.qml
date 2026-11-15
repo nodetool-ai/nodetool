@@ -607,9 +607,13 @@ TestCase {
             list.forceLayout()
             // visible does not imply that a ListView descendant is inside its viewport.
             const point = button.mapToItem(list, 0, 0)
-            list.contentY = Math.max(list.originY, Math.min(list.originY + list.contentHeight - list.height,
+            const target = Math.max(list.originY, Math.min(list.originY + list.contentHeight - list.height,
                 list.contentY + point.y - (list.height - button.height) / 2))
-            verify(waitForRendering(button))
+            // An unchanged view renders no new frame, so only a scroll is waited on.
+            if (Math.abs(target - list.contentY) >= 1) {
+                list.contentY = target
+                verify(waitForRendering(button))
+            }
             const position = button.mapToItem(list, 0, 0)
             verify(position.y >= 0 && position.y + button.height <= list.height)
             mouseClick(button, button.width / 2, button.height / 2, Qt.LeftButton, Qt.NoModifier, 0)
@@ -1097,6 +1101,57 @@ TestCase {
         testSession.selectThread("b")
         tryCompare(conversation, "titleMenuShown", false)
         testSession.selectThread("a")
+    }
+    // useChatScrollAnchor.ts: a sent prompt is held near the top of the view
+    // while the reply grows below it, and the jump button stays hidden.
+    function test_sentPromptIsHeldNearTheTop() {
+        test.width = 1100
+        testSession.selectThread("a")
+        testDriver.history("a", 30)
+        const conversation = findChild(panel, "chatConversation")
+        const view = findChild(panel, "chatMessages")
+        tryCompare(view, "count", 30)
+        conversation.followBottom = true
+        view.positionViewAtEnd()
+        wait(30)
+        testDriver.userTurn("a", "anchored-prompt", "Where is my prompt?")
+        tryCompare(conversation, "anchoringTurn", true)
+        verify(conversation.tailHeight > 0)
+        tryVerify(function() {
+            const row = view.itemAtIndex(view.count - 1)
+            if (!row) return false
+            const top = row.mapToItem(view, 0, 0).y
+            return top >= 0 && top < view.height * 0.25
+        }, 2000)
+        compare(findChild(conversation, "chatScrollToLatest").visible, false)
+        testDriver.stream("a", "A short reply.", true)
+        wait(50)
+        const row = view.itemAtIndex(view.count - 2)
+        verify(row !== null)
+        verify(row.mapToItem(view, 0, 0).y < view.height * 0.25)
+        conversation.releaseTurnAnchor()
+        conversation.followBottom = true
+        view.positionViewAtEnd()
+    }
+    // ScrollToBottomButton.tsx: scrolled up, a round arrow jumps to the end.
+    function test_jumpToLatestFloatsOverTheMessages() {
+        test.width = 1100
+        testSession.selectThread("a")
+        testDriver.history("a", 30)
+        const conversation = findChild(panel, "chatConversation")
+        const view = findChild(panel, "chatMessages")
+        tryCompare(view, "count", 30)
+        const composer = findChild(conversation, "chatComposer")
+        const composerTop = composer.mapToItem(conversation, 0, 0).y
+        view.positionViewAtBeginning()
+        conversation.followBottom = false
+        const jump = findChild(conversation, "chatScrollToLatest")
+        tryCompare(jump, "visible", true)
+        compare(composer.mapToItem(conversation, 0, 0).y, composerTop)
+        mouseClick(jump)
+        tryCompare(view, "atYEnd", true)
+        compare(conversation.followBottom, true)
+        compare(jump.visible, false)
     }
     function test_messagesHaveNoCopyButtons() {
         testDriver.codeHistory("a", "int value = 0;\n")

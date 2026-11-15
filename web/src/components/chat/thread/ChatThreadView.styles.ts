@@ -32,7 +32,9 @@ const writingPulse = keyframes({
 
 export const createStyles = (theme: Theme) => ({
   chatThreadViewRoot: css({
-    backgroundColor: theme.vars.palette.background.default,
+    // One surface with the panel around it, as on claude.ai: a darker column
+    // read as a box drawn around the conversation.
+    backgroundColor: "transparent",
     flexGrow: 1,
     position: "relative",
     display: "flex",
@@ -56,7 +58,10 @@ export const createStyles = (theme: Theme) => ({
     // dumps) scrolls inside its own box.
     overflowX: "hidden",
     overflowAnchor: "none",
-    padding: theme.spacing(2, 0),
+    padding: theme.spacing(SPACING.md, SPACING.none, SPACING.xl),
+    // Text fades out as it scrolls under the composer instead of ending at a
+    // hard edge. The bottom padding keeps the last line clear of the fade.
+    maskImage: `linear-gradient(to bottom, ${theme.vars.palette.background.default} calc(100% - ${SPACING_PX.xl}px), transparent)`,
     marginTop: 0,
     position: "relative",
 
@@ -189,6 +194,14 @@ export const createStyles = (theme: Theme) => ({
       {
         marginTop: theme.spacing(SPACING.xs)
       },
+    // Round bullets, as on claude.ai. The editor's global `ul li` rule draws
+    // squares, which read as a checklist in prose.
+    ".chat-message.assistant .markdown-body ul > li": {
+      listStyleType: "disc"
+    },
+    ".chat-message.assistant .markdown-body ul ul > li": {
+      listStyleType: "circle"
+    },
     ".chat-message.assistant .markdown-body :is(h1, h2, h3, h4)": {
       marginTop: theme.spacing(SPACING.xl),
       marginBottom: theme.spacing(SPACING.md),

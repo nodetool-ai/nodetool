@@ -211,6 +211,8 @@ signals:
     void providerSetupRequested();
     void providerKeySaved(QString provider);
     void versionsChanged();
+    // This view sent a prompt; its row is now the thread's last row.
+    void promptSent(QString threadId);
 
 private:
   struct State {
