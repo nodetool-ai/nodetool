@@ -68,7 +68,8 @@ On a document card, **Copy** opens a dialog with a **Destination project** field
 **Export** on a project card downloads the whole project as one
 `.nodetool-project` file. The file holds the project's documents, workflows,
 mini apps, games, and JavaScript scripts with their version history, its
-conversations, its assets with their media, and every file in its project folder.
+conversations, its assets with their media, and every file in its project
+folder. The folder's `.nodetool/` directory is not included.
 Jobs, run history, and spend records are not included.
 
 **Import project** at the top of the project list reads such a file and
@@ -85,8 +86,18 @@ and `nodetool projects import`. See the [CLI reference](cli.md#nodetool-projects
 
 Each card carries **Export**, **Archive**, and **Delete** buttons. They are absent for Personal.
 
-- **Archive** hides the project from the selector and deletes nothing. Archived projects are listed under **Archived projects** at the end of the list, where **Restore** brings one back.
-- **Delete** asks for confirmation in a dialog titled "Delete *name*?". It removes the project and all of its documents, conversations, generated outputs, assets, jobs, and project files. This cannot be undone.
+- **Archive** hides the project from the selector and deletes nothing. The project folder stays in place. Archived projects are listed under **Archived projects** at the end of the list, where **Restore** brings one back.
+- **Delete** asks for confirmation in a dialog titled "Delete *name*?". It removes the project and all of its documents, conversations, jobs, and assets stored outside the project folder. This cannot be undone. The dialog shows the folder's path and states what happens to the folder.
+
+What delete does to the project folder depends on who made it:
+
+| Folder | On delete |
+|---|---|
+| NodeTool created it on this machine | The folder moves to the OS trash. When the server cannot reach the OS trash, the folder moves to `.trash/<name>-<timestamp>` inside the projects folder, and a notice names the new place. On Windows the folder always goes to `.trash`. |
+| NodeTool created it in cloud storage | The folder and every file in it are deleted. |
+| You brought it | Every file stays where it is. NodeTool removes only the `.nodetool` folder inside it. |
+
+NodeTool writes a record, `.nodetool/created.json`, into each folder it creates. A folder without that record counts as one you brought. That includes a folder you added by hand before projects had folders and a project folder created before this record existed.
 
 There is no rename control in the project list. Ask the agent to rename a project, as described next.
 
@@ -99,6 +110,6 @@ A project's conversations are chats filed under it, and the server can also hold
 | `list_projects` | Lists your projects, newest first. Pass `archived` to list archived ones. |
 | `search_projects` | Finds projects by name or kind. Every word must match. |
 | `update_project` | Renames a project, changes its kind, or archives and restores it. |
-| `delete_project` | Permanently deletes a project. It refuses the Personal project and the project the conversation belongs to. |
+| `delete_project` | Permanently deletes a project and reports what happened to its folder, as described above. It refuses the Personal project and the project the conversation belongs to. |
 
 The agent is told to confirm with you before deleting and to prefer archiving.

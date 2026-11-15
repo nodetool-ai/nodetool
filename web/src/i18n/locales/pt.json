@@ -6526,8 +6526,16 @@
         "exporting": "Exportando…",
         "deleteProject": "Excluir projeto",
         "confirmDeleteTitle": "Excluir {{projectName}}?",
-        "confirmDeleteBody": "Exclua {{projectName}} e todos os seus documentos, conversas, saídas geradas, ativos, trabalhos e arquivos de projeto.",
+        "confirmDeleteBody": "Exclua {{projectName}} e todos os seus documentos, conversas, trabalhos e ativos armazenados fora da pasta do projeto.",
         "deleteIrreversible": "Isto não pode ser desfeito.",
+        "deleteFolderTrash": "A pasta do projeto é movida para a lixeira.",
+        "deleteFolderRemove": "A pasta do projeto e todos os arquivos nela são excluídos do armazenamento em nuvem.",
+        "deleteFolderKeep": "A pasta do projeto fica onde está, com todos os arquivos. O NodeTool remove apenas a pasta .nodetool dentro dela.",
+        "deleteFolderMissing": "Não é possível acessar a pasta do projeto, então o NodeTool a deixa como está.",
+        "folderMovedAsideTo": "Não foi possível acessar a lixeira. A pasta do projeto foi movida para {{path}}.",
+        "folderMovedAside": "Não foi possível acessar a lixeira. A pasta do projeto foi movida para a pasta .trash na pasta de projetos.",
+        "folderTrashFailedAt": "Não foi possível mover a pasta do projeto para a lixeira. Ela continua em {{path}}.",
+        "folderTrashFailed": "Não foi possível mover a pasta do projeto para a lixeira. Ela continua onde está.",
         "error": "Não foi possível {{action}} {{projectName}}: {{error}}"
       }
     }

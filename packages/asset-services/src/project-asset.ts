@@ -21,6 +21,7 @@ import { normalizeAssetContentType } from "./asset-paths.js";
 import {
   partialContentHash,
   partialContentHashOfFile,
+  partialContentHashOfWorkspaceFile,
   requireProjectAssetFile,
   requireProjectFolder,
   withWorkspaceFingerprint,
@@ -148,9 +149,10 @@ const folderQueues = new Map<string, Promise<unknown>>();
  * Run `task` after every earlier task for the same project folder. Choosing a
  * free file name and writing the file are two steps, and two saves of the
  * same name that interleave would pick the same name and write one file over
- * the other. This serializes them within the process.
+ * the other. This serializes them within the process. The reconciler runs
+ * under the same lock, so it never sees a file whose row is still being made.
  */
-function withFolderLock<T>(
+export function withProjectFolderLock<T>(
   userId: string,
   projectId: string,
   task: () => Promise<T>
@@ -164,6 +166,49 @@ function withFolderLock<T>(
     if (folderQueues.get(key) === settled) folderQueues.delete(key);
   });
   return next;
+}
+
+// ── Paths in flux ───────────────────────────────────────────────────────────
+
+const pathsInFlux = new Map<string, number>();
+
+function fluxKey(userId: string, projectId: string, path: string): string {
+  return `${userId}\u0000${projectId}\u0000${path}`;
+}
+
+/**
+ * Mark `paths` as in flux until the returned function is called. A rename or
+ * a change of file type writes the new file under the folder lock, but its
+ * row is saved and the old file removed after the lock is released. Until
+ * then the folder holds a file with no row. The reconciler leaves a path in
+ * flux alone, so it never indexes that file as a second asset.
+ */
+function holdPaths(
+  userId: string,
+  projectId: string,
+  paths: readonly string[]
+): () => void {
+  const keys = paths.map((path) => fluxKey(userId, projectId, path));
+  for (const key of keys) pathsInFlux.set(key, (pathsInFlux.get(key) ?? 0) + 1);
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    for (const key of keys) {
+      const held = (pathsInFlux.get(key) ?? 1) - 1;
+      if (held > 0) pathsInFlux.set(key, held);
+      else pathsInFlux.delete(key);
+    }
+  };
+}
+
+/** Whether a NodeTool change to the file at `path` is waiting for its row. */
+export function isProjectAssetPathInFlux(
+  userId: string,
+  projectId: string,
+  path: string
+): boolean {
+  return pathsInFlux.has(fluxKey(userId, projectId, path));
 }
 
 // ── Paths ───────────────────────────────────────────────────────────────────
@@ -300,7 +345,7 @@ export async function saveProjectAsset(
   const source: ThumbnailSource =
     "bytes" in args ? { bytes: args.bytes } : { path: args.localPath };
 
-  return withFolderLock(args.userId, projectId, async () => {
+  return withProjectFolderLock(args.userId, projectId, async () => {
     const exactPath = args.path !== undefined ? workspace.key(args.path) : null;
     // A file the caller named may already have its asset. That row is
     // updated, so one file never has two rows that could each delete it.
@@ -444,7 +489,7 @@ export async function renameProjectAssetFile(
   }
   if (nextStem === stem) return null;
 
-  return withFolderLock(asset.user_id, asset.project_id, async () => {
+  return withProjectFolderLock(asset.user_id, asset.project_id, async () => {
     const to = await claimFile(
       workspace,
       { userId: asset.user_id, projectId: asset.project_id },
@@ -454,23 +499,44 @@ export async function renameProjectAssetFile(
       await readFileOf(workspace, from),
       asset.content_type
     );
-    const info = await workspace.stat(to);
+    // Both names exist until the row is saved and the old file removed.
+    const release = holdPaths(asset.user_id, asset.project_id, [from, to]);
+    let info: Awaited<ReturnType<Workspace["stat"]>>;
+    try {
+      info = await workspace.stat(to);
+    } catch (error) {
+      release();
+      throw error;
+    }
     const previous = { path: asset.workspace_path, metadata: asset.metadata };
     asset.workspace_path = to;
     if (info && asset.metadata && "workspace_mtime" in asset.metadata) {
       asset.metadata = { ...asset.metadata, workspace_mtime: info.modifiedAt };
     }
     return {
-      commit: () =>
-        removeFile(workspace, from, "Could not remove a renamed asset's old file"),
+      commit: async () => {
+        try {
+          await removeFile(
+            workspace,
+            from,
+            "Could not remove a renamed asset's old file"
+          );
+        } finally {
+          release();
+        }
+      },
       undo: async () => {
         asset.workspace_path = previous.path;
         asset.metadata = previous.metadata;
-        await removeFile(
-          workspace,
-          to,
-          "Could not remove the copy of an asset whose rename was not saved"
-        );
+        try {
+          await removeFile(
+            workspace,
+            to,
+            "Could not remove the copy of an asset whose rename was not saved"
+          );
+        } finally {
+          release();
+        }
       }
     };
   });
@@ -498,7 +564,7 @@ export async function replaceProjectAssetBytes(
   const { directory, stem, extension } = splitPath(from);
   const wanted = assetFileExtension(asset.content_type);
 
-  return withFolderLock(asset.user_id, asset.project_id, async () => {
+  return withProjectFolderLock(asset.user_id, asset.project_id, async () => {
     const moves = extension.toLowerCase() !== wanted;
     let to = from;
     if (moves) {
@@ -511,34 +577,47 @@ export async function replaceProjectAssetBytes(
         bytes,
         asset.content_type
       );
-    } else {
-      // The asset's own file, replaced in place.
-      await workspace.write(to, bytes, asset.content_type);
     }
+    const release = holdPaths(
+      asset.user_id,
+      asset.project_id,
+      moves ? [from, to] : []
+    );
     const previous = {
       path: asset.workspace_path,
       metadata: asset.metadata,
       size: asset.size
     };
-    const fingerprint = await fingerprintOf(
-      workspace,
-      to,
-      partialContentHash(bytes)
-    );
-    asset.workspace_path = to;
-    asset.size = fingerprint.workspace_size;
-    asset.metadata = withWorkspaceFingerprint(asset.metadata, fingerprint);
-    await storeAssetThumbnail(asset.user_id, asset.id, asset.content_type, {
-      bytes
-    });
+    try {
+      // The asset's own file, replaced in place.
+      if (!moves) await workspace.write(to, bytes, asset.content_type);
+      const fingerprint = await fingerprintOf(
+        workspace,
+        to,
+        partialContentHash(bytes)
+      );
+      asset.workspace_path = to;
+      asset.size = fingerprint.workspace_size;
+      asset.metadata = withWorkspaceFingerprint(asset.metadata, fingerprint);
+      await storeAssetThumbnail(asset.user_id, asset.id, asset.content_type, {
+        bytes
+      });
+    } catch (error) {
+      release();
+      throw error;
+    }
     return {
       commit: async () => {
-        if (moves) {
-          await removeFile(
-            workspace,
-            from,
-            "Could not remove an asset's file of the previous type"
-          );
+        try {
+          if (moves) {
+            await removeFile(
+              workspace,
+              from,
+              "Could not remove an asset's file of the previous type"
+            );
+          }
+        } finally {
+          release();
         }
       },
       undo: async () => {
@@ -546,12 +625,16 @@ export async function replaceProjectAssetBytes(
         asset.metadata = previous.metadata;
         asset.size = previous.size;
         // Bytes written over the file in place cannot be taken back.
-        if (moves) {
-          await removeFile(
-            workspace,
-            to,
-            "Could not remove the new file of an asset whose update was not saved"
-          );
+        try {
+          if (moves) {
+            await removeFile(
+              workspace,
+              to,
+              "Could not remove the new file of an asset whose update was not saved"
+            );
+          }
+        } finally {
+          release();
         }
       }
     };
@@ -570,9 +653,140 @@ export async function replaceProjectAssetBytes(
 export async function deleteProjectAssetFile(asset: Asset): Promise<boolean> {
   const file = await requireProjectAssetFile(asset);
   if (!file) return false;
-  return withFolderLock(asset.user_id, asset.project_id, () =>
+  return withProjectFolderLock(asset.user_id, asset.project_id, () =>
     file.workspace.delete(file.path)
   );
+}
+
+// ── Relink ──────────────────────────────────────────────────────────────────
+
+/** The file an asset in a project folder is pointed at. */
+export type ProjectAssetRelinkSource =
+  /** A file already in the project folder, by its project-relative path. */
+  | { path: string }
+  /** A file on this host outside the folder. It is copied into the folder. */
+  | { localPath: string };
+
+/** Thrown when a relink names a file the asset cannot be pointed at. */
+export class ProjectAssetRelinkError extends Error {
+  constructor(reason: string) {
+    super(reason);
+    this.name = "ProjectAssetRelinkError";
+  }
+}
+
+/** The last segment of a path written with either separator. */
+function baseName(path: string): string {
+  return path.replaceAll("\\", "/").split("/").pop() ?? "";
+}
+
+/**
+ * Point `asset` at another file and save its row. The asset keeps its id, so
+ * every reference to it resolves to the new file. False when the asset keeps
+ * no file in a project folder.
+ *
+ * A file in the folder is used where it is. It must not be the file of
+ * another asset. A file outside the folder is copied in next to where the
+ * asset's file was, under its own name, with a numeric suffix when that name
+ * is taken. The file the asset pointed at before is never removed.
+ *
+ * Throws {@link ProjectAssetRelinkError} for a file that cannot be used, and
+ * `ProjectFolderUnavailableError` when the project folder cannot be reached.
+ */
+export async function relinkProjectAsset(
+  asset: Asset,
+  source: ProjectAssetRelinkSource
+): Promise<boolean> {
+  const file = await requireProjectAssetFile(asset);
+  if (!file) return false;
+  const { workspace } = file;
+
+  return withProjectFolderLock(asset.user_id, asset.project_id, async () => {
+    let to: string;
+    if ("path" in source) {
+      to = workspace.key(source.path);
+      const info = await workspace.stat(to);
+      if (!info || info.isDirectory) {
+        throw new ProjectAssetRelinkError(
+          `No file at ${to} in the project folder`
+        );
+      }
+      const owners = await Asset.findByWorkspacePath(
+        asset.user_id,
+        asset.project_id,
+        to
+      );
+      if (owners.some((owner) => owner.id !== asset.id)) {
+        throw new ProjectAssetRelinkError(
+          `The file ${to} already belongs to another asset`
+        );
+      }
+    } else {
+      const { directory } = splitPath(file.path);
+      const fileName = baseName(source.localPath);
+      const { stem, extension } = splitPath(fileName);
+      const sameName = workspace.key(joinPath(directory, fileName));
+      const bytes = new Uint8Array(await readFile(source.localPath));
+      // The asset's own missing file leaves its name free for the copy. No
+      // file is ever replaced: each name is taken with an exclusive create.
+      to =
+        sameName === file.path &&
+        (await workspace.writeNew(sameName, bytes, asset.content_type))
+          ? sameName
+          : await claimFile(
+              workspace,
+              { userId: asset.user_id, projectId: asset.project_id },
+              directory,
+              stem,
+              extension,
+              bytes,
+              asset.content_type
+            );
+    }
+
+    const previous = {
+      path: asset.workspace_path,
+      metadata: asset.metadata,
+      size: asset.size,
+      duration: asset.duration
+    };
+    try {
+      const fingerprint = await fingerprintOf(
+        workspace,
+        to,
+        "localPath" in source
+          ? await partialContentHashOfFile(source.localPath)
+          : await partialContentHashOfWorkspaceFile(workspace, to)
+      );
+      asset.workspace_path = to;
+      asset.size = fingerprint.workspace_size;
+      asset.duration = await probeAssetDurationSeconds(asset.content_type, {
+        path:
+          "localPath" in source
+            ? source.localPath
+            : await workspace.materialize(to)
+      });
+      asset.metadata = withWorkspaceFingerprint(asset.metadata, fingerprint);
+      await asset.save();
+    } catch (error) {
+      asset.workspace_path = previous.path;
+      asset.metadata = previous.metadata;
+      asset.size = previous.size;
+      asset.duration = previous.duration;
+      // Only a copy this call made is removed. A file in the folder stays.
+      if ("localPath" in source) {
+        await removeFile(
+          workspace,
+          to,
+          "Could not remove the copy of a file whose relink was not saved"
+        );
+      }
+      throw error;
+    } finally {
+      await workspace.cleanupScratch?.();
+    }
+    return true;
+  });
 }
 
 // ── Move between projects ───────────────────────────────────────────────────
@@ -622,7 +836,7 @@ export async function moveProjectAssetFile(
     return { commit: async () => {}, undo: async () => restore() };
   }
 
-  return withFolderLock(asset.user_id, destination.projectId, async () => {
+  return withProjectFolderLock(asset.user_id, destination.projectId, async () => {
     const { directory, stem, extension } = splitPath(source.path);
     const to = await claimFile(
       destination.workspace,
@@ -633,26 +847,52 @@ export async function moveProjectAssetFile(
       await readFileOf(source.workspace, source.path),
       asset.content_type
     );
-    const info = await destination.workspace.stat(to);
+    // The copy has no row in its folder until the row is saved, and the old
+    // file has none in its folder from then until it is removed. Neither
+    // folder's reconcile may index its file as a second asset meanwhile.
+    const releaseCopy = holdPaths(asset.user_id, destination.projectId, [to]);
+    const releaseOld = holdPaths(asset.user_id, current.projectId, [
+      source.path
+    ]);
+    const release = (): void => {
+      releaseCopy();
+      releaseOld();
+    };
+    let info: Awaited<ReturnType<Workspace["stat"]>>;
+    try {
+      info = await destination.workspace.stat(to);
+    } catch (error) {
+      release();
+      throw error;
+    }
     asset.project_id = destination.projectId;
     asset.workspace_path = to;
     if (info && asset.metadata && "workspace_mtime" in asset.metadata) {
       asset.metadata = { ...asset.metadata, workspace_mtime: info.modifiedAt };
     }
     return {
-      commit: () =>
-        removeFile(
-          source.workspace,
-          source.path,
-          "Could not remove a moved asset's file from its old project folder"
-        ),
+      commit: async () => {
+        try {
+          await removeFile(
+            source.workspace,
+            source.path,
+            "Could not remove a moved asset's file from its old project folder"
+          );
+        } finally {
+          release();
+        }
+      },
       undo: async () => {
         restore();
-        await removeFile(
-          destination.workspace,
-          to,
-          "Could not remove the copy of an asset whose move was not saved"
-        );
+        try {
+          await removeFile(
+            destination.workspace,
+            to,
+            "Could not remove the copy of an asset whose move was not saved"
+          );
+        } finally {
+          release();
+        }
       }
     };
   });

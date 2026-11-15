@@ -6431,8 +6431,16 @@
         "exporting": "Eksporterer …",
         "deleteProject": "Slett prosjekt",
         "confirmDeleteTitle": "Vil du slette {{projectName}}?",
-        "confirmDeleteBody": "Slett {{projectName}} og alle dens dokumenter, samtaler, genererte utdata, eiendeler, jobber og prosjektfiler.",
+        "confirmDeleteBody": "Slett {{projectName}} og alle dens dokumenter, samtaler, jobber og ressurser som er lagret utenfor prosjektmappen.",
         "deleteIrreversible": "Dette kan ikke angres.",
+        "deleteFolderTrash": "Prosjektmappen flyttes til papirkurven.",
+        "deleteFolderRemove": "Prosjektmappen og alle filene i den slettes fra skylagringen.",
+        "deleteFolderKeep": "Prosjektmappen blir liggende der den er med alle filene. NodeTool fjerner bare .nodetool-mappen i den.",
+        "deleteFolderMissing": "Prosjektmappen kan ikke nås, så NodeTool lar den være som den er.",
+        "folderMovedAsideTo": "Papirkurven kunne ikke nås. Prosjektmappen ble flyttet til {{path}}.",
+        "folderMovedAside": "Papirkurven kunne ikke nås. Prosjektmappen ble flyttet til .trash-mappen i prosjektmappen for alle prosjekter.",
+        "folderTrashFailedAt": "Prosjektmappen kunne ikke flyttes til papirkurven. Den ligger fortsatt i {{path}}.",
+        "folderTrashFailed": "Prosjektmappen kunne ikke flyttes til papirkurven. Den blir liggende der den er.",
         "error": "Kunne ikke {{action}} {{projectName}}: {{error}}"
       }
     }

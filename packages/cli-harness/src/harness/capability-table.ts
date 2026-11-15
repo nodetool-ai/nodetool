@@ -2220,7 +2220,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "delete_project",
     module: "projects",
     impl: "packages/agents/src/capabilities/projects.ts",
-    contract: "d1c6eda0786e",
+    contract: "c1d4a3f30b18",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-projects.test.ts",

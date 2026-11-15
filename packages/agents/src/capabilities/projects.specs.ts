@@ -120,10 +120,15 @@ export const deleteProjectSpec: CapabilitySpec = {
   name: "delete_project",
   description:
     "Permanently delete a project you own, with every document, " +
-    "conversation, asset, job and workspace file in it. This cannot be " +
-    "undone. Confirm with the user first, and prefer update_project with " +
-    "archived=true when they only want it out of sight. The Personal " +
-    "project and the project this conversation belongs to cannot be deleted.",
+    "conversation, asset record and job in it. This cannot be undone. The " +
+    "result's folder field says what happened to the project folder: a " +
+    "folder NodeTool created is trashed (moved to the OS trash), moved_aside " +
+    "(moved to .trash in the projects folder) or removed (cloud storage), " +
+    "and a folder the user brought is kept with every file except " +
+    ".nodetool/. Tell the user where the folder is. Confirm with the user " +
+    "first, and prefer update_project with archived=true when they only " +
+    "want it out of sight. The Personal project and the project this " +
+    "conversation belongs to cannot be deleted.",
   inputSchema: DELETE_PROJECT_SCHEMA,
   category: "write",
   userMessage: (params) => `Deleting project ${String(params["project_id"])}`

@@ -75,6 +75,27 @@ Agent tools follow the same rule. When `edit_storyboard`, `edit_timeline`, `set_
 
 NodeTool never replaces a file when it picks a name. The file is created exclusively, so when another NodeTool process took the name first, or a file with it already exists in the destination folder, the new file gets the next free suffix. An asset created before project folders keeps its bytes in [asset storage](storage.md) and reads as before.
 
+### The asset index follows the folder
+
+NodeTool compares a project's folder with its asset rows when the project is opened and after NodeTool writes a file into the folder. It applies these rules:
+
+| Folder | Asset row | Result |
+| --- | --- | --- |
+| The file is at the row's path and unchanged | Exists | Nothing changes. |
+| The file is at the row's path and changed | Exists | The row records the new size, modification time and partial hash. The asset keeps its ID. |
+| The file is gone and exactly one file with no row has the same content | Exists | The row points at that file. A file moved or renamed outside NodeTool keeps its asset ID. |
+| The file is gone and no file, or more than one, has the same content | Exists | The asset is marked offline. It reports as missing and its URL serves nothing. |
+| An image, video, audio or 3D file | None | A row is created. No thumbnail is built. |
+| Any other file | None | No row is created. The file gets a row the first time something uses it as an asset. |
+
+A move is often a copy followed by a delete. A media file with the same content as an asset's file therefore gets no row for its first 10 seconds. When the asset's file is gone by then, the asset points at the new file and keeps its ID. When both files are still there, the new file is a copy and gets its own row.
+
+The comparison never deletes a row and never changes a file. It skips `.nodetool/`, every directory whose name starts with a dot, and `node_modules/`. It does not follow symbolic links. A row that already names a file in a skipped directory is still checked.
+
+An offline asset comes back when a file appears at its path again, or when it is relinked. Relink (`assets.relinkExternal`) takes a path relative to the folder, or on a local server an absolute path. A file inside the folder is used where it is. A file outside the folder is copied in next to where the asset's file was. Removing an offline asset deletes its row.
+
+A change made outside NodeTool is picked up the next time the project is opened or NodeTool writes into the folder.
+
 ## Files in the left panel
 
 The left panel lists **Chats**, **Documents** and **Files** under the name of the open project. Files is a tree of the project folder. It updates when a run or a tool adds a file, and it hides `.nodetool/`.

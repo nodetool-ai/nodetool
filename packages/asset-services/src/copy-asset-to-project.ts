@@ -16,7 +16,7 @@ import { retrieveAssetBytes } from "./asset-paths.js";
 import { EXTERNAL_FINGERPRINT_KEYS } from "./external-asset-lookup.js";
 import { IMPORTED_DIRECTORY, saveProjectAsset } from "./project-asset.js";
 import {
-  WORKSPACE_FINGERPRINT_KEYS,
+  WORKSPACE_SERVER_KEYS,
   partialContentHash,
   requireProjectFolder
 } from "./project-asset-file.js";
@@ -101,7 +101,7 @@ async function belongsTo(asset: Asset, projectId: string): Promise<boolean> {
 }
 
 const SOURCE_FILE_KEYS = new Set<string>([
-  ...WORKSPACE_FINGERPRINT_KEYS,
+  ...WORKSPACE_SERVER_KEYS,
   ...EXTERNAL_FINGERPRINT_KEYS,
   ...COPY_SOURCE_KEYS
 ]);

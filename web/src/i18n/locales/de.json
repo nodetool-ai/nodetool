@@ -6431,8 +6431,16 @@
         "exporting": "Wird exportiert…",
         "deleteProject": "Projekt löschen",
         "confirmDeleteTitle": "{{projectName}} löschen?",
-        "confirmDeleteBody": "{{projectName}} und alle zugehörigen Dokumente, Unterhaltungen, generierten Ausgaben, Assets, Jobs und Projektdateien löschen.",
+        "confirmDeleteBody": "{{projectName}} und alle zugehörigen Dokumente, Unterhaltungen, Jobs und außerhalb des Projektordners gespeicherten Assets löschen.",
         "deleteIrreversible": "Das kann nicht rückgängig gemacht werden.",
+        "deleteFolderTrash": "Der Projektordner wird in den Papierkorb verschoben.",
+        "deleteFolderRemove": "Der Projektordner und alle Dateien darin werden aus dem Cloud-Speicher gelöscht.",
+        "deleteFolderKeep": "Der Projektordner bleibt mit allen Dateien an seinem Ort. NodeTool entfernt nur den Ordner .nodetool darin.",
+        "deleteFolderMissing": "Der Projektordner ist nicht erreichbar, daher lässt NodeTool ihn unverändert.",
+        "folderMovedAsideTo": "Der Papierkorb war nicht erreichbar. Der Projektordner wurde nach {{path}} verschoben.",
+        "folderMovedAside": "Der Papierkorb war nicht erreichbar. Der Projektordner wurde in den Ordner .trash im Projekteordner verschoben.",
+        "folderTrashFailedAt": "Der Projektordner konnte nicht in den Papierkorb verschoben werden. Er bleibt unter {{path}}.",
+        "folderTrashFailed": "Der Projektordner konnte nicht in den Papierkorb verschoben werden. Er bleibt an seinem Ort.",
         "error": "{{projectName}} konnte nicht {{action}} werden: {{error}}"
       }
     }

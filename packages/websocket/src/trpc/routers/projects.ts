@@ -18,7 +18,7 @@
  *   openFolder     (mutation) — ProjectResponse (adopts an existing folder)
  *   relocate       (mutation) — ProjectResponse (points at a moved folder)
  *   update         (mutation) — ProjectResponse
- *   delete         (mutation) — { ok: true }
+ *   delete         (mutation) — { ok: true, folder } (what happened to the folder)
  *   assignDocument (mutation) — { ok: true }
  */
 
@@ -55,6 +55,7 @@ import {
   copyProjectDocumentInput,
   copyProjectDocumentOutput,
   createProjectInput,
+  deleteProjectOutput,
   openProjectFolderInput,
   patchProjectInput,
   projectDetail,
@@ -75,7 +76,9 @@ import {
   copyProjectDocument,
   ProjectCopyError
 } from "../../lib/project-document-copy.js";
+import { planProjectFolderDelete } from "@nodetool-ai/project-services/project-delete";
 import { deleteProjectForUser } from "../../lib/project-delete.js";
+import { reconcileProjectOnOpen } from "@nodetool-ai/project-services/project-index";
 import {
   ProjectFolderOpenError,
   openProjectFolder,
@@ -218,7 +221,12 @@ async function toResponse(project: Project): Promise<ProjectResponse> {
     : null;
   return projectResponse.parse({
     ...project.toResponse(),
-    folder: row ? describeProjectFolder(row) : null
+    folder: row
+      ? {
+          ...describeProjectFolder(row),
+          on_delete: await planProjectFolderDelete(row)
+        }
+      : null
   });
 }
 
@@ -246,6 +254,18 @@ async function withFolderErrors(
 async function loadOwned(userId: string, id: string): Promise<Project> {
   const project = await Project.findOwned(userId, id);
   if (!project) throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
+  return project;
+}
+
+/**
+ * Load a project a client is opening and reconcile its asset index with its
+ * folder in the background, so changes made to the folder while the project
+ * was closed show up. The reads a client makes when it opens a project call
+ * this: `get`, `documentPage` and `restoreTabs`.
+ */
+async function loadOpened(userId: string, id: string): Promise<Project> {
+  const project = await loadOwned(userId, id);
+  reconcileProjectOnOpen(project.id, userId);
   return project;
 }
 
@@ -299,7 +319,7 @@ export const projectsRouter = router({
     .output(projectDetail)
     .query(async ({ ctx, input }) => {
       await prepareUser(ctx.userId);
-      const project = await loadOwned(ctx.userId, input.id);
+      const project = await loadOpened(ctx.userId, input.id);
       const summary = await summarizeProject(ctx.userId, project.id);
       return projectDetail.parse({
         project: await toResponse(project),
@@ -320,7 +340,7 @@ export const projectsRouter = router({
     .output(projectDocumentPage)
     .query(async ({ ctx, input }) => {
       await prepareUser(ctx.userId);
-      const project = await loadOwned(ctx.userId, input.id);
+      const project = await loadOpened(ctx.userId, input.id);
       return summarizeProjectDocumentPage(ctx.userId, project.id, {
         offset: input.offset,
         limit: input.limit
@@ -341,7 +361,7 @@ export const projectsRouter = router({
     .output(z.array(restorableTab))
     .query(async ({ ctx, input }) => {
       await prepareUser(ctx.userId);
-      await loadOwned(ctx.userId, input.id);
+      await loadOpened(ctx.userId, input.id);
       const valid = await Promise.all(
         input.tabs.map(async (tab) => ({
           tab,
@@ -486,17 +506,20 @@ export const projectsRouter = router({
 
   delete: protectedProcedure
     .input(idInput)
-    .output(okOutput)
+    .output(deleteProjectOutput)
     .mutation(async ({ ctx, input }) => {
       await prepareUser(ctx.userId);
-      const outcome = await deleteProjectForUser(ctx.userId, input.id);
-      if (outcome === "personal") {
-        throwApiError(ApiErrorCode.INVALID_INPUT, "Personal cannot be deleted");
-      }
-      if (outcome === "not_found") {
+      const result = await deleteProjectForUser(ctx.userId, input.id);
+      if (result.outcome !== "deleted") {
+        if (result.outcome === "personal") {
+          throwApiError(
+            ApiErrorCode.INVALID_INPUT,
+            "Personal cannot be deleted"
+          );
+        }
         throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
       }
-      return { ok: true as const };
+      return { ok: true as const, folder: result.folder };
     }),
 
   /**

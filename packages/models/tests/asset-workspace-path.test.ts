@@ -90,6 +90,47 @@ describe("Asset.workspace_path", () => {
   });
 });
 
+describe("Asset.listProjectFiles", () => {
+  beforeEach(() => initTestDb());
+  afterEach(() => ModelObserver.clear());
+
+  it("lists the user's assets that keep a file in the project's folder, and no others", async () => {
+    const inFolder = await Asset.create<Asset>({
+      user_id: "u1",
+      project_id: "p1",
+      name: "fox",
+      content_type: "image/png",
+      workspace_path: "Generated/fox.png"
+    });
+    // No file in a folder, another project, another user.
+    await Asset.create<Asset>({
+      user_id: "u1",
+      project_id: "p1",
+      name: "legacy",
+      content_type: "image/png"
+    });
+    await Asset.create<Asset>({
+      user_id: "u1",
+      project_id: "p2",
+      name: "fox",
+      content_type: "image/png",
+      workspace_path: "Generated/fox.png"
+    });
+    await Asset.create<Asset>({
+      user_id: "u2",
+      project_id: "p1",
+      name: "fox",
+      content_type: "image/png",
+      workspace_path: "Generated/fox.png"
+    });
+
+    const listed = await Asset.listProjectFiles("u1", "p1");
+
+    expect(listed.map((a) => a.id)).toEqual([inFolder.id]);
+    expect(await Asset.listProjectFiles("u1", "none")).toEqual([]);
+  });
+});
+
 describe("changing the project of an asset", () => {
   beforeEach(() => initTestDb());
   afterEach(() => {
