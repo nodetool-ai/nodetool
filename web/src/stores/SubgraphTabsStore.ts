@@ -51,7 +51,8 @@ interface SubgraphTabsState {
   reconcileTab: (key: string, graph: SubgraphGraph | undefined) => string[];
 }
 
-const tabKey = (workflowId: string, nodeId: string) => `${workflowId}:${nodeId}`;
+const tabKey = (workflowId: string, nodeId: string) =>
+  `${workflowId}:${nodeId}`;
 
 /**
  * The graph each tab last loaded from or wrote to its SubgraphNode, compared
@@ -61,8 +62,7 @@ const tabKey = (workflowId: string, nodeId: string) => `${workflowId}:${nodeId}`
 const syncedGraphs = new Map<string, SubgraphGraph>();
 
 const sameGraph = (a: SubgraphGraph, b: SubgraphGraph): boolean =>
-  (a.nodes === b.nodes ||
-    (a.nodes.length === 0 && b.nodes.length === 0)) &&
+  (a.nodes === b.nodes || (a.nodes.length === 0 && b.nodes.length === 0)) &&
   (a.edges === b.edges || (a.edges.length === 0 && b.edges.length === 0));
 
 /** Every tab opened, directly or through other tabs, from `hostKey`. */
@@ -125,13 +125,10 @@ const buildSubgraphWorkflow = (
   key: string,
   label: string,
   graph: { nodes: unknown[]; edges: unknown[] }
-): Workflow =>
-  ({
+): Workflow => {
+  const workflow = {
     id: key,
     name: label,
-    ...(isComfyGraph({ nodes: graph.nodes as ReadonlyArray<{ type?: unknown }> })
-      ? { run_mode: COMFY_RUN_MODE }
-      : {}),
     access: "private",
     description: "",
     thumbnail: "",
@@ -140,7 +137,14 @@ const buildSubgraphWorkflow = (
     updated_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
     graph: graph as Workflow["graph"]
-  }) as Workflow;
+  } as Workflow;
+  if (
+    isComfyGraph({ nodes: graph.nodes as ReadonlyArray<{ type?: unknown }> })
+  ) {
+    workflow.run_mode = COMFY_RUN_MODE;
+  }
+  return workflow;
+};
 
 const createTabStore = (
   key: string,
