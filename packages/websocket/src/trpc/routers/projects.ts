@@ -15,6 +15,8 @@
  *   unassigned     (query)    — ProjectDocumentRef[] in the loose bucket
  *   thread         (mutation) — { threadId } (the project's agent thread)
  *   create         (mutation) — ProjectResponse (creates the project folder)
+ *   openFolder     (mutation) — ProjectResponse (adopts an existing folder)
+ *   relocate       (mutation) — ProjectResponse (points at a moved folder)
  *   update         (mutation) — ProjectResponse
  *   delete         (mutation) — { ok: true }
  *   assignDocument (mutation) — { ok: true }
@@ -53,12 +55,14 @@ import {
   copyProjectDocumentInput,
   copyProjectDocumentOutput,
   createProjectInput,
+  openProjectFolderInput,
   patchProjectInput,
   projectDetail,
   projectDocumentPage,
   projectDocumentPageInput,
   projectDocumentRef,
   projectResponse,
+  relocateProjectInput,
   type ProjectResponse
 } from "@nodetool-ai/protocol/api-schemas/projects.js";
 import { ApiErrorCode } from "../../error-codes.js";
@@ -72,6 +76,11 @@ import {
   ProjectCopyError
 } from "../../lib/project-document-copy.js";
 import { deleteProjectForUser } from "../../lib/project-delete.js";
+import {
+  ProjectFolderOpenError,
+  openProjectFolder,
+  relocateProjectFolder
+} from "../../lib/project-folder-open.js";
 import { workspaceFromRow } from "../../lib/workflow-workspace.js";
 
 const log = createLogger("nodetool.websocket.projects");
@@ -211,6 +220,27 @@ async function toResponse(project: Project): Promise<ProjectResponse> {
     ...project.toResponse(),
     folder: row ? describeProjectFolder(row) : null
   });
+}
+
+const FOLDER_OPEN_ERROR_CODES = {
+  forbidden: ApiErrorCode.FORBIDDEN,
+  invalid: ApiErrorCode.INVALID_INPUT,
+  conflict: ApiErrorCode.ALREADY_EXISTS,
+  not_found: ApiErrorCode.NOT_FOUND
+} as const;
+
+/** Run a folder open or relocate, answering its refusals as API errors. */
+async function withFolderErrors(
+  action: () => Promise<Project>
+): Promise<ProjectResponse> {
+  try {
+    return await toResponse(await action());
+  } catch (error) {
+    if (error instanceof ProjectFolderOpenError) {
+      throwApiError(FOLDER_OPEN_ERROR_CODES[error.code], error.message);
+    }
+    throw error;
+  }
 }
 
 async function loadOwned(userId: string, id: string): Promise<Project> {
@@ -396,6 +426,28 @@ export const projectsRouter = router({
         throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
       }
       return toResponse(existing);
+    }),
+
+  /**
+   * Open an existing local folder as a project, without moving a file. Local
+   * installs only. See `openProjectFolder` for the `.nodetool/project.json`
+   * cases.
+   */
+  openFolder: protectedProcedure
+    .input(openProjectFolderInput)
+    .output(projectResponse)
+    .mutation(async ({ ctx, input }) => {
+      await prepareUser(ctx.userId);
+      return withFolderErrors(() => openProjectFolder(ctx.userId, input));
+    }),
+
+  /** Point a project whose folder moved at its new place. Local installs only. */
+  relocate: protectedProcedure
+    .input(relocateProjectInput)
+    .output(projectResponse)
+    .mutation(async ({ ctx, input }) => {
+      await prepareUser(ctx.userId);
+      return withFolderErrors(() => relocateProjectFolder(ctx.userId, input));
     }),
 
   update: protectedProcedure
