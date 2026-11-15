@@ -32,7 +32,6 @@ import type {
   NodeExecutor,
   ProcessingContext,
   StorageAdapter,
-  Workspace,
   PythonJobLifecycle
 } from "@nodetool-ai/runtime";
 import { ExecutionSession } from "../session.js";
@@ -71,7 +70,8 @@ import {
 } from "./debug-sessions.js";
 import {
   buildWorkspaceExecutionContext,
-  resolveWorkflowWorkspace
+  resolveProjectWorkspace,
+  type ProjectWorkspaceResolution
 } from "./workflow-workspace.js";
 import {
   isFunctionValue,
@@ -255,12 +255,12 @@ export interface RunWorkflowOptions {
   decisionTimeoutMs?: number;
   /**
    * Injected so a host that mocks workspace resolution (the websocket tests
-   * do) keeps controlling it. Defaults to the workspace stored on the workflow.
+   * do) keeps controlling it. Defaults to the folder of the run's project.
    */
   resolveWorkspace?: (
-    workflowId: string | null,
+    projectId: string | null,
     userId: string
-  ) => Promise<Workspace | null>;
+  ) => Promise<ProjectWorkspaceResolution>;
   catalogs?: RunModelCatalogs;
   /**
    * The project this run belongs to, when the caller knows one. Neither a
@@ -865,6 +865,19 @@ export async function runWorkflow(
     await environment.ensurePythonBridge();
   }
 
+  // The run's folder is read once, here, and kept for the whole run: a run
+  // started in one project keeps writing there whatever happens to the
+  // workflow afterwards. An unreachable folder refuses the run before its job
+  // row exists, and no other folder stands in for it.
+  const folder = await (options.resolveWorkspace ?? resolveProjectWorkspace)(
+    workflowProjectId,
+    userId
+  );
+  if (!folder.ok) {
+    return { kind: "error", status: 409, detail: folder.reason };
+  }
+  const workspace = folder.workspace;
+
   const job = (await Job.create({
     workflow_id: workflowId,
     user_id: userId,
@@ -875,17 +888,14 @@ export async function runWorkflow(
     project_id: workflowProjectId ?? "default"
   })) as Job;
 
-  // Everything after the row exists must finalize it. Workspace resolution,
-  // node-flag hydration and the run itself can all throw (fs, registry) — a
-  // bare throw here stranded the row at "running" forever.
+  // Everything after the row exists must finalize it. Node-flag hydration and
+  // the run itself can both throw (fs, registry) — a bare throw here stranded
+  // the row at "running" forever.
   let execution: ExecutionSession;
   let interactiveHandle: InteractiveEscalationHandle | null = null;
   let supervisorHandle: BoundedHandle | null = null;
   let generationSaves: GenerationSaves | null = null;
   try {
-    const workspace = await (
-      options.resolveWorkspace ?? resolveWorkflowWorkspace
-    )(workflowId || null, userId);
     if (interactive) {
       // `BoundedHandle` keeps the same guarantees an LLM supervisor gets —
       // decision/retry caps, a per-decision timeout that fails closed, sticky

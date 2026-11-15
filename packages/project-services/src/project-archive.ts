@@ -47,7 +47,10 @@ import {
   type ProjectArchiveTableName
 } from "@nodetool-ai/models";
 import { getAssetFileName } from "@nodetool-ai/protocol";
-import type { Workspace as RuntimeWorkspace } from "@nodetool-ai/runtime";
+import {
+  WorkspaceReservedPathError,
+  type Workspace as RuntimeWorkspace
+} from "@nodetool-ai/runtime";
 import type { StorageAdapter } from "@nodetool-ai/storage";
 import {
   getAssetStorageKey,
@@ -672,7 +675,13 @@ export async function importProjectArchive(
       const data = path.endsWith(".json")
         ? remapJsonText(bytes, remap)
         : bytes;
-      await workspace.write(path, data);
+      try {
+        await workspace.write(path, data);
+      } catch (error) {
+        // An archive written before `.nodetool/` was reserved carries the old
+        // project's manifest. The imported project gets a manifest of its own.
+        if (!(error instanceof WorkspaceReservedPathError)) throw error;
+      }
     }
 
     const project = new Project({

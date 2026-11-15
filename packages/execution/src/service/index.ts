@@ -27,19 +27,24 @@ export type {
 } from "./debug-sessions.js";
 
 export {
-  resolveWorkflowWorkspace,
-  resolveWorkflowWorkspaceDir,
+  PROJECT_FOLDER_NOT_FOUND,
+  nodetoolDirFromRow,
+  resolveProjectWorkspace,
   workspaceFromRow,
   setWorkspaceCloudStorage,
   setWorkspaceChangeNotifier,
   usesCloudWorkspaces,
   buildWorkspaceExecutionContext
 } from "./workflow-workspace.js";
-export type { WorkspaceFileChange } from "./workflow-workspace.js";
+export type {
+  ProjectWorkspaceResolution,
+  WorkspaceFileChange
+} from "./workflow-workspace.js";
 
 export {
   PROJECT_MANIFEST_PATH,
   describeProjectFolder,
+  ensurePersonalProject,
   ensureProjectFolder,
   migrateProjectFolders,
   projectFolderName,

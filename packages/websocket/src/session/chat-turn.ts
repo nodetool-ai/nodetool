@@ -22,7 +22,6 @@ import { admitQuota } from "../quota-gate.js";
 import { isGoogleWorkspaceEnabled } from "@nodetool-ai/config";
 import {
   isFunctionValue,
-  isNonEmptyString,
   isNumber,
   isObjectLike,
   isRecord,
@@ -72,7 +71,8 @@ import type {
   TextToImageParams,
   ImageToImageParams,
   ImageToVideoParams,
-  PromptAssetRef
+  PromptAssetRef,
+  Workspace
 } from "@nodetool-ai/runtime";
 import {
   ACTIVE_MODEL_CONTEXT_KEY,
@@ -874,31 +874,38 @@ export class ChatTurnHandler {
   }
 
   /**
-   * Which workflow decides where this conversation's files go.
+   * The project a turn in this thread works in: the thread's own project.
    *
-   * The workspace must not move between turns of one conversation: a file
-   * written in the previous message has to still be there in the next. The
-   * message's own `workflow_id` is not stable enough to key it on — the client
-   * attaches the id it has when it sends, so a turn sent before the thread list
-   * loaded carries none, resolves the default workspace instead of the
-   * workflow's, and the files the agent wrote a moment ago read as wiped. The
-   * thread's binding is the durable one, so it fills in whenever the message
-   * omits it.
+   * `findByThread` answers null both for a loose thread and for one whose
+   * project is gone. Only the first falls through to Personal: the thread's
+   * own `project_id` is passed on, so a deleted project fails the turn rather
+   * than sending its files somewhere else.
    */
-  private async threadWorkspaceWorkflowId(
+  private async threadProjectId(
     userId: string,
     threadId: string,
-    messageWorkflowId: string | null
+    chatProjectId: string | undefined
   ): Promise<string | null> {
-    if (messageWorkflowId) return messageWorkflowId;
+    if (chatProjectId) return chatProjectId;
     if (!threadId) return null;
-    try {
-      const thread = await Thread.find(userId, threadId);
-      return isNonEmptyString(thread?.workflow_id) ? thread.workflow_id : null;
-    } catch (err) {
-      this.session.logError("thread workspace lookup failed", err);
-      return null;
-    }
+    return (await Thread.find(userId, threadId))?.project_id ?? null;
+  }
+
+  /**
+   * The folder a turn reads and writes in, resolved once when the turn
+   * starts. Null workspace only when the host wired no resolver.
+   */
+  private async resolveTurnWorkspace(
+    userId: string,
+    projectId: string | null
+  ): Promise<
+    { ok: true; workspace: Workspace | null } | { ok: false; reason: string }
+  > {
+    if (!this.session.workspaceResolver) return { ok: true, workspace: null };
+    const folder = await this.session.workspaceResolver(projectId, userId);
+    return folder.ok
+      ? { ok: true, workspace: folder.workspace }
+      : { ok: false, reason: folder.reason };
   }
 
   private async ensureThreadExists(
@@ -1450,7 +1457,9 @@ export class ChatTurnHandler {
     userId: string,
     projectId: string | null = null,
     /** The calling turn's gate, when a chat turn is what started this node. */
-    gate: PermissionGateOptions | null = null
+    gate: PermissionGateOptions | null = null,
+    /** The calling turn's folder. A node never resolves one of its own. */
+    workspace: Workspace | null = null
   ): Promise<unknown> {
     const jobId = randomUUID();
     const nodeId = "node_0";
@@ -1495,9 +1504,7 @@ export class ChatTurnHandler {
       workflowId: null,
       projectId,
       userId,
-      workspace: this.session.workspaceResolver
-        ? await this.session.workspaceResolver(null, userId)
-        : null,
+      workspace,
       assetOutputMode: this.session.mode === "text" ? "data_uri" : "temp_url"
     });
     context.runTraceContext = getRunTraceScope() ?? null;
@@ -2087,6 +2094,23 @@ export class ChatTurnHandler {
     // and everything the turn spends is billed to it.
     const chatProjectId =
       (await Project.findByThread(userId, threadId))?.id ?? undefined;
+    // The thread's project folder, read once for the whole turn: a turn
+    // started in one project keeps writing there even when the user switches
+    // projects while it runs. An unreachable folder refuses the turn.
+    const turnFolder = await this.resolveTurnWorkspace(
+      userId,
+      await this.threadProjectId(userId, threadId, chatProjectId)
+    );
+    if (!turnFolder.ok) {
+      await settleRegisteredRunTrace(rootContext, "failed", turnFolder.reason);
+      await this.session.send({
+        type: "error",
+        message: turnFolder.reason,
+        thread_id: threadId
+      });
+      return;
+    }
+    const chatWorkspace = turnFolder.workspace;
     // The permission gate the belt is wrapped in below. Built before the belt
     // because the Apify tools carry it into their own run: in discovery mode
     // the actor policy asks this gate to approve an actor the install has not
@@ -2133,7 +2157,14 @@ export class ChatTurnHandler {
     // inside the node finds no gate and runs headless, and approving
     // `run_node` becomes approval for whatever the node then calls.
     const runNodeTool = new RunNodeTool((nodeType, inputs) =>
-      this.runSingleNode(nodeType, inputs, userId, chatProjectId, chatGate)
+      this.runSingleNode(
+        nodeType,
+        inputs,
+        userId,
+        chatProjectId,
+        chatGate,
+        chatWorkspace
+      )
     );
     // The bounds this turn runs under, created once and shared by everything
     // it starts (invariant I-2). A loop that made its own would hand every
@@ -2336,16 +2367,7 @@ export class ChatTurnHandler {
       codeact: useCodeAct
     });
 
-    // Create a processing context for tool execution
-    // A chat turn without a workflow still resolves a workspace — the user's
-    // default one. It used to fall back to the whole OS temp dir, which is
-    // neither bounded nor anywhere the user would look for what an agent wrote.
-    const chatWorkspace = this.session.workspaceResolver
-      ? await this.session.workspaceResolver(
-          await this.threadWorkspaceWorkflowId(userId, threadId, workflowId),
-          userId
-        )
-      : null;
+    // Create a processing context for tool execution, in the turn's folder.
     const ctx = createRuntimeContext({
       jobId: randomUUID(),
       workflowId,
@@ -4499,6 +4521,14 @@ export class ChatTurnHandler {
       if (!workflow) {
         throw new Error(`Workflow ${workflowId} not found`);
       }
+      // The thread's project folder, read once before the run starts.
+      const turnFolder = await this.resolveTurnWorkspace(
+        userId,
+        await this.threadProjectId(userId, threadId, chatProjectId)
+      );
+      if (!turnFolder.ok) {
+        throw new Error(turnFolder.reason);
+      }
 
       const rawGraph = workflow.graph as {
         nodes: Array<Record<string, unknown>>;
@@ -4578,15 +4608,12 @@ export class ChatTurnHandler {
       }
 
       // Create processing context
-      const workspace = this.session.workspaceResolver
-        ? await this.session.workspaceResolver(workflowId, userId)
-        : null;
       const context = createRuntimeContext({
         jobId,
         workflowId,
         projectId: chatProjectId,
         userId,
-        workspace,
+        workspace: turnFolder.workspace,
         assetOutputMode: this.session.mode === "text" ? "data_uri" : "temp_url"
       });
 

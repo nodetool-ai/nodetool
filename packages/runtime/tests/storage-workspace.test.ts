@@ -27,7 +27,11 @@ import {
   StorageWorkspace,
   createWorkspace
 } from "../src/storage-workspace.js";
-import { WorkspacePathError, type Workspace } from "../src/workspace.js";
+import {
+  WorkspacePathError,
+  WorkspaceReservedPathError,
+  type Workspace
+} from "../src/workspace.js";
 import { ProcessingContext } from "../src/context.js";
 
 const backends = [
@@ -201,6 +205,105 @@ describe.each(backends)("Workspace over $name", ({ isLocal }) => {
 
   it("reports localDir only when the workspace is a real directory", () => {
     expect(workspace.localDir === null).toBe(!isLocal);
+  });
+});
+
+/**
+ * `.nodetool/` belongs to NodeTool (PRD D11). Agent tools, Code nodes and save
+ * nodes all reach files through a Workspace, so refusing the directory here
+ * keeps every one of them out of it.
+ */
+describe.each(backends)("Reserved .nodetool directory over $name", ({ isLocal }) => {
+  let dir: string;
+  let storage: FileStorageAdapter | InMemoryStorageAdapter;
+  let workspace: Workspace;
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), "ws-reserved-"));
+    storage = isLocal
+      ? new FileStorageAdapter(dir)
+      : new InMemoryStorageAdapter();
+    workspace = new StorageWorkspace(storage);
+    // What NodeTool's own writer leaves behind, written past the workspace.
+    await storage.store(".nodetool/project.json", new TextEncoder().encode("{}"));
+    await workspace.write("notes.md", "hello");
+  });
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  const reserved = [
+    ".nodetool/x",
+    ".nodetool/project.json",
+    ".nodetool",
+    "/workspace/.nodetool/x",
+    "workspace/.nodetool/x",
+    "/.nodetool/x",
+    "out/../.nodetool/x",
+    ".NodeTool/x",
+    ".nodetool\\x"
+  ];
+
+  it.each(reserved)("refuses %s in every operation", async (path) => {
+    const refused = WorkspaceReservedPathError;
+    expect(() => workspace.key(path)).toThrow(refused);
+    expect(() => workspace.uri(path)).toThrow(refused);
+    await expect(workspace.write(path, "x")).rejects.toThrow(refused);
+    await expect(workspace.read(path)).rejects.toThrow(refused);
+    await expect(workspace.readText(path)).rejects.toThrow(refused);
+    await expect(workspace.list(path)).rejects.toThrow(refused);
+    await expect(workspace.list(path, { recursive: true })).rejects.toThrow(refused);
+    await expect(workspace.stat(path)).rejects.toThrow(refused);
+    await expect(workspace.delete(path)).rejects.toThrow(refused);
+    await expect(workspace.deleteAll(path)).rejects.toThrow(refused);
+    await expect(workspace.mkdir(path)).rejects.toThrow(refused);
+    await expect(workspace.copy("notes.md", path)).rejects.toThrow(refused);
+    await expect(workspace.copy(path, "copy.md")).rejects.toThrow(refused);
+    await expect(workspace.move("notes.md", path)).rejects.toThrow(refused);
+    await expect(workspace.move(path, "moved.md")).rejects.toThrow(refused);
+    await expect(workspace.materialize(path)).rejects.toThrow(refused);
+    expect(await workspace.exists(path)).toBe(false);
+  });
+
+  it("leaves the reserved files untouched by every refused call", async () => {
+    await workspace.write(".nodetool/project.json", "overwritten").catch(() => {});
+    await workspace.delete(".nodetool/project.json").catch(() => {});
+    await workspace.move("notes.md", ".nodetool/project.json").catch(() => {});
+    const bytes = await storage.retrieve(storage.uriForKey(".nodetool/project.json"));
+    expect(new TextDecoder().decode(bytes ?? new Uint8Array())).toBe("{}");
+    expect(await workspace.readText("notes.md")).toBe("hello");
+  });
+
+  it("keeps the reserved directory out of root listings", async () => {
+    expect((await workspace.list("")).map((entry) => entry.path)).toEqual([
+      "notes.md"
+    ]);
+    expect(
+      (await workspace.list("", { recursive: true })).map((entry) => entry.path)
+    ).toEqual(["notes.md"]);
+  });
+
+  it("clears the workspace without clearing the reserved directory", async () => {
+    expect(await workspace.deleteAll("")).toBe(1);
+    expect(
+      await storage.exists(storage.uriForKey(".nodetool/project.json"))
+    ).toBe(true);
+  });
+
+  it("still accepts names that only start like the reserved directory", async () => {
+    await workspace.write(".nodetoolkit/a.txt", "a");
+    await workspace.write("docs/.nodetool/b.txt", "b");
+    expect(await workspace.readText(".nodetoolkit/a.txt")).toBe("a");
+    expect(await workspace.readText("docs/.nodetool/b.txt")).toBe("b");
+  });
+
+  it("is reachable through a workspace rooted at the reserved directory", async () => {
+    // NodeTool's own entry point roots a workspace at `.nodetool/`, so its
+    // keys never begin with the reserved segment.
+    const nodetoolDir = createWorkspace(storage, { prefix: ".nodetool" });
+    await nodetoolDir.write("project.json", '{"id":"p"}');
+    expect(await nodetoolDir.readText("project.json")).toBe('{"id":"p"}');
   });
 });
 

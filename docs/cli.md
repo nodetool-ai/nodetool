@@ -266,7 +266,7 @@ Executes a workflow by ID (from the local database), JSON file, or TypeScript DS
 - `--params <json>` — JSON string of workflow parameters.
 - `--json` — output result as JSON.
 - `--asset-output-mode <mode>` — how media outputs are materialized: `native` (default), `raw`, `data_uri`, `workspace`, `storage_url`, or `temp_url`.
-- `--workspace <dir>` — workspace directory for `workspace` mode output (default `./nodetool-output`).
+- `--workspace <dir>` — directory the run reads and writes files in. Without it the run uses its project folder: a stored workflow's project, or Personal for a file with no stored record. A run whose project folder is unreachable does not start.
 - `--trigger-event <json>` — wake a trigger node the way the scheduler or webhook adapter would, for example `'{"node_id":"watch","payload":{"path":"/tmp/a.csv","event":"created"}}'`. Without it a webhook, file-watch or manual trigger has no event to emit and the run stalls until its timeout.
 - `--supervise` and its bounds — see [Supervised runs](#supervised-runs).
 

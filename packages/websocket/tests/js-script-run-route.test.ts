@@ -42,6 +42,12 @@ import { createEmptyDocument } from "@nodetool-ai/app-runtime";
 import jsScriptsRoutes from "../src/routes/js-scripts.js";
 import { createOwnedAppInstance } from "../src/lib/app-instances-service.js";
 import { cancelAppRun } from "../src/lib/app-run-cancellation.js";
+import {
+  personalWithFolder,
+  projectWithFolder,
+  useProjectFolders,
+  type ProjectFolderFixture
+} from "./project-folder-fixture.js";
 
 const USER_ID = "user-1";
 
@@ -80,8 +86,18 @@ async function seedScript(
 describe("POST /api/js-scripts/:id/run", () => {
   let app: FastifyInstance | null = null;
 
-  beforeEach(() => initTestDb());
+  let folders: ProjectFolderFixture;
+
+  // A script runs in its project's folder: `p1` for the seeded scripts,
+  // Personal for example apps.
+  beforeEach(async () => {
+    initTestDb();
+    folders = await useProjectFolders([USER_ID]);
+    await projectWithFolder(USER_ID, "Scripts", "p1");
+    await personalWithFolder(USER_ID);
+  });
   afterEach(async () => {
+    await folders.cleanup();
     vi.restoreAllMocks();
     ModelObserver.clear();
     setDefaultModelInterfaces(null);

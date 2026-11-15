@@ -41,6 +41,9 @@ export {
 export {
   WorkspacePathError,
   WorkspaceNotLocalError,
+  WorkspaceReservedPathError,
+  RESERVED_WORKSPACE_DIR,
+  isReservedWorkspaceKey,
   observeWorkspace,
   type Workspace,
   type WorkspaceChange,

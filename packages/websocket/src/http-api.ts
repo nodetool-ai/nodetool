@@ -42,7 +42,7 @@ import {
   submitEscalationVerdict,
   type RunWorkflowOutcome
 } from "@nodetool-ai/execution/service";
-import { resolveWorkflowWorkspace } from "./lib/workflow-workspace.js";
+import { resolveProjectWorkspace } from "./lib/workflow-workspace.js";
 import { handleOpenAIRequest, type OpenAIApiOptions } from "./openai-api.js";
 import { handleOAuthRequest } from "./oauth-api.js";
 import {
@@ -463,7 +463,7 @@ export async function handleWorkflowRun(
     background: body?.background ?? false,
     interactive: body?.interactive === true,
     // The server's own import site, so a test that mocks it still governs.
-    resolveWorkspace: resolveWorkflowWorkspace
+    resolveWorkspace: resolveProjectWorkspace
   };
   if (nodeIds) {
     runOptions.nodeIds = nodeIds;

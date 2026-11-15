@@ -23,7 +23,21 @@ Each folder holds `.nodetool/project.json`, which names the project:
 
 Personal's folder is your default workspace. On startup, each project from before project folders keeps its oldest workspace that no game uses, or gets a new folder when it has none. Its other workspaces and their files stay as they are. The project API returns `folder: { path, origin, is_accessible }`, where `path` is null for a cloud folder and `origin` is `created` or `adopted`.
 
-Runs and agents resolve their workspace as described below, not from the project folder.
+## Where runs read and write
+
+Every run reads and writes the folder of its own project:
+
+| Run | Project |
+| --- | --- |
+| Chat turn, agent run | The thread's project |
+| Workflow run | The workflow's project |
+| Job, headless run | The job's project |
+| JS script run | The script's project |
+| `nodetool workflows run <file>` with no stored workflow | Personal |
+
+A record with no project of its own runs in Personal. The folder is chosen once, when the run starts. A run started in one project keeps writing there after you switch to another project. When the folder is unreachable, the run does not start and reports `Project folder not found: <folder>`. No other folder is used in its place.
+
+NodeTool owns `.nodetool/` in every folder. Agent file tools, the Code node, JS scripts and save nodes cannot read, write, list or delete anything in it, and listings leave it out.
 
 ## Manage workspaces in the app
 
@@ -36,7 +50,7 @@ Workspaces have their own full-screen page at `/workspaces` (not a Settings tab)
 
 ![Workspaces page](assets/screenshots/workspaces-page.png)
 
-A row marked **Inaccessible** points at a folder the server can no longer reach. Workspaces also appear in the **Workspace** view of the left panel (a file tree of the current one) and under **Advanced** in the workflow form, which pins a workflow to one. Every user gets a default workspace the first time the list loads.
+A row marked **Inaccessible** points at a folder the server can no longer reach. Workspaces also appear in the **Workspace** view of the left panel (a file tree of the current one) and under **Advanced** in the workflow form. Runs no longer read the workflow form's workspace. Every user gets a default workspace the first time the list loads.
 
 ## What a cloud deployment allows
 
@@ -63,6 +77,8 @@ The tRPC `workspace` router has `list`, `create`, `update`, `delete`, `listFiles
 | `Absolute paths not allowed, use relative paths` | A file procedure got a path starting with `/` |
 | `Path traversal not allowed` (`403`) | A relative path escaped the workspace root |
 | `Cannot delete the default workspace`, `Cannot delete workspace with linked workflows` | Delete refused |
+| `Project folder not found: <folder>` | A run's project folder is missing, unreachable or not recorded. Reconnect the drive or restore the folder, then run again |
+| `Path '<path>' is inside .nodetool/, which NodeTool reserves for its own files` | A tool, node or script used a path in `.nodetool/` |
 
 ## Related docs
 

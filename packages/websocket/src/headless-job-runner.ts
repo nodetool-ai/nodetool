@@ -39,7 +39,7 @@ import {
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { createRunSupervisor } from "./run-supervisor.js";
 import { documentModelInterfaces } from "./lib/document-model-interfaces.js";
-import { resolveWorkflowWorkspace } from "./lib/workflow-workspace.js";
+import { resolveProjectWorkspace } from "./lib/workflow-workspace.js";
 import { getAssetAdapter } from "./lib/storage.js";
 
 const log = createLogger("nodetool.websocket.headless-job");
@@ -182,7 +182,25 @@ export async function startHeadlessJob(
     });
   }
 
-  const workspace = await resolveWorkflowWorkspace(workflowId, userId);
+  // The job's project folder, read once for the whole run. An unreachable
+  // folder fails the job before anything runs, and no other folder stands in.
+  const folder = await resolveProjectWorkspace(job.project_id, userId);
+  if (!folder.ok) {
+    await persistTerminalStatus(job.id, {
+      status: "failed",
+      error: folder.reason,
+      outputs: {},
+      messages: []
+    } as RunResult);
+    log.info("Headless job refused", { jobId: job.id, error: folder.reason });
+    return {
+      jobId: job.id,
+      status: "failed",
+      error: folder.reason,
+      outputs: {}
+    };
+  }
+  const workspace = folder.workspace;
   const context = new ProcessingContext({
     jobId: job.id,
     workflowId,

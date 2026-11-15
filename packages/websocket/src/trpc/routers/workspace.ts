@@ -176,8 +176,8 @@ export const workspaceRouter = router({
     .output(listOutput)
     .query(async ({ ctx, input }) => {
       // Listing creates the default workspace when the user has none, so the
-      // editor never has to render a "no workspace" state and a run always has
-      // somewhere to write.
+      // editor never has to render a "no workspace" state. Runs do not use it:
+      // they work in their project's folder.
       await Workspace.ensureDefault(ctx.userId);
       const page: Parameters<typeof Workspace.paginate>[1] = {
         limit: input.limit

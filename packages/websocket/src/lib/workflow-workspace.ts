@@ -1,7 +1,7 @@
 /**
- * Workspace resolution for a run. The implementation moved to
+ * Workspace resolution for a run. The implementation lives in
  * `@nodetool-ai/execution/service` so every host — the server, the CLI, the
- * agent tools — resolves a workflow's workspace the same way. This module is
+ * agent tools — resolves a run's project folder the same way. This module is
  * the server's import site for it, and the one place that tells the resolver
  * which object store backs a virtual workspace.
  */
@@ -15,7 +15,7 @@ import { getAssetAdapter } from "./storage.js";
 import { notifyResourceChange } from "../resource-events.js";
 
 export {
-  resolveWorkflowWorkspace,
+  resolveProjectWorkspace,
   workspaceFromRow,
   usesCloudWorkspaces,
   buildWorkspaceExecutionContext

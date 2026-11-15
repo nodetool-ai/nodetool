@@ -28,6 +28,7 @@ import {
   projectFolderName
 } from "../src/service/project-folder.js";
 import {
+  nodetoolDirFromRow,
   setWorkspaceCloudStorage,
   workspaceFromRow
 } from "../src/service/workflow-workspace.js";
@@ -66,8 +67,21 @@ function rowFolder(row: WorkspaceRow) {
   return workspace;
 }
 
+/**
+ * The folder's reserved `.nodetool/` directory. The folder's own workspace
+ * refuses every path in it, so the manifest is read the way NodeTool writes it.
+ */
+function nodetoolDir(row: WorkspaceRow) {
+  const workspace = nodetoolDirFromRow(row);
+  if (!workspace) throw new Error("no .nodetool directory for row");
+  return workspace;
+}
+
+/** The manifest's path inside the reserved directory. */
+const MANIFEST_FILE = PROJECT_MANIFEST_PATH.slice(".nodetool/".length);
+
 async function manifestOf(row: WorkspaceRow): Promise<unknown> {
-  const text = await rowFolder(row).readText(PROJECT_MANIFEST_PATH);
+  const text = await nodetoolDir(row).readText(MANIFEST_FILE);
   return text === null ? null : JSON.parse(text);
 }
 
@@ -225,7 +239,7 @@ describe.each(MODES)("project folders ($name)", (mode) => {
     await migrateProjectFolders();
 
     expect((await Project.get<Project>(project.id))?.workspace_id).toBe(plain.id);
-    expect(await rowFolder(gameRow).exists(PROJECT_MANIFEST_PATH)).toBe(false);
+    expect(await nodetoolDir(gameRow).exists(MANIFEST_FILE)).toBe(false);
   });
 
   it("creates a folder when a game's workspace is the only one", async () => {
@@ -289,7 +303,7 @@ describe.each(MODES)("project folders ($name)", (mode) => {
   it("keeps a manifest that is already there", async () => {
     const project = await insertProject("Has manifest");
     const row = await legacyWorkspace(mode, project.id, "existing", "2026-01-01T00:00:00.000Z");
-    await rowFolder(row).write(PROJECT_MANIFEST_PATH, "{\"kept\":true}");
+    await nodetoolDir(row).write(MANIFEST_FILE, "{\"kept\":true}");
 
     await migrateProjectFolders();
 

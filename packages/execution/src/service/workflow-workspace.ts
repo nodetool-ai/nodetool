@@ -1,12 +1,15 @@
+import { join } from "node:path";
 import { createLogger, workspaceStorageKind } from "@nodetool-ai/config";
 import {
-  Workflow,
+  LOOSE_PROJECT_ID,
+  Project,
   Workspace as WorkspaceRow,
   getSecret
 } from "@nodetool-ai/models";
 import {
   PERMISSION_GATE_CONTEXT_KEY,
   ProcessingContext,
+  RESERVED_WORKSPACE_DIR,
   createLocalWorkspace,
   createWorkspace,
   headlessGate,
@@ -90,59 +93,103 @@ export function workspaceFromRow(row: WorkspaceRow): Workspace | null {
 }
 
 /**
- * Resolve the workspace a run reads and writes in.
+ * The workspace NodeTool writes its own files through: the folder's reserved
+ * `.nodetool/` directory, as a workspace rooted there.
  *
- * Selection is stored on the workflow (`workflow.workspace_id`); this maps it
- * to a {@link Workspace}, gated on ownership and the workspace still being
- * usable. When the workflow names none — or there is no workflow at all, which
- * is every chat turn — the run falls back to the user's default workspace,
- * created on first use.
- *
- * What comes back is an interface, not a directory: a local install gets one
- * over a real folder and a cloud deployment one over its object storage, and
- * nothing downstream can tell which. It answers null only when the database or
- * the storage refused, and a caller that gets null must report that rather than
- * writing somewhere else.
+ * A run's {@link Workspace} refuses every path in that directory, which is
+ * what keeps agent tools, Code nodes and save nodes out of it. This is the
+ * one way in, and it needs a workspace row, which run code never holds. The
+ * project manifest writer uses it.
  */
-export async function resolveWorkflowWorkspace(
-  workflowId: string | null,
-  userId: string
-): Promise<Workspace | null> {
-  try {
-    if (workflowId) {
-      const workflow = await Workflow.find(userId, workflowId);
-      if (workflow?.workspace_id) {
-        const row = await WorkspaceRow.find(userId, workflow.workspace_id);
-        if (row?.isAccessible() && row.project_id === workflow.project_id) {
-          const workspace = workspaceFromRow(row);
-          if (workspace) return workspace;
-        }
-      }
-    }
-    const fallback = await WorkspaceRow.ensureDefault(userId);
-    return fallback.isAccessible() ? workspaceFromRow(fallback) : null;
-  } catch (err) {
-    log.warn("Failed to resolve run workspace", {
-      workflowId,
-      userId,
-      error: err instanceof Error ? err.message : String(err)
-    });
-    return null;
+export function nodetoolDirFromRow(row: WorkspaceRow): Workspace | null {
+  if (!row.isVirtual()) {
+    return createLocalWorkspace(join(row.path, RESERVED_WORKSPACE_DIR));
   }
+  return cloudStorage
+    ? createWorkspace(cloudStorage, {
+        prefix: `${row.path}/${RESERVED_WORKSPACE_DIR}`
+      })
+    : null;
+}
+
+/** The start of every reason a run reports when its folder is unreachable. */
+export const PROJECT_FOLDER_NOT_FOUND = "Project folder not found";
+
+/** A run's project folder, or why the run cannot have it. */
+export type ProjectWorkspaceResolution =
+  | { ok: true; projectId: string; workspace: Workspace }
+  | { ok: false; projectId: string | null; reason: string };
+
+function unresolved(
+  projectId: string | null,
+  reason: string
+): ProjectWorkspaceResolution {
+  return { ok: false, projectId, reason };
 }
 
 /**
- * The directory a run's workspace lives in, or null when it is virtual.
+ * Resolve the folder a run reads and writes in: the workspace named by the
+ * project's `workspace_id`.
  *
- * Only for the few callers that still need a real path (host binaries). Prefer
- * {@link resolveWorkflowWorkspace} and the {@link Workspace} interface, which
- * work on both deployments.
+ * A run with no project of its own (a loose record, a file the CLI runs) uses
+ * the Personal project, which is where loose records belong.
+ *
+ * Call it once when the run starts and keep the result for the whole run, so a
+ * run started in one project never writes into another.
+ *
+ * It never creates a folder and never substitutes one. When the project has
+ * no folder, or its folder is unreachable, the answer carries a reason that
+ * names the folder, and the caller must refuse to start the run with it.
  */
-export async function resolveWorkflowWorkspaceDir(
-  workflowId: string | null,
+export async function resolveProjectWorkspace(
+  projectId: string | null | undefined,
   userId: string
-): Promise<string | null> {
-  return (await resolveWorkflowWorkspace(workflowId, userId))?.localDir ?? null;
+): Promise<ProjectWorkspaceResolution> {
+  try {
+    const project =
+      !projectId ||
+      projectId === LOOSE_PROJECT_ID ||
+      projectId === `personal:${userId}`
+        ? await Project.ensurePersonal(userId)
+        : await Project.findOwned(userId, projectId);
+    if (!project) {
+      return unresolved(projectId ?? null, `Project not found: ${projectId}`);
+    }
+    const row = project.workspace_id
+      ? await WorkspaceRow.find(userId, project.workspace_id)
+      : null;
+    if (!row) {
+      return unresolved(
+        project.id,
+        `${PROJECT_FOLDER_NOT_FOUND}: project "${project.name}" has no folder`
+      );
+    }
+    if (!row.isAccessible()) {
+      const folder = row.isVirtual()
+        ? `the cloud folder of project "${project.name}"`
+        : row.path;
+      return unresolved(project.id, `${PROJECT_FOLDER_NOT_FOUND}: ${folder}`);
+    }
+    const workspace = workspaceFromRow(row);
+    if (!workspace) {
+      return unresolved(
+        project.id,
+        `${PROJECT_FOLDER_NOT_FOUND}: cloud folder storage is not configured`
+      );
+    }
+    return { ok: true, projectId: project.id, workspace };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.warn("Failed to resolve the project folder", {
+      projectId,
+      userId,
+      error: message
+    });
+    return unresolved(
+      projectId ?? null,
+      `${PROJECT_FOLDER_NOT_FOUND}: ${message}`
+    );
+  }
 }
 
 /** True when this deployment keeps workspaces in object storage. */

@@ -32,10 +32,9 @@ import {
   Workspace
 } from "@nodetool-ai/models";
 import {
-  PROJECT_MANIFEST_PATH,
   migrateProjectFolders,
-  setWorkspaceCloudStorage,
-  workspaceFromRow
+  nodetoolDirFromRow,
+  setWorkspaceCloudStorage
 } from "@nodetool-ai/execution/service";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import { appRouter } from "../src/trpc/router.js";
@@ -583,8 +582,10 @@ describe("projects router: project folders", () => {
 
   async function manifest(workspaceId: string): Promise<unknown> {
     const row = await Workspace.find("user-1", workspaceId);
-    const workspace = row ? workspaceFromRow(row) : null;
-    const text = await workspace?.readText(PROJECT_MANIFEST_PATH);
+    // Read the way NodeTool writes it: the folder's own workspace refuses
+    // every path in `.nodetool/`.
+    const nodetoolDir = row ? nodetoolDirFromRow(row) : null;
+    const text = await nodetoolDir?.readText("project.json");
     return text ? JSON.parse(text) : null;
   }
 

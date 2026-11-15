@@ -14,6 +14,8 @@ import { PrefixedStorageAdapter } from "./prefixed-storage-adapter.js";
 import { withTaskSpan } from "./tracing.js";
 import {
   WorkspacePathError,
+  WorkspaceReservedPathError,
+  isReservedWorkspaceKey,
   type Workspace,
   type WorkspaceEntry,
   type WorkspaceStat
@@ -185,17 +187,21 @@ export class StorageWorkspace implements Workspace {
   key(path: string): string {
     const key = normalize(path);
     if (!key) throw new WorkspacePathError(path);
+    if (isReservedWorkspaceKey(key)) throw new WorkspaceReservedPathError(path);
     return key;
   }
 
   /**
    * Refuse a path whose real location leaves the workspace.
    *
-   * Called on every operation that touches a local workspace. `key()` already
-   * refuses a `..` that climbs out lexically; this is the half a symlink
-   * defeats.
+   * Called on every operation. `key()` refuses a `..` that climbs out
+   * lexically and the reserved directory; the rest is the half a symlink
+   * defeats, which only a local workspace has.
    */
   private async assertContained(path: string): Promise<void> {
+    // The lexical rules, the reserved directory among them, hold on every
+    // backend. Only the symlink half below needs a real directory.
+    this.key(path);
     if (!this.localDir) return;
     // The root may not exist yet (a workspace folder created on first use).
     // Without this the walk below climbs past it to an ancestor that does
@@ -322,23 +328,29 @@ export class StorageWorkspace implements Workspace {
       prefix,
       opts.recursive === true ? {} : { delimiter: "/" }
     );
-    const files: WorkspaceEntry[] = listing.entries.map((entry) => ({
-      path: entry.key,
-      name: entry.key.slice(entry.key.lastIndexOf("/") + 1),
-      size: entry.size,
-      modifiedAt: entry.modifiedAt,
-      isDirectory: false
-    }));
-    const dirs: WorkspaceEntry[] = listing.commonPrefixes.map((p) => {
-      const trimmed = p.endsWith("/") ? p.slice(0, -1) : p;
-      return {
-        path: trimmed,
-        name: trimmed.slice(trimmed.lastIndexOf("/") + 1),
-        size: 0,
-        modifiedAt: 0,
-        isDirectory: true
-      };
-    });
+    // Only a root listing can reach the reserved directory: `assertContained`
+    // above refuses one that starts inside it.
+    const files: WorkspaceEntry[] = listing.entries
+      .filter((entry) => !isReservedWorkspaceKey(entry.key))
+      .map((entry) => ({
+        path: entry.key,
+        name: entry.key.slice(entry.key.lastIndexOf("/") + 1),
+        size: entry.size,
+        modifiedAt: entry.modifiedAt,
+        isDirectory: false
+      }));
+    const dirs: WorkspaceEntry[] = listing.commonPrefixes
+      .filter((p) => !isReservedWorkspaceKey(p))
+      .map((p) => {
+        const trimmed = p.endsWith("/") ? p.slice(0, -1) : p;
+        return {
+          path: trimmed,
+          name: trimmed.slice(trimmed.lastIndexOf("/") + 1),
+          size: 0,
+          modifiedAt: 0,
+          isDirectory: true
+        };
+      });
     return [...dirs, ...files].sort((a, b) => a.path.localeCompare(b.path));
   }
 
@@ -358,6 +370,8 @@ export class StorageWorkspace implements Workspace {
     const listing = await this.storage.list(key ? `${key}/` : "");
     let deleted = 0;
     for (const entry of listing.entries) {
+      // Clearing the whole workspace leaves NodeTool's own directory alone.
+      if (isReservedWorkspaceKey(entry.key)) continue;
       if (await this.storage.delete(entry.uri)) deleted++;
     }
     // On an object store the prefix is gone once its keys are. A real
@@ -377,10 +391,10 @@ export class StorageWorkspace implements Workspace {
     // there is nothing to create and nothing to fail. A local workspace makes
     // the real directory so an empty one survives and a host binary can cd
     // into it.
+    const key = normalize(path);
+    if (!key) return;
+    await this.assertContained(key);
     if (this.localDir) {
-      const key = normalize(path);
-      if (!key) return;
-      await this.assertContained(key);
       await requireNode().fs.mkdir(resolvePath(this.localDir, key), {
         recursive: true
       });

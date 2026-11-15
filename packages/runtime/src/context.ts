@@ -78,7 +78,11 @@ import type {
   ProcessingContextModelInterfaces,
   ThreadMessagesResultLike
 } from "@nodetool-ai/runtime-core";
-import type { Workspace } from "./workspace.js";
+import {
+  WorkspaceReservedPathError,
+  isReservedWorkspaceKey,
+  type Workspace
+} from "./workspace.js";
 
 // `node:fs/promises`, `node:path`, `node:url`, `node:crypto` are loaded
 // lazily so this module loads in browser / Edge runtimes. `resolveWorkspacePath`
@@ -532,6 +536,17 @@ function isWithinRoot(root: string, target: string): boolean {
 }
 
 /**
+ * Refuse a resolved path inside the directory NodeTool reserves in every
+ * workspace. The local-path twin of the check in `Workspace.key()`, for the
+ * tools that still resolve a real path instead of using the interface.
+ */
+function assertNotReserved(root: string, target: string, path: string): void {
+  if (isReservedWorkspaceKey(relative(root, target).replaceAll("\\", "/"))) {
+    throw new WorkspaceReservedPathError(path);
+  }
+}
+
+/**
  * Deterministic JSON serialization with object keys sorted at every depth.
  * Unlike `JSON.stringify(value, sortedKeys)` (a recursive replacer allow-list
  * that drops nested values), this preserves the full nested structure, so two
@@ -604,6 +619,7 @@ export function resolveWorkspacePath(
       `Resolved path '${absPath}' is outside the workspace directory.`
     );
   }
+  assertNotReserved(workspaceRoot, absPath, path);
   return absPath;
 }
 
@@ -2009,6 +2025,7 @@ export class ProcessingContext implements RuntimeNodeContext {
       (isAbsolute(normalizedPath) || /^[A-Za-z]:\//.test(normalizedPath)) &&
       isWithinRoot(workspaceRoot, resolve(normalizedPath))
     ) {
+      assertNotReserved(workspaceRoot, resolve(normalizedPath), path);
       return resolve(normalizedPath);
     }
     return resolveWorkspacePath(this.workspaceDir, path);
