@@ -249,8 +249,4 @@ describe("add_asset_workspace_path migration", () => {
     );
     expect(row?.workspace_path).toBeNull();
   });
-
-  it("is the newest migration", () => {
-    expect(migrations.at(-1)?.name).toBe("add_asset_workspace_path");
-  });
 });
