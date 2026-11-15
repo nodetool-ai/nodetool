@@ -100,6 +100,21 @@ ColumnLayout {
         text: detail ? label + " " + detail : label
         Accessible.expandable: enabled
         Accessible.expanded: open
+        // RowLayout never shrinks an item that does not fill, so the row
+        // shares its width out here. The timing and the chevron keep theirs,
+        // the preview gives way first, and then the argument gives way before
+        // the verb does, down to 60% for the verb.
+        readonly property real fixedWidth: (headerTiming.visible ? headerTiming.implicitWidth + Ui.Metrics.xs : Ui.Metrics.none)
+            + (headerChevron.visible ? headerChevron.width + Ui.Metrics.xs : Ui.Metrics.none)
+        readonly property real noteWidth: headerNote.visible ? Math.max(Ui.Metrics.none, Math.min(headerNote.implicitWidth,
+            width - Ui.Metrics.sm * 2 - fixedWidth - headerLabel.implicitWidth - (detail ? headerDetail.implicitWidth + Ui.Metrics.xs : Ui.Metrics.none)
+            - Ui.Metrics.md - Ui.Metrics.xs * 2)) : Ui.Metrics.none
+        readonly property real textWidth: Math.max(Ui.Metrics.none, width - Ui.Metrics.sm * 2 - fixedWidth
+            - (headerNote.visible ? noteWidth + Ui.Metrics.xs : Ui.Metrics.none) - Ui.Metrics.md - Ui.Metrics.xs)
+        readonly property real labelWidth: detail
+            ? Math.min(headerLabel.implicitWidth, Math.max(textWidth * 0.6, textWidth - headerDetail.implicitWidth - Ui.Metrics.xs))
+            : Math.min(headerLabel.implicitWidth, textWidth)
+        readonly property real detailWidth: detail ? Math.max(Ui.Metrics.none, Math.min(headerDetail.implicitWidth, textWidth - labelWidth - Ui.Metrics.xs)) : Ui.Metrics.none
         RowLayout {
             anchors.fill: parent
             anchors.leftMargin: Ui.Metrics.sm
@@ -114,9 +129,7 @@ ColumnLayout {
                 text: header.label
                 tone: header.quiet ? Ui.Text.Disabled : header.running || header.emphasis ? Ui.Text.Primary : Ui.Text.Secondary
                 elide: Text.ElideRight
-                // The row shrinks the label and the detail before the gap
-                // gives way. The argument gives way before the verb does.
-                Layout.minimumWidth: header.detail ? Math.min(implicitWidth, header.width * 0.6) : 0
+                Layout.preferredWidth: header.labelWidth
                 readonly property bool shimmering: header.running && !Ui.Theme.reducedMotion
                 onShimmeringChanged: if (!shimmering) opacity = 1
                 SequentialAnimation on opacity {
@@ -127,6 +140,7 @@ ColumnLayout {
                 }
             }
             Ui.Text {
+                id: headerDetail
                 objectName: "toolRowDetail"
                 visible: !!header.detail
                 role: Ui.Typography.MonoCaption
@@ -134,18 +148,22 @@ ColumnLayout {
                 text: header.detail
                 tone: Ui.Text.Disabled
                 elide: Text.ElideRight
-                Layout.minimumWidth: Ui.Metrics.none
+                Layout.preferredWidth: header.detailWidth
             }
             Item { Layout.fillWidth: true; Layout.minimumWidth: Ui.Metrics.md }
             Ui.Text {
+                id: headerNote
                 visible: !!header.note
                 role: Ui.Typography.MonoCaption
                 tight: true
                 text: header.note
                 tone: Ui.Text.Disabled
+                elide: Text.ElideRight
+                Layout.preferredWidth: header.noteWidth
             }
             // A failed call says so in words, not only in colour.
             Ui.Text {
+                id: headerTiming
                 objectName: "toolRowTiming"
                 visible: header.failed || !!header.timing
                 role: Ui.Typography.MonoCaption
@@ -154,6 +172,7 @@ ColumnLayout {
                 tone: header.failed ? Ui.Text.Error : Ui.Text.Disabled
             }
             Ui.Icon {
+                id: headerChevron
                 visible: header.chevron && header.enabled
                 name: "expandMore"
                 size: Ui.Metrics.iconSm
