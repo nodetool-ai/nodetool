@@ -386,7 +386,9 @@ export async function ensurePersonalProject(userId: string): Promise<Project> {
 // wherever that happens first, so every host that loads project folders installs
 // this. `ensureProjectFolder` reads the project row it was handed, never
 // `ensurePersonal`, so the call cannot recurse.
-setPersonalFolderProvider(ensureProjectFolder);
+setPersonalFolderProvider(async (project) => {
+  await ensureProjectFolder(project);
+});
 
 export interface ProjectFolderMigrationReport {
   /** Projects that had no folder when the migration reached them. */
