@@ -18,6 +18,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { UNGATED, createCapabilityRun } from "@nodetool-ai/agents";
 import {
+  DocumentFileMoveError,
   ModelChangeEvent,
   ModelObserver,
   Workflow,
@@ -496,6 +497,160 @@ describe.each(["local", "storage"] as const)("workflow files (%s folder)", (kind
       await loaded.save();
       expect(await fileNames(kind, OTHER_PROJECT)).toEqual([]);
       expect(await fileNames(kind, PROJECT)).toEqual(["Fox.workflow.json"]);
+    });
+
+    it("keeps a file edit NodeTool has not seen when the workflow changes project", async () => {
+      const versions = async (id: string): Promise<Array<[string | null, unknown]>> =>
+        (await WorkflowVersion.listForWorkflow(id)).map((version) => [
+          version.name,
+          (version.graph.nodes[0] as TestNode | undefined)?.data.value
+        ]);
+      const workflow = await makeWorkflow("Fox");
+      // The file is edited, and nothing reconciles it before the move.
+      await editFile(kind, pathOf("Fox"), (file) => {
+        file.graph.nodes[0]!.data.value = "edited before the move";
+      });
+
+      const moved = await Workflow.updateFieldsIfUnchanged(
+        workflow.id,
+        workflow.updated_at,
+        { project_id: OTHER_PROJECT }
+      );
+
+      // The workflow moved, and its file in the new folder is the row's.
+      expect(moved?.project_id).toBe(OTHER_PROJECT);
+      expect(moved?.file_error).toBeNull();
+      expect(await fileNames(kind, PROJECT)).toEqual([]);
+      expect(await fileNames(kind, OTHER_PROJECT)).toEqual(["Fox.workflow.json"]);
+      expect((await reload(workflow.id)).graph.nodes[0]).toMatchObject({
+        data: { value: "hello" }
+      });
+      // The edit that went with the old file is a version.
+      expect(await versions(workflow.id)).toEqual([
+        [WORKFLOW_FILE_REPLACED_VERSION_NAME, "edited before the move"]
+      ]);
+      expect(await reconcile(PROJECT)).toMatchObject({ files: 0, missing: [] });
+      expect(await reconcile(OTHER_PROJECT)).toMatchObject({
+        unchanged: 1,
+        imported: [],
+        created: []
+      });
+
+      // The same through a loaded instance whose save changes content too.
+      const there = folder(kind, OTHER_PROJECT);
+      const text = (await there.readText(pathOf("Fox"))) ?? "";
+      await there.write(pathOf("Fox"), text.replace('"hello"', '"edited again"'));
+      const loaded = await reload(workflow.id);
+      loaded.project_id = PROJECT;
+      loaded.description = "moved back";
+      await loaded.save();
+
+      expect(await fileNames(kind, OTHER_PROJECT)).toEqual([]);
+      const file = await jsonOf(kind, pathOf("Fox"));
+      expect(file.description).toBe("moved back");
+      expect(file.graph.nodes[0]?.data.value).toBe("hello");
+      expect(await versions(workflow.id)).toEqual([
+        [WORKFLOW_FILE_REPLACED_VERSION_NAME, "edited again"],
+        [WORKFLOW_FILE_REPLACED_VERSION_NAME, "edited before the move"]
+      ]);
+    });
+
+    it("keeps no version when a moved workflow's file holds no edit", async () => {
+      const workflow = await makeWorkflow("Fox");
+      // The same content in another layout is no edit.
+      await folder(kind).write(
+        pathOf("Fox"),
+        JSON.stringify(await jsonOf(kind, pathOf("Fox")))
+      );
+
+      await Workflow.updateFieldsIfUnchanged(workflow.id, workflow.updated_at, {
+        project_id: OTHER_PROJECT
+      });
+
+      expect(await fileNames(kind, PROJECT)).toEqual([]);
+      expect(await fileNames(kind, OTHER_PROJECT)).toEqual(["Fox.workflow.json"]);
+      expect(await WorkflowVersion.listForWorkflow(workflow.id)).toHaveLength(0);
+
+      // Nor does an untouched file, when the save that moves the workflow
+      // changes its content as well.
+      const loaded = await reload(workflow.id);
+      loaded.project_id = PROJECT;
+      loaded.graph = graphOf(node("a", "changed with the move"));
+      await loaded.save();
+      expect(await fileNames(kind, OTHER_PROJECT)).toEqual([]);
+      expect((await jsonOf(kind, pathOf("Fox"))).graph.nodes[0]?.data.value).toBe(
+        "changed with the move"
+      );
+      expect(await WorkflowVersion.listForWorkflow(workflow.id)).toHaveLength(0);
+    });
+
+    it("refuses to move a workflow whose file holds an edit that is not valid", async () => {
+      const workflow = await makeWorkflow("Fox");
+      await folder(kind).write(pathOf("Fox"), "{ half an edit");
+      const move = (): Promise<Workflow | null> =>
+        Workflow.updateFieldsIfUnchanged(workflow.id, workflow.updated_at, {
+          project_id: OTHER_PROJECT
+        });
+
+      await expect(move()).rejects.toThrow(DocumentFileMoveError);
+      await expect(move()).rejects.toThrow(
+        `Cannot move workflow "Fox" to another project: its file ${pathOf("Fox")} was edited and is not valid. The file is not valid JSON`
+      );
+
+      // Nothing moved. The file is the user's, in place and untouched, and
+      // the row says what is wrong with it.
+      expect(await textOf(kind, pathOf("Fox"))).toBe("{ half an edit");
+      expect(await fileNames(kind, OTHER_PROJECT)).toEqual([]);
+      const stored = await reload(workflow.id);
+      expect(stored).toMatchObject({
+        project_id: PROJECT,
+        file_path: pathOf("Fox"),
+        file_hash: workflow.file_hash,
+        updated_at: workflow.updated_at
+      });
+      expect(stored.file_error).toMatch(/^The file is not valid JSON/);
+      expect(await WorkflowVersion.listForWorkflow(workflow.id)).toHaveLength(0);
+
+      // A graph update_workflow would refuse is no different, and a save of a
+      // loaded instance that moves the workflow stores nothing.
+      const file = { format: "nodetool.workflow", version: 1, id: workflow.id };
+      await folder(kind).write(
+        pathOf("Fox"),
+        JSON.stringify({
+          ...file,
+          graph: graphOf(node("a", "draft", "nodetool.missing.Node"))
+        })
+      );
+      const loaded = await reload(workflow.id);
+      loaded.project_id = OTHER_PROJECT;
+      loaded.description = "never stored";
+      await expect(loaded.save()).rejects.toThrow(
+        /was edited and is not valid\. .*node types that do not exist/
+      );
+      expect(await reload(workflow.id)).toMatchObject({
+        project_id: PROJECT,
+        description: ""
+      });
+      expect(await fileNames(kind)).toEqual(["Fox.workflow.json"]);
+
+      // Once the file is valid the move goes through, and the edit is kept.
+      await folder(kind).write(
+        pathOf("Fox"),
+        JSON.stringify({ ...file, graph: graphOf(node("a", "fixed")) })
+      );
+      expect((await move())?.project_id).toBe(OTHER_PROJECT);
+      expect(await fileNames(kind, PROJECT)).toEqual([]);
+      expect(await fileNames(kind, OTHER_PROJECT)).toEqual(["Fox.workflow.json"]);
+      expect(
+        (await WorkflowVersion.listForWorkflow(workflow.id)).map((version) => [
+          version.name,
+          (version.graph.nodes[0] as TestNode | undefined)?.data.value
+        ])
+      ).toEqual([[WORKFLOW_FILE_REPLACED_VERSION_NAME, "fixed"]]);
+      expect(await reload(workflow.id)).toMatchObject({
+        project_id: OTHER_PROJECT,
+        file_error: null
+      });
     });
 
     it("writes no file for a template or a workflow outside every folder", async () => {

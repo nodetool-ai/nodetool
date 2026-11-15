@@ -147,6 +147,7 @@ export type {
 } from "./personal-data.js";
 
 export { Workflow, setWorkflowFileSync } from "./workflow.js";
+export { DocumentFileMoveError } from "./document-file-sync.js";
 export type {
   DocumentFileLocation,
   DocumentFileRow,

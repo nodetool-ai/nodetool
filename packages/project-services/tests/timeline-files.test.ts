@@ -20,6 +20,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { UNGATED, createCapabilityRun } from "@nodetool-ai/agents";
 import {
   Asset,
+  DocumentFileMoveError,
   ModelChangeEvent,
   ModelObserver,
   TimelineSequence,
@@ -569,6 +570,149 @@ describe.each(["local", "storage"] as const)("timeline files (%s folder)", (kind
       await loaded.save();
       expect(await fileNames(kind, OTHER_PROJECT)).toEqual([]);
       expect(await fileNames(kind, PROJECT)).toEqual(["Fox.timeline.json"]);
+    });
+
+    it("keeps a file edit NodeTool has not seen when the timeline changes project", async () => {
+      const timeline = await makeTimeline("Fox");
+      // The file is edited, and nothing reconciles it before the move.
+      await editFile(kind, pathOf("Fox"), (file) => {
+        file.document.clips[0]!.name = "edited before the move";
+        file.fps = 24;
+      });
+
+      expect(
+        await moveDocumentToProject(USER, "timeline", timeline.id, OTHER_PROJECT)
+      ).toBe(true);
+
+      // The timeline moved, and its file in the new folder is the row's.
+      expect(await fileNames(kind, PROJECT)).toEqual([]);
+      expect(await fileNames(kind, OTHER_PROJECT)).toEqual(["Fox.timeline.json"]);
+      const moved = await reload(timeline.id);
+      expect(moved.project_id).toBe(OTHER_PROJECT);
+      expect(documentIn(moved).clips[0]?.name).toBe("hello");
+      expect(moved.file_error).toBeNull();
+      // The edit that went with the old file is a version, settings included.
+      expect(await versionNames(timeline.id)).toEqual([
+        [TIMELINE_FILE_REPLACED_VERSION_NAME, "edited before the move"]
+      ]);
+      expect((await versionsOf(timeline.id))[0]).toMatchObject({ fps: 24 });
+      expect(await reconcile(PROJECT)).toMatchObject({ files: 0, missing: [] });
+      expect(await reconcile(OTHER_PROJECT)).toMatchObject({
+        unchanged: 1,
+        imported: [],
+        created: []
+      });
+
+      // The same through a loaded instance whose save changes content too.
+      const there = folder(kind, OTHER_PROJECT);
+      const text = (await there.readText(pathOf("Fox"))) ?? "";
+      await there.write(pathOf("Fox"), text.replace('"hello"', '"edited again"'));
+      const loaded = await reload(timeline.id);
+      loaded.project_id = PROJECT;
+      loaded.fps = 25;
+      await loaded.save();
+
+      expect(await fileNames(kind, OTHER_PROJECT)).toEqual([]);
+      const file = await jsonOf(kind, pathOf("Fox"));
+      expect(file.fps).toBe(25);
+      expect(file.document.clips[0]?.name).toBe("hello");
+      expect(await versionNames(timeline.id)).toEqual([
+        [TIMELINE_FILE_REPLACED_VERSION_NAME, "edited again"],
+        [TIMELINE_FILE_REPLACED_VERSION_NAME, "edited before the move"]
+      ]);
+    });
+
+    it("keeps no version when a moved timeline's file holds the row's content", async () => {
+      const timeline = await makeTimeline("Fox");
+      // The same content in another layout is no edit.
+      await folder(kind).write(
+        pathOf("Fox"),
+        JSON.stringify(await jsonOf(kind, pathOf("Fox")))
+      );
+
+      await moveDocumentToProject(USER, "timeline", timeline.id, OTHER_PROJECT);
+
+      expect(await fileNames(kind, PROJECT)).toEqual([]);
+      expect(await fileNames(kind, OTHER_PROJECT)).toEqual(["Fox.timeline.json"]);
+      expect(await versionsOf(timeline.id)).toHaveLength(0);
+
+      // Nor does an untouched file, when the save that moves the timeline
+      // changes its content as well.
+      const loaded = await reload(timeline.id);
+      loaded.project_id = PROJECT;
+      loaded.document = JSON.stringify(documentOf(clip("c1", "changed with the move")));
+      await loaded.save();
+      expect(await fileNames(kind, OTHER_PROJECT)).toEqual([]);
+      expect((await jsonOf(kind, pathOf("Fox"))).document.clips[0]?.name).toBe(
+        "changed with the move"
+      );
+      expect(await versionsOf(timeline.id)).toHaveLength(0);
+    });
+
+    it("refuses to move a timeline whose file holds an edit that is not valid", async () => {
+      const timeline = await makeTimeline("Fox");
+      await folder(kind).write(pathOf("Fox"), "{ half an edit");
+      const move = (): Promise<boolean> =>
+        moveDocumentToProject(USER, "timeline", timeline.id, OTHER_PROJECT);
+
+      await expect(move()).rejects.toThrow(DocumentFileMoveError);
+      await expect(move()).rejects.toThrow(
+        `Cannot move timeline "Fox" to another project: its file ${pathOf("Fox")} was edited and is not valid. The file is not valid JSON`
+      );
+
+      // Nothing moved. The file is the user's, in place and untouched, and
+      // the row says what is wrong with it.
+      expect(await textOf(kind, pathOf("Fox"))).toBe("{ half an edit");
+      expect(await fileNames(kind, OTHER_PROJECT)).toEqual([]);
+      const stored = await reload(timeline.id);
+      expect(stored).toMatchObject({
+        project_id: PROJECT,
+        file_path: pathOf("Fox"),
+        file_hash: timeline.file_hash,
+        revision: timeline.revision,
+        updated_at: timeline.updated_at
+      });
+      expect(stored.file_error).toMatch(/^The file is not valid JSON/);
+      expect(await versionsOf(timeline.id)).toHaveLength(0);
+
+      // A document the validation refuses is no different, and a save of a
+      // loaded instance that moves the timeline stores nothing.
+      const file = { format: "nodetool.timeline", version: 1, id: timeline.id };
+      await folder(kind).write(
+        pathOf("Fox"),
+        JSON.stringify({
+          ...file,
+          document: documentOf({ ...clip("c1", "draft"), mediaType: "hologram" })
+        })
+      );
+      const loaded = await reload(timeline.id);
+      loaded.project_id = OTHER_PROJECT;
+      loaded.fps = 12;
+      await expect(loaded.save()).rejects.toThrow(
+        /was edited and is not valid\. The document has 1 error\n/
+      );
+      expect(await reload(timeline.id)).toMatchObject({
+        project_id: PROJECT,
+        fps: 30,
+        revision: timeline.revision
+      });
+      expect(await fileNames(kind)).toEqual(["Fox.timeline.json"]);
+
+      // Once the file is valid the move goes through, and the edit is kept.
+      await folder(kind).write(
+        pathOf("Fox"),
+        JSON.stringify({ ...file, document: documentOf(clip("c1", "fixed")) })
+      );
+      expect(await move()).toBe(true);
+      expect(await fileNames(kind, PROJECT)).toEqual([]);
+      expect(await fileNames(kind, OTHER_PROJECT)).toEqual(["Fox.timeline.json"]);
+      expect(await versionNames(timeline.id)).toEqual([
+        [TIMELINE_FILE_REPLACED_VERSION_NAME, "fixed"]
+      ]);
+      expect(await reload(timeline.id)).toMatchObject({
+        project_id: OTHER_PROJECT,
+        file_error: null
+      });
     });
 
     it("writes no file for a timeline outside every folder", async () => {

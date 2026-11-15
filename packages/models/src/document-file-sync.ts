@@ -40,4 +40,35 @@ export interface DocumentFileSync<Row extends DocumentFileRow> {
   saved(row: Row, previous: DocumentFileLocation | null): Promise<void>;
   /** The row was deleted. Delete its file. */
   deleted(row: Row): Promise<void>;
+  /**
+   * The row is about to move to another project. `row` is the stored row, in
+   * the project it leaves. Its file there is deleted once the row has moved,
+   * so a file that holds an edit NodeTool has not seen and that is not valid
+   * would be lost with no version to keep it. Returns what to tell the user
+   * when the move must be refused for that reason, and null otherwise. A
+   * valid edit does not refuse the move: `saved` keeps it as a version.
+   */
+  leaving(row: Row): Promise<string | null>;
+}
+
+/** A document could not change project because of the state of its file. */
+export class DocumentFileMoveError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DocumentFileMoveError";
+  }
+}
+
+/**
+ * Ask `sync` whether the stored `row` may leave its project, and throw
+ * {@link DocumentFileMoveError} when it may not. Call it before the change of
+ * project is written.
+ */
+export async function assertDocumentFileMayLeave<Row extends DocumentFileRow>(
+  sync: DocumentFileSync<Row> | null,
+  row: Row | null | undefined
+): Promise<void> {
+  if (!sync || !row?.file_path) return;
+  const refusal = await sync.leaving(row);
+  if (refusal !== null) throw new DocumentFileMoveError(refusal);
 }
