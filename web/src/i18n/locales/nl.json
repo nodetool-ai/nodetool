@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "code#staat",
       "signInWindowClosed": "Inlogvenster gesloten?",
       "openAgain": "Open het opnieuw",
-      "linkExpiry": ". De link vervalt na 10 minuten."
+      "linkExpiry": ". De link vervalt na 10 minuten.",
+      "nativeSubtitle": "wil inloggen op je NodeTool-account.",
+      "app": "App",
+      "device": "Apparaat",
+      "nativeNote": "Keur alleen goed als je deze aanmelding zelf in een NodeTool-desktopapp op deze computer hebt gestart. De app kan daarna je clouddocumenten openen, bewerken en opslaan tot je uitlogt of de sessie in Instellingen beëindigt."
     },
     "integrations": {
       "loadingAccounts": "Verbonden accounts laden",
@@ -20153,6 +20157,44 @@
       "deleteDescription": "‘{{name}}’ en de versiegeschiedenis worden definitief verwijderd.",
       "restoreFailed": "Het bestand is niet hersteld: {{error}}",
       "deleteFailed": "Het document is niet verwijderd: {{error}}"
+    },
+    "migration": {
+      "title": "Verplaats je projecten naar mappen",
+      "intro": "NodeTool bewaart nu elk project in een eigen map op deze computer. Je bestanden, workflows en tijdlijnen worden daarheen verplaatst en je kunt ze in andere apps openen.",
+      "planProjects": "Projecten die een map krijgen",
+      "planFiles": "Te verplaatsen bestanden",
+      "planWorkflows": "Workflows die als bestanden worden opgeslagen",
+      "planTimelines": "Tijdlijnen die als bestanden worden opgeslagen",
+      "extraTitle": "Projecten met meer dan één map",
+      "extraBody": "Elk van deze projecten behoudt één map. NodeTool toont de andere niet meer en hun bestanden blijven waar ze staan.",
+      "extraKeeps": "{{project}} behoudt {{folder}}",
+      "extraHidden": "Niet meer zichtbaar: {{folder}}",
+      "location": "Locatie",
+      "changeLocation": "Locatie wijzigen",
+      "locationError": "Deze locatie kan niet worden gebruikt: {{error}}",
+      "permissionWarning": "macOS vraagt of NodeTool deze map mag gebruiken. Kies Sta toe, of kies een map buiten Documenten, Bureaublad, Downloads, iCloud Drive en externe schijven.",
+      "safety": "Er gaat niets verloren. Elk bestand wordt gekopieerd en gecontroleerd voordat de oude kopie wordt verwijderd. Je kunt doorwerken terwijl de bestanden worden verplaatst.",
+      "later": "Niet nu",
+      "confirm": "Bestanden verplaatsen",
+      "planError": "Het plan kon niet worden geladen: {{error}}",
+      "confirmError": "Het verplaatsen is niet gestart: {{error}}",
+      "actionError": "Het verplaatsen kon niet worden gewijzigd: {{error}}",
+      "progressRegion": "Bestanden worden naar projectmappen verplaatst",
+      "progressTitle": "Bestanden worden naar projectmappen verplaatst",
+      "pausedTitle": "Het verplaatsen van bestanden is gepauzeerd",
+      "doneTitle": "Bestanden verplaatst",
+      "progressCount": "{{done}} van {{total}} bestanden verplaatst",
+      "phaseFolders": "Projectmappen worden gemaakt",
+      "phaseFiles": "Workflows en tijdlijnen worden als bestanden opgeslagen",
+      "currentProject": "De bestanden van {{project}} worden verplaatst",
+      "pause": "Pauzeren",
+      "resume": "Hervatten",
+      "failuresTitle": "Kon niet worden verplaatst ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "Meer niet getoond: {{count}}",
+      "retry": "Opnieuw proberen",
+      "donePath": "Je bestanden staan in {{path}}",
+      "close": "Sluiten"
     }
   },
   "assetPicker": {
@@ -20177,5 +20219,80 @@
     "removeTitle": "\"{{name}}\" verwijderen?",
     "removeBody": "Het item wordt uit NodeTool verwijderd. Documenten die het gebruiken, kunnen het niet meer tonen.",
     "cancel": "Annuleren"
+  },
+  "deviceSessions": {
+    "title": "Aangemelde apparaten",
+    "description": "Computers waarop je bent aangemeld bij de NodeTool-desktopapps. Beide apps op één computer delen een sessie. Een sessie beëindigen meldt die computer af.",
+    "empty": "Er is geen computer aangemeld.",
+    "unnamed": "Naamloze computer",
+    "signedInFrom": "Aangemeld via {{app}} op {{date}}",
+    "lastUsed": "Laatst gebruikt {{date}}",
+    "neverUsed": "Niet gebruikt sinds aanmelding",
+    "end": "Sessie beëindigen",
+    "confirmTitle": "Deze sessie beëindigen?",
+    "confirmBody": "De NodeTool-desktopapps op {{device}} worden binnen een minuut afgemeld.",
+    "cancel": "Annuleren",
+    "ended": "Sessie beëindigd.",
+    "endError": "Kon de sessie niet beëindigen: {{error}}",
+    "loadError": "Kon aangemelde apparaten niet laden.",
+    "apps": {
+      "nodeEditor": "Node-editor",
+      "timeline": "Tijdlijn"
+    }
+  },
+  "storyboardText": {
+    "mode": "Tekst",
+    "editorLabel": "Storyboard als Markdown-tekst",
+    "hint": "Typ # voor een akte, ## voor een scène, ### voor een shot en - **Motion:** voor een veld. Typ @ om een entiteit of afbeelding te noemen.",
+    "issues": "Regels die aandacht nodig hebben: {{lines}}",
+    "loading": "Tekst laden…",
+    "warnings": {
+      "media_outside_shot": "Een afbeelding hoort bij een shot. Zet hem onder een ###-shotkop.",
+      "second_media": "Een shot heeft één geselecteerde still en één geselecteerde clip. Deze wordt niet gebruikt.",
+      "unknown_shot_field": "‘{{label}}’ is geen storyboardveld. Het wordt opgeslagen in de notities van het shot.",
+      "unknown_field": "‘{{label}}’ is hier geen veld. Het wordt niet opgeslagen.",
+      "text_in_scene": "Een scène heeft alleen een kopregel en belichting. Zet deze tekst onder een shot of begin hem met ‘Lighting:’.",
+      "bad_duration": "Shot {{shot}}: ‘{{value}}’ is geen aantal seconden.",
+      "bad_render": "Shot {{shot}}: render is keyframe, direct of reference.",
+      "no_next_shot": "Shot {{shot}}: een overgang leidt naar het volgende shot, en dat is er niet.",
+      "missing_action": "Shot {{shot}} heeft nog geen actie. Schrijf het beeld dat gerenderd wordt onder de kop."
+    },
+    "outline": "Overzicht",
+    "outlineEmpty": "Typ ### en een titel om een shot te beginnen.",
+    "untitledShot": "Shot zonder titel",
+    "untitledAct": "Akte zonder titel",
+    "untitledScene": "Scène zonder titel",
+    "issuesTitle": "Vraagt aandacht",
+    "stillOf": "Still van shot {{shot}}",
+    "assist": {
+      "lines": "{{lines}} regels geselecteerd",
+      "proposal": "Voorgestelde vervanging",
+      "note": "Notitie van de agent",
+      "discard": "Verwerpen",
+      "close": "Sluiten",
+      "replace": "Selectie vervangen",
+      "stale": "De passage is veranderd sinds je haar selecteerde. Selecteer haar opnieuw.",
+      "thinking": "Bezig met nadenken…",
+      "stop": "Stoppen",
+      "placeholder": "Zeg wat de agent met deze passage moet doen",
+      "refinePlaceholder": "Resultaat verfijnen",
+      "instruction": "Verzoek aan de agent",
+      "send": "Naar de agent sturen",
+      "failed": "Het verzoek aan het model is mislukt.",
+      "context": "Meegestuurd met het verzoek: het hele storyboard, {{shots}} shots en {{entities}} entiteiten uit de bibliotheek.",
+      "quick": {
+        "tighten": "Inkorten",
+        "visual": "Beeldender",
+        "camera": "Camera voorstellen",
+        "continuity": "Continuïteit controleren",
+        "summarize": "Samenvatten",
+        "inconsistencies": "Tegenstrijdigheden zoeken"
+      },
+      "errors": {
+        "no_model": "Kies een regiemodel voor dit storyboard, of een chatmodel, om de agent te gebruiken.",
+        "empty": "Het model gaf geen antwoord. Stuur het verzoek opnieuw.",
+        "failed": "Het verzoek is mislukt. Stuur het opnieuw."
+      }
+    }
   }
 }

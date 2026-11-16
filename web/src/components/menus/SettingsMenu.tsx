@@ -49,6 +49,7 @@ import MCPSettingsMenu from "./MCPSettingsMenu";
 import BrowserExtensionSettingsMenu from "./BrowserExtensionSettingsMenu";
 import VaultsSettings from "./VaultsSettings";
 import ConnectedAccountsSettings from "../settings/ConnectedAccountsSettings";
+import DeviceSessionsSettings from "../settings/DeviceSessionsSettings";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback, useEffect, useRef } from "react";
 import SettingsSidebar from "./SettingsSidebar";
@@ -584,7 +585,12 @@ function SettingsPage() {
       { category: "Configuration", items: configItems },
       {
         category: "Accounts",
-        items: [{ id: "connected-accounts", label: "Connected accounts" }]
+        items: [
+          { id: "connected-accounts", label: "Connected accounts" },
+          ...(isLocalhost
+            ? []
+            : [{ id: "signed-in-devices", label: "Signed-in devices" }])
+        ]
       },
       ...(isLocalhost
         ? [
@@ -1272,6 +1278,11 @@ function SettingsPage() {
                       <ConnectedAccountsSettings />
                     </>
                   )}
+
+                  {matchesSearch(
+                    "signed in devices desktop sessions sign out",
+                    search
+                  ) && <DeviceSessionsSettings />}
 
                   {isLocalhost &&
                     matchesSearch(

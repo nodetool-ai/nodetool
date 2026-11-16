@@ -164,6 +164,17 @@ describe("useRunFromHere (Run Node)", () => {
     expect(graphArg().edges).toEqual([]);
   });
 
+  it("runs in the project of the workflow it belongs to", () => {
+    nodeStoreState.workflow = { ...workflow, project_id: "project-a" } as typeof workflow;
+    const { result } = renderHook(() => useRunFromHere(nodeA as never));
+
+    act(() => {
+      result.current.runFromHere();
+    });
+
+    expect(mockRunInline.mock.calls[0][0].projectId).toBe("project-a");
+  });
+
   it("does not run when node is null", () => {
     const { result } = renderHook(() => useRunFromHere(null));
 

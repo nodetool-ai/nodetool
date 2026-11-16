@@ -7,11 +7,13 @@
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
 #include "server/TimelineList/TimelineListController.h"
+#include "server/TimelineList/TimelineDocumentController.h"
 #include <QGuiApplication>
 #include <QCommandLineParser>
 #include <QQuickView>
 #include <QScopeGuard>
 #include <QTimer>
+#include <QUndoStack>
 #include <QTemporaryDir>
 #include <QImage>
 #include <QFontInfo>
@@ -177,6 +179,42 @@ private slots:
         }
     }
 
+    void documentFilePushRefreshesShownList() {
+        TestHttpServer server;
+        server.setJson([](const QByteArray& path, const QUrl&) {
+            if (path == "/trpc/projects.list") {
+                return QByteArray(R"({"result":{"data":[{"id":"personal:1","name":"Personal","isPersonal":true}]}})");
+            }
+            return QByteArray(R"({"result":{"data":[]}})");
+        });
+        qputenv("NODETOOL_SERVER_URL", server.base().toString().toUtf8());
+        const auto restore = qScopeGuard([] { qunsetenv("NODETOOL_SERVER_URL"); });
+        QTemporaryDir cache;
+        QUndoStack undo;
+        const QJsonObject raw{{"id", "seq"}};
+        nt::server::AutosaveController save({server.base(), {}, "seq", cache.path(), {}}, &undo, [&] { return raw; }, "u0");
+        save.setExternalSync(false);
+        save.setAutosave(false);
+        nt::server::TimelineDocumentController actions;
+        actions.watch(&save);
+        auto* list = qobject_cast<nt::server::TimelineListController*>(actions.controller());
+        QVERIFY(list);
+        const auto lists = [&] { return server.countRequests("GET", "/trpc/projects.list"); };
+        const QJsonObject file{{"id", "seq"}, {"type", "timeline"}, {"file_error", "bad"}};
+        // Not loaded and not shown: the next open refreshes it.
+        emit save.documentFileChanged(file);
+        QCOMPARE(lists(), 0);
+        list->refresh();
+        QCOMPARE(lists(), 1);
+        emit save.documentFileChanged(file);
+        QCOMPARE(lists(), 1);
+        actions.setListShown(true);
+        emit save.documentFileChanged(file);
+        QCOMPARE(lists(), 2);
+        actions.watch(nullptr);
+        emit save.documentFileChanged(file);
+        QCOMPARE(lists(), 2);
+    }
     void settingsPanelRegistered() {
         const auto panels = PanelRegistry().forSlot("documentBar");
         int matches = 0;

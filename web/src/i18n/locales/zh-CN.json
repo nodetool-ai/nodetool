@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "code#state",
       "signInWindowClosed": "登录窗口已关闭？",
       "openAgain": "重新打开",
-      "linkExpiry": "。此链接将在 10 分钟后过期。"
+      "linkExpiry": "。此链接将在 10 分钟后过期。",
+      "nativeSubtitle": "想要登录你的 NodeTool 账户。",
+      "app": "应用",
+      "device": "设备",
+      "nativeNote": "仅当你在这台电脑上的 NodeTool 桌面应用中自己发起此登录时才批准。批准后，该应用可以打开、编辑并保存你的云端文档，直到你退出登录或在设置中结束会话。"
     },
     "integrations": {
       "loadingAccounts": "正在加载已连接的账户",
@@ -20153,6 +20157,44 @@
       "deleteDescription": "“{{name}}”及其版本历史将被永久删除。",
       "restoreFailed": "文件未恢复：{{error}}",
       "deleteFailed": "文档未删除：{{error}}"
+    },
+    "migration": {
+      "title": "将项目移入文件夹",
+      "intro": "NodeTool 现在会把每个项目保存在这台电脑上各自的文件夹中。你的文件、工作流和时间线会移到那里，你也可以在其他应用中打开它们。",
+      "planProjects": "将获得文件夹的项目",
+      "planFiles": "要移动的文件",
+      "planWorkflows": "保存为文件的工作流",
+      "planTimelines": "保存为文件的时间线",
+      "extraTitle": "有多个文件夹的项目",
+      "extraBody": "这些项目各自只保留一个文件夹。NodeTool 不再显示其他文件夹，其中的文件保持原位。",
+      "extraKeeps": "{{project}} 保留 {{folder}}",
+      "extraHidden": "不再显示：{{folder}}",
+      "location": "位置",
+      "changeLocation": "更改位置",
+      "locationError": "无法使用此位置：{{error}}",
+      "permissionWarning": "macOS 会询问是否允许 NodeTool 使用此文件夹。请选择“允许”，或选择文稿、桌面、下载、iCloud Drive 和外置驱动器之外的文件夹。",
+      "safety": "不会丢失任何内容。每个文件都会先复制并校验，然后才删除旧副本。移动文件期间你可以继续工作。",
+      "later": "暂不",
+      "confirm": "移动文件",
+      "planError": "无法加载计划：{{error}}",
+      "confirmError": "移动未能开始：{{error}}",
+      "actionError": "无法更改移动：{{error}}",
+      "progressRegion": "正在将文件移入项目文件夹",
+      "progressTitle": "正在将文件移入项目文件夹",
+      "pausedTitle": "文件移动已暂停",
+      "doneTitle": "文件已移动",
+      "progressCount": "已移动 {{done}}/{{total}} 个文件",
+      "phaseFolders": "正在创建项目文件夹",
+      "phaseFiles": "正在将工作流和时间线保存为文件",
+      "currentProject": "正在移动 {{project}} 的文件",
+      "pause": "暂停",
+      "resume": "继续",
+      "failuresTitle": "无法移动（{{count}}）",
+      "failureItem": "{{name}}：{{reason}}",
+      "failuresMore": "另有未显示的：{{count}}",
+      "retry": "重试",
+      "donePath": "你的文件位于 {{path}}",
+      "close": "关闭"
     }
   },
   "assetPicker": {
@@ -20177,5 +20219,80 @@
     "removeTitle": "移除“{{name}}”？",
     "removeBody": "该素材将从 NodeTool 中移除。使用它的文档将无法再显示它。",
     "cancel": "取消"
+  },
+  "deviceSessions": {
+    "title": "已登录的设备",
+    "description": "你登录过 NodeTool 桌面应用的电脑。同一台电脑上的两个应用共用一个会话。结束会话会让那台电脑退出登录。",
+    "empty": "没有已登录的电脑。",
+    "unnamed": "未命名的电脑",
+    "signedInFrom": "于 {{date}} 通过 {{app}} 登录",
+    "lastUsed": "上次使用：{{date}}",
+    "neverUsed": "登录后未使用",
+    "end": "结束会话",
+    "confirmTitle": "结束此会话？",
+    "confirmBody": "{{device}} 上的 NodeTool 桌面应用将在一分钟内退出登录。",
+    "cancel": "取消",
+    "ended": "会话已结束。",
+    "endError": "无法结束会话：{{error}}",
+    "loadError": "无法加载已登录的设备。",
+    "apps": {
+      "nodeEditor": "节点编辑器",
+      "timeline": "时间线"
+    }
+  },
+  "storyboardText": {
+    "mode": "文本",
+    "editorLabel": "Markdown 文本形式的故事板",
+    "hint": "输入 # 表示幕，## 表示场景，### 表示镜头，- **Motion:** 表示字段。输入 @ 提及实体或图片。",
+    "issues": "需要处理的行：{{lines}}",
+    "loading": "正在加载文本…",
+    "warnings": {
+      "media_outside_shot": "图片属于某个镜头。请把它放在 ### 镜头标题下。",
+      "second_media": "一个镜头只有一张选中的静帧和一个选中的片段。此项不会使用。",
+      "unknown_shot_field": "“{{label}}”不是故事板字段，将保存到该镜头的备注中。",
+      "unknown_field": "“{{label}}”在这里不是字段，不会保存。",
+      "text_in_scene": "场景只有场景标题和灯光。请把这段文字放到镜头下，或以“Lighting:”开头。",
+      "bad_duration": "镜头 {{shot}}：“{{value}}”不是秒数。",
+      "bad_render": "镜头 {{shot}}：render 只能是 keyframe、direct 或 reference。",
+      "no_next_shot": "镜头 {{shot}}：转场会通向下一个镜头，但没有下一个镜头。",
+      "missing_action": "镜头 {{shot}} 还没有动作。请在其标题下写出要渲染的画面。"
+    },
+    "outline": "大纲",
+    "outlineEmpty": "输入 ### 和标题即可开始一个镜头。",
+    "untitledShot": "无标题镜头",
+    "untitledAct": "无标题幕",
+    "untitledScene": "无标题场景",
+    "issuesTitle": "需要处理",
+    "stillOf": "镜头 {{shot}} 的静帧",
+    "assist": {
+      "lines": "已选择 {{lines}} 行",
+      "proposal": "建议的替换",
+      "note": "代理的备注",
+      "discard": "放弃",
+      "close": "关闭",
+      "replace": "替换所选内容",
+      "stale": "选择后该段落已更改，请重新选择。",
+      "thinking": "思考中…",
+      "stop": "停止",
+      "placeholder": "告诉代理如何处理这段内容",
+      "refinePlaceholder": "优化结果",
+      "instruction": "对代理的请求",
+      "send": "发送给代理",
+      "failed": "向模型发送的请求失败。",
+      "context": "随请求一起发送：整个故事板、{{shots}} 个镜头和资料库中的 {{entities}} 个实体。",
+      "quick": {
+        "tighten": "精简",
+        "visual": "更具画面感",
+        "camera": "建议机位",
+        "continuity": "检查连贯性",
+        "summarize": "总结",
+        "inconsistencies": "查找矛盾"
+      },
+      "errors": {
+        "no_model": "要使用代理，请为此故事板选择导演模型或聊天模型。",
+        "empty": "模型没有返回回答，请重新发送。",
+        "failed": "请求失败，请重新发送。"
+      }
+    }
   }
 }

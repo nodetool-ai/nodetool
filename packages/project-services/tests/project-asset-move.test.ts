@@ -63,6 +63,10 @@ import {
 } from "@nodetool-ai/asset-services/legacy-asset-move";
 import { ProjectAssetStorageAdapter } from "@nodetool-ai/asset-services/project-asset-storage";
 import { getAssetAdapter } from "@nodetool-ai/asset-services/storage";
+import {
+  storeLegacyAssetBytes,
+  withProjectFolderLock
+} from "@nodetool-ai/asset-services/project-asset";
 import { ProjectDirectoryResolver } from "@nodetool-ai/protocol";
 import {
   ProjectAssetMoveJob,
@@ -595,11 +599,14 @@ describe.each(["local", "storage"] as const)(
     });
 
     it("leaves a row with no stored bytes as it is", async () => {
+      // A row from before project folders. A row with no size made in the
+      // last hours may still get the bytes of a client-direct upload.
       const orphan = await Asset.create<Asset>({
         user_id: USER,
         project_id: PROJECT,
         name: "lost",
-        content_type: "image/png"
+        content_type: "image/png",
+        created_at: "2024-01-01T00:00:00.000Z"
       });
       const before = (await reload(orphan)).toRow();
 
@@ -850,6 +857,68 @@ describe.each(["local", "storage"] as const)(
       expect(Buffer.from(read ?? []).equals(Buffer.from(updated))).toBe(true);
     });
 
+    it("does not take a stored object for gone when the store cannot be asked about it", async () => {
+      const content = bytesOf(++seq);
+      const asset = await legacyAsset({ name: "fox", bytes: content });
+      const before = (await reload(asset)).toRow();
+      const uri = rawAssets.uriForKey(
+        getAssetStorageKey(USER, asset.id, asset.content_type)
+      );
+      // The store fails every lookup of the key. `stat` answers that with
+      // null, the way it answers a missing key.
+      const adapterClass = Object.getPrototypeOf(rawAssets) as StorageAdapter;
+      const stat = adapterClass.stat;
+      const statStrict = adapterClass.statStrict!;
+      const failingStat = vi
+        .spyOn(adapterClass, "stat")
+        .mockImplementation(function (this: StorageAdapter, asked: string) {
+          return asked === uri ? Promise.resolve(null) : stat.call(this, asked);
+        });
+      const failingStrict = vi
+        .spyOn(adapterClass, "statStrict")
+        .mockImplementation(function (this: StorageAdapter, asked: string) {
+          return asked === uri
+            ? Promise.reject(new Error("storage unavailable"))
+            : statStrict.call(this, asked);
+        });
+      const report = await newJob().run(PROJECT, USER);
+      failingStat.mockRestore();
+      failingStrict.mockRestore();
+
+      expect(report.withoutBytes).toEqual([]);
+      expect(report.failed).toEqual([asset.id]);
+      expect((await reload(asset)).toRow()).toEqual(before);
+      const stored = await storedObject(asset);
+      expect(Buffer.from(stored ?? []).equals(Buffer.from(content))).toBe(true);
+
+      // Once the store answers again, the asset moves.
+      expect((await newJob().run(PROJECT, USER)).moved).toEqual([asset.id]);
+      expect((await reload(asset)).workspace_path).toBe("fox.png");
+    });
+
+    it("leaves a row waiting for a client-direct upload until its upload URL has expired", async () => {
+      // `assets.createUpload` makes the row with no size and hands the client
+      // a URL for the legacy key. The client writes there outside every lock.
+      const pending = await Asset.create<Asset>({
+        user_id: USER,
+        project_id: PROJECT,
+        name: "upload",
+        content_type: "image/png",
+        size: null,
+        created_at: new Date(Date.now() - 10 * 60_000).toISOString(),
+        updated_at: new Date(Date.now() - 10 * 60_000).toISOString()
+      });
+      await updateStoredBytes(pending, bytesOf(++seq));
+      const before = (await reload(pending)).toRow();
+
+      const report = await newJob().run(PROJECT, USER);
+
+      expect(report.deferred).toEqual([pending.id]);
+      expect(report.moved).toEqual([]);
+      expect((await reload(pending)).toRow()).toEqual(before);
+      expect(await folderFiles(kind)).toEqual([]);
+    });
+
     it("keeps a stored object it cannot read, also with a file of the same size at the recorded target", async () => {
       const content = bytesOf(++seq, 4096);
       const asset = await legacyAsset({ name: "fox", bytes: content });
@@ -1002,6 +1071,61 @@ describe.each(["local", "storage"] as const)(
       expect((await newJob().run(PROJECT, USER)).moved).toEqual([asset.id]);
       const file = await folder(kind).read("notes.txt");
       expect(Buffer.from(file ?? []).equals(Buffer.from(updated))).toBe(true);
+    });
+
+    it("a bytes update of a row loaded before a move stopped keeps the move's record, and the restart leaves one file", async () => {
+      const content = bytesOf(++seq, 4096);
+      const updated = bytesOf(++seq, 4096);
+      const asset = await legacyAsset({ name: "fox", bytes: content });
+      // A request loads the row, then the move copies the bytes and stops.
+      const loaded = await reload(asset);
+      await jobKilledAfter("copied").run(PROJECT, USER);
+      expect(moveTargetOf(await reload(asset))).toBe("fox.png");
+
+      // The request stores new bytes and saves the row it loaded.
+      const outcome = await storeLegacyAssetBytes(loaded, async () => {
+        await updateStoredBytes(loaded, updated);
+        loaded.size = updated.byteLength;
+        await loaded.save();
+      });
+      expect(outcome).toBe("stored");
+      expect(moveTargetOf(await reload(asset))).toBe("fox.png");
+
+      expect((await newJob().run(PROJECT, USER)).moved).toEqual([asset.id]);
+      expect((await reload(asset)).workspace_path).toBe("fox.png");
+      expect(await folderFiles(kind)).toEqual(["fox.png"]);
+      const file = await folder(kind).read("fox.png");
+      expect(Buffer.from(file ?? []).equals(Buffer.from(updated))).toBe(true);
+      expect(await storedKeys()).toEqual([]);
+    });
+
+    it("a bytes update takes the folder lock of the project the row names now", async () => {
+      const asset = await legacyAsset({ name: "fox" });
+      const loaded = await reload(asset);
+      // The asset goes to another project after the request loaded it.
+      const current = await reload(asset);
+      current.project_id = "project-b";
+      await current.save();
+
+      let releaseB!: () => void;
+      const holdingB = withProjectFolderLock(
+        USER,
+        "project-b",
+        () => new Promise<void>((resolve) => (releaseB = resolve))
+      );
+      let stored = false;
+      const update = storeLegacyAssetBytes(loaded, async () => {
+        stored = true;
+        await loaded.save();
+      });
+      await sleep(50);
+      expect(stored).toBe(false);
+      releaseB();
+      await holdingB;
+      expect(await update).toBe("stored");
+      expect(stored).toBe(true);
+      // The save did not put the asset back in the project it was loaded from.
+      expect((await reload(asset)).project_id).toBe("project-b");
     });
 
     it("points a row whose stored object is gone at the file its move recorded, and at no other", async () => {

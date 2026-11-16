@@ -161,6 +161,28 @@ describe("yt_dlp without ffmpeg", () => {
     expect((await readdir(other)).sort()).toEqual([".nodetool", "clip.f137.mp4", "clip.f140.m4a"]);
   });
 
+  it("refuses a template that yt-dlp and the workspace read as different files", async () => {
+    // yt-dlp writes `workspace/dl/x.f137.mp4` literally under its cwd, while
+    // the workspace reads `workspace/dl/...` as `dl/...`. Without a refusal
+    // the mux and the cleanup would open and remove the creator's own file.
+    await mkdir(path.join(workspace, "dl"), { recursive: true });
+    await writeFile(path.join(workspace, "dl/x.f137.mp4"), "creators-own");
+    await writeFile(path.join(workspace, "dl/x.f140.m4a"), "creators-audio");
+
+    const result = await runYtDlp({
+      url: "https://example.com/v",
+      format: "bv+ba",
+      output_file: "workspace/dl/x.%(ext)s"
+    });
+
+    expect(result["success"]).not.toBe(true);
+    expect(String(result["error"])).toMatch(/does not name the same file|different file/);
+    expect(await readFile(path.join(workspace, "dl/x.f137.mp4"), "utf8")).toBe("creators-own");
+    expect(await readFile(path.join(workspace, "dl/x.f140.m4a"), "utf8")).toBe("creators-audio");
+    // yt-dlp was never started, so nothing was downloaded beside it.
+    await expect(stat(path.join(workspace, "workspace"))).rejects.toThrow();
+  });
+
   it("refuses a merge inside parentheses before running yt-dlp", async () => {
     const result = await runYtDlp({ url: "https://example.com/v", format: "(bv+ba)/b" });
     expect(String(result["error"])).toMatch(/merges inside parentheses/);

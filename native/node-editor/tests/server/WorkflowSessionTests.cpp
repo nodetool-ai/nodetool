@@ -8,6 +8,11 @@
 #include <QWebSocketServer>
 #include <QtTest>
 using namespace nodetool::node_editor;
+namespace {
+// Every socket open sends the open-project signal, which
+// openProjectGoesWithEverySocketOpen checks. The run tests record the rest.
+bool openProjectSignal(const QJsonObject &command) { return command["command"] == "set_open_project"; }
+}
 class Tests : public QObject {
   Q_OBJECT
 private slots:
@@ -78,7 +83,7 @@ private slots:
     connect(&server, &QWebSocketServer::newConnection, this, [&] {
       auto peer = server.nextPendingConnection(); peer->setParent(&server);
       connect(peer, &QWebSocket::binaryMessageReceived, this, [&](const QByteArray &bytes) {
-        const auto message = decodeMsgPack(bytes); QVERIFY(message); commands.append(message->toObject());
+        const auto message = decodeMsgPack(bytes); QVERIFY(message); if (!openProjectSignal(message->toObject())) { commands.append(message->toObject()); }
       });
     });
     WorkflowSession session;
@@ -136,7 +141,7 @@ private slots:
     QWebSocketServer server("generation reuse", QWebSocketServer::NonSecureMode);
     QVERIFY(server.listen(QHostAddress::LocalHost));
     QList<QJsonObject> commands; QPointer<QWebSocket> peer;
-    connect(&server,&QWebSocketServer::newConnection,this,[&]{peer=server.nextPendingConnection();peer->setParent(&server);connect(peer,&QWebSocket::binaryMessageReceived,this,[&](const QByteArray &bytes){const auto message=decodeMsgPack(bytes);QVERIFY(message);commands.append(message->toObject());});});
+    connect(&server,&QWebSocketServer::newConnection,this,[&]{peer=server.nextPendingConnection();peer->setParent(&server);connect(peer,&QWebSocket::binaryMessageReceived,this,[&](const QByteArray &bytes){const auto message=decodeMsgPack(bytes);QVERIFY(message);if(!openProjectSignal(message->toObject())){commands.append(message->toObject());}});});
     WorkflowSession session; QSignalSpy events(&session,&WorkflowSession::runEvent);
     session.connectToServer(QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())),{}); QTRY_VERIFY(session.connected());
     const QJsonArray metadata{QJsonObject{{"node_type","generator"},{"auto_save_asset",true}},QJsonObject{{"node_type","target"}}}; session.setNodeMetadata(metadata);
@@ -206,7 +211,7 @@ private slots:
               [&](QByteArray bytes) {
                 auto v = decodeMsgPack(bytes);
                 QVERIFY(v.has_value());
-                commands.append(v->toObject());
+                if (!openProjectSignal(v->toObject())) { commands.append(v->toObject()); }
               });
     });
     WorkflowSession session;
@@ -297,7 +302,10 @@ private slots:
     connect(&server, &QWebSocketServer::newConnection, this, [&] {
       peer = server.nextPendingConnection();
       peer->setParent(&server);
-      connect(peer, &QWebSocket::binaryMessageReceived, this, [&](QByteArray) { ++commands; });
+      connect(peer, &QWebSocket::binaryMessageReceived, this, [&](QByteArray bytes) {
+        const auto message = decodeMsgPack(bytes);
+        if (message && !openProjectSignal(message->toObject())) { ++commands; }
+      });
     });
     WorkflowSession session;
     const QJsonObject snapshot{{"id", "workflow"}, {"name", "Test"},
@@ -333,7 +341,7 @@ private slots:
       connect(peer, &QWebSocket::binaryMessageReceived, this, [&](QByteArray bytes) {
         auto v = decodeMsgPack(bytes);
         QVERIFY(v.has_value());
-        commands.append(v->toObject());
+        if (!openProjectSignal(v->toObject())) { commands.append(v->toObject()); }
       });
     });
     WorkflowSession session;
@@ -610,6 +618,103 @@ private slots:
     QVERIFY(!session.saving());
     session.disconnectFromServer();
     QVERIFY(session.workflow().isEmpty());
+  }
+  // web/src/lib/websocket/openProjectSignal.ts: the project goes with every
+  // socket open, and again whenever it changes while the socket is open.
+  void openProjectGoesWithEverySocketOpen() {
+    QWebSocketServer server("open project", QWebSocketServer::NonSecureMode);
+    QVERIFY(server.listen(QHostAddress::LocalHost));
+    QList<QJsonObject> commands;
+    QPointer<QWebSocket> peer;
+    connect(&server, &QWebSocketServer::newConnection, this, [&] {
+      peer = server.nextPendingConnection();
+      peer->setParent(&server);
+      connect(peer, &QWebSocket::binaryMessageReceived, this, [&](const QByteArray &bytes) {
+        const auto message = decodeMsgPack(bytes);
+        QVERIFY(message);
+        commands.append(message->toObject());
+      });
+    });
+    // The web's envelope: type and command name the signal.
+    const auto projects = [&commands] {
+      QStringList ids;
+      for (const auto &command : commands) {
+        if (command["command"] == "set_open_project" && command["type"] == "set_open_project") {
+          ids.append(command["data"].toObject()["project_id"].toString());
+        }
+      }
+      return ids;
+    };
+    const QUrl origin(QString("http://127.0.0.1:%1").arg(server.serverPort()));
+    WorkflowSession session;
+    // Before a socket opens, a project change sends nothing.
+    session.setOpenProject("p1");
+    session.setOpenProject({});
+    session.connectToServer(origin, {});
+    QTRY_VERIFY(session.connected());
+    // Personal is the loose bucket's id.
+    QTRY_COMPARE(projects(), QStringList{"default"});
+    session.setOpenProject("p1");
+    QTRY_COMPARE(projects(), (QStringList{"default", "p1"}));
+    // The same project sends nothing again.
+    session.setOpenProject("p1");
+    session.setOpenProject("personal:1");
+    QTRY_COMPARE(projects(), (QStringList{"default", "p1", "default"}));
+    session.setOpenProject("p2");
+    QTRY_COMPARE(projects(), (QStringList{"default", "p1", "default", "p2"}));
+    // A new socket starts without an open project, so it gets the current one.
+    commands.clear();
+    session.connectToServer(origin, {});
+    QTRY_VERIFY(session.connected());
+    QTRY_COMPARE(projects(), QStringList{"p2"});
+    QCOMPARE(session.openProject(), QString("p2"));
+    // A socket the server dropped sends it again when it reopens.
+    ReconnectPolicy fast;
+    fast.intervalMs = 10;
+    fast.jitter = [] { return 0.0; };
+    session.setReconnectPolicy(fast);
+    commands.clear();
+    QVERIFY(peer);
+    peer->close();
+    QTRY_VERIFY(!session.connected());
+    QTRY_VERIFY(session.connected());
+    QTRY_COMPARE(projects(), QStringList{"p2"});
+  }
+  // packages/websocket/src/lib/workflow-workspace.ts pushes these two changes.
+  void folderFileChangesReachTheirSignals() {
+    QWebSocketServer server("file changes", QWebSocketServer::NonSecureMode);
+    QVERIFY(server.listen(QHostAddress::LocalHost));
+    QPointer<QWebSocket> peer;
+    connect(&server, &QWebSocketServer::newConnection, this, [&] {
+      peer = server.nextPendingConnection();
+      peer->setParent(&server);
+    });
+    WorkflowSession session;
+    QSignalSpy files(&session, &WorkflowSession::workspaceFilesChanged);
+    QSignalSpy documents(&session, &WorkflowSession::documentFileChanged);
+    QSignalSpy workflowChanges(&session, &WorkflowSession::workflowChanged);
+    session.connectToServer(QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())), {});
+    QTRY_VERIFY(session.connected());
+    QTRY_VERIFY(peer);
+    workflowChanges.clear();
+    peer->sendBinaryMessage(encodeMsgPack(QJsonObject{{"type", "resource_change"}, {"event", "updated"},
+      {"resource_type", "workspacefile"}, {"resource", QJsonObject{{"id", "ws-1"}}}}));
+    QTRY_COMPARE(files.count(), 1);
+    QCOMPARE(files.first().first().toString(), QString("ws-1"));
+    // A change that names no workspace still arrives, with an empty id.
+    peer->sendBinaryMessage(encodeMsgPack(QJsonObject{{"type", "resource_change"}, {"event", "updated"},
+      {"resource_type", "workspacefile"}, {"resource", QJsonObject{}}}));
+    QTRY_COMPARE(files.count(), 2);
+    QVERIFY(files.last().first().toString().isEmpty());
+    const QJsonObject resource{{"id", "wf-1"}, {"type", "workflow"}, {"project_id", "p1"},
+                               {"file_path", "Workflows/x.workflow.json"}, {"file_error", "Unexpected token"}};
+    peer->sendBinaryMessage(encodeMsgPack(QJsonObject{{"type", "resource_change"}, {"event", "updated"},
+      {"resource_type", "documentfile"}, {"resource", resource}}));
+    QTRY_COMPARE(documents.count(), 1);
+    QCOMPARE(documents.first().first().toJsonObject(), resource);
+    QCOMPARE(files.count(), 2);
+    // Neither change touches the open workflow.
+    QCOMPARE(workflowChanges.count(), 0);
   }
 };
 QTEST_GUILESS_MAIN(Tests)

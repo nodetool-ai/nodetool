@@ -52,11 +52,14 @@ export {
   saveFilename,
   uniqueFilePath,
   resolveSaveTarget,
+  assertSaveTargetIsOwn,
+  writeSaveTargetFile,
   writeSavedFile
 } from "./save-target.js";
 export type {
   SaveFilenameOptions,
   SaveFolderOptions,
+  SaveTargetFileOptions,
   SaveTargetOptions,
   SaveWorkspace
 } from "./save-target.js";

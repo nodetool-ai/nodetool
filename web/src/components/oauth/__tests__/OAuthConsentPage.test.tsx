@@ -54,7 +54,10 @@ const REQUEST = {
   client_name: "Claude Code",
   redirect_host: "127.0.0.1:54321",
   scope: "mcp",
-  loopback_only: true
+  loopback_only: true,
+  kind: "mcp",
+  app_name: null,
+  device_name: null
 };
 
 beforeEach(() => {
@@ -87,6 +90,27 @@ describe("OAuthConsentPage", () => {
     renderAt("/oauth/consent?request_id=req_1");
 
     await screen.findByText("Claude Code");
+    expect(
+      screen.queryByText(/only redirects to localhost/i)
+    ).not.toBeInTheDocument();
+  });
+
+  it("names the app and the computer for a desktop sign-in", async () => {
+    getOauthRequest.mockResolvedValue({
+      ...REQUEST,
+      client_name: "NodeTool desktop apps",
+      scope: "native",
+      kind: "native",
+      app_name: "node-editor",
+      device_name: "Studio Mac"
+    });
+    renderAt("/oauth/consent?request_id=req_1");
+
+    expect(await screen.findByText("NodeTool desktop apps")).toBeInTheDocument();
+    expect(screen.getByText("Node editor")).toBeInTheDocument();
+    expect(screen.getByText("Studio Mac")).toBeInTheDocument();
+    expect(screen.getByText(/Approve only if you started this sign-in/)).toBeInTheDocument();
+    expect(screen.queryByText("127.0.0.1:54321")).not.toBeInTheDocument();
     expect(
       screen.queryByText(/only redirects to localhost/i)
     ).not.toBeInTheDocument();

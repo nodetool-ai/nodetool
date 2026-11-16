@@ -146,6 +146,20 @@ export function nodetoolDirFromRow(row: WorkspaceRow): Workspace | null {
     : null;
 }
 
+/** Gives a project that has no folder its folder, and records it on the row. */
+type MissingFolderProvider = (project: Project) => Promise<unknown>;
+
+let missingFolderProvider: MissingFolderProvider | null = null;
+
+/**
+ * Install what {@link resolveProjectWorkspace} calls for a project that has
+ * no folder yet. `project-folder.ts` installs `ensureProjectFolder`, which
+ * sits above this module.
+ */
+export function setMissingFolderProvider(provider: MissingFolderProvider | null): void {
+  missingFolderProvider = provider;
+}
+
 /** The start of every reason a run reports when its folder is unreachable. */
 export const PROJECT_FOLDER_NOT_FOUND = "Project folder not found";
 
@@ -177,13 +191,20 @@ function unresolved(
  * Call it once when the run starts and keep the result for the whole run, so a
  * run started in one project never writes into another.
  *
- * It never creates a folder and never substitutes one. When the project has
- * no folder, or its folder is unreachable, the answer carries a reason that
- * names the folder, and the caller must refuse to start the run with it.
+ * It never substitutes a folder. A project from before project folders that
+ * was never given one gets its own here, through the provider installed with
+ * {@link setMissingFolderProvider}: the first step of the migration, for this
+ * project alone, so a run or chat turn works before the user confirms the
+ * migration of every project (docs/project-folders/migration-ux.md).
+ * `options.createMissing: false` skips that, for the asset and document
+ * services, which must not make folders on their own. When the project still
+ * has no folder, or its folder is unreachable, the answer carries a reason
+ * that names the folder, and the caller must refuse to start the run with it.
  */
 export async function resolveProjectWorkspace(
   projectId: string | null | undefined,
-  userId: string
+  userId: string,
+  options: { createMissing?: boolean } = {}
 ): Promise<ProjectWorkspaceResolution> {
   try {
     const project =
@@ -194,6 +215,13 @@ export async function resolveProjectWorkspace(
         : await Project.findOwned(userId, projectId);
     if (!project) {
       return unresolved(projectId ?? null, `Project not found: ${projectId}`);
+    }
+    if (
+      !project.workspace_id &&
+      missingFolderProvider &&
+      options.createMissing !== false
+    ) {
+      await missingFolderProvider(project);
     }
     const row = project.workspace_id
       ? await WorkspaceRow.find(userId, project.workspace_id)

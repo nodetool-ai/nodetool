@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "code#état",
       "signInWindowClosed": "Fenêtre de connexion fermée ?",
       "openAgain": "Ouvrez-le à nouveau",
-      "linkExpiry": ". Le lien expire après 10 minutes."
+      "linkExpiry": ". Le lien expire après 10 minutes.",
+      "nativeSubtitle": "souhaite se connecter à votre compte NodeTool.",
+      "app": "Application",
+      "device": "Appareil",
+      "nativeNote": "N'approuvez que si vous avez lancé cette connexion depuis une application de bureau NodeTool sur cet ordinateur. L'application pourra alors ouvrir, modifier et enregistrer vos documents cloud jusqu'à ce que vous vous déconnectiez ou mettiez fin à la session dans les Paramètres."
     },
     "integrations": {
       "loadingAccounts": "Chargement des comptes connectés",
@@ -20464,6 +20468,44 @@
       "deleteDescription": "« {{name}} » et son historique de versions seront supprimés définitivement.",
       "restoreFailed": "Le fichier n’a pas été restauré : {{error}}",
       "deleteFailed": "Le document n’a pas été supprimé : {{error}}"
+    },
+    "migration": {
+      "title": "Déplacez vos projets dans des dossiers",
+      "intro": "NodeTool range désormais chaque projet dans son propre dossier sur cet ordinateur. Vos fichiers, workflows et timelines y sont déplacés et vous pouvez les ouvrir dans d'autres applications.",
+      "planProjects": "Projets qui reçoivent un dossier",
+      "planFiles": "Fichiers à déplacer",
+      "planWorkflows": "Workflows enregistrés en fichiers",
+      "planTimelines": "Timelines enregistrées en fichiers",
+      "extraTitle": "Projets avec plusieurs dossiers",
+      "extraBody": "Chacun de ces projets conserve un seul dossier. NodeTool cesse d'afficher les autres, et leurs fichiers restent où ils sont.",
+      "extraKeeps": "{{project}} conserve {{folder}}",
+      "extraHidden": "N'est plus affiché : {{folder}}",
+      "location": "Emplacement",
+      "changeLocation": "Changer d'emplacement",
+      "locationError": "Cet emplacement ne peut pas être utilisé : {{error}}",
+      "permissionWarning": "macOS vous demandera si NodeTool peut utiliser ce dossier. Choisissez Autoriser, ou choisissez un dossier en dehors de Documents, Bureau, Téléchargements, iCloud Drive et des disques externes.",
+      "safety": "Rien n'est perdu. Chaque fichier est copié et vérifié avant la suppression de son ancienne copie. Vous pouvez continuer à travailler pendant le déplacement des fichiers.",
+      "later": "Pas maintenant",
+      "confirm": "Déplacer les fichiers",
+      "planError": "Impossible de charger le plan : {{error}}",
+      "confirmError": "Le déplacement n'a pas démarré : {{error}}",
+      "actionError": "Impossible de modifier le déplacement : {{error}}",
+      "progressRegion": "Déplacement des fichiers vers les dossiers de projet",
+      "progressTitle": "Déplacement des fichiers vers les dossiers de projet",
+      "pausedTitle": "Le déplacement des fichiers est en pause",
+      "doneTitle": "Fichiers déplacés",
+      "progressCount": "{{done}} fichiers sur {{total}} déplacés",
+      "phaseFolders": "Création des dossiers de projet",
+      "phaseFiles": "Enregistrement des workflows et des timelines en fichiers",
+      "currentProject": "Déplacement des fichiers de {{project}}",
+      "pause": "Pause",
+      "resume": "Reprendre",
+      "failuresTitle": "Impossible à déplacer ({{count}})",
+      "failureItem": "{{name}} : {{reason}}",
+      "failuresMore": "Autres non affichés : {{count}}",
+      "retry": "Réessayer",
+      "donePath": "Vos fichiers se trouvent dans {{path}}",
+      "close": "Fermer"
     }
   },
   "assetPicker": {
@@ -20488,5 +20530,80 @@
     "removeTitle": "Retirer « {{name}} » ?",
     "removeBody": "La ressource est retirée de NodeTool. Les documents qui l'utilisent ne peuvent plus l'afficher.",
     "cancel": "Annuler"
+  },
+  "deviceSessions": {
+    "title": "Appareils connectés",
+    "description": "Ordinateurs sur lesquels vous êtes connecté aux applications de bureau NodeTool. Les deux applications d'un même ordinateur partagent une session. Mettre fin à une session déconnecte cet ordinateur.",
+    "empty": "Aucun ordinateur n'est connecté.",
+    "unnamed": "Ordinateur sans nom",
+    "signedInFrom": "Connecté depuis {{app}} le {{date}}",
+    "lastUsed": "Dernière utilisation {{date}}",
+    "neverUsed": "Pas utilisé depuis la connexion",
+    "end": "Mettre fin à la session",
+    "confirmTitle": "Mettre fin à cette session ?",
+    "confirmBody": "Les applications de bureau NodeTool sur {{device}} sont déconnectées en moins d'une minute.",
+    "cancel": "Annuler",
+    "ended": "Session terminée.",
+    "endError": "Impossible de mettre fin à la session : {{error}}",
+    "loadError": "Impossible de charger les appareils connectés.",
+    "apps": {
+      "nodeEditor": "Éditeur de nœuds",
+      "timeline": "Timeline"
+    }
+  },
+  "storyboardText": {
+    "mode": "Texte",
+    "editorLabel": "Storyboard en texte Markdown",
+    "hint": "Tapez # pour un acte, ## pour une scène, ### pour un plan et - **Motion:** pour un champ. Tapez @ pour mentionner une entité ou une image.",
+    "issues": "Lignes à vérifier : {{lines}}",
+    "loading": "Chargement du texte…",
+    "warnings": {
+      "media_outside_shot": "Une image appartient à un plan. Placez-la sous un titre de plan ###.",
+      "second_media": "Un plan a une image fixe et un clip sélectionnés. Celui-ci n'est pas utilisé.",
+      "unknown_shot_field": "« {{label}} » n'est pas un champ du storyboard. Il est enregistré dans les notes du plan.",
+      "unknown_field": "« {{label}} » n'est pas un champ ici. Il n'est pas enregistré.",
+      "text_in_scene": "Une scène n'a qu'un en-tête et un éclairage. Placez ce texte sous un plan ou commencez-le par « Lighting: ».",
+      "bad_duration": "Plan {{shot}} : « {{value}} » n'est pas un nombre de secondes.",
+      "bad_render": "Plan {{shot}} : le rendu est keyframe, direct ou reference.",
+      "no_next_shot": "Plan {{shot}} : une transition mène au plan suivant, et il n'y en a pas.",
+      "missing_action": "Le plan {{shot}} n'a pas encore d'action. Décrivez l'image à rendre sous son titre."
+    },
+    "outline": "Plan",
+    "outlineEmpty": "Tapez ### et un titre pour commencer un plan.",
+    "untitledShot": "Plan sans titre",
+    "untitledAct": "Acte sans titre",
+    "untitledScene": "Scène sans titre",
+    "issuesTitle": "À vérifier",
+    "stillOf": "Image fixe du plan {{shot}}",
+    "assist": {
+      "lines": "{{lines}} lignes sélectionnées",
+      "proposal": "Remplacement proposé",
+      "note": "Note de l'agent",
+      "discard": "Ignorer",
+      "close": "Fermer",
+      "replace": "Remplacer la sélection",
+      "stale": "Le passage a changé après votre sélection. Sélectionnez-le à nouveau.",
+      "thinking": "Réflexion…",
+      "stop": "Arrêter",
+      "placeholder": "Dites à l'agent quoi faire de ce passage",
+      "refinePlaceholder": "Affiner le résultat",
+      "instruction": "Demande à l'agent",
+      "send": "Envoyer à l'agent",
+      "failed": "La requête au modèle a échoué.",
+      "context": "Envoyé avec la demande : tout le storyboard, {{shots}} plans et {{entities}} entités de la bibliothèque.",
+      "quick": {
+        "tighten": "Resserrer",
+        "visual": "Plus visuel",
+        "camera": "Proposer une caméra",
+        "continuity": "Vérifier la continuité",
+        "summarize": "Résumer",
+        "inconsistencies": "Trouver les incohérences"
+      },
+      "errors": {
+        "no_model": "Choisissez un modèle de réalisation pour ce storyboard, ou un modèle de chat, pour utiliser l'agent.",
+        "empty": "Le modèle n'a renvoyé aucune réponse. Renvoyez la demande.",
+        "failed": "La demande a échoué. Renvoyez-la."
+      }
+    }
   }
 }

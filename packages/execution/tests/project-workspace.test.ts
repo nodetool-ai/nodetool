@@ -7,7 +7,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { existsSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { eq } from "drizzle-orm";
@@ -28,6 +28,7 @@ import {
 import { BaseNode, NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   WorkspaceReservedPathError,
+  getProjectFolderResolver,
   type ProcessingContext
 } from "@nodetool-ai/runtime";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
@@ -181,16 +182,36 @@ describe.each(["local", "cloud"] as const)("project folders for runs (%s)", (mod
     expect(resolved).toMatchObject({ ok: true, projectId: personal.id });
   });
 
-  it("refuses a project that has no folder, and creates none", async () => {
+  it("refuses a project that has no folder where asked to create none", async () => {
     const project = await Project.insertNew({ user_id: USER, name: "Bare" });
     if (!project) throw new Error("insert failed");
 
-    expect(await resolveProjectWorkspace(project.id, USER)).toEqual({
+    expect(
+      await resolveProjectWorkspace(project.id, USER, { createMissing: false })
+    ).toEqual({
       ok: false,
       projectId: project.id,
       reason: 'Project folder not found: project "Bare" has no folder'
     });
+    // The resolver the asset and document services use creates none either.
+    expect(await getProjectFolderResolver()?.(project.id, USER)).toMatchObject({
+      ok: false
+    });
     expect(await WorkspaceRow.listByProject(USER, project.id)).toEqual([]);
+  });
+
+  it("gives a run in a project from before project folders that project's folder", async () => {
+    // The migration of every project waits for the user's confirmation
+    // (docs/project-folders/migration-ux.md). A run must not.
+    const project = await Project.insertNew({ user_id: USER, name: "Bare" });
+    if (!project) throw new Error("insert failed");
+
+    const resolved = await resolveProjectWorkspace(project.id, USER);
+
+    expect(resolved).toMatchObject({ ok: true, projectId: project.id });
+    const rows = await WorkspaceRow.listByProject(USER, project.id);
+    expect(rows).toHaveLength(1);
+    expect((await Project.get<Project>(project.id))?.workspace_id).toBe(rows[0].id);
   });
 
   it("keeps .nodetool/ out of the run's reach and open to NodeTool's writer", async () => {
@@ -330,7 +351,7 @@ describe.each(["local", "cloud"] as const)("project folders for runs (%s)", (mod
     expect(await outputIn(b.folder)).toBeNull();
   });
 
-  it("refuses to start a run whose project has no folder", async () => {
+  it("runs a workflow of a project from before project folders in a folder of its own", async () => {
     const project = await Project.insertNew({ user_id: USER, name: "Bare" });
     if (!project) throw new Error("insert failed");
     const personal = await ensurePersonalProject(USER);
@@ -343,19 +364,44 @@ describe.each(["local", "cloud"] as const)("project folders for runs (%s)", (mod
       environment: { registry: registry() }
     });
 
-    expect(outcome).toEqual({
-      kind: "error",
-      status: 409,
-      detail: 'Project folder not found: project "Bare" has no folder'
-    });
-    expect(await jobCount()).toBe(0);
+    expect(outcome.kind).toBe("payload");
+    const [own] = await WorkspaceRow.listByProject(USER, project.id);
+    expect(own && (await outputIn(own))).toBe("written by the run");
+    // No other folder stands in for it.
     expect(personalFolder && (await outputIn(personalFolder))).toBeNull();
   });
+
 });
 
 describe("a run whose local project folder is missing", () => {
   beforeEach(() => {
     process.env["NODETOOL_WORKSPACE_STORAGE"] = "local";
+  });
+
+  it("refuses to start a run whose project has no folder and cannot get one", async () => {
+    const project = await Project.insertNew({ user_id: USER, name: "Bare" });
+    if (!project) throw new Error("insert failed");
+    const personal = await ensurePersonalProject(USER);
+    const personalFolder = await WorkspaceRow.find(USER, personal.workspace_id ?? "");
+    const workflow = await workflowIn(project.id);
+    // New project folders go in a directory that cannot exist.
+    await writeFile(join(root, "blocker"), "not a directory");
+    process.env["PROJECTS_DIR"] = join(root, "blocker", "projects");
+    clearSecretCache(USER, "PROJECTS_DIR");
+
+    const outcome = await runWorkflow({
+      workflowId: workflow.id,
+      userId: USER,
+      environment: { registry: registry() }
+    });
+
+    expect(outcome).toMatchObject({ kind: "error", status: 409 });
+    expect(outcome.kind === "error" && outcome.detail).toMatch(
+      /^Project folder not found: /
+    );
+    expect(await jobCount()).toBe(0);
+    expect(await WorkspaceRow.listByProject(USER, project.id)).toEqual([]);
+    expect(personalFolder && (await outputIn(personalFolder))).toBeNull();
   });
 
   it("fails to start, names the folder, and writes nowhere", async () => {

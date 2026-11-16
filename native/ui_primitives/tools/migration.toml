@@ -803,6 +803,16 @@ qml_callers = []
 replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.Dialog, Ui.Text, Ui.ToolbarIconButton, Ui.Separator, Ui.NumberField, Ui.Select"
 
 [[file]]
+path = "native/timeline/qml/DocumentFileBanner.qml"
+category = "chrome"
+controls = ["Column", "Ui.Banner", "Ui.Text"]
+signals = []
+test_host = "tst_assetbrowser"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/TimelineEditor.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Banner, Ui.Text"
+
+[[file]]
 path = "native/timeline/qml/SaveBanners.qml"
 category = "chrome"
 controls = ["Ui.EditorButton", "Rectangle", "Ui.Icon", "Ui.Text", "ToolButton"]
@@ -1291,6 +1301,16 @@ test_host = "tst_assetbrowser"
 test_scope = "build/import"
 qml_callers = []
 replacement = "NodeTool.UiPrimitives: Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/assets/ProjectFolderNotice.qml"
+category = "chrome"
+controls = ["ColumnLayout", "RowLayout", "Ui.Icon", "Ui.Text", "Ui.EditorButton", "Ui.Banner", "FolderDialog"]
+signals = []
+test_host = "tst_assetbrowser"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/assets/AssetExplorer.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Icon, Ui.Text, Ui.EditorButton, Ui.Banner"
 
 [[file]]
 path = "native/timeline/qml/assets/AssetExplorer.qml"
@@ -3103,6 +3123,16 @@ qml_callers = ["native/node-editor/qml/CanvasTabStrip.qml", "native/node-editor/
 replacement = "Node editor geometry in Ui.Metrics and Ui.Theme tokens"
 
 [[file]]
+path = "native/node-editor/qml/DocumentFileBanner.qml"
+category = "chrome"
+controls = ["Rectangle", "EditorRoles", "ColumnLayout", "Ui.Banner"]
+signals = []
+test_host = "native/node-editor/tests/ui/WorkflowBrowserComponentTest.cpp"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Banner"
+
+[[file]]
 path = "native/node-editor/qml/ExamplesPanel.qml"
 category = "pending"
 controls = ["Rectangle", "ColumnLayout", "RowLayout", "Ui.Text", "Ui.ToolbarIconButton", "Ui.CloseButton", "Ui.TextField", "Flow", "Repeater", "Ui.EditorButton", "Ui.Banner", "Item", "Ui.EmptyState", "Flickable", "Column", "Ui.BusyIndicator", "ExampleCard", "Ui.Surface", "Loader", "MediaPreview", "Ui.Icon"]
@@ -4499,6 +4529,16 @@ test_host = "native/node-editor/tests/ui/WorkersPanelTest.cpp"
 test_scope = "build/import"
 qml_callers = ["native/node-editor/qml/WorkerProfilesDialog.qml", "native/node-editor/qml/WorkersPanel.qml"]
 replacement = "NodeTool.UiPrimitives"
+
+[[file]]
+path = "native/node-editor/qml/ProjectFolderNotice.qml"
+category = "chrome"
+controls = ["ColumnLayout", "RowLayout", "Ui.Text", "Ui.EditorButton", "Ui.Banner", "FolderDialog"]
+signals = []
+test_host = "native/node-editor/tests/ui/WorkflowBrowserComponentTest.cpp"
+test_scope = "interaction"
+qml_callers = ["native/node-editor/qml/LibraryPanel.qml", "native/node-editor/qml/WorkflowBrowser.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton, Ui.Banner"
 
 [[file]]
 path = "native/node-editor/qml/ProviderPriceChip.qml"

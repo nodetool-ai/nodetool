@@ -19,6 +19,7 @@ import { usePanelStore } from "../../stores/PanelStore";
 import { useProjectFolder } from "../../hooks/useProjectFolder";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { fileManagerKind } from "../../utils/platform";
+import { useOpenProjectConnection } from "../../lib/websocket/openProjectSignal";
 import {
   folderEntryPath,
   isReservedProjectEntry,
@@ -292,6 +293,8 @@ interface WorkspaceTreeProps {
 const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
   const { t } = useTranslation();
   const theme = useTheme();
+  // Opens the socket, so the folder is watched and the tree hears of renames.
+  useOpenProjectConnection();
   const [files, setFiles] = useState<TreeViewItem[]>([]);
   const filesRef = useRef<TreeViewItem[]>([]);
   filesRef.current = files;

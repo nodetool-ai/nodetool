@@ -94,7 +94,7 @@ try {
     assert.equal(await client.done, 0, client.out + client.err);
     const result = JSON.parse(client.out.trim().split("\n").at(-1));
     assert.equal(result.uploaded.id, result.get.id);
-    assert.ok(fs.existsSync(path.join(server.dir, "assets", result.get.user_id, `${result.get.id}.wav`)));
+    assert.ok(fs.readFileSync(session.storedFile(server, result.get)).equals(wav));
   });
   // Copy a real ready answer, including its original nonce's proof.
   const nonce = crypto.randomBytes(16).toString("hex");

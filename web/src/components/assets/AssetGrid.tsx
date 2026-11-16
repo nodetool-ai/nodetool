@@ -52,6 +52,7 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import AssetGridSplit from "./AssetGridSplit";
 import PanelErrorBoundary from "../common/PanelErrorBoundary";
 import { formatFileSize } from "../../utils/formatUtils";
+import { useOpenProjectConnection } from "../../lib/websocket/openProjectSignal";
 
 const styles = assetGridStyles;
 const FOLDERS_PANEL_HEIGHT = 200;
@@ -143,6 +144,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const { t } = useTranslation("translation", {
     keyPrefix: "i18n-next42-assets-grid"
   });
+  // Opens the socket, so the folder is watched and the grid hears of renames.
+  useOpenProjectConnection();
   const {
     error,
     folderFilesFiltered,

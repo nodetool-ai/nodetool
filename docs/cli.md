@@ -1500,8 +1500,9 @@ record logical audio events and state without producing audio samples.
 
 ### `nodetool projects`
 
-List projects and move whole projects between installs as `.nodetool-project`
-files. Runs against the local database, asset store, and workspaces. The
+List projects, move whole projects between installs as `.nodetool-project`
+files, and run the migration into project folders. Runs against the local
+database, asset store, and workspaces. The
 server serves the same format at `GET /api/projects/:id/export` and
 `POST /api/projects/import`, so a file from either side imports on the other.
 
@@ -1514,6 +1515,15 @@ server serves the same format at `GET /api/projects/:id/export` and
   `--collect` copies them into the folder's `Imported/` directory first.
 - `import <file> [--name <name>] [--json]` — create a new project from a file
   and print its id.
+- `migrate [--yes] [--location <dir>] [--json]` — print the plan for the
+  [upgrade from before project folders](workspaces.md#upgrading-from-before-project-folders)
+  and its state. With `--yes` it confirms and runs the migration to the end in
+  this process, and continues one that the desktop app or a server confirmed.
+  It refuses a migration paused in the app. `--location` names an existing,
+  writable directory for new project folders and stores it as `PROJECTS_DIR`.
+  It exits with status 1 when something could not move. No other command runs
+  the migration. `NODETOOL_PROJECT_MIGRATION=auto` makes a server confirm at
+  startup instead.
 
 A project file holds every row filed under the project: workflows and their
 versions, storyboards, scripts, timelines, sketches, mini apps, JavaScript
@@ -1540,6 +1550,8 @@ imported from `assets/` into the asset store.
 nodetool projects list
 nodetool projects export 6f1c2e... -o launch-spot.nodetool-project
 nodetool projects import launch-spot.nodetool-project --name "Launch spot (copy)"
+nodetool projects migrate
+nodetool projects migrate --yes --location /data/NodeTool
 ```
 
 ## Job Management

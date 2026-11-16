@@ -89,7 +89,8 @@ try {
           assert.equal(audio.linkId, video.linkId);
           const extracted = await session.query(server.base, 'assets.get', { id: audio.currentAssetId });
           assert.equal(extracted.content_type, 'audio/wav');
-          assert.equal(extracted.parent_id, source.id);
+          // A project folder lists files by directory, so parent_id names the directory.
+          assert.equal(extracted.parent_id, source.parent_id, 'extracted WAV must be in the video\'s directory');
           assert.equal(extracted.name, source.name + ' (audio)');
           assert.ok(audio.durationMs > 0);
           assert.equal(dropped.runtime.find(clip => clip.id === audio.id).audioExists, true,
@@ -154,9 +155,12 @@ try {
       });
       return JSON.parse(stdout);
     };
-    const folder = await createAsset({ name: 'Footage', content_type: 'folder', parent_id: '1' });
-    const nested = await createAsset({ name: 'take.mp4', content_type: 'video/mp4', parent_id: folder.id }, fixture);
-    const { stdout: listing } = await promisify(execFile)(process.argv[3], ['--list-folder', folder.id,
+    // A folder in the personal project is a directory of its project folder, as the web client creates it.
+    const project = report.asset.project_id;
+    assert.ok(project, 'imported asset must belong to a project');
+    const folder = await session.createFolder(server, { name: 'Footage', parent_id: '1', project_id: project });
+    const nested = await createAsset({ name: 'take.mp4', content_type: 'video/mp4', parent_id: folder.id, project_id: project }, fixture);
+    const { stdout: listing } = await promisify(execFile)(process.argv[3], ['--list-folder', folder.id, project,
       '--server', server.base, '--timeline', '00000000000000000000000000000000', '--cache-dir', nativeCache], {
       env: { ...session.nativeEnv(server), QT_QPA_PLATFORM: 'offscreen' }, timeout: 120000
     });

@@ -16,8 +16,24 @@ vi.mock("node:fs", async (importOriginal) => {
     writeFile: async (p: string) => {
       writtenPaths.push(p);
     },
+    // A save opens its file without following a link, then writes it.
+    open: async (p: string) => {
+      writtenPaths.push(p);
+      return {
+        fd: -1,
+        truncate: async () => undefined,
+        writeFile: async () => undefined,
+        close: async () => undefined
+      };
+    },
     // Nothing exists → uniqueTargetPath keeps the first candidate.
     access: async () => {
+      throw new Error("ENOENT");
+    },
+    lstat: async () => {
+      throw new Error("ENOENT");
+    },
+    readlink: async () => {
       throw new Error("ENOENT");
     }
   };
