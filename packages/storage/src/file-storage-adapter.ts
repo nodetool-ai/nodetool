@@ -46,8 +46,9 @@ function decodeKey(key: string): string {
  * whether a directory holds another project's folder, and an unreadable
  * directory is not an empty one.
  */
-function isAbsentError(error: unknown): boolean {
-  const code = (error as { code?: unknown } | null)?.code;
+function isAbsentError(cause: unknown): boolean {
+  const code =
+    cause instanceof Error && "code" in cause ? String(cause.code) : undefined;
   return code === "ENOENT" || code === "ENOTDIR";
 }
 
