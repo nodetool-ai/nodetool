@@ -33,7 +33,7 @@ import {
   TOOLBAR_TOOL_GROUPS,
   type ToolDefinition
 } from "./toolDefinitions";
-import { displayCombo } from "./shortcuts";
+import { displayCombo } from "./shortcuts/normalize";
 import ColorSwatchPair from "./ColorSwatchPair";
 
 const BTN = 32; // button size px

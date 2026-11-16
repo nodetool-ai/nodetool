@@ -7,7 +7,7 @@ import {
   type UseEditorKeyboardShortcutsParams
 } from "../useEditorKeyboardShortcuts";
 import { useSketchStore } from "../state";
-import { isMac } from "../shortcuts";
+import { isMac } from "../shortcuts/normalize";
 
 function makeParams(): UseEditorKeyboardShortcutsParams {
   return {

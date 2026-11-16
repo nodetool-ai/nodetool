@@ -48,7 +48,7 @@ import {
   getToolDefinition,
   type ToolDefinition
 } from "./toolDefinitions";
-import { displayCombo } from "./shortcuts";
+import { displayCombo } from "./shortcuts/normalize";
 import SketchToolIconLabel from "./SketchToolIconLabel";
 import { ToolSettingsPanel } from "./ToolSettingsPanels";
 

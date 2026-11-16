@@ -39,8 +39,8 @@ import type {
   TransformApplyAction,
   TransformSource
 } from "../../assets/transformWorkflow";
-import { displayCombo } from "../shortcuts";
-import type { SketchActionId } from "../shortcuts";
+import { displayCombo } from "../shortcuts/normalize";
+import type { SketchActionId } from "../shortcuts/actionRegistry";
 
 interface ViewToggleItemProps {
   label: string;
