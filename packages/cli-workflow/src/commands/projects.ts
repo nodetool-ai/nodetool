@@ -67,19 +67,53 @@ export function registerProjectCommands(program: Command): void {
         "and workspace files to a .nodetool-project file"
     )
     .option("-o, --output <file>", "Output path (default: <name>.nodetool-project)")
+    .option(
+      "--collect",
+      "Copy files the project links from outside its folder into the folder " +
+        "first. Without it, a project with linked files is not exported"
+    )
     .option("--json", "Print the manifest as JSON")
     .action(
-      async (projectId: string, opts: { output?: string; json?: boolean }) => {
+      async (
+        projectId: string,
+        opts: { output?: string; json?: boolean; collect?: boolean }
+      ) => {
         try {
           await setupLocalDb();
           const {
+            prepareProjectExport,
             projectArchiveHost,
+            ProjectLinkedFilesError,
             streamZip,
             writeProjectArchive,
             PROJECT_ARCHIVE_EXTENSION
           } = await import("@nodetool-ai/project-services");
           const project = await Project.findOwned(LOCAL_USER_ID, projectId);
           if (!project) throw new Error(`Project not found: ${projectId}`);
+          try {
+            const collected = await prepareProjectExport({
+              userId: LOCAL_USER_ID,
+              projectId: project.id,
+              linkedFiles: opts.collect ? "collect" : "refuse"
+            });
+            if (collected) {
+              console.error(
+                `  collected ${collected.copied.length} linked file(s) into the project folder`
+              );
+            }
+          } catch (error) {
+            if (error instanceof ProjectLinkedFilesError) {
+              for (const file of error.files) {
+                console.error(`  linked: ${file.name} (${file.id})`);
+              }
+              throw new Error(
+                opts.collect
+                  ? "These linked files could not be collected, so the project was not exported"
+                  : "The project links files outside its folder. Run again with --collect to copy them in first"
+              );
+            }
+            throw error;
+          }
           const outPath =
             opts.output ?? `${fileBase(project.name)}${PROJECT_ARCHIVE_EXTENSION}`;
           const host = projectArchiveHost();

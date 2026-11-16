@@ -6519,7 +6519,8 @@
           "export": "Esportazione",
           "archive": "Archivio",
           "restore": "Ripristina",
-          "delete": "Elimina"
+          "delete": "Elimina",
+          "collect": "Raccogli file"
         },
         "projectActions": "Azioni del progetto",
         "actionsForProject": "Azioni per {{projectName}}",
@@ -6536,7 +6537,24 @@
         "folderMovedAside": "Il cestino non era raggiungibile. La cartella del progetto è stata spostata nella cartella .trash della cartella dei progetti.",
         "folderTrashFailedAt": "Non è stato possibile spostare la cartella del progetto nel cestino. Resta in {{path}}.",
         "folderTrashFailed": "Non è stato possibile spostare la cartella del progetto nel cestino. Resta dov'è.",
-        "error": "Impossibile {{action}} {{projectName}}: {{error}}"
+        "error": "Impossibile {{action}} {{projectName}}: {{error}}",
+        "collecting": "Raccolta dei file…",
+        "collectResult": "File raccolti in {{projectName}}: {{copied}} copiati, {{skipped}} saltati, {{failed}} non riusciti.",
+        "linkedTitle": "{{projectName}} collega file esterni alla sua cartella",
+        "linkedBody": "Un’esportazione contiene la cartella del progetto. Questi file sono collegati da un’altra posizione e non si trovano lì:",
+        "linkedChoice": "Raccogli ed esporta li copia nella cartella Imported, poi esporta. Annulla mantiene i collegamenti e non esporta nulla.",
+        "collectAndExport": "Raccogli ed esporta"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Copiare o collegare?",
+        "confirm": "Importa",
+        "copy": "Copia nella cartella del progetto",
+        "copyHint": "Il progetto conserva una propria copia. Le modifiche all’originale non la raggiungono.",
+        "link": "Collega sul posto",
+        "linkHint": "Non viene copiato nulla. Il progetto legge il file dove si trova. Raccogli file lo copia in seguito.",
+        "threshold": "I file di {{size}} o più vengono collegati per impostazione predefinita."
       }
     }
   },

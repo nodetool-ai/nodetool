@@ -65,6 +65,8 @@ import {
   type ProjectDirectoryRef
 } from "@nodetool-ai/protocol";
 import {
+  COLLECT_PATH_KEY,
+  collectLinkedAssets,
   ProjectAssetRelinkError,
   deleteProjectAssetFile,
   moveProjectAssetToDirectory,
@@ -124,6 +126,8 @@ import {
   createExternalOutput,
   relinkExternalInput,
   relinkExternalOutput,
+  collectInput,
+  collectOutput,
   externalImportConfigOutput,
   ensureProxyInput,
   ensureProxyOutput,
@@ -364,6 +368,15 @@ async function resolveExternalFile(
 }
 
 /**
+ * Metadata keys of a linked asset that only the server writes: the file
+ * fingerprint and the file a collect reserved (`collect_path`).
+ */
+const EXTERNAL_OWNED_KEYS: readonly string[] = [
+  ...EXTERNAL_FINGERPRINT_KEYS,
+  COLLECT_PATH_KEY
+];
+
+/**
  * Refuse a replacement file of another media kind (audio for a video clip).
  * The asset's URL takes its extension from the content type, which stays. A
  * name with no known type is accepted.
@@ -436,18 +449,19 @@ async function relinkProjectFile(
 
 /**
  * `next` with the external file fingerprint (`external_size`,
- * `external_mtime`) taken from `current`. Offline detection compares the file
- * against these, so only import and relink may write them.
+ * `external_mtime`) and a pending collect taken from `current`. Offline
+ * detection compares the file against the fingerprint, so only import and
+ * relink may write it, and collect alone writes `collect_path`.
  */
 function withExternalFingerprint(
   next: Record<string, unknown>,
   current: Record<string, unknown> | null
 ): Record<string, unknown> {
-  const owned = new Set<string>(EXTERNAL_FINGERPRINT_KEYS);
+  const owned = new Set<string>(EXTERNAL_OWNED_KEYS);
   const merged = Object.fromEntries(
     Object.entries(next).filter(([key]) => !owned.has(key))
   );
-  for (const key of EXTERNAL_FINGERPRINT_KEYS) {
+  for (const key of EXTERNAL_OWNED_KEYS) {
     if (current && key in current) {
       merged[key] = current[key];
     }
@@ -998,6 +1012,31 @@ export const assetsRouter = router({
       scheduleVideoProxy(asset);
 
       return toAssetResponse(asset);
+    }),
+
+  /**
+   * Copy every linked file of a project into its `Imported/` directory and
+   * point each row at its copy (PRD T6). Asset ids stay and the linked files
+   * are left as they were. One asset at a time: a cancelled request stops
+   * before the next asset, and calling it again finishes the rest.
+   */
+  collect: protectedProcedure
+    .input(collectInput)
+    .output(collectOutput)
+    .mutation(async ({ ctx, input, signal }) => {
+      if (!(await Project.findOwned(ctx.userId, input.project_id))) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
+      }
+      const args: Parameters<typeof collectLinkedAssets>[0] = {
+        projectId: input.project_id,
+        userId: ctx.userId
+      };
+      if (signal) args.signal = signal;
+      try {
+        return await collectLinkedAssets(args);
+      } catch (error) {
+        rethrowFolderError(error);
+      }
     }),
 
   /**

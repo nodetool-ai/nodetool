@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { Asset } from "../stores/ApiTypes";
-import { useAssetStore } from "../stores/AssetStore";
+import { useAssetStore, type ImportMode } from "../stores/AssetStore";
 import { useRecentAssetsStore } from "../stores/RecentAssetsStore";
 import { UploadSource } from "../utils/imageUploadValidation";
 import { creationProjectId } from "../stores/WorkspaceTabsStore";
@@ -17,6 +17,11 @@ type UploadFileInput = {
    */
   directory?: string;
   source?: UploadSource;
+  /**
+   * Copy or Link, as chosen in the import dialog. Omitted, a desktop import
+   * links a file at or above the server's size threshold.
+   */
+  importMode?: ImportMode;
   onCompleted?: (asset: Asset) => void;
   onFailed?: (error: string) => void;
   error?: string;
@@ -118,7 +123,8 @@ export const useAssetUpload = create<UploadState>((set, get) => ({
       },
       uploadFile.source,
       uploadFile.project_id,
-      uploadFile.directory
+      uploadFile.directory,
+      uploadFile.importMode
     )
       .then((asset: Asset) => {
         get().updateStatus(nextUploadIndex, 100, "completed");

@@ -1,5 +1,6 @@
 import {
   PROJECT_FILE_EXTENSION,
+  ProjectLinkedFilesError,
   exportProjectFile,
   importProjectFile
 } from "../projectArchive";
@@ -51,6 +52,37 @@ describe("exportProjectFile", () => {
     );
   });
 
+  it("throws the linked files a refused export names", async () => {
+    mockRestFetch.mockResolvedValue(
+      jsonResponse(
+        {
+          detail: "The project links 1 file(s) outside its folder: take.mp4",
+          linked_files: [{ id: "a1", name: "take.mp4" }]
+        },
+        409
+      )
+    );
+
+    const error = await exportProjectFile("p1", "x").catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ProjectLinkedFilesError);
+    expect((error as ProjectLinkedFilesError).files).toEqual([
+      { id: "a1", name: "take.mp4" }
+    ]);
+    expect(mockSaveResponseAsFile).not.toHaveBeenCalled();
+  });
+
+  it("asks the server to collect linked files first when told to", async () => {
+    mockRestFetch.mockResolvedValue(jsonResponse({}));
+
+    await exportProjectFile("p1", "x", { collectLinked: true });
+
+    expect(mockRestFetch).toHaveBeenCalledWith(
+      "/api/projects/p1/export?linked=collect",
+      { method: "GET" }
+    );
+  });
+
   it("throws the server detail on failure", async () => {
     mockRestFetch.mockResolvedValue(jsonResponse({ detail: "no access" }, 403));
 
@@ -94,6 +126,37 @@ describe("importProjectFile", () => {
     expect(url).toBe("/api/projects/import");
     expect(init.method).toBe("POST");
     expect((init.body as FormData).get("file")).toBeInstanceOf(File);
+  });
+
+  it("throws the linked files a refused export names", async () => {
+    mockRestFetch.mockResolvedValue(
+      jsonResponse(
+        {
+          detail: "The project links 1 file(s) outside its folder: take.mp4",
+          linked_files: [{ id: "a1", name: "take.mp4" }]
+        },
+        409
+      )
+    );
+
+    const error = await exportProjectFile("p1", "x").catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ProjectLinkedFilesError);
+    expect((error as ProjectLinkedFilesError).files).toEqual([
+      { id: "a1", name: "take.mp4" }
+    ]);
+    expect(mockSaveResponseAsFile).not.toHaveBeenCalled();
+  });
+
+  it("asks the server to collect linked files first when told to", async () => {
+    mockRestFetch.mockResolvedValue(jsonResponse({}));
+
+    await exportProjectFile("p1", "x", { collectLinked: true });
+
+    expect(mockRestFetch).toHaveBeenCalledWith(
+      "/api/projects/p1/export?linked=collect",
+      { method: "GET" }
+    );
   });
 
   it("throws the server detail on failure", async () => {

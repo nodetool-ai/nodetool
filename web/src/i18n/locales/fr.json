@@ -6519,7 +6519,8 @@
           "export": "Exporter",
           "archive": "Archiver",
           "restore": "Restaurer",
-          "delete": "Supprimer"
+          "delete": "Supprimer",
+          "collect": "Rassembler les fichiers"
         },
         "projectActions": "Actions du projet",
         "actionsForProject": "Actions pour {{projectName}}",
@@ -6536,7 +6537,24 @@
         "folderMovedAside": "La corbeille était inaccessible. Le dossier du projet a été déplacé dans le dossier .trash du dossier des projets.",
         "folderTrashFailedAt": "Le dossier du projet n'a pas pu être déplacé dans la corbeille. Il reste à l'emplacement {{path}}.",
         "folderTrashFailed": "Le dossier du projet n'a pas pu être déplacé dans la corbeille. Il reste à sa place.",
-        "error": "Impossible de {{action}} {{projectName}} : {{error}}"
+        "error": "Impossible de {{action}} {{projectName}} : {{error}}",
+        "collecting": "Rassemblement des fichiers…",
+        "collectResult": "Fichiers rassemblés dans {{projectName}} : {{copied}} copiés, {{skipped}} ignorés, {{failed}} en échec.",
+        "linkedTitle": "{{projectName}} lie des fichiers hors de son dossier",
+        "linkedBody": "Une exportation contient le dossier du projet. Ces fichiers sont liés depuis un autre emplacement et n’y figurent pas :",
+        "linkedChoice": "Rassembler et exporter les copie dans le dossier Imported, puis exporte. Annuler conserve les liens et n’exporte rien.",
+        "collectAndExport": "Rassembler et exporter"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Copier ou lier ?",
+        "confirm": "Importer",
+        "copy": "Copier dans le dossier du projet",
+        "copyHint": "Le projet garde sa propre copie. Les modifications de l’original ne l’atteignent pas.",
+        "link": "Lier sur place",
+        "linkHint": "Rien n’est copié. Le projet lit le fichier là où il se trouve. Rassembler les fichiers le copie plus tard.",
+        "threshold": "Les fichiers de {{size}} ou plus sont liés par défaut."
       }
     }
   },
