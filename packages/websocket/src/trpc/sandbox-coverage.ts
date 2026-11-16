@@ -176,6 +176,16 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Revoking a connected client's grant is denial of service against the " +
       "user's own tooling, same rule as revokeToken."
   },
+  "agentAccess.listDeviceSessions": {
+    withheld:
+      "Enumerates which computers hold a signed-in desktop session — " +
+      "credential reconnaissance, same rule as listOauthGrants."
+  },
+  "agentAccess.endDeviceSession": {
+    withheld:
+      "Ending a device session signs the user out of their desktop apps, " +
+      "denial of service against the user's own tooling."
+  },
   "antigravity.install": {
     withheld:
       "Downloads an executable from a third party into the app data " +
@@ -1005,6 +1015,44 @@ export const SANDBOX_API_COVERAGE: Readonly<
     gap:
       "Same grouping surface as `projects.create`. The whole list of " +
       "rollups `projects.get` returns one at a time."
+  },
+  "projects.migration.confirm": {
+    withheld:
+      "Starts moving the user's project files into a new folder layout. " +
+      "The user confirms that move in the app, and a run must not start " +
+      "it for them."
+  },
+  "projects.migration.dismiss": {
+    withheld:
+      "Closes the user's migration prompt without moving files. That " +
+      "choice belongs to the user in the app, not to a run."
+  },
+  "projects.migration.pause": {
+    withheld:
+      "Stops a migration that is moving the user's project files. Pausing " +
+      "and resuming it are the user's choices in the app, not a run's."
+  },
+  "projects.migration.plan": {
+    withheld:
+      "Computes and records the migration plan the user reviews before " +
+      "confirming. It steps the app-level migration state machine, which " +
+      "a run has no part in."
+  },
+  "projects.migration.resume": {
+    withheld:
+      "Restarts a paused migration of the user's project files. Pausing " +
+      "and resuming it are the user's choices in the app, not a run's."
+  },
+  "projects.migration.retry": {
+    withheld:
+      "Restarts a failed migration of the user's project files. Retrying " +
+      "it is the user's choice in the app, not a run's."
+  },
+  "projects.migration.status": {
+    withheld:
+      "Reports where the install's folder migration stands, which only " +
+      "drives the migration banner in the app. A run has no reason to " +
+      "know it, so it stays denied."
   },
   "projects.openFolder": {
     withheld:

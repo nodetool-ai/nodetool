@@ -21,6 +21,7 @@ import {
 } from "@nodetool-ai/models";
 import type { GenerationAttachmentTransition } from "@nodetool-ai/models";
 import { recoverTimelineMediaEdit } from "./timeline-generation-recovery.js";
+import { storeLegacyAssetBytes } from "@nodetool-ai/asset-services/project-asset";
 import { storeAssetWithThumbnail } from "./lib/thumbnail.js";
 import { getAssetStorageKey } from "./lib/asset-paths.js";
 
@@ -273,15 +274,23 @@ export function createGenerationRecoveryWorker(
       // Readers locate the bytes by this same mapping (`image/jpeg` is
       // `.jpg`, `audio/mpeg` is `.mp3`), so deriving the extension from the
       // MIME subtype stored files nothing could find.
-      await storeAssetWithThumbnail(
-        generation.user_id,
-        asset.id,
-        getAssetFileName(assetId, contentType),
-        bytes,
-        contentType
-      );
-      asset.size = bytes.byteLength;
-      await asset.save();
+      //
+      // The id is stable, so a retry finds the row an earlier try made. The
+      // bytes and the row are written under the project's folder lock, and
+      // not at all once the move into the project folder has named a file on
+      // that row: a row saved over it would point the asset back at the
+      // asset store and leave its file in the folder as a second asset.
+      await storeLegacyAssetBytes(asset, async () => {
+        await storeAssetWithThumbnail(
+          generation.user_id,
+          asset.id,
+          getAssetFileName(assetId, contentType),
+          bytes,
+          contentType
+        );
+        asset.size = bytes.byteLength;
+        await asset.save();
+      });
       return {
         status: "ready",
         asset_id: asset.id,

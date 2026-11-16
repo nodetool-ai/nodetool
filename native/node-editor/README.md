@@ -207,6 +207,17 @@ run, and the run status text ends with "(local)". The bundle comes from `--guest
 executable. Ship the `guest.assets/` directory next to the bundle: fonts,
 tokenizer ranks, encoding tables and the node type snapshot load from it. `NODETOOL_LOCAL_RUNNER=0` turns local runs off.
 
+A workflow of a project other than Personal always runs on the server. The
+local runner writes into Personal's folder, and the server gives the run its
+project's folder. The run request names the project as `project_id`, because
+the server reads the workflow row only for a request without a graph. The
+workflow's project is its `project_id`, otherwise the tab's project. Empty,
+`default` and `personal:<user>` name Personal. Without a server connection such
+a run fails with "Connect to the server to run workflows of a project. Local
+runs write only to Personal's folder." A card preview of such a workflow does
+not start, as for any graph the runner cannot run, and its cards show no local
+badge.
+
 Local runs use the local user's workspace, the folder the server keeps:
 `$NODETOOL_WORKSPACES_DIR/1`, otherwise `nodetool/workspaces/1` in
 `$XDG_DATA_HOME` (`~/.local/share`) or, on Windows, `%APPDATA%`. They read
@@ -269,6 +280,45 @@ filters loaded pages. Choose a project or load more pages to extend the list.
 Create, rename, and delete act on the server. Delete requires confirmation.
 Opening a workflow prompts to save, discard, or keep unsaved work. More → Open
 file and Save operate on local files. Saving locally uses `QSaveFile`.
+
+## Project folders
+
+Every project has a folder ([project folders](../../docs/workspaces.md)). Each
+tab's socket sends `set_open_project` with the tab's project when it opens and
+whenever that project changes: another workflow opens, a save files the
+workflow under another project, or the tab joins a project. Personal is sent as
+`default`. The server watches that folder for the connection and pushes
+`resource_change` events:
+
+- `workspacefile` lists the Library's open folder again when the workspace is
+  the tab project's folder, or when either id is unknown.
+- `documentfile` reloads a loaded workflow list and the open workflow's file
+  state from `projects.documents`.
+
+The workflow list and the Library show the folder of the tab's project
+([`ProjectFolder`](src/server/ProjectFolder.h),
+[`ProjectFolderNotice`](qml/ProjectFolderNotice.qml)). With a path that exists
+on this machine they show it and "Show in file manager" ("Reveal in Finder" on
+macOS, "Show in File Explorer" on Windows). A folder the server cannot reach
+shows "Folder not found" with Locate, which picks a folder and calls
+`projects.relocate`. A server that refuses, such as a production server, shows
+"Could not locate the folder" with its reason. A project without a folder says
+so. A cloud folder has no path and shows nothing.
+
+Above the canvas, [`DocumentFileBanner`](qml/DocumentFileBanner.qml) shows the
+open workflow's file in its project folder: "This file has an error" with the
+error, or "File missing" with Restore, which calls
+`projects.restoreDocumentFile`. It takes no space while the file is fine.
+
+A selected Library asset whose file is missing (`offline`) shows "Missing" with
+Relink, which picks a file and calls `assets.relinkExternal` with its path. The
+tiles of the shared `NodeTool.Media` grid draw no badge for it yet.
+
+A project folder's workflow file, `Workflows/<name>.workflow.json`, keeps its
+`format`, `version` and `id` and its body when the editor saves it, and gets no
+`name` field. The tab shows the file name, and the tab and header offer no
+rename, because renaming it would move the file. Every other file keeps the
+editor's own format.
 
 ## Interaction
 

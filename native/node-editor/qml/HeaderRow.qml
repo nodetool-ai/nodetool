@@ -205,8 +205,6 @@ Rectangle {
             }
             Repeater {
                 model: [
-                    { name: "Save", icon: "saveOutlined", id: "save" },
-                    { name: "Version history", icon: "history", id: "versions" },
                     { name: "Workflow metadata", icon: "info", id: "metadata" },
                     { name: "Server sync", icon: "sync", id: "server-sync" },
                     { name: "Canvas uploads", icon: "fileUpload", id: "uploads" },

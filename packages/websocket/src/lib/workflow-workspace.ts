@@ -5,7 +5,8 @@
  * the server's import site for it, and the one place that tells the resolver
  * which object store backs a virtual workspace.
  */
-import type { Asset } from "@nodetool-ai/models";
+import { createLogger } from "@nodetool-ai/config";
+import { Project, type Asset } from "@nodetool-ai/models";
 import {
   setWorkspaceChangeNotifier,
   setWorkspaceCloudStorage,
@@ -14,6 +15,7 @@ import {
 } from "@nodetool-ai/execution/service";
 import {
   onProjectFileChanged,
+  onProjectFolderChanged,
   scheduleWorkspaceReconcile
 } from "@nodetool-ai/project-services/project-index";
 import {
@@ -23,6 +25,8 @@ import {
 import { getAssetAdapter } from "./storage.js";
 import { discardVideoProxy, scheduleVideoProxy } from "./video-proxy.js";
 import { notifyResourceChange } from "../resource-events.js";
+
+const log = createLogger("nodetool.websocket.workflow-workspace");
 
 export {
   resolveProjectWorkspace,
@@ -92,11 +96,47 @@ function notifyDocumentFileState(change: DocumentFileStateChange): void {
 }
 
 let stopDocumentFileNotices: (() => void) | null = null;
+let stopFolderChangeNotices: (() => void) | null = null;
 
 const pendingWorkspaceChanges = new Map<
   string,
   { userId: string; timer: NodeJS.Timeout }
 >();
+
+/**
+ * Tell the clients browsing workspace `workspaceId` that its files changed,
+ * at most once per {@link WORKSPACE_CHANGE_COALESCE_MS}.
+ */
+function pushWorkspaceFileChange(workspaceId: string, userId: string): void {
+  if (pendingWorkspaceChanges.has(workspaceId)) return;
+  const timer = setTimeout(() => {
+    pendingWorkspaceChanges.delete(workspaceId);
+    notifyResourceChange({
+      event: "updated",
+      resource_type: "workspacefile",
+      resource: { id: workspaceId },
+      userId
+    });
+  }, WORKSPACE_CHANGE_COALESCE_MS);
+  // A pending flush must not hold the process open at shutdown.
+  timer.unref?.();
+  pendingWorkspaceChanges.set(workspaceId, { userId, timer });
+}
+
+/**
+ * Push a change the reconciler or the folder watcher found in a project
+ * folder: another app renamed, added or removed a file, and the rows follow.
+ * NodeTool's own writes are pushed where they are made.
+ */
+async function pushProjectFolderChange(change: {
+  projectId: string;
+  userId: string;
+}): Promise<void> {
+  const project = await Project.findOwned(change.userId, change.projectId);
+  if (project?.workspace_id) {
+    pushWorkspaceFileChange(project.workspace_id, change.userId);
+  }
+}
 
 /**
  * Push workspace file writes to the clients browsing that workspace.
@@ -115,24 +155,17 @@ export function initWorkspaceChangeEvents(): void {
   onProjectFileChanged(remakeVideoProxy);
   stopDocumentFileNotices?.();
   stopDocumentFileNotices = onDocumentFileStateChange(notifyDocumentFileState);
-  setWorkspaceChangeNotifier((change: WorkspaceFileChange) => {
-    scheduleWorkspaceReconcile(change.workspaceId, change.userId);
-    const pending = pendingWorkspaceChanges.get(change.workspaceId);
-    if (pending) return;
-    const timer = setTimeout(() => {
-      pendingWorkspaceChanges.delete(change.workspaceId);
-      notifyResourceChange({
-        event: "updated",
-        resource_type: "workspacefile",
-        resource: { id: change.workspaceId },
-        userId: change.userId
+  stopFolderChangeNotices?.();
+  stopFolderChangeNotices = onProjectFolderChanged((change) => {
+    pushProjectFolderChange(change).catch((error: unknown) => {
+      log.warn("Could not push a project folder change", {
+        projectId: change.projectId,
+        error: error instanceof Error ? error.message : String(error)
       });
-    }, WORKSPACE_CHANGE_COALESCE_MS);
-    // A pending flush must not hold the process open at shutdown.
-    timer.unref?.();
-    pendingWorkspaceChanges.set(change.workspaceId, {
-      userId: change.userId,
-      timer
     });
+  });
+  setWorkspaceChangeNotifier((change: WorkspaceFileChange) => {
+    scheduleWorkspaceReconcile(change.workspaceId, change.userId, change.path);
+    pushWorkspaceFileChange(change.workspaceId, change.userId);
   });
 }

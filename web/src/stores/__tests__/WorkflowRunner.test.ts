@@ -151,6 +151,26 @@ describe("WorkflowRunner", () => {
     expect(request.graph.edges).toEqual([]);
   });
 
+  it("sends the workflow's project so the run writes that project's folder", () => {
+    const base = {
+      jobId: "job-project",
+      jobName: "Project run",
+      params: {},
+      nodes: [],
+      edges: [],
+      authToken: "token",
+      userId: "user"
+    };
+    const inProject = buildRunJobData({
+      ...base,
+      workflow: stub<WorkflowAttributes>({ ...testWorkflow, project_id: "project-a" })
+    });
+    const loose = buildRunJobData({ ...base, workflow: testWorkflow });
+
+    expect(inProject.project_id).toBe("project-a");
+    expect("project_id" in loose).toBe(false);
+  });
+
   it("keeps the app run identity on the workflow transport boundary", () => {
     const request = buildRunJobData({
       jobId: "reserved-invocation", jobName: "App operation", params: {},

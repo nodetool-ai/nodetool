@@ -1,6 +1,8 @@
 #include "ui/EditorWindow.h"
+#include "EntryMenuSupport.h"
 #include "graph/EditorScene.h"
 #include "server/MsgPack.h"
+#include "FakeRunServer.h"
 #include <QWebSocketServer>
 #include <QAbstractButton>
 #include "graph/CanvasDropController.h"
@@ -130,6 +132,18 @@ private slots:
     answerClose(QMessageBox::Discard); QVERIFY(click(window, "close-tab-0"));
     QVERIFY(guarded.isNull()); QTest::qWait(60); QVERIFY(!delivered);
     QCOMPARE(window.workflowTabs().size(), 1); QVERIFY(window.document()->nodes().isEmpty()); QVERIFY(window.runOutput()->entries().isEmpty());
+  }
+  // The arrow next to + offers each kind of new tab, as the web OpenMenu does.
+  void newTabMenuOffersAComfyWorkflow() {
+    EditorWindow window; window.show();
+    QVERIFY(click(window, "new-workflow-menu"));
+    QTRY_VERIFY(entry_menu::host(window, "new-tab-menu"));
+    auto *menu = entry_menu::host(window, "new-tab-menu");
+    QCOMPARE(entry_menu::labels(menu), (QStringList{"New Workflow", "New Comfy Workflow"}));
+    // A Comfy workflow is made on the server, so it needs a connection.
+    QCOMPARE(entry_menu::entry(menu, "New Comfy Workflow")["enabled"].toBool(), false);
+    QVERIFY(entry_menu::click(menu, "new-workflow"));
+    QTRY_COMPARE(window.workflowTabs().size(), 2);
   }
   void lateUploadAfterClose() {
     QTcpServer server; QVERIFY(server.listen(QHostAddress::LocalHost));
@@ -293,6 +307,95 @@ private slots:
     restored.activateTab(0); restored.openWorkflow("server-workflow"); QCOMPARE(restored.workflowTabs().size(), count); QCOMPARE(restored.activeTab(), count - 1);
     QVERIFY(restored.openFile(a));
     restored.openWorkflow("server-workflow"); QCOMPARE(restored.workflowTabs().size(), count + 1);
+  }
+  // Each tab's socket names the tab's project, so the server watches its
+  // folder: on open, after opening a workflow of a project, and for a tab
+  // created in another project.
+  void tabsNameTheirProjectToTheServer() {
+    FakeRunServer server;
+    server.workflow = QJsonObject{{"id", "0123456789abcdef0123456789abcdef"}, {"name", "Poster"}, {"updated_at", "r1"},
+                                  {"project_id", "p1"}, {"graph", workflow("Poster")["graph"]}};
+    EditorWindow window;
+    window.resize(1200, 800);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    window.session()->connectToServer(server.url(), {});
+    QTRY_VERIFY(window.session()->connected());
+    QTRY_COMPARE(server.openProjects, QStringList{"default"});
+    window.openWorkflow(server.workflow["id"].toString());
+    QTRY_VERIFY(window.session()->serverBound());
+    QTRY_COMPARE(server.openProjects, (QStringList{"default", "p1"}));
+    QCOMPARE(window.session()->openProject(), QString("p1"));
+    window.selectProject("p2");
+    QTRY_COMPARE(server.openProjects.size(), 3);
+    QCOMPARE(server.openProjects.last(), QString("p2"));
+    QCOMPARE(window.session()->openProject(), QString("p2"));
+  }
+  // A workflow file in a project folder (packages/project-services/src/
+  // workflow-file.ts) has format, version and id beside the body, and no name:
+  // its file name is its name. Saving it from the editor keeps that shape.
+  void projectWorkflowFileKeepsItsEnvelope() {
+    QTemporaryDir folder;
+    QVERIFY(folder.isValid());
+    QVERIFY(QDir(folder.path()).mkpath("Workflows"));
+    const auto path = folder.filePath("Workflows/Lighting pass.workflow.json");
+    auto envelope = workflow("note");
+    envelope.remove("name");
+    envelope.insert("format", "nodetool.workflow");
+    envelope.insert("version", 1);
+    envelope.insert("id", "0123456789abcdef0123456789abcdef");
+    envelope.insert("description", "Relights the plate");
+    envelope.insert("tags", QJsonArray{"light"});
+    envelope.insert("run_mode", "workflow");
+    envelope.insert("settings", QJsonObject{{"run_mode", "workflow"}});
+    const auto read = [&path] {
+      QFile file(path);
+      return file.open(QIODevice::ReadOnly) ? QJsonDocument::fromJson(file.readAll()).object() : QJsonObject{};
+    };
+    {
+      QFile file(path);
+      QVERIFY(file.open(QIODevice::WriteOnly));
+      file.write(QJsonDocument(envelope).toJson());
+    }
+    EditorWindow window;
+    window.resize(1200, 800);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    QVERIFY(window.openFile(path));
+    QCOMPARE(window.workflowName(), QString("Lighting pass"));
+    moveNode(window);
+    QVERIFY(window.hasUnsavedChanges());
+    QVERIFY(window.saveFile(path));
+    auto saved = read();
+    QVERIFY(!saved.contains("name"));
+    for (const auto &key : {"format", "version", "id", "description", "tags", "run_mode", "settings"}) {
+      QCOMPARE(saved.value(key), envelope.value(key));
+    }
+    QCOMPARE(saved["graph"].toObject()["nodes"].toArray().size(), 1);
+    QVERIFY(saved["graph"].toObject()["nodes"].toArray().first().toObject() != envelope["graph"].toObject()["nodes"].toArray().first().toObject());
+    // Renaming would have to rename the file, so the tab offers no rename.
+    QVERIFY(!window.workflowTabs().first().toMap()["renamable"].toBool());
+    QVERIFY(!window.workflowRenamable());
+    window.renameTab(0, "Other name");
+    QVERIFY(!read().contains("name"));
+    QCOMPARE(window.workflowName(), QString("Lighting pass"));
+    // Any other file keeps the editor's own format, name included.
+    const auto plain = folder.filePath("plain.json");
+    {
+      QFile file(plain);
+      QVERIFY(file.open(QIODevice::WriteOnly));
+      file.write(QJsonDocument(workflow("Plain")).toJson());
+    }
+    window.newTab();
+    QVERIFY(window.openFile(plain));
+    QCOMPARE(window.workflowName(), QString("Plain"));
+    QVERIFY(window.workflowTabs().last().toMap()["renamable"].toBool());
+    window.renameTab(int(window.workflowTabs().size()) - 1, "Renamed");
+    QFile file(plain);
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    const auto written = QJsonDocument::fromJson(file.readAll()).object();
+    QCOMPARE(written["name"].toString(), QString("Renamed"));
+    QVERIFY(!written.contains("format"));
   }
 };
 QTEST_MAIN(WorkflowTabsTest)

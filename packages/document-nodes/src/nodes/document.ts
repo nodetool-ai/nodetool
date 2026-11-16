@@ -9,6 +9,8 @@ import {
   loadNodeFsPromises,
   loadNodeOs,
   loadNodePath,
+  assertSaveTargetIsOwn,
+  writeSaveTargetFile,
   writeSavedFile,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
@@ -199,8 +201,9 @@ export class SaveDocumentFileNode extends BaseNode {
     // exactly there; everything else goes through folder + filename.
     const pinned = toFilePath(this.path ?? "");
     if (pinned) {
+      await assertSaveTargetIsOwn(context, path.resolve(pinned));
       await fs.mkdir(path.dirname(pinned), { recursive: true });
-      await fs.writeFile(pinned, bytes);
+      await writeSaveTargetFile(context, path.resolve(pinned), bytes);
       return { output: pinned };
     }
 

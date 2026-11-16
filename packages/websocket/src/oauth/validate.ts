@@ -106,12 +106,45 @@ export function resourceMatches(
   return requested === canonicalResource(publicUrl);
 }
 
-/** The one scope this AS issues. Absent/empty defaults to it. */
+/** The scopes this AS issues. A grant holds exactly one. */
+export type IssuedScope = "mcp" | "native";
+
+/**
+ * `mcp` or `native`. Absent or empty defaults to `mcp`, so existing MCP
+ * clients that send no scope keep working. A list of both is refused: a
+ * grant holds exactly one scope.
+ */
 export function validateScope(
   scope: string | undefined
-): { ok: true; scope: "mcp" } | { ok: false } {
+): { ok: true; scope: IssuedScope } | { ok: false } {
   if (scope === undefined || scope === "" || scope === "mcp") {
     return { ok: true, scope: "mcp" };
   }
+  if (scope === "native") {
+    return { ok: true, scope: "native" };
+  }
   return { ok: false };
+}
+
+/**
+ * The resource a native session is issued for: the server origin itself,
+ * because its tokens are accepted on the whole API rather than on `/mcp`.
+ */
+export function canonicalNativeResource(publicUrl: string): string {
+  return normalizeOrigin(publicUrl);
+}
+
+/** Absent, or exactly the server origin (trailing slash tolerated). */
+export function nativeResourceMatches(
+  requested: string | undefined | null,
+  publicUrl: string
+): boolean {
+  if (requested === undefined || requested === null) {
+    return true;
+  }
+  try {
+    return normalizeOrigin(requested) === canonicalNativeResource(publicUrl);
+  } catch {
+    return false;
+  }
 }

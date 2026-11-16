@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.workflow`.
  */
 
-import { eq, and, desc, or, isNull, lt, inArray, type SQL } from "drizzle-orm";
+import { eq, and, desc, or, isNull, lt, inArray, count, type SQL } from "drizzle-orm";
 import {
   DBModel,
   ModelChangeEvent,
@@ -280,15 +280,25 @@ export class Workflow extends DBModel {
 
   /**
    * The projects that hold a workflow whose file was never written, each
-   * with its owner. A workflow from before project folders is one of them.
+   * with its owner and how many such documents it holds, for every user or
+   * for `userId`. A workflow from before project folders is one of them.
    */
-  static async projectsWithUnwrittenFiles(): Promise<
-    Array<{ user_id: string; project_id: string }>
+  static async projectsWithUnwrittenFiles(userId?: string): Promise<
+    Array<{ user_id: string; project_id: string; count: number }>
   > {
     return getPortableDb()
-      .select({ user_id: workflows.user_id, project_id: workflows.project_id })
+      .select({
+        user_id: workflows.user_id,
+        project_id: workflows.project_id,
+        count: count()
+      })
       .from(workflows)
-      .where(isNull(workflows.file_path))
+      .where(
+        and(
+          isNull(workflows.file_path),
+          userId === undefined ? undefined : eq(workflows.user_id, userId)
+        )
+      )
       .groupBy(workflows.user_id, workflows.project_id);
   }
 

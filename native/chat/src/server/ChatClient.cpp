@@ -30,8 +30,7 @@ ChatClient::ChatClient(QObject *parent)
             const auto map = QByteArray::fromHex(
                 "de0001a76d657373616765b04d6f64652073657420746f2074657874");
             if (bytes == fix || bytes == map) {
-              m_ready = true;
-              emit statusChanged("connected");
+              acknowledgeMode();
             } else {
               emit errorOccurred(
                   "Unexpected binary chat frame after text-mode negotiation");
@@ -101,8 +100,7 @@ void ChatClient::receive(const QByteArray &bytes) {
   }
   const auto event = doc.object();
   if (event["message"] == "Mode set to text") {
-    m_ready = true;
-    emit statusChanged("connected");
+    acknowledgeMode();
     return;
   }
   if (event["type"] == "ping") {
@@ -110,6 +108,25 @@ void ChatClient::receive(const QByteArray &bytes) {
     return;
   }
   emit eventReceived(event);
+}
+void ChatClient::acknowledgeMode() {
+  m_ready = true;
+  sendOpenProject();
+  emit statusChanged("connected");
+}
+void ChatClient::setOpenProject(const QString &projectId) {
+  const auto id = projectId.isEmpty() ? QStringLiteral("default") : projectId;
+  if (id == m_openProject) {
+    return;
+  }
+  m_openProject = id;
+  if (m_ready) {
+    sendOpenProject();
+  }
+}
+void ChatClient::sendOpenProject() {
+  send({{"command", "set_open_project"},
+        {"data", QJsonObject{{"project_id", m_openProject}}}});
 }
 bool ChatClient::send(const QJsonObject &object) {
   if (!m_ready) {

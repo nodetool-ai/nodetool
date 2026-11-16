@@ -80,7 +80,11 @@ import { imageDocuments } from "./schema/image-documents.js";
 import { jobs } from "./schema/jobs.js";
 import { jsScriptVersions } from "./schema/js-script-versions.js";
 import { jsScripts } from "./schema/js-scripts.js";
-import { mcpOauthGrants, mcpOauthTokens } from "./schema/mcp-oauth.js";
+import {
+  mcpOauthGrants,
+  mcpOauthTokens,
+  oauthPendingEntries
+} from "./schema/mcp-oauth.js";
 import { cloudDrafts, cloudOpenState } from "./schema/cloud-local.js";
 import { memories } from "./schema/memories.js";
 import { messages } from "./schema/messages.js";
@@ -437,6 +441,11 @@ export const ERASURE_STEPS: readonly ErasureStep[] = [
     (c) => c.grantIds
   ),
   directStep("mcp_oauth_grants", mcpOauthGrants, mcpOauthGrants.user_id),
+  directStep(
+    "oauth_pending_entries",
+    oauthPendingEntries,
+    oauthPendingEntries.user_id
+  ),
   directStep("access_tokens", accessTokens, accessTokens.user_id),
   directStep("nodetool_user_accounts", userAccounts, userAccounts.user_id),
   directStep("nodetool_user_quotas", userQuotas, userQuotas.user_id),

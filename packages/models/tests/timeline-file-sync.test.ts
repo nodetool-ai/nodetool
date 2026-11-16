@@ -468,6 +468,14 @@ describe("the timeline file sync hook", () => {
     ).toEqual(["project-a", "project-b"]);
     expect(projects.every((project) => project.user_id === USER)).toBe(true);
     expect(
+      projects.map((project) => [project.project_id, Number(project.count)]).sort()
+    ).toEqual([
+      ["project-a", 2],
+      ["project-b", 1]
+    ]);
+    expect(await TimelineSequence.projectsWithUnwrittenFiles("someone-else")).toEqual([]);
+    expect(await TimelineSequence.projectsWithUnwrittenFiles(USER)).toHaveLength(2);
+    expect(
       (await TimelineSequence.listForProjects(USER, ["project-a", "project-c"]))
         .length
     ).toBe(3);

@@ -450,7 +450,9 @@ describe("storeIfAbsent on the object stores", () => {
       "s3://b/runs/fox.png"
     );
 
-    expect(puts[0]).toMatchObject({
+    // The first conditional put on an endpoint is preceded by its probe.
+    const real = puts.filter((put) => put.key === "runs/fox.png");
+    expect(real[0]).toMatchObject({
       bucket: "b",
       key: "runs/fox.png",
       contentType: "image/png",
@@ -458,24 +460,38 @@ describe("storeIfAbsent on the object stores", () => {
     });
     // A plain store stays unconditional.
     await adapter.store("fox.png", SECOND);
-    expect(puts[1]?.ifNoneMatch).toBeUndefined();
+    expect(puts.at(-1)?.ifNoneMatch).toBeUndefined();
   });
 
   it("reads S3's 409 for a conflicting conditional put as taken", async () => {
-    const client = conditionalS3().client;
-    client.putObject = vi.fn(async () => {
-      throw new S3Error("ConditionalRequestConflict", "conflict", 409);
-    });
+    const base = conditionalS3().client;
+    const client: S3Api = {
+      ...base,
+      // Only the caller's key conflicts. The capability probe's scratch key
+      // behaves as on any endpoint that honors the header.
+      putObject: vi.fn(async (input) => {
+        if (input.key === "fox.png") {
+          throw new S3Error("ConditionalRequestConflict", "conflict", 409);
+        }
+        return base.putObject(input);
+      })
+    };
     const adapter = new S3StorageAdapter({ bucket: "b", client });
 
     expect(await adapter.storeIfAbsent("fox.png", FIRST)).toBeNull();
   });
 
   it("throws any other S3 failure instead of reporting the key as taken", async () => {
-    const client = conditionalS3().client;
-    client.putObject = vi.fn(async () => {
-      throw new S3Error("AccessDenied", "Access Denied", 403);
-    });
+    const base = conditionalS3().client;
+    const client: S3Api = {
+      ...base,
+      putObject: vi.fn(async (input) => {
+        if (input.key === "fox.png") {
+          throw new S3Error("AccessDenied", "Access Denied", 403);
+        }
+        return base.putObject(input);
+      })
+    };
     const adapter = new S3StorageAdapter({ bucket: "b", client });
 
     await expect(adapter.storeIfAbsent("fox.png", FIRST)).rejects.toThrow(

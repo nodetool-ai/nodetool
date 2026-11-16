@@ -6,6 +6,7 @@ import {
   isRawRgbaImage
 } from "@nodetool-ai/protocol";
 import { getNodeBuiltinSync } from "@nodetool-ai/config";
+import { assertLocalPathIsOwn, type Workspace } from "@nodetool-ai/runtime-core";
 import { fetchExternalMedia } from "./external-media-fetch.js";
 import { encodeRawRgbaToPng } from "./image-codec.js";
 import { isNonEmptyString } from "@nodetool-ai/protocol";
@@ -103,6 +104,35 @@ export interface MediaRefContext {
     uri: string,
     options?: { requireOwnedAsset?: boolean }
   ) => Promise<{ bytes: Uint8Array | null }>;
+  /**
+   * The run's workspace and its real folder. A `file://` URI or absolute path
+   * inside that folder is read only when it is the project's own file: the
+   * reserved `.nodetool/` directory and the folder of another project inside
+   * it are refused. A path elsewhere on the host is not judged.
+   */
+  workspace?: Pick<Workspace, "isNestedFolder"> | null;
+  workspaceDir?: string | null;
+}
+
+/**
+ * Refuse a local path that is in the reserved directory or in the folder of
+ * another project inside the run's workspace. Throws
+ * `WorkspaceReservedPathError`. `uri` is a `file://` URI or an absolute path.
+ */
+async function assertLocalReadIsOwn(
+  uri: string,
+  context: MediaRefContext | undefined
+): Promise<void> {
+  if (!context?.workspace || !context.workspaceDir) return;
+  let local = uri;
+  if (uri.startsWith("file://")) {
+    try {
+      local = fileURLToPath(uri);
+    } catch {
+      return; // Not a path `readFile` can open either.
+    }
+  }
+  await assertLocalPathIsOwn(context.workspace, context.workspaceDir, local, uri);
 }
 
 /** Caller-specific access and HTTP error behavior. */
@@ -269,6 +299,17 @@ export async function loadMediaRefBytes(
         !/^\/api\/storage\/[A-Za-z0-9_-][A-Za-z0-9_.-]*$/.test(uri)))
   ) {
     return null;
+  }
+
+  // Storage adapters read `file://` URIs and absolute paths too, so the
+  // check comes before they are asked.
+  if (
+    uri &&
+    (uri.startsWith("file://") ||
+      (isAbsoluteFilePath(uri) &&
+        !/^\/api\/storage\/[A-Za-z0-9_-][A-Za-z0-9_.-]*$/.test(uri)))
+  ) {
+    await assertLocalReadIsOwn(uri, context);
   }
 
   if (context?.storage) {

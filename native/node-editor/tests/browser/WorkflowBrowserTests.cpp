@@ -72,6 +72,28 @@ private slots:
     browser.refresh();
     QVERIFY(browser.error().contains("Connect to a server first"));
   }
+  // A documentfile push reloads a list that has loaded, because a file of one
+  // of its workflows became invalid, went missing or is fine again.
+  void documentFilePushReloadsALoadedList() {
+    Fixture server;
+    server.respond = [](QByteArray) { return QByteArray(R"({"workflows":[{"id":"a","name":"Alpha"}],"next":null})"); };
+    WorkflowBrowser browser;
+    browser.configure(server.url());
+    browser.documentFileChanged({{"id", "a"}, {"type", "workflow"}});
+    QTest::qWait(50);
+    QCOMPARE(server.requests.size(), 0);
+    browser.refresh();
+    QTRY_VERIFY(!browser.loading());
+    QCOMPARE(server.requests.size(), 1);
+    browser.documentFileChanged({{"id", "t"}, {"type", "timeline"}});
+    QTest::qWait(50);
+    QCOMPARE(server.requests.size(), 1);
+    browser.documentFileChanged({{"id", "a"}, {"type", "workflow"}, {"file_error", "Unexpected token"}});
+    QTRY_COMPARE(server.requests.size(), 2);
+    QVERIFY(server.requests.last().startsWith("GET /api/workflows?"));
+    QTRY_VERIFY(!browser.loading());
+    QCOMPARE(browser.rows().size(), 1);
+  }
   void liveDisposableWorkflow() {
     const auto origin = qEnvironmentVariable("NODETOOL_BROWSER_LIVE_URL");
     if (origin.isEmpty()) { QSKIP("Set NODETOOL_BROWSER_LIVE_URL for the disposable live contract test"); }

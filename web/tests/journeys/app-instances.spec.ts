@@ -46,7 +46,7 @@ test("cancels only its own instance while another instance runs the same workflo
   await active().getByRole("button", { name: "New instance", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("textbox", { name: "Instance name" }).fill("Concurrent survivor");
-  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await dialog.getByRole("button", { name: "Create", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   const second = await start("surviving-instance-output");
   expect(second.instance_id).not.toBe(first.instance_id);
@@ -87,11 +87,13 @@ test("keeps named instances, restored tabs and historical inspection independent
   page.on("request", recordMutation);
   const app = new MiniAppPage(page);
   const active = () => page.locator(".tab-layer:not([inert])").filter({ has: page.getByTestId("application-run-layer") });
+  /** The dialog's confirm button is named for what it does. */
+  const confirmLabel: Record<string, string> = { Rename: "Save", "New instance": "Create", Duplicate: "Duplicate" };
   const editName = async (action: string, name: string) => {
     await active().getByRole("button", { name: action, exact: true }).click();
     const dialog = page.getByRole("dialog");
     await dialog.getByRole("textbox", { name: "Instance name" }).fill(name);
-    await dialog.getByRole("button", { name: "Save", exact: true }).click();
+    await dialog.getByRole("button", { name: confirmLabel[action], exact: true }).click();
     await expect(dialog).not.toBeVisible();
     await expect(active().getByRole("combobox", { name: "App instance" })).toContainText(name);
   };
@@ -134,7 +136,7 @@ test("keeps named instances, restored tabs and historical inspection independent
   expect(summer.variables).not.toEqual(spring.variables);
 
   await editName("Duplicate", "Summer copy");
-  await expect(active().getByText("No runs recorded for this instance.")).toBeVisible();
+  await expect(active().getByText("No runs recorded for this instance")).toBeVisible();
   await expect(active().locator(".appbuilder-runtime").getByRole("textbox").first()).toHaveValue("summer-only-result");
   await choose("Spring sale");
   await expect(active().locator(".appbuilder-runtime").getByRole("textbox").first()).toHaveValue("spring-current-result");
@@ -209,7 +211,7 @@ test("advances a pinned instance explicitly while preserving historical version 
   await page.reload();
   await expect(page.getByText(`Pinned version ${firstVersion.version}`, { exact: true })).toBeVisible();
   await page.getByRole("button", { name: `Advance to version ${secondVersion.version}`, exact: true }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Advance", exact: true }).click();
   await expect(page.getByRole("dialog")).not.toBeVisible();
   await expect(page.getByText(`Pinned version ${secondVersion.version}`, { exact: true })).toBeVisible();
   const newRun = await run();
@@ -239,8 +241,9 @@ test("executes a frozen draft preview without changing the released working copy
   const update = await request.post("/trpc/applications.update", { data: { id: application.id, document: draft } });
   expect(update.ok()).toBe(true);
   await page.reload();
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
-  await page.getByRole("button", { name: "Preview draft", exact: true }).click();
+  await page.getByRole("button", { name: "Design", exact: true }).click();
+  await page.getByRole("button", { name: "More actions", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Preview draft", exact: true }).click();
   await expect(page.getByText("Previewing current draft. This does not change the released app.")).toBeVisible();
   const preview = page.locator(".tab-layer:not([inert])").getByTestId("application-run-layer").locator(".appbuilder-runtime");
   await preview.getByRole("textbox").first().fill("frozen-preview-input");

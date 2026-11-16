@@ -24,11 +24,20 @@ struct Root {
   std::string dir;
   bool writable = false;
   std::string given;
+  // The run's workspace, which can be a project folder. NodeTool keeps its
+  // own files in `.nodetool/` there, so confine() refuses every path below
+  // this root with a segment named `.nodetool` in any case, whichever root
+  // grants it (packages/runtime-core/src/workspace.ts isReservedWorkspaceKey).
+  bool reservesNodetool = false;
 };
 
 // Canonical roots for the given directories. Directories that do not exist
 // are left out, so they grant nothing.
 std::vector<Root> canonicalRoots(const std::vector<std::pair<std::string, bool>>& dirs);
+
+// Marks the roots that are the workspace `workspaceDir` as reserving
+// `.nodetool/`. Every capability that grants the workspace calls it.
+void reserveWorkspace(std::vector<Root>& roots, const std::string& workspaceDir);
 
 // A Node-style file system error: `what()` is "ENOENT: no such file or
 // directory, open '/x'". The guest turns `code` into `err.code`.
@@ -69,8 +78,10 @@ struct Resolved {
 };
 
 // Resolves `path` (absolute, or relative to `cwd`) for `syscall`. Throws
-// FsError EACCES when it falls outside every granted root or is a write to a
-// read-only root, ENOENT when a Read target or a Write parent is missing.
+// FsError EACCES when it falls outside every granted root, is a write to a
+// read-only root or lies in a workspace's `.nodetool/` (before and after
+// symlinks are resolved), ENOENT when a Read target or a Write parent is
+// missing.
 // With `noSymlinks`, a symlink anywhere below the root is refused too.
 Resolved confine(const std::vector<Root>& roots, const std::string& cwd,
                  const std::string& path, Access access, const std::string& syscall,

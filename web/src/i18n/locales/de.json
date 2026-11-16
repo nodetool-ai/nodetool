@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "code#state",
       "signInWindowClosed": "Anmeldefenster geschlossen?",
       "openAgain": "Erneut öffnen",
-      "linkExpiry": ". Der Link läuft nach 10 Minuten ab."
+      "linkExpiry": ". Der Link läuft nach 10 Minuten ab.",
+      "nativeSubtitle": "möchte sich bei deinem NodeTool-Konto anmelden.",
+      "app": "App",
+      "device": "Gerät",
+      "nativeNote": "Bestätige nur, wenn du diese Anmeldung in einer NodeTool-Desktop-App auf diesem Computer gestartet hast. Die App kann dann deine Cloud-Dokumente öffnen, bearbeiten und speichern, bis du dich abmeldest oder die Sitzung in den Einstellungen beendest."
     },
     "integrations": {
       "loadingAccounts": "Verknüpfte Konten werden geladen",
@@ -20153,6 +20157,44 @@
       "deleteDescription": "„{{name}}“ und sein Versionsverlauf werden endgültig gelöscht.",
       "restoreFailed": "Die Datei wurde nicht wiederhergestellt: {{error}}",
       "deleteFailed": "Das Dokument wurde nicht gelöscht: {{error}}"
+    },
+    "migration": {
+      "title": "Projekte in Ordner verschieben",
+      "intro": "NodeTool legt jedes Projekt jetzt in einem eigenen Ordner auf diesem Computer ab. Ihre Dateien, Workflows und Zeitleisten werden dorthin verschoben und lassen sich in anderen Apps öffnen.",
+      "planProjects": "Projekte, die einen Ordner erhalten",
+      "planFiles": "Zu verschiebende Dateien",
+      "planWorkflows": "Als Dateien gespeicherte Workflows",
+      "planTimelines": "Als Dateien gespeicherte Zeitleisten",
+      "extraTitle": "Projekte mit mehr als einem Ordner",
+      "extraBody": "Jedes dieser Projekte behält einen Ordner. NodeTool zeigt die anderen nicht mehr an, ihre Dateien bleiben an ihrem Ort.",
+      "extraKeeps": "{{project}} behält {{folder}}",
+      "extraHidden": "Nicht mehr angezeigt: {{folder}}",
+      "location": "Speicherort",
+      "changeLocation": "Speicherort ändern",
+      "locationError": "Dieser Speicherort kann nicht verwendet werden: {{error}}",
+      "permissionWarning": "macOS fragt, ob NodeTool diesen Ordner verwenden darf. Wählen Sie „Erlauben“ oder wählen Sie einen Ordner außerhalb von Dokumente, Schreibtisch, Downloads, iCloud Drive und externen Laufwerken.",
+      "safety": "Es geht nichts verloren. Jede Datei wird kopiert und geprüft, bevor die alte Kopie entfernt wird. Sie können weiterarbeiten, während die Dateien verschoben werden.",
+      "later": "Nicht jetzt",
+      "confirm": "Dateien verschieben",
+      "planError": "Der Plan konnte nicht geladen werden: {{error}}",
+      "confirmError": "Das Verschieben wurde nicht gestartet: {{error}}",
+      "actionError": "Das Verschieben konnte nicht geändert werden: {{error}}",
+      "progressRegion": "Dateien werden in Projektordner verschoben",
+      "progressTitle": "Dateien werden in Projektordner verschoben",
+      "pausedTitle": "Das Verschieben der Dateien ist pausiert",
+      "doneTitle": "Dateien verschoben",
+      "progressCount": "{{done}} von {{total}} Dateien verschoben",
+      "phaseFolders": "Projektordner werden erstellt",
+      "phaseFiles": "Workflows und Zeitleisten werden als Dateien gespeichert",
+      "currentProject": "Die Dateien von {{project}} werden verschoben",
+      "pause": "Pausieren",
+      "resume": "Fortsetzen",
+      "failuresTitle": "Nicht verschoben ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "Weitere nicht angezeigt: {{count}}",
+      "retry": "Erneut versuchen",
+      "donePath": "Ihre Dateien befinden sich in {{path}}",
+      "close": "Schließen"
     }
   },
   "assetPicker": {
@@ -20177,5 +20219,80 @@
     "removeTitle": "„{{name}}“ entfernen?",
     "removeBody": "Das Asset wird aus NodeTool entfernt. Dokumente, die es verwenden, können es nicht mehr anzeigen.",
     "cancel": "Abbrechen"
+  },
+  "deviceSessions": {
+    "title": "Angemeldete Geräte",
+    "description": "Computer, auf denen du dich in den NodeTool-Desktop-Apps angemeldet hast. Beide Apps auf einem Computer teilen sich eine Sitzung. Wenn du eine Sitzung beendest, wird dieser Computer abgemeldet.",
+    "empty": "Kein Computer ist angemeldet.",
+    "unnamed": "Unbenannter Computer",
+    "signedInFrom": "Angemeldet über {{app}} am {{date}}",
+    "lastUsed": "Zuletzt verwendet {{date}}",
+    "neverUsed": "Seit der Anmeldung nicht verwendet",
+    "end": "Sitzung beenden",
+    "confirmTitle": "Diese Sitzung beenden?",
+    "confirmBody": "Die NodeTool-Desktop-Apps auf {{device}} werden innerhalb einer Minute abgemeldet.",
+    "cancel": "Abbrechen",
+    "ended": "Sitzung beendet.",
+    "endError": "Die Sitzung konnte nicht beendet werden: {{error}}",
+    "loadError": "Angemeldete Geräte konnten nicht geladen werden.",
+    "apps": {
+      "nodeEditor": "Node-Editor",
+      "timeline": "Timeline"
+    }
+  },
+  "storyboardText": {
+    "mode": "Text",
+    "editorLabel": "Storyboard als Markdown-Text",
+    "hint": "Tippe # für einen Akt, ## für eine Szene, ### für eine Einstellung und - **Motion:** für ein Feld. Tippe @, um eine Entität oder ein Bild zu erwähnen.",
+    "issues": "Zeilen, die Aufmerksamkeit brauchen: {{lines}}",
+    "loading": "Text wird geladen…",
+    "warnings": {
+      "media_outside_shot": "Ein Bild gehört zu einer Einstellung. Setze es unter eine ###-Überschrift.",
+      "second_media": "Eine Einstellung hat ein ausgewähltes Standbild und einen ausgewählten Clip. Dieses Element wird nicht verwendet.",
+      "unknown_shot_field": "„{{label}}“ ist kein Storyboard-Feld. Es wird in den Notizen der Einstellung gespeichert.",
+      "unknown_field": "„{{label}}“ ist hier kein Feld. Es wird nicht gespeichert.",
+      "text_in_scene": "Eine Szene hat nur eine Szenenzeile und Licht. Setze diesen Text unter eine Einstellung oder beginne ihn mit „Lighting:“.",
+      "bad_duration": "Einstellung {{shot}}: „{{value}}“ ist keine Anzahl von Sekunden.",
+      "bad_render": "Einstellung {{shot}}: Render ist keyframe, direct oder reference.",
+      "no_next_shot": "Einstellung {{shot}}: Ein Übergang führt zur nächsten Einstellung, und es gibt keine.",
+      "missing_action": "Einstellung {{shot}} hat noch keine Handlung. Beschreibe das Bild unter ihrer Überschrift."
+    },
+    "outline": "Gliederung",
+    "outlineEmpty": "Tippe ### und einen Titel, um eine Einstellung zu beginnen.",
+    "untitledShot": "Einstellung ohne Titel",
+    "untitledAct": "Akt ohne Titel",
+    "untitledScene": "Szene ohne Titel",
+    "issuesTitle": "Braucht Aufmerksamkeit",
+    "stillOf": "Standbild für Einstellung {{shot}}",
+    "assist": {
+      "lines": "{{lines}} Zeilen ausgewählt",
+      "proposal": "Vorgeschlagener Ersatz",
+      "note": "Hinweis des Agenten",
+      "discard": "Verwerfen",
+      "close": "Schließen",
+      "replace": "Auswahl ersetzen",
+      "stale": "Die Passage hat sich seit der Auswahl geändert. Wähle sie erneut aus.",
+      "thinking": "Denkt nach…",
+      "stop": "Stopp",
+      "placeholder": "Sag dem Agenten, was er mit dieser Passage tun soll",
+      "refinePlaceholder": "Ergebnis verfeinern",
+      "instruction": "Anfrage an den Agenten",
+      "send": "An den Agenten senden",
+      "failed": "Die Anfrage an das Modell ist fehlgeschlagen.",
+      "context": "Mit der Anfrage gesendet: das ganze Board, {{shots}} Einstellungen und {{entities}} Entitäten der Bibliothek.",
+      "quick": {
+        "tighten": "Straffen",
+        "visual": "Bildhafter",
+        "camera": "Kamera vorschlagen",
+        "continuity": "Kontinuität prüfen",
+        "summarize": "Zusammenfassen",
+        "inconsistencies": "Widersprüche finden"
+      },
+      "errors": {
+        "no_model": "Wähle ein Regiemodell für dieses Board oder ein Chatmodell, um den Agenten zu nutzen.",
+        "empty": "Das Modell hat keine Antwort geliefert. Sende die Anfrage erneut.",
+        "failed": "Die Anfrage ist fehlgeschlagen. Sende sie erneut."
+      }
+    }
   }
 }

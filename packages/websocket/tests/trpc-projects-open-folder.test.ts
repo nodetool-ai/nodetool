@@ -36,6 +36,7 @@ import {
   cancelProjectReconciles,
   flushProjectReconciles
 } from "@nodetool-ai/project-services/project-index";
+import { projectFolderWatchers } from "@nodetool-ai/project-services/project-watch";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
@@ -195,6 +196,30 @@ describe("projects.openFolder and projects.relocate", () => {
     expect(
       (await caller().projects.list({})).map((p) => p.name).sort()
     ).toEqual(["Aurora", "Personal"]);
+  });
+
+  it("gives a folder opened twice at once to one project, and refuses the other open", async () => {
+    const folder = join(root, "Shared");
+    await mkdir(folder);
+    const nested = join(folder, "inner");
+    await mkdir(nested);
+
+    const results = await Promise.allSettled([
+      caller().projects.openFolder({ path: folder, name: "One" }),
+      caller().projects.openFolder({ path: folder, name: "Two" }),
+      caller().projects.openFolder({ path: nested, name: "Three" })
+    ]);
+
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    for (const result of results) {
+      if (result.status === "rejected") {
+        expect(String(result.reason)).toMatch(/folder of project/);
+      }
+    }
+    const withFolder = (await Project.listWithFolder("user-1")).filter(
+      (project) => project.kind !== "personal"
+    );
+    expect(withFolder).toHaveLength(1);
   });
 
   it("refuses a symlinked path that resolves into another project's folder", async () => {
@@ -393,6 +418,27 @@ describe("projects.openFolder and projects.relocate", () => {
     if (resolved.ok) {
       expect(await resolved.workspace.readText("draft.md")).toBe("kept");
     }
+  });
+
+  it("a client that has the project open watches the located folder", async () => {
+    const created = await caller().projects.create({ name: "Aurora" });
+    const renamed = join(root, "Aurora renamed");
+    await rename(created.folder?.path ?? "", renamed);
+    const client = Symbol("client");
+    try {
+      // Opened while the folder is away: nothing can be watched.
+      await projectFolderWatchers.setOpenProject(client, "user-1", created.id);
+      expect(projectFolderWatchers.isWatching(created.id, "user-1")).toBe(false);
+
+      await caller().projects.relocate({ project_id: created.id, path: renamed });
+
+      await expect
+        .poll(() => projectFolderWatchers.isWatching(created.id, "user-1"))
+        .toBe(true);
+    } finally {
+      projectFolderWatchers.release(client);
+    }
+    expect(projectFolderWatchers.isWatching(created.id, "user-1")).toBe(false);
   });
 
   it("writes the manifest into a located folder that has none", async () => {

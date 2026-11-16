@@ -285,6 +285,14 @@ export const MODULES = {
     }
   },
 
+  "@nodetool-ai/storage/storage-keys": {
+    provider: "host/storage.mjs",
+    exports: {
+      joinStorageKey: guest("@nodetool-ai/storage/storage-keys"),
+      normalizeStorageKey: guest("@nodetool-ai/storage/storage-keys")
+    }
+  },
+
   "@nodetool-ai/config": {
     provider: "shims/config.cjs",
     exports: {

@@ -24,6 +24,11 @@ public:
   void downloadMedia(const QUrl &, Callback);
   void fetchMedia(const QUrl &, Callback);
   bool send(const QJsonObject &);
+  // Names the project whose folder the server watches for this connection.
+  // Sent after every mode acknowledgement and on each change while ready.
+  // An empty id names Personal ("default").
+  void setOpenProject(const QString &projectId);
+  QString openProject() const { return m_openProject; }
   bool ready() const { return m_ready; }
   QUrl baseUrl() const { return m_base; }
   QString token() const { return m_token; }
@@ -42,6 +47,9 @@ private:
   quint64 m_epoch = 0;
   bool m_ready = false;
   int m_mediaRequests = 0;
+  QString m_openProject = QStringLiteral("default");
   void receive(const QByteArray &);
+  void acknowledgeMode();
+  void sendOpenProject();
 };
 } // namespace nt::chat

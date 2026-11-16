@@ -115,6 +115,7 @@ export function useRunFromHere(
     void runInlineGraphJob({
       graph,
       workflowId: workflow.id,
+      projectId: workflow.project_id,
       jobName,
       inputSignatures
     });

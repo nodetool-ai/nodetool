@@ -1,17 +1,25 @@
 #include "app/startup/LocalDocumentSaver.h"
 
+#include "model/TimelineJson.h"
+
 #include <QCoreApplication>
+#include <QFile>
+#include <QJsonDocument>
 #include <QSaveFile>
 
 namespace nt::app {
 LocalDocumentSaver::LocalDocumentSaver(TimelineModel& model, QString path, int debounceMs, QObject* parent)
     : QObject(parent), m_model(&model), m_path(std::move(path)) {
+    if (QFile file(m_path); file.open(QIODevice::ReadOnly)) {
+        const auto root = QJsonDocument::fromJson(file.readAll()).object();
+        if (nt::isTimelineFile(root)) { m_timelineFile = root; }
+    }
     m_timer.setSingleShot(true);
     m_timer.setInterval(debounceMs);
     const auto schedule = [this] {
         if (!m_active) { return; }
         if (!m_model) { return; }
-        m_committedBytes = m_model->documentJson();
+        m_committedBytes = bytes();
         m_dirty = true;
         m_timer.start();
     };
@@ -28,6 +36,11 @@ LocalDocumentSaver::LocalDocumentSaver(TimelineModel& model, QString path, int d
     }
 }
 LocalDocumentSaver::~LocalDocumentSaver() { flush(); }
+
+QByteArray LocalDocumentSaver::bytes() const {
+    if (m_timelineFile.isEmpty()) { return m_model->documentJson(); }
+    return QJsonDocument(nt::timelineFileWithSequence(m_timelineFile, m_model->timeline().raw)).toJson();
+}
 
 int exitCodeAfterLocalSave(LocalDocumentSaver* saver, int rc) {
     return !saver || saver->flush() ? rc : 4;

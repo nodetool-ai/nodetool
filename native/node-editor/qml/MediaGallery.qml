@@ -162,7 +162,7 @@ ColumnLayout {
             locator: root.selected.locator || ""
             filename: root.selected.filename || ""
             requestKey: root.scopeKey + ":selected:" + String(selectedPreview)
-            fillPreview: root.compact && mediaKind === "image"
+            fillPreview: root.compact && (mediaKind === "image" || mediaKind === "video")
             compact: root.compact
             onImageActivated: root.activate(gallery.currentIndex)
             showDownload: mediaKind !== "image" || gallery.count <= 1

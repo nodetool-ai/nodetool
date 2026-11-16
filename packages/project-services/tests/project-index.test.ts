@@ -7,7 +7,7 @@
  * folder (a key prefix in an object store), through the same `Workspace`
  * interface.
  */
-import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,6 +15,8 @@ import {
   Asset,
   ModelChangeEvent,
   ModelObserver,
+  Project,
+  Workspace as WorkspaceRow,
   initTestDb
 } from "@nodetool-ai/models";
 import {
@@ -36,6 +38,7 @@ import {
 } from "@nodetool-ai/asset-services/asset-paths";
 import { lookupExternalAssetPath } from "@nodetool-ai/asset-services/external-asset-lookup";
 import {
+  COLLECT_PATH_KEY,
   ProjectAssetRelinkError,
   moveProjectAssetFile,
   relinkProjectAsset,
@@ -50,6 +53,12 @@ import {
 import { ProjectAssetStorageAdapter } from "@nodetool-ai/asset-services/project-asset-storage";
 import { getAssetAdapter } from "@nodetool-ai/asset-services/storage";
 import {
+  encodeWav,
+  sineSamples,
+  solidRgba,
+  writeRgbaVideo
+} from "@nodetool-ai/runtime/media/testing";
+import {
   COPY_GRACE_MS,
   OPEN_RECONCILE_INTERVAL_MS,
   ProjectIndex,
@@ -58,9 +67,12 @@ import {
   cancelProjectReconciles,
   ensureAssetForPath,
   flushProjectReconciles,
+  onProjectFolderChanged,
+  reconcileInBackground,
   reconcileProjectIndex,
   reconcileProjectOnOpen,
-  scheduleProjectReconcile
+  scheduleProjectReconcile,
+  scheduleWorkspaceReconcile
 } from "../src/project-index.js";
 
 vi.mock("@nodetool-ai/asset-services/storage", () => ({
@@ -240,6 +252,8 @@ describe.each(["local", "storage"] as const)(
         const rows = await rowsOf();
         expect(rows.map((row) => row.id)).toEqual([asset.id]);
         expect(rows[0]?.workspace_path).toBe("shots/hero.png");
+        // The file on disk is the truth: the asset takes the new file name.
+        expect(rows[0]?.name).toBe("hero.png");
         expect(isProjectAssetOffline(rows[0]!)).toBe(false);
       });
 
@@ -294,7 +308,7 @@ describe.each(["local", "storage"] as const)(
         ["audio", "sound/theme.wav", "audio/wav"],
         ["3D", "models/chair.glb", "model/gltf-binary"]
       ])(
-        "%s file present, no row: creates a row and builds no thumbnail",
+        "%s file present, no row: creates a row",
         async (_label, path, contentType) => {
           await folder(kind).write(path, PNG);
 
@@ -317,16 +331,60 @@ describe.each(["local", "storage"] as const)(
             workspace_hash: partialContentHash(PNG)
           });
           expect(await bytesOf(row!)).toEqual(PNG);
-          expect(
-            await assetStore.exists(
-              assetStore.uriForKey(getAssetThumbnailKey(USER, row!.id))
-            )
-          ).toBe(false);
           // The row is found again, not created a second time.
           expect((await reconcileProjectIndex(PROJECT, USER)).created).toEqual([]);
           expect(await rowsOf()).toHaveLength(1);
         }
       );
+
+      it("image, video and audio files present, no row: each row has its thumbnail when it is announced, and a 3D file gets none", async () => {
+        const workspace = folder(kind);
+        const wav = encodeWav(
+          sineSamples({ sampleRate: 8_000, channels: 1, durationSec: 0.5, frequency: 440 }),
+          8_000,
+          1
+        );
+        const videoPath = join(root, "take.mp4");
+        await writeRgbaVideo({
+          outPath: videoPath,
+          width: 16,
+          height: 16,
+          fps: 10,
+          frames: 5,
+          frameAt: () => solidRgba(16, 16, [0, 128, 255, 255]),
+          spec: { codec: "libx264", pixelFormat: "yuv420p", options: { qp: "0" } }
+        });
+        await workspace.write("art/fox.png", PNG);
+        await workspace.write("sound/theme.wav", wav);
+        await workspace.write("footage/take.mp4", new Uint8Array(await readFile(videoPath)));
+        // Bytes of its own: a file with the content of another waits as a copy.
+        await workspace.write("models/chair.glb", text("glTF"));
+        const thumbnailOf = (id: string): Promise<boolean> =>
+          assetStore.exists(assetStore.uriForKey(getAssetThumbnailKey(USER, id)));
+        // Asked the moment each row is announced.
+        const announced = new Map<string, Promise<boolean>>();
+        ModelObserver.subscribe((instance, event) => {
+          const asset = instance as Asset;
+          if (event === ModelChangeEvent.CREATED && asset.workspace_path) {
+            announced.set(asset.workspace_path, thumbnailOf(asset.id));
+          }
+        }, "Asset");
+
+        const report = await reconcileProjectIndex(PROJECT, USER);
+
+        expect(report.created).toHaveLength(4);
+        const has = Object.fromEntries(
+          await Promise.all(
+            [...announced].map(async ([path, check]) => [path, await check])
+          )
+        );
+        expect(has).toEqual({
+          "art/fox.png": true,
+          "footage/take.mp4": true,
+          "sound/theme.wav": true,
+          "models/chair.glb": false
+        });
+      });
 
       it("other file present, no row: creates nothing", async () => {
         await folder(kind).write("notes/plan.txt", text("plan"));
@@ -370,6 +428,7 @@ describe.each(["local", "storage"] as const)(
         const rows = await rowsOf();
         expect(rows.map((row) => row.id)).toEqual([asset.id]);
         expect(rows[0]?.workspace_path).toBe("shots/hero.png");
+        expect(rows[0]?.name).toBe("hero.png");
         expect(isProjectAssetOffline(rows[0]!)).toBe(false);
         expect(await bytesOf(asset)).toEqual(PNG);
         // The only file is still there, under the one asset that owns it.
@@ -721,6 +780,31 @@ describe.each(["local", "storage"] as const)(
       expect(await bytesOf(asset)).toEqual(PNG);
     });
 
+    it("gives no row to the file an unfinished collect reserved, as a crash during the copy leaves it", async () => {
+      // What a collect that died during the copy leaves: the linked asset
+      // naming its reservation, and a partly written file at that path.
+      const linked = await Asset.create<Asset>({
+        user_id: USER,
+        project_id: PROJECT,
+        parent_id: USER,
+        name: "fox.png",
+        content_type: "image/png",
+        external_path: join(root, "outside", "fox.png"),
+        metadata: { [COLLECT_PATH_KEY]: "Imported/fox.png" }
+      });
+      await folder(kind).write("Imported/fox.png", PNG.slice(0, 20));
+
+      const report = await reconcileProjectIndex(PROJECT, USER);
+
+      expect(report.created).toEqual([]);
+      expect(await rowsOf()).toEqual([]);
+      // A tool that names the file gets the asset it is being collected for.
+      expect((await ensureAssetForPath(PROJECT, USER, "Imported/fox.png")).id).toBe(
+        linked.id
+      );
+      expect(await rowsOf()).toEqual([]);
+    });
+
     it("does not bring back a row that was deleted while the scan ran", async () => {
       const asset = await saveImage("fox");
       await folder(kind).delete("Generated/fox.png");
@@ -873,6 +957,8 @@ describe.each(["local", "storage"] as const)(
       ): Promise<{
         calls: Record<"list" | "stat" | "read" | "materialize", number>;
         queries: number;
+        /** Listings the object store answered: list requests on S3. */
+        storeLists: number;
         report: Awaited<ReturnType<typeof reconcileProjectIndex>>;
       }> {
         await populate(projectId, count);
@@ -880,11 +966,14 @@ describe.each(["local", "storage"] as const)(
         workspaces.set(projectId, workspace);
         const listRows = vi.spyOn(Asset, "listProjectFiles");
         const findByPath = vi.spyOn(Asset, "findByWorkspacePath");
+        const storeList = vi.spyOn(rawStore, "list");
         const report = await reconcileProjectIndex(projectId, USER);
         const queries = listRows.mock.calls.length + findByPath.mock.calls.length;
+        const storeLists = storeList.mock.calls.length;
         listRows.mockRestore();
         findByPath.mockRestore();
-        return { calls, queries, report };
+        storeList.mockRestore();
+        return { calls, queries, storeLists, report };
       }
 
       it(
@@ -904,9 +993,19 @@ describe.each(["local", "storage"] as const)(
             expect(report.offline).toHaveLength(50);
             expect(report.created).toHaveLength(100);
           }
-          // One listing per directory plus the root, whatever the file count.
-          expect(small.calls.list).toBe(51);
-          expect(large.calls.list).toBe(51);
+          if (kind === "local") {
+            // One listing per directory plus the root, whatever the file count.
+            expect(small.calls.list).toBe(51);
+            expect(large.calls.list).toBe(51);
+          } else {
+            // One flat listing of the folder. It names the `.nodetool/` keys
+            // too, so no directory is asked on its own whether it is the
+            // folder of another project.
+            expect(small.calls.list).toBe(1);
+            expect(large.calls.list).toBe(1);
+            expect(small.storeLists).toBe(1);
+            expect(large.storeLists).toBe(1);
+          }
           // The rows come from one query, and no row is looked up by path.
           expect(small.queries).toBe(1);
           expect(large.queries).toBe(1);
@@ -1035,6 +1134,76 @@ describe("reconcile triggers", () => {
     await vi.advanceTimersByTimeAsync(RECONCILE_DEBOUNCE_MS);
     await flushProjectReconciles();
     expect(scans).toHaveBeenCalledTimes(2);
+  });
+
+  /** The project's folder recorded as its workspace row, as the server has it. */
+  async function recordFolder(): Promise<string> {
+    const row = (await WorkspaceRow.create({
+      user_id: USER,
+      project_id: PROJECT,
+      name: "A",
+      path: `workspaces/${USER}/${PROJECT}`,
+      origin: "managed",
+      is_default: false
+    })) as WorkspaceRow;
+    await Project.create<Project>({
+      id: PROJECT,
+      user_id: USER,
+      name: "A",
+      workspace_id: row.id
+    });
+    return row.id;
+  }
+
+  it("a write NodeTool reports reconciles the written paths only, and lists no directory", async () => {
+    const workspaceId = await recordFolder();
+    const workspace = folder("storage");
+    await workspace.write("art/new.png", PNG);
+    // Not reported as written: a reconcile of the written paths leaves it.
+    await workspace.write("art/other.png", Uint8Array.from([...PNG, 1]));
+    const lists = vi.spyOn(workspace, "list");
+
+    scheduleWorkspaceReconcile(workspaceId, USER, "art/new.png");
+    await vi.advanceTimersByTimeAsync(RECONCILE_DEBOUNCE_MS);
+    await flushProjectReconciles();
+
+    expect(lists).not.toHaveBeenCalled();
+    expect((await rowsOf()).map((row) => row.workspace_path)).toEqual(["art/new.png"]);
+  });
+
+  it("a write NodeTool reports without a path scans the whole folder", async () => {
+    const workspaceId = await recordFolder();
+    const workspace = folder("storage");
+    await workspace.write("art/new.png", PNG);
+    await workspace.write("art/other.png", Uint8Array.from([...PNG, 1]));
+
+    scheduleWorkspaceReconcile(workspaceId, USER, "art/new.png");
+    scheduleWorkspaceReconcile(workspaceId, USER);
+    await vi.advanceTimersByTimeAsync(RECONCILE_DEBOUNCE_MS);
+    await flushProjectReconciles();
+
+    expect((await rowsOf()).map((row) => row.workspace_path).sort()).toEqual([
+      "art/new.png",
+      "art/other.png"
+    ]);
+  });
+
+  it("tells the folder change listeners when a reconcile changed rows, and only then", async () => {
+    const asset = await saveImage("fox");
+    const changes: unknown[] = [];
+    const stop = onProjectFolderChanged((change) => changes.push(change));
+    try {
+      await reconcileInBackground(PROJECT, USER);
+      expect(changes).toEqual([]);
+
+      await folder("storage").move("Generated/fox.png", "Generated/fox-final.png");
+      const report = await reconcileInBackground(PROJECT, USER);
+
+      expect(report.moved).toEqual([asset.id]);
+      expect(changes).toEqual([{ projectId: PROJECT, userId: USER }]);
+    } finally {
+      stop();
+    }
   });
 
   it("a scheduled reconcile of an unreachable folder does not throw", async () => {

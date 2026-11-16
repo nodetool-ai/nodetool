@@ -32,6 +32,10 @@ import {
   ACCOUNT_DISABLED_CLOSE_CODE,
   trackUserSocket
 } from "../lib/user-directory.js";
+import {
+  SESSION_REVOKED_CLOSE_CODE,
+  trackNativeSessionSocket
+} from "../oauth/native-session.js";
 
 const log = createLogger("nodetool.websocket.ws");
 
@@ -245,6 +249,17 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
         })
       : () => {};
     socket.on("close", untrackSocket);
+    // A socket opened with a native device session closes when that session
+    // ends, here at once or within one sweep when it ends elsewhere.
+    // It also closes when the token that opened it expires.
+    if (req.nativeSessionId && req.authToken && req.nativeTokenExpiresAt !== null) {
+      socket.on(
+        "close",
+        trackNativeSessionSocket(req.nativeSessionId, req.authToken, req.nativeTokenExpiresAt, () => {
+          socket.close(SESSION_REVOKED_CLOSE_CODE, "session_revoked");
+        })
+      );
+    }
     log.info("WebSocket client connected");
     void runner
       .run(new WsAdapter(socket))

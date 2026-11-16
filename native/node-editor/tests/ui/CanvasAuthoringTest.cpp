@@ -60,7 +60,8 @@ private slots:
   connect(&server, &QWebSocketServer::newConnection, this, [&] {
     peer = server.nextPendingConnection(); peer->setParent(&server);
     connect(peer, &QWebSocket::binaryMessageReceived, this, [&](const QByteArray &bytes) {
-      const auto value = node_editor::decodeMsgPack(bytes); QVERIFY(value); commands.append(value->toObject());
+      // The open-project signal goes with every socket open. WorkflowSessionTests checks it.
+      const auto value = node_editor::decodeMsgPack(bytes); QVERIFY(value); if (value->toObject()["command"] != "set_open_project") { commands.append(value->toObject()); }
     });
   });
   EditorWindow window; window.setCatalog(property_fixture::catalog());

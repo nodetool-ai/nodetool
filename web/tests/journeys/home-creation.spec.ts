@@ -34,7 +34,9 @@ for (const viewport of [{ width: 1280, height: 720 }, { width: 1366, height: 768
         const client = createTRPCClient<AppRouter>({ links: [httpBatchLink({
           url: `http://localhost:${port}/trpc`, methodOverride: "POST"
         })] });
-        await expect.poll(async () => (await client.assets.list.query({ project_id: PROJECT_ID })).assets
+        // The file lands in a folder of the project (Imported/), and `list`
+        // answers one level, so read the whole tree from the user's root.
+        await expect.poll(async () => (await client.assets.recursive.query({ id: "1", project_id: PROJECT_ID })).assets
           .some((asset) => asset.project_id === PROJECT_ID && asset.name === "Untitled.glb" && asset.content_type === "model/gltf-binary"))
           .toBe(true);
       }

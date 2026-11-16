@@ -738,6 +738,22 @@ export interface Scene {
   slugline: string;
   /** Lighting for every shot in the scene, pasted into still prompts. */
   lighting?: string;
+  /** The {@link StoryboardAct} this scene belongs to. Absent on a board without acts. */
+  act_id?: string;
+}
+
+/**
+ * An act: the scenes sharing its id. Like a scene, it needs no index: its
+ * position is the position of its first scene. Words for people, never part of
+ * a prompt.
+ */
+export interface StoryboardAct {
+  type: "act";
+  id: string;
+  /** "Act I (Exposition)". */
+  title: string;
+  /** What the act has to achieve for the film. */
+  objective?: string;
 }
 
 /**
@@ -772,6 +788,8 @@ export interface Screenplay {
    * carries no index of its own.
    */
   scenes?: Scene[];
+  /** The board's acts. Order is derived from each act's first scene, like scene order from shots. */
+  acts?: StoryboardAct[];
   /**
    * The script resource this board's words come from. The board references the
    * script, never the reverse: line↔shot membership lives in the shots'
