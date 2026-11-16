@@ -43,6 +43,7 @@
 #include "properties/DocumentPickerController.h"
 #include "server/WorkflowBrowser.h"
 #include "library/LibraryBrowser.h"
+#include "server/ProjectFolder.h"
 #include "server/WorkflowVersions.h"
 #include "runtime/ChatSession.h"
 #include <QDateTime>
@@ -452,6 +453,13 @@ private:
   void notifyTabs();
     QList<EditorWindow *> visibleTabs() const;
     QString projectKey() const;
+    // Gives the session, the folder notice and the file banner the tab's
+    // project and open workflow.
+    void syncOpenProject();
+    // Whether the document came from a project folder's workflow file
+    // (packages/project-services/src/workflow-file.ts). That file names
+    // itself by its file name and holds no name field.
+    bool projectWorkflowFile() const;
     QString activeProject() const;
     void closeTabs(const QList<EditorWindow *> &targets, EditorWindow *keep);
     void installTabShortcuts();
@@ -834,6 +842,7 @@ private:
   node_editor::DynamicPortsController dynamicPorts_;
   node_editor::WorkflowBrowser browser_;
   node_editor::LibraryBrowser library_;
+  node_editor::ProjectFolder projectFolder_;
   node_editor::ExampleGallery exampleGallery_;
   QDockWidget *browserDock_ = nullptr;
   QDockWidget *libraryDock_ = nullptr;

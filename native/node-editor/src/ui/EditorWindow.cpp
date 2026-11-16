@@ -367,6 +367,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     browser_.configure(origin, token, userId);
     previewAssets_.configure(origin, token, userId);
     library_.configure(origin, token, userId);
+    projectFolder_.configure(origin, token, userId);
     exampleGallery_.configure(origin, token, userId);
     if (browserVisible() && !origin.isEmpty()) { loadBrowser(); }
     if (libraryVisible()) { library_.refresh(); }
@@ -697,6 +698,15 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     connect(canvasTabs->rootObject(), &QQuickItem::implicitHeightChanged, canvasTabs, resizeCanvasTabs);
     resizeCanvasTabs();
     canvasLayout->addWidget(canvasTabs);
+    // The open workflow's file error or missing file, above the canvas.
+    auto fileBanner = panel("DocumentFileBanner", {{"folder", QVariant::fromValue(&projectFolder_)}});
+    fileBanner->setObjectName("document-file-banner");
+    const auto resizeFileBanner = [fileBanner] {
+        fileBanner->setFixedHeight(qCeil(fileBanner->rootObject()->implicitHeight()));
+    };
+    connect(fileBanner->rootObject(), &QQuickItem::implicitHeightChanged, fileBanner, resizeFileBanner);
+    resizeFileBanner();
+    canvasLayout->addWidget(fileBanner);
     canvasLayout->addWidget(view_, 1);
     dockHost_->setCentralWidget(canvasColumn);
     canvasColumn->installEventFilter(this);
@@ -732,12 +742,14 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
                                      {"status", QVariant::fromValue(&statusModel_)}};
   auto browserProperties = chromeProperties;
   browserProperties.insert("browser", QVariant::fromValue(&browser_));
+  browserProperties.insert("folder", QVariant::fromValue(&projectFolder_));
   browserDock_ = dock(tr("Workflows"), "WorkflowBrowser", Qt::LeftDockWidgetArea, browserProperties);
   browserDock_->setObjectName("workflow-browser-dock");
   browserDock_->hide();
   auto libraryProperties = chromeProperties;
   libraryProperties.insert("library", QVariant::fromValue(&library_));
   libraryProperties.insert("assets", QVariant::fromValue<QObject *>(&assetPicker_));
+  libraryProperties.insert("folder", QVariant::fromValue(&projectFolder_));
   libraryDock_ = dock(tr("Library"), "LibraryPanel", Qt::LeftDockWidgetArea, libraryProperties);
   libraryDock_->setObjectName("library-dock");
   libraryDock_->hide();
@@ -1584,6 +1596,7 @@ void EditorWindow::loadBrowser() {
   browser_.restoreViewSettings();
   browserLoadingProjects_ = true;
   browser_.loadProjects();
+  projectFolder_.refresh();
 }
 void EditorWindow::showBrowser(bool visible) {
   if (!browserDock_ || browserVisible() == visible) { return; }
@@ -1717,7 +1730,16 @@ bool EditorWindow::inspectorVisible() const {
   if (!tabOwner_) { return activeEditor_->inspectorVisible(); } return inspectorDock_ && !inspectorDock_->isHidden(); }
 QString EditorWindow::workflowName() const {
   if (!tabOwner_) { return activeEditor_->workflowName(); }
-  return document_.snapshot()["name"].toString(tr("Untitled workflow"));
+  const auto snapshot = document_.snapshot();
+  if (!snapshot.contains("name") && projectWorkflowFile() && !file_.isEmpty()) {
+    auto name = QFileInfo(file_).fileName();
+    name.chop(name.endsWith(".workflow.json") ? int(qstrlen(".workflow.json")) : int(QFileInfo(file_).suffix().size()) + 1);
+    return name;
+  }
+  return snapshot["name"].toString(tr("Untitled workflow"));
+}
+bool EditorWindow::projectWorkflowFile() const {
+  return document_.snapshot().value("format") == QLatin1String("nodetool.workflow");
 }
 bool EditorWindow::canUndo() const {
     if (!tabOwner_) {
@@ -1767,7 +1789,7 @@ bool EditorWindow::workflowRenamable() const {
     if (!tabOwner_) {
         return activeEditor_->workflowRenamable();
     }
-    return !childParent_ && !readOnly();
+    return !childParent_ && !readOnly() && !projectWorkflowFile();
 }
 void EditorWindow::renameWorkflow(const QString &name) {
     if (!tabOwner_) {
@@ -3392,7 +3414,9 @@ bool EditorWindow::saveFile(const QString &path) {
         return childParent_->saveFile(path);
     }
   QSaveFile f(path);
-  auto bytes = QJsonDocument(document_.snapshot()).toJson();
+  auto snapshot = document_.snapshot();
+  if (projectWorkflowFile()) { snapshot.remove("name"); }
+  auto bytes = QJsonDocument(snapshot).toJson();
   if (!f.open(QIODevice::WriteOnly) || f.write(bytes) != bytes.size() ||
       !f.commit()) {
     message_ = f.errorString();
@@ -3826,7 +3850,7 @@ void EditorWindow::action(const QString &name) {
     if (show) {
       showBrowser(false); catalogPanel_->hide();
       if (examplesDock_) { examplesDock_->hide(); }
-      libraryDock_->show(); library_.refresh();
+      libraryDock_->show(); library_.refresh(); projectFolder_.refresh();
     }
     else if (libraryDock_) { libraryDock_->hide(); }
     schedulePanelChanged();

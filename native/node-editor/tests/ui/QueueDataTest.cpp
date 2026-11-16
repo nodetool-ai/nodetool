@@ -40,7 +40,9 @@ public:
             peer->setParent(this);
             peers.append(peer);
             connect(peer, &QWebSocket::binaryMessageReceived, this, [this](QByteArray bytes) {
-                commands.append(decodeMsgPack(bytes)->toObject());
+                // The open-project signal goes with every socket open. WorkflowSessionTests checks it.
+                const auto command = decodeMsgPack(bytes)->toObject();
+                if (command["command"] != "set_open_project") { commands.append(command); }
             });
         });
         connect(&http, &QTcpServer::newConnection, this, [this] {
