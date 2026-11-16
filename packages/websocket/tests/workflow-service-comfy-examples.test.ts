@@ -2,7 +2,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ create: vi.fn(), loadExampleGraph: vi.fn() }));
 vi.mock("@nodetool-ai/models", () => ({
-  Project: {}, WorkflowCollaborator: {}, Workflow: { create: mocks.create }
+  Project: {}, WorkflowCollaborator: {}, Workflow: { create: mocks.create },
+  createTimeOrderedUuid: () => "copy"
+}));
+vi.mock("../src/lib/document-refs.js", () => ({
+  findUnreadableFile: async () => ({ unreadable: null, toAdmit: [] }),
+  fileNotReadableMessage: () => "",
+  publishSave: async () => undefined
 }));
 vi.mock("../src/configured-providers.js", () => ({ loadConfiguredProviders: async () => ({}) }));
 vi.mock("../src/lib/example-apps.js", () => ({ localizeLanguageModels: (graph: unknown) => graph }));
