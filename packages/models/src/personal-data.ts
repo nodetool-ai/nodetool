@@ -81,6 +81,7 @@ import { jobs } from "./schema/jobs.js";
 import { jsScriptVersions } from "./schema/js-script-versions.js";
 import { jsScripts } from "./schema/js-scripts.js";
 import { mcpOauthGrants, mcpOauthTokens } from "./schema/mcp-oauth.js";
+import { cloudDrafts, cloudOpenState } from "./schema/cloud-local.js";
 import { memories } from "./schema/memories.js";
 import { messages } from "./schema/messages.js";
 import { oauthCredentials } from "./schema/oauth-credentials.js";
@@ -530,6 +531,8 @@ export const ERASURE_STEPS: readonly ErasureStep[] = [
   directStep("nodetool_messages", messages, messages.user_id),
   directStep("nodetool_threads", threads, threads.user_id),
   directStep("nodetool_memories", memories, memories.user_id),
+  directStep("cloud_drafts", cloudDrafts, cloudDrafts.user_id),
+  directStep("cloud_open_state", cloudOpenState, cloudOpenState.user_id),
   directStep("nodetool_error_traces", errorTraces, errorTraces.user_id),
   directStep("nodetool_bug_reports", bugReports, bugReports.user_id),
   directStep("nodetool_settings", appSettings, appSettings.user_id),
@@ -860,6 +863,8 @@ export const EXPORT_HANDLERS: Readonly<Record<string, ExportHandler>> = {
   nodetool_credit_ledger: directExport(creditLedger, creditLedger.user_id),
   nodetool_jobs: directExport(jobs, jobs.user_id),
   nodetool_memories: directExport(memories, memories.user_id),
+  cloud_drafts: directExport(cloudDrafts, cloudDrafts.user_id),
+  cloud_open_state: directExport(cloudOpenState, cloudOpenState.user_id),
   nodetool_error_traces: directExport(errorTraces, errorTraces.user_id),
   nodetool_bug_reports: directExport(bugReports, bugReports.user_id),
   nodetool_messages: directExport(messages, messages.user_id),

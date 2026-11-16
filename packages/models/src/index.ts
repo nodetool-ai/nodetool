@@ -737,3 +737,14 @@ export { threadHasTraceContentTools } from "./trace-provenance.js";
 export { listAppInstanceMetadata } from "./app-instance-list.js";
 
 export { openResourceChangeChannel, openResourceChangeChannelWithFallback, resolveResourceChangeListenerUrl, NOTIFY_PAYLOAD_LIMIT, MAX_PENDING_NOTIFICATIONS, RESYNC_MESSAGE, packResourceChangeMessages, encodeResourceChangeGroup } from "./resource-change-channel.js";
+
+export { CloudLocalStore } from "./cloud-local-store.js";
+export type {
+  AcceptOutcome,
+  CloudBase,
+  CloudDocumentRef,
+  CloudDraftRow,
+  CloudLocalScope,
+  CloudOpenStateRow
+} from "./cloud-local-store.js";
+export type { CloudDocumentOptions } from "./schema/cloud-local.js";
