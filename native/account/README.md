@@ -7,16 +7,21 @@ It signs in to a NodeTool server through the browser, keeps one session per
 server and user that both apps share, renews the access token, and signs out.
 
 The library depends on the C++20 standard library, threads, sockets and
-nlohmann_json only. Two interfaces connect it to the rest of the app:
+nlohmann_json only. Three interfaces connect it to the rest of the app:
 
 - `SecretStore` is the operating system's credential store.
   `KeychainStore` writes items exactly as keytar does, the keychain library
   the Node backend uses for its master key, so either side can read what
   the other wrote. `MemorySecretStore` serves the tests and the case where
   no store exists.
+- `HttpTransport` sends one HTTP request. Each app implements it with its
+  own network stack (`QNetworkAccessManager` in the Qt apps), so the library
+  needs no HTTP or TLS library.
 - `TokenEndpoint` makes the three server calls: the code exchange, the
-  refresh and `/oauth/session/end`. The HTTP implementation belongs to the
-  request layer (WP1.10).
+  refresh and `/oauth/session/end`. `HttpTokenEndpoint` makes them over an
+  `HttpTransport`.
+- `CloudSaver` sends one save of a whole document to the cloud server. The
+  call differs by document kind and belongs to each app.
 
 | Header | What it holds |
 |---|---|
@@ -27,6 +32,10 @@ nlohmann_json only. Two interfaces connect it to the rest of the app:
 | `nodetool/account/storage.h` | `SecretStore`, `MemorySecretStore`, `AccountLock`, the generation file, atomic file writes, the folder layout |
 | `nodetool/account/accounts_index.h` | `AccountsIndex`, the `accounts.json` list the Account control reads |
 | `nodetool/account/token_endpoint.h` | `TokenEndpoint` and its results |
+| `nodetool/account/http_transport.h` | `HttpTransport`, `HttpRequest`, `HttpResponse` |
+| `nodetool/account/http_token_endpoint.h` | `HttpTokenEndpoint` and `parseTokenResponse` |
+| `nodetool/account/cloud_client.h` | `CloudClient`, the one request layer that attaches the credential (WP1.10) |
+| `nodetool/account/cloud_drafts.h` | `CloudDocumentSaver`, the saved-state rule (FR11). `DraftStore` and `LocalServerDraftStore`, the client of the local store |
 | `nodetool/account/crypto.h` | SHA-256, base64url, hex, random bytes, the server key |
 
 Everything is in the namespace `nodetool::account`. The CMake target is the
@@ -95,14 +104,45 @@ its requests and close its sockets at once.
   A value longer than 2,560 bytes, the Windows limit, is refused on every
   platform. A session record with three pending handles is under 1 KB.
 
+## The request layer and the saved state
+
+`CloudClient::send()` applies the request rule before each request to the
+cloud server, attaches `Authorization: Bearer`, and replaces any header the
+caller set. It refuses a URL that is not on the session's origin, so the
+credential never reaches another host. On a 401 it renews the token once
+and sends again. A 401 that a renewal cannot change is returned, not
+retried.
+
+`CloudDocumentSaver` drives one open cloud document. `edit()` takes the
+whole in-memory document from any thread. `tick()` runs on a worker thread
+at least every 250 ms:
+
+1. The draft is written to the local store once the edits pause for
+   200 ms, and at the latest 500 ms after the first unstored edit, so every
+   edit is stored within 750 ms.
+2. The stored draft is sent. On acceptance the local store deletes the
+   draft row and records the new base in one transaction. Only then does
+   the status read Saved to cloud.
+3. A failed local write, or a failed record of an acceptance, shows Not
+   saving at once. Not saving stays until the store works, whatever the
+   cloud answers, and the write is retried every 2 seconds.
+4. A refused save keeps the draft as unsent edits. Offline and signed-out
+   sends are retried every 5 seconds.
+
+The local store is the `cloudLocal` tRPC router of the app's bundled
+server, over the `cloud_drafts` and `cloud_open_state` tables
+(`packages/models/src/cloud-local-store.ts`). A draft row carries a
+revision. An acceptance deletes the row only when it is still the revision
+that was sent, so edits made during a send are kept and sent next.
+
 ## Not in this library yet
 
 - The WP0.2 checks that need each platform: whether a second, separately
   signed app reads the macOS item without a prompt, and the Windows and
   macOS builds of `KeychainStore`, which this repository's CI does not
   compile yet.
-- The HTTP `TokenEndpoint` and the request layer that calls
-  `credentialForRequest()` before each request (WP1.10).
+- The `CloudSaver` for each document kind, and moving the apps' existing
+  header writes onto `CloudClient` (WP1.10, with Qt).
 - The file watcher, the Account control and the Qt bindings (WP1.11).
 - The managed policy file (WP1.9).
 
@@ -122,6 +162,11 @@ that throws at a `FaultPoint`: the lock is released with its file, as the
 operating system releases it from a killed process, and nothing after the
 point is written. TC5's real process kill, and the behavior of the keychain
 across two separately built apps, need the WP0.2 spike on each platform.
+
+`account_cloud_tests` covers `HttpTokenEndpoint` against canned responses,
+`CloudClient` against the fake token server, `LocalServerDraftStore`
+against a fake bundled server, and `CloudDocumentSaver`, including TC9 (the
+disk fills while editing) and edits made during a send.
 
 `account_keychain_tests` writes, overwrites and removes real items in the
 platform store and stores a full session record. It prints `SKIP` and passes

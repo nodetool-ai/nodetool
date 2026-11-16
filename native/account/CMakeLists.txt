@@ -34,7 +34,10 @@ option(NODETOOL_ACCOUNT_TSAN "Build with ThreadSanitizer" OFF)
 add_library(nodetool_account STATIC
   src/account_session.cpp
   src/accounts_index.cpp
+  src/cloud_client.cpp
+  src/cloud_drafts.cpp
   src/crypto.cpp
+  src/http_token_endpoint.cpp
   src/session_record.cpp
   src/sign_in.cpp
   src/storage.cpp)
@@ -94,6 +97,12 @@ if(PROJECT_IS_TOP_LEVEL)
   target_link_libraries(account_session_tests PRIVATE nodetool_account)
   target_include_directories(account_session_tests PRIVATE tests)
   add_test(NAME account_session_tests COMMAND account_session_tests)
+  # The request layer, the token endpoint over HTTP, the local store client
+  # and the saved-state rule, TC9 among them.
+  add_executable(account_cloud_tests tests/cloud.cpp)
+  target_link_libraries(account_cloud_tests PRIVATE nodetool_account nlohmann_json::nlohmann_json)
+  target_include_directories(account_cloud_tests PRIVATE tests)
+  add_test(NAME account_cloud_tests COMMAND account_cloud_tests)
   # The platform keychain store against the real credential store. It
   # passes without checking anything when no store answers, and says so.
   add_executable(account_keychain_tests tests/keychain.cpp)
