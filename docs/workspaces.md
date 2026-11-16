@@ -159,7 +159,7 @@ An install from before project folders has projects without a folder, workflows 
 
 Until then, a project from before project folders gets its folder only when a run or a chat turn in it starts. The other projects, files and assets wait. While the migration runs, one panel shows how many files moved, the project being worked on, **Pause** and **Resume**, and the files that could not move with **Try again**. When it is done it says where the files are. A paused migration stays paused after a restart, and a running one continues.
 
-The migration runs without asking with `NODETOOL_WORKSPACE_STORAGE=cloud`, with `NODETOOL_ENV=production`, and on an install that has nothing to move. Set `NODETOOL_PROJECT_MIGRATION=auto` to skip the question on a headless server or in tests: the server confirms with the configured projects folder at startup. [`nodetool projects migrate --yes`](cli.md#nodetool-projects) confirms from the command line and runs the migration to the end. The states, the API and the failure cases are in the [migration spec](project-folders/migration-ux.md).
+The migration runs without asking with `NODETOOL_WORKSPACE_STORAGE=cloud`, with `NODETOOL_ENV=production`, and on an install that has nothing to move. Set `NODETOOL_PROJECT_MIGRATION=auto` to skip the question on a headless server or in tests: the server confirms with the configured projects folder at startup. [`nodetool projects migrate --yes`](cli.md#nodetool-projects) confirms from the command line and runs the migration to the end. The states, the API and the failure cases are in the [migration spec](https://github.com/nodetool-ai/nodetool/blob/main/docs/project-folders/migration-ux.md).
 
 ### Existing assets move into the folder
 
