@@ -3009,3 +3009,19 @@ the first build. Set `NODETOOL_GRAPH_RUNNER_BUILD_DIR` to reuse a populated
 CMake build directory. The default is `native/graph-runner/build`. The wrapper
 always rebuilds sources and guest artifacts before testing, including when
 reusing a build. Missing prerequisites and failed commands return nonzero.
+
+### Native graph runner guest contract
+
+```bash
+node native/graph-runner/guest/build.mjs native/graph-runner/build/contract-check/guest.js
+```
+
+The default gate runs this check for changes to the guest and to the
+packages whose sources the guest bundle contains, such as `packages/agents`
+and `packages/runtime`. It bundles the guest with esbuild and fails when
+bundled code imports a host package export that
+`native/graph-runner/guest/module-contract.mjs` does not classify, or when the
+contract classifies an export its provider lacks. It needs Node and
+`npm run build:packages`, but no native libraries. The
+`native-graph-runner.yml` workflow runs the same build, but it does not
+trigger on most of these packages.
