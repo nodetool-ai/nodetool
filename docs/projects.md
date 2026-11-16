@@ -11,6 +11,10 @@ A project groups the documents for one job (storyboard, script, cut, key art, mi
 
 Every account has a **Personal** project. It is where documents land when you have not switched to a named project. You cannot archive or delete it, and it does not appear as a card in the project list.
 
+## Projects from before project folders
+
+A project made before project folders gets its folder the first time the server starts. Its assets then move into the folder in the background. While they move, the project card and the left panel show **Moving files into the project folder** with a count. Every asset keeps its ID and stays usable throughout. See [existing assets move into the folder](workspaces.md#existing-assets-move-into-the-folder).
+
 ## The project list
 
 Open **Projects** in the left rail to see every named project as a card, with a **Search projects** field and a **+ New project** button.

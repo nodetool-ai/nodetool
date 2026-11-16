@@ -1,6 +1,6 @@
 # Project folders PRD
 
-Status: agreed product scope and technical design, implementation pending.
+Status: implemented. The PRD merged in [#7585](https://github.com/nodetool-ai/nodetool/pull/7585). The tickets merged in PF01 [#7604](https://github.com/nodetool-ai/nodetool/pull/7604), PF02 [#7606](https://github.com/nodetool-ai/nodetool/pull/7606), PF03 [#7607](https://github.com/nodetool-ai/nodetool/pull/7607), PF04 [#7608](https://github.com/nodetool-ai/nodetool/pull/7608), PF05 [#7610](https://github.com/nodetool-ai/nodetool/pull/7610), PF06 [#7614](https://github.com/nodetool-ai/nodetool/pull/7614), PF07 [#7611](https://github.com/nodetool-ai/nodetool/pull/7611), PF08 [#7615](https://github.com/nodetool-ai/nodetool/pull/7615), PF09 [#7616](https://github.com/nodetool-ai/nodetool/pull/7616), PF10 [#7617](https://github.com/nodetool-ai/nodetool/pull/7617), PF11 [#7620](https://github.com/nodetool-ai/nodetool/pull/7620), PF12 [#7621](https://github.com/nodetool-ai/nodetool/pull/7621), PF13 [#7618](https://github.com/nodetool-ai/nodetool/pull/7618), PF14 [#7619](https://github.com/nodetool-ai/nodetool/pull/7619), PF15 [#7613](https://github.com/nodetool-ai/nodetool/pull/7613), PF16 [#7622](https://github.com/nodetool-ai/nodetool/pull/7622), PF17 [#7623](https://github.com/nodetool-ai/nodetool/pull/7623). The user guide is [Project folders](../workspaces.md).
 
 Builds on: [Project scoping PRD](../project-scoping/prd.md). That PRD decides
 which resources a project owns. This one decides where a project's files live
