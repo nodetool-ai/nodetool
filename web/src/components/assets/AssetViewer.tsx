@@ -45,6 +45,7 @@ import AssetFilmstrip from "./AssetFilmstrip";
 import { TransformWithWorkflowView } from "./TransformWithWorkflowDialog";
 import { transformSourceFromAsset } from "./transformWorkflow";
 import AssetInfoPanel from "../context_menus/AssetInfoPanel";
+import AssetFileStatus from "./AssetFileStatus";
 import { ImageComparer } from "../widgets";
 //
 //components
@@ -808,6 +809,11 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           aria-label={t("assetViewer.label")}
           sx={{ zIndex: Z_INDEX.tooltip }}
         >
+          {currentAsset && !compareMode && (
+            <OverlayLayerProvider value={theme.zIndex.floating}>
+              <AssetFileStatus asset={currentAsset} onRemoved={handleClose} />
+            </OverlayLayerProvider>
+          )}
           {callerActions != null && callerActions !== false && (
             // Menus and dialogs these actions open have to stack above the
             // fullscreen viewer, not under it at the modal layer.

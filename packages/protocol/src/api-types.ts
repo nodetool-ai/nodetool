@@ -418,10 +418,13 @@ export interface Asset {
   thumb_url: string | null;
   etag?: string | null;
   /**
-   * Set only on an asset that references a local file in place: true when
-   * that file is missing or changed since import or relink.
+   * True when the asset's file is missing: a file referenced in place that
+   * is missing or changed since import or relink, or a file gone from its
+   * project folder.
    */
   offline?: boolean;
+  /** True on an asset that references a file outside its project folder in place. */
+  linked?: boolean;
   /**
    * Set only on a video asset on a local server: the state of its all-intra
    * preview proxy.

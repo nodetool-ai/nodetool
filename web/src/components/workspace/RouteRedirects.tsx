@@ -118,3 +118,20 @@ export const ChatThreadRedirect = () => {
 
   return resolved ? <Navigate to="/workspace" replace /> : null;
 };
+
+/**
+ * `/workspaces` used to manage workspace folders. A project's folder is its
+ * Files section now, so the old route opens the left panel on Files for the
+ * selected project and lands in the workspace shell.
+ */
+export const ProjectFilesRedirect = () => {
+  const setActiveView = usePanelStore((state) => state.setActiveView);
+  const setVisibility = usePanelStore((state) => state.setVisibility);
+
+  useEffect(() => {
+    setActiveView("files");
+    setVisibility(true);
+  }, [setActiveView, setVisibility]);
+
+  return <Navigate to="/workspace" replace />;
+};

@@ -51,18 +51,22 @@ interface AssetMentionSearch {
  * there is anything recent. `contentType` narrows both buckets to assets whose
  * content type starts with it, such as `"video"`. `includeAssets: false` skips
  * the asset search and returns no assets, for a picker that offers entities only.
+ * `projectId` lists another project's assets instead of the active project's,
+ * such as Personal for a picker's library tab.
  */
 export const useAssetMentionSearch = (
   queryString: string | null,
   initialTab?: MentionTab,
   contentType?: string,
-  includeAssets = true
+  includeAssets = true,
+  projectId?: string
 ): AssetMentionSearch => {
   const search = useAssetStore((state) => state.search);
   const updateAsset = useAssetStore((state) => state.update);
   const { data: allEntities } = useEntities();
-  const activeProjectId =
+  const workspaceProjectId =
     useWorkspaceTabsStore((state) => state.activeProjectId) ?? LOOSE_PROJECT_ID;
+  const activeProjectId = projectId ?? workspaceProjectId;
   const recentAssets = useRecentAssetsStore((state) => state.recentAssets);
   const renameRecentAsset = useRecentAssetsStore(
     (state) => state.renameRecentAsset

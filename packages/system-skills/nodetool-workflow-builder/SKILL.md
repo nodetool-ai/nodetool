@@ -57,6 +57,9 @@ registry as the source of identifiers.
 5. Execute only when the request includes a run. A run of generation nodes
    spends provider money, so confirm scope with the user first. Report the
    workflow id, inputs, validation result, and actual run outcome.
+   Check the outputs against the request. Count the items in a list output.
+   Open one image, video frame or audio result with `view_image` or a
+   transcription before you call the result correct.
 
 If a node is unavailable, broaden the search and inspect supported alternatives.
 Proceed with an equivalent composition when it preserves the requested behavior.
@@ -205,6 +208,8 @@ node that fits a handle.
 - Everything is a stream. A single value is a one-item stream.
 - `nodetool.control.Collect` gathers a stream into a list.
   `nodetool.control.ForEach` emits each item of a list.
+- An `Output` node keeps only the last item of a stream in the run result. To
+  return every item of a `ForEach`, put a `Collect` before the `Output`.
 - `nodetool.control.Loop` repeats part of the graph: wire `initial` into the
   body, the body's result back into `next`, and a bool into `condition` (loop
   again while true). `max_iterations` bounds it and `done` carries the final

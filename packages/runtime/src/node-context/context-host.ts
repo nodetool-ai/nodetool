@@ -54,6 +54,8 @@ export interface GenerationAssetArgs {
   parentId: string | null;
   nodeId: string | null;
   metadata: Record<string, unknown>;
+  /** Exact path in the run's project folder; see `GenerationRequest.persist`. */
+  path?: string;
 }
 
 /** The run a generation belongs to, as the generation envelope reads it. */

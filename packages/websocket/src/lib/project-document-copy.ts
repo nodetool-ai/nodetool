@@ -26,6 +26,11 @@ import {
 } from "@nodetool-ai/project-services/id-remap";
 import { FileStorageAdapter, type StorageAdapter } from "@nodetool-ai/storage";
 import {
+  ASSET_REFERENCE_KEYS,
+  assetIdFromLocator,
+  remapAssetLocator
+} from "@nodetool-ai/asset-services/asset-references";
+import {
   existingAssetUri,
   getAssetStorageKey,
   localAssetPath
@@ -99,35 +104,6 @@ async function copyStoredObject(
   };
 }
 
-const ASSET_KEYS = new Set([
-  "assetid",
-  "asset_id",
-  "assetids",
-  "asset_ids",
-  "currentassetid",
-  "current_asset_id",
-  "waveformassetid",
-  "waveform_asset_id",
-  "entityid",
-  "entity_id",
-  "entityids",
-  "entity_ids",
-  "thumbnailassetid",
-  "thumbnail_asset_id",
-  "referenceassetid",
-  "reference_asset_id",
-  "referenceassetids",
-  "reference_asset_ids",
-  "locationid",
-  "location_id",
-  "styleentityid",
-  "style_entity_id",
-  "sourceassetid",
-  "source_asset_id",
-  "maskassetid",
-  "mask_asset_id"
-]);
-
 const DOCUMENT_KEYS: Readonly<Record<string, ProjectDocumentType>> = {
   storyboardid: "storyboard",
   storyboard_id: "storyboard",
@@ -195,7 +171,7 @@ function findReferences(value: unknown): References {
           `Unsupported workflow dependency at ${key}. Copy the workflow separately first.`
         );
       }
-      if (ASSET_KEYS.has(normalizedKey)) addRef(child, assetIds);
+      if (ASSET_REFERENCE_KEYS.has(normalizedKey)) addRef(child, assetIds);
       const documentType = DOCUMENT_KEYS[normalizedKey];
       if (documentType) {
         const ids = new Set<string>();

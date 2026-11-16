@@ -99,6 +99,31 @@ private slots:
         QVERIFY(!refused.error.isEmpty());
         QCOMPARE(refused.clip, clip);
     }
+    void remixTakesOfDifferentLengths() {
+        // F11: the clip keeps its length, and each take's window starts at its own start.
+        const auto take = [](const char* id, const char* asset, double length, double in, double out) {
+            return QJsonObject{{"id", id}, {"assetId", asset}, {"status", "success"}, {"durationMs", length},
+                               {"sourceMapping", QJsonObject{{"inPointMs", in}, {"outPointMs", out}}}};
+        };
+        const QJsonArray versions{take("source", "asset_source", 20000, 2000, 6000), take("short", "asset_short", 4000, 0, 4000),
+                                  take("long", "asset_long", 6000, 0, 6000)};
+        QJsonObject clip{{"mediaType", "video"}, {"durationMs", 4000}, {"currentAssetId", "asset_source"},
+                         {"activeTakeId", "source"}, {"inPointMs", 2000}, {"outPointMs", 6000}, {"versions", versions}};
+        const auto longer = nt::ai::applyTake(clip, "long");
+        QVERIFY2(longer.error.isEmpty(), qPrintable(longer.error));
+        QCOMPARE(longer.clip.value("durationMs").toDouble(), 4000.0);
+        QCOMPARE(longer.clip.value("inPointMs").toDouble(), 0.0);
+        QCOMPARE(longer.clip.value("outPointMs").toDouble(), 4000.0);
+        const auto back = nt::ai::applyTake(longer.clip, "source");
+        QCOMPARE(back.clip.value("inPointMs").toDouble(), 2000.0);
+        QCOMPARE(back.clip.value("outPointMs").toDouble(), 6000.0);
+        // A split half keeps its offset into the take.
+        clip.insert("durationMs", 2000); clip.insert("inPointMs", 4000); clip.insert("outPointMs", 6000);
+        const auto half = nt::ai::applyTake(clip, "long");
+        QVERIFY2(half.error.isEmpty(), qPrintable(half.error));
+        QCOMPARE(half.clip.value("inPointMs").toDouble(), 2000.0);
+        QCOMPARE(half.clip.value("outPointMs").toDouble(), 4000.0);
+    }
 };
 QTEST_GUILESS_MAIN(TakeTest)
 #include "tst_take.moc"

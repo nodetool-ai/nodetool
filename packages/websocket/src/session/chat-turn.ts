@@ -27,7 +27,7 @@ import {
   isRecord,
   isString
 } from "../lib/wire-values.js";
-import { storeAssetWithThumbnail } from "../lib/thumbnail.js";
+import { saveProjectAsset } from "@nodetool-ai/asset-services/project-asset";
 import {
   compileMediaPresets,
   mediaPresetSettings,
@@ -43,7 +43,6 @@ import {
   toRawGraphInput
 } from "@nodetool-ai/execution";
 import {
-  Asset,
   COMPACTION_EVENT_TYPE,
   compactionMessageContent,
   isCompactionMessage,
@@ -1012,31 +1011,22 @@ export class ChatTurnHandler {
         continue;
       }
       const mimeType = isString(image.mimeType) ? image.mimeType : "image/png";
-      const ext = IMAGE_MIME_TO_EXT[mimeType] ?? "png";
       // Per-block isolation: a storage failure must not abort the whole turn —
       // the image is already generated (and billed), and the assistant text
       // plus any sibling images should still reach the user. Degrade the
       // failed block to a text notice; never fall back to raw base64.
       try {
-        const asset = new Asset({
-          user_id: userId,
-          workflow_id: workflowId ?? null,
-          project_id: projectId,
+        // One file in `Generated/` of the chat's project, and its row.
+        const asset = await saveProjectAsset({
+          projectId,
+          userId,
           name: `image_${Date.now()}`,
-          content_type: mimeType,
-          // Home — see the chat media generation path.
-          parent_id: userId
-        });
-        const fileName = `${asset.id}.${ext}`;
-        await storeAssetWithThumbnail(
-          asset.user_id,
-          asset.id,
-          fileName,
+          contentType: mimeType,
           bytes,
-          mimeType
-        );
-        asset.size = bytes.length;
-        await asset.save();
+          provenance: { workflow_id: workflowId ?? null },
+          // Home — see the chat media generation path.
+          parentId: userId
+        });
         // The DB / wire shape mirrors handleMediaGenerationMessage: an asset_id
         // reference (never raw bytes). resolveContentUrls / resolveContentForProvider
         // dereference asset_id on the way out and on the next turn.

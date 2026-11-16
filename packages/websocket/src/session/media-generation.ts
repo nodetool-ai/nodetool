@@ -21,7 +21,7 @@ import {
 } from "@nodetool-ai/presets";
 import { createLogger } from "@nodetool-ai/config";
 import { encryptFernet, getMasterKey } from "@nodetool-ai/security";
-import { Asset, Prediction } from "@nodetool-ai/models";
+import { Prediction } from "@nodetool-ai/models";
 import {
   attachRunCostLedger,
   createFalGenerationLifecycleHooks,
@@ -39,7 +39,7 @@ import type {
 import type { GenerationReceipt } from "@nodetool-ai/protocol";
 
 import { createAssetModelInterface } from "../lib/asset-model-interface.js";
-import { storeAssetWithThumbnail } from "../lib/thumbnail.js";
+import { saveProjectAsset } from "@nodetool-ai/asset-services/project-asset";
 
 const log = createLogger("nodetool.websocket.media-generation");
 
@@ -236,26 +236,19 @@ export function createGenerationRun(
       return result.assets[index]?.asset_id ?? null;
     },
 
-    async storeAsset(bytes, contentType, ext) {
-      const asset = new Asset({
-        user_id: userId,
-        workflow_id: workflowId,
-        project_id: projectId ?? "default",
+    async storeAsset(bytes, contentType) {
+      // One file in `Generated/` of the chat's project, and its row.
+      const asset = await saveProjectAsset({
+        projectId: projectId ?? null,
+        userId,
         name: `${assetNamePrefix}_${Date.now()}`,
-        content_type: contentType,
+        contentType,
+        bytes,
+        provenance: { workflow_id: workflowId ?? null },
         // Home, the same folder an upload lands in. A null parent is
         // unreachable from the folder the asset browser opens on.
-        parent_id: userId
+        parentId: userId
       });
-      await storeAssetWithThumbnail(
-        asset.user_id,
-        asset.id,
-        `${asset.id}.${ext}`,
-        bytes,
-        contentType
-      );
-      asset.size = bytes.length;
-      await asset.save();
       return asset.id;
     }
   };

@@ -209,8 +209,10 @@ export const timelineFileAdapter: DocumentFileAdapter<
     );
   },
 
+  // An insert that refuses a taken ID: the ID comes from a file, and a row
+  // with it can be another user's.
   create: ({ id, userId, projectId, name, fields }) =>
-    TimelineSequence.create<TimelineSequence>({
+    TimelineSequence.insertNew({
       id,
       user_id: userId,
       project_id: projectId,

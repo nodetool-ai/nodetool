@@ -967,6 +967,60 @@ describe.each(["local", "storage"] as const)("workflow files (%s folder)", (kind
       expect(await reconcile()).toMatchObject({ unchanged: 2, reassigned: [] });
     });
 
+    it("never replaces a row that another writer creates between the lookup and the create", async () => {
+      const id = "0123456789abcdef0123456789abcdef";
+      const text = JSON.stringify({
+        format: "nodetool.workflow",
+        version: 1,
+        id,
+        graph: graphOf(node("a", "from my file"))
+      });
+      await folder(kind).write(pathOf("Mine"), text);
+      // Another user creates a workflow with this ID right after the
+      // reconcile has found the ID free and before it creates its row.
+      let theirs: Workflow | undefined;
+      const racing = {
+        ...workflowFileAdapter,
+        async exists(candidate: string): Promise<boolean> {
+          const taken = await workflowFileAdapter.exists(candidate);
+          if (candidate === id && !taken) {
+            theirs = await Workflow.create<Workflow>({
+              id,
+              user_id: "someone-else",
+              project_id: OTHER_PROJECT,
+              name: "Theirs",
+              graph: graphOf(node("a", "theirs"))
+            });
+          }
+          return taken;
+        }
+      };
+
+      const report = await reconcileDocumentFiles([racing], PROJECT, USER);
+
+      // Their row is exactly what they created.
+      expect(theirs).toBeDefined();
+      const untouched = await reload(id);
+      expect(untouched.toRow()).toEqual(theirs?.toRow());
+      expect(untouched).toMatchObject({
+        user_id: "someone-else",
+        project_id: OTHER_PROJECT,
+        name: "Theirs"
+      });
+      // The file became a workflow of its own, under a new ID.
+      expect(report).toMatchObject({ created: [], rejected: [] });
+      expect(report.reassigned).toHaveLength(1);
+      const [mineId] = report.reassigned;
+      expect(mineId).not.toBe(id);
+      const mine = await reload(mineId!);
+      expect(mine).toMatchObject({ user_id: USER, project_id: PROJECT, name: "Mine" });
+      expect(mine.graph.nodes[0]).toMatchObject({ data: { value: "from my file" } });
+      const rewritten = await textOf(kind, pathOf("Mine"));
+      expect((JSON.parse(rewritten) as WorkflowFileJson).id).toBe(mineId);
+      expect(mine.file_hash).toBe(sha256(rewritten));
+      expect(await reconcile()).toMatchObject({ unchanged: 1, created: [], reassigned: [] });
+    });
+
     it("assigns a new ID to a file whose ID belongs to a workflow of another project", async () => {
       const elsewhere = await makeWorkflow("Fox", { project_id: OTHER_PROJECT });
       const text = await folder(kind, OTHER_PROJECT).readText(pathOf("Fox"));
@@ -1475,6 +1529,24 @@ describe.each(["local", "storage"] as const)("workflow files (%s folder)", (kind
       expect((await reload(workflow.id)).graph.nodes[0]).toMatchObject({
         data: { value: "seen by the trigger" }
       });
+    });
+
+    it("comes back for a copy that waited, without another trigger", async () => {
+      const workflow = await makeWorkflow("Fox");
+      await folder(kind).copy(pathOf("Fox"), pathOf("Fox copy"));
+
+      scheduleProjectReconcile(PROJECT, USER);
+      await flushProjectReconciles();
+      expect(await rows()).toHaveLength(1);
+
+      // The reconcile scheduled its own follow-up for when the wait is over.
+      passCopyGrace();
+      await flushProjectReconciles();
+
+      const all = await rows();
+      expect(all).toHaveLength(2);
+      const copy = all.find((row) => row.id !== workflow.id);
+      expect(copy).toMatchObject({ name: "Fox copy", file_path: pathOf("Fox copy") });
     });
 
     it("looks only at the changed paths it is given", async () => {

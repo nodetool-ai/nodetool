@@ -9,6 +9,7 @@ import { getAssetAdapter } from "@nodetool-ai/asset-services/storage";
 import { storeAssetWithThumbnail } from "@nodetool-ai/asset-services/thumbnail";
 import {
   ensureProjectFolder,
+  markFolderCreated,
   workspaceFromRow
 } from "@nodetool-ai/execution/service";
 
@@ -16,6 +17,7 @@ export function projectArchiveHost(): {
   storage: ReturnType<typeof getAssetAdapter>;
   openWorkspace: OpenWorkspace;
   ensureFolder: typeof ensureProjectFolder;
+  markCreatedFolder: typeof markFolderCreated;
   removeAssetBytes: (userId: string, assetId: string, contentType: string) => Promise<void>;
   storeAssetBytes: (args: {
     userId: string;
@@ -28,6 +30,7 @@ export function projectArchiveHost(): {
     storage: getAssetAdapter(),
     openWorkspace: workspaceFromRow,
     ensureFolder: ensureProjectFolder,
+    markCreatedFolder: markFolderCreated,
     removeAssetBytes: async (userId, assetId, contentType) => {
       const storage = getAssetAdapter();
       await Promise.all([

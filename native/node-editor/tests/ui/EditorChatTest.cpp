@@ -891,6 +891,25 @@ private slots:
         QTRY_VERIFY(std::any_of(server.requests.cbegin() + created, server.requests.cend(),
             [](const QByteArray &request) { return request.contains("threads.create"); }));
     }
+    // A new tab starts its own conversation instead of resuming the workflow's latest one.
+    void newTabBindsANewThread() {
+        ChatServer server;
+        QVERIFY(server.listen());
+        server.createdId = "dddddddddddddddddddddddddddddddd";
+        nodetool::EditorWindow window;
+        setup(window);
+        window.newTab();
+        QVERIFY(window.document()->load(workflow()));
+        if (!surface(window)->isVisible()) {
+            window.toggleChat();
+        }
+        auto *chat = window.chatSession();
+        chat->connectToServer(server.url());
+        QTRY_COMPARE(chat->selectedThreadId(), server.createdId);
+        QVERIFY(std::any_of(server.requests.cbegin(), server.requests.cend(), [](const auto &request) {
+            return request.contains("threads.create") && request.contains("\"workflow_id\":\"workflow-chat\"");
+        }));
+    }
     void captures() {
         for (const bool dark : {true, false}) {
             nodetool::EditorWindow window;

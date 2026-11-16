@@ -56,6 +56,7 @@ import { resolveClipLayoutsWithDiagnostics, type ClipLayoutResolution } from "./
 import { resolveCamera2D, sampleCamera2D } from "./spatial.js";
 import { expandTemporalClips, clipSteppedTime } from "./temporal.js";
 import { applyTrackAutomation } from "../automation.js";
+import { keyedClipAt } from "../paramCurves.js";
 import { resolveTransition, type ResolvedTransition } from "./transition.js";
 import { clipFadeGain, resolveClipFades } from "../audioFade.js";
 
@@ -1257,6 +1258,13 @@ function computeActiveLayersWithHorizonBase(
           (!c.hidden || matteSourceIds.has(c.id)) &&
           isClipActive(c, options.layerTimeMs?.(c) ?? currentTimeMs)
       )
+      .map((c) => {
+        // Keyed crop, radius, perspective, depth and effect parameters, read
+        // at this frame. They change every frame, so the layer set does too.
+        const keyed = keyedClipAt(c, options.layerTimeMs?.(c) ?? currentTimeMs);
+        if (keyed !== c) considerBoundary(currentTimeMs + PARAM_CURVE_STEP_MS);
+        return keyed;
+      })
       .sort((a, b) => a.startMs - b.startMs);
 
     const drawClips = [...activeClips].sort((a, b) => {
@@ -2361,6 +2369,7 @@ export function hasActiveAnimation(
   const byId = clips ? sceneIndex(clips).clipById : null;
   const animating = (clip: TimelineClip): boolean => {
     if (clip.animationLinks?.length) return true;
+    if (clip.paramCurves?.some((curve) => curve.property !== "volumeDb" && curve.keyframes.length > 1)) return true;
     if (clip.effects?.some((effect) => effect.enabled && (effect.type === "generator" || effect.type === "stylize" || isClipGrainEffect(effect)) && effect.animate)) return true;
     if (!clip.animations || clip.animations.length === 0) return false;
     const compiled = compiledFor(clip, canvas, cache, tempo);
@@ -2383,6 +2392,9 @@ export function hasActiveAnimation(
   }
   return false;
 }
+
+/** How soon a layer set with keyed parameters is computed again: every frame. */
+const PARAM_CURVE_STEP_MS = 1;
 
 /** Longest parent chain the motion check follows before giving up. */
 const MAX_PARENT_HOPS = 64;
