@@ -199,12 +199,15 @@ describe.each(["local", "cloud"] as const)(
         graph: graphWith("second"),
         force: true
       });
-      const versionsBefore = await WorkflowVersion.listForWorkflow(created.id);
+      const versionsBeforeRestore = await WorkflowVersion.listForWorkflow(created.id);
 
       await caller.workflows.versions.restore({
         id: created.id,
         version: version.version
       });
+      // The restore keeps the revision it replaced as one more version.
+      const versionsBefore = await WorkflowVersion.listForWorkflow(created.id);
+      expect(versionsBefore).toHaveLength(versionsBeforeRestore.length + 1);
 
       const restored = await reload(created.id);
       expect(restored.graph.nodes[0]).toMatchObject({ data: { value: "first" } });

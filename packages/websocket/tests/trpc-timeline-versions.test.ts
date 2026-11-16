@@ -71,15 +71,20 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     static update = vi.fn();
 
     // Plain static (not vi.fn) so `vi.resetAllMocks()` doesn't strip the body.
+    /** The revision each save asked to keep, in its own transaction. */
+    static keeps: unknown[] = [];
     static async updateFieldsIfUnchanged(
       id: string,
       _expectedUpdatedAt: string,
-      fields: Record<string, unknown>
+      fields: Record<string, unknown>,
+      _meta?: unknown,
+      keep?: unknown
     ): Promise<StubTimelineSequence | null> {
       const seq = (await StubTimelineSequence.findById(
         id
       )) as StubTimelineSequence | null;
       if (!seq) return null;
+      StubTimelineSequence.keeps.push(keep);
       Object.assign(seq, fields);
       await StubTimelineSequence.update(id, fields);
       return seq;
@@ -149,6 +154,7 @@ import { TimelineSequence, TimelineSequenceVersion } from "@nodetool-ai/models";
 const TS = TimelineSequence as unknown as {
   findById: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
+  keeps: unknown[];
 };
 const TSV = TimelineSequenceVersion as unknown as {
   listForTimeline: ReturnType<typeof vi.fn>;
@@ -326,7 +332,8 @@ describe("timeline.versions router", () => {
 
   // ── restore ───────────────────────────────────────────────────────────────
 
-  it("restore writes the version's document and scalars, after a pre-restore snapshot", async () => {
+  it("restore writes the version's document and scalars, keeping what it replaces", async () => {
+    TS.keeps.length = 0;
     const restoredDoc = {
       tracks: [
         {
@@ -358,12 +365,12 @@ describe("timeline.versions router", () => {
       version: 7
     });
 
-    // Pre-restore snapshot, so a restore is undoable.
-    expect(TSV.snapshotCalls).toHaveLength(1);
-    expect(TSV.snapshotCalls[0].opts).toEqual({
-      saveType: "restore",
-      name: "Before restore to v7"
-    });
+    // The replaced revision is kept in the restore's own transaction, so a
+    // restore is undoable and a lost compare-and-set keeps nothing.
+    expect(TSV.snapshotCalls).toHaveLength(0);
+    expect(TS.keeps).toEqual([
+      expect.objectContaining({ saveType: "restore", name: "Before restore to v7" })
+    ]);
 
     const [id, fields] = TS.update.mock.calls[0] as [
       string,

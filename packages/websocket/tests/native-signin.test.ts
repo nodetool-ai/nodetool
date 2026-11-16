@@ -75,6 +75,8 @@ function makeCtx(userId: string, nativeSessionId: string | null = null): Context
   return {
     userId,
     nativeSessionId,
+    // A native app always names its protocol version.
+    clientProtocol: nativeSessionId ? 1 : null,
     registry: {} as never,
     apiOptions: { metadataRoots: [], registry: {} as never } as never,
     pythonBridge: {} as never,

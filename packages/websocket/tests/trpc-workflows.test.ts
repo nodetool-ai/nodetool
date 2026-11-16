@@ -486,7 +486,9 @@ describe("workflows router", () => {
       expect(Workflow.updateFieldsIfUnchanged).toHaveBeenCalledWith(
         "wf-1",
         wf.updated_at,
-        expect.objectContaining({ name: "Updated Name" })
+        expect.objectContaining({ name: "Updated Name" }),
+        undefined,
+        expect.objectContaining({ saveType: "checkpoint" })
       );
     });
 
@@ -640,7 +642,9 @@ describe("workflows router", () => {
           graph: { nodes: [], edges: [] },
           schema_version: 1,
           last_writer_instance: null
-        }
+        },
+        undefined,
+        expect.objectContaining({ saveType: "checkpoint" })
       );
       expect(wf.save).not.toHaveBeenCalled();
     });
@@ -671,7 +675,9 @@ describe("workflows router", () => {
           graph: { nodes: [], edges: [] },
           schema_version: 1,
           last_writer_instance: null
-        }
+        },
+        undefined,
+        expect.objectContaining({ saveType: "checkpoint" })
       );
       expect(WorkflowVersion).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1124,7 +1130,9 @@ describe("workflows router", () => {
         expect(Workflow.updateFieldsIfUnchanged).toHaveBeenCalledWith(
           "wf-1",
           wf.updated_at,
-          { graph: ver.graph }
+          { graph: ver.graph, last_writer_instance: null, schema_version: 1 },
+          undefined,
+          expect.objectContaining({ description: "Before restore to v1" })
         );
         expect(wf.save).not.toHaveBeenCalled();
         expect(syncTriggerRegistrations).toHaveBeenCalledWith(
@@ -1351,7 +1359,9 @@ describe("workflows.sharing router", () => {
       expect(Workflow.updateFieldsIfUnchanged).toHaveBeenCalledWith(
         "wf-1",
         wf.updated_at,
-        expect.not.objectContaining({ access: expect.anything() })
+        expect.not.objectContaining({ access: expect.anything() }),
+        undefined,
+        expect.objectContaining({ saveType: "checkpoint" })
       );
     });
 
