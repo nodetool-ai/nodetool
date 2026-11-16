@@ -21,7 +21,7 @@ Each folder holds `.nodetool/project.json`, which names the project:
 { "format": "nodetool.project", "version": 1, "id": "<project id>", "name": "My Film" }
 ```
 
-Personal's folder is the default folder from before project folders, unless a native game uses it. Then Personal gets a new folder and the game keeps its own. On startup, each project from before project folders keeps its oldest folder that no game uses, or gets a new one when it has none. Its other folders and their files stay as they are.
+Personal's folder is the default folder from before project folders, unless a native game uses it. Then Personal gets a new folder and the game keeps its own. When the [migration](#upgrading-from-before-project-folders) runs, each project from before project folders keeps its oldest folder that no game uses, or gets a new one when it has none. Its other folders and their files stay as they are.
 
 A native game never writes into a project folder. Each game keeps its own folder under the managed folder, `NODETOOL_WORKSPACES_DIR`. Deleting a project leaves the files in its project folder in place.
 
@@ -155,9 +155,17 @@ NodeTool never replaces a file when it picks a name. The file is created exclusi
 
 Large files are copied in chunks where the folder is a directory on the host. Saving an asset from a file on disk, renaming an asset's file and moving it to another directory read the file in pieces of about 1 MiB, so a file of 1 to 2 GiB does not need that much memory. The name is reserved with an empty file first and the bytes replace it in one rename when the copy ends. A copy that fails removes the empty file. A server that stops mid-copy leaves the empty file, which has no row. The partial content hash and the full content hash already read by range or by stream. A folder in object storage reads the whole file, because the storage adapters take bytes, and so does the move of an asset from before project folders. Those reads are bounded by `NODETOOL_MAX_UPLOAD_BYTES`.
 
+### Upgrading from before project folders
+
+An install from before project folders has projects without a folder, workflows and timelines without a file, and asset bytes in asset storage. On the desktop app and on a local server, NodeTool asks before it moves them. The first launch after the upgrade shows what will happen: how many projects get a folder, how many files move, which projects have more than one workspace and which of those stop being shown, and the folder new project folders go in. **Change location** picks another folder, which must exist and be writable, and becomes the `PROJECTS_DIR` setting. On macOS a folder under Documents, Desktop, Downloads, iCloud Drive or an external volume makes macOS ask for permission first, and the dialog says so. **Move files** starts the migration. **Not now** asks again on the next launch.
+
+Until then, a project from before project folders gets its folder only when a run or a chat turn in it starts. The other projects, files and assets wait. While the migration runs, one panel shows how many files moved, the project being worked on, **Pause** and **Resume**, and the files that could not move with **Try again**. When it is done it says where the files are. A paused migration stays paused after a restart, and a running one continues.
+
+The migration runs without asking with `NODETOOL_WORKSPACE_STORAGE=cloud`, with `NODETOOL_ENV=production`, and on an install that has nothing to move. Set `NODETOOL_PROJECT_MIGRATION=auto` to skip the question on a headless server or in tests: the server confirms with the configured projects folder at startup. [`nodetool projects migrate --yes`](cli.md#nodetool-projects) confirms from the command line and runs the migration to the end. The states, the API and the failure cases are in the [migration spec](https://github.com/nodetool-ai/nodetool/blob/main/docs/project-folders/migration-ux.md).
+
 ### Existing assets move into the folder
 
-Assets created before project folders keep their bytes in asset storage under `<owner>/<asset id>.<ext>`. NodeTool moves them into their project's folder in the background. The move starts when the server starts, after every project has its folder, and again when a project is opened. A project shows "Moving files into the project folder" with a count while it runs. Every asset stays readable throughout, under the same ID and the same URL.
+Assets created before project folders keep their bytes in asset storage under `<owner>/<asset id>.<ext>`. NodeTool moves them into their project's folder in the background. The move starts once the [migration](#upgrading-from-before-project-folders) is confirmed, after every project has its folder. From then on it starts again when the server starts and when a project is opened. A project shows "Moving files into the project folder" with a count while it runs. Every asset stays readable throughout, under the same ID and the same URL.
 
 Each asset moves on its own, in this order:
 
@@ -324,7 +332,7 @@ An editor open on a document whose file was imported takes the new content. An e
 
 ### Workflows from before project folders
 
-A workflow that has no file gets one when the server starts and when its project is next compared. The step writes one file per workflow and records `file_path` and `file_hash`. Running it again writes nothing. A workflow that belongs to no project gets its file in the Personal folder once the Personal project exists.
+A workflow that has no file gets one when the [migration](#upgrading-from-before-project-folders) runs, and when its project is next compared. The step writes one file per workflow and records `file_path` and `file_hash`. Running it again writes nothing. A workflow that belongs to no project gets its file in the Personal folder once the Personal project exists.
 
 ## Timelines are files in the folder
 
@@ -375,7 +383,7 @@ Restoring a version writes the row and the file together and raises `revision`. 
 
 ### Timelines from before project folders
 
-A timeline that has no file gets one when the server starts and when its project is next compared, as a workflow does. Running the step again writes nothing.
+A timeline that has no file gets one when the [migration](#upgrading-from-before-project-folders) runs, and when its project is next compared, as a workflow does. Running the step again writes nothing.
 
 ## Files in the left panel
 
@@ -410,6 +418,8 @@ A listing of a folder that cannot be read fails the operation. The nested-folder
 
 Projects create and adopt their folders through `projects.create`, so no API creates, repoints or deletes a folder. The tRPC `workspace` router has `list`, `listFiles`, `readFile`, and `writeFile` (`packages/websocket/src/trpc/routers/workspace.ts`). Paths passed to the file procedures are workspace-relative. Absolute paths are refused and traversal answers `403`. Binary reads use `GET /api/workspaces/:id/download/:path` (`packages/websocket/src/workspace-api.ts`).
 
+`projects.migration` holds the [upgrade from before project folders](#upgrading-from-before-project-folders): `status`, `plan`, `confirm({ location? })`, `pause`, `resume`, `retry` and `dismiss`. The server checks every transition.
+
 `projects.documents` returns each workflow and timeline with `file: { path, state, error }`, where `state` is `ok`, `invalid` or `missing`. `projects.documentByFile({ id, path })` returns the workflow or timeline whose file is `path` in the project's folder, or null. `projects.restoreDocumentFile({ type, ref })` writes a document's file again from its row. When the reconcile records a new `file_error`, or clears one, the owner's clients get a `resource_change` with `resource_type: "documentfile"`.
 
 ## If it fails
@@ -424,6 +434,7 @@ Projects create and adopt their folders through `projects.create`, so no API cre
 | `This folder belongs to a project that cannot be opened here` | The folder's manifest names a project of another user, or a project you deleted |
 | `This folder belongs to project "<name>"` | Locate was given another project's folder |
 | `The storage endpoint <endpoint> ignores the If-None-Match header on writes` | The folder's S3-compatible storage does not support conditional writes. Use AWS S3, Cloudflare R2, current MinIO, or a local project folder |
+| `Read the migration plan before confirming it`, `Only a migration that is under way can be paused` | A migration request in the wrong state. Read `projects.migration.status` first |
 | `Opening a folder as a project is disabled on this server` | Open folder or Locate with `NODETOOL_ENV=production` |
 | `Path '<path>' is inside .nodetool/, which NodeTool reserves for its own files` | A tool, node or script used a path in `.nodetool/`, at any depth |
 | `Path '<path>' is in the folder of another project inside this one` | A tool, node, script, upload or asset save used a path in [a folder inside this one](#a-folder-inside-another-projects-folder). Open that project to use its files |

@@ -227,18 +227,18 @@ export const timelineFileAdapter: DocumentFileAdapter<
 setTimelineFileSync(documentFileSync(timelineFileAdapter));
 
 /**
- * Write a file for every timeline that has none yet: the timelines from
- * before project folders (PRD T9 step 3). Safe to interrupt and to run again,
- * and a second run writes nothing. A project whose folder cannot be reached
- * is skipped and tried again by the next run. Returns how many files were
- * written.
+ * Write a file for every timeline that has none yet, of every user or of
+ * `userId`: the timelines from before project folders (PRD T9 step 3). Safe to
+ * interrupt and to run again, and a second run writes nothing. A project
+ * whose folder cannot be reached is skipped and tried again by the next run.
+ * Returns how many files were written.
  */
-export async function migrateTimelineFiles(): Promise<number> {
+export async function migrateTimelineFiles(userId?: string): Promise<number> {
   let written = 0;
   for (const {
     user_id,
     project_id
-  } of await TimelineSequence.projectsWithUnwrittenFiles()) {
+  } of await TimelineSequence.projectsWithUnwrittenFiles(userId)) {
     try {
       written += await writeMissingDocumentFiles(
         [timelineFileAdapter],

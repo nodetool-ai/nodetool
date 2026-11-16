@@ -567,7 +567,7 @@ export class Asset extends DBModel {
    * returns. Deliberately not user-scoped, for the startup job, so it must
    * never back a request handler.
    */
-  static async listProjectsAwaitingFolderMove(): Promise<
+  static async listProjectsAwaitingFolderMove(userId?: string): Promise<
     { userId: string; projectId: string }[]
   > {
     const rows = await getPortableDb()
@@ -576,8 +576,29 @@ export class Asset extends DBModel {
         projectId: assets.project_id
       })
       .from(assets)
-      .where(awaitingFolderMove());
+      .where(
+        and(
+          awaitingFolderMove(),
+          userId === undefined ? undefined : eq(assets.user_id, userId)
+        )
+      );
     return rows;
+  }
+
+  /**
+   * How many rows of the user, in any project or none, still wait for their
+   * bytes to move into a project folder: the rows
+   * {@link listAwaitingFolderMove} returns, summed over every project.
+   */
+  static async countAwaitingFolderMove(userId: string): Promise<number> {
+    const rows = await getPortableDb()
+      .select()
+      .from(assets)
+      .where(and(eq(assets.user_id, userId), awaitingFolderMove()));
+    return rows
+      .map((row) => new Asset(row))
+      .filter((asset) => !asset.workspace_path || moveTargetOf(asset) !== null)
+      .length;
   }
 
   /**
