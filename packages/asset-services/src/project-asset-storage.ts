@@ -9,11 +9,13 @@
  * (`externalPathLookup`). An object store has no path to hand out, so it
  * reads the bytes instead.
  */
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 import type {
   DownloadUrlOptions,
   StorageAdapter,
   StorageListResult,
   StorageStat,
+  StoreIfAbsentOptions,
   UploadTarget,
   UploadUrlOptions
 } from "@nodetool-ai/storage";
@@ -46,7 +48,8 @@ export class ProjectAssetStorageAdapter implements StorageAdapter {
   storeIfAbsent?: (
     key: string,
     data: Uint8Array,
-    contentType?: string
+    contentType?: string,
+    options?: StoreIfAbsentOptions
   ) => Promise<string | null>;
   createUploadUrl?: (
     key: string,
@@ -64,8 +67,9 @@ export class ProjectAssetStorageAdapter implements StorageAdapter {
     // Callers test for these methods to choose an upload or download path,
     // so each exists here only when the wrapped adapter has it.
     if (inner.storeIfAbsent) {
-      this.storeIfAbsent = (key, data, contentType) =>
-        inner.storeIfAbsent?.(key, data, contentType) ?? Promise.resolve(null);
+      this.storeIfAbsent = (key, data, contentType, options) =>
+        inner.storeIfAbsent?.(key, data, contentType, options) ??
+        Promise.resolve(null);
     }
     if (inner.createUploadUrl) {
       this.createUploadUrl = (key, opts) =>
@@ -153,4 +157,24 @@ export class ProjectAssetStorageAdapter implements StorageAdapter {
     const file = await this.fileFor(uri);
     return file ? localProjectAssetPath(file) : null;
   }
+}
+
+/**
+ * `adapter` without the lookup through asset rows: a key is answered only
+ * from the object stored under it.
+ *
+ * The asset store answers a key that has no object, or whose object could
+ * not be read, from the file its asset row points at. A caller that is about
+ * to delete an object must know what is under the key itself, so it reads,
+ * stats and deletes through this view. An adapter that has no such lookup is
+ * returned as it is.
+ */
+export function storedObjectsOf(adapter: StorageAdapter): StorageAdapter {
+  if (adapter instanceof ProjectAssetStorageAdapter) return adapter.inner;
+  if (adapter instanceof FileStorageAdapter) {
+    // Null, not left out: an adapter over the asset folder would otherwise
+    // take the lookup installed for that folder.
+    return new FileStorageAdapter(adapter.rootDir, { externalPathLookup: null });
+  }
+  return adapter;
 }

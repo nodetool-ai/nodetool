@@ -90,6 +90,35 @@ describe.each(backends)("Workspace over $name", ({ isLocal }) => {
     expect(await workspace.readText("race.txt")).toBe(`writer ${winners[0]}`);
   });
 
+  it("writeNew with a staging name never replaces a file and leaves no staging file", async () => {
+    const options = { stagingName: ".asset1.nodetool-move.tmp" };
+    expect(
+      await workspace.writeNew("Shots/fox.txt", "first", undefined, options)
+    ).toBe(true);
+    expect(
+      await workspace.writeNew("Shots/fox.txt", "second", undefined, options)
+    ).toBe(false);
+    expect(await workspace.readText("Shots/fox.txt")).toBe("first");
+    // An empty file is a file: it is never taken for a write to finish.
+    await workspace.write("Shots/empty.txt", "");
+    expect(
+      await workspace.writeNew("Shots/empty.txt", "lost", undefined, options)
+    ).toBe(false);
+    expect(await workspace.readText("Shots/empty.txt")).toBe("");
+    const names = (await workspace.list("Shots")).map((entry) => entry.name);
+    expect(names.sort()).toEqual(["empty.txt", "fox.txt"]);
+  });
+
+  it("writeNew refuses a staging name outside the directory of the path", async () => {
+    await expect(
+      workspace.writeNew("fox.txt", "x", undefined, { stagingName: "../x.tmp" })
+    ).rejects.toBeInstanceOf(WorkspacePathError);
+    await expect(
+      workspace.writeNew("fox.txt", "x", undefined, { stagingName: ".nodetool" })
+    ).rejects.toBeInstanceOf(WorkspaceReservedPathError);
+    expect(await workspace.exists("fox.txt")).toBe(false);
+  });
+
   it("writeNew refuses the reserved directory and a path outside the root", async () => {
     await expect(
       workspace.writeNew(".nodetool/project.json", "{}")

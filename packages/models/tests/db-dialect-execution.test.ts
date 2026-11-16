@@ -372,6 +372,144 @@ describe("model execution on SQLite and PostgreSQL", () => {
     });
   }, DIALECT_TEST_TIMEOUT_MS);
 
+  it("lists only the rows whose bytes still have to move into the project folder", async () => {
+    await onBothDialects(async () => {
+      const project = "default";
+      await Project.create<Project>({ id: "elsewhere", user_id: OWNER, name: "Elsewhere" });
+      const make = (name: string, fields: Record<string, unknown> = {}) =>
+        Asset.create<Asset>({
+          user_id: OWNER,
+          project_id: project,
+          name,
+          created_at: `2024-01-01T00:00:0${name.length % 10}.000Z`,
+          ...fields
+        });
+      const legacy = await make("a");
+      const started = await make("bb", {
+        metadata: { workspace_move_target: "Shots/bb.png" }
+      });
+      const switched = await make("ccc", {
+        workspace_path: "ccc.png",
+        metadata: { workspace_move_target: "ccc.png", workspace_size: 3 }
+      });
+      // Never listed: a file in the folder, a file referenced in place, a
+      // folder row, a row that only holds the key's name as a value, and a
+      // row of another project.
+      await make("dddd", { workspace_path: "dddd.png" });
+      await make("eeeee", { external_path: "/media/eeeee.png" });
+      await make("ffffff", { content_type: "folder" });
+      await make("ggggggg", {
+        workspace_path: "ggggggg.png",
+        metadata: { note: "\"workspace_move_target\"" }
+      });
+      const other = await make("hhhhhhhh", { project_id: "elsewhere" });
+
+      const waiting = (await Asset.listAwaitingFolderMove(OWNER, project)).map(
+        (asset) => asset.name
+      );
+      expect(waiting).toEqual([legacy.name, started.name, switched.name]);
+
+      const projects = (await Asset.listProjectsAwaitingFolderMove())
+        .map((row) => `${row.userId}/${row.projectId}`)
+        .sort();
+      expect(projects).toEqual([`${OWNER}/${project}`, `${OWNER}/${other.project_id}`]);
+
+      // Only a row with no file yet holds a path for its copy.
+      const moving = (await Asset.findMovingTo(OWNER, project)).map((a) => a.name);
+      expect(moving).toEqual([started.name]);
+      const exact = await Asset.findMovingTo(OWNER, project, "Shots/bb.png");
+      const none = await Asset.findMovingTo(OWNER, project, "Shots/BB.png");
+      expect([exact.length, none.length]).toEqual([1, 0]);
+
+      const children = [
+        await Asset.countChildren(OWNER, "no-such-folder"),
+        await (async () => {
+          await make("i", { parent_id: legacy.id });
+          return Asset.countChildren(OWNER, legacy.id);
+        })(),
+        await Asset.countChildren("someone-else", legacy.id)
+      ];
+      expect(children).toEqual([0, 1, 0]);
+      return { waiting, projects, moving, children };
+    });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
+  it("writes where an asset's bytes are only while the row is what was read", async () => {
+    await onBothDialects(async () => {
+      const read = { note: "kept", size: 1 };
+      const asset = await Asset.create<Asset>({
+        user_id: OWNER,
+        name: "fox",
+        metadata: read
+      });
+      const updatedAt = (await Asset.get<Asset>(asset.id))?.updated_at;
+      const events: ModelChangeEvent[] = [];
+      ModelObserver.subscribe((_, event) => events.push(event), "Asset");
+
+      // Recording a step of the move writes metadata alone and stays silent.
+      asset.metadata = { ...read, workspace_move_target: "fox.png" };
+      asset.name = "not written";
+      expect(await asset.saveMoveStateIf({ workspace_path: null, metadata: { other: 1 } })).toBe(false);
+      expect(await asset.saveMoveStateIf({ workspace_path: "fox.png", metadata: read })).toBe(false);
+      expect(await asset.saveMoveStateIf({ workspace_path: null, metadata: read })).toBe(true);
+      expect(events).toEqual([]);
+      const recorded = asset.metadata;
+
+      // Another writer renames the asset. Only the placement columns are
+      // written afterwards, so the new name stays.
+      const renamed = await Asset.get<Asset>(asset.id);
+      renamed!.name = "renamed";
+      await renamed!.save();
+      events.length = 0;
+
+      asset.workspace_path = "fox.png";
+      asset.parent_id = OWNER;
+      asset.size = 3;
+      asset.metadata = { ...recorded, workspace_size: 3 };
+      expect(await asset.saveFilePlacementIf({ workspace_path: null, metadata: read })).toBe(false);
+      expect(await asset.saveFilePlacementIf({ workspace_path: null, metadata: recorded })).toBe(true);
+      // The same write again finds the row changed and writes nothing.
+      expect(await asset.saveFilePlacementIf({ workspace_path: null, metadata: recorded })).toBe(false);
+      expect(events).toEqual([ModelChangeEvent.UPDATED]);
+
+      const stored = await Asset.get<Asset>(asset.id);
+      const row = {
+        name: stored?.name,
+        workspace_path: stored?.workspace_path,
+        parent_id: stored?.parent_id,
+        size: stored?.size,
+        metadata: stored?.metadata
+      };
+      expect(row).toEqual({
+        name: "renamed",
+        workspace_path: "fox.png",
+        parent_id: OWNER,
+        size: 3,
+        metadata: { ...recorded, workspace_size: 3 }
+      });
+      // `updated_at` versions the asset's URL, and the bytes did not change.
+      expect(stored?.updated_at).toBe(renamed!.updated_at);
+      expect(updatedAt).toBeDefined();
+
+      // A row that references a file in place is never given a folder file.
+      const linked = await Asset.create<Asset>({
+        user_id: OWNER,
+        external_path: "/media/plate.png"
+      });
+      linked.workspace_path = "plate.png";
+      const refused = await linked.saveFilePlacementIf({ workspace_path: null, metadata: null });
+      expect(refused).toBe(false);
+      expect((await Asset.get<Asset>(linked.id))?.workspace_path).toBeNull();
+
+      // A deleted row is not brought back.
+      await stored!.delete();
+      asset.metadata = {};
+      expect(await asset.saveMoveStateIf({ workspace_path: "fox.png", metadata: row.metadata! })).toBe(false);
+      expect(await Asset.get<Asset>(asset.id)).toBeNull();
+      return { row, refused };
+    });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
   it("uses returning for metadata CAS and notifies only after the matching update", async () => {
     await onBothDialects(async () => {
       const asset = await Asset.create<Asset>({ user_id: OWNER, metadata: { version: 1 } });

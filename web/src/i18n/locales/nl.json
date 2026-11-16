@@ -6146,7 +6146,9 @@
         "notFound": "Map niet gevonden",
         "notFoundDetail": "De map van {{name}} is verplaatst, hernoemd of staat op een station dat niet is aangesloten. Runs starten pas als je de map zoekt.",
         "locate": "Zoeken",
-        "locateError": "Kan de map niet vinden: {{error}}"
+        "locateError": "Kan de map niet vinden: {{error}}",
+        "moving": "Bestanden worden naar de projectmap verplaatst",
+        "movingDetail": "{{done}} van {{total}} bestanden verplaatst. Je assets blijven ondertussen beschikbaar."
       },
       "home": {
         "homeTab": "Thuis",

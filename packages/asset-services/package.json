@@ -63,6 +63,11 @@
       "types": "./dist/project-asset.d.ts",
       "import": "./dist/project-asset.js"
     },
+    "./legacy-asset-move": {
+      "nodetool-dev": "./src/legacy-asset-move.ts",
+      "types": "./dist/legacy-asset-move.d.ts",
+      "import": "./dist/legacy-asset-move.js"
+    },
     "./asset-references": {
       "nodetool-dev": "./src/asset-references.ts",
       "types": "./dist/asset-references.d.ts",

@@ -74,6 +74,7 @@ import {
   renameProjectAssetFile,
   replaceProjectAssetBytes,
   saveProjectAsset,
+  storeLegacyAssetBytes,
   uploadDirectory,
   type ProjectAssetFileChange,
   type ProjectAssetRelinkSource
@@ -1261,6 +1262,9 @@ export const assetsRouter = router({
       // File changes wait for the row. Each is undone when the row is not
       // saved, and what it replaced is removed only after the save.
       const fileChanges: ProjectAssetFileChange[] = [];
+      // The row of an asset with no file in its project folder is saved with
+      // its bytes, under the folder lock.
+      let savedWithBytes = false;
       try {
         if (input.data != null) {
           const buf =
@@ -1275,22 +1279,34 @@ export const assetsRouter = router({
             bytes: buf.byteLength
           });
           try {
-            const replaced = await replaceProjectAssetBytes(
+            let replaced = await replaceProjectAssetBytes(
               asset,
               new Uint8Array(buf)
             );
-            if (replaced) {
-              fileChanges.push(replaced);
-            } else {
-              asset.size = buf.byteLength;
-              await storeAssetWithThumbnail(
-                asset.user_id,
-                asset.id,
-                fileName,
-                new Uint8Array(buf),
-                asset.content_type
-              );
+            if (!replaced) {
+              // The bytes go under the storage key and the row is saved with
+              // them, unless the asset's bytes were moved into the folder
+              // while this request waited for that move.
+              const stored = await storeLegacyAssetBytes(asset, async () => {
+                asset.size = buf.byteLength;
+                await storeAssetWithThumbnail(
+                  asset.user_id,
+                  asset.id,
+                  fileName,
+                  new Uint8Array(buf),
+                  asset.content_type
+                );
+                await asset.save();
+              });
+              savedWithBytes = stored === "stored";
+              if (stored === "moved") {
+                replaced = await replaceProjectAssetBytes(
+                  asset,
+                  new Uint8Array(buf)
+                );
+              }
             }
+            if (replaced) fileChanges.push(replaced);
           } catch (error) {
             if (error instanceof UploadTooLargeError) {
               throwApiError(
@@ -1315,8 +1331,9 @@ export const assetsRouter = router({
           if (renamed) fileChanges.push(renamed);
         }
 
-        const saved =
-          input.expected_metadata !== undefined
+        const saved = savedWithBytes
+          ? undefined
+          : input.expected_metadata !== undefined
             ? await asset.saveIfMetadataMatches(input.expected_metadata)
             : await asset.save();
         if (saved === false) {

@@ -1,7 +1,11 @@
+import { readFileSync, readdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import type { Alias, UserConfig } from "vite";
 
 import e2eViteConfig from "../e2e/vite.config.js";
+import * as fsPromisesStub from "../e2e/stubs/fs-promises-stub.js";
 
 /**
  * Guards the Node-builtin stub table the browser E2E harness resolves through.
@@ -57,4 +61,58 @@ describe("e2e harness Node-builtin stubs", () => {
       expect(finds.indexOf(specifier)).toBeLessThan(finds.indexOf(parent));
     }
   );
+});
+
+/**
+ * A stub answers a builtin only for the names it exports. A browser has no
+ * late binding for a missing one: the first module that imports a name the
+ * stub lacks fails to link, the page never reaches
+ * `window.workflowRunnerReady`, and every spec times out.
+ *
+ * `@nodetool-ai/storage` is in the harness bundle through the kernel's
+ * config and workspace imports, and its file adapter is where new
+ * `fs/promises` names arrive.
+ */
+describe("e2e harness fs/promises stub", () => {
+  const storageSrc = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "../../storage/src"
+  );
+  const namedImport =
+    /import\s*\{([^}]*)\}\s*from\s*"(?:node:)?fs\/promises"/g;
+
+  /** Every value name the storage sources import from `fs/promises`. */
+  function importedNames(): string[] {
+    const names = new Set<string>();
+    for (const entry of readdirSync(storageSrc, { recursive: true })) {
+      const file = String(entry);
+      if (!file.endsWith(".ts") || file.endsWith(".d.ts")) continue;
+      const source = readFileSync(join(storageSrc, file), "utf8");
+      for (const match of source.matchAll(namedImport)) {
+        for (const part of (match[1] ?? "").split(",")) {
+          const name = part.trim().split(/\s+as\s+/)[0] ?? "";
+          if (name && !name.startsWith("type ")) names.add(name);
+        }
+      }
+    }
+    return [...names].sort();
+  }
+
+  it("exports every name the storage package imports from fs/promises", () => {
+    const names = importedNames();
+    // The audit read the sources: these two have been imported from the start.
+    expect(names).toEqual(expect.arrayContaining(["open", "rename"]));
+
+    const missing = names.filter((name) => !(name in fsPromisesStub));
+    expect(missing).toEqual([]);
+  });
+
+  it("answers a stubbed name with an error that names it", () => {
+    const stub: Record<string, unknown> = fsPromisesStub;
+    const link = stub["link"];
+    expect(link).toBeTypeOf("function");
+    expect(() => (link as (...args: string[]) => void)("a", "b")).toThrow(
+      /fs\/promises\.link called from a browser bundle/
+    );
+  });
 });

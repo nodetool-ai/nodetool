@@ -14,6 +14,7 @@ import { getAssetFileName, normalizeAssetContentType } from "./asset-paths.js";
 import {
   replaceProjectAssetBytes,
   saveProjectAsset,
+  storeLegacyAssetBytes,
   type SaveProjectAssetArgs
 } from "./project-asset.js";
 
@@ -149,7 +150,28 @@ export async function updateAssetBytesModelInterface(
     bytes: args.content
   });
   // An asset that is a file in its project folder gets the bytes there.
-  const change = await replaceProjectAssetBytes(asset, args.content);
+  let change = await replaceProjectAssetBytes(asset, args.content);
+  if (!change) {
+    // Any other asset gets them under its storage key, unless its bytes were
+    // moved into the folder while this call waited for that move.
+    const stored = await storeLegacyAssetBytes(asset, async () => {
+      await storeAssetWithThumbnail(
+        asset.user_id,
+        asset.id,
+        getAssetFileName(asset.id, asset.content_type),
+        args.content,
+        asset.content_type
+      );
+      asset.size = args.content.length;
+      await asset.save();
+    });
+    if (stored === "moved") {
+      change = await replaceProjectAssetBytes(asset, args.content);
+      if (!change) {
+        throw new Error(`The file of asset ${asset.id} could not be written`);
+      }
+    }
+  }
   if (change) {
     try {
       await asset.save();
@@ -158,17 +180,6 @@ export async function updateAssetBytesModelInterface(
       throw error;
     }
     await change.commit();
-  } else {
-    const key = getAssetFileName(asset.id, asset.content_type);
-    await storeAssetWithThumbnail(
-      asset.user_id,
-      asset.id,
-      key,
-      args.content,
-      asset.content_type
-    );
-    asset.size = args.content.length;
-    await asset.save();
   }
   return {
     id: asset.id,

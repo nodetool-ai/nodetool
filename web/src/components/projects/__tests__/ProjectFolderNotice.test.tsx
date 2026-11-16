@@ -1,5 +1,6 @@
 /**
- * "Folder not found" and Locate on a project whose folder is unreachable.
+ * "Folder not found" and Locate on a project whose folder is unreachable, and
+ * the notice shown while files are moved into a project folder.
  */
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -33,7 +34,9 @@ jest.mock("../../../stores/NotificationStore", () => ({
 
 import ProjectFolderNotice from "../ProjectFolderNotice";
 
-const project = (isAccessible: boolean) => ({
+type Moving = { done: number; total: number };
+
+const project = (isAccessible: boolean, moving?: Moving | null) => ({
   id: "p1",
   name: "Aurora",
   folder: {
@@ -41,14 +44,15 @@ const project = (isAccessible: boolean) => ({
     path: "/Users/me/NodeTool/Aurora",
     origin: "created" as const,
     is_accessible: isAccessible,
-    on_delete: "trash" as const
+    on_delete: "trash" as const,
+    moving
   }
 });
 
-const renderNotice = (isAccessible: boolean) =>
+const renderNotice = (isAccessible: boolean, moving?: Moving | null) =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <ProjectFolderNotice project={project(isAccessible)} />
+      <ProjectFolderNotice project={project(isAccessible, moving)} />
     </ThemeProvider>
   );
 
@@ -62,6 +66,38 @@ describe("ProjectFolderNotice", () => {
     renderNotice(true);
 
     expect(screen.queryByText("Folder not found")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("shows that files are being moved into the folder, with progress", () => {
+    renderNotice(true, { done: 3, total: 12 });
+
+    expect(
+      screen.getByText("Moving files into the project folder")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "3 of 12 files moved. Your assets stay available while this runs."
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Locate" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows nothing once the move has finished", () => {
+    renderNotice(true, null);
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("reports a folder that is not found ahead of a move into it", () => {
+    renderNotice(false, { done: 3, total: 12 });
+
+    expect(screen.getByText("Folder not found")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Moving files into the project folder")
+    ).not.toBeInTheDocument();
   });
 
   it("points the project at the folder chosen with Locate", async () => {

@@ -42,6 +42,18 @@ export interface WorkspaceStat {
   isDirectory: boolean;
 }
 
+export interface WriteNewOptions {
+  /**
+   * A file name in the directory of the path that belongs to the caller
+   * alone. A folder on disk writes the bytes under this name first and gives
+   * them to the path in one step. A file under the name when the call starts
+   * is what a writer that died left, and is removed. The name is gone again
+   * when the call returns. An object store creates an object in one step
+   * already and ignores the name.
+   */
+  stagingName?: string;
+}
+
 export interface Workspace {
   /**
    * The real directory backing this workspace, or null when it is virtual.
@@ -72,11 +84,15 @@ export interface Workspace {
    * racing for one path, in this process or another, exactly one succeeds.
    * `write` replaces whatever is there. Throws when the backend cannot make
    * that guarantee, rather than fall back to a write that can overwrite.
+   *
+   * With `options.stagingName`, `path` also holds the whole file or nothing
+   * when the process dies during the write. See {@link WriteNewOptions}.
    */
   writeNew(
     path: string,
     data: Uint8Array | string,
-    contentType?: string
+    contentType?: string,
+    options?: WriteNewOptions
   ): Promise<boolean>;
   exists(path: string): Promise<boolean>;
   stat(path: string): Promise<WorkspaceStat | null>;
@@ -223,8 +239,8 @@ export function observeWorkspace(
       await inner.write(path, data, contentType);
       notify("write", path);
     },
-    async writeNew(path, data, contentType) {
-      const written = await inner.writeNew(path, data, contentType);
+    async writeNew(path, data, contentType, options) {
+      const written = await inner.writeNew(path, data, contentType, options);
       if (written) notify("write", path);
       return written;
     },
