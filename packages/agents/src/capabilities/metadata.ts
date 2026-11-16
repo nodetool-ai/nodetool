@@ -12,7 +12,6 @@ import { compositionsSpecs } from "./compositions.specs.js";
 import { costsSpecs } from "./costs.specs.js";
 import { workersSpecs } from "./workers.specs.js";
 import { documentsSpecs } from "./documents.specs.js";
-import { emailSpecs } from "./email.specs.js";
 import { exampleTimelinesSpecs } from "./example-timelines.specs.js";
 import { entitiesSpecs } from "./entities.specs.js";
 import { filesSpecs } from "./files.specs.js";
@@ -62,7 +61,6 @@ export const CAPABILITY_SPECS = {
   browser: browserSpecs,
   apps: appsSpecs,
   documents: documentsSpecs,
-  email: emailSpecs,
   memory: memorySpecs,
   shared: sharedSpecs,
   web: webSpecs,

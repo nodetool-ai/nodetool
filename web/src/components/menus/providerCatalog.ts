@@ -698,18 +698,6 @@ export const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://github.com/ggml-org/llama.cpp"
   },
   {
-    key: "GOOGLE_MAIL_USER",
-    name: "Google Mail",
-    description: "Email address and app password for Google mail integration.",
-    section: "advanced",
-    docsUrl: "https://support.google.com/mail/",
-    icon: googleColorIcon,
-    fields: [
-      { key: "GOOGLE_MAIL_USER", label: "Email address" },
-      { key: "GOOGLE_APP_PASSWORD", label: "App password", secret: true }
-    ]
-  },
-  {
     key: "GITHUB_CLIENT_ID",
     name: "GitHub OAuth App",
     description: "OAuth App credentials for GitHub PKCE flow.",

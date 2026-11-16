@@ -2060,10 +2060,9 @@ headless run (a workflow on the kernel, the CLI, an eval) carries no
 `CapabilityRun.secretPrompt` and the call is refused by name rather than
 quietly writing something nobody approved.
 
-The last three replaced nodes rather than bridges. `lib.browser.WebFetch`,
+These replaced nodes rather than bridges. `lib.browser.WebFetch`,
 `DownloadFile`, `Browser` and `SpiderCrawl` are the `fetch` capability plus
-`-html`; `lib.excel.*` is `-xlsx`; `lib.ocr.*` is `-ocr`; and
-`lib.tensorflow.*` is `-tfjs`. Each was a chain of
+`-html`, and `lib.ocr.*` is `-ocr`. Each was a chain of
 near-identical nodes that one script now expresses; only `lib.browser.Screenshot`
 (a real page over CDP) and `lib.sqlite.GetDatabasePath` stayed nodes.
 

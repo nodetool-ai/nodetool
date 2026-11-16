@@ -12,20 +12,7 @@ import { Response } from "../env/response.mjs";
 import { loadCanvas } from "./canvas.mjs";
 import { loadSharp } from "./image.mjs";
 const loaders = {
-  exceljs: () => import("exceljs"),
   "js-tiktoken": () => import("js-tiktoken"),
-  docx: async () => {
-    const module = await import("docx");
-    return {
-      ...module,
-      Packer: {
-        toBuffer: (document) =>
-          module.Packer.toArrayBuffer(document).then(
-            (buffer) => new Uint8Array(buffer)
-          )
-      }
-    };
-  },
   mammoth: async () => {
     const imported = await import("mammoth/mammoth.browser.js");
     const module = imported.default ?? imported;
@@ -56,49 +43,12 @@ const loaders = {
       await import("pdfjs-dist/legacy/build/pdf.worker.mjs");
     return import("pdf-parse");
   },
-  "office-text-extractor": async () => {
-    const { extractSlides } =
-      await import("../../../../packages/agents/src/host-modules/pptx.ts");
-    return {
-      getTextExtractor: () => ({
-        extractText: async ({ type, input }) => {
-          if (type !== "buffer" || !(input instanceof Uint8Array))
-            throw new Error("Native presentation extraction requires bytes");
-          return (
-            (await extractSlides(input))
-              .map((slide) => slide.text)
-              .join("\n---\n") + "\n"
-          );
-        }
-      })
-    };
-  },
-  pptxgenjs: () => import("pptxgenjs"),
   fabric: async () => (await import("./sandbox-fabric.mjs")).loadFabric(),
   "tesseract.js": async () => ({
     recognize: async (bytes, language) => ({
       data: JSON.parse(globalThis.__host.context.ocr(bytes, language))
     })
   }),
-  "@tensorflow/tfjs": async () => {
-    const tf = await import("@tensorflow/tfjs");
-    tf.setPlatform("native-guest", {
-      fetch: (...args) => globalThis.fetch(...args),
-      now: () => globalThis.performance?.now?.() ?? Date.now(),
-      encode: (text, encoding) => {
-        if (!["utf8", "utf-8"].includes(encoding))
-          throw new Error("TensorFlow encoding must be UTF-8");
-        return new TextEncoder().encode(text);
-      },
-      decode: (bytes, encoding) => new TextDecoder(encoding).decode(bytes),
-      isTypedArray: (value) =>
-        ArrayBuffer.isView(value) && !(value instanceof DataView)
-    });
-    return tf;
-  },
-  "@tensorflow-models/mobilenet": () => import("@tensorflow-models/mobilenet"),
-  "@tensorflow-models/coco-ssd": () => import("@tensorflow-models/coco-ssd"),
-  "@tensorflow-models/qna": () => import("@tensorflow-models/qna"),
   sharp: async () => ({ default: await loadSharp() }),
   "@napi-rs/canvas": loadCanvas,
   canvas: loadCanvas

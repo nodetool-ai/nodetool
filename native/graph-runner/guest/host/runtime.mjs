@@ -75,6 +75,7 @@ export { BaseProvider } from "guest-real:@nodetool-ai/runtime/providers/base-pro
 export { creditBlockReason } from "guest-real:@nodetool-ai/runtime/providers/provider-credits.js";
 export {
   RESERVED_WORKSPACE_DIR,
+  WorkspaceReservedPathError,
   setProjectFolderResolver
 } from "guest-real:@nodetool-ai/runtime-core/workspace.js";
 export { PERMISSION_GATE_CONTEXT_KEY } from "guest-real:@nodetool-ai/runtime/permission-gate.js";

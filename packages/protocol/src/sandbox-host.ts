@@ -3,7 +3,7 @@
  * that expresses one as guest JavaScript.
  *
  * A **host module** is a library NodeTool runs on the host — papaparse,
- * cheerio, exceljs — reached from the guest through a generated ESM facade
+ * cheerio, fflate — reached from the guest through a generated ESM facade
  * over a per-run dispatcher. It is the host-JS analog of a WASM module: the
  * guest sees `import`, the implementation never enters QuickJS, and the
  * library's safety limits live in the implementation where nothing can bypass
@@ -79,27 +79,12 @@ export const SANDBOX_HOST_MODULES: Readonly<Record<string, SandboxHostModuleSpec
     description: "Parse XML (feeds, sitemaps) into a plain object.",
     exports: ["parse"]
   },
-  xlsx: {
-    id: "xlsx",
-    packName: "@nodetool-ai/sandbox-xlsx",
-    library: "exceljs",
-    description: "Read and write Excel workbooks.",
-    exports: ["parse", "write"]
-  },
   ocr: {
     id: "ocr",
     packName: "@nodetool-ai/sandbox-ocr",
     library: "tesseract.js",
     description: "Read text out of an image, with per-word boxes.",
     exports: ["recognize"]
-  },
-  tfjs: {
-    id: "tfjs",
-    packName: "@nodetool-ai/sandbox-tfjs",
-    library: "@tensorflow/tfjs + the tfjs model zoo",
-    description:
-      "Classify and embed images, detect objects, answer from a passage.",
-    exports: ["classify", "embed", "detect", "answer"]
   },
   zip: {
     id: "zip",
@@ -143,27 +128,6 @@ export const SANDBOX_HOST_MODULES: Readonly<Record<string, SandboxHostModuleSpec
     description: "Build an authenticated Twilio API request.",
     exports: ["request"]
   },
-  docx: {
-    id: "docx",
-    packName: "@nodetool-ai/sandbox-docx",
-    library: "docx",
-    description: "Build a Word document from headings, paragraphs, tables, and images.",
-    exports: ["build"]
-  },
-  mammoth: {
-    id: "mammoth",
-    packName: "@nodetool-ai/sandbox-mammoth",
-    library: "mammoth",
-    description: "Read a Word document as plain text or HTML.",
-    exports: ["extractRawText", "convertToHtml"]
-  },
-  epub: {
-    id: "epub",
-    packName: "@nodetool-ai/sandbox-epub",
-    library: "epub2",
-    description: "Read an EPUB's metadata, table of contents, and chapter text.",
-    exports: ["metadata", "tableOfContents", "extractText", "extractChapters"]
-  },
   pdf: {
     id: "pdf",
     packName: "@nodetool-ai/sandbox-pdf",
@@ -171,13 +135,6 @@ export const SANDBOX_HOST_MODULES: Readonly<Record<string, SandboxHostModuleSpec
     description:
       "Extract a PDF's embedded text, whole or per page. No OCR of scanned pages.",
     exports: ["extractText", "extractPages"]
-  },
-  pptx: {
-    id: "pptx",
-    packName: "@nodetool-ai/sandbox-pptx",
-    library: "office-text-extractor",
-    description: "Extract text from a PowerPoint file, whole or per slide.",
-    exports: ["extractText", "extractSlides"]
   },
   fabric: {
     id: "fabric",
@@ -193,13 +150,6 @@ export const SANDBOX_HOST_MODULES: Readonly<Record<string, SandboxHostModuleSpec
     library: "pdf-lib",
     description: "Build and merge PDF files from a JSON page list.",
     exports: ["build", "merge"]
-  },
-  pptxgen: {
-    id: "pptxgen",
-    packName: "@nodetool-ai/sandbox-pptxgen",
-    library: "pptxgenjs",
-    description: "Build a PowerPoint file from a JSON slide list.",
-    exports: ["build"]
   },
   chrono: {
     id: "chrono",
