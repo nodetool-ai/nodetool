@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { isRecord } from "../predicates.js";
 import { exampleNeeds } from "../example-needs.js";
+import { documentSchemaVersion, editingInstanceId } from "./sync.js";
 
 // ── WorkflowRunMode ──────────────────────────────────────────────────────────
 
@@ -333,7 +334,11 @@ export type CreateInput = z.infer<typeof createInput>;
 
 export const updateInput = workflowBody.extend({
   id: z.string().min(1),
-  expected_updated_at: z.string().optional()
+  expected_updated_at: z.string().optional(),
+  /** See {@link editingInstanceId}. */
+  editing_instance: editingInstanceId.optional(),
+  /** The document schema version of `graph`, see `sync.ts`. */
+  schema_version: documentSchemaVersion.optional()
 });
 export type UpdateInput = z.infer<typeof updateInput>;
 
@@ -383,7 +388,11 @@ export const autosaveInput = z.object({
   client_id: z.string().optional(),
   force: z.boolean().optional(),
   max_versions: z.number().int().optional(),
-  expected_updated_at: z.string().optional()
+  expected_updated_at: z.string().optional(),
+  /** See {@link editingInstanceId}. */
+  editing_instance: editingInstanceId.optional(),
+  /** The document schema version of `graph`, see `sync.ts`. */
+  schema_version: documentSchemaVersion.optional()
 });
 export type AutosaveInput = z.infer<typeof autosaveInput>;
 

@@ -45,7 +45,13 @@ import { listExampleRecipes } from "../../lib/example-recipes.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router, publicProcedure } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
-import { throwApiError } from "../error-formatter.js";
+import { throwApiError, withApiRefusal } from "../error-formatter.js";
+import {
+  acceptedSchemaVersion,
+  isDocumentSaveRefusal,
+  keepWorkflowRevision,
+  replacesAnotherWriter
+} from "../../lib/document-save-rules.js";
 import {
   createWorkflow,
   deleteWorkflow,
@@ -581,7 +587,17 @@ export const workflowsRouter = router({
       }
 
       const fields: Parameters<typeof Workflow.updateFieldsIfUnchanged>[2] = {
-        graph: input.graph
+        graph: input.graph,
+        schema_version: withApiRefusal(
+          () =>
+            acceptedSchemaVersion(
+              "workflow",
+              workflow.schema_version,
+              input.schema_version
+            ),
+          isDocumentSaveRefusal
+        ),
+        last_writer_instance: input.editing_instance ?? null
       };
       if (input.name !== undefined) fields.name = input.name;
       // `description` and `save_type` describe the version row this autosave
@@ -595,6 +611,14 @@ export const workflowsRouter = router({
           await requirePermission(ctx.userId, "share_public");
         }
         fields.access = input.access;
+      }
+      if (
+        replacesAnotherWriter(workflow, {
+          instance: input.editing_instance,
+          base: input.expected_updated_at
+        })
+      ) {
+        await keepWorkflowRevision(workflow);
       }
       const savedWorkflow = await Workflow.updateFieldsIfUnchanged(
         input.id,

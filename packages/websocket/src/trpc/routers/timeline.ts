@@ -63,7 +63,14 @@ import {
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
-import { throwApiError } from "../error-formatter.js";
+import { throwApiError, withApiRefusal } from "../error-formatter.js";
+import * as sync from "@nodetool-ai/protocol/api-schemas/sync.js";
+import {
+  acceptedSchemaVersion,
+  isDocumentSaveRefusal,
+  keepTimelineRevision,
+  replacesAnotherWriter
+} from "../../lib/document-save-rules.js";
 import { isString } from "../../lib/wire-values.js";
 import { installExampleTimeline, listExampleTimelines } from "../../lib/example-timelines.js";
 import {
@@ -243,6 +250,10 @@ const updateInput = z.preprocess(
     z.object({
       id: z.string(),
       baseUpdatedAt: z.string().optional(),
+      /** See `editingInstanceId` in the protocol's sync.ts. */
+      editingInstance: sync.editingInstanceId.optional(),
+      /** The document schema version of `document`, see sync.ts. */
+      schemaVersion: sync.documentSchemaVersion.optional(),
       rawDocument: z.unknown().optional()
     })
   )
@@ -567,6 +578,16 @@ export const timelineRouter = router({
           source: current.source
         };
         fields.document = JSON.stringify(merged);
+        fields.schema_version = withApiRefusal(
+          () =>
+            acceptedSchemaVersion(
+              "timeline",
+              seq.schema_version,
+              input.schemaVersion
+            ),
+          isDocumentSaveRefusal
+        );
+        fields.last_writer_instance = input.editingInstance ?? null;
 
         stripped = strippedDocumentPaths(input.rawDocument, input.document);
         if (stripped.length > 0) {
@@ -577,6 +598,15 @@ export const timelineRouter = router({
         }
       }
 
+      if (
+        input.document !== undefined &&
+        replacesAnotherWriter(seq, {
+          instance: input.editingInstance,
+          base: input.baseUpdatedAt
+        })
+      ) {
+        await keepTimelineRevision(seq);
+      }
       const updated = await TimelineSequence.updateFieldsIfUnchanged(
         seq.id,
         expectedUpdatedAt,

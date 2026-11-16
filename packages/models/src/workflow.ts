@@ -73,6 +73,8 @@ export type WorkflowUpdateFields = Partial<{
   app_doc: Record<string, unknown> | null;
   receive_clipboard: boolean | null;
   access: AccessLevel;
+  last_writer_instance: string | null;
+  schema_version: number;
 }>;
 
 let workflowFileSync: DocumentFileSync<Workflow> | null = null;
@@ -129,6 +131,14 @@ export class Workflow extends DBModel {
   declare file_hash: string | null;
   /** What the last reconcile found wrong with the file, or null. */
   declare file_error: string | null;
+  /**
+   * The editing instance that wrote the stored revision, or null when that
+   * save carried none. A save from another instance first keeps the stored
+   * revision as a version.
+   */
+  declare last_writer_instance: string | null;
+  /** The document schema version the stored revision was written in. */
+  declare schema_version: number;
   declare created_at: string;
   declare updated_at: string;
 
@@ -145,12 +155,16 @@ export class Workflow extends DBModel {
    * about the file and no content of the workflow. Recording them must not
    * read as a change of the workflow to a client that holds its etag, such
    * as an SDK client checking `workflow_etag` or an open editor.
+   * The writer instance and schema version describe the save, and stay out
+   * of the etag for the same reason.
    */
   override getEtag(): string {
     const {
       file_path: _path,
       file_hash: _hash,
       file_error: _error,
+      last_writer_instance: _writer,
+      schema_version: _schema,
       ...content
     } = this.toRow();
     return computeEtag(content);
@@ -325,6 +339,8 @@ export class Workflow extends DBModel {
     this.file_path ??= null;
     this.file_hash ??= null;
     this.file_error ??= null;
+    this.last_writer_instance ??= null;
+    this.schema_version ??= 1;
     this.rememberFileProject();
     this.created_at ??= now;
     this.updated_at ??= now;

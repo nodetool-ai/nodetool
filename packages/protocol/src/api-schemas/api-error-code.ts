@@ -27,7 +27,17 @@ export enum ApiErrorCode {
    * response names it in `runtime_package` so the client can offer to install
    * it.
    */
-  MISSING_RUNTIME_PACKAGE = "MISSING_RUNTIME_PACKAGE"
+  MISSING_RUNTIME_PACKAGE = "MISSING_RUNTIME_PACKAGE",
+  /**
+   * The save is written in a lower document schema version than the stored
+   * document. It would replace the document with a reduced copy.
+   */
+  SCHEMA_DOWNGRADE = "SCHEMA_DOWNGRADE",
+  /**
+   * The client's protocol version is below the lowest this server accepts
+   * writes from. Listing and reading still work.
+   */
+  CLIENT_TOO_OLD = "CLIENT_TOO_OLD"
 }
 
 export interface ApiErrorResponse {

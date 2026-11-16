@@ -619,7 +619,11 @@ describe("workflows router", () => {
       expect(Workflow.updateFieldsIfUnchanged).toHaveBeenCalledWith(
         "wf-1",
         wf.updated_at,
-        { graph: { nodes: [], edges: [] } }
+        {
+          graph: { nodes: [], edges: [] },
+          schema_version: 1,
+          last_writer_instance: null
+        }
       );
       expect(wf.save).not.toHaveBeenCalled();
     });
@@ -646,7 +650,11 @@ describe("workflows router", () => {
       expect(Workflow.updateFieldsIfUnchanged).toHaveBeenCalledWith(
         "wf-cp",
         wf.updated_at,
-        { graph: { nodes: [], edges: [] } }
+        {
+          graph: { nodes: [], edges: [] },
+          schema_version: 1,
+          last_writer_instance: null
+        }
       );
       expect(WorkflowVersion).toHaveBeenCalledWith(
         expect.objectContaining({

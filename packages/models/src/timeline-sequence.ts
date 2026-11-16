@@ -152,6 +152,14 @@ export class TimelineSequence extends DBModel {
   declare file_hash: string | null;
   /** What the last reconcile found wrong with the file, or null. */
   declare file_error: string | null;
+  /**
+   * The editing instance that wrote the stored revision, or null when that
+   * save carried none. A save from another instance first keeps the stored
+   * revision as a version.
+   */
+  declare last_writer_instance: string | null;
+  /** The document schema version the stored revision was written in. */
+  declare schema_version: number;
   declare updated_at: string;
 
   constructor(data: Record<string, unknown>) {
@@ -169,6 +177,8 @@ export class TimelineSequence extends DBModel {
     this.file_path ??= null;
     this.file_hash ??= null;
     this.file_error ??= null;
+    this.last_writer_instance ??= null;
+    this.schema_version ??= 1;
     this.rememberFileProject();
     this.updated_at ??= now;
   }
@@ -178,12 +188,16 @@ export class TimelineSequence extends DBModel {
    * is, its hash and what the last reconcile found wrong with it are records
    * about the file and no content of the timeline. Recording them must not
    * read as a change of the timeline to a client that holds its etag.
+   * The writer instance and schema version describe the save, and stay out
+   * of the etag for the same reason.
    */
   override getEtag(): string {
     const {
       file_path: _path,
       file_hash: _hash,
       file_error: _error,
+      last_writer_instance: _writer,
+      schema_version: _schema,
       ...content
     } = this.toRow();
     return computeEtag(content);
@@ -649,6 +663,8 @@ export class TimelineSequence extends DBModel {
       duration_ms: number;
       workflow_id: string | null;
       document: string;
+      last_writer_instance: string | null;
+      schema_version: number;
     }>,
     meta?: ModelChangeMeta
   ): Promise<TimelineSequence | null> {

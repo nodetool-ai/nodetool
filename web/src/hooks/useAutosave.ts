@@ -1,5 +1,6 @@
 import { Node, Edge } from "../stores/ApiTypes";
 import { trpcClient } from "../trpc/client";
+import { editingInstanceFor } from "../lib/editingInstance";
 
 /** The workflow row's concurrency tokens after an autosave or checkpoint. */
 export interface AutosaveResult {
@@ -29,7 +30,8 @@ export async function triggerAutosaveForWorkflow(
       client_id: "system",
       graph: graph as { nodes: Node[]; edges: Edge[] },
       max_versions: options?.maxVersions ?? 50,
-      expected_updated_at: options?.expectedUpdatedAt
+      expected_updated_at: options?.expectedUpdatedAt,
+      editing_instance: editingInstanceFor("workflow", workflowId)
     });
     if (!result.updated_at) {
       return null;

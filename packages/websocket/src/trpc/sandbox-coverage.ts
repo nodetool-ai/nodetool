@@ -1354,6 +1354,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "here, or seeding from list_entities, would close it."
   },
   "storyboards.update": { capability: "edit_storyboard" },
+  "sync.capabilities": {
+    withheld:
+      "Protocol and schema versions steer a client that keeps its own copy " +
+      "of a document. A run writes through capabilities that follow the " +
+      "server's own versions."
+  },
   "memories.delete": { capability: "memory_delete" },
   "errorTraces.list": { capability: "list_error_traces" },
   "errorTraces.summary": { capability: "list_error_traces" },

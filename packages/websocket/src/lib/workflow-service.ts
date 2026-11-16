@@ -28,6 +28,12 @@ import {
 type ExampleLoadOptions = NonNullable<Parameters<typeof loadExampleGraph>[2]>;
 
 import { permissionRefusal, permissionsFor } from "./permissions.js";
+import {
+  DocumentSaveRefusal,
+  acceptedSchemaVersion,
+  keepWorkflowRevision,
+  replacesAnotherWriter
+} from "./document-save-rules.js";
 const log = createLogger("nodetool.websocket.workflow-service");
 
 export const WORKFLOW_CONFLICT_MESSAGE =
@@ -88,6 +94,10 @@ export interface WorkflowWriteInput {
   html_app?: string | null;
   app_doc?: Record<string, unknown> | null;
   expected_updated_at?: string;
+  /** The editing instance of the save, see document-save-rules.ts. */
+  editing_instance?: string;
+  /** The document schema version of `graph`, see document-save-rules.ts. */
+  schema_version?: number;
 }
 
 /** Seed a new workflow from a shipped example when the caller sent no graph. */
@@ -273,6 +283,28 @@ export async function updateWorkflow(
     }
     if (input.html_app !== undefined) fields.html_app = input.html_app ?? null;
     if (input.app_doc !== undefined) fields.app_doc = input.app_doc;
+
+    try {
+      fields.schema_version = acceptedSchemaVersion(
+        "workflow",
+        existing.schema_version,
+        input.schema_version
+      );
+    } catch (error) {
+      if (error instanceof DocumentSaveRefusal) {
+        throw new WorkflowServiceError(error.code, error.message, error.status);
+      }
+      throw error;
+    }
+    fields.last_writer_instance = input.editing_instance ?? null;
+    if (
+      replacesAnotherWriter(existing, {
+        instance: input.editing_instance,
+        base: input.expected_updated_at
+      })
+    ) {
+      await keepWorkflowRevision(existing);
+    }
 
     const updated = await Workflow.updateFieldsIfUnchanged(
       id,

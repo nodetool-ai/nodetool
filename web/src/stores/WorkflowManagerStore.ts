@@ -56,6 +56,7 @@ import { orderParentsFirst } from "../core/workflow/graphMapping";
 import { reportDocumentConflicts } from "./documentConflictReporter";
 import { noteWorkflowCreatedHere } from "./workflowsCreatedHere";
 import { trackProductEvent } from "../lib/analytics";
+import { editingInstanceFor } from "../lib/editingInstance";
 import type { Node, Edge } from "@xyflow/react";
 import type { NodeData } from "./NodeData";
 
@@ -599,7 +600,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           html_app: workflow.html_app,
           expected_updated_at: neverPersisted
             ? undefined
-            : workflow.updated_at ?? undefined
+            : workflow.updated_at ?? undefined,
+          editing_instance: editingInstanceFor("workflow", workflow.id)
         };
         if (workflow.project_id) {
           updateInput.project_id = workflow.project_id;

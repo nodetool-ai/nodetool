@@ -25,7 +25,7 @@ describe("SQLite repository", () => {
       expect(await repository.get("workflows", "bob", created.id)).toBeNull();
       expect(await repository.delete("workflows", "bob", created.id)).toBe(false);
       await expect(repository.put("workflows", "bob", { id: created.id, graph: { nodes: [], edges: [] } })).rejects.toThrow("already owned");
-      expect(await repository.get("workflows", "alice", created.id)).toMatchObject({ graph, file_path: null, file_hash: null, file_error: null });
+      expect(await repository.get("workflows", "alice", created.id)).toMatchObject({ graph, file_path: null, file_hash: null, file_error: null, last_writer_instance: null, schema_version: 1 });
       const filed = await repository.put("workflows", "alice", { name: "on disk", graph, project_id: "film", file_path: "Workflows/on disk.workflow.json", file_hash: "b".repeat(64) });
       expect(await repository.get("workflows", "alice", filed.id)).toMatchObject({ file_path: "Workflows/on disk.workflow.json", file_hash: "b".repeat(64) });
     } finally {
@@ -68,7 +68,7 @@ describe("SQLite repository", () => {
       expect(native.prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all()).toEqual([
         { name: "_nodetool_core_migrations" }, { name: "nodetool_assets" }, { name: "nodetool_jobs" }, { name: "nodetool_secrets" }, { name: "nodetool_workflows" }
       ]);
-      expect(native.prepare("SELECT COUNT(*) AS count FROM _nodetool_core_migrations").get()).toEqual({ count: 8 });
+      expect(native.prepare("SELECT COUNT(*) AS count FROM _nodetool_core_migrations").get()).toEqual({ count: 10 });
       native.close();
     } finally { repository.close(); rmSync(directory, { recursive: true, force: true }); }
   });
