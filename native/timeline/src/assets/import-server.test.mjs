@@ -155,8 +155,11 @@ try {
       });
       return JSON.parse(stdout);
     };
-    const folder = await createAsset({ name: 'Footage', content_type: 'folder', parent_id: '1' });
-    const nested = await createAsset({ name: 'take.mp4', content_type: 'video/mp4', parent_id: folder.id }, fixture);
+    // A folder in the personal project is a directory of its project folder, as the web client creates it.
+    const project = report.asset.project_id;
+    assert.ok(project, 'imported asset must belong to a project');
+    const folder = await session.createFolder(server, { name: 'Footage', parent_id: '1', project_id: project });
+    const nested = await createAsset({ name: 'take.mp4', content_type: 'video/mp4', parent_id: folder.id, project_id: project }, fixture);
     const { stdout: listing } = await promisify(execFile)(process.argv[3], ['--list-folder', folder.id,
       '--server', server.base, '--timeline', '00000000000000000000000000000000', '--cache-dir', nativeCache], {
       env: { ...session.nativeEnv(server), QT_QPA_PLATFORM: 'offscreen' }, timeout: 120000

@@ -263,6 +263,15 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {},
     return asset;
   }
 
+  /** Create a folder with no file, as the web client does: with a project_id it is a directory of that project's folder. */
+  async function createFolder(server, fields) {
+    await assertScratch(server.base);
+    const r = await provenWrite(server, "/api/assets", { "content-type": "application/json" },
+      Buffer.from(JSON.stringify({ content_type: "folder", ...fields })));
+    if (!r.ok) throw new Error(`create folder ${fields.name}: HTTP ${r.status} ${await r.text()}`);
+    return r.json();
+  }
+
   /**
    * The file an upload saved in the personal project folder under `server.dir`.
    * The bytes go to `Imported/` with a name taken from the asset name, and the
@@ -313,5 +322,5 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {},
   }
   
   
-  return { servers, startServer, stopServers, assertScratch, nativeEnv, query, mutate, upload, storedFile, waitProxy, createTimeline };
+  return { servers, startServer, stopServers, assertScratch, nativeEnv, query, mutate, upload, createFolder, storedFile, waitProxy, createTimeline };
 }
