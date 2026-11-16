@@ -172,7 +172,9 @@ export class ProjectAssetStorageAdapter implements StorageAdapter {
 export function storedObjectsOf(adapter: StorageAdapter): StorageAdapter {
   if (adapter instanceof ProjectAssetStorageAdapter) return adapter.inner;
   if (adapter instanceof FileStorageAdapter) {
-    return new FileStorageAdapter(adapter.rootDir);
+    // Null, not left out: an adapter over the asset folder would otherwise
+    // take the lookup installed for that folder.
+    return new FileStorageAdapter(adapter.rootDir, { externalPathLookup: null });
   }
   return adapter;
 }

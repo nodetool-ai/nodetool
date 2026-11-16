@@ -42,6 +42,7 @@ import {
 import {
   FileStorageAdapter,
   InMemoryStorageAdapter,
+  setAssetFolderPathLookup,
   type StorageAdapter
 } from "@nodetool-ai/storage";
 import {
@@ -51,7 +52,10 @@ import {
   retrieveAssetBytes
 } from "@nodetool-ai/asset-services/asset-paths";
 import { updateAssetBytesModelInterface } from "@nodetool-ai/asset-services/asset-model-interface";
-import { lookupExternalAssetPath } from "@nodetool-ai/asset-services/external-asset-lookup";
+import {
+  installAssetFolderLookup,
+  lookupExternalAssetPath
+} from "@nodetool-ai/asset-services/external-asset-lookup";
 import {
   legacyAssetStagingName,
   moveLegacyAssetIntoFolder,
@@ -122,10 +126,16 @@ function folder(kind: Kind, projectId = PROJECT): Workspace {
 
 function useFolders(kind: Kind): void {
   if (kind === "local") {
+    // As on a server: the store is the asset folder, and every adapter a
+    // host builds over that folder resolves a missed key through asset rows.
+    vi.stubEnv("ASSET_FOLDER", join(root, "assets"));
+    installAssetFolderLookup();
     assetStore = new FileStorageAdapter(join(root, "assets"), {
       externalPathLookup: lookupExternalAssetPath
     });
-    rawAssets = new FileStorageAdapter(join(root, "assets"));
+    rawAssets = new FileStorageAdapter(join(root, "assets"), {
+      externalPathLookup: null
+    });
   } else {
     assetStore = new ProjectAssetStorageAdapter(rawStore);
     rawAssets = rawStore;
@@ -424,6 +434,8 @@ afterEach(async () => {
   await flushProjectReconciles();
   ModelObserver.clear();
   setProjectFolderResolver(null);
+  setAssetFolderPathLookup(null);
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
   await rm(root, { recursive: true, force: true });
 });
