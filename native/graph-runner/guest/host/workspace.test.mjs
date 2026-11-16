@@ -1,9 +1,20 @@
 import assert from "node:assert/strict";
 import * as nodeFs from "node:fs";
 import { tmpdir } from "node:os";
+import { registerHooks } from "node:module";
 import { join } from "node:path";
 import { test } from "node:test";
-import { LocalWorkspace } from "./workspace.mjs";
+import { pathToFileURL } from "node:url";
+import { resolveReal } from "../host-modules.mjs";
+
+// `guest-real:` is resolved by the guest build. Resolve it here as it does.
+registerHooks({
+  resolve: (specifier, context, next) =>
+    specifier.startsWith("guest-real:")
+      ? { url: pathToFileURL(resolveReal(specifier.slice("guest-real:".length))).href, shortCircuit: true }
+      : next(specifier, context)
+});
+const { LocalWorkspace } = await import("./workspace.mjs");
 
 // The `files` host capability on a real temporary folder, without the native
 // runner's own checks, so the guest's checks are what the test sees. Node's

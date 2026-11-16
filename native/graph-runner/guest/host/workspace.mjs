@@ -7,8 +7,13 @@
 // The workspace can be a project folder, whose `.nodetool/` holds NodeTool's
 // own files: a path with a segment of that name, in any case, is refused
 // here with a readable error, and by the host (src/host/paths.cpp) for every
-// other caller. Listings leave it out. As isReservedWorkspaceKey in
-// packages/runtime-core/src/workspace.ts.
+// other caller. Listings leave it out. The rule and the error are
+// runtime-core's own, as for assertLocalPathIsOwn in host/runtime.mjs.
+import {
+  WorkspaceReservedPathError,
+  isReservedWorkspaceKey,
+  isReservedWorkspaceName
+} from "guest-real:@nodetool-ai/runtime-core/workspace.js";
 import * as fs from "./fs.mjs";
 import { pathToFileURL } from "./url.mjs";
 
@@ -18,16 +23,6 @@ class WorkspacePathError extends Error {
     this.name = "WorkspacePathError";
   }
 }
-
-class WorkspaceReservedPathError extends Error {
-  constructor(path) {
-    super(`Path '${path}' is inside .nodetool/, which NodeTool reserves for its own files. Choose another folder.`);
-    this.name = "WorkspaceReservedPathError";
-  }
-}
-
-const isReservedName = (name) => name.toLowerCase() === ".nodetool";
-const isReservedKey = (key) => key.split("/").some(isReservedName);
 
 function stripWorkspacePrefix(path) {
   let p = path.replaceAll("\\", "/").trim();
@@ -71,7 +66,7 @@ export class LocalWorkspace {
   dirKey(path) {
     const local=String(path).replaceAll("\\", "/");
     const key = normalize(local.startsWith(`${this.localDir}/`) ? local.slice(this.localDir.length+1) : local);
-    if (isReservedKey(key)) throw new WorkspaceReservedPathError(path);
+    if (isReservedWorkspaceKey(key)) throw new WorkspaceReservedPathError(path);
     return key;
   }
 
@@ -85,7 +80,7 @@ export class LocalWorkspace {
     const base = key ? `${this.localDir}/${key}` : this.localDir;
     const dir = rel ? `${base}/${rel}` : base;
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      if (isReservedName(entry.name)) {
+      if (isReservedWorkspaceName(entry.name)) {
         walk.reserved = true;
         continue;
       }
