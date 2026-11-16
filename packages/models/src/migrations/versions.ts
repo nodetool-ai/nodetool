@@ -11,7 +11,10 @@ import {
   JOB_TRACE_MARKER_DDL,
   ASSET_FAVORITE_DDL,
   ASSET_WORKSPACE_PATH_DDL,
-  ASSET_CONTENT_HASH_DDL
+  ASSET_CONTENT_HASH_DDL,
+  WORKFLOW_FILE_PATH_DDL,
+  WORKFLOW_FILE_HASH_DDL,
+  WORKFLOW_FILE_ERROR_DDL
 } from "@nodetool-ai/models-core";
 import { RUN_TRACES_DDL, applyRunTraceRls } from "./run-traces.js";
 
@@ -360,7 +363,10 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...MESSAGE_BRANCH_DDL,
   ...PROJECT_FOLDER_DDL,
   ASSET_WORKSPACE_PATH_DDL,
-  ASSET_CONTENT_HASH_DDL
+  ASSET_CONTENT_HASH_DDL,
+  WORKFLOW_FILE_PATH_DDL,
+  WORKFLOW_FILE_HASH_DDL,
+  WORKFLOW_FILE_ERROR_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -4511,6 +4517,61 @@ export const migrations: MigrationDef[] = [
     },
     async down() {
       // The column stays: a dropped hash costs a full read of every file.
+    }
+  },
+
+  // A project workflow is a JSON file in its project's folder. `file_path`
+  // is that file's path relative to the folder. Rows from before keep null
+  // until the project is next reconciled, which writes their files.
+  {
+    version: "20261119_000000",
+    name: "add_workflow_file_path",
+    createsTables: [],
+    modifiesTables: ["nodetool_workflows"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_workflows"))) return;
+      if (!(await db.columnExists("nodetool_workflows", "file_path"))) {
+        await db.execute(WORKFLOW_FILE_PATH_DDL);
+      }
+    },
+    async down() {
+      // The column stays: dropping it would lose where each workflow's file is.
+    }
+  },
+
+  // The SHA-256 of the workflow file content last synced with the row. The
+  // reconciler compares it with the file to tell an outside edit apart.
+  {
+    version: "20261120_000000",
+    name: "add_workflow_file_hash",
+    createsTables: [],
+    modifiesTables: ["nodetool_workflows"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_workflows"))) return;
+      if (!(await db.columnExists("nodetool_workflows", "file_hash"))) {
+        await db.execute(WORKFLOW_FILE_HASH_DDL);
+      }
+    },
+    async down() {
+      // The column stays: without it every file reads as an outside edit.
+    }
+  },
+
+  // What the last reconcile found wrong with a workflow's file: the file is
+  // missing, or an edit to it was refused. Null while row and file agree.
+  {
+    version: "20261121_000000",
+    name: "add_workflow_file_error",
+    createsTables: [],
+    modifiesTables: ["nodetool_workflows"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_workflows"))) return;
+      if (!(await db.columnExists("nodetool_workflows", "file_error"))) {
+        await db.execute(WORKFLOW_FILE_ERROR_DDL);
+      }
+    },
+    async down() {
+      // The column stays: the next reconcile would record the same state.
     }
   }
 ];

@@ -47,11 +47,7 @@
  */
 import { createLogger } from "@nodetool-ai/config";
 import { Asset, Project, Workspace as WorkspaceRow } from "@nodetool-ai/models";
-import {
-  WorkspacePathError,
-  isReservedWorkspaceKey,
-  type Workspace
-} from "@nodetool-ai/runtime";
+import type { Workspace } from "@nodetool-ai/runtime";
 import { normalizeAssetContentType } from "@nodetool-ai/asset-services/asset-paths";
 import {
   isProjectAssetPathInFlux,
@@ -73,16 +69,39 @@ import {
   refreshAssetThumbnail
 } from "@nodetool-ai/asset-services/thumbnail";
 import { DebouncedRuns } from "./debounced-runs.js";
+import { reconcileDocumentFiles } from "./document-file-sync.js";
+import {
+  COPY_GRACE_MS,
+  isAtOrUnder,
+  isInSkippedDirectory,
+  isSkippedDirectory,
+  probePath,
+  scanFolder,
+  type FolderFile,
+  type ReconcileOptions,
+  type ScannedFolder
+} from "./project-folder-scan.js";
 import { projectHashJob, scheduleProjectHashing } from "./project-hash-job.js";
 import {
   flushAssetManifestWrites,
   scheduleAssetManifestWrite
 } from "./project-manifest.js";
+import { workflowFileAdapter } from "./workflow-file.js";
+
+// How the folder is read lives in `project-folder-scan.ts`, which the
+// document file sync reads it through as well. The names stay available here.
+export {
+  COPY_GRACE_MS,
+  isAtOrUnder,
+  isIgnoredProjectPath,
+  probePath,
+  scanFolder,
+  type FolderFile,
+  type ReconcileOptions,
+  type ScannedFolder
+} from "./project-folder-scan.js";
 
 const log = createLogger("nodetool.project-services.project-index");
-
-/** Directory names the scan never enters, besides every dot-directory. */
-const SKIPPED_DIRECTORIES = new Set(["node_modules"]);
 
 /** Content type families that get a row as soon as the file is seen (D9). */
 const INDEXED_MEDIA = /^(image|video|audio|model)\//;
@@ -100,13 +119,6 @@ const DOCUMENT_TYPES: Record<string, string> = {
   pdf: "application/pdf",
   zip: "application/zip"
 };
-
-/** One file the scan found. `path` is relative to the project folder. */
-interface FolderFile {
-  path: string;
-  size: number;
-  modifiedAt: number;
-}
 
 /** What one reconcile changed. Every list holds asset ids. */
 export interface ProjectIndexReport {
@@ -136,24 +148,6 @@ function fileName(path: string): string {
   return path.slice(path.lastIndexOf("/") + 1);
 }
 
-/** Whether the scan skips the directory called `name`. */
-function isSkippedDirectory(name: string): boolean {
-  return name.startsWith(".") || SKIPPED_DIRECTORIES.has(name);
-}
-
-/** Whether `path` lies in a directory the scan does not enter. */
-function isInSkippedDirectory(path: string): boolean {
-  return path.split("/").slice(0, -1).some(isSkippedDirectory);
-}
-
-/**
- * Whether a change at `path` can never change the index: the path lies in
- * the directory NodeTool reserves or in a directory the scan does not enter.
- */
-export function isIgnoredProjectPath(path: string): boolean {
-  return isReservedWorkspaceKey(path) || isInSkippedDirectory(path);
-}
-
 /** The content type a file in a project folder gets from its name. */
 function contentTypeOfFile(path: string): string {
   const name = fileName(path);
@@ -162,42 +156,6 @@ function contentTypeOfFile(path: string): string {
   const dot = name.lastIndexOf(".");
   const extension = dot > 0 ? name.slice(dot + 1).toLowerCase() : "";
   return DOCUMENT_TYPES[extension] ?? inferred;
-}
-
-/**
- * Every file in the folder, by path. Each directory is listed once.
- * `Workspace.list` leaves out `.nodetool/` and symbolic links, and a
- * directory whose real location is outside the folder is refused with a
- * `WorkspacePathError` and skipped. Any other listing failure ends the scan,
- * so a directory that could not be read never makes its files look deleted.
- */
-async function scanFolder(
-  workspace: Workspace,
-  start = "",
-  files = new Map<string, FolderFile>()
-): Promise<Map<string, FolderFile>> {
-  const directories = [start];
-  for (let next = directories.pop(); next !== undefined; next = directories.pop()) {
-    let entries: Awaited<ReturnType<Workspace["list"]>>;
-    try {
-      entries = await workspace.list(next);
-    } catch (error) {
-      if (error instanceof WorkspacePathError) continue;
-      throw error;
-    }
-    for (const entry of entries) {
-      if (entry.isDirectory) {
-        if (!isSkippedDirectory(entry.name)) directories.push(entry.path);
-      } else {
-        files.set(entry.path, {
-          path: entry.path,
-          size: entry.size,
-          modifiedAt: entry.modifiedAt
-        });
-      }
-    }
-  }
-  return files;
 }
 
 /** The file at `path`, read on its own. Null when it is not a file there. */
@@ -394,43 +352,11 @@ interface ReconcileScope {
   rows: Asset[];
   /** The project's other rows, which this reconcile does not compare. */
   others: Asset[];
-}
-
-/** Time a path the folder refused is given before it is looked at again. */
-const REFUSED_PATH_RETRY_MS = 50;
-
-/**
- * What is at `path` now: a file, a directory, or nothing. A path the folder
- * refuses counts as nothing. It is asked twice, because a path inside a
- * directory that is being created at that moment can be refused once.
- */
-async function probePath(
-  workspace: Workspace,
-  path: string
-): Promise<FolderFile | "directory" | null> {
-  for (let attempt = 0; ; attempt++) {
-    try {
-      const info = await workspace.stat(path);
-      if (!info) return null;
-      return info.isDirectory
-        ? "directory"
-        : { path, size: info.size, modifiedAt: info.modifiedAt };
-    } catch (error) {
-      if (!(error instanceof WorkspacePathError) || attempt > 0) return null;
-      await new Promise((resolve) => setTimeout(resolve, REFUSED_PATH_RETRY_MS));
-    }
-  }
-}
-
-/** Whether `path` or one of the directories above it is in `directories`. */
-function isAtOrUnder(path: string, directories: ReadonlySet<string>): boolean {
-  if (directories.has(path)) return true;
-  for (let slash = path.lastIndexOf("/"); slash > 0; ) {
-    const parent = path.slice(0, slash);
-    if (directories.has(parent)) return true;
-    slash = parent.lastIndexOf("/");
-  }
-  return false;
+  /**
+   * The changed paths that are not a file: what was at or below them is
+   * gone, or they are directories. Null when the whole folder was scanned.
+   */
+  places: ReadonlySet<string> | null;
 }
 
 /** The whole folder and every row of the project. */
@@ -441,7 +367,7 @@ async function wholeFolder(
 ): Promise<ReconcileScope> {
   const files = await scanFolder(workspace);
   const rows = await Asset.listProjectFiles(userId, projectId);
-  return { files, rows, others: [] };
+  return { files, rows, others: [], places: null };
 }
 
 /**
@@ -495,7 +421,7 @@ async function changedPaths(
         isProjectAssetOffline(asset));
     (inScope ? rows : others).push(asset);
   }
-  return { files, rows, others };
+  return { files, rows, others, places };
 }
 
 /**
@@ -566,17 +492,6 @@ async function notifyFileChanged(assets: readonly Asset[]): Promise<void> {
 
 // ── Reconcile ───────────────────────────────────────────────────────────────
 
-export interface ReconcileOptions {
-  /**
-   * Project-relative paths that changed. The reconcile then looks at these
-   * paths only: it lists no directory but a changed one and marks no row
-   * offline whose file is not at or below one of them. A row that is already
-   * offline is still pointed at a changed file that has its content. Without
-   * it the whole folder is scanned.
-   */
-  paths?: Iterable<string>;
-}
-
 /**
  * The rows whose file is present, by fingerprint, for telling whether a media
  * file with no row has the content of an indexed file. Each row's path is
@@ -645,11 +560,21 @@ export async function reconcileProjectIndex(
   userId: string,
   options: ReconcileOptions = {}
 ): Promise<ProjectIndexReport> {
+  return (await reconcileAndScan(projectId, userId, options)).report;
+}
+
+/** {@link reconcileProjectIndex}, with what it found in the folder. */
+async function reconcileAndScan(
+  projectId: string | null | undefined,
+  userId: string,
+  options: ReconcileOptions
+): Promise<{ report: ProjectIndexReport; scanned: ScannedFolder }> {
   const folder = await requireProjectFolder(projectId, userId);
   const { workspace } = folder;
   const project = folder.projectId;
   /** Rows whose file has new contents, for the change listeners. */
   const changed: Asset[] = [];
+  let scanned: ScannedFolder = { files: new Map(), places: null };
 
   const report = await withProjectFolderLock(userId, project, async () => {
     const report: ProjectIndexReport = {
@@ -670,13 +595,14 @@ export async function reconcileProjectIndex(
     const waitingSince = waitingCopies.get(projectKey);
     // A file waiting for its row is looked at with every set of changed
     // paths: the delete that ends its move names only the file that went.
-    const { files, rows, others } = options.paths
+    const { files, rows, others, places } = options.paths
       ? await changedPaths(workspace, userId, project, [
           ...options.paths,
           ...[...(waitingSince?.keys() ?? [])].map(waitingPath)
         ])
       : await wholeFolder(workspace, userId, project);
     report.files = files.size;
+    scanned = { files, places };
 
     // Rows whose file is where they say.
     const indexed = new Set<string>();
@@ -836,7 +762,7 @@ export async function reconcileProjectIndex(
   });
 
   await notifyFileChanged(changed);
-  return report;
+  return { report, scanned };
 }
 
 /**
@@ -875,13 +801,6 @@ export const RECONCILE_DEBOUNCE_MS = 500;
 export const RECONCILE_MAX_WAIT_MS = 5_000;
 /** A project opened again within this time is not scanned again, in ms. */
 export const OPEN_RECONCILE_INTERVAL_MS = 10_000;
-/**
- * How long a media file with the content of an indexed file waits for its
- * row, in ms. A move seen half done finishes within this time, and the row of
- * the file that moved then follows it.
- */
-export const COPY_GRACE_MS = 10_000;
-
 const lastReconciled = new Map<string, number>();
 /** Per project: when each waiting copy (`path`, NUL, hash) was first seen. */
 const waitingCopies = new Map<string, Map<string, number>>();
@@ -919,16 +838,34 @@ const reconciles = new DebouncedRuns({
 /**
  * Reconcile as a background trigger does: bring the rows in line, then write
  * the folder's asset manifest and hash the files that have no full hash yet,
- * both in the background.
+ * both in the background. The documents that are files in the folder are
+ * reconciled with their files in the same pass.
  */
 export async function reconcileInBackground(
   projectId: string,
   userId: string,
   options: ReconcileOptions = {}
 ): Promise<ProjectIndexReport> {
-  const report = await reconcileProjectIndex(projectId, userId, options);
+  const { report, scanned } = await reconcileAndScan(projectId, userId, options);
   scheduleAssetManifestWrite(report.projectId, userId);
   scheduleProjectHashing(report.projectId, userId);
+  // The documents that are files in the folder follow the same triggers, and
+  // are compared with the files this reconcile found. A failure there leaves
+  // the asset index as it was reconciled.
+  try {
+    await reconcileDocumentFiles(
+      [workflowFileAdapter],
+      report.projectId,
+      userId,
+      {
+        scanned,
+        // A copy of a document file waits to be told apart from a move.
+        onDeferred: () => scheduleFollowUp(report.projectId, userId)
+      }
+    );
+  } catch (error) {
+    logReconcileFailure(error);
+  }
   return report;
 }
 

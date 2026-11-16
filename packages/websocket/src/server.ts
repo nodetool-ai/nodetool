@@ -84,6 +84,10 @@ import {
 import { deriveKey, getMasterKey, initMasterKey } from "@nodetool-ai/security";
 import { setDefaultModelInterfaces } from "@nodetool-ai/runtime";
 import { migrateProjectFolders } from "@nodetool-ai/execution/service";
+import {
+  migrateWorkflowFiles,
+  setWorkflowFileNodeRegistry
+} from "@nodetool-ai/project-services/workflow-file";
 import { serverModelInterfaces } from "./websocket-client-session.js";
 import {
   WorkerManager,
@@ -1807,11 +1811,20 @@ initWorkspaceStorage();
 // Every project has a folder. Projects from before project folders get one
 // here, in the background: each project is its own idempotent step, so a
 // restart mid-way continues where it stopped.
+// A workflow file edited in a project folder is checked against this registry,
+// as `update_workflow` checks a graph.
+setWorkflowFileNodeRegistry(() => registry);
 void migrateProjectFolders()
   .then((report) => {
     if (report.checked > 0) {
       log.info(`Project folders: ${report.assigned} assigned, ${report.failed} failed`);
     }
+    // Workflows from before project folders get their file once every
+    // project has a folder. Idempotent: a second run writes nothing.
+    return migrateWorkflowFiles();
+  })
+  .then((written) => {
+    if (written > 0) log.info(`Workflow files: ${written} written`);
   })
   .catch((error: unknown) => {
     log.warn(

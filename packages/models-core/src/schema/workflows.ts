@@ -26,6 +26,17 @@ export const workflows = sqliteTable(
     app_doc: jsonText<Record<string, unknown>>()("app_doc"),
     receive_clipboard: integer("receive_clipboard", { mode: "boolean" }),
     access: text("access").notNull().default("private"),
+    // Path of the workflow's file, relative to the folder of the project in
+    // `project_id`: `Workflows/<name>.workflow.json`. Null until the file is
+    // first written.
+    file_path: text("file_path"),
+    // SHA-256 of the file as NodeTool last wrote or imported it, in hex. A
+    // file with another hash holds an edit NodeTool has not seen. Null until
+    // the row is first synced with a file.
+    file_hash: text("file_hash"),
+    // What the last reconcile found wrong with the file: "File missing", or
+    // the reason an edited file was refused. Null while row and file agree.
+    file_error: text("file_error"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

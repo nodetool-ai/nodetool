@@ -1,4 +1,4 @@
-export { SQLITE_CORE_BASELINE_SQL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ASSET_WORKSPACE_PATH_DDL, ASSET_CONTENT_HASH_DDL } from "./sqlite-baseline.js";
+export { SQLITE_CORE_BASELINE_SQL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ASSET_WORKSPACE_PATH_DDL, ASSET_CONTENT_HASH_DDL, WORKFLOW_FILE_PATH_DDL, WORKFLOW_FILE_HASH_DDL, WORKFLOW_FILE_ERROR_DDL } from "./sqlite-baseline.js";
 export { workflows } from "./schema/workflows.js";
 export { assets } from "./schema/assets.js";
 export { jobs } from "./schema/jobs.js";

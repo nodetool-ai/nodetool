@@ -146,6 +146,63 @@ A directory has no row, so its id names its project and path: `dir:<project id>:
 
 Each asset shows the state of its file in the grid, the list, and the viewer. **Missing** marks an offline asset and offers **Relink** and **Remove**. Relink appears in the desktop app, which can read a picked file's location. **Linked** marks an asset that uses a file outside the project folder in place.
 
+## Workflows are files in the folder
+
+Each workflow of a project is a JSON file in the project's folder, `Workflows/<name>.workflow.json`. The file is the document. The database row is the copy NodeTool runs from and reads when it lists workflows.
+
+```json
+{
+  "format": "nodetool.workflow",
+  "version": 1,
+  "id": "<workflow id>",
+  "description": "",
+  "tags": [],
+  "run_mode": null,
+  "settings": {},
+  "graph": { "nodes": [], "edges": [] }
+}
+```
+
+The file name is the workflow's name, and the file has no `name` field. Characters a file name cannot carry become spaces. The file is pretty-printed with these keys in this order and ends with a newline, so a diff shows only what changed. Owner, access, thumbnails and timestamps stay in the database. Version history stays in the database too. Example and package workflows are templates and are written to no folder.
+
+### Saving in NodeTool writes the file
+
+Every save of a workflow writes its file: the editor and its autosave, the REST and tRPC API, the agent's workflow tools, and restoring a version. The write happens in the `Workflow` model, after the row is saved. The row then records the file's path in `file_path` and the SHA-256 of its content in `file_hash`. Saving a workflow that did not change leaves the file byte-identical.
+
+Renaming a workflow renames its file. Deleting a workflow deletes its file. Moving a workflow to another project moves its file to that project's folder. A second workflow with the same name gets `<name>-2.workflow.json`. NodeTool creates a new file exclusively and never replaces a file it did not write for that workflow.
+
+A workflow is saved even when its folder cannot be reached. The file is written, and renamed when the name changed, the next time the folder is compared. The same holds for a workflow saved by a host that does not write project files, such as a CLI command run against the database. `file_hash` keeps naming the file as NodeTool last wrote or imported it, so the comparison can tell a file nobody touched, which it writes, from a file that was edited, which it imports.
+
+A save never replaces a file edit NodeTool has not seen. Before it writes, the save compares the file with `file_hash`. When the file was edited since, for example by a `git pull` while the project was closed, the file's content is kept as a version named "File edit replaced by a save" and the save is then written. When the edited file is not valid, the file is left as it is and its error is recorded in `file_error`. The workflow is saved in the database either way.
+
+### Editing the file updates the workflow
+
+A workflow file can be edited by hand, replaced by git, or changed by an agent with its file tools. NodeTool compares the files with the rows whenever it compares the asset index: when the project is opened, after NodeTool writes into the folder, and when a file changes while the project is open.
+
+| File | Result |
+| --- | --- |
+| Its hash equals `file_hash` | Nothing changes. |
+| Its hash differs and the file is valid | The workflow as it was is kept as a version named "Before file edit". The file's content is stored and open editors are told. |
+| Its hash differs and the file is not valid | The workflow is kept as it was. The reason is recorded in `file_error`. The file is not written again until it is valid. |
+| The file is gone | `file_error` reads "File missing". The workflow is kept. Saving it in NodeTool writes the file again. |
+| The file was renamed or moved in the folder | The workflow follows it and takes the new file name as its name. A rename that changes only the case of the name counts, also in a folder that ignores case. |
+| A new file with an ID no workflow has | A workflow is created in this project. |
+| A new file with the ID of another workflow | The file gets a new ID, is rewritten with it, and becomes a new workflow. Duplicating a workflow file does this. |
+
+The whole file can be edited except `id`. A changed `id` in a file NodeTool knows is set back. A file without an `id` gets one. A `run_mode` that is missing or `null` reads as `workflow`.
+
+An edited graph passes the checks `update_workflow` runs before it is stored: unknown node types, providers and models the runtime does not have, and wiring handles left in property values. A refused file gives the error that tool gives. The agent's workflow tools remain the better way for an agent to change a workflow, because they return the error in the tool result. A node keeps the position the file gives it. A node the file gives no position is placed automatically.
+
+All edits made to a file between two comparisons are stored as one change and leave one version. NodeTool does not rewrite a file it imports, so a text editor that has it open sees no change it did not make. The two exceptions are a restored `id` and a new ID for a duplicate.
+
+An exact copy of a workflow file waits 10 seconds before it becomes a workflow, as a copied media file does. When the original is gone by then, the copy is where the workflow moved to.
+
+When a workflow was saved by a host that writes no files and its file was edited as well, the file is imported and the saved workflow is the version. Restoring a version in NodeTool writes the row and the file together, so the restored graph is not taken for a file edit.
+
+### Workflows from before project folders
+
+A workflow that has no file gets one when the server starts and when its project is next compared. The step writes one file per workflow and records `file_path` and `file_hash`. Running it again writes nothing. A workflow that belongs to no project gets its file in the Personal folder once the Personal project exists.
+
 ## Files in the left panel
 
 The left panel lists **Chats**, **Documents** and **Files** under the name of the open project. Files is a tree of the project folder. It updates when a run or a tool adds a file, and it hides `.nodetool/`.

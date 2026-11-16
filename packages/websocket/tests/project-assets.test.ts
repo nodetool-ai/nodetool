@@ -137,11 +137,16 @@ let rawKeys: () => Promise<string[]>;
 /** Fetch a `get_url` the way a client does. */
 let serve: (url: string) => Promise<Uint8Array | null>;
 
+/**
+ * The files in the folder, without the workflow files: a workflow of the
+ * project is a file in `Workflows/`, which these cases do not look at.
+ */
 async function namesIn(row: WorkspaceRow): Promise<string[]> {
   const workspace = workspaceFromRow(row);
   if (!workspace) throw new Error("no workspace for row");
   return (await workspace.list("", { recursive: true }))
     .map((entry) => entry.path)
+    .filter((path) => !path.endsWith(".workflow.json"))
     .sort();
 }
 
