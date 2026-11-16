@@ -20738,5 +20738,23 @@
       "revealInExplorer": "Pokaż w Eksploratorze plików",
       "revealInFileManager": "Pokaż w menedżerze plików"
     }
+  },
+  "storyboardText": {
+    "mode": "Tekst",
+    "editorLabel": "Storyboard jako tekst Markdown",
+    "hint": "Wpisz # dla aktu, ## dla sceny, ### dla ujęcia i - **Motion:** dla pola. Wpisz @, aby wspomnieć encję lub obraz.",
+    "issues": "Wiersze wymagające uwagi: {{lines}}",
+    "loading": "Wczytywanie tekstu…",
+    "warnings": {
+      "media_outside_shot": "Obraz należy do ujęcia. Umieść go pod nagłówkiem ujęcia ###.",
+      "second_media": "Ujęcie ma jeden wybrany kadr i jeden wybrany klip. Ten element nie jest używany.",
+      "unknown_shot_field": "„{{label}}” nie jest polem storyboardu. Zostaje zapisane w notatkach ujęcia.",
+      "unknown_field": "„{{label}}” nie jest tu polem. Nie zostaje zapisane.",
+      "text_in_scene": "Scena ma tylko nagłówek i oświetlenie. Przenieś ten tekst pod ujęcie lub zacznij go od „Lighting:”.",
+      "bad_duration": "Ujęcie {{shot}}: „{{value}}” nie jest liczbą sekund.",
+      "bad_render": "Ujęcie {{shot}}: render to keyframe, direct lub reference.",
+      "no_next_shot": "Ujęcie {{shot}}: przejście prowadzi do następnego ujęcia, a takiego nie ma.",
+      "missing_action": "Ujęcie {{shot}} nie ma jeszcze akcji. Opisz obraz do wygenerowania pod jego nagłówkiem."
+    }
   }
 }

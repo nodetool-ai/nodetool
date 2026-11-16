@@ -20116,5 +20116,23 @@
       "revealInExplorer": "Im Datei-Explorer anzeigen",
       "revealInFileManager": "Im Dateimanager anzeigen"
     }
+  },
+  "storyboardText": {
+    "mode": "Text",
+    "editorLabel": "Storyboard als Markdown-Text",
+    "hint": "Tippe # für einen Akt, ## für eine Szene, ### für eine Einstellung und - **Motion:** für ein Feld. Tippe @, um eine Entität oder ein Bild zu erwähnen.",
+    "issues": "Zeilen, die Aufmerksamkeit brauchen: {{lines}}",
+    "loading": "Text wird geladen…",
+    "warnings": {
+      "media_outside_shot": "Ein Bild gehört zu einer Einstellung. Setze es unter eine ###-Überschrift.",
+      "second_media": "Eine Einstellung hat ein ausgewähltes Standbild und einen ausgewählten Clip. Dieses Element wird nicht verwendet.",
+      "unknown_shot_field": "„{{label}}“ ist kein Storyboard-Feld. Es wird in den Notizen der Einstellung gespeichert.",
+      "unknown_field": "„{{label}}“ ist hier kein Feld. Es wird nicht gespeichert.",
+      "text_in_scene": "Eine Szene hat nur eine Szenenzeile und Licht. Setze diesen Text unter eine Einstellung oder beginne ihn mit „Lighting:“.",
+      "bad_duration": "Einstellung {{shot}}: „{{value}}“ ist keine Anzahl von Sekunden.",
+      "bad_render": "Einstellung {{shot}}: Render ist keyframe, direct oder reference.",
+      "no_next_shot": "Einstellung {{shot}}: Ein Übergang führt zur nächsten Einstellung, und es gibt keine.",
+      "missing_action": "Einstellung {{shot}} hat noch keine Handlung. Beschreibe das Bild unter ihrer Überschrift."
+    }
   }
 }

@@ -20427,5 +20427,23 @@
       "revealInExplorer": "Mostra in Esplora file",
       "revealInFileManager": "Mostra nel gestore file"
     }
+  },
+  "storyboardText": {
+    "mode": "Testo",
+    "editorLabel": "Storyboard come testo Markdown",
+    "hint": "Digita # per un atto, ## per una scena, ### per un'inquadratura e - **Motion:** per un campo. Digita @ per menzionare un'entità o un'immagine.",
+    "issues": "Righe da controllare: {{lines}}",
+    "loading": "Caricamento del testo…",
+    "warnings": {
+      "media_outside_shot": "Un'immagine appartiene a un'inquadratura. Mettila sotto un titolo ### di inquadratura.",
+      "second_media": "Un'inquadratura ha un fotogramma e un clip selezionati. Questo non viene usato.",
+      "unknown_shot_field": "\"{{label}}\" non è un campo dello storyboard. Viene salvato nelle note dell'inquadratura.",
+      "unknown_field": "\"{{label}}\" non è un campo qui. Non viene salvato.",
+      "text_in_scene": "Una scena ha solo intestazione e illuminazione. Sposta questo testo sotto un'inquadratura o inizialo con \"Lighting:\".",
+      "bad_duration": "Inquadratura {{shot}}: \"{{value}}\" non è un numero di secondi.",
+      "bad_render": "Inquadratura {{shot}}: il render è keyframe, direct o reference.",
+      "no_next_shot": "Inquadratura {{shot}}: una transizione porta all'inquadratura successiva, che non c'è.",
+      "missing_action": "L'inquadratura {{shot}} non ha ancora un'azione. Scrivi l'immagine da generare sotto il suo titolo."
+    }
   }
 }

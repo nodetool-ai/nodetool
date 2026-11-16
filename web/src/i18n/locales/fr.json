@@ -20427,5 +20427,23 @@
       "revealInExplorer": "Afficher dans l'Explorateur de fichiers",
       "revealInFileManager": "Afficher dans le gestionnaire de fichiers"
     }
+  },
+  "storyboardText": {
+    "mode": "Texte",
+    "editorLabel": "Storyboard en texte Markdown",
+    "hint": "Tapez # pour un acte, ## pour une scène, ### pour un plan et - **Motion:** pour un champ. Tapez @ pour mentionner une entité ou une image.",
+    "issues": "Lignes à vérifier : {{lines}}",
+    "loading": "Chargement du texte…",
+    "warnings": {
+      "media_outside_shot": "Une image appartient à un plan. Placez-la sous un titre de plan ###.",
+      "second_media": "Un plan a une image fixe et un clip sélectionnés. Celui-ci n'est pas utilisé.",
+      "unknown_shot_field": "« {{label}} » n'est pas un champ du storyboard. Il est enregistré dans les notes du plan.",
+      "unknown_field": "« {{label}} » n'est pas un champ ici. Il n'est pas enregistré.",
+      "text_in_scene": "Une scène n'a qu'un en-tête et un éclairage. Placez ce texte sous un plan ou commencez-le par « Lighting: ».",
+      "bad_duration": "Plan {{shot}} : « {{value}} » n'est pas un nombre de secondes.",
+      "bad_render": "Plan {{shot}} : le rendu est keyframe, direct ou reference.",
+      "no_next_shot": "Plan {{shot}} : une transition mène au plan suivant, et il n'y en a pas.",
+      "missing_action": "Le plan {{shot}} n'a pas encore d'action. Décrivez l'image à rendre sous son titre."
+    }
   }
 }

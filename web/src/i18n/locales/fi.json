@@ -20116,5 +20116,23 @@
       "revealInExplorer": "Näytä Resurssienhallinnassa",
       "revealInFileManager": "Näytä tiedostonhallinnassa"
     }
+  },
+  "storyboardText": {
+    "mode": "Teksti",
+    "editorLabel": "Kuvakäsikirjoitus Markdown-tekstinä",
+    "hint": "Kirjoita # näytökselle, ## kohtaukselle, ### otokselle ja - **Motion:** kentälle. Kirjoita @ mainitaksesi entiteetin tai kuvan.",
+    "issues": "Huomiota vaativat rivit: {{lines}}",
+    "loading": "Ladataan tekstiä…",
+    "warnings": {
+      "media_outside_shot": "Kuva kuuluu otokseen. Sijoita se ###-otosotsikon alle.",
+      "second_media": "Otoksella on yksi valittu still-kuva ja yksi valittu leike. Tätä ei käytetä.",
+      "unknown_shot_field": "”{{label}}” ei ole kuvakäsikirjoituksen kenttä. Se tallennetaan otoksen muistiinpanoihin.",
+      "unknown_field": "”{{label}}” ei ole kenttä tässä. Sitä ei tallenneta.",
+      "text_in_scene": "Kohtauksella on vain otsikkorivi ja valaistus. Siirrä teksti otoksen alle tai aloita se sanalla ”Lighting:”.",
+      "bad_duration": "Otos {{shot}}: ”{{value}}” ei ole sekuntimäärä.",
+      "bad_render": "Otos {{shot}}: render on keyframe, direct tai reference.",
+      "no_next_shot": "Otos {{shot}}: siirtymä johtaa seuraavaan otokseen, eikä sellaista ole.",
+      "missing_action": "Otoksella {{shot}} ei ole vielä toimintaa. Kirjoita renderöitävä kuva sen otsikon alle."
+    }
   }
 }

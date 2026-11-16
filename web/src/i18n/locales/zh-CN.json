@@ -20116,5 +20116,23 @@
       "revealInExplorer": "在文件资源管理器中显示",
       "revealInFileManager": "在文件管理器中显示"
     }
+  },
+  "storyboardText": {
+    "mode": "文本",
+    "editorLabel": "Markdown 文本形式的故事板",
+    "hint": "输入 # 表示幕，## 表示场景，### 表示镜头，- **Motion:** 表示字段。输入 @ 提及实体或图片。",
+    "issues": "需要处理的行：{{lines}}",
+    "loading": "正在加载文本…",
+    "warnings": {
+      "media_outside_shot": "图片属于某个镜头。请把它放在 ### 镜头标题下。",
+      "second_media": "一个镜头只有一张选中的静帧和一个选中的片段。此项不会使用。",
+      "unknown_shot_field": "“{{label}}”不是故事板字段，将保存到该镜头的备注中。",
+      "unknown_field": "“{{label}}”在这里不是字段，不会保存。",
+      "text_in_scene": "场景只有场景标题和灯光。请把这段文字放到镜头下，或以“Lighting:”开头。",
+      "bad_duration": "镜头 {{shot}}：“{{value}}”不是秒数。",
+      "bad_render": "镜头 {{shot}}：render 只能是 keyframe、direct 或 reference。",
+      "no_next_shot": "镜头 {{shot}}：转场会通向下一个镜头，但没有下一个镜头。",
+      "missing_action": "镜头 {{shot}} 还没有动作。请在其标题下写出要渲染的画面。"
+    }
   }
 }

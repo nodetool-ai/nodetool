@@ -20116,5 +20116,23 @@
       "revealInExplorer": "Show in File Explorer",
       "revealInFileManager": "Show in file manager"
     }
+  },
+  "storyboardText": {
+    "mode": "Text",
+    "editorLabel": "Storyboard as Markdown text",
+    "hint": "Type # for an act, ## for a scene, ### for a shot and - **Motion:** for a field. Type @ to mention an entity or an image.",
+    "issues": "Lines that need attention: {{lines}}",
+    "loading": "Loading the text…",
+    "warnings": {
+      "media_outside_shot": "An image belongs to a shot. Put it under a ### shot heading.",
+      "second_media": "A shot has one selected still and one selected clip. This one is not used.",
+      "unknown_shot_field": "\"{{label}}\" is not a storyboard field. It is saved in the shot's notes.",
+      "unknown_field": "\"{{label}}\" is not a field here. It is not saved.",
+      "text_in_scene": "A scene has a slugline and lighting only. Put this text under a shot, or start it with \"Lighting:\".",
+      "bad_duration": "Shot {{shot}}: \"{{value}}\" is not a number of seconds.",
+      "bad_render": "Shot {{shot}}: render is keyframe, direct or reference.",
+      "no_next_shot": "Shot {{shot}}: a transition leads to the next shot, and there is none.",
+      "missing_action": "Shot {{shot}} has no action yet. Write the visual to render under its heading."
+    }
   }
 }

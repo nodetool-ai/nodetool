@@ -142,6 +142,15 @@ export interface StoryboardSetupPatch {
   importSource?: StoryboardImportSource | null;
 }
 
+/**
+ * The parts of a board its Markdown text writes. Everything else on the board
+ * (models, setup state, one-take direction) stays as it is.
+ */
+export type StoryboardTextEdit = Pick<
+  StoryboardBoard,
+  "screenplay" | "shots" | "brief" | "style" | "entityIds" | "aspectRatio" | "genre" | "look_preset_ids"
+>;
+
 /** The scene fields the surface edits; a scene carries no order of its own. */
 export type ScenePatch = Partial<Pick<Scene, "slugline" | "lighting">>;
 
@@ -189,6 +198,11 @@ interface StoryboardStoreState {
   /** Load a screenplay, keeping generated media for shots with existing ids. */
   setScreenplay: (boardId: string, screenplay: Screenplay) => void;
 
+  /**
+   * Apply an edit of the board's Markdown text. Typing coalesces into one undo
+   * step, like typing in the brief.
+   */
+  applyTextEdit: (boardId: string, edit: StoryboardTextEdit) => void;
   setBrief: (boardId: string, brief: string) => void;
   setStyle: (boardId: string, style: string) => void;
   setLookPresetIds: (boardId: string, ids: string[]) => void;
@@ -957,6 +971,13 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
       }
       return patch;
     }),
+
+  applyTextEdit: (boardId, edit) =>
+    set((state) =>
+      withBoard(state, boardId, (b) => ({ ...b, ...edit }), {
+        coalesceKey: "text"
+      })
+    ),
 
   setBrief: (boardId, brief) =>
     set((state) =>

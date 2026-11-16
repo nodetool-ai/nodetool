@@ -20116,5 +20116,23 @@
       "revealInExplorer": "エクスプローラーで表示",
       "revealInFileManager": "ファイルマネージャーで表示"
     }
+  },
+  "storyboardText": {
+    "mode": "テキスト",
+    "editorLabel": "Markdown テキストとしてのストーリーボード",
+    "hint": "幕は #、シーンは ##、ショットは ###、フィールドは - **Motion:** と入力します。エンティティや画像に言及するには @ と入力します。",
+    "issues": "確認が必要な行: {{lines}}",
+    "loading": "テキストを読み込み中…",
+    "warnings": {
+      "media_outside_shot": "画像はショットに属します。### のショット見出しの下に置いてください。",
+      "second_media": "ショットで選択できる静止画とクリップは 1 つずつです。これは使用されません。",
+      "unknown_shot_field": "「{{label}}」はストーリーボードのフィールドではありません。ショットのメモに保存されます。",
+      "unknown_field": "「{{label}}」はここではフィールドではありません。保存されません。",
+      "text_in_scene": "シーンにはスラグラインと照明しかありません。このテキストをショットの下に置くか、「Lighting:」で始めてください。",
+      "bad_duration": "ショット {{shot}}: 「{{value}}」は秒数ではありません。",
+      "bad_render": "ショット {{shot}}: render は keyframe、direct、reference のいずれかです。",
+      "no_next_shot": "ショット {{shot}}: トランジションは次のショットにつながりますが、次のショットがありません。",
+      "missing_action": "ショット {{shot}} にはまだアクションがありません。見出しの下に生成する映像を書いてください。"
+    }
   }
 }

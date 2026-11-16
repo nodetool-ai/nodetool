@@ -20116,5 +20116,23 @@
       "revealInExplorer": "Toon in Verkenner",
       "revealInFileManager": "Toon in bestandsbeheer"
     }
+  },
+  "storyboardText": {
+    "mode": "Tekst",
+    "editorLabel": "Storyboard als Markdown-tekst",
+    "hint": "Typ # voor een akte, ## voor een scène, ### voor een shot en - **Motion:** voor een veld. Typ @ om een entiteit of afbeelding te noemen.",
+    "issues": "Regels die aandacht nodig hebben: {{lines}}",
+    "loading": "Tekst laden…",
+    "warnings": {
+      "media_outside_shot": "Een afbeelding hoort bij een shot. Zet hem onder een ###-shotkop.",
+      "second_media": "Een shot heeft één geselecteerde still en één geselecteerde clip. Deze wordt niet gebruikt.",
+      "unknown_shot_field": "‘{{label}}’ is geen storyboardveld. Het wordt opgeslagen in de notities van het shot.",
+      "unknown_field": "‘{{label}}’ is hier geen veld. Het wordt niet opgeslagen.",
+      "text_in_scene": "Een scène heeft alleen een kopregel en belichting. Zet deze tekst onder een shot of begin hem met ‘Lighting:’.",
+      "bad_duration": "Shot {{shot}}: ‘{{value}}’ is geen aantal seconden.",
+      "bad_render": "Shot {{shot}}: render is keyframe, direct of reference.",
+      "no_next_shot": "Shot {{shot}}: een overgang leidt naar het volgende shot, en dat is er niet.",
+      "missing_action": "Shot {{shot}} heeft nog geen actie. Schrijf het beeld dat gerenderd wordt onder de kop."
+    }
   }
 }

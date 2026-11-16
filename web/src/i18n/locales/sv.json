@@ -20116,5 +20116,23 @@
       "revealInExplorer": "Visa i Utforskaren",
       "revealInFileManager": "Visa i filhanteraren"
     }
+  },
+  "storyboardText": {
+    "mode": "Text",
+    "editorLabel": "Storyboard som Markdown-text",
+    "hint": "Skriv # för en akt, ## för en scen, ### för en tagning och - **Motion:** för ett fält. Skriv @ för att nämna en entitet eller en bild.",
+    "issues": "Rader som behöver åtgärdas: {{lines}}",
+    "loading": "Läser in texten…",
+    "warnings": {
+      "media_outside_shot": "En bild hör till en tagning. Lägg den under en ###-rubrik.",
+      "second_media": "En tagning har en vald stillbild och ett valt klipp. Den här används inte.",
+      "unknown_shot_field": "”{{label}}” är inget storyboardfält. Det sparas i tagningens anteckningar.",
+      "unknown_field": "”{{label}}” är inget fält här. Det sparas inte.",
+      "text_in_scene": "En scen har bara scenrubrik och ljus. Flytta texten under en tagning eller börja den med ”Lighting:”.",
+      "bad_duration": "Tagning {{shot}}: ”{{value}}” är inte ett antal sekunder.",
+      "bad_render": "Tagning {{shot}}: render är keyframe, direct eller reference.",
+      "no_next_shot": "Tagning {{shot}}: en övergång leder till nästa tagning, och det finns ingen.",
+      "missing_action": "Tagning {{shot}} har ingen handling än. Skriv bilden som ska genereras under rubriken."
+    }
   }
 }

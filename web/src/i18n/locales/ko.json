@@ -20116,5 +20116,23 @@
       "revealInExplorer": "파일 탐색기에서 보기",
       "revealInFileManager": "파일 관리자에서 보기"
     }
+  },
+  "storyboardText": {
+    "mode": "텍스트",
+    "editorLabel": "Markdown 텍스트로 보는 스토리보드",
+    "hint": "막은 #, 장면은 ##, 샷은 ###, 필드는 - **Motion:** 으로 입력하세요. 엔티티나 이미지를 언급하려면 @를 입력하세요.",
+    "issues": "확인이 필요한 줄: {{lines}}",
+    "loading": "텍스트를 불러오는 중…",
+    "warnings": {
+      "media_outside_shot": "이미지는 샷에 속합니다. ### 샷 제목 아래에 넣으세요.",
+      "second_media": "샷에는 선택된 스틸과 클립이 하나씩만 있습니다. 이 항목은 사용되지 않습니다.",
+      "unknown_shot_field": "\"{{label}}\"은(는) 스토리보드 필드가 아닙니다. 샷 메모에 저장됩니다.",
+      "unknown_field": "\"{{label}}\"은(는) 여기서 필드가 아닙니다. 저장되지 않습니다.",
+      "text_in_scene": "장면에는 슬러그라인과 조명만 있습니다. 이 텍스트를 샷 아래로 옮기거나 \"Lighting:\"으로 시작하세요.",
+      "bad_duration": "샷 {{shot}}: \"{{value}}\"은(는) 초 단위 숫자가 아닙니다.",
+      "bad_render": "샷 {{shot}}: render는 keyframe, direct, reference 중 하나입니다.",
+      "no_next_shot": "샷 {{shot}}: 전환은 다음 샷으로 이어지는데 다음 샷이 없습니다.",
+      "missing_action": "샷 {{shot}}에 아직 액션이 없습니다. 제목 아래에 렌더링할 장면을 쓰세요."
+    }
   }
 }

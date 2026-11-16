@@ -20116,5 +20116,23 @@
       "revealInExplorer": "Vis i Filutforsker",
       "revealInFileManager": "Vis i filbehandleren"
     }
+  },
+  "storyboardText": {
+    "mode": "Tekst",
+    "editorLabel": "Storyboard som Markdown-tekst",
+    "hint": "Skriv # for en akt, ## for en scene, ### for et bilde og - **Motion:** for et felt. Skriv @ for å nevne en entitet eller et bilde.",
+    "issues": "Linjer som trenger oppmerksomhet: {{lines}}",
+    "loading": "Laster teksten…",
+    "warnings": {
+      "media_outside_shot": "Et bilde hører til et opptak. Plasser det under en ###-overskrift.",
+      "second_media": "Et opptak har ett valgt stillbilde og ett valgt klipp. Dette brukes ikke.",
+      "unknown_shot_field": "«{{label}}» er ikke et storyboardfelt. Det lagres i opptakets notater.",
+      "unknown_field": "«{{label}}» er ikke et felt her. Det lagres ikke.",
+      "text_in_scene": "En scene har bare sceneoverskrift og lys. Flytt teksten under et opptak, eller start den med «Lighting:».",
+      "bad_duration": "Opptak {{shot}}: «{{value}}» er ikke et antall sekunder.",
+      "bad_render": "Opptak {{shot}}: render er keyframe, direct eller reference.",
+      "no_next_shot": "Opptak {{shot}}: en overgang fører til neste opptak, og det finnes ikke noe.",
+      "missing_action": "Opptak {{shot}} har ingen handling ennå. Skriv bildet som skal genereres, under overskriften."
+    }
   }
 }
