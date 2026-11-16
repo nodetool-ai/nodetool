@@ -1,7 +1,0 @@
-account_unit_tests 5 0.0402048
-account_session_tests 5 0.32693
-account_cloud_tests 5 0.0114208
-account_policy_tests 5 0.00164389
-account_keychain_tests 5 0.000947697
-account_qt_tests 5 0.147377
----
