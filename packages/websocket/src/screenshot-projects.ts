@@ -24,6 +24,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { ensureProjectFolder } from "@nodetool-ai/execution/service";
 import {
   Asset,
   ImageDocument,
@@ -1123,7 +1124,7 @@ export async function seedProjects(userId: string): Promise<number> {
     }
   ];
   for (const row of projects) {
-    await new SeededProject({
+    const project = new SeededProject({
       id: row.id,
       user_id: userId,
       name: row.name,
@@ -1131,7 +1132,11 @@ export async function seedProjects(userId: string): Promise<number> {
       thread_id: row.thread_id,
       created_at: agoIso(row.hoursAgo + 3),
       updated_at: agoIso(row.hoursAgo)
-    }).save();
+    });
+    await project.save();
+    // Creating a project creates its folder, so a seeded project gets one the
+    // same way. Without it, adding a file to the project fails with a 409.
+    await ensureProjectFolder(project);
   }
 
   // Every document model stamps `updated_at` on save and the overview lists

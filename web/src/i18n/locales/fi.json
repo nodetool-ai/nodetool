@@ -20157,6 +20157,44 @@
       "deleteDescription": "”{{name}}” ja sen versiohistoria poistetaan pysyvästi.",
       "restoreFailed": "Tiedostoa ei palautettu: {{error}}",
       "deleteFailed": "Dokumenttia ei poistettu: {{error}}"
+    },
+    "migration": {
+      "title": "Siirrä projektit kansioihin",
+      "intro": "NodeTool tallentaa nyt jokaisen projektin omaan kansioonsa tällä tietokoneella. Tiedostosi, työnkulkusi ja aikajanasi siirretään sinne, ja voit avata ne muissa sovelluksissa.",
+      "planProjects": "Projektit, jotka saavat kansion",
+      "planFiles": "Siirrettävät tiedostot",
+      "planWorkflows": "Tiedostoina tallennettavat työnkulut",
+      "planTimelines": "Tiedostoina tallennettavat aikajanat",
+      "extraTitle": "Projektit, joilla on useita kansioita",
+      "extraBody": "Jokainen näistä projekteista säilyttää yhden kansion. NodeTool lopettaa muiden näyttämisen, ja niiden tiedostot jäävät paikoilleen.",
+      "extraKeeps": "{{project}} säilyttää kansion {{folder}}",
+      "extraHidden": "Ei enää näkyvissä: {{folder}}",
+      "location": "Sijainti",
+      "changeLocation": "Vaihda sijaintia",
+      "locationError": "Tätä sijaintia ei voi käyttää: {{error}}",
+      "permissionWarning": "macOS kysyy, saako NodeTool käyttää tätä kansiota. Valitse Salli tai valitse kansio, joka ei ole Dokumentit-, Työpöytä-, Lataukset- eikä iCloud Drive -kansiossa eikä ulkoisella asemalla.",
+      "safety": "Mitään ei katoa. Jokainen tiedosto kopioidaan ja tarkistetaan ennen kuin sen vanha kopio poistetaan. Voit jatkaa työskentelyä tiedostojen siirtyessä.",
+      "later": "Ei nyt",
+      "confirm": "Siirrä tiedostot",
+      "planError": "Suunnitelmaa ei voitu ladata: {{error}}",
+      "confirmError": "Siirto ei käynnistynyt: {{error}}",
+      "actionError": "Siirtoa ei voitu muuttaa: {{error}}",
+      "progressRegion": "Tiedostoja siirretään projektikansioihin",
+      "progressTitle": "Tiedostoja siirretään projektikansioihin",
+      "pausedTitle": "Tiedostojen siirto on keskeytetty",
+      "doneTitle": "Tiedostot siirretty",
+      "progressCount": "{{done}} / {{total}} tiedostoa siirretty",
+      "phaseFolders": "Luodaan projektikansioita",
+      "phaseFiles": "Tallennetaan työnkulkuja ja aikajanoja tiedostoina",
+      "currentProject": "Siirretään projektin {{project}} tiedostoja",
+      "pause": "Keskeytä",
+      "resume": "Jatka",
+      "failuresTitle": "Siirto epäonnistui ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "Lisää, joita ei näytetä: {{count}}",
+      "retry": "Yritä uudelleen",
+      "donePath": "Tiedostosi ovat kansiossa {{path}}",
+      "close": "Sulje"
     }
   },
   "assetPicker": {
@@ -20200,6 +20238,61 @@
     "apps": {
       "nodeEditor": "Solmueditori",
       "timeline": "Aikajana"
+    }
+  },
+  "storyboardText": {
+    "mode": "Teksti",
+    "editorLabel": "Kuvakäsikirjoitus Markdown-tekstinä",
+    "hint": "Kirjoita # näytökselle, ## kohtaukselle, ### otokselle ja - **Motion:** kentälle. Kirjoita @ mainitaksesi entiteetin tai kuvan.",
+    "issues": "Huomiota vaativat rivit: {{lines}}",
+    "loading": "Ladataan tekstiä…",
+    "warnings": {
+      "media_outside_shot": "Kuva kuuluu otokseen. Sijoita se ###-otosotsikon alle.",
+      "second_media": "Otoksella on yksi valittu still-kuva ja yksi valittu leike. Tätä ei käytetä.",
+      "unknown_shot_field": "”{{label}}” ei ole kuvakäsikirjoituksen kenttä. Se tallennetaan otoksen muistiinpanoihin.",
+      "unknown_field": "”{{label}}” ei ole kenttä tässä. Sitä ei tallenneta.",
+      "text_in_scene": "Kohtauksella on vain otsikkorivi ja valaistus. Siirrä teksti otoksen alle tai aloita se sanalla ”Lighting:”.",
+      "bad_duration": "Otos {{shot}}: ”{{value}}” ei ole sekuntimäärä.",
+      "bad_render": "Otos {{shot}}: render on keyframe, direct tai reference.",
+      "no_next_shot": "Otos {{shot}}: siirtymä johtaa seuraavaan otokseen, eikä sellaista ole.",
+      "missing_action": "Otoksella {{shot}} ei ole vielä toimintaa. Kirjoita renderöitävä kuva sen otsikon alle."
+    },
+    "outline": "Jäsennys",
+    "outlineEmpty": "Kirjoita ### ja otsikko aloittaaksesi otoksen.",
+    "untitledShot": "Nimetön otos",
+    "untitledAct": "Nimetön näytös",
+    "untitledScene": "Nimetön kohtaus",
+    "issuesTitle": "Vaatii huomiota",
+    "stillOf": "Still-kuva otokselle {{shot}}",
+    "assist": {
+      "lines": "{{lines}} riviä valittu",
+      "proposal": "Ehdotettu korvaus",
+      "note": "Agentin huomautus",
+      "discard": "Hylkää",
+      "close": "Sulje",
+      "replace": "Korvaa valinta",
+      "stale": "Kohta muuttui valinnan jälkeen. Valitse se uudelleen.",
+      "thinking": "Ajattelee…",
+      "stop": "Pysäytä",
+      "placeholder": "Kerro agentille, mitä tälle kohdalle tehdään",
+      "refinePlaceholder": "Tarkenna tulosta",
+      "instruction": "Pyyntö agentille",
+      "send": "Lähetä agentille",
+      "failed": "Pyyntö mallille epäonnistui.",
+      "context": "Lähetetty pyynnön mukana: koko kuvakäsikirjoitus, {{shots}} otosta ja kirjaston {{entities}} entiteettiä.",
+      "quick": {
+        "tighten": "Tiivistä",
+        "visual": "Visuaalisemmin",
+        "camera": "Ehdota kameraa",
+        "continuity": "Tarkista jatkuvuus",
+        "summarize": "Tiivistelmä",
+        "inconsistencies": "Etsi ristiriidat"
+      },
+      "errors": {
+        "no_model": "Valitse tälle kuvakäsikirjoitukselle ohjausmalli tai chat-malli käyttääksesi agenttia.",
+        "empty": "Malli ei palauttanut vastausta. Lähetä pyyntö uudelleen.",
+        "failed": "Pyyntö epäonnistui. Lähetä se uudelleen."
+      }
     }
   }
 }

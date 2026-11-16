@@ -52,6 +52,8 @@ public:
     Q_INVOKABLE void renameTab(int index, const QString &name) { emit renameTabRequested(index, name); }
     Q_INVOKABLE void showTabMenu(int index, const QPointF &global) { emit tabMenuRequested(index, global); }
     Q_INVOKABLE void showProjectMenu(const QPointF &global) { emit projectMenuRequested(global); }
+    // The arrow next to +: the kinds of new tab.
+    Q_INVOKABLE void showNewTabMenu(const QPointF &global) { emit newTabMenuRequested(global); }
     // Empty text hides the tool tip.
     Q_INVOKABLE void showToolTip(const QString &text, const QPointF &global) { emit toolTipRequested(text, global); }
     Q_INVOKABLE void scrollStrip(qreal offset) { emit stripScrolled(offset); }
@@ -65,6 +67,7 @@ signals:
     void stripOffsetChanged();
     void renameStarted(int index);
     void newTabRequested();
+    void newTabMenuRequested(const QPointF &global);
     void activateTabRequested(int index);
     void closeTabRequested(int index);
     void dropTabRequested(int source, int target, bool after);

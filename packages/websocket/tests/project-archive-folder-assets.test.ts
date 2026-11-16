@@ -532,6 +532,45 @@ describe.each(["local", "cloud"] as const)(
       await expectEachAssetOnce(project.id);
     });
 
+    // A zip entry can carry a Unix mode that marks it a symbolic link, with
+    // the link's target as its bytes. The import reads entries as bytes and
+    // writes each through the workspace, so it creates a plain file.
+    it.runIf(mode === "local")(
+      "an archive entry marked as a symbolic link is written as a plain file",
+      async () => {
+        const source = await folderProject();
+        const exported = await exportProject(source.project.id);
+        const entries = unzipSync(exported.bytes);
+        const manifest = JSON.parse(
+          strFromU8(entries["manifest.json"]!)
+        ) as ProjectArchiveManifest;
+        const target = strToU8("../../../../.bashrc");
+        const file = "workspaces/link.txt";
+        manifest.workspace_files.push({
+          file,
+          bytes: target.length,
+          sha256: createHash("sha256").update(target).digest("hex"),
+          workspace_id: manifest.project.folder_workspace_id!,
+          path: "notes/link.txt"
+        });
+        const zipped: Record<string, Uint8Array | [Uint8Array, { os: number; attrs: number }]> = {
+          ...entries,
+          "manifest.json": strToU8(JSON.stringify(manifest)),
+          // S_IFLNK | 0777 in the high half of the external attributes, as
+          // Info-ZIP writes a link on Unix.
+          [file]: [target, { os: 3, attrs: (0o120777 << 16) >>> 0 }]
+        };
+
+        const { project, missing } = await importArchive(zipSync(zipped));
+
+        expect(missing).toEqual([]);
+        const folder = await folderRowOf(project.id);
+        const written = path.join(String(folder.path), "notes", "link.txt");
+        expect((await fs.lstat(written)).isSymbolicLink()).toBe(false);
+        expect(await fs.readFile(written, "utf8")).toBe("../../../../.bashrc");
+      }
+    );
+
     it("an asset whose archived bytes are not those of the folder file keeps its own bytes", async () => {
       const source = await folderProject();
       const exported = await exportProject(source.project.id);
@@ -573,6 +612,63 @@ describe.each(["local", "cloud"] as const)(
           png(index)
         );
       }
+    });
+
+    it("a project whose folder is not its oldest workspace imports with that folder, and each asset once", async () => {
+      const source = await folderProject();
+      // An older workspace of the project that is not its folder, with a
+      // file at the path of an asset.
+      const older = await WorkspaceRow.create<WorkspaceRow>({
+        user_id: USER,
+        project_id: source.project.id,
+        name: "Old notes",
+        path: looseWorkspacePath("old-notes"),
+        created_at: "2020-01-01T00:00:00.000Z"
+      });
+      await folderOf(older).write(source.paths[0]!, png(100));
+      const { bytes, manifest } = await exportProject(source.project.id);
+      expect(manifest.project.folder_workspace_id).toBe(source.folder.id);
+
+      const { project } = await importArchive(bytes);
+
+      await expectEachAssetOnce(project.id);
+      const opened = await openProject(project.id);
+      expect(opened.first.created).toEqual([]);
+      expect(opened.moved.moved).toEqual([]);
+      await expectEachAssetOnce(project.id);
+      // The older workspace came along as a workspace of its own.
+      const rows = await WorkspaceRow.listByProject(USER, project.id);
+      expect(rows).toHaveLength(2);
+    });
+
+    it("an older archive of a Personal project takes its default workspace as the folder", async () => {
+      const source = await folderProject();
+      const older = await WorkspaceRow.create<WorkspaceRow>({
+        user_id: USER,
+        project_id: source.project.id,
+        name: "Old notes",
+        path: looseWorkspacePath("old-notes"),
+        created_at: "2020-01-01T00:00:00.000Z"
+      });
+      await folderOf(older).write("notes.md", strToU8("# notes"));
+      const { bytes } = await exportProject(source.project.id);
+      // As Personal was exported before the folder was recorded: the folder
+      // is its default workspace.
+      const legacy = rewriteArchive(bytes, ({ manifest, records }) => {
+        manifest.project.kind = "personal";
+        delete (manifest.project as { folder_workspace_id?: unknown })
+          .folder_workspace_id;
+        for (const row of records["workspaces"] ?? []) {
+          row["is_default"] = row["id"] === source.folder.id;
+        }
+      });
+
+      const { project } = await importArchive(legacy);
+
+      await expectEachAssetOnce(project.id);
+      const opened = await openProject(project.id);
+      expect(opened.first.created).toEqual([]);
+      expect(opened.moved.moved).toEqual([]);
     });
 
     it("the folder files are taken from the folder, not from an older workspace a game uses", async () => {

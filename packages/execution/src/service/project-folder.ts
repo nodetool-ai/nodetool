@@ -35,7 +35,8 @@ import {
 } from "@nodetool-ai/runtime";
 import {
   nodetoolDirFromRow,
-  resolveProjectWorkspace
+  resolveProjectWorkspace,
+  setMissingFolderProvider
 } from "./workflow-workspace.js";
 
 const log = createLogger("nodetool.execution.project-folder");
@@ -390,13 +391,25 @@ export async function configuredProjectsDir(
  */
 async function projectsParent(userId: string): Promise<string> {
   const { dir: parent, fromUser: stored } = await configuredProjectsDir(userId);
-  if (!isAbsolute(parent)) {
+  return checkProjectsDir(parent, { create: !stored });
+}
+
+/**
+ * Check that `dir` can hold project folders: an absolute path to a writable
+ * directory. With `create`, a missing directory is created first. Throws a
+ * `ProjectFolderError` naming the first check that fails, and returns `dir`.
+ */
+export async function checkProjectsDir(
+  dir: string,
+  options: { create?: boolean } = {}
+): Promise<string> {
+  if (!isAbsolute(dir)) {
     throw new ProjectFolderError("The projects folder must be an absolute path");
   }
-  let info = await stat(parent).catch(() => null);
-  if (!info && !stored) {
-    await mkdir(parent, { recursive: true });
-    info = await stat(parent).catch(() => null);
+  let info = await stat(dir).catch(() => null);
+  if (!info && options.create) {
+    await mkdir(dir, { recursive: true });
+    info = await stat(dir).catch(() => null);
   }
   if (!info) {
     throw new ProjectFolderError("The projects folder does not exist");
@@ -405,11 +418,11 @@ async function projectsParent(userId: string): Promise<string> {
     throw new ProjectFolderError("The projects folder is not a directory");
   }
   try {
-    await access(parent, constants.W_OK);
+    await access(dir, constants.W_OK);
   } catch {
     throw new ProjectFolderError("The projects folder is not writable");
   }
-  return parent;
+  return dir;
 }
 
 /** Create a new folder for the project and record it. */
@@ -458,10 +471,22 @@ async function createFolder(project: Project): Promise<WorkspaceRow> {
   }
 }
 
+/** What {@link ensureProjectFolder} prefers for a project without a folder. */
+export interface EnsureProjectFolderOptions {
+  /**
+   * A workspace row of the project to become its folder, such as the
+   * imported workspace an archive names as the project's folder. Used when
+   * the row belongs to the project and no game uses it.
+   */
+  preferredWorkspaceId?: string;
+}
+
 /**
  * The project's folder, created or assigned when it has none. Idempotent.
  *
  * - A project whose `workspace_id` names an existing row keeps that row.
+ * - A project given `options.preferredWorkspaceId` takes that row when it is
+ *   one of the project's rows and no game uses it.
  * - Personal uses the user's default workspace and claims that row for itself
  *   when the row is in no project or already Personal's, and no game uses it.
  *   No files move. Otherwise Personal gets a new folder and the row is left as
@@ -475,7 +500,8 @@ async function createFolder(project: Project): Promise<WorkspaceRow> {
  * behind.
  */
 export async function ensureProjectFolder(
-  project: Project
+  project: Project,
+  options: EnsureProjectFolderOptions = {}
 ): Promise<WorkspaceRow> {
   if (project.workspace_id) {
     const existing = await WorkspaceRow.find(
@@ -483,6 +509,21 @@ export async function ensureProjectFolder(
       project.workspace_id
     );
     if (existing) return existing;
+  }
+
+  if (options.preferredWorkspaceId) {
+    const preferred = await WorkspaceRow.find(
+      project.user_id,
+      options.preferredWorkspaceId
+    );
+    if (
+      preferred &&
+      preferred.project_id === project.id &&
+      !(await WorkspaceRow.isUsedByGame(preferred.id))
+    ) {
+      await writeManifestIfAbsent(preferred, project);
+      return claim(project, preferred);
+    }
   }
 
   if (project.kind === PERSONAL_PROJECT_KIND) {
@@ -541,7 +582,19 @@ setPersonalFolderProvider(async (project) => {
 // here. It is installed next to the Personal folder provider on purpose: a
 // run with no project resolves to Personal, and that resolves only once
 // Personal has been given its folder.
-setProjectFolderResolver(resolveProjectWorkspace);
+// They never make a project's folder: a project from before project folders
+// gets it when a run starts or when the user confirms the migration.
+setProjectFolderResolver((projectId, userId) =>
+  resolveProjectWorkspace(projectId, userId, { createMissing: false })
+);
+
+// A project from before project folders gets its folder when a run or a chat
+// turn first needs it, before the user confirms the migration of every
+// project. `ensureProjectFolder` records the folder on
+// the project row it is handed.
+setMissingFolderProvider(async (project) => {
+  await ensureProjectFolder(project);
+});
 
 export interface ProjectFolderMigrationReport {
   /** Projects that had no folder when the migration reached them. */
@@ -550,27 +603,37 @@ export interface ProjectFolderMigrationReport {
   assigned: number;
   /** Projects left without a folder, logged one by one. */
   failed: number;
+  /** The projects left without a folder, with the reason for each. */
+  failures: Array<{ projectId: string; userId: string; reason: string }>;
 }
 
 /** Projects read per query by {@link migrateProjectFolders}. */
 const MIGRATION_BATCH = 200;
 
 /**
- * Give every live project of every user a folder.
+ * Give every live project of every user a folder, or of `options.userId`
+ * when given.
  *
  * Runs at startup. Each project is one {@link ensureProjectFolder} call, so an
  * interrupted run loses nothing and the next one continues where it stopped.
  * A project whose folder cannot be created is logged and skipped.
  */
-export async function migrateProjectFolders(): Promise<ProjectFolderMigrationReport> {
+export async function migrateProjectFolders(
+  options: { userId?: string } = {}
+): Promise<ProjectFolderMigrationReport> {
   const report: ProjectFolderMigrationReport = {
     checked: 0,
     assigned: 0,
-    failed: 0
+    failed: 0,
+    failures: []
   };
   let after: { created_at: string; id: string } | undefined;
   for (;;) {
-    const batch = await Project.listWithoutFolder(MIGRATION_BATCH, after);
+    const batch = await Project.listWithoutFolder(
+      MIGRATION_BATCH,
+      after,
+      options.userId
+    );
     if (batch.length === 0) break;
     for (const project of batch) {
       report.checked++;
@@ -578,10 +641,16 @@ export async function migrateProjectFolders(): Promise<ProjectFolderMigrationRep
         await ensureProjectFolder(project);
         report.assigned++;
       } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
         report.failed++;
+        report.failures.push({
+          projectId: project.id,
+          userId: project.user_id,
+          reason
+        });
         log.warn("Could not give a project a folder", {
           projectId: project.id,
-          error: error instanceof Error ? error.message : String(error)
+          error: reason
         });
       }
     }

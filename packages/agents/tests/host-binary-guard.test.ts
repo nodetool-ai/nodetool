@@ -226,6 +226,15 @@ describe("confineMediaPaths", () => {
     );
   });
 
+  it.each([".nodetool/project.json", "sub/../.nodetool/project.json", ".NodeTool/project.json"])(
+    "refuses the reserved directory as the argument %s",
+    async (file) => {
+      await mkdir(path.join(workspace, ".nodetool"), { recursive: true });
+      await writeFile(path.join(workspace, ".nodetool/project.json"), "{}");
+      expect(await refusal([file])).toMatch(/\.nodetool|reserved/);
+    }
+  );
+
   // The media readers open `hostMediaPath`, which reads a path the way the
   // workspace does. Every spelling of one file is judged as that file.
   it.each([

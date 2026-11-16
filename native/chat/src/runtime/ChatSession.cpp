@@ -232,6 +232,7 @@ void ChatSession::disconnectFromServer() {
   m_states.clear();
   m_threads.clear();
   m_selected.clear();
+  syncOpenProject();
   m_actions.clear();
   m_answeredActions.clear();
   m_hostCalls.clear();
@@ -258,12 +259,23 @@ void ChatSession::upsertThread(const QJsonObject &thread) {
   if (!thread["id"].toString().isEmpty()) {
     state(thread["id"].toString());
   }
+  if (thread["id"].toString() == m_selected) {
+    syncOpenProject();
+  }
+}
+void ChatSession::syncOpenProject() {
+  const auto project = m_selected.isEmpty()
+                           ? QString{}
+                           : m_threads.get(m_selected)["project_id"].toString();
+  m_client.setOpenProject(project.isEmpty() ? QStringLiteral("default")
+                                            : project);
 }
 void ChatSession::selectThread(const QString &id) {
   if (m_threads.get(id).isEmpty()) {
     return;
   }
   m_selected = id;
+  syncOpenProject();
   m_workflowThreads[m_workflow] = id;
   m_historyOrder.removeAll(id);
   m_historyOrder.append(id);
@@ -358,6 +370,7 @@ void ChatSession::setWorkflow(const QString &id) {
             createThread();
         }
     }
+    syncOpenProject();
     emit stateChanged();
 }
 void ChatSession::deleteThread(const QString &id) {
@@ -373,6 +386,7 @@ void ChatSession::deleteThread(const QString &id) {
             m_threadWorkflows.remove(id);
             if (m_selected == id) {
                 m_selected.clear();
+                syncOpenProject();
             }
             emit stateChanged();
         });

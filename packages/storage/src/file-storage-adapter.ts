@@ -41,6 +41,18 @@ function decodeKey(key: string): string {
 }
 
 /**
+ * True for the errors a missing path raises. A listing treats these as an
+ * empty directory and rethrows every other one: callers decide from a listing
+ * whether a directory holds another project's folder, and an unreadable
+ * directory is not an empty one.
+ */
+function isAbsentError(cause: unknown): boolean {
+  const code =
+    cause instanceof Error && "code" in cause ? String(cause.code) : undefined;
+  return code === "ENOENT" || code === "ENOTDIR";
+}
+
+/**
  * Return `uri` up to (excluding) the first `?` or `#`. A linear index scan
  * rather than a `/[?#].*$/` regex, which CodeQL flags as a potential ReDoS
  * pattern on uncontrolled input.
@@ -335,8 +347,11 @@ export class FileStorageAdapter implements StorageAdapter {
       let children: Array<{ name: string; isDirectory: () => boolean; isFile: () => boolean }>;
       try {
         children = await readdir(dirAbs, { withFileTypes: true });
-      } catch {
-        return { entries: [], commonPrefixes: [] };
+      } catch (error) {
+        // Only a directory that is not there is empty. A failure to read one
+        // that is there must not read as empty (see `isAbsentError`).
+        if (isAbsentError(error)) return { entries: [], commonPrefixes: [] };
+        throw error;
       }
       for (const child of children) {
         const childKey = normalizedPrefix
@@ -356,8 +371,9 @@ export class FileStorageAdapter implements StorageAdapter {
             size: st.size,
             modifiedAt: st.mtimeMs
           });
-        } catch {
-          // skip unreadable
+        } catch (error) {
+          // Gone since the listing was read.
+          if (!isAbsentError(error)) throw error;
         }
       }
       return {
@@ -377,8 +393,9 @@ export class FileStorageAdapter implements StorageAdapter {
       let children: Array<{ name: string; isDirectory: () => boolean; isFile: () => boolean }>;
       try {
         children = await readdir(dir, { withFileTypes: true });
-      } catch {
-        continue;
+      } catch (error) {
+        if (isAbsentError(error)) continue;
+        throw error;
       }
       for (const child of children) {
         const childAbs = join(dir, child.name);
@@ -399,8 +416,9 @@ export class FileStorageAdapter implements StorageAdapter {
             size: st.size,
             modifiedAt: st.mtimeMs
           });
-        } catch {
-          // skip
+        } catch (error) {
+          // Gone since the listing was read.
+          if (!isAbsentError(error)) throw error;
         }
       }
     }
@@ -431,6 +449,35 @@ export class FileStorageAdapter implements StorageAdapter {
       // unlink was refused.
       return false;
     }
+  }
+
+  /**
+   * As {@link stat}, but a file the system cannot stat for a reason other
+   * than its absence throws. A key outside the root names no object.
+   */
+  async statStrict(uri: string): Promise<StorageStat | null> {
+    const key = this.keyFromUri(uri);
+    if (!key) return null;
+    let rel: string;
+    try {
+      rel = normalizeStorageKey(key);
+    } catch {
+      return null;
+    }
+    const abs = resolve(this.rootDir, rel);
+    if (!isWithinRoot(this.rootDir, abs)) return null;
+    try {
+      const st = await fsStat(abs);
+      if (st.isFile()) {
+        return { key: rel, size: st.size, modifiedAt: st.mtimeMs };
+      }
+    } catch (error) {
+      if (!isAbsentError(error)) throw error;
+    }
+    const external = await this.statExternal(rel);
+    return external
+      ? { key: rel, size: external.size, modifiedAt: external.modifiedAt }
+      : null;
   }
 
   async stat(uri: string): Promise<StorageStat | null> {

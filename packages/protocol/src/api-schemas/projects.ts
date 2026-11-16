@@ -439,3 +439,110 @@ export const assignDocumentInput = z.object({
   ref: z.string()
 });
 export type AssignDocumentInput = z.infer<typeof assignDocumentInput>;
+
+// ── Project folder migration ─────────────────────────────────────────────────
+// The upgrade from before project folders, as the user confirms and follows
+// it. See docs/project-folders/migration-ux.md.
+
+/** Where the migration of a user's projects into folders stands. */
+export const projectFolderMigrationState = z.enum([
+  "not_started",
+  "plan_shown",
+  "confirmed",
+  "running",
+  "paused",
+  "done"
+]);
+export type ProjectFolderMigrationState = z.infer<typeof projectFolderMigrationState>;
+
+/**
+ * Something the migration could not finish: an asset whose bytes stayed in
+ * asset storage, or a project whose folder could not be made or reached.
+ */
+export const projectFolderMigrationFailure = z.object({
+  kind: z.enum(["asset", "project"]),
+  id: z.string(),
+  name: z.string(),
+  project_id: z.string().nullable(),
+  project_name: z.string().nullable(),
+  reason: z.string()
+});
+export type ProjectFolderMigrationFailure = z.infer<
+  typeof projectFolderMigrationFailure
+>;
+
+/**
+ * The directory new project folders go in. `error` says why it cannot hold
+ * them. `permission_prompt` is true where macOS asks the user for access
+ * first: Documents, Desktop, Downloads, iCloud Drive and external volumes.
+ */
+export const projectFolderMigrationLocation = z.object({
+  path: z.string(),
+  is_default: z.boolean(),
+  permission_prompt: z.boolean(),
+  error: z.string().nullable()
+});
+export type ProjectFolderMigrationLocation = z.infer<
+  typeof projectFolderMigrationLocation
+>;
+
+/** A workspace row named in the plan. */
+export const projectFolderMigrationWorkspace = z.object({
+  id: z.string(),
+  name: z.string(),
+  path: z.string()
+});
+
+/**
+ * A project with more than one workspace: the one that becomes its folder,
+ * and the ones that are hidden. Hidden workspaces keep their files.
+ */
+export const projectFolderMigrationExtraWorkspaces = z.object({
+  project_id: z.string(),
+  project_name: z.string(),
+  kept: projectFolderMigrationWorkspace,
+  hidden: z.array(projectFolderMigrationWorkspace)
+});
+
+/** What confirming the migration does. */
+export const projectFolderMigrationPlan = z.object({
+  projects: z.number().int().nonnegative(),
+  assets: z.number().int().nonnegative(),
+  workflows: z.number().int().nonnegative(),
+  timelines: z.number().int().nonnegative(),
+  extra_workspaces: z.array(projectFolderMigrationExtraWorkspaces),
+  location: projectFolderMigrationLocation
+});
+export type ProjectFolderMigrationPlan = z.infer<typeof projectFolderMigrationPlan>;
+
+/**
+ * The migration as a client shows it. `applies` is false where the server
+ * migrates without asking: in the cloud, on a production server, and on an
+ * install with nothing to move. `progress.done` and `progress.total` count
+ * assets. `current_project` is known only to the process that does the work.
+ */
+export const projectFolderMigrationStatus = z.object({
+  applies: z.boolean(),
+  state: projectFolderMigrationState,
+  location: z.string().nullable(),
+  progress: z.object({
+    done: z.number().int().nonnegative(),
+    total: z.number().int().nonnegative(),
+    phase: z.enum(["folders", "files", "assets"]).nullable(),
+    current_project: z.string().nullable()
+  }),
+  failures: z.array(projectFolderMigrationFailure),
+  failure_count: z.number().int().nonnegative(),
+  dismissed: z.boolean()
+});
+export type ProjectFolderMigrationStatus = z.infer<
+  typeof projectFolderMigrationStatus
+>;
+
+/** A location the user chose instead of the configured one. */
+export const projectFolderMigrationLocationInput = z
+  .object({ location: z.string().trim().min(1).max(4096).optional() })
+  .optional();
+export type ProjectFolderMigrationLocationInput = z.infer<
+  typeof projectFolderMigrationLocationInput
+>;

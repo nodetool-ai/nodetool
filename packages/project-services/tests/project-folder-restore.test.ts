@@ -48,6 +48,8 @@ import { ProjectAssetStorageAdapter } from "@nodetool-ai/asset-services/project-
 import { getAssetAdapter } from "@nodetool-ai/asset-services/storage";
 import { documentFileSync } from "../src/document-file-sync.js";
 import {
+  RESTORE_IDS_FILE,
+  discardRestoredAssets,
   finishProjectFolderRestore,
   restoreProjectFolder,
   type ProjectFolderRestoreReport
@@ -723,6 +725,53 @@ describe.each(["local", "storage"] as const)(
         expect(clipAssets(originalTimeline!)).toEqual([made.fox.id, made.snow.id]);
       });
 
+      it("a second open after a failed one resolves the references the failed one wrote", async () => {
+        await produceFolder();
+        await copyFolder(kind, PROJECT, COPY);
+        // The first open rewrites the files, then fails later and removes
+        // the rows it made, as `adopt` does.
+        const failed = await restoreProjectFolder({
+          userId: USER,
+          projectId: COPY,
+          workspace: folder(kind, COPY),
+          nodetoolDir: nodetoolDir(kind, COPY),
+          copyOf: PROJECT
+        });
+        expect(failed.rewritten.length).toBeGreaterThan(0);
+        await discardRestoredAssets(USER, failed.assets);
+
+        await restore(kind, COPY, PROJECT);
+
+        const copies = await assetRows(COPY);
+        const [fox, snow] = copies;
+        const [workflow] = await workflowsOf(COPY);
+        const [timeline] = await timelinesOf(COPY);
+        expect(references(workflow!)).toEqual([fox!.id, `asset://${snow!.id}.png`]);
+        expect(clipAssets(timeline!)).toEqual([fox!.id, snow!.id]);
+        expect(await bytesOf(fox!)).toEqual(red);
+        // The record of written IDs is gone once the open finished.
+        expect(await nodetoolDir(kind, COPY).readText(RESTORE_IDS_FILE)).toBeNull();
+      });
+
+      it("gives the copy its own asset for a file of the original that the copied manifest leaves out", async () => {
+        const made = await produceFolder();
+        await copyFolder(kind, PROJECT, COPY);
+        const listed = (await manifestOf(kind, COPY)).assets.filter(
+          (entry) => entry.id === made.fox.id
+        );
+        await writeManifest(kind, listed, COPY);
+
+        await restore(kind, COPY, PROJECT);
+
+        const [fox, snow] = await assetRows(COPY);
+        expect(snow!.workspace_path).toBe("Generated/snow.png");
+        expect(snow!.id).not.toBe(made.snow.id);
+        const [workflow] = await workflowsOf(COPY);
+        expect(references(workflow!)).toEqual([fox!.id, `asset://${snow!.id}.png`]);
+        // The original's asset keeps its row and project.
+        expect((await Asset.find(USER, made.snow.id))!.project_id).toBe(PROJECT);
+      });
+
       it("editing a workflow in the copy changes neither the original's file nor its row", async () => {
         const made = await produceFolder();
         await copyFolder(kind, PROJECT, COPY);
@@ -800,7 +849,7 @@ describe.each(["local", "storage"] as const)(
         expect(await bytesOf(snow!)).toEqual(blue);
       });
 
-      it("keeps a recorded full hash only for a file that has the recorded fingerprint, and never stores a fingerprint it did not measure", async () => {
+      it("never stores a full hash or a fingerprint it did not measure", async () => {
         const made = await produceFolder();
         emptyDatabase();
         const recorded = (await manifestOf(kind)).assets;
@@ -836,8 +885,10 @@ describe.each(["local", "storage"] as const)(
           });
 
           // Before any reconcile: the fox carries what was measured here,
-          // with the file's own modification time, and the recorded full
-          // hash. The snow file carries nothing from the manifest.
+          // with the file's own modification time. A partial hash does not
+          // read the middle of a file, so the recorded full hash is not
+          // taken: the hash job computes it. The snow file carries nothing
+          // from the manifest.
           const foxInfo = await folder(kind).stat("Generated/fox.png");
           const fox = await Asset.find(USER, made.fox.id);
           expect(fox!.metadata).toEqual({
@@ -845,7 +896,7 @@ describe.each(["local", "storage"] as const)(
             workspace_mtime: foxInfo!.modifiedAt,
             workspace_hash: partialContentHash(red)
           });
-          expect(fox!.content_hash).toBe(fullHash("a"));
+          expect(fox!.content_hash).toBeNull();
           const snow = await Asset.find(USER, made.snow.id);
           expect(snow!.metadata).toBeNull();
           expect(snow!.content_hash).toBeNull();
@@ -862,6 +913,28 @@ describe.each(["local", "storage"] as const)(
         } finally {
           stop();
         }
+      });
+
+      it("stops, with no rows made, when the folder fails to answer for a manifest path", async () => {
+        await produceFolder();
+        emptyDatabase();
+        const real = folder(kind);
+        const stat = real.stat.bind(real);
+        vi.spyOn(real, "stat").mockImplementation(async (path) => {
+          if (path === "Generated/snow.png") throw new Error("EIO: i/o error");
+          return stat(path);
+        });
+
+        await expect(
+          restoreProjectFolder({
+            userId: USER,
+            projectId: PROJECT,
+            workspace: real,
+            nodetoolDir: nodetoolDir(kind),
+            copyOf: null
+          })
+        ).rejects.toThrow(/EIO/);
+        expect(await assetRows()).toEqual([]);
       });
 
       it("opens the folder without its asset IDs when the manifest is not a manifest", async () => {

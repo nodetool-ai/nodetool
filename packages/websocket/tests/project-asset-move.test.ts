@@ -151,6 +151,10 @@ beforeEach(async () => {
   storageRoot = path.join(tmpDir, "storage");
   vi.stubEnv("NODETOOL_ENV", "development");
   vi.stubEnv("NODETOOL_STORAGE_BACKEND", "file");
+  // The move starts without asking, as on a headless server. On a local
+  // install it otherwise waits for the user's confirmation
+  // (docs/project-folders/migration-ux.md).
+  vi.stubEnv("NODETOOL_PROJECT_MIGRATION", "auto");
 });
 
 afterEach(async () => {
@@ -391,6 +395,68 @@ describe.each(["local", "cloud"] as const)(
       expect(await serve(response.get_url ?? "")).toEqual(updated);
       // Nothing is left under the key, where it would shadow the file.
       expect(await rawExists(key)).toBe(false);
+    });
+
+    it("a bytes update that moves the asset to a directory while its bytes move puts the file in that directory", async () => {
+      const { project, folder } = await projectWithFolder(USER, "Film");
+      const notes = await legacyAsset(
+        project.id,
+        "notes",
+        null,
+        UPLOAD,
+        "text/plain"
+      );
+      await ageRows();
+      const updated = new TextEncoder().encode("shot list, second draft");
+      const key = getAssetStorageKey(USER, notes.id, "text/plain");
+      const store = mocks.adapter;
+      if (!store) throw new Error("no asset store");
+      const objectUri = store.uriForKey(key);
+      const caller = createCaller(makeCtx());
+      const sleep = (ms: number): Promise<void> =>
+        new Promise((resolve) => setTimeout(resolve, ms));
+
+      // The update is sent when the move first reads the object, so the
+      // request loads the row before the move names the file on it, and
+      // then waits for the folder lock the move holds.
+      let update: Promise<unknown> | null = null;
+      const beforeRead = async (uri: string): Promise<void> => {
+        if (uri !== objectUri || update) return;
+        update = caller.assets.update({
+          id: notes.id,
+          parent_id: projectDirectoryId(project.id, "Drafts"),
+          data: Buffer.from(updated).toString("base64"),
+          data_encoding: "base64"
+        });
+        await sleep(20);
+      };
+      if (mode === "local") {
+        const { retrieve } = FileStorageAdapter.prototype;
+        vi.spyOn(FileStorageAdapter.prototype, "retrieve").mockImplementation(
+          async function (this: FileStorageAdapter, uri: string) {
+            await beforeRead(uri);
+            return retrieve.call(this, uri);
+          }
+        );
+      } else {
+        const bucket = objectStore;
+        if (!bucket) throw new Error("no object store");
+        const retrieve = bucket.retrieve.bind(bucket);
+        vi.spyOn(bucket, "retrieve").mockImplementation(async (uri) => {
+          await beforeRead(uri);
+          return retrieve(uri);
+        });
+      }
+
+      await caller.projects.get({ id: project.id });
+      await projectAssetMoveJob.idle();
+      expect(update).not.toBeNull();
+      await update;
+
+      const row = await reload(notes);
+      expect(row.workspace_path).toBe("Drafts/notes.txt");
+      expect(await folderOf(folder).read("Drafts/notes.txt")).toEqual(updated);
+      expect(await folderOf(folder).exists("notes.txt")).toBe(false);
     });
 
     it("a bytes update of an asset that has not moved yet is stored under its key with the row", async () => {

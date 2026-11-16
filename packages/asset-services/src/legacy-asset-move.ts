@@ -29,14 +29,17 @@
  * | --- | --- | --- |
  * | No `workspace_path`, target recorded | Nothing at the target | Copies to the target. |
  * | No `workspace_path`, target recorded | The whole bytes at the target | Verifies and continues with step 4. |
- * | No `workspace_path`, target recorded | Anything else at the target | Leaves it and copies to the next free name. |
+ * | No `workspace_path`, target recorded | The copy of the bytes the row recorded, which a bytes update has replaced since | Removes that copy and copies the new bytes to the target. |
+| No `workspace_path`, target recorded | Anything else at the target | Leaves it and copies to the next free name. |
  * | `workspace_path` set, target recorded | The file | Deletes the legacy object and removes the target. |
  *
- * Nothing at a target is ever replaced or deleted. A target holds the whole
- * copy or nothing, because the copy is published in one step, so a file
- * that is there and is not the whole bytes is someone else's. The only
- * files this module removes from a folder are its own staging name, which
- * carries the asset id, and a copy the same call created and could not use.
+ * Nothing at a target is replaced or deleted unless the move made it. A
+ * target holds the whole copy or nothing, because the copy is published in
+ * one step, so a file that is there and is not the whole bytes is someone
+ * else's. The only files this module removes from a folder are its own
+ * staging name, which carries the asset id, a copy the same call created
+ * and could not use, and a copy an earlier run made whose bytes hash to the
+ * legacy object that run recorded on the row.
  *
  * Bytes stored under the legacy key while the move runs are never deleted.
  * An update of the asset's bytes writes there for as long as the row names
@@ -46,7 +49,8 @@
  *
  * A legacy object that cannot be read is not a missing one. The asset store
  * answers a failed read like a missing key, so absence is confirmed with a
- * `stat` of every legacy key before the asset is treated as having none. The
+ * `statStrict` of every legacy key before the asset is treated as having
+ * none. A `stat` that fails throws instead of reading as absent. The
  * store is read through `storedObjectsOf`, because the store itself answers
  * a key it cannot read from the file the row points at.
  *
@@ -210,12 +214,26 @@ type LegacyObject =
   | { state: "absent" };
 
 /**
+ * What `storage` holds under `uri`. Null only when the store answered that
+ * nothing is there. A lookup that failed throws, so the move stops and tries
+ * again later instead of taking the object for gone. An adapter without
+ * `statStrict` is asked with `stat`.
+ */
+function statStored(
+  storage: StorageAdapter,
+  uri: string
+): Promise<StorageStat | null> {
+  return storage.statStrict ? storage.statStrict(uri) : storage.stat(uri);
+}
+
+/**
  * The legacy object of `asset`, read from `storage`, which must be the view
  * of the asset store that answers only from stored objects.
  *
  * The store answers a failed read with null, as it does for a missing key.
- * So a key is taken for empty only when `stat` finds nothing under it, and an
- * object that `stat` finds and `retrieve` does not return is unreadable.
+ * So a key is taken for empty only when the store answers that nothing is
+ * under it ({@link statStored}), and an object that is found and that
+ * `retrieve` does not return is unreadable.
  */
 async function readLegacyObject(
   storage: StorageAdapter,
@@ -223,7 +241,7 @@ async function readLegacyObject(
 ): Promise<LegacyObject> {
   for (const key of legacyKeys(asset)) {
     const uri = storage.uriForKey(key);
-    const stat = await storage.stat(uri);
+    const stat = await statStored(storage, uri);
     if (!stat) continue;
     const bytes = await storage.retrieve(uri);
     // A length other than the one reported is an object that changed while
@@ -357,7 +375,7 @@ class LegacyAssetMove {
 
   /** Whether the legacy object is the one `source` was read from. */
   private async isStillTheObjectRead(source: MoveSource): Promise<boolean> {
-    const now = await this.storage.stat(source.uri);
+    const now = await statStored(this.storage, source.uri);
     return (
       now !== null &&
       now.size === source.stat.size &&
@@ -447,9 +465,17 @@ class LegacyAssetMove {
         !info.isDirectory &&
         info.size === source.bytes.byteLength &&
         (await this.holdsBytes(path, source));
-      if (!isCopy) return null;
-      await this.record(asset, path, source);
-      return { path, written: false };
+      if (isCopy) {
+        await this.record(asset, path, source);
+        return { path, written: false };
+      }
+      if (info.isDirectory || !(await this.isEarlierCopy(asset, path, source))) {
+        return null;
+      }
+      // The copy an earlier run made of bytes the asset no longer has. Left
+      // there, nothing would claim it and the reconcile would make it a
+      // second asset. The new bytes take its place.
+      await this.workspace.delete(path);
     }
     await this.record(asset, path, source);
     const written = await this.workspace.writeNew(
@@ -459,6 +485,22 @@ class LegacyAssetMove {
       { stagingName: legacyAssetStagingName(asset.id) }
     );
     return written ? { path, written: true } : null;
+  }
+
+  /**
+   * Whether the file at the recorded target `path` is the copy an earlier
+   * run made: it hashes to the legacy object that run recorded, and the
+   * legacy object holds other bytes now, stored by a bytes update since.
+   */
+  private async isEarlierCopy(
+    asset: Asset,
+    path: string,
+    source: MoveSource
+  ): Promise<boolean> {
+    const recorded = recordedSourceOf(asset);
+    if (recorded === null || recorded === source.sha) return false;
+    const existing = await this.workspace.read(path);
+    return existing !== null && sha256(existing) === recorded;
   }
 
   /** Record a free name in the asset's directory and copy the bytes there. */
@@ -575,7 +617,7 @@ class LegacyAssetMove {
       (await statFile(this.workspace, path)) !== null;
     if (!present) {
       for (const uri of uris) {
-        if (await this.storage.stat(uri)) {
+        if (await statStored(this.storage, uri)) {
           return {
             status: "waiting",
             reason: `the file ${path} is not in the project folder, so the stored bytes are kept`
@@ -591,7 +633,7 @@ class LegacyAssetMove {
     for (const uri of uris) {
       const stored = await this.storage.retrieve(uri);
       if (stored === null) {
-        if ((await this.storage.stat(uri)) === null) continue;
+        if ((await statStored(this.storage, uri)) === null) continue;
         return {
           status: "waiting",
           reason: "the stored bytes could not be read, so they are kept"

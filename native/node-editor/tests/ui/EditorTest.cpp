@@ -693,8 +693,8 @@ private slots:
     auto panels = w.findChildren<QQuickWidget *>();
     // Rail, tabs, document header, status, catalog, node menu, browser, inspector, output, both toolbars,
     // viewport readout, mini-map controls, first-workflow guide, queue overlay, subgraph canvas strip, chat overlay, library,
-    // node info overlay, examples panel, price chip.
-    QCOMPARE(panels.size(), 21);
+    // node info overlay, examples panel, price chip, document file banner.
+    QCOMPARE(panels.size(), 22);
     for (auto p : panels) {
       QCOMPARE(p->status(), QQuickWidget::Ready);
     }
@@ -1195,7 +1195,9 @@ private slots:
       peer = server.nextPendingConnection();
       peer->setParent(&server);
       connect(peer, &QWebSocket::binaryMessageReceived, this, [&](QByteArray bytes) {
-        commands.append(node_editor::decodeMsgPack(bytes)->toObject());
+        // The open-project signal goes with every socket open. WorkflowSessionTests checks it.
+        const auto command = node_editor::decodeMsgPack(bytes)->toObject();
+        if (command["command"] != "set_open_project") { commands.append(command); }
       });
     });
     EditorWindow w;

@@ -20157,6 +20157,44 @@
       "deleteDescription": "\"{{name}}\" and its version history are deleted permanently.",
       "restoreFailed": "The file was not restored: {{error}}",
       "deleteFailed": "The document was not deleted: {{error}}"
+    },
+    "migration": {
+      "title": "Move your projects into folders",
+      "intro": "NodeTool now keeps each project in its own folder on this computer. Your files, workflows and timelines move there, and you can open them in other apps.",
+      "planProjects": "Projects that get a folder",
+      "planFiles": "Files to move",
+      "planWorkflows": "Workflows saved as files",
+      "planTimelines": "Timelines saved as files",
+      "extraTitle": "Projects with more than one folder",
+      "extraBody": "Each of these projects keeps one folder. NodeTool stops showing the others, and their files stay where they are.",
+      "extraKeeps": "{{project}} keeps {{folder}}",
+      "extraHidden": "No longer shown: {{folder}}",
+      "location": "Location",
+      "changeLocation": "Change location",
+      "locationError": "This location cannot be used: {{error}}",
+      "permissionWarning": "macOS will ask whether NodeTool may use this folder. Choose Allow, or pick a folder outside Documents, Desktop, Downloads, iCloud Drive and external drives.",
+      "safety": "Nothing is lost. Each file is copied and checked before its old copy is removed. You can keep working while files move.",
+      "later": "Not now",
+      "confirm": "Move files",
+      "planError": "The plan could not be loaded: {{error}}",
+      "confirmError": "The move did not start: {{error}}",
+      "actionError": "The move could not be changed: {{error}}",
+      "progressRegion": "Moving files into project folders",
+      "progressTitle": "Moving files into project folders",
+      "pausedTitle": "Moving files is paused",
+      "doneTitle": "Files moved",
+      "progressCount": "{{done}} of {{total}} files moved",
+      "phaseFolders": "Creating project folders",
+      "phaseFiles": "Saving workflows and timelines as files",
+      "currentProject": "Now moving the files of {{project}}",
+      "pause": "Pause",
+      "resume": "Resume",
+      "failuresTitle": "Could not move ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "More not shown: {{count}}",
+      "retry": "Try again",
+      "donePath": "Your files are in {{path}}",
+      "close": "Close"
     }
   },
   "assetPicker": {
@@ -20200,6 +20238,61 @@
     "apps": {
       "nodeEditor": "Node editor",
       "timeline": "Timeline"
+    }
+  },
+  "storyboardText": {
+    "mode": "Text",
+    "editorLabel": "Storyboard as Markdown text",
+    "hint": "Type # for an act, ## for a scene, ### for a shot and - **Motion:** for a field. Type @ to mention an entity or an image.",
+    "issues": "Lines that need attention: {{lines}}",
+    "loading": "Loading the text…",
+    "warnings": {
+      "media_outside_shot": "An image belongs to a shot. Put it under a ### shot heading.",
+      "second_media": "A shot has one selected still and one selected clip. This one is not used.",
+      "unknown_shot_field": "\"{{label}}\" is not a storyboard field. It is saved in the shot's notes.",
+      "unknown_field": "\"{{label}}\" is not a field here. It is not saved.",
+      "text_in_scene": "A scene has a slugline and lighting only. Put this text under a shot, or start it with \"Lighting:\".",
+      "bad_duration": "Shot {{shot}}: \"{{value}}\" is not a number of seconds.",
+      "bad_render": "Shot {{shot}}: render is keyframe, direct or reference.",
+      "no_next_shot": "Shot {{shot}}: a transition leads to the next shot, and there is none.",
+      "missing_action": "Shot {{shot}} has no action yet. Write the visual to render under its heading."
+    },
+    "outline": "Outline",
+    "outlineEmpty": "Type ### and a title to start a shot.",
+    "untitledShot": "Untitled shot",
+    "untitledAct": "Untitled act",
+    "untitledScene": "Untitled scene",
+    "issuesTitle": "Needs attention",
+    "stillOf": "Still for shot {{shot}}",
+    "assist": {
+      "lines": "{{lines}} lines selected",
+      "proposal": "Proposed replacement",
+      "note": "Note from the agent",
+      "discard": "Discard",
+      "close": "Close",
+      "replace": "Replace selection",
+      "stale": "The passage changed after you selected it. Select it again.",
+      "thinking": "Thinking…",
+      "stop": "Stop",
+      "placeholder": "Tell the agent what to do with this passage",
+      "refinePlaceholder": "Refine the result",
+      "instruction": "Request for the agent",
+      "send": "Send to the agent",
+      "failed": "The request to the model failed.",
+      "context": "Sent with the request: the whole board, {{shots}} shots and {{entities}} entities of the library.",
+      "quick": {
+        "tighten": "Tighten",
+        "visual": "More visual",
+        "camera": "Suggest camera",
+        "continuity": "Check continuity",
+        "summarize": "Summarize",
+        "inconsistencies": "Find inconsistencies"
+      },
+      "errors": {
+        "no_model": "Pick a director model for this board, or a chat model, to use the agent.",
+        "empty": "The model returned no answer. Send the request again.",
+        "failed": "The request failed. Send it again."
+      }
     }
   }
 }

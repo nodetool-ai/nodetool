@@ -20157,6 +20157,44 @@
       "deleteDescription": "”{{name}}” och dess versionshistorik tas bort permanent.",
       "restoreFailed": "Filen återställdes inte: {{error}}",
       "deleteFailed": "Dokumentet togs inte bort: {{error}}"
+    },
+    "migration": {
+      "title": "Flytta dina projekt till mappar",
+      "intro": "NodeTool sparar nu varje projekt i en egen mapp på den här datorn. Dina filer, arbetsflöden och tidslinjer flyttas dit, och du kan öppna dem i andra appar.",
+      "planProjects": "Projekt som får en mapp",
+      "planFiles": "Filer som ska flyttas",
+      "planWorkflows": "Arbetsflöden som sparas som filer",
+      "planTimelines": "Tidslinjer som sparas som filer",
+      "extraTitle": "Projekt med mer än en mapp",
+      "extraBody": "Vart och ett av de här projekten behåller en mapp. NodeTool slutar visa de andra, och deras filer ligger kvar där de är.",
+      "extraKeeps": "{{project}} behåller {{folder}}",
+      "extraHidden": "Visas inte längre: {{folder}}",
+      "location": "Plats",
+      "changeLocation": "Ändra plats",
+      "locationError": "Den här platsen kan inte användas: {{error}}",
+      "permissionWarning": "macOS frågar om NodeTool får använda den här mappen. Välj Tillåt, eller välj en mapp utanför Dokument, Skrivbord, Hämtade filer, iCloud Drive och externa enheter.",
+      "safety": "Inget går förlorat. Varje fil kopieras och kontrolleras innan den gamla kopian tas bort. Du kan fortsätta arbeta medan filerna flyttas.",
+      "later": "Inte nu",
+      "confirm": "Flytta filer",
+      "planError": "Planen kunde inte läsas in: {{error}}",
+      "confirmError": "Flyttningen startade inte: {{error}}",
+      "actionError": "Flyttningen kunde inte ändras: {{error}}",
+      "progressRegion": "Flyttar filer till projektmappar",
+      "progressTitle": "Flyttar filer till projektmappar",
+      "pausedTitle": "Flyttningen av filer är pausad",
+      "doneTitle": "Filer flyttade",
+      "progressCount": "{{done}} av {{total}} filer flyttade",
+      "phaseFolders": "Skapar projektmappar",
+      "phaseFiles": "Sparar arbetsflöden och tidslinjer som filer",
+      "currentProject": "Flyttar filerna för {{project}}",
+      "pause": "Pausa",
+      "resume": "Återuppta",
+      "failuresTitle": "Kunde inte flyttas ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "Fler visas inte: {{count}}",
+      "retry": "Försök igen",
+      "donePath": "Dina filer finns i {{path}}",
+      "close": "Stäng"
     }
   },
   "assetPicker": {
@@ -20200,6 +20238,61 @@
     "apps": {
       "nodeEditor": "Nodredigerare",
       "timeline": "Tidslinje"
+    }
+  },
+  "storyboardText": {
+    "mode": "Text",
+    "editorLabel": "Storyboard som Markdown-text",
+    "hint": "Skriv # för en akt, ## för en scen, ### för en tagning och - **Motion:** för ett fält. Skriv @ för att nämna en entitet eller en bild.",
+    "issues": "Rader som behöver åtgärdas: {{lines}}",
+    "loading": "Läser in texten…",
+    "warnings": {
+      "media_outside_shot": "En bild hör till en tagning. Lägg den under en ###-rubrik.",
+      "second_media": "En tagning har en vald stillbild och ett valt klipp. Den här används inte.",
+      "unknown_shot_field": "”{{label}}” är inget storyboardfält. Det sparas i tagningens anteckningar.",
+      "unknown_field": "”{{label}}” är inget fält här. Det sparas inte.",
+      "text_in_scene": "En scen har bara scenrubrik och ljus. Flytta texten under en tagning eller börja den med ”Lighting:”.",
+      "bad_duration": "Tagning {{shot}}: ”{{value}}” är inte ett antal sekunder.",
+      "bad_render": "Tagning {{shot}}: render är keyframe, direct eller reference.",
+      "no_next_shot": "Tagning {{shot}}: en övergång leder till nästa tagning, och det finns ingen.",
+      "missing_action": "Tagning {{shot}} har ingen handling än. Skriv bilden som ska genereras under rubriken."
+    },
+    "outline": "Disposition",
+    "outlineEmpty": "Skriv ### och en titel för att börja en tagning.",
+    "untitledShot": "Namnlös tagning",
+    "untitledAct": "Namnlös akt",
+    "untitledScene": "Namnlös scen",
+    "issuesTitle": "Behöver åtgärdas",
+    "stillOf": "Stillbild för tagning {{shot}}",
+    "assist": {
+      "lines": "{{lines}} rader markerade",
+      "proposal": "Föreslagen ersättning",
+      "note": "Anteckning från agenten",
+      "discard": "Kasta",
+      "close": "Stäng",
+      "replace": "Ersätt markeringen",
+      "stale": "Stycket ändrades efter att du markerade det. Markera det igen.",
+      "thinking": "Tänker…",
+      "stop": "Stoppa",
+      "placeholder": "Berätta för agenten vad den ska göra med stycket",
+      "refinePlaceholder": "Förfina resultatet",
+      "instruction": "Begäran till agenten",
+      "send": "Skicka till agenten",
+      "failed": "Begäran till modellen misslyckades.",
+      "context": "Skickat med begäran: hela storyboardet, {{shots}} tagningar och {{entities}} entiteter från biblioteket.",
+      "quick": {
+        "tighten": "Strama åt",
+        "visual": "Mer visuellt",
+        "camera": "Föreslå kamera",
+        "continuity": "Kontrollera kontinuitet",
+        "summarize": "Sammanfatta",
+        "inconsistencies": "Hitta motsägelser"
+      },
+      "errors": {
+        "no_model": "Välj en regimodell för det här storyboardet, eller en chattmodell, för att använda agenten.",
+        "empty": "Modellen gav inget svar. Skicka begäran igen.",
+        "failed": "Begäran misslyckades. Skicka den igen."
+      }
     }
   }
 }

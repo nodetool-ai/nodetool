@@ -280,6 +280,11 @@ void WorkflowBrowser::refresh() {
   cancel();
   page(false);
 }
+void WorkflowBrowser::documentFileChanged(const QJsonObject &resource) {
+  if (m_origin.isEmpty() || resource.value("type").toString() == QLatin1String("timeline")) { return; }
+  if (m_rows.isEmpty() && !m_loading) { return; }
+  refresh();
+}
 void WorkflowBrowser::loadTriggers() {
   // WorkflowTriggerIndicator.tsx: a bolt on each workflow with an armed
   // trigger, in the error colour when one failed or the dispatcher disarmed it.

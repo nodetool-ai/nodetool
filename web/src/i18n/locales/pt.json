@@ -20468,6 +20468,44 @@
       "deleteDescription": "\"{{name}}\" e o seu histórico de versões serão excluídos permanentemente.",
       "restoreFailed": "O arquivo não foi restaurado: {{error}}",
       "deleteFailed": "O documento não foi excluído: {{error}}"
+    },
+    "migration": {
+      "title": "Mova seus projetos para pastas",
+      "intro": "O NodeTool agora guarda cada projeto em uma pasta própria neste computador. Seus arquivos, fluxos de trabalho e linhas do tempo são movidos para lá, e você pode abri-los em outros apps.",
+      "planProjects": "Projetos que recebem uma pasta",
+      "planFiles": "Arquivos a mover",
+      "planWorkflows": "Fluxos de trabalho salvos como arquivos",
+      "planTimelines": "Linhas do tempo salvas como arquivos",
+      "extraTitle": "Projetos com mais de uma pasta",
+      "extraBody": "Cada um destes projetos mantém uma pasta. O NodeTool deixa de mostrar as outras, e os arquivos delas ficam onde estão.",
+      "extraKeeps": "{{project}} mantém {{folder}}",
+      "extraHidden": "Não é mais exibida: {{folder}}",
+      "location": "Local",
+      "changeLocation": "Alterar local",
+      "locationError": "Este local não pode ser usado: {{error}}",
+      "permissionWarning": "O macOS vai perguntar se o NodeTool pode usar esta pasta. Escolha Permitir ou escolha uma pasta fora de Documentos, Mesa, Downloads, iCloud Drive e unidades externas.",
+      "safety": "Nada se perde. Cada arquivo é copiado e verificado antes de a cópia antiga ser removida. Você pode continuar trabalhando enquanto os arquivos são movidos.",
+      "later": "Agora não",
+      "confirm": "Mover arquivos",
+      "planError": "Não foi possível carregar o plano: {{error}}",
+      "confirmError": "A movimentação não começou: {{error}}",
+      "actionError": "Não foi possível alterar a movimentação: {{error}}",
+      "progressRegion": "Movendo arquivos para as pastas dos projetos",
+      "progressTitle": "Movendo arquivos para as pastas dos projetos",
+      "pausedTitle": "A movimentação de arquivos está em pausa",
+      "doneTitle": "Arquivos movidos",
+      "progressCount": "{{done}} de {{total}} arquivos movidos",
+      "phaseFolders": "Criando as pastas dos projetos",
+      "phaseFiles": "Salvando fluxos de trabalho e linhas do tempo como arquivos",
+      "currentProject": "Movendo os arquivos de {{project}}",
+      "pause": "Pausar",
+      "resume": "Retomar",
+      "failuresTitle": "Não foi possível mover ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "Mais não exibidos: {{count}}",
+      "retry": "Tentar novamente",
+      "donePath": "Seus arquivos estão em {{path}}",
+      "close": "Fechar"
     }
   },
   "assetPicker": {
@@ -20511,6 +20549,61 @@
     "apps": {
       "nodeEditor": "Editor de nós",
       "timeline": "Linha do tempo"
+    }
+  },
+  "storyboardText": {
+    "mode": "Texto",
+    "editorLabel": "Storyboard como texto Markdown",
+    "hint": "Digite # para um ato, ## para uma cena, ### para um plano e - **Motion:** para um campo. Digite @ para mencionar uma entidade ou imagem.",
+    "issues": "Linhas que precisam de atenção: {{lines}}",
+    "loading": "Carregando o texto…",
+    "warnings": {
+      "media_outside_shot": "Uma imagem pertence a um plano. Coloque-a sob um título ### de plano.",
+      "second_media": "Um plano tem uma imagem fixa e um clipe selecionados. Este não é usado.",
+      "unknown_shot_field": "\"{{label}}\" não é um campo do storyboard. Ele é salvo nas notas do plano.",
+      "unknown_field": "\"{{label}}\" não é um campo aqui. Ele não é salvo.",
+      "text_in_scene": "Uma cena tem apenas cabeçalho e iluminação. Coloque este texto sob um plano ou comece-o com \"Lighting:\".",
+      "bad_duration": "Plano {{shot}}: \"{{value}}\" não é um número de segundos.",
+      "bad_render": "Plano {{shot}}: o render é keyframe, direct ou reference.",
+      "no_next_shot": "Plano {{shot}}: uma transição leva ao próximo plano, e não há nenhum.",
+      "missing_action": "O plano {{shot}} ainda não tem ação. Escreva a imagem a renderizar sob o título."
+    },
+    "outline": "Estrutura",
+    "outlineEmpty": "Digite ### e um título para começar um plano.",
+    "untitledShot": "Plano sem título",
+    "untitledAct": "Ato sem título",
+    "untitledScene": "Cena sem título",
+    "issuesTitle": "Precisa de atenção",
+    "stillOf": "Imagem fixa do plano {{shot}}",
+    "assist": {
+      "lines": "{{lines}} linhas selecionadas",
+      "proposal": "Substituição proposta",
+      "note": "Nota do agente",
+      "discard": "Descartar",
+      "close": "Fechar",
+      "replace": "Substituir seleção",
+      "stale": "O trecho mudou depois que você o selecionou. Selecione-o de novo.",
+      "thinking": "Pensando…",
+      "stop": "Parar",
+      "placeholder": "Diga ao agente o que fazer com este trecho",
+      "refinePlaceholder": "Refinar o resultado",
+      "instruction": "Pedido ao agente",
+      "send": "Enviar ao agente",
+      "failed": "A solicitação ao modelo falhou.",
+      "context": "Enviado com o pedido: o storyboard inteiro, {{shots}} planos e {{entities}} entidades da biblioteca.",
+      "quick": {
+        "tighten": "Enxugar",
+        "visual": "Mais visual",
+        "camera": "Sugerir câmera",
+        "continuity": "Verificar continuidade",
+        "summarize": "Resumir",
+        "inconsistencies": "Encontrar incoerências"
+      },
+      "errors": {
+        "no_model": "Escolha um modelo de direção para este storyboard, ou um modelo de chat, para usar o agente.",
+        "empty": "O modelo não retornou resposta. Envie o pedido de novo.",
+        "failed": "O pedido falhou. Envie-o de novo."
+      }
     }
   }
 }

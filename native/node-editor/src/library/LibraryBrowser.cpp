@@ -22,7 +22,7 @@ void LibraryBrowser::configure(const QUrl &origin, const QString &token, const Q
   origin_ = origin; token_ = token; user_ = userId;
   ++epoch_;
   if (list_) { list_->abort(); }
-  folder_.clear(); crumbs_.clear(); error_.clear();
+  folder_.clear(); crumbs_.clear(); error_.clear(); relinkError_.clear();
   model_.apply({}, true);
   emit changed();
 }
@@ -114,6 +114,37 @@ void LibraryBrowser::list() {
     });
     model_.apply(QJsonArray::fromVariantList(rows));
     emit changed();
+  });
+}
+void LibraryBrowser::workspaceFilesChanged(const QString &workspaceId) {
+  if (!configured() || crumbs_.isEmpty()) { return; }
+  if (!workspaceId.isEmpty() && !projectWorkspace_.isEmpty() && workspaceId != projectWorkspace_) { return; }
+  list();
+}
+void LibraryBrowser::relink(const QString &id, const QUrl &file) {
+  if (!configured() || id.isEmpty() || !file.isLocalFile()) { return; }
+  QNetworkRequest post = request(origin_.resolved(QUrl("/trpc/assets.relinkExternal")));
+  post.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+  auto *reply = network_.post(post, QJsonDocument(QJsonObject{{"id", id}, {"path", file.toLocalFile()}}).toJson(QJsonDocument::Compact));
+  relinkError_.clear();
+  emit changed();
+  const auto epoch = epoch_;
+  connect(reply, &QNetworkReply::readyRead, reply, [reply] { if (reply->bytesAvailable() > ResponseLimit) { reply->abort(); } });
+  connect(reply, &QNetworkReply::finished, this, [this, reply, epoch] {
+    reply->deleteLater();
+    if (epoch != epoch_) { return; }
+    const auto status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    const auto body = reply->readAll();
+    if (reply->error() != QNetworkReply::NoError || status != 200) {
+      // The server's reason, such as a file outside the allowed roots or of another media kind.
+      auto failure = QJsonDocument::fromJson(body).object()["error"].toObject();
+      if (failure["json"].isObject()) { failure = failure["json"].toObject(); }
+      const auto reason = failure["message"].toString();
+      relinkError_ = tr("Relink failed: %1").arg(reason.isEmpty() ? tr("HTTP %1").arg(status) : reason);
+      emit changed();
+      return;
+    }
+    list();
   });
 }
 void LibraryBrowser::filterChanged() {

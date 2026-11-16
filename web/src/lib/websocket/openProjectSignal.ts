@@ -7,10 +7,13 @@
  * shared socket: one project per connection, replaced by the next command and
  * dropped by the server when the connection closes.
  *
- * The signal never opens the socket. It is sent when the socket opens, for
- * whatever reason, and again whenever the active project changes while it is
- * open.
+ * The signal itself never opens the socket. It is sent when the socket
+ * opens, for whatever reason, and again whenever the active project changes
+ * while it is open. A view that shows the folder's files or assets opens the
+ * socket with {@link useOpenProjectConnection}, so the folder is watched and
+ * the view hears of changes another app makes there.
  */
+import { useEffect } from "react";
 import { globalWebSocketManager } from "./GlobalWebSocketManager";
 import {
   LOOSE_PROJECT_ID,
@@ -53,4 +56,20 @@ export const startOpenProjectSignal = (): (() => void) => {
     offOpen();
     offStore();
   };
+};
+
+/**
+ * Open the shared socket while the calling view is mounted. A view that
+ * lists the files or assets of the open project calls it: the socket carries
+ * the open-project signal, so the server watches the folder, and it carries
+ * the pushes that refresh the view after another app renames or saves a
+ * file there. Unmounting leaves the socket open for its other users.
+ */
+export const useOpenProjectConnection = (): void => {
+  useEffect(() => {
+    globalWebSocketManager.ensureConnection().catch((error: unknown) => {
+      // The manager keeps retrying, and the signal follows the next open.
+      console.debug("openProjectSignal: connection failed", error);
+    });
+  }, []);
 };

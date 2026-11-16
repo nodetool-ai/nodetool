@@ -226,6 +226,67 @@ void filesRefuseEscapes() {
   CHECK(startsWith(run(*e, "__host.files.readFile('hard.txt')"), "error: EACCES"));
 }
 
+// A project folder keeps NodeTool's own files in .nodetool/ (docs/workspaces.md).
+// Any path segment with that exact name, in any case, is refused, as
+// packages/runtime-core/src/workspace.ts isReservedWorkspaceKey refuses it.
+void filesRefuseTheReservedFolder() {
+  TempDir t;
+  writeText(t.path("ws/.nodetool/state.json"), "{}");
+  writeText(t.path("ws/sub/.NodeTool/x.txt"), "nested");
+  writeText(t.path("ws/.nodetool.md"), "notes");
+  writeText(t.path("ws/.nodetool-old/x.txt"), "old");
+  gr::HostOptions o;
+  o.workspaceDir = t.path("ws");
+  // A read root above the workspace must not open a way around the guard.
+  o.readRoots = {t.root.string()};
+  auto e = engineWith(o);
+  const std::string ws = fs::canonical(t.path("ws")).string();
+  const auto refused = [](const std::string& result) {
+    return startsWith(result, "error: EACCES") &&
+           result.find("NodeTool reserves .nodetool/ for its own files") != std::string::npos;
+  };
+
+  CHECK(refused(run(*e, "__host.files.readFile('.nodetool/state.json')")));
+  CHECK(refused(run(*e, "__host.files.readFile(" + lit(ws + "/.nodetool/state.json") + ")")));
+  CHECK(refused(run(*e, "__host.files.readFile('sub/../.nodetool/state.json')")));
+  CHECK(refused(run(*e, "__host.files.readFile('sub/.NodeTool/x.txt')")));
+  CHECK(refused(run(*e, "__host.files.readFile('.NODETOOL/state.json')")));
+  CHECK(refused(run(*e, "__host.files.stat('.nodetool', true)")));
+  CHECK(refused(run(*e, "__host.files.stat('.nodetool', false)")));
+  CHECK(refused(run(*e, "__host.files.readdir('.nodetool')")));
+  CHECK(refused(run(*e, "__host.files.realpath('.nodetool')")));
+  CHECK(refused(run(*e, "__host.files.writeFile('.nodetool/state.json', bytes('x'), false)")));
+  CHECK(refused(run(*e, "__host.files.writeFile('.nodetool/new.txt', bytes('x'), false)")));
+  CHECK(refused(run(*e, "__host.files.mkdir('made/.nodetool/deep', true)")));
+  CHECK(refused(run(*e, "__host.files.mkdtemp('.nodetool/tmp-')")));
+  CHECK(refused(run(*e, "__host.files.rm('.nodetool', true, false)")));
+  CHECK(refused(run(*e, "__host.files.rm('.nodetool/state.json', false, true)")));
+  CHECK(refused(run(*e, "__host.files.rmdir('.nodetool')")));
+  CHECK(refused(run(*e, "__host.files.rename('.nodetool', 'moved')")));
+  CHECK(refused(run(*e, "__host.files.rename('.nodetool.md', '.nodetool/notes.md')")));
+  CHECK(refused(run(*e, "__host.files.copyFile('.nodetool/state.json', 'copy.json')")));
+  CHECK(refused(run(*e, "__host.files.copyFile('.nodetool.md', '.nodetool/copy.md')")));
+  CHECK(readText(t.path("ws/.nodetool/state.json")) == "{}");
+  CHECK(!fs::exists(t.path("ws/.nodetool/new.txt")) && !fs::exists(t.path("ws/made")));
+  CHECK(!fs::exists(t.path("ws/moved")) && !fs::exists(t.path("ws/copy.json")));
+  CHECK(fs::exists(t.path("ws/.nodetool.md")));
+
+  // A symlink inside the workspace that leads into the folder is refused too.
+  fs::create_directory_symlink(t.path("ws/.nodetool"), t.path("ws/alias"));
+  CHECK(refused(run(*e, "__host.files.readFile('alias/state.json')")));
+  CHECK(refused(run(*e, "__host.files.writeFile('alias/new.txt', bytes('x'), false)")));
+  CHECK(!fs::exists(t.path("ws/.nodetool/new.txt")));
+
+  // Only the exact name is reserved.
+  CHECK(run(*e, "text(__host.files.readFile('.nodetool.md'))") == "notes");
+  CHECK(run(*e, "text(__host.files.readFile('.nodetool-old/x.txt'))") == "old");
+  CHECK(run(*e, "__host.files.writeFile('fox.nodetool', bytes('x'), false)") == "ok");
+  CHECK(run(*e, "__host.files.mkdir('.nodetools/a', true)") == ws + "/.nodetools");
+  // A .nodetool folder outside the workspace is not the workspace's.
+  writeText(t.path(".nodetool/outside.txt"), "outside");
+  CHECK(run(*e, "text(__host.files.readFile(" + lit(t.path(".nodetool/outside.txt")) + "))") == "outside");
+}
+
 void filesReadRootsAreReadOnly() {
   TempDir t;
   writeText(t.path("library/a.txt"), "shelf");
@@ -961,6 +1022,7 @@ int main() {
       {"filesReadAndWriteInTheWorkspace", filesReadAndWriteInTheWorkspace},
       {"filesCreatePrivateTemporaryDirectories", filesCreatePrivateTemporaryDirectories},
       {"filesRefuseEscapes", filesRefuseEscapes},
+      {"filesRefuseTheReservedFolder", filesRefuseTheReservedFolder},
       {"filesReadRootsAreReadOnly", filesReadRootsAreReadOnly},
       {"filesAcceptTheRootAsNamed", filesAcceptTheRootAsNamed},
       {"filesAllowOnlyTheGrantedSqliteDirectory", filesAllowOnlyTheGrantedSqliteDirectory},

@@ -156,6 +156,12 @@ export const buildRunJobData = (opts: {
     application_version: opts.application?.version ?? null,
     operation_id: opts.operationId ?? null
   };
+  // The server does not look up a workflow's project when the request carries
+  // its graph, so the run's folder is named here. Without it the run writes
+  // into Personal's folder.
+  if (opts.workflow.project_id) {
+    request.project_id = opts.workflow.project_id;
+  }
   if (opts.appRunId) {
     request.app_run_id = opts.appRunId;
     request.instance_id = opts.instanceId;
