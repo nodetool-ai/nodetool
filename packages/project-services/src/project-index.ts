@@ -46,7 +46,12 @@
  * does that: it then looks at those paths only and scans nothing else.
  */
 import { createLogger } from "@nodetool-ai/config";
-import { Asset, Project, Workspace as WorkspaceRow } from "@nodetool-ai/models";
+import {
+  Asset,
+  Project,
+  Workspace as WorkspaceRow,
+  moveTargetOf
+} from "@nodetool-ai/models";
 import type { Workspace } from "@nodetool-ai/runtime";
 import { normalizeAssetContentType } from "@nodetool-ai/asset-services/asset-paths";
 import {
@@ -589,8 +594,15 @@ async function reconcileAndScan(
       created: [],
       deferred: []
     };
+    // The copy of an asset whose bytes are moving in from the asset store
+    // has no row until the move names it. After a restart that copy can be
+    // in the folder with the move unfinished, and it must not become a
+    // second asset, so its path is left alone like a path in flux.
+    const moving = new Set(
+      (await Asset.findMovingTo(userId, project)).map(moveTargetOf)
+    );
     const inFlux = (path: string): boolean =>
-      isProjectAssetPathInFlux(userId, project, path);
+      isProjectAssetPathInFlux(userId, project, path) || moving.has(path);
 
     const projectKey = scheduleKey(project, userId);
     const waitingSince = waitingCopies.get(projectKey);
@@ -786,6 +798,10 @@ export async function ensureAssetForPath(
   return withProjectFolderLock(userId, project, async () => {
     const existing = await Asset.findByWorkspacePath(userId, project, key);
     if (existing[0]) return existing[0];
+    // A file that is the unfinished copy of an asset moving in from the
+    // asset store is that asset's. A second row would take its name.
+    const [moving] = await Asset.findMovingTo(userId, project, key);
+    if (moving) return moving;
     const file = await statFile(workspace, key);
     if (!file) throw new Error(`No file at ${key} in the project folder`);
     const hash = await hashFile(workspace, key);

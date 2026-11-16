@@ -180,12 +180,18 @@ export {
   type UserSharing
 } from "./sharing-admin.js";
 
-export { Asset, saveAssetInProject, setAssetFileMover } from "./asset.js";
+export {
+  Asset,
+  moveTargetOf,
+  saveAssetInProject,
+  setAssetFileMover
+} from "./asset.js";
 export type {
   AssetRow,
   AssetInsert,
   AssetFileMove,
-  AssetFileMover
+  AssetFileMover,
+  AssetFilePlacement
 } from "./asset.js";
 export { entityFromAsset } from "./entity.js";
 

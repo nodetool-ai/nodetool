@@ -18,7 +18,8 @@ import {
   isReservedWorkspaceKey,
   type Workspace,
   type WorkspaceEntry,
-  type WorkspaceStat
+  type WorkspaceStat,
+  type WriteNewOptions
 } from "./workspace.js";
 
 // Loaded lazily so this module still imports in browser / Edge runtimes, the
@@ -258,7 +259,8 @@ export class StorageWorkspace implements Workspace {
   writeNew(
     path: string,
     data: Uint8Array | string,
-    contentType?: string
+    contentType?: string,
+    options: WriteNewOptions = {}
   ): Promise<boolean> {
     const bytes = typeof data === "string" ? textEncoder.encode(data) : data;
     return withTaskSpan(
@@ -274,11 +276,20 @@ export class StorageWorkspace implements Workspace {
             "This workspace's storage cannot create a file without replacing one"
           );
         }
-        const uri = await this.storage.storeIfAbsent(
-          this.key(path),
-          bytes,
-          contentType
-        );
+        const key = this.key(path);
+        const { stagingName } = options;
+        if (stagingName !== undefined) {
+          // The staging file sits beside the target, so it is held to the
+          // same rules: inside the workspace and outside the reserved directory.
+          const slash = key.lastIndexOf("/");
+          const beside = `${key.slice(0, slash + 1)}${stagingName}`;
+          if (stagingName.includes("/") || this.key(beside) !== beside) {
+            throw new WorkspacePathError(stagingName);
+          }
+        }
+        const uri = await this.storage.storeIfAbsent(key, bytes, contentType, {
+          stagingName
+        });
         return uri !== null;
       }
     );

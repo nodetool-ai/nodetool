@@ -6146,7 +6146,9 @@
         "notFound": "Mappen hittades inte",
         "notFoundDetail": "Mappen för {{name}} har flyttats, bytt namn eller finns på en enhet som inte är ansluten. Körningar startar inte förrän du letar upp den.",
         "locate": "Leta upp",
-        "locateError": "Det gick inte att leta upp mappen: {{error}}"
+        "locateError": "Det gick inte att leta upp mappen: {{error}}",
+        "moving": "Flyttar filer till projektmappen",
+        "movingDetail": "{{done}} av {{total}} filer flyttade. Dina resurser är tillgängliga under tiden."
       },
       "home": {
         "homeTab": "Hem",

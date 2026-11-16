@@ -6225,7 +6225,9 @@
         "notFound": "Pasta não encontrada",
         "notFoundDetail": "A pasta de {{name}} foi movida, renomeada ou está em uma unidade não conectada. As execuções não começam até você localizá-la.",
         "locate": "Localizar",
-        "locateError": "Não foi possível localizar a pasta: {{error}}"
+        "locateError": "Não foi possível localizar a pasta: {{error}}",
+        "moving": "Movendo arquivos para a pasta do projeto",
+        "movingDetail": "{{done}} de {{total}} arquivos movidos. Seus recursos continuam disponíveis enquanto isso."
       },
       "home": {
         "homeTab": "Página inicial",

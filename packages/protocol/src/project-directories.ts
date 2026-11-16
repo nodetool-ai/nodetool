@@ -16,6 +16,24 @@
 /** Prefix of a directory folder id. Generated resource ids never start so. */
 export const PROJECT_DIRECTORY_ID_PREFIX = "dir:";
 
+/**
+ * The asset metadata key that records where the bytes of an asset from before
+ * project folders are being moved to: a path relative to its project folder.
+ * It is written before the first byte is copied and removed after the legacy
+ * object is deleted, so a move that was interrupted is found and finished.
+ * Server-owned: a client metadata update never writes it.
+ */
+export const WORKSPACE_MOVE_TARGET_KEY = "workspace_move_target";
+
+/**
+ * The asset metadata key that records, next to
+ * {@link WORKSPACE_MOVE_TARGET_KEY}, the SHA-256 of the legacy object the
+ * move copied. The legacy object is deleted only while it still has this
+ * hash, so bytes stored under the legacy key after the copy are never lost.
+ * Server-owned, and removed together with the target.
+ */
+export const WORKSPACE_MOVE_SOURCE_KEY = "workspace_move_source";
+
 /** A directory of a project folder, as a directory folder id names it. */
 export interface ProjectDirectoryRef {
   projectId: string;

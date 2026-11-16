@@ -3,9 +3,34 @@
  * replaced, and of two writers racing for one key exactly one succeeds.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import {
+  link,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  symlink,
+  writeFile
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
+/** A `link` that fails the way a file system fails it, when a test sets one. */
+const fsFaults = vi.hoisted(() => ({
+  link: null as null | ((from: string, to: string) => Promise<void>)
+}));
+
+vi.mock("node:fs/promises", async (original) => {
+  const actual = await original<typeof import("node:fs/promises")>();
+  return {
+    ...actual,
+    link: (from: string, to: string): Promise<void> =>
+      fsFaults.link ? fsFaults.link(from, to) : actual.link(from, to)
+  };
+});
+
 import { FileStorageAdapter } from "../src/file-storage-adapter.js";
 import { InMemoryStorageAdapter } from "../src/memory-storage-adapter.js";
 import { S3StorageAdapter } from "../src/s3-storage-adapter.js";
@@ -215,6 +240,205 @@ describe("storeIfAbsent on the file adapter", () => {
     await expect(adapter.storeIfAbsent("../escaped.png", FIRST)).rejects.toThrow();
     expect(await readdir(root)).toEqual(["store"]);
   });
+});
+
+describe("storeIfAbsent with a staging name on the file adapter", () => {
+  const STAGING = ".asset1.nodetool-move.tmp";
+  const dir = (): string => join(root, "store", "Shots");
+  const adapter = (): FileStorageAdapter =>
+    new FileStorageAdapter(join(root, "store"));
+
+  it("gives the key the whole file and leaves no staging file", async () => {
+    const uri = await adapter().storeIfAbsent("Shots/fox.png", FIRST, undefined, {
+      stagingName: STAGING
+    });
+
+    expect(uri).not.toBeNull();
+    expect(await readdir(dir())).toEqual(["fox.png"]);
+    expect(await readFile(join(dir(), "fox.png"))).toEqual(Buffer.from(FIRST));
+    // One name for the file: a second link would make it unreadable here.
+    expect((await stat(join(dir(), "fox.png"))).nlink).toBe(1);
+    expect(await adapter().retrieve(uri ?? "")).toEqual(Buffer.from(FIRST));
+  });
+
+  it.each([
+    ["an empty file", new Uint8Array()],
+    ["a file that holds the beginning of the bytes", FIRST.subarray(0, 2)],
+    ["a file with other bytes", SECOND]
+  ])("never replaces or removes %s at the key", async (_what, existing) => {
+    await mkdir(dir(), { recursive: true });
+    await writeFile(join(dir(), "fox.png"), existing);
+
+    const uri = await adapter().storeIfAbsent("Shots/fox.png", FIRST, undefined, {
+      stagingName: STAGING
+    });
+
+    expect(uri).toBeNull();
+    expect(await readdir(dir())).toEqual(["fox.png"]);
+    expect(await readFile(join(dir(), "fox.png"))).toEqual(Buffer.from(existing));
+  });
+
+  it("treats a symlink at the key as taken, and never writes through it", async () => {
+    await mkdir(dir(), { recursive: true });
+    const outside = join(root, "outside.txt");
+    await writeFile(outside, "outside");
+    await symlink(outside, join(dir(), "fox.png"));
+
+    const uri = await adapter().storeIfAbsent("Shots/fox.png", FIRST, undefined, {
+      stagingName: STAGING
+    });
+
+    expect(uri).toBeNull();
+    expect(await readFile(outside, "utf8")).toBe("outside");
+    expect(await readdir(dir())).toEqual(["fox.png"]);
+  });
+
+  it("replaces what a writer that died left under the staging name", async () => {
+    await mkdir(dir(), { recursive: true });
+    // The process died while it wrote the staging file.
+    await writeFile(join(dir(), STAGING), FIRST.subarray(0, 1));
+
+    const uri = await adapter().storeIfAbsent("Shots/fox.png", FIRST, undefined, {
+      stagingName: STAGING
+    });
+
+    expect(uri).not.toBeNull();
+    expect(await readdir(dir())).toEqual(["fox.png"]);
+    expect(await readFile(join(dir(), "fox.png"))).toEqual(Buffer.from(FIRST));
+  });
+
+  it("removes the staging name a writer left linked to the file it published", async () => {
+    await mkdir(dir(), { recursive: true });
+    // The process died after the key got the file and before the staging
+    // name was removed.
+    await writeFile(join(dir(), STAGING), FIRST);
+    await link(join(dir(), STAGING), join(dir(), "fox.png"));
+
+    const uri = await adapter().storeIfAbsent("Shots/fox.png", SECOND, undefined, {
+      stagingName: STAGING
+    });
+
+    expect(uri).toBeNull();
+    expect(await readdir(dir())).toEqual(["fox.png"]);
+    expect(await readFile(join(dir(), "fox.png"))).toEqual(Buffer.from(FIRST));
+    expect((await stat(join(dir(), "fox.png"))).nlink).toBe(1);
+  });
+
+  it("lets exactly one of many racing writers have the key", async () => {
+    const store = adapter();
+    const results = await Promise.all(
+      Array.from({ length: 12 }, (_, i) =>
+        store.storeIfAbsent("Shots/race.png", new Uint8Array([i]), undefined, {
+          stagingName: `.writer${i}.nodetool-move.tmp`
+        })
+      )
+    );
+
+    const winners = results.flatMap((uri, i) => (uri ? [i] : []));
+    expect(winners).toHaveLength(1);
+    expect(await readdir(dir())).toEqual(["race.png"]);
+    expect(await readFile(join(dir(), "race.png"))).toEqual(
+      Buffer.from([winners[0] ?? -1])
+    );
+  });
+
+  it.each(["", ".", "..", "fox.png", "sub/x.tmp", "..\\x.tmp"])(
+    "refuses the staging name %j",
+    async (stagingName) => {
+      await expect(
+        adapter().storeIfAbsent("Shots/fox.png", FIRST, undefined, { stagingName })
+      ).rejects.toThrow(/staging name/);
+      await expect(readdir(dir())).resolves.toEqual([]);
+    }
+  );
+});
+
+describe("storeIfAbsent with a staging name where the file system has no hard links", () => {
+  const STAGING = ".asset1.nodetool-move.tmp";
+  const dir = (): string => join(root, "store", "Shots");
+  const adapter = (): FileStorageAdapter =>
+    new FileStorageAdapter(join(root, "store"));
+  const failure = (code: string): Error =>
+    Object.assign(new Error(`${code}: link`), { code });
+  const staged = (data: Uint8Array): Promise<string | null> =>
+    adapter().storeIfAbsent("Shots/fox.png", data, undefined, {
+      stagingName: STAGING
+    });
+
+  afterEach(() => {
+    fsFaults.link = null;
+  });
+
+  it.each(["EPERM", "ENOTSUP", "EOPNOTSUPP", "ENOSYS"])(
+    "creates the file with an exclusive open when link fails with %s",
+    async (code) => {
+      fsFaults.link = async () => {
+        throw failure(code);
+      };
+
+      const uri = await staged(FIRST);
+
+      expect(uri).not.toBeNull();
+      expect(await readdir(dir())).toEqual(["fox.png"]);
+      expect(await readFile(join(dir(), "fox.png"))).toEqual(Buffer.from(FIRST));
+      expect(await adapter().retrieve(uri ?? "")).toEqual(Buffer.from(FIRST));
+    }
+  );
+
+  it.each([
+    ["an empty file", new Uint8Array()],
+    ["a file with other bytes", SECOND]
+  ])("never replaces or removes %s at the key", async (_what, existing) => {
+    await mkdir(dir(), { recursive: true });
+    await writeFile(join(dir(), "fox.png"), existing);
+    fsFaults.link = async () => {
+      throw failure("EPERM");
+    };
+
+    expect(await staged(FIRST)).toBeNull();
+    expect(await readdir(dir())).toEqual(["fox.png"]);
+    expect(await readFile(join(dir(), "fox.png"))).toEqual(Buffer.from(existing));
+  });
+
+  it("leaves a file another writer put at the key in the instant the link failed", async () => {
+    // The other writer's file arrives after the staging file was written,
+    // and the staging file is gone by the time the fallback runs.
+    fsFaults.link = async (from, to) => {
+      await writeFile(to, SECOND);
+      await rm(from);
+      throw failure("EPERM");
+    };
+
+    expect(await staged(FIRST)).toBeNull();
+    expect(await readdir(dir())).toEqual(["fox.png"]);
+    expect(await readFile(join(dir(), "fox.png"))).toEqual(Buffer.from(SECOND));
+  });
+
+  it("throws any other link failure and leaves nothing behind", async () => {
+    fsFaults.link = async () => {
+      throw failure("EIO");
+    };
+
+    await expect(staged(FIRST)).rejects.toThrow("EIO");
+    expect(await readdir(dir())).toEqual([]);
+  });
+});
+
+describe("storeIfAbsent with a staging name on the object stores", () => {
+  it.each(["memory", "s3", "supabase"])(
+    "creates under the key alone on the %s adapter",
+    async (name) => {
+      const store = backends[name]();
+      const options = { stagingName: ".asset1.nodetool-move.tmp" };
+
+      const first = await store.storeIfAbsent?.("Shots/fox.png", FIRST, undefined, options);
+      const second = await store.storeIfAbsent?.("Shots/fox.png", SECOND, undefined, options);
+
+      expect(first).toBeTruthy();
+      expect(second).toBeNull();
+      expect(await store.retrieve(first ?? "")).toEqual(FIRST);
+    }
+  );
 });
 
 describe("storeIfAbsent on the object stores", () => {

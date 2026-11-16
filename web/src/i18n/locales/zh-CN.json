@@ -6146,7 +6146,9 @@
         "notFound": "找不到文件夹",
         "notFoundDetail": "{{name}} 的文件夹已被移动、重命名，或位于未连接的驱动器上。在你重新定位之前，运行无法开始。",
         "locate": "定位",
-        "locateError": "无法定位文件夹：{{error}}"
+        "locateError": "无法定位文件夹：{{error}}",
+        "moving": "正在将文件移入项目文件夹",
+        "movingDetail": "已移动 {{done}}/{{total}} 个文件。移动期间素材仍可使用。"
       },
       "home": {
         "homeTab": "主页",

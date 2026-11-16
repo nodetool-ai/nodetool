@@ -14,7 +14,8 @@ import type {
   StorageAdapter,
   StorageEntry,
   StorageListResult,
-  StorageStat
+  StorageStat,
+  StoreIfAbsentOptions
 } from "./storage-adapter.js";
 import { compareStorageKeys, normalizeStorageKey } from "./storage-keys.js";
 import { getMaxLocalUploadBytes } from "./storage-limits.js";
@@ -103,8 +104,13 @@ export interface FileStorageAdapterOptions {
    * misses, and only by reads:
    * `retrieve`, `exists`, `stat`, and `localPath`. `store`, `storeFile`, and
    * `delete` never touch the external file.
+   *
+   * Left out, an adapter over the asset folder uses the lookup installed
+   * with {@link setAssetFolderPathLookup}. Pass `null` for an adapter that
+   * must answer a key only from the object stored under it, such as a
+   * caller that is about to delete that object.
    */
-  externalPathLookup?: ExternalPathLookup;
+  externalPathLookup?: ExternalPathLookup | null;
 }
 
 /**
@@ -121,9 +127,12 @@ export class FileStorageAdapter implements StorageAdapter {
   readonly rootDir: string;
   private readonly rootPromise: Promise<SafeRoot>;
   private readonly externalPathLookup: ExternalPathLookup | null;
+  /** False for an adapter built to answer from stored objects alone. */
+  private readonly usesAssetFolderLookup: boolean;
 
   constructor(rootDir: string, options: FileStorageAdapterOptions = {}) {
     this.externalPathLookup = options.externalPathLookup ?? null;
+    this.usesAssetFolderLookup = options.externalPathLookup !== null;
     const resolvedRoot = resolve(rootDir);
     mkdirSync(resolvedRoot, { recursive: true });
     this.rootDir = realpathSync(resolvedRoot);
@@ -173,7 +182,7 @@ export class FileStorageAdapter implements StorageAdapter {
    */
   private pathLookup(): ExternalPathLookup | null {
     if (this.externalPathLookup) return this.externalPathLookup;
-    if (!assetFolderLookup) return null;
+    if (!this.usesAssetFolderLookup || !assetFolderLookup) return null;
     return this.rootDir === assetFolderRoot() ? assetFolderLookup : null;
   }
 
@@ -224,7 +233,8 @@ export class FileStorageAdapter implements StorageAdapter {
   async storeIfAbsent(
     key: string,
     data: Uint8Array,
-    _contentType?: string
+    _contentType?: string,
+    options: StoreIfAbsentOptions = {}
   ): Promise<string | null> {
     const max = getMaxLocalUploadBytes();
     if (data.byteLength > max) {
@@ -235,7 +245,10 @@ export class FileStorageAdapter implements StorageAdapter {
     }
     const r = await this.rootPromise;
     const rel = normalizeStorageKey(key);
-    return (await r.create(rel, data)) ? this.uriForKey(rel) : null;
+    const created = await r.create(rel, data, {
+      stagingName: options.stagingName
+    });
+    return created ? this.uriForKey(rel) : null;
   }
 
   async retrieve(uri: string): Promise<Uint8Array | null> {

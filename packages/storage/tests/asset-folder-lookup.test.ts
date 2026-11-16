@@ -48,6 +48,22 @@ describe("an adapter over the asset folder", () => {
     expect(lookup).not.toHaveBeenCalled();
   });
 
+  it("answers from stored objects alone when it was built with no lookup on purpose", async () => {
+    setAssetFolderPathLookup(lookup);
+    // What a caller about to delete an object reads through: the key must
+    // not be answered from the project file.
+    const stored = new FileStorageAdapter(assets, { externalPathLookup: null });
+    const uri = stored.uriForKey(KEY);
+
+    expect(await stored.retrieve(uri)).toBeNull();
+    expect(await stored.exists(uri)).toBe(false);
+    expect(await stored.stat(uri)).toBeNull();
+    expect(await stored.localPath(uri)).toBeNull();
+    expect(lookup).not.toHaveBeenCalled();
+    // An adapter built without the option over the same folder still resolves.
+    expect(await new FileStorageAdapter(assets).retrieve(uri)).toEqual(BYTES);
+  });
+
   it("reads, stats and locates the project file once the lookup is installed", async () => {
     // Built before the install, as a context that outlives it would be.
     const adapter = new FileStorageAdapter(assets);

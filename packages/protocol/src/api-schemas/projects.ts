@@ -28,7 +28,18 @@ export const projectFolder = z.object({
   path: z.string().nullable(),
   origin: z.enum(["created", "adopted"]),
   is_accessible: z.boolean(),
-  on_delete: projectFolderDeletePlan
+  on_delete: projectFolderDeletePlan,
+  /**
+   * Present while the files of assets from before project folders are being
+   * moved into the folder: how many are finished and how many there are. The
+   * assets stay available throughout.
+   */
+  moving: z
+    .object({
+      done: z.number().int().nonnegative(),
+      total: z.number().int().nonnegative()
+    })
+    .nullish()
 });
 export type ProjectFolder = z.infer<typeof projectFolder>;
 

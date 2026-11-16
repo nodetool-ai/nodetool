@@ -6146,7 +6146,9 @@
         "notFound": "Folder not found",
         "notFoundDetail": "The folder of {{name}} was moved, renamed, or is on a drive that is not connected. Runs cannot start until you locate it.",
         "locate": "Locate",
-        "locateError": "Could not locate the folder: {{error}}"
+        "locateError": "Could not locate the folder: {{error}}",
+        "moving": "Moving files into the project folder",
+        "movingDetail": "{{done}} of {{total}} files moved. Your assets stay available while this runs."
       },
       "home": {
         "homeTab": "Home",

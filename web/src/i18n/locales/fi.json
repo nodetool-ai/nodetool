@@ -6146,7 +6146,9 @@
         "notFound": "Kansiota ei löydy",
         "notFoundDetail": "Projektin {{name}} kansio on siirretty, nimetty uudelleen tai se on asemalla, joka ei ole yhdistettynä. Ajot eivät käynnisty ennen kuin paikannat sen.",
         "locate": "Paikanna",
-        "locateError": "Kansiota ei voitu paikantaa: {{error}}"
+        "locateError": "Kansiota ei voitu paikantaa: {{error}}",
+        "moving": "Tiedostoja siirretään projektikansioon",
+        "movingDetail": "{{done}}/{{total}} tiedostoa siirretty. Resurssisi pysyvät käytettävissä siirron ajan."
       },
       "home": {
         "homeTab": "Koti",

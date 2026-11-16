@@ -6304,7 +6304,9 @@
         "notFound": "Nie znaleziono folderu",
         "notFoundDetail": "Folder projektu {{name}} został przeniesiony, zmienił nazwę lub jest na niepodłączonym dysku. Uruchomienia nie wystartują, dopóki go nie wskażesz.",
         "locate": "Wskaż",
-        "locateError": "Nie udało się wskazać folderu: {{error}}"
+        "locateError": "Nie udało się wskazać folderu: {{error}}",
+        "moving": "Przenoszenie plików do folderu projektu",
+        "movingDetail": "Przeniesiono {{done}} z {{total}} plików. Zasoby pozostają w tym czasie dostępne."
       },
       "home": {
         "homeTab": "Dom",

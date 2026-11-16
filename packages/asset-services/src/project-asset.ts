@@ -23,6 +23,8 @@ import {
   verifiedExternalPath
 } from "./external-asset-lookup.js";
 import {
+  WORKSPACE_SERVER_KEYS,
+  keepFingerprint,
   localProjectAssetPath,
   partialContentHash,
   partialContentHashOfFile,
@@ -254,15 +256,23 @@ function joinPath(directory: string, fileName: string): string {
  * compare without case, because macOS and Windows folders ignore it. A name
  * is also skipped when an asset row still records it although its file is
  * gone, so a new asset never takes over the path of one that is missing.
+ *
+ * `beforeWrite` runs with each candidate path right before the create is
+ * tried there. A caller that must be able to find its file again after a
+ * crash records the path in it. Throwing from it stops the claim with
+ * nothing written. `stagingName` is passed to `Workspace.writeNew`, so the
+ * claimed name holds the whole file or nothing.
  */
-async function claimFile(
+export async function claimFile(
   workspace: Workspace,
   owner: { userId: string; projectId: string },
   directory: string,
   stem: string,
   extension: string,
   bytes: Uint8Array,
-  contentType: string
+  contentType: string,
+  beforeWrite?: (path: string) => Promise<void>,
+  stagingName?: string
 ): Promise<string> {
   const taken = new Set(
     (await workspace.list(directory)).map((entry) => entry.name.toLowerCase())
@@ -278,7 +288,14 @@ async function claimFile(
       path
     );
     if (rows.length > 0) continue;
-    if (await workspace.writeNew(path, bytes, contentType)) return path;
+    await beforeWrite?.(path);
+    const written = await workspace.writeNew(
+      path,
+      bytes,
+      contentType,
+      stagingName === undefined ? undefined : { stagingName }
+    );
+    if (written) return path;
   }
   throw new Error(
     `No free file name for "${stem}${suffix}" in ${directory || "the project folder"}`
@@ -599,7 +616,7 @@ function relocateProjectAssetFile(
 /**
  * Write new bytes to the file of `asset`. Null when the asset keeps no file
  * in a project folder, and the caller then stores the bytes under the asset
- * key as before.
+ * key through {@link storeLegacyAssetBytes}.
  *
  * `asset.content_type` is the type of the new bytes. When its extension is
  * the file's, the file is overwritten in place. Otherwise the bytes go to a
@@ -695,6 +712,49 @@ export async function replaceProjectAssetBytes(
         }
       }
     };
+  });
+}
+
+/** What {@link storeLegacyAssetBytes} did with the bytes. */
+export type LegacyAssetBytesUpdate =
+  /** `store` ran: the bytes are under the asset's storage key. */
+  | "stored"
+  /** The asset has a file in its project folder by now. Nothing was stored. */
+  | "moved";
+
+/**
+ * Store new bytes for an asset that keeps none in a project folder. `store`
+ * writes them under the asset's storage key and saves the row.
+ *
+ * The move of existing assets into their project folder copies the object
+ * under that key, names the file on the row and then deletes the object, all
+ * under the project's folder lock. `store` runs under the same lock, so new
+ * bytes never land between the move's last look at the object and its
+ * delete, and the row is never saved over the one the move wrote.
+ *
+ * The row is read again inside the lock. When the move has named a file on
+ * it since the caller loaded `asset`, nothing is stored under the key, where
+ * the bytes would shadow that file: `asset` takes the file's path and
+ * fingerprint, and the caller writes the bytes with
+ * {@link replaceProjectAssetBytes}.
+ */
+export function storeLegacyAssetBytes(
+  asset: Asset,
+  store: () => Promise<void>
+): Promise<LegacyAssetBytesUpdate> {
+  return withProjectFolderLock(asset.user_id, asset.project_id, async () => {
+    const current = await Asset.find(asset.user_id, asset.id);
+    if (current?.workspace_path) {
+      asset.workspace_path = current.workspace_path;
+      asset.metadata = keepFingerprint(
+        asset.metadata ?? {},
+        current.metadata,
+        WORKSPACE_SERVER_KEYS
+      );
+      return "moved";
+    }
+    await store();
+    return "stored";
   });
 }
 

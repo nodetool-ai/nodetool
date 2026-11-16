@@ -92,15 +92,51 @@ const FolderNotFoundBanner = ({
   );
 };
 
-/** The folder state of a project. Renders nothing while its folder is reachable. */
+/**
+ * "Moving files into the project folder", shown while the files of assets
+ * from before project folders are moved in. The assets stay available, so
+ * the notice states progress and offers no action.
+ */
+const MovingFilesBanner = ({
+  moving,
+  compact
+}: {
+  readonly moving: { readonly done: number; readonly total: number };
+  readonly compact: boolean;
+}) => {
+  const { t } = useTranslation();
+  return (
+    <AlertBanner
+      severity="info"
+      compact={compact}
+      title={t("pass3_32.projects.folder.moving")}
+    >
+      {t("pass3_32.projects.folder.movingDetail", {
+        done: moving.done,
+        total: moving.total
+      })}
+    </AlertBanner>
+  );
+};
+
+/**
+ * The folder state of a project. Renders nothing while its folder is
+ * reachable and no files are being moved into it.
+ */
 const ProjectFolderNotice = ({
   project,
   compact = false
 }: ProjectFolderNoticeProps) => {
-  if (!project?.folder || project.folder.is_accessible) {
+  if (!project?.folder) {
     return null;
   }
-  return <FolderNotFoundBanner project={project} compact={compact} />;
+  if (!project.folder.is_accessible) {
+    return <FolderNotFoundBanner project={project} compact={compact} />;
+  }
+  if (project.folder.moving) {
+    return <MovingFilesBanner moving={project.folder.moving} compact={compact} />;
+  }
+  return null;
 };
 
 /**

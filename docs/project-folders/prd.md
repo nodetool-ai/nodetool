@@ -351,10 +351,13 @@ Each step is idempotent and safe to interrupt.
 2. Write `.nodetool/project.json` into each folder.
 3. Write a file for each workflow and timeline, and store `file_path` and
    `file_hash`.
-4. Move asset bytes in the background, one asset at a time: copy the legacy
-   object to `<folder>/<asset folder path>/<name>`, set `workspace_path`,
-   verify, then delete the legacy object. The legacy key keeps resolving
-   until the row is updated.
+4. Move asset bytes in the background, one asset at a time: record the
+   target on the row, copy the legacy object to
+   `<folder>/<asset folder path>/<name>`, verify the copy, set
+   `workspace_path`, then delete the legacy object. The legacy key keeps
+   resolving until the object is deleted, and the row names the file before
+   that. See
+   [existing assets move into the folder](../workspaces.md#existing-assets-move-into-the-folder).
 
 ## Delivery order
 

@@ -58,7 +58,7 @@ The files in the folder are read as untrusted input. A manifest entry is used on
 
 A project whose folder is renamed, moved or on an unplugged drive shows **Folder not found** on its card and above its Files. Runs in it do not start. **Locate** points the project at the folder's new place (`projects.relocate({ project_id, path })`) with the same checks as opening a folder. It refuses a folder whose `.nodetool/project.json` names a different project, and writes the manifest into a folder that has none.
 
-The project API returns `folder: { path, origin, is_accessible, workspace_id }`, where `origin` is `created` or `adopted`. `workspace_id` addresses the folder in the `workspace` file procedures. `path` is null for a cloud folder and for every folder on a server with `NODETOOL_ENV=production`, which also ignores a `PROJECTS_DIR` saved in a user's Settings.
+The project API returns `folder: { path, origin, is_accessible, workspace_id }`, where `origin` is `created` or `adopted`. `workspace_id` addresses the folder in the `workspace` file procedures. `path` is null for a cloud folder and for every folder on a server with `NODETOOL_ENV=production`, which also ignores a `PROJECTS_DIR` saved in a user's Settings. While [existing assets move into the folder](#existing-assets-move-into-the-folder), `folder` also carries `moving: { done, total }`.
 
 ## Where runs read and write
 
@@ -90,7 +90,38 @@ Personal is the library. In a named project, the image pickers (entity images, t
 
 Agent tools follow the same rule. When `edit_storyboard`, `edit_timeline`, `set_timeline_document`, the timeline code tools (`set_timeline_code`, `edit_timeline_code`, `rebake_timeline_code`) or `edit_sketch` stores an asset of another project, it copies the asset first, stores the copy's ID, and returns `copied_assets: [{ source_asset_id, asset_id }]`. The server function behind both is `copyAssetToProject` in `@nodetool-ai/asset-services`, reached from the web through `assets.copyToProject`.
 
-NodeTool never replaces a file when it picks a name. The file is created exclusively, so when another NodeTool process took the name first, or a file with it already exists in the destination folder, the new file gets the next free suffix. An asset created before project folders keeps its bytes in [asset storage](storage.md) and reads as before.
+NodeTool never replaces a file when it picks a name. The file is created exclusively, so when another NodeTool process took the name first, or a file with it already exists in the destination folder, the new file gets the next free suffix. An asset created before project folders keeps its bytes in [asset storage](storage.md) and reads as before until its file is moved into the folder.
+
+### Existing assets move into the folder
+
+Assets created before project folders keep their bytes in asset storage under `<owner>/<asset id>.<ext>`. NodeTool moves them into their project's folder in the background. The move starts when the server starts, after every project has its folder, and again when a project is opened. A project shows "Moving files into the project folder" with a count while it runs. Every asset stays readable throughout, under the same ID and the same URL.
+
+Each asset moves on its own, in this order:
+
+1. The target path and the SHA-256 of the stored object are recorded on the asset row.
+2. The stored object is copied to that path. The bytes are written under a hidden staging name beside it, `.<asset id>.nodetool-move.tmp`, and the path is then given the whole file in one exclusive step. No file is replaced.
+3. The copy is read back and compared with the stored object byte for byte.
+4. The row gets `workspace_path` and the file's fingerprint, when the stored object is still the one that was read.
+5. The stored object is read again and deleted, when it still has the recorded hash.
+6. The recorded target and hash are removed from the row.
+
+The file goes where the asset was filed: the names of its folders become directories, and the file is named like any other asset file. An asset named "fox" in the folder "Shots" becomes `Shots/fox.png`. A name that is taken gets a numeric suffix. A folder whose name starts with a dot, or is `node_modules`, gets a leading underscore, because the asset index skips such directories. An asset in no project is assigned to Personal first.
+
+A server that stops between two steps continues on its next start. The recorded target tells it which file is its own copy, so the asset ends with one file. A path holds the whole copy or nothing, so a copy that was cut short leaves only the staging file, which the next run removes. Nothing at a target path is ever deleted: a file there that is not the whole copy, an empty file included, belongs to someone else and stays, and the copy takes the next free name. The asset index gives no row to a file that is a recorded target. On a file system without hard links, such as exFAT, the copy is created exclusively and written in place, and a copy that was cut short stays in the folder under the target name.
+
+Bytes stored for an asset while it moves are never deleted. An update of the asset's bytes writes to asset storage for as long as the row names no file. That update and the move of the same project take turns: the update stores its bytes and saves the row while the move is not at work, and reads the row again first. When the move has named a file by then, the update writes that file. When the stored object still does not have the recorded hash, it is kept, the row is pointed back at it, the copy of the earlier bytes is removed, and a later pass moves the new bytes. A stored object that cannot be read is kept as well, and the asset is tried again later. The move reads stored objects directly, so a failed read is never answered from the file in the folder.
+
+The move leaves these alone:
+
+- An asset that references a file in place, and that file.
+- Thumbnails, video proxies and other files derived from an asset. They stay in asset storage.
+- An asset row with no stored object.
+- An asset whose row changed within the last minute. A later pass moves it.
+- An asset of a project whose folder is unreachable.
+
+A folder row is deleted once no asset is filed under it. Its directory is created first, so an empty folder stays a folder on a local disk. A folder row that still holds an asset the move left alone stays.
+
+When a copy does not match the stored object, or the asset row changed while its bytes were copied, the copy is removed, the stored object stays, and the asset is tried again five minutes later or on the next start.
 
 ### The asset index follows the folder
 

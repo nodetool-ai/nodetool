@@ -84,6 +84,7 @@ import {
 import { deriveKey, getMasterKey, initMasterKey } from "@nodetool-ai/security";
 import { setDefaultModelInterfaces } from "@nodetool-ai/runtime";
 import { migrateProjectFolders } from "@nodetool-ai/execution/service";
+import { scheduleLegacyAssetMoves } from "@nodetool-ai/project-services/project-asset-move-job";
 import {
   migrateWorkflowFiles,
   setWorkflowFileNodeRegistry
@@ -1831,6 +1832,15 @@ void migrateProjectFolders()
   })
   .then((written) => {
     if (written > 0) log.info(`Timeline files: ${written} written`);
+    // Once every project has a folder, the bytes of assets from before
+    // project folders move into them in the background, one asset at a time.
+    // Each asset is its own resumable step, so a restart continues the move.
+    return scheduleLegacyAssetMoves();
+  })
+  .then((projects) => {
+    if (projects > 0) {
+      log.info(`Moving asset files into project folders: ${projects} projects`);
+    }
   })
   .catch((error: unknown) => {
     log.warn(
