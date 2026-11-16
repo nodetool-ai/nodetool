@@ -32,18 +32,11 @@ guest globals are gone.
 | `@nodetool-ai/sandbox-csv` | papaparse | host | imports `node:stream` |
 | `@nodetool-ai/sandbox-html` | cheerio + turndown | host | 25 Node builtins; turndown wants a DOM |
 | `@nodetool-ai/sandbox-xml` | fast-xml-parser | host | reads a bare `window` |
-| `@nodetool-ai/sandbox-xlsx` | exceljs | host | Node streams |
 | `@nodetool-ai/sandbox-diff` | diff | host | schedules with `setTimeout` |
 | `@nodetool-ai/sandbox-zip` | fflate | host | the 50 MB inflation cap (below) |
 | `@nodetool-ai/sandbox-ocr` | tesseract.js | host | WASM engine, workers, downloads its language data |
-| `@nodetool-ai/sandbox-tfjs` | TensorFlow.js + model zoo | host | model weights outlive a run and outsize the guest heap |
-| `@nodetool-ai/sandbox-docx` | docx | host | builds from class instances, not data |
-| `@nodetool-ai/sandbox-mammoth` | mammoth | host | Node's own zip/XML stack |
-| `@nodetool-ai/sandbox-epub` | epub2 | host | reads from a file path, not a buffer |
 | `@nodetool-ai/sandbox-fabric` | fabric | host | DOM/Canvas APIs, rasterization |
 | `@nodetool-ai/sandbox-pdflib` | pdf-lib | host | builds from class instances, not data |
-| `@nodetool-ai/sandbox-pptxgen` | pptxgenjs | host | builds from class instances, not data |
-| `@nodetool-ai/sandbox-pptx` | office-text-extractor | host | Node's own zip/XML stack |
 | `@nodetool-ai/sandbox-pdf` | pdf-parse | host | pdf.js wants Node builtins and a canvas |
 | `@nodetool-ai/sandbox-aws` | NodeTool's SigV4 signer | host | signing chain the guest has no library for |
 | `@nodetool-ai/sandbox-notion` | NodeTool's Notion helper | host | first-party, so a pack cannot bring it |

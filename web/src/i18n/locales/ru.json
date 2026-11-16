@@ -9392,10 +9392,6 @@
           "button": "Получить API-токен Replicate",
           "tooltip": "Перейти на страницу API-токенов Replicate"
         },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Получить пароль приложения Google",
-          "tooltip": "Перейти на страницу паролей приложений аккаунта Google"
-        },
         "ELEVENLABS_API_KEY": {
           "button": "Получить API-ключ ElevenLabs",
           "tooltip": "Перейти на страницу подписки ElevenLabs"

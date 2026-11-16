@@ -138,7 +138,7 @@ describe("directoryProviders", () => {
 
   it("leaves web search, GPU rental and service keys in Settings", () => {
     const keys = directoryProviders().map((p) => p.secretKey);
-    for (const key of ["SERPAPI_API_KEY", "RUNPOD_API_KEY", "SERVER_AUTH_TOKEN", "GOOGLE_MAIL_USER"]) {
+    for (const key of ["SERPAPI_API_KEY", "RUNPOD_API_KEY", "SERVER_AUTH_TOKEN"]) {
       expect(keys).not.toContain(key);
     }
   });

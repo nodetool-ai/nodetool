@@ -1,6 +1,6 @@
 /**
  * CodeAct eval cases for the `nodetool.*` object model — data and creative
- * namespaces: collections, memory, shared, web, documents, email, apps,
+ * namespaces: collections, memory, shared, web, documents, apps,
  * games, timelines, sketches, scripts, storyboards.
  *
  * The fakes here are named EXACTLY like the belt tools those namespaces wrap
@@ -132,15 +132,6 @@ interface WebPage {
   title: string;
   snippet: string;
   text: string;
-}
-
-interface EmailMessage {
-  message_id: string;
-  subject: string;
-  from: string;
-  hours_ago: number;
-  labels: string[];
-  archived: boolean;
 }
 
 interface TimelineTrack {
@@ -346,40 +337,6 @@ function createWorld() {
         value: "The pro tier is our best value."
       }
     ] as SharedEntry[],
-    emails: [
-      {
-        message_id: "msg_1",
-        subject: "Invoice 8841 due",
-        from: "billing@vendor.example",
-        hours_ago: 3,
-        labels: [],
-        archived: false
-      },
-      {
-        message_id: "msg_2",
-        subject: "Invoice 8842 due",
-        from: "billing@vendor.example",
-        hours_ago: 11,
-        labels: [],
-        archived: false
-      },
-      {
-        message_id: "msg_3",
-        subject: "Team lunch on Friday",
-        from: "office@acme.example",
-        hours_ago: 5,
-        labels: [],
-        archived: false
-      },
-      {
-        message_id: "msg_4",
-        subject: "Invoice 8840 paid",
-        from: "billing@vendor.example",
-        hours_ago: 100,
-        labels: [],
-        archived: false
-      }
-    ] as EmailMessage[],
     apps: new Set<string>(["app_notes"]),
     timelines: new Map<string, TimelineDoc>([
       [
@@ -1550,79 +1507,6 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
       }
     ),
 
-    // -- email ------------------------------------------------------------
-    tool(
-      "search_email",
-      "Search the mailbox.",
-      obj({
-        subject: S,
-        text: S,
-        from: S,
-        since_hours_ago: N,
-        max_results: N,
-        include_archived: B
-      }),
-      (params) => {
-        const subject = str(params["subject"]).toLowerCase();
-        const text = str(params["text"]).toLowerCase();
-        const from = str(params["from"]).toLowerCase();
-        const since = num(params["since_hours_ago"], Number.POSITIVE_INFINITY);
-        const includeArchived = params["include_archived"] === true;
-        const matched = world.emails.filter((message) => {
-          if (!includeArchived && message.archived) return false;
-          if (message.hours_ago > since) return false;
-          const haystack = `${message.subject} ${message.from}`.toLowerCase();
-          if (subject && !message.subject.toLowerCase().includes(subject))
-            return false;
-          if (from && !message.from.toLowerCase().includes(from)) return false;
-          if (text && !haystack.includes(text)) return false;
-          return true;
-        });
-        return {
-          messages: matched
-            .slice(0, num(params["max_results"], 25))
-            .map((message) => ({
-              message_id: message.message_id,
-              subject: message.subject,
-              from: message.from,
-              hours_ago: message.hours_ago,
-              labels: [...message.labels]
-            }))
-        };
-      }
-    ),
-    tool(
-      "add_label_to_email",
-      "Add one label to one message.",
-      obj({ message_id: S, label: S }, ["message_id", "label"]),
-      (params) => {
-        const id = str(params["message_id"]);
-        const label = str(params["label"]);
-        const message = world.emails.find((m) => m.message_id === id);
-        if (!message) throw new Error(`no message with id "${id}"`);
-        if (!label) throw new Error("add_label_to_email needs a label");
-        if (!message.labels.includes(label)) message.labels.push(label);
-        return { message_id: id, labels: [...message.labels] };
-      }
-    ),
-    tool(
-      "archive_email",
-      "Archive messages by id.",
-      obj({ message_ids: ANY_ARRAY }, ["message_ids"]),
-      (params) => {
-        const ids = strList(params["message_ids"]);
-        let archived = 0;
-        for (const id of ids) {
-          const message = world.emails.find((m) => m.message_id === id);
-          if (!message) throw new Error(`no message with id "${id}"`);
-          if (!message.archived) {
-            message.archived = true;
-            archived++;
-          }
-        }
-        return { archived, message_ids: ids };
-      }
-    ),
 
     // -- apps -------------------------------------------------------------
     tool(
@@ -2827,35 +2711,6 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
         strList(field(r, "missingBefore")).join(",") === "STRIPE_API_KEY" &&
         field(r, "stripeReady") === true,
       resultCheckLabel: "autosave off, Stripe asked for and now configured"
-    }
-  },
-  {
-    id: "email-triage",
-    description: "Search, label, and archive the matching messages",
-    namespaces: ["email"],
-    objective:
-      "Triage the mailbox: every message from the last 48 hours whose " +
-      'subject mentions an invoice gets the label "billing" and is then ' +
-      "archived. Finish with {labeled, archived, remaining}: the ids you " +
-      "labeled (sorted), how many messages you archived, and how many " +
-      "matching messages are still sitting in the inbox afterwards.",
-    outputSchema: obj({ labeled: ANY_ARRAY, archived: N, remaining: N }, [
-      "labeled",
-      "archived",
-      "remaining"
-    ]),
-    expect: {
-      requiredTools: ["search_email", "add_label_to_email", "archive_email"],
-      maxActions: 4,
-      resultCheck: (r: unknown) => {
-        const labeled = strList(field(r, "labeled")).slice().sort().join(",");
-        return (
-          labeled === "msg_1,msg_2" &&
-          asNumber(field(r, "archived")) === 2 &&
-          asNumber(field(r, "remaining")) === 0
-        );
-      },
-      resultCheckLabel: "msg_1+msg_2 labeled and archived, inbox clear"
     }
   },
   {

@@ -22,10 +22,9 @@ npm install @nodetool-ai/automation-nodes
 
 ## What moved to the sandbox
 
-Fetching and crawling pages, Excel, OCR, and the TensorFlow.js models are no
-longer nodes. Each is a sandbox pack a `nodetool.code.Code` node imports —
-`fetch` plus `@nodetool-ai/sandbox-html`, `-xlsx`, `-ocr` and `-tfjs` — which is
-one script instead of a chain of near-identical nodes. See
+Fetching and crawling pages and OCR are no longer nodes. Each is a sandbox pack
+a `nodetool.code.Code` node imports — `fetch` plus `@nodetool-ai/sandbox-html`
+and `-ocr` — which is one script instead of a chain of near-identical nodes. See
 [packages/sandbox-packs](../sandbox-packs/README.md).
 
 The `lib.sqlite.*` CRUD nodes went too, without a pack behind them: a database
