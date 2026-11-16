@@ -156,4 +156,12 @@ private:
   QString message_;
 };
 
+// The data folder both apps share: `NodeTool/native` under the generic
+// data location, such as ~/.local/share on Linux.
+std::filesystem::path sharedDataDir();
+
+// The cloud server the apps sign in to: NODETOOL_CLOUD_SERVER when set,
+// otherwise https://api.nodetool.ai.
+std::string cloudServerOrigin();
+
 } // namespace nodetool::account::qt

@@ -146,6 +146,13 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     tabStack_ = new QStackedWidget(this);
     setCentralWidget(tabStack_);
     engine_ = new QQmlEngine(this);
+    nodetool::account::qt::AccountServices accountServices;
+    accountServices.dataDir = nodetool::account::qt::sharedDataDir();
+    accountServices.serverOrigin = nodetool::account::qt::cloudServerOrigin();
+    accountServices.app = "node-editor";
+    account_ = std::make_unique<nodetool::account::qt::AccountController>(std::move(accountServices));
+    connect(account_.get(), &nodetool::account::qt::AccountController::browserRequested, this,
+            [](const QUrl &url) { QDesktopServices::openUrl(url); });
     // Panels are QQuickWidgets sized to their strip, so an overlay tooltip clips there.
     // Ui.Tooltip hands its text to the window, which forwards it to the active tab.
     if (auto *tooltips = engine_->singletonInstance<QObject *>("NodeTool.UiPrimitives", "TooltipHost")) {
@@ -802,7 +809,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     resizeTabs();
   syncChrome();
   auto status = panel("StatusBar", {{"status", QVariant::fromValue(&statusModel_)},
-                                    {"panels", QVariant::fromValue(&panelLayout_)}});
+                                    {"panels", QVariant::fromValue(&panelLayout_)},
+                                    {"account", QVariant::fromValue((tabOwner_ ? tabOwner_ : this)->account_.get())}});
   status->setFixedHeight(status->initialSize().height());
   statusBar_ = status;
   // native-rules #2: naked new with no QObject parent, a later addLayout call takes ownership

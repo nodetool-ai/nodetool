@@ -8,6 +8,7 @@
 #include "nodetool/account/sign_in.h"
 
 #include <QFileInfo>
+#include <QStandardPaths>
 #include <QMetaObject>
 #include <QSysInfo>
 
@@ -401,6 +402,16 @@ void AccountController::signOut() {
       controller.refreshState();
     });
   });
+}
+
+std::filesystem::path sharedDataDir() {
+  const auto base = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
+  return std::filesystem::path(base.toStdU16String()) / "NodeTool" / "native";
+}
+
+std::string cloudServerOrigin() {
+  const auto configured = qEnvironmentVariable("NODETOOL_CLOUD_SERVER").trimmed();
+  return configured.isEmpty() ? std::string("https://api.nodetool.ai") : configured.toStdString();
 }
 
 } // namespace nodetool::account::qt

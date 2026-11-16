@@ -12,6 +12,9 @@ add_library(nodetool_account_qt STATIC
 set_target_properties(nodetool_account_qt PROPERTIES AUTOMOC ON)
 target_include_directories(nodetool_account_qt PUBLIC include)
 target_link_libraries(nodetool_account_qt PUBLIC nodetool_account Qt6::Core Qt6::Network)
+# A QML module that registers AccountController with QML_FOREIGN reads its
+# properties from these metatypes.
+qt_extract_metatypes(nodetool_account_qt)
 
 if(PROJECT_IS_TOP_LEVEL)
   find_package(Qt6 6.12 REQUIRED COMPONENTS Test)

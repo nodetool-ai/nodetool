@@ -330,6 +330,16 @@ private slots:
     editor->signIn();
     QCOMPARE(browser.count(), 0);
   }
+
+  // Both apps find the same data folder and server without configuration.
+  void defaultsAreSharedByBothApps() {
+    QVERIFY(sharedDataDir().generic_string().ends_with("NodeTool/native"));
+    qunsetenv("NODETOOL_CLOUD_SERVER");
+    QCOMPARE(cloudServerOrigin(), std::string("https://api.nodetool.ai"));
+    qputenv("NODETOOL_CLOUD_SERVER", " https://nt.example ");
+    QCOMPARE(cloudServerOrigin(), std::string("https://nt.example"));
+    qunsetenv("NODETOOL_CLOUD_SERVER");
+  }
 };
 
 QTEST_GUILESS_MAIN(AccountQtTest)

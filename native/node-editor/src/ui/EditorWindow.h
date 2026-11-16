@@ -26,6 +26,7 @@
 #include "interfaces/ChatWindow.h"
 #include "interfaces/WorkflowHeader.h"
 #include "server/SetupController.h"
+#include "nodetool/account/qt/AccountController.h"
 #include "server/PackSetup.h"
 #include "server/ComfyBackend.h"
 #include "document/WorkflowDocument.h"
@@ -729,6 +730,9 @@ private:
   // types and the Theme singleton exist once. It outlives the tabs, which the
   // owner deletes in its destructor body.
   QQmlEngine *engine_ = nullptr;
+  // The NodeTool Cloud account the status bar shows. The window owner creates
+  // it and its tabs borrow it, so the owner's destructor ends it after the tabs.
+  std::unique_ptr<nodetool::account::qt::AccountController> account_;
   QMainWindow *dockHost_ = nullptr;
   // The node library overlays the canvas column, as the fixed web left panel does.
   QPointer<QQuickWidget> catalogPanel_;
