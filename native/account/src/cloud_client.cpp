@@ -13,9 +13,13 @@ bool equalsIgnoringCase(std::string_view a, std::string_view b) {
          });
 }
 
+void setHeader(HttpRequest& request, const char* name, std::string value) {
+  std::erase_if(request.headers, [name](const auto& header) { return equalsIgnoringCase(header.first, name); });
+  request.headers.emplace_back(name, std::move(value));
+}
+
 void setBearer(HttpRequest& request, const std::string& token) {
-  std::erase_if(request.headers, [](const auto& header) { return equalsIgnoringCase(header.first, "Authorization"); });
-  request.headers.emplace_back("Authorization", "Bearer " + token);
+  setHeader(request, "Authorization", "Bearer " + token);
 }
 
 } // namespace
@@ -52,6 +56,7 @@ CloudSendResult CloudClient::send(HttpRequest request) {
     result.status = CloudSendStatus::Offline;
     return result;
   }
+  setHeader(request, kProtocolHeader, std::to_string(kClientProtocolVersion));
   setBearer(request, first.accessToken);
   result.response = transport_.send(request);
   if (result.response.status == 0) {

@@ -11,6 +11,12 @@
 
 namespace nodetool::account {
 
+// The sync protocol version this client speaks, sent on every cloud request
+// in kProtocolHeader. The server answers a version below its minimum by
+// refusing writes with CLIENT_TOO_OLD (the protocol package's sync.ts).
+inline constexpr int kClientProtocolVersion = 1;
+inline constexpr const char* kProtocolHeader = "x-nodetool-protocol";
+
 enum class CloudSendStatus {
   // The request went out. `response` holds what came back, which may be an
   // error status.
@@ -37,7 +43,8 @@ public:
   // `serverOrigin` must be the origin the session signed in to.
   CloudClient(AccountSession& session, HttpTransport& transport, std::string serverOrigin);
 
-  // Attaches `Authorization: Bearer <access token>` and sends. On a 401 it
+  // Attaches `Authorization: Bearer <access token>` and the protocol header,
+  // and sends. On a 401 it
   // renews the token once and sends again, so a token that expired in
   // flight costs one retry. Any `Authorization` header in `request` is
   // replaced.

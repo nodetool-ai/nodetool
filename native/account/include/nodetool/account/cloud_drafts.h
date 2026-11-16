@@ -100,12 +100,21 @@ struct SaveResult {
 
 // Sends one save of a whole document to the cloud server.
 //
+// `editingInstance` names the open document the save comes from: 32 hex
+// characters, new at every open. When it differs from the instance that
+// wrote the stored revision, the server keeps that revision as a version
+// before it applies the save (TC8).
+//
 // Thread affinity: implementations are thread-safe.
 class CloudSaver {
 public:
   virtual ~CloudSaver() = default;
-  virtual SaveResult save(const CloudDocumentKey& key, const CloudBase& base, const std::string& draft) = 0;
+  virtual SaveResult save(const CloudDocumentKey& key, const std::string& editingInstance, const CloudBase& base,
+                          const std::string& draft) = 0;
 };
+
+// A new editing instance id: 128 random bits as 32 lower-case hex characters.
+std::string newEditingInstance();
 
 enum class DocumentStatus {
   SavedToCloud,
@@ -157,6 +166,9 @@ public:
 
   DocumentState state() const;
 
+  // The editing instance id of this open document, drawn at construction.
+  const std::string& editingInstance() const { return editingInstance_; }
+
 private:
   // Sets the status, or Not saving while a local write fails. Call with
   // mutex_ held.
@@ -165,6 +177,7 @@ private:
   DraftStore& store_;
   CloudSaver& cloud_;
   const CloudDocumentKey key_;
+  const std::string editingInstance_;
 
   mutable std::mutex mutex_;
   // Guarded by mutex_.

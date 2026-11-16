@@ -4,6 +4,8 @@
 // with TC9 (the disk fills while editing) and edits made during a send.
 #include "nodetool/account/cloud_client.h"
 #include "nodetool/account/cloud_drafts.h"
+#include "nodetool/account/cloud_savers.h"
+#include "nodetool/account/crypto.h"
 #include "nodetool/account/http_token_endpoint.h"
 #include "test_support.h"
 
@@ -180,8 +182,9 @@ void attachesTheCredential(TestContext& t) {
   const auto sent = transport.sent();
   CHECK(sent.size() == 1);
   if (!sent.empty()) {
-    CHECK(sent[0].headers.size() == 1);
+    CHECK(sent[0].headers.size() == 2);
     CHECK(header(sent[0], "Authorization").starts_with("Bearer ntd_"));
+    CHECK(header(sent[0], "x-nodetool-protocol") == std::to_string(kClientProtocolVersion));
   }
 }
 
@@ -354,11 +357,13 @@ private:
 // Thread affinity: thread-safe. `mutex_` guards the log and the hook.
 class FakeCloud final : public CloudSaver {
 public:
-  SaveResult save(const CloudDocumentKey&, const CloudBase& base, const std::string& draft) override {
+  SaveResult save(const CloudDocumentKey&, const std::string& instance, const CloudBase& base,
+                  const std::string& draft) override {
     std::function<void()> hook;
     {
       const std::lock_guard lock(mutex_);
       saves_.emplace_back(base.contentHash, draft);
+      instances_.push_back(instance);
       hook = std::exchange(duringSave_, nullptr);
     }
     if (hook) {
@@ -379,12 +384,17 @@ public:
     const std::lock_guard lock(mutex_);
     return saves_;
   }
+  std::vector<std::string> instances() {
+    const std::lock_guard lock(mutex_);
+    return instances_;
+  }
 
   std::atomic<SaveStatus> status{SaveStatus::Ok};
 
 private:
   std::mutex mutex_;
   std::vector<std::pair<std::string, std::string>> saves_;
+  std::vector<std::string> instances_;
   std::function<void()> duringSave_;
 };
 
@@ -577,6 +587,165 @@ void editsFromAnotherThread(TestContext& t) {
   CHECK(!puts.empty() && puts.back() == "v1999");
 }
 
+// Every save of one open document carries the same editing instance, and
+// another open of the same document carries another one (TC8).
+void oneInstancePerOpenDocument(TestContext& t) {
+  FakeDraftStore store;
+  FakeCloud cloud;
+  CloudDocumentSaver first(store, cloud, kKey, {"t0", "h0"});
+  CHECK(first.editingInstance().size() == 32);
+  CHECK(first.editingInstance().find_first_not_of("0123456789abcdef") == std::string::npos);
+  first.edit("v1", 0);
+  first.tick(300);
+  first.edit("v2", 400);
+  first.tick(700);
+  CloudDocumentSaver second(store, cloud, kKey, {"t2", "h2"});
+  second.edit("v3", 800);
+  second.tick(1100);
+  const auto instances = cloud.instances();
+  CHECK(instances.size() == 3);
+  CHECK(instances.size() == 3 && instances[0] == first.editingInstance() && instances[1] == first.editingInstance());
+  CHECK(instances.size() == 3 && instances[2] == second.editingInstance());
+  CHECK(first.editingInstance() != second.editingInstance());
+}
+
+// ── Per-kind savers ─────────────────────────────────────────────────
+
+const CloudDocumentKey kWorkflowKey{"0123456789abcdef", "u1", "workflow", "w1"};
+const CloudDocumentKey kTimelineKey{"0123456789abcdef", "u1", "timeline", "t1"};
+const std::string kInstance(32, 'a');
+
+// A cloud server that answers each signed-in POST with `reply`.
+struct SaverServer {
+  SignedInApp app;
+  std::function<HttpResponse(const nlohmann::json&)> reply;
+  FakeTransport transport{[this](const HttpRequest& r) {
+    if (app.answer(r).status != 200) {
+      return HttpResponse{401, "{}"};
+    }
+    return reply(nlohmann::json::parse(r.body));
+  }};
+  CloudClient client{*app.session, transport, kServer};
+};
+
+void workflowSaverSendsTheGraph(TestContext& t) {
+  SaverServer server;
+  server.reply = [](const nlohmann::json&) {
+    return HttpResponse{200, R"({"result":{"data":{"id":"w1","updated_at":"2026-11-16T10:00:00Z"}}})"};
+  };
+  WorkflowCloudSaver saver(server.client);
+  saver.setAccess("w1", {"viewer", {}});
+  const std::string draft = R"({"nodes":[],"edges":[]})";
+  const SaveResult result = saver.save(kWorkflowKey, kInstance, {"2026-11-16T09:00:00Z", "h0"}, draft);
+  CHECK(result.status == SaveStatus::Ok);
+  CHECK(result.base.updatedAt == "2026-11-16T10:00:00Z");
+  const Sha256Digest digest = sha256(draft);
+  CHECK(result.base.contentHash == hexEncode(digest.data(), digest.size()));
+  CHECK(result.role == "viewer");
+  const auto sent = server.transport.sent();
+  CHECK(sent.size() == 1);
+  if (!sent.empty()) {
+    CHECK(sent[0].method == "POST");
+    CHECK(sent[0].url == std::string(kServer) + "/trpc/workflows.autosave");
+    const nlohmann::json body = nlohmann::json::parse(sent[0].body);
+    CHECK(body["id"] == "w1");
+    CHECK(body["graph"]["nodes"].is_array());
+    CHECK(body["expected_updated_at"] == "2026-11-16T09:00:00Z");
+    CHECK(body["editing_instance"] == kInstance);
+    CHECK(body["schema_version"] == kWorkflowSchemaVersion);
+    CHECK(body["force"] == true);
+  }
+}
+
+void timelineSaverSendsTheDocument(TestContext& t) {
+  SaverServer server;
+  server.reply = [](const nlohmann::json&) {
+    return HttpResponse{200, R"({"result":{"data":{"json":{"id":"t1","updatedAt":"r2"}}}})"};
+  };
+  TimelineCloudSaver saver(server.client);
+  const SaveResult result = saver.save(kTimelineKey, kInstance, {"r1", "h1"}, R"({"tracks":[]})");
+  CHECK(result.status == SaveStatus::Ok);
+  CHECK(result.base.updatedAt == "r2");
+  CHECK(result.role == "editor");
+  const auto sent = server.transport.sent();
+  CHECK(sent.size() == 1);
+  if (!sent.empty()) {
+    CHECK(sent[0].url == std::string(kServer) + "/trpc/timeline.update");
+    const nlohmann::json body = nlohmann::json::parse(sent[0].body);
+    CHECK(body["baseUpdatedAt"] == "r1");
+    CHECK(body["document"]["tracks"].is_array());
+    CHECK(body["editingInstance"] == kInstance);
+    CHECK(body["schemaVersion"] == kTimelineSchemaVersion);
+  }
+}
+
+// The first save of a document has no base, and sends none.
+void firstSaveSendsNoBase(TestContext& t) {
+  SaverServer server;
+  server.reply = [](const nlohmann::json&) {
+    return HttpResponse{200, R"({"result":{"data":{"updatedAt":"r1"}}})"};
+  };
+  TimelineCloudSaver saver(server.client);
+  CHECK(saver.save(kTimelineKey, kInstance, {}, "{}").status == SaveStatus::Ok);
+  const auto sent = server.transport.sent();
+  CHECK(sent.size() == 1 && !nlohmann::json::parse(sent[0].body).contains("baseUpdatedAt"));
+}
+
+void saverReportsTheServersCode(TestContext& t) {
+  SaverServer server;
+  server.reply = [](const nlohmann::json&) {
+    return HttpResponse{409, R"({"error":{"json":{"message":"x","data":{"code":"CONFLICT","httpStatus":409,"apiCode":"SCHEMA_DOWNGRADE"}}}})"};
+  };
+  WorkflowCloudSaver saver(server.client);
+  const SaveResult refused = saver.save(kWorkflowKey, kInstance, {}, R"({"nodes":[],"edges":[]})");
+  CHECK(refused.status == SaveStatus::Refused);
+  CHECK(refused.reason == "SCHEMA_DOWNGRADE");
+
+  server.reply = [](const nlohmann::json&) { return HttpResponse{403, "not json"}; };
+  const SaveResult bare = saver.save(kWorkflowKey, kInstance, {}, R"({"nodes":[],"edges":[]})");
+  CHECK(bare.status == SaveStatus::Refused);
+  CHECK(bare.reason == "HTTP_403");
+
+  // A server failure may pass, so the draft is sent again later.
+  server.reply = [](const nlohmann::json&) { return HttpResponse{503, ""}; };
+  CHECK(saver.save(kWorkflowKey, kInstance, {}, R"({"nodes":[],"edges":[]})").status == SaveStatus::Offline);
+
+  // An answer without the new revision cannot be recorded as saved.
+  server.reply = [](const nlohmann::json&) { return HttpResponse{200, R"({"result":{"data":{}}})"}; };
+  const SaveResult unread = saver.save(kWorkflowKey, kInstance, {}, R"({"nodes":[],"edges":[]})");
+  CHECK(unread.status == SaveStatus::Refused);
+  CHECK(unread.reason == "INVALID_RESPONSE");
+}
+
+void saverRefusesAnUnreadableDraft(TestContext& t) {
+  SaverServer server;
+  server.reply = [](const nlohmann::json&) { return HttpResponse{200, "{}"}; };
+  WorkflowCloudSaver saver(server.client);
+  for (const std::string draft : {"not json", "[]", R"({"nodes":[]})", R"({"nodes":{},"edges":[]})"}) {
+    const SaveResult result = saver.save(kWorkflowKey, kInstance, {}, draft);
+    CHECK(result.status == SaveStatus::Refused);
+    CHECK(result.reason == "INVALID_DRAFT");
+  }
+  CHECK(server.transport.sent().empty());
+}
+
+void saverSignedOutAndOffline(TestContext& t) {
+  {
+    SaverServer server;
+    server.reply = [](const nlohmann::json&) { return HttpResponse{200, "{}"}; };
+    server.app.session->signOut();
+    TimelineCloudSaver saver(server.client);
+    CHECK(saver.save(kTimelineKey, kInstance, {}, "{}").status == SaveStatus::SignedOut);
+    CHECK(server.transport.sent().empty());
+  }
+  {
+    SaverServer server;
+    server.reply = [](const nlohmann::json&) { return HttpResponse{0, ""}; };
+    TimelineCloudSaver saver(server.client);
+    CHECK(saver.save(kTimelineKey, kInstance, {}, "{}").status == SaveStatus::Offline);
+  }
+}
+
 } // namespace
 
 int main() {
@@ -599,5 +768,12 @@ int main() {
       {"refusedSaveBecomesUnsent", refusedSaveBecomesUnsent},
       {"retriesWhileOfflineOrSignedOut", retriesWhileOfflineOrSignedOut},
       {"editsFromAnotherThread", editsFromAnotherThread},
+      {"oneInstancePerOpenDocument", oneInstancePerOpenDocument},
+      {"workflowSaverSendsTheGraph", workflowSaverSendsTheGraph},
+      {"timelineSaverSendsTheDocument", timelineSaverSendsTheDocument},
+      {"firstSaveSendsNoBase", firstSaveSendsNoBase},
+      {"saverReportsTheServersCode", saverReportsTheServersCode},
+      {"saverRefusesAnUnreadableDraft", saverRefusesAnUnreadableDraft},
+      {"saverSignedOutAndOffline", saverSignedOutAndOffline},
   });
 }

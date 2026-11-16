@@ -1,4 +1,5 @@
 #include "nodetool/account/cloud_drafts.h"
+#include "nodetool/account/crypto.h"
 
 #include <nlohmann/json.hpp>
 
@@ -101,7 +102,13 @@ bool LocalServerDraftStore::markUnsent(const CloudDocumentKey& key, int64_t revi
 }
 
 CloudDocumentSaver::CloudDocumentSaver(DraftStore& store, CloudSaver& cloud, CloudDocumentKey key, CloudBase base)
-    : store_(store), cloud_(cloud), key_(std::move(key)), base_(std::move(base)) {}
+    : store_(store), cloud_(cloud), key_(std::move(key)), editingInstance_(newEditingInstance()),
+      base_(std::move(base)) {}
+
+std::string newEditingInstance() {
+  const std::vector<uint8_t> bytes = randomBytes(16);
+  return hexEncode(bytes.data(), bytes.size());
+}
 
 void CloudDocumentSaver::edit(std::string document, int64_t nowMs) {
   const std::lock_guard lock(mutex_);
@@ -167,7 +174,7 @@ void CloudDocumentSaver::tick(int64_t nowMs) {
     return;
   }
   const int64_t revision = *storedRevision_;
-  const SaveResult result = cloud_.save(key_, base_, storedDraft_);
+  const SaveResult result = cloud_.save(key_, editingInstance_, base_, storedDraft_);
   switch (result.status) {
   case SaveStatus::Ok: {
     const std::optional<AcceptOutcome> outcome =
