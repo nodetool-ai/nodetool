@@ -113,10 +113,10 @@ import { requirePermission } from "../../lib/permissions.js";
 import { requireInvitee, withPersonNames } from "../../lib/people.js";
 import {
   effectiveAccess,
-  invalidateSharedAssets,
   mayReadHistory,
   peopleOn
 } from "../../lib/document-access.js";
+import { invalidateSharedAssets } from "../../lib/shared-assets.js";
 import {
   checkAttach,
   ensureCurrentSet,

@@ -144,7 +144,7 @@ import {
   copyToProjectOutput,
   type AssetResponse
 } from "@nodetool-ai/protocol/api-schemas/assets.js";
-import { isAssetSharedWithUser } from "../../lib/document-access.js";
+import { isAssetSharedWithUser } from "../../lib/shared-assets.js";
 import { isFullResourceId } from "@nodetool-ai/protocol";
 
 /**

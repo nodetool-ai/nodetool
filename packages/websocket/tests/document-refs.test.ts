@@ -25,12 +25,11 @@ import type { AccessGrantItem } from "@nodetool-ai/protocol/api-schemas/workflow
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
+import { combineGrants, effectiveAccess } from "../src/lib/document-access.js";
 import {
-  combineGrants,
-  effectiveAccess,
   invalidateSharedAssets,
   isAssetIdSharedWithUser
-} from "../src/lib/document-access.js";
+} from "../src/lib/shared-assets.js";
 import { forgetPermissions } from "../src/lib/permissions.js";
 import { resetUserDirectoryCache } from "../src/lib/user-directory.js";
 

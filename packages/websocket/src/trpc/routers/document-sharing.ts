@@ -53,11 +53,11 @@ import {
 import { ApiErrorCode } from "../../error-codes.js";
 import {
   effectiveAccess,
-  invalidateSharedAssets,
   loadSharedDocument,
   peopleOn,
   type SharedDocumentRow
 } from "../../lib/document-access.js";
+import { invalidateSharedAssets } from "../../lib/shared-assets.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
