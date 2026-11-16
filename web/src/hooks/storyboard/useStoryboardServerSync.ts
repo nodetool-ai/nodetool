@@ -43,7 +43,8 @@ type StoryboardResponse = Awaited<
 >;
 type StoryboardWireDocument = StoryboardResponse["document"];
 
-const boardToDocument = (board: StoryboardBoard): StoryboardWireDocument => {
+/** The board as the document the server stores. The text view reads its Markdown from this. */
+export const boardToDocument = (board: StoryboardBoard): StoryboardWireDocument => {
   const document = {
     screenplay: board.screenplay,
     shots: board.shots,

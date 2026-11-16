@@ -20215,5 +20215,60 @@
     "removeTitle": "Poistetaanko ”{{name}}”?",
     "removeBody": "Aineisto poistetaan NodeToolista. Sitä käyttävät dokumentit eivät voi enää näyttää sitä.",
     "cancel": "Peruuta"
+  },
+  "storyboardText": {
+    "mode": "Teksti",
+    "editorLabel": "Kuvakäsikirjoitus Markdown-tekstinä",
+    "hint": "Kirjoita # näytökselle, ## kohtaukselle, ### otokselle ja - **Motion:** kentälle. Kirjoita @ mainitaksesi entiteetin tai kuvan.",
+    "issues": "Huomiota vaativat rivit: {{lines}}",
+    "loading": "Ladataan tekstiä…",
+    "warnings": {
+      "media_outside_shot": "Kuva kuuluu otokseen. Sijoita se ###-otosotsikon alle.",
+      "second_media": "Otoksella on yksi valittu still-kuva ja yksi valittu leike. Tätä ei käytetä.",
+      "unknown_shot_field": "”{{label}}” ei ole kuvakäsikirjoituksen kenttä. Se tallennetaan otoksen muistiinpanoihin.",
+      "unknown_field": "”{{label}}” ei ole kenttä tässä. Sitä ei tallenneta.",
+      "text_in_scene": "Kohtauksella on vain otsikkorivi ja valaistus. Siirrä teksti otoksen alle tai aloita se sanalla ”Lighting:”.",
+      "bad_duration": "Otos {{shot}}: ”{{value}}” ei ole sekuntimäärä.",
+      "bad_render": "Otos {{shot}}: render on keyframe, direct tai reference.",
+      "no_next_shot": "Otos {{shot}}: siirtymä johtaa seuraavaan otokseen, eikä sellaista ole.",
+      "missing_action": "Otoksella {{shot}} ei ole vielä toimintaa. Kirjoita renderöitävä kuva sen otsikon alle."
+    },
+    "outline": "Jäsennys",
+    "outlineEmpty": "Kirjoita ### ja otsikko aloittaaksesi otoksen.",
+    "untitledShot": "Nimetön otos",
+    "untitledAct": "Nimetön näytös",
+    "untitledScene": "Nimetön kohtaus",
+    "issuesTitle": "Vaatii huomiota",
+    "stillOf": "Still-kuva otokselle {{shot}}",
+    "assist": {
+      "lines": "{{lines}} riviä valittu",
+      "proposal": "Ehdotettu korvaus",
+      "note": "Agentin huomautus",
+      "discard": "Hylkää",
+      "close": "Sulje",
+      "replace": "Korvaa valinta",
+      "stale": "Kohta muuttui valinnan jälkeen. Valitse se uudelleen.",
+      "thinking": "Ajattelee…",
+      "stop": "Pysäytä",
+      "placeholder": "Kerro agentille, mitä tälle kohdalle tehdään",
+      "refinePlaceholder": "Tarkenna tulosta",
+      "instruction": "Pyyntö agentille",
+      "send": "Lähetä agentille",
+      "failed": "Pyyntö mallille epäonnistui.",
+      "context": "Lähetetty pyynnön mukana: koko kuvakäsikirjoitus, {{shots}} otosta ja kirjaston {{entities}} entiteettiä.",
+      "quick": {
+        "tighten": "Tiivistä",
+        "visual": "Visuaalisemmin",
+        "camera": "Ehdota kameraa",
+        "continuity": "Tarkista jatkuvuus",
+        "summarize": "Tiivistelmä",
+        "inconsistencies": "Etsi ristiriidat"
+      },
+      "errors": {
+        "no_model": "Valitse tälle kuvakäsikirjoitukselle ohjausmalli tai chat-malli käyttääksesi agenttia.",
+        "empty": "Malli ei palauttanut vastausta. Lähetä pyyntö uudelleen.",
+        "failed": "Pyyntö epäonnistui. Lähetä se uudelleen."
+      }
+    }
   }
 }

@@ -20526,5 +20526,60 @@
     "removeTitle": "Remover \"{{name}}\"?",
     "removeBody": "O recurso é removido do NodeTool. Os documentos que o usam não podem mais exibi-lo.",
     "cancel": "Cancelar"
+  },
+  "storyboardText": {
+    "mode": "Texto",
+    "editorLabel": "Storyboard como texto Markdown",
+    "hint": "Digite # para um ato, ## para uma cena, ### para um plano e - **Motion:** para um campo. Digite @ para mencionar uma entidade ou imagem.",
+    "issues": "Linhas que precisam de atenção: {{lines}}",
+    "loading": "Carregando o texto…",
+    "warnings": {
+      "media_outside_shot": "Uma imagem pertence a um plano. Coloque-a sob um título ### de plano.",
+      "second_media": "Um plano tem uma imagem fixa e um clipe selecionados. Este não é usado.",
+      "unknown_shot_field": "\"{{label}}\" não é um campo do storyboard. Ele é salvo nas notas do plano.",
+      "unknown_field": "\"{{label}}\" não é um campo aqui. Ele não é salvo.",
+      "text_in_scene": "Uma cena tem apenas cabeçalho e iluminação. Coloque este texto sob um plano ou comece-o com \"Lighting:\".",
+      "bad_duration": "Plano {{shot}}: \"{{value}}\" não é um número de segundos.",
+      "bad_render": "Plano {{shot}}: o render é keyframe, direct ou reference.",
+      "no_next_shot": "Plano {{shot}}: uma transição leva ao próximo plano, e não há nenhum.",
+      "missing_action": "O plano {{shot}} ainda não tem ação. Escreva a imagem a renderizar sob o título."
+    },
+    "outline": "Estrutura",
+    "outlineEmpty": "Digite ### e um título para começar um plano.",
+    "untitledShot": "Plano sem título",
+    "untitledAct": "Ato sem título",
+    "untitledScene": "Cena sem título",
+    "issuesTitle": "Precisa de atenção",
+    "stillOf": "Imagem fixa do plano {{shot}}",
+    "assist": {
+      "lines": "{{lines}} linhas selecionadas",
+      "proposal": "Substituição proposta",
+      "note": "Nota do agente",
+      "discard": "Descartar",
+      "close": "Fechar",
+      "replace": "Substituir seleção",
+      "stale": "O trecho mudou depois que você o selecionou. Selecione-o de novo.",
+      "thinking": "Pensando…",
+      "stop": "Parar",
+      "placeholder": "Diga ao agente o que fazer com este trecho",
+      "refinePlaceholder": "Refinar o resultado",
+      "instruction": "Pedido ao agente",
+      "send": "Enviar ao agente",
+      "failed": "A solicitação ao modelo falhou.",
+      "context": "Enviado com o pedido: o storyboard inteiro, {{shots}} planos e {{entities}} entidades da biblioteca.",
+      "quick": {
+        "tighten": "Enxugar",
+        "visual": "Mais visual",
+        "camera": "Sugerir câmera",
+        "continuity": "Verificar continuidade",
+        "summarize": "Resumir",
+        "inconsistencies": "Encontrar incoerências"
+      },
+      "errors": {
+        "no_model": "Escolha um modelo de direção para este storyboard, ou um modelo de chat, para usar o agente.",
+        "empty": "O modelo não retornou resposta. Envie o pedido de novo.",
+        "failed": "O pedido falhou. Envie-o de novo."
+      }
+    }
   }
 }

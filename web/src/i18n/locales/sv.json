@@ -20215,5 +20215,60 @@
     "removeTitle": "Ta bort ”{{name}}”?",
     "removeBody": "Resursen tas bort från NodeTool. Dokument som använder den kan inte längre visa den.",
     "cancel": "Avbryt"
+  },
+  "storyboardText": {
+    "mode": "Text",
+    "editorLabel": "Storyboard som Markdown-text",
+    "hint": "Skriv # för en akt, ## för en scen, ### för en tagning och - **Motion:** för ett fält. Skriv @ för att nämna en entitet eller en bild.",
+    "issues": "Rader som behöver åtgärdas: {{lines}}",
+    "loading": "Läser in texten…",
+    "warnings": {
+      "media_outside_shot": "En bild hör till en tagning. Lägg den under en ###-rubrik.",
+      "second_media": "En tagning har en vald stillbild och ett valt klipp. Den här används inte.",
+      "unknown_shot_field": "”{{label}}” är inget storyboardfält. Det sparas i tagningens anteckningar.",
+      "unknown_field": "”{{label}}” är inget fält här. Det sparas inte.",
+      "text_in_scene": "En scen har bara scenrubrik och ljus. Flytta texten under en tagning eller börja den med ”Lighting:”.",
+      "bad_duration": "Tagning {{shot}}: ”{{value}}” är inte ett antal sekunder.",
+      "bad_render": "Tagning {{shot}}: render är keyframe, direct eller reference.",
+      "no_next_shot": "Tagning {{shot}}: en övergång leder till nästa tagning, och det finns ingen.",
+      "missing_action": "Tagning {{shot}} har ingen handling än. Skriv bilden som ska genereras under rubriken."
+    },
+    "outline": "Disposition",
+    "outlineEmpty": "Skriv ### och en titel för att börja en tagning.",
+    "untitledShot": "Namnlös tagning",
+    "untitledAct": "Namnlös akt",
+    "untitledScene": "Namnlös scen",
+    "issuesTitle": "Behöver åtgärdas",
+    "stillOf": "Stillbild för tagning {{shot}}",
+    "assist": {
+      "lines": "{{lines}} rader markerade",
+      "proposal": "Föreslagen ersättning",
+      "note": "Anteckning från agenten",
+      "discard": "Kasta",
+      "close": "Stäng",
+      "replace": "Ersätt markeringen",
+      "stale": "Stycket ändrades efter att du markerade det. Markera det igen.",
+      "thinking": "Tänker…",
+      "stop": "Stoppa",
+      "placeholder": "Berätta för agenten vad den ska göra med stycket",
+      "refinePlaceholder": "Förfina resultatet",
+      "instruction": "Begäran till agenten",
+      "send": "Skicka till agenten",
+      "failed": "Begäran till modellen misslyckades.",
+      "context": "Skickat med begäran: hela storyboardet, {{shots}} tagningar och {{entities}} entiteter från biblioteket.",
+      "quick": {
+        "tighten": "Strama åt",
+        "visual": "Mer visuellt",
+        "camera": "Föreslå kamera",
+        "continuity": "Kontrollera kontinuitet",
+        "summarize": "Sammanfatta",
+        "inconsistencies": "Hitta motsägelser"
+      },
+      "errors": {
+        "no_model": "Välj en regimodell för det här storyboardet, eller en chattmodell, för att använda agenten.",
+        "empty": "Modellen gav inget svar. Skicka begäran igen.",
+        "failed": "Begäran misslyckades. Skicka den igen."
+      }
+    }
   }
 }

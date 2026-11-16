@@ -46,6 +46,7 @@ export * from "./render-record.js";
 export * from "./storyboard-render-spec.js";
 export * from "./style-presets.js";
 export * from "./screenplay-authoring.js";
+export * from "./storyboard-markdown.js";
 export * from "./script-authoring.js";
 export * from "./script-link.js";
 export * from "./script-fill.js";
