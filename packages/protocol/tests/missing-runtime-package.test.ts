@@ -100,11 +100,11 @@ describe("host-aware missing runtime details", () => {
 
 describe("missingRuntimePackageError", () => {
   it("names the package, the install route, and keeps the cause", () => {
-    const cause = new Error("Cannot find module 'exceljs'");
-    const error = missingRuntimePackageError("exceljs", "office-documents", cause);
+    const cause = new Error("Cannot find module 'mammoth'");
+    const error = missingRuntimePackageError("mammoth", "office-documents", cause);
     expect(missingRuntimePackageOf(error)).toBe("office-documents");
-    expect(error.message).toContain('"exceljs"');
-    expect(error.message).toContain("Office Documents");
+    expect(error.message).toContain('"mammoth"');
+    expect(error.message).toContain("Word Documents");
     expect(error.cause).toBe(cause);
   });
 });

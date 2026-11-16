@@ -1447,59 +1447,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "convert_document",
     module: "documents",
     impl: "packages/agents/src/capabilities/documents.ts",
-    contract: "b3aca7b16b74",
+    contract: "70fe027a7e36",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-documents.test.ts",
       "packages/agents/tests/capabilities-documents-convert.test.ts",
-    ],
-  },
-  {
-    name: "search_email",
-    module: "email",
-    impl: "packages/agents/src/capabilities/email.ts",
-    contract: "009d8426f54e",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-email.test.ts",
-    ],
-    evals: [
-      {
-        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
-        cases: ["email-triage"],
-      },
-    ],
-  },
-  {
-    name: "archive_email",
-    module: "email",
-    impl: "packages/agents/src/capabilities/email.ts",
-    contract: "cd1a4980a2db",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-email.test.ts",
-    ],
-    evals: [
-      {
-        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
-        cases: ["email-triage"],
-      },
-    ],
-  },
-  {
-    name: "add_label_to_email",
-    module: "email",
-    impl: "packages/agents/src/capabilities/email.ts",
-    contract: "e6eadbfd482c",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-email.test.ts",
-    ],
-    evals: [
-      {
-        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
-        cases: ["email-triage"],
-      },
     ],
   },
   {

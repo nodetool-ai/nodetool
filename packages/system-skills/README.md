@@ -52,7 +52,7 @@ namespace to its skill.
 | `api-models` | `models` |
 | `api-media` | `media`, `generations` |
 | `api-assets` | `assets`, `documents` |
-| `api-web` | `web`, `email` |
+| `api-web` | `web` |
 | `api-memory` | `memory`, `shared`, `threads` |
 | `api-agents` | `agents` |
 | `api-settings` | `settings`, `secrets` |

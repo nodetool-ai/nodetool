@@ -88,15 +88,6 @@ export function providerCapabilitiesPlugin() {
           loader: "js"
         })
       );
-      build.onResolve({ filter: /^\.\/epub\.js$/ }, (args) =>
-        /[/\\]agents[/\\](src|dist)[/\\]host-modules[/\\]/.test(args.importer)
-          ? {
-              path: fileURLToPath(
-                new URL("./host/sandbox-epub.mjs", import.meta.url)
-              )
-            }
-          : undefined
-      );
       build.onResolve({ filter: /^nodetool:sandbox-bootstrap$/ }, () => ({
         path: "sandbox-bootstrap",
         namespace: "native-sandbox-bootstrap"

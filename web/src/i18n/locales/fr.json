@@ -9248,10 +9248,6 @@
           "button": "Obtenir le jeton API de réplication",
           "tooltip": "Accédez à la page Répliquer les jetons d'API"
         },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Obtenir le mot de passe de l'application Google",
-          "tooltip": "Accédez à la page des mots de passe des applications du compte Google"
-        },
         "ELEVENLABS_API_KEY": {
           "button": "Obtenir la clé API ElevenLabs",
           "tooltip": "Accédez à la page d'abonnement à ElevenLabs"

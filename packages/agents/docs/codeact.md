@@ -147,7 +147,7 @@ and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   run's own scratchpad, beside thread-scoped `nodetool.memory`),
   `nodetool.threads` (`list/get/last/message` over `list_threads`/`get_thread`/
   `get_message` — the chat history itself, read-only), `nodetool.style`
-  (`profile/record`), `nodetool.email` (`search/archive/label`), plus `assets`
+  (`profile/record`), plus `assets`
   (`list/search/images/get/save/read`), `jobs` (with
   `wait(id, {timeoutMs, pollMs})` polling a background job to settlement),
   `collections` (`list/query`; `index/indexBatch/search/hybridSearch` work

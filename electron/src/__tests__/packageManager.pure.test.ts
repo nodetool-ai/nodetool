@@ -44,20 +44,20 @@ describe("getRuntimePackageStatuses", () => {
   it("passes an npm package's installed and pinned versions to the renderer", async () => {
     jest.spyOn(runtimeRegistry, "statuses").mockResolvedValue([
       {
-        id: "tensorflow-js",
+        id: "transformers-js",
         installed: true,
-        installedVersion: "4.20.0",
-        latestVersion: "4.22.0",
+        installedVersion: "3.7.0",
+        latestVersion: "3.8.1",
         updateAvailable: true,
       },
     ]);
     const [status] = await getRuntimePackageStatuses();
     expect(status).toMatchObject({
-      id: "tensorflow-js",
-      name: "TensorFlow.js Models",
+      id: "transformers-js",
+      name: "Transformers.js",
       installed: true,
-      installedVersion: "4.20.0",
-      latestVersion: "4.22.0",
+      installedVersion: "3.7.0",
+      latestVersion: "3.8.1",
       updateAvailable: true,
     });
   });

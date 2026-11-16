@@ -6,6 +6,11 @@
 // Exports the guest lacks are absent; the parity profile names them.
 import { loadMediaRefBytes as loadReal } from "guest-real:@nodetool-ai/runtime/media-ref-bytes";
 import { fetchExternalMedia } from "./media-fetch.mjs";
+import guestPath from "./path.mjs";
+import {
+  NestedFolders,
+  WorkspaceReservedPathError
+} from "guest-real:@nodetool-ai/runtime-core/workspace.js";
 
 export { encodeBase64, isAbsoluteFilePath } from "guest-real:@nodetool-ai/runtime/media-ref-bytes";
 export {
@@ -68,8 +73,22 @@ export { BaseProvider } from "guest-real:@nodetool-ai/runtime/providers/base-pro
 export { creditBlockReason } from "guest-real:@nodetool-ai/runtime/providers/provider-credits.js";
 export {
   RESERVED_WORKSPACE_DIR,
+  WorkspaceReservedPathError,
   setProjectFolderResolver
 } from "guest-real:@nodetool-ai/runtime-core/workspace.js";
+
+/**
+ * The guest form of the runtime's own-folder check. The guest has no host
+ * file system, so it judges the path as written and skips the real-path
+ * step that resolves links on disk.
+ */
+export async function assertLocalPathIsOwn(workspace, root, target, shown = target) {
+  const inside = guestPath.relative(guestPath.resolve(root), guestPath.resolve(target));
+  if (!inside || inside.startsWith("..") || guestPath.isAbsolute(inside)) return;
+  if (await new NestedFolders(workspace).covers(inside)) {
+    throw new WorkspaceReservedPathError(shown, "nested");
+  }
+}
 export { PERMISSION_GATE_CONTEXT_KEY } from "guest-real:@nodetool-ai/runtime/permission-gate.js";
 export { getRunTraceScope, withRunTrace, recordTraceEvent } from "guest-real:@nodetool-ai/runtime/run-trace-context.js";
 export { stringifyTraceContent } from "guest-real:@nodetool-ai/runtime/run-trace-serialization.js";

@@ -157,9 +157,9 @@ export const convertDocumentSpec: CapabilitySpec = {
   name: "convert_document",
   description:
     "Convert a document file in process. Supported conversions (from → to): " +
-    "markdown → html, markdown → docx, markdown → pdf, markdown → text, " +
-    "html → markdown, html → docx, html → pdf, docx → markdown, docx → html, " +
-    "docx → text, text → markdown, text → text. Any other pair returns an " +
+    "markdown → html, markdown → pdf, markdown → text, html → markdown, " +
+    "html → pdf, docx → markdown, docx → html, docx → text, " +
+    "text → markdown, text → text. Any other pair returns an " +
     "error listing these. PDF output is printed by headless Chromium with " +
     "network access blocked.",
   inputSchema: {
@@ -182,7 +182,7 @@ export const convertDocumentSpec: CapabilitySpec = {
       to_format: {
         type: "string",
         description:
-          "Output format: markdown, html, docx, pdf or text",
+          "Output format: markdown, html, pdf or text",
         default: "pdf"
       }
     },

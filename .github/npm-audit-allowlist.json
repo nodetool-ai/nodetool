@@ -7,7 +7,7 @@
       "severity": "high",
       "title": "js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources",
       "url": "https://github.com/advisories/GHSA-2883-xcg3-v3hh",
-      "reason": "All three advisories are parse-time. office-text-extractor only calls js-yaml's dump() to format spreadsheet rows. Electron's app-builder-lib parses our own build config at build time. The sandbox-yaml pack bundles its own copy into the QuickJS guest, where the run's CPU timeout bounds a quadratic parse."
+      "reason": "All three advisories are parse-time. Electron's app-builder-lib parses our own build config at build time. The sandbox-yaml pack bundles its own copy into the QuickJS guest, where the run's CPU timeout bounds a quadratic parse."
     },
     {
       "project": "root",
@@ -25,7 +25,7 @@
       "severity": "high",
       "title": "js-yaml: YAML merge-key chains can force quadratic CPU consumption",
       "url": "https://github.com/advisories/GHSA-52cp-r559-cp3m",
-      "reason": "All three advisories are parse-time. office-text-extractor only calls js-yaml's dump() to format spreadsheet rows. Electron's app-builder-lib parses our own build config at build time. The sandbox-yaml pack bundles its own copy into the QuickJS guest, where the run's CPU timeout bounds a quadratic parse."
+      "reason": "All three advisories are parse-time. Electron's app-builder-lib parses our own build config at build time. The sandbox-yaml pack bundles its own copy into the QuickJS guest, where the run's CPU timeout bounds a quadratic parse."
     },
     {
       "project": "root",
@@ -34,7 +34,7 @@
       "severity": "high",
       "title": "JS-YAML: Quadratic CPU consumption in !!omap resolution (3.x and 4.x) \u2014 CVE-2026-59870 fix not backported",
       "url": "https://github.com/advisories/GHSA-5p4m-2wfm-xmqj",
-      "reason": "All three advisories are parse-time. office-text-extractor only calls js-yaml's dump() to format spreadsheet rows. Electron's app-builder-lib parses our own build config at build time. The sandbox-yaml pack bundles its own copy into the QuickJS guest, where the run's CPU timeout bounds a quadratic parse."
+      "reason": "All three advisories are parse-time. Electron's app-builder-lib parses our own build config at build time. The sandbox-yaml pack bundles its own copy into the QuickJS guest, where the run's CPU timeout bounds a quadratic parse."
     },
     {
       "project": "root",
