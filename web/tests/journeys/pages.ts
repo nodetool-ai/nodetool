@@ -775,6 +775,11 @@ export class ProjectFilesPage {
     await this.tree().waitFor({ state: "visible" });
   }
 
+  /** Lists the folder again. Files does not follow changes made outside NodeTool. */
+  async refresh(): Promise<void> {
+    await this.page.getByRole("button", { name: "Refresh", exact: true }).click();
+  }
+
   /** Expands the directory `name` in Files unless it is expanded already. */
   async expand(name: string): Promise<void> {
     const label = this.tree().getByText(name, { exact: true });

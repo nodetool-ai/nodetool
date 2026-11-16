@@ -7,9 +7,14 @@ import { AssetsPage, CreatePage, ProjectFilesPage } from "./pages";
 
 /**
  * A project is a folder, and a generated image is one file in it. Generating
- * an image in a Create tab of the project writes it to `Generated/`. Files and
- * the asset browser show that file. Renaming it on disk, outside
- * NodeTool, keeps the asset and shows the new name.
+ * an image in a Create tab of the project writes it to `Generated/`, and Files
+ * shows it. Renaming the file on disk, outside NodeTool, keeps the asset: the
+ * same asset resolves to the renamed file, and Files shows the new name after
+ * a refresh. The asset browser lists that one asset in `Generated/`.
+ *
+ * The rename happens while the Create tab is open. The server watches a
+ * project folder only while a client holds the shared socket open with that
+ * project, and the Create tab opens it to generate.
  */
 test("a generated image is a file in the project folder and keeps its asset when renamed on disk", async ({
   page
@@ -22,6 +27,7 @@ test("a generated image is a file in the project folder and keeps its asset when
   const project = await client.projects.create.mutate({ name: "Fox Film" });
   const folder = project.folder;
   expect(folder?.path, "creating a project creates its folder").toBeTruthy();
+
   // Generate an image in a Create tab of the project.
   const files = new ProjectFilesPage(page);
   const create = new CreatePage(page);
@@ -65,24 +71,12 @@ test("a generated image is a file in the project folder and keeps its asset when
     .toHaveLength(1);
   const assetId = assetIds[0];
 
-  // Files shows the file.
-  await files.open(project.id);
+  // Files, beside the Create tab, shows the file.
   await files.showFiles();
   await files.expand("Generated");
   await expect(files.tree().getByText(fileName, { exact: true })).toBeVisible();
 
-  // The asset browser shows the same file as an asset.
-  const assetsPage = new AssetsPage(page);
-  await assetsPage.open();
-  await page.getByRole("button", { name: "Generated", exact: true }).click();
-  const assetItem = page.getByLabel(fileName, { exact: true });
-  await expect(assetItem).toBeVisible();
-
-  // Back in Files, rename the file outside NodeTool.
-  await files.open(project.id);
-  await files.showFiles();
-  await files.expand("Generated");
-  await expect(files.tree().getByText(fileName, { exact: true })).toBeVisible();
+  // Rename the file outside NodeTool.
   const renamed = "renamed-fox.png";
   await rename(
     join(folder!.path, "Generated", fileName),
@@ -105,7 +99,8 @@ test("a generated image is a file in the project folder and keeps its asset when
     )
     .toBe("resolves");
 
-  // Files shows the new name.
+  // Files shows the new name once it lists the folder again.
+  await files.refresh();
   await expect(files.tree().getByText(renamed, { exact: true })).toBeVisible();
   await expect(files.tree().getByText(fileName, { exact: true })).toHaveCount(0);
 
@@ -114,4 +109,10 @@ test("a generated image is a file in the project folder and keeps its asset when
     content_type: "image"
   });
   expect(after.assets.map((asset) => asset.id), "no second asset appears").toEqual([assetId]);
+
+  // The asset browser lists that one asset in Generated/.
+  const assetsPage = new AssetsPage(page);
+  await assetsPage.open();
+  await page.getByRole("button", { name: "Generated", exact: true }).click();
+  await expect(page.locator(".asset-item.image")).toHaveCount(1);
 });
