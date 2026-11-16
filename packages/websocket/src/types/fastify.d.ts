@@ -17,5 +17,7 @@ declare module "fastify" {
      * refuse such a request.
      */
     nativeSessionId: string | null;
+    /** When the native access token of this request expires, or null. */
+    nativeTokenExpiresAt: number | null;
   }
 }

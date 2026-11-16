@@ -82,6 +82,14 @@ function makeCtx(userId: string, nativeSessionId: string | null = null): Context
   } as Context;
 }
 
+/** Move the expiry of an access token row, as time passing would. */
+async function setAccessExpiry(token: string, expiresAt: number): Promise<void> {
+  const row = await McpOauthToken.get<McpOauthToken>(token.split("_")[1]!);
+  if (!row) throw new Error("no such token");
+  row.expires_at = new Date(expiresAt).toISOString();
+  await row.save();
+}
+
 async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify();
   await app.register(oauthAsRoutes);
@@ -363,7 +371,8 @@ describe("TC2 and TC3: each credential only where it belongs", () => {
     expect(await decideOauthBearer(tokens.access_token, "/api/workflows")).toEqual({
       kind: "grant",
       userId: "user-a",
-      nativeSessionId: tokens.session_id
+      nativeSessionId: tokens.session_id,
+      nativeTokenExpiresAt: expect.any(Number)
     });
     expect(await decideOauthBearer(tokens.access_token, "/trpc/workflows.list")).toMatchObject({
       kind: "grant"
@@ -503,7 +512,7 @@ describe("TC13 (session half): ending a device session", () => {
     const app = await buildApp();
     const tokens = await signIn(app);
     const close = vi.fn();
-    trackNativeSessionSocket(tokens.session_id, close);
+    trackNativeSessionSocket(tokens.session_id, tokens.access_token, Date.now() + 3_600_000, close);
     await createCaller(makeCtx("user-a")).agentAccess.endDeviceSession({
       session_id: tokens.session_id
     });
@@ -517,7 +526,7 @@ describe("TC13 (session half): ending a device session", () => {
     const app = await buildApp();
     const tokens = await signIn(app);
     const close = vi.fn();
-    trackNativeSessionSocket(tokens.session_id, close);
+    trackNativeSessionSocket(tokens.session_id, tokens.access_token, Date.now() + 3_600_000, close);
     await sweepNativeSessionSockets();
     expect(close).not.toHaveBeenCalled();
     // Another process revokes: only the database changes here.
@@ -547,6 +556,72 @@ describe("TC13 (session half): ending a device session", () => {
       )
     ).toEqual({ ok: false });
     expect(nativeValidationCacheSize()).toBe(0);
+  });
+
+  it("refuses a write with a token revoked on another process at once, cache or not", async () => {
+    const app = await buildApp();
+    const tokens = await signIn(app);
+    const start = Date.now();
+    expect(await authenticateNativeAccessToken(tokens.access_token, "/trpc/workflows.autosave", start)).toMatchObject({
+      ok: true
+    });
+    expect(await decideOauthBearer(tokens.access_token, "/trpc/workflows.list", "GET")).toMatchObject({
+      kind: "grant"
+    });
+    // Another replica processed the revocation: only the database changes here.
+    await McpOauthGrant.revoke("user-a", tokens.session_id);
+    expect(
+      await authenticateNativeAccessToken(tokens.access_token, "/trpc/workflows.autosave", start + 1_000, {
+        write: true
+      })
+    ).toEqual({ ok: false });
+    // The refused write also drops the cached check, so reads stop too.
+    expect(await decideOauthBearer(tokens.access_token, "/trpc/workflows.list", "GET")).toMatchObject({
+      kind: "deny"
+    });
+    expect(
+      await decideOauthBearer(tokens.access_token, "/trpc/workflows.autosave", "POST")
+    ).toMatchObject({ kind: "deny" });
+  });
+
+  it("never answers from the cache after the token expired", async () => {
+    const app = await buildApp();
+    const tokens = await signIn(app);
+    const start = Date.now();
+    const expiresAt = start + 5_000;
+    await setAccessExpiry(tokens.access_token, expiresAt);
+    expect(await authenticateNativeAccessToken(tokens.access_token, "/api/workflows", start)).toMatchObject({
+      ok: true,
+      expiresAt
+    });
+    // Inside the 30-second cache window, past the token's own expiry.
+    expect(
+      await authenticateNativeAccessToken(tokens.access_token, "/api/workflows", expiresAt + 1)
+    ).toEqual({ ok: false });
+    expect(nativeValidationCacheSize()).toBe(0);
+  });
+
+  it("closes a socket when the token that opened it expires, while its grant stays active", async () => {
+    const app = await buildApp();
+    const tokens = await signIn(app);
+    const close = vi.fn();
+    trackNativeSessionSocket(tokens.session_id, tokens.access_token, Date.now() + 20, close);
+    await vi.waitFor(() => expect(close).toHaveBeenCalledTimes(1));
+    expect((await McpOauthGrant.get(tokens.session_id))?.revoked_at).toBeNull();
+  });
+
+  it("closes a socket at the sweep when its token stopped verifying, while its grant stays active", async () => {
+    const app = await buildApp();
+    const tokens = await signIn(app);
+    const close = vi.fn();
+    trackNativeSessionSocket(tokens.session_id, tokens.access_token, Date.now() + 3_600_000, close);
+    await sweepNativeSessionSockets();
+    expect(close).not.toHaveBeenCalled();
+    // The token expired in the database, for example on a host whose clock
+    // ran ahead: the grant is still active.
+    await setAccessExpiry(tokens.access_token, Date.now() - 1);
+    await sweepNativeSessionSockets();
+    expect(close).toHaveBeenCalledTimes(1);
   });
 
   it("does not let one user end another user's session", async () => {

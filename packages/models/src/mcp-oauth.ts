@@ -409,10 +409,9 @@ export class McpOauthGrant extends DBModel {
       .limit(1);
     const row = rows[0];
     if (!row) return false;
-    const grant = new McpOauthGrant(row as Record<string, unknown>);
-    grant.revoked_at = isoNow();
-    await grant.save();
-    await db.delete(mcpOauthTokens).where(eq(mcpOauthTokens.grant_id, id));
+    // One transaction under the grant lock, so a refresh in flight on another
+    // process cannot insert tokens after the delete.
+    await revokeGrantCompletely(id);
     return true;
   }
 }
@@ -501,11 +500,6 @@ function tokenValues(row: MintedTokenRow): {
   };
 }
 
-async function saveTokenRow(row: MintedTokenRow): Promise<void> {
-  const db = getPortableDb();
-  await db.insert(mcpOauthTokens).values(tokenValues(row));
-}
-
 /** The name of the unique index that makes a rotation an atomic claim. */
 const ROTATED_FROM_INDEX = "idx_mcp_oauth_token_rotated_from";
 
@@ -552,6 +546,46 @@ function isRotatedFromConflict(err: unknown): boolean {
   return false;
 }
 
+/**
+ * Run a body in a transaction that holds the row lock of one grant.
+ *
+ * Every path that issues, rotates or deletes the tokens of a grant takes this
+ * lock first, so exchange, rotation and revocation of one grant run one at a
+ * time on PostgreSQL. The body re-reads the token rows under the lock and
+ * sees what the previous holder committed. The lock is an UPDATE of the
+ * grant row that writes its id back unchanged: PostgreSQL holds the row lock
+ * it takes until commit, and the statement is the same on SQLite, whose write
+ * transactions run one at a time anyway. The body receives the grant row as
+ * the lock read it, or undefined when the grant does not exist.
+ */
+async function withLockedGrant<T>(
+  grantId: string,
+  sqliteBody: (tx: DbTransaction, grant: LockedGrant | undefined) => T,
+  postgresBody: (tx: DbTransaction, grant: LockedGrant | undefined) => Promise<T>
+): Promise<T> {
+  const db = getPortableDb();
+  const lock = (tx: DbTransaction) =>
+    tx
+      .update(mcpOauthGrants)
+      .set({ id: grantId })
+      .where(eq(mcpOauthGrants.id, grantId))
+      .returning({ id: mcpOauthGrants.id, kind: mcpOauthGrants.kind, revoked_at: mcpOauthGrants.revoked_at });
+  if (getDbType() === "sqlite") {
+    // better-sqlite3 transactions must be fully synchronous.
+    return db.transaction((tx: DbTransaction): T => sqliteBody(tx, lock(tx).all()[0]));
+  }
+  return await db.transaction(async (tx: DbTransaction): Promise<T> => {
+    const [grant] = await lock(tx);
+    return postgresBody(tx, grant);
+  });
+}
+
+interface LockedGrant {
+  id: string;
+  kind: OauthGrantKind;
+  revoked_at: string | null;
+}
+
 /** Mark a grant revoked and delete every token minted for it. */
 function revokeGrantSync(tx: DbTransaction, grant_id: string): void {
   if (getDbType() !== "sqlite") {
@@ -577,15 +611,10 @@ async function revokeGrantAsync(
 
 /** Revoke a grant in its own transaction — the two writes never land apart. */
 async function revokeGrantCompletely(grant_id: string): Promise<void> {
-  const db = getPortableDb();
-  if (getDbType() === "sqlite") {
-    // better-sqlite3 transactions must be fully synchronous; an async callback
-    // returns a Promise the driver rejects.
-    db.transaction((tx: DbTransaction): void => revokeGrantSync(tx, grant_id));
-    return;
-  }
-  await db.transaction(
-    async (tx: DbTransaction): Promise<void> => revokeGrantAsync(tx, grant_id)
+  await withLockedGrant(
+    grant_id,
+    (tx) => revokeGrantSync(tx, grant_id),
+    (tx) => revokeGrantAsync(tx, grant_id)
   );
 }
 
@@ -601,18 +630,17 @@ async function grantIdOfToken(tokenId: string): Promise<string | null> {
 
 /** One rotation attempt in its own transaction. */
 async function rotateOnce(parsed: ParsedToken): Promise<RefreshRotation> {
-  const db = getPortableDb();
   const now = Date.now();
-  if (getDbType() === "sqlite") {
-    // better-sqlite3 transactions must be fully synchronous; an async
-    // callback returns a Promise the driver rejects.
-    return db.transaction((tx: DbTransaction): RefreshRotation =>
-      rotateSqlite(tx, parsed, now)
-    );
-  }
-  return await db.transaction(
-    async (tx: DbTransaction): Promise<RefreshRotation> =>
-      rotatePostgres(tx, parsed, now)
+  // A token row never changes grant, so this read needs no lock. The
+  // rotation itself reads the token and its successor again under the lock.
+  const grantId = await grantIdOfToken(parsed.id);
+  if (!grantId) return null;
+  return withLockedGrant(
+    grantId,
+    (tx, grant): RefreshRotation =>
+      grant && !grant.revoked_at ? rotateSqlite(tx, parsed, now) : null,
+    async (tx, grant): Promise<RefreshRotation> =>
+      grant && !grant.revoked_at ? rotatePostgres(tx, parsed, now) : null
   );
 }
 
@@ -930,8 +958,25 @@ export class McpOauthToken extends DBModel {
       null,
       grantKind
     );
-    await saveTokenRow(access);
-    await saveTokenRow(refresh);
+    const minted = await withLockedGrant(
+      grant_id,
+      (tx, grant): boolean => {
+        if (getDbType() !== "sqlite") throw new Error("Synchronous token minting requires SQLite");
+        if (!grant || grant.revoked_at) return false;
+        tx.insert(mcpOauthTokens).values(tokenValues(access)).run();
+        tx.insert(mcpOauthTokens).values(tokenValues(refresh)).run();
+        return true;
+      },
+      async (tx, grant): Promise<boolean> => {
+        if (!grant || grant.revoked_at) return false;
+        await tx.insert(mcpOauthTokens).values(tokenValues(access));
+        await tx.insert(mcpOauthTokens).values(tokenValues(refresh));
+        return true;
+      }
+    );
+    if (!minted) {
+      throw new Error(`OAuth grant ${grant_id} is revoked or missing`);
+    }
     return {
       accessToken: rawToken(access),
       refreshToken: rawToken(refresh),
@@ -946,7 +991,7 @@ export class McpOauthToken extends DBModel {
    */
   static async verifyAccess(
     token: string
-  ): Promise<{ userId: string; grantId: string; resource: string } | null> {
+  ): Promise<{ userId: string; grantId: string; resource: string; expiresAt: Date } | null> {
     return verifyAccessOfKind(token, "mcp");
   }
 
@@ -958,7 +1003,7 @@ export class McpOauthToken extends DBModel {
    */
   static async verifyNativeAccess(
     token: string
-  ): Promise<{ userId: string; grantId: string; resource: string } | null> {
+  ): Promise<{ userId: string; grantId: string; resource: string; expiresAt: Date } | null> {
     return verifyAccessOfKind(token, "native");
   }
 
@@ -1012,11 +1057,18 @@ export class McpOauthToken extends DBModel {
     return rows[0]?.kind ?? null;
   }
 
-  /** Delete every token row for a grant. Used by rotation-reuse and by
-   * `McpOauthGrant.revoke`. */
+  /** Delete every token row for a grant, under the grant's lock. */
   static async revokeGrantTokens(grant_id: string): Promise<void> {
-    const db = getPortableDb();
-    await db.delete(mcpOauthTokens).where(eq(mcpOauthTokens.grant_id, grant_id));
+    await withLockedGrant(
+      grant_id,
+      (tx) => {
+        if (getDbType() !== "sqlite") throw new Error("Synchronous token deletion requires SQLite");
+        tx.delete(mcpOauthTokens).where(eq(mcpOauthTokens.grant_id, grant_id)).run();
+      },
+      async (tx) => {
+        await tx.delete(mcpOauthTokens).where(eq(mcpOauthTokens.grant_id, grant_id));
+      }
+    );
   }
 
   /**
@@ -1064,7 +1116,7 @@ export class McpOauthToken extends DBModel {
 async function verifyAccessOfKind(
   token: string,
   grantKind: OauthGrantKind
-): Promise<{ userId: string; grantId: string; resource: string } | null> {
+): Promise<{ userId: string; grantId: string; resource: string; expiresAt: Date } | null> {
   const parsed = parseToken(
     token,
     grantKind === "native"
@@ -1105,6 +1157,7 @@ async function verifyAccessOfKind(
   return {
     userId: grant.user_id,
     grantId: grant.id,
-    resource: grant.resource
+    resource: grant.resource,
+    expiresAt: new Date(record.expires_at)
   };
 }

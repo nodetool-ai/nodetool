@@ -251,10 +251,11 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
     socket.on("close", untrackSocket);
     // A socket opened with a native device session closes when that session
     // ends, here at once or within one sweep when it ends elsewhere.
-    if (req.nativeSessionId) {
+    // It also closes when the token that opened it expires.
+    if (req.nativeSessionId && req.authToken && req.nativeTokenExpiresAt !== null) {
       socket.on(
         "close",
-        trackNativeSessionSocket(req.nativeSessionId, () => {
+        trackNativeSessionSocket(req.nativeSessionId, req.authToken, req.nativeTokenExpiresAt, () => {
           socket.close(SESSION_REVOKED_CLOSE_CODE, "session_revoked");
         })
       );

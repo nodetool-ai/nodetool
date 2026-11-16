@@ -1086,6 +1086,7 @@ const appSessionProvider = new AppSessionTokenProvider(appSessionSigningKey);
 app.decorateRequest("userId", null);
 app.decorateRequest("authToken", null);
 app.decorateRequest("nativeSessionId", null);
+app.decorateRequest("nativeTokenExpiresAt", null);
 app.decorateRequest("appSession", null);
 
 // Global @fastify/rate-limit (registered above) runs before this hook on every
@@ -1191,11 +1192,14 @@ app.addHook("onRequest", async (req, reply) => {
   // credentials. A denied one is never passed to the checks below: that
   // would let an audience-scoped credential be probed against the API.
   if (token) {
-    const decision = await decideOauthBearer(token, pathname ?? "/");
+    // The method decides whether a native token may be answered from the
+    // cache: a write never is.
+    const decision = await decideOauthBearer(token, pathname ?? "/", req.method);
     if (decision.kind === "grant") {
       req.userId = decision.userId;
       req.authToken = token;
       req.nativeSessionId = decision.nativeSessionId;
+      req.nativeTokenExpiresAt = decision.nativeTokenExpiresAt;
       return;
     }
     if (decision.kind === "deny") {

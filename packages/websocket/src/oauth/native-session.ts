@@ -4,11 +4,15 @@
  * connections a session holds open.
  *
  * Revocation bound (technical design, "Authorization at acceptance"): a
- * revoked session stops authenticating new requests on the process that
- * revoked it at once, and on every other process when its cache entry
+ * revoked session stops authenticating writes at once on every process,
+ * since a write is never answered from the cache. Reads stop on the process
+ * that revoked it at once, and on every other process when its cache entry
  * expires, at most 30 seconds later. Its open WebSockets close at once on the
  * revoking process, and within one sweep (30 seconds) elsewhere. Both stay
  * under the 60-second bound.
+ *
+ * Expiry: no cache entry outlives its token, and a socket closes when the
+ * token that opened it expires, so a socket never outlives its credential.
  */
 
 import { McpOauthGrant, McpOauthToken } from "@nodetool-ai/models";
@@ -27,6 +31,12 @@ interface CachedCheck {
   userId: string;
   grantId: string;
   checkedAt: number;
+  /** When the token itself expires, in milliseconds since the epoch. */
+  expiresAt: number;
+}
+
+function cacheValid(entry: CachedCheck, now: number): boolean {
+  return now - entry.checkedAt < NATIVE_VALIDATION_TTL_MS && now < entry.expiresAt;
 }
 
 /**
@@ -39,12 +49,12 @@ const checks = new Map<string, CachedCheck>();
 /** Drop every entry older than the cache lifetime. */
 function pruneChecks(now: number): void {
   for (const [key, entry] of checks) {
-    if (now - entry.checkedAt >= NATIVE_VALIDATION_TTL_MS) checks.delete(key);
+    if (!cacheValid(entry, now)) checks.delete(key);
   }
 }
 
 export type NativeTokenDecision =
-  | { ok: true; userId: string; grantId: string }
+  | { ok: true; userId: string; grantId: string; expiresAt: number }
   | { ok: false };
 
 /**
@@ -55,21 +65,33 @@ export type NativeTokenDecision =
 export async function authenticateNativeAccessToken(
   token: string,
   pathname: string,
-  now: number = Date.now()
+  now: number = Date.now(),
+  options: { write?: boolean } = {}
 ): Promise<NativeTokenDecision> {
   if (pathname === "/mcp" || pathname.startsWith("/mcp/")) return { ok: false };
   if (nativeSignInState().state !== "enabled") return { ok: false };
   const cached = checks.get(token);
-  if (cached && now - cached.checkedAt < NATIVE_VALIDATION_TTL_MS) {
-    return { ok: true, userId: cached.userId, grantId: cached.grantId };
+  // A write reads the grant from the database every time: a revocation
+  // processed on another replica must refuse it at once (PRD, revocation).
+  if (cached && !options.write && cacheValid(cached, now)) {
+    return { ok: true, userId: cached.userId, grantId: cached.grantId, expiresAt: cached.expiresAt };
   }
   pruneChecks(now);
   const verified = await McpOauthToken.verifyNativeAccess(token);
-  if (!verified) return { ok: false };
+  if (!verified) {
+    checks.delete(token);
+    return { ok: false };
+  }
+  const expiresAt = verified.expiresAt.getTime();
+  if (now >= expiresAt) {
+    checks.delete(token);
+    return { ok: false };
+  }
   checks.set(token, {
     userId: verified.userId,
     grantId: verified.grantId,
-    checkedAt: now
+    checkedAt: now,
+    expiresAt
   });
   void McpOauthGrant.touch(verified.grantId, now).catch((error: unknown) => {
     // "Last used" in Settings is informational; never fail the request.
@@ -77,7 +99,7 @@ export async function authenticateNativeAccessToken(
       error: error instanceof Error ? error.message : String(error)
     });
   });
-  return { ok: true, userId: verified.userId, grantId: verified.grantId };
+  return { ok: true, userId: verified.userId, grantId: verified.grantId, expiresAt };
 }
 
 /**
@@ -95,58 +117,90 @@ export function endNativeSessionLocally(grantId: string): void {
 
 type CloseSocket = () => void;
 
-const openSockets = new Map<string, Set<CloseSocket>>();
+/** One socket and the credential that opened it. */
+interface TrackedSocket {
+  close: CloseSocket;
+  token: string;
+  /** Closes the socket when its token expires. */
+  expiryTimer: ReturnType<typeof setTimeout>;
+}
+
+const openSockets = new Map<string, Set<TrackedSocket>>();
 let sweepTimer: ReturnType<typeof setInterval> | null = null;
 
-/** Track one socket opened with a native session. Returns its untrack. */
+/**
+ * Track one socket opened with a native session: its grant, the token it
+ * presented and when that token expires. The socket closes at the expiry, at
+ * a revocation on this process, or at the first sweep after its token stops
+ * verifying. Returns its untrack.
+ */
 export function trackNativeSessionSocket(
   grantId: string,
-  close: CloseSocket
+  token: string,
+  expiresAt: number,
+  close: CloseSocket,
+  now: number = Date.now()
 ): () => void {
   let sockets = openSockets.get(grantId);
   if (!sockets) {
     sockets = new Set();
     openSockets.set(grantId, sockets);
   }
-  sockets.add(close);
-  startSweep();
-  return () => {
-    const current = openSockets.get(grantId);
-    if (!current) return;
-    current.delete(close);
-    if (current.size === 0) openSockets.delete(grantId);
-    if (openSockets.size === 0) stopSweep();
+  const tracked: TrackedSocket = {
+    close,
+    token,
+    expiryTimer: setTimeout(() => closeTrackedSocket(grantId, tracked), Math.max(0, expiresAt - now))
   };
+  tracked.expiryTimer.unref?.();
+  sockets.add(tracked);
+  startSweep();
+  return () => untrackSocket(grantId, tracked);
+}
+
+function untrackSocket(grantId: string, tracked: TrackedSocket): void {
+  clearTimeout(tracked.expiryTimer);
+  const current = openSockets.get(grantId);
+  if (!current) return;
+  current.delete(tracked);
+  if (current.size === 0) openSockets.delete(grantId);
+  if (openSockets.size === 0) stopSweep();
+}
+
+function closeTrackedSocket(grantId: string, tracked: TrackedSocket): void {
+  untrackSocket(grantId, tracked);
+  try {
+    tracked.close();
+  } catch {
+    // Already closed.
+  }
 }
 
 function closeNativeSessionSockets(grantId: string): number {
   const sockets = openSockets.get(grantId);
   if (!sockets) return 0;
-  openSockets.delete(grantId);
-  if (openSockets.size === 0) stopSweep();
-  for (const close of sockets) {
-    try {
-      close();
-    } catch {
-      // Already closed.
-    }
-  }
-  return sockets.size;
+  const closing = [...sockets];
+  for (const tracked of closing) closeTrackedSocket(grantId, tracked);
+  return closing.length;
 }
 
 /**
- * Re-check every grant with an open socket and close the ended ones. A
- * socket authenticated once at its handshake; this is what ends it when the
- * session was revoked on another process.
+ * Verify the token of every open socket again and close the sockets whose
+ * token no longer verifies: revoked on another process, deleted, or expired.
+ * A socket authenticated once at its handshake; this is what ends it when its
+ * session ended elsewhere.
  */
 export async function sweepNativeSessionSockets(): Promise<void> {
   const signInOn = nativeSignInState().state === "enabled";
-  for (const grantId of [...openSockets.keys()]) {
-    try {
-      const grant = signInOn ? await McpOauthGrant.get(grantId) : null;
-      if (!grant || grant.revoked_at) endNativeSessionLocally(grantId);
-    } catch {
-      // The database is unreachable; the next sweep tries again.
+  for (const [grantId, sockets] of [...openSockets]) {
+    for (const tracked of [...sockets]) {
+      try {
+        const verified = signInOn ? await McpOauthToken.verifyNativeAccess(tracked.token) : null;
+        if (!verified || verified.grantId !== grantId || Date.now() >= verified.expiresAt.getTime()) {
+          closeTrackedSocket(grantId, tracked);
+        }
+      } catch {
+        // The database is unreachable; the next sweep tries again.
+      }
     }
   }
 }
@@ -173,6 +227,9 @@ export function nativeValidationCacheSize(): number {
 /** Test hook: forget every cached check and tracked socket. */
 export function resetNativeSessionState(): void {
   checks.clear();
+  for (const sockets of openSockets.values()) {
+    for (const tracked of sockets) clearTimeout(tracked.expiryTimer);
+  }
   openSockets.clear();
   stopSweep();
 }

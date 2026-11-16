@@ -26,23 +26,40 @@ import { authenticateNativeAccessToken } from "./native-session.js";
 export type OauthBearerDecision =
   /** Not one of the OAuth prefixes: the next check decides. */
   | { kind: "not_oauth" }
-  | { kind: "grant"; userId: string; nativeSessionId: string | null }
+  | {
+      kind: "grant";
+      userId: string;
+      nativeSessionId: string | null;
+      /** For a native session: when the presented token expires. */
+      nativeTokenExpiresAt: number | null;
+    }
   | { kind: "deny"; challenge: string | undefined };
+
+/** Methods that read. Every other method is a write, verified uncached. */
+const READ_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 export async function decideOauthBearer(
   token: string,
-  pathname: string
+  pathname: string,
+  method: string = "GET"
 ): Promise<OauthBearerDecision> {
   if (token.startsWith(MCP_OAUTH_ACCESS_TOKEN_PREFIX)) {
     const decision = await authenticateMcpAccessToken(token, pathname);
     return decision.ok
-      ? { kind: "grant", userId: decision.userId, nativeSessionId: null }
+      ? { kind: "grant", userId: decision.userId, nativeSessionId: null, nativeTokenExpiresAt: null }
       : { kind: "deny", challenge: decision.challenge };
   }
   if (token.startsWith(NATIVE_ACCESS_TOKEN_PREFIX)) {
-    const decision = await authenticateNativeAccessToken(token, pathname);
+    const decision = await authenticateNativeAccessToken(token, pathname, Date.now(), {
+      write: !READ_METHODS.has(method.toUpperCase())
+    });
     return decision.ok
-      ? { kind: "grant", userId: decision.userId, nativeSessionId: decision.grantId }
+      ? {
+          kind: "grant",
+          userId: decision.userId,
+          nativeSessionId: decision.grantId,
+          nativeTokenExpiresAt: decision.expiresAt
+        }
       : { kind: "deny", challenge: undefined };
   }
   if (

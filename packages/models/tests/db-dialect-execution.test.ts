@@ -30,6 +30,8 @@ import { Workspace } from "../src/workspace.js";
 import { McpOauthGrant, McpOauthToken } from "../src/mcp-oauth.js";
 import { OauthPending } from "../src/oauth-pending.js";
 import { initPgliteTestDb } from "./helpers/pglite-test-db.js";
+import { eq } from "drizzle-orm";
+import { mcpOauthGrants, mcpOauthTokens } from "../src/schema/mcp-oauth.js";
 
 const OWNER = "dialect-owner";
 const TIMELINE_DOCUMENT: TimelineDocument = { tracks: [], clips: [], markers: [] };
@@ -586,6 +588,48 @@ describe("model execution on SQLite and PostgreSQL", () => {
       ]);
       return { document: second.timeline.document, width: second.timeline.width, height: second.timeline.height, events };
     });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
+  // A refresh that read the token rows before a revocation committed must not
+  // issue a pair afterwards: rotation and minting check the grant under its
+  // lock. The fixture leaves the token rows of a revoked grant in place, the
+  // state that refresh saw in the race.
+  it("issues no tokens for a revoked grant on both engines", async () => {
+    const result = await onBothDialects(async () => {
+      const grant = await McpOauthGrant.create({
+        user_id: OWNER,
+        client_id: "nodetool-native",
+        client_name: "NodeTool desktop apps",
+        scope: "native",
+        resource: "https://nodetool.example",
+        kind: "native",
+        app_name: "timeline",
+        device_name: "Edit bay"
+      });
+      const pair = await McpOauthToken.mintPair(grant.id, "native");
+      await getPortableDb()
+        .update(mcpOauthGrants)
+        .set({ revoked_at: new Date().toISOString() })
+        .where(eq(mcpOauthGrants.id, grant.id));
+      const rotation = await McpOauthToken.rotateRefresh(pair.refreshToken);
+      let minted = "minted";
+      try {
+        await McpOauthToken.mintPair(grant.id, "native");
+      } catch {
+        minted = "refused";
+      }
+      const live = await getPortableDb()
+        .select({ id: mcpOauthTokens.id })
+        .from(mcpOauthTokens)
+        .where(eq(mcpOauthTokens.grant_id, grant.id));
+      await McpOauthGrant.revoke(OWNER, grant.id);
+      const afterRevoke = await getPortableDb()
+        .select({ id: mcpOauthTokens.id })
+        .from(mcpOauthTokens)
+        .where(eq(mcpOauthTokens.grant_id, grant.id));
+      return { rotation, minted, tokens: live.length, afterRevoke: afterRevoke.length };
+    });
+    expect(result).toEqual({ rotation: null, minted: "refused", tokens: 2, afterRevoke: 0 });
   }, DIALECT_TEST_TIMEOUT_MS);
 
   it("runs a native device session's rotation, lost-rotation retry and handle on both engines", async () => {
