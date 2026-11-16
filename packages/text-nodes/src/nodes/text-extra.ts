@@ -14,6 +14,7 @@ import {
   loadNodeFsPromises,
   loadNodePath,
   folderPathOf,
+  assertSaveTargetIsOwn,
   writeSavedFile,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
@@ -591,13 +592,14 @@ export class SaveTextNode extends BaseNode {
   })
   declare name: string;
 
-  async process(): Promise<SaveTextNodeOutputs> {
+  async process(context?: ProcessingContext): Promise<SaveTextNodeOutputs> {
     const text = this.text;
     const name = formatFilename(this.name);
     const folder = folderPath(this.folder);
     const fs = await loadNodeFsPromises();
     const path = await loadNodePath();
     const fsPath = folder ? path.join(folder, name) : name;
+    await assertSaveTargetIsOwn(context, path.resolve(fsPath));
     if (folder) {
       await fs.mkdir(folder, { recursive: true });
     }

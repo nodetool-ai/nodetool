@@ -52,6 +52,7 @@ export {
   saveFilename,
   uniqueFilePath,
   resolveSaveTarget,
+  assertSaveTargetIsOwn,
   writeSavedFile
 } from "./save-target.js";
 export type {

@@ -245,6 +245,11 @@ export async function assertLocalPathIsOwn(
   // The root is the folder itself, which is never another project's.
   if (!inside || inside.startsWith("..") || path.isAbsolute(inside)) return;
   const key = inside.split(path.sep).join("/");
+  // The reserved directory is no more open to a host binary than to the
+  // workspace.
+  if (isReservedWorkspaceKey(key)) {
+    throw new WorkspaceReservedPathError(shown);
+  }
   if (await nested.covers(key)) {
     throw new WorkspaceReservedPathError(shown, "nested");
   }
@@ -255,8 +260,15 @@ export async function assertLocalPathIsOwn(
   } catch {
     // The root is not there: nothing can be opened under it.
   }
-  if (realKey && realKey !== key && (await nested.covers(realKey))) {
-    throw new WorkspaceReservedPathError(shown, "nested");
+  if (realKey && realKey !== key) {
+    // Another spelling of `.nodetool` (a Windows short name, trailing dots
+    // or spaces, a link) is the reserved directory by its real path.
+    if (isReservedWorkspaceKey(realKey)) {
+      throw new WorkspaceReservedPathError(shown);
+    }
+    if (await nested.covers(realKey)) {
+      throw new WorkspaceReservedPathError(shown, "nested");
+    }
   }
 }
 
@@ -628,6 +640,11 @@ export class StorageWorkspace implements Workspace {
       asDirectory ? this.nested.covers(candidate) : this.nested.holds(candidate);
     // Judged as written, and as it really is: a link inside the folder can
     // point at another project's folder, which no `.nodetool/` need mark.
+    // The same goes for the reserved directory: `NODETO~1` and `.nodetool.`
+    // are `.nodetool` only once the operating system has resolved them.
+    if (realKey !== key && isReservedWorkspaceKey(realKey)) {
+      throw new WorkspaceReservedPathError(path);
+    }
     if (
       (await isOther(key)) ||
       (realKey !== key && realKey !== "" && (await this.nested.covers(realKey)))

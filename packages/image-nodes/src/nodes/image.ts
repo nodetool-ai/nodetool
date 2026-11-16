@@ -42,6 +42,7 @@ import {
   tagAsServer,
   tagAsContentCard,
   saveFilename,
+  assertSaveTargetIsOwn,
   writeSavedFile,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
@@ -736,6 +737,7 @@ export class SaveImageNode extends BaseNode {
     const path = await loadNodePath();
     const folder = isString(this.folder) ? this.folder : ".";
     const full = path.resolve(folder, name);
+    await assertSaveTargetIsOwn(context, full);
     await fs.mkdir(path.dirname(full), { recursive: true });
     await fs.writeFile(full, bytes);
     return {
