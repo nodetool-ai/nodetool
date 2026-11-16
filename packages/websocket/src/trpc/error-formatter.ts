@@ -76,7 +76,9 @@ const TRPC_CODE_BY_API_CODE = {
   // The operator does not sell this managed model here — a refusal, not a
   // malformed request.
   [ApiErrorCode.MODEL_NOT_AVAILABLE]: "FORBIDDEN",
-  [ApiErrorCode.MISSING_RUNTIME_PACKAGE]: "PRECONDITION_FAILED"
+  [ApiErrorCode.MISSING_RUNTIME_PACKAGE]: "PRECONDITION_FAILED",
+  // The attach rule: the save names a file the writer may not read.
+  [ApiErrorCode.FILE_NOT_READABLE]: "FORBIDDEN"
 } satisfies Record<ApiErrorCode, TRPCError["code"]>;
 
 export function throwApiError(

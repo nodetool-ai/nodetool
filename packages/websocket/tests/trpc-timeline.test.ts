@@ -4,6 +4,17 @@ import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
 import type { TimelineDocument } from "@nodetool-ai/models";
 
+// Reference sets live in the database this suite replaces with stubs. Their
+// behavior is covered by tests/document-refs.test.ts.
+vi.mock("../src/lib/document-refs.js", () => ({
+  checkAttach: vi.fn().mockResolvedValue(undefined),
+  findUnreadableFile: vi.fn().mockResolvedValue(null),
+  fileNotReadableMessage: (file: string) => file,
+  ensureCurrentSet: vi.fn().mockResolvedValue(undefined),
+  ensureVersionSets: vi.fn().mockResolvedValue(undefined),
+  readableSharedFiles: vi.fn().mockResolvedValue(new Set())
+}));
+
 vi.mock("@nodetool-ai/models", async (orig) => {
   const actual = await orig<typeof import("@nodetool-ai/models")>();
   class StubTimelineSequence {

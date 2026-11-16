@@ -165,7 +165,12 @@ export {
   isCollaboratorRole,
   type CollaboratorRole
 } from "./workflow-collaborator.js";
-export { WorkflowShare, type ShareRole } from "./workflow-share.js";
+export {
+  WorkflowShare,
+  applyShareOptions,
+  type ShareRole,
+  type ShareOptions
+} from "./workflow-share.js";
 export {
   DocumentCollaborator,
   DocumentShare,
@@ -174,6 +179,12 @@ export {
   removeDocumentSharing,
   type SharedDocumentType
 } from "./document-sharing.js";
+export {
+  DocumentRefs,
+  type DocumentRefScopeValue,
+  type DocumentRefSetFiles,
+  type DocumentRefSetRow
+} from "./document-refs.js";
 export {
   getUserSharing,
   listPublicWorkflows,

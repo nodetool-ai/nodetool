@@ -29,6 +29,7 @@ import {
 } from "./document-file-sync.js";
 import type { GraphLink } from "@nodetool-ai/protocol";
 import type { WorkflowRunMode } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import { DocumentRefs } from "./document-refs.js";
 
 export type AccessLevel = "private" | "public";
 export type { WorkflowRunMode };
@@ -507,6 +508,7 @@ export class Workflow extends DBModel {
     // `id` may be a 12-character prefix; the dependent rows key on the full id.
     await WorkflowCollaborator.removeAllForWorkflow(wf.id);
     await WorkflowShare.removeAllForWorkflow(wf.id);
+    await DocumentRefs.removeForDocument("workflow", wf.id);
     // No foreign key ties registrations to the workflow, so a deleted
     // workflow's webhook kept accepting events and its file watch kept firing.
     await TriggerRegistration.deleteByWorkflow(wf.id);

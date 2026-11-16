@@ -28,6 +28,12 @@ import {
 type ExampleLoadOptions = NonNullable<Parameters<typeof loadExampleGraph>[2]>;
 
 import { permissionRefusal, permissionsFor } from "./permissions.js";
+import {
+  ensureCurrentSet,
+  fileNotReadableMessage,
+  findUnreadableFile,
+  type AttachTarget
+} from "./document-refs.js";
 const log = createLogger("nodetool.websocket.workflow-service");
 
 export const WORKFLOW_CONFLICT_MESSAGE =
@@ -274,6 +280,11 @@ export async function updateWorkflow(
     if (input.html_app !== undefined) fields.html_app = input.html_app ?? null;
     if (input.app_doc !== undefined) fields.app_doc = input.app_doc;
 
+    await requireReadableFiles(
+      { id, user_id: existing.user_id, before: existing.graph ?? null },
+      userId,
+      graph
+    );
     const updated = await Workflow.updateFieldsIfUnchanged(
       id,
       input.expected_updated_at ?? existing.updated_at,
@@ -286,6 +297,7 @@ export async function updateWorkflow(
         409
       );
     }
+    await ensureCurrentSet("workflow", updated);
     await syncTriggerRegistrations(updated);
     return updated;
   }
@@ -298,6 +310,7 @@ export async function updateWorkflow(
     await Project.requireOwned(userId, input.project_id);
   }
 
+  await requireReadableFiles({ id, user_id: userId, before: null }, userId, graph);
   const workflow = (await createRow(
     userId,
     input,
@@ -307,6 +320,25 @@ export async function updateWorkflow(
   )) as WorkflowModel;
   await syncTriggerRegistrations(workflow);
   return workflow;
+}
+
+/**
+ * The attach rule for a workflow save: refuse a graph that adds a file the
+ * writer may not read (FILE_NOT_READABLE), before anything is written.
+ */
+async function requireReadableFiles(
+  target: AttachTarget,
+  writerId: string,
+  graph: unknown
+): Promise<void> {
+  const file = await findUnreadableFile("workflow", target, writerId, graph);
+  if (file !== null) {
+    throw new WorkflowServiceError(
+      ApiErrorCode.FILE_NOT_READABLE,
+      fileNotReadableMessage(file),
+      403
+    );
+  }
 }
 
 /**

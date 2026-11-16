@@ -27,7 +27,12 @@ export enum ApiErrorCode {
    * response names it in `runtime_package` so the client can offer to install
    * it.
    */
-  MISSING_RUNTIME_PACKAGE = "MISSING_RUNTIME_PACKAGE"
+  MISSING_RUNTIME_PACKAGE = "MISSING_RUNTIME_PACKAGE",
+  /**
+   * A save adds a file the writer may not read: neither their own asset nor
+   * a file of a document they may duplicate. Nothing was written.
+   */
+  FILE_NOT_READABLE = "FILE_NOT_READABLE"
 }
 
 export interface ApiErrorResponse {

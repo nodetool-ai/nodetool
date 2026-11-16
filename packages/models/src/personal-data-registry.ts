@@ -354,6 +354,34 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "Public share links. No `user_id` column — the owner is `created_by`, which a user_id sweep misses, leaving live share tokens for deleted workflows. Erasure deletes both by `created_by` and by the workflow ids being deleted. `token` is a live bearer credential and is withheld from the export."
   },
 
+  {
+    table: "nodetool_document_refs",
+    schemaExport: "documentRefs",
+    disposition: "not-personal",
+    reach: { kind: "none" },
+    exported: false,
+    justification:
+      "Reference sets: which asset ids a document's content refers to, by scope and version. Rows hold a document kind, a document id and an asset id, and no column names a person. They are deleted with their document."
+  },
+  {
+    table: "nodetool_document_ref_sets",
+    schemaExport: "documentRefSets",
+    disposition: "not-personal",
+    reach: { kind: "none" },
+    exported: false,
+    justification:
+      "One row per stored reference set: the document, the version and the hash of the content the set was computed from. No column names a person."
+  },
+  {
+    table: "nodetool_document_admitted_files",
+    schemaExport: "documentAdmittedFiles",
+    disposition: "not-personal",
+    reach: { kind: "none" },
+    exported: false,
+    justification:
+      "Asset ids the attach rule admitted into a document. The admitting person is deliberately not recorded, so the rows hold only a document and an asset id."
+  },
+
   // ── Runs, jobs and their exhaust ───────────────────────────────────
 
   {
