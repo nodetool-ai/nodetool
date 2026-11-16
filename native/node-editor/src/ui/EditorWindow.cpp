@@ -2696,7 +2696,7 @@ void EditorWindow::syncChrome() {
   // The outer window shows the active tab's commands.
   const auto *source = tabOwner_ || !activeEditor_ ? this : activeEditor_;
   QStringList enabled;
-  for (const auto *name : {"Save", "Version history", "Workflow metadata", "Server sync", "Canvas uploads", "Command menu",
+  for (const auto *name : {"Workflow metadata", "Server sync", "Canvas uploads", "Command menu",
                            "Instant Update: On", "Canvas navigation: Mouse"}) {
     if (source->menuActionEnabled(QString::fromLatin1(name))) { enabled << QString::fromLatin1(name); }
   }

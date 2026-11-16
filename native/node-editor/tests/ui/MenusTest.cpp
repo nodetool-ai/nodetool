@@ -640,7 +640,7 @@ private slots:
         // Workflow menus of the application menu hold the other commands.
         // Platforms other than macOS add the canvas navigation choice.
         labels.removeIf([](const QString &label) { return label.startsWith("Canvas navigation: "); });
-        QCOMPARE(labels, (QStringList{"Instant Update: Off", "Save", "Version history", "Workflow metadata", "Server sync", "Canvas uploads", "Command menu"}));
+        QCOMPARE(labels, (QStringList{"Instant Update: Off", "Workflow metadata", "Server sync", "Canvas uploads", "Command menu"}));
         closeMenu(window);
     }
 
