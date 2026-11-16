@@ -266,27 +266,30 @@ export async function runInlineGraphJob(
   signal?.addEventListener("abort", onAbort, { once: true });
 
   try {
+    const request: Record<string, unknown> = {
+      type: "run_job_request",
+      job_id: jobId,
+      job_name: options.jobName ?? deriveInlineJobName(graph),
+      job_type: "workflow",
+      execution_strategy: "threaded",
+      workflow_id: workflowId,
+      user_id,
+      auth_token,
+      api_url: BASE_URL,
+      params: portableParams,
+      explicit_types: false,
+      // Explicit single-node / run-from-here runs are concurrent like the
+      // other canvas run paths, so they don't serialize behind one another.
+      concurrent: true,
+      graph: portableGraph
+    };
+    if (options.projectId) {
+      request.project_id = options.projectId;
+    }
     await globalWebSocketManager.send({
       type: "run_job",
       command: "run_job",
-      data: {
-        type: "run_job_request",
-        job_id: jobId,
-        job_name: options.jobName ?? deriveInlineJobName(graph),
-        job_type: "workflow",
-        execution_strategy: "threaded",
-        workflow_id: workflowId,
-        user_id,
-        auth_token,
-        api_url: BASE_URL,
-        params: portableParams,
-        explicit_types: false,
-        // Explicit single-node / run-from-here runs are concurrent like the
-        // other canvas run paths, so they don't serialize behind one another.
-        concurrent: true,
-        graph: portableGraph,
-        ...(options.projectId ? { project_id: options.projectId } : {})
-      }
+      data: request
     });
   } catch (err) {
     finish({
