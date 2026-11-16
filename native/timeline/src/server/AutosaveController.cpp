@@ -62,7 +62,7 @@ QJsonObject documentForSave(const QJsonObject& raw) {
     // The sequence row, not the document (`timelineSequenceResponse` minus
     // `timelineDocument`). Editable size and rate are sent beside the document.
     for (const char* key : {"id", "projectId", "workflowId", "name", "fps", "width", "height", "durationMs",
-                            "createdAt", "updatedAt"}) {
+                            "createdAt", "updatedAt", "schemaVersion"}) {
         doc.remove(QLatin1String(key));
     }
     return doc;

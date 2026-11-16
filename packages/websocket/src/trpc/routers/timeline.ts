@@ -281,6 +281,17 @@ function strippedDocumentPaths(raw: unknown, parsed: unknown): string[] {
   return [...found].sort();
 }
 
+/**
+ * A client that saves back the sequence it read sends the row's
+ * `schemaVersion` inside the document. It is a row field, so it is not
+ * reported as a document field the schema dropped.
+ */
+function withoutRowSchemaVersion(raw: unknown): unknown {
+  if (!isRecord(raw)) return raw;
+  const { schemaVersion: _rowField, ...document } = raw;
+  return document;
+}
+
 const okOutput = z.object({ ok: z.literal(true) });
 
 /**
@@ -615,7 +626,10 @@ export const timelineRouter = router({
         );
         fields.last_writer_instance = writerOf(ctx.userId, input.editingInstance);
 
-        stripped = strippedDocumentPaths(input.rawDocument, input.document);
+        stripped = strippedDocumentPaths(
+          withoutRowSchemaVersion(input.rawDocument),
+          input.document
+        );
         if (stripped.length > 0) {
           log.warn("Timeline document fields dropped by the schema on save", {
             timelineId: input.id,
