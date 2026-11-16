@@ -391,7 +391,7 @@ async function authorizeAndApprove(
   const requestId = new URL(location, "http://localhost").searchParams.get("request_id")!;
   expect(requestId).toBeTruthy();
 
-  const request = pendingStore.takeRequestForApproval(requestId);
+  const request = await pendingStore.takeRequestForApproval(requestId);
   expect(request).not.toBeNull();
   // Mirror what approveOauthRequest does: the consent step creates the
   // grant and threads its id through the code.
@@ -404,7 +404,7 @@ async function authorizeAndApprove(
     scope: request!.scope,
     resource: request!.resource
   });
-  const code = pendingStore.putCode({
+  const code = await pendingStore.putCode({
     request: request!,
     userId,
     grantId: grant.id
@@ -489,7 +489,7 @@ describe("GET /oauth/authorize", () => {
       expect(location.pathname).toBe("/oauth/consent");
       return { requestId: location.searchParams.get("request_id")! };
     })();
-    expect(pendingStore.takeRequestForApproval(requestId)).not.toBeNull();
+    expect(await pendingStore.takeRequestForApproval(requestId)).not.toBeNull();
   });
 
   it("302s to the consent page on NODETOOL_WEB_URL when the web app has its own origin", async () => {
@@ -508,7 +508,7 @@ describe("GET /oauth/authorize", () => {
       expect(location.origin).toBe("https://app.example");
       expect(location.pathname).toBe("/oauth/consent");
       const requestId = location.searchParams.get("request_id")!;
-      expect(pendingStore.takeRequestForApproval(requestId)).not.toBeNull();
+      expect(await pendingStore.takeRequestForApproval(requestId)).not.toBeNull();
     } finally {
       if (prev === undefined) delete process.env["NODETOOL_WEB_URL"];
       else process.env["NODETOOL_WEB_URL"] = prev;

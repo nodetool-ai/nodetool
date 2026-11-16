@@ -14,6 +14,8 @@ import {
   modelRefToBytes
 } from "./utils.js";
 import {
+  assertSaveTargetIsOwn,
+  writeSaveTargetFile,
   folderPathOf,
   saveFilename,
   writeSavedFile,
@@ -194,9 +196,10 @@ export class SaveModel3DNode extends BaseNode {
     const folder = folderPathOf(this.folder);
     const name = dateName(this.name);
     const full = path.resolve(folder, name);
+    await assertSaveTargetIsOwn(context, full);
     await fs.mkdir(path.dirname(full), { recursive: true });
     const bytes = await modelRefToBytes(this.model, context);
-    await fs.writeFile(full, bytes);
+    await writeSaveTargetFile(context, full, bytes);
     return {
       output: modelRef(bytes, {
         uri: pathToFileURL(full).toString(),

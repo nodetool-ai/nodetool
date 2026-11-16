@@ -13,7 +13,8 @@ namespace nodetool::account {
 
 // The sync protocol version this client speaks, sent on every cloud request
 // in kProtocolHeader. The server answers a version below its minimum by
-// refusing writes with CLIENT_TOO_OLD (the protocol package's sync.ts).
+// refusing writes with CLIENT_TOO_OLD, and refuses writes from a native
+// session that sends none (the protocol package's sync.ts).
 inline constexpr int kClientProtocolVersion = 1;
 inline constexpr const char* kProtocolHeader = "x-nodetool-protocol";
 
@@ -26,9 +27,13 @@ enum class CloudSendStatus {
   SignedOut,
   // The token could not be renewed, or the server did not answer.
   Offline,
-  // The URL is not on this session's server. Nothing was sent, so the
-  // credential never reaches another host.
+  // The URL is not on this session's server, or the session's server is
+  // not an HTTPS origin. Nothing was sent, so the credential never reaches
+  // another host.
   WrongServer,
+  // The session moved to signed out while the request was out, and the
+  // request was stopped.
+  Cancelled,
 };
 
 struct CloudSendResult {
@@ -40,24 +45,24 @@ struct CloudSendResult {
 // thread-safe, and this class holds no mutable state.
 class CloudClient {
 public:
-  // `serverOrigin` must be the origin the session signed in to.
-  CloudClient(AccountSession& session, HttpTransport& transport, std::string serverOrigin);
+  // The client sends only to the session's own origin
+  // (AccountSession::serverOrigin), so it cannot be pointed at another host.
+  CloudClient(AccountSession& session, HttpTransport& transport);
 
-  // Attaches `Authorization: Bearer <access token>` and the protocol header,
-  // and sends. On a 401 it
-  // renews the token once and sends again, so a token that expired in
-  // flight costs one retry. Any `Authorization` header in `request` is
-  // replaced.
+  // Attaches `Authorization: Bearer <access token>` and sends, with the
+  // session's origin as the request's required origin and the session's
+  // cancel flag. A redirect is returned as the response, never followed.
+  // On a 401 it renews the token, refusing to reuse the rejected one, and
+  // sends once more with a different token. Any `Authorization` header in
+  // `request` is replaced.
   CloudSendResult send(HttpRequest request);
 
-  const std::string& serverOrigin() const { return origin_; }
+  const std::string& serverOrigin() const { return session_.serverOrigin(); }
+  const std::string& accountId() const { return session_.accountId(); }
 
 private:
-  bool onServer(const std::string& url) const;
-
   AccountSession& session_;
   HttpTransport& transport_;
-  const std::string origin_;
 };
 
 } // namespace nodetool::account

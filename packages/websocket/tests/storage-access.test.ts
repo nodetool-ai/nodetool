@@ -9,7 +9,7 @@ vi.mock("@nodetool-ai/models", () => ({
   Asset: { find: (...args: unknown[]) => findAsset(...args) }
 }));
 const isAssetIdShared = vi.fn();
-vi.mock("../src/lib/document-access.js", () => ({
+vi.mock("../src/lib/shared-assets.js", () => ({
   isAssetIdSharedWithUser: (...args: unknown[]) => isAssetIdShared(...args)
 }));
 

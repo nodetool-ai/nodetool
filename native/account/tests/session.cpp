@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <condition_variable>
+#include <atomic>
 #include <fstream>
 #include <latch>
 #include <sstream>
@@ -556,6 +557,29 @@ void offlineRefreshKeepsTheSession(TestContext& t) {
   CHECK(app.credentialForRequest().status == CredentialStatus::Ready);
 }
 
+// A session the policy no longer allows gets no credential and renews
+// nothing, and the record stays as it was. Signing out still works.
+void policyGateHoldsTheCredential(TestContext& t) {
+  Computer pc;
+  pc.signIn();
+  std::atomic<bool> allowed{false};
+  AccountSessionOptions options = pc.options();
+  options.credentialAllowed = [&] { return allowed.load(); };
+  AccountSession app(pc.keychain, pc.server, options);
+  pc.clock.advance(15 * 60 * 1000);
+  CHECK(app.credentialForRequest().status == CredentialStatus::SignedOut);
+  CHECK(app.authorizeRequest().status == CredentialStatus::SignedOut);
+  CHECK(app.refresh() == RefreshOutcome::SignedOut);
+  CHECK(pc.server.refreshCalls == 0);
+  CHECK(pc.record().state == SessionState::SignedIn);
+  allowed = true;
+  CHECK(app.credentialForRequest().status == CredentialStatus::Ready);
+  CHECK(pc.server.refreshCalls == 1);
+  allowed = false;
+  app.signOut();
+  CHECK(pc.record().state == SessionState::SignedOut);
+}
+
 // A refresh that cannot take the lock fails as offline.
 void lockTimeoutFailsAsOffline(TestContext& t) {
   Computer pc;
@@ -588,6 +612,140 @@ void signInAgainKeepsThePendingHandle(TestContext& t) {
   CHECK(pc.record().state == SessionState::SignedIn);
 }
 
+// A keychain whose writes can be refused, standing in for a locked or full
+// store.
+class RefusingStore final : public SecretStore {
+public:
+  explicit RefusingStore(SecretStore& inner) : inner_(inner) {}
+  bool available() const override { return true; }
+  std::optional<std::string> read(std::string_view service, std::string_view account) override {
+    return inner_.read(service, account);
+  }
+  bool write(std::string_view service, std::string_view account, std::string_view value) override {
+    return !refuse && inner_.write(service, account, value);
+  }
+  void remove(std::string_view service, std::string_view account) override { inner_.remove(service, account); }
+  std::atomic<bool> refuse{false};
+
+private:
+  SecretStore& inner_;
+};
+
+// App B's refresh passed its sign-out check and is about to publish. App A
+// signs out without the lock B holds. B's later writes must not bring the
+// credential back, in B, in A or in an app started afterwards.
+void refreshPublishedAfterSignOutLoses(TestContext& t) {
+  Computer pc;
+  pc.signIn();
+  std::mutex m;
+  std::condition_variable cv;
+  bool paused = false;
+  bool release = false;
+  auto optionsB = pc.options();
+  optionsB.fault = [&](FaultPoint p) {
+    if (p != FaultPoint::BeforeRefreshPublish) {
+      return;
+    }
+    std::unique_lock lock(m);
+    paused = true;
+    cv.notify_all();
+    cv.wait(lock, [&] { return release; });
+  };
+  AccountSession appB(pc.keychain, pc.server, optionsB);
+  pc.clock.advance(15 * 60 * 1000);
+  Credential b;
+  std::thread tb([&] { b = appB.credentialForRequest(); });
+  {
+    std::unique_lock lock(m);
+    cv.wait(lock, [&] { return paused; });
+  }
+  auto optionsA = pc.options();
+  optionsA.lockTimeout = std::chrono::milliseconds(100);
+  AccountSession appA(pc.keychain, pc.server, optionsA);
+  appA.signOut();
+  {
+    std::lock_guard lock(m);
+    release = true;
+  }
+  cv.notify_all();
+  tb.join();
+
+  CHECK(b.status != CredentialStatus::Ready);
+  CHECK(appB.credentialForRequest().status == CredentialStatus::SignedOut);
+  CHECK(appA.credentialForRequest().status == CredentialStatus::SignedOut);
+  AccountSession appC(pc.keychain, pc.server, pc.options());
+  CHECK(appC.credentialForRequest().status == CredentialStatus::SignedOut);
+  CHECK(appC.status().state == SessionState::SignedOut);
+  CHECK(pc.record().state == SessionState::SignedOut);
+  CHECK(pc.record().refreshToken.empty());
+}
+
+// The keychain refuses the sign-out's record write. The sign-out says so,
+// no app uses the credential, and the session still ends on the server.
+void signOutThatCannotBeSavedSaysSo(TestContext& t) {
+  Computer pc;
+  pc.signIn();
+  RefusingStore store(pc.keychain);
+  AccountSession app(store, pc.server, pc.options());
+  CHECK(app.credentialForRequest().status == CredentialStatus::Ready);
+  store.refuse = true;
+  CHECK(app.signOut() == ServerEnd::NotSaved);
+  CHECK(app.credentialForRequest().status == CredentialStatus::SignedOut);
+  // The keychain still holds the signed-in record.
+  CHECK(pc.record().state == SessionState::SignedIn);
+  AccountSession other(pc.keychain, pc.server, pc.options());
+  CHECK(other.credentialForRequest().status == CredentialStatus::SignedOut);
+  CHECK(other.status().state == SessionState::SignedOut);
+  CHECK(!pc.server.grantActive(1));
+}
+
+// A refresh whose record write is refused is not reported as done, and the
+// next request after the keychain recovers still gets a credential.
+void refreshThatCannotBeSavedIsNotReady(TestContext& t) {
+  Computer pc;
+  pc.signIn();
+  RefusingStore store(pc.keychain);
+  AccountSession app(store, pc.server, pc.options());
+  pc.clock.advance(15 * 60 * 1000);
+  store.refuse = true;
+  CHECK(app.refresh() == RefreshOutcome::Offline);
+  CHECK(app.credentialForRequest().status != CredentialStatus::Ready);
+  store.refuse = false;
+  CHECK(app.credentialForRequest().status == CredentialStatus::Ready);
+}
+
+// A request authorized before a sign-out is cancelled when this app hears
+// of it, and no request is authorized after it.
+void signOutCancelsAuthorizedRequests(TestContext& t) {
+  Computer pc;
+  pc.signIn();
+  AccountSession appA(pc.keychain, pc.server, pc.options());
+  AccountSession appB(pc.keychain, pc.server, pc.options());
+  const Authorization started = appB.authorizeRequest();
+  CHECK(started.status == CredentialStatus::Ready);
+  CHECK(started.cancel != nullptr);
+  CHECK(!started.cancel->cancelled());
+  appA.signOut();
+  CHECK(appB.checkGenerationFile());
+  CHECK(started.cancel->cancelled());
+  const Authorization later = appB.authorizeRequest();
+  CHECK(later.status == CredentialStatus::SignedOut);
+  CHECK(later.cancel == nullptr);
+}
+
+// `accounts.json` cannot be written. The account is still listed, from its
+// entry file.
+void accountListedWhenTheIndexCannotBeWritten(TestContext& t) {
+  Computer pc;
+  std::filesystem::create_directories(pc.data.path() / "accounts.json");
+  pc.signIn();
+  const auto listed = AccountsIndex(pc.data.path()).list();
+  CHECK(listed.size() == 1);
+  CHECK(!listed.empty() && listed[0].userId == "u1" && listed[0].serverOrigin == kServer);
+  AccountSession app(pc.keychain, pc.server, pc.options());
+  CHECK(app.credentialForRequest().status == CredentialStatus::Ready);
+}
+
 void retryDelays(TestContext& t) {
   CHECK(endSessionRetryDelay(0) == std::chrono::seconds(5));
   CHECK(endSessionRetryDelay(1) == std::chrono::seconds(10));
@@ -610,8 +768,14 @@ int main() {
       {"signInKilledBeforeGenerationWrite", signInKilledBeforeGenerationWrite},
       {"refusedRefreshSignsBothAppsOut", refusedRefreshSignsBothAppsOut},
       {"offlineRefreshKeepsTheSession", offlineRefreshKeepsTheSession},
+      {"policyGateHoldsTheCredential", policyGateHoldsTheCredential},
       {"lockTimeoutFailsAsOffline", lockTimeoutFailsAsOffline},
       {"signInAgainKeepsThePendingHandle", signInAgainKeepsThePendingHandle},
+      {"refreshPublishedAfterSignOutLoses", refreshPublishedAfterSignOutLoses},
+      {"signOutThatCannotBeSavedSaysSo", signOutThatCannotBeSavedSaysSo},
+      {"refreshThatCannotBeSavedIsNotReady", refreshThatCannotBeSavedIsNotReady},
+      {"signOutCancelsAuthorizedRequests", signOutCancelsAuthorizedRequests},
+      {"accountListedWhenTheIndexCannotBeWritten", accountListedWhenTheIndexCannotBeWritten},
       {"retryDelays", retryDelays},
   });
 }

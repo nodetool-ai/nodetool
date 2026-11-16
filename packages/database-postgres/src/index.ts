@@ -3,7 +3,7 @@ import postgres from "postgres";
 import { and, eq, getTableColumns, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { getTableConfig, pgTable, pgSchema, text, type PgDatabase, type PgQueryResultHKT } from "drizzle-orm/pg-core";
-import { postgresAssets, postgresJobs, postgresSecrets, postgresWorkflows, resolveResourceId, SQLITE_CORE_BASELINE_SQL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ASSET_WORKSPACE_PATH_DDL, ASSET_CONTENT_HASH_DDL, WORKFLOW_FILE_PATH_DDL, WORKFLOW_FILE_HASH_DDL, WORKFLOW_FILE_ERROR_DDL, type Repository, type ResourceDocument, type ResourceKind } from "@nodetool-ai/models-core";
+import { postgresAssets, postgresJobs, postgresSecrets, postgresWorkflows, resolveResourceId, SQLITE_CORE_BASELINE_SQL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ASSET_WORKSPACE_PATH_DDL, ASSET_CONTENT_HASH_DDL, WORKFLOW_FILE_PATH_DDL, WORKFLOW_FILE_HASH_DDL, WORKFLOW_FILE_ERROR_DDL, WORKFLOW_LAST_WRITER_DDL, WORKFLOW_SCHEMA_VERSION_DDL, type Repository, type ResourceDocument, type ResourceKind } from "@nodetool-ai/models-core";
 
 const tables = { workflows: postgresWorkflows, assets: postgresAssets, jobs: postgresJobs, secrets: postgresSecrets };
 const tracking = pgTable("_nodetool_core_migrations", { version: text("version").primaryKey(), applied_at: text("applied_at").notNull() });
@@ -49,7 +49,11 @@ async function migrate<T extends PgQueryResultHKT>(database: PgDatabase<T>): Pro
       ["20261119_000000", "nodetool_workflows", "file_path", WORKFLOW_FILE_PATH_DDL],
       ["20261120_000000", "nodetool_workflows", "file_hash", WORKFLOW_FILE_HASH_DDL],
       // What the last reconcile found wrong with a workflow's file.
-      ["20261121_000000", "nodetool_workflows", "file_error", WORKFLOW_FILE_ERROR_DDL]
+      ["20261121_000000", "nodetool_workflows", "file_error", WORKFLOW_FILE_ERROR_DDL],
+      // The editing instance that wrote the stored revision, and the document
+      // schema version it was written in.
+      ["20261128_000000", "nodetool_workflows", "last_writer_instance", WORKFLOW_LAST_WRITER_DDL],
+      ["20261128_000001", "nodetool_workflows", "schema_version", WORKFLOW_SCHEMA_VERSION_DDL]
     ]) {
       if (!version || !table || !column || !declaration || applied.has(version)) { continue; }
       const existing = await db.select().from(informationColumns).where(and(eq(informationColumns.table_schema, "public"), eq(informationColumns.table_name, table), eq(informationColumns.column_name, column)));

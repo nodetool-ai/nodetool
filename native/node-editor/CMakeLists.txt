@@ -53,6 +53,7 @@ add_library(node_editor_interfaces STATIC
  src/server/PackSetup.cpp src/server/PackSetup.h
  src/server/ComfyBackend.cpp src/server/ComfyBackend.h
  src/server/WorkflowBrowser.cpp src/server/WorkflowBrowser.h
+ src/server/ProjectFolder.cpp src/server/ProjectFolder.h
  src/graph/IconPaths.cpp src/graph/IconPaths.h
  src/graph/TypeStyle.cpp src/graph/TypeStyle.h
  src/library/LibraryBrowser.cpp src/library/LibraryBrowser.h)

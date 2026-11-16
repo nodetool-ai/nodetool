@@ -46,6 +46,7 @@ import {
   ensureAssetForPath,
   flushProjectReconciles,
   onProjectFileChanged,
+  onProjectFolderChanged,
   reconcileProjectIndex,
   scheduleProjectReconcile
 } from "../src/project-index.js";
@@ -465,6 +466,86 @@ describe("the folder watcher", () => {
     await watchers.setOpenProject(Symbol("client"), USER, PROJECT);
     expect(watchers.isWatching(PROJECT, USER)).toBe(true);
     expect(recorded.directories).toEqual([directoryOf(), directoryOf()]);
+  });
+
+  it("a project pointed at another folder is watched there, also by a client whose folder could not be reached before", async () => {
+    useFolders("local");
+    const recorded = recordingWatch();
+    const watchers = new ProjectFolderWatchers(recorded.watch);
+    const watching = Symbol("watching");
+    await watchers.setOpenProject(watching, USER, PROJECT);
+    // A second client opened the project while its folder was away.
+    const resolve = vi.fn(async (projectId: string | null | undefined) => ({
+      ok: false as const,
+      projectId: projectId ?? null,
+      reason: "Project folder not found"
+    }));
+    setProjectFolderResolver(resolve);
+    const waiting = Symbol("waiting");
+    await watchers.setOpenProject(waiting, USER, PROJECT);
+
+    // Located at a new place.
+    const moved = join(root, "elsewhere");
+    await mkdir(moved, { recursive: true });
+    workspaces.set(PROJECT, createLocalWorkspace(moved));
+    useFolders("local");
+    await watchers.folderMoved(PROJECT, USER);
+
+    expect(recorded.closed).toEqual([directoryOf()]);
+    expect(recorded.directories).toEqual([directoryOf(), moved]);
+    expect(watchers.watching).toBe(1);
+    // Both clients have it open: it is watched until the last one leaves.
+    watchers.release(watching);
+    expect(watchers.isWatching(PROJECT, USER)).toBe(true);
+    watchers.release(waiting);
+    expect(watchers.isWatching(PROJECT, USER)).toBe(false);
+    expect(recorded.closed).toEqual([directoryOf(), moved]);
+  });
+
+  it("a change another app makes tells the folder change listeners, also when no row follows", async () => {
+    useFolders("local");
+    const recorded = recordingWatch();
+    const watchers = new ProjectFolderWatchers(recorded.watch);
+    await watchers.setOpenProject(Symbol("client"), USER, PROJECT);
+    await flushProjectReconciles();
+    const changes: unknown[] = [];
+    const stop = onProjectFolderChanged((change) => changes.push(change));
+    try {
+      await folder("local").write("notes/plan.txt", new TextEncoder().encode("plan"));
+      recorded.change(directoryOf(), "notes/plan.txt");
+      await watchers.flush();
+      expect(changes).toEqual([{ projectId: PROJECT, userId: USER }]);
+      expect(await rowsOf()).toEqual([]);
+    } finally {
+      stop();
+    }
+  });
+
+  it("a file another app renames renames its asset and tells the folder change listeners once", async () => {
+    useFolders("local");
+    const asset = await saveImage("fox");
+    const recorded = recordingWatch();
+    const watchers = new ProjectFolderWatchers(recorded.watch);
+    await watchers.setOpenProject(Symbol("client"), USER, PROJECT);
+    await flushProjectReconciles();
+    const changes: unknown[] = [];
+    const stop = onProjectFolderChanged((change) => changes.push(change));
+    try {
+      await rename(
+        join(directoryOf(), "Generated", "fox.png"),
+        join(directoryOf(), "Generated", "fox-final.png")
+      );
+      recorded.change(directoryOf(), "Generated/fox.png");
+      recorded.change(directoryOf(), "Generated/fox-final.png");
+      await watchers.flush();
+
+      const after = await reload(asset);
+      expect(after.workspace_path).toBe("Generated/fox-final.png");
+      expect(after.name).toBe("fox-final.png");
+      expect(changes).toEqual([{ projectId: PROJECT, userId: USER }]);
+    } finally {
+      stop();
+    }
   });
 
   describe("events", () => {

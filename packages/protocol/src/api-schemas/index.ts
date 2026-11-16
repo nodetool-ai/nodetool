@@ -44,6 +44,7 @@ export * as resources from "./resources.js";
 export * as timeline from "./timeline.js";
 export * as timelineToolParams from "./timeline-tool-params.js";
 export * from "../production-authoring.js";
+export * as sync from "./sync.js";
 export * as workflows from "./workflows.js";
 export * as workspace from "./workspace.js";
 export * as appRuns from "./app-runs.js";

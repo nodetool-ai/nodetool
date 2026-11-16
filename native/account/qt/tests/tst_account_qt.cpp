@@ -15,6 +15,7 @@
 #include <QUrlQuery>
 
 #include <atomic>
+#include <chrono>
 #include <future>
 #include <mutex>
 #include <vector>
@@ -28,14 +29,16 @@ namespace {
 constexpr const char* kServer = "https://nt.example";
 
 // A local HTTP server that answers every request with one canned response,
-// and records the last request's head. An empty response never answers.
+// and records the last request's head. An empty response never answers. A
+// server with a drip interval sends the response one byte per interval.
 //
 // Thread affinity: thread-safe. The QTcpServer and its sockets live on the
 // server's own std::thread and use Qt's blocking calls, so nothing crosses
 // threads through Qt's event queue. `mutex_` guards the record.
 class CannedServer {
 public:
-  explicit CannedServer(QByteArray response) : response_(std::move(response)) {
+  explicit CannedServer(QByteArray response, std::chrono::milliseconds drip = {})
+      : response_(std::move(response)), drip_(drip) {
     std::promise<quint16> ready;
     auto port = ready.get_future();
     thread_ = std::thread([this, &ready] { run(ready); });
@@ -86,8 +89,16 @@ private:
         open.push_back(std::move(socket));
         continue;
       }
-      socket->write(response_);
-      socket->waitForBytesWritten(1000);
+      if (drip_.count() > 0) {
+        for (qsizetype i = 0; i < response_.size() && !stopping_; ++i) {
+          socket->write(response_.mid(i, 1));
+          socket->waitForBytesWritten(1000);
+          std::this_thread::sleep_for(drip_);
+        }
+      } else {
+        socket->write(response_);
+        socket->waitForBytesWritten(1000);
+      }
       socket->disconnectFromHost();
       if (socket->state() != QAbstractSocket::UnconnectedState) {
         socket->waitForDisconnected(1000);
@@ -96,6 +107,7 @@ private:
   }
 
   const QByteArray response_;
+  const std::chrono::milliseconds drip_;
   std::atomic<bool> stopping_{false};
   quint16 port_ = 0;
   std::mutex mutex_;
@@ -223,6 +235,116 @@ private slots:
     closed.close();
     request.url = "http://127.0.0.1:" + std::to_string(port) + "/";
     QCOMPARE(sendOffThread(request).status, 0);
+  }
+
+  // The timeout bounds the whole request. A server that keeps sending a
+  // byte at a time never resets it.
+  void transportDeadlineIsWallClock() {
+    CannedServer drip("HTTP/1.1 200 OK\r\nContent-Length: 60\r\nConnection: close\r\n\r\n" + QByteArray(60, 'x'),
+                      std::chrono::milliseconds(50));
+    HttpRequest request;
+    request.url = "http://127.0.0.1:" + std::to_string(drip.port()) + "/";
+    request.timeout = std::chrono::milliseconds(500);
+    const auto start = std::chrono::steady_clock::now();
+    QCOMPARE(sendOffThread(request).status, 0);
+    QVERIFY(std::chrono::steady_clock::now() - start < std::chrono::seconds(2));
+  }
+
+  // A body cut short after the headers is no response, not a short one.
+  void transportReportsATruncatedBodyAsZero() {
+    CannedServer cut("HTTP/1.1 200 OK\r\nContent-Length: 100\r\nConnection: close\r\n\r\n{\"a\":");
+    HttpRequest request;
+    request.url = "http://127.0.0.1:" + std::to_string(cut.port()) + "/";
+    request.timeout = std::chrono::seconds(2);
+    QCOMPARE(sendOffThread(request).status, 0);
+  }
+
+  // The cancel flag stops a request in flight.
+  void transportStopsOnCancel() {
+    CannedServer silent{QByteArray()};
+    HttpRequest request;
+    request.url = "http://127.0.0.1:" + std::to_string(silent.port()) + "/";
+    request.timeout = std::chrono::seconds(30);
+    auto cancel = std::make_shared<RequestCancel>();
+    request.cancel = cancel;
+    std::thread canceller([cancel] {
+      std::this_thread::sleep_for(std::chrono::milliseconds(200));
+      cancel->cancel();
+    });
+    const auto start = std::chrono::steady_clock::now();
+    QCOMPARE(sendOffThread(request).status, 0);
+    canceller.join();
+    QVERIFY(std::chrono::steady_clock::now() - start < std::chrono::seconds(3));
+  }
+
+  // A request bound to an origin is not sent anywhere else.
+  void transportKeepsTheRequiredOrigin() {
+    CannedServer server("HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}");
+    HttpRequest request;
+    request.url = "http://127.0.0.1:" + std::to_string(server.port()) + "/";
+    request.requiredOrigin = kServer;
+    request.timeout = std::chrono::seconds(2);
+    QCOMPARE(sendOffThread(request).status, 0);
+    QCOMPARE(server.requests(), 0);
+  }
+
+  // A session reference stays usable after the controller is gone, with
+  // the store and endpoint it borrows.
+  void sessionOutlivesTheController() {
+    Computer computer;
+    computer.server.addCode("code-1", "u1", "Ada");
+    auto editor = computer.app("node-editor");
+    connect(editor.get(), &AccountController::browserRequested, this,
+            [](const QUrl& url) { std::thread([url] { completeInBrowser(url, "code-1"); }).detach(); });
+    editor->signIn();
+    QTRY_COMPARE(editor->state(), AccountController::State::SignedIn);
+    const std::shared_ptr<AccountSession> session = editor->session();
+    QVERIFY(session != nullptr);
+    editor.reset();
+    // Past the access token's expiry, so the request renews it through the
+    // endpoint the controller owned.
+    computer.clock.advance(15 * 60 * 1000);
+    QCOMPARE(session->credentialForRequest().status, CredentialStatus::Ready);
+  }
+
+  // A session restored from the record is held back by a policy that turns
+  // its server off, including a reference handed out before.
+  void policyHoldsARestoredSession() {
+    Computer computer;
+    computer.server.addCode("code-1", "u1", "Ada");
+    auto editor = computer.app("node-editor");
+    connect(editor.get(), &AccountController::browserRequested, this,
+            [](const QUrl& url) { std::thread([url] { completeInBrowser(url, "code-1"); }).detach(); });
+    editor->signIn();
+    QTRY_COMPARE(editor->state(), AccountController::State::SignedIn);
+    const std::shared_ptr<AccountSession> earlier = editor->session();
+
+    computer.policy = parsePolicyJson("{\"CloudEnabled\": false}");
+    auto timeline = computer.app("timeline");
+    editor->reload();
+    QCOMPARE(timeline->session(), nullptr);
+    QCOMPARE(editor->session(), nullptr);
+    QTRY_COMPARE(editor->state(), AccountController::State::SignedOut);
+    QCOMPARE(timeline->state(), AccountController::State::SignedOut);
+    computer.clock.advance(15 * 60 * 1000);
+    const int refreshes = computer.server.refreshCalls;
+    QCOMPARE(earlier->credentialForRequest().status, CredentialStatus::SignedOut);
+    QCOMPARE(computer.server.refreshCalls.load(), refreshes);
+
+    computer.policy = ManagedPolicy{};
+    editor->reload();
+    QTRY_COMPARE(editor->state(), AccountController::State::SignedIn);
+    QVERIFY(editor->session() != nullptr);
+  }
+
+  // A cancel before the browser opens ends the attempt at once.
+  void cancelBeforeTheBrowserOpens() {
+    Computer computer;
+    auto editor = computer.app("node-editor");
+    editor->signIn();
+    editor->cancelSignIn();
+    QTRY_COMPARE_WITH_TIMEOUT(editor->state(), AccountController::State::SignedOut, 3000);
+    QCOMPARE(editor->session(), nullptr);
   }
 
   // TC1's second app: a sign-in in one app shows in the other without a

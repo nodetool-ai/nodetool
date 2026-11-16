@@ -17,6 +17,7 @@ Item {
     TimelineDocumentController {
         id: actions
         anchor: root
+        listShown: listPopup.visible
         onOpenRequested: root.showList()
         onErrorChanged: { if (error) root.showList(false) }
     }

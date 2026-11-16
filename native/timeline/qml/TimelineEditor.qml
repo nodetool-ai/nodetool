@@ -20,6 +20,13 @@ Controls.Control {
     readonly property bool chatOpen: chatSession !== null && dockCanvas.visiblePanels.indexOf("assistant") >= 0
     readonly property alias dockStore: layoutStore
     readonly property alias dockCanvas: dockCanvas
+    // The folder of the open server timeline's project and the timeline's
+    // file in it. The file banner and the Library's folder notice read it.
+    readonly property ProjectFolderState projectFolder: ProjectFolderState {
+        timeline: root.timeline
+        autosave: root.saver
+        Component.onCompleted: if (configured) refresh()
+    }
     // One per editor, because each runs a helper process while in use.
     readonly property FrameCapture frameCapture: FrameCapture { timeline: root.timeline }
     // The frame the Reference panel and the comparison view share.
@@ -220,6 +227,7 @@ Controls.Control {
             }
         }
         SaveBanners { Layout.fillWidth: true; autosave: root.saver }
+        DocumentFileBanner { Layout.fillWidth: true; folder: root.projectFolder }
         DockCanvas {
             id: dockCanvas
             Layout.fillWidth: true

@@ -22,6 +22,7 @@
 #include "interfaces/ChatWindow.h"
 #include "server/WorkflowBrowser.h"
 #include "library/LibraryBrowser.h"
+#include "server/ProjectFolder.h"
 #include "interfaces/WorkflowHeader.h"
 #include "interfaces/Notifications.h"
 #include "interfaces/PropertyHost.h"
@@ -207,6 +208,13 @@ struct LibraryBrowserForeign {
     QML_FOREIGN(nodetool::node_editor::LibraryBrowser)
     QML_NAMED_ELEMENT(LibraryBrowser)
     QML_UNCREATABLE("A LibraryBrowser comes from its owner.")
+};
+
+struct ProjectFolderForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::ProjectFolder)
+    QML_NAMED_ELEMENT(ProjectFolder)
+    QML_UNCREATABLE("A ProjectFolder comes from its owner.")
 };
 
 }  // namespace nodetool::node_editor::qml

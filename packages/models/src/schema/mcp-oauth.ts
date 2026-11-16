@@ -32,9 +32,31 @@ export const mcpOauthGrants = sqliteTable(
     resource: text("resource").notNull(),
     created_at: text("created_at").notNull(),
     /** Null while the grant is active. */
-    revoked_at: text("revoked_at")
+    revoked_at: text("revoked_at"),
+    /**
+     * `mcp` for an MCP client connection, `native` for a device session of the
+     * native apps. A grant holds exactly one scope, and `kind` repeats it so
+     * the Settings lists can filter without parsing scopes.
+     */
+    kind: text("kind", { enum: ["mcp", "native"] }).notNull().default("mcp"),
+    /** The native app that signed in (`node-editor` or `timeline`). */
+    app_name: text("app_name"),
+    /** The device name the native app sent, shown in Settings. */
+    device_name: text("device_name"),
+    /** When a token of this grant last authenticated a request, at most once a minute. */
+    last_used_at: text("last_used_at"),
+    /**
+     * SHA-256 of the native session's revocation handle (`nth_…`). The
+     * handle ends this grant without any other credential.
+     */
+    revocation_handle_hash: text("revocation_handle_hash")
   },
-  (table) => [index("idx_mcp_oauth_grant_user").on(table.user_id)]
+  (table) => [
+    index("idx_mcp_oauth_grant_user").on(table.user_id),
+    uniqueIndex("idx_mcp_oauth_grant_revocation_handle").on(
+      table.revocation_handle_hash
+    )
+  ]
 );
 
 /**
@@ -60,4 +82,28 @@ export const mcpOauthTokens = sqliteTable(
     index("idx_mcp_oauth_token_grant").on(table.grant_id),
     uniqueIndex("idx_mcp_oauth_token_rotated_from").on(table.rotated_from)
   ]
+);
+
+/**
+ * Short-lived authorize-flow state shared by every server process: a parked
+ * `/oauth/authorize` request while the user is on the consent page, and the
+ * authorization code minted on approval. A row lives at most 10 minutes. The
+ * id of a request row is the `request_id` handed to the consent page; the id
+ * of a code row is the SHA-256 of the code, so a database read cannot redeem
+ * one. `user_id` names who approved a code, so an erasure request reaches
+ * it. `consumed_at` marks a spent code, which is what makes a replay
+ * detectable while the row lives.
+ */
+export const oauthPendingEntries = sqliteTable(
+  "oauth_pending_entries",
+  {
+    id: text("id").primaryKey(),
+    entry_type: text("entry_type", { enum: ["request", "code"] }).notNull(),
+    /** The approving user of a code row, null for a request row. */
+    user_id: text("user_id"),
+    payload: jsonText<Record<string, unknown>>()("payload").notNull(),
+    created_at: text("created_at").notNull(),
+    consumed_at: text("consumed_at")
+  },
+  (table) => [index("idx_oauth_pending_created").on(table.created_at)]
 );

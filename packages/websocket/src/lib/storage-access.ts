@@ -15,7 +15,7 @@ import path from "node:path";
 import { Asset } from "@nodetool-ai/models";
 import { isFullResourceId } from "@nodetool-ai/protocol";
 import { assetKeyOwner } from "@nodetool-ai/storage";
-import { isAssetIdSharedWithUser } from "./document-access.js";
+import { isAssetIdSharedWithUser } from "./shared-assets.js";
 
 /**
  * Key prefixes the runtime writes to directly, with no `assets` row behind

@@ -232,7 +232,7 @@ the first two triggers.
 | --- | --- | --- |
 | File present, fingerprint equal | Row | None. |
 | File present, fingerprint differs | Row | Update the fingerprint. Invalidate thumbnail, peaks, and proxy. The ID stays. |
-| File absent, an unindexed file has the same fingerprint | Row | Update `workspace_path` to that file. |
+| File absent, an unindexed file has the same fingerprint | Row | Update `workspace_path` to that file, and the asset name to its file name. |
 | File absent, no match | Row | Mark offline. |
 | Media file present | No row | Create a row. Build the thumbnail when the file is first displayed. |
 | Other file present | No row | None. Create a row on first use. |

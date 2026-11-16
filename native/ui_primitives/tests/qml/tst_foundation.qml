@@ -54,6 +54,7 @@ TestCase {
     SignalSpy { id: checkChanges; target: check; signalName: "checkedChangedByUser" }
     Ui.Toggle { id: toggle; x: 100; y: 150; accessibleName: "Enable" }
     SignalSpy { id: toggled; target: toggle; signalName: "checkedChangedByUser" }
+    Ui.Select { id: narrowSelect; x: 300; y: 90; width: 40; value: 1; accessibleName: "Speed"; options: [{label: "0.5×", value: 0.5}, {label: "1×", value: 1}, {label: "1.5×", value: 1.5}] }
     Ui.Select { id: select; x: 100; y: 90; width: 100; value: "a"; accessibleName: "Choice"; options: [{label: "Alpha", value: "a"}, {label: "Beta", value: "b"}] }
     property var runChoices: [{jobId: "old", status: "completed"}]
     property string runChoice: "old"
@@ -96,6 +97,17 @@ TestCase {
     SignalSpy { id: clicked; target: button; signalName: "clicked" }
     SignalSpy { id: buttonFocusChanges; target: button; signalName: "activeFocusChanged" }
     function init() { Ui.Theme.preference = Ui.Theme.System; Ui.Theme.systemScheme = Ui.Theme.Unknown; Ui.Theme.uiScale = 1; Ui.Theme.textScale = 1; clicked.clear(); previewCard.visible = false; previewCardClicked.clear() }
+    function test_narrow_select_popup_fits_labels() {
+        narrowSelect.popup.open()
+        tryCompare(narrowSelect.popup, "opened", true)
+        const list = narrowSelect.popup.contentItem
+        tryVerify(() => list.count === 3 && list.itemAtIndex(0) !== null)
+        for (let i = 0; i < list.count; ++i) {
+            const label = list.itemAtIndex(i).contentItem
+            verify(!label.truncated, "option " + i + " is cut off at popup width " + narrowSelect.popup.width)
+        }
+        narrowSelect.popup.close()
+    }
     function test_invalid_enums() {
         Ui.Theme.preference = 99; compare(Ui.Theme.preference, Ui.Theme.System)
         Ui.Theme.systemScheme = 99; compare(Ui.Theme.systemScheme, Ui.Theme.Unknown)

@@ -19,6 +19,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharedGlobalSetup from "../globalSetup";
+import { OWNED_FOLDERS_ENV } from "./ownedFolders";
 
 export default async function journeysGlobalSetup(): Promise<
   () => Promise<void>
@@ -26,20 +27,25 @@ export default async function journeysGlobalSetup(): Promise<
   // Overridable so a failing journey can be re-run against real providers to
   // tell "the fake is wrong" apart from "the app is broken".
   process.env.NODETOOL_FAKE_PROVIDERS ??= "1";
-  // Creating a project creates its folder. Point that at a temp directory so a
-  // journey never writes into the real home directory.
-  const ownsProjectsDir = process.env.PROJECTS_DIR === undefined;
-  const projectsDir = ownsProjectsDir
-    ? mkdtempSync(join(tmpdir(), "nodetool-journey-projects-"))
-    : undefined;
-  if (projectsDir) {
-    process.env.PROJECTS_DIR = projectsDir;
+  // Creating a project creates its folder, and the Personal project's folder
+  // lives under the managed workspaces directory. Point both at temp
+  // directories so a journey never writes into the real home directory, and
+  // so the fixture can empty them between tests (see `emptyOwnedFolders`).
+  // A directory the caller set is theirs and is never emptied.
+  const ownedDirs: string[] = [];
+  for (const name of ["PROJECTS_DIR", "NODETOOL_WORKSPACES_DIR"]) {
+    if (process.env[name] === undefined) {
+      const dir = mkdtempSync(join(tmpdir(), "nodetool-journey-folders-"));
+      process.env[name] = dir;
+      ownedDirs.push(dir);
+    }
   }
+  process.env[OWNED_FOLDERS_ENV] = JSON.stringify(ownedDirs);
   const teardown = await sharedGlobalSetup();
   return async () => {
     await teardown();
-    if (projectsDir) {
-      rmSync(projectsDir, { recursive: true, force: true });
+    for (const dir of ownedDirs) {
+      rmSync(dir, { recursive: true, force: true });
     }
   };
 }

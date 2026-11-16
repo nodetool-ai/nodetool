@@ -1,7 +1,6 @@
 import {
   sqliteTable,
   text,
-  integer,
   index,
   uniqueIndex
 } from "drizzle-orm/sqlite-core";
@@ -27,8 +26,10 @@ export interface CloudDocumentOptions {
 }
 
 /**
- * One row per cloud document with unsent work. `revision` counts the writes
- * of this row, so an acceptance of an older send never deletes newer edits.
+ * One row per cloud document with unsent work. Each write gives the row a
+ * new random `draft_id` that is never reused, even after the row is deleted
+ * and written again, so an acknowledgement of an older send never deletes
+ * or rebases newer edits.
  */
 export const cloudDrafts = sqliteTable(
   "cloud_drafts",
@@ -48,7 +49,7 @@ export const cloudDrafts = sqliteTable(
     state: text("state", { enum: ["waiting", "unsent"] }).notNull(),
     /** The server's refusal code while `state` is `unsent`. */
     refusal_reason: text("refusal_reason"),
-    revision: integer("revision").notNull(),
+    draft_id: text("draft_id").notNull(),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

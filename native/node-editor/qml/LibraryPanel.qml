@@ -16,6 +16,8 @@ Rectangle {
     required property LibraryBrowser library
     // The tab's AssetPickerController, which uploads imported files.
     required property var assets
+    // The folder of the tab's project, or null in a host that shows none.
+    property ProjectFolder folder: null
     EditorRoles { id: roles }
     color: roles.panel
     implicitWidth: Ui.Metrics.dialogCompactWidth
@@ -123,6 +125,30 @@ Rectangle {
             }
         }
         LibraryButton { visible: !root.library.configured; text: "Connect to server"; onClicked: root.status.connectServer() }
+        Loader {
+            Layout.fillWidth: true
+            active: root.folder !== null && root.library.configured
+            visible: active && (root.folder.folderState !== "" || root.folder.locateError !== "")
+            sourceComponent: ProjectFolderNotice { folder: root.folder }
+        }
+        // AssetItem in NodeTool.Media draws no badge, so the selected asset says it is missing.
+        Ui.Banner {
+            objectName: "library-missing"
+            Layout.fillWidth: true
+            visible: !!grid.selectedAsset && grid.selectedAsset.offline === true
+            status: Ui.Status.Warning
+            textFormat: Text.StyledText
+            message: "<b>" + qsTr("Missing") + "</b><br>" + qsTr("The file is not where this asset expects it. Relink it to the file's new location, or remove the asset.")
+            actionText: qsTr("Relink")
+            onActionTriggered: { relinkDialog.assetId = grid.selectedAsset.id; relinkDialog.open() }
+        }
+        Ui.Banner {
+            objectName: "library-relink-error"
+            Layout.fillWidth: true
+            visible: root.library.relinkError !== ""
+            status: Ui.Status.Error
+            message: root.library.relinkError
+        }
         Ui.Banner {
             objectName: "library-error"
             Layout.fillWidth: true
@@ -172,6 +198,14 @@ Rectangle {
             onImportRequested: { importError.message = ""; importDialog.open() }
             onClearFiltersRequested: root.clearFilters()
         }
+    }
+    FileDialog {
+        id: relinkDialog
+        objectName: "library-relink-dialog"
+        property string assetId: ""
+        title: qsTr("Pick the file's new location")
+        fileMode: FileDialog.OpenFile
+        onAccepted: root.library.relink(assetId, selectedFile)
     }
     FileDialog {
         id: importDialog

@@ -1705,7 +1705,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-files.test.ts",
-      "packages/agents/tests/capabilities-files-token-counter.test.ts",
+      "packages/agents/tests/capabilities-files-reserved-dir.test.ts",
     ],
   },
   {
@@ -1716,7 +1716,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-files.test.ts",
-      "packages/agents/tests/capabilities-files-virtual.test.ts",
+      "packages/agents/tests/capabilities-files-reserved-dir.test.ts",
     ],
   },
   {
@@ -1727,7 +1727,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-files.test.ts",
-      "packages/agents/tests/capabilities-files-virtual.test.ts",
+      "packages/agents/tests/capabilities-files-reserved-dir.test.ts",
     ],
   },
   {
