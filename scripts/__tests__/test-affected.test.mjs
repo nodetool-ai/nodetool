@@ -262,6 +262,7 @@ describe("buildPlan", () => {
     "native/model-picker/CMakeLists.txt",
     "native/realtime/spike/buffered-audio/driver.cpp",
     "native/realtime/spike/sync/analyze.mjs",
+    "native/storyboard/src/StoryboardMarkdown.cpp",
     "native/timeline/src/main.cpp"
   ])("selects the affected native ctest tests for %s", (file) => {
     expect(plan([file]).globalFiles).toEqual([]);

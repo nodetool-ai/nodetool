@@ -77,7 +77,7 @@ def module_policy(module):
                 'nodetool_ui_primitives', 'nodetool_ui_primitivesplugin',
                 'nodetool_media', 'nodetool_mediaplugin',
                 'nodetool_model_picker', 'nodetool_model_pickerplugin',
-                'nodetool_storyboard', 'nodetool_storyboardplugin',
+                'nodetool_storyboard', 'nodetool_storyboardplugin', 'nodetool_storyboard_markdown',
             },
             'forbidden': FORBIDDEN_STORYBOARD,
         }
