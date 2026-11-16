@@ -640,7 +640,7 @@ private slots:
         // Workflow menus of the application menu hold the other commands.
         // Platforms other than macOS add the canvas navigation choice.
         labels.removeIf([](const QString &label) { return label.startsWith("Canvas navigation: "); });
-        QCOMPARE(labels, (QStringList{"Instant Update: Off", "Save", "Version history", "Workflow metadata", "Server sync", "Canvas uploads", "Command menu"}));
+        QCOMPARE(labels, (QStringList{"Instant Update: Off", "Workflow metadata", "Server sync", "Canvas uploads", "Command menu"}));
         closeMenu(window);
     }
 
@@ -788,7 +788,7 @@ private slots:
         auto *file = window.findChild<QMenu *>("application-menu-file");
         auto *edit = window.findChild<QMenu *>("application-menu-edit");
         QVERIFY(file && edit);
-        QCOMPARE(labels(file), (QStringList{"New Workflow", "Open…", "Open Example", "Save", "Save As…", "Settings…", "Close Tab", "Quit"}));
+        QCOMPARE(labels(file), (QStringList{"New Workflow", "New Comfy Workflow", "Open…", "Open Example", "Save", "Save As…", "Settings…", "Close Tab", "Quit"}));
         QCOMPARE(labels(edit), (QStringList{"Undo", "Redo", "Cut", "Copy", "Paste", "Select All", "Duplicate", "Duplicate Vertical", "Group", "Align", "Align with Spacing"}));
         QCOMPARE(entry(file, "Save")->shortcut(), QKeySequence("Ctrl+S"));
 

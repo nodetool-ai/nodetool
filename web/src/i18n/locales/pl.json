@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "kod#stan",
       "signInWindowClosed": "Okno logowania zamknięte?",
       "openAgain": "Otwórz ponownie",
-      "linkExpiry": ". Link wygasa po 10 minutach."
+      "linkExpiry": ". Link wygasa po 10 minutach.",
+      "nativeSubtitle": "chce zalogować się na Twoje konto NodeTool.",
+      "app": "Aplikacja",
+      "device": "Urządzenie",
+      "nativeNote": "Zatwierdź tylko wtedy, gdy to Ty rozpocząłeś to logowanie w aplikacji desktopowej NodeTool na tym komputerze. Aplikacja będzie mogła otwierać, edytować i zapisywać Twoje dokumenty w chmurze, dopóki się nie wylogujesz lub nie zakończysz sesji w Ustawieniach."
     },
     "integrations": {
       "loadingAccounts": "Ładowanie połączonych kont",
@@ -20857,5 +20861,80 @@
     "removeTitle": "Usunąć „{{name}}”?",
     "removeBody": "Zasób zostanie usunięty z NodeTool. Dokumenty, które go używają, nie będą mogły go wyświetlić.",
     "cancel": "Anuluj"
+  },
+  "deviceSessions": {
+    "title": "Zalogowane urządzenia",
+    "description": "Komputery, na których zalogowano się w aplikacjach desktopowych NodeTool. Obie aplikacje na jednym komputerze dzielą jedną sesję. Zakończenie sesji wylogowuje ten komputer.",
+    "empty": "Żaden komputer nie jest zalogowany.",
+    "unnamed": "Komputer bez nazwy",
+    "signedInFrom": "Zalogowano z {{app}} {{date}}",
+    "lastUsed": "Ostatnio używane {{date}}",
+    "neverUsed": "Nieużywane od zalogowania",
+    "end": "Zakończ sesję",
+    "confirmTitle": "Zakończyć tę sesję?",
+    "confirmBody": "Aplikacje desktopowe NodeTool na {{device}} zostaną wylogowane w ciągu minuty.",
+    "cancel": "Anuluj",
+    "ended": "Sesja zakończona.",
+    "endError": "Nie udało się zakończyć sesji: {{error}}",
+    "loadError": "Nie udało się wczytać zalogowanych urządzeń.",
+    "apps": {
+      "nodeEditor": "Edytor węzłów",
+      "timeline": "Oś czasu"
+    }
+  },
+  "storyboardText": {
+    "mode": "Tekst",
+    "editorLabel": "Storyboard jako tekst Markdown",
+    "hint": "Wpisz # dla aktu, ## dla sceny, ### dla ujęcia i - **Motion:** dla pola. Wpisz @, aby wspomnieć encję lub obraz.",
+    "issues": "Wiersze wymagające uwagi: {{lines}}",
+    "loading": "Wczytywanie tekstu…",
+    "warnings": {
+      "media_outside_shot": "Obraz należy do ujęcia. Umieść go pod nagłówkiem ujęcia ###.",
+      "second_media": "Ujęcie ma jeden wybrany kadr i jeden wybrany klip. Ten element nie jest używany.",
+      "unknown_shot_field": "„{{label}}” nie jest polem storyboardu. Zostaje zapisane w notatkach ujęcia.",
+      "unknown_field": "„{{label}}” nie jest tu polem. Nie zostaje zapisane.",
+      "text_in_scene": "Scena ma tylko nagłówek i oświetlenie. Przenieś ten tekst pod ujęcie lub zacznij go od „Lighting:”.",
+      "bad_duration": "Ujęcie {{shot}}: „{{value}}” nie jest liczbą sekund.",
+      "bad_render": "Ujęcie {{shot}}: render to keyframe, direct lub reference.",
+      "no_next_shot": "Ujęcie {{shot}}: przejście prowadzi do następnego ujęcia, a takiego nie ma.",
+      "missing_action": "Ujęcie {{shot}} nie ma jeszcze akcji. Opisz obraz do wygenerowania pod jego nagłówkiem."
+    },
+    "outline": "Konspekt",
+    "outlineEmpty": "Wpisz ### i tytuł, aby zacząć ujęcie.",
+    "untitledShot": "Ujęcie bez tytułu",
+    "untitledAct": "Akt bez tytułu",
+    "untitledScene": "Scena bez tytułu",
+    "issuesTitle": "Wymaga uwagi",
+    "stillOf": "Kadr ujęcia {{shot}}",
+    "assist": {
+      "lines": "Zaznaczone wiersze: {{lines}}",
+      "proposal": "Proponowana zamiana",
+      "note": "Uwaga agenta",
+      "discard": "Odrzuć",
+      "close": "Zamknij",
+      "replace": "Zamień zaznaczenie",
+      "stale": "Fragment zmienił się po zaznaczeniu. Zaznacz go ponownie.",
+      "thinking": "Myślę…",
+      "stop": "Zatrzymaj",
+      "placeholder": "Powiedz agentowi, co zrobić z tym fragmentem",
+      "refinePlaceholder": "Dopracuj wynik",
+      "instruction": "Prośba do agenta",
+      "send": "Wyślij do agenta",
+      "failed": "Żądanie do modelu nie powiodło się.",
+      "context": "Wysłano z prośbą: cały storyboard, ujęcia: {{shots}}, encje z biblioteki: {{entities}}.",
+      "quick": {
+        "tighten": "Skróć",
+        "visual": "Bardziej obrazowo",
+        "camera": "Zaproponuj kamerę",
+        "continuity": "Sprawdź ciągłość",
+        "summarize": "Podsumuj",
+        "inconsistencies": "Znajdź niespójności"
+      },
+      "errors": {
+        "no_model": "Wybierz model reżyserski dla tego storyboardu albo model czatu, aby użyć agenta.",
+        "empty": "Model nie zwrócił odpowiedzi. Wyślij prośbę ponownie.",
+        "failed": "Prośba się nie powiodła. Wyślij ją ponownie."
+      }
+    }
   }
 }

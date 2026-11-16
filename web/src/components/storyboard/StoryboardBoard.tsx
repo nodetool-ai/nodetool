@@ -49,6 +49,7 @@ import TuneIcon from "@mui/icons-material/Tune";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import SlideshowIcon from "@mui/icons-material/Slideshow";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import NotesOutlinedIcon from "@mui/icons-material/NotesOutlined";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
@@ -186,6 +187,8 @@ import { countOwnedClips } from "../../lib/assembledSequenceMerge";
 
 // The preview mounts the timeline compositor; keep it out of the board bundle.
 const LazyStoryboardPreview = React.lazy(() => import("./StoryboardPreview"));
+// The text view carries the Markdown editor; it loads when first opened.
+const LazyStoryboardTextView = React.lazy(() => import("./text/StoryboardTextView"));
 
 interface StoryboardBoardProps {
   boardId: string;
@@ -474,8 +477,9 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
 
   const [shotCount, setShotCount] = useState<number>(6);
   const [confirmRedirect, setConfirmRedirect] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const togglePreview = useCallback(() => setPreviewOpen((open) => !open), []);
+  const [view, setView] = useState<"board" | "preview" | "text">("board");
+  const previewOpen = view === "preview";
+  const togglePreview = useCallback(() => setView((current) => (current === "preview" ? "board" : "preview")), []);
   const cardSize = useStoryboardViewStore((state) => state.cardSize);
   // The shot the slideshow opens on: null opens it on the selection (or the
   // first shot); undefined keeps it closed.
@@ -1436,7 +1440,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
           status: statusSlot,
           history: undoRedo,
           mode: (
-            <ModeSwitch<"board" | "preview">
+            <ModeSwitch<"board" | "preview" | "text">
               ariaLabel={t("i18n-next103.documentBar.mode")}
               options={[
                 {
@@ -1448,10 +1452,15 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                   value: "preview",
                   label: t("screens4_20.storyboardBoard.preview"),
                   icon: <PlayCircleOutlineIcon />
+                },
+                {
+                  value: "text",
+                  label: t("storyboardText.mode"),
+                  icon: <NotesOutlinedIcon />
                 }
               ]}
-              value={previewOpen ? "preview" : "board"}
-              onChange={(next) => setPreviewOpen(next === "preview")}
+              value={view}
+              onChange={setView}
             />
           ),
           view: (
@@ -1491,8 +1500,9 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             </>
           )
         };
-  // In the bar's Preview mode the preview takes the grid's place.
-  const previewMode = barMode && previewOpen;
+  // In the bar's Preview and Text modes the preview or the text takes the grid's place.
+  const textMode = barMode && view === "text";
+  const previewMode = (barMode && previewOpen) || textMode;
   const boardChips = (
     <>
       <BoardGenreChip boardId={boardId} genre={genre} readOnly={readOnly} />
@@ -1965,6 +1975,12 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
               fallback={<LoadingSpinner size="small" text={t("screens4_20.storyboardBoard.loadingPreview")} />}
             >
               <LazyStoryboardPreview boardId={boardId} />
+            </React.Suspense>
+          )}
+
+          {textMode && (
+            <React.Suspense fallback={<LoadingSpinner size="small" text={t("storyboardText.loading")} />}>
+              <LazyStoryboardTextView boardId={boardId} readOnly={readOnly} />
             </React.Suspense>
           )}
 

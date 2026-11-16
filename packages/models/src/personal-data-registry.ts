@@ -180,9 +180,19 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
     schemaExport: "mcpOauthGrants",
     disposition: "delete",
     reach: { kind: "direct", column: "user_id" },
+    withheldColumns: ["revocation_handle_hash"],
     exported: true,
     justification:
-      "One row per MCP client the person consented to. Deleted with the account; exported because the consent record is theirs and shows what each client was allowed to reach."
+      "One row per MCP client the person consented to, and one per signed-in device of the desktop apps. Deleted with the account; exported because the consent record is theirs and shows what each client or device was allowed to reach. The revocation handle's hash is withheld as credential material."
+  },
+  {
+    table: "oauth_pending_entries",
+    schemaExport: "oauthPendingEntries",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "An authorize request waiting on the consent page, or an authorization code waiting for its exchange; a code row names the user who approved it. Every row is deleted at most 10 minutes after it was written anyway. Deleted with the account so a code in flight cannot be redeemed after it. Not exported: it is a credential in flight."
   },
   {
     table: "mcp_oauth_tokens",
@@ -696,6 +706,24 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
     exported: false,
     justification:
       "A reusable preset for provisioning a GPU worker: image, hardware spec, timeouts. Operator configuration shared by the whole install, with no column naming a person."
+  },
+  {
+    table: "cloud_drafts",
+    schemaExport: "cloudDrafts",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: true,
+    justification:
+      "Edits of a cloud document that the native app has not yet sent to the cloud server. The content is the person's own work. Deleted with the account; exported because it may be the only copy of those edits."
+  },
+  {
+    table: "cloud_open_state",
+    schemaExport: "cloudOpenState",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: true,
+    justification:
+      "The role, options and last contact the native app recorded for each cloud document the person opened. Deleted with the account; exported because it lists which documents the person worked on."
   },
   {
     table: "worker_instances",

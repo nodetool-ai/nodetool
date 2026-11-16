@@ -12,6 +12,8 @@ Rectangle {
     required property WorkflowBrowserModel browser
     required property PanelLayout panels
     required property StatusModel status
+    // The folder of the tab's project, or null in a host that shows none.
+    property ProjectFolder folder: null
     EditorRoles { id: roles }
     color: roles.panel
     implicitWidth: Ui.Metrics.dialogCompactWidth
@@ -55,6 +57,12 @@ Rectangle {
             Ui.ToolbarIconButton { objectName: "browser-close"; accessibleName: "Close workflows"; iconName: "close"; onClicked: root.panels.toggleBrowser() }
         }
         Ui.EditorButton { visible: !root.status.connected; text: "Connect to server"; onClicked: root.status.connectServer() }
+        Loader {
+            Layout.fillWidth: true
+            active: root.folder !== null && root.status.connected
+            visible: active && (root.folder.folderState !== "" || root.folder.locateError !== "")
+            sourceComponent: ProjectFolderNotice { folder: root.folder }
+        }
         Ui.TextField {
             objectName: "workflow-search"
             Layout.fillWidth: true

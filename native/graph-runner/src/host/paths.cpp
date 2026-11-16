@@ -1,11 +1,14 @@
 #include "host/platform_fs.h"
 #include "host/paths.h"
 
+#include <algorithm>
+#include <cctype>
 #include <cerrno>
 #include <climits>
 #include <cstdlib>
 #include <cstring>
 #include <map>
+#include <string_view>
 #include <filesystem>
 #ifdef _WIN32
 #include <windows.h>
@@ -110,6 +113,36 @@ const Root* rootOf(const std::vector<Root>& roots, const std::string& real) {
 }
 
 const char* kOutside = "outside the directories the native runner grants";
+const char* kReserved = "NodeTool reserves .nodetool/ for its own files";
+
+// Whether a segment of `path` below the root `dir` is `.nodetool`, compared
+// without case because macOS and Windows folders ignore it.
+bool reservedBelow(const std::string& dir, const std::string& path) {
+  if (dir.empty() || !isWithinInput(dir, path)) return false;
+  std::string_view rest(path);
+  rest.remove_prefix(std::min(dir.size(), rest.size()));
+  while (!rest.empty()) {
+    const auto slash = rest.find('/');
+    const auto segment = rest.substr(0, slash);
+    if (segment.size() == 9 && std::equal(segment.begin(), segment.end(), ".nodetool",
+                                          [](char a, char b) { return std::tolower(static_cast<unsigned char>(a)) == b; })) {
+      return true;
+    }
+    if (slash == std::string_view::npos) break;
+    rest.remove_prefix(slash + 1);
+  }
+  return false;
+}
+
+// Throws EACCES when `path`, lexical or canonical, lies in a reserved folder.
+void refuseReserved(const std::vector<Root>& roots, const std::string& form,
+                    const std::string& syscall, const std::string& path) {
+  for (const auto& r : roots) {
+    if (r.reservesNodetool && (reservedBelow(r.dir, form) || reservedBelow(r.given, form))) {
+      throw FsError("EACCES", syscall, path, kReserved);
+    }
+  }
+}
 
 // Whether a symlink can explain why the canonical form of `lexicalForm` differs
 // from its expected spelling below `root`.
@@ -170,6 +203,16 @@ std::vector<Root> canonicalRoots(const std::vector<std::pair<std::string, bool>>
     roots.push_back({*real, writable, std::filesystem::u8path(dir).is_absolute() ? lexicalNormalize(dir) : *real});
   }
   return roots;
+}
+
+void reserveWorkspace(std::vector<Root>& roots, const std::string& workspaceDir) {
+  if (workspaceDir.empty()) return;
+  int err = 0;
+  const auto real = realPath(workspaceDir, err);
+  if (!real) return;
+  for (auto& r : roots) {
+    if (r.dir == *real) r.reservesNodetool = true;
+  }
 }
 
 std::string lexicalNormalize(const std::string& absolute) {
@@ -241,6 +284,7 @@ Resolved confine(const std::vector<Root>& roots, const std::string& cwd, const s
   bool inside = false;
   for (const auto& r : roots) inside = inside || isWithinInput(r.dir, lexical) || isWithinInput(r.given, lexical);
   if (!inside) throw FsError("EACCES", syscall, path, kOutside);
+  refuseReserved(roots, lexical, syscall, path);
 
   auto check = [&](const std::string& real, const std::string& lexicalForm) -> const Root* {
     const Root* root = rootOf(roots, real);
@@ -255,6 +299,7 @@ Resolved confine(const std::vector<Root>& roots, const std::string& cwd, const s
     if (access != Access::Read && !root->writable) {
       throw FsError("EACCES", syscall, path, "read-only directory");
     }
+    refuseReserved(roots, real, syscall, path);
     return root;
   };
 
@@ -277,7 +322,9 @@ Resolved confine(const std::vector<Root>& roots, const std::string& cwd, const s
   while (true) {
     if (auto real = realPath(ancestor, err)) {
       const Root* root = check(*real, ancestor);
-      return {joinPath(*real, tail), false, root};
+      Resolved resolved {joinPath(*real, tail), false, root};
+      refuseReserved(roots, resolved.real, syscall, path);
+      return resolved;
     }
     if (err != ENOENT || access == Access::Write) throwErrno(err, syscall, path);
     if (fsapi::lstat(ancestor.c_str(), &st) == 0) {

@@ -463,6 +463,79 @@ const USER_PERMISSIONS_DDL: readonly string[] = [
   )`
 ];
 
+/**
+ * Native device sessions on the OAuth grant table, and the authorize-flow
+ * state that moved from process memory into the database so a consent and its
+ * token exchange may reach different server processes. Applied by the
+ * `add_native_oauth_sessions` migration, and by `initTestDb` through
+ * {@link POST_BASELINE_TABLE_DDL}.
+ */
+const NATIVE_OAUTH_SESSION_DDL: readonly string[] = [
+  "ALTER TABLE mcp_oauth_grants ADD COLUMN kind TEXT NOT NULL DEFAULT 'mcp'",
+  "ALTER TABLE mcp_oauth_grants ADD COLUMN app_name TEXT",
+  "ALTER TABLE mcp_oauth_grants ADD COLUMN device_name TEXT",
+  "ALTER TABLE mcp_oauth_grants ADD COLUMN last_used_at TEXT",
+  "ALTER TABLE mcp_oauth_grants ADD COLUMN revocation_handle_hash TEXT",
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_mcp_oauth_grant_revocation_handle
+    ON mcp_oauth_grants (revocation_handle_hash)`,
+  `CREATE TABLE IF NOT EXISTS oauth_pending_entries (
+    id TEXT PRIMARY KEY NOT NULL,
+    entry_type TEXT NOT NULL,
+    user_id TEXT,
+    payload TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    consumed_at TEXT
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_oauth_pending_created
+    ON oauth_pending_entries (created_at)`
+];
+
+/**
+ * The local store of the native apps for cloud documents: unsent drafts and
+ * the last known open state (docs/plans/native-cloud-sync/technical-design.md,
+ * "Local data scoping and durable drafts"). Applied by the
+ * `add_cloud_local_store` migration, and by `initTestDb` through
+ * {@link POST_BASELINE_TABLE_DDL}.
+ */
+const CLOUD_LOCAL_STORE_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS cloud_drafts (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    server_key TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    base_updated_at TEXT NOT NULL,
+    base_content_hash TEXT NOT NULL,
+    draft TEXT NOT NULL,
+    state TEXT NOT NULL,
+    refusal_reason TEXT,
+    draft_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_cloud_drafts_document
+    ON cloud_drafts (user_id, server_key, account_id, kind, document_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_cloud_drafts_account
+    ON cloud_drafts (user_id, server_key, account_id)`,
+  `CREATE TABLE IF NOT EXISTS cloud_open_state (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    server_key TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    options TEXT NOT NULL,
+    base_updated_at TEXT,
+    base_content_hash TEXT,
+    last_contact_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_cloud_open_state_document
+    ON cloud_open_state (user_id, server_key, account_id, kind, document_id)`
+];
+
 export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OUTBOX_DDL,...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ...ANALYTICS_DDL, ...DOCUMENT_SHARING_DDL,
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_ids TEXT",
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_warnings TEXT",
@@ -481,6 +554,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   TIMELINE_FILE_PATH_DDL,
   TIMELINE_FILE_HASH_DDL,
   TIMELINE_FILE_ERROR_DDL,
+  ...NATIVE_OAUTH_SESSION_DDL,
+  ...CLOUD_LOCAL_STORE_DDL,
   ...SHARING_OPTION_COLUMNS.map((entry) => entry.ddl),
   ...SHARING_GRANT_INDEX_DDL,
   ...DOCUMENT_REFS_DDL
@@ -4747,6 +4822,58 @@ export const migrations: MigrationDef[] = [
     }
   },
 
+  // Native device sessions: the grant columns that tell a native sign-in
+  // apart from an MCP connection, the revocation handle, and the shared
+  // authorize-flow table (docs/plans/native-cloud-sync/technical-design.md,
+  // "Sign-in protocol").
+  {
+    version: "20261125_000000",
+    name: "add_native_oauth_sessions",
+    createsTables: ["oauth_pending_entries"],
+    modifiesTables: ["mcp_oauth_grants"],
+    async up(db) {
+      if (await db.tableExists("mcp_oauth_grants")) {
+        const columns: Array<[string, string]> = [
+          ["kind", NATIVE_OAUTH_SESSION_DDL[0]!],
+          ["app_name", NATIVE_OAUTH_SESSION_DDL[1]!],
+          ["device_name", NATIVE_OAUTH_SESSION_DDL[2]!],
+          ["last_used_at", NATIVE_OAUTH_SESSION_DDL[3]!],
+          ["revocation_handle_hash", NATIVE_OAUTH_SESSION_DDL[4]!]
+        ];
+        for (const [column, statement] of columns) {
+          if (!(await db.columnExists("mcp_oauth_grants", column))) {
+            await db.execute(statement);
+          }
+        }
+        await db.execute(NATIVE_OAUTH_SESSION_DDL[5]!);
+      }
+      await db.execute(NATIVE_OAUTH_SESSION_DDL[6]!);
+      await db.execute(NATIVE_OAUTH_SESSION_DDL[7]!);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_oauth_pending_created");
+      await db.execute("DROP TABLE IF EXISTS oauth_pending_entries");
+      // The grant columns stay: dropping them would forget which grants are
+      // device sessions and leave their handles unable to end them.
+    }
+  },
+  // The native apps' local store for cloud documents: durable drafts and the
+  // last known open state of each document.
+  {
+    version: "20261126_000000",
+    name: "add_cloud_local_store",
+    createsTables: ["cloud_drafts", "cloud_open_state"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of CLOUD_LOCAL_STORE_DDL) {
+        await db.execute(statement);
+      }
+    },
+    // The draft table holds the only copy of edits the cloud server has not
+    // accepted. A rollback leaves both tables in place: an older server
+    // never reads them, and moving forward again finds them intact.
+    async down() {}
+  },
   // Link and invitation options, disabled links, a grant per link, one
   // active link per role, and the reference sets
   // (docs/plans/native-cloud-sync/technical-design.md, WP1.4 and WP1.5).

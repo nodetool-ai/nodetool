@@ -78,10 +78,6 @@ export const MODULES = {
       GenerationAlreadyAcceptedError: generations,
       HostBinaryMissingError: hostBinaries,
       MAX_ARTIFACT_BYTES: hostBinaries,
-      WorkspaceReservedPathError: realWorkspace,
-      // The guest has no local folders: it refuses as the runtime-core code
-      // does without node:path. See host/runtime.mjs.
-      assertLocalPathIsOwn: impl("host/runtime.mjs"),
       MAX_CAPTURED_BYTES: hostBinaries,
       PERMISSION_GATE_CONTEXT_KEY: realRuntime("permission-gate.js"),
       RESERVED_WORKSPACE_DIR: realWorkspace,

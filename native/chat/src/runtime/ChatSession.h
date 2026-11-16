@@ -246,6 +246,8 @@ private:
   // composer's model, mode and host context. False when nothing was sent.
   bool dispatch(const QJsonArray &content);
   void fail(const QString &);
+  // Tells the server the selected thread's project, "default" when none.
+  void syncOpenProject();
   void answerAction(const QString &id, const QJsonObject &response, const QString &status);
   void storeMedia(const QString &key, const QString &url, const QString &error, qint64 bytes);
   QVariantMap m_resolvedMedia;

@@ -20,6 +20,8 @@ public:
     QWebSocketServer websocket{QStringLiteral("fake-run"), QWebSocketServer::NonSecureMode};
     QPointer<QWebSocket> peer;
     QList<QJsonObject> commands;
+    // The project ids of the open-project signals, from every socket.
+    QStringList openProjects;
     QJsonArray metadata;
     QJsonObject workflow;
     // The HTTP status of the next saves. 409 reports a revision conflict.
@@ -39,7 +41,13 @@ public:
             peer = websocket.nextPendingConnection();
             peer->setParent(this);
             connect(peer, &QWebSocket::binaryMessageReceived, this, [this](const QByteArray &bytes) {
-                commands.append(nodetool::node_editor::decodeMsgPack(bytes)->toObject());
+                // The open-project signal goes with every socket open. WorkflowSessionTests checks it.
+                const auto command = nodetool::node_editor::decodeMsgPack(bytes)->toObject();
+                if (command["command"] == "set_open_project") {
+                    openProjects.append(command["data"].toObject()["project_id"].toString());
+                } else {
+                    commands.append(command);
+                }
             });
         });
         connect(&http, &QTcpServer::newConnection, this, [this] {

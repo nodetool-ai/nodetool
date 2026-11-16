@@ -58,8 +58,19 @@ public:
   static size_t finishLocalRunJobs(std::chrono::steady_clock::time_point deadline);
   // Supported graphs run in this process, with or without a server.
   bool localRunnerReady() const;
-  // Whether the in-process runner supports this node's type.
+  // Whether the in-process runner supports this node's type and the open
+  // workflow may run in process. The runner writes into Personal's folder, so
+  // a workflow of another project runs on the server.
   bool runsLocally(const QJsonObject &node) const;
+  // The tab's project: empty for Personal. Every socket open sends it as
+  // set_open_project, and a change sends it again while the socket is open, so
+  // the server watches that project's folder for this connection.
+  void setOpenProject(const QString &projectKey);
+  QString openProject() const { return m_openProject; }
+  // The project a run of `snapshot` belongs to: its project_id, otherwise the
+  // tab's project. Empty, "default" and "personal:<user>" name Personal.
+  QString runProject(const QJsonObject &snapshot) const;
+  static bool isPersonalProject(const QString &projectId);
   bool runsInProcess(const QString &jobId) const { return m_inProcessRuns.contains(jobId); }
   QJsonObject workflow() const;
   // The host invalidates synchronously. Only a snapshot reader serializes.
@@ -173,6 +184,13 @@ signals:
   void predictionReceived(QJsonObject message);
   // An automatic reconnect was queued as attempt number `attempt`, to start after `delayMs`.
   void reconnectScheduled(int attempt, int delayMs);
+  // A `workspacefile` resource change: files in the workspace with this id
+  // changed. The id is empty when the server named no workspace.
+  void workspaceFilesChanged(QString workspaceId);
+  // A `documentfile` resource change: the file of a workflow or timeline
+  // became invalid, went missing or is fine again. `resource` carries id,
+  // type, project_id, file_path and file_error.
+  void documentFileChanged(QJsonObject resource);
 
 private:
   QSharedPointer<AccountJobs> m_accountJobs;
@@ -210,6 +228,8 @@ private:
   void request(const QByteArray &method, const QString &path,
                const QJsonObject &body, Callback callback);
   bool send(const QString &command, const QJsonObject &data);
+  void sendOpenProject();
+  QString m_openProject;
   void receive(const QByteArray &bytes);
   // Run events from the server and from the in-process runner.
   void ingestRunEvent(QJsonObject event);
