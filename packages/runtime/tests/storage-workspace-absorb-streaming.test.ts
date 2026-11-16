@@ -9,9 +9,9 @@ import { join } from "node:path";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { StorageWorkspace } from "../src/storage-workspace.js";
 
-const SIZE = 192 * 1024 * 1024;
+const SIZE = 96 * 1024 * 1024;
 /** A read of the whole file would add at least SIZE here. */
-const MAX_EXTRA_BYTES = 64 * 1024 * 1024;
+const MAX_EXTRA_BYTES = 32 * 1024 * 1024;
 
 /** A sparse file of `size` bytes with a marker at each end. */
 async function sparseFile(path: string, size: number): Promise<void> {

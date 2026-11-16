@@ -13,7 +13,6 @@
  */
 import { createLogger } from "@nodetool-ai/config";
 import { Asset, setAssetFileMover } from "@nodetool-ai/models";
-import { readFile } from "node:fs/promises";
 import { getAssetFileName, isNonEmptyString } from "@nodetool-ai/protocol";
 import { NestedFolders, type Workspace } from "@nodetool-ai/runtime";
 import { probeAssetDurationSeconds } from "./asset-duration.js";
@@ -244,6 +243,63 @@ function joinPath(directory: string, fileName: string): string {
 }
 
 /**
+ * The bytes of a new file, given as a file on this host. {@link claimFile}
+ * copies it in chunks, so a file of any size is never held in memory.
+ */
+export interface ClaimFromFile {
+  localPath: string;
+}
+
+/**
+ * Create `path` from a file on this host. The name is taken with an
+ * exclusive create of an empty file, then the bytes are copied over it in
+ * chunks, which `absorb` publishes whole with one rename. False when the name
+ * was taken. The path is held while the copy runs, so the reconciler never
+ * indexes the empty file, and a copy that fails removes the file this call
+ * created. A process that dies mid-copy leaves the empty file behind.
+ */
+async function claimFromFile(
+  workspace: Workspace,
+  owner: { userId: string; projectId: string },
+  path: string,
+  source: ClaimFromFile,
+  contentType: string
+): Promise<boolean> {
+  if (!(await workspace.writeNew(path, new Uint8Array(0), contentType))) {
+    return false;
+  }
+  const release = holdPaths(owner.userId, owner.projectId, [path]);
+  try {
+    await workspace.absorb(source.localPath, path);
+  } catch (error) {
+    // The exclusive create made this file, so it is this call's to remove.
+    await workspace.delete(path).catch(() => undefined);
+    throw error;
+  } finally {
+    release();
+  }
+  return true;
+}
+
+/**
+ * What {@link claimFile} copies to make the file at `path` of `workspace`
+ * again elsewhere. A folder on this host hands over its path, so the copy is
+ * streamed. Any other folder reads the file, which is the only way an object
+ * store gives it up.
+ */
+async function claimSourceOf(
+  workspace: Workspace,
+  path: string
+): Promise<Uint8Array | ClaimFromFile> {
+  if (!workspace.localDir) return readFileOf(workspace, path);
+  const info = await workspace.stat(path);
+  if (!info || info.isDirectory) {
+    throw new Error(`The file ${path} is not in the project folder`);
+  }
+  return { localPath: await workspace.materialize(path) };
+}
+
+/**
  * Write `bytes` to a new file in `directory` named after `stem`, and return
  * its path: `stem.ext`, or `stem-2.ext`, `stem-3.ext` and so on when the name
  * is in use. An existing file is never replaced.
@@ -274,11 +330,14 @@ export async function claimFile(
   directory: string,
   stem: string,
   extension: string,
-  bytes: Uint8Array,
+  bytes: Uint8Array | ClaimFromFile,
   contentType: string,
   beforeWrite?: (path: string) => Promise<void>,
   stagingName?: string
 ): Promise<string> {
+  if (!(bytes instanceof Uint8Array) && stagingName !== undefined) {
+    throw new Error("A file taken from a path cannot be staged under a name");
+  }
   const taken = new Set(
     (await workspace.list(directory)).map((entry) => entry.name.toLowerCase())
   );
@@ -294,6 +353,12 @@ export async function claimFile(
     );
     if (rows.length > 0) continue;
     await beforeWrite?.(path);
+    if (!(bytes instanceof Uint8Array)) {
+      if (await claimFromFile(workspace, owner, path, bytes, contentType)) {
+        return path;
+      }
+      continue;
+    }
     const written = await workspace.writeNew(
       path,
       bytes,
@@ -412,9 +477,7 @@ export async function saveProjectAsset(
         directory ? workspace.key(directory) : "",
         projectAssetFileStem(args.name, contentType),
         assetFileExtension(contentType),
-        "bytes" in source
-          ? source.bytes
-          : new Uint8Array(await readFile(source.path)),
+        "bytes" in source ? source.bytes : { localPath: source.path },
         contentType
       );
     }
@@ -572,7 +635,7 @@ function relocateProjectAssetFile(
       to.directory,
       to.stem,
       to.extension,
-      await readFileOf(workspace, from),
+      await claimSourceOf(workspace, from),
       asset.content_type
     );
     // Both names exist until the row is saved and the old file removed.
@@ -874,16 +937,18 @@ export async function relinkProjectAsset(
       const fileName = baseName(source.localPath);
       const { stem, extension } = splitPath(fileName);
       const sameName = workspace.key(joinPath(directory, fileName));
-      const bytes = new Uint8Array(await readFile(source.localPath));
+      // The file is copied in chunks, never read whole.
+      const bytes: ClaimFromFile = { localPath: source.localPath };
+      const owner = { userId: asset.user_id, projectId: asset.project_id };
       // The asset's own missing file leaves its name free for the copy. No
       // file is ever replaced: each name is taken with an exclusive create.
       to =
         sameName === file.path &&
-        (await workspace.writeNew(sameName, bytes, asset.content_type))
+        (await claimFromFile(workspace, owner, sameName, bytes, asset.content_type))
           ? sameName
           : await claimFile(
               workspace,
-              { userId: asset.user_id, projectId: asset.project_id },
+              owner,
               directory,
               stem,
               extension,
@@ -995,7 +1060,7 @@ export async function moveProjectAssetFile(
       directory,
       stem,
       extension,
-      await readFileOf(source.workspace, source.path),
+      await claimSourceOf(source.workspace, source.path),
       asset.content_type
     );
     // The copy has no row in its folder until the row is saved, and the old
