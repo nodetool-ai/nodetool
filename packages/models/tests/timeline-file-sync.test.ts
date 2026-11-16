@@ -395,6 +395,64 @@ describe("the timeline file sync hook", () => {
     );
   });
 
+  it("inserts a new timeline only when no row has its ID", async () => {
+    const theirs = await TimelineSequence.create<TimelineSequence>({
+      user_id: "someone-else",
+      project_id: "project-z",
+      name: "Theirs",
+      fps: 24
+    });
+    const events: string[] = [];
+    ModelObserver.subscribe(
+      (instance, event) => events.push(`${event} ${String(instance.name)}`),
+      "TimelineSequence"
+    );
+    calls = [];
+
+    // A taken ID is refused and the row that has it is left as it is.
+    const refused = await TimelineSequence.insertNew({
+      id: theirs.id,
+      user_id: USER,
+      project_id: "project-a",
+      name: "Mine",
+      fps: 60
+    });
+    expect(refused).toBeNull();
+    expect((await reload(theirs.id)).toRow()).toEqual(theirs.toRow());
+    expect(calls).toEqual([]);
+    expect(events).toEqual([]);
+
+    // A free ID is inserted, filed and announced, as create() does.
+    const mine = await TimelineSequence.insertNew({
+      id: "0123456789abcdef0123456789abcdef",
+      user_id: USER,
+      project_id: "project-a",
+      name: "Mine",
+      fps: 60
+    });
+    expect(mine).toMatchObject({
+      id: "0123456789abcdef0123456789abcdef",
+      user_id: USER,
+      fps: 60,
+      revision: 1,
+      file_path: "Timelines/Mine.timeline.json"
+    });
+    expect(calls).toEqual([
+      { kind: "saved", id: mine?.id, name: "Mine", previous: null }
+    ]);
+    expect(events).toEqual(["created Mine"]);
+    expect((await reload(mine?.id ?? "")).toRow()).toEqual(mine?.toRow());
+    // A document the model refuses is refused here too.
+    await expect(
+      TimelineSequence.insertNew({
+        user_id: USER,
+        project_id: "project-a",
+        name: "Broken",
+        document: JSON.stringify({ tracks: [] })
+      })
+    ).rejects.toThrow("document must contain tracks, clips, and markers arrays");
+  });
+
   it("lists the projects that hold a timeline with no file", async () => {
     setTimelineFileSync(null);
     await makeTimeline({ project_id: "project-a" });
