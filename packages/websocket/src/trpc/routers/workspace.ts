@@ -109,10 +109,17 @@ async function resolveFileTarget(
   return { row, workspace };
 }
 
-/** Containment is the workspace's own rule; surface its refusal as a 403. */
+/**
+ * Containment is the workspace's own rule; surface its refusal as a 403. A
+ * path in `.nodetool/` or in the folder of another project is refused with
+ * the workspace's reason.
+ */
 function rethrowTraversal(err: unknown): never {
   if (err instanceof Error && err.name === "WorkspacePathError") {
     throwApiError(ApiErrorCode.FORBIDDEN, "Path traversal not allowed");
+  }
+  if (err instanceof Error && err.name === "WorkspaceReservedPathError") {
+    throwApiError(ApiErrorCode.FORBIDDEN, err.message);
   }
   throw err;
 }
@@ -176,6 +183,9 @@ export const workspaceRouter = router({
       } catch (err) {
         if (err instanceof Error && err.name === "WorkspacePathError") {
           throwApiError(ApiErrorCode.FORBIDDEN, "Path traversal not allowed");
+        }
+        if (err instanceof Error && err.name === "WorkspaceReservedPathError") {
+          throwApiError(ApiErrorCode.FORBIDDEN, err.message);
         }
         throwApiError(ApiErrorCode.NOT_FOUND, "Directory not found");
       }

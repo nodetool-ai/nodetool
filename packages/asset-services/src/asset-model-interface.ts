@@ -1,6 +1,6 @@
 /**
- * The server's asset model interfaces: `createAsset` persists bytes through
- * the storage layer (with a thumbnail) and saves the Asset row;
+ * The server's asset model interfaces: `createAsset` saves bytes as a file in
+ * the run's project folder (with a thumbnail) and creates the Asset row;
  * `updateAssetBytes` overwrites an existing asset's bytes in place. One
  * implementation each for every ProcessingContext the server hands out — chat
  * turns, MCP sessions, and workflow runs — so an artifact persists identically
@@ -8,9 +8,20 @@
  */
 import { Asset } from "@nodetool-ai/models";
 import type { AssetInfoEntry } from "@nodetool-ai/runtime";
-import { storeAssetWithThumbnail } from "./thumbnail.js";
+import { storeAssetThumbnail, storeAssetWithThumbnail } from "./thumbnail.js";
 import { probeAssetDurationSeconds } from "./asset-duration.js";
-import { getAssetFileName, normalizeAssetContentType } from "./asset-paths.js";
+import {
+  getAssetFileName,
+  getAssetStorageKey,
+  normalizeAssetContentType
+} from "./asset-paths.js";
+import { getAssetAdapter } from "./storage.js";
+import {
+  replaceProjectAssetBytes,
+  saveProjectAsset,
+  storeLegacyAssetBytes,
+  type SaveProjectAssetArgs
+} from "./project-asset.js";
 
 export interface CreateAssetArgs {
   userId: string;
@@ -24,11 +35,55 @@ export interface CreateAssetArgs {
   parentId?: string | null;
   /** Stored on the row; the generation seam stamps `generation_id`. */
   metadata?: Record<string, unknown> | null;
+  /**
+   * Exact path in the project folder, when the caller named the file. The
+   * file is written there instead of under a free name in `Generated/`.
+   */
+  path?: string | null;
 }
 
+/**
+ * The `createAsset` model interface behind `context.createAsset`: the bytes
+ * become one file in the run's project folder, at `path` when the caller
+ * named one and in `Generated/` otherwise, and the row names that file. A run
+ * with no project of its own saves into Personal. Nothing is written under
+ * the legacy asset storage key.
+ *
+ * A call without content creates a row and no file, as it always has.
+ */
 export async function createAssetModelInterface(
   args: CreateAssetArgs
 ): Promise<Asset> {
+  if (!args.content) return createStoredAsset(args);
+  const save: SaveProjectAssetArgs = {
+    projectId: args.projectId,
+    userId: args.userId,
+    name: args.name,
+    contentType: args.contentType,
+    bytes: args.content,
+    provenance: {
+      workflow_id: args.workflowId ?? null,
+      node_id: args.nodeId ?? null,
+      job_id: args.jobId ?? null
+    },
+    // No explicit parent means the user's home folder, the same default the
+    // upload path uses.
+    parentId: args.parentId ?? args.userId,
+    metadata:
+      args.metadata && Object.keys(args.metadata).length > 0
+        ? args.metadata
+        : null
+  };
+  if (args.path) save.path = args.path;
+  return saveProjectAsset(save);
+}
+
+/**
+ * Create an asset whose bytes go under the asset storage key
+ * `<user>/<assetId>.<ext>`, outside any project folder. `createAsset` uses it
+ * for a call with no content, which creates a row and no file.
+ */
+export async function createStoredAsset(args: CreateAssetArgs): Promise<Asset> {
   const asset = new Asset({
     user_id: args.userId,
     workflow_id: args.workflowId ?? null,
@@ -77,7 +132,8 @@ export interface UpdateAssetBytesArgs {
  * saves. Returns null when the asset is missing or belongs to someone else.
  *
  * Changing the content type to one with a different extension without new
- * bytes would orphan the object, so the bytes are always required here.
+ * bytes would orphan the object, so the bytes are always required here. An
+ * asset whose file is in a project folder has that file rewritten.
  */
 export async function updateAssetBytesModelInterface(
   args: UpdateAssetBytesArgs
@@ -95,19 +151,46 @@ export async function updateAssetBytesModelInterface(
   if (args.name) {
     asset.name = args.name;
   }
-  const key = getAssetFileName(asset.id, asset.content_type);
-  await storeAssetWithThumbnail(
-    asset.user_id,
-    asset.id,
-    key,
-    args.content,
-    asset.content_type
-  );
-  asset.size = args.content.length;
   asset.duration = await probeAssetDurationSeconds(asset.content_type, {
     bytes: args.content
   });
-  await asset.save();
+  // An asset that is a file in its project folder gets the bytes there.
+  let change = await replaceProjectAssetBytes(asset, args.content);
+  if (!change) {
+    // Any other asset gets them under its storage key, unless its bytes were
+    // moved into the folder while this call waited for that move.
+    // Only the bytes and the row are written under the folder lock. The
+    // thumbnail is made after it, so a slow one holds up no other save.
+    const stored = await storeLegacyAssetBytes(asset, async () => {
+      await getAssetAdapter().store(
+        getAssetStorageKey(asset.user_id, asset.id, asset.content_type),
+        args.content,
+        asset.content_type
+      );
+      asset.size = args.content.length;
+      await asset.save();
+    });
+    if (stored === "stored") {
+      await storeAssetThumbnail(asset.user_id, asset.id, asset.content_type, {
+        bytes: args.content
+      });
+    }
+    if (stored === "moved") {
+      change = await replaceProjectAssetBytes(asset, args.content);
+      if (!change) {
+        throw new Error(`The file of asset ${asset.id} could not be written`);
+      }
+    }
+  }
+  if (change) {
+    try {
+      await asset.save();
+    } catch (error) {
+      await change.undo();
+      throw error;
+    }
+    await change.commit();
+  }
   return {
     id: asset.id,
     content_type: asset.content_type,

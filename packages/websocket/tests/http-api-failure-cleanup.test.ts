@@ -7,12 +7,12 @@
  *     throw returned a 500 and stranded the row at "running" forever. The
  *     project folder is resolved before the row exists, so an unreachable one
  *     leaves no row at all.
- *  2. `handleAssetsRoot` creates the Asset row before writing the bytes. When
- *     `storeAssetWithThumbnail` throws (over the upload cap, or any S3/Supabase
- *     failure) the request 500s and the row survives pointing at bytes that were
- *     never written.
+ *  2. `handleAssetsRoot` used to create the Asset row before writing the
+ *     bytes, so a failed store left a row pointing at bytes that were never
+ *     written. An upload is now a file in the project folder, written before
+ *     its row: a failure after the write removes the file and creates no row.
  */
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { initTestDb, Workflow, Job, Asset } from "@nodetool-ai/models";
 import { BaseNode, NodeRegistry } from "@nodetool-ai/node-sdk";
 
@@ -24,7 +24,7 @@ vi.mock("@nodetool-ai/asset-services/thumbnail", async () => {
   >("@nodetool-ai/asset-services/thumbnail");
   return {
     ...actual,
-    storeAssetWithThumbnail: (...args: unknown[]) => storeMock(...args)
+    storeAssetThumbnail: (...args: unknown[]) => storeMock(...args)
   };
 });
 
@@ -54,6 +54,11 @@ vi.mock("../src/lib/workflow-workspace.js", async () => {
 const { handleWorkflowRun, handleAssetsRoot } = await import(
   "../src/http-api.js"
 );
+const { createWorkspace, setProjectFolderResolver } = await import(
+  "@nodetool-ai/runtime"
+);
+const { InMemoryStorageAdapter } = await import("@nodetool-ai/storage");
+type Workspace = import("@nodetool-ai/runtime").Workspace;
 
 // Registry stub: the run handler only asks whether each node type is a Python
 // node, and an empty graph has none.
@@ -160,59 +165,82 @@ describe("handleWorkflowRun failure cleanup", () => {
 });
 
 describe("asset upload failure cleanup", () => {
-  it("deletes the Asset row when storing the bytes throws", async () => {
-    storeMock.mockRejectedValue(new Error("upload exceeds maximum size"));
+  let folder: Workspace;
 
+  beforeEach(() => {
+    // The upload lands in the project folder, here an in-memory one.
+    folder = createWorkspace(new InMemoryStorageAdapter());
+    setProjectFolderResolver(async (projectId) => ({
+      ok: true,
+      projectId: projectId ?? "personal",
+      workspace: folder
+    }));
+  });
+
+  afterEach(() => {
+    setProjectFolderResolver(null);
+  });
+
+  const uploadForm = (name: string): FormData => {
     const form = new FormData();
     form.append(
       "json",
-      JSON.stringify({
-        name: "pic.png",
-        content_type: "image/png",
-        parent_id: "user-1"
-      })
+      JSON.stringify({ name, content_type: "image/png", parent_id: "user-1" })
     );
     form.append(
       "file",
-      new File([new Uint8Array([1, 2, 3])], "pic.png", { type: "image/png" })
+      new File([new Uint8Array([1, 2, 3])], name, { type: "image/png" })
     );
+    return form;
+  };
+
+  it("leaves no row and no file when saving the asset throws after the write", async () => {
+    storeMock.mockRejectedValue(new Error("thumbnail store unreachable"));
 
     await expect(
       handleAssetsRoot(
         new Request("http://localhost/api/assets", {
           method: "POST",
           headers: { "x-user-id": "user-1" },
-          body: form
+          body: uploadForm("pic.png")
         }),
         {}
       )
-    ).rejects.toThrow("upload exceeds maximum size");
+    ).rejects.toThrow("thumbnail store unreachable");
     expect(storeMock).toHaveBeenCalledOnce();
 
     const [assets] = await Asset.paginate("user-1", { limit: 100 });
     expect(assets.filter((a) => a.name === "pic.png")).toHaveLength(0);
+    expect(await folder.list("", { recursive: true })).toEqual([]);
   });
 
-  it("keeps the Asset row when the store succeeds", async () => {
-    const form = new FormData();
-    form.append(
-      "json",
-      JSON.stringify({
-        name: "ok.png",
-        content_type: "image/png",
-        parent_id: "user-1"
-      })
-    );
-    form.append(
-      "file",
-      new File([new Uint8Array([1, 2, 3])], "ok.png", { type: "image/png" })
-    );
+  it("refuses the upload and creates no row when the project folder is unreachable", async () => {
+    setProjectFolderResolver(async (projectId) => ({
+      ok: false,
+      projectId: projectId ?? null,
+      reason: "Project folder not found: /gone/My Film"
+    }));
 
     const res = await handleAssetsRoot(
       new Request("http://localhost/api/assets", {
         method: "POST",
         headers: { "x-user-id": "user-1" },
-        body: form
+        body: uploadForm("lost.png")
+      }),
+      {}
+    );
+
+    expect(res.status).toBe(409);
+    const [assets] = await Asset.paginate("user-1", { limit: 100 });
+    expect(assets.filter((a) => a.name === "lost.png")).toHaveLength(0);
+  });
+
+  it("keeps the row and its one file when the save succeeds", async () => {
+    const res = await handleAssetsRoot(
+      new Request("http://localhost/api/assets", {
+        method: "POST",
+        headers: { "x-user-id": "user-1" },
+        body: uploadForm("ok.png")
       }),
       {}
     );
@@ -220,6 +248,13 @@ describe("asset upload failure cleanup", () => {
     expect(storeMock).toHaveBeenCalledOnce();
 
     const [assets] = await Asset.paginate("user-1", { limit: 100 });
-    expect(assets.filter((a) => a.name === "ok.png")).toHaveLength(1);
+    const saved = assets.filter((a) => a.name === "ok.png");
+    expect(saved).toHaveLength(1);
+    expect(saved[0]!.workspace_path).toBe("Imported/ok.png");
+    expect(
+      (await folder.list("", { recursive: true }))
+        .filter((entry) => !entry.isDirectory)
+        .map((entry) => entry.path)
+    ).toEqual(["Imported/ok.png"]);
   });
 });

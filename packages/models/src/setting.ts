@@ -96,6 +96,19 @@ export class Setting extends DBModel {
     return rows.map((r: Record<string, unknown>) => new Setting(r));
   }
 
+  /**
+   * Every user's setting under `key`. Deliberately not user-scoped, for
+   * startup jobs, so it must never back a request handler.
+   */
+  static async listByKey(key: string): Promise<Setting[]> {
+    const db = getPortableDb();
+    const rows = await db
+      .select()
+      .from(appSettings)
+      .where(eq(appSettings.key, key));
+    return rows.map((r: Record<string, unknown>) => new Setting(r));
+  }
+
   /** Get the plaintext value. */
   getValue(): string {
     return this.value;

@@ -6139,13 +6139,16 @@
         "createError": "Projektia ei voitu luoda: {{error}}",
         "openFolder": "Avaa kansio…",
         "openFolderHint": "Onko sinulla jo kansio? Avaa se projektina. Tiedostoja ei siirretä.",
+        "openFolderTravels": "Toiselta koneelta kopioitu kansio avautuu työnkulkuineen, aikajanoineen ja resursseineen. Keskustelut, kuvakäsikirjoitukset, käsikirjoitukset, luonnokset, sovellukset ja JS-skriptit eivät siirry kansion mukana.",
         "openFolderError": "Kansiota ei voitu avata: {{error}}"
       },
       "folder": {
         "notFound": "Kansiota ei löydy",
         "notFoundDetail": "Projektin {{name}} kansio on siirretty, nimetty uudelleen tai se on asemalla, joka ei ole yhdistettynä. Ajot eivät käynnisty ennen kuin paikannat sen.",
         "locate": "Paikanna",
-        "locateError": "Kansiota ei voitu paikantaa: {{error}}"
+        "locateError": "Kansiota ei voitu paikantaa: {{error}}",
+        "moving": "Tiedostoja siirretään projektikansioon",
+        "movingDetail": "{{done}}/{{total}} tiedostoa siirretty. Resurssisi pysyvät käytettävissä siirron ajan."
       },
       "home": {
         "homeTab": "Koti",
@@ -6424,16 +6427,42 @@
           "export": "Vie",
           "archive": "Arkistoi",
           "restore": "Palauta",
-          "delete": "Poista"
+          "delete": "Poista",
+          "collect": "Kokoa tiedostot"
         },
         "projectActions": "Projektin toiminnot",
         "actionsForProject": "Toiminnot projektille {{projectName}}",
         "exporting": "Viedään…",
         "deleteProject": "Poista projekti",
         "confirmDeleteTitle": "Poistetaanko {{projectName}}?",
-        "confirmDeleteBody": "Poista {{projectName}} ja kaikki sen dokumentit, keskustelut, generoidut tulokset, aineistot, työt ja projektitiedostot.",
+        "confirmDeleteBody": "Poista {{projectName}} ja kaikki sen dokumentit, keskustelut, työt ja projektikansion ulkopuolelle tallennetut aineistot.",
         "deleteIrreversible": "Tätä ei voi kumota.",
-        "error": "Toiminto {{action}} epäonnistui projektille {{projectName}}: {{error}}"
+        "deleteFolderTrash": "Projektikansio siirretään roskakoriin.",
+        "deleteFolderRemove": "Projektikansio ja kaikki sen tiedostot poistetaan pilvitallennustilasta.",
+        "deleteFolderKeep": "Projektikansio jää paikalleen kaikkine tiedostoineen. NodeTool poistaa vain sen sisällä olevan .nodetool-kansion.",
+        "deleteFolderMissing": "Projektikansioon ei saada yhteyttä, joten NodeTool jättää sen ennalleen.",
+        "folderMovedAsideTo": "Roskakoriin ei saatu yhteyttä. Projektikansio siirrettiin sijaintiin {{path}}.",
+        "folderMovedAside": "Roskakoriin ei saatu yhteyttä. Projektikansio siirrettiin projektien kansion .trash-kansioon.",
+        "folderTrashFailedAt": "Projektikansiota ei voitu siirtää roskakoriin. Se on edelleen sijainnissa {{path}}.",
+        "folderTrashFailed": "Projektikansiota ei voitu siirtää roskakoriin. Se jää paikalleen.",
+        "error": "Toiminto {{action}} epäonnistui projektille {{projectName}}: {{error}}",
+        "collecting": "Kootaan tiedostoja…",
+        "collectResult": "Tiedostot koottu projektiin {{projectName}}: {{copied}} kopioitu, {{skipped}} ohitettu, {{failed}} epäonnistui.",
+        "linkedTitle": "{{projectName}} linkittää tiedostoja kansionsa ulkopuolelta",
+        "linkedBody": "Vienti sisältää projektikansion. Nämä tiedostot on linkitetty muualta, eivätkä ne ole kansiossa:",
+        "linkedChoice": "Kokoa ja vie kopioi ne kansion Imported-hakemistoon ja vie sitten projektin. Peruuta säilyttää linkit eikä vie mitään.",
+        "collectAndExport": "Kokoa ja vie"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Kopioidaanko vai linkitetäänkö?",
+        "confirm": "Tuo",
+        "copy": "Kopioi projektikansioon",
+        "copyHint": "Projekti säilyttää oman kopionsa. Alkuperäisen muutokset eivät näy siinä.",
+        "link": "Linkitä paikallaan",
+        "linkHint": "Mitään ei kopioida. Projekti lukee tiedoston sen nykyisestä sijainnista. Kokoa tiedostot kopioi sen myöhemmin.",
+        "threshold": "Vähintään {{size}} kokoiset tiedostot linkitetään oletuksena."
       }
     }
   },
@@ -9074,10 +9103,6 @@
         "REPLICATE_API_TOKEN": {
           "button": "Hanki Replicate API-tunnus",
           "tooltip": "Siirry Replicaten API-tunnussivulle"
-        },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Hanki Googlen sovellussalasana",
-          "tooltip": "Siirry Google-tilin sovellussalasanasivulle"
         },
         "ELEVENLABS_API_KEY": {
           "button": "Hanki ElevenLabs API-avain",
@@ -15080,7 +15105,6 @@
       "csv": "CSV-tiedosto",
       "unknown": "Tuntematon tiedostotyyppi",
       "unknownContentType": "Tuntematon sisältötyyppi",
-      "offline": "Media ei saatavilla",
       "thumbnail": "Pikkukuva",
       "folder": "Kansio"
     },
@@ -20115,7 +20139,82 @@
       "revealInFinder": "Näytä Finderissa",
       "revealInExplorer": "Näytä Resurssienhallinnassa",
       "revealInFileManager": "Näytä tiedostonhallinnassa"
+    },
+    "documentFile": {
+      "invalidTitle": "Tässä tiedostossa on virhe",
+      "invalidBody": "Tiedostoa {{path}} ei ladattu: {{error}}. Viimeisin kelvollinen versio pysyy auki ja toimii.",
+      "openFile": "Avaa tiedosto",
+      "missingTitle": "Tiedosto puuttuu",
+      "missingBody": "{{path}} ei ole enää projektikansiossa. Palauta kirjoittaa sen uudelleen tästä dokumentista.",
+      "restore": "Palauta",
+      "delete": "Poista",
+      "cancel": "Peruuta",
+      "deleteTitle": "Poistetaanko {{name}}?",
+      "deleteDescription": "”{{name}}” ja sen versiohistoria poistetaan pysyvästi.",
+      "restoreFailed": "Tiedostoa ei palautettu: {{error}}",
+      "deleteFailed": "Dokumenttia ei poistettu: {{error}}"
+    },
+    "migration": {
+      "title": "Siirrä projektit kansioihin",
+      "intro": "NodeTool tallentaa nyt jokaisen projektin omaan kansioonsa tällä tietokoneella. Tiedostosi, työnkulkusi ja aikajanasi siirretään sinne, ja voit avata ne muissa sovelluksissa.",
+      "planProjects": "Projektit, jotka saavat kansion",
+      "planFiles": "Siirrettävät tiedostot",
+      "planWorkflows": "Tiedostoina tallennettavat työnkulut",
+      "planTimelines": "Tiedostoina tallennettavat aikajanat",
+      "extraTitle": "Projektit, joilla on useita kansioita",
+      "extraBody": "Jokainen näistä projekteista säilyttää yhden kansion. NodeTool lopettaa muiden näyttämisen, ja niiden tiedostot jäävät paikoilleen.",
+      "extraKeeps": "{{project}} säilyttää kansion {{folder}}",
+      "extraHidden": "Ei enää näkyvissä: {{folder}}",
+      "location": "Sijainti",
+      "changeLocation": "Vaihda sijaintia",
+      "locationError": "Tätä sijaintia ei voi käyttää: {{error}}",
+      "permissionWarning": "macOS kysyy, saako NodeTool käyttää tätä kansiota. Valitse Salli tai valitse kansio, joka ei ole Dokumentit-, Työpöytä-, Lataukset- eikä iCloud Drive -kansiossa eikä ulkoisella asemalla.",
+      "safety": "Mitään ei katoa. Jokainen tiedosto kopioidaan ja tarkistetaan ennen kuin sen vanha kopio poistetaan. Voit jatkaa työskentelyä tiedostojen siirtyessä.",
+      "later": "Ei nyt",
+      "confirm": "Siirrä tiedostot",
+      "planError": "Suunnitelmaa ei voitu ladata: {{error}}",
+      "confirmError": "Siirto ei käynnistynyt: {{error}}",
+      "actionError": "Siirtoa ei voitu muuttaa: {{error}}",
+      "progressRegion": "Tiedostoja siirretään projektikansioihin",
+      "progressTitle": "Tiedostoja siirretään projektikansioihin",
+      "pausedTitle": "Tiedostojen siirto on keskeytetty",
+      "doneTitle": "Tiedostot siirretty",
+      "progressCount": "{{done}} / {{total}} tiedostoa siirretty",
+      "phaseFolders": "Luodaan projektikansioita",
+      "phaseFiles": "Tallennetaan työnkulkuja ja aikajanoja tiedostoina",
+      "currentProject": "Siirretään projektin {{project}} tiedostoja",
+      "pause": "Keskeytä",
+      "resume": "Jatka",
+      "failuresTitle": "Siirto epäonnistui ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "Lisää, joita ei näytetä: {{count}}",
+      "retry": "Yritä uudelleen",
+      "donePath": "Tiedostosi ovat kansiossa {{path}}",
+      "close": "Sulje"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "Aineiston lähde",
+    "projectTab": "Tämä projekti",
+    "personalTab": "Henkilökohtainen",
+    "personalHint": "Kun valitset Henkilökohtaisesta, tiedosto kopioidaan tähän projektiin.",
+    "copying": "Kopioidaan tähän projektiin…",
+    "copyFailed": "Aineistoa ei voitu kopioida tähän projektiin."
+  },
+  "assetFileStatus": {
+    "missing": "Puuttuu",
+    "missingTooltip": "Tiedosto ei ole siellä, missä tämä aineisto odottaa sitä. Linkitä se tiedoston uuteen sijaintiin tai poista aineisto.",
+    "linked": "Linkitetty",
+    "linkedTooltip": "Tämä aineisto käyttää projektikansion ulkopuolista tiedostoa sen omalla paikalla.",
+    "relink": "Linkitä uudelleen",
+    "relinkTooltip": "Valitse tiedoston uusi sijainti",
+    "relinkNoPath": "Tiedoston sijaintia ei voitu lukea. Valitse tiedosto tältä tietokoneelta.",
+    "relinkFailed": "Uudelleenlinkitys epäonnistui: {{error}}",
+    "remove": "Poista",
+    "removeTooltip": "Poista tämä aineisto NodeToolista",
+    "removeTitle": "Poistetaanko ”{{name}}”?",
+    "removeBody": "Aineisto poistetaan NodeToolista. Sitä käyttävät dokumentit eivät voi enää näyttää sitä.",
+    "cancel": "Peruuta"
   },
   "storyboardText": {
     "mode": "Teksti",

@@ -6,7 +6,7 @@
 
 import { createHash } from "node:crypto";
 import { existsSync, accessSync, constants, mkdirSync } from "node:fs";
-import { eq, and, notInArray } from "drizzle-orm";
+import { eq, and, inArray, notInArray, or } from "drizzle-orm";
 import { isAbsolute } from "node:path";
 import {
   getManagedWorkspaceDir,
@@ -18,6 +18,7 @@ import { getPortableDb } from "./db.js";
 import { workspaces } from "./schema/workspaces.js";
 import { workflows } from "./schema/workflows.js";
 import { games } from "./schema/games.js";
+import { projects } from "./schema/projects.js";
 
 /** Who made a workspace's folder: NodeTool, or the user who brought it. */
 export type WorkspaceOrigin = "created" | "adopted";
@@ -164,6 +165,44 @@ export class Workspace extends DBModel {
       .orderBy(workspaces.created_at, workspaces.id)
       .limit(1);
     return row ? new Workspace(row) : null;
+  }
+
+  /**
+   * The paths of the user's workspace rows that are a folder of their own:
+   * the folder a project names in `workspace_id`, or the workspace of a
+   * native game.
+   *
+   * One of them can lie inside another. Personal's managed folder holds
+   * `projects/<segment>`, where cloud projects, imported projects and games
+   * keep theirs. A scan of the outer folder never enters an inner one.
+   */
+  static async listFolderPaths(userId: string): Promise<string[]> {
+    const db = getPortableDb();
+    const rows = await db
+      .select({ path: workspaces.path })
+      .from(workspaces)
+      .where(
+        and(
+          eq(workspaces.user_id, userId),
+          or(
+            inArray(
+              workspaces.id,
+              db
+                .select({ id: projects.workspace_id })
+                .from(projects)
+                .where(eq(projects.user_id, userId))
+            ),
+            inArray(
+              workspaces.id,
+              db
+                .select({ id: games.workspace_id })
+                .from(games)
+                .where(eq(games.user_id, userId))
+            )
+          )
+        )
+      );
+    return rows.map((row) => row.path);
   }
 
   /** True when a native game keeps its sources in this workspace. */

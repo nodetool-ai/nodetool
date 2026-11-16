@@ -461,7 +461,7 @@ void mixBlock(const MixPlan& plan, VoicePcm* pcm, double sampleRate, double time
                 clipStart = std::min(clipStart, part.startMs);
                 clipEnd = std::max(clipEnd, part.startMs + part.durationMs);
                 tailMs = std::max(tailMs, part.tailMs);
-                offline |= !pcm[segment].ring;
+                offline |= !pcm[segment].live && !pcm[segment].ring;
                 voiceContext.silent = voiceContext.silent && (part.silent ||
                     std::max(quantumStart, quantumEnd) <= part.startMs ||
                     std::min(quantumStart, quantumEnd) >= part.startMs + part.durationMs);

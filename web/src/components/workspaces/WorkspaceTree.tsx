@@ -17,12 +17,22 @@ import { RefreshButton } from "../ui_primitives";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useProjectFolder } from "../../hooks/useProjectFolder";
+import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { fileManagerKind } from "../../utils/platform";
+import { useOpenProjectConnection } from "../../lib/websocket/openProjectSignal";
 import {
   folderEntryPath,
   isReservedProjectEntry,
   revealLabelKey
 } from "./projectFolderPaths";
+
+/** File names of the documents that open in their own editor from Files. */
+const DOCUMENT_FILE_SUFFIXES = [".workflow.json", ".timeline.json"] as const;
+
+const isDocumentFile = (path: string): boolean => {
+  const lower = path.toLowerCase();
+  return DOCUMENT_FILE_SUFFIXES.some((suffix) => lower.endsWith(suffix));
+};
 
 /** Props forwarded onto a rendered tree row. */
 interface TreeViewItemSlotProps {
@@ -54,7 +64,12 @@ const workspaceTreeStyles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.md,
       padding: getSpacingPx(SPACING.md),
-      backgroundColor: theme.vars.palette.background.default
+      backgroundColor: theme.vars.palette.background.default,
+      transition: MOTION.border
+    },
+
+    ".file-tree-container.drop-active": {
+      borderColor: theme.vars.palette.primary.main
     },
 
     ".tree-actions": {
@@ -238,6 +253,26 @@ const updateTreeWithChildren = (
 /** How deep a workspace path sits, so parents can be merged before children. */
 const depthOf = (path: string): number => path.split("/").length;
 
+/**
+ * The project-folder directory a file dropped on `item` lands in: a folder
+ * row is that folder, a file row is the folder it is in, and anywhere else in
+ * the tree is the project folder itself (`.`).
+ */
+const dropDirectoryFor = (itemId: string | null, item: TreeViewItem | undefined): string => {
+  if (!itemId || itemId.endsWith("/loading") || itemId.endsWith("/error")) {
+    return ".";
+  }
+  if (item?.treeItemProps?.className === "folder-item") {
+    return itemId;
+  }
+  const slash = itemId.lastIndexOf("/");
+  return slash > 0 ? itemId.slice(0, slash) : ".";
+};
+
+/** True when a drag carries files from the OS rather than an in-app item. */
+const carriesFiles = (event: React.DragEvent): boolean =>
+  Array.from(event.dataTransfer.types).includes("Files");
+
 const shouldLoadChildren = (item: TreeViewItem | undefined, loadingLabel: string): boolean => {
   return Boolean(
     item?.children?.length === 1 && item.children[0].label === loadingLabel
@@ -258,6 +293,8 @@ interface WorkspaceTreeProps {
 const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
   const { t } = useTranslation();
   const theme = useTheme();
+  // Opens the socket, so the folder is watched and the tree hears of renames.
+  useOpenProjectConnection();
   const [files, setFiles] = useState<TreeViewItem[]>([]);
   const filesRef = useRef<TreeViewItem[]>([]);
   filesRef.current = files;
@@ -268,6 +305,8 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
 
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const setPanelVisibility = usePanelStore((state) => state.setVisibility);
+  const uploadAsset = useAssetUpload((state) => state.uploadAsset);
+  const [isDropActive, setIsDropActive] = useState(false);
 
   const { folder, isLoading: isLoadingWorkspaces } =
     useProjectFolder(projectId);
@@ -371,8 +410,9 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
     [loadItemChildren]
   );
 
-  // Double-click opens the file as a workspace tab. Handing it to the OS is a
-  // secondary action on the selected file ("Open Externally"), Electron only.
+  // Double-click opens the file as a workspace tab. A workflow or timeline
+  // file opens its document's editor. Handing it to the OS is a secondary
+  // action on the selected file ("Open Externally"), Electron only.
   const handleItemDoubleClick = useCallback(
     async (_event: React.MouseEvent, itemId: string) => {
       const wsId = workspaceIdRef.current;
@@ -383,6 +423,26 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
       if (item?.treeItemProps?.className === "folder-item") {
         await loadItemChildren(itemId);
         return;
+      }
+      if (isDocumentFile(itemId)) {
+        const document = await trpcClient.projects.documentByFile
+          .query({ id: projectId, path: itemId })
+          .catch((error: unknown) => {
+            // The file still opens, as a file.
+            console.warn("Could not find the document of a file", error);
+            return null;
+          });
+        if (document) {
+          openTab({
+            type: document.type,
+            ref: document.ref,
+            mode: "edit",
+            title: document.name,
+            projectId
+          });
+          setPanelVisibility(false);
+          return;
+        }
       }
       openTab({
         type: "workspace-file",
@@ -456,6 +516,43 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
     }
   }, [handleItemDoubleClick]);
 
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    if (!carriesFiles(e)) { return; }
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    setIsDropActive(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    if (e.currentTarget.contains(e.relatedTarget as Node | null)) { return; }
+    setIsDropActive(false);
+  }, []);
+
+  // A file dropped on the tree is uploaded into the project folder, into the
+  // directory it was dropped on, and becomes an asset there.
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      if (!carriesFiles(e)) { return; }
+      e.preventDefault();
+      setIsDropActive(false);
+      const treeItem = (e.target as HTMLElement).closest('[data-testid="tree-item"]');
+      const itemId = treeItem?.getAttribute("data-itemid") ?? null;
+      const directory = dropDirectoryFor(
+        itemId,
+        itemId ? findItemInTree(filesRef.current, itemId) : undefined
+      );
+      for (const file of Array.from(e.dataTransfer.files)) {
+        uploadAsset({
+          file,
+          project_id: projectId,
+          directory,
+          onCompleted: () => { void refetchFiles(); }
+        });
+      }
+    },
+    [projectId, refetchFiles, uploadAsset]
+  );
+
   const breadcrumbSegments =
     selectedFilePath && !selectedFilePath.includes("/loading")
       ? selectedFilePath.split("/").filter(Boolean)
@@ -511,7 +608,14 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
         </div>
       )}
 
-      <div className="file-tree-container" onContextMenu={handleContextMenu}>
+      <div
+        className={`file-tree-container${isDropActive ? " drop-active" : ""}`}
+        data-testid="workspace-file-drop"
+        onContextMenu={handleContextMenu}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         {isLoadingWorkspaces || isLoadingFiles ? (
           <div className="skeleton-tree">
             <Skeleton variant="text" width="60%" height={24} />

@@ -22,9 +22,13 @@ describe("PostgreSQL repository on the real embedded PostgreSQL engine", () => {
       expect(await repository.get("workflows", "bob", workflow.id)).toBeNull();
       await expect(repository.put("workflows", "bob", { id: workflow.id, graph: { nodes: [], edges: [] } })).rejects.toThrow("already owned");
       expect(await repository.delete("workflows", "bob", workflow.id)).toBe(false);
-      expect(await repository.get("workflows", "alice", workflow.id)).toMatchObject({ graph });
+      expect(await repository.get("workflows", "alice", workflow.id)).toMatchObject({ graph, file_path: null, file_hash: null, file_error: null });
+      const filed = await repository.put("workflows", "alice", { name: "on disk", graph, project_id: "film", file_path: "Workflows/on disk.workflow.json", file_hash: "b".repeat(64) });
+      expect(await repository.get("workflows", "alice", filed.id)).toMatchObject({ file_path: "Workflows/on disk.workflow.json", file_hash: "b".repeat(64) });
       const asset = await repository.put("assets", "alice", { name: "binary", metadata: { binary: true }, favorite: true });
-      expect(await repository.get("assets", "alice", asset.id)).toMatchObject({ metadata: { binary: true }, favorite: true });
+      expect(await repository.get("assets", "alice", asset.id)).toMatchObject({ metadata: { binary: true }, favorite: true, workspace_path: null, content_hash: null });
+      const file = await repository.put("assets", "alice", { name: "fox in snow", project_id: "film", workspace_path: "Generated/fox-in-snow.png", content_hash: "a".repeat(64) });
+      expect(await repository.get("assets", "alice", file.id)).toMatchObject({ project_id: "film", workspace_path: "Generated/fox-in-snow.png", content_hash: "a".repeat(64) });
       const secret = await repository.put("secrets", "alice", { key: "OPENAI_API_KEY", encrypted_value: "ciphertext" });
       expect(await repository.get("secrets", "bob", secret.id)).toBeNull();
       const job = await repository.put("jobs", "alice", { workflow_id: workflow.id, status: "running" });
@@ -38,7 +42,7 @@ describe("PostgreSQL repository on the real embedded PostgreSQL engine", () => {
       INSERT INTO nodetool_assets VALUES ('legacy', 'alice', '{"sketchDocumentId":"sketch"}', 'created');`);
     const repository = await createPostgresRepositoryFromDatabase(drizzle(engine), () => engine.close());
     try {
-      expect(await repository.get("assets", "alice", "legacy")).toMatchObject({ updated_at: "created", sketch_document_id: "sketch", favorite: false, project_id: "default" });
+      expect(await repository.get("assets", "alice", "legacy")).toMatchObject({ updated_at: "created", sketch_document_id: "sketch", favorite: false, project_id: "default", workspace_path: null, content_hash: null });
       for (const id of ["abcdef12345600000000000000000000", "abcdef12345611111111111111111111"]) {
         await repository.put("workflows", "alice", { id, graph: { nodes: [], edges: [] } });
       }

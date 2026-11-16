@@ -67,6 +67,8 @@ import {
   isString
 } from "@nodetool-ai/node-sdk";
 import {
+  assertSaveTargetIsOwn,
+  writeSaveTargetFile,
   writeSavedFile,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
@@ -943,6 +945,7 @@ export class SaveVideoFileVideoNode extends BaseNode {
       saveToWorkspace: this.save_to_workspace,
       workspace: context?.workspace,
       workspaceDir: context?.workspaceDir,
+      context: context ?? null,
       bytes
     });
     return { output: videoRef(bytes, { uri: `file://${p}` }) };
@@ -1088,12 +1091,13 @@ export class SaveVideoNode extends BaseNode {
   async process(context?: ProcessingContext): Promise<SaveVideoNodeOutputs> {
     const folder = saveFolder(this.folder, context);
     const filename = dateName(String(this.name || "video.mp4"));
+    await assertSaveTargetIsOwn(context, path.resolve(folder, filename));
     await fs.mkdir(path.resolve(folder), { recursive: true });
     // dateName resolves to second granularity, so two saves in the same second
     // collide — de-duplicate with a -1/-2/… suffix rather than overwrite.
     const full = await uniqueTargetPath(path.resolve(folder, filename));
     const bytes = await videoBytesAsync(this.video, context);
-    await fs.writeFile(full, bytes);
+    await writeSaveTargetFile(context, full, bytes);
     return { output: videoRef(bytes, { uri: `file://${full}` }) };
   }
 }

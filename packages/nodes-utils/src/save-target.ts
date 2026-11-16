@@ -13,7 +13,18 @@
  *    two saves in the same second collided and one silently overwrote the
  *    other. `uniqueFilePath` numbers them `name_1.ext`, `name_2.ext`, …
  */
-import { loadNodeFsPromises, loadNodePath } from "./node-only-modules.js";
+import {
+  assertLocalPathIsOwn,
+  createLocalWorkspace,
+  saveRunFileAsset,
+  type RunFileAssetContext,
+  type Workspace
+} from "@nodetool-ai/runtime";
+import {
+  loadNodeFsPromises,
+  loadNodeFsSync,
+  loadNodePath
+} from "./node-only-modules.js";
 
 /** Title every save node shows on the workspace toggle. */
 export const SAVE_TO_WORKSPACE_TITLE = "Save to workspace";
@@ -79,10 +90,16 @@ export function folderPathOf(raw: FolderValue): string {
  * `@nodetool-ai/runtime` in the dependency order, and a `ProcessingContext`'s
  * `workspace` satisfies this shape.
  */
-export interface SaveWorkspace {
+export interface SaveWorkspace extends Partial<Pick<Workspace, "isNestedFolder">> {
   localDir: string | null;
-  exists(path: string): Promise<boolean>;
+  key(path: string): string;
   write(path: string, data: Uint8Array | string, contentType?: string): Promise<void>;
+  /** Create a file only when nothing is at `path`. False when something is. */
+  writeNew(
+    path: string,
+    data: Uint8Array | string,
+    contentType?: string
+  ): Promise<boolean>;
 }
 
 export interface SaveFolderOptions {
@@ -146,14 +163,15 @@ export function saveFilename(opts: SaveFilenameOptions): string {
 
 /**
  * Return a path nothing occupies: `target` itself when free, otherwise
- * `name_1.ext`, `name_2.ext`, … in the same directory.
+ * `name_1.ext`, `name_2.ext`, … in the same directory. A dangling link
+ * occupies its name: a write there would follow it and create its target.
  */
 export async function uniqueFilePath(target: string): Promise<string> {
   const fs = await loadNodeFsPromises();
   const path = await loadNodePath();
   const exists = async (p: string): Promise<boolean> => {
     try {
-      await fs.access(p);
+      await fs.lstat(p);
       return true;
     } catch {
       return false;
@@ -187,6 +205,135 @@ function requireFilename(filename: string): string {
   return name;
 }
 
+/**
+ * With the workspace toggle off the node names a host folder and writes with
+ * `node:fs`, past the workspace. A path outside the run's own folder is the
+ * user's choice. A path inside it, by any spelling, is held to the
+ * workspace's rule: the reserved `.nodetool/` directory and the folder of
+ * another project are refused, as the workspace refuses them
+ * (`WorkspaceReservedPathError`). A link inside the folder that leads out of
+ * it, or dangles, is refused too (`WorkspacePathError`): a copied folder can
+ * carry one, and the write would follow it.
+ *
+ * Write the file with {@link writeSaveTargetFile}, which opens it without
+ * following a link and checks it again where it really is.
+ */
+export async function assertSaveTargetIsOwn(
+  run: Pick<SaveFolderOptions, "workspace" | "workspaceDir"> | null | undefined,
+  target: string
+): Promise<void> {
+  const root = run?.workspace?.localDir ?? run?.workspaceDir ?? null;
+  if (!root) return;
+  // Nothing can be nested in a folder that does not exist yet, and the check
+  // must not create it.
+  const fs = await loadNodeFsPromises();
+  try {
+    await fs.stat(root);
+  } catch {
+    return;
+  }
+  // A run with only a directory still learns of a folder by its mark.
+  const workspace = run?.workspace?.isNestedFolder
+    ? { isNestedFolder: run.workspace.isNestedFolder.bind(run.workspace) }
+    : createLocalWorkspace(root);
+  await assertLocalPathIsOwn(workspace, root, target, target, { write: true });
+}
+
+/** Whether `error` is a Node system error with `code`. */
+function hasCode(error: Error, code: string): boolean {
+  return "code" in error && error.code === code;
+}
+
+export interface SaveTargetFileOptions {
+  /**
+   * Create the file only when nothing is at the name, a link included.
+   * The write then answers false instead of writing.
+   */
+  exclusive?: boolean;
+}
+
+/**
+ * Write `bytes` to `target`, a path {@link assertSaveTargetIsOwn} accepted.
+ *
+ * The check and the write are two steps, and a link swapped in between them
+ * would redirect a plain `writeFile`. So the name is opened with
+ * `O_NOFOLLOW`, and, where the host can say which file a descriptor is
+ * (`/proc/self/fd` on Linux), the opened file is checked again where it
+ * really is, before a byte is written. A file this call created and then
+ * refused is removed. A link at the name that the check accepted, one to a
+ * file of the folder's own, is written through by its resolved path.
+ *
+ * Returns false when `exclusive` is set and the name is taken.
+ */
+export async function writeSaveTargetFile(
+  run: Pick<SaveFolderOptions, "workspace" | "workspaceDir"> | null | undefined,
+  target: string,
+  bytes: Uint8Array | string,
+  options: SaveTargetFileOptions = {}
+): Promise<boolean> {
+  const fs = await loadNodeFsPromises();
+  const { constants } = await loadNodeFsSync();
+  const exclusive = options.exclusive === true;
+  const flags =
+    constants.O_WRONLY |
+    constants.O_CREAT |
+    (constants.O_NOFOLLOW ?? 0) |
+    (exclusive ? constants.O_EXCL : 0);
+  let opening = target;
+  let existed = await fs.lstat(target).then(
+    (info) => (info.isSymbolicLink() ? "link" : "file"),
+    () => "none"
+  );
+  if (existed === "link" && !exclusive) {
+    // Resolved and checked again: the link may have changed since the check.
+    try {
+      opening = await fs.realpath(target);
+    } catch {
+      throw new Error(
+        `'${target}' is a link to a file that does not exist. A save does ` +
+          `not create a file through a link. Choose another name.`
+      );
+    }
+    await assertSaveTargetIsOwn(run, opening);
+    existed = "file";
+  }
+  let handle: Awaited<ReturnType<typeof fs.open>>;
+  try {
+    handle = await fs.open(opening, flags, 0o666);
+  } catch (error) {
+    if (!(error instanceof Error)) throw error;
+    if (exclusive && hasCode(error, "EEXIST")) return false;
+    if (hasCode(error, "ELOOP")) {
+      throw new Error(
+        `'${target}' became a link while it was saved. The save was ` +
+          `stopped rather than written through it.`,
+        { cause: error }
+      );
+    }
+    throw error;
+  }
+  try {
+    const opened = await fs
+      .readlink(`/proc/self/fd/${handle.fd}`)
+      .catch(() => null);
+    if (opened !== null && opened !== opening) {
+      try {
+        await assertSaveTargetIsOwn(run, opened);
+      } catch (refusal) {
+        if (exclusive || existed === "none") {
+          await fs.unlink(opened).catch(() => undefined);
+        }
+        throw refusal;
+      }
+    }
+    if (!exclusive) await handle.truncate(0);
+    await handle.writeFile(bytes);
+  } finally {
+    await handle.close();
+  }
+  return true;
+}
+
 export interface SaveTargetOptions extends SaveFolderOptions {
   /** The node's filename property, with date tokens already expanded. */
   filename: string;
@@ -206,6 +353,7 @@ export async function resolveSaveTarget(
   const path = await loadNodePath();
   const folder = resolveSaveFolder(opts);
   const target = path.resolve(folder, requireFilename(opts.filename));
+  await assertSaveTargetIsOwn(opts, target);
   await fs.mkdir(path.dirname(target), { recursive: true });
   return opts.overwrite === true ? target : uniqueFilePath(target);
 }
@@ -218,30 +366,63 @@ export async function resolveSaveTarget(
  * node produces a file in the user's folder locally and an object in their
  * workspace prefix in the cloud. The name is deduplicated the same way in both
  * cases — a run that saves twice in one second must not silently overwrite its
- * first output.
+ * first output. Given the run's `context`, the file is also an asset: it is
+ * written once, in the project folder, and a row points at it.
  *
  * With the toggle off the node is naming a host folder, which only exists on a
  * local install; a cloud run has no such folder and says so rather than writing
  * somewhere the user will never find.
  */
 export async function writeSavedFile(
-  opts: SaveTargetOptions & { bytes: Uint8Array | string }
+  opts: SaveTargetOptions & {
+    bytes: Uint8Array | string;
+    /**
+     * The run, when the saved file should be an asset. Without it the file
+     * is written and no row is created.
+     */
+    context?: RunFileAssetContext | null;
+    /** The file's MIME type. Unset, the asset host infers it from the name. */
+    contentType?: string;
+  }
 ): Promise<string> {
   const workspace = opts.workspace ?? null;
   const isVirtual = workspace !== null && workspace.localDir === null;
 
   if (opts.saveToWorkspace === true && workspace) {
-    if (isVirtual) {
-      const filename = requireFilename(opts.filename);
-      const target =
-        opts.overwrite === true
-          ? filename
-          : await uniqueWorkspacePath(workspace, filename);
-      await workspace.write(target, opts.bytes);
-      return target;
+    const filename = requireFilename(opts.filename);
+    const bytes =
+      opts.bytes instanceof Uint8Array
+        ? opts.bytes
+        : new TextEncoder().encode(opts.bytes);
+    // A numbered name is claimed with an exclusive create, so two saves of
+    // one name, in this process or another, never write over each other.
+    const target =
+      opts.overwrite === true
+        ? workspace.key(filename)
+        : await claimWorkspacePath(
+            workspace,
+            workspace.key(filename),
+            bytes,
+            opts.contentType
+          );
+    if (opts.context) {
+      // The asset takes the claimed file: its row points at that path, and
+      // the host writes the same bytes there again.
+      await saveRunFileAsset(opts.context, bytes, {
+        path: target,
+        name: target.slice(target.lastIndexOf("/") + 1),
+        contentType: opts.contentType ?? "application/octet-stream"
+      });
+    } else if (opts.overwrite === true) {
+      await workspace.write(target, bytes, opts.contentType);
     }
-    // A local workspace is a real folder, so the file goes there by path —
-    // which is what a user browsing their workspace on disk expects.
+    // A local workspace reports the real path, which is what a user browsing
+    // their workspace on disk expects.
+    if (workspace.localDir) {
+      const path = await loadNodePath();
+      return path.join(workspace.localDir, target);
+    }
+    return target;
   } else if (isVirtual) {
     throw new Error(
       "This node writes to a folder on the machine running the workflow, and " +
@@ -250,23 +431,37 @@ export async function writeSavedFile(
     );
   }
 
-  const fs = await loadNodeFsPromises();
   const target = await resolveSaveTarget(opts);
-  await fs.writeFile(target, opts.bytes);
-  return target;
+  if (opts.overwrite === true) {
+    await writeSaveTargetFile(opts, target, opts.bytes);
+    return target;
+  }
+  // The free name is claimed with an exclusive create. One taken since it
+  // was found is passed over for the next.
+  let candidate = target;
+  while (!(await writeSaveTargetFile(opts, candidate, opts.bytes, { exclusive: true }))) {
+    candidate = await uniqueFilePath(target);
+  }
+  return candidate;
 }
 
-/** `name.ext`, `name_1.ext`, … — the first one the workspace does not hold. */
-async function uniqueWorkspacePath(
+/**
+ * Write `bytes` to `name.ext`, or to `name_1.ext`, `name_2.ext`, … when the
+ * name is taken, and return the path written. Each candidate is created with
+ * `writeNew`, so an existing file is never replaced.
+ */
+async function claimWorkspacePath(
   workspace: SaveWorkspace,
-  filename: string
+  filename: string,
+  bytes: Uint8Array,
+  contentType: string | undefined
 ): Promise<string> {
-  if (!(await workspace.exists(filename))) return filename;
+  const slash = filename.lastIndexOf("/");
   const dot = filename.lastIndexOf(".");
-  const base = dot > 0 ? filename.slice(0, dot) : filename;
-  const ext = dot > 0 ? filename.slice(dot) : "";
-  for (let i = 1; ; i++) {
-    const candidate = `${base}_${i}${ext}`;
-    if (!(await workspace.exists(candidate))) return candidate;
+  const base = dot > slash + 1 ? filename.slice(0, dot) : filename;
+  const ext = dot > slash + 1 ? filename.slice(dot) : "";
+  for (let i = 0; ; i++) {
+    const candidate = i === 0 ? filename : `${base}_${i}${ext}`;
+    if (await workspace.writeNew(candidate, bytes, contentType)) return candidate;
   }
 }

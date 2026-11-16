@@ -23,7 +23,7 @@ import {
   realpath
 } from "node:fs/promises";
 import { dirname, isAbsolute, relative } from "node:path";
-import { loadMediaRefBytes } from "@nodetool-ai/runtime";
+import { assertLocalPathIsOwn, loadMediaRefBytes } from "@nodetool-ai/runtime";
 import type { ProcessingContext, Workspace } from "@nodetool-ai/runtime";
 import type {
   CapabilityExport,
@@ -98,6 +98,10 @@ async function isWriteTargetWithinRoot(
  * both reads and writes (matching edit-search-tools): a missing read target
  * passes containment here and then fails naturally with the tool's own
  * "not found" error, rather than being mislabeled as an escape.
+ *
+ * A path in the folder of another project inside the workspace is refused as
+ * well, by the workspace's own rule. These tools open the real path with
+ * `node:fs`, so the workspace is not otherwise asked.
  */
 async function assertWithinWorkspace(
   context: ProcessingContext,
@@ -106,6 +110,9 @@ async function assertWithinWorkspace(
   const root = context.resolveWorkspacePath(".");
   if (!(await isWriteTargetWithinRoot(root, resolvedPath))) {
     throw new Error(`Path resolves outside the workspace: ${resolvedPath}`);
+  }
+  if (context.workspace) {
+    await assertLocalPathIsOwn(context.workspace, root, resolvedPath);
   }
 }
 

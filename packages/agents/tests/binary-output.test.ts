@@ -206,3 +206,68 @@ describe("persistBinaryOutput", () => {
     expect(urlPart.includes(")")).toBe(false);
   });
 });
+
+describe("persistBinaryOutput on a host that saves assets", () => {
+  /** A context whose `createAsset` records each call, as the server's port. */
+  function assetContext(workspace: InMemoryStorageAdapter, temp: InMemoryStorageAdapter) {
+    const created: Array<Record<string, unknown>> = [];
+    const ctx = {
+      ...makeContext({ workspaceStorage: workspace, storage: temp }),
+      userId: "u1",
+      projectId: null,
+      hasModelInterface: (name: string) => name === "createAsset",
+      createAsset: async (args: Record<string, unknown>) => {
+        created.push(args);
+        return { id: `asset-${created.length}` };
+      }
+    } as unknown as ProcessingContext;
+    return { ctx, created };
+  }
+
+  it("saves one asset at output_file and writes no temp storage copy", async () => {
+    const workspace = new InMemoryStorageAdapter();
+    const temp = new InMemoryStorageAdapter();
+    const { ctx, created } = assetContext(workspace, temp);
+    const bytes = new Uint8Array([1, 2, 3, 4]);
+
+    const result = await persistBinaryOutput(ctx, bytes, {
+      outputFile: "shots/hero.png",
+      contentType: "image/png",
+      uiPrefix: "screenshots"
+    });
+
+    expect(created).toEqual([
+      expect.objectContaining({
+        path: "shots/hero.png",
+        name: "hero.png",
+        contentType: "image/png",
+        content: bytes
+      })
+    ]);
+    expect(result).toMatchObject({
+      asset_id: "asset-1",
+      asset_url: "asset://asset-1.png",
+      output_file: "shots/hero.png",
+      kind: "image"
+    });
+    expect((await temp.list("")).entries).toEqual([]);
+  });
+
+  it("names no path without output_file, so the host files it in Generated/", async () => {
+    const workspace = new InMemoryStorageAdapter();
+    const temp = new InMemoryStorageAdapter();
+    const { ctx, created } = assetContext(workspace, temp);
+
+    const result = await persistBinaryOutput(ctx, new Uint8Array([0]), {
+      contentType: "application/pdf",
+      uiPrefix: "downloads"
+    });
+
+    expect(created).toHaveLength(1);
+    expect(created[0]).not.toHaveProperty("path");
+    expect(result.asset_url).toBe("asset://asset-1.pdf");
+    expect(result.output_file).toBeUndefined();
+    expect((await workspace.list("")).entries).toEqual([]);
+    expect((await temp.list("")).entries).toEqual([]);
+  });
+});

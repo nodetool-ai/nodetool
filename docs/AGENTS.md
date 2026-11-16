@@ -242,7 +242,6 @@ lazy implementation table disagree.
 | `apify` | `search_apify_actors`, `get_apify_actor`, `get_apify_actor_schema`, `run_apify_actor`, `get_apify_run`, `abort_apify_run`, `get_apify_dataset_items`, `get_apify_key_value_record` |
 | `collections` | `list_collections`, `query_collection`, `vector_text_search`, `vector_index`, `vector_hybrid_search`, `vector_recursive_split_and_index`, `vector_markdown_split_and_index`, `vector_batch_index`, `create_collection`, `delete_collection` |
 | `documents` | `extract_pdf_text`, `extract_pdf_tables`, `convert_pdf_to_markdown`, `convert_markdown_to_pdf`, `convert_document` |
-| `email` | `search_email`, `archive_email`, `add_label_to_email` |
 | `assets` | `list_assets`, `get_asset`, `save_asset`, `read_asset`, `asset_search`, `asset_list`, `list_images`, `view_image`, `update_asset` |
 | `jobs` | `list_jobs`, `get_job`, `get_job_logs`, `cancel_job` |
 | `costs` | `get_cost_summary` |
@@ -358,6 +357,10 @@ from inside an agent:
   `debug`. `create_workflow` and `POST /api/workflows/:id/run|debug` apply the
   provider/model half of this check themselves, so a hallucinated model id is
   refused at save and at run rather than surfacing mid-execution.
+  `create_workflow` and `update_workflow` also refuse a node type the registry
+  does not have. A workflow file edited in a project folder passes the same
+  checks before it is stored
+  ([Workflows are files in the folder](workspaces.md#workflows-are-files-in-the-folder)).
 - **`debug_workflow`** — run a workflow and return status, outputs, errors, job
   logs, and a graph overview in one call.
 - **`debug_app`** — validate a mini app's bindings, simulate it, and return each

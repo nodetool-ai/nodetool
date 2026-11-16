@@ -53,10 +53,50 @@
       "types": "./dist/asset-paths.d.ts",
       "import": "./dist/asset-paths.js"
     },
+    "./folder-lock-file": {
+      "nodetool-dev": "./src/folder-lock-file.ts",
+      "types": "./dist/folder-lock-file.d.ts",
+      "import": "./dist/folder-lock-file.js"
+    },
     "./storage": {
       "nodetool-dev": "./src/storage.ts",
       "types": "./dist/storage.d.ts",
       "import": "./dist/storage.js"
+    },
+    "./project-asset": {
+      "nodetool-dev": "./src/project-asset.ts",
+      "types": "./dist/project-asset.d.ts",
+      "import": "./dist/project-asset.js"
+    },
+    "./legacy-asset-move": {
+      "nodetool-dev": "./src/legacy-asset-move.ts",
+      "types": "./dist/legacy-asset-move.d.ts",
+      "import": "./dist/legacy-asset-move.js"
+    },
+    "./asset-references": {
+      "nodetool-dev": "./src/asset-references.ts",
+      "types": "./dist/asset-references.d.ts",
+      "import": "./dist/asset-references.js"
+    },
+    "./copy-asset-to-project": {
+      "nodetool-dev": "./src/copy-asset-to-project.ts",
+      "types": "./dist/copy-asset-to-project.d.ts",
+      "import": "./dist/copy-asset-to-project.js"
+    },
+    "./project-asset-file": {
+      "nodetool-dev": "./src/project-asset-file.ts",
+      "types": "./dist/project-asset-file.d.ts",
+      "import": "./dist/project-asset-file.js"
+    },
+    "./project-asset-directories": {
+      "nodetool-dev": "./src/project-asset-directories.ts",
+      "types": "./dist/project-asset-directories.d.ts",
+      "import": "./dist/project-asset-directories.js"
+    },
+    "./project-asset-storage": {
+      "nodetool-dev": "./src/project-asset-storage.ts",
+      "types": "./dist/project-asset-storage.d.ts",
+      "import": "./dist/project-asset-storage.js"
     },
     "./external-asset-lookup": {
       "nodetool-dev": "./src/external-asset-lookup.ts",

@@ -119,6 +119,25 @@ describe("NewProjectDialog", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it("states what a folder from another machine brings and what does not travel with it", () => {
+    renderDialog();
+
+    const note = screen.getByText(/do not travel with the folder/);
+    expect(note).toHaveTextContent(
+      "A folder copied from another machine opens with its workflows, timelines and assets."
+    );
+    for (const kind of [
+      "Chats",
+      "storyboards",
+      "scripts",
+      "sketches",
+      "apps",
+      "JS scripts"
+    ]) {
+      expect(note).toHaveTextContent(kind);
+    }
+  });
+
   it("has no Open folder entry on a production server", () => {
     canManage = false;
     renderDialog();
@@ -126,6 +145,9 @@ describe("NewProjectDialog", () => {
     expect(screen.getByLabelText("Project name")).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Open folder…" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/do not travel with the folder/)
     ).not.toBeInTheDocument();
   });
 

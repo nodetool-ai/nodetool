@@ -6,10 +6,14 @@
 
 import { test as base } from "@playwright/test";
 import { seedReturningUser } from "../smoke/pageLoadHelpers";
+import { emptyOwnedFolders } from "../journeys/ownedFolders";
 
 export const test = base.extend<{ seeded: void }>({
   seeded: [
     async ({ page, request }, use) => {
+      // A file left in a project folder by the previous test would come back as
+      // a document beside the seed.
+      emptyOwnedFolders();
       const reset = await request.post("/api/test/reset");
       if (!reset.ok()) {
         throw new Error(`latency fixture reset failed (${reset.status()}): ${await reset.text()}`);

@@ -439,8 +439,8 @@ struct AudioEngine::Impl {
         s->endFrame.assign(n, 0);
         s->failed = std::make_unique<std::atomic<bool>[]>(n);
         for (std::size_t i = 0; i < n; ++i) s->failed[i].store(false);
-        s->pcm.assign(n, VoicePcm{});
-        s->shuttlePcm.assign(n, VoicePcm{});
+        s->pcm.assign(n, VoicePcm{.live = true});
+        s->shuttlePcm.assign(n, VoicePcm{.live = true});
         s->doneMs.store(startMs);
         if (previous) {
             // Identity plus the affine source mapping, not gain, fades, pan or

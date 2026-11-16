@@ -7,7 +7,15 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL } from "@nodetool-ai/models-core";
+import {
+  JOB_TRACE_MARKER_DDL,
+  ASSET_FAVORITE_DDL,
+  ASSET_WORKSPACE_PATH_DDL,
+  ASSET_CONTENT_HASH_DDL,
+  WORKFLOW_FILE_PATH_DDL,
+  WORKFLOW_FILE_HASH_DDL,
+  WORKFLOW_FILE_ERROR_DDL
+} from "@nodetool-ai/models-core";
 import { RUN_TRACES_DDL, applyRunTraceRls } from "./run-traces.js";
 
 import {
@@ -334,6 +342,19 @@ const PROJECT_FOLDER_DDL: readonly string[] = [
   "ALTER TABLE nodetool_workspaces ADD COLUMN origin TEXT NOT NULL DEFAULT 'created'"
 ];
 
+/**
+ * A project timeline is a JSON file in its project's folder. The row records
+ * the file's path relative to that folder, the SHA-256 of the file content
+ * last synced with the row, and what the last reconcile found wrong with the
+ * file. The same three columns `nodetool_workflows` has.
+ */
+const TIMELINE_FILE_PATH_DDL =
+  "ALTER TABLE timeline_sequences ADD COLUMN file_path TEXT";
+const TIMELINE_FILE_HASH_DDL =
+  "ALTER TABLE timeline_sequences ADD COLUMN file_hash TEXT";
+const TIMELINE_FILE_ERROR_DDL =
+  "ALTER TABLE timeline_sequences ADD COLUMN file_error TEXT";
+
 const USER_PERMISSIONS_DDL: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS nodetool_user_permissions (
     user_id TEXT PRIMARY KEY NOT NULL,
@@ -353,7 +374,15 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...USER_PERMISSIONS_DDL,
   THREAD_KIND_DDL,
   ...MESSAGE_BRANCH_DDL,
-  ...PROJECT_FOLDER_DDL
+  ...PROJECT_FOLDER_DDL,
+  ASSET_WORKSPACE_PATH_DDL,
+  ASSET_CONTENT_HASH_DDL,
+  WORKFLOW_FILE_PATH_DDL,
+  WORKFLOW_FILE_HASH_DDL,
+  WORKFLOW_FILE_ERROR_DDL,
+  TIMELINE_FILE_PATH_DDL,
+  TIMELINE_FILE_HASH_DDL,
+  TIMELINE_FILE_ERROR_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -4467,6 +4496,153 @@ export const migrations: MigrationDef[] = [
     },
     async down() {
       // Keep both columns: dropping them would lose which folder is a project's.
+    }
+  },
+
+  // An asset is a file in its project's folder. `workspace_path` is that
+  // file's path relative to the folder. Rows from before keep null and read
+  // their bytes from `external_path` or the legacy storage key.
+  {
+    version: "20261117_000000",
+    name: "add_asset_workspace_path",
+    createsTables: [],
+    modifiesTables: ["nodetool_assets"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_assets"))) return;
+      if (!(await db.columnExists("nodetool_assets", "workspace_path"))) {
+        await db.execute(ASSET_WORKSPACE_PATH_DDL);
+      }
+    },
+    async down() {
+      // The column stays: dropping it would lose where each asset's file is.
+    }
+  },
+
+  // The SHA-256 of an asset's whole file in its project folder. A background
+  // job fills it in, so every row starts with null.
+  {
+    version: "20261118_000000",
+    name: "add_asset_content_hash",
+    createsTables: [],
+    modifiesTables: ["nodetool_assets"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_assets"))) return;
+      if (!(await db.columnExists("nodetool_assets", "content_hash"))) {
+        await db.execute(ASSET_CONTENT_HASH_DDL);
+      }
+    },
+    async down() {
+      // The column stays: a dropped hash costs a full read of every file.
+    }
+  },
+
+  // A project workflow is a JSON file in its project's folder. `file_path`
+  // is that file's path relative to the folder. Rows from before keep null
+  // until the project is next reconciled, which writes their files.
+  {
+    version: "20261119_000000",
+    name: "add_workflow_file_path",
+    createsTables: [],
+    modifiesTables: ["nodetool_workflows"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_workflows"))) return;
+      if (!(await db.columnExists("nodetool_workflows", "file_path"))) {
+        await db.execute(WORKFLOW_FILE_PATH_DDL);
+      }
+    },
+    async down() {
+      // The column stays: dropping it would lose where each workflow's file is.
+    }
+  },
+
+  // The SHA-256 of the workflow file content last synced with the row. The
+  // reconciler compares it with the file to tell an outside edit apart.
+  {
+    version: "20261120_000000",
+    name: "add_workflow_file_hash",
+    createsTables: [],
+    modifiesTables: ["nodetool_workflows"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_workflows"))) return;
+      if (!(await db.columnExists("nodetool_workflows", "file_hash"))) {
+        await db.execute(WORKFLOW_FILE_HASH_DDL);
+      }
+    },
+    async down() {
+      // The column stays: without it every file reads as an outside edit.
+    }
+  },
+
+  // What the last reconcile found wrong with a workflow's file: the file is
+  // missing, or an edit to it was refused. Null while row and file agree.
+  {
+    version: "20261121_000000",
+    name: "add_workflow_file_error",
+    createsTables: [],
+    modifiesTables: ["nodetool_workflows"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_workflows"))) return;
+      if (!(await db.columnExists("nodetool_workflows", "file_error"))) {
+        await db.execute(WORKFLOW_FILE_ERROR_DDL);
+      }
+    },
+    async down() {
+      // The column stays: the next reconcile would record the same state.
+    }
+  },
+
+  // A project timeline is a JSON file in its project's folder. `file_path`
+  // is that file's path relative to the folder. Rows from before keep null
+  // until the project is next reconciled, which writes their files.
+  {
+    version: "20261122_000000",
+    name: "add_timeline_file_path",
+    createsTables: [],
+    modifiesTables: ["timeline_sequences"],
+    async up(db) {
+      if (!(await db.tableExists("timeline_sequences"))) return;
+      if (!(await db.columnExists("timeline_sequences", "file_path"))) {
+        await db.execute(TIMELINE_FILE_PATH_DDL);
+      }
+    },
+    async down() {
+      // The column stays: dropping it would lose where each timeline's file is.
+    }
+  },
+
+  // The SHA-256 of the timeline file content last synced with the row. The
+  // reconciler compares it with the file to tell an outside edit apart.
+  {
+    version: "20261123_000000",
+    name: "add_timeline_file_hash",
+    createsTables: [],
+    modifiesTables: ["timeline_sequences"],
+    async up(db) {
+      if (!(await db.tableExists("timeline_sequences"))) return;
+      if (!(await db.columnExists("timeline_sequences", "file_hash"))) {
+        await db.execute(TIMELINE_FILE_HASH_DDL);
+      }
+    },
+    async down() {
+      // The column stays: without it every file reads as an outside edit.
+    }
+  },
+
+  // What the last reconcile found wrong with a timeline's file: the file is
+  // missing, or an edit to it was refused. Null while row and file agree.
+  {
+    version: "20261124_000000",
+    name: "add_timeline_file_error",
+    createsTables: [],
+    modifiesTables: ["timeline_sequences"],
+    async up(db) {
+      if (!(await db.tableExists("timeline_sequences"))) return;
+      if (!(await db.columnExists("timeline_sequences", "file_error"))) {
+        await db.execute(TIMELINE_FILE_ERROR_DDL);
+      }
+    },
+    async down() {
+      // The column stays: the next reconcile would record the same state.
     }
   }
 ];

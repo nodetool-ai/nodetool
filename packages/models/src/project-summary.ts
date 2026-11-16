@@ -43,6 +43,10 @@ import { Prediction } from "./prediction.js";
 import { Script, type ScriptDocument } from "./script.js";
 import { Storyboard, type StoryboardDocument } from "./storyboard.js";
 import { TimelineSequence } from "./timeline-sequence.js";
+import {
+  listDocumentFiles,
+  type ProjectDocumentFile
+} from "./document-file-state.js";
 
 /**
  * The document kinds a project groups, spelled as the workspace tab type that
@@ -65,6 +69,20 @@ export interface ProjectDocumentRef {
   ref: string;
   name: string;
   updatedAt: string;
+  /**
+   * The document's file in the project folder, for a workflow or timeline
+   * that has one. Absent for the other kinds.
+   */
+  file?: ProjectDocumentFile | null;
+}
+
+/**
+ * A document in a project's list. The list holds the kinds a tab opens that
+ * can be copied, plus workflows, whose files live in the folder too.
+ */
+export interface ProjectDocumentListEntry
+  extends Omit<ProjectDocumentRef, "type"> {
+  type: ProjectDocumentType | "workflow";
 }
 
 export interface StoryboardStatus {
@@ -607,16 +625,43 @@ const toRef = <T extends ProjectSummaryDocumentType = ProjectDocumentType>(
 const newestFirst = <T extends { updatedAt: string }>(refs: T[]): T[] =>
   refs.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 
-/** Every document naming this project, newest first. */
+/**
+ * Every document naming this project, newest first. A workflow and a
+ * timeline carry the state of their file in the project folder.
+ */
 export async function listProjectDocuments(
   userId: string,
   projectId: string
-): Promise<ProjectDocumentRef[]> {
+): Promise<ProjectDocumentListEntry[]> {
   const rows = await loadProjectDocuments(userId, projectId);
-  return newestFirst([
+  const [workflowFiles, timelineFiles] = await Promise.all([
+    listDocumentFiles(
+      "workflow",
+      userId,
+      rows.workflows.map((row) => row.id)
+    ),
+    listDocumentFiles(
+      "timeline",
+      userId,
+      rows.timelines.map((row) => row.id)
+    )
+  ]);
+  const withFile = <T extends { ref: string }>(
+    ref: T,
+    files: Map<string, ProjectDocumentFile>
+  ): T & { file: ProjectDocumentFile | null } => ({
+    ...ref,
+    file: files.get(ref.ref) ?? null
+  });
+  return newestFirst<ProjectDocumentListEntry>([
+    ...rows.workflows.map((row) =>
+      withFile(toRef("workflow", row), workflowFiles)
+    ),
     ...rows.storyboards.map((row) => toRef("storyboard", row)),
     ...rows.scripts.map((row) => toRef("script", row)),
-    ...rows.timelines.map((row) => toRef("timeline", row)),
+    ...rows.timelines.map((row) =>
+      withFile(toRef("timeline", row), timelineFiles)
+    ),
     ...rows.sketches.map((row) => toRef("sketch", row)),
     ...rows.applications.map((row) => toRef("application", row)),
     ...rows.jsScripts.map((row) => toRef("jsscript", row)),

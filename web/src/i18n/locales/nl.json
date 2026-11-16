@@ -6139,13 +6139,16 @@
         "createError": "Kon het project niet aanmaken: {{error}}",
         "openFolder": "Map openen…",
         "openFolderHint": "Heb je al een map? Open die als project. Er worden geen bestanden verplaatst.",
+        "openFolderTravels": "Een map van een andere computer opent met zijn workflows, tijdlijnen en assets. Chats, storyboards, scripts, schetsen, apps en JS-scripts gaan niet mee met de map.",
         "openFolderError": "Kan de map niet openen: {{error}}"
       },
       "folder": {
         "notFound": "Map niet gevonden",
         "notFoundDetail": "De map van {{name}} is verplaatst, hernoemd of staat op een station dat niet is aangesloten. Runs starten pas als je de map zoekt.",
         "locate": "Zoeken",
-        "locateError": "Kan de map niet vinden: {{error}}"
+        "locateError": "Kan de map niet vinden: {{error}}",
+        "moving": "Bestanden worden naar de projectmap verplaatst",
+        "movingDetail": "{{done}} van {{total}} bestanden verplaatst. Je assets blijven ondertussen beschikbaar."
       },
       "home": {
         "homeTab": "Thuis",
@@ -6424,16 +6427,42 @@
           "export": "Exporteren",
           "archive": "Archief",
           "restore": "Herstellen",
-          "delete": "Verwijderen"
+          "delete": "Verwijderen",
+          "collect": "Bestanden verzamelen"
         },
         "projectActions": "Projectacties",
         "actionsForProject": "Acties voor {{projectName}}",
         "exporting": "Exporteren…",
         "deleteProject": "Project verwijderen",
         "confirmDeleteTitle": "{{projectName}} verwijderen?",
-        "confirmDeleteBody": "Verwijder {{projectName}} en al zijn documenten, gesprekken, gegenereerde resultaten, activa, taken en projectbestanden.",
+        "confirmDeleteBody": "Verwijder {{projectName}} en al zijn documenten, gesprekken, taken en assets die buiten de projectmap zijn opgeslagen.",
         "deleteIrreversible": "Dit kan niet ongedaan worden gemaakt.",
-        "error": "Kon {{action}} {{projectName}} niet: {{error}}"
+        "deleteFolderTrash": "De projectmap wordt naar de prullenbak verplaatst.",
+        "deleteFolderRemove": "De projectmap en alle bestanden erin worden uit de cloudopslag verwijderd.",
+        "deleteFolderKeep": "De projectmap blijft met alle bestanden op zijn plek. NodeTool verwijdert alleen de map .nodetool erin.",
+        "deleteFolderMissing": "De projectmap is niet bereikbaar, dus NodeTool laat hem ongemoeid.",
+        "folderMovedAsideTo": "De prullenbak was niet bereikbaar. De projectmap is verplaatst naar {{path}}.",
+        "folderMovedAside": "De prullenbak was niet bereikbaar. De projectmap is verplaatst naar de map .trash in de projectenmap.",
+        "folderTrashFailedAt": "De projectmap kon niet naar de prullenbak worden verplaatst. Hij staat nog op {{path}}.",
+        "folderTrashFailed": "De projectmap kon niet naar de prullenbak worden verplaatst. Hij blijft op zijn plek.",
+        "error": "Kon {{action}} {{projectName}} niet: {{error}}",
+        "collecting": "Bestanden verzamelen…",
+        "collectResult": "Bestanden verzameld in {{projectName}}: {{copied}} gekopieerd, {{skipped}} overgeslagen, {{failed}} mislukt.",
+        "linkedTitle": "{{projectName}} koppelt bestanden buiten de eigen map",
+        "linkedBody": "Een export bevat de projectmap. Deze bestanden zijn van elders gekoppeld en staan er niet in:",
+        "linkedChoice": "Verzamelen en exporteren kopieert ze naar de map Imported en exporteert daarna. Annuleren behoudt de koppelingen en exporteert niets.",
+        "collectAndExport": "Verzamelen en exporteren"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Kopiëren of koppelen?",
+        "confirm": "Importeren",
+        "copy": "Naar de projectmap kopiëren",
+        "copyHint": "Het project houdt een eigen kopie. Wijzigingen in het origineel komen daar niet in.",
+        "link": "Ter plaatse koppelen",
+        "linkHint": "Er wordt niets gekopieerd. Het project leest het bestand waar het staat. Bestanden verzamelen kopieert het later.",
+        "threshold": "Bestanden van {{size}} of meer worden standaard gekoppeld."
       }
     }
   },
@@ -9074,10 +9103,6 @@
         "REPLICATE_API_TOKEN": {
           "button": "Ontvang een repliceer-API-token",
           "tooltip": "Ga naar de pagina API-tokens repliceren"
-        },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Wachtwoord voor de Google-app verkrijgen",
-          "tooltip": "Ga naar de pagina met wachtwoorden voor de Google-accountapp"
         },
         "ELEVENLABS_API_KEY": {
           "button": "Ontvang de ElevenLabs API-sleutel",
@@ -15080,7 +15105,6 @@
       "csv": "CSV-bestand",
       "unknown": "Onbekend bestandstype",
       "unknownContentType": "Onbekend inhoudstype",
-      "offline": "Offline media",
       "thumbnail": "Miniatuur",
       "folder": "Map"
     },
@@ -20115,7 +20139,82 @@
       "revealInFinder": "Toon in Finder",
       "revealInExplorer": "Toon in Verkenner",
       "revealInFileManager": "Toon in bestandsbeheer"
+    },
+    "documentFile": {
+      "invalidTitle": "Dit bestand bevat een fout",
+      "invalidBody": "{{path}} is niet geladen: {{error}}. De laatste geldige versie blijft open en kan nog steeds worden uitgevoerd.",
+      "openFile": "Bestand openen",
+      "missingTitle": "Bestand ontbreekt",
+      "missingBody": "{{path}} staat niet meer in de projectmap. Herstellen schrijft het opnieuw vanuit dit document.",
+      "restore": "Herstellen",
+      "delete": "Verwijderen",
+      "cancel": "Annuleren",
+      "deleteTitle": "{{name}} verwijderen?",
+      "deleteDescription": "‘{{name}}’ en de versiegeschiedenis worden definitief verwijderd.",
+      "restoreFailed": "Het bestand is niet hersteld: {{error}}",
+      "deleteFailed": "Het document is niet verwijderd: {{error}}"
+    },
+    "migration": {
+      "title": "Verplaats je projecten naar mappen",
+      "intro": "NodeTool bewaart nu elk project in een eigen map op deze computer. Je bestanden, workflows en tijdlijnen worden daarheen verplaatst en je kunt ze in andere apps openen.",
+      "planProjects": "Projecten die een map krijgen",
+      "planFiles": "Te verplaatsen bestanden",
+      "planWorkflows": "Workflows die als bestanden worden opgeslagen",
+      "planTimelines": "Tijdlijnen die als bestanden worden opgeslagen",
+      "extraTitle": "Projecten met meer dan één map",
+      "extraBody": "Elk van deze projecten behoudt één map. NodeTool toont de andere niet meer en hun bestanden blijven waar ze staan.",
+      "extraKeeps": "{{project}} behoudt {{folder}}",
+      "extraHidden": "Niet meer zichtbaar: {{folder}}",
+      "location": "Locatie",
+      "changeLocation": "Locatie wijzigen",
+      "locationError": "Deze locatie kan niet worden gebruikt: {{error}}",
+      "permissionWarning": "macOS vraagt of NodeTool deze map mag gebruiken. Kies Sta toe, of kies een map buiten Documenten, Bureaublad, Downloads, iCloud Drive en externe schijven.",
+      "safety": "Er gaat niets verloren. Elk bestand wordt gekopieerd en gecontroleerd voordat de oude kopie wordt verwijderd. Je kunt doorwerken terwijl de bestanden worden verplaatst.",
+      "later": "Niet nu",
+      "confirm": "Bestanden verplaatsen",
+      "planError": "Het plan kon niet worden geladen: {{error}}",
+      "confirmError": "Het verplaatsen is niet gestart: {{error}}",
+      "actionError": "Het verplaatsen kon niet worden gewijzigd: {{error}}",
+      "progressRegion": "Bestanden worden naar projectmappen verplaatst",
+      "progressTitle": "Bestanden worden naar projectmappen verplaatst",
+      "pausedTitle": "Het verplaatsen van bestanden is gepauzeerd",
+      "doneTitle": "Bestanden verplaatst",
+      "progressCount": "{{done}} van {{total}} bestanden verplaatst",
+      "phaseFolders": "Projectmappen worden gemaakt",
+      "phaseFiles": "Workflows en tijdlijnen worden als bestanden opgeslagen",
+      "currentProject": "De bestanden van {{project}} worden verplaatst",
+      "pause": "Pauzeren",
+      "resume": "Hervatten",
+      "failuresTitle": "Kon niet worden verplaatst ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "Meer niet getoond: {{count}}",
+      "retry": "Opnieuw proberen",
+      "donePath": "Je bestanden staan in {{path}}",
+      "close": "Sluiten"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "Bron van het asset",
+    "projectTab": "Dit project",
+    "personalTab": "Persoonlijk",
+    "personalHint": "Kiezen uit Persoonlijk kopieert het bestand naar dit project.",
+    "copying": "Kopiëren naar dit project…",
+    "copyFailed": "Het asset kon niet naar dit project worden gekopieerd."
+  },
+  "assetFileStatus": {
+    "missing": "Ontbreekt",
+    "missingTooltip": "Het bestand staat niet waar dit item het verwacht. Koppel het opnieuw aan de nieuwe locatie van het bestand of verwijder het item.",
+    "linked": "Gekoppeld",
+    "linkedTooltip": "Dit item gebruikt een bestand buiten de projectmap op de plek waar het staat.",
+    "relink": "Opnieuw koppelen",
+    "relinkTooltip": "Kies de nieuwe locatie van het bestand",
+    "relinkNoPath": "De locatie van dat bestand kon niet worden gelezen. Kies een bestand op deze computer.",
+    "relinkFailed": "Opnieuw koppelen mislukt: {{error}}",
+    "remove": "Verwijderen",
+    "removeTooltip": "Dit item uit NodeTool verwijderen",
+    "removeTitle": "\"{{name}}\" verwijderen?",
+    "removeBody": "Het item wordt uit NodeTool verwijderd. Documenten die het gebruiken, kunnen het niet meer tonen.",
+    "cancel": "Annuleren"
   },
   "storyboardText": {
     "mode": "Tekst",

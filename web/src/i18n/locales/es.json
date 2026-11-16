@@ -6218,13 +6218,16 @@
         "createError": "No se pudo crear el proyecto: {{error}}",
         "openFolder": "Abrir carpeta…",
         "openFolderHint": "¿Ya tienes una carpeta? Ábrela como proyecto. No se mueve ningún archivo.",
+        "openFolderTravels": "Una carpeta copiada desde otro equipo se abre con sus flujos de trabajo, líneas de tiempo y recursos. Los chats, storyboards, guiones, bocetos, apps y scripts JS no viajan con la carpeta.",
         "openFolderError": "No se pudo abrir la carpeta: {{error}}"
       },
       "folder": {
         "notFound": "Carpeta no encontrada",
         "notFoundDetail": "La carpeta de {{name}} se movió, se renombró o está en una unidad no conectada. Las ejecuciones no empiezan hasta que la localices.",
         "locate": "Localizar",
-        "locateError": "No se pudo localizar la carpeta: {{error}}"
+        "locateError": "No se pudo localizar la carpeta: {{error}}",
+        "moving": "Moviendo archivos a la carpeta del proyecto",
+        "movingDetail": "{{done}} de {{total}} archivos movidos. Tus recursos siguen disponibles mientras tanto."
       },
       "home": {
         "homeTab": "Inicio",
@@ -6519,16 +6522,42 @@
           "export": "Exportar",
           "archive": "Archivo",
           "restore": "Restaurar",
-          "delete": "Eliminar"
+          "delete": "Eliminar",
+          "collect": "Reunir archivos"
         },
         "projectActions": "Acciones del proyecto",
         "actionsForProject": "Acciones para {{projectName}}",
         "exporting": "Exportando…",
         "deleteProject": "Eliminar proyecto",
         "confirmDeleteTitle": "¿Eliminar {{projectName}}?",
-        "confirmDeleteBody": "Elimine {{projectName}} y todos sus documentos, conversaciones, resultados generados, activos, trabajos y archivos de proyecto.",
+        "confirmDeleteBody": "Elimine {{projectName}} y todos sus documentos, conversaciones, trabajos y activos almacenados fuera de la carpeta del proyecto.",
         "deleteIrreversible": "Esto no se puede deshacer.",
-        "error": "No se pudo {{action}} {{projectName}}: {{error}}"
+        "deleteFolderTrash": "La carpeta del proyecto se mueve a la papelera.",
+        "deleteFolderRemove": "La carpeta del proyecto y todos sus archivos se eliminan del almacenamiento en la nube.",
+        "deleteFolderKeep": "La carpeta del proyecto se queda donde está con todos sus archivos. NodeTool solo elimina la carpeta .nodetool que contiene.",
+        "deleteFolderMissing": "No se puede acceder a la carpeta del proyecto, así que NodeTool la deja como está.",
+        "folderMovedAsideTo": "No se pudo acceder a la papelera. La carpeta del proyecto se movió a {{path}}.",
+        "folderMovedAside": "No se pudo acceder a la papelera. La carpeta del proyecto se movió a la carpeta .trash de la carpeta de proyectos.",
+        "folderTrashFailedAt": "No se pudo mover la carpeta del proyecto a la papelera. Sigue en {{path}}.",
+        "folderTrashFailed": "No se pudo mover la carpeta del proyecto a la papelera. Sigue donde estaba.",
+        "error": "No se pudo {{action}} {{projectName}}: {{error}}",
+        "collecting": "Reuniendo archivos…",
+        "collectResult": "Archivos reunidos en {{projectName}}: {{copied}} copiados, {{skipped}} omitidos, {{failed}} con error.",
+        "linkedTitle": "{{projectName}} vincula archivos fuera de su carpeta",
+        "linkedBody": "Una exportación contiene la carpeta del proyecto. Estos archivos están vinculados desde otro lugar y no están en ella:",
+        "linkedChoice": "Reunir y exportar los copia en la carpeta Imported y luego exporta. Cancelar mantiene los vínculos y no exporta nada.",
+        "collectAndExport": "Reunir y exportar"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "¿Copiar o vincular?",
+        "confirm": "Importar",
+        "copy": "Copiar en la carpeta del proyecto",
+        "copyHint": "El proyecto guarda su propia copia. Los cambios en el original no la afectan.",
+        "link": "Vincular en su lugar",
+        "linkHint": "No se copia nada. El proyecto lee el archivo donde está. Reunir archivos lo copia más tarde.",
+        "threshold": "Los archivos de {{size}} o más se vinculan de forma predeterminada."
       }
     }
   },
@@ -9218,10 +9247,6 @@
         "REPLICATE_API_TOKEN": {
           "button": "Obtener token de API replicado",
           "tooltip": "Ir a la página Replicar tokens de API"
-        },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Obtener la contraseña de la aplicación de Google",
-          "tooltip": "Vaya a la página de contraseñas de la aplicación de la cuenta de Google"
         },
         "ELEVENLABS_API_KEY": {
           "button": "Obtenga la clave API de ElevenLabs",
@@ -15351,7 +15376,6 @@
       "csv": "archivo CSV",
       "unknown": "Tipo de archivo desconocido",
       "unknownContentType": "Tipo de contenido desconocido",
-      "offline": "Medios fuera de línea",
       "thumbnail": "Miniatura",
       "folder": "Carpeta"
     },
@@ -20426,7 +20450,82 @@
       "revealInFinder": "Mostrar en el Finder",
       "revealInExplorer": "Mostrar en el Explorador de archivos",
       "revealInFileManager": "Mostrar en el administrador de archivos"
+    },
+    "documentFile": {
+      "invalidTitle": "Este archivo tiene un error",
+      "invalidBody": "{{path}} no se cargó: {{error}}. La última versión válida sigue abierta y se puede ejecutar.",
+      "openFile": "Abrir archivo",
+      "missingTitle": "Falta el archivo",
+      "missingBody": "{{path}} ya no está en la carpeta del proyecto. Restaurar lo vuelve a escribir desde este documento.",
+      "restore": "Restaurar",
+      "delete": "Eliminar",
+      "cancel": "Cancelar",
+      "deleteTitle": "¿Eliminar {{name}}?",
+      "deleteDescription": "«{{name}}» y su historial de versiones se eliminarán de forma permanente.",
+      "restoreFailed": "No se restauró el archivo: {{error}}",
+      "deleteFailed": "No se eliminó el documento: {{error}}"
+    },
+    "migration": {
+      "title": "Mueve tus proyectos a carpetas",
+      "intro": "NodeTool ahora guarda cada proyecto en su propia carpeta de este ordenador. Tus archivos, flujos de trabajo y líneas de tiempo se mueven allí y puedes abrirlos en otras apps.",
+      "planProjects": "Proyectos que reciben una carpeta",
+      "planFiles": "Archivos que se moverán",
+      "planWorkflows": "Flujos de trabajo guardados como archivos",
+      "planTimelines": "Líneas de tiempo guardadas como archivos",
+      "extraTitle": "Proyectos con más de una carpeta",
+      "extraBody": "Cada uno de estos proyectos conserva una carpeta. NodeTool deja de mostrar las demás y sus archivos se quedan donde están.",
+      "extraKeeps": "{{project}} conserva {{folder}}",
+      "extraHidden": "Ya no se muestra: {{folder}}",
+      "location": "Ubicación",
+      "changeLocation": "Cambiar ubicación",
+      "locationError": "Esta ubicación no se puede usar: {{error}}",
+      "permissionWarning": "macOS te preguntará si NodeTool puede usar esta carpeta. Elige Permitir, o elige una carpeta fuera de Documentos, Escritorio, Descargas, iCloud Drive y unidades externas.",
+      "safety": "No se pierde nada. Cada archivo se copia y se comprueba antes de eliminar su copia anterior. Puedes seguir trabajando mientras se mueven los archivos.",
+      "later": "Ahora no",
+      "confirm": "Mover archivos",
+      "planError": "No se pudo cargar el plan: {{error}}",
+      "confirmError": "El movimiento no se inició: {{error}}",
+      "actionError": "No se pudo cambiar el movimiento: {{error}}",
+      "progressRegion": "Moviendo archivos a las carpetas de proyecto",
+      "progressTitle": "Moviendo archivos a las carpetas de proyecto",
+      "pausedTitle": "El movimiento de archivos está en pausa",
+      "doneTitle": "Archivos movidos",
+      "progressCount": "{{done}} de {{total}} archivos movidos",
+      "phaseFolders": "Creando carpetas de proyecto",
+      "phaseFiles": "Guardando flujos de trabajo y líneas de tiempo como archivos",
+      "currentProject": "Moviendo los archivos de {{project}}",
+      "pause": "Pausar",
+      "resume": "Reanudar",
+      "failuresTitle": "No se pudieron mover ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "Hay más sin mostrar: {{count}}",
+      "retry": "Reintentar",
+      "donePath": "Tus archivos están en {{path}}",
+      "close": "Cerrar"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "Origen del recurso",
+    "projectTab": "Este proyecto",
+    "personalTab": "Personal",
+    "personalHint": "Al elegir de Personal, el archivo se copia en este proyecto.",
+    "copying": "Copiando en este proyecto…",
+    "copyFailed": "No se pudo copiar el recurso en este proyecto."
+  },
+  "assetFileStatus": {
+    "missing": "Falta",
+    "missingTooltip": "El archivo no está donde este recurso lo espera. Vuelve a vincularlo con la nueva ubicación del archivo o quita el recurso.",
+    "linked": "Vinculado",
+    "linkedTooltip": "Este recurso usa en su sitio un archivo fuera de la carpeta del proyecto.",
+    "relink": "Volver a vincular",
+    "relinkTooltip": "Elige la nueva ubicación del archivo",
+    "relinkNoPath": "No se pudo leer la ubicación de ese archivo. Elige un archivo de este equipo.",
+    "relinkFailed": "Error al volver a vincular: {{error}}",
+    "remove": "Quitar",
+    "removeTooltip": "Quitar este recurso de NodeTool",
+    "removeTitle": "¿Quitar «{{name}}»?",
+    "removeBody": "El recurso se quita de NodeTool. Los documentos que lo usan ya no pueden mostrarlo.",
+    "cancel": "Cancelar"
   },
   "storyboardText": {
     "mode": "Texto",

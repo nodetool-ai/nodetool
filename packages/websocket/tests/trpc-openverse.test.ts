@@ -26,8 +26,10 @@ vi.mock("@nodetool-ai/runtime", async (orig) => {
   return { ...actual, safeFetch: mocks.safeFetch };
 });
 
-vi.mock("@nodetool-ai/asset-services/asset-model-interface", () => ({
-  createAssetModelInterface: mocks.createAsset
+// An import is saved as one file in `Imported/` of the project folder.
+vi.mock("@nodetool-ai/asset-services/project-asset", async (orig) => ({
+  ...(await orig<typeof import("@nodetool-ai/asset-services/project-asset")>()),
+  saveProjectAsset: mocks.createAsset
 }));
 
 vi.mock("../src/lib/asset-response.js", () => ({
@@ -261,7 +263,7 @@ describe("openverse.import", () => {
       });
       const result = await caller().openverse.import({ media_type: "images", ids: [IMAGE_ID], project_id: projectId });
       expect(result.failed).toEqual([]);
-      expect(mocks.createAsset).toHaveBeenCalledWith(expect.objectContaining({ projectId: "0123456789abcdef0123456789abcdef" }));
+      expect(mocks.createAsset).toHaveBeenCalledWith(expect.objectContaining({ projectId: "0123456789abcdef0123456789abcdef", directory: "Imported" }));
       expect(await Asset.listByProject("user-1", "0123456789abcdef0123456789abcdef")).toHaveLength(1);
     }
   );
@@ -309,6 +311,7 @@ describe("openverse.import", () => {
       contentType: "image/jpeg",
       parentId: "folder-1",
       projectId: "default",
+      directory: "Imported",
       metadata: {
         openverse: expect.objectContaining({
           id: IMAGE_ID,
@@ -319,7 +322,7 @@ describe("openverse.import", () => {
         })
       }
     });
-    expect(Array.from(args.content as Uint8Array)).toEqual([1, 2, 3]);
+    expect(Array.from(args.bytes as Uint8Array)).toEqual([1, 2, 3]);
     expect(result.failed).toEqual([]);
     expect(result.assets).toHaveLength(1);
   });

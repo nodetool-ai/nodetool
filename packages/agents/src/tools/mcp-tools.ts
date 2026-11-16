@@ -105,13 +105,36 @@ export type WorkflowDslExporter = (
 ) => string;
 
 /**
- * Deletes a project with everything in it, including stored bytes and live
- * runs. `personal` and `not_found` are refusals, and nothing is removed.
+ * What a delete did to the project's folder. A folder NodeTool created is
+ * `trashed`, `moved_aside` to `<projects dir>/.trash` when the OS trash is out
+ * of reach, or `removed` from object storage. A folder the user brought is
+ * `kept` with every file except `.nodetool/`. `path` is where the folder is
+ * now, or null when the host does not show paths.
+ */
+export interface DeletedProjectFolder {
+  action:
+    | "trashed"
+    | "moved_aside"
+    | "removed"
+    | "kept"
+    | "trash_failed"
+    | "none";
+  path: string | null;
+}
+
+/** The answer of a {@link ProjectDeleter}. */
+export type ProjectDeleteReport =
+  | { outcome: "not_found" | "personal" }
+  | { outcome: "deleted"; folder: DeletedProjectFolder };
+
+/**
+ * Deletes a project's records, stored bytes and live runs, and disposes of
+ * its folder. `personal` and `not_found` are refusals, and nothing is removed.
  */
 export type ProjectDeleter = (
   userId: string,
   projectId: string
-) => Promise<"deleted" | "not_found" | "personal">;
+) => Promise<ProjectDeleteReport>;
 
 /** Lists the assets shipped inside the installed node packages. */
 export type PackageAssetLister = (opts: {
@@ -141,7 +164,7 @@ export interface GetAllMcpToolsOptions {
   /** Package assets for `list_assets` with `source: "package"`. */
   listPackageAssets?: PackageAssetLister;
   /**
-   * The full project delete. Asset storage, workspace files and the live run
+   * The full project delete. Asset storage, the project folder and the live run
    * registries live in the server, so `delete_project` takes it by injection
    * and refuses without it.
    */

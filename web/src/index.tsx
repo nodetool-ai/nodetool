@@ -53,6 +53,7 @@ import { loadRuntimeConfig, isAuthRequired } from "./lib/runtimeConfig";
 import { initProductAnalytics } from "./lib/analytics";
 import { initSupabaseFromConfig } from "./lib/supabaseClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
+import { startOpenProjectSignal } from "./lib/websocket/openProjectSignal";
 import { useSettingsStore } from "./stores/SettingsStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import { loadMetadata, prefetchMetadata } from "./serverState/useMetadata";
@@ -81,6 +82,9 @@ const ProviderSignInDialog = React.lazy(
 );
 const InstallRuntimePackageDialog = React.lazy(
   () => import("./components/packages/InstallRuntimePackageDialog")
+);
+const ProjectFolderMigrationHost = React.lazy(
+  () => import("./components/projects/ProjectFolderMigrationHost")
 );
 import GitHubStarPrompt from "./components/onboarding/GitHubStarPrompt";
 import HelpDialogHost from "./components/content/Help/HelpDialogHost";
@@ -853,6 +857,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
                       <SubscriptionOnboardingDialog />
                       <ProviderSignInDialog />
                       <InstallRuntimePackageDialog />
+                      <ProjectFolderMigrationHost />
                       <GitHubStarPrompt />
                       <CommandMenuHost />
                       <ConfirmDialogHost />
@@ -888,6 +893,8 @@ const configReady = loadRuntimeConfig().then((config) => {
   initSupabaseFromConfig(config);
   useAuth.getState().initialize();
   initKeyListeners();
+  // The server watches the folder of the project this client has open.
+  startOpenProjectSignal();
   // Opt-in analytics: sends nothing until Settings → Privacy grants consent.
   initProductAnalytics();
   return config;

@@ -47,13 +47,20 @@ jest.mock("../../stores/NotificationStore", () => ({
   )
 }));
 
+const mockSetCurrentFolderId = jest.fn();
+const mockSetCurrentFolder = jest.fn();
+const mockGridState = () => ({
+  currentFolderId: "folder-1",
+  setCurrentFolderId: mockSetCurrentFolderId,
+  setCurrentFolder: mockSetCurrentFolder
+});
 jest.mock("../../stores/AssetGridStore", () => ({
   __esModule: true,
   useAssetGridStore: {
-    getState: jest.fn(() => ({ currentFolderId: "folder-1" }))
+    getState: jest.fn(() => mockGridState())
   },
   useAssetGridStoreApi: jest.fn(() => ({
-    getState: jest.fn(() => ({ currentFolderId: "folder-1" }))
+    getState: jest.fn(() => mockGridState())
   }))
 }));
 
@@ -112,6 +119,30 @@ describe("useAssetUpdate", () => {
       id: "a2",
       parent_id: "folder-2"
     });
+  });
+
+  it("follows the open folder to its new id when a rename gives it one", async () => {
+    // A directory of a project folder is named by its path, so a rename
+    // returns the folder under a new id.
+    const renamed = { id: "folder-1-renamed", name: "Takes" };
+    mockUpdateAsset.mockResolvedValueOnce(renamed);
+    const { result } = renderHook(() => useAssetUpdate());
+    await act(async () => {
+      await result.current.mutation.mutateAsync([
+        { id: "folder-1", name: "Takes" }
+      ]);
+    });
+    expect(mockSetCurrentFolderId).toHaveBeenCalledWith("folder-1-renamed");
+    expect(mockSetCurrentFolder).toHaveBeenCalledWith(renamed);
+  });
+
+  it("keeps the open folder when an update keeps the id", async () => {
+    mockUpdateAsset.mockResolvedValueOnce({ id: "folder-1", name: "Same" });
+    const { result } = renderHook(() => useAssetUpdate());
+    await act(async () => {
+      await result.current.mutation.mutateAsync([{ id: "folder-1", name: "Same" }]);
+    });
+    expect(mockSetCurrentFolderId).not.toHaveBeenCalled();
   });
 
   it("shows success notification via onSuccess", () => {

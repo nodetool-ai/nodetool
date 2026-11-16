@@ -157,6 +157,11 @@ export const assetCreateBodySchema = z.object({
   job_id: unchecked<string | null>(),
   metadata: unchecked<Record<string, unknown> | null>(),
   project_id: lenientString(),
+  /**
+   * Directory in the project folder the file was dropped on, relative to the
+   * folder. Unset, an upload goes to `Imported/`.
+   */
+  directory: lenientString(),
   size: unchecked<number | null>()
 });
 

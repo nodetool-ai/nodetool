@@ -30,7 +30,7 @@ The page header shows the total size, folder count, and file count of the curren
 
 ### Navigation
 
-- The left panel shows the folder tree.
+- The left panel shows the folder tree. Within a project the folders are the directories of the project folder. See [folders in the asset browser](workspaces.md#folders-in-the-asset-browser).
 - Search matches file names only, by substring. The input searches the current folder (**Search current folder...**). The toggle next to it switches to **Search all assets...**, which searches every folder and shows each result's folder path. Global search starts at two characters.
 
 ### Uploading Files
@@ -75,7 +75,7 @@ A collection stores indexed text chunks for semantic search, not asset files. Se
 
 - Assets track `size`, `content_type`, and `duration` (audio and video), plus a free-form `metadata` object.
 - On the desktop app, an imported video whose longer side is at least `NODETOOL_VIDEO_PROXY_MIN_SIZE_PX` pixels (default 1920) gets a smaller preview proxy built in the background so timeline scrubbing seeks fast. Export reads the original.
-- Files at or above `NODETOOL_EXTERNAL_ASSET_THRESHOLD_BYTES` (default 1 GiB) stay at their original path and the asset references them in place. See [External assets](storage.md#external-assets).
+- On the desktop app, the import dialog offers Copy or Link. A linked file stays at its original path and the asset references it in place. Files at or above `NODETOOL_EXTERNAL_ASSET_THRESHOLD_BYTES` (default 1 GiB) start on Link. **Collect files** on the project card copies linked files into the project folder. See [Link or copy media](projects.md#link-or-copy-media) and [External assets](storage.md#external-assets).
 
 ---
 
@@ -87,14 +87,16 @@ Extract text from binary formats first (for example with `lib.pdf.ExtractText`),
 
 ## Storage
 
-Assets are stored under `$XDG_DATA_HOME/nodetool/assets`, falling back to `~/.local/share/nodetool/assets` on macOS and Linux and `%APPDATA%\nodetool\assets` on Windows. `ASSET_FOLDER` or `STORAGE_PATH` moves it. Deployed instances can use S3-compatible storage or Supabase Storage. See [Storage](storage.md).
+An asset is a file in its project's folder: generated media in `Generated/`, uploads in `Imported/`, and other files where they were saved. See [assets are files in the folder](workspaces.md#assets-are-files-in-the-folder).
+
+Thumbnails, video proxies, and assets created before project folders, until they [move into the folder](workspaces.md#existing-assets-move-into-the-folder), stay in asset storage. On the desktop that is `$XDG_DATA_HOME/nodetool/assets`, falling back to `~/.local/share/nodetool/assets` on macOS and Linux and `%APPDATA%\nodetool\assets` on Windows. `ASSET_FOLDER` or `STORAGE_PATH` moves it. Deployed instances can use S3-compatible storage or Supabase Storage. See [Storage](storage.md).
 
 ---
 
 ## If it fails
 
 - **`Unsupported file type: <content type>`** when dragging an asset onto the canvas: no constant node exists for that type.
-- **Asset shows offline**: an externally referenced file moved or changed. Relink it. See [External assets](storage.md#external-assets).
+- **Asset shows Missing**: an externally referenced file moved or changed. Relink it. See [External assets](storage.md#external-assets). An asset in a project folder shows Missing when its file was deleted or moved out of the folder. Relink and Remove sit next to the badge. See [the asset index follows the folder](workspaces.md#the-asset-index-follows-the-folder).
 
 ## Next Steps
 

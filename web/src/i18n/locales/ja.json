@@ -6139,13 +6139,16 @@
         "createError": "プロジェクトを作成できませんでした: {{error}}",
         "openFolder": "フォルダを開く…",
         "openFolderHint": "既存のフォルダがありますか？プロジェクトとして開けます。ファイルは移動しません。",
+        "openFolderTravels": "別のマシンからコピーしたフォルダは、ワークフロー、タイムライン、アセットとともに開きます。チャット、ストーリーボード、スクリプト、スケッチ、アプリ、JS スクリプトはフォルダと一緒には移動しません。",
         "openFolderError": "フォルダを開けませんでした: {{error}}"
       },
       "folder": {
         "notFound": "フォルダが見つかりません",
         "notFoundDetail": "{{name}} のフォルダが移動されたか、名前が変更されたか、接続されていないドライブにあります。場所を指定するまで実行は開始できません。",
         "locate": "場所を指定",
-        "locateError": "フォルダの場所を指定できませんでした: {{error}}"
+        "locateError": "フォルダの場所を指定できませんでした: {{error}}",
+        "moving": "ファイルをプロジェクトフォルダに移動しています",
+        "movingDetail": "{{total}} 件中 {{done}} 件を移動しました。移動中もアセットは利用できます。"
       },
       "home": {
         "homeTab": "ホーム",
@@ -6424,16 +6427,42 @@
           "export": "エクスポート",
           "archive": "アーカイブ",
           "restore": "復元",
-          "delete": "削除"
+          "delete": "削除",
+          "collect": "ファイルを収集"
         },
         "projectActions": "プロジェクトのアクション",
         "actionsForProject": "{{projectName}} のアクション",
         "exporting": "エクスポート中…",
         "deleteProject": "プロジェクトの削除",
         "confirmDeleteTitle": "{{projectName}} を削除しますか?",
-        "confirmDeleteBody": "{{projectName}} とそのすべてのドキュメント、会話、生成された出力、アセット、ジョブ、プロジェクト ファイルを削除します。",
+        "confirmDeleteBody": "{{projectName}} とそのすべてのドキュメント、会話、ジョブ、プロジェクト フォルダーの外に保存されているアセットを削除します。",
         "deleteIrreversible": "これを元に戻すことはできません。",
-        "error": "{{action}} {{projectName}} できませんでした: {{error}}"
+        "deleteFolderTrash": "プロジェクト フォルダーはゴミ箱に移動します。",
+        "deleteFolderRemove": "プロジェクト フォルダーとその中のすべてのファイルがクラウド ストレージから削除されます。",
+        "deleteFolderKeep": "プロジェクト フォルダーはすべてのファイルとともに元の場所に残ります。NodeTool はその中の .nodetool フォルダーだけを削除します。",
+        "deleteFolderMissing": "プロジェクト フォルダーにアクセスできないため、NodeTool はそのままにします。",
+        "folderMovedAsideTo": "ゴミ箱にアクセスできませんでした。プロジェクト フォルダーは {{path}} に移動しました。",
+        "folderMovedAside": "ゴミ箱にアクセスできませんでした。プロジェクト フォルダーはプロジェクト用フォルダー内の .trash フォルダーに移動しました。",
+        "folderTrashFailedAt": "プロジェクト フォルダーをゴミ箱に移動できませんでした。{{path}} に残っています。",
+        "folderTrashFailed": "プロジェクト フォルダーをゴミ箱に移動できませんでした。元の場所に残っています。",
+        "error": "{{action}} {{projectName}} できませんでした: {{error}}",
+        "collecting": "ファイルを収集しています…",
+        "collectResult": "{{projectName}} にファイルを収集しました: コピー {{copied}} 件、スキップ {{skipped}} 件、失敗 {{failed}} 件。",
+        "linkedTitle": "{{projectName}} はフォルダー外のファイルをリンクしています",
+        "linkedBody": "エクスポートにはプロジェクトフォルダーが含まれます。次のファイルは別の場所からリンクされており、フォルダー内にありません:",
+        "linkedChoice": "「収集してエクスポート」はファイルをフォルダーの Imported ディレクトリにコピーしてからエクスポートします。「キャンセル」はリンクを残し、何もエクスポートしません。",
+        "collectAndExport": "収集してエクスポート"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "コピーしますか、リンクしますか?",
+        "confirm": "インポート",
+        "copy": "プロジェクトフォルダーにコピー",
+        "copyHint": "プロジェクトは独自のコピーを保持します。元のファイルの変更は反映されません。",
+        "link": "その場所でリンク",
+        "linkHint": "何もコピーしません。プロジェクトはファイルを現在の場所から読み込みます。「ファイルを収集」で後からコピーできます。",
+        "threshold": "{{size}} 以上のファイルは既定でリンクされます。"
       }
     }
   },
@@ -9074,10 +9103,6 @@
         "REPLICATE_API_TOKEN": {
           "button": "レプリケートAPIトークンを取得する",
           "tooltip": "APIトークンのレプリケートページに移動します"
-        },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Googleアプリのパスワードを取得する",
-          "tooltip": "Googleアカウントのアプリパスワードページに移動します"
         },
         "ELEVENLABS_API_KEY": {
           "button": "イレブンラボ API キーを取得する",
@@ -15080,7 +15105,6 @@
       "csv": "CSVファイル",
       "unknown": "不明なファイルタイプ",
       "unknownContentType": "不明なコンテンツ タイプ",
-      "offline": "オフラインのメディア",
       "thumbnail": "サムネイル",
       "folder": "フォルダー"
     },
@@ -20115,7 +20139,82 @@
       "revealInFinder": "Finderで表示",
       "revealInExplorer": "エクスプローラーで表示",
       "revealInFileManager": "ファイルマネージャーで表示"
+    },
+    "documentFile": {
+      "invalidTitle": "このファイルにはエラーがあります",
+      "invalidBody": "{{path}} を読み込めませんでした: {{error}}。最後の有効なバージョンが開いたままで、引き続き実行できます。",
+      "openFile": "ファイルを開く",
+      "missingTitle": "ファイルがありません",
+      "missingBody": "{{path}} はプロジェクトフォルダーにありません。復元すると、このドキュメントからファイルを書き直します。",
+      "restore": "復元",
+      "delete": "削除",
+      "cancel": "キャンセル",
+      "deleteTitle": "{{name}} を削除しますか?",
+      "deleteDescription": "「{{name}}」とそのバージョン履歴は完全に削除されます。",
+      "restoreFailed": "ファイルを復元できませんでした: {{error}}",
+      "deleteFailed": "ドキュメントを削除できませんでした: {{error}}"
+    },
+    "migration": {
+      "title": "プロジェクトをフォルダに移動",
+      "intro": "NodeTool は、このコンピュータ上で各プロジェクトを専用のフォルダに保存するようになりました。ファイル、ワークフロー、タイムラインはそこに移動され、ほかのアプリでも開けます。",
+      "planProjects": "フォルダが作成されるプロジェクト",
+      "planFiles": "移動するファイル",
+      "planWorkflows": "ファイルとして保存されるワークフロー",
+      "planTimelines": "ファイルとして保存されるタイムライン",
+      "extraTitle": "複数のフォルダを持つプロジェクト",
+      "extraBody": "これらのプロジェクトは、それぞれ 1 つのフォルダだけを保持します。NodeTool はそれ以外のフォルダを表示しなくなりますが、ファイルはそのまま残ります。",
+      "extraKeeps": "{{project}} は {{folder}} を保持します",
+      "extraHidden": "表示されなくなります: {{folder}}",
+      "location": "場所",
+      "changeLocation": "場所を変更",
+      "locationError": "この場所は使用できません: {{error}}",
+      "permissionWarning": "macOS が、NodeTool にこのフォルダの使用を許可するかどうかを尋ねます。「許可」を選ぶか、書類、デスクトップ、ダウンロード、iCloud Drive、外部ドライブ以外のフォルダを選んでください。",
+      "safety": "失われるものはありません。各ファイルは、古いコピーを削除する前にコピーして確認されます。ファイルの移動中も作業を続けられます。",
+      "later": "今はしない",
+      "confirm": "ファイルを移動",
+      "planError": "計画を読み込めませんでした: {{error}}",
+      "confirmError": "移動を開始できませんでした: {{error}}",
+      "actionError": "移動を変更できませんでした: {{error}}",
+      "progressRegion": "ファイルをプロジェクトフォルダに移動しています",
+      "progressTitle": "ファイルをプロジェクトフォルダに移動しています",
+      "pausedTitle": "ファイルの移動は一時停止中です",
+      "doneTitle": "ファイルを移動しました",
+      "progressCount": "{{total}} 件中 {{done}} 件のファイルを移動しました",
+      "phaseFolders": "プロジェクトフォルダを作成しています",
+      "phaseFiles": "ワークフローとタイムラインをファイルとして保存しています",
+      "currentProject": "{{project}} のファイルを移動しています",
+      "pause": "一時停止",
+      "resume": "再開",
+      "failuresTitle": "移動できませんでした ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "ほかにも表示されていないものがあります: {{count}}",
+      "retry": "再試行",
+      "donePath": "ファイルは {{path}} にあります",
+      "close": "閉じる"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "アセットの参照元",
+    "projectTab": "このプロジェクト",
+    "personalTab": "個人",
+    "personalHint": "個人から選ぶと、ファイルがこのプロジェクトにコピーされます。",
+    "copying": "このプロジェクトにコピーしています…",
+    "copyFailed": "アセットをこのプロジェクトにコピーできませんでした。"
+  },
+  "assetFileStatus": {
+    "missing": "見つかりません",
+    "missingTooltip": "このアセットが参照する場所にファイルがありません。ファイルの新しい場所に再リンクするか、アセットを削除してください。",
+    "linked": "リンク",
+    "linkedTooltip": "このアセットはプロジェクトフォルダー外のファイルをその場所のまま使用しています。",
+    "relink": "再リンク",
+    "relinkTooltip": "ファイルの新しい場所を選択",
+    "relinkNoPath": "そのファイルの場所を読み取れませんでした。このコンピューター上のファイルを選択してください。",
+    "relinkFailed": "再リンクに失敗しました: {{error}}",
+    "remove": "削除",
+    "removeTooltip": "このアセットを NodeTool から削除",
+    "removeTitle": "「{{name}}」を削除しますか？",
+    "removeBody": "アセットは NodeTool から削除されます。これを使用しているドキュメントでは表示できなくなります。",
+    "cancel": "キャンセル"
   },
   "storyboardText": {
     "mode": "テキスト",

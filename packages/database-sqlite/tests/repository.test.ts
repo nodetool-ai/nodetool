@@ -25,7 +25,9 @@ describe("SQLite repository", () => {
       expect(await repository.get("workflows", "bob", created.id)).toBeNull();
       expect(await repository.delete("workflows", "bob", created.id)).toBe(false);
       await expect(repository.put("workflows", "bob", { id: created.id, graph: { nodes: [], edges: [] } })).rejects.toThrow("already owned");
-      expect(await repository.get("workflows", "alice", created.id)).toMatchObject({ graph });
+      expect(await repository.get("workflows", "alice", created.id)).toMatchObject({ graph, file_path: null, file_hash: null, file_error: null });
+      const filed = await repository.put("workflows", "alice", { name: "on disk", graph, project_id: "film", file_path: "Workflows/on disk.workflow.json", file_hash: "b".repeat(64) });
+      expect(await repository.get("workflows", "alice", filed.id)).toMatchObject({ file_path: "Workflows/on disk.workflow.json", file_hash: "b".repeat(64) });
     } finally {
       repository.close();
       rmSync(directory, { recursive: true, force: true });
@@ -59,13 +61,14 @@ describe("SQLite repository", () => {
     const repository = createSqliteRepository(path);
     try {
       expect(await repository.get("assets", "alice", "legacy-asset")).toMatchObject({
-        metadata: { sketchDocumentId: "legacy-sketch" }, sketch_document_id: "legacy-sketch", updated_at: "historical-time", project_id: "default", favorite: false
+        metadata: { sketchDocumentId: "legacy-sketch" }, sketch_document_id: "legacy-sketch", updated_at: "historical-time", project_id: "default", favorite: false, workspace_path: null,
+        content_hash: null
       });
       const native = new Database(path);
       expect(native.prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all()).toEqual([
         { name: "_nodetool_core_migrations" }, { name: "nodetool_assets" }, { name: "nodetool_jobs" }, { name: "nodetool_secrets" }, { name: "nodetool_workflows" }
       ]);
-      expect(native.prepare("SELECT COUNT(*) AS count FROM _nodetool_core_migrations").get()).toEqual({ count: 3 });
+      expect(native.prepare("SELECT COUNT(*) AS count FROM _nodetool_core_migrations").get()).toEqual({ count: 8 });
       native.close();
     } finally { repository.close(); rmSync(directory, { recursive: true, force: true }); }
   });
@@ -92,7 +95,9 @@ describe("SQLite repository", () => {
     const repository = createSqliteRepository(":memory:");
     try {
       const asset = await repository.put("assets", "alice", { name: "binary.bin", content_type: "application/octet-stream", size: 4, metadata: { decoder: null } });
-      expect(await repository.get("assets", "alice", asset.id)).toMatchObject({ size: 4, metadata: { decoder: null } });
+      expect(await repository.get("assets", "alice", asset.id)).toMatchObject({ size: 4, metadata: { decoder: null }, workspace_path: null, content_hash: null });
+      const file = await repository.put("assets", "alice", { name: "fox in snow", project_id: "film", workspace_path: "Generated/fox-in-snow.png", content_hash: "a".repeat(64) });
+      expect(await repository.get("assets", "alice", file.id)).toMatchObject({ project_id: "film", workspace_path: "Generated/fox-in-snow.png", content_hash: "a".repeat(64) });
       const secret = await repository.put("secrets", "alice", { key: "OPENAI_API_KEY", encrypted_value: "encrypted-ciphertext" });
       expect(await repository.get("secrets", "bob", secret.id)).toBeNull();
       const job = await repository.put("jobs", "alice", { workflow_id: "workflow", status: "running" });

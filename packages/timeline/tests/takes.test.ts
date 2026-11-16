@@ -158,6 +158,52 @@ describe("baseline take after a split", () => {
   });
 });
 
+describe("remix takes of different lengths", () => {
+  // F11: the clip keeps its length, and each take's window starts at its own start.
+  const remixed = (): TimelineClip =>
+    makeClip({
+      id: "clip_r",
+      trackId: "track_1",
+      name: "Remixed",
+      startMs: 0,
+      durationMs: 4000,
+      mediaType: "video",
+      currentAssetId: "asset_source",
+      activeTakeId: "source",
+      inPointMs: 2000,
+      outPointMs: 6000,
+      versions: [
+        version({ id: "source", assetId: "asset_source", durationMs: 20000,
+          sourceMapping: { inPointMs: 2000, outPointMs: 6000 } }),
+        version({ id: "short", assetId: "asset_short", durationMs: 4000,
+          sourceMapping: { inPointMs: 0, outPointMs: 4000 } }),
+        version({ id: "long", assetId: "asset_long", durationMs: 6000,
+          sourceMapping: { inPointMs: 0, outPointMs: 6000 } })
+      ]
+    });
+
+  it("starts a longer take at its own start and keeps the cut length", () => {
+    const switched = selectTake(remixed(), "long");
+    expect(switched.durationMs).toBe(4000);
+    expect(switched.inPointMs).toBe(0);
+    expect(switched.outPointMs).toBe(4000);
+    expect(previewTake(remixed(), "long")?.inPointMs).toBe(0);
+  });
+
+  it("returns to the source window after visiting a take of another length", () => {
+    const back = selectTake(selectTake(remixed(), "long"), "source");
+    expect(back.inPointMs).toBe(2000);
+    expect(back.outPointMs).toBe(6000);
+  });
+
+  it("keeps a split half's offset into the take", () => {
+    const half = { ...remixed(), durationMs: 2000, inPointMs: 4000, outPointMs: 6000 };
+    const switched = selectTake(half, "long");
+    expect(switched.inPointMs).toBe(2000);
+    expect(switched.outPointMs).toBe(4000);
+  });
+});
+
 describe("applyTakeToClip", () => {
   it("maps an edit result to source zero without changing editorial fields", () => {
     const original = makeClip({

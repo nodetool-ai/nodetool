@@ -35,12 +35,13 @@ vi.mock("@nodetool-ai/asset-services/thumbnail", async (orig) => {
   const actual = await orig<typeof import("../src/lib/thumbnail.js")>();
   return {
     ...actual,
-    storeAssetWithThumbnail: vi.fn().mockResolvedValue(undefined)
+    storeAssetThumbnail: vi.fn().mockResolvedValue(undefined)
   };
 });
 
 import { Asset } from "@nodetool-ai/models";
-import { storeAssetWithThumbnail } from "../src/lib/thumbnail.js";
+import { getAssetAdapter } from "../src/lib/storage.js";
+import { storeAssetThumbnail } from "../src/lib/thumbnail.js";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -138,15 +139,17 @@ describe("assets router", () => {
       });
     });
 
-    it("forwards project scope to asset pagination", async () => {
+    it("forwards the loose project scope to asset pagination", async () => {
+      // A project lists by directory (tests/project-directories.test.ts).
+      // Loose assets keep their folder rows.
       (Asset.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([[], ""]);
 
       const caller = createCaller(makeCtx());
-      await caller.assets.list({ project_id: "project-a" });
+      await caller.assets.list({ project_id: "default" });
 
       expect(Asset.paginate).toHaveBeenCalledWith("user-1", {
         parentId: undefined,
-        projectId: "project-a",
+        projectId: "default",
         contentType: undefined,
         workflowId: undefined,
         nodeId: undefined,
@@ -307,6 +310,9 @@ describe("assets router", () => {
     it("writes base64 data to storage when provided", async () => {
       const a = makeAsset({ id: "a1" });
       (Asset.find as ReturnType<typeof vi.fn>).mockResolvedValue(a);
+      const store = vi
+        .spyOn(getAssetAdapter(), "store")
+        .mockResolvedValue(undefined);
 
       const caller = createCaller(makeCtx());
       await caller.assets.update({
@@ -314,9 +320,21 @@ describe("assets router", () => {
         data: Buffer.from("hello").toString("base64"),
         data_encoding: "base64"
       });
-      expect(storeAssetWithThumbnail).toHaveBeenCalledWith(
-        "user-1", "a1", "a1.png", new Uint8Array(Buffer.from("hello")), "image/png"
+      const bytes = new Uint8Array(Buffer.from("hello"));
+      // The bytes and the row are written under the project folder lock,
+      // and the thumbnail is made from the same bytes after it.
+      expect(store).toHaveBeenCalledTimes(1);
+      expect(store).toHaveBeenCalledWith("user-1/a1.png", bytes, "image/png");
+      expect(storeAssetThumbnail).toHaveBeenCalledTimes(1);
+      expect(storeAssetThumbnail).toHaveBeenCalledWith(
+        "user-1", "a1", "image/png", { bytes }
       );
+      const storeOrder = store.mock.invocationCallOrder[0];
+      const saveOrder = a.save.mock.invocationCallOrder[0];
+      const thumbnailOrder = vi.mocked(storeAssetThumbnail).mock
+        .invocationCallOrder[0];
+      expect(storeOrder).toBeLessThan(saveOrder);
+      expect(saveOrder).toBeLessThan(thumbnailOrder);
       expect(a.size).toBe(5);
     });
 
@@ -402,21 +420,21 @@ describe("assets router", () => {
       expect(result.assets.map((a) => a.id)).toEqual(["c1", "f1", "gc"]);
     });
 
-    it("walks only descendants from the requested project", async () => {
-      const childA = makeAsset({ id: "a", project_id: "project-a" });
+    it("walks only descendants from the requested loose scope", async () => {
+      const childA = makeAsset({ id: "a", project_id: "default" });
       const childB = makeAsset({ id: "b", project_id: "project-b" });
       (Asset.find as ReturnType<typeof vi.fn>).mockResolvedValue(
-        makeAsset({ id: "root", content_type: "folder", project_id: "project-a" })
+        makeAsset({ id: "root", content_type: "folder", project_id: "default" })
       );
       (Asset.getChildren as ReturnType<typeof vi.fn>).mockImplementation(
         (_userId: string, _folderId: string, _limit: number, projectId?: string) =>
-          Promise.resolve(projectId === "project-a" ? [childA] : [childB])
+          Promise.resolve(projectId === "default" ? [childA] : [childB])
       );
 
       const caller = createCaller(makeCtx());
       const result = await caller.assets.recursive({
         id: "root",
-        project_id: "project-a"
+        project_id: "default"
       });
 
       expect(result.assets.map((a) => a.id)).toEqual(["a"]);
@@ -424,7 +442,7 @@ describe("assets router", () => {
         "user-1",
         "root",
         10000,
-        "project-a"
+        "default"
       );
     });
   });

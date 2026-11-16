@@ -71,6 +71,30 @@ describe("runInlineGraphJob", () => {
     await done;
   });
 
+  it("sends the project it was given and none when it has none", async () => {
+    const graph = { nodes: [{ id: "n1", type: "x.Y", data: {} }], edges: [] } as never;
+    const dataOfLastSend = (): Record<string, unknown> => {
+      const { calls } = asMock(globalWebSocketManager.send).mock;
+      return calls[calls.length - 1][0].data as Record<string, unknown>;
+    };
+    const settle = async (done: Promise<unknown>): Promise<void> => {
+      emit({ type: "job_update", status: "completed", job_id: "job-x", workflow_id: "wf", result: { outputs: {} } });
+      await done;
+    };
+
+    const withProject = runInlineGraphJob({ graph, workflowId: "wf", projectId: "project-a" });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(dataOfLastSend().project_id).toBe("project-a");
+    await settle(withProject);
+
+    const without = runInlineGraphJob({ graph, workflowId: "wf" });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect("project_id" in dataOfLastSend()).toBe(false);
+    await settle(without);
+  });
+
   it("records inputSignatures under the dispatched jobId and clears them on finish", async () => {
     const graph = {
       nodes: [{ id: "n1", type: "x.Y", data: {} }],

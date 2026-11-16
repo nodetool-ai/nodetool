@@ -13,12 +13,17 @@ import type { StorageAdapter } from "@nodetool-ai/storage";
 import { PrefixedStorageAdapter } from "./prefixed-storage-adapter.js";
 import { withTaskSpan } from "./tracing.js";
 import {
+  NestedFolders,
+  RESERVED_WORKSPACE_DIR,
+  WorkspaceFolderCheckError,
   WorkspacePathError,
   WorkspaceReservedPathError,
   isReservedWorkspaceKey,
+  isReservedWorkspaceName,
   type Workspace,
   type WorkspaceEntry,
-  type WorkspaceStat
+  type WorkspaceStat,
+  type WriteNewOptions
 } from "./workspace.js";
 
 // Loaded lazily so this module still imports in browser / Edge runtimes, the
@@ -70,11 +75,20 @@ function stripWorkspacePrefix(path: string): string {
 
 /** Normalize to a key: no `.`/`..` segments, no leading or trailing slash. */
 function normalize(path: string): string {
+  return normalizeKey(stripWorkspacePrefix(path), path);
+}
+
+/**
+ * {@link normalize} for a string that is a key already: the prefixes a caller
+ * may write a path with are not stripped, so a directory named `workspace`
+ * stays one. `shown` is the path an error names.
+ */
+function normalizeKey(key: string, shown = key): string {
   const segments: string[] = [];
-  for (const segment of stripWorkspacePrefix(path).split("/")) {
+  for (const segment of key.replaceAll("\\", "/").split("/")) {
     if (!segment || segment === ".") continue;
     if (segment === "..") {
-      if (segments.length === 0) throw new WorkspacePathError(path);
+      if (segments.length === 0) throw new WorkspacePathError(shown);
       segments.pop();
       continue;
     }
@@ -115,31 +129,78 @@ async function realPathWithinRoot(
   root: string,
   candidate: string
 ): Promise<boolean> {
+  return (await realKeyWithinRoot(root, candidate)) !== null;
+}
+
+/**
+ * Where `candidate` really is inside `root`, as a workspace key with every
+ * symlink resolved: "" for the root itself, null when the real location is
+ * outside the root or cannot be decided.
+ *
+ * The real key can differ from the key a caller wrote: `shortcut/x` is
+ * `games/tetris/x` when `shortcut` links to `games/tetris`. Whatever judges a
+ * path by its key judges this one as well.
+ */
+async function realKeyWithinRoot(
+  root: string,
+  candidate: string
+): Promise<string | null> {
+  const realRoot = await requireNode().fs.realpath(root);
+  const found = await resolveExisting(candidate);
+  return found ? keyBelow(realRoot, found.real, found.rest) : null;
+}
+
+/** A path resolved as far as it exists: its real part and what is not there yet. */
+interface ResolvedPath {
+  /** The real path of the nearest ancestor that exists, or of the path itself. */
+  real: string;
+  /** The segments below `real` that do not exist yet. */
+  rest: string[];
+}
+
+/** The key of `real` under `realRoot`, plus `rest`; null when it is not under it. */
+function keyBelow(
+  realRoot: string,
+  real: string,
+  rest: readonly string[]
+): string | null {
+  const { path } = requireNode();
+  const rel = path.relative(realRoot, real);
+  if (rel !== "" && (isClimb(rel, path) || path.isAbsolute(rel))) return null;
+  return [...(rel === "" ? [] : rel.split(path.sep)), ...rest].join("/");
+}
+
+/** Whether a `path.relative` result leaves the directory it is relative to. */
+function isClimb(rel: string, path: { sep: string }): boolean {
+  return rel === ".." || rel.startsWith(`..${path.sep}`); // key-boundary-ok: sep anchors the parent path component of a path.relative result.
+}
+
+/**
+ * `candidate` with every symlink resolved, as far as it exists. Null when it,
+ * or an ancestor, is a link with no target: such a path cannot be decided.
+ */
+async function resolveExisting(candidate: string): Promise<ResolvedPath | null> {
   const { fs, path } = requireNode();
-  const realRoot = await fs.realpath(root);
-  const within = (real: string): boolean => {
-    const rel = path.relative(realRoot, real);
-    return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
-  };
   try {
-    return within(await fs.realpath(candidate));
+    return { real: await fs.realpath(candidate), rest: [] };
   } catch {
     // Not resolvable — either absent, or a link with no target.
   }
   try {
     // Exists as a link whose target does not — never follow it.
     await fs.lstat(candidate);
-    return false;
+    return null;
   } catch {
     // Genuinely absent: the parent decides.
   }
   // Walk up to the nearest ancestor that exists — writing `out/deep/x.txt`
   // into a workspace that has neither directory yet is ordinary, and only the
   // first real ancestor can be resolved.
+  const rest = [path.basename(candidate)];
   let parent = path.dirname(candidate);
   while (true) {
     try {
-      return within(await fs.realpath(parent));
+      return { real: await fs.realpath(parent), rest };
     } catch {
       // realpath failed — either this ancestor is genuinely absent, or it is
       // itself a dangling symlink. lstat, not the loop's next iteration,
@@ -148,28 +209,568 @@ async function realPathWithinRoot(
       // straight at the root would resolve "within" by accident.
       try {
         await fs.lstat(parent);
-        return false;
+        return null;
       } catch {
         // Genuinely absent: keep climbing.
       }
       const next = path.dirname(parent);
-      if (next === parent) return false;
+      if (next === parent) return null;
+      rest.unshift(path.basename(parent));
       parent = next;
     }
   }
 }
 
+/** How many links a create follows before it gives up, as the kernel does. */
+const MAX_LINK_HOPS = 40;
+
+/**
+ * The path a create at `candidate` writes: `candidate` itself, or the end of
+ * the chain of links that starts there. A dangling link is not a free name,
+ * because `writeFile` follows it and creates its target. Null when the chain
+ * does not end or cannot be read.
+ */
+async function landingOf(candidate: string): Promise<string | null> {
+  const { fs, path } = requireNode();
+  let current = candidate;
+  for (let hop = 0; hop <= MAX_LINK_HOPS; hop++) {
+    try {
+      if (!(await fs.lstat(current)).isSymbolicLink()) return current;
+    } catch {
+      return current;
+    }
+    try {
+      const link = await fs.readlink(current);
+      // A relative target is read from the directory the link really is in.
+      const directory = await fs
+        .realpath(path.dirname(current))
+        .catch(() => path.dirname(current));
+      current = path.resolve(directory, link);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
+ * The key of `found` under `realRoot` by identity: the device and inode of
+ * each ancestor of its real path compared with those of the root. This is the
+ * answer for a spelling that `realpath` does not resolve, such as a macOS
+ * firmlink or a Windows share of a local drive. Null when no ancestor is the
+ * root.
+ */
+async function keyByIdentity(
+  realRoot: string,
+  found: ResolvedPath
+): Promise<string | null> {
+  const { fs, path } = requireNode();
+  try {
+    const rootId = await fs.stat(realRoot, { bigint: true });
+    let ancestor = found.real;
+    while (true) {
+      const id = await fs.stat(ancestor, { bigint: true });
+      if (id.dev === rootId.dev && id.ino === rootId.ino) {
+        const rel = path.relative(ancestor, found.real);
+        return [...(rel === "" ? [] : rel.split(path.sep)), ...found.rest].join("/");
+      }
+      const next = path.dirname(ancestor);
+      if (next === ancestor) return null;
+      ancestor = next;
+    }
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Where a create or read at `target` really is inside `root`: links resolved,
+ * a dangling link followed to where a create would land, and a spelling that
+ * `realpath` leaves alone judged by the root's identity. Null when it is not
+ * inside, or cannot be decided. Throws when the root is not there.
+ */
+async function realLandingKey(root: string, target: string): Promise<string | null> {
+  const realRoot = await requireNode().fs.realpath(root);
+  const landing = await landingOf(target);
+  if (landing === null) return null;
+  const found = await resolveExisting(landing);
+  if (!found) return null;
+  return keyBelow(realRoot, found.real, found.rest) ?? (await keyByIdentity(realRoot, found));
+}
+
+/** The administrative share of drive `X`, `X$`. */
+const ADMIN_SHARE = /^([A-Za-z])\$$/;
+
+/**
+ * A Windows path in the plain drive form: the long path prefix (`\\?\C:\`),
+ * the device prefix (`\\.\C:\`) and the administrative share of this host
+ * (`\\localhost\C$\`, also by loopback address or host name) all name
+ * `C:\`. `path.win32.relative` reads each as another root. `path` is the
+ * module the caller resolves with; on POSIX nothing changes.
+ */
+function plainWindowsPath(
+  target: string,
+  path: Pick<typeof import("node:path"), "sep">,
+  hostname: string
+): string {
+  if (path.sep !== "\\") return target;
+  let p = target.replaceAll("/", "\\");
+  const device = /^\\\\[?.]\\(?=[A-Za-z]:|UNC\\)/i.exec(p);
+  if (device) {
+    p = p.slice(device[0].length);
+    if (/^UNC\\/i.test(p)) p = `\\\\${p.slice(4)}`;
+  }
+  const share = /^\\\\([^\\]+)\\([^\\]+)(\\.*)?$/.exec(p);
+  if (share) {
+    const host = share[1].toLowerCase();
+    const drive = ADMIN_SHARE.exec(share[2]);
+    const local =
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "::1" ||
+      host === "[::1]" ||
+      host === hostname.toLowerCase();
+    if (local && drive) p = `${drive[1]}:${share[3] ?? "\\"}`;
+  }
+  return p;
+}
+
+/**
+ * Where `target` sits in `root` as written, before any link is resolved: a
+ * key, "" for the root itself, null when it is outside. Windows spellings of
+ * a drive path are read as the drive path. Exported for its tests, which pass
+ * `path.win32` on a POSIX host.
+ */
+export function lexicalKeyWithin(
+  root: string,
+  target: string,
+  path: Pick<typeof import("node:path"), "sep" | "resolve" | "relative" | "isAbsolute">,
+  hostname: string
+): string | null {
+  const plain = (p: string): string =>
+    path.resolve(plainWindowsPath(path.resolve(p), path, hostname));
+  const inside = path.relative(plain(root), plain(target));
+  if (isClimb(inside, path) || path.isAbsolute(inside)) return null;
+  return inside === "" ? "" : inside.split(path.sep).join("/");
+}
+
+/**
+ * How long a workspace keeps what it learned about a directory being another
+ * folder, in ms. Long enough that a run or a scan asks once per directory,
+ * short enough that a workspace held for a long time, such as the one of a
+ * chat thread, soon sees a project folder created inside it.
+ */
+export const NESTED_FOLDER_MEMORY_MS = 10_000;
+
+/** A value read at a time, kept until {@link NESTED_FOLDER_MEMORY_MS} passed. */
+interface Remembered<T> {
+  at: number;
+  value: Promise<T>;
+}
+
+function isFresh<T>(remembered: Remembered<T> | null | undefined): remembered is Remembered<T> {
+  return (
+    remembered != null && Date.now() - remembered.at < NESTED_FOLDER_MEMORY_MS
+  );
+}
+
+const nodeFs = getNodeBuiltinSync<typeof import("node:fs")>("node:fs");
+
+/** What {@link assertLocalPathIsOwn} is asked about. */
+export interface LocalPathUse {
+  /**
+   * The path will be created or written. Inside the folder, a link that
+   * leads out of it, or that the check cannot follow, is then refused as
+   * well: a link planted in a copied folder must not send a write to
+   * `~/.bashrc`. A read through such a link is the caller's choice.
+   */
+  write?: boolean;
+}
+
+/**
+ * Refuse the real path `target` when it is the folder of another project
+ * inside `workspace`, or lies in one, or is in the reserved directory. `root`
+ * is the real directory the workspace's keys are relative to: its folder, or
+ * the scratch directory its files are staged in. `shown` is the path the
+ * refusal names.
+ *
+ * For code that opens a real path itself instead of calling the workspace: a
+ * host binary, libav, `node:fs`. The rule is the workspace's own, asked
+ * through {@link NestedFolders}, so a folder known by its `.nodetool/`
+ * directory and one the host names are refused alike. A path elsewhere on
+ * the host passes: whether it may be opened at all is the caller's check.
+ *
+ * `target` must be the exact path that will be opened. A caller that reads
+ * its input more than one way (`workspace/x`, `x`, `C:/x`) resolves it once
+ * and hands that one result both here and to whatever opens it. The path is
+ * judged as written and as it really is, so another spelling of a path in
+ * the folder is refused as well: a link inside or outside the folder,
+ * `/proc/self/root/...`, a dangling link a create would follow, a macOS
+ * firmlink, or a Windows long path or administrative share.
+ *
+ * The check runs before the path is opened, so a link swapped in afterwards
+ * is not seen. A writer that must close that gap opens without following a
+ * link and checks the file it opened, as the save nodes do.
+ */
+export async function assertLocalPathIsOwn(
+  workspace: Pick<Workspace, "isNestedFolder">,
+  root: string,
+  target: string,
+  shown = target,
+  use: LocalPathUse = {}
+): Promise<void> {
+  const { path, os } = requireNode();
+  const nested = new NestedFolders(workspace);
+  const judge = async (key: string): Promise<void> => {
+    // The root is the folder itself, which is never another project's.
+    if (key === "") return;
+    // Another spelling of `.nodetool` (a Windows short name, trailing dots
+    // or spaces, a link) is the reserved directory by its real path.
+    if (isReservedWorkspaceKey(key)) {
+      throw new WorkspaceReservedPathError(shown);
+    }
+    if (await nested.covers(key)) {
+      throw new WorkspaceReservedPathError(shown, "nested");
+    }
+  };
+  const key = lexicalKeyWithin(root, target, path, os.hostname());
+  if (key !== null) await judge(key);
+  // The same question for where the path really is, links resolved.
+  let realKey: string | null;
+  try {
+    realKey = await realLandingKey(root, path.resolve(target));
+  } catch {
+    // The root is not there: nothing can be opened under it.
+    return;
+  }
+  if (realKey === null) {
+    if (use.write && key !== null && key !== "") {
+      throw new WorkspacePathError(shown);
+    }
+    return;
+  }
+  if (realKey !== key) await judge(realKey);
+}
+
+/**
+ * Whether the real path `root`/`key` is, or lies in, a directory that holds
+ * a reserved directory: the folder of another project inside the workspace
+ * rooted at `root`. The root itself never counts.
+ *
+ * A floor under {@link assertLocalPathIsOwn} for a path that is resolved
+ * synchronously, or by a run that has a directory and no workspace. It reads
+ * the mark on disk only. A folder the host names without that mark, such as
+ * a game's workspace, is known to the workspace alone, so whatever opens the
+ * resolved path calls {@link assertLocalPathIsOwn} as well.
+ */
+export function localPathIsInNestedFolder(root: string, key: string): boolean {
+  if (!nodeFs || !nodePath) return false;
+  let directory = root;
+  for (const segment of key.split("/")) {
+    if (!segment) continue;
+    directory = nodePath.join(directory, segment);
+    const mark = nodeFs.statSync(nodePath.join(directory, RESERVED_WORKSPACE_DIR), {
+      throwIfNoEntry: false
+    });
+    if (mark?.isDirectory()) return true;
+  }
+  return false;
+}
+
 const textDecoder = new TextDecoder();
 const textEncoder = new TextEncoder();
+
+/**
+ * The directories of a workspace that the host records as folders of their
+ * own, as workspace keys. See {@link Workspace.isNestedFolder}.
+ */
+export type NestedFolderSource = () =>
+  | Iterable<string>
+  | Promise<Iterable<string>>;
+
+export interface StorageWorkspaceOptions {
+  localDir?: string | null;
+  /**
+   * Called the first time the workspace is asked about a nested folder, and
+   * again once {@link NESTED_FOLDER_MEMORY_MS} has passed. A host passes the
+   * folders its database records inside this one, so that a folder with no
+   * {@link RESERVED_WORKSPACE_DIR} directory, such as a game's workspace, is
+   * still known as another folder. The root is never one of them.
+   */
+  nestedFolders?: NestedFolderSource;
+}
+
+/** An adapter that publishes a file on this host by a streaming copy. */
+function hasStoreFile(
+  storage: StorageAdapter
+): storage is StorageAdapter & {
+  storeFile(key: string, sourcePath: string): Promise<string>;
+} {
+  return typeof (storage as { storeFile?: unknown }).storeFile === "function";
+}
 
 export class StorageWorkspace implements Workspace {
   readonly storage: StorageAdapter;
   readonly localDir: string | null;
   private scratch: Promise<string> | null = null;
+  private readonly nestedFolderSource: NestedFolderSource | null;
+  private declaredNestedFolders: Remembered<ReadonlySet<string>> | null = null;
+  /** Per directory key: whether it holds a reserved directory. */
+  private readonly reservedMarks = new Map<string, Remembered<boolean>>();
+  /**
+   * The one rule for the folders of other projects in this workspace. It
+   * asks by key, where {@link isNestedFolder} takes a caller's path.
+   */
+  private readonly nested = new NestedFolders({
+    isNestedFolder: (key) => this.isNestedKey(key)
+  });
 
-  constructor(storage: StorageAdapter, opts: { localDir?: string | null } = {}) {
+  constructor(storage: StorageAdapter, opts: StorageWorkspaceOptions = {}) {
     this.storage = storage;
     this.localDir = opts.localDir ?? localRootOf(storage);
+    this.nestedFolderSource = opts.nestedFolders ?? null;
+  }
+
+  /** The nested folders the host named, as lower-cased workspace keys. */
+  private declaredNested(): Promise<ReadonlySet<string>> {
+    const source = this.nestedFolderSource;
+    if (!source) return Promise.resolve(new Set());
+    if (isFresh(this.declaredNestedFolders)) {
+      return this.declaredNestedFolders.value;
+    }
+    const value = Promise.resolve()
+      .then(source)
+      .then((paths) => {
+        const keys = new Set<string>();
+        for (const path of paths) {
+          try {
+            // An empty key is the root, which is this folder itself.
+            const key = normalizeKey(path);
+            if (key) keys.add(key.toLowerCase());
+          } catch {
+            // A path outside the workspace names no directory in it.
+          }
+        }
+        return keys;
+      });
+    const remembered = { at: Date.now(), value };
+    this.declaredNestedFolders = remembered;
+    // An answer that failed is asked for again.
+    value.catch(() => {
+      if (this.declaredNestedFolders === remembered) {
+        this.declaredNestedFolders = null;
+      }
+    });
+    return value;
+  }
+
+  /**
+   * Whether the directory at `key` holds a reserved directory, remembered
+   * for {@link NESTED_FOLDER_MEMORY_MS}.
+   */
+  private hasReservedDirectory(key: string): Promise<boolean> {
+    const known = this.reservedMarks.get(key);
+    if (isFresh(known)) return known.value;
+    const value = this.readReservedDirectory(key);
+    const remembered = { at: Date.now(), value };
+    this.reservedMarks.set(key, remembered);
+    value.catch(() => {
+      if (this.reservedMarks.get(key) === remembered) {
+        this.reservedMarks.delete(key);
+      }
+    });
+    return value;
+  }
+
+  private async readReservedDirectory(key: string): Promise<boolean> {
+    if (this.localDir) {
+      await this.ensureRoot();
+      const directory = resolvePath(this.localDir, key);
+      // A directory reached through a link out of the root is refused by
+      // every operation anyway, and nothing outside the root is looked at.
+      if (!(await realPathWithinRoot(this.localDir, directory))) return false;
+      try {
+        const info = await requireNode().fs.stat(
+          resolvePath(directory, RESERVED_WORKSPACE_DIR)
+        );
+        return info.isDirectory();
+      } catch {
+        return false;
+      }
+    }
+    const listing = await this.storage.list(
+      `${key}/${RESERVED_WORKSPACE_DIR}/`,
+      { delimiter: "/" }
+    );
+    return listing.entries.length > 0 || listing.commonPrefixes.length > 0;
+  }
+
+  /**
+   * On an object store a flat listing names every key below `under`, the
+   * reserved ones among them. It therefore says which directories there
+   * hold a reserved directory, and none of them is asked about again.
+   */
+  private rememberReservedMarks(
+    entries: readonly { key: string }[],
+    under: string
+  ): void {
+    const marked = new Set<string>();
+    const seen = new Set<string>();
+    for (const { key } of entries) {
+      const segments = key.split("/");
+      let directory = "";
+      for (const segment of segments.slice(0, -1)) {
+        if (isReservedWorkspaceName(segment)) {
+          if (directory && segment === RESERVED_WORKSPACE_DIR) {
+            marked.add(directory);
+          }
+          break;
+        }
+        directory = directory ? `${directory}/${segment}` : segment;
+        seen.add(directory);
+      }
+    }
+    const at = Date.now();
+    // The listing is complete only for keys at or below `under`.
+    const complete = (key: string): boolean =>
+      !under || key === under || key.startsWith(`${under}/`);
+    for (const directory of seen) {
+      if (!complete(directory)) continue;
+      this.reservedMarks.set(directory, {
+        at,
+        value: Promise.resolve(marked.has(directory))
+      });
+    }
+    // A listed file is a directory too only when keys lie below it, and then
+    // it is among `seen`. Any other holds no reserved directory, so reading
+    // it after the listing asks the store nothing more.
+    for (const { key } of entries) {
+      if (seen.has(key) || isReservedWorkspaceKey(key) || !complete(key)) continue;
+      this.reservedMarks.set(key, { at, value: Promise.resolve(false) });
+    }
+  }
+
+  async isNestedFolder(path: string): Promise<boolean> {
+    let key: string;
+    try {
+      key = normalizeKey(path);
+    } catch (error) {
+      if (error instanceof WorkspacePathError) return false;
+      throw error;
+    }
+    return this.isNestedKey(key);
+  }
+
+  /**
+   * {@link isNestedFolder} for a normalized key. The root is never one.
+   *
+   * When the host cannot name its folders, or the storage cannot be asked,
+   * the answer is unknown and could be yes. That is a
+   * {@link WorkspaceFolderCheckError}, never "no".
+   */
+  private async isNestedKey(key: string): Promise<boolean> {
+    if (!key || isReservedWorkspaceKey(key)) return false;
+    try {
+      // Compared without case, as the reserved directory is.
+      if ((await this.declaredNested()).has(key.toLowerCase())) return true;
+      return await this.hasReservedDirectory(key);
+    } catch (error) {
+      throw new WorkspaceFolderCheckError(key, error);
+    }
+  }
+
+  /**
+   * The entries of a flat listing below the key `under` that are this
+   * folder's own: in no reserved directory and in no nested folder.
+   */
+  private async ownEntries<T extends { key: string }>(
+    entries: readonly T[],
+    under: string
+  ): Promise<T[]> {
+    if (!this.localDir) this.rememberReservedMarks(entries, under);
+    /** Per directory: whether it is a nested folder or lies in one. */
+    const others = new Map<string, boolean>();
+    const own: T[] = [];
+    for (const entry of entries) {
+      if (isReservedWorkspaceKey(entry.key)) continue;
+      const slash = entry.key.lastIndexOf("/");
+      const directory = slash < 0 ? "" : entry.key.slice(0, slash);
+      let other = others.get(directory);
+      if (other === undefined) {
+        other = directory !== "" && (await this.nested.covers(directory));
+        others.set(directory, other);
+      }
+      if (!other) own.push(entry);
+    }
+    return own;
+  }
+
+  /**
+   * Whether the real directory at `key` holds a reserved directory or a
+   * nested folder at any depth. Symbolic links are not followed.
+   */
+  private async holdsOtherFolder(key: string): Promise<boolean> {
+    if (!this.localDir) return false;
+    const { fs } = requireNode();
+    const pending = [key];
+    for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
+      let children: import("node:fs").Dirent[];
+      try {
+        children = await fs.readdir(resolvePath(this.localDir, next), {
+          withFileTypes: true
+        });
+      } catch {
+        // Not a directory, or gone: it holds nothing.
+        continue;
+      }
+      for (const child of children) {
+        if (!child.isDirectory()) continue;
+        const childKey = `${next}/${child.name}`;
+        if (
+          isReservedWorkspaceName(child.name) ||
+          (await this.nested.isFolder(childKey))
+        ) {
+          return true;
+        }
+        pending.push(childKey);
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Remove the real directory at `key` with everything in it but the
+   * reserved directories and the nested folders. A directory on the way to
+   * one stays, emptied of the rest. Returns whether the directory at `key`
+   * itself was removed.
+   */
+  private async removeOwnDirectory(key: string): Promise<boolean> {
+    if (!this.localDir) return true;
+    const { fs, path } = requireNode();
+    const dir = resolvePath(this.localDir, key);
+    let children: import("node:fs").Dirent[];
+    try {
+      children = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      // Not a directory, or already gone.
+      await fs.rm(dir, { recursive: true, force: true });
+      return true;
+    }
+    let kept = false;
+    for (const child of children) {
+      const childKey = `${key}/${child.name}`;
+      if (!child.isDirectory()) {
+        await fs.rm(path.join(dir, child.name), { force: true });
+      } else if (
+        isReservedWorkspaceName(child.name) ||
+        (await this.nested.isFolder(childKey)) ||
+        !(await this.removeOwnDirectory(childKey))
+      ) {
+        kept = true;
+      }
+    }
+    if (!kept) await fs.rmdir(dir);
+    return !kept;
   }
 
   private rootReady: Promise<void> | null = null;
@@ -192,25 +793,50 @@ export class StorageWorkspace implements Workspace {
   }
 
   /**
-   * Refuse a path whose real location leaves the workspace.
+   * Refuse a path this workspace does not reach: one whose real location
+   * leaves the workspace, and one in the folder of another project inside it.
    *
    * Called on every operation. `key()` refuses a `..` that climbs out
-   * lexically and the reserved directory; the rest is the half a symlink
-   * defeats, which only a local workspace has.
+   * lexically and the reserved directory. A symlink defeats that, which only
+   * a local workspace has. A path in a nested folder is refused on every
+   * backend: its files belong to the other project.
+   *
+   * `asDirectory` is set by the operations that take a directory. They also
+   * refuse the nested folder itself, which a path to a file cannot be.
    */
-  private async assertContained(path: string): Promise<void> {
+  private async assertContained(
+    path: string,
+    asDirectory = false
+  ): Promise<void> {
     // The lexical rules, the reserved directory among them, hold on every
     // backend. Only the symlink half below needs a real directory.
-    this.key(path);
-    if (!this.localDir) return;
-    // The root may not exist yet (a workspace folder created on first use).
-    // Without this the walk below climbs past it to an ancestor that does
-    // exist, finds that outside the root, and refuses every path in a
-    // perfectly good workspace.
-    await this.ensureRoot();
-    const target = resolvePath(this.localDir, this.key(path));
-    if (!(await realPathWithinRoot(this.localDir, target))) {
-      throw new WorkspacePathError(path);
+    const key = this.key(path);
+    let realKey = key;
+    if (this.localDir) {
+      // The root may not exist yet (a workspace folder created on first use).
+      // Without this the walk below climbs past it to an ancestor that does
+      // exist, finds that outside the root, and refuses every path in a
+      // perfectly good workspace.
+      await this.ensureRoot();
+      const target = resolvePath(this.localDir, key);
+      const real = await realKeyWithinRoot(this.localDir, target);
+      if (real === null) throw new WorkspacePathError(path);
+      realKey = real;
+    }
+    const isOther = (candidate: string): Promise<boolean> =>
+      asDirectory ? this.nested.covers(candidate) : this.nested.holds(candidate);
+    // Judged as written, and as it really is: a link inside the folder can
+    // point at another project's folder, which no `.nodetool/` need mark.
+    // The same goes for the reserved directory: `NODETO~1` and `.nodetool.`
+    // are `.nodetool` only once the operating system has resolved them.
+    if (realKey !== key && isReservedWorkspaceKey(realKey)) {
+      throw new WorkspaceReservedPathError(path);
+    }
+    if (
+      (await isOther(key)) ||
+      (realKey !== key && realKey !== "" && (await this.nested.covers(realKey)))
+    ) {
+      throw new WorkspaceReservedPathError(path, "nested");
     }
   }
 
@@ -255,13 +881,63 @@ export class StorageWorkspace implements Workspace {
     );
   }
 
+  writeNew(
+    path: string,
+    data: Uint8Array | string,
+    contentType?: string,
+    options: WriteNewOptions = {}
+  ): Promise<boolean> {
+    const bytes = typeof data === "string" ? textEncoder.encode(data) : data;
+    return withTaskSpan(
+      "io",
+      "workspace.write_new",
+      { "nodetool.workspace.bytes": bytes.byteLength },
+      async () => {
+        await this.assertContained(path);
+        if (!this.storage.storeIfAbsent) {
+          // Never a check followed by `store`: that is the overwrite this
+          // method exists to rule out.
+          throw new Error(
+            "This workspace's storage cannot create a file without replacing one"
+          );
+        }
+        const key = this.key(path);
+        const { stagingName } = options;
+        if (stagingName !== undefined) {
+          // The staging file sits beside the target, so it is held to the
+          // same rules: inside the workspace and outside the reserved directory.
+          const slash = key.lastIndexOf("/");
+          const beside = `${key.slice(0, slash + 1)}${stagingName}`;
+          if (stagingName.includes("/") || this.key(beside) !== beside) {
+            throw new WorkspacePathError(stagingName);
+          }
+        }
+        const uri = await this.storage.storeIfAbsent(key, bytes, contentType, {
+          stagingName
+        });
+        return uri !== null;
+      }
+    );
+  }
+
   async exists(path: string): Promise<boolean> {
     try {
       await this.assertContained(path);
-    } catch {
-      return false;
+    } catch (error) {
+      // A path the workspace refuses holds nothing a caller can use. A check
+      // that could not be made says nothing about the file, so it is not
+      // answered with "absent".
+      if (
+        error instanceof WorkspacePathError ||
+        error instanceof WorkspaceReservedPathError
+      ) {
+        return false;
+      }
+      throw error;
     }
-    return this.storage.exists(this.uri(path));
+    if (!(await this.storage.exists(this.uri(path)))) return false;
+    // A real directory answers as existing, and can be another folder.
+    return !(this.localDir && (await this.nested.isFolder(this.key(path))));
   }
 
   async stat(path: string): Promise<WorkspaceStat | null> {
@@ -283,6 +959,21 @@ export class StorageWorkspace implements Workspace {
     // a real directory, and reporting an existing empty folder as missing is a
     // difference a caller can see.
     const listing = await this.storage.list(`${key}/`, { delimiter: "/" });
+    if (!this.localDir) {
+      // The listing shows whether `key` holds a reserved directory, so an
+      // object store is not asked about it a second time.
+      const reserved = `${key}/${RESERVED_WORKSPACE_DIR}`;
+      const marked = listing.commonPrefixes.some(
+        (prefix) => prefix === reserved || prefix === `${reserved}/`
+      );
+      this.reservedMarks.set(key, {
+        at: Date.now(),
+        value: Promise.resolve(marked)
+      });
+    }
+    if (await this.nested.isFolder(key)) {
+      throw new WorkspaceReservedPathError(path, "nested");
+    }
     if (listing.entries.length > 0 || listing.commonPrefixes.length > 0) {
       return { path: key, size: 0, modifiedAt: 0, isDirectory: true };
     }
@@ -322,35 +1013,39 @@ export class StorageWorkspace implements Workspace {
     opts: { recursive?: boolean }
   ): Promise<WorkspaceEntry[]> {
     const key = normalize(path);
-    if (key) await this.assertContained(key);
+    if (key) await this.assertContained(key, true);
     const prefix = key ? `${key}/` : "";
     const listing = await this.storage.list(
       prefix,
       opts.recursive === true ? {} : { delimiter: "/" }
     );
-    // Only a root listing can reach the reserved directory: `assertContained`
-    // above refuses one that starts inside it.
-    const files: WorkspaceEntry[] = listing.entries
-      .filter((entry) => !isReservedWorkspaceKey(entry.key))
-      .map((entry) => ({
-        path: entry.key,
-        name: entry.key.slice(entry.key.lastIndexOf("/") + 1),
-        size: entry.size,
-        modifiedAt: entry.modifiedAt,
-        isDirectory: false
-      }));
-    const dirs: WorkspaceEntry[] = listing.commonPrefixes
-      .filter((p) => !isReservedWorkspaceKey(p))
-      .map((p) => {
-        const trimmed = p.endsWith("/") ? p.slice(0, -1) : p;
-        return {
-          path: trimmed,
-          name: trimmed.slice(trimmed.lastIndexOf("/") + 1),
-          size: 0,
-          modifiedAt: 0,
-          isDirectory: true
-        };
+    // `assertContained` above refuses a listing that starts in a reserved
+    // directory or a nested folder. One that starts above them leaves them
+    // out, at every depth.
+    const entries =
+      opts.recursive === true
+        ? await this.ownEntries(listing.entries, key)
+        : listing.entries.filter((entry) => !isReservedWorkspaceKey(entry.key));
+    const files: WorkspaceEntry[] = entries.map((entry) => ({
+      path: entry.key,
+      name: entry.key.slice(entry.key.lastIndexOf("/") + 1),
+      size: entry.size,
+      modifiedAt: entry.modifiedAt,
+      isDirectory: false
+    }));
+    const dirs: WorkspaceEntry[] = [];
+    for (const p of listing.commonPrefixes) {
+      const trimmed = p.endsWith("/") ? p.slice(0, -1) : p;
+      if (isReservedWorkspaceKey(trimmed)) continue;
+      if (await this.nested.isFolder(trimmed)) continue;
+      dirs.push({
+        path: trimmed,
+        name: trimmed.slice(trimmed.lastIndexOf("/") + 1),
+        size: 0,
+        modifiedAt: 0,
+        isDirectory: true
       });
+    }
     return [...dirs, ...files].sort((a, b) => a.path.localeCompare(b.path));
   }
 
@@ -366,23 +1061,20 @@ export class StorageWorkspace implements Workspace {
     // this delete the link's target. `list` reads through the symlink and
     // hands back keys that are lexically inside the root, so the adapter's own
     // lexical check passes and `unlink` follows the link out.
-    if (key) await this.assertContained(key);
+    if (key) await this.assertContained(key, true);
     const listing = await this.storage.list(key ? `${key}/` : "");
     let deleted = 0;
-    for (const entry of listing.entries) {
-      // Clearing the whole workspace leaves NodeTool's own directory alone.
-      if (isReservedWorkspaceKey(entry.key)) continue;
+    // NodeTool's own directory is left alone, and so is the folder of another
+    // project inside the directory being cleared, with every file in it.
+    for (const entry of await this.ownEntries(listing.entries, key)) {
       if (await this.storage.delete(entry.uri)) deleted++;
     }
     // On an object store the prefix is gone once its keys are. A real
     // directory would linger and keep showing up in `list`, so remove it —
-    // otherwise the same call leaves two different workspaces behind.
-    if (this.localDir && key) {
-      await requireNode().fs.rm(resolvePath(this.localDir, key), {
-        recursive: true,
-        force: true
-      });
-    }
+    // otherwise the same call leaves two different workspaces behind. A
+    // reserved directory and a nested folder below it stay, with the
+    // directories that lead to them.
+    if (this.localDir && key) await this.removeOwnDirectory(key);
     return deleted;
   }
 
@@ -393,7 +1085,7 @@ export class StorageWorkspace implements Workspace {
     // into it.
     const key = normalize(path);
     if (!key) return;
-    await this.assertContained(key);
+    await this.assertContained(key, true);
     if (this.localDir) {
       await requireNode().fs.mkdir(resolvePath(this.localDir, key), {
         recursive: true
@@ -410,9 +1102,58 @@ export class StorageWorkspace implements Workspace {
     await this.write(to, bytes, st?.contentType);
   }
 
+  /**
+   * Move a file, or a directory with everything under it. A directory is
+   * never moved into itself or onto anything that exists, except onto a name
+   * that differs from its own only in case. A local directory is renamed in
+   * one step, so the files keep their bytes and modification times. On an
+   * object store each file is copied to its new key, then removed.
+   *
+   * A directory that holds a reserved directory or a nested folder at any
+   * depth is refused before anything moves, and so is a target in a nested
+   * folder.
+   */
   async move(from: string, to: string): Promise<void> {
-    await this.copy(from, to);
-    await this.delete(from);
+    await this.assertContained(from);
+    const fromKey = this.key(from);
+    if (await this.storage.stat(this.storage.uriForKey(fromKey))) {
+      await this.copy(from, to);
+      await this.delete(from);
+      return;
+    }
+    const source = await this.stat(fromKey);
+    if (!source?.isDirectory) {
+      throw new Error(`Cannot move '${from}': it does not exist`);
+    }
+    await this.assertContained(to, true);
+    const toKey = this.key(to);
+    if (toKey === fromKey || toKey.startsWith(`${fromKey}/`)) {
+      throw new Error(`Cannot move '${from}' into itself`);
+    }
+    const caseOnly = toKey.toLowerCase() === fromKey.toLowerCase();
+    if (!caseOnly && (await this.stat(toKey))) {
+      throw new Error(`Cannot move '${from}' to '${to}': it already exists`);
+    }
+    if (this.localDir) {
+      const { fs, path } = requireNode();
+      if (await this.holdsOtherFolder(fromKey)) {
+        throw new WorkspaceReservedPathError(from, "holds");
+      }
+      const target = resolvePath(this.localDir, toKey);
+      await fs.mkdir(path.dirname(target), { recursive: true });
+      await fs.rename(resolvePath(this.localDir, fromKey), target);
+      return;
+    }
+    const listing = await this.storage.list(`${fromKey}/`);
+    const own = await this.ownEntries(listing.entries, fromKey);
+    if (own.length !== listing.entries.length) {
+      throw new WorkspaceReservedPathError(from, "holds");
+    }
+    for (const entry of listing.entries) {
+      const moved = `${toKey}/${entry.key.slice(fromKey.length + 1)}`;
+      await this.copy(entry.key, moved);
+      await this.storage.delete(entry.uri);
+    }
   }
 
   materialize(path: string): Promise<string> {
@@ -422,7 +1163,9 @@ export class StorageWorkspace implements Workspace {
   }
 
   private async stage(path: string): Promise<string> {
-    await this.assertContained(path);
+    // As a directory: on a local workspace the answer is a real path, and
+    // the real directory of a nested folder is not handed out either.
+    await this.assertContained(path, true);
     const key = this.key(path);
     if (this.localDir) return resolvePath(this.localDir, key);
     const bytes = await this.read(key);
@@ -444,12 +1187,21 @@ export class StorageWorkspace implements Workspace {
 
   private async absorbFile(localPath: string, path: string): Promise<void> {
     const node = requireNode();
+    await this.assertContained(path);
     if (
       this.localDir &&
       node.path.resolve(localPath) ===
         node.path.resolve(this.localDir, this.key(path))
     ) {
       // The binary already wrote in place — the workspace *is* that file.
+      return;
+    }
+    // A folder on this host takes the file with a bounded streaming copy,
+    // which also refuses a file above the upload limit, so a large file is
+    // never read into memory whole.
+    const { storage } = this;
+    if (this.localDir && hasStoreFile(storage)) {
+      await storage.storeFile(this.key(path), localPath);
       return;
     }
     await this.write(path, new Uint8Array(await node.fs.readFile(localPath)));
@@ -481,20 +1233,25 @@ export class StorageWorkspace implements Workspace {
  */
 export function createWorkspace(
   storage: StorageAdapter,
-  opts: { prefix?: string | null } = {}
+  opts: { prefix?: string | null; nestedFolders?: NestedFolderSource } = {}
 ): Workspace {
-  if (!opts.prefix) return new StorageWorkspace(storage);
+  const { nestedFolders } = opts;
+  if (!opts.prefix) return new StorageWorkspace(storage, { nestedFolders });
   return new StorageWorkspace(new PrefixedStorageAdapter(storage, opts.prefix), {
     // A prefixed view of a local folder still has a real directory: the
     // subfolder the prefix names.
     localDir: (() => {
       const root = localRootOf(storage);
       return root ? resolvePath(root, opts.prefix) : null;
-    })()
+    })(),
+    nestedFolders
   });
 }
 
 /** A workspace over a real directory. */
-export function createLocalWorkspace(dir: string): Workspace {
-  return new StorageWorkspace(new FileStorageAdapter(dir));
+export function createLocalWorkspace(
+  dir: string,
+  opts: { nestedFolders?: NestedFolderSource } = {}
+): Workspace {
+  return new StorageWorkspace(new FileStorageAdapter(dir), opts);
 }

@@ -6139,13 +6139,16 @@
         "createError": "Could not create the project: {{error}}",
         "openFolder": "Open folder…",
         "openFolderHint": "Already have a folder? Open it as a project. No files move.",
+        "openFolderTravels": "A folder copied from another machine opens with its workflows, timelines and assets. Chats, storyboards, scripts, sketches, apps and JS scripts do not travel with the folder.",
         "openFolderError": "Could not open the folder: {{error}}"
       },
       "folder": {
         "notFound": "Folder not found",
         "notFoundDetail": "The folder of {{name}} was moved, renamed, or is on a drive that is not connected. Runs cannot start until you locate it.",
         "locate": "Locate",
-        "locateError": "Could not locate the folder: {{error}}"
+        "locateError": "Could not locate the folder: {{error}}",
+        "moving": "Moving files into the project folder",
+        "movingDetail": "{{done}} of {{total}} files moved. Your assets stay available while this runs."
       },
       "home": {
         "homeTab": "Home",
@@ -6424,16 +6427,42 @@
           "export": "Export",
           "archive": "Archive",
           "restore": "Restore",
-          "delete": "Delete"
+          "delete": "Delete",
+          "collect": "Collect files"
         },
         "projectActions": "Project actions",
         "actionsForProject": "Actions for {{projectName}}",
         "exporting": "Exporting…",
         "deleteProject": "Delete project",
         "confirmDeleteTitle": "Delete {{projectName}}?",
-        "confirmDeleteBody": "Delete {{projectName}} and all of its documents, conversations, generated outputs, assets, jobs, and project files.",
+        "confirmDeleteBody": "Delete {{projectName}} and all of its documents, conversations, jobs, and assets stored outside the project folder.",
         "deleteIrreversible": "This cannot be undone.",
-        "error": "Could not {{action}} {{projectName}}: {{error}}"
+        "deleteFolderTrash": "The project folder moves to the trash.",
+        "deleteFolderRemove": "The project folder and every file in it are deleted from cloud storage.",
+        "deleteFolderKeep": "The project folder stays where it is with every file in it. NodeTool removes only the .nodetool folder inside it.",
+        "deleteFolderMissing": "The project folder cannot be reached, so NodeTool leaves it as it is.",
+        "folderMovedAsideTo": "The trash could not be reached. The project folder moved to {{path}}.",
+        "folderMovedAside": "The trash could not be reached. The project folder moved to the .trash folder in the projects folder.",
+        "folderTrashFailedAt": "The project folder could not be moved to the trash. It stays at {{path}}.",
+        "folderTrashFailed": "The project folder could not be moved to the trash. It stays where it is.",
+        "error": "Could not {{action}} {{projectName}}: {{error}}",
+        "collecting": "Collecting files…",
+        "collectResult": "Collected files into {{projectName}}: {{copied}} copied, {{skipped}} skipped, {{failed}} failed.",
+        "linkedTitle": "{{projectName}} links files outside its folder",
+        "linkedBody": "An export holds the project folder. These files are linked from somewhere else and are not in it:",
+        "linkedChoice": "Collect and export copies them into the folder's Imported directory, then exports. Cancel keeps the links and exports nothing.",
+        "collectAndExport": "Collect and export"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Copy or link?",
+        "confirm": "Import",
+        "copy": "Copy into the project folder",
+        "copyHint": "The project keeps its own copy. Changes to the original do not reach it.",
+        "link": "Link in place",
+        "linkHint": "Nothing is copied. The project reads the file where it is. Collect files copies it in later.",
+        "threshold": "Files of {{size}} or more are linked by default."
       }
     }
   },
@@ -9074,10 +9103,6 @@
         "REPLICATE_API_TOKEN": {
           "button": "Get Replicate API token",
           "tooltip": "Go to Replicate API tokens page"
-        },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Get Google app password",
-          "tooltip": "Go to Google account app passwords page"
         },
         "ELEVENLABS_API_KEY": {
           "button": "Get ElevenLabs API key",
@@ -15080,7 +15105,6 @@
       "csv": "CSV file",
       "unknown": "Unknown file type",
       "unknownContentType": "Unknown content type",
-      "offline": "Media offline",
       "thumbnail": "Thumbnail",
       "folder": "Folder"
     },
@@ -20115,7 +20139,82 @@
       "revealInFinder": "Reveal in Finder",
       "revealInExplorer": "Show in File Explorer",
       "revealInFileManager": "Show in file manager"
+    },
+    "documentFile": {
+      "invalidTitle": "This file has an error",
+      "invalidBody": "{{path}} was not loaded: {{error}}. The last valid version stays open and still runs.",
+      "openFile": "Open file",
+      "missingTitle": "File missing",
+      "missingBody": "{{path}} is no longer in the project folder. Restore writes it again from this document.",
+      "restore": "Restore",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "deleteTitle": "Delete {{name}}?",
+      "deleteDescription": "\"{{name}}\" and its version history are deleted permanently.",
+      "restoreFailed": "The file was not restored: {{error}}",
+      "deleteFailed": "The document was not deleted: {{error}}"
+    },
+    "migration": {
+      "title": "Move your projects into folders",
+      "intro": "NodeTool now keeps each project in its own folder on this computer. Your files, workflows and timelines move there, and you can open them in other apps.",
+      "planProjects": "Projects that get a folder",
+      "planFiles": "Files to move",
+      "planWorkflows": "Workflows saved as files",
+      "planTimelines": "Timelines saved as files",
+      "extraTitle": "Projects with more than one folder",
+      "extraBody": "Each of these projects keeps one folder. NodeTool stops showing the others, and their files stay where they are.",
+      "extraKeeps": "{{project}} keeps {{folder}}",
+      "extraHidden": "No longer shown: {{folder}}",
+      "location": "Location",
+      "changeLocation": "Change location",
+      "locationError": "This location cannot be used: {{error}}",
+      "permissionWarning": "macOS will ask whether NodeTool may use this folder. Choose Allow, or pick a folder outside Documents, Desktop, Downloads, iCloud Drive and external drives.",
+      "safety": "Nothing is lost. Each file is copied and checked before its old copy is removed. You can keep working while files move.",
+      "later": "Not now",
+      "confirm": "Move files",
+      "planError": "The plan could not be loaded: {{error}}",
+      "confirmError": "The move did not start: {{error}}",
+      "actionError": "The move could not be changed: {{error}}",
+      "progressRegion": "Moving files into project folders",
+      "progressTitle": "Moving files into project folders",
+      "pausedTitle": "Moving files is paused",
+      "doneTitle": "Files moved",
+      "progressCount": "{{done}} of {{total}} files moved",
+      "phaseFolders": "Creating project folders",
+      "phaseFiles": "Saving workflows and timelines as files",
+      "currentProject": "Now moving the files of {{project}}",
+      "pause": "Pause",
+      "resume": "Resume",
+      "failuresTitle": "Could not move ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "More not shown: {{count}}",
+      "retry": "Try again",
+      "donePath": "Your files are in {{path}}",
+      "close": "Close"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "Asset source",
+    "projectTab": "This project",
+    "personalTab": "Personal",
+    "personalHint": "Picking from Personal copies the file into this project.",
+    "copying": "Copying into this project…",
+    "copyFailed": "Could not copy the asset into this project."
+  },
+  "assetFileStatus": {
+    "missing": "Missing",
+    "missingTooltip": "The file is not where this asset expects it. Relink it to the file's new location, or remove the asset.",
+    "linked": "Linked",
+    "linkedTooltip": "This asset uses a file outside the project folder in place.",
+    "relink": "Relink",
+    "relinkTooltip": "Pick the file's new location",
+    "relinkNoPath": "Could not read that file's location. Pick a file on this computer.",
+    "relinkFailed": "Relink failed: {{error}}",
+    "remove": "Remove",
+    "removeTooltip": "Remove this asset from NodeTool",
+    "removeTitle": "Remove \"{{name}}\"?",
+    "removeBody": "The asset is removed from NodeTool. Documents that use it can no longer show it.",
+    "cancel": "Cancel"
   },
   "storyboardText": {
     "mode": "Text",

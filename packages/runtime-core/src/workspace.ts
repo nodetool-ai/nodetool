@@ -42,6 +42,18 @@ export interface WorkspaceStat {
   isDirectory: boolean;
 }
 
+export interface WriteNewOptions {
+  /**
+   * A file name in the directory of the path that belongs to the caller
+   * alone. A folder on disk writes the bytes under this name first and gives
+   * them to the path in one step. A file under the name when the call starts
+   * is what a writer that died left, and is removed. The name is gone again
+   * when the call returns. An object store creates an object in one step
+   * already and ignores the name.
+   */
+  stagingName?: string;
+}
+
 export interface Workspace {
   /**
    * The real directory backing this workspace, or null when it is virtual.
@@ -64,21 +76,72 @@ export interface Workspace {
     data: Uint8Array | string,
     contentType?: string
   ): Promise<void>;
+  /**
+   * Write a file only when nothing is at `path`. Returns false when a file is
+   * there, and that file is left as it was.
+   *
+   * The check and the write are one step in the backend, so of two writers
+   * racing for one path, in this process or another, exactly one succeeds.
+   * `write` replaces whatever is there. Throws when the backend cannot make
+   * that guarantee, rather than fall back to a write that can overwrite.
+   *
+   * With `options.stagingName`, `path` also holds the whole file or nothing
+   * when the process dies during the write. See {@link WriteNewOptions}.
+   */
+  writeNew(
+    path: string,
+    data: Uint8Array | string,
+    contentType?: string,
+    options?: WriteNewOptions
+  ): Promise<boolean>;
   exists(path: string): Promise<boolean>;
   stat(path: string): Promise<WorkspaceStat | null>;
-  /** Direct children of `path`, or every descendant when `recursive`. */
+  /**
+   * Direct children of `path`, or every descendant when `recursive`.
+   * {@link RESERVED_WORKSPACE_DIR} and nested folders are left out.
+   */
   list(
     path?: string,
     opts?: { recursive?: boolean }
   ): Promise<WorkspaceEntry[]>;
   /** Delete one file. Returns false when it was not there. */
   delete(path: string): Promise<boolean>;
-  /** Delete a directory and everything under it. Returns how many files went. */
+  /**
+   * Delete a directory and everything under it. Returns how many files went.
+   * A {@link RESERVED_WORKSPACE_DIR} directory and a nested folder below it
+   * stay as they are, with the directories that lead to them.
+   */
   deleteAll(path: string): Promise<number>;
   /** No-op on an object store; creates the directory on a local one. */
   mkdir(path: string): Promise<void>;
   copy(from: string, to: string): Promise<void>;
+  /**
+   * Move a file, or a directory with everything under it. A directory is
+   * never moved into itself or onto an existing entry. A directory that holds
+   * a {@link RESERVED_WORKSPACE_DIR} directory or a nested folder at any
+   * depth is refused.
+   */
   move(from: string, to: string): Promise<void>;
+
+  /**
+   * Whether the directory at `path` is a NodeTool folder of its own inside
+   * this one: the folder of another project, or of a game. It is one when it
+   * holds a {@link RESERVED_WORKSPACE_DIR} directory, or when the host that
+   * built this workspace named it. False for the root, which is this folder
+   * itself, and for a path outside the workspace.
+   *
+   * `path` is a workspace key, as {@link key} and a listing give it. It is
+   * taken as it is: a leading `workspace/` is a directory of that name, where
+   * every other method reads it as the root. Throws
+   * {@link WorkspaceFolderCheckError} when the answer cannot be found out.
+   *
+   * The files of a nested folder belong to the other project. Every other
+   * method refuses a path that is such a folder or lies in one, as it
+   * refuses {@link RESERVED_WORKSPACE_DIR}: with a
+   * {@link WorkspaceReservedPathError}. `list` leaves nested folders out, and
+   * `deleteAll` leaves them as they are. See {@link NestedFolders}.
+   */
+  isNestedFolder(path: string): Promise<boolean>;
 
   /**
    * A real local path holding this file's current bytes, for handing to a host
@@ -115,28 +178,130 @@ export class WorkspacePathError extends Error {
  * project manifest and, later, caches. No workspace method reaches it: run
  * code (agent tools, Code nodes, save nodes) gets a {@link Workspace}, and
  * NodeTool writes here through a separate workspace rooted at this directory.
+ *
+ * The name is reserved at every depth. A workspace can hold the folder of
+ * another project, such as `projects/<id>` in a managed folder, and that
+ * folder's `.nodetool/` is no more reachable than the workspace's own.
  */
 export const RESERVED_WORKSPACE_DIR = ".nodetool";
 
+/** True when `name` is the name of {@link RESERVED_WORKSPACE_DIR}. */
+export function isReservedWorkspaceName(name: string): boolean {
+  return name.toLowerCase() === RESERVED_WORKSPACE_DIR;
+}
+
 /**
- * True when a normalized workspace key lies in {@link RESERVED_WORKSPACE_DIR}.
+ * True when a normalized workspace key names {@link RESERVED_WORKSPACE_DIR}
+ * or lies in one, at any depth: `.nodetool/x` and `projects/a/.nodetool/x`.
+ * Only a segment that is exactly the name counts, so `.nodetool.md`,
+ * `fox.nodetool` and `.nodetool-old/x` are ordinary paths.
  *
  * Compared without case, because macOS and Windows folders ignore case and
  * `.NodeTool/x` names the same file there.
  */
 export function isReservedWorkspaceKey(key: string): boolean {
-  const first = key.split("/", 1)[0] ?? "";
-  return first.toLowerCase() === RESERVED_WORKSPACE_DIR;
+  return key.split("/").some(isReservedWorkspaceName);
 }
 
-/** Thrown when a path names the directory NodeTool reserves for itself. */
+/**
+ * Why a workspace refuses a path:
+ * - `reserved`: it names {@link RESERVED_WORKSPACE_DIR} or lies in one.
+ * - `nested`: it is the folder of another project inside this workspace, or
+ *   lies in one.
+ * - `holds`: it is a directory with a reserved directory or the folder of
+ *   another project somewhere below it, and the operation would take that
+ *   along.
+ */
+export type WorkspaceReservedReason = "reserved" | "nested" | "holds";
+
+/**
+ * Thrown when a path names the directory NodeTool reserves for itself, or
+ * the folder of another project inside the workspace.
+ */
 export class WorkspaceReservedPathError extends Error {
-  constructor(path: string) {
+  readonly reason: WorkspaceReservedReason;
+
+  constructor(path: string, reason: WorkspaceReservedReason = "reserved") {
     super(
-      `Path '${path}' is inside ${RESERVED_WORKSPACE_DIR}/, which NodeTool ` +
-        `reserves for its own files. Choose another folder.`
+      reason === "nested"
+        ? `Path '${path}' is in the folder of another project inside this ` +
+            `one. Its files belong to that project. Open that project to ` +
+            `use them.`
+        : reason === "holds"
+          ? `Path '${path}' holds the folder of another project, or a ` +
+              `${RESERVED_WORKSPACE_DIR}/ directory NodeTool reserves for its ` +
+              `own files. It cannot be moved from here.`
+          : `Path '${path}' is inside ${RESERVED_WORKSPACE_DIR}/, which NodeTool ` +
+              `reserves for its own files. Choose another folder.`
     );
     this.name = "WorkspaceReservedPathError";
+    this.reason = reason;
+  }
+}
+
+/**
+ * Thrown when a workspace cannot find out whether a path is in the folder of
+ * another project: the host could not name its folders, or the storage could
+ * not be asked. The operation is refused, because the answer could have been
+ * yes. Nothing is known about the path itself, so no caller may read this as
+ * "the file is not there".
+ */
+export class WorkspaceFolderCheckError extends Error {
+  constructor(path: string, cause: unknown) {
+    const reason = cause instanceof Error ? cause.message : String(cause);
+    super(
+      `Path '${path}' could not be checked against the folders of other ` +
+        `projects, so it was refused: ${reason}`,
+      { cause }
+    );
+    this.name = "WorkspaceFolderCheckError";
+  }
+}
+
+/**
+ * The NodeTool folders inside a workspace: the directories for which
+ * {@link Workspace.isNestedFolder} answers true.
+ *
+ * A project folder can hold the folder of another project. Personal's managed
+ * folder holds `projects/<id>`, where cloud projects, imported projects and
+ * games keep theirs. Those files belong to the other project. One rule
+ * decides for everything that touches a folder, and this is where it is
+ * asked:
+ *
+ * - The workspace refuses every operation on a path in a nested folder and
+ *   leaves nested folders out of its listings.
+ * - Whatever compares a folder with rows (the scan, the watcher, the hash
+ *   job, the manifest writer, the document file sync) and whatever follows a
+ *   row to its file asks before it looks, so that a row naming such a path
+ *   counts as a row whose file is gone.
+ *
+ * It keeps no answers of its own. The workspace remembers what it learned
+ * about a directory for a short time, so asking again costs nothing.
+ */
+export class NestedFolders {
+  constructor(
+    private readonly workspace: Pick<Workspace, "isNestedFolder">
+  ) {}
+
+  /** Whether the directory at the workspace key `path` is a nested folder. */
+  isFolder(path: string): Promise<boolean> {
+    return this.workspace.isNestedFolder(path);
+  }
+
+  /**
+   * Whether the file or directory at the workspace key `path` lies in a
+   * nested folder: one of the directories above it is one.
+   */
+  async holds(path: string): Promise<boolean> {
+    for (let slash = path.indexOf("/"); slash > 0; slash = path.indexOf("/", slash + 1)) {
+      if (await this.isFolder(path.slice(0, slash))) return true;
+    }
+    return false;
+  }
+
+  /** Whether `path` is a nested folder or lies in one. */
+  async covers(path: string): Promise<boolean> {
+    return (await this.holds(path)) || (await this.isFolder(path));
   }
 }
 
@@ -197,6 +362,7 @@ export function observeWorkspace(
     exists: (path) => inner.exists(path),
     stat: (path) => inner.stat(path),
     list: (path, opts) => inner.list(path, opts),
+    isNestedFolder: (path) => inner.isNestedFolder(path),
     materialize: (path) => inner.materialize(path),
     scratchDir: () => inner.scratchDir(),
     cleanupScratch: () => inner.cleanupScratch?.() ?? Promise.resolve(),
@@ -204,6 +370,11 @@ export function observeWorkspace(
     async write(path, data, contentType) {
       await inner.write(path, data, contentType);
       notify("write", path);
+    },
+    async writeNew(path, data, contentType, options) {
+      const written = await inner.writeNew(path, data, contentType, options);
+      if (written) notify("write", path);
+      return written;
     },
     async delete(path) {
       const removed = await inner.delete(path);
@@ -232,4 +403,48 @@ export function observeWorkspace(
       notify("write", path);
     }
   };
+}
+
+/** A project's folder, or why it cannot be reached. */
+export type ProjectFolderResolution =
+  | {
+      ok: true;
+      projectId: string;
+      workspace: Workspace;
+      /**
+       * The folder's {@link RESERVED_WORKSPACE_DIR}, as a workspace rooted
+       * there. NodeTool writes its own files through it, such as the asset
+       * manifest. It is never handed to run code.
+       */
+      nodetoolDir?: Workspace | null;
+    }
+  | { ok: false; projectId: string | null; reason: string };
+
+/**
+ * Resolves a project to the {@link Workspace} that is its folder. A missing
+ * or loose project id names the user's Personal project.
+ */
+export type ProjectFolderResolver = (
+  projectId: string | null | undefined,
+  userId: string
+) => Promise<ProjectFolderResolution>;
+
+let projectFolderResolver: ProjectFolderResolver | null = null;
+
+/**
+ * Install the resolver every package below the host reaches project folders
+ * through. Project folders live in `@nodetool-ai/execution`, which installs
+ * `resolveProjectWorkspace` when it loads. Asset services sit below that
+ * package and read and write asset files through this resolver, so a folder
+ * is resolved by one set of rules on every path.
+ */
+export function setProjectFolderResolver(
+  resolver: ProjectFolderResolver | null
+): void {
+  projectFolderResolver = resolver;
+}
+
+/** The installed resolver, or null on a host that loads no project folders. */
+export function getProjectFolderResolver(): ProjectFolderResolver | null {
+  return projectFolderResolver;
 }

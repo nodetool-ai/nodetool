@@ -1,4 +1,4 @@
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, inArray, isNull, count } from "drizzle-orm";
 import type {
   TimelineSequence as TimelineSequenceDoc,
   TimelineTrack,
@@ -16,19 +16,47 @@ import {
   ModelChangeEvent,
   ModelChangeMeta,
   ModelObserver,
+  computeEtag,
   createTimeOrderedUuid,
   nextUpdatedAtAfter
 } from "./base-model.js";
-import { getPortableDb } from "./db.js";
+import { allowLegacyProjectWritesForTests, getPortableDb } from "./db.js";
+import { projects } from "./schema/projects.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
 import { TimelineSequenceVersion } from "./timeline-sequence-version.js";
 import { removeDocumentSharing } from "./document-sharing.js";
+import {
+  assertDocumentFileMayLeave,
+  type DocumentFileLocation,
+  type DocumentFileSync
+} from "./document-file-sync.js";
 
 export class TimelineSequenceConflictError extends Error {
   constructor(id: string) {
     super(`Timeline sequence ${id} was modified concurrently`);
     this.name = "TimelineSequenceConflictError";
   }
+}
+
+let timelineFileSync: DocumentFileSync<TimelineSequence> | null = null;
+
+/**
+ * Per timeline instance: the project whose folder holds the file at
+ * `file_path`, as last read from or written to the database. A save that
+ * changes `project_id` uses it to remove the file from the folder the
+ * timeline left.
+ */
+const fileProjects = new WeakMap<TimelineSequence, string>();
+
+/**
+ * Install what writes a timeline's file in its project folder after the row
+ * is saved, and deletes it after the row is deleted. See
+ * {@link DocumentFileSync}.
+ */
+export function setTimelineFileSync(
+  sync: DocumentFileSync<TimelineSequence> | null
+): void {
+  timelineFileSync = sync;
 }
 
 export interface TimelineSequenceMutationResult<T> {
@@ -113,6 +141,17 @@ export class TimelineSequence extends DBModel {
   declare document: string;
   declare created_at: string;
   declare revision: number;
+  /** The timeline's file, relative to its project's folder. */
+  declare file_path: string | null;
+  /**
+   * SHA-256 of the file as NodeTool last wrote or imported it. A file with
+   * another hash holds an edit NodeTool has not seen. Null until the row is
+   * first synced with a file. A host with no file sync leaves it as it is,
+   * and the reconcile then finds the row newer than its untouched file.
+   */
+  declare file_hash: string | null;
+  /** What the last reconcile found wrong with the file, or null. */
+  declare file_error: string | null;
   declare updated_at: string;
 
   constructor(data: Record<string, unknown>) {
@@ -127,7 +166,251 @@ export class TimelineSequence extends DBModel {
     this.document ??= JSON.stringify({ tracks: [], clips: [], markers: [] });
     this.created_at ??= now;
     this.revision ??= 0;
+    this.file_path ??= null;
+    this.file_hash ??= null;
+    this.file_error ??= null;
+    this.rememberFileProject();
     this.updated_at ??= now;
+  }
+
+  /**
+   * The etag of the timeline, without the state of its file. Where the file
+   * is, its hash and what the last reconcile found wrong with it are records
+   * about the file and no content of the timeline. Recording them must not
+   * read as a change of the timeline to a client that holds its etag.
+   */
+  override getEtag(): string {
+    const {
+      file_path: _path,
+      file_hash: _hash,
+      file_error: _error,
+      ...content
+    } = this.toRow();
+    return computeEtag(content);
+  }
+
+  /** Every create and save of a timeline row writes its file afterwards. */
+  protected override async persist(event: ModelChangeEvent): Promise<this> {
+    const previous = this.previousFile();
+    if (previous && timelineFileSync) {
+      // The save moves the timeline to another project. The stored row is
+      // asked first, because its file in the folder it leaves is deleted.
+      const [stored] = await getPortableDb()
+        .select()
+        .from(timelineSequences)
+        .where(eq(timelineSequences.id, this.id))
+        .limit(1);
+      await assertDocumentFileMayLeave(
+        timelineFileSync,
+        stored ? new TimelineSequence(stored) : null
+      );
+    }
+    await super.persist(event);
+    await this.syncFile(previous);
+    return this;
+  }
+
+  override async delete(): Promise<void> {
+    await super.delete();
+    await timelineFileSync?.deleted(this);
+  }
+
+  /** The file this row had in another project, when a save moved the row. */
+  private previousFile(): DocumentFileLocation | null {
+    const project = fileProjects.get(this);
+    return this.file_path && project !== undefined && project !== this.project_id
+      ? { project_id: project, file_path: this.file_path }
+      : null;
+  }
+
+  /**
+   * Write the file of this row, which a caller just wrote without `save()`.
+   * `previous` is the file the row had in the project it left, if it moved.
+   */
+  async syncFile(previous: DocumentFileLocation | null = null): Promise<void> {
+    await timelineFileSync?.saved(this, previous);
+    this.rememberFileProject();
+  }
+
+  private rememberFileProject(): void {
+    if (this.file_path) fileProjects.set(this, this.project_id);
+    else fileProjects.delete(this);
+  }
+
+  /**
+   * Record the file the row was last synced with. `updated_at` and `revision`
+   * stay as they are, because the file is not content: raising them would
+   * refuse the next save of an editor that has the timeline open. No change
+   * is announced for the same reason.
+   */
+  static async setFileState(
+    id: string,
+    state: Partial<
+      Pick<TimelineSequence, "file_path" | "file_hash" | "file_error">
+    >
+  ): Promise<void> {
+    await getPortableDb()
+      .update(timelineSequences)
+      .set(state)
+      .where(eq(timelineSequences.id, id));
+  }
+
+  /**
+   * Whether a timeline of any user has exactly this ID. `findById` also
+   * answers for a 12-character prefix.
+   */
+  static async existsExactly(id: string): Promise<boolean> {
+    const rows = await getPortableDb()
+      .select({ id: timelineSequences.id })
+      .from(timelineSequences)
+      .where(eq(timelineSequences.id, id))
+      .limit(1);
+    return rows.length > 0;
+  }
+
+  /**
+   * Insert a timeline only when no row has its ID. Returns the created
+   * timeline, or null when a row with that ID exists. That row is left
+   * exactly as it is, whoever owns it.
+   *
+   * `create()` writes with an upsert, which replaces a row that has the ID.
+   * A caller that takes the ID from outside, as the reconcile takes it from a
+   * file, uses this instead: a lookup followed by `create()` would overwrite
+   * a row created between the two, which can be another user's.
+   *
+   * It applies the project rule of every save: the project must be the
+   * owner's and not deleted. The file sync runs and the creation is
+   * announced, as for `create()`.
+   */
+  static async insertNew(
+    data: Record<string, unknown>
+  ): Promise<TimelineSequence | null> {
+    const timeline = new TimelineSequence(data);
+    timeline.beforeSave();
+    const db = getPortableDb();
+    if (timeline.project_id !== "default" && !allowLegacyProjectWritesForTests()) {
+      const [project] = await db
+        .select({ deletedAt: projects.deleted_at })
+        .from(projects)
+        .where(
+          and(
+            eq(projects.id, timeline.project_id),
+            eq(projects.user_id, timeline.user_id)
+          )
+        )
+        .limit(1);
+      if (!project) throw new Error("Project not found");
+      if (project.deletedAt) throw new Error("Project has been deleted");
+    }
+    const rows = await db
+      .insert(timelineSequences)
+      // SAFETY: `toRow` holds the table's columns, which the constructor
+      // filled. The dynamic base model cannot express the insert shape.
+      .values(timeline.toRow() as typeof timelineSequences.$inferInsert)
+      .onConflictDoNothing()
+      .returning();
+    const row = rows[0];
+    if (!row) return null;
+    const created = new TimelineSequence(row);
+    await created.syncFile(null);
+    ModelObserver.notify(created, ModelChangeEvent.CREATED);
+    return created;
+  }
+
+  /** The timelines whose files belong in the folder of `projectIds`. */
+  static async listForProjects(
+    userId: string,
+    projectIds: readonly string[]
+  ): Promise<TimelineSequence[]> {
+    if (projectIds.length === 0) return [];
+    const rows = await getPortableDb()
+      .select()
+      .from(timelineSequences)
+      .where(
+        and(
+          eq(timelineSequences.user_id, userId),
+          inArray(timelineSequences.project_id, [...projectIds])
+        )
+      );
+    return rows.map((row) => new TimelineSequence(row));
+  }
+
+  /**
+   * The projects that hold a timeline whose file was never written, each
+   * with its owner and how many such documents it holds, for every user or
+   * for `userId`. A timeline from before project folders is one of them.
+   */
+  static async projectsWithUnwrittenFiles(userId?: string): Promise<
+    Array<{ user_id: string; project_id: string; count: number }>
+  > {
+    return getPortableDb()
+      .select({
+        user_id: timelineSequences.user_id,
+        project_id: timelineSequences.project_id,
+        count: count()
+      })
+      .from(timelineSequences)
+      .where(
+        and(
+          isNull(timelineSequences.file_path),
+          userId === undefined ? undefined : eq(timelineSequences.user_id, userId)
+        )
+      )
+      .groupBy(timelineSequences.user_id, timelineSequences.project_id);
+  }
+
+  /**
+   * Point a timeline the caller owns at `projectId` and take its file along:
+   * the file is removed from the folder the timeline left and written in the
+   * folder it is now in. Content, `revision` and `updated_at` stay as they
+   * are. Returns false when the caller owns no such timeline. Throws
+   * `DocumentFileMoveError` and moves nothing when the file holds an edit
+   * NodeTool has not seen and that is not valid.
+   */
+  static async moveToProject(
+    userId: string,
+    id: string,
+    projectId: string
+  ): Promise<boolean> {
+    const db = getPortableDb();
+    const [before] = await db
+      .select()
+      .from(timelineSequences)
+      .where(
+        and(eq(timelineSequences.id, id), eq(timelineSequences.user_id, userId))
+      )
+      .limit(1);
+    if (!before) return false;
+    const moves = before.project_id !== projectId;
+    if (moves) {
+      await assertDocumentFileMayLeave(
+        timelineFileSync,
+        new TimelineSequence(before)
+      );
+    }
+    const rows = await db
+      .update(timelineSequences)
+      .set({
+        project_id: projectId,
+        // A host with no file sync cannot take the file along. The path and
+        // the hash name a file of the folder the timeline left, so the row
+        // forgets them and the reconcile of its new folder writes a file.
+        ...(!timelineFileSync &&
+          moves && { file_path: null, file_hash: null, file_error: null })
+      })
+      .where(
+        and(eq(timelineSequences.id, id), eq(timelineSequences.user_id, userId))
+      )
+      .returning();
+    const row = rows[0];
+    if (!row) return false;
+    const moved = new TimelineSequence(row);
+    await moved.syncFile(
+      before.file_path && moves
+        ? { project_id: before.project_id, file_path: before.file_path }
+        : null
+    );
+    return true;
   }
 
   override beforeSave(): void {
@@ -344,6 +627,7 @@ export class TimelineSequence extends DBModel {
     if (!row) return null;
 
     const updated = new TimelineSequence(row);
+    await updated.syncFile();
     ModelObserver.notify(updated, ModelChangeEvent.UPDATED, meta);
     return updated;
   }
@@ -381,7 +665,11 @@ export class TimelineSequence extends DBModel {
     const now = nextUpdatedAtAfter(expectedUpdatedAt);
     const rows = await db
       .update(timelineSequences)
-      .set({ ...write, revision: sql`${timelineSequences.revision} + 1`, updated_at: now })
+      .set({
+        ...write,
+        revision: sql`${timelineSequences.revision} + 1`,
+        updated_at: now
+      })
       .where(
         and(
           eq(timelineSequences.id, id),
@@ -394,6 +682,7 @@ export class TimelineSequence extends DBModel {
     if (!row) return null;
 
     const updated = new TimelineSequence(row);
+    await updated.syncFile();
     ModelObserver.notify(updated, ModelChangeEvent.UPDATED, meta);
     return updated;
   }

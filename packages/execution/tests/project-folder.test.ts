@@ -28,6 +28,7 @@ import {
   ProjectFolderError,
   describeProjectFolder,
   ensureProjectFolder,
+  isFolderMarkedCreated,
   migrateProjectFolders,
   projectFolderName
 } from "../src/service/project-folder.js";
@@ -193,6 +194,18 @@ describe.each(MODES)("project folders ($name)", (mode) => {
       id: project.id,
       name: "My Film"
     });
+    // The record a project delete requires before it moves or removes the
+    // folder, bound to the project the folder was created for.
+    expect(await isFolderMarkedCreated(row)).toBe(true);
+    expect(
+      JSON.parse((await nodetoolDir(row).readText("created.json")) ?? "null")
+    ).toEqual({
+      format: "nodetool.folder-created",
+      version: 1,
+      project_id: project.id
+    });
+    row.project_id = "another-project";
+    expect(await isFolderMarkedCreated(row)).toBe(false);
     if (mode.name === "local") {
       expect(row.path).toBe(join(root, "NodeTool", "My Film"));
       expect(row.isVirtual()).toBe(false);
@@ -210,7 +223,7 @@ describe.each(MODES)("project folders ($name)", (mode) => {
 
     const report = await migrateProjectFolders();
 
-    expect(report).toEqual({ checked: 3, assigned: 3, failed: 0 });
+    expect(report).toEqual({ checked: 3, assigned: 3, failed: 0, failures: [] });
     for (const project of [first, second, personal]) {
       expect((await Project.get<Project>(project.id))?.workspace_id).toBeTruthy();
     }
@@ -218,7 +231,8 @@ describe.each(MODES)("project folders ($name)", (mode) => {
     expect(await migrateProjectFolders()).toEqual({
       checked: 0,
       assigned: 0,
-      failed: 0
+      failed: 0,
+      failures: []
     });
     expect(await snapshot()).toEqual(before);
   });
@@ -234,6 +248,10 @@ describe.each(MODES)("project folders ($name)", (mode) => {
     const migrated = await Project.get<Project>(project.id);
     expect(migrated?.workspace_id).toBe(older.id);
     expect(await manifestOf(older)).toMatchObject({ id: project.id });
+    // A folder the project already had gets the manifest and no record that
+    // NodeTool created it, so a delete keeps its files.
+    expect(older.origin).toBe("created");
+    expect(await isFolderMarkedCreated(older)).toBe(false);
     expect(await rowFolder(older).readText("notes.txt")).toBe("older notes");
     // The other row, and its files, are exactly as they were.
     expect(await WorkspaceRow.find(USER, newer.id)).toEqual(newerBefore);
@@ -490,6 +508,17 @@ describe("local project folders", () => {
     expect((await Project.get<Project>(project.id))?.workspace_id).toBeNull();
   });
 
+  it("gives only the named user's projects a folder", async () => {
+    const mine = await insertProject("Mine");
+    const theirs = await insertProject("Theirs", { user_id: "someone-else" });
+
+    const report = await migrateProjectFolders({ userId: USER });
+
+    expect(report).toMatchObject({ checked: 1, assigned: 1, failed: 0 });
+    expect((await Project.get<Project>(mine.id))?.workspace_id).toBeTruthy();
+    expect((await Project.get<Project>(theirs.id))?.workspace_id).toBeNull();
+  });
+
   it("counts a project whose folder cannot be created as failed and goes on", async () => {
     const blocked = await insertProject("Blocked");
     await rowFolder(new WorkspaceRow({ user_id: USER, path: root })).write(
@@ -499,7 +528,10 @@ describe("local project folders", () => {
     setProjectsDir(join(root, "blocker", "projects"));
     const report = await migrateProjectFolders();
 
-    expect(report).toEqual({ checked: 1, assigned: 0, failed: 1 });
+    expect(report).toMatchObject({ checked: 1, assigned: 0, failed: 1 });
+    expect(report.failures).toEqual([
+      { projectId: blocked.id, userId: USER, reason: expect.any(String) }
+    ]);
     expect((await Project.get<Project>(blocked.id))?.workspace_id).toBeNull();
   });
 });

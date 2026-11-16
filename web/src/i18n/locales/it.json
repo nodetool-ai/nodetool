@@ -6218,13 +6218,16 @@
         "createError": "Impossibile creare il progetto: {{error}}",
         "openFolder": "Apri cartella…",
         "openFolderHint": "Hai già una cartella? Aprila come progetto. Nessun file viene spostato.",
+        "openFolderTravels": "Una cartella copiata da un altro computer si apre con i suoi flussi di lavoro, le timeline e gli asset. Chat, storyboard, script, schizzi, app e script JS non viaggiano con la cartella.",
         "openFolderError": "Impossibile aprire la cartella: {{error}}"
       },
       "folder": {
         "notFound": "Cartella non trovata",
         "notFoundDetail": "La cartella di {{name}} è stata spostata, rinominata o si trova su un'unità non collegata. Le esecuzioni non partono finché non la individui.",
         "locate": "Individua",
-        "locateError": "Impossibile individuare la cartella: {{error}}"
+        "locateError": "Impossibile individuare la cartella: {{error}}",
+        "moving": "Spostamento dei file nella cartella del progetto",
+        "movingDetail": "{{done}} di {{total}} file spostati. Le tue risorse restano disponibili nel frattempo."
       },
       "home": {
         "homeTab": "Casa",
@@ -6519,16 +6522,42 @@
           "export": "Esportazione",
           "archive": "Archivio",
           "restore": "Ripristina",
-          "delete": "Elimina"
+          "delete": "Elimina",
+          "collect": "Raccogli file"
         },
         "projectActions": "Azioni del progetto",
         "actionsForProject": "Azioni per {{projectName}}",
         "exporting": "Esportazione…",
         "deleteProject": "Elimina progetto",
         "confirmDeleteTitle": "Eliminare {{projectName}}?",
-        "confirmDeleteBody": "Elimina {{projectName}} e tutti i relativi documenti, conversazioni, output generati, risorse, lavori e file di progetto.",
+        "confirmDeleteBody": "Elimina {{projectName}} e tutti i relativi documenti, conversazioni, lavori e risorse archiviate fuori dalla cartella del progetto.",
         "deleteIrreversible": "Questa operazione non può essere annullata.",
-        "error": "Impossibile {{action}} {{projectName}}: {{error}}"
+        "deleteFolderTrash": "La cartella del progetto viene spostata nel cestino.",
+        "deleteFolderRemove": "La cartella del progetto e tutti i suoi file vengono eliminati dall'archiviazione cloud.",
+        "deleteFolderKeep": "La cartella del progetto resta dov'è con tutti i suoi file. NodeTool rimuove solo la cartella .nodetool al suo interno.",
+        "deleteFolderMissing": "La cartella del progetto non è raggiungibile, quindi NodeTool la lascia com'è.",
+        "folderMovedAsideTo": "Il cestino non era raggiungibile. La cartella del progetto è stata spostata in {{path}}.",
+        "folderMovedAside": "Il cestino non era raggiungibile. La cartella del progetto è stata spostata nella cartella .trash della cartella dei progetti.",
+        "folderTrashFailedAt": "Non è stato possibile spostare la cartella del progetto nel cestino. Resta in {{path}}.",
+        "folderTrashFailed": "Non è stato possibile spostare la cartella del progetto nel cestino. Resta dov'è.",
+        "error": "Impossibile {{action}} {{projectName}}: {{error}}",
+        "collecting": "Raccolta dei file…",
+        "collectResult": "File raccolti in {{projectName}}: {{copied}} copiati, {{skipped}} saltati, {{failed}} non riusciti.",
+        "linkedTitle": "{{projectName}} collega file esterni alla sua cartella",
+        "linkedBody": "Un’esportazione contiene la cartella del progetto. Questi file sono collegati da un’altra posizione e non si trovano lì:",
+        "linkedChoice": "Raccogli ed esporta li copia nella cartella Imported, poi esporta. Annulla mantiene i collegamenti e non esporta nulla.",
+        "collectAndExport": "Raccogli ed esporta"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Copiare o collegare?",
+        "confirm": "Importa",
+        "copy": "Copia nella cartella del progetto",
+        "copyHint": "Il progetto conserva una propria copia. Le modifiche all’originale non la raggiungono.",
+        "link": "Collega sul posto",
+        "linkHint": "Non viene copiato nulla. Il progetto legge il file dove si trova. Raccogli file lo copia in seguito.",
+        "threshold": "I file di {{size}} o più vengono collegati per impostazione predefinita."
       }
     }
   },
@@ -9218,10 +9247,6 @@
         "REPLICATE_API_TOKEN": {
           "button": "Ottieni token API replica",
           "tooltip": "Vai alla pagina Replica token API"
-        },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Ottieni la password dell'app Google",
-          "tooltip": "Vai alla pagina delle password dell'app dell'account Google"
         },
         "ELEVENLABS_API_KEY": {
           "button": "Ottieni la chiave API ElevenLabs",
@@ -15351,7 +15376,6 @@
       "csv": "File CSV",
       "unknown": "Tipo di file sconosciuto",
       "unknownContentType": "Tipo di contenuto sconosciuto",
-      "offline": "Supporti non in linea",
       "thumbnail": "Miniatura",
       "folder": "Cartella"
     },
@@ -20426,7 +20450,82 @@
       "revealInFinder": "Mostra nel Finder",
       "revealInExplorer": "Mostra in Esplora file",
       "revealInFileManager": "Mostra nel gestore file"
+    },
+    "documentFile": {
+      "invalidTitle": "Questo file contiene un errore",
+      "invalidBody": "{{path}} non è stato caricato: {{error}}. L’ultima versione valida resta aperta e si può ancora eseguire.",
+      "openFile": "Apri file",
+      "missingTitle": "File mancante",
+      "missingBody": "{{path}} non è più nella cartella del progetto. Ripristina lo riscrive da questo documento.",
+      "restore": "Ripristina",
+      "delete": "Elimina",
+      "cancel": "Annulla",
+      "deleteTitle": "Eliminare {{name}}?",
+      "deleteDescription": "«{{name}}» e la sua cronologia delle versioni verranno eliminati definitivamente.",
+      "restoreFailed": "Il file non è stato ripristinato: {{error}}",
+      "deleteFailed": "Il documento non è stato eliminato: {{error}}"
+    },
+    "migration": {
+      "title": "Sposta i tuoi progetti nelle cartelle",
+      "intro": "NodeTool ora tiene ogni progetto in una cartella dedicata su questo computer. I tuoi file, flussi di lavoro e timeline vengono spostati lì e puoi aprirli in altre app.",
+      "planProjects": "Progetti che ricevono una cartella",
+      "planFiles": "File da spostare",
+      "planWorkflows": "Flussi di lavoro salvati come file",
+      "planTimelines": "Timeline salvate come file",
+      "extraTitle": "Progetti con più di una cartella",
+      "extraBody": "Ognuno di questi progetti mantiene una sola cartella. NodeTool smette di mostrare le altre e i loro file restano dove sono.",
+      "extraKeeps": "{{project}} mantiene {{folder}}",
+      "extraHidden": "Non più mostrata: {{folder}}",
+      "location": "Posizione",
+      "changeLocation": "Cambia posizione",
+      "locationError": "Questa posizione non può essere usata: {{error}}",
+      "permissionWarning": "macOS chiederà se NodeTool può usare questa cartella. Scegli Consenti, oppure scegli una cartella fuori da Documenti, Scrivania, Download, iCloud Drive e dai dischi esterni.",
+      "safety": "Non si perde nulla. Ogni file viene copiato e verificato prima che la vecchia copia venga rimossa. Puoi continuare a lavorare mentre i file vengono spostati.",
+      "later": "Non ora",
+      "confirm": "Sposta i file",
+      "planError": "Impossibile caricare il piano: {{error}}",
+      "confirmError": "Lo spostamento non è iniziato: {{error}}",
+      "actionError": "Impossibile modificare lo spostamento: {{error}}",
+      "progressRegion": "Spostamento dei file nelle cartelle dei progetti",
+      "progressTitle": "Spostamento dei file nelle cartelle dei progetti",
+      "pausedTitle": "Lo spostamento dei file è in pausa",
+      "doneTitle": "File spostati",
+      "progressCount": "{{done}} file su {{total}} spostati",
+      "phaseFolders": "Creazione delle cartelle dei progetti",
+      "phaseFiles": "Salvataggio di flussi di lavoro e timeline come file",
+      "currentProject": "Spostamento dei file di {{project}}",
+      "pause": "Pausa",
+      "resume": "Riprendi",
+      "failuresTitle": "Impossibile spostare ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "Altri non mostrati: {{count}}",
+      "retry": "Riprova",
+      "donePath": "I tuoi file si trovano in {{path}}",
+      "close": "Chiudi"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "Origine della risorsa",
+    "projectTab": "Questo progetto",
+    "personalTab": "Personale",
+    "personalHint": "Scegliendo da Personale, il file viene copiato in questo progetto.",
+    "copying": "Copia in questo progetto…",
+    "copyFailed": "Impossibile copiare la risorsa in questo progetto."
+  },
+  "assetFileStatus": {
+    "missing": "Mancante",
+    "missingTooltip": "Il file non si trova dove questa risorsa lo cerca. Ricollegala alla nuova posizione del file o rimuovi la risorsa.",
+    "linked": "Collegato",
+    "linkedTooltip": "Questa risorsa usa sul posto un file esterno alla cartella del progetto.",
+    "relink": "Ricollega",
+    "relinkTooltip": "Scegli la nuova posizione del file",
+    "relinkNoPath": "Impossibile leggere la posizione di quel file. Scegli un file su questo computer.",
+    "relinkFailed": "Ricollegamento non riuscito: {{error}}",
+    "remove": "Rimuovi",
+    "removeTooltip": "Rimuovi questa risorsa da NodeTool",
+    "removeTitle": "Rimuovere «{{name}}»?",
+    "removeBody": "La risorsa viene rimossa da NodeTool. I documenti che la usano non possono più mostrarla.",
+    "cancel": "Annulla"
   },
   "storyboardText": {
     "mode": "Testo",

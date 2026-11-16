@@ -1447,59 +1447,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "convert_document",
     module: "documents",
     impl: "packages/agents/src/capabilities/documents.ts",
-    contract: "b3aca7b16b74",
+    contract: "70fe027a7e36",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-documents.test.ts",
       "packages/agents/tests/capabilities-documents-convert.test.ts",
-    ],
-  },
-  {
-    name: "search_email",
-    module: "email",
-    impl: "packages/agents/src/capabilities/email.ts",
-    contract: "009d8426f54e",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-email.test.ts",
-    ],
-    evals: [
-      {
-        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
-        cases: ["email-triage"],
-      },
-    ],
-  },
-  {
-    name: "archive_email",
-    module: "email",
-    impl: "packages/agents/src/capabilities/email.ts",
-    contract: "cd1a4980a2db",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-email.test.ts",
-    ],
-    evals: [
-      {
-        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
-        cases: ["email-triage"],
-      },
-    ],
-  },
-  {
-    name: "add_label_to_email",
-    module: "email",
-    impl: "packages/agents/src/capabilities/email.ts",
-    contract: "e6eadbfd482c",
-    selfcheck: "capability-suites",
-    suites: [
-      "packages/agents/tests/capabilities-email.test.ts",
-    ],
-    evals: [
-      {
-        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
-        cases: ["email-triage"],
-      },
     ],
   },
   {
@@ -1753,7 +1705,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-files.test.ts",
-      "packages/agents/tests/capabilities-files-token-counter.test.ts",
+      "packages/agents/tests/capabilities-files-reserved-dir.test.ts",
     ],
   },
   {
@@ -1764,7 +1716,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-files.test.ts",
-      "packages/agents/tests/capabilities-files-virtual.test.ts",
+      "packages/agents/tests/capabilities-files-reserved-dir.test.ts",
     ],
   },
   {
@@ -1775,7 +1727,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-files.test.ts",
-      "packages/agents/tests/capabilities-files-virtual.test.ts",
+      "packages/agents/tests/capabilities-files-reserved-dir.test.ts",
     ],
   },
   {
@@ -2220,7 +2172,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "delete_project",
     module: "projects",
     impl: "packages/agents/src/capabilities/projects.ts",
-    contract: "d1c6eda0786e",
+    contract: "c1d4a3f30b18",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-projects.test.ts",
@@ -2390,6 +2342,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
+      "packages/agents/tests/capabilities-project-asset-copies.test.ts",
     ],
   },
   {
@@ -2587,6 +2540,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-sketches.test.ts",
+      "packages/agents/tests/capabilities-project-asset-copies.test.ts",
     ],
   },
   {

@@ -567,10 +567,19 @@ void WorkflowGraphModel::setCanvasMediaNodes(const QSet<QString> &nodes) {
 }
 QRectF WorkflowGraphModel::canvasPlaybackRect(NodeId id) const {
   if (!canvasMediaNodes_.contains(resourceId(id)) || collapsed(id)) { return {}; }
-  const auto size = layout(id).size;
+  const auto &card = layout(id);
+  // A card that lays out a result area plays its media there, at full size.
+  if (!card.resultRect.isEmpty()) {
+    return card.resultRect;
+  }
+  const auto size = card.size;
   constexpr auto inset = node_metrics::padding + node_metrics::borderWidth;
-  return QRectF(inset, size.height() - node_metrics::playbackHeight - node_metrics::rowHeight,
-                size.width() - 2 * inset, node_metrics::playbackHeight);
+  // The player fills the card from the end of its content to the footer row,
+  // so a taller card gives the player the extra height.
+  const auto bottom = double(size.height() - node_metrics::rowHeight);
+  const auto top = std::min(card.mediaTop > 0 ? card.mediaTop : bottom - node_metrics::playbackHeight,
+                            bottom - node_metrics::playbackHeight);
+  return QRectF(inset, top, size.width() - 2 * inset, bottom - top);
 }
 QRectF WorkflowGraphModel::canvasResultRect(NodeId id) const {
   if (!nodeExists(id) || collapsed(id) || isGroup(id) || isComment(id) || isReroute(id)) { return {}; }
@@ -883,6 +892,7 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
                                  result.body == CardBody::Painter ? paintMask(resourceId(id), node["data"].toObject()) : QImage{},
                                  runtimeState(id), expandedListItems_.value(resourceId(id)), &cardMedia_});
       if (canvasMediaNodes_.contains(resourceId(id))) {
+          result.mediaTop = result.size.height();
           result.size.rheight() += nm::playbackHeight + nm::rowHeight;
       } else if (result.resultRect.isEmpty() && hasRuntimeOutput(id)) {
           result.size.rheight() += nm::previewHeight + nm::rowHeight;
@@ -1442,7 +1452,10 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
   const auto minimum = nm::contentTop + nm::rowHeight + nm::padding + nm::borderWidth;
   result.size = QSize(width > 0 ? int(width) : nm::defaultWidth,
                       int(std::ceil(std::max<double>(end, minimum) + nm::padding)));
-  if (canvasMediaNodes_.contains(resourceId(id))) { result.size.rheight() += nm::playbackHeight + nm::rowHeight; }
+  if (canvasMediaNodes_.contains(resourceId(id))) {
+    result.mediaTop = result.size.height();
+    result.size.rheight() += nm::playbackHeight + nm::rowHeight;
+  }
   else if (hasRuntimeOutput(id)) { result.size.rheight() += nm::previewHeight + nm::rowHeight; }
     result.runningProgress = result.subgraph && runtimeState(id)["status"] == "running" && runtimeState(id)["total"].toDouble() > 0;
     if (result.runningProgress) { result.size.rheight() += nm::handleRowStep; }

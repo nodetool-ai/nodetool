@@ -6139,13 +6139,16 @@
         "createError": "无法创建项目：{{error}}",
         "openFolder": "打开文件夹…",
         "openFolderHint": "已有文件夹？将其作为项目打开。不会移动任何文件。",
+        "openFolderTravels": "从另一台电脑复制来的文件夹会连同其工作流、时间线和素材一起打开。聊天、故事板、脚本、草图、应用和 JS 脚本不会随文件夹一起迁移。",
         "openFolderError": "无法打开文件夹：{{error}}"
       },
       "folder": {
         "notFound": "找不到文件夹",
         "notFoundDetail": "{{name}} 的文件夹已被移动、重命名，或位于未连接的驱动器上。在你重新定位之前，运行无法开始。",
         "locate": "定位",
-        "locateError": "无法定位文件夹：{{error}}"
+        "locateError": "无法定位文件夹：{{error}}",
+        "moving": "正在将文件移入项目文件夹",
+        "movingDetail": "已移动 {{done}}/{{total}} 个文件。移动期间素材仍可使用。"
       },
       "home": {
         "homeTab": "主页",
@@ -6424,16 +6427,42 @@
           "export": "导出",
           "archive": "归档",
           "restore": "恢复",
-          "delete": "删除"
+          "delete": "删除",
+          "collect": "收集文件"
         },
         "projectActions": "项目操作",
         "actionsForProject": "{{projectName}}的操作",
         "exporting": "正在导出…",
         "deleteProject": "删除项目",
         "confirmDeleteTitle": "删除{{projectName}}？",
-        "confirmDeleteBody": "删除{{projectName}}及其所有文档、对话、生成的输出、资源、任务和项目文件。",
+        "confirmDeleteBody": "删除{{projectName}}及其所有文档、对话、任务和存储在项目文件夹之外的资源。",
         "deleteIrreversible": "此操作无法撤销。",
-        "error": "无法{{action}}{{projectName}}：{{error}}"
+        "deleteFolderTrash": "项目文件夹将移到废纸篓。",
+        "deleteFolderRemove": "项目文件夹及其中的所有文件将从云存储中删除。",
+        "deleteFolderKeep": "项目文件夹及其中的所有文件保留在原处。NodeTool 只移除其中的 .nodetool 文件夹。",
+        "deleteFolderMissing": "无法访问项目文件夹，因此 NodeTool 会保持其原样。",
+        "folderMovedAsideTo": "无法访问废纸篓。项目文件夹已移到 {{path}}。",
+        "folderMovedAside": "无法访问废纸篓。项目文件夹已移到项目目录中的 .trash 文件夹。",
+        "folderTrashFailedAt": "无法将项目文件夹移到废纸篓。它仍在 {{path}}。",
+        "folderTrashFailed": "无法将项目文件夹移到废纸篓。它仍在原处。",
+        "error": "无法{{action}}{{projectName}}：{{error}}",
+        "collecting": "正在收集文件…",
+        "collectResult": "已将文件收集到 {{projectName}}：已复制 {{copied}} 个，已跳过 {{skipped}} 个，失败 {{failed}} 个。",
+        "linkedTitle": "{{projectName}} 链接了其文件夹之外的文件",
+        "linkedBody": "导出包含项目文件夹。以下文件从其他位置链接，不在文件夹中：",
+        "linkedChoice": "“收集并导出”会将它们复制到文件夹的 Imported 目录，然后导出。“取消”保留链接，不导出任何内容。",
+        "collectAndExport": "收集并导出"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "复制还是链接？",
+        "confirm": "导入",
+        "copy": "复制到项目文件夹",
+        "copyHint": "项目会保留自己的副本。对原文件的更改不会影响它。",
+        "link": "原位链接",
+        "linkHint": "不复制任何内容。项目从文件所在位置读取它。“收集文件”可以稍后将其复制进来。",
+        "threshold": "{{size}} 及以上的文件默认链接。"
       }
     }
   },
@@ -9074,10 +9103,6 @@
         "REPLICATE_API_TOKEN": {
           "button": "获取 Replicate API 令牌",
           "tooltip": "前往 Replicate API 令牌页面"
-        },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "获取 Google 应用专用密码",
-          "tooltip": "前往 Google 帐户应用专用密码页面"
         },
         "ELEVENLABS_API_KEY": {
           "button": "获取 ElevenLabs API 密钥",
@@ -15080,7 +15105,6 @@
       "csv": "CSV 文件",
       "unknown": "未知文件类型",
       "unknownContentType": "未知内容类型",
-      "offline": "媒体离线",
       "thumbnail": "缩略图",
       "folder": "文件夹"
     },
@@ -20115,7 +20139,82 @@
       "revealInFinder": "在 Finder 中显示",
       "revealInExplorer": "在文件资源管理器中显示",
       "revealInFileManager": "在文件管理器中显示"
+    },
+    "documentFile": {
+      "invalidTitle": "此文件有错误",
+      "invalidBody": "未加载 {{path}}：{{error}}。最后一个有效版本保持打开，仍可运行。",
+      "openFile": "打开文件",
+      "missingTitle": "文件缺失",
+      "missingBody": "{{path}} 已不在项目文件夹中。恢复会根据此文档重新写入该文件。",
+      "restore": "恢复",
+      "delete": "删除",
+      "cancel": "取消",
+      "deleteTitle": "删除 {{name}}？",
+      "deleteDescription": "“{{name}}”及其版本历史将被永久删除。",
+      "restoreFailed": "文件未恢复：{{error}}",
+      "deleteFailed": "文档未删除：{{error}}"
+    },
+    "migration": {
+      "title": "将项目移入文件夹",
+      "intro": "NodeTool 现在会把每个项目保存在这台电脑上各自的文件夹中。你的文件、工作流和时间线会移到那里，你也可以在其他应用中打开它们。",
+      "planProjects": "将获得文件夹的项目",
+      "planFiles": "要移动的文件",
+      "planWorkflows": "保存为文件的工作流",
+      "planTimelines": "保存为文件的时间线",
+      "extraTitle": "有多个文件夹的项目",
+      "extraBody": "这些项目各自只保留一个文件夹。NodeTool 不再显示其他文件夹，其中的文件保持原位。",
+      "extraKeeps": "{{project}} 保留 {{folder}}",
+      "extraHidden": "不再显示：{{folder}}",
+      "location": "位置",
+      "changeLocation": "更改位置",
+      "locationError": "无法使用此位置：{{error}}",
+      "permissionWarning": "macOS 会询问是否允许 NodeTool 使用此文件夹。请选择“允许”，或选择文稿、桌面、下载、iCloud Drive 和外置驱动器之外的文件夹。",
+      "safety": "不会丢失任何内容。每个文件都会先复制并校验，然后才删除旧副本。移动文件期间你可以继续工作。",
+      "later": "暂不",
+      "confirm": "移动文件",
+      "planError": "无法加载计划：{{error}}",
+      "confirmError": "移动未能开始：{{error}}",
+      "actionError": "无法更改移动：{{error}}",
+      "progressRegion": "正在将文件移入项目文件夹",
+      "progressTitle": "正在将文件移入项目文件夹",
+      "pausedTitle": "文件移动已暂停",
+      "doneTitle": "文件已移动",
+      "progressCount": "已移动 {{done}}/{{total}} 个文件",
+      "phaseFolders": "正在创建项目文件夹",
+      "phaseFiles": "正在将工作流和时间线保存为文件",
+      "currentProject": "正在移动 {{project}} 的文件",
+      "pause": "暂停",
+      "resume": "继续",
+      "failuresTitle": "无法移动（{{count}}）",
+      "failureItem": "{{name}}：{{reason}}",
+      "failuresMore": "另有未显示的：{{count}}",
+      "retry": "重试",
+      "donePath": "你的文件位于 {{path}}",
+      "close": "关闭"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "素材来源",
+    "projectTab": "此项目",
+    "personalTab": "个人",
+    "personalHint": "从“个人”中选择会将文件复制到此项目。",
+    "copying": "正在复制到此项目…",
+    "copyFailed": "无法将素材复制到此项目。"
+  },
+  "assetFileStatus": {
+    "missing": "缺失",
+    "missingTooltip": "文件不在此素材期望的位置。请将其重新链接到文件的新位置，或移除该素材。",
+    "linked": "已链接",
+    "linkedTooltip": "此素材在原位置使用项目文件夹之外的文件。",
+    "relink": "重新链接",
+    "relinkTooltip": "选择文件的新位置",
+    "relinkNoPath": "无法读取该文件的位置。请选择此计算机上的文件。",
+    "relinkFailed": "重新链接失败：{{error}}",
+    "remove": "移除",
+    "removeTooltip": "从 NodeTool 移除此素材",
+    "removeTitle": "移除“{{name}}”？",
+    "removeBody": "该素材将从 NodeTool 中移除。使用它的文档将无法再显示它。",
+    "cancel": "取消"
   },
   "storyboardText": {
     "mode": "文本",

@@ -31,7 +31,7 @@
  *
  * **Every library the sandbox offers is an importable module.** Some are guest
  * modules the compiler admitted (js-yaml, date-fns); the rest are *host
- * modules* — papaparse, cheerio, exceljs, fflate and friends — which run on the
+ * modules* — papaparse, cheerio, fflate and friends — which run on the
  * host behind a generated ESM facade over a per-run dispatcher
  * (`host-modules/`), because they need Node builtins the guest lacks or carry a
  * limit the guest could not enforce. Either way the guest writes `import`, and
@@ -154,6 +154,7 @@ import { importNodeBuiltin } from "@nodetool-ai/config";
 import { loadSandboxEngine } from "./js-sandbox-worker/engine.js";
 import type { AssetRef } from "@nodetool-ai/protocol";
 import type { ProcessingContext, Workspace } from "@nodetool-ai/runtime";
+import { assertLocalPathIsOwn } from "@nodetool-ai/runtime";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -1257,6 +1258,15 @@ export function buildSandbox(
     const fullPath = ctx.resolveWorkspacePath(path);
     const fs = await loadFsPromises();
     await assertWorkspaceContained(ctx, fs, nodePath, fullPath, isWrite);
+    // The folder of another project inside the workspace is not the run's.
+    if (ctx.workspace) {
+      await assertLocalPathIsOwn(
+        ctx.workspace,
+        ctx.resolveWorkspacePath("."),
+        fullPath,
+        path
+      );
+    }
     return fullPath;
   };
 

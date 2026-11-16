@@ -67,20 +67,51 @@ export function ensureBaselineTake(
   };
 }
 
+type TakeWindow = Pick<
+  TimelineClip,
+  "inPointMs" | "outPointMs" | "speedMultiplier" | "speedBaked"
+>;
+
 /**
- * Whether a take's recorded source window still fits this clip's length. A
- * split or trim after the take was recorded changes the length; putting the
- * old in/out points on the new window would show other footage.
+ * The source window a clip shows after switching to a take. The clip keeps
+ * its length. A recorded window that spans exactly that length applies as it
+ * is. Otherwise the clip keeps its offset into the take it plays now, so a
+ * split right half stays on its own footage, and a remix take of another
+ * length starts where its own window starts. Returns undefined when that
+ * window cannot be placed, and the clip then keeps its current window.
  */
-function mappingFitsClip(
+function takeWindow(
   clip: TimelineClip,
-  mapped: NonNullable<ClipVersion["sourceMapping"]>
-): boolean {
+  take: ClipVersion
+): TakeWindow | undefined {
+  const mapped = take.sourceMapping;
+  if (!mapped) return undefined;
+  const window: TakeWindow = {
+    inPointMs: mapped.inPointMs,
+    outPointMs: mapped.outPointMs,
+    speedMultiplier: mapped.speedMultiplier,
+    speedBaked: mapped.speedBaked
+  };
   if (mapped.inPointMs === undefined || mapped.outPointMs === undefined) {
-    return true;
+    return window;
   }
-  const spanMs = clip.durationMs * sourceRate(mapped);
-  return Math.abs(mapped.outPointMs - mapped.inPointMs - spanMs) < 1;
+  const rate = sourceRate(mapped);
+  const spanMs = clip.durationMs * rate;
+  if (Math.abs(mapped.outPointMs - mapped.inPointMs - spanMs) < 1) {
+    return window;
+  }
+  const playing = (clip.versions ?? []).find(
+    (candidate) => candidate.id === activeTakeIdOf(clip)
+  )?.sourceMapping;
+  if (playing?.inPointMs === undefined || clip.inPointMs === undefined) {
+    return undefined;
+  }
+  const offsetMs = (clip.inPointMs - playing.inPointMs) / sourceRate(playing);
+  const inPointMs = mapped.inPointMs + offsetMs * rate;
+  const outPointMs = inPointMs + spanMs;
+  const limitMs = take.durationMs ?? Number.POSITIVE_INFINITY;
+  if (offsetMs < -0.5 || outPointMs > limitMs + 0.5) return undefined;
+  return { ...window, inPointMs, outPointMs };
 }
 
 /** Return a preview-only clip projection for a successful take. */
@@ -108,12 +139,8 @@ export function previewTake(
     ...clip,
     currentAssetId: take.assetId
   };
-  if (take.sourceMapping && mappingFitsClip(clip, take.sourceMapping)) {
-    preview.inPointMs = take.sourceMapping.inPointMs;
-    preview.outPointMs = take.sourceMapping.outPointMs;
-    preview.speedMultiplier = take.sourceMapping.speedMultiplier;
-    preview.speedBaked = take.sourceMapping.speedBaked;
-  }
+  const window = takeWindow(clip, take);
+  if (window) Object.assign(preview, window);
   return preview;
 }
 
@@ -217,7 +244,6 @@ export function selectTake(clip: TimelineClip, takeId: string): TimelineClip {
   const restoredHash = version.dependencyHash;
   const status: TimelineClip["status"] =
     clip.dependencyHash === restoredHash ? "generated" : "stale";
-  const mapped = version.sourceMapping;
 
   const next: TimelineClip = {
     ...clip,
@@ -227,12 +253,8 @@ export function selectTake(clip: TimelineClip, takeId: string): TimelineClip {
     lastGeneratedHash: restoredHash,
     status
   };
-  if (mapped && mappingFitsClip(clip, mapped)) {
-    next.inPointMs = mapped.inPointMs;
-    next.outPointMs = mapped.outPointMs;
-    next.speedMultiplier = mapped.speedMultiplier;
-    next.speedBaked = mapped.speedBaked;
-  }
+  const window = takeWindow(clip, version);
+  if (window) Object.assign(next, window);
   if (version.mediaEdit) {
     next.inPointMs = 0;
     next.outPointMs = version.durationMs ?? clip.durationMs;

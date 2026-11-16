@@ -327,6 +327,19 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "starts billing them against its budget. A run that could cut a " +
       "release could spend money in someone else's name."
   },
+  "assets.collect": {
+    gap:
+      "Copies a project's linked files into its folder. A creator runs it " +
+      "from the project menu or before an export. A run cannot create " +
+      "linked assets, and their bytes are already readable through " +
+      "read_asset, so nothing is withheld. Nothing headless calls it yet."
+  },
+  "assets.copyToProject": {
+    elsewhere:
+      "Agent document writes copy an asset of another project into the " +
+      "run's project themselves (localizeDocumentAssets), so sandboxed " +
+      "code never needs to ask for the copy."
+  },
   "assets.createUpload": {
     elsewhere:
       "save_asset writes an asset from bytes, a workspace file or a " +
@@ -957,6 +970,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Same grouping surface as `projects.get`. One page of its document " +
       "cards, for the start page."
   },
+  "projects.documentByFile": {
+    elsewhere:
+      "A workflow or timeline file carries its document's `id`. A run reads " +
+      "the file through its workspace and opens the document with " +
+      "`get_workflow` or `get_timeline`."
+  },
   "projects.documents": {
     gap:
       "Lists the documents in a project. A run enumerates each kind " +
@@ -974,6 +993,44 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Same grouping surface as `projects.create`. The whole list of " +
       "rollups `projects.get` returns one at a time."
   },
+  "projects.migration.confirm": {
+    withheld:
+      "Starts moving the user's project files into a new folder layout. " +
+      "The user confirms that move in the app, and a run must not start " +
+      "it for them."
+  },
+  "projects.migration.dismiss": {
+    withheld:
+      "Closes the user's migration prompt without moving files. That " +
+      "choice belongs to the user in the app, not to a run."
+  },
+  "projects.migration.pause": {
+    withheld:
+      "Stops a migration that is moving the user's project files. Pausing " +
+      "and resuming it are the user's choices in the app, not a run's."
+  },
+  "projects.migration.plan": {
+    withheld:
+      "Computes and records the migration plan the user reviews before " +
+      "confirming. It steps the app-level migration state machine, which " +
+      "a run has no part in."
+  },
+  "projects.migration.resume": {
+    withheld:
+      "Restarts a paused migration of the user's project files. Pausing " +
+      "and resuming it are the user's choices in the app, not a run's."
+  },
+  "projects.migration.retry": {
+    withheld:
+      "Restarts a failed migration of the user's project files. Retrying " +
+      "it is the user's choice in the app, not a run's."
+  },
+  "projects.migration.status": {
+    withheld:
+      "Reports where the install's folder migration stands, which only " +
+      "drives the migration banner in the app. A run has no reason to " +
+      "know it, so it stays denied."
+  },
   "projects.openFolder": {
     withheld:
       "Takes an absolute host path and makes that folder a project, which " +
@@ -988,6 +1045,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
   },
   "projects.restore": {
     elsewhere: "`update_project` with `archived: false` restores a project."
+  },
+  "projects.restoreDocumentFile": {
+    elsewhere:
+      "Saving the document writes its file again: `update_workflow` for a " +
+      "workflow, `set_timeline_document` for a timeline."
   },
   "projects.restoreTabs": {
     elsewhere:

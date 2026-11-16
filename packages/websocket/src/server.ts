@@ -83,7 +83,10 @@ import {
 } from "@nodetool-ai/runtime";
 import { deriveKey, getMasterKey, initMasterKey } from "@nodetool-ai/security";
 import { setDefaultModelInterfaces } from "@nodetool-ai/runtime";
-import { migrateProjectFolders } from "@nodetool-ai/execution/service";
+import { startProjectFolderMigration } from "@nodetool-ai/project-services/project-folder-migration";
+import { setWorkflowFileNodeRegistry } from "@nodetool-ai/project-services/workflow-file";
+// Installs the timeline file sync.
+import "@nodetool-ai/project-services/timeline-file";
 import { serverModelInterfaces } from "./websocket-client-session.js";
 import {
   WorkerManager,
@@ -1804,21 +1807,19 @@ await app.register(workspaceRoutes, routeOpts);
 // A cloud deployment keeps workspaces in the asset bucket rather than on the
 // machine's disk, which it would lose on every replacement. No-op locally.
 initWorkspaceStorage();
-// Every project has a folder. Projects from before project folders get one
-// here, in the background: each project is its own idempotent step, so a
+// A workflow file edited in a project folder is checked against this registry,
+// as `update_workflow` checks a graph.
+setWorkflowFileNodeRegistry(() => registry);
+// Projects from before project folders get folders, document files and their
+// asset bytes moved in. On a local install the user confirms that first
+// (docs/project-folders/migration-ux.md). Every step is idempotent, so a
 // restart mid-way continues where it stopped.
-void migrateProjectFolders()
-  .then((report) => {
-    if (report.checked > 0) {
-      log.info(`Project folders: ${report.assigned} assigned, ${report.failed} failed`);
-    }
-  })
-  .catch((error: unknown) => {
-    log.warn(
-      "Project folder migration failed",
-      error instanceof Error ? error : new Error(String(error))
-    );
-  });
+void startProjectFolderMigration().catch((error: unknown) => {
+  log.warn(
+    "Project folder migration failed",
+    error instanceof Error ? error : new Error(String(error))
+  );
+});
 // The Workspace Explorer has no other way to hear about a file a run wrote:
 // workspace files are not database rows.
 initWorkspaceChangeEvents();

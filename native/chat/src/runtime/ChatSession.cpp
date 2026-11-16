@@ -343,7 +343,12 @@ void ChatSession::setWorkflow(const QString &id) {
     m_workflow = id;
     m_selected.clear();
     const auto previous = m_workflowThreads.value(id);
-    if (!previous.isEmpty()) {
+    if (m_freshThread && !id.isEmpty()) {
+        // refresh() creates the thread once the socket connects.
+        if (m_client.ready() && !m_creatingWorkflows.contains(id)) {
+            createThread();
+        }
+    } else if (!previous.isEmpty()) {
         selectThread(previous);
     } else {
         const auto rows = workflowThreads();
@@ -471,6 +476,9 @@ void ChatSession::retry() {
 }
 void ChatSession::createThread(const QString &draft) {
     const auto workflow = m_workflow;
+    if (!workflow.isEmpty()) {
+        m_freshThread = false;
+    }
     m_creatingWorkflows.insert(workflow);
     QJsonObject input{{"project_id", "default"}};
     if (!workflow.isEmpty()) {
@@ -512,7 +520,11 @@ void ChatSession::refresh() {
           upsertThread(thread.toObject());
         }
         const auto rows = workflowThreads();
-        if (m_selected.isEmpty() && !rows.isEmpty()) {
+        if (m_selected.isEmpty() && m_freshThread && !m_workflow.isEmpty()) {
+            if (!m_creatingWorkflows.contains(m_workflow)) {
+                createThread();
+            }
+        } else if (m_selected.isEmpty() && !rows.isEmpty()) {
             selectThread(rows.first().toMap()["id"].toString());
         } else if (m_selected.isEmpty() && !m_workflow.isEmpty() && !m_creatingWorkflows.contains(m_workflow)) {
             createThread();

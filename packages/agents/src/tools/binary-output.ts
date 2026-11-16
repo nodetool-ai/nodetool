@@ -1,19 +1,22 @@
 /**
- * Shared helper for tools that produce binary output (images, audio, video,
- * downloaded files) and need to:
- *   1. Persist the bytes to the agent workspace so downstream tools can read
- *      them back by their `output_file` key.
- *   2. Push the bytes through the temp / asset storage adapter and resolve a
- *      UI-fetchable URL so the chat UI can display the result inline instead
- *      of echoing a `file://` path or a base64 data URI.
+ * Shared helper for tools that produce binary output (screenshots, downloaded
+ * files, edited media) and need to:
+ *   1. Save the bytes as one asset whose file is in the run's project folder,
+ *      at `output_file` when the caller named one so downstream tools can read
+ *      it back by that key, and in `Generated/` otherwise.
+ *   2. Hand back the asset's URI as a link the chat UI can display inline
+ *      instead of echoing a `file://` path or a base64 data URI.
  *
- * Centralized here so download_file, generate_image, generate_speech and
- * every other binary-producing tool follow the same pattern.
+ * A host with no asset interface keeps the older pair: a workspace file plus
+ * a temp storage copy for the UI URL.
+ *
+ * Centralized here so download_file, take_screenshot, media_edit and every
+ * other binary-producing tool follow the same pattern.
  */
 
-import { extname } from "node:path";
+import { extname, posix } from "node:path";
 import { randomUUID } from "node:crypto";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { saveRunFileAsset, type ProcessingContext } from "@nodetool-ai/runtime";
 
 const MIME_TO_EXT: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -44,9 +47,14 @@ export function extForMime(mime: string, fallbackName?: string): string {
 }
 
 export interface PersistedBinary {
+  /** The asset the bytes were saved as, when the host saves assets. */
+  asset_id?: string;
   /** Storage key written to workspace (the same `output_file` callers passed in). */
   output_file?: string;
-  /** UI-fetchable URL (e.g. `/api/storage/<id>.png`) when one could be resolved. */
+  /**
+   * UI-fetchable URL: the asset's `asset://<id>.<ext>` URI, or a temp storage
+   * URL (`/api/storage/<key>`) on a host with no asset interface.
+   */
   asset_url?: string;
   /** "image" | "audio" | "video" | "file" — chosen from the MIME type. */
   kind?: "image" | "audio" | "video" | "file";
@@ -114,10 +122,80 @@ interface PersistBinaryOptions {
 }
 
 /**
+ * Save the bytes as an asset. The file is written once, in the run's project
+ * folder, and the row points at it. Null when the host saves no assets.
+ */
+async function persistAsAsset(
+  context: ProcessingContext,
+  bytes: Uint8Array,
+  opts: PersistBinaryOptions
+): Promise<PersistedBinary | null> {
+  if (!context.hasModelInterface?.("createAsset")) return null;
+  const result: PersistedBinary = {};
+  const errors: { workspace?: string; asset?: string } = {};
+  const ext = extForMime(opts.contentType, opts.outputFile);
+  let assetId: string | null = null;
+  if (opts.outputFile) {
+    try {
+      const saved = await saveRunFileAsset(context, bytes, {
+        path: opts.outputFile,
+        name: posix.basename(opts.outputFile),
+        contentType: opts.contentType
+      });
+      assetId = saved.asset_id;
+      if (saved.path) result.output_file = saved.path;
+      if (saved.asset_error) errors.asset = saved.asset_error;
+    } catch (e) {
+      errors.workspace = e instanceof Error ? e.message : String(e);
+    }
+  } else {
+    try {
+      const created = (await context.createAsset({
+        name: `${opts.uiPrefix ?? "output"}.${ext}`,
+        contentType: opts.contentType,
+        content: bytes
+      })) as { id?: unknown } | null;
+      assetId = typeof created?.id === "string" ? created.id : null;
+    } catch (e) {
+      errors.asset = e instanceof Error ? e.message : String(e);
+    }
+  }
+  if (assetId) {
+    result.asset_id = assetId;
+    result.asset_url = `asset://${assetId}.${ext}`;
+  }
+  return withDisplay(result, opts, errors);
+}
+
+/** Adds the display fields for `asset_url` and any per-side errors. */
+function withDisplay(
+  result: PersistedBinary,
+  opts: PersistBinaryOptions,
+  errors: { workspace?: string; asset?: string }
+): PersistedBinary {
+  if (result.asset_url) {
+    const kind = kindForMime(opts.contentType);
+    const label = opts.outputFile ?? kind;
+    result.kind = kind;
+    result.display_markdown = buildDisplayMarkdown(
+      result.asset_url,
+      kind,
+      label
+    );
+  }
+  if (errors.workspace || errors.asset) {
+    result.errors = errors;
+  }
+  return result;
+}
+
+/**
  * Persist binary tool output and produce both a workspace key (for downstream
  * tools to read) and a UI-fetchable URL (for chat rendering).
  *
- * Either side may be unavailable: if no `outputFile` is supplied or no
+ * On a host that saves assets the bytes become one asset file in the project
+ * folder: at `outputFile` when given, in `Generated/` otherwise. Elsewhere
+ * either side may be unavailable: if no `outputFile` is supplied or no
  * workspace storage is wired, only `asset_url` is returned. If no asset
  * storage is wired, only `output_file` is returned. Tools should treat both
  * fields as optional.
@@ -127,6 +205,8 @@ export async function persistBinaryOutput(
   bytes: Uint8Array,
   opts: PersistBinaryOptions
 ): Promise<PersistedBinary> {
+  const asAsset = await persistAsAsset(context, bytes, opts);
+  if (asAsset) return asAsset;
   const result: PersistedBinary = {};
   const errors: { workspace?: string; asset?: string } = {};
 
@@ -164,20 +244,5 @@ export async function persistBinaryOutput(
     }
   }
 
-  if (result.asset_url) {
-    const kind = kindForMime(opts.contentType);
-    const label = opts.outputFile ?? kind;
-    result.kind = kind;
-    result.display_markdown = buildDisplayMarkdown(
-      result.asset_url,
-      kind,
-      label
-    );
-  }
-
-  if (errors.workspace || errors.asset) {
-    result.errors = errors;
-  }
-
-  return result;
+  return withDisplay(result, opts, errors);
 }

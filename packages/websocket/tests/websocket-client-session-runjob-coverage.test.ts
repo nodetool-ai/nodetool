@@ -34,7 +34,9 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 // Autosave persists bytes to storage; make that a no-op so tests touch only DB.
 vi.mock("@nodetool-ai/asset-services/thumbnail", () => ({
-  storeAssetWithThumbnail: vi.fn(async () => undefined)
+  storeAssetWithThumbnail: vi.fn(async () => undefined),
+  // Auto-save writes the file itself and asks only for the thumbnail.
+  storeAssetThumbnail: vi.fn(async () => undefined)
 }));
 
 class MockWebSocket implements WebSocketConnection {

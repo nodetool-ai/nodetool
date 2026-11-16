@@ -4,7 +4,8 @@ import { randomUUID } from './crypto.mjs';
 import Database from 'better-sqlite3';
 import { and, asc, desc, eq, getTableColumns, gt, lt, or, sql, like } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { assets, jobs, workflows, resolveResourceId, ASSET_FAVORITE_DDL, JOB_TRACE_MARKER_DDL } from '@nodetool-ai/models-core';
+import { assets, jobs, workflows, resolveResourceId } from '@nodetool-ai/models-core';
+import { migrateSqliteCore } from 'guest-real:@nodetool-ai/database-sqlite/migrations.js';
 import { appSettings } from 'guest-real:@nodetool-ai/models/schema/settings.js';
 import { messages } from 'guest-real:@nodetool-ai/models/schema/messages.js';
 import { threads } from 'guest-real:@nodetool-ai/models/schema/threads.js';
@@ -28,7 +29,9 @@ export const MODEL_METHODS = Object.freeze([
   'updateStoryboard', 'listEntities', 'getEntity', 'upsertEntity'
 ]);
 
-const tables = { assets, jobs, workflows, settings: appSettings, messages, threads, scripts, storyboards, images: imageDocuments, timelines: timelineSequences, projects };
+/** The production tables the repository reads and writes, by repository kind. */
+export const MODEL_TABLES = Object.freeze({ assets, jobs, workflows, settings: appSettings, messages, threads, scripts, storyboards, images: imageDocuments, timelines: timelineSequences, projects });
+const tables = MODEL_TABLES;
 const id = () => randomUUID().replaceAll('-', '');
 const info = (asset) => asset && ({ id: asset.id, name: asset.name, content_type: asset.content_type, metadata: asset.metadata ?? null });
 function limitValue(value, fallback = 1000) {
@@ -47,12 +50,24 @@ export function openModelRepository(databasePath, userId) {
     client.pragma('journal_mode = WAL');
     client.pragma('busy_timeout = 5000');
     applySqliteBaseline(client);
+    // The execution tables (workflows, assets, jobs, secrets) take every
+    // column the lean SQLite adapter migrates, from the same DDL in
+    // @nodetool-ai/models-core. A new column on one of them is added there
+    // and in migrateSqliteCore, and reaches this database with no change here.
+    migrateSqliteCore(client);
     client.transaction(() => {
+      // Tables outside the execution set: the models migrations below.
       migrateMessageBranches(client);
-      if (!client.pragma('table_info("nodetool_assets")').some((column) => column.name === 'favorite')) client.exec(ASSET_FAVORITE_DDL);
-      if (!client.pragma('table_info("nodetool_jobs")').some((column) => column.name === 'has_run_trace')) client.exec(JOB_TRACE_MARKER_DDL);
       // The 20261110_000000 add_thread_kind migration in @nodetool-ai/models.
       if (!client.pragma('table_info("nodetool_threads")').some((column) => column.name === 'kind')) client.exec("ALTER TABLE nodetool_threads ADD COLUMN kind TEXT NOT NULL DEFAULT 'chat'");
+      // The 20261116_000000 add_project_folder migration in @nodetool-ai/models.
+      // nodetool_workspaces, the migration's other table, is not mapped here.
+      if (!client.pragma('table_info("projects")').some((column) => column.name === 'workspace_id')) client.exec('ALTER TABLE projects ADD COLUMN workspace_id TEXT');
+      // The 20261122_000000 to 20261124_000000 add_timeline_file_* migrations.
+      const timelineColumns = client.pragma('table_info("timeline_sequences")');
+      for (const name of ['file_path', 'file_hash', 'file_error']) {
+        if (!timelineColumns.some((column) => column.name === name)) client.exec(`ALTER TABLE timeline_sequences ADD COLUMN ${name} TEXT`);
+      }
     })();
     db = drizzle(client);
   } catch (error) {

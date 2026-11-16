@@ -6297,13 +6297,16 @@
         "createError": "Nie można utworzyć projektu: {{error}}",
         "openFolder": "Otwórz folder…",
         "openFolderHint": "Masz już folder? Otwórz go jako projekt. Żadne pliki nie zostaną przeniesione.",
+        "openFolderTravels": "Folder skopiowany z innego komputera otwiera się ze swoimi przepływami pracy, osiami czasu i zasobami. Czaty, storyboardy, scenariusze, szkice, aplikacje i skrypty JS nie są przenoszone razem z folderem.",
         "openFolderError": "Nie udało się otworzyć folderu: {{error}}"
       },
       "folder": {
         "notFound": "Nie znaleziono folderu",
         "notFoundDetail": "Folder projektu {{name}} został przeniesiony, zmienił nazwę lub jest na niepodłączonym dysku. Uruchomienia nie wystartują, dopóki go nie wskażesz.",
         "locate": "Wskaż",
-        "locateError": "Nie udało się wskazać folderu: {{error}}"
+        "locateError": "Nie udało się wskazać folderu: {{error}}",
+        "moving": "Przenoszenie plików do folderu projektu",
+        "movingDetail": "Przeniesiono {{done}} z {{total}} plików. Zasoby pozostają w tym czasie dostępne."
       },
       "home": {
         "homeTab": "Dom",
@@ -6614,16 +6617,42 @@
           "export": "Eksportuj",
           "archive": "Archiwum",
           "restore": "Przywróć",
-          "delete": "Usuń"
+          "delete": "Usuń",
+          "collect": "Zbierz pliki"
         },
         "projectActions": "Działania projektowe",
         "actionsForProject": "Działania dla {{projectName}}",
         "exporting": "Eksportuję…",
         "deleteProject": "Usuń projekt",
         "confirmDeleteTitle": "Usunąć {{projectName}}?",
-        "confirmDeleteBody": "Usuń {{projectName}} i wszystkie jego dokumenty, rozmowy, wygenerowane wyniki, zasoby, zadania i pliki projektu.",
+        "confirmDeleteBody": "Usuń {{projectName}} i wszystkie jego dokumenty, rozmowy, zadania oraz zasoby przechowywane poza folderem projektu.",
         "deleteIrreversible": "Tego nie można cofnąć.",
-        "error": "Nie można {{action}} {{projectName}}: {{error}}"
+        "deleteFolderTrash": "Folder projektu zostanie przeniesiony do kosza.",
+        "deleteFolderRemove": "Folder projektu i wszystkie jego pliki zostaną usunięte z magazynu w chmurze.",
+        "deleteFolderKeep": "Folder projektu pozostanie na swoim miejscu ze wszystkimi plikami. NodeTool usunie tylko znajdujący się w nim folder .nodetool.",
+        "deleteFolderMissing": "Folder projektu jest niedostępny, więc NodeTool pozostawi go bez zmian.",
+        "folderMovedAsideTo": "Kosz był niedostępny. Folder projektu przeniesiono do {{path}}.",
+        "folderMovedAside": "Kosz był niedostępny. Folder projektu przeniesiono do folderu .trash w folderze projektów.",
+        "folderTrashFailedAt": "Nie udało się przenieść folderu projektu do kosza. Pozostaje w {{path}}.",
+        "folderTrashFailed": "Nie udało się przenieść folderu projektu do kosza. Pozostaje na swoim miejscu.",
+        "error": "Nie można {{action}} {{projectName}}: {{error}}",
+        "collecting": "Zbieranie plików…",
+        "collectResult": "Zebrano pliki w {{projectName}}: skopiowane {{copied}}, pominięte {{skipped}}, nieudane {{failed}}.",
+        "linkedTitle": "{{projectName}} łączy pliki spoza swojego folderu",
+        "linkedBody": "Eksport zawiera folder projektu. Te pliki są połączone z innego miejsca i nie ma ich w nim:",
+        "linkedChoice": "Zbierz i eksportuj kopiuje je do katalogu Imported w folderze, a potem eksportuje. Anuluj zachowuje połączenia i niczego nie eksportuje.",
+        "collectAndExport": "Zbierz i eksportuj"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Skopiować czy połączyć?",
+        "confirm": "Importuj",
+        "copy": "Skopiuj do folderu projektu",
+        "copyHint": "Projekt zachowuje własną kopię. Zmiany w oryginale do niej nie trafiają.",
+        "link": "Połącz w miejscu",
+        "linkHint": "Nic nie jest kopiowane. Projekt czyta plik tam, gdzie się znajduje. Zbierz pliki skopiuje go później.",
+        "threshold": "Pliki o rozmiarze {{size}} lub większym są domyślnie łączone."
       }
     }
   },
@@ -9362,10 +9391,6 @@
         "REPLICATE_API_TOKEN": {
           "button": "Uzyskaj token replikacji interfejsu API",
           "tooltip": "Przejdź do strony Replikuj tokeny API"
-        },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Uzyskaj hasło do aplikacji Google",
-          "tooltip": "Przejdź do strony haseł do aplikacji konta Google"
         },
         "ELEVENLABS_API_KEY": {
           "button": "Zdobądź klucz API ElevenLabs",
@@ -15622,7 +15647,6 @@
       "csv": "plik CSV",
       "unknown": "Nieznany typ pliku",
       "unknownContentType": "Nieznany typ treści",
-      "offline": "Multimedia w trybie offline",
       "thumbnail": "Miniatura",
       "folder": "Folder"
     },
@@ -20737,7 +20761,82 @@
       "revealInFinder": "Pokaż w Finderze",
       "revealInExplorer": "Pokaż w Eksploratorze plików",
       "revealInFileManager": "Pokaż w menedżerze plików"
+    },
+    "documentFile": {
+      "invalidTitle": "Ten plik zawiera błąd",
+      "invalidBody": "Nie wczytano {{path}}: {{error}}. Ostatnia prawidłowa wersja pozostaje otwarta i nadal działa.",
+      "openFile": "Otwórz plik",
+      "missingTitle": "Brak pliku",
+      "missingBody": "{{path}} nie znajduje się już w folderze projektu. Przywróć zapisuje go ponownie z tego dokumentu.",
+      "restore": "Przywróć",
+      "delete": "Usuń",
+      "cancel": "Anuluj",
+      "deleteTitle": "Usunąć {{name}}?",
+      "deleteDescription": "„{{name}}” i jego historia wersji zostaną trwale usunięte.",
+      "restoreFailed": "Nie przywrócono pliku: {{error}}",
+      "deleteFailed": "Nie usunięto dokumentu: {{error}}"
+    },
+    "migration": {
+      "title": "Przenieś projekty do folderów",
+      "intro": "NodeTool przechowuje teraz każdy projekt we własnym folderze na tym komputerze. Twoje pliki, przepływy pracy i osie czasu zostaną tam przeniesione, a otworzysz je w innych aplikacjach.",
+      "planProjects": "Projekty, które dostaną folder",
+      "planFiles": "Pliki do przeniesienia",
+      "planWorkflows": "Przepływy pracy zapisane jako pliki",
+      "planTimelines": "Osie czasu zapisane jako pliki",
+      "extraTitle": "Projekty z więcej niż jednym folderem",
+      "extraBody": "Każdy z tych projektów zachowa jeden folder. NodeTool przestanie pokazywać pozostałe, a ich pliki zostaną na miejscu.",
+      "extraKeeps": "{{project}} zachowuje {{folder}}",
+      "extraHidden": "Nie jest już pokazywany: {{folder}}",
+      "location": "Lokalizacja",
+      "changeLocation": "Zmień lokalizację",
+      "locationError": "Tej lokalizacji nie można użyć: {{error}}",
+      "permissionWarning": "macOS zapyta, czy NodeTool może używać tego folderu. Wybierz Zezwól albo wskaż folder spoza Dokumentów, Biurka, Pobranych, iCloud Drive i dysków zewnętrznych.",
+      "safety": "Nic nie zostanie utracone. Każdy plik jest kopiowany i sprawdzany, zanim jego stara kopia zostanie usunięta. Podczas przenoszenia plików możesz dalej pracować.",
+      "later": "Nie teraz",
+      "confirm": "Przenieś pliki",
+      "planError": "Nie udało się wczytać planu: {{error}}",
+      "confirmError": "Przenoszenie nie rozpoczęło się: {{error}}",
+      "actionError": "Nie udało się zmienić przenoszenia: {{error}}",
+      "progressRegion": "Przenoszenie plików do folderów projektów",
+      "progressTitle": "Przenoszenie plików do folderów projektów",
+      "pausedTitle": "Przenoszenie plików jest wstrzymane",
+      "doneTitle": "Pliki przeniesione",
+      "progressCount": "Przeniesiono {{done}} z {{total}} plików",
+      "phaseFolders": "Tworzenie folderów projektów",
+      "phaseFiles": "Zapisywanie przepływów pracy i osi czasu jako plików",
+      "currentProject": "Przenoszenie plików projektu {{project}}",
+      "pause": "Wstrzymaj",
+      "resume": "Wznów",
+      "failuresTitle": "Nie udało się przenieść ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "Pozostałe, niepokazane: {{count}}",
+      "retry": "Spróbuj ponownie",
+      "donePath": "Twoje pliki są w {{path}}",
+      "close": "Zamknij"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "Źródło zasobu",
+    "projectTab": "Ten projekt",
+    "personalTab": "Osobiste",
+    "personalHint": "Wybranie z Osobistych kopiuje plik do tego projektu.",
+    "copying": "Kopiowanie do tego projektu…",
+    "copyFailed": "Nie udało się skopiować zasobu do tego projektu."
+  },
+  "assetFileStatus": {
+    "missing": "Brak pliku",
+    "missingTooltip": "Plik nie znajduje się tam, gdzie oczekuje go ten zasób. Połącz go ponownie z nową lokalizacją pliku lub usuń zasób.",
+    "linked": "Połączony",
+    "linkedTooltip": "Ten zasób używa pliku spoza folderu projektu w jego miejscu.",
+    "relink": "Połącz ponownie",
+    "relinkTooltip": "Wybierz nową lokalizację pliku",
+    "relinkNoPath": "Nie udało się odczytać lokalizacji tego pliku. Wybierz plik na tym komputerze.",
+    "relinkFailed": "Ponowne połączenie nie powiodło się: {{error}}",
+    "remove": "Usuń",
+    "removeTooltip": "Usuń ten zasób z NodeTool",
+    "removeTitle": "Usunąć „{{name}}”?",
+    "removeBody": "Zasób zostanie usunięty z NodeTool. Dokumenty, które go używają, nie będą mogły go wyświetlić.",
+    "cancel": "Anuluj"
   },
   "storyboardText": {
     "mode": "Tekst",

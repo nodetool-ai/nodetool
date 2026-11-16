@@ -29,7 +29,12 @@ import { bridge, streamedResponse } from "../lib/bridge.js";
 import { getUserId, type HttpApiOptions } from "../http-api.js";
 import { resolveAssetExportSource } from "../lib/asset-export.js";
 import { IMAGE_HEADER_BYTES, readImageSize } from "../lib/image-size.js";
-import { createAssetModelInterface } from "../lib/asset-model-interface.js";
+// Installs the project folder resolver `saveProjectAsset` reaches folders through.
+import "../lib/workflow-workspace.js";
+import {
+  IMPORTED_DIRECTORY,
+  saveProjectAsset
+} from "@nodetool-ai/asset-services/project-asset";
 import {
   importTimelineBundle,
   unzipBounded,
@@ -245,16 +250,23 @@ async function readImportUpload(
   return upload;
 }
 
-/** Store one uploaded file as an asset the caller owns. */
+/**
+ * Store one imported media file as an asset the caller owns: a file in
+ * `Imported/` of the project the timeline is imported into.
+ */
 async function storeOwnedAsset(
   userId: string,
+  projectId: string,
   file: { bytes: Uint8Array; name: string; contentType: string }
 ): Promise<{ assetId: string }> {
-  const asset = await createAssetModelInterface({
+  const asset = await saveProjectAsset({
+    projectId,
     userId,
     name: file.name,
     contentType: file.contentType,
-    content: file.bytes
+    bytes: file.bytes,
+    directory: IMPORTED_DIRECTORY,
+    parentId: userId
   });
   return { assetId: asset.id };
 }
@@ -275,7 +287,7 @@ async function importPremiereUpload(
       );
     }
     result = await importPremiereArchive(xml, entries, {
-      storeAsset: (file) => storeOwnedAsset(userId, file)
+      storeAsset: (file) => storeOwnedAsset(userId, upload.projectId, file)
     });
   } catch (error) {
     return jsonError(
@@ -355,7 +367,7 @@ const timelinesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       try {
         result = await importTimelineBundle(upload.zipBytes, {
           storeAsset: ({ bytes, name, contentType }) =>
-            storeOwnedAsset(userId, { bytes, name, contentType })
+            storeOwnedAsset(userId, upload.projectId, { bytes, name, contentType })
         });
       } catch (error) {
         return jsonError(

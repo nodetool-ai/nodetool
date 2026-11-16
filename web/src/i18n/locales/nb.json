@@ -6139,13 +6139,16 @@
         "createError": "Kunne ikke opprette prosjektet: {{error}}",
         "openFolder": "Åpne mappe…",
         "openFolderHint": "Har du allerede en mappe? Åpne den som et prosjekt. Ingen filer flyttes.",
+        "openFolderTravels": "En mappe kopiert fra en annen maskin åpnes med arbeidsflytene, tidslinjene og ressursene sine. Chatter, storyboards, manus, skisser, apper og JS-skript følger ikke med mappen.",
         "openFolderError": "Kunne ikke åpne mappen: {{error}}"
       },
       "folder": {
         "notFound": "Fant ikke mappen",
         "notFoundDetail": "Mappen til {{name}} er flyttet, har fått nytt navn eller ligger på en stasjon som ikke er tilkoblet. Kjøringer starter ikke før du finner den.",
         "locate": "Finn",
-        "locateError": "Kunne ikke finne mappen: {{error}}"
+        "locateError": "Kunne ikke finne mappen: {{error}}",
+        "moving": "Flytter filer til prosjektmappen",
+        "movingDetail": "{{done}} av {{total}} filer flyttet. Ressursene dine er tilgjengelige mens dette pågår."
       },
       "home": {
         "homeTab": "Hjem",
@@ -6424,16 +6427,42 @@
           "export": "Eksporter",
           "archive": "Arkiv",
           "restore": "Gjenopprett",
-          "delete": "Slett"
+          "delete": "Slett",
+          "collect": "Samle filer"
         },
         "projectActions": "Prosjekthandlinger",
         "actionsForProject": "Handlinger for {{projectName}}",
         "exporting": "Eksporterer …",
         "deleteProject": "Slett prosjekt",
         "confirmDeleteTitle": "Vil du slette {{projectName}}?",
-        "confirmDeleteBody": "Slett {{projectName}} og alle dens dokumenter, samtaler, genererte utdata, eiendeler, jobber og prosjektfiler.",
+        "confirmDeleteBody": "Slett {{projectName}} og alle dens dokumenter, samtaler, jobber og ressurser som er lagret utenfor prosjektmappen.",
         "deleteIrreversible": "Dette kan ikke angres.",
-        "error": "Kunne ikke {{action}} {{projectName}}: {{error}}"
+        "deleteFolderTrash": "Prosjektmappen flyttes til papirkurven.",
+        "deleteFolderRemove": "Prosjektmappen og alle filene i den slettes fra skylagringen.",
+        "deleteFolderKeep": "Prosjektmappen blir liggende der den er med alle filene. NodeTool fjerner bare .nodetool-mappen i den.",
+        "deleteFolderMissing": "Prosjektmappen kan ikke nås, så NodeTool lar den være som den er.",
+        "folderMovedAsideTo": "Papirkurven kunne ikke nås. Prosjektmappen ble flyttet til {{path}}.",
+        "folderMovedAside": "Papirkurven kunne ikke nås. Prosjektmappen ble flyttet til .trash-mappen i prosjektmappen for alle prosjekter.",
+        "folderTrashFailedAt": "Prosjektmappen kunne ikke flyttes til papirkurven. Den ligger fortsatt i {{path}}.",
+        "folderTrashFailed": "Prosjektmappen kunne ikke flyttes til papirkurven. Den blir liggende der den er.",
+        "error": "Kunne ikke {{action}} {{projectName}}: {{error}}",
+        "collecting": "Samler filer…",
+        "collectResult": "Filer samlet i {{projectName}}: {{copied}} kopiert, {{skipped}} hoppet over, {{failed}} mislyktes.",
+        "linkedTitle": "{{projectName}} lenker til filer utenfor mappen sin",
+        "linkedBody": "En eksport inneholder prosjektmappen. Disse filene er lenket fra et annet sted og ligger ikke i den:",
+        "linkedChoice": "Samle og eksporter kopierer dem til mappen Imported og eksporterer deretter. Avbryt beholder lenkene og eksporterer ingenting.",
+        "collectAndExport": "Samle og eksporter"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Kopiere eller lenke?",
+        "confirm": "Importer",
+        "copy": "Kopier til prosjektmappen",
+        "copyHint": "Prosjektet beholder sin egen kopi. Endringer i originalen når ikke frem til den.",
+        "link": "Lenk på stedet",
+        "linkHint": "Ingenting kopieres. Prosjektet leser filen der den ligger. Samle filer kopierer den inn senere.",
+        "threshold": "Filer på {{size}} eller mer lenkes som standard."
       }
     }
   },
@@ -9074,10 +9103,6 @@
         "REPLICATE_API_TOKEN": {
           "button": "Få repliker API-token",
           "tooltip": "Gå til siden Repliker API-tokens"
-        },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Få passord for Google-appen",
-          "tooltip": "Gå til siden for Google-kontoapppassord"
         },
         "ELEVENLABS_API_KEY": {
           "button": "Få ElevenLabs API-nøkkel",
@@ -15080,7 +15105,6 @@
       "csv": "CSV-fil",
       "unknown": "Ukjent filtype",
       "unknownContentType": "Ukjent innholdstype",
-      "offline": "Media offline",
       "thumbnail": "Miniatyrbilde",
       "folder": "Mappe"
     },
@@ -20115,7 +20139,82 @@
       "revealInFinder": "Vis i Finder",
       "revealInExplorer": "Vis i Filutforsker",
       "revealInFileManager": "Vis i filbehandleren"
+    },
+    "documentFile": {
+      "invalidTitle": "Denne filen har en feil",
+      "invalidBody": "{{path}} ble ikke lastet inn: {{error}}. Den siste gyldige versjonen forblir åpen og kan fortsatt kjøres.",
+      "openFile": "Åpne fil",
+      "missingTitle": "Filen mangler",
+      "missingBody": "{{path}} ligger ikke lenger i prosjektmappen. Gjenopprett skriver den på nytt fra dette dokumentet.",
+      "restore": "Gjenopprett",
+      "delete": "Slett",
+      "cancel": "Avbryt",
+      "deleteTitle": "Slette {{name}}?",
+      "deleteDescription": "«{{name}}» og versjonshistorikken slettes permanent.",
+      "restoreFailed": "Filen ble ikke gjenopprettet: {{error}}",
+      "deleteFailed": "Dokumentet ble ikke slettet: {{error}}"
+    },
+    "migration": {
+      "title": "Flytt prosjektene dine til mapper",
+      "intro": "NodeTool lagrer nå hvert prosjekt i sin egen mappe på denne datamaskinen. Filene, arbeidsflytene og tidslinjene dine flyttes dit, og du kan åpne dem i andre apper.",
+      "planProjects": "Prosjekter som får en mappe",
+      "planFiles": "Filer som skal flyttes",
+      "planWorkflows": "Arbeidsflyter som lagres som filer",
+      "planTimelines": "Tidslinjer som lagres som filer",
+      "extraTitle": "Prosjekter med mer enn én mappe",
+      "extraBody": "Hvert av disse prosjektene beholder én mappe. NodeTool slutter å vise de andre, og filene deres blir liggende der de er.",
+      "extraKeeps": "{{project}} beholder {{folder}}",
+      "extraHidden": "Vises ikke lenger: {{folder}}",
+      "location": "Plassering",
+      "changeLocation": "Endre plassering",
+      "locationError": "Denne plasseringen kan ikke brukes: {{error}}",
+      "permissionWarning": "macOS spør om NodeTool kan bruke denne mappen. Velg Tillat, eller velg en mappe utenfor Dokumenter, Skrivebord, Nedlastinger, iCloud Drive og eksterne stasjoner.",
+      "safety": "Ingenting går tapt. Hver fil kopieres og kontrolleres før den gamle kopien fjernes. Du kan fortsette å jobbe mens filene flyttes.",
+      "later": "Ikke nå",
+      "confirm": "Flytt filer",
+      "planError": "Planen kunne ikke lastes: {{error}}",
+      "confirmError": "Flyttingen startet ikke: {{error}}",
+      "actionError": "Flyttingen kunne ikke endres: {{error}}",
+      "progressRegion": "Flytter filer til prosjektmapper",
+      "progressTitle": "Flytter filer til prosjektmapper",
+      "pausedTitle": "Flyttingen av filer er satt på pause",
+      "doneTitle": "Filer flyttet",
+      "progressCount": "{{done}} av {{total}} filer flyttet",
+      "phaseFolders": "Oppretter prosjektmapper",
+      "phaseFiles": "Lagrer arbeidsflyter og tidslinjer som filer",
+      "currentProject": "Flytter filene til {{project}}",
+      "pause": "Pause",
+      "resume": "Fortsett",
+      "failuresTitle": "Kunne ikke flyttes ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "Flere vises ikke: {{count}}",
+      "retry": "Prøv igjen",
+      "donePath": "Filene dine ligger i {{path}}",
+      "close": "Lukk"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "Ressurskilde",
+    "projectTab": "Dette prosjektet",
+    "personalTab": "Personlig",
+    "personalHint": "Når du velger fra Personlig, kopieres filen til dette prosjektet.",
+    "copying": "Kopierer til dette prosjektet…",
+    "copyFailed": "Kunne ikke kopiere ressursen til dette prosjektet."
+  },
+  "assetFileStatus": {
+    "missing": "Mangler",
+    "missingTooltip": "Filen er ikke der denne ressursen forventer den. Koble den på nytt til filens nye plassering, eller fjern ressursen.",
+    "linked": "Koblet",
+    "linkedTooltip": "Denne ressursen bruker en fil utenfor prosjektmappen der den ligger.",
+    "relink": "Koble på nytt",
+    "relinkTooltip": "Velg filens nye plassering",
+    "relinkNoPath": "Kunne ikke lese plasseringen til filen. Velg en fil på denne datamaskinen.",
+    "relinkFailed": "Kobling på nytt mislyktes: {{error}}",
+    "remove": "Fjern",
+    "removeTooltip": "Fjern denne ressursen fra NodeTool",
+    "removeTitle": "Fjerne «{{name}}»?",
+    "removeBody": "Ressursen fjernes fra NodeTool. Dokumenter som bruker den, kan ikke lenger vise den.",
+    "cancel": "Avbryt"
   },
   "storyboardText": {
     "mode": "Tekst",

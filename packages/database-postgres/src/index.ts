@@ -3,7 +3,7 @@ import postgres from "postgres";
 import { and, eq, getTableColumns, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { getTableConfig, pgTable, pgSchema, text, type PgDatabase, type PgQueryResultHKT } from "drizzle-orm/pg-core";
-import { postgresAssets, postgresJobs, postgresSecrets, postgresWorkflows, resolveResourceId, SQLITE_CORE_BASELINE_SQL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, type Repository, type ResourceDocument, type ResourceKind } from "@nodetool-ai/models-core";
+import { postgresAssets, postgresJobs, postgresSecrets, postgresWorkflows, resolveResourceId, SQLITE_CORE_BASELINE_SQL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ASSET_WORKSPACE_PATH_DDL, ASSET_CONTENT_HASH_DDL, WORKFLOW_FILE_PATH_DDL, WORKFLOW_FILE_HASH_DDL, WORKFLOW_FILE_ERROR_DDL, type Repository, type ResourceDocument, type ResourceKind } from "@nodetool-ai/models-core";
 
 const tables = { workflows: postgresWorkflows, assets: postgresAssets, jobs: postgresJobs, secrets: postgresSecrets };
 const tracking = pgTable("_nodetool_core_migrations", { version: text("version").primaryKey(), applied_at: text("applied_at").notNull() });
@@ -40,7 +40,16 @@ async function migrate<T extends PgQueryResultHKT>(database: PgDatabase<T>): Pro
     }
     for (const [version, table, column, declaration] of [
       ["20261004_000003", "nodetool_jobs", "has_run_trace", JOB_TRACE_MARKER_DDL],
-      ["20261006_000000", "nodetool_assets", "favorite", ASSET_FAVORITE_DDL]
+      ["20261006_000000", "nodetool_assets", "favorite", ASSET_FAVORITE_DDL],
+      ["20261117_000000", "nodetool_assets", "workspace_path", ASSET_WORKSPACE_PATH_DDL],
+      // The SHA-256 of an asset's whole file, which a background job fills in.
+      ["20261118_000000", "nodetool_assets", "content_hash", ASSET_CONTENT_HASH_DDL],
+      // A project workflow is a JSON file in its project's folder, and the
+      // row records the hash of the file content last synced with it.
+      ["20261119_000000", "nodetool_workflows", "file_path", WORKFLOW_FILE_PATH_DDL],
+      ["20261120_000000", "nodetool_workflows", "file_hash", WORKFLOW_FILE_HASH_DDL],
+      // What the last reconcile found wrong with a workflow's file.
+      ["20261121_000000", "nodetool_workflows", "file_error", WORKFLOW_FILE_ERROR_DDL]
     ]) {
       if (!version || !table || !column || !declaration || applied.has(version)) { continue; }
       const existing = await db.select().from(informationColumns).where(and(eq(informationColumns.table_schema, "public"), eq(informationColumns.table_name, table), eq(informationColumns.column_name, column)));

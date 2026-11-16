@@ -4,7 +4,7 @@
  */
 
 import { useCallback } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { trpc, trpcClient } from "../trpc/client";
 import {
@@ -36,8 +36,25 @@ export const useOpenNewProjectTab = () => {
   );
 };
 
+/** How often the project list is read again while a folder reports a move. */
+const MOVING_FILES_POLL_MS = 2_000;
+
+/** Whether the folder of a project reports files being moved into it. */
+const isMovingFiles = (project: {
+  folder?: { moving?: unknown } | null;
+}): boolean => Boolean(project.folder?.moving);
+
 export const useProjects = () =>
-  trpc.projects.list.useQuery({}, { staleTime: 30_000 });
+  trpc.projects.list.useQuery(
+    {},
+    {
+      staleTime: 30_000,
+      // The move runs on the server with no event of its own, so its
+      // progress is read again until no folder reports one.
+      refetchInterval: (query) =>
+        query.state.data?.some(isMovingFiles) ? MOVING_FILES_POLL_MS : false
+    }
+  );
 
 /** Archived projects are deliberately separate from the normal selector list. */
 export const useArchivedProjects = () =>
@@ -45,7 +62,16 @@ export const useArchivedProjects = () =>
 
 /** Every project with the status and spend its card shows. */
 export const useProjectSummaries = () =>
-  trpc.projects.summaries.useQuery({}, { staleTime: 15_000 });
+  trpc.projects.summaries.useQuery(
+    {},
+    {
+      staleTime: 15_000,
+      refetchInterval: (query) =>
+        query.state.data?.some((detail) => isMovingFiles(detail.project))
+          ? MOVING_FILES_POLL_MS
+          : false
+    }
+  );
 
 /** Documents in no project — the list's "Not in a project" strip. */
 export const useUnassignedDocuments = () =>
@@ -97,12 +123,29 @@ export const useRestoreProject = () => {
   return trpc.projects.restore.useMutation({ onSuccess: invalidate });
 };
 
-/** Download a project as a `.nodetool-project` file. */
+/**
+ * Download a project as a `.nodetool-project` file. `collectLinked` copies
+ * linked files into the project folder first. Without it, a project with
+ * linked files fails with `ProjectLinkedFilesError`.
+ */
 export const useExportProject = () =>
   useMutation({
-    mutationFn: (project: { id: string; name: string }) =>
-      exportProjectFile(project.id, project.name)
+    mutationFn: (project: { id: string; name: string; collectLinked?: boolean }) =>
+      exportProjectFile(project.id, project.name, {
+        collectLinked: project.collectLinked ?? false
+      })
   });
+
+/** Copy every file a project links from outside its folder into the folder. */
+export const useCollectProjectFiles = () => {
+  const queryClient = useQueryClient();
+  return trpc.assets.collect.useMutation({
+    // Collected assets now name a file in the folder instead of a link.
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["assets"] });
+    }
+  });
+};
 
 /** Create a new project from a `.nodetool-project` file. */
 export const useImportProject = () => {

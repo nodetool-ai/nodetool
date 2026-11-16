@@ -88,6 +88,9 @@ export async function handleWorkspaceRequest(
     if (err instanceof Error && err.name === "WorkspacePathError") {
       return errorResponse(403, "Path traversal not allowed");
     }
+    if (err instanceof Error && err.name === "WorkspaceReservedPathError") {
+      return errorResponse(403, err.message);
+    }
     return errorResponse(404, "File not found");
   }
   if (!data) return errorResponse(404, "File not found");

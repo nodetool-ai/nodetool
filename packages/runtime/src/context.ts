@@ -65,6 +65,7 @@ import {
 import { getNodeBuiltinSync, readPackageMedia } from "@nodetool-ai/config";
 import type { StorageAdapter, StorageEntry } from "@nodetool-ai/storage";
 import type {
+  AssetCreateParamsLike,
   AssetInfoEntry,
   AssetOutputMode,
   EntityUpsertResult,
@@ -77,6 +78,10 @@ import type {
   PersistedRecordLike,
   ProcessingContextModelInterfaces,
   ThreadMessagesResultLike
+} from "@nodetool-ai/runtime-core";
+import {
+  assertLocalPathIsOwn,
+  localPathIsInNestedFolder
 } from "@nodetool-ai/runtime-core";
 import {
   WorkspaceReservedPathError,
@@ -343,6 +348,12 @@ export interface GenerationRequest extends ProviderPredictionRequest {
     name?: string;
     mime?: string;
     parentId?: string | null;
+    /**
+     * Exact path in the run's project folder for the saved file, when the
+     * caller named one. A result with several buffers numbers the rest
+     * (`shot.png`, `shot-2.png`).
+     */
+    path?: string;
   };
   /** Caller-side cancellation, chained with `cancel_generation`'s. */
   signal?: AbortSignal;
@@ -537,12 +548,17 @@ function isWithinRoot(root: string, target: string): boolean {
 
 /**
  * Refuse a resolved path inside the directory NodeTool reserves in every
- * workspace. The local-path twin of the check in `Workspace.key()`, for the
+ * workspace, or in the folder of another project inside the workspace. The
+ * local-path twin of the checks every `Workspace` operation runs, for the
  * tools that still resolve a real path instead of using the interface.
  */
 function assertNotReserved(root: string, target: string, path: string): void {
-  if (isReservedWorkspaceKey(relative(root, target).replaceAll("\\", "/"))) {
+  const key = relative(root, target).replaceAll("\\", "/");
+  if (isReservedWorkspaceKey(key)) {
     throw new WorkspaceReservedPathError(path);
+  }
+  if (localPathIsInNestedFolder(root, key)) {
+    throw new WorkspaceReservedPathError(path, "nested");
   }
 }
 
@@ -1836,7 +1852,7 @@ export class ProcessingContext implements RuntimeNodeContext {
       throw new Error("Asset content is required");
     }
     recordInvocationAsset();
-    return fn({
+    const createArgs: AssetCreateParamsLike = {
       userId: this.userId,
       workflowId: this.workflowId,
       jobId: this.jobId,
@@ -1847,7 +1863,9 @@ export class ProcessingContext implements RuntimeNodeContext {
       parentId: args.parentId ?? null,
       nodeId: args.nodeId ?? null,
       metadata: args.metadata ?? null
-    });
+    };
+    if (args.path) createArgs.path = args.path;
+    return fn(createArgs);
   }
 
   /**
@@ -2486,8 +2504,20 @@ export class ProcessingContext implements RuntimeNodeContext {
     return { bytes: null, attempts };
   }
 
+  /**
+   * Refuse a real path that is in the folder of another project inside the
+   * run's workspace. `resolveWorkspacePath` reads only the `.nodetool/` mark
+   * on disk. The workspace also knows the folders the host names, such as a
+   * game's, so whatever opens a resolved path asks here first.
+   */
+  private async assertOwnSandboxFile(file: string, path: string): Promise<void> {
+    if (!this.workspace || !this.workspaceDir) return;
+    await assertLocalPathIsOwn(this.workspace, this.workspaceDir, file, path);
+  }
+
   async assetToSandbox(assetId: string, path: string): Promise<string> {
     const outputPath = this.resolveSandboxFilePath(path);
+    await this.assertOwnSandboxFile(outputPath, path);
     const { bytes, attempts } = await this.resolveAssetBytes(assetId);
 
     if (!bytes) {
@@ -2505,6 +2535,7 @@ export class ProcessingContext implements RuntimeNodeContext {
 
   async sandboxToAsset(path: string): Promise<AssetRef> {
     const filePath = this.resolveSandboxFilePath(path);
+    await this.assertOwnSandboxFile(filePath, path);
     const bytes = (await readFile(filePath)) as Uint8Array;
     const contentType = ProcessingContext.guessMimeFromPath(filePath);
     // SAFETY: the host's asset persistence answers with its own asset record;

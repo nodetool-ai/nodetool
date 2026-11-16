@@ -3,15 +3,15 @@
  * `convert_markdown_to_pdf`.
  *
  * Markdown is parsed with `marked`. Raw HTML in Markdown is escaped and links
- * and images keep only safe URL schemes. DOCX is written with `docx` and read
- * with `mammoth`, both from the optional "office-documents" runtime package.
+ * and images keep only safe URL schemes. DOCX is read with `mammoth`, from the
+ * optional "office-documents" runtime package. No conversion writes DOCX.
  * HTML becomes Markdown through `turndown`. PDF is printed by the Chromium
  * that `@nodetool-ai/browser` launches, with every network request failed and
  * scripts disabled while the page renders. Chromium is the only process this
  * module starts.
  */
 
-import { Marked, type Token, type Tokens } from "marked";
+import { Marked } from "marked";
 import { launchBrowser } from "@nodetool-ai/browser";
 import { importOptionalLibrary, unwrapLibrary } from "../host-modules/limits.js";
 import { isFunction } from "../utils/type-guards.js";
@@ -39,11 +39,9 @@ export const SUPPORTED_CONVERSIONS: readonly (readonly [
   DocumentFormat
 ])[] = [
   ["markdown", "html"],
-  ["markdown", "docx"],
   ["markdown", "pdf"],
   ["markdown", "text"],
   ["html", "markdown"],
-  ["html", "docx"],
   ["html", "pdf"],
   ["docx", "markdown"],
   ["docx", "html"],
@@ -156,272 +154,6 @@ async function htmlToMarkdown(html: string): Promise<string> {
   });
   service.remove(["script", "style", "head", "title"]);
   return `${service.turndown(html).trim()}\n`;
-}
-
-// ---------------------------------------------------------------------------
-// Markdown → DOCX
-// ---------------------------------------------------------------------------
-
-type DocxModule = typeof import("docx");
-type ParagraphChild = import("docx").ParagraphChild;
-type DocxParagraph = import("docx").Paragraph;
-type DocxTable = import("docx").Table;
-
-async function loadDocx(): Promise<DocxModule> {
-  const mod = await importOptionalLibrary<unknown>(
-    "convert_document",
-    "docx",
-    "office-documents"
-  );
-  return unwrapLibrary<DocxModule>(mod, "convert_document", "docx", (v) =>
-    isFunction((v as DocxModule | undefined)?.Document)
-  );
-}
-
-interface RunStyle {
-  bold?: boolean;
-  italics?: boolean;
-  strike?: boolean;
-  code?: boolean;
-}
-
-const ORDERED_REFERENCE = "ordered-list";
-
-class DocxWriter {
-  private orderedInstance = 0;
-
-  constructor(private readonly docx: DocxModule) {}
-
-  inline(tokens: readonly Token[] | undefined, style: RunStyle = {}): ParagraphChild[] {
-    const { TextRun, ExternalHyperlink } = this.docx;
-    const runs: ParagraphChild[] = [];
-    for (const token of tokens ?? []) {
-      switch (token.type) {
-        case "strong":
-          runs.push(...this.inline(token.tokens, { ...style, bold: true }));
-          break;
-        case "em":
-          runs.push(...this.inline(token.tokens, { ...style, italics: true }));
-          break;
-        case "del":
-          runs.push(...this.inline(token.tokens, { ...style, strike: true }));
-          break;
-        case "codespan":
-          runs.push(this.run(decodeEntities(token.text), { ...style, code: true }));
-          break;
-        case "br":
-          runs.push(new TextRun({ text: "", break: 1 }));
-          break;
-        case "link": {
-          const children = this.inline(token.tokens, style);
-          if (/^(?:https?:|mailto:)/i.test(token.href)) {
-            runs.push(new ExternalHyperlink({ link: token.href, children }));
-          } else {
-            runs.push(...children);
-          }
-          break;
-        }
-        case "image":
-          runs.push(this.run(token.text, { ...style, italics: true }));
-          break;
-        case "text":
-          if ("tokens" in token && Array.isArray(token.tokens)) {
-            runs.push(...this.inline(token.tokens, style));
-          } else {
-            runs.push(this.run(decodeEntities(token.text), style));
-          }
-          break;
-        default:
-          if ("text" in token && typeof token.text === "string") {
-            runs.push(this.run(decodeEntities(token.text), style));
-          }
-      }
-    }
-    return runs;
-  }
-
-  private run(text: string, style: RunStyle): ParagraphChild {
-    return new this.docx.TextRun({
-      text,
-      bold: style.bold,
-      italics: style.italics,
-      strike: style.strike,
-      font: style.code ? "Courier New" : undefined
-    });
-  }
-
-  blocks(tokens: readonly Token[], depth = 0): (DocxParagraph | DocxTable)[] {
-    const { Paragraph, HeadingLevel, TextRun } = this.docx;
-    const out: (DocxParagraph | DocxTable)[] = [];
-    for (const token of tokens) {
-      switch (token.type) {
-        case "heading": {
-          const levels = [
-            HeadingLevel.HEADING_1,
-            HeadingLevel.HEADING_2,
-            HeadingLevel.HEADING_3,
-            HeadingLevel.HEADING_4,
-            HeadingLevel.HEADING_5,
-            HeadingLevel.HEADING_6
-          ];
-          out.push(
-            new Paragraph({
-              heading: levels[Math.min(Math.max(token.depth, 1), 6) - 1],
-              children: this.inline(token.tokens)
-            })
-          );
-          break;
-        }
-        case "paragraph":
-          out.push(new Paragraph({ children: this.inline(token.tokens) }));
-          break;
-        case "text":
-          out.push(
-            new Paragraph({
-              children: this.inline(
-                "tokens" in token && Array.isArray(token.tokens)
-                  ? token.tokens
-                  : [token]
-              )
-            })
-          );
-          break;
-        case "list":
-          out.push(...this.list(token as Tokens.List, depth));
-          break;
-        case "code":
-          for (const line of token.text.split("\n")) {
-            out.push(
-              new Paragraph({
-                children: [new TextRun({ text: line, font: "Courier New" })]
-              })
-            );
-          }
-          break;
-        case "blockquote":
-          for (const child of this.blocks(token.tokens ?? [], depth)) {
-            out.push(child);
-          }
-          break;
-        case "table":
-          out.push(this.table(token as Tokens.Table));
-          break;
-        case "hr":
-          out.push(
-            new Paragraph({
-              children: [],
-              border: {
-                bottom: { style: this.docx.BorderStyle.SINGLE, size: 6, color: "999999", space: 1 }
-              }
-            })
-          );
-          break;
-        case "html":
-          out.push(new Paragraph({ children: [new TextRun(token.text)] }));
-          break;
-        default:
-          break;
-      }
-    }
-    return out;
-  }
-
-  private list(token: Tokens.List, depth: number): DocxParagraph[] {
-    const { Paragraph } = this.docx;
-    const level = Math.min(depth, 8);
-    const instance = token.ordered ? ++this.orderedInstance : 0;
-    const out: DocxParagraph[] = [];
-    for (const item of token.items) {
-      let first = true;
-      for (const child of item.tokens) {
-        if (child.type === "list") {
-          out.push(...this.list(child as Tokens.List, depth + 1));
-          continue;
-        }
-        const runs = this.inline(
-          "tokens" in child && Array.isArray(child.tokens) ? child.tokens : [child]
-        );
-        if (first) {
-          out.push(
-            new Paragraph({
-              children: runs,
-              ...(token.ordered
-                ? { numbering: { reference: ORDERED_REFERENCE, level, instance } }
-                : { bullet: { level } })
-            })
-          );
-          first = false;
-        } else {
-          out.push(
-            new Paragraph({ children: runs, indent: { left: 720 * (level + 1) } })
-          );
-        }
-      }
-    }
-    return out;
-  }
-
-  private table(token: Tokens.Table): DocxTable {
-    const { Table, TableRow, TableCell, Paragraph, WidthType } = this.docx;
-    const row = (cells: Tokens.TableCell[], header: boolean) =>
-      new TableRow({
-        tableHeader: header ? true : undefined,
-        children: cells.map(
-          (cell) =>
-            new TableCell({
-              children: [
-                new Paragraph({
-                  children: this.inline(cell.tokens, header ? { bold: true } : {})
-                })
-              ]
-            })
-        )
-      });
-    return new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: [row(token.header, true), ...token.rows.map((r) => row(r, false))]
-    });
-  }
-
-  orderedNumbering(): import("docx").INumberingOptions {
-    const { LevelFormat, AlignmentType } = this.docx;
-    return {
-      config: [
-        {
-          reference: ORDERED_REFERENCE,
-          levels: Array.from({ length: 9 }, (_, level) => ({
-            level,
-            format: LevelFormat.DECIMAL,
-            text: `%${level + 1}.`,
-            alignment: AlignmentType.START,
-            style: {
-              paragraph: { indent: { left: 720 * (level + 1), hanging: 360 } }
-            }
-          }))
-        }
-      ]
-    };
-  }
-}
-
-function decodeEntities(text: string): string {
-  return text
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&amp;/g, "&");
-}
-
-async function markdownToDocx(markdown: string): Promise<Uint8Array> {
-  const docx = await loadDocx();
-  const writer = new DocxWriter(docx);
-  const children = writer.blocks(markdownParser.lexer(markdown));
-  const doc = new docx.Document({
-    numbering: writer.orderedNumbering(),
-    sections: [{ children }]
-  });
-  return new Uint8Array(await docx.Packer.toBuffer(doc));
 }
 
 // ---------------------------------------------------------------------------
@@ -568,8 +300,6 @@ export async function convertDocumentBytes(
   switch (`${from}->${to}`) {
     case "markdown->html":
       return htmlDocument(markdownToHtmlFragment(text()));
-    case "markdown->docx":
-      return markdownToDocx(text());
     case "markdown->pdf":
       return htmlToPdf(htmlDocument(markdownToHtmlFragment(text())));
     case "markdown->text":
@@ -578,8 +308,6 @@ export async function convertDocumentBytes(
       return text();
     case "html->markdown":
       return htmlToMarkdown(text());
-    case "html->docx":
-      return markdownToDocx(await htmlToMarkdown(text()));
     case "html->pdf":
       return htmlToPdf(text());
     case "docx->markdown":

@@ -6,22 +6,38 @@
  * Both take a host path from the caller, so both are local-only: refused when
  * `NODETOOL_ENV=production`, validated by `resolveLocalPath`, and compared by
  * real path with every project folder of the user, so a symlink cannot place
- * one project's folder inside another's. Opening a folder writes nothing into
- * it except `.nodetool/project.json` when that file is absent.
+ * one project's folder inside another's. Opening a folder that is not a
+ * project yet writes nothing into it except `.nodetool/project.json`.
+ *
+ * A folder that carries `.nodetool/project.json` was a project before, here
+ * or on another machine (US12). Its assets, workflows and timelines are
+ * restored by `project-folder-restore`. A folder that is a copy of a project
+ * on this install becomes a project of its own, with new IDs written into
+ * the copy. The files are read as untrusted input.
  */
 
 import { constants, existsSync } from "node:fs";
 import { access, realpath, stat } from "node:fs/promises";
 import { basename, isAbsolute, relative, resolve } from "node:path";
 import {
+  PROJECT_MANIFEST_FILE,
   ProjectFolderError,
   isLocalDeployment,
+  nodetoolDirFromRow,
   readProjectManifest,
   removeProjectManifest,
+  workspaceFromRow,
   writeProjectManifest,
   type ProjectManifest
 } from "@nodetool-ai/execution/service";
+import { withNamedLock } from "@nodetool-ai/asset-services/folder-lock-file";
 import { Project, Workspace as WorkspaceRow } from "@nodetool-ai/models";
+import { projectFolderWatchers } from "@nodetool-ai/project-services/project-watch";
+import {
+  discardRestoredAssets,
+  finishProjectFolderRestore,
+  restoreProjectFolder
+} from "@nodetool-ai/project-services/project-folder-restore";
 import { createProjectInput } from "@nodetool-ai/protocol/api-schemas/projects.js";
 import { localPathDenialMessage, resolveLocalPath } from "./local-file-access.js";
 
@@ -156,16 +172,34 @@ function projectName(name: string | undefined, folder: string): string {
   return Array.from(chosen).slice(0, MAX_PROJECT_NAME).join("");
 }
 
+/** How {@link adopt} treats what the folder already holds. */
+type AdoptedContents =
+  /** Not a project before: the manifest is written. */
+  | { kind: "new" }
+  /** A project unknown on this install: its IDs are restored. */
+  | { kind: "restore" }
+  /** A copy of the project `of`, which is on this install: every ID is new. */
+  | { kind: "copy"; of: string };
+
 /**
- * Create a project over `folder` with an adopted folder row. The manifest is
- * written when the folder has none. A failure removes the rows and the
- * manifest it wrote again.
+ * Create a project over `folder` with an adopted folder row.
+ *
+ * A folder that was a project before has its asset rows created, and the IDs
+ * that cannot stay replaced, before the project is given the folder. No
+ * reconcile can then see the folder first and give its files other IDs. A
+ * copy gets its own `.nodetool/project.json` once that has worked.
+ *
+ * A failure removes the rows it created and puts the manifest back as it
+ * was. Workflow and timeline files a copy had rewritten keep their new IDs,
+ * which no row uses. The restore recorded those IDs in the folder, so the
+ * next open of the folder maps them and their references resolve.
  */
 async function adopt(
   userId: string,
   folder: string,
-  fields: { id?: string; name: string; hasManifest: boolean }
+  fields: { id?: string; name: string; contents: AdoptedContents }
 ): Promise<Project> {
+  const { contents } = fields;
   const project = await Project.insertNew({
     id: fields.id,
     user_id: userId,
@@ -179,7 +213,9 @@ async function adopt(
     );
   }
   let row: WorkspaceRow | null = null;
-  let wroteManifest = false;
+  let restoredAssets: string[] = [];
+  /** Puts `.nodetool/project.json` back as it was before this call. */
+  let undoManifest: (() => Promise<void>) | null = null;
   try {
     row = (await WorkspaceRow.create({
       user_id: userId,
@@ -189,21 +225,57 @@ async function adopt(
       origin: "adopted",
       is_default: false
     })) as WorkspaceRow;
-    if (!fields.hasManifest) {
-      await writeProjectManifest(row, project);
-      wroteManifest = true;
+    const created = row;
+    if (contents.kind !== "new") {
+      const workspace = workspaceFromRow(created);
+      const nodetoolDir = nodetoolDirFromRow(created);
+      if (!workspace || !nodetoolDir) {
+        throw new Error("Project folder storage is not configured");
+      }
+      const restored = await restoreProjectFolder({
+        userId,
+        projectId: project.id,
+        workspace,
+        nodetoolDir,
+        copyOf: contents.kind === "copy" ? contents.of : null
+      });
+      restoredAssets = restored.assets;
+      if (contents.kind === "copy") {
+        const previous = await nodetoolDir.readText(PROJECT_MANIFEST_FILE);
+        undoManifest = async () => {
+          if (previous !== null) {
+            await nodetoolDir.write(
+              PROJECT_MANIFEST_FILE,
+              previous,
+              "application/json"
+            );
+          }
+        };
+        await writeProjectManifest(created, project);
+      }
+    } else {
+      undoManifest = () => removeProjectManifest(created);
+      await writeProjectManifest(created, project);
     }
-    await Project.claimWorkspace(userId, project.id, row.id);
+    const winner = await Project.claimWorkspace(userId, project.id, row.id);
+    if (winner !== row.id) {
+      throw new ProjectFolderOpenError(
+        "conflict",
+        "The project's folder changed while it was being opened"
+      );
+    }
     project.workspace_id = row.id;
-    return project;
   } catch (error) {
-    if (row && wroteManifest) {
-      await removeProjectManifest(row).catch(() => undefined);
-    }
+    await undoManifest?.().catch(() => undefined);
+    await discardRestoredAssets(userId, restoredAssets);
     await row?.delete();
     await project.delete();
     throw error;
   }
+  if (contents.kind !== "new") {
+    await finishProjectFolderRestore(project.id, userId);
+  }
+  return project;
 }
 
 /**
@@ -217,6 +289,7 @@ async function pointAt(project: Project, folder: string): Promise<Project> {
   if (row) {
     row.path = folder;
     await row.save();
+    watchMovedFolder(project);
     return project;
   }
   const created = (await WorkspaceRow.create({
@@ -241,7 +314,16 @@ async function pointAt(project: Project, folder: string): Promise<Project> {
     );
   }
   project.workspace_id = created.id;
+  watchMovedFolder(project);
   return project;
+}
+
+/**
+ * The clients that have `project` open watched its former folder, or none
+ * when it could not be found. They watch the new one from now on.
+ */
+function watchMovedFolder(project: Project): void {
+  void projectFolderWatchers.folderMoved(project.id, project.user_id);
 }
 
 /**
@@ -250,13 +332,34 @@ async function pointAt(project: Project, folder: string): Promise<Project> {
  * - A folder without `.nodetool/project.json` becomes a new project, and the
  *   manifest is written.
  * - A manifest whose id is unknown on this install creates the project under
- *   that id.
+ *   that id, with the assets, workflows and timelines the folder carries
+ *   under the IDs it records.
  * - A manifest naming a project of the user whose recorded folder is gone
  *   relocates that project here.
- * - A manifest naming a project whose recorded folder still exists is refused
- *   as a copy of that project.
+ * - A manifest naming a project of the user whose recorded folder still
+ *   exists makes this folder a copy: a second project under a new id, with
+ *   new asset, workflow and timeline IDs written into this folder. The
+ *   original project, its rows and its folder are not changed.
  */
-export async function openProjectFolder(
+export function openProjectFolder(
+  userId: string,
+  input: { path: string; name?: string }
+): Promise<Project> {
+  return withFolderOpenLock(userId, () => openFolder(userId, input));
+}
+
+/**
+ * Run `task` after every other open or relocate of a folder by `userId`,
+ * in this process and in every process that shares its database. Each one
+ * checks that the folder is no other project's and then gives it to a
+ * project. Two that interleave would both pass the check, and two projects
+ * would share one folder: deleting a file in one would delete it in both.
+ */
+function withFolderOpenLock<T>(userId: string, task: () => Promise<T>): Promise<T> {
+  return withNamedLock(`project-folder-open\u0000${userId}`, task);
+}
+
+async function openFolder(
   userId: string,
   input: { path: string; name?: string }
 ): Promise<Project> {
@@ -267,7 +370,7 @@ export async function openProjectFolder(
     await refuseOverlap(userId, folder);
     return adopt(userId, folder, {
       name: projectName(input.name, folder),
-      hasManifest: false
+      contents: { kind: "new" }
     });
   }
 
@@ -286,7 +389,7 @@ export async function openProjectFolder(
     return adopt(userId, folder, {
       id: id.data,
       name: projectName(input.name ?? manifest.name, folder),
-      hasManifest: true
+      contents: { kind: "restore" }
     });
   }
   if (existing.user_id !== userId || existing.deleted_at) {
@@ -301,10 +404,11 @@ export async function openProjectFolder(
     : null;
   if (recorded && folderExists(recorded)) {
     await refuseOverlap(userId, folder);
-    throw new ProjectFolderOpenError(
-      "conflict",
-      `This folder is a copy of project "${existing.name}"`
-    );
+    // A copy takes its folder's name, which tells it from the original.
+    return adopt(userId, folder, {
+      name: projectName(input.name, folder),
+      contents: { kind: "copy", of: existing.id }
+    });
   }
   await refuseOverlap(userId, folder, existing.id);
   return pointAt(existing, folder);
@@ -315,7 +419,14 @@ export async function openProjectFolder(
  * manifest names a different project is refused. A folder without one gets
  * the project's manifest.
  */
-export async function relocateProjectFolder(
+export function relocateProjectFolder(
+  userId: string,
+  input: { project_id: string; path: string }
+): Promise<Project> {
+  return withFolderOpenLock(userId, () => relocateFolder(userId, input));
+}
+
+async function relocateFolder(
   userId: string,
   input: { project_id: string; path: string }
 ): Promise<Project> {

@@ -44,7 +44,6 @@ const RUNTIME_GROUP: Record<string, RuntimeGroup> = {
   "yt-dlp": "media",
   manimgx: "media",
   "transformers-js": "ai",
-  "tensorflow-js": "ai",
   "node-llama-cpp": "ai",
   "whisper-cpp": "ai",
   "sd-cpp": "ai",

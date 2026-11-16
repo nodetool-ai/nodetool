@@ -1,19 +1,19 @@
 /**
  * `convert_document` and `convert_markdown_to_pdf` convert in process: real
- * files in a temporary workspace, real `marked`, `docx`, `mammoth` and
- * `turndown`, and the headless Chromium `@nodetool-ai/browser` launches for
+ * files in a temporary workspace, real `marked`, `mammoth` and `turndown`, and the headless Chromium `@nodetool-ai/browser` launches for
  * PDF output. No pandoc, and no child process from the converter itself.
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { unzipSync, strFromU8 } from "fflate";
+import { strToU8, zipSync } from "fflate";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { createLocalWorkspace, resolveWorkspacePath } from "@nodetool-ai/runtime";
 import {
   convertDocument,
   convertMarkdownToPdf
@@ -74,6 +74,64 @@ const HTML = [
   "</body></html>"
 ].join("");
 
+/**
+ * The report above as the smallest DOCX mammoth reads with structure: styled
+ * headings, plus a bullet list and a numbered list from numbering.xml.
+ */
+function reportDocx(): Buffer {
+  const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+  const text = (t: string) => `<w:r><w:t xml:space="preserve">${t}</w:t></w:r>`;
+  const heading = (level: number, t: string) =>
+    `<w:p><w:pPr><w:pStyle w:val="Heading${level}"/></w:pPr>${text(t)}</w:p>`;
+  const item = (numId: number, t: string) =>
+    `<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="${numId}"/></w:numPr></w:pPr>${text(t)}</w:p>`;
+  const body = [
+    heading(1, "Quarterly Report"),
+    `<w:p>${text("Revenue grew this quarter.")}</w:p>`,
+    heading(2, "Highlights"),
+    item(1, "First bullet"),
+    item(1, "Second bullet"),
+    item(2, "Step one"),
+    item(2, "Step two")
+  ].join("");
+  const style = (level: number) =>
+    `<w:style w:type="paragraph" w:styleId="Heading${level}"><w:name w:val="heading ${level}"/></w:style>`;
+  const abstract = (id: number, format: string) =>
+    `<w:abstractNum w:abstractNumId="${id}"><w:lvl w:ilvl="0"><w:numFmt w:val="${format}"/></w:lvl></w:abstractNum>`;
+  const rel = (id: string, type: string, target: string) =>
+    `<Relationship Id="${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/${type}" Target="${target}"/>`;
+  const xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  return Buffer.from(
+    zipSync({
+      "[Content_Types].xml": strToU8(
+        `${xml}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
+          '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+          '<Default Extension="xml" ContentType="application/xml"/>' +
+          '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+          "</Types>"
+      ),
+      "_rels/.rels": strToU8(
+        `${xml}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+          rel("rId1", "officeDocument", "word/document.xml") +
+          "</Relationships>"
+      ),
+      "word/_rels/document.xml.rels": strToU8(
+        `${xml}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+          rel("rId1", "styles", "styles.xml") +
+          rel("rId2", "numbering", "numbering.xml") +
+          "</Relationships>"
+      ),
+      "word/document.xml": strToU8(`${xml}<w:document ${W}><w:body>${body}</w:body></w:document>`),
+      "word/styles.xml": strToU8(`${xml}<w:styles ${W}>${style(1)}${style(2)}</w:styles>`),
+      "word/numbering.xml": strToU8(
+        `${xml}<w:numbering ${W}>${abstract(0, "bullet")}${abstract(1, "decimal")}` +
+          '<w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>' +
+          '<w:num w:numId="2"><w:abstractNumId w:val="1"/></w:num></w:numbering>'
+      )
+    })
+  );
+}
+
 function findChrome(): string | null {
   if (process.env.CHROME_PATH && existsSync(process.env.CHROME_PATH)) {
     return process.env.CHROME_PATH;
@@ -98,6 +156,7 @@ beforeAll(async () => {
   workspace = await mkdtemp(join(tmpdir(), "nodetool-convert-"));
   await writeFile(join(workspace, "report.md"), MARKDOWN);
   await writeFile(join(workspace, "report.html"), HTML);
+  await writeFile(join(workspace, "report.docx"), reportDocx());
   savedChromePath = process.env.CHROME_PATH;
   if (chromePath) process.env.CHROME_PATH = chromePath;
 });
@@ -134,22 +193,6 @@ async function convert(
   return readFile(join(workspace, output));
 }
 
-/** The paragraphs of a DOCX, as mammoth reads them back. */
-async function docxHtml(bytes: Buffer): Promise<string> {
-  const mammoth = (await import("mammoth")).default;
-  return (await mammoth.convertToHtml({ buffer: bytes })).value;
-}
-
-function expectDocx(bytes: Buffer): void {
-  expect(bytes.subarray(0, 2).toString("latin1")).toBe("PK");
-  const entries = unzipSync(new Uint8Array(bytes));
-  expect(Object.keys(entries)).toContain("word/document.xml");
-  const xml = strFromU8(entries["word/document.xml"]!);
-  expect(xml).toContain("Quarterly Report");
-  expect(xml).toContain("Heading1");
-  expect(xml).toContain("<w:numPr>");
-}
-
 function expectStructuredHtml(html: string): void {
   expect(html).toMatch(/<h1[^>]*>Quarterly Report<\/h1>/);
   expect(html).toMatch(/<h2[^>]*>Highlights<\/h2>/);
@@ -184,27 +227,14 @@ describe("convert_document", () => {
     expect(md).not.toContain("<title>");
   });
 
-  it("markdown → docx writes a Word document with headings and lists", async () => {
-    const bytes = await convert("report.md", "out/md.docx", "md", "docx");
-    expectDocx(bytes);
-    expectStructuredHtml(await docxHtml(bytes));
-  });
-
-  it("html → docx writes a Word document with headings and lists", async () => {
-    const bytes = await convert("report.html", "out/html.docx", "html", "docx");
-    expectDocx(bytes);
-    expectStructuredHtml(await docxHtml(bytes));
-  });
-
   it("docx → markdown, html and text read the document back", async () => {
-    await convert("report.md", "round.docx", "markdown", "docx");
     expectStructuredMarkdown(
-      (await convert("round.docx", "out/round.md", "docx", "markdown")).toString()
+      (await convert("report.docx", "out/round.md", "docx", "markdown")).toString()
     );
     expectStructuredHtml(
-      (await convert("round.docx", "out/round.html", "docx", "html")).toString()
+      (await convert("report.docx", "out/round.html", "docx", "html")).toString()
     );
-    const text = (await convert("round.docx", "out/round.txt", "docx", "text")).toString();
+    const text = (await convert("report.docx", "out/round.txt", "docx", "text")).toString();
     expect(text).toContain("Quarterly Report");
     expect(text).toContain("Second bullet");
   });
@@ -234,6 +264,117 @@ describe("convert_document", () => {
   });
 });
 
+describe("convert_document and the folder of another project", () => {
+  /** A game's workspace inside the run's folder. It has no `.nodetool/`. */
+  const GAME = "projects/game1";
+
+  /** A run whose workspace knows the game's folder from the host's rows. */
+  function runInFolder() {
+    const context = {
+      workspaceDir: workspace,
+      workspace: createLocalWorkspace(workspace, { nestedFolders: () => [GAME] }),
+      resolveWorkspacePath: (path: string) => resolve(workspace, path)
+    } as unknown as ProcessingContext;
+    return createCapabilityRun({ context, gate: UNGATED });
+  }
+
+  beforeAll(async () => {
+    await mkdir(join(workspace, GAME), { recursive: true });
+    await writeFile(join(workspace, GAME, "game.json"), '{"game":"source"}');
+    await writeFile(join(workspace, GAME, "notes.md"), MARKDOWN);
+  });
+
+  it("writes no output into the game's folder", async () => {
+    for (const output of [`${GAME}/game.json`, `${GAME}/out/report.html`]) {
+      const result = (await convertDocument.impl(runInFolder(), {
+        input_file: "report.md",
+        output_file: output,
+        from_format: "markdown",
+        to_format: "html"
+      })) as { status?: string; error?: string };
+      expect(result.status).not.toBe("success");
+      expect(result.error).toMatch(/folder of another project/);
+    }
+
+    expect(await readFile(join(workspace, GAME, "game.json"), "utf8")).toBe(
+      '{"game":"source"}'
+    );
+    expect(existsSync(join(workspace, GAME, "out"))).toBe(false);
+  });
+
+  it("reads no input from the game's folder", async () => {
+    const result = (await convertDocument.impl(runInFolder(), {
+      input_file: `${GAME}/notes.md`,
+      output_file: "out/stolen.html",
+      from_format: "markdown",
+      to_format: "html"
+    })) as { status?: string; error?: string };
+
+    expect(result.error).toMatch(/folder of another project/);
+    expect(existsSync(join(workspace, "out/stolen.html"))).toBe(false);
+  });
+
+  it("refuses every spelling of a path in the game's folder", async () => {
+    // The real resolver, which reads `workspace/` as the root, `\\` as `/`
+    // and drops a drive letter, as the run's context does.
+    const context = {
+      workspaceDir: workspace,
+      workspace: createLocalWorkspace(workspace, { nestedFolders: () => [GAME] }),
+      resolveWorkspacePath: (path: string) => resolveWorkspacePath(workspace, path)
+    } as unknown as ProcessingContext;
+    const spellings = (file: string): string[] => [
+      `workspace/${GAME}/${file}`,
+      `/workspace/${GAME}/${file}`,
+      `${GAME}/${file}`.replaceAll("/", "\\"),
+      `C:/${GAME}/${file}`,
+      `projects/../${GAME}/${file}`
+    ];
+
+    for (const output of spellings("game.json")) {
+      const result = (await convertDocument.impl(
+        createCapabilityRun({ context, gate: UNGATED }),
+        {
+          input_file: "report.md",
+          output_file: output,
+          from_format: "markdown",
+          to_format: "html"
+        }
+      )) as { status?: string; error?: string };
+      expect(result.status, output).not.toBe("success");
+      expect(result.error, output).toMatch(/folder of another project/);
+    }
+    for (const input of spellings("notes.md")) {
+      const result = (await convertDocument.impl(
+        createCapabilityRun({ context, gate: UNGATED }),
+        {
+          input_file: input,
+          output_file: "out/stolen.html",
+          from_format: "markdown",
+          to_format: "html"
+        }
+      )) as { status?: string; error?: string };
+      expect(result.error, input).toMatch(/folder of another project/);
+    }
+
+    expect(await readFile(join(workspace, GAME, "game.json"), "utf8")).toBe(
+      '{"game":"source"}'
+    );
+    expect(existsSync(join(workspace, "out/stolen.html"))).toBe(false);
+  });
+
+  it("still converts beside the game's folder", async () => {
+    const result = (await convertDocument.impl(runInFolder(), {
+      input_file: "report.md",
+      output_file: "projects/report.html",
+      from_format: "markdown",
+      to_format: "html"
+    })) as { status?: string; error?: string };
+
+    expect(result.error).toBeUndefined();
+    expect(existsSync(join(workspace, "projects/report.html"))).toBe(true);
+  });
+});
+
 describe("convert_document refusals", () => {
   it("names the supported pairs for an unsupported pair", async () => {
     const result = (await convertDocument.impl(run(), {
@@ -245,6 +386,17 @@ describe("convert_document refusals", () => {
     expect(result.error).toContain("Cannot convert markdown to rst");
     expect(result.error).toContain(SUPPORTED_CONVERSIONS_TEXT);
     expect(existsSync(join(workspace, "out/report.rst"))).toBe(false);
+  });
+
+  it("writes no DOCX", async () => {
+    const result = (await convertDocument.impl(run(), {
+      input_file: "report.md",
+      output_file: "out/report.docx",
+      from_format: "markdown",
+      to_format: "docx"
+    })) as { error?: string };
+    expect(result.error).toContain("Cannot convert markdown to docx");
+    expect(existsSync(join(workspace, "out/report.docx"))).toBe(false);
   });
 
   it("refuses a known format pair outside the table", async () => {

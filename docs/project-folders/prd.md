@@ -1,6 +1,6 @@
 # Project folders PRD
 
-Status: agreed product scope and technical design, implementation pending.
+Status: implemented. The PRD merged in [#7585](https://github.com/nodetool-ai/nodetool/pull/7585). The tickets merged in PF01 [#7604](https://github.com/nodetool-ai/nodetool/pull/7604), PF02 [#7606](https://github.com/nodetool-ai/nodetool/pull/7606), PF03 [#7607](https://github.com/nodetool-ai/nodetool/pull/7607), PF04 [#7608](https://github.com/nodetool-ai/nodetool/pull/7608), PF05 [#7610](https://github.com/nodetool-ai/nodetool/pull/7610), PF06 [#7614](https://github.com/nodetool-ai/nodetool/pull/7614), PF07 [#7611](https://github.com/nodetool-ai/nodetool/pull/7611), PF08 [#7615](https://github.com/nodetool-ai/nodetool/pull/7615), PF09 [#7616](https://github.com/nodetool-ai/nodetool/pull/7616), PF10 [#7617](https://github.com/nodetool-ai/nodetool/pull/7617), PF11 [#7620](https://github.com/nodetool-ai/nodetool/pull/7620), PF12 [#7621](https://github.com/nodetool-ai/nodetool/pull/7621), PF13 [#7618](https://github.com/nodetool-ai/nodetool/pull/7618), PF14 [#7619](https://github.com/nodetool-ai/nodetool/pull/7619), PF15 [#7613](https://github.com/nodetool-ai/nodetool/pull/7613), PF16 [#7622](https://github.com/nodetool-ai/nodetool/pull/7622), PF17 [#7623](https://github.com/nodetool-ai/nodetool/pull/7623). The user guide is [Project folders](../workspaces.md).
 
 Builds on: [Project scoping PRD](../project-scoping/prd.md). That PRD decides
 which resources a project owns. This one decides where a project's files live
@@ -232,7 +232,7 @@ the first two triggers.
 | --- | --- | --- |
 | File present, fingerprint equal | Row | None. |
 | File present, fingerprint differs | Row | Update the fingerprint. Invalidate thumbnail, peaks, and proxy. The ID stays. |
-| File absent, an unindexed file has the same fingerprint | Row | Update `workspace_path` to that file. |
+| File absent, an unindexed file has the same fingerprint | Row | Update `workspace_path` to that file, and the asset name to its file name. |
 | File absent, no match | Row | Mark offline. |
 | Media file present | No row | Create a row. Build the thumbnail when the file is first displayed. |
 | Other file present | No row | None. Create a row on first use. |
@@ -319,6 +319,10 @@ global templates and are not written to any folder.
 - Delete follows D12. Replace the unconditional file wipe (F7) with a branch
   on `workspaces.origin`. `created` moves the folder to the OS trash locally
   and deletes the prefix in the cloud. `adopted` removes `.nodetool/` only.
+  Rows from before T1 all read `created`, so `created` counts only when the
+  folder carries `.nodetool/created.json`, which names the project and is
+  written when NodeTool creates the folder. Any other folder is handled as
+  `adopted`.
 - Archive leaves the folder in place.
 - Export archives the folder plus the database documents that do not live in
   it.
@@ -347,10 +351,13 @@ Each step is idempotent and safe to interrupt.
 2. Write `.nodetool/project.json` into each folder.
 3. Write a file for each workflow and timeline, and store `file_path` and
    `file_hash`.
-4. Move asset bytes in the background, one asset at a time: copy the legacy
-   object to `<folder>/<asset folder path>/<name>`, set `workspace_path`,
-   verify, then delete the legacy object. The legacy key keeps resolving
-   until the row is updated.
+4. Move asset bytes in the background, one asset at a time: record the
+   target on the row, copy the legacy object to
+   `<folder>/<asset folder path>/<name>`, verify the copy, set
+   `workspace_path`, then delete the legacy object. The legacy key keeps
+   resolving until the object is deleted, and the row names the file before
+   that. See
+   [existing assets move into the folder](../workspaces.md#existing-assets-move-into-the-folder).
 
 ## Delivery order
 

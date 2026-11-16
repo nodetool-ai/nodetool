@@ -172,7 +172,11 @@ class MockWebSocket implements WebSocketConnection {
 }
 
 /** Runs a saved workflow the way the editor's Run button does. */
-async function editorRun(workflowId: string): Promise<Record<string, unknown>> {
+async function editorRun(
+  workflowId: string,
+  extra: Record<string, unknown> = {},
+  userId: string = USER
+): Promise<Record<string, unknown>> {
   const ws = new MockWebSocket();
   const session = new WebSocketClientSession({
     workspaceResolver: resolveProjectWorkspace,
@@ -184,9 +188,9 @@ async function editorRun(workflowId: string): Promise<Record<string, unknown>> {
       }
     })
   });
-  await session.connect(ws, USER);
+  await session.connect(ws, userId);
   const jobId = `editor-${Date.now()}`;
-  await session.jobs.runJob({ job_id: jobId, workflow_id: workflowId });
+  await session.jobs.runJob({ job_id: jobId, workflow_id: workflowId, ...extra });
   const deadline = Date.now() + 5000;
   for (;;) {
     const terminal = ws
@@ -234,7 +238,7 @@ async function scriptIn(projectId: string, code: string): Promise<JsScript> {
 
 beforeEach(async () => {
   initTestDb();
-  folders = await useProjectFolders([USER]);
+  folders = await useProjectFolders([USER, "2"]);
 });
 
 afterEach(async () => {
@@ -314,6 +318,50 @@ describe.each(["local", "cloud"] as const)("runs in the project folder (%s)", (m
     expect(terminal.status).toBe("completed");
     expect(await fileIn(a.folder, "editor.txt")).toBe("written by the editor run");
     expect(await namesIn(b.folder)).toEqual([]);
+  });
+
+  describe("a run that carries its graph", () => {
+    const graph = { nodes: [{ id: "write", type: WriteRunFile.nodeType, data: {} }], edges: [] };
+
+    it("writes the folder of the project_id the client sends", async () => {
+      const a = await projectWithFolder(USER, "Film A");
+      const b = await projectWithFolder(USER, "Film B");
+      const personal = await personalWithFolder(USER);
+      const workflow = await workflowIn(a.project.id);
+
+      const terminal = await editorRun(workflow.id, { graph, project_id: a.project.id });
+
+      expect(terminal.status).toBe("completed");
+      expect(await fileIn(a.folder, "editor.txt")).toBe("written by the editor run");
+      expect(await namesIn(b.folder)).toEqual([]);
+      expect(await namesIn(personal.folder)).toEqual([]);
+    });
+
+    it("writes Personal's folder when the client sends no project_id", async () => {
+      const a = await projectWithFolder(USER, "Film A");
+      const personal = await personalWithFolder(USER);
+      const workflow = await workflowIn(a.project.id);
+
+      const terminal = await editorRun(workflow.id, { graph });
+
+      expect(terminal.status).toBe("completed");
+      expect(await fileIn(personal.folder, "editor.txt")).toBe("written by the editor run");
+      expect(await namesIn(a.folder)).not.toContain("editor.txt");
+    });
+
+    it("refuses a project_id that belongs to another user", async () => {
+      const OTHER = "2";
+      const theirs = await projectWithFolder(OTHER, "Their film");
+      const personal = await personalWithFolder(USER);
+      const workflow = await workflowIn(theirs.project.id);
+
+      const terminal = await editorRun(workflow.id, { graph, project_id: theirs.project.id });
+
+      expect(terminal.status).toBe("failed");
+      expect(String(terminal.error)).toContain("Project not found");
+      expect(await namesIn(theirs.folder)).toEqual([]);
+      expect(await namesIn(personal.folder)).toEqual([]);
+    });
   });
 
   it("a headless job of a workflow in project A writes A's folder", async () => {

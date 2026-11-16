@@ -32,6 +32,11 @@ import {
   resolveProjectWorkspace,
   setWorkspaceCloudStorage
 } from "@nodetool-ai/execution/service";
+import {
+  cancelProjectReconciles,
+  flushProjectReconciles
+} from "@nodetool-ai/project-services/project-index";
+import { projectFolderWatchers } from "@nodetool-ai/project-services/project-watch";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
@@ -114,6 +119,9 @@ describe("projects.openFolder and projects.relocate", () => {
       if (saved[key] === undefined) delete process.env[key];
       else process.env[key] = saved[key];
     }
+    // Opening a folder that was a project before reconciles it.
+    await flushProjectReconciles();
+    cancelProjectReconciles();
     setWorkspaceCloudStorage(null);
     ModelObserver.clear();
     await rm(root, { recursive: true, force: true });
@@ -133,7 +141,9 @@ describe("projects.openFolder and projects.relocate", () => {
       workspace_id: expect.any(String),
       path: folder,
       origin: "adopted",
-      is_accessible: true
+      is_accessible: true,
+      // Deleting the project keeps a folder the user brought.
+      on_delete: "keep"
     });
     const after = await snapshot(folder);
     const manifestPath = join(".nodetool", "project.json");
@@ -186,6 +196,30 @@ describe("projects.openFolder and projects.relocate", () => {
     expect(
       (await caller().projects.list({})).map((p) => p.name).sort()
     ).toEqual(["Aurora", "Personal"]);
+  });
+
+  it("gives a folder opened twice at once to one project, and refuses the other open", async () => {
+    const folder = join(root, "Shared");
+    await mkdir(folder);
+    const nested = join(folder, "inner");
+    await mkdir(nested);
+
+    const results = await Promise.allSettled([
+      caller().projects.openFolder({ path: folder, name: "One" }),
+      caller().projects.openFolder({ path: folder, name: "Two" }),
+      caller().projects.openFolder({ path: nested, name: "Three" })
+    ]);
+
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    for (const result of results) {
+      if (result.status === "rejected") {
+        expect(String(result.reason)).toMatch(/folder of project/);
+      }
+    }
+    const withFolder = (await Project.listWithFolder("user-1")).filter(
+      (project) => project.kind !== "personal"
+    );
+    expect(withFolder).toHaveLength(1);
   });
 
   it("refuses a symlinked path that resolves into another project's folder", async () => {
@@ -243,7 +277,16 @@ describe("projects.openFolder and projects.relocate", () => {
     expect(project.id).toBe("abc123");
     expect(project.name).toBe("Travelled");
     expect(project.folder?.origin).toBe("adopted");
-    expect(await snapshot(folder)).toEqual(before);
+    // The folder's index is written, as after any reconcile. Nothing else is.
+    const after = await snapshot(folder);
+    const index = join(".nodetool", "assets.json");
+    expect(JSON.parse(Buffer.from(after[index]!.bytes, "base64").toString())).toEqual({
+      format: "nodetool.assets",
+      version: 1,
+      assets: []
+    });
+    delete after[index];
+    expect(after).toEqual(before);
   });
 
   it("relocates the project a manifest names when its recorded folder is gone", async () => {
@@ -259,22 +302,64 @@ describe("projects.openFolder and projects.relocate", () => {
       workspace_id: expect.any(String),
       path: moved,
       origin: "created",
-      is_accessible: true
+      is_accessible: true,
+      // The moved folder still carries the record that NodeTool created it.
+      on_delete: "trash"
     });
     expect(
       (await caller().projects.list({})).map((p) => p.name).sort()
     ).toEqual(["Aurora", "Personal"]);
   });
 
-  it("refuses a copy of a project whose folder still exists", async () => {
+  it("opens a copy of a project whose folder still exists as a second project", async () => {
     const created = await caller().projects.create({ name: "Aurora" });
     const copy = join(root, "Aurora copy");
     await mkdir(copy);
     await writeManifest(copy, { id: created.id, name: "Aurora" });
+    const original = await snapshot(created.folder?.path ?? "");
 
+    const opened = await caller().projects.openFolder({ path: copy });
+
+    expect(opened.id).not.toBe(created.id);
+    expect(opened.id).toMatch(/^[0-9a-f]{32}$/);
+    expect(opened.name).toBe("Aurora copy");
+    // The copy is a folder the user brought: deleting its project keeps it.
+    expect(opened.folder).toEqual({
+      workspace_id: expect.any(String),
+      path: copy,
+      origin: "adopted",
+      is_accessible: true,
+      on_delete: "keep"
+    });
+    // The copy's manifest names the new project. The original's is untouched.
+    expect(await readManifest(copy)).toEqual({
+      format: "nodetool.project",
+      version: 1,
+      id: opened.id,
+      name: "Aurora copy"
+    });
+    expect(await snapshot(created.folder?.path ?? "")).toEqual(original);
+    expect(
+      (await caller().projects.list({})).map((p) => p.name).sort()
+    ).toEqual(["Aurora", "Aurora copy", "Personal"]);
+    // Opening the copy again finds a project that has this folder.
     await expect(
       caller().projects.openFolder({ path: copy })
-    ).rejects.toThrow('This folder is a copy of project "Aurora"');
+    ).rejects.toThrow('This folder is already the folder of project "Aurora copy"');
+  });
+
+  it("takes the name the caller gives a copy", async () => {
+    const created = await caller().projects.create({ name: "Aurora" });
+    const copy = join(root, "duplicate");
+    await mkdir(copy);
+    await writeManifest(copy, { id: created.id, name: "Aurora" });
+
+    const opened = await caller().projects.openFolder({
+      path: copy,
+      name: "Aurora, second cut"
+    });
+
+    expect(opened.name).toBe("Aurora, second cut");
   });
 
   it("refuses a folder whose manifest belongs to another user's project", async () => {
@@ -324,13 +409,36 @@ describe("projects.openFolder and projects.relocate", () => {
       workspace_id: expect.any(String),
       path: renamed,
       origin: "created",
-      is_accessible: true
+      is_accessible: true,
+      // The renamed folder still carries the record that NodeTool created it.
+      on_delete: "trash"
     });
     const resolved = await resolveProjectWorkspace(created.id, "user-1");
     expect(resolved.ok).toBe(true);
     if (resolved.ok) {
       expect(await resolved.workspace.readText("draft.md")).toBe("kept");
     }
+  });
+
+  it("a client that has the project open watches the located folder", async () => {
+    const created = await caller().projects.create({ name: "Aurora" });
+    const renamed = join(root, "Aurora renamed");
+    await rename(created.folder?.path ?? "", renamed);
+    const client = Symbol("client");
+    try {
+      // Opened while the folder is away: nothing can be watched.
+      await projectFolderWatchers.setOpenProject(client, "user-1", created.id);
+      expect(projectFolderWatchers.isWatching(created.id, "user-1")).toBe(false);
+
+      await caller().projects.relocate({ project_id: created.id, path: renamed });
+
+      await expect
+        .poll(() => projectFolderWatchers.isWatching(created.id, "user-1"))
+        .toBe(true);
+    } finally {
+      projectFolderWatchers.release(client);
+    }
+    expect(projectFolderWatchers.isWatching(created.id, "user-1")).toBe(false);
   });
 
   it("writes the manifest into a located folder that has none", async () => {

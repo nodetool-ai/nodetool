@@ -42,21 +42,28 @@ export type {
 } from "./workflow-workspace.js";
 
 export {
+  PROJECT_MANIFEST_FILE,
   PROJECT_MANIFEST_PATH,
   PROJECTS_DIR_SETTING,
   ProjectFolderError,
+  checkProjectsDir,
+  configuredProjectsDir,
   describeProjectFolder,
   ensurePersonalProject,
   ensureProjectFolder,
+  isFolderMarkedCreated,
   isLocalDeployment,
+  markFolderCreated,
   migrateProjectFolders,
   projectFolderName,
   projectManifest,
   readProjectManifest,
   removeProjectManifest,
+  unmarkFolderCreated,
   writeProjectManifest
 } from "./project-folder.js";
 export type {
+  FolderCreatedMark,
   ProjectFolderInfo,
   ProjectFolderMigrationReport,
   ProjectManifest
@@ -81,6 +88,7 @@ export {
   persistableOutputs,
   withoutInlineAssetBytes,
   modelSelectionErrors,
+  graphNodeTitle,
   MAX_INTERACTIVE_DECISIONS,
   MAX_INTERACTIVE_RETRIES_PER_NODE,
   MAX_INTERACTIVE_DECISION_TIMEOUT_MS

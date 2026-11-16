@@ -11,15 +11,19 @@
  *   summaries      (query)    — ProjectDetail[] (every project, for the list)
  *   get            (query)    — ProjectDetail (project + documents + spend)
  *   documentPage   (query)    — ProjectDocumentPage (one page of cards)
- *   documents      (query)    — ProjectDocumentRef[]
+ *   documents      (query)    — ProjectDocumentListEntry[] (with file state)
+ *   documentByFile (query)    — ProjectFileDocument | null (by file path)
+ *   restoreDocumentFile (mutation) — ProjectFileDocument (rewrites the file)
  *   unassigned     (query)    — ProjectDocumentRef[] in the loose bucket
  *   thread         (mutation) — { threadId } (the project's agent thread)
  *   create         (mutation) — ProjectResponse (creates the project folder)
  *   openFolder     (mutation) — ProjectResponse (adopts an existing folder)
  *   relocate       (mutation) — ProjectResponse (points at a moved folder)
  *   update         (mutation) — ProjectResponse
- *   delete         (mutation) — { ok: true }
+ *   delete         (mutation) — { ok: true, folder } (what happened to the folder)
  *   assignDocument (mutation) — { ok: true }
+ *   migration      (router)   — the upgrade into project folders, see
+ *                               ./project-folder-migration.ts
  */
 
 import { z } from "zod";
@@ -44,9 +48,12 @@ import {
   Application,
   JsScript,
   Game,
+  documentFileOf,
+  findDocumentByFile,
   hasProjectDocumentDependents,
   listProjectDocuments,
   moveDocumentToProject,
+  DocumentFileMoveError,
   summarizeProject,
   summarizeProjectDocumentPage
 } from "@nodetool-ai/models";
@@ -55,14 +62,20 @@ import {
   copyProjectDocumentInput,
   copyProjectDocumentOutput,
   createProjectInput,
+  deleteProjectOutput,
   openProjectFolderInput,
   patchProjectInput,
   projectDetail,
   projectDocumentPage,
+  projectDocumentByFileInput,
+  projectDocumentListEntry,
   projectDocumentPageInput,
   projectDocumentRef,
+  projectFileDocument,
   projectResponse,
   relocateProjectInput,
+  restoreDocumentFileInput,
+  type ProjectDocumentRef,
   type ProjectResponse
 } from "@nodetool-ai/protocol/api-schemas/projects.js";
 import { ApiErrorCode } from "../../error-codes.js";
@@ -70,17 +83,31 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { getAssetAdapter } from "../../lib/storage.js";
+import { ProjectFolderUnavailableError } from "@nodetool-ai/asset-services/project-asset-file";
 import {
   copyProjectDocument,
   ProjectCopyError
 } from "../../lib/project-document-copy.js";
+import { planProjectFolderDelete } from "@nodetool-ai/project-services/project-delete";
 import { deleteProjectForUser } from "../../lib/project-delete.js";
+import { reconcileProjectOnOpen } from "@nodetool-ai/project-services/project-index";
+import {
+  prepareProjectAssetMove,
+  projectAssetMoveProgress
+} from "@nodetool-ai/project-services/project-asset-move-job";
+import {
+  DocumentFileRestoreError,
+  restoreDocumentFile
+} from "@nodetool-ai/project-services/document-file-sync";
+import { workflowFileAdapter } from "@nodetool-ai/project-services/workflow-file";
+import { timelineFileAdapter } from "@nodetool-ai/project-services/timeline-file";
 import {
   ProjectFolderOpenError,
   openProjectFolder,
   relocateProjectFolder
 } from "../../lib/project-folder-open.js";
 import { workspaceFromRow } from "../../lib/workflow-workspace.js";
+import { projectFolderMigrationRouter } from "./project-folder-migration.js";
 
 const log = createLogger("nodetool.websocket.projects");
 
@@ -215,10 +242,16 @@ async function toResponse(project: Project): Promise<ProjectResponse> {
   const row = project.workspace_id
     ? await Workspace.find(project.user_id, project.workspace_id)
     : null;
-  return projectResponse.parse({
-    ...project.toResponse(),
-    folder: row ? describeProjectFolder(row) : null
-  });
+  const folder: ProjectResponse["folder"] = row
+    ? {
+        ...describeProjectFolder(row),
+        on_delete: await planProjectFolderDelete(row)
+      }
+    : null;
+  // Set only while assets from before project folders move into the folder.
+  const moving = projectAssetMoveProgress(project.id, project.user_id);
+  if (folder && moving) folder.moving = moving;
+  return projectResponse.parse({ ...project.toResponse(), folder });
 }
 
 const FOLDER_OPEN_ERROR_CODES = {
@@ -248,7 +281,26 @@ async function loadOwned(userId: string, id: string): Promise<Project> {
   return project;
 }
 
+/**
+ * Load a project a client is opening and reconcile its asset index with its
+ * folder in the background, so changes made to the folder while the project
+ * was closed show up. The reads a client makes when it opens a project call
+ * this: `get`, `documentPage` and `restoreTabs`.
+ */
+async function loadOpened(userId: string, id: string): Promise<Project> {
+  const project = await loadOwned(userId, id);
+  reconcileProjectOnOpen(project.id, userId);
+  // Assets from before project folders move into the folder in the
+  // background. Looking for them here lets this response show the move. The
+  // move job asks the migration state first, so nothing moves before the
+  // user confirms the migration.
+  await prepareProjectAssetMove(project.id, userId);
+  return project;
+}
+
 export const projectsRouter = router({
+  migration: projectFolderMigrationRouter,
+
   list: protectedProcedure
     .input(listInput)
     .output(z.array(projectResponse))
@@ -298,7 +350,7 @@ export const projectsRouter = router({
     .output(projectDetail)
     .query(async ({ ctx, input }) => {
       await prepareUser(ctx.userId);
-      const project = await loadOwned(ctx.userId, input.id);
+      const project = await loadOpened(ctx.userId, input.id);
       const summary = await summarizeProject(ctx.userId, project.id);
       return projectDetail.parse({
         project: await toResponse(project),
@@ -319,7 +371,7 @@ export const projectsRouter = router({
     .output(projectDocumentPage)
     .query(async ({ ctx, input }) => {
       await prepareUser(ctx.userId);
-      const project = await loadOwned(ctx.userId, input.id);
+      const project = await loadOpened(ctx.userId, input.id);
       return summarizeProjectDocumentPage(ctx.userId, project.id, {
         offset: input.offset,
         limit: input.limit
@@ -328,11 +380,89 @@ export const projectsRouter = router({
 
   documents: protectedProcedure
     .input(idInput)
-    .output(z.array(projectDocumentRef))
+    .output(z.array(projectDocumentListEntry))
     .query(async ({ ctx, input }) => {
       await prepareUser(ctx.userId);
       await loadOwned(ctx.userId, input.id);
       return listProjectDocuments(ctx.userId, input.id);
+    }),
+
+  /**
+   * The workflow or timeline whose file in the project's folder is `path`,
+   * or null. Opening a document file from Files opens its editor through
+   * this. The folder of Personal also holds the files of documents in no
+   * project.
+   */
+  documentByFile: protectedProcedure
+    .input(projectDocumentByFileInput)
+    .output(projectFileDocument.nullable())
+    .query(async ({ ctx, input }) => {
+      await prepareUser(ctx.userId);
+      const project = await loadOwned(ctx.userId, input.id);
+      const projectIds =
+        project.id === `personal:${ctx.userId}`
+          ? [project.id, LOOSE_PROJECT_ID]
+          : [project.id];
+      const found = await findDocumentByFile(ctx.userId, projectIds, input.path);
+      if (!found) return null;
+      return {
+        type: found.type,
+        ref: found.id,
+        name: found.name,
+        updatedAt: found.updated_at,
+        file: found.file
+      };
+    }),
+
+  /**
+   * Write the file of a workflow or timeline again from the document, for a
+   * document whose file is missing. A file edit at the path that NodeTool has
+   * not seen is kept as a version first, and an invalid one is not replaced.
+   */
+  restoreDocumentFile: protectedProcedure
+    .input(restoreDocumentFileInput)
+    .output(projectFileDocument)
+    .mutation(async ({ ctx, input }) => {
+      const row =
+        input.type === "workflow"
+          ? await Workflow.get<Workflow>(input.ref)
+          : await TimelineSequence.findById(input.ref);
+      if (!row || row.user_id !== ctx.userId) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Document not found");
+      }
+      try {
+        if (row instanceof Workflow) {
+          await restoreDocumentFile(workflowFileAdapter, row);
+        } else {
+          await restoreDocumentFile(timelineFileAdapter, row);
+        }
+      } catch (error) {
+        if (error instanceof ProjectFolderUnavailableError) {
+          throwApiError(
+            ApiErrorCode.SERVICE_UNAVAILABLE,
+            error.message,
+            "PRECONDITION_FAILED"
+          );
+        }
+        if (error instanceof DocumentFileRestoreError) {
+          throwApiError(ApiErrorCode.INVALID_INPUT, error.message, "CONFLICT");
+        }
+        throw error;
+      }
+      const file = documentFileOf(row);
+      if (!file) {
+        throwApiError(
+          ApiErrorCode.INTERNAL_ERROR,
+          "The file could not be written"
+        );
+      }
+      return {
+        type: input.type,
+        ref: row.id,
+        name: row.name,
+        updatedAt: row.updated_at,
+        file
+      };
     }),
 
   restoreTabs: protectedProcedure
@@ -340,7 +470,7 @@ export const projectsRouter = router({
     .output(z.array(restorableTab))
     .query(async ({ ctx, input }) => {
       await prepareUser(ctx.userId);
-      await loadOwned(ctx.userId, input.id);
+      await loadOpened(ctx.userId, input.id);
       const valid = await Promise.all(
         input.tabs.map(async (tab) => ({
           tab,
@@ -360,7 +490,12 @@ export const projectsRouter = router({
     .output(z.array(projectDocumentRef))
     .query(async ({ ctx }) => {
       await prepareUser(ctx.userId);
-      return listProjectDocuments(ctx.userId, LOOSE_PROJECT_ID);
+      // The strip of loose documents assigns them by drag, which workflows
+      // do not take part in.
+      const documents = await listProjectDocuments(ctx.userId, LOOSE_PROJECT_ID);
+      return documents.filter(
+        (document): document is ProjectDocumentRef => document.type !== "workflow"
+      );
     }),
 
   /**
@@ -485,17 +620,20 @@ export const projectsRouter = router({
 
   delete: protectedProcedure
     .input(idInput)
-    .output(okOutput)
+    .output(deleteProjectOutput)
     .mutation(async ({ ctx, input }) => {
       await prepareUser(ctx.userId);
-      const outcome = await deleteProjectForUser(ctx.userId, input.id);
-      if (outcome === "personal") {
-        throwApiError(ApiErrorCode.INVALID_INPUT, "Personal cannot be deleted");
-      }
-      if (outcome === "not_found") {
+      const result = await deleteProjectForUser(ctx.userId, input.id);
+      if (result.outcome !== "deleted") {
+        if (result.outcome === "personal") {
+          throwApiError(
+            ApiErrorCode.INVALID_INPUT,
+            "Personal cannot be deleted"
+          );
+        }
         throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
       }
-      return { ok: true as const };
+      return { ok: true as const, folder: result.folder };
     }),
 
   /**
@@ -522,12 +660,33 @@ export const projectsRouter = router({
           "Cannot move a referenced document or entity. Copy it into the destination project instead."
         );
       }
-      const moved = await moveDocumentToProject(
-        ctx.userId,
-        input.type,
-        input.ref,
-        input.projectId
-      );
+      let moved: boolean;
+      try {
+        moved = await moveDocumentToProject(
+          ctx.userId,
+          input.type,
+          input.ref,
+          input.projectId
+        );
+      } catch (error) {
+        // An entity that is a file in its project folder takes the file
+        // along. With a folder unreachable nothing moves, and the caller is
+        // told which folder.
+        if (error instanceof ProjectFolderUnavailableError) {
+          throwApiError(
+            ApiErrorCode.SERVICE_UNAVAILABLE,
+            error.message,
+            "PRECONDITION_FAILED"
+          );
+        }
+        // A document that is a file in its project folder is not moved while
+        // its file holds an edit that is not valid, since the move would
+        // delete the file. The caller is told which file.
+        if (error instanceof DocumentFileMoveError) {
+          throwApiError(ApiErrorCode.INVALID_INPUT, error.message);
+        }
+        throw error;
+      }
       if (!moved) {
         throwApiError(
           ApiErrorCode.NOT_FOUND,

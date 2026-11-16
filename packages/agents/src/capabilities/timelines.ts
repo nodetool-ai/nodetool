@@ -78,10 +78,8 @@ import {
 } from "./timelines.specs.js";
 import {
   AUDIO_BAKED_ANIMATION_KIND,
-  normalizeAuthoredDocument,
   hashSceneSubtree,
   mergeTimelineSource,
-  type AuthoredRenderSettings,
   type MediaTrack,
   type SourceMergeScenes,
   type TimelineDocumentLike
@@ -103,8 +101,20 @@ import {
 } from "./timeline-asset-ids.js";
 import { TIMELINE_NATIVE_MEDIA_CAPABILITIES } from "./timeline-native-media.js";
 import { isFiniteNumber, isRecord, isString } from "../utils/type-guards.js";
+import {
+  prepareTimelineDocumentForSave,
+  timelineDocumentEndMs as documentDurationMs,
+  timelineDocumentToStore as documentToStore,
+  timelineSequenceSetting as sequenceSetting,
+  timelineValidationSummary as validationSummary
+} from "../timeline-document-save.js";
 
 import { resolveProjectId } from "./project-scope.js";
+import {
+  localizeProjectAssets,
+  withCopiedAssets,
+  type AssetReferenceCopy
+} from "./project-asset-copies.js";
 import { editWithRename, parseRename, renameOwned } from "./rename.js";
 
 type ToolError = { error: string };
@@ -162,21 +172,6 @@ function parseVersionDocument(raw: unknown): unknown | ToolError {
   }
 }
 
-/** One-line count of what a validation found. */
-function validationSummary(validation: {
-  errors: unknown[];
-  warnings: unknown[];
-}): string {
-  const errors = validation.errors.length;
-  const warnings = validation.warnings.length;
-  if (errors === 0 && warnings === 0) return "No issues found.";
-  const parts: string[] = [];
-  if (errors > 0) parts.push(`${errors} error${errors === 1 ? "" : "s"}`);
-  if (warnings > 0)
-    parts.push(`${warnings} warning${warnings === 1 ? "" : "s"}`);
-  return parts.join(", ");
-}
-
 function versionNumber(value: unknown): number | ToolError {
   const n = Number(value);
   if (!Number.isInteger(n) || n < 1) {
@@ -219,20 +214,6 @@ const listTimelines: CapabilityExport = {
     };
   }
 };
-
-/** A positive integer setting, or the default when the caller gave none. */
-function sequenceSetting(
-  value: unknown,
-  fallback: number,
-  field: string
-): number | ToolError {
-  if (value === undefined || value === null) return fallback;
-  const n = Number(value);
-  if (!Number.isFinite(n) || n <= 0) {
-    return { error: `${field} must be a positive number.` };
-  }
-  return Math.round(n);
-}
 
 /**
  * A new, empty sequence.
@@ -736,24 +717,30 @@ async function applyTimelineEdit(
       };
     }
 
+    // An asset of another project is stored as its copy in this one, in the
+    // document and in the ops an open editor merges.
+    const local = await localizeProjectAssets(run, sequence.project_id, {
+      document: next,
+      records,
+      ops: appliedOps.map(({ parsed, index }) => ({
+        tool: parsed.op,
+        input: resolveTimelineOpInput(
+          parsed.input,
+          document,
+          state,
+          records[index]?.result
+        )
+      }))
+    });
+    if (isError(local)) return local;
     const undo = appliedOps.some(({ parsed }) => parsed.op === `${TOOL_PREFIX}apply_take`)
       ? await TimelineSequenceVersion.snapshot(sequence, { saveType: "manual", name: "Before applying AI edit take" })
       : undefined;
     const saved = await TimelineSequence.updateDocumentIfUnchanged(
       sequence.id,
       sequence.updated_at,
-      next,
-      {
-        ops: appliedOps.map(({ parsed, index }) => ({
-          tool: parsed.op,
-          input: resolveTimelineOpInput(
-            parsed.input,
-            document,
-            state,
-            records[index]?.result
-          )
-        }))
-      }
+      local.value.document,
+      { ops: local.value.ops }
     ).catch(async (error: unknown) => {
       await undo?.delete();
       throw error;
@@ -768,7 +755,7 @@ async function applyTimelineEdit(
       updated_at: saved.updated_at,
       applied: records.length - failed.length,
       failed: failed.length,
-      ops: records,
+      ops: local.value.records,
       tracks: state.tracks,
       clips: state.clips.map((clip) => ({
         id: clip.id,
@@ -783,7 +770,7 @@ async function applyTimelineEdit(
     if (undo) {
       Object.assign(response, { undo_version: undo.version });
     }
-    return response;
+    return withCopiedAssets(response, local.copies);
   }
 
   return {
@@ -919,50 +906,6 @@ const validateTimeline: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 /**
- * A document the caller sent, ready to validate.
- *
- * A hand-authored cut leaves out the bookkeeping the schema requires — track
- * `index`/`visible`/`locked`, clip `sourceType`/`status`/`locked`/`versions`,
- * animation ids, `markers` — and refusing it with two dozen schema errors
- * teaches the caller nothing. `normalizeAuthoredDocument` fills exactly what is
- * missing and lifts document-level `fps`/`width`/`height` out as sequence
- * settings; a value the caller sent is never replaced, because the point of a
- * whole-document write is that what was sent is what the sequence becomes.
- */
-function documentToStore(raw: Record<string, unknown>): {
-  document: Record<string, unknown>;
-  settings: AuthoredRenderSettings;
-  name: string | undefined;
-} {
-  const {
-    name,
-    id: _id,
-    projectId: _projectId,
-    workflowId: _workflowId,
-    durationMs: _durationMs,
-    createdAt: _createdAt,
-    updatedAt: _updatedAt,
-    ...document
-  } = raw;
-  return {
-    ...normalizeAuthoredDocument(document),
-    name: isString(name) && name.trim() ? name.trim() : undefined
-  };
-}
-
-/** The end of the last clip — what the sequence's stored duration means. */
-function documentDurationMs(document: Record<string, unknown>): number {
-  const clips = document["clips"];
-  if (!Array.isArray(clips)) return 0;
-  return clips.reduce((end: number, clip: unknown) => {
-    if (!isRecord(clip)) return end;
-    const start = Number(clip["startMs"]) || 0;
-    const length = Number(clip["durationMs"]) || 0;
-    return Math.max(end, start + length);
-  }, 0);
-}
-
-/**
  * Replace a sequence's whole document in one call.
  *
  * `edit_timeline` is a script of ops against what is already stored, which is
@@ -1019,61 +962,49 @@ const setTimelineDocument: CapabilityExport = {
 
     // `get_timeline` returns the sequence row's fields beside the document.
     // A caller that sends that object back renames the sequence with `name`.
-    // The other row fields are owned by the row, so they are dropped rather
-    // than reported as stripped document fields.
-    const stored = documentToStore(raw);
-    const { settings, name } = stored;
-    // Sandbox code holds the `asset://<short id>.<ext>` form the asset tools
-    // print; the stored clip holds the asset row's full id.
-    const canonical = await canonicalizeTimelineAssetIds(
-      stored.document,
-      userAssetFinder(sequence.user_id)
-    );
-    if ("error" in canonical) {
-      return { error: canonical.error, written: false, timeline_id: sequence.id };
-    }
-    const { document } = canonical;
-
-    // Document-level fps/width/height are sequence settings, so opts win and a
-    // document that carries them configures the sequence instead of having
-    // them stripped with a `field_stripped` warning.
-    const fps = sequenceSetting(
-      params["fps"] ?? settings.fps,
-      sequence.fps,
-      "fps"
-    );
-    if (isError(fps)) return fps;
-    const width = sequenceSetting(
-      params["width"] ?? settings.width,
-      sequence.width,
-      "width"
-    );
-    if (isError(width)) return width;
-    const height = sequenceSetting(
-      params["height"] ?? settings.height,
-      sequence.height,
-      "height"
-    );
-    if (isError(height)) return height;
-
-    const { validateTimelineSequence } =
-      await import("@nodetool-ai/execution/timeline-debug");
-    const before: TimelineValidation = validateTimelineSequence(document, {
-      fps,
-      width,
-      height
+    // Document-level fps/width/height are sequence settings, and the ones in
+    // the call win over them. The checks are shared with the import of a
+    // timeline file edited in a project folder.
+    let copies: AssetReferenceCopy[] = [];
+    const prepared = await prepareTimelineDocumentForSave(raw, {
+      userId: sequence.user_id,
+      current: sequence,
+      settings: {
+        fps: params["fps"],
+        width: params["width"],
+        height: params["height"]
+      },
+      // An asset of another project is stored as its copy in this one.
+      localize: async (canonical) => {
+        const local = await localizeProjectAssets(
+          run,
+          sequence.project_id,
+          canonical
+        );
+        if (isError(local)) return local;
+        copies = local.copies;
+        return { document: local.value };
+      }
     });
-    if (!before.ok) {
+    if (!prepared.ok) {
+      if (!prepared.validation) {
+        return {
+          error: prepared.error,
+          written: false,
+          timeline_id: sequence.id
+        };
+      }
       return {
-        error: `The document has ${before.errors.length} error${
-          before.errors.length === 1 ? "" : "s"
-        } and was not written to timeline ${sequence.id}. Fix them and call again.`,
+        error: `${prepared.error} and was not written to timeline ${sequence.id}. Fix them and call again.`,
         written: false,
         timeline_id: sequence.id,
-        validation: before,
-        summary: validationSummary(before)
+        validation: prepared.validation,
+        summary: validationSummary(prepared.validation)
       };
     }
+    const { document, name, fps, width, height } = prepared;
+    const { validateTimelineSequence } =
+      await import("@nodetool-ai/execution/timeline-debug");
 
     const { TimelineSequence, TimelineSequenceVersion } =
       await import("@nodetool-ai/models");
@@ -1091,7 +1022,7 @@ const setTimelineDocument: CapabilityExport = {
       fps,
       width,
       height,
-      duration_ms: documentDurationMs(document)
+      duration_ms: prepared.durationMs
     };
     if (name !== undefined) {
       fields.name = name;
@@ -1130,7 +1061,7 @@ const setTimelineDocument: CapabilityExport = {
       saved.toDocument(),
       { fps: saved.fps, width: saved.width, height: saved.height }
     );
-    return {
+    return withCopiedAssets({
       ok: true,
       written: true,
       timeline_id: saved.id,
@@ -1149,7 +1080,7 @@ const setTimelineDocument: CapabilityExport = {
         : 0,
       validation: after,
       summary: validationSummary(after)
-    };
+    }, copies);
   }
 };
 
@@ -2579,11 +2510,18 @@ function normalizeForceOption(
  * concurrent edit is reported rather than clobbered.
  */
 export async function writeTimelineCodeDocument(
+  run: CapabilityRun,
   sequence: TimelineSequence,
   authored: Record<string, unknown>,
   snapshotName: string
 ): Promise<
-  | { written: true; timeline_id: string; errors: string[]; warnings: string[] }
+  | {
+      written: true;
+      timeline_id: string;
+      errors: string[];
+      warnings: string[];
+      copied_assets?: AssetReferenceCopy[];
+    }
   | { written: false; error: string; errors: string[]; warnings: string[] }
 > {
   const canonical = await canonicalizeTimelineAssetIds(
@@ -2593,7 +2531,16 @@ export async function writeTimelineCodeDocument(
   if ("error" in canonical) {
     return { written: false, error: canonical.error, errors: [], warnings: [] };
   }
-  const { document } = canonical;
+  // An asset of another project is stored as its copy in this one.
+  const local = await localizeProjectAssets(
+    run,
+    sequence.project_id,
+    canonical.document
+  );
+  if (isError(local)) {
+    return { written: false, error: local.error, errors: [], warnings: [] };
+  }
+  const document = local.value;
   const { validateTimelineSequence } =
     await import("@nodetool-ai/execution/timeline-debug");
   const before: TimelineValidation = validateTimelineSequence(
@@ -2636,7 +2583,10 @@ export async function writeTimelineCodeDocument(
       warnings
     };
   }
-  return { written: true, timeline_id: saved.id, errors, warnings };
+  return withCopiedAssets(
+    { written: true as const, timeline_id: saved.id, errors, warnings },
+    local.copies
+  );
 }
 
 /**
@@ -2689,6 +2639,7 @@ async function bakeAndMergeTimelineCode(
   const scenes = sceneReport(merged.scenes, editedNames);
 
   const write = await writeTimelineCodeDocument(
+    run,
     sequence,
     mergedWithSource,
     "Before writing timeline code"
@@ -2702,13 +2653,16 @@ async function bakeAndMergeTimelineCode(
       scenes
     };
   }
-  return {
-    timeline_id: write.timeline_id,
-    errors: write.errors,
-    warnings: write.warnings,
-    conflicts: merged.conflicts,
-    scenes
-  };
+  return withCopiedAssets(
+    {
+      timeline_id: write.timeline_id,
+      errors: write.errors,
+      warnings: write.warnings,
+      conflicts: merged.conflicts,
+      scenes
+    },
+    write.copied_assets ?? []
+  );
 }
 
 /**
@@ -2766,6 +2720,7 @@ async function attachMatchingTimelineCode(
     { force: true }
   );
   const write = await writeTimelineCodeDocument(
+    run,
     sequence,
     {
       ...merged.document,

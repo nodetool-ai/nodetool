@@ -146,7 +146,13 @@ export type {
   TableErasureReport
 } from "./personal-data.js";
 
-export { Workflow } from "./workflow.js";
+export { Workflow, setWorkflowFileSync } from "./workflow.js";
+export { DocumentFileMoveError } from "./document-file-sync.js";
+export type {
+  DocumentFileLocation,
+  DocumentFileRow,
+  DocumentFileSync
+} from "./document-file-sync.js";
 export type {
   AccessLevel,
   WorkflowGraph,
@@ -174,8 +180,19 @@ export {
   type UserSharing
 } from "./sharing-admin.js";
 
-export { Asset } from "./asset.js";
-export type { AssetRow, AssetInsert } from "./asset.js";
+export {
+  Asset,
+  moveTargetOf,
+  saveAssetInProject,
+  setAssetFileMover
+} from "./asset.js";
+export type {
+  AssetRow,
+  AssetInsert,
+  AssetFileMove,
+  AssetFileMover,
+  AssetFilePlacement
+} from "./asset.js";
 export { entityFromAsset } from "./entity.js";
 
 export {
@@ -262,6 +279,7 @@ export type {
 export {
   TimelineSequence,
   TimelineSequenceConflictError,
+  setTimelineFileSync,
   timelineDocumentDurationMs
 } from "./timeline-sequence.js";
 export type {
@@ -352,6 +370,7 @@ export {
 } from "./project-summary.js";
 export type {
   CategorySpend,
+  ProjectDocumentListEntry,
   ProjectDocumentPage,
   ProjectDocumentRef,
   ProjectEntitySummary,
@@ -369,6 +388,17 @@ export type {
   TimelineStatus
 } from "./project-summary.js";
 export { listDocumentIndex } from "./document-index.js";
+export {
+  DOCUMENT_FILE_MISSING,
+  documentFileOf,
+  findDocumentByFile,
+  listDocumentFiles
+} from "./document-file-state.js";
+export type {
+  DocumentOfFile,
+  FileDocumentType,
+  ProjectDocumentFile
+} from "./document-file-state.js";
 export type {
   DocumentIndex,
   DocumentIndexEntry,

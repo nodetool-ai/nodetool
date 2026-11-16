@@ -67,7 +67,6 @@ column by `resolveSandboxLimits`:
 | Host module byte input | `MAX_HOST_INPUT_BYTES` = 10 MB | check inside `host-modules/limits.ts` | — |
 | `sandbox-html` matches | `DEFAULT_SELECT_HTML_LIMIT` = 100 | `options.limit` | `MAX_SELECT_HTML_LIMIT` = 1000 |
 | `sandbox-zip` inflation | `MAX_UNZIP_TOTAL_BYTES` = 50 MB total | check inside `host-modules/zip.ts` | — |
-| `sandbox-xlsx` write | `MAX_WRITE_SHEETS` = 64, `MAX_WRITE_CELLS` = 250 000 | checks inside `host-modules/xlsx.ts` | — |
 | `sandbox-ocr` words | `MAX_OCR_WORDS` = 20 000 | check inside `host-modules/ocr.ts` | — |
 | `image.*` input | `MAX_IMAGE_INPUT_BYTES` = 25 MB | length check inside each bridge | — |
 | Image / canvas pixels | `MAX_IMAGE_PIXELS` = 32 M, longest edge `MAX_IMAGE_DIMENSION` = 16384 | `assertSurfaceSize` | — |
@@ -230,9 +229,7 @@ declaration; there is no `data.*` namespace any more. Two kinds:
 - **Host packs** (`src/host-modules/`) — the library runs where the sandbox
   runs, behind a generated ESM facade over a per-run dispatcher:
   `-csv` (papaparse), `-html` (cheerio + turndown), `-xml` (fast-xml-parser),
-  `-xlsx` (exceljs), `-zip` (fflate), `-diff` (diff), `-ocr` (tesseract.js),
-  `-tfjs` (TensorFlow.js and its model zoo), `-docx` (docx), `-mammoth`
-  (mammoth), `-epub` (epub2), `-pptx` (office-text-extractor), `-tokens`
+  `-zip` (fflate), `-diff` (diff), `-ocr` (tesseract.js), `-tokens`
   (js-tiktoken). These are the
   libraries the guest cannot hold — Node builtins, a DOM, a file path instead of
   a buffer, a limit the guest could not enforce on itself, or state that has to
