@@ -25,7 +25,9 @@
  * models, script links) is kept from `base` by id. Shot numbers are computed.
  *
  * Pure and dependency-free, so the web editor and the server read the text the
- * same way.
+ * same way. The native editor uses a C++ port,
+ * native/storyboard/src/StoryboardMarkdown.cpp. Its oracle test runs both on
+ * the same boards and fails on any difference, so change them together.
  */
 
 import type { StoryboardDocumentSchema } from "./api-schemas/storyboards.js";

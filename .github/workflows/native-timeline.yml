@@ -26,6 +26,7 @@ on:
       - "native/ui_primitives/**"
       - "native/chat/**"
       - "native/model-picker/**"
+      - "native/storyboard/**"
       - "native/kernels/**"
       - ".github/workflows/native-timeline.yml"
       - ".github/actions/setup-native-timeline/**"
@@ -40,6 +41,7 @@ on:
       - "native/ui_primitives/**"
       - "native/chat/**"
       - "native/model-picker/**"
+      - "native/storyboard/**"
       - "native/kernels/**"
       - ".github/workflows/native-timeline.yml"
       - ".github/actions/setup-native-timeline/**"
@@ -82,7 +84,7 @@ jobs:
           REPO: ${{ github.repository }}
           REF: ${{ github.ref_name }}
           # The web references the oracles and export_golden compare against.
-          REFERENCE_PATHS: packages/timeline packages/gpu packages/cli-timeline
+          REFERENCE_PATHS: packages/timeline packages/gpu packages/cli-timeline packages/protocol
         run: |
           set -euo pipefail
           if [[ "$EVENT" != "schedule" ]]; then

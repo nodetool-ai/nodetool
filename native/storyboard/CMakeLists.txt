@@ -7,6 +7,11 @@ endif()
 if(NOT TARGET nodetool_model_picker)
     add_subdirectory(../model-picker ${CMAKE_CURRENT_BINARY_DIR}/model-picker)
 endif()
+# The storyboard Markdown grammar needs only QtCore, so its oracle and tests
+# build without Qt Quick.
+qt_add_library(nodetool_storyboard_markdown STATIC src/StoryboardMarkdown.h src/StoryboardMarkdown.cpp)
+target_link_libraries(nodetool_storyboard_markdown PUBLIC Qt6::Core)
+target_include_directories(nodetool_storyboard_markdown PUBLIC src)
 qt_add_library(nodetool_storyboard STATIC)
 qt_add_qml_module(nodetool_storyboard
     URI NodeTool.Storyboard
@@ -31,6 +36,7 @@ target_link_libraries(nodetool_storyboard PUBLIC
     nodetool_ui_primitives
     nodetool_media
     nodetool_model_picker
+    nodetool_storyboard_markdown
     Qt6::Core
     Qt6::Qml
     Qt6::Quick
@@ -51,4 +57,12 @@ if(BUILD_TESTING)
     add_test(NAME tst_storydrafts COMMAND tst_storydrafts)
     set_tests_properties(tst_storydrafts PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    qt_add_executable(tst_storyboardmarkdown tests/tst_storyboardmarkdown.cpp)
+    target_link_libraries(tst_storyboardmarkdown PRIVATE nodetool_storyboard_markdown Qt6::Test)
+    add_test(NAME tst_storyboardmarkdown COMMAND tst_storyboardmarkdown)
+    qt_add_executable(nt_storyboard_markdown_oracle tests/StoryboardMarkdownOracle.cpp)
+    target_link_libraries(nt_storyboard_markdown_oracle PRIVATE nodetool_storyboard_markdown Qt6::Core)
+    add_test(NAME storyboard_markdown_oracle
+        COMMAND node --import tsx ${CMAKE_CURRENT_SOURCE_DIR}/tests/storyboard-markdown.oracle.test.mjs $<TARGET_FILE:nt_storyboard_markdown_oracle>
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
