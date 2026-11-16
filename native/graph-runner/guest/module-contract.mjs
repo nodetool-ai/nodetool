@@ -91,6 +91,7 @@ export const MODULES = {
       WebsocketPythonBridge: python,
       assetRefToPromptToken: realRuntime("prompt-asset-refs"),
       budgetFromContext: realRuntime("turn-budget.js"),
+      assertLocalPathIsOwn: impl("host/runtime.mjs"),
       calendarCreateEvent: google,
       calendarDeleteEvent: google,
       calendarListCalendars: google,
@@ -280,6 +281,14 @@ export const MODULES = {
       assetKeyCandidates: pure("a pure helper of the storage package"),
       assetObjectKey: pure("a pure helper of the storage package"),
       getMaxLocalUploadBytes: unavailable("server-only", "reads the server's upload limit")
+    }
+  },
+
+  "@nodetool-ai/storage/storage-keys": {
+    provider: "host/storage.mjs",
+    exports: {
+      joinStorageKey: guest("@nodetool-ai/storage/storage-keys"),
+      normalizeStorageKey: guest("@nodetool-ai/storage/storage-keys")
     }
   },
 
