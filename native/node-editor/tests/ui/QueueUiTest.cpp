@@ -419,6 +419,8 @@ private slots:
                     [&](QByteArray bytes) {
                         auto decoded = decodeMsgPack(bytes);
                         QVERIFY(decoded);
+                        // The open-project signal goes with every socket open. WorkflowSessionTests checks it.
+                        if (decoded->toObject()["command"] == "set_open_project") { return; }
                         commands.append(decoded->toObject());
                     });
         });

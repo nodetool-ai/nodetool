@@ -414,6 +414,14 @@ A listing of a folder that cannot be read fails the operation. The nested-folder
 - Agent and chat file tools.
 - The Code node. Its `workspace.*` API (`read`, `write`, `list`, `stat`, `mkdir`, `remove`, `copy`, `move`) is confined to the project folder unless **Allow Host Filesystem** is on. The cloud profile ignores that switch.
 
+### Native editors
+
+The native timeline, node editor and chat are clients of the server, so they read and write project folders through it. Each tells the server which project it has open, so the folder is watched while it is open, and each refreshes its asset and document lists when another app changes a file there. The timeline and the node editor show the project's folder with Show in file manager, Folder not found with Locate, Missing assets with Relink, and the file errors of the open timeline or workflow.
+
+The node editor runs a workflow of Personal, or of no project, in process. A workflow of any other project runs on the server, so its files land in that project's folder. Without a server connection, such a run does not start. The in-process runner refuses paths in `.nodetool/` the way the server does.
+
+Opening a `Workflows/*.workflow.json` or `Timelines/*.timeline.json` file directly in a native editor keeps its `format`, `version` and `id` when it saves, and writes no `name` into it.
+
 ## API
 
 Projects create and adopt their folders through `projects.create`, so no API creates, repoints or deletes a folder. The tRPC `workspace` router has `list`, `listFiles`, `readFile`, and `writeFile` (`packages/websocket/src/trpc/routers/workspace.ts`). Paths passed to the file procedures are workspace-relative. Absolute paths are refused and traversal answers `403`. Binary reads use `GET /api/workspaces/:id/download/:path` (`packages/websocket/src/workspace-api.ts`).

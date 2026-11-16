@@ -94,6 +94,9 @@ public:
   Q_INVOKABLE void deleteWorkflows(const QStringList &ids);
   Q_INVOKABLE void loadTriggers();
   Q_INVOKABLE void refresh();
+  // A `documentfile` push: the file of a workflow became invalid, went
+  // missing or is fine again. Reloads a list that has loaded or is loading.
+  void documentFileChanged(const QJsonObject &resource);
   Q_INVOKABLE void loadNext();
   Q_INVOKABLE void loadProjects();
   Q_INVOKABLE void createWorkflow(const QString &name);

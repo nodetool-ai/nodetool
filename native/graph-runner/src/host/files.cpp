@@ -793,6 +793,7 @@ void installFiles(js::Engine& e, const js::Value& object, const HostOptions& opt
     if (!options.sqliteDirectory.empty()) dirs.emplace_back(options.sqliteDirectory, true);
     for (const auto& d : options.readRoots) dirs.emplace_back(d, false);
     grants->roots = canonicalRoots(dirs);
+    reserveWorkspace(grants->roots, options.workspaceDir);
     if (!options.workspaceDir.empty()) {
       const auto workspaceRoots = canonicalRoots({{options.workspaceDir, true}});
       if (!workspaceRoots.empty()) grants->cwd = workspaceRoots.front().dir;

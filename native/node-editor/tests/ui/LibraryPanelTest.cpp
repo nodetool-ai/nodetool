@@ -19,6 +19,12 @@ class LibraryHttp final : public QObject {
 public:
   QTcpServer server;
   QStringList parents;
+  // image-1's file is missing from its project folder.
+  bool offline = false;
+  // assets.relinkExternal answers with this status and body, and records its inputs.
+  int relinkStatus = 200;
+  QByteArray relinkBody = R"({"result":{"data":{"id":"image-1"}}})";
+  QList<QJsonObject> relinks;
   LibraryHttp() {
     server.listen(QHostAddress::LocalHost);
     connect(&server, &QTcpServer::newConnection, this, [this] {
@@ -27,17 +33,30 @@ public:
         connect(socket, &QTcpSocket::readyRead, this, [this, socket] {
           const auto bytes = socket->property("bytes").toByteArray() + socket->readAll();
           socket->setProperty("bytes", bytes);
-          if (bytes.indexOf("\r\n\r\n") < 0 || socket->property("done").toBool()) return;
+          const auto split = bytes.indexOf("\r\n\r\n");
+          if (split < 0 || socket->property("done").toBool()) return;
+          int length = 0;
+          for (const auto &line : bytes.left(split).split('\n'))
+            if (line.toLower().startsWith("content-length:")) length = line.mid(15).trimmed().toInt();
+          if (bytes.size() < split + 4 + length) return;
           socket->setProperty("done", true);
           const QUrl target(QString::fromUtf8(bytes.split(' ').value(1)));
+          if (target.path() == "/trpc/assets.relinkExternal") {
+            relinks.append(QJsonDocument::fromJson(bytes.mid(split + 4, length)).object());
+            socket->write("HTTP/1.1 " + QByteArray::number(relinkStatus) + " X\r\nConnection: close\r\nContent-Length: " + QByteArray::number(relinkBody.size()) + "\r\n\r\n" + relinkBody);
+            socket->disconnectFromHost();
+            return;
+          }
           QJsonObject result;
           if (target.path() == "/trpc/assets.list" || target.path() == "/trpc/assets.search") {
             const bool search = target.path().endsWith("search");
             const auto input = QJsonDocument::fromJson(QUrlQuery(target).queryItemValue("input", QUrl::FullyDecoded).toUtf8()).object();
             const auto parent = input["parent_id"].toString();
             parents.append(search ? "search:" + input["query"].toString() : parent);
+            QJsonObject image{{"id", "image-1"}, {"name", "cat.png"}, {"content_type", "image/png"}, {"parent_id", "user-1"}, {"created_at", "2026-01-02"}};
+            if (offline) image["offline"] = true;
             const QJsonArray home{
-              QJsonObject{{"id", "image-1"}, {"name", "cat.png"}, {"content_type", "image/png"}, {"parent_id", "user-1"}, {"created_at", "2026-01-02"}},
+              image,
               QJsonObject{{"id", "folder-1"}, {"name", "Shots"}, {"content_type", "folder"}, {"parent_id", "user-1"}, {"created_at", "2026-01-01"}}};
             const QJsonArray shots{
               QJsonObject{{"id", "video-1"}, {"name", "take.mp4"}, {"content_type", "video/mp4"}, {"parent_id", "folder-1"}, {"created_at", "2026-01-03"}, {"favorite", true}}};
@@ -96,6 +115,84 @@ private slots:
     QTRY_COMPARE(browser.assetModel()->count(), 2);
     QCOMPARE(browser.mediaType(QVariantMap{{"content_type", "video/mp4"}}), QString("video"));
     QCOMPARE(browser.mediaUrl("/api/assets/image-1/thumb"), http.url().resolved(QUrl("/api/assets/image-1/thumb")));
+  }
+  // A workspacefile push lists the open folder again when it names the shown
+  // project's folder, or when either id is unknown.
+  void folderPushesListTheOpenFolderAgain() {
+    LibraryHttp http;
+    node_editor::LibraryBrowser browser;
+    browser.configure(http.url(), {}, "user-1");
+    browser.workspaceFilesChanged("ws-1");
+    QTest::qWait(50);
+    QVERIFY(http.parents.isEmpty());
+    browser.refresh();
+    QTRY_COMPARE(http.parents.size(), 1);
+    QTRY_VERIFY(!browser.busy());
+    browser.workspaceFilesChanged("ws-other");
+    QTRY_COMPARE(http.parents.size(), 2);
+    QTRY_VERIFY(!browser.busy());
+    browser.setProjectWorkspace("ws-1");
+    browser.workspaceFilesChanged("ws-other");
+    QTest::qWait(50);
+    QCOMPARE(http.parents.size(), 2);
+    browser.workspaceFilesChanged("ws-1");
+    QTRY_COMPARE(http.parents.size(), 3);
+    QTRY_VERIFY(!browser.busy());
+    browser.workspaceFilesChanged({});
+    QTRY_COMPARE(http.parents.size(), 4);
+    QCOMPARE(http.parents.last(), QString("user-1"));
+  }
+  // An asset whose file is gone says Missing and offers Relink.
+  void missingAssetOffersRelink() {
+    LibraryHttp http;
+    http.offline = true;
+    EditorWindow window;
+    window.resize(1400, 900);
+    window.show();
+    window.session()->connectToServer(http.url(), {});
+    window.action("Library");
+    auto *dock = window.findChild<QDockWidget *>("library-dock");
+    QVERIFY(dock);
+    QTRY_VERIFY(dock->isVisible());
+    auto *panel = qobject_cast<QQuickWidget *>(dock->widget());
+    QVERIFY(panel && panel->rootObject());
+    auto *library = qobject_cast<node_editor::LibraryBrowser *>(panel->rootObject()->property("library").value<QObject *>());
+    QVERIFY(library);
+    QTRY_COMPARE(library->assetModel()->count(), 2);
+    auto *grid = panel->rootObject()->findChild<QQuickItem *>("library-grid");
+    auto *missing = panel->rootObject()->findChild<QQuickItem *>("library-missing");
+    QVERIFY(grid && missing);
+    QVERIFY(!missing->isVisible());
+    grid->setProperty("selectedId", "folder-1");
+    QVERIFY(!missing->isVisible());
+    grid->setProperty("selectedId", "image-1");
+    QTRY_VERIFY(missing->isVisible());
+    QCOMPARE(missing->property("message").toString(),
+             QString("<b>Missing</b><br>The file is not where this asset expects it. Relink it to the file's new location, or remove the asset."));
+    QCOMPARE(missing->property("actionText").toString(), QString("Relink"));
+    auto *dialog = panel->rootObject()->findChild<QObject *>("library-relink-dialog");
+    QVERIFY(dialog);
+    QMetaObject::invokeMethod(missing, "actionTriggered");
+    QCOMPARE(dialog->property("assetId").toString(), QString("image-1"));
+    QMetaObject::invokeMethod(dialog, "close");
+    // The server refuses a file outside its roots and says why.
+    http.relinkStatus = 403;
+    http.relinkBody = R"({"error":{"message":"External assets are not available on this server"}})";
+    library->relink("image-1", QUrl::fromLocalFile("/media/cat.png"));
+    auto *failure = panel->rootObject()->findChild<QQuickItem *>("library-relink-error");
+    QVERIFY(failure);
+    QTRY_VERIFY(failure->isVisible());
+    QCOMPARE(library->relinkError(), QString("Relink failed: External assets are not available on this server"));
+    QCOMPARE(http.relinks.last(), (QJsonObject{{"id", "image-1"}, {"path", "/media/cat.png"}}));
+    // A relinked file is back, and the list says so.
+    http.relinkStatus = 200;
+    http.relinkBody = R"({"result":{"data":{"id":"image-1"}}})";
+    http.offline = false;
+    const auto lists = http.parents.size();
+    library->relink("image-1", QUrl::fromLocalFile("/media/cat.png"));
+    QTRY_VERIFY(http.parents.size() > lists);
+    QTRY_VERIFY(!missing->isVisible());
+    QVERIFY(!failure->isVisible());
   }
   void railOpensTheLibraryGrid() {
     LibraryHttp http;

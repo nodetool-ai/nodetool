@@ -12,6 +12,9 @@ Ui.Surface {
     variant: Ui.Surface.Canvas
     objectName: "assetExplorer"
     property var timeline: null
+    // The editor's ProjectFolderState and AutosaveController, when an editor hosts the Library.
+    property var projectFolder: null
+    property var saver: null
     property alias browser: browserModel
     property alias selectedId: grid.selectedId
     property var actionCallback: null
@@ -77,12 +80,21 @@ Ui.Surface {
     AssetBrowser {
         id: browserModel
         timeline: explorer.timeline
+        autosave: explorer.saver
+        folderWorkspaceId: explorer.projectFolder ? explorer.projectFolder.workspaceId : ""
     }
     Component.onCompleted: Qt.callLater(() => {
         const editor = Context.editorFor(explorer)
-        if (editor) explorer.timeline = editor.timeline
+        if (editor) {
+            explorer.timeline = editor.timeline
+            explorer.projectFolder = editor.projectFolder || null
+            explorer.saver = editor.saver || null
+        }
         browserModel.refresh()
     })
+    function relinkSelected() {
+        if (selectedAsset && selectedAsset.offline) { relinkDialog.assetId = selectedAsset.id; relinkDialog.open() }
+    }
     // Opens the asset's folder and selects it, once the server says which folder that is.
     function revealAsset(id) { browserModel.locateAsset(id) }
     Connections {
@@ -173,7 +185,12 @@ Ui.Surface {
             RowLayout {
                 Layout.fillWidth: true
                 LibraryLabel { Layout.fillWidth: true; text: "Library"; tone: Ui.Text.Primary }
-                LibraryButton { iconName: "refresh"; accessibleName: "Refresh"; enabled: browserModel.configured && !browserModel.busy; onClicked: browserModel.refresh() }
+                LibraryButton {
+                    iconName: "refresh"
+                    accessibleName: "Refresh"
+                    enabled: browserModel.configured && !browserModel.busy
+                    onClicked: { browserModel.refresh(); if (explorer.projectFolder) explorer.projectFolder.refresh() }
+                }
                 LibraryButton {
                     objectName: "libraryCreateFolder"
                     iconName: "createNewFolder"
@@ -271,6 +288,7 @@ Ui.Surface {
                 }
 
             }
+            ProjectFolderNotice { Layout.fillWidth: true; folder: explorer.projectFolder }
             LibraryLabel { Layout.fillWidth: true; visible: !browserModel.configured; text: "Open a server timeline to browse and import assets." }
             LibraryLabel { Layout.fillWidth: true; visible: browserModel.error !== ""; text: browserModel.error; tone: Ui.Text.Error }
             LibraryButton { visible: browserModel.error !== ""; text: "Retry loading"; enabled: !browserModel.busy; onClicked: browserModel.refresh() }
@@ -328,6 +346,44 @@ Ui.Surface {
                 onActionsRequested: row => { selectedId = row.id; assetMenu.returnFocusTo = explorer.Window.window ? explorer.Window.window.activeFocusItem : null; assetMenu.popup() }
                 onImportRequested: files.open()
                 onClearFiltersRequested: explorer.clearFilters()
+            }
+            // The selected asset's file: missing from where the asset expects it, or used in place.
+            RowLayout {
+                objectName: "libraryFileState"
+                Layout.fillWidth: true
+                readonly property bool offline: !!explorer.selectedAsset && explorer.selectedAsset.offline === true
+                readonly property bool linked: !!explorer.selectedAsset && explorer.selectedAsset.linked === true
+                visible: offline || linked
+                spacing: Ui.Metrics.sm
+                Ui.Chip {
+                    id: fileStateChip
+                    objectName: "libraryFileStateChip"
+                    variant: Ui.Chip.Tone
+                    tone: parent.offline ? Ui.Text.Warning : Ui.Text.Secondary
+                    text: parent.offline ? "Missing" : "Linked"
+                    HoverHandler { id: fileStateHover }
+                    Ui.Tooltip {
+                        trigger: fileStateChip
+                        visible: fileStateHover.hovered
+                        text: fileStateChip.parent.offline
+                            ? "The file is not where this asset expects it. Relink it to the file's new location, or remove the asset."
+                            : "This asset uses a file outside the project folder in place."
+                    }
+                }
+                LibraryLabel {
+                    Layout.fillWidth: true
+                    text: explorer.selectedAsset ? String(explorer.selectedAsset.name || "") : ""
+                    elide: Text.ElideRight
+                    wrapMode: Text.NoWrap
+                }
+                LibraryButton {
+                    objectName: "libraryRelink"
+                    visible: parent.offline
+                    text: "Relink"
+                    description: "Pick the file's new location"
+                    enabled: !browserModel.busy
+                    onClicked: explorer.relinkSelected()
+                }
             }
             Ui.Toggle {
                 objectName: "libraryPreviewAudio"
@@ -391,6 +447,12 @@ Ui.Surface {
         }
 
 
+        Ui.MenuItem {
+            objectName: "libraryRelinkAction"
+            text: "Relink…"
+            enabled: !!explorer.selectedAsset && explorer.selectedAsset.offline === true && !browserModel.busy
+            onTriggered: explorer.relinkSelected()
+        }
         Ui.Separator {}
         Ui.MenuItem { text: "Delete from server…"; enabled: !!explorer.selectedAsset && !browserModel.busy; onTriggered: explorer.deleteSelected() }
     }
@@ -429,6 +491,13 @@ Ui.Surface {
     }
 
     LibraryActionDialog { id: action; objectName: "libraryActionDialog"; onConfirmed: value => { if (explorer.actionCallback) explorer.actionCallback(value) } }
+    FileDialog {
+        id: relinkDialog
+        property string assetId: ""
+        title: "Pick the file's new location"
+        fileMode: FileDialog.OpenFile
+        onAccepted: browserModel.relinkAsset(assetId, selectedFile)
+    }
     FileDialog { id: files; title: "Import assets"; fileMode: FileDialog.OpenFiles; onAccepted: browserModel.importFiles(selectedFiles) }
     DropArea {
         id: fileDrop
