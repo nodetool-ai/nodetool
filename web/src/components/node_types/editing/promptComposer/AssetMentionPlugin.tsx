@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { $createTextNode } from "lexical";
+import { $createTextNode, $insertNodes } from "lexical";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
   LexicalTypeaheadMenuPlugin,
@@ -37,6 +37,18 @@ class EntityTypeaheadOption extends MenuOption {
 
 type MentionTypeaheadOption = AssetTypeaheadOption | EntityTypeaheadOption;
 
+/** What was picked, for a surface that writes the mention as text. */
+export type MentionChoice = { entity: Entity } | { asset: Asset };
+
+interface AssetMentionPluginProps {
+  /**
+   * Write the mention as plain text instead of a chip node. The storyboard text
+   * view uses this: its document is the Markdown, so a mention is the link
+   * `[Name](entity://<id>)` typed into the line.
+   */
+  insertAsText?: (choice: MentionChoice) => string;
+}
+
 /**
  * `@`-triggered picker that inserts a mention chip: a library entity (encoded
  * as `entity://<id>`, expanded to its descriptor + reference image at
@@ -45,7 +57,7 @@ type MentionTypeaheadOption = AssetTypeaheadOption | EntityTypeaheadOption;
  * shared with the media chat composer; this plugin wires them to Lexical's
  * typeahead. Entities come first in the combined selection order.
  */
-const AssetMentionPlugin: React.FC = () => {
+const AssetMentionPlugin: React.FC<AssetMentionPluginProps> = ({ insertAsText }) => {
   const [editor] = useLexicalComposerContext();
   const addRecentAsset = useRecentAssetsStore((state) => state.addRecentAsset);
 
@@ -80,6 +92,22 @@ const AssetMentionPlugin: React.FC = () => {
       closeMenu: () => void
     ) => {
       editor.update(() => {
+        if (insertAsText) {
+          const text = insertAsText(
+            selectedOption instanceof EntityTypeaheadOption
+              ? { entity: selectedOption.entity }
+              : { asset: selectedOption.asset }
+          );
+          const textNode = $createTextNode(text);
+          if (nodeToReplace) {
+            nodeToReplace.replace(textNode);
+          } else {
+            $insertNodes([textNode]);
+          }
+          textNode.select();
+          closeMenu();
+          return;
+        }
         const node =
           selectedOption instanceof EntityTypeaheadOption
             ? $createEntityMentionNode(
@@ -101,7 +129,7 @@ const AssetMentionPlugin: React.FC = () => {
         addRecentAsset(selectedOption.asset);
       }
     },
-    [editor, addRecentAsset]
+    [editor, addRecentAsset, insertAsText]
   );
 
   // Lexical hands `menuRenderFn` a fresh callback pair on every call. Routing

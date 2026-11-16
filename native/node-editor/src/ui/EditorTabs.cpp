@@ -29,7 +29,7 @@ QVariantList EditorWindow::workflowTabs() const {
         result.append(QVariantMap{{"title", title},
                                   {"dirty", tab->hasUnsavedChanges()},
                                   {"running", tab->runActive() && !tab->instantUpdate_ && !tab->scrubbing_},
-                                  {"renamable", !tab->childParent_}});
+                                  {"renamable", !tab->childParent_ && !tab->projectWorkflowFile()}});
     }
     return result;
 }
@@ -57,6 +57,12 @@ QString EditorWindow::projectKey() const {
         return {};
     }
     return id;
+}
+void EditorWindow::syncOpenProject() {
+    const auto key = projectKey();
+    session_.setOpenProject(key);
+    projectFolder_.setProject(key);
+    projectFolder_.setDocument(session_.serverBound() ? document_.snapshot()["id"].toString() : QString());
 }
 QString EditorWindow::activeProject() const {
     const auto owner = tabOwner_ ? tabOwner_ : this;
@@ -133,6 +139,7 @@ void EditorWindow::newTab() {
   const auto project = activeProject();
   auto tab = new EditorWindow(tabStack_, this);
     tab->assignedProject_ = project;
+    tab->syncOpenProject();
     connect(&tab->browser_, &node_editor::WorkflowBrowser::changed, this, [this, tab] {
         harvestProjects(QJsonArray::fromVariantList(tab->browser_.projects()));
     });
@@ -533,6 +540,7 @@ void EditorWindow::restoreTabs() {
         restored.append(tab);
         const auto entry = entries[i].toObject();
         tab->assignedProject_ = entry["project"].toString();
+        tab->syncOpenProject();
         const auto path = entry["file"].toString();
         const auto id = entry["workflow"].toString();
         if (!path.isEmpty())
@@ -677,7 +685,8 @@ void EditorWindow::renameTab(int index, const QString &name) {
     auto owner = tabOwner_ ? tabOwner_ : this;
     const auto target = owner->visibleTabs().value(index);
     const auto trimmed = name.trimmed();
-    if (!target || target->childParent_ || trimmed.isEmpty() || trimmed == target->workflowName()) {
+    // A project folder's workflow file is named by its file name, which a rename would move.
+    if (!target || target->childParent_ || target->projectWorkflowFile() || trimmed.isEmpty() || trimmed == target->workflowName()) {
         return;
     }
     if (target->session_.serverBound()) {
@@ -788,6 +797,32 @@ void EditorWindow::showProjectMenu(const QPointF &global) {
         active->browser_.loadProjects();
     }
 }
+void EditorWindow::showNewTabMenu(const QPointF &global) {
+    auto owner = tabOwner_ ? tabOwner_ : this;
+    auto host = tabOwner_ ? this : owner->activeEditor_;
+    if (!host) {
+        return;
+    }
+    EntryMenuRequest request;
+    request.kind = "new-tab-menu";
+    request.global = global.toPoint();
+    request.entries = {QVariantMap{{"id", "new-workflow"}, {"label", tr("New Workflow")}},
+                       QVariantMap{{"id", "new-comfy-workflow"}, {"label", tr("New Comfy Workflow")},
+                                   {"enabled", owner->comfyBackend()->configured()}}};
+    request.guardDocument = false;
+    request.deferChoice = true;
+    request.choose = [owner = QPointer<EditorWindow>(owner)](const QString &id) {
+        if (!owner) {
+            return;
+        }
+        if (id == QLatin1String("new-comfy-workflow")) {
+            owner->newComfyWorkflow();
+        } else {
+            owner->newTab();
+        }
+    };
+    host->showEntryMenu(request);
+}
 // Personal comes first, then the named projects and any project with an
 // open document, as in web/src/components/projects/ProjectSelector.tsx.
 QVariantList EditorWindow::projectEntries() const {
@@ -848,6 +883,7 @@ void EditorWindow::selectProject(const QString &project) {
     // blank workflow.
     newTab();
     activeEditor_->assignedProject_ = project;
+    activeEditor_->syncOpenProject();
     notifyTabs();
     activeEditor_->schedulePanelChanged();
 }

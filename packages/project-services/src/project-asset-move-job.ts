@@ -50,6 +50,25 @@ const log = createLogger("nodetool.project-services.project-asset-move-job");
  */
 export const MOVE_SETTLE_MS = 60_000;
 
+/**
+ * How long a row made for a client-direct upload may still get its bytes, in
+ * ms: the longest lifetime of an upload URL the asset stores mint (two hours
+ * on Supabase, one on S3).
+ */
+export const CLIENT_UPLOAD_WINDOW_MS = 2 * 60 * 60_000;
+
+/**
+ * Whether `row` was made for a client-direct upload whose URL may still be
+ * used. Such a row has no size until the upload is finalized, and the client
+ * writes the legacy key directly, outside every lock. A move that ran now
+ * could delete bytes the client stores after its last look at the key.
+ */
+function isAwaitingClientUpload(row: Asset, now: number): boolean {
+  return (
+    row.size === null && now - Date.parse(row.created_at) < CLIENT_UPLOAD_WINDOW_MS
+  );
+}
+
 /** How long an asset whose move failed waits for its next try, in ms. */
 export const MOVE_RETRY_MS = 5 * 60_000;
 
@@ -73,11 +92,22 @@ export interface ProjectAssetMoveReport {
   withoutBytes: string[];
   /** Assets whose move could not finish. Still readable, tried again later. */
   failed: string[];
+  /** Why each asset in {@link failed} could not move, by asset id. */
+  failureReasons: Record<string, string>;
   /** Rows changed too recently to move. A later pass takes them. */
   deferred: string[];
   /** Legacy folder rows that were deleted. */
   foldersRemoved: string[];
+  /** True when the gate stopped the pass before its last asset. */
+  stopped: boolean;
 }
+
+/**
+ * Whether bulk moves may run for a user now. The project folder migration
+ * installs one on the process-wide job, so nothing moves before the user
+ * confirms the migration and nothing moves while it is paused.
+ */
+export type AssetMoveGate = (userId: string) => Promise<boolean>;
 
 export interface ProjectAssetMoveJobOptions {
   /** The asset store that holds the legacy objects. Defaults to the host's. */
@@ -86,6 +116,8 @@ export interface ProjectAssetMoveJobOptions {
   settleMs?: number;
   /** Passed to every asset move. See `LegacyAssetMoveOptions.afterStep`. */
   afterStep?: LegacyAssetMoveOptions["afterStep"];
+  /** Asked before each pass and each asset. See {@link AssetMoveGate}. */
+  gate?: AssetMoveGate;
 }
 
 interface MoveTarget {
@@ -113,8 +145,10 @@ function emptyReport(projectId: string): ProjectAssetMoveReport {
     moved: [],
     withoutBytes: [],
     failed: [],
+    failureReasons: {},
     deferred: [],
-    foldersRemoved: []
+    foldersRemoved: [],
+    stopped: false
   };
 }
 
@@ -126,8 +160,38 @@ export class ProjectAssetMoveJob {
   private readonly followUps = new Set<NodeJS.Timeout>();
   private running: Promise<void> | null = null;
   private readonly abort = new AbortController();
+  private gate: AssetMoveGate | null;
 
-  constructor(private readonly options: ProjectAssetMoveJobOptions = {}) {}
+  constructor(private readonly options: ProjectAssetMoveJobOptions = {}) {
+    this.gate = options.gate ?? null;
+  }
+
+  /** Install or remove the gate. See {@link AssetMoveGate}. */
+  setGate(gate: AssetMoveGate | null): void {
+    this.gate = gate;
+  }
+
+  private async allows(userId: string): Promise<boolean> {
+    if (!this.gate) return true;
+    try {
+      return await this.gate(userId);
+    } catch (error) {
+      log.warn("Could not read whether assets may move into project folders", {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Forget the assets whose move failed, so the next pass tries them at once
+   * instead of after {@link MOVE_RETRY_MS}. Rows without bytes stay skipped.
+   */
+  forgetFailures(): void {
+    for (const [id, skip] of this.skipped) {
+      if (Number.isFinite(skip.until)) this.skipped.delete(id);
+    }
+  }
 
   /**
    * Move the assets of the project in the background. A project already
@@ -161,6 +225,7 @@ export class ProjectAssetMoveJob {
     if (last !== undefined && Date.now() - last < OPEN_MOVE_INTERVAL_MS) {
       return null;
     }
+    if (!(await this.allows(userId))) return null;
     this.lastPrepared.set(key, Date.now());
     try {
       const { rows } = await this.work(projectId, userId);
@@ -257,7 +322,8 @@ export class ProjectAssetMoveJob {
       // own writes do not count as changes.
       const settled =
         moveTargetOf(row) !== null ||
-        now - Date.parse(row.updated_at) >= settleMs;
+        (now - Date.parse(row.updated_at) >= settleMs &&
+          !isAwaitingClientUpload(row, now));
       (settled ? rows : deferred).push(row);
     }
     return { rows, deferred };
@@ -284,6 +350,10 @@ export class ProjectAssetMoveJob {
     key: string
   ): Promise<ProjectAssetMoveReport> {
     const report = emptyReport(projectId);
+    if (!(await this.allows(userId))) {
+      report.stopped = true;
+      return report;
+    }
     const folder = await requireProjectFolder(projectId, userId);
     // A loose id resolves to Personal. Its rows are assigned to Personal
     // first, so a row is only ever moved into the folder of its own project.
@@ -305,6 +375,12 @@ export class ProjectAssetMoveJob {
       // Let requests and timers that queued up run before the next asset.
       await nextTurn();
       if (this.abort.signal.aborted) return report;
+      // A paused migration stops here. The asset before this one finished,
+      // and the next pass continues with this one.
+      if (!(await this.allows(userId))) {
+        report.stopped = true;
+        return report;
+      }
       try {
         const outcome = await moveLegacyAssetIntoFolder(userId, row.id, {
           storage,
@@ -320,6 +396,7 @@ export class ProjectAssetMoveJob {
           this.skip(row, Number.POSITIVE_INFINITY);
         } else if (outcome.status === "waiting") {
           report.failed.push(row.id);
+          report.failureReasons[row.id] = outcome.reason;
           this.skip(row, Date.now() + MOVE_RETRY_MS);
           log.info("An asset stays in the asset store for now", {
             assetId: row.id,
@@ -328,6 +405,8 @@ export class ProjectAssetMoveJob {
         }
       } catch (error) {
         report.failed.push(row.id);
+        report.failureReasons[row.id] =
+          error instanceof Error ? error.message : String(error);
         this.skip(row, Date.now() + MOVE_RETRY_MS);
         log.warn("Could not move an asset into its project folder", {
           assetId: row.id,
@@ -429,16 +508,17 @@ async function removeEmptyFolderRows(
 export const projectAssetMoveJob = new ProjectAssetMoveJob();
 
 /**
- * Schedule the move for every project of every user that has assets outside
- * its folder. Rows in no project are assigned to their user's Personal
- * project first, as `Project.migrateToPersonal` does everywhere else. Runs at
- * startup, after every project has its folder. Returns how many projects were
- * scheduled.
+ * Schedule the move for every project of every user, or of `userId` when
+ * given, that has assets outside its folder. Rows in no project are assigned
+ * to their user's Personal project first, as `Project.migrateToPersonal` does
+ * everywhere else. Runs at startup, after every project has its folder.
+ * Returns how many projects were scheduled.
  */
 export async function scheduleLegacyAssetMoves(
-  job: ProjectAssetMoveJob = projectAssetMoveJob
+  job: ProjectAssetMoveJob = projectAssetMoveJob,
+  userId?: string
 ): Promise<number> {
-  let waiting = await Asset.listProjectsAwaitingFolderMove();
+  let waiting = await Asset.listProjectsAwaitingFolderMove(userId);
   const looseOwners = new Set(
     waiting.filter((row) => isLoose(row.projectId)).map((row) => row.userId)
   );
@@ -453,7 +533,7 @@ export async function scheduleLegacyAssetMoves(
     }
   }
   if (looseOwners.size > 0) {
-    waiting = await Asset.listProjectsAwaitingFolderMove();
+    waiting = await Asset.listProjectsAwaitingFolderMove(userId);
   }
   let scheduled = 0;
   for (const { projectId, userId } of waiting) {

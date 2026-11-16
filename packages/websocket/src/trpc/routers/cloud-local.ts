@@ -64,7 +64,7 @@ function toDraft(row: CloudDraftRow): CloudDraftResponse {
     draft: row.draft,
     state: row.state,
     refusal_reason: row.refusal_reason,
-    revision: row.revision,
+    draft_id: row.draft_id,
     updated_at: row.updated_at
   };
 }
@@ -90,13 +90,13 @@ export const cloudLocalRouter = router({
       .input(putDraftInput)
       .output(putDraftOutput)
       .mutation(async ({ ctx, input }) => {
-        const revision = await CloudLocalStore.putDraft(
+        const draftId = await CloudLocalStore.putDraft(
           scopeOf(ctx.userId, input),
           docOf(input),
           { updatedAt: input.base.updated_at, contentHash: input.base.content_hash },
           input.draft
         );
-        return { revision };
+        return { draft_id: draftId };
       }),
 
     get: protectedProcedure
@@ -122,7 +122,11 @@ export const cloudLocalRouter = router({
         const outcome = await CloudLocalStore.acceptSave(
           scopeOf(ctx.userId, input),
           docOf(input),
-          input.revision,
+          input.draft_id,
+          {
+            updatedAt: input.sent_base.updated_at,
+            contentHash: input.sent_base.content_hash
+          },
           { updatedAt: input.base.updated_at, contentHash: input.base.content_hash },
           { role: input.role, options: input.options }
         );
@@ -136,7 +140,7 @@ export const cloudLocalRouter = router({
         const marked = await CloudLocalStore.markUnsent(
           scopeOf(ctx.userId, input),
           docOf(input),
-          input.revision,
+          input.draft_id,
           input.reason
         );
         return { marked };

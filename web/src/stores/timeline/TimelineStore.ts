@@ -160,6 +160,7 @@ import {
 } from "./merge";
 import { reportDocumentConflicts } from "../documentConflictReporter";
 import { normalizeClipAssetRefs } from "./clipAssetRefs";
+import { editingInstanceFor } from "../../lib/editingInstance";
 import type { DocumentOp } from "@nodetool-ai/protocol";
 
 // ── Snap threshold ─────────────────────────────────────────────────────────
@@ -2094,6 +2095,7 @@ async function persistOpenDocument(
   const saved = await trpcClient.timeline.update.mutate({
     id: sequenceId,
     baseUpdatedAt: beforeSave.baseUpdatedAt ?? undefined,
+    editingInstance: editingInstanceFor("timeline", sequenceId),
     document: buildTimelineDocumentPayload(beforeSave)
   });
   const sent = syncedSnapshotOf(beforeSave);

@@ -59,8 +59,23 @@ export interface StorageAdapter {
    */
   delete(uri: string): Promise<boolean>;
 
-  /** Stat an entry by URI. Returns null if it doesn't exist. */
+  /**
+   * Stat an entry by URI. Returns null if it doesn't exist, and also when
+   * the backend could not be asked.
+   */
   stat(uri: string): Promise<StorageStat | null>;
+
+  /**
+   * Stat an entry by URI, telling a missing entry from a failed lookup.
+   * Returns null only when the backend answered that nothing is stored under
+   * the key. Throws when it could not answer, for example on a network or
+   * permission error.
+   *
+   * A caller that deletes or skips data because an entry is absent needs
+   * this, since `stat` answers both cases with null. Optional so a test
+   * double need not implement it.
+   */
+  statStrict?(uri: string): Promise<StorageStat | null>;
 
   /**
    * The absolute path of a local file holding the entry's bytes, so a caller

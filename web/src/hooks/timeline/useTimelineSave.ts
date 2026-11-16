@@ -20,6 +20,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { trpcClient } from "../../trpc/client";
 import { saveTimelineThroughEditor } from "../../stores/timeline/timelineSaveRegistry";
 import { buildTimelineDocumentPayload } from "./timelineDocumentPayload";
+import { editingInstanceFor } from "../../lib/editingInstance";
 import { isString } from "../../utils/typePredicates";
 
 interface UseTimelineSaveResult {
@@ -57,6 +58,7 @@ export async function persistTimelineDocument(
   const response = await trpcClient.timeline.update.mutate({
     id: state.sequenceId,
     baseUpdatedAt: state.baseUpdatedAt ?? undefined,
+    editingInstance: editingInstanceFor("timeline", state.sequenceId),
     document: buildTimelineDocumentPayload(sent)
   });
   const updatedAt = (response as { updatedAt?: unknown } | undefined)

@@ -10,7 +10,13 @@
 
 import { z } from "zod";
 
-import { collaboratorRoleSchema } from "./workflows.js";
+import {
+  collaboratorRoleSchema,
+  shareOptionsPatch,
+  shareOptionsSchema,
+  sharingPersonItem,
+  effectiveAccessItem
+} from "./workflows.js";
 
 export const sharedDocumentTypeSchema = z.enum([
   "storyboard",
@@ -37,6 +43,10 @@ export const documentCollaboratorItem = z.object({
   /** From the user directory, when the collaborator has signed in through SSO. */
   display_name: z.string().nullable().optional(),
   email: z.string().nullable().optional(),
+  /** The link this grant came from, null for an invitation. */
+  share_id: z.string().nullable().optional(),
+  /** An invitation's own options. A link grant reads its link's. */
+  options: shareOptionsSchema.optional()
 });
 export type DocumentCollaboratorItem = z.infer<
   typeof documentCollaboratorItem
@@ -47,13 +57,20 @@ export const documentShareItem = z.object({
   token: z.string(),
   role: collaboratorRoleSchema,
   created_at: z.string().nullable().optional(),
-  revoked_at: z.string().nullable().optional()
+  /** Same as `disabled_at`. Kept for older clients. */
+  revoked_at: z.string().nullable().optional(),
+  disabled_at: z.string().nullable().optional(),
+  options: shareOptionsSchema.optional(),
+  /** A notice for the owner, such as `history_off`, until dismissed. */
+  owner_notice: z.string().nullable().optional()
 });
 export type DocumentShareItem = z.infer<typeof documentShareItem>;
 
 export const documentSharingGetOutput = z.object({
   collaborators: z.array(documentCollaboratorItem),
-  shares: z.array(documentShareItem)
+  shares: z.array(documentShareItem),
+  /** Each person once, with their effective role and options (P6). */
+  people: z.array(sharingPersonItem).optional()
 });
 export type DocumentSharingGetOutput = z.infer<
   typeof documentSharingGetOutput
@@ -72,8 +89,30 @@ export const documentSharingSetRoleInput = documentRefInput.extend({
   role: collaboratorRoleSchema
 });
 
-/** Give a person from the user directory access by name, without a link. */
-export const documentSharingInviteInput = documentSharingSetRoleInput;
+/**
+ * Give a person from the user directory access by name, without a link.
+ * The options are the invitation's own.
+ */
+export const documentSharingInviteInput = documentSharingSetRoleInput.extend({
+  options: shareOptionsPatch.optional()
+});
+
+/** Change a link's options. They apply to everyone who joined through it. */
+export const documentSharingSetLinkOptionsInput = documentRefInput.extend({
+  share_id: z.string().min(1),
+  options: shareOptionsPatch
+});
+
+/** Change the options of a person's invitation. */
+export const documentSharingSetInvitationOptionsInput = documentRefInput.extend(
+  {
+    user_id: z.string().min(1),
+    options: shareOptionsPatch
+  }
+);
+
+/** Dismiss the owner notice on a link. */
+export const documentSharingDismissNoticeInput = documentSharingRevokeLinkInput;
 
 export const documentSharingRemoveCollaboratorInput = documentRefInput.extend({
   user_id: z.string().min(1)
@@ -103,4 +142,12 @@ export const documentSharedWithMeOutput = z.object({
 });
 export type DocumentSharedWithMeOutput = z.infer<
   typeof documentSharedWithMeOutput
+>;
+
+/** The caller's role and options on a document, null without access. */
+export const documentSharingAccessOutput = z.object({
+  access: effectiveAccessItem.nullable()
+});
+export type DocumentSharingAccessOutput = z.infer<
+  typeof documentSharingAccessOutput
 >;

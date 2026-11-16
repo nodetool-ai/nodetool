@@ -373,8 +373,8 @@ private slots:
         open(window);
         auto *header = panel(window, QStringLiteral("HeaderRow.qml"));
         QVERIFY(header);
-        QTRY_COMPARE(hover(header, QStringLiteral("header-versions")), QStringLiteral("Version history"));
-        QTRY_VERIFY(item(header, QStringLiteral("header-save"))->isEnabled());
+        QTRY_COMPARE(hover(header, QStringLiteral("header-metadata")), QStringLiteral("Workflow metadata"));
+        QTRY_VERIFY(item(header, QStringLiteral("header-metadata"))->isEnabled());
         const bool before = item(header, QStringLiteral("header-instant-update"))->property("active").toBool();
         click(header, QStringLiteral("header-instant-update"));
         QTRY_COMPARE(item(header, QStringLiteral("header-instant-update"))->property("active").toBool(), !before);

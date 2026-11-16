@@ -3,12 +3,15 @@
 #include "../../src/server/WorkflowSession.h"
 #include "../../src/media/LocalMediaStore.h"
 #include "../../src/media/MediaResolver.h"
+#include "../../src/server/MsgPack.h"
 #include <QDir>
 #include <QFileInfo>
 #include <QImage>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QTemporaryDir>
+#include <QWebSocket>
+#include <QWebSocketServer>
 #include <QtTest>
 #include <memory>
 using namespace nodetool::node_editor;
@@ -497,6 +500,75 @@ private slots:
     QCOMPARE(errors.count(), 1);
     QCOMPARE(errors.first().first().toString(), QString("Connect before running"));
     QVERIFY(session.queue().isEmpty());
+  }
+  // The runner writes into Personal's folder, so a workflow of another project
+  // goes to the server, whose project resolver gives the run that folder.
+  void projectWorkflowsRunOnTheServer() {
+    WorkflowSession session;
+    QTRY_VERIFY_WITH_TIMEOUT(session.localRunnerReady(), 60000);
+    QSignalSpy errors(&session, &WorkflowSession::errorOccurred);
+    const QList<QJsonValue> personal{QJsonValue(QJsonValue::Undefined), QJsonValue("default"), QJsonValue("personal:1")};
+    for (const auto &project : personal) {
+      auto workflow = snapshot(3);
+      if (!project.isUndefined()) { workflow["project_id"] = project; }
+      const auto id = session.run(workflow);
+      QVERIFY2(!id.isEmpty(), qPrintable(project.toString("missing")));
+      QVERIFY(session.runsInProcess(id));
+      QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("completed"), 30000);
+    }
+    QCOMPARE(errors.count(), 0);
+    auto project = snapshot(3);
+    project["project_id"] = "p1";
+    QVERIFY(session.run(project).isEmpty());
+    QCOMPARE(errors.count(), 1);
+    QCOMPARE(errors.first().first().toString(),
+             QString("Connect to the server to run workflows of a project. Local runs write only to Personal's folder."));
+    // A localOnly preview of it returns nothing and says nothing, like a graph
+    // the runner cannot run. The same preview of a Personal workflow runs.
+    const auto preview = session.runPreview(snapshot(3), {"out"}, {}, true);
+    QVERIFY(!preview.isEmpty());
+    QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, preview), QString("completed"), 30000);
+    QVERIFY(session.runPreview(project, {"out"}, {}, true).isEmpty());
+    QCOMPARE(errors.count(), 1);
+    // The card badges follow the open workflow's project, and the tab's
+    // project decides for a workflow that names none.
+    const auto count = snapshot(3)["graph"].toObject()["nodes"].toArray().first().toObject();
+    session.setSnapshot(snapshot(3));
+    QVERIFY(session.runsLocally(count));
+    session.setSnapshot(project);
+    QVERIFY(!session.runsLocally(count));
+    session.setSnapshot(snapshot(3));
+    session.setOpenProject("p1");
+    QVERIFY(!session.runsLocally(count));
+    QVERIFY(session.run(snapshot(3)).isEmpty());
+    QCOMPARE(errors.count(), 2);
+    session.setOpenProject({});
+    QVERIFY(session.runsLocally(count));
+
+    QWebSocketServer server("project run", QWebSocketServer::NonSecureMode);
+    QVERIFY(server.listen(QHostAddress::LocalHost));
+    QList<QJsonObject> runs;
+    connect(&server, &QWebSocketServer::newConnection, this, [&] {
+      auto *peer = server.nextPendingConnection();
+      peer->setParent(&server);
+      connect(peer, &QWebSocket::binaryMessageReceived, this, [&](const QByteArray &bytes) {
+        const auto message = decodeMsgPack(bytes);
+        if (message && message->toObject()["command"] == "run_job") { runs.append(message->toObject()["data"].toObject()); }
+      });
+    });
+    session.connectToServer(QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())), {});
+    QTRY_VERIFY(session.connected());
+    const auto remote = session.run(project);
+    QVERIFY(!remote.isEmpty());
+    QVERIFY(!session.runsInProcess(remote));
+    QTRY_COMPARE(runs.size(), 1);
+    QCOMPARE(runs.first()["job_id"].toString(), remote);
+    QCOMPARE(runs.first()["project_id"].toString(), QString("p1"));
+    // A Personal workflow still runs in process while connected.
+    const auto local = session.run(snapshot(3));
+    QVERIFY(session.runsInProcess(local));
+    QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, local), QString("completed"), 30000);
+    QCOMPARE(runs.size(), 1);
   }
   void environmentDisablesLocalRuns() {
     WorkflowSession loaded;

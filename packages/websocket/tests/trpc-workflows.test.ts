@@ -14,6 +14,18 @@ vi.mock("@nodetool-ai/node-sdk", async (orig) => ({
 }));
 
 // ── Mock @nodetool-ai/models ────────────────────────────────────────────────────
+// Reference sets live in the database this suite replaces with stubs. Their
+// behavior is covered by tests/document-refs.test.ts.
+vi.mock("../src/lib/document-refs.js", () => ({
+  checkAttach: vi.fn().mockResolvedValue([]),
+  findUnreadableFile: vi.fn().mockResolvedValue({ unreadable: null, toAdmit: [] }),
+  fileNotReadableMessage: (file: string) => file,
+  ensureCurrentSet: vi.fn().mockResolvedValue("current:"),
+  publishSave: vi.fn().mockResolvedValue(undefined),
+  ensureVersionSets: vi.fn().mockResolvedValue(undefined),
+  readableSharedFiles: vi.fn().mockResolvedValue(new Set())
+}));
+
 vi.mock("@nodetool-ai/models", async (orig) => {
   const actual = await orig<typeof import("@nodetool-ai/models")>();
   return {
@@ -61,6 +73,11 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       grantedWorkflowIds: vi.fn(),
       listForWorkflow: vi.fn(),
       listForUser: vi.fn(),
+      listFor: vi.fn(async () => []),
+      findInvitation: vi.fn(),
+      invite: vi.fn(),
+      redeem: vi.fn(),
+      setRole: vi.fn(),
       upsert: vi.fn(),
       remove: vi.fn(),
       removeAllForWorkflow: vi.fn()
@@ -619,7 +636,11 @@ describe("workflows router", () => {
       expect(Workflow.updateFieldsIfUnchanged).toHaveBeenCalledWith(
         "wf-1",
         wf.updated_at,
-        { graph: { nodes: [], edges: [] } }
+        {
+          graph: { nodes: [], edges: [] },
+          schema_version: 1,
+          last_writer_instance: null
+        }
       );
       expect(wf.save).not.toHaveBeenCalled();
     });
@@ -646,7 +667,11 @@ describe("workflows router", () => {
       expect(Workflow.updateFieldsIfUnchanged).toHaveBeenCalledWith(
         "wf-cp",
         wf.updated_at,
-        { graph: { nodes: [], edges: [] } }
+        {
+          graph: { nodes: [], edges: [] },
+          schema_version: 1,
+          last_writer_instance: null
+        }
       );
       expect(WorkflowVersion).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1437,9 +1462,14 @@ describe("workflows.sharing router", () => {
         makeShare({ role: "editor" })
       );
       asMock(Workflow.get).mockResolvedValue(wf);
-      asMock(WorkflowCollaborator.upsert).mockResolvedValue(
+      const share = makeShare({ role: "editor" });
+      asMock(WorkflowShare.findByToken).mockResolvedValue(share);
+      asMock(WorkflowCollaborator.redeem).mockResolvedValue(
         makeGrant({ user_id: "user-1", role: "editor" })
       );
+      asMock(WorkflowCollaborator.listFor).mockResolvedValue([
+        makeGrant({ user_id: "user-1", role: "editor" })
+      ]);
 
       const caller = createCaller(makeCtx());
       const result = await caller.workflows.sharing.accept({
@@ -1447,12 +1477,10 @@ describe("workflows.sharing router", () => {
       });
       expect(result.workflow.id).toBe("wf-1");
       expect(result.role).toBe("editor");
-      expect(WorkflowCollaborator.upsert).toHaveBeenCalledWith({
-        workflowId: "wf-1",
-        userId: "user-1",
-        role: "editor",
-        invitedBy: "user-1"
-      });
+      expect(WorkflowCollaborator.redeem).toHaveBeenCalledWith(
+        share,
+        "user-1"
+      );
     });
 
     it("does not grant the owner a collaborator row", async () => {
@@ -1465,7 +1493,7 @@ describe("workflows.sharing router", () => {
         token: "tok_abc"
       });
       expect(result.workflow.id).toBe("wf-1");
-      expect(WorkflowCollaborator.upsert).not.toHaveBeenCalled();
+      expect(WorkflowCollaborator.redeem).not.toHaveBeenCalled();
     });
 
     it("rejects revoked tokens", async () => {
@@ -1499,7 +1527,7 @@ describe("workflows.sharing router", () => {
       await expect(
         caller.workflows.sharing.accept({ token: "tok_abc" })
       ).rejects.toMatchObject({ code: "NOT_FOUND" });
-      expect(WorkflowCollaborator.upsert).not.toHaveBeenCalled();
+      expect(WorkflowCollaborator.redeem).not.toHaveBeenCalled();
     });
 
     it("duplicatePublic copies the workflow into the caller's account", async () => {

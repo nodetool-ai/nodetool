@@ -1058,7 +1058,7 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
   QStringList names;
   // The document's own settings and views. The node, layout, run and server
   // commands are in the Node and Workflow menus of the application menu.
-  if (kind == "more") { names = {instantUpdate_ ? "Instant Update: On" : "Instant Update: Off", "Save", "Version history", "Workflow metadata", "Server sync", "Canvas uploads", "Command menu"}; }
+  if (kind == "more") { names = {instantUpdate_ ? "Instant Update: On" : "Instant Update: Off", "Workflow metadata", "Server sync", "Canvas uploads", "Command menu"}; }
 #ifndef Q_OS_MACOS
   if (kind == "more") { names.insert(1, mouseNavigation() ? "Canvas navigation: Mouse" : "Canvas navigation: Trackpad"); }
 #endif

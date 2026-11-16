@@ -21,6 +21,7 @@ import { useConflictStore } from "../../stores/ConflictStore";
 import { trpcClient } from "../../trpc/client";
 import { isString } from "../../utils/typePredicates";
 import { buildTimelineDocumentPayload } from "./timelineDocumentPayload";
+import { editingInstanceFor } from "../../lib/editingInstance";
 import { acknowledgePersistedMediaEdits } from "./directGenPending";
 import {
   applyAcceptedTimelineConflict,
@@ -178,6 +179,7 @@ export function useTimelineAutosave(
           const response = await trpcClient.timeline.update.mutate({
             id: snapshot.sequenceId,
             baseUpdatedAt: baseUpdatedAt ?? undefined,
+            editingInstance: editingInstanceFor("timeline", snapshot.sequenceId),
             ...(settingsChanged && {
               fps: snapshot.fps,
               width: snapshot.width,

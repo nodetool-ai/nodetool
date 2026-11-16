@@ -70,6 +70,7 @@ export const useTransformRun = (): TransformRun => {
         params: transformParams(source, target),
         signal: controller.signal,
         workflowId: workflow.id,
+        projectId: workflow.project_id,
         jobId,
         jobName: workflow.name,
         onMessage: (message) => {

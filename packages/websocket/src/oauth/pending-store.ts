@@ -1,18 +1,17 @@
 /**
- * In-memory, TTL-swept store for the two short-lived, non-durable pieces of
- * OAuth authorize-flow state: the pending `/oauth/authorize` request parked
- * while the user is on the consent page, and the authorization code minted
- * on approval. Models `oauthStateStore` in `../oauth-api.ts` — same
- * lazy-prune-on-access pattern, no timer.
+ * The two short-lived pieces of OAuth authorize-flow state: the pending
+ * `/oauth/authorize` request parked while the user is on the consent page,
+ * and the authorization code minted on approval. Both live 10 minutes.
  *
- * Losing this store on restart costs one browser round-trip; nothing here
- * is durable and nothing needs a migration.
+ * They are database rows (`OauthPending` in `@nodetool-ai/models`), not
+ * process memory, because the consent and the token exchange may reach
+ * different server processes. A sign-in whose two halves land on two
+ * replicas failed while this store was a `Map`.
  */
 
-import { randomBytes } from "node:crypto";
+import { OauthPending } from "@nodetool-ai/models";
 
-const REQUEST_TTL_MS = 600_000; // 10 minutes
-const CODE_TTL_MS = 600_000; // 10 minutes
+export type OauthRequestScope = "mcp" | "native";
 
 export interface PendingAuthorizeRequest {
   /** request_id handed to the SPA consent page. */
@@ -21,20 +20,16 @@ export interface PendingAuthorizeRequest {
   clientName: string;
   redirectUri: string;
   codeChallenge: string;
-  scope: "mcp";
+  scope: OauthRequestScope;
   resource: string;
   state?: string;
   /** Every registered redirect_uri for this client is loopback-only. */
   redirectHostIsLoopbackOnly: boolean;
+  /** Native sign-in only: which app asked (`node-editor` or `timeline`). */
+  appName?: string;
+  /** Native sign-in only: the device name the app sent. */
+  deviceName?: string;
   createdAt: number;
-}
-
-interface CodeEntry {
-  request: PendingAuthorizeRequest;
-  userId: string;
-  grantId: string;
-  createdAt: number;
-  consumed: boolean;
 }
 
 /** What a code redeems to: the request it was minted for, who approved it,
@@ -46,66 +41,38 @@ export interface CodeRedemption {
   consumedBefore: boolean;
 }
 
-function redemption(entry: CodeEntry): CodeRedemption {
-  return {
-    request: entry.request,
-    userId: entry.userId,
-    grantId: entry.grantId,
-    consumedBefore: entry.consumed
-  };
+interface StoredCode {
+  request: PendingAuthorizeRequest;
+  userId: string;
+  grantId: string;
+}
+
+function asRequest(
+  id: string,
+  payload: Record<string, unknown> | null
+): PendingAuthorizeRequest | null {
+  if (!payload) return null;
+  return { ...(payload as Omit<PendingAuthorizeRequest, "id">), id };
 }
 
 export class PendingStore {
-  private readonly requests = new Map<string, PendingAuthorizeRequest>();
-  private readonly codes = new Map<string, CodeEntry>();
-
-  private pruneRequests(): void {
-    const now = Date.now();
-    for (const [id, request] of this.requests) {
-      if (now - request.createdAt > REQUEST_TTL_MS) {
-        this.requests.delete(id);
-      }
-    }
-  }
-
-  private pruneCodes(): void {
-    const now = Date.now();
-    for (const [code, entry] of this.codes) {
-      if (now - entry.createdAt > CODE_TTL_MS) {
-        this.codes.delete(code);
-      }
-    }
-  }
-
   /** Park a validated `/oauth/authorize` request. Returns its request_id. */
-  putRequest(r: Omit<PendingAuthorizeRequest, "id" | "createdAt">): string {
-    this.pruneRequests();
-    const id = randomBytes(16).toString("hex");
-    this.requests.set(id, { ...r, id, createdAt: Date.now() });
-    return id;
+  async putRequest(
+    r: Omit<PendingAuthorizeRequest, "id" | "createdAt">
+  ): Promise<string> {
+    return OauthPending.putRequest({ ...r, createdAt: Date.now() });
   }
 
   /** Read a pending request without consuming it (renders the consent page). */
-  takeRequestForApproval(id: string): PendingAuthorizeRequest | null {
-    this.pruneRequests();
-    const request = this.requests.get(id) ?? null;
-    if (!request) {
-      return null;
-    }
-    if (Date.now() - request.createdAt > REQUEST_TTL_MS) {
-      this.requests.delete(id);
-      return null;
-    }
-    return request;
+  async takeRequestForApproval(
+    id: string
+  ): Promise<PendingAuthorizeRequest | null> {
+    return asRequest(id, await OauthPending.getRequest(id));
   }
 
   /** Consume a pending request — approve/deny each call this exactly once. */
-  consumeRequest(id: string): PendingAuthorizeRequest | null {
-    const request = this.takeRequestForApproval(id);
-    if (request) {
-      this.requests.delete(id);
-    }
-    return request;
+  async consumeRequest(id: string): Promise<PendingAuthorizeRequest | null> {
+    return asRequest(id, await OauthPending.consumeRequest(id));
   }
 
   /**
@@ -114,35 +81,16 @@ export class PendingStore {
    * endpoint mints tokens for exactly that grant, and revokes it on code
    * replay, so consent and redemption never produce two grant rows.
    */
-  putCode(input: {
-    request: PendingAuthorizeRequest;
-    userId: string;
-    grantId: string;
-  }): string {
-    this.pruneCodes();
-    const code = randomBytes(32).toString("base64url");
-    this.codes.set(code, {
+  async putCode(input: StoredCode): Promise<string> {
+    const stored: StoredCode = {
       request: input.request,
       userId: input.userId,
-      grantId: input.grantId,
-      createdAt: Date.now(),
-      consumed: false
-    });
-    return code;
-  }
-
-  /** The live entry for a code, or null when it is unknown or expired. */
-  private liveEntry(code: string): CodeEntry | null {
-    this.pruneCodes();
-    const entry = this.codes.get(code);
-    if (!entry) {
-      return null;
-    }
-    if (Date.now() - entry.createdAt > CODE_TTL_MS) {
-      this.codes.delete(code);
-      return null;
-    }
-    return entry;
+      grantId: input.grantId
+    };
+    return OauthPending.putCode(
+      stored as unknown as Record<string, unknown>,
+      input.userId
+    );
   }
 
   /**
@@ -152,9 +100,9 @@ export class PendingStore {
    * it with one bad exchange: the legitimate client's exchange then looked
    * like a replay and revoked the grant.
    */
-  peekCode(code: string): CodeRedemption | null {
-    const entry = this.liveEntry(code);
-    return entry ? redemption(entry) : null;
+  async peekCode(code: string): Promise<CodeRedemption | null> {
+    const entry = await OauthPending.peekCode(code);
+    return entry ? redemption(entry.payload, entry.consumedBefore) : null;
   }
 
   /**
@@ -162,21 +110,28 @@ export class PendingStore {
    * is true when this code was already consumed once — the OAuth 2.1 code
    * replay rule: the caller must revoke every token minted from this code.
    *
-   * The replay signal lives only as long as the code entry (CODE_TTL_MS):
-   * a replay arriving after the prune window returns plain null and revokes
-   * nothing. Accepted narrowing — a leaked code is valuable immediately or
-   * not at all, and the 10-minute window covers the realistic race.
+   * The replay signal lives only as long as the code row (10 minutes): a
+   * replay arriving later returns plain null and revokes nothing. A leaked
+   * code is valuable immediately or not at all.
    */
-  consumeCode(code: string): CodeRedemption | null {
-    const entry = this.liveEntry(code);
-    if (!entry) {
-      return null;
-    }
-    const consumedBefore = entry.consumed;
-    entry.consumed = true;
-    return { ...redemption(entry), consumedBefore };
+  async consumeCode(code: string): Promise<CodeRedemption | null> {
+    const entry = await OauthPending.consumeCode(code);
+    return entry ? redemption(entry.payload, entry.consumedBefore) : null;
   }
 }
 
-/** Module singleton — one process, one AS. */
+function redemption(
+  payload: Record<string, unknown>,
+  consumedBefore: boolean
+): CodeRedemption {
+  const stored = payload as unknown as StoredCode;
+  return {
+    request: stored.request,
+    userId: stored.userId,
+    grantId: stored.grantId,
+    consumedBefore
+  };
+}
+
+/** Module singleton. The state behind it is shared by every process. */
 export const pendingStore = new PendingStore();

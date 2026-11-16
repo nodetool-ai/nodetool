@@ -5,6 +5,18 @@ import { __resetTimelineAutosaveVersionState } from "../src/trpc/routers/timelin
 import type { Context } from "../src/trpc/context.js";
 import type { TimelineDocument } from "@nodetool-ai/models";
 
+// Reference sets live in the database this suite replaces with stubs. Their
+// behavior is covered by tests/document-refs.test.ts.
+vi.mock("../src/lib/document-refs.js", () => ({
+  checkAttach: vi.fn().mockResolvedValue([]),
+  findUnreadableFile: vi.fn().mockResolvedValue({ unreadable: null, toAdmit: [] }),
+  fileNotReadableMessage: (file: string) => file,
+  ensureCurrentSet: vi.fn().mockResolvedValue("current:"),
+  publishSave: vi.fn().mockResolvedValue(undefined),
+  ensureVersionSets: vi.fn().mockResolvedValue(undefined),
+  readableSharedFiles: vi.fn().mockResolvedValue(new Set())
+}));
+
 vi.mock("@nodetool-ai/models", async (orig) => {
   const actual = await orig<typeof import("@nodetool-ai/models")>();
 
@@ -161,6 +173,9 @@ function makeCtx(overrides: Partial<Context> = {}): Context {
     ...overrides
   };
 }
+
+/** The editing instance of the open document in the cadence tests. */
+const INSTANCE = "f".repeat(32);
 
 function makeSeq(over: Record<string, unknown> = {}) {
   return new (TimelineSequence as unknown as new (
@@ -435,21 +450,23 @@ describe("timeline autosave snapshots", () => {
   it("snapshots on the first document write and not again within the interval", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-03-01T00:00:00Z"));
-    TS.findById.mockResolvedValue(makeSeq());
+    // The open document wrote the stored revision, so only the cadence
+    // decides whether a save snapshots.
+    TS.findById.mockResolvedValue(makeSeq({ last_writer_instance: INSTANCE }));
     const caller = createCaller(makeCtx());
 
-    await caller.timeline.update({ id: "seq-1", document: emptyDoc });
+    await caller.timeline.update({ id: "seq-1", document: emptyDoc, editingInstance: INSTANCE });
     expect(TSV.snapshotCalls).toHaveLength(1);
     expect(TSV.snapshotCalls[0].opts).toEqual({ saveType: "autosave" });
     expect(TSV.pruneAutosaves).toHaveBeenCalledWith("seq-1", 20);
 
     vi.advanceTimersByTime(60_000);
-    await caller.timeline.update({ id: "seq-1", document: emptyDoc });
+    await caller.timeline.update({ id: "seq-1", document: emptyDoc, editingInstance: INSTANCE });
     expect(TSV.snapshotCalls).toHaveLength(1);
 
     // Past the 5-minute interval it snapshots again.
     vi.advanceTimersByTime(5 * 60 * 1000);
-    await caller.timeline.update({ id: "seq-1", document: emptyDoc });
+    await caller.timeline.update({ id: "seq-1", document: emptyDoc, editingInstance: INSTANCE });
     expect(TSV.snapshotCalls).toHaveLength(2);
   });
 
@@ -475,17 +492,19 @@ describe("timeline autosave snapshots", () => {
   it("timeline.delete drops the version rows and the cadence entry", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-03-01T00:00:00Z"));
-    TS.findById.mockResolvedValue(makeSeq());
+    // The open document wrote the stored revision, so only the cadence
+    // decides whether a save snapshots.
+    TS.findById.mockResolvedValue(makeSeq({ last_writer_instance: INSTANCE }));
     const caller = createCaller(makeCtx());
 
-    await caller.timeline.update({ id: "seq-1", document: emptyDoc });
+    await caller.timeline.update({ id: "seq-1", document: emptyDoc, editingInstance: INSTANCE });
     expect(TSV.snapshotCalls).toHaveLength(1);
 
     await caller.timeline.delete({ id: "seq-1" });
     expect(TSV.deleteForTimeline).toHaveBeenCalledWith("seq-1");
 
     // The cadence entry went with it, so the next write snapshots immediately.
-    await caller.timeline.update({ id: "seq-1", document: emptyDoc });
+    await caller.timeline.update({ id: "seq-1", document: emptyDoc, editingInstance: INSTANCE });
     expect(TSV.snapshotCalls).toHaveLength(2);
   });
 });

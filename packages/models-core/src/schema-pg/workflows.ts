@@ -1,4 +1,4 @@
-import { pgTable, text, index } from "drizzle-orm/pg-core";
+import { pgTable, text, index, integer } from "drizzle-orm/pg-core";
 import { integerBoolean, jsonText } from "./helpers.js";
 
 export const workflows = pgTable(
@@ -31,6 +31,9 @@ export const workflows = pgTable(
     file_path: text("file_path"),
     file_hash: text("file_hash"),
     file_error: text("file_error"),
+    // Editing instance and document schema version — see schema/workflows.ts.
+    last_writer_instance: text("last_writer_instance"),
+    schema_version: integer("schema_version").notNull().default(1),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

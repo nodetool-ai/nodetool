@@ -1403,7 +1403,8 @@ export async function reconcileDocumentFiles(
   options: DocumentReconcileOptions = {}
 ): Promise<DocumentFilesReport> {
   const folder = await requireProjectFolder(projectId, userId);
-  const { workspace } = folder;
+  // The asset reconcile's folder, with what it learned about nested folders.
+  const workspace = options.scanned?.workspace ?? folder.workspace;
   const project = folder.projectId;
   return withProjectFolderLock(userId, project, () =>
     reconciling.run(true, async () => {

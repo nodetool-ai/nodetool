@@ -26,8 +26,13 @@ import { Storyboard, emptyStoryboardDocument } from "../src/storyboard.js";
 import { TimelineSequence, type TimelineDocument } from "../src/timeline-sequence.js";
 import { TimelineSequenceVersion } from "../src/timeline-sequence-version.js";
 import { Workflow } from "../src/workflow.js";
+import { WorkflowVersion } from "../src/workflow-version.js";
 import { Workspace } from "../src/workspace.js";
+import { McpOauthGrant, McpOauthToken } from "../src/mcp-oauth.js";
+import { OauthPending } from "../src/oauth-pending.js";
 import { initPgliteTestDb } from "./helpers/pglite-test-db.js";
+import { eq } from "drizzle-orm";
+import { mcpOauthGrants, mcpOauthTokens } from "../src/schema/mcp-oauth.js";
 
 const OWNER = "dialect-owner";
 const TIMELINE_DOCUMENT: TimelineDocument = { tracks: [], clips: [], markers: [] };
@@ -583,6 +588,145 @@ describe("model execution on SQLite and PostgreSQL", () => {
         ["Storyboard", ModelChangeEvent.UPDATED], ["TimelineSequence", ModelChangeEvent.UPDATED]
       ]);
       return { document: second.timeline.document, width: second.timeline.width, height: second.timeline.height, events };
+    });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
+  it("keeps the replaced revision in the save's transaction, and nothing on a lost compare-and-set", async () => {
+    const result = await onBothDialects(async () => {
+      const keep = { name: "Kept", saveType: "manual" };
+      const timeline = await TimelineSequence.create<TimelineSequence>({
+        user_id: OWNER, project_id: "default", name: "Timeline", document: JSON.stringify(TIMELINE_DOCUMENT)
+      });
+      const stale = await TimelineSequence.updateFieldsIfUnchanged(
+        timeline.id, "2000-01-01T00:00:00.000Z", { name: "Stale" }, undefined, keep
+      );
+      const saved = await TimelineSequence.updateFieldsIfUnchanged(
+        timeline.id, timeline.updated_at, { name: "Saved" }, undefined, keep
+      );
+      const timelineVersions = await TimelineSequenceVersion.listForTimeline(timeline.id);
+
+      const workflow = await Workflow.create<Workflow>({
+        user_id: OWNER, name: "Flow", graph: { nodes: [{ id: "a" }], edges: [] }
+      });
+      const workflowKeep = { name: null, saveType: "checkpoint", description: "Kept" };
+      const lost = await Workflow.updateFieldsIfUnchanged(
+        workflow.id, "2000-01-01T00:00:00.000Z", { name: "Lost" }, undefined, workflowKeep
+      );
+      const first = await Workflow.updateFieldsIfUnchanged(
+        workflow.id, workflow.updated_at, { graph: { nodes: [{ id: "b" }], edges: [] } }, undefined, workflowKeep
+      );
+      await Workflow.updateFieldsIfUnchanged(
+        workflow.id, first!.updated_at, { graph: { nodes: [{ id: "c" }], edges: [] } }, undefined, workflowKeep
+      );
+      const workflowVersions = await WorkflowVersion.listForWorkflow(workflow.id);
+      return {
+        stale, savedName: saved?.name,
+        timelineVersions: timelineVersions.map((v) => [v.version, v.name, v.save_type]),
+        lost,
+        workflowVersions: workflowVersions
+          .map((v) => [v.version, v.name, v.description, (v.graph.nodes[0] as { id: string }).id])
+          .sort()
+      };
+    });
+    expect(result).toEqual({
+      stale: null,
+      savedName: "Saved",
+      timelineVersions: [[1, "Kept", "manual"]],
+      lost: null,
+      workflowVersions: [[1, "Flow", "Kept", "a"], [2, "Flow", "Kept", "b"]]
+    });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
+  // A refresh that read the token rows before a revocation committed must not
+  // issue a pair afterwards: rotation and minting check the grant under its
+  // lock. The fixture leaves the token rows of a revoked grant in place, the
+  // state that refresh saw in the race.
+  it("issues no tokens for a revoked grant on both engines", async () => {
+    const result = await onBothDialects(async () => {
+      const grant = await McpOauthGrant.create({
+        user_id: OWNER,
+        client_id: "nodetool-native",
+        client_name: "NodeTool desktop apps",
+        scope: "native",
+        resource: "https://nodetool.example",
+        kind: "native",
+        app_name: "timeline",
+        device_name: "Edit bay"
+      });
+      const pair = await McpOauthToken.mintPair(grant.id, "native");
+      await getPortableDb()
+        .update(mcpOauthGrants)
+        .set({ revoked_at: new Date().toISOString() })
+        .where(eq(mcpOauthGrants.id, grant.id));
+      const rotation = await McpOauthToken.rotateRefresh(pair.refreshToken);
+      let minted = "minted";
+      try {
+        await McpOauthToken.mintPair(grant.id, "native");
+      } catch {
+        minted = "refused";
+      }
+      const live = await getPortableDb()
+        .select({ id: mcpOauthTokens.id })
+        .from(mcpOauthTokens)
+        .where(eq(mcpOauthTokens.grant_id, grant.id));
+      await McpOauthGrant.revoke(OWNER, grant.id);
+      const afterRevoke = await getPortableDb()
+        .select({ id: mcpOauthTokens.id })
+        .from(mcpOauthTokens)
+        .where(eq(mcpOauthTokens.grant_id, grant.id));
+      return { rotation, minted, tokens: live.length, afterRevoke: afterRevoke.length };
+    });
+    expect(result).toEqual({ rotation: null, minted: "refused", tokens: 2, afterRevoke: 0 });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
+  it("runs a native device session's rotation, lost-rotation retry and handle on both engines", async () => {
+    const result = await onBothDialects(async () => {
+      const grant = await McpOauthGrant.create({
+        user_id: OWNER,
+        client_id: "nodetool-native",
+        client_name: "NodeTool desktop apps",
+        scope: "native",
+        resource: "https://nodetool.example",
+        kind: "native",
+        app_name: "timeline",
+        device_name: "Edit bay"
+      });
+      const handle = await McpOauthGrant.issueRevocationHandle(grant.id);
+      const secondHandle = await McpOauthGrant.issueRevocationHandle(grant.id);
+      const pair = await McpOauthToken.mintPair(grant.id, "native");
+      const first = await McpOauthToken.rotateRefresh(pair.refreshToken);
+      const lost = await McpOauthToken.rotateRefresh(pair.refreshToken);
+      const discarded =
+        first && "accessToken" in first
+          ? await McpOauthToken.rotateRefresh(first.refreshToken)
+          : null;
+      const verified = await McpOauthToken.verifyNativeAccess(pair.accessToken);
+      const ended = await McpOauthGrant.endByRevocationHandle(handle!);
+      const again = await McpOauthGrant.endByRevocationHandle(handle!);
+      const code = await OauthPending.putCode({ grantId: grant.id }, OWNER);
+      const spent = await OauthPending.consumeCode(code);
+      const replay = await OauthPending.consumeCode(code);
+      return {
+        prefixes: [pair.accessToken.slice(0, 4), pair.refreshToken.slice(0, 4)],
+        handleOnce: [handle?.startsWith("nth_"), secondHandle],
+        first: first !== null && "grantKind" in first ? first.grantKind : null,
+        lost: lost !== null && "accessToken" in lost,
+        discarded,
+        verifiedUser: verified?.userId,
+        ended: [ended.outcome, again.outcome],
+        code: [spent?.consumedBefore, replay?.consumedBefore]
+      };
+    });
+    expect(result).toEqual({
+      prefixes: ["ntd_", "ntr_"],
+      handleOnce: [true, null],
+      first: "native",
+      lost: true,
+      // The lost rotation's unused replacement is gone after the retry.
+      discarded: null,
+      verifiedUser: OWNER,
+      ended: ["ended", "already_ended"],
+      code: [false, true]
     });
   }, DIALECT_TEST_TIMEOUT_MS);
 });

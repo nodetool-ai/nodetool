@@ -260,7 +260,7 @@ describe("SupabaseStorageAdapter list", () => {
       list: vi.fn(async () => ({ data: entries, error: null }))
     });
     const result = await adapter.list("dir");
-    expect(bucket.list).toHaveBeenCalledWith("dir", { limit: 1000 });
+    expect(bucket.list).toHaveBeenCalledWith("dir", { limit: 1000, offset: 0 });
     expect(result.entries.map((e) => e.key)).toEqual(["dir/a.txt", "dir/z.txt"]);
     expect(result.entries[0]).toMatchObject({
       key: "dir/a.txt",
@@ -307,14 +307,14 @@ describe("SupabaseStorageAdapter list", () => {
     const { adapter, bucket } = makeAdapter();
     await adapter.list("");
     await adapter.list("/");
-    expect(bucket.list).toHaveBeenNthCalledWith(1, "", { limit: 1000 });
-    expect(bucket.list).toHaveBeenNthCalledWith(2, "", { limit: 1000 });
+    expect(bucket.list).toHaveBeenNthCalledWith(1, "", { limit: 1000, offset: 0 });
+    expect(bucket.list).toHaveBeenNthCalledWith(2, "", { limit: 1000, offset: 0 });
   });
 
   it("strips a trailing slash left by normalization", async () => {
     const { adapter, bucket } = makeAdapter();
     await adapter.list("foo/");
-    expect(bucket.list).toHaveBeenCalledWith("foo", { limit: 1000 });
+    expect(bucket.list).toHaveBeenCalledWith("foo", { limit: 1000, offset: 0 });
   });
 
   it("returns empty result for path-traversal prefixes", async () => {
@@ -324,11 +324,11 @@ describe("SupabaseStorageAdapter list", () => {
     expect(bucket.list).not.toHaveBeenCalled();
   });
 
-  it("returns empty result when list errors", async () => {
+  it("throws when list errors, so a failed listing is never read as empty", async () => {
     const { adapter } = makeAdapter({
       list: vi.fn(async () => ({ data: null, error: { message: "boom" } }))
     });
-    expect(await adapter.list("dir")).toEqual({ entries: [], commonPrefixes: [] });
+    await expect(adapter.list("dir")).rejects.toThrow(/boom/);
   });
 });
 

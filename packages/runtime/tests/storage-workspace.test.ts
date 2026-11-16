@@ -780,6 +780,30 @@ describe.each(backends)(
       expect(marker(isLocal ? stats.mock.calls : lists.mock.calls)).toBe(2);
     });
 
+    it.each([`Games/Tetris/sprite.txt`, `GAMES/TETRIS/new.txt`])(
+      "refuses %s, which differs from the host's folder only in case",
+      async (path) => {
+        // macOS and Windows folders ignore case, so this is the game's folder
+        // there. The other backends refuse it as well, which loses nothing.
+        const refused = WorkspaceReservedPathError;
+        await expect(workspace.read(path)).rejects.toThrow(refused);
+        await expect(workspace.write(path, "x")).rejects.toThrow(refused);
+        await expect(workspace.deleteAll(path)).rejects.toThrow(refused);
+        await expect(
+          assertLocalPathIsOwn(workspace, dir, join(dir, ...path.split("/")))
+        ).rejects.toThrow(refused);
+        await expectNestedIntact();
+      }
+    );
+
+    it("refuses the host's folder itself under another case", async () => {
+      const refused = WorkspaceReservedPathError;
+      await expect(workspace.list("Games/Tetris")).rejects.toThrow(refused);
+      await expect(workspace.deleteAll("GAMES/tetris")).rejects.toThrow(refused);
+      await expect(workspace.mkdir("Games/Tetris")).rejects.toThrow(refused);
+      await expectNestedIntact();
+    });
+
     it.runIf(isLocal)(
       "refuses a path through a link that points at a folder the host names",
       async () => {
@@ -908,6 +932,35 @@ describe("Workspace over a local directory", () => {
     }
   });
 
+  // A Windows short name (`NODETO~1`) and a name with trailing dots or
+  // spaces (`.nodetool.`) are other spellings of `.nodetool` that the
+  // operating system resolves. A link of that name models them here: the
+  // lexical key passes, and only the real path says `.nodetool`.
+  it.each(["alias", "NODETO~1", ".nodetool.", ".nodetool "])(
+    "refuses %j when it really is the reserved directory",
+    async (name) => {
+      await mkdir(join(dir, ".nodetool"));
+      await writeFile(join(dir, ".nodetool", "project.json"), "{}");
+      await symlink(
+        join(dir, ".nodetool"),
+        join(dir, name),
+        process.platform === "win32" ? "junction" : "dir"
+      );
+      const workspace = new StorageWorkspace(new FileStorageAdapter(dir));
+      const refused = WorkspaceReservedPathError;
+
+      await expect(workspace.read(`${name}/project.json`)).rejects.toThrow(refused);
+      await expect(workspace.write(`${name}/project.json`, "x")).rejects.toThrow(refused);
+      await expect(workspace.write(`${name}/new.txt`, "x")).rejects.toThrow(refused);
+      await expect(workspace.delete(`${name}/project.json`)).rejects.toThrow(refused);
+      await expect(
+        assertLocalPathIsOwn(workspace, dir, join(dir, name, "project.json"))
+      ).rejects.toThrow(refused);
+      expect(await readFile(join(dir, ".nodetool", "project.json"), "utf8")).toBe("{}");
+      expect(existsSync(join(dir, ".nodetool", "new.txt"))).toBe(false);
+    }
+  );
+
   it("refuses to write under a symlinked-out directory", async () => {
     const outside = await mkdtemp(join(tmpdir(), "ws-outside-"));
     try {
@@ -1007,6 +1060,134 @@ describe("Workspace over a local directory", () => {
     expect(await readFile(join(actual, "notes.md"), "utf8")).toBe(
       "through alias"
     );
+  });
+});
+
+/**
+ * A host path that leads back into the folder by another spelling is judged
+ * by where it really is. Before, a path written outside the root passed
+ * without a look at its real path, so `/proc/self/root/<root>/.nodetool/x`
+ * or a link elsewhere on the host reached the reserved directory.
+ */
+describe("assertLocalPathIsOwn for a path written outside the folder", () => {
+  let dir: string;
+  let outside: string;
+  let workspace: Workspace;
+  const linkType = process.platform === "win32" ? "junction" : "dir";
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), "ws-own-"));
+    outside = await mkdtemp(join(tmpdir(), "ws-own-outside-"));
+    await mkdir(join(dir, ".nodetool"));
+    await writeFile(join(dir, ".nodetool", "project.json"), "{}");
+    await mkdir(join(dir, "projects", "abc", ".nodetool"), { recursive: true });
+    await writeFile(join(dir, "projects", "abc", "fox.png"), "theirs");
+    workspace = new StorageWorkspace(new FileStorageAdapter(dir));
+  });
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+    await rm(outside, { recursive: true, force: true });
+  });
+
+  it.runIf(existsSync("/proc/self/root"))(
+    "refuses the reserved directory spelled through /proc/self/root",
+    async () => {
+      const spelled = join("/proc/self/root", dir, ".nodetool", "project.json");
+      await expect(
+        assertLocalPathIsOwn(workspace, dir, spelled)
+      ).rejects.toThrow(WorkspaceReservedPathError);
+      await expect(
+        assertLocalPathIsOwn(workspace, dir, join("/proc/self/root", dir, ".nodetool", "new.txt"))
+      ).rejects.toThrow(WorkspaceReservedPathError);
+    }
+  );
+
+  it("refuses a link outside the folder that points into the reserved directory", async () => {
+    await symlink(join(dir, ".nodetool"), join(outside, "in"), linkType);
+    await expect(
+      assertLocalPathIsOwn(workspace, dir, join(outside, "in", "project.json"))
+    ).rejects.toThrow(WorkspaceReservedPathError);
+    await expect(
+      assertLocalPathIsOwn(workspace, dir, join(outside, "in", "new", "x.txt"))
+    ).rejects.toThrow(WorkspaceReservedPathError);
+  });
+
+  it("refuses a link outside the folder that points into another project's folder", async () => {
+    await symlink(join(dir, "projects", "abc"), join(outside, "theirs"), linkType);
+    const refused = await assertLocalPathIsOwn(
+      workspace,
+      dir,
+      join(outside, "theirs", "fox.png")
+    ).catch((error: unknown) => error);
+    expect(refused).toBeInstanceOf(WorkspaceReservedPathError);
+    expect((refused as WorkspaceReservedPathError).reason).toBe("nested");
+  });
+
+  it("refuses a dangling link whose target a create would make in the reserved directory", async () => {
+    await symlink(join(dir, ".nodetool", "planted.txt"), join(outside, "out.txt"));
+    await symlink(join("..", ".nodetool", "planted.txt"), join(dir, "projects", "out.txt"));
+    await expect(
+      assertLocalPathIsOwn(workspace, dir, join(outside, "out.txt"))
+    ).rejects.toThrow(WorkspaceReservedPathError);
+    await expect(
+      assertLocalPathIsOwn(workspace, dir, join(dir, "projects", "out.txt"))
+    ).rejects.toThrow(WorkspaceReservedPathError);
+  });
+
+  // macOS firmlinks (`/System/Volumes/Data/Users/...`) are a spelling that
+  // `realpath` does not resolve. A spy models one: the alias resolves for
+  // `stat`, while `realpath` hands it back unchanged.
+  it("refuses a spelling that realpath leaves alone, by the folder's identity", async () => {
+    const alias = join(outside, "firmlink");
+    await symlink(dir, alias, linkType);
+    const realpath = fsPromises.realpath.bind(fsPromises);
+    vi.spyOn(fsPromises, "realpath").mockImplementation(async (p, ...rest) =>
+      String(p).startsWith(alias) ? String(p) : realpath(p, ...rest)
+    );
+    await expect(
+      assertLocalPathIsOwn(workspace, dir, join(alias, ".nodetool", "project.json"))
+    ).rejects.toThrow(WorkspaceReservedPathError);
+    await expect(
+      assertLocalPathIsOwn(workspace, dir, join(alias, "projects", "abc", "fox.png"))
+    ).rejects.toThrow(WorkspaceReservedPathError);
+    await assertLocalPathIsOwn(workspace, dir, join(alias, "renders", "a.png"));
+  });
+
+  it("passes a path elsewhere on the host, and the folder's own files by any spelling", async () => {
+    await mkdir(join(dir, "renders"));
+    await symlink(join(dir, "renders"), join(outside, "renders"), linkType);
+    await assertLocalPathIsOwn(workspace, dir, join(outside, "elsewhere.png"));
+    await assertLocalPathIsOwn(workspace, dir, join(outside, "renders", "a.png"));
+    await assertLocalPathIsOwn(workspace, dir, join(dir, "renders", "a.png"));
+  });
+
+  describe("for a write", () => {
+    const write = { write: true } as const;
+
+    it("refuses a link in the folder that leads out of it", async () => {
+      await writeFile(join(outside, "victim.txt"), "victim");
+      await symlink(join(outside, "victim.txt"), join(dir, "out.txt"));
+      await symlink(join(outside, "absent.txt"), join(dir, "dangling.txt"));
+      await symlink(outside, join(dir, "renders"), linkType);
+      for (const target of [
+        join(dir, "out.txt"),
+        join(dir, "dangling.txt"),
+        join(dir, "renders", "a.png")
+      ]) {
+        await expect(
+          assertLocalPathIsOwn(workspace, dir, target, target, write)
+        ).rejects.toThrow(WorkspacePathError);
+      }
+    });
+
+    it("passes a link in the folder to a file of its own, and a path outside it", async () => {
+      await writeFile(join(dir, "real.txt"), "mine");
+      await symlink(join(dir, "real.txt"), join(dir, "latest.txt"));
+      await assertLocalPathIsOwn(workspace, dir, join(dir, "latest.txt"), undefined, write);
+      await assertLocalPathIsOwn(workspace, dir, join(dir, "new", "a.txt"), undefined, write);
+      await assertLocalPathIsOwn(workspace, dir, join(outside, "b.txt"), undefined, write);
+    });
   });
 });
 

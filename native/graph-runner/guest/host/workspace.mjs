@@ -4,6 +4,16 @@
 // folder. Paths are workspace-relative (`notes.md`, `/workspace/notes.md`
 // and `workspace/notes.md` are one file), and the host refuses any real
 // location outside the workspace, so a symlink cannot lead out of it.
+// The workspace can be a project folder, whose `.nodetool/` holds NodeTool's
+// own files: a path with a segment of that name, in any case, is refused
+// here with a readable error, and by the host (src/host/paths.cpp) for every
+// other caller. Listings leave it out. The rule and the error are
+// runtime-core's own, as for assertLocalPathIsOwn in host/runtime.mjs.
+import {
+  WorkspaceReservedPathError,
+  isReservedWorkspaceKey,
+  isReservedWorkspaceName
+} from "guest-real:@nodetool-ai/runtime-core/workspace.js";
 import * as fs from "./fs.mjs";
 import { pathToFileURL } from "./url.mjs";
 
@@ -47,10 +57,47 @@ export class LocalWorkspace {
   }
 
   key(path) {
-    const local=String(path).replaceAll("\\", "/");
-    const key = normalize(local.startsWith(`${this.localDir}/`) ? local.slice(this.localDir.length+1) : local);
+    const key = this.dirKey(path);
     if (!key) throw new WorkspacePathError(path);
     return key;
+  }
+
+  /** As key(), where the workspace itself ("") is allowed. */
+  dirKey(path) {
+    const local=String(path).replaceAll("\\", "/");
+    const key = normalize(local.startsWith(`${this.localDir}/`) ? local.slice(this.localDir.length+1) : local);
+    if (isReservedWorkspaceKey(key)) throw new WorkspaceReservedPathError(path);
+    return key;
+  }
+
+  /**
+   * Files (and, unless recursive, directories) below the directory key `key`,
+   * pushed to `walk.entries`. Never descends into a reserved directory:
+   * `walk.reserved` says one was passed, `walk.dirs` lists the directories
+   * descended into, parents first.
+   */
+  collect(key, rel, recursive, walk) {
+    const base = key ? `${this.localDir}/${key}` : this.localDir;
+    const dir = rel ? `${base}/${rel}` : base;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (isReservedWorkspaceName(entry.name)) {
+        walk.reserved = true;
+        continue;
+      }
+      const childRel = rel ? `${rel}/${entry.name}` : entry.name;
+      const full = key ? `${key}/${childRel}` : childRel;
+      if (entry.isDirectory()) {
+        if (!recursive) {
+          walk.entries.push({ path: full, name: entry.name, size: 0, modifiedAt: 0, isDirectory: true });
+        } else {
+          walk.dirs.push(childRel);
+          this.collect(key, childRel, true, walk);
+        }
+      } else if (entry.isFile()) {
+        const st = fs.statSync(`${base}/${childRel}`);
+        walk.entries.push({ path: full, name: entry.name, size: st.size, modifiedAt: st.mtimeMs, isDirectory: false });
+      }
+    }
   }
 
   /** Absolute path of a workspace key. The host still checks it. */
@@ -107,28 +154,16 @@ export class LocalWorkspace {
   }
 
   async list(path = "", opts = {}) {
-    const key = normalize(path);
-    const base = key ? `${this.localDir}/${key}` : this.localDir;
-    let entries;
+    const key = this.dirKey(path);
+    // A recursive listing names files only, as a storage listing does.
+    const walk = { entries: [], dirs: [], reserved: false };
     try {
-      entries = fs.readdirSync(base, { withFileTypes: true, recursive: opts.recursive === true });
+      this.collect(key, "", opts.recursive === true, walk);
     } catch (err) {
       if (missing(err)) return [];
       throw err;
     }
-    const out = [];
-    for (const entry of entries) {
-      const rel = `${entry.parentPath === base ? "" : `${entry.parentPath.slice(base.length + 1)}/`}${entry.name}`;
-      const full = key ? `${key}/${rel}` : rel;
-      if (entry.isDirectory()) {
-        // A recursive listing names files only, as a storage listing does.
-        if (opts.recursive !== true) out.push({ path: full, name: entry.name, size: 0, modifiedAt: 0, isDirectory: true });
-      } else if (entry.isFile()) {
-        const st = fs.statSync(`${base}/${rel}`);
-        out.push({ path: full, name: entry.name, size: st.size, modifiedAt: st.mtimeMs, isDirectory: false });
-      }
-    }
-    return out.sort((a, b) => a.path.localeCompare(b.path));
+    return walk.entries.sort((a, b) => a.path.localeCompare(b.path));
   }
 
   async delete(path) {
@@ -142,18 +177,36 @@ export class LocalWorkspace {
   }
 
   async deleteAll(path) {
-    const key = normalize(path);
-    const files = await this.list(key, { recursive: true });
+    const key = this.dirKey(path);
+    const walk = { entries: [], dirs: [], reserved: false };
+    try {
+      this.collect(key, "", true, walk);
+    } catch (err) {
+      if (!missing(err)) throw err;
+    }
     let deleted = 0;
-    for (const f of files) {
+    for (const f of walk.entries) {
       if (await this.delete(f.path)) deleted++;
     }
-    if (key) fs.rmSync(`${this.localDir}/${key}`, { recursive: true, force: true });
+    if (!key) return deleted;
+    const base = `${this.localDir}/${key}`;
+    if (!walk.reserved) {
+      fs.rmSync(base, { recursive: true, force: true });
+      return deleted;
+    }
+    // A reserved directory below stays, with the directories that lead to it.
+    for (const rel of walk.dirs.reverse()) {
+      try {
+        fs.rmdirSync(`${base}/${rel}`);
+      } catch {
+        // Not empty: it leads to the reserved directory.
+      }
+    }
     return deleted;
   }
 
   async mkdir(path) {
-    const key = normalize(path);
+    const key = this.dirKey(path);
     if (key) fs.mkdirSync(`${this.localDir}/${key}`, { recursive: true });
   }
 
@@ -182,6 +235,25 @@ export class LocalWorkspace {
   }
 
   async cleanupScratch() {}
+
+  // The folder of another project is known by its `.nodetool/` directory, as
+  // in the TypeScript local workspace. The runner keeps no project folders of
+  // its own, so this reads the mark on disk and nothing else.
+  async isNestedFolder(path) {
+    let key;
+    try {
+      key = normalize(path);
+    } catch {
+      return false;
+    }
+    if (!key) return false;
+    try {
+      return fs.statSync(`${this.localDir}/${key}/.nodetool`).isDirectory();
+    } catch (err) {
+      if (missing(err)) return false;
+      throw err;
+    }
+  }
 }
 
 /** The workspace the embedder granted (HostOptions::workspaceDir), or null. */

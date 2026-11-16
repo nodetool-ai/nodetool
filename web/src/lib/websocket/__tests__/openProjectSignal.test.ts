@@ -3,8 +3,12 @@
  * open, so the server watches that project's folder and stops when no client
  * has it open.
  */
+import { renderHook } from "@testing-library/react";
 import { globalWebSocketManager } from "../GlobalWebSocketManager";
-import { startOpenProjectSignal } from "../openProjectSignal";
+import {
+  startOpenProjectSignal,
+  useOpenProjectConnection
+} from "../openProjectSignal";
 import {
   LOOSE_PROJECT_ID,
   useWorkspaceTabsStore
@@ -17,6 +21,7 @@ jest.mock("../GlobalWebSocketManager", () => {
     emitOpen: () => listeners.forEach((listener) => listener()),
     globalWebSocketManager: {
       isConnectionOpen: jest.fn(() => true),
+      ensureConnection: jest.fn(() => Promise.resolve()),
       send: jest.fn(() => Promise.resolve()),
       subscribeEvent: jest.fn((_event: string, listener: () => void) => {
         listeners.add(listener);
@@ -32,6 +37,7 @@ const { emitOpen } = jest.requireMock<{ emitOpen: () => void }>(
 );
 const manager = {
   isConnectionOpen: asMock(globalWebSocketManager.isConnectionOpen),
+  ensureConnection: asMock(globalWebSocketManager.ensureConnection),
   send: asMock(globalWebSocketManager.send),
   emitOpen
 };
@@ -100,5 +106,31 @@ describe("startOpenProjectSignal", () => {
     useWorkspaceTabsStore.setState({ activeProjectId: "project-c" });
     manager.emitOpen();
     expect(manager.send).not.toHaveBeenCalled();
+  });
+});
+
+describe("useOpenProjectConnection", () => {
+  beforeEach(() => manager.ensureConnection.mockClear());
+
+  it("opens the socket once while a view of the folder is mounted, and leaves it open after", () => {
+    const view = renderHook(() => useOpenProjectConnection());
+    view.rerender();
+    expect(manager.ensureConnection).toHaveBeenCalledTimes(1);
+
+    view.unmount();
+    expect(manager.ensureConnection).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not throw when the socket cannot be opened", async () => {
+    manager.ensureConnection.mockRejectedValueOnce(new Error("offline"));
+    const debug = jest.spyOn(console, "debug").mockImplementation(() => undefined);
+    renderHook(() => useOpenProjectConnection());
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(debug).toHaveBeenCalledWith(
+      "openProjectSignal: connection failed",
+      expect.any(Error)
+    );
+    debug.mockRestore();
   });
 });

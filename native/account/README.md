@@ -51,7 +51,9 @@ static library `nodetool_account`.
 | Session record | Keychain item, service `ai.nodetool.native`, account `<server origin>#<user id>` | Yes: refresh token, access token, revocation handles |
 | `account.lock` | `<data dir>/accounts/<server key>-<user key>/` | No |
 | `session.gen` | Same folder. 16 bytes: the generation, the state, the magic `NTG` | No |
-| `accounts.json` | `<data dir>/`, written under `accounts.lock` | No |
+| `signout.gen` | Same folder. The generation of the last sign-out, in the `session.gen` format | No |
+| `entry.json` | Same folder. The server, user id and display name, written at sign-in | No |
+| `accounts.json` | `<data dir>/`, written under `accounts.lock`. `AccountsIndex::list()` adds each `entry.json` it lacks | No |
 
 Both keys in the folder name are the first 16 hex characters of a SHA-256,
 of the server origin and of the user id. Every file is written to a
@@ -88,11 +90,21 @@ its requests and close its sockets at once.
   the server confirmed an earlier sign-out would otherwise overwrite the only
   copy of that handle.
 - A sign-out that cannot take the lock within its wait proceeds without it,
-  as the design says, and checks the generation file once more after its two
-  writes. A refresh that passed its own check in the microseconds between the
-  sign-out's writes and that check can still store its tokens. The window
-  needs a lock holder that is stuck for over 15 seconds and a response that
-  arrives inside it.
+  as the design says. It writes `signout.gen` before `session.gen` and the
+  record. No credential at or below that generation is used, so a refresh
+  that passed its check before the marker and publishes after it is undone:
+  the refresh rechecks the marker after its writes and signs out, and every
+  app refuses the credential before then.
+- A refresh or sign-out whose keychain write fails says so. The refresh
+  returns offline and does not adopt its tokens. The sign-out returns
+  `ServerEnd::NotSaved`, the marker still stops the credential, and the app
+  keeps the handles in memory so `endPendingSessions()` still ends them.
+- `authorizeRequest()` returns the credential with a cancel flag registered
+  under the session's mutex. A move to signed out cancels every flag, so a
+  request authorized just before a sign-out is stopped.
+- A sign-in writes `entry.json` before the record. When `accounts.json`
+  cannot be written, the account is still listed. When the record cannot be
+  stored, the sign-in flow ends the new session on the server.
 - The generation file is read with a 16-byte file read on every request.
   WP0.2 may replace this with a shared memory mapping.
 - The credential store calls the platform APIs directly instead of
@@ -109,18 +121,28 @@ its requests and close its sockets at once.
 
 ## The request layer and the saved state
 
-`CloudClient::send()` applies the request rule before each request to the
-cloud server, attaches `Authorization: Bearer`, and replaces any header the
-caller set. It also sends `x-nodetool-protocol` with the client's protocol
-version, so a server that needs a newer client refuses its writes with
-`CLIENT_TOO_OLD` (WP1.7). It refuses a URL that is not on the session's origin, so the
-credential never reaches another host. On a 401 it renews the token once
-and sends again. A 401 that a renewal cannot change is returned, not
-retried.
+The credential is bound to one origin: the canonical HTTPS form of the
+server the session signed in to (`origin.h`, `AccountSession::serverOrigin`).
+A session whose server is not HTTPS sends nothing. `HttpTokenEndpoint`
+refuses a non-HTTPS origin without sending, and a session refuses to
+refresh through an endpoint bound to another origin.
+
+`CloudClient::send()` takes the session's authorization and its cancel flag
+in one step, attaches `Authorization: Bearer`, and replaces any header the
+caller set. It sends only to a URL whose origin equals the session's, and
+sets that origin as the request's `requiredOrigin`, which the transport
+checks again at the send. A transport never follows a redirect. On a 401 it
+renews the token with `refresh(rejectedToken)`, which calls the server even
+when the refused token has not expired, and sends once more with a
+different token. A request in flight when the session signs out returns
+`Cancelled`. Every request also carries `x-nodetool-protocol` with the
+client's protocol version, so a server that needs a newer client refuses its
+writes with `CLIENT_TOO_OLD` (WP1.7).
 
 `CloudDocumentSaver` drives one open cloud document. `edit()` takes the
-whole in-memory document from any thread. `tick()` runs on a worker thread
-at least every 250 ms:
+whole in-memory document from any thread. `persist()` and `send()` run on
+two worker threads, each at least every 250 ms, so a slow cloud server
+never delays a local write:
 
 1. The draft is written to the local store once the edits pause for
    200 ms, and at the latest 500 ms after the first unstored edit, so every
@@ -128,9 +150,11 @@ at least every 250 ms:
 2. The stored draft is sent. On acceptance the local store deletes the
    draft row and records the new base in one transaction. Only then does
    the status read Saved to cloud.
-3. A failed local write, or a failed record of an acceptance, shows Not
-   saving at once. Not saving stays until the store works, whatever the
-   cloud answers, and the write is retried every 2 seconds.
+3. A failed local write, or a failed record of an acceptance or refusal,
+   shows Not saving at once. Not saving stays until the store works,
+   whatever the cloud answers. A failed write is retried every 2 seconds. A
+   failed record is retried alone, so the server never gets the same draft
+   twice.
 4. A refused save keeps the draft as unsent edits. Offline and signed-out
    sends are retried every 5 seconds.
 
@@ -152,9 +176,14 @@ draft that is not the kind's JSON is never sent and reads as refused with
 
 The local store is the `cloudLocal` tRPC router of the app's bundled
 server, over the `cloud_drafts` and `cloud_open_state` tables
-(`packages/models/src/cloud-local-store.ts`). A draft row carries a
-revision. An acceptance deletes the row only when it is still the revision
-that was sent, so edits made during a send are kept and sent next.
+(`packages/models/src/cloud-local-store.ts`). Each draft write gets a new
+random `draft_id` that is never reused. An acceptance deletes the row only
+when it is still the draft that was sent, rebases a newer row only when it
+edits the same base, and leaves any other row alone, so a late
+acknowledgement never deletes or moves back a newer draft. `DraftStore::load`
+and `list` read the rows back, and the second `CloudDocumentSaver`
+constructor resumes one after a restart. Rolling the migration back leaves
+both tables in place.
 
 ## Not in this library yet
 

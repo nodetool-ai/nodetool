@@ -3,6 +3,7 @@
 // links only the interface library and the QML module.
 #include "interfaces/PanelLayout.h"
 #include "interfaces/StatusModel.h"
+#include "server/ProjectFolder.h"
 #include "server/WorkflowBrowser.h"
 
 #include <QGuiApplication>
@@ -13,11 +14,20 @@
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QtQml/QQmlExtensionPlugin>
+#include <QDir>
+#include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QTemporaryDir>
+#include <QUrlQuery>
 #include <QtTest>
+#include <algorithm>
 
 Q_IMPORT_QML_PLUGIN(NodeTool_NodeEditorPlugin)
 
 using nodetool::node_editor::PanelLayout;
+using nodetool::node_editor::ProjectFolder;
 using nodetool::node_editor::StatusModel;
 using nodetool::node_editor::WorkflowBrowser;
 
@@ -78,6 +88,63 @@ public:
     }
     QUrl url() const { return QUrl(QString("http://127.0.0.1:%1").arg(serverPort())); }
 };
+
+// Answers the projects procedures from a script: each path gets a status and a
+// body, and the server records the requests with their bodies.
+class ProjectServer final : public QTcpServer {
+public:
+    struct Answer { int status = 200; QByteArray body; };
+    QHash<QString, Answer> answers;
+    QList<QPair<QUrl, QJsonObject>> requests;
+    ProjectServer() {
+        listen(QHostAddress::LocalHost);
+        connect(this, &QTcpServer::newConnection, this, [this] {
+            auto *socket = nextPendingConnection();  // Owned by this server, its parent.
+            connect(socket, &QTcpSocket::readyRead, socket, [this, socket] {
+                const auto bytes = socket->property("bytes").toByteArray() + socket->readAll();
+                socket->setProperty("bytes", bytes);
+                const auto split = bytes.indexOf("\r\n\r\n");
+                if (split < 0 || socket->property("done").toBool()) { return; }
+                int length = 0;
+                for (const auto &line : bytes.left(split).split('\n')) {
+                    if (line.toLower().startsWith("content-length:")) { length = line.mid(15).trimmed().toInt(); }
+                }
+                if (bytes.size() < split + 4 + length) { return; }
+                socket->setProperty("done", true);
+                const QUrl target(QString::fromUtf8(bytes.split(' ').value(1)));
+                const auto input = bytes.startsWith("GET")
+                    ? QJsonDocument::fromJson(QUrlQuery(target).queryItemValue("input", QUrl::FullyDecoded).toUtf8()).object()
+                    : QJsonDocument::fromJson(bytes.mid(split + 4, length)).object();
+                requests.append({target, input});
+                const auto answer = answers.value(target.path(), Answer{404, R"({"error":{"message":"Not found"}})"});
+                socket->write("HTTP/1.1 " + QByteArray::number(answer.status) + " X\r\nContent-Type: application/json\r\nConnection: close\r\nContent-Length: " +
+                              QByteArray::number(answer.body.size()) + "\r\n\r\n" + answer.body);
+                socket->disconnectFromHost();
+            });
+        });
+    }
+    QUrl url() const { return QUrl(QString("http://127.0.0.1:%1").arg(serverPort())); }
+    int count(const QString &path) const {
+        return int(std::count_if(requests.cbegin(), requests.cend(), [&](const auto &request) { return request.first.path() == path; }));
+    }
+    static QByteArray data(const QJsonValue &value) {
+        return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", value}}}}).toJson(QJsonDocument::Compact);
+    }
+};
+
+QJsonObject project(const QString &id, const QString &name, const QJsonValue &folder, bool personal = false) {
+    return {{"id", id}, {"name", name}, {"kind", "general"}, {"isPersonal", personal}, {"archivedAt", QJsonValue::Null},
+            {"threadId", QJsonValue::Null}, {"folder", folder}, {"createdAt", "2026-11-01"}, {"updatedAt", "2026-11-01"}};
+}
+
+QJsonObject folderOf(const QString &path, bool accessible) {
+    return {{"workspace_id", "ws-" + QFileInfo(path).fileName()}, {"path", path}, {"origin", "created"},
+            {"is_accessible", accessible}, {"on_delete", "trash"}};
+}
+
+QString textOf(QQuickItem *item) {
+    return item ? item->property("message").toString() : QString();
+}
 
 void doubleClick(QQuickView &view, QQuickItem *item) {
     QVERIFY(item);
@@ -192,6 +259,155 @@ private slots:
         QCOMPARE(opened.size(), 1);
         QTest::keyClick(&view, Qt::Key_Escape);
         QTRY_VERIFY(!visibleNamed(root, "workflow-rename-a"));
+    }
+
+    // The tab's project folder at the top of the list: where it is and a file
+    // manager for it, "Folder not found" with Locate, and the server's refusal.
+    void folderNoticeShowsTheProjectFolder() {
+        QTemporaryDir disk;
+        QVERIFY(disk.isValid());
+        const auto here = disk.path();
+        const auto gone = QDir(here).filePath("Moved away");
+        ProjectServer server;
+        server.answers["/trpc/projects.list"] = {200, ProjectServer::data(QJsonArray{
+            project("personal:1", "Personal", folderOf(here, true), true),
+            project("p1", "Poster <Spring>", folderOf(gone, false)),
+            project("p2", "Draft", QJsonValue::Null)})};
+        server.answers["/trpc/projects.relocate"] = {400, R"({"error":{"message":"Relocating a folder works only on a local server"}})"};
+        ProjectFolder folder;
+        folder.configure(server.url(), {}, "1");
+        QTRY_COMPARE(folder.folderState(), QString("ok"));
+        QCOMPARE(folder.projectName(), QString("Personal"));
+        QCOMPARE(folder.folderPath(), here);
+        QCOMPARE(folder.workspaceId(), "ws-" + QFileInfo(here).fileName());
+        QVERIFY(folder.revealable());
+
+        WorkflowBrowser browser;
+        PanelLayout panels;
+        StatusModel status;
+        status.setStatus({.connected = true});
+        QQuickView view;
+        view.setInitialProperties({{"browser", QVariant::fromValue(&browser)},
+                                   {"panels", QVariant::fromValue(&panels)},
+                                   {"status", QVariant::fromValue(&status)},
+                                   {"folder", QVariant::fromValue(&folder)}});
+        view.setResizeMode(QQuickView::SizeRootObjectToView);
+        view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/WorkflowBrowser.qml"));
+        QCOMPARE(view.status(), QQuickView::Ready);
+        view.resize(360, 700);
+        view.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&view));
+        auto *root = view.rootObject();
+        QTRY_VERIFY(visibleNamed(root, "project-folder-path"));
+        QVERIFY(visibleNamed(root, "project-folder-reveal"));
+        QCOMPARE(named(root, "project-folder-reveal")->property("text").toString(), ProjectFolder::revealLabel());
+        QVERIFY(!visibleNamed(root, "project-folder-missing"));
+
+        // A folder the server cannot reach offers Locate. The name is no markup.
+        folder.setProject("p1");
+        QTRY_VERIFY(visibleNamed(root, "project-folder-missing"));
+        QVERIFY(!visibleNamed(root, "project-folder-path"));
+        QVERIFY(!folder.revealable());
+        QCOMPARE(textOf(named(root, "project-folder-missing")),
+                 QString("<b>Folder not found</b><br>The folder of Poster &lt;Spring&gt; was moved, renamed, or is on a drive that is not connected. Runs cannot start until you locate it."));
+        QCOMPARE(named(root, "project-folder-missing")->property("actionText").toString(), QString("Locate"));
+        folder.locate(QUrl::fromLocalFile(here));
+        QTRY_VERIFY(visibleNamed(root, "project-folder-locate-error"));
+        QCOMPARE(textOf(named(root, "project-folder-locate-error")),
+                 QString("Could not locate the folder: Relocating a folder works only on a local server"));
+        QCOMPARE(server.requests.last().second, (QJsonObject{{"project_id", "p1"}, {"path", here}}));
+        // A local server takes the new place and answers the project.
+        server.answers["/trpc/projects.relocate"] = {200, ProjectServer::data(project("p1", "Poster <Spring>", folderOf(here, true)))};
+        folder.locate(QUrl::fromLocalFile(here));
+        QTRY_COMPARE(folder.folderState(), QString("ok"));
+        QTRY_VERIFY(!visibleNamed(root, "project-folder-missing"));
+        QVERIFY(!visibleNamed(root, "project-folder-locate-error"));
+        QVERIFY(visibleNamed(root, "project-folder-path"));
+
+        folder.setProject("p2");
+        QTRY_VERIFY(visibleNamed(root, "project-folder-none"));
+        QCOMPARE(textOf(named(root, "project-folder-none")), QString("<b>No project folder</b><br>This project has no folder yet."));
+
+        // A cloud folder has no path, so the notice shows nothing.
+        server.answers["/trpc/projects.list"] = {200, ProjectServer::data(QJsonArray{project("p3", "Cloud", QJsonObject{
+            {"workspace_id", "ws-cloud"}, {"path", QJsonValue::Null}, {"origin", "created"}, {"is_accessible", true}, {"on_delete", "remove"}})})};
+        folder.setProject("p3");
+        QTRY_COMPARE(folder.workspaceId(), QString("ws-cloud"));
+        QVERIFY(!folder.revealable());
+        QVERIFY(!visibleNamed(root, "project-folder-path"));
+        QVERIFY(!visibleNamed(root, "project-folder-none"));
+        // Without a server connection the panel shows no notice.
+        status.setStatus({.connected = false});
+        folder.setProject("p1");
+        QTest::qWait(50);
+        QVERIFY(!visibleNamed(root, "project-folder-missing"));
+    }
+
+    // DocumentFileNotice.tsx: an invalid file shows its error, a missing one
+    // offers Restore, and a refused restore says why.
+    void fileBannerShowsTheOpenWorkflowFile() {
+        ProjectServer server;
+        server.answers["/trpc/projects.list"] = {200, ProjectServer::data(QJsonArray{project("p1", "Poster", folderOf("/srv/poster", true))})};
+        const auto documents = [](const QJsonValue &file) {
+            return ProjectServer::data(QJsonArray{
+                QJsonObject{{"type", "workflow"}, {"ref", "other"}, {"name", "Other"}, {"updatedAt", "2026-11-01"},
+                            {"file", QJsonObject{{"path", "Workflows/Other.workflow.json"}, {"state", "missing"}, {"error", QJsonValue::Null}}}},
+                QJsonObject{{"type", "workflow"}, {"ref", "wf-1"}, {"name", "Lights"}, {"updatedAt", "2026-11-01"}, {"file", file}}});
+        };
+        server.answers["/trpc/projects.documents"] = {200, documents(QJsonObject{
+            {"path", "Workflows/Lights.workflow.json"}, {"state", "invalid"}, {"error", "Unexpected token } in JSON"}})};
+        ProjectFolder folder;
+        folder.configure(server.url(), {}, "1");
+        folder.setProject("p1");
+        folder.setDocument("wf-1");
+        QTRY_COMPARE(folder.fileState(), QString("invalid"));
+        QCOMPARE(server.requests.last().second, (QJsonObject{{"id", "p1"}}));
+
+        QQuickView view;
+        view.setInitialProperties({{"folder", QVariant::fromValue(&folder)}});
+        view.setResizeMode(QQuickView::SizeRootObjectToView);
+        view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/DocumentFileBanner.qml"));
+        QCOMPARE(view.status(), QQuickView::Ready);
+        view.resize(700, 160);
+        view.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&view));
+        auto *root = view.rootObject();
+        QVERIFY(root->implicitHeight() > 0);
+        QTRY_VERIFY(visibleNamed(root, "document-file-invalid"));
+        QCOMPARE(textOf(named(root, "document-file-invalid")),
+                 QString("<b>This file has an error</b><br>Workflows/Lights.workflow.json was not loaded: Unexpected token } in JSON. The last valid version stays open and still runs."));
+        QVERIFY(!visibleNamed(root, "document-file-missing"));
+
+        // A documentfile push for another document reads nothing. One for this
+        // document reads the list again.
+        server.answers["/trpc/projects.documents"] = {200, documents(QJsonObject{
+            {"path", "Workflows/Lights.workflow.json"}, {"state", "missing"}, {"error", QJsonValue::Null}})};
+        const auto reads = server.count("/trpc/projects.documents");
+        folder.documentFileChanged({{"id", "other"}, {"type", "workflow"}});
+        QTest::qWait(50);
+        QCOMPARE(server.count("/trpc/projects.documents"), reads);
+        folder.documentFileChanged({{"id", "wf-1"}, {"type", "workflow"}, {"file_error", QJsonValue::Null}});
+        QTRY_VERIFY(visibleNamed(root, "document-file-missing"));
+        QCOMPARE(textOf(named(root, "document-file-missing")),
+                 QString("<b>File missing</b><br>Workflows/Lights.workflow.json is no longer in the project folder. Restore writes it again from this document."));
+
+        server.answers["/trpc/projects.restoreDocumentFile"] = {503, R"({"error":{"message":"The project folder is not reachable"}})"};
+        auto *restore = named(named(root, "document-file-missing"), "bannerActionButton");
+        QCOMPARE(restore->property("text").toString(), QString("Restore"));
+        click(view, restore);
+        QTRY_VERIFY(visibleNamed(root, "document-file-restore-error"));
+        QCOMPARE(textOf(named(root, "document-file-restore-error")),
+                 QString("The file was not restored: The project folder is not reachable"));
+        QCOMPARE(server.requests.last().second, (QJsonObject{{"type", "workflow"}, {"ref", "wf-1"}}));
+        server.answers["/trpc/projects.restoreDocumentFile"] = {200, ProjectServer::data(QJsonObject{{"type", "workflow"}, {"ref", "wf-1"},
+            {"name", "Lights"}, {"updatedAt", "2026-11-02"}, {"file", QJsonObject{{"path", "Workflows/Lights.workflow.json"}, {"state", "ok"}, {"error", QJsonValue::Null}}}})};
+        click(view, restore);
+        QTRY_COMPARE(folder.fileState(), QString("ok"));
+        QTRY_VERIFY(!root->isVisible());
+        QCOMPARE(root->implicitHeight(), 0.0);
+        // Another document has its own state, none loaded yet.
+        folder.setDocument({});
+        QVERIFY(folder.fileState().isEmpty());
     }
 
     void browserRequestsGoThroughTheModel() {

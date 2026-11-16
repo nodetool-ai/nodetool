@@ -94,8 +94,6 @@ const ChatInputSection = ({
           allowedProviders={allowedProviders}
           requireToolSupport={requireToolSupport}
           placeholder={placeholder}
-          // A chat always sends a chat turn. Create tabs generate media.
-          hideModePicker
           hideModelPicker={hideModelPicker}
           threadId={threadId}
         />

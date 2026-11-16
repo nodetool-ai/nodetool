@@ -765,6 +765,40 @@ describe("setScreenplay", () => {
   });
 });
 
+describe("applyTextEdit", () => {
+  const edit = (action: string) => ({
+    screenplay: null,
+    shots: [{ type: "shot" as const, id: SHOT, index: 0, action, status: "planned" as const }],
+    brief: "A brief",
+    style: "",
+    entityIds: [],
+    aspectRatio: "16:9",
+    genre: "",
+    look_preset_ids: []
+  });
+
+  it("writes the parts the text owns and keeps the rest of the board", () => {
+    seed();
+    const store = useStoryboardStore.getState();
+    store.setTitle(BOARD, "Kept title");
+    store.applyTextEdit(BOARD, edit("Typed in the text"));
+    const board = useStoryboardStore.getState().boards[BOARD];
+    expect(board?.shots[0].action).toBe("Typed in the text");
+    expect(board?.brief).toBe("A brief");
+    expect(board?.title).toBe("Kept title");
+  });
+
+  it("folds consecutive text edits into one undo step", () => {
+    seed();
+    const store = useStoryboardStore.getState();
+    store.applyTextEdit(BOARD, edit("T"));
+    store.applyTextEdit(BOARD, edit("Ty"));
+    store.applyTextEdit(BOARD, edit("Typed"));
+    store.undo(BOARD);
+    expect(getShot()?.action).toBe("test shot");
+  });
+});
+
 // ── Ordering contract (PRD § 7.7.3) ─────────────────────────────────────────
 
 const SCENE_BOARD = "board-scenes";

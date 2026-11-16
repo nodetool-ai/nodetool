@@ -14,12 +14,15 @@ namespace nodetool::account {
 // transport is thread-safe.
 class HttpTokenEndpoint final : public TokenEndpoint {
 public:
-  // `serverOrigin` is the scheme, host and port, with no trailing slash.
-  HttpTokenEndpoint(HttpTransport& transport, std::string serverOrigin);
+  // `serverOrigin` must be an HTTPS origin (see origin.h). Any other value
+  // leaves the endpoint refusing every call without sending, so a code,
+  // verifier or refresh token never travels in plain text.
+  HttpTokenEndpoint(HttpTransport& transport, std::string_view serverOrigin);
 
   TokenResult exchangeCode(const CodeExchange& exchange) override;
   TokenResult refresh(std::string_view refreshToken) override;
   EndSessionStatus endSession(std::string_view revocationHandle) override;
+  std::string serverOrigin() const override { return origin_; }
 
 private:
   TokenResult postToken(std::string body);
