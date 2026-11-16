@@ -15,7 +15,7 @@ import { createLogger } from "@nodetool-ai/config";
 import { Asset, setAssetFileMover } from "@nodetool-ai/models";
 import { readFile } from "node:fs/promises";
 import { getAssetFileName, isNonEmptyString } from "@nodetool-ai/protocol";
-import type { Workspace } from "@nodetool-ai/runtime";
+import { NestedFolders, type Workspace } from "@nodetool-ai/runtime";
 import { probeAssetDurationSeconds } from "./asset-duration.js";
 import { normalizeAssetContentType } from "./asset-paths.js";
 import {
@@ -26,6 +26,7 @@ import {
   WORKSPACE_SERVER_KEYS,
   keepFingerprint,
   localProjectAssetPath,
+  locateProjectAssetFile,
   partialContentHash,
   partialContentHashOfFile,
   partialContentHashOfWorkspaceFile,
@@ -242,6 +243,17 @@ function joinPath(directory: string, fileName: string): string {
   return directory ? `${directory}/${fileName}` : fileName;
 }
 
+/** Thrown when an asset file is to be written into another project's folder. */
+export class ProjectAssetPlacementError extends Error {
+  constructor(directory: string) {
+    super(
+      `The directory ${directory} is in the folder of another project. ` +
+        `Choose a directory of this project.`
+    );
+    this.name = "ProjectAssetPlacementError";
+  }
+}
+
 /**
  * Write `bytes` to a new file in `directory` named after `stem`, and return
  * its path: `stem.ext`, or `stem-2.ext`, `stem-3.ext` and so on when the name
@@ -262,6 +274,10 @@ function joinPath(directory: string, fileName: string): string {
  * crash records the path in it. Throwing from it stops the claim with
  * nothing written. `stagingName` is passed to `Workspace.writeNew`, so the
  * claimed name holds the whole file or nothing.
+ *
+ * Throws {@link ProjectAssetPlacementError} for a directory that is the
+ * folder of another project inside this one, or lies in it. A file written
+ * there would be that project's file with a row in this one.
  */
 export async function claimFile(
   workspace: Workspace,
@@ -274,6 +290,9 @@ export async function claimFile(
   beforeWrite?: (path: string) => Promise<void>,
   stagingName?: string
 ): Promise<string> {
+  if (directory && (await new NestedFolders(workspace).covers(directory))) {
+    throw new ProjectAssetPlacementError(directory);
+  }
   const taken = new Set(
     (await workspace.list(directory)).map((entry) => entry.name.toLowerCase())
   );
@@ -807,6 +826,11 @@ function baseName(path: string): string {
  * asset's file was, under its own name, with a numeric suffix when that name
  * is taken. The file the asset pointed at before is never removed.
  *
+ * An asset whose row names a file in the folder of another project inside
+ * this one can be relinked like any asset that lost its file. The copy of an
+ * outside file then goes to {@link IMPORTED_DIRECTORY}. A file in another
+ * project's folder is refused as the new file.
+ *
  * Throws {@link ProjectAssetRelinkError} for a file that cannot be used, and
  * `ProjectFolderUnavailableError` when the project folder cannot be reached.
  */
@@ -814,14 +838,20 @@ export async function relinkProjectAsset(
   asset: Asset,
   source: ProjectAssetRelinkSource
 ): Promise<boolean> {
-  const file = await requireProjectAssetFile(asset);
+  const file = await locateProjectAssetFile(asset);
   if (!file) return false;
   const { workspace } = file;
+  const nested = new NestedFolders(workspace);
 
   return withProjectFolderLock(asset.user_id, asset.project_id, async () => {
     let to: string;
     if ("path" in source) {
       to = workspace.key(source.path);
+      if (await nested.holds(to)) {
+        throw new ProjectAssetRelinkError(
+          `The file ${to} is in the folder of another project`
+        );
+      }
       const info = await workspace.stat(to);
       if (!info || info.isDirectory) {
         throw new ProjectAssetRelinkError(
@@ -839,7 +869,9 @@ export async function relinkProjectAsset(
         );
       }
     } else {
-      const { directory } = splitPath(file.path);
+      const directory = (await nested.holds(file.path))
+        ? IMPORTED_DIRECTORY
+        : splitPath(file.path).directory;
       const fileName = baseName(source.localPath);
       const { stem, extension } = splitPath(fileName);
       const sameName = workspace.key(joinPath(directory, fileName));

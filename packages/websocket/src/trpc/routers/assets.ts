@@ -67,6 +67,7 @@ import {
 import {
   COLLECT_PATH_KEY,
   collectLinkedAssets,
+  ProjectAssetPlacementError,
   ProjectAssetRelinkError,
   deleteProjectAssetFile,
   moveProjectAssetToDirectory,
@@ -198,7 +199,10 @@ async function deleteAssetWithObjects(asset: AssetModel): Promise<void> {
   await asset.delete();
 }
 
-/** Report an unreachable project folder with its reason. Other errors pass. */
+/**
+ * Report an unreachable project folder, or a directory in the folder of
+ * another project, with its reason. Other errors pass.
+ */
 function rethrowFolderError(error: unknown): never {
   if (error instanceof ProjectFolderUnavailableError) {
     throwApiError(
@@ -206,6 +210,9 @@ function rethrowFolderError(error: unknown): never {
       error.message,
       "PRECONDITION_FAILED"
     );
+  }
+  if (error instanceof ProjectAssetPlacementError) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, error.message);
   }
   throw error;
 }

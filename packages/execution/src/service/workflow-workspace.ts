@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { isAbsolute, join, relative, sep } from "node:path";
 import { createLogger, workspaceStorageKind } from "@nodetool-ai/config";
 import {
   LOOSE_PROJECT_ID,
@@ -71,12 +71,46 @@ export function setWorkspaceChangeNotifier(
   changeNotifier = notify;
 }
 
+/**
+ * Where the folder at `path` lies inside the folder at `outer`, as a
+ * workspace key. Null when it is not inside it. A local folder and one in
+ * object storage are never inside each other.
+ */
+export function folderKeyInside(outer: string, path: string): string | null {
+  if (isAbsolute(outer) !== isAbsolute(path)) return null;
+  if (!isAbsolute(outer)) {
+    return path.startsWith(`${outer}/`) ? path.slice(outer.length + 1) : null;
+  }
+  const inside = relative(outer, path);
+  if (!inside || isAbsolute(inside)) return null;
+  const segments = inside.split(sep);
+  return segments[0] === ".." ? null : segments.join("/");
+}
+
+/**
+ * The folders of other projects and of games that lie inside the folder of
+ * `row`, as keys of its workspace. Personal's managed folder holds
+ * `projects/<segment>`, where cloud projects, imported projects and games
+ * keep theirs. A game's workspace has no `.nodetool/` directory to tell it
+ * by, so the rows name it.
+ */
+async function foldersInside(row: WorkspaceRow): Promise<string[]> {
+  const keys: string[] = [];
+  for (const path of await WorkspaceRow.listFolderPaths(row.user_id)) {
+    const key = folderKeyInside(row.path, path);
+    if (key !== null) keys.push(key);
+  }
+  return keys;
+}
+
 /** Build the {@link Workspace} a workspace row describes. */
 export function workspaceFromRow(row: WorkspaceRow): Workspace | null {
+  // Read from the database only when a scan of the folder first asks.
+  const nestedFolders = (): Promise<string[]> => foldersInside(row);
   const workspace = !row.isVirtual()
-    ? createLocalWorkspace(row.path)
+    ? createLocalWorkspace(row.path, { nestedFolders })
     : cloudStorage
-      ? createWorkspace(cloudStorage, { prefix: row.path })
+      ? createWorkspace(cloudStorage, { prefix: row.path, nestedFolders })
       : null;
   if (!workspace) {
     log.warn(

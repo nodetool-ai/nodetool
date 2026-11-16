@@ -530,7 +530,13 @@ describe("the folder watcher", () => {
         await vi.advanceTimersByTimeAsync(step);
       }
 
-      // It started on its own, with an event still less than the quiet time old.
+      // It started on its own, with an event still less than the quiet time
+      // old. Before it looks at the path it asks the folder whether the path
+      // is in another project's folder, which is real I/O. That gets turns
+      // to finish here, and the fake clock does not move.
+      for (let turn = 0; turn < 5_000 && stats.mock.calls.length === 0; turn++) {
+        await new Promise((resolve) => setImmediate(resolve));
+      }
       expect(stats).toHaveBeenCalledWith("Generated/a.png");
       await watchers.flush();
       expect((await reload(asset)).metadata?.["workspace_hash"]).toBe(

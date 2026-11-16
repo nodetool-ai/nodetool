@@ -21,6 +21,7 @@ import {
   requireProjectFolder
 } from "@nodetool-ai/asset-services/project-asset-file";
 import { DebouncedRuns } from "./debounced-runs.js";
+import { NestedFolders } from "./project-folder-scan.js";
 
 const log = createLogger("nodetool.project-services.project-manifest");
 
@@ -183,7 +184,7 @@ export async function writeProjectAssetManifest(
   userId: string
 ): Promise<void> {
   const folder = await requireProjectFolder(projectId, userId);
-  const { nodetoolDir } = folder;
+  const { nodetoolDir, workspace } = folder;
   if (!nodetoolDir) {
     throw new ProjectFolderUnavailableError(
       "The project folder has no reserved directory to write the asset manifest to"
@@ -192,7 +193,15 @@ export async function writeProjectAssetManifest(
   const key = manifestKey(folder.projectId, userId);
   const write = async (): Promise<void> => {
     const rows = await Asset.listProjectFiles(userId, folder.projectId);
-    await writeAssetManifest(nodetoolDir, assetManifestOf(rows));
+    // A row that names a file in the folder of another project is left out:
+    // that file is listed by its own folder's manifest.
+    const nested = new NestedFolders(workspace);
+    const own: Asset[] = [];
+    for (const row of rows) {
+      if (row.workspace_path && (await nested.holds(row.workspace_path))) continue;
+      own.push(row);
+    }
+    await writeAssetManifest(nodetoolDir, assetManifestOf(own));
   };
   const next = (writes.get(key) ?? Promise.resolve()).then(write, write);
   const settled = next.catch(() => undefined);

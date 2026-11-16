@@ -45,6 +45,12 @@
  * A file is hashed in full on every scan. Document files are small, and the
  * hash is the only thing that tells an outside edit from NodeTool's own
  * write.
+ *
+ * A project folder can hold the folder of another project (`NestedFolders`).
+ * A document file in there is the other project's document. It is never
+ * read, written or deleted from here. A row of this project that names such
+ * a path counts as a row whose file is missing, and its next save writes a
+ * file of its own.
  */
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash } from "node:crypto";
@@ -73,9 +79,10 @@ import {
 } from "@nodetool-ai/asset-services/project-asset-file";
 import {
   COPY_GRACE_MS,
+  NestedFolders,
   isAtOrUnder,
-  isIgnoredProjectPath,
   probePath,
+  scanChangedPaths,
   scanFolder,
   type ReconcileOptions,
   type ScannedFolder
@@ -380,6 +387,8 @@ async function readText(
   path: string
 ): Promise<string | null> {
   try {
+    // A file in the folder of another project is that project's document.
+    if (await new NestedFolders(workspace).holds(path)) return null;
     return await workspace.readText(path);
   } catch (error) {
     // A path the folder refuses holds no file this module can use.
@@ -511,6 +520,9 @@ async function writeDocumentFile<Row extends DocumentRow, Fields>(
   const text = documentFileText(adapter, row.id, adapter.fieldsOf(row));
   const stem = documentFileStem(row.name, adapter.untitled);
   let path = row.file_path;
+  // A path in the folder of another project is not this document's file. The
+  // row forgets it and gets a file in this folder, as a new document does.
+  if (path && (await new NestedFolders(workspace).holds(path))) path = null;
   let current = path ? await readText(workspace, path) : null;
   if (path && current !== null) {
     const parsed = parseDocumentFile(adapter, current);
@@ -939,30 +951,11 @@ async function documentFilesInScope(
     const all = await scanFolder(workspace);
     return { files: [...all.keys()].filter(isDocument), places: null };
   }
-  const files = new Set<string>();
-  const places = new Set<string>();
-  for (const raw of new Set([...paths, ...waiting])) {
-    let path: string;
-    try {
-      path = workspace.key(raw);
-    } catch {
-      // Outside the folder, or in the directory NodeTool reserves.
-      continue;
-    }
-    if (isIgnoredProjectPath(path)) continue;
-    const found = await probePath(workspace, path);
-    if (found === null) {
-      places.add(path);
-    } else if (found === "directory") {
-      places.add(path);
-      for (const file of (await scanFolder(workspace, path)).keys()) {
-        if (isDocument(file)) files.add(file);
-      }
-    } else if (isDocument(path)) {
-      files.add(path);
-    }
-  }
-  return { files: [...files], places };
+  const changed = await scanChangedPaths(workspace, [...paths, ...waiting]);
+  return {
+    files: [...changed.files.keys()].filter(isDocument),
+    places: changed.places
+  };
 }
 
 /** State one reconcile of one kind shares between its steps. */
@@ -1143,12 +1136,20 @@ async function reconcileKind<Row extends DocumentRow, Fields>(
   /** Rows whose file is where the row says, by ID. */
   const present = new Map<string, Row>();
   const recased = new RecasedFiles(workspace, files, rows, places);
+  const nested = new NestedFolders(workspace);
 
   // Rows that have a file.
   for (const row of rows) {
     const path = row.file_path;
     if (!path) continue;
     if (inFlux(path)) continue;
+    // The path is in the folder of another project. The file there is that
+    // project's document, so this row has lost its file wherever the changed
+    // paths are.
+    if (await nested.holds(path)) {
+      missing.set(row.id, row);
+      continue;
+    }
 
     // A file renamed in case only. A folder that ignores case still answers
     // to the row's path, so the file must be matched before it can be taken

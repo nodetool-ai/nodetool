@@ -12,6 +12,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { eq } from "drizzle-orm";
 import {
+  getManagedWorkspaceDir,
+  managedWorkspaceKey
+} from "@nodetool-ai/config";
+import {
+  Game,
   Project,
   Workflow,
   Workspace as WorkspaceRow,
@@ -31,6 +36,7 @@ import {
   ensureProjectFolder
 } from "../src/service/project-folder.js";
 import {
+  folderKeyInside,
   nodetoolDirFromRow,
   resolveProjectWorkspace,
   setWorkspaceCloudStorage,
@@ -209,6 +215,58 @@ describe.each(["local", "cloud"] as const)("project folders for runs (%s)", (mod
     });
   });
 
+  it("names the folders of other projects and of games inside Personal's folder", async () => {
+    const personal = await ensurePersonalProject(USER);
+    const managed =
+      mode === "cloud" ? managedWorkspaceKey(USER) : getManagedWorkspaceDir(USER);
+    // Where cloud projects, imported projects and games keep their folder.
+    const managedFolder = (segment: string): string =>
+      mode === "cloud"
+        ? `${managed}/projects/${segment}`
+        : join(managed, "projects", segment);
+    const row = (path: string, projectId: string): Promise<WorkspaceRow> =>
+      WorkspaceRow.create<WorkspaceRow>({
+        user_id: USER,
+        project_id: projectId,
+        name: "Inner",
+        path,
+        origin: "created"
+      });
+    const project = await Project.insertNew({ user_id: USER, name: "Imported" });
+    if (!project) throw new Error("insert failed");
+    const projectDir = "a".repeat(64);
+    const projectFolder = await row(managedFolder(projectDir), project.id);
+    await Project.claimWorkspace(USER, project.id, projectFolder.id);
+    const gameDir = "b".repeat(64);
+    const gameFolder = await row(managedFolder(gameDir), personal.id);
+    await Game.create({
+      user_id: USER,
+      project_id: personal.id,
+      workspace_id: gameFolder.id,
+      name: "Tetris",
+      current_revision: "r1"
+    });
+    // A workspace row that is nobody's folder names no folder of its own.
+    await row(managedFolder("c".repeat(64)), personal.id);
+
+    const resolved = await resolveProjectWorkspace(personal.id, USER);
+    if (!resolved.ok) throw new Error(resolved.reason);
+    const outer = resolved.workspace;
+    for (const dir of [projectDir, gameDir, "c".repeat(64)]) {
+      await outer.write(`projects/${dir}/media/cover.png`, "bytes");
+    }
+
+    // Neither folder has a .nodetool/ directory here: the rows name them.
+    expect(await outer.isNestedFolder(`projects/${projectDir}`)).toBe(true);
+    expect(await outer.isNestedFolder(`projects/${gameDir}`)).toBe(true);
+    expect(await outer.isNestedFolder(`projects/${"c".repeat(64)}`)).toBe(false);
+    expect(await outer.isNestedFolder("projects")).toBe(false);
+    // The inner folder has no folder inside it, and is not inside itself.
+    const inner = await resolveProjectWorkspace(project.id, USER);
+    if (!inner.ok) throw new Error(inner.reason);
+    expect(await inner.workspace.isNestedFolder("media")).toBe(false);
+  });
+
   it("runs a workflow of project A in A's folder", async () => {
     const a = await projectWithFolder("Film A");
     const b = await projectWithFolder("Film B");
@@ -305,5 +363,27 @@ describe("a run whose local project folder is missing", () => {
     expect(existsSync(a.folder.path)).toBe(false);
     expect(await outputIn(b.folder)).toBeNull();
     expect(personalFolder && (await outputIn(personalFolder))).toBeNull();
+  });
+});
+
+describe("folderKeyInside", () => {
+  it("answers the key of a folder that lies inside another, and null otherwise", () => {
+    expect(folderKeyInside("workspaces/u", "workspaces/u/projects/abc")).toBe(
+      "projects/abc"
+    );
+    expect(folderKeyInside("workspaces/u", "workspaces/u")).toBeNull();
+    expect(folderKeyInside("workspaces/u", "workspaces/u2/projects/abc")).toBeNull();
+    expect(folderKeyInside("workspaces/u/projects/abc", "workspaces/u")).toBeNull();
+
+    const outer = join(tmpdir(), "outer");
+    expect(folderKeyInside(outer, join(outer, "projects", "abc"))).toBe(
+      "projects/abc"
+    );
+    expect(folderKeyInside(outer, outer)).toBeNull();
+    expect(folderKeyInside(outer, join(tmpdir(), "outer2", "abc"))).toBeNull();
+    expect(folderKeyInside(join(outer, "projects"), outer)).toBeNull();
+    // A local folder and one in object storage are never inside each other.
+    expect(folderKeyInside(outer, "workspaces/u")).toBeNull();
+    expect(folderKeyInside("workspaces/u", join(outer, "workspaces", "u"))).toBeNull();
   });
 });

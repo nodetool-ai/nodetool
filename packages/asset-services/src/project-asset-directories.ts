@@ -115,17 +115,24 @@ export async function loadProjectDirectoryIndex(
   return { projectId, workspace, resolver, assets, folders };
 }
 
-/** Subdirectories of `path` on disk, hidden ones left out. Empty when unreachable. */
+/**
+ * Subdirectories of `path` on disk. Hidden ones are left out, and so is the
+ * folder of another project inside this one: its directories are that
+ * project's. Empty when unreachable.
+ */
 async function diskSubdirectories(
   workspace: Workspace | null,
   path: string
 ): Promise<ProjectDirectory[]> {
   if (!workspace) return [];
   try {
-    const entries = await workspace.list(path);
-    return entries
-      .filter((entry) => entry.isDirectory && !isHiddenDirectory(entry.name))
-      .map((entry) => ({ path: entry.path, modifiedAt: entry.modifiedAt }));
+    const directories: ProjectDirectory[] = [];
+    for (const entry of await workspace.list(path)) {
+      if (!entry.isDirectory || isHiddenDirectory(entry.name)) continue;
+      if (await workspace.isNestedFolder(entry.path)) continue;
+      directories.push({ path: entry.path, modifiedAt: entry.modifiedAt });
+    }
+    return directories;
   } catch (error) {
     if (!(error instanceof WorkspacePathError)) {
       log.debug("Could not list a project directory", {
