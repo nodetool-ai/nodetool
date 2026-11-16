@@ -377,6 +377,16 @@ New project folders go under `PROJECTS_DIR`. The old `/workspaces` page and its 
 
 A folder on the host would let a user browse the server's filesystem, so `NODETOOL_ENV=production` returns `path: null` and ignores a saved `PROJECTS_DIR`. Only the server-managed folder under the data dir stays readable. `NODETOOL_WORKSPACE_STORAGE=cloud` (the production default) keeps folders in the asset bucket instead of on disk. See [Configuration](configuration.md#environment-variables-index).
 
+### Object storage must honor conditional writes
+
+A folder in object storage creates every new file with a conditional write, so a file is never replaced when NodeTool picks a name. S3 and S3-compatible endpoints get `If-None-Match: *`. An endpoint that accepts the header and ignores it, as older MinIO releases do, would replace the file instead.
+
+Before its first conditional write, each S3 adapter probes the endpoint. It writes a scratch object under `.storage-probe/` twice, the second time with `If-None-Match: *`, and expects the second write to be refused with `412` or `409`. It then deletes the scratch object. When the second write succeeds, the adapter refuses every conditional write, creates no file, and fails with `The storage endpoint <endpoint> ignores the If-None-Match header on writes`. A check followed by a plain write is not used as a fallback, because two writers could pass the check together.
+
+The probe costs three requests for each adapter, once per server start. A probe that fails for another reason, such as a network error or a missing write permission, is not remembered and runs again on the next write. A scratch object that cannot be deleted stays in `.storage-probe/` and is harmless. Supabase Storage answers a non-upsert upload over an existing object with `409`, so it needs no probe. AWS S3, Cloudflare R2 and current MinIO honor the header.
+
+A listing of a folder that cannot be read fails the operation. The nested-folder check relies on listings, so a Supabase listing error, or an unreadable directory on disk, refuses the path instead of reading as an empty directory. Supabase listings read every page, not only the first 1,000 entries.
+
 ## Where project folders are used
 
 - Agent and chat file tools.
@@ -399,6 +409,7 @@ Projects create and adopt their folders through `projects.create`, so no API cre
 | `This folder is inside the folder of project "<name>"`, `contains the folder of`, `is already the folder of` | Opening or locating a folder that overlaps another project's folder |
 | `This folder belongs to a project that cannot be opened here` | The folder's manifest names a project of another user, or a project you deleted |
 | `This folder belongs to project "<name>"` | Locate was given another project's folder |
+| `The storage endpoint <endpoint> ignores the If-None-Match header on writes` | The folder's S3-compatible storage does not support conditional writes. Use AWS S3, Cloudflare R2, current MinIO, or a local project folder |
 | `Opening a folder as a project is disabled on this server` | Open folder or Locate with `NODETOOL_ENV=production` |
 | `Path '<path>' is inside .nodetool/, which NodeTool reserves for its own files` | A tool, node or script used a path in `.nodetool/`, at any depth |
 | `Path '<path>' is in the folder of another project inside this one` | A tool, node, script, upload or asset save used a path in [a folder inside this one](#a-folder-inside-another-projects-folder). Open that project to use its files |

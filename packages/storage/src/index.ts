@@ -37,6 +37,7 @@ export {
 } from "./file-storage-adapter.js";
 export {
   S3StorageAdapter,
+  ConditionalWriteUnsupportedError,
   type S3StorageAdapterOptions
 } from "./s3-storage-adapter.js";
 export {
