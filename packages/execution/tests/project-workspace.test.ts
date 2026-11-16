@@ -247,20 +247,39 @@ describe.each(["local", "cloud"] as const)("project folders for runs (%s)", (mod
       current_revision: "r1"
     });
     // A workspace row that is nobody's folder names no folder of its own.
-    await row(managedFolder("c".repeat(64)), personal.id);
+    const looseFolder = await row(managedFolder("c".repeat(64)), personal.id);
+    // Each folder gets a file through its own workspace, as its owner writes.
+    for (const folder of [projectFolder, gameFolder, looseFolder]) {
+      await workspaceFromRow(folder)?.write("media/cover.png", "bytes");
+    }
 
     const resolved = await resolveProjectWorkspace(personal.id, USER);
     if (!resolved.ok) throw new Error(resolved.reason);
     const outer = resolved.workspace;
-    for (const dir of [projectDir, gameDir, "c".repeat(64)]) {
-      await outer.write(`projects/${dir}/media/cover.png`, "bytes");
-    }
 
     // Neither folder has a .nodetool/ directory here: the rows name them.
     expect(await outer.isNestedFolder(`projects/${projectDir}`)).toBe(true);
     expect(await outer.isNestedFolder(`projects/${gameDir}`)).toBe(true);
     expect(await outer.isNestedFolder(`projects/${"c".repeat(64)}`)).toBe(false);
     expect(await outer.isNestedFolder("projects")).toBe(false);
+    // A run in Personal reaches no file of the project or of the game.
+    for (const dir of [projectDir, gameDir]) {
+      await expect(
+        outer.read(`projects/${dir}/media/cover.png`)
+      ).rejects.toThrow(WorkspaceReservedPathError);
+      await expect(
+        outer.write(`projects/${dir}/media/cover.png`, "overwritten")
+      ).rejects.toThrow(WorkspaceReservedPathError);
+    }
+    expect(
+      (await outer.list("", { recursive: true })).map((entry) => entry.path)
+    ).toEqual([`projects/${"c".repeat(64)}/media/cover.png`]);
+    expect(await outer.deleteAll("projects")).toBe(1);
+    for (const folder of [projectFolder, gameFolder]) {
+      expect(await workspaceFromRow(folder)?.readText("media/cover.png")).toBe(
+        "bytes"
+      );
+    }
     // The inner folder has no folder inside it, and is not inside itself.
     const inner = await resolveProjectWorkspace(project.id, USER);
     if (!inner.ok) throw new Error(inner.reason);

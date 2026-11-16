@@ -10,12 +10,15 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createLocalWorkspace, type Workspace } from "@nodetool-ai/runtime";
 import { createDirectoryLink } from "./_helpers/filesystem-links.js";
 import {
   MAX_DOWNLOAD_BYTES,
   buildYtDlpArgv,
   confineArgvToWorkspace,
   confineMediaPaths,
+  confineOutputTemplate,
+  hostMediaPath,
   refuseFlagLikeValue
 } from "../src/host-binary-guard.js";
 
@@ -35,12 +38,43 @@ afterEach(async () => {
   await rm(path.dirname(workspace), { recursive: true, force: true });
 });
 
+/** The directory a host binary runs in, with the workspace it belongs to. */
+function hostRoot(): { cwd: string; workspace: Workspace } {
+  return {
+    cwd: workspace,
+    // A game's workspace has no `.nodetool/`: the host names it.
+    workspace: createLocalWorkspace(workspace, {
+      nestedFolders: () => ["games/tetris"]
+    })
+  };
+}
+
 async function refusal(argv: string[]): Promise<string> {
-  const result = await confineArgvToWorkspace(argv, workspace);
+  const result = await confineArgvToWorkspace(argv, hostRoot());
   return result?.error ?? "";
 }
 
+/** Give the workspace the folder of another project and a game's folder. */
+async function makeOtherFolders(): Promise<void> {
+  await mkdir(path.join(workspace, "projects/abc/.nodetool"), { recursive: true });
+  await mkdir(path.join(workspace, "projects/abc/Generated"), { recursive: true });
+  await writeFile(path.join(workspace, "projects/abc/Generated/fox.mp4"), "fox");
+  await mkdir(path.join(workspace, "games/tetris"), { recursive: true });
+  await writeFile(path.join(workspace, "games/tetris/clip.mp4"), "clip");
+  await writeFile(path.join(workspace, "projects/own.mp4"), "own");
+}
+
 describe("confineArgvToWorkspace", () => {
+  it.each([
+    ["projects/abc/Generated/%(title)s.%(ext)s"],
+    ["-i", "games/tetris/clip.mp4"],
+    ["-vf", "subtitles=projects/abc/Generated/fox.mp4"],
+    ["-o", "games/tetris/%(title)s.%(ext)s"]
+  ])("refuses argv that reaches the folder of another project or of a game: %j", async (...argv) => {
+    await makeOtherFolders();
+    expect(await refusal(argv)).toMatch(/folder of another project/);
+  });
+
   it("passes argv that stays inside the workspace", async () => {
     await writeFile(path.join(workspace, "in.mp4"), "x");
     expect(
@@ -116,9 +150,134 @@ describe("confineArgvToWorkspace", () => {
   });
 });
 
+describe("confineOutputTemplate", () => {
+  const refusal = async (template: string): Promise<string> =>
+    (await confineOutputTemplate(template, hostRoot()))?.error ?? "";
+
+  it.each([
+    "projects/%(id).0sgame1/x.%(ext)s",
+    "games/%(id).0stetris/%(title)s.%(ext)s",
+    "%(uploader)s/%(title)s.%(ext)s",
+    "downloads\\%(id)s\\clip.%(ext)s"
+  ])("refuses %s, whose directory a field would choose", async (template) => {
+    await makeOtherFolders();
+    expect(await refusal(template)).toMatch(/directory.*cannot contain a field/);
+  });
+
+  it("passes a literal directory and refuses one in another folder", async () => {
+    await makeOtherFolders();
+    expect(await refusal("downloads/%(title)s [%(id)s].%(ext)s")).toBe("");
+    expect(await refusal("%(title)s.%(ext)s")).toBe("");
+    expect(await refusal("games/tetris/%(title)s.%(ext)s")).toMatch(
+      /folder of another project/
+    );
+    expect(await refusal("../outside/%(title)s.%(ext)s")).toMatch(
+      /outside the workspace/
+    );
+  });
+
+  // yt-dlp expands a leading `~` and every `$VAR`, `${VAR}` (and on Windows
+  // `%VAR%`) in the template before it writes, so the literal text is not the
+  // path it opens.
+  it.each([
+    "~/ws/projects/abc/stolen.%(ext)s",
+    "~/x.%(ext)s",
+    "~root/x.%(ext)s",
+    "$HOME/ws/projects/abc/stolen.%(ext)s",
+    "${HOME}/ws/games/tetris/stolen.%(ext)s",
+    "downloads/$HOME.%(ext)s",
+    "downloads/a$$b.%(ext)s",
+    "%HOMEPATH%.%(ext)s",
+    "%(id)s%HOMEPATH%.%(ext)s"
+  ])("refuses %s, which yt-dlp expands before it writes", async (template) => {
+    await makeOtherFolders();
+    expect(await refusal(template)).toMatch(/expands/);
+  });
+
+  it.each(["thumbnail:x.%(ext)s", "infojson,description:x", "SUBTITLE:x"])(
+    "refuses %s, which yt-dlp reads as a template for another file type",
+    async (template) => {
+      expect(await refusal(template)).toMatch(/type prefix/);
+    }
+  );
+
+  it("passes an escaped percent sign in the file name", async () => {
+    expect(await refusal("downloads/100%% %(title)s.%(ext)s")).toBe("");
+  });
+});
+
 describe("confineMediaPaths", () => {
   const refusal = async (paths: string[]): Promise<string> =>
-    (await confineMediaPaths(paths, workspace, "Name a workspace file."))?.error ?? "";
+    (await confineMediaPaths(paths, hostRoot(), "Name a workspace file."))?.error ?? "";
+
+  it.each([
+    "projects/abc/Generated/fox.mp4",
+    "projects/abc/Generated/new.mp4",
+    "projects/abc",
+    "projects/../projects/abc/Generated/fox.mp4",
+    "games/tetris/clip.mp4",
+    "games/tetris/new/clip.mp4",
+    "games/tetris"
+  ])("refuses %s, a path in the folder of another project or of a game", async (file) => {
+    await makeOtherFolders();
+    expect(await refusal([file])).toMatch(/folder of another project/);
+    expect(await refusal([path.join(workspace, file)])).toMatch(
+      /folder of another project|outside the workspace/
+    );
+  });
+
+  // The media readers open `hostMediaPath`, which reads a path the way the
+  // workspace does. Every spelling of one file is judged as that file.
+  it.each([
+    "workspace/projects/abc/Generated/fox.mp4",
+    "workspace/games/tetris/clip.mp4",
+    "projects\\abc\\Generated\\fox.mp4",
+    "games\\tetris\\clip.mp4",
+    "workspace\\games\\tetris\\new.mp4",
+    "C:/projects/abc/Generated/fox.mp4",
+    "c:\\games\\tetris\\clip.mp4",
+    "workspace/projects/abc",
+    "projects/./abc/../abc/Generated/fox.mp4"
+  ])("refuses the spelling %s of a path in another folder", async (file) => {
+    await makeOtherFolders();
+    const result = await refusal([file]);
+    expect(result).toMatch(/folder of another project|outside the workspace/);
+    // The path that would be opened is in the other folder, whatever is said.
+    const opened = hostMediaPath(hostRoot(), file);
+    expect(
+      path.relative(workspace, opened).split(path.sep).slice(0, 2).join("/")
+    ).toMatch(/^(projects\/abc|games\/tetris)$/);
+  });
+
+  it("opens the path it judged, for every spelling of a file of the run", async () => {
+    await makeOtherFolders();
+    for (const file of [
+      "projects/own.mp4",
+      "workspace/projects/own.mp4",
+      "projects\\own.mp4",
+      "C:/projects/own.mp4"
+    ]) {
+      expect(hostMediaPath(hostRoot(), file)).toBe(
+        path.join(workspace, "projects", "own.mp4")
+      );
+    }
+    expect(await refusal(["workspace/projects/own.mp4", "projects\\own.mp4"])).toBe("");
+  });
+
+  it("refuses a link in the folder that points at a folder the host names", async () => {
+    await makeOtherFolders();
+    await createDirectoryLink(
+      path.join(workspace, "games/tetris"),
+      path.join(workspace, "shortcut")
+    );
+    expect(await refusal(["shortcut/clip.mp4"])).toMatch(/folder of another project/);
+    expect(await refusal(["shortcut/new/clip.mp4"])).toMatch(/folder of another project/);
+  });
+
+  it("still passes a file beside the folder of another project", async () => {
+    await makeOtherFolders();
+    expect(await refusal(["projects/own.mp4", "projects/new.mp4", "games"])).toBe("");
+  });
 
   it("refuses a path that leaves the workspace, a flag-shaped one included", async () => {
     expect(await refusal(["../outside/secret.txt"])).toMatch(/outside the workspace/);
@@ -178,6 +337,34 @@ describe("buildYtDlpArgv", () => {
       "--",
       "https://example.com/v"
     ]);
+  });
+});
+
+describe("buildYtDlpArgv path options", () => {
+  it("passes no path-bearing option but the confined output template", () => {
+    const argv = buildYtDlpArgv({
+      url: "https://example.com/v",
+      outputFile: "out.mp4",
+      format: "bestaudio",
+      printFormatId: true
+    });
+    for (const option of [
+      "-P",
+      "--paths",
+      "--download-archive",
+      "--cookies",
+      "-a",
+      "--batch-file",
+      "--config-locations",
+      "--exec",
+      "--postprocessor-args",
+      "--ppa",
+      "--load-info-json",
+      "--cache-dir"
+    ]) {
+      expect(argv).not.toContain(option);
+    }
+    expect(argv.filter((arg) => arg === "-o" || arg === "--output")).toEqual(["-o"]);
   });
 });
 

@@ -85,7 +85,6 @@ import {
   WORKSPACE_MOVE_TARGET_KEY
 } from "@nodetool-ai/protocol";
 import {
-  NestedFolders,
   WorkspaceReservedPathError,
   type Workspace as RuntimeWorkspace
 } from "@nodetool-ai/runtime";
@@ -448,12 +447,8 @@ export async function writeProjectArchive(
         });
         continue;
       }
-      // The folder of another project inside this one is exported with its
-      // own project, never as files of this one.
-      const nested = new NestedFolders(workspace);
       for (const entry of entries) {
         if (entry.isDirectory) continue;
-        if (await nested.holds(entry.path)) continue;
         const bytes = await workspace.read(entry.path);
         if (!bytes) continue;
         if (bytes.byteLength > MAX_ZIP_ENTRY_BYTES) {
@@ -575,6 +570,12 @@ export interface ImportProjectArchiveOptions {
    * imported project keeps the folder as if the user had brought it.
    */
   readonly markCreatedFolder?: (row: Workspace) => Promise<void>;
+  /**
+   * Removes the record `markCreatedFolder` wrote, for an import that failed.
+   * The host passes `unmarkFolderCreated`. A folder in object storage has no
+   * directory to remove, so without it the record would be left behind.
+   */
+  readonly unmarkCreatedFolder?: (row: Workspace) => Promise<void>;
   readonly maxBytes?: number;
 }
 
@@ -817,6 +818,8 @@ export async function importProjectArchive(
   const checksumMismatches: string[] = [];
   const storedAssets: Array<{ assetId: string; contentType: string }> = [];
   const createdWorkspaces: RuntimeWorkspace[] = [];
+  /** Rows of the folders that carry the record `markCreatedFolder` wrote. */
+  const markedFolders: Workspace[] = [];
   try {
     const workspaces = new Map<string, RuntimeWorkspace>();
     for (const [index, row] of imported.workspaces.entries()) {
@@ -833,6 +836,18 @@ export async function importProjectArchive(
       }
       createdWorkspaces.push(opened);
       workspaces.set(String(records.workspaces[index]!["id"]), opened);
+      // The record goes into the folder before any file does. The folder can
+      // lie inside another project's folder: an imported project's is
+      // `projects/<id>` in the managed folder, which is Personal's. From the
+      // first file on, a `.nodetool/` directory tells Personal's reconcile
+      // that the files are not Personal's. Without it a reconcile that runs
+      // during the import gives Personal rows for them, some under the IDs
+      // this import is about to insert.
+      if (options.markCreatedFolder) {
+        const folder = new Workspace(row);
+        await options.markCreatedFolder(folder);
+        markedFolders.push(folder);
+      }
     }
     // Versioned game drafts name a digest of their contents. Rehash after
     // rewriting IDs, then update both the filenames and history references.
@@ -1010,9 +1025,6 @@ export async function importProjectArchive(
     // the import. The startup migration retries it, and a run reports the
     // missing folder rather than writing elsewhere.
     try {
-      for (const row of imported.workspaces) {
-        await options.markCreatedFolder?.(new Workspace(row));
-      }
       await options.ensureFolder?.(project);
     } catch (error) {
       log.warn("Could not give the imported project a folder", {
@@ -1043,7 +1055,12 @@ export async function importProjectArchive(
         } finally {
           if (workspace.localDir) await rm(workspace.localDir, { recursive: true, force: true });
         }
-      })
+      }),
+      // `deleteAll` leaves `.nodetool/` alone. A local folder goes with its
+      // directory. One in object storage keeps the record until it is removed.
+      ...markedFolders
+        .filter((folder) => folder.isVirtual())
+        .map(async (folder) => options.unmarkCreatedFolder?.(folder))
     ]);
     throw error;
   }

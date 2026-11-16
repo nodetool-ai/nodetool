@@ -67,7 +67,6 @@ import {
 import {
   COLLECT_PATH_KEY,
   collectLinkedAssets,
-  ProjectAssetPlacementError,
   ProjectAssetRelinkError,
   deleteProjectAssetFile,
   moveProjectAssetToDirectory,
@@ -200,8 +199,9 @@ async function deleteAssetWithObjects(asset: AssetModel): Promise<void> {
 }
 
 /**
- * Report an unreachable project folder, or a directory in the folder of
- * another project, with its reason. Other errors pass.
+ * Report an unreachable project folder, or a path the folder refuses because
+ * it is in `.nodetool/` or in the folder of another project, with its
+ * reason. Other errors pass.
  */
 function rethrowFolderError(error: unknown): never {
   if (error instanceof ProjectFolderUnavailableError) {
@@ -211,7 +211,7 @@ function rethrowFolderError(error: unknown): never {
       "PRECONDITION_FAILED"
     );
   }
-  if (error instanceof ProjectAssetPlacementError) {
+  if (error instanceof WorkspaceReservedPathError) {
     throwApiError(ApiErrorCode.INVALID_INPUT, error.message);
   }
   throw error;

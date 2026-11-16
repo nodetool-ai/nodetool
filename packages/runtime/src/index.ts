@@ -44,6 +44,7 @@ export {
   WorkspaceReservedPathError,
   RESERVED_WORKSPACE_DIR,
   NestedFolders,
+  WorkspaceFolderCheckError,
   isReservedWorkspaceKey,
   observeWorkspace,
   getProjectFolderResolver,
@@ -57,6 +58,7 @@ export {
 } from "./workspace.js";
 export {
   StorageWorkspace,
+  assertLocalPathIsOwn,
   createWorkspace,
   createLocalWorkspace
 } from "./storage-workspace.js";

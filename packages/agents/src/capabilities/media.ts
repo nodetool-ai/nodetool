@@ -40,6 +40,7 @@ import type {
   Workspace
 } from "@nodetool-ai/runtime";
 import {
+  assertLocalPathIsOwn,
   currentGenerationReceipt,
   DEFAULT_YT_DLP_FORMAT,
   ensureRunFile,
@@ -62,8 +63,9 @@ import {
 import {
   MAX_DOWNLOAD_BYTES,
   buildYtDlpArgv,
-  confineArgvToWorkspace,
   confineMediaPaths,
+  confineOutputTemplate,
+  hostMediaPath,
   refuseFlagLikeValue
 } from "../host-binary-guard.js";
 import {
@@ -2240,7 +2242,9 @@ async function persistWorkspaceFile(
   let abs: string;
   try {
     const root = workspace.localDir ?? (await workspace.scratchDir());
-    abs = path.join(root, workspace.key(relPath));
+    abs = hostMediaPath({ cwd: root, workspace }, relPath);
+    // What a binary wrote is read back only when it is the run's own file.
+    await assertLocalPathIsOwn(workspace, root, abs, relPath);
   } catch (e) {
     return { persist_error: e instanceof Error ? e.message : String(e) };
   }
@@ -2295,7 +2299,11 @@ async function stageInputs(
     };
   }
   const names = entries.map(([name]) => name);
-  const refusal = await confineMediaPaths(names, cwd, MEDIA_PATH_REMEDY);
+  const refusal = await confineMediaPaths(
+    names,
+    { cwd, workspace },
+    MEDIA_PATH_REMEDY
+  );
   if (refusal) return refusal;
 
   const staged: Record<string, number> = {};
@@ -2457,7 +2465,11 @@ async function prepareMediaPaths(
   const stagedResult = await stageInputs(context, workspace, cwd, toStage, projectId);
   if ("error" in stagedResult) return stagedResult;
   const local = [...new Set(resolved.values())];
-  const refusal = await confineMediaPaths(local, cwd, MEDIA_PATH_REMEDY);
+  const refusal = await confineMediaPaths(
+    local,
+    { cwd, workspace },
+    MEDIA_PATH_REMEDY
+  );
   if (refusal) return refusal;
   await stageHostBinaryInputs(workspace, local);
   return { resolved, staged: stagedResult.staged };
@@ -2507,12 +2519,14 @@ const mediaEdit: CapabilityExport = {
     };
     const outputRefusal = await confineMediaPaths(
       [request.output],
-      cwd,
+      { cwd, workspace },
       MEDIA_PATH_REMEDY
     );
     if (outputRefusal) return outputRefusal;
 
-    const absolute = (file: string): string => path.join(cwd, workspace.key(file));
+    // The same reading of a path that `confineMediaPaths` judged.
+    const absolute = (file: string): string =>
+      hostMediaPath({ cwd, workspace }, file);
     try {
       const outputDir =
         request.operation === "extract_frames"
@@ -2585,7 +2599,10 @@ const mediaProbe: CapabilityExport = {
     try {
       const report: Record<string, unknown> = {
         path: requested,
-        ...(await probeFile(path.join(cwd, workspace.key(probePath)), run.context.signal))
+        ...(await probeFile(
+          hostMediaPath({ cwd, workspace }, probePath),
+          run.context.signal
+        ))
       };
       if (Object.keys(prepared.staged).length > 0) {
         report["staged"] = prepared.staged;
@@ -2671,7 +2688,10 @@ const ytDlp: CapabilityExport = {
 
     // The template is the caller's, so it escapes the workspace as easily as
     // an edit path would. `format` reaches yt-dlp as a selector, never a path.
-    const refusal = await confineArgvToWorkspace([outputFile], cwd);
+    const refusal = await confineOutputTemplate(outputFile, {
+      cwd,
+      workspace
+    });
     if (refusal) return refusal;
     const flagLike =
       refuseFlagLikeValue(outputFile, "output_file") ??
@@ -2786,8 +2806,21 @@ const ytDlp: CapabilityExport = {
         const lines = result.stdout.trim().split("\n").filter(Boolean);
         const printed = lines.at(-1);
         if (!printed) return noFile(stdout, stderr, result.exitCode);
+        // yt-dlp prints a file it skipped because it already exists, and the
+        // printed paths are muxed and then removed. Each must be the run's
+        // own: `confineMediaPaths` judges the path `hostMediaPath` opens with
+        // `assertLocalPathIsOwn`.
+        const relative = workspaceRelative(cwd, printed);
+        const refusal = await confineMediaPaths(
+          [relative],
+          { cwd, workspace },
+          "yt_dlp neither muxes nor removes it."
+        );
+        if (refusal) {
+          return { success: false, url, ...refusal, stdout, stderr, exit_code: 0 };
+        }
         files.push({
-          path: path.resolve(cwd, workspaceRelative(cwd, printed)),
+          path: hostMediaPath({ cwd, workspace }, relative),
           formatId: lines.at(-2) ?? ""
         });
       }

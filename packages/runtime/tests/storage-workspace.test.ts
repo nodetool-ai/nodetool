@@ -5,8 +5,8 @@
  * the cloud.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import {
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import fsPromises, {
   mkdir,
   mkdtemp,
   rm,
@@ -25,10 +25,12 @@ import {
 import { PrefixedStorageAdapter } from "../src/prefixed-storage-adapter.js";
 import {
   StorageWorkspace,
+  assertLocalPathIsOwn,
   createWorkspace
 } from "../src/storage-workspace.js";
 import {
   NestedFolders,
+  WorkspaceFolderCheckError,
   WorkspacePathError,
   WorkspaceReservedPathError,
   observeWorkspace,
@@ -518,26 +520,16 @@ describe.each(backends)(
       ).rejects.toThrow(WorkspaceReservedPathError);
     });
 
-    it("keeps the nested reserved directory out of every listing", async () => {
-      expect((await workspace.list(INNER)).map((entry) => entry.path)).toEqual([
-        `${INNER}/Generated`
+    it("keeps a reserved directory below a plain directory out of every listing", async () => {
+      // A reserved directory with no file in it marks no folder on an object
+      // store, so `docs` stays a directory of this workspace on both backends.
+      await storage.store("docs/.nodetool", new TextEncoder().encode("x"));
+      await workspace.write("docs/a.txt", "a");
+
+      expect((await workspace.list("docs")).map((entry) => entry.path)).toEqual([
+        "docs/a.txt"
       ]);
-      expect(
-        (await workspace.list("", { recursive: true })).map((entry) => entry.path)
-      ).toEqual(["notes.md", `${INNER}/Generated/fox.txt`]);
     });
-
-    it.each(["projects", INNER])(
-      "deleteAll of %s leaves the nested reserved directory",
-      async (path) => {
-        expect(await workspace.deleteAll(path)).toBe(1);
-
-        expect(await stored(MANIFEST)).toBe("{}");
-        expect(await stored(`${INNER}/Generated/fox.txt`)).toBeNull();
-        // The emptied directory beside the reserved one is gone as well.
-        expect(await workspace.list(INNER)).toEqual([]);
-      }
-    );
 
     it.each(["projects", INNER])(
       "refuses to move %s, which holds a reserved directory, and moves nothing",
@@ -552,13 +544,9 @@ describe.each(backends)(
       }
     );
 
-    it("still moves a directory inside the nested folder that holds no reserved directory", async () => {
-      await workspace.move(`${INNER}/Generated`, `${INNER}/Shots`);
-      expect(await workspace.readText(`${INNER}/Shots/fox.txt`)).toBe("fox");
-    });
-
     it("names a directory with a reserved directory, or one the host names, as a nested folder", async () => {
-      await workspace.write("games/tetris/sprite.txt", "x");
+      // A game's file, written past the workspace as the game's writers do.
+      await storage.store("games/tetris/sprite.txt", new TextEncoder().encode("x"));
       await workspace.write("plain/a.txt", "a");
 
       expect(await workspace.isNestedFolder(INNER)).toBe(true);
@@ -589,6 +577,293 @@ describe.each(backends)(
       const observed = observeWorkspace(workspace, () => {});
       expect(await observed.isNestedFolder(INNER)).toBe(true);
       expect(await observed.isNestedFolder("projects")).toBe(false);
+    });
+  }
+);
+
+/**
+ * The files of a nested folder belong to another project. A run in the outer
+ * project reaches them through no workspace operation: agent file tools, the
+ * JS sandbox and save nodes all go through this interface.
+ */
+describe.each(backends)(
+  "The folder of another project inside a workspace over $name",
+  ({ isLocal }) => {
+    /** A project folder: it holds a `.nodetool/` directory. */
+    const INNER = "projects/abc";
+    /** A game workspace: no `.nodetool/`, named by the host. */
+    const GAME = "games/tetris";
+    let dir: string;
+    let storage: FileStorageAdapter | InMemoryStorageAdapter;
+    let workspace: Workspace;
+
+    const bytes = (value: string): Uint8Array => new TextEncoder().encode(value);
+    const stored = async (key: string): Promise<string | null> => {
+      const found = await storage.retrieve(storage.uriForKey(key));
+      return found ? new TextDecoder().decode(found) : null;
+    };
+    /** Every file of both nested folders is as the test set it up. */
+    const expectNestedIntact = async (): Promise<void> => {
+      expect(await stored(`${INNER}/.nodetool/project.json`)).toBe("{}");
+      expect(await stored(`${INNER}/Generated/fox.txt`)).toBe("fox");
+      expect(await stored(`${INNER}/notes.txt`)).toBe("inner");
+      expect(await stored(`${GAME}/sprite.txt`)).toBe("sprite");
+    };
+
+    beforeEach(async () => {
+      dir = await mkdtemp(join(tmpdir(), "ws-other-folder-"));
+      storage = isLocal
+        ? new FileStorageAdapter(dir)
+        : new InMemoryStorageAdapter();
+      workspace = new StorageWorkspace(storage, {
+        nestedFolders: () => [GAME]
+      });
+      // What the other project's own writers leave, written past the workspace.
+      await storage.store(`${INNER}/.nodetool/project.json`, bytes("{}"));
+      await storage.store(`${INNER}/Generated/fox.txt`, bytes("fox"));
+      await storage.store(`${INNER}/notes.txt`, bytes("inner"));
+      await storage.store(`${GAME}/sprite.txt`, bytes("sprite"));
+      // The outer project's own files, one of them beside the nested folder.
+      await workspace.write("notes.md", "hello");
+      await workspace.write("projects/readme.txt", "outer");
+    });
+
+    afterEach(async () => {
+      await rm(dir, { recursive: true, force: true });
+    });
+
+    it.each([
+      `${INNER}/Generated/fox.txt`,
+      `${INNER}/notes.txt`,
+      `${INNER}/new.txt`,
+      `${INNER}/Generated`,
+      `${INNER}/deep/er/new.txt`,
+      `/workspace/${INNER}/notes.txt`,
+      `workspace/${INNER}/notes.txt`,
+      `projects/../${INNER}/notes.txt`,
+      "projects\\abc\\notes.txt",
+      `C:/${INNER}/notes.txt`,
+      `${GAME}/sprite.txt`,
+      `${GAME}/new/sprite.txt`,
+      `workspace/${GAME}/sprite.txt`,
+      "games\\tetris\\sprite.txt",
+      `c:/${GAME}/sprite.txt`
+    ])("refuses %s in every operation", async (path) => {
+      const refused = WorkspaceReservedPathError;
+      const local = join(dir, "outside.txt");
+      await writeFile(local, "from a host binary");
+      await expect(workspace.read(path)).rejects.toThrow(refused);
+      await expect(workspace.readText(path)).rejects.toThrow(refused);
+      await expect(workspace.write(path, "x")).rejects.toThrow(refused);
+      await expect(workspace.writeNew(path, "x")).rejects.toThrow(refused);
+      await expect(workspace.stat(path)).rejects.toThrow(refused);
+      await expect(workspace.list(path)).rejects.toThrow(refused);
+      await expect(workspace.list(path, { recursive: true })).rejects.toThrow(refused);
+      await expect(workspace.delete(path)).rejects.toThrow(refused);
+      await expect(workspace.deleteAll(path)).rejects.toThrow(refused);
+      await expect(workspace.mkdir(path)).rejects.toThrow(refused);
+      await expect(workspace.copy("notes.md", path)).rejects.toThrow(refused);
+      await expect(workspace.copy(path, "copy.md")).rejects.toThrow(refused);
+      await expect(workspace.move("notes.md", path)).rejects.toThrow(refused);
+      await expect(workspace.move(path, "moved.md")).rejects.toThrow(refused);
+      await expect(workspace.materialize(path)).rejects.toThrow(refused);
+      await expect(workspace.absorb(local, path)).rejects.toThrow(refused);
+      expect(await workspace.exists(path)).toBe(false);
+
+      await expectNestedIntact();
+      expect(await workspace.readText("notes.md")).toBe("hello");
+      expect(await workspace.exists("copy.md")).toBe(false);
+      expect(await workspace.exists("moved.md")).toBe(false);
+    });
+
+    it.each([INNER, GAME])(
+      "refuses the nested folder %s itself as a directory",
+      async (path) => {
+        const refused = WorkspaceReservedPathError;
+        await expect(workspace.stat(path)).rejects.toThrow(refused);
+        await expect(workspace.list(path)).rejects.toThrow(refused);
+        await expect(workspace.list(path, { recursive: true })).rejects.toThrow(refused);
+        await expect(workspace.deleteAll(path)).rejects.toThrow(refused);
+        await expect(workspace.mkdir(path)).rejects.toThrow(refused);
+        await expect(workspace.move(path, "elsewhere")).rejects.toThrow(refused);
+        await expect(workspace.move("projects", `${path}/projects`)).rejects.toThrow(
+          refused
+        );
+        // A real path to the folder would let a host binary work in it.
+        await expect(workspace.materialize(path)).rejects.toThrow(refused);
+        expect(await workspace.exists(path)).toBe(false);
+
+        await expectNestedIntact();
+        expect(await workspace.readText("projects/readme.txt")).toBe("outer");
+      }
+    );
+
+    it("leaves the nested folders out of every listing", async () => {
+      const paths = async (
+        path: string,
+        recursive = false
+      ): Promise<string[]> =>
+        (await workspace.list(path, { recursive })).map((entry) => entry.path);
+
+      expect(await paths("")).toEqual(["games", "notes.md", "projects"]);
+      expect(await paths("projects")).toEqual(["projects/readme.txt"]);
+      expect(await paths("games")).toEqual([]);
+      expect(await paths("", true)).toEqual(["notes.md", "projects/readme.txt"]);
+      expect(await paths("projects", true)).toEqual(["projects/readme.txt"]);
+    });
+
+    it.each(["projects", ""])(
+      "deleteAll of '%s' deletes the outer project's files and leaves the nested folders intact",
+      async (path) => {
+        expect(await workspace.deleteAll(path)).toBe(path ? 1 : 2);
+
+        await expectNestedIntact();
+        expect(await stored("projects/readme.txt")).toBeNull();
+        expect(await workspace.list("projects")).toEqual([]);
+      }
+    );
+
+    it("deleteAll of a directory that only leads to a nested folder deletes nothing", async () => {
+      expect(await workspace.deleteAll("games")).toBe(0);
+      await expectNestedIntact();
+    });
+
+    it.each(["projects", "games"])(
+      "refuses to move %s, which holds a nested folder, and moves nothing",
+      async (path) => {
+        await expect(workspace.move(path, "elsewhere")).rejects.toThrow(
+          WorkspaceReservedPathError
+        );
+
+        await expectNestedIntact();
+        expect(await stored("projects/readme.txt")).toBe("outer");
+        expect(await workspace.exists("elsewhere")).toBe(false);
+      }
+    );
+
+    it("never excludes the folder's own root", async () => {
+      // The inner project's own workspace is rooted at its folder, which
+      // holds `.nodetool/` and which a host could name by mistake.
+      const inner = createWorkspace(storage, {
+        prefix: INNER,
+        nestedFolders: () => ["", ".", "/"]
+      });
+
+      expect(await inner.readText("notes.txt")).toBe("inner");
+      expect(
+        (await inner.list("", { recursive: true })).map((entry) => entry.path)
+      ).toEqual(["Generated/fox.txt", "notes.txt"]);
+      await inner.write("Generated/wolf.txt", "wolf");
+      expect(await inner.deleteAll("Generated")).toBe(2);
+      expect(await inner.isNestedFolder("")).toBe(false);
+      expect(await stored(`${INNER}/.nodetool/project.json`)).toBe("{}");
+    });
+
+    it("asks the storage about a directory once while it works in it", async () => {
+      await workspace.write("Shots/day 1/a.txt", "a");
+      const fresh = new StorageWorkspace(storage, { nestedFolders: () => [GAME] });
+      const lists = vi.spyOn(storage, "list");
+      const stats = vi.spyOn(fsPromises, "stat");
+      const marker = (calls: unknown[][]): number =>
+        calls.filter(([target]) => String(target).includes(".nodetool")).length;
+
+      await fresh.write("Shots/day 1/b.txt", "b");
+      const first = marker(isLocal ? stats.mock.calls : lists.mock.calls);
+      for (const name of ["a", "b"]) {
+        expect(await fresh.readText(`Shots/day 1/${name}.txt`)).toBe(name);
+      }
+      await fresh.write("Shots/day 1/c.txt", "c");
+      await fresh.delete("Shots/day 1/a.txt");
+
+      // One question per directory above the files: `Shots` and `Shots/day 1`.
+      expect(first).toBe(2);
+      expect(marker(isLocal ? stats.mock.calls : lists.mock.calls)).toBe(2);
+    });
+
+    it.runIf(isLocal)(
+      "refuses a path through a link that points at a folder the host names",
+      async () => {
+        // The game's folder has no `.nodetool/` to read through the link.
+        await symlink(join(dir, GAME), join(dir, "shortcut"), "dir");
+        const refused = WorkspaceReservedPathError;
+
+        await expect(workspace.read("shortcut/sprite.txt")).rejects.toThrow(refused);
+        await expect(workspace.write("shortcut/sprite.txt", "x")).rejects.toThrow(refused);
+        await expect(workspace.write("shortcut/new/a.txt", "x")).rejects.toThrow(refused);
+        await expect(workspace.list("shortcut")).rejects.toThrow(refused);
+        await expect(workspace.deleteAll("shortcut")).rejects.toThrow(refused);
+        await expect(workspace.materialize("shortcut/sprite.txt")).rejects.toThrow(refused);
+        await expect(
+          assertLocalPathIsOwn(workspace, dir, join(dir, "shortcut", "sprite.txt"))
+        ).rejects.toThrow(refused);
+        await expectNestedIntact();
+      }
+    );
+
+    it("takes a key as it is, also below a directory named workspace", async () => {
+      // `workspace/` at the start of a caller's path means the root. A key is
+      // past that reading: this folder is two directories deep.
+      await storage.store("workspace/abc/.nodetool/project.json", bytes("{}"));
+      await storage.store("workspace/abc/notes.txt", bytes("inner"));
+
+      expect(await workspace.isNestedFolder("workspace/abc")).toBe(true);
+      expect(
+        await new NestedFolders(workspace).holds("workspace/abc/notes.txt")
+      ).toBe(true);
+      await expect(
+        workspace.read("workspace/workspace/abc/notes.txt")
+      ).rejects.toThrow(WorkspaceReservedPathError);
+    });
+
+    it("refuses with a clear error while the host cannot name its folders, and never answers that a file is absent", async () => {
+      let broken = true;
+      const guarded = new StorageWorkspace(storage, {
+        nestedFolders: () => {
+          if (broken) throw new Error("SQLITE_BUSY: database is locked");
+          return [GAME];
+        }
+      });
+
+      for (const attempt of [
+        () => guarded.read("projects/readme.txt"),
+        () => guarded.write("projects/readme.txt", "overwritten"),
+        () => guarded.stat("projects/readme.txt"),
+        () => guarded.list("projects"),
+        () => guarded.deleteAll("projects"),
+        () => guarded.exists("projects/readme.txt"),
+        () => guarded.isNestedFolder("projects")
+      ]) {
+        const refusal = attempt();
+        await expect(refusal).rejects.toBeInstanceOf(WorkspaceFolderCheckError);
+        await expect(refusal).rejects.toThrow(/could not be checked/);
+        await expect(refusal).rejects.toThrow(/database is locked/);
+      }
+      expect(await stored("projects/readme.txt")).toBe("outer");
+
+      // The failure is not remembered: the next question is asked again.
+      broken = false;
+      expect(await guarded.exists("projects/readme.txt")).toBe(true);
+      expect(await guarded.readText("projects/readme.txt")).toBe("outer");
+      await expect(guarded.read(`${GAME}/sprite.txt`)).rejects.toThrow(
+        WorkspaceReservedPathError
+      );
+    });
+
+    it("sees a folder that became another project's after a short time", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      try {
+        await workspace.write("later/a.txt", "a");
+        expect(await workspace.readText("later/a.txt")).toBe("a");
+        await storage.store("later/.nodetool/project.json", bytes("{}"));
+
+        vi.setSystemTime(Date.now() + 60_000);
+
+        await expect(workspace.readText("later/a.txt")).rejects.toThrow(
+          WorkspaceReservedPathError
+        );
+      } finally {
+        vi.useRealTimers();
+      }
     });
   }
 );

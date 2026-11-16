@@ -93,8 +93,8 @@ export async function requireProjectAssetFile(
 
 /**
  * The asset's folder and the path the row records in it, with no check that
- * the path is this project's own. For readers, and for a relink, which gives
- * the row another file and never touches the one it names.
+ * the path is this project's own. For a relink and a byte update, which give
+ * the row another file and never touch the one it names.
  */
 export async function locateProjectAssetFile(
   asset: ProjectAssetFileFields
@@ -106,17 +106,16 @@ export async function locateProjectAssetFile(
 
 /**
  * The file `asset` keeps in its project folder, for readers. Null when the
- * asset has no `workspace_path`, its folder cannot be reached, or the
- * reconciler marked it offline: a reader reports each as missing bytes.
+ * asset has no `workspace_path`, its folder cannot be reached, its path is
+ * in the folder of another project, or the reconciler marked it offline: a
+ * reader reports each as missing bytes.
  */
 export async function projectAssetFile(
   asset: ProjectAssetFileFields & { metadata?: Record<string, unknown> | null }
 ): Promise<ProjectAssetFile | null> {
   if (isProjectAssetOffline(asset)) return null;
   try {
-    // Reading changes no file, so the path is not checked against the
-    // folders of other projects. The reconcile marks such a row offline.
-    return await locateProjectAssetFile(asset);
+    return await requireProjectAssetFile(asset);
   } catch {
     // An unreachable folder leaves the asset unreadable until it is located.
     return null;

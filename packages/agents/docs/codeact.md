@@ -126,7 +126,8 @@ and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `"provider/model_id"`; plus `probe(path)` and `edit(operation, opts)`, the
   typed in-process media operations in `src/media-edit.ts` whose every path
   is confined to the workspace by `confineMediaPaths`
-  (`src/host-binary-guard.ts`), and the host binary
+  (`src/host-binary-guard.ts`), which also refuses a path in the folder of
+  another project inside the workspace, and the host binary
   `downloadVideo(url, outputFile)`, whose argv is confined the same way and
   bounded on wall clock, captured output, artifact size and concurrency by
   `src/host-binaries.ts`), `nodetool.nodes`

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import nodePath from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -24,7 +24,14 @@ import {
   initTestDb,
   type StoryboardDocument
 } from "@nodetool-ai/models";
-import { createLocalWorkspace } from "@nodetool-ai/runtime";
+import {
+  createLocalWorkspace,
+  createWorkspace,
+  getProjectFolderResolver,
+  setProjectFolderResolver,
+  type ProjectFolderResolver,
+  type Workspace as RuntimeWorkspace
+} from "@nodetool-ai/runtime";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import {
   ensureProjectFolder,
@@ -32,8 +39,15 @@ import {
   markFolderCreated,
   resolveProjectWorkspace,
   setWorkspaceCloudStorage,
+  unmarkFolderCreated,
   workspaceFromRow
 } from "@nodetool-ai/execution/service";
+import {
+  documentFileText,
+  reconcileDocumentFiles
+} from "@nodetool-ai/project-services/document-file-sync";
+import { reconcileProjectIndex } from "@nodetool-ai/project-services/project-index";
+import { timelineFileAdapter } from "@nodetool-ai/project-services/timeline-file";
 import { getAssetStorageKey } from "../src/lib/asset-paths.js";
 import {
   importProjectArchive,
@@ -826,6 +840,235 @@ describe("project files", () => {
   });
 
 });
+
+/**
+ * An imported project's folder is `projects/<segment>` in the managed folder,
+ * which is Personal's folder. Personal can be open while the import writes,
+ * and its folder is then compared with its rows every time a file lands.
+ */
+describe.each(["local", "storage"] as const)(
+  "importing into a folder inside another project's folder (%s)",
+  (kind) => {
+    const OUTER = "outer-project";
+    /** A 1x1 PNG. */
+    const PNG = Uint8Array.from(
+      Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+        "base64"
+      )
+    );
+    const TIMELINE_DOCUMENT = JSON.stringify({
+      tracks: [
+        { id: "v1", name: "Video", type: "video", index: 0, visible: true, locked: false }
+      ],
+      clips: [
+        {
+          id: "c1",
+          trackId: "v1",
+          name: "hello",
+          startMs: 0,
+          durationMs: 1000,
+          mediaType: "shape",
+          shapeStyle: { kind: "rect", fill: "#ff0000", x: 0, y: 0, width: 1, height: 1 },
+          sourceType: "imported",
+          status: "generated",
+          locked: false,
+          versions: []
+        }
+      ],
+      markers: []
+    });
+    let folders: InMemoryStorageAdapter;
+    let previousResolver: ProjectFolderResolver | null;
+    let reconciles: number;
+
+    const outerLocation = (): string =>
+      kind === "local"
+        ? nodePath.join(root, "outer")
+        : `workspaces/${importer}`;
+    const open = (location: string): RuntimeWorkspace =>
+      nodePath.isAbsolute(location)
+        ? createLocalWorkspace(location)
+        : createWorkspace(folders, { prefix: location });
+    const innerPath = async (_userId: string, workspaceId: string) => {
+      const segment = createHash("sha256").update(workspaceId).digest("hex");
+      return kind === "local"
+        ? nodePath.join(outerLocation(), "projects", segment)
+        : `${outerLocation()}/projects/${segment}`;
+    };
+    /** What Personal's watcher starts while the import writes its files. */
+    const reconcileOuter = async (): Promise<void> => {
+      reconciles++;
+      await reconcileProjectIndex(OUTER, importer);
+      await reconcileDocumentFiles([timelineFileAdapter], OUTER, importer);
+    };
+    /** The imported folder, with the outer folder compared after every write. */
+    const openWhileOuterIsOpen: OpenWorkspace = (row) => {
+      const inner = open(row.path);
+      return new Proxy(inner, {
+        get(target, property, receiver): unknown {
+          if (property === "write") {
+            return async (
+              path: string,
+              data: Uint8Array | string,
+              contentType?: string
+            ): Promise<void> => {
+              await target.write(path, data, contentType);
+              await reconcileOuter();
+            };
+          }
+          const value: unknown = Reflect.get(target, property, receiver);
+          return typeof value === "function" ? value.bind(target) : value;
+        }
+      });
+    };
+
+    /** A project whose folder holds a media file and a valid timeline file. */
+    async function exportWithFolderFiles(): Promise<Uint8Array> {
+      const seeded = await seedProject();
+      const cut = await TimelineSequence.create<TimelineSequence>({
+        user_id: owner,
+        project_id: seeded.projectId,
+        name: "Cut two",
+        duration_ms: 1000,
+        document: TIMELINE_DOCUMENT
+      });
+      const files = createLocalWorkspace(seeded.workspace.path);
+      await files.write("Generated/fox.png", PNG);
+      await files.write(
+        "Timelines/Cut two.timeline.json",
+        documentFileText(timelineFileAdapter, cut.id, timelineFileAdapter.fieldsOf(cut))
+      );
+      return (await exportProject(owner, seeded.projectId)).bytes;
+    }
+
+    beforeEach(async () => {
+      initTestDb();
+      storage = new InMemoryStorageAdapter();
+      folders = new InMemoryStorageAdapter();
+      root = await mkdtemp(nodePath.join(tmpdir(), "project-archive-nested-"));
+      reconciles = 0;
+      setWorkspaceCloudStorage(kind === "storage" ? folders : null);
+      previousResolver = getProjectFolderResolver();
+      // Only the outer project has a folder here. A row of any other
+      // project then writes no file of its own into the outer folder.
+      setProjectFolderResolver(async (projectId) =>
+        projectId === OUTER
+          ? { ok: true, projectId: OUTER, workspace: open(outerLocation()) }
+          : {
+              ok: false,
+              projectId: projectId ?? null,
+              reason: `Project folder not found: ${projectId}`
+            }
+      );
+    });
+
+    afterEach(async () => {
+      setProjectFolderResolver(previousResolver);
+      setWorkspaceCloudStorage(null);
+      await rm(root, { recursive: true, force: true });
+    });
+
+    it("the outer project takes none of the files while the import writes them", async () => {
+      const bytes = await exportWithFolderFiles();
+
+      const result = await importProjectArchive(bytes, {
+        userId: importer,
+        storage,
+        openWorkspace: openWhileOuterIsOpen,
+        workspacePath: innerPath,
+        markCreatedFolder: markFolderCreated,
+        unmarkCreatedFolder: unmarkFolderCreated
+      });
+
+      // The outer folder was compared with its rows after every file.
+      expect(reconciles).toBeGreaterThan(2);
+      expect(await Asset.listProjectFiles(importer, OUTER)).toEqual([]);
+      const taken = await TimelineSequence.listForProjects(importer, [OUTER]);
+      expect(taken.map((row) => [row.name, row.file_path])).toEqual([]);
+      // The import kept every ID it chose: no row of the outer project took one.
+      const timelines = await TimelineSequence.listForProjects(importer, [
+        result.project.id
+      ]);
+      expect(timelines.map((row) => row.name).sort()).toEqual(["Cut", "Cut two"]);
+      const [folder] = await Workspace.listByProject(importer, result.project.id);
+      const inner = open(folder!.path);
+      expect(
+        (await inner.list("", { recursive: true })).map((entry) => entry.path)
+      ).toContain("Generated/fox.png");
+      expect(await isFolderMarkedCreated(folder!)).toBe(true);
+    });
+
+    it("marks the folder as another project's before the first file is written", async () => {
+      const bytes = await exportWithFolderFiles();
+      const marked: boolean[] = [];
+      const observe: OpenWorkspace = (row) => {
+        const inner = open(row.path);
+        const key = row.path.slice(outerLocation().length + 1).replaceAll("\\", "/");
+        return new Proxy(inner, {
+          get(target, property, receiver): unknown {
+            if (property === "write") {
+              return async (
+                path: string,
+                data: Uint8Array | string,
+                contentType?: string
+              ): Promise<void> => {
+                marked.push(await open(outerLocation()).isNestedFolder(key));
+                await target.write(path, data, contentType);
+              };
+            }
+            const value: unknown = Reflect.get(target, property, receiver);
+            return typeof value === "function" ? value.bind(target) : value;
+          }
+        });
+      };
+
+      await importProjectArchive(bytes, {
+        userId: importer,
+        storage,
+        openWorkspace: observe,
+        workspacePath: innerPath,
+        markCreatedFolder: markFolderCreated,
+        unmarkCreatedFolder: unmarkFolderCreated
+      });
+
+      expect(marked.length).toBeGreaterThan(2);
+      expect(marked).not.toContain(false);
+    });
+
+    it("leaves no file and no mark behind when the import fails", async () => {
+      const entries = unzipSync(await exportWithFolderFiles());
+      const records = JSON.parse(strFromU8(entries["records.json"]!)) as Record<
+        string,
+        Array<Record<string, unknown>>
+      >;
+      // A storyboard without its required document column cannot be inserted.
+      delete records["storyboards"]![0]!["document"];
+      entries["records.json"] = strToU8(JSON.stringify(records));
+
+      await expect(
+        importProjectArchive(zipSync(entries), {
+          userId: importer,
+          storage,
+          openWorkspace: (row) => open(row.path),
+          workspacePath: innerPath,
+          markCreatedFolder: markFolderCreated,
+          unmarkCreatedFolder: unmarkFolderCreated
+        })
+      ).rejects.toThrow();
+
+      expect(await Project.listByUser(importer)).toEqual([]);
+      if (kind === "local") {
+        const left = await readdir(
+          nodePath.join(outerLocation(), "projects")
+        ).catch(() => []);
+        expect(left).toEqual([]);
+      } else {
+        expect((await folders.list("")).entries).toEqual([]);
+      }
+    });
+  }
+);
 
 /**
  * A cloud project folder is a key prefix in object storage (PRD D6, US14).

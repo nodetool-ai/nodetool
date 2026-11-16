@@ -16,6 +16,10 @@
  *    pseudo-file — `://`, `concat:`, `pipe:`, `/dev/…` — is refused.
  * 2. **Nothing outside the workspace.** Every path is resolved against the
  *    workspace root and refused when it lands outside, symlinks resolved.
+ * 3. **Nothing in another project's folder.** A workspace can hold the folder
+ *    of another project or of a game. The `Workspace` refuses a path in one,
+ *    and a path handed to a host binary is refused by the same rule
+ *    (`assertLocalPathIsOwn`), since the binary never calls the workspace.
  *
  * The CPU/memory/disk half of the yt-dlp boundary lives in `host-binaries.ts`:
  * bounded output capture, a concurrency cap, the wall-clock timeout, and the
@@ -24,7 +28,64 @@
 
 import path from "node:path";
 
+import {
+  WorkspaceReservedPathError,
+  assertLocalPathIsOwn,
+  type Workspace
+} from "@nodetool-ai/runtime";
+
 import { isCreatableWithinRoot } from "./workspace-paths.js";
+
+/**
+ * Where a host binary runs: `cwd` is the real directory its paths resolve
+ * against, and `workspace` is the workspace that directory belongs to. A
+ * local workspace is `cwd` itself. A cloud one is staged into it, under the
+ * same relative paths.
+ */
+export interface HostBinaryRoot {
+  cwd: string;
+  workspace: Pick<Workspace, "isNestedFolder" | "key">;
+}
+
+/**
+ * The real path a media reader or writer opens for the caller's path `file`.
+ *
+ * A caller can spell one file several ways: the workspace reads `workspace/x`
+ * and `/workspace/x` as `x`, takes `\` for `/`, and drops a drive letter.
+ * This is the one place that reading happens for a media path.
+ * {@link confineMediaPaths} judges the path this returns, and the capability
+ * opens the path this returns, so no spelling is judged as one file and
+ * opened as another. Throws for a path the workspace refuses lexically.
+ */
+export function hostMediaPath(root: HostBinaryRoot, file: string): string {
+  return path.join(root.cwd, ...root.workspace.key(file).split("/"));
+}
+
+/**
+ * The refusal for `shown` when the real path `resolved` is in the folder of
+ * another project inside the workspace, or undefined when it is the run's
+ * own. A check that cannot be made is a refusal too.
+ */
+async function otherFolderRefusal(
+  root: HostBinaryRoot,
+  resolved: string,
+  shown: string
+): Promise<ArgvRefusal | undefined> {
+  try {
+    await assertLocalPathIsOwn(root.workspace, root.cwd, resolved, shown);
+    return undefined;
+  } catch (error) {
+    if (error instanceof WorkspaceReservedPathError) {
+      return {
+        error:
+          `"${shown}" is in the folder of another project inside this ` +
+          `workspace. Its files belong to that project. Open that project ` +
+          `to use them.`
+      };
+    }
+    return { error: error instanceof Error ? error.message : String(error) };
+  }
+}
 
 /**
  * Substrings that name an opener other than a plain path. `://` covers every
@@ -92,6 +153,9 @@ function pathCandidates(arg: string): string[] {
  * Refuse argv that reaches past the workspace, or `undefined` when every
  * argument stays inside it.
  *
+ * A path in the folder of another project inside the workspace is refused
+ * as well.
+ *
  * Flags are skipped: a leading `-` is an option marker, so such an argument
  * is never a path; `yt_dlp` refuses a flag-like value separately
  * ({@link refuseFlagLikeValue}). Everything else — and every path-shaped piece of it, see
@@ -106,9 +170,10 @@ function pathCandidates(arg: string): string[] {
  */
 export async function confineArgvToWorkspace(
   argv: readonly string[],
-  workspace: string,
+  root: HostBinaryRoot,
   remedy = "Stage it in the workspace first, then pass the local path."
 ): Promise<ArgvRefusal | undefined> {
+  const workspace = root.cwd;
   for (const arg of argv) {
     const token = deniedToken(arg);
     if (token !== undefined) {
@@ -128,23 +193,31 @@ export async function confineArgvToWorkspace(
             `workspace-relative and cannot escape it.`
         };
       }
+      const other = await otherFolderRefusal(root, resolved, candidate);
+      if (other) return other;
     }
   }
   return undefined;
 }
 
 /**
- * Refuse a media path that names an opener or lands outside the workspace,
- * or `undefined` when every path stays inside it.
+ * Refuse a media path that names an opener, lands outside the workspace, or
+ * is in the folder of another project inside it, or `undefined` when every
+ * path is the run's own.
  *
  * Unlike {@link confineArgvToWorkspace} this takes whole paths, never argv,
  * so nothing is skipped as a flag: `-x/../../etc/passwd` is a path here.
+ *
+ * The path that is judged is the path that is opened, {@link hostMediaPath}.
+ * The path as written is held to the workspace as well, so an absolute path
+ * elsewhere on the host is refused by name and not read as workspace-relative.
  */
 export async function confineMediaPaths(
   paths: readonly string[],
-  workspace: string,
+  root: HostBinaryRoot,
   remedy: string
 ): Promise<ArgvRefusal | undefined> {
+  const workspace = root.cwd;
   for (const file of paths) {
     if (file.trim() === "") return { error: "A media path cannot be empty." };
     const token = deniedToken(file);
@@ -155,16 +228,97 @@ export async function confineMediaPaths(
           `Only workspace files are readable. ${remedy}`
       };
     }
-    const resolved = path.resolve(workspace, file);
-    if (!(await isCreatableWithinRoot(workspace, resolved))) {
-      return {
-        error:
-          `"${file}" resolves outside the workspace. Paths are ` +
-          `workspace-relative and cannot escape it.`
-      };
+    const outside = {
+      error:
+        `"${file}" resolves outside the workspace. Paths are ` +
+        `workspace-relative and cannot escape it.`
+    };
+    let opened: string;
+    try {
+      opened = hostMediaPath(root, file);
+    } catch (error) {
+      return error instanceof WorkspaceReservedPathError
+        ? { error: error.message }
+        : outside;
     }
+    const written = path.resolve(workspace, file);
+    if (
+      !(await isCreatableWithinRoot(workspace, written)) ||
+      !(await isCreatableWithinRoot(workspace, opened))
+    ) {
+      return outside;
+    }
+    // The opened path decides. The path as written is refused as well when
+    // it names another project's folder outright, so the refusal says why.
+    const other =
+      (await otherFolderRefusal(root, opened, file)) ??
+      (await otherFolderRefusal(root, written, file));
+    if (other) return other;
   }
   return undefined;
+}
+
+/** yt-dlp's `-o TYPES:TEMPLATE` prefix, matched as yt-dlp matches it. */
+const YT_DLP_TYPE_PREFIX =
+  /^(?:chapter|subtitle|thumbnail|description|annotation|infojson|link|pl_video|pl_thumbnail|pl_description|pl_infojson)(?:,(?:chapter|subtitle|thumbnail|description|annotation|infojson|link|pl_video|pl_thumbnail|pl_description|pl_infojson))*:/is;
+
+/**
+ * Refuse a yt-dlp output template that could write outside the workspace or
+ * into the folder of another project, or `undefined` when it cannot.
+ *
+ * yt-dlp expands `%(field)s` after this check. A field in the directory part
+ * can therefore choose the directory: `projects/%(id).0sgame1/x.%(ext)s`
+ * expands to `projects/game1/x.mp4` and names no such directory before. The
+ * directory part must be literal, and it is that literal directory which is
+ * judged. yt-dlp replaces path separators in a field's value, so a field in
+ * the file name cannot leave the directory.
+ *
+ * yt-dlp also expands the template before it writes: a leading `~`, every
+ * `$VAR` and `${VAR}`, and on Windows every `%VAR%`, from the server's own
+ * environment. `~/x.%(ext)s` writes into the home directory. Such a template
+ * is refused, since the literal text is not the path that is opened. A
+ * `TYPES:` prefix makes the template one for another kind of file, such as
+ * `thumbnail:`, and is refused too.
+ */
+export async function confineOutputTemplate(
+  template: string,
+  root: HostBinaryRoot
+): Promise<ArgvRefusal | undefined> {
+  const expanded =
+    template.trimStart().startsWith("~") ||
+    template.includes("$") ||
+    // `%%` is a literal percent sign. Any other `%` must open a `%(field)`.
+    /%(?!\()/.test(template.replaceAll("%%", ""));
+  if (expanded) {
+    return {
+      error:
+        `The output template "${template}" holds "~", "$" or a "%" that does ` +
+        `not open a field. yt-dlp expands these from the server's ` +
+        `environment before it writes. Name a workspace-relative path, as in ` +
+        `"downloads/%(title)s.%(ext)s".`
+    };
+  }
+  if (YT_DLP_TYPE_PREFIX.test(template)) {
+    return {
+      error:
+        `The output template "${template}" starts with a type prefix, which ` +
+        `makes it a template for another kind of file. Name the download's ` +
+        `own path, as in "downloads/%(title)s.%(ext)s".`
+    };
+  }
+  const lastSeparator = Math.max(
+    template.lastIndexOf("/"),
+    template.lastIndexOf("\\")
+  );
+  if (template.slice(0, lastSeparator + 1).includes("%")) {
+    return {
+      error:
+        `The directory of the output template "${template}" cannot contain a ` +
+        `field. Name the directory literally and use fields in the file ` +
+        `name only, as in "downloads/%(title)s.%(ext)s".`
+    };
+  }
+  return confineArgvToWorkspace([template], root);
 }
 
 /**

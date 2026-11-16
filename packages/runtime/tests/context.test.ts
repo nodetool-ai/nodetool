@@ -31,6 +31,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 const portablePath = (value: string): string => value.replace(/^\/private/, "");
 import { tmpdir } from "node:os";
+import { createLocalWorkspace } from "../src/storage-workspace.js";
 import { fileURLToPath } from "node:url";
 
 describe("ProcessingContext – message queue", () => {
@@ -635,6 +636,76 @@ describe("workspace path resolution", () => {
     expect(() => resolveWorkspacePath(root, path)).toThrow(
       "reserves for its own files"
     );
+  });
+
+  it("refuses a path in a directory that holds a reserved directory", async () => {
+    // The folder of another project inside the workspace: `projects/abc`.
+    const root = await mkdtemp(join(tmpdir(), "nodetool-ctx-nested-"));
+    try {
+      await mkdir(join(root, "projects", "abc", ".nodetool"), { recursive: true });
+      await mkdir(join(root, "projects", "plain"), { recursive: true });
+      await mkdir(join(root, ".nodetool"), { recursive: true });
+
+      for (const path of [
+        "projects/abc/notes.txt",
+        "projects/abc",
+        "/workspace/projects/abc/deep/notes.txt"
+      ]) {
+        expect(() => resolveWorkspacePath(root, path)).toThrow(
+          "folder of another project"
+        );
+      }
+      // The workspace's own root and its other directories stay reachable.
+      expect(resolveWorkspacePath(root, ".")).toBe(resolve(root));
+      expect(resolveWorkspacePath(root, "projects/plain/notes.txt")).toBe(
+        resolve(root, "projects/plain/notes.txt")
+      );
+      expect(resolveWorkspacePath(root, "projects")).toBe(resolve(root, "projects"));
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses a sandbox file in a folder the workspace names by its rows alone", async () => {
+    // A game's workspace has no `.nodetool/`. Only the workspace knows it.
+    const root = await mkdtemp(join(tmpdir(), "nodetool-ctx-game-"));
+    try {
+      await mkdir(join(root, "projects", "game1"), { recursive: true });
+      await writeFile(join(root, "projects", "game1", "src.json"), "{}");
+      await writeFile(join(root, "projects", "own.json"), "{}");
+      const ctx = new ProcessingContext({
+        jobId: "j1",
+        workspace: createLocalWorkspace(root, {
+          nestedFolders: () => ["projects/game1"]
+        })
+      });
+
+      for (const path of [
+        "projects/game1/src.json",
+        join(root, "projects", "game1", "src.json"),
+        "workspace/projects/game1/src.json",
+        "/workspace/projects/game1/src.json",
+        "projects\\game1\\src.json",
+        "C:/projects/game1/src.json",
+        "projects/../projects/game1/src.json"
+      ]) {
+        await expect(ctx.sandboxToAsset(path)).rejects.toThrow(
+          "folder of another project"
+        );
+        await expect(ctx.assetToSandbox("asset-1", path)).rejects.toThrow(
+          "folder of another project"
+        );
+      }
+      expect(
+        await readFile(join(root, "projects", "game1", "src.json"), "utf8")
+      ).toBe("{}");
+      // A file beside the game's folder is still the run's own.
+      await expect(ctx.sandboxToAsset("projects/own.json")).rejects.not.toThrow(
+        "folder of another project"
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 
   it("refuses an absolute path into the reserved directory", async () => {

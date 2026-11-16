@@ -96,22 +96,30 @@ export interface Workspace {
   ): Promise<boolean>;
   exists(path: string): Promise<boolean>;
   stat(path: string): Promise<WorkspaceStat | null>;
-  /** Direct children of `path`, or every descendant when `recursive`. */
+  /**
+   * Direct children of `path`, or every descendant when `recursive`.
+   * {@link RESERVED_WORKSPACE_DIR} and nested folders are left out.
+   */
   list(
     path?: string,
     opts?: { recursive?: boolean }
   ): Promise<WorkspaceEntry[]>;
   /** Delete one file. Returns false when it was not there. */
   delete(path: string): Promise<boolean>;
-  /** Delete a directory and everything under it. Returns how many files went. */
+  /**
+   * Delete a directory and everything under it. Returns how many files went.
+   * A {@link RESERVED_WORKSPACE_DIR} directory and a nested folder below it
+   * stay as they are, with the directories that lead to them.
+   */
   deleteAll(path: string): Promise<number>;
   /** No-op on an object store; creates the directory on a local one. */
   mkdir(path: string): Promise<void>;
   copy(from: string, to: string): Promise<void>;
   /**
    * Move a file, or a directory with everything under it. A directory is
-   * never moved into itself or onto an existing entry, and a directory that
-   * holds a {@link RESERVED_WORKSPACE_DIR} directory at any depth is refused.
+   * never moved into itself or onto an existing entry. A directory that holds
+   * a {@link RESERVED_WORKSPACE_DIR} directory or a nested folder at any
+   * depth is refused.
    */
   move(from: string, to: string): Promise<void>;
 
@@ -120,10 +128,18 @@ export interface Workspace {
    * this one: the folder of another project, or of a game. It is one when it
    * holds a {@link RESERVED_WORKSPACE_DIR} directory, or when the host that
    * built this workspace named it. False for the root, which is this folder
-   * itself, and for a path this workspace refuses.
+   * itself, and for a path outside the workspace.
    *
-   * Whatever compares a folder with database rows asks through
-   * {@link NestedFolders}, and never enters such a directory.
+   * `path` is a workspace key, as {@link key} and a listing give it. It is
+   * taken as it is: a leading `workspace/` is a directory of that name, where
+   * every other method reads it as the root. Throws
+   * {@link WorkspaceFolderCheckError} when the answer cannot be found out.
+   *
+   * The files of a nested folder belong to the other project. Every other
+   * method refuses a path that is such a folder or lies in one, as it
+   * refuses {@link RESERVED_WORKSPACE_DIR}: with a
+   * {@link WorkspaceReservedPathError}. `list` leaves nested folders out, and
+   * `deleteAll` leaves them as they are. See {@link NestedFolders}.
    */
   isNestedFolder(path: string): Promise<boolean>;
 
@@ -187,22 +203,58 @@ export function isReservedWorkspaceKey(key: string): boolean {
   return key.split("/").some(isReservedWorkspaceName);
 }
 
-/** Thrown when a path names the directory NodeTool reserves for itself. */
+/**
+ * Why a workspace refuses a path:
+ * - `reserved`: it names {@link RESERVED_WORKSPACE_DIR} or lies in one.
+ * - `nested`: it is the folder of another project inside this workspace, or
+ *   lies in one.
+ * - `holds`: it is a directory with a reserved directory or the folder of
+ *   another project somewhere below it, and the operation would take that
+ *   along.
+ */
+export type WorkspaceReservedReason = "reserved" | "nested" | "holds";
+
+/**
+ * Thrown when a path names the directory NodeTool reserves for itself, or
+ * the folder of another project inside the workspace.
+ */
 export class WorkspaceReservedPathError extends Error {
-  /**
-   * `holds` is set for a directory that is not reserved itself and has a
-   * reserved directory somewhere below it.
-   */
-  constructor(path: string, holds = false) {
+  readonly reason: WorkspaceReservedReason;
+
+  constructor(path: string, reason: WorkspaceReservedReason = "reserved") {
     super(
-      holds
-        ? `Path '${path}' holds a ${RESERVED_WORKSPACE_DIR}/ directory, which ` +
-            `NodeTool reserves for its own files. It is or contains the ` +
-            `folder of another project and cannot be moved from here.`
-        : `Path '${path}' is inside ${RESERVED_WORKSPACE_DIR}/, which NodeTool ` +
-            `reserves for its own files. Choose another folder.`
+      reason === "nested"
+        ? `Path '${path}' is in the folder of another project inside this ` +
+            `one. Its files belong to that project. Open that project to ` +
+            `use them.`
+        : reason === "holds"
+          ? `Path '${path}' holds the folder of another project, or a ` +
+              `${RESERVED_WORKSPACE_DIR}/ directory NodeTool reserves for its ` +
+              `own files. It cannot be moved from here.`
+          : `Path '${path}' is inside ${RESERVED_WORKSPACE_DIR}/, which NodeTool ` +
+              `reserves for its own files. Choose another folder.`
     );
     this.name = "WorkspaceReservedPathError";
+    this.reason = reason;
+  }
+}
+
+/**
+ * Thrown when a workspace cannot find out whether a path is in the folder of
+ * another project: the host could not name its folders, or the storage could
+ * not be asked. The operation is refused, because the answer could have been
+ * yes. Nothing is known about the path itself, so no caller may read this as
+ * "the file is not there".
+ */
+export class WorkspaceFolderCheckError extends Error {
+  constructor(path: string, cause: unknown) {
+    const reason = cause instanceof Error ? cause.message : String(cause);
+    super(
+      `Path '${path}' could not be checked against the folders of other ` +
+        `projects, so it was refused: ${reason}`,
+      { cause }
+    );
+    this.name = "WorkspaceFolderCheckError";
   }
 }
 
@@ -212,26 +264,28 @@ export class WorkspaceReservedPathError extends Error {
  *
  * A project folder can hold the folder of another project. Personal's managed
  * folder holds `projects/<id>`, where cloud projects, imported projects and
- * games keep theirs. Those files belong to the other project. Every reader
- * that compares a folder with rows (the scan, the watcher, the hash job, the
- * manifest writer, the document file sync) and every writer that follows a
- * row to its file asks here, so one rule decides for all of them.
+ * games keep theirs. Those files belong to the other project. One rule
+ * decides for everything that touches a folder, and this is where it is
+ * asked:
  *
- * One instance remembers its answers. Make one per pass over a folder.
+ * - The workspace refuses every operation on a path in a nested folder and
+ *   leaves nested folders out of its listings.
+ * - Whatever compares a folder with rows (the scan, the watcher, the hash
+ *   job, the manifest writer, the document file sync) and whatever follows a
+ *   row to its file asks before it looks, so that a row naming such a path
+ *   counts as a row whose file is gone.
+ *
+ * It keeps no answers of its own. The workspace remembers what it learned
+ * about a directory for a short time, so asking again costs nothing.
  */
 export class NestedFolders {
-  private readonly answers = new Map<string, Promise<boolean>>();
-
-  constructor(private readonly workspace: Workspace) {}
+  constructor(
+    private readonly workspace: Pick<Workspace, "isNestedFolder">
+  ) {}
 
   /** Whether the directory at the workspace key `path` is a nested folder. */
   isFolder(path: string): Promise<boolean> {
-    let answer = this.answers.get(path);
-    if (!answer) {
-      answer = this.workspace.isNestedFolder(path);
-      this.answers.set(path, answer);
-    }
-    return answer;
+    return this.workspace.isNestedFolder(path);
   }
 
   /**

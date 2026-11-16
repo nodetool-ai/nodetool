@@ -76,8 +76,11 @@ case "$format" in
   *) src='${audio}'; fid=140; ext=m4a ;;
 esac
 out=$(printf '%s' "$outtmpl" | sed "s/%(id)s/clip1/; s/%(format_id)s/$fid/; s/%(ext)s/$ext/")
-mkdir -p "$(dirname "$out")"
-/bin/cp "$src" "$out"
+case "$outtmpl" in
+  # yt-dlp skips a download whose file exists and still prints its path.
+  existing/*) out="projects/abc/clip.f$fid.$ext" ;;
+  *) mkdir -p "$(dirname "$out")"; /bin/cp "$src" "$out" ;;
+esac
 [ "$print_id" -eq 1 ] && echo "$fid"
 echo "$out"
 `;
@@ -137,6 +140,25 @@ describe("yt_dlp without ffmpeg", () => {
     expect(String(result["error"])).toMatch(
       /format "\[format_id="137"\]" \(clip\.f137\.mp4\) and format "\[format_id="140"\]" \(clip\.f140\.m4a\) could not be muxed: Cannot stream-copy h264 video with aac audio into webm/
     );
+  });
+
+  it("neither muxes nor removes a printed path in another project's folder", async () => {
+    const other = path.join(workspace, "projects/abc");
+    await mkdir(path.join(other, ".nodetool"), { recursive: true });
+    await writeFile(path.join(other, "clip.f137.mp4"), "theirs-video");
+    await writeFile(path.join(other, "clip.f140.m4a"), "theirs-audio");
+
+    const result = await runYtDlp({
+      url: "https://example.com/v",
+      format: "bv+ba",
+      output_file: "existing/clip.mp4"
+    });
+
+    expect(result["success"]).toBe(false);
+    expect(String(result["error"])).toMatch(/folder of another project/);
+    expect(await readFile(path.join(other, "clip.f137.mp4"), "utf8")).toBe("theirs-video");
+    expect(await readFile(path.join(other, "clip.f140.m4a"), "utf8")).toBe("theirs-audio");
+    expect((await readdir(other)).sort()).toEqual([".nodetool", "clip.f137.mp4", "clip.f140.m4a"]);
   });
 
   it("refuses a merge inside parentheses before running yt-dlp", async () => {

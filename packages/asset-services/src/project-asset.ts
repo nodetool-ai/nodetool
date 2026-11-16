@@ -243,17 +243,6 @@ function joinPath(directory: string, fileName: string): string {
   return directory ? `${directory}/${fileName}` : fileName;
 }
 
-/** Thrown when an asset file is to be written into another project's folder. */
-export class ProjectAssetPlacementError extends Error {
-  constructor(directory: string) {
-    super(
-      `The directory ${directory} is in the folder of another project. ` +
-        `Choose a directory of this project.`
-    );
-    this.name = "ProjectAssetPlacementError";
-  }
-}
-
 /**
  * Write `bytes` to a new file in `directory` named after `stem`, and return
  * its path: `stem.ext`, or `stem-2.ext`, `stem-3.ext` and so on when the name
@@ -275,9 +264,9 @@ export class ProjectAssetPlacementError extends Error {
  * nothing written. `stagingName` is passed to `Workspace.writeNew`, so the
  * claimed name holds the whole file or nothing.
  *
- * Throws {@link ProjectAssetPlacementError} for a directory that is the
- * folder of another project inside this one, or lies in it. A file written
- * there would be that project's file with a row in this one.
+ * The workspace refuses a directory that is the folder of another project
+ * inside this one, or lies in it, with a `WorkspaceReservedPathError`. A
+ * file written there would be that project's file with a row in this one.
  */
 export async function claimFile(
   workspace: Workspace,
@@ -290,9 +279,6 @@ export async function claimFile(
   beforeWrite?: (path: string) => Promise<void>,
   stagingName?: string
 ): Promise<string> {
-  if (directory && (await new NestedFolders(workspace).covers(directory))) {
-    throw new ProjectAssetPlacementError(directory);
-  }
   const taken = new Set(
     (await workspace.list(directory)).map((entry) => entry.name.toLowerCase())
   );
@@ -642,21 +628,34 @@ function relocateProjectAssetFile(
  * new file with the right extension and the old file is removed on `commit`.
  * The asset's size, path and fingerprint are updated either way, and its
  * thumbnail is regenerated.
+ *
+ * A row can name a file in the folder of another project inside this one.
+ * That file is the other project's and stays as it is. The bytes then go to
+ * a new file named after the asset in {@link IMPORTED_DIRECTORY}, and the
+ * asset has a file of its own from there on.
  */
 export async function replaceProjectAssetBytes(
   asset: Asset,
   bytes: Uint8Array
 ): Promise<ProjectAssetFileChange | null> {
-  const file = await requireProjectAssetFile(asset);
+  const file = await locateProjectAssetFile(asset);
   if (!file) return null;
   const { workspace } = file;
-  const from = file.path;
-  const { directory, stem, extension } = splitPath(from);
   const wanted = assetFileExtension(asset.content_type);
+  const foreign = await new NestedFolders(workspace).holds(file.path);
+  // The file to replace, or null when the row names no file of its own.
+  const from = foreign ? null : file.path;
+  const { directory, stem, extension } = foreign
+    ? {
+        directory: IMPORTED_DIRECTORY,
+        stem: projectAssetFileStem(asset.name, asset.content_type),
+        extension: ""
+      }
+    : splitPath(file.path);
 
   return withProjectFolderLock(asset.user_id, asset.project_id, async () => {
-    const moves = extension.toLowerCase() !== wanted;
-    let to = from;
+    const moves = from === null || extension.toLowerCase() !== wanted;
+    let to = from ?? "";
     if (moves) {
       to = await claimFile(
         workspace,
@@ -671,7 +670,7 @@ export async function replaceProjectAssetBytes(
     const release = holdPaths(
       asset.user_id,
       asset.project_id,
-      moves ? [from, to] : []
+      moves ? (from === null ? [to] : [from, to]) : []
     );
     const previous = {
       path: asset.workspace_path,
@@ -701,7 +700,7 @@ export async function replaceProjectAssetBytes(
     return {
       commit: async () => {
         try {
-          if (moves) {
+          if (moves && from !== null) {
             await removeFile(
               workspace,
               from,

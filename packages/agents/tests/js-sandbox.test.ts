@@ -1052,6 +1052,71 @@ describe("runInSandbox context bridge", () => {
     expect(result.result).toBeNull(); // undefined serialises to null
   });
 
+  it("the workspace bridge reaches no file in another project's folder, under any spelling", async () => {
+    const { mkdir, mkdtemp, readFile, rm, writeFile } = await import("node:fs/promises");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const ws = await mkdtemp(join(tmpdir(), "sbx-nested-ws-"));
+    try {
+      // A project's folder has `.nodetool/`. A game's is named by the host.
+      await mkdir(join(ws, "projects/abc/.nodetool"), { recursive: true });
+      await mkdir(join(ws, "projects/game1"), { recursive: true });
+      await writeFile(join(ws, "projects/abc/notes.txt"), "PROJECT SECRET");
+      await writeFile(join(ws, "projects/game1/src.json"), "GAME SECRET");
+      await writeFile(join(ws, "projects/own.txt"), "own");
+      const context = {
+        workspace: createLocalWorkspace(ws, {
+          nestedFolders: () => ["projects/game1"]
+        }),
+        resolveWorkspacePath: (p: string) => join(ws, p)
+      } as unknown as import("@nodetool-ai/runtime").ProcessingContext;
+      const spellings = (file: string): string[] => [
+        file,
+        `workspace/${file}`,
+        `/workspace/${file}`,
+        file.replaceAll("/", "\\"),
+        `C:/${file}`,
+        `projects/../${file}`
+      ];
+
+      for (const file of ["projects/abc/notes.txt", "projects/game1/src.json"]) {
+        for (const path of spellings(file)) {
+          const read = await runInSandbox({
+            code: `return await workspace.read(${JSON.stringify(path)});`,
+            context
+          });
+          expect(read.success, path).toBe(false);
+          expect(JSON.stringify(read), path).not.toContain("SECRET");
+
+          const write = await runInSandbox({
+            code: `await workspace.write(${JSON.stringify(path)}, "overwritten"); return "written";`,
+            context
+          });
+          expect(write.success, path).toBe(false);
+
+          const removed = await runInSandbox({
+            code: `await workspace.remove(${JSON.stringify(path)}); return "removed";`,
+            context
+          });
+          expect(removed.success, path).toBe(false);
+        }
+      }
+      expect(await readFile(join(ws, "projects/abc/notes.txt"), "utf8")).toBe("PROJECT SECRET");
+      expect(await readFile(join(ws, "projects/game1/src.json"), "utf8")).toBe("GAME SECRET");
+
+      // The run's own file beside them stays reachable under each spelling.
+      for (const path of spellings("projects/own.txt")) {
+        const read = await runInSandbox({
+          code: `return await workspace.read(${JSON.stringify(path)});`,
+          context
+        });
+        expect(read.result, path).toBe("own");
+      }
+    } finally {
+      await rm(ws, { recursive: true, force: true });
+    }
+  });
+
   it("workspace.read throws helpfully when no context is provided", async () => {
     const result = await runInSandbox({
       code: `return await workspace.read("file.txt");`

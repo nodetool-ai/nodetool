@@ -28,6 +28,7 @@ import {
 } from "@nodetool-ai/models";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
+  WorkspaceReservedPathError,
   createLocalWorkspace,
   createWorkspace,
   setProjectFolderResolver,
@@ -41,15 +42,18 @@ import {
 } from "@nodetool-ai/storage";
 import { lookupExternalAssetPath } from "@nodetool-ai/asset-services/external-asset-lookup";
 import {
+  ProjectDirectoryError,
+  createProjectDirectory,
   listProjectDirectories,
-  loadProjectDirectoryIndex
+  loadProjectDirectoryIndex,
+  moveProjectDirectory
 } from "@nodetool-ai/asset-services/project-asset-directories";
 import {
-  ProjectAssetPlacementError,
   ProjectAssetRelinkError,
   deleteProjectAssetFile,
   relinkProjectAsset,
   renameProjectAssetFile,
+  replaceProjectAssetBytes,
   saveProjectAsset
 } from "@nodetool-ai/asset-services/project-asset";
 import {
@@ -234,6 +238,18 @@ async function bytesBelow(
     files.set(path, new Uint8Array(bytes));
   }
   return files;
+}
+
+/**
+ * A file of the game whose workspace lies in the outer folder, written as
+ * the game's own writers do: past the outer folder's workspace.
+ */
+async function writeGameFile(kind: Kind): Promise<void> {
+  const location = locationOf(kind, OUTER);
+  const raw: StorageAdapter =
+    kind === "local" ? new FileStorageAdapter(location) : rawStore;
+  const prefix = kind === "local" ? "" : `${location}/`;
+  await raw.store(`${prefix}${GAME_DIR}/sprites/hero.png`, PNG, "image/png");
 }
 
 /**
@@ -434,7 +450,7 @@ describe.each(["local", "storage"] as const)(
       });
 
       it("enters no directory the host names as another folder, though it has no .nodetool/", async () => {
-        await folder(kind, OUTER).write(`${GAME_DIR}/sprites/hero.png`, PNG);
+        await writeGameFile(kind);
         await folder(kind, OUTER).write("projects/notes/cover.png", PNG);
 
         const report = await reconcileProjectIndex(OUTER, USER);
@@ -465,7 +481,7 @@ describe.each(["local", "storage"] as const)(
       it("list its own and none of the inner project's or the game's", async () => {
         await makeInnerProject(kind);
         const outer = folder(kind, OUTER);
-        await outer.write(`${GAME_DIR}/sprites/hero.png`, PNG);
+        await writeGameFile(kind);
         await outer.write("Imported/Day 1/own.png", PNG);
 
         const index = await loadProjectDirectoryIndex(USER, OUTER);
@@ -476,6 +492,68 @@ describe.each(["local", "storage"] as const)(
           "Imported/Day 1",
           "projects"
         ]);
+      });
+    });
+
+    describe("the folders of the outer project in the asset browser", () => {
+      it("cannot be moved into the inner folder, on disk or by their rows alone", async () => {
+        const inner = await makeInnerProject(kind);
+        const own = await saveProjectAsset({
+          projectId: OUTER,
+          userId: USER,
+          name: "own",
+          contentType: "image/png",
+          bytes: PNG,
+          directory: "Shots"
+        });
+        // A row whose directory is not on disk: only the rows would move.
+        const stale = await Asset.create<Asset>({
+          user_id: USER,
+          project_id: OUTER,
+          name: "gone",
+          content_type: "image/png",
+          workspace_path: "Lost/gone.png"
+        });
+
+        for (const from of ["Shots", "Lost"]) {
+          await expect(
+            moveProjectDirectory(USER, OUTER, from, `${INNER_DIR}/${from}`)
+          ).rejects.toBeInstanceOf(ProjectDirectoryError);
+          await expect(
+            moveProjectDirectory(USER, OUTER, from, `${GAME_DIR}/${from}`)
+          ).rejects.toBeInstanceOf(ProjectDirectoryError);
+        }
+
+        expect((await Asset.find(USER, own.id))?.workspace_path).toBe("Shots/own.png");
+        expect((await Asset.find(USER, stale.id))?.workspace_path).toBe("Lost/gone.png");
+        await expectInnerUntouched(kind, inner);
+      });
+
+      it("cannot be created in the inner folder", async () => {
+        const inner = await makeInnerProject(kind);
+
+        await expect(
+          createProjectDirectory(USER, OUTER, INNER_DIR, "Shots")
+        ).rejects.toBeInstanceOf(ProjectDirectoryError);
+        await expect(
+          createProjectDirectory(USER, OUTER, "projects", "a".repeat(64))
+        ).rejects.toBeInstanceOf(ProjectDirectoryError);
+
+        await expectInnerUntouched(kind, inner);
+      });
+
+      it("a directory that holds another folder cannot be renamed, with or without a .nodetool/ in it", async () => {
+        const inner = await makeInnerProject(kind);
+        await folder(kind, OUTER).write("projects/readme.png", PNG);
+        await reconcileProjectIndex(OUTER, USER);
+
+        await expect(
+          moveProjectDirectory(USER, OUTER, "projects", "renamed")
+        ).rejects.toBeInstanceOf(ProjectDirectoryError);
+
+        const rows = await Asset.listProjectFiles(USER, OUTER);
+        expect(rows.map((row) => row.workspace_path)).toEqual(["projects/readme.png"]);
+        await expectInnerUntouched(kind, inner);
       });
     });
 
@@ -507,12 +585,36 @@ describe.each(["local", "storage"] as const)(
               bytes: PNG,
               directory
             })
-          ).rejects.toBeInstanceOf(ProjectAssetPlacementError);
+          ).rejects.toBeInstanceOf(WorkspaceReservedPathError);
 
           expect(await Asset.listProjectFiles(USER, OUTER)).toEqual([]);
           await expectInnerUntouched(kind, inner);
         }
       );
+
+      it.each([
+        `${INNER_DIR}/Generated/fox.png`,
+        `${INNER_DIR}/Generated/wolf.png`,
+        `${GAME_DIR}/sprites/hero.png`
+      ])("is refused at the exact path %s, and replaces no file there", async (path) => {
+        const inner = await makeInnerProject(kind);
+        await writeGameFile(kind);
+        const wolf = Uint8Array.from([...PNG, 0]);
+
+        await expect(
+          saveProjectAsset({
+            projectId: OUTER,
+            userId: USER,
+            name: "wolf",
+            contentType: "image/png",
+            bytes: wolf,
+            path
+          })
+        ).rejects.toBeInstanceOf(WorkspaceReservedPathError);
+
+        expect(await Asset.listProjectFiles(USER, OUTER)).toEqual([]);
+        await expectInnerUntouched(kind, inner);
+      });
 
       it("is still saved in a directory that only leads to the inner folder", async () => {
         await makeInnerProject(kind);
@@ -585,6 +687,26 @@ describe.each(["local", "storage"] as const)(
         expect(await bytesBelow(kind, INNER_DIR)).toEqual(inner.files);
       });
 
+      it("new bytes for the asset go to a file of its own in the outer folder", async () => {
+        const inner = await makeInnerProject(kind);
+        const { asset } = await makeRowsOfTheDefect();
+        await reconcileProjectIndex(OUTER, USER);
+        const offline = await Asset.find(USER, asset.id);
+        if (!offline) throw new Error("the asset is gone");
+        const wolf = Uint8Array.from([...PNG, 0]);
+
+        const change = await replaceProjectAssetBytes(offline, wolf);
+        if (!change) throw new Error("the bytes were dropped");
+        await offline.save();
+        await change.commit();
+
+        const updated = await Asset.find(USER, asset.id);
+        expect(updated?.workspace_path).toBe("Imported/fox.png");
+        expect(updated && isProjectAssetOffline(updated)).toBe(false);
+        expect(await folder(kind, OUTER).read("Imported/fox.png")).toEqual(wolf);
+        await expectInnerUntouched(kind, inner);
+      });
+
       it("deleting the document leaves the inner project's file where it is", async () => {
         const inner = await makeInnerProject(kind);
         const { workflow } = await makeRowsOfTheDefect();
@@ -630,7 +752,7 @@ describe.each(["local", "storage"] as const)(
         const inner = await makeInnerProject(kind);
         const { asset } = await makeRowsOfTheDefect();
         // The row records the fingerprint the file has, so only the folder rule stops the job.
-        const info = await folder(kind, OUTER).stat(`${INNER_DIR}/Generated/fox.png`);
+        const info = await folder(kind, INNER).stat("Generated/fox.png");
         asset.metadata = { ...asset.metadata, workspace_mtime: info?.modifiedAt };
         await asset.save();
         const job = new ProjectHashJob();

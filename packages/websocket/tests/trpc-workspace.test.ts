@@ -11,6 +11,8 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     ...actual,
     Workspace: {
       ...actual.Workspace,
+      // No project or game keeps a folder inside the workspace under test.
+      listFolderPaths: vi.fn(async () => []),
       find: vi.fn(),
       paginate: vi.fn(),
       hasLinkedWorkflows: vi.fn(),

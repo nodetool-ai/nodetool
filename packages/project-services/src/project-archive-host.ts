@@ -13,6 +13,7 @@ import {
 import {
   ensureProjectFolder,
   markFolderCreated,
+  unmarkFolderCreated,
   workspaceFromRow
 } from "@nodetool-ai/execution/service";
 
@@ -21,6 +22,7 @@ export function projectArchiveHost(): {
   openWorkspace: OpenWorkspace;
   ensureFolder: typeof ensureProjectFolder;
   markCreatedFolder: typeof markFolderCreated;
+  unmarkCreatedFolder: typeof unmarkFolderCreated;
   removeAssetBytes: (userId: string, assetId: string, contentType: string) => Promise<void>;
   storeAssetBytes: (args: {
     userId: string;
@@ -40,6 +42,7 @@ export function projectArchiveHost(): {
     openWorkspace: workspaceFromRow,
     ensureFolder: ensureProjectFolder,
     markCreatedFolder: markFolderCreated,
+    unmarkCreatedFolder: unmarkFolderCreated,
     removeAssetBytes: async (userId, assetId, contentType) => {
       const storage = getAssetAdapter();
       await Promise.all([
