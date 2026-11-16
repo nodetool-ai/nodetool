@@ -12,7 +12,10 @@
  *                                  project, such as a game's
  *
  * The project folder is a workspace row of the project, so its files travel
- * under `workspaces/`. `.nodetool/` is NodeTool's own and stays out: an
+ * under `workspaces/`, and `manifest.json` names it
+ * (`project.folder_workspace_id`). The import makes the same workspace the
+ * new project's folder. An archive from before that field was written
+ * predicts the folder the way `importedProjectFolder` describes. `.nodetool/` is NodeTool's own and stays out: an
  * imported project gets a manifest of its own. Storyboards, scripts, sketches,
  * apps, JS scripts and chats live in the database and travel in
  * `records.json`.
@@ -137,7 +140,13 @@ const manifestSchema = z.object({
     id: z.string(),
     name: z.string(),
     kind: z.string(),
-    thread_id: z.string().nullable().optional()
+    thread_id: z.string().nullable().optional(),
+    /**
+     * The archived workspace that was the project's folder. Absent in
+     * archives from before it was recorded, and when the folder did not
+     * travel.
+     */
+    folder_workspace_id: z.string().nullable().optional()
   }),
   counts: z.record(z.string(), z.number()),
   assets: z.array(fileEntry.extend({ id: z.string() })),
@@ -346,7 +355,12 @@ export async function writeProjectArchive(
       id: project.id,
       name: project.name,
       kind: project.kind,
-      thread_id: project.thread_id
+      thread_id: project.thread_id,
+      folder_workspace_id: records.workspaces.some(
+        (row) => row["id"] === project.workspace_id
+      )
+        ? project.workspace_id
+        : null
     },
     counts: {},
     assets: [],
@@ -561,9 +575,14 @@ export interface ImportProjectArchiveOptions {
   /**
    * Gives the imported project its folder (PRD D1), so its runs find one
    * without waiting for the startup migration. The host passes
-   * `ensureProjectFolder`, which adopts the imported project workspace.
+   * `ensureProjectFolder`. `preferredWorkspaceId` names the imported
+   * workspace whose files the import matched to the asset rows, so that
+   * workspace must become the folder.
    */
-  readonly ensureFolder?: (project: Project) => Promise<unknown>;
+  readonly ensureFolder?: (
+    project: Project,
+    options: { preferredWorkspaceId?: string }
+  ) => Promise<unknown>;
   /**
    * Records in an imported workspace's folder that NodeTool created it. The
    * host passes `markFolderCreated`. Without the record, deleting the
@@ -648,25 +667,44 @@ interface ImportedFolderFile {
 
 /**
  * The exported id of the workspace that becomes the imported project's
- * folder, or null when the archive has none that can.
+ * folder, or null when the archive has none that can. A workspace a game
+ * uses never can.
  *
- * A project without a folder is given its oldest workspace that no game
- * uses: `Workspace.oldestProjectFolderCandidate`, which `ensureProjectFolder`
- * and the startup migration both apply. The same order is applied here to
- * the rows about to be inserted, so the assets that keep a `workspace_path`
- * are the ones whose file is in that folder. `imported` and `games` hold the
- * rows with their new ids, in the order of `exported`.
+ * 1. The workspace the manifest records as the project's folder.
+ * 2. In an archive from before that was recorded: for a Personal project,
+ *    its default workspace, which is the folder Personal is given.
+ * 3. Otherwise the oldest workspace: what `ensureProjectFolder` and the
+ *    startup migration give a project without a folder
+ *    (`Workspace.oldestProjectFolderCandidate`), applied to the rows about
+ *    to be inserted.
+ *
+ * The import gives the project this folder (`ensureFolder` with
+ * `preferredWorkspaceId`), so the assets that keep a `workspace_path` are
+ * the ones whose file is in it. `imported` and `games` hold the rows with
+ * their new ids, in the order of `exported`.
  */
 function importedProjectFolder(
+  project: ProjectArchiveManifest["project"],
   exported: readonly ProjectArchiveRow[],
   imported: readonly ProjectArchiveRow[],
   games: readonly ProjectArchiveRow[]
 ): string | null {
   const usedByGame = new Set(games.map((game) => game["workspace_id"]));
+  const candidates = imported
+    .map((row, index) => ({ row, exported: exported[index] }))
+    .filter(({ row }) => !usedByGame.has(String(row["id"])));
+  const recorded = project.folder_workspace_id;
+  if (recorded) {
+    const named = candidates.find(({ exported: row }) => row?.["id"] === recorded);
+    if (named) return recorded;
+  }
+  if (recorded === undefined && project.kind === PERSONAL_PROJECT_KIND) {
+    const defaults = candidates.filter(({ exported: row }) => row?.["is_default"] === true);
+    if (defaults.length === 1) return String(defaults[0]!.exported!["id"]);
+  }
   let oldest: { createdAt: string; id: string; exportedId: string } | null = null;
-  for (const [index, row] of imported.entries()) {
+  for (const { row, exported: source } of candidates) {
     const id = String(row["id"]);
-    if (usedByGame.has(id)) continue;
     const createdAt = row["created_at"];
     // Without a creation time the order the database applies is unknown.
     if (typeof createdAt !== "string") return null;
@@ -675,7 +713,7 @@ function importedProjectFolder(
       createdAt < oldest.createdAt ||
       (createdAt === oldest.createdAt && id < oldest.id)
     ) {
-      oldest = { createdAt, id, exportedId: String(exported[index]?.["id"]) };
+      oldest = { createdAt, id, exportedId: String(source?.["id"]) };
     }
   }
   return oldest?.exportedId ?? null;
@@ -873,6 +911,7 @@ export async function importProjectArchive(
       if (typeof previous === "string" && draftVersions.has(previous)) row["before_digest"] = draftVersions.get(previous);
     }
     const folderId = importedProjectFolder(
+      manifest.project,
       records.workspaces,
       imported.workspaces,
       imported.games
@@ -1025,7 +1064,11 @@ export async function importProjectArchive(
     // the import. The startup migration retries it, and a run reports the
     // missing folder rather than writing elsewhere.
     try {
-      await options.ensureFolder?.(project);
+      const preferred = folderId === null ? undefined : ids.get(folderId);
+      await options.ensureFolder?.(
+        project,
+        preferred === undefined ? {} : { preferredWorkspaceId: preferred }
+      );
     } catch (error) {
       log.warn("Could not give the imported project a folder", {
         projectId: project.id,

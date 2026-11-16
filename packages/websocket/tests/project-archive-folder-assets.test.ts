@@ -575,6 +575,63 @@ describe.each(["local", "cloud"] as const)(
       }
     });
 
+    it("a project whose folder is not its oldest workspace imports with that folder, and each asset once", async () => {
+      const source = await folderProject();
+      // An older workspace of the project that is not its folder, with a
+      // file at the path of an asset.
+      const older = await WorkspaceRow.create<WorkspaceRow>({
+        user_id: USER,
+        project_id: source.project.id,
+        name: "Old notes",
+        path: looseWorkspacePath("old-notes"),
+        created_at: "2020-01-01T00:00:00.000Z"
+      });
+      await folderOf(older).write(source.paths[0]!, png(100));
+      const { bytes, manifest } = await exportProject(source.project.id);
+      expect(manifest.project.folder_workspace_id).toBe(source.folder.id);
+
+      const { project } = await importArchive(bytes);
+
+      await expectEachAssetOnce(project.id);
+      const opened = await openProject(project.id);
+      expect(opened.first.created).toEqual([]);
+      expect(opened.moved.moved).toEqual([]);
+      await expectEachAssetOnce(project.id);
+      // The older workspace came along as a workspace of its own.
+      const rows = await WorkspaceRow.listByProject(USER, project.id);
+      expect(rows).toHaveLength(2);
+    });
+
+    it("an older archive of a Personal project takes its default workspace as the folder", async () => {
+      const source = await folderProject();
+      const older = await WorkspaceRow.create<WorkspaceRow>({
+        user_id: USER,
+        project_id: source.project.id,
+        name: "Old notes",
+        path: looseWorkspacePath("old-notes"),
+        created_at: "2020-01-01T00:00:00.000Z"
+      });
+      await folderOf(older).write("notes.md", strToU8("# notes"));
+      const { bytes } = await exportProject(source.project.id);
+      // As Personal was exported before the folder was recorded: the folder
+      // is its default workspace.
+      const legacy = rewriteArchive(bytes, ({ manifest, records }) => {
+        manifest.project.kind = "personal";
+        delete (manifest.project as { folder_workspace_id?: unknown })
+          .folder_workspace_id;
+        for (const row of records["workspaces"] ?? []) {
+          row["is_default"] = row["id"] === source.folder.id;
+        }
+      });
+
+      const { project } = await importArchive(legacy);
+
+      await expectEachAssetOnce(project.id);
+      const opened = await openProject(project.id);
+      expect(opened.first.created).toEqual([]);
+      expect(opened.moved.moved).toEqual([]);
+    });
+
     it("the folder files are taken from the folder, not from an older workspace a game uses", async () => {
       const source = await folderProject();
       // A game's workspace, older than the project folder, with a file at the

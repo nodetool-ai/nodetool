@@ -458,10 +458,22 @@ async function createFolder(project: Project): Promise<WorkspaceRow> {
   }
 }
 
+/** What {@link ensureProjectFolder} prefers for a project without a folder. */
+export interface EnsureProjectFolderOptions {
+  /**
+   * A workspace row of the project to become its folder, such as the
+   * imported workspace an archive names as the project's folder. Used when
+   * the row belongs to the project and no game uses it.
+   */
+  preferredWorkspaceId?: string;
+}
+
 /**
  * The project's folder, created or assigned when it has none. Idempotent.
  *
  * - A project whose `workspace_id` names an existing row keeps that row.
+ * - A project given `options.preferredWorkspaceId` takes that row when it is
+ *   one of the project's rows and no game uses it.
  * - Personal uses the user's default workspace and claims that row for itself
  *   when the row is in no project or already Personal's, and no game uses it.
  *   No files move. Otherwise Personal gets a new folder and the row is left as
@@ -475,7 +487,8 @@ async function createFolder(project: Project): Promise<WorkspaceRow> {
  * behind.
  */
 export async function ensureProjectFolder(
-  project: Project
+  project: Project,
+  options: EnsureProjectFolderOptions = {}
 ): Promise<WorkspaceRow> {
   if (project.workspace_id) {
     const existing = await WorkspaceRow.find(
@@ -483,6 +496,21 @@ export async function ensureProjectFolder(
       project.workspace_id
     );
     if (existing) return existing;
+  }
+
+  if (options.preferredWorkspaceId) {
+    const preferred = await WorkspaceRow.find(
+      project.user_id,
+      options.preferredWorkspaceId
+    );
+    if (
+      preferred &&
+      preferred.project_id === project.id &&
+      !(await WorkspaceRow.isUsedByGame(preferred.id))
+    ) {
+      await writeManifestIfAbsent(preferred, project);
+      return claim(project, preferred);
+    }
   }
 
   if (project.kind === PERSONAL_PROJECT_KIND) {
