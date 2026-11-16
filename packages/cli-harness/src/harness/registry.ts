@@ -1292,6 +1292,18 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "project-folders",
+    title: "Project folder lifecycle (create, rename on disk, copy and hard link, offline and restore)",
+    command: "npm run test --workspace=packages/project-services -- project-folder-selfcheck",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "docs/project-folders/prd.md § Testing decisions",
+    selfcheck: {
+      command: "npm run test --workspace=packages/project-services -- project-folder-selfcheck",
+      cost: "cheap"
+    }
+  },
+  {
     id: "storage-and-security",
     title: "Storage, security, auth, and config packages",
     command:
@@ -2480,6 +2492,18 @@ export const SURFACES: SurfaceEntry[] = [
     title: "Product analytics (shared schema and client core)",
     harnesses: ["analytics"],
     paths: ["packages/analytics/"]
+  },
+  {
+    id: "project-folders",
+    title: "Project folders (folder index, asset files, workflow and timeline files)",
+    harnesses: ["project-folders"],
+    paths: [
+      "packages/project-services/",
+      "packages/asset-services/src/project-",
+      "packages/runtime-core/src/workspace.ts",
+      "packages/runtime-core/src/storage-workspace.ts",
+      "packages/execution/src/service/project-folder.ts"
+    ]
   },
   {
     id: "storage-and-security",
