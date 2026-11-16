@@ -532,6 +532,45 @@ describe.each(["local", "cloud"] as const)(
       await expectEachAssetOnce(project.id);
     });
 
+    // A zip entry can carry a Unix mode that marks it a symbolic link, with
+    // the link's target as its bytes. The import reads entries as bytes and
+    // writes each through the workspace, so it creates a plain file.
+    it.runIf(mode === "local")(
+      "an archive entry marked as a symbolic link is written as a plain file",
+      async () => {
+        const source = await folderProject();
+        const exported = await exportProject(source.project.id);
+        const entries = unzipSync(exported.bytes);
+        const manifest = JSON.parse(
+          strFromU8(entries["manifest.json"]!)
+        ) as ProjectArchiveManifest;
+        const target = strToU8("../../../../.bashrc");
+        const file = "workspaces/link.txt";
+        manifest.workspace_files.push({
+          file,
+          bytes: target.length,
+          sha256: createHash("sha256").update(target).digest("hex"),
+          workspace_id: manifest.project.folder_workspace_id!,
+          path: "notes/link.txt"
+        });
+        const zipped: Record<string, Uint8Array | [Uint8Array, { os: number; attrs: number }]> = {
+          ...entries,
+          "manifest.json": strToU8(JSON.stringify(manifest)),
+          // S_IFLNK | 0777 in the high half of the external attributes, as
+          // Info-ZIP writes a link on Unix.
+          [file]: [target, { os: 3, attrs: (0o120777 << 16) >>> 0 }]
+        };
+
+        const { project, missing } = await importArchive(zipSync(zipped));
+
+        expect(missing).toEqual([]);
+        const folder = await folderRowOf(project.id);
+        const written = path.join(String(folder.path), "notes", "link.txt");
+        expect((await fs.lstat(written)).isSymbolicLink()).toBe(false);
+        expect(await fs.readFile(written, "utf8")).toBe("../../../../.bashrc");
+      }
+    );
+
     it("an asset whose archived bytes are not those of the folder file keeps its own bytes", async () => {
       const source = await folderProject();
       const exported = await exportProject(source.project.id);

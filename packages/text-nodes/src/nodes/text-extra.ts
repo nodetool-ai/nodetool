@@ -15,6 +15,7 @@ import {
   loadNodePath,
   folderPathOf,
   assertSaveTargetIsOwn,
+  writeSaveTargetFile,
   writeSavedFile,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
@@ -603,7 +604,7 @@ export class SaveTextNode extends BaseNode {
     if (folder) {
       await fs.mkdir(folder, { recursive: true });
     }
-    await fs.writeFile(fsPath, text, "utf-8");
+    await writeSaveTargetFile(context, path.resolve(fsPath), text);
     const uri = fsPath.replace(/\\/g, "/");
     return { output: { uri, data: text } };
   }

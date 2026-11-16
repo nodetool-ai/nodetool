@@ -17,6 +17,7 @@ import {
   loadNodeFsPromises,
   loadNodePath,
   assertSaveTargetIsOwn,
+  writeSaveTargetFile,
   writeSavedFile,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
@@ -405,7 +406,7 @@ export class SaveAudioNode extends BaseNode {
     const full = path.resolve(folder, name);
     await assertSaveTargetIsOwn(context, full);
     await fs.mkdir(path.dirname(full), { recursive: true });
-    await fs.writeFile(full, bytes);
+    await writeSaveTargetFile(context, full, bytes);
     return { output: audioRefFromBytes(bytes, `file://${full}`) };
   }
 }

@@ -3,30 +3,54 @@
  * `nodetool` CLI command that share one SQLite database, for example.
  *
  * The lock is a file created with an exclusive create. It records its owner
- * (process id, host name and a random token), and the owner touches it every
- * {@link FolderLockFileOptions.heartbeatMs}. Another process takes the lock
- * over only when its owner is gone:
+ * (process id, host name, a random token, the process's PID namespace and
+ * boot, and on Linux the process's start time), and the owner touches it
+ * every {@link FolderLockFileOptions.heartbeatMs}. Another process takes the
+ * lock over only when its owner is gone:
  *
- * - the owner ran on this host and its process no longer exists, or
+ * - the owner ran in this PID namespace of this host and boot, and its
+ *   process no longer exists, or its id now belongs to a process that
+ *   started at another time, or
  * - the file was not touched for {@link FolderLockFileOptions.staleMs}, as
  *   when the owner was killed on another host that shares the directory.
  *
- * Taking over and releasing both run under a guard directory, created with
- * an exclusive `mkdir`. The guard is held for a few file operations only, so
- * a guard older than {@link FolderLockFileOptions.guardStaleMs} was left by a
- * process that died while holding it and is removed. Under the guard the
- * lock file is read again, and it is removed only when it still records the
- * owner that was judged gone (take-over) or the caller (release). A process
- * therefore never removes a lock that a live owner took in the meantime.
+ * A process id is only asked about when the owner recorded this PID
+ * namespace: two containers that share the database volume and the host
+ * name see each other's ids as missing. On Linux an owner that is known to
+ * still run keeps the lock however long its file goes untouched, since a
+ * blocked event loop stops the heartbeat timer of a live process.
+ *
+ * Taking over and releasing both run under a guard file, created with an
+ * exclusive create and holding a random token. The guard is held for a few
+ * file operations only, so a guard older than
+ * {@link FolderLockFileOptions.guardStaleMs} was left by a process that died
+ * while holding it and is removed. A guard is removed by renaming it to a
+ * name of its own and comparing what was renamed with the guard that was
+ * judged: when another process took the guard in between, that guard is put
+ * back. Under the guard the lock file is read again, and it is removed only
+ * when it still records the owner that was judged gone (take-over) or the
+ * caller (release). A process therefore never removes a lock that a live
+ * owner took in the meantime.
  *
  * A waiter gives up after {@link FolderLockFileOptions.timeoutMs} with a
  * {@link FolderLockTimeoutError}, so a process that hangs while it holds the
  * lock stops other processes' work with an error instead of forever.
  */
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, open, readFile, rmdir, stat, unlink } from "node:fs/promises";
+import {
+  link,
+  lstat,
+  mkdir,
+  open,
+  readFile,
+  readlink,
+  rename,
+  rmdir,
+  stat,
+  unlink
+} from "node:fs/promises";
 import type { FileHandle } from "node:fs/promises";
-import { hostname } from "node:os";
+import { hostname, uptime } from "node:os";
 import { join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { createLogger } from "@nodetool-ai/config";
@@ -73,21 +97,106 @@ interface LockOwner {
   pid: number;
   host: string;
   token: string;
+  /**
+   * The PID namespace and boot the process id belongs to, from
+   * {@link processScope}. Null for a lock file of an earlier version, which
+   * did not record one. Empty when the owner could not tell.
+   */
+  scope: string | null;
+  /** The process's start time, from {@link startTimeOf}. Empty when unknown. */
+  started: string;
 }
 
-/** The text of a lock file: process id, host name and token, one per line. */
+/**
+ * The text of a lock file: process id, host name, token, scope and start
+ * time, one per line.
+ */
 function ownerText(owner: LockOwner): string {
-  return `${owner.pid}\n${owner.host}\n${owner.token}\n`;
+  return `${owner.pid}\n${owner.host}\n${owner.token}\n${owner.scope ?? ""}\n${owner.started}\n`;
 }
 
 /** The owner a lock file records, or null for a file cut short while it was written. */
 function parseOwner(text: string): LockOwner | null {
-  const [pid, host, token, rest] = text.split("\n");
+  const lines = text.split("\n");
+  const [pid, host, token] = lines;
   const id = Number(pid);
-  if (!Number.isInteger(id) || id <= 0 || !host || !token || rest !== "") {
+  if (!Number.isInteger(id) || id <= 0 || !host || !token) return null;
+  // Three lines: an earlier version, which recorded no scope.
+  if (lines.length === 4 && lines[3] === "") {
+    return { pid: id, host, token, scope: null, started: "" };
+  }
+  if (lines.length !== 6 || lines[5] !== "") return null;
+  return { pid: id, host, token, scope: lines[3], started: lines[4] };
+}
+
+/**
+ * Where this process's id means this process: on Linux the boot and the PID
+ * namespace, elsewhere the platform and the boot to the minute. Empty when
+ * it cannot be read. Two processes with one host name and one scope see the
+ * same processes under the same ids.
+ */
+async function readProcessScope(): Promise<string> {
+  if (process.platform === "linux") {
+    try {
+      const boot = (await readFile("/proc/sys/kernel/random/boot_id", "utf8")).trim();
+      const namespace = await readlink("/proc/self/ns/pid");
+      return `linux:${boot}:${namespace}`;
+    } catch {
+      return "";
+    }
+  }
+  // No PID namespaces. The boot keeps a lock file from before a restart
+  // from naming a process that runs now.
+  const bootMinute = Math.round((Date.now() / 1000 - uptime()) / 60);
+  return `${process.platform}:${bootMinute}`;
+}
+
+let scopeOfThisProcess: Promise<string> | null = null;
+
+function processScope(): Promise<string> {
+  scopeOfThisProcess ??= readProcessScope();
+  return scopeOfThisProcess;
+}
+
+/**
+ * When process `pid` started, in clock ticks since boot (field 22 of
+ * `/proc/<pid>/stat`). Null where there is no such file. A process id that
+ * is given to a new process gets a new start time.
+ */
+async function startTimeOf(pid: number): Promise<string | null> {
+  try {
+    const stat = await readFile(`/proc/${pid}/stat`, "utf8");
+    // The command name in parentheses may hold spaces; the fields follow it.
+    const fields = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
+    return fields[19] ?? null;
+  } catch {
     return null;
   }
-  return { pid: id, host, token };
+}
+
+/**
+ * What this process can tell about the owner's process: it has exited, it
+ * still runs (the same process, by its start time), or nothing, as for an
+ * owner on another host or in another PID namespace.
+ */
+async function ownerProcessState(
+  owner: LockOwner
+): Promise<"exited" | "running" | "unknown"> {
+  if (owner.host !== hostname() || !owner.scope) return "unknown";
+  if (owner.scope !== (await processScope())) return "unknown";
+  if (!processIsAlive(owner.pid)) return "exited";
+  if (!owner.started) return "unknown";
+  const started = await startTimeOf(owner.pid);
+  if (started === null) return "unknown";
+  return started === owner.started ? "running" : "exited";
+}
+
+/** What a guard was when it was judged: removed only while it is still that. */
+interface GuardSeen {
+  directory: boolean;
+  dev?: number;
+  ino?: number;
+  text: string | null;
 }
 
 /** The errno code of a failed file system call, if it has one. */
@@ -150,7 +259,9 @@ class LockFile {
     const owner: LockOwner = {
       pid: process.pid,
       host: hostname(),
-      token: randomUUID()
+      token: randomUUID(),
+      scope: await processScope(),
+      started: (await startTimeOf(process.pid)) ?? ""
     };
     const contents = ownerText(owner);
     const started = Date.now();
@@ -248,25 +359,21 @@ class LockFile {
     const text = await readText(this.path);
     if (text === null) return null;
     const owner = parseOwner(text);
-    const untouched = Date.now() - info.mtimeMs > this.options.staleMs;
-    const exited =
-      owner !== null && owner.host === hostname() && !processIsAlive(owner.pid);
-    return untouched || exited ? text : null;
+    const state = owner === null ? "unknown" : await ownerProcessState(owner);
+    if (state === "exited") return text;
+    if (state === "running") return null;
+    return Date.now() - info.mtimeMs > this.options.staleMs ? text : null;
   }
 
-  /** Run `task` while this process holds the guard directory. */
+  /** Run `task` while this process holds the guard file. */
   private async underGuard(task: () => Promise<void>): Promise<void> {
+    const token = randomUUID();
     const started = Date.now();
     for (;;) {
-      try {
-        await mkdir(this.guard);
-        break;
-      } catch (error) {
-        if (!(error instanceof Error && failedWith(error, "EEXIST"))) throw error;
-      }
-      const info = await stat(this.guard).catch(() => null);
-      if (info && Date.now() - info.mtimeMs > this.options.guardStaleMs) {
-        await rmdir(this.guard).catch(() => undefined);
+      if (await this.tryCreateGuard(token)) break;
+      const seen = await this.seeGuard();
+      if (seen && Date.now() - seen.mtimeMs > this.options.guardStaleMs) {
+        await this.removeGuard(seen);
         continue;
       }
       if (Date.now() - started >= this.options.timeoutMs) {
@@ -277,8 +384,94 @@ class LockFile {
     try {
       await task();
     } finally {
-      await rmdir(this.guard).catch(() => undefined);
+      try {
+        await this.removeGuard({ directory: false, text: token });
+      } catch (error) {
+        log.warn("Could not remove a project folder lock guard", {
+          path: this.guard,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
     }
+  }
+
+  /** Create the guard holding `token`. False when it is taken. */
+  private async tryCreateGuard(token: string): Promise<boolean> {
+    let handle: FileHandle;
+    try {
+      handle = await open(this.guard, "wx");
+    } catch (error) {
+      if (error instanceof Error && failedWith(error, "EEXIST")) return false;
+      throw error;
+    }
+    try {
+      await handle.writeFile(token);
+    } catch (error) {
+      await handle.close().catch(() => undefined);
+      await unlink(this.guard).catch(() => undefined);
+      throw error;
+    }
+    await handle.close();
+    return true;
+  }
+
+  /** The guard as it is now, or null when there is none. */
+  private async seeGuard(): Promise<(GuardSeen & { mtimeMs: number }) | null> {
+    const info = await lstat(this.guard).catch(() => null);
+    if (!info) return null;
+    // A directory: the guard of an earlier version.
+    if (info.isDirectory()) {
+      return { directory: true, dev: info.dev, ino: info.ino, text: null, mtimeMs: info.mtimeMs };
+    }
+    const text = await readText(this.guard);
+    if (text === null) return null;
+    return { directory: false, dev: info.dev, ino: info.ino, text, mtimeMs: info.mtimeMs };
+  }
+
+  /**
+   * Remove the guard when it is still `expected`. It is renamed to a name of
+   * its own first, which no other process can take from under this one, and
+   * then compared. A guard another process took in the meantime is put back.
+   */
+  private async removeGuard(expected: GuardSeen): Promise<void> {
+    const removed = `${this.guard}.${randomUUID()}.removed`;
+    try {
+      await rename(this.guard, removed);
+    } catch (error) {
+      if (error instanceof Error && failedWith(error, "ENOENT")) return;
+      throw error;
+    }
+    const info = await lstat(removed);
+    const sameFile =
+      expected.ino === undefined ||
+      (info.ino === expected.ino && info.dev === expected.dev);
+    if (info.isDirectory()) {
+      if (expected.directory && sameFile) {
+        await rmdir(removed).catch(() => undefined);
+        return;
+      }
+      // An earlier version's live guard. A directory cannot be linked back.
+      await rename(removed, this.guard).catch(() => rmdir(removed).catch(() => undefined));
+      return;
+    }
+    if (!expected.directory && sameFile && (await readText(removed)) === expected.text) {
+      await unlink(removed);
+      return;
+    }
+    // Another process's guard. A link puts it back without replacing a guard
+    // that a third process took since.
+    try {
+      await link(removed, this.guard);
+    } catch (error) {
+      if (!(error instanceof Error && failedWith(error, "EEXIST"))) {
+        await rename(removed, this.guard).catch(() => undefined);
+        return;
+      }
+      log.warn("A project folder lock guard was taken while it was put back", {
+        path: this.guard
+      });
+    }
+    await unlink(removed).catch(() => undefined);
   }
 }
 
