@@ -5,6 +5,18 @@ import { __resetTimelineAutosaveVersionState } from "../src/trpc/routers/timelin
 import type { Context } from "../src/trpc/context.js";
 import type { TimelineDocument } from "@nodetool-ai/models";
 
+// Reference sets live in the database this suite replaces with stubs. Their
+// behavior is covered by tests/document-refs.test.ts.
+vi.mock("../src/lib/document-refs.js", () => ({
+  checkAttach: vi.fn().mockResolvedValue([]),
+  findUnreadableFile: vi.fn().mockResolvedValue({ unreadable: null, toAdmit: [] }),
+  fileNotReadableMessage: (file: string) => file,
+  ensureCurrentSet: vi.fn().mockResolvedValue("current:"),
+  publishSave: vi.fn().mockResolvedValue(undefined),
+  ensureVersionSets: vi.fn().mockResolvedValue(undefined),
+  readableSharedFiles: vi.fn().mockResolvedValue(new Set())
+}));
+
 vi.mock("@nodetool-ai/models", async (orig) => {
   const actual = await orig<typeof import("@nodetool-ai/models")>();
 
@@ -59,15 +71,20 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     static update = vi.fn();
 
     // Plain static (not vi.fn) so `vi.resetAllMocks()` doesn't strip the body.
+    /** The revision each save asked to keep, in its own transaction. */
+    static keeps: unknown[] = [];
     static async updateFieldsIfUnchanged(
       id: string,
       _expectedUpdatedAt: string,
-      fields: Record<string, unknown>
+      fields: Record<string, unknown>,
+      _meta?: unknown,
+      keep?: unknown
     ): Promise<StubTimelineSequence | null> {
       const seq = (await StubTimelineSequence.findById(
         id
       )) as StubTimelineSequence | null;
       if (!seq) return null;
+      StubTimelineSequence.keeps.push(keep);
       Object.assign(seq, fields);
       await StubTimelineSequence.update(id, fields);
       return seq;
@@ -137,6 +154,7 @@ import { TimelineSequence, TimelineSequenceVersion } from "@nodetool-ai/models";
 const TS = TimelineSequence as unknown as {
   findById: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
+  keeps: unknown[];
 };
 const TSV = TimelineSequenceVersion as unknown as {
   listForTimeline: ReturnType<typeof vi.fn>;
@@ -161,6 +179,9 @@ function makeCtx(overrides: Partial<Context> = {}): Context {
     ...overrides
   };
 }
+
+/** The editing instance of the open document in the cadence tests. */
+const INSTANCE = "f".repeat(32);
 
 function makeSeq(over: Record<string, unknown> = {}) {
   return new (TimelineSequence as unknown as new (
@@ -311,7 +332,8 @@ describe("timeline.versions router", () => {
 
   // ── restore ───────────────────────────────────────────────────────────────
 
-  it("restore writes the version's document and scalars, after a pre-restore snapshot", async () => {
+  it("restore writes the version's document and scalars, keeping what it replaces", async () => {
+    TS.keeps.length = 0;
     const restoredDoc = {
       tracks: [
         {
@@ -343,12 +365,12 @@ describe("timeline.versions router", () => {
       version: 7
     });
 
-    // Pre-restore snapshot, so a restore is undoable.
-    expect(TSV.snapshotCalls).toHaveLength(1);
-    expect(TSV.snapshotCalls[0].opts).toEqual({
-      saveType: "restore",
-      name: "Before restore to v7"
-    });
+    // The replaced revision is kept in the restore's own transaction, so a
+    // restore is undoable and a lost compare-and-set keeps nothing.
+    expect(TSV.snapshotCalls).toHaveLength(0);
+    expect(TS.keeps).toEqual([
+      expect.objectContaining({ saveType: "restore", name: "Before restore to v7" })
+    ]);
 
     const [id, fields] = TS.update.mock.calls[0] as [
       string,
@@ -435,21 +457,23 @@ describe("timeline autosave snapshots", () => {
   it("snapshots on the first document write and not again within the interval", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-03-01T00:00:00Z"));
-    TS.findById.mockResolvedValue(makeSeq());
+    // The open document wrote the stored revision, so only the cadence
+    // decides whether a save snapshots.
+    TS.findById.mockResolvedValue(makeSeq({ last_writer_instance: INSTANCE }));
     const caller = createCaller(makeCtx());
 
-    await caller.timeline.update({ id: "seq-1", document: emptyDoc });
+    await caller.timeline.update({ id: "seq-1", document: emptyDoc, editingInstance: INSTANCE });
     expect(TSV.snapshotCalls).toHaveLength(1);
     expect(TSV.snapshotCalls[0].opts).toEqual({ saveType: "autosave" });
     expect(TSV.pruneAutosaves).toHaveBeenCalledWith("seq-1", 20);
 
     vi.advanceTimersByTime(60_000);
-    await caller.timeline.update({ id: "seq-1", document: emptyDoc });
+    await caller.timeline.update({ id: "seq-1", document: emptyDoc, editingInstance: INSTANCE });
     expect(TSV.snapshotCalls).toHaveLength(1);
 
     // Past the 5-minute interval it snapshots again.
     vi.advanceTimersByTime(5 * 60 * 1000);
-    await caller.timeline.update({ id: "seq-1", document: emptyDoc });
+    await caller.timeline.update({ id: "seq-1", document: emptyDoc, editingInstance: INSTANCE });
     expect(TSV.snapshotCalls).toHaveLength(2);
   });
 
@@ -475,17 +499,19 @@ describe("timeline autosave snapshots", () => {
   it("timeline.delete drops the version rows and the cadence entry", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-03-01T00:00:00Z"));
-    TS.findById.mockResolvedValue(makeSeq());
+    // The open document wrote the stored revision, so only the cadence
+    // decides whether a save snapshots.
+    TS.findById.mockResolvedValue(makeSeq({ last_writer_instance: INSTANCE }));
     const caller = createCaller(makeCtx());
 
-    await caller.timeline.update({ id: "seq-1", document: emptyDoc });
+    await caller.timeline.update({ id: "seq-1", document: emptyDoc, editingInstance: INSTANCE });
     expect(TSV.snapshotCalls).toHaveLength(1);
 
     await caller.timeline.delete({ id: "seq-1" });
     expect(TSV.deleteForTimeline).toHaveBeenCalledWith("seq-1");
 
     // The cadence entry went with it, so the next write snapshots immediately.
-    await caller.timeline.update({ id: "seq-1", document: emptyDoc });
+    await caller.timeline.update({ id: "seq-1", document: emptyDoc, editingInstance: INSTANCE });
     expect(TSV.snapshotCalls).toHaveLength(2);
   });
 });

@@ -53,21 +53,29 @@ export function isIgnoredProjectPath(path: string): boolean {
 }
 
 /**
- * Every file in the folder, by path. Each directory is listed once.
- * `Workspace.list` leaves out `.nodetool/` and symbolic links, and a
- * directory whose real location is outside the folder is refused with a
- * `WorkspacePathError` and skipped. Any other listing failure ends the scan,
- * so a directory that could not be read never makes its files look deleted.
+ * Every file in the folder, by path. A local folder is read one directory at
+ * a time, each listed once. `Workspace.list` leaves out `.nodetool/` and
+ * symbolic links, and a directory whose real location is outside the folder
+ * is refused with a `WorkspacePathError` and skipped. Any other listing
+ * failure ends the scan, so a directory that could not be read never makes
+ * its files look deleted.
+ *
+ * A folder in object storage is read with one flat listing of every key
+ * below `start`. Listed one directory at a time, it would cost a request
+ * for the listing and one more per directory, to ask whether that directory
+ * is the folder of another project. The flat listing names the `.nodetool/`
+ * keys too, which answers that question for every directory in it.
  *
  * A directory that is the folder of another project or of a game is not
  * entered, so none of its files is in the result: `Workspace.list` leaves
- * such a directory out, and refuses one as `start`.
+ * such a directory out at every depth, and refuses one as `start`.
  */
 export async function scanFolder(
   workspace: Workspace,
   start = "",
   files = new Map<string, FolderFile>()
 ): Promise<Map<string, FolderFile>> {
+  if (workspace.localDir === null) return scanFlat(workspace, start, files);
   const directories = [start];
   for (let next = directories.pop(); next !== undefined; next = directories.pop()) {
     let entries: Awaited<ReturnType<Workspace["list"]>>;
@@ -88,6 +96,33 @@ export async function scanFolder(
         });
       }
     }
+  }
+  return files;
+}
+
+/** {@link scanFolder} for a folder in object storage. */
+async function scanFlat(
+  workspace: Workspace,
+  start: string,
+  files: Map<string, FolderFile>
+): Promise<Map<string, FolderFile>> {
+  let entries: Awaited<ReturnType<Workspace["list"]>>;
+  try {
+    entries = await workspace.list(start, { recursive: true });
+  } catch (error) {
+    if (error instanceof WorkspacePathError) return files;
+    throw error;
+  }
+  for (const entry of entries) {
+    if (entry.isDirectory) continue;
+    // The directories below `start` that a scan does not enter.
+    const below = start ? entry.path.slice(start.length + 1) : entry.path;
+    if (isInSkippedDirectory(below)) continue;
+    files.set(entry.path, {
+      path: entry.path,
+      size: entry.size,
+      modifiedAt: entry.modifiedAt
+    });
   }
   return files;
 }
@@ -206,6 +241,12 @@ export interface ScannedFolder {
    * gone, or they are directories. Null when the whole folder was scanned.
    */
   places: ReadonlySet<string> | null;
+  /**
+   * The folder as the reconcile read it. Whatever compares the folder with
+   * rows in the same pass reads it through this one, so what it learned
+   * about the folders of other projects inside is not asked again.
+   */
+  workspace?: Workspace;
 }
 
 /**

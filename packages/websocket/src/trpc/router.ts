@@ -39,6 +39,7 @@ import { bugReportsRouter } from "./routers/bug-reports.js";
 import { sketchRouter } from "./routers/sketch.js";
 import { gamesRouter } from "./routers/games.js";
 import { storyboardsRouter } from "./routers/storyboards.js";
+import { syncRouter } from "./routers/sync.js";
 import { skillsRouter } from "./routers/skills.js";
 import { appInstancesRouter } from "./routers/app-instances.js";
 import { appRunsRouter } from "./routers/app-runs.js";
@@ -89,6 +90,7 @@ type AppRouterRecord = {
   cloudLocal: typeof cloudLocalRouter;
   sketch: typeof sketchRouter;
   storyboards: typeof storyboardsRouter;
+  sync: typeof syncRouter;
   skills: typeof skillsRouter;
   applications: typeof applicationsRouter;
   appInstances: typeof appInstancesRouter;
@@ -144,6 +146,7 @@ export const appRouter: ReturnType<typeof router<AppRouterRecord>> = router({
   cloudLocal: cloudLocalRouter,
   sketch: sketchRouter,
   storyboards: storyboardsRouter,
+  sync: syncRouter,
   skills: skillsRouter,
   applications: applicationsRouter,
   appInstances: appInstancesRouter,

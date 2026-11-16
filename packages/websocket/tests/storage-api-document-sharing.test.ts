@@ -16,7 +16,7 @@ import {
   ModelObserver,
   initTestDb
 } from "@nodetool-ai/models";
-import { invalidateSharedAssets } from "../src/lib/document-access.js";
+import { invalidateSharedAssets } from "../src/lib/shared-assets.js";
 import { createStorageHandler } from "../src/storage-api.js";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";

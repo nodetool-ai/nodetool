@@ -243,19 +243,6 @@ class EditorChatTest final : public QObject {
         const auto point = item->mapToScene(QPointF(item->width() / 2, item->height() / 2));
         QTest::mouseClick(widget->quickWindow(), Qt::LeftButton, Qt::NoModifier, point.toPoint());
     }
-    static void chooseOption(QQuickWidget *widget, nt::chat::ChatSession *chat, const QString &key, const QVariant &value) {
-        const auto options = chat->mediaOptions(key);
-        qsizetype index = -1;
-        for (qsizetype i = 0; i < options.size(); ++i) {
-            if (options[i].toMap()["value"] == value) {
-                index = i;
-            }
-        }
-        QVERIFY2(index >= 0, qPrintable(key + " " + value.toString()));
-        clickVisible(widget, "mediaSetting-" + key);
-        clickVisible(widget, "chip-option-" + QString::number(index));
-        QTRY_COMPARE(chat->mediaSettings()[key], value);
-    }
     static void pickModel(nt::modelpicker::Catalog *catalog, const QJsonObject &model) {
         if (!catalog->loaded()) {
             catalog->reload();
@@ -650,13 +637,16 @@ private slots:
         QVERIFY(file.open(QIODevice::ReadOnly));
         const auto cases = QJsonDocument::fromJson(file.readAll()).object()["cases"].toArray();
         QVERIFY(cases.size() >= 15);
-        const QHash<QString, QString> settingsKeys{{"image", "image"}, {"image_edit", "imageEdit"}, {"video", "video"},
-            {"image_to_video", "imageToVideo"}, {"reference_to_video", "referenceToVideo"}, {"retake", "retake"},
-            {"extend", "extend"}, {"audio", "audio"}, {"music", "music"}};
+        // The composer sends chat only. The media cases cover the web store path.
+        int checked = 0;
         for (const auto &value : cases) {
             const auto spec = value.toObject();
             const auto name = spec["name"].toString();
             const auto mode = spec["mode"].toString();
+            if (mode != "chat") {
+                continue;
+            }
+            ++checked;
             // Each web case starts from fresh stores, so no saved level carries over.
             QSettings().remove("chat-composer");
             ChatServer server;
@@ -684,18 +674,6 @@ private slots:
                 pickModel(chat->modelCatalog(), spec["chatModel"].toObject());
                 QTRY_COMPARE(chat->model(), spec["chatModel"].toObject()["id"].toString());
             }
-            if (mode != "chat") {
-                clickVisible(widget, "mediaModeChip");
-                clickVisible(widget, "mediaMode-" + mode);
-                QTRY_COMPARE(chat->mediaMode(), mode);
-                const auto settings = spec["settings"].toObject()[settingsKeys[mode]].toObject();
-                pickModel(chat->mediaCatalog(), settings["model"].toObject());
-                for (auto it = settings.begin(); it != settings.end(); ++it) {
-                    if (it.key() != "model") {
-                        chooseOption(widget, chat, it.key(), it.value().toVariant());
-                    }
-                }
-            }
             for (const auto &asset : spec["attachments"].toArray()) {
                 chat->attachAsset(asset.toObject().toVariantMap());
             }
@@ -703,7 +681,7 @@ private slots:
                 type(widget, spec["prompt"].toString());
                 QTRY_COMPARE(chat->draft(), spec["prompt"].toString());
             }
-            clickVisible(widget, mode == "chat" ? "sendMessage" : "generateMedia");
+            clickVisible(widget, "sendMessage");
             QTRY_VERIFY2(server.count("command", "chat_message") == 1, qPrintable(name + " " + chat->error()));
             QJsonObject sent;
             for (const auto &frame : server.frames) {
@@ -716,32 +694,7 @@ private slots:
             QVERIFY2(sent == expected, qPrintable(name + "\nnative " + QString::fromUtf8(QJsonDocument(sent).toJson(QJsonDocument::Compact))
                 + "\nweb    " + QString::fromUtf8(QJsonDocument(expected).toJson(QJsonDocument::Compact))));
         }
-    }
-    void mediaModeRequiresModel() {
-        ChatServer server;
-        QVERIFY(server.listen());
-        nodetool::EditorWindow window;
-        setup(window);
-        auto *chat = window.chatSession();
-        auto *widget = surface(window);
-        chat->connectToServer(server.url());
-        QTRY_COMPARE(chat->selectedThreadId(), QString(ThreadId));
-        QTRY_VERIFY(!chat->historyLoading());
-        clickVisible(widget, "mediaModeChip");
-        // Disabled "Soon" modes cannot be chosen.
-        QTRY_VERIFY(visibleItem(widget, "mediaMode-audio_to_video"));
-        QVERIFY(!visibleItem(widget, "mediaMode-audio_to_video")->isEnabled());
-        clickVisible(widget, "mediaMode-video");
-        QTRY_COMPARE(chat->mediaMode(), QString("video"));
-        QVERIFY(visibleItem(widget, "mediaSetting-duration"));
-        QVERIFY(!visibleItem(widget, "chooseChatModel"));
-        QVERIFY(!visibleItem(widget, "reasoningChip"));
-        type(widget, "Waves");
-        clickVisible(widget, "generateMedia");
-        QTRY_COMPARE(chat->error(), QString("Pick the video model to generate with."));
-        QCOMPARE(server.count("command", "chat_message"), 0);
-        QCOMPARE(chat->draft(), QString("Waves"));
-        QVERIFY(chat->mediaRequest()["model"].isNull());
+        QCOMPARE(checked, 5);
     }
     void assetMentionPicker() {
         ChatServer server;
@@ -949,14 +902,6 @@ private slots:
             QTRY_VERIFY(visibleItem(widget, "assetMention-c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2"));
             capture(window, prefix + "mention-picker");
             QTest::keyClick(widget->quickWindow(), Qt::Key_Escape);
-            clickVisible(widget, "mediaModeChip");
-            QTRY_VERIFY(visibleItem(widget, "mediaMode-image"));
-            capture(window, prefix + "mode-menu");
-            clickVisible(widget, "mediaMode-image");
-            QTRY_VERIFY(visibleItem(widget, "mediaSetting-aspectRatio"));
-            capture(window, prefix + "media-chips");
-            clickVisible(widget, "mediaModeChip");
-            clickVisible(widget, "mediaMode-chat");
             window.toggleChat();
             capture(window, prefix + "closed");
             window.toggleChat();

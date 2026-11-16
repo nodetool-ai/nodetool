@@ -29,6 +29,9 @@ public:
     QJsonArray history;
     QJsonArray rewound;
     QJsonArray forks;
+    // threads.list answers with these rows and threads.create with `created`.
+    QJsonArray threads{QJsonObject{{"id", ThreadId}, {"title", "Server conversation"}, {"project_id", "default"}}};
+    QJsonObject created{{"id", ThreadId}, {"title", "Created"}, {"project_id", "default"}};
     QPointer<QTcpSocket> uploadSocket;
     ChatServer() {
         connect(&http, &QTcpServer::newConnection, this, [this] {
@@ -65,7 +68,7 @@ public:
                     }
                     QJsonValue data;
                     if (target.startsWith("/trpc/threads.list")) {
-                        data = QJsonObject{{"threads", QJsonArray{QJsonObject{{"id", ThreadId}, {"title", "Server conversation"}, {"project_id", "default"}}}}, {"next", QJsonValue::Null}};
+                        data = QJsonObject{{"threads", threads}, {"next", QJsonValue::Null}};
                     } else if (target.startsWith("/trpc/messages.list")) {
                         if (paginateHistory) {
                             const bool earlier = target.contains("cursor-one");
@@ -79,7 +82,7 @@ public:
                     } else if (target.startsWith("/trpc/messages.versions")) {
                         data = QJsonObject{{"forks", forks}};
                     } else if (target.startsWith("/trpc/threads.create")) {
-                        data = QJsonObject{{"id", ThreadId}, {"title", "Created"}, {"project_id", "default"}};
+                        data = created;
                     } else {
                         data = QJsonObject{};
                     }
@@ -110,6 +113,16 @@ public:
             return;
         }
         if (peer) { peer->sendTextMessage(QString::fromUtf8(QJsonDocument(event).toJson(QJsonDocument::Compact))); }
+    }
+    // Project ids of the set_open_project commands received from `from` on.
+    QStringList openProjects(qsizetype from = 0) const {
+        QStringList ids;
+        for (auto i = from; i < frames.size(); ++i) {
+            if (frames[i]["command"] == "set_open_project") {
+                ids.append(frames[i]["data"].toObject()["project_id"].toString());
+            }
+        }
+        return ids;
     }
     int count(const QString& field, const QString& value) const {
         return static_cast<int>(std::count_if(frames.cbegin(), frames.cend(), [&](const auto& frame) { return frame[field] == value; }));
@@ -615,6 +628,55 @@ private slots:
         const auto sent = *std::find_if(server.frames.cbegin(), server.frames.cend(), [](const auto& frame) { return frame["command"] == "chat_message"; });
         QCOMPARE(sent["data"].toObject()["content"].toArray().first().toObject()["text"].toString(), QStringLiteral("Two"));
         QCOMPARE(session.messages()->rowCount(), 3);
+    }
+    // The server watches the folder of the project a connection has open. The
+    // chat's open project is the selected thread's, sent right after the mode
+    // acknowledgement on every connect and again when the selection moves to
+    // another project.
+    void openProjectFollowsTheSelectedThread() {
+        constexpr auto First = "11111111111111111111111111111111";
+        constexpr auto Second = "22222222222222222222222222222222";
+        constexpr auto Loose = "33333333333333333333333333333333";
+        ChatServer server;
+        server.threads = QJsonArray{
+            QJsonObject{{"id", First}, {"title", "First"}, {"project_id", "project-one"}, {"updated_at", "2026-02-01"}},
+            QJsonObject{{"id", Second}, {"title", "Second"}, {"project_id", "project-two"}, {"updated_at", "2026-01-01"}},
+            QJsonObject{{"id", Loose}, {"title", "Loose"}, {"project_id", QJsonValue::Null}, {"updated_at", "2025-12-01"}}};
+        server.created = QJsonObject{{"id", ThreadId}, {"title", "Created"}, {"project_id", "project-three"}};
+        QVERIFY(server.listen());
+        ChatSession session;
+        session.connectToServer(server.url(), {});
+        QTRY_COMPARE(session.selectedThreadId(), QString::fromLatin1(First));
+        QTRY_COMPARE(server.openProjects(), (QStringList{"default", "project-one"}));
+        QCOMPARE(server.frames.value(0)["command"].toString(), QStringLiteral("set_mode"));
+        QCOMPARE(server.frames.value(1)["command"].toString(), QStringLiteral("set_open_project"));
+
+        session.selectThread(Second);
+        QTRY_COMPARE(server.openProjects().size(), 3);
+        QCOMPARE(server.openProjects().last(), QStringLiteral("project-two"));
+        session.selectThread(Second);
+        session.selectThread(Loose);
+        QTRY_COMPARE(server.openProjects().size(), 4);
+        QCOMPARE(server.openProjects().last(), QStringLiteral("default"));
+        session.selectThread(Second);
+        QTRY_COMPARE(server.openProjects().size(), 5);
+        QCOMPARE(server.openProjects().last(), QStringLiteral("project-two"));
+
+        QVERIFY(server.peer);
+        server.peer->close();
+        QTRY_COMPARE(session.connectionStatus(), QStringLiteral("disconnected"));
+        const auto reconnectedFrom = server.frames.size();
+        session.resumeConnection();
+        QTRY_COMPARE(session.connectionStatus(), QStringLiteral("connected"));
+        QTRY_COMPARE(server.openProjects(reconnectedFrom), QStringList{"project-two"});
+        QCOMPARE(server.frames.value(reconnectedFrom)["command"].toString(), QStringLiteral("set_mode"));
+        QCOMPARE(server.frames.value(reconnectedFrom + 1)["command"].toString(), QStringLiteral("set_open_project"));
+
+        session.createThread();
+        QTRY_COMPARE(session.selectedThreadId(), QString::fromLatin1(ThreadId));
+        QTRY_COMPARE(server.openProjects(reconnectedFrom), (QStringList{"project-two", "project-three"}));
+        QTest::qWait(30);
+        QCOMPARE(server.openProjects(reconnectedFrom).size(), 2);
     }
     void renameThreadUpdatesTheServerAndTheList() {
         ChatServer server;

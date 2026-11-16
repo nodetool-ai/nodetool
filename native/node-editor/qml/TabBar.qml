@@ -162,11 +162,12 @@ Rectangle {
         Item {
             id: newTabSlot
             height: bar.height
-            width: newTab.implicitWidth + Ui.Metrics.xs * 2
+            width: newTab.implicitWidth + newTabMenu.implicitWidth + Ui.Metrics.xs * 2
             Ui.EditorButton {
                 id: newTab
                 objectName: "new-workflow-tab"
-                anchors.centerIn: parent
+                x: Ui.Metrics.xs
+                anchors.verticalCenter: parent.verticalCenter
                 density: Ui.EditorButton.Compact
                 variant: Ui.EditorButton.Flat
                 iconName: "add"
@@ -176,6 +177,21 @@ Rectangle {
                 onHoveredChanged: root.hint(newTab, hovered ? accessibleName : "", Ui.Metrics.tooltipDelay)
                 onPressed: root.unhint()
                 onClicked: root.tabs.newTab()
+            }
+            Ui.EditorButton {
+                id: newTabMenu
+                objectName: "new-workflow-menu"
+                anchors.left: newTab.right
+                anchors.verticalCenter: parent.verticalCenter
+                density: Ui.EditorButton.Compact
+                variant: Ui.EditorButton.Flat
+                iconName: "arrowDropDown"
+                leftPadding: Ui.Metrics.none
+                rightPadding: Ui.Metrics.none
+                accessibleName: "New tab options"
+                onHoveredChanged: root.hint(newTabMenu, hovered ? accessibleName : "", Ui.Metrics.tooltipDelay)
+                onPressed: root.unhint()
+                onClicked: root.tabs.showNewTabMenu(newTab.mapToGlobal(0, newTab.height))
             }
         }
     }

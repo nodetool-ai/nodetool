@@ -15,6 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   Asset,
   initTestDb,
+  LOOSE_PROJECT_ID,
   ModelObserver,
   saveAssetInProject
 } from "@nodetool-ai/models";
@@ -123,7 +124,9 @@ afterEach(async () => {
 function useFolders(kind: keyof typeof kinds): void {
   setProjectFolderResolver(
     async (projectId): Promise<ProjectFolderResolution> => {
-      const id = projectId ?? "personal";
+      // The loose id names Personal's folder, as the host resolver does.
+      const id =
+        !projectId || projectId === LOOSE_PROJECT_ID ? "personal" : projectId;
       if (id === unreachable) {
         return { ok: false, projectId: id, reason: `Project folder not found: ${id}` };
       }
@@ -412,6 +415,52 @@ describe.each(["local", "storage"] as const)(
       expect(
         await retrieveAssetBytes(assetStore, USER, asset.id, asset.content_type)
       ).toEqual(PNG);
+    });
+
+    it("moving a file to the loose bucket puts it in Personal's folder under Personal's project id", async () => {
+      const asset = await fox();
+
+      await saveAssetInProject(asset, LOOSE_PROJECT_ID);
+
+      const row = await Asset.find(USER, asset.id);
+      // The row names the project whose folder holds the file, because the
+      // reconcile of that folder finds its rows by project id and path. A
+      // row left as "default" would be indexed a second time as a new asset.
+      expect(row?.project_id).toBe("personal");
+      expect(row?.workspace_path).toBe("Generated/fox-in-snow.png");
+      expect(await folder("personal").files()).toEqual([
+        "Generated/fox-in-snow.png"
+      ]);
+      expect(await folder().files()).toEqual([]);
+      expect(
+        (
+          await Asset.findByWorkspacePath(
+            USER,
+            "personal",
+            "Generated/fox-in-snow.png"
+          )
+        ).map((found) => found.id)
+      ).toEqual([asset.id]);
+      expect(
+        await Asset.findByWorkspacePath(
+          USER,
+          LOOSE_PROJECT_ID,
+          "Generated/fox-in-snow.png"
+        )
+      ).toEqual([]);
+    });
+
+    it("moving a file already in Personal to the loose bucket leaves one file and one row", async () => {
+      const asset = await fox({ projectId: null });
+      expect(asset.project_id).toBe("personal");
+
+      await saveAssetInProject(asset, LOOSE_PROJECT_ID);
+
+      const row = await Asset.find(USER, asset.id);
+      expect(row?.project_id).toBe("personal");
+      expect(await folder("personal").files()).toEqual([
+        "Generated/fox-in-snow.png"
+      ]);
     });
 
     it("takes a free name when the other project already has a file of that name", async () => {

@@ -422,6 +422,17 @@ describe("harness gate", () => {
   });
 
   it.each([
+    "packages/agents/src/host-binary-guard.ts",
+    "packages/runtime/src/index.ts",
+    "native/graph-runner/guest/module-contract.mjs"
+  ])("checks the guest bundle against its module contract for %s", (file) => {
+    const plan = planGate([file]);
+    expect(plan.unmappedFiles).toEqual([]);
+    expect(plan.checks.find((entry) => entry.harnessId === "native-guest-contract"))
+      .toMatchObject({ cost: "cheap" });
+  });
+
+  it.each([
     "packages/realtime-compiler/src/compileRealtimeGraph.ts",
     "native/realtime/schema/plan-v1.schema.json"
   ])("selects the compiler schema and snapshot checks for %s", (file) => {

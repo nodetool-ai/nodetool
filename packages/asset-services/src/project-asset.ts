@@ -13,10 +13,19 @@
  */
 import { createLogger } from "@nodetool-ai/config";
 import { Asset, setAssetFileMover } from "@nodetool-ai/models";
-import { readFile } from "node:fs/promises";
-import { getAssetFileName, isNonEmptyString } from "@nodetool-ai/protocol";
+import {
+  WORKSPACE_MOVE_SOURCE_KEY,
+  WORKSPACE_MOVE_TARGET_KEY,
+  getAssetFileName,
+  isNonEmptyString
+} from "@nodetool-ai/protocol";
 import { NestedFolders, type Workspace } from "@nodetool-ai/runtime";
 import { probeAssetDurationSeconds } from "./asset-duration.js";
+import {
+  acquireFolderLockFile,
+  projectFolderLockDirectory,
+  projectFolderLockPath
+} from "./folder-lock-file.js";
 import { normalizeAssetContentType } from "./asset-paths.js";
 import {
   EXTERNAL_FINGERPRINT_KEYS,
@@ -157,8 +166,16 @@ const folderQueues = new Map<string, Promise<unknown>>();
  * Run `task` after every earlier task for the same project folder. Choosing a
  * free file name and writing the file are two steps, and two saves of the
  * same name that interleave would pick the same name and write one file over
- * the other. This serializes them within the process. The reconciler runs
- * under the same lock, so it never sees a file whose row is still being made.
+ * the other. This serializes them. The reconciler and the move of legacy
+ * asset bytes run under the same lock, so neither sees a file whose row is
+ * still being made, and no bytes update lands between the move's last read
+ * of a legacy object and its delete.
+ *
+ * Within the process the tasks queue per folder. Between processes that
+ * share one SQLite database, such as the desktop server and the CLI, the task
+ * at the head of the queue also holds the folder's lock file
+ * (`folder-lock-file.ts`). A wait for another process gives up with a
+ * `FolderLockTimeoutError`.
  */
 export function withProjectFolderLock<T>(
   userId: string,
@@ -167,13 +184,32 @@ export function withProjectFolderLock<T>(
 ): Promise<T> {
   const key = `${userId}\u0000${projectId}`;
   const previous = folderQueues.get(key) ?? Promise.resolve();
-  const next = previous.then(task, task);
+  const locked = () => withFolderLockFile(userId, projectId, task);
+  const next = previous.then(locked, locked);
   const settled = next.catch(() => undefined);
   folderQueues.set(key, settled);
   void settled.then(() => {
     if (folderQueues.get(key) === settled) folderQueues.delete(key);
   });
   return next;
+}
+
+/** Run `task` while this process holds the folder's lock file, when there is one. */
+async function withFolderLockFile<T>(
+  userId: string,
+  projectId: string,
+  task: () => Promise<T>
+): Promise<T> {
+  const directory = await projectFolderLockDirectory();
+  if (directory === null) return task();
+  const held = await acquireFolderLockFile(
+    projectFolderLockPath(directory, userId, projectId)
+  );
+  try {
+    return await task();
+  } finally {
+    await held.release();
+  }
 }
 
 // ── Paths in flux ───────────────────────────────────────────────────────────
@@ -244,6 +280,63 @@ function joinPath(directory: string, fileName: string): string {
 }
 
 /**
+ * The bytes of a new file, given as a file on this host. {@link claimFile}
+ * copies it in chunks, so a file of any size is never held in memory.
+ */
+export interface ClaimFromFile {
+  localPath: string;
+}
+
+/**
+ * Create `path` from a file on this host. The name is taken with an
+ * exclusive create of an empty file, then the bytes are copied over it in
+ * chunks, which `absorb` publishes whole with one rename. False when the name
+ * was taken. The path is held while the copy runs, so the reconciler never
+ * indexes the empty file, and a copy that fails removes the file this call
+ * created. A process that dies mid-copy leaves the empty file behind.
+ */
+async function claimFromFile(
+  workspace: Workspace,
+  owner: { userId: string; projectId: string },
+  path: string,
+  source: ClaimFromFile,
+  contentType: string
+): Promise<boolean> {
+  if (!(await workspace.writeNew(path, new Uint8Array(0), contentType))) {
+    return false;
+  }
+  const release = holdPaths(owner.userId, owner.projectId, [path]);
+  try {
+    await workspace.absorb(source.localPath, path);
+  } catch (error) {
+    // The exclusive create made this file, so it is this call's to remove.
+    await workspace.delete(path).catch(() => undefined);
+    throw error;
+  } finally {
+    release();
+  }
+  return true;
+}
+
+/**
+ * What {@link claimFile} copies to make the file at `path` of `workspace`
+ * again elsewhere. A folder on this host hands over its path, so the copy is
+ * streamed. Any other folder reads the file, which is the only way an object
+ * store gives it up.
+ */
+async function claimSourceOf(
+  workspace: Workspace,
+  path: string
+): Promise<Uint8Array | ClaimFromFile> {
+  if (!workspace.localDir) return readFileOf(workspace, path);
+  const info = await workspace.stat(path);
+  if (!info || info.isDirectory) {
+    throw new Error(`The file ${path} is not in the project folder`);
+  }
+  return { localPath: await workspace.materialize(path) };
+}
+
+/**
  * Write `bytes` to a new file in `directory` named after `stem`, and return
  * its path: `stem.ext`, or `stem-2.ext`, `stem-3.ext` and so on when the name
  * is in use. An existing file is never replaced.
@@ -274,11 +367,14 @@ export async function claimFile(
   directory: string,
   stem: string,
   extension: string,
-  bytes: Uint8Array,
+  bytes: Uint8Array | ClaimFromFile,
   contentType: string,
   beforeWrite?: (path: string) => Promise<void>,
   stagingName?: string
 ): Promise<string> {
+  if (!(bytes instanceof Uint8Array) && stagingName !== undefined) {
+    throw new Error("A file taken from a path cannot be staged under a name");
+  }
   const taken = new Set(
     (await workspace.list(directory)).map((entry) => entry.name.toLowerCase())
   );
@@ -294,6 +390,12 @@ export async function claimFile(
     );
     if (rows.length > 0) continue;
     await beforeWrite?.(path);
+    if (!(bytes instanceof Uint8Array)) {
+      if (await claimFromFile(workspace, owner, path, bytes, contentType)) {
+        return path;
+      }
+      continue;
+    }
     const written = await workspace.writeNew(
       path,
       bytes,
@@ -412,9 +514,7 @@ export async function saveProjectAsset(
         directory ? workspace.key(directory) : "",
         projectAssetFileStem(args.name, contentType),
         assetFileExtension(contentType),
-        "bytes" in source
-          ? source.bytes
-          : new Uint8Array(await readFile(source.path)),
+        "bytes" in source ? source.bytes : { localPath: source.path },
         contentType
       );
     }
@@ -572,7 +672,7 @@ function relocateProjectAssetFile(
       to.directory,
       to.stem,
       to.extension,
-      await readFileOf(workspace, from),
+      await claimSourceOf(workspace, from),
       asset.content_type
     );
     // Both names exist until the row is saved and the old file removed.
@@ -653,7 +753,7 @@ export async function replaceProjectAssetBytes(
       }
     : splitPath(file.path);
 
-  return withProjectFolderLock(asset.user_id, asset.project_id, async () => {
+  const change = await withProjectFolderLock(asset.user_id, asset.project_id, async () => {
     const moves = from === null || extension.toLowerCase() !== wanted;
     let to = from ?? "";
     if (moves) {
@@ -690,9 +790,6 @@ export async function replaceProjectAssetBytes(
       asset.size = fingerprint.workspace_size;
       asset.metadata = withWorkspaceFingerprint(asset.metadata, fingerprint);
       asset.content_hash = null;
-      await storeAssetThumbnail(asset.user_id, asset.id, asset.content_type, {
-        bytes
-      });
     } catch (error) {
       release();
       throw error;
@@ -731,6 +828,11 @@ export async function replaceProjectAssetBytes(
       }
     };
   });
+  // Made after the lock, so a slow thumbnail holds up no other save.
+  await storeAssetThumbnail(asset.user_id, asset.id, asset.content_type, {
+    bytes
+  });
+  return change;
 }
 
 /** What {@link storeLegacyAssetBytes} did with the bytes. */
@@ -740,9 +842,14 @@ export type LegacyAssetBytesUpdate =
   /** The asset has a file in its project folder by now. Nothing was stored. */
   | "moved";
 
+/** How often the row is read again when its project changes under the lock. */
+const MAX_PROJECT_CHANGES = 3;
+
 /**
  * Store new bytes for an asset that keeps none in a project folder. `store`
- * writes them under the asset's storage key and saves the row.
+ * writes them under the asset's storage key and saves the row. Keep the work
+ * in `store` to that: it runs under the folder lock, which every save and
+ * reconcile of the project waits for. A thumbnail is made after the call.
  *
  * The move of existing assets into their project folder copies the object
  * under that key, names the file on the row and then deletes the object, all
@@ -755,25 +862,57 @@ export type LegacyAssetBytesUpdate =
  * the bytes would shadow that file: `asset` takes the file's path and
  * fingerprint, and the caller writes the bytes with
  * {@link replaceProjectAssetBytes}.
+ *
+ * The lock is the one of the project the row names when the lock is taken.
+ * When the asset was moved to another project after the caller loaded it,
+ * `asset` takes the new project and the lock of that project is taken. The
+ * move's record of an interrupted move (its target and the hash of the
+ * object it copied) is kept from the row, so the save in `store` does not
+ * erase it and leave the move's copy in the folder with no row that claims
+ * it.
  */
-export function storeLegacyAssetBytes(
+export async function storeLegacyAssetBytes(
   asset: Asset,
   store: () => Promise<void>
 ): Promise<LegacyAssetBytesUpdate> {
-  return withProjectFolderLock(asset.user_id, asset.project_id, async () => {
-    const current = await Asset.find(asset.user_id, asset.id);
-    if (current?.workspace_path) {
-      asset.workspace_path = current.workspace_path;
-      asset.metadata = keepFingerprint(
-        asset.metadata ?? {},
-        current.metadata,
-        WORKSPACE_SERVER_KEYS
+  for (let attempt = 0; ; attempt++) {
+    const projectId = asset.project_id;
+    const outcome = await withProjectFolderLock(
+      asset.user_id,
+      projectId,
+      async (): Promise<LegacyAssetBytesUpdate | "project_changed"> => {
+        const current = await Asset.find(asset.user_id, asset.id);
+        if (current && current.project_id !== projectId) {
+          asset.project_id = current.project_id;
+          return "project_changed";
+        }
+        if (current?.workspace_path) {
+          asset.workspace_path = current.workspace_path;
+          asset.metadata = keepFingerprint(
+            asset.metadata ?? {},
+            current.metadata,
+            WORKSPACE_SERVER_KEYS
+          );
+          return "moved";
+        }
+        if (current) {
+          asset.metadata = keepFingerprint(
+            asset.metadata ?? {},
+            current.metadata,
+            [WORKSPACE_MOVE_TARGET_KEY, WORKSPACE_MOVE_SOURCE_KEY]
+          );
+        }
+        await store();
+        return "stored";
+      }
+    );
+    if (outcome !== "project_changed") return outcome;
+    if (attempt + 1 >= MAX_PROJECT_CHANGES) {
+      throw new Error(
+        `Asset ${asset.id} kept changing project while its bytes were stored`
       );
-      return "moved";
     }
-    await store();
-    return "stored";
-  });
+  }
 }
 
 /**
@@ -874,16 +1013,18 @@ export async function relinkProjectAsset(
       const fileName = baseName(source.localPath);
       const { stem, extension } = splitPath(fileName);
       const sameName = workspace.key(joinPath(directory, fileName));
-      const bytes = new Uint8Array(await readFile(source.localPath));
+      // The file is copied in chunks, never read whole.
+      const bytes: ClaimFromFile = { localPath: source.localPath };
+      const owner = { userId: asset.user_id, projectId: asset.project_id };
       // The asset's own missing file leaves its name free for the copy. No
       // file is ever replaced: each name is taken with an exclusive create.
       to =
         sameName === file.path &&
-        (await workspace.writeNew(sameName, bytes, asset.content_type))
+        (await claimFromFile(workspace, owner, sameName, bytes, asset.content_type))
           ? sameName
           : await claimFile(
               workspace,
-              { userId: asset.user_id, projectId: asset.project_id },
+              owner,
               directory,
               stem,
               extension,
@@ -995,7 +1136,7 @@ export async function moveProjectAssetFile(
       directory,
       stem,
       extension,
-      await readFileOf(source.workspace, source.path),
+      await claimSourceOf(source.workspace, source.path),
       asset.content_type
     );
     // The copy has no row in its folder until the row is saved, and the old
@@ -1059,6 +1200,30 @@ export async function moveProjectAssetFile(
  * writes it, so it can never point a collect at a file the creator owns.
  */
 export const COLLECT_PATH_KEY = "collect_path";
+
+/**
+ * The files in the folder of `projectId` that a collect reserved and has not
+ * finished, by path, with the linked asset each belongs to. A collect that
+ * stopped during the copy, a crash included, leaves its reservation (an
+ * empty or partly written file) and the path on the asset row. That file is
+ * the asset's: the reconciler gives it no row of its own, and the next
+ * collect writes into it again.
+ */
+export async function pendingCollectReservations(
+  userId: string,
+  projectId: string
+): Promise<Map<string, Asset>> {
+  const reserved = new Map<string, Asset>();
+  for (const asset of await Asset.findLinkedWithMetadataKey(
+    userId,
+    projectId,
+    COLLECT_PATH_KEY
+  )) {
+    const path = asset.metadata?.[COLLECT_PATH_KEY];
+    if (isNonEmptyString(path)) reserved.set(path, asset);
+  }
+  return reserved;
+}
 
 /** A linked asset whose file is now in the project folder. */
 export interface CollectedAsset {

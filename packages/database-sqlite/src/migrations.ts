@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import { SQLITE_CORE_BASELINE_SQL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ASSET_WORKSPACE_PATH_DDL, ASSET_CONTENT_HASH_DDL, WORKFLOW_FILE_PATH_DDL, WORKFLOW_FILE_HASH_DDL, WORKFLOW_FILE_ERROR_DDL } from "@nodetool-ai/models-core";
+import { SQLITE_CORE_BASELINE_SQL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ASSET_WORKSPACE_PATH_DDL, ASSET_CONTENT_HASH_DDL, WORKFLOW_FILE_PATH_DDL, WORKFLOW_FILE_HASH_DDL, WORKFLOW_FILE_ERROR_DDL, WORKFLOW_LAST_WRITER_DDL, WORKFLOW_SCHEMA_VERSION_DDL } from "@nodetool-ai/models-core";
 
 interface ColumnInfo {
   readonly name: string;
@@ -104,6 +104,20 @@ export function migrateSqliteCore(sqlite: Database.Database): void {
         version: "20261121_000000",
         up() {
           if (!hasColumn(sqlite, "nodetool_workflows", "file_error")) { sqlite.exec(WORKFLOW_FILE_ERROR_DDL); }
+        }
+      },
+      {
+        // The editing instance that wrote the stored revision.
+        version: "20261128_000000",
+        up() {
+          if (!hasColumn(sqlite, "nodetool_workflows", "last_writer_instance")) { sqlite.exec(WORKFLOW_LAST_WRITER_DDL); }
+        }
+      },
+      {
+        // The document schema version the stored graph was written in.
+        version: "20261128_000001",
+        up() {
+          if (!hasColumn(sqlite, "nodetool_workflows", "schema_version")) { sqlite.exec(WORKFLOW_SCHEMA_VERSION_DDL); }
         }
       }
     ];

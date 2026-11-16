@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "코드#상태",
       "signInWindowClosed": "로그인 창이 닫혔나요?",
       "openAgain": "다시 열어보세요",
-      "linkExpiry": ". 링크는 10분 후에 만료됩니다."
+      "linkExpiry": ". 링크는 10분 후에 만료됩니다.",
+      "nativeSubtitle": "에서 NodeTool 계정에 로그인하려고 합니다.",
+      "app": "앱",
+      "device": "기기",
+      "nativeNote": "이 컴퓨터의 NodeTool 데스크톱 앱에서 직접 로그인을 시작한 경우에만 승인하세요. 승인하면 로그아웃하거나 설정에서 세션을 종료할 때까지 앱이 클라우드 문서를 열고 편집하고 저장할 수 있습니다."
     },
     "integrations": {
       "loadingAccounts": "연결된 계정 로드 중",
@@ -19087,6 +19091,26 @@
       "typeMore": "2자 이상 입력하세요",
       "noMatches": "일치하는 사용자가 없습니다",
       "failed": "액세스 권한을 줄 수 없습니다."
+    },
+    "options": {
+      "history": "기록",
+      "historyDescription": "보기 권한자가 저장된 버전을 열 수 있습니다.",
+      "download": "다운로드",
+      "downloadDescription": "보기 권한자가 원본 파일을 다운로드할 수 있습니다.",
+      "duplicate": "복제",
+      "duplicateDescription": "보기 권한자가 파일과 함께 자신의 라이브러리로 복사할 수 있습니다.",
+      "turnedOff": "이미 다운로드하거나 복제한 항목은 그대로 남습니다.",
+      "historyOffNotice": "이 링크의 보기 권한자는 더 이상 저장된 버전을 볼 수 없습니다. 기록을 켜면 다시 볼 수 있습니다.",
+      "turnOnHistory": "기록 켜기",
+      "dismiss": "닫기",
+      "failed": "옵션을 변경할 수 없습니다."
+    },
+    "people": {
+      "from": "{{sources}}을(를) 통한 접근",
+      "sourceInvitation": "초대",
+      "sourceViewLink": "보기 링크",
+      "sourceEditLink": "편집 링크",
+      "sourceDisabled": "{{source}}(비활성화됨)"
     }
   },
   "timelineAutomation": {
@@ -20153,6 +20177,44 @@
       "deleteDescription": "\"{{name}}\"과(와) 버전 기록이 영구적으로 삭제됩니다.",
       "restoreFailed": "파일을 복원하지 못했습니다: {{error}}",
       "deleteFailed": "문서를 삭제하지 못했습니다: {{error}}"
+    },
+    "migration": {
+      "title": "프로젝트를 폴더로 옮기기",
+      "intro": "이제 NodeTool은 이 컴퓨터에서 각 프로젝트를 자체 폴더에 보관합니다. 파일, 워크플로, 타임라인이 그곳으로 옮겨지며 다른 앱에서도 열 수 있습니다.",
+      "planProjects": "폴더가 만들어지는 프로젝트",
+      "planFiles": "옮길 파일",
+      "planWorkflows": "파일로 저장되는 워크플로",
+      "planTimelines": "파일로 저장되는 타임라인",
+      "extraTitle": "폴더가 둘 이상인 프로젝트",
+      "extraBody": "이 프로젝트들은 각각 폴더 하나만 유지합니다. NodeTool은 나머지 폴더를 더 이상 표시하지 않으며, 해당 파일은 그대로 남습니다.",
+      "extraKeeps": "{{project}}은(는) {{folder}}을(를) 유지합니다",
+      "extraHidden": "더 이상 표시되지 않음: {{folder}}",
+      "location": "위치",
+      "changeLocation": "위치 변경",
+      "locationError": "이 위치는 사용할 수 없습니다: {{error}}",
+      "permissionWarning": "macOS에서 NodeTool이 이 폴더를 사용해도 되는지 묻습니다. 허용을 선택하거나 문서, 데스크탑, 다운로드, iCloud Drive, 외장 드라이브 밖의 폴더를 선택하세요.",
+      "safety": "잃는 것은 없습니다. 각 파일은 이전 사본을 지우기 전에 복사하고 확인합니다. 파일을 옮기는 동안에도 계속 작업할 수 있습니다.",
+      "later": "나중에",
+      "confirm": "파일 옮기기",
+      "planError": "계획을 불러올 수 없습니다: {{error}}",
+      "confirmError": "옮기기를 시작하지 못했습니다: {{error}}",
+      "actionError": "옮기기를 변경할 수 없습니다: {{error}}",
+      "progressRegion": "파일을 프로젝트 폴더로 옮기는 중",
+      "progressTitle": "파일을 프로젝트 폴더로 옮기는 중",
+      "pausedTitle": "파일 옮기기가 일시 중지됨",
+      "doneTitle": "파일을 옮겼습니다",
+      "progressCount": "{{total}}개 중 {{done}}개 파일을 옮겼습니다",
+      "phaseFolders": "프로젝트 폴더를 만드는 중",
+      "phaseFiles": "워크플로와 타임라인을 파일로 저장하는 중",
+      "currentProject": "{{project}}의 파일을 옮기는 중",
+      "pause": "일시 중지",
+      "resume": "계속",
+      "failuresTitle": "옮기지 못함 ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "표시되지 않은 항목: {{count}}",
+      "retry": "다시 시도",
+      "donePath": "파일은 {{path}}에 있습니다",
+      "close": "닫기"
     }
   },
   "assetPicker": {
@@ -20177,5 +20239,80 @@
     "removeTitle": "\"{{name}}\"을(를) 제거할까요?",
     "removeBody": "에셋이 NodeTool에서 제거됩니다. 이 에셋을 사용하는 문서에서 더 이상 표시할 수 없습니다.",
     "cancel": "취소"
+  },
+  "deviceSessions": {
+    "title": "로그인된 기기",
+    "description": "NodeTool 데스크톱 앱에 로그인한 컴퓨터입니다. 한 컴퓨터의 두 앱은 하나의 세션을 함께 씁니다. 세션을 종료하면 그 컴퓨터는 로그아웃됩니다.",
+    "empty": "로그인된 컴퓨터가 없습니다.",
+    "unnamed": "이름 없는 컴퓨터",
+    "signedInFrom": "{{date}}에 {{app}}에서 로그인",
+    "lastUsed": "마지막 사용: {{date}}",
+    "neverUsed": "로그인 후 사용 안 함",
+    "end": "세션 종료",
+    "confirmTitle": "이 세션을 종료할까요?",
+    "confirmBody": "{{device}}의 NodeTool 데스크톱 앱이 1분 안에 로그아웃됩니다.",
+    "cancel": "취소",
+    "ended": "세션을 종료했습니다.",
+    "endError": "세션을 종료하지 못했습니다: {{error}}",
+    "loadError": "로그인된 기기를 불러오지 못했습니다.",
+    "apps": {
+      "nodeEditor": "노드 편집기",
+      "timeline": "타임라인"
+    }
+  },
+  "storyboardText": {
+    "mode": "텍스트",
+    "editorLabel": "Markdown 텍스트로 보는 스토리보드",
+    "hint": "막은 #, 장면은 ##, 샷은 ###, 필드는 - **Motion:** 으로 입력하세요. 엔티티나 이미지를 언급하려면 @를 입력하세요.",
+    "issues": "확인이 필요한 줄: {{lines}}",
+    "loading": "텍스트를 불러오는 중…",
+    "warnings": {
+      "media_outside_shot": "이미지는 샷에 속합니다. ### 샷 제목 아래에 넣으세요.",
+      "second_media": "샷에는 선택된 스틸과 클립이 하나씩만 있습니다. 이 항목은 사용되지 않습니다.",
+      "unknown_shot_field": "\"{{label}}\"은(는) 스토리보드 필드가 아닙니다. 샷 메모에 저장됩니다.",
+      "unknown_field": "\"{{label}}\"은(는) 여기서 필드가 아닙니다. 저장되지 않습니다.",
+      "text_in_scene": "장면에는 슬러그라인과 조명만 있습니다. 이 텍스트를 샷 아래로 옮기거나 \"Lighting:\"으로 시작하세요.",
+      "bad_duration": "샷 {{shot}}: \"{{value}}\"은(는) 초 단위 숫자가 아닙니다.",
+      "bad_render": "샷 {{shot}}: render는 keyframe, direct, reference 중 하나입니다.",
+      "no_next_shot": "샷 {{shot}}: 전환은 다음 샷으로 이어지는데 다음 샷이 없습니다.",
+      "missing_action": "샷 {{shot}}에 아직 액션이 없습니다. 제목 아래에 렌더링할 장면을 쓰세요."
+    },
+    "outline": "개요",
+    "outlineEmpty": "### 와 제목을 입력하면 샷이 시작됩니다.",
+    "untitledShot": "제목 없는 샷",
+    "untitledAct": "제목 없는 막",
+    "untitledScene": "제목 없는 장면",
+    "issuesTitle": "확인 필요",
+    "stillOf": "샷 {{shot}}의 스틸",
+    "assist": {
+      "lines": "{{lines}}줄 선택됨",
+      "proposal": "제안된 대체 내용",
+      "note": "에이전트 메모",
+      "discard": "버리기",
+      "close": "닫기",
+      "replace": "선택 영역 바꾸기",
+      "stale": "선택한 뒤 이 부분이 바뀌었습니다. 다시 선택하세요.",
+      "thinking": "생각 중…",
+      "stop": "중지",
+      "placeholder": "이 부분을 어떻게 할지 에이전트에게 알려 주세요",
+      "refinePlaceholder": "결과 다듬기",
+      "instruction": "에이전트 요청",
+      "send": "에이전트에게 보내기",
+      "failed": "모델 요청이 실패했습니다.",
+      "context": "요청과 함께 보냄: 스토리보드 전체, 샷 {{shots}}개, 라이브러리 엔티티 {{entities}}개.",
+      "quick": {
+        "tighten": "다듬기",
+        "visual": "더 시각적으로",
+        "camera": "카메라 제안",
+        "continuity": "연속성 확인",
+        "summarize": "요약",
+        "inconsistencies": "모순 찾기"
+      },
+      "errors": {
+        "no_model": "에이전트를 쓰려면 이 스토리보드의 연출 모델이나 채팅 모델을 선택하세요.",
+        "empty": "모델이 답을 주지 않았습니다. 다시 보내세요.",
+        "failed": "요청이 실패했습니다. 다시 보내세요."
+      }
+    }
   }
 }

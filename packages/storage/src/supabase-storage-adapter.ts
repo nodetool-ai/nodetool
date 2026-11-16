@@ -1,6 +1,7 @@
 import {
   createSupabaseStorageClient,
   hasDotSegment,
+  type SupabaseObjectEntry,
   type SupabaseStorageApi,
   type SupabaseUploadOptions
 } from "./supabase-rest.js";
@@ -24,6 +25,9 @@ import { objectCacheControl } from "./cache-control.js";
 /** Supabase upload tokens last two hours and the sign call takes no TTL. */
 const SUPABASE_UPLOAD_URL_TTL_MS = 2 * 60 * 60 * 1000;
 
+/** Entries read per `list` call. Supabase returns no more than this. */
+const LIST_PAGE_SIZE = 1000;
+
 export interface SupabaseStorageAdapterOptions {
   url: string;
   apiKey: string;
@@ -40,6 +44,11 @@ export interface SupabaseStorageAdapterOptions {
  * client-facing HTTPS URL (the temp-url resolver in the websocket runner does
  * this for `temp_url` asset output mode).
  */
+/** Storage answered a `HEAD` with an error other than not found. */
+class StorageStatError extends Error {
+  override name = "StorageStatError";
+}
+
 export class SupabaseStorageAdapter implements StorageAdapter {
   readonly bucket: string;
   readonly url: string;
@@ -207,10 +216,24 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     if (dir.endsWith("/")) {
       dir = dir.slice(0, -1);
     }
-    const { data, error } = await this.getClient()
-      .storage.from(this.bucket)
-      .list(dir, { limit: 1000 });
-    if (error || !data) return { entries: [], commonPrefixes: [] };
+    // A listing that cannot be read throws. Callers judge from it whether a
+    // directory holds another project's folder, so an empty answer for a
+    // failed call would let the outer workspace reach that folder. The call
+    // returns at most one page, so every page is read: an entry past the first
+    // page, a `.nodetool` marker among them, must not go unseen.
+    const data: SupabaseObjectEntry[] = [];
+    for (let offset = 0; ; offset += LIST_PAGE_SIZE) {
+      const { data: page, error } = await this.getClient()
+        .storage.from(this.bucket)
+        .list(dir, { limit: LIST_PAGE_SIZE, offset });
+      if (error || !page) {
+        throw new Error(
+          `Supabase list failed for "${dir}": ${error?.message ?? "no data"}`
+        );
+      }
+      data.push(...page);
+      if (page.length < LIST_PAGE_SIZE) break;
+    }
 
     const entries: StorageEntry[] = [];
     const commonPrefixes: string[] = [];
@@ -249,12 +272,33 @@ export class SupabaseStorageAdapter implements StorageAdapter {
    * endpoint's name filter or result limit.
    */
   async stat(uri: string): Promise<StorageStat | null> {
+    try {
+      return await this.statStrict(uri);
+    } catch (error) {
+      // An error Storage answered with reads as no object, as it always
+      // has. A request that could not be sent still throws.
+      if (error instanceof StorageStatError) return null;
+      throw error;
+    }
+  }
+
+  /**
+   * As {@link stat}, but only an answer that the object is not found reads
+   * as no object. Storage answers a missing key with 404, or with 400 and
+   * the real status in a body that a `HEAD` does not carry. Any other
+   * failure throws.
+   */
+  async statStrict(uri: string): Promise<StorageStat | null> {
     const parsed = this.parseUri(uri);
     if (!parsed || parsed.bucket !== this.bucket) return null;
     const { data, error } = await this.getClient()
       .storage.from(parsed.bucket)
       .info(parsed.key);
-    if (error || !data) return null;
+    if (error) {
+      if (error.status === 404 || error.status === 400) return null;
+      throw new StorageStatError(`Could not stat ${parsed.key}: ${error.message}`);
+    }
+    if (!data) return null;
     const stat: StorageStat = {
       key: parsed.key,
       size: data.size,

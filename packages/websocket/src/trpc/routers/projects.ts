@@ -22,6 +22,8 @@
  *   update         (mutation) — ProjectResponse
  *   delete         (mutation) — { ok: true, folder } (what happened to the folder)
  *   assignDocument (mutation) — { ok: true }
+ *   migration      (router)   — the upgrade into project folders, see
+ *                               ./project-folder-migration.ts
  */
 
 import { z } from "zod";
@@ -105,6 +107,7 @@ import {
   relocateProjectFolder
 } from "../../lib/project-folder-open.js";
 import { workspaceFromRow } from "../../lib/workflow-workspace.js";
+import { projectFolderMigrationRouter } from "./project-folder-migration.js";
 
 const log = createLogger("nodetool.websocket.projects");
 
@@ -288,12 +291,16 @@ async function loadOpened(userId: string, id: string): Promise<Project> {
   const project = await loadOwned(userId, id);
   reconcileProjectOnOpen(project.id, userId);
   // Assets from before project folders move into the folder in the
-  // background. Looking for them here lets this response show the move.
+  // background. Looking for them here lets this response show the move. The
+  // move job asks the migration state first, so nothing moves before the
+  // user confirms the migration.
   await prepareProjectAssetMove(project.id, userId);
   return project;
 }
 
 export const projectsRouter = router({
+  migration: projectFolderMigrationRouter,
+
   list: protectedProcedure
     .input(listInput)
     .output(z.array(projectResponse))

@@ -252,11 +252,14 @@ describe("the workflow file sync hook", () => {
     const workflow = await makeWorkflow();
     const etag = workflow.getEtag();
     // The etag a workflow had before it had a file: the row without the
-    // three columns that describe the file.
+    // three columns that describe the file, and the two that describe the
+    // save.
     const {
       file_path: _path,
       file_hash: _hash,
       file_error: _error,
+      last_writer_instance: _writer,
+      schema_version: _schema,
       ...content
     } = workflow.toRow();
     expect(etag).toBe(computeEtag(content));
@@ -344,6 +347,14 @@ describe("the workflow file sync hook", () => {
       projects.map((project) => project.project_id).sort()
     ).toEqual(["project-a", "project-b"]);
     expect(projects.every((project) => project.user_id === USER)).toBe(true);
+    expect(
+      projects.map((project) => [project.project_id, Number(project.count)]).sort()
+    ).toEqual([
+      ["project-a", 2],
+      ["project-b", 1]
+    ]);
+    expect(await Workflow.projectsWithUnwrittenFiles("someone-else")).toEqual([]);
+    expect(await Workflow.projectsWithUnwrittenFiles(USER)).toHaveLength(2);
     expect(
       (await Workflow.listForProjects(USER, ["project-a", "project-c"])).length
     ).toBe(3);

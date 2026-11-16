@@ -3,6 +3,7 @@
 #include "nodetool/account/policy.h"
 #include "test_support.h"
 
+#include <filesystem>
 #include <fstream>
 
 namespace {
@@ -77,6 +78,48 @@ void unreadablePolicyTurnsCloudOff(TestContext& t) {
   }
 }
 
+// A key given twice could be read either way, so the policy is unreadable.
+void duplicateKeyTurnsCloudOff(TestContext& t) {
+  for (const char* text : {R"({"CloudEnabled": false, "CloudEnabled": true})",
+                           R"({"AllowedServers": ["https://a.example"], "AllowedServers": []})"}) {
+    const ManagedPolicy policy = parsePolicyJson(text);
+    CHECK(policy.present);
+    CHECK(!policy.cloudEnabled);
+    CHECK(policy.error.find("more than once") != std::string::npos);
+  }
+}
+
+// An empty allowlist names no server. It is not read as "any server".
+void emptyAllowlistTurnsCloudOff(TestContext& t) {
+  const ManagedPolicy policy = parsePolicyJson(R"({"AllowedServers": []})");
+  CHECK(policy.present);
+  CHECK(!policy.cloudEnabled);
+  CHECK(checkServer(policy, "https://a.example").decision == PolicyDecision::CloudOff);
+}
+
+// A policy path that holds something other than a readable regular file is
+// a policy that cannot be read, not a missing one.
+void brokenPolicyPathTurnsCloudOff(TestContext& t) {
+  TempDir dir;
+  const auto link = dir.path() / "link.json";
+  std::filesystem::create_symlink(dir.path() / "missing.json", link);
+  const ManagedPolicy broken = readPolicyFile(link);
+  CHECK(broken.present);
+  CHECK(!broken.cloudEnabled);
+  const auto folder = dir.path() / "folder.json";
+  std::filesystem::create_directory(folder);
+  const ManagedPolicy notAFile = readPolicyFile(folder);
+  CHECK(notAFile.present);
+  CHECK(!notAFile.cloudEnabled);
+  CHECK(notAFile.error.find("regular file") != std::string::npos);
+  const auto target = dir.path() / "target.json";
+  std::ofstream(target) << R"({"CloudEnabled": false})";
+  const auto good = dir.path() / "good.json";
+  std::filesystem::create_symlink(target, good);
+  const ManagedPolicy followed = readPolicyFile(good);
+  CHECK(followed.present && !followed.cloudEnabled && followed.error.empty());
+}
+
 } // namespace
 
 int main() {
@@ -87,5 +130,8 @@ int main() {
       {"tc91AllowsOneServer", tc91AllowsOneServer},
       {"cloudOffRefusesEveryServer", cloudOffRefusesEveryServer},
       {"unreadablePolicyTurnsCloudOff", unreadablePolicyTurnsCloudOff},
+      {"duplicateKeyTurnsCloudOff", duplicateKeyTurnsCloudOff},
+      {"emptyAllowlistTurnsCloudOff", emptyAllowlistTurnsCloudOff},
+      {"brokenPolicyPathTurnsCloudOff", brokenPolicyPathTurnsCloudOff},
   });
 }

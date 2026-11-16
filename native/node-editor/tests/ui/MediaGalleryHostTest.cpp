@@ -430,6 +430,22 @@ private slots:
     QCOMPARE(window.document()->undoStack()->count(), undoCount);
     QVERIFY(!canvas(window));
   }
+  void compactVideoFillsTheGallery() {
+    QFile file(QStringLiteral(MEDIA_VIDEO_FIXTURE)); QVERIFY(file.open(QIODevice::ReadOnly));
+    const auto movie = "data:video/mp4;base64," + QString::fromLatin1(file.readAll().toBase64());
+    EditorWindow window; setup(window);
+    window.runOutput()->beginRun("video");
+    output(window, "video", QJsonArray{media("video", movie)});
+    auto ui = window.document()->node(NodeId)["ui_properties"].toObject(); ui["width"] = 480; ui["height"] = 640;
+    QVERIFY(window.document()->applyCommand({{"op", "setNodeField"}, {"id", NodeId}, {"field", "ui_properties"}, {"value", ui}}));
+    window.resize(1400, 1000); window.fit();
+    QTRY_VERIFY(canvas(window) && gallery(canvas(window)) && control(canvas(window), "preview-video"));
+    QTRY_VERIFY(gallery(canvas(window))->height() > 300);
+    const auto view = gallery(canvas(window));
+    const auto video = control(canvas(window), "preview-video");
+    // The video takes the rest of the card, not a fixed compact strip.
+    QTRY_VERIFY2(video->height() > view->height() / 2, qPrintable(QString("video %1 of gallery %2").arg(video->height()).arg(view->height())));
+  }
   void orderedRepeatsMixedTextScrollAndPlayback() {
     QFile file(QStringLiteral(MEDIA_VIDEO_FIXTURE)); QVERIFY(file.open(QIODevice::ReadOnly));
     const auto movie = "data:video/mp4;base64," + QString::fromLatin1(file.readAll().toBase64());

@@ -86,7 +86,13 @@ export const oauthRequestSummary = z.object({
   client_name: z.string(),
   redirect_host: z.string(),
   scope: z.string(),
-  loopback_only: z.boolean()
+  loopback_only: z.boolean(),
+  /** `native` for a sign-in from the desktop apps, else `mcp`. */
+  kind: z.enum(["mcp", "native"]),
+  /** Native sign-in only: `node-editor` or `timeline`. */
+  app_name: z.string().nullable(),
+  /** Native sign-in only: the device name the app sent, shown as text. */
+  device_name: z.string().nullable()
 });
 export type OauthRequestSummary = z.infer<typeof oauthRequestSummary>;
 
@@ -126,3 +132,28 @@ export type RevokeOauthGrantInput = z.infer<typeof revokeOauthGrantInput>;
 
 export const revokeOauthGrantOutput = z.object({ ok: z.boolean() });
 export type RevokeOauthGrantOutput = z.infer<typeof revokeOauthGrantOutput>;
+
+/** One signed-in device: a native session of the desktop apps. */
+export const deviceSessionSummary = z.object({
+  id: z.string(),
+  app_name: z.string().nullable(),
+  device_name: z.string().nullable(),
+  created_at: z.string(),
+  last_used_at: z.string().nullable()
+});
+export type DeviceSessionSummary = z.infer<typeof deviceSessionSummary>;
+
+export const listDeviceSessionsOutput = z.object({
+  /** False when this server does not offer desktop sign-in. */
+  available: z.boolean(),
+  sessions: z.array(deviceSessionSummary)
+});
+export type ListDeviceSessionsOutput = z.infer<typeof listDeviceSessionsOutput>;
+
+export const endDeviceSessionInput = z.object({
+  session_id: z.string().min(1)
+});
+export type EndDeviceSessionInput = z.infer<typeof endDeviceSessionInput>;
+
+export const endDeviceSessionOutput = z.object({ ok: z.boolean() });
+export type EndDeviceSessionOutput = z.infer<typeof endDeviceSessionOutput>;

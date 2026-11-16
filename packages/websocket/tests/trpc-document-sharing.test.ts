@@ -169,9 +169,16 @@ describe("documentSharing", () => {
       type: "storyboard",
       id: board.id
     });
-    expect(sharing.collaborators).toEqual([
-      expect.objectContaining({ user_id: GUEST, role: "editor" })
+    // One grant per redeemed link, and one person with the highest role.
+    expect(sharing.collaborators.map((c) => c.role).sort()).toEqual([
+      "editor",
+      "viewer"
     ]);
+    expect(sharing.people).toHaveLength(1);
+    const person = sharing.people?.[0];
+    expect(person?.user_id).toBe(GUEST);
+    expect(person?.access.role).toBe("editor");
+    expect(person?.access.grants).toHaveLength(2);
     expect(
       (await guest().storyboards.update({ id: board.id, name: "Recut" })).name
     ).toBe("Recut");

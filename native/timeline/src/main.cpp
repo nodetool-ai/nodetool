@@ -1053,6 +1053,9 @@ int main(int argc, char** argv) {
                          &nt::server::AutosaveController::documentChanged);
         QObject::connect(autosave.get(), &nt::server::AutosaveController::projectChanged, &model,
                          &TimelineModel::setProjectId);
+        // The Library's project check can also move the document (AssetBrowser::receive).
+        QObject::connect(&model, &TimelineModel::timelineChanged, autosave.get(),
+                         &nt::server::AutosaveController::syncOpenProject);
     }
     if (!autosave && !bench && !parser.isSet(realtimeOpt) && !parser.isSet(teardownOpt) &&
         QFileInfo(source).isFile()) {

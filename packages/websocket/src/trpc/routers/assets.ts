@@ -100,7 +100,7 @@ import {
 } from "../../lib/local-file-access.js";
 import {
   generateThumbnailForStoredAsset,
-  storeAssetWithThumbnail,
+  storeAssetThumbnail,
   thumbnailKey
 } from "../../lib/thumbnail.js";
 import {
@@ -144,7 +144,7 @@ import {
   copyToProjectOutput,
   type AssetResponse
 } from "@nodetool-ai/protocol/api-schemas/assets.js";
-import { isAssetSharedWithUser } from "../../lib/document-access.js";
+import { isAssetSharedWithUser } from "../../lib/shared-assets.js";
 import { isFullResourceId } from "@nodetool-ai/protocol";
 
 /**
@@ -865,6 +865,10 @@ export const assetsRouter = router({
         asset.id,
         asset.content_type
       );
+      // A row whose bytes are a file in its project folder by now was
+      // finalized before, or its bytes were moved there. It is not an empty
+      // upload and is not deleted.
+      if (asset.workspace_path) return toAssetResponse(asset);
       const stat = await adapter.stat(adapter.uriForKey(key));
       if (!stat || stat.size === 0) {
         await asset.delete();
@@ -1269,6 +1273,10 @@ export const assetsRouter = router({
       // File changes wait for the row. Each is undone when the row is not
       // saved, and what it replaced is removed only after the save.
       const fileChanges: ProjectAssetFileChange[] = [];
+      // Whether the asset is a file in its project folder. An asset with no
+      // file when it was loaded has one once the move of its bytes into the
+      // folder named one while this request waited for the folder lock.
+      let inFolder = hasProjectFile;
       // The row of an asset with no file in its project folder is saved with
       // its bytes, under the folder lock.
       let savedWithBytes = false;
@@ -1294,18 +1302,27 @@ export const assetsRouter = router({
               // The bytes go under the storage key and the row is saved with
               // them, unless the asset's bytes were moved into the folder
               // while this request waited for that move.
+              // Only the bytes and the row are written under the folder
+              // lock. The thumbnail is made after it.
               const stored = await storeLegacyAssetBytes(asset, async () => {
                 asset.size = buf.byteLength;
-                await storeAssetWithThumbnail(
-                  asset.user_id,
-                  asset.id,
-                  fileName,
+                await getAssetAdapter().store(
+                  getAssetStorageKey(asset.user_id, asset.id, asset.content_type),
                   new Uint8Array(buf),
                   asset.content_type
                 );
                 await asset.save();
               });
               savedWithBytes = stored === "stored";
+              if (stored === "moved") inFolder = true;
+              if (savedWithBytes) {
+                await storeAssetThumbnail(
+                  asset.user_id,
+                  asset.id,
+                  asset.content_type,
+                  { bytes: new Uint8Array(buf) }
+                );
+              }
               if (stored === "moved") {
                 replaced = await replaceProjectAssetBytes(
                   asset,
@@ -1326,7 +1343,7 @@ export const assetsRouter = router({
           }
         }
 
-        if (targetDirectory !== null && hasProjectFile) {
+        if (targetDirectory !== null && inFolder) {
           const moved = await moveProjectAssetToDirectory(
             asset,
             targetDirectory

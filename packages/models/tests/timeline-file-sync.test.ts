@@ -320,11 +320,14 @@ describe("the timeline file sync hook", () => {
     const timeline = await makeTimeline();
     const etag = timeline.getEtag();
     // The etag a timeline had before it had a file: the row without the
-    // three columns that describe the file.
+    // three columns that describe the file, and the two that describe the
+    // save.
     const {
       file_path: _path,
       file_hash: _hash,
       file_error: _error,
+      last_writer_instance: _writer,
+      schema_version: _schema,
       ...content
     } = timeline.toRow();
     expect(etag).toBe(computeEtag(content));
@@ -467,6 +470,14 @@ describe("the timeline file sync hook", () => {
       projects.map((project) => project.project_id).sort()
     ).toEqual(["project-a", "project-b"]);
     expect(projects.every((project) => project.user_id === USER)).toBe(true);
+    expect(
+      projects.map((project) => [project.project_id, Number(project.count)]).sort()
+    ).toEqual([
+      ["project-a", 2],
+      ["project-b", 1]
+    ]);
+    expect(await TimelineSequence.projectsWithUnwrittenFiles("someone-else")).toEqual([]);
+    expect(await TimelineSequence.projectsWithUnwrittenFiles(USER)).toHaveLength(2);
     expect(
       (await TimelineSequence.listForProjects(USER, ["project-a", "project-c"]))
         .length

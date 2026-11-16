@@ -37,6 +37,7 @@ import {
   WorkspaceReservedPathError
 } from "@nodetool-ai/runtime";
 import { verdictSchema } from "@nodetool-ai/protocol";
+import * as sync from "@nodetool-ai/protocol/api-schemas/sync.js";
 import {
   cancelDebugSession,
   debugSessions,
@@ -338,7 +339,8 @@ export function toWorkflowResponse(workflow: Workflow) {
     required_models: null,
     html_app: workflow.html_app,
     app_doc: workflow.app_doc ?? null,
-    etag: workflow.getEtag()
+    etag: workflow.getEtag(),
+    schema_version: workflow.schema_version
   };
 }
 
@@ -1082,7 +1084,10 @@ export async function handleWorkflowById(
     const body = await parseBody(request, workflowRequestBodySchema);
     if (!body) return errorResponse(400, "Invalid JSON body");
     try {
-      const workflow = await updateWorkflow(userId, workflowId, body);
+      const workflow = await updateWorkflow(userId, workflowId, {
+        ...body,
+        legacy_client: request.headers.get(sync.SYNC_PROTOCOL_HEADER) === null
+      });
       return jsonResponse(toWorkflowResponse(workflow));
     } catch (error) {
       if (error instanceof WorkflowServiceError) {

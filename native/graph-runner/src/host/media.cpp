@@ -1240,6 +1240,7 @@ void installMedia(js::Engine &e, const js::Value &object,
   for (auto &p : host.readRoots)
     roots.emplace_back(p, false);
   s->roots = canonicalRoots(roots);
+  reserveWorkspace(s->roots, host.workspaceDir);
   s->cwd = host.workspaceDir;
   s->binding = RunBinding::of(e);
   s->staging = MediaStaging::of(e);

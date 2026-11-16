@@ -1,4 +1,4 @@
-import { eq, desc, and, sql, inArray, isNull } from "drizzle-orm";
+import { eq, desc, and, sql, inArray, isNull, count, max } from "drizzle-orm";
 import type {
   TimelineSequence as TimelineSequenceDoc,
   TimelineTrack,
@@ -24,12 +24,15 @@ import { allowLegacyProjectWritesForTests, getPortableDb } from "./db.js";
 import { projects } from "./schema/projects.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
 import { TimelineSequenceVersion } from "./timeline-sequence-version.js";
+import { timelineSequenceVersions } from "./schema/timeline-sequence-versions.js";
+import { saveKeepingRevision, type KeepRevision } from "./kept-revision.js";
 import { removeDocumentSharing } from "./document-sharing.js";
 import {
   assertDocumentFileMayLeave,
   type DocumentFileLocation,
   type DocumentFileSync
 } from "./document-file-sync.js";
+import { DocumentRefs } from "./document-refs.js";
 
 export class TimelineSequenceConflictError extends Error {
   constructor(id: string) {
@@ -152,6 +155,14 @@ export class TimelineSequence extends DBModel {
   declare file_hash: string | null;
   /** What the last reconcile found wrong with the file, or null. */
   declare file_error: string | null;
+  /**
+   * The editing instance that wrote the stored revision, or null when that
+   * save carried none. A save from another instance first keeps the stored
+   * revision as a version.
+   */
+  declare last_writer_instance: string | null;
+  /** The document schema version the stored revision was written in. */
+  declare schema_version: number;
   declare updated_at: string;
 
   constructor(data: Record<string, unknown>) {
@@ -169,6 +180,8 @@ export class TimelineSequence extends DBModel {
     this.file_path ??= null;
     this.file_hash ??= null;
     this.file_error ??= null;
+    this.last_writer_instance ??= null;
+    this.schema_version ??= 1;
     this.rememberFileProject();
     this.updated_at ??= now;
   }
@@ -178,12 +191,16 @@ export class TimelineSequence extends DBModel {
    * is, its hash and what the last reconcile found wrong with it are records
    * about the file and no content of the timeline. Recording them must not
    * read as a change of the timeline to a client that holds its etag.
+   * The writer instance and schema version describe the save, and stay out
+   * of the etag for the same reason.
    */
   override getEtag(): string {
     const {
       file_path: _path,
       file_hash: _hash,
       file_error: _error,
+      last_writer_instance: _writer,
+      schema_version: _schema,
       ...content
     } = this.toRow();
     return computeEtag(content);
@@ -337,18 +354,25 @@ export class TimelineSequence extends DBModel {
 
   /**
    * The projects that hold a timeline whose file was never written, each
-   * with its owner. A timeline from before project folders is one of them.
+   * with its owner and how many such documents it holds, for every user or
+   * for `userId`. A timeline from before project folders is one of them.
    */
-  static async projectsWithUnwrittenFiles(): Promise<
-    Array<{ user_id: string; project_id: string }>
+  static async projectsWithUnwrittenFiles(userId?: string): Promise<
+    Array<{ user_id: string; project_id: string; count: number }>
   > {
     return getPortableDb()
       .select({
         user_id: timelineSequences.user_id,
-        project_id: timelineSequences.project_id
+        project_id: timelineSequences.project_id,
+        count: count()
       })
       .from(timelineSequences)
-      .where(isNull(timelineSequences.file_path))
+      .where(
+        and(
+          isNull(timelineSequences.file_path),
+          userId === undefined ? undefined : eq(timelineSequences.user_id, userId)
+        )
+      )
       .groupBy(timelineSequences.user_id, timelineSequences.project_id);
   }
 
@@ -452,7 +476,8 @@ export class TimelineSequence extends DBModel {
       source: doc.source,
       mediaTracks: doc.mediaTracks,
       createdAt: this.created_at,
-      updatedAt: this.updated_at
+      updatedAt: this.updated_at,
+      schemaVersion: this.schema_version
     };
     // An absent version stays absent, so a read never adds the field.
     if (doc.workingColorSpaceVersion !== undefined) {
@@ -513,6 +538,7 @@ export class TimelineSequence extends DBModel {
     if (!row || row.user_id !== userId) return false;
     await row.delete();
     await removeDocumentSharing("timeline", row.id);
+    await DocumentRefs.removeForDocument("timeline", row.id);
     // Belt-and-braces with the FK cascade: version rows outliving their
     // document would be unreachable garbage.
     await TimelineSequenceVersion.deleteForTimeline(row.id);
@@ -642,8 +668,11 @@ export class TimelineSequence extends DBModel {
       duration_ms: number;
       workflow_id: string | null;
       document: string;
+      last_writer_instance: string | null;
+      schema_version: number;
     }>,
-    meta?: ModelChangeMeta
+    meta?: ModelChangeMeta,
+    keep?: KeepRevision
   ): Promise<TimelineSequence | null> {
     const write: typeof fields = { ...fields };
     if (fields.document !== undefined) {
@@ -656,22 +685,55 @@ export class TimelineSequence extends DBModel {
     }
     const db = getPortableDb();
     const now = nextUpdatedAtAfter(expectedUpdatedAt);
-    const rows = await db
-      .update(timelineSequences)
-      .set({
-        ...write,
-        revision: sql`${timelineSequences.revision} + 1`,
-        updated_at: now
-      })
-      .where(
-        and(
-          eq(timelineSequences.id, id),
-          eq(timelineSequences.updated_at, expectedUpdatedAt)
-        )
-      )
-      .returning();
-
-    const row = rows[0];
+    const unchanged = and(
+      eq(timelineSequences.id, id),
+      eq(timelineSequences.updated_at, expectedUpdatedAt)
+    );
+    const set = {
+      ...write,
+      revision: sql`${timelineSequences.revision} + 1`,
+      updated_at: now
+    };
+    let row: typeof timelineSequences.$inferSelect | null | undefined;
+    if (keep) {
+      // The replaced revision becomes a version in the same transaction as
+      // the compare-and-set, so a lost race or a crash writes neither.
+      row = await saveKeepingRevision<
+        typeof timelineSequences.$inferSelect,
+        typeof timelineSequences.$inferSelect
+      >({
+        stored: (tx) =>
+          tx.select().from(timelineSequences).where(unchanged).limit(1),
+        highestVersion: (tx) =>
+          tx
+            .select({ value: max(timelineSequenceVersions.version) })
+            .from(timelineSequenceVersions)
+            .where(eq(timelineSequenceVersions.timeline_id, id)),
+        keep: (tx, stored, version) =>
+          tx.insert(timelineSequenceVersions).values({
+            id: createTimeOrderedUuid(),
+            timeline_id: id,
+            user_id: stored.user_id,
+            name: keep.name,
+            save_type: keep.saveType,
+            version,
+            fps: stored.fps,
+            width: stored.width,
+            height: stored.height,
+            duration_ms: stored.duration_ms,
+            document: stored.document,
+            created_at: new Date().toISOString()
+          }),
+        write: (tx) =>
+          tx.update(timelineSequences).set(set).where(unchanged).returning()
+      });
+    } else {
+      [row] = await db
+        .update(timelineSequences)
+        .set(set)
+        .where(unchanged)
+        .returning();
+    }
     if (!row) return null;
 
     const updated = new TimelineSequence(row);

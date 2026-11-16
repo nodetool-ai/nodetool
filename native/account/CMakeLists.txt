@@ -40,6 +40,7 @@ add_library(nodetool_account STATIC
   src/cloud_savers.cpp
   src/crypto.cpp
   src/http_token_endpoint.cpp
+  src/origin.cpp
   src/policy.cpp
   src/session_record.cpp
   src/sign_in.cpp

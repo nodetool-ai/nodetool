@@ -426,6 +426,9 @@ SignInResult SignInFlow::finish(std::chrono::milliseconds timeout) {
     return out;
   }
   if (!recordSignIn(store_, options_, result.tokens)) {
+    // Nothing here holds the session, so nothing could end it later. End it
+    // on the server now. An offline end leaves it to expire.
+    endpoint_.endSession(result.tokens.revocationHandle);
     out.message = "The sign-in could not be stored on this computer.";
     return out;
   }
