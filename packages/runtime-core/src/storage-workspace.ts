@@ -172,7 +172,7 @@ function keyBelow(
 
 /** Whether a `path.relative` result leaves the directory it is relative to. */
 function isClimb(rel: string, path: { sep: string }): boolean {
-  return rel === ".." || rel.startsWith(`..${path.sep}`);
+  return rel === ".." || rel.startsWith(`..${path.sep}`); // key-boundary-ok: sep anchors the parent path component of a path.relative result.
 }
 
 /**
