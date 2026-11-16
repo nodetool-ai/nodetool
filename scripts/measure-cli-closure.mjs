@@ -71,7 +71,6 @@ function dependencies(manifest, scenario, workspace) {
   if (scenario === "S3" && workspace) {
     for (const name of edges.keys()) {
       if (RUNTIME.has(name) ||
-        (manifest.name === "@nodetool-ai/agents" && name === "office-text-extractor") ||
         (manifest.name === "@nodetool-ai/game-runtime" && name === "@dimforge/rapier3d-compat")) {
         edges.delete(name);
       }

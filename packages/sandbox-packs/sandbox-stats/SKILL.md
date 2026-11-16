@@ -38,5 +38,3 @@ return { m: fit.m, b: fit.b, at10: line(10) };
 
 - **Named imports.** Import only the functions you use.
 - **Empty arrays throw.** Guard before `mean([])`.
-- **This is not TFJS.** Classification and embeddings stay on
-  `@nodetool-ai/sandbox-tfjs`.

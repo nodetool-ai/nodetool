@@ -212,7 +212,7 @@ export async function invokeCapability(
   rawArgs: Record<string, unknown>
 ): Promise<unknown> {
   const moduleName = capabilityModuleOf(entry.spec.name);
-  if (moduleName === "email" || moduleName === "google" || moduleName === "browser") {
+  if (moduleName === "google" || moduleName === "browser") {
     suppressRunTraceContent();
   }
   const tracer = getTracer();

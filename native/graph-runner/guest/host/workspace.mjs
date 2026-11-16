@@ -240,6 +240,25 @@ export class LocalWorkspace {
   }
 
   async cleanupScratch() {}
+
+  // The folder of another project is known by its `.nodetool/` directory, as
+  // in the TypeScript local workspace. The runner keeps no project folders of
+  // its own, so this reads the mark on disk and nothing else.
+  async isNestedFolder(path) {
+    let key;
+    try {
+      key = normalize(path);
+    } catch {
+      return false;
+    }
+    if (!key) return false;
+    try {
+      return fs.statSync(`${this.localDir}/${key}/.nodetool`).isDirectory();
+    } catch (err) {
+      if (missing(err)) return false;
+      throw err;
+    }
+  }
 }
 
 /** The workspace the embedder granted (HostOptions::workspaceDir), or null. */

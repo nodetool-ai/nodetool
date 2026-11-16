@@ -9104,10 +9104,6 @@
           "button": "복제 API 토큰 가져오기",
           "tooltip": "API 토큰 복제 페이지로 이동"
         },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Google 앱 비밀번호 받기",
-          "tooltip": "Google 계정 앱 비밀번호 페이지로 이동"
-        },
         "ELEVENLABS_API_KEY": {
           "button": "ElevenLabs API 키 받기",
           "tooltip": "ElevenLabs 구독 페이지로 이동"

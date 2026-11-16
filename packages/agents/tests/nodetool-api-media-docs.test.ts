@@ -315,20 +315,20 @@ describe("nodetool.documents", () => {
     const session = makeSession(DOCUMENT_TOOLS, executeTool);
     const obs = await runAction(
       session,
-      `const r = await nodetool.documents.convert("notes.md", "notes.docx", {
-         from_format: "markdown", to_format: "docx"
+      `const r = await nodetool.documents.convert("notes.md", "notes.html", {
+         from_format: "markdown", to_format: "html"
        });
        return r.output_file;`
     );
     expect(obs.ok).toBe(true);
-    expect(obs.result).toBe("notes.docx");
+    expect(obs.result).toBe("notes.html");
     expect(calls[0]).toMatchObject({
       name: "convert_document",
       args: {
         input_file: "notes.md",
-        output_file: "notes.docx",
+        output_file: "notes.html",
         from_format: "markdown",
-        to_format: "docx"
+        to_format: "html"
       }
     });
   });

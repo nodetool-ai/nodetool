@@ -9104,10 +9104,6 @@
           "button": "レプリケートAPIトークンを取得する",
           "tooltip": "APIトークンのレプリケートページに移動します"
         },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Googleアプリのパスワードを取得する",
-          "tooltip": "Googleアカウントのアプリパスワードページに移動します"
-        },
         "ELEVENLABS_API_KEY": {
           "button": "イレブンラボ API キーを取得する",
           "tooltip": "イレブンラボのサブスクリプションページに移動します"

@@ -5,7 +5,8 @@ import {
   type S3Api,
   type S3ClientOptions,
   type S3ListObjectsV2Input,
-  type S3PutObjectInput
+  type S3PutObjectInput,
+  type S3PutObjectResult
 } from "./s3/client.js";
 import type {
   DownloadUrlOptions,
@@ -156,14 +157,14 @@ export class S3StorageAdapter implements StorageAdapter {
    */
   private requireConditionalWrites(): Promise<void> {
     this.conditionalWrites ??= this.probeConditionalWrites().catch(
-      (error: unknown) => {
+      (cause: unknown) => {
         // An unsupported endpoint stays unsupported. Anything else (a network
         // error, a denied put) says nothing about the header, so it is tried
         // again on the next write.
-        if (!(error instanceof ConditionalWriteUnsupportedError)) {
+        if (!(cause instanceof ConditionalWriteUnsupportedError)) {
           this.conditionalWrites = null;
         }
-        throw error;
+        throw cause;
       }
     );
     return this.conditionalWrites;
@@ -175,13 +176,17 @@ export class S3StorageAdapter implements StorageAdapter {
       this.prefix ?? undefined,
       `.storage-probe/${randomUUID()}`
     );
-    const put = (ifNoneMatch?: string): Promise<unknown> =>
-      client.putObject({
+    const put = (ifNoneMatch?: string): Promise<S3PutObjectResult> => {
+      const input: S3PutObjectInput = {
         bucket: this.bucket,
         key,
-        body: new Uint8Array(0),
-        ...(ifNoneMatch ? { ifNoneMatch } : {})
-      });
+        body: new Uint8Array(0)
+      };
+      if (ifNoneMatch) {
+        input.ifNoneMatch = ifNoneMatch;
+      }
+      return client.putObject(input);
+    };
     let honored = false;
     try {
       await put();

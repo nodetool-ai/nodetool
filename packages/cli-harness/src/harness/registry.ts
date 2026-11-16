@@ -1300,7 +1300,8 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "docs/project-folders/prd.md § Testing decisions",
     selfcheck: {
       command: "npm run test --workspace=packages/project-services -- project-folder-selfcheck",
-      cost: "cheap"
+      cost: "cheap",
+      suiteOnly: true
     }
   },
   {
