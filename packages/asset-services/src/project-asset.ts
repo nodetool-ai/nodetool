@@ -16,6 +16,11 @@ import { Asset, setAssetFileMover } from "@nodetool-ai/models";
 import { getAssetFileName, isNonEmptyString } from "@nodetool-ai/protocol";
 import { NestedFolders, type Workspace } from "@nodetool-ai/runtime";
 import { probeAssetDurationSeconds } from "./asset-duration.js";
+import {
+  acquireFolderLockFile,
+  projectFolderLockDirectory,
+  projectFolderLockPath
+} from "./folder-lock-file.js";
 import { normalizeAssetContentType } from "./asset-paths.js";
 import {
   EXTERNAL_FINGERPRINT_KEYS,
@@ -156,8 +161,16 @@ const folderQueues = new Map<string, Promise<unknown>>();
  * Run `task` after every earlier task for the same project folder. Choosing a
  * free file name and writing the file are two steps, and two saves of the
  * same name that interleave would pick the same name and write one file over
- * the other. This serializes them within the process. The reconciler runs
- * under the same lock, so it never sees a file whose row is still being made.
+ * the other. This serializes them. The reconciler and the move of legacy
+ * asset bytes run under the same lock, so neither sees a file whose row is
+ * still being made, and no bytes update lands between the move's last read
+ * of a legacy object and its delete.
+ *
+ * Within the process the tasks queue per folder. Between processes that
+ * share one SQLite database, such as the desktop server and the CLI, the task
+ * at the head of the queue also holds the folder's lock file
+ * (`folder-lock-file.ts`). A wait for another process gives up with a
+ * `FolderLockTimeoutError`.
  */
 export function withProjectFolderLock<T>(
   userId: string,
@@ -166,13 +179,32 @@ export function withProjectFolderLock<T>(
 ): Promise<T> {
   const key = `${userId}\u0000${projectId}`;
   const previous = folderQueues.get(key) ?? Promise.resolve();
-  const next = previous.then(task, task);
+  const locked = () => withFolderLockFile(userId, projectId, task);
+  const next = previous.then(locked, locked);
   const settled = next.catch(() => undefined);
   folderQueues.set(key, settled);
   void settled.then(() => {
     if (folderQueues.get(key) === settled) folderQueues.delete(key);
   });
   return next;
+}
+
+/** Run `task` while this process holds the folder's lock file, when there is one. */
+async function withFolderLockFile<T>(
+  userId: string,
+  projectId: string,
+  task: () => Promise<T>
+): Promise<T> {
+  const directory = await projectFolderLockDirectory();
+  if (directory === null) return task();
+  const held = await acquireFolderLockFile(
+    projectFolderLockPath(directory, userId, projectId)
+  );
+  try {
+    return await task();
+  } finally {
+    await held.release();
+  }
 }
 
 // ── Paths in flux ───────────────────────────────────────────────────────────
@@ -1124,6 +1156,30 @@ export async function moveProjectAssetFile(
  * writes it, so it can never point a collect at a file the creator owns.
  */
 export const COLLECT_PATH_KEY = "collect_path";
+
+/**
+ * The files in the folder of `projectId` that a collect reserved and has not
+ * finished, by path, with the linked asset each belongs to. A collect that
+ * stopped during the copy, a crash included, leaves its reservation (an
+ * empty or partly written file) and the path on the asset row. That file is
+ * the asset's: the reconciler gives it no row of its own, and the next
+ * collect writes into it again.
+ */
+export async function pendingCollectReservations(
+  userId: string,
+  projectId: string
+): Promise<Map<string, Asset>> {
+  const reserved = new Map<string, Asset>();
+  for (const asset of await Asset.findLinkedWithMetadataKey(
+    userId,
+    projectId,
+    COLLECT_PATH_KEY
+  )) {
+    const path = asset.metadata?.[COLLECT_PATH_KEY];
+    if (isNonEmptyString(path)) reserved.set(path, asset);
+  }
+  return reserved;
+}
 
 /** A linked asset whose file is now in the project folder. */
 export interface CollectedAsset {
