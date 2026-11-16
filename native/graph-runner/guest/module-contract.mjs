@@ -89,6 +89,8 @@ export const MODULES = {
       WAN2GP_MAX_MEDIA_BYTES: wan2gp,
       WEB_SEARCH_TOOL_NAME: realRuntime("providers/types.js"),
       WebsocketPythonBridge: python,
+      WorkspaceReservedPathError: realWorkspace,
+      assertLocalPathIsOwn: impl("host/runtime.mjs"),
       assetRefToPromptToken: realRuntime("prompt-asset-refs"),
       budgetFromContext: realRuntime("turn-budget.js"),
       calendarCreateEvent: google,
