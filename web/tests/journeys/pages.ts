@@ -422,7 +422,7 @@ export class AssetsPage {
   }
 
   searchBox(): Locator {
-    return this.page.getByPlaceholder("Search current folder...").first();
+    return this.page.getByRole("textbox", { name: "Search current folder" });
   }
 
   async search(query: string): Promise<void> {
@@ -763,5 +763,24 @@ export class ProjectFilesPage {
 
   tree(): Locator {
     return this.page.getByLabel("Project files", { exact: true });
+  }
+
+  /** Shows the Files section. The rail button toggles, and the app remembers it. */
+  async showFiles(): Promise<void> {
+    const button = this.railButton("Files");
+    await button.waitFor({ state: "visible" });
+    if ((await button.getAttribute("aria-pressed")) !== "true") {
+      await button.click();
+    }
+    await this.tree().waitFor({ state: "visible" });
+  }
+
+  /** Expands the directory `name` in Files unless it is expanded already. */
+  async expand(name: string): Promise<void> {
+    const label = this.tree().getByText(name, { exact: true });
+    const item = label.locator("xpath=ancestor::li[@role='treeitem'][1]");
+    if ((await item.getAttribute("aria-expanded")) !== "true") {
+      await label.click();
+    }
   }
 }
