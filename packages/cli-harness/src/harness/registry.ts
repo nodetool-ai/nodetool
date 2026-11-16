@@ -1433,6 +1433,18 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "docs/harnesses.md § Native graph runner"
   },
   {
+    id: "native-guest-contract",
+    title: "Native graph runner guest bundle against its module contract",
+    command: "node native/graph-runner/guest/build.mjs native/graph-runner/build/contract-check/guest.js",
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "docs/harnesses.md § Native graph runner guest contract",
+    selfcheck: {
+      command: "node native/graph-runner/guest/build.mjs native/graph-runner/build/contract-check/guest.js",
+      cost: "cheap"
+    }
+  },
+  {
     id: "native-node-editor",
     title: "Native workflow graph editor build and Qt tests",
     command: "node native/node-editor/scripts/check.mjs",
@@ -2703,6 +2715,34 @@ export const SURFACES: SurfaceEntry[] = [
       "The check needs CMake, clang and libvips 8.18.7, libwebp 1.6.0 and Tesseract 5.5.3 built from " +
       "pinned sources. The dedicated native-graph-runner workflow provides them, while the root gate " +
       "lists the check as manual work."
+  },
+  {
+    id: "native-guest-contract",
+    title: "Native graph runner guest bundle and module contract",
+    harnesses: ["native-guest-contract"],
+    // The packages whose sources the default guest bundle contains, read from
+    // its esbuild metafile. A new import of a host package in any of them
+    // must be classified in guest/module-contract.mjs, and the native
+    // workflow does not run for most of them. packages/compute is bundled
+    // too and stays in UNCLAIMED_PATHS.
+    paths: [
+      "native/graph-runner/guest/",
+      "packages/agents/src/", "packages/app-runtime/src/", "packages/asset-services/src/",
+      "packages/audio-nodes/src/", "packages/automation-nodes/src/", "packages/browser/src/",
+      "packages/code-nodes/src/", "packages/core-nodes/src/", "packages/data-nodes/src/",
+      "packages/database-sqlite/src/", "packages/document-nodes/src/",
+      "packages/document-processing/src/", "packages/execution/src/",
+      "packages/execution-core/src/", "packages/game-nodes/src/", "packages/game-runtime/src/",
+      "packages/gpu/src/", "packages/image-editor/src/", "packages/image-nodes/src/",
+      "packages/kernels/src/", "packages/llm-nodes/src/", "packages/model-pricing/src/",
+      "packages/model3d/src/", "packages/models/src/", "packages/models-core/src/",
+      "packages/node-catalog/src/", "packages/node-sdk/src/", "packages/nodes-utils/src/",
+      "packages/pack-core/src/", "packages/presets/src/", "packages/protocol/src/",
+      "packages/runtime/src/", "packages/runtime-core/src/", "packages/sandbox-runtime/src/",
+      "packages/security/src/", "packages/security-core/src/", "packages/storage/src/",
+      "packages/storyboard/src/", "packages/text-nodes/src/", "packages/timeline/src/",
+      "packages/vectorstore/src/", "packages/video-nodes/src/"
+    ]
   },
   {
     id: "native-node-editor",
