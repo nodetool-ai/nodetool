@@ -121,6 +121,7 @@ export function timelineDocumentToStore(raw: Record<string, unknown>): {
     durationMs: _durationMs,
     createdAt: _createdAt,
     updatedAt: _updatedAt,
+    schemaVersion: _schemaVersion,
     ...document
   } = raw;
   return {
