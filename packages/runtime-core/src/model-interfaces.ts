@@ -32,6 +32,13 @@ export interface AssetCreateParamsLike {
   nodeId?: string | null;
   /** Stored on the asset row; the generation seam stamps `generation_id`. */
   metadata?: Record<string, unknown> | null;
+  /**
+   * Exact path in the run's project folder, when the caller named the file
+   * (an agent's `output_file`, a Save-file node's name). The file is written
+   * there and the row points at it. Unset, the host picks a free name in
+   * `Generated/`.
+   */
+  path?: string | null;
 }
 
 /** A non-folder asset surfaced when listing a folder's contents. */

@@ -6424,16 +6424,42 @@
           "export": "导出",
           "archive": "归档",
           "restore": "恢复",
-          "delete": "删除"
+          "delete": "删除",
+          "collect": "收集文件"
         },
         "projectActions": "项目操作",
         "actionsForProject": "{{projectName}}的操作",
         "exporting": "正在导出…",
         "deleteProject": "删除项目",
         "confirmDeleteTitle": "删除{{projectName}}？",
-        "confirmDeleteBody": "删除{{projectName}}及其所有文档、对话、生成的输出、资源、任务和项目文件。",
+        "confirmDeleteBody": "删除{{projectName}}及其所有文档、对话、任务和存储在项目文件夹之外的资源。",
         "deleteIrreversible": "此操作无法撤销。",
-        "error": "无法{{action}}{{projectName}}：{{error}}"
+        "deleteFolderTrash": "项目文件夹将移到废纸篓。",
+        "deleteFolderRemove": "项目文件夹及其中的所有文件将从云存储中删除。",
+        "deleteFolderKeep": "项目文件夹及其中的所有文件保留在原处。NodeTool 只移除其中的 .nodetool 文件夹。",
+        "deleteFolderMissing": "无法访问项目文件夹，因此 NodeTool 会保持其原样。",
+        "folderMovedAsideTo": "无法访问废纸篓。项目文件夹已移到 {{path}}。",
+        "folderMovedAside": "无法访问废纸篓。项目文件夹已移到项目目录中的 .trash 文件夹。",
+        "folderTrashFailedAt": "无法将项目文件夹移到废纸篓。它仍在 {{path}}。",
+        "folderTrashFailed": "无法将项目文件夹移到废纸篓。它仍在原处。",
+        "error": "无法{{action}}{{projectName}}：{{error}}",
+        "collecting": "正在收集文件…",
+        "collectResult": "已将文件收集到 {{projectName}}：已复制 {{copied}} 个，已跳过 {{skipped}} 个，失败 {{failed}} 个。",
+        "linkedTitle": "{{projectName}} 链接了其文件夹之外的文件",
+        "linkedBody": "导出包含项目文件夹。以下文件从其他位置链接，不在文件夹中：",
+        "linkedChoice": "“收集并导出”会将它们复制到文件夹的 Imported 目录，然后导出。“取消”保留链接，不导出任何内容。",
+        "collectAndExport": "收集并导出"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "复制还是链接？",
+        "confirm": "导入",
+        "copy": "复制到项目文件夹",
+        "copyHint": "项目会保留自己的副本。对原文件的更改不会影响它。",
+        "link": "原位链接",
+        "linkHint": "不复制任何内容。项目从文件所在位置读取它。“收集文件”可以稍后将其复制进来。",
+        "threshold": "{{size}} 及以上的文件默认链接。"
       }
     }
   },
@@ -15080,7 +15106,6 @@
       "csv": "CSV 文件",
       "unknown": "未知文件类型",
       "unknownContentType": "未知内容类型",
-      "offline": "媒体离线",
       "thumbnail": "缩略图",
       "folder": "文件夹"
     },
@@ -20130,5 +20155,28 @@
       "restoreFailed": "文件未恢复：{{error}}",
       "deleteFailed": "文档未删除：{{error}}"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "素材来源",
+    "projectTab": "此项目",
+    "personalTab": "个人",
+    "personalHint": "从“个人”中选择会将文件复制到此项目。",
+    "copying": "正在复制到此项目…",
+    "copyFailed": "无法将素材复制到此项目。"
+  },
+  "assetFileStatus": {
+    "missing": "缺失",
+    "missingTooltip": "文件不在此素材期望的位置。请将其重新链接到文件的新位置，或移除该素材。",
+    "linked": "已链接",
+    "linkedTooltip": "此素材在原位置使用项目文件夹之外的文件。",
+    "relink": "重新链接",
+    "relinkTooltip": "选择文件的新位置",
+    "relinkNoPath": "无法读取该文件的位置。请选择此计算机上的文件。",
+    "relinkFailed": "重新链接失败：{{error}}",
+    "remove": "移除",
+    "removeTooltip": "从 NodeTool 移除此素材",
+    "removeTitle": "移除“{{name}}”？",
+    "removeBody": "该素材将从 NodeTool 中移除。使用它的文档将无法再显示它。",
+    "cancel": "取消"
   }
 }

@@ -1,14 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rename, rm, stat } from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import { createHash } from "node:crypto";
 import { Readable } from "node:stream";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 
 vi.mock("@nodetool-ai/asset-services/storage", () => ({ getAssetAdapter: vi.fn() }));
+// An uploaded file is saved into the project folder by `saveProjectAsset`.
+const saveProjectAsset = vi.hoisted(() => vi.fn());
+vi.mock("@nodetool-ai/asset-services/project-asset", async (original) => ({
+  ...await original<typeof import("@nodetool-ai/asset-services/project-asset")>(),
+  saveProjectAsset
+}));
 vi.mock("@nodetool-ai/asset-services/thumbnail", () => ({
   storeAssetWithThumbnail: vi.fn(),
   storeAssetFileWithThumbnail: vi.fn(),
@@ -26,22 +32,41 @@ vi.mock("@nodetool-ai/models", async (original) => ({
 import { Asset } from "@nodetool-ai/models";
 import { getAssetAdapter } from "../src/lib/storage.js";
 import assetsRoutes from "../src/routes/assets.js";
-import { generateThumbnailForStoredAsset } from "../src/lib/thumbnail.js";
 
 describe("local asset uploads", () => {
   let app: FastifyInstance;
   let directory: string;
   let adapter: FileStorageAdapter;
+  let projectDir: string;
   const deleteAsset = vi.fn();
 
   beforeEach(async () => {
     vi.clearAllMocks();
     directory = await mkdtemp(join(tmpdir(), "local-upload-test-"));
+    projectDir = await mkdtemp(join(tmpdir(), "local-upload-project-"));
     adapter = new FileStorageAdapter(directory);
     vi.mocked(getAssetAdapter).mockReturnValue(adapter);
     vi.mocked(Asset.create).mockImplementation(async (values) => ({
       ...values, id: "asset-1", delete: deleteAsset
     }) as never);
+    // Moves the staged file into `<projectDir>/<dir>/<name>`, as a local
+    // project folder absorbs it. A move, so the large case does not hold the
+    // file twice on disk; the handler removes what is left of the stage.
+    saveProjectAsset.mockImplementation(async (args: {
+      name: string; contentType: string; directory: string; localPath: string;
+    }) => {
+      const workspacePath = `${args.directory}/${args.name}`;
+      const target = join(projectDir, workspacePath);
+      await mkdir(dirname(target), { recursive: true });
+      await rename(args.localPath, target);
+      return {
+        id: "asset-1",
+        name: args.name,
+        content_type: args.contentType,
+        size: (await stat(target)).size,
+        workspace_path: workspacePath
+      };
+    });
     app = Fastify({ bodyLimit: 1024 });
     app.addContentTypeParser("*", { parseAs: "buffer" }, (_req, body, done) => done(null, body));
     app.addHook("onRequest", async (request) => { request.userId = "owner"; });
@@ -52,6 +77,7 @@ describe("local asset uploads", () => {
     vi.unstubAllEnvs();
     await app.close();
     await rm(directory, { recursive: true, force: true });
+    await rm(projectDir, { recursive: true, force: true });
   });
 
   async function upload(bytes: number) {
@@ -62,13 +88,17 @@ describe("local asset uploads", () => {
     return app.inject({ method: "POST", url: "/api/assets", headers: { "content-type": request.headers.get("content-type")! }, payload: Buffer.from(await request.arrayBuffer()) });
   }
 
-  it("streams a file larger than the API body limit into the owner's storage", async () => {
-    const publish = vi.spyOn(adapter, "storeFile");
+  it("streams a file larger than the API body limit into the project folder", async () => {
     const response = await upload(2048);
     expect(response.statusCode, response.body).toBe(200);
     expect(response.json().size).toBe(2048);
-    expect(await readFile(join(directory, "owner", "asset-1.mp4"))).toEqual(Buffer.alloc(2048, 7));
-    const stagedPath = publish.mock.calls[0]?.[1];
+    expect(await readFile(join(projectDir, "Imported", "clip.mp4"))).toEqual(Buffer.alloc(2048, 7));
+    // Saved from the staged file, never through the asset store's key.
+    expect(saveProjectAsset).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: "owner", directory: "Imported", name: "clip.mp4" })
+    );
+    expect((await adapter.list("")).entries).toEqual([]);
+    const stagedPath = saveProjectAsset.mock.calls[0]?.[0].localPath as string | undefined;
     expect(stagedPath).toBeDefined();
     await expect(stat(stagedPath!)).rejects.toMatchObject({ code: "ENOENT" });
   });
@@ -78,16 +108,17 @@ describe("local asset uploads", () => {
     const response = await upload(2048);
     expect(response.statusCode, response.body).toBe(413);
     expect(Asset.create).not.toHaveBeenCalled();
+    expect(saveProjectAsset).not.toHaveBeenCalled();
   });
 
-  it("removes the staged file and asset row if publication fails", async () => {
+  it("removes the staged file and creates no row if saving fails", async () => {
     let stagedPath = "";
-    vi.spyOn(adapter, "storeFile").mockImplementation(async (_key, path) => {
-      stagedPath = path;
+    saveProjectAsset.mockImplementation(async (args: { localPath: string }) => {
+      stagedPath = args.localPath;
       throw new Error("Disk full");
     });
     expect((await upload(2048)).statusCode).toBe(500);
-    expect(deleteAsset).toHaveBeenCalledOnce();
+    expect(Asset.create).not.toHaveBeenCalled();
     expect(stagedPath).not.toBe("");
     await expect(stat(stagedPath)).rejects.toMatchObject({ code: "ENOENT" });
   });
@@ -152,19 +183,16 @@ describe("local asset uploads", () => {
     });
     expect(response.statusCode, response.body).toBe(200);
     expect(response.json().size).toBe(bytes);
-    const stored = join(directory, "owner", "asset-1.mp4");
+    const stored = join(projectDir, "Imported", "clip.mp4");
     expect((await stat(stored)).size).toBe(bytes);
     const actual = createHash("sha256");
     for await (const part of createReadStream(stored)) {
       actual.update(part);
     }
     expect(actual.digest("hex")).toBe(expected.digest("hex"));
-    // The staged file is local, so its thumbnail is read in place whatever
-    // its size.
-    expect(generateThumbnailForStoredAsset).toHaveBeenCalledWith(
-      "owner",
-      "asset-1",
-      "video/mp4"
+    // The staged file is handed over by path, never loaded whole.
+    expect(saveProjectAsset).toHaveBeenCalledWith(
+      expect.objectContaining({ localPath: expect.any(String) })
     );
     peakRss = Math.max(peakRss, process.memoryUsage().rss);
     expect(peakRss - initialRss).toBeLessThan(512 * 1024 * 1024);

@@ -193,7 +193,7 @@ Procedures by router. Nested routers appear as a dotted path.
 |---|---|---|
 | `agentAccess` | `mcpConnection`, `listTokens`, `getOauthRequest`, `listOauthGrants` | `createToken`, `revokeToken`, `approveOauthRequest`, `denyOauthRequest`, `revokeOauthGrant` |
 | `applications` | `list`, `get`, `versions`, `released`, `releasedDocument`, `deployment`, `budget`, `usage`, `invocations` | `create`, `update`, `delete`, `publish`, `deploy`, `undeploy`, `setBudget`, `beginInvocation`, `settleInvocation`, `release` |
-| `assets` | `list`, `get`, `externalImportConfig`, `recursive`, `search` | `createUpload`, `finalizeUpload`, `createExternal`, `relinkExternal`, `ensureProxy`, `update`, `delete` |
+| `assets` | `list`, `get`, `externalImportConfig`, `recursive`, `search` | `createUpload`, `finalizeUpload`, `createExternal`, `relinkExternal`, `collect`, `ensureProxy`, `update`, `delete` |
 | `codeGen` | — | `generate` |
 | `collections` | `list` | `create`, `update`, `delete` |
 | `costs` | `dashboard` | — |

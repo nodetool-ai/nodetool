@@ -291,6 +291,45 @@ describe("the workflow file sync hook", () => {
     expect(changed?.getEtag()).not.toBe(etag);
   });
 
+  it("inserts a workflow only when no row has its id", async () => {
+    const theirs = await makeWorkflow({ user_id: "someone-else", name: "Theirs" });
+    calls = [];
+    const events: string[] = [];
+    ModelObserver.subscribe((_instance, event) => events.push(event), "Workflow");
+
+    // An id that is taken: nothing is written, synced or announced.
+    const refused = await Workflow.insertNew({
+      id: theirs.id,
+      user_id: USER,
+      name: "Mine",
+      graph: { nodes: [], edges: [] }
+    });
+    expect(refused).toBeNull();
+    expect((await reload(theirs.id)).toRow()).toEqual(theirs.toRow());
+    expect(calls).toEqual([]);
+    expect(events).toEqual([]);
+
+    // A free id: the row is created as `create` creates it.
+    const created = await Workflow.insertNew({
+      id: "0123456789abcdef0123456789abcdef",
+      user_id: USER,
+      name: "Mine",
+      graph: { nodes: [], edges: [] }
+    });
+    expect(created).toMatchObject({
+      id: "0123456789abcdef0123456789abcdef",
+      user_id: USER,
+      name: "Mine",
+      run_mode: "workflow",
+      file_path: "Workflows/Mine.workflow.json"
+    });
+    expect((await reload(created!.id)).toRow()).toEqual(created!.toRow());
+    expect(calls).toEqual([
+      { kind: "saved", id: created!.id, name: "Mine", previous: null }
+    ]);
+    expect(events).toEqual(["created"]);
+  });
+
   it("lists the projects that hold a workflow with no file", async () => {
     setWorkflowFileSync(null);
     await makeWorkflow({ project_id: "project-a" });

@@ -64,6 +64,8 @@ const restoreMutation = { mutate: restoreProject, isPending: false };
 const deleteMutation = { mutate: deleteProject, isPending: false };
 const importProject = jest.fn();
 const exportProject = jest.fn();
+const collectFiles = jest.fn();
+const addNotification = jest.fn();
 
 jest.mock("../../../hooks/useProjects", () => ({
   useProjectSummaries: () => summaries,
@@ -75,6 +77,7 @@ jest.mock("../../../hooks/useProjects", () => ({
   useDeleteProject: () => deleteMutation,
   useImportProject: () => ({ mutate: importProject, isPending: false }),
   useExportProject: () => ({ mutate: exportProject, isPending: false }),
+  useCollectProjectFiles: () => ({ mutate: collectFiles, isPending: false }),
   useOpenProject: () => openProject,
   useOpenNewProjectTab: () => openNewProject,
   useCreateProject: () => ({ mutateAsync: createProject, isPending: false })
@@ -91,10 +94,11 @@ jest.mock("../../../stores/WorkspaceTabsStore", () => ({
 jest.mock("../../../stores/NotificationStore", () => ({
   useNotificationStore: <T,>(
     selector: (s: { addNotification: jest.Mock }) => T
-  ) => selector({ addNotification: jest.fn() })
+  ) => selector({ addNotification })
 }));
 
 import ProjectListSurface from "../ProjectListSurface";
+import { ProjectLinkedFilesError } from "../../../utils/projectArchive";
 
 const renderSurface = () =>
   render(
@@ -225,5 +229,65 @@ describe("ProjectListSurface", () => {
       expect.anything()
     );
     expect(openProject).not.toHaveBeenCalled();
+  });
+
+  it("collects a project's linked files from its card and reports the counts", async () => {
+    collectFiles.mockImplementation((_input, options) =>
+      options.onSuccess({
+        copied: [{ id: "a1", name: "take.mp4", workspace_path: "Imported/take.mp4" }],
+        skipped: [{ id: "a2", name: "gone.mp4", reason: "missing" }],
+        failed: [],
+        interrupted: false
+      })
+    );
+    renderSurface();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Actions for Aurora Launch Spot" })
+    );
+    await userEvent.click(screen.getByRole("menuitem", { name: "Collect files" }));
+
+    expect(collectFiles).toHaveBeenCalledWith(
+      { project_id: "p1" },
+      expect.anything()
+    );
+    expect(addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "warning",
+        content:
+          "Collected files into Aurora Launch Spot: 1 copied, 1 skipped, 0 failed."
+      })
+    );
+    expect(openProject).not.toHaveBeenCalled();
+  });
+
+  it("names the linked files an export refused and exports after collecting them", async () => {
+    exportProject.mockImplementationOnce((_project, options) =>
+      options.onError(
+        new ProjectLinkedFilesError("linked", [
+          { id: "a1", name: "long take.mp4" },
+          { id: "a2", name: "b-roll.mov" }
+        ])
+      )
+    );
+    renderSurface();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Actions for Aurora Launch Spot" })
+    );
+    await userEvent.click(screen.getByRole("menuitem", { name: "Export" }));
+
+    expect(
+      await screen.findByText("Aurora Launch Spot links files outside its folder")
+    ).toBeInTheDocument();
+    expect(screen.getByText("long take.mp4")).toBeInTheDocument();
+    expect(screen.getByText("b-roll.mov")).toBeInTheDocument();
+    expect(addNotification).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Collect and export" })
+    );
+    expect(exportProject).toHaveBeenLastCalledWith(
+      { id: "p1", name: "Aurora Launch Spot", collectLinked: true },
+      expect.anything()
+    );
   });
 });

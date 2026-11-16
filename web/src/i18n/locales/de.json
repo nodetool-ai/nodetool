@@ -6424,16 +6424,42 @@
           "export": "Exportieren",
           "archive": "Archiv",
           "restore": "Wiederherstellen",
-          "delete": "Löschen"
+          "delete": "Löschen",
+          "collect": "Dateien einsammeln"
         },
         "projectActions": "Projektaktionen",
         "actionsForProject": "Aktionen für {{projectName}}",
         "exporting": "Wird exportiert…",
         "deleteProject": "Projekt löschen",
         "confirmDeleteTitle": "{{projectName}} löschen?",
-        "confirmDeleteBody": "{{projectName}} und alle zugehörigen Dokumente, Unterhaltungen, generierten Ausgaben, Assets, Jobs und Projektdateien löschen.",
+        "confirmDeleteBody": "{{projectName}} und alle zugehörigen Dokumente, Unterhaltungen, Jobs und außerhalb des Projektordners gespeicherten Assets löschen.",
         "deleteIrreversible": "Das kann nicht rückgängig gemacht werden.",
-        "error": "{{projectName}} konnte nicht {{action}} werden: {{error}}"
+        "deleteFolderTrash": "Der Projektordner wird in den Papierkorb verschoben.",
+        "deleteFolderRemove": "Der Projektordner und alle Dateien darin werden aus dem Cloud-Speicher gelöscht.",
+        "deleteFolderKeep": "Der Projektordner bleibt mit allen Dateien an seinem Ort. NodeTool entfernt nur den Ordner .nodetool darin.",
+        "deleteFolderMissing": "Der Projektordner ist nicht erreichbar, daher lässt NodeTool ihn unverändert.",
+        "folderMovedAsideTo": "Der Papierkorb war nicht erreichbar. Der Projektordner wurde nach {{path}} verschoben.",
+        "folderMovedAside": "Der Papierkorb war nicht erreichbar. Der Projektordner wurde in den Ordner .trash im Projekteordner verschoben.",
+        "folderTrashFailedAt": "Der Projektordner konnte nicht in den Papierkorb verschoben werden. Er bleibt unter {{path}}.",
+        "folderTrashFailed": "Der Projektordner konnte nicht in den Papierkorb verschoben werden. Er bleibt an seinem Ort.",
+        "error": "{{projectName}} konnte nicht {{action}} werden: {{error}}",
+        "collecting": "Dateien werden eingesammelt…",
+        "collectResult": "Dateien in {{projectName}} eingesammelt: {{copied}} kopiert, {{skipped}} übersprungen, {{failed}} fehlgeschlagen.",
+        "linkedTitle": "{{projectName}} verknüpft Dateien außerhalb seines Ordners",
+        "linkedBody": "Ein Export enthält den Projektordner. Diese Dateien sind von anderswo verknüpft und liegen nicht darin:",
+        "linkedChoice": "„Einsammeln und exportieren“ kopiert sie in den Ordner Imported und exportiert dann. „Abbrechen“ behält die Verknüpfungen und exportiert nichts.",
+        "collectAndExport": "Einsammeln und exportieren"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Kopieren oder verknüpfen?",
+        "confirm": "Importieren",
+        "copy": "In den Projektordner kopieren",
+        "copyHint": "Das Projekt behält eine eigene Kopie. Änderungen am Original erreichen sie nicht.",
+        "link": "An Ort und Stelle verknüpfen",
+        "linkHint": "Es wird nichts kopiert. Das Projekt liest die Datei dort, wo sie liegt. „Dateien einsammeln“ kopiert sie später hinein.",
+        "threshold": "Dateien ab {{size}} werden standardmäßig verknüpft."
       }
     }
   },
@@ -15080,7 +15106,6 @@
       "csv": "CSV-Datei",
       "unknown": "Unbekannter Dateityp",
       "unknownContentType": "Unbekannter Inhaltstyp",
-      "offline": "Medium offline",
       "thumbnail": "Miniaturansicht",
       "folder": "Ordner"
     },
@@ -20130,5 +20155,28 @@
       "restoreFailed": "Die Datei wurde nicht wiederhergestellt: {{error}}",
       "deleteFailed": "Das Dokument wurde nicht gelöscht: {{error}}"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "Asset-Quelle",
+    "projectTab": "Dieses Projekt",
+    "personalTab": "Persönlich",
+    "personalHint": "Wenn du aus „Persönlich“ auswählst, wird die Datei in dieses Projekt kopiert.",
+    "copying": "Wird in dieses Projekt kopiert…",
+    "copyFailed": "Das Asset konnte nicht in dieses Projekt kopiert werden."
+  },
+  "assetFileStatus": {
+    "missing": "Fehlt",
+    "missingTooltip": "Die Datei liegt nicht dort, wo dieses Asset sie erwartet. Verknüpfe es mit dem neuen Speicherort der Datei oder entferne das Asset.",
+    "linked": "Verknüpft",
+    "linkedTooltip": "Dieses Asset verwendet eine Datei außerhalb des Projektordners an ihrem Ort.",
+    "relink": "Neu verknüpfen",
+    "relinkTooltip": "Wähle den neuen Speicherort der Datei",
+    "relinkNoPath": "Der Speicherort dieser Datei konnte nicht gelesen werden. Wähle eine Datei auf diesem Computer.",
+    "relinkFailed": "Neu verknüpfen fehlgeschlagen: {{error}}",
+    "remove": "Entfernen",
+    "removeTooltip": "Dieses Asset aus NodeTool entfernen",
+    "removeTitle": "„{{name}}“ entfernen?",
+    "removeBody": "Das Asset wird aus NodeTool entfernt. Dokumente, die es verwenden, können es nicht mehr anzeigen.",
+    "cancel": "Abbrechen"
   }
 }

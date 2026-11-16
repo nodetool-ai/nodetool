@@ -1071,6 +1071,63 @@ describe.each(["local", "storage"] as const)("timeline files (%s folder)", (kind
       expect(await reconcile()).toMatchObject({ unchanged: 2, reassigned: [] });
     });
 
+    it("never replaces a row that another writer creates between the lookup and the create", async () => {
+      const id = "0123456789abcdef0123456789abcdef";
+      const text = JSON.stringify({
+        format: "nodetool.timeline",
+        version: 1,
+        id,
+        document: documentOf(clip("c1", "from my file"))
+      });
+      await folder(kind).write(pathOf("Mine"), text);
+      // Another user creates a timeline with this ID right after the
+      // reconcile has found the ID free and before it creates its row.
+      let theirs: TimelineSequence | undefined;
+      const racing = {
+        ...timelineFileAdapter,
+        async exists(candidate: string): Promise<boolean> {
+          const taken = await timelineFileAdapter.exists(candidate);
+          if (candidate === id && !taken) {
+            theirs = await TimelineSequence.create<TimelineSequence>({
+              id,
+              user_id: "someone-else",
+              project_id: OTHER_PROJECT,
+              name: "Theirs",
+              fps: 24,
+              document: JSON.stringify(documentOf(clip("c1", "theirs")))
+            });
+          }
+          return taken;
+        }
+      };
+
+      const report = await reconcileDocumentFiles([racing], PROJECT, USER);
+
+      // Their row is exactly what they created.
+      expect(theirs).toBeDefined();
+      const untouched = await reload(id);
+      expect(untouched.toRow()).toEqual(theirs?.toRow());
+      expect(untouched).toMatchObject({
+        user_id: "someone-else",
+        project_id: OTHER_PROJECT,
+        name: "Theirs",
+        fps: 24
+      });
+      expect(documentIn(untouched).clips[0]?.name).toBe("theirs");
+      // The file became a timeline of its own, under a new ID.
+      expect(report).toMatchObject({ created: [], rejected: [] });
+      expect(report.reassigned).toHaveLength(1);
+      const [mineId] = report.reassigned;
+      expect(mineId).not.toBe(id);
+      const mine = await reload(mineId!);
+      expect(mine).toMatchObject({ user_id: USER, project_id: PROJECT, name: "Mine" });
+      expect(documentIn(mine).clips[0]?.name).toBe("from my file");
+      const rewritten = await textOf(kind, pathOf("Mine"));
+      expect((JSON.parse(rewritten) as TimelineFileJson).id).toBe(mineId);
+      expect(mine.file_hash).toBe(sha256(rewritten));
+      expect(await reconcile()).toMatchObject({ unchanged: 1, created: [], reassigned: [] });
+    });
+
     it("assigns a new ID to a file whose ID belongs to a timeline of another project", async () => {
       const elsewhere = await makeTimeline("Fox", { project_id: OTHER_PROJECT });
       const text = await folder(kind, OTHER_PROJECT).readText(pathOf("Fox"));

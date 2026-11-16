@@ -28,18 +28,21 @@ import ImageCompareDialog from "./ImageCompareDialog";
 import AssetRenameConfirmation from "./AssetRenameConfirmation";
 import TransformWithWorkflowDialog from "./TransformWithWorkflowDialog";
 import AssetUploadOverlay from "./AssetUploadOverlay";
+import AssetImportDialog from "./AssetImportDialog";
 import Dropzone from "./Dropzone";
 //  panels and styles
 import AssetFoldersPanel from "./panels/AssetFoldersPanel";
 import AssetFilesPanel from "./panels/AssetFilesPanel";
 import assetGridStyles from "./assetGridStyles";
 import useClickOutsideDeselect from "./hooks/useClickOutsideDeselect";
+import { useImportModeChoice } from "./hooks/useImportModeChoice";
 import { useAssetGridShortcuts } from "../../hooks/assets/useAssetGridShortcuts";
 
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import useAssets from "../../serverState/useAssets";
 import { Asset } from "../../stores/ApiTypes";
+import type { ImportMode } from "../../stores/AssetStore";
 import AssetViewer from "./AssetViewer";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useShallow } from "zustand/react/shallow";
@@ -266,18 +269,24 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   );
   useAssetGridShortcuts(shortcutAssets, Boolean(isFullscreenAssets));
 
-  const uploadFiles = useCallback(
-    (files: File[]) => {
+  const startUploads = useCallback(
+    (files: File[], importMode?: ImportMode) => {
       files.forEach((file: File) => {
-        uploadAsset({
+        const upload: Parameters<typeof uploadAsset>[0] = {
           file: file,
           parent_id: currentFolderId || undefined,
           project_id: projectId
-        });
+        };
+        if (importMode) {
+          upload.importMode = importMode;
+        }
+        uploadAsset(upload);
       });
     },
     [currentFolderId, projectId, uploadAsset]
   );
+  const importChoice = useImportModeChoice(startUploads);
+  const uploadFiles = importChoice.importFiles;
 
   if (selectedFolderId === null) {
     if (user) {
@@ -411,6 +420,11 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       <AssetMoveToFolderConfirmation assets={selectedAssetIds} />
       <ImageCompareDialog />
       <TransformWithWorkflowDialog />
+      <AssetImportDialog
+        request={importChoice.request}
+        onImport={importChoice.choose}
+        onCancel={importChoice.cancel}
+      />
       {isUploading && <AssetUploadOverlay />}
     </Box>
   );

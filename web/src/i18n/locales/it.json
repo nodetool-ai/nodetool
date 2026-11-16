@@ -6519,16 +6519,42 @@
           "export": "Esportazione",
           "archive": "Archivio",
           "restore": "Ripristina",
-          "delete": "Elimina"
+          "delete": "Elimina",
+          "collect": "Raccogli file"
         },
         "projectActions": "Azioni del progetto",
         "actionsForProject": "Azioni per {{projectName}}",
         "exporting": "Esportazione…",
         "deleteProject": "Elimina progetto",
         "confirmDeleteTitle": "Eliminare {{projectName}}?",
-        "confirmDeleteBody": "Elimina {{projectName}} e tutti i relativi documenti, conversazioni, output generati, risorse, lavori e file di progetto.",
+        "confirmDeleteBody": "Elimina {{projectName}} e tutti i relativi documenti, conversazioni, lavori e risorse archiviate fuori dalla cartella del progetto.",
         "deleteIrreversible": "Questa operazione non può essere annullata.",
-        "error": "Impossibile {{action}} {{projectName}}: {{error}}"
+        "deleteFolderTrash": "La cartella del progetto viene spostata nel cestino.",
+        "deleteFolderRemove": "La cartella del progetto e tutti i suoi file vengono eliminati dall'archiviazione cloud.",
+        "deleteFolderKeep": "La cartella del progetto resta dov'è con tutti i suoi file. NodeTool rimuove solo la cartella .nodetool al suo interno.",
+        "deleteFolderMissing": "La cartella del progetto non è raggiungibile, quindi NodeTool la lascia com'è.",
+        "folderMovedAsideTo": "Il cestino non era raggiungibile. La cartella del progetto è stata spostata in {{path}}.",
+        "folderMovedAside": "Il cestino non era raggiungibile. La cartella del progetto è stata spostata nella cartella .trash della cartella dei progetti.",
+        "folderTrashFailedAt": "Non è stato possibile spostare la cartella del progetto nel cestino. Resta in {{path}}.",
+        "folderTrashFailed": "Non è stato possibile spostare la cartella del progetto nel cestino. Resta dov'è.",
+        "error": "Impossibile {{action}} {{projectName}}: {{error}}",
+        "collecting": "Raccolta dei file…",
+        "collectResult": "File raccolti in {{projectName}}: {{copied}} copiati, {{skipped}} saltati, {{failed}} non riusciti.",
+        "linkedTitle": "{{projectName}} collega file esterni alla sua cartella",
+        "linkedBody": "Un’esportazione contiene la cartella del progetto. Questi file sono collegati da un’altra posizione e non si trovano lì:",
+        "linkedChoice": "Raccogli ed esporta li copia nella cartella Imported, poi esporta. Annulla mantiene i collegamenti e non esporta nulla.",
+        "collectAndExport": "Raccogli ed esporta"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Copiare o collegare?",
+        "confirm": "Importa",
+        "copy": "Copia nella cartella del progetto",
+        "copyHint": "Il progetto conserva una propria copia. Le modifiche all’originale non la raggiungono.",
+        "link": "Collega sul posto",
+        "linkHint": "Non viene copiato nulla. Il progetto legge il file dove si trova. Raccogli file lo copia in seguito.",
+        "threshold": "I file di {{size}} o più vengono collegati per impostazione predefinita."
       }
     }
   },
@@ -15351,7 +15377,6 @@
       "csv": "File CSV",
       "unknown": "Tipo di file sconosciuto",
       "unknownContentType": "Tipo di contenuto sconosciuto",
-      "offline": "Supporti non in linea",
       "thumbnail": "Miniatura",
       "folder": "Cartella"
     },
@@ -20441,5 +20466,28 @@
       "restoreFailed": "Il file non è stato ripristinato: {{error}}",
       "deleteFailed": "Il documento non è stato eliminato: {{error}}"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "Origine della risorsa",
+    "projectTab": "Questo progetto",
+    "personalTab": "Personale",
+    "personalHint": "Scegliendo da Personale, il file viene copiato in questo progetto.",
+    "copying": "Copia in questo progetto…",
+    "copyFailed": "Impossibile copiare la risorsa in questo progetto."
+  },
+  "assetFileStatus": {
+    "missing": "Mancante",
+    "missingTooltip": "Il file non si trova dove questa risorsa lo cerca. Ricollegala alla nuova posizione del file o rimuovi la risorsa.",
+    "linked": "Collegato",
+    "linkedTooltip": "Questa risorsa usa sul posto un file esterno alla cartella del progetto.",
+    "relink": "Ricollega",
+    "relinkTooltip": "Scegli la nuova posizione del file",
+    "relinkNoPath": "Impossibile leggere la posizione di quel file. Scegli un file su questo computer.",
+    "relinkFailed": "Ricollegamento non riuscito: {{error}}",
+    "remove": "Rimuovi",
+    "removeTooltip": "Rimuovi questa risorsa da NodeTool",
+    "removeTitle": "Rimuovere «{{name}}»?",
+    "removeBody": "La risorsa viene rimossa da NodeTool. I documenti che la usano non possono più mostrarla.",
+    "cancel": "Annulla"
   }
 }

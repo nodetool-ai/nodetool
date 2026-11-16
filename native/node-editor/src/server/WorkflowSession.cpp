@@ -15,6 +15,7 @@
 #include <QNetworkCookieJar>
 #include <QNetworkReply>
 #include <QPointer>
+#include <QRegularExpression>
 #include <QSet>
 #include <QTimer>
 #include <QUrlQuery>
@@ -644,7 +645,13 @@ void WorkflowSession::openWorkflow(const QString &id) {
           emit errorOccurred(error);
           return;
         }
-        if (o["id"].toString() != id || o["updated_at"].toString().isEmpty() ||
+        // The server resolves an exact 12-character id prefix to the full id.
+        const auto full = o["id"].toString();
+        const bool prefix =
+            QRegularExpression("^[0-9a-f]{12}$").match(id).hasMatch() &&
+            QRegularExpression("^[0-9a-f]{32}$").match(full).hasMatch() &&
+            full.startsWith(id);
+        if ((full != id && !prefix) || o["updated_at"].toString().isEmpty() ||
             !o["graph"].isObject()) {
           emit errorOccurred("Invalid workflow response");
           return;
@@ -654,7 +661,7 @@ void WorkflowSession::openWorkflow(const QString &id) {
         clearConflict();
         m_autosaveState = "saved";
         m_saving = false;
-        m_id = id;
+        m_id = full;
         m_workflow = o;
         m_persistedWorkflow = o;
         m_revision = o["updated_at"].toString();

@@ -6424,16 +6424,42 @@
           "export": "Exporteren",
           "archive": "Archief",
           "restore": "Herstellen",
-          "delete": "Verwijderen"
+          "delete": "Verwijderen",
+          "collect": "Bestanden verzamelen"
         },
         "projectActions": "Projectacties",
         "actionsForProject": "Acties voor {{projectName}}",
         "exporting": "Exporteren…",
         "deleteProject": "Project verwijderen",
         "confirmDeleteTitle": "{{projectName}} verwijderen?",
-        "confirmDeleteBody": "Verwijder {{projectName}} en al zijn documenten, gesprekken, gegenereerde resultaten, activa, taken en projectbestanden.",
+        "confirmDeleteBody": "Verwijder {{projectName}} en al zijn documenten, gesprekken, taken en assets die buiten de projectmap zijn opgeslagen.",
         "deleteIrreversible": "Dit kan niet ongedaan worden gemaakt.",
-        "error": "Kon {{action}} {{projectName}} niet: {{error}}"
+        "deleteFolderTrash": "De projectmap wordt naar de prullenbak verplaatst.",
+        "deleteFolderRemove": "De projectmap en alle bestanden erin worden uit de cloudopslag verwijderd.",
+        "deleteFolderKeep": "De projectmap blijft met alle bestanden op zijn plek. NodeTool verwijdert alleen de map .nodetool erin.",
+        "deleteFolderMissing": "De projectmap is niet bereikbaar, dus NodeTool laat hem ongemoeid.",
+        "folderMovedAsideTo": "De prullenbak was niet bereikbaar. De projectmap is verplaatst naar {{path}}.",
+        "folderMovedAside": "De prullenbak was niet bereikbaar. De projectmap is verplaatst naar de map .trash in de projectenmap.",
+        "folderTrashFailedAt": "De projectmap kon niet naar de prullenbak worden verplaatst. Hij staat nog op {{path}}.",
+        "folderTrashFailed": "De projectmap kon niet naar de prullenbak worden verplaatst. Hij blijft op zijn plek.",
+        "error": "Kon {{action}} {{projectName}} niet: {{error}}",
+        "collecting": "Bestanden verzamelen…",
+        "collectResult": "Bestanden verzameld in {{projectName}}: {{copied}} gekopieerd, {{skipped}} overgeslagen, {{failed}} mislukt.",
+        "linkedTitle": "{{projectName}} koppelt bestanden buiten de eigen map",
+        "linkedBody": "Een export bevat de projectmap. Deze bestanden zijn van elders gekoppeld en staan er niet in:",
+        "linkedChoice": "Verzamelen en exporteren kopieert ze naar de map Imported en exporteert daarna. Annuleren behoudt de koppelingen en exporteert niets.",
+        "collectAndExport": "Verzamelen en exporteren"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Kopiëren of koppelen?",
+        "confirm": "Importeren",
+        "copy": "Naar de projectmap kopiëren",
+        "copyHint": "Het project houdt een eigen kopie. Wijzigingen in het origineel komen daar niet in.",
+        "link": "Ter plaatse koppelen",
+        "linkHint": "Er wordt niets gekopieerd. Het project leest het bestand waar het staat. Bestanden verzamelen kopieert het later.",
+        "threshold": "Bestanden van {{size}} of meer worden standaard gekoppeld."
       }
     }
   },
@@ -15080,7 +15106,6 @@
       "csv": "CSV-bestand",
       "unknown": "Onbekend bestandstype",
       "unknownContentType": "Onbekend inhoudstype",
-      "offline": "Offline media",
       "thumbnail": "Miniatuur",
       "folder": "Map"
     },
@@ -20130,5 +20155,28 @@
       "restoreFailed": "Het bestand is niet hersteld: {{error}}",
       "deleteFailed": "Het document is niet verwijderd: {{error}}"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "Bron van het asset",
+    "projectTab": "Dit project",
+    "personalTab": "Persoonlijk",
+    "personalHint": "Kiezen uit Persoonlijk kopieert het bestand naar dit project.",
+    "copying": "Kopiëren naar dit project…",
+    "copyFailed": "Het asset kon niet naar dit project worden gekopieerd."
+  },
+  "assetFileStatus": {
+    "missing": "Ontbreekt",
+    "missingTooltip": "Het bestand staat niet waar dit item het verwacht. Koppel het opnieuw aan de nieuwe locatie van het bestand of verwijder het item.",
+    "linked": "Gekoppeld",
+    "linkedTooltip": "Dit item gebruikt een bestand buiten de projectmap op de plek waar het staat.",
+    "relink": "Opnieuw koppelen",
+    "relinkTooltip": "Kies de nieuwe locatie van het bestand",
+    "relinkNoPath": "De locatie van dat bestand kon niet worden gelezen. Kies een bestand op deze computer.",
+    "relinkFailed": "Opnieuw koppelen mislukt: {{error}}",
+    "remove": "Verwijderen",
+    "removeTooltip": "Dit item uit NodeTool verwijderen",
+    "removeTitle": "\"{{name}}\" verwijderen?",
+    "removeBody": "Het item wordt uit NodeTool verwijderd. Documenten die het gebruiken, kunnen het niet meer tonen.",
+    "cancel": "Annuleren"
   }
 }

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Asset, ModelObserver, initTestDb } from "@nodetool-ai/models";
+import { projectDirectoryId } from "@nodetool-ai/protocol";
 
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
@@ -52,11 +53,15 @@ describe("assets.recursive synthetic Home project scope", () => {
       id: USER_ID,
       project_id: "project-a"
     });
-    expect(result.assets.map((asset) => asset.id).sort()).toEqual([
-      "a-folder",
-      "a-home-id",
-      "a-home-null",
-      "a-nested"
-    ]);
+    // Inside a project the legacy folder row lists as the directory its
+    // name spells.
+    expect(result.assets.map((asset) => asset.id).sort()).toEqual(
+      [
+        projectDirectoryId("project-a", "a-folder.png"),
+        "a-home-id",
+        "a-home-null",
+        "a-nested"
+      ].sort()
+    );
   });
 });

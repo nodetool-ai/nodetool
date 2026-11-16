@@ -61,6 +61,13 @@ export {
 } from "./storage-workspace.js";
 export { PrefixedStorageAdapter } from "./prefixed-storage-adapter.js";
 export {
+  ensureRunFile,
+  runWorkspaceIsProjectFolder,
+  saveRunFileAsset,
+  type RunFileAssetContext,
+  type SavedRunFile
+} from "./run-file-asset.js";
+export {
   publishModelLoad,
   subscribeModelLoads,
   activeModelLoads,

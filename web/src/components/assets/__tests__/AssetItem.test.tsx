@@ -16,6 +16,21 @@ jest.mock("../../../serverState/useAssetFavorite", () => ({
   useSetAssetFavorite: () => mockSetAssetFavorite
 }));
 
+const mockRelink = jest.fn();
+const mockRemove = jest.fn(() => Promise.resolve({ deleted_asset_ids: [] }));
+jest.mock("../../../serverState/useRelinkAsset", () => ({
+  useRelinkAsset: () => ({ mutate: mockRelink, isPending: false })
+}));
+jest.mock("../../../serverState/useAssetDeletion", () => ({
+  useAssetDeletion: () => ({
+    mutation: { mutateAsync: mockRemove, isPending: false }
+  })
+}));
+jest.mock("../../../utils/localFile", () => ({
+  canResolveLocalFilePaths: () => true,
+  getLocalFilePath: (file: File) => `/disk/${file.name}`
+}));
+
 // Mock the asset actions hook to isolate UI behavior
 jest.mock("../useAssetActions", () => ({
   useAssetActions: () => ({
@@ -144,14 +159,14 @@ describe("AssetItem", () => {
     expect(onDoubleClick).toHaveBeenCalledWith(baseImageAsset);
   });
 
-  it("marks an in-place asset whose file is missing as media offline", () => {
-    const { rerender } = renderWithTheme(
+  it("marks a missing asset Missing on its tile, with Relink and Remove", async () => {
+    const { rerender, container } = renderWithTheme(
       <AssetItem
         asset={{ ...baseImageAsset, offline: false }}
         showDeleteButton={false}
       />
     );
-    expect(screen.queryByTestId("asset-media-offline")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("asset-media-missing")).not.toBeInTheDocument();
 
     rerender(
       <ThemeProvider theme={mockTheme}>
@@ -161,9 +176,36 @@ describe("AssetItem", () => {
         />
       </ThemeProvider>
     );
-    expect(screen.getByTestId("asset-media-offline")).toHaveTextContent(
-      "Media offline"
+    expect(screen.getByTestId("asset-media-missing")).toHaveTextContent(
+      "Missing"
     );
+
+    const input = container.querySelector(
+      '.asset-file-status input[type="file"]'
+    ) as HTMLInputElement;
+    fireEvent.change(input, {
+      target: { files: [new File(["x"], "photo.jpg", { type: "image/jpeg" })] }
+    });
+    expect(mockRelink).toHaveBeenCalledWith(
+      { id: "a1", path: "/disk/photo.jpg" },
+      expect.anything()
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    fireEvent.click(
+      (await screen.findAllByRole("button", { name: "Remove" })).at(-1)!
+    );
+    await waitFor(() => expect(mockRemove).toHaveBeenCalledWith(["a1"]));
+  });
+
+  it("marks a linked asset Linked on its tile", () => {
+    renderWithTheme(
+      <AssetItem
+        asset={{ ...baseImageAsset, linked: true }}
+        showDeleteButton={false}
+      />
+    );
+    expect(screen.getByTestId("asset-linked")).toHaveTextContent("Linked");
   });
 
   it("paints an SVG from get_url, not a raster thumb", () => {

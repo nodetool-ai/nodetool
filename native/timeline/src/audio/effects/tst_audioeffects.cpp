@@ -134,6 +134,16 @@ private slots:
         QCOMPARE(file[240000 * 2], 1.f); QCOMPARE(file[240000 * 2 + 1], .25f);
         QCOMPARE(callback[240000 * 2], 1.f); QCOMPARE(callback[240000 * 2 + 1], .25f);
         QVERIFY(file[1200000 * 2] > .8f); QCOMPARE(callback[1200000 * 2], 0.f);
+        // B24: AudioEngine drops the ring once the callback passes the clip. The live cap still holds.
+        const auto released = buildMixPlan(tl);
+        PcmRing again(128, 0); QCOMPARE(again.write(impulse.data(), 1), std::int64_t(1)); again.markEnd(1);
+        VoicePcm first; first.ring = &again; first.live = true;
+        VoicePcm gone; gone.live = true;
+        std::vector<float> played(file.size());
+        mixBlock(released, &first, 48000, 0, 1000. / 48000, 128, played.data(), stats);
+        mixBlock(released, &gone, 48000, 128 * 1000. / 48000, 1000. / 48000, 1200000, played.data() + 256, stats);
+        QCOMPARE(played[240000 * 2], 1.f);
+        QCOMPARE(played[1200000 * 2], 0.f);
     }
     void sampleRatePreparation() {
         const auto token = registerMixPlanStage("test.rate", [](const Timeline&, MixPlan& plan) {

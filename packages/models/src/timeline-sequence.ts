@@ -20,7 +20,8 @@ import {
   createTimeOrderedUuid,
   nextUpdatedAtAfter
 } from "./base-model.js";
-import { getPortableDb } from "./db.js";
+import { allowLegacyProjectWritesForTests, getPortableDb } from "./db.js";
+import { projects } from "./schema/projects.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
 import { TimelineSequenceVersion } from "./timeline-sequence-version.js";
 import { removeDocumentSharing } from "./document-sharing.js";
@@ -265,6 +266,55 @@ export class TimelineSequence extends DBModel {
       .where(eq(timelineSequences.id, id))
       .limit(1);
     return rows.length > 0;
+  }
+
+  /**
+   * Insert a timeline only when no row has its ID. Returns the created
+   * timeline, or null when a row with that ID exists. That row is left
+   * exactly as it is, whoever owns it.
+   *
+   * `create()` writes with an upsert, which replaces a row that has the ID.
+   * A caller that takes the ID from outside, as the reconcile takes it from a
+   * file, uses this instead: a lookup followed by `create()` would overwrite
+   * a row created between the two, which can be another user's.
+   *
+   * It applies the project rule of every save: the project must be the
+   * owner's and not deleted. The file sync runs and the creation is
+   * announced, as for `create()`.
+   */
+  static async insertNew(
+    data: Record<string, unknown>
+  ): Promise<TimelineSequence | null> {
+    const timeline = new TimelineSequence(data);
+    timeline.beforeSave();
+    const db = getPortableDb();
+    if (timeline.project_id !== "default" && !allowLegacyProjectWritesForTests()) {
+      const [project] = await db
+        .select({ deletedAt: projects.deleted_at })
+        .from(projects)
+        .where(
+          and(
+            eq(projects.id, timeline.project_id),
+            eq(projects.user_id, timeline.user_id)
+          )
+        )
+        .limit(1);
+      if (!project) throw new Error("Project not found");
+      if (project.deletedAt) throw new Error("Project has been deleted");
+    }
+    const rows = await db
+      .insert(timelineSequences)
+      // SAFETY: `toRow` holds the table's columns, which the constructor
+      // filled. The dynamic base model cannot express the insert shape.
+      .values(timeline.toRow() as typeof timelineSequences.$inferInsert)
+      .onConflictDoNothing()
+      .returning();
+    const row = rows[0];
+    if (!row) return null;
+    const created = new TimelineSequence(row);
+    await created.syncFile(null);
+    ModelObserver.notify(created, ModelChangeEvent.CREATED);
+    return created;
   }
 
   /** The timelines whose files belong in the folder of `projectIds`. */

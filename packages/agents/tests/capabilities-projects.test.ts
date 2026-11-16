@@ -27,6 +27,12 @@ const NAMES = [
   "delete_project"
 ] as const;
 
+/** A host delete that had no folder to dispose of. */
+const DELETED = {
+  outcome: "deleted",
+  folder: { action: "none", path: null }
+} as const;
+
 const run = (
   opts: { userId?: string; projectId?: string; deleteProject?: ProjectDeleter } = {}
 ) =>
@@ -168,17 +174,25 @@ describe("projects capability behaviour", () => {
     const calls: [string, string][] = [];
     const deleter: ProjectDeleter = async (userId, projectId) => {
       calls.push([userId, projectId]);
-      if (projectId === personal.id) return "personal";
+      if (projectId === personal.id) return { outcome: "personal" };
       // Another request deleted it between the lookup and the host's delete.
-      if (projectId === "p2") return "not_found";
-      return "deleted";
+      if (projectId === "p2") return { outcome: "not_found" };
+      return {
+        outcome: "deleted",
+        folder: { action: "trashed", path: "/trash/Mine" }
+      };
     };
 
     expect(
       await run({ deleteProject: deleter }).invoke("delete_project", {
         project_id: "p1"
       })
-    ).toEqual({ project_id: "p1", deleted: true });
+    ).toEqual({
+      project_id: "p1",
+      deleted: true,
+      // What the host did with the project folder reaches the model.
+      folder: { action: "trashed", path: "/trash/Mine" }
+    });
     expect(
       await run({ deleteProject: deleter }).invoke("delete_project", {
         project_id: personal.id
@@ -214,7 +228,7 @@ describe("projects capability behaviour", () => {
       projectId: "p1",
       deleteProject: async () => {
         called = true;
-        return "deleted";
+        return DELETED;
       }
     }).invoke("delete_project", { project_id: "p1" })) as { error?: string };
     expect(own.error).toMatch(/belongs to that project/);
@@ -254,10 +268,14 @@ describe("projects capability behaviour", () => {
       const result = await run({
         deleteProject: async (_userId, projectId) => {
           calls.push(projectId);
-          return "deleted";
+          return DELETED;
         }
       }).invoke("delete_project", { project_id: project.id.slice(0, 12) });
-      expect(result).toEqual({ project_id: project.id, deleted: true });
+      expect(result).toEqual({
+        project_id: project.id,
+        deleted: true,
+        folder: DELETED.folder
+      });
       expect(calls).toEqual([project.id]);
     });
 
@@ -268,7 +286,7 @@ describe("projects capability behaviour", () => {
         projectId: project.id,
         deleteProject: async () => {
           called = true;
-          return "deleted";
+          return DELETED;
         }
       }).invoke("delete_project", {
         project_id: project.id.slice(0, 12)

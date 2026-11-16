@@ -9,7 +9,7 @@
  * See docs/project-folders/prd.md (T1 and T9).
  */
 
-import { access, mkdir, rm, stat } from "node:fs/promises";
+import { access, mkdir, readFile, rm, stat } from "node:fs/promises";
 import { constants } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { z } from "zod";
@@ -52,6 +52,17 @@ export interface ProjectManifest {
   version: 1;
   id: string;
   name: string;
+}
+
+/** The file in the folder's reserved directory that says NodeTool made it. */
+const FOLDER_CREATED_FILE = "created.json";
+
+/** The contents of `.nodetool/created.json`. */
+export interface FolderCreatedMark {
+  format: "nodetool.folder-created";
+  version: 1;
+  /** The project the folder was created for. */
+  project_id: string;
 }
 
 /** The text of `.nodetool/project.json`, parsed and checked. */
@@ -216,6 +227,57 @@ export async function readProjectManifest(
 }
 
 /**
+ * Record that NodeTool created the folder behind `row`, for the row's project.
+ *
+ * A workspace row's `origin` cannot say this alone: every row from before
+ * project folders reads `created` from the column default, and so does a row
+ * a user points at a folder of their own. Only the code that makes a new
+ * folder calls this, and deleting a project moves or removes a folder only
+ * when it carries this record (PRD D12).
+ */
+export async function markFolderCreated(row: WorkspaceRow): Promise<void> {
+  const mark: FolderCreatedMark = {
+    format: "nodetool.folder-created",
+    version: 1,
+    project_id: row.project_id
+  };
+  await requireNodetoolDir(row).write(
+    FOLDER_CREATED_FILE,
+    `${JSON.stringify(mark, null, 2)}\n`,
+    "application/json"
+  );
+}
+
+/**
+ * True when the folder behind `row` carries the record that NodeTool created
+ * it for the row's project.
+ *
+ * A local folder is read from disk directly: opening its reserved directory
+ * as a workspace would create that directory in a folder the user brought.
+ */
+export async function isFolderMarkedCreated(
+  row: WorkspaceRow
+): Promise<boolean> {
+  try {
+    const text = row.isVirtual()
+      ? await nodetoolDirFromRow(row)?.readText(FOLDER_CREATED_FILE)
+      : await readFile(
+          join(row.path, RESERVED_WORKSPACE_DIR, FOLDER_CREATED_FILE),
+          "utf8"
+        );
+    if (!text) return false;
+    const mark = JSON.parse(text) as Partial<FolderCreatedMark> | null;
+    return (
+      mark?.format === "nodetool.folder-created" &&
+      mark.project_id === row.project_id
+    );
+  } catch {
+    // No record, or one that cannot be read: the folder is not NodeTool's.
+    return false;
+  }
+}
+
+/**
  * Write the manifest into a folder the project already had, when it is absent.
  *
  * A folder that is not reachable is left alone, so a missing drive is not
@@ -289,6 +351,24 @@ async function claimLocalFolder(parent: string, name: string): Promise<string> {
 }
 
 /**
+ * The directory new local project folders go in, as configured and unchecked.
+ * `fromUser` is true when the user's own setting names it.
+ */
+export async function configuredProjectsDir(
+  userId: string
+): Promise<{ dir: string; fromUser: boolean }> {
+  const configured =
+    (await Setting.find(userId, PROJECTS_DIR_SETTING))?.value.trim() || null;
+  const stored = isLocalDeployment() ? configured : null;
+  if (configured && !stored) {
+    log.warn("Ignoring a user's PROJECTS_DIR setting on a production server", {
+      userId
+    });
+  }
+  return { dir: getProjectsDir(stored), fromUser: stored !== null };
+}
+
+/**
  * The directory new local project folders go in, checked the way the
  * workspace router checks a folder a user adds: absolute, a directory, and
  * writable.
@@ -300,15 +380,7 @@ async function claimLocalFolder(parent: string, name: string): Promise<string> {
  * operator's directory or the default is created when missing.
  */
 async function projectsParent(userId: string): Promise<string> {
-  const configured =
-    (await Setting.find(userId, PROJECTS_DIR_SETTING))?.value.trim() || null;
-  const stored = isLocalDeployment() ? configured : null;
-  if (configured && !stored) {
-    log.warn("Ignoring a user's PROJECTS_DIR setting on a production server", {
-      userId
-    });
-  }
-  const parent = getProjectsDir(stored);
+  const { dir: parent, fromUser: stored } = await configuredProjectsDir(userId);
   if (!isAbsolute(parent)) {
     throw new ProjectFolderError("The projects folder must be an absolute path");
   }
@@ -360,6 +432,7 @@ async function createFolder(project: Project): Promise<WorkspaceRow> {
       is_default: false
     })) as WorkspaceRow;
     await writeManifest(requireNodetoolDir(row), project);
+    await markFolderCreated(row);
     const folder = await claim(project, row);
     if (folder.id !== row.id) {
       // A concurrent caller recorded its folder first. Two cloud callers that

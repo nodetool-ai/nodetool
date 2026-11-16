@@ -8,6 +8,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
+import CreateNewFolderOutlinedIcon from "@mui/icons-material/CreateNewFolderOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -27,14 +28,27 @@ import {
 } from "../ui_primitives";
 import {
   useArchiveProject,
+  useCollectProjectFiles,
   useDeleteProject,
   useExportProject,
   useRestoreProject
 } from "../../hooks/useProjects";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import {
+  ProjectLinkedFilesError,
+  type LinkedProjectFile
+} from "../../utils/projectArchive";
 
 interface ErrorWithMessage {
   readonly message: string;
+}
+
+/** The project folder as the project API reports it. */
+interface ProjectFolder {
+  readonly path: string | null;
+  readonly is_accessible: boolean;
+  /** What the server does to the folder when the project is deleted. */
+  readonly on_delete: "trash" | "remove" | "keep";
 }
 
 interface ProjectLifecycleActionsProps {
@@ -43,6 +57,7 @@ interface ProjectLifecycleActionsProps {
     name: string;
     isPersonal: boolean;
     archivedAt: string | null;
+    folder?: ProjectFolder | null;
   };
   /**
    * `buttons` lays the actions out as text buttons, for a list row.
@@ -53,6 +68,24 @@ interface ProjectLifecycleActionsProps {
 }
 
 /**
+ * Which sentence the delete dialog shows about the project folder. A folder
+ * the server cannot reach is left as it is, whoever made it.
+ */
+const folderMessageKey = (folder: ProjectFolder) => {
+  if (!folder.is_accessible) {
+    return "pass3_33.projects.lifecycle.deleteFolderMissing" as const;
+  }
+  switch (folder.on_delete) {
+    case "trash":
+      return "pass3_33.projects.lifecycle.deleteFolderTrash" as const;
+    case "remove":
+      return "pass3_33.projects.lifecycle.deleteFolderRemove" as const;
+    case "keep":
+      return "pass3_33.projects.lifecycle.deleteFolderKeep" as const;
+  }
+};
+
+/**
  * The card around the actions opens its project on click and on Enter. The
  * menu and the delete dialog render in portals, but React still bubbles their
  * events through the component tree, so they stop here.
@@ -60,7 +93,10 @@ interface ProjectLifecycleActionsProps {
 const stopBubbling = (event: SyntheticEvent) => event.stopPropagation();
 const stopKeyBubbling = (event: KeyboardEvent) => event.stopPropagation();
 
-/** Export, archive, or permanently delete a named project from its management surface. */
+/**
+ * Export, collect linked files into, archive, or permanently delete a named
+ * project from its management surface.
+ */
 const ProjectLifecycleActions = ({
   project,
   layout = "buttons"
@@ -68,11 +104,16 @@ const ProjectLifecycleActions = ({
   const { t } = useTranslation();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  // Linked files that stopped an export, while the creator chooses.
+  const [linkedFiles, setLinkedFiles] = useState<LinkedProjectFile[] | null>(
+    null
+  );
   const closeMenu = useCallback(() => setMenuAnchor(null), []);
   const archive = useArchiveProject();
   const restore = useRestoreProject();
   const remove = useDeleteProject();
   const exportProject = useExportProject();
+  const collect = useCollectProjectFiles();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -80,7 +121,7 @@ const ProjectLifecycleActions = ({
   const stop = (event: MouseEvent<HTMLElement>) => event.stopPropagation();
   const reportError = useCallback(
     (
-      action: "export" | "archive" | "restore" | "delete",
+      action: "export" | "collect" | "archive" | "restore" | "delete",
       error: ErrorWithMessage
     ) =>
       addNotification({
@@ -100,10 +141,59 @@ const ProjectLifecycleActions = ({
       setMenuAnchor(null);
       exportProject.mutate(
         { id: project.id, name: project.name },
-        { onError: (error) => reportError("export", error) }
+        {
+          onError: (error) =>
+            error instanceof ProjectLinkedFilesError
+              ? setLinkedFiles(error.files)
+              : reportError("export", error)
+        }
       );
     },
     [exportProject, project.id, project.name, reportError]
+  );
+  const collectAndExport = useCallback(() => {
+    exportProject.mutate(
+      { id: project.id, name: project.name, collectLinked: true },
+      {
+        onSuccess: () => setLinkedFiles(null),
+        onError: (error) => {
+          if (error instanceof ProjectLinkedFilesError) {
+            // Offline or failed files are still linked. Show what is left.
+            setLinkedFiles(error.files);
+          } else {
+            setLinkedFiles(null);
+            reportError("export", error);
+          }
+        }
+      }
+    );
+  }, [exportProject, project.id, project.name, reportError]);
+  const handleCollect = useCallback(
+    (event: MouseEvent<HTMLElement>) => {
+      stop(event);
+      setMenuAnchor(null);
+      collect.mutate(
+        { project_id: project.id },
+        {
+          onSuccess: (result) =>
+            addNotification({
+              type:
+                result.failed.length > 0 || result.skipped.length > 0
+                  ? "warning"
+                  : "success",
+              alert: result.failed.length > 0,
+              content: t("pass3_33.projects.lifecycle.collectResult", {
+                projectName: project.name,
+                copied: result.copied.length,
+                skipped: result.skipped.length,
+                failed: result.failed.length
+              })
+            }),
+          onError: (error) => reportError("collect", error)
+        }
+      );
+    },
+    [addNotification, collect, project.id, project.name, reportError, t]
   );
   const handleArchive = useCallback(
     (event: MouseEvent<HTMLElement>) => {
@@ -136,11 +226,30 @@ const ProjectLifecycleActions = ({
     remove.mutate(
       { id: project.id },
       {
-        onSuccess: () => setConfirmingDelete(false),
+        onSuccess: (result) => {
+          setConfirmingDelete(false);
+          // The dialog promised the trash. Say so when the folder went
+          // somewhere else, with the place it is in now.
+          const { action, path } = result.folder;
+          if (action !== "moved_aside" && action !== "trash_failed") {
+            return;
+          }
+          const movedAside = path
+            ? t("pass3_33.projects.lifecycle.folderMovedAsideTo", { path })
+            : t("pass3_33.projects.lifecycle.folderMovedAside");
+          const trashFailed = path
+            ? t("pass3_33.projects.lifecycle.folderTrashFailedAt", { path })
+            : t("pass3_33.projects.lifecycle.folderTrashFailed");
+          addNotification({
+            type: action === "moved_aside" ? "info" : "error",
+            alert: true,
+            content: action === "moved_aside" ? movedAside : trashFailed
+          });
+        },
         onError: (error) => reportError("delete", error)
       }
     );
-  }, [project.id, remove, reportError]);
+  }, [addNotification, project.id, remove, reportError, t]);
 
   if (project.isPersonal) return null;
 
@@ -177,6 +286,16 @@ const ProjectLifecycleActions = ({
             disabled={exportProject.isPending}
             onClick={handleExport}
           />
+          <MenuItemPrimitive
+            label={
+              collect.isPending
+                ? t("pass3_33.projects.lifecycle.collecting")
+                : t("pass3_33.projects.lifecycle.actions.collect")
+            }
+            icon={<CreateNewFolderOutlinedIcon />}
+            disabled={collect.isPending}
+            onClick={handleCollect}
+          />
           {project.archivedAt ? (
             <MenuItemPrimitive
               label={t("pass3_33.projects.lifecycle.actions.restore")}
@@ -210,6 +329,16 @@ const ProjectLifecycleActions = ({
           {exportProject.isPending
             ? t("pass3_33.projects.lifecycle.exporting")
             : t("pass3_33.projects.lifecycle.actions.export")}
+        </EditorButton>
+        <EditorButton
+          density="compact"
+          variant="text"
+          onClick={handleCollect}
+          loading={collect.isPending}
+        >
+          {collect.isPending
+            ? t("pass3_33.projects.lifecycle.collecting")
+            : t("pass3_33.projects.lifecycle.actions.collect")}
         </EditorButton>
         {project.archivedAt ? (
           <EditorButton
@@ -248,6 +377,32 @@ const ProjectLifecycleActions = ({
     >
       {actions}
       <Dialog
+        open={linkedFiles !== null}
+        onClose={() => !exportProject.isPending && setLinkedFiles(null)}
+        title={t("pass3_33.projects.lifecycle.linkedTitle", {
+          projectName: project.name
+        })}
+        onConfirm={collectAndExport}
+        confirmText={t("pass3_33.projects.lifecycle.collectAndExport")}
+        isLoading={exportProject.isPending}
+      >
+        <FlexColumn gap={SPACING.md}>
+          <Text size="small">
+            {t("pass3_33.projects.lifecycle.linkedBody")}
+          </Text>
+          <FlexColumn component="ul" gap={SPACING.xs} sx={{ m: 0, pl: SPACING.lg }}>
+            {(linkedFiles ?? []).map((file) => (
+              <Text key={file.id} component="li" size="small">
+                {file.name}
+              </Text>
+            ))}
+          </FlexColumn>
+          <Text size="small">
+            {t("pass3_33.projects.lifecycle.linkedChoice")}
+          </Text>
+        </FlexColumn>
+      </Dialog>
+      <Dialog
         open={confirmingDelete}
         onClose={() => !remove.isPending && setConfirmingDelete(false)}
         title={t("pass3_33.projects.lifecycle.confirmDeleteTitle", {
@@ -264,6 +419,21 @@ const ProjectLifecycleActions = ({
               projectName: project.name
             })}
           </Text>
+          {project.folder ? (
+            <FlexColumn gap={SPACING.xs}>
+              <Text size="small">{t(folderMessageKey(project.folder))}</Text>
+              {project.folder.path ? (
+                <Text
+                  size="small"
+                  family="secondary"
+                  color="secondary"
+                  sx={{ overflowWrap: "anywhere" }}
+                >
+                  {project.folder.path}
+                </Text>
+              ) : null}
+            </FlexColumn>
+          ) : null}
           <Text size="small">
             {t("pass3_33.projects.lifecycle.deleteIrreversible")}
           </Text>

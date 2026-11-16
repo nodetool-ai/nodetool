@@ -996,7 +996,7 @@ describe("runDirectMediaGeneration", () => {
     ).rejects.toThrow("padding or aspect_ratio is required for outpaint");
   });
 
-  it("stores provider-encoded audio under its own mime, defaulting an unknown one to .flac", async () => {
+  it("stores provider-encoded audio under its own mime as one file in Generated/", async () => {
     const provider = asProvider({
       getTotalCost: () => 0,
       async textToSpeechEncoded(args: { audioFormat?: string }) {
@@ -1011,10 +1011,12 @@ describe("runDirectMediaGeneration", () => {
     );
     const row = await Asset.find("1", asset_ids[0]);
     expect(row?.content_type).toBe("audio/x-strange");
-    // The unknown-mime fallback stored the file with the flac extension.
+    // A type with no known extension is a `.bin` file in the project folder,
+    // which is the name readers ask for, so the id-based key resolves to it.
+    expect(row?.workspace_path).toMatch(/^Generated\/[^/]+\.bin$/);
     const adapter = getAssetAdapter();
     expect(
-      await adapter.exists(adapter.uriForKey(`1/${asset_ids[0]}.flac`))
+      await adapter.exists(adapter.uriForKey(`1/${asset_ids[0]}.bin`))
     ).toBe(true);
   });
 

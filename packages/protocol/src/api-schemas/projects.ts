@@ -7,19 +7,56 @@ import { timelineTrack } from "./timeline.js";
 // the user's, not ours.
 
 /**
+ * What deleting the project does to its folder: `trash` moves a local folder
+ * NodeTool created to the trash, `remove` deletes a cloud folder NodeTool
+ * created, and `keep` leaves a folder the user brought with every file except
+ * `.nodetool/`.
+ */
+export const projectFolderDeletePlan = z.enum(["trash", "remove", "keep"]);
+export type ProjectFolderDeletePlan = z.infer<typeof projectFolderDeletePlan>;
+
+/**
  * The project's folder. `path` is the absolute directory, or null for a cloud
  * project, whose folder is a key prefix in object storage. `origin` is
  * `created` when NodeTool made the folder and `adopted` when the user brought
  * it. `workspace_id` names the workspace row a client lists and reads the
- * folder's files through.
+ * folder's files through. `on_delete` is what the server does to the folder
+ * when the project is deleted, which the confirmation dialog states.
  */
 export const projectFolder = z.object({
   workspace_id: z.string(),
   path: z.string().nullable(),
   origin: z.enum(["created", "adopted"]),
-  is_accessible: z.boolean()
+  is_accessible: z.boolean(),
+  on_delete: projectFolderDeletePlan
 });
 export type ProjectFolder = z.infer<typeof projectFolder>;
+
+/**
+ * What a delete did to the project's folder. `trashed` and `moved_aside`
+ * carry the folder's new place: the OS trash, or `<projects dir>/.trash` when
+ * the server cannot reach the OS trash. `kept` and `trash_failed` carry the
+ * folder's unchanged place. `path` is null for a cloud folder and on a
+ * production server.
+ */
+export const projectFolderDisposal = z.object({
+  action: z.enum([
+    "trashed",
+    "moved_aside",
+    "removed",
+    "kept",
+    "trash_failed",
+    "none"
+  ]),
+  path: z.string().nullable()
+});
+export type ProjectFolderDisposal = z.infer<typeof projectFolderDisposal>;
+
+export const deleteProjectOutput = z.object({
+  ok: z.literal(true),
+  folder: projectFolderDisposal
+});
+export type DeleteProjectOutput = z.infer<typeof deleteProjectOutput>;
 
 export const projectResponse = z.object({
   id: z.string(),

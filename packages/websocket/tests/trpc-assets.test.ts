@@ -138,15 +138,17 @@ describe("assets router", () => {
       });
     });
 
-    it("forwards project scope to asset pagination", async () => {
+    it("forwards the loose project scope to asset pagination", async () => {
+      // A project lists by directory (tests/project-directories.test.ts).
+      // Loose assets keep their folder rows.
       (Asset.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([[], ""]);
 
       const caller = createCaller(makeCtx());
-      await caller.assets.list({ project_id: "project-a" });
+      await caller.assets.list({ project_id: "default" });
 
       expect(Asset.paginate).toHaveBeenCalledWith("user-1", {
         parentId: undefined,
-        projectId: "project-a",
+        projectId: "default",
         contentType: undefined,
         workflowId: undefined,
         nodeId: undefined,
@@ -402,21 +404,21 @@ describe("assets router", () => {
       expect(result.assets.map((a) => a.id)).toEqual(["c1", "f1", "gc"]);
     });
 
-    it("walks only descendants from the requested project", async () => {
-      const childA = makeAsset({ id: "a", project_id: "project-a" });
+    it("walks only descendants from the requested loose scope", async () => {
+      const childA = makeAsset({ id: "a", project_id: "default" });
       const childB = makeAsset({ id: "b", project_id: "project-b" });
       (Asset.find as ReturnType<typeof vi.fn>).mockResolvedValue(
-        makeAsset({ id: "root", content_type: "folder", project_id: "project-a" })
+        makeAsset({ id: "root", content_type: "folder", project_id: "default" })
       );
       (Asset.getChildren as ReturnType<typeof vi.fn>).mockImplementation(
         (_userId: string, _folderId: string, _limit: number, projectId?: string) =>
-          Promise.resolve(projectId === "project-a" ? [childA] : [childB])
+          Promise.resolve(projectId === "default" ? [childA] : [childB])
       );
 
       const caller = createCaller(makeCtx());
       const result = await caller.assets.recursive({
         id: "root",
-        project_id: "project-a"
+        project_id: "default"
       });
 
       expect(result.assets.map((a) => a.id)).toEqual(["a"]);
@@ -424,7 +426,7 @@ describe("assets router", () => {
         "user-1",
         "root",
         10000,
-        "project-a"
+        "default"
       );
     });
   });

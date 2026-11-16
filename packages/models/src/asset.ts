@@ -5,8 +5,12 @@
  */
 
 import { isDeepStrictEqual } from "node:util";
-import { eq, and, or, like, desc, isNull, isNotNull, lt, inArray } from "drizzle-orm";
-import { isShortResourceId, isSystemEntityMetadata } from "@nodetool-ai/protocol";
+import { eq, and, or, like, desc, isNull, isNotNull, lt, inArray, sql } from "drizzle-orm";
+import {
+  PROJECT_DIRECTORY_ID_PREFIX,
+  isShortResourceId,
+  isSystemEntityMetadata
+} from "@nodetool-ai/protocol";
 import {
   DBModel,
   ModelChangeEvent,
@@ -281,6 +285,38 @@ export class Asset extends DBModel {
   }
 
   /**
+   * The user's assets in `projectId` whose metadata holds the string `value`
+   * under the top-level key `key`, oldest first. Asset services find the
+   * copies of an asset this way.
+   */
+  static async findByMetadataString(
+    userId: string,
+    projectId: string,
+    key: string,
+    value: string
+  ): Promise<Asset[]> {
+    // Metadata is stored as JSON text in both dialects. The pattern narrows
+    // the scan to rows naming the value, and the parsed metadata decides.
+    const marker = JSON.stringify({ [key]: value })
+      .slice(1, -1)
+      .replace(/[\\%_]/g, "\\$&");
+    const rows = await getPortableDb()
+      .select()
+      .from(assets)
+      .where(
+        and(
+          eq(assets.user_id, userId),
+          eq(assets.project_id, projectId),
+          sql`${assets.metadata} LIKE ${`%${marker}%`} ESCAPE '\\'`
+        )
+      )
+      .orderBy(assets.created_at);
+    return rows
+      .map((row) => new Asset(row))
+      .filter((asset) => asset.metadata?.[key] === value);
+  }
+
+  /**
    * Every asset of the user in `projectId` that keeps its file in the project
    * folder, in one query. The reconciler compares this list with the folder.
    */
@@ -298,6 +334,46 @@ export class Asset extends DBModel {
           isNotNull(assets.workspace_path)
         )
       );
+    return rows.map((row) => new Asset(row));
+  }
+
+  /**
+   * Point every row of the user in `projectId` whose file lies under the
+   * directory `from` at the same file under `to`, in one statement. Returns
+   * how many rows changed. Both paths are project-relative directories.
+   */
+  static async moveWorkspaceDirectory(
+    userId: string,
+    projectId: string,
+    from: string,
+    to: string
+  ): Promise<number> {
+    const prefix = `${from}/`;
+    // substr and || mean the same on SQLite and PostgreSQL, and unlike LIKE
+    // they compare case-sensitively with no escaping of `_` and `%`.
+    const rows = await getPortableDb()
+      .update(assets)
+      .set({
+        workspace_path: sql`${`${to}/`} || substr(${assets.workspace_path}, CAST(${prefix.length + 1} AS INTEGER))`,
+        updated_at: new Date().toISOString()
+      })
+      .where(
+        and(
+          eq(assets.user_id, userId),
+          eq(assets.project_id, projectId),
+          sql`substr(${assets.workspace_path}, 1, CAST(${prefix.length} AS INTEGER)) = ${prefix}`
+        )
+      )
+      .returning({ id: assets.id });
+    return rows.length;
+  }
+
+  /** Every folder row of the user, from every project. */
+  static async listFolders(userId: string): Promise<Asset[]> {
+    const rows = await getPortableDb()
+      .select()
+      .from(assets)
+      .where(and(eq(assets.user_id, userId), eq(assets.content_type, "folder")));
     return rows.map((row) => new Asset(row));
   }
 
@@ -417,8 +493,15 @@ export class Asset extends DBModel {
         // generation, the generate-media RPC, workflow node outputs) filed
         // their assets with a null parent, so an exact match on the home id
         // hid every one of them from the browser.
+        // A row filed in a directory of a project folder has a directory id
+        // as its parent. Only a project's listing reads directories, so
+        // every other listing shows such a row at Home too.
         conditions.push(
-          or(eq(assets.parent_id, parentId), isNull(assets.parent_id))!
+          or(
+            eq(assets.parent_id, parentId),
+            isNull(assets.parent_id),
+            sql`substr(${assets.parent_id}, 1, ${PROJECT_DIRECTORY_ID_PREFIX.length}) = ${PROJECT_DIRECTORY_ID_PREFIX}`
+          )!
         );
       } else {
         conditions.push(eq(assets.parent_id, parentId));

@@ -61,11 +61,19 @@ NodeTool owns `.nodetool/` in every folder. Agent file tools, the Code node, JS 
 
 ## Assets are files in the folder
 
-A workflow output or an asset a node saves is one file in its project's folder plus an asset row. The file goes to `Generated/`, which stays flat. Its name is the asset's name with whitespace as dashes and the extension of its content type, so an image named "fox in snow" is `Generated/fox-in-snow.png`. A second asset of the same name is `fox-in-snow-2.png`. An auto-saved output takes the title of its node, or `<kind>_<node id>` when the node has none.
+Every asset NodeTool creates is one file in its project's folder plus an asset row: a workflow output, an asset a node saves, an image an agent generates in a chat, and a file you upload. Generated files go to `Generated/`, which stays flat. Its name is the asset's name with whitespace as dashes and the extension of its content type, so an image named "fox in snow" is `Generated/fox-in-snow.png`. A second asset of the same name is `fox-in-snow-2.png`. An auto-saved output takes the title of its node, or `<kind>_<node id>` when the node has none.
+
+A file dropped on a directory in the Files tree is saved in that directory. A file uploaded anywhere else, such as on the canvas or in the asset browser, goes to `Imported/`. An upload names its project, and NodeTool refuses a project you do not own. An agent output with `output_file` is saved at that path, and a Save file node with "Save to workspace" on saves at its file name. Each is the asset's only file, so the agent and the next node read the same bytes the asset shows.
 
 The row keeps the asset's ID and the file's path in `workspace_path`. URLs and document references use the ID, so they stay valid when the file is renamed. Renaming the asset in NodeTool renames its file, and deleting the asset deletes its file. Moving an asset to another project, as assigning an entity does, moves its file into that project's folder under the same directory. Each of these is refused while a folder it needs is unreachable.
 
-NodeTool never replaces a file when it picks a name. The file is created exclusively, so when another NodeTool process took the name first, or a file with it already exists in the destination folder, the new file gets the next free suffix. An asset created before project folders, or by an upload or an agent tool, keeps its bytes in [asset storage](storage.md) and reads as before.
+### Use a Personal asset in a project
+
+Personal is the library. In a named project, the image pickers (entity images, timeline references, **Replace clip…**) show **This project** and **Personal** tabs. Picking from Personal copies the file into the project's `Imported/` directory as a new asset, and the document stores the copy's ID. The copy is independent: editing or deleting it leaves the Personal original unchanged, and the reverse. Picking the same unchanged asset again returns the same copy. The copy's metadata records the source asset's ID and content hash (`copied_from_asset_id`, `copied_from_hash`), and a client cannot change them. A copied entity stays an entity, and its swapped reference image is copied with it.
+
+Agent tools follow the same rule. When `edit_storyboard`, `edit_timeline`, `set_timeline_document`, the timeline code tools (`set_timeline_code`, `edit_timeline_code`, `rebake_timeline_code`) or `edit_sketch` stores an asset of another project, it copies the asset first, stores the copy's ID, and returns `copied_assets: [{ source_asset_id, asset_id }]`. The server function behind both is `copyAssetToProject` in `@nodetool-ai/asset-services`, reached from the web through `assets.copyToProject`.
+
+NodeTool never replaces a file when it picks a name. The file is created exclusively, so when another NodeTool process took the name first, or a file with it already exists in the destination folder, the new file gets the next free suffix. An asset created before project folders keeps its bytes in [asset storage](storage.md) and reads as before.
 
 ### The asset index follows the folder
 
@@ -122,6 +130,21 @@ Each project folder carries `.nodetool/assets.json`, next to `.nodetool/project.
 ```
 
 `content_hash` is absent until the background job has read the file. NodeTool rewrites the manifest a moment after the index changes. New contents go to `.nodetool/assets.json.tmp` first and replace the manifest once they are complete, so an interrupted write leaves the previous manifest intact. The database stays the source NodeTool reads assets from. The manifest travels with the folder.
+
+### Folders in the asset browser
+
+Within a project, the asset browser's folders are the directories of the project folder. A directory made in Finder shows up as a folder once the index has caught up, with its media inside. The view across every project and loose assets keep their folder rows.
+
+- **Create folder** makes a directory. No folder row is created inside a project. An object store has no empty directories, so on a cloud deployment an empty folder appears once it holds a file.
+- **Move to folder** moves the asset's file into the directory and updates its path. A name already taken there gets a numeric suffix.
+- **Rename** on a folder renames the directory and rewrites the path of every asset under it in one request and one database statement. Moving a folder into another works the same way. A name in use is refused.
+- **Delete** on a folder deletes the assets under it with their files. The directory goes too, unless it still holds files that have no asset row.
+
+An asset whose bytes are not in the folder yet sits under the path its old folder rows spell, and it follows a rename of that folder.
+
+A directory has no row, so its id names its project and path: `dir:<project id>:<path>`, each part URI-encoded. The project root is the user's home folder, whose id is the user id. `assets.list`, `get`, `recursive`, `update`, and `delete` accept these ids. The id changes when the folder is renamed. The rules live in `packages/protocol/src/project-directories.ts` and `packages/asset-services/src/project-asset-directories.ts`.
+
+Each asset shows the state of its file in the grid, the list, and the viewer. **Missing** marks an offline asset and offers **Relink** and **Remove**. Relink appears in the desktop app, which can read a picked file's location. **Linked** marks an asset that uses a file outside the project folder in place.
 
 ## Workflows are files in the folder
 

@@ -35,6 +35,15 @@ export interface TimelineDocumentSaveOptions {
    * inside the document.
    */
   settings?: Partial<Record<keyof TimelineRenderSettings, unknown>>;
+  /**
+   * A step between the asset IDs and the validation, for a caller that
+   * changes the document before it is checked. `set_timeline_document` copies
+   * the assets of other projects into the timeline's project here. An error
+   * refuses the document.
+   */
+  localize?: (
+    document: Record<string, unknown>
+  ) => Promise<{ document: Record<string, unknown> } | { error: string }>;
 }
 
 /** A document ready to store, or the reason it is refused. */
@@ -158,7 +167,9 @@ export async function prepareTimelineDocumentForSave(
     userAssetFinder(options.userId)
   );
   if ("error" in canonical) return { ok: false, error: canonical.error };
-  const { document } = canonical;
+  const local = (await options.localize?.(canonical.document)) ?? canonical;
+  if ("error" in local) return { ok: false, error: local.error };
+  const { document } = local;
 
   // Document-level fps/width/height are sequence settings, so a document that
   // carries them configures the sequence instead of having them stripped with

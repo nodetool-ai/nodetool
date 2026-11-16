@@ -6424,16 +6424,42 @@
           "export": "エクスポート",
           "archive": "アーカイブ",
           "restore": "復元",
-          "delete": "削除"
+          "delete": "削除",
+          "collect": "ファイルを収集"
         },
         "projectActions": "プロジェクトのアクション",
         "actionsForProject": "{{projectName}} のアクション",
         "exporting": "エクスポート中…",
         "deleteProject": "プロジェクトの削除",
         "confirmDeleteTitle": "{{projectName}} を削除しますか?",
-        "confirmDeleteBody": "{{projectName}} とそのすべてのドキュメント、会話、生成された出力、アセット、ジョブ、プロジェクト ファイルを削除します。",
+        "confirmDeleteBody": "{{projectName}} とそのすべてのドキュメント、会話、ジョブ、プロジェクト フォルダーの外に保存されているアセットを削除します。",
         "deleteIrreversible": "これを元に戻すことはできません。",
-        "error": "{{action}} {{projectName}} できませんでした: {{error}}"
+        "deleteFolderTrash": "プロジェクト フォルダーはゴミ箱に移動します。",
+        "deleteFolderRemove": "プロジェクト フォルダーとその中のすべてのファイルがクラウド ストレージから削除されます。",
+        "deleteFolderKeep": "プロジェクト フォルダーはすべてのファイルとともに元の場所に残ります。NodeTool はその中の .nodetool フォルダーだけを削除します。",
+        "deleteFolderMissing": "プロジェクト フォルダーにアクセスできないため、NodeTool はそのままにします。",
+        "folderMovedAsideTo": "ゴミ箱にアクセスできませんでした。プロジェクト フォルダーは {{path}} に移動しました。",
+        "folderMovedAside": "ゴミ箱にアクセスできませんでした。プロジェクト フォルダーはプロジェクト用フォルダー内の .trash フォルダーに移動しました。",
+        "folderTrashFailedAt": "プロジェクト フォルダーをゴミ箱に移動できませんでした。{{path}} に残っています。",
+        "folderTrashFailed": "プロジェクト フォルダーをゴミ箱に移動できませんでした。元の場所に残っています。",
+        "error": "{{action}} {{projectName}} できませんでした: {{error}}",
+        "collecting": "ファイルを収集しています…",
+        "collectResult": "{{projectName}} にファイルを収集しました: コピー {{copied}} 件、スキップ {{skipped}} 件、失敗 {{failed}} 件。",
+        "linkedTitle": "{{projectName}} はフォルダー外のファイルをリンクしています",
+        "linkedBody": "エクスポートにはプロジェクトフォルダーが含まれます。次のファイルは別の場所からリンクされており、フォルダー内にありません:",
+        "linkedChoice": "「収集してエクスポート」はファイルをフォルダーの Imported ディレクトリにコピーしてからエクスポートします。「キャンセル」はリンクを残し、何もエクスポートしません。",
+        "collectAndExport": "収集してエクスポート"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "コピーしますか、リンクしますか?",
+        "confirm": "インポート",
+        "copy": "プロジェクトフォルダーにコピー",
+        "copyHint": "プロジェクトは独自のコピーを保持します。元のファイルの変更は反映されません。",
+        "link": "その場所でリンク",
+        "linkHint": "何もコピーしません。プロジェクトはファイルを現在の場所から読み込みます。「ファイルを収集」で後からコピーできます。",
+        "threshold": "{{size}} 以上のファイルは既定でリンクされます。"
       }
     }
   },
@@ -15080,7 +15106,6 @@
       "csv": "CSVファイル",
       "unknown": "不明なファイルタイプ",
       "unknownContentType": "不明なコンテンツ タイプ",
-      "offline": "オフラインのメディア",
       "thumbnail": "サムネイル",
       "folder": "フォルダー"
     },
@@ -20130,5 +20155,28 @@
       "restoreFailed": "ファイルを復元できませんでした: {{error}}",
       "deleteFailed": "ドキュメントを削除できませんでした: {{error}}"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "アセットの参照元",
+    "projectTab": "このプロジェクト",
+    "personalTab": "個人",
+    "personalHint": "個人から選ぶと、ファイルがこのプロジェクトにコピーされます。",
+    "copying": "このプロジェクトにコピーしています…",
+    "copyFailed": "アセットをこのプロジェクトにコピーできませんでした。"
+  },
+  "assetFileStatus": {
+    "missing": "見つかりません",
+    "missingTooltip": "このアセットが参照する場所にファイルがありません。ファイルの新しい場所に再リンクするか、アセットを削除してください。",
+    "linked": "リンク",
+    "linkedTooltip": "このアセットはプロジェクトフォルダー外のファイルをその場所のまま使用しています。",
+    "relink": "再リンク",
+    "relinkTooltip": "ファイルの新しい場所を選択",
+    "relinkNoPath": "そのファイルの場所を読み取れませんでした。このコンピューター上のファイルを選択してください。",
+    "relinkFailed": "再リンクに失敗しました: {{error}}",
+    "remove": "削除",
+    "removeTooltip": "このアセットを NodeTool から削除",
+    "removeTitle": "「{{name}}」を削除しますか？",
+    "removeBody": "アセットは NodeTool から削除されます。これを使用しているドキュメントでは表示できなくなります。",
+    "cancel": "キャンセル"
   }
 }

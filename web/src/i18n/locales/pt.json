@@ -6519,16 +6519,42 @@
           "export": "Exportar",
           "archive": "Arquivo",
           "restore": "Restaurar",
-          "delete": "Excluir"
+          "delete": "Excluir",
+          "collect": "Reunir arquivos"
         },
         "projectActions": "Ações do projeto",
         "actionsForProject": "Ações para {{projectName}}",
         "exporting": "Exportando…",
         "deleteProject": "Excluir projeto",
         "confirmDeleteTitle": "Excluir {{projectName}}?",
-        "confirmDeleteBody": "Exclua {{projectName}} e todos os seus documentos, conversas, saídas geradas, ativos, trabalhos e arquivos de projeto.",
+        "confirmDeleteBody": "Exclua {{projectName}} e todos os seus documentos, conversas, trabalhos e ativos armazenados fora da pasta do projeto.",
         "deleteIrreversible": "Isto não pode ser desfeito.",
-        "error": "Não foi possível {{action}} {{projectName}}: {{error}}"
+        "deleteFolderTrash": "A pasta do projeto é movida para a lixeira.",
+        "deleteFolderRemove": "A pasta do projeto e todos os arquivos nela são excluídos do armazenamento em nuvem.",
+        "deleteFolderKeep": "A pasta do projeto fica onde está, com todos os arquivos. O NodeTool remove apenas a pasta .nodetool dentro dela.",
+        "deleteFolderMissing": "Não é possível acessar a pasta do projeto, então o NodeTool a deixa como está.",
+        "folderMovedAsideTo": "Não foi possível acessar a lixeira. A pasta do projeto foi movida para {{path}}.",
+        "folderMovedAside": "Não foi possível acessar a lixeira. A pasta do projeto foi movida para a pasta .trash na pasta de projetos.",
+        "folderTrashFailedAt": "Não foi possível mover a pasta do projeto para a lixeira. Ela continua em {{path}}.",
+        "folderTrashFailed": "Não foi possível mover a pasta do projeto para a lixeira. Ela continua onde está.",
+        "error": "Não foi possível {{action}} {{projectName}}: {{error}}",
+        "collecting": "Reunindo arquivos…",
+        "collectResult": "Arquivos reunidos em {{projectName}}: {{copied}} copiados, {{skipped}} ignorados, {{failed}} com falha.",
+        "linkedTitle": "{{projectName}} vincula arquivos fora da sua pasta",
+        "linkedBody": "Uma exportação contém a pasta do projeto. Estes arquivos estão vinculados de outro lugar e não estão nela:",
+        "linkedChoice": "Reunir e exportar os copia para a pasta Imported e depois exporta. Cancelar mantém os vínculos e não exporta nada.",
+        "collectAndExport": "Reunir e exportar"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Copiar ou vincular?",
+        "confirm": "Importar",
+        "copy": "Copiar para a pasta do projeto",
+        "copyHint": "O projeto mantém a própria cópia. Alterações no original não chegam a ela.",
+        "link": "Vincular no local",
+        "linkHint": "Nada é copiado. O projeto lê o arquivo onde ele está. Reunir arquivos o copia depois.",
+        "threshold": "Arquivos de {{size}} ou mais são vinculados por padrão."
       }
     }
   },
@@ -15351,7 +15377,6 @@
       "csv": "Arquivo CSV",
       "unknown": "Tipo de arquivo desconhecido",
       "unknownContentType": "Tipo de conteúdo desconhecido",
-      "offline": "Mídia off-line",
       "thumbnail": "Miniatura",
       "folder": "Pasta"
     },
@@ -20441,5 +20466,28 @@
       "restoreFailed": "O arquivo não foi restaurado: {{error}}",
       "deleteFailed": "O documento não foi excluído: {{error}}"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "Origem do recurso",
+    "projectTab": "Este projeto",
+    "personalTab": "Pessoal",
+    "personalHint": "Escolher em Pessoal copia o arquivo para este projeto.",
+    "copying": "Copiando para este projeto…",
+    "copyFailed": "Não foi possível copiar o recurso para este projeto."
+  },
+  "assetFileStatus": {
+    "missing": "Ausente",
+    "missingTooltip": "O arquivo não está onde este recurso espera. Vincule-o novamente ao novo local do arquivo ou remova o recurso.",
+    "linked": "Vinculado",
+    "linkedTooltip": "Este recurso usa no lugar um arquivo fora da pasta do projeto.",
+    "relink": "Vincular novamente",
+    "relinkTooltip": "Escolha o novo local do arquivo",
+    "relinkNoPath": "Não foi possível ler o local desse arquivo. Escolha um arquivo neste computador.",
+    "relinkFailed": "Falha ao vincular novamente: {{error}}",
+    "remove": "Remover",
+    "removeTooltip": "Remover este recurso do NodeTool",
+    "removeTitle": "Remover \"{{name}}\"?",
+    "removeBody": "O recurso é removido do NodeTool. Os documentos que o usam não podem mais exibi-lo.",
+    "cancel": "Cancelar"
   }
 }

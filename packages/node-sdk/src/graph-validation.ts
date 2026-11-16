@@ -138,6 +138,10 @@ export interface GraphValidationIssue {
    *   cannot resolve. Only reported when a set was supplied; warning because
    *   some declared keys are optional at call time, so absence does not prove
    *   a failed run.
+   * - "stream_into_output" (info): a For Each stream reaches an Output node
+   *   with no stream consumer (Collect) between them, so the run result keeps
+   *   only the last item. `info` because the editor still shows every item,
+   *   and shipped examples rely on that.
    * - "type_mismatch": a warning for declared properties (best-effort), an
    *   error when the target is a *declared* dynamic slot whose type the source
    *   output cannot satisfy.
@@ -1686,6 +1690,8 @@ export function validateGraph(
     }
   }
 
+  issues.push(...collectStreamIntoOutputIssues(nodes, normEdges, registry));
+
   let errors = 0;
   let warnings = 0;
   let info = 0;
@@ -1701,6 +1707,65 @@ export function validateGraph(
     counts: { errors, warnings, info },
     issues
   };
+}
+
+/**
+ * An Output node keeps only the last value it receives in the run result. A
+ * For Each stream wired to it with no Collect on the way returns one frame of
+ * N, and the run still reports success. Walks downstream from each For Each
+ * and stops at any node that consumes a stream (Collect and its kin).
+ */
+function collectStreamIntoOutputIssues(
+  nodes: GraphValidationNode[],
+  edges: NormEdge[],
+  registry: GraphValidationRegistry
+): GraphValidationIssue[] {
+  const typeOf = new Map<string, string>();
+  for (const node of nodes) {
+    typeOf.set(String(node.id ?? ""), String(node.type ?? ""));
+  }
+  const downstream = new Map<string, string[]>();
+  for (const e of edges) {
+    if (!e.source || !e.target) continue;
+    const list = downstream.get(e.source) ?? [];
+    list.push(e.target);
+    downstream.set(e.source, list);
+  }
+  const consumesStream = (id: string): boolean => {
+    const meta = registry.getMetadata(typeOf.get(id) ?? "");
+    return asRecord(meta)?.is_streaming_input === true;
+  };
+  const issues: GraphValidationIssue[] = [];
+  const reported = new Set<string>();
+  for (const [id, type] of typeOf) {
+    if (type !== "nodetool.control.ForEach") {
+      continue;
+    }
+    const seen = new Set<string>([id]);
+    const queue = [...(downstream.get(id) ?? [])];
+    while (queue.length > 0) {
+      const next = queue.shift() as string;
+      if (seen.has(next)) continue;
+      seen.add(next);
+      if (consumesStream(next)) continue;
+      const nextType = typeOf.get(next) ?? "";
+      if (nextType === "nodetool.output.Output" && !reported.has(next)) {
+        reported.add(next);
+        issues.push({
+          severity: "info",
+          code: "stream_into_output",
+          nodeId: next,
+          nodeType: nextType,
+          message:
+            `Output "${next}" receives one value per item of the ${type} stream from "${id}" ` +
+            "and keeps only the last one. Put a nodetool.control.Collect node before it to " +
+            "return every item as a list."
+        });
+      }
+      queue.push(...(downstream.get(next) ?? []));
+    }
+  }
+  return issues;
 }
 
 /** One-line summary headline for human output. */
