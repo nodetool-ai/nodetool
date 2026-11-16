@@ -44,6 +44,11 @@ export interface SupabaseStorageAdapterOptions {
  * client-facing HTTPS URL (the temp-url resolver in the websocket runner does
  * this for `temp_url` asset output mode).
  */
+/** Storage answered a `HEAD` with an error other than not found. */
+class StorageStatError extends Error {
+  override name = "StorageStatError";
+}
+
 export class SupabaseStorageAdapter implements StorageAdapter {
   readonly bucket: string;
   readonly url: string;
@@ -267,12 +272,33 @@ export class SupabaseStorageAdapter implements StorageAdapter {
    * endpoint's name filter or result limit.
    */
   async stat(uri: string): Promise<StorageStat | null> {
+    try {
+      return await this.statStrict(uri);
+    } catch (error) {
+      // An error Storage answered with reads as no object, as it always
+      // has. A request that could not be sent still throws.
+      if (error instanceof StorageStatError) return null;
+      throw error;
+    }
+  }
+
+  /**
+   * As {@link stat}, but only an answer that the object is not found reads
+   * as no object. Storage answers a missing key with 404, or with 400 and
+   * the real status in a body that a `HEAD` does not carry. Any other
+   * failure throws.
+   */
+  async statStrict(uri: string): Promise<StorageStat | null> {
     const parsed = this.parseUri(uri);
     if (!parsed || parsed.bucket !== this.bucket) return null;
     const { data, error } = await this.getClient()
       .storage.from(parsed.bucket)
       .info(parsed.key);
-    if (error || !data) return null;
+    if (error) {
+      if (error.status === 404 || error.status === 400) return null;
+      throw new StorageStatError(`Could not stat ${parsed.key}: ${error.message}`);
+    }
+    if (!data) return null;
     const stat: StorageStat = {
       key: parsed.key,
       size: data.size,

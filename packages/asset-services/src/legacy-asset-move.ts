@@ -46,7 +46,8 @@
  *
  * A legacy object that cannot be read is not a missing one. The asset store
  * answers a failed read like a missing key, so absence is confirmed with a
- * `stat` of every legacy key before the asset is treated as having none. The
+ * `statStrict` of every legacy key before the asset is treated as having
+ * none. A `stat` that fails throws instead of reading as absent. The
  * store is read through `storedObjectsOf`, because the store itself answers
  * a key it cannot read from the file the row points at.
  *
@@ -210,12 +211,26 @@ type LegacyObject =
   | { state: "absent" };
 
 /**
+ * What `storage` holds under `uri`. Null only when the store answered that
+ * nothing is there. A lookup that failed throws, so the move stops and tries
+ * again later instead of taking the object for gone. An adapter without
+ * `statStrict` is asked with `stat`.
+ */
+function statStored(
+  storage: StorageAdapter,
+  uri: string
+): Promise<StorageStat | null> {
+  return storage.statStrict ? storage.statStrict(uri) : storage.stat(uri);
+}
+
+/**
  * The legacy object of `asset`, read from `storage`, which must be the view
  * of the asset store that answers only from stored objects.
  *
  * The store answers a failed read with null, as it does for a missing key.
- * So a key is taken for empty only when `stat` finds nothing under it, and an
- * object that `stat` finds and `retrieve` does not return is unreadable.
+ * So a key is taken for empty only when the store answers that nothing is
+ * under it ({@link statStored}), and an object that is found and that
+ * `retrieve` does not return is unreadable.
  */
 async function readLegacyObject(
   storage: StorageAdapter,
@@ -223,7 +238,7 @@ async function readLegacyObject(
 ): Promise<LegacyObject> {
   for (const key of legacyKeys(asset)) {
     const uri = storage.uriForKey(key);
-    const stat = await storage.stat(uri);
+    const stat = await statStored(storage, uri);
     if (!stat) continue;
     const bytes = await storage.retrieve(uri);
     // A length other than the one reported is an object that changed while
@@ -357,7 +372,7 @@ class LegacyAssetMove {
 
   /** Whether the legacy object is the one `source` was read from. */
   private async isStillTheObjectRead(source: MoveSource): Promise<boolean> {
-    const now = await this.storage.stat(source.uri);
+    const now = await statStored(this.storage, source.uri);
     return (
       now !== null &&
       now.size === source.stat.size &&
@@ -575,7 +590,7 @@ class LegacyAssetMove {
       (await statFile(this.workspace, path)) !== null;
     if (!present) {
       for (const uri of uris) {
-        if (await this.storage.stat(uri)) {
+        if (await statStored(this.storage, uri)) {
           return {
             status: "waiting",
             reason: `the file ${path} is not in the project folder, so the stored bytes are kept`
@@ -591,7 +606,7 @@ class LegacyAssetMove {
     for (const uri of uris) {
       const stored = await this.storage.retrieve(uri);
       if (stored === null) {
-        if ((await this.storage.stat(uri)) === null) continue;
+        if ((await statStored(this.storage, uri)) === null) continue;
         return {
           status: "waiting",
           reason: "the stored bytes could not be read, so they are kept"

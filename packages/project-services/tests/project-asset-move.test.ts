@@ -850,6 +850,45 @@ describe.each(["local", "storage"] as const)(
       expect(Buffer.from(read ?? []).equals(Buffer.from(updated))).toBe(true);
     });
 
+    it("does not take a stored object for gone when the store cannot be asked about it", async () => {
+      const content = bytesOf(++seq);
+      const asset = await legacyAsset({ name: "fox", bytes: content });
+      const before = (await reload(asset)).toRow();
+      const uri = rawAssets.uriForKey(
+        getAssetStorageKey(USER, asset.id, asset.content_type)
+      );
+      // The store fails every lookup of the key. `stat` answers that with
+      // null, the way it answers a missing key.
+      const adapterClass = Object.getPrototypeOf(rawAssets) as StorageAdapter;
+      const stat = adapterClass.stat;
+      const statStrict = adapterClass.statStrict!;
+      const failingStat = vi
+        .spyOn(adapterClass, "stat")
+        .mockImplementation(function (this: StorageAdapter, asked: string) {
+          return asked === uri ? Promise.resolve(null) : stat.call(this, asked);
+        });
+      const failingStrict = vi
+        .spyOn(adapterClass, "statStrict")
+        .mockImplementation(function (this: StorageAdapter, asked: string) {
+          return asked === uri
+            ? Promise.reject(new Error("storage unavailable"))
+            : statStrict.call(this, asked);
+        });
+      const report = await newJob().run(PROJECT, USER);
+      failingStat.mockRestore();
+      failingStrict.mockRestore();
+
+      expect(report.withoutBytes).toEqual([]);
+      expect(report.failed).toEqual([asset.id]);
+      expect((await reload(asset)).toRow()).toEqual(before);
+      const stored = await storedObject(asset);
+      expect(Buffer.from(stored ?? []).equals(Buffer.from(content))).toBe(true);
+
+      // Once the store answers again, the asset moves.
+      expect((await newJob().run(PROJECT, USER)).moved).toEqual([asset.id]);
+      expect((await reload(asset)).workspace_path).toBe("fox.png");
+    });
+
     it("keeps a stored object it cannot read, also with a file of the same size at the recorded target", async () => {
       const content = bytesOf(++seq, 4096);
       const asset = await legacyAsset({ name: "fox", bytes: content });

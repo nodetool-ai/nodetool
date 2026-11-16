@@ -380,6 +380,15 @@ export class S3StorageAdapter implements StorageAdapter {
   }
 
   async stat(uri: string): Promise<StorageStat | null> {
+    try {
+      return await this.statStrict(uri);
+    } catch {
+      return null;
+    }
+  }
+
+  /** As {@link stat}, but only a 404 reads as no object. Any other failure throws. */
+  async statStrict(uri: string): Promise<StorageStat | null> {
     const parsed = this.parseUri(uri);
     if (!parsed || parsed.bucket !== this.bucket) return null;
     try {
@@ -399,8 +408,9 @@ export class S3StorageAdapter implements StorageAdapter {
         stat.cacheControl = response.cacheControl;
       }
       return stat;
-    } catch {
-      return null;
+    } catch (error) {
+      if (error instanceof S3Error && error.statusCode === 404) return null;
+      throw error;
     }
   }
 

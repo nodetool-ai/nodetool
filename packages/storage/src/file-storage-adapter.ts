@@ -450,6 +450,36 @@ export class FileStorageAdapter implements StorageAdapter {
     }
   }
 
+  /**
+   * As {@link stat}, but a file the system cannot stat for a reason other
+   * than its absence throws. A key outside the root names no object.
+   */
+  async statStrict(uri: string): Promise<StorageStat | null> {
+    const key = this.keyFromUri(uri);
+    if (!key) return null;
+    let rel: string;
+    try {
+      rel = normalizeStorageKey(key);
+    } catch {
+      return null;
+    }
+    const abs = resolve(this.rootDir, rel);
+    if (!isWithinRoot(this.rootDir, abs)) return null;
+    try {
+      const st = await fsStat(abs);
+      if (st.isFile()) {
+        return { key: rel, size: st.size, modifiedAt: st.mtimeMs };
+      }
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "ENOENT" && code !== "ENOTDIR") throw error;
+    }
+    const external = await this.statExternal(rel);
+    return external
+      ? { key: rel, size: external.size, modifiedAt: external.modifiedAt }
+      : null;
+  }
+
   async stat(uri: string): Promise<StorageStat | null> {
     const key = this.keyFromUri(uri);
     if (!key) return null;
