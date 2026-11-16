@@ -1,5 +1,7 @@
 import React, { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { useMediaQuery } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 
@@ -86,15 +88,18 @@ export interface WorkspaceDocumentBarProps
 }
 
 /**
- * The document bar of one workspace tab: its title (renamed through the same
- * path as the tab), the View/Edit switch where the type has both modes, and
- * the slots the surface fills.
+ * The document bar of one workspace tab: the View/Edit switch where the type
+ * has both modes, and the slots the surface fills. On desktop the tab already
+ * shows the name and renames it, so the bar leaves the title out. Phones show
+ * no tabs, so there the bar keeps the title and its inline rename.
  */
 const WorkspaceDocumentBar = ({
   tab,
   mode,
   ...slots
 }: WorkspaceDocumentBarProps) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const renameDocument = useRenameDocument();
   const canRename = tabCanRename(tab.type);
   const rename = useCallback(
@@ -118,6 +123,7 @@ const WorkspaceDocumentBar = ({
   return (
     <DocumentBar
       title={tab.title}
+      showTitle={isMobile}
       onRename={canRename ? rename : undefined}
       mode={modeSlot}
       {...slots}
