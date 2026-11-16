@@ -451,15 +451,22 @@ export class StorageWorkspace implements Workspace {
       }
     }
     const at = Date.now();
+    // The listing is complete only for keys at or below `under`.
+    const complete = (key: string): boolean =>
+      !under || key === under || key.startsWith(`${under}/`);
     for (const directory of seen) {
-      // The listing is complete only for directories at or below `under`.
-      if (under && directory !== under && !directory.startsWith(`${under}/`)) {
-        continue;
-      }
+      if (!complete(directory)) continue;
       this.reservedMarks.set(directory, {
         at,
         value: Promise.resolve(marked.has(directory))
       });
+    }
+    // A listed file is a directory too only when keys lie below it, and then
+    // it is among `seen`. Any other holds no reserved directory, so reading
+    // it after the listing asks the store nothing more.
+    for (const { key } of entries) {
+      if (seen.has(key) || isReservedWorkspaceKey(key) || !complete(key)) continue;
+      this.reservedMarks.set(key, { at, value: Promise.resolve(false) });
     }
   }
 
