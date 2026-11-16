@@ -3,23 +3,23 @@
  * route it arrives on.
  *
  * Editing instance. A client draws an id each time it opens a document and
- * sends it with every save. When an accepted save comes from another instance
- * than the one that wrote the stored revision, the stored revision is kept as
- * a version first, so a save that replaces someone else's work can always be
- * undone (TC8). A save without an id counts as a new instance. The version is
- * written before the document, and a failure to write it refuses the save.
+ * sends it with every save. The writer of a revision is that id bound to the
+ * account that saved it, so another account presenting the same id is still
+ * another writer. When an accepted save comes from another writer than the
+ * one that wrote the stored revision, the stored revision is kept as a
+ * version in the same transaction as the save, so a save that replaces
+ * someone else's work can always be undone (TC8). A save without an id
+ * counts as a new writer. A restore always keeps the revision it replaces.
  *
- * Schema version. A save names the document schema version it was written in,
- * or is taken to be in the version this server writes. A save in a lower
- * version than the stored document is refused with `SCHEMA_DOWNGRADE`, so an
- * older client cannot replace a document with a reduced copy (TC14).
+ * Schema version. A save names the document schema version it was written
+ * in. A save that names none is in the version this server writes when the
+ * client sent the protocol header, and in the legacy version when it did
+ * not: a client from before the header existed writes the first schema. A
+ * save in a lower version than the stored document is refused with
+ * `SCHEMA_DOWNGRADE`, so an older client cannot replace a document with a
+ * reduced copy (TC14).
  */
-import {
-  TimelineSequenceVersion,
-  WorkflowVersion,
-  type TimelineSequence,
-  type Workflow
-} from "@nodetool-ai/models";
+import type { KeepRevision } from "@nodetool-ai/models";
 import * as sync from "@nodetool-ai/protocol/api-schemas/sync.js";
 import { ApiErrorCode } from "../error-codes.js";
 
@@ -35,20 +35,61 @@ export class DocumentSaveRefusal extends Error {
   }
 }
 
-/** The description of a version kept before another instance's save. */
+/** The description of a version kept before another writer's save. */
 export const KEPT_REVISION_LABEL = "Kept before a save from another editor";
+
+/** The version a workflow save keeps of another writer's revision. */
+export const KEEP_WORKFLOW_REVISION: KeepRevision = {
+  name: null,
+  // A checkpoint is never pruned with the autosaves.
+  saveType: "checkpoint",
+  description: KEPT_REVISION_LABEL
+};
+
+/** The version a timeline save keeps of another writer's revision. */
+export const KEEP_TIMELINE_REVISION: KeepRevision = {
+  name: KEPT_REVISION_LABEL,
+  // A manual version is never pruned with the autosaves.
+  saveType: "manual"
+};
+
+/** The version a restore keeps of the revision it replaces. */
+export function keepBeforeRestore(
+  kind: sync.SyncDocumentKind,
+  version: number
+): KeepRevision {
+  const label = `Before restore to v${version}`;
+  return kind === "workflow"
+    ? { name: null, saveType: "checkpoint", description: label }
+    : { name: label, saveType: "restore" };
+}
+
+/**
+ * The writer of a save: the editing instance bound to the account, or null
+ * when the save names no instance.
+ */
+export function writerOf(
+  userId: string,
+  instance: string | undefined
+): string | null {
+  return instance === undefined ? null : `${userId}:${instance}`;
+}
 
 /**
  * The schema version a save is written in, after checking it against the
- * stored document and against what this server writes.
+ * stored document and against what this server writes. `legacyClient` is
+ * true for a request without the protocol header.
  */
 export function acceptedSchemaVersion(
   kind: sync.SyncDocumentKind,
   stored: number,
-  requested: number | undefined
+  requested: number | undefined,
+  legacyClient: boolean
 ): number {
   const current = sync.DOCUMENT_SCHEMA_VERSIONS[kind];
-  const written = requested ?? current;
+  const written =
+    requested ??
+    (legacyClient ? sync.LEGACY_DOCUMENT_SCHEMA_VERSION : current);
   if (written > current) {
     throw new DocumentSaveRefusal(
       ApiErrorCode.INVALID_INPUT,
@@ -67,45 +108,22 @@ export function acceptedSchemaVersion(
 }
 
 /**
- * Whether a save replaces a revision another editing instance wrote. Only a
- * save that will be applied to the stored revision counts: one whose base is
- * stale is refused by the compare-and-swap anyway.
+ * The version to keep for a save, or undefined when it replaces its own
+ * writer's revision. Only a save that will be applied to the stored revision
+ * counts: one whose base is stale is refused by the compare-and-set anyway.
  */
-export function replacesAnotherWriter(
+export function revisionToKeep(
+  kind: sync.SyncDocumentKind,
   stored: { last_writer_instance: string | null; updated_at: string },
-  save: { instance: string | undefined; base: string | undefined }
-): boolean {
+  save: { writer: string | null; base: string | undefined }
+): KeepRevision | undefined {
   if (save.base !== undefined && save.base !== stored.updated_at) {
-    return false;
+    return undefined;
   }
-  return (
-    save.instance === undefined || save.instance !== stored.last_writer_instance
-  );
-}
-
-/** Keep the stored revision of a workflow as a version. */
-export async function keepWorkflowRevision(workflow: Workflow): Promise<void> {
-  await WorkflowVersion.create({
-    workflow_id: workflow.id,
-    user_id: workflow.user_id,
-    graph: workflow.graph,
-    version: await WorkflowVersion.nextVersion(workflow.id),
-    // A checkpoint is never pruned with the autosaves.
-    save_type: "checkpoint",
-    name: workflow.name,
-    description: KEPT_REVISION_LABEL
-  });
-}
-
-/** Keep the stored revision of a timeline as a version. */
-export async function keepTimelineRevision(
-  sequence: TimelineSequence
-): Promise<void> {
-  // A manual version is never pruned with the autosaves.
-  await TimelineSequenceVersion.snapshot(sequence, {
-    saveType: "manual",
-    name: KEPT_REVISION_LABEL
-  });
+  if (save.writer !== null && save.writer === stored.last_writer_instance) {
+    return undefined;
+  }
+  return kind === "workflow" ? KEEP_WORKFLOW_REVISION : KEEP_TIMELINE_REVISION;
 }
 
 export function isDocumentSaveRefusal(

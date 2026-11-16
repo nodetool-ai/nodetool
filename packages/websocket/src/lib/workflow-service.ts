@@ -36,8 +36,8 @@ import { permissionRefusal, permissionsFor } from "./permissions.js";
 import {
   DocumentSaveRefusal,
   acceptedSchemaVersion,
-  keepWorkflowRevision,
-  replacesAnotherWriter
+  revisionToKeep,
+  writerOf
 } from "./document-save-rules.js";
 import {
   publishSave,
@@ -109,6 +109,8 @@ export interface WorkflowWriteInput {
   editing_instance?: string;
   /** The document schema version of `graph`, see document-save-rules.ts. */
   schema_version?: number;
+  /** True when the request carried no protocol header, see sync.ts. */
+  legacy_client?: boolean;
 }
 
 /** Seed a new workflow from a shipped example when the caller sent no graph. */
@@ -328,7 +330,8 @@ export async function updateWorkflow(
       fields.schema_version = acceptedSchemaVersion(
         "workflow",
         existing.schema_version,
-        input.schema_version
+        input.schema_version,
+        input.legacy_client === true
       );
     } catch (error) {
       if (error instanceof DocumentSaveRefusal) {
@@ -336,20 +339,18 @@ export async function updateWorkflow(
       }
       throw error;
     }
-    fields.last_writer_instance = input.editing_instance ?? null;
-    if (
-      replacesAnotherWriter(existing, {
-        instance: input.editing_instance,
-        base: input.expected_updated_at
-      })
-    ) {
-      await keepWorkflowRevision(existing);
-    }
+    const writer = writerOf(userId, input.editing_instance);
+    fields.last_writer_instance = writer;
 
     const updated = await Workflow.updateFieldsIfUnchanged(
       id,
       input.expected_updated_at ?? existing.updated_at,
-      fields
+      fields,
+      undefined,
+      revisionToKeep("workflow", existing, {
+        writer,
+        base: input.expected_updated_at
+      })
     );
     if (!updated) {
       throw new WorkflowServiceError(

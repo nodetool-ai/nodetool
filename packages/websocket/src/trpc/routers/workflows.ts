@@ -49,8 +49,9 @@ import { throwApiError, withApiRefusal } from "../error-formatter.js";
 import {
   acceptedSchemaVersion,
   isDocumentSaveRefusal,
-  keepWorkflowRevision,
-  replacesAnotherWriter
+  keepBeforeRestore,
+  revisionToKeep,
+  writerOf
 } from "../../lib/document-save-rules.js";
 import {
   createWorkflow,
@@ -314,7 +315,8 @@ function toWorkflowResponse(workflow: WorkflowModel): WorkflowResponse {
     required_models: null,
     html_app: workflow.html_app ?? null,
     app_doc: workflow.app_doc ?? null,
-    etag: workflow.getEtag() ?? null
+    etag: workflow.getEtag() ?? null,
+    schema_version: workflow.schema_version
   };
 }
 
@@ -593,7 +595,10 @@ export const workflowsRouter = router({
     .output(workflowResponse)
     .mutation(async ({ ctx, input }) => {
       const workflow = await runWorkflowService(() =>
-        updateWorkflow(ctx.userId, input.id, input)
+        updateWorkflow(ctx.userId, input.id, {
+          ...input,
+          legacy_client: ctx.clientProtocol == null
+        })
       );
       return toWorkflowResponse(workflow);
     }),
@@ -646,11 +651,12 @@ export const workflowsRouter = router({
             acceptedSchemaVersion(
               "workflow",
               workflow.schema_version,
-              input.schema_version
+              input.schema_version,
+              ctx.clientProtocol == null
             ),
           isDocumentSaveRefusal
         ),
-        last_writer_instance: input.editing_instance ?? null
+        last_writer_instance: writerOf(ctx.userId, input.editing_instance)
       };
       if (input.name !== undefined) fields.name = input.name;
       // `description` and `save_type` describe the version row this autosave
@@ -671,18 +677,15 @@ export const workflowsRouter = router({
         ctx.userId,
         input.graph
       );
-      if (
-        replacesAnotherWriter(workflow, {
-          instance: input.editing_instance,
-          base: input.expected_updated_at
-        })
-      ) {
-        await keepWorkflowRevision(workflow);
-      }
       const savedWorkflow = await Workflow.updateFieldsIfUnchanged(
         input.id,
         input.expected_updated_at ?? workflow.updated_at,
-        fields
+        fields,
+        undefined,
+        revisionToKeep("workflow", workflow, {
+          writer: fields.last_writer_instance ?? null,
+          base: input.expected_updated_at
+        })
       );
       if (!savedWorkflow) {
         throwApiError(
@@ -927,7 +930,26 @@ export const workflowsRouter = router({
         const restored = await Workflow.updateFieldsIfUnchanged(
           input.id,
           workflow.updated_at,
-          { graph: version.graph }
+          {
+            graph: version.graph,
+            // The server writes the restored revision, so it is in the
+            // schema this server writes, and its writer is the restorer.
+            schema_version: withApiRefusal(
+              () =>
+                acceptedSchemaVersion(
+                  "workflow",
+                  workflow.schema_version,
+                  undefined,
+                  false
+                ),
+              isDocumentSaveRefusal
+            ),
+            last_writer_instance: writerOf(ctx.userId, input.editing_instance)
+          },
+          undefined,
+          // The current graph becomes a version in the same transaction, so
+          // a restore never erases the only copy of it.
+          keepBeforeRestore("workflow", input.version)
         );
         if (!restored) {
           throwApiError(

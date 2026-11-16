@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { editingInstanceId } from "./sync.js";
 import { BLEND_MODE_TUPLE } from "../blend-modes.js";
 import {
   creativeContext,
@@ -2395,7 +2396,9 @@ export const timelineSequenceResponse = z.object({
   mediaTracks: z.array(mediaTrack).optional(),
   camera2d: timelineCamera2d.nullable().optional(),
   createdAt: z.string(),
-  updatedAt: z.string()
+  updatedAt: z.string(),
+  /** The schema version the stored revision was written in. See sync.ts. */
+  schemaVersion: z.number().int().optional()
 });
 export type TimelineSequenceResponse = z.infer<typeof timelineSequenceResponse>;
 
@@ -2551,7 +2554,9 @@ export type CreateTimelineVersionInput = z.infer<
 
 export const restoreTimelineVersionInput = z.object({
   id: z.string(),
-  version: z.number().int()
+  version: z.number().int(),
+  /** The restoring editing instance. See `editingInstanceId` in sync.ts. */
+  editingInstance: editingInstanceId.optional()
 });
 export type RestoreTimelineVersionInput = z.infer<
   typeof restoreTimelineVersionInput

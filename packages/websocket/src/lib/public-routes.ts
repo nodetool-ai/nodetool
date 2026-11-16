@@ -214,6 +214,10 @@ export function isPublicAuthExemptRoute(
     pathname === "/ready" ||
     pathname === "/api/health" ||
     pathname === "/api/config" ||
+    // Sync capabilities name no user data. A client reads them before it
+    // signs in. Only this exact GET is exempt: the tRPC procedure that
+    // returns the same answer still passes the auth hook.
+    (pathname === "/api/sync/capabilities" && method === "GET") ||
     // Anonymous analytics carry no account by design: the route must never
     // resolve a user, so it never runs the auth hook.
     (pathname === "/api/analytics/v1/events" && method === "POST") ||

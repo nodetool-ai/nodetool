@@ -175,6 +175,7 @@ import {
 import websocketPlugin from "./plugins/websocket.js";
 import healthRoute, { getVersion } from "./routes/health.js";
 import configRoute, { describeMissingAnonKey } from "./routes/config.js";
+import syncCapabilitiesRoute from "./routes/sync-capabilities.js";
 import oidcAuthRoutes from "./routes/oidc-auth.js";
 import { createAnalyticsRoute } from "./routes/analytics.js";
 import assetsRoutes from "./routes/assets.js";
@@ -1777,6 +1778,7 @@ app.get("/api/server/features", {
 
 await app.register(healthRoute);
 await app.register(configRoute);
+await app.register(syncCapabilitiesRoute);
 if (oidcClient) {
   await app.register(oidcAuthRoutes, {
     client: oidcClient,

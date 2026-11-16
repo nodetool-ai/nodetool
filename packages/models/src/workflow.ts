@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.workflow`.
  */
 
-import { eq, and, desc, or, isNull, lt, inArray, count, type SQL } from "drizzle-orm";
+import { eq, and, desc, or, isNull, lt, inArray, count, max, type SQL } from "drizzle-orm";
 import {
   DBModel,
   ModelChangeEvent,
@@ -18,6 +18,8 @@ import { allowLegacyProjectWritesForTests, getPortableDb } from "./db.js";
 import { projects } from "./schema/projects.js";
 import { eraseRunTraceParentForModelDeletion } from "./run-trace.js";
 import { workflows } from "./schema/workflows.js";
+import { workflowVersions } from "./schema/workflow-versions.js";
+import { saveKeepingRevision, type KeepRevision } from "./kept-revision.js";
 import { WorkflowCollaborator } from "./workflow-collaborator.js";
 import { WorkflowShare } from "./workflow-share.js";
 import { WorkflowVersion } from "./workflow-version.js";
@@ -405,7 +407,8 @@ export class Workflow extends DBModel {
     id: string,
     expectedUpdatedAt: string,
     fields: WorkflowUpdateFields,
-    meta?: ModelChangeMeta
+    meta?: ModelChangeMeta,
+    keep?: KeepRevision
   ): Promise<Workflow | null> {
     const db = getPortableDb();
     // A change of project leaves the file in the folder the workflow was in.
@@ -423,18 +426,42 @@ export class Workflow extends DBModel {
         previous = { project_id: before.project_id, file_path: before.file_path };
       }
     }
-    const rows = await db
-      .update(workflows)
-      .set({
-        ...fields,
-        updated_at: nextUpdatedAtAfter(expectedUpdatedAt)
-      })
-      .where(
-        and(eq(workflows.id, id), eq(workflows.updated_at, expectedUpdatedAt))
-      )
-      .returning();
-
-    const row = rows[0];
+    const unchanged = and(
+      eq(workflows.id, id),
+      eq(workflows.updated_at, expectedUpdatedAt)
+    );
+    const set = { ...fields, updated_at: nextUpdatedAtAfter(expectedUpdatedAt) };
+    let row: typeof workflows.$inferSelect | null | undefined;
+    if (keep) {
+      // The replaced revision becomes a version in the same transaction as
+      // the compare-and-set, so a lost race or a crash writes neither.
+      row = await saveKeepingRevision<
+        typeof workflows.$inferSelect,
+        typeof workflows.$inferSelect
+      >({
+        stored: (tx) => tx.select().from(workflows).where(unchanged).limit(1),
+        highestVersion: (tx) =>
+          tx
+            .select({ value: max(workflowVersions.version) })
+            .from(workflowVersions)
+            .where(eq(workflowVersions.workflow_id, id)),
+        keep: (tx, stored, version) =>
+          tx.insert(workflowVersions).values({
+            id: createTimeOrderedUuid(),
+            workflow_id: id,
+            user_id: stored.user_id,
+            name: keep.name ?? stored.name,
+            description: keep.description ?? null,
+            graph: stored.graph,
+            version,
+            save_type: keep.saveType,
+            created_at: new Date().toISOString()
+          }),
+        write: (tx) => tx.update(workflows).set(set).where(unchanged).returning()
+      });
+    } else {
+      [row] = await db.update(workflows).set(set).where(unchanged).returning();
+    }
     if (!row) return null;
 
     const updated = new Workflow(row);

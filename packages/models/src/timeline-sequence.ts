@@ -1,4 +1,4 @@
-import { eq, desc, and, sql, inArray, isNull, count } from "drizzle-orm";
+import { eq, desc, and, sql, inArray, isNull, count, max } from "drizzle-orm";
 import type {
   TimelineSequence as TimelineSequenceDoc,
   TimelineTrack,
@@ -24,6 +24,8 @@ import { allowLegacyProjectWritesForTests, getPortableDb } from "./db.js";
 import { projects } from "./schema/projects.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
 import { TimelineSequenceVersion } from "./timeline-sequence-version.js";
+import { timelineSequenceVersions } from "./schema/timeline-sequence-versions.js";
+import { saveKeepingRevision, type KeepRevision } from "./kept-revision.js";
 import { removeDocumentSharing } from "./document-sharing.js";
 import {
   assertDocumentFileMayLeave,
@@ -474,7 +476,8 @@ export class TimelineSequence extends DBModel {
       source: doc.source,
       mediaTracks: doc.mediaTracks,
       createdAt: this.created_at,
-      updatedAt: this.updated_at
+      updatedAt: this.updated_at,
+      schemaVersion: this.schema_version
     };
     // An absent version stays absent, so a read never adds the field.
     if (doc.workingColorSpaceVersion !== undefined) {
@@ -668,7 +671,8 @@ export class TimelineSequence extends DBModel {
       last_writer_instance: string | null;
       schema_version: number;
     }>,
-    meta?: ModelChangeMeta
+    meta?: ModelChangeMeta,
+    keep?: KeepRevision
   ): Promise<TimelineSequence | null> {
     const write: typeof fields = { ...fields };
     if (fields.document !== undefined) {
@@ -681,22 +685,55 @@ export class TimelineSequence extends DBModel {
     }
     const db = getPortableDb();
     const now = nextUpdatedAtAfter(expectedUpdatedAt);
-    const rows = await db
-      .update(timelineSequences)
-      .set({
-        ...write,
-        revision: sql`${timelineSequences.revision} + 1`,
-        updated_at: now
-      })
-      .where(
-        and(
-          eq(timelineSequences.id, id),
-          eq(timelineSequences.updated_at, expectedUpdatedAt)
-        )
-      )
-      .returning();
-
-    const row = rows[0];
+    const unchanged = and(
+      eq(timelineSequences.id, id),
+      eq(timelineSequences.updated_at, expectedUpdatedAt)
+    );
+    const set = {
+      ...write,
+      revision: sql`${timelineSequences.revision} + 1`,
+      updated_at: now
+    };
+    let row: typeof timelineSequences.$inferSelect | null | undefined;
+    if (keep) {
+      // The replaced revision becomes a version in the same transaction as
+      // the compare-and-set, so a lost race or a crash writes neither.
+      row = await saveKeepingRevision<
+        typeof timelineSequences.$inferSelect,
+        typeof timelineSequences.$inferSelect
+      >({
+        stored: (tx) =>
+          tx.select().from(timelineSequences).where(unchanged).limit(1),
+        highestVersion: (tx) =>
+          tx
+            .select({ value: max(timelineSequenceVersions.version) })
+            .from(timelineSequenceVersions)
+            .where(eq(timelineSequenceVersions.timeline_id, id)),
+        keep: (tx, stored, version) =>
+          tx.insert(timelineSequenceVersions).values({
+            id: createTimeOrderedUuid(),
+            timeline_id: id,
+            user_id: stored.user_id,
+            name: keep.name,
+            save_type: keep.saveType,
+            version,
+            fps: stored.fps,
+            width: stored.width,
+            height: stored.height,
+            duration_ms: stored.duration_ms,
+            document: stored.document,
+            created_at: new Date().toISOString()
+          }),
+        write: (tx) =>
+          tx.update(timelineSequences).set(set).where(unchanged).returning()
+      });
+    } else {
+      [row] = await db
+        .update(timelineSequences)
+        .set(set)
+        .where(unchanged)
+        .returning();
+    }
     if (!row) return null;
 
     const updated = new TimelineSequence(row);

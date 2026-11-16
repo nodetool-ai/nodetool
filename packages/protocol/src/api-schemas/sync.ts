@@ -5,15 +5,19 @@
  * A client reads `sync.capabilities` once per server, and sends its protocol
  * version in the {@link SYNC_PROTOCOL_HEADER} header on every request. A
  * client below {@link MIN_CLIENT_PROTOCOL_VERSION} may still list and read,
- * and its writes are refused with `CLIENT_TOO_OLD`. A request without the
- * header comes from a client that ships with this server, such as the web
- * app, and is not checked.
+ * and its writes are refused with `CLIENT_TOO_OLD`. A native app always
+ * sends the header, and its writes are refused without it. Any other request
+ * without the header is a legacy client: its writes are accepted, and a save
+ * from it that names no schema version is in
+ * {@link LEGACY_DOCUMENT_SCHEMA_VERSION}.
  *
  * Each document records the schema version it was written in. A save in a
  * lower version is refused with `SCHEMA_DOWNGRADE`, so a client that cannot
  * write a document's schema can never replace it with a reduced copy. A save
- * without a version is written in {@link DOCUMENT_SCHEMA_VERSIONS}, which
- * again is what clients shipped with this server write.
+ * with the header and without a version is written in
+ * {@link DOCUMENT_SCHEMA_VERSIONS}, what clients shipped with this server
+ * write. Reads return the stored `schema_version`, so a client can tell
+ * before saving whether it can write the document.
  */
 import { z } from "zod";
 
@@ -28,6 +32,12 @@ export const MIN_CLIENT_PROTOCOL_VERSION = 1;
 
 export const syncDocumentKind = z.enum(["workflow", "timeline"]);
 export type SyncDocumentKind = z.infer<typeof syncDocumentKind>;
+
+/**
+ * The schema version of a save that names none, from a client that sent no
+ * protocol header: every client from before the header wrote this one.
+ */
+export const LEGACY_DOCUMENT_SCHEMA_VERSION = 1;
 
 /** The schema version this server writes, per document kind. */
 export const DOCUMENT_SCHEMA_VERSIONS: Readonly<

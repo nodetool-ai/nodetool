@@ -160,6 +160,7 @@ export type {
 } from "./workflow.js";
 
 export { WorkflowVersion } from "./workflow-version.js";
+export type { KeepRevision } from "./kept-revision.js";
 export {
   WorkflowCollaborator,
   isCollaboratorRole,

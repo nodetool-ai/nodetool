@@ -68,8 +68,9 @@ import * as sync from "@nodetool-ai/protocol/api-schemas/sync.js";
 import {
   acceptedSchemaVersion,
   isDocumentSaveRefusal,
-  keepTimelineRevision,
-  replacesAnotherWriter
+  keepBeforeRestore,
+  revisionToKeep,
+  writerOf
 } from "../../lib/document-save-rules.js";
 import { isString } from "../../lib/wire-values.js";
 import { installExampleTimeline, listExampleTimelines } from "../../lib/example-timelines.js";
@@ -607,11 +608,12 @@ export const timelineRouter = router({
             acceptedSchemaVersion(
               "timeline",
               seq.schema_version,
-              input.schemaVersion
+              input.schemaVersion,
+              ctx.clientProtocol == null
             ),
           isDocumentSaveRefusal
         );
-        fields.last_writer_instance = input.editingInstance ?? null;
+        fields.last_writer_instance = writerOf(ctx.userId, input.editingInstance);
 
         stripped = strippedDocumentPaths(input.rawDocument, input.document);
         if (stripped.length > 0) {
@@ -634,19 +636,17 @@ export const timelineRouter = router({
         );
       }
 
-      if (
-        input.document !== undefined &&
-        replacesAnotherWriter(seq, {
-          instance: input.editingInstance,
-          base: input.baseUpdatedAt
-        })
-      ) {
-        await keepTimelineRevision(seq);
-      }
       const updated = await TimelineSequence.updateFieldsIfUnchanged(
         seq.id,
         expectedUpdatedAt,
-        fields
+        fields,
+        undefined,
+        input.document === undefined
+          ? undefined
+          : revisionToKeep("timeline", seq, {
+              writer: writerOf(ctx.userId, input.editingInstance),
+              base: input.baseUpdatedAt
+            })
       );
       if (!updated) {
         // The row changed between load and write (or was deleted). Report a
@@ -761,13 +761,6 @@ export const timelineRouter = router({
           throwApiError(ApiErrorCode.NOT_FOUND, "Timeline version not found");
         }
 
-        // Snapshot what is about to be overwritten first, so a restore is
-        // itself undoable.
-        await TimelineSequenceVersion.snapshot(seq, {
-          saveType: "restore",
-          name: `Before restore to v${input.version}`
-        });
-
         const document = parseVersionDocument(version.document);
         await ensureVersionSets("timeline", seq);
         const toAdmit = await checkAttach(
@@ -784,8 +777,25 @@ export const timelineRouter = router({
             fps: version.fps,
             width: version.width,
             height: version.height,
-            duration_ms: version.duration_ms
-          }
+            duration_ms: version.duration_ms,
+            // The server writes the restored revision, so it is in the
+            // schema this server writes, and its writer is the restorer.
+            schema_version: withApiRefusal(
+              () =>
+                acceptedSchemaVersion(
+                  "timeline",
+                  seq.schema_version,
+                  undefined,
+                  false
+                ),
+              isDocumentSaveRefusal
+            ),
+            last_writer_instance: writerOf(ctx.userId, input.editingInstance)
+          },
+          undefined,
+          // What is about to be overwritten becomes a version in the same
+          // transaction, so a restore is itself undoable.
+          keepBeforeRestore("timeline", input.version)
         );
         if (!updated) {
           throwApiError(

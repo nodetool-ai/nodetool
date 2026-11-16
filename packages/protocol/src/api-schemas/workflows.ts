@@ -154,7 +154,9 @@ export const workflowResponse = z.object({
   needs: exampleNeeds.nullable().optional(),
   html_app: z.string().nullable(),
   app_doc: z.record(z.string(), z.unknown()).nullable().optional(),
-  etag: z.string().nullable()
+  etag: z.string().nullable(),
+  /** The schema version the stored graph was written in. See sync.ts. */
+  schema_version: z.number().int().optional()
 });
 export type WorkflowResponse = z.infer<typeof workflowResponse>;
 
@@ -535,7 +537,9 @@ export type VersionGetInput = z.infer<typeof versionGetInput>;
 // version restore (POST /api/workflows/:id/versions/:version/restore)
 export const versionRestoreInput = z.object({
   id: z.string().min(1),
-  version: z.number().int().min(1)
+  version: z.number().int().min(1),
+  /** The restoring editing instance. See {@link editingInstanceId}. */
+  editing_instance: editingInstanceId.optional()
 });
 export type VersionRestoreInput = z.infer<typeof versionRestoreInput>;
 
