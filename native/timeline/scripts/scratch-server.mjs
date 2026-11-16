@@ -55,6 +55,8 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {},
       VECTORSTORE_DB_PATH: path.join(dir, "data", "vectorstore.db"),
       ASSET_FOLDER: path.join(dir, "assets"),
       STORAGE_PATH: path.join(dir, "assets"),
+      // Project folders, where an upload's bytes are saved.
+      NODETOOL_WORKSPACES_DIR: path.join(dir, "workspaces"),
       // A scratch key: the secret store never asks the keychain.
       SECRETS_MASTER_KEY: crypto.randomBytes(32).toString("base64"),
       NODETOOL_ENV: "development",
@@ -255,9 +257,31 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {},
     const r = await provenWrite(server, "/api/assets", { "content-type": encoded.headers.get("content-type") }, Buffer.from(await encoded.arrayBuffer()));
     if (!r.ok) throw new Error(`upload ${file}: HTTP ${r.status} ${await r.text()}`);
     const asset = await r.json();
-    const stored = path.join(server.dir, "assets", asset.user_id, `${asset.id}${path.extname(file)}`);
-    if (!fs.existsSync(stored)) throw new Error(`upload ${file}: not stored under the scratch folder (${stored})`);
+    if (!fs.readFileSync(storedFile(server, asset)).equals(fs.readFileSync(file))) {
+      throw new Error(`upload ${file}: the stored file's bytes differ from the upload`);
+    }
     return asset;
+  }
+
+  /**
+   * The file an upload saved in the personal project folder under `server.dir`.
+   * The bytes go to `Imported/` with a name taken from the asset name, and the
+   * row records the file's size and mtime. Exactly one file there must match both.
+   */
+  function storedFile(server, asset) {
+    const dir = path.join(server.dir, "workspaces", asset.user_id, "Imported");
+    const size = asset.metadata?.workspace_size;
+    const mtime = asset.metadata?.workspace_mtime;
+    const matches = (fs.existsSync(dir) ? fs.readdirSync(dir) : [])
+      .map((name) => path.join(dir, name))
+      .filter((p) => {
+        const st = fs.lstatSync(p);
+        return st.isFile() && st.size === size && st.mtimeMs === mtime;
+      });
+    if (matches.length !== 1) {
+      throw new Error(`asset ${asset.id} (${asset.name}): ${matches.length} files in ${dir} match size ${size} and mtime ${mtime}, wanted 1`);
+    }
+    return matches[0];
   }
   
   async function waitProxy(base, id, want, timeoutMs = 120_000) {
@@ -289,5 +313,5 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {},
   }
   
   
-  return { servers, startServer, stopServers, assertScratch, nativeEnv, query, mutate, upload, waitProxy, createTimeline };
+  return { servers, startServer, stopServers, assertScratch, nativeEnv, query, mutate, upload, storedFile, waitProxy, createTimeline };
 }

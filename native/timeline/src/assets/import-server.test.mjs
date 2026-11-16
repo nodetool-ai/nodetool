@@ -89,7 +89,8 @@ try {
           assert.equal(audio.linkId, video.linkId);
           const extracted = await session.query(server.base, 'assets.get', { id: audio.currentAssetId });
           assert.equal(extracted.content_type, 'audio/wav');
-          assert.equal(extracted.parent_id, source.id);
+          // A project folder lists files by directory, so parent_id names the directory.
+          assert.equal(extracted.parent_id, source.parent_id, 'extracted WAV must be in the video\'s directory');
           assert.equal(extracted.name, source.name + ' (audio)');
           assert.ok(audio.durationMs > 0);
           assert.equal(dropped.runtime.find(clip => clip.id === audio.id).audioExists, true,
