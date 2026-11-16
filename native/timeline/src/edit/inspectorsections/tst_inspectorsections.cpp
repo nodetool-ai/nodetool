@@ -185,6 +185,13 @@ private slots:
         QVERIFY(!section(e.inspector(), "Transform"));
         QVERIFY(!section(e.inspector(), "Animate"));
         QCOMPARE(findItem(group, "groupTrimHint")->property("text").toString(), QString("Trimming the group pulls its children inside the window that leaves."));
+        // B40: the group's transform, opacity and animations stay editable, in Effect Controls and Motion.
+        auto* effectControls = findItem(e.root(), "effectControlsPanel"); QVERIFY(effectControls);
+        QTRY_VERIFY(findItem(effectControls, "effectControlsGroup_motion"));
+        QVERIFY(findItem(effectControls, "effectControlsGroup_opacity"));
+        auto* motion = findItem(e.root(), "motionPanel"); QVERIFY(motion);
+        QVERIFY(motion->property("hasPicture").toBool());
+        QVERIFY(findItem(motion, "motionPanelAnimate"));
         auto* groupTiming = section(group, "Timing"); QVERIFY(groupTiming);
         groupTiming->setProperty("open", true);
         for (const auto& edit : QList<QPair<QString, QString>>{{"timingStart", "00:00:01:00"}, {"timingDuration", "4.00"}}) {

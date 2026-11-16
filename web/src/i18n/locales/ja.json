@@ -696,61 +696,15 @@
   },
   "batch2_1": {
     "common": {
-      "workspace": "ワークスペース",
       "loading": "読み込み中…",
       "refresh": "リフレッシュ",
       "remove": "削除",
       "cancel": "キャンセル"
     },
-    "page": {
-      "title": "ワークスペース",
-      "subtitle": "エージェントとワークフローがファイルの読み取り、書き込み、整理を行うことができるサンドボックス フォルダー。"
-    },
-    "folderPicker": {
-      "title": "ワークスペースフォルダーを選択"
-    },
-    "notifications": {
-      "added": "ワークスペースが追加されました",
-      "removed": "ワークスペースが削除されました"
-    },
-    "errors": {
-      "loadTitle": "ワークスペースを読み込めませんでした",
-      "loadSummary": "ワークスペースの読み込みに失敗しました",
-      "loadDescription": "接続を確認して、もう一度試してください。",
-      "operation": "ワークスペース操作が失敗しました: {{error}}"
-    },
-    "manager": {
-      "inaccessible": "アクセス不可",
-      "defaultWorkspace": "デフォルトのワークスペース",
-      "setDefault": "デフォルトとして設定",
-      "emptyTitle": "ワークスペースが構成されていません",
-      "emptyCanManage": "エージェントがローカル フォルダーにアクセスできるようにワークスペースを追加する",
-      "emptyManaged": "この展開では、ワークスペースを管理します。",
-      "adding": "追加中…",
-      "addWorkspace": "ワークスペースの追加",
-      "removeTitle": "このワークスペースを削除しますか?",
-      "removeDescription": "ワークスペースは NodeTool から削除されます。フォルダー自体は削除されません。"
-    },
-    "select": {
-      "defaultWithPath": "デフォルト ({{path}})",
-      "description": "エージェントは実行中に、保存された画像、テキスト、データ、その他の出力を含むファイルの読み取りと書き込みを行います。 [ワークスペース] パネルで結果を参照します。エージェントは、このフォルダー内のファイルにのみアクセスできます。 「デフォルト」のままにしたワークフローでは、デフォルトのワークスペースが使用されます。",
-      "createNew": "新しいワークスペースを作成する",
-      "addWorkspace": "ワークスペースを追加…"
-    },
     "tree": {
       "loading": "読み込み中…",
       "accessDenied": "⚠️ アクセスが拒否されました",
-      "title": "ワークスペースエクスプローラー",
-      "manage": "ワークスペースの管理",
-      "goToRoot": "ワークスペースのルートに移動します",
-      "openInFolder": "フォルダ内で開く",
-      "openExternally": "外部に開く",
-      "noneSelected": "ワークスペースが選択されていません",
-      "selectOrCreate": "上でワークスペースを選択するか、ワークスペースを作成します。",
-      "createWorkspace": "ワークスペースの作成",
-      "fileBrowser": "ワークスペース ファイル ブラウザ",
-      "emptyTitle": "ワークスペースが空です",
-      "emptyDescription": "ファイルをワークスペース フォルダーに追加すると、ここに表示されます。"
+      "openExternally": "外部に開く"
     }
   },
   "batch2_10": {
@@ -1760,7 +1714,6 @@
       "packageManager": "パッケージマネージャー",
       "assets": "資産",
       "collections": "コレクション",
-      "workspaces": "ワークスペース",
       "memory": "記憶",
       "settings": "設定",
       "help": "ヘルプ",
@@ -6471,16 +6424,42 @@
           "export": "エクスポート",
           "archive": "アーカイブ",
           "restore": "復元",
-          "delete": "削除"
+          "delete": "削除",
+          "collect": "ファイルを収集"
         },
         "projectActions": "プロジェクトのアクション",
         "actionsForProject": "{{projectName}} のアクション",
         "exporting": "エクスポート中…",
         "deleteProject": "プロジェクトの削除",
         "confirmDeleteTitle": "{{projectName}} を削除しますか?",
-        "confirmDeleteBody": "{{projectName}} とそのすべてのドキュメント、会話、生成された出力、アセット、ジョブ、プロジェクト ファイルを削除します。",
+        "confirmDeleteBody": "{{projectName}} とそのすべてのドキュメント、会話、ジョブ、プロジェクト フォルダーの外に保存されているアセットを削除します。",
         "deleteIrreversible": "これを元に戻すことはできません。",
-        "error": "{{action}} {{projectName}} できませんでした: {{error}}"
+        "deleteFolderTrash": "プロジェクト フォルダーはゴミ箱に移動します。",
+        "deleteFolderRemove": "プロジェクト フォルダーとその中のすべてのファイルがクラウド ストレージから削除されます。",
+        "deleteFolderKeep": "プロジェクト フォルダーはすべてのファイルとともに元の場所に残ります。NodeTool はその中の .nodetool フォルダーだけを削除します。",
+        "deleteFolderMissing": "プロジェクト フォルダーにアクセスできないため、NodeTool はそのままにします。",
+        "folderMovedAsideTo": "ゴミ箱にアクセスできませんでした。プロジェクト フォルダーは {{path}} に移動しました。",
+        "folderMovedAside": "ゴミ箱にアクセスできませんでした。プロジェクト フォルダーはプロジェクト用フォルダー内の .trash フォルダーに移動しました。",
+        "folderTrashFailedAt": "プロジェクト フォルダーをゴミ箱に移動できませんでした。{{path}} に残っています。",
+        "folderTrashFailed": "プロジェクト フォルダーをゴミ箱に移動できませんでした。元の場所に残っています。",
+        "error": "{{action}} {{projectName}} できませんでした: {{error}}",
+        "collecting": "ファイルを収集しています…",
+        "collectResult": "{{projectName}} にファイルを収集しました: コピー {{copied}} 件、スキップ {{skipped}} 件、失敗 {{failed}} 件。",
+        "linkedTitle": "{{projectName}} はフォルダー外のファイルをリンクしています",
+        "linkedBody": "エクスポートにはプロジェクトフォルダーが含まれます。次のファイルは別の場所からリンクされており、フォルダー内にありません:",
+        "linkedChoice": "「収集してエクスポート」はファイルをフォルダーの Imported ディレクトリにコピーしてからエクスポートします。「キャンセル」はリンクを残し、何もエクスポートしません。",
+        "collectAndExport": "収集してエクスポート"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "コピーしますか、リンクしますか?",
+        "confirm": "インポート",
+        "copy": "プロジェクトフォルダーにコピー",
+        "copyHint": "プロジェクトは独自のコピーを保持します。元のファイルの変更は反映されません。",
+        "link": "その場所でリンク",
+        "linkHint": "何もコピーしません。プロジェクトはファイルを現在の場所から読み込みます。「ファイルを収集」で後からコピーできます。",
+        "threshold": "{{size}} 以上のファイルは既定でリンクされます。"
       }
     }
   },
@@ -6655,8 +6634,6 @@
       "runModeTool": "ツール",
       "runModeDescription": "このワークフローの実行方法とトリガー方法",
       "advanced": "上級者向け",
-      "workspace": "ワークスペース",
-      "workspaceDescription": "エージェント アクセスのためにワークスペース フォルダーをこのワークフローに関連付けます",
       "toolName": "ツール名",
       "toolNameDescription": "API/ツールの使用のための識別子。文字、数字、アンダースコアのみ。",
       "toolNamePlaceholder": "my_workflow_tool",
@@ -10679,9 +10656,9 @@
         "jsScripts": "JSスクリプト",
         "skills": "スキル",
         "assets": "資産",
-        "workspace": "ワークスペース",
         "library": "図書館",
-        "more": "もっと見る"
+        "more": "もっと見る",
+        "files": "ファイル"
       },
       "categoryDescriptions": {
         "documents": "現在のプロジェクト内のすべてのドキュメントを参照します。",
@@ -10701,9 +10678,9 @@
         "jsScripts": "再利用可能な JavaScript コードを作成および管理します。",
         "skills": "エージェントのスキル — 目的に合わせたマークダウンの指示。",
         "assets": "現在のコンテキストで利用可能なアセットを参照します。",
-        "workspace": "選択したワークスペース フォルダー内のファイルを参照します。",
         "library": "現在のプロジェクト内のアセットを参照します。",
-        "more": "追加のワークフロー、エディター、開発者、およびワークスペースのパネルを開きます。"
+        "more": "ワークフロー、エディタ、開発者向けのパネルをさらに開きます。",
+        "files": "プロジェクトフォルダ内のファイルを参照します。"
       }
     },
     "queue": {
@@ -14014,8 +13991,7 @@
       "search": "すべてのパネルを検索",
       "group": {
         "workflow-tools": "ワークフローツール",
-        "agent-tools": "エージェントツール",
-        "workspace": "ワークスペース"
+        "agent-tools": "エージェントツール"
       },
       "category": {
         "favorites": {
@@ -14033,10 +14009,6 @@
         "skills": {
           "label": "スキル",
           "description": "エージェントのスキル — 目的に合わせたマークダウンの指示。"
-        },
-        "workspace-files": {
-          "label": "ワークスペース",
-          "description": "選択したワークスペース フォルダー内のファイルを参照します。"
         }
       }
     },
@@ -14692,9 +14664,6 @@
       "runGroup": {
         "groupRunning": "グループが実行中です",
         "runGroup": "実行グループ"
-      },
-      "saveDestinationHint": {
-        "workspace": "ワークスペース"
       }
     }
   },
@@ -15913,9 +15882,9 @@
       "jsscripts": "JSスクリプト",
       "skills": "スキル",
       "assets": "資産",
-      "workspace-files": "ワークスペース",
       "library": "図書館",
-      "more": "もっと見る"
+      "more": "もっと見る",
+      "files": "ファイル"
     }
   },
   "i18n-next55": {
@@ -16042,7 +16011,6 @@
         "models": "モデルマネージャー",
         "packages": "パッケージマネージャー",
         "collections": "コレクション",
-        "workspaces": "ワークスペース",
         "entities": "エンティティ",
         "memory": "記憶",
         "settings": "設定",
@@ -18630,7 +18598,7 @@
   },
   "i18n-next110": {
     "workspaceFile": {
-      "invalidReference": "無効なワークスペース ファイル参照"
+      "invalidReference": "無効なファイル参照です"
     }
   },
   "i18n-next109": {
@@ -20156,5 +20124,31 @@
     "saveFailed": "この権限を保存できませんでした。",
     "loadFailed": "ツール一覧を読み込めませんでした。",
     "noMatches": "検索に一致するツールはありません。"
+  },
+  "projectFolder": {
+    "name": "プロジェクトフォルダ",
+    "picker": {
+      "title": "フォルダを選択"
+    },
+    "tree": {
+      "title": "ファイル",
+      "goToRoot": "プロジェクトフォルダのルートへ移動",
+      "fileBrowser": "プロジェクトのファイル",
+      "emptyTitle": "プロジェクトフォルダは空です",
+      "emptyDescription": "プロジェクトフォルダにファイルを追加すると、ここに表示されます。",
+      "noFolderTitle": "プロジェクトフォルダがありません",
+      "noFolderDescription": "このプロジェクトにはまだフォルダがありません。",
+      "revealInFinder": "Finderで表示",
+      "revealInExplorer": "エクスプローラーで表示",
+      "revealInFileManager": "ファイルマネージャーで表示"
+    }
+  },
+  "assetPicker": {
+    "sourceTabs": "アセットの参照元",
+    "projectTab": "このプロジェクト",
+    "personalTab": "個人",
+    "personalHint": "個人から選ぶと、ファイルがこのプロジェクトにコピーされます。",
+    "copying": "このプロジェクトにコピーしています…",
+    "copyFailed": "アセットをこのプロジェクトにコピーできませんでした。"
   }
 }

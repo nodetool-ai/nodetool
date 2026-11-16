@@ -105,17 +105,24 @@ it("keeps the required core-smoke status dependent on verification and the indep
   }
 }, 60_000);
 
-it("leaves verification to the Quality Gate only on pull requests into main", () => {
+it("leaves verification to the Quality Gate on every pull request and push", () => {
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
-  expect(workflow.jobs["verification-plan"].if).toBe("github.event_name != 'pull_request' || github.base_ref != 'main'");
+  expect(workflow.jobs["verification-plan"].if).toBe("github.event_name == 'workflow_dispatch'");
   expect(workflow.jobs.verification.needs).toEqual(["ci-image", "verification-plan"]);
   expect(workflow.jobs.verification.if).toBeUndefined();
   expect(workflow.jobs["core-smoke"].steps[0].env.QUALITY_GATE_VERIFIES)
-    .toBe("${{ github.event_name == 'pull_request' && github.base_ref == 'main' }}");
-  // The skip is safe only while Test runs on every pull request into main
-  // and its Quality Gate runs each command verification would.
+    .toBe("${{ github.event_name != 'workflow_dispatch' }}");
+  // The skip is safe only while Test runs on every pull request, whatever
+  // its base branch, and on the pushes to main that change a package, and
+  // its Quality Gate runs each command verification would.
   const test = yaml.load(readFileSync(new URL("../../.github/workflows/test.yml", import.meta.url), "utf8"));
-  expect(test.on.pull_request).toEqual({ branches: ["main"] });
+  expect(test.on.pull_request).toBeNull();
+  expect(test.on.push.branches).toEqual(["main"]);
+  expect(workflow.on.push.branches).toEqual(["main"]);
+  for (const path of ["packages/**", "package.json", "package-lock.json", ".nvmrc", ".github/actions/setup-build/**"]) {
+    expect(workflow.on.push.paths, path).toContain(path);
+    expect(test.on.push.paths, path).toContain(path);
+  }
   expect(test.jobs.quality.uses).toBe("./.github/workflows/quality-checks.yml");
   const quality = readFileSync(new URL("../../.github/workflows/quality-checks.yml", import.meta.url), "utf8");
   for (const command of ["npm run typecheck", "npm run lint", "npm run dev:nodetool -- harness gate --base", "npm run backend:smoke", "npm run test:scripts", "npx turbo run test"]) {

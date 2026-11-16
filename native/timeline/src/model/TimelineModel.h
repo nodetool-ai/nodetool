@@ -94,6 +94,9 @@ public:
     bool previewClips(const QJsonArray& changed);
     // Updates only track effects in the render/audio snapshot, retaining the UI rows.
     bool previewTrackEffects(const QJsonArray& tracks);
+    // Shows a track at a height during a resize drag, with no undo entry. Put the
+    // starting height back before the edit that records the change.
+    bool previewTrackHeight(const QString& trackId, double heightPx);
     void settleTransient();
     // O(1) through the snapshot's id index. Null: no such clip.
     const nt::Clip* findClip(const QString& clipId) const;

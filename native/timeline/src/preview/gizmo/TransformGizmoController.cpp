@@ -368,6 +368,9 @@ QString TransformGizmoController::targetAt(QPointF point) const {
     return polygon(m_box).containsPoint(point, Qt::OddEvenFill) ? QStringLiteral("body") : QString();
 }
 bool TransformGizmoController::contains(const QPointF& point) const {
+    // The item covers only the on-screen preview: a box that reaches past it leaves the
+    // transport and tracks their clicks.
+    if (!QRectF(QPointF(), size()).contains(point)) { return false; }
     const auto local = point - m_origin;
     if (m_monitor && !QRectF(QPointF(), m_frame).contains(local)) { return false; }
     return !targetAt(local).isEmpty();

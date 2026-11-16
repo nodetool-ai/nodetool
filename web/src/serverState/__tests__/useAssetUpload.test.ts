@@ -309,7 +309,32 @@ describe("useAssetUpload", () => {
         "parent-1",
         expect.any(Function),
         undefined,
-        "current-project"
+        "current-project",
+        undefined,
+        undefined
+      );
+    });
+
+    it("passes the Copy or Link choice from the import dialog to createAsset", () => {
+      const mockFile = new File(["test"], "clip.mp4", { type: "video/mp4" });
+      mockCreateAsset.mockReturnValue(new Promise(() => {}));
+
+      act(() => {
+        useAssetUpload.getState().uploadAsset({
+          file: mockFile,
+          importMode: "link"
+        });
+      });
+
+      expect(mockCreateAsset).toHaveBeenCalledWith(
+        mockFile,
+        undefined,
+        undefined,
+        expect.any(Function),
+        undefined,
+        "current-project",
+        undefined,
+        "link"
       );
     });
   });

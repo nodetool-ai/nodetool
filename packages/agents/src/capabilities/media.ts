@@ -42,6 +42,7 @@ import type {
 import {
   currentGenerationReceipt,
   DEFAULT_YT_DLP_FORMAT,
+  ensureRunFile,
   loadMediaModule,
   loadMediaRefBytes,
   splitYtDlpFormat,
@@ -366,7 +367,12 @@ function generationRequest(
 ): GenerationRequest {
   const outputFile = outputFileOf(params);
   const persist: GenerationRequest["persist"] = {};
-  if (outputFile) persist.name = path.basename(outputFile);
+  // A named output is the asset's file: the seam saves it at that path in
+  // the project folder, so no second copy is written for the workspace.
+  if (outputFile) {
+    persist.name = path.basename(outputFile);
+    persist.path = outputFile;
+  }
   if (spec.mime) persist.mime = spec.mime;
   return {
     id,
@@ -380,9 +386,10 @@ function generationRequest(
 }
 
 /**
- * Write the bytes where the caller can read them back: the asset the seam
- * saved when it could, plus a workspace copy when `output_file` was named or
- * no asset exists. `persistOutput` handles the no-asset case as before.
+ * Answer with the asset the seam saved. With `output_file` the seam wrote
+ * the file at that path in the project folder; the run's workspace gets the
+ * bytes only when it is another folder. `persistOutput` handles the no-asset
+ * case as before.
  */
 async function finishOutput(
   context: ProcessingContext,
@@ -401,10 +408,16 @@ async function finishOutput(
     asset_uri: first.uri,
     url: first.uri
   };
-  if (opts.outputFile && context.workspace) {
+  if (opts.outputFile) {
     try {
-      await context.workspace.write(opts.outputFile, bytes, opts.mime);
-      result.path = opts.outputFile;
+      const written = await ensureRunFile(
+        context,
+        bytes,
+        opts.outputFile,
+        opts.mime,
+        first.asset_id
+      );
+      if (written) result.path = written;
     } catch {
       // Non-fatal — the asset is the handle.
     }
@@ -444,11 +457,13 @@ function startMediaBackgroundGeneration(
   const started = startBackgroundGeneration(context, async () => {
     const result = await context.runGeneration(req);
     const bytes = generatedBytes(result.output);
-    if (bytes && outputFile && context.workspace) {
-      await context.workspace.write(
-        outputFile,
+    if (bytes && outputFile) {
+      await ensureRunFile(
+        context,
         bytes,
-        spec.mime ?? inferImageMime(bytes)
+        outputFile,
+        spec.mime ?? inferImageMime(bytes),
+        result.assets[0]?.asset_id ?? null
       );
     }
   });
@@ -1267,6 +1282,7 @@ function runAudioGeneration(
         audio.outputFile = outputFileForMime(audio.outputFile, audio.mimeType);
         if (audio.outputFile && req.persist) {
           req.persist.name = path.basename(audio.outputFile);
+          req.persist.path = audio.outputFile;
         }
         return audio;
       },
@@ -1302,7 +1318,15 @@ function runAudioGeneration(
               };
             }
             try {
-              await context.workspace.write(destination, output.data, mime);
+              // The seam already wrote a named file into the project folder,
+              // which is the run's workspace on every server host.
+              await ensureRunFile(
+                context,
+                output.data,
+                destination,
+                mime,
+                outputFile ? (saved.asset_id ?? null) : null
+              );
             } catch (error) {
               return {
                 status: "failed",

@@ -5,7 +5,7 @@
  */
 
 import { isDeepStrictEqual } from "node:util";
-import { eq, and, or, like, desc, isNull, isNotNull, lt, inArray } from "drizzle-orm";
+import { eq, and, or, like, desc, isNull, isNotNull, lt, inArray, sql } from "drizzle-orm";
 import { isShortResourceId, isSystemEntityMetadata } from "@nodetool-ai/protocol";
 import {
   DBModel,
@@ -278,6 +278,38 @@ export class Asset extends DBModel {
         )
       );
     return rows.map((row) => new Asset(row));
+  }
+
+  /**
+   * The user's assets in `projectId` whose metadata holds the string `value`
+   * under the top-level key `key`, oldest first. Asset services find the
+   * copies of an asset this way.
+   */
+  static async findByMetadataString(
+    userId: string,
+    projectId: string,
+    key: string,
+    value: string
+  ): Promise<Asset[]> {
+    // Metadata is stored as JSON text in both dialects. The pattern narrows
+    // the scan to rows naming the value, and the parsed metadata decides.
+    const marker = JSON.stringify({ [key]: value })
+      .slice(1, -1)
+      .replace(/[\\%_]/g, "\\$&");
+    const rows = await getPortableDb()
+      .select()
+      .from(assets)
+      .where(
+        and(
+          eq(assets.user_id, userId),
+          eq(assets.project_id, projectId),
+          sql`${assets.metadata} LIKE ${`%${marker}%`} ESCAPE '\\'`
+        )
+      )
+      .orderBy(assets.created_at);
+    return rows
+      .map((row) => new Asset(row))
+      .filter((asset) => asset.metadata?.[key] === value);
   }
 
   /**

@@ -943,6 +943,7 @@ export class SaveVideoFileVideoNode extends BaseNode {
       saveToWorkspace: this.save_to_workspace,
       workspace: context?.workspace,
       workspaceDir: context?.workspaceDir,
+      context: context ?? null,
       bytes
     });
     return { output: videoRef(bytes, { uri: `file://${p}` }) };

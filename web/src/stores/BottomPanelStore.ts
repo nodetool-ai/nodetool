@@ -8,8 +8,8 @@ import { isObjectLike } from "../utils/typePredicates";
  *  - "workflow": versions
  *  - "debug":    trace
  *
- * The workspace file browser moved to the left panel (LeftPanelView
- * "workspace-files"); a stored activeView of "workspace" falls back to "logs".
+ * The project's file browser moved to the left panel (LeftPanelView
+ * "files"); a stored activeView of "workspace" falls back to "logs".
  *
  * Workflow settings live in the left panel (LeftPanelView "settings"). Chat
  * now lives in the draggable canvas dock (FloatingToolBar), not a left-panel

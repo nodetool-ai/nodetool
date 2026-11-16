@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { Asset } from "../stores/ApiTypes";
-import { useAssetStore } from "../stores/AssetStore";
+import { useAssetStore, type ImportMode } from "../stores/AssetStore";
 import { useRecentAssetsStore } from "../stores/RecentAssetsStore";
 import { UploadSource } from "../utils/imageUploadValidation";
 import { creationProjectId } from "../stores/WorkspaceTabsStore";
@@ -11,7 +11,17 @@ type UploadFileInput = {
   workflow_id?: string;
   project_id?: string;
   parent_id?: string;
+  /**
+   * Directory in the project folder the file was dropped on (`.` is the
+   * folder itself). Omitted, the server saves the upload in `Imported/`.
+   */
+  directory?: string;
   source?: UploadSource;
+  /**
+   * Copy or Link, as chosen in the import dialog. Omitted, a desktop import
+   * links a file at or above the server's size threshold.
+   */
+  importMode?: ImportMode;
   onCompleted?: (asset: Asset) => void;
   onFailed?: (error: string) => void;
   error?: string;
@@ -112,7 +122,9 @@ export const useAssetUpload = create<UploadState>((set, get) => ({
         get().updateStatus(nextUploadIndex, progress, "uploading");
       },
       uploadFile.source,
-      uploadFile.project_id
+      uploadFile.project_id,
+      uploadFile.directory,
+      uploadFile.importMode
     )
       .then((asset: Asset) => {
         get().updateStatus(nextUploadIndex, 100, "completed");

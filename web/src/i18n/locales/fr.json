@@ -702,61 +702,15 @@
   },
   "batch2_1": {
     "common": {
-      "workspace": "Espace de travail",
       "loading": "Chargement…",
       "refresh": "Actualiser",
       "remove": "Supprimer",
       "cancel": "Annuler"
     },
-    "page": {
-      "title": "Espaces de travail",
-      "subtitle": "Dossiers en bac à sable dans lesquels les agents et les flux de travail peuvent lire, écrire et organiser des fichiers."
-    },
-    "folderPicker": {
-      "title": "Sélectionnez le dossier de l'espace de travail"
-    },
-    "notifications": {
-      "added": "Espace de travail ajouté",
-      "removed": "Espace de travail supprimé"
-    },
-    "errors": {
-      "loadTitle": "Impossible de charger les espaces de travail",
-      "loadSummary": "Les espaces de travail n'ont pas pu être chargés",
-      "loadDescription": "Vérifiez votre connexion et réessayez.",
-      "operation": "Échec de l'opération de l'espace de travail : {{error}}"
-    },
-    "manager": {
-      "inaccessible": "Inaccessible",
-      "defaultWorkspace": "Espace de travail par défaut",
-      "setDefault": "Définir par défaut",
-      "emptyTitle": "Aucun espace de travail configuré",
-      "emptyCanManage": "Ajouter un espace de travail pour permettre aux agents d'accéder aux dossiers locaux",
-      "emptyManaged": "Ce déploiement gère votre espace de travail pour vous",
-      "adding": "Ajout…",
-      "addWorkspace": "Ajouter un espace de travail",
-      "removeTitle": "Supprimer cet espace de travail ?",
-      "removeDescription": "L'espace de travail sera supprimé de NodeTool. Le dossier lui-même ne sera pas supprimé."
-    },
-    "select": {
-      "defaultWithPath": "Par défaut ({{path}})",
-      "description": "Les agents lisent et écrivent des fichiers ici pendant l'exécution, y compris des images, du texte, des données et d'autres sorties enregistrées. Parcourez les résultats dans le panneau Espace de travail. Les agents ne peuvent accéder qu'aux fichiers contenus dans ce dossier. Un workflow laissé par défaut utilise votre espace de travail par défaut.",
-      "createNew": "Créer un nouvel espace de travail",
-      "addWorkspace": "Ajouter un espace de travail…"
-    },
     "tree": {
       "loading": "Chargement…",
       "accessDenied": "⚠️ Accès refusé",
-      "title": "Explorateur d'espace de travail",
-      "manage": "Gérer les espaces de travail",
-      "goToRoot": "Accédez à la racine de l'espace de travail",
-      "openInFolder": "Ouvrir dans le dossier",
-      "openExternally": "Ouvert à l'extérieur",
-      "noneSelected": "Aucun espace de travail sélectionné",
-      "selectOrCreate": "Sélectionnez un espace de travail ci-dessus ou créez-en un.",
-      "createWorkspace": "Créer un espace de travail",
-      "fileBrowser": "Navigateur de fichiers de l'espace de travail",
-      "emptyTitle": "L'espace de travail est vide",
-      "emptyDescription": "Ajoutez des fichiers au dossier de votre espace de travail pour les voir ici."
+      "openExternally": "Ouvert à l'extérieur"
     }
   },
   "batch2_10": {
@@ -1772,7 +1726,6 @@
       "packageManager": "Gestionnaire de paquets",
       "assets": "Actifs",
       "collections": "Collections",
-      "workspaces": "Espaces de travail",
       "memory": "Mémoire",
       "settings": "Paramètres",
       "help": "Aide",
@@ -6566,16 +6519,42 @@
           "export": "Exporter",
           "archive": "Archiver",
           "restore": "Restaurer",
-          "delete": "Supprimer"
+          "delete": "Supprimer",
+          "collect": "Rassembler les fichiers"
         },
         "projectActions": "Actions du projet",
         "actionsForProject": "Actions pour {{projectName}}",
         "exporting": "Exporter…",
         "deleteProject": "Supprimer le projet",
         "confirmDeleteTitle": "Supprimer {{projectName}} ?",
-        "confirmDeleteBody": "Supprimez {{projectName}} et tous ses documents, conversations, sorties générées, actifs, tâches et fichiers de projet.",
+        "confirmDeleteBody": "Supprimez {{projectName}} et tous ses documents, conversations, tâches et actifs stockés en dehors du dossier du projet.",
         "deleteIrreversible": "Cela ne peut pas être annulé.",
-        "error": "Impossible de {{action}} {{projectName}} : {{error}}"
+        "deleteFolderTrash": "Le dossier du projet est déplacé dans la corbeille.",
+        "deleteFolderRemove": "Le dossier du projet et tous ses fichiers sont supprimés du stockage cloud.",
+        "deleteFolderKeep": "Le dossier du projet reste à sa place avec tous ses fichiers. NodeTool supprime uniquement le dossier .nodetool qu'il contient.",
+        "deleteFolderMissing": "Le dossier du projet est inaccessible, NodeTool le laisse donc tel quel.",
+        "folderMovedAsideTo": "La corbeille était inaccessible. Le dossier du projet a été déplacé vers {{path}}.",
+        "folderMovedAside": "La corbeille était inaccessible. Le dossier du projet a été déplacé dans le dossier .trash du dossier des projets.",
+        "folderTrashFailedAt": "Le dossier du projet n'a pas pu être déplacé dans la corbeille. Il reste à l'emplacement {{path}}.",
+        "folderTrashFailed": "Le dossier du projet n'a pas pu être déplacé dans la corbeille. Il reste à sa place.",
+        "error": "Impossible de {{action}} {{projectName}} : {{error}}",
+        "collecting": "Rassemblement des fichiers…",
+        "collectResult": "Fichiers rassemblés dans {{projectName}} : {{copied}} copiés, {{skipped}} ignorés, {{failed}} en échec.",
+        "linkedTitle": "{{projectName}} lie des fichiers hors de son dossier",
+        "linkedBody": "Une exportation contient le dossier du projet. Ces fichiers sont liés depuis un autre emplacement et n’y figurent pas :",
+        "linkedChoice": "Rassembler et exporter les copie dans le dossier Imported, puis exporte. Annuler conserve les liens et n’exporte rien.",
+        "collectAndExport": "Rassembler et exporter"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Copier ou lier ?",
+        "confirm": "Importer",
+        "copy": "Copier dans le dossier du projet",
+        "copyHint": "Le projet garde sa propre copie. Les modifications de l’original ne l’atteignent pas.",
+        "link": "Lier sur place",
+        "linkHint": "Rien n’est copié. Le projet lit le fichier là où il se trouve. Rassembler les fichiers le copie plus tard.",
+        "threshold": "Les fichiers de {{size}} ou plus sont liés par défaut."
       }
     }
   },
@@ -6752,8 +6731,6 @@
       "runModeTool": "Outil",
       "runModeDescription": "Comment ce workflow s'exécute et peut être déclenché",
       "advanced": "Avancé",
-      "workspace": "Espace de travail",
-      "workspaceDescription": "Associer un dossier d'espace de travail à ce workflow pour l'accès des agents",
       "toolName": "Nom de l'outil",
       "toolNameDescription": "Identifiant pour l’utilisation de l’API/de l’outil. Lettres, chiffres et traits de soulignement uniquement.",
       "toolNamePlaceholder": "mon_workflow_tool",
@@ -10842,9 +10819,9 @@
         "jsScripts": "Scripts JS",
         "skills": "Compétences",
         "assets": "Actifs",
-        "workspace": "Espace de travail",
         "library": "Bibliothèque",
-        "more": "Plus"
+        "more": "Plus",
+        "files": "Fichiers"
       },
       "categoryDescriptions": {
         "documents": "Parcourez tous les documents du projet en cours.",
@@ -10864,9 +10841,9 @@
         "jsScripts": "Créez et gérez du code JavaScript réutilisable.",
         "skills": "Compétences de l'agent – instructions de démarque adaptées à l'objectif.",
         "assets": "Parcourez les ressources disponibles dans le contexte actuel.",
-        "workspace": "Parcourez les fichiers dans le dossier de l'espace de travail sélectionné.",
         "library": "Parcourez les ressources du projet en cours.",
-        "more": "Ouvrez des panneaux supplémentaires de flux de travail, d'éditeur, de développeur et d'espace de travail."
+        "more": "Ouvrir d'autres panneaux de workflow, d'éditeur et de développement.",
+        "files": "Parcourez les fichiers du dossier du projet."
       }
     },
     "queue": {
@@ -14256,8 +14233,7 @@
       "search": "Rechercher tous les panneaux",
       "group": {
         "workflow-tools": "Outils de flux de travail",
-        "agent-tools": "Outils d'agent",
-        "workspace": "Espace de travail"
+        "agent-tools": "Outils d'agent"
       },
       "category": {
         "favorites": {
@@ -14275,10 +14251,6 @@
         "skills": {
           "label": "Compétences",
           "description": "Compétences de l'agent – instructions de démarque adaptées à l'objectif."
-        },
-        "workspace-files": {
-          "label": "Espace de travail",
-          "description": "Parcourez les fichiers dans le dossier de l'espace de travail sélectionné."
         }
       }
     },
@@ -14947,9 +14919,6 @@
       "runGroup": {
         "groupRunning": "Le groupe est en marche",
         "runGroup": "Groupe d'exécution"
-      },
-      "saveDestinationHint": {
-        "workspace": "Espace de travail"
       }
     }
   },
@@ -16188,9 +16157,9 @@
       "jsscripts": "Scripts JS",
       "skills": "Compétences",
       "assets": "Actifs",
-      "workspace-files": "Espace de travail",
       "library": "Bibliothèque",
-      "more": "Plus"
+      "more": "Plus",
+      "files": "Fichiers"
     }
   },
   "i18n-next55": {
@@ -16321,7 +16290,6 @@
         "models": "Responsable modèle",
         "packages": "Gestionnaire de paquets",
         "collections": "Collections",
-        "workspaces": "Espaces de travail",
         "entities": "Entités",
         "memory": "Mémoire",
         "settings": "Paramètres",
@@ -18938,7 +18906,7 @@
   },
   "i18n-next110": {
     "workspaceFile": {
-      "invalidReference": "Référence de fichier d'espace de travail non valide"
+      "invalidReference": "Référence de fichier non valide"
     }
   },
   "i18n-next109": {
@@ -20467,5 +20435,31 @@
     "saveFailed": "Impossible d’enregistrer cette autorisation.",
     "loadFailed": "Impossible de charger la liste des outils.",
     "noMatches": "Aucun outil ne correspond à votre recherche."
+  },
+  "projectFolder": {
+    "name": "Dossier du projet",
+    "picker": {
+      "title": "Sélectionner un dossier"
+    },
+    "tree": {
+      "title": "Fichiers",
+      "goToRoot": "Aller à la racine du dossier du projet",
+      "fileBrowser": "Fichiers du projet",
+      "emptyTitle": "Le dossier du projet est vide",
+      "emptyDescription": "Ajoutez des fichiers au dossier du projet pour les voir ici.",
+      "noFolderTitle": "Aucun dossier de projet",
+      "noFolderDescription": "Ce projet n'a pas encore de dossier.",
+      "revealInFinder": "Afficher dans le Finder",
+      "revealInExplorer": "Afficher dans l'Explorateur de fichiers",
+      "revealInFileManager": "Afficher dans le gestionnaire de fichiers"
+    }
+  },
+  "assetPicker": {
+    "sourceTabs": "Source de la ressource",
+    "projectTab": "Ce projet",
+    "personalTab": "Personnel",
+    "personalHint": "Choisir dans Personnel copie le fichier dans ce projet.",
+    "copying": "Copie dans ce projet…",
+    "copyFailed": "Impossible de copier la ressource dans ce projet."
   }
 }

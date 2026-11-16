@@ -76,10 +76,9 @@ import {
   isIgnoredProjectPath,
   probePath,
   scanFolder,
-  scheduleFollowUp,
   type ReconcileOptions,
   type ScannedFolder
-} from "./project-index.js";
+} from "./project-folder-scan.js";
 
 const log = createLogger("nodetool.project-services.document-file-sync");
 
@@ -174,14 +173,20 @@ export interface DocumentFileAdapter<Row extends DocumentRow, Fields> {
    * was read. Returns the stored row, or null when it had changed.
    */
   update(row: Row, fields: Partial<Fields>, name?: string): Promise<Row | null>;
-  /** Create a document from a new file. */
+  /**
+   * Create a document from a new file, only when no row has the ID. Null
+   * when a row has it, and that row is left exactly as it is: the ID comes
+   * from a file, and a row with it can belong to another user or another
+   * project. The insert itself must refuse a taken ID. A lookup followed by
+   * an upsert does not, since the row can be created in between.
+   */
   create(args: {
     id: string;
     userId: string;
     projectId: string;
     name: string;
     fields: Fields;
-  }): Promise<Row>;
+  }): Promise<Row | null>;
   /** Record the file state without touching `updated_at`. */
   setFileState(id: string, state: DocumentFileState): Promise<void>;
 }
@@ -778,6 +783,13 @@ export interface DocumentReconcileOptions extends ReconcileOptions {
    * missing, since NodeTool may have written the file since.
    */
   scanned?: ScannedFolder;
+  /**
+   * Called when a file waits to be told apart from a move, so that the
+   * caller can reconcile again once the wait is over. The triggers of the
+   * asset index pass it. Without it the file is looked at by the next
+   * reconcile, whenever that runs.
+   */
+  onDeferred?: () => void;
 }
 
 /**
@@ -836,6 +848,7 @@ interface KindReconcile<Row extends DocumentRow, Fields> {
   projectId: string;
   userId: string;
   report: DocumentFilesReport;
+  onDeferred?: () => void;
 }
 
 /**
@@ -1167,24 +1180,44 @@ async function reconcileKind<Row extends DocumentRow, Fields>(
 
     // A new document. An ID another file or another row has is replaced.
     const taken = id !== null && (present.has(id) || (await adapter.exists(id)));
-    const reassigned = id === null || taken;
+    let reassigned = id === null || taken;
     if (reassigned) id = newDocumentId();
     const content = await adapter.parse(parsed.body, null, { userId });
     if (!content.ok || id === null) {
       report.rejected.push(file.path);
       continue;
     }
-    const text = reassigned
+    let text = reassigned
       ? documentFileText(adapter, id, content.fields)
       : file.text;
     if (reassigned) await workspace.write(file.path, text, "application/json");
-    const created = await adapter.create({
+    let created = await adapter.create({
       id,
       userId,
       projectId,
       name,
       fields: content.fields
     });
+    if (!created) {
+      // A row with this ID was created since it was looked up, by another
+      // user or in another project. The create left that row alone, and the
+      // file gets an ID of its own, as for an ID that was known to be taken.
+      id = newDocumentId();
+      reassigned = true;
+      text = documentFileText(adapter, id, content.fields);
+      await workspace.write(file.path, text, "application/json");
+      created = await adapter.create({
+        id,
+        userId,
+        projectId,
+        name,
+        fields: content.fields
+      });
+    }
+    if (!created) {
+      report.rejected.push(file.path);
+      continue;
+    }
     const state = { file_path: file.path, file_hash: hashOf(text), file_error: null };
     await adapter.setFileState(created.id, state);
     Object.assign(created, state);
@@ -1194,7 +1227,7 @@ async function reconcileKind<Row extends DocumentRow, Fields>(
   }
   if (stillWaiting.size > 0) {
     waitingCopies.set(projectKey, stillWaiting);
-    scheduleFollowUp(projectId, userId);
+    run.onDeferred?.();
   } else {
     waitingCopies.delete(projectKey);
   }
@@ -1291,7 +1324,14 @@ export async function reconcileDocumentFiles(
         }
         report.files += files.size;
         await reconcileKind(
-          { adapter, workspace, projectId: project, userId, report },
+          {
+            adapter,
+            workspace,
+            projectId: project,
+            userId,
+            report,
+            onDeferred: options.onDeferred
+          },
           files,
           scope.places
         );

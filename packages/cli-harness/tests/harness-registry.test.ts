@@ -300,7 +300,9 @@ describe("gated capability matches a real CI trigger", () => {
     "preset-ejection": "dev:nodetool -- harness gate",
     "backend-smoke": "npm run backend:smoke",
     "packed-core-cli": "node scripts/smoke-packed-cli.mjs --core-only",
-    "release-pins": "scripts/__tests__/pin-catalog.test.mjs",
+    // Its cheap selfcheck runs in the harness gate when a diff touches the
+    // release scripts. The packed workflow only listed its tests as a trigger.
+    "release-pins": "dev:nodetool -- harness gate",
     "docker-smoke": "docker-smoke.mjs http://localhost:7777",
     "provider-contract": "provider-contract-probes",
     "provider-codegen": "npm run generate:fal:check -- --strict",

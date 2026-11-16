@@ -148,6 +148,8 @@ void EditorWindow::newTab() {
   // Only a top-level window fills its background, and translucent dock dividers
   // would otherwise blend with the outer window.
   tab->setAutoFillBackground(true);
+  // A new tab starts its own conversation. Restored tabs clear this.
+  tab->chat_.setFreshThreadPending(true);
   tabs_.append(tab);
   tabStack_->addWidget(tab);
     // Cards warn about a missing provider key from the account's secrets.
@@ -527,6 +529,7 @@ void EditorWindow::restoreTabs() {
         if (i)
             newTab();
         auto tab = activeEditor_;
+        tab->chat_.setFreshThreadPending(false);
         restored.append(tab);
         const auto entry = entries[i].toObject();
         tab->assignedProject_ = entry["project"].toString();

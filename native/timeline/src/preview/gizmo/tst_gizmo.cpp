@@ -260,6 +260,9 @@ TransformGizmoController { width: 200; height: 100; selection: ["picture"] })", 
         center = monitor->mapToItem(g, g->box().center);
         QVERIFY(g->contains(center));
         QCOMPARE(g->box().center.x(), monitor->width() / 2);
+        // B18: a box that reaches past the on-screen preview takes no clicks there.
+        g->setHeight(center.y() - 1);
+        QVERIFY(!g->contains(center));
     }
     void pointerRoutingFocusAndMenu() {
         TimelineModel model;

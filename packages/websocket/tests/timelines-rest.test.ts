@@ -24,6 +24,8 @@ vi.mock("@nodetool-ai/asset-services/storage", () => ({
 }));
 
 const timelinesRoutes = (await import("../src/routes/timelines.js")).default;
+const { resolveProjectWorkspace } = await import("@nodetool-ai/execution/service");
+const { projectWithFolder } = await import("./project-folder-fixture.js");
 const { unpackTimelineBundle } = await import("../src/lib/timeline-bundle.js");
 
 const USER_ID = "user-1";
@@ -44,6 +46,19 @@ async function buildServer(userId: string | null): Promise<FastifyInstance> {
   await app.register(timelinesRoutes, { apiOptions: {} });
   await app.ready();
   return app;
+}
+
+/**
+ * The bytes of an imported media asset: a file in its project's folder, in
+ * `Imported/`.
+ */
+async function importedBytes(assetId: string): Promise<Uint8Array | null> {
+  const row = (await Asset.get(assetId)) as Asset | null;
+  if (!row?.workspace_path?.startsWith("Imported/")) return null;
+  const folder = await resolveProjectWorkspace(row.project_id, row.user_id);
+  if (!folder.ok) return null;
+  const bytes = await folder.workspace.read(row.workspace_path);
+  return bytes ? new Uint8Array(bytes) : null;
 }
 
 /** An asset row whose bytes live under the owner-prefixed key. */
@@ -135,6 +150,9 @@ describe("timeline zip routes", () => {
     for (const entry of (await adapter.list("")).entries) {
       await adapter.delete(adapter.uriForKey(entry.key));
     }
+    // An import's media are files in its project's folder.
+    await projectWithFolder(USER_ID, "Project 2", "p2");
+    await projectWithFolder(USER_ID, "Project 3", "p3");
     server = await buildServer(USER_ID);
   });
 
@@ -313,9 +331,11 @@ describe("timeline zip routes", () => {
     expect(newAssetId).not.toBe(asset.id);
     const stored = (await Asset.get(newAssetId)) as Asset | null;
     expect(stored?.user_id).toBe(USER_ID);
+    expect(stored?.project_id).toBe("p2");
+    expect(await importedBytes(newAssetId)).toEqual(VIDEO);
     expect(
-      await adapter.retrieve(adapter.uriForKey(`${USER_ID}/${newAssetId}.mp4`))
-    ).toEqual(VIDEO);
+      await adapter.exists(adapter.uriForKey(`${USER_ID}/${newAssetId}.mp4`))
+    ).toBe(false);
   });
 
   it("imports a Premiere XML zip into a new timeline with its media", async () => {
@@ -351,9 +371,7 @@ describe("timeline zip routes", () => {
     const [clip] = body.timeline.clips;
     expect(clip).toMatchObject({ name: "Shot 1", mediaType: "video", startMs: 0, durationMs: 2000 });
     expect(clip.currentAssetId).not.toBe(asset.id);
-    expect(
-      await adapter.retrieve(adapter.uriForKey(`${USER_ID}/${clip.currentAssetId}.mp4`))
-    ).toEqual(VIDEO);
+    expect(await importedBytes(clip.currentAssetId)).toEqual(VIDEO);
   });
 
   it("answers 400 for a zip with neither a bundle nor a Premiere sequence", async () => {

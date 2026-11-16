@@ -146,6 +146,9 @@ struct VoicePcm {
     const float* linear = nullptr;  // interleaved stereo
     std::int64_t linearFirst = 0;   // source frame of linear[0]
     std::int64_t linearCount = 0;
+    // Set by the device callback. A live voice whose ring has gone keeps the
+    // tail cap, where an offline render lets a residual ring out in full.
+    bool live = false;
 };
 
 struct MixStats {
