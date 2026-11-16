@@ -4,6 +4,7 @@
 //   node folder-lock-holder.mjs <module> <lock> count <counter> <times>
 //   node folder-lock-holder.mjs <module> <lock> hold <ms>
 //   node folder-lock-holder.mjs <module> <lock> die
+//   node folder-lock-holder.mjs <module> <lock> stall <ms>
 //
 // It prints "held" once it holds the lock for the first time.
 import { readFile, writeFile } from "node:fs/promises";
@@ -34,4 +35,12 @@ if (mode === "count") {
   process.stdout.write("held\n");
   // Exit without a release, as a killed process does.
   process.exit(0);
+} else if (mode === "stall") {
+  // Block the event loop, so no timer of this process runs, as a long
+  // synchronous task does.
+  const held = await acquireFolderLockFile(lockPath);
+  process.stdout.write("held\n");
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, Number(rest[0]));
+  process.stdout.write("releasing\n");
+  await held.release();
 }

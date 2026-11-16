@@ -223,7 +223,7 @@ describe.each(MODES)("project folders ($name)", (mode) => {
 
     const report = await migrateProjectFolders();
 
-    expect(report).toEqual({ checked: 3, assigned: 3, failed: 0 });
+    expect(report).toEqual({ checked: 3, assigned: 3, failed: 0, failures: [] });
     for (const project of [first, second, personal]) {
       expect((await Project.get<Project>(project.id))?.workspace_id).toBeTruthy();
     }
@@ -231,7 +231,8 @@ describe.each(MODES)("project folders ($name)", (mode) => {
     expect(await migrateProjectFolders()).toEqual({
       checked: 0,
       assigned: 0,
-      failed: 0
+      failed: 0,
+      failures: []
     });
     expect(await snapshot()).toEqual(before);
   });
@@ -507,6 +508,17 @@ describe("local project folders", () => {
     expect((await Project.get<Project>(project.id))?.workspace_id).toBeNull();
   });
 
+  it("gives only the named user's projects a folder", async () => {
+    const mine = await insertProject("Mine");
+    const theirs = await insertProject("Theirs", { user_id: "someone-else" });
+
+    const report = await migrateProjectFolders({ userId: USER });
+
+    expect(report).toMatchObject({ checked: 1, assigned: 1, failed: 0 });
+    expect((await Project.get<Project>(mine.id))?.workspace_id).toBeTruthy();
+    expect((await Project.get<Project>(theirs.id))?.workspace_id).toBeNull();
+  });
+
   it("counts a project whose folder cannot be created as failed and goes on", async () => {
     const blocked = await insertProject("Blocked");
     await rowFolder(new WorkspaceRow({ user_id: USER, path: root })).write(
@@ -516,7 +528,10 @@ describe("local project folders", () => {
     setProjectsDir(join(root, "blocker", "projects"));
     const report = await migrateProjectFolders();
 
-    expect(report).toEqual({ checked: 1, assigned: 0, failed: 1 });
+    expect(report).toMatchObject({ checked: 1, assigned: 0, failed: 1 });
+    expect(report.failures).toEqual([
+      { projectId: blocked.id, userId: USER, reason: expect.any(String) }
+    ]);
     expect((await Project.get<Project>(blocked.id))?.workspace_id).toBeNull();
   });
 });

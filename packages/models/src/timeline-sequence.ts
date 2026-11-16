@@ -1,4 +1,4 @@
-import { eq, desc, and, sql, inArray, isNull } from "drizzle-orm";
+import { eq, desc, and, sql, inArray, isNull, count } from "drizzle-orm";
 import type {
   TimelineSequence as TimelineSequenceDoc,
   TimelineTrack,
@@ -337,18 +337,25 @@ export class TimelineSequence extends DBModel {
 
   /**
    * The projects that hold a timeline whose file was never written, each
-   * with its owner. A timeline from before project folders is one of them.
+   * with its owner and how many such documents it holds, for every user or
+   * for `userId`. A timeline from before project folders is one of them.
    */
-  static async projectsWithUnwrittenFiles(): Promise<
-    Array<{ user_id: string; project_id: string }>
+  static async projectsWithUnwrittenFiles(userId?: string): Promise<
+    Array<{ user_id: string; project_id: string; count: number }>
   > {
     return getPortableDb()
       .select({
         user_id: timelineSequences.user_id,
-        project_id: timelineSequences.project_id
+        project_id: timelineSequences.project_id,
+        count: count()
       })
       .from(timelineSequences)
-      .where(isNull(timelineSequences.file_path))
+      .where(
+        and(
+          isNull(timelineSequences.file_path),
+          userId === undefined ? undefined : eq(timelineSequences.user_id, userId)
+        )
+      )
       .groupBy(timelineSequences.user_id, timelineSequences.project_id);
   }
 

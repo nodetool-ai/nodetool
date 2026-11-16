@@ -628,7 +628,7 @@ describe("ChromaKeyVideoNode — uses the color ref value, not [object Object]",
 describe("SaveVideoNode — resolves a folder ref object to a path", () => {
   it("writes under the folder ref's uri, not a [object Object] directory", async () => {
     const targetDir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-savetest-"));
-    const writeSpy = vi.spyOn(fs, "writeFile").mockResolvedValue(undefined);
+    const openSpy = vi.spyOn(fs, "open");
     const mkdirSpy = vi
       .spyOn(fs, "mkdir")
       .mockResolvedValue(undefined as unknown as string);
@@ -641,12 +641,13 @@ describe("SaveVideoNode — resolves a folder ref object to a path", () => {
       });
       await node.process().catch(() => undefined);
 
-      expect(writeSpy).toHaveBeenCalled();
-      const writtenPath = String(writeSpy.mock.calls[0][0]);
+      expect(openSpy).toHaveBeenCalled();
+      const writtenPath = String(openSpy.mock.calls[0][0]);
       expect(writtenPath).not.toContain("[object Object]");
       expect(writtenPath).toBe(path.join(targetDir, "clip.mp4"));
+      expect(await fs.readFile(writtenPath)).toEqual(Buffer.from([1, 2, 3, 4]));
     } finally {
-      writeSpy.mockRestore();
+      openSpy.mockRestore();
       mkdirSpy.mockRestore();
       await fs.rm(targetDir, { recursive: true, force: true });
     }

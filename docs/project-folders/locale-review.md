@@ -32,3 +32,24 @@ Check three things in each language:
    Files tab.
 3. `{{projectName}}` and `{{path}}` are untouched, and `.nodetool` and `.trash`
    stay as written.
+
+## Project folder migration
+
+The migration dialog and progress panel (issue #7634) added 36 strings under
+`projectFolder.migration` in `web/src/i18n/locales/<language>.json`. An agent
+wrote all 15 translations and no native speaker has read them. The English
+text in `en.json` is the source.
+
+Check four things in each language:
+
+1. The word for "project folder" matches `projectFolder.name` and the strings
+   above.
+2. `permissionWarning` uses the names macOS shows for Documents, Desktop and
+   Downloads in that language. The `fi`, `sv`, `nb`, `pt` and `ko` names were
+   written without a Mac to check them against, and `hi` keeps the English
+   names.
+3. `safety` says that no file is lost and that the old copy is removed only
+   after the copy is checked. It must not say that nothing is deleted.
+4. `{{project}}`, `{{folder}}`, `{{error}}`, `{{done}}`, `{{total}}`,
+   `{{count}}`, `{{name}}`, `{{reason}}` and `{{path}}` are untouched, and
+   NodeTool, macOS and iCloud Drive stay as written.

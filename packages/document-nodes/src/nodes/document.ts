@@ -10,6 +10,7 @@ import {
   loadNodeOs,
   loadNodePath,
   assertSaveTargetIsOwn,
+  writeSaveTargetFile,
   writeSavedFile,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
@@ -202,7 +203,7 @@ export class SaveDocumentFileNode extends BaseNode {
     if (pinned) {
       await assertSaveTargetIsOwn(context, path.resolve(pinned));
       await fs.mkdir(path.dirname(pinned), { recursive: true });
-      await fs.writeFile(pinned, bytes);
+      await writeSaveTargetFile(context, path.resolve(pinned), bytes);
       return { output: pinned };
     }
 

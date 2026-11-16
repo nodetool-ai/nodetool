@@ -151,6 +151,10 @@ beforeEach(async () => {
   storageRoot = path.join(tmpDir, "storage");
   vi.stubEnv("NODETOOL_ENV", "development");
   vi.stubEnv("NODETOOL_STORAGE_BACKEND", "file");
+  // The move starts without asking, as on a headless server. On a local
+  // install it otherwise waits for the user's confirmation
+  // (docs/project-folders/migration-ux.md).
+  vi.stubEnv("NODETOOL_PROJECT_MIGRATION", "auto");
 });
 
 afterEach(async () => {
