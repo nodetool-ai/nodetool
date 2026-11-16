@@ -88,6 +88,12 @@ An asset that was a file in the exported project folder is the same file, at
 the same path, in the new folder. An asset from before project folders arrives
 in the asset store and moves into the new folder when the project is opened.
 
+A project can have workspaces besides its folder, such as a game's. The file
+names which one was the project folder, and that one becomes the new
+project's folder. A file exported before NodeTool recorded this has no such
+name. Its folder is then taken to be the default workspace for a Personal
+project and the oldest workspace for any other project.
+
 A project that links media from outside its folder (see
 [Link or copy media](#link-or-copy-media)) is not exported as it stands. The
 export dialog names the linked files. **Collect and export** copies them into
