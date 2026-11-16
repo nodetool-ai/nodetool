@@ -385,7 +385,7 @@ const CLOUD_LOCAL_STORE_DDL: readonly string[] = [
     draft TEXT NOT NULL,
     state TEXT NOT NULL,
     refusal_reason TEXT,
-    revision INTEGER NOT NULL,
+    draft_id TEXT NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   )`,
@@ -4705,13 +4705,10 @@ export const migrations: MigrationDef[] = [
         await db.execute(statement);
       }
     },
-    async down(db) {
-      await db.execute("DROP INDEX IF EXISTS idx_cloud_open_state_document");
-      await db.execute("DROP TABLE IF EXISTS cloud_open_state");
-      await db.execute("DROP INDEX IF EXISTS idx_cloud_drafts_account");
-      await db.execute("DROP INDEX IF EXISTS idx_cloud_drafts_document");
-      await db.execute("DROP TABLE IF EXISTS cloud_drafts");
-    }
+    // The draft table holds the only copy of edits the cloud server has not
+    // accepted. A rollback leaves both tables in place: an older server
+    // never reads them, and moving forward again finds them intact.
+    async down() {}
   }
 ];
 

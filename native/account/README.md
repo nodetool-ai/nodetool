@@ -118,16 +118,26 @@ its requests and close its sockets at once.
 
 ## The request layer and the saved state
 
-`CloudClient::send()` applies the request rule before each request to the
-cloud server, attaches `Authorization: Bearer`, and replaces any header the
-caller set. It refuses a URL that is not on the session's origin, so the
-credential never reaches another host. On a 401 it renews the token once
-and sends again. A 401 that a renewal cannot change is returned, not
-retried.
+The credential is bound to one origin: the canonical HTTPS form of the
+server the session signed in to (`origin.h`, `AccountSession::serverOrigin`).
+A session whose server is not HTTPS sends nothing. `HttpTokenEndpoint`
+refuses a non-HTTPS origin without sending, and a session refuses to
+refresh through an endpoint bound to another origin.
+
+`CloudClient::send()` takes the session's authorization and its cancel flag
+in one step, attaches `Authorization: Bearer`, and replaces any header the
+caller set. It sends only to a URL whose origin equals the session's, and
+sets that origin as the request's `requiredOrigin`, which the transport
+checks again at the send. A transport never follows a redirect. On a 401 it
+renews the token with `refresh(rejectedToken)`, which calls the server even
+when the refused token has not expired, and sends once more with a
+different token. A request in flight when the session signs out returns
+`Cancelled`.
 
 `CloudDocumentSaver` drives one open cloud document. `edit()` takes the
-whole in-memory document from any thread. `tick()` runs on a worker thread
-at least every 250 ms:
+whole in-memory document from any thread. `persist()` and `send()` run on
+two worker threads, each at least every 250 ms, so a slow cloud server
+never delays a local write:
 
 1. The draft is written to the local store once the edits pause for
    200 ms, and at the latest 500 ms after the first unstored edit, so every
@@ -135,17 +145,24 @@ at least every 250 ms:
 2. The stored draft is sent. On acceptance the local store deletes the
    draft row and records the new base in one transaction. Only then does
    the status read Saved to cloud.
-3. A failed local write, or a failed record of an acceptance, shows Not
-   saving at once. Not saving stays until the store works, whatever the
-   cloud answers, and the write is retried every 2 seconds.
+3. A failed local write, or a failed record of an acceptance or refusal,
+   shows Not saving at once. Not saving stays until the store works,
+   whatever the cloud answers. A failed write is retried every 2 seconds. A
+   failed record is retried alone, so the server never gets the same draft
+   twice.
 4. A refused save keeps the draft as unsent edits. Offline and signed-out
    sends are retried every 5 seconds.
 
 The local store is the `cloudLocal` tRPC router of the app's bundled
 server, over the `cloud_drafts` and `cloud_open_state` tables
-(`packages/models/src/cloud-local-store.ts`). A draft row carries a
-revision. An acceptance deletes the row only when it is still the revision
-that was sent, so edits made during a send are kept and sent next.
+(`packages/models/src/cloud-local-store.ts`). Each draft write gets a new
+random `draft_id` that is never reused. An acceptance deletes the row only
+when it is still the draft that was sent, rebases a newer row only when it
+edits the same base, and leaves any other row alone, so a late
+acknowledgement never deletes or moves back a newer draft. `DraftStore::load`
+and `list` read the rows back, and the second `CloudDocumentSaver`
+constructor resumes one after a restart. Rolling the migration back leaves
+both tables in place.
 
 ## Not in this library yet
 

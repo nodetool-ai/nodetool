@@ -7,6 +7,7 @@
 // and coordinate only through them.
 #pragma once
 
+#include "nodetool/account/http_transport.h"
 #include "nodetool/account/session_record.h"
 #include "nodetool/account/storage.h"
 #include "nodetool/account/token_endpoint.h"
@@ -96,20 +97,6 @@ enum class ServerEnd {
   NotSaved,
 };
 
-// Set when the session that authorized a request moves to signed out. The
-// request layer checks it before it sends, and aborts a request in flight
-// when it turns true.
-//
-// Thread affinity: thread-safe, an atomic flag.
-class RequestCancel {
-public:
-  bool cancelled() const { return cancelled_.load(std::memory_order_acquire); }
-  void cancel() { cancelled_.store(true, std::memory_order_release); }
-
-private:
-  std::atomic<bool> cancelled_{false};
-};
-
 // The credential for one request, and the flag that ends it. A request that
 // holds it is registered with the session until the flag is released.
 struct Authorization {
@@ -150,7 +137,11 @@ public:
   Authorization authorizeRequest();
 
   // The refresh algorithm, steps 1 to 7.
-  RefreshOutcome refresh();
+  //
+  // `rejectedAccessToken` is a token the server just refused. The record's
+  // token is adopted without a server call only when it differs, so a
+  // revoked token is never reused because it has not expired.
+  RefreshOutcome refresh(std::string_view rejectedAccessToken = {});
 
   // The local sign-out steps, which always complete, then one attempt to end
   // every pending session on the server.
@@ -173,6 +164,10 @@ public:
   Status status();
 
   std::filesystem::path accountDir() const { return dir_; }
+  // The canonical HTTPS form of the server origin the session signed in
+  // to (see origin.h), or empty when that origin is not HTTPS. The request
+  // layer sends the credential only to this origin.
+  const std::string& serverOrigin() const { return origin_; }
   std::filesystem::path generationPath() const { return dir_ / "session.gen"; }
   std::filesystem::path lockPath() const { return dir_ / "account.lock"; }
   // The durable sign-out marker: the generation of the last sign-out. A
@@ -207,6 +202,9 @@ private:
   const AccountSessionOptions options_;
   const std::filesystem::path dir_;
   const std::string keychainAccount_;
+  const std::string origin_;
+  // The token endpoint is bound to another origin than the session.
+  const bool endpointMismatch_;
 
   std::mutex operationMutex_;
   // Guards held_, requests_ and unsavedHandles_.

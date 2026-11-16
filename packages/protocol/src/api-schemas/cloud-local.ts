@@ -38,7 +38,7 @@ export const cloudDraftResponse = z.object({
   draft: z.string(),
   state: z.enum(["waiting", "unsent"]),
   refusal_reason: z.string().nullable(),
-  revision: z.number().int(),
+  draft_id: z.string(),
   updated_at: z.string()
 });
 export type CloudDraftResponse = z.infer<typeof cloudDraftResponse>;
@@ -59,7 +59,8 @@ export const putDraftInput = cloudDocumentRef.extend({
   base: cloudBase,
   draft: z.string()
 });
-export const putDraftOutput = z.object({ revision: z.number().int() });
+// `draft_id` names this write. No other write ever gets the same id.
+export const putDraftOutput = z.object({ draft_id: z.string() });
 
 // ── drafts.get / drafts.discard ─────────────────────────────────
 export const getDraftOutput = z.object({ draft: cloudDraftResponse.nullable() });
@@ -72,20 +73,22 @@ export const listDraftsInput = cloudAccountScope.extend({
 export const listDraftsOutput = z.object({ drafts: z.array(cloudDraftResponse) });
 
 // ── drafts.accept ────────────────────────────────────────────────
-// The server accepted the save of `revision` and produced `base`.
+// The server accepted the save of draft `draft_id`, which edited
+// `sent_base`, and produced `base`.
 export const acceptSaveInput = cloudDocumentRef.extend({
-  revision: z.number().int().min(1),
+  draft_id: z.string().min(1).max(64),
+  sent_base: cloudBase,
   base: cloudBase,
   role: z.string().min(1),
   options: cloudDocumentOptions
 });
 export const acceptSaveOutput = z.object({
-  outcome: z.enum(["deleted", "rebased", "no_draft"])
+  outcome: z.enum(["deleted", "rebased", "stale", "no_draft"])
 });
 
 // ── drafts.markUnsent ────────────────────────────────────────────
 export const markUnsentInput = cloudDocumentRef.extend({
-  revision: z.number().int().min(1),
+  draft_id: z.string().min(1).max(64),
   reason: z.string().min(1).max(256)
 });
 export const markUnsentOutput = z.object({ marked: z.boolean() });

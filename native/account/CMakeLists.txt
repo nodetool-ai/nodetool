@@ -38,6 +38,7 @@ add_library(nodetool_account STATIC
   src/cloud_drafts.cpp
   src/crypto.cpp
   src/http_token_endpoint.cpp
+  src/origin.cpp
   src/session_record.cpp
   src/sign_in.cpp
   src/storage.cpp)

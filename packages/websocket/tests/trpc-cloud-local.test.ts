@@ -27,20 +27,21 @@ describe("cloudLocal router", () => {
 
   it("stores, accepts and clears a draft", async () => {
     const caller = createCaller(makeCtx("1"));
-    const { revision } = await caller.cloudLocal.drafts.put({
+    const { draft_id } = await caller.cloudLocal.drafts.put({
       ...SCOPE_A,
       ...DOC,
       base: BASE,
       draft: '{"nodes":[]}'
     });
-    expect(revision).toBe(1);
+    expect(draft_id).toMatch(/^[0-9a-f]{32}$/);
     const listed = await caller.cloudLocal.drafts.list({ ...SCOPE_A, state: "waiting" });
     expect(listed.drafts.map((d) => d.draft)).toEqual(['{"nodes":[]}']);
 
     const accepted = await caller.cloudLocal.drafts.accept({
       ...SCOPE_A,
       ...DOC,
-      revision,
+      draft_id,
+      sent_base: BASE,
       base: { updated_at: "2026-11-16T10:01:00.000Z", content_hash: "hash-1" },
       role: "owner",
       options: OPTIONS

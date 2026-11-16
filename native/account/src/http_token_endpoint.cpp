@@ -1,5 +1,6 @@
 #include "nodetool/account/http_token_endpoint.h"
 
+#include "nodetool/account/origin.h"
 #include "nodetool/account/sign_in.h"
 
 #include <nlohmann/json.hpp>
@@ -70,11 +71,18 @@ TokenResult parseTokenResponse(const HttpResponse& response) {
   return result;
 }
 
-HttpTokenEndpoint::HttpTokenEndpoint(HttpTransport& transport, std::string serverOrigin)
-    : transport_(transport), origin_(std::move(serverOrigin)) {}
+HttpTokenEndpoint::HttpTokenEndpoint(HttpTransport& transport, std::string_view serverOrigin)
+    : transport_(transport), origin_(canonicalHttpsOrigin(serverOrigin).value_or(std::string())) {}
 
 TokenResult HttpTokenEndpoint::postToken(std::string body) {
+  if (origin_.empty()) {
+    TokenResult refused;
+    refused.status = TokenStatus::Refused;
+    refused.message = "The cloud server address must start with https://.";
+    return refused;
+  }
   HttpRequest request;
+  request.requiredOrigin = origin_;
   request.method = "POST";
   request.url = origin_ + "/oauth/token";
   request.headers = {{"Content-Type", "application/x-www-form-urlencoded"}, {"Accept", "application/json"}};
@@ -105,7 +113,11 @@ TokenResult HttpTokenEndpoint::refresh(std::string_view refreshToken) {
 }
 
 EndSessionStatus HttpTokenEndpoint::endSession(std::string_view revocationHandle) {
+  if (origin_.empty()) {
+    return EndSessionStatus::Offline;
+  }
   HttpRequest request;
+  request.requiredOrigin = origin_;
   request.method = "POST";
   request.url = origin_ + "/oauth/session/end";
   request.headers = {{"Content-Type", "application/x-www-form-urlencoded"}, {"Accept", "application/json"}};
