@@ -192,7 +192,7 @@ describe("agentAccess mcpConnection", () => {
  * does, so the tRPC procedures under test have something to act on. */
 function parkRequest(
   overrides: Partial<Omit<PendingAuthorizeRequest, "id" | "createdAt">> = {}
-): string {
+): Promise<string> {
   return pendingStore.putRequest({
     clientId: "ntc_abc123",
     clientName: "Test Client",
@@ -212,7 +212,7 @@ describe("agentAccess OAuth consent", () => {
 
   it("reports a pending request's details without consuming it", async () => {
     const caller = createCaller(makeCtx("user-a"));
-    const requestId = parkRequest({ state: "xyz" });
+    const requestId = await parkRequest({ state: "xyz" });
 
     const first = await caller.agentAccess.getOauthRequest({
       request_id: requestId
@@ -221,7 +221,10 @@ describe("agentAccess OAuth consent", () => {
       client_name: "Test Client",
       redirect_host: "client.example.com",
       scope: "mcp",
-      loopback_only: false
+      loopback_only: false,
+      kind: "mcp",
+      app_name: null,
+      device_name: null
     });
 
     // Reading again still works — get does not consume.
@@ -240,7 +243,7 @@ describe("agentAccess OAuth consent", () => {
 
   it("approves a request: mints a grant, and the redirect carries code, state, and iss", async () => {
     const caller = createCaller(makeCtx("user-a"));
-    const requestId = parkRequest({ state: "s1" });
+    const requestId = await parkRequest({ state: "s1" });
 
     const { redirect_url } = await caller.agentAccess.approveOauthRequest({
       request_id: requestId
@@ -266,7 +269,7 @@ describe("agentAccess OAuth consent", () => {
 
   it("omits state from the redirect when the client never sent one", async () => {
     const caller = createCaller(makeCtx("user-a"));
-    const requestId = parkRequest();
+    const requestId = await parkRequest();
 
     const { redirect_url } = await caller.agentAccess.approveOauthRequest({
       request_id: requestId
@@ -276,7 +279,7 @@ describe("agentAccess OAuth consent", () => {
 
   it("denies a request without minting a grant, redirecting with access_denied", async () => {
     const caller = createCaller(makeCtx("user-a"));
-    const requestId = parkRequest({ state: "s2" });
+    const requestId = await parkRequest({ state: "s2" });
 
     const { redirect_url } = await caller.agentAccess.denyOauthRequest({
       request_id: requestId
@@ -321,7 +324,7 @@ describe("agentAccess OAuth consent — iss and grant uniqueness", () => {
   it("preserves a sub-path in iss (RFC 9207 string comparison)", async () => {
     process.env.NODETOOL_PUBLIC_URL = "https://nodetool.example.com/base";
     const caller = createCaller(makeCtx("user-a"));
-    const requestId = parkRequest();
+    const requestId = await parkRequest();
     const { redirect_url } = await caller.agentAccess.approveOauthRequest({
       request_id: requestId
     });
@@ -336,10 +339,10 @@ describe("agentAccess OAuth consent — iss and grant uniqueness", () => {
     process.env.NODETOOL_PUBLIC_URL = "https://nodetool.example.com";
     const caller = createCaller(makeCtx("user-a"));
     await caller.agentAccess.approveOauthRequest({
-      request_id: parkRequest()
+      request_id: await parkRequest()
     });
     await caller.agentAccess.approveOauthRequest({
-      request_id: parkRequest()
+      request_id: await parkRequest()
     });
     const { grants } = await caller.agentAccess.listOauthGrants();
     const forClient = grants.filter((g) => g.client_id === "ntc_abc123");

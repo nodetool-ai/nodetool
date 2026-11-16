@@ -594,7 +594,28 @@ export {
   MCP_OAUTH_ACCESS_TOKEN_PREFIX,
   MCP_OAUTH_REFRESH_TOKEN_PREFIX
 } from "./mcp-oauth.js";
-export type { McpOauthClientRow, McpOauthGrantRow } from "./mcp-oauth.js";
+export type {
+  McpOauthClientRow,
+  McpOauthGrantRow,
+  RefreshRotation,
+  RevocationHandleOutcome
+} from "./mcp-oauth.js";
+export {
+  NATIVE_ACCESS_TOKEN_PREFIX,
+  NATIVE_ACCESS_TTL_MS,
+  NATIVE_CLIENT_ID,
+  NATIVE_CLIENT_NAME,
+  NATIVE_REFRESH_IDLE_TTL_MS,
+  NATIVE_REVOCATION_HANDLE_PREFIX,
+  NATIVE_SCOPE,
+  type OauthGrantKind
+} from "./native-session-constants.js";
+export {
+  OauthPending,
+  OAUTH_PENDING_TTL_MS,
+  type OauthPendingCode,
+  type OauthPendingPayload
+} from "./oauth-pending.js";
 
 // ── Seeds ────────────────────────────────────────────────────────────
 export { runSeeds, seedCostData, COST_SEED_USER_ID } from "./seeds/index.js";
@@ -686,6 +707,7 @@ export type {
   UserStatus
 } from "./user-account.js";
 export { userAccounts } from "./schema/user-accounts.js";
+export { oauthPendingEntries } from "./schema/mcp-oauth.js";
 
 export {
   DEFAULT_QUOTA_SUBJECT,

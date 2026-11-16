@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "코드#상태",
       "signInWindowClosed": "로그인 창이 닫혔나요?",
       "openAgain": "다시 열어보세요",
-      "linkExpiry": ". 링크는 10분 후에 만료됩니다."
+      "linkExpiry": ". 링크는 10분 후에 만료됩니다.",
+      "nativeSubtitle": "에서 NodeTool 계정에 로그인하려고 합니다.",
+      "app": "앱",
+      "device": "기기",
+      "nativeNote": "이 컴퓨터의 NodeTool 데스크톱 앱에서 직접 로그인을 시작한 경우에만 승인하세요. 승인하면 로그아웃하거나 설정에서 세션을 종료할 때까지 앱이 클라우드 문서를 열고 편집하고 저장할 수 있습니다."
     },
     "integrations": {
       "loadingAccounts": "연결된 계정 로드 중",
@@ -20177,5 +20181,25 @@
     "removeTitle": "\"{{name}}\"을(를) 제거할까요?",
     "removeBody": "에셋이 NodeTool에서 제거됩니다. 이 에셋을 사용하는 문서에서 더 이상 표시할 수 없습니다.",
     "cancel": "취소"
+  },
+  "deviceSessions": {
+    "title": "로그인된 기기",
+    "description": "NodeTool 데스크톱 앱에 로그인한 컴퓨터입니다. 한 컴퓨터의 두 앱은 하나의 세션을 함께 씁니다. 세션을 종료하면 그 컴퓨터는 로그아웃됩니다.",
+    "empty": "로그인된 컴퓨터가 없습니다.",
+    "unnamed": "이름 없는 컴퓨터",
+    "signedInFrom": "{{date}}에 {{app}}에서 로그인",
+    "lastUsed": "마지막 사용: {{date}}",
+    "neverUsed": "로그인 후 사용 안 함",
+    "end": "세션 종료",
+    "confirmTitle": "이 세션을 종료할까요?",
+    "confirmBody": "{{device}}의 NodeTool 데스크톱 앱이 1분 안에 로그아웃됩니다.",
+    "cancel": "취소",
+    "ended": "세션을 종료했습니다.",
+    "endError": "세션을 종료하지 못했습니다: {{error}}",
+    "loadError": "로그인된 기기를 불러오지 못했습니다.",
+    "apps": {
+      "nodeEditor": "노드 편집기",
+      "timeline": "타임라인"
+    }
   }
 }

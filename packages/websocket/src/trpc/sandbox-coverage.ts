@@ -171,6 +171,16 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Revoking a connected client's grant is denial of service against the " +
       "user's own tooling, same rule as revokeToken."
   },
+  "agentAccess.listDeviceSessions": {
+    withheld:
+      "Enumerates which computers hold a signed-in desktop session — " +
+      "credential reconnaissance, same rule as listOauthGrants."
+  },
+  "agentAccess.endDeviceSession": {
+    withheld:
+      "Ending a device session signs the user out of their desktop apps, " +
+      "denial of service against the user's own tooling."
+  },
   "antigravity.install": {
     withheld:
       "Downloads an executable from a third party into the app data " +

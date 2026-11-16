@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "code#state",
       "signInWindowClosed": "登录窗口已关闭？",
       "openAgain": "重新打开",
-      "linkExpiry": "。此链接将在 10 分钟后过期。"
+      "linkExpiry": "。此链接将在 10 分钟后过期。",
+      "nativeSubtitle": "想要登录你的 NodeTool 账户。",
+      "app": "应用",
+      "device": "设备",
+      "nativeNote": "仅当你在这台电脑上的 NodeTool 桌面应用中自己发起此登录时才批准。批准后，该应用可以打开、编辑并保存你的云端文档，直到你退出登录或在设置中结束会话。"
     },
     "integrations": {
       "loadingAccounts": "正在加载已连接的账户",
@@ -20177,5 +20181,25 @@
     "removeTitle": "移除“{{name}}”？",
     "removeBody": "该素材将从 NodeTool 中移除。使用它的文档将无法再显示它。",
     "cancel": "取消"
+  },
+  "deviceSessions": {
+    "title": "已登录的设备",
+    "description": "你登录过 NodeTool 桌面应用的电脑。同一台电脑上的两个应用共用一个会话。结束会话会让那台电脑退出登录。",
+    "empty": "没有已登录的电脑。",
+    "unnamed": "未命名的电脑",
+    "signedInFrom": "于 {{date}} 通过 {{app}} 登录",
+    "lastUsed": "上次使用：{{date}}",
+    "neverUsed": "登录后未使用",
+    "end": "结束会话",
+    "confirmTitle": "结束此会话？",
+    "confirmBody": "{{device}} 上的 NodeTool 桌面应用将在一分钟内退出登录。",
+    "cancel": "取消",
+    "ended": "会话已结束。",
+    "endError": "无法结束会话：{{error}}",
+    "loadError": "无法加载已登录的设备。",
+    "apps": {
+      "nodeEditor": "节点编辑器",
+      "timeline": "时间线"
+    }
   }
 }

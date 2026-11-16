@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "code#staat",
       "signInWindowClosed": "Inlogvenster gesloten?",
       "openAgain": "Open het opnieuw",
-      "linkExpiry": ". De link vervalt na 10 minuten."
+      "linkExpiry": ". De link vervalt na 10 minuten.",
+      "nativeSubtitle": "wil inloggen op je NodeTool-account.",
+      "app": "App",
+      "device": "Apparaat",
+      "nativeNote": "Keur alleen goed als je deze aanmelding zelf in een NodeTool-desktopapp op deze computer hebt gestart. De app kan daarna je clouddocumenten openen, bewerken en opslaan tot je uitlogt of de sessie in Instellingen beëindigt."
     },
     "integrations": {
       "loadingAccounts": "Verbonden accounts laden",
@@ -20177,5 +20181,25 @@
     "removeTitle": "\"{{name}}\" verwijderen?",
     "removeBody": "Het item wordt uit NodeTool verwijderd. Documenten die het gebruiken, kunnen het niet meer tonen.",
     "cancel": "Annuleren"
+  },
+  "deviceSessions": {
+    "title": "Aangemelde apparaten",
+    "description": "Computers waarop je bent aangemeld bij de NodeTool-desktopapps. Beide apps op één computer delen een sessie. Een sessie beëindigen meldt die computer af.",
+    "empty": "Er is geen computer aangemeld.",
+    "unnamed": "Naamloze computer",
+    "signedInFrom": "Aangemeld via {{app}} op {{date}}",
+    "lastUsed": "Laatst gebruikt {{date}}",
+    "neverUsed": "Niet gebruikt sinds aanmelding",
+    "end": "Sessie beëindigen",
+    "confirmTitle": "Deze sessie beëindigen?",
+    "confirmBody": "De NodeTool-desktopapps op {{device}} worden binnen een minuut afgemeld.",
+    "cancel": "Annuleren",
+    "ended": "Sessie beëindigd.",
+    "endError": "Kon de sessie niet beëindigen: {{error}}",
+    "loadError": "Kon aangemelde apparaten niet laden.",
+    "apps": {
+      "nodeEditor": "Node-editor",
+      "timeline": "Tijdlijn"
+    }
   }
 }

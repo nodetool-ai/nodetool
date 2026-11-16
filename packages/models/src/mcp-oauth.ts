@@ -24,7 +24,7 @@
 
 import { randomBytes } from "node:crypto";
 import { digestsMatch, hashSecret } from "./access-token.js";
-import { and, eq, isNull, lt, notInArray } from "drizzle-orm";
+import { and, eq, isNull, lt, notInArray, or } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getPortableDb, getDbType, type DbTransaction } from "./db.js";
 import {
@@ -32,6 +32,13 @@ import {
   mcpOauthGrants,
   mcpOauthTokens
 } from "./schema/mcp-oauth.js";
+import {
+  NATIVE_ACCESS_TOKEN_PREFIX,
+  NATIVE_ACCESS_TTL_MS,
+  NATIVE_REFRESH_IDLE_TTL_MS,
+  NATIVE_REVOCATION_HANDLE_PREFIX,
+  type OauthGrantKind
+} from "./native-session-constants.js";
 
 /** What marks a dynamically registered client's id. No secret half — DCR for
  * a public client (`token_endpoint_auth_method: "none"`) issues none. */
@@ -54,6 +61,7 @@ export const MCP_OAUTH_REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 export const MCP_OAUTH_REFRESH_REUSE_GRACE_MS = 60_000;
 
 const CLIENT_ID_BYTES = 16;
+const REVOCATION_HANDLE_BYTES = 32;
 const TOKEN_ID_BYTES = 8;
 const TOKEN_SECRET_BYTES = 32;
 
@@ -207,6 +215,10 @@ export interface McpOauthGrantRow {
   resource: string;
   created_at: Date;
   revoked_at: Date | null;
+  kind: OauthGrantKind;
+  app_name: string | null;
+  device_name: string | null;
+  last_used_at: Date | null;
 }
 
 function toGrantRow(grant: McpOauthGrant): McpOauthGrantRow {
@@ -218,9 +230,16 @@ function toGrantRow(grant: McpOauthGrant): McpOauthGrantRow {
     scope: grant.scope,
     resource: grant.resource,
     created_at: new Date(grant.created_at),
-    revoked_at: grant.revoked_at ? new Date(grant.revoked_at) : null
+    revoked_at: grant.revoked_at ? new Date(grant.revoked_at) : null,
+    kind: grant.kind,
+    app_name: grant.app_name,
+    device_name: grant.device_name,
+    last_used_at: grant.last_used_at ? new Date(grant.last_used_at) : null
   };
 }
+
+/** What presenting a revocation handle did. */
+export type RevocationHandleOutcome = "ended" | "already_ended" | "unknown";
 
 // @ts-expect-error -- same static-side conflict as McpOauthClient above.
 export class McpOauthGrant extends DBModel {
@@ -234,12 +253,22 @@ export class McpOauthGrant extends DBModel {
   declare resource: string;
   declare created_at: string;
   declare revoked_at: string | null;
+  declare kind: OauthGrantKind;
+  declare app_name: string | null;
+  declare device_name: string | null;
+  declare last_used_at: string | null;
+  declare revocation_handle_hash: string | null;
 
   constructor(data: Record<string, unknown>) {
     super(data);
     this.id ??= createTimeOrderedUuid();
     this.created_at ??= isoNow();
     this.revoked_at ??= null;
+    this.kind ??= "mcp";
+    this.app_name ??= null;
+    this.device_name ??= null;
+    this.last_used_at ??= null;
+    this.revocation_handle_hash ??= null;
   }
 
   static async create(input: {
@@ -248,6 +277,9 @@ export class McpOauthGrant extends DBModel {
     client_name: string;
     scope: string;
     resource: string;
+    kind?: OauthGrantKind;
+    app_name?: string | null;
+    device_name?: string | null;
   }): Promise<{ id: string }> {
     const grant = new McpOauthGrant({
       id: createTimeOrderedUuid(),
@@ -257,10 +289,80 @@ export class McpOauthGrant extends DBModel {
       scope: input.scope,
       resource: input.resource,
       created_at: isoNow(),
-      revoked_at: null
+      revoked_at: null,
+      kind: input.kind ?? "mcp",
+      app_name: input.app_name ?? null,
+      device_name: input.device_name ?? null
     });
     await grant.save();
     return { id: grant.id };
+  }
+
+  /**
+   * Issue the revocation handle of a native grant: 256 random bits, stored
+   * only as a hash. Returns the handle once, or null when the grant already
+   * has one, is revoked, or is not native — the token exchange is the only
+   * caller, and a second exchange never sees a handle again.
+   */
+  static async issueRevocationHandle(id: string): Promise<string | null> {
+    const handle = `${NATIVE_REVOCATION_HANDLE_PREFIX}${randomBytes(REVOCATION_HANDLE_BYTES).toString("base64url")}`;
+    const updated = await getPortableDb()
+      .update(mcpOauthGrants)
+      .set({ revocation_handle_hash: hashSecret(handle) })
+      .where(
+        and(
+          eq(mcpOauthGrants.id, id),
+          eq(mcpOauthGrants.kind, "native"),
+          isNull(mcpOauthGrants.revoked_at),
+          isNull(mcpOauthGrants.revocation_handle_hash)
+        )
+      )
+      .returning({ id: mcpOauthGrants.id });
+    return updated.length > 0 ? handle : null;
+  }
+
+  /**
+   * End the grant a revocation handle belongs to, with no other credential.
+   * The handle stays on the revoked row, so presenting it again answers
+   * `already_ended` instead of `unknown` — a client retrying after a lost
+   * response must not read that as a handle it never held.
+   */
+  static async endByRevocationHandle(
+    handle: string
+  ): Promise<{ outcome: RevocationHandleOutcome; grantId: string | null }> {
+    if (!handle.startsWith(NATIVE_REVOCATION_HANDLE_PREFIX)) {
+      return { outcome: "unknown", grantId: null };
+    }
+    const rows = await getPortableDb()
+      .select()
+      .from(mcpOauthGrants)
+      .where(eq(mcpOauthGrants.revocation_handle_hash, hashSecret(handle)))
+      .limit(1);
+    const row = rows[0];
+    if (!row) return { outcome: "unknown", grantId: null };
+    if (row.revoked_at) return { outcome: "already_ended", grantId: row.id };
+    await revokeGrantCompletely(row.id);
+    return { outcome: "ended", grantId: row.id };
+  }
+
+  /**
+   * Record that the grant authenticated a request, at most once a minute,
+   * for the "last used" column of the device sessions list.
+   */
+  static async touch(id: string, now: number = Date.now()): Promise<void> {
+    const cutoff = new Date(now - 60_000).toISOString();
+    await getPortableDb()
+      .update(mcpOauthGrants)
+      .set({ last_used_at: new Date(now).toISOString() })
+      .where(
+        and(
+          eq(mcpOauthGrants.id, id),
+          or(
+            isNull(mcpOauthGrants.last_used_at),
+            lt(mcpOauthGrants.last_used_at, cutoff)
+          )
+        )
+      );
   }
 
   static async get(id: string): Promise<McpOauthGrantRow | null> {
@@ -321,6 +423,8 @@ interface MintedTokenRow {
   id: string;
   grant_id: string;
   kind: "access" | "refresh";
+  /** What the raw token starts with: `nta_`, `ntd_` or `ntr_`. */
+  prefix: string;
   secret: string;
   secretHash: string;
   expiresAt: Date;
@@ -332,7 +436,8 @@ function mintTokenRow(
   kind: "access" | "refresh",
   ttlMs: number,
   rotatedFrom: string | null = null,
-  absoluteExpiry: Date | null = null
+  absoluteExpiry: Date | null = null,
+  grantKind: OauthGrantKind = "mcp"
 ): MintedTokenRow {
   const id = randomBytes(TOKEN_ID_BYTES).toString("hex");
   const secret = randomBytes(TOKEN_SECRET_BYTES).toString("base64url");
@@ -346,6 +451,7 @@ function mintTokenRow(
     id,
     grant_id,
     kind,
+    prefix: tokenPrefix(kind, grantKind),
     secret,
     secretHash: hashSecret(secret),
     expiresAt,
@@ -353,10 +459,26 @@ function mintTokenRow(
   };
 }
 
-function tokenPrefix(kind: "access" | "refresh"): string {
-  return kind === "access"
-    ? MCP_OAUTH_ACCESS_TOKEN_PREFIX
-    : MCP_OAUTH_REFRESH_TOKEN_PREFIX;
+function tokenPrefix(
+  kind: "access" | "refresh",
+  grantKind: OauthGrantKind
+): string {
+  if (kind === "refresh") return MCP_OAUTH_REFRESH_TOKEN_PREFIX;
+  return grantKind === "native"
+    ? NATIVE_ACCESS_TOKEN_PREFIX
+    : MCP_OAUTH_ACCESS_TOKEN_PREFIX;
+}
+
+/** Access token lifetime by grant kind: one hour for MCP, 15 minutes native. */
+function accessTtl(grantKind: OauthGrantKind): number {
+  return grantKind === "native" ? NATIVE_ACCESS_TTL_MS : MCP_OAUTH_ACCESS_TTL_MS;
+}
+
+/** Refresh token lifetime by grant kind. */
+function refreshTtl(grantKind: OauthGrantKind): number {
+  return grantKind === "native"
+    ? NATIVE_REFRESH_IDLE_TTL_MS
+    : MCP_OAUTH_REFRESH_TTL_MS;
 }
 
 function tokenValues(row: MintedTokenRow): {
@@ -501,6 +623,7 @@ export type RefreshRotation =
       refreshToken: string;
       expiresAt: Date;
       grantId: string;
+      grantKind: OauthGrantKind;
     }
   | { reuseDetected: true }
   | null;
@@ -514,8 +637,15 @@ type RotationStep =
   | { verdict: "unknown" }
   | { verdict: "reuse"; grantId: string }
   | { verdict: "retry"; record: McpOauthToken }
+  | { verdict: "replace_lost"; record: McpOauthToken; successorId: string }
   | { verdict: "expired"; grantId: string }
   | { verdict: "rotate"; record: McpOauthToken };
+
+/** The refresh row that replaced the presented one, when there is one. */
+interface SuccessorRow {
+  id: string;
+  last_used_at: string | null;
+}
 
 /**
  * The rotation decision that needs no database access: what the presented row
@@ -524,7 +654,8 @@ type RotationStep =
 function rotationStep(
   row: Record<string, unknown> | undefined,
   parsed: ParsedToken,
-  hasSuccessor: boolean,
+  successor: SuccessorRow | undefined,
+  grantKind: OauthGrantKind,
   now: number
 ): RotationStep {
   if (!row) return { verdict: "unknown" };
@@ -532,15 +663,23 @@ function rotationStep(
   if (!digestsMatch(record.secret_hash, hashSecret(parsed.secret))) {
     return { verdict: "unknown" };
   }
-  if (hasSuccessor) {
+  if (successor) {
     // `last_used_at` on a refresh row records when it was rotated.
     const rotatedAt = record.last_used_at ? Date.parse(record.last_used_at) : NaN;
-    if (
+    const inGrace =
       now - rotatedAt <= MCP_OAUTH_REFRESH_REUSE_GRACE_MS &&
-      !isRowExpired(record.expires_at, now)
-    ) {
-      return { verdict: "retry", record };
+      !isRowExpired(record.expires_at, now);
+    if (inGrace && grantKind === "native") {
+      // A native app that crashed between the server's rotation and its own
+      // keychain write presents the old token again. That is a lost
+      // rotation only while the token that replaced it was never presented;
+      // the replacement is then discarded, so one refresh chain stays live.
+      if (successor.last_used_at === null) {
+        return { verdict: "replace_lost", record, successorId: successor.id };
+      }
+      return { verdict: "reuse", grantId: record.grant_id };
     }
+    if (inGrace) return { verdict: "retry", record };
     return { verdict: "reuse", grantId: record.grant_id };
   }
   if (isRowExpired(record.expires_at, now)) {
@@ -558,33 +697,51 @@ function rotationStep(
  */
 function rotationPair(
   record: McpOauthToken,
-  linkAncestor: boolean
+  linkAncestor: boolean,
+  grantKind: OauthGrantKind
 ): {
   access: MintedTokenRow;
   refresh: MintedTokenRow;
 } {
   return {
-    access: mintTokenRow(record.grant_id, "access", MCP_OAUTH_ACCESS_TTL_MS),
+    access: mintTokenRow(
+      record.grant_id,
+      "access",
+      accessTtl(grantKind),
+      null,
+      null,
+      grantKind
+    ),
     refresh: mintTokenRow(
       record.grant_id,
       "refresh",
-      MCP_OAUTH_REFRESH_TTL_MS,
+      refreshTtl(grantKind),
       linkAncestor ? record.id : null,
-      new Date(record.expires_at)
+      // An MCP chain keeps its absolute expiry. A native chain is an
+      // inactivity limit, so each rotation starts a new period.
+      grantKind === "native" ? null : new Date(record.expires_at),
+      grantKind
     )
   };
+}
+
+/** Whether a rotation verdict mints a pair linked to the presented row. */
+function linksAncestor(verdict: RotationStep["verdict"]): boolean {
+  return verdict === "rotate" || verdict === "replace_lost";
 }
 
 function rotated(
   access: MintedTokenRow,
   refresh: MintedTokenRow,
-  grantId: string
+  grantId: string,
+  grantKind: OauthGrantKind
 ): RefreshRotation {
   return {
     accessToken: rawToken(access),
     refreshToken: rawToken(refresh),
     expiresAt: access.expiresAt,
-    grantId
+    grantId,
+    grantKind
   };
 }
 
@@ -604,18 +761,30 @@ function rotateSqlite(
     )
     .limit(1)
     .get();
-  const successor = row
+  const successor: SuccessorRow | undefined = row
     ? tx
-        .select({ id: mcpOauthTokens.id })
+        .select({
+          id: mcpOauthTokens.id,
+          last_used_at: mcpOauthTokens.last_used_at
+        })
         .from(mcpOauthTokens)
         .where(eq(mcpOauthTokens.rotated_from, parsed.id))
         .limit(1)
         .get()
     : undefined;
+  const grantKind: OauthGrantKind = row
+    ? (tx
+        .select({ kind: mcpOauthGrants.kind })
+        .from(mcpOauthGrants)
+        .where(eq(mcpOauthGrants.id, row.grant_id))
+        .limit(1)
+        .get()?.kind ?? "mcp")
+    : "mcp";
   const step = rotationStep(
     row as Record<string, unknown> | undefined,
     parsed,
-    successor !== undefined,
+    successor,
+    grantKind,
     now
   );
   if (step.verdict === "unknown") return null;
@@ -627,9 +796,13 @@ function rotateSqlite(
     tx.delete(mcpOauthTokens).where(eq(mcpOauthTokens.id, parsed.id)).run();
     return null;
   }
+  if (step.verdict === "replace_lost") {
+    tx.delete(mcpOauthTokens).where(eq(mcpOauthTokens.id, step.successorId)).run();
+  }
   const { access, refresh } = rotationPair(
     step.record,
-    step.verdict === "rotate"
+    linksAncestor(step.verdict),
+    grantKind
   );
   // The refresh row goes first: the unique index on `rotated_from` makes it
   // the atomic claim on this rotation. Two concurrent presentations of the
@@ -644,7 +817,7 @@ function rotateSqlite(
       .where(eq(mcpOauthTokens.id, parsed.id))
       .run();
   }
-  return rotated(access, refresh, step.record.grant_id);
+  return rotated(access, refresh, step.record.grant_id, grantKind);
 }
 
 async function rotatePostgres(
@@ -659,17 +832,29 @@ async function rotatePostgres(
       and(eq(mcpOauthTokens.id, parsed.id), eq(mcpOauthTokens.kind, "refresh"))
     )
     .limit(1);
-  const successors = rows[0]
+  const successors: SuccessorRow[] = rows[0]
     ? await tx
-        .select({ id: mcpOauthTokens.id })
+        .select({
+          id: mcpOauthTokens.id,
+          last_used_at: mcpOauthTokens.last_used_at
+        })
         .from(mcpOauthTokens)
         .where(eq(mcpOauthTokens.rotated_from, parsed.id))
         .limit(1)
     : [];
+  const grantRows: Array<{ kind: OauthGrantKind }> = rows[0]
+    ? await tx
+        .select({ kind: mcpOauthGrants.kind })
+        .from(mcpOauthGrants)
+        .where(eq(mcpOauthGrants.id, rows[0].grant_id))
+        .limit(1)
+    : [];
+  const grantKind: OauthGrantKind = grantRows[0]?.kind ?? "mcp";
   const step = rotationStep(
     rows[0] as Record<string, unknown> | undefined,
     parsed,
-    successors.length > 0,
+    successors[0],
+    grantKind,
     now
   );
   if (step.verdict === "unknown") return null;
@@ -681,9 +866,13 @@ async function rotatePostgres(
     await tx.delete(mcpOauthTokens).where(eq(mcpOauthTokens.id, parsed.id));
     return null;
   }
+  if (step.verdict === "replace_lost") {
+    await tx.delete(mcpOauthTokens).where(eq(mcpOauthTokens.id, step.successorId));
+  }
   const { access, refresh } = rotationPair(
     step.record,
-    step.verdict === "rotate"
+    linksAncestor(step.verdict),
+    grantKind
   );
   await tx.insert(mcpOauthTokens).values(tokenValues(refresh));
   await tx.insert(mcpOauthTokens).values(tokenValues(access));
@@ -693,11 +882,11 @@ async function rotatePostgres(
       .set({ last_used_at: new Date(now).toISOString() })
       .where(eq(mcpOauthTokens.id, parsed.id));
   }
-  return rotated(access, refresh, step.record.grant_id);
+  return rotated(access, refresh, step.record.grant_id, grantKind);
 }
 
 function rawToken(row: MintedTokenRow): string {
-  return `${tokenPrefix(row.kind)}${row.id}_${row.secret}`;
+  return `${row.prefix}${row.id}_${row.secret}`;
 }
 
 export class McpOauthToken extends DBModel {
@@ -722,13 +911,24 @@ export class McpOauthToken extends DBModel {
    * the only time they exist in the clear, mirroring `AccessToken.mint`.
    */
   static async mintPair(
-    grant_id: string
+    grant_id: string,
+    grantKind: OauthGrantKind = "mcp"
   ): Promise<{ accessToken: string; refreshToken: string; expiresAt: Date }> {
-    const access = mintTokenRow(grant_id, "access", MCP_OAUTH_ACCESS_TTL_MS);
+    const access = mintTokenRow(
+      grant_id,
+      "access",
+      accessTtl(grantKind),
+      null,
+      null,
+      grantKind
+    );
     const refresh = mintTokenRow(
       grant_id,
       "refresh",
-      MCP_OAUTH_REFRESH_TTL_MS
+      refreshTtl(grantKind),
+      null,
+      null,
+      grantKind
     );
     await saveTokenRow(access);
     await saveTokenRow(refresh);
@@ -747,44 +947,21 @@ export class McpOauthToken extends DBModel {
   static async verifyAccess(
     token: string
   ): Promise<{ userId: string; grantId: string; resource: string } | null> {
-    const parsed = parseToken(token, MCP_OAUTH_ACCESS_TOKEN_PREFIX);
-    if (!parsed) return null;
-    const db = getPortableDb();
-    const rows = await db
-      .select()
-      .from(mcpOauthTokens)
-      .where(
-        and(
-          eq(mcpOauthTokens.id, parsed.id),
-          eq(mcpOauthTokens.kind, "access")
-        )
-      )
-      .limit(1);
-    const row = rows[0];
-    if (!row) return null;
-    const record = new McpOauthToken(row as Record<string, unknown>);
-    if (!digestsMatch(record.secret_hash, hashSecret(parsed.secret))) {
-      return null;
-    }
-    if (isRowExpired(record.expires_at, Date.now())) {
-      await record.delete();
-      return null;
-    }
-    const grantRows = await db
-      .select()
-      .from(mcpOauthGrants)
-      .where(eq(mcpOauthGrants.id, record.grant_id))
-      .limit(1);
-    const grantRow = grantRows[0];
-    if (!grantRow) return null;
-    const grant = new McpOauthGrant(grantRow as Record<string, unknown>);
-    if (grant.revoked_at) return null;
-    return {
-      userId: grant.user_id,
-      grantId: grant.id,
-      resource: grant.resource
-    };
+    return verifyAccessOfKind(token, "mcp");
   }
+
+  /**
+   * Full verification of a presented `ntd_` token: the same checks as
+   * {@link verifyAccess}, against a grant of kind `native`. A token id of an
+   * MCP grant presented under the native prefix, or the other way round, is
+   * refused, so the prefix alone decides the audience.
+   */
+  static async verifyNativeAccess(
+    token: string
+  ): Promise<{ userId: string; grantId: string; resource: string } | null> {
+    return verifyAccessOfKind(token, "native");
+  }
+
 
   /**
    * Rotate a refresh token: mint a fresh access+refresh pair, and link the
@@ -815,6 +992,26 @@ export class McpOauthToken extends DBModel {
     }
   }
 
+  /**
+   * The kind of the grant a presented refresh token names, or null when the
+   * token is malformed or unknown. Reads no secret: it only lets the token
+   * endpoint pick the gate before a rotation. The rotation still verifies the
+   * token in full.
+   */
+  static async grantKindOfRefresh(token: string): Promise<OauthGrantKind | null> {
+    const parsed = parseToken(token, MCP_OAUTH_REFRESH_TOKEN_PREFIX);
+    if (!parsed) return null;
+    const rows = await getPortableDb()
+      .select({ kind: mcpOauthGrants.kind })
+      .from(mcpOauthTokens)
+      .innerJoin(mcpOauthGrants, eq(mcpOauthGrants.id, mcpOauthTokens.grant_id))
+      .where(
+        and(eq(mcpOauthTokens.id, parsed.id), eq(mcpOauthTokens.kind, "refresh"))
+      )
+      .limit(1);
+    return rows[0]?.kind ?? null;
+  }
+
   /** Delete every token row for a grant. Used by rotation-reuse and by
    * `McpOauthGrant.revoke`. */
   static async revokeGrantTokens(grant_id: string): Promise<void> {
@@ -835,6 +1032,7 @@ export class McpOauthToken extends DBModel {
   static async revokeByRawToken(token: string): Promise<boolean> {
     const parsed =
       parseToken(token, MCP_OAUTH_ACCESS_TOKEN_PREFIX) ??
+      parseToken(token, NATIVE_ACCESS_TOKEN_PREFIX) ??
       parseToken(token, MCP_OAUTH_REFRESH_TOKEN_PREFIX);
     if (!parsed) return false;
     const db = getPortableDb();
@@ -856,4 +1054,57 @@ export class McpOauthToken extends DBModel {
     await record.delete();
     return true;
   }
+}
+
+/**
+ * Verify an access token of one grant kind: parse, hash-compare, expiry, and
+ * an active grant of that kind. An expired token row is deleted on the way
+ * past, since nothing else sweeps this table.
+ */
+async function verifyAccessOfKind(
+  token: string,
+  grantKind: OauthGrantKind
+): Promise<{ userId: string; grantId: string; resource: string } | null> {
+  const parsed = parseToken(
+    token,
+    grantKind === "native"
+      ? NATIVE_ACCESS_TOKEN_PREFIX
+      : MCP_OAUTH_ACCESS_TOKEN_PREFIX
+  );
+  if (!parsed) return null;
+  const db = getPortableDb();
+  const rows = await db
+    .select()
+    .from(mcpOauthTokens)
+    .where(
+      and(
+        eq(mcpOauthTokens.id, parsed.id),
+        eq(mcpOauthTokens.kind, "access")
+      )
+    )
+    .limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  const record = new McpOauthToken(row as Record<string, unknown>);
+  if (!digestsMatch(record.secret_hash, hashSecret(parsed.secret))) {
+    return null;
+  }
+  if (isRowExpired(record.expires_at, Date.now())) {
+    await record.delete();
+    return null;
+  }
+  const grantRows = await db
+    .select()
+    .from(mcpOauthGrants)
+    .where(eq(mcpOauthGrants.id, record.grant_id))
+    .limit(1);
+  const grantRow = grantRows[0];
+  if (!grantRow) return null;
+  const grant = new McpOauthGrant(grantRow as Record<string, unknown>);
+  if (grant.revoked_at || grant.kind !== grantKind) return null;
+  return {
+    userId: grant.user_id,
+    grantId: grant.id,
+    resource: grant.resource
+  };
 }

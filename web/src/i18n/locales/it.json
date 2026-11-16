@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "codice#stato",
       "signInWindowClosed": "La finestra di accesso è chiusa?",
       "openAgain": "Aprilo di nuovo",
-      "linkExpiry": ". Il collegamento scade dopo 10 minuti."
+      "linkExpiry": ". Il collegamento scade dopo 10 minuti.",
+      "nativeSubtitle": "vuole accedere al tuo account NodeTool.",
+      "app": "App",
+      "device": "Dispositivo",
+      "nativeNote": "Approva solo se hai avviato questo accesso da un'app desktop NodeTool su questo computer. L'app potrà aprire, modificare e salvare i tuoi documenti cloud finché non esci o termini la sessione nelle Impostazioni."
     },
     "integrations": {
       "loadingAccounts": "Caricamento degli account collegati",
@@ -20488,5 +20492,25 @@
     "removeTitle": "Rimuovere «{{name}}»?",
     "removeBody": "La risorsa viene rimossa da NodeTool. I documenti che la usano non possono più mostrarla.",
     "cancel": "Annulla"
+  },
+  "deviceSessions": {
+    "title": "Dispositivi connessi",
+    "description": "Computer su cui hai effettuato l'accesso alle app desktop NodeTool. Le due app di un computer condividono una sessione. Terminare una sessione disconnette quel computer.",
+    "empty": "Nessun computer è connesso.",
+    "unnamed": "Computer senza nome",
+    "signedInFrom": "Accesso da {{app}} il {{date}}",
+    "lastUsed": "Ultimo utilizzo {{date}}",
+    "neverUsed": "Non usato dall'accesso",
+    "end": "Termina sessione",
+    "confirmTitle": "Terminare questa sessione?",
+    "confirmBody": "Le app desktop NodeTool su {{device}} vengono disconnesse entro un minuto.",
+    "cancel": "Annulla",
+    "ended": "Sessione terminata.",
+    "endError": "Impossibile terminare la sessione: {{error}}",
+    "loadError": "Impossibile caricare i dispositivi connessi.",
+    "apps": {
+      "nodeEditor": "Editor di nodi",
+      "timeline": "Timeline"
+    }
   }
 }

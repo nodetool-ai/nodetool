@@ -564,6 +564,7 @@ describe("exportPersonalData", () => {
       "nodetool_generation_outputs",
       "nodetool_generation_webhook_deliveries",
       "nodetool_team_tasks",
+      "oauth_pending_entries",
       "resource_change_outbox",
       "run_inbox_messages",
       "worker_instances",

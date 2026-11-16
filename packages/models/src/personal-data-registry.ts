@@ -180,9 +180,19 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
     schemaExport: "mcpOauthGrants",
     disposition: "delete",
     reach: { kind: "direct", column: "user_id" },
+    withheldColumns: ["revocation_handle_hash"],
     exported: true,
     justification:
-      "One row per MCP client the person consented to. Deleted with the account; exported because the consent record is theirs and shows what each client was allowed to reach."
+      "One row per MCP client the person consented to, and one per signed-in device of the desktop apps. Deleted with the account; exported because the consent record is theirs and shows what each client or device was allowed to reach. The revocation handle's hash is withheld as credential material."
+  },
+  {
+    table: "oauth_pending_entries",
+    schemaExport: "oauthPendingEntries",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "An authorize request waiting on the consent page, or an authorization code waiting for its exchange; a code row names the user who approved it. Every row is deleted at most 10 minutes after it was written anyway. Deleted with the account so a code in flight cannot be redeemed after it. Not exported: it is a credential in flight."
   },
   {
     table: "mcp_oauth_tokens",

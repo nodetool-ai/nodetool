@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "código#estado",
       "signInWindowClosed": "¿Ventana de inicio de sesión cerrada?",
       "openAgain": "Ábrelo de nuevo",
-      "linkExpiry": ". El enlace caduca después de 10 minutos."
+      "linkExpiry": ". El enlace caduca después de 10 minutos.",
+      "nativeSubtitle": "quiere iniciar sesión en tu cuenta de NodeTool.",
+      "app": "Aplicación",
+      "device": "Dispositivo",
+      "nativeNote": "Aprueba solo si iniciaste este inicio de sesión desde una aplicación de escritorio de NodeTool en este ordenador. La aplicación podrá abrir, editar y guardar tus documentos en la nube hasta que cierres sesión o termines la sesión en Ajustes."
     },
     "integrations": {
       "loadingAccounts": "Cargando cuentas conectadas",
@@ -20488,5 +20492,25 @@
     "removeTitle": "¿Quitar «{{name}}»?",
     "removeBody": "El recurso se quita de NodeTool. Los documentos que lo usan ya no pueden mostrarlo.",
     "cancel": "Cancelar"
+  },
+  "deviceSessions": {
+    "title": "Dispositivos con sesión iniciada",
+    "description": "Ordenadores en los que iniciaste sesión en las aplicaciones de escritorio de NodeTool. Las dos aplicaciones de un ordenador comparten una sesión. Terminar una sesión cierra la sesión en ese ordenador.",
+    "empty": "Ningún ordenador tiene la sesión iniciada.",
+    "unnamed": "Ordenador sin nombre",
+    "signedInFrom": "Sesión iniciada desde {{app}} el {{date}}",
+    "lastUsed": "Último uso {{date}}",
+    "neverUsed": "Sin uso desde el inicio de sesión",
+    "end": "Terminar sesión",
+    "confirmTitle": "¿Terminar esta sesión?",
+    "confirmBody": "Las aplicaciones de escritorio de NodeTool en {{device}} cierran sesión en menos de un minuto.",
+    "cancel": "Cancelar",
+    "ended": "Sesión terminada.",
+    "endError": "No se pudo terminar la sesión: {{error}}",
+    "loadError": "No se pudieron cargar los dispositivos.",
+    "apps": {
+      "nodeEditor": "Editor de nodos",
+      "timeline": "Línea de tiempo"
+    }
   }
 }

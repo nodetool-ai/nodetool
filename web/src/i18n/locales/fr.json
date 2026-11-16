@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "code#état",
       "signInWindowClosed": "Fenêtre de connexion fermée ?",
       "openAgain": "Ouvrez-le à nouveau",
-      "linkExpiry": ". Le lien expire après 10 minutes."
+      "linkExpiry": ". Le lien expire après 10 minutes.",
+      "nativeSubtitle": "souhaite se connecter à votre compte NodeTool.",
+      "app": "Application",
+      "device": "Appareil",
+      "nativeNote": "N'approuvez que si vous avez lancé cette connexion depuis une application de bureau NodeTool sur cet ordinateur. L'application pourra alors ouvrir, modifier et enregistrer vos documents cloud jusqu'à ce que vous vous déconnectiez ou mettiez fin à la session dans les Paramètres."
     },
     "integrations": {
       "loadingAccounts": "Chargement des comptes connectés",
@@ -20488,5 +20492,25 @@
     "removeTitle": "Retirer « {{name}} » ?",
     "removeBody": "La ressource est retirée de NodeTool. Les documents qui l'utilisent ne peuvent plus l'afficher.",
     "cancel": "Annuler"
+  },
+  "deviceSessions": {
+    "title": "Appareils connectés",
+    "description": "Ordinateurs sur lesquels vous êtes connecté aux applications de bureau NodeTool. Les deux applications d'un même ordinateur partagent une session. Mettre fin à une session déconnecte cet ordinateur.",
+    "empty": "Aucun ordinateur n'est connecté.",
+    "unnamed": "Ordinateur sans nom",
+    "signedInFrom": "Connecté depuis {{app}} le {{date}}",
+    "lastUsed": "Dernière utilisation {{date}}",
+    "neverUsed": "Pas utilisé depuis la connexion",
+    "end": "Mettre fin à la session",
+    "confirmTitle": "Mettre fin à cette session ?",
+    "confirmBody": "Les applications de bureau NodeTool sur {{device}} sont déconnectées en moins d'une minute.",
+    "cancel": "Annuler",
+    "ended": "Session terminée.",
+    "endError": "Impossible de mettre fin à la session : {{error}}",
+    "loadError": "Impossible de charger les appareils connectés.",
+    "apps": {
+      "nodeEditor": "Éditeur de nœuds",
+      "timeline": "Timeline"
+    }
   }
 }

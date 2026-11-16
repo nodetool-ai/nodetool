@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "código#estado",
       "signInWindowClosed": "Janela de login fechada?",
       "openAgain": "Abra novamente",
-      "linkExpiry": ". O link expira após 10 minutos."
+      "linkExpiry": ". O link expira após 10 minutos.",
+      "nativeSubtitle": "quer entrar na sua conta NodeTool.",
+      "app": "Aplicativo",
+      "device": "Dispositivo",
+      "nativeNote": "Aprove apenas se você iniciou este login em um aplicativo de desktop NodeTool neste computador. O aplicativo poderá abrir, editar e salvar seus documentos na nuvem até você sair ou encerrar a sessão nas Configurações."
     },
     "integrations": {
       "loadingAccounts": "Carregando contas conectadas",
@@ -20488,5 +20492,25 @@
     "removeTitle": "Remover \"{{name}}\"?",
     "removeBody": "O recurso é removido do NodeTool. Os documentos que o usam não podem mais exibi-lo.",
     "cancel": "Cancelar"
+  },
+  "deviceSessions": {
+    "title": "Dispositivos conectados",
+    "description": "Computadores em que você entrou nos aplicativos de desktop NodeTool. Os dois aplicativos de um computador compartilham uma sessão. Encerrar uma sessão desconecta esse computador.",
+    "empty": "Nenhum computador está conectado.",
+    "unnamed": "Computador sem nome",
+    "signedInFrom": "Conectado pelo {{app}} em {{date}}",
+    "lastUsed": "Último uso {{date}}",
+    "neverUsed": "Sem uso desde o login",
+    "end": "Encerrar sessão",
+    "confirmTitle": "Encerrar esta sessão?",
+    "confirmBody": "Os aplicativos de desktop NodeTool em {{device}} são desconectados em até um minuto.",
+    "cancel": "Cancelar",
+    "ended": "Sessão encerrada.",
+    "endError": "Não foi possível encerrar a sessão: {{error}}",
+    "loadError": "Não foi possível carregar os dispositivos conectados.",
+    "apps": {
+      "nodeEditor": "Editor de nós",
+      "timeline": "Linha do tempo"
+    }
   }
 }

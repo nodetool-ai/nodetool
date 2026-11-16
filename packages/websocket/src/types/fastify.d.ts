@@ -11,5 +11,11 @@ declare module "fastify" {
      * the identity looks like an ordinary full session.
      */
     appSession: { applicationId: string; version: number } | null;
+    /**
+     * The device session id when the request authenticated with a native
+     * `ntd_` access token, else null. Procedures that create credentials
+     * refuse such a request.
+     */
+    nativeSessionId: string | null;
   }
 }
