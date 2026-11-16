@@ -15,6 +15,13 @@ const target = stub<TransformInput>({ input: { name: "image" }, list: false });
 describe("useTransformRun", () => {
   beforeEach(() => { run.mockReset(); });
 
+  it("runs in the project of the transform workflow", () => {
+    run.mockReturnValueOnce(new Promise(() => {}));
+    const { result } = renderHook(() => useTransformRun());
+    act(() => result.current.start({ ...workflow, project_id: "project-a" }, source, target));
+    expect(run.mock.calls[0][0].projectId).toBe("project-a");
+  });
+
   it("reports a rejected startup", async () => {
     run.mockRejectedValueOnce(new Error("Connection failed"));
     const { result } = renderHook(() => useTransformRun());

@@ -22,6 +22,12 @@ interface InlineGraphJobOptions {
   params?: Record<string, unknown>;
   signal?: AbortSignal;
   workflowId: string;
+  /**
+   * Project of the workflow this run belongs to. The server does not look it up
+   * for a run that carries its graph, so a run without it writes into
+   * Personal's folder. Leave it out for an ad-hoc graph with no workflow.
+   */
+  projectId?: string;
   /** Run title shown in the queue. Defaults to a single-node graph's name. */
   jobName?: string;
   /**
@@ -278,7 +284,8 @@ export async function runInlineGraphJob(
         // Explicit single-node / run-from-here runs are concurrent like the
         // other canvas run paths, so they don't serialize behind one another.
         concurrent: true,
-        graph: portableGraph
+        graph: portableGraph,
+        ...(options.projectId ? { project_id: options.projectId } : {})
       }
     });
   } catch (err) {
