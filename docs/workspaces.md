@@ -188,12 +188,14 @@ NodeTool compares a project's folder with its asset rows when the project is ope
 | --- | --- | --- |
 | The file is at the row's path and unchanged | Exists | Nothing changes. |
 | The file is at the row's path and changed | Exists | The row records the new size, modification time and partial hash. The asset keeps its ID. Its thumbnail is replaced, its video proxy is remade, and its waveform is computed again. |
-| The file is gone and exactly one file with no row has the same content | Exists | The row points at that file. A file moved or renamed outside NodeTool keeps its asset ID. |
+| The file is gone and exactly one file with no row has the same content | Exists | The row points at that file and takes its file name as the asset name. A file moved or renamed outside NodeTool keeps its asset ID. |
 | The file is gone and no file, or more than one, has the same content | Exists | The asset is marked offline. It reports as missing and its URL serves nothing. |
-| An image, video, audio or 3D file | None | A row is created. No thumbnail is built. |
+| An image, video, audio or 3D file | None | A row is created. An image, video or audio file gets its thumbnail before the row is announced. A 3D file gets none. |
 | Any other file | None | No row is created. The file gets a row the first time something uses it as an asset. |
 
 A move is often a copy followed by a delete. A media file with the same content as an asset's file therefore gets no row for its first 10 seconds. When the asset's file is gone by then, the asset points at the new file and keeps its ID. When both files are still there, the new file is a copy and gets its own row.
+
+After NodeTool writes into the folder, only the paths it wrote are compared. The other triggers compare the whole folder. A folder in object storage is read with one flat listing, which also tells which directories are the folders of other projects. A file that [Collect](storage.md#external-assets) reserved and has not finished copying belongs to the linked asset, so it gets no row, even when NodeTool stopped during the copy. The next Collect writes into it again.
 
 The comparison never deletes a row and never changes a file. It skips `.nodetool/`, every directory whose name starts with a dot, `node_modules/`, and every [folder of another project or game](#a-folder-inside-another-projects-folder) inside this one. It does not follow symbolic links. A row that already names a file in a directory skipped by its name is still checked. A row that names a file in another project's folder is marked offline.
 
@@ -201,7 +203,7 @@ An offline asset comes back when a file appears at its path again, or when it is
 
 #### Changes made in another app
 
-While a project is open, NodeTool watches its folder. A file saved, moved, renamed, added or deleted by another app is compared within a few seconds, and only the changed paths are looked at. The asset keeps its ID, and its thumbnail URL changes so that no cached picture of the old file is shown. The web app tells the server which project is open with the [`set_open_project`](websocket-api.md#set_open_project) command. The watcher stops when no client has the project open. A change made while the project is closed is picked up the next time it is opened.
+While a project is open, NodeTool watches its folder. A file saved, moved, renamed, added or deleted by another app is compared within a few seconds, and only the changed paths are looked at. The asset keeps its ID, and its thumbnail URL changes so that no cached picture of the old file is shown. The server then tells the clients that list the folder's files, so the Files tree shows the new name without Refresh. The web app tells the server which project is open with the [`set_open_project`](websocket-api.md#set_open_project) command, sent on the shared socket. The Files tree and the asset browser open that socket while they are shown. The watcher stops when no client has the project open, and moves with the project when Locate points it at another folder. A change made while the project is closed is picked up the next time it is opened.
 
 A folder in object storage is not watched, because only NodeTool writes to it. It is compared when the project is opened and after NodeTool writes into it.
 
