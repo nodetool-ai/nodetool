@@ -593,7 +593,11 @@ export class EffectsPage {
   }
 }
 
-/** Home actions must work at their first painted positions, without scrolling. */
+/**
+ * The creation entries must work at their first painted positions, without
+ * scrolling. Game and 3D model creation sit in the Open menu: the tab bar's
+ * `+` button opens it.
+ */
 export class HomePage {
   constructor(private readonly page: Page) {}
 
@@ -614,18 +618,22 @@ export class HomePage {
       }));
     }, { projectId, mode });
     await goto(this.page, "/workspace");
-    await this.actions().waitFor({ state: "visible" });
+    const opener = this.page.getByRole("button", { name: "Open or create a tab", exact: true });
+    await opener.waitFor({ state: "visible" });
     if (projectId) {
-      await expect(this.page.getByRole("button", { name: "Selected project: Scrapheart", exact: true })).toBeVisible();
+      await expect(this.page.getByRole("button", { name: /^Open project home: Scrapheart/i })).toBeVisible();
     }
+    await opener.click();
+    await this.actions().waitFor({ state: "visible" });
   }
 
   actions(): Locator {
-    return this.page.getByRole("group", { name: "Create a game or 3D model", exact: true });
+    return this.page.getByRole("menu");
   }
 
+  /** A guided flow carries a description under its title, so match the title as a prefix. */
   action(name: "Game" | "New 3D model"): Locator {
-    return this.actions().getByRole("button", { name, exact: true });
+    return this.actions().getByRole("menuitem", { name: name === "Game" ? /^Game\b/ : /^New 3D model$/ });
   }
 
   async firstScreenGeometry(name: "Game" | "New 3D model"): Promise<{
