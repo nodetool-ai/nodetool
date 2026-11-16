@@ -144,6 +144,8 @@ Agent tools follow the same rule. When `edit_storyboard`, `edit_timeline`, `set_
 
 NodeTool never replaces a file when it picks a name. The file is created exclusively, so when another NodeTool process took the name first, or a file with it already exists in the destination folder, the new file gets the next free suffix. An asset created before project folders keeps its bytes in [asset storage](storage.md) and reads as before until its file is moved into the folder.
 
+Large files are copied in chunks where the folder is a directory on the host. Saving an asset from a file on disk, renaming an asset's file and moving it to another directory read the file in pieces of about 1 MiB, so a file of 1 to 2 GiB does not need that much memory. The name is reserved with an empty file first and the bytes replace it in one rename when the copy ends. A copy that fails removes the empty file. A server that stops mid-copy leaves the empty file, which has no row. The partial content hash and the full content hash already read by range or by stream. A folder in object storage reads the whole file, because the storage adapters take bytes, and so does the move of an asset from before project folders. Those reads are bounded by `NODETOOL_MAX_UPLOAD_BYTES`.
+
 ### Existing assets move into the folder
 
 Assets created before project folders keep their bytes in asset storage under `<owner>/<asset id>.<ext>`. NodeTool moves them into their project's folder in the background. The move starts when the server starts, after every project has its folder, and again when a project is opened. A project shows "Moving files into the project folder" with a count while it runs. Every asset stays readable throughout, under the same ID and the same URL.
