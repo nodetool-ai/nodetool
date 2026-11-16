@@ -12,7 +12,20 @@ export const useAssetUpdate = () => {
   const updateAsset = useAssetStore((state) => state.update);
   const gridStore = useAssetGridStoreApi();
   const performMutation = async (updates: AssetUpdate[]) => {
-    await Promise.all(updates.map((asset) => updateAsset(asset)));
+    const results = await Promise.all(
+      updates.map((asset) => updateAsset(asset))
+    );
+    // Renaming a directory of a project folder gives it a new id. A view
+    // open inside it follows the folder to its new id.
+    const { currentFolderId, setCurrentFolderId, setCurrentFolder } =
+      gridStore.getState();
+    updates.forEach((update, index) => {
+      const result = results[index];
+      if (result && result.id !== update.id && currentFolderId === update.id) {
+        setCurrentFolderId(result.id);
+        setCurrentFolder(result);
+      }
+    });
   };
   const mutation = useMutation({
     mutationFn: performMutation,

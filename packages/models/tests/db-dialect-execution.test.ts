@@ -320,6 +320,58 @@ describe("model execution on SQLite and PostgreSQL", () => {
     });
   }, DIALECT_TEST_TIMEOUT_MS);
 
+  it("rewrites the paths under a project directory in one statement, case-sensitively and without wildcards", async () => {
+    await onBothDialects(async () => {
+      const project = "default";
+      await Project.create<Project>({ id: "elsewhere", user_id: OWNER, name: "Elsewhere" });
+      const make = (workspace_path: string, project_id = project) =>
+        Asset.create<Asset>({ user_id: OWNER, project_id, workspace_path });
+      const inside = await make("Shots/a.png");
+      const nested = await make("Shots/day 1/b.png");
+      // A sibling whose name starts like the directory, a differently cased
+      // one, and another project's file stay.
+      const sibling = await make("Shots2/c.png");
+      const cased = await make("shots/d.png");
+      const other = await make("Shots/f.png", "elsewhere");
+      // `_` is a LIKE wildcard, so `A_b/%` would also match `Axb/`.
+      const underscore = await make("A_b/g.png");
+      const lookalike = await make("Axb/h.png");
+      const moved = await Asset.moveWorkspaceDirectory(OWNER, project, "Shots", "Takes/Wide");
+      const movedUnderscore = await Asset.moveWorkspaceDirectory(OWNER, project, "A_b", "C");
+      const paths = await Promise.all(
+        [inside, nested, sibling, cased, other, underscore, lookalike].map(
+          async (asset) => (await Asset.get<Asset>(asset.id))?.workspace_path
+        )
+      );
+      expect([moved, movedUnderscore]).toEqual([2, 1]);
+      expect(paths).toEqual([
+        "Takes/Wide/a.png",
+        "Takes/Wide/day 1/b.png",
+        "Shots2/c.png",
+        "shots/d.png",
+        "Shots/f.png",
+        "C/g.png",
+        "Axb/h.png"
+      ]);
+      return { moved, paths };
+    });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
+  it("lists a row filed under a directory id at Home outside a project listing", async () => {
+    await onBothDialects(async () => {
+      const filed = await Asset.create<Asset>({
+        user_id: OWNER,
+        name: "filed",
+        parent_id: "dir:p1:Shots"
+      });
+      await Asset.create<Asset>({ user_id: OWNER, name: "in a folder row", parent_id: "folder-row" });
+      const [home] = await Asset.paginate(OWNER, { parentId: OWNER });
+      const names = home.map((asset) => asset.name);
+      expect(names).toEqual([filed.name]);
+      return names;
+    });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
   it("uses returning for metadata CAS and notifies only after the matching update", async () => {
     await onBothDialects(async () => {
       const asset = await Asset.create<Asset>({ user_id: OWNER, metadata: { version: 1 } });

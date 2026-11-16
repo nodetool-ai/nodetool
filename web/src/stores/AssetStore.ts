@@ -527,9 +527,10 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
 
   /**
    * Create a folder on the server.
-   * Folders are assets with content_type "folder".
-   * The root folder has parent_id = "0" and the
-   * same ID as the owning user.
+   * Outside a project, folders are assets with content_type "folder". Inside
+   * a project the server makes a directory of the project folder and answers
+   * with its folder entry, whose id names the directory.
+   * The root folder has the same ID as the owning user.
    *
    * @param parent_id The ID of the parent asset.
    * @param name The name of the folder.
@@ -709,6 +710,13 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     const data = await trpcClient.assets.update.mutate(updateInput);
     const normalized = normalizeAssetUrls(data);
     get().add(normalized);
+    if (normalized.id !== req.id) {
+      // A renamed or moved directory of a project folder has a new id, and
+      // so does every folder below it. Every listing that showed one is stale.
+      get().queryClient?.removeQueries({ queryKey: ["asset", req.id] });
+      get().invalidateQueries(["assets"]);
+      get().invalidateQueries(["folderTree"]);
+    }
     get().invalidateQueries(["assets", { parent_id: prev.parent_id }]);
     if (req.parent_id !== undefined && req.parent_id !== prev.parent_id) {
       get().invalidateQueries(["assets", { parent_id: req.parent_id }]);

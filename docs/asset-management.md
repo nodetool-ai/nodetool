@@ -30,7 +30,7 @@ The page header shows the total size, folder count, and file count of the curren
 
 ### Navigation
 
-- The left panel shows the folder tree.
+- The left panel shows the folder tree. Within a project the folders are the directories of the project folder. See [folders in the asset browser](workspaces.md#folders-in-the-asset-browser).
 - Search matches file names only, by substring. The input searches the current folder (**Search current folder...**). The toggle next to it switches to **Search all assets...**, which searches every folder and shows each result's folder path. Global search starts at two characters.
 
 ### Uploading Files
@@ -94,7 +94,7 @@ Assets are stored under `$XDG_DATA_HOME/nodetool/assets`, falling back to `~/.lo
 ## If it fails
 
 - **`Unsupported file type: <content type>`** when dragging an asset onto the canvas: no constant node exists for that type.
-- **Asset shows offline**: an externally referenced file moved or changed. Relink it. See [External assets](storage.md#external-assets). An asset in a project folder shows offline when its file was deleted or moved out of the folder. See [the asset index follows the folder](workspaces.md#the-asset-index-follows-the-folder).
+- **Asset shows Missing**: an externally referenced file moved or changed. Relink it. See [External assets](storage.md#external-assets). An asset in a project folder shows Missing when its file was deleted or moved out of the folder. Relink and Remove sit next to the badge. See [the asset index follows the folder](workspaces.md#the-asset-index-follows-the-folder).
 
 ## Next Steps
 

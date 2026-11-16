@@ -98,7 +98,16 @@ import {
   normalizeAssetContentType
 } from "./lib/asset-paths.js";
 import { resolveAssetBytesForExport } from "./lib/asset-export.js";
-import { toAssetResponse } from "./lib/asset-response.js";
+import {
+  directoryFolderResponse,
+  toAssetResponse
+} from "./lib/asset-response.js";
+import {
+  ProjectDirectoryError,
+  createProjectDirectory,
+  loadProjectDirectoryIndex
+} from "@nodetool-ai/asset-services/project-asset-directories";
+import { directoryOfParentId, listsByDirectory } from "@nodetool-ai/protocol";
 import { scheduleVideoProxy } from "./lib/video-proxy.js";
 import {
   IMPORTED_DIRECTORY,
@@ -1135,6 +1144,37 @@ export interface StagedAssetUpload {
  * Handle multipart file upload at POST /api/assets. JSON-only creation has
  * moved to the tRPC `assets.create` procedure.
  */
+/**
+ * Make the directory `name` under the folder `parentId` names in the folder of
+ * `projectId`, and answer with its folder entry.
+ */
+async function createDirectoryFolder(
+  userId: string,
+  projectId: string,
+  parentId: string,
+  name: string
+): Promise<Response> {
+  try {
+    const index = await loadProjectDirectoryIndex(userId, projectId);
+    const parent = index.resolver.directoryOfParent(parentId);
+    const path = await createProjectDirectory(userId, projectId, parent, name);
+    return jsonResponse(
+      directoryFolderResponse(userId, projectId, {
+        path,
+        modifiedAt: Date.now()
+      })
+    );
+  } catch (error) {
+    if (error instanceof ProjectDirectoryError) {
+      return errorResponse(400, error.message);
+    }
+    if (error instanceof ProjectFolderUnavailableError) {
+      return errorResponse(503, error.message);
+    }
+    throw error;
+  }
+}
+
 export async function handleAssetsRoot(
   request: Request,
   options: HttpApiOptions,
@@ -1220,6 +1260,22 @@ export async function handleAssetsRoot(
     }
   }
 
+  // Inside a project a new folder is a directory of the project folder. No
+  // folder row is created there.
+  if (
+    body.content_type === "folder" &&
+    listsByDirectory(body.project_id) &&
+    !fileBuffer &&
+    !staged?.file
+  ) {
+    return createDirectoryFolder(
+      userId,
+      body.project_id,
+      body.parent_id,
+      body.name
+    );
+  }
+
   const assetContentType = normalizeAssetContentType(
     body.content_type,
     body.name
@@ -1238,7 +1294,11 @@ export async function handleAssetsRoot(
         userId,
         name: body.name,
         contentType: assetContentType,
-        directory: uploadDirectory(body.directory),
+        // A file dropped into a directory folder of the asset browser goes
+        // to that directory.
+        directory: uploadDirectory(
+          body.directory ?? directoryOfParentId(body.parent_id, body.project_id)
+        ),
         parentId: body.parent_id,
         metadata: Object.keys(metadata).length > 0 ? metadata : null,
         provenance: {

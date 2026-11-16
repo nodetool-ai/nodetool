@@ -15106,7 +15106,6 @@
       "csv": "CSV 文件",
       "unknown": "未知文件类型",
       "unknownContentType": "未知内容类型",
-      "offline": "媒体离线",
       "thumbnail": "缩略图",
       "folder": "文件夹"
     },
@@ -20150,5 +20149,20 @@
     "personalHint": "从“个人”中选择会将文件复制到此项目。",
     "copying": "正在复制到此项目…",
     "copyFailed": "无法将素材复制到此项目。"
+  },
+  "assetFileStatus": {
+    "missing": "缺失",
+    "missingTooltip": "文件不在此素材期望的位置。请将其重新链接到文件的新位置，或移除该素材。",
+    "linked": "已链接",
+    "linkedTooltip": "此素材在原位置使用项目文件夹之外的文件。",
+    "relink": "重新链接",
+    "relinkTooltip": "选择文件的新位置",
+    "relinkNoPath": "无法读取该文件的位置。请选择此计算机上的文件。",
+    "relinkFailed": "重新链接失败：{{error}}",
+    "remove": "移除",
+    "removeTooltip": "从 NodeTool 移除此素材",
+    "removeTitle": "移除“{{name}}”？",
+    "removeBody": "该素材将从 NodeTool 中移除。使用它的文档将无法再显示它。",
+    "cancel": "取消"
   }
 }

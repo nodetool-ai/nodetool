@@ -15377,7 +15377,6 @@
       "csv": "Arquivo CSV",
       "unknown": "Tipo de arquivo desconhecido",
       "unknownContentType": "Tipo de conteúdo desconhecido",
-      "offline": "Mídia off-line",
       "thumbnail": "Miniatura",
       "folder": "Pasta"
     },
@@ -20461,5 +20460,20 @@
     "personalHint": "Escolher em Pessoal copia o arquivo para este projeto.",
     "copying": "Copiando para este projeto…",
     "copyFailed": "Não foi possível copiar o recurso para este projeto."
+  },
+  "assetFileStatus": {
+    "missing": "Ausente",
+    "missingTooltip": "O arquivo não está onde este recurso espera. Vincule-o novamente ao novo local do arquivo ou remova o recurso.",
+    "linked": "Vinculado",
+    "linkedTooltip": "Este recurso usa no lugar um arquivo fora da pasta do projeto.",
+    "relink": "Vincular novamente",
+    "relinkTooltip": "Escolha o novo local do arquivo",
+    "relinkNoPath": "Não foi possível ler o local desse arquivo. Escolha um arquivo neste computador.",
+    "relinkFailed": "Falha ao vincular novamente: {{error}}",
+    "remove": "Remover",
+    "removeTooltip": "Remover este recurso do NodeTool",
+    "removeTitle": "Remover \"{{name}}\"?",
+    "removeBody": "O recurso é removido do NodeTool. Os documentos que o usam não podem mais exibi-lo.",
+    "cancel": "Cancelar"
   }
 }

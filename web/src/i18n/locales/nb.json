@@ -15106,7 +15106,6 @@
       "csv": "CSV-fil",
       "unknown": "Ukjent filtype",
       "unknownContentType": "Ukjent innholdstype",
-      "offline": "Media offline",
       "thumbnail": "Miniatyrbilde",
       "folder": "Mappe"
     },
@@ -20150,5 +20149,20 @@
     "personalHint": "Når du velger fra Personlig, kopieres filen til dette prosjektet.",
     "copying": "Kopierer til dette prosjektet…",
     "copyFailed": "Kunne ikke kopiere ressursen til dette prosjektet."
+  },
+  "assetFileStatus": {
+    "missing": "Mangler",
+    "missingTooltip": "Filen er ikke der denne ressursen forventer den. Koble den på nytt til filens nye plassering, eller fjern ressursen.",
+    "linked": "Koblet",
+    "linkedTooltip": "Denne ressursen bruker en fil utenfor prosjektmappen der den ligger.",
+    "relink": "Koble på nytt",
+    "relinkTooltip": "Velg filens nye plassering",
+    "relinkNoPath": "Kunne ikke lese plasseringen til filen. Velg en fil på denne datamaskinen.",
+    "relinkFailed": "Kobling på nytt mislyktes: {{error}}",
+    "remove": "Fjern",
+    "removeTooltip": "Fjern denne ressursen fra NodeTool",
+    "removeTitle": "Fjerne «{{name}}»?",
+    "removeBody": "Ressursen fjernes fra NodeTool. Dokumenter som bruker den, kan ikke lenger vise den.",
+    "cancel": "Avbryt"
   }
 }

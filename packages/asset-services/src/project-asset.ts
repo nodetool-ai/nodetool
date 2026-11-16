@@ -496,27 +496,74 @@ export async function renameProjectAssetFile(
   }
   if (nextStem === stem) return null;
 
+  return relocateProjectAssetFile(asset, workspace, from, {
+    directory,
+    stem: nextStem,
+    extension
+  });
+}
+
+/**
+ * Move the file of `asset` into `directory` of its project folder, keeping
+ * its name. `directory` is project-relative, "" for the folder itself. Null
+ * when the asset keeps no file in a project folder or the file is already
+ * there.
+ *
+ * Like a rename, the file is copied with an exclusive create, under a
+ * suffixed name when its name is taken there, and the old file is removed on
+ * `commit`. Throws when the project folder cannot be reached, the directory
+ * is outside the folder, or the file is missing.
+ */
+export async function moveProjectAssetToDirectory(
+  asset: Asset,
+  directory: string
+): Promise<ProjectAssetFileChange | null> {
+  const file = await requireProjectAssetFile(asset);
+  if (!file) return null;
+  const { workspace } = file;
+  const from = file.path;
+  const { directory: current, stem, extension } = splitPath(from);
+  const target = directory ? workspace.key(directory) : "";
+  if (target === current) return null;
+  return relocateProjectAssetFile(asset, workspace, from, {
+    directory: target,
+    stem,
+    extension
+  });
+}
+
+/**
+ * Copy the file of `asset` at `from` to a free name built from `to`, point
+ * the asset at the copy, and return the change that removes `from` on commit
+ * or the copy on undo.
+ */
+function relocateProjectAssetFile(
+  asset: Asset,
+  workspace: Workspace,
+  from: string,
+  to: { directory: string; stem: string; extension: string }
+): Promise<ProjectAssetFileChange> {
   return withProjectFolderLock(asset.user_id, asset.project_id, async () => {
-    const to = await claimFile(
+    const copy = await claimFile(
       workspace,
       { userId: asset.user_id, projectId: asset.project_id },
-      directory,
-      nextStem,
-      extension,
+      to.directory,
+      to.stem,
+      to.extension,
       await readFileOf(workspace, from),
       asset.content_type
     );
     // Both names exist until the row is saved and the old file removed.
-    const release = holdPaths(asset.user_id, asset.project_id, [from, to]);
+    const release = holdPaths(asset.user_id, asset.project_id, [from, copy]);
     let info: Awaited<ReturnType<Workspace["stat"]>>;
     try {
-      info = await workspace.stat(to);
+      info = await workspace.stat(copy);
     } catch (error) {
       release();
       throw error;
     }
     const previous = { path: asset.workspace_path, metadata: asset.metadata };
-    asset.workspace_path = to;
+    asset.workspace_path = copy;
     if (info && asset.metadata && "workspace_mtime" in asset.metadata) {
       asset.metadata = { ...asset.metadata, workspace_mtime: info.modifiedAt };
     }
@@ -526,7 +573,7 @@ export async function renameProjectAssetFile(
           await removeFile(
             workspace,
             from,
-            "Could not remove a renamed asset's old file"
+            "Could not remove the old file of a renamed or moved asset"
           );
         } finally {
           release();
@@ -538,8 +585,8 @@ export async function renameProjectAssetFile(
         try {
           await removeFile(
             workspace,
-            to,
-            "Could not remove the copy of an asset whose rename was not saved"
+            copy,
+            "Could not remove the copy of an asset whose rename or move was not saved"
           );
         } finally {
           release();

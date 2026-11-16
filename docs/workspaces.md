@@ -131,6 +131,21 @@ Each project folder carries `.nodetool/assets.json`, next to `.nodetool/project.
 
 `content_hash` is absent until the background job has read the file. NodeTool rewrites the manifest a moment after the index changes. New contents go to `.nodetool/assets.json.tmp` first and replace the manifest once they are complete, so an interrupted write leaves the previous manifest intact. The database stays the source NodeTool reads assets from. The manifest travels with the folder.
 
+### Folders in the asset browser
+
+Within a project, the asset browser's folders are the directories of the project folder. A directory made in Finder shows up as a folder once the index has caught up, with its media inside. The view across every project and loose assets keep their folder rows.
+
+- **Create folder** makes a directory. No folder row is created inside a project. An object store has no empty directories, so on a cloud deployment an empty folder appears once it holds a file.
+- **Move to folder** moves the asset's file into the directory and updates its path. A name already taken there gets a numeric suffix.
+- **Rename** on a folder renames the directory and rewrites the path of every asset under it in one request and one database statement. Moving a folder into another works the same way. A name in use is refused.
+- **Delete** on a folder deletes the assets under it with their files. The directory goes too, unless it still holds files that have no asset row.
+
+An asset whose bytes are not in the folder yet sits under the path its old folder rows spell, and it follows a rename of that folder.
+
+A directory has no row, so its id names its project and path: `dir:<project id>:<path>`, each part URI-encoded. The project root is the user's home folder, whose id is the user id. `assets.list`, `get`, `recursive`, `update`, and `delete` accept these ids. The id changes when the folder is renamed. The rules live in `packages/protocol/src/project-directories.ts` and `packages/asset-services/src/project-asset-directories.ts`.
+
+Each asset shows the state of its file in the grid, the list, and the viewer. **Missing** marks an offline asset and offers **Relink** and **Remove**. Relink appears in the desktop app, which can read a picked file's location. **Linked** marks an asset that uses a file outside the project folder in place.
+
 ## Workflows are files in the folder
 
 Each workflow of a project is a JSON file in the project's folder, `Workflows/<name>.workflow.json`. The file is the document. The database row is the copy NodeTool runs from and reads when it lists workflows.

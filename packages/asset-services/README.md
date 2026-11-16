@@ -55,3 +55,10 @@ an asset's bytes sets it back to null. `refreshAssetThumbnail` replaces the
 thumbnail of a file that changed in place, and `projectAssetMtime` versions
 the thumbnail URL.
 See [the asset index follows the folder](../../docs/workspaces.md#the-asset-index-follows-the-folder).
+
+Within a project the asset browser's folders are directories of the folder.
+`project-asset-directories` lists a project by directory, makes a directory
+for a new folder, and moves a directory with `moveProjectDirectory`, which
+rewrites the rows under it in one statement. `moveProjectAssetToDirectory`
+moves one asset's file. See
+[folders in the asset browser](../../docs/workspaces.md#folders-in-the-asset-browser).

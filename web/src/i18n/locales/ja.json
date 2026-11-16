@@ -15106,7 +15106,6 @@
       "csv": "CSVファイル",
       "unknown": "不明なファイルタイプ",
       "unknownContentType": "不明なコンテンツ タイプ",
-      "offline": "オフラインのメディア",
       "thumbnail": "サムネイル",
       "folder": "フォルダー"
     },
@@ -20150,5 +20149,20 @@
     "personalHint": "個人から選ぶと、ファイルがこのプロジェクトにコピーされます。",
     "copying": "このプロジェクトにコピーしています…",
     "copyFailed": "アセットをこのプロジェクトにコピーできませんでした。"
+  },
+  "assetFileStatus": {
+    "missing": "見つかりません",
+    "missingTooltip": "このアセットが参照する場所にファイルがありません。ファイルの新しい場所に再リンクするか、アセットを削除してください。",
+    "linked": "リンク",
+    "linkedTooltip": "このアセットはプロジェクトフォルダー外のファイルをその場所のまま使用しています。",
+    "relink": "再リンク",
+    "relinkTooltip": "ファイルの新しい場所を選択",
+    "relinkNoPath": "そのファイルの場所を読み取れませんでした。このコンピューター上のファイルを選択してください。",
+    "relinkFailed": "再リンクに失敗しました: {{error}}",
+    "remove": "削除",
+    "removeTooltip": "このアセットを NodeTool から削除",
+    "removeTitle": "「{{name}}」を削除しますか？",
+    "removeBody": "アセットは NodeTool から削除されます。これを使用しているドキュメントでは表示できなくなります。",
+    "cancel": "キャンセル"
   }
 }

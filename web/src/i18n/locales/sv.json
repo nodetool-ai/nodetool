@@ -15106,7 +15106,6 @@
       "csv": "CSV-fil",
       "unknown": "Okänd filtyp",
       "unknownContentType": "Okänd innehållstyp",
-      "offline": "Media offline",
       "thumbnail": "Miniatyrbild",
       "folder": "Mapp"
     },
@@ -20150,5 +20149,20 @@
     "personalHint": "När du väljer från Personligt kopieras filen till det här projektet.",
     "copying": "Kopierar till det här projektet…",
     "copyFailed": "Det gick inte att kopiera resursen till det här projektet."
+  },
+  "assetFileStatus": {
+    "missing": "Saknas",
+    "missingTooltip": "Filen finns inte där den här resursen förväntar sig. Länka om den till filens nya plats eller ta bort resursen.",
+    "linked": "Länkad",
+    "linkedTooltip": "Den här resursen använder en fil utanför projektmappen där den ligger.",
+    "relink": "Länka om",
+    "relinkTooltip": "Välj filens nya plats",
+    "relinkNoPath": "Det gick inte att läsa filens plats. Välj en fil på den här datorn.",
+    "relinkFailed": "Det gick inte att länka om: {{error}}",
+    "remove": "Ta bort",
+    "removeTooltip": "Ta bort den här resursen från NodeTool",
+    "removeTitle": "Ta bort ”{{name}}”?",
+    "removeBody": "Resursen tas bort från NodeTool. Dokument som använder den kan inte längre visa den.",
+    "cancel": "Avbryt"
   }
 }

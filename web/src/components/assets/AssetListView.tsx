@@ -16,6 +16,7 @@ import {
   getAssetGroup
 } from "./assetGridUtils";
 import { AssetGroupIcon } from "./assetGroupIcons";
+import AssetFileStatus from "./AssetFileStatus";
 import { colorForType } from "../../config/data_types";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -205,6 +206,10 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
+    },
+    ".asset-item-status": {
+      flex: "0 0 auto",
+      marginInline: getSpacingPx(SPACING.sm)
     },
     ".asset-item-name.folder": {
       color: theme.vars.palette.primary.main
@@ -543,6 +548,10 @@ const AssetListView: React.FC<AssetListViewProps> = ({
             </span>
           )}
         </div>
+
+        {!isFolder && (
+          <AssetFileStatus asset={asset} className="asset-item-status" />
+        )}
 
         {showSize && (
           <div className="asset-item-size">

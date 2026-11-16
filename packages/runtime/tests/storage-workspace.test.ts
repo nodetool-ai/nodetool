@@ -211,6 +211,44 @@ describe.each(backends)("Workspace over $name", ({ isLocal }) => {
     expect(await workspace.exists("b.txt")).toBe(false);
   });
 
+  it("moves a directory with everything under it", async () => {
+    await workspace.write("Shots/a.txt", "a");
+    await workspace.write("Shots/day 1/b.txt", "b");
+    const before = await workspace.stat("Shots/a.txt");
+    await workspace.move("Shots", "Takes/Wide");
+    expect(await workspace.readText("Takes/Wide/a.txt")).toBe("a");
+    expect(await workspace.readText("Takes/Wide/day 1/b.txt")).toBe("b");
+    expect(await workspace.stat("Shots")).toBeNull();
+    expect(
+      (await workspace.list("", { recursive: true }))
+        .filter((entry) => !entry.isDirectory)
+        .map((entry) => entry.path)
+        .sort()
+    ).toEqual(["Takes/Wide/a.txt", "Takes/Wide/day 1/b.txt"]);
+    if (isLocal) {
+      // A local directory is renamed, so its files keep their mtimes.
+      expect((await workspace.stat("Takes/Wide/a.txt"))?.modifiedAt).toBe(
+        before?.modifiedAt
+      );
+    }
+  });
+
+  it("refuses to move a directory into itself or onto an existing entry", async () => {
+    await workspace.write("Shots/a.txt", "a");
+    await workspace.write("Takes/b.txt", "b");
+    await expect(workspace.move("Shots", "Shots/inner")).rejects.toThrow(
+      /into itself/
+    );
+    await expect(workspace.move("Shots", "Takes")).rejects.toThrow(
+      /already exists/
+    );
+    await expect(workspace.move("Nowhere", "Else")).rejects.toThrow(
+      /does not exist/
+    );
+    expect(await workspace.readText("Shots/a.txt")).toBe("a");
+    expect(await workspace.readText("Takes/b.txt")).toBe("b");
+  });
+
   it("refuses to copy a file that is not there", async () => {
     await expect(workspace.copy("nope.txt", "b.txt")).rejects.toThrow(
       /does not exist/
