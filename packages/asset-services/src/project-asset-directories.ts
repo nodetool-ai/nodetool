@@ -29,7 +29,12 @@ import {
   withAncestorDirectories,
   type LegacyFolder
 } from "@nodetool-ai/protocol";
-import { WorkspacePathError, type Workspace } from "@nodetool-ai/runtime";
+import {
+  NestedFolders,
+  WorkspacePathError,
+  WorkspaceReservedPathError,
+  type Workspace
+} from "@nodetool-ai/runtime";
 import {
   ProjectFolderUnavailableError,
   requireProjectFolder
@@ -116,9 +121,9 @@ export async function loadProjectDirectoryIndex(
 }
 
 /**
- * Subdirectories of `path` on disk. Hidden ones are left out, and so is the
- * folder of another project inside this one: its directories are that
- * project's. Empty when unreachable.
+ * Subdirectories of `path` on disk, hidden ones left out. The folder of
+ * another project inside this one is not among them: the workspace leaves it
+ * out of its listings. Empty when unreachable.
  */
 async function diskSubdirectories(
   workspace: Workspace | null,
@@ -126,13 +131,10 @@ async function diskSubdirectories(
 ): Promise<ProjectDirectory[]> {
   if (!workspace) return [];
   try {
-    const directories: ProjectDirectory[] = [];
-    for (const entry of await workspace.list(path)) {
-      if (!entry.isDirectory || isHiddenDirectory(entry.name)) continue;
-      if (await workspace.isNestedFolder(entry.path)) continue;
-      directories.push({ path: entry.path, modifiedAt: entry.modifiedAt });
-    }
-    return directories;
+    const entries = await workspace.list(path);
+    return entries
+      .filter((entry) => entry.isDirectory && !isHiddenDirectory(entry.name))
+      .map((entry) => ({ path: entry.path, modifiedAt: entry.modifiedAt }));
   } catch (error) {
     if (!(error instanceof WorkspacePathError)) {
       log.debug("Could not list a project directory", {
@@ -236,6 +238,22 @@ async function directoryExists(
   }
 }
 
+/**
+ * Throw {@link ProjectDirectoryError} when `path` is the folder of another
+ * project inside this one, or lies in it. Its directories are that
+ * project's.
+ */
+async function refuseOtherFolder(
+  workspace: Workspace,
+  path: string
+): Promise<void> {
+  if (await new NestedFolders(workspace).covers(path)) {
+    throw new ProjectDirectoryError(
+      `"${path}" is in the folder of another project`
+    );
+  }
+}
+
 /** The folder of the project, or the reason it cannot be used. */
 function requireWorkspace(index: ProjectDirectoryIndex): Workspace {
   if (!index.workspace) {
@@ -278,6 +296,7 @@ export async function createProjectDirectory(
   const workspace = requireWorkspace(index);
   const path = childPath(workspace, parent, name);
   return withProjectFolderLock(userId, projectId, async () => {
+    await refuseOtherFolder(workspace, path);
     if (await directoryExists(index, path)) {
       throw new ProjectDirectoryError(
         `A folder or file named "${directoryName(path)}" already exists here`
@@ -309,8 +328,10 @@ export interface ProjectDirectoryMove {
  * directory ids, so they keep their place until their bytes move.
  *
  * Throws {@link ProjectDirectoryError} when `to` exists or lies inside
- * `from`, and `ProjectFolderUnavailableError` when the folder cannot be
- * reached. When the rows cannot be rewritten, the directory moves back.
+ * `from`, when either is in the folder of another project inside this one,
+ * and when `from` holds such a folder. Throws `ProjectFolderUnavailableError`
+ * when the folder cannot be reached. When the rows cannot be rewritten, the
+ * directory moves back.
  */
 export async function moveProjectDirectory(
   userId: string,
@@ -340,6 +361,11 @@ export async function moveProjectDirectory(
   }
 
   return withProjectFolderLock(userId, projectId, async () => {
+    // Checked here and not left to the move: a directory that is on no disk
+    // moves by its rows alone, and those must not be rewritten into another
+    // project's folder either.
+    await refuseOtherFolder(workspace, from);
+    await refuseOtherFolder(workspace, target);
     const caseOnly = target.toLowerCase() === from.toLowerCase();
     if (!caseOnly && (await directoryExists(index, target))) {
       throw new ProjectDirectoryError(
@@ -347,7 +373,19 @@ export async function moveProjectDirectory(
       );
     }
     const onDisk = (await workspace.stat(from))?.isDirectory === true;
-    if (onDisk) await workspace.move(from, target);
+    if (onDisk) {
+      try {
+        await workspace.move(from, target);
+      } catch (error) {
+        // The directory holds the folder of another project or of a game.
+        if (error instanceof WorkspaceReservedPathError) {
+          throw new ProjectDirectoryError(
+            `"${directoryName(from)}" holds the folder of another project and cannot be renamed or moved`
+          );
+        }
+        throw error;
+      }
+    }
 
     let files: number;
     try {
@@ -439,6 +477,8 @@ export async function removeEmptyProjectDirectory(
   if (!path) return false;
   const { workspace } = await requireProjectFolder(projectId, userId);
   return withProjectFolderLock(userId, projectId, async () => {
+    // Another project's folder is not this project's to remove.
+    if (await new NestedFolders(workspace).covers(path)) return false;
     const info = await workspace.stat(path);
     if (!info?.isDirectory) return false;
     const left = await workspace.list(path, { recursive: true });

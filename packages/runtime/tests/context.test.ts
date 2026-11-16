@@ -637,6 +637,34 @@ describe("workspace path resolution", () => {
     );
   });
 
+  it("refuses a path in a directory that holds a reserved directory", async () => {
+    // The folder of another project inside the workspace: `projects/abc`.
+    const root = await mkdtemp(join(tmpdir(), "nodetool-ctx-nested-"));
+    try {
+      await mkdir(join(root, "projects", "abc", ".nodetool"), { recursive: true });
+      await mkdir(join(root, "projects", "plain"), { recursive: true });
+      await mkdir(join(root, ".nodetool"), { recursive: true });
+
+      for (const path of [
+        "projects/abc/notes.txt",
+        "projects/abc",
+        "/workspace/projects/abc/deep/notes.txt"
+      ]) {
+        expect(() => resolveWorkspacePath(root, path)).toThrow(
+          "folder of another project"
+        );
+      }
+      // The workspace's own root and its other directories stay reachable.
+      expect(resolveWorkspacePath(root, ".")).toBe(resolve(root));
+      expect(resolveWorkspacePath(root, "projects/plain/notes.txt")).toBe(
+        resolve(root, "projects/plain/notes.txt")
+      );
+      expect(resolveWorkspacePath(root, "projects")).toBe(resolve(root, "projects"));
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("refuses an absolute path into the reserved directory", async () => {
     const ctx = new ProcessingContext({
       jobId: "j1",

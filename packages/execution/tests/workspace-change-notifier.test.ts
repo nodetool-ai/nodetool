@@ -15,7 +15,12 @@ import { join } from "node:path";
 
 vi.mock("@nodetool-ai/models", () => ({
   Workflow: { find: vi.fn() },
-  Workspace: { find: vi.fn(), ensureDefault: vi.fn() },
+  Workspace: {
+    find: vi.fn(),
+    ensureDefault: vi.fn(),
+    // No project or game keeps a folder inside the workspace under test.
+    listFolderPaths: vi.fn(async () => [])
+  },
   getSecret: vi.fn()
 }));
 

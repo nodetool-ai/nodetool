@@ -9,9 +9,11 @@
  *
  * A project folder can hold the folder of another project or of a game:
  * Personal's managed folder holds `projects/<id>`. Those files belong to the
- * other project. {@link scanFolder} and {@link scanChangedPaths} never enter
- * such a directory, and {@link NestedFolders} answers for every other reader
- * and writer that follows a row to a path.
+ * other project, and the folder's `Workspace` reaches none of them. So
+ * {@link scanFolder} never enters such a directory. {@link scanChangedPaths}
+ * and every reader that follows a row to a path ask {@link NestedFolders}
+ * before they look, so that such a path counts as not this folder's and no
+ * refusal has to be read as a missing file.
  */
 import {
   NestedFolders,
@@ -58,15 +60,13 @@ export function isIgnoredProjectPath(path: string): boolean {
  * so a directory that could not be read never makes its files look deleted.
  *
  * A directory that is the folder of another project or of a game is not
- * entered, so none of its files is in the result. `start` is a directory of
- * this folder. A caller that takes it from outside checks it with
- * {@link NestedFolders.covers} first, as {@link scanChangedPaths} does.
+ * entered, so none of its files is in the result: `Workspace.list` leaves
+ * such a directory out, and refuses one as `start`.
  */
 export async function scanFolder(
   workspace: Workspace,
   start = "",
-  files = new Map<string, FolderFile>(),
-  nested = new NestedFolders(workspace)
+  files = new Map<string, FolderFile>()
 ): Promise<Map<string, FolderFile>> {
   const directories = [start];
   for (let next = directories.pop(); next !== undefined; next = directories.pop()) {
@@ -79,12 +79,7 @@ export async function scanFolder(
     }
     for (const entry of entries) {
       if (entry.isDirectory) {
-        if (
-          !isSkippedDirectory(entry.name) &&
-          !(await nested.isFolder(entry.path))
-        ) {
-          directories.push(entry.path);
-        }
+        if (!isSkippedDirectory(entry.name)) directories.push(entry.path);
       } else {
         files.set(entry.path, {
           path: entry.path,
@@ -168,7 +163,7 @@ export async function scanChangedPaths(
     } else if (found === "directory") {
       if (isSkippedDirectory(path.slice(path.lastIndexOf("/") + 1))) continue;
       places.add(path);
-      await scanFolder(workspace, path, files, nested);
+      await scanFolder(workspace, path, files);
     } else {
       files.set(path, found);
     }

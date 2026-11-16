@@ -58,6 +58,7 @@ export {
   projectManifest,
   readProjectManifest,
   removeProjectManifest,
+  unmarkFolderCreated,
   writeProjectManifest
 } from "./project-folder.js";
 export type {

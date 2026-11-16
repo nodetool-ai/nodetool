@@ -79,6 +79,7 @@ import type {
   ProcessingContextModelInterfaces,
   ThreadMessagesResultLike
 } from "@nodetool-ai/runtime-core";
+import { localPathIsInNestedFolder } from "@nodetool-ai/runtime-core";
 import {
   WorkspaceReservedPathError,
   isReservedWorkspaceKey,
@@ -544,12 +545,17 @@ function isWithinRoot(root: string, target: string): boolean {
 
 /**
  * Refuse a resolved path inside the directory NodeTool reserves in every
- * workspace. The local-path twin of the check in `Workspace.key()`, for the
+ * workspace, or in the folder of another project inside the workspace. The
+ * local-path twin of the checks every `Workspace` operation runs, for the
  * tools that still resolve a real path instead of using the interface.
  */
 function assertNotReserved(root: string, target: string, path: string): void {
-  if (isReservedWorkspaceKey(relative(root, target).replaceAll("\\", "/"))) {
+  const key = relative(root, target).replaceAll("\\", "/");
+  if (isReservedWorkspaceKey(key)) {
     throw new WorkspaceReservedPathError(path);
+  }
+  if (localPathIsInNestedFolder(root, key)) {
+    throw new WorkspaceReservedPathError(path, "nested");
   }
 }
 

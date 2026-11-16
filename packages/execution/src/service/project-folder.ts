@@ -249,6 +249,15 @@ export async function markFolderCreated(row: WorkspaceRow): Promise<void> {
 }
 
 /**
+ * Remove the record {@link markFolderCreated} wrote. For a folder whose
+ * creation is undone, such as the folder of an import that failed: in object
+ * storage the record is the last object under the folder's key.
+ */
+export async function unmarkFolderCreated(row: WorkspaceRow): Promise<void> {
+  await requireNodetoolDir(row).delete(FOLDER_CREATED_FILE);
+}
+
+/**
  * True when the folder behind `row` carries the record that NodeTool created
  * it for the row's project.
  *
