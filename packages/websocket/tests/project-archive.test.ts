@@ -272,6 +272,27 @@ describe("project files", () => {
     expect(records).not.toContain(root);
   });
 
+  it("imports a workflow as never synced with a file of the new folder", async () => {
+    const seeded = await seedProject();
+    const [source] = await Workflow.listForProjects(owner, [seeded.projectId]);
+    await Workflow.setFileState(source!.id, {
+      file_path: "Workflows/Launch.workflow.json",
+      file_hash: "a".repeat(64),
+      file_error: "File missing"
+    });
+    const { bytes } = await exportProject(owner, seeded.projectId);
+
+    const { project } = await importArchive(bytes);
+
+    // The hash names a file of the folder the archive was made from.
+    const [imported] = await Workflow.listForProjects(importer, [project.id]);
+    expect(imported).toMatchObject({
+      file_path: "Workflows/Launch.workflow.json",
+      file_hash: null,
+      file_error: null
+    });
+  });
+
   it("exports the project folder's files with the storyboards, scripts, and sketches", async () => {
     const project = (await Project.insertNew({
       user_id: owner,

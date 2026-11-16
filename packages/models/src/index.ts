@@ -146,7 +146,12 @@ export type {
   TableErasureReport
 } from "./personal-data.js";
 
-export { Workflow } from "./workflow.js";
+export { Workflow, setWorkflowFileSync } from "./workflow.js";
+export type {
+  DocumentFileLocation,
+  DocumentFileRow,
+  DocumentFileSync
+} from "./document-file-sync.js";
 export type {
   AccessLevel,
   WorkflowGraph,

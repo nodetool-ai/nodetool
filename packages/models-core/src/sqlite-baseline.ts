@@ -111,3 +111,13 @@ export const ASSET_WORKSPACE_PATH_DDL = "ALTER TABLE nodetool_assets ADD COLUMN 
  * owner, as the column above is.
  */
 export const ASSET_CONTENT_HASH_DDL = "ALTER TABLE nodetool_assets ADD COLUMN content_hash TEXT";
+/**
+ * A project workflow is a JSON file in its project's folder, and the row
+ * records the file's path relative to that folder. Added by a versioned
+ * migration in every schema owner, as the asset columns above are.
+ */
+export const WORKFLOW_FILE_PATH_DDL = "ALTER TABLE nodetool_workflows ADD COLUMN file_path TEXT";
+/** The SHA-256 of the workflow file content last synced with the row. */
+export const WORKFLOW_FILE_HASH_DDL = "ALTER TABLE nodetool_workflows ADD COLUMN file_hash TEXT";
+/** What the last reconcile found wrong with a workflow's file, if anything. */
+export const WORKFLOW_FILE_ERROR_DDL = "ALTER TABLE nodetool_workflows ADD COLUMN file_error TEXT";

@@ -26,6 +26,11 @@ export const workflows = pgTable(
     app_doc: jsonText<Record<string, unknown>>()("app_doc"),
     receive_clipboard: integerBoolean("receive_clipboard"),
     access: text("access").notNull().default("private"),
+    // File in the project folder and the hash last synced — see
+    // schema/workflows.ts.
+    file_path: text("file_path"),
+    file_hash: text("file_hash"),
+    file_error: text("file_error"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },
