@@ -145,16 +145,44 @@ async function realKeyWithinRoot(
   root: string,
   candidate: string
 ): Promise<string | null> {
+  const realRoot = await requireNode().fs.realpath(root);
+  const found = await resolveExisting(candidate);
+  return found ? keyBelow(realRoot, found.real, found.rest) : null;
+}
+
+/** A path resolved as far as it exists: its real part and what is not there yet. */
+interface ResolvedPath {
+  /** The real path of the nearest ancestor that exists, or of the path itself. */
+  real: string;
+  /** The segments below `real` that do not exist yet. */
+  rest: string[];
+}
+
+/** The key of `real` under `realRoot`, plus `rest`; null when it is not under it. */
+function keyBelow(
+  realRoot: string,
+  real: string,
+  rest: readonly string[]
+): string | null {
+  const { path } = requireNode();
+  const rel = path.relative(realRoot, real);
+  if (rel !== "" && (isClimb(rel, path) || path.isAbsolute(rel))) return null;
+  return [...(rel === "" ? [] : rel.split(path.sep)), ...rest].join("/");
+}
+
+/** Whether a `path.relative` result leaves the directory it is relative to. */
+function isClimb(rel: string, path: { sep: string }): boolean {
+  return rel === ".." || rel.startsWith(`..${path.sep}`);
+}
+
+/**
+ * `candidate` with every symlink resolved, as far as it exists. Null when it,
+ * or an ancestor, is a link with no target: such a path cannot be decided.
+ */
+async function resolveExisting(candidate: string): Promise<ResolvedPath | null> {
   const { fs, path } = requireNode();
-  const realRoot = await fs.realpath(root);
-  /** The key of `real` plus the segments below it that do not exist yet. */
-  const keyOf = (real: string, rest: readonly string[]): string | null => {
-    const rel = path.relative(realRoot, real);
-    if (rel !== "" && (rel.startsWith("..") || path.isAbsolute(rel))) return null;
-    return [...(rel === "" ? [] : rel.split(path.sep)), ...rest].join("/");
-  };
   try {
-    return keyOf(await fs.realpath(candidate), []);
+    return { real: await fs.realpath(candidate), rest: [] };
   } catch {
     // Not resolvable — either absent, or a link with no target.
   }
@@ -172,7 +200,7 @@ async function realKeyWithinRoot(
   let parent = path.dirname(candidate);
   while (true) {
     try {
-      return keyOf(await fs.realpath(parent), rest);
+      return { real: await fs.realpath(parent), rest };
     } catch {
       // realpath failed — either this ancestor is genuinely absent, or it is
       // itself a dangling symlink. lstat, not the loop's next iteration,
@@ -191,6 +219,139 @@ async function realKeyWithinRoot(
       parent = next;
     }
   }
+}
+
+/** How many links a create follows before it gives up, as the kernel does. */
+const MAX_LINK_HOPS = 40;
+
+/**
+ * The path a create at `candidate` writes: `candidate` itself, or the end of
+ * the chain of links that starts there. A dangling link is not a free name,
+ * because `writeFile` follows it and creates its target. Null when the chain
+ * does not end or cannot be read.
+ */
+async function landingOf(candidate: string): Promise<string | null> {
+  const { fs, path } = requireNode();
+  let current = candidate;
+  for (let hop = 0; hop <= MAX_LINK_HOPS; hop++) {
+    try {
+      if (!(await fs.lstat(current)).isSymbolicLink()) return current;
+    } catch {
+      return current;
+    }
+    try {
+      const link = await fs.readlink(current);
+      // A relative target is read from the directory the link really is in.
+      const directory = await fs
+        .realpath(path.dirname(current))
+        .catch(() => path.dirname(current));
+      current = path.resolve(directory, link);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
+ * The key of `found` under `realRoot` by identity: the device and inode of
+ * each ancestor of its real path compared with those of the root. This is the
+ * answer for a spelling that `realpath` does not resolve, such as a macOS
+ * firmlink or a Windows share of a local drive. Null when no ancestor is the
+ * root.
+ */
+async function keyByIdentity(
+  realRoot: string,
+  found: ResolvedPath
+): Promise<string | null> {
+  const { fs, path } = requireNode();
+  try {
+    const rootId = await fs.stat(realRoot, { bigint: true });
+    let ancestor = found.real;
+    while (true) {
+      const id = await fs.stat(ancestor, { bigint: true });
+      if (id.dev === rootId.dev && id.ino === rootId.ino) {
+        const rel = path.relative(ancestor, found.real);
+        return [...(rel === "" ? [] : rel.split(path.sep)), ...found.rest].join("/");
+      }
+      const next = path.dirname(ancestor);
+      if (next === ancestor) return null;
+      ancestor = next;
+    }
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Where a create or read at `target` really is inside `root`: links resolved,
+ * a dangling link followed to where a create would land, and a spelling that
+ * `realpath` leaves alone judged by the root's identity. Null when it is not
+ * inside, or cannot be decided. Throws when the root is not there.
+ */
+async function realLandingKey(root: string, target: string): Promise<string | null> {
+  const realRoot = await requireNode().fs.realpath(root);
+  const landing = await landingOf(target);
+  if (landing === null) return null;
+  const found = await resolveExisting(landing);
+  if (!found) return null;
+  return keyBelow(realRoot, found.real, found.rest) ?? (await keyByIdentity(realRoot, found));
+}
+
+/** The administrative share of drive `X`, `X$`. */
+const ADMIN_SHARE = /^([A-Za-z])\$$/;
+
+/**
+ * A Windows path in the plain drive form: the long path prefix (`\\?\C:\`),
+ * the device prefix (`\\.\C:\`) and the administrative share of this host
+ * (`\\localhost\C$\`, also by loopback address or host name) all name
+ * `C:\`. `path.win32.relative` reads each as another root. `path` is the
+ * module the caller resolves with; on POSIX nothing changes.
+ */
+function plainWindowsPath(
+  target: string,
+  path: Pick<typeof import("node:path"), "sep">,
+  hostname: string
+): string {
+  if (path.sep !== "\\") return target;
+  let p = target.replaceAll("/", "\\");
+  const device = /^\\\\[?.]\\(?=[A-Za-z]:|UNC\\)/i.exec(p);
+  if (device) {
+    p = p.slice(device[0].length);
+    if (/^UNC\\/i.test(p)) p = `\\\\${p.slice(4)}`;
+  }
+  const share = /^\\\\([^\\]+)\\([^\\]+)(\\.*)?$/.exec(p);
+  if (share) {
+    const host = share[1].toLowerCase();
+    const drive = ADMIN_SHARE.exec(share[2]);
+    const local =
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "::1" ||
+      host === "[::1]" ||
+      host === hostname.toLowerCase();
+    if (local && drive) p = `${drive[1]}:${share[3] ?? "\\"}`;
+  }
+  return p;
+}
+
+/**
+ * Where `target` sits in `root` as written, before any link is resolved: a
+ * key, "" for the root itself, null when it is outside. Windows spellings of
+ * a drive path are read as the drive path. Exported for its tests, which pass
+ * `path.win32` on a POSIX host.
+ */
+export function lexicalKeyWithin(
+  root: string,
+  target: string,
+  path: Pick<typeof import("node:path"), "sep" | "resolve" | "relative" | "isAbsolute">,
+  hostname: string
+): string | null {
+  const plain = (p: string): string =>
+    path.resolve(plainWindowsPath(path.resolve(p), path, hostname));
+  const inside = path.relative(plain(root), plain(target));
+  if (isClimb(inside, path) || path.isAbsolute(inside)) return null;
+  return inside === "" ? "" : inside.split(path.sep).join("/");
 }
 
 /**
@@ -215,61 +376,80 @@ function isFresh<T>(remembered: Remembered<T> | null | undefined): remembered is
 
 const nodeFs = getNodeBuiltinSync<typeof import("node:fs")>("node:fs");
 
+/** What {@link assertLocalPathIsOwn} is asked about. */
+export interface LocalPathUse {
+  /**
+   * The path will be created or written. Inside the folder, a link that
+   * leads out of it, or that the check cannot follow, is then refused as
+   * well: a link planted in a copied folder must not send a write to
+   * `~/.bashrc`. A read through such a link is the caller's choice.
+   */
+  write?: boolean;
+}
+
 /**
  * Refuse the real path `target` when it is the folder of another project
- * inside `workspace`, or lies in one. `root` is the real directory the
- * workspace's keys are relative to: its folder, or the scratch directory its
- * files are staged in. `shown` is the path the refusal names.
+ * inside `workspace`, or lies in one, or is in the reserved directory. `root`
+ * is the real directory the workspace's keys are relative to: its folder, or
+ * the scratch directory its files are staged in. `shown` is the path the
+ * refusal names.
  *
  * For code that opens a real path itself instead of calling the workspace: a
  * host binary, libav, `node:fs`. The rule is the workspace's own, asked
  * through {@link NestedFolders}, so a folder known by its `.nodetool/`
- * directory and one the host names are refused alike. Containment in `root`
- * is the caller's check: a path outside it is not judged here.
+ * directory and one the host names are refused alike. A path elsewhere on
+ * the host passes: whether it may be opened at all is the caller's check.
  *
  * `target` must be the exact path that will be opened. A caller that reads
  * its input more than one way (`workspace/x`, `x`, `C:/x`) resolves it once
  * and hands that one result both here and to whatever opens it. The path is
- * judged as written and as it really is, so a link inside the folder that
- * points at another project's folder is refused too.
+ * judged as written and as it really is, so another spelling of a path in
+ * the folder is refused as well: a link inside or outside the folder,
+ * `/proc/self/root/...`, a dangling link a create would follow, a macOS
+ * firmlink, or a Windows long path or administrative share.
+ *
+ * The check runs before the path is opened, so a link swapped in afterwards
+ * is not seen. A writer that must close that gap opens without following a
+ * link and checks the file it opened, as the save nodes do.
  */
 export async function assertLocalPathIsOwn(
   workspace: Pick<Workspace, "isNestedFolder">,
   root: string,
   target: string,
-  shown = target
+  shown = target,
+  use: LocalPathUse = {}
 ): Promise<void> {
-  const { path } = requireNode();
+  const { path, os } = requireNode();
   const nested = new NestedFolders(workspace);
-  const inside = path.relative(path.resolve(root), path.resolve(target));
-  // The root is the folder itself, which is never another project's.
-  if (!inside || inside.startsWith("..") || path.isAbsolute(inside)) return;
-  const key = inside.split(path.sep).join("/");
-  // The reserved directory is no more open to a host binary than to the
-  // workspace.
-  if (isReservedWorkspaceKey(key)) {
-    throw new WorkspaceReservedPathError(shown);
-  }
-  if (await nested.covers(key)) {
-    throw new WorkspaceReservedPathError(shown, "nested");
-  }
-  // The same question for where the path really is, links resolved.
-  let realKey: string | null = null;
-  try {
-    realKey = await realKeyWithinRoot(root, path.resolve(target));
-  } catch {
-    // The root is not there: nothing can be opened under it.
-  }
-  if (realKey && realKey !== key) {
+  const judge = async (key: string): Promise<void> => {
+    // The root is the folder itself, which is never another project's.
+    if (key === "") return;
     // Another spelling of `.nodetool` (a Windows short name, trailing dots
     // or spaces, a link) is the reserved directory by its real path.
-    if (isReservedWorkspaceKey(realKey)) {
+    if (isReservedWorkspaceKey(key)) {
       throw new WorkspaceReservedPathError(shown);
     }
-    if (await nested.covers(realKey)) {
+    if (await nested.covers(key)) {
       throw new WorkspaceReservedPathError(shown, "nested");
     }
+  };
+  const key = lexicalKeyWithin(root, target, path, os.hostname());
+  if (key !== null) await judge(key);
+  // The same question for where the path really is, links resolved.
+  let realKey: string | null;
+  try {
+    realKey = await realLandingKey(root, path.resolve(target));
+  } catch {
+    // The root is not there: nothing can be opened under it.
+    return;
   }
+  if (realKey === null) {
+    if (use.write && key !== null && key !== "") {
+      throw new WorkspacePathError(shown);
+    }
+    return;
+  }
+  if (realKey !== key) await judge(realKey);
 }
 
 /**

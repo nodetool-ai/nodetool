@@ -1,5 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdir, mkdtemp, readFile, rm, writeFile, stat } from "node:fs/promises";
+import {
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rename,
+  rm,
+  stat,
+  symlink,
+  writeFile
+} from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -8,9 +20,11 @@ import {
   resolveSaveTarget,
   saveFilename,
   uniqueFilePath,
+  writeSaveTargetFile,
   writeSavedFile
 } from "../src/save-target.js";
 import {
+  WorkspacePathError,
   WorkspaceReservedPathError,
   createLocalWorkspace,
   setProjectFolderResolver,
@@ -90,6 +104,15 @@ describe("uniqueFilePath", () => {
     await writeFile(path.join(dir, "out_1.png"), "b");
     expect(await uniqueFilePath(path.join(dir, "out.png"))).toBe(
       path.join(dir, "out_2.png")
+    );
+  });
+});
+
+describe("uniqueFilePath with a link at the name", () => {
+  it("treats a dangling link as taken, since a write would follow it", async () => {
+    await symlink(path.join(dir, "absent.txt"), path.join(dir, "out.txt"));
+    expect(await uniqueFilePath(path.join(dir, "out.txt"))).toBe(
+      path.join(dir, "out_1.txt")
     );
   });
 });
@@ -281,5 +304,108 @@ describe("a save with Save to workspace off in a run with a workspace", () => {
     const elsewhere = await save(outside, "b.png");
     expect(elsewhere).toBe(path.join(outside, "b.png"));
     expect(await readFile(elsewhere, "utf8")).toBe("new");
+  });
+
+  it.runIf(existsSync("/proc/self/root"))(
+    "refuses the reserved directory spelled through /proc/self/root",
+    async () => {
+      const spelled = path.join("/proc/self/root", dir, ".nodetool");
+      await expect(save(spelled, "project.json", true)).rejects.toThrow(
+        WorkspaceReservedPathError
+      );
+      await expect(save(spelled, "new.txt")).rejects.toThrow(WorkspaceReservedPathError);
+      expect(await readFile(path.join(dir, ".nodetool/project.json"), "utf8")).toBe("manifest");
+      expect(existsSync(path.join(dir, ".nodetool", "new.txt"))).toBe(false);
+    }
+  );
+
+  it.each([
+    ["the reserved directory", ".nodetool", "project.json"],
+    ["another project's folder", path.join("projects", "abc"), "fox.png"]
+  ])("refuses a link outside the folder into %s", async (_label, into, name) => {
+    await symlink(path.join(dir, into), path.join(outside, "in"), "dir");
+    await expect(save(path.join(outside, "in"), name, true)).rejects.toThrow(
+      WorkspaceReservedPathError
+    );
+    await expect(save(path.join(outside, "in"), "new.txt")).rejects.toThrow(
+      WorkspaceReservedPathError
+    );
+    expect(await readFile(path.join(dir, "projects/abc/fox.png"), "utf8")).toBe("theirs");
+    expect(await readFile(path.join(dir, ".nodetool/project.json"), "utf8")).toBe("manifest");
+    expect(existsSync(path.join(dir, into, "new.txt"))).toBe(false);
+  });
+
+  describe("a link planted in the folder", () => {
+    it("is not written through when it dangles into the reserved directory", async () => {
+      await symlink(path.join(".nodetool", "planted.txt"), path.join(dir, "out.txt"));
+      await expect(save("", "out.txt", true)).rejects.toThrow(WorkspaceReservedPathError);
+      await expect(save(dir, "out.txt")).rejects.toThrow(WorkspaceReservedPathError);
+      expect(existsSync(path.join(dir, ".nodetool", "planted.txt"))).toBe(false);
+      expect((await lstat(path.join(dir, "out.txt"))).isSymbolicLink()).toBe(true);
+    });
+
+    it("is not written through when it leads out of the folder", async () => {
+      await writeFile(path.join(outside, "victim.txt"), "victim");
+      await symlink(path.join(outside, "victim.txt"), path.join(dir, "out.txt"));
+      await symlink(path.join(outside, "absent.txt"), path.join(dir, "dangling.txt"));
+      await expect(save(dir, "out.txt", true)).rejects.toThrow(WorkspacePathError);
+      await expect(save(dir, "dangling.txt", true)).rejects.toThrow(WorkspacePathError);
+      expect(await readFile(path.join(outside, "victim.txt"), "utf8")).toBe("victim");
+      expect(existsSync(path.join(outside, "absent.txt"))).toBe(false);
+    });
+
+    it("is not written through when it is a directory leading out of the folder", async () => {
+      await symlink(outside, path.join(dir, "renders"), "dir");
+      await expect(save(path.join(dir, "renders"), "a.png")).rejects.toThrow(
+        WorkspacePathError
+      );
+      expect(await readdir(outside)).toEqual([]);
+    });
+
+    it("is not written through when it points at the reserved directory's files", async () => {
+      await symlink(path.join(dir, ".nodetool", "project.json"), path.join(dir, "out.txt"));
+      await expect(save(dir, "out.txt", true)).rejects.toThrow(WorkspaceReservedPathError);
+      expect(await readFile(path.join(dir, ".nodetool/project.json"), "utf8")).toBe("manifest");
+    });
+
+    it("still writes over a link to a file of the folder's own", async () => {
+      await writeFile(path.join(dir, "real.txt"), "old");
+      await symlink(path.join(dir, "real.txt"), path.join(dir, "latest.txt"));
+      expect(await save(dir, "latest.txt", true)).toBe(path.join(dir, "latest.txt"));
+      expect(await readFile(path.join(dir, "real.txt"), "utf8")).toBe("new");
+    });
+  });
+
+  // The check and the write are two steps. A link swapped in between them
+  // must not redirect the write: the name is opened without following a
+  // link, and the file opened is checked again where it really is.
+  describe("a link swapped in after the check", () => {
+    const run = () => ({ workspace: createLocalWorkspace(dir) });
+
+    it("at the name is not followed", async () => {
+      const target = path.join(dir, "out.txt");
+      await symlink(path.join(".nodetool", "project.json"), target);
+      expect(await writeSaveTargetFile(run(), target, "new", { exclusive: true })).toBe(false);
+      await expect(writeSaveTargetFile(run(), target, "new")).rejects.toThrow(
+        WorkspaceReservedPathError
+      );
+      expect(await readFile(path.join(dir, ".nodetool/project.json"), "utf8")).toBe("manifest");
+    });
+
+    it.runIf(existsSync("/proc/self/fd"))(
+      "at a directory above it is caught at the open, and the file it made is removed",
+      async () => {
+        await mkdir(path.join(dir, "renders"));
+        const target = path.join(dir, "renders", "a.png");
+        await rename(path.join(dir, "renders"), path.join(dir, "renders-moved"));
+        await symlink(path.join(dir, ".nodetool"), path.join(dir, "renders"), "dir");
+        for (const exclusive of [true, false]) {
+          await expect(
+            writeSaveTargetFile(run(), target, "new", { exclusive })
+          ).rejects.toThrow(WorkspaceReservedPathError);
+          expect(existsSync(path.join(dir, ".nodetool", "a.png"))).toBe(false);
+        }
+      }
+    );
   });
 });

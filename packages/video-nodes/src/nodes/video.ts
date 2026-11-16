@@ -68,6 +68,7 @@ import {
 } from "@nodetool-ai/node-sdk";
 import {
   assertSaveTargetIsOwn,
+  writeSaveTargetFile,
   writeSavedFile,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
@@ -1096,7 +1097,7 @@ export class SaveVideoNode extends BaseNode {
     // collide — de-duplicate with a -1/-2/… suffix rather than overwrite.
     const full = await uniqueTargetPath(path.resolve(folder, filename));
     const bytes = await videoBytesAsync(this.video, context);
-    await fs.writeFile(full, bytes);
+    await writeSaveTargetFile(context, full, bytes);
     return { output: videoRef(bytes, { uri: `file://${full}` }) };
   }
 }

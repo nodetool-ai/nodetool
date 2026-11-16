@@ -5,7 +5,8 @@
  * inside it is refused, as the workspace refuses it.
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -60,6 +61,28 @@ describe("a local media path in a run with a workspace", () => {
     await expect(
       read(join(dir, "x", "..", "projects", "abc", "fox.png"))
     ).rejects.toThrow(WorkspaceReservedPathError);
+  });
+
+  it.runIf(existsSync("/proc/self/root"))(
+    "refuses the reserved directory spelled through /proc/self/root",
+    async () => {
+      const spelled = join("/proc/self/root", dir, ".nodetool", "project.json");
+      await expect(read(spelled)).rejects.toThrow(WorkspaceReservedPathError);
+      await expect(read(pathToFileURL(spelled).href)).rejects.toThrow(
+        WorkspaceReservedPathError
+      );
+    }
+  );
+
+  it("refuses a link elsewhere on the host that points into the folder's reserved files", async () => {
+    await symlink(join(dir, ".nodetool"), join(outside, "in"), "dir");
+    await symlink(join(dir, "projects", "abc", "fox.png"), join(outside, "fox.png"));
+    await expect(read(join(outside, "in", "project.json"))).rejects.toThrow(
+      WorkspaceReservedPathError
+    );
+    await expect(read(pathToFileURL(join(outside, "fox.png")).href)).rejects.toThrow(
+      WorkspaceReservedPathError
+    );
   });
 
   it("still reads the project's own file and a file elsewhere on the host", async () => {
