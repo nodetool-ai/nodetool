@@ -26,7 +26,10 @@ test("a generated image is a file in the project folder and keeps its asset when
 
   const project = await client.projects.create.mutate({ name: "Fox Film" });
   const folder = project.folder;
-  expect(folder?.path, "creating a project creates its folder").toBeTruthy();
+  const folderPath = folder?.path;
+  if (!folder || !folderPath) {
+    throw new Error("creating a project creates its folder");
+  }
 
   // Generate an image in a Create tab of the project.
   const files = new ProjectFilesPage(page);
@@ -43,7 +46,7 @@ test("a generated image is a file in the project folder and keeps its asset when
     .poll(
       async () => {
         const listing = await client.workspace.listFiles
-          .query({ id: folder!.workspace_id, path: "Generated" })
+          .query({ id: folder.workspace_id, path: "Generated" })
           .catch(() => []);
         generated = listing.map((entry) => entry.name);
         return generated;
@@ -79,8 +82,8 @@ test("a generated image is a file in the project folder and keeps its asset when
   // Rename the file outside NodeTool.
   const renamed = "renamed-fox.png";
   await rename(
-    join(folder!.path, "Generated", fileName),
-    join(folder!.path, "Generated", renamed)
+    join(folderPath, "Generated", fileName),
+    join(folderPath, "Generated", renamed)
   );
 
   // The reconcile points the same asset at the renamed file: it is not
