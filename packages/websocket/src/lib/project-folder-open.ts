@@ -32,6 +32,7 @@ import {
 } from "@nodetool-ai/execution/service";
 import { withNamedLock } from "@nodetool-ai/asset-services/folder-lock-file";
 import { Project, Workspace as WorkspaceRow } from "@nodetool-ai/models";
+import { projectFolderWatchers } from "@nodetool-ai/project-services/project-watch";
 import {
   discardRestoredAssets,
   finishProjectFolderRestore,
@@ -288,6 +289,7 @@ async function pointAt(project: Project, folder: string): Promise<Project> {
   if (row) {
     row.path = folder;
     await row.save();
+    watchMovedFolder(project);
     return project;
   }
   const created = (await WorkspaceRow.create({
@@ -312,7 +314,16 @@ async function pointAt(project: Project, folder: string): Promise<Project> {
     );
   }
   project.workspace_id = created.id;
+  watchMovedFolder(project);
   return project;
+}
+
+/**
+ * The clients that have `project` open watched its former folder, or none
+ * when it could not be found. They watch the new one from now on.
+ */
+function watchMovedFolder(project: Project): void {
+  void projectFolderWatchers.folderMoved(project.id, project.user_id);
 }
 
 /**
