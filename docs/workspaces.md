@@ -131,6 +131,8 @@ Every run reads and writes the folder of its own project:
 | JS script run | The script's project |
 | `nodetool workflows run <file>` with no stored workflow | Personal |
 
+A `run_job` message that names a saved workflow without a graph takes the workflow's project from the database. A `run_job` that carries its own graph does not look the workflow up, so the client names the project in `project_id`. The server accepts only a project the caller owns and otherwise refuses the run with `Project not found`. A graph run without `project_id` uses Personal's folder. The web editor sends `project_id` for Run, Run node and the asset transform run.
+
 A record with no project of its own runs in Personal. The folder is chosen once, when the run starts. A run started in one project keeps writing there after you switch to another project. When the folder is unreachable, the run does not start and reports `Project folder not found: <folder>`. No other folder is used in its place.
 
 NodeTool owns `.nodetool/` in every folder. Agent file tools, the Code node, JS scripts and save nodes cannot read, write, list or delete anything in it, and listings leave it out. The name is reserved at every depth, so a run in Personal cannot reach `projects/<id>/.nodetool/` of [a folder inside it](#a-folder-inside-another-projects-folder) either. Only a path segment that is exactly `.nodetool` counts: `.nodetool.md` and `fox.nodetool` are ordinary files. Deleting a directory keeps every `.nodetool/` below it, and a directory that holds one cannot be moved. The other files of a folder inside the run's folder are out of reach in the same way.
