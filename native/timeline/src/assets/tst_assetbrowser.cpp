@@ -13,6 +13,7 @@
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
 #include "server/ServerSource.h"
+#include "server/projectfolder/ProjectFolderState.h"
 #include "../../tests/TestHttpServer.h"
 #include "../../tests/TrickleHttpServer.h"
 #include <QDir>
@@ -22,6 +23,7 @@
 #include <QLockFile>
 #include <QTimer>
 #include <QTemporaryDir>
+#include <QUndoStack>
 #include <QUrlQuery>
 #include <QScopeGuard>
 #include <cstdio>
@@ -1082,6 +1084,89 @@ private slots:
         QVERIFY(!noServer.busy());
         QCOMPARE(nothing.size(), 0);
     }
+    void workspacePushRefreshesRows() {
+        TestHttpServer http;
+        QJsonArray rows{QJsonObject{{"id", "a"}, {"name", "take.mp4"}, {"content_type", "video/mp4"}, {"parent_id", ""}}};
+        http.setJson([&](const QByteArray& path, const QUrl&) {
+            if (path != "/trpc/assets.search") { return QByteArray(); }
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", QJsonObject{
+                {"assets", rows}, {"next_cursor", QJsonValue::Null}}}}}}).toJson();
+        });
+        QTemporaryDir cache;
+        QUndoStack undo;
+        const QJsonObject raw{{"id", "seq"}};
+        nt::server::AutosaveController save({http.base(), {}, "seq", cache.path(), {}}, &undo, [&] { return raw; }, "u0");
+        save.setExternalSync(false);
+        save.setAutosave(false);
+        AssetBrowser browser;
+        browser.m_target = nt::server::SaveTarget{http.base(), {}, {}, {}, {}};
+        browser.setAutosave(&save);
+        const auto searches = [&] { return http.countRequests("GET", "/trpc/assets.search"); };
+        // A view that never listed has nothing to refresh.
+        emit save.workspaceFilesChanged("ws-1");
+        QTest::qWait(50);
+        QCOMPARE(searches(), 0);
+        browser.refresh();
+        QTRY_COMPARE(browser.assetModel()->rowCount(), 1);
+        QTRY_VERIFY(!browser.busy());
+        // An outside rename and an outside delete: the next push shows both.
+        rows = {QJsonObject{{"id", "a"}, {"name", "renamed.mp4"}, {"content_type", "video/mp4"}, {"parent_id", ""}, {"offline", true}}};
+        // Unknown workspace: every push refreshes.
+        emit save.workspaceFilesChanged("ws-other");
+        QTRY_COMPARE(searches(), 2);
+        QTRY_VERIFY(!browser.busy());
+        QCOMPARE(browser.assetModel()->get("a").value("name").toString(), QString("renamed.mp4"));
+        QVERIFY(browser.assetModel()->get("a").value("offline").toBool());
+        // Known workspace: only its own pushes refresh.
+        browser.setFolderWorkspaceId("ws-1");
+        emit save.workspaceFilesChanged("ws-other");
+        QTest::qWait(50);
+        QCOMPARE(searches(), 2);
+        emit save.workspaceFilesChanged("ws-1");
+        QTRY_COMPARE(searches(), 3);
+        QTRY_VERIFY(!browser.busy());
+        browser.setAutosave(nullptr);
+        emit save.workspaceFilesChanged("ws-1");
+        QTest::qWait(50);
+        QCOMPARE(searches(), 3);
+    }
+    void relinkOfflineAsset() {
+        TestHttpServer http;
+        QByteArray answer;
+        QList<QJsonObject> posts;
+        http.setJson([&](const QByteArray& path, const QUrl&) {
+            if (path != "/trpc/assets.search") { return QByteArray(); }
+            const QJsonArray rows{QJsonObject{{"id", "a"}, {"name", "take.mp4"}, {"content_type", "video/mp4"},
+                                              {"parent_id", ""}, {"offline", true}}};
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", QJsonObject{
+                {"assets", rows}, {"next_cursor", QJsonValue::Null}}}}}}).toJson();
+        });
+        http.setPost([&](const QByteArray& path, const QByteArray& body) {
+            if (path == "/trpc/assets.relinkExternal") { posts.append(QJsonDocument::fromJson(body).object()); }
+            return answer;
+        });
+        AssetBrowser browser;
+        browser.m_target = nt::server::SaveTarget{http.base(), {}, {}, {}, {}};
+        browser.refresh();
+        QTRY_COMPARE(browser.assetModel()->rowCount(), 1);
+        QTRY_VERIFY(!browser.busy());
+        QTemporaryDir dir;
+        const auto file = dir.filePath("take.mp4");
+        answer = QJsonDocument(QJsonObject{{"error", QJsonObject{{"message", "Path is outside the allowed folders"},
+            {"data", QJsonObject{{"code", "FORBIDDEN"}}}}}}).toJson();
+        browser.relinkAsset("a", QUrl::fromLocalFile(file));
+        QTRY_COMPARE(browser.error(), QString("Relink failed: Path is outside the allowed folders"));
+        QCOMPARE(posts.size(), 1);
+        QCOMPARE(posts[0], (QJsonObject{{"id", "a"}, {"path", file}}));
+        QVERIFY(browser.assetModel()->get("a").value("offline").toBool());
+        answer = QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", QJsonObject{
+            {"id", "a"}, {"name", "take.mp4"}, {"content_type", "video/mp4"}, {"parent_id", ""}, {"linked", true}}}}}}).toJson();
+        browser.relinkAsset("a", QUrl::fromLocalFile(file));
+        QTRY_VERIFY(!browser.assetModel()->get("a").value("offline").toBool());
+        QVERIFY(browser.assetModel()->get("a").value("linked").toBool());
+        QVERIFY(browser.error().isEmpty());
+        QCOMPARE(browser.assetModel()->rowCount(), 1);
+    }
     void thumbnailRequestsUseAssetMetadata_data() {
         QTest::addColumn<bool>("hasThumbnail");
         QTest::newRow("thumbnail") << true;
@@ -1496,6 +1581,146 @@ Item {
         }
     }
 
+    void libraryShowsFolderAndFileState() {
+        TestHttpServer http;
+        QTemporaryDir root;
+        const auto here = root.path();
+        bool accessible = false;
+        const auto projectRow = [&] {
+            return QJsonObject{{"id", "p1"}, {"name", "Film"}, {"isPersonal", false},
+                {"folder", QJsonObject{{"workspace_id", "ws-p1"}, {"path", accessible ? here : here + "/away"},
+                                       {"origin", "created"}, {"is_accessible", accessible}, {"on_delete", "trash"}}}};
+        };
+        http.setJson([&](const QByteArray& path, const QUrl&) {
+            QJsonValue data;
+            if (path == "/trpc/projects.list") { data = QJsonArray{projectRow()}; }
+            if (path == "/trpc/projects.documents") { data = QJsonArray{}; }
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", data}}}}).toJson();
+        });
+        http.setPost([](const QByteArray&, const QByteArray&) {
+            return QByteArray(R"({"error":{"message":"Opening a folder is available on local installs only","data":{"code":"FORBIDDEN"}}})");
+        });
+        TimelineModel model;
+        model.setTimeline(*nt::parseTimeline(QJsonObject{{"id", "seq"}, {"projectId", "p1"}, {"fps", 30},
+            {"width", 640}, {"height", 360}, {"tracks", QJsonArray{}}, {"clips", QJsonArray{}}}).timeline);
+        ProjectFolderState folder;
+        folder.setTarget({http.base(), {}, "seq", {}, {}});
+        folder.setTimeline(&model);
+        folder.refresh();
+        QTRY_VERIFY(folder.loaded());
+        QQmlEngine engine;
+        QQmlComponent hostComponent(&engine);
+        hostComponent.setData("import QtQuick\nItem { property var timeline: null; property var clock: ({});"
+            " property var projectFolder: null; property var saver: null }", QUrl());
+        std::unique_ptr<QObject> hostObject(hostComponent.create());
+        QVERIFY2(hostObject, qPrintable(hostComponent.errorString()));
+        auto* host = qobject_cast<QQuickItem*>(hostObject.get());
+        host->setProperty("projectFolder", QVariant::fromValue(static_cast<QObject*>(&folder)));
+        QQmlComponent component(&engine, QUrl::fromLocalFile(QFINDTESTDATA("../../qml/assets/AssetExplorer.qml")));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        std::unique_ptr<QObject> object(component.createWithInitialProperties({{"width", 320}, {"height", 640}}));
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* explorer = qobject_cast<QQuickItem*>(object.get());
+        explorer->setParentItem(host);
+        QQuickWindow window;
+        window.resize(480, 640);
+        host->setSize(QSizeF(480, 640));
+        host->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto* browser = explorer->findChild<AssetBrowser*>();
+        QVERIFY(browser);
+        QTRY_COMPARE(browser->folderWorkspaceId(), QString("ws-p1"));
+        const auto named = [&](const char* name) { return explorer->findChild<QQuickItem*>(QString::fromLatin1(name)); };
+        QVERIFY(named("projectFolderNotFound"));
+        QTRY_VERIFY(named("projectFolderNotFound")->isVisible());
+        QVERIFY(named("projectFolderNotFound")->property("message").toString().startsWith("Folder not found. The folder of Film was moved"));
+        QVERIFY(!named("projectFolderReveal")->isVisible());
+        folder.locate(QUrl::fromLocalFile(here));
+        QTRY_VERIFY(named("projectFolderLocateError")->isVisible());
+        QCOMPARE(named("projectFolderLocateError")->property("text").toString(),
+                 QString("Could not locate the folder: Opening a folder is available on local installs only"));
+        accessible = true;
+        folder.refresh();
+        QTRY_VERIFY(named("projectFolderPath")->isVisible());
+        QVERIFY(!named("projectFolderNotFound")->isVisible());
+        QCOMPARE(named("projectFolderPath")->property("text").toString(), here);
+        QVERIFY(named("projectFolderReveal")->isVisible());
+        QCOMPARE(named("projectFolderReveal")->property("text").toString(), ProjectFolderState::revealLabel());
+        // The selected asset's file state.
+        browser->applyAssets(QJsonArray{
+            QJsonObject{{"id", "gone"}, {"name", "take.mp4"}, {"content_type", "video/mp4"}, {"offline", true}},
+            QJsonObject{{"id", "outside"}, {"name", "music.wav"}, {"content_type", "audio/wav"}, {"linked", true}},
+            QJsonObject{{"id", "plain"}, {"name", "still.png"}, {"content_type", "image/png"}}});
+        explorer->setProperty("selectedId", QString("plain"));
+        QTRY_VERIFY(!named("libraryFileState")->isVisible());
+        explorer->setProperty("selectedId", QString("gone"));
+        QTRY_VERIFY(named("libraryFileState")->isVisible());
+        QCOMPARE(named("libraryFileStateChip")->property("text").toString(), QString("Missing"));
+        QVERIFY(named("libraryRelink")->isVisible());
+        QVERIFY(explorer->findChild<QObject*>("libraryRelinkAction")->property("enabled").toBool());
+        explorer->setProperty("selectedId", QString("outside"));
+        QTRY_COMPARE(named("libraryFileStateChip")->property("text").toString(), QString("Linked"));
+        QVERIFY(!named("libraryRelink")->isVisible());
+        QVERIFY(!explorer->findChild<QObject*>("libraryRelinkAction")->property("enabled").toBool());
+    }
+    void documentFileBannerRestores() {
+        TestHttpServer http;
+        QJsonObject file{{"path", "Timelines/Opening.timeline.json"}, {"state", "invalid"}, {"error", "\"document\" must be an object"}};
+        http.setJson([&](const QByteArray& path, const QUrl&) {
+            QJsonValue data;
+            if (path == "/trpc/projects.list") {
+                data = QJsonArray{QJsonObject{{"id", "p1"}, {"name", "Film"}, {"folder", QJsonValue::Null}}};
+            }
+            if (path == "/trpc/projects.documents") {
+                data = QJsonArray{QJsonObject{{"type", "timeline"}, {"ref", "seq"}, {"name", "Opening"}, {"file", file}}};
+            }
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", data}}}}).toJson();
+        });
+        int restores = 0;
+        http.setPost([&](const QByteArray& path, const QByteArray&) {
+            if (path == "/trpc/projects.restoreDocumentFile") { ++restores; }
+            file = {{"path", "Timelines/Opening.timeline.json"}, {"state", "ok"}, {"error", QJsonValue::Null}};
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", QJsonObject{
+                {"type", "timeline"}, {"ref", "seq"}, {"name", "Opening"}, {"updatedAt", "x"}, {"file", file}}}}}}).toJson();
+        });
+        TimelineModel model;
+        model.setTimeline(*nt::parseTimeline(QJsonObject{{"id", "seq"}, {"projectId", "p1"}, {"fps", 30},
+            {"width", 640}, {"height", 360}, {"tracks", QJsonArray{}}, {"clips", QJsonArray{}}}).timeline);
+        ProjectFolderState folder;
+        folder.setTarget({http.base(), {}, "seq", {}, {}});
+        folder.setTimeline(&model);
+        QQmlEngine engine;
+        QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/DocumentFileBanner.qml"));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        std::unique_ptr<QObject> object(component.createWithInitialProperties({{"width", 480},
+            {"folder", QVariant::fromValue(&folder)}}));
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* banner = qobject_cast<QQuickItem*>(object.get());
+        QQuickWindow window;
+        window.resize(480, 240);
+        banner->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY(!banner->isVisible());  // nothing before the state is known
+        folder.refresh();
+        const auto named = [&](const char* name) { return banner->findChild<QQuickItem*>(QString::fromLatin1(name)); };
+        QTRY_VERIFY(named("documentFileInvalid")->isVisible());
+        QCOMPARE(named("documentFileInvalid")->property("message").toString(),
+                 QString("This file has an error. Timelines/Opening.timeline.json was not loaded: \"document\" must be an object. "
+                         "The last valid version stays open and still runs."));
+        QVERIFY(!named("documentFileMissing")->isVisible());
+        file = {{"path", "Timelines/Opening.timeline.json"}, {"state", "missing"}, {"error", QJsonValue::Null}};
+        folder.refresh();
+        QTRY_VERIFY(named("documentFileMissing")->isVisible());
+        QVERIFY(!named("documentFileInvalid")->isVisible());
+        auto* restore = named("documentFileMissing")->findChild<QQuickItem*>("bannerActionButton");
+        QVERIFY(restore && restore->isVisible());
+        QCOMPARE(restore->property("text").toString(), QString("Restore"));
+        QVERIFY(QMetaObject::invokeMethod(restore, "clicked"));
+        QTRY_COMPARE(restores, 1);
+        QTRY_VERIFY(!banner->isVisible());
+    }
     void libraryOffersEntityActions() {
         QQmlEngine engine;
         // A stand-in for the editor, which is what the Library menu hands an image to.

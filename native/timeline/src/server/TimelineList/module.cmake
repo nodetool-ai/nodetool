@@ -48,8 +48,9 @@ function(nt_timeline_list_tests)
     endif()
     add_test(NAME tst_timelinelistsettings COMMAND tst_timelinelistui settingsPanelRegistered settingsOpenFromDocumentBar settingsOpenFromKeyboard settingsKeepsEditorShortcuts projectSettingsPersistence panelKeepsCppOwnership settingsCommitAndUndo)
     add_test(NAME tst_timelineliststartup COMMAND tst_timelinelistui startupListWithoutServer)
+    add_test(NAME tst_timelinelistpush COMMAND tst_timelinelistui documentFilePushRefreshesShownList)
     add_test(NAME tst_timelinelistlayout COMMAND tst_timelinelistui layoutAndStills unnamedRowLabel emptySearchDescription offsetError)
-    set_tests_properties(tst_timelinelistsettings tst_timelinelistlayout tst_timelineliststartup PROPERTIES
+    set_tests_properties(tst_timelinelistsettings tst_timelinelistlayout tst_timelineliststartup tst_timelinelistpush PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endfunction()
 nt_tests(nt_timeline_list_tests)

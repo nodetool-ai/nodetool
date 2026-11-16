@@ -38,10 +38,44 @@ void TimelineDocumentController::setAnchor(QQuickItem* anchor) {
     QTimer::singleShot(0, this, &TimelineDocumentController::bind);
     emit anchorChanged();
 }
+void TimelineDocumentController::setListShown(bool shown) {
+    if (m_listShown == shown) {
+        return;
+    }
+    m_listShown = shown;
+    emit listShownChanged();
+}
+void TimelineDocumentController::watch(AutosaveController* autosave) {
+    if (m_autosave == autosave) {
+        return;
+    }
+    if (m_autosave) {
+        disconnect(m_autosave, nullptr, this, nullptr);
+    }
+    m_autosave = autosave;
+    if (autosave) {
+        // A timeline file became invalid, went missing or is fine again. The
+        // list has no socket of its own, so it hears of it here.
+        connect(autosave, &AutosaveController::documentFileChanged, this, [this] {
+            if (m_listShown && !m_switching && !m_list.busy() && !m_list.projects().isEmpty()) {
+                m_list.refresh();
+            }
+        });
+    }
+}
+AutosaveController* TimelineDocumentController::findAutosave() const {
+    for (auto* item = m_anchor.data(); item; item = item->parentItem()) {
+        if (auto* save = qobject_cast<AutosaveController*>(item->property("autosave").value<QObject*>())) {
+            return save;
+        }
+    }
+    return nullptr;
+}
 void TimelineDocumentController::bind() {
     if (!m_anchor || !m_anchor->window()) {
         return;
     }
+    watch(findAutosave());
     QQuickItem* root = m_anchor;
     while (root->parentItem()) {
         root = root->parentItem();
@@ -104,14 +138,9 @@ void TimelineDocumentController::switchTo(const QString& source) {
         fail(QStringLiteral("Could not access timeline preferences. Try opening the timeline again."));
         return;
     }
-    for (auto* item = m_anchor.data(); item; item = item->parentItem()) {
-        if (auto* save = qobject_cast<AutosaveController*>(item->property("autosave").value<QObject*>())) {
-            if (!save->flushBeforeQuit(5000)) {
-                fail(QStringLiteral("Could not save the current timeline. %1").arg(save->lastError()));
-                return;
-            }
-            break;
-        }
+    if (auto* save = findAutosave(); save && !save->flushBeforeQuit(5000)) {
+        fail(QStringLiteral("Could not save the current timeline. %1").arg(save->lastError()));
+        return;
     }
     const QUrl url(source);
     const auto id = url.fragment().sliced(QStringLiteral("timeline=").size());

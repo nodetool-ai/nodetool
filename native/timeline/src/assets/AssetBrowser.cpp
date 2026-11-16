@@ -84,6 +84,43 @@ void AssetBrowser::setTimeline(TimelineModel* model) {
     emit libraryScopeChanged();
 }
 
+void AssetBrowser::setAutosave(QObject* object) {
+    auto* autosave = qobject_cast<nt::server::AutosaveController*>(object);
+    if (m_autosave == autosave) { return; }
+    if (m_autosave) { disconnect(m_autosave, nullptr, this, nullptr); }
+    m_autosave = autosave;
+    if (autosave) {
+        connect(autosave, &nt::server::AutosaveController::workspaceFilesChanged, this, &AssetBrowser::workspaceFilesChanged);
+    }
+    emit autosaveChanged();
+}
+
+void AssetBrowser::setFolderWorkspaceId(const QString& id) {
+    if (m_folderWorkspaceId == id) { return; }
+    m_folderWorkspaceId = id;
+    emit autosaveChanged();
+}
+
+void AssetBrowser::workspaceFilesChanged(const QString& workspaceId) {
+    // Only a view that has listed rows has rows to update.
+    if (!m_hasQueried) { return; }
+    if (!m_folderWorkspaceId.isEmpty() && !workspaceId.isEmpty() && workspaceId != m_folderWorkspaceId) { return; }
+    refresh();
+}
+
+void AssetBrowser::relinkAsset(const QString& id, const QUrl& file) {
+    if (!configured() || id.isEmpty() || file.isEmpty()) { return; }
+    const auto path = file.isLocalFile() ? file.toLocalFile() : file.toString();
+    request([id, path](nt::server::ServerClient& client) {
+        const auto response = client.mutate(QStringLiteral("assets.relinkExternal"), {{"id", id}, {"path", path}});
+        if (!response.ok()) {
+            const auto reason = response.error.message.isEmpty() ? response.describe() : response.error.message;
+            return Result{{}, QStringLiteral("Relink failed: %1").arg(reason), false};
+        }
+        return Result{QJsonArray{response.data}, {}, false};
+    });
+}
+
 void AssetBrowser::resetDocumentState() {
     ++m_documentEpoch;
     m_thumbnails.clear(); m_originals.clear(); m_details.clear();
