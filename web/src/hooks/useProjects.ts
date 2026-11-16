@@ -4,7 +4,7 @@
  */
 
 import { useCallback } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { trpc, trpcClient } from "../trpc/client";
 import {
@@ -97,12 +97,29 @@ export const useRestoreProject = () => {
   return trpc.projects.restore.useMutation({ onSuccess: invalidate });
 };
 
-/** Download a project as a `.nodetool-project` file. */
+/**
+ * Download a project as a `.nodetool-project` file. `collectLinked` copies
+ * linked files into the project folder first. Without it, a project with
+ * linked files fails with `ProjectLinkedFilesError`.
+ */
 export const useExportProject = () =>
   useMutation({
-    mutationFn: (project: { id: string; name: string }) =>
-      exportProjectFile(project.id, project.name)
+    mutationFn: (project: { id: string; name: string; collectLinked?: boolean }) =>
+      exportProjectFile(project.id, project.name, {
+        collectLinked: project.collectLinked ?? false
+      })
   });
+
+/** Copy every file a project links from outside its folder into the folder. */
+export const useCollectProjectFiles = () => {
+  const queryClient = useQueryClient();
+  return trpc.assets.collect.useMutation({
+    // Collected assets now name a file in the folder instead of a link.
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["assets"] });
+    }
+  });
+};
 
 /** Create a new project from a `.nodetool-project` file. */
 export const useImportProject = () => {

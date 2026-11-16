@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import nodePath from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import {
   Asset,
@@ -35,7 +35,9 @@ import {
 import { getAssetStorageKey } from "../src/lib/asset-paths.js";
 import {
   importProjectArchive,
+  prepareProjectExport,
   ProjectArchiveError,
+  ProjectLinkedFilesError,
   readProjectArchiveManifest,
   writeProjectArchive,
   type OpenWorkspace
@@ -531,6 +533,39 @@ describe("project files", () => {
     const result = await importArchive(zipSync(entries));
     const assets = await Asset.listByProject(importer, result.project.id);
     expect(assets.find((a) => a.name === "secrets")?.external_path).toBeNull();
+  });
+
+  it("writes nothing for a project that links files outside its folder", async () => {
+    const seeded = await seedProject();
+    const linked = await Asset.create<Asset>({
+      user_id: owner,
+      project_id: seeded.projectId,
+      parent_id: owner,
+      name: "long take.mp4",
+      content_type: "video/mp4",
+      external_path: nodePath.join(root, "long take.mp4")
+    });
+
+    const writer = new ZipStreamWriter(async () => {});
+    const added = vi.spyOn(writer, "add");
+    await expect(
+      writeProjectArchive(
+        { userId: owner, projectId: seeded.projectId, storage, openWorkspace },
+        writer
+      )
+    ).rejects.toEqual(
+      expect.objectContaining({
+        files: [{ id: linked.id, name: "long take.mp4" }]
+      })
+    );
+    expect(added).not.toHaveBeenCalled();
+    await expect(
+      prepareProjectExport({
+        userId: owner,
+        projectId: seeded.projectId,
+        linkedFiles: "refuse"
+      })
+    ).rejects.toBeInstanceOf(ProjectLinkedFilesError);
   });
 
   it("never keeps a project folder path from the file", async () => {

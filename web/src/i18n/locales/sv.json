@@ -6424,7 +6424,8 @@
           "export": "Exportera",
           "archive": "Arkiv",
           "restore": "Återställ",
-          "delete": "Ta bort"
+          "delete": "Ta bort",
+          "collect": "Samla filer"
         },
         "projectActions": "Projektåtgärder",
         "actionsForProject": "Åtgärder för {{projectName}}",
@@ -6441,7 +6442,24 @@
         "folderMovedAside": "Papperskorgen gick inte att nå. Projektmappen flyttades till mappen .trash i projektmappen för alla projekt.",
         "folderTrashFailedAt": "Projektmappen kunde inte flyttas till papperskorgen. Den ligger kvar i {{path}}.",
         "folderTrashFailed": "Projektmappen kunde inte flyttas till papperskorgen. Den ligger kvar där den är.",
-        "error": "Kunde inte {{action}} {{projectName}}: {{error}}"
+        "error": "Kunde inte {{action}} {{projectName}}: {{error}}",
+        "collecting": "Samlar filer…",
+        "collectResult": "Filer samlade i {{projectName}}: {{copied}} kopierade, {{skipped}} hoppades över, {{failed}} misslyckades.",
+        "linkedTitle": "{{projectName}} länkar filer utanför sin mapp",
+        "linkedBody": "En export innehåller projektmappen. De här filerna är länkade från en annan plats och finns inte i den:",
+        "linkedChoice": "Samla och exportera kopierar dem till mappen Imported och exporterar sedan. Avbryt behåller länkarna och exporterar ingenting.",
+        "collectAndExport": "Samla och exportera"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Kopiera eller länka?",
+        "confirm": "Importera",
+        "copy": "Kopiera till projektmappen",
+        "copyHint": "Projektet behåller en egen kopia. Ändringar i originalet når inte fram till den.",
+        "link": "Länka på plats",
+        "linkHint": "Inget kopieras. Projektet läser filen där den ligger. Samla filer kopierar in den senare.",
+        "threshold": "Filer på {{size}} eller mer länkas som standard."
       }
     }
   },

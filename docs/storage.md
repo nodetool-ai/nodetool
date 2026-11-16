@@ -65,7 +65,9 @@ A new asset, whether a workflow output, an agent's output or an upload, is a fil
 
 ## External assets
 
-On a local desktop or dev server with the `file` backend, an import at or above `NODETOOL_EXTERNAL_ASSET_THRESHOLD_BYTES` (default 1 GiB) is not copied. The asset row stores `external_path`, the file stays where it is, and the server records its size and modification time (`externalAssetsAvailable()` in `src/lib/external-assets.ts`). If the file is missing or either value changed, the asset reads as offline until you relink it. `NODETOOL_ENV=production` and the S3 and Supabase backends never create external assets.
+On a local desktop or dev server with the `file` backend, an import the creator links, or one at or above `NODETOOL_EXTERNAL_ASSET_THRESHOLD_BYTES` (default 1 GiB) when no choice is made, is not copied. The asset row stores `external_path`, the file stays where it is, and the server records its size and modification time (`externalAssetsAvailable()` in `src/lib/external-assets.ts`). If the file is missing or either value changed, the asset reads as offline until you relink it. `NODETOOL_ENV=production` and the S3 and Supabase backends never create external assets.
+
+`assets.collect({ project_id })` copies each linked file of a project into the folder's `Imported/` directory, one asset at a time (`collectLinkedAssets` in `@nodetool-ai/asset-services`). It reserves the file name with an empty file, records the reservation on the row as `metadata.collect_path`, copies the bytes, and compares the copy with the linked file by size and partial content hash. Only then does the row get `workspace_path` and lose `external_path`. A run that stops mid-copy reuses its reservation on the next run. An offline file is skipped. Project export refuses a project with linked files and names them (HTTP 409), unless it is called with `?linked=collect`, which collects first.
 
 ## Database History Retention
 

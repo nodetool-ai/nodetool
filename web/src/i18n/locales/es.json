@@ -6519,7 +6519,8 @@
           "export": "Exportar",
           "archive": "Archivo",
           "restore": "Restaurar",
-          "delete": "Eliminar"
+          "delete": "Eliminar",
+          "collect": "Reunir archivos"
         },
         "projectActions": "Acciones del proyecto",
         "actionsForProject": "Acciones para {{projectName}}",
@@ -6536,7 +6537,24 @@
         "folderMovedAside": "No se pudo acceder a la papelera. La carpeta del proyecto se movió a la carpeta .trash de la carpeta de proyectos.",
         "folderTrashFailedAt": "No se pudo mover la carpeta del proyecto a la papelera. Sigue en {{path}}.",
         "folderTrashFailed": "No se pudo mover la carpeta del proyecto a la papelera. Sigue donde estaba.",
-        "error": "No se pudo {{action}} {{projectName}}: {{error}}"
+        "error": "No se pudo {{action}} {{projectName}}: {{error}}",
+        "collecting": "Reuniendo archivos…",
+        "collectResult": "Archivos reunidos en {{projectName}}: {{copied}} copiados, {{skipped}} omitidos, {{failed}} con error.",
+        "linkedTitle": "{{projectName}} vincula archivos fuera de su carpeta",
+        "linkedBody": "Una exportación contiene la carpeta del proyecto. Estos archivos están vinculados desde otro lugar y no están en ella:",
+        "linkedChoice": "Reunir y exportar los copia en la carpeta Imported y luego exporta. Cancelar mantiene los vínculos y no exporta nada.",
+        "collectAndExport": "Reunir y exportar"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "¿Copiar o vincular?",
+        "confirm": "Importar",
+        "copy": "Copiar en la carpeta del proyecto",
+        "copyHint": "El proyecto guarda su propia copia. Los cambios en el original no la afectan.",
+        "link": "Vincular en su lugar",
+        "linkHint": "No se copia nada. El proyecto lee el archivo donde está. Reunir archivos lo copia más tarde.",
+        "threshold": "Los archivos de {{size}} o más se vinculan de forma predeterminada."
       }
     }
   },

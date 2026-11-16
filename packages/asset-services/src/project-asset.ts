@@ -14,11 +14,16 @@
 import { createLogger } from "@nodetool-ai/config";
 import { Asset, setAssetFileMover } from "@nodetool-ai/models";
 import { readFile } from "node:fs/promises";
-import { getAssetFileName } from "@nodetool-ai/protocol";
+import { getAssetFileName, isNonEmptyString } from "@nodetool-ai/protocol";
 import type { Workspace } from "@nodetool-ai/runtime";
 import { probeAssetDurationSeconds } from "./asset-duration.js";
 import { normalizeAssetContentType } from "./asset-paths.js";
 import {
+  EXTERNAL_FINGERPRINT_KEYS,
+  verifiedExternalPath
+} from "./external-asset-lookup.js";
+import {
+  localProjectAssetPath,
   partialContentHash,
   partialContentHashOfFile,
   partialContentHashOfWorkspaceFile,
@@ -904,6 +909,263 @@ export async function moveProjectAssetFile(
       }
     };
   });
+}
+
+// ── Collect linked files ────────────────────────────────────────────────────
+
+/**
+ * Metadata key naming the file a collect reserved for a linked asset before
+ * it copied the bytes. A collect interrupted during the copy finds it on the
+ * next run and copies into that file again instead of reserving a second
+ * one. Server-owned, like the fingerprints: a client metadata update never
+ * writes it, so it can never point a collect at a file the creator owns.
+ */
+export const COLLECT_PATH_KEY = "collect_path";
+
+/** A linked asset whose file is now in the project folder. */
+export interface CollectedAsset {
+  id: string;
+  name: string;
+  /** Where the copy is, relative to the project folder. */
+  workspace_path: string;
+}
+
+/** A linked asset that is still linked, and why. */
+export interface UncollectedAsset {
+  id: string;
+  name: string;
+  reason: string;
+}
+
+export interface CollectLinkedAssetsResult {
+  copied: CollectedAsset[];
+  /** Linked files that are missing or changed since they were linked. */
+  skipped: UncollectedAsset[];
+  /** Linked files whose copy could not be written or verified. */
+  failed: UncollectedAsset[];
+  /** True when `signal` stopped the run before every asset was tried. */
+  interrupted: boolean;
+}
+
+export interface CollectLinkedAssetsArgs {
+  /** The project whose linked files are copied. Null names Personal. */
+  projectId: string | null | undefined;
+  userId: string;
+  /** Checked before each asset. An asset already being copied finishes. */
+  signal?: AbortSignal;
+}
+
+type CollectOutcome =
+  | { kind: "copied"; asset: CollectedAsset }
+  | { kind: "skipped" | "failed"; asset: UncollectedAsset };
+
+const LINK_KEYS: readonly string[] = [
+  ...EXTERNAL_FINGERPRINT_KEYS,
+  COLLECT_PATH_KEY
+];
+
+function withoutLinkKeys(
+  metadata: Record<string, unknown> | null
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(metadata ?? {}).filter(([key]) => !LINK_KEYS.includes(key))
+  );
+}
+
+/** The file a collect reserved for `asset` earlier, when it can be reused. */
+async function pendingCollectPath(
+  workspace: Workspace,
+  asset: Asset,
+  projectId: string
+): Promise<string | null> {
+  const pending = asset.metadata?.[COLLECT_PATH_KEY];
+  if (!isNonEmptyString(pending)) return null;
+  let path: string;
+  try {
+    path = workspace.key(pending);
+  } catch {
+    return null;
+  }
+  if (!(await workspace.exists(path))) return null;
+  // A file another row names was taken over since. It is never written.
+  const rows = await Asset.findByWorkspacePath(asset.user_id, projectId, path);
+  return rows.length === 0 ? path : null;
+}
+
+async function setCollectPath(asset: Asset, path: string | null): Promise<void> {
+  const current = asset.metadata?.[COLLECT_PATH_KEY];
+  if ((current ?? null) === path) return;
+  const metadata = { ...asset.metadata };
+  if (path === null) delete metadata[COLLECT_PATH_KEY];
+  else metadata[COLLECT_PATH_KEY] = path;
+  asset.metadata = metadata;
+  await asset.save();
+}
+
+/** The partial content hash of a file in the project folder. */
+async function partialHashInFolder(
+  workspace: Workspace,
+  path: string
+): Promise<string> {
+  const local = await localProjectAssetPath({ workspace, path });
+  return local
+    ? partialContentHashOfFile(local)
+    : partialContentHash(await readFileOf(workspace, path));
+}
+
+/**
+ * Copy one linked asset's file into `Imported/`, verify the copy, then point
+ * the row at it. The steps are ordered so an interruption at any point
+ * leaves the asset readable: the row keeps `external_path` until the copy is
+ * verified, and the reserved file is recorded on the row so the next run
+ * reuses it.
+ */
+async function collectOne(
+  asset: Asset,
+  folder: { projectId: string; workspace: Workspace }
+): Promise<CollectOutcome> {
+  const { workspace, projectId } = folder;
+  const label = { id: asset.id, name: asset.name };
+  const source = await verifiedExternalPath(asset);
+  if (!source) {
+    return {
+      kind: "skipped",
+      asset: {
+        ...label,
+        reason: "The linked file is missing or changed since it was linked"
+      }
+    };
+  }
+
+  let path: string | null = null;
+  // The reserved file has no row until the copy is verified. Holding its
+  // path keeps the reconciler from indexing it as a second asset.
+  let release: (() => void) | null = null;
+  try {
+    const sourceHash = await partialContentHashOfFile(source);
+    const reserved = await withProjectFolderLock(asset.user_id, projectId, async () => {
+      // An empty file reserves the name. The bytes are copied outside the
+      // lock, so a long copy does not hold up other saves to this folder.
+      const claimed =
+        (await pendingCollectPath(workspace, asset, projectId)) ??
+        (await claimFile(
+          workspace,
+          { userId: asset.user_id, projectId },
+          workspace.key(IMPORTED_DIRECTORY),
+          projectAssetFileStem(asset.name, asset.content_type),
+          assetFileExtension(asset.content_type),
+          new Uint8Array(0),
+          asset.content_type
+        ));
+      return { claimed, hold: holdPaths(asset.user_id, projectId, [claimed]) };
+    });
+    path = reserved.claimed;
+    release = reserved.hold;
+    await setCollectPath(asset, path);
+
+    await workspace.absorb(source, path);
+    const copyHash = await partialHashInFolder(workspace, path);
+    if (copyHash !== sourceHash) {
+      throw new Error("The copy does not match the linked file");
+    }
+    if ((await verifiedExternalPath(asset)) !== source) {
+      throw new Error("The linked file changed while it was copied");
+    }
+    const fingerprint = await fingerprintOf(workspace, path, copyHash);
+
+    // The row is read again, so a relink or delete made during the copy is
+    // never overwritten.
+    const current = await Asset.find(asset.user_id, asset.id);
+    if (!current || current.external_path !== asset.external_path) {
+      throw new Error("The asset was relinked or deleted while it was copied");
+    }
+    current.workspace_path = path;
+    current.external_path = null;
+    current.project_id = projectId;
+    current.size = fingerprint.workspace_size;
+    current.metadata = withWorkspaceFingerprint(
+      withoutLinkKeys(current.metadata),
+      fingerprint
+    );
+    await current.save();
+    return { kind: "copied", asset: { ...label, workspace_path: path } };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    log.warn("Could not collect a linked asset", { assetId: asset.id, reason });
+    if (path) {
+      // The file is the reservation this collect made. No row names it.
+      await removeFile(workspace, path, "Could not remove a failed collect copy");
+      try {
+        await setCollectPath(asset, null);
+      } catch (saveError) {
+        log.warn("Could not clear a failed collect from its asset", {
+          assetId: asset.id,
+          error: saveError instanceof Error ? saveError.message : String(saveError)
+        });
+      }
+    }
+    return { kind: "failed", asset: { ...label, reason } };
+  } finally {
+    release?.();
+  }
+}
+
+/**
+ * Copy every linked file of a project into its `Imported/` directory (PRD
+ * T6). Each asset keeps its id: its row gets `workspace_path`, and
+ * `external_path` is cleared once the copy matches the linked file by size
+ * and partial content hash. The linked file itself is never changed.
+ *
+ * Works one asset at a time, so a run that stops leaves every asset either
+ * collected or still linked, and running it again finishes the rest without
+ * copying a collected one twice. A linked file that is offline is skipped
+ * and reported.
+ *
+ * Throws {@link ProjectFolderUnavailableError} when the project folder
+ * cannot be reached.
+ */
+export async function collectLinkedAssets(
+  args: CollectLinkedAssetsArgs
+): Promise<CollectLinkedAssetsResult> {
+  const folder = await requireProjectFolder(args.projectId, args.userId);
+  const projectIds = new Set([folder.projectId, args.projectId ?? "default"]);
+  const linked: Asset[] = [];
+  for (const id of projectIds) {
+    for (const asset of await Asset.listByProject(args.userId, id)) {
+      if (asset.external_path && asset.content_type !== "folder") {
+        linked.push(asset);
+      }
+    }
+  }
+  linked.sort((a, b) => a.created_at.localeCompare(b.created_at));
+
+  const result: CollectLinkedAssetsResult = {
+    copied: [],
+    skipped: [],
+    failed: [],
+    interrupted: false
+  };
+  for (const asset of linked) {
+    if (args.signal?.aborted) {
+      result.interrupted = true;
+      break;
+    }
+    // Read again: a long copy before this one leaves the listed row stale,
+    // and another run may have collected it meanwhile.
+    const fresh = await Asset.find(args.userId, asset.id);
+    if (!fresh?.external_path) continue;
+    const outcome = await collectOne(fresh, folder);
+    if (outcome.kind === "copied") result.copied.push(outcome.asset);
+    else result[outcome.kind].push(outcome.asset);
+  }
+  log.info("Collected linked files", {
+    projectId: folder.projectId,
+    copied: result.copied.length,
+    skipped: result.skipped.length,
+    failed: result.failed.length,
+    interrupted: result.interrupted
+  });
+  return result;
 }
 
 // Every change of an asset's project goes through `saveAssetInProject` in
