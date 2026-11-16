@@ -78,6 +78,17 @@ export {
   WorkspaceReservedPathError,
   setProjectFolderResolver
 } from "guest-real:@nodetool-ai/runtime-core/workspace.js";
+
+// As assertLocalPathIsOwn in @nodetool-ai/runtime-core, which checks a path on
+// the local disk before a tool opens it there. The guest has no local disk,
+// so it refuses every path with the error that code throws when node:path is
+// missing. Its own module would bring the storage adapters into the bundle.
+export async function assertLocalPathIsOwn() {
+  throw new Error(
+    "Local workspace file access requires a Node.js runtime; this workspace " +
+      "operation is not available here"
+  );
+}
 export { PERMISSION_GATE_CONTEXT_KEY } from "guest-real:@nodetool-ai/runtime/permission-gate.js";
 export { getRunTraceScope, withRunTrace, recordTraceEvent } from "guest-real:@nodetool-ai/runtime/run-trace-context.js";
 export { stringifyTraceContent } from "guest-real:@nodetool-ai/runtime/run-trace-serialization.js";
