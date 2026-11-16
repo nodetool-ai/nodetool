@@ -75,31 +75,29 @@ interface LockOwner {
   token: string;
 }
 
-function hasCode(error: unknown, code: string): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error as { code?: unknown }).code === code
-  );
+/** The text of a lock file: process id, host name and token, one per line. */
+function ownerText(owner: LockOwner): string {
+  return `${owner.pid}\n${owner.host}\n${owner.token}\n`;
 }
 
+/** The owner a lock file records, or null for a file cut short while it was written. */
 function parseOwner(text: string): LockOwner | null {
-  try {
-    const value: unknown = JSON.parse(text);
-    if (
-      typeof value === "object" &&
-      value !== null &&
-      typeof (value as LockOwner).pid === "number" &&
-      typeof (value as LockOwner).host === "string" &&
-      typeof (value as LockOwner).token === "string"
-    ) {
-      return value as LockOwner;
-    }
-  } catch {
-    // A file cut short while it was written has no owner to compare.
+  const [pid, host, token, rest] = text.split("\n");
+  const id = Number(pid);
+  if (!Number.isInteger(id) || id <= 0 || !host || !token || rest !== "") {
+    return null;
   }
-  return null;
+  return { pid: id, host, token };
+}
+
+/** The errno code of a failed file system call, if it has one. */
+function errnoCode(error: Error): string | undefined {
+  return "code" in error ? String(error.code) : undefined;
+}
+
+/** Whether `error` is a file system failure with `code`. */
+function failedWith(error: Error, code: string): boolean {
+  return errnoCode(error) === code;
 }
 
 /** False only when the process certainly no longer exists. */
@@ -109,7 +107,7 @@ function processIsAlive(pid: number): boolean {
     return true;
   } catch (error) {
     // EPERM: the process exists and belongs to another user.
-    return !hasCode(error, "ESRCH");
+    return !(error instanceof Error && failedWith(error, "ESRCH"));
   }
 }
 
@@ -117,8 +115,17 @@ async function readText(path: string): Promise<string | null> {
   try {
     return await readFile(path, "utf8");
   } catch (error) {
-    if (hasCode(error, "ENOENT")) return null;
+    if (error instanceof Error && failedWith(error, "ENOENT")) return null;
     throw error;
+  }
+}
+
+/** Remove `path`. A file that is already gone is not an error. */
+async function removeFile(path: string): Promise<void> {
+  try {
+    await unlink(path);
+  } catch (error) {
+    if (!(error instanceof Error && failedWith(error, "ENOENT"))) throw error;
   }
 }
 
@@ -145,7 +152,7 @@ class LockFile {
       host: hostname(),
       token: randomUUID()
     };
-    const contents = JSON.stringify(owner);
+    const contents = ownerText(owner);
     const started = Date.now();
     let pause = 5;
     for (;;) {
@@ -166,7 +173,7 @@ class LockFile {
     try {
       handle = await open(this.path, "wx");
     } catch (error) {
-      if (hasCode(error, "EEXIST")) return null;
+      if (error instanceof Error && failedWith(error, "EEXIST")) return null;
       throw error;
     }
     try {
@@ -182,20 +189,21 @@ class LockFile {
 
   private held(handle: FileHandle, contents: string): HeldFolderLock {
     let beat: Promise<void> = Promise.resolve();
-    const timer = setInterval(() => {
-      beat = beat
-        .then(async () => {
-          const now = new Date();
-          // Through the open handle: a lock file taken over and created
-          // again by another owner is another file, and is not touched.
-          await handle.utimes(now, now);
-        })
-        .catch((error: unknown) => {
-          log.warn("Could not touch a project folder lock", {
-            path: this.path,
-            error: error instanceof Error ? error.message : String(error)
-          });
+    const touch = async (): Promise<void> => {
+      const now = new Date();
+      try {
+        // Through the open handle: a lock file taken over and created again
+        // by another owner is another file, and is not touched.
+        await handle.utimes(now, now);
+      } catch (error) {
+        log.warn("Could not touch a project folder lock", {
+          path: this.path,
+          error: error instanceof Error ? error.message : String(error)
         });
+      }
+    };
+    const timer = setInterval(() => {
+      beat = beat.then(touch);
     }, this.options.heartbeatMs);
     timer.unref();
     let released = false;
@@ -221,9 +229,7 @@ class LockFile {
       // Judged again under the guard: the owner may have released the lock
       // and another one taken it since.
       if ((await this.goneOwner()) !== seen) return;
-      await unlink(this.path).catch((error: unknown) => {
-        if (!hasCode(error, "ENOENT")) throw error;
-      });
+      await removeFile(this.path);
       log.warn("Took over a project folder lock whose owner is gone", {
         path: this.path
       });
@@ -236,7 +242,7 @@ class LockFile {
     try {
       info = await stat(this.path);
     } catch (error) {
-      if (hasCode(error, "ENOENT")) return null;
+      if (error instanceof Error && failedWith(error, "ENOENT")) return null;
       throw error;
     }
     const text = await readText(this.path);
@@ -256,7 +262,7 @@ class LockFile {
         await mkdir(this.guard);
         break;
       } catch (error) {
-        if (!hasCode(error, "EEXIST")) throw error;
+        if (!(error instanceof Error && failedWith(error, "EEXIST"))) throw error;
       }
       const info = await stat(this.guard).catch(() => null);
       if (info && Date.now() - info.mtimeMs > this.options.guardStaleMs) {

@@ -471,8 +471,7 @@ export class FileStorageAdapter implements StorageAdapter {
         return { key: rel, size: st.size, modifiedAt: st.mtimeMs };
       }
     } catch (error) {
-      const code = (error as NodeJS.ErrnoException).code;
-      if (code !== "ENOENT" && code !== "ENOTDIR") throw error;
+      if (!isAbsentError(error)) throw error;
     }
     const external = await this.statExternal(rel);
     return external

@@ -108,7 +108,7 @@ describe("the folder lock file", () => {
   }, 30_000);
 
   it("keeps a lock of another host while it is touched, and takes it over once it is not", async () => {
-    const owner = JSON.stringify({ pid: 1, host: `${hostname()}-other`, token: "t" });
+    const owner = `1\n${hostname()}-other\nt\n`;
     await writeFile(lock, owner);
     await expect(
       acquireFolderLockFile(lock, { staleMs: 60_000, timeoutMs: 300 })
@@ -138,7 +138,7 @@ describe("the folder lock file", () => {
 
   it("leaves a lock it does not own when it releases", async () => {
     const held = await acquireFolderLockFile(lock);
-    const other = JSON.stringify({ pid: process.pid, host: hostname(), token: "other" });
+    const other = `${process.pid}\n${hostname()}\nother\n`;
     await writeFile(lock, other);
     await held.release();
     expect(await readFile(lock, "utf8")).toBe(other);
