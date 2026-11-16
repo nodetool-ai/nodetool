@@ -164,7 +164,8 @@ that was sent, so edits made during a send are kept and sent next.
   compile yet.
 - Moving the apps' existing header writes onto `CloudClient` (WP1.10, with
   Qt).
-- The file watcher, the Account control and the Qt bindings (WP1.11).
+- The Account control and the Cloud and Shared lists in QML, and their
+  wiring into the two apps (WP1.11).
 - The macOS and Windows readers of the managed policy compile only on those
   platforms, which this repository's CI does not build yet.
 
@@ -189,6 +190,31 @@ has two keys:
 sentence to show. Origins compare after `normalizeOrigin()`, so case, the
 default port and a trailing slash do not matter. A policy that exists and
 cannot be read turns the cloud features off and names the problem.
+
+## The Qt layer
+
+`qt/` builds `nodetool_account_qt` when `NODETOOL_ACCOUNT_QT` is on. It
+needs Qt Core and Network.
+
+- `QtHttpTransport` implements `HttpTransport` with a
+  `QNetworkAccessManager` per call. It blocks, so it runs on a worker
+  thread. It never follows a redirect, because a redirect would take the
+  credential to another URL.
+- `AccountController` is the QObject the Account control binds to. Its
+  properties are the state (signed out, signing in, signed in), the display
+  name, whether a server end is pending, whether the policy allows cloud
+  features, the sentence to show and the last error. `signIn()` checks the
+  managed policy, emits `browserRequested(url)` for the app to open, and
+  waits for the browser on its own thread. `signOut()` runs the sign-out
+  and retries the server end with `endSessionRetryDelay`. A
+  `QFileSystemWatcher` on the generation file and the data folder shows a
+  sign-in or sign-out from the other app.
+
+The controller runs the keychain, lock and server calls on one task
+thread. Results come back through an inbox guarded by a mutex, and a
+queued call by name drains it on the UI thread. No data crosses threads
+through captures in Qt's event queue, so ThreadSanitizer sees every
+hand-off.
 
 ## Build and test
 
@@ -215,6 +241,27 @@ savers against a fake cloud server.
 
 `account_policy_tests` covers the JSON policy, the origin rule and TC91's
 policy half.
+
+`account_qt_tests` builds with the Qt layer. It runs `QtHttpTransport`
+against a local HTTP server, and two `AccountController` objects on one
+data folder and one keychain against the fake token server: a sign-in in
+one shows in the other within 5 seconds without a browser (TC1's second
+app), a sign-out in one signs the other out, a declined or cancelled
+sign-in, and a policy that refuses the server (TC91).
+
+```bash
+cmake -S native/account -B native/account/build-qt -G Ninja \
+  -DNODETOOL_ACCOUNT_QT=ON -DCMAKE_PREFIX_PATH=<qt prefix>
+cmake --build native/account/build-qt
+ctest --test-dir native/account/build-qt --output-on-failure
+```
+
+When Qt comes from conda, add `-DPKG_CONFIG_USE_CMAKE_PREFIX_PATH=OFF`, or
+pkg-config picks up the conda GLib for libsecret. Qt is uninstrumented, so
+the ThreadSanitizer build reads `qt/tests/tsan.supp`, which suppresses
+reports inside Qt, GLib, OpenSSL and QtTest only. A race in this library
+still reports. With the mutex on `SignInFlow`'s listener removed, the TSan
+run reports the race between `cancel()` and the end of `finish()`.
 
 `account_keychain_tests` writes, overwrites and removes real items in the
 platform store and stores a full session record. It prints `SKIP` and passes

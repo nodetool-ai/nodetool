@@ -9,6 +9,7 @@
 #include <chrono>
 #include <cstdint>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -141,6 +142,9 @@ private:
   SecretStore& store_;
   TokenEndpoint& endpoint_;
   AccountSessionOptions options_;
+  // Guards listener_. begin() and finish() set and destroy it on their
+  // thread. cancel() reaches it from any thread.
+  std::mutex listenerMutex_;
   std::unique_ptr<LoopbackListener> listener_;
   Pkce pkce_;
   std::string state_;

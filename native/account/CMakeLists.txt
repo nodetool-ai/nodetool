@@ -24,6 +24,7 @@ endif()
 
 option(NODETOOL_ACCOUNT_SANITIZE "Build with AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 option(NODETOOL_ACCOUNT_TSAN "Build with ThreadSanitizer" OFF)
+option(NODETOOL_ACCOUNT_QT "Build the Qt transport and AccountController (qt/)" OFF)
 
 # The native account service both apps link (technical design, component
 # K4): the session record, the generation file, the lock, the refresh and
@@ -116,4 +117,9 @@ if(PROJECT_IS_TOP_LEVEL)
   target_link_libraries(account_keychain_tests PRIVATE nodetool_account)
   target_include_directories(account_keychain_tests PRIVATE tests)
   add_test(NAME account_keychain_tests COMMAND account_keychain_tests)
+endif()
+
+# After the sanitizer options above, so the Qt tests build with them too.
+if(NODETOOL_ACCOUNT_QT)
+  add_subdirectory(qt)
 endif()
