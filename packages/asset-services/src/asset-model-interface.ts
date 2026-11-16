@@ -8,9 +8,14 @@
  */
 import { Asset } from "@nodetool-ai/models";
 import type { AssetInfoEntry } from "@nodetool-ai/runtime";
-import { storeAssetWithThumbnail } from "./thumbnail.js";
+import { storeAssetThumbnail, storeAssetWithThumbnail } from "./thumbnail.js";
 import { probeAssetDurationSeconds } from "./asset-duration.js";
-import { getAssetFileName, normalizeAssetContentType } from "./asset-paths.js";
+import {
+  getAssetFileName,
+  getAssetStorageKey,
+  normalizeAssetContentType
+} from "./asset-paths.js";
+import { getAssetAdapter } from "./storage.js";
 import {
   replaceProjectAssetBytes,
   saveProjectAsset,
@@ -154,17 +159,22 @@ export async function updateAssetBytesModelInterface(
   if (!change) {
     // Any other asset gets them under its storage key, unless its bytes were
     // moved into the folder while this call waited for that move.
+    // Only the bytes and the row are written under the folder lock. The
+    // thumbnail is made after it, so a slow one holds up no other save.
     const stored = await storeLegacyAssetBytes(asset, async () => {
-      await storeAssetWithThumbnail(
-        asset.user_id,
-        asset.id,
-        getAssetFileName(asset.id, asset.content_type),
+      await getAssetAdapter().store(
+        getAssetStorageKey(asset.user_id, asset.id, asset.content_type),
         args.content,
         asset.content_type
       );
       asset.size = args.content.length;
       await asset.save();
     });
+    if (stored === "stored") {
+      await storeAssetThumbnail(asset.user_id, asset.id, asset.content_type, {
+        bytes: args.content
+      });
+    }
     if (stored === "moved") {
       change = await replaceProjectAssetBytes(asset, args.content);
       if (!change) {

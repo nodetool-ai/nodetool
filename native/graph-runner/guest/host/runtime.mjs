@@ -6,10 +6,12 @@
 // Exports the guest lacks are absent; the parity profile names them.
 import { loadMediaRefBytes as loadReal } from "guest-real:@nodetool-ai/runtime/media-ref-bytes";
 import { fetchExternalMedia } from "./media-fetch.mjs";
-import guestPath from "./path.mjs";
+import * as fs from "./fs.mjs";
+import * as path from "./path.mjs";
 import {
   NestedFolders,
-  WorkspaceReservedPathError
+  WorkspaceReservedPathError,
+  isReservedWorkspaceKey
 } from "guest-real:@nodetool-ai/runtime-core/workspace.js";
 
 export { encodeBase64, isAbsoluteFilePath } from "guest-real:@nodetool-ai/runtime/media-ref-bytes";
@@ -76,19 +78,6 @@ export {
   WorkspaceReservedPathError,
   setProjectFolderResolver
 } from "guest-real:@nodetool-ai/runtime-core/workspace.js";
-
-/**
- * The guest form of the runtime's own-folder check. The guest has no host
- * file system, so it judges the path as written and skips the real-path
- * step that resolves links on disk.
- */
-export async function assertLocalPathIsOwn(workspace, root, target, shown = target) {
-  const inside = guestPath.relative(guestPath.resolve(root), guestPath.resolve(target));
-  if (!inside || inside.startsWith("..") || guestPath.isAbsolute(inside)) return;
-  if (await new NestedFolders(workspace).covers(inside)) {
-    throw new WorkspaceReservedPathError(shown, "nested");
-  }
-}
 export { PERMISSION_GATE_CONTEXT_KEY } from "guest-real:@nodetool-ai/runtime/permission-gate.js";
 export { getRunTraceScope, withRunTrace, recordTraceEvent } from "guest-real:@nodetool-ai/runtime/run-trace-context.js";
 export { stringifyTraceContent } from "guest-real:@nodetool-ai/runtime/run-trace-serialization.js";
@@ -145,6 +134,38 @@ export async function saveRunFileAsset(context, bytes, opts) {
   const saved = { asset_id: assetId, path };
   if (assetError !== undefined) saved.asset_error = assetError;
   return saved;
+}
+
+// As assertLocalPathIsOwn in @nodetool-ai/runtime-core: a path inside the
+// run's folder may not be the reserved `.nodetool/` directory or lie in the
+// folder of another project, whether it is spelled that way or reaches it
+// through a link. A path outside the folder is not judged here. The real
+// module needs node:fs at load, which the guest does not bundle, so this
+// asks the same rule through the guest's fs and the workspace's
+// isNestedFolder.
+function keyWithin(root, target) {
+  const inside = path.relative(path.resolve(root), path.resolve(target));
+  if (!inside || inside.startsWith("..") || path.isAbsolute(inside)) return null;
+  return inside.split(path.sep).join("/");
+}
+
+export async function assertLocalPathIsOwn(workspace, root, target, shown = target) {
+  const key = keyWithin(root, target);
+  if (key === null) return;
+  const nested = new NestedFolders(workspace);
+  const refuse = async (candidate) => {
+    if (isReservedWorkspaceKey(candidate)) throw new WorkspaceReservedPathError(shown);
+    if (await nested.covers(candidate)) throw new WorkspaceReservedPathError(shown, "nested");
+  };
+  await refuse(key);
+  // The same question for where the path really is, links resolved.
+  let realKey = null;
+  try {
+    realKey = keyWithin(fs.realpathSync(root), fs.realpathSync(target));
+  } catch {
+    // Nothing is there yet to be a link.
+  }
+  if (realKey !== null && realKey !== key) await refuse(realKey);
 }
 
 // The server caps concurrent timeline renders across jobs. The native runner

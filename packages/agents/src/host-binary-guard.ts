@@ -318,6 +318,26 @@ export async function confineOutputTemplate(
         `name only, as in "downloads/%(title)s.%(ext)s".`
     };
   }
+  // yt-dlp writes the literal path under its cwd. The two-format path opens
+  // and removes the files through `hostMediaPath`, which reads `workspace/x`,
+  // `/workspace/x` and `\` differently. A template the two readings split on
+  // would mux or remove one file while yt-dlp wrote another, so refuse it.
+  let opened: string;
+  try {
+    opened = hostMediaPath(root, template);
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+  if (opened !== path.resolve(root.cwd, template)) {
+    return {
+      error:
+        `The output template "${template}" does not name the same file for ` +
+        `yt-dlp and for the workspace. Write it as a plain workspace-relative ` +
+        `path with "/" separators, as in "downloads/%(title)s.%(ext)s".`
+    };
+  }
   return confineArgvToWorkspace([template], root);
 }
 

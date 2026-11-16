@@ -780,6 +780,30 @@ describe.each(backends)(
       expect(marker(isLocal ? stats.mock.calls : lists.mock.calls)).toBe(2);
     });
 
+    it.each([`Games/Tetris/sprite.txt`, `GAMES/TETRIS/new.txt`])(
+      "refuses %s, which differs from the host's folder only in case",
+      async (path) => {
+        // macOS and Windows folders ignore case, so this is the game's folder
+        // there. The other backends refuse it as well, which loses nothing.
+        const refused = WorkspaceReservedPathError;
+        await expect(workspace.read(path)).rejects.toThrow(refused);
+        await expect(workspace.write(path, "x")).rejects.toThrow(refused);
+        await expect(workspace.deleteAll(path)).rejects.toThrow(refused);
+        await expect(
+          assertLocalPathIsOwn(workspace, dir, join(dir, ...path.split("/")))
+        ).rejects.toThrow(refused);
+        await expectNestedIntact();
+      }
+    );
+
+    it("refuses the host's folder itself under another case", async () => {
+      const refused = WorkspaceReservedPathError;
+      await expect(workspace.list("Games/Tetris")).rejects.toThrow(refused);
+      await expect(workspace.deleteAll("GAMES/tetris")).rejects.toThrow(refused);
+      await expect(workspace.mkdir("Games/Tetris")).rejects.toThrow(refused);
+      await expectNestedIntact();
+    });
+
     it.runIf(isLocal)(
       "refuses a path through a link that points at a folder the host names",
       async () => {
@@ -907,6 +931,35 @@ describe("Workspace over a local directory", () => {
       await rm(outside, { recursive: true, force: true });
     }
   });
+
+  // A Windows short name (`NODETO~1`) and a name with trailing dots or
+  // spaces (`.nodetool.`) are other spellings of `.nodetool` that the
+  // operating system resolves. A link of that name models them here: the
+  // lexical key passes, and only the real path says `.nodetool`.
+  it.each(["alias", "NODETO~1", ".nodetool.", ".nodetool "])(
+    "refuses %j when it really is the reserved directory",
+    async (name) => {
+      await mkdir(join(dir, ".nodetool"));
+      await writeFile(join(dir, ".nodetool", "project.json"), "{}");
+      await symlink(
+        join(dir, ".nodetool"),
+        join(dir, name),
+        process.platform === "win32" ? "junction" : "dir"
+      );
+      const workspace = new StorageWorkspace(new FileStorageAdapter(dir));
+      const refused = WorkspaceReservedPathError;
+
+      await expect(workspace.read(`${name}/project.json`)).rejects.toThrow(refused);
+      await expect(workspace.write(`${name}/project.json`, "x")).rejects.toThrow(refused);
+      await expect(workspace.write(`${name}/new.txt`, "x")).rejects.toThrow(refused);
+      await expect(workspace.delete(`${name}/project.json`)).rejects.toThrow(refused);
+      await expect(
+        assertLocalPathIsOwn(workspace, dir, join(dir, name, "project.json"))
+      ).rejects.toThrow(refused);
+      expect(await readFile(join(dir, ".nodetool", "project.json"), "utf8")).toBe("{}");
+      expect(existsSync(join(dir, ".nodetool", "new.txt"))).toBe(false);
+    }
+  );
 
   it("refuses to write under a symlinked-out directory", async () => {
     const outside = await mkdtemp(join(tmpdir(), "ws-outside-"));

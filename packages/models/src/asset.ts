@@ -376,6 +376,35 @@ export class Asset extends DBModel {
   }
 
   /**
+   * The user's linked assets in `projectId` (a row with `external_path`)
+   * whose metadata holds a string under the top-level key `key`. Asset
+   * services find the files an unfinished collect reserved this way.
+   */
+  static async findLinkedWithMetadataKey(
+    userId: string,
+    projectId: string,
+    key: string
+  ): Promise<Asset[]> {
+    // Metadata is JSON text in both dialects. The pattern narrows the scan
+    // to rows naming the key, and the parsed metadata decides.
+    const marker = JSON.stringify(key).replace(/[\\%_]/g, "\\$&");
+    const rows = await getPortableDb()
+      .select()
+      .from(assets)
+      .where(
+        and(
+          eq(assets.user_id, userId),
+          eq(assets.project_id, projectId),
+          isNotNull(assets.external_path),
+          sql`${assets.metadata} LIKE ${`%${marker}%`} ESCAPE '\\'`
+        )
+      );
+    return rows
+      .map((row) => new Asset(row))
+      .filter((asset) => typeof asset.metadata?.[key] === "string");
+  }
+
+  /**
    * The user's assets in `projectId` whose metadata holds the string `value`
    * under the top-level key `key`, oldest first. Asset services find the
    * copies of an asset this way.

@@ -245,6 +245,11 @@ export async function assertLocalPathIsOwn(
   // The root is the folder itself, which is never another project's.
   if (!inside || inside.startsWith("..") || path.isAbsolute(inside)) return;
   const key = inside.split(path.sep).join("/");
+  // The reserved directory is no more open to a host binary than to the
+  // workspace.
+  if (isReservedWorkspaceKey(key)) {
+    throw new WorkspaceReservedPathError(shown);
+  }
   if (await nested.covers(key)) {
     throw new WorkspaceReservedPathError(shown, "nested");
   }
@@ -255,8 +260,15 @@ export async function assertLocalPathIsOwn(
   } catch {
     // The root is not there: nothing can be opened under it.
   }
-  if (realKey && realKey !== key && (await nested.covers(realKey))) {
-    throw new WorkspaceReservedPathError(shown, "nested");
+  if (realKey && realKey !== key) {
+    // Another spelling of `.nodetool` (a Windows short name, trailing dots
+    // or spaces, a link) is the reserved directory by its real path.
+    if (isReservedWorkspaceKey(realKey)) {
+      throw new WorkspaceReservedPathError(shown);
+    }
+    if (await nested.covers(realKey)) {
+      throw new WorkspaceReservedPathError(shown, "nested");
+    }
   }
 }
 
@@ -306,6 +318,15 @@ export interface StorageWorkspaceOptions {
    * still known as another folder. The root is never one of them.
    */
   nestedFolders?: NestedFolderSource;
+}
+
+/** An adapter that publishes a file on this host by a streaming copy. */
+function hasStoreFile(
+  storage: StorageAdapter
+): storage is StorageAdapter & {
+  storeFile(key: string, sourcePath: string): Promise<string>;
+} {
+  return typeof (storage as { storeFile?: unknown }).storeFile === "function";
 }
 
 export class StorageWorkspace implements Workspace {
@@ -430,15 +451,22 @@ export class StorageWorkspace implements Workspace {
       }
     }
     const at = Date.now();
+    // The listing is complete only for keys at or below `under`.
+    const complete = (key: string): boolean =>
+      !under || key === under || key.startsWith(`${under}/`);
     for (const directory of seen) {
-      // The listing is complete only for directories at or below `under`.
-      if (under && directory !== under && !directory.startsWith(`${under}/`)) {
-        continue;
-      }
+      if (!complete(directory)) continue;
       this.reservedMarks.set(directory, {
         at,
         value: Promise.resolve(marked.has(directory))
       });
+    }
+    // A listed file is a directory too only when keys lie below it, and then
+    // it is among `seen`. Any other holds no reserved directory, so reading
+    // it after the listing asks the store nothing more.
+    for (const { key } of entries) {
+      if (seen.has(key) || isReservedWorkspaceKey(key) || !complete(key)) continue;
+      this.reservedMarks.set(key, { at, value: Promise.resolve(false) });
     }
   }
 
@@ -619,6 +647,11 @@ export class StorageWorkspace implements Workspace {
       asDirectory ? this.nested.covers(candidate) : this.nested.holds(candidate);
     // Judged as written, and as it really is: a link inside the folder can
     // point at another project's folder, which no `.nodetool/` need mark.
+    // The same goes for the reserved directory: `NODETO~1` and `.nodetool.`
+    // are `.nodetool` only once the operating system has resolved them.
+    if (realKey !== key && isReservedWorkspaceKey(realKey)) {
+      throw new WorkspaceReservedPathError(path);
+    }
     if (
       (await isOther(key)) ||
       (realKey !== key && realKey !== "" && (await this.nested.covers(realKey)))
@@ -981,6 +1014,14 @@ export class StorageWorkspace implements Workspace {
         node.path.resolve(this.localDir, this.key(path))
     ) {
       // The binary already wrote in place — the workspace *is* that file.
+      return;
+    }
+    // A folder on this host takes the file with a bounded streaming copy,
+    // which also refuses a file above the upload limit, so a large file is
+    // never read into memory whole.
+    const { storage } = this;
+    if (this.localDir && hasStoreFile(storage)) {
+      await storage.storeFile(this.key(path), localPath);
       return;
     }
     await this.write(path, new Uint8Array(await node.fs.readFile(localPath)));

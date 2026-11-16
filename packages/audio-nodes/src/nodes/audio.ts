@@ -16,6 +16,7 @@ import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
   loadNodeFsPromises,
   loadNodePath,
+  assertSaveTargetIsOwn,
   writeSavedFile,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
@@ -402,6 +403,7 @@ export class SaveAudioNode extends BaseNode {
     const fs = await loadNodeFsPromises();
     const path = await loadNodePath();
     const full = path.resolve(folder, name);
+    await assertSaveTargetIsOwn(context, full);
     await fs.mkdir(path.dirname(full), { recursive: true });
     await fs.writeFile(full, bytes);
     return { output: audioRefFromBytes(bytes, `file://${full}`) };

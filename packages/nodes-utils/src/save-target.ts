@@ -14,8 +14,11 @@
  *    other. `uniqueFilePath` numbers them `name_1.ext`, `name_2.ext`, …
  */
 import {
+  assertLocalPathIsOwn,
+  createLocalWorkspace,
   saveRunFileAsset,
-  type RunFileAssetContext
+  type RunFileAssetContext,
+  type Workspace
 } from "@nodetool-ai/runtime";
 import { loadNodeFsPromises, loadNodePath } from "./node-only-modules.js";
 
@@ -83,7 +86,7 @@ export function folderPathOf(raw: FolderValue): string {
  * `@nodetool-ai/runtime` in the dependency order, and a `ProcessingContext`'s
  * `workspace` satisfies this shape.
  */
-export interface SaveWorkspace {
+export interface SaveWorkspace extends Partial<Pick<Workspace, "isNestedFolder">> {
   localDir: string | null;
   key(path: string): string;
   write(path: string, data: Uint8Array | string, contentType?: string): Promise<void>;
@@ -197,6 +200,34 @@ function requireFilename(filename: string): string {
   return name;
 }
 
+/**
+ * With the workspace toggle off the node names a host folder and writes with
+ * `node:fs`, past the workspace. A path outside the run's own folder is the
+ * user's choice. A path inside it is held to the workspace's rule: the
+ * reserved `.nodetool/` directory and the folder of another project are
+ * refused, as the workspace refuses them. Throws `WorkspaceReservedPathError`.
+ */
+export async function assertSaveTargetIsOwn(
+  run: Pick<SaveFolderOptions, "workspace" | "workspaceDir"> | null | undefined,
+  target: string
+): Promise<void> {
+  const root = run?.workspace?.localDir ?? run?.workspaceDir ?? null;
+  if (!root) return;
+  // Nothing can be nested in a folder that does not exist yet, and the check
+  // must not create it.
+  const fs = await loadNodeFsPromises();
+  try {
+    await fs.stat(root);
+  } catch {
+    return;
+  }
+  // A run with only a directory still learns of a folder by its mark.
+  const workspace = run?.workspace?.isNestedFolder
+    ? { isNestedFolder: run.workspace.isNestedFolder.bind(run.workspace) }
+    : createLocalWorkspace(root);
+  await assertLocalPathIsOwn(workspace, root, target);
+}
+
 export interface SaveTargetOptions extends SaveFolderOptions {
   /** The node's filename property, with date tokens already expanded. */
   filename: string;
@@ -216,6 +247,7 @@ export async function resolveSaveTarget(
   const path = await loadNodePath();
   const folder = resolveSaveFolder(opts);
   const target = path.resolve(folder, requireFilename(opts.filename));
+  await assertSaveTargetIsOwn(opts, target);
   await fs.mkdir(path.dirname(target), { recursive: true });
   return opts.overwrite === true ? target : uniqueFilePath(target);
 }

@@ -121,6 +121,11 @@ export class InMemoryStorageAdapter implements StorageAdapter {
     return this._store.delete(key);
   }
 
+  /** The store is in memory, so a lookup cannot fail. */
+  statStrict(uri: string): Promise<StorageStat | null> {
+    return this.stat(uri);
+  }
+
   async stat(uri: string): Promise<StorageStat | null> {
     if (!uri.startsWith("memory://")) return null;
     const key = uri.slice("memory://".length);

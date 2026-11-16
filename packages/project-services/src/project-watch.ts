@@ -26,8 +26,10 @@ import { NestedFolders } from "./project-folder-scan.js";
 import {
   isIgnoredProjectPath,
   logReconcileFailure,
+  notifyProjectFolderChanged,
   reconcileInBackground,
-  reconcileProjectOnOpen
+  reconcileProjectOnOpen,
+  reportChangedRows
 } from "./project-index.js";
 
 const log = createLogger("nodetool.project-services.project-watch");
@@ -93,6 +95,9 @@ interface WatchedFolder {
 interface ClientState {
   /** The folder the client has open. */
   key: string | null;
+  /** The project the client asked for, and whose it is. */
+  projectId: string | null;
+  userId: string | null;
   /** Counts the client's calls, so a slow earlier one does not win. */
   turn: number;
 }
@@ -123,13 +128,20 @@ export class ProjectFolderWatchers {
     userId: string,
     projectId: string | null
   ): Promise<void> {
-    const state = this.clients.get(client) ?? { key: null, turn: 0 };
+    const state = this.clients.get(client) ?? {
+      key: null,
+      projectId: null,
+      userId: null,
+      turn: 0
+    };
     const turn = ++state.turn;
     this.leave(client, state);
     if (projectId === null) {
       this.clients.delete(client);
       return;
     }
+    state.projectId = projectId;
+    state.userId = userId;
     this.clients.set(client, state);
 
     let folder: Awaited<ReturnType<typeof requireProjectFolder>>;
@@ -164,6 +176,33 @@ export class ProjectFolderWatchers {
     state.key = key;
     if (!watched.handle) this.start(watched, folder.workspace);
     reconcileProjectOnOpen(folder.projectId, userId);
+  }
+
+  /**
+   * Watch the folder of `projectId` where it is now. Called after the project
+   * was pointed at another folder: the watcher on the former folder stops,
+   * and every client that has the project open is given the new one, also a
+   * client whose folder could not be reached before. Never throws.
+   */
+  async folderMoved(projectId: string, userId: string): Promise<void> {
+    const watched = this.folders.get(folderKey(projectId, userId));
+    if (watched) {
+      this.stop(watched);
+      this.folders.delete(watched.key);
+    }
+    const clients: ProjectClient[] = [];
+    for (const [client, state] of this.clients) {
+      const opened =
+        state.userId === userId &&
+        (state.projectId === projectId || state.key === watched?.key);
+      if (!opened) continue;
+      state.key = null;
+      clients.push(client);
+    }
+    for (const client of clients) {
+      const state = this.clients.get(client);
+      if (state?.projectId) await this.setOpenProject(client, userId, state.projectId);
+    }
   }
 
   /**
@@ -275,11 +314,17 @@ export class ProjectFolderWatchers {
       // Every change was in the folder of another project.
       if (paths.size === 0) return;
     }
-    await reconcileInBackground(
+    const report = await reconcileInBackground(
       watched.projectId,
       watched.userId,
       whole ? {} : { paths }
     );
+    // Another app changed files here. The clients listing them are told even
+    // when no row followed, such as for a renamed text file. A reconcile that
+    // changed rows has told them already.
+    if (!reportChangedRows(report)) {
+      notifyProjectFolderChanged(watched.projectId, watched.userId);
+    }
   }
 }
 

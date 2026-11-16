@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtemp, rm, writeFile, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -11,6 +11,7 @@ import {
   writeSavedFile
 } from "../src/save-target.js";
 import {
+  WorkspaceReservedPathError,
   createLocalWorkspace,
   setProjectFolderResolver,
   type RunFileAssetContext
@@ -228,5 +229,57 @@ describe("writeSavedFile with the run's context", () => {
       bytes: "hello"
     });
     expect(target).toBe(path.join(dir, "note.txt"));
+  });
+});
+
+describe("a save with Save to workspace off in a run with a workspace", () => {
+  let outside: string;
+
+  beforeEach(async () => {
+    outside = await mkdtemp(path.join(tmpdir(), "nodetool-save-outside-"));
+    await mkdir(path.join(dir, ".nodetool"));
+    await writeFile(path.join(dir, ".nodetool", "project.json"), "manifest");
+    await mkdir(path.join(dir, "projects", "abc", ".nodetool"), { recursive: true });
+    await writeFile(path.join(dir, "projects", "abc", "fox.png"), "theirs");
+  });
+
+  afterEach(async () => {
+    await rm(outside, { recursive: true, force: true });
+  });
+
+  const save = (folder: string, filename: string, overwrite = false) =>
+    writeSavedFile({
+      folder,
+      filename,
+      saveToWorkspace: false,
+      workspace: createLocalWorkspace(dir),
+      overwrite,
+      bytes: "new"
+    });
+
+  it.each([
+    ["another project's folder", path.join("projects", "abc"), "fox.png"],
+    ["a new directory in it", path.join("projects", "abc", "deep"), "x.png"],
+    ["the reserved directory", ".nodetool", "project.json"],
+    ["a file name that reaches in", "", "projects/abc/fox.png"],
+    ["a name that reaches the reserved directory", "", ".nodetool/project.json"],
+    ["a name that climbs back in", "sub", "../projects/abc/new.png"]
+  ])("refuses %s", async (_label, folder, filename) => {
+    await expect(
+      save(folder === "" ? "" : path.join(dir, folder), filename, true)
+    ).rejects.toThrow(WorkspaceReservedPathError);
+    expect(await readFile(path.join(dir, "projects/abc/fox.png"), "utf8")).toBe("theirs");
+    expect(await readFile(path.join(dir, ".nodetool/project.json"), "utf8")).toBe("manifest");
+    await expect(stat(path.join(dir, "projects/abc/deep"))).rejects.toThrow();
+    await expect(stat(path.join(dir, "projects/abc/new.png"))).rejects.toThrow();
+    await expect(stat(path.join(dir, "sub"))).rejects.toThrow();
+  });
+
+  it("still saves in the project's own folder and in a folder elsewhere", async () => {
+    const own = await save(path.join(dir, "renders"), "a.png");
+    expect(own).toBe(path.join(dir, "renders", "a.png"));
+    const elsewhere = await save(outside, "b.png");
+    expect(elsewhere).toBe(path.join(outside, "b.png"));
+    expect(await readFile(elsewhere, "utf8")).toBe("new");
   });
 });

@@ -40,18 +40,21 @@ The files in it belong to that project or game. These surfaces of a run in the o
 | --- | --- |
 | Agent file tools, the Code node, JS scripts, save nodes with **Save to workspace** | They read and write through the outer folder's workspace, which refuses every operation on such a path: read, stat, list, write, copy, move, delete, and the staging of a file or directory for a host binary. |
 | `media_edit`, `media_probe` | They hand real paths to libav. Each input and output path is read once, the way the workspace reads it, and that one result is both checked by the workspace's rule and opened. `workspace/x`, `x`, `C:/x` and a path written with backslashes are therefore one file to the check and to the reader. |
-| `yt_dlp` | yt-dlp expands the output template from the server's environment before it writes, so a template is refused when it starts with `~`, holds a `$`, or holds a `%` that does not open a field, and when it starts with a type prefix such as `thumbnail:`. Its directory must be literal: a field such as `%(id)s` is allowed in the file name only, so no field can choose the directory. The download and mux of two formats checks every path yt-dlp prints before it muxes or removes the file, since yt-dlp also prints a file it skipped because it already exists. The capability passes no other path to yt-dlp. |
+| `yt_dlp` | yt-dlp expands the output template from the server's environment before it writes, so a template is refused when it starts with `~`, holds a `$`, or holds a `%` that does not open a field, and when it starts with a type prefix such as `thumbnail:`. Its directory must be literal: a field such as `%(id)s` is allowed in the file name only, so no field can choose the directory. The download and mux of two formats checks every path yt-dlp prints before it muxes or removes the file, since yt-dlp also prints a file it skipped because it already exists. The template is also refused when yt-dlp and the workspace would read it as different files, as `workspace/dl/x.%(ext)s` or a path with backslashes would be: yt-dlp writes the literal path, while the mux and the cleanup open the workspace's reading, which could remove the project's own file. The capability passes no other path to yt-dlp. |
 | Document tools (`convert_document`, the PDF tools), sandbox file transfers, the SQLite database path node | They open real paths with `node:fs`, or hand one to the workflow. The resolved path, which is the one opened, is checked by the workspace's rule first. |
+| Save nodes with **Save to workspace** off, including Save Text, Save Audio, Save Video, Save Image, Save 3D Model and Save Document with a fixed path | They write to the folder the node names with `node:fs`. The final path is checked by the workspace's rule before any directory is created. A path outside the project's own folder is your choice and is not judged. The `.nodetool/` directory and another project's folder inside it are refused, whether the folder, the file name or a `..` segment reaches them. |
+| Media named by a `file://` URI or an absolute path | The path is checked by the same rule before a storage adapter or the file system is asked. A path outside the project's own folder is read as before. Under the cloud profile such a path is never read. |
 
 A path is judged as written and as it really is. A symbolic link inside the outer folder that points at an inner folder is refused like the inner folder itself.
 
-A folder that a workspace row names is matched without regard to case. Another spelling of it, such as a Windows short name (`GAMES~1`) or a name with trailing dots, is caught only through the real path, so the check relies on the operating system's `realpath` returning the folder's canonical name. A folder marked by `.nodetool/` is found on disk under any spelling.
+A folder that a workspace row names is matched without regard to case, and so is `.nodetool`. Another spelling of either, such as a Windows short name (`GAMES~1`, `NODETO~1`) or a name with trailing dots or spaces (`.nodetool.`), is caught only through the real path, so the check relies on the operating system's `realpath` returning the canonical name. The workspace compares that real path with the reserved directory and with the other project's folder, so a link or an alias of `.nodetool/` is refused like `.nodetool/` itself. Tests model such an alias with a link, since Linux has no short names. A folder marked by `.nodetool/` is found on disk under any spelling.
+
+A name that differs from an existing project file only in case is the same file on macOS and Windows. That is not a project boundary, because a run may write any file in its own folder.
 
 Not guarded:
 
 - **The Claude Agent provider's own file tools.** That provider runs the Claude Code CLI with the project folder as its working directory and with permission prompts off. The CLI's `Read`, `Write`, `Edit`, `Glob`, `Grep` and `Bash` open files themselves and never ask the workspace, so a chat or agent run on that provider can reach an inner folder on a local install.
 - **Host binaries a node starts in the folder**, such as Blender and ManimGX. They run in a temporary directory inside the folder and can open any path your user account can.
-- **Save nodes with Save to workspace off.** They write to the folder the node names, or to the project folder when it names none, through `node:fs`. Media named by a `file://` URI is read from wherever the URI points. Neither is held to the workspace.
 
 The refusal is the one for `.nodetool/`, with its own message. Listings leave the inner folder out. Deleting a directory that holds an inner folder deletes the outer project's files around it and leaves the inner folder as it is. A directory that holds an inner folder cannot be moved or renamed. The outer folder's own root is never excluded.
 
@@ -104,7 +107,11 @@ An asset whose file is not in the folder gets its row and is marked offline. It 
 
 An ID in the folder that a row on this install already has is replaced by a new ID. This happens when the asset, workflow or timeline ID belongs to another user or to another project. The references to it in the folder's workflow and timeline files are rewritten to the new ID, and the row that had the ID is not changed. References are rewritten only for IDs of the 32-character form NodeTool generates.
 
-The files in the folder are read as untrusted input. A manifest entry is used only when its ID has the form NodeTool generates and its path names a file place inside the folder. A path that leaves the folder, names `.nodetool/`, is absolute, or reaches its file through a symbolic link out of the folder is left out. Opening a folder never deletes or moves a file in it. The only files it changes are `.nodetool/project.json` and `.nodetool/assets.json`, and the workflow and timeline files in which an ID was replaced.
+A copy also gets its own asset for each file of the original project that the copied `.nodetool/assets.json` leaves out, when the copy has that file at the same path. The copy's references to it then name the copy's asset, and the original's asset is not changed.
+
+An open that fails after it rewrote IDs in the copy's files removes the rows it made. Before it rewrites a file it records each new ID with the ID it replaced in `.nodetool/restore-ids.json`, and the next open of the folder maps those IDs as well, so the references resolve. The open that succeeds removes the record. Two opens of folders run one after the other, in one server and across processes that share its database, so two projects never get the same folder.
+
+The files in the folder are read as untrusted input. A manifest entry is used only when its ID has the form NodeTool generates and its path names a file place inside the folder. A path that leaves the folder, names `.nodetool/`, is absolute, or reaches its file through a symbolic link out of the folder is left out. A folder that cannot be read stops the open, and no row is kept. A manifest's fingerprint is compared with the file, and its full SHA-256 is never stored: the background job computes it. Opening a folder never deletes or moves a file in it. The only files it changes are `.nodetool/project.json`, `.nodetool/assets.json` and `.nodetool/restore-ids.json`, and the workflow and timeline files in which an ID was replaced.
 
 ### Locate a moved folder
 
@@ -130,7 +137,7 @@ NodeTool owns `.nodetool/` in every folder. Agent file tools, the Code node, JS 
 
 ## Assets are files in the folder
 
-Every asset NodeTool creates is one file in its project's folder plus an asset row: a workflow output, an asset a node saves, an image an agent generates in a chat, and a file you upload. Generated files go to `Generated/`, which stays flat. Its name is the asset's name with whitespace as dashes and the extension of its content type, so an image named "fox in snow" is `Generated/fox-in-snow.png`. A second asset of the same name is `fox-in-snow-2.png`. An auto-saved output takes the title of its node, or `<kind>_<node id>` when the node has none.
+Every asset NodeTool creates is one file in its project's folder plus an asset row: a workflow output, an asset a node saves, an image an agent generates in a chat, and a file you upload. Generated files go to `Generated/`, which stays flat. Its name is the asset's name with whitespace as dashes and the extension of its content type, so an image named "fox in snow" is `Generated/fox-in-snow.png`. A second asset of the same name is `fox-in-snow-2.png`. An auto-saved output takes the title of its node, or `<kind>_<node id>` when the node has none. A generation from the Create tab or a chat takes the first eight words of its prompt, so "A red fox, in the snow" is `Generated/A-red-fox-in-the-snow.png`. A generation with no prompt keeps `<capability>-<time>-<id>`.
 
 A file dropped on a directory in the Files tree is saved in that directory. A file uploaded anywhere else, such as on the canvas or in the asset browser, goes to `Imported/`. An upload names its project, and NodeTool refuses a project you do not own. An agent output with `output_file` is saved at that path, and a Save file node with "Save to workspace" on saves at its file name. Each is the asset's only file, so the agent and the next node read the same bytes the asset shows.
 
@@ -143,6 +150,8 @@ Personal is the library. In a named project, the image pickers (entity images, t
 Agent tools follow the same rule. When `edit_storyboard`, `edit_timeline`, `set_timeline_document`, the timeline code tools (`set_timeline_code`, `edit_timeline_code`, `rebake_timeline_code`) or `edit_sketch` stores an asset of another project, it copies the asset first, stores the copy's ID, and returns `copied_assets: [{ source_asset_id, asset_id }]`. The server function behind both is `copyAssetToProject` in `@nodetool-ai/asset-services`, reached from the web through `assets.copyToProject`.
 
 NodeTool never replaces a file when it picks a name. The file is created exclusively, so when another NodeTool process took the name first, or a file with it already exists in the destination folder, the new file gets the next free suffix. An asset created before project folders keeps its bytes in [asset storage](storage.md) and reads as before until its file is moved into the folder.
+
+Large files are copied in chunks where the folder is a directory on the host. Saving an asset from a file on disk, renaming an asset's file and moving it to another directory read the file in pieces of about 1 MiB, so a file of 1 to 2 GiB does not need that much memory. The name is reserved with an empty file first and the bytes replace it in one rename when the copy ends. A copy that fails removes the empty file. A server that stops mid-copy leaves the empty file, which has no row. The partial content hash and the full content hash already read by range or by stream. A folder in object storage reads the whole file, because the storage adapters take bytes, and so does the move of an asset from before project folders. Those reads are bounded by `NODETOOL_MAX_UPLOAD_BYTES`.
 
 ### Existing assets move into the folder
 
@@ -159,16 +168,17 @@ Each asset moves on its own, in this order:
 
 The file goes where the asset was filed: the names of its folders become directories, and the file is named like any other asset file. An asset named "fox" in the folder "Shots" becomes `Shots/fox.png`. A name that is taken gets a numeric suffix. A folder whose name starts with a dot, or is `node_modules`, gets a leading underscore, because the asset index skips such directories. An asset in no project is assigned to Personal first.
 
-A server that stops between two steps continues on its next start. The recorded target tells it which file is its own copy, so the asset ends with one file. A path holds the whole copy or nothing, so a copy that was cut short leaves only the staging file, which the next run removes. Nothing at a target path is ever deleted: a file there that is not the whole copy, an empty file included, belongs to someone else and stays, and the copy takes the next free name. The asset index gives no row to a file that is a recorded target. On a file system without hard links, such as exFAT, the copy is created exclusively and written in place, and a copy that was cut short stays in the folder under the target name.
+A server that stops between two steps continues on its next start. The recorded target tells it which file is its own copy, so the asset ends with one file. A path holds the whole copy or nothing, so a copy that was cut short leaves only the staging file, which the next run removes. A file at a target path is deleted only when it is the copy an earlier run made of bytes the asset no longer has: it has the SHA-256 the row recorded, and the stored object holds newer bytes. Any other file there, an empty file included, belongs to someone else and stays, and the copy takes the next free name. The asset index gives no row to a file that is a recorded target. On a file system without hard links, such as exFAT, the copy is created exclusively and written in place, and a copy that was cut short stays in the folder under the target name.
 
-Bytes stored for an asset while it moves are never deleted. An update of the asset's bytes writes to asset storage for as long as the row names no file. That update and the move of the same project take turns: the update stores its bytes and saves the row while the move is not at work, and reads the row again first. When the move has named a file by then, the update writes that file. When the stored object still does not have the recorded hash, it is kept, the row is pointed back at it, the copy of the earlier bytes is removed, and a later pass moves the new bytes. A stored object that cannot be read is kept as well, and the asset is tried again later. The move reads stored objects directly, so a failed read is never answered from the file in the folder.
+Bytes stored for an asset while it moves are never deleted. An update of the asset's bytes writes to asset storage for as long as the row names no file. That update and the move of the same project take turns: the update stores its bytes and saves the row while the move is not at work, and reads the row again first. The turns hold across processes that share a SQLite database, such as the desktop server and a `nodetool` command, through a lock file per project folder in `<database file>.locks/`. A lock whose process has exited, or whose file was not touched for 15 seconds, is taken over. A process that waits five minutes for another one's lock gives up with an error. On PostgreSQL the turns hold within one server process. The update keeps the target and hash a stopped move recorded on the row. When the move has named a file by then, the update writes that file. When the stored object still does not have the recorded hash, it is kept, the row is pointed back at it, the copy of the earlier bytes is removed, and a later pass moves the new bytes. A stored object that cannot be read is kept as well, and the asset is tried again later. The move reads stored objects directly, so a failed read is never answered from the file in the folder.
 
 The move leaves these alone:
 
 - An asset that references a file in place, and that file.
 - Thumbnails, video proxies and other files derived from an asset. They stay in asset storage.
-- An asset row with no stored object.
+- An asset row with no stored object. A stored object that asset storage cannot be asked about, because of a network or permission error, is not taken for a missing one: the asset is tried again later.
 - An asset whose row changed within the last minute. A later pass moves it.
+- An asset made for a direct upload to object storage that has no size yet, for two hours after it was made. The client can upload to its URL for that long.
 - An asset of a project whose folder is unreachable.
 
 A folder row is deleted once no asset is filed under it. Its directory is created first, so an empty folder stays a folder on a local disk. A folder row that still holds an asset the move left alone stays.
@@ -183,12 +193,14 @@ NodeTool compares a project's folder with its asset rows when the project is ope
 | --- | --- | --- |
 | The file is at the row's path and unchanged | Exists | Nothing changes. |
 | The file is at the row's path and changed | Exists | The row records the new size, modification time and partial hash. The asset keeps its ID. Its thumbnail is replaced, its video proxy is remade, and its waveform is computed again. |
-| The file is gone and exactly one file with no row has the same content | Exists | The row points at that file. A file moved or renamed outside NodeTool keeps its asset ID. |
+| The file is gone and exactly one file with no row has the same content | Exists | The row points at that file and takes its file name as the asset name. A file moved or renamed outside NodeTool keeps its asset ID. |
 | The file is gone and no file, or more than one, has the same content | Exists | The asset is marked offline. It reports as missing and its URL serves nothing. |
-| An image, video, audio or 3D file | None | A row is created. No thumbnail is built. |
+| An image, video, audio or 3D file | None | A row is created. An image, video or audio file gets its thumbnail before the row is announced. A 3D file gets none. |
 | Any other file | None | No row is created. The file gets a row the first time something uses it as an asset. |
 
 A move is often a copy followed by a delete. A media file with the same content as an asset's file therefore gets no row for its first 10 seconds. When the asset's file is gone by then, the asset points at the new file and keeps its ID. When both files are still there, the new file is a copy and gets its own row.
+
+After NodeTool writes into the folder, only the paths it wrote are compared. The other triggers compare the whole folder. A folder in object storage is read with one flat listing, which also tells which directories are the folders of other projects. A file that [Collect](storage.md#external-assets) reserved and has not finished copying belongs to the linked asset, so it gets no row, even when NodeTool stopped during the copy. The next Collect writes into it again.
 
 The comparison never deletes a row and never changes a file. It skips `.nodetool/`, every directory whose name starts with a dot, `node_modules/`, and every [folder of another project or game](#a-folder-inside-another-projects-folder) inside this one. It does not follow symbolic links. A row that already names a file in a directory skipped by its name is still checked. A row that names a file in another project's folder is marked offline.
 
@@ -196,7 +208,7 @@ An offline asset comes back when a file appears at its path again, or when it is
 
 #### Changes made in another app
 
-While a project is open, NodeTool watches its folder. A file saved, moved, renamed, added or deleted by another app is compared within a few seconds, and only the changed paths are looked at. The asset keeps its ID, and its thumbnail URL changes so that no cached picture of the old file is shown. The web app tells the server which project is open with the [`set_open_project`](websocket-api.md#set_open_project) command. The watcher stops when no client has the project open. A change made while the project is closed is picked up the next time it is opened.
+While a project is open, NodeTool watches its folder. A file saved, moved, renamed, added or deleted by another app is compared within a few seconds, and only the changed paths are looked at. The asset keeps its ID, and its thumbnail URL changes so that no cached picture of the old file is shown. The server then tells the clients that list the folder's files, so the Files tree shows the new name without Refresh. The web app tells the server which project is open with the [`set_open_project`](websocket-api.md#set_open_project) command, sent on the shared socket. The Files tree and the asset browser open that socket while they are shown. The watcher stops when no client has the project open, and moves with the project when Locate points it at another folder. A change made while the project is closed is picked up the next time it is opened.
 
 A folder in object storage is not watched, because only NodeTool writes to it. It is compared when the project is opened and after NodeTool writes into it.
 
@@ -377,6 +389,16 @@ New project folders go under `PROJECTS_DIR`. The old `/workspaces` page and its 
 
 A folder on the host would let a user browse the server's filesystem, so `NODETOOL_ENV=production` returns `path: null` and ignores a saved `PROJECTS_DIR`. Only the server-managed folder under the data dir stays readable. `NODETOOL_WORKSPACE_STORAGE=cloud` (the production default) keeps folders in the asset bucket instead of on disk. See [Configuration](configuration.md#environment-variables-index).
 
+### Object storage must honor conditional writes
+
+A folder in object storage creates every new file with a conditional write, so a file is never replaced when NodeTool picks a name. S3 and S3-compatible endpoints get `If-None-Match: *`. An endpoint that accepts the header and ignores it, as older MinIO releases do, would replace the file instead.
+
+Before its first conditional write, each S3 adapter probes the endpoint. It writes a scratch object under `.storage-probe/` twice, the second time with `If-None-Match: *`, and expects the second write to be refused with `412` or `409`. It then deletes the scratch object. When the second write succeeds, the adapter refuses every conditional write, creates no file, and fails with `The storage endpoint <endpoint> ignores the If-None-Match header on writes`. A check followed by a plain write is not used as a fallback, because two writers could pass the check together.
+
+The probe costs three requests for each adapter, once per server start. A probe that fails for another reason, such as a network error or a missing write permission, is not remembered and runs again on the next write. A scratch object that cannot be deleted stays in `.storage-probe/` and is harmless. Supabase Storage answers a non-upsert upload over an existing object with `409`, so it needs no probe. AWS S3, Cloudflare R2 and current MinIO honor the header.
+
+A listing of a folder that cannot be read fails the operation. The nested-folder check relies on listings, so a Supabase listing error, or an unreadable directory on disk, refuses the path instead of reading as an empty directory. Supabase listings read every page, not only the first 1,000 entries.
+
 ## Where project folders are used
 
 - Agent and chat file tools.
@@ -399,6 +421,7 @@ Projects create and adopt their folders through `projects.create`, so no API cre
 | `This folder is inside the folder of project "<name>"`, `contains the folder of`, `is already the folder of` | Opening or locating a folder that overlaps another project's folder |
 | `This folder belongs to a project that cannot be opened here` | The folder's manifest names a project of another user, or a project you deleted |
 | `This folder belongs to project "<name>"` | Locate was given another project's folder |
+| `The storage endpoint <endpoint> ignores the If-None-Match header on writes` | The folder's S3-compatible storage does not support conditional writes. Use AWS S3, Cloudflare R2, current MinIO, or a local project folder |
 | `Opening a folder as a project is disabled on this server` | Open folder or Locate with `NODETOOL_ENV=production` |
 | `Path '<path>' is inside .nodetool/, which NodeTool reserves for its own files` | A tool, node or script used a path in `.nodetool/`, at any depth |
 | `Path '<path>' is in the folder of another project inside this one` | A tool, node, script, upload or asset save used a path in [a folder inside this one](#a-folder-inside-another-projects-folder). Open that project to use its files |
