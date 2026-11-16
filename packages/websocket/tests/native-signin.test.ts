@@ -24,6 +24,9 @@ import { oauthAsRoutes } from "../src/routes/oauth-as.js";
 import { PendingStore } from "../src/oauth/pending-store.js";
 import { decideOauthBearer } from "../src/oauth/bearer.js";
 import {
+  authenticateNativeAccessToken,
+  NATIVE_VALIDATION_TTL_MS,
+  nativeValidationCacheSize,
   resetNativeSessionState,
   sweepNativeSessionSockets,
   trackNativeSessionSocket
@@ -521,6 +524,29 @@ describe("TC13 (session half): ending a device session", () => {
     await McpOauthGrant.revoke("user-a", tokens.session_id);
     await sweepNativeSessionSockets();
     expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops accepting a token revoked on another process once its cached check expires, and drops the entry", async () => {
+    const app = await buildApp();
+    const tokens = await signIn(app);
+    const start = Date.now();
+    expect(await authenticateNativeAccessToken(tokens.access_token, "/api/workflows", start)).toMatchObject({
+      ok: true
+    });
+    expect(nativeValidationCacheSize()).toBe(1);
+    // Another process revokes: only the database changes here.
+    await McpOauthGrant.revoke("user-a", tokens.session_id);
+    expect(
+      await authenticateNativeAccessToken(tokens.access_token, "/api/workflows", start + 1_000)
+    ).toMatchObject({ ok: true });
+    expect(
+      await authenticateNativeAccessToken(
+        tokens.access_token,
+        "/api/workflows",
+        start + NATIVE_VALIDATION_TTL_MS
+      )
+    ).toEqual({ ok: false });
+    expect(nativeValidationCacheSize()).toBe(0);
   });
 
   it("does not let one user end another user's session", async () => {

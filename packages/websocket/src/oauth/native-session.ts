@@ -11,7 +11,6 @@
  * under the 60-second bound.
  */
 
-import { createHash } from "node:crypto";
 import { McpOauthGrant, McpOauthToken } from "@nodetool-ai/models";
 import { createLogger } from "@nodetool-ai/config";
 import { nativeSignInState } from "./native-gate.js";
@@ -30,10 +29,18 @@ interface CachedCheck {
   checkedAt: number;
 }
 
+/**
+ * Keyed by the token itself. The map lives only in this process, which reads
+ * the token from the request anyway, and an entry is gone 30 seconds after
+ * its check.
+ */
 const checks = new Map<string, CachedCheck>();
 
-function cacheKey(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
+/** Drop every entry older than the cache lifetime. */
+function pruneChecks(now: number): void {
+  for (const [key, entry] of checks) {
+    if (now - entry.checkedAt >= NATIVE_VALIDATION_TTL_MS) checks.delete(key);
+  }
 }
 
 export type NativeTokenDecision =
@@ -52,15 +59,14 @@ export async function authenticateNativeAccessToken(
 ): Promise<NativeTokenDecision> {
   if (pathname === "/mcp" || pathname.startsWith("/mcp/")) return { ok: false };
   if (nativeSignInState().state !== "enabled") return { ok: false };
-  const key = cacheKey(token);
-  const cached = checks.get(key);
+  const cached = checks.get(token);
   if (cached && now - cached.checkedAt < NATIVE_VALIDATION_TTL_MS) {
     return { ok: true, userId: cached.userId, grantId: cached.grantId };
   }
-  checks.delete(key);
+  pruneChecks(now);
   const verified = await McpOauthToken.verifyNativeAccess(token);
   if (!verified) return { ok: false };
-  checks.set(key, {
+  checks.set(token, {
     userId: verified.userId,
     grantId: verified.grantId,
     checkedAt: now
@@ -157,6 +163,11 @@ function stopSweep(): void {
   if (!sweepTimer) return;
   clearInterval(sweepTimer);
   sweepTimer = null;
+}
+
+/** Test hook: how many token checks are cached. */
+export function nativeValidationCacheSize(): number {
+  return checks.size;
 }
 
 /** Test hook: forget every cached check and tracked socket. */
