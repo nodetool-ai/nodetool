@@ -7,6 +7,7 @@
  * source.
  */
 import { spawn, type ChildProcess } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm, utimes, writeFile } from "node:fs/promises";
 import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
@@ -121,6 +122,68 @@ describe("the folder lock file", () => {
     expect(await readFile(lock, "utf8")).not.toBe(owner);
     await held.release();
   });
+
+  // Two containers can share the database volume and the host name, and
+  // each sees the other's process ids in its own PID namespace, where they
+  // do not exist. The process check is trusted only for an owner that
+  // recorded this host's PID namespace and boot.
+  it.each([
+    ["of another PID namespace", "linux:another-boot:pid:[1]\n1\n"],
+    ["that names no namespace, as an earlier version wrote it", ""]
+  ])("keeps a lock on this host name %s while it is touched", async (_label, scope) => {
+    const gone = startHolder(join(dir, "other.lock"), ["die"]);
+    await gone.held;
+    await gone.exited;
+    const owner = `${gone.child.pid}\n${hostname()}\nt\n${scope}`;
+    await writeFile(lock, owner);
+    await expect(
+      acquireFolderLockFile(lock, { staleMs: 60_000, timeoutMs: 300 })
+    ).rejects.toBeInstanceOf(FolderLockTimeoutError);
+    expect(await readFile(lock, "utf8")).toBe(owner);
+
+    const old = new Date(Date.now() - 120_000);
+    await utimes(lock, old, old);
+    const held = await acquireFolderLockFile(lock, { staleMs: 60_000, timeoutMs: 2_000 });
+    expect(await readFile(lock, "utf8")).not.toBe(owner);
+    await held.release();
+  }, 30_000);
+
+  // A process whose event loop is blocked runs no heartbeat timer. On
+  // Linux the reader can tell that the owner still runs (the same process,
+  // by its start time), so the lock is not taken from it.
+  it.runIf(existsSync("/proc/self/stat"))(
+    "keeps the lock of a process on this host whose heartbeat stalled",
+    async () => {
+      const holder = startHolder(lock, ["stall", "2500"]);
+      await holder.held;
+      await expect(
+        acquireFolderLockFile(lock, { staleMs: 200, timeoutMs: 1_200 })
+      ).rejects.toBeInstanceOf(FolderLockTimeoutError);
+      expect(holder.output()).not.toContain("releasing");
+      const held = await acquireFolderLockFile(lock, { staleMs: 200 });
+      expect(holder.output()).toContain("releasing");
+      await held.release();
+      expect(await holder.exited).toBe(0);
+    },
+    30_000
+  );
+
+  it.runIf(existsSync("/proc/self/stat"))(
+    "takes over a lock whose process id now belongs to another process",
+    async () => {
+    const mine = await acquireFolderLockFile(lock);
+    const text = await readFile(lock, "utf8");
+    await mine.release();
+    // This process's id and namespace, with another start time: the owner
+    // exited and its id was given to a new process.
+    const lines = text.split("\n");
+    expect(lines).toHaveLength(6);
+    lines[4] = String(Number(lines[4]) + 1);
+    await writeFile(lock, lines.join("\n"));
+    const held = await acquireFolderLockFile(lock, { staleMs: 60_000, timeoutMs: 2_000 });
+    await held.release();
+    }
+  );
 
   it("serializes two independent holders in one process", async () => {
     const first = await acquireFolderLockFile(lock);

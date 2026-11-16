@@ -240,8 +240,8 @@ export async function assertSaveTargetIsOwn(
 }
 
 /** Whether `error` is a Node system error with `code`. */
-function hasCode(error: unknown, code: string): boolean {
-  return (error as { code?: unknown } | null)?.code === code;
+function hasCode(error: Error, code: string): boolean {
+  return "code" in error && error.code === code;
 }
 
 export interface SaveTargetFileOptions {
@@ -301,6 +301,7 @@ export async function writeSaveTargetFile(
   try {
     handle = await fs.open(opening, flags, 0o666);
   } catch (error) {
+    if (!(error instanceof Error)) throw error;
     if (exclusive && hasCode(error, "EEXIST")) return false;
     if (hasCode(error, "ELOOP")) {
       throw new Error(
