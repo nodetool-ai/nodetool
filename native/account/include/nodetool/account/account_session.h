@@ -11,13 +11,16 @@
 #include "nodetool/account/storage.h"
 #include "nodetool/account/token_endpoint.h"
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace nodetool::account {
 
@@ -31,6 +34,9 @@ enum class FaultPoint {
   // A sign-in wrote the session record and has not written the generation
   // file.
   AfterRecordWrite,
+  // A refresh got new tokens, found the generation file unchanged, and has
+  // not written anything yet.
+  BeforeRefreshPublish,
 };
 
 struct AccountSessionOptions {
@@ -84,6 +90,32 @@ enum class ServerEnd {
   // A handle is still pending. The app shows "Signed out, session not yet
   // ended on the server" and retries.
   Pending,
+  // The sign-out could not be written on this computer: this app stopped
+  // using the credential, but the other app may not have, and the handle
+  // is kept in this app's memory only. The app says so and retries.
+  NotSaved,
+};
+
+// Set when the session that authorized a request moves to signed out. The
+// request layer checks it before it sends, and aborts a request in flight
+// when it turns true.
+//
+// Thread affinity: thread-safe, an atomic flag.
+class RequestCancel {
+public:
+  bool cancelled() const { return cancelled_.load(std::memory_order_acquire); }
+  void cancel() { cancelled_.store(true, std::memory_order_release); }
+
+private:
+  std::atomic<bool> cancelled_{false};
+};
+
+// The credential for one request, and the flag that ends it. A request that
+// holds it is registered with the session until the flag is released.
+struct Authorization {
+  CredentialStatus status = CredentialStatus::Offline;
+  std::string accessToken;
+  std::shared_ptr<RequestCancel> cancel;
 };
 
 // The delay before the n-th retry (0-based) of ending a session on the
@@ -109,6 +141,13 @@ public:
   // tokens this app holds, adopts the record when they differ, and renews
   // the access token when it expires within kRefreshMarginMs.
   Credential credentialForRequest();
+
+  // The request rule, and the request registered in the same step: when the
+  // status is Ready, `cancel` is set at the moment this app moves to signed
+  // out, by its own sign-out or by noticing the other app's. The request
+  // layer starts the request only while `cancel` is unset and aborts it when
+  // it turns true. Keep the returned `cancel` for the life of the request.
+  Authorization authorizeRequest();
 
   // The refresh algorithm, steps 1 to 7.
   RefreshOutcome refresh();
@@ -136,6 +175,10 @@ public:
   std::filesystem::path accountDir() const { return dir_; }
   std::filesystem::path generationPath() const { return dir_ / "session.gen"; }
   std::filesystem::path lockPath() const { return dir_ / "account.lock"; }
+  // The durable sign-out marker: the generation of the last sign-out. A
+  // credential of that generation or lower is never used, whatever a
+  // refresh wrote after it.
+  std::filesystem::path signOutMarkerPath() const { return dir_ / "signout.gen"; }
   std::string keychainAccountName() const { return keychainAccount_; }
 
 private:
@@ -150,6 +193,10 @@ private:
   void fault(FaultPoint point) const;
   // Run the repair rule. Call with `account.lock` held.
   void repairLocked();
+  uint64_t signOutMarker() const;
+  // Write the signed-out stamp and record at a generation above every
+  // earlier one, and adopt it. Returns false when a write failed.
+  bool publishSignOut(SessionRecord record, uint64_t atLeast);
   // Hold the record's tokens. Calls onSignedOut when that moves this app
   // from signed in to signed out.
   void adopt(const Held& next);
@@ -162,16 +209,23 @@ private:
   const std::string keychainAccount_;
 
   std::mutex operationMutex_;
-  // Guards held_.
+  // Guards held_, requests_ and unsavedHandles_.
   std::mutex mutex_;
   std::optional<Held> held_;
+  // The requests authorized while signed in. Cancelled and cleared when this
+  // app moves to signed out.
+  std::vector<std::weak_ptr<RequestCancel>> requests_;
+  // Handles of a sign-out whose record write failed, so the server end can
+  // still reach them.
+  std::vector<std::string> unsavedHandles_;
 };
 
-// Store a completed sign-in: the record with the new tokens and the handle,
-// then the generation file, both under `account.lock`, then the entry in
-// `accounts.json`. A handle that was still pending in the earlier record is
-// kept, so its session can still be ended. Returns false when the lock or a
-// write failed.
+// Store a completed sign-in: the account's entry file, the record with the
+// new tokens and the handle, then the generation file, all under
+// `account.lock`, then the entry in `accounts.json`. A handle that was still
+// pending in the earlier record is kept, so its session can still be ended.
+// Returns false when the lock or a write failed. A failed `accounts.json`
+// write fails nothing: AccountsIndex::list reads the entry files too.
 //
 // The record is written before the generation file here, unlike a refresh
 // or a sign-out: a kill between the two then leaves a record the repair rule
