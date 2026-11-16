@@ -11,6 +11,10 @@ A project groups the documents for one job (storyboard, script, cut, key art, mi
 
 Every account has a **Personal** project. It is where documents land when you have not switched to a named project. You cannot archive or delete it, and it does not appear as a card in the project list.
 
+## Projects from before project folders
+
+A project made before project folders gets its folder the first time the server starts. Its assets then move into the folder in the background. While they move, the project card and the left panel show **Moving files into the project folder** with a count. Every asset keeps its ID and stays usable throughout. See [existing assets move into the folder](workspaces.md#existing-assets-move-into-the-folder).
+
 ## The project list
 
 Open **Projects** in the left rail to see every named project as a card, with a **Search projects** field and a **+ New project** button.
@@ -78,6 +82,11 @@ existing project. Every document, asset, and conversation gets a new id, and
 references between them are rewritten to point at the new copies, so the
 same file can be imported twice. Imported workflows are private, and a
 project exported from Personal arrives as an ordinary named project.
+
+The imported project gets a new folder, and no existing folder is written to.
+An asset that was a file in the exported project folder is the same file, at
+the same path, in the new folder. An asset from before project folders arrives
+in the asset store and moves into the new folder when the project is opened.
 
 A project that links media from outside its folder (see
 [Link or copy media](#link-or-copy-media)) is not exported as it stands. The

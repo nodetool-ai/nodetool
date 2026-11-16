@@ -1529,6 +1529,11 @@ Imported workflows are private. Workspaces become managed folders, because the
 exporting machine's paths mean nothing on another one. The Personal project
 imports as an ordinary named project.
 
+The file carries an asset that is a file in the project folder twice: its
+bytes under `assets/` and the file under `workspaces/`. Import takes it once,
+as the file in the new project folder. An asset with no file in the folder is
+imported from `assets/` into the asset store.
+
 **Examples:**
 
 ```bash

@@ -11,6 +11,7 @@ import {
 } from "@nodetool-ai/config";
 import { createHTTPHandler } from "@trpc/server/adapters/standalone";
 import { TRPC_MAX_BATCH_SIZE } from "@nodetool-ai/protocol";
+import { runtimePresetCatalog } from "@nodetool-ai/pack-core/preset-catalog";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
@@ -1236,6 +1237,7 @@ function resolveExamplesDir(options: TestUiServerOptions): string | null {
  * The example-app routes production mounts on Fastify, which this server does
  * not run: installing an example ("Edit app") and running an example's or an
  * installed app's scripts. Without them every study session hit "Not found".
+ * The preset catalogue is served too, or every page logs a failed load.
  */
 export async function handleTestUiApiRequest(
   request: Request,
@@ -1243,6 +1245,10 @@ export async function handleTestUiApiRequest(
 ): Promise<Response> {
   const { pathname } = new URL(request.url);
   const userId = (): string => getUserId(request, apiOptions.userIdHeader ?? "x-user-id");
+  if (request.method === "GET" && pathname === "/api/presets") {
+    const catalog = runtimePresetCatalog();
+    return Response.json([...catalog.presets, ...catalog.studios]);
+  }
   if (request.method === "GET" && pathname === "/api/comfy/nodes") {
     return handleComfyNodes(request, userId());
   }

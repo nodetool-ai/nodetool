@@ -225,8 +225,12 @@ Keep their dependency separation and packed-consumer checks described in the
 
 - Use ESM and `@nodetool-ai/<package>` imports across packages. Never import
   from `dist/` in source. Relative imports need `.js` in compiled output.
+- A project is a folder. `Workspace` is the code interface to it: a local
+  directory, or a key prefix in object storage in the cloud. A run's
+  `context.workspace` is its project's folder, and `.nodetool/` in it is
+  reserved. See [Project folders](docs/workspaces.md).
 - Access run files through `context.workspace`: `read`, `write`, `list`, `stat`,
-  `copy`, `move`, `delete` with workspace-relative paths. Do not branch on local
+  `copy`, `move`, `delete` with folder-relative paths. Do not branch on local
   versus cloud storage. `workspace.localDir` is null for virtual workspaces.
   Host binaries stage files through `materialize`/`absorb` and `scratchDir`.
   Nodes holding live files must require a local workspace. `context.workspaceDir`

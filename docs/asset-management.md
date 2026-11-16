@@ -87,7 +87,9 @@ Extract text from binary formats first (for example with `lib.pdf.ExtractText`),
 
 ## Storage
 
-Assets are stored under `$XDG_DATA_HOME/nodetool/assets`, falling back to `~/.local/share/nodetool/assets` on macOS and Linux and `%APPDATA%\nodetool\assets` on Windows. `ASSET_FOLDER` or `STORAGE_PATH` moves it. Deployed instances can use S3-compatible storage or Supabase Storage. See [Storage](storage.md).
+An asset is a file in its project's folder: generated media in `Generated/`, uploads in `Imported/`, and other files where they were saved. See [assets are files in the folder](workspaces.md#assets-are-files-in-the-folder).
+
+Thumbnails, video proxies, and assets created before project folders, until they [move into the folder](workspaces.md#existing-assets-move-into-the-folder), stay in asset storage. On the desktop that is `$XDG_DATA_HOME/nodetool/assets`, falling back to `~/.local/share/nodetool/assets` on macOS and Linux and `%APPDATA%\nodetool\assets` on Windows. `ASSET_FOLDER` or `STORAGE_PATH` moves it. Deployed instances can use S3-compatible storage or Supabase Storage. See [Storage](storage.md).
 
 ---
 

@@ -59,7 +59,7 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | MCP OAuth | `/oauth/register`                 | `POST`            | none                                           | no                          | RFC 7591 dynamic client registration |
 | MCP OAuth | `/oauth/revoke`                   | `POST`            | none                                           | no                          | RFC 7009 revocation of an access or refresh token |
 | Nodes     | `/api/nodes/metadata`             | `GET`             | none                                           | no                          | The node registry the editor loads at boot; slim summaries by default, one node's full metadata with `?node_type=` |
-| Workspaces | `/api/workspaces/{id}/download/{path}` | `GET`        | Session auth                     | streaming                   | One file out of a workspace as an attachment; `403` in production unless the workspace is the server-managed one |
+| Project folders | `/api/workspaces/{id}/download/{path}` | `GET`        | Session auth                     | streaming                   | One file out of a project folder as an attachment; `403` in production unless the server manages the folder |
 | Assets    | `/api/assets`                     | `POST`            | Session auth                                   | no                          | Create an asset. Multipart with a `file` part and an optional `json` part for `name`, `content_type`, `parent_id`, `workflow_id`, `node_id`, `job_id`, `project_id`, `metadata`. Cloud backends upload through `assets.createUpload` instead, see [Uploading an Asset](#uploading-an-asset) |
 | Assets    | `/api/assets/{id}/extract-audio`  | `POST`            | Session auth                     | no                          | Extract a video asset's audio track into a new WAV asset |
 | Assets    | `/api/assets/{id}/peaks`          | `GET`             | Session auth                     | no                          | Waveform peaks of an audio or video asset, computed in process and cached on disk |
@@ -1148,14 +1148,15 @@ curl -X POST "http://localhost:7777/api/assets/download" \
 The status does not depend on the body — an unknown asset id returns the same
 `501`. Download assets one at a time through their `get_url` instead.
 
-### Downloading a Workspace File
+### Downloading a Project Folder File
 
-A workspace is a directory on the server's filesystem that agents and file tools
-read and write. Listing and CRUD moved to the tRPC `workspace` router;
-`GET /api/workspaces/{id}/download/{path}` stayed on REST because it returns
-bytes rather than JSON.
+Every project has one [project folder](workspaces.md), the folder its runs,
+agents and file tools read and write. The project API returns it as
+`folder.workspace_id`, which addresses the folder in the tRPC `workspace` router
+and in `GET /api/workspaces/{id}/download/{path}`. The download stayed on REST
+because it returns bytes rather than JSON.
 
-`path` is relative to the workspace root and may be nested. The response is an
+`path` is relative to the folder and may be nested. The response is an
 attachment, with a content type guessed from the extension:
 
 ```bash
@@ -1164,17 +1165,17 @@ curl "http://localhost:7777/api/workspaces/ws_abc123/download/notes/report.md" \
   -o report.md
 ```
 
-When `NODETOOL_ENV=production`, only the server-managed workspace is readable.
-A workspace row that points at some other host folder answers `403` with
+When `NODETOOL_ENV=production`, only folders the server manages are readable.
+A folder row that points at some other host folder answers `403` with
 `{"detail": "This workspace is not readable in production"}`. Otherwise:
 
 | Status | Meaning |
 |--------|---------|
 | `400`  | `path` is absolute |
-| `403`  | `path` resolves outside the workspace root, or the workspace is not readable in production |
-| `404`  | No such workspace for this caller, or no such file inside it |
+| `403`  | `path` resolves outside the folder, or the folder is not readable in production |
+| `404`  | No such folder for this caller, or no such file inside it |
 | `405`  | The method is not `GET` |
-| `500`  | The workspace has no storage configured |
+| `500`  | The folder's storage is not configured |
 
 ```bash
 curl "http://localhost:7777/api/workspaces/nosuchws/download/a.txt"

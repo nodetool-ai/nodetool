@@ -8,6 +8,9 @@
 # needs Tesseract 5.5.3 or newer. Ubuntu ships older versions, so the deps step
 # builds these three from SHA-256-pinned sources into a cached prefix.
 #
+# The paths include the packages that own the SQLite schema the runner's model
+# repository opens (guest/host/models.mjs), so a schema change runs its tests.
+#
 # Pull requests and pushes to main run only the tests their changed files
 # affect. The nightly run tests everything once a day when main changed its
 # paths in the last 25 hours (the `changes` job).
@@ -25,6 +28,9 @@ on:
       - "native/node-editor/**"
       - "packages/audio-nodes/**"
       - "packages/kernels/**"
+      - "packages/models/**"
+      - "packages/models-core/**"
+      - "packages/database-sqlite/**"
       - "native/realtime/**"
       - ".github/workflows/native-graph-runner.yml"
       - "docker/ci-native/**"
@@ -37,6 +43,9 @@ on:
       - "native/node-editor/**"
       - "packages/audio-nodes/**"
       - "packages/kernels/**"
+      - "packages/models/**"
+      - "packages/models-core/**"
+      - "packages/database-sqlite/**"
       - "native/realtime/**"
       - ".github/workflows/native-graph-runner.yml"
 
@@ -80,7 +89,8 @@ jobs:
           # The push paths filter above, as one path per word.
           WATCHED_PATHS: >-
             native/graph-runner native/jobs native/kernels native/node-editor
-            packages/audio-nodes packages/kernels native/realtime .github/workflows/native-graph-runner.yml
+            packages/audio-nodes packages/kernels packages/models packages/models-core packages/database-sqlite
+            native/realtime .github/workflows/native-graph-runner.yml
         run: |
           set -euo pipefail
           if [[ "$EVENT" != "schedule" ]]; then

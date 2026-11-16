@@ -29,7 +29,9 @@ export const MODEL_METHODS = Object.freeze([
   'updateStoryboard', 'listEntities', 'getEntity', 'upsertEntity'
 ]);
 
-const tables = { assets, jobs, workflows, settings: appSettings, messages, threads, scripts, storyboards, images: imageDocuments, timelines: timelineSequences, projects };
+/** The production tables the repository reads and writes, by repository kind. */
+export const MODEL_TABLES = Object.freeze({ assets, jobs, workflows, settings: appSettings, messages, threads, scripts, storyboards, images: imageDocuments, timelines: timelineSequences, projects });
+const tables = MODEL_TABLES;
 const id = () => randomUUID().replaceAll('-', '');
 const info = (asset) => asset && ({ id: asset.id, name: asset.name, content_type: asset.content_type, metadata: asset.metadata ?? null });
 function limitValue(value, fallback = 1000) {
@@ -61,6 +63,11 @@ export function openModelRepository(databasePath, userId) {
       // The 20261116_000000 add_project_folder migration in @nodetool-ai/models.
       // nodetool_workspaces, the migration's other table, is not mapped here.
       if (!client.pragma('table_info("projects")').some((column) => column.name === 'workspace_id')) client.exec('ALTER TABLE projects ADD COLUMN workspace_id TEXT');
+      // The 20261122_000000 to 20261124_000000 add_timeline_file_* migrations.
+      const timelineColumns = client.pragma('table_info("timeline_sequences")');
+      for (const name of ['file_path', 'file_hash', 'file_error']) {
+        if (!timelineColumns.some((column) => column.name === name)) client.exec(`ALTER TABLE timeline_sequences ADD COLUMN ${name} TEXT`);
+      }
     })();
     db = drizzle(client);
   } catch (error) {

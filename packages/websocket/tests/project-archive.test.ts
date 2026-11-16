@@ -39,7 +39,8 @@ import {
   markFolderCreated,
   resolveProjectWorkspace,
   setWorkspaceCloudStorage,
-  unmarkFolderCreated
+  unmarkFolderCreated,
+  workspaceFromRow
 } from "@nodetool-ai/execution/service";
 import {
   documentFileText,
@@ -1068,3 +1069,58 @@ describe.each(["local", "storage"] as const)(
     });
   }
 );
+
+/**
+ * A cloud project folder is a key prefix in object storage (PRD D6, US14).
+ * Download returns that folder as an archive, as it does for a local one.
+ */
+describe("project files of a cloud folder", () => {
+  beforeEach(() => {
+    initTestDb();
+    storage = new InMemoryStorageAdapter();
+    vi.stubEnv("NODETOOL_WORKSPACE_STORAGE", "cloud");
+    setWorkspaceCloudStorage(new InMemoryStorageAdapter());
+  });
+
+  afterEach(() => {
+    setWorkspaceCloudStorage(null);
+    vi.unstubAllEnvs();
+  });
+
+  it("exports the files under the folder's storage prefix", async () => {
+    const project = (await Project.insertNew({
+      user_id: owner,
+      name: "Cloud film"
+    }))!;
+    const folder = await ensureProjectFolder(project);
+    expect(folder.isVirtual(), "a cloud folder is a storage prefix").toBe(true);
+    const files = workspaceFromRow(folder)!;
+    const image = new Uint8Array([137, 80, 78, 71, 1, 2, 3]);
+    await files.write("Generated/fox-in-snow.png", image);
+    await files.write("footage/notes.txt", "day one");
+
+    let manifest: Awaited<ReturnType<typeof writeProjectArchive>> | undefined;
+    const bytes = await collectZip(async (writer) => {
+      manifest = await writeProjectArchive(
+        {
+          userId: owner,
+          projectId: project.id,
+          storage,
+          openWorkspace: workspaceFromRow
+        },
+        writer
+      );
+    });
+
+    expect(manifest!.skipped).toEqual([]);
+    expect(manifest!.workspace_files.map((f) => f.path).sort()).toEqual([
+      "Generated/fox-in-snow.png",
+      "footage/notes.txt"
+    ]);
+    const entries = unzipSync(bytes);
+    expect(entries[`workspaces/${folder.id}/Generated/fox-in-snow.png`]).toEqual(image);
+    expect(
+      strFromU8(entries[`workspaces/${folder.id}/footage/notes.txt`]!)
+    ).toBe("day one");
+  });
+});

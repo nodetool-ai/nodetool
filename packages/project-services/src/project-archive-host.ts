@@ -6,7 +6,10 @@
 import { getAssetFileName, getAssetStorageKey, getAssetThumbnailKey } from "@nodetool-ai/asset-services/asset-paths";
 import type { OpenWorkspace } from "./project-archive.js";
 import { getAssetAdapter } from "@nodetool-ai/asset-services/storage";
-import { storeAssetWithThumbnail } from "@nodetool-ai/asset-services/thumbnail";
+import {
+  storeAssetThumbnail,
+  storeAssetWithThumbnail
+} from "@nodetool-ai/asset-services/thumbnail";
 import {
   ensureProjectFolder,
   markFolderCreated,
@@ -22,6 +25,12 @@ export function projectArchiveHost(): {
   unmarkCreatedFolder: typeof unmarkFolderCreated;
   removeAssetBytes: (userId: string, assetId: string, contentType: string) => Promise<void>;
   storeAssetBytes: (args: {
+    userId: string;
+    assetId: string;
+    contentType: string;
+    bytes: Uint8Array;
+  }) => Promise<void>;
+  storeAssetThumbnail: (args: {
     userId: string;
     assetId: string;
     contentType: string;
@@ -48,6 +57,8 @@ export function projectArchiveHost(): {
         getAssetFileName(assetId, contentType),
         bytes,
         contentType
-      )
+      ),
+    storeAssetThumbnail: ({ userId, assetId, contentType, bytes }) =>
+      storeAssetThumbnail(userId, assetId, contentType, { bytes })
   };
 }

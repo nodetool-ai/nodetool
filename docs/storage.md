@@ -63,6 +63,8 @@ Create the two buckets in the Supabase dashboard first. The key is a service rol
 
 A new asset, whether a workflow output, an agent's output or an upload, is a file in its [project's folder](workspaces.md#assets-are-files-in-the-folder), not an object under `<user>/<asset id>.<ext>`. A direct upload to S3 or Supabase lands under that key first and is moved into the folder when the upload is finalized. In a storage-backed folder the file is created with a conditional write (`If-None-Match: *` on S3, an upload without upsert on Supabase), so it cannot replace an existing object. An S3-compatible endpoint must support conditional writes. AWS S3, Cloudflare R2 and current MinIO do. Its thumbnail still goes to asset storage. A read of the asset's storage key finds no object there and is resolved through the asset row to the file: by path with the `file` backend, and through the project folder's storage with S3 or Supabase, where the signed URL names the file's own object.
 
+An asset created before project folders keeps its object under `<user>/<asset id>.<ext>` until the API server moves it into its project's folder. The move copies the object, compares the copy byte for byte, points the row at the file, and then deletes the object. Thumbnails and video proxies stay in asset storage. See [existing assets move into the folder](workspaces.md#existing-assets-move-into-the-folder).
+
 ## External assets
 
 On a local desktop or dev server with the `file` backend, an import the creator links, or one at or above `NODETOOL_EXTERNAL_ASSET_THRESHOLD_BYTES` (default 1 GiB) when no choice is made, is not copied. The asset row stores `external_path`, the file stays where it is, and the server records its size and modification time (`externalAssetsAvailable()` in `src/lib/external-assets.ts`). If the file is missing or either value changed, the asset reads as offline until you relink it. `NODETOOL_ENV=production` and the S3 and Supabase backends never create external assets.
@@ -97,13 +99,14 @@ With automatic cleanup on, the sweep runs at most once every 24 hours.
 - `resolveAssetBytes(assetId)` loads an asset's raw bytes.
 - `assetsToStorageUrl(value)` rewrites asset references to storage URLs.
 - `downloadFile(url)` fetches file contents from a URL.
-- `assetsToWorkspaceFiles(value)` writes asset values to the `assets/` folder of the run workspace.
+- `assetsToWorkspaceFiles(value)` writes asset values to `assets/` in the run's project folder. It needs a folder on local disk.
 - `uploadAssetsToTemp(value)` uploads asset values to temp storage and returns temp URLs.
 
 ## Deployment Considerations
 
-- Mount persistent volumes for `/workspace` and the asset storage directory on self-hosted deployments.
-- Docker execution (`@nodetool-ai/deploy`, `src/docker-run.ts`) mounts the workspace path into containers, so the host directory must exist with correct permissions.
+- Mount persistent volumes for the data directory (`/workspace` in the Docker image) and the asset storage directory on self-hosted deployments.
+- New asset bytes live in project folders. The Docker image runs with `NODETOOL_ENV=production`, so each project folder is a key prefix in asset storage. A server that sets `NODETOOL_WORKSPACE_STORAGE=local` keeps them under `PROJECTS_DIR`, default `~/NodeTool`, so point that at a persistent volume, such as `/workspace/projects`.
+- Docker execution (`@nodetool-ai/deploy`, `src/docker-run.ts`) mounts the deployment's data path into containers at `/workspace`, so the host directory must exist with correct permissions.
 - With S3, grant read and write on the buckets named by `ASSET_BUCKET` and `TEMP_BUCKET`.
 
 ## If it fails
