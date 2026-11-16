@@ -20140,6 +20140,20 @@
       "revealInFinder": "Finderで表示",
       "revealInExplorer": "エクスプローラーで表示",
       "revealInFileManager": "ファイルマネージャーで表示"
+    },
+    "documentFile": {
+      "invalidTitle": "このファイルにはエラーがあります",
+      "invalidBody": "{{path}} を読み込めませんでした: {{error}}。最後の有効なバージョンが開いたままで、引き続き実行できます。",
+      "openFile": "ファイルを開く",
+      "missingTitle": "ファイルがありません",
+      "missingBody": "{{path}} はプロジェクトフォルダーにありません。復元すると、このドキュメントからファイルを書き直します。",
+      "restore": "復元",
+      "delete": "削除",
+      "cancel": "キャンセル",
+      "deleteTitle": "{{name}} を削除しますか?",
+      "deleteDescription": "「{{name}}」とそのバージョン履歴は完全に削除されます。",
+      "restoreFailed": "ファイルを復元できませんでした: {{error}}",
+      "deleteFailed": "ドキュメントを削除できませんでした: {{error}}"
     }
   },
   "assetPicker": {

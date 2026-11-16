@@ -20140,6 +20140,20 @@
       "revealInFinder": "Näytä Finderissa",
       "revealInExplorer": "Näytä Resurssienhallinnassa",
       "revealInFileManager": "Näytä tiedostonhallinnassa"
+    },
+    "documentFile": {
+      "invalidTitle": "Tässä tiedostossa on virhe",
+      "invalidBody": "Tiedostoa {{path}} ei ladattu: {{error}}. Viimeisin kelvollinen versio pysyy auki ja toimii.",
+      "openFile": "Avaa tiedosto",
+      "missingTitle": "Tiedosto puuttuu",
+      "missingBody": "{{path}} ei ole enää projektikansiossa. Palauta kirjoittaa sen uudelleen tästä dokumentista.",
+      "restore": "Palauta",
+      "delete": "Poista",
+      "cancel": "Peruuta",
+      "deleteTitle": "Poistetaanko {{name}}?",
+      "deleteDescription": "”{{name}}” ja sen versiohistoria poistetaan pysyvästi.",
+      "restoreFailed": "Tiedostoa ei palautettu: {{error}}",
+      "deleteFailed": "Dokumenttia ei poistettu: {{error}}"
     }
   },
   "assetPicker": {

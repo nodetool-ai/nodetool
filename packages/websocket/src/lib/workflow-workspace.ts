@@ -16,6 +16,10 @@ import {
   onProjectFileChanged,
   scheduleWorkspaceReconcile
 } from "@nodetool-ai/project-services/project-index";
+import {
+  onDocumentFileStateChange,
+  type DocumentFileStateChange
+} from "@nodetool-ai/project-services/document-file-sync";
 import { getAssetAdapter } from "./storage.js";
 import { discardVideoProxy, scheduleVideoProxy } from "./video-proxy.js";
 import { notifyResourceChange } from "../resource-events.js";
@@ -66,6 +70,29 @@ async function remakeVideoProxy(
   scheduleVideoProxy(asset);
 }
 
+/**
+ * Tell the owner's clients that a workflow or timeline file became invalid,
+ * went missing, or is fine again. The state is no content of the document, so
+ * no model change carries it. The client refetches the project's document
+ * list, which reports the state.
+ */
+function notifyDocumentFileState(change: DocumentFileStateChange): void {
+  notifyResourceChange({
+    event: "updated",
+    resource_type: "documentfile",
+    resource: {
+      id: change.id,
+      type: change.kind,
+      project_id: change.projectId,
+      file_path: change.filePath,
+      file_error: change.fileError
+    },
+    userId: change.userId
+  });
+}
+
+let stopDocumentFileNotices: (() => void) | null = null;
+
 const pendingWorkspaceChanges = new Map<
   string,
   { userId: string; timer: NodeJS.Timeout }
@@ -86,6 +113,8 @@ const pendingWorkspaceChanges = new Map<
  */
 export function initWorkspaceChangeEvents(): void {
   onProjectFileChanged(remakeVideoProxy);
+  stopDocumentFileNotices?.();
+  stopDocumentFileNotices = onDocumentFileStateChange(notifyDocumentFileState);
   setWorkspaceChangeNotifier((change: WorkspaceFileChange) => {
     scheduleWorkspaceReconcile(change.workspaceId, change.userId);
     const pending = pendingWorkspaceChanges.get(change.workspaceId);

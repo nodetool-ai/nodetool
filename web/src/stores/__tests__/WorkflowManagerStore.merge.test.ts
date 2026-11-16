@@ -208,6 +208,70 @@ describe("refreshWorkflow — external change merges into a dirty canvas", () =>
     );
   });
 
+  it("merges a workflow file edit into a dirty canvas: the draft wins and the file's value is offered", async () => {
+    const queryClient = new QueryClient();
+    const store = createWorkflowManagerStore(queryClient);
+    store.getState().addWorkflow(baseWorkflow);
+
+    // The open editor changed A, and has not saved.
+    const draftNodes = [
+      {
+        id: "A",
+        type: "nodetool.text.Input",
+        position: { x: 0, y: 0 },
+        data: { title: "Input", properties: { value: "typed in the editor" } }
+      },
+      graphNodeToReactFlowNode(baseWorkflow, graphNode("B", "Output"))
+    ];
+    const { store: fakeStore, applyExternalGraph } = makeFakeNodeStore(
+      draftNodes,
+      [{ id: "e1", source: "A", target: "B" }]
+    );
+    store.setState((state: { nodeStores: Record<string, NodeStoreApi> }) => ({
+      nodeStores: { ...state.nodeStores, "wf-1": fakeStore },
+      currentWorkflowId: "wf-1"
+    }));
+
+    // The file was edited outside NodeTool: A and B changed there, and the
+    // reconcile imported it.
+    fetchWorkflowById.mockResolvedValue({
+      ...baseWorkflow,
+      updated_at: "2026-08-12T00:00:00Z",
+      etag: "file-etag",
+      graph: {
+        nodes: [
+          graphNode("A", "Input", { value: "edited in the file" }),
+          graphNode("B", "Renamed in the file")
+        ],
+        edges: [{ id: "e1", source: "A", target: "B" }]
+      }
+    });
+
+    // The ops an import of a workflow file announces with.
+    const fileImportOps: DocumentOp[] = [{ tool: "update_graph", input: {} }];
+    await store.getState().refreshWorkflow("wf-1", "file-etag", fileImportOps);
+
+    // Neither side is dropped silently: the draft's A stays, the file's B
+    // comes in, and the file's A is listed for the user to take.
+    expect(applyExternalGraph).toHaveBeenCalledTimes(1);
+    // A graph node's `data` is the canvas node's `properties`.
+    const merged = applyExternalGraph.mock.calls[0][0] as Array<{
+      id: string;
+      data: { properties?: { value?: string; title?: string } };
+    }>;
+    expect(merged.find((n) => n.id === "A")?.data.properties?.value).toBe(
+      "typed in the editor"
+    );
+    expect(merged.find((n) => n.id === "B")?.data.properties?.title).toBe(
+      "Renamed in the file"
+    );
+    const conflicts =
+      useConflictStore.getState().byKey["workflow:wf-1"]?.conflicts ?? [];
+    expect(conflicts.map((c) => `${c.unit.kind}:${c.unit.id}`)).toEqual([
+      "node:A"
+    ]);
+  });
+
   it("offers a replaced conflict for a dirty editor when the write carried no ops", async () => {
     const queryClient = new QueryClient();
     queryClient.setQueryData(["workflow", "wf-1"], baseWorkflow);

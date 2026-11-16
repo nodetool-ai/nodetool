@@ -746,6 +746,35 @@ describe("handleResourceChange", () => {
     ).toBe(true);
   });
 
+  it("refetches the project's document list when a document file changes state", () => {
+    change({
+      type: "resource_change",
+      event: "updated",
+      resource_type: "documentfile",
+      resource: {
+        id: "wf-1",
+        type: "workflow",
+        project_id: "p1",
+        file_path: "Workflows/Fox.workflow.json",
+        file_error: "File missing"
+      }
+    } as ResourceChangeUpdate);
+
+    const predicates = (queryClient.invalidateQueries as jest.Mock).mock.calls
+      .map((call) => call[0]?.predicate)
+      .filter(isFunction) as Array<(q: { queryKey: readonly unknown[] }) => boolean>;
+    const refetches = (queryKey: readonly unknown[]): boolean =>
+      predicates.some((predicate) => predicate({ queryKey }));
+    expect(refetches([["projects", "documents"], { input: { id: "p1" } }])).toBe(true);
+    expect(refetches([["projects", "documents"], { input: { id: "p2" } }])).toBe(false);
+    // The file state is no content of the workflow: the open editor is left alone.
+    expect(refetches([["workflows", "list"], {}])).toBe(false);
+    expect(queryClient.invalidateQueries).not.toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ["workflows"] }),
+      expect.anything()
+    );
+  });
+
   it("refetches the project views when a prediction (chat spend) lands", () => {
     change({
       type: "resource_change",

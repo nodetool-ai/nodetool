@@ -20140,6 +20140,20 @@
       "revealInFinder": "Reveal in Finder",
       "revealInExplorer": "Show in File Explorer",
       "revealInFileManager": "Show in file manager"
+    },
+    "documentFile": {
+      "invalidTitle": "This file has an error",
+      "invalidBody": "{{path}} was not loaded: {{error}}. The last valid version stays open and still runs.",
+      "openFile": "Open file",
+      "missingTitle": "File missing",
+      "missingBody": "{{path}} is no longer in the project folder. Restore writes it again from this document.",
+      "restore": "Restore",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "deleteTitle": "Delete {{name}}?",
+      "deleteDescription": "\"{{name}}\" and its version history are deleted permanently.",
+      "restoreFailed": "The file was not restored: {{error}}",
+      "deleteFailed": "The document was not deleted: {{error}}"
     }
   },
   "assetPicker": {
