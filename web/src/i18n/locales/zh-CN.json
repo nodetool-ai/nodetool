@@ -9104,10 +9104,6 @@
           "button": "获取 Replicate API 令牌",
           "tooltip": "前往 Replicate API 令牌页面"
         },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "获取 Google 应用专用密码",
-          "tooltip": "前往 Google 帐户应用专用密码页面"
-        },
         "ELEVENLABS_API_KEY": {
           "button": "获取 ElevenLabs API 密钥",
           "tooltip": "前往 ElevenLabs 订阅页面"

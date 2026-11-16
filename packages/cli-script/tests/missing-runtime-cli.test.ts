@@ -26,24 +26,24 @@ function runMissing(args: string[], preload?: string, built = false) {
 
 describe("actual CLI missing runtime output", () => {
   it.each(["run", "test"])("reports a missing sandbox host dependency from a returned JS script %s failure", (command) => {
-    const dir = mkdtempSync(join(tmpdir(), "nodetool-xlsx-script-"));
+    const dir = mkdtempSync(join(tmpdir(), "nodetool-pdf-script-"));
     directories.push(dir);
-    const hook = join(dir, "hide-exceljs.mjs");
+    const hook = join(dir, "hide-pdf-parse.mjs");
     writeFileSync(hook, `import { registerHooks } from 'node:module';
 registerHooks({ resolve(specifier, context, next) {
-  if (specifier === 'exceljs') { const error = new Error("Cannot find package 'exceljs'"); error.code = 'ERR_MODULE_NOT_FOUND'; throw error; }
+  if (specifier === 'pdf-parse') { const error = new Error("Cannot find package 'pdf-parse'"); error.code = 'ERR_MODULE_NOT_FOUND'; throw error; }
   return next(specifier, context);
 } });`);
     const file = join(dir, "script.json");
-    writeFileSync(file, JSON.stringify({ name: "Missing xlsx", document: {
-      schemaVersion: 1, code: 'import { parse } from "@nodetool-ai/sandbox-xlsx"; return await parse(new Uint8Array([1, 2, 3]));',
+    writeFileSync(file, JSON.stringify({ name: "Missing pdf", document: {
+      schemaVersion: 1, code: 'import { extractText } from "@nodetool-ai/sandbox-pdf"; return await extractText(new Uint8Array([1, 2, 3]));',
       inputs: [], outputs: [], packages: [], secrets: [], timeoutSeconds: 10,
       tests: [{ name: "Missing dependency", inputs: {}, expect: {} }]
     } }));
     const result = runMissing(["jsscript", command, file, "--json"], hook, true);
     expect(result.status, result.stderr).toBe(3);
-    expect(JSON.parse(result.stdout)).toMatchObject({ error: "missing_runtime_package", runtimePackage: "office-documents", missing: "exceljs", reason: "missing", managed: "nodetool packs add office-documents --yes" });
-    expect(result.stderr).toContain("nodetool packs add office-documents --yes");
+    expect(JSON.parse(result.stdout)).toMatchObject({ error: "missing_runtime_package", runtimePackage: "pdf-js", missing: "pdf-parse", reason: "missing", managed: "nodetool packs add pdf-js --yes" });
+    expect(result.stderr).toContain("nodetool packs add pdf-js --yes");
   }, 40000);
   it("keeps an ordinary saved-case assertion failure on exit1", () => {
     const dir = mkdtempSync(join(tmpdir(), "nodetool-script-mismatch-"));

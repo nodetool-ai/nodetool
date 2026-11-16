@@ -620,16 +620,6 @@ sec(
   "Replicate API Token for running models on Replicate's cloud infrastructure. Get yours at https://replicate.com/account/api-tokens"
 );
 sec(
-  "GOOGLE_MAIL_USER",
-  "Google",
-  "Google mail user for email integration features"
-);
-sec(
-  "GOOGLE_APP_PASSWORD",
-  "Google",
-  "Google app password for secure authentication with Google services. Manage at https://myaccount.google.com/apppasswords"
-);
-sec(
   "ELEVENLABS_API_KEY",
   "ElevenLabs",
   "ElevenLabs API key for high-quality text-to-speech services. Get yours at https://elevenlabs.io/app/settings/api-keys"

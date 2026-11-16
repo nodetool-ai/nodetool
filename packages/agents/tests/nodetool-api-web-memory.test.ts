@@ -1,5 +1,5 @@
 /**
- * `nodetool.web`, `nodetool.memory` and `nodetool.email` —
+ * `nodetool.web` and `nodetool.memory` —
  * real QuickJS sandbox, fake chat tool router. No network, no model.
  */
 import { describe, it, expect } from "vitest";
@@ -33,10 +33,6 @@ const MEMORY_TOOLS = [
   "memory_update",
   "memory_delete"
 ].map(toolDef);
-
-const EMAIL_TOOLS = ["search_email", "archive_email", "add_label_to_email"].map(
-  toolDef
-);
 
 /** Echoes the tool name and args back so the wrapper's mapping is observable. */
 function createEchoRouter() {
@@ -225,45 +221,14 @@ describe("nodetool.memory", () => {
   });
 });
 
-describe("nodetool.email", () => {
-  it("maps search/archive/label, accepting one id or many for archive", async () => {
-    const { executeTool, calls } = createEchoRouter();
-    const session = makeSession(EMAIL_TOOLS, executeTool);
-    const obs = await runAction(
-      session,
-      `await nodetool.email.search({ subject: "invoice", max_results: 5 });
-       await nodetool.email.archive("m1");
-       await nodetool.email.archive(["m2", "m3"]);
-       await nodetool.email.label("m1", "Receipts");
-       return true;`
-    );
-    expect(obs.ok).toBe(true);
-    expect(calls[0]).toMatchObject({
-      name: "search_email",
-      args: { subject: "invoice", max_results: 5 }
-    });
-    expect(calls[1].args["message_ids"]).toEqual(["m1"]);
-    expect(calls[2].args["message_ids"]).toEqual(["m2", "m3"]);
-    expect(calls[3]).toMatchObject({
-      name: "add_label_to_email",
-      args: { message_id: "m1", label: "Receipts" }
-    });
-  });
-});
-
 describe("the prompt section", () => {
   it("documents the new namespaces only when the belt can serve them", () => {
     const withWeb = buildNodetoolApiPromptSection(["web_search"]);
     expect(withWeb).toContain("`nodetool.web`");
     expect(withWeb).not.toContain("`nodetool.memory`");
-    expect(withWeb).not.toContain("`nodetool.email`");
 
-    const withRest = buildNodetoolApiPromptSection([
-      "memory_save",
-      "search_email"
-    ]);
+    const withRest = buildNodetoolApiPromptSection(["memory_save"]);
     expect(withRest).toContain("`nodetool.memory`");
-    expect(withRest).toContain("`nodetool.email`");
     expect(withRest).not.toContain("`nodetool.web`");
   });
 });

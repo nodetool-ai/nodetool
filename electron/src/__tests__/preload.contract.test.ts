@@ -177,14 +177,14 @@ describe("preload contract", () => {
   test("runtime package methods route to expected IPC channels", () => {
     jest.mocked(electronMock.ipcRenderer.invoke).mockClear();
 
-    api.packages.installRuntime("tensorflow-js");
-    api.packages.uninstallRuntime("tensorflow-js");
-    api.packages.updateRuntime("tensorflow-js");
+    api.packages.installRuntime("transformers-js");
+    api.packages.uninstallRuntime("transformers-js");
+    api.packages.updateRuntime("transformers-js");
 
     expect(jest.mocked(electronMock.ipcRenderer.invoke).mock.calls).toEqual([
-      [IpcChannels.RUNTIME_PACKAGE_INSTALL, { packageId: "tensorflow-js", installLocation: undefined }],
-      [IpcChannels.RUNTIME_PACKAGE_UNINSTALL, { packageId: "tensorflow-js" }],
-      [IpcChannels.RUNTIME_PACKAGE_UPDATE, { packageId: "tensorflow-js" }],
+      [IpcChannels.RUNTIME_PACKAGE_INSTALL, { packageId: "transformers-js", installLocation: undefined }],
+      [IpcChannels.RUNTIME_PACKAGE_UNINSTALL, { packageId: "transformers-js" }],
+      [IpcChannels.RUNTIME_PACKAGE_UPDATE, { packageId: "transformers-js" }],
     ]);
   });
 

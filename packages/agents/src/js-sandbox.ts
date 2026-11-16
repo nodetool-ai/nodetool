@@ -31,7 +31,7 @@
  *
  * **Every library the sandbox offers is an importable module.** Some are guest
  * modules the compiler admitted (js-yaml, date-fns); the rest are *host
- * modules* — papaparse, cheerio, exceljs, fflate and friends — which run on the
+ * modules* — papaparse, cheerio, fflate and friends — which run on the
  * host behind a generated ESM facade over a per-run dispatcher
  * (`host-modules/`), because they need Node builtins the guest lacks or carry a
  * limit the guest could not enforce. Either way the guest writes `import`, and

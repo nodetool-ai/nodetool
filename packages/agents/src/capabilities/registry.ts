@@ -101,10 +101,6 @@ const CAPABILITY_MODULES: Readonly<Record<string, CapabilityModuleEntry>> = {
     loader: () => import("./documents.js").then((m) => m.module),
     specs: CAPABILITY_SPECS["documents"]
   },
-  email: {
-    loader: () => import("./email.js").then((m) => m.module),
-    specs: CAPABILITY_SPECS["email"]
-  },
   memory: {
     loader: () => import("./memory.js").then((m) => m.module),
     specs: CAPABILITY_SPECS["memory"]

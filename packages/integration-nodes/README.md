@@ -90,11 +90,9 @@ then `http://127.0.0.1:7866/mcp`. The
 cancelled run cancels the remote job. The cloud profile excludes these nodes.
 See [Wan2GP](../../docs/wan2gp.md).
 
-Mail is not a node package any more. `lib.mail.GmailSearch`, `AddLabel` and
-`MoveToArchive` were removed: the same three operations ship as the
-`search_email` / `add_label_to_email` / `archive_email` capabilities, and Gmail
-reaches a Code node through `@nodetool-ai/sandbox-nodetool/google` with the
-OAuth token held host-side. `lib.secret.GetSecret` went too — `getSecret(name)`
+Mail is not a node package any more. Gmail reaches agents through the
+Google Workspace `gmail_*` capabilities, and a Code node through
+`@nodetool-ai/sandbox-nodetool/google`, with the OAuth token held host-side. `lib.secret.GetSecret` went too — `getSecret(name)`
 in the sandbox does the same read, bound by the run's declared secret scope.
 
 ## Configuration
