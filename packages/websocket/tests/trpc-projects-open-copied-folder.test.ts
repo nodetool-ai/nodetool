@@ -359,10 +359,17 @@ describe("projects.openFolder on a folder that was a project before", () => {
 
       const project = await caller().projects.openFolder({ path: folder });
 
+      // The folder was brought here by the user: deleting the project keeps
+      // it, although it carries the record of the install that created it.
       expect(project).toMatchObject({
         id: made.projectId,
         name: "My Film",
-        folder: { path: folder, origin: "adopted", is_accessible: true }
+        folder: {
+          path: folder,
+          origin: "adopted",
+          is_accessible: true,
+          on_delete: "keep"
+        }
       });
       // Asset IDs equal the originals, and each resolves to its file.
       const assets = await Asset.listProjectFiles(USER, project.id);
@@ -536,7 +543,12 @@ describe("projects.openFolder on a folder that was a project before", () => {
       expect(project.id).not.toBe(made.projectId);
       expect(project).toMatchObject({
         name: "My Film copy",
-        folder: { path: duplicate, origin: "adopted", is_accessible: true }
+        folder: {
+          path: duplicate,
+          origin: "adopted",
+          is_accessible: true,
+          on_delete: "keep"
+        }
       });
       expect((await caller().projects.list({})).map((item) => item.name).sort()).toEqual([
         "My Film",
@@ -567,8 +579,15 @@ describe("projects.openFolder on a folder that was a project before", () => {
       expect(assets).toHaveLength(2);
       expect(new Set([...originalIds, ...duplicateIds]).size).toBe(10);
       for (const id of duplicateIds) expect(id).toMatch(FULL_ID);
-      // No file of the duplicate names an ID of the original.
+      // No file of the duplicate names an ID of the original, but for the
+      // record that NodeTool created the original's folder. That record
+      // names the original's project, so it does not apply to the duplicate.
       const duplicateFiles = await filesOf(duplicate);
+      const createdRecord = path.join(".nodetool", "created.json");
+      expect(JSON.parse(duplicateFiles[createdRecord] ?? "{}")).toMatchObject({
+        project_id: made.projectId
+      });
+      delete duplicateFiles[createdRecord];
       const manifest = await fs.readFile(
         path.join(duplicate, ".nodetool", "assets.json"),
         "utf8"

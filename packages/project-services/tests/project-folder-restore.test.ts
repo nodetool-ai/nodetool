@@ -602,6 +602,50 @@ describe.each(["local", "storage"] as const)(
           document: theirTimeline.document
         });
       });
+
+      it("gives a workflow whose ID is taken while the folder is restored a fresh ID, rewrites its file, and leaves the row that took the ID alone", async () => {
+        const made = await produceFolder();
+        emptyDatabase();
+        await restoreProjectFolder({
+          userId: USER,
+          projectId: PROJECT,
+          workspace: folder(kind),
+          nodetoolDir: nodetoolDir(kind),
+          copyOf: null
+        });
+        // The ID was free when the files were read. Another user takes it
+        // before the workflow is created, and the lookup that precedes the
+        // create does not see it yet.
+        const theirs = await Workflow.create<Workflow>({
+          id: made.workflow.id,
+          user_id: OTHER_USER,
+          project_id: "their-project",
+          name: "Theirs",
+          graph: { nodes: [node("x", "theirs")], edges: [] }
+        });
+        vi.spyOn(workflowFileAdapter, "exists").mockResolvedValue(false);
+
+        await finishProjectFolderRestore(PROJECT, USER);
+
+        const [workflow] = await workflowsOf();
+        expect(workflow!.id).toMatch(FULL_ID);
+        expect(workflow!.id).not.toBe(made.workflow.id);
+        expect(workflow).toMatchObject({ name: "Stills", user_id: USER, file_error: null });
+        expect(references(workflow!)).toEqual([
+          made.fox.id,
+          `asset://${made.snow.id}.png`
+        ]);
+        // The file carries the ID the row has.
+        const file = JSON.parse((await folder(kind).readText(WORKFLOW_PATH)) ?? "{}") as {
+          id: string;
+        };
+        expect(file.id).toBe(workflow!.id);
+        // The row that took the ID is as it was.
+        const [kept] = [...(await Workflow.getManyByIds([made.workflow.id])).values()];
+        expect(kept).toMatchObject({ user_id: OTHER_USER, name: "Theirs" });
+        expect(kept!.graph).toEqual(theirs.graph);
+        expect(kept!.updated_at).toBe(theirs.updated_at);
+      });
     });
 
     describe("a folder that is a copy of a project on this install", () => {

@@ -31,14 +31,14 @@ import { createLogger } from "@nodetool-ai/config";
 import { Asset, createTimeOrderedUuid } from "@nodetool-ai/models";
 import { isFullResourceId } from "@nodetool-ai/protocol";
 import type { Workspace } from "@nodetool-ai/runtime";
+import {
+  remapAssetReferences,
+  type DocumentJson
+} from "@nodetool-ai/asset-services/asset-references";
 import { partialContentHashOfWorkspaceFile } from "@nodetool-ai/asset-services/project-asset-file";
 import { isDocumentFileId } from "./document-file-sync.js";
-import { remapResourceIds } from "./id-remap.js";
-import {
-  contentTypeOfFile,
-  reconcileInBackground,
-  scanFolder
-} from "./project-index.js";
+import { scanFolder } from "./project-folder-scan.js";
+import { contentTypeOfFile, reconcileInBackground } from "./project-index.js";
 import {
   readAssetManifest,
   writeProjectAssetManifest,
@@ -209,7 +209,7 @@ async function restoreAssets(
 }
 
 /** A document file as JSON: an object, with whatever keys it has. */
-const documentFile = z.looseObject({});
+const documentFile = z.record(z.string(), z.json());
 /** The `id` of a document file, when it is a string. */
 const documentFileId = z.string();
 
@@ -321,7 +321,15 @@ export async function restoreProjectFolder(
     if (report.replaced.size === 0 && newIds.size === 0) return report;
 
     for (const document of documents) {
-      const remapped = remapResourceIds(document.content, report.replaced);
+      // The remapping the copy of a document between projects uses: a string
+      // that is a replaced ID, or an `asset://` locator that names one,
+      // becomes the new ID. Keys keep their order.
+      const remapped: Record<string, DocumentJson> = Object.fromEntries(
+        Object.entries(document.content).map(([key, value]) => [
+          key,
+          remapAssetReferences(value, report.replaced)
+        ])
+      );
       const id = newIds.get(document.path);
       const next = id === undefined ? remapped : { ...remapped, id };
       if (JSON.stringify(next) === JSON.stringify(document.content)) continue;

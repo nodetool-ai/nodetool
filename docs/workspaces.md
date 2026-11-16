@@ -44,7 +44,9 @@ What happens depends on the project `.nodetool/project.json` names:
 | Yours, and its recorded folder still exists | The folder is a copy. It becomes a second project with a new ID, named after the folder unless you typed a name. Its assets, workflows and timelines get new IDs. |
 | Another user's, or a project you deleted | Refused: `This folder belongs to a project that cannot be opened here` |
 
-A copy shares no ID with the project it was copied from. NodeTool writes the new IDs into the copy: `.nodetool/project.json`, `.nodetool/assets.json`, and each workflow and timeline file, where an asset, workflow or timeline ID of the original is replaced by the ID of the copy's own asset, workflow or timeline. The original project, its rows and its folder are not changed. Editing a workflow in the copy changes the copy's file only.
+A copy shares no ID with the project it was copied from. NodeTool writes the new IDs into the copy: `.nodetool/project.json`, `.nodetool/assets.json`, and each workflow and timeline file, where an asset, workflow or timeline ID of the original is replaced by the ID of the copy's own asset, workflow or timeline. The original project, its rows and its folder are not changed. Editing a workflow in the copy changes the copy's file only. A copy of a folder NodeTool created still carries `.nodetool/created.json`, which names the original project and does not apply to the copy.
+
+A folder opened this way is a folder you brought, on either machine. Deleting its project keeps every file in it except `.nodetool/`.
 
 An asset whose file is not in the folder gets its row and is marked offline. It reports as missing, and Relink or restoring the file at its path brings it back. The rest of the project opens. A media file the manifest does not list gets a new row, as in any folder.
 

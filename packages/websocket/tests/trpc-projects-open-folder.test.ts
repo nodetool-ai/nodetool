@@ -298,10 +298,13 @@ describe("projects.openFolder and projects.relocate", () => {
     expect(opened.id).not.toBe(created.id);
     expect(opened.id).toMatch(/^[0-9a-f]{32}$/);
     expect(opened.name).toBe("Aurora copy");
+    // The copy is a folder the user brought: deleting its project keeps it.
     expect(opened.folder).toEqual({
+      workspace_id: expect.any(String),
       path: copy,
       origin: "adopted",
-      is_accessible: true
+      is_accessible: true,
+      on_delete: "keep"
     });
     // The copy's manifest names the new project. The original's is untouched.
     expect(await readManifest(copy)).toEqual({
