@@ -40,6 +40,11 @@ export type SandboxApiVerdict =
   | { readonly withheld: string; readonly capability?: never; readonly elsewhere?: never; readonly gap?: never }
   | { readonly gap: string; readonly capability?: never; readonly elsewhere?: never; readonly withheld?: never };
 
+const CLOUD_LOCAL_WITHHELD =
+  "The local store of a native app's unsent cloud edits. A run that wrote or " +
+  "accepted a draft would change what the app sends to the person's cloud " +
+  "account, or drop edits that exist nowhere else.";
+
 /**
  * Every tRPC procedure path, and what sandboxed code can do about it.
  *
@@ -392,6 +397,14 @@ export const SANDBOX_API_COVERAGE: Readonly<
   },
   "assets.search": { capability: "asset_search" },
   "assets.update": { capability: "update_asset" },
+  "cloudLocal.drafts.accept": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudLocal.drafts.discard": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudLocal.drafts.get": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudLocal.drafts.list": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudLocal.drafts.markUnsent": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudLocal.drafts.put": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudLocal.openState.get": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudLocal.openState.record": { withheld: CLOUD_LOCAL_WITHHELD },
   "codeGen.generate": {
     elsewhere:
       "Sandboxed code authors node bodies with validate_code / " +
