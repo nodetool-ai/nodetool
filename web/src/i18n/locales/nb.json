@@ -9104,10 +9104,6 @@
           "button": "Få repliker API-token",
           "tooltip": "Gå til siden Repliker API-tokens"
         },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Få passord for Google-appen",
-          "tooltip": "Gå til siden for Google-kontoapppassord"
-        },
         "ELEVENLABS_API_KEY": {
           "button": "Få ElevenLabs API-nøkkel",
           "tooltip": "Gå til ElevenLabs abonnementsside"

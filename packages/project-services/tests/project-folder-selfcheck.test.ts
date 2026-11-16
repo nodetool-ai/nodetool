@@ -127,7 +127,10 @@ describe("project folder selfcheck", () => {
       offline: [],
       created: []
     });
-    expect((await reload(asset.id)).workspace_path).toBe("Reviewed/fox-final.png");
+    const renamed = await reload(asset.id);
+    expect(renamed.workspace_path).toBe("Reviewed/fox-final.png");
+    // The file on disk is the truth: the asset takes the new file name.
+    expect(renamed.name).toBe("fox-final.png");
     expect(await bytesOf(asset)).toEqual(PNG);
 
     // Copy and hard link: neither takes the row from the original, and

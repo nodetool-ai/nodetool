@@ -9104,10 +9104,6 @@
           "button": "Replicate-API-Token abrufen",
           "tooltip": "Zur Replicate-API-Token-Seite"
         },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Google-App-Passwort abrufen",
-          "tooltip": "Zur Seite für App-Passwörter im Google-Konto"
-        },
         "ELEVENLABS_API_KEY": {
           "button": "ElevenLabs-API-Schlüssel abrufen",
           "tooltip": "Zur ElevenLabs-Aboseite"

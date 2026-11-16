@@ -58,8 +58,8 @@ describe("RUNTIME_PACKAGES", () => {
       }
     });
 
-    it("classifies transformers-js, tensorflow-js as libraries", () => {
-      for (const id of ["transformers-js", "tensorflow-js"]) {
+    it("classifies transformers-js as a library", () => {
+      for (const id of ["transformers-js"]) {
         expect(RUNTIME_PACKAGES[id as keyof typeof RUNTIME_PACKAGES].category).toBe("library");
       }
     });

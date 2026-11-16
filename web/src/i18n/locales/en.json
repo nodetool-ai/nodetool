@@ -9104,10 +9104,6 @@
           "button": "Get Replicate API token",
           "tooltip": "Go to Replicate API tokens page"
         },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Get Google app password",
-          "tooltip": "Go to Google account app passwords page"
-        },
         "ELEVENLABS_API_KEY": {
           "button": "Get ElevenLabs API key",
           "tooltip": "Go to ElevenLabs subscription page"

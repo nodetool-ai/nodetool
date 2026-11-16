@@ -280,20 +280,6 @@ const SOLUTIONS: Record<string, string[]> = {
          (s) => s.key === "STRIPE_API_KEY" && s.configured)
      });`
   ],
-  "email-triage": [
-    `const found = await nodetool.email.search({subject: "invoice", since_hours_ago: 48});
-     const ids = found.messages.map((m) => m.message_id).sort();
-     for (const id of ids) {
-       await nodetool.email.label(id, "billing");
-     }
-     const archived = await nodetool.email.archive(ids);
-     const again = await nodetool.email.search({subject: "invoice", since_hours_ago: 48});
-     await finish({
-       labeled: ids,
-       archived: archived.archived,
-       remaining: again.messages.length
-     });`
-  ],
   "app-wiring-check": [
     `const dbg = await nodetool.apps.debug("app_notes", {run: false});
      await finish({

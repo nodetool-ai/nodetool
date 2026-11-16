@@ -1,8 +1,9 @@
 /**
- * `@nodetool-ai/sandbox-mammoth` — mammoth, on the host.
+ * mammoth on the host, for the DOCX script import route
+ * (`POST /api/documents/extract-text`).
  *
- * mammoth reads a `.docx` buffer through Node's zip/XML stack; it is not a
- * guest-module candidate. The guest gets plain text or HTML back.
+ * mammoth reads a `.docx` buffer through Node's zip/XML stack. No sandbox
+ * pack exposes it.
  */
 
 import {
@@ -18,7 +19,6 @@ interface MammothResult {
 }
 interface MammothLike {
   extractRawText: (input: { buffer: Buffer }) => Promise<MammothResult>;
-  convertToHtml: (input: { buffer: Buffer }) => Promise<MammothResult>;
 }
 
 async function loadMammoth(where: string): Promise<MammothLike> {
@@ -41,14 +41,5 @@ export async function extractRawText(bytes: unknown): Promise<string> {
   const buffer = Buffer.from(requireBytes(where, bytes));
   const mammoth = await loadMammoth(where);
   const result = await mammoth.extractRawText({ buffer });
-  return result.value;
-}
-
-/** A Word document rendered as HTML — headings, lists, tables, and images kept. */
-export async function convertToHtml(bytes: unknown): Promise<string> {
-  const where = "mammoth.convertToHtml";
-  const buffer = Buffer.from(requireBytes(where, bytes));
-  const mammoth = await loadMammoth(where);
-  const result = await mammoth.convertToHtml({ buffer });
   return result.value;
 }

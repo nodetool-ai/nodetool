@@ -9104,10 +9104,6 @@
           "button": "Hanki Replicate API-tunnus",
           "tooltip": "Siirry Replicaten API-tunnussivulle"
         },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Hanki Googlen sovellussalasana",
-          "tooltip": "Siirry Google-tilin sovellussalasanasivulle"
-        },
         "ELEVENLABS_API_KEY": {
           "button": "Hanki ElevenLabs API-avain",
           "tooltip": "Siirry ElevenLabsin tilaussivulle"

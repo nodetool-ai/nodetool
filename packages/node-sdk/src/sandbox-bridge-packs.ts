@@ -73,18 +73,6 @@ export const BRIDGE_PACKS: readonly BridgePack[] = [
     runs: "host"
   },
   {
-    specifier: "@nodetool-ai/sandbox-docx",
-    packName: "@nodetool-ai/sandbox-docx",
-    library: "docx",
-    runs: "host"
-  },
-  {
-    specifier: "@nodetool-ai/sandbox-epub",
-    packName: "@nodetool-ai/sandbox-epub",
-    library: "epub2",
-    runs: "host"
-  },
-  {
     specifier: "@nodetool-ai/sandbox-exif",
     packName: "@nodetool-ai/sandbox-exif",
     library: "exifr",
@@ -134,12 +122,6 @@ export const BRIDGE_PACKS: readonly BridgePack[] = [
     runs: "guest"
   },
   {
-    specifier: "@nodetool-ai/sandbox-mammoth",
-    packName: "@nodetool-ai/sandbox-mammoth",
-    library: "mammoth",
-    runs: "host"
-  },
-  {
     specifier: "@nodetool-ai/sandbox-markdown",
     packName: "@nodetool-ai/sandbox-markdown",
     library: "marked",
@@ -167,18 +149,6 @@ export const BRIDGE_PACKS: readonly BridgePack[] = [
     specifier: "@nodetool-ai/sandbox-pdflib",
     packName: "@nodetool-ai/sandbox-pdflib",
     library: "pdf-lib",
-    runs: "host"
-  },
-  {
-    specifier: "@nodetool-ai/sandbox-pptx",
-    packName: "@nodetool-ai/sandbox-pptx",
-    library: "office-text-extractor",
-    runs: "host"
-  },
-  {
-    specifier: "@nodetool-ai/sandbox-pptxgen",
-    packName: "@nodetool-ai/sandbox-pptxgen",
-    library: "pptxgenjs",
     runs: "host"
   },
   {
@@ -212,12 +182,6 @@ export const BRIDGE_PACKS: readonly BridgePack[] = [
     runs: "host"
   },
   {
-    specifier: "@nodetool-ai/sandbox-tfjs",
-    packName: "@nodetool-ai/sandbox-tfjs",
-    library: "@tensorflow/tfjs",
-    runs: "host"
-  },
-  {
     specifier: "@nodetool-ai/sandbox-tokens",
     packName: "@nodetool-ai/sandbox-tokens",
     library: "js-tiktoken",
@@ -227,12 +191,6 @@ export const BRIDGE_PACKS: readonly BridgePack[] = [
     specifier: "@nodetool-ai/sandbox-twilio",
     packName: "@nodetool-ai/sandbox-twilio",
     library: "NodeTool's Twilio helper",
-    runs: "host"
-  },
-  {
-    specifier: "@nodetool-ai/sandbox-xlsx",
-    packName: "@nodetool-ai/sandbox-xlsx",
-    library: "exceljs",
     runs: "host"
   },
   {

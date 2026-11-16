@@ -9248,10 +9248,6 @@
           "button": "Obtenha o token de replicação da API",
           "tooltip": "Acesse a página Replicar tokens de API"
         },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Obtenha a senha do Google app",
-          "tooltip": "Vá para a página de senhas de aplicativos da conta do Google"
-        },
         "ELEVENLABS_API_KEY": {
           "button": "Obtenha a chave da API ElevenLabs",
           "tooltip": "Vá para a página de assinatura do ElevenLabs"
