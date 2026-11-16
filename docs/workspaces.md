@@ -40,10 +40,12 @@ The files in it belong to that project or game. These surfaces of a run in the o
 | --- | --- |
 | Agent file tools, the Code node, JS scripts, save nodes with **Save to workspace** | They read and write through the outer folder's workspace, which refuses every operation on such a path: read, stat, list, write, copy, move, delete, and the staging of a file or directory for a host binary. |
 | `media_edit`, `media_probe` | They hand real paths to libav. Each input and output path is read once, the way the workspace reads it, and that one result is both checked by the workspace's rule and opened. `workspace/x`, `x`, `C:/x` and a path written with backslashes are therefore one file to the check and to the reader. |
-| `yt_dlp` | The output template is checked before yt-dlp expands it. Its directory must be literal: a field such as `%(id)s` is allowed in the file name only, so no field can choose the directory. |
+| `yt_dlp` | yt-dlp expands the output template from the server's environment before it writes, so a template is refused when it starts with `~`, holds a `$`, or holds a `%` that does not open a field, and when it starts with a type prefix such as `thumbnail:`. Its directory must be literal: a field such as `%(id)s` is allowed in the file name only, so no field can choose the directory. The download and mux of two formats checks every path yt-dlp prints before it muxes or removes the file, since yt-dlp also prints a file it skipped because it already exists. The capability passes no other path to yt-dlp. |
 | Document tools (`convert_document`, the PDF tools), sandbox file transfers, the SQLite database path node | They open real paths with `node:fs`, or hand one to the workflow. The resolved path, which is the one opened, is checked by the workspace's rule first. |
 
 A path is judged as written and as it really is. A symbolic link inside the outer folder that points at an inner folder is refused like the inner folder itself.
+
+A folder that a workspace row names is matched without regard to case. Another spelling of it, such as a Windows short name (`GAMES~1`) or a name with trailing dots, is caught only through the real path, so the check relies on the operating system's `realpath` returning the folder's canonical name. A folder marked by `.nodetool/` is found on disk under any spelling.
 
 Not guarded:
 

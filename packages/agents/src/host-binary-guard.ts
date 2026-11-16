@@ -258,6 +258,10 @@ export async function confineMediaPaths(
   return undefined;
 }
 
+/** yt-dlp's `-o TYPES:TEMPLATE` prefix, matched as yt-dlp matches it. */
+const YT_DLP_TYPE_PREFIX =
+  /^(?:chapter|subtitle|thumbnail|description|annotation|infojson|link|pl_video|pl_thumbnail|pl_description|pl_infojson)(?:,(?:chapter|subtitle|thumbnail|description|annotation|infojson|link|pl_video|pl_thumbnail|pl_description|pl_infojson))*:/is;
+
 /**
  * Refuse a yt-dlp output template that could write outside the workspace or
  * into the folder of another project, or `undefined` when it cannot.
@@ -268,11 +272,40 @@ export async function confineMediaPaths(
  * directory part must be literal, and it is that literal directory which is
  * judged. yt-dlp replaces path separators in a field's value, so a field in
  * the file name cannot leave the directory.
+ *
+ * yt-dlp also expands the template before it writes: a leading `~`, every
+ * `$VAR` and `${VAR}`, and on Windows every `%VAR%`, from the server's own
+ * environment. `~/x.%(ext)s` writes into the home directory. Such a template
+ * is refused, since the literal text is not the path that is opened. A
+ * `TYPES:` prefix makes the template one for another kind of file, such as
+ * `thumbnail:`, and is refused too.
  */
 export async function confineOutputTemplate(
   template: string,
   root: HostBinaryRoot
 ): Promise<ArgvRefusal | undefined> {
+  const expanded =
+    template.trimStart().startsWith("~") ||
+    template.includes("$") ||
+    // `%%` is a literal percent sign. Any other `%` must open a `%(field)`.
+    /%(?!\()/.test(template.replaceAll("%%", ""));
+  if (expanded) {
+    return {
+      error:
+        `The output template "${template}" holds "~", "$" or a "%" that does ` +
+        `not open a field. yt-dlp expands these from the server's ` +
+        `environment before it writes. Name a workspace-relative path, as in ` +
+        `"downloads/%(title)s.%(ext)s".`
+    };
+  }
+  if (YT_DLP_TYPE_PREFIX.test(template)) {
+    return {
+      error:
+        `The output template "${template}" starts with a type prefix, which ` +
+        `makes it a template for another kind of file. Name the download's ` +
+        `own path, as in "downloads/%(title)s.%(ext)s".`
+    };
+  }
   const lastSeparator = Math.max(
     template.lastIndexOf("/"),
     template.lastIndexOf("\\")

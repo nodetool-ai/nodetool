@@ -2806,8 +2806,21 @@ const ytDlp: CapabilityExport = {
         const lines = result.stdout.trim().split("\n").filter(Boolean);
         const printed = lines.at(-1);
         if (!printed) return noFile(stdout, stderr, result.exitCode);
+        // yt-dlp prints a file it skipped because it already exists, and the
+        // printed paths are muxed and then removed. Each must be the run's
+        // own: `confineMediaPaths` judges the path `hostMediaPath` opens with
+        // `assertLocalPathIsOwn`.
+        const relative = workspaceRelative(cwd, printed);
+        const refusal = await confineMediaPaths(
+          [relative],
+          { cwd, workspace },
+          "yt_dlp neither muxes nor removes it."
+        );
+        if (refusal) {
+          return { success: false, url, ...refusal, stdout, stderr, exit_code: 0 };
+        }
         files.push({
-          path: path.resolve(cwd, workspaceRelative(cwd, printed)),
+          path: hostMediaPath({ cwd, workspace }, relative),
           formatId: lines.at(-2) ?? ""
         });
       }

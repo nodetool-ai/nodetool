@@ -175,6 +175,35 @@ describe("confineOutputTemplate", () => {
       /outside the workspace/
     );
   });
+
+  // yt-dlp expands a leading `~` and every `$VAR`, `${VAR}` (and on Windows
+  // `%VAR%`) in the template before it writes, so the literal text is not the
+  // path it opens.
+  it.each([
+    "~/ws/projects/abc/stolen.%(ext)s",
+    "~/x.%(ext)s",
+    "~root/x.%(ext)s",
+    "$HOME/ws/projects/abc/stolen.%(ext)s",
+    "${HOME}/ws/games/tetris/stolen.%(ext)s",
+    "downloads/$HOME.%(ext)s",
+    "downloads/a$$b.%(ext)s",
+    "%HOMEPATH%.%(ext)s",
+    "%(id)s%HOMEPATH%.%(ext)s"
+  ])("refuses %s, which yt-dlp expands before it writes", async (template) => {
+    await makeOtherFolders();
+    expect(await refusal(template)).toMatch(/expands/);
+  });
+
+  it.each(["thumbnail:x.%(ext)s", "infojson,description:x", "SUBTITLE:x"])(
+    "refuses %s, which yt-dlp reads as a template for another file type",
+    async (template) => {
+      expect(await refusal(template)).toMatch(/type prefix/);
+    }
+  );
+
+  it("passes an escaped percent sign in the file name", async () => {
+    expect(await refusal("downloads/100%% %(title)s.%(ext)s")).toBe("");
+  });
 });
 
 describe("confineMediaPaths", () => {
@@ -308,6 +337,34 @@ describe("buildYtDlpArgv", () => {
       "--",
       "https://example.com/v"
     ]);
+  });
+});
+
+describe("buildYtDlpArgv path options", () => {
+  it("passes no path-bearing option but the confined output template", () => {
+    const argv = buildYtDlpArgv({
+      url: "https://example.com/v",
+      outputFile: "out.mp4",
+      format: "bestaudio",
+      printFormatId: true
+    });
+    for (const option of [
+      "-P",
+      "--paths",
+      "--download-archive",
+      "--cookies",
+      "-a",
+      "--batch-file",
+      "--config-locations",
+      "--exec",
+      "--postprocessor-args",
+      "--ppa",
+      "--load-info-json",
+      "--cache-dir"
+    ]) {
+      expect(argv).not.toContain(option);
+    }
+    expect(argv.filter((arg) => arg === "-o" || arg === "--output")).toEqual(["-o"]);
   });
 });
 
