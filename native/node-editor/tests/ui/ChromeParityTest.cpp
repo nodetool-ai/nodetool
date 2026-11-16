@@ -128,6 +128,8 @@ private:
         QVERIFY(item);
         // The window tooltip opens at the cursor, so park the cursor on the item as a real pointer would be.
         // Moving it first lets the window system's enter and leave settle before the quick window sees the move.
+        QToolTip::hideText();
+        QTRY_VERIFY(!QToolTip::isVisible());
         QCursor::setPos(host->mapToGlobal(center(item)));
         QCoreApplication::processEvents();
         QTest::mouseMove(host->quickWindow(), QPoint(2, 2));
@@ -909,7 +911,8 @@ private slots:
 
     // W23: PanelBottom.tsx draws the status bar as the bottom panel's tab strip, so an open
     // panel puts the bar above its body.
-    void outputPanelUsesTheStatusBarAsItsTabStrip() {
+    // Logs opens like the other status views: above the status bar, which stays at the window bottom.
+    void outputPanelOpensAboveTheStatusBar() {
         EditorWindow window;
         show(window, fixture()["metadata"].toArray());
         QVERIFY(window.document()->load(fixture()["workflow"].toObject()));
@@ -921,14 +924,13 @@ private slots:
         click(status, find(status->rootObject(), QStringLiteral("status-logs")));
         QTRY_VERIFY(window.outputVisible());
         QTRY_VERIFY(output->isVisible());
-        QTRY_COMPARE(top(status) + status->height(), top(output));
-        QVERIFY(top(output) + output->height() <= window.height());
+        QCOMPARE(top(status) + status->height(), window.height());
+        QVERIFY(top(output) + output->height() <= top(status));
         auto *view = window.activeEditor()->findChild<QGraphicsView *>();
-        QVERIFY(top(view) + view->height() <= top(status));
-        // The open view's tab closes the panel and the bar returns to the window bottom.
+        QVERIFY(top(view) + view->height() <= top(output));
         click(status, find(status->rootObject(), QStringLiteral("status-logs")));
         QTRY_VERIFY(!window.outputVisible());
-        QTRY_COMPARE(top(status) + status->height(), window.height());
+        QCOMPARE(top(status) + status->height(), window.height());
     }
 
     // W23: the web Logs view always shows the run picker and, without runs, the

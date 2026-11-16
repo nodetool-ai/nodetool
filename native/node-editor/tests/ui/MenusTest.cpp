@@ -788,7 +788,7 @@ private slots:
         auto *file = window.findChild<QMenu *>("application-menu-file");
         auto *edit = window.findChild<QMenu *>("application-menu-edit");
         QVERIFY(file && edit);
-        QCOMPARE(labels(file), (QStringList{"New Workflow", "Open…", "Open Example", "Save", "Save As…", "Settings…", "Close Tab", "Quit"}));
+        QCOMPARE(labels(file), (QStringList{"New Workflow", "New Comfy Workflow", "Open…", "Open Example", "Save", "Save As…", "Settings…", "Close Tab", "Quit"}));
         QCOMPARE(labels(edit), (QStringList{"Undo", "Redo", "Cut", "Copy", "Paste", "Select All", "Duplicate", "Duplicate Vertical", "Group", "Align", "Align with Spacing"}));
         QCOMPARE(entry(file, "Save")->shortcut(), QKeySequence("Ctrl+S"));
 
