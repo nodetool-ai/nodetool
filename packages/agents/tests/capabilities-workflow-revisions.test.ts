@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { Workflow, initTestDb } from "@nodetool-ai/models";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
+import { UNGATED, createCapabilityRun } from "../src/capabilities/index.js";
 
 const USER_ID = "workflow-revision-user";
 const SOURCE_ID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -143,5 +144,66 @@ describe("saved workflow revision boundaries", () => {
       node_id: SOURCE_ID,
       title: "Stale title"
     });
+  });
+});
+
+describe("ui_get_graph last_run", () => {
+  it("returns the editor's last_run unchanged when a renderer serves the read", async () => {
+    const editorGraph = {
+      source: "editor",
+      document_revision: `graph:${"a".repeat(64)}`,
+      nodes: [
+        {
+          id: SOURCE_ID,
+          type: "nodetool.text.Value",
+          last_run: { status: "error", error: "boom", output: null }
+        }
+      ],
+      edges: []
+    };
+    const calls: Array<[string, Record<string, unknown>]> = [];
+    const run = createCapabilityRun({
+      context: new ProcessingContext({ userId: USER_ID, jobId: "last-run-editor" }),
+      gate: UNGATED,
+      client: {
+        execute: async (name, args) => {
+          calls.push([name, args]);
+          return editorGraph;
+        }
+      }
+    });
+
+    await expect(run.invoke("ui_get_graph", {})).resolves.toEqual(editorGraph);
+    expect(calls).toEqual([["ui_get_graph", {}]]);
+  });
+
+  it("reads a saved workflow without last_run when no editor is reachable", async () => {
+    const workflow = await Workflow.create<Workflow>({
+      user_id: USER_ID,
+      name: "No canvas run",
+      graph: {
+        nodes: [
+          {
+            id: SOURCE_ID,
+            type: "nodetool.text.Value",
+            data: { value: "saved" },
+            position: { x: 0, y: 0 }
+          }
+        ],
+        edges: []
+      }
+    });
+    const run = createCapabilityRun({
+      context: new ProcessingContext({ userId: USER_ID, jobId: "last-run-server" }),
+      gate: UNGATED
+    });
+
+    const read = (await run.invoke("ui_get_graph", {
+      workflow_id: workflow.id
+    })) as { source: unknown; nodes: Array<Record<string, unknown>> };
+
+    expect(read.source).toBe("server");
+    expect(read.nodes.map((node) => node.id)).toEqual([SOURCE_ID]);
+    expect(read.nodes.some((node) => "last_run" in node)).toBe(false);
   });
 });
