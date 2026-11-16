@@ -1130,6 +1130,43 @@ private slots:
         QTest::qWait(50);
         QCOMPARE(searches(), 3);
     }
+    void projectListsItsDirectories() {
+        // In a project the Library lists one directory of the project folder through assets.list,
+        // as the web Library does. Directories have no rows, so assets.search would never return them.
+        TestHttpServer http;
+        const QString footage = "dir:p1:Footage";
+        QJsonArray asked;
+        http.setJson([&](const QByteArray& path, const QUrl& url) {
+            if (path != "/trpc/assets.list") { return QByteArray(); }
+            const auto input = QJsonDocument::fromJson(QUrlQuery(url).queryItemValue("input", QUrl::FullyDecoded).toUtf8()).object();
+            asked.append(input);
+            const bool home = !input.contains("parent_id");
+            const QJsonArray rows = home
+                ? QJsonArray{QJsonObject{{"id", footage}, {"name", "Footage"}, {"content_type", "folder"},
+                      {"parent_id", "dir:p1:"}, {"user_id", "u"}, {"project_id", "p1"}}}
+                : QJsonArray{QJsonObject{{"id", "take"}, {"name", "take.mp4"}, {"content_type", "video/mp4"},
+                      {"parent_id", footage}, {"user_id", "u"}, {"project_id", "p1"}}};
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", QJsonObject{
+                {"assets", rows}, {"next", QJsonValue::Null}}}}}}).toJson();
+        });
+        TimelineModel model;
+        model.setTimeline(*nt::parseTimeline(QJsonObject{{"projectId", "p1"}, {"fps", 30}, {"width", 640},
+            {"height", 360}, {"tracks", QJsonArray{}}, {"clips", QJsonArray{}}}).timeline);
+        AssetBrowser browser;
+        browser.m_target = nt::server::SaveTarget{http.base(), {}, {}, {}, {}};
+        browser.setTimeline(&model);
+        browser.refresh();
+        QTRY_COMPARE(browser.assetModel()->rowCount(), 1);
+        QTRY_VERIFY(!browser.busy());
+        QCOMPARE(browser.assetModel()->get(footage).value("name").toString(), QString("Footage"));
+        browser.openFolder(footage);
+        QTRY_VERIFY(browser.assetModel()->get("take").contains("name"));
+        QTRY_VERIFY(!browser.busy());
+        QCOMPARE(browser.assetModel()->rowCount(), 1);
+        QCOMPARE(asked.last().toObject(), (QJsonObject{{"project_id", "p1"}, {"parent_id", footage}}));
+        QCOMPARE(asked.first().toObject(), (QJsonObject{{"project_id", "p1"}}));
+        QCOMPARE(http.countRequests("GET", "/trpc/assets.search"), 0);
+    }
     void relinkOfflineAsset() {
         TestHttpServer http;
         QByteArray answer;
@@ -1815,6 +1852,13 @@ int main(int argc, char** argv) {
         const auto target = nt::server::serverSaveTarget();
         if (!target || target->server.port() == 7777) { return 2; }
         AssetBrowser browser;
+        // An optional project, carried by the open timeline as in the Library.
+        TimelineModel model;
+        if (const auto project = app.arguments().value(3); !project.isEmpty()) {
+            model.setTimeline(*nt::parseTimeline(QJsonObject{{"projectId", project}, {"fps", 30}, {"width", 640},
+                {"height", 360}, {"tracks", QJsonArray{}}, {"clips", QJsonArray{}}}).timeline);
+            browser.setTimeline(&model);
+        }
         QEventLoop loop;
         QObject::connect(&browser, &AssetBrowser::stateChanged, &loop, [&] {
             if (!browser.busy()) { loop.quit(); }
