@@ -8,6 +8,7 @@
 // on the generation file.
 #pragma once
 
+#include "nodetool/account/http_transport.h"
 #include "nodetool/account/policy.h"
 #include "nodetool/account/storage.h"
 #include "nodetool/account/token_endpoint.h"
@@ -25,7 +26,6 @@
 
 namespace nodetool::account {
 class AccountSession;
-class HttpTransport;
 } // namespace nodetool::account
 
 namespace nodetool::account::qt {

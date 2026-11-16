@@ -21,7 +21,7 @@ if(PROJECT_IS_TOP_LEVEL)
   # The transport against a local HTTP server, and two controllers standing
   # in for the two apps against the fake token server: TC1's second app,
   # sign-out reaching the other app, and TC91's policy half.
-  add_executable(account_qt_tests tests/tst_account_qt.cpp)
+  add_executable(account_qt_tests tests/tst_account_qt.cpp tests/header_alone.cpp)
   set_target_properties(account_qt_tests PROPERTIES AUTOMOC ON)
   target_link_libraries(account_qt_tests PRIVATE nodetool_account_qt Qt6::Test)
   target_include_directories(account_qt_tests PRIVATE ../tests)
