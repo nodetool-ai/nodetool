@@ -1,0 +1,71 @@
+cmake_minimum_required(VERSION 3.28)
+project(nodetool_account LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# A parent project (the node editor or the timeline) may turn on Qt's moc for
+# its targets.
+set(CMAKE_AUTOMOC OFF)
+if(PROJECT_IS_TOP_LEVEL AND NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+find_package(Threads REQUIRED)
+
+# The JSON library the graph runner uses, at the same version. A parent
+# project that already declared it shares its target.
+if(NOT TARGET nlohmann_json::nlohmann_json)
+  include(FetchContent)
+  FetchContent_Declare(nlohmann_json
+    URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+    URL_HASH SHA256=d6c65aca6b1ed68e7a182f4757257b107ae403032760ed6ef121c9d55e81757d
+    EXCLUDE_FROM_ALL)
+  FetchContent_MakeAvailable(nlohmann_json)
+endif()
+
+# The native account service both apps link (technical design, component
+# K4): the session record, the generation file, the lock, the refresh and
+# sign-out algorithms, the repair rule and the sign-in flow. It depends on
+# the C++ standard library, threads, sockets and nlohmann_json only. The
+# platform credential stores and the HTTP transport plug in through
+# SecretStore and TokenEndpoint.
+add_library(nodetool_account STATIC
+  src/account_session.cpp
+  src/accounts_index.cpp
+  src/crypto.cpp
+  src/session_record.cpp
+  src/sign_in.cpp
+  src/storage.cpp)
+target_include_directories(nodetool_account PUBLIC include)
+target_link_libraries(nodetool_account
+  PUBLIC Threads::Threads
+  PRIVATE nlohmann_json::nlohmann_json)
+if(WIN32)
+  target_link_libraries(nodetool_account PRIVATE ws2_32)
+endif()
+
+option(NODETOOL_ACCOUNT_SANITIZE "Build with AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+option(NODETOOL_ACCOUNT_TSAN "Build with ThreadSanitizer" OFF)
+
+# The tests build only when this is the top-level project.
+if(PROJECT_IS_TOP_LEVEL)
+  enable_testing()
+  if(NODETOOL_ACCOUNT_SANITIZE)
+    add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=address,undefined)
+  endif()
+  if(NODETOOL_ACCOUNT_TSAN)
+    add_compile_options(-fsanitize=thread)
+    add_link_options(-fsanitize=thread)
+  endif()
+  # Hashing, the files, the lock, the record and the sign-in pieces.
+  add_executable(account_unit_tests tests/unit.cpp)
+  target_link_libraries(account_unit_tests PRIVATE nodetool_account)
+  target_include_directories(account_unit_tests PRIVATE tests)
+  add_test(NAME account_unit_tests COMMAND account_unit_tests)
+  # TC1, TC4, TC7 and TC16 to TC18 against a fake token server and an
+  # in-memory keychain, with two sessions standing in for the two apps.
+  add_executable(account_session_tests tests/session.cpp)
+  target_link_libraries(account_session_tests PRIVATE nodetool_account)
+  target_include_directories(account_session_tests PRIVATE tests)
+  add_test(NAME account_session_tests COMMAND account_session_tests)
+endif()
