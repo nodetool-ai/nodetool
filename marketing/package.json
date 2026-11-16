@@ -55,7 +55,7 @@
     "framer-motion": "^12.23.12",
     "lodash": "^4.17.21",
     "lucide-react": "^0.341.0",
-    "next": "^16.4.3",
+    "next": "^16.4.6",
     "openapi-fetch": "^0.7.1",
     "react": "^18",
     "react-dom": "^18",
