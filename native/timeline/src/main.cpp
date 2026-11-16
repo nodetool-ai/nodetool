@@ -1046,7 +1046,11 @@ int main(int argc, char** argv) {
         accountServices.app = "timeline";
         account = std::make_unique<nodetool::account::qt::AccountController>(std::move(accountServices));
         QObject::connect(account.get(), &nodetool::account::qt::AccountController::browserRequested, &app,
-                         [](const QUrl& url) { QDesktopServices::openUrl(url); });
+                         [controller = account.get()](const QUrl& url) {
+                             if (!QDesktopServices::openUrl(url)) {
+                                 controller->browserNotOpened();
+                             }
+                         });
     }
     QQuickView view;
     nt::hw::prepareWindow(&view);

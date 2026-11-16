@@ -4,6 +4,7 @@
 #include "nodetool/account/accounts_index.h"
 #include "nodetool/account/http_token_endpoint.h"
 #include "nodetool/account/keychain_store.h"
+#include "nodetool/account/origin.h"
 #include "nodetool/account/qt/QtHttpTransport.h"
 #include "nodetool/account/sign_in.h"
 
@@ -300,7 +301,13 @@ std::shared_ptr<AccountSession> AccountController::session() const {
 }
 
 bool AccountController::readPolicy() {
-  const PolicyCheck check = checkServer(core_->services.policy(), core_->services.serverOrigin);
+  PolicyCheck check = checkServer(core_->services.policy(), core_->services.serverOrigin);
+  if (check.decision == PolicyDecision::Allowed && !canonicalHttpsOrigin(core_->services.serverOrigin)) {
+    // No browser opens and no credential is sent to a server that is not
+    // an HTTPS origin, such as a mistyped NODETOOL_CLOUD_SERVER.
+    check.decision = PolicyDecision::ServerNotAllowed;
+    check.reason = "The cloud server address is not an HTTPS address, so sign-in is turned off.";
+  }
   const bool allows = check.decision == PolicyDecision::Allowed;
   core_->policyAllows.store(allows, std::memory_order_release);
   const bool available = check.decision != PolicyDecision::CloudOff;
@@ -478,9 +485,27 @@ void AccountController::onSignInFinished(bool signedIn, const QString& name, con
   if (signedIn) {
     displayName_ = name;
   }
-  message_ = message;
+  message_ = browserFailed_ && !signedIn
+                 ? tr("The browser could not be opened. Set a default browser, then sign in again.")
+                 : message;
+  browserFailed_ = false;
   emit changed();
   refreshState();
+}
+
+void AccountController::browserNotOpened() {
+  if (state_ != State::SigningIn) {
+    return;
+  }
+  {
+    const std::lock_guard lock(core_->mutex);
+    core_->attemptCancelled = true;
+    if (core_->flow != nullptr) {
+      core_->flow->cancel();
+    }
+  }
+  // The attempt ends as a cancel does. The message replaces its silence.
+  browserFailed_ = true;
 }
 
 void AccountController::cancelSignIn() {
@@ -515,7 +540,12 @@ std::filesystem::path sharedDataDir() {
 
 std::string cloudServerOrigin() {
   const auto configured = qEnvironmentVariable("NODETOOL_CLOUD_SERVER").trimmed();
-  return configured.isEmpty() ? std::string("https://api.nodetool.ai") : configured.toStdString();
+  if (configured.isEmpty()) {
+    return "https://api.nodetool.ai";
+  }
+  // The browser and the code exchange go to this origin, and the session's
+  // credentials after them. Anything but an HTTPS origin is refused.
+  return canonicalHttpsOrigin(configured.toStdString()).value_or(std::string());
 }
 
 } // namespace nodetool::account::qt

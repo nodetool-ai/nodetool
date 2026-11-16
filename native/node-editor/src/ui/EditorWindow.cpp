@@ -152,7 +152,11 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     accountServices.app = "node-editor";
     account_ = std::make_unique<nodetool::account::qt::AccountController>(std::move(accountServices));
     connect(account_.get(), &nodetool::account::qt::AccountController::browserRequested, this,
-            [](const QUrl &url) { QDesktopServices::openUrl(url); });
+            [this](const QUrl &url) {
+              if (!QDesktopServices::openUrl(url)) {
+                account_->browserNotOpened();
+              }
+            });
     // Panels are QQuickWidgets sized to their strip, so an overlay tooltip clips there.
     // Ui.Tooltip hands its text to the window, which forwards it to the active tab.
     if (auto *tooltips = engine_->singletonInstance<QObject *>("NodeTool.UiPrimitives", "TooltipHost")) {
