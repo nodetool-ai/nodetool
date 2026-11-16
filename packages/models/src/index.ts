@@ -147,6 +147,7 @@ export type {
 } from "./personal-data.js";
 
 export { Workflow, setWorkflowFileSync } from "./workflow.js";
+export { DocumentFileMoveError } from "./document-file-sync.js";
 export type {
   DocumentFileLocation,
   DocumentFileRow,
@@ -272,6 +273,7 @@ export type {
 export {
   TimelineSequence,
   TimelineSequenceConflictError,
+  setTimelineFileSync,
   timelineDocumentDurationMs
 } from "./timeline-sequence.js";
 export type {

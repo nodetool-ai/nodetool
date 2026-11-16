@@ -707,6 +707,12 @@ export async function importProjectArchive(
     row["file_hash"] = null;
     row["file_error"] = null;
   }
+  for (const row of imported.timeline_sequences) {
+    // As for a workflow: the row was never synced with a file of the new
+    // folder.
+    row["file_hash"] = null;
+    row["file_error"] = null;
+  }
 
   const missing: string[] = [];
   const checksumMismatches: string[] = [];

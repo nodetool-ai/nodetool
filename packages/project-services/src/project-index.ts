@@ -86,6 +86,7 @@ import {
   flushAssetManifestWrites,
   scheduleAssetManifestWrite
 } from "./project-manifest.js";
+import { timelineFileAdapter } from "./timeline-file.js";
 import { workflowFileAdapter } from "./workflow-file.js";
 
 // How the folder is read lives in `project-folder-scan.ts`, which the
@@ -854,7 +855,7 @@ export async function reconcileInBackground(
   // the asset index as it was reconciled.
   try {
     await reconcileDocumentFiles(
-      [workflowFileAdapter],
+      [workflowFileAdapter, timelineFileAdapter],
       report.projectId,
       userId,
       {

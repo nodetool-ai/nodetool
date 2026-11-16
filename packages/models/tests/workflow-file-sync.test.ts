@@ -6,6 +6,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  DocumentFileMoveError,
   ModelObserver,
   Workflow,
   computeEtag,
@@ -24,6 +25,10 @@ interface Call {
 }
 
 let calls: Call[];
+/** The project each row was in when the sync was asked whether it may leave. */
+let asked: string[];
+/** What the sync answers when it is asked. Null lets the row leave. */
+let refusal: string | null;
 
 /** A sync that records each call and files the row under its name. */
 function recordingSync(): void {
@@ -39,6 +44,10 @@ function recordingSync(): void {
     },
     async deleted(row) {
       calls.push({ kind: "deleted", id: row.id, name: row.name });
+    },
+    async leaving(row) {
+      asked.push(`${row.name} in ${row.project_id}: ${row.description}`);
+      return refusal;
     }
   });
 }
@@ -61,6 +70,8 @@ async function reload(id: string): Promise<Workflow> {
 beforeEach(() => {
   initTestDb();
   calls = [];
+  asked = [];
+  refusal = null;
   recordingSync();
 });
 
@@ -129,6 +140,63 @@ describe("the workflow file sync hook", () => {
       { project_id: "project-b", ...location },
       null
     ]);
+  });
+
+  it("asks the sync before a move, with the stored row, and moves nothing when it refuses", async () => {
+    const workflow = await makeWorkflow({
+      project_id: "project-a",
+      description: "stored"
+    });
+    calls = [];
+    refusal = "The file was edited and is not valid.";
+
+    // Through the conditional update.
+    await expect(
+      Workflow.updateFieldsIfUnchanged(workflow.id, workflow.updated_at, {
+        project_id: "project-b",
+        description: "moved"
+      })
+    ).rejects.toThrow(DocumentFileMoveError);
+    // Through an instance loaded from the database.
+    const loaded = await reload(workflow.id);
+    loaded.project_id = "project-c";
+    loaded.description = "moved";
+    await expect(loaded.save()).rejects.toThrow(
+      "The file was edited and is not valid."
+    );
+
+    // Each time the sync saw the row as it is stored, in the project it is in.
+    expect(asked).toEqual([
+      "Fox in project-a: stored",
+      "Fox in project-a: stored"
+    ]);
+    // Nothing was written and no file was touched.
+    expect(calls).toEqual([]);
+    expect(await reload(workflow.id)).toMatchObject({
+      project_id: "project-a",
+      description: "stored",
+      updated_at: workflow.updated_at,
+      file_path: "Workflows/Fox.workflow.json"
+    });
+
+    // A save that keeps the project asks nothing.
+    asked = [];
+    await Workflow.updateFieldsIfUnchanged(workflow.id, workflow.updated_at, {
+      project_id: "project-a",
+      description: "kept"
+    });
+    expect(asked).toEqual([]);
+
+    // Once the sync lets the row leave, the move goes through.
+    refusal = null;
+    const current = await reload(workflow.id);
+    const moved = await Workflow.updateFieldsIfUnchanged(
+      workflow.id,
+      current.updated_at,
+      { project_id: "project-b" }
+    );
+    expect(asked).toEqual(["Fox in project-a: kept"]);
+    expect(moved?.project_id).toBe("project-b");
   });
 
   it("records the file without changing updated_at or announcing a change", async () => {

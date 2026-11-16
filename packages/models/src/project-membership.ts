@@ -20,6 +20,7 @@ import { jsScripts } from "./schema/js-scripts.js";
 import { scripts } from "./schema/scripts.js";
 import { storyboards } from "./schema/storyboards.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
+import { TimelineSequence } from "./timeline-sequence.js";
 import type { ProjectDocumentType } from "./project-summary.js";
 
 /**
@@ -221,7 +222,23 @@ export async function reassignProjectDocuments(
     await saveAssetInProject(new Asset(row), toProjectId);
     moved += 1;
   }
+  // A timeline is a file in its project's folder too, and takes it along.
+  const timelines = await db
+    .select({ id: timelineSequences.id })
+    .from(timelineSequences)
+    .where(
+      and(
+        eq(timelineSequences.project_id, fromProjectId),
+        eq(timelineSequences.user_id, userId)
+      )
+    );
+  for (const { id } of timelines) {
+    if (await TimelineSequence.moveToProject(userId, id, toProjectId)) {
+      moved += 1;
+    }
+  }
   for (const table of DOCUMENT_TABLES) {
+    if (table === timelineSequences) continue;
     const owned = and(
       eq(table.project_id, fromProjectId),
       eq(table.user_id, userId)
@@ -281,17 +298,8 @@ export async function moveDocumentToProject(
       return rows.length > 0;
     }
     case "timeline": {
-      const rows = await db
-        .update(timelineSequences)
-        .set(fields)
-        .where(
-          and(
-            eq(timelineSequences.id, documentId),
-            eq(timelineSequences.user_id, userId)
-          )
-        )
-        .returning({ id: timelineSequences.id });
-      return rows.length > 0;
+      // A timeline is a file in its project's folder, which moves with it.
+      return TimelineSequence.moveToProject(userId, documentId, projectId);
     }
     case "sketch": {
       const rows = await db

@@ -14,8 +14,10 @@ vi.mock("@nodetool-ai/models", () => ({
   LOOSE_PROJECT_ID: "default",
   // Asset services install their file mover when they load.
   setAssetFileMover: () => {},
-  // The workflow file sync installs itself on the model when it loads.
+  // The workflow and timeline file syncs install themselves on their models
+  // when they load.
   setWorkflowFileSync: () => {},
+  setTimelineFileSync: () => {},
   Project: {
     findOwned: (u: string, id: string) => findOwned(u, id),
     ensurePersonal: (u: string) => ensurePersonal(u)

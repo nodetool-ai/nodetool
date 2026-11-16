@@ -186,6 +186,12 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./timeline-document-save": {
+      "nodetool-dev": "./src/timeline-document-save.ts",
+      "types": "./dist/timeline-document-save.d.ts",
+      "import": "./dist/timeline-document-save.js",
+      "default": "./dist/timeline-document-save.js"
+    },
     "./workflow-graph-save": {
       "nodetool-dev": "./src/workflow-graph-save.ts",
       "types": "./dist/workflow-graph-save.d.ts",

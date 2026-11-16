@@ -20,6 +20,11 @@ export const timelineSequences = pgTable(
      * concurrency for interactive editing widgets.
      */
     revision: integer("revision").notNull().default(0),
+    // File in the project folder and the hash last synced — see
+    // schema/timeline-sequences.ts.
+    file_path: text("file_path"),
+    file_hash: text("file_hash"),
+    file_error: text("file_error"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },
