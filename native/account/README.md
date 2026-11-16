@@ -9,10 +9,11 @@ server and user that both apps share, renews the access token, and signs out.
 The library depends on the C++20 standard library, threads, sockets and
 nlohmann_json only. Two interfaces connect it to the rest of the app:
 
-- `SecretStore` is the operating system's credential store. The platform
-  implementations follow the WP0.2 spike, which decides between QtKeychain
-  and direct platform calls. `MemorySecretStore` serves the tests and the
-  case where no store exists.
+- `SecretStore` is the operating system's credential store.
+  `KeychainStore` writes items exactly as keytar does, the keychain library
+  the Node backend uses for its master key, so either side can read what
+  the other wrote. `MemorySecretStore` serves the tests and the case where
+  no store exists.
 - `TokenEndpoint` makes the three server calls: the code exchange, the
   refresh and `/oauth/session/end`. The HTTP implementation belongs to the
   request layer (WP1.10).
@@ -22,6 +23,7 @@ nlohmann_json only. Two interfaces connect it to the rest of the app:
 | `nodetool/account/account_session.h` | `AccountSession`: the request rule, the refresh under the lock, sign-out, the repair rule. `recordSignIn`, `endSessionRetryDelay` |
 | `nodetool/account/sign_in.h` | `SignInFlow`, `LoopbackListener`, PKCE, the authorize URL and the callback check |
 | `nodetool/account/session_record.h` | `SessionRecord`, the keychain item both apps read and write whole |
+| `nodetool/account/keychain_store.h` | `KeychainStore`, the platform credential store in keytar's format |
 | `nodetool/account/storage.h` | `SecretStore`, `MemorySecretStore`, `AccountLock`, the generation file, atomic file writes, the folder layout |
 | `nodetool/account/accounts_index.h` | `AccountsIndex`, the `accounts.json` list the Account control reads |
 | `nodetool/account/token_endpoint.h` | `TokenEndpoint` and its results |
@@ -81,10 +83,24 @@ its requests and close its sockets at once.
   arrives inside it.
 - The generation file is read with a 16-byte file read on every request.
   WP0.2 may replace this with a shared memory mapping.
+- The credential store calls the platform APIs directly instead of
+  QtKeychain, so the library needs no Qt. It matches keytar item for item:
+
+  | Platform | API | Item |
+  |---|---|---|
+  | macOS | Security framework, generic password (`SecItem*`) | `kSecAttrService` = service, `kSecAttrAccount` = account |
+  | Windows | Credential Manager, `CRED_TYPE_GENERIC` | target `<service>/<account>`, user name `<account>`, `CRED_PERSIST_ENTERPRISE` |
+  | Linux | libsecret, schema `org.freedesktop.Secret.Generic` | attributes `service` and `account`, label `<service>/<account>`, default collection |
+
+  A value longer than 2,560 bytes, the Windows limit, is refused on every
+  platform. A session record with three pending handles is under 1 KB.
 
 ## Not in this library yet
 
-- The platform `SecretStore` implementations (WP0.2).
+- The WP0.2 checks that need each platform: whether a second, separately
+  signed app reads the macOS item without a prompt, and the Windows and
+  macOS builds of `KeychainStore`, which this repository's CI does not
+  compile yet.
 - The HTTP `TokenEndpoint` and the request layer that calls
   `credentialForRequest()` before each request (WP1.10).
 - The file watcher, the Account control and the Qt bindings (WP1.11).
@@ -107,6 +123,17 @@ operating system releases it from a killed process, and nothing after the
 point is written. TC5's real process kill, and the behavior of the keychain
 across two separately built apps, need the WP0.2 spike on each platform.
 
+`account_keychain_tests` writes, overwrites and removes real items in the
+platform store and stores a full session record. It prints `SKIP` and passes
+when no store answers, as on a Linux machine without a Secret Service. To run
+it on headless Linux, start a session bus and an unlocked keyring:
+
+```bash
+dbus-run-session -- sh -c 'echo -n x | gnome-keyring-daemon --unlock --components=secrets >/dev/null && ctest --test-dir native/account/build --output-on-failure'
+```
+
 `-DNODETOOL_ACCOUNT_SANITIZE=ON` builds the tests with AddressSanitizer and
 UndefinedBehaviorSanitizer, and `-DNODETOOL_ACCOUNT_TSAN=ON` with
-ThreadSanitizer.
+ThreadSanitizer. The ThreadSanitizer build leaves libsecret out, because
+GLib is not built with it and TSan reports races inside GLib's own worker
+threads.

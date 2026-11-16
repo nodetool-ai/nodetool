@@ -22,6 +22,9 @@ if(NOT TARGET nlohmann_json::nlohmann_json)
   FetchContent_MakeAvailable(nlohmann_json)
 endif()
 
+option(NODETOOL_ACCOUNT_SANITIZE "Build with AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+option(NODETOOL_ACCOUNT_TSAN "Build with ThreadSanitizer" OFF)
+
 # The native account service both apps link (technical design, component
 # K4): the session record, the generation file, the lock, the refresh and
 # sign-out algorithms, the repair rule and the sign-in flow. It depends on
@@ -35,6 +38,32 @@ add_library(nodetool_account STATIC
   src/session_record.cpp
   src/sign_in.cpp
   src/storage.cpp)
+# The platform credential store, written the way keytar writes it
+# (include/nodetool/account/keychain_store.h).
+if(APPLE)
+  target_sources(nodetool_account PRIVATE src/keychain_mac.cpp)
+  target_link_libraries(nodetool_account PRIVATE "-framework Security" "-framework CoreFoundation")
+elseif(WIN32)
+  target_sources(nodetool_account PRIVATE src/keychain_win.cpp)
+  target_link_libraries(nodetool_account PRIVATE advapi32)
+else()
+  target_sources(nodetool_account PRIVATE src/keychain_linux.cpp)
+  # GLib is not built with ThreadSanitizer, and TSan reports races inside
+  # GLib's own worker pool that no code here touches. The TSan build leaves
+  # libsecret out, so it checks this library's threads only.
+  find_package(PkgConfig QUIET)
+  set(nodetool_account_libsecret OFF)
+  if(PKG_CONFIG_FOUND AND NOT NODETOOL_ACCOUNT_TSAN)
+    pkg_check_modules(LIBSECRET IMPORTED_TARGET libsecret-1)
+    set(nodetool_account_libsecret ${LIBSECRET_FOUND})
+  endif()
+  if(nodetool_account_libsecret)
+    target_link_libraries(nodetool_account PRIVATE PkgConfig::LIBSECRET)
+    target_compile_definitions(nodetool_account PRIVATE NODETOOL_ACCOUNT_HAVE_LIBSECRET)
+  else()
+    message(STATUS "nodetool_account: building without libsecret (not found, or a ThreadSanitizer build), KeychainStore is unavailable")
+  endif()
+endif()
 target_include_directories(nodetool_account PUBLIC include)
 target_link_libraries(nodetool_account
   PUBLIC Threads::Threads
@@ -42,9 +71,6 @@ target_link_libraries(nodetool_account
 if(WIN32)
   target_link_libraries(nodetool_account PRIVATE ws2_32)
 endif()
-
-option(NODETOOL_ACCOUNT_SANITIZE "Build with AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
-option(NODETOOL_ACCOUNT_TSAN "Build with ThreadSanitizer" OFF)
 
 # The tests build only when this is the top-level project.
 if(PROJECT_IS_TOP_LEVEL)
@@ -68,4 +94,10 @@ if(PROJECT_IS_TOP_LEVEL)
   target_link_libraries(account_session_tests PRIVATE nodetool_account)
   target_include_directories(account_session_tests PRIVATE tests)
   add_test(NAME account_session_tests COMMAND account_session_tests)
+  # The platform keychain store against the real credential store. It
+  # passes without checking anything when no store answers, and says so.
+  add_executable(account_keychain_tests tests/keychain.cpp)
+  target_link_libraries(account_keychain_tests PRIVATE nodetool_account)
+  target_include_directories(account_keychain_tests PRIVATE tests)
+  add_test(NAME account_keychain_tests COMMAND account_keychain_tests)
 endif()
