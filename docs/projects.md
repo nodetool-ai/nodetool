@@ -79,6 +79,11 @@ references between them are rewritten to point at the new copies, so the
 same file can be imported twice. Imported workflows are private, and a
 project exported from Personal arrives as an ordinary named project.
 
+The imported project gets a new folder, and no existing folder is written to.
+An asset that was a file in the exported project folder is the same file, at
+the same path, in the new folder. An asset from before project folders arrives
+in the asset store and moves into the new folder when the project is opened.
+
 A project that links media from outside its folder (see
 [Link or copy media](#link-or-copy-media)) is not exported as it stands. The
 export dialog names the linked files. **Collect and export** copies them into
