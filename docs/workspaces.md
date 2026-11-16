@@ -34,9 +34,22 @@ A directory inside a project folder is another folder when either is true:
 - It holds a `.nodetool/` directory.
 - A workspace row records it as the folder of a project or of a game.
 
-The files in it belong to that project or game. A run in the outer project cannot reach them. Agent file tools, the Code node, JS scripts and save nodes all read and write through the outer folder's workspace, and that workspace refuses every operation on a path in the inner folder: read, stat, list, write, copy, move, delete, and the staging of a file for a host binary. The refusal is the one for `.nodetool/`, with its own message. Listings leave the inner folder out. Deleting a directory that holds an inner folder deletes the outer project's files around it and leaves the inner folder as it is. A directory that holds an inner folder cannot be moved or renamed. The outer folder's own root is never excluded.
+The files in it belong to that project or game. These surfaces of a run in the outer project refuse a path in the inner folder:
 
-The workspace remembers what it learned about a directory for 10 seconds. A project folder created inside a folder that a long run already holds is therefore refused to that run within 10 seconds.
+| Surface | How it is guarded |
+| --- | --- |
+| Agent file tools, the Code node, JS scripts, save nodes with **Save to workspace** | They read and write through the outer folder's workspace, which refuses every operation on such a path: read, stat, list, write, copy, move, delete, and the staging of a file or directory for a host binary. |
+| `media_edit`, `media_probe`, `yt_dlp` | They hand real paths to libav or a host binary. Each input and output path is checked by the workspace's rule first. |
+| Document tools (`convert_document`, the PDF tools), sandbox file transfers | They open real paths with `node:fs`. Each path is checked by the workspace's rule first. |
+
+Not guarded:
+
+- **The Claude Agent provider's own file tools.** That provider runs the Claude Code CLI with the project folder as its working directory and with permission prompts off. The CLI's `Read`, `Write`, `Edit`, `Glob`, `Grep` and `Bash` open files themselves and never ask the workspace, so a chat or agent run on that provider can reach an inner folder on a local install.
+- **Host binaries a node starts in the folder**, such as Blender, and nodes that write to a folder you name instead of the workspace. They can open any path your user account can.
+
+The refusal is the one for `.nodetool/`, with its own message. Listings leave the inner folder out. Deleting a directory that holds an inner folder deletes the outer project's files around it and leaves the inner folder as it is. A directory that holds an inner folder cannot be moved or renamed. The outer folder's own root is never excluded.
+
+The workspace remembers what it learned about a directory for 10 seconds. A project folder created inside a folder that a long run already holds is therefore refused to that run within 10 seconds, and can be reached by it until then. The price of the check is one `stat` per directory on a local folder and one listing request per directory on object storage, each at most once in 10 seconds per run. When the check itself fails, because the database or the storage does not answer, the operation is refused with `Path '<path>' could not be checked against the folders of other projects`. It is never answered as a missing file.
 
 Everything else in the outer project treats the directory as not its own:
 

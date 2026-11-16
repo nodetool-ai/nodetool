@@ -130,6 +130,11 @@ export interface Workspace {
    * built this workspace named it. False for the root, which is this folder
    * itself, and for a path outside the workspace.
    *
+   * `path` is a workspace key, as {@link key} and a listing give it. It is
+   * taken as it is: a leading `workspace/` is a directory of that name, where
+   * every other method reads it as the root. Throws
+   * {@link WorkspaceFolderCheckError} when the answer cannot be found out.
+   *
    * The files of a nested folder belong to the other project. Every other
    * method refuses a path that is such a folder or lies in one, as it
    * refuses {@link RESERVED_WORKSPACE_DIR}: with a
@@ -231,6 +236,25 @@ export class WorkspaceReservedPathError extends Error {
     );
     this.name = "WorkspaceReservedPathError";
     this.reason = reason;
+  }
+}
+
+/**
+ * Thrown when a workspace cannot find out whether a path is in the folder of
+ * another project: the host could not name its folders, or the storage could
+ * not be asked. The operation is refused, because the answer could have been
+ * yes. Nothing is known about the path itself, so no caller may read this as
+ * "the file is not there".
+ */
+export class WorkspaceFolderCheckError extends Error {
+  constructor(path: string, cause: unknown) {
+    const reason = cause instanceof Error ? cause.message : String(cause);
+    super(
+      `Path '${path}' could not be checked against the folders of other ` +
+        `projects, so it was refused: ${reason}`,
+      { cause }
+    );
+    this.name = "WorkspaceFolderCheckError";
   }
 }
 

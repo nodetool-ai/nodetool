@@ -4,6 +4,7 @@ export {
   WorkspaceReservedPathError,
   RESERVED_WORKSPACE_DIR,
   NestedFolders,
+  WorkspaceFolderCheckError,
   isReservedWorkspaceKey,
   observeWorkspace,
   getProjectFolderResolver,

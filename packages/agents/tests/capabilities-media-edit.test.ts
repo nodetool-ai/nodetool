@@ -5,7 +5,7 @@
  * staging, the confinement and the report the capability adds around them.
  */
 
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -49,6 +49,88 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await rm(dir, { recursive: true, force: true });
+});
+
+describe("the folder of another project inside the workspace", () => {
+  /** A project's folder (`.nodetool/`) and a game's (named by the host). */
+  const PROJECT = "projects/abc";
+  const GAME = "projects/game1";
+  let outer = "";
+
+  const context = (): ProcessingContext =>
+    ({
+      userId: "user-1",
+      workspace: createLocalWorkspace(outer, { nestedFolders: () => [GAME] }),
+      resolveWorkspacePath: (relative: string) => resolve(outer, relative)
+    }) as unknown as ProcessingContext;
+
+  beforeAll(async () => {
+    outer = await mkdtemp(join(tmpdir(), "media-capability-nested-"));
+    const clip = await readFile(join(dir, "clip.mp4"));
+    await writeFile(join(outer, "clip.mp4"), clip);
+    for (const folder of [PROJECT, GAME]) {
+      await mkdir(join(outer, folder, "Generated"), { recursive: true });
+      await writeFile(join(outer, folder, "clip.mp4"), clip);
+      await writeFile(join(outer, folder, "Generated/fox.mp4"), "the other project's file");
+    }
+    await mkdir(join(outer, PROJECT, ".nodetool"), { recursive: true });
+  });
+
+  afterAll(async () => {
+    await rm(outer, { recursive: true, force: true });
+  });
+
+  it.each([PROJECT, GAME])("media_probe reads no file in %s", async (folder) => {
+    const result = (await asTool(mediaProbe).process(context(), {
+      path: `${folder}/clip.mp4`
+    })) as Record<string, unknown>;
+
+    expect(String(result["error"])).toMatch(/folder of another project/);
+    expect(result["has_video"]).toBeUndefined();
+  });
+
+  it.each([PROJECT, GAME])("media_edit reads no input in %s", async (folder) => {
+    const result = (await asTool(mediaEdit).process(context(), {
+      operation: "trim",
+      input: `${folder}/clip.mp4`,
+      output_file: "cuts/stolen.mp4",
+      start: 0,
+      end: 1
+    })) as Record<string, unknown>;
+
+    expect(String(result["error"])).toMatch(/folder of another project/);
+    await expect(stat(join(outer, "cuts/stolen.mp4"))).rejects.toThrow();
+  });
+
+  it.each([PROJECT, GAME])("media_edit writes no output in %s", async (folder) => {
+    for (const output of [`${folder}/Generated/fox.mp4`, `${folder}/New/out.mp4`]) {
+      const result = (await asTool(mediaEdit).process(context(), {
+        operation: "trim",
+        input: "clip.mp4",
+        output_file: output,
+        start: 0,
+        end: 1
+      })) as Record<string, unknown>;
+      expect(String(result["error"])).toMatch(/folder of another project/);
+    }
+
+    expect(await readFile(join(outer, folder, "Generated/fox.mp4"), "utf8")).toBe(
+      "the other project's file"
+    );
+    await expect(stat(join(outer, folder, "New"))).rejects.toThrow();
+  });
+
+  it("media_edit still writes beside the folder of another project", async () => {
+    const result = (await asTool(mediaEdit).process(context(), {
+      operation: "trim",
+      input: "clip.mp4",
+      output_file: "projects/own-cut.mp4",
+      start: 0,
+      end: 1
+    })) as Record<string, unknown>;
+
+    expect(result).toMatchObject({ success: true, output_file: "projects/own-cut.mp4" });
+  });
 });
 
 describe("media_probe", () => {

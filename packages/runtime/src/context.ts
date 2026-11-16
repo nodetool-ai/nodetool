@@ -79,7 +79,10 @@ import type {
   ProcessingContextModelInterfaces,
   ThreadMessagesResultLike
 } from "@nodetool-ai/runtime-core";
-import { localPathIsInNestedFolder } from "@nodetool-ai/runtime-core";
+import {
+  assertLocalPathIsOwn,
+  localPathIsInNestedFolder
+} from "@nodetool-ai/runtime-core";
 import {
   WorkspaceReservedPathError,
   isReservedWorkspaceKey,
@@ -2501,8 +2504,20 @@ export class ProcessingContext implements RuntimeNodeContext {
     return { bytes: null, attempts };
   }
 
+  /**
+   * Refuse a real path that is in the folder of another project inside the
+   * run's workspace. `resolveWorkspacePath` reads only the `.nodetool/` mark
+   * on disk. The workspace also knows the folders the host names, such as a
+   * game's, so whatever opens a resolved path asks here first.
+   */
+  private async assertOwnSandboxFile(file: string, path: string): Promise<void> {
+    if (!this.workspace || !this.workspaceDir) return;
+    await assertLocalPathIsOwn(this.workspace, this.workspaceDir, file, path);
+  }
+
   async assetToSandbox(assetId: string, path: string): Promise<string> {
     const outputPath = this.resolveSandboxFilePath(path);
+    await this.assertOwnSandboxFile(outputPath, path);
     const { bytes, attempts } = await this.resolveAssetBytes(assetId);
 
     if (!bytes) {
@@ -2520,6 +2535,7 @@ export class ProcessingContext implements RuntimeNodeContext {
 
   async sandboxToAsset(path: string): Promise<AssetRef> {
     const filePath = this.resolveSandboxFilePath(path);
+    await this.assertOwnSandboxFile(filePath, path);
     const bytes = (await readFile(filePath)) as Uint8Array;
     const contentType = ProcessingContext.guessMimeFromPath(filePath);
     // SAFETY: the host's asset persistence answers with its own asset record;

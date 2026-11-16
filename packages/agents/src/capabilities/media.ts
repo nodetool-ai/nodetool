@@ -2295,7 +2295,11 @@ async function stageInputs(
     };
   }
   const names = entries.map(([name]) => name);
-  const refusal = await confineMediaPaths(names, cwd, MEDIA_PATH_REMEDY);
+  const refusal = await confineMediaPaths(
+    names,
+    { cwd, workspace },
+    MEDIA_PATH_REMEDY
+  );
   if (refusal) return refusal;
 
   const staged: Record<string, number> = {};
@@ -2457,7 +2461,11 @@ async function prepareMediaPaths(
   const stagedResult = await stageInputs(context, workspace, cwd, toStage, projectId);
   if ("error" in stagedResult) return stagedResult;
   const local = [...new Set(resolved.values())];
-  const refusal = await confineMediaPaths(local, cwd, MEDIA_PATH_REMEDY);
+  const refusal = await confineMediaPaths(
+    local,
+    { cwd, workspace },
+    MEDIA_PATH_REMEDY
+  );
   if (refusal) return refusal;
   await stageHostBinaryInputs(workspace, local);
   return { resolved, staged: stagedResult.staged };
@@ -2507,7 +2515,7 @@ const mediaEdit: CapabilityExport = {
     };
     const outputRefusal = await confineMediaPaths(
       [request.output],
-      cwd,
+      { cwd, workspace },
       MEDIA_PATH_REMEDY
     );
     if (outputRefusal) return outputRefusal;
@@ -2671,7 +2679,10 @@ const ytDlp: CapabilityExport = {
 
     // The template is the caller's, so it escapes the workspace as easily as
     // an edit path would. `format` reaches yt-dlp as a selector, never a path.
-    const refusal = await confineArgvToWorkspace([outputFile], cwd);
+    const refusal = await confineArgvToWorkspace([outputFile], {
+      cwd,
+      workspace
+    });
     if (refusal) return refusal;
     const flagLike =
       refuseFlagLikeValue(outputFile, "output_file") ??

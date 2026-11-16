@@ -29,6 +29,7 @@ import {
 } from "../src/storage-workspace.js";
 import {
   NestedFolders,
+  WorkspaceFolderCheckError,
   WorkspacePathError,
   WorkspaceReservedPathError,
   observeWorkspace,
@@ -681,6 +682,8 @@ describe.each(backends)(
         await expect(workspace.move("projects", `${path}/projects`)).rejects.toThrow(
           refused
         );
+        // A real path to the folder would let a host binary work in it.
+        await expect(workspace.materialize(path)).rejects.toThrow(refused);
         expect(await workspace.exists(path)).toBe(false);
 
         await expectNestedIntact();
@@ -768,6 +771,55 @@ describe.each(backends)(
       // One question per directory above the files: `Shots` and `Shots/day 1`.
       expect(first).toBe(2);
       expect(marker(isLocal ? stats.mock.calls : lists.mock.calls)).toBe(2);
+    });
+
+    it("takes a key as it is, also below a directory named workspace", async () => {
+      // `workspace/` at the start of a caller's path means the root. A key is
+      // past that reading: this folder is two directories deep.
+      await storage.store("workspace/abc/.nodetool/project.json", bytes("{}"));
+      await storage.store("workspace/abc/notes.txt", bytes("inner"));
+
+      expect(await workspace.isNestedFolder("workspace/abc")).toBe(true);
+      expect(
+        await new NestedFolders(workspace).holds("workspace/abc/notes.txt")
+      ).toBe(true);
+      await expect(
+        workspace.read("workspace/workspace/abc/notes.txt")
+      ).rejects.toThrow(WorkspaceReservedPathError);
+    });
+
+    it("refuses with a clear error while the host cannot name its folders, and never answers that a file is absent", async () => {
+      let broken = true;
+      const guarded = new StorageWorkspace(storage, {
+        nestedFolders: () => {
+          if (broken) throw new Error("SQLITE_BUSY: database is locked");
+          return [GAME];
+        }
+      });
+
+      for (const attempt of [
+        () => guarded.read("projects/readme.txt"),
+        () => guarded.write("projects/readme.txt", "overwritten"),
+        () => guarded.stat("projects/readme.txt"),
+        () => guarded.list("projects"),
+        () => guarded.deleteAll("projects"),
+        () => guarded.exists("projects/readme.txt"),
+        () => guarded.isNestedFolder("projects")
+      ]) {
+        const refusal = attempt();
+        await expect(refusal).rejects.toBeInstanceOf(WorkspaceFolderCheckError);
+        await expect(refusal).rejects.toThrow(/could not be checked/);
+        await expect(refusal).rejects.toThrow(/database is locked/);
+      }
+      expect(await stored("projects/readme.txt")).toBe("outer");
+
+      // The failure is not remembered: the next question is asked again.
+      broken = false;
+      expect(await guarded.exists("projects/readme.txt")).toBe(true);
+      expect(await guarded.readText("projects/readme.txt")).toBe("outer");
+      await expect(guarded.read(`${GAME}/sprite.txt`)).rejects.toThrow(
+        WorkspaceReservedPathError
+      );
     });
 
     it("sees a folder that became another project's after a short time", async () => {

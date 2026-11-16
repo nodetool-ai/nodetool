@@ -16,6 +16,10 @@
  *    pseudo-file — `://`, `concat:`, `pipe:`, `/dev/…` — is refused.
  * 2. **Nothing outside the workspace.** Every path is resolved against the
  *    workspace root and refused when it lands outside, symlinks resolved.
+ * 3. **Nothing in another project's folder.** A workspace can hold the folder
+ *    of another project or of a game. The `Workspace` refuses a path in one,
+ *    and a path handed to a host binary is refused by the same rule
+ *    (`assertLocalPathIsOwn`), since the binary never calls the workspace.
  *
  * The CPU/memory/disk half of the yt-dlp boundary lives in `host-binaries.ts`:
  * bounded output capture, a concurrency cap, the wall-clock timeout, and the
@@ -24,7 +28,50 @@
 
 import path from "node:path";
 
+import {
+  WorkspaceReservedPathError,
+  assertLocalPathIsOwn,
+  type Workspace
+} from "@nodetool-ai/runtime";
+
 import { isCreatableWithinRoot } from "./workspace-paths.js";
+
+/**
+ * Where a host binary runs: `cwd` is the real directory its paths resolve
+ * against, and `workspace` is the workspace that directory belongs to. A
+ * local workspace is `cwd` itself. A cloud one is staged into it, under the
+ * same relative paths.
+ */
+export interface HostBinaryRoot {
+  cwd: string;
+  workspace: Pick<Workspace, "isNestedFolder">;
+}
+
+/**
+ * The refusal for `shown` when the real path `resolved` is in the folder of
+ * another project inside the workspace, or undefined when it is the run's
+ * own. A check that cannot be made is a refusal too.
+ */
+async function otherFolderRefusal(
+  root: HostBinaryRoot,
+  resolved: string,
+  shown: string
+): Promise<ArgvRefusal | undefined> {
+  try {
+    await assertLocalPathIsOwn(root.workspace, root.cwd, resolved, shown);
+    return undefined;
+  } catch (error) {
+    if (error instanceof WorkspaceReservedPathError) {
+      return {
+        error:
+          `"${shown}" is in the folder of another project inside this ` +
+          `workspace. Its files belong to that project. Open that project ` +
+          `to use them.`
+      };
+    }
+    return { error: error instanceof Error ? error.message : String(error) };
+  }
+}
 
 /**
  * Substrings that name an opener other than a plain path. `://` covers every
@@ -92,6 +139,9 @@ function pathCandidates(arg: string): string[] {
  * Refuse argv that reaches past the workspace, or `undefined` when every
  * argument stays inside it.
  *
+ * A path in the folder of another project inside the workspace is refused
+ * as well.
+ *
  * Flags are skipped: a leading `-` is an option marker, so such an argument
  * is never a path; `yt_dlp` refuses a flag-like value separately
  * ({@link refuseFlagLikeValue}). Everything else — and every path-shaped piece of it, see
@@ -106,9 +156,10 @@ function pathCandidates(arg: string): string[] {
  */
 export async function confineArgvToWorkspace(
   argv: readonly string[],
-  workspace: string,
+  root: HostBinaryRoot,
   remedy = "Stage it in the workspace first, then pass the local path."
 ): Promise<ArgvRefusal | undefined> {
+  const workspace = root.cwd;
   for (const arg of argv) {
     const token = deniedToken(arg);
     if (token !== undefined) {
@@ -128,23 +179,27 @@ export async function confineArgvToWorkspace(
             `workspace-relative and cannot escape it.`
         };
       }
+      const other = await otherFolderRefusal(root, resolved, candidate);
+      if (other) return other;
     }
   }
   return undefined;
 }
 
 /**
- * Refuse a media path that names an opener or lands outside the workspace,
- * or `undefined` when every path stays inside it.
+ * Refuse a media path that names an opener, lands outside the workspace, or
+ * is in the folder of another project inside it, or `undefined` when every
+ * path is the run's own.
  *
  * Unlike {@link confineArgvToWorkspace} this takes whole paths, never argv,
  * so nothing is skipped as a flag: `-x/../../etc/passwd` is a path here.
  */
 export async function confineMediaPaths(
   paths: readonly string[],
-  workspace: string,
+  root: HostBinaryRoot,
   remedy: string
 ): Promise<ArgvRefusal | undefined> {
+  const workspace = root.cwd;
   for (const file of paths) {
     if (file.trim() === "") return { error: "A media path cannot be empty." };
     const token = deniedToken(file);
@@ -163,6 +218,8 @@ export async function confineMediaPaths(
           `workspace-relative and cannot escape it.`
       };
     }
+    const other = await otherFolderRefusal(root, resolved, file);
+    if (other) return other;
   }
   return undefined;
 }

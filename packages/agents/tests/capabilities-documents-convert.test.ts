@@ -7,13 +7,14 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { unzipSync, strFromU8 } from "fflate";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { createLocalWorkspace } from "@nodetool-ai/runtime";
 import {
   convertDocument,
   convertMarkdownToPdf
@@ -231,6 +232,69 @@ describe("convert_document", () => {
     expect(html).toContain("&lt;script&gt;");
     expect(html).not.toContain("javascript:");
     expect(html).toContain('href="https://example.com"');
+  });
+});
+
+describe("convert_document and the folder of another project", () => {
+  /** A game's workspace inside the run's folder. It has no `.nodetool/`. */
+  const GAME = "projects/game1";
+
+  /** A run whose workspace knows the game's folder from the host's rows. */
+  function runInFolder() {
+    const context = {
+      workspaceDir: workspace,
+      workspace: createLocalWorkspace(workspace, { nestedFolders: () => [GAME] }),
+      resolveWorkspacePath: (path: string) => resolve(workspace, path)
+    } as unknown as ProcessingContext;
+    return createCapabilityRun({ context, gate: UNGATED });
+  }
+
+  beforeAll(async () => {
+    await mkdir(join(workspace, GAME), { recursive: true });
+    await writeFile(join(workspace, GAME, "game.json"), '{"game":"source"}');
+    await writeFile(join(workspace, GAME, "notes.md"), MARKDOWN);
+  });
+
+  it("writes no output into the game's folder", async () => {
+    for (const output of [`${GAME}/game.json`, `${GAME}/out/report.html`]) {
+      const result = (await convertDocument.impl(runInFolder(), {
+        input_file: "report.md",
+        output_file: output,
+        from_format: "markdown",
+        to_format: "html"
+      })) as { status?: string; error?: string };
+      expect(result.status).not.toBe("success");
+      expect(result.error).toMatch(/folder of another project/);
+    }
+
+    expect(await readFile(join(workspace, GAME, "game.json"), "utf8")).toBe(
+      '{"game":"source"}'
+    );
+    expect(existsSync(join(workspace, GAME, "out"))).toBe(false);
+  });
+
+  it("reads no input from the game's folder", async () => {
+    const result = (await convertDocument.impl(runInFolder(), {
+      input_file: `${GAME}/notes.md`,
+      output_file: "out/stolen.html",
+      from_format: "markdown",
+      to_format: "html"
+    })) as { status?: string; error?: string };
+
+    expect(result.error).toMatch(/folder of another project/);
+    expect(existsSync(join(workspace, "out/stolen.html"))).toBe(false);
+  });
+
+  it("still converts beside the game's folder", async () => {
+    const result = (await convertDocument.impl(runInFolder(), {
+      input_file: "report.md",
+      output_file: "projects/report.html",
+      from_format: "markdown",
+      to_format: "html"
+    })) as { status?: string; error?: string };
+
+    expect(result.error).toBeUndefined();
+    expect(existsSync(join(workspace, "projects/report.html"))).toBe(true);
   });
 });
 

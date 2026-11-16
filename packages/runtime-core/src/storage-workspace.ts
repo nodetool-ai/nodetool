@@ -15,6 +15,7 @@ import { withTaskSpan } from "./tracing.js";
 import {
   NestedFolders,
   RESERVED_WORKSPACE_DIR,
+  WorkspaceFolderCheckError,
   WorkspacePathError,
   WorkspaceReservedPathError,
   isReservedWorkspaceKey,
@@ -74,11 +75,20 @@ function stripWorkspacePrefix(path: string): string {
 
 /** Normalize to a key: no `.`/`..` segments, no leading or trailing slash. */
 function normalize(path: string): string {
+  return normalizeKey(stripWorkspacePrefix(path), path);
+}
+
+/**
+ * {@link normalize} for a string that is a key already: the prefixes a caller
+ * may write a path with are not stripped, so a directory named `workspace`
+ * stays one. `shown` is the path an error names.
+ */
+function normalizeKey(key: string, shown = key): string {
   const segments: string[] = [];
-  for (const segment of stripWorkspacePrefix(path).split("/")) {
+  for (const segment of key.replaceAll("\\", "/").split("/")) {
     if (!segment || segment === ".") continue;
     if (segment === "..") {
-      if (segments.length === 0) throw new WorkspacePathError(path);
+      if (segments.length === 0) throw new WorkspacePathError(shown);
       segments.pop();
       continue;
     }
@@ -186,14 +196,43 @@ function isFresh<T>(remembered: Remembered<T> | null | undefined): remembered is
 const nodeFs = getNodeBuiltinSync<typeof import("node:fs")>("node:fs");
 
 /**
+ * Refuse the real path `target` when it is the folder of another project
+ * inside `workspace`, or lies in one. `root` is the real directory the
+ * workspace's keys are relative to: its folder, or the scratch directory its
+ * files are staged in. `shown` is the path the refusal names.
+ *
+ * For code that opens a real path itself instead of calling the workspace: a
+ * host binary, libav, `node:fs`. The rule is the workspace's own, asked
+ * through {@link NestedFolders}, so a folder known by its `.nodetool/`
+ * directory and one the host names are refused alike. Containment in `root`
+ * is the caller's check: a path outside it is not judged here.
+ */
+export async function assertLocalPathIsOwn(
+  workspace: Pick<Workspace, "isNestedFolder">,
+  root: string,
+  target: string,
+  shown = target
+): Promise<void> {
+  const { path } = requireNode();
+  const inside = path.relative(path.resolve(root), path.resolve(target));
+  // The root is the folder itself, which is never another project's.
+  if (!inside || inside.startsWith("..") || path.isAbsolute(inside)) return;
+  const key = inside.split(path.sep).join("/");
+  if (await new NestedFolders(workspace).covers(key)) {
+    throw new WorkspaceReservedPathError(shown, "nested");
+  }
+}
+
+/**
  * Whether the real path `root`/`key` is, or lies in, a directory that holds
  * a reserved directory: the folder of another project inside the workspace
  * rooted at `root`. The root itself never counts.
  *
- * The twin of {@link StorageWorkspace.isNestedFolder} for the tools that
- * resolve a real path synchronously instead of using the interface. It reads
+ * A floor under {@link assertLocalPathIsOwn} for a path that is resolved
+ * synchronously, or by a run that has a directory and no workspace. It reads
  * the mark on disk only. A folder the host names without that mark, such as
- * a game's workspace, is known to the workspace alone.
+ * a game's workspace, is known to the workspace alone, so whatever opens the
+ * resolved path calls {@link assertLocalPathIsOwn} as well.
  */
 export function localPathIsInNestedFolder(root: string, key: string): boolean {
   if (!nodeFs || !nodePath) return false;
@@ -268,7 +307,7 @@ export class StorageWorkspace implements Workspace {
         for (const path of paths) {
           try {
             // An empty key is the root, which is this folder itself.
-            const key = normalize(path);
+            const key = normalizeKey(path);
             if (key) keys.add(key.toLowerCase());
           } catch {
             // A path outside the workspace names no directory in it.
@@ -369,7 +408,7 @@ export class StorageWorkspace implements Workspace {
   async isNestedFolder(path: string): Promise<boolean> {
     let key: string;
     try {
-      key = normalize(path);
+      key = normalizeKey(path);
     } catch (error) {
       if (error instanceof WorkspacePathError) return false;
       throw error;
@@ -377,12 +416,22 @@ export class StorageWorkspace implements Workspace {
     return this.isNestedKey(key);
   }
 
-  /** {@link isNestedFolder} for a normalized key. The root is never one. */
+  /**
+   * {@link isNestedFolder} for a normalized key. The root is never one.
+   *
+   * When the host cannot name its folders, or the storage cannot be asked,
+   * the answer is unknown and could be yes. That is a
+   * {@link WorkspaceFolderCheckError}, never "no".
+   */
   private async isNestedKey(key: string): Promise<boolean> {
     if (!key || isReservedWorkspaceKey(key)) return false;
-    // Compared without case, as the reserved directory is.
-    if ((await this.declaredNested()).has(key.toLowerCase())) return true;
-    return this.hasReservedDirectory(key);
+    try {
+      // Compared without case, as the reserved directory is.
+      if ((await this.declaredNested()).has(key.toLowerCase())) return true;
+      return await this.hasReservedDirectory(key);
+    } catch (error) {
+      throw new WorkspaceFolderCheckError(key, error);
+    }
   }
 
   /**
@@ -617,8 +666,17 @@ export class StorageWorkspace implements Workspace {
   async exists(path: string): Promise<boolean> {
     try {
       await this.assertContained(path);
-    } catch {
-      return false;
+    } catch (error) {
+      // A path the workspace refuses holds nothing a caller can use. A check
+      // that could not be made says nothing about the file, so it is not
+      // answered with "absent".
+      if (
+        error instanceof WorkspacePathError ||
+        error instanceof WorkspaceReservedPathError
+      ) {
+        return false;
+      }
+      throw error;
     }
     if (!(await this.storage.exists(this.uri(path)))) return false;
     // A real directory answers as existing, and can be another folder.
@@ -848,7 +906,9 @@ export class StorageWorkspace implements Workspace {
   }
 
   private async stage(path: string): Promise<string> {
-    await this.assertContained(path);
+    // As a directory: on a local workspace the answer is a real path, and
+    // the real directory of a nested folder is not handed out either.
+    await this.assertContained(path, true);
     const key = this.key(path);
     if (this.localDir) return resolvePath(this.localDir, key);
     const bytes = await this.read(key);

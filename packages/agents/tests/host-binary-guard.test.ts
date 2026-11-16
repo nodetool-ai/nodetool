@@ -10,6 +10,7 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createLocalWorkspace, type Workspace } from "@nodetool-ai/runtime";
 import { createDirectoryLink } from "./_helpers/filesystem-links.js";
 import {
   MAX_DOWNLOAD_BYTES,
@@ -35,12 +36,43 @@ afterEach(async () => {
   await rm(path.dirname(workspace), { recursive: true, force: true });
 });
 
+/** The directory a host binary runs in, with the workspace it belongs to. */
+function hostRoot(): { cwd: string; workspace: Workspace } {
+  return {
+    cwd: workspace,
+    // A game's workspace has no `.nodetool/`: the host names it.
+    workspace: createLocalWorkspace(workspace, {
+      nestedFolders: () => ["games/tetris"]
+    })
+  };
+}
+
 async function refusal(argv: string[]): Promise<string> {
-  const result = await confineArgvToWorkspace(argv, workspace);
+  const result = await confineArgvToWorkspace(argv, hostRoot());
   return result?.error ?? "";
 }
 
+/** Give the workspace the folder of another project and a game's folder. */
+async function makeOtherFolders(): Promise<void> {
+  await mkdir(path.join(workspace, "projects/abc/.nodetool"), { recursive: true });
+  await mkdir(path.join(workspace, "projects/abc/Generated"), { recursive: true });
+  await writeFile(path.join(workspace, "projects/abc/Generated/fox.mp4"), "fox");
+  await mkdir(path.join(workspace, "games/tetris"), { recursive: true });
+  await writeFile(path.join(workspace, "games/tetris/clip.mp4"), "clip");
+  await writeFile(path.join(workspace, "projects/own.mp4"), "own");
+}
+
 describe("confineArgvToWorkspace", () => {
+  it.each([
+    ["projects/abc/Generated/%(title)s.%(ext)s"],
+    ["-i", "games/tetris/clip.mp4"],
+    ["-vf", "subtitles=projects/abc/Generated/fox.mp4"],
+    ["-o", "games/tetris/%(title)s.%(ext)s"]
+  ])("refuses argv that reaches the folder of another project or of a game: %j", async (...argv) => {
+    await makeOtherFolders();
+    expect(await refusal(argv)).toMatch(/folder of another project/);
+  });
+
   it("passes argv that stays inside the workspace", async () => {
     await writeFile(path.join(workspace, "in.mp4"), "x");
     expect(
@@ -118,7 +150,28 @@ describe("confineArgvToWorkspace", () => {
 
 describe("confineMediaPaths", () => {
   const refusal = async (paths: string[]): Promise<string> =>
-    (await confineMediaPaths(paths, workspace, "Name a workspace file."))?.error ?? "";
+    (await confineMediaPaths(paths, hostRoot(), "Name a workspace file."))?.error ?? "";
+
+  it.each([
+    "projects/abc/Generated/fox.mp4",
+    "projects/abc/Generated/new.mp4",
+    "projects/abc",
+    "projects/../projects/abc/Generated/fox.mp4",
+    "games/tetris/clip.mp4",
+    "games/tetris/new/clip.mp4",
+    "games/tetris"
+  ])("refuses %s, a path in the folder of another project or of a game", async (file) => {
+    await makeOtherFolders();
+    expect(await refusal([file])).toMatch(/folder of another project/);
+    expect(await refusal([path.join(workspace, file)])).toMatch(
+      /folder of another project/
+    );
+  });
+
+  it("still passes a file beside the folder of another project", async () => {
+    await makeOtherFolders();
+    expect(await refusal(["projects/own.mp4", "projects/new.mp4", "games"])).toBe("");
+  });
 
   it("refuses a path that leaves the workspace, a flag-shaped one included", async () => {
     expect(await refusal(["../outside/secret.txt"])).toMatch(/outside the workspace/);

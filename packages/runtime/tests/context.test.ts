@@ -31,6 +31,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 const portablePath = (value: string): string => value.replace(/^\/private/, "");
 import { tmpdir } from "node:os";
+import { createLocalWorkspace } from "../src/storage-workspace.js";
 import { fileURLToPath } from "node:url";
 
 describe("ProcessingContext – message queue", () => {
@@ -660,6 +661,43 @@ describe("workspace path resolution", () => {
         resolve(root, "projects/plain/notes.txt")
       );
       expect(resolveWorkspacePath(root, "projects")).toBe(resolve(root, "projects"));
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses a sandbox file in a folder the workspace names by its rows alone", async () => {
+    // A game's workspace has no `.nodetool/`. Only the workspace knows it.
+    const root = await mkdtemp(join(tmpdir(), "nodetool-ctx-game-"));
+    try {
+      await mkdir(join(root, "projects", "game1"), { recursive: true });
+      await writeFile(join(root, "projects", "game1", "src.json"), "{}");
+      await writeFile(join(root, "projects", "own.json"), "{}");
+      const ctx = new ProcessingContext({
+        jobId: "j1",
+        workspace: createLocalWorkspace(root, {
+          nestedFolders: () => ["projects/game1"]
+        })
+      });
+
+      for (const path of [
+        "projects/game1/src.json",
+        join(root, "projects", "game1", "src.json")
+      ]) {
+        await expect(ctx.sandboxToAsset(path)).rejects.toThrow(
+          "folder of another project"
+        );
+        await expect(ctx.assetToSandbox("asset-1", path)).rejects.toThrow(
+          "folder of another project"
+        );
+      }
+      expect(
+        await readFile(join(root, "projects", "game1", "src.json"), "utf8")
+      ).toBe("{}");
+      // A file beside the game's folder is still the run's own.
+      await expect(ctx.sandboxToAsset("projects/own.json")).rejects.not.toThrow(
+        "folder of another project"
+      );
     } finally {
       await rm(root, { recursive: true, force: true });
     }
