@@ -19087,6 +19087,26 @@
       "typeMore": "कम से कम 2 अक्षर लिखें",
       "noMatches": "कोई मेल नहीं",
       "failed": "पहुंच नहीं दी जा सकी।"
+    },
+    "options": {
+      "history": "इतिहास",
+      "historyDescription": "दर्शक सहेजे गए संस्करण खोल सकते हैं।",
+      "download": "डाउनलोड",
+      "downloadDescription": "दर्शक मूल फ़ाइलें डाउनलोड कर सकते हैं।",
+      "duplicate": "डुप्लिकेट",
+      "duplicateDescription": "दर्शक इसे इसकी फ़ाइलों सहित अपनी लाइब्रेरी में कॉपी कर सकते हैं।",
+      "turnedOff": "जो पहले से डाउनलोड या डुप्लिकेट किया गया है, वह लोगों के पास रहता है।",
+      "historyOffNotice": "इस लिंक के दर्शक अब सहेजे गए संस्करण नहीं देखते। उन्हें वापस देने के लिए इतिहास चालू करें।",
+      "turnOnHistory": "इतिहास चालू करें",
+      "dismiss": "खारिज करें",
+      "failed": "विकल्प नहीं बदले जा सके।"
+    },
+    "people": {
+      "from": "{{sources}} से पहुँच",
+      "sourceInvitation": "आमंत्रण",
+      "sourceViewLink": "देखने का लिंक",
+      "sourceEditLink": "संपादन लिंक",
+      "sourceDisabled": "{{source}} (अक्षम)"
     }
   },
   "timelineAutomation": {

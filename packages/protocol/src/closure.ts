@@ -29,6 +29,8 @@ export const DOCUMENT_REF_SCOPES = [
 ] as const;
 export type DocumentRefScope = (typeof DOCUMENT_REF_SCOPES)[number];
 
+import { isRecord, isString } from "./predicates.js";
+
 const ASSET_ID = /^[0-9a-f]{32}$/;
 
 /** A field whose value is asset ids: `assetId`, `asset_ids`, `sourceVideoAssetId`, … */
@@ -59,7 +61,7 @@ function addFromString(value: string, found: Set<string>): void {
 }
 
 function addIds(value: unknown, found: Set<string>): void {
-  if (typeof value === "string") {
+  if (isString(value)) {
     if (ASSET_ID.test(value)) found.add(value);
   } else if (Array.isArray(value)) {
     for (const item of value) addIds(item, found);
@@ -71,19 +73,14 @@ function collect(content: unknown): Set<string> {
   const pending: unknown[] = [content];
   while (pending.length > 0) {
     const current = pending.pop();
-    if (typeof current === "string") {
+    if (isString(current)) {
       addFromString(current, found);
     } else if (Array.isArray(current)) {
       for (const item of current) pending.push(item);
-    } else if (current !== null && typeof current === "object") {
+    } else if (isRecord(current)) {
       for (const [key, child] of Object.entries(current)) {
         if (ASSET_ID_KEY.test(key)) addIds(child, found);
-        if (
-          BY_ASSET_ID_KEY.test(key) &&
-          child !== null &&
-          typeof child === "object" &&
-          !Array.isArray(child)
-        ) {
+        if (BY_ASSET_ID_KEY.test(key) && isRecord(child)) {
           for (const id of Object.keys(child)) {
             if (ASSET_ID.test(id)) found.add(id);
           }
@@ -111,7 +108,7 @@ export function refsOf(kind: RefDocumentKind, content: unknown): string[] {
     throw new Error(`No reference set function for ${String(kind)}`);
   }
   let value = content;
-  if (typeof content === "string") {
+  if (isString(content)) {
     try {
       value = JSON.parse(content) as unknown;
     } catch {

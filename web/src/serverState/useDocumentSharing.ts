@@ -10,7 +10,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { documentSharing } from "@nodetool-ai/protocol/api-schemas";
 import { trpcClient } from "../trpc/client";
-import type { CollaboratorRole } from "./useWorkflowSharing";
+import type {
+  CollaboratorRole,
+  ShareOptionsPatch
+} from "./useWorkflowSharing";
 
 export type SharedDocumentType = documentSharing.SharedDocumentTypeValue;
 
@@ -115,7 +118,46 @@ export const useDocumentSharing = (
     onSuccess: invalidate
   });
 
-  return { query, createLink, revokeLink, setRole, removeCollaborator, invite };
+  const setLinkOptions = useMutation({
+    mutationFn: (opts: { shareId: string; options: ShareOptionsPatch }) =>
+      trpcClient.documentSharing.setLinkOptions.mutate({
+        ...ref(),
+        share_id: opts.shareId,
+        options: opts.options
+      }),
+    onSuccess: invalidate
+  });
+
+  const setInvitationOptions = useMutation({
+    mutationFn: (opts: { userId: string; options: ShareOptionsPatch }) =>
+      trpcClient.documentSharing.setInvitationOptions.mutate({
+        ...ref(),
+        user_id: opts.userId,
+        options: opts.options
+      }),
+    onSuccess: invalidate
+  });
+
+  const dismissNotice = useMutation({
+    mutationFn: (shareId: string) =>
+      trpcClient.documentSharing.dismissNotice.mutate({
+        ...ref(),
+        share_id: shareId
+      }),
+    onSuccess: invalidate
+  });
+
+  return {
+    query,
+    createLink,
+    revokeLink,
+    setRole,
+    removeCollaborator,
+    invite,
+    setLinkOptions,
+    setInvitationOptions,
+    dismissNotice
+  };
 };
 
 /** Redeem a document share token; resolves to the document and the role. */

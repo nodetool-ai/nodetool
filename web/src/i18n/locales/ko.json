@@ -19087,6 +19087,26 @@
       "typeMore": "2자 이상 입력하세요",
       "noMatches": "일치하는 사용자가 없습니다",
       "failed": "액세스 권한을 줄 수 없습니다."
+    },
+    "options": {
+      "history": "기록",
+      "historyDescription": "보기 권한자가 저장된 버전을 열 수 있습니다.",
+      "download": "다운로드",
+      "downloadDescription": "보기 권한자가 원본 파일을 다운로드할 수 있습니다.",
+      "duplicate": "복제",
+      "duplicateDescription": "보기 권한자가 파일과 함께 자신의 라이브러리로 복사할 수 있습니다.",
+      "turnedOff": "이미 다운로드하거나 복제한 항목은 그대로 남습니다.",
+      "historyOffNotice": "이 링크의 보기 권한자는 더 이상 저장된 버전을 볼 수 없습니다. 기록을 켜면 다시 볼 수 있습니다.",
+      "turnOnHistory": "기록 켜기",
+      "dismiss": "닫기",
+      "failed": "옵션을 변경할 수 없습니다."
+    },
+    "people": {
+      "from": "{{sources}}을(를) 통한 접근",
+      "sourceInvitation": "초대",
+      "sourceViewLink": "보기 링크",
+      "sourceEditLink": "편집 링크",
+      "sourceDisabled": "{{source}}(비활성화됨)"
     }
   },
   "timelineAutomation": {

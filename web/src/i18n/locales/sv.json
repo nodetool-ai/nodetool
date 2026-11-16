@@ -19087,6 +19087,26 @@
       "typeMore": "Skriv minst 2 tecken",
       "noMatches": "Ingen träff",
       "failed": "Kunde inte ge åtkomst."
+    },
+    "options": {
+      "history": "Historik",
+      "historyDescription": "Läsare kan öppna sparade versioner.",
+      "download": "Nedladdning",
+      "downloadDescription": "Läsare kan ladda ner originalfilerna.",
+      "duplicate": "Duplicering",
+      "duplicateDescription": "Läsare kan kopiera det med filerna till sitt eget bibliotek.",
+      "turnedOff": "Det som redan har laddats ner eller duplicerats behåller folk.",
+      "historyOffNotice": "Läsare av den här länken ser inte längre sparade versioner. Slå på historik för att ge tillbaka dem.",
+      "turnOnHistory": "Slå på historik",
+      "dismiss": "Stäng",
+      "failed": "Det gick inte att ändra alternativen."
+    },
+    "people": {
+      "from": "Åtkomst via {{sources}}",
+      "sourceInvitation": "inbjudan",
+      "sourceViewLink": "visningslänk",
+      "sourceEditLink": "redigeringslänk",
+      "sourceDisabled": "{{source}} (inaktiverad)"
     }
   },
   "timelineAutomation": {

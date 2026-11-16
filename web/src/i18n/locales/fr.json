@@ -19397,6 +19397,26 @@
       "typeMore": "Saisissez au moins 2 caractères",
       "noMatches": "Aucun résultat",
       "failed": "Impossible de donner l'accès."
+    },
+    "options": {
+      "history": "Historique",
+      "historyDescription": "Les lecteurs peuvent ouvrir les versions enregistrées.",
+      "download": "Téléchargement",
+      "downloadDescription": "Les lecteurs peuvent télécharger les fichiers originaux.",
+      "duplicate": "Duplication",
+      "duplicateDescription": "Les lecteurs peuvent le copier avec ses fichiers dans leur propre bibliothèque.",
+      "turnedOff": "Les personnes gardent ce qu’elles ont déjà téléchargé ou dupliqué.",
+      "historyOffNotice": "Les lecteurs de ce lien ne voient plus les versions enregistrées. Activez l’historique pour les leur rendre.",
+      "turnOnHistory": "Activer l’historique",
+      "dismiss": "Ignorer",
+      "failed": "Impossible de modifier les options."
+    },
+    "people": {
+      "from": "Accès via {{sources}}",
+      "sourceInvitation": "invitation",
+      "sourceViewLink": "lien de lecture",
+      "sourceEditLink": "lien de modification",
+      "sourceDisabled": "{{source}} (désactivé)"
     }
   },
   "timelineAutomation": {

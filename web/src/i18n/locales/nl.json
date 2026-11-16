@@ -19087,6 +19087,26 @@
       "typeMore": "Typ minstens 2 tekens",
       "noMatches": "Niemand gevonden",
       "failed": "Kon geen toegang geven."
+    },
+    "options": {
+      "history": "Geschiedenis",
+      "historyDescription": "Kijkers kunnen opgeslagen versies openen.",
+      "download": "Downloaden",
+      "downloadDescription": "Kijkers kunnen de originele bestanden downloaden.",
+      "duplicate": "Dupliceren",
+      "duplicateDescription": "Kijkers kunnen het met de bestanden naar hun eigen bibliotheek kopiëren.",
+      "turnedOff": "Wat al gedownload of gedupliceerd is, houden mensen.",
+      "historyOffNotice": "Kijkers van deze link zien geen opgeslagen versies meer. Zet geschiedenis aan om ze terug te geven.",
+      "turnOnHistory": "Geschiedenis aanzetten",
+      "dismiss": "Sluiten",
+      "failed": "De opties konden niet worden gewijzigd."
+    },
+    "people": {
+      "from": "Toegang via {{sources}}",
+      "sourceInvitation": "uitnodiging",
+      "sourceViewLink": "bekijklink",
+      "sourceEditLink": "bewerklink",
+      "sourceDisabled": "{{source}} (uitgeschakeld)"
     }
   },
   "timelineAutomation": {

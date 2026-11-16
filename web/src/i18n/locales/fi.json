@@ -19087,6 +19087,26 @@
       "typeMore": "Kirjoita vähintään 2 merkkiä",
       "noMatches": "Ei osumia",
       "failed": "Käyttöoikeutta ei voitu antaa."
+    },
+    "options": {
+      "history": "Historia",
+      "historyDescription": "Katselijat voivat avata tallennetut versiot.",
+      "download": "Lataus",
+      "downloadDescription": "Katselijat voivat ladata alkuperäiset tiedostot.",
+      "duplicate": "Kopiointi",
+      "duplicateDescription": "Katselijat voivat kopioida sen tiedostoineen omaan kirjastoonsa.",
+      "turnedOff": "Jo ladattu tai kopioitu sisältö jää ihmisille.",
+      "historyOffNotice": "Tämän linkin katselijat eivät enää näe tallennettuja versioita. Ota historia käyttöön palauttaaksesi ne.",
+      "turnOnHistory": "Ota historia käyttöön",
+      "dismiss": "Sulje",
+      "failed": "Asetuksia ei voitu muuttaa."
+    },
+    "people": {
+      "from": "Pääsy: {{sources}}",
+      "sourceInvitation": "kutsu",
+      "sourceViewLink": "katselulinkki",
+      "sourceEditLink": "muokkauslinkki",
+      "sourceDisabled": "{{source}} (poistettu käytöstä)"
     }
   },
   "timelineAutomation": {

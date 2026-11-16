@@ -19087,6 +19087,26 @@
       "typeMore": "2文字以上入力してください",
       "noMatches": "一致するユーザーがいません",
       "failed": "アクセスを付与できませんでした。"
+    },
+    "options": {
+      "history": "履歴",
+      "historyDescription": "閲覧者は保存済みのバージョンを開けます。",
+      "download": "ダウンロード",
+      "downloadDescription": "閲覧者は元のファイルをダウンロードできます。",
+      "duplicate": "複製",
+      "duplicateDescription": "閲覧者はファイルごと自分のライブラリにコピーできます。",
+      "turnedOff": "すでにダウンロードまたは複製されたものは相手の手元に残ります。",
+      "historyOffNotice": "このリンクの閲覧者は保存済みのバージョンを表示できなくなりました。履歴をオンにすると元に戻ります。",
+      "turnOnHistory": "履歴をオンにする",
+      "dismiss": "閉じる",
+      "failed": "オプションを変更できませんでした。"
+    },
+    "people": {
+      "from": "アクセス元: {{sources}}",
+      "sourceInvitation": "招待",
+      "sourceViewLink": "閲覧リンク",
+      "sourceEditLink": "編集リンク",
+      "sourceDisabled": "{{source}}（無効）"
     }
   },
   "timelineAutomation": {
