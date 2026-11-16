@@ -1,4 +1,5 @@
 #include "ui/EditorWindow.h"
+#include "EntryMenuSupport.h"
 #include "graph/EditorScene.h"
 #include "server/MsgPack.h"
 #include "FakeRunServer.h"
@@ -131,6 +132,18 @@ private slots:
     answerClose(QMessageBox::Discard); QVERIFY(click(window, "close-tab-0"));
     QVERIFY(guarded.isNull()); QTest::qWait(60); QVERIFY(!delivered);
     QCOMPARE(window.workflowTabs().size(), 1); QVERIFY(window.document()->nodes().isEmpty()); QVERIFY(window.runOutput()->entries().isEmpty());
+  }
+  // The arrow next to + offers each kind of new tab, as the web OpenMenu does.
+  void newTabMenuOffersAComfyWorkflow() {
+    EditorWindow window; window.show();
+    QVERIFY(click(window, "new-workflow-menu"));
+    QTRY_VERIFY(entry_menu::host(window, "new-tab-menu"));
+    auto *menu = entry_menu::host(window, "new-tab-menu");
+    QCOMPARE(entry_menu::labels(menu), (QStringList{"New Workflow", "New Comfy Workflow"}));
+    // A Comfy workflow is made on the server, so it needs a connection.
+    QCOMPARE(entry_menu::entry(menu, "New Comfy Workflow")["enabled"].toBool(), false);
+    QVERIFY(entry_menu::click(menu, "new-workflow"));
+    QTRY_COMPARE(window.workflowTabs().size(), 2);
   }
   void lateUploadAfterClose() {
     QTcpServer server; QVERIFY(server.listen(QHostAddress::LocalHost));

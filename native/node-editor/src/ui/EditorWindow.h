@@ -153,6 +153,7 @@ public:
     void dropTab(int source, int target, bool after);
     void showTabMenu(int index, const QPointF &global);
     void showProjectMenu(const QPointF &global);
+    void showNewTabMenu(const QPointF &global);
     Q_INVOKABLE void closeOtherTabs(int index);
     Q_INVOKABLE void closeAllTabs();
     void renameTab(int index, const QString &name);

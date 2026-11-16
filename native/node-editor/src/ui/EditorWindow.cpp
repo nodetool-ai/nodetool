@@ -277,6 +277,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&documentTabs_, &node_editor::DocumentTabs::renameTabRequested, this, &EditorWindow::renameTab);
   connect(&documentTabs_, &node_editor::DocumentTabs::tabMenuRequested, this, &EditorWindow::showTabMenu);
   connect(&documentTabs_, &node_editor::DocumentTabs::projectMenuRequested, this, &EditorWindow::showProjectMenu);
+  connect(&documentTabs_, &node_editor::DocumentTabs::newTabMenuRequested, this, &EditorWindow::showNewTabMenu);
   connect(&documentTabs_, &node_editor::DocumentTabs::toolTipRequested, this, &EditorWindow::showTabToolTip);
   connect(&documentTabs_, &node_editor::DocumentTabs::stripScrolled, this, &EditorWindow::setTabStripOffset);
   connect(&documentTabs_, &node_editor::DocumentTabs::activateSurfaceRequested, this, &EditorWindow::activateSurface);

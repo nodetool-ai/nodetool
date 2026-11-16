@@ -797,6 +797,32 @@ void EditorWindow::showProjectMenu(const QPointF &global) {
         active->browser_.loadProjects();
     }
 }
+void EditorWindow::showNewTabMenu(const QPointF &global) {
+    auto owner = tabOwner_ ? tabOwner_ : this;
+    auto host = tabOwner_ ? this : owner->activeEditor_;
+    if (!host) {
+        return;
+    }
+    EntryMenuRequest request;
+    request.kind = "new-tab-menu";
+    request.global = global.toPoint();
+    request.entries = {QVariantMap{{"id", "new-workflow"}, {"label", tr("New Workflow")}},
+                       QVariantMap{{"id", "new-comfy-workflow"}, {"label", tr("New Comfy Workflow")},
+                                   {"enabled", owner->comfyBackend()->configured()}}};
+    request.guardDocument = false;
+    request.deferChoice = true;
+    request.choose = [owner = QPointer<EditorWindow>(owner)](const QString &id) {
+        if (!owner) {
+            return;
+        }
+        if (id == QLatin1String("new-comfy-workflow")) {
+            owner->newComfyWorkflow();
+        } else {
+            owner->newTab();
+        }
+    };
+    host->showEntryMenu(request);
+}
 // Personal comes first, then the named projects and any project with an
 // open document, as in web/src/components/projects/ProjectSelector.tsx.
 QVariantList EditorWindow::projectEntries() const {
