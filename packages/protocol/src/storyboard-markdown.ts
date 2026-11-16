@@ -118,7 +118,9 @@ const ID = STORYBOARD_MARKDOWN_ID;
 const ENTITY_LINK = new RegExp(`\\[([^\\]\\n]+)\\]\\(entity://(${ID})\\)|(?<![\\w(])entity://(${ID})`, "g");
 const SHOT_LINK = new RegExp(`\\[([^\\]\\n]*)\\]\\(#(${ID})\\)`, "g");
 const IMAGE = /^\s*!\[([^\]\n]*)\]\(([^)\s]+)\)\s*$/;
-const VIDEO_EXT = /\.(mp4|webm|mov|m4v|mkv)(?:[?#].*)?$/i;
+const VIDEO_EXT = /\.(mp4|webm|mov|m4v|mkv)$/i;
+/** A media reference names a video file: its path, without query or fragment, ends in a video extension. */
+const isVideoUri = (uri: string): boolean => VIDEO_EXT.test(uri.split(/[?#]/, 1)[0]);
 
 /** Field labels, the first label of each key being the one written out. */
 const SHOT_FIELDS: ReadonlyArray<readonly [string, string]> = [
@@ -218,10 +220,11 @@ interface HeadingMatch {
   anchor: { id: string; start: number; text: string } | null;
 }
 export function matchStoryboardHeading(text: string): HeadingMatch | null {
-  const m = /^(\s*(#{1,6})\s+)(.*)$/.exec(text);
+  const m = /^(\s*(#{1,6})\s+)/.exec(text);
   if (!m) return null;
-  const anchor = findAnchor(m[3]);
-  const body = withoutAnchor(m[3], anchor);
+  const rest = text.slice(m[1].length);
+  const anchor = findAnchor(rest);
+  const body = withoutAnchor(rest, anchor);
   const level = m[2].length;
   // A typed shot number is ignored: numbers are computed.
   const prefix = level >= 3 ? (/^(\d+\s*[.)]\s*)/.exec(body)?.[1] ?? "") : "";
@@ -244,18 +247,19 @@ interface FieldMatch {
   bodyStart: number;
 }
 export function matchStoryboardField(text: string): FieldMatch | null {
-  let m = /^(\s*(?:[-*•]\s+)?\*\*)([^*:\n]{1,40}?)(:\*\*|\*\*\s*:)(\s*)(.*)$/.exec(text);
+  // Each pattern matches the syntax only; the value is the rest of the line.
+  let m = /^(\s*(?:[-*•]\s+)?\*\*)([^*:\n]{1,40}?)(:\*\*|\*\*\s*:)(\s*)/.exec(text);
   if (!m) {
-    m = /^(\s*(?:[-*•]\s+)?)([A-Za-z][A-Za-z /]{0,30}?)(:)(\s*)(.*)$/.exec(text);
+    m = /^(\s*(?:[-*•]\s+)?)([A-Za-z][A-Za-z /]{0,30}?)(:)(\s*)/.exec(text);
     // "Note: …" in prose stays prose unless the label is one the grammar knows.
     if (!m || !KNOWN_LABELS.has(m[2].trim().toLowerCase())) return null;
   }
-  return { pre: m[1], label: m[2], post: m[3], gap: m[4], body: m[5], bodyStart: m[1].length + m[2].length + m[3].length + m[4].length };
+  return { pre: m[1], label: m[2], post: m[3], gap: m[4], body: text.slice(m[0].length), bodyStart: m[0].length };
 }
 
 const matchImage = (text: string): { uri: string; video: boolean } | null => {
   const m = IMAGE.exec(text);
-  return m ? { uri: m[2], video: VIDEO_EXT.test(m[2]) || /^clip\b/i.test(m[1].trim()) } : null;
+  return m ? { uri: m[2], video: isVideoUri(m[2]) || /^clip\b/i.test(m[1].trim()) } : null;
 };
 
 /** Entity mentions in a value, and the value with each mention written as its name. */
@@ -330,8 +334,8 @@ export function tokenizeStoryboardLine(text: string, entities?: StoryboardMarkdo
       if (anchor) { inline(field.body.slice(0, anchor.index)); push("id", anchor.text); inline(field.body.slice(anchor.index + anchor.length)); }
       else inline(field.body);
     } else {
-      const bullet = /^(\s*[-*•]\s+)(.*)$/.exec(text);
-      if (bullet) { push("syntax", bullet[1]); inline(bullet[2]); } else inline(text);
+      const bullet = /^\s*[-*•]\s+/.exec(text);
+      if (bullet) { push("syntax", bullet[0]); inline(text.slice(bullet[0].length)); } else inline(text);
     }
   }
   return out.map((t) => t.text).join("") === text ? out : text ? [{ kind: "text", text }] : [];

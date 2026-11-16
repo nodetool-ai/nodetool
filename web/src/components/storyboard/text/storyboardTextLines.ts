@@ -164,9 +164,11 @@ export function $replaceRange(range: LineRange, expected: string, replacement: s
   }
   // A selection made with the mouse often takes a space at either end; the
   // replacement keeps it, so the passage does not run into its neighbours.
-  const lead = /^\s*/.exec(expected)?.[0] ?? "";
-  const trail = /\s*$/.exec(expected)?.[0] ?? "";
-  const body = (oneLine ? replacement.replace(/\s*\n\s*/g, " ") : replacement).trim();
+  const lead = expected.slice(0, expected.length - expected.trimStart().length);
+  const trail = expected.slice(expected.trimEnd().length);
+  const body = oneLine
+    ? replacement.split("\n").map((part) => part.trim()).filter(Boolean).join(" ")
+    : replacement.trim();
   selection.removeText();
   $insertLines(lead + body + trail);
   return true;

@@ -76,14 +76,26 @@ export function buildAssistPrompt({ markdown, entities, selection, instruction }
 /** Follow-up turn: refine the previous answer. */
 export const buildFollowUp = (instruction: string): string => `Follow-up instruction: ${instruction.trim()}\nReply in the same format.`;
 
+/** The content of the first `<tag>`, up to its closing tag or the end of a reply still streaming. */
+function between(raw: string, tag: string): string | undefined {
+  const lower = raw.toLowerCase();
+  const open = lower.indexOf(`<${tag}>`);
+  if (open < 0) {
+    return undefined;
+  }
+  const from = open + tag.length + 2;
+  const close = lower.indexOf(`</${tag}>`, from);
+  return raw.slice(from, close < 0 ? undefined : close);
+}
+
 /**
  * Read a reply, also while it streams: a partial `<text>` is returned as far
  * as it got. A reply that ignored the format is shown as a note.
  */
 export function parseAssistReply(raw: string, selection: Pick<AssistSelection, "mode">): AssistReply {
   const mode = /<mode>\s*(replace|note)/i.exec(raw)?.[1]?.toLowerCase();
-  const text = /<text>([\s\S]*?)(?:<\/text>|$)/i.exec(raw)?.[1];
-  const why = /<why>([\s\S]*?)(?:<\/why>|$)/i.exec(raw)?.[1];
+  const text = between(raw, "text");
+  const why = between(raw, "why");
   const tagged = mode !== undefined || /^\s*<\w*$/.test(raw) || /^\s*<mode/i.test(raw);
   return {
     // Only a selection inside one value can be replaced.

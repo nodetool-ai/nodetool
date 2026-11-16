@@ -211,6 +211,21 @@ describe("parseStoryboardMarkdown", () => {
   });
 });
 
+describe("long lines", () => {
+  // CodeQL flagged the line patterns as polynomial. Each now matches only the
+  // syntax prefix and slices the rest, so long inputs stay fast.
+  it("reads a long media reference and long runs of spaces in linear time", () => {
+    const uri = "asset://a.mp4#" + ".m4v#".repeat(50000);
+    const lines = [`### Shot {#s1}`, `![Clip](${uri})`, "Action.", `- **Motion:**${" ".repeat(50000)}slow`, `#${" ".repeat(50000)}Act`, `*${" ".repeat(50000)}note`];
+    const started = Date.now();
+    const result = parseStoryboardMarkdown(lines.join("\n"));
+    lines.forEach((line) => tokenizeStoryboardLine(line));
+    expect(Date.now() - started).toBeLessThan(2000);
+    expect(result.document.shots[0].clip?.uri).toBe(uri);
+    expect(result.document.shots[0].motion).toBe("slow");
+  });
+});
+
 describe("tokenizeStoryboardLine", () => {
   it("adds up to the line and marks mentions, ids and shot references", () => {
     const line = `- **Continuity:** until [Shot 2](#${ids.sh2}) with [Nova](entity://${NOVA}) {#c1}`;
