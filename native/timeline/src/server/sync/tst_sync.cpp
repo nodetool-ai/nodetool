@@ -635,13 +635,20 @@ private slots:
         };
         QTRY_COMPARE(openFrames(), QStringList{"project-a"});
         QCOMPARE(QJsonDocument::fromJson(ws.frames[0][0].toUtf8()).object()["command"].toString(), QString("set_mode"));
+        // The subscription's first refresh fetches the timeline on a worker. A save while that
+        // fetch is in flight is refused, so wait for it as the other sync tests do.
+        QTRY_COMPARE(http.countRequests("GET", "/trpc/timeline.get"), 1);
+        QTRY_COMPARE(save.externalState(), QString("idle"));
         raw["projectId"] = "project-b";
         save.syncOpenProject();
         QTRY_COMPARE(openFrames(), (QStringList{"project-a", "project-b"}));
         save.syncOpenProject();
         raw["markers"] = QJsonArray{QJsonObject{{"id", "m"}, {"timeMs", 10}}};
         save.documentChanged();
-        QVERIFY(save.saveNow().ok);
+        const auto saved = save.saveNow();
+        QVERIFY2(saved.ok, qPrintable(QString("saveNow failed: error \"%1\", conflict %2, recovery error \"%3\", "
+            "external state %4, timeline.update posts %5").arg(saved.error).arg(saved.conflict).arg(saved.recoveryError,
+            save.externalState()).arg(http.countRequests("POST", "/trpc/timeline.update"))));
         QTRY_COMPARE(openFrames(), (QStringList{"project-a", "project-b", "project-c"}));
         ws.peers[0]->sendTextMessage(R"({"type":"resource_change","event":"updated","resource_type":"workspacefile","resource":{"id":"ws-1"}})");
         ws.peers[0]->sendTextMessage(R"({"type":"resource_change","event":"updated","resource_type":"documentfile","resource":{"id":"seq","type":"timeline","file_error":null}})");
