@@ -58,6 +58,7 @@ public:
   CloudSendResult send(HttpRequest request);
 
   const std::string& serverOrigin() const { return session_.serverOrigin(); }
+  const std::string& accountId() const { return session_.accountId(); }
 
 private:
   AccountSession& session_;

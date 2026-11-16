@@ -18,7 +18,9 @@
 //
 // For example `{"CloudEnabled": true, "AllowedServers": ["https://nodetool.example.com"]}`.
 // A policy that exists and cannot be read turns the cloud features off, so a
-// typing mistake never opens what the administrator meant to close.
+// typing mistake never opens what the administrator meant to close. That
+// covers a key given twice, an empty `AllowedServers`, and a policy path
+// that is a broken link or not a regular file.
 #pragma once
 
 #include <filesystem>
@@ -32,7 +34,8 @@ struct ManagedPolicy {
   // Whether the platform location holds a policy at all.
   bool present = false;
   bool cloudEnabled = true;
-  // Normalized origins. Empty allows every server.
+  // Normalized origins. Empty allows every server, and is only the case
+  // when the policy has no `AllowedServers` key.
   std::vector<std::string> allowedServers;
   // Why a present policy could not be read. The policy then has the cloud
   // features off.

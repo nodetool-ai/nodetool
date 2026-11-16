@@ -6,7 +6,9 @@
 #include <cctype>
 #include <fstream>
 #include <iterator>
+#include <set>
 #include <system_error>
+#include <vector>
 
 #if defined(__APPLE__)
 #include <CoreFoundation/CoreFoundation.h>
@@ -45,6 +47,16 @@ bool addServer(ManagedPolicy& policy, std::string_view server) {
     return false;
   }
   policy.allowedServers.push_back(origin);
+  return true;
+}
+
+// An allowlist that names no server would read as "any server". The policy
+// is then unreadable, because an administrator who set the key meant a list.
+bool checkAllowlist(ManagedPolicy& policy) {
+  if (policy.allowedServers.empty()) {
+    policy = unreadable("AllowedServers names no server");
+    return false;
+  }
   return true;
 }
 
@@ -110,6 +122,7 @@ ManagedPolicy readMacPolicy() {
         return policy;
       }
     }
+    checkAllowlist(policy);
   }
   return policy;
 }
@@ -167,6 +180,7 @@ ManagedPolicy readWindowsPolicy() {
       }
       cursor += item.size() + 1;
     }
+    checkAllowlist(policy);
   }
   return policy;
 }
@@ -176,9 +190,28 @@ ManagedPolicy readWindowsPolicy() {
 } // namespace
 
 ManagedPolicy parsePolicyJson(std::string_view text) {
-  const nlohmann::json value = nlohmann::json::parse(text, nullptr, false);
+  // The JSON library keeps the last of two equal keys. A policy that gives a
+  // key twice could mean either value, so it is unreadable.
+  std::vector<std::set<std::string>> keys;
+  std::string repeated;
+  const nlohmann::json::parser_callback_t noteKeys = [&](int, nlohmann::json::parse_event_t event,
+                                                         nlohmann::json& parsed) {
+    if (event == nlohmann::json::parse_event_t::object_start) {
+      keys.emplace_back();
+    } else if (event == nlohmann::json::parse_event_t::object_end && !keys.empty()) {
+      keys.pop_back();
+    } else if (event == nlohmann::json::parse_event_t::key && !keys.empty() &&
+               !keys.back().insert(parsed.get<std::string>()).second && repeated.empty()) {
+      repeated = parsed.get<std::string>();
+    }
+    return true;
+  };
+  const nlohmann::json value = nlohmann::json::parse(text, noteKeys, false);
   if (value.is_discarded() || !value.is_object()) {
     return unreadable("The policy is not a JSON object");
+  }
+  if (!repeated.empty()) {
+    return unreadable("The policy gives " + repeated + " more than once");
   }
   ManagedPolicy policy;
   policy.present = true;
@@ -201,20 +234,36 @@ ManagedPolicy parsePolicyJson(std::string_view text) {
         return policy;
       }
     }
+    checkAllowlist(policy);
   }
   return policy;
 }
 
 ManagedPolicy readPolicyFile(const std::filesystem::path& path) {
+  // Only nothing at the path is no policy. A link to nothing, a folder, or a
+  // path that cannot be inspected is a policy that cannot be read.
   std::error_code error;
-  if (!std::filesystem::exists(path, error) && !error) {
+  const std::filesystem::file_status own = std::filesystem::symlink_status(path, error);
+  if (own.type() == std::filesystem::file_type::not_found) {
     return {};
+  }
+  if (error) {
+    return unreadable("The policy file " + path.string() + " could not be inspected (" + error.message() + ")");
+  }
+  const std::filesystem::file_status target = std::filesystem::status(path, error);
+  if (error || target.type() != std::filesystem::file_type::regular) {
+    return unreadable("The policy file " + path.string() + " is not a regular file");
   }
   std::ifstream file(path, std::ios::binary);
   if (!file) {
     return unreadable("The policy file " + path.string() + " could not be opened");
   }
-  const std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+  std::string text;
+  try {
+    text.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+  } catch (const std::ios_base::failure&) {
+    return unreadable("The policy file " + path.string() + " could not be read");
+  }
   if (file.bad()) {
     return unreadable("The policy file " + path.string() + " could not be read");
   }

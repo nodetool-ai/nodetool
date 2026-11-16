@@ -168,6 +168,8 @@ public:
   // to (see origin.h), or empty when that origin is not HTTPS. The request
   // layer sends the credential only to this origin.
   const std::string& serverOrigin() const { return origin_; }
+  // The account this session signs in as.
+  const std::string& accountId() const { return options_.userId; }
   std::filesystem::path generationPath() const { return dir_ / "session.gen"; }
   std::filesystem::path lockPath() const { return dir_ / "account.lock"; }
   // The durable sign-out marker: the generation of the last sign-out. A
