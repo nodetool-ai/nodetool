@@ -414,6 +414,10 @@ describe("model execution on SQLite and PostgreSQL", () => {
         .sort();
       expect(projects).toEqual([`${OWNER}/${project}`, `${OWNER}/${other.project_id}`]);
 
+      // The count covers every project: the three above and the other one.
+      const count = await Asset.countAwaitingFolderMove(OWNER);
+      expect(count).toBe(waiting.length + 1);
+
       // Only a row with no file yet holds a path for its copy.
       const moving = (await Asset.findMovingTo(OWNER, project)).map((a) => a.name);
       expect(moving).toEqual([started.name]);
@@ -430,7 +434,7 @@ describe("model execution on SQLite and PostgreSQL", () => {
         await Asset.countChildren("someone-else", legacy.id)
       ];
       expect(children).toEqual([0, 1, 0]);
-      return { waiting, projects, moving, children };
+      return { waiting, projects, count, moving, children };
     });
   }, DIALECT_TEST_TIMEOUT_MS);
 
