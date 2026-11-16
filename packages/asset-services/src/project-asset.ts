@@ -13,7 +13,12 @@
  */
 import { createLogger } from "@nodetool-ai/config";
 import { Asset, setAssetFileMover } from "@nodetool-ai/models";
-import { getAssetFileName, isNonEmptyString } from "@nodetool-ai/protocol";
+import {
+  WORKSPACE_MOVE_SOURCE_KEY,
+  WORKSPACE_MOVE_TARGET_KEY,
+  getAssetFileName,
+  isNonEmptyString
+} from "@nodetool-ai/protocol";
 import { NestedFolders, type Workspace } from "@nodetool-ai/runtime";
 import { probeAssetDurationSeconds } from "./asset-duration.js";
 import {
@@ -748,7 +753,7 @@ export async function replaceProjectAssetBytes(
       }
     : splitPath(file.path);
 
-  return withProjectFolderLock(asset.user_id, asset.project_id, async () => {
+  const change = await withProjectFolderLock(asset.user_id, asset.project_id, async () => {
     const moves = from === null || extension.toLowerCase() !== wanted;
     let to = from ?? "";
     if (moves) {
@@ -785,9 +790,6 @@ export async function replaceProjectAssetBytes(
       asset.size = fingerprint.workspace_size;
       asset.metadata = withWorkspaceFingerprint(asset.metadata, fingerprint);
       asset.content_hash = null;
-      await storeAssetThumbnail(asset.user_id, asset.id, asset.content_type, {
-        bytes
-      });
     } catch (error) {
       release();
       throw error;
@@ -826,6 +828,11 @@ export async function replaceProjectAssetBytes(
       }
     };
   });
+  // Made after the lock, so a slow thumbnail holds up no other save.
+  await storeAssetThumbnail(asset.user_id, asset.id, asset.content_type, {
+    bytes
+  });
+  return change;
 }
 
 /** What {@link storeLegacyAssetBytes} did with the bytes. */
@@ -835,9 +842,14 @@ export type LegacyAssetBytesUpdate =
   /** The asset has a file in its project folder by now. Nothing was stored. */
   | "moved";
 
+/** How often the row is read again when its project changes under the lock. */
+const MAX_PROJECT_CHANGES = 3;
+
 /**
  * Store new bytes for an asset that keeps none in a project folder. `store`
- * writes them under the asset's storage key and saves the row.
+ * writes them under the asset's storage key and saves the row. Keep the work
+ * in `store` to that: it runs under the folder lock, which every save and
+ * reconcile of the project waits for. A thumbnail is made after the call.
  *
  * The move of existing assets into their project folder copies the object
  * under that key, names the file on the row and then deletes the object, all
@@ -850,25 +862,57 @@ export type LegacyAssetBytesUpdate =
  * the bytes would shadow that file: `asset` takes the file's path and
  * fingerprint, and the caller writes the bytes with
  * {@link replaceProjectAssetBytes}.
+ *
+ * The lock is the one of the project the row names when the lock is taken.
+ * When the asset was moved to another project after the caller loaded it,
+ * `asset` takes the new project and the lock of that project is taken. The
+ * move's record of an interrupted move (its target and the hash of the
+ * object it copied) is kept from the row, so the save in `store` does not
+ * erase it and leave the move's copy in the folder with no row that claims
+ * it.
  */
-export function storeLegacyAssetBytes(
+export async function storeLegacyAssetBytes(
   asset: Asset,
   store: () => Promise<void>
 ): Promise<LegacyAssetBytesUpdate> {
-  return withProjectFolderLock(asset.user_id, asset.project_id, async () => {
-    const current = await Asset.find(asset.user_id, asset.id);
-    if (current?.workspace_path) {
-      asset.workspace_path = current.workspace_path;
-      asset.metadata = keepFingerprint(
-        asset.metadata ?? {},
-        current.metadata,
-        WORKSPACE_SERVER_KEYS
+  for (let attempt = 0; ; attempt++) {
+    const projectId = asset.project_id;
+    const outcome = await withProjectFolderLock(
+      asset.user_id,
+      projectId,
+      async (): Promise<LegacyAssetBytesUpdate | "project_changed"> => {
+        const current = await Asset.find(asset.user_id, asset.id);
+        if (current && current.project_id !== projectId) {
+          asset.project_id = current.project_id;
+          return "project_changed";
+        }
+        if (current?.workspace_path) {
+          asset.workspace_path = current.workspace_path;
+          asset.metadata = keepFingerprint(
+            asset.metadata ?? {},
+            current.metadata,
+            WORKSPACE_SERVER_KEYS
+          );
+          return "moved";
+        }
+        if (current) {
+          asset.metadata = keepFingerprint(
+            asset.metadata ?? {},
+            current.metadata,
+            [WORKSPACE_MOVE_TARGET_KEY, WORKSPACE_MOVE_SOURCE_KEY]
+          );
+        }
+        await store();
+        return "stored";
+      }
+    );
+    if (outcome !== "project_changed") return outcome;
+    if (attempt + 1 >= MAX_PROJECT_CHANGES) {
+      throw new Error(
+        `Asset ${asset.id} kept changing project while its bytes were stored`
       );
-      return "moved";
     }
-    await store();
-    return "stored";
-  });
+  }
 }
 
 /**

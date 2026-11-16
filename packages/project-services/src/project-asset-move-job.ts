@@ -50,6 +50,25 @@ const log = createLogger("nodetool.project-services.project-asset-move-job");
  */
 export const MOVE_SETTLE_MS = 60_000;
 
+/**
+ * How long a row made for a client-direct upload may still get its bytes, in
+ * ms: the longest lifetime of an upload URL the asset stores mint (two hours
+ * on Supabase, one on S3).
+ */
+export const CLIENT_UPLOAD_WINDOW_MS = 2 * 60 * 60_000;
+
+/**
+ * Whether `row` was made for a client-direct upload whose URL may still be
+ * used. Such a row has no size until the upload is finalized, and the client
+ * writes the legacy key directly, outside every lock. A move that ran now
+ * could delete bytes the client stores after its last look at the key.
+ */
+function isAwaitingClientUpload(row: Asset, now: number): boolean {
+  return (
+    row.size === null && now - Date.parse(row.created_at) < CLIENT_UPLOAD_WINDOW_MS
+  );
+}
+
 /** How long an asset whose move failed waits for its next try, in ms. */
 export const MOVE_RETRY_MS = 5 * 60_000;
 
@@ -257,7 +276,8 @@ export class ProjectAssetMoveJob {
       // own writes do not count as changes.
       const settled =
         moveTargetOf(row) !== null ||
-        now - Date.parse(row.updated_at) >= settleMs;
+        (now - Date.parse(row.updated_at) >= settleMs &&
+          !isAwaitingClientUpload(row, now));
       (settled ? rows : deferred).push(row);
     }
     return { rows, deferred };

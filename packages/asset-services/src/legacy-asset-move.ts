@@ -29,14 +29,17 @@
  * | --- | --- | --- |
  * | No `workspace_path`, target recorded | Nothing at the target | Copies to the target. |
  * | No `workspace_path`, target recorded | The whole bytes at the target | Verifies and continues with step 4. |
- * | No `workspace_path`, target recorded | Anything else at the target | Leaves it and copies to the next free name. |
+ * | No `workspace_path`, target recorded | The copy of the bytes the row recorded, which a bytes update has replaced since | Removes that copy and copies the new bytes to the target. |
+| No `workspace_path`, target recorded | Anything else at the target | Leaves it and copies to the next free name. |
  * | `workspace_path` set, target recorded | The file | Deletes the legacy object and removes the target. |
  *
- * Nothing at a target is ever replaced or deleted. A target holds the whole
- * copy or nothing, because the copy is published in one step, so a file
- * that is there and is not the whole bytes is someone else's. The only
- * files this module removes from a folder are its own staging name, which
- * carries the asset id, and a copy the same call created and could not use.
+ * Nothing at a target is replaced or deleted unless the move made it. A
+ * target holds the whole copy or nothing, because the copy is published in
+ * one step, so a file that is there and is not the whole bytes is someone
+ * else's. The only files this module removes from a folder are its own
+ * staging name, which carries the asset id, a copy the same call created
+ * and could not use, and a copy an earlier run made whose bytes hash to the
+ * legacy object that run recorded on the row.
  *
  * Bytes stored under the legacy key while the move runs are never deleted.
  * An update of the asset's bytes writes there for as long as the row names
@@ -462,9 +465,17 @@ class LegacyAssetMove {
         !info.isDirectory &&
         info.size === source.bytes.byteLength &&
         (await this.holdsBytes(path, source));
-      if (!isCopy) return null;
-      await this.record(asset, path, source);
-      return { path, written: false };
+      if (isCopy) {
+        await this.record(asset, path, source);
+        return { path, written: false };
+      }
+      if (info.isDirectory || !(await this.isEarlierCopy(asset, path, source))) {
+        return null;
+      }
+      // The copy an earlier run made of bytes the asset no longer has. Left
+      // there, nothing would claim it and the reconcile would make it a
+      // second asset. The new bytes take its place.
+      await this.workspace.delete(path);
     }
     await this.record(asset, path, source);
     const written = await this.workspace.writeNew(
@@ -474,6 +485,22 @@ class LegacyAssetMove {
       { stagingName: legacyAssetStagingName(asset.id) }
     );
     return written ? { path, written: true } : null;
+  }
+
+  /**
+   * Whether the file at the recorded target `path` is the copy an earlier
+   * run made: it hashes to the legacy object that run recorded, and the
+   * legacy object holds other bytes now, stored by a bytes update since.
+   */
+  private async isEarlierCopy(
+    asset: Asset,
+    path: string,
+    source: MoveSource
+  ): Promise<boolean> {
+    const recorded = recordedSourceOf(asset);
+    if (recorded === null || recorded === source.sha) return false;
+    const existing = await this.workspace.read(path);
+    return existing !== null && sha256(existing) === recorded;
   }
 
   /** Record a free name in the asset's directory and copy the bytes there. */
