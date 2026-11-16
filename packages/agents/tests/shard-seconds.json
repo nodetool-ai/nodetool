@@ -14,7 +14,7 @@
   "tests/js-sandbox-wasm.test.ts": 7,
   "tests/js-sandbox-media.test.ts": 7,
   "tests/timeline-a432-parity.gpu.test.ts": 7,
-  "tests/host-modules-ocr-tfjs.test.ts": 7,
+  "tests/host-modules-ocr.test.ts": 7,
   "tests/capabilities-timeline-render.test.ts": 7,
   "tests/capabilities-timeline-compare.test.ts": 6,
   "tests/js-sandbox-stream.test.ts": 6,

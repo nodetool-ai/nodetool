@@ -168,16 +168,13 @@ NodeTool ships these packs (`packages/sandbox-packs/`, one directory each): `-da
 `-flow` (NodeTool's node callables), `-game` (NodeTool's game document
 builder) and `-timeline` (motion-graphics timelines as code) run
 inside the guest; `-csv` (papaparse), `-html` (cheerio + turndown), `-xml`
-(fast-xml-parser), `-xlsx` (exceljs), `-diff` (diff), `-zip` (fflate), `-ocr`
-(tesseract.js), `-tfjs` (TensorFlow.js and its model zoo), `-docx` (docx),
-`-mammoth` (mammoth), `-epub` (epub2), `-fabric` (Fabric.js — SVG and vector
-scenes), `-pdflib` (pdf-lib), `-pptxgen` (PptxGenJS), `-chrono` (chrono-node),
-`-exif` (exifr), `-expr` (expr-eval), `-ics` (ics), `-subtitle` (subtitle),
-`-tokens` (js-tiktoken), `-pptx` (office-text-extractor) and `-pdf`
-(pdf-parse) run on the host behind a
-generated facade, because they need Node builtins or a DOM, or carry a limit
-the guest could not enforce on itself (zip's 50 MB inflation cap), or hold
-state no run can keep alive (the tfjs weights). Four more carry
+(fast-xml-parser), `-diff` (diff), `-zip` (fflate), `-ocr` (tesseract.js),
+`-fabric` (Fabric.js — SVG and vector scenes), `-pdflib` (pdf-lib), `-chrono`
+(chrono-node), `-exif` (exifr), `-expr` (expr-eval), `-ics` (ics),
+`-subtitle` (subtitle), `-tokens` (js-tiktoken) and `-pdf` (pdf-parse) run on
+the host behind a generated facade, because they need Node builtins or a DOM,
+or carry a limit the guest could not enforce on itself (zip's 50 MB inflation
+cap). Four more carry
 NodeTool's own code rather than a library — `-aws` signs a request with SigV4,
 and `-notion`, `-supabase` and `-twilio` build an authenticated one —
 and none of them sends it:

@@ -9104,10 +9104,6 @@
           "button": "एपीआई टोकन को दोहराएं",
           "tooltip": "API टोकनों के पेज को दोहराने के लिए जाओ"
         },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Google ऐप पासवर्ड प्राप्त करें",
-          "tooltip": "Google खाता पासवर्ड पेज पर जाएं"
-        },
         "ELEVENLABS_API_KEY": {
           "button": "ElevenLabs API key",
           "tooltip": "ElevenLabs सदस्यता पृष्ठ पर जाएँ"

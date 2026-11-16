@@ -19,25 +19,25 @@ vi.mock("@nodetool-ai/config", async (importOriginal) => {
   return {
     ...original,
     importOptionalModule: vi.fn(async (specifier: string) => {
-      if (specifier === "exceljs") {
-        throw new Error("Cannot find package 'exceljs'");
+      if (specifier === "pdf-parse") {
+        throw new Error("Cannot find package 'pdf-parse'");
       }
       return original.importOptionalModule(specifier);
     })
   };
 });
 
-const XLSX = SANDBOX_HOST_MODULES["xlsx"];
-if (XLSX === undefined) throw new Error("no xlsx host module");
+const PDF = SANDBOX_HOST_MODULES["pdf"];
+if (PDF === undefined) throw new Error("no pdf host module");
 
-const XLSX_MODULE: ResolvedSandboxModule = {
-  specifier: XLSX.packName,
-  packName: XLSX.packName,
+const PDF_MODULE: ResolvedSandboxModule = {
+  specifier: PDF.packName,
+  packName: PDF.packName,
   packVersion: "0.0.0-test",
   contentDigest: "b".repeat(64),
-  moduleId: "host:xlsx",
+  moduleId: "host:pdf",
   kind: "host",
-  hostId: "xlsx",
+  hostId: "pdf",
   graph: []
 };
 
@@ -46,7 +46,7 @@ const catalog: SandboxModuleCatalog = {
   diagnostics: () => [],
   authorizeDelivery: (moduleId) =>
     Promise.resolve(refuseSandboxDelivery(moduleId)),
-  resolveForExecution: () => ({ modules: [XLSX_MODULE], statuses: [] })
+  resolveForExecution: () => ({ modules: [PDF_MODULE], statuses: [] })
 };
 
 function context(): ProcessingContext {
@@ -65,8 +65,8 @@ afterEach(() => {
 describe("CodeNode — missing optional package", () => {
   it("fails with the runtime package the host module needs", async () => {
     const node = new CodeNode({
-      code: `import { parse } from "${XLSX.packName}";
-             return { out: await parse(new Uint8Array([1, 2, 3])) };`
+      code: `import { extractText } from "${PDF.packName}";
+             return { out: await extractText(new Uint8Array([1, 2, 3])) };`
     });
     node.__node_id = "code_1";
 
@@ -76,7 +76,7 @@ describe("CodeNode — missing optional package", () => {
     );
 
     expect(error).toBeInstanceOf(Error);
-    expect(missingRuntimePackageOf(error)).toBe("office-documents");
-    expect((error as Error).message).toContain("Office Documents");
+    expect(missingRuntimePackageOf(error)).toBe("pdf-js");
+    expect((error as Error).message).toContain("PDF Libraries");
   });
 });

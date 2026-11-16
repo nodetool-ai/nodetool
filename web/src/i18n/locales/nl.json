@@ -9104,10 +9104,6 @@
           "button": "Ontvang een repliceer-API-token",
           "tooltip": "Ga naar de pagina API-tokens repliceren"
         },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Wachtwoord voor de Google-app verkrijgen",
-          "tooltip": "Ga naar de pagina met wachtwoorden voor de Google-accountapp"
-        },
         "ELEVENLABS_API_KEY": {
           "button": "Ontvang de ElevenLabs API-sleutel",
           "tooltip": "Ga naar de ElevenLabs-abonnementspagina"

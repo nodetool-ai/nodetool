@@ -68,51 +68,28 @@
     "@nodetool-ai/audio-nodes": "*",
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/vitest-runner": "^9.6.1",
-    "@tensorflow-models/coco-ssd": "^2.2.3",
-    "@tensorflow-models/mobilenet": "^2.1.1",
-    "@tensorflow-models/qna": "^1.0.2",
-    "@tensorflow/tfjs": "^4.22.0",
     "@types/chrome-remote-interface": "^0.33.0",
     "@types/diff": "^5.2.3",
-    "@types/mailparser": "^3.4.6",
     "@types/node": "^22.0.0",
     "@types/turndown": "^5.0.5",
-    "docx": "^9.6.0",
-    "epub2": "^3.0.2",
-    "exceljs": "^4.4.0",
     "fabric": "^7.4.0",
-    "imapflow": "^1.7.1",
     "js-tiktoken": "^1.0.18",
-    "mailparser": "^3.14.2",
     "mammoth": "^1.11.0",
     "pdf-lib": "^1.17.1",
     "pdf-parse": "^2.4.5",
-    "pptxgenjs": "^4.0.1",
     "tesseract.js": "^7.0.0",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest": "^5.0.1",
-    "office-text-extractor": "^4.0.0",
     "@napi-rs/canvas": "^0.1.65",
     "@mediabunny/server": "1.54.0"
   },
   "peerDependencies": {
     "@llamaindex/liteparse": "^1.5.2",
-    "@tensorflow-models/coco-ssd": "^2.2.3",
-    "@tensorflow-models/mobilenet": "^2.1.1",
-    "@tensorflow-models/qna": "^1.0.2",
-    "@tensorflow/tfjs": "^4.22.0",
-    "docx": "^9.6.0",
-    "epub2": "^3.0.2",
-    "exceljs": "^4.4.0",
     "fabric": "^7.4.0",
-    "imapflow": "^1.7.1",
     "js-tiktoken": "^1.0.18",
-    "mailparser": "^3.14.2",
     "mammoth": "^1.11.0",
-    "office-text-extractor": "^4.0.0",
     "pdf-lib": "^1.17.1",
     "pdf-parse": "^2.4.5",
-    "pptxgenjs": "^4.0.1",
     "tesseract.js": "^7.0.0",
     "@napi-rs/canvas": "^0.1.65",
     "@mediabunny/server": "1.54.0"
@@ -121,52 +98,19 @@
     "@llamaindex/liteparse": {
       "optional": true
     },
-    "@tensorflow-models/coco-ssd": {
-      "optional": true
-    },
-    "@tensorflow-models/mobilenet": {
-      "optional": true
-    },
-    "@tensorflow-models/qna": {
-      "optional": true
-    },
-    "@tensorflow/tfjs": {
-      "optional": true
-    },
-    "docx": {
-      "optional": true
-    },
-    "epub2": {
-      "optional": true
-    },
-    "exceljs": {
-      "optional": true
-    },
     "fabric": {
-      "optional": true
-    },
-    "imapflow": {
       "optional": true
     },
     "js-tiktoken": {
       "optional": true
     },
-    "mailparser": {
-      "optional": true
-    },
     "mammoth": {
-      "optional": true
-    },
-    "office-text-extractor": {
       "optional": true
     },
     "pdf-lib": {
       "optional": true
     },
     "pdf-parse": {
-      "optional": true
-    },
-    "pptxgenjs": {
       "optional": true
     },
     "tesseract.js": {

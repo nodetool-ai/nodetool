@@ -280,11 +280,6 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   // Dropped under the cloud profile — see `availableBuiltinToolNames`.
   "render_model3d",
 
-  // Email
-  "search_email",
-  "archive_email",
-  "add_label_to_email",
-
   // Documents
   "extract_pdf_text",
   "extract_pdf_tables",

@@ -18,8 +18,8 @@ vi.mock("@nodetool-ai/config", async (importOriginal) => {
   return {
     ...original,
     importOptionalModule: vi.fn(async (specifier: string) => {
-      if (specifier === "exceljs") {
-        throw new Error("Cannot find package 'exceljs'");
+      if (specifier === "pdf-parse") {
+        throw new Error("Cannot find package 'pdf-parse'");
       }
       return original.importOptionalModule(specifier);
     })
@@ -45,24 +45,24 @@ function resolution(id: string): SandboxModuleResolution {
 describe("host module with a missing optional package", () => {
   it("fails the run and names the runtime package to install", async () => {
     const result = await runInSandbox({
-      code: `import { parse } from "@nodetool-ai/sandbox-xlsx";
-             return await parse(new Uint8Array([1, 2, 3]));`,
-      modules: resolution("xlsx"),
+      code: `import { extractText } from "@nodetool-ai/sandbox-pdf";
+             return await extractText(new Uint8Array([1, 2, 3]));`,
+      modules: resolution("pdf"),
       timeoutMs: 20000
     });
 
     expect(result.success).toBe(false);
-    expect(result.missingRuntimePackage).toBe("office-documents");
-    expect(result.missingRuntime).toMatchObject({ runtimePackage: "office-documents", missing: "exceljs", reason: "missing" });
-    expect(result.error).toContain("Office Documents");
+    expect(result.missingRuntimePackage).toBe("pdf-js");
+    expect(result.missingRuntime).toMatchObject({ runtimePackage: "pdf-js", missing: "pdf-parse", reason: "missing" });
+    expect(result.error).toContain("PDF Libraries");
   });
 
   it("names nothing when the guest catches the failure and finishes", async () => {
     const result = await runInSandbox({
-      code: `import { parse } from "@nodetool-ai/sandbox-xlsx";
-             try { await parse(new Uint8Array([1, 2, 3])); }
+      code: `import { extractText } from "@nodetool-ai/sandbox-pdf";
+             try { await extractText(new Uint8Array([1, 2, 3])); }
              catch (e) { return "handled: " + e.message; }`,
-      modules: resolution("xlsx"),
+      modules: resolution("pdf"),
       timeoutMs: 20000
     });
 

@@ -96,7 +96,6 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   ],
   shared: ["list_shared", "read_shared", "share_result"],
   threads: ["list_threads", "get_thread", "get_message"],
-  email: ["search_email", "archive_email", "add_label_to_email"],
   settings: [
     "list_settings",
     "get_setting",
@@ -1190,16 +1189,6 @@ const nodetool = (() => {
         __need("share_result")(__merge(opts, { key: key, value: value }))
     },
 
-    email: {
-      search: (opts) => __need("search_email")(__merge(opts)),
-      archive: (messageIds) =>
-        __need("archive_email")({
-          message_ids: Array.isArray(messageIds) ? messageIds : [messageIds]
-        }),
-      label: (messageId, label) =>
-        __need("add_label_to_email")({ message_id: messageId, label: label })
-    },
-
     assets: {
       list: (opts) => __need("list_assets")(__merge(opts)),
       /** Image assets as lightweight handles — feed an id to view_image. */
@@ -1914,12 +1903,6 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     doc: `- \`nodetool.shared\` — the scratchpad of THIS run: \`list()\` (metadata
   only), \`read(keys)\`, \`publish(key, value)\`. Earlier step and task results
   land here.`
-  },
-  {
-    namespace: "email",
-    skill: "api-web",
-    doc: `- \`nodetool.email\` — \`search({subject, text, since_hours_ago})\`,
-  \`archive(messageIds)\`, \`label(messageId, label)\`.`
   },
   {
     namespace: "assets",
