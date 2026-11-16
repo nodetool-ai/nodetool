@@ -520,12 +520,13 @@ export class Project extends DBModel {
   }
 
   /**
-   * Live projects of every user that have no folder yet, in creation order,
-   * starting after the `after` cursor.
+   * Live projects of every user, or of `userId` when given, that have no
+   * folder yet, in creation order, starting after the `after` cursor.
    */
   static async listWithoutFolder(
     limit: number,
-    after?: { created_at: string; id: string }
+    after?: { created_at: string; id: string },
+    userId?: string
   ): Promise<Project[]> {
     const db = getPortableDb();
     const rows = await db
@@ -535,6 +536,7 @@ export class Project extends DBModel {
         and(
           isNull(projects.workspace_id),
           isNull(projects.deleted_at),
+          userId === undefined ? undefined : eq(projects.user_id, userId),
           after
             ? or(
                 gt(projects.created_at, after.created_at),
