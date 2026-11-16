@@ -10,16 +10,23 @@ import {
   ModelChangeEvent,
   ModelChangeMeta,
   ModelObserver,
+  computeEtag,
   createTimeOrderedUuid,
   nextUpdatedAtAfter
 } from "./base-model.js";
-import { getPortableDb } from "./db.js";
+import { allowLegacyProjectWritesForTests, getPortableDb } from "./db.js";
+import { projects } from "./schema/projects.js";
 import { eraseRunTraceParentForModelDeletion } from "./run-trace.js";
 import { workflows } from "./schema/workflows.js";
 import { WorkflowCollaborator } from "./workflow-collaborator.js";
 import { WorkflowShare } from "./workflow-share.js";
 import { WorkflowVersion } from "./workflow-version.js";
 import { TriggerRegistration } from "./trigger-registration.js";
+import {
+  assertDocumentFileMayLeave,
+  type DocumentFileLocation,
+  type DocumentFileSync
+} from "./document-file-sync.js";
 import type { GraphLink } from "@nodetool-ai/protocol";
 import type { WorkflowRunMode } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
@@ -68,6 +75,27 @@ export type WorkflowUpdateFields = Partial<{
   access: AccessLevel;
 }>;
 
+let workflowFileSync: DocumentFileSync<Workflow> | null = null;
+
+/**
+ * Per workflow instance: the project whose folder holds the file at
+ * `file_path`, as last read from or written to the database. A save that
+ * changes `project_id` uses it to remove the file from the folder the
+ * workflow left.
+ */
+const fileProjects = new WeakMap<Workflow, string>();
+
+/**
+ * Install what writes a workflow's file in its project folder after the row
+ * is saved, and deletes it after the row is deleted. See
+ * {@link DocumentFileSync}.
+ */
+export function setWorkflowFileSync(
+  sync: DocumentFileSync<Workflow> | null
+): void {
+  workflowFileSync = sync;
+}
+
 export class Workflow extends DBModel {
   static override table = workflows;
 
@@ -90,6 +118,17 @@ export class Workflow extends DBModel {
   declare app_doc: Record<string, unknown> | null;
   declare receive_clipboard: boolean | null;
   declare access: AccessLevel;
+  /** The workflow's file, relative to its project's folder. */
+  declare file_path: string | null;
+  /**
+   * SHA-256 of the file as NodeTool last wrote or imported it. A file with
+   * another hash holds an edit NodeTool has not seen. Null until the row is
+   * first synced with a file. A host with no file sync leaves it as it is,
+   * and the reconcile then finds the row newer than its untouched file.
+   */
+  declare file_hash: string | null;
+  /** What the last reconcile found wrong with the file, or null. */
+  declare file_error: string | null;
   declare created_at: string;
   declare updated_at: string;
 
@@ -97,6 +136,160 @@ export class Workflow extends DBModel {
     await eraseRunTraceParentForModelDeletion({ kind: "workflow", id: this.id });
     await super.delete();
     await eraseRunTraceParentForModelDeletion({ kind: "workflow", id: this.id });
+    await workflowFileSync?.deleted(this);
+  }
+
+  /**
+   * The etag of the workflow, without the state of its file. Where the file
+   * is, its hash and what the last reconcile found wrong with it are records
+   * about the file and no content of the workflow. Recording them must not
+   * read as a change of the workflow to a client that holds its etag, such
+   * as an SDK client checking `workflow_etag` or an open editor.
+   */
+  override getEtag(): string {
+    const {
+      file_path: _path,
+      file_hash: _hash,
+      file_error: _error,
+      ...content
+    } = this.toRow();
+    return computeEtag(content);
+  }
+
+  /** Every create and save of a workflow row writes its file afterwards. */
+  protected override async persist(event: ModelChangeEvent): Promise<this> {
+    const previous = this.previousFile();
+    if (previous && workflowFileSync) {
+      // The save moves the workflow to another project. The stored row is
+      // asked first, because its file in the folder it leaves is deleted.
+      const [stored] = await getPortableDb()
+        .select()
+        .from(workflows)
+        .where(eq(workflows.id, this.id))
+        .limit(1);
+      await assertDocumentFileMayLeave(
+        workflowFileSync,
+        stored ? new Workflow(stored) : null
+      );
+    }
+    await super.persist(event);
+    await this.syncFile(previous);
+    return this;
+  }
+
+  /** The file this row had in another project, when a save moved the row. */
+  private previousFile(): DocumentFileLocation | null {
+    const project = fileProjects.get(this);
+    return this.file_path && project !== undefined && project !== this.project_id
+      ? { project_id: project, file_path: this.file_path }
+      : null;
+  }
+
+  private async syncFile(previous: DocumentFileLocation | null): Promise<void> {
+    await workflowFileSync?.saved(this, previous);
+    this.rememberFileProject();
+  }
+
+  private rememberFileProject(): void {
+    if (this.file_path) fileProjects.set(this, this.project_id);
+    else fileProjects.delete(this);
+  }
+
+  /**
+   * Record the file the row was last synced with. `updated_at` stays as it
+   * is, because the file is not content: bumping it would break the
+   * compare-and-swap save of an editor that has the workflow open. No change
+   * is announced for the same reason.
+   */
+  static async setFileState(
+    id: string,
+    state: Partial<Pick<Workflow, "file_path" | "file_hash" | "file_error">>
+  ): Promise<void> {
+    await getPortableDb()
+      .update(workflows)
+      .set(state)
+      .where(eq(workflows.id, id));
+  }
+
+  /**
+   * Create a workflow without ever rewriting a row that already exists.
+   *
+   * `create()` and `save()` are upserts, and the primary key is
+   * install-global: an id the caller did not mint, such as one read from a
+   * file in a project folder, could otherwise replace the workflow of
+   * another user or another project. This inserts and answers null on
+   * conflict, leaving the existing row as it is. A lookup before the insert
+   * does not replace it, since another writer can create the row in between.
+   *
+   * It applies the project rule of every save: the project must be the
+   * owner's and not deleted. The file sync runs and the creation is
+   * announced, as for `create()`.
+   */
+  static async insertNew(
+    data: Record<string, unknown>
+  ): Promise<Workflow | null> {
+    const workflow = new Workflow(data);
+    workflow.beforeSave();
+    const db = getPortableDb();
+    if (workflow.project_id !== "default" && !allowLegacyProjectWritesForTests()) {
+      const [project] = await db
+        .select({ deletedAt: projects.deleted_at })
+        .from(projects)
+        .where(
+          and(
+            eq(projects.id, workflow.project_id),
+            eq(projects.user_id, workflow.user_id)
+          )
+        )
+        .limit(1);
+      if (!project) throw new Error("Project not found");
+      if (project.deletedAt) throw new Error("Project has been deleted");
+    }
+    const rows = await db
+      .insert(workflows)
+      // SAFETY: `toRow` holds the table's columns, which the constructor
+      // filled. The dynamic base model cannot express the insert shape.
+      .values(workflow.toRow() as typeof workflows.$inferInsert)
+      .onConflictDoNothing()
+      .returning();
+    const row = rows[0];
+    if (!row) return null;
+    const created = new Workflow(row);
+    await created.syncFile(null);
+    ModelObserver.notify(created, ModelChangeEvent.CREATED);
+    return created;
+  }
+
+  /** The workflows whose files belong in the folder of `projectIds`. */
+  static async listForProjects(
+    userId: string,
+    projectIds: readonly string[]
+  ): Promise<Workflow[]> {
+    if (projectIds.length === 0) return [];
+    const rows = await getPortableDb()
+      .select()
+      .from(workflows)
+      .where(
+        and(
+          eq(workflows.user_id, userId),
+          inArray(workflows.project_id, [...projectIds])
+        )
+      );
+    return rows.map((row) => new Workflow(row));
+  }
+
+  /**
+   * The projects that hold a workflow whose file was never written, each
+   * with its owner. A workflow from before project folders is one of them.
+   */
+  static async projectsWithUnwrittenFiles(): Promise<
+    Array<{ user_id: string; project_id: string }>
+  > {
+    return getPortableDb()
+      .select({ user_id: workflows.user_id, project_id: workflows.project_id })
+      .from(workflows)
+      .where(isNull(workflows.file_path))
+      .groupBy(workflows.user_id, workflows.project_id);
   }
 
   constructor(data: Record<string, unknown>) {
@@ -119,6 +312,10 @@ export class Workflow extends DBModel {
     this.html_app ??= null;
     this.app_doc ??= null;
     this.access ??= "private";
+    this.file_path ??= null;
+    this.file_hash ??= null;
+    this.file_error ??= null;
+    this.rememberFileProject();
     this.created_at ??= now;
     this.updated_at ??= now;
 
@@ -184,6 +381,21 @@ export class Workflow extends DBModel {
     meta?: ModelChangeMeta
   ): Promise<Workflow | null> {
     const db = getPortableDb();
+    // A change of project leaves the file in the folder the workflow was in.
+    // The row is read first so the file can be taken along, and so that a
+    // file edit that would be lost with the file refuses the move.
+    let previous: DocumentFileLocation | null = null;
+    if (workflowFileSync && fields.project_id !== undefined) {
+      const [before] = await db
+        .select()
+        .from(workflows)
+        .where(eq(workflows.id, id))
+        .limit(1);
+      if (before?.file_path && before.project_id !== fields.project_id) {
+        await assertDocumentFileMayLeave(workflowFileSync, new Workflow(before));
+        previous = { project_id: before.project_id, file_path: before.file_path };
+      }
+    }
     const rows = await db
       .update(workflows)
       .set({
@@ -199,6 +411,7 @@ export class Workflow extends DBModel {
     if (!row) return null;
 
     const updated = new Workflow(row);
+    await updated.syncFile(previous);
     ModelObserver.notify(updated, ModelChangeEvent.UPDATED, meta);
     return updated;
   }

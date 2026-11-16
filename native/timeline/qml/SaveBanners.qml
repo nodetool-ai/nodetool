@@ -3,8 +3,8 @@
 // Alert of ui_primitives/ConflictBanner.tsx.
 //
 // - Conflict (`autosave.conflict`): the server copy changed since the load.
-//   The web merges and lists each conflicting change with Accept and
-//   Discard. The native editor does not merge (D34), so it says that
+//   Both editors merge. Each change the merge refused is listed with Accept
+//   and Discard in ExternalConflictsBanner (D34). This banner says that
 //   server saving stopped, while committed edits keep updating a local copy.
 // - Earlier (`autosave.earlierCopy`): Restore is one undo entry. The file
 //   stays available after acknowledgement until explicit Discard.

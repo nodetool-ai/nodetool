@@ -212,12 +212,13 @@ const deleteProject: CapabilityExport = {
           "Project deletion is not available in this host. Delete the project from the projects page."
       };
     }
-    const outcome = await deleter(userId, id);
-    if (outcome === "personal") {
-      return { error: "The Personal project cannot be deleted." };
+    const report = await deleter(userId, id);
+    if (report.outcome !== "deleted") {
+      return report.outcome === "personal"
+        ? { error: "The Personal project cannot be deleted." }
+        : notFound(id);
     }
-    if (outcome === "not_found") return notFound(id);
-    return { project_id: id, deleted: true };
+    return { project_id: id, deleted: true, folder: report.folder };
   }
 };
 

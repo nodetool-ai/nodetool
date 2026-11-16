@@ -366,6 +366,8 @@ struct NodeLayout {
   CardBody body = CardBody::Generic;
   // A bespoke body paints a run result here instead of growing the card.
   QRectF resultRect;
+  // Where a card with no result area starts its media player: the end of its content.
+  double mediaTop = 0;
   // How far a flexible preview grew to fill an authored or default card height.
   // The card's minimum height excludes it.
   int flexHeight = 0;

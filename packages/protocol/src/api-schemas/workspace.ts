@@ -46,35 +46,6 @@ export const getInput = z.object({
 });
 export type GetInput = z.infer<typeof getInput>;
 
-// ── create (POST /api/workspaces) ────────────────────────────────
-export const createInput = z.object({
-  name: z.string().min(1),
-  path: z.string().min(1),
-  project_id: z.string().optional(),
-  is_default: z.boolean().default(false)
-});
-export type CreateInput = z.infer<typeof createInput>;
-
-// ── update (PUT /api/workspaces/:id) ─────────────────────────────
-export const updateInput = z.object({
-  id: z.string().min(1),
-  name: z.string().optional(),
-  path: z.string().optional(),
-  is_default: z.boolean().optional()
-});
-export type UpdateInput = z.infer<typeof updateInput>;
-
-// ── delete (DELETE /api/workspaces/:id) ──────────────────────────
-export const deleteInput = z.object({
-  id: z.string().min(1)
-});
-export type DeleteInput = z.infer<typeof deleteInput>;
-
-export const deleteOutput = z.object({
-  message: z.string()
-});
-export type DeleteOutput = z.infer<typeof deleteOutput>;
-
 // ── listFiles (GET /api/workspaces/:id/files?path=.) ─────────────
 // Returns an array of FileEntry objects — each describes a file or directory
 // within the workspace. Only relative paths are accepted; absolute or

@@ -122,6 +122,9 @@ public:
     QVariantList workflowThreads() const;
     QString threadTitle() const;
     Q_INVOKABLE void setWorkflow(const QString &id);
+    // The next workflow this session binds to gets a new thread instead of
+    // resuming its latest one. A newly opened editor tab sets it.
+    void setFreshThreadPending(bool pending) { m_freshThread = pending; }
     Q_INVOKABLE void deleteThread(const QString &id);
     Q_INVOKABLE void renameThread(const QString &id, const QString &title);
     // Cloud providers that take an API key, from settings.providerCatalog:
@@ -253,6 +256,7 @@ private:
                     const QString &projectionKey = {});
   QSet<QString> m_creatingWorkflows;
   QString m_workflow;
+  bool m_freshThread = false;
   QHash<QString, QString> m_threadWorkflows, m_workflowThreads;
   QStringList m_resourceKinds;
   ThreadModel m_threads;

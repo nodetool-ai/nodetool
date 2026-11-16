@@ -1,19 +1,19 @@
 ---
 layout: page
-title: "Workspaces"
-description: "Workspace folders that runs, agents, and the Code node read and write through relative paths, with production limits and error messages."
+title: "Project folders"
+description: "The folder every project owns, where runs, agents, and the Code node read and write through relative paths, how Files shows it, and the production limits."
 ---
 
-A workspace is a folder root that workflow runs, agent tasks, and chat sessions read and write through relative paths. Nodes and tools confine file operations to it.
+Every project has one folder. Workflow runs, agent tasks, and chat sessions in that project read and write it through relative paths. Nodes and tools confine file operations to it. The Files section of the left panel shows it.
 
 ```
-<data dir>/workspaces/        # NODETOOL_WORKSPACES_DIR, the default workspace for each user
-~/projects/campaign           # a workspace you added in the app
+~/NodeTool/My Film            # PROJECTS_DIR, one folder per project
+~/NodeTool/My Film/.nodetool  # NodeTool's own files, hidden from Files
 ```
 
 ## Project folders
 
-Every project has one folder, recorded as a workspace row. Creating a project creates `<PROJECTS_DIR>/<project name>` (default `~/NodeTool`, see [Configuration](configuration.md#environment-variables-index)) and adds ` 2`, ` 3` and so on when the name is taken. The projects folder must be an absolute path to a writable directory. A folder you name in Settings must already exist. With `NODETOOL_WORKSPACE_STORAGE=cloud` the folder is the key prefix `workspaces/<user>/projects/<sha256 of the project id>` in the asset bucket, or the next free `projects/` key when a game already uses that one. If the folder cannot be created, the project is not created either. Personal gets its folder when it is first created, and an imported project gets one at import. When either folder cannot be made, the project stays, runs in it report the missing folder, and the next startup tries again.
+Creating a project creates `<PROJECTS_DIR>/<project name>` (default `~/NodeTool`, see [Configuration](configuration.md#environment-variables-index)) and adds ` 2`, ` 3` and so on when the name is taken. The projects folder must be an absolute path to a writable directory. A folder you name in Settings must already exist. With `NODETOOL_WORKSPACE_STORAGE=cloud` the folder is the key prefix `workspaces/<user>/projects/<sha256 of the project id>` in the asset bucket, or the next free `projects/` key when a game already uses that one. If the folder cannot be created, the project is not created either. Personal gets its folder when it is first created, and an imported project gets one at import. When either folder cannot be made, the project stays, runs in it report the missing folder, and the next startup tries again.
 
 Each folder holds `.nodetool/project.json`, which names the project:
 
@@ -21,9 +21,9 @@ Each folder holds `.nodetool/project.json`, which names the project:
 { "format": "nodetool.project", "version": 1, "id": "<project id>", "name": "My Film" }
 ```
 
-Personal's folder is your default workspace, unless a native game uses it. Then Personal gets a new folder and the game keeps its workspace. On startup, each project from before project folders keeps its oldest workspace that no game uses, or gets a new folder when it has none. Its other workspaces and their files stay as they are.
+Personal's folder is the default folder from before project folders, unless a native game uses it. Then Personal gets a new folder and the game keeps its own. On startup, each project from before project folders keeps its oldest folder that no game uses, or gets a new one when it has none. Its other folders and their files stay as they are.
 
-A native game never writes into a project folder. Each game workspace is its own row under the managed workspaces folder. Deleting a project leaves the files in its project folder in place.
+A native game never writes into a project folder. Each game keeps its own folder under the managed folder, `NODETOOL_WORKSPACES_DIR`. Deleting a project leaves the files in its project folder in place.
 
 ### Open a folder as a project
 
@@ -41,7 +41,7 @@ When the folder already has `.nodetool/project.json`:
 
 A project whose folder is renamed, moved or on an unplugged drive shows **Folder not found** on its card and above its Files. Runs in it do not start. **Locate** points the project at the folder's new place (`projects.relocate({ project_id, path })`) with the same checks as opening a folder. It refuses a folder whose `.nodetool/project.json` names a different project, and writes the manifest into a folder that has none.
 
-The project API returns `folder: { path, origin, is_accessible }`, where `origin` is `created` or `adopted`. `path` is null for a cloud folder and for every folder on a server with `NODETOOL_ENV=production`, which also ignores a `PROJECTS_DIR` saved in a user's Settings. While [existing assets move into the folder](#existing-assets-move-into-the-folder), `folder` also carries `moving: { done, total }`.
+The project API returns `folder: { path, origin, is_accessible, workspace_id }`, where `origin` is `created` or `adopted`. `workspace_id` addresses the folder in the `workspace` file procedures. `path` is null for a cloud folder and for every folder on a server with `NODETOOL_ENV=production`, which also ignores a `PROJECTS_DIR` saved in a user's Settings. While [existing assets move into the folder](#existing-assets-move-into-the-folder), `folder` also carries `moving: { done, total }`.
 
 ## Where runs read and write
 
@@ -61,11 +61,19 @@ NodeTool owns `.nodetool/` in every folder. Agent file tools, the Code node, JS 
 
 ## Assets are files in the folder
 
-A workflow output or an asset a node saves is one file in its project's folder plus an asset row. The file goes to `Generated/`, which stays flat. Its name is the asset's name with whitespace as dashes and the extension of its content type, so an image named "fox in snow" is `Generated/fox-in-snow.png`. A second asset of the same name is `fox-in-snow-2.png`. An auto-saved output takes the title of its node, or `<kind>_<node id>` when the node has none.
+Every asset NodeTool creates is one file in its project's folder plus an asset row: a workflow output, an asset a node saves, an image an agent generates in a chat, and a file you upload. Generated files go to `Generated/`, which stays flat. Its name is the asset's name with whitespace as dashes and the extension of its content type, so an image named "fox in snow" is `Generated/fox-in-snow.png`. A second asset of the same name is `fox-in-snow-2.png`. An auto-saved output takes the title of its node, or `<kind>_<node id>` when the node has none.
+
+A file dropped on a directory in the Files tree is saved in that directory. A file uploaded anywhere else, such as on the canvas or in the asset browser, goes to `Imported/`. An upload names its project, and NodeTool refuses a project you do not own. An agent output with `output_file` is saved at that path, and a Save file node with "Save to workspace" on saves at its file name. Each is the asset's only file, so the agent and the next node read the same bytes the asset shows.
 
 The row keeps the asset's ID and the file's path in `workspace_path`. URLs and document references use the ID, so they stay valid when the file is renamed. Renaming the asset in NodeTool renames its file, and deleting the asset deletes its file. Moving an asset to another project, as assigning an entity does, moves its file into that project's folder under the same directory. Each of these is refused while a folder it needs is unreachable.
 
-NodeTool never replaces a file when it picks a name. The file is created exclusively, so when another NodeTool process took the name first, or a file with it already exists in the destination folder, the new file gets the next free suffix. An asset created before project folders, or by an upload or an agent tool, keeps its bytes in [asset storage](storage.md) and reads as before until its file is moved into the folder.
+### Use a Personal asset in a project
+
+Personal is the library. In a named project, the image pickers (entity images, timeline references, **Replace clip…**) show **This project** and **Personal** tabs. Picking from Personal copies the file into the project's `Imported/` directory as a new asset, and the document stores the copy's ID. The copy is independent: editing or deleting it leaves the Personal original unchanged, and the reverse. Picking the same unchanged asset again returns the same copy. The copy's metadata records the source asset's ID and content hash (`copied_from_asset_id`, `copied_from_hash`), and a client cannot change them. A copied entity stays an entity, and its swapped reference image is copied with it.
+
+Agent tools follow the same rule. When `edit_storyboard`, `edit_timeline`, `set_timeline_document`, the timeline code tools (`set_timeline_code`, `edit_timeline_code`, `rebake_timeline_code`) or `edit_sketch` stores an asset of another project, it copies the asset first, stores the copy's ID, and returns `copied_assets: [{ source_asset_id, asset_id }]`. The server function behind both is `copyAssetToProject` in `@nodetool-ai/asset-services`, reached from the web through `assets.copyToProject`.
+
+NodeTool never replaces a file when it picks a name. The file is created exclusively, so when another NodeTool process took the name first, or a file with it already exists in the destination folder, the new file gets the next free suffix. An asset created before project folders keeps its bytes in [asset storage](storage.md) and reads as before until its file is moved into the folder.
 
 ### Existing assets move into the folder
 
@@ -169,44 +177,142 @@ A directory has no row, so its id names its project and path: `dir:<project id>:
 
 Each asset shows the state of its file in the grid, the list, and the viewer. **Missing** marks an offline asset and offers **Relink** and **Remove**. Relink appears in the desktop app, which can read a picked file's location. **Linked** marks an asset that uses a file outside the project folder in place.
 
-## Manage workspaces in the app
+## Workflows are files in the folder
 
-Workspaces have their own full-screen page at `/workspaces` (not a Settings tab):
+Each workflow of a project is a JSON file in the project's folder, `Workflows/<name>.workflow.json`. The file is the document. The database row is the copy NodeTool runs from and reads when it lists workflows.
 
-1. Open the app menu (click the logo at the top of the left rail).
-2. Choose **Workspaces**.
-3. Click **Add Workspace** and pick a directory. The path must be absolute, exist, be a directory, and be writable.
-4. Use the star on a row to make it the default workspace. The default workspace has no remove button.
+```json
+{
+  "format": "nodetool.workflow",
+  "version": 1,
+  "id": "<workflow id>",
+  "description": "",
+  "tags": [],
+  "run_mode": null,
+  "settings": {},
+  "graph": { "nodes": [], "edges": [] }
+}
+```
 
-![Workspaces page](assets/screenshots/workspaces-page.png)
+The file name is the workflow's name, and the file has no `name` field. Characters a file name cannot carry become spaces. The file is pretty-printed with these keys in this order and ends with a newline, so a diff shows only what changed. Owner, access, thumbnails and timestamps stay in the database. Version history stays in the database too. Example and package workflows are templates and are written to no folder.
 
-A row marked **Inaccessible** points at a folder the server can no longer reach. Workspaces also appear in the **Workspace** view of the left panel (a file tree of the current one) and under **Advanced** in the workflow form. Runs no longer read the workflow form's workspace. Every user gets a default workspace the first time the list loads.
+### Saving in NodeTool writes the file
+
+Every save of a workflow writes its file: the editor and its autosave, the REST and tRPC API, the agent's workflow tools, and restoring a version. The write happens in the `Workflow` model, after the row is saved. The row then records the file's path in `file_path` and the SHA-256 of its content in `file_hash`. Saving a workflow that did not change leaves the file byte-identical.
+
+Renaming a workflow renames its file. Deleting a workflow deletes its file. Moving a workflow to another project moves its file to that project's folder. A file edit NodeTool has not seen is kept as a version before the file leaves the old folder. When that edit is not valid, the move is refused with an error that names the file, and the workflow and its file stay where they are. A second workflow with the same name gets `<name>-2.workflow.json`. NodeTool creates a new file exclusively and never replaces a file it did not write for that workflow.
+
+A workflow is saved even when its folder cannot be reached. The file is written, and renamed when the name changed, the next time the folder is compared. The same holds for a workflow saved by a host that does not write project files, such as a CLI command run against the database. `file_hash` keeps naming the file as NodeTool last wrote or imported it, so the comparison can tell a file nobody touched, which it writes, from a file that was edited, which it imports.
+
+A save never replaces a file edit NodeTool has not seen. Before it writes, the save compares the file with `file_hash`. When the file was edited since, for example by a `git pull` while the project was closed, the file's content is kept as a version named "File edit replaced by a save" and the save is then written. When the edited file is not valid, the file is left as it is and its error is recorded in `file_error`. The workflow is saved in the database either way.
+
+### Editing the file updates the workflow
+
+A workflow file can be edited by hand, replaced by git, or changed by an agent with its file tools. NodeTool compares the files with the rows whenever it compares the asset index: when the project is opened, after NodeTool writes into the folder, and when a file changes while the project is open.
+
+| File | Result |
+| --- | --- |
+| Its hash equals `file_hash` | Nothing changes. |
+| Its hash differs and the file is valid | The workflow as it was is kept as a version named "Before file edit". The file's content is stored and open editors are told. |
+| Its hash differs and the file is not valid | The workflow is kept as it was. The reason is recorded in `file_error`. The file is not written again until it is valid. |
+| The file is gone | `file_error` reads "File missing". The workflow is kept. Saving it in NodeTool writes the file again. |
+| The file was renamed or moved in the folder | The workflow follows it and takes the new file name as its name. A rename that changes only the case of the name counts, also in a folder that ignores case. |
+| A new file with an ID no workflow has | A workflow is created in this project. |
+| A new file with the ID of another workflow | The file gets a new ID, is rewritten with it, and becomes a new workflow. Duplicating a workflow file does this. |
+
+The whole file can be edited except `id`. A changed `id` in a file NodeTool knows is set back. A file without an `id` gets one. A `run_mode` that is missing or `null` reads as `workflow`.
+
+An edited graph passes the checks `update_workflow` runs before it is stored: unknown node types, providers and models the runtime does not have, and wiring handles left in property values. A refused file gives the error that tool gives. The agent's workflow tools remain the better way for an agent to change a workflow, because they return the error in the tool result. A node keeps the position the file gives it. A node the file gives no position is placed automatically.
+
+All edits made to a file between two comparisons are stored as one change and leave one version. NodeTool does not rewrite a file it imports, so a text editor that has it open sees no change it did not make. The two exceptions are a restored `id` and a new ID for a duplicate.
+
+An exact copy of a workflow file waits 10 seconds before it becomes a workflow, as a copied media file does. When the original is gone by then, the copy is where the workflow moved to.
+
+When a workflow was saved by a host that writes no files and its file was edited as well, the file is imported and the saved workflow is the version. Restoring a version in NodeTool writes the row and the file together, so the restored graph is not taken for a file edit.
+
+### Workflows from before project folders
+
+A workflow that has no file gets one when the server starts and when its project is next compared. The step writes one file per workflow and records `file_path` and `file_hash`. Running it again writes nothing. A workflow that belongs to no project gets its file in the Personal folder once the Personal project exists.
+
+## Timelines are files in the folder
+
+Each timeline of a project is a JSON file in the project's folder, `Timelines/<name>.timeline.json`. It follows the rules of a workflow file: the file is the document, the database row is the copy NodeTool renders from, and the same save and compare steps keep the two in step.
+
+```json
+{
+  "format": "nodetool.timeline",
+  "version": 1,
+  "id": "<timeline id>",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "duration_ms": 0,
+  "document": { "tracks": [], "clips": [], "markers": [] }
+}
+```
+
+The file name is the timeline's name, and the file has no `name` field. `document` is the timeline document that `get_timeline` returns. A clip names its media by asset ID in `currentAssetId`, as the stored document does, so the file holds no media and no path. Owner, the linked workflow, `revision` and timestamps stay in the database. Version history stays in the database too.
+
+### Saving a timeline writes the file
+
+Every save of a timeline writes its file: the editor's save, the tRPC and REST API, `edit_timeline`, `set_timeline_document` and the other agent tools that change a timeline, a finished storyboard, and restoring a version. The write happens in the `TimelineSequence` model, after the row is saved. The row records `file_path`, `file_hash` and `file_error` as a workflow row does. Recording them does not raise `revision` or `updated_at`.
+
+Renaming, deleting, a name that is taken, and a folder that cannot be reached behave as they do for a workflow. Moving a timeline to another project moves its file to that project's folder, and an unseen or invalid file edit is treated as it is for a workflow. Copying a timeline into another project writes a file for the copy.
+
+A save never replaces a file edit NodeTool has not seen, as for a workflow. A valid file that was edited since NodeTool last wrote or imported it is kept as a version named "File edit replaced by a save", with the settings the file had, before the save is written. A file that is not valid is left as it is, and its error is recorded in `file_error`. The timeline is saved in the database either way.
+
+### Editing the file updates the timeline
+
+The comparison is the one in [Editing the file updates the workflow](#editing-the-file-updates-the-workflow), with the same table, and it runs at the same times. For a timeline the rows mean this:
+
+| File | Result |
+| --- | --- |
+| Its hash differs and the file is valid | The timeline as it was is kept as a version named "Before file edit". The file's content is stored, and `revision` and `updated_at` are raised. |
+| Its hash differs and the file is not valid | The timeline is kept as it was, with its `revision`. The reason is recorded in `file_error`. The file is not written again until it is valid. |
+| The file was renamed or moved in the folder | The timeline follows it and takes the new file name as its name. A rename that changes only the case of the name counts, also in a folder that ignores case. |
+| A new file with an ID no timeline has | A timeline is created in this project. |
+| A new file with the ID of another timeline | The file gets a new ID, is rewritten with it, and becomes a new timeline. |
+
+An editor that has the timeline open reloads when `revision` rises. A save that still names the state from before the file edit is refused with `Timeline has been modified since last load`, and a write that carries the old `revision` is refused as a conflict. An edit to the file that changes no content raises neither.
+
+An edited document passes the checks `set_timeline_document` runs before it is stored. Fields a hand-written document leaves out are filled in, such as a track's `index` and a clip's `status`. A track that a clip names and the file does not declare is added. An asset reference in the form the asset tools print, `asset://<short id>.<ext>`, becomes the asset's full ID. A document with validation errors is refused, and `file_error` lists the errors that tool reports.
+
+`fps`, `width` and `height` are stored as the file gives them. A file that leaves one out keeps the value the timeline has. `duration_ms` is the end of the last clip. NodeTool computes it from the document when it imports the file, so an edit to the clips need not update it.
+
+Restoring a version writes the row and the file together and raises `revision`. The restored document is not taken for a file edit.
+
+### Timelines from before project folders
+
+A timeline that has no file gets one when the server starts and when its project is next compared, as a workflow does. Running the step again writes nothing.
+
+## Files in the left panel
+
+The left panel lists **Chats**, **Documents** and **Files** under the name of the open project. Files is a tree of the project folder. It updates when a run or a tool adds a file, and it hides `.nodetool/`.
+
+Right-click a file or folder to reveal it in your file manager. The menu reads **Reveal in Finder** on macOS, **Show in File Explorer** on Windows and **Show in file manager** on Linux. It appears in the desktop app only. The browser app and a cloud deployment show the tree without it, because the files are not on your machine.
+
+New project folders go under `PROJECTS_DIR`. The old `/workspaces` page and its folder picker no longer exist, and its address opens the Files section.
 
 ## What a cloud deployment allows
 
-A workspace pointing at a host folder browses the server's filesystem, so `NODETOOL_ENV=production` refuses create, update, and delete (`packages/websocket/src/trpc/routers/workspace.ts`). Each user's server-managed workspace under the data dir stays readable. `NODETOOL_WORKSPACE_STORAGE=cloud` (the production default) keeps it in the asset bucket instead of on disk. See [Configuration](configuration.md#environment-variables-index).
+A folder on the host would let a user browse the server's filesystem, so `NODETOOL_ENV=production` returns `path: null` and ignores a saved `PROJECTS_DIR`. Only the server-managed folder under the data dir stays readable. `NODETOOL_WORKSPACE_STORAGE=cloud` (the production default) keeps folders in the asset bucket instead of on disk. See [Configuration](configuration.md#environment-variables-index).
 
-`workspace.list` returns `can_manage`, which the UI reads through `useWorkspaces()`. On a cloud deployment every workspace surface is present and only **Add Workspace** is missing.
-
-## Where workspaces are used
+## Where project folders are used
 
 - Agent and chat file tools.
-- The Code node. Its `workspace.*` API (`read`, `write`, `list`, `stat`, `mkdir`, `remove`, `copy`, `move`) is confined to the workspace unless **Allow Host Filesystem** is on. The cloud profile ignores that switch.
+- The Code node. Its `workspace.*` API (`read`, `write`, `list`, `stat`, `mkdir`, `remove`, `copy`, `move`) is confined to the project folder unless **Allow Host Filesystem** is on. The cloud profile ignores that switch.
 
 ## API
 
-The tRPC `workspace` router has `list`, `create`, `update`, `delete`, `listFiles`, `readFile`, and `writeFile` (`packages/websocket/src/trpc/routers/workspace.ts`). Paths passed to the file procedures are workspace-relative. Absolute paths are refused and traversal answers `403`. Binary reads use `GET /api/workspaces/:id/download/:path` (`packages/websocket/src/workspace-api.ts`).
+Projects create and adopt their folders through `projects.create`, so no API creates, repoints or deletes a folder. The tRPC `workspace` router has `list`, `listFiles`, `readFile`, and `writeFile` (`packages/websocket/src/trpc/routers/workspace.ts`). Paths passed to the file procedures are workspace-relative. Absolute paths are refused and traversal answers `403`. Binary reads use `GET /api/workspaces/:id/download/:path` (`packages/websocket/src/workspace-api.ts`).
 
 ## If it fails
 
 | Message | Cause |
 |---|---|
-| `Managing workspace folders is disabled in production` | Create, update, or delete with `NODETOOL_ENV=production` |
-| `This workspace is not readable in production` | Reading a workspace row that points at a host folder, in production |
-| `Path must be absolute`, `Path does not exist`, `Path is not a directory`, `Path is not writable` | Folder validation when adding a workspace |
+| `This workspace is not readable in production` | Reading a folder that points at a host path, in production |
 | `Absolute paths not allowed, use relative paths` | A file procedure got a path starting with `/` |
 | `Path traversal not allowed` (`403`) | A relative path escaped the workspace root |
-| `Cannot delete the default workspace`, `Cannot delete workspace with linked workflows` | Delete refused |
 | `Project folder not found: <folder>` | A run's project folder is missing, unreachable or not recorded. Reconnect the drive, restore the folder, or use **Locate**, then run again |
 | `This folder is inside the folder of project "<name>"`, `contains the folder of`, `is already the folder of` | Opening or locating a folder that overlaps another project's folder |
 | `This folder is a copy of project "<name>"` | The folder's manifest names a project whose folder still exists |
@@ -216,6 +322,7 @@ The tRPC `workspace` router has `list`, `create`, `update`, `delete`, `listFiles
 
 ## Related docs
 
+- [Projects](projects.md)
 - [Workflow Editor](workflow-editor.md)
 - [Storage Guide](storage.md)
 - [Node Reference: `nodetool.code`](nodes/nodetool/code/)

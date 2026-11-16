@@ -696,61 +696,15 @@
   },
   "batch2_1": {
     "common": {
-      "workspace": "Werkruimte",
       "loading": "Laden…",
       "refresh": "Vernieuwen",
       "remove": "Verwijderen",
       "cancel": "Annuleer"
     },
-    "page": {
-      "title": "Werkruimtes",
-      "subtitle": "Sandboxmappen waarin agenten en workflows bestanden kunnen lezen, schrijven en ordenen."
-    },
-    "folderPicker": {
-      "title": "Selecteer de werkruimtemap"
-    },
-    "notifications": {
-      "added": "Werkruimte toegevoegd",
-      "removed": "Werkruimte verwijderd"
-    },
-    "errors": {
-      "loadTitle": "Kan werkruimten niet laden",
-      "loadSummary": "Werkruimten kunnen niet worden geladen",
-      "loadDescription": "Controleer uw verbinding en probeer het opnieuw.",
-      "operation": "Werkruimtebewerking mislukt: {{error}}"
-    },
-    "manager": {
-      "inaccessible": "Ontoegankelijk",
-      "defaultWorkspace": "Standaard werkruimte",
-      "setDefault": "Als standaard instellen",
-      "emptyTitle": "Geen werkruimten geconfigureerd",
-      "emptyCanManage": "Voeg een werkruimte toe zodat agenten toegang hebben tot lokale mappen",
-      "emptyManaged": "Deze implementatie beheert uw werkruimte voor u",
-      "adding": "Toevoegen…",
-      "addWorkspace": "Werkruimte toevoegen",
-      "removeTitle": "Deze werkruimte verwijderen?",
-      "removeDescription": "De werkruimte wordt verwijderd uit NodeTool. De map zelf wordt niet verwijderd."
-    },
-    "select": {
-      "defaultWithPath": "Standaard ({{path}})",
-      "description": "Agenten lezen en schrijven hier bestanden tijdens de uitvoering, inclusief opgeslagen afbeeldingen, tekst, gegevens en andere uitvoer. Blader door de resultaten in het deelvenster Werkruimte. Agenten hebben alleen toegang tot bestanden in deze map. Een workflow die op Standaard blijft staan, gebruikt uw standaardwerkruimte.",
-      "createNew": "Creëer een nieuwe werkruimte",
-      "addWorkspace": "Werkruimte toevoegen…"
-    },
     "tree": {
       "loading": "Laden…",
       "accessDenied": "⚠️Toegang geweigerd",
-      "title": "Verkenner van de werkruimte",
-      "manage": "Beheer werkruimtes",
-      "goToRoot": "Ga naar de hoofdmap van de werkruimte",
-      "openInFolder": "Openen in map",
-      "openExternally": "Extern openen",
-      "noneSelected": "Geen werkruimte geselecteerd",
-      "selectOrCreate": "Selecteer hierboven een werkruimte of maak er een aan.",
-      "createWorkspace": "Creëer werkruimte",
-      "fileBrowser": "Bestandsbrowser in de werkruimte",
-      "emptyTitle": "Werkruimte is leeg",
-      "emptyDescription": "Voeg bestanden toe aan uw werkruimtemap om ze hier te bekijken."
+      "openExternally": "Extern openen"
     }
   },
   "batch2_10": {
@@ -1760,7 +1714,6 @@
       "packageManager": "Pakketbeheerder",
       "assets": "Activa",
       "collections": "Collecties",
-      "workspaces": "Werkruimtes",
       "memory": "Geheugen",
       "settings": "Instellingen",
       "help": "Hulp",
@@ -6473,16 +6426,42 @@
           "export": "Exporteren",
           "archive": "Archief",
           "restore": "Herstellen",
-          "delete": "Verwijderen"
+          "delete": "Verwijderen",
+          "collect": "Bestanden verzamelen"
         },
         "projectActions": "Projectacties",
         "actionsForProject": "Acties voor {{projectName}}",
         "exporting": "Exporteren…",
         "deleteProject": "Project verwijderen",
         "confirmDeleteTitle": "{{projectName}} verwijderen?",
-        "confirmDeleteBody": "Verwijder {{projectName}} en al zijn documenten, gesprekken, gegenereerde resultaten, activa, taken en projectbestanden.",
+        "confirmDeleteBody": "Verwijder {{projectName}} en al zijn documenten, gesprekken, taken en assets die buiten de projectmap zijn opgeslagen.",
         "deleteIrreversible": "Dit kan niet ongedaan worden gemaakt.",
-        "error": "Kon {{action}} {{projectName}} niet: {{error}}"
+        "deleteFolderTrash": "De projectmap wordt naar de prullenbak verplaatst.",
+        "deleteFolderRemove": "De projectmap en alle bestanden erin worden uit de cloudopslag verwijderd.",
+        "deleteFolderKeep": "De projectmap blijft met alle bestanden op zijn plek. NodeTool verwijdert alleen de map .nodetool erin.",
+        "deleteFolderMissing": "De projectmap is niet bereikbaar, dus NodeTool laat hem ongemoeid.",
+        "folderMovedAsideTo": "De prullenbak was niet bereikbaar. De projectmap is verplaatst naar {{path}}.",
+        "folderMovedAside": "De prullenbak was niet bereikbaar. De projectmap is verplaatst naar de map .trash in de projectenmap.",
+        "folderTrashFailedAt": "De projectmap kon niet naar de prullenbak worden verplaatst. Hij staat nog op {{path}}.",
+        "folderTrashFailed": "De projectmap kon niet naar de prullenbak worden verplaatst. Hij blijft op zijn plek.",
+        "error": "Kon {{action}} {{projectName}} niet: {{error}}",
+        "collecting": "Bestanden verzamelen…",
+        "collectResult": "Bestanden verzameld in {{projectName}}: {{copied}} gekopieerd, {{skipped}} overgeslagen, {{failed}} mislukt.",
+        "linkedTitle": "{{projectName}} koppelt bestanden buiten de eigen map",
+        "linkedBody": "Een export bevat de projectmap. Deze bestanden zijn van elders gekoppeld en staan er niet in:",
+        "linkedChoice": "Verzamelen en exporteren kopieert ze naar de map Imported en exporteert daarna. Annuleren behoudt de koppelingen en exporteert niets.",
+        "collectAndExport": "Verzamelen en exporteren"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Kopiëren of koppelen?",
+        "confirm": "Importeren",
+        "copy": "Naar de projectmap kopiëren",
+        "copyHint": "Het project houdt een eigen kopie. Wijzigingen in het origineel komen daar niet in.",
+        "link": "Ter plaatse koppelen",
+        "linkHint": "Er wordt niets gekopieerd. Het project leest het bestand waar het staat. Bestanden verzamelen kopieert het later.",
+        "threshold": "Bestanden van {{size}} of meer worden standaard gekoppeld."
       }
     }
   },
@@ -6657,8 +6636,6 @@
       "runModeTool": "Gereedschap",
       "runModeDescription": "Hoe deze workflow verloopt en kan worden geactiveerd",
       "advanced": "Geavanceerd",
-      "workspace": "Werkruimte",
-      "workspaceDescription": "Koppel een werkruimtemap aan deze workflow voor agenttoegang",
       "toolName": "Naam van het gereedschap",
       "toolNameDescription": "Identificatie voor API-/toolgebruik. Alleen letters, cijfers en onderstrepingstekens.",
       "toolNamePlaceholder": "mijn_workflow_tool",
@@ -10681,9 +10658,9 @@
         "jsScripts": "JS-scripts",
         "skills": "Vaardigheden",
         "assets": "Activa",
-        "workspace": "Werkruimte",
         "library": "Bibliotheek",
-        "more": "Meer"
+        "more": "Meer",
+        "files": "Bestanden"
       },
       "categoryDescriptions": {
         "documents": "Blader door elk document in het huidige project.",
@@ -10703,9 +10680,9 @@
         "jsScripts": "Creëer en beheer herbruikbare JavaScript-code.",
         "skills": "Vaardigheden van agenten: afprijsinstructies afgestemd op het doel.",
         "assets": "Blader door middelen die beschikbaar zijn in de huidige context.",
-        "workspace": "Blader door de bestanden in de geselecteerde werkruimtemap.",
         "library": "Blader door activa in het huidige project.",
-        "more": "Open extra workflow-, editor-, ontwikkelaar- en werkruimtepanelen."
+        "more": "Open meer werkstroom-, editor- en ontwikkelaarspanelen.",
+        "files": "Blader door de bestanden in de projectmap."
       }
     },
     "queue": {
@@ -14016,8 +13993,7 @@
       "search": "Doorzoek alle panelen",
       "group": {
         "workflow-tools": "Workflow-hulpmiddelen",
-        "agent-tools": "Hulpmiddelen voor agenten",
-        "workspace": "Werkruimte"
+        "agent-tools": "Hulpmiddelen voor agenten"
       },
       "category": {
         "favorites": {
@@ -14035,10 +14011,6 @@
         "skills": {
           "label": "Vaardigheden",
           "description": "Vaardigheden van agenten: afprijsinstructies afgestemd op het doel."
-        },
-        "workspace-files": {
-          "label": "Werkruimte",
-          "description": "Blader door de bestanden in de geselecteerde werkruimtemap."
         }
       }
     },
@@ -14694,9 +14666,6 @@
       "runGroup": {
         "groupRunning": "Groep loopt",
         "runGroup": "Groep uitvoeren"
-      },
-      "saveDestinationHint": {
-        "workspace": "Werkruimte"
       }
     }
   },
@@ -15914,9 +15883,9 @@
       "jsscripts": "JS-scripts",
       "skills": "Vaardigheden",
       "assets": "Activa",
-      "workspace-files": "Werkruimte",
       "library": "Bibliotheek",
-      "more": "Meer"
+      "more": "Meer",
+      "files": "Bestanden"
     }
   },
   "i18n-next55": {
@@ -16043,7 +16012,6 @@
         "models": "Modelmanager",
         "packages": "Pakketbeheerder",
         "collections": "Collecties",
-        "workspaces": "Werkruimtes",
         "entities": "Entiteiten",
         "memory": "Geheugen",
         "settings": "Instellingen",
@@ -18631,7 +18599,7 @@
   },
   "i18n-next110": {
     "workspaceFile": {
-      "invalidReference": "Ongeldige verwijzing naar werkruimtebestand"
+      "invalidReference": "Ongeldige bestandsverwijzing"
     }
   },
   "i18n-next109": {
@@ -20157,6 +20125,32 @@
     "saveFailed": "Deze machtiging kon niet worden opgeslagen.",
     "loadFailed": "De lijst met tools kon niet worden geladen.",
     "noMatches": "Geen tools komen overeen met je zoekopdracht."
+  },
+  "projectFolder": {
+    "name": "Projectmap",
+    "picker": {
+      "title": "Selecteer een map"
+    },
+    "tree": {
+      "title": "Bestanden",
+      "goToRoot": "Ga naar de hoofdmap van de projectmap",
+      "fileBrowser": "Projectbestanden",
+      "emptyTitle": "De projectmap is leeg",
+      "emptyDescription": "Voeg bestanden toe aan de projectmap om ze hier te zien.",
+      "noFolderTitle": "Geen projectmap",
+      "noFolderDescription": "Dit project heeft nog geen map.",
+      "revealInFinder": "Toon in Finder",
+      "revealInExplorer": "Toon in Verkenner",
+      "revealInFileManager": "Toon in bestandsbeheer"
+    }
+  },
+  "assetPicker": {
+    "sourceTabs": "Bron van het asset",
+    "projectTab": "Dit project",
+    "personalTab": "Persoonlijk",
+    "personalHint": "Kiezen uit Persoonlijk kopieert het bestand naar dit project.",
+    "copying": "Kopiëren naar dit project…",
+    "copyFailed": "Het asset kon niet naar dit project worden gekopieerd."
   },
   "assetFileStatus": {
     "missing": "Ontbreekt",

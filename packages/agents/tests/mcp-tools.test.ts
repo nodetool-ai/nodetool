@@ -408,6 +408,8 @@ describe("create_workflow", () => {
   // what refuses it, before any node executes.
   describe("unset model warning", () => {
     const modelRegistry = Object.assign(new NodeRegistry(), {
+      // Every node type these graphs name exists. Only the agent is checked.
+      availability: () => "executable" as const,
       has: (type: string) => type === "nodetool.agents.Agent",
       getMetadata: () => undefined,
       resolveMetadata: () => undefined,
@@ -477,6 +479,7 @@ describe("create_workflow", () => {
      * as unselected.
      */
     const bagRegistry = Object.assign(new NodeRegistry(), {
+      availability: () => "executable" as const,
       has: (type: string) => type === "nodetool.agents.Agent",
       getMetadata: () => undefined,
       resolveMetadata: () => undefined,

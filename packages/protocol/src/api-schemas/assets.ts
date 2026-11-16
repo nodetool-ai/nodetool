@@ -159,7 +159,12 @@ export const createUploadOutput = z.object({
 export type CreateUploadOutput = z.infer<typeof createUploadOutput>;
 
 export const finalizeUploadInput = z.object({
-  asset_id: z.string().min(1)
+  asset_id: z.string().min(1),
+  /**
+   * Directory in the project folder the file was dropped on, relative to the
+   * folder. Omitted, the upload goes to `Imported/`.
+   */
+  directory: z.string().optional()
 });
 export type FinalizeUploadInput = z.infer<typeof finalizeUploadInput>;
 
@@ -217,6 +222,34 @@ export type RelinkExternalInput = z.infer<typeof relinkExternalInput>;
 export const relinkExternalOutput = assetResponse;
 export type RelinkExternalOutput = z.infer<typeof relinkExternalOutput>;
 
+// ── collect (copy a project's linked files into its folder) ──────
+// Each linked file is copied into `Imported/`, verified, and its row pointed
+// at the copy. Asset ids stay. A linked file that is offline is skipped.
+
+export const collectInput = z.object({
+  project_id: z.string().min(1)
+});
+export type CollectInput = z.infer<typeof collectInput>;
+
+const uncollectedAsset = z.object({
+  id: z.string(),
+  name: z.string(),
+  reason: z.string()
+});
+
+export const collectOutput = z.object({
+  copied: z.array(
+    z.object({ id: z.string(), name: z.string(), workspace_path: z.string() })
+  ),
+  /** Linked files that are missing or changed since they were linked. */
+  skipped: z.array(uncollectedAsset),
+  /** Linked files whose copy could not be written or verified. */
+  failed: z.array(uncollectedAsset),
+  /** The request was cancelled before every linked file was tried. */
+  interrupted: z.boolean()
+});
+export type CollectOutput = z.infer<typeof collectOutput>;
+
 // ── ensureProxy (preview proxy for a video asset) ─────────────────
 // Queues an all-intra preview proxy for a video asset at any size and answers
 // the current state. Local server only.
@@ -252,6 +285,23 @@ export const updateInput = z.object({
   data_encoding: z.enum(["base64", "utf-8"]).nullable().optional()
 });
 export type UpdateInput = z.infer<typeof updateInput>;
+
+// ── copyToProject ────────────────────────────────────────────────
+// Use an asset of another project, Personal included, in `project_id`. The
+// file is copied into the project's `Imported/` directory and the copy is
+// returned; the same unchanged source returns the same copy. An asset of the
+// project itself comes back as it is, with `copied: false`.
+export const copyToProjectInput = z.object({
+  asset_id: z.string().min(1),
+  project_id: z.string().min(1)
+});
+export type CopyToProjectInput = z.infer<typeof copyToProjectInput>;
+
+export const copyToProjectOutput = z.object({
+  asset: assetResponse,
+  copied: z.boolean()
+});
+export type CopyToProjectOutput = z.infer<typeof copyToProjectOutput>;
 
 // ── delete (DELETE /api/assets/:id) ──────────────────────────────
 // Cascading delete: folders remove all contents recursively. Response

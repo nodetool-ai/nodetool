@@ -97,6 +97,19 @@ export function parseProjectDirectoryId(
   }
 }
 
+/**
+ * The directory of `projectId` that `parentId` names when it is a directory
+ * id of that project. Undefined for any other parent, so an upload keeps its
+ * default directory.
+ */
+export function directoryOfParentId(
+  parentId: string | null | undefined,
+  projectId: string | null | undefined
+): string | undefined {
+  const ref = parseProjectDirectoryId(parentId);
+  return ref && ref.projectId === projectId && ref.path ? ref.path : undefined;
+}
+
 /** The directory that holds `path`. "" for an entry at the root. */
 export function parentDirectory(path: string): string {
   const slash = path.lastIndexOf("/");

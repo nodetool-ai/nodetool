@@ -254,6 +254,36 @@ describe("model execution on SQLite and PostgreSQL", () => {
     });
   }, DIALECT_TEST_TIMEOUT_MS);
 
+  it("finds assets by a string in their metadata, with LIKE wildcards escaped", async () => {
+    await onBothDialects(async () => {
+      const copyOf = (sourceId: string, name: string) =>
+        Asset.create<Asset>({
+          user_id: OWNER,
+          name,
+          metadata: { workspace_hash: "h", copied_from_asset_id: sourceId }
+        });
+      await copyOf("a_c%", "copy");
+      // `_` and `%` are LIKE wildcards; an unescaped pattern would match these.
+      await copyOf("abc%", "wildcard twin");
+      await copyOf("a_cX", "longer id");
+      await Asset.create<Asset>({ user_id: OWNER, name: "plain", metadata: null });
+      await Asset.create<Asset>({
+        user_id: "someone-else",
+        name: "theirs",
+        metadata: { copied_from_asset_id: "a_c%" }
+      });
+      const found = await Asset.findByMetadataString(OWNER, "default", "copied_from_asset_id", "a_c%");
+      expect(found.map((asset) => asset.name)).toEqual(["copy"]);
+      expect(await Asset.findByMetadataString(
+        OWNER,
+        "other-project",
+        "copied_from_asset_id",
+        "a_c%"
+      )).toEqual([]);
+      return found.map((asset) => asset.name);
+    });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
   it("rejects missing, foreign and deleted projects without inserting or notifying", async () => {
     await onBothDialects(async () => {
       await Project.create<Project>({ id: "foreign-project", user_id: "another-owner" });

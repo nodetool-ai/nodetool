@@ -21,6 +21,7 @@
     "@jitl/quickjs-ng-wasmfile-release-sync": "^0.31.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@nodetool-ai/app-runtime": "*",
+    "@nodetool-ai/asset-services": "*",
     "@nodetool-ai/browser": "*",
     "@nodetool-ai/compute": "*",
     "@nodetool-ai/config": "*",
@@ -184,6 +185,18 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./timeline-document-save": {
+      "nodetool-dev": "./src/timeline-document-save.ts",
+      "types": "./dist/timeline-document-save.d.ts",
+      "import": "./dist/timeline-document-save.js",
+      "default": "./dist/timeline-document-save.js"
+    },
+    "./workflow-graph-save": {
+      "nodetool-dev": "./src/workflow-graph-save.ts",
+      "types": "./dist/workflow-graph-save.d.ts",
+      "import": "./dist/workflow-graph-save.js",
+      "default": "./dist/workflow-graph-save.js"
     },
     "./tool": {
       "nodetool-dev": "./src/tools/base-tool.ts",

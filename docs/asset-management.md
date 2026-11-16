@@ -75,7 +75,7 @@ A collection stores indexed text chunks for semantic search, not asset files. Se
 
 - Assets track `size`, `content_type`, and `duration` (audio and video), plus a free-form `metadata` object.
 - On the desktop app, an imported video whose longer side is at least `NODETOOL_VIDEO_PROXY_MIN_SIZE_PX` pixels (default 1920) gets a smaller preview proxy built in the background so timeline scrubbing seeks fast. Export reads the original.
-- Files at or above `NODETOOL_EXTERNAL_ASSET_THRESHOLD_BYTES` (default 1 GiB) stay at their original path and the asset references them in place. See [External assets](storage.md#external-assets).
+- On the desktop app, the import dialog offers Copy or Link. A linked file stays at its original path and the asset references it in place. Files at or above `NODETOOL_EXTERNAL_ASSET_THRESHOLD_BYTES` (default 1 GiB) start on Link. **Collect files** on the project card copies linked files into the project folder. See [Link or copy media](projects.md#link-or-copy-media) and [External assets](storage.md#external-assets).
 
 ---
 

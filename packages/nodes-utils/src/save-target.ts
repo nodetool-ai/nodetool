@@ -13,6 +13,10 @@
  *    two saves in the same second collided and one silently overwrote the
  *    other. `uniqueFilePath` numbers them `name_1.ext`, `name_2.ext`, …
  */
+import {
+  saveRunFileAsset,
+  type RunFileAssetContext
+} from "@nodetool-ai/runtime";
 import { loadNodeFsPromises, loadNodePath } from "./node-only-modules.js";
 
 /** Title every save node shows on the workspace toggle. */
@@ -81,8 +85,14 @@ export function folderPathOf(raw: FolderValue): string {
  */
 export interface SaveWorkspace {
   localDir: string | null;
-  exists(path: string): Promise<boolean>;
+  key(path: string): string;
   write(path: string, data: Uint8Array | string, contentType?: string): Promise<void>;
+  /** Create a file only when nothing is at `path`. False when something is. */
+  writeNew(
+    path: string,
+    data: Uint8Array | string,
+    contentType?: string
+  ): Promise<boolean>;
 }
 
 export interface SaveFolderOptions {
@@ -218,30 +228,63 @@ export async function resolveSaveTarget(
  * node produces a file in the user's folder locally and an object in their
  * workspace prefix in the cloud. The name is deduplicated the same way in both
  * cases — a run that saves twice in one second must not silently overwrite its
- * first output.
+ * first output. Given the run's `context`, the file is also an asset: it is
+ * written once, in the project folder, and a row points at it.
  *
  * With the toggle off the node is naming a host folder, which only exists on a
  * local install; a cloud run has no such folder and says so rather than writing
  * somewhere the user will never find.
  */
 export async function writeSavedFile(
-  opts: SaveTargetOptions & { bytes: Uint8Array | string }
+  opts: SaveTargetOptions & {
+    bytes: Uint8Array | string;
+    /**
+     * The run, when the saved file should be an asset. Without it the file
+     * is written and no row is created.
+     */
+    context?: RunFileAssetContext | null;
+    /** The file's MIME type. Unset, the asset host infers it from the name. */
+    contentType?: string;
+  }
 ): Promise<string> {
   const workspace = opts.workspace ?? null;
   const isVirtual = workspace !== null && workspace.localDir === null;
 
   if (opts.saveToWorkspace === true && workspace) {
-    if (isVirtual) {
-      const filename = requireFilename(opts.filename);
-      const target =
-        opts.overwrite === true
-          ? filename
-          : await uniqueWorkspacePath(workspace, filename);
-      await workspace.write(target, opts.bytes);
-      return target;
+    const filename = requireFilename(opts.filename);
+    const bytes =
+      opts.bytes instanceof Uint8Array
+        ? opts.bytes
+        : new TextEncoder().encode(opts.bytes);
+    // A numbered name is claimed with an exclusive create, so two saves of
+    // one name, in this process or another, never write over each other.
+    const target =
+      opts.overwrite === true
+        ? workspace.key(filename)
+        : await claimWorkspacePath(
+            workspace,
+            workspace.key(filename),
+            bytes,
+            opts.contentType
+          );
+    if (opts.context) {
+      // The asset takes the claimed file: its row points at that path, and
+      // the host writes the same bytes there again.
+      await saveRunFileAsset(opts.context, bytes, {
+        path: target,
+        name: target.slice(target.lastIndexOf("/") + 1),
+        contentType: opts.contentType ?? "application/octet-stream"
+      });
+    } else if (opts.overwrite === true) {
+      await workspace.write(target, bytes, opts.contentType);
     }
-    // A local workspace is a real folder, so the file goes there by path —
-    // which is what a user browsing their workspace on disk expects.
+    // A local workspace reports the real path, which is what a user browsing
+    // their workspace on disk expects.
+    if (workspace.localDir) {
+      const path = await loadNodePath();
+      return path.join(workspace.localDir, target);
+    }
+    return target;
   } else if (isVirtual) {
     throw new Error(
       "This node writes to a folder on the machine running the workflow, and " +
@@ -256,17 +299,23 @@ export async function writeSavedFile(
   return target;
 }
 
-/** `name.ext`, `name_1.ext`, … — the first one the workspace does not hold. */
-async function uniqueWorkspacePath(
+/**
+ * Write `bytes` to `name.ext`, or to `name_1.ext`, `name_2.ext`, … when the
+ * name is taken, and return the path written. Each candidate is created with
+ * `writeNew`, so an existing file is never replaced.
+ */
+async function claimWorkspacePath(
   workspace: SaveWorkspace,
-  filename: string
+  filename: string,
+  bytes: Uint8Array,
+  contentType: string | undefined
 ): Promise<string> {
-  if (!(await workspace.exists(filename))) return filename;
+  const slash = filename.lastIndexOf("/");
   const dot = filename.lastIndexOf(".");
-  const base = dot > 0 ? filename.slice(0, dot) : filename;
-  const ext = dot > 0 ? filename.slice(dot) : "";
-  for (let i = 1; ; i++) {
-    const candidate = `${base}_${i}${ext}`;
-    if (!(await workspace.exists(candidate))) return candidate;
+  const base = dot > slash + 1 ? filename.slice(0, dot) : filename;
+  const ext = dot > slash + 1 ? filename.slice(dot) : "";
+  for (let i = 0; ; i++) {
+    const candidate = i === 0 ? filename : `${base}_${i}${ext}`;
+    if (await workspace.writeNew(candidate, bytes, contentType)) return candidate;
   }
 }

@@ -55,6 +55,7 @@ import {
   ProjectDirectoryResolver,
   directoryFolderId,
   directoryName,
+  directoryOfParentId,
   folderNameAsDirectory,
   isWithinDirectory,
   joinDirectory,
@@ -64,13 +65,17 @@ import {
   type ProjectDirectoryRef
 } from "@nodetool-ai/protocol";
 import {
+  COLLECT_PATH_KEY,
+  collectLinkedAssets,
   ProjectAssetRelinkError,
   deleteProjectAssetFile,
   moveProjectAssetToDirectory,
   relinkProjectAsset,
   renameProjectAssetFile,
   replaceProjectAssetBytes,
+  saveProjectAsset,
   storeLegacyAssetBytes,
+  uploadDirectory,
   type ProjectAssetFileChange,
   type ProjectAssetRelinkSource
 } from "@nodetool-ai/asset-services/project-asset";
@@ -80,6 +85,11 @@ import {
   keepFingerprint,
   requireProjectFolder
 } from "@nodetool-ai/asset-services/project-asset-file";
+import {
+  AssetCopyError,
+  COPY_SOURCE_KEYS,
+  copyAssetToProject
+} from "@nodetool-ai/asset-services/copy-asset-to-project";
 import {
   WorkspacePathError,
   WorkspaceReservedPathError
@@ -117,6 +127,8 @@ import {
   createExternalOutput,
   relinkExternalInput,
   relinkExternalOutput,
+  collectInput,
+  collectOutput,
   externalImportConfigOutput,
   ensureProxyInput,
   ensureProxyOutput,
@@ -128,6 +140,8 @@ import {
   recursiveOutput,
   searchInput,
   searchOutput,
+  copyToProjectInput,
+  copyToProjectOutput,
   type AssetResponse
 } from "@nodetool-ai/protocol/api-schemas/assets.js";
 import { isAssetSharedWithUser } from "../../lib/document-access.js";
@@ -355,6 +369,15 @@ async function resolveExternalFile(
 }
 
 /**
+ * Metadata keys of a linked asset that only the server writes: the file
+ * fingerprint and the file a collect reserved (`collect_path`).
+ */
+const EXTERNAL_OWNED_KEYS: readonly string[] = [
+  ...EXTERNAL_FINGERPRINT_KEYS,
+  COLLECT_PATH_KEY
+];
+
+/**
  * Refuse a replacement file of another media kind (audio for a video clip).
  * The asset's URL takes its extension from the content type, which stays. A
  * name with no known type is accepted.
@@ -427,18 +450,19 @@ async function relinkProjectFile(
 
 /**
  * `next` with the external file fingerprint (`external_size`,
- * `external_mtime`) taken from `current`. Offline detection compares the file
- * against these, so only import and relink may write them.
+ * `external_mtime`) and a pending collect taken from `current`. Offline
+ * detection compares the file against the fingerprint, so only import and
+ * relink may write it, and collect alone writes `collect_path`.
  */
 function withExternalFingerprint(
   next: Record<string, unknown>,
   current: Record<string, unknown> | null
 ): Record<string, unknown> {
-  const owned = new Set<string>(EXTERNAL_FINGERPRINT_KEYS);
+  const owned = new Set<string>(EXTERNAL_OWNED_KEYS);
   const merged = Object.fromEntries(
     Object.entries(next).filter(([key]) => !owned.has(key))
   );
-  for (const key of EXTERNAL_FINGERPRINT_KEYS) {
+  for (const key of EXTERNAL_OWNED_KEYS) {
     if (current && key in current) {
       merged[key] = current[key];
     }
@@ -853,14 +877,50 @@ export const assetsRouter = router({
       asset.size = stat.size;
       await asset.save();
 
-      // The bytes are already in the bucket, so a thumbnail costs one download
-      // back into this process. The generator skips objects above
-      // THUMBNAIL_SOURCE_MAX_BYTES, so a multi-gigabyte video goes without.
-      await generateThumbnailForStoredAsset(
-        asset.user_id,
-        asset.id,
-        asset.content_type
-      );
+      // The client wrote to the storage key, which is outside any project
+      // folder. The bytes move into the folder: the file is written and the
+      // row saved before the object under the key is removed, so a failure
+      // leaves the asset readable from the key as before.
+      const uri = adapter.uriForKey(key);
+      try {
+        const bytes = await adapter.retrieve(uri);
+        if (!bytes) throw new Error("The uploaded object is not readable");
+        await saveProjectAsset({
+          asset,
+          projectId: asset.project_id,
+          userId: asset.user_id,
+          name: asset.name,
+          contentType: asset.content_type,
+          bytes,
+          directory: uploadDirectory(
+            input.directory ??
+              directoryOfParentId(asset.parent_id, asset.project_id)
+          ),
+          parentId: asset.parent_id
+        });
+      } catch (error) {
+        log.warn("upload kept under its storage key", {
+          assetId: asset.id,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        // The bytes are already in the bucket, so a thumbnail costs one
+        // download back into this process. The generator skips objects above
+        // THUMBNAIL_SOURCE_MAX_BYTES, so a multi-gigabyte video goes without.
+        await generateThumbnailForStoredAsset(
+          asset.user_id,
+          asset.id,
+          asset.content_type
+        );
+        return toAssetResponse(asset);
+      }
+      try {
+        await adapter.delete(uri);
+      } catch (error) {
+        log.warn("could not remove an upload moved into its project folder", {
+          assetId: asset.id,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
 
       return toAssetResponse(asset);
     }),
@@ -953,6 +1013,31 @@ export const assetsRouter = router({
       scheduleVideoProxy(asset);
 
       return toAssetResponse(asset);
+    }),
+
+  /**
+   * Copy every linked file of a project into its `Imported/` directory and
+   * point each row at its copy (PRD T6). Asset ids stay and the linked files
+   * are left as they were. One asset at a time: a cancelled request stops
+   * before the next asset, and calling it again finishes the rest.
+   */
+  collect: protectedProcedure
+    .input(collectInput)
+    .output(collectOutput)
+    .mutation(async ({ ctx, input, signal }) => {
+      if (!(await Project.findOwned(ctx.userId, input.project_id))) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
+      }
+      const args: Parameters<typeof collectLinkedAssets>[0] = {
+        projectId: input.project_id,
+        userId: ctx.userId
+      };
+      if (signal) args.signal = signal;
+      try {
+        return await collectLinkedAssets(args);
+      } catch (error) {
+        rethrowFolderError(error);
+      }
     }),
 
   /**
@@ -1148,11 +1233,10 @@ export const assetsRouter = router({
         asset.metadata = isExternal
           ? withExternalFingerprint(input.metadata, asset.metadata)
           : hasProjectFile
-            ? keepFingerprint(
-                input.metadata,
-                asset.metadata,
-                WORKSPACE_SERVER_KEYS
-              )
+            ? keepFingerprint(input.metadata, asset.metadata, [
+                ...WORKSPACE_SERVER_KEYS,
+                ...COPY_SOURCE_KEYS
+              ])
             : input.metadata;
       }
       if (input.sketch_document_id !== undefined) {
@@ -1264,6 +1348,37 @@ export const assetsRouter = router({
       }
       for (const change of fileChanges) await change.commit();
       return toAssetResponse(asset);
+    }),
+
+  /**
+   * Use an asset in a project (PRD D10). An asset of another project, such
+   * as Personal, is copied into the project's `Imported/` directory and the
+   * copy is returned, so the document stores an asset of its own project.
+   */
+  copyToProject: protectedProcedure
+    .input(copyToProjectInput)
+    .output(copyToProjectOutput)
+    .mutation(async ({ ctx, input }) => {
+      if (input.project_id !== "default") {
+        try {
+          await Project.requireOwned(ctx.userId, input.project_id);
+        } catch {
+          throwApiError(ApiErrorCode.INVALID_INPUT, "Project not found");
+        }
+      }
+      try {
+        const { asset, copied } = await copyAssetToProject({
+          userId: ctx.userId,
+          assetId: input.asset_id,
+          projectId: input.project_id
+        });
+        return { asset: await toAssetResponse(asset), copied };
+      } catch (error) {
+        if (error instanceof AssetCopyError) {
+          throwApiError(ApiErrorCode.INVALID_INPUT, error.message);
+        }
+        rethrowFolderError(error);
+      }
     }),
 
   delete: protectedProcedure

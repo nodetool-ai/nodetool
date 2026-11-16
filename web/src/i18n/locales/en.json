@@ -696,61 +696,15 @@
   },
   "batch2_1": {
     "common": {
-      "workspace": "Workspace",
       "loading": "Loading…",
       "refresh": "Refresh",
       "remove": "Remove",
       "cancel": "Cancel"
     },
-    "page": {
-      "title": "Workspaces",
-      "subtitle": "Sandboxed folders that agents and workflows can read, write, and organize files in."
-    },
-    "folderPicker": {
-      "title": "Select workspace folder"
-    },
-    "notifications": {
-      "added": "Workspace added",
-      "removed": "Workspace removed"
-    },
-    "errors": {
-      "loadTitle": "Could not load workspaces",
-      "loadSummary": "Workspaces failed to load",
-      "loadDescription": "Check your connection and try again.",
-      "operation": "Workspace operation failed: {{error}}"
-    },
-    "manager": {
-      "inaccessible": "Inaccessible",
-      "defaultWorkspace": "Default workspace",
-      "setDefault": "Set as default",
-      "emptyTitle": "No workspaces configured",
-      "emptyCanManage": "Add a workspace to allow agents to access local folders",
-      "emptyManaged": "This deployment manages your workspace for you",
-      "adding": "Adding…",
-      "addWorkspace": "Add workspace",
-      "removeTitle": "Remove this workspace?",
-      "removeDescription": "The workspace will be removed from NodeTool. The folder itself will not be deleted."
-    },
-    "select": {
-      "defaultWithPath": "Default ({{path}})",
-      "description": "Agents read and write files here during execution, including saved images, text, data, and other outputs. Browse results in the Workspace panel. Agents can only access files inside this folder. A workflow left on Default uses your default workspace.",
-      "createNew": "Create new workspace",
-      "addWorkspace": "Add workspace…"
-    },
     "tree": {
       "loading": "Loading…",
       "accessDenied": "⚠️ Access denied",
-      "title": "Workspace explorer",
-      "manage": "Manage workspaces",
-      "goToRoot": "Go to workspace root",
-      "openInFolder": "Open in folder",
-      "openExternally": "Open externally",
-      "noneSelected": "No workspace selected",
-      "selectOrCreate": "Select a workspace above or create one.",
-      "createWorkspace": "Create workspace",
-      "fileBrowser": "Workspace file browser",
-      "emptyTitle": "Workspace is empty",
-      "emptyDescription": "Add files to your workspace folder to see them here."
+      "openExternally": "Open externally"
     }
   },
   "batch2_10": {
@@ -1760,7 +1714,6 @@
       "packageManager": "Package manager",
       "assets": "Assets",
       "collections": "Collections",
-      "workspaces": "Workspaces",
       "memory": "Memory",
       "settings": "Settings",
       "help": "Help",
@@ -6473,16 +6426,42 @@
           "export": "Export",
           "archive": "Archive",
           "restore": "Restore",
-          "delete": "Delete"
+          "delete": "Delete",
+          "collect": "Collect files"
         },
         "projectActions": "Project actions",
         "actionsForProject": "Actions for {{projectName}}",
         "exporting": "Exporting…",
         "deleteProject": "Delete project",
         "confirmDeleteTitle": "Delete {{projectName}}?",
-        "confirmDeleteBody": "Delete {{projectName}} and all of its documents, conversations, generated outputs, assets, jobs, and project files.",
+        "confirmDeleteBody": "Delete {{projectName}} and all of its documents, conversations, jobs, and assets stored outside the project folder.",
         "deleteIrreversible": "This cannot be undone.",
-        "error": "Could not {{action}} {{projectName}}: {{error}}"
+        "deleteFolderTrash": "The project folder moves to the trash.",
+        "deleteFolderRemove": "The project folder and every file in it are deleted from cloud storage.",
+        "deleteFolderKeep": "The project folder stays where it is with every file in it. NodeTool removes only the .nodetool folder inside it.",
+        "deleteFolderMissing": "The project folder cannot be reached, so NodeTool leaves it as it is.",
+        "folderMovedAsideTo": "The trash could not be reached. The project folder moved to {{path}}.",
+        "folderMovedAside": "The trash could not be reached. The project folder moved to the .trash folder in the projects folder.",
+        "folderTrashFailedAt": "The project folder could not be moved to the trash. It stays at {{path}}.",
+        "folderTrashFailed": "The project folder could not be moved to the trash. It stays where it is.",
+        "error": "Could not {{action}} {{projectName}}: {{error}}",
+        "collecting": "Collecting files…",
+        "collectResult": "Collected files into {{projectName}}: {{copied}} copied, {{skipped}} skipped, {{failed}} failed.",
+        "linkedTitle": "{{projectName}} links files outside its folder",
+        "linkedBody": "An export holds the project folder. These files are linked from somewhere else and are not in it:",
+        "linkedChoice": "Collect and export copies them into the folder's Imported directory, then exports. Cancel keeps the links and exports nothing.",
+        "collectAndExport": "Collect and export"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Copy or link?",
+        "confirm": "Import",
+        "copy": "Copy into the project folder",
+        "copyHint": "The project keeps its own copy. Changes to the original do not reach it.",
+        "link": "Link in place",
+        "linkHint": "Nothing is copied. The project reads the file where it is. Collect files copies it in later.",
+        "threshold": "Files of {{size}} or more are linked by default."
       }
     }
   },
@@ -6657,8 +6636,6 @@
       "runModeTool": "Tool",
       "runModeDescription": "How this workflow runs and can be triggered",
       "advanced": "Advanced",
-      "workspace": "Workspace",
-      "workspaceDescription": "Associate a workspace folder with this workflow for agent access",
       "toolName": "Tool name",
       "toolNameDescription": "Identifier for API/tool usage. Letters, numbers, underscores only.",
       "toolNamePlaceholder": "my_workflow_tool",
@@ -10681,9 +10658,9 @@
         "jsScripts": "JS scripts",
         "skills": "Skills",
         "assets": "Assets",
-        "workspace": "Workspace",
         "library": "Library",
-        "more": "More"
+        "more": "More",
+        "files": "Files"
       },
       "categoryDescriptions": {
         "documents": "Browse every document in the current project.",
@@ -10703,9 +10680,9 @@
         "jsScripts": "Create and manage reusable JavaScript code.",
         "skills": "Agent skills — markdown instructions matched to the objective.",
         "assets": "Browse assets available in the current context.",
-        "workspace": "Browse the files in the selected workspace folder.",
         "library": "Browse assets in the current project.",
-        "more": "Open additional workflow, editor, developer, and workspace panels."
+        "more": "Open additional workflow, editor, and developer panels.",
+        "files": "Browse the files in the project folder."
       }
     },
     "queue": {
@@ -14016,8 +13993,7 @@
       "search": "Search all panels",
       "group": {
         "workflow-tools": "Workflow tools",
-        "agent-tools": "Agent tools",
-        "workspace": "Workspace"
+        "agent-tools": "Agent tools"
       },
       "category": {
         "favorites": {
@@ -14035,10 +14011,6 @@
         "skills": {
           "label": "Skills",
           "description": "Agent skills — markdown instructions matched to the objective."
-        },
-        "workspace-files": {
-          "label": "Workspace",
-          "description": "Browse the files in the selected workspace folder."
         }
       }
     },
@@ -14694,9 +14666,6 @@
       "runGroup": {
         "groupRunning": "Group is running",
         "runGroup": "Run group"
-      },
-      "saveDestinationHint": {
-        "workspace": "Workspace"
       }
     }
   },
@@ -15914,9 +15883,9 @@
       "jsscripts": "JS scripts",
       "skills": "Skills",
       "assets": "Assets",
-      "workspace-files": "Workspace",
       "library": "Library",
-      "more": "More"
+      "more": "More",
+      "files": "Files"
     }
   },
   "i18n-next55": {
@@ -16043,7 +16012,6 @@
         "models": "Model manager",
         "packages": "Package manager",
         "collections": "Collections",
-        "workspaces": "Workspaces",
         "entities": "Entities",
         "memory": "Memory",
         "settings": "Settings",
@@ -18631,7 +18599,7 @@
   },
   "i18n-next110": {
     "workspaceFile": {
-      "invalidReference": "Invalid workspace file reference"
+      "invalidReference": "Invalid file reference"
     }
   },
   "i18n-next109": {
@@ -20157,6 +20125,32 @@
     "saveFailed": "Could not save this permission.",
     "loadFailed": "Could not load the tool list.",
     "noMatches": "No tools match your search."
+  },
+  "projectFolder": {
+    "name": "Project folder",
+    "picker": {
+      "title": "Select a folder"
+    },
+    "tree": {
+      "title": "Files",
+      "goToRoot": "Go to project folder root",
+      "fileBrowser": "Project files",
+      "emptyTitle": "Project folder is empty",
+      "emptyDescription": "Add files to the project folder to see them here.",
+      "noFolderTitle": "No project folder",
+      "noFolderDescription": "This project has no folder yet.",
+      "revealInFinder": "Reveal in Finder",
+      "revealInExplorer": "Show in File Explorer",
+      "revealInFileManager": "Show in file manager"
+    }
+  },
+  "assetPicker": {
+    "sourceTabs": "Asset source",
+    "projectTab": "This project",
+    "personalTab": "Personal",
+    "personalHint": "Picking from Personal copies the file into this project.",
+    "copying": "Copying into this project…",
+    "copyFailed": "Could not copy the asset into this project."
   },
   "assetFileStatus": {
     "missing": "Missing",

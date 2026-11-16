@@ -18,7 +18,7 @@
  *   openFolder     (mutation) — ProjectResponse (adopts an existing folder)
  *   relocate       (mutation) — ProjectResponse (points at a moved folder)
  *   update         (mutation) — ProjectResponse
- *   delete         (mutation) — { ok: true }
+ *   delete         (mutation) — { ok: true, folder } (what happened to the folder)
  *   assignDocument (mutation) — { ok: true }
  */
 
@@ -47,6 +47,7 @@ import {
   hasProjectDocumentDependents,
   listProjectDocuments,
   moveDocumentToProject,
+  DocumentFileMoveError,
   summarizeProject,
   summarizeProjectDocumentPage
 } from "@nodetool-ai/models";
@@ -55,6 +56,7 @@ import {
   copyProjectDocumentInput,
   copyProjectDocumentOutput,
   createProjectInput,
+  deleteProjectOutput,
   openProjectFolderInput,
   patchProjectInput,
   projectDetail,
@@ -75,6 +77,7 @@ import {
   copyProjectDocument,
   ProjectCopyError
 } from "../../lib/project-document-copy.js";
+import { planProjectFolderDelete } from "@nodetool-ai/project-services/project-delete";
 import { deleteProjectForUser } from "../../lib/project-delete.js";
 import { reconcileProjectOnOpen } from "@nodetool-ai/project-services/project-index";
 import {
@@ -222,7 +225,10 @@ async function toResponse(project: Project): Promise<ProjectResponse> {
     ? await Workspace.find(project.user_id, project.workspace_id)
     : null;
   const folder: ProjectResponse["folder"] = row
-    ? describeProjectFolder(row)
+    ? {
+        ...describeProjectFolder(row),
+        on_delete: await planProjectFolderDelete(row)
+      }
     : null;
   // Set only while assets from before project folders move into the folder.
   const moving = projectAssetMoveProgress(project.id, project.user_id);
@@ -509,17 +515,20 @@ export const projectsRouter = router({
 
   delete: protectedProcedure
     .input(idInput)
-    .output(okOutput)
+    .output(deleteProjectOutput)
     .mutation(async ({ ctx, input }) => {
       await prepareUser(ctx.userId);
-      const outcome = await deleteProjectForUser(ctx.userId, input.id);
-      if (outcome === "personal") {
-        throwApiError(ApiErrorCode.INVALID_INPUT, "Personal cannot be deleted");
-      }
-      if (outcome === "not_found") {
+      const result = await deleteProjectForUser(ctx.userId, input.id);
+      if (result.outcome !== "deleted") {
+        if (result.outcome === "personal") {
+          throwApiError(
+            ApiErrorCode.INVALID_INPUT,
+            "Personal cannot be deleted"
+          );
+        }
         throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
       }
-      return { ok: true as const };
+      return { ok: true as const, folder: result.folder };
     }),
 
   /**
@@ -564,6 +573,12 @@ export const projectsRouter = router({
             error.message,
             "PRECONDITION_FAILED"
           );
+        }
+        // A document that is a file in its project folder is not moved while
+        // its file holds an edit that is not valid, since the move would
+        // delete the file. The caller is told which file.
+        if (error instanceof DocumentFileMoveError) {
+          throwApiError(ApiErrorCode.INVALID_INPUT, error.message);
         }
         throw error;
       }

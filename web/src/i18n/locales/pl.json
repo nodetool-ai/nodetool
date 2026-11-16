@@ -708,61 +708,15 @@
   },
   "batch2_1": {
     "common": {
-      "workspace": "Obszar roboczy",
       "loading": "Ładowanie…",
       "refresh": "Odśwież",
       "remove": "Usuń",
       "cancel": "Anuluj"
     },
-    "page": {
-      "title": "Obszary robocze",
-      "subtitle": "Foldery w trybie piaskownicy, w których agenci i przepływy pracy mogą czytać, zapisywać i porządkować pliki."
-    },
-    "folderPicker": {
-      "title": "Wybierz folder obszaru roboczego"
-    },
-    "notifications": {
-      "added": "Dodano obszar roboczy",
-      "removed": "Usunięto obszar roboczy"
-    },
-    "errors": {
-      "loadTitle": "Nie udało się wczytać obszarów roboczych",
-      "loadSummary": "Nie udało się wczytać obszarów roboczych",
-      "loadDescription": "Sprawdź połączenie i spróbuj ponownie.",
-      "operation": "Operacja obszaru roboczego nie powiodła się: {{error}}"
-    },
-    "manager": {
-      "inaccessible": "Niedostępny",
-      "defaultWorkspace": "Domyślny obszar roboczy",
-      "setDefault": "Ustaw jako domyślny",
-      "emptyTitle": "Nie skonfigurowano żadnych obszarów roboczych",
-      "emptyCanManage": "Dodaj obszar roboczy, aby umożliwić agentom dostęp do folderów lokalnych",
-      "emptyManaged": "To wdrożenie zarządza Twoim obszarem roboczym za Ciebie",
-      "adding": "Dodawanie…",
-      "addWorkspace": "Dodaj obszar roboczy",
-      "removeTitle": "Usunąć ten obszar roboczy?",
-      "removeDescription": "Obszar roboczy zostanie usunięty z NodeTool. Sam folder nie zostanie usunięty."
-    },
-    "select": {
-      "defaultWithPath": "Domyślny ({{path}})",
-      "description": "Agenci odczytują i zapisują tutaj pliki podczas wykonywania, w tym zapisane obrazy, tekst, dane i inne dane wyjściowe. Przeglądaj wyniki w panelu Obszar roboczy. Agenci mają dostęp tylko do plików znajdujących się w tym folderze. Przepływ pracy pozostawiony jako Domyślny korzysta z domyślnego obszaru roboczego.",
-      "createNew": "Utwórz nowy obszar roboczy",
-      "addWorkspace": "Dodaj obszar roboczy…"
-    },
     "tree": {
       "loading": "Ładowanie…",
       "accessDenied": "⚠️Odmowa dostępu",
-      "title": "Eksplorator przestrzeni roboczej",
-      "manage": "Zarządzaj obszarami roboczymi",
-      "goToRoot": "Przejdź do katalogu głównego obszaru roboczego",
-      "openInFolder": "Otwórz w folderze",
-      "openExternally": "Otwórz na zewnątrz",
-      "noneSelected": "Nie wybrano obszaru roboczego",
-      "selectOrCreate": "Wybierz obszar roboczy powyżej lub utwórz go.",
-      "createWorkspace": "Utwórz obszar roboczy",
-      "fileBrowser": "Przeglądarka plików obszaru roboczego",
-      "emptyTitle": "Obszar roboczy jest pusty",
-      "emptyDescription": "Dodaj pliki do folderu obszaru roboczego, aby zobaczyć je tutaj."
+      "openExternally": "Otwórz na zewnątrz"
     }
   },
   "batch2_10": {
@@ -1784,7 +1738,6 @@
       "packageManager": "Menedżer pakietów",
       "assets": "Aktywa",
       "collections": "Kolekcje",
-      "workspaces": "Obszary robocze",
       "memory": "Pamięć",
       "settings": "Ustawienia",
       "help": "Pomoc",
@@ -6663,16 +6616,42 @@
           "export": "Eksportuj",
           "archive": "Archiwum",
           "restore": "Przywróć",
-          "delete": "Usuń"
+          "delete": "Usuń",
+          "collect": "Zbierz pliki"
         },
         "projectActions": "Działania projektowe",
         "actionsForProject": "Działania dla {{projectName}}",
         "exporting": "Eksportuję…",
         "deleteProject": "Usuń projekt",
         "confirmDeleteTitle": "Usunąć {{projectName}}?",
-        "confirmDeleteBody": "Usuń {{projectName}} i wszystkie jego dokumenty, rozmowy, wygenerowane wyniki, zasoby, zadania i pliki projektu.",
+        "confirmDeleteBody": "Usuń {{projectName}} i wszystkie jego dokumenty, rozmowy, zadania oraz zasoby przechowywane poza folderem projektu.",
         "deleteIrreversible": "Tego nie można cofnąć.",
-        "error": "Nie można {{action}} {{projectName}}: {{error}}"
+        "deleteFolderTrash": "Folder projektu zostanie przeniesiony do kosza.",
+        "deleteFolderRemove": "Folder projektu i wszystkie jego pliki zostaną usunięte z magazynu w chmurze.",
+        "deleteFolderKeep": "Folder projektu pozostanie na swoim miejscu ze wszystkimi plikami. NodeTool usunie tylko znajdujący się w nim folder .nodetool.",
+        "deleteFolderMissing": "Folder projektu jest niedostępny, więc NodeTool pozostawi go bez zmian.",
+        "folderMovedAsideTo": "Kosz był niedostępny. Folder projektu przeniesiono do {{path}}.",
+        "folderMovedAside": "Kosz był niedostępny. Folder projektu przeniesiono do folderu .trash w folderze projektów.",
+        "folderTrashFailedAt": "Nie udało się przenieść folderu projektu do kosza. Pozostaje w {{path}}.",
+        "folderTrashFailed": "Nie udało się przenieść folderu projektu do kosza. Pozostaje na swoim miejscu.",
+        "error": "Nie można {{action}} {{projectName}}: {{error}}",
+        "collecting": "Zbieranie plików…",
+        "collectResult": "Zebrano pliki w {{projectName}}: skopiowane {{copied}}, pominięte {{skipped}}, nieudane {{failed}}.",
+        "linkedTitle": "{{projectName}} łączy pliki spoza swojego folderu",
+        "linkedBody": "Eksport zawiera folder projektu. Te pliki są połączone z innego miejsca i nie ma ich w nim:",
+        "linkedChoice": "Zbierz i eksportuj kopiuje je do katalogu Imported w folderze, a potem eksportuje. Anuluj zachowuje połączenia i niczego nie eksportuje.",
+        "collectAndExport": "Zbierz i eksportuj"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Skopiować czy połączyć?",
+        "confirm": "Importuj",
+        "copy": "Skopiuj do folderu projektu",
+        "copyHint": "Projekt zachowuje własną kopię. Zmiany w oryginale do niej nie trafiają.",
+        "link": "Połącz w miejscu",
+        "linkHint": "Nic nie jest kopiowane. Projekt czyta plik tam, gdzie się znajduje. Zbierz pliki skopiuje go później.",
+        "threshold": "Pliki o rozmiarze {{size}} lub większym są domyślnie łączone."
       }
     }
   },
@@ -6851,8 +6830,6 @@
       "runModeTool": "Narzędzie",
       "runModeDescription": "Sposób działania tego przepływu pracy i jego uruchomienia",
       "advanced": "Zaawansowane",
-      "workspace": "Obszar roboczy",
-      "workspaceDescription": "Powiąż folder obszaru roboczego z tym przepływem pracy, aby uzyskać dostęp agenta",
       "toolName": "Nazwa narzędzia",
       "toolNameDescription": "Identyfikator użycia API/narzędzia. Tylko litery, cyfry i podkreślenia.",
       "toolNamePlaceholder": "moje_narzędzie_przepływu pracy",
@@ -11007,9 +10984,9 @@
         "jsScripts": "Skrypty JS-a",
         "skills": "Umiejętności",
         "assets": "Aktywa",
-        "workspace": "Obszar roboczy",
         "library": "Biblioteka",
-        "more": "Więcej"
+        "more": "Więcej",
+        "files": "Pliki"
       },
       "categoryDescriptions": {
         "documents": "Przeglądaj każdy dokument w bieżącym projekcie.",
@@ -11029,9 +11006,9 @@
         "jsScripts": "Twórz i zarządzaj kodem JavaScript wielokrotnego użytku.",
         "skills": "Umiejętności agenta — instrukcje przecen dopasowane do celu.",
         "assets": "Przeglądaj zasoby dostępne w bieżącym kontekście.",
-        "workspace": "Przeglądaj pliki w wybranym folderze obszaru roboczego.",
         "library": "Przeglądaj zasoby w bieżącym projekcie.",
-        "more": "Otwórz dodatkowe panele przepływu pracy, edytora, programisty i obszaru roboczego."
+        "more": "Otwórz dodatkowe panele przepływów pracy, edytora i programisty.",
+        "files": "Przeglądaj pliki w folderze projektu."
       }
     },
     "queue": {
@@ -14500,8 +14477,7 @@
       "search": "Przeszukaj wszystkie panele",
       "group": {
         "workflow-tools": "Narzędzia przepływu pracy",
-        "agent-tools": "Narzędzia agenta",
-        "workspace": "Obszar roboczy"
+        "agent-tools": "Narzędzia agenta"
       },
       "category": {
         "favorites": {
@@ -14519,10 +14495,6 @@
         "skills": {
           "label": "Umiejętności",
           "description": "Umiejętności agenta — instrukcje przecen dopasowane do celu."
-        },
-        "workspace-files": {
-          "label": "Obszar roboczy",
-          "description": "Przeglądaj pliki w wybranym folderze obszaru roboczego."
         }
       }
     },
@@ -15204,9 +15176,6 @@
       "runGroup": {
         "groupRunning": "Grupa działa",
         "runGroup": "Uruchom grupę"
-      },
-      "saveDestinationHint": {
-        "workspace": "Obszar roboczy"
       }
     }
   },
@@ -16464,9 +16433,9 @@
       "jsscripts": "Skrypty JS-a",
       "skills": "Umiejętności",
       "assets": "Aktywa",
-      "workspace-files": "Obszar roboczy",
       "library": "Biblioteka",
-      "more": "Więcej"
+      "more": "Więcej",
+      "files": "Pliki"
     }
   },
   "i18n-next55": {
@@ -16601,7 +16570,6 @@
         "models": "Menedżer modeli",
         "packages": "Menedżer pakietów",
         "collections": "Kolekcje",
-        "workspaces": "Obszary robocze",
         "entities": "Podmioty",
         "memory": "Pamięć",
         "settings": "Ustawienia",
@@ -19247,7 +19215,7 @@
   },
   "i18n-next110": {
     "workspaceFile": {
-      "invalidReference": "Nieprawidłowe odwołanie do pliku obszaru roboczego"
+      "invalidReference": "Nieprawidłowe odwołanie do pliku"
     }
   },
   "i18n-next109": {
@@ -20779,6 +20747,32 @@
     "saveFailed": "Nie udało się zapisać tego uprawnienia.",
     "loadFailed": "Nie udało się wczytać listy narzędzi.",
     "noMatches": "Żadne narzędzie nie pasuje do wyszukiwania."
+  },
+  "projectFolder": {
+    "name": "Folder projektu",
+    "picker": {
+      "title": "Wybierz folder"
+    },
+    "tree": {
+      "title": "Pliki",
+      "goToRoot": "Przejdź do katalogu głównego folderu projektu",
+      "fileBrowser": "Pliki projektu",
+      "emptyTitle": "Folder projektu jest pusty",
+      "emptyDescription": "Dodaj pliki do folderu projektu, aby zobaczyć je tutaj.",
+      "noFolderTitle": "Brak folderu projektu",
+      "noFolderDescription": "Ten projekt nie ma jeszcze folderu.",
+      "revealInFinder": "Pokaż w Finderze",
+      "revealInExplorer": "Pokaż w Eksploratorze plików",
+      "revealInFileManager": "Pokaż w menedżerze plików"
+    }
+  },
+  "assetPicker": {
+    "sourceTabs": "Źródło zasobu",
+    "projectTab": "Ten projekt",
+    "personalTab": "Osobiste",
+    "personalHint": "Wybranie z Osobistych kopiuje plik do tego projektu.",
+    "copying": "Kopiowanie do tego projektu…",
+    "copyFailed": "Nie udało się skopiować zasobu do tego projektu."
   },
   "assetFileStatus": {
     "missing": "Brak pliku",

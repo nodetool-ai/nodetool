@@ -85,6 +85,11 @@ import { deriveKey, getMasterKey, initMasterKey } from "@nodetool-ai/security";
 import { setDefaultModelInterfaces } from "@nodetool-ai/runtime";
 import { migrateProjectFolders } from "@nodetool-ai/execution/service";
 import { scheduleLegacyAssetMoves } from "@nodetool-ai/project-services/project-asset-move-job";
+import {
+  migrateWorkflowFiles,
+  setWorkflowFileNodeRegistry
+} from "@nodetool-ai/project-services/workflow-file";
+import { migrateTimelineFiles } from "@nodetool-ai/project-services/timeline-file";
 import { serverModelInterfaces } from "./websocket-client-session.js";
 import {
   WorkerManager,
@@ -1808,11 +1813,25 @@ initWorkspaceStorage();
 // Every project has a folder. Projects from before project folders get one
 // here, in the background: each project is its own idempotent step, so a
 // restart mid-way continues where it stopped.
+// A workflow file edited in a project folder is checked against this registry,
+// as `update_workflow` checks a graph.
+setWorkflowFileNodeRegistry(() => registry);
 void migrateProjectFolders()
   .then((report) => {
     if (report.checked > 0) {
       log.info(`Project folders: ${report.assigned} assigned, ${report.failed} failed`);
     }
+    // Workflows from before project folders get their file once every
+    // project has a folder. Idempotent: a second run writes nothing.
+    return migrateWorkflowFiles();
+  })
+  .then((written) => {
+    if (written > 0) log.info(`Workflow files: ${written} written`);
+    // Timelines from before project folders, the same way.
+    return migrateTimelineFiles();
+  })
+  .then((written) => {
+    if (written > 0) log.info(`Timeline files: ${written} written`);
     // Once every project has a folder, the bytes of assets from before
     // project folders move into them in the background, one asset at a time.
     // Each asset is its own resumable step, so a restart continues the move.

@@ -753,6 +753,42 @@ private slots:
         QVERIFY(!host.model().inlineDescriptor(host.id("size"), "value").isEmpty());
     }
 
+    // A playing video in a Preview card fills the card's result area, not a fixed strip.
+    // A generic card's player takes the height a taller card gives it.
+    void genericPlaybackGrowsWithTheCard() {
+        const QJsonArray metadata{QJsonObject{{"node_type", "fixture.Video"}, {"title", "Video"}, {"body", "content_card"},
+            {"properties", QJsonArray{}},
+            {"outputs", QJsonArray{QJsonObject{{"name", "output"}, {"type", QJsonObject{{"type", "video"}}}}}}}};
+        const auto heightFor = [&metadata](int authored) {
+            QJsonObject ui{{"position", QJsonObject{{"x", 0}, {"y", 0}}}};
+            if (authored > 0) { ui["height"] = authored; }
+            const QJsonObject node{{"id", "video"}, {"type", "fixture.Video"}, {"ui_properties", ui}};
+            WorkflowGraphModel model;
+            model.project({{"name", "Video"}, {"graph", QJsonObject{{"nodes", QJsonArray{node}}, {"edges", QJsonArray{}}}}}, metadata);
+            model.setCanvasMediaNodes({"video"});
+            const auto id = *model.allNodeIds().begin();
+            return std::pair{model.canvasPlaybackRect(id), model.layout(id).size.height()};
+        };
+        const auto [natural, naturalHeight] = heightFor(0);
+        QCOMPARE(natural.height(), double(node_metrics::playbackHeight));
+        const auto [tall, tallHeight] = heightFor(naturalHeight + 200);
+        QCOMPARE(tall.top(), natural.top());
+        QCOMPARE(tall.height(), natural.height() + 200);
+    }
+    void previewPlaybackFillsTheCard() {
+        const QJsonArray metadata{QJsonObject{{"node_type", "nodetool.workflows.base_node.Preview"}, {"title", "Preview"},
+            {"properties", QJsonArray{QJsonObject{{"name", "value"}, {"type", QJsonObject{{"type", "any"}}}}}},
+            {"outputs", QJsonArray{QJsonObject{{"name", "output"}, {"type", QJsonObject{{"type", "any"}}}}}}}};
+        const QJsonObject node{{"id", "preview"}, {"type", "nodetool.workflows.base_node.Preview"},
+            {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", 0}, {"y", 0}}}, {"width", 400}, {"height", 300}}}};
+        WorkflowGraphModel model;
+        model.project({{"name", "Preview"}, {"graph", QJsonObject{{"nodes", QJsonArray{node}}, {"edges", QJsonArray{}}}}}, metadata);
+        const auto id = *model.allNodeIds().begin();
+        model.setCanvasMediaNodes({"preview"});
+        const auto playback = model.canvasPlaybackRect(id);
+        QCOMPARE(playback, model.layout(id).resultRect);
+        QVERIFY(playback.height() > node_metrics::playbackHeight);
+    }
     void canvasResultBoundsMatchPainterGeometry() {
         auto workflow = fixture()["workflow"].toObject();
         auto graph = workflow["graph"].toObject();
@@ -797,7 +833,8 @@ private slots:
         QCOMPARE(model.canvasResultRect(id("subject")), QRectF(9, 275, 342, 72));
         model.setCanvasMediaNodes({"subject"});
         QCOMPARE(model.canvasResultRect(id("subject")), model.canvasPlaybackRect(id("subject")));
-        QCOMPARE(model.canvasResultRect(id("subject")), QRectF(9, 222, 342, 180));
+        // The player fills the authored 420 px card from the end of its fields to the footer.
+        QCOMPARE(model.canvasResultRect(id("subject")), QRectF(9, 128, 342, 274));
         auto subject = model.nodeSnapshot(id("subject"));
         auto ui = subject["ui_properties"].toObject();
         ui["bypassed"] = true;

@@ -113,7 +113,7 @@ describe("Packed verification partition", { timeout: 60_000 }, () => {
       cwd: checkout, encoding: "utf8", env: { ...process.env, GITHUB_OUTPUT: join(dir, "outputs") }
     });
     try {
-      for (const file of ["scripts/package-manager.mjs", "scripts/packed-verification.mjs", "scripts/test-affected.mjs", "scripts/ci-plan.mjs", "packages/cli-harness/src/affected/affected.ts"]) {
+      for (const file of ["scripts/package-manager.mjs", "scripts/packed-verification.mjs", "scripts/test-affected.mjs", "scripts/ci-plan.mjs", "scripts/node-catalog/packs.mjs", "scripts/node-catalog/tiers.mjs", "packages/cli-harness/src/affected/affected.ts"]) {
         mkdirSync(dirname(join(checkout, file)), { recursive: true });
         cpSync(join(ROOT, file), join(checkout, file));
       }
@@ -190,8 +190,12 @@ describe("Packed verification partition", { timeout: 60_000 }, () => {
     for (const result of ["PLAN_RESULT", "VERIFICATION_RESULT", "PACKED_INSTALL_RESULT"]) {
       expect(workflow).toContain(`"$${result}" != "success"`);
     }
-    for (const path of ["scripts/package-manager.mjs", "scripts/packed-verification.mjs", "scripts/test-affected.mjs", "scripts/ci-plan.mjs", "scripts/__tests__/packed-verification.test.mjs"]) {
-      expect(workflow).toContain(`- '${path}'`);
+    // The Quality Gate verifies every pull request and push, so the matrix
+    // runs on a manual dispatch only and its planner files start no run.
+    expect(workflow).toContain("verification-plan:\n    if: github.event_name == 'workflow_dispatch'");
+    expect(workflow).toContain("QUALITY_GATE_VERIFIES: ${{ github.event_name != 'workflow_dispatch' }}");
+    for (const path of ["scripts/package-manager.mjs", "scripts/packed-*.mjs", "scripts/prepare-publish.mjs", "scripts/publish-packages.mjs"]) {
+      expect(workflow.split(`- '${path}'`), path).toHaveLength(3);
     }
   });
 });

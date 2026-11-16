@@ -319,6 +319,10 @@ global templates and are not written to any folder.
 - Delete follows D12. Replace the unconditional file wipe (F7) with a branch
   on `workspaces.origin`. `created` moves the folder to the OS trash locally
   and deletes the prefix in the cloud. `adopted` removes `.nodetool/` only.
+  Rows from before T1 all read `created`, so `created` counts only when the
+  folder carries `.nodetool/created.json`, which names the project and is
+  written when NodeTool creates the folder. Any other folder is handled as
+  `adopted`.
 - Archive leaves the folder in place.
 - Export archives the folder plus the database documents that do not live in
   it.

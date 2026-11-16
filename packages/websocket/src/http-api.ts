@@ -31,8 +31,11 @@ import {
   createWorkflowRuntimeEnvironment,
   type WorkflowRuntimeEnvironment
 } from "@nodetool-ai/project-services/workflow-runtime-environment";
-import { loadMediaModule } from "@nodetool-ai/runtime";
-import { probeAssetDurationSeconds } from "./lib/asset-duration.js";
+import {
+  loadMediaModule,
+  WorkspacePathError,
+  WorkspaceReservedPathError
+} from "@nodetool-ai/runtime";
 import { verdictSchema } from "@nodetool-ai/protocol";
 import {
   cancelDebugSession,
@@ -50,12 +53,6 @@ import {
   type StorageHandlerOptions
 } from "./storage-api.js";
 import { handleFileRequest } from "./file-api.js";
-import {
-  storeAssetWithThumbnail,
-  storeAssetFileWithThumbnail,
-  generateThumbnailForStoredAsset
-} from "./lib/thumbnail.js";
-import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { getAssetAdapter } from "./lib/storage.js";
 import { extractAudio } from "./lib/media.js";
 import {
@@ -95,7 +92,6 @@ const log = createLogger("nodetool.websocket.http");
 // graph. Re-exported here for any remaining REST callers.
 import {
   getAssetFileName,
-  getAssetStorageKey,
   getAssetStoragePath,
   retrieveAssetBytes,
   localAssetPath,
@@ -111,9 +107,14 @@ import {
   createProjectDirectory,
   loadProjectDirectoryIndex
 } from "@nodetool-ai/asset-services/project-asset-directories";
-import { ProjectFolderUnavailableError } from "@nodetool-ai/asset-services/project-asset-file";
-import { listsByDirectory } from "@nodetool-ai/protocol";
+import { directoryOfParentId, listsByDirectory } from "@nodetool-ai/protocol";
 import { scheduleVideoProxy } from "./lib/video-proxy.js";
+import {
+  IMPORTED_DIRECTORY,
+  saveProjectAsset,
+  uploadDirectory
+} from "@nodetool-ai/asset-services/project-asset";
+import { ProjectFolderUnavailableError } from "@nodetool-ai/asset-services/project-asset-file";
 import { isJsonContentType } from "./lib/json-body.js";
 
 export { toAssetResponse };
@@ -911,23 +912,18 @@ export async function handleWorkflowImportBundle(
   let result: Awaited<ReturnType<typeof importWorkflowBundle>>;
   try {
     result = await importWorkflowBundle(zipBytes, {
+      // A bundle's media are imports: files in `Imported/` of the project.
       storeAsset: async ({ bytes, fileName, contentType: assetType }) => {
-        const asset = (await Asset.create({
-          user_id: userId,
+        const asset = await saveProjectAsset({
+          projectId: projectId !== "default" ? projectId : null,
+          userId,
           name: fileName,
-          content_type: assetType,
-          parent_id: userId,
-          project_id: projectId,
-          size: bytes.byteLength
-        })) as Asset;
-        const storedName = getAssetFileName(asset.id, asset.content_type);
-        await storeAssetWithThumbnail(
-          asset.user_id,
-          asset.id,
-          storedName,
+          contentType: assetType,
           bytes,
-          asset.content_type
-        );
+          directory: IMPORTED_DIRECTORY,
+          parentId: userId
+        });
+        const storedName = getAssetFileName(asset.id, asset.content_type);
         return { uri: `asset://${storedName}`, assetId: asset.id };
       }
     });
@@ -1254,6 +1250,8 @@ export async function handleAssetsRoot(
 
   const metadata: Record<string, unknown> = body.metadata ?? {};
 
+  // The project comes from the client, and only a project the caller owns is
+  // accepted: the file is written into that project's folder.
   if (body.project_id && body.project_id !== "default") {
     try {
       await Project.requireOwned(userId, body.project_id);
@@ -1282,15 +1280,58 @@ export async function handleAssetsRoot(
     body.content_type,
     body.name
   );
-  const duration = staged?.file
-    ? await probeAssetDurationSeconds(assetContentType, {
-        path: staged.file.path
-      })
-    : fileBuffer
-      ? await probeAssetDurationSeconds(assetContentType, {
-          bytes: fileBuffer
-        })
-      : null;
+
+  // A file becomes one file in the project folder plus its row: in the
+  // directory it was dropped on in the Files tree, otherwise in `Imported/`.
+  if (fileBuffer || staged?.file) {
+    let asset: Asset;
+    try {
+      asset = await saveProjectAsset({
+        projectId:
+          body.project_id && body.project_id !== "default"
+            ? body.project_id
+            : null,
+        userId,
+        name: body.name,
+        contentType: assetContentType,
+        // A file dropped into a directory folder of the asset browser goes
+        // to that directory.
+        directory: uploadDirectory(
+          body.directory ?? directoryOfParentId(body.parent_id, body.project_id)
+        ),
+        parentId: body.parent_id,
+        metadata: Object.keys(metadata).length > 0 ? metadata : null,
+        provenance: {
+          workflow_id: body.workflow_id ?? null,
+          node_id: body.node_id ?? null,
+          job_id: body.job_id ?? null
+        },
+        ...(staged?.file
+          ? { localPath: staged.file.path }
+          : { bytes: new Uint8Array(fileBuffer ?? new Uint8Array()) })
+      });
+    } catch (error) {
+      if (error instanceof ProjectFolderUnavailableError) {
+        return errorResponse(409, error.message);
+      }
+      // A directory that leaves the folder or names `.nodetool/`.
+      if (
+        error instanceof WorkspacePathError ||
+        error instanceof WorkspaceReservedPathError
+      ) {
+        return errorResponse(400, error.message);
+      }
+      throw error instanceof Error ? error : new Error(String(error));
+    }
+    log.info("asset upload (multipart)", {
+      assetId: asset.id,
+      workspacePath: asset.workspace_path,
+      contentType: asset.content_type,
+      bytes: fileSize
+    });
+    scheduleVideoProxy(asset);
+    return jsonResponse(await toAssetResponse(asset));
+  }
 
   const asset = (await Asset.create({
     user_id: userId,
@@ -1303,60 +1344,9 @@ export async function handleAssetsRoot(
     metadata:
       Object.keys(metadata).length > 0 ? metadata : (body.metadata ?? null),
     project_id: body.project_id ?? "default",
-    size: fileSize ?? body.size ?? null,
-    duration
+    size: body.size ?? null,
+    duration: null
   })) as Asset;
-
-  if (fileBuffer || staged?.file) {
-    const fileName = getAssetFileName(asset.id, asset.content_type);
-    log.info("asset upload (multipart)", {
-      assetId: asset.id,
-      fileName,
-      contentType: asset.content_type,
-      bytes: fileSize
-    });
-    try {
-      if (staged?.file) {
-        const adapter = getAssetAdapter();
-        if (!(adapter instanceof FileStorageAdapter)) {
-          throw new Error("Staged uploads require local storage");
-        }
-        await adapter.storeFile(
-          getAssetStorageKey(asset.user_id, asset.id, asset.content_type),
-          staged.file.path
-        );
-        // The stored file is local, so the thumbnail reads it in place at
-        // any size.
-        await generateThumbnailForStoredAsset(
-          asset.user_id,
-          asset.id,
-          asset.content_type
-        );
-      } else if (fileBuffer) {
-        await storeAssetWithThumbnail(
-          asset.user_id,
-          asset.id,
-          fileName,
-          new Uint8Array(fileBuffer),
-          asset.content_type
-        );
-      }
-    } catch (error) {
-      // The row was created before the bytes were written. If the store
-      // rejects (over the upload cap, or any S3/Supabase failure) drop the
-      // row rather than leave it pointing at bytes that never landed.
-      try {
-        await asset.delete();
-      } catch (deleteError) {
-        log.warn("failed to delete asset row after upload failure", {
-          assetId: asset.id,
-          error: String(deleteError)
-        });
-      }
-      throw error instanceof Error ? error : new Error(String(error));
-    }
-    scheduleVideoProxy(asset);
-  }
 
   return jsonResponse(await toAssetResponse(asset));
 }
@@ -1423,30 +1413,19 @@ export async function handleExtractAudio(
     if (!(await probeHasAudio(inputPath))) {
       return jsonResponse({ has_audio: false });
     }
-    const { durationMs } = await extractAudio(inputPath, wavPath);
-    const { size } = await fsp.stat(wavPath);
+    await extractAudio(inputPath, wavPath);
 
-    const audioAsset = (await Asset.create({
-      user_id: userId,
+    // The audio track is a new file in `Generated/` of the video's project,
+    // filed under the video.
+    const audioAsset = await saveProjectAsset({
+      projectId: source.project_id,
+      userId,
       name: `${source.name} (audio)`,
-      content_type: "audio/wav",
-      parent_id: source.id,
-      workflow_id: source.workflow_id ?? null,
-      project_id: source.project_id,
-      node_id: null,
-      job_id: null,
-      metadata: null,
-      size,
-      duration: durationMs != null ? durationMs / 1000 : null
-    })) as Asset;
-
-    await storeAssetFileWithThumbnail(
-      audioAsset.user_id,
-      audioAsset.id,
-      getAssetFileName(audioAsset.id, audioAsset.content_type),
-      wavPath,
-      audioAsset.content_type
-    );
+      contentType: "audio/wav",
+      localPath: wavPath,
+      parentId: source.id,
+      provenance: { workflow_id: source.workflow_id ?? null }
+    });
 
     return jsonResponse({
       has_audio: true,
