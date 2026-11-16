@@ -676,7 +676,7 @@ export class HomePage {
   }
 
   modelMoveTool(): Locator {
-    return this.page.getByRole("button", { name: "Move tool", exact: true });
+    return this.page.getByRole("button", { name: "Move", exact: true });
   }
 }
 
