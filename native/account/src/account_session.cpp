@@ -154,6 +154,9 @@ void AccountSession::repairLocked() {
 }
 
 Credential AccountSession::credentialForRequest() {
+  if (options_.credentialAllowed && !options_.credentialAllowed()) {
+    return {CredentialStatus::SignedOut, {}};
+  }
   const GenerationStamp stamp = readGenerationFile(generationPath());
   const uint64_t marker = signOutMarker();
   {
@@ -214,6 +217,9 @@ Authorization AccountSession::authorizeRequest() {
 }
 
 RefreshOutcome AccountSession::refresh(std::string_view rejectedAccessToken) {
+  if (options_.credentialAllowed && !options_.credentialAllowed()) {
+    return RefreshOutcome::SignedOut;
+  }
   const std::lock_guard operation(operationMutex_);
   if (endpointMismatch_) {
     // The refresh token never goes to a server the session did not sign in

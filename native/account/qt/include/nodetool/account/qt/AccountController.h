@@ -18,6 +18,7 @@
 #include <QTimer>
 #include <QUrl>
 
+#include <chrono>
 #include <filesystem>
 #include <functional>
 #include <memory>
@@ -105,9 +106,11 @@ public:
   Q_INVOKABLE void signOut();
 
   // The session of the account, for the request layer. Null when no
-  // account was signed in to this server on this computer. The session
-  // borrows the controller's store and endpoint, so it must not be used
-  // after the controller is destroyed.
+  // account was signed in to this server on this computer, or when the
+  // managed policy holds the server back. The reference keeps the store,
+  // endpoint and transport it uses alive, so it stays valid after the
+  // controller is destroyed. When the policy turns the server off later,
+  // the session gives no credential and renews none.
   std::shared_ptr<AccountSession> session() const;
 
 signals:
@@ -130,6 +133,12 @@ private:
     bool serverEndPending = false;
   };
 
+  // How often the controller reads the policy and the record again.
+  static constexpr std::chrono::milliseconds kReconcileInterval{2000};
+
+  // Reads the managed policy into the Core and the display. Returns whether
+  // the display changed.
+  bool readPolicy();
   void apply(const Snapshot& snapshot);
   void refreshState();
   void watchGenerationFile();
@@ -146,6 +155,7 @@ private:
   const QString serverOrigin_;
   QFileSystemWatcher watcher_;
   QTimer serverEndTimer_;
+  QTimer reconcileTimer_;
   unsigned serverEndAttempt_ = 0;
   quint64 refreshSequence_ = 0;
   State state_ = State::SignedOut;
@@ -154,6 +164,9 @@ private:
   bool cloudAvailable_ = true;
   bool keychainAvailable_ = true;
   QString message_;
+  // Whether `message_` holds the policy's reason, which a later read of an
+  // allowing policy clears.
+  bool policyMessageShown_ = false;
 };
 
 } // namespace nodetool::account::qt

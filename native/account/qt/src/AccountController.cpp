@@ -11,6 +11,7 @@
 #include <QMetaObject>
 #include <QSysInfo>
 
+#include <atomic>
 #include <condition_variable>
 #include <deque>
 #include <mutex>
@@ -19,11 +20,18 @@
 namespace nodetool::account::qt {
 
 // The services, the session and the hand-off to the controller's thread.
-// Shared with the tasks, which the controller joins before it goes. The
-// session's sign-out callback holds it weakly, because the request layer
-// can call the session from its own threads.
+// Shared with the tasks, which the controller joins before it goes, and
+// with every session reference session() hands out, so a session never
+// outlives the store, endpoint and transport it borrows. The session's own
+// callbacks hold it weakly, because the Core owns that session.
 struct AccountController::Core : std::enable_shared_from_this<Core> {
+  // Declared first, so it is destroyed after the session that borrows it.
   AccountServices services;
+
+  // Whether the managed policy lets this app use the server's credential.
+  // Written on the controller's thread when it reads the policy, read by
+  // the session on any thread before it attaches or renews a credential.
+  std::atomic<bool> policyAllows{false};
 
   std::mutex mutex;
   // Guarded by mutex. Replaced at sign-in.
@@ -31,6 +39,10 @@ struct AccountController::Core : std::enable_shared_from_this<Core> {
   // Guarded by mutex. The sign-in that waits for the browser, owned by its
   // task. Set and cleared by that task.
   SignInFlow* flow = nullptr;
+  // Guarded by mutex. Set by cancelSignIn() for the current attempt, from
+  // its start until its credential is stored. The attempt checks it before
+  // it waits and after the exchange, so a cancel at any point ends it.
+  bool attemptCancelled = false;
   // Guarded by mutex. The controller the results go to. Cleared by its
   // destructor, so no task reaches it after that.
   AccountController* controller = nullptr;
@@ -77,27 +89,51 @@ struct AccountController::Core : std::enable_shared_from_this<Core> {
         controller.refreshState();
       });
     };
+    options.credentialAllowed = [weak = weak_from_this()] {
+      const auto core = weak.lock();
+      return core && core->policyAllows.load(std::memory_order_acquire);
+    };
     return options;
   }
 
-  // The session of the account that `accounts.json` lists for this server,
-  // created on first use. Null when the index lists none.
+  // The session of the account signed in to this server, read again from
+  // `accounts.json` and the records at each call, so an account the other
+  // app signed in to replaces the one held here. With none signed in, the
+  // held session stays, or the first listed account's. Null when the index
+  // lists none.
   std::shared_ptr<AccountSession> sessionFromIndex() {
-    if (auto existing = currentSession()) {
-      return existing;
-    }
+    const std::shared_ptr<AccountSession> held = currentSession();
     const std::string origin = normalizeOrigin(services.serverOrigin);
+    std::shared_ptr<AccountSession> first;
     for (const AccountEntry& entry : AccountsIndex(services.dataDir).list()) {
-      if (normalizeOrigin(entry.serverOrigin) == origin) {
-        auto created = std::make_shared<AccountSession>(*services.store, *services.endpoint, options(entry.userId));
-        const std::lock_guard lock(mutex);
-        if (!session) {
-          session = std::move(created);
-        }
-        return session;
+      if (normalizeOrigin(entry.serverOrigin) != origin) {
+        continue;
+      }
+      std::shared_ptr<AccountSession> candidate =
+          held && held->accountId() == entry.userId
+              ? held
+              : std::make_shared<AccountSession>(*services.store, *services.endpoint, options(entry.userId));
+      if (candidate->status().state == SessionState::SignedIn) {
+        return adopt(held, std::move(candidate));
+      }
+      if (!first) {
+        first = std::move(candidate);
       }
     }
-    return nullptr;
+    if (held || !first) {
+      return held;
+    }
+    return adopt(held, std::move(first));
+  }
+
+  // Holds `next` unless another thread replaced `expected` meanwhile.
+  std::shared_ptr<AccountSession> adopt(const std::shared_ptr<AccountSession>& expected,
+                                        std::shared_ptr<AccountSession> next) {
+    const std::lock_guard lock(mutex);
+    if (session == expected) {
+      session = std::move(next);
+    }
+    return session;
   }
 };
 
@@ -188,6 +224,15 @@ AccountController::AccountController(AccountServices services, QObject* parent)
   });
   connect(&watcher_, &QFileSystemWatcher::fileChanged, this, &AccountController::refreshState);
   connect(&watcher_, &QFileSystemWatcher::directoryChanged, this, &AccountController::refreshState);
+  // A watch can miss a change: the data folder may not exist yet, and a
+  // rename can end a watch before it is renewed. The periodic check bounds
+  // how long the other app's sign-in or sign-out takes to show here.
+  reconcileTimer_.setInterval(kReconcileInterval);
+  connect(&reconcileTimer_, &QTimer::timeout, this, [this] {
+    readPolicy();
+    refreshState();
+  });
+  reconcileTimer_.start();
   reload();
 }
 
@@ -235,14 +280,49 @@ QString AccountController::statusText() const {
   return tr("Not signed in");
 }
 
-std::shared_ptr<AccountSession> AccountController::session() const { return core_->currentSession(); }
+std::shared_ptr<AccountSession> AccountController::session() const {
+  if (!core_->policyAllows.load(std::memory_order_acquire)) {
+    return nullptr;
+  }
+  std::shared_ptr<AccountSession> session = core_->currentSession();
+  if (!session) {
+    return nullptr;
+  }
+  // The reference shares ownership of the Core, so the store, endpoint and
+  // transport the session borrows live as long as any caller holds it.
+  struct Held {
+    std::shared_ptr<Core> core;
+    std::shared_ptr<AccountSession> session;
+  };
+  const auto held = std::make_shared<Held>(Held{core_, std::move(session)});
+  return std::shared_ptr<AccountSession>(held, held->session.get());
+}
+
+bool AccountController::readPolicy() {
+  const PolicyCheck check = checkServer(core_->services.policy(), core_->services.serverOrigin);
+  const bool allows = check.decision == PolicyDecision::Allowed;
+  core_->policyAllows.store(allows, std::memory_order_release);
+  const bool available = check.decision != PolicyDecision::CloudOff;
+  // The policy's reason replaces any message. An allowing policy clears
+  // only a reason it showed, never a sign-in's own message.
+  QString message = message_;
+  if (!allows) {
+    message = QString::fromStdString(check.reason);
+  } else if (policyMessageShown_) {
+    message.clear();
+  }
+  policyMessageShown_ = !allows;
+  if (available == cloudAvailable_ && message == message_) {
+    return false;
+  }
+  cloudAvailable_ = available;
+  message_ = message;
+  emit changed();
+  return true;
+}
 
 void AccountController::reload() {
-  const ManagedPolicy policy = core_->services.policy();
-  const PolicyCheck check = checkServer(policy, core_->services.serverOrigin);
-  cloudAvailable_ = check.decision != PolicyDecision::CloudOff;
-  message_ = check.decision == PolicyDecision::Allowed ? QString() : QString::fromStdString(check.reason);
-  emit changed();
+  readPolicy();
   refreshState();
 }
 
@@ -253,9 +333,14 @@ void AccountController::refreshState() {
   tasks_->post([core = core_, sequence] {
     Snapshot snapshot;
     if (const auto session = core->sessionFromIndex()) {
-      session->checkGenerationFile();
+      const bool allowed = core->policyAllows.load(std::memory_order_acquire);
+      // A session the policy holds back is not adopted: only its display
+      // and a pending server end are read from the record.
+      if (allowed) {
+        session->checkGenerationFile();
+      }
       const AccountSession::Status status = session->status();
-      snapshot.state = status.state == SessionState::SignedIn ? State::SignedIn : State::SignedOut;
+      snapshot.state = allowed && status.state == SessionState::SignedIn ? State::SignedIn : State::SignedOut;
       snapshot.displayName = QString::fromStdString(status.displayName);
       snapshot.serverEndPending = status.serverEndPending;
     }
@@ -307,12 +392,14 @@ void AccountController::signIn() {
   if (state_ == State::SigningIn) {
     return;
   }
-  const PolicyCheck check = checkServer(core_->services.policy(), core_->services.serverOrigin);
-  if (check.decision != PolicyDecision::Allowed) {
-    cloudAvailable_ = check.decision != PolicyDecision::CloudOff;
-    message_ = QString::fromStdString(check.reason);
+  readPolicy();
+  if (!core_->policyAllows.load(std::memory_order_acquire)) {
     emit changed();
     return;
+  }
+  {
+    const std::lock_guard lock(core_->mutex);
+    core_->attemptCancelled = false;
   }
   state_ = State::SigningIn;
   message_.clear();
@@ -335,19 +422,32 @@ void AccountController::signIn() {
     {
       const std::lock_guard lock(core->mutex);
       core->flow = &flow;
+      // A cancel that came before the flow was published.
+      if (core->attemptCancelled) {
+        flow.cancel();
+      }
     }
     const QUrl authorize(QString::fromStdString(*url));
     core->toUi([authorize](AccountController& controller) { emit controller.browserRequested(authorize); });
     const SignInResult result = flow.finish(core->services.signInTimeout);
+    bool cancelled = false;
     {
       const std::lock_guard lock(core->mutex);
       core->flow = nullptr;
+      cancelled = core->attemptCancelled;
     }
     QString message;
     switch (result.status) {
     case SignInStatus::SignedIn: {
       auto session = std::make_shared<AccountSession>(*core->services.store, *core->services.endpoint,
                                                       core->options(result.userId));
+      if (cancelled) {
+        // The cancel came while the code was being exchanged. The session
+        // the server just made is ended rather than kept.
+        session->signOut();
+        core->toUi([](AccountController& controller) { controller.onSignInFinished(false, {}, {}); });
+        return;
+      }
       const std::lock_guard lock(core->mutex);
       core->session = std::move(session);
       break;
@@ -383,7 +483,11 @@ void AccountController::onSignInFinished(bool signedIn, const QString& name, con
 }
 
 void AccountController::cancelSignIn() {
+  if (state_ != State::SigningIn) {
+    return;
+  }
   const std::lock_guard lock(core_->mutex);
+  core_->attemptCancelled = true;
   if (core_->flow != nullptr) {
     core_->flow->cancel();
   }

@@ -209,7 +209,7 @@ has two keys:
 | Key | JSON and macOS | Windows | When absent |
 |---|---|---|---|
 | `CloudEnabled` | boolean | `REG_DWORD`, 0 or 1 | cloud features on |
-| `AllowedServers` | array of origins | `REG_MULTI_SZ` | any server |
+| `AllowedServers` | array of origins, at least one | `REG_MULTI_SZ` | any server |
 
 ```json
 { "CloudEnabled": true, "AllowedServers": ["https://nodetool.example.com"] }
@@ -218,7 +218,9 @@ has two keys:
 `checkServer()` answers Allowed, CloudOff or ServerNotAllowed, with the
 sentence to show. Origins compare after `normalizeOrigin()`, so case, the
 default port and a trailing slash do not matter. A policy that exists and
-cannot be read turns the cloud features off and names the problem.
+cannot be read turns the cloud features off and names the problem. That
+includes a key given twice, an empty `AllowedServers`, and a Linux policy
+path that is a broken link or not a regular file.
 
 ## The Qt layer
 
@@ -228,7 +230,10 @@ needs Qt Core and Network.
 - `QtHttpTransport` implements `HttpTransport` with a
   `QNetworkAccessManager` per call. It blocks, so it runs on a worker
   thread. It never follows a redirect, because a redirect would take the
-  credential to another URL.
+  credential to another URL. The request's timeout is a deadline on the
+  whole request, its cancel flag aborts it in flight, and a request bound
+  to an origin goes nowhere else. Status 0 means no complete response,
+  including a body cut short after the headers.
 - `AccountController` is the QObject the Account control binds to. Its
   properties are the state (signed out, signing in, signed in), the display
   name, whether a server end is pending, whether the policy allows cloud
@@ -237,7 +242,15 @@ needs Qt Core and Network.
   waits for the browser on its own thread. `signOut()` runs the sign-out
   and retries the server end with `endSessionRetryDelay`. A
   `QFileSystemWatcher` on the generation file and the data folder shows a
-  sign-in or sign-out from the other app.
+  sign-in or sign-out from the other app, and a check every 2 seconds reads
+  the policy and the records again, so a missed watch event or an account
+  the other app switched to still shows. `cancelSignIn()` ends the attempt
+  at any point, and a session minted after it is signed out at once.
+- `session()` returns the session for the request layer. The reference
+  keeps the store, endpoint and transport it uses alive after the
+  controller is gone. It is null while the managed policy holds the server
+  back, and a session handed out earlier then gets no credential and
+  renews none. Sign-out and a pending server end still run.
 
 The controller runs the keychain, lock and server calls on one task
 thread. Results come back through an inbox guarded by a mutex, and a
@@ -276,7 +289,9 @@ against a local HTTP server, and two `AccountController` objects on one
 data folder and one keychain against the fake token server: a sign-in in
 one shows in the other within 5 seconds without a browser (TC1's second
 app), a sign-out in one signs the other out, a declined or cancelled
-sign-in, and a policy that refuses the server (TC91).
+sign-in, a policy that refuses the server (TC91) or holds back a restored
+session, a session that outlives its controller, and the transport's
+deadline, cancel, origin and truncated-body cases.
 
 ```bash
 cmake -S native/account -B native/account/build-qt -G Ninja \

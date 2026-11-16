@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <condition_variable>
+#include <atomic>
 #include <fstream>
 #include <latch>
 #include <sstream>
@@ -556,6 +557,29 @@ void offlineRefreshKeepsTheSession(TestContext& t) {
   CHECK(app.credentialForRequest().status == CredentialStatus::Ready);
 }
 
+// A session the policy no longer allows gets no credential and renews
+// nothing, and the record stays as it was. Signing out still works.
+void policyGateHoldsTheCredential(TestContext& t) {
+  Computer pc;
+  pc.signIn();
+  std::atomic<bool> allowed{false};
+  AccountSessionOptions options = pc.options();
+  options.credentialAllowed = [&] { return allowed.load(); };
+  AccountSession app(pc.keychain, pc.server, options);
+  pc.clock.advance(15 * 60 * 1000);
+  CHECK(app.credentialForRequest().status == CredentialStatus::SignedOut);
+  CHECK(app.authorizeRequest().status == CredentialStatus::SignedOut);
+  CHECK(app.refresh() == RefreshOutcome::SignedOut);
+  CHECK(pc.server.refreshCalls == 0);
+  CHECK(pc.record().state == SessionState::SignedIn);
+  allowed = true;
+  CHECK(app.credentialForRequest().status == CredentialStatus::Ready);
+  CHECK(pc.server.refreshCalls == 1);
+  allowed = false;
+  app.signOut();
+  CHECK(pc.record().state == SessionState::SignedOut);
+}
+
 // A refresh that cannot take the lock fails as offline.
 void lockTimeoutFailsAsOffline(TestContext& t) {
   Computer pc;
@@ -744,6 +768,7 @@ int main() {
       {"signInKilledBeforeGenerationWrite", signInKilledBeforeGenerationWrite},
       {"refusedRefreshSignsBothAppsOut", refusedRefreshSignsBothAppsOut},
       {"offlineRefreshKeepsTheSession", offlineRefreshKeepsTheSession},
+      {"policyGateHoldsTheCredential", policyGateHoldsTheCredential},
       {"lockTimeoutFailsAsOffline", lockTimeoutFailsAsOffline},
       {"signInAgainKeepsThePendingHandle", signInAgainKeepsThePendingHandle},
       {"refreshPublishedAfterSignOutLoses", refreshPublishedAfterSignOutLoses},
