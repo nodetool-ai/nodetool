@@ -65,6 +65,8 @@ qt_extract_metatypes(node_editor_interfaces)
 # Files load as qrc:/qt/qml/NodeTool/NodeEditor/<File>.qml: the alias drops the
 # qml/ source directory from the resource path.
 file(GLOB node_editor_qml_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS qml/*.qml qml/*.js)
+# The Account control is shared with the timeline (native/account/qt/qml).
+list(APPEND node_editor_qml_files ../account/qt/qml/AccountControl.qml)
 foreach(file IN LISTS node_editor_qml_files)
     get_filename_component(name ${file} NAME)
     set_source_files_properties(${file} PROPERTIES QT_RESOURCE_ALIAS ${name})

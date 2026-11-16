@@ -1,8 +1,8 @@
 // Mirrors ui_primitives/DocumentBar.tsx as TimelineDocumentBar.tsx fills it:
 // the document name and its save status, then Undo and Redo. 40 px high.
-// The leading row holds the layout menu. The right side holds Export, then
-// the project settings. Panel toggles and the overflow menu have no native
-// counterpart yet.
+// The leading row holds the layout menu. The right side holds Export, the
+// project settings, then the Account control when main gives an account.
+// Panel toggles and the overflow menu have no native counterpart yet.
 import QtQuick
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
@@ -12,6 +12,8 @@ Rectangle {
     objectName: "documentBar"
     required property TimelineModel timeline
     property QtObject autosave: null
+    // The NodeTool Cloud account. Null hides the Account control.
+    property AccountController account: null
     // Controls after Undo and Redo, such as the layout menu.
     default property alias leading: leadingRow.data
 
@@ -83,6 +85,13 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             slot: "documentBar"
             slotProperties: ({ timeline: bar.timeline })
+        }
+        Loader {
+            objectName: "documentAccount"
+            anchors.verticalCenter: parent.verticalCenter
+            active: bar.account !== null
+            visible: active
+            sourceComponent: AccountControl { account: bar.account }
         }
     }
 }

@@ -12,6 +12,8 @@ Controls.Control {
     required property TimelineModel timeline
     required property PlaybackClock clock
     property QtObject saver: typeof autosave !== "undefined" ? autosave : null
+    // main sets nativeAccount for the app. Tests without it show no Account control.
+    property AccountController account: typeof nativeAccount !== "undefined" ? nativeAccount : null
     property var chatSession: typeof nativeChatSession !== "undefined" ? nativeChatSession : null
     property var chatHost: typeof nativeChatHost !== "undefined" ? nativeChatHost : null
     readonly property bool chatInitiallyOpen: typeof nativeChatInitiallyOpen !== "undefined" && nativeChatInitiallyOpen
@@ -197,6 +199,7 @@ Controls.Control {
                 Layout.fillWidth: true
                 timeline: root.timeline
                 autosave: root.saver
+                account: root.account
                 DockLayoutMenu {
                     anchors.verticalCenter: parent.verticalCenter
                     store: layoutStore

@@ -3,10 +3,14 @@ import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
 
-// The Account control in the status bar (native cloud PRD, "Sign in"). Signed
-// out it reads Sign in. Signed in it shows the account name, and its menu
-// signs out. While the browser is open it offers Cancel. The owner opens the
-// browser when the account emits browserRequested.
+// The Account control (native cloud PRD, "Sign in"). Signed out it reads
+// Sign in. Signed in it shows the account name, and its menu signs out. While
+// the browser is open it offers Cancel. The owner opens the browser when the
+// account emits browserRequested.
+//
+// One file, compiled into the QML module of each app: NodeTool.NodeEditor
+// shows it in the status bar, NodeTool.Timeline in the document bar. Each
+// module registers AccountController.
 RowLayout {
     id: root
     required property AccountController account
