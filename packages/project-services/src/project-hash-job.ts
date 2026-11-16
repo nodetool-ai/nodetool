@@ -27,6 +27,7 @@ import {
   isProjectAssetOffline,
   requireProjectFolder
 } from "@nodetool-ai/asset-services/project-asset-file";
+import { NestedFolders } from "./project-folder-scan.js";
 import { scheduleAssetManifestWrite } from "./project-manifest.js";
 
 const log = createLogger("nodetool.project-services.project-hash-job");
@@ -125,11 +126,14 @@ export class ProjectHashJob {
     const folder = await requireProjectFolder(target.projectId, target.userId);
     const { workspace } = folder;
     const rows = await Asset.listProjectFiles(target.userId, folder.projectId);
+    const nested = new NestedFolders(workspace);
     let hashed = 0;
     for (const asset of rows) {
       const path = asset.workspace_path;
       if (!path || asset.content_hash !== null) continue;
       if (isProjectAssetOffline(asset)) continue;
+      // A file in the folder of another project is not this project's to read.
+      if (await nested.holds(path)) continue;
       // Let requests and timers that queued up run before the next file.
       await nextTurn();
       if (this.abort.signal.aborted) return;

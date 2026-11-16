@@ -77,10 +77,10 @@ import { DebouncedRuns } from "./debounced-runs.js";
 import { reconcileDocumentFiles } from "./document-file-sync.js";
 import {
   COPY_GRACE_MS,
+  NestedFolders,
   isAtOrUnder,
   isInSkippedDirectory,
-  isSkippedDirectory,
-  probePath,
+  scanChangedPaths,
   scanFolder,
   type FolderFile,
   type ReconcileOptions,
@@ -98,9 +98,11 @@ import { workflowFileAdapter } from "./workflow-file.js";
 // document file sync reads it through as well. The names stay available here.
 export {
   COPY_GRACE_MS,
+  NestedFolders,
   isAtOrUnder,
   isIgnoredProjectPath,
   probePath,
+  scanChangedPaths,
   scanFolder,
   type FolderFile,
   type ReconcileOptions,
@@ -377,11 +379,9 @@ async function wholeFolder(
 }
 
 /**
- * The changed paths only. A path that is a file now is compared with its row.
- * A path that is a directory now stands for every file below it, since a
- * directory that was renamed or moved in reports itself and not its files. A
- * path with nothing at it stands for the rows at and below it, whose files
- * are gone. No other directory is listed and no other file is looked at.
+ * The changed paths only, as {@link scanChangedPaths} reads them. A file is
+ * compared with its row, and the rows at and below a path that is not a file
+ * are in scope.
  *
  * A row marked offline is compared wherever its file was. The file a changed
  * path names may be the one that row lost, in an earlier set of changes or
@@ -393,29 +393,7 @@ async function changedPaths(
   projectId: string,
   paths: Iterable<string>
 ): Promise<ReconcileScope> {
-  const files = new Map<string, FolderFile>();
-  /** Changed paths that are not a file: rows at or below them are in scope. */
-  const places = new Set<string>();
-  for (const raw of new Set(paths)) {
-    let path: string;
-    try {
-      path = workspace.key(raw);
-    } catch {
-      // Outside the folder, or in the directory NodeTool reserves.
-      continue;
-    }
-    if (isInSkippedDirectory(path)) continue;
-    const found = await probePath(workspace, path);
-    if (found === null) {
-      places.add(path);
-    } else if (found === "directory") {
-      if (isSkippedDirectory(fileName(path))) continue;
-      places.add(path);
-      await scanFolder(workspace, path, files);
-    } else {
-      files.set(path, found);
-    }
-  }
+  const { files, places } = await scanChangedPaths(workspace, paths);
   const rows: Asset[] = [];
   const others: Asset[] = [];
   for (const asset of await Asset.listProjectFiles(userId, projectId)) {
@@ -620,14 +598,19 @@ async function reconcileAndScan(
     // Rows whose file is where they say.
     const indexed = new Set<string>();
     const missing: Asset[] = [];
+    const nested = new NestedFolders(workspace);
     for (const asset of rows) {
       const path = asset.workspace_path;
       if (!path || inFlux(path)) continue;
       // The scan does not enter every directory. A row may still name a file
-      // in one, and that file is looked at on its own.
+      // in one, and that file is looked at on its own. A file in the folder
+      // of another project is that project's: the row counts as having lost
+      // its file, and the file is not read.
       const file =
         files.get(path) ??
-        (isInSkippedDirectory(path) ? await statFile(workspace, path) : null);
+        (isInSkippedDirectory(path) && !(await nested.holds(path))
+          ? await statFile(workspace, path)
+          : null);
       if (!file) {
         missing.push(asset);
         continue;
@@ -796,6 +779,11 @@ export async function ensureAssetForPath(
   const key = workspace.key(path);
 
   return withProjectFolderLock(userId, project, async () => {
+    if (await new NestedFolders(workspace).holds(key)) {
+      throw new Error(
+        `The file ${key} is in the folder of another project and gets no asset in this one`
+      );
+    }
     const existing = await Asset.findByWorkspacePath(userId, project, key);
     if (existing[0]) return existing[0];
     // A file that is the unfinished copy of an asset moving in from the

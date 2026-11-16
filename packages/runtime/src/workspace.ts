@@ -3,6 +3,7 @@ export {
   WorkspaceNotLocalError,
   WorkspaceReservedPathError,
   RESERVED_WORKSPACE_DIR,
+  NestedFolders,
   isReservedWorkspaceKey,
   observeWorkspace,
   getProjectFolderResolver,

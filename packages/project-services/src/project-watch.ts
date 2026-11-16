@@ -6,6 +6,10 @@
  * collected for a short quiet time, and the reconcile then looks at those
  * paths only.
  *
+ * A folder that holds the folder of another project is watched as one
+ * directory tree, and the changes inside the other project's folder are
+ * dropped before any reconcile starts.
+ *
  * A folder is watched from the moment a client has its project open until no
  * client has. A client is one connection, and it has one project open at a
  * time. A folder in object storage has no directory on this host and no
@@ -18,6 +22,7 @@ import { createLogger } from "@nodetool-ai/config";
 import type { Workspace } from "@nodetool-ai/runtime";
 import { requireProjectFolder } from "@nodetool-ai/asset-services/project-asset-file";
 import { DebouncedRuns } from "./debounced-runs.js";
+import { NestedFolders } from "./project-folder-scan.js";
 import {
   isIgnoredProjectPath,
   logReconcileFailure,
@@ -77,6 +82,8 @@ interface WatchedFolder {
   clients: Set<ProjectClient>;
   /** Null for a folder with no directory on this host. */
   handle: FolderWatchHandle | null;
+  /** The folder that is watched. Null when it is not. */
+  workspace: Workspace | null;
   /** Paths changed since the last reconcile. */
   paths: Set<string>;
   /** The next reconcile scans the whole folder. */
@@ -147,6 +154,7 @@ export class ProjectFolderWatchers {
         userId,
         clients: new Set(),
         handle: null,
+        workspace: null,
         paths: new Set(),
         whole: false
       };
@@ -221,6 +229,7 @@ export class ProjectFolderWatchers {
           this.stop(watched);
         }
       );
+      watched.workspace = workspace;
     } catch (error) {
       log.warn("Could not watch a project folder", {
         projectId: watched.projectId,
@@ -235,6 +244,7 @@ export class ProjectFolderWatchers {
     watched.whole = false;
     const handle = watched.handle;
     watched.handle = null;
+    watched.workspace = null;
     try {
       handle?.close();
     } catch {
@@ -256,16 +266,44 @@ export class ProjectFolderWatchers {
   }
 
   private async reconcile(watched: WatchedFolder): Promise<void> {
-    const paths = watched.paths;
+    let paths = watched.paths;
     const whole = watched.whole;
     watched.paths = new Set();
     watched.whole = false;
+    if (!whole) {
+      paths = await pathsOfThisFolder(watched.workspace, paths);
+      // Every change was in the folder of another project.
+      if (paths.size === 0) return;
+    }
     await reconcileInBackground(
       watched.projectId,
       watched.userId,
       whole ? {} : { paths }
     );
   }
+}
+
+/**
+ * `paths` without the ones in the folder of another project inside
+ * `workspace`. The reconcile leaves those out as well. Dropping them here
+ * means a change in the other project's folder starts no reconcile at all.
+ */
+async function pathsOfThisFolder(
+  workspace: Workspace | null,
+  paths: Set<string>
+): Promise<Set<string>> {
+  if (!workspace) return paths;
+  const nested = new NestedFolders(workspace);
+  const own = new Set<string>();
+  for (const path of paths) {
+    try {
+      if (!(await nested.covers(workspace.key(path)))) own.add(path);
+    } catch {
+      // A path the folder refuses is left for the reconcile to leave out.
+      own.add(path);
+    }
+  }
+  return own;
 }
 
 /** The process-wide watchers, driven by the clients' open-project signal. */

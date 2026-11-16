@@ -6,12 +6,21 @@
  * The asset index (`project-index.ts`) and the document files
  * (`document-file-sync.ts`) both compare the folder with rows. They read the
  * folder through this module, which imports neither of them.
+ *
+ * A project folder can hold the folder of another project or of a game:
+ * Personal's managed folder holds `projects/<id>`. Those files belong to the
+ * other project. {@link scanFolder} and {@link scanChangedPaths} never enter
+ * such a directory, and {@link NestedFolders} answers for every other reader
+ * and writer that follows a row to a path.
  */
 import {
+  NestedFolders,
   WorkspacePathError,
   isReservedWorkspaceKey,
   type Workspace
 } from "@nodetool-ai/runtime";
+
+export { NestedFolders };
 
 /** Directory names the scan never enters, besides every dot-directory. */
 const SKIPPED_DIRECTORIES = new Set(["node_modules"]);
@@ -47,11 +56,17 @@ export function isIgnoredProjectPath(path: string): boolean {
  * directory whose real location is outside the folder is refused with a
  * `WorkspacePathError` and skipped. Any other listing failure ends the scan,
  * so a directory that could not be read never makes its files look deleted.
+ *
+ * A directory that is the folder of another project or of a game is not
+ * entered, so none of its files is in the result. `start` is a directory of
+ * this folder. A caller that takes it from outside checks it with
+ * {@link NestedFolders.covers} first, as {@link scanChangedPaths} does.
  */
 export async function scanFolder(
   workspace: Workspace,
   start = "",
-  files = new Map<string, FolderFile>()
+  files = new Map<string, FolderFile>(),
+  nested = new NestedFolders(workspace)
 ): Promise<Map<string, FolderFile>> {
   const directories = [start];
   for (let next = directories.pop(); next !== undefined; next = directories.pop()) {
@@ -64,7 +79,12 @@ export async function scanFolder(
     }
     for (const entry of entries) {
       if (entry.isDirectory) {
-        if (!isSkippedDirectory(entry.name)) directories.push(entry.path);
+        if (
+          !isSkippedDirectory(entry.name) &&
+          !(await nested.isFolder(entry.path))
+        ) {
+          directories.push(entry.path);
+        }
       } else {
         files.set(entry.path, {
           path: entry.path,
@@ -101,6 +121,59 @@ export async function probePath(
       await new Promise((resolve) => setTimeout(resolve, REFUSED_PATH_RETRY_MS));
     }
   }
+}
+
+/** What {@link scanChangedPaths} found at the changed paths. */
+export interface ChangedPaths {
+  /** Files that are there, by path. */
+  files: Map<string, FolderFile>;
+  /**
+   * The changed paths that are not a file: what was at or below them is
+   * gone, or they are directories.
+   */
+  places: Set<string>;
+}
+
+/**
+ * The changed paths only. A path that is a file now is in `files`. A path
+ * that is a directory now stands for every file below it, since a directory
+ * that was renamed or moved in reports itself and not its files. A path with
+ * nothing at it is in `places`, and stands for the rows at and below it. No
+ * other directory is listed and no other file is looked at.
+ *
+ * A path is left out when it is outside the folder, in the directory NodeTool
+ * reserves, in a directory the scan does not enter, or in the folder of
+ * another project.
+ */
+export async function scanChangedPaths(
+  workspace: Workspace,
+  paths: Iterable<string>
+): Promise<ChangedPaths> {
+  const files = new Map<string, FolderFile>();
+  const places = new Set<string>();
+  const nested = new NestedFolders(workspace);
+  for (const raw of new Set(paths)) {
+    let path: string;
+    try {
+      path = workspace.key(raw);
+    } catch {
+      // Outside the folder, or in the directory NodeTool reserves.
+      continue;
+    }
+    if (isInSkippedDirectory(path)) continue;
+    if (await nested.covers(path)) continue;
+    const found = await probePath(workspace, path);
+    if (found === null) {
+      places.add(path);
+    } else if (found === "directory") {
+      if (isSkippedDirectory(path.slice(path.lastIndexOf("/") + 1))) continue;
+      places.add(path);
+      await scanFolder(workspace, path, files, nested);
+    } else {
+      files.set(path, found);
+    }
+  }
+  return { files, places };
 }
 
 /** Whether `path` or one of the directories above it is in `directories`. */

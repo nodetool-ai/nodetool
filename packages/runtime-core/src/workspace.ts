@@ -110,9 +110,22 @@ export interface Workspace {
   copy(from: string, to: string): Promise<void>;
   /**
    * Move a file, or a directory with everything under it. A directory is
-   * never moved into itself or onto an existing entry.
+   * never moved into itself or onto an existing entry, and a directory that
+   * holds a {@link RESERVED_WORKSPACE_DIR} directory at any depth is refused.
    */
   move(from: string, to: string): Promise<void>;
+
+  /**
+   * Whether the directory at `path` is a NodeTool folder of its own inside
+   * this one: the folder of another project, or of a game. It is one when it
+   * holds a {@link RESERVED_WORKSPACE_DIR} directory, or when the host that
+   * built this workspace named it. False for the root, which is this folder
+   * itself, and for a path this workspace refuses.
+   *
+   * Whatever compares a folder with database rows asks through
+   * {@link NestedFolders}, and never enters such a directory.
+   */
+  isNestedFolder(path: string): Promise<boolean>;
 
   /**
    * A real local path holding this file's current bytes, for handing to a host
@@ -149,28 +162,92 @@ export class WorkspacePathError extends Error {
  * project manifest and, later, caches. No workspace method reaches it: run
  * code (agent tools, Code nodes, save nodes) gets a {@link Workspace}, and
  * NodeTool writes here through a separate workspace rooted at this directory.
+ *
+ * The name is reserved at every depth. A workspace can hold the folder of
+ * another project, such as `projects/<id>` in a managed folder, and that
+ * folder's `.nodetool/` is no more reachable than the workspace's own.
  */
 export const RESERVED_WORKSPACE_DIR = ".nodetool";
 
+/** True when `name` is the name of {@link RESERVED_WORKSPACE_DIR}. */
+export function isReservedWorkspaceName(name: string): boolean {
+  return name.toLowerCase() === RESERVED_WORKSPACE_DIR;
+}
+
 /**
- * True when a normalized workspace key lies in {@link RESERVED_WORKSPACE_DIR}.
+ * True when a normalized workspace key names {@link RESERVED_WORKSPACE_DIR}
+ * or lies in one, at any depth: `.nodetool/x` and `projects/a/.nodetool/x`.
+ * Only a segment that is exactly the name counts, so `.nodetool.md`,
+ * `fox.nodetool` and `.nodetool-old/x` are ordinary paths.
  *
  * Compared without case, because macOS and Windows folders ignore case and
  * `.NodeTool/x` names the same file there.
  */
 export function isReservedWorkspaceKey(key: string): boolean {
-  const first = key.split("/", 1)[0] ?? "";
-  return first.toLowerCase() === RESERVED_WORKSPACE_DIR;
+  return key.split("/").some(isReservedWorkspaceName);
 }
 
 /** Thrown when a path names the directory NodeTool reserves for itself. */
 export class WorkspaceReservedPathError extends Error {
-  constructor(path: string) {
+  /**
+   * `holds` is set for a directory that is not reserved itself and has a
+   * reserved directory somewhere below it.
+   */
+  constructor(path: string, holds = false) {
     super(
-      `Path '${path}' is inside ${RESERVED_WORKSPACE_DIR}/, which NodeTool ` +
-        `reserves for its own files. Choose another folder.`
+      holds
+        ? `Path '${path}' holds a ${RESERVED_WORKSPACE_DIR}/ directory, which ` +
+            `NodeTool reserves for its own files. It is or contains the ` +
+            `folder of another project and cannot be moved from here.`
+        : `Path '${path}' is inside ${RESERVED_WORKSPACE_DIR}/, which NodeTool ` +
+            `reserves for its own files. Choose another folder.`
     );
     this.name = "WorkspaceReservedPathError";
+  }
+}
+
+/**
+ * The NodeTool folders inside a workspace: the directories for which
+ * {@link Workspace.isNestedFolder} answers true.
+ *
+ * A project folder can hold the folder of another project. Personal's managed
+ * folder holds `projects/<id>`, where cloud projects, imported projects and
+ * games keep theirs. Those files belong to the other project. Every reader
+ * that compares a folder with rows (the scan, the watcher, the hash job, the
+ * manifest writer, the document file sync) and every writer that follows a
+ * row to its file asks here, so one rule decides for all of them.
+ *
+ * One instance remembers its answers. Make one per pass over a folder.
+ */
+export class NestedFolders {
+  private readonly answers = new Map<string, Promise<boolean>>();
+
+  constructor(private readonly workspace: Workspace) {}
+
+  /** Whether the directory at the workspace key `path` is a nested folder. */
+  isFolder(path: string): Promise<boolean> {
+    let answer = this.answers.get(path);
+    if (!answer) {
+      answer = this.workspace.isNestedFolder(path);
+      this.answers.set(path, answer);
+    }
+    return answer;
+  }
+
+  /**
+   * Whether the file or directory at the workspace key `path` lies in a
+   * nested folder: one of the directories above it is one.
+   */
+  async holds(path: string): Promise<boolean> {
+    for (let slash = path.indexOf("/"); slash > 0; slash = path.indexOf("/", slash + 1)) {
+      if (await this.isFolder(path.slice(0, slash))) return true;
+    }
+    return false;
+  }
+
+  /** Whether `path` is a nested folder or lies in one. */
+  async covers(path: string): Promise<boolean> {
+    return (await this.holds(path)) || (await this.isFolder(path));
   }
 }
 
@@ -231,6 +308,7 @@ export function observeWorkspace(
     exists: (path) => inner.exists(path),
     stat: (path) => inner.stat(path),
     list: (path, opts) => inner.list(path, opts),
+    isNestedFolder: (path) => inner.isNestedFolder(path),
     materialize: (path) => inner.materialize(path),
     scratchDir: () => inner.scratchDir(),
     cleanupScratch: () => inner.cleanupScratch?.() ?? Promise.resolve(),

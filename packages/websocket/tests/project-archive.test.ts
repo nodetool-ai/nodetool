@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import nodePath from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -337,6 +337,13 @@ describe("project files", () => {
     const take = new Uint8Array([0, 255, 254, 128, 10, 13]);
     await files.write("footage/day 1/take.bin", take);
     await files.write("Generated/fox-in-snow.txt", "fox");
+    // The folder of another project inside this one, as Personal's managed
+    // folder holds them. Its files are exported with that project only.
+    const inner = nodePath.join(folder.path, "projects", "a".repeat(64));
+    await mkdir(nodePath.join(inner, ".nodetool"), { recursive: true });
+    await mkdir(nodePath.join(inner, "Generated"), { recursive: true });
+    await writeFile(nodePath.join(inner, ".nodetool", "project.json"), "{}");
+    await writeFile(nodePath.join(inner, "Generated", "wolf.txt"), "wolf");
     const board = await Storyboard.create<Storyboard>({
       user_id: owner,
       project_id: project.id,

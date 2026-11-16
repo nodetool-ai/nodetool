@@ -25,6 +25,31 @@ Personal's folder is the default folder from before project folders, unless a na
 
 A native game never writes into a project folder. Each game keeps its own folder under the managed folder, `NODETOOL_WORKSPACES_DIR`. Deleting a project leaves the files in its project folder in place.
 
+### A folder inside another project's folder
+
+One project's folder can lie inside another's. Personal's folder is the managed folder, and the managed folder holds `projects/<64 hex characters>`: the folder of every project on a cloud deployment, of every imported project, and of every native game.
+
+A directory inside a project folder is another folder when either is true:
+
+- It holds a `.nodetool/` directory.
+- A workspace row records it as the folder of a project or of a game.
+
+The files in it belong to that project or game. The outer project treats the directory as not its own:
+
+| Reader or writer of the outer project | What it does with the inner folder |
+| --- | --- |
+| Asset index, on open and on changed paths | Does not list it. Creates no asset row for a file in it. |
+| Workflow and timeline files | Reads, rewrites and creates no document from a file in it. |
+| Folder watcher | Drops a change in it before any comparison starts. |
+| Full-hash job, `.nodetool/assets.json` | Reads no file in it and lists none. |
+| Asset browser folders, project export | Leave it out. |
+| Rename, move, replace or delete of an asset or document whose row names a file in it | Leaves the file in the inner folder as it is. |
+| Save, upload or move of an asset into a directory in it | Refused. No file is written there. |
+
+A directory that only leads to an inner folder, such as `projects/`, is still the outer project's. So is a directory with neither mark.
+
+The outer project can have rows that name a file in an inner folder, created before this rule applied. The next comparison marks such an asset offline and such a document's file as missing, and changes no file. Removing the asset or deleting the document removes the row only. **Relink** points the asset at a file of the outer project. Saving the document, or **Restore**, writes it a file of its own under `Workflows/` or `Timelines/` in the outer folder.
+
 ### Open a folder as a project
 
 On the desktop app, **New project → Open folder…** makes a folder you already have into a project (`projects.openFolder({ path, name? })`). No file moves. In a folder that was never a project, NodeTool writes only `.nodetool/project.json`. The folder must be inside `NODETOOL_LOCAL_FILE_ROOTS` (your home folder by default), exist, and be writable. A folder that is another project's folder, sits inside one, or contains one is refused with that project's name. The check compares real paths, so a symlink into a project folder is refused too. A server with `NODETOOL_ENV=production` refuses it and shows no **Open folder** entry.
@@ -74,7 +99,7 @@ Every run reads and writes the folder of its own project:
 
 A record with no project of its own runs in Personal. The folder is chosen once, when the run starts. A run started in one project keeps writing there after you switch to another project. When the folder is unreachable, the run does not start and reports `Project folder not found: <folder>`. No other folder is used in its place.
 
-NodeTool owns `.nodetool/` in every folder. Agent file tools, the Code node, JS scripts and save nodes cannot read, write, list or delete anything in it, and listings leave it out.
+NodeTool owns `.nodetool/` in every folder. Agent file tools, the Code node, JS scripts and save nodes cannot read, write, list or delete anything in it, and listings leave it out. The name is reserved at every depth, so a run in Personal cannot reach `projects/<id>/.nodetool/` of [a folder inside it](#a-folder-inside-another-projects-folder) either. Only a path segment that is exactly `.nodetool` counts: `.nodetool.md` and `fox.nodetool` are ordinary files. Deleting a directory keeps every `.nodetool/` below it, and a directory that holds one cannot be moved.
 
 ## Assets are files in the folder
 
@@ -138,7 +163,7 @@ NodeTool compares a project's folder with its asset rows when the project is ope
 
 A move is often a copy followed by a delete. A media file with the same content as an asset's file therefore gets no row for its first 10 seconds. When the asset's file is gone by then, the asset points at the new file and keeps its ID. When both files are still there, the new file is a copy and gets its own row.
 
-The comparison never deletes a row and never changes a file. It skips `.nodetool/`, every directory whose name starts with a dot, and `node_modules/`. It does not follow symbolic links. A row that already names a file in a skipped directory is still checked.
+The comparison never deletes a row and never changes a file. It skips `.nodetool/`, every directory whose name starts with a dot, `node_modules/`, and every [folder of another project or game](#a-folder-inside-another-projects-folder) inside this one. It does not follow symbolic links. A row that already names a file in a directory skipped by its name is still checked. A row that names a file in another project's folder is marked offline.
 
 An offline asset comes back when a file appears at its path again, or when it is relinked. Relink (`assets.relinkExternal`) takes a path relative to the folder, or on a local server an absolute path. A file inside the folder is used where it is. A file outside the folder is copied in next to where the asset's file was. Removing an offline asset deletes its row.
 
@@ -348,7 +373,10 @@ Projects create and adopt their folders through `projects.create`, so no API cre
 | `This folder belongs to a project that cannot be opened here` | The folder's manifest names a project of another user, or a project you deleted |
 | `This folder belongs to project "<name>"` | Locate was given another project's folder |
 | `Opening a folder as a project is disabled on this server` | Open folder or Locate with `NODETOOL_ENV=production` |
-| `Path '<path>' is inside .nodetool/, which NodeTool reserves for its own files` | A tool, node or script used a path in `.nodetool/` |
+| `Path '<path>' is inside .nodetool/, which NodeTool reserves for its own files` | A tool, node or script used a path in `.nodetool/`, at any depth |
+| `Path '<path>' holds a .nodetool/ directory` | A tool, node or script moved a directory that is, or contains, the folder of another project |
+| `The directory <path> is in the folder of another project` | An asset was saved, uploaded or moved into [a folder inside this one](#a-folder-inside-another-projects-folder). Choose a directory of this project |
+| `The file <path> is in the folder of another project and gets no asset in this one` | A tool asked for an asset of a file in [a folder inside this one](#a-folder-inside-another-projects-folder). Use the file from its own project |
 
 ## Related docs
 

@@ -85,6 +85,7 @@ import {
   WORKSPACE_MOVE_TARGET_KEY
 } from "@nodetool-ai/protocol";
 import {
+  NestedFolders,
   WorkspaceReservedPathError,
   type Workspace as RuntimeWorkspace
 } from "@nodetool-ai/runtime";
@@ -447,8 +448,12 @@ export async function writeProjectArchive(
         });
         continue;
       }
+      // The folder of another project inside this one is exported with its
+      // own project, never as files of this one.
+      const nested = new NestedFolders(workspace);
       for (const entry of entries) {
         if (entry.isDirectory) continue;
+        if (await nested.holds(entry.path)) continue;
         const bytes = await workspace.read(entry.path);
         if (!bytes) continue;
         if (bytes.byteLength > MAX_ZIP_ENTRY_BYTES) {

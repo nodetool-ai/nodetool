@@ -15,7 +15,11 @@ import {
   WORKSPACE_MOVE_TARGET_KEY,
   isFiniteNumber
 } from "@nodetool-ai/protocol";
-import { getProjectFolderResolver, type Workspace } from "@nodetool-ai/runtime";
+import {
+  NestedFolders,
+  getProjectFolderResolver,
+  type Workspace
+} from "@nodetool-ai/runtime";
 
 /** The row fields that place an asset's file in a project folder. */
 export interface ProjectAssetFileFields {
@@ -68,12 +72,31 @@ export async function requireProjectFolder(
 }
 
 /**
- * The file `asset` keeps in its project folder. Null for an asset with no
+ * The file `asset` keeps in its project folder, for a caller about to
+ * rename, move, replace or delete it. Null for an asset with no
  * `workspace_path`. Throws {@link ProjectFolderUnavailableError} when the
- * asset has one and its folder cannot be reached, so a caller about to rename
- * or delete never mistakes an unplugged drive for an asset without a file.
+ * asset has one and its folder cannot be reached, so a caller never mistakes
+ * an unplugged drive for an asset without a file.
+ *
+ * Null as well for a path in the folder of another project inside this one
+ * (`NestedFolders`). That file belongs to the other project, and a row that
+ * names it keeps no file of its own: deleting the row deletes no file.
  */
 export async function requireProjectAssetFile(
+  asset: ProjectAssetFileFields
+): Promise<ProjectAssetFile | null> {
+  const file = await locateProjectAssetFile(asset);
+  if (!file) return null;
+  if (await new NestedFolders(file.workspace).holds(file.path)) return null;
+  return file;
+}
+
+/**
+ * The asset's folder and the path the row records in it, with no check that
+ * the path is this project's own. For readers, and for a relink, which gives
+ * the row another file and never touches the one it names.
+ */
+export async function locateProjectAssetFile(
   asset: ProjectAssetFileFields
 ): Promise<ProjectAssetFile | null> {
   if (!asset.workspace_path) return null;
@@ -91,7 +114,9 @@ export async function projectAssetFile(
 ): Promise<ProjectAssetFile | null> {
   if (isProjectAssetOffline(asset)) return null;
   try {
-    return await requireProjectAssetFile(asset);
+    // Reading changes no file, so the path is not checked against the
+    // folders of other projects. The reconcile marks such a row offline.
+    return await locateProjectAssetFile(asset);
   } catch {
     // An unreachable folder leaves the asset unreadable until it is located.
     return null;

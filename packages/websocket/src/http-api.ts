@@ -111,6 +111,7 @@ import { directoryOfParentId, listsByDirectory } from "@nodetool-ai/protocol";
 import { scheduleVideoProxy } from "./lib/video-proxy.js";
 import {
   IMPORTED_DIRECTORY,
+  ProjectAssetPlacementError,
   saveProjectAsset,
   uploadDirectory
 } from "@nodetool-ai/asset-services/project-asset";
@@ -1314,10 +1315,12 @@ export async function handleAssetsRoot(
       if (error instanceof ProjectFolderUnavailableError) {
         return errorResponse(409, error.message);
       }
-      // A directory that leaves the folder or names `.nodetool/`.
+      // A directory that leaves the folder, names `.nodetool/`, or is in
+      // the folder of another project.
       if (
         error instanceof WorkspacePathError ||
-        error instanceof WorkspaceReservedPathError
+        error instanceof WorkspaceReservedPathError ||
+        error instanceof ProjectAssetPlacementError
       ) {
         return errorResponse(400, error.message);
       }
