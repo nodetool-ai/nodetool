@@ -30,6 +30,7 @@ import {
   writeProjectManifest,
   type ProjectManifest
 } from "@nodetool-ai/execution/service";
+import { withNamedLock } from "@nodetool-ai/asset-services/folder-lock-file";
 import { Project, Workspace as WorkspaceRow } from "@nodetool-ai/models";
 import {
   discardRestoredAssets,
@@ -189,7 +190,8 @@ type AdoptedContents =
  *
  * A failure removes the rows it created and puts the manifest back as it
  * was. Workflow and timeline files a copy had rewritten keep their new IDs,
- * which no row uses.
+ * which no row uses. The restore recorded those IDs in the folder, so the
+ * next open of the folder maps them and their references resolve.
  */
 async function adopt(
   userId: string,
@@ -254,7 +256,13 @@ async function adopt(
       undoManifest = () => removeProjectManifest(created);
       await writeProjectManifest(created, project);
     }
-    await Project.claimWorkspace(userId, project.id, row.id);
+    const winner = await Project.claimWorkspace(userId, project.id, row.id);
+    if (winner !== row.id) {
+      throw new ProjectFolderOpenError(
+        "conflict",
+        "The project's folder changed while it was being opened"
+      );
+    }
     project.workspace_id = row.id;
   } catch (error) {
     await undoManifest?.().catch(() => undefined);
@@ -322,7 +330,25 @@ async function pointAt(project: Project, folder: string): Promise<Project> {
  *   new asset, workflow and timeline IDs written into this folder. The
  *   original project, its rows and its folder are not changed.
  */
-export async function openProjectFolder(
+export function openProjectFolder(
+  userId: string,
+  input: { path: string; name?: string }
+): Promise<Project> {
+  return withFolderOpenLock(userId, () => openFolder(userId, input));
+}
+
+/**
+ * Run `task` after every other open or relocate of a folder by `userId`,
+ * in this process and in every process that shares its database. Each one
+ * checks that the folder is no other project's and then gives it to a
+ * project. Two that interleave would both pass the check, and two projects
+ * would share one folder: deleting a file in one would delete it in both.
+ */
+function withFolderOpenLock<T>(userId: string, task: () => Promise<T>): Promise<T> {
+  return withNamedLock(`project-folder-open\u0000${userId}`, task);
+}
+
+async function openFolder(
   userId: string,
   input: { path: string; name?: string }
 ): Promise<Project> {
@@ -382,7 +408,14 @@ export async function openProjectFolder(
  * manifest names a different project is refused. A folder without one gets
  * the project's manifest.
  */
-export async function relocateProjectFolder(
+export function relocateProjectFolder(
+  userId: string,
+  input: { project_id: string; path: string }
+): Promise<Project> {
+  return withFolderOpenLock(userId, () => relocateFolder(userId, input));
+}
+
+async function relocateFolder(
   userId: string,
   input: { project_id: string; path: string }
 ): Promise<Project> {

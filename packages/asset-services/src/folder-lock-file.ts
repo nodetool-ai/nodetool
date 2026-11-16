@@ -341,3 +341,38 @@ export function projectFolderLockPath(
     .slice(0, 40);
   return join(directory, `${name}.lock`);
 }
+
+// ── A named lock ────────────────────────────────────────────────────────────
+
+const namedQueues = new Map<string, Promise<unknown>>();
+
+/**
+ * Run `task` after every earlier task of the same `name`, in this process
+ * and, beside a SQLite database file, in every process that shares it. The
+ * lock file is kept in {@link projectFolderLockDirectory}.
+ *
+ * For work that reads what to do and then does it, such as checking that a
+ * folder is no project's before giving it to one, so two callers never both
+ * pass the check.
+ */
+export function withNamedLock<T>(name: string, task: () => Promise<T>): Promise<T> {
+  const previous = namedQueues.get(name) ?? Promise.resolve();
+  const locked = async (): Promise<T> => {
+    const directory = await projectFolderLockDirectory();
+    if (directory === null) return task();
+    const file = createHash("sha256").update(name).digest("hex").slice(0, 40);
+    const held = await acquireFolderLockFile(join(directory, `named-${file}.lock`));
+    try {
+      return await task();
+    } finally {
+      await held.release();
+    }
+  };
+  const next = previous.then(locked, locked);
+  const settled = next.catch(() => undefined);
+  namedQueues.set(name, settled);
+  void settled.then(() => {
+    if (namedQueues.get(name) === settled) namedQueues.delete(name);
+  });
+  return next;
+}

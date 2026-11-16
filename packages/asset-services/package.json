@@ -53,6 +53,11 @@
       "types": "./dist/asset-paths.d.ts",
       "import": "./dist/asset-paths.js"
     },
+    "./folder-lock-file": {
+      "nodetool-dev": "./src/folder-lock-file.ts",
+      "types": "./dist/folder-lock-file.d.ts",
+      "import": "./dist/folder-lock-file.js"
+    },
     "./storage": {
       "nodetool-dev": "./src/storage.ts",
       "types": "./dist/storage.d.ts",
