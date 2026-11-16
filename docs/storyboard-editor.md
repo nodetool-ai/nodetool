@@ -259,6 +259,20 @@ Show how fragile the greenhouse is.
 
 Type `@` to mention an entity or an image from the library. The `{#…}` marks and link targets show only on the line that holds the caret. A new heading gets its mark when you type it.
 
+A still line shows the image under it. Beside the text, **Outline** lists the acts, scenes and shots, marks the one the caret is in, and lists the lines that need attention. Click an entry to jump to its line. The outline needs a window at least as wide as a laptop screen.
+
+### Ask the agent about a passage
+
+Select text and a prompt opens under it. Type what to do with the passage, or use the microphone to dictate it, and press Enter. The quick actions are **Tighten**, **More visual**, **Suggest camera** and **Check continuity** for a passage, and **Summarize** and **Find inconsistencies** for a selection across several shots.
+
+The agent receives the whole board as Markdown, the entity library with each descriptor, and the selection marked inside its lines. It answers with a proposed replacement or a note. **Replace selection** puts the replacement in the text as one undo step. Type again in the prompt to refine the answer.
+
+The board's director model answers. Before one is picked, the chat model answers. With neither, the prompt says to pick one. The call goes through `generate_text` and is billed by the provider at its rates.
+
+- A selection across several shots gets a note, never a replacement.
+- If the passage changes while the agent works, **Replace selection** refuses and asks you to select it again.
+- A failed call shows the provider's error with **Report**.
+
 The marks are what keep a shot's takes, render records, status and models with it. Deleting a still line clears the selection and keeps the takes. Moving a shot's lines moves the shot. Deleting a heading's mark gives the shot a new id, and its takes stay with the old one.
 
 Field labels are English in every language. A line that does not fit gets a red mark in the margin and a tooltip:

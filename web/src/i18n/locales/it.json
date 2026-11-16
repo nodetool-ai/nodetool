@@ -20444,6 +20444,43 @@
       "bad_render": "Inquadratura {{shot}}: il render è keyframe, direct o reference.",
       "no_next_shot": "Inquadratura {{shot}}: una transizione porta all'inquadratura successiva, che non c'è.",
       "missing_action": "L'inquadratura {{shot}} non ha ancora un'azione. Scrivi l'immagine da generare sotto il suo titolo."
+    },
+    "outline": "Struttura",
+    "outlineEmpty": "Digita ### e un titolo per iniziare un'inquadratura.",
+    "untitledShot": "Inquadratura senza titolo",
+    "untitledAct": "Atto senza titolo",
+    "untitledScene": "Scena senza titolo",
+    "issuesTitle": "Da controllare",
+    "stillOf": "Fotogramma dell'inquadratura {{shot}}",
+    "assist": {
+      "lines": "{{lines}} righe selezionate",
+      "proposal": "Sostituzione proposta",
+      "note": "Nota dell'agente",
+      "discard": "Scarta",
+      "close": "Chiudi",
+      "replace": "Sostituisci la selezione",
+      "stale": "Il passaggio è cambiato dopo la selezione. Selezionalo di nuovo.",
+      "thinking": "Sto pensando…",
+      "stop": "Interrompi",
+      "placeholder": "Di' all'agente cosa fare con questo passaggio",
+      "refinePlaceholder": "Perfeziona il risultato",
+      "instruction": "Richiesta all'agente",
+      "send": "Invia all'agente",
+      "failed": "La richiesta al modello non è riuscita.",
+      "context": "Inviato con la richiesta: tutto lo storyboard, {{shots}} inquadrature e {{entities}} entità della libreria.",
+      "quick": {
+        "tighten": "Asciuga",
+        "visual": "Più visivo",
+        "camera": "Suggerisci camera",
+        "continuity": "Controlla continuità",
+        "summarize": "Riassumi",
+        "inconsistencies": "Trova incoerenze"
+      },
+      "errors": {
+        "no_model": "Scegli un modello di regia per questo storyboard, o un modello di chat, per usare l'agente.",
+        "empty": "Il modello non ha restituito una risposta. Invia di nuovo la richiesta.",
+        "failed": "La richiesta non è riuscita. Inviala di nuovo."
+      }
     }
   }
 }

@@ -20133,6 +20133,43 @@
       "bad_render": "Tagning {{shot}}: render är keyframe, direct eller reference.",
       "no_next_shot": "Tagning {{shot}}: en övergång leder till nästa tagning, och det finns ingen.",
       "missing_action": "Tagning {{shot}} har ingen handling än. Skriv bilden som ska genereras under rubriken."
+    },
+    "outline": "Disposition",
+    "outlineEmpty": "Skriv ### och en titel för att börja en tagning.",
+    "untitledShot": "Namnlös tagning",
+    "untitledAct": "Namnlös akt",
+    "untitledScene": "Namnlös scen",
+    "issuesTitle": "Behöver åtgärdas",
+    "stillOf": "Stillbild för tagning {{shot}}",
+    "assist": {
+      "lines": "{{lines}} rader markerade",
+      "proposal": "Föreslagen ersättning",
+      "note": "Anteckning från agenten",
+      "discard": "Kasta",
+      "close": "Stäng",
+      "replace": "Ersätt markeringen",
+      "stale": "Stycket ändrades efter att du markerade det. Markera det igen.",
+      "thinking": "Tänker…",
+      "stop": "Stoppa",
+      "placeholder": "Berätta för agenten vad den ska göra med stycket",
+      "refinePlaceholder": "Förfina resultatet",
+      "instruction": "Begäran till agenten",
+      "send": "Skicka till agenten",
+      "failed": "Begäran till modellen misslyckades.",
+      "context": "Skickat med begäran: hela storyboardet, {{shots}} tagningar och {{entities}} entiteter från biblioteket.",
+      "quick": {
+        "tighten": "Strama åt",
+        "visual": "Mer visuellt",
+        "camera": "Föreslå kamera",
+        "continuity": "Kontrollera kontinuitet",
+        "summarize": "Sammanfatta",
+        "inconsistencies": "Hitta motsägelser"
+      },
+      "errors": {
+        "no_model": "Välj en regimodell för det här storyboardet, eller en chattmodell, för att använda agenten.",
+        "empty": "Modellen gav inget svar. Skicka begäran igen.",
+        "failed": "Begäran misslyckades. Skicka den igen."
+      }
     }
   }
 }

@@ -20133,6 +20133,43 @@
       "bad_render": "Otos {{shot}}: render on keyframe, direct tai reference.",
       "no_next_shot": "Otos {{shot}}: siirtymä johtaa seuraavaan otokseen, eikä sellaista ole.",
       "missing_action": "Otoksella {{shot}} ei ole vielä toimintaa. Kirjoita renderöitävä kuva sen otsikon alle."
+    },
+    "outline": "Jäsennys",
+    "outlineEmpty": "Kirjoita ### ja otsikko aloittaaksesi otoksen.",
+    "untitledShot": "Nimetön otos",
+    "untitledAct": "Nimetön näytös",
+    "untitledScene": "Nimetön kohtaus",
+    "issuesTitle": "Vaatii huomiota",
+    "stillOf": "Still-kuva otokselle {{shot}}",
+    "assist": {
+      "lines": "{{lines}} riviä valittu",
+      "proposal": "Ehdotettu korvaus",
+      "note": "Agentin huomautus",
+      "discard": "Hylkää",
+      "close": "Sulje",
+      "replace": "Korvaa valinta",
+      "stale": "Kohta muuttui valinnan jälkeen. Valitse se uudelleen.",
+      "thinking": "Ajattelee…",
+      "stop": "Pysäytä",
+      "placeholder": "Kerro agentille, mitä tälle kohdalle tehdään",
+      "refinePlaceholder": "Tarkenna tulosta",
+      "instruction": "Pyyntö agentille",
+      "send": "Lähetä agentille",
+      "failed": "Pyyntö mallille epäonnistui.",
+      "context": "Lähetetty pyynnön mukana: koko kuvakäsikirjoitus, {{shots}} otosta ja kirjaston {{entities}} entiteettiä.",
+      "quick": {
+        "tighten": "Tiivistä",
+        "visual": "Visuaalisemmin",
+        "camera": "Ehdota kameraa",
+        "continuity": "Tarkista jatkuvuus",
+        "summarize": "Tiivistelmä",
+        "inconsistencies": "Etsi ristiriidat"
+      },
+      "errors": {
+        "no_model": "Valitse tälle kuvakäsikirjoitukselle ohjausmalli tai chat-malli käyttääksesi agenttia.",
+        "empty": "Malli ei palauttanut vastausta. Lähetä pyyntö uudelleen.",
+        "failed": "Pyyntö epäonnistui. Lähetä se uudelleen."
+      }
     }
   }
 }

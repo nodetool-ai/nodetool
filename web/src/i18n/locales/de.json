@@ -20133,6 +20133,43 @@
       "bad_render": "Einstellung {{shot}}: Render ist keyframe, direct oder reference.",
       "no_next_shot": "Einstellung {{shot}}: Ein Übergang führt zur nächsten Einstellung, und es gibt keine.",
       "missing_action": "Einstellung {{shot}} hat noch keine Handlung. Beschreibe das Bild unter ihrer Überschrift."
+    },
+    "outline": "Gliederung",
+    "outlineEmpty": "Tippe ### und einen Titel, um eine Einstellung zu beginnen.",
+    "untitledShot": "Einstellung ohne Titel",
+    "untitledAct": "Akt ohne Titel",
+    "untitledScene": "Szene ohne Titel",
+    "issuesTitle": "Braucht Aufmerksamkeit",
+    "stillOf": "Standbild für Einstellung {{shot}}",
+    "assist": {
+      "lines": "{{lines}} Zeilen ausgewählt",
+      "proposal": "Vorgeschlagener Ersatz",
+      "note": "Hinweis des Agenten",
+      "discard": "Verwerfen",
+      "close": "Schließen",
+      "replace": "Auswahl ersetzen",
+      "stale": "Die Passage hat sich seit der Auswahl geändert. Wähle sie erneut aus.",
+      "thinking": "Denkt nach…",
+      "stop": "Stopp",
+      "placeholder": "Sag dem Agenten, was er mit dieser Passage tun soll",
+      "refinePlaceholder": "Ergebnis verfeinern",
+      "instruction": "Anfrage an den Agenten",
+      "send": "An den Agenten senden",
+      "failed": "Die Anfrage an das Modell ist fehlgeschlagen.",
+      "context": "Mit der Anfrage gesendet: das ganze Board, {{shots}} Einstellungen und {{entities}} Entitäten der Bibliothek.",
+      "quick": {
+        "tighten": "Straffen",
+        "visual": "Bildhafter",
+        "camera": "Kamera vorschlagen",
+        "continuity": "Kontinuität prüfen",
+        "summarize": "Zusammenfassen",
+        "inconsistencies": "Widersprüche finden"
+      },
+      "errors": {
+        "no_model": "Wähle ein Regiemodell für dieses Board oder ein Chatmodell, um den Agenten zu nutzen.",
+        "empty": "Das Modell hat keine Antwort geliefert. Sende die Anfrage erneut.",
+        "failed": "Die Anfrage ist fehlgeschlagen. Sende sie erneut."
+      }
     }
   }
 }

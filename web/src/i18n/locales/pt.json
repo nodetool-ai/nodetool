@@ -20444,6 +20444,43 @@
       "bad_render": "Plano {{shot}}: o render é keyframe, direct ou reference.",
       "no_next_shot": "Plano {{shot}}: uma transição leva ao próximo plano, e não há nenhum.",
       "missing_action": "O plano {{shot}} ainda não tem ação. Escreva a imagem a renderizar sob o título."
+    },
+    "outline": "Estrutura",
+    "outlineEmpty": "Digite ### e um título para começar um plano.",
+    "untitledShot": "Plano sem título",
+    "untitledAct": "Ato sem título",
+    "untitledScene": "Cena sem título",
+    "issuesTitle": "Precisa de atenção",
+    "stillOf": "Imagem fixa do plano {{shot}}",
+    "assist": {
+      "lines": "{{lines}} linhas selecionadas",
+      "proposal": "Substituição proposta",
+      "note": "Nota do agente",
+      "discard": "Descartar",
+      "close": "Fechar",
+      "replace": "Substituir seleção",
+      "stale": "O trecho mudou depois que você o selecionou. Selecione-o de novo.",
+      "thinking": "Pensando…",
+      "stop": "Parar",
+      "placeholder": "Diga ao agente o que fazer com este trecho",
+      "refinePlaceholder": "Refinar o resultado",
+      "instruction": "Pedido ao agente",
+      "send": "Enviar ao agente",
+      "failed": "A solicitação ao modelo falhou.",
+      "context": "Enviado com o pedido: o storyboard inteiro, {{shots}} planos e {{entities}} entidades da biblioteca.",
+      "quick": {
+        "tighten": "Enxugar",
+        "visual": "Mais visual",
+        "camera": "Sugerir câmera",
+        "continuity": "Verificar continuidade",
+        "summarize": "Resumir",
+        "inconsistencies": "Encontrar incoerências"
+      },
+      "errors": {
+        "no_model": "Escolha um modelo de direção para este storyboard, ou um modelo de chat, para usar o agente.",
+        "empty": "O modelo não retornou resposta. Envie o pedido de novo.",
+        "failed": "O pedido falhou. Envie-o de novo."
+      }
     }
   }
 }

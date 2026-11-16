@@ -20133,6 +20133,43 @@
       "bad_render": "Shot {{shot}}: render is keyframe, direct or reference.",
       "no_next_shot": "Shot {{shot}}: a transition leads to the next shot, and there is none.",
       "missing_action": "Shot {{shot}} has no action yet. Write the visual to render under its heading."
+    },
+    "outline": "Outline",
+    "outlineEmpty": "Type ### and a title to start a shot.",
+    "untitledShot": "Untitled shot",
+    "untitledAct": "Untitled act",
+    "untitledScene": "Untitled scene",
+    "issuesTitle": "Needs attention",
+    "stillOf": "Still for shot {{shot}}",
+    "assist": {
+      "lines": "{{lines}} lines selected",
+      "proposal": "Proposed replacement",
+      "note": "Note from the agent",
+      "discard": "Discard",
+      "close": "Close",
+      "replace": "Replace selection",
+      "stale": "The passage changed after you selected it. Select it again.",
+      "thinking": "Thinking…",
+      "stop": "Stop",
+      "placeholder": "Tell the agent what to do with this passage",
+      "refinePlaceholder": "Refine the result",
+      "instruction": "Request for the agent",
+      "send": "Send to the agent",
+      "failed": "The request to the model failed.",
+      "context": "Sent with the request: the whole board, {{shots}} shots and {{entities}} entities of the library.",
+      "quick": {
+        "tighten": "Tighten",
+        "visual": "More visual",
+        "camera": "Suggest camera",
+        "continuity": "Check continuity",
+        "summarize": "Summarize",
+        "inconsistencies": "Find inconsistencies"
+      },
+      "errors": {
+        "no_model": "Pick a director model for this board, or a chat model, to use the agent.",
+        "empty": "The model returned no answer. Send the request again.",
+        "failed": "The request failed. Send it again."
+      }
     }
   }
 }

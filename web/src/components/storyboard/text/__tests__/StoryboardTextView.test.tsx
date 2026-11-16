@@ -1,18 +1,32 @@
 import React from "react";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
-import { $createParagraphNode, $createTextNode, $getRoot, $isElementNode, type LexicalEditor } from "lexical";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { $createParagraphNode, $createRangeSelection, $createTextNode, $getRoot, $isElementNode, $setSelection, ParagraphNode, type LexicalEditor } from "lexical";
+import { LexicalComposer } from "@lexical/react/LexicalComposer";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
+import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import type { Entity, Screenplay } from "@nodetool-ai/protocol";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { useStoryboardStore } from "../../../../stores/storyboard/StoryboardStore";
 import StoryboardTextView from "../StoryboardTextView";
+import { StoryboardTextPlugin } from "../StoryboardTextPlugin";
+import { StoryboardLineNode, StoryboardTokenNode } from "../storyboardTextNodes";
 
 const mockEntities: Entity[] = [
   { type: "entity", id: "e0000000000000000000000000000001", kind: "character", name: "Nova", descriptor: "A young astronaut" }
 ];
 jest.mock("../../../../serverState/useEntities", () => ({
   useEntities: () => ({ data: mockEntities })
+}));
+const mockRpcRequest = jest.fn();
+jest.mock("../../../../lib/websocket/rpcRequest", () => ({
+  rpcRequest: (...args: unknown[]) => mockRpcRequest(...args)
+}));
+jest.mock("../../../chat/composer/voice/VoiceInputControl", () => ({
+  VoiceInputControl: () => null
 }));
 // The @ picker searches the asset library over tRPC; it is not under test here.
 jest.mock("../../../node_types/editing/promptComposer/AssetMentionPlugin", () => ({
@@ -34,7 +48,7 @@ const screenplay: Screenplay = {
 };
 
 const editorOf = (): LexicalEditor => {
-  const root = screen.getByRole("textbox") as HTMLElement & { __lexicalEditor?: LexicalEditor };
+  const root = screen.getByRole("textbox", { name: "Storyboard as Markdown text" }) as HTMLElement & { __lexicalEditor?: LexicalEditor };
   if (!root.__lexicalEditor) {
     throw new Error("no editor on the text box");
   }
@@ -59,9 +73,13 @@ const setLine = (match: (text: string) => boolean, text: string): void => {
 
 const renderView = () =>
   render(
-    <ThemeProvider theme={mockTheme}>
-      <StoryboardTextView boardId={BOARD} />
-    </ThemeProvider>
+    <React.StrictMode>
+      <QueryClientProvider client={new QueryClient()}>
+        <ThemeProvider theme={mockTheme}>
+          <StoryboardTextView boardId={BOARD} />
+        </ThemeProvider>
+      </QueryClientProvider>
+    </React.StrictMode>
   );
 
 beforeEach(() => {
@@ -74,6 +92,49 @@ afterEach(() => {
 });
 
 describe("StoryboardTextView", () => {
+  it("never empties the board with an update that commits before the text loaded", async () => {
+    // What the browser hit: an editor update (a restyle) committed while the
+    // editor still held its one empty line, and was read as "delete everything".
+    const EarlyUpdate: React.FC = () => {
+      const [editor] = useLexicalComposerContext();
+      React.useEffect(() => {
+        editor.update(() => $getRoot().markDirty(), { discrete: true });
+      }, [editor]);
+      return null;
+    };
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <LexicalComposer
+          initialConfig={{
+            namespace: "test",
+            nodes: [StoryboardLineNode, StoryboardTokenNode, { replace: ParagraphNode, with: () => new StoryboardLineNode(), withKlass: StoryboardLineNode }],
+            onError: (error: Error) => {
+              throw error;
+            }
+          }}
+        >
+          <RichTextPlugin contentEditable={<ContentEditable aria-label="Storyboard as Markdown text" />} placeholder={null} ErrorBoundary={() => null} />
+          <EarlyUpdate />
+          <StoryboardTextPlugin boardId={BOARD} entities={new Map()} readOnly={false} onResult={() => undefined} />
+        </LexicalComposer>
+      </ThemeProvider>
+    );
+    await waitFor(() => expect(textOf()).toContain("### First light {#s1}"));
+    expect(useStoryboardStore.getState().boards[BOARD]?.shots).toHaveLength(2);
+  });
+
+  it("leaves the board untouched when the text opens", async () => {
+    const before = useStoryboardStore.getState().boards[BOARD];
+    renderView();
+    await waitFor(() => expect(textOf()).toContain("### First light {#s1}"));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    const after = useStoryboardStore.getState().boards[BOARD];
+    expect(after?.shots).toEqual(before?.shots);
+    expect(after?.screenplay).toEqual(before?.screenplay);
+  });
+
   it("shows the board as Markdown with ids, mentions and the selected still", async () => {
     renderView();
     await waitFor(() => expect(textOf()).toContain("### First light {#s1}"));
@@ -121,5 +182,42 @@ describe("StoryboardTextView", () => {
     });
     await waitFor(() => expect(textOf()).toContain("Changed by the agent."));
     expect(textOf()).not.toContain("Close on the shoot.");
+  });
+
+  it("rewrites a selected passage with the agent, as one step the board keeps", async () => {
+    mockRpcRequest.mockResolvedValue({ text: "<mode>replace</mode>\n<text>Extreme close on the shoot</text>\n<why>Closer.</why>" });
+    useStoryboardStore.getState().setDirectorModel(BOARD, { type: "language_model", id: "model-1", provider: "openai", name: "Model" });
+    renderView();
+    await waitFor(() => expect(textOf()).toContain("Close on the shoot."));
+    act(() => {
+      editorOf().update(
+        () => {
+          const line = $getRoot().getChildren().find((node) => node.getTextContent() === "Close on the shoot.");
+          if (!$isElementNode(line)) {
+            throw new Error("line not found");
+          }
+          const selection = $createRangeSelection();
+          selection.anchor.set(line.getFirstDescendant()?.getKey() ?? line.getKey(), 0, "text");
+          selection.focus.set(line.getFirstDescendant()?.getKey() ?? line.getKey(), "Close on the shoot".length, "text");
+          $setSelection(selection);
+        },
+        { discrete: true }
+      );
+    });
+    fireEvent.mouseUp(screen.getByRole("textbox", { name: "Storyboard as Markdown text" }));
+    expect(await screen.findByText("Shot 2 · action")).toBeInTheDocument();
+
+    const input = screen.getByRole("textbox", { name: "Request for the agent" });
+    fireEvent.change(input, { target: { value: "make it closer" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.click(await screen.findByRole("button", { name: "Replace selection" }));
+
+    await waitFor(() => expect(useStoryboardStore.getState().boards[BOARD]?.shots[1].action).toBe("Extreme close on the shoot."));
+    const [command, request] = mockRpcRequest.mock.calls[0] as [string, { model: string; messages: Array<{ content: string }> }];
+    expect(command).toBe("generate_text");
+    expect(request.model).toBe("model-1");
+    expect(request.messages[0].content).toContain("## Storyboard\n# Mars Greenhouse {#sp1}");
+    expect(request.messages[0].content).toContain("⟦Close on the shoot⟧.");
+    expect(request.messages[0].content).toContain("## Instruction\nmake it closer");
   });
 });

@@ -20755,6 +20755,43 @@
       "bad_render": "Ujęcie {{shot}}: render to keyframe, direct lub reference.",
       "no_next_shot": "Ujęcie {{shot}}: przejście prowadzi do następnego ujęcia, a takiego nie ma.",
       "missing_action": "Ujęcie {{shot}} nie ma jeszcze akcji. Opisz obraz do wygenerowania pod jego nagłówkiem."
+    },
+    "outline": "Konspekt",
+    "outlineEmpty": "Wpisz ### i tytuł, aby zacząć ujęcie.",
+    "untitledShot": "Ujęcie bez tytułu",
+    "untitledAct": "Akt bez tytułu",
+    "untitledScene": "Scena bez tytułu",
+    "issuesTitle": "Wymaga uwagi",
+    "stillOf": "Kadr ujęcia {{shot}}",
+    "assist": {
+      "lines": "Zaznaczone wiersze: {{lines}}",
+      "proposal": "Proponowana zamiana",
+      "note": "Uwaga agenta",
+      "discard": "Odrzuć",
+      "close": "Zamknij",
+      "replace": "Zamień zaznaczenie",
+      "stale": "Fragment zmienił się po zaznaczeniu. Zaznacz go ponownie.",
+      "thinking": "Myślę…",
+      "stop": "Zatrzymaj",
+      "placeholder": "Powiedz agentowi, co zrobić z tym fragmentem",
+      "refinePlaceholder": "Dopracuj wynik",
+      "instruction": "Prośba do agenta",
+      "send": "Wyślij do agenta",
+      "failed": "Żądanie do modelu nie powiodło się.",
+      "context": "Wysłano z prośbą: cały storyboard, ujęcia: {{shots}}, encje z biblioteki: {{entities}}.",
+      "quick": {
+        "tighten": "Skróć",
+        "visual": "Bardziej obrazowo",
+        "camera": "Zaproponuj kamerę",
+        "continuity": "Sprawdź ciągłość",
+        "summarize": "Podsumuj",
+        "inconsistencies": "Znajdź niespójności"
+      },
+      "errors": {
+        "no_model": "Wybierz model reżyserski dla tego storyboardu albo model czatu, aby użyć agenta.",
+        "empty": "Model nie zwrócił odpowiedzi. Wyślij prośbę ponownie.",
+        "failed": "Prośba się nie powiodła. Wyślij ją ponownie."
+      }
     }
   }
 }

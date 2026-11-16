@@ -20133,6 +20133,43 @@
       "bad_render": "ショット {{shot}}: render は keyframe、direct、reference のいずれかです。",
       "no_next_shot": "ショット {{shot}}: トランジションは次のショットにつながりますが、次のショットがありません。",
       "missing_action": "ショット {{shot}} にはまだアクションがありません。見出しの下に生成する映像を書いてください。"
+    },
+    "outline": "アウトライン",
+    "outlineEmpty": "### とタイトルを入力するとショットが始まります。",
+    "untitledShot": "無題のショット",
+    "untitledAct": "無題の幕",
+    "untitledScene": "無題のシーン",
+    "issuesTitle": "確認が必要",
+    "stillOf": "ショット {{shot}} の静止画",
+    "assist": {
+      "lines": "{{lines}} 行を選択中",
+      "proposal": "置き換え案",
+      "note": "エージェントからのメモ",
+      "discard": "破棄",
+      "close": "閉じる",
+      "replace": "選択範囲を置き換え",
+      "stale": "選択後に箇所が変更されました。もう一度選択してください。",
+      "thinking": "考え中…",
+      "stop": "停止",
+      "placeholder": "この箇所をどうするかエージェントに伝えてください",
+      "refinePlaceholder": "結果を調整",
+      "instruction": "エージェントへの依頼",
+      "send": "エージェントに送信",
+      "failed": "モデルへのリクエストに失敗しました。",
+      "context": "リクエストと一緒に送信: ストーリーボード全体、{{shots}} ショット、ライブラリの {{entities}} エンティティ。",
+      "quick": {
+        "tighten": "引き締める",
+        "visual": "より視覚的に",
+        "camera": "カメラを提案",
+        "continuity": "連続性を確認",
+        "summarize": "要約",
+        "inconsistencies": "矛盾を探す"
+      },
+      "errors": {
+        "no_model": "エージェントを使うには、このストーリーボードの演出モデルかチャットモデルを選んでください。",
+        "empty": "モデルから回答がありませんでした。もう一度送信してください。",
+        "failed": "リクエストに失敗しました。もう一度送信してください。"
+      }
     }
   }
 }

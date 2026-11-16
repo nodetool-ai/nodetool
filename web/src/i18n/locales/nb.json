@@ -20133,6 +20133,43 @@
       "bad_render": "Opptak {{shot}}: render er keyframe, direct eller reference.",
       "no_next_shot": "Opptak {{shot}}: en overgang fører til neste opptak, og det finnes ikke noe.",
       "missing_action": "Opptak {{shot}} har ingen handling ennå. Skriv bildet som skal genereres, under overskriften."
+    },
+    "outline": "Disposisjon",
+    "outlineEmpty": "Skriv ### og en tittel for å starte et opptak.",
+    "untitledShot": "Opptak uten tittel",
+    "untitledAct": "Akt uten tittel",
+    "untitledScene": "Scene uten tittel",
+    "issuesTitle": "Trenger oppmerksomhet",
+    "stillOf": "Stillbilde for opptak {{shot}}",
+    "assist": {
+      "lines": "{{lines}} linjer valgt",
+      "proposal": "Foreslått erstatning",
+      "note": "Merknad fra agenten",
+      "discard": "Forkast",
+      "close": "Lukk",
+      "replace": "Erstatt utvalget",
+      "stale": "Passasjen ble endret etter at du valgte den. Velg den på nytt.",
+      "thinking": "Tenker…",
+      "stop": "Stopp",
+      "placeholder": "Si hva agenten skal gjøre med denne passasjen",
+      "refinePlaceholder": "Finjuster resultatet",
+      "instruction": "Forespørsel til agenten",
+      "send": "Send til agenten",
+      "failed": "Forespørselen til modellen mislyktes.",
+      "context": "Sendt med forespørselen: hele storyboardet, {{shots}} opptak og {{entities}} entiteter fra biblioteket.",
+      "quick": {
+        "tighten": "Stram inn",
+        "visual": "Mer visuelt",
+        "camera": "Foreslå kamera",
+        "continuity": "Sjekk kontinuitet",
+        "summarize": "Oppsummer",
+        "inconsistencies": "Finn motsetninger"
+      },
+      "errors": {
+        "no_model": "Velg en regimodell for dette storyboardet, eller en chatmodell, for å bruke agenten.",
+        "empty": "Modellen ga ikke noe svar. Send forespørselen på nytt.",
+        "failed": "Forespørselen mislyktes. Send den på nytt."
+      }
     }
   }
 }
