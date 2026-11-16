@@ -74,9 +74,16 @@ import {
 import { isString } from "../../lib/wire-values.js";
 import { installExampleTimeline, listExampleTimelines } from "../../lib/example-timelines.js";
 import {
+  effectiveAccess,
   hasDocumentRole,
+  mayReadHistory,
   type DocumentRole
 } from "../../lib/document-access.js";
+import {
+  checkAttach,
+  publishSave,
+  ensureVersionSets
+} from "../../lib/document-refs.js";
 
 const log = createLogger("nodetool.websocket.trpc.timeline");
 
@@ -367,6 +374,23 @@ async function loadOwned(
   return seq;
 }
 
+/**
+ * Load a timeline whose versions the caller may read: the owner, an editor,
+ * or a viewer with the history option (RF11, AC26). Anyone else gets the
+ * NOT_FOUND a missing timeline gets.
+ */
+async function loadWithHistory(
+  ctxUserId: string | null,
+  id: string
+): Promise<TimelineSequence> {
+  const seq = await loadOwned(ctxUserId, id, "viewer");
+  if (seq.user_id === ctxUserId) return seq;
+  if (!mayReadHistory(await effectiveAccess(ctxUserId ?? "", "timeline", seq.id))) {
+    throwApiError(ApiErrorCode.NOT_FOUND, "Timeline sequence not found");
+  }
+  return seq;
+}
+
 // ── Node-type helpers ────────────────────────────────────────────────────────
 
 /** Known terminal media-output node type suffixes → mediaType */
@@ -598,6 +622,18 @@ export const timelineRouter = router({
         }
       }
 
+      // The attach rule: refuse a file the writer may not read, before
+      // anything is written. Admissions wait for the stored save.
+      let toAdmit: string[] = [];
+      if (fields.document !== undefined) {
+        toAdmit = await checkAttach(
+          "timeline",
+          { id: seq.id, user_id: seq.user_id, before: seq.document },
+          ctx.userId,
+          fields.document
+        );
+      }
+
       if (
         input.document !== undefined &&
         replacesAnotherWriter(seq, {
@@ -619,6 +655,9 @@ export const timelineRouter = router({
           ApiErrorCode.ALREADY_EXISTS,
           "Timeline has been modified since last load"
         );
+      }
+      if (fields.document !== undefined) {
+        await publishSave("timeline", updated, toAdmit);
       }
 
       if (input.document !== undefined) {
@@ -671,7 +710,7 @@ export const timelineRouter = router({
       .input(listTimelineVersionsInput)
       .output(z.array(timelineVersionListItem))
       .query(async ({ ctx, input }) => {
-        const seq = await loadOwned(ctx.userId, input.id, "viewer");
+        const seq = await loadWithHistory(ctx.userId, input.id);
         const versions = await TimelineSequenceVersion.listForTimeline(
           seq.id,
           { limit: input.limit, saveType: input.saveType }
@@ -683,7 +722,7 @@ export const timelineRouter = router({
       .input(getTimelineVersionInput)
       .output(timelineVersionResponse)
       .query(async ({ ctx, input }) => {
-        const seq = await loadOwned(ctx.userId, input.id, "viewer");
+        const seq = await loadWithHistory(ctx.userId, input.id);
         const version = await TimelineSequenceVersion.findByVersion(
           seq.id,
           input.version
@@ -730,6 +769,13 @@ export const timelineRouter = router({
         });
 
         const document = parseVersionDocument(version.document);
+        await ensureVersionSets("timeline", seq);
+        const toAdmit = await checkAttach(
+          "timeline",
+          { id: seq.id, user_id: seq.user_id, before: seq.document },
+          ctx.userId,
+          document
+        );
         const updated = await TimelineSequence.updateFieldsIfUnchanged(
           seq.id,
           seq.updated_at,
@@ -747,6 +793,7 @@ export const timelineRouter = router({
             "Timeline has been modified since last load"
           );
         }
+        await publishSave("timeline", updated, toAdmit);
         return updated.toTimelineSequence();
       }),
 

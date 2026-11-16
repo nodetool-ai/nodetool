@@ -31,6 +31,7 @@ export * as settings from "./settings.js";
 export * as storage from "./storage.js";
 export * as threads from "./threads.js";
 export * as memories from "./memories.js";
+export * as cloudLocal from "./cloud-local.js";
 export * as errorTraces from "./error-traces.js";
 export * as bugReports from "./bug-reports.js";
 export * as users from "./users.js";

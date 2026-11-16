@@ -288,7 +288,8 @@ void ComfyBackend::send(const QUrl &url, const QByteArray &method, const QJsonOb
             done(json.isArray() ? QJsonValue(json.array()) : QJsonValue(object), {});
             return;
         }
-        auto data = object["result"].toObject()["data"];
+        // A QJsonValue copy: operator[] on the temporary object returns a reference into it.
+        QJsonValue data = object.value("result").toObject().value("data");
         if (data.isObject() && data.toObject().contains("json")) { data = data.toObject()["json"]; }
         done(data, {});
     });

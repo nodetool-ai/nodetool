@@ -2,6 +2,7 @@ import { z } from "zod";
 import { router, publicProcedure } from "./index.js";
 import { antigravityRouter } from "./routers/antigravity.js";
 import { assetsRouter } from "./routers/assets.js";
+import { cloudLocalRouter } from "./routers/cloud-local.js";
 import { codeGenRouter } from "./routers/code-gen.js";
 import { segmentationRouter } from "./routers/segmentation.js";
 import { collectionsRouter } from "./routers/collections.js";
@@ -86,6 +87,7 @@ type AppRouterRecord = {
   projects: typeof projectsRouter;
   scripts: typeof scriptsRouter;
   settings: typeof settingsRouter;
+  cloudLocal: typeof cloudLocalRouter;
   sketch: typeof sketchRouter;
   storyboards: typeof storyboardsRouter;
   sync: typeof syncRouter;
@@ -141,6 +143,7 @@ export const appRouter: ReturnType<typeof router<AppRouterRecord>> = router({
   projects: projectsRouter,
   scripts: scriptsRouter,
   settings: settingsRouter,
+  cloudLocal: cloudLocalRouter,
   sketch: sketchRouter,
   storyboards: storyboardsRouter,
   sync: syncRouter,

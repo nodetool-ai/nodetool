@@ -180,9 +180,19 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
     schemaExport: "mcpOauthGrants",
     disposition: "delete",
     reach: { kind: "direct", column: "user_id" },
+    withheldColumns: ["revocation_handle_hash"],
     exported: true,
     justification:
-      "One row per MCP client the person consented to. Deleted with the account; exported because the consent record is theirs and shows what each client was allowed to reach."
+      "One row per MCP client the person consented to, and one per signed-in device of the desktop apps. Deleted with the account; exported because the consent record is theirs and shows what each client or device was allowed to reach. The revocation handle's hash is withheld as credential material."
+  },
+  {
+    table: "oauth_pending_entries",
+    schemaExport: "oauthPendingEntries",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "An authorize request waiting on the consent page, or an authorization code waiting for its exchange; a code row names the user who approved it. Every row is deleted at most 10 minutes after it was written anyway. Deleted with the account so a code in flight cannot be redeemed after it. Not exported: it is a credential in flight."
   },
   {
     table: "mcp_oauth_tokens",
@@ -352,6 +362,34 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
     exported: true,
     justification:
       "Public share links. No `user_id` column — the owner is `created_by`, which a user_id sweep misses, leaving live share tokens for deleted workflows. Erasure deletes both by `created_by` and by the workflow ids being deleted. `token` is a live bearer credential and is withheld from the export."
+  },
+
+  {
+    table: "nodetool_document_refs",
+    schemaExport: "documentRefs",
+    disposition: "not-personal",
+    reach: { kind: "none" },
+    exported: false,
+    justification:
+      "Reference sets: which asset ids a document's content refers to, by scope and version. Rows hold a document kind, a document id and an asset id, and no column names a person. They are deleted with their document."
+  },
+  {
+    table: "nodetool_document_ref_sets",
+    schemaExport: "documentRefSets",
+    disposition: "not-personal",
+    reach: { kind: "none" },
+    exported: false,
+    justification:
+      "One row per stored reference set: the document, the version and the hash of the content the set was computed from. No column names a person."
+  },
+  {
+    table: "nodetool_document_admitted_files",
+    schemaExport: "documentAdmittedFiles",
+    disposition: "not-personal",
+    reach: { kind: "none" },
+    exported: false,
+    justification:
+      "Asset ids the attach rule admitted into a document. The admitting person is deliberately not recorded, so the rows hold only a document and an asset id."
   },
 
   // ── Runs, jobs and their exhaust ───────────────────────────────────
@@ -668,6 +706,24 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
     exported: false,
     justification:
       "A reusable preset for provisioning a GPU worker: image, hardware spec, timeouts. Operator configuration shared by the whole install, with no column naming a person."
+  },
+  {
+    table: "cloud_drafts",
+    schemaExport: "cloudDrafts",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: true,
+    justification:
+      "Edits of a cloud document that the native app has not yet sent to the cloud server. The content is the person's own work. Deleted with the account; exported because it may be the only copy of those edits."
+  },
+  {
+    table: "cloud_open_state",
+    schemaExport: "cloudOpenState",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: true,
+    justification:
+      "The role, options and last contact the native app recorded for each cloud document the person opened. Deleted with the account; exported because it lists which documents the person worked on."
   },
   {
     table: "worker_instances",

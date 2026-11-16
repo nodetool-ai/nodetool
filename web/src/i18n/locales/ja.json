@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "コード#状態",
       "signInWindowClosed": "サインインウィンドウは閉じていますか?",
       "openAgain": "もう一度開いてください",
-      "linkExpiry": "。リンクは 10 分後に期限切れになります。"
+      "linkExpiry": "。リンクは 10 分後に期限切れになります。",
+      "nativeSubtitle": "があなたの NodeTool アカウントへのサインインを求めています。",
+      "app": "アプリ",
+      "device": "デバイス",
+      "nativeNote": "このコンピューターの NodeTool デスクトップアプリから自分でサインインを始めた場合にのみ承認してください。承認すると、サインアウトするか設定でセッションを終了するまで、アプリはクラウド上のドキュメントを開いて編集し保存できます。"
     },
     "integrations": {
       "loadingAccounts": "接続されているアカウントをロードしています",
@@ -19087,6 +19091,26 @@
       "typeMore": "2文字以上入力してください",
       "noMatches": "一致するユーザーがいません",
       "failed": "アクセスを付与できませんでした。"
+    },
+    "options": {
+      "history": "履歴",
+      "historyDescription": "閲覧者は保存済みのバージョンを開けます。",
+      "download": "ダウンロード",
+      "downloadDescription": "閲覧者は元のファイルをダウンロードできます。",
+      "duplicate": "複製",
+      "duplicateDescription": "閲覧者はファイルごと自分のライブラリにコピーできます。",
+      "turnedOff": "すでにダウンロードまたは複製されたものは相手の手元に残ります。",
+      "historyOffNotice": "このリンクの閲覧者は保存済みのバージョンを表示できなくなりました。履歴をオンにすると元に戻ります。",
+      "turnOnHistory": "履歴をオンにする",
+      "dismiss": "閉じる",
+      "failed": "オプションを変更できませんでした。"
+    },
+    "people": {
+      "from": "アクセス元: {{sources}}",
+      "sourceInvitation": "招待",
+      "sourceViewLink": "閲覧リンク",
+      "sourceEditLink": "編集リンク",
+      "sourceDisabled": "{{source}}（無効）"
     }
   },
   "timelineAutomation": {
@@ -20215,5 +20239,80 @@
     "removeTitle": "「{{name}}」を削除しますか？",
     "removeBody": "アセットは NodeTool から削除されます。これを使用しているドキュメントでは表示できなくなります。",
     "cancel": "キャンセル"
+  },
+  "deviceSessions": {
+    "title": "サインイン中のデバイス",
+    "description": "NodeTool デスクトップアプリにサインインしたコンピューターです。同じコンピューターの 2 つのアプリは 1 つのセッションを共有します。セッションを終了すると、そのコンピューターはサインアウトされます。",
+    "empty": "サインイン中のコンピューターはありません。",
+    "unnamed": "名前のないコンピューター",
+    "signedInFrom": "{{date}} に {{app}} からサインイン",
+    "lastUsed": "最終使用: {{date}}",
+    "neverUsed": "サインイン後は未使用",
+    "end": "セッションを終了",
+    "confirmTitle": "このセッションを終了しますか？",
+    "confirmBody": "{{device}} の NodeTool デスクトップアプリは 1 分以内にサインアウトされます。",
+    "cancel": "キャンセル",
+    "ended": "セッションを終了しました。",
+    "endError": "セッションを終了できませんでした: {{error}}",
+    "loadError": "サインイン中のデバイスを読み込めませんでした。",
+    "apps": {
+      "nodeEditor": "ノードエディター",
+      "timeline": "タイムライン"
+    }
+  },
+  "storyboardText": {
+    "mode": "テキスト",
+    "editorLabel": "Markdown テキストとしてのストーリーボード",
+    "hint": "幕は #、シーンは ##、ショットは ###、フィールドは - **Motion:** と入力します。エンティティや画像に言及するには @ と入力します。",
+    "issues": "確認が必要な行: {{lines}}",
+    "loading": "テキストを読み込み中…",
+    "warnings": {
+      "media_outside_shot": "画像はショットに属します。### のショット見出しの下に置いてください。",
+      "second_media": "ショットで選択できる静止画とクリップは 1 つずつです。これは使用されません。",
+      "unknown_shot_field": "「{{label}}」はストーリーボードのフィールドではありません。ショットのメモに保存されます。",
+      "unknown_field": "「{{label}}」はここではフィールドではありません。保存されません。",
+      "text_in_scene": "シーンにはスラグラインと照明しかありません。このテキストをショットの下に置くか、「Lighting:」で始めてください。",
+      "bad_duration": "ショット {{shot}}: 「{{value}}」は秒数ではありません。",
+      "bad_render": "ショット {{shot}}: render は keyframe、direct、reference のいずれかです。",
+      "no_next_shot": "ショット {{shot}}: トランジションは次のショットにつながりますが、次のショットがありません。",
+      "missing_action": "ショット {{shot}} にはまだアクションがありません。見出しの下に生成する映像を書いてください。"
+    },
+    "outline": "アウトライン",
+    "outlineEmpty": "### とタイトルを入力するとショットが始まります。",
+    "untitledShot": "無題のショット",
+    "untitledAct": "無題の幕",
+    "untitledScene": "無題のシーン",
+    "issuesTitle": "確認が必要",
+    "stillOf": "ショット {{shot}} の静止画",
+    "assist": {
+      "lines": "{{lines}} 行を選択中",
+      "proposal": "置き換え案",
+      "note": "エージェントからのメモ",
+      "discard": "破棄",
+      "close": "閉じる",
+      "replace": "選択範囲を置き換え",
+      "stale": "選択後に箇所が変更されました。もう一度選択してください。",
+      "thinking": "考え中…",
+      "stop": "停止",
+      "placeholder": "この箇所をどうするかエージェントに伝えてください",
+      "refinePlaceholder": "結果を調整",
+      "instruction": "エージェントへの依頼",
+      "send": "エージェントに送信",
+      "failed": "モデルへのリクエストに失敗しました。",
+      "context": "リクエストと一緒に送信: ストーリーボード全体、{{shots}} ショット、ライブラリの {{entities}} エンティティ。",
+      "quick": {
+        "tighten": "引き締める",
+        "visual": "より視覚的に",
+        "camera": "カメラを提案",
+        "continuity": "連続性を確認",
+        "summarize": "要約",
+        "inconsistencies": "矛盾を探す"
+      },
+      "errors": {
+        "no_model": "エージェントを使うには、このストーリーボードの演出モデルかチャットモデルを選んでください。",
+        "empty": "モデルから回答がありませんでした。もう一度送信してください。",
+        "failed": "リクエストに失敗しました。もう一度送信してください。"
+      }
+    }
   }
 }

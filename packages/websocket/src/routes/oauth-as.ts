@@ -10,6 +10,15 @@
  *   POST /oauth/token
  *   POST /oauth/register                                (RFC 7591)
  *   POST /oauth/revoke                                   (RFC 7009)
+ *   POST /oauth/session/end                              (native sessions)
+ *
+ * The same endpoints serve two scopes. `mcp` is an MCP client connection,
+ * gated on the `/mcp` mount. `native` is a device session of the desktop
+ * apps (client `nodetool-native`), gated on `nativeSignInState`; its access
+ * tokens are `ntd_`, accepted on the API and refused on `/mcp`, and its code
+ * exchange also returns the session id, the user, and the revocation handle
+ * that `/oauth/session/end` takes (docs/plans/native-cloud-sync/
+ * technical-design.md, "Sign-in protocol").
  *
  * Self-contained: no dependency on `server.ts` wiring, no import of the
  * agent-access tRPC router. The consent page and the `approveOauthRequest`
@@ -30,9 +39,18 @@ import {
   McpOauthClient,
   McpOauthGrant,
   McpOauthToken,
-  MCP_OAUTH_ACCESS_TTL_MS
+  MCP_OAUTH_ACCESS_TTL_MS,
+  NATIVE_ACCESS_TTL_MS,
+  NATIVE_CLIENT_ID,
+  NATIVE_CLIENT_NAME,
+  getUserAccount
 } from "@nodetool-ai/models";
 import { enabledPublicUrl as resolveEnabledPublicUrl } from "../oauth/gate.js";
+import {
+  NATIVE_SIGNIN_DISABLED_MESSAGE,
+  nativeSignInState
+} from "../oauth/native-gate.js";
+import { endNativeSessionLocally } from "../oauth/native-session.js";
 import {
   buildProtectedResourceMetadata,
   buildAuthServerMetadata
@@ -40,9 +58,12 @@ import {
 import {
   isAllowedRedirectUri,
   isRegisteredRedirectUri,
+  canonicalNativeResource,
   canonicalResource,
+  nativeResourceMatches,
   resourceMatches,
-  validateScope
+  validateScope,
+  type IssuedScope
 } from "../oauth/validate.js";
 import { verifyS256 } from "../oauth/pkce.js";
 import { pendingStore } from "../oauth/pending-store.js";
@@ -125,7 +146,51 @@ interface ResolvedClient {
   redirectUris: string[];
 }
 
+/**
+ * The seeded native client. Its redirect is the loopback listener the app
+ * opens on a free port (RFC 8252 §7.3), so the port is not registered.
+ */
+const NATIVE_CLIENT: ResolvedClient = {
+  clientName: NATIVE_CLIENT_NAME,
+  redirectUris: ["http://127.0.0.1/callback"]
+};
+
+/** The apps that may sign in with the native scope. */
+const NATIVE_APPS = new Set(["node-editor", "timeline"]);
+const MAX_DEVICE_NAME_LENGTH = 100;
+
+/**
+ * A device name as the consent page and Settings show it: control
+ * characters removed, whitespace collapsed, at most 100 characters. Null
+ * when nothing printable is left.
+ */
+export function cleanDeviceName(raw: string | undefined): string | null {
+  if (raw === undefined) return null;
+  const cleaned = raw
+    .replace(/[\u0000-\u001f\u007f-\u009f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MAX_DEVICE_NAME_LENGTH);
+  return cleaned.length > 0 ? cleaned : null;
+}
+
+/**
+ * The public URL the AS issues for, by scope: the MCP gate for `mcp`, the
+ * native gate for `native`. Null when that scope is not served here.
+ */
+function issuerFor(scope: IssuedScope): string | null {
+  if (scope === "mcp") return resolveEnabledPublicUrl();
+  const native = nativeSignInState();
+  return native.state === "unavailable" ? null : native.publicUrl;
+}
+
+/** The issuer when any scope is served here, else null (routes 404). */
+function anyIssuer(): string | null {
+  return issuerFor("mcp") ?? issuerFor("native");
+}
+
 async function resolveClient(clientId: string): Promise<ResolvedClient | null> {
+  if (clientId === NATIVE_CLIENT_ID) return NATIVE_CLIENT;
   if (isClientIdUrl(clientId)) {
     const result = await fetchClientMetadata(clientId);
     if (!result.ok) return null;
@@ -271,11 +336,11 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
   // ── GET /oauth/authorize ─────────────────────────────────────────────
 
   app.get("/oauth/authorize", { config: { rateLimit: OAUTH_ROUTE_RATE_LIMIT } }, async (req, reply) => {
-    const publicUrl = resolveEnabledPublicUrl();
-    if (!publicUrl) return notFound(reply);
-
     const query = req.query as Record<string, unknown>;
     const clientId = firstValue(query["client_id"]);
+    const isNativeClient = clientId === NATIVE_CLIENT_ID;
+    const publicUrl = issuerFor(isNativeClient ? "native" : "mcp");
+    if (!publicUrl) return notFound(reply);
     if (!clientId) {
       return htmlError(reply, 400, "invalid_request", "missing client_id");
     }
@@ -340,11 +405,46 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
 
     const scopeResult = validateScope(firstValue(query["scope"]));
     if (!scopeResult.ok) {
-      return redirectWithError("invalid_scope", "the only supported scope is mcp");
+      return redirectWithError("invalid_scope", "supported scopes are mcp and native");
+    }
+    // The native scope belongs to the seeded native client, and that client
+    // signs in with nothing else: a grant holds exactly one scope.
+    if ((scopeResult.scope === "native") !== isNativeClient) {
+      return redirectWithError(
+        "invalid_scope",
+        isNativeClient
+          ? "the nodetool-native client requests scope native"
+          : "scope native is reserved for the NodeTool desktop apps"
+      );
     }
 
     const requestedResource = firstValue(query["resource"]);
-    if (!resourceMatches(requestedResource, publicUrl)) {
+    let appName: string | undefined;
+    let deviceName: string | undefined;
+    if (scopeResult.scope === "native") {
+      if (nativeSignInState().state === "disabled") {
+        return redirectWithError("access_denied", NATIVE_SIGNIN_DISABLED_MESSAGE);
+      }
+      if (!nativeResourceMatches(requestedResource, publicUrl)) {
+        return redirectWithError(
+          "invalid_target",
+          "resource does not match this server's origin"
+        );
+      }
+      const app = firstValue(query["app"]);
+      if (!app || !NATIVE_APPS.has(app)) {
+        return redirectWithError(
+          "invalid_request",
+          "app must be node-editor or timeline"
+        );
+      }
+      const device = cleanDeviceName(firstValue(query["device_name"]));
+      if (!device) {
+        return redirectWithError("invalid_request", "device_name is required");
+      }
+      appName = app;
+      deviceName = device;
+    } else if (!resourceMatches(requestedResource, publicUrl)) {
       return redirectWithError(
         "invalid_target",
         "resource does not match this server's MCP endpoint"
@@ -363,16 +463,24 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
       }
     });
 
-    const requestId = pendingStore.putRequest({
+    const parked: Parameters<typeof pendingStore.putRequest>[0] = {
       clientId,
       clientName: resolved.clientName,
       redirectUri,
       codeChallenge,
       scope: scopeResult.scope,
-      resource: canonicalResource(publicUrl),
+      resource:
+        scopeResult.scope === "native"
+          ? canonicalNativeResource(publicUrl)
+          : canonicalResource(publicUrl),
       state,
       redirectHostIsLoopbackOnly
-    });
+    };
+    if (appName !== undefined) {
+      parked.appName = appName;
+      parked.deviceName = deviceName;
+    }
+    const requestId = await pendingStore.putRequest(parked);
 
     return reply.redirect(consentPageUrl(requestId));
   });
@@ -380,14 +488,14 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
   // ── POST /oauth/token ────────────────────────────────────────────────
 
   app.post("/oauth/token", { config: { rateLimit: OAUTH_ROUTE_RATE_LIMIT } }, async (req, reply) => {
-    const publicUrl = resolveEnabledPublicUrl();
+    const publicUrl = anyIssuer();
     if (!publicUrl) return notFound(reply);
 
     const params = parseFormBody(req.body);
     const grantType = params.get("grant_type");
 
     if (grantType === "authorization_code") {
-      return handleAuthorizationCodeGrant(params, publicUrl, reply);
+      return handleAuthorizationCodeGrant(params, reply);
     }
     if (grantType === "refresh_token") {
       return handleRefreshTokenGrant(params, publicUrl, reply);
@@ -402,7 +510,6 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
 
   async function handleAuthorizationCodeGrant(
     params: URLSearchParams,
-    publicUrl: string,
     reply: FastifyReply
   ): Promise<FastifyReply> {
     const code = params.get("code");
@@ -414,7 +521,7 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
     // Consuming first meant one bad exchange from anyone holding a leaked
     // code burned it permanently, and the legitimate client's exchange then
     // read as a replay and revoked the grant.
-    const peeked = pendingStore.peekCode(code);
+    const peeked = await pendingStore.peekCode(code);
     if (!peeked) {
       return oauthError(
         reply,
@@ -425,6 +532,17 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const { request } = peeked;
+    const isNative = request.scope === "native";
+    // The scope's gate decides, not whichever scope opened the endpoint.
+    const scopeIssuer = issuerFor(request.scope);
+    if (!scopeIssuer || (isNative && nativeSignInState().state !== "enabled")) {
+      return oauthError(
+        reply,
+        400,
+        "invalid_grant",
+        isNative ? NATIVE_SIGNIN_DISABLED_MESSAGE : "authorization code is invalid or expired"
+      );
+    }
 
     if (params.get("client_id") !== request.clientId) {
       return oauthError(
@@ -449,18 +567,23 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const requestedResource = params.get("resource");
-    if (requestedResource !== null && !resourceMatches(requestedResource, publicUrl)) {
+    const resourceOk = isNative
+      ? nativeResourceMatches(requestedResource, scopeIssuer)
+      : requestedResource === null || resourceMatches(requestedResource, scopeIssuer);
+    if (!resourceOk) {
       return oauthError(
         reply,
         400,
         "invalid_target",
-        "resource does not match this server's MCP endpoint"
+        isNative
+          ? "resource does not match this server's origin"
+          : "resource does not match this server's MCP endpoint"
       );
     }
 
     // Bindings hold: spend the code. A second correctly-bound exchange is the
     // OAuth 2.1 replay case and revokes the grant.
-    const entry = pendingStore.consumeCode(code);
+    const entry = await pendingStore.consumeCode(code);
     if (!entry) {
       return oauthError(
         reply,
@@ -471,6 +594,7 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
     }
     if (entry.consumedBefore) {
       await McpOauthGrant.revoke(entry.userId, entry.grantId);
+      endNativeSessionLocally(entry.grantId);
       return oauthError(
         reply,
         400,
@@ -479,13 +603,40 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
       );
     }
 
-    const pair = await McpOauthToken.mintPair(entry.grantId);
+    if (!isNative) {
+      const pair = await McpOauthToken.mintPair(entry.grantId);
+      return reply.status(200).send({
+        access_token: pair.accessToken,
+        token_type: "Bearer",
+        expires_in: Math.floor(MCP_OAUTH_ACCESS_TTL_MS / 1000),
+        refresh_token: pair.refreshToken,
+        scope: request.scope
+      });
+    }
+
+    // The handle is issued once, here. A refresh never returns it, so a
+    // process that only ever refreshed cannot have learned it.
+    const handle = await McpOauthGrant.issueRevocationHandle(entry.grantId);
+    if (!handle) {
+      return oauthError(
+        reply,
+        400,
+        "invalid_grant",
+        "authorization code is invalid or expired"
+      );
+    }
+    const pair = await McpOauthToken.mintPair(entry.grantId, "native");
+    const account = await getUserAccount(entry.userId).catch(() => null);
     return reply.status(200).send({
       access_token: pair.accessToken,
       token_type: "Bearer",
-      expires_in: Math.floor(MCP_OAUTH_ACCESS_TTL_MS / 1000),
+      expires_in: Math.floor(NATIVE_ACCESS_TTL_MS / 1000),
       refresh_token: pair.refreshToken,
-      scope: request.scope
+      scope: "native",
+      session_id: entry.grantId,
+      user_id: entry.userId,
+      display_name: account?.displayName ?? account?.email ?? null,
+      revocation_handle: handle
     });
   }
 
@@ -499,14 +650,32 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
       return oauthError(reply, 400, "invalid_request", "missing refresh_token");
     }
 
+    // The resource names the audience: the server origin for a native
+    // session, the `/mcp` URI for an MCP connection. Either is accepted
+    // here, and the rotation below decides which one the grant holds.
     const requestedResource = params.get("resource");
-    if (requestedResource !== null && !resourceMatches(requestedResource, publicUrl)) {
+    const nativeResource =
+      requestedResource !== null && nativeResourceMatches(requestedResource, publicUrl);
+    if (
+      requestedResource !== null &&
+      !nativeResource &&
+      !resourceMatches(requestedResource, publicUrl)
+    ) {
       return oauthError(
         reply,
         400,
         "invalid_target",
-        "resource does not match this server's MCP endpoint"
+        "resource does not match this server"
       );
+    }
+    // Each scope's gate decides before anything rotates, so a refresh the
+    // server will not answer never spends the client's token.
+    const grantKind = await McpOauthToken.grantKindOfRefresh(refreshToken);
+    if (grantKind === "native" && nativeSignInState().state !== "enabled") {
+      return oauthError(reply, 400, "invalid_grant", NATIVE_SIGNIN_DISABLED_MESSAGE);
+    }
+    if (grantKind === "mcp" && !resolveEnabledPublicUrl()) {
+      return notFound(reply);
     }
 
     const result = await McpOauthToken.rotateRefresh(refreshToken);
@@ -537,6 +706,7 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
       const grant = await McpOauthGrant.get(result.grantId);
       if (!grant || grant.client_id !== presentedClientId) {
         await McpOauthToken.revokeByRawToken(result.refreshToken);
+        endNativeSessionLocally(result.grantId);
         return oauthError(
           reply,
           400,
@@ -546,13 +716,33 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
       }
     }
 
-    return reply.status(200).send({
+    const native = result.grantKind === "native";
+    // A token presented for the other audience is the same compromise signal
+    // as a wrong client_id: the chain was used where it was never issued.
+    if (
+      requestedResource !== null &&
+      native !== nativeResource
+    ) {
+      await McpOauthToken.revokeByRawToken(result.refreshToken);
+      endNativeSessionLocally(result.grantId);
+      return oauthError(
+        reply,
+        400,
+        "invalid_target",
+        "resource does not match the grant"
+      );
+    }
+    const body: Record<string, string | number> = {
       access_token: result.accessToken,
       token_type: "Bearer",
-      expires_in: Math.floor(MCP_OAUTH_ACCESS_TTL_MS / 1000),
+      expires_in: Math.floor(
+        (native ? NATIVE_ACCESS_TTL_MS : MCP_OAUTH_ACCESS_TTL_MS) / 1000
+      ),
       refresh_token: result.refreshToken,
-      scope: "mcp"
-    });
+      scope: native ? "native" : "mcp"
+    };
+    if (native) body.session_id = result.grantId;
+    return reply.status(200).send(body);
   }
 
   // ── POST /oauth/register (RFC 7591) ─────────────────────────────────
@@ -667,7 +857,7 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
   // ── POST /oauth/revoke (RFC 7009) ───────────────────────────────────
 
   app.post("/oauth/revoke", { config: { rateLimit: OAUTH_ROUTE_RATE_LIMIT } }, async (req, reply) => {
-    const publicUrl = resolveEnabledPublicUrl();
+    const publicUrl = anyIssuer();
     if (!publicUrl) return notFound(reply);
 
     const params = parseFormBody(req.body);
@@ -681,6 +871,36 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
     }
     return reply.status(200).send({});
   });
+
+  // ── POST /oauth/session/end (native sessions) ───────────────────────
+  //
+  // Ends one device session with its revocation handle and no other
+  // credential: the app may already have dropped its tokens when it signs
+  // out offline, and the handle is what it kept to finish the job. 200 for an
+  // active or already ended session, 404 for a handle this server never
+  // issued. It works while native sign-in is turned off, so an
+  // administrator's switch never strands a session that wants to end.
+
+  app.post(
+    "/oauth/session/end",
+    { config: { rateLimit: OAUTH_ROUTE_RATE_LIMIT } },
+    async (req, reply) => {
+      if (nativeSignInState().state === "unavailable") return notFound(reply);
+      const handle =
+        typeof req.body === "string"
+          ? parseFormBody(req.body).get("handle")
+          : typeof req.body === "object" && req.body !== null
+            ? (req.body as Record<string, unknown>)["handle"]
+            : undefined;
+      if (typeof handle !== "string" || handle.length === 0) {
+        return oauthError(reply, 400, "invalid_request", "missing handle");
+      }
+      const { outcome, grantId } = await McpOauthGrant.endByRevocationHandle(handle);
+      if (outcome === "unknown") return notFound(reply);
+      if (grantId) endNativeSessionLocally(grantId);
+      return reply.status(200).send({ ended: true, already_ended: outcome === "already_ended" });
+    }
+  );
 };
 
 export default oauthAsRoutes;

@@ -798,10 +798,10 @@ TestCase {
         verify(wide !== null && narrow !== null)
         compare(wide.compact, false)
         compare(narrow.compact, true)
-        compare(findChild(wide, "mediaModeChip").display, AbstractButton.TextBesideIcon)
-        compare(findChild(narrow, "mediaModeChip").display, AbstractButton.IconOnly)
+        compare(findChild(wide, "mediaModeChip"), null)
         const permission = findChild(wide, "permissionChip")
         verify(permission !== null)
+        compare(permission.display, AbstractButton.TextBesideIcon)
         compare(permission.text, "Default")
         compare(permission.accessibleName, "Permission mode: Default")
         compare(findChild(narrow, "permissionChip").display, AbstractButton.IconOnly)
@@ -1061,10 +1061,13 @@ TestCase {
         const chooser = findChild(composer, "chooseChatModel")
         const send = findChild(composer, "sendMessage")
         verify(chooser !== null && send !== null)
-        compare(findChild(findChild(composer, "composerChips"), "chooseChatModel"), null)
+        // Attach, permission, model and Send share one row.
+        const permission = findChild(composer, "permissionChip")
+        const permissionCentre = permission.mapToItem(composer, 0, permission.height / 2).y
         const chooserCentre = chooser.mapToItem(composer, 0, chooser.height / 2).y
         const sendCentre = send.mapToItem(composer, 0, send.height / 2).y
         verify(Math.abs(chooserCentre - sendCentre) < 2, chooserCentre + " vs " + sendCentre)
+        verify(Math.abs(permissionCentre - sendCentre) < 2, permissionCentre + " vs " + sendCentre)
         verify(chooser.mapToItem(composer, chooser.width, 0).x <= send.mapToItem(composer, 0, 0).x)
     }
     // ChatView.tsx centerEmptyState: a new chat greets by the time of day

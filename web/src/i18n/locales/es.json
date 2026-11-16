@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "código#estado",
       "signInWindowClosed": "¿Ventana de inicio de sesión cerrada?",
       "openAgain": "Ábrelo de nuevo",
-      "linkExpiry": ". El enlace caduca después de 10 minutos."
+      "linkExpiry": ". El enlace caduca después de 10 minutos.",
+      "nativeSubtitle": "quiere iniciar sesión en tu cuenta de NodeTool.",
+      "app": "Aplicación",
+      "device": "Dispositivo",
+      "nativeNote": "Aprueba solo si iniciaste este inicio de sesión desde una aplicación de escritorio de NodeTool en este ordenador. La aplicación podrá abrir, editar y guardar tus documentos en la nube hasta que cierres sesión o termines la sesión en Ajustes."
     },
     "integrations": {
       "loadingAccounts": "Cargando cuentas conectadas",
@@ -19397,6 +19401,26 @@
       "typeMore": "Escribe al menos 2 caracteres",
       "noMatches": "Nadie coincide",
       "failed": "No se pudo dar acceso."
+    },
+    "options": {
+      "history": "Historial",
+      "historyDescription": "Los lectores pueden abrir las versiones guardadas.",
+      "download": "Descargar",
+      "downloadDescription": "Los lectores pueden descargar los archivos originales.",
+      "duplicate": "Duplicar",
+      "duplicateDescription": "Los lectores pueden copiarlo con sus archivos en su propia biblioteca.",
+      "turnedOff": "Las personas conservan lo que ya descargaron o duplicaron.",
+      "historyOffNotice": "Los lectores de este enlace ya no ven las versiones guardadas. Activa el historial para devolverles el acceso.",
+      "turnOnHistory": "Activar historial",
+      "dismiss": "Descartar",
+      "failed": "No se pudieron cambiar las opciones."
+    },
+    "people": {
+      "from": "Acceso mediante {{sources}}",
+      "sourceInvitation": "invitación",
+      "sourceViewLink": "enlace de lectura",
+      "sourceEditLink": "enlace de edición",
+      "sourceDisabled": "{{source}} (desactivado)"
     }
   },
   "timelineAutomation": {
@@ -20526,5 +20550,80 @@
     "removeTitle": "¿Quitar «{{name}}»?",
     "removeBody": "El recurso se quita de NodeTool. Los documentos que lo usan ya no pueden mostrarlo.",
     "cancel": "Cancelar"
+  },
+  "deviceSessions": {
+    "title": "Dispositivos con sesión iniciada",
+    "description": "Ordenadores en los que iniciaste sesión en las aplicaciones de escritorio de NodeTool. Las dos aplicaciones de un ordenador comparten una sesión. Terminar una sesión cierra la sesión en ese ordenador.",
+    "empty": "Ningún ordenador tiene la sesión iniciada.",
+    "unnamed": "Ordenador sin nombre",
+    "signedInFrom": "Sesión iniciada desde {{app}} el {{date}}",
+    "lastUsed": "Último uso {{date}}",
+    "neverUsed": "Sin uso desde el inicio de sesión",
+    "end": "Terminar sesión",
+    "confirmTitle": "¿Terminar esta sesión?",
+    "confirmBody": "Las aplicaciones de escritorio de NodeTool en {{device}} cierran sesión en menos de un minuto.",
+    "cancel": "Cancelar",
+    "ended": "Sesión terminada.",
+    "endError": "No se pudo terminar la sesión: {{error}}",
+    "loadError": "No se pudieron cargar los dispositivos.",
+    "apps": {
+      "nodeEditor": "Editor de nodos",
+      "timeline": "Línea de tiempo"
+    }
+  },
+  "storyboardText": {
+    "mode": "Texto",
+    "editorLabel": "Storyboard como texto Markdown",
+    "hint": "Escribe # para un acto, ## para una escena, ### para un plano y - **Motion:** para un campo. Escribe @ para mencionar una entidad o una imagen.",
+    "issues": "Líneas que requieren atención: {{lines}}",
+    "loading": "Cargando el texto…",
+    "warnings": {
+      "media_outside_shot": "Una imagen pertenece a un plano. Colócala bajo un encabezado ### de plano.",
+      "second_media": "Un plano tiene una imagen fija y un clip seleccionados. Este no se usa.",
+      "unknown_shot_field": "\"{{label}}\" no es un campo del storyboard. Se guarda en las notas del plano.",
+      "unknown_field": "\"{{label}}\" no es un campo aquí. No se guarda.",
+      "text_in_scene": "Una escena solo tiene encabezado e iluminación. Pon este texto bajo un plano o empiézalo con \"Lighting:\".",
+      "bad_duration": "Plano {{shot}}: \"{{value}}\" no es un número de segundos.",
+      "bad_render": "Plano {{shot}}: el render es keyframe, direct o reference.",
+      "no_next_shot": "Plano {{shot}}: una transición lleva al plano siguiente y no hay ninguno.",
+      "missing_action": "El plano {{shot}} aún no tiene acción. Escribe la imagen que se renderizará bajo su encabezado."
+    },
+    "outline": "Esquema",
+    "outlineEmpty": "Escribe ### y un título para empezar un plano.",
+    "untitledShot": "Plano sin título",
+    "untitledAct": "Acto sin título",
+    "untitledScene": "Escena sin título",
+    "issuesTitle": "Requiere atención",
+    "stillOf": "Imagen fija del plano {{shot}}",
+    "assist": {
+      "lines": "{{lines}} líneas seleccionadas",
+      "proposal": "Reemplazo propuesto",
+      "note": "Nota del agente",
+      "discard": "Descartar",
+      "close": "Cerrar",
+      "replace": "Reemplazar selección",
+      "stale": "El pasaje cambió después de seleccionarlo. Selecciónalo de nuevo.",
+      "thinking": "Pensando…",
+      "stop": "Detener",
+      "placeholder": "Dile al agente qué hacer con este pasaje",
+      "refinePlaceholder": "Refinar el resultado",
+      "instruction": "Solicitud al agente",
+      "send": "Enviar al agente",
+      "failed": "La solicitud al modelo falló.",
+      "context": "Enviado con la solicitud: todo el storyboard, {{shots}} planos y {{entities}} entidades de la biblioteca.",
+      "quick": {
+        "tighten": "Condensar",
+        "visual": "Más visual",
+        "camera": "Sugerir cámara",
+        "continuity": "Revisar continuidad",
+        "summarize": "Resumir",
+        "inconsistencies": "Buscar incoherencias"
+      },
+      "errors": {
+        "no_model": "Elige un modelo de dirección para este storyboard, o un modelo de chat, para usar el agente.",
+        "empty": "El modelo no devolvió respuesta. Envía la solicitud de nuevo.",
+        "failed": "La solicitud falló. Envíala de nuevo."
+      }
+    }
   }
 }

@@ -196,6 +196,57 @@ ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir) {
     return result;
 }
 
+namespace {
+// The sequence-row fields of a file; everything else in the sequence is document.
+constexpr const char* kSequenceRowKeys[] = {"id", "projectId", "workflowId", "name", "fps", "width", "height",
+                                            "durationMs", "createdAt", "updatedAt"};
+constexpr QLatin1StringView kTimelineFileFormat("nodetool.timeline");
+constexpr QLatin1StringView kTimelineFileSuffix(".timeline.json");
+}  // namespace
+
+bool isTimelineFile(const QJsonObject& root) {
+    return root.value(u"format").toString() == kTimelineFileFormat;
+}
+
+QJsonObject timelineFileSequence(const QJsonObject& file, const QString& name) {
+    QJsonObject sequence = file.value(u"document").toObject();
+    for (const char* key : kSequenceRowKeys) {
+        sequence.remove(QLatin1String(key));
+    }
+    for (const char* key : {"id", "fps", "width", "height"}) {
+        if (file.contains(QLatin1String(key))) {
+            sequence.insert(QLatin1String(key), file.value(QLatin1String(key)));
+        }
+    }
+    if (file.contains(u"duration_ms")) {
+        sequence.insert(QStringLiteral("durationMs"), file.value(u"duration_ms"));
+    }
+    if (!name.isEmpty()) {
+        sequence.insert(QStringLiteral("name"), name);
+    }
+    return sequence;
+}
+
+QJsonObject timelineFileWithSequence(const QJsonObject& file, const QJsonObject& sequence) {
+    QJsonObject document = sequence;
+    for (const char* key : kSequenceRowKeys) {
+        document.remove(QLatin1String(key));
+    }
+    QJsonObject result = file;
+    result.remove(QStringLiteral("name"));
+    for (const char* key : {"fps", "width", "height"}) {
+        if (sequence.contains(QLatin1String(key))) {
+            result.insert(QLatin1String(key), sequence.value(QLatin1String(key)));
+        }
+    }
+    // The server computes the duration from the clips. The number is informative.
+    if (sequence.contains(u"durationMs")) {
+        result.insert(QStringLiteral("duration_ms"), sequence.value(u"durationMs"));
+    }
+    result.insert(QStringLiteral("document"), document);
+    return result;
+}
+
 ParseResult loadTimelineFile(const QString& path) {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -203,7 +254,30 @@ ParseResult loadTimelineFile(const QString& path) {
         result.error = QStringLiteral("cannot open %1: %2").arg(path, file.errorString());
         return result;
     }
-    return parseTimelineJson(file.readAll(), QFileInfo(path).absolutePath());
+    const QByteArray bytes = file.readAll();
+    const QString baseDir = QFileInfo(path).absolutePath();
+    const QJsonObject root = QJsonDocument::fromJson(bytes).object();
+    if (!isTimelineFile(root)) {
+        return parseTimelineJson(bytes, baseDir);
+    }
+    const QJsonValue version = root.value(u"version");
+    if (version.toInt(-1) != kTimelineFileVersion || !version.isDouble()) {
+        ParseResult result;
+        result.error = QStringLiteral("%1 is a timeline file of version %2. This build reads version %3.")
+                           .arg(path, QString::fromUtf8(QJsonDocument(QJsonArray{version}).toJson(QJsonDocument::Compact)).mid(1).chopped(1))
+                           .arg(kTimelineFileVersion);
+        return result;
+    }
+    if (!root.value(u"document").isObject()) {
+        ParseResult result;
+        result.error = QStringLiteral("%1: \"document\" must be an object").arg(path);
+        return result;
+    }
+    QString name = QFileInfo(path).fileName();
+    if (name.endsWith(kTimelineFileSuffix)) {
+        name.chop(kTimelineFileSuffix.size());
+    }
+    return parseTimeline(timelineFileSequence(root, name), baseDir);
 }
 
 }  // namespace nt

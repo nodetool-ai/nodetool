@@ -36,6 +36,8 @@ QString currentProject(nt::server::ServerClient& client, const QString& timeline
     answer = project;
     return project;
 }
+// Whether the server lists `project` by the directories of its project folder.
+bool listsByDirectory(const QString& project) { return !project.isEmpty() && project != u"default"; }
 // How long a project answer from the server stays current. Every Library query
 // asked before, and each answer carries the whole timeline document.
 constexpr qint64 ProjectCheckIntervalMs = 60000;
@@ -82,6 +84,43 @@ void AssetBrowser::setTimeline(TimelineModel* model) {
     }
     emit timelineChanged();
     emit libraryScopeChanged();
+}
+
+void AssetBrowser::setAutosave(QObject* object) {
+    auto* autosave = qobject_cast<nt::server::AutosaveController*>(object);
+    if (m_autosave == autosave) { return; }
+    if (m_autosave) { disconnect(m_autosave, nullptr, this, nullptr); }
+    m_autosave = autosave;
+    if (autosave) {
+        connect(autosave, &nt::server::AutosaveController::workspaceFilesChanged, this, &AssetBrowser::workspaceFilesChanged);
+    }
+    emit autosaveChanged();
+}
+
+void AssetBrowser::setFolderWorkspaceId(const QString& id) {
+    if (m_folderWorkspaceId == id) { return; }
+    m_folderWorkspaceId = id;
+    emit autosaveChanged();
+}
+
+void AssetBrowser::workspaceFilesChanged(const QString& workspaceId) {
+    // Only a view that has listed rows has rows to update.
+    if (!m_hasQueried) { return; }
+    if (!m_folderWorkspaceId.isEmpty() && !workspaceId.isEmpty() && workspaceId != m_folderWorkspaceId) { return; }
+    refresh();
+}
+
+void AssetBrowser::relinkAsset(const QString& id, const QUrl& file) {
+    if (!configured() || id.isEmpty() || file.isEmpty()) { return; }
+    const auto path = file.isLocalFile() ? file.toLocalFile() : file.toString();
+    request([id, path](nt::server::ServerClient& client) {
+        const auto response = client.mutate(QStringLiteral("assets.relinkExternal"), {{"id", id}, {"path", path}});
+        if (!response.ok()) {
+            const auto reason = response.error.message.isEmpty() ? response.describe() : response.error.message;
+            return Result{{}, QStringLiteral("Relink failed: %1").arg(reason), false};
+        }
+        return Result{QJsonArray{response.data}, {}, false};
+    });
 }
 
 void AssetBrowser::resetDocumentState() {
@@ -320,25 +359,36 @@ void AssetBrowser::refresh() {
         result.replace = true;
         result.queryGeneration = generation;
         QJsonArray candidates;
-        QString cursor;
-        QSet<QString> cursors;
-        do {
-            if (cancelled->load()) { return result; }
-            QJsonObject input{{"query", search}, {"page_size", 1000}};
-            if (!project.isEmpty()) { input.insert("project_id", project); }
-            if (!cursor.isEmpty()) { input.insert("cursor", cursor); }
-            const auto response = client.query("assets.search", input);
-            if (!response.ok()) { result.error = response.describe(); return result; }
-            const auto page = response.data.toObject();
-            for (const auto& asset : page.value("assets").toArray()) { candidates.append(asset); }
-            cursor = page.value("next_cursor").toString();
-            if (!cursor.isEmpty() && cursors.contains(cursor)) {
-                result.error = "The server repeated an asset page. Refresh the library to try again.";
-                return result;
-            }
-            cursors.insert(cursor);
-        } while (!cursor.isEmpty() && !cancelled->load() && !QThread::currentThread()->isInterruptionRequested());
         const bool global = !search.isEmpty() || favorites || !tag.isEmpty() || !type.isEmpty();
+        // A project's folders are the directories of its project folder. The server lists one
+        // directory, its subdirectories and files, as it does for the web Library.
+        const bool byDirectory = !global && listsByDirectory(project);
+        if (byDirectory) {
+            QJsonObject input{{"project_id", project}};
+            if (!folder.isEmpty()) { input.insert("parent_id", folder); }
+            const auto response = client.query("assets.list", input);
+            if (!response.ok()) { result.error = response.describe(); return result; }
+            candidates = response.data.toObject().value("assets").toArray();
+        } else {
+            QString cursor;
+            QSet<QString> cursors;
+            do {
+                if (cancelled->load()) { return result; }
+                QJsonObject input{{"query", search}, {"page_size", 1000}};
+                if (!project.isEmpty()) { input.insert("project_id", project); }
+                if (!cursor.isEmpty()) { input.insert("cursor", cursor); }
+                const auto response = client.query("assets.search", input);
+                if (!response.ok()) { result.error = response.describe(); return result; }
+                const auto page = response.data.toObject();
+                for (const auto& asset : page.value("assets").toArray()) { candidates.append(asset); }
+                cursor = page.value("next_cursor").toString();
+                if (!cursor.isEmpty() && cursors.contains(cursor)) {
+                    result.error = "The server repeated an asset page. Refresh the library to try again.";
+                    return result;
+                }
+                cursors.insert(cursor);
+            } while (!cursor.isEmpty() && !cancelled->load() && !QThread::currentThread()->isInterruptionRequested());
+        }
         QSet<QString> seen;
         for (const auto& value : candidates) {
             const auto asset = value.toObject();
@@ -346,7 +396,7 @@ void AssetBrowser::refresh() {
             if (id.isEmpty() || seen.contains(id)) { continue; }
             seen.insert(id);
             if (!project.isEmpty() && asset.value("project_id").toString() != project) { continue; }
-            if (!global) {
+            if (!global && !byDirectory) {
                 const auto parent = asset.value("parent_id").toString();
                 if (folder.isEmpty() ? (!parent.isEmpty() && parent != asset.value("user_id").toString()) : parent != folder) { continue; }
             }

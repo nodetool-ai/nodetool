@@ -43,6 +43,11 @@ export interface Context {
    * do. See `sync.ts` in the protocol package.
    */
   clientProtocol?: number | null;
+  /**
+   * The device session id when the caller authenticated with a native
+   * access token. Procedures that create credentials refuse it.
+   */
+  nativeSessionId?: string | null;
   registry: NodeRegistry;
   apiOptions: HttpApiOptions;
   pythonBridge: PythonBridge;
@@ -78,6 +83,7 @@ export interface ContextFactoryInput {
 interface ContextRequest {
   userId?: string | null;
   headers?: Record<string, string | string[] | undefined>;
+  nativeSessionId?: string | null;
 }
 
 export function createContextFactory(
@@ -88,6 +94,7 @@ export function createContextFactory(
     clientProtocol: sync.clientProtocolVersion(
       req.headers?.[sync.SYNC_PROTOCOL_HEADER]
     ),
+    nativeSessionId: req.nativeSessionId ?? null,
     registry: deps.registry,
     apiOptions: deps.apiOptions,
     pythonBridge: deps.pythonBridge,

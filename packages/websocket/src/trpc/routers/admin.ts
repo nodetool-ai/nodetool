@@ -87,10 +87,8 @@ import {
   forgetAccountStatus
 } from "../../lib/user-directory.js";
 import { forgetPermissions } from "../../lib/permissions.js";
-import {
-  invalidateSharedAssets,
-  loadSharedDocument
-} from "../../lib/document-access.js";
+import { loadSharedDocument } from "../../lib/document-access.js";
+import { invalidateSharedAssets } from "../../lib/shared-assets.js";
 import { forgetQuota } from "../../quota-gate.js";
 import { throwApiError } from "../error-formatter.js";
 import { router } from "../index.js";

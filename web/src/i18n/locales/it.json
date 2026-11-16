@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "codice#stato",
       "signInWindowClosed": "La finestra di accesso è chiusa?",
       "openAgain": "Aprilo di nuovo",
-      "linkExpiry": ". Il collegamento scade dopo 10 minuti."
+      "linkExpiry": ". Il collegamento scade dopo 10 minuti.",
+      "nativeSubtitle": "vuole accedere al tuo account NodeTool.",
+      "app": "App",
+      "device": "Dispositivo",
+      "nativeNote": "Approva solo se hai avviato questo accesso da un'app desktop NodeTool su questo computer. L'app potrà aprire, modificare e salvare i tuoi documenti cloud finché non esci o termini la sessione nelle Impostazioni."
     },
     "integrations": {
       "loadingAccounts": "Caricamento degli account collegati",
@@ -19397,6 +19401,26 @@
       "typeMore": "Scrivi almeno 2 caratteri",
       "noMatches": "Nessun risultato",
       "failed": "Impossibile dare l'accesso."
+    },
+    "options": {
+      "history": "Cronologia",
+      "historyDescription": "Chi visualizza può aprire le versioni salvate.",
+      "download": "Download",
+      "downloadDescription": "Chi visualizza può scaricare i file originali.",
+      "duplicate": "Duplicazione",
+      "duplicateDescription": "Chi visualizza può copiarlo con i suoi file nella propria libreria.",
+      "turnedOff": "Le persone conservano ciò che hanno già scaricato o duplicato.",
+      "historyOffNotice": "Chi visualizza questo link non vede più le versioni salvate. Attiva la cronologia per restituirle.",
+      "turnOnHistory": "Attiva cronologia",
+      "dismiss": "Chiudi",
+      "failed": "Impossibile modificare le opzioni."
+    },
+    "people": {
+      "from": "Accesso tramite {{sources}}",
+      "sourceInvitation": "invito",
+      "sourceViewLink": "link di visualizzazione",
+      "sourceEditLink": "link di modifica",
+      "sourceDisabled": "{{source}} (disattivato)"
     }
   },
   "timelineAutomation": {
@@ -20526,5 +20550,80 @@
     "removeTitle": "Rimuovere «{{name}}»?",
     "removeBody": "La risorsa viene rimossa da NodeTool. I documenti che la usano non possono più mostrarla.",
     "cancel": "Annulla"
+  },
+  "deviceSessions": {
+    "title": "Dispositivi connessi",
+    "description": "Computer su cui hai effettuato l'accesso alle app desktop NodeTool. Le due app di un computer condividono una sessione. Terminare una sessione disconnette quel computer.",
+    "empty": "Nessun computer è connesso.",
+    "unnamed": "Computer senza nome",
+    "signedInFrom": "Accesso da {{app}} il {{date}}",
+    "lastUsed": "Ultimo utilizzo {{date}}",
+    "neverUsed": "Non usato dall'accesso",
+    "end": "Termina sessione",
+    "confirmTitle": "Terminare questa sessione?",
+    "confirmBody": "Le app desktop NodeTool su {{device}} vengono disconnesse entro un minuto.",
+    "cancel": "Annulla",
+    "ended": "Sessione terminata.",
+    "endError": "Impossibile terminare la sessione: {{error}}",
+    "loadError": "Impossibile caricare i dispositivi connessi.",
+    "apps": {
+      "nodeEditor": "Editor di nodi",
+      "timeline": "Timeline"
+    }
+  },
+  "storyboardText": {
+    "mode": "Testo",
+    "editorLabel": "Storyboard come testo Markdown",
+    "hint": "Digita # per un atto, ## per una scena, ### per un'inquadratura e - **Motion:** per un campo. Digita @ per menzionare un'entità o un'immagine.",
+    "issues": "Righe da controllare: {{lines}}",
+    "loading": "Caricamento del testo…",
+    "warnings": {
+      "media_outside_shot": "Un'immagine appartiene a un'inquadratura. Mettila sotto un titolo ### di inquadratura.",
+      "second_media": "Un'inquadratura ha un fotogramma e un clip selezionati. Questo non viene usato.",
+      "unknown_shot_field": "\"{{label}}\" non è un campo dello storyboard. Viene salvato nelle note dell'inquadratura.",
+      "unknown_field": "\"{{label}}\" non è un campo qui. Non viene salvato.",
+      "text_in_scene": "Una scena ha solo intestazione e illuminazione. Sposta questo testo sotto un'inquadratura o inizialo con \"Lighting:\".",
+      "bad_duration": "Inquadratura {{shot}}: \"{{value}}\" non è un numero di secondi.",
+      "bad_render": "Inquadratura {{shot}}: il render è keyframe, direct o reference.",
+      "no_next_shot": "Inquadratura {{shot}}: una transizione porta all'inquadratura successiva, che non c'è.",
+      "missing_action": "L'inquadratura {{shot}} non ha ancora un'azione. Scrivi l'immagine da generare sotto il suo titolo."
+    },
+    "outline": "Struttura",
+    "outlineEmpty": "Digita ### e un titolo per iniziare un'inquadratura.",
+    "untitledShot": "Inquadratura senza titolo",
+    "untitledAct": "Atto senza titolo",
+    "untitledScene": "Scena senza titolo",
+    "issuesTitle": "Da controllare",
+    "stillOf": "Fotogramma dell'inquadratura {{shot}}",
+    "assist": {
+      "lines": "{{lines}} righe selezionate",
+      "proposal": "Sostituzione proposta",
+      "note": "Nota dell'agente",
+      "discard": "Scarta",
+      "close": "Chiudi",
+      "replace": "Sostituisci la selezione",
+      "stale": "Il passaggio è cambiato dopo la selezione. Selezionalo di nuovo.",
+      "thinking": "Sto pensando…",
+      "stop": "Interrompi",
+      "placeholder": "Di' all'agente cosa fare con questo passaggio",
+      "refinePlaceholder": "Perfeziona il risultato",
+      "instruction": "Richiesta all'agente",
+      "send": "Invia all'agente",
+      "failed": "La richiesta al modello non è riuscita.",
+      "context": "Inviato con la richiesta: tutto lo storyboard, {{shots}} inquadrature e {{entities}} entità della libreria.",
+      "quick": {
+        "tighten": "Asciuga",
+        "visual": "Più visivo",
+        "camera": "Suggerisci camera",
+        "continuity": "Controlla continuità",
+        "summarize": "Riassumi",
+        "inconsistencies": "Trova incoerenze"
+      },
+      "errors": {
+        "no_model": "Scegli un modello di regia per questo storyboard, o un modello di chat, per usare l'agente.",
+        "empty": "Il modello non ha restituito una risposta. Invia di nuovo la richiesta.",
+        "failed": "La richiesta non è riuscita. Inviala di nuovo."
+      }
+    }
   }
 }

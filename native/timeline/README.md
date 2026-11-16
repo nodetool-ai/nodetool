@@ -1546,6 +1546,41 @@ fixtures, and one timeline with a ready, pending (held encode), failed and
 absent proxy. A second server whose `ffmpeg` hides libx264 makes a VP9 proxy
 (`scripts/fake-ffmpeg.sh`). The script writes only to these servers.
 
+## Project folders
+
+Every project has a folder ([PRD](../../docs/project-folders/prd.md)). The
+socket of an open server timeline (`src/server/sync/ResourceChangeClient`)
+sends `set_open_project` after `set_mode` on every connection, and again when
+the timeline moves to another project. Personal and a loose timeline send
+`"default"`. The server then watches that folder and pushes two events:
+
+- `workspacefile`: files in the folder changed. The Library lists its rows
+  again, so an outside rename shows the new name and an outside delete shows
+  the asset as offline. A push for another folder is ignored once the
+  project's `folder.workspace_id` is known.
+- `documentfile`: a timeline's file became invalid, went missing or is fine
+  again. The file banner asks `projects.documents` again for the open
+  timeline, and the timeline list refreshes while it is shown. The startup
+  timeline list has no socket, so it hears of no push.
+
+`ProjectFolderState` (`src/server/projectfolder/`) reads the folder from
+`projects.list` and the timeline's file from `projects.documents`:
+
+- The Library header shows the folder's path, with Show in file manager when
+  the folder exists on this machine. A folder the server cannot reach shows
+  Folder not found with Locate, which sends the picked folder to
+  `projects.relocate` and shows the server's error when it refuses.
+- Under the save banners, an `invalid` file shows the server's error, and a
+  `missing` file offers Restore (`projects.restoreDocumentFile`).
+- The selected Library asset shows Missing (`offline`) with Relink, which
+  sends the picked file to `assets.relinkExternal`, or Linked (`linked`).
+
+A local `Timelines/<name>.timeline.json` opens as a timeline document. The
+loader reads the sequence settings and `document` of the envelope, and takes
+the name from the file name. Saving keeps `format`, `version` and `id`,
+writes the settings and `document` back, and writes no `name`. A file of
+another version does not open.
+
 ## Fixtures
 
 - `fixtures/synthetic-8.json`: eight video tracks with one 1920×1080 clip

@@ -10,12 +10,15 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { WorkflowGraph } from "@nodetool-ai/protocol";
+import type { workflows } from "@nodetool-ai/protocol/api-schemas";
 import { trpcClient } from "../trpc/client";
 import { BASE_URL } from "../stores/BASE_URL";
 
 export type ShareRole = "viewer" | "editor" | "public";
 /** The roles a collaborator can hold. A public link never makes one. */
 export type CollaboratorRole = Exclude<ShareRole, "public">;
+/** A change to a link's or an invitation's options. */
+export type ShareOptionsPatch = workflows.ShareOptionsPatch;
 
 export const workflowSharingQueryKey = (workflowId: string) =>
   ["workflow", workflowId, "sharing"] as const;
@@ -105,7 +108,46 @@ export const useWorkflowSharing = (workflowId: string | null | undefined) => {
     onSuccess: invalidate
   });
 
-  return { query, createLink, revokeLink, setRole, removeCollaborator, invite };
+  const setLinkOptions = useMutation({
+    mutationFn: (opts: { shareId: string; options: ShareOptionsPatch }) =>
+      trpcClient.workflows.sharing.setLinkOptions.mutate({
+        id: workflowId as string,
+        share_id: opts.shareId,
+        options: opts.options
+      }),
+    onSuccess: invalidate
+  });
+
+  const setInvitationOptions = useMutation({
+    mutationFn: (opts: { userId: string; options: ShareOptionsPatch }) =>
+      trpcClient.workflows.sharing.setInvitationOptions.mutate({
+        id: workflowId as string,
+        user_id: opts.userId,
+        options: opts.options
+      }),
+    onSuccess: invalidate
+  });
+
+  const dismissNotice = useMutation({
+    mutationFn: (shareId: string) =>
+      trpcClient.workflows.sharing.dismissNotice.mutate({
+        id: workflowId as string,
+        share_id: shareId
+      }),
+    onSuccess: invalidate
+  });
+
+  return {
+    query,
+    createLink,
+    revokeLink,
+    setRole,
+    removeCollaborator,
+    invite,
+    setLinkOptions,
+    setInvitationOptions,
+    dismissNotice
+  };
 };
 
 /** Redeem a share token; resolves to the workflow and granted role. */

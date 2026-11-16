@@ -179,6 +179,7 @@ Moved so far:
 | `WorkflowHeader` (moved) | Workflow name and rename, save readout and its action, undo and redo, More menu | `HeaderRow.qml` |
 | `PanelLayout` (moved for the rail, the document bar and the status bar) | Which panels are open and the toggles | `HeaderRow.qml`, `Rail.qml`, `StatusBar.qml`, `RunOutput.qml` |
 | `StatusModel` (moved for the status bar and the side panels) | Connection status, detail and state, node and edge counts, queue counts, system stats, status message, connect request | `StatusBar.qml`, `WorkflowBrowser.qml`, `LibraryPanel.qml`, `RunOutput.qml` |
+| `ProjectFolder` (new) | The tab project's folder path and state, reveal and Locate, the open workflow's file state and Restore | `ProjectFolderNotice.qml` in `WorkflowBrowser.qml` and `LibraryPanel.qml`, `DocumentFileBanner.qml` |
 | `RunState` (moved) | Shown queue, connection, workflow id, authored group commands, ask the agent about a run, run output runs and models, cancel, select, clear and report a failed job | `Toolbar.qml`, `AuthoredControls.qml`, `RunOutput.qml`, `QueueOverlay.qml` |
 | `Viewport` (moved) | Zoom percent and preset, mini-map color mode and popups, view commands | `ViewportIndicator.qml`, `MiniMapControls.qml`, `MiniMapPopups.qml` |
 | `Notifications` (moved) | Notification list, unread count, open the list, copy an entry | `TabBar.qml`, `NotificationsPanel.qml` |

@@ -30,6 +30,7 @@ import {
   type DocumentFileLocation,
   type DocumentFileSync
 } from "./document-file-sync.js";
+import { DocumentRefs } from "./document-refs.js";
 
 export class TimelineSequenceConflictError extends Error {
   constructor(id: string) {
@@ -534,6 +535,7 @@ export class TimelineSequence extends DBModel {
     if (!row || row.user_id !== userId) return false;
     await row.delete();
     await removeDocumentSharing("timeline", row.id);
+    await DocumentRefs.removeForDocument("timeline", row.id);
     // Belt-and-braces with the FK cascade: version rows outliving their
     // document would be unreachable garbage.
     await TimelineSequenceVersion.deleteForTimeline(row.id);

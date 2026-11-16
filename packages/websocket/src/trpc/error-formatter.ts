@@ -78,7 +78,9 @@ const TRPC_CODE_BY_API_CODE = {
   [ApiErrorCode.MODEL_NOT_AVAILABLE]: "FORBIDDEN",
   [ApiErrorCode.MISSING_RUNTIME_PACKAGE]: "PRECONDITION_FAILED",
   [ApiErrorCode.SCHEMA_DOWNGRADE]: "CONFLICT",
-  [ApiErrorCode.CLIENT_TOO_OLD]: "PRECONDITION_FAILED"
+  [ApiErrorCode.CLIENT_TOO_OLD]: "PRECONDITION_FAILED",
+  // The attach rule: the save names a file the writer may not read.
+  [ApiErrorCode.FILE_NOT_READABLE]: "FORBIDDEN"
 } satisfies Record<ApiErrorCode, TRPCError["code"]>;
 
 /**

@@ -104,14 +104,17 @@ private slots:
         QTRY_COMPARE(inspector.size(), 1);
         QVERIFY(!named(root, "header-more"));
         // A disabled command sends nothing. An enabled one sends its menu name.
-        click(view, named(root, "header-versions"));
+        // Save and Version history are in the application menu, not the toolbar.
+        QVERIFY(!named(root, "header-save"));
+        QVERIFY(!named(root, "header-versions"));
+        click(view, named(root, "header-metadata"));
         QTest::qWait(20);
         QCOMPARE(commands.size(), 0);
-        header.setActions({"Version history", "Instant Update: On"}, true, false);
-        QTRY_VERIFY(named(root, "header-versions")->isEnabled());
-        click(view, named(root, "header-versions"));
+        header.setActions({"Workflow metadata", "Instant Update: On"}, true, false);
+        QTRY_VERIFY(named(root, "header-metadata")->isEnabled());
+        click(view, named(root, "header-metadata"));
         QTRY_COMPARE(commands.size(), 1);
-        QCOMPARE(commands.first().first().toString(), QString("Version history"));
+        QCOMPARE(commands.first().first().toString(), QString("Workflow metadata"));
         QVERIFY(named(root, "header-instant-update")->property("active").toBool());
         click(view, named(root, "header-instant-update"));
         QTRY_COMPARE(commands.size(), 2);

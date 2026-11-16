@@ -29,6 +29,11 @@ export enum ApiErrorCode {
    */
   MISSING_RUNTIME_PACKAGE = "MISSING_RUNTIME_PACKAGE",
   /**
+   * A save adds a file the writer may not read: neither their own asset nor
+   * a file of a document they may duplicate. Nothing was written.
+   */
+  FILE_NOT_READABLE = "FILE_NOT_READABLE",
+  /**
    * The save is written in a lower document schema version than the stored
    * document. It would replace the document with a reduced copy.
    */

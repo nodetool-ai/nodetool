@@ -13,7 +13,12 @@
  * it would reject saves the UI makes today.
  */
 
-import { Project, Workflow, WorkflowCollaborator } from "@nodetool-ai/models";
+import {
+  Project,
+  Workflow,
+  WorkflowCollaborator,
+  createTimeOrderedUuid
+} from "@nodetool-ai/models";
 import type { Workflow as WorkflowModel } from "@nodetool-ai/models";
 import { createLogger } from "@nodetool-ai/config";
 import { loadConfiguredProviders } from "../configured-providers.js";
@@ -34,6 +39,12 @@ import {
   keepWorkflowRevision,
   replacesAnotherWriter
 } from "./document-save-rules.js";
+import {
+  publishSave,
+  fileNotReadableMessage,
+  findUnreadableFile,
+  type AttachTarget
+} from "./document-refs.js";
 const log = createLogger("nodetool.websocket.workflow-service");
 
 export const WORKFLOW_CONFLICT_MESSAGE =
@@ -184,7 +195,8 @@ async function createRow(
 export async function createWorkflow(
   userId: string,
   input: WorkflowWriteInput,
-  seed?: ExampleSeed
+  seed?: ExampleSeed,
+  options: CreateWorkflowOptions = {}
 ): Promise<WorkflowModel> {
   if (input.project_id !== undefined && input.project_id !== "default") {
     await Project.requireOwned(userId, input.project_id);
@@ -215,14 +227,36 @@ export async function createWorkflow(
   }
 
   const resolved = requireGraph({ ...input, graph });
+  const id = createTimeOrderedUuid();
+  // A new workflow holds no file yet, so every file of another person in
+  // the graph is checked like a file a save adds.
+  const toAdmit =
+    options.checkAttach === false
+      ? []
+      : await requireReadableFiles(
+          { id, user_id: userId, before: null },
+          userId,
+          resolved
+        );
   const workflow = (await createRow(
     userId,
     { ...input, run_mode: runMode },
     resolved,
-    appDoc
+    appDoc,
+    id
   )) as WorkflowModel;
+  await publishSave("workflow", workflow, toAdmit);
   await syncTriggerRegistrations(workflow);
   return workflow;
+}
+
+export interface CreateWorkflowOptions {
+  /**
+   * False skips the attach rule, for a copy of a public link: the copy may
+   * name the source owner's files, and with nothing admitted its reference
+   * set holds none of them, so they stay unreadable to the copier.
+   */
+  checkAttach?: boolean;
 }
 
 /**
@@ -284,6 +318,12 @@ export async function updateWorkflow(
     if (input.html_app !== undefined) fields.html_app = input.html_app ?? null;
     if (input.app_doc !== undefined) fields.app_doc = input.app_doc;
 
+    const toAdmit = await requireReadableFiles(
+      { id, user_id: existing.user_id, before: existing.graph ?? null },
+      userId,
+      graph
+    );
+
     try {
       fields.schema_version = acceptedSchemaVersion(
         "workflow",
@@ -318,6 +358,7 @@ export async function updateWorkflow(
         409
       );
     }
+    await publishSave("workflow", updated, toAdmit);
     await syncTriggerRegistrations(updated);
     return updated;
   }
@@ -330,6 +371,11 @@ export async function updateWorkflow(
     await Project.requireOwned(userId, input.project_id);
   }
 
+  const toAdmit = await requireReadableFiles(
+    { id, user_id: userId, before: null },
+    userId,
+    graph
+  );
   const workflow = (await createRow(
     userId,
     input,
@@ -337,8 +383,35 @@ export async function updateWorkflow(
     input.app_doc ?? null,
     id
   )) as WorkflowModel;
+  await publishSave("workflow", workflow, toAdmit);
   await syncTriggerRegistrations(workflow);
   return workflow;
+}
+
+/**
+ * The attach rule for a workflow save: refuse a graph that adds a file the
+ * writer may not read (FILE_NOT_READABLE), before anything is written.
+ * Returns the files to admit once the save is stored.
+ */
+async function requireReadableFiles(
+  target: AttachTarget,
+  writerId: string,
+  graph: unknown
+): Promise<string[]> {
+  const { unreadable, toAdmit } = await findUnreadableFile(
+    "workflow",
+    target,
+    writerId,
+    graph
+  );
+  if (unreadable !== null) {
+    throw new WorkflowServiceError(
+      ApiErrorCode.FILE_NOT_READABLE,
+      fileNotReadableMessage(unreadable),
+      403
+    );
+  }
+  return toAdmit;
 }
 
 /**
