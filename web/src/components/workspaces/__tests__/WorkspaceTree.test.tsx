@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -56,11 +56,15 @@ const folders: Record<string, FolderState> = {
 };
 
 const listFiles = jest.fn();
+const documentByFile = jest.fn();
 
 jest.mock("../../../trpc/client", () => ({
   trpcClient: {
     workspace: {
       listFiles: { query: (input: unknown) => listFiles(input) }
+    },
+    projects: {
+      documentByFile: { query: (input: unknown) => documentByFile(input) }
     }
   }
 }));
@@ -86,6 +90,8 @@ const renderTree = (projectId = "project-a", client = new QueryClient()) => {
 describe("WorkspaceTree", () => {
   beforeEach(() => {
     listFiles.mockReset();
+    documentByFile.mockReset();
+    documentByFile.mockResolvedValue(null);
     listFiles.mockResolvedValue([
       { name: "notes.md", path: "notes.md", is_dir: false, size: 12 }
     ]);
@@ -175,6 +181,90 @@ describe("WorkspaceTree", () => {
     });
     // The left panel steps aside for the file it just opened.
     expect(usePanelStore.getState().panel.isVisible).toBe(false);
+  });
+
+  describe("a workflow or timeline file", () => {
+    const documentFiles = [
+      { name: "Fox.workflow.json", path: "Fox.workflow.json", is_dir: false, size: 120 },
+      { name: "Cut.timeline.json", path: "Cut.timeline.json", is_dir: false, size: 90 },
+      { name: "Stray.workflow.json", path: "Stray.workflow.json", is_dir: false, size: 3 }
+    ];
+    const file = { state: "ok", error: null };
+
+    beforeEach(() => {
+      listFiles.mockResolvedValue(documentFiles);
+      documentByFile.mockImplementation(({ path }: { path: string }) =>
+        Promise.resolve(
+          path === "Fox.workflow.json"
+            ? { type: "workflow", ref: "wf-fox", name: "Fox", updatedAt: "", file: { ...file, path } }
+            : path === "Cut.timeline.json"
+              ? { type: "timeline", ref: "tl-cut", name: "Cut", updatedAt: "", file: { ...file, path } }
+              : null
+        )
+      );
+    });
+
+    it("opens the workflow editor on its workflow, not a JSON view", async () => {
+      usePanelStore.getState().setVisibility(true);
+      renderTree();
+      await userEvent.dblClick(await screen.findByText("Fox.workflow.json"));
+
+      await waitFor(() =>
+        expect(useWorkspaceTabsStore.getState().tabs).toHaveLength(1)
+      );
+      expect(documentByFile).toHaveBeenCalledWith({
+        id: "project-a",
+        path: "Fox.workflow.json"
+      });
+      expect(useWorkspaceTabsStore.getState().tabs[0]).toMatchObject({
+        type: "workflow",
+        ref: "wf-fox",
+        mode: "edit",
+        title: "Fox",
+        projectId: "project-a"
+      });
+      expect(usePanelStore.getState().panel.isVisible).toBe(false);
+    });
+
+    it("opens the timeline editor on its timeline", async () => {
+      renderTree();
+      await userEvent.dblClick(await screen.findByText("Cut.timeline.json"));
+
+      await waitFor(() =>
+        expect(useWorkspaceTabsStore.getState().tabs).toHaveLength(1)
+      );
+      expect(useWorkspaceTabsStore.getState().tabs[0]).toMatchObject({
+        type: "timeline",
+        ref: "tl-cut",
+        projectId: "project-a"
+      });
+    });
+
+    it("opens a file no document owns as a file", async () => {
+      renderTree();
+      await userEvent.dblClick(await screen.findByText("Stray.workflow.json"));
+
+      await waitFor(() =>
+        expect(useWorkspaceTabsStore.getState().tabs).toHaveLength(1)
+      );
+      expect(useWorkspaceTabsStore.getState().tabs[0]).toMatchObject({
+        type: "workspace-file",
+        ref: "ws-a::Stray.workflow.json"
+      });
+    });
+
+    it("does not look up the document of any other file", async () => {
+      listFiles.mockResolvedValue([
+        { name: "notes.md", path: "notes.md", is_dir: false, size: 12 }
+      ]);
+      renderTree();
+      await userEvent.dblClick(await screen.findByText("notes.md"));
+
+      await waitFor(() =>
+        expect(useWorkspaceTabsStore.getState().tabs).toHaveLength(1)
+      );
+      expect(documentByFile).not.toHaveBeenCalled();
+    });
   });
 
   it("re-lists open folders on refresh, so a file written into one appears", async () => {

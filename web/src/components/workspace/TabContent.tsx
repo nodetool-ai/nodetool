@@ -2,8 +2,9 @@ import React, { memo, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { CREATE_REF, type WorkspaceTab } from "../../stores/WorkspaceTabsStore";
-import { LoadingSpinner } from "../ui_primitives";
+import { Box, FlexColumn, LoadingSpinner } from "../ui_primitives";
 import { isPageTabKey } from "./pageTabs";
+import DocumentFileNotice from "./DocumentFileNotice";
 import { inferMediaCategory } from "../chat/generation/extractGenerationTurns";
 import type { Message } from "../../stores/ApiTypes";
 
@@ -207,7 +208,7 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
 const TabContent = ({ tab, active }: TabContentProps) => {
   const { t } = useTranslation();
 
-  return (
+  const surface = (
     <Suspense
       fallback={
         <LoadingSpinner text={t("i18n-next84.tabContent.loading")} />
@@ -215,6 +216,22 @@ const TabContent = ({ tab, active }: TabContentProps) => {
     >
       {surfaceFor(tab, active)}
     </Suspense>
+  );
+  // A workflow and a timeline are files in the project folder. What is wrong
+  // with the file shows above the editor. The wrapper is always there, so a
+  // notice that comes and goes never remounts the editor.
+  if (tab.type !== "workflow" && tab.type !== "timeline") {
+    return surface;
+  }
+  return (
+    <FlexColumn fullWidth fullHeight sx={{ overflow: "hidden" }}>
+      <DocumentFileNotice
+        type={tab.type}
+        refId={tab.ref}
+        projectId={tab.projectId}
+      />
+      <Box sx={{ flex: 1, minHeight: 0, position: "relative" }}>{surface}</Box>
+    </FlexColumn>
   );
 };
 

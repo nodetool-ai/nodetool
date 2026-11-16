@@ -20453,6 +20453,20 @@
       "revealInFinder": "Mostrar no Finder",
       "revealInExplorer": "Mostrar no Explorador de Arquivos",
       "revealInFileManager": "Mostrar no gerenciador de arquivos"
+    },
+    "documentFile": {
+      "invalidTitle": "Este arquivo tem um erro",
+      "invalidBody": "{{path}} não foi carregado: {{error}}. A última versão válida continua aberta e ainda pode ser executada.",
+      "openFile": "Abrir arquivo",
+      "missingTitle": "Arquivo ausente",
+      "missingBody": "{{path}} não está mais na pasta do projeto. Restaurar o grava novamente a partir deste documento.",
+      "restore": "Restaurar",
+      "delete": "Excluir",
+      "cancel": "Cancelar",
+      "deleteTitle": "Excluir {{name}}?",
+      "deleteDescription": "\"{{name}}\" e o seu histórico de versões serão excluídos permanentemente.",
+      "restoreFailed": "O arquivo não foi restaurado: {{error}}",
+      "deleteFailed": "O documento não foi excluído: {{error}}"
     }
   },
   "assetPicker": {

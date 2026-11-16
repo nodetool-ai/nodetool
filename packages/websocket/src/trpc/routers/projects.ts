@@ -11,7 +11,9 @@
  *   summaries      (query)    — ProjectDetail[] (every project, for the list)
  *   get            (query)    — ProjectDetail (project + documents + spend)
  *   documentPage   (query)    — ProjectDocumentPage (one page of cards)
- *   documents      (query)    — ProjectDocumentRef[]
+ *   documents      (query)    — ProjectDocumentListEntry[] (with file state)
+ *   documentByFile (query)    — ProjectFileDocument | null (by file path)
+ *   restoreDocumentFile (mutation) — ProjectFileDocument (rewrites the file)
  *   unassigned     (query)    — ProjectDocumentRef[] in the loose bucket
  *   thread         (mutation) — { threadId } (the project's agent thread)
  *   create         (mutation) — ProjectResponse (creates the project folder)
@@ -44,6 +46,8 @@ import {
   Application,
   JsScript,
   Game,
+  documentFileOf,
+  findDocumentByFile,
   hasProjectDocumentDependents,
   listProjectDocuments,
   moveDocumentToProject,
@@ -61,10 +65,15 @@ import {
   patchProjectInput,
   projectDetail,
   projectDocumentPage,
+  projectDocumentByFileInput,
+  projectDocumentListEntry,
   projectDocumentPageInput,
   projectDocumentRef,
+  projectFileDocument,
   projectResponse,
   relocateProjectInput,
+  restoreDocumentFileInput,
+  type ProjectDocumentRef,
   type ProjectResponse
 } from "@nodetool-ai/protocol/api-schemas/projects.js";
 import { ApiErrorCode } from "../../error-codes.js";
@@ -84,6 +93,12 @@ import {
   prepareProjectAssetMove,
   projectAssetMoveProgress
 } from "@nodetool-ai/project-services/project-asset-move-job";
+import {
+  DocumentFileRestoreError,
+  restoreDocumentFile
+} from "@nodetool-ai/project-services/document-file-sync";
+import { workflowFileAdapter } from "@nodetool-ai/project-services/workflow-file";
+import { timelineFileAdapter } from "@nodetool-ai/project-services/timeline-file";
 import {
   ProjectFolderOpenError,
   openProjectFolder,
@@ -358,11 +373,89 @@ export const projectsRouter = router({
 
   documents: protectedProcedure
     .input(idInput)
-    .output(z.array(projectDocumentRef))
+    .output(z.array(projectDocumentListEntry))
     .query(async ({ ctx, input }) => {
       await prepareUser(ctx.userId);
       await loadOwned(ctx.userId, input.id);
       return listProjectDocuments(ctx.userId, input.id);
+    }),
+
+  /**
+   * The workflow or timeline whose file in the project's folder is `path`,
+   * or null. Opening a document file from Files opens its editor through
+   * this. The folder of Personal also holds the files of documents in no
+   * project.
+   */
+  documentByFile: protectedProcedure
+    .input(projectDocumentByFileInput)
+    .output(projectFileDocument.nullable())
+    .query(async ({ ctx, input }) => {
+      await prepareUser(ctx.userId);
+      const project = await loadOwned(ctx.userId, input.id);
+      const projectIds =
+        project.id === `personal:${ctx.userId}`
+          ? [project.id, LOOSE_PROJECT_ID]
+          : [project.id];
+      const found = await findDocumentByFile(ctx.userId, projectIds, input.path);
+      if (!found) return null;
+      return {
+        type: found.type,
+        ref: found.id,
+        name: found.name,
+        updatedAt: found.updated_at,
+        file: found.file
+      };
+    }),
+
+  /**
+   * Write the file of a workflow or timeline again from the document, for a
+   * document whose file is missing. A file edit at the path that NodeTool has
+   * not seen is kept as a version first, and an invalid one is not replaced.
+   */
+  restoreDocumentFile: protectedProcedure
+    .input(restoreDocumentFileInput)
+    .output(projectFileDocument)
+    .mutation(async ({ ctx, input }) => {
+      const row =
+        input.type === "workflow"
+          ? await Workflow.get<Workflow>(input.ref)
+          : await TimelineSequence.findById(input.ref);
+      if (!row || row.user_id !== ctx.userId) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Document not found");
+      }
+      try {
+        if (row instanceof Workflow) {
+          await restoreDocumentFile(workflowFileAdapter, row);
+        } else {
+          await restoreDocumentFile(timelineFileAdapter, row);
+        }
+      } catch (error) {
+        if (error instanceof ProjectFolderUnavailableError) {
+          throwApiError(
+            ApiErrorCode.SERVICE_UNAVAILABLE,
+            error.message,
+            "PRECONDITION_FAILED"
+          );
+        }
+        if (error instanceof DocumentFileRestoreError) {
+          throwApiError(ApiErrorCode.INVALID_INPUT, error.message, "CONFLICT");
+        }
+        throw error;
+      }
+      const file = documentFileOf(row);
+      if (!file) {
+        throwApiError(
+          ApiErrorCode.INTERNAL_ERROR,
+          "The file could not be written"
+        );
+      }
+      return {
+        type: input.type,
+        ref: row.id,
+        name: row.name,
+        updatedAt: row.updated_at,
+        file
+      };
     }),
 
   restoreTabs: protectedProcedure
@@ -390,7 +483,12 @@ export const projectsRouter = router({
     .output(z.array(projectDocumentRef))
     .query(async ({ ctx }) => {
       await prepareUser(ctx.userId);
-      return listProjectDocuments(ctx.userId, LOOSE_PROJECT_ID);
+      // The strip of loose documents assigns them by drag, which workflows
+      // do not take part in.
+      const documents = await listProjectDocuments(ctx.userId, LOOSE_PROJECT_ID);
+      return documents.filter(
+        (document): document is ProjectDocumentRef => document.type !== "workflow"
+      );
     }),
 
   /**

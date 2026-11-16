@@ -20142,6 +20142,20 @@
       "revealInFinder": "Finder에서 보기",
       "revealInExplorer": "파일 탐색기에서 보기",
       "revealInFileManager": "파일 관리자에서 보기"
+    },
+    "documentFile": {
+      "invalidTitle": "이 파일에 오류가 있습니다",
+      "invalidBody": "{{path}}을(를) 불러오지 못했습니다: {{error}}. 마지막으로 유효한 버전이 열린 채로 계속 실행됩니다.",
+      "openFile": "파일 열기",
+      "missingTitle": "파일 없음",
+      "missingBody": "{{path}}이(가) 더 이상 프로젝트 폴더에 없습니다. 복원하면 이 문서에서 파일을 다시 씁니다.",
+      "restore": "복원",
+      "delete": "삭제",
+      "cancel": "취소",
+      "deleteTitle": "{{name}}을(를) 삭제할까요?",
+      "deleteDescription": "\"{{name}}\"과(와) 버전 기록이 영구적으로 삭제됩니다.",
+      "restoreFailed": "파일을 복원하지 못했습니다: {{error}}",
+      "deleteFailed": "문서를 삭제하지 못했습니다: {{error}}"
     }
   },
   "assetPicker": {

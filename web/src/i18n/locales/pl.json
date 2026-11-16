@@ -20764,6 +20764,20 @@
       "revealInFinder": "Pokaż w Finderze",
       "revealInExplorer": "Pokaż w Eksploratorze plików",
       "revealInFileManager": "Pokaż w menedżerze plików"
+    },
+    "documentFile": {
+      "invalidTitle": "Ten plik zawiera błąd",
+      "invalidBody": "Nie wczytano {{path}}: {{error}}. Ostatnia prawidłowa wersja pozostaje otwarta i nadal działa.",
+      "openFile": "Otwórz plik",
+      "missingTitle": "Brak pliku",
+      "missingBody": "{{path}} nie znajduje się już w folderze projektu. Przywróć zapisuje go ponownie z tego dokumentu.",
+      "restore": "Przywróć",
+      "delete": "Usuń",
+      "cancel": "Anuluj",
+      "deleteTitle": "Usunąć {{name}}?",
+      "deleteDescription": "„{{name}}” i jego historia wersji zostaną trwale usunięte.",
+      "restoreFailed": "Nie przywrócono pliku: {{error}}",
+      "deleteFailed": "Nie usunięto dokumentu: {{error}}"
     }
   },
   "assetPicker": {

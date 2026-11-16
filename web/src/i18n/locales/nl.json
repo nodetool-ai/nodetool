@@ -20142,6 +20142,20 @@
       "revealInFinder": "Toon in Finder",
       "revealInExplorer": "Toon in Verkenner",
       "revealInFileManager": "Toon in bestandsbeheer"
+    },
+    "documentFile": {
+      "invalidTitle": "Dit bestand bevat een fout",
+      "invalidBody": "{{path}} is niet geladen: {{error}}. De laatste geldige versie blijft open en kan nog steeds worden uitgevoerd.",
+      "openFile": "Bestand openen",
+      "missingTitle": "Bestand ontbreekt",
+      "missingBody": "{{path}} staat niet meer in de projectmap. Herstellen schrijft het opnieuw vanuit dit document.",
+      "restore": "Herstellen",
+      "delete": "Verwijderen",
+      "cancel": "Annuleren",
+      "deleteTitle": "{{name}} verwijderen?",
+      "deleteDescription": "‘{{name}}’ en de versiegeschiedenis worden definitief verwijderd.",
+      "restoreFailed": "Het bestand is niet hersteld: {{error}}",
+      "deleteFailed": "Het document is niet verwijderd: {{error}}"
     }
   },
   "assetPicker": {

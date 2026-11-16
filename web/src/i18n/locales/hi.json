@@ -20142,6 +20142,20 @@
       "revealInFinder": "Finder में दिखाएँ",
       "revealInExplorer": "फ़ाइल एक्सप्लोरर में दिखाएँ",
       "revealInFileManager": "फ़ाइल मैनेजर में दिखाएँ"
+    },
+    "documentFile": {
+      "invalidTitle": "इस फ़ाइल में त्रुटि है",
+      "invalidBody": "{{path}} लोड नहीं हुई: {{error}}। अंतिम मान्य संस्करण खुला रहता है और चलता रहता है।",
+      "openFile": "फ़ाइल खोलें",
+      "missingTitle": "फ़ाइल गायब है",
+      "missingBody": "{{path}} अब प्रोजेक्ट फ़ोल्डर में नहीं है। पुनर्स्थापित करें इसे इस दस्तावेज़ से फिर से लिखता है।",
+      "restore": "पुनर्स्थापित करें",
+      "delete": "हटाएँ",
+      "cancel": "रद्द करें",
+      "deleteTitle": "{{name}} हटाएँ?",
+      "deleteDescription": "\"{{name}}\" और उसका संस्करण इतिहास स्थायी रूप से हटा दिया जाएगा।",
+      "restoreFailed": "फ़ाइल पुनर्स्थापित नहीं हुई: {{error}}",
+      "deleteFailed": "दस्तावेज़ नहीं हटाया गया: {{error}}"
     }
   },
   "assetPicker": {

@@ -970,6 +970,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Same grouping surface as `projects.get`. One page of its document " +
       "cards, for the start page."
   },
+  "projects.documentByFile": {
+    elsewhere:
+      "A workflow or timeline file carries its document's `id`. A run reads " +
+      "the file through its workspace and opens the document with " +
+      "`get_workflow` or `get_timeline`."
+  },
   "projects.documents": {
     gap:
       "Lists the documents in a project. A run enumerates each kind " +
@@ -1001,6 +1007,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
   },
   "projects.restore": {
     elsewhere: "`update_project` with `archived: false` restores a project."
+  },
+  "projects.restoreDocumentFile": {
+    elsewhere:
+      "Saving the document writes its file again: `update_workflow` for a " +
+      "workflow, `set_timeline_document` for a timeline."
   },
   "projects.restoreTabs": {
     elsewhere:

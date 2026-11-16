@@ -159,13 +159,64 @@ export const projectDocumentType = z.enum([
 ]);
 export type ProjectDocumentType = z.infer<typeof projectDocumentType>;
 
+/** The document kinds that are JSON files in the project folder. */
+export const fileDocumentType = z.enum(["workflow", "timeline"]);
+export type FileDocumentType = z.infer<typeof fileDocumentType>;
+
+/**
+ * The file a workflow or timeline has in its project folder. `ok`: the file
+ * matches the document. `invalid`: the file was edited and refused, `error`
+ * says why, and the document keeps its last valid content. `missing`: the
+ * file is gone. `path` is relative to the project folder.
+ */
+export const projectDocumentFile = z.object({
+  path: z.string(),
+  state: z.enum(["ok", "invalid", "missing"]),
+  error: z.string().nullable()
+});
+export type ProjectDocumentFile = z.infer<typeof projectDocumentFile>;
+
 export const projectDocumentRef = z.object({
   type: projectDocumentType,
   ref: z.string(),
   name: z.string(),
-  updatedAt: z.string()
+  updatedAt: z.string(),
+  /** The file of a workflow or timeline. Absent for the other kinds. */
+  file: projectDocumentFile.nullable().optional()
 });
 export type ProjectDocumentRef = z.infer<typeof projectDocumentRef>;
+
+/** A document in `projects.documents`: the copyable kinds plus workflows. */
+export const projectDocumentListEntry = projectDocumentRef.extend({
+  type: z.enum([...projectDocumentType.options, "workflow"])
+});
+export type ProjectDocumentListEntry = z.infer<typeof projectDocumentListEntry>;
+
+/** Find the workflow or timeline whose file is `path` in project `id`. */
+export const projectDocumentByFileInput = z.object({
+  id: z.string(),
+  path: z.string().min(1)
+});
+export type ProjectDocumentByFileInput = z.infer<
+  typeof projectDocumentByFileInput
+>;
+
+/** A workflow or timeline and its file. */
+export const projectFileDocument = z.object({
+  type: fileDocumentType,
+  ref: z.string(),
+  name: z.string(),
+  updatedAt: z.string(),
+  file: projectDocumentFile
+});
+export type ProjectFileDocument = z.infer<typeof projectFileDocument>;
+
+/** Write a document's missing file again from the document. */
+export const restoreDocumentFileInput = z.object({
+  type: fileDocumentType,
+  ref: z.string()
+});
+export type RestoreDocumentFileInput = z.infer<typeof restoreDocumentFileInput>;
 
 /** Copy one project document and its owned dependency graph into another project. */
 export const copyProjectDocumentInput = z.object({

@@ -20142,6 +20142,20 @@
       "revealInFinder": "Vis i Finder",
       "revealInExplorer": "Vis i Filutforsker",
       "revealInFileManager": "Vis i filbehandleren"
+    },
+    "documentFile": {
+      "invalidTitle": "Denne filen har en feil",
+      "invalidBody": "{{path}} ble ikke lastet inn: {{error}}. Den siste gyldige versjonen forblir åpen og kan fortsatt kjøres.",
+      "openFile": "Åpne fil",
+      "missingTitle": "Filen mangler",
+      "missingBody": "{{path}} ligger ikke lenger i prosjektmappen. Gjenopprett skriver den på nytt fra dette dokumentet.",
+      "restore": "Gjenopprett",
+      "delete": "Slett",
+      "cancel": "Avbryt",
+      "deleteTitle": "Slette {{name}}?",
+      "deleteDescription": "«{{name}}» og versjonshistorikken slettes permanent.",
+      "restoreFailed": "Filen ble ikke gjenopprettet: {{error}}",
+      "deleteFailed": "Dokumentet ble ikke slettet: {{error}}"
     }
   },
   "assetPicker": {

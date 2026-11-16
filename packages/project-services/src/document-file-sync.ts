@@ -50,6 +50,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
 import {
+  DOCUMENT_FILE_MISSING,
   LOOSE_PROJECT_ID,
   Project,
   createTimeOrderedUuid,
@@ -85,7 +86,7 @@ const log = createLogger("nodetool.project-services.document-file-sync");
 /** The version of the file format this module reads and writes. */
 export const DOCUMENT_FILE_VERSION = 1;
 /** What `file_error` holds for a row whose file is gone. */
-export const DOCUMENT_FILE_MISSING = "File missing";
+export { DOCUMENT_FILE_MISSING };
 
 /** Longest file name stem, in characters, before the collision suffix. */
 const MAX_FILE_STEM = 100;
@@ -395,6 +396,77 @@ async function namesIn(
   }
 }
 
+// ── File state ──────────────────────────────────────────────────────────────
+
+/** A document whose file state changed: its file became invalid, went missing, or is fine again. */
+export interface DocumentFileStateChange {
+  /** The adapter's kind: `workflow` or `timeline`. */
+  kind: string;
+  id: string;
+  userId: string;
+  /** The project whose folder holds the file. */
+  projectId: string;
+  filePath: string | null;
+  fileError: string | null;
+}
+
+export type DocumentFileStateListener = (change: DocumentFileStateChange) => void;
+
+const fileStateListeners = new Set<DocumentFileStateListener>();
+
+/**
+ * Call `listener` whenever the `file_error` a document records changes. The
+ * file state is no content of the document and changes no `updated_at` or
+ * etag, so no model change announces it. A host tells its clients from here,
+ * so that a document shows its file error within seconds of the edit.
+ * Returns a function that removes the listener.
+ */
+export function onDocumentFileStateChange(
+  listener: DocumentFileStateListener
+): () => void {
+  fileStateListeners.add(listener);
+  return () => fileStateListeners.delete(listener);
+}
+
+/**
+ * Record `state` on the row and in the database, and tell the listeners when
+ * `file_error` changed. Recording a `file_error` the row already has writes
+ * nothing.
+ */
+async function recordFileState<Row extends DocumentRow, Fields>(
+  adapter: DocumentFileAdapter<Row, Fields>,
+  row: Row,
+  projectId: string,
+  state: DocumentFileState
+): Promise<void> {
+  const before = row.file_error;
+  const errorChanged =
+    state.file_error !== undefined && state.file_error !== before;
+  const onlyError = Object.keys(state).every((key) => key === "file_error");
+  if (onlyError && !errorChanged) return;
+  await adapter.setFileState(row.id, state);
+  Object.assign(row, state);
+  if (!errorChanged) return;
+  const change: DocumentFileStateChange = {
+    kind: adapter.kind,
+    id: row.id,
+    userId: row.user_id,
+    projectId,
+    filePath: row.file_path,
+    fileError: row.file_error
+  };
+  for (const listener of fileStateListeners) {
+    try {
+      listener(change);
+    } catch (error) {
+      log.warn("A document file state listener failed", {
+        id: row.id,
+        error: describe(error)
+      });
+    }
+  }
+}
+
 // ── NodeTool to file ────────────────────────────────────────────────────────
 
 /**
@@ -445,10 +517,7 @@ async function writeDocumentFile<Row extends DocumentRow, Fields>(
       // The file was edited since NodeTool last wrote or imported it.
       const refusal = await keepUnseenEdit(adapter, row, parsed, text);
       if (refusal !== null) {
-        if (row.file_error !== refusal) {
-          await adapter.setFileState(row.id, { file_error: refusal });
-          row.file_error = refusal;
-        }
+        await recordFileState(adapter, row, projectId, { file_error: refusal });
         return "kept";
       }
     }
@@ -494,9 +563,11 @@ async function writeDocumentFile<Row extends DocumentRow, Fields>(
   if (current !== text) {
     await workspace.write(target, text, "application/json");
   }
-  const state = { file_path: target, file_hash: hashOf(text), file_error: null };
-  await adapter.setFileState(row.id, state);
-  Object.assign(row, state);
+  await recordFileState(adapter, row, projectId, {
+    file_path: target,
+    file_hash: hashOf(text),
+    file_error: null
+  });
   return "written";
 }
 
@@ -751,6 +822,54 @@ export function documentFileSync<Row extends DocumentRow, Fields>(
   };
 }
 
+/** Why a restore wrote no file. The message is for the user. */
+export class DocumentFileRestoreError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DocumentFileRestoreError";
+  }
+}
+
+/**
+ * Write the file of `row` again from the row, and return the file state it
+ * records. This is Restore on a document whose file is missing. The file has
+ * the text NodeTool writes for the row, so a document that did not change
+ * since its file was last written gets a byte-identical file back.
+ *
+ * The rules of a save hold: a file that is now at the path and holds an edit
+ * NodeTool has not seen is kept as a version before it is replaced, and an
+ * invalid one is not replaced at all. Throws
+ * {@link DocumentFileRestoreError} then, and when the document has no folder
+ * to write to. Throws `ProjectFolderUnavailableError` when its folder cannot
+ * be reached.
+ */
+export async function restoreDocumentFile<Row extends DocumentRow, Fields>(
+  adapter: DocumentFileAdapter<Row, Fields>,
+  row: Row
+): Promise<DocumentFileState> {
+  const folder = await documentFolder(row.user_id, row.project_id);
+  if (!folder) {
+    throw new DocumentFileRestoreError(
+      `This ${adapter.kind} has no project folder to write its file to`
+    );
+  }
+  const outcome = await withProjectFolderLock(
+    row.user_id,
+    folder.projectId,
+    () => writeDocumentFile(adapter, folder.workspace, folder.projectId, row)
+  );
+  if (outcome === "kept") {
+    throw new DocumentFileRestoreError(
+      `The file at ${row.file_path ?? "its path"} was edited and is not valid, so it was kept: ${row.file_error ?? ""}`
+    );
+  }
+  return {
+    file_path: row.file_path,
+    file_hash: row.file_hash,
+    file_error: row.file_error
+  };
+}
+
 // ── File to NodeTool ────────────────────────────────────────────────────────
 
 /** One document file the scan found. */
@@ -892,7 +1011,7 @@ async function importFile<Row extends DocumentRow, Fields>(
     hash = hashOf(next);
   }
   const state = { file_path: file.path, file_hash: hash, file_error: null };
-  await adapter.setFileState(row.id, state);
+  await recordFileState(adapter, row, run.projectId, state);
   Object.assign(stored, state);
   return stored;
 }
@@ -903,9 +1022,7 @@ async function recordInvalid<Row extends DocumentRow, Fields>(
   error: string
 ): Promise<void> {
   run.report.invalid.push(row.id);
-  if (row.file_error === error) return;
-  await run.adapter.setFileState(row.id, { file_error: error });
-  row.file_error = error;
+  await recordFileState(run.adapter, row, run.projectId, { file_error: error });
 }
 
 /**
@@ -1090,10 +1207,7 @@ async function reconcileKind<Row extends DocumentRow, Fields>(
         }
       }
       report.unchanged++;
-      if (row.file_error !== null) {
-        await adapter.setFileState(row.id, { file_error: null });
-        row.file_error = null;
-      }
+      await recordFileState(adapter, row, projectId, { file_error: null });
       continue;
     }
     // Any other hash is an edit NodeTool has not seen, also for a row that
@@ -1241,10 +1355,9 @@ async function reconcileKind<Row extends DocumentRow, Fields>(
       continue;
     }
     report.missing.push(row.id);
-    if (row.file_error !== DOCUMENT_FILE_MISSING) {
-      await adapter.setFileState(row.id, { file_error: DOCUMENT_FILE_MISSING });
-      row.file_error = DOCUMENT_FILE_MISSING;
-    }
+    await recordFileState(adapter, row, projectId, {
+      file_error: DOCUMENT_FILE_MISSING
+    });
   }
 
   // Rows that never had a file: the migration of documents from before

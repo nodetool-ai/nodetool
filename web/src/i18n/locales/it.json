@@ -20453,6 +20453,20 @@
       "revealInFinder": "Mostra nel Finder",
       "revealInExplorer": "Mostra in Esplora file",
       "revealInFileManager": "Mostra nel gestore file"
+    },
+    "documentFile": {
+      "invalidTitle": "Questo file contiene un errore",
+      "invalidBody": "{{path}} non è stato caricato: {{error}}. L’ultima versione valida resta aperta e si può ancora eseguire.",
+      "openFile": "Apri file",
+      "missingTitle": "File mancante",
+      "missingBody": "{{path}} non è più nella cartella del progetto. Ripristina lo riscrive da questo documento.",
+      "restore": "Ripristina",
+      "delete": "Elimina",
+      "cancel": "Annulla",
+      "deleteTitle": "Eliminare {{name}}?",
+      "deleteDescription": "«{{name}}» e la sua cronologia delle versioni verranno eliminati definitivamente.",
+      "restoreFailed": "Il file non è stato ripristinato: {{error}}",
+      "deleteFailed": "Il documento non è stato eliminato: {{error}}"
     }
   },
   "assetPicker": {
