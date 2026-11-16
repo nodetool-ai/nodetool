@@ -1,6 +1,7 @@
 import {
   createSupabaseStorageClient,
   hasDotSegment,
+  type SupabaseObjectEntry,
   type SupabaseStorageApi,
   type SupabaseUploadOptions
 } from "./supabase-rest.js";
@@ -23,6 +24,9 @@ import { objectCacheControl } from "./cache-control.js";
 
 /** Supabase upload tokens last two hours and the sign call takes no TTL. */
 const SUPABASE_UPLOAD_URL_TTL_MS = 2 * 60 * 60 * 1000;
+
+/** Entries read per `list` call. Supabase returns no more than this. */
+const LIST_PAGE_SIZE = 1000;
 
 export interface SupabaseStorageAdapterOptions {
   url: string;
@@ -207,10 +211,24 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     if (dir.endsWith("/")) {
       dir = dir.slice(0, -1);
     }
-    const { data, error } = await this.getClient()
-      .storage.from(this.bucket)
-      .list(dir, { limit: 1000 });
-    if (error || !data) return { entries: [], commonPrefixes: [] };
+    // A listing that cannot be read throws. Callers judge from it whether a
+    // directory holds another project's folder, so an empty answer for a
+    // failed call would let the outer workspace reach that folder. The call
+    // returns at most one page, so every page is read: an entry past the first
+    // page, a `.nodetool` marker among them, must not go unseen.
+    const data: SupabaseObjectEntry[] = [];
+    for (let offset = 0; ; offset += LIST_PAGE_SIZE) {
+      const { data: page, error } = await this.getClient()
+        .storage.from(this.bucket)
+        .list(dir, { limit: LIST_PAGE_SIZE, offset });
+      if (error || !page) {
+        throw new Error(
+          `Supabase list failed for "${dir}": ${error?.message ?? "no data"}`
+        );
+      }
+      data.push(...page);
+      if (page.length < LIST_PAGE_SIZE) break;
+    }
 
     const entries: StorageEntry[] = [];
     const commonPrefixes: string[] = [];

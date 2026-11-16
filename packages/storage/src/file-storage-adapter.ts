@@ -41,6 +41,17 @@ function decodeKey(key: string): string {
 }
 
 /**
+ * True for the errors a missing path raises. A listing treats these as an
+ * empty directory and rethrows every other one: callers decide from a listing
+ * whether a directory holds another project's folder, and an unreadable
+ * directory is not an empty one.
+ */
+function isAbsentError(error: unknown): boolean {
+  const code = (error as { code?: unknown } | null)?.code;
+  return code === "ENOENT" || code === "ENOTDIR";
+}
+
+/**
  * Return `uri` up to (excluding) the first `?` or `#`. A linear index scan
  * rather than a `/[?#].*$/` regex, which CodeQL flags as a potential ReDoS
  * pattern on uncontrolled input.
@@ -335,8 +346,11 @@ export class FileStorageAdapter implements StorageAdapter {
       let children: Array<{ name: string; isDirectory: () => boolean; isFile: () => boolean }>;
       try {
         children = await readdir(dirAbs, { withFileTypes: true });
-      } catch {
-        return { entries: [], commonPrefixes: [] };
+      } catch (error) {
+        // Only a directory that is not there is empty. A failure to read one
+        // that is there must not read as empty (see `isAbsentError`).
+        if (isAbsentError(error)) return { entries: [], commonPrefixes: [] };
+        throw error;
       }
       for (const child of children) {
         const childKey = normalizedPrefix
@@ -356,8 +370,9 @@ export class FileStorageAdapter implements StorageAdapter {
             size: st.size,
             modifiedAt: st.mtimeMs
           });
-        } catch {
-          // skip unreadable
+        } catch (error) {
+          // Gone since the listing was read.
+          if (!isAbsentError(error)) throw error;
         }
       }
       return {
@@ -377,8 +392,9 @@ export class FileStorageAdapter implements StorageAdapter {
       let children: Array<{ name: string; isDirectory: () => boolean; isFile: () => boolean }>;
       try {
         children = await readdir(dir, { withFileTypes: true });
-      } catch {
-        continue;
+      } catch (error) {
+        if (isAbsentError(error)) continue;
+        throw error;
       }
       for (const child of children) {
         const childAbs = join(dir, child.name);
@@ -399,8 +415,9 @@ export class FileStorageAdapter implements StorageAdapter {
             size: st.size,
             modifiedAt: st.mtimeMs
           });
-        } catch {
-          // skip
+        } catch (error) {
+          // Gone since the listing was read.
+          if (!isAbsentError(error)) throw error;
         }
       }
     }
