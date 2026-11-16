@@ -338,6 +338,54 @@ export class Asset extends DBModel {
   }
 
   /**
+   * Create the row of a file in a project folder under an ID the caller
+   * supplies, without ever rewriting a row that already exists.
+   *
+   * `save()` is an upsert and the primary key is install-global. An ID read
+   * from a folder another machine wrote could therefore overwrite the asset
+   * of another user or project. This inserts and answers null on conflict,
+   * leaving the existing row untouched. The caller has created the project.
+   */
+  static async insertNew(data: {
+    id: string;
+    user_id: string;
+    project_id: string;
+    parent_id: string | null;
+    name: string;
+    content_type: string;
+    workspace_path: string;
+    size: number | null;
+    metadata: Record<string, unknown> | null;
+    content_hash: string | null;
+  }): Promise<Asset | null> {
+    const asset = new Asset(data);
+    asset.beforeSave();
+    const rows = await getPortableDb()
+      .insert(assets)
+      .values({
+        id: asset.id,
+        user_id: asset.user_id,
+        parent_id: asset.parent_id,
+        name: asset.name,
+        content_type: asset.content_type,
+        size: asset.size,
+        metadata: asset.metadata,
+        project_id: asset.project_id,
+        workspace_path: asset.workspace_path,
+        content_hash: asset.content_hash,
+        created_at: asset.created_at,
+        updated_at: asset.updated_at
+      })
+      .onConflictDoNothing()
+      .returning();
+    const row = rows[0];
+    if (!row) return null;
+    const created = new Asset(row);
+    ModelObserver.notify(created, ModelChangeEvent.CREATED);
+    return created;
+  }
+
+  /**
    * Point every row of the user in `projectId` whose file lies under the
    * directory `from` at the same file under `to`, in one statement. Returns
    * how many rows changed. Both paths are project-relative directories.

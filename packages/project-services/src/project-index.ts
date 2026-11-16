@@ -150,7 +150,7 @@ function fileName(path: string): string {
 }
 
 /** The content type a file in a project folder gets from its name. */
-function contentTypeOfFile(path: string): string {
+export function contentTypeOfFile(path: string): string {
   const name = fileName(path);
   const inferred = normalizeAssetContentType("", name);
   if (inferred !== "application/octet-stream") return inferred;

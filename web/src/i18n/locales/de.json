@@ -6139,6 +6139,7 @@
         "createError": "Projekt konnte nicht erstellt werden: {{error}}",
         "openFolder": "Ordner öffnen…",
         "openFolderHint": "Sie haben schon einen Ordner? Öffnen Sie ihn als Projekt. Es werden keine Dateien verschoben.",
+        "openFolderTravels": "Ein Ordner von einem anderen Rechner wird mit seinen Workflows, Timelines und Assets geöffnet. Chats, Storyboards, Skripte, Skizzen, Apps und JS-Skripte werden nicht mit dem Ordner übertragen.",
         "openFolderError": "Der Ordner konnte nicht geöffnet werden: {{error}}"
       },
       "folder": {

@@ -35,6 +35,78 @@ describe("Asset.workspace_path", () => {
     expect((await Asset.find("u1", asset.id))!.workspace_path).toBeNull();
   });
 
+  it("insertNew creates the row of a folder file under the id it is given", async () => {
+    const seen: string[] = [];
+    ModelObserver.subscribe((model, event) => {
+      seen.push(`${event}:${String(model["id"])}`);
+    });
+
+    const asset = await Asset.insertNew({
+      id: "0123456789abcdef0123456789abcdef",
+      user_id: "u1",
+      project_id: "p1",
+      parent_id: "u1",
+      name: "fox.png",
+      content_type: "image/png",
+      workspace_path: "Generated/fox.png",
+      size: 12,
+      metadata: { workspace_size: 12 },
+      content_hash: "f".repeat(64)
+    });
+
+    expect(asset).toMatchObject({
+      id: "0123456789abcdef0123456789abcdef",
+      workspace_path: "Generated/fox.png",
+      favorite: false
+    });
+    const found = await Asset.find("u1", "0123456789abcdef0123456789abcdef");
+    expect(found!.toRow()).toEqual(asset!.toRow());
+    expect(found).toMatchObject({
+      project_id: "p1",
+      parent_id: "u1",
+      size: 12,
+      metadata: { workspace_size: 12 },
+      content_hash: "f".repeat(64)
+    });
+    expect(seen).toEqual(["created:0123456789abcdef0123456789abcdef"]);
+  });
+
+  it("insertNew refuses to rewrite an id that already exists", async () => {
+    const theirs = await Asset.create<Asset>({
+      id: "0123456789abcdef0123456789abcdef",
+      user_id: "u2",
+      project_id: "their-project",
+      name: "Theirs",
+      content_type: "image/jpeg",
+      metadata: { note: "untouched" }
+    });
+    const before = { ...theirs.toRow() };
+    const seen: string[] = [];
+    ModelObserver.subscribe((_model, event) => {
+      seen.push(event);
+    });
+
+    expect(
+      await Asset.insertNew({
+        id: "0123456789abcdef0123456789abcdef",
+        user_id: "u1",
+        project_id: "p1",
+        parent_id: "u1",
+        name: "fox.png",
+        content_type: "image/png",
+        workspace_path: "Generated/fox.png",
+        size: 12,
+        metadata: null,
+        content_hash: null
+      })
+    ).toBeNull();
+
+    const [row] = await Asset.findMany("u2", ["0123456789abcdef0123456789abcdef"]);
+    expect(row!.toRow()).toEqual(before);
+    expect(await Asset.find("u1", "0123456789abcdef0123456789abcdef")).toBeNull();
+    expect(seen).toEqual([]);
+  });
+
   it("round-trips the path and survives an update of another field", async () => {
     const asset = await Asset.create<Asset>({
       user_id: "u1",

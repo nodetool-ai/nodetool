@@ -6218,6 +6218,7 @@
         "createError": "Impossible de créer le projet : {{error}}",
         "openFolder": "Ouvrir un dossier…",
         "openFolderHint": "Vous avez déjà un dossier ? Ouvrez-le comme projet. Aucun fichier n'est déplacé.",
+        "openFolderTravels": "Un dossier copié depuis une autre machine s'ouvre avec ses workflows, ses timelines et ses ressources. Les chats, storyboards, scripts, croquis, apps et scripts JS ne suivent pas le dossier.",
         "openFolderError": "Impossible d'ouvrir le dossier : {{error}}"
       },
       "folder": {

@@ -6218,6 +6218,7 @@
         "createError": "Não foi possível criar o projeto: {{error}}",
         "openFolder": "Abrir pasta…",
         "openFolderHint": "Já tem uma pasta? Abra-a como projeto. Nenhum arquivo é movido.",
+        "openFolderTravels": "Uma pasta copiada de outra máquina abre com seus fluxos de trabalho, linhas do tempo e recursos. Chats, storyboards, roteiros, esboços, apps e scripts JS não acompanham a pasta.",
         "openFolderError": "Não foi possível abrir a pasta: {{error}}"
       },
       "folder": {

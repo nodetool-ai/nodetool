@@ -41,7 +41,7 @@ import {
 const log = createLogger("nodetool.execution.project-folder");
 
 /** The manifest's file name inside the folder's reserved directory. */
-const PROJECT_MANIFEST_FILE = "project.json";
+export const PROJECT_MANIFEST_FILE = "project.json";
 
 /** Where the manifest that identifies a project folder lives in it. */
 export const PROJECT_MANIFEST_PATH = `${RESERVED_WORKSPACE_DIR}/${PROJECT_MANIFEST_FILE}`;

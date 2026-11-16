@@ -6139,6 +6139,7 @@
         "createError": "无法创建项目：{{error}}",
         "openFolder": "打开文件夹…",
         "openFolderHint": "已有文件夹？将其作为项目打开。不会移动任何文件。",
+        "openFolderTravels": "从另一台电脑复制来的文件夹会连同其工作流、时间线和素材一起打开。聊天、故事板、脚本、草图、应用和 JS 脚本不会随文件夹一起迁移。",
         "openFolderError": "无法打开文件夹：{{error}}"
       },
       "folder": {

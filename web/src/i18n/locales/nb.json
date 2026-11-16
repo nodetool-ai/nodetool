@@ -6139,6 +6139,7 @@
         "createError": "Kunne ikke opprette prosjektet: {{error}}",
         "openFolder": "Åpne mappe…",
         "openFolderHint": "Har du allerede en mappe? Åpne den som et prosjekt. Ingen filer flyttes.",
+        "openFolderTravels": "En mappe kopiert fra en annen maskin åpnes med arbeidsflytene, tidslinjene og ressursene sine. Chatter, storyboards, manus, skisser, apper og JS-skript følger ikke med mappen.",
         "openFolderError": "Kunne ikke åpne mappen: {{error}}"
       },
       "folder": {

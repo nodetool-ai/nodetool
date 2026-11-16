@@ -6218,6 +6218,7 @@
         "createError": "Impossibile creare il progetto: {{error}}",
         "openFolder": "Apri cartella…",
         "openFolderHint": "Hai già una cartella? Aprila come progetto. Nessun file viene spostato.",
+        "openFolderTravels": "Una cartella copiata da un altro computer si apre con i suoi flussi di lavoro, le timeline e gli asset. Chat, storyboard, script, schizzi, app e script JS non viaggiano con la cartella.",
         "openFolderError": "Impossibile aprire la cartella: {{error}}"
       },
       "folder": {

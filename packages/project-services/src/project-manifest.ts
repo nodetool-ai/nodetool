@@ -11,8 +11,10 @@
  * manifest's place only once they are complete, so a write that is
  * interrupted leaves the previous manifest as it was.
  */
+import { z } from "zod";
 import { createLogger } from "@nodetool-ai/config";
 import { Asset } from "@nodetool-ai/models";
+import { isFullResourceId } from "@nodetool-ai/protocol";
 import type { Workspace } from "@nodetool-ai/runtime";
 import {
   ProjectFolderUnavailableError,
@@ -102,6 +104,65 @@ export async function writeAssetManifest(
   );
   await nodetoolDir.move(ASSET_MANIFEST_TEMP_FILE, ASSET_MANIFEST_FILE);
   return true;
+}
+
+/** A SHA-256 in hex, the form both hashes of an entry are written in. */
+const SHA_256 = /^[0-9a-f]{64}$/;
+/** Longest path an entry may name, in characters. */
+const MAX_MANIFEST_PATH = 4096;
+
+/**
+ * One entry as a manifest holds it. The ID and the path decide whether the
+ * entry is used at all. A fingerprint part that is not of its type reads as
+ * not recorded, which makes the reconcile read the file.
+ */
+const manifestEntry = z.object({
+  id: z.string().refine(isFullResourceId),
+  path: z.string().min(1).max(MAX_MANIFEST_PATH),
+  size: z.number().int().nonnegative().nullable().catch(null),
+  mtime: z.number().nonnegative().nullable().catch(null),
+  partial_hash: z.string().regex(SHA_256).nullable().catch(null),
+  content_hash: z.string().regex(SHA_256).optional().catch(undefined)
+});
+
+const manifestFile = z.object({
+  format: z.literal("nodetool.assets"),
+  version: z.literal(1),
+  assets: z.array(z.json())
+});
+
+/**
+ * The entries of the manifest in `nodetoolDir`, for restoring a folder that
+ * another install wrote. Empty when the folder has no manifest or the file is
+ * not one.
+ *
+ * The file is read as untrusted input. An entry is kept only when its ID has
+ * the shape NodeTool generates and its path is a string. Any other entry is
+ * left out, and the rest are still returned. The caller checks each path
+ * against the folder.
+ */
+export async function readAssetManifest(
+  nodetoolDir: Workspace
+): Promise<AssetManifestEntry[]> {
+  const text = await nodetoolDir.readText(ASSET_MANIFEST_FILE);
+  if (text === null) return [];
+  let parsed: z.infer<typeof manifestFile>;
+  try {
+    parsed = manifestFile.parse(JSON.parse(text));
+  } catch (error) {
+    log.warn("Ignored an asset manifest that could not be read", {
+      error: error instanceof Error ? error.message : String(error)
+    });
+    return [];
+  }
+  const entries: AssetManifestEntry[] = [];
+  for (const candidate of parsed.assets) {
+    const entry = manifestEntry.safeParse(candidate);
+    if (!entry.success) continue;
+    const { content_hash, ...fields } = entry.data;
+    entries.push(content_hash ? { ...fields, content_hash } : fields);
+  }
+  return entries;
 }
 
 const writes = new Map<string, Promise<void>>();

@@ -27,15 +27,32 @@ A native game never writes into a project folder. Each game keeps its own folder
 
 ### Open a folder as a project
 
-On the desktop app, **New project → Open folder…** makes a folder you already have into a project (`projects.openFolder({ path, name? })`). No file moves. NodeTool writes only `.nodetool/project.json`, and only when the folder has none. The folder must be inside `NODETOOL_LOCAL_FILE_ROOTS` (your home folder by default), exist, and be writable. A folder that is another project's folder, sits inside one, or contains one is refused with that project's name. The check compares real paths, so a symlink into a project folder is refused too. A server with `NODETOOL_ENV=production` refuses it and shows no **Open folder** entry.
+On the desktop app, **New project → Open folder…** makes a folder you already have into a project (`projects.openFolder({ path, name? })`). No file moves. In a folder that was never a project, NodeTool writes only `.nodetool/project.json`. The folder must be inside `NODETOOL_LOCAL_FILE_ROOTS` (your home folder by default), exist, and be writable. A folder that is another project's folder, sits inside one, or contains one is refused with that project's name. The check compares real paths, so a symlink into a project folder is refused too. A server with `NODETOOL_ENV=production` refuses it and shows no **Open folder** entry.
 
-When the folder already has `.nodetool/project.json`:
+### Open a project folder from another machine
+
+A project folder carries its workflows and timelines as files, its media, and the asset manifest. Copy the folder to another machine and open it there with **Open folder…**. The project opens with its workflows, timelines and assets, and the references between them work.
+
+Chats, storyboards, scripts, sketches, apps and JS scripts are not files in the folder. They stay on the machine they were made on, and the **Open folder** dialog says so. A reference from a workflow or a timeline to one of them names a document the new machine does not have. Linked media stays where it is too, because its file is outside the folder.
+
+What happens depends on the project `.nodetool/project.json` names:
 
 | The manifest's project | Result |
 | --- | --- |
-| Unknown on this install | The project is created under that id |
-| Yours, and its recorded folder is gone | The project moves to this folder |
-| Yours, and its recorded folder still exists | Refused: `This folder is a copy of project "<name>"` |
+| Unknown on this install | The project is created under that ID. Each asset in `.nodetool/assets.json` gets a row with the ID and path the manifest records. Each workflow and timeline is created from its file under the ID in the file. |
+| Yours, and its recorded folder is gone | The project moves to this folder and keeps every row and ID. |
+| Yours, and its recorded folder still exists | The folder is a copy. It becomes a second project with a new ID, named after the folder unless you typed a name. Its assets, workflows and timelines get new IDs. |
+| Another user's, or a project you deleted | Refused: `This folder belongs to a project that cannot be opened here` |
+
+A copy shares no ID with the project it was copied from. NodeTool writes the new IDs into the copy: `.nodetool/project.json`, `.nodetool/assets.json`, and each workflow and timeline file, where an asset, workflow or timeline ID of the original is replaced by the ID of the copy's own asset, workflow or timeline. The original project, its rows and its folder are not changed. Editing a workflow in the copy changes the copy's file only. A copy of a folder NodeTool created still carries `.nodetool/created.json`, which names the original project and does not apply to the copy.
+
+A folder opened this way is a folder you brought, on either machine. Deleting its project keeps every file in it except `.nodetool/`.
+
+An asset whose file is not in the folder gets its row and is marked offline. It reports as missing, and Relink or restoring the file at its path brings it back. The rest of the project opens. A media file the manifest does not list gets a new row, as in any folder.
+
+An ID in the folder that a row on this install already has is replaced by a new ID. This happens when the asset, workflow or timeline ID belongs to another user or to another project. The references to it in the folder's workflow and timeline files are rewritten to the new ID, and the row that had the ID is not changed. References are rewritten only for IDs of the 32-character form NodeTool generates.
+
+The files in the folder are read as untrusted input. A manifest entry is used only when its ID has the form NodeTool generates and its path names a file place inside the folder. A path that leaves the folder, names `.nodetool/`, is absolute, or reaches its file through a symbolic link out of the folder is left out. Opening a folder never deletes or moves a file in it. The only files it changes are `.nodetool/project.json` and `.nodetool/assets.json`, and the workflow and timeline files in which an ID was replaced.
 
 ### Locate a moved folder
 
@@ -129,7 +146,7 @@ Each project folder carries `.nodetool/assets.json`, next to `.nodetool/project.
 }
 ```
 
-`content_hash` is absent until the background job has read the file. NodeTool rewrites the manifest a moment after the index changes. New contents go to `.nodetool/assets.json.tmp` first and replace the manifest once they are complete, so an interrupted write leaves the previous manifest intact. The database stays the source NodeTool reads assets from. The manifest travels with the folder.
+`content_hash` is absent until the background job has read the file. NodeTool rewrites the manifest a moment after the index changes. New contents go to `.nodetool/assets.json.tmp` first and replace the manifest once they are complete, so an interrupted write leaves the previous manifest intact. The database stays the source NodeTool reads assets from. The manifest travels with the folder, and [opening the folder on another machine](#open-a-project-folder-from-another-machine) restores the asset IDs from it.
 
 ### Folders in the asset browser
 
@@ -297,7 +314,7 @@ Projects create and adopt their folders through `projects.create`, so no API cre
 | `Path traversal not allowed` (`403`) | A relative path escaped the workspace root |
 | `Project folder not found: <folder>` | A run's project folder is missing, unreachable or not recorded. Reconnect the drive, restore the folder, or use **Locate**, then run again |
 | `This folder is inside the folder of project "<name>"`, `contains the folder of`, `is already the folder of` | Opening or locating a folder that overlaps another project's folder |
-| `This folder is a copy of project "<name>"` | The folder's manifest names a project whose folder still exists |
+| `This folder belongs to a project that cannot be opened here` | The folder's manifest names a project of another user, or a project you deleted |
 | `This folder belongs to project "<name>"` | Locate was given another project's folder |
 | `Opening a folder as a project is disabled on this server` | Open folder or Locate with `NODETOOL_ENV=production` |
 | `Path '<path>' is inside .nodetool/, which NodeTool reserves for its own files` | A tool, node or script used a path in `.nodetool/` |
