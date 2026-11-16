@@ -119,7 +119,7 @@ import {
 import { invalidateSharedAssets } from "../../lib/shared-assets.js";
 import {
   checkAttach,
-  ensureCurrentSet,
+  publishSave,
   ensureVersionSets
 } from "../../lib/document-refs.js";
 
@@ -649,7 +649,7 @@ export const workflowsRouter = router({
         }
         fields.access = input.access;
       }
-      await checkAttach(
+      const toAdmit = await checkAttach(
         "workflow",
         { id: workflow.id, user_id: workflow.user_id, before: workflow.graph ?? null },
         ctx.userId,
@@ -666,7 +666,7 @@ export const workflowsRouter = router({
           "Workflow was modified since last read (optimistic concurrency conflict)"
         );
       }
-      await ensureCurrentSet("workflow", savedWorkflow);
+      await publishSave("workflow", savedWorkflow, toAdmit);
       await syncTriggerRegistrations(savedWorkflow);
       recordAutosave(input.id, Date.now());
 
@@ -894,7 +894,7 @@ export const workflowsRouter = router({
         // concurrent edit, and the restored graph's trigger nodes must be
         // armed or disarmed like any other graph change.
         await ensureVersionSets("workflow", workflow);
-        await checkAttach(
+        const toAdmit = await checkAttach(
           "workflow",
           { id: workflow.id, user_id: workflow.user_id, before: workflow.graph ?? null },
           ctx.userId,
@@ -911,7 +911,7 @@ export const workflowsRouter = router({
             "Workflow was modified since last read (optimistic concurrency conflict)"
           );
         }
-        await ensureCurrentSet("workflow", restored);
+        await publishSave("workflow", restored, toAdmit);
         await syncTriggerRegistrations(restored);
         return toWorkflowResponse(restored);
       }),
@@ -1181,7 +1181,7 @@ export const workflowsRouter = router({
             graph: parseSharedGraph(source.graph),
             settings: source.settings,
             run_mode: source.run_mode
-          })
+          }, undefined, { checkAttach: false })
         );
         return toWorkflowResponse(copy);
       }),

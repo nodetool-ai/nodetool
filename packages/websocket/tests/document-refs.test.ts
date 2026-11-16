@@ -31,6 +31,7 @@ import {
   isAssetIdSharedWithUser
 } from "../src/lib/shared-assets.js";
 import { forgetPermissions } from "../src/lib/permissions.js";
+import { ensureCurrentSet } from "../src/lib/document-refs.js";
 import { resetUserDirectoryCache } from "../src/lib/user-directory.js";
 
 const createCaller = createCallerFactory(appRouter);
@@ -90,6 +91,16 @@ async function shareTimeline(
   const link = await as.documentSharing.createLink({ type: "timeline", id, role });
   await redeemer.documentSharing.accept({ token: link.token });
   return link;
+}
+
+/** The files of a timeline's current reference sets, in `scope`. */
+async function currentFiles(id: string, scope: "viewer" | "editor") {
+  const files: string[] = [];
+  for (const set of await DocumentRefs.listSets("timeline", id)) {
+    if (!DocumentRefs.isCurrentKey(set.versionId)) continue;
+    files.push(...(await DocumentRefs.filesOf("timeline", id, scope, set.versionId)));
+  }
+  return files.sort();
 }
 
 /** The read rule as the storage routes ask it, without the cache. */
@@ -201,7 +212,7 @@ describe("reference sets and file authorization", () => {
     await shareTimeline(owner(), seq.id, "viewer", guest());
 
     expect(await guestReads(foreign, OTHER)).toBe(false);
-    expect(await DocumentRefs.filesOf("timeline", seq.id, "viewer")).toEqual([]);
+    expect(await currentFiles(seq.id, "viewer")).toEqual([]);
   });
 
   describe("attach rule (TC19)", () => {
@@ -218,7 +229,7 @@ describe("reference sets and file authorization", () => {
       expect(await DocumentRefs.admitted("timeline", seq.id)).toEqual(
         new Set([mine])
       );
-      expect(await DocumentRefs.filesOf("timeline", seq.id, "viewer")).toEqual([
+      expect(await currentFiles(seq.id, "viewer")).toEqual([
         mine
       ]);
     });
@@ -271,6 +282,76 @@ describe("reference sets and file authorization", () => {
       );
     });
 
+    it("admits nothing when the save loses its compare-and-set", async () => {
+      const seq = await timelineOf(owner(), []);
+      await shareTimeline(owner(), seq.id, "editor", guest());
+      const mine = await assetOf(GUEST);
+      const cas = vi
+        .spyOn(TimelineSequence, "updateFieldsIfUnchanged")
+        .mockResolvedValueOnce(null);
+
+      await expect(
+        guest().timeline.update({
+          id: seq.id,
+          document: { tracks: [], clips: [], markers: markers([mine]) }
+        })
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+      cas.mockRestore();
+
+      expect(await DocumentRefs.admitted("timeline", seq.id)).toEqual(new Set());
+      await shareTimeline(owner(), seq.id, "viewer", other());
+      invalidateSharedAssets();
+      expect(await isAssetIdSharedWithUser(OTHER, GUEST, mine)).toBe(false);
+    });
+
+    it("admits a file read through a document no one has read yet", async () => {
+      const seq = await timelineOf(owner(), []);
+      await shareTimeline(owner(), seq.id, "editor", guest());
+      const foreign = await assetOf(OTHER);
+      const source = await other().timeline.create({ name: "Src", projectId: "default" });
+      const row = (await TimelineSequence.findById(source.id)) as TimelineSequence;
+      const document = JSON.parse(row.document as string) as Record<string, unknown>;
+      // Written past the routers, so no reference set of the source exists.
+      await TimelineSequence.updateFieldsIfUnchanged(source.id, row.updated_at, {
+        document: JSON.stringify({ ...document, markers: markers([foreign]) })
+      });
+      const link = await shareTimeline(other(), source.id, "viewer", guest());
+      await other().documentSharing.setLinkOptions({
+        type: "timeline",
+        id: source.id,
+        share_id: link.id,
+        options: { allow_duplicate: true }
+      });
+      expect(await DocumentRefs.documentsWithFile("timeline", foreign)).toEqual([]);
+
+      await guest().timeline.update({
+        id: seq.id,
+        document: { tracks: [], clips: [], markers: markers([foreign]) }
+      });
+      expect(await DocumentRefs.admitted("timeline", seq.id)).toEqual(
+        new Set([foreign])
+      );
+    });
+
+    it("refuses a file the creator cannot read when a workflow is created", async () => {
+      const foreign = await assetOf(OTHER);
+      const graph = {
+        nodes: [
+          {
+            id: "n1",
+            type: "nodetool.constant.Image",
+            data: {},
+            properties: { value: { type: "image", uri: `asset://${foreign}.png` } }
+          }
+        ],
+        edges: []
+      };
+      await expect(
+        guest().workflows.create({ name: "Lift", access: "private", graph } as never)
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      expect((await guest().workflows.list({})).workflows).toEqual([]);
+    });
+
     it("lets the owner keep files the document already held", async () => {
       const foreign = await assetOf(OTHER);
       const seq = await owner().timeline.create({ name: "Cut", projectId: "default" });
@@ -288,6 +369,31 @@ describe("reference sets and file authorization", () => {
       });
       expect((await owner().timeline.get({ id: seq.id })).name).toBe("Recut");
     });
+  });
+
+  it("ignores a set a slow reader computed from earlier content", async () => {
+    const mine = await assetOf(OWNER);
+    const seq = await timelineOf(owner(), [mine]);
+    await shareTimeline(owner(), seq.id, "viewer", guest());
+    const before = (await TimelineSequence.findById(seq.id)) as TimelineSequence;
+
+    await owner().timeline.update({
+      id: seq.id,
+      document: { tracks: [], clips: [], markers: markers([]) }
+    });
+    // A reader that loaded the row before that save writes its set between
+    // the guest's check of the current set and the guest's read of it.
+    const realFilesOf = DocumentRefs.filesOf.bind(DocumentRefs);
+    const filesOf = vi
+      .spyOn(DocumentRefs, "filesOf")
+      .mockImplementationOnce(async (...args: Parameters<typeof realFilesOf>) => {
+        await ensureCurrentSet("timeline", before);
+        return realFilesOf(...args);
+      });
+
+    expect(await guestReads(mine)).toBe(false);
+    expect(filesOf).toHaveBeenCalled();
+    filesOf.mockRestore();
   });
 
   describe("history (AC26)", () => {

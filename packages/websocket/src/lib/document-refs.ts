@@ -14,12 +14,18 @@
  * writer may read on a document the writer may duplicate. Otherwise it is
  * refused with FILE_NOT_READABLE and nothing is written.
  *
- * Sets are written after each checked save and computed again whenever the
- * stored content no longer matches the hash a set was computed from, so a
- * write through any other path is reflected on the next read. A computed set
- * holds a file only when the document's owner owns it or the attach rule
- * admitted it, so a reference that reached a document without the check
- * exposes nothing of another library.
+ * The current set is keyed by the hash of the content it was computed from.
+ * An authorization reads the document, hashes the content it holds now and
+ * consults exactly that set, computing it when missing. A set computed from
+ * an older read is therefore never read as current. A save publishes the
+ * set of the content it stored, after its compare-and-set succeeded, and
+ * removes the other current sets.
+ *
+ * A computed set holds a file only when the document's owner owns it or the
+ * attach rule admitted it, so a reference that reached a document without
+ * the check exposes nothing of another library. The attach rule only reads:
+ * a save admits files after its compare-and-set succeeded, so a refused or
+ * conflicting save admits nothing.
  */
 
 import { createHash } from "node:crypto";
@@ -39,13 +45,6 @@ import type { EffectiveAccessItem } from "@nodetool-ai/protocol/api-schemas/work
 import { ApiErrorCode } from "../error-codes.js";
 import { throwApiError } from "../trpc/error-formatter.js";
 import { effectiveAccess } from "./document-access.js";
-
-const ALL_SCOPES: readonly DocumentRefScopeValue[] = [
-  "viewer",
-  "editor",
-  "version_viewer",
-  "version_editor"
-];
 
 /** Versions read per document when its version sets are computed. */
 const VERSION_LIMIT = 1000;
@@ -114,25 +113,57 @@ async function eligibleFiles(
   return ids.filter((id) => owned.has(id) || admitted.has(id));
 }
 
+async function writeCurrentSet(
+  kind: RefDocumentKind,
+  document: RefDocument,
+  content: unknown,
+  key: string,
+  hash: string
+): Promise<void> {
+  const files = await eligibleFiles(kind, document, content);
+  // Whole documents in phase 1: the viewer and editor sets are equal.
+  await DocumentRefs.writeSet(kind, document.id, key, hash, {
+    viewer: files,
+    editor: files
+  });
+}
+
 /**
- * Write the current revision's set when it is missing or stale. Call it after
- * a save, and before reading the set.
+ * The key of the current set of `document` as loaded, writing the set when
+ * it is missing. Load the document right before, so the key names the
+ * content stored now.
  */
 export async function ensureCurrentSet(
   kind: RefDocumentKind,
   document: RefDocument
-): Promise<void> {
+): Promise<string> {
   const content = currentContent(kind, document);
   const hash = contentHash(content);
-  const sets = await DocumentRefs.listSets(kind, document.id);
-  const current = sets.find((s) => s.versionId === DocumentRefs.CURRENT);
-  if (current?.contentHash === hash) return;
-  const files = await eligibleFiles(kind, document, content);
-  // Whole documents in phase 1: the viewer and editor sets are equal.
-  await DocumentRefs.writeSet(kind, document.id, DocumentRefs.CURRENT, hash, {
-    viewer: files,
-    editor: files
-  });
+  const key = DocumentRefs.currentKey(hash);
+  if (!(await DocumentRefs.hasSet(kind, document.id, key))) {
+    await writeCurrentSet(kind, document, content, key, hash);
+  }
+  return key;
+}
+
+/**
+ * After a save's compare-and-set succeeded: admit the files the attach rule
+ * allowed, write the set of the stored content, and remove the sets of
+ * earlier content. `document` is the row the save returned.
+ */
+export async function publishSave(
+  kind: RefDocumentKind,
+  document: RefDocument,
+  toAdmit: readonly string[]
+): Promise<void> {
+  if (toAdmit.length > 0) await DocumentRefs.admit(kind, document.id, toAdmit);
+  const content = currentContent(kind, document);
+  const hash = contentHash(content);
+  const key = DocumentRefs.currentKey(hash);
+  // Rewritten even when present: a reader may have computed it before the
+  // admissions above.
+  await writeCurrentSet(kind, document, content, key, hash);
+  await DocumentRefs.removeOtherCurrentSets(kind, document.id, key);
 }
 
 /**
@@ -170,7 +201,7 @@ export async function ensureVersionSets(
     );
   }
   for (const set of sets) {
-    if (set.versionId === DocumentRefs.CURRENT || live.has(set.versionId)) {
+    if (DocumentRefs.isCurrentKey(set.versionId) || live.has(set.versionId)) {
       continue;
     }
     await DocumentRefs.removeSet(kind, document.id, set.versionId);
@@ -201,9 +232,15 @@ export async function isFileInReadableSet(
   access: EffectiveAccessItem,
   file: string
 ): Promise<boolean> {
-  await ensureCurrentSet(kind, document);
+  const current = await ensureCurrentSet(kind, document);
   if (readsVersions(access)) await ensureVersionSets(kind, document);
-  return DocumentRefs.contains(kind, document.id, file, readableScopes(access));
+  return DocumentRefs.contains(
+    kind,
+    document.id,
+    file,
+    readableScopes(access),
+    current
+  );
 }
 
 /** The workflows and timelines `userId` holds a grant on, each once. */
@@ -246,12 +283,12 @@ export async function readableSharedFiles(
     if (!document || document.user_id === userId) continue;
     const access = await effectiveAccess(userId, kind, id);
     if (!access) continue;
-    await ensureCurrentSet(kind, document);
+    const current = await ensureCurrentSet(kind, document);
     if (readsVersions(access)) await ensureVersionSets(kind, document);
     const scopes = readableScopes(access);
     for (const scope of scopes) {
       if (scope === "viewer" || scope === "editor") {
-        for (const file of await DocumentRefs.filesOf(kind, id, scope)) {
+        for (const file of await DocumentRefs.filesOf(kind, id, scope, current)) {
           files.add(file);
         }
       }
@@ -259,7 +296,7 @@ export async function readableSharedFiles(
     if (readsVersions(access)) {
       const sets = await DocumentRefs.listSets(kind, id);
       for (const set of sets) {
-        if (set.versionId === DocumentRefs.CURRENT) continue;
+        if (DocumentRefs.isCurrentKey(set.versionId)) continue;
         for (const scope of scopes) {
           if (scope !== "version_viewer" && scope !== "version_editor") continue;
           for (const file of await DocumentRefs.filesOf(kind, id, scope, set.versionId)) {
@@ -272,21 +309,40 @@ export async function readableSharedFiles(
   return files;
 }
 
+/**
+ * The documents that may show `file` to `writerId`: those with a stored set
+ * naming it, and every workflow and timeline shared with the writer, whose
+ * sets may not have been computed yet.
+ */
+async function attachCandidates(
+  writerId: string,
+  file: string
+): Promise<Array<{ kind: RefDocumentKind; id: string }>> {
+  const out = await grantedRefDocuments(writerId);
+  const seen = new Set(out.map((d) => `${d.kind}:${d.id}`));
+  for (const kind of ["workflow", "timeline"] as const) {
+    for (const id of await documentsShowing(kind, file)) {
+      if (seen.has(`${kind}:${id}`)) continue;
+      seen.add(`${kind}:${id}`);
+      out.push({ kind, id });
+    }
+  }
+  return out;
+}
+
 /** May `writerId` duplicate a document that shows `file`? */
 async function isFileReadableForAttach(
   writerId: string,
   file: string,
   exclude: { kind: RefDocumentKind; id: string }
 ): Promise<boolean> {
-  for (const kind of ["workflow", "timeline"] as const) {
-    for (const id of await documentsShowing(kind, file)) {
-      if (kind === exclude.kind && id === exclude.id) continue;
-      const access = await effectiveAccess(writerId, kind, id);
-      if (!access || !access.options.allow_duplicate) continue;
-      const document = await loadRefDocument(kind, id);
-      if (!document) continue;
-      if (await isFileInReadableSet(kind, document, access, file)) return true;
-    }
+  for (const { kind, id } of await attachCandidates(writerId, file)) {
+    if (kind === exclude.kind && id === exclude.id) continue;
+    const access = await effectiveAccess(writerId, kind, id);
+    if (!access || !access.options.allow_duplicate) continue;
+    const document = await loadRefDocument(kind, id);
+    if (!document) continue;
+    if (await isFileInReadableSet(kind, document, access, file)) return true;
   }
   return false;
 }
@@ -308,35 +364,39 @@ export interface AttachTarget {
   before: unknown;
 }
 
+/** The attach rule's answer for one save. */
+export interface AttachCheck {
+  /** The first file the writer may not add, or null. */
+  unreadable: string | null;
+  /** Files of other people to admit once the save is stored. */
+  toAdmit: string[];
+}
+
 /**
- * Apply the attach rule to a save of `content` by `writerId`, before anything
- * is written. Returns the first file the writer may not add, or null when the
- * save may go ahead. When it may, the other people's files it adds are
- * admitted to the document.
+ * Apply the attach rule to a save of `content` by `writerId`. It writes
+ * nothing: pass `toAdmit` to {@link publishSave} after the save's
+ * compare-and-set succeeded.
  */
 export async function findUnreadableFile(
   kind: RefDocumentKind,
   document: AttachTarget,
   writerId: string,
   content: unknown
-): Promise<string | null> {
+): Promise<AttachCheck> {
   const next = refsOf(kind, content);
-  if (next.length === 0) return null;
+  if (next.length === 0) return { unreadable: null, toAdmit: [] };
   const exists = document.before !== null;
   const before = new Set(exists ? refsOf(kind, document.before) : []);
   const admitted = await DocumentRefs.admitted(kind, document.id);
   const added = next.filter(
     (id) => !before.has(id) && !admitted.has(id) && isFullResourceId(id)
   );
-  if (added.length === 0) return null;
+  if (added.length === 0) return { unreadable: null, toAdmit: [] };
   const toAdmit: string[] = [];
   for (const file of added) {
     // A file a stored set of this document already names, such as one of a
     // version being restored, is not new to it.
-    if (
-      exists &&
-      (await DocumentRefs.contains(kind, document.id, file, ALL_SCOPES))
-    ) {
+    if (exists && (await DocumentRefs.namesFile(kind, document.id, file))) {
       continue;
     }
     const asset = (await Asset.get(file)) as Asset | null;
@@ -350,10 +410,9 @@ export async function findUnreadableFile(
       if (asset.user_id !== document.user_id) toAdmit.push(file);
       continue;
     }
-    return file;
+    return { unreadable: file, toAdmit: [] };
   }
-  if (toAdmit.length > 0) await DocumentRefs.admit(kind, document.id, toAdmit);
-  return null;
+  return { unreadable: null, toAdmit };
 }
 
 /** The message of a FILE_NOT_READABLE refusal. */
@@ -361,15 +420,27 @@ export function fileNotReadableMessage(file: string): string {
   return `File ${file} is not readable to you, so it cannot be added`;
 }
 
-/** {@link findUnreadableFile} for a tRPC procedure: refuses with FILE_NOT_READABLE. */
+/**
+ * {@link findUnreadableFile} for a tRPC procedure: refuses with
+ * FILE_NOT_READABLE, and returns the files to admit after the save.
+ */
 export async function checkAttach(
   kind: RefDocumentKind,
   document: AttachTarget,
   writerId: string,
   content: unknown
-): Promise<void> {
-  const file = await findUnreadableFile(kind, document, writerId, content);
-  if (file !== null) {
-    throwApiError(ApiErrorCode.FILE_NOT_READABLE, fileNotReadableMessage(file));
+): Promise<string[]> {
+  const { unreadable, toAdmit } = await findUnreadableFile(
+    kind,
+    document,
+    writerId,
+    content
+  );
+  if (unreadable !== null) {
+    throwApiError(
+      ApiErrorCode.FILE_NOT_READABLE,
+      fileNotReadableMessage(unreadable)
+    );
   }
+  return toAdmit;
 }

@@ -193,10 +193,10 @@ describe("DocumentRefs", () => {
       version_editor: ["a"]
     });
 
-    expect(await DocumentRefs.filesOf("timeline", DOC, "viewer")).toEqual(["b"]);
-    expect(await DocumentRefs.contains("timeline", DOC, "a", ["viewer"])).toBe(false);
+    expect(await DocumentRefs.filesOf("timeline", DOC, "viewer", "")).toEqual(["b"]);
+    expect(await DocumentRefs.contains("timeline", DOC, "a", ["viewer"], "")).toBe(false);
     expect(
-      await DocumentRefs.contains("timeline", DOC, "a", ["version_viewer"])
+      await DocumentRefs.contains("timeline", DOC, "a", ["version_viewer"], "")
     ).toBe(true);
     expect(await DocumentRefs.listSets("timeline", DOC)).toEqual(
       expect.arrayContaining([

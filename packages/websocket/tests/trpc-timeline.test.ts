@@ -7,10 +7,11 @@ import type { TimelineDocument } from "@nodetool-ai/models";
 // Reference sets live in the database this suite replaces with stubs. Their
 // behavior is covered by tests/document-refs.test.ts.
 vi.mock("../src/lib/document-refs.js", () => ({
-  checkAttach: vi.fn().mockResolvedValue(undefined),
-  findUnreadableFile: vi.fn().mockResolvedValue(null),
+  checkAttach: vi.fn().mockResolvedValue([]),
+  findUnreadableFile: vi.fn().mockResolvedValue({ unreadable: null, toAdmit: [] }),
   fileNotReadableMessage: (file: string) => file,
-  ensureCurrentSet: vi.fn().mockResolvedValue(undefined),
+  ensureCurrentSet: vi.fn().mockResolvedValue("current:"),
+  publishSave: vi.fn().mockResolvedValue(undefined),
   ensureVersionSets: vi.fn().mockResolvedValue(undefined),
   readableSharedFiles: vi.fn().mockResolvedValue(new Set())
 }));

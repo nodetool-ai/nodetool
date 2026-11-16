@@ -2,13 +2,14 @@
  * Stored reference sets and the files admitted into documents. See
  * schema/document-refs.ts and `refsOf` in @nodetool-ai/protocol.
  *
- * A set is written for one revision of one document: the current revision
- * (`version_id` empty) or a saved version. The set row records the hash of the
- * content it was computed from, so a reader can tell a set that a later write
- * made stale and compute it again.
+ * A set is written for one revision of one document: a saved version, keyed
+ * by the version id, or a current revision, keyed by `current:<content
+ * hash>`. Keying the current set by its content means a set computed from an
+ * older read can never stand in for the content stored now: an authorization
+ * reads the document, hashes its content and consults exactly that set.
  */
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, like, ne, notLike, or } from "drizzle-orm";
 import { createTimeOrderedUuid } from "./base-model.js";
 import { getPortableDb } from "./db.js";
 import {
@@ -33,8 +34,27 @@ export interface DocumentRefSetRow {
   contentHash: string;
 }
 
-const CURRENT = "";
+/** The key of a current set written before sets were keyed by content. */
+const LEGACY_CURRENT = "";
+const CURRENT_PREFIX = "current:";
 const IN_LIST_CHUNK = 500;
+
+/** The set key of the current revision whose content hashes to `contentHash`. */
+function currentKey(contentHash: string): string {
+  return `${CURRENT_PREFIX}${contentHash}`;
+}
+
+/** Whether a set key names a current revision rather than a saved version. */
+function isCurrentKey(versionId: string): boolean {
+  return versionId === LEGACY_CURRENT || versionId.startsWith(CURRENT_PREFIX);
+}
+
+/** Rows of saved versions only. */
+const versionRowsOnly = () =>
+  and(
+    ne(documentRefs.version_id, LEGACY_CURRENT),
+    notLike(documentRefs.version_id, `${CURRENT_PREFIX}%`)
+  );
 
 function setCondition(kind: string, documentId: string, versionId: string) {
   return and(
@@ -45,7 +65,8 @@ function setCondition(kind: string, documentId: string, versionId: string) {
 }
 
 export const DocumentRefs = {
-  CURRENT,
+  currentKey,
+  isCurrentKey,
 
   /** The set rows of a document, current and versions. */
   async listSets(
@@ -128,12 +149,28 @@ export const DocumentRefs = {
       .onConflictDoNothing();
   },
 
-  /** The files of the current revision's set of `scope`. */
+  /** Whether the set of one revision has been written. */
+  async hasSet(kind: string, documentId: string, versionId: string): Promise<boolean> {
+    const [row] = await getPortableDb()
+      .select({ id: documentRefSets.id })
+      .from(documentRefSets)
+      .where(
+        and(
+          eq(documentRefSets.document_type, kind),
+          eq(documentRefSets.document_id, documentId),
+          eq(documentRefSets.version_id, versionId)
+        )
+      )
+      .limit(1);
+    return row !== undefined;
+  },
+
+  /** The files of one revision's set of `scope`. */
   async filesOf(
     kind: string,
     documentId: string,
     scope: DocumentRefScopeValue,
-    versionId: string = CURRENT
+    versionId: string
   ): Promise<string[]> {
     const rows = await getPortableDb()
       .select({ file: documentRefs.file })
@@ -148,16 +185,37 @@ export const DocumentRefs = {
   },
 
   /**
-   * Whether `file` is in any of the given sets of a document. `scopes` lists
-   * the scopes the reader may read.
+   * Whether `file` is in a set of a document that the reader may read: the
+   * current set named by `current`, in the current scopes among `scopes`,
+   * or any saved version's set, in the version scopes among `scopes`. A
+   * current set of other content is never consulted.
    */
   async contains(
     kind: string,
     documentId: string,
     file: string,
-    scopes: readonly DocumentRefScopeValue[]
+    scopes: readonly DocumentRefScopeValue[],
+    current: string
   ): Promise<boolean> {
-    if (scopes.length === 0) return false;
+    const currentScopes = scopes.filter((s) => s === "viewer" || s === "editor");
+    const versionScopes = scopes.filter(
+      (s) => s === "version_viewer" || s === "version_editor"
+    );
+    const branches = [];
+    if (currentScopes.length > 0) {
+      branches.push(
+        and(
+          eq(documentRefs.version_id, current),
+          inArray(documentRefs.scope, currentScopes)
+        )
+      );
+    }
+    if (versionScopes.length > 0) {
+      branches.push(
+        and(versionRowsOnly(), inArray(documentRefs.scope, versionScopes))
+      );
+    }
+    if (branches.length === 0) return false;
     const [row] = await getPortableDb()
       .select({ id: documentRefs.id })
       .from(documentRefs)
@@ -166,11 +224,59 @@ export const DocumentRefs = {
           eq(documentRefs.document_type, kind),
           eq(documentRefs.document_id, documentId),
           eq(documentRefs.file, file),
-          inArray(documentRefs.scope, [...scopes])
+          or(...branches)
         )
       )
       .limit(1);
     return row !== undefined;
+  },
+
+  /** Whether any stored set of a document, current or saved, names `file`. */
+  async namesFile(kind: string, documentId: string, file: string): Promise<boolean> {
+    const [row] = await getPortableDb()
+      .select({ id: documentRefs.id })
+      .from(documentRefs)
+      .where(
+        and(
+          eq(documentRefs.document_type, kind),
+          eq(documentRefs.document_id, documentId),
+          eq(documentRefs.file, file)
+        )
+      )
+      .limit(1);
+    return row !== undefined;
+  },
+
+  /**
+   * Remove every current set of a document except `keep`. A save calls it
+   * after it publishes the set of the content it stored.
+   */
+  async removeOtherCurrentSets(
+    kind: string,
+    documentId: string,
+    keep: string
+  ): Promise<void> {
+    const db = getPortableDb();
+    const stale = (
+      await db
+        .select({ version_id: documentRefSets.version_id })
+        .from(documentRefSets)
+        .where(
+          and(
+            eq(documentRefSets.document_type, kind),
+            eq(documentRefSets.document_id, documentId),
+            or(
+              eq(documentRefSets.version_id, LEGACY_CURRENT),
+              like(documentRefSets.version_id, `${CURRENT_PREFIX}%`)
+            )
+          )
+        )
+    )
+      .map((r) => r.version_id)
+      .filter((v) => v !== keep);
+    for (const versionId of stale) {
+      await DocumentRefs.removeSet(kind, documentId, versionId);
+    }
   },
 
   /** Remove the set of one revision, such as a version that was pruned. */

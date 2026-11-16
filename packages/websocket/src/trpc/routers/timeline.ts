@@ -74,7 +74,7 @@ import {
 } from "../../lib/document-access.js";
 import {
   checkAttach,
-  ensureCurrentSet,
+  publishSave,
   ensureVersionSets
 } from "../../lib/document-refs.js";
 
@@ -602,9 +602,10 @@ export const timelineRouter = router({
       }
 
       // The attach rule: refuse a file the writer may not read, before
-      // anything is written.
+      // anything is written. Admissions wait for the stored save.
+      let toAdmit: string[] = [];
       if (fields.document !== undefined) {
-        await checkAttach(
+        toAdmit = await checkAttach(
           "timeline",
           { id: seq.id, user_id: seq.user_id, before: seq.document },
           ctx.userId,
@@ -626,7 +627,7 @@ export const timelineRouter = router({
         );
       }
       if (fields.document !== undefined) {
-        await ensureCurrentSet("timeline", updated);
+        await publishSave("timeline", updated, toAdmit);
       }
 
       if (input.document !== undefined) {
@@ -739,7 +740,7 @@ export const timelineRouter = router({
 
         const document = parseVersionDocument(version.document);
         await ensureVersionSets("timeline", seq);
-        await checkAttach(
+        const toAdmit = await checkAttach(
           "timeline",
           { id: seq.id, user_id: seq.user_id, before: seq.document },
           ctx.userId,
@@ -762,7 +763,7 @@ export const timelineRouter = router({
             "Timeline has been modified since last load"
           );
         }
-        await ensureCurrentSet("timeline", updated);
+        await publishSave("timeline", updated, toAdmit);
         return updated.toTimelineSequence();
       }),
 
