@@ -306,6 +306,7 @@ exclude:
   - plans/open-source-higgsfield-implementation.md
   - plans/provider-webhooks.md
   - plans/color-precision/
+  - plans/native-cloud-sync/
   # Native runner and editor plans. They cite native/ and web/ source, which
   # no built page can resolve, and only each other link to them.
   - plans/audio-signal-nodes.md
