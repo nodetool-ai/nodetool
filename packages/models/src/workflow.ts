@@ -14,7 +14,8 @@ import {
   createTimeOrderedUuid,
   nextUpdatedAtAfter
 } from "./base-model.js";
-import { getPortableDb } from "./db.js";
+import { allowLegacyProjectWritesForTests, getPortableDb } from "./db.js";
+import { projects } from "./schema/projects.js";
 import { eraseRunTraceParentForModelDeletion } from "./run-trace.js";
 import { workflows } from "./schema/workflows.js";
 import { WorkflowCollaborator } from "./workflow-collaborator.js";
@@ -193,6 +194,55 @@ export class Workflow extends DBModel {
       .update(workflows)
       .set(state)
       .where(eq(workflows.id, id));
+  }
+
+  /**
+   * Create a workflow without ever rewriting a row that already exists.
+   *
+   * `create()` and `save()` are upserts, and the primary key is
+   * install-global: an id the caller did not mint, such as one read from a
+   * file in a project folder, could otherwise replace the workflow of
+   * another user or another project. This inserts and answers null on
+   * conflict, leaving the existing row as it is. A lookup before the insert
+   * does not replace it, since another writer can create the row in between.
+   *
+   * It applies the project rule of every save: the project must be the
+   * owner's and not deleted. The file sync runs and the creation is
+   * announced, as for `create()`.
+   */
+  static async insertNew(
+    data: Record<string, unknown>
+  ): Promise<Workflow | null> {
+    const workflow = new Workflow(data);
+    workflow.beforeSave();
+    const db = getPortableDb();
+    if (workflow.project_id !== "default" && !allowLegacyProjectWritesForTests()) {
+      const [project] = await db
+        .select({ deletedAt: projects.deleted_at })
+        .from(projects)
+        .where(
+          and(
+            eq(projects.id, workflow.project_id),
+            eq(projects.user_id, workflow.user_id)
+          )
+        )
+        .limit(1);
+      if (!project) throw new Error("Project not found");
+      if (project.deletedAt) throw new Error("Project has been deleted");
+    }
+    const rows = await db
+      .insert(workflows)
+      // SAFETY: `toRow` holds the table's columns, which the constructor
+      // filled. The dynamic base model cannot express the insert shape.
+      .values(workflow.toRow() as typeof workflows.$inferInsert)
+      .onConflictDoNothing()
+      .returning();
+    const row = rows[0];
+    if (!row) return null;
+    const created = new Workflow(row);
+    await created.syncFile(null);
+    ModelObserver.notify(created, ModelChangeEvent.CREATED);
+    return created;
   }
 
   /** The workflows whose files belong in the folder of `projectIds`. */

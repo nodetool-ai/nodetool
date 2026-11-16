@@ -225,8 +225,9 @@ export const workflowFileAdapter: DocumentFileAdapter<
     );
   },
 
+  // Insert-only: the ID was read from a file and must never replace a row.
   create: ({ id, userId, projectId, name, fields }) =>
-    Workflow.create<Workflow>({
+    Workflow.insertNew({
       id,
       user_id: userId,
       project_id: projectId,
