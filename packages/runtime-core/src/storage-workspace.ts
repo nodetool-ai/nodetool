@@ -308,6 +308,15 @@ export interface StorageWorkspaceOptions {
   nestedFolders?: NestedFolderSource;
 }
 
+/** An adapter that publishes a file on this host by a streaming copy. */
+function hasStoreFile(
+  storage: StorageAdapter
+): storage is StorageAdapter & {
+  storeFile(key: string, sourcePath: string): Promise<string>;
+} {
+  return typeof (storage as { storeFile?: unknown }).storeFile === "function";
+}
+
 export class StorageWorkspace implements Workspace {
   readonly storage: StorageAdapter;
   readonly localDir: string | null;
@@ -981,6 +990,14 @@ export class StorageWorkspace implements Workspace {
         node.path.resolve(this.localDir, this.key(path))
     ) {
       // The binary already wrote in place — the workspace *is* that file.
+      return;
+    }
+    // A folder on this host takes the file with a bounded streaming copy,
+    // which also refuses a file above the upload limit, so a large file is
+    // never read into memory whole.
+    const { storage } = this;
+    if (this.localDir && hasStoreFile(storage)) {
+      await storage.storeFile(this.key(path), localPath);
       return;
     }
     await this.write(path, new Uint8Array(await node.fs.readFile(localPath)));
