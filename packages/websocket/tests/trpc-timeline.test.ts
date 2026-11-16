@@ -351,6 +351,19 @@ describe("timeline router", () => {
       expect(out.stripped).toBeUndefined();
     });
 
+    // The native editor saves back the sequence it read, which carries the
+    // row's schema version beside the document.
+    it("does not report the row's schemaVersion as a dropped field", async () => {
+      TS.findById.mockResolvedValue(makeSeq());
+      TS.update.mockResolvedValue(makeSeq());
+      const caller = createCaller(makeCtx());
+      const out = await caller.timeline.update({
+        id: "seq-1",
+        document: { tracks: [], clips: [], markers: [], schemaVersion: 1 }
+      } as never);
+      expect(out.stripped).toBeUndefined();
+    });
+
     // What the native editor keys, through the write it saves with.
     it("stores a clip's param curves and its Volume stash", async () => {
       TS.findById.mockResolvedValue(makeSeq());
