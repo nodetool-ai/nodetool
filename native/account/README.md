@@ -48,7 +48,9 @@ static library `nodetool_account`.
 | Session record | Keychain item, service `ai.nodetool.native`, account `<server origin>#<user id>` | Yes: refresh token, access token, revocation handles |
 | `account.lock` | `<data dir>/accounts/<server key>-<user key>/` | No |
 | `session.gen` | Same folder. 16 bytes: the generation, the state, the magic `NTG` | No |
-| `accounts.json` | `<data dir>/`, written under `accounts.lock` | No |
+| `signout.gen` | Same folder. The generation of the last sign-out, in the `session.gen` format | No |
+| `entry.json` | Same folder. The server, user id and display name, written at sign-in | No |
+| `accounts.json` | `<data dir>/`, written under `accounts.lock`. `AccountsIndex::list()` adds each `entry.json` it lacks | No |
 
 Both keys in the folder name are the first 16 hex characters of a SHA-256,
 of the server origin and of the user id. Every file is written to a
@@ -85,11 +87,21 @@ its requests and close its sockets at once.
   the server confirmed an earlier sign-out would otherwise overwrite the only
   copy of that handle.
 - A sign-out that cannot take the lock within its wait proceeds without it,
-  as the design says, and checks the generation file once more after its two
-  writes. A refresh that passed its own check in the microseconds between the
-  sign-out's writes and that check can still store its tokens. The window
-  needs a lock holder that is stuck for over 15 seconds and a response that
-  arrives inside it.
+  as the design says. It writes `signout.gen` before `session.gen` and the
+  record. No credential at or below that generation is used, so a refresh
+  that passed its check before the marker and publishes after it is undone:
+  the refresh rechecks the marker after its writes and signs out, and every
+  app refuses the credential before then.
+- A refresh or sign-out whose keychain write fails says so. The refresh
+  returns offline and does not adopt its tokens. The sign-out returns
+  `ServerEnd::NotSaved`, the marker still stops the credential, and the app
+  keeps the handles in memory so `endPendingSessions()` still ends them.
+- `authorizeRequest()` returns the credential with a cancel flag registered
+  under the session's mutex. A move to signed out cancels every flag, so a
+  request authorized just before a sign-out is stopped.
+- A sign-in writes `entry.json` before the record. When `accounts.json`
+  cannot be written, the account is still listed. When the record cannot be
+  stored, the sign-in flow ends the new session on the server.
 - The generation file is read with a 16-byte file read on every request.
   WP0.2 may replace this with a shared memory mapping.
 - The credential store calls the platform APIs directly instead of
