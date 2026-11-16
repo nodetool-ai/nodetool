@@ -44,7 +44,21 @@ import { isCreatableWithinRoot } from "./workspace-paths.js";
  */
 export interface HostBinaryRoot {
   cwd: string;
-  workspace: Pick<Workspace, "isNestedFolder">;
+  workspace: Pick<Workspace, "isNestedFolder" | "key">;
+}
+
+/**
+ * The real path a media reader or writer opens for the caller's path `file`.
+ *
+ * A caller can spell one file several ways: the workspace reads `workspace/x`
+ * and `/workspace/x` as `x`, takes `\` for `/`, and drops a drive letter.
+ * This is the one place that reading happens for a media path.
+ * {@link confineMediaPaths} judges the path this returns, and the capability
+ * opens the path this returns, so no spelling is judged as one file and
+ * opened as another. Throws for a path the workspace refuses lexically.
+ */
+export function hostMediaPath(root: HostBinaryRoot, file: string): string {
+  return path.join(root.cwd, ...root.workspace.key(file).split("/"));
 }
 
 /**
@@ -193,6 +207,10 @@ export async function confineArgvToWorkspace(
  *
  * Unlike {@link confineArgvToWorkspace} this takes whole paths, never argv,
  * so nothing is skipped as a flag: `-x/../../etc/passwd` is a path here.
+ *
+ * The path that is judged is the path that is opened, {@link hostMediaPath}.
+ * The path as written is held to the workspace as well, so an absolute path
+ * elsewhere on the host is refused by name and not read as workspace-relative.
  */
 export async function confineMediaPaths(
   paths: readonly string[],
@@ -210,18 +228,64 @@ export async function confineMediaPaths(
           `Only workspace files are readable. ${remedy}`
       };
     }
-    const resolved = path.resolve(workspace, file);
-    if (!(await isCreatableWithinRoot(workspace, resolved))) {
-      return {
-        error:
-          `"${file}" resolves outside the workspace. Paths are ` +
-          `workspace-relative and cannot escape it.`
-      };
+    const outside = {
+      error:
+        `"${file}" resolves outside the workspace. Paths are ` +
+        `workspace-relative and cannot escape it.`
+    };
+    let opened: string;
+    try {
+      opened = hostMediaPath(root, file);
+    } catch (error) {
+      return error instanceof WorkspaceReservedPathError
+        ? { error: error.message }
+        : outside;
     }
-    const other = await otherFolderRefusal(root, resolved, file);
+    const written = path.resolve(workspace, file);
+    if (
+      !(await isCreatableWithinRoot(workspace, written)) ||
+      !(await isCreatableWithinRoot(workspace, opened))
+    ) {
+      return outside;
+    }
+    // The opened path decides. The path as written is refused as well when
+    // it names another project's folder outright, so the refusal says why.
+    const other =
+      (await otherFolderRefusal(root, opened, file)) ??
+      (await otherFolderRefusal(root, written, file));
     if (other) return other;
   }
   return undefined;
+}
+
+/**
+ * Refuse a yt-dlp output template that could write outside the workspace or
+ * into the folder of another project, or `undefined` when it cannot.
+ *
+ * yt-dlp expands `%(field)s` after this check. A field in the directory part
+ * can therefore choose the directory: `projects/%(id).0sgame1/x.%(ext)s`
+ * expands to `projects/game1/x.mp4` and names no such directory before. The
+ * directory part must be literal, and it is that literal directory which is
+ * judged. yt-dlp replaces path separators in a field's value, so a field in
+ * the file name cannot leave the directory.
+ */
+export async function confineOutputTemplate(
+  template: string,
+  root: HostBinaryRoot
+): Promise<ArgvRefusal | undefined> {
+  const lastSeparator = Math.max(
+    template.lastIndexOf("/"),
+    template.lastIndexOf("\\")
+  );
+  if (template.slice(0, lastSeparator + 1).includes("%")) {
+    return {
+      error:
+        `The directory of the output template "${template}" cannot contain a ` +
+        `field. Name the directory literally and use fields in the file ` +
+        `name only, as in "downloads/%(title)s.%(ext)s".`
+    };
+  }
+  return confineArgvToWorkspace([template], root);
 }
 
 /**

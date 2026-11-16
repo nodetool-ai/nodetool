@@ -129,31 +129,50 @@ async function realPathWithinRoot(
   root: string,
   candidate: string
 ): Promise<boolean> {
+  return (await realKeyWithinRoot(root, candidate)) !== null;
+}
+
+/**
+ * Where `candidate` really is inside `root`, as a workspace key with every
+ * symlink resolved: "" for the root itself, null when the real location is
+ * outside the root or cannot be decided.
+ *
+ * The real key can differ from the key a caller wrote: `shortcut/x` is
+ * `games/tetris/x` when `shortcut` links to `games/tetris`. Whatever judges a
+ * path by its key judges this one as well.
+ */
+async function realKeyWithinRoot(
+  root: string,
+  candidate: string
+): Promise<string | null> {
   const { fs, path } = requireNode();
   const realRoot = await fs.realpath(root);
-  const within = (real: string): boolean => {
+  /** The key of `real` plus the segments below it that do not exist yet. */
+  const keyOf = (real: string, rest: readonly string[]): string | null => {
     const rel = path.relative(realRoot, real);
-    return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+    if (rel !== "" && (rel.startsWith("..") || path.isAbsolute(rel))) return null;
+    return [...(rel === "" ? [] : rel.split(path.sep)), ...rest].join("/");
   };
   try {
-    return within(await fs.realpath(candidate));
+    return keyOf(await fs.realpath(candidate), []);
   } catch {
     // Not resolvable — either absent, or a link with no target.
   }
   try {
     // Exists as a link whose target does not — never follow it.
     await fs.lstat(candidate);
-    return false;
+    return null;
   } catch {
     // Genuinely absent: the parent decides.
   }
   // Walk up to the nearest ancestor that exists — writing `out/deep/x.txt`
   // into a workspace that has neither directory yet is ordinary, and only the
   // first real ancestor can be resolved.
+  const rest = [path.basename(candidate)];
   let parent = path.dirname(candidate);
   while (true) {
     try {
-      return within(await fs.realpath(parent));
+      return keyOf(await fs.realpath(parent), rest);
     } catch {
       // realpath failed — either this ancestor is genuinely absent, or it is
       // itself a dangling symlink. lstat, not the loop's next iteration,
@@ -162,12 +181,13 @@ async function realPathWithinRoot(
       // straight at the root would resolve "within" by accident.
       try {
         await fs.lstat(parent);
-        return false;
+        return null;
       } catch {
         // Genuinely absent: keep climbing.
       }
       const next = path.dirname(parent);
-      if (next === parent) return false;
+      if (next === parent) return null;
+      rest.unshift(path.basename(parent));
       parent = next;
     }
   }
@@ -206,6 +226,12 @@ const nodeFs = getNodeBuiltinSync<typeof import("node:fs")>("node:fs");
  * through {@link NestedFolders}, so a folder known by its `.nodetool/`
  * directory and one the host names are refused alike. Containment in `root`
  * is the caller's check: a path outside it is not judged here.
+ *
+ * `target` must be the exact path that will be opened. A caller that reads
+ * its input more than one way (`workspace/x`, `x`, `C:/x`) resolves it once
+ * and hands that one result both here and to whatever opens it. The path is
+ * judged as written and as it really is, so a link inside the folder that
+ * points at another project's folder is refused too.
  */
 export async function assertLocalPathIsOwn(
   workspace: Pick<Workspace, "isNestedFolder">,
@@ -214,11 +240,22 @@ export async function assertLocalPathIsOwn(
   shown = target
 ): Promise<void> {
   const { path } = requireNode();
+  const nested = new NestedFolders(workspace);
   const inside = path.relative(path.resolve(root), path.resolve(target));
   // The root is the folder itself, which is never another project's.
   if (!inside || inside.startsWith("..") || path.isAbsolute(inside)) return;
   const key = inside.split(path.sep).join("/");
-  if (await new NestedFolders(workspace).covers(key)) {
+  if (await nested.covers(key)) {
+    throw new WorkspaceReservedPathError(shown, "nested");
+  }
+  // The same question for where the path really is, links resolved.
+  let realKey: string | null = null;
+  try {
+    realKey = await realKeyWithinRoot(root, path.resolve(target));
+  } catch {
+    // The root is not there: nothing can be opened under it.
+  }
+  if (realKey && realKey !== key && (await nested.covers(realKey))) {
     throw new WorkspaceReservedPathError(shown, "nested");
   }
 }
@@ -566,6 +603,7 @@ export class StorageWorkspace implements Workspace {
     // The lexical rules, the reserved directory among them, hold on every
     // backend. Only the symlink half below needs a real directory.
     const key = this.key(path);
+    let realKey = key;
     if (this.localDir) {
       // The root may not exist yet (a workspace folder created on first use).
       // Without this the walk below climbs past it to an ancestor that does
@@ -573,14 +611,20 @@ export class StorageWorkspace implements Workspace {
       // perfectly good workspace.
       await this.ensureRoot();
       const target = resolvePath(this.localDir, key);
-      if (!(await realPathWithinRoot(this.localDir, target))) {
-        throw new WorkspacePathError(path);
-      }
+      const real = await realKeyWithinRoot(this.localDir, target);
+      if (real === null) throw new WorkspacePathError(path);
+      realKey = real;
     }
-    const other = asDirectory
-      ? await this.nested.covers(key)
-      : await this.nested.holds(key);
-    if (other) throw new WorkspaceReservedPathError(path, "nested");
+    const isOther = (candidate: string): Promise<boolean> =>
+      asDirectory ? this.nested.covers(candidate) : this.nested.holds(candidate);
+    // Judged as written, and as it really is: a link inside the folder can
+    // point at another project's folder, which no `.nodetool/` need mark.
+    if (
+      (await isOther(key)) ||
+      (realKey !== key && realKey !== "" && (await this.nested.covers(realKey)))
+    ) {
+      throw new WorkspaceReservedPathError(path, "nested");
+    }
   }
 
   uri(path: string): string {

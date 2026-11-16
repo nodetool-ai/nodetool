@@ -25,6 +25,7 @@ import {
 import { PrefixedStorageAdapter } from "../src/prefixed-storage-adapter.js";
 import {
   StorageWorkspace,
+  assertLocalPathIsOwn,
   createWorkspace
 } from "../src/storage-workspace.js";
 import {
@@ -638,9 +639,15 @@ describe.each(backends)(
       `${INNER}/Generated`,
       `${INNER}/deep/er/new.txt`,
       `/workspace/${INNER}/notes.txt`,
+      `workspace/${INNER}/notes.txt`,
       `projects/../${INNER}/notes.txt`,
+      "projects\\abc\\notes.txt",
+      `C:/${INNER}/notes.txt`,
       `${GAME}/sprite.txt`,
-      `${GAME}/new/sprite.txt`
+      `${GAME}/new/sprite.txt`,
+      `workspace/${GAME}/sprite.txt`,
+      "games\\tetris\\sprite.txt",
+      `c:/${GAME}/sprite.txt`
     ])("refuses %s in every operation", async (path) => {
       const refused = WorkspaceReservedPathError;
       const local = join(dir, "outside.txt");
@@ -772,6 +779,26 @@ describe.each(backends)(
       expect(first).toBe(2);
       expect(marker(isLocal ? stats.mock.calls : lists.mock.calls)).toBe(2);
     });
+
+    it.runIf(isLocal)(
+      "refuses a path through a link that points at a folder the host names",
+      async () => {
+        // The game's folder has no `.nodetool/` to read through the link.
+        await symlink(join(dir, GAME), join(dir, "shortcut"), "dir");
+        const refused = WorkspaceReservedPathError;
+
+        await expect(workspace.read("shortcut/sprite.txt")).rejects.toThrow(refused);
+        await expect(workspace.write("shortcut/sprite.txt", "x")).rejects.toThrow(refused);
+        await expect(workspace.write("shortcut/new/a.txt", "x")).rejects.toThrow(refused);
+        await expect(workspace.list("shortcut")).rejects.toThrow(refused);
+        await expect(workspace.deleteAll("shortcut")).rejects.toThrow(refused);
+        await expect(workspace.materialize("shortcut/sprite.txt")).rejects.toThrow(refused);
+        await expect(
+          assertLocalPathIsOwn(workspace, dir, join(dir, "shortcut", "sprite.txt"))
+        ).rejects.toThrow(refused);
+        await expectNestedIntact();
+      }
+    );
 
     it("takes a key as it is, also below a directory named workspace", async () => {
       // `workspace/` at the start of a caller's path means the root. A key is

@@ -39,13 +39,17 @@ The files in it belong to that project or game. These surfaces of a run in the o
 | Surface | How it is guarded |
 | --- | --- |
 | Agent file tools, the Code node, JS scripts, save nodes with **Save to workspace** | They read and write through the outer folder's workspace, which refuses every operation on such a path: read, stat, list, write, copy, move, delete, and the staging of a file or directory for a host binary. |
-| `media_edit`, `media_probe`, `yt_dlp` | They hand real paths to libav or a host binary. Each input and output path is checked by the workspace's rule first. |
-| Document tools (`convert_document`, the PDF tools), sandbox file transfers | They open real paths with `node:fs`. Each path is checked by the workspace's rule first. |
+| `media_edit`, `media_probe` | They hand real paths to libav. Each input and output path is read once, the way the workspace reads it, and that one result is both checked by the workspace's rule and opened. `workspace/x`, `x`, `C:/x` and a path written with backslashes are therefore one file to the check and to the reader. |
+| `yt_dlp` | The output template is checked before yt-dlp expands it. Its directory must be literal: a field such as `%(id)s` is allowed in the file name only, so no field can choose the directory. |
+| Document tools (`convert_document`, the PDF tools), sandbox file transfers, the SQLite database path node | They open real paths with `node:fs`, or hand one to the workflow. The resolved path, which is the one opened, is checked by the workspace's rule first. |
+
+A path is judged as written and as it really is. A symbolic link inside the outer folder that points at an inner folder is refused like the inner folder itself.
 
 Not guarded:
 
 - **The Claude Agent provider's own file tools.** That provider runs the Claude Code CLI with the project folder as its working directory and with permission prompts off. The CLI's `Read`, `Write`, `Edit`, `Glob`, `Grep` and `Bash` open files themselves and never ask the workspace, so a chat or agent run on that provider can reach an inner folder on a local install.
-- **Host binaries a node starts in the folder**, such as Blender, and nodes that write to a folder you name instead of the workspace. They can open any path your user account can.
+- **Host binaries a node starts in the folder**, such as Blender and ManimGX. They run in a temporary directory inside the folder and can open any path your user account can.
+- **Save nodes with Save to workspace off.** They write to the folder the node names, or to the project folder when it names none, through `node:fs`. Media named by a `file://` URI is read from wherever the URI points. Neither is held to the workspace.
 
 The refusal is the one for `.nodetool/`, with its own message. Listings leave the inner folder out. Deleting a directory that holds an inner folder deletes the outer project's files around it and leaves the inner folder as it is. A directory that holds an inner folder cannot be moved or renamed. The outer folder's own root is never excluded.
 

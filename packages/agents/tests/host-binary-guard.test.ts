@@ -17,6 +17,8 @@ import {
   buildYtDlpArgv,
   confineArgvToWorkspace,
   confineMediaPaths,
+  confineOutputTemplate,
+  hostMediaPath,
   refuseFlagLikeValue
 } from "../src/host-binary-guard.js";
 
@@ -148,6 +150,33 @@ describe("confineArgvToWorkspace", () => {
   });
 });
 
+describe("confineOutputTemplate", () => {
+  const refusal = async (template: string): Promise<string> =>
+    (await confineOutputTemplate(template, hostRoot()))?.error ?? "";
+
+  it.each([
+    "projects/%(id).0sgame1/x.%(ext)s",
+    "games/%(id).0stetris/%(title)s.%(ext)s",
+    "%(uploader)s/%(title)s.%(ext)s",
+    "downloads\\%(id)s\\clip.%(ext)s"
+  ])("refuses %s, whose directory a field would choose", async (template) => {
+    await makeOtherFolders();
+    expect(await refusal(template)).toMatch(/directory.*cannot contain a field/);
+  });
+
+  it("passes a literal directory and refuses one in another folder", async () => {
+    await makeOtherFolders();
+    expect(await refusal("downloads/%(title)s [%(id)s].%(ext)s")).toBe("");
+    expect(await refusal("%(title)s.%(ext)s")).toBe("");
+    expect(await refusal("games/tetris/%(title)s.%(ext)s")).toMatch(
+      /folder of another project/
+    );
+    expect(await refusal("../outside/%(title)s.%(ext)s")).toMatch(
+      /outside the workspace/
+    );
+  });
+});
+
 describe("confineMediaPaths", () => {
   const refusal = async (paths: string[]): Promise<string> =>
     (await confineMediaPaths(paths, hostRoot(), "Name a workspace file."))?.error ?? "";
@@ -164,8 +193,56 @@ describe("confineMediaPaths", () => {
     await makeOtherFolders();
     expect(await refusal([file])).toMatch(/folder of another project/);
     expect(await refusal([path.join(workspace, file)])).toMatch(
-      /folder of another project/
+      /folder of another project|outside the workspace/
     );
+  });
+
+  // The media readers open `hostMediaPath`, which reads a path the way the
+  // workspace does. Every spelling of one file is judged as that file.
+  it.each([
+    "workspace/projects/abc/Generated/fox.mp4",
+    "workspace/games/tetris/clip.mp4",
+    "projects\\abc\\Generated\\fox.mp4",
+    "games\\tetris\\clip.mp4",
+    "workspace\\games\\tetris\\new.mp4",
+    "C:/projects/abc/Generated/fox.mp4",
+    "c:\\games\\tetris\\clip.mp4",
+    "workspace/projects/abc",
+    "projects/./abc/../abc/Generated/fox.mp4"
+  ])("refuses the spelling %s of a path in another folder", async (file) => {
+    await makeOtherFolders();
+    const result = await refusal([file]);
+    expect(result).toMatch(/folder of another project|outside the workspace/);
+    // The path that would be opened is in the other folder, whatever is said.
+    const opened = hostMediaPath(hostRoot(), file);
+    expect(
+      path.relative(workspace, opened).split(path.sep).slice(0, 2).join("/")
+    ).toMatch(/^(projects\/abc|games\/tetris)$/);
+  });
+
+  it("opens the path it judged, for every spelling of a file of the run", async () => {
+    await makeOtherFolders();
+    for (const file of [
+      "projects/own.mp4",
+      "workspace/projects/own.mp4",
+      "projects\\own.mp4",
+      "C:/projects/own.mp4"
+    ]) {
+      expect(hostMediaPath(hostRoot(), file)).toBe(
+        path.join(workspace, "projects", "own.mp4")
+      );
+    }
+    expect(await refusal(["workspace/projects/own.mp4", "projects\\own.mp4"])).toBe("");
+  });
+
+  it("refuses a link in the folder that points at a folder the host names", async () => {
+    await makeOtherFolders();
+    await createDirectoryLink(
+      path.join(workspace, "games/tetris"),
+      path.join(workspace, "shortcut")
+    );
+    expect(await refusal(["shortcut/clip.mp4"])).toMatch(/folder of another project/);
+    expect(await refusal(["shortcut/new/clip.mp4"])).toMatch(/folder of another project/);
   });
 
   it("still passes a file beside the folder of another project", async () => {

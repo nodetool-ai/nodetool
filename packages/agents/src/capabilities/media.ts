@@ -40,6 +40,7 @@ import type {
   Workspace
 } from "@nodetool-ai/runtime";
 import {
+  assertLocalPathIsOwn,
   currentGenerationReceipt,
   DEFAULT_YT_DLP_FORMAT,
   ensureRunFile,
@@ -62,8 +63,9 @@ import {
 import {
   MAX_DOWNLOAD_BYTES,
   buildYtDlpArgv,
-  confineArgvToWorkspace,
   confineMediaPaths,
+  confineOutputTemplate,
+  hostMediaPath,
   refuseFlagLikeValue
 } from "../host-binary-guard.js";
 import {
@@ -2240,7 +2242,9 @@ async function persistWorkspaceFile(
   let abs: string;
   try {
     const root = workspace.localDir ?? (await workspace.scratchDir());
-    abs = path.join(root, workspace.key(relPath));
+    abs = hostMediaPath({ cwd: root, workspace }, relPath);
+    // What a binary wrote is read back only when it is the run's own file.
+    await assertLocalPathIsOwn(workspace, root, abs, relPath);
   } catch (e) {
     return { persist_error: e instanceof Error ? e.message : String(e) };
   }
@@ -2520,7 +2524,9 @@ const mediaEdit: CapabilityExport = {
     );
     if (outputRefusal) return outputRefusal;
 
-    const absolute = (file: string): string => path.join(cwd, workspace.key(file));
+    // The same reading of a path that `confineMediaPaths` judged.
+    const absolute = (file: string): string =>
+      hostMediaPath({ cwd, workspace }, file);
     try {
       const outputDir =
         request.operation === "extract_frames"
@@ -2593,7 +2599,10 @@ const mediaProbe: CapabilityExport = {
     try {
       const report: Record<string, unknown> = {
         path: requested,
-        ...(await probeFile(path.join(cwd, workspace.key(probePath)), run.context.signal))
+        ...(await probeFile(
+          hostMediaPath({ cwd, workspace }, probePath),
+          run.context.signal
+        ))
       };
       if (Object.keys(prepared.staged).length > 0) {
         report["staged"] = prepared.staged;
@@ -2679,7 +2688,7 @@ const ytDlp: CapabilityExport = {
 
     // The template is the caller's, so it escapes the workspace as easily as
     // an edit path would. `format` reaches yt-dlp as a selector, never a path.
-    const refusal = await confineArgvToWorkspace([outputFile], {
+    const refusal = await confineOutputTemplate(outputFile, {
       cwd,
       workspace
     });

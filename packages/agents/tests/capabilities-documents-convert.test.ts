@@ -14,7 +14,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { unzipSync, strFromU8 } from "fflate";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { createLocalWorkspace } from "@nodetool-ai/runtime";
+import { createLocalWorkspace, resolveWorkspacePath } from "@nodetool-ai/runtime";
 import {
   convertDocument,
   convertMarkdownToPdf
@@ -282,6 +282,54 @@ describe("convert_document and the folder of another project", () => {
     })) as { status?: string; error?: string };
 
     expect(result.error).toMatch(/folder of another project/);
+    expect(existsSync(join(workspace, "out/stolen.html"))).toBe(false);
+  });
+
+  it("refuses every spelling of a path in the game's folder", async () => {
+    // The real resolver, which reads `workspace/` as the root, `\\` as `/`
+    // and drops a drive letter, as the run's context does.
+    const context = {
+      workspaceDir: workspace,
+      workspace: createLocalWorkspace(workspace, { nestedFolders: () => [GAME] }),
+      resolveWorkspacePath: (path: string) => resolveWorkspacePath(workspace, path)
+    } as unknown as ProcessingContext;
+    const spellings = (file: string): string[] => [
+      `workspace/${GAME}/${file}`,
+      `/workspace/${GAME}/${file}`,
+      `${GAME}/${file}`.replaceAll("/", "\\"),
+      `C:/${GAME}/${file}`,
+      `projects/../${GAME}/${file}`
+    ];
+
+    for (const output of spellings("game.json")) {
+      const result = (await convertDocument.impl(
+        createCapabilityRun({ context, gate: UNGATED }),
+        {
+          input_file: "report.md",
+          output_file: output,
+          from_format: "markdown",
+          to_format: "html"
+        }
+      )) as { status?: string; error?: string };
+      expect(result.status, output).not.toBe("success");
+      expect(result.error, output).toMatch(/folder of another project/);
+    }
+    for (const input of spellings("notes.md")) {
+      const result = (await convertDocument.impl(
+        createCapabilityRun({ context, gate: UNGATED }),
+        {
+          input_file: input,
+          output_file: "out/stolen.html",
+          from_format: "markdown",
+          to_format: "html"
+        }
+      )) as { status?: string; error?: string };
+      expect(result.error, input).toMatch(/folder of another project/);
+    }
+
+    expect(await readFile(join(workspace, GAME, "game.json"), "utf8")).toBe(
+      '{"game":"source"}'
+    );
     expect(existsSync(join(workspace, "out/stolen.html"))).toBe(false);
   });
 

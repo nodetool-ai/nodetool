@@ -682,7 +682,12 @@ describe("workspace path resolution", () => {
 
       for (const path of [
         "projects/game1/src.json",
-        join(root, "projects", "game1", "src.json")
+        join(root, "projects", "game1", "src.json"),
+        "workspace/projects/game1/src.json",
+        "/workspace/projects/game1/src.json",
+        "projects\\game1\\src.json",
+        "C:/projects/game1/src.json",
+        "projects/../projects/game1/src.json"
       ]) {
         await expect(ctx.sandboxToAsset(path)).rejects.toThrow(
           "folder of another project"

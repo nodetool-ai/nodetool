@@ -120,6 +120,65 @@ describe("the folder of another project inside the workspace", () => {
     await expect(stat(join(outer, folder, "New"))).rejects.toThrow();
   });
 
+  // One file has several spellings: the workspace reads `workspace/` as its
+  // root, `\\` as `/`, and drops a drive letter. Each must be judged as the
+  // file it opens.
+  const spellings = (folder: string, file: string): string[] => [
+    `workspace/${folder}/${file}`,
+    `/workspace/${folder}/${file}`,
+    `${folder}/${file}`.replaceAll("/", "\\"),
+    `C:/${folder}/${file}`,
+    `projects/../${folder}/${file}`
+  ];
+
+  it.each([PROJECT, GAME])("media_probe reads no file in %s under any spelling", async (folder) => {
+    for (const path of spellings(folder, "clip.mp4")) {
+      const result = (await asTool(mediaProbe).process(context(), {
+        path
+      })) as Record<string, unknown>;
+      expect(result["error"], path).toBeDefined();
+      expect(result["has_video"], path).toBeUndefined();
+      expect(result["duration_seconds"], path).toBeUndefined();
+    }
+  });
+
+  it.each([PROJECT, GAME])("media_edit reads no input in %s under any spelling", async (folder) => {
+    for (const [index, input] of spellings(folder, "clip.mp4").entries()) {
+      const output = `cuts/stolen-${index}.mp4`;
+      const result = (await asTool(mediaEdit).process(context(), {
+        operation: "trim",
+        input,
+        output_file: output,
+        start: 0,
+        end: 1
+      })) as Record<string, unknown>;
+      expect(result["error"], input).toBeDefined();
+      await expect(stat(join(outer, output)), input).rejects.toThrow();
+    }
+  });
+
+  it.each([PROJECT, GAME])("media_edit writes no output in %s under any spelling", async (folder) => {
+    for (const output of [
+      ...spellings(folder, "Generated/fox.mp4"),
+      ...spellings(folder, "Stolen/out.mp4")
+    ]) {
+      const result = (await asTool(mediaEdit).process(context(), {
+        operation: "trim",
+        input: "clip.mp4",
+        output_file: output,
+        start: 0,
+        end: 1
+      })) as Record<string, unknown>;
+      expect(result["error"], output).toBeDefined();
+      expect(result["success"], output).toBeUndefined();
+    }
+
+    expect(await readFile(join(outer, folder, "Generated/fox.mp4"), "utf8")).toBe(
+      "the other project's file"
+    );
+    await expect(stat(join(outer, folder, "Stolen"))).rejects.toThrow();
+  });
+
   it("media_edit still writes beside the folder of another project", async () => {
     const result = (await asTool(mediaEdit).process(context(), {
       operation: "trim",
