@@ -43,6 +43,7 @@ electron/dist-electron/
 electron/backend-bundle/
 electron/mcpb/
 electron/vst-host/
+electron/account-helper/
 electron/.node-runtime/
 electron/resources/micromamba
 conda-lock.yml

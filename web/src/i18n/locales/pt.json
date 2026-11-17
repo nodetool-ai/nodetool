@@ -20553,7 +20553,7 @@
   },
   "deviceSessions": {
     "title": "Dispositivos conectados",
-    "description": "Computadores em que você entrou nos aplicativos de desktop NodeTool. Os dois aplicativos de um computador compartilham uma sessão. Encerrar uma sessão desconecta esse computador.",
+    "description": "Computadores em que você entrou nos aplicativos para desktop do NodeTool. Os aplicativos de um computador compartilham uma sessão. Encerrar uma sessão desconecta esse computador.",
     "empty": "Nenhum computador está conectado.",
     "unnamed": "Computador sem nome",
     "signedInFrom": "Conectado pelo {{app}} em {{date}}",
@@ -20568,7 +20568,8 @@
     "loadError": "Não foi possível carregar os dispositivos conectados.",
     "apps": {
       "nodeEditor": "Editor de nós",
-      "timeline": "Linha do tempo"
+      "timeline": "Linha do tempo",
+      "desktop": "Aplicativo para desktop"
     }
   },
   "storyboardText": {
@@ -20625,5 +20626,21 @@
         "failed": "O pedido falhou. Envie-o de novo."
       }
     }
+  },
+  "cloudAccount": {
+    "title": "Conta do NodeTool Cloud",
+    "description": "Um login para este aplicativo, o editor de nós e a linha do tempo neste computador. Entrar ou sair aqui vale para os três.",
+    "signedInAs": "Conectado como {{name}}",
+    "server": "Servidor: {{server}}",
+    "signedOut": "Não conectado",
+    "signingIn": "Conclua o login no navegador",
+    "serverEndPending": "Desconectado, sessão ainda não encerrada no servidor",
+    "cloudOff": "Os recursos de nuvem estão desativados neste computador",
+    "noKeychain": "Este computador não tem um armazenamento de credenciais, então o login dura até o NodeTool ser fechado.",
+    "signIn": "Entrar",
+    "cancel": "Cancelar",
+    "signOut": "Sair",
+    "signOutNote": "As alterações pendentes no editor de nós ou na linha do tempo ficam neste computador e são enviadas quando você entrar novamente.",
+    "unavailable": "O login na nuvem não está disponível nesta versão."
   }
 }

@@ -310,6 +310,33 @@ void tc7SignOutOfflineAndKilled(TestContext& t) {
     CHECK(restarted.endPendingSessions() == ServerEnd::Ended);
     CHECK(!pc.server.grantActive(1));
   }
+  {
+    // The same kill, and the next start only retries the server end, as
+    // the account helper of the desktop app does. It makes no request.
+    Computer pc;
+    pc.signIn();
+    auto killed = pc.options();
+    killed.fault = [](FaultPoint p) {
+      if (p == FaultPoint::AfterGenerationWrite) {
+        throw SimulatedKill{};
+      }
+    };
+    {
+      AccountSession app(pc.keychain, pc.server, killed);
+      try {
+        app.signOut();
+      } catch (const SimulatedKill&) {
+      }
+    }
+    AccountSession restarted(pc.keychain, pc.server, pc.options());
+    CHECK(restarted.status().serverEndPending);
+    CHECK(restarted.endPendingSessions() == ServerEnd::Ended);
+    CHECK(!pc.server.grantActive(1));
+    const SessionRecord record = pc.record();
+    CHECK(record.state == SessionState::SignedOut);
+    CHECK(record.refreshToken.empty());
+    CHECK(!restarted.status().serverEndPending);
+  }
 }
 
 // TC16: app A signs out while app B has a refresh in flight. The token

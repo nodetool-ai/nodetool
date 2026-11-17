@@ -20242,7 +20242,7 @@
   },
   "deviceSessions": {
     "title": "Kirjautuneet laitteet",
-    "description": "Tietokoneet, joilla olet kirjautunut NodeTool-työpöytäsovelluksiin. Saman tietokoneen kaksi sovellusta jakavat yhden istunnon. Istunnon lopettaminen kirjaa tietokoneen ulos.",
+    "description": "Tietokoneet, joilla olet kirjautunut NodeToolin työpöytäsovelluksiin. Saman tietokoneen sovellukset jakavat yhden istunnon. Istunnon päättäminen kirjaa tietokoneen ulos.",
     "empty": "Yksikään tietokone ei ole kirjautuneena.",
     "unnamed": "Nimetön tietokone",
     "signedInFrom": "Kirjautunut sovelluksesta {{app}} {{date}}",
@@ -20257,7 +20257,8 @@
     "loadError": "Kirjautuneita laitteita ei voitu ladata.",
     "apps": {
       "nodeEditor": "Solmueditori",
-      "timeline": "Aikajana"
+      "timeline": "Aikajana",
+      "desktop": "Työpöytäsovellus"
     }
   },
   "storyboardText": {
@@ -20314,5 +20315,21 @@
         "failed": "Pyyntö epäonnistui. Lähetä se uudelleen."
       }
     }
+  },
+  "cloudAccount": {
+    "title": "NodeTool Cloud -tili",
+    "description": "Yksi kirjautuminen tälle sovellukselle, solmueditorille ja aikajanalle tällä tietokoneella. Kirjautuminen sisään tai ulos täällä koskee kaikkia kolmea.",
+    "signedInAs": "Kirjautunut käyttäjänä {{name}}",
+    "server": "Palvelin: {{server}}",
+    "signedOut": "Ei kirjautunut",
+    "signingIn": "Viimeistele kirjautuminen selaimessa",
+    "serverEndPending": "Kirjauduttu ulos, istuntoa ei ole vielä päätetty palvelimella",
+    "cloudOff": "Pilviominaisuudet ovat pois päältä tällä tietokoneella",
+    "noKeychain": "Tällä tietokoneella ei ole tunnistetietojen säilöä, joten kirjautuminen kestää, kunnes NodeTool suljetaan.",
+    "signIn": "Kirjaudu sisään",
+    "cancel": "Peruuta",
+    "signOut": "Kirjaudu ulos",
+    "signOutNote": "Solmueditorissa tai aikajanalla odottavat muutokset jäävät tälle tietokoneelle ja lähetetään, kun kirjaudut uudelleen.",
+    "unavailable": "Pilvikirjautuminen ei ole käytettävissä tässä versiossa."
   }
 }

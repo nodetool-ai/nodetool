@@ -119,6 +119,21 @@ that folder, then `<userData>/vst-host/`. The renderer reaches it over
 - The browser build has no host. A VST track is silent there, and its device
   view says why.
 
+### Cloud account
+
+The desktop app shares the cloud sign-in of the node editor and the timeline.
+`cloudAccount.ts` runs nodetool-account-helper, which links the native account
+library, and talks to it in JSON lines. The helper, its protocol and its build
+are in [native/account-helper](../../native/account-helper/README.md).
+`node electron/scripts/build-account-helper.mjs` stages it in
+`electron/account-helper/`, packed as `resources/account-helper/`.
+
+- Main sends the helper's HTTP requests over HTTPS to the cloud server's
+  origin only, with no redirects, and opens only `<origin>/oauth/authorize`.
+- The renderer reaches it over `window.api.cloudAccount.*` (IPC
+  `CLOUD_ACCOUNT_*`) and receives the account state, never a token.
+- Unlike the VST host, the helper is never loaded from the user data folder.
+
 ## Rules
 
 Desktop UI in `electron/src/components/` follows [UX Guidelines](../../docs/UX_GUIDELINES.md), as the web UI does.

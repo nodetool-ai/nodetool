@@ -2,8 +2,8 @@
  * Settings → Integrations → Signed-in devices.
  *
  * One row per computer where the user signed in to the NodeTool desktop
- * apps. The node editor and the timeline app on one computer share a
- * session, so they share a row. Ending a session deletes its tokens at once;
+ * apps. The node editor, the timeline and the desktop app on one computer
+ * share a session, so they share a row. Ending a session deletes its tokens at once;
  * the apps on that computer show the signed-out state within a minute
  * (docs/plans/native-cloud-sync/technical-design.md, "Sign-in protocol").
  *
@@ -81,7 +81,9 @@ const DeviceSessionsSettings = () => {
         ? t("deviceSessions.apps.timeline")
         : app === "node-editor"
           ? t("deviceSessions.apps.nodeEditor")
-          : (app ?? ""),
+          : app === "desktop"
+            ? t("deviceSessions.apps.desktop")
+            : (app ?? ""),
     [t]
   );
 

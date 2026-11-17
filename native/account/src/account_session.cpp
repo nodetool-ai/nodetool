@@ -310,6 +310,13 @@ ServerEnd AccountSession::signOut() {
 
 ServerEnd AccountSession::endPendingSessions() {
   const std::lock_guard operation(operationMutex_);
+  // A sign-out killed between its two writes leaves the record signed in
+  // with its handle unmarked. The repair rule completes it and marks the
+  // handle pending, so an app that only retries the server end, and makes
+  // no request, still ends that session.
+  if (const auto lock = AccountLock::acquire(lockPath(), options_.lockTimeout)) {
+    repairLocked();
+  }
   std::vector<std::string> handles;
   if (const auto record = readSessionRecord(store_, keychainAccount_)) {
     handles = record->pendingHandles();

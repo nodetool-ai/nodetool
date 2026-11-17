@@ -20864,7 +20864,7 @@
   },
   "deviceSessions": {
     "title": "Zalogowane urządzenia",
-    "description": "Komputery, na których zalogowano się w aplikacjach desktopowych NodeTool. Obie aplikacje na jednym komputerze dzielą jedną sesję. Zakończenie sesji wylogowuje ten komputer.",
+    "description": "Komputery, na których zalogowano się w aplikacjach desktopowych NodeTool. Aplikacje na jednym komputerze współdzielą jedną sesję. Zakończenie sesji wylogowuje ten komputer.",
     "empty": "Żaden komputer nie jest zalogowany.",
     "unnamed": "Komputer bez nazwy",
     "signedInFrom": "Zalogowano z {{app}} {{date}}",
@@ -20879,7 +20879,8 @@
     "loadError": "Nie udało się wczytać zalogowanych urządzeń.",
     "apps": {
       "nodeEditor": "Edytor węzłów",
-      "timeline": "Oś czasu"
+      "timeline": "Oś czasu",
+      "desktop": "Aplikacja desktopowa"
     }
   },
   "storyboardText": {
@@ -20936,5 +20937,21 @@
         "failed": "Prośba się nie powiodła. Wyślij ją ponownie."
       }
     }
+  },
+  "cloudAccount": {
+    "title": "Konto NodeTool Cloud",
+    "description": "Jedno logowanie dla tej aplikacji, edytora węzłów i osi czasu na tym komputerze. Logowanie i wylogowanie tutaj dotyczy wszystkich trzech.",
+    "signedInAs": "Zalogowano jako {{name}}",
+    "server": "Serwer: {{server}}",
+    "signedOut": "Nie zalogowano",
+    "signingIn": "Dokończ logowanie w przeglądarce",
+    "serverEndPending": "Wylogowano, sesja na serwerze nie została jeszcze zakończona",
+    "cloudOff": "Funkcje chmury są wyłączone na tym komputerze",
+    "noKeychain": "Ten komputer nie ma magazynu poświadczeń, więc logowanie trwa do zamknięcia NodeTool.",
+    "signIn": "Zaloguj się",
+    "cancel": "Anuluj",
+    "signOut": "Wyloguj się",
+    "signOutNote": "Zmiany oczekujące w edytorze węzłów lub na osi czasu pozostają na tym komputerze i zostaną wysłane po ponownym zalogowaniu.",
+    "unavailable": "Logowanie do chmury nie jest dostępne w tej wersji."
   }
 }

@@ -25,7 +25,7 @@ export interface PendingAuthorizeRequest {
   state?: string;
   /** Every registered redirect_uri for this client is loopback-only. */
   redirectHostIsLoopbackOnly: boolean;
-  /** Native sign-in only: which app asked (`node-editor` or `timeline`). */
+  /** Native sign-in only: which app asked (`node-editor`, `timeline` or `desktop`). */
   appName?: string;
   /** Native sign-in only: the device name the app sent. */
   deviceName?: string;

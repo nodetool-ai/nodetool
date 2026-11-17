@@ -156,7 +156,7 @@ const NATIVE_CLIENT: ResolvedClient = {
 };
 
 /** The apps that may sign in with the native scope. */
-const NATIVE_APPS = new Set(["node-editor", "timeline"]);
+const NATIVE_APPS = new Set(["node-editor", "timeline", "desktop"]);
 const MAX_DEVICE_NAME_LENGTH = 100;
 
 /**
@@ -435,7 +435,7 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
       if (!app || !NATIVE_APPS.has(app)) {
         return redirectWithError(
           "invalid_request",
-          "app must be node-editor or timeline"
+          "app must be node-editor, timeline or desktop"
         );
       }
       const device = cleanDeviceName(firstValue(query["device_name"]));

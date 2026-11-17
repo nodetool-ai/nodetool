@@ -20242,7 +20242,7 @@
   },
   "deviceSessions": {
     "title": "已登录的设备",
-    "description": "你登录过 NodeTool 桌面应用的电脑。同一台电脑上的两个应用共用一个会话。结束会话会让那台电脑退出登录。",
+    "description": "你登录过 NodeTool 桌面应用的计算机。同一台计算机上的应用共享一个会话。结束会话会让该计算机退出登录。",
     "empty": "没有已登录的电脑。",
     "unnamed": "未命名的电脑",
     "signedInFrom": "于 {{date}} 通过 {{app}} 登录",
@@ -20257,7 +20257,8 @@
     "loadError": "无法加载已登录的设备。",
     "apps": {
       "nodeEditor": "节点编辑器",
-      "timeline": "时间线"
+      "timeline": "时间线",
+      "desktop": "桌面应用"
     }
   },
   "storyboardText": {
@@ -20314,5 +20315,21 @@
         "failed": "请求失败，请重新发送。"
       }
     }
+  },
+  "cloudAccount": {
+    "title": "NodeTool Cloud 账户",
+    "description": "此应用、节点编辑器和时间线在这台计算机上共用一次登录。在这里登录或退出会同时作用于三者。",
+    "signedInAs": "已登录为 {{name}}",
+    "server": "服务器：{{server}}",
+    "signedOut": "未登录",
+    "signingIn": "请在浏览器中完成登录",
+    "serverEndPending": "已退出登录，服务器上的会话尚未结束",
+    "cloudOff": "此计算机已关闭云功能",
+    "noKeychain": "此计算机没有凭据存储，因此登录只持续到 NodeTool 退出。",
+    "signIn": "登录",
+    "cancel": "取消",
+    "signOut": "退出登录",
+    "signOutNote": "节点编辑器或时间线中等待发送的更改会保留在这台计算机上，并在你再次登录后发送。",
+    "unavailable": "此版本不支持云登录。"
   }
 }
