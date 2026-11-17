@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <utility>
+#include "nodetool/account/qt/ServerToken.h"
 
 namespace nt::server::sync {
 Q_LOGGING_CATEGORY(resourceChangeLog, "nodetool.timeline.sync.transport", QtInfoMsg)
@@ -227,9 +228,7 @@ void ResourceChangeClient::open()
     url.setFragment({});
     QNetworkRequest request(url);
     request.setRawHeader("X-Nodetool-Client", kClientHeader);
-    if (!m_token.isEmpty()) {
-        request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
-    }
+    nodetool::account::qt::attachServerToken(request, m_base, m_token);
     setState(State::Connecting);
     if (m_running) {
         m_socket.open(request);

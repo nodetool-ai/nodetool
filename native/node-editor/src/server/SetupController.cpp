@@ -12,6 +12,7 @@
 #ifdef Q_OS_UNIX
 #include <csignal>
 #include <unistd.h>
+#include "nodetool/account/qt/ServerToken.h"
 #endif
 namespace nodetool::node_editor {
 void SetupController::configure(const QUrl &origin, const QString &token,
@@ -78,9 +79,7 @@ void SetupController::request(const QString &route, const QJsonObject &body,
     }
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    if (!token_.isEmpty()) {
-        request.setRawHeader("Authorization", "Bearer " + token_.toUtf8());
-    }
+    nodetool::account::qt::attachServerToken(request, origin_, token_);
     request.setRawHeader("X-User-Id", user_.toUtf8());
     auto reply = mutation ? network_.post(request, QJsonDocument(body).toJson(
                                                        QJsonDocument::Compact))

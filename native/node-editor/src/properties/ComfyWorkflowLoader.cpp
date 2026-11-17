@@ -5,6 +5,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QNetworkRequest>
+#include "nodetool/account/qt/ServerToken.h"
 
 namespace nodetool::node_editor {
 ComfyWorkflowLoader::ComfyWorkflowLoader(QObject *parent) : QObject(parent), network_(this) {
@@ -87,7 +88,7 @@ void ComfyWorkflowLoader::resolve(const QJsonObject &source) {
     request.setTransferTimeout(30000);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
-    if (!token_.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); }
+    nodetool::account::qt::attachServerToken(request, origin_, token_);
     auto *reply = network_.post(request, QJsonDocument(source).toJson(QJsonDocument::Compact));
     reply_ = reply;
     emit changed();

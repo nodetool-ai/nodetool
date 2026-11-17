@@ -13,6 +13,7 @@
 #include <QTimer>
 #include <QToolTip>
 #include <functional>
+#include "nodetool/account/qt/ServerToken.h"
 
 namespace nodetool {
 EditorWindow *EditorWindow::activeEditor() const {
@@ -932,8 +933,7 @@ void EditorWindow::openChild() {
     QNetworkRequest request(url);
     request.setTransferTimeout(30000);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-    request.setRawHeader("Authorization",
-                         "Bearer " + owner->tabsToken_.toUtf8());
+    nodetool::account::qt::attachServerToken(request, owner->tabsOrigin_, owner->tabsToken_);
     auto reply = network->get(request);
     message_ = tr("Loading app workflow…");
     schedulePanelChanged();
@@ -1156,8 +1156,7 @@ void EditorWindow::refreshChildReferences() {
         "/api/workflows/" + QString::fromLatin1(QUrl::toPercentEncoding(id)))));
     request.setTransferTimeout(30000);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-    request.setRawHeader("Authorization",
-                         "Bearer " + tabOwner_->tabsToken_.toUtf8());
+    nodetool::account::qt::attachServerToken(request, tabOwner_->tabsOrigin_, tabOwner_->tabsToken_);
     auto reply = network->get(request);
     connect(
         reply, &QNetworkReply::finished, this,

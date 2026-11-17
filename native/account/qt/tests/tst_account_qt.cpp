@@ -11,6 +11,7 @@
 #include "nodetool/account/qt/CloudBrowser.h"
 #include "nodetool/account/qt/CloudDocument.h"
 #include "nodetool/account/qt/QtHttpTransport.h"
+#include "nodetool/account/qt/ServerToken.h"
 #include "nodetool/account/qt/ShareController.h"
 #include "test_support.h"
 
@@ -881,6 +882,30 @@ private slots:
     share.createLink("editor");
     QCOMPARE(server.count("documentSharing"), sent);
     QVERIFY(!share.message().isEmpty());
+  }
+
+
+  // RF13: the server token goes to the server's own origin only, sockets
+  // included, and an empty token adds no header.
+  void serverTokenStaysOnItsOrigin() {
+    const QUrl server("http://127.0.0.1:7777");
+    QNetworkRequest same(QUrl("http://127.0.0.1:7777/api/assets?x=1"));
+    QVERIFY(attachServerToken(same, server, "t1"));
+    QCOMPARE(same.rawHeader("Authorization"), QByteArray("Bearer t1"));
+    QNetworkRequest socket(QUrl("ws://127.0.0.1:7777/ws"));
+    QVERIFY(attachServerToken(socket, server, "t1"));
+    QNetworkRequest secureSocket(QUrl("wss://nt.example/ws"));
+    QVERIFY(attachServerToken(secureSocket, QUrl("https://NT.example"), "t1"));
+    for (const char* other : {"http://127.0.0.1:7778/api", "https://127.0.0.1:7777/api", "http://localhost:7777/api",
+                              "https://cdn.example/a.png", "file:///tmp/a"}) {
+      QNetworkRequest request{QUrl(other)};
+      QVERIFY2(!attachServerToken(request, server, "t1"), other);
+      QVERIFY(!request.hasRawHeader("Authorization"));
+    }
+    QNetworkRequest empty(QUrl("http://127.0.0.1:7777/api"));
+    QVERIFY(!attachServerToken(empty, server, ""));
+    QVERIFY(!empty.hasRawHeader("Authorization"));
+    QVERIFY(sameServerOrigin(QUrl("https://nt.example"), QUrl("https://nt.example:443/x")));
   }
 
   // A tab that closes right after an edit leaves the edit on disk, before

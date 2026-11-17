@@ -18,14 +18,11 @@
 #include <QUrlQuery>
 #include <QUuid>
 #include <memory>
+#include "nodetool/account/qt/ServerToken.h"
 namespace nodetool::node_editor {
 namespace {
 constexpr qint64 ItemLimit = 32 * 1024 * 1024;
 constexpr qint64 CacheLimit = 128 * 1024 * 1024;
-bool sameOrigin(const QUrl &a, const QUrl &b) {
-  return a.scheme() == b.scheme() && a.host() == b.host() &&
-         a.port(a.scheme() == "https" ? 443 : 80) == b.port(b.scheme() == "https" ? 443 : 80);
-}
 bool httpUrl(const QUrl &url) {
   return url.isValid() && (url.scheme() == "http" || url.scheme() == "https") &&
          !url.host().isEmpty() && url.userInfo().isEmpty();
@@ -239,7 +236,7 @@ void MediaResolver::fetch(const QString &key, quint64 serial, const QUrl &url, b
   request.setAttribute(QNetworkRequest::CookieLoadControlAttribute, QNetworkRequest::Manual);
   request.setAttribute(QNetworkRequest::CookieSaveControlAttribute, QNetworkRequest::Manual);
   request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-  if (sameOrigin(server_, url) && !token_.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); }
+  nodetool::account::qt::attachServerToken(request, server_, token_);
   auto *reply = network_.get(request);
   replies_[key] = reply;
   connect(reply, &QNetworkReply::finished, this, [this] { QTimer::singleShot(0, this, [this] { drainFetches(); }); });
@@ -253,7 +250,7 @@ void MediaResolver::fetch(const QString &key, quint64 serial, const QUrl &url, b
     const auto status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     if (status >= 300 && status < 400) {
       auto target = url.resolved(reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl());
-      if (redirects >= 5 || !httpUrl(target) || (url.scheme() == "https" && target.scheme() != "https") || (lookup && !sameOrigin(server_, target))) {
+      if (redirects >= 5 || !httpUrl(target) || (url.scheme() == "https" && target.scheme() != "https") || (lookup && !nodetool::account::qt::sameServerOrigin(server_, target))) {
         emit failed(key, "Media redirect was refused"); return;
       }
       fetch(key, serial, target, lookup, redirects + 1);
@@ -424,7 +421,7 @@ bool MediaResolver::postAsset(const QString &key, std::unique_ptr<QHttpMultiPart
   request.setAttribute(QNetworkRequest::CookieLoadControlAttribute, QNetworkRequest::Manual);
   request.setAttribute(QNetworkRequest::CookieSaveControlAttribute, QNetworkRequest::Manual);
   request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-  if (!token_.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); }
+  nodetool::account::qt::attachServerToken(request, server_, token_);
   auto *reply = network_.post(request, multipart.get());
   multipart.release()->setParent(reply);
   uploads_[key] = reply;

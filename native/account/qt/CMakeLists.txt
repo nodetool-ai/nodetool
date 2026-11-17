@@ -18,6 +18,8 @@ add_library(nodetool_account_qt STATIC
   src/QtHttpTransport.cpp
   include/nodetool/account/qt/QtHttpTransport.h
   src/TaskQueue.h)
+include(ServerToken.cmake)
+target_link_libraries(nodetool_account_qt PUBLIC nodetool_account_server_token)
 set_target_properties(nodetool_account_qt PROPERTIES AUTOMOC ON)
 target_include_directories(nodetool_account_qt PUBLIC include)
 target_link_libraries(nodetool_account_qt PUBLIC nodetool_account Qt6::Core Qt6::Network)

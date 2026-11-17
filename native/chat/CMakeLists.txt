@@ -43,7 +43,8 @@ qt_add_qml_module(nodetool_chat
         src/runtime/CodeHighlighter.h src/runtime/CodeHighlighter.cpp
         src/server/ChatClient.h src/server/ChatClient.cpp)
 target_include_directories(nodetool_chat PUBLIC src PRIVATE src/runtime)
-target_link_libraries(nodetool_chat PUBLIC nodetool_ui_primitives nodetool_model_picker Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::WebSockets)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../account/qt/ServerToken.cmake)
+target_link_libraries(nodetool_chat PUBLIC nodetool_ui_primitives nodetool_model_picker nodetool_account_server_token Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::WebSockets)
 if(TARGET Qt6::Multimedia)
     target_link_libraries(nodetool_chat PUBLIC Qt6::Multimedia)
     target_compile_definitions(nodetool_chat PRIVATE NODETOOL_CHAT_MEDIA)

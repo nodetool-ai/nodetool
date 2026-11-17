@@ -9,6 +9,7 @@
 namespace nodetool::node_editor {
 namespace {
 #include "PackMapping.inc"
+#include "nodetool/account/qt/ServerToken.h"
 QString keyFor(const QString &id) {
     for (const auto &mapping : mappings) {
         if (id == QLatin1String(mapping.id)) {
@@ -77,7 +78,7 @@ void PackSetup::request(const QString &route, const QJsonObject &body, bool muta
     }
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    request.setRawHeader("Authorization", "Bearer " + token_.toUtf8());
+    nodetool::account::qt::attachServerToken(request, origin_, token_);
     request.setRawHeader("X-User-Id", user_.toUtf8());
     auto *reply = mutation ? network_.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact)) : network_.get(request);
     const auto epoch = epoch_;

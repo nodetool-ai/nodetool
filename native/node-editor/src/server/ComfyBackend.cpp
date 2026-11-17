@@ -7,6 +7,7 @@
 #include <QRegularExpression>
 #include <QSet>
 #include <QUrlQuery>
+#include "nodetool/account/qt/ServerToken.h"
 
 namespace nodetool::node_editor {
 namespace {
@@ -268,7 +269,7 @@ QVariantList ComfyBackend::workers() const {
 void ComfyBackend::send(const QUrl &url, const QByteArray &method, const QJsonObject &body, bool trpcReply, Done done) {
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    if (!token_.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); }
+    nodetool::account::qt::attachServerToken(request, origin_, token_);
     if (!user_.isEmpty()) { request.setRawHeader("X-User-Id", user_.toUtf8()); }
     const auto payload = method == "GET" ? QByteArray{} : QJsonDocument(body).toJson(QJsonDocument::Compact);
     auto *reply = network_.sendCustomRequest(request, method, payload);

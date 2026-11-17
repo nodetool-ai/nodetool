@@ -5,6 +5,7 @@
 #include <QJsonObject>
 #include <QNetworkCookieJar>
 #include <QUrlQuery>
+#include "nodetool/account/qt/ServerToken.h"
 
 namespace nodetool::node_editor {
 namespace {
@@ -55,7 +56,7 @@ void DocumentPickerController::request(const QString& key, const QString& kind) 
     request.setTransferTimeout(30000);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    if (!token_.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); }
+    nodetool::account::qt::attachServerToken(request, origin_, token_);
     request.setRawHeader("x-user-id", user_.toUtf8());
     auto* reply = network_.get(request);
     replies_.insert(key, reply);

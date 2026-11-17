@@ -12,6 +12,7 @@
 #include <QSet>
 #include <algorithm>
 #include <limits>
+#include "nodetool/account/qt/ServerToken.h"
 
 namespace nodetool::node_editor {
 namespace {
@@ -421,9 +422,7 @@ void RunTraceController::request(Kind kind, const QString &procedure, const QJso
     QNetworkRequest request(m_origin.resolved(QUrl(path)));
     request.setTransferTimeout(30000);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-    if (!m_token.isEmpty()) {
-        request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
-    }
+    nodetool::account::qt::attachServerToken(request, m_origin, m_token);
     request.setRawHeader("x-user-id", m_user.toUtf8());
     const auto scope = m_scope;
     const auto sequence = ++m_sequence[kind];

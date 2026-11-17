@@ -8,6 +8,7 @@
 #include <QUrlQuery>
 #include <QSet>
 #include <algorithm>
+#include "nodetool/account/qt/ServerToken.h"
 
 namespace nodetool::node_editor {
 WorkflowBrowser::WorkflowBrowser(QObject *parent) : QObject(parent), m_network(this) {}
@@ -248,7 +249,7 @@ void WorkflowBrowser::request(const QByteArray &method, const QString &path,
   QNetworkRequest request(m_origin.resolved(QUrl(path)));
   request.setTransferTimeout(30000);
   request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-  if (!m_token.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8()); }
+  nodetool::account::qt::attachServerToken(request, m_origin, m_token);
   request.setRawHeader("x-user-id", m_user.toUtf8());
   request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
   auto reply = m_network.sendCustomRequest(request, method,
@@ -444,7 +445,7 @@ void WorkflowBrowser::deleteNext(QStringList ids, int failures) {
   QNetworkRequest request(m_origin.resolved(QUrl("/api/workflows/" + QString::fromLatin1(QUrl::toPercentEncoding(id)))));
   request.setTransferTimeout(30000);
   request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-  if (!m_token.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8()); }
+  nodetool::account::qt::attachServerToken(request, m_origin, m_token);
   request.setRawHeader("x-user-id", m_user.toUtf8());
   auto reply = m_network.deleteResource(request);
   const auto epoch = m_epoch;

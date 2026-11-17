@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include "nodetool/account/qt/ServerToken.h"
 
 namespace nodetool {
 namespace {
@@ -538,9 +539,7 @@ void EditorWindow::initializeChatTools() {
                 request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
                 request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                                      QNetworkRequest::ManualRedirectPolicy);
-                if (!account->token.isEmpty()) {
-                    request.setRawHeader("Authorization", "Bearer " + account->token.toUtf8());
-                }
+                nodetool::account::qt::attachServerToken(request, account->origin, account->token);
                 request.setRawHeader("x-user-id", account->user.toUtf8());
                 const QJsonObject body{{"name", title.isEmpty() ? QStringLiteral("New Workflow") : title},
                                        {"access", "private"},
@@ -771,9 +770,7 @@ void EditorWindow::initializeChatTools() {
                 request.setTransferTimeout(30000);
                 request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                                      QNetworkRequest::ManualRedirectPolicy);
-                if (!account->token.isEmpty()) {
-                    request.setRawHeader("Authorization", "Bearer " + account->token.toUtf8());
-                }
+                nodetool::account::qt::attachServerToken(request, account->origin, account->token);
                 request.setRawHeader("x-user-id", account->user.toUtf8());
                 auto *reply = network->get(request);
                 const auto epoch = account->epoch;

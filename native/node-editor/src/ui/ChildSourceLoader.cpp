@@ -12,20 +12,21 @@
 #include <QUrlQuery>
 #include <cmath>
 #include <functional>
+#include "nodetool/account/qt/ServerToken.h"
 
 namespace nodetool {
 namespace {
-// One GET against the tab owner's server. done receives the parsed body, or an
+// One GET against the tab owner's server at origin, which alone receives the token. done receives the parsed body, or an
 // empty object when the request failed. The manager is parented to window and
 // deletes itself with the reply, and the reply's handler runs on the UI thread
 // with window as its context, so it never outlives the window.
-void getJson(EditorWindow *window, const QUrl &url, const QString &token, const QString &user, std::function<void(QJsonObject)> done) {
+void getJson(EditorWindow *window, const QUrl &origin, const QUrl &url, const QString &token, const QString &user, std::function<void(QJsonObject)> done) {
     auto *network = new QNetworkAccessManager(window);
     QNetworkRequest request(url);
     request.setTransferTimeout(30000);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     // The headers every native server client sends.
-    if (!token.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + token.toUtf8()); }
+    nodetool::account::qt::attachServerToken(request, origin, token);
     request.setRawHeader("x-user-id", user.toUtf8());
     auto *reply = network->get(request);
     QObject::connect(reply, &QNetworkReply::finished, window, [reply, network, done = std::move(done)] {
@@ -80,7 +81,7 @@ void EditorWindow::loadChildSource(const QString &nodeId, const QString &kind, c
     };
     if (kind == QStringLiteral("workflow")) {
         const auto host = document_.snapshot()["id"].toString();
-        getJson(this, workflowUrl(origin, sourceId), token, user, [this, current, store, host, sourceId](const QJsonObject &workflow) {
+        getJson(this, origin, workflowUrl(origin, sourceId), token, user, [this, current, store, host, sourceId](const QJsonObject &workflow) {
             if (!current()) { return; }
             if (workflow["id"].toString() != sourceId || !workflow["graph"].isObject()) {
                 notify(QStringLiteral("error"), tr("Failed to load workflow"));
@@ -103,7 +104,7 @@ void EditorWindow::loadChildSource(const QString &nodeId, const QString &kind, c
         return;
     }
     const auto storedOperation = node["data"].toObject()["app_json"].toObject()["operation_id"].toString();
-    getJson(this, trpcUrl(origin, QStringLiteral("applications.get"), {{"id", sourceId}}), token, user,
+    getJson(this, origin, trpcUrl(origin, QStringLiteral("applications.get"), {{"id", sourceId}}), token, user,
             [this, current, store, origin, token, user, storedOperation](const QJsonObject &body) {
         if (!current()) { return; }
         const auto application = body["result"].toObject()["data"].toObject();
@@ -122,7 +123,7 @@ void EditorWindow::loadChildSource(const QString &nodeId, const QString &kind, c
             return;
         }
         const auto workflowId = operation["workflowId"].toString();
-        getJson(this, workflowUrl(origin, workflowId), token, user,
+        getJson(this, origin, workflowUrl(origin, workflowId), token, user,
                 [this, current, store, application, document, operation, workflowId](const QJsonObject &workflow) {
             if (!current()) { return; }
             if (workflow["id"].toString() != workflowId || !workflow["graph"].isObject()) {

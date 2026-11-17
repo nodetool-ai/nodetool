@@ -8,6 +8,7 @@
 #include <QNetworkReply>
 #include <QTimer>
 #include <QUrlQuery>
+#include "nodetool/account/qt/ServerToken.h"
 namespace nodetool::node_editor {
 namespace {
 constexpr qint64 ResponseLimit = 16 * 1024 * 1024;
@@ -41,7 +42,7 @@ void LibraryBrowser::setProject(const QString &projectId) {
 QNetworkRequest LibraryBrowser::request(const QUrl &url) const {
   QNetworkRequest request(url);
   request.setTransferTimeout(30000);
-  if (!token_.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); }
+  nodetool::account::qt::attachServerToken(request, origin_, token_);
   if (!user_.isEmpty()) { request.setRawHeader("x-user-id", user_.toUtf8()); }
   return request;
 }

@@ -9,6 +9,7 @@
 #include <QNetworkCookieJar>
 #include <QUrlQuery>
 #include <memory>
+#include "nodetool/account/qt/ServerToken.h"
 namespace nodetool::node_editor {
 AssetPickerController::AssetPickerController(QObject* parent) : QObject(parent), m_network(this) {}
 void AssetPickerController::cancel(const QString& key) {
@@ -40,7 +41,7 @@ bool AssetPickerController::ready(const QString& key, const QString& kind) {
 QNetworkRequest AssetPickerController::request(const QUrl& url) const {
  QNetworkRequest result(url); result.setTransferTimeout(30000);
  result.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
- if (!m_token.isEmpty()) { result.setRawHeader("Authorization", "Bearer " + m_token.toUtf8()); }
+ nodetool::account::qt::attachServerToken(result, m_origin, m_token);
  result.setRawHeader("x-user-id", m_user.toUtf8()); return result;
 }
 void AssetPickerController::search(const QString& key, const QString& kind, const QString& text, const QString& cursor) {

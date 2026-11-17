@@ -1,4 +1,5 @@
 #include "ChatClient.h"
+#include "nodetool/account/qt/ServerToken.h"
 #include <QBuffer>
 #include <QDesktopServices>
 #include <QUuid>
@@ -68,9 +69,7 @@ void ChatClient::connectToServer(const QUrl &base, const QString &token) {
   url.setFragment({});
   QNetworkRequest request(url);
   request.setRawHeader("X-Nodetool-Client", "native-chat");
-  if (!token.isEmpty()) {
-    request.setRawHeader("Authorization", "Bearer " + token.toUtf8());
-  }
+  nodetool::account::qt::attachServerToken(request, base, token);
   m_socket.open(request);
 }
 void ChatClient::disconnectFromServer() {
@@ -174,9 +173,7 @@ void ChatClient::upload(const QString &id, const QUrl &local, Callback callback,
   request.setTransferTimeout(60000);
   request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                        QNetworkRequest::ManualRedirectPolicy);
-  if (!m_token.isEmpty()) {
-    request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
-  }
+  nodetool::account::qt::attachServerToken(request, m_base, m_token);
   auto *reply = m_network.post(request, multipart);
   reply->setProperty("uploadId", id);
   multipart->setParent(reply);
@@ -226,7 +223,7 @@ void ChatClient::downloadMedia(const QUrl &input, Callback callback) {
   QNetworkRequest request(url);
   request.setTransferTimeout(30000);
   request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-  if (!m_token.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8()); }
+  nodetool::account::qt::attachServerToken(request, m_base, m_token);
   auto *reply = m_network.get(request);
   ++m_mediaRequests;
   const auto epoch = m_epoch;
@@ -291,10 +288,7 @@ void ChatClient::fetchMedia(const QUrl &input, Callback callback) {
   request.setTransferTimeout(30000);
   request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                        QNetworkRequest::ManualRedirectPolicy);
-  if (url.scheme() == m_base.scheme() && url.host() == m_base.host() &&
-      url.port() == m_base.port() && !m_token.isEmpty()) {
-    request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
-  }
+  nodetool::account::qt::attachServerToken(request, m_base, m_token);
   auto *reply = m_network.get(request);
   ++m_mediaRequests;
   const auto epoch = m_epoch;
@@ -350,9 +344,7 @@ void ChatClient::call(const QString &procedure, QJsonObject input,
                        QNetworkRequest::ManualRedirectPolicy);
   request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
   request.setRawHeader("X-Nodetool-Client", "native-chat");
-  if (!m_token.isEmpty()) {
-    request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
-  }
+  nodetool::account::qt::attachServerToken(request, m_base, m_token);
   auto *reply =
       mutation ? m_network.post(request, body) : m_network.get(request);
   connect(reply, &QNetworkReply::readyRead, this, [reply] {

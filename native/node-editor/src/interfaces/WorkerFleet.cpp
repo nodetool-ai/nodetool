@@ -8,6 +8,7 @@
 #include <QUrlQuery>
 #include <optional>
 #include <utility>
+#include "nodetool/account/qt/ServerToken.h"
 
 namespace nodetool::node_editor {
 namespace {
@@ -117,7 +118,7 @@ void WorkerFleet::request(const QString &procedure, const QJsonObject &input, bo
     QNetworkRequest httpRequest(url);
     httpRequest.setTransferTimeout(60000);
     httpRequest.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-    if (!token_.isEmpty()) { httpRequest.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); }
+    nodetool::account::qt::attachServerToken(httpRequest, base_, token_);
     httpRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     auto *httpReply = mutation ? network_->post(httpRequest, body) : network_->get(httpRequest);
     connect(httpReply, &QNetworkReply::finished, this, [httpReply, guarded = std::move(guarded)] {

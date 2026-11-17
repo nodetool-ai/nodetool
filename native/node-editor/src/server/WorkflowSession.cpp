@@ -23,6 +23,7 @@
 #include <mutex>
 #include <utility>
 #include <QUuid>
+#include "nodetool/account/qt/ServerToken.h"
 namespace nodetool::node_editor {
 namespace {
 // UI thread only. Store encoded clip bytes before bounded output previews see them.
@@ -337,7 +338,7 @@ void WorkflowSession::openSocket() {
   url.setScheme(m_base.scheme() == "https" ? "wss" : "ws");
   url.setPath("/ws");
   QNetworkRequest request(url);
-  request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
+  nodetool::account::qt::attachServerToken(request, m_base, m_token);
   m_opened = false;
   m_socket.open(request);
   emit stateChanged();
@@ -546,7 +547,7 @@ void WorkflowSession::request(const QByteArray &method, const QString &path,
   req.setTransferTimeout(30000);
   req.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                    QNetworkRequest::ManualRedirectPolicy);
-  req.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
+  nodetool::account::qt::attachServerToken(req, m_base, m_token);
   req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
   auto *reply = m_network.sendCustomRequest(
       req, method,

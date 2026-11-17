@@ -14,6 +14,7 @@
 #include <QNetworkCookieJar>
 #include <QNetworkReply>
 #include <QUrlQuery>
+#include "nodetool/account/qt/ServerToken.h"
 namespace nodetool::node_editor {
 ModelPickerController::ModelPickerController(QObject* parent) : QObject(parent), m_network(this) {}
 void ModelPickerController::cancel() {
@@ -286,9 +287,7 @@ QNetworkRequest ModelPickerController::request(const QUrl& url) const {
     request.setTransferTimeout(30000);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    if (!m_token.isEmpty()) {
-        request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
-    }
+    nodetool::account::qt::attachServerToken(request, m_origin, m_token);
     request.setRawHeader("x-user-id", m_user.toUtf8());
     return request;
 }
@@ -394,9 +393,7 @@ void ModelPickerController::sendDownloadCommand(const QJsonObject& command) {
     url.setScheme(m_origin.scheme() == "https" ? "wss" : "ws");
     url.setPath(QStringLiteral("/ws/download"));
     QNetworkRequest handshake(url);
-    if (!m_token.isEmpty()) {
-        handshake.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
-    }
+    nodetool::account::qt::attachServerToken(handshake, m_origin, m_token);
     handshake.setRawHeader("x-user-id", m_user.toUtf8());
     auto* socket = new QWebSocket(QString{}, QWebSocketProtocol::VersionLatest, this);
     m_downloadSocket = socket;

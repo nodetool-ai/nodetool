@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <limits>
 #include <utility>
+#include "nodetool/account/qt/ServerToken.h"
 namespace nodetool::node_editor {
 namespace {
 QDateTime parseTimestamp(const QString &iso) {
@@ -419,7 +420,7 @@ void WorkflowVersions::request(const QString &procedure, QJsonObject input, bool
  QNetworkRequest req(url); req.setTransferTimeout(30000);
  req.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
  req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
- if (!m_token.isEmpty()) { req.setRawHeader("Authorization", "Bearer " + m_token.toUtf8()); }
+ nodetool::account::qt::attachServerToken(req, m_origin, m_token);
  req.setRawHeader("x-user-id", m_user.toUtf8());
  m_busy = true; m_error.clear(); emit changed();
  auto *reply = mutation ? m_network.post(req, QJsonDocument(input).toJson(QJsonDocument::Compact)) : m_network.get(req);

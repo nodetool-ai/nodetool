@@ -21,6 +21,7 @@
 #include <cmath>
 #include <optional>
 #include <limits>
+#include "nodetool/account/qt/ServerToken.h"
 namespace nodetool {
 namespace {
 constexpr auto DragMime = "application/x-nodetool-drag";
@@ -74,7 +75,6 @@ bool zoneTakes(const QString &target, const QString &kind) {
   const auto locked = target.section(QLatin1Char(':'), 1);
   return !kind.isEmpty() && (locked.isEmpty() || locked == kind);
 }
-bool sameOrigin(const QUrl &a, const QUrl &b) { return a.scheme() == b.scheme() && a.host() == b.host() && a.port(a.scheme() == "https" ? 443 : 80) == b.port(b.scheme() == "https" ? 443 : 80); }
 QJsonObject trpcData(const QByteArray &bytes) {
   auto data = QJsonDocument::fromJson(bytes).object()["result"].toObject()["data"].toObject();
   return data["json"].isObject() ? data["json"].toObject() : data;
@@ -391,7 +391,7 @@ void CanvasDropController::fetchAsset(const QString &key) {
   if (!transfers_.contains(key) || transfers_[key].serial != serial) return;
   auto url = origin_.resolved(QUrl("/trpc/assets.get")); QUrlQuery query; query.addQueryItem("input", QString::fromUtf8(QJsonDocument(QJsonObject{{"id", requested}}).toJson(QJsonDocument::Compact))); url.setQuery(query);
   QNetworkRequest request(url); request.setTransferTimeout(30000); request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-  request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); request.setRawHeader("x-user-id", user_.toUtf8());
+  nodetool::account::qt::attachServerToken(request, origin_, token_); request.setRawHeader("x-user-id", user_.toUtf8());
   auto *reply = network_.get(request); replies_.insert(key, reply); const auto epoch = epoch_;
   connect(reply, &QNetworkReply::readyRead, this, [reply] { if (reply->bytesAvailable() > 1024 * 1024) reply->abort(); });
   connect(reply, &QNetworkReply::finished, this, [this, reply, key, epoch, requested, serial] {
@@ -414,7 +414,7 @@ void CanvasDropController::fetchAsset(const QString &key) {
 void CanvasDropController::downloadText(const QString &key, const QUrl &url) {
   if (!url.isValid() || (url.scheme() != "http" && url.scheme() != "https") || !url.userInfo().isEmpty() || (origin_.scheme() == "https" && url.scheme() != "https")) { fail(key, tr("The asset has no supported content URL")); return; }
   QNetworkRequest request(url); request.setTransferTimeout(30000); request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-  if (sameOrigin(url, origin_)) { request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); request.setRawHeader("x-user-id", user_.toUtf8()); }
+  if (nodetool::account::qt::sameServerOrigin(url, origin_)) { nodetool::account::qt::attachServerToken(request, origin_, token_); request.setRawHeader("x-user-id", user_.toUtf8()); }
   auto *reply = network_.get(request); replies_.insert(key, reply); const auto epoch = epoch_; const auto serial = transfers_[key].serial;
   connect(reply, &QNetworkReply::readyRead, this, [reply] { if (reply->bytesAvailable() > TextLimit) reply->abort(); });
   connect(reply, &QNetworkReply::finished, this, [this, reply, key, epoch, serial] {
