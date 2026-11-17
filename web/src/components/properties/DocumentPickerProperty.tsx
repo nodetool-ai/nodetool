@@ -23,7 +23,13 @@ interface DocumentQueryResult {
 
 interface DocumentPickerPropertyProps extends PropertyProps {
   /** Document kind, used for the ref value, the workspace tab and the dom id. */
-  documentType: "timeline" | "script" | "sketch" | "storyboard";
+  documentType:
+    | "timeline"
+    | "script"
+    | "sketch"
+    | "storyboard"
+    | "application"
+    | "jsscript";
   /** Lists the documents to choose from. Called as a hook — pass a stable one. */
   useDocuments: () => DocumentQueryResult;
   /** Shown for a document with no name of its own. */

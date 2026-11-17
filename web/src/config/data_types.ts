@@ -173,6 +173,30 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     icon: "ViewCarousel"
   },
   {
+    value: "application",
+    label: "Application",
+    description:
+      "Reference to a mini app. Can be opened and edited in the app builder and passed between nodes.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "Apps"
+  },
+  {
+    value: "jsscript",
+    label: "JS Script",
+    description:
+      "Reference to a JavaScript script document. Can be opened and edited in the code editor and passed between nodes.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "Code"
+  },
+  {
     value: "entity",
     label: "Entity",
     description:
