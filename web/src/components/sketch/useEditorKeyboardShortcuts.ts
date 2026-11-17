@@ -10,7 +10,11 @@ import type {
   ShapeSettings,
   SelectSettings
 } from "./types";
-import { resolveAction, isInteractiveTarget, focusOwnsKey, ACTION_HANDLERS, ACTION_REGISTRY, displayCombo, useSpringLoadedModifiers } from "./shortcuts";
+import { resolveAction, isInteractiveTarget, focusOwnsKey } from "./shortcuts/dispatcher";
+import { ACTION_HANDLERS } from "./shortcuts/actionHandlers";
+import { ACTION_REGISTRY } from "./shortcuts/actionRegistry";
+import { displayCombo } from "./shortcuts/normalize";
+import { useSpringLoadedModifiers } from "./shortcuts/springLoadedModifiers";
 import type { ContextCommand } from "../../stores/CommandMenuStore";
 import { useContextCommands } from "../../hooks/useContextCommands";
 import { isCommandMenuShortcut } from "../menus/commandMenuShortcut";
