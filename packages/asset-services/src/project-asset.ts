@@ -32,6 +32,7 @@ import {
   verifiedExternalPath
 } from "./external-asset-lookup.js";
 import {
+  WORKSPACE_MOVE_PUBLISHED_KEY,
   WORKSPACE_SERVER_KEYS,
   keepFingerprint,
   localProjectAssetPath,
@@ -906,8 +907,8 @@ const MAX_PROJECT_CHANGES = 3;
  * The lock is the one of the project the row names when the lock is taken.
  * When the asset was moved to another project after the caller loaded it,
  * `asset` takes the new project and the lock of that project is taken. The
- * move's record of an interrupted move (its target and the hash of the
- * object it copied) is kept from the row, so the save in `store` does not
+ * move's record of an interrupted move (its target, the hash of the object
+ * it copied and whether it published the copy) is kept from the row, so the save in `store` does not
  * erase it and leave the move's copy in the folder with no row that claims
  * it.
  */
@@ -939,7 +940,11 @@ export async function storeLegacyAssetBytes(
           asset.metadata = keepFingerprint(
             asset.metadata ?? {},
             current.metadata,
-            [WORKSPACE_MOVE_TARGET_KEY, WORKSPACE_MOVE_SOURCE_KEY]
+            [
+              WORKSPACE_MOVE_TARGET_KEY,
+              WORKSPACE_MOVE_SOURCE_KEY,
+              WORKSPACE_MOVE_PUBLISHED_KEY
+            ]
           );
         }
         await store();
