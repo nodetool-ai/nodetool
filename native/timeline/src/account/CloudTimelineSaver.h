@@ -11,6 +11,14 @@
 // after its media is resolved off the UI thread, so it is sent again and can
 // be undone. A draft that arrives after the person already edited is not
 // applied: the person's edits replace it.
+//
+// The draft is the document with the sequence's `fps`, `width` and `height`
+// beside it (cloudDraft), so a change of the project settings is sent too.
+// A draft with other settings restores them with one setProjectSettings
+// edit after the document.
+//
+// The model is read-only while the document is: a viewer's window, or one
+// whose access was removed, takes no edit (TimelineModel::readOnly).
 
 #include "server/ServerTimeline.h"
 
@@ -66,8 +74,12 @@ public:
     QString error() const { return m_error; }
 
     // The raw sequence with its document part (documentForSave) replaced by
-    // `draft`. The sequence row fields stay.
+    // `draft`. The sequence row fields stay, except the settings the draft
+    // names.
     static QJsonObject withDraft(const QJsonObject& rawSequence, const QJsonObject& draft);
+    // What is sent for a raw sequence: documentForSave and its fps, width
+    // and height.
+    static QJsonObject cloudDraft(const QJsonObject& rawSequence);
 
 signals:
     void errorChanged();

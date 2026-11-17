@@ -1562,10 +1562,16 @@ and a `--token`, so the local server's token never goes to the cloud.
 A cloud timeline has no server save target. `CloudTimelineSaver`
 (`src/account/`) hands each committed edit to `CloudDocument`, which writes it
 to the local drafts of the window's local server (`NODETOOL_SERVER_URL`) and
-then sends it with `timeline.update`. The document bar shows the cloud
-status in place of the save status. A draft this account left on this
-computer is applied as one `restoreDocument` edit after its media is
-resolved, unless the person edited first.
+then sends it with `timeline.update`. The draft carries the frame rate and
+size beside the document, and the save sends them as the sequence's
+columns. The document bar shows the cloud status in place of the save
+status. A draft this account left on this computer is applied as one
+`restoreDocument` edit after its media is resolved, unless the person
+edited first, and its frame rate and size as one `setProjectSettings` edit.
+
+A viewer's window, and one whose access was removed, is read-only:
+`TimelineModel::readOnly` refuses every edit and clears the undo history,
+and the document bar says why.
 
 The owner of a cloud timeline sees Share in the document bar. It opens the
 share dialog of the account library (`ShareDialog.qml`) with the account the
@@ -1573,10 +1579,9 @@ window was opened with (`nativeCloudAccount`). The dialog lists the scripts
 and storyboards the clips link to, because a link to the timeline does not
 open them.
 
-Frame rate and size edits of a cloud timeline are not sent yet. The media
-resolvers and take switching need a server save target, so they do not run
-for a cloud timeline, and the recent list does not record cloud timelines. A
-viewer's window still accepts edits, which `CloudDocument` does not keep.
+The media resolvers and take switching need a server save target, so they
+do not run for a cloud timeline, and the recent list does not record cloud
+timelines.
 
 ## Project folders
 

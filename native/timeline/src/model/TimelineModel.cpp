@@ -447,7 +447,7 @@ quint64 TimelineModel::commitEdit(const QString& text, const QJsonArray& before,
                                bool continuation) {
     const QJsonArray savedBefore = before;
     const QJsonArray savedAfter = after;
-    if (savedBefore == savedAfter) return false;
+    if (m_readOnly || savedBefore == savedAfter) return false;
     const auto liveBefore = clipsJson();
     emit beforeCommand();
     const auto restored = clipsJson();
@@ -505,6 +505,7 @@ bool TimelineModel::replaceMarkers(const QJsonArray& incoming) {
 }
 
 QString TimelineModel::addMarker(double timeMs, const QString& label) {
+    if (m_readOnly) return {};
     // makeMarker: a fresh id, the time rounded to whole ms and not negative.
     const QString id = QUuid::createUuid().toString(QUuid::Id128);
     QJsonArray after = markersJson();
@@ -517,6 +518,7 @@ QString TimelineModel::addMarker(double timeMs, const QString& label) {
 }
 
 bool TimelineModel::deleteMarker(const QString& markerId) {
+    if (m_readOnly) return false;
     QJsonArray after;
     const QJsonArray before = markersJson();
     for (const QJsonValue& m : before) {
@@ -537,9 +539,16 @@ void TimelineModel::close() {
     setTimeline(std::move(empty));
 }
 
+void TimelineModel::setReadOnly(bool readOnly) {
+    if (m_readOnly == readOnly) return;
+    m_readOnly = readOnly;
+    if (readOnly) m_undo->clear();
+    emit readOnlyChanged();
+}
+
 quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload) {
     const auto edit = nt::app::findEdit(name);
-    if (!edit) {
+    if (m_readOnly || !edit) {
         return false;
     }
     // False when nothing changed or `after` is not a valid document. `before` is the current document.

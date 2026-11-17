@@ -3021,6 +3021,25 @@ private slots:
         QCOMPARE(merged.value("updatedAt").toString(), QStringLiteral("u1"));
         QCOMPARE(merged.value("clips").toArray().size(), 1);
         QVERIFY(!merged.contains("markers"));
+        // The settings a draft names replace the row's.
+        const QJsonObject withRate =
+            nt::account::CloudTimelineSaver::withDraft(raw, QJsonObject{{"tracks", QJsonArray{}}, {"fps", 24}});
+        QCOMPARE(withRate.value("fps").toInt(), 24);
+    }
+
+    // What a cloud timeline sends: its document with the frame rate and size,
+    // and no other sequence row field.
+    void cloudDraftCarriesTheSettings() {
+        const QJsonObject raw{{"id", "t1"}, {"name", "Cut"}, {"fps", 25}, {"width", 1280}, {"height", 720},
+                              {"updatedAt", "u1"}, {"clips", QJsonArray{}}, {"tracks", QJsonArray{}}};
+        const QJsonObject draft = nt::account::CloudTimelineSaver::cloudDraft(raw);
+        QCOMPARE(draft.value("fps").toInt(), 25);
+        QCOMPARE(draft.value("width").toInt(), 1280);
+        QCOMPARE(draft.value("height").toInt(), 720);
+        QVERIFY(draft.value("clips").isArray());
+        QVERIFY(!draft.contains("id"));
+        QVERIFY(!draft.contains("name"));
+        QVERIFY(!draft.contains("updatedAt"));
     }
 
     // Review F10: a probed source length belongs to one version of a file. A

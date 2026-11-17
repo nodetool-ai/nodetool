@@ -17,15 +17,29 @@ namespace nt::account {
 
 namespace accountlib = nodetool::account;
 
+namespace {
+constexpr const char* kSettings[] = {"fps", "width", "height"};
+}  // namespace
+
 QJsonObject CloudTimelineSaver::withDraft(const QJsonObject& rawSequence, const QJsonObject& draft) {
     QJsonObject merged = draft;
     const QJsonObject document = server::documentForSave(rawSequence);
     for (auto it = rawSequence.begin(); it != rawSequence.end(); ++it) {
-        if (!document.contains(it.key())) {
+        if (!document.contains(it.key()) && !merged.contains(it.key())) {
             merged.insert(it.key(), it.value());
         }
     }
     return merged;
+}
+
+QJsonObject CloudTimelineSaver::cloudDraft(const QJsonObject& rawSequence) {
+    QJsonObject draft = server::documentForSave(rawSequence);
+    for (const char* key : kSettings) {
+        if (rawSequence.contains(QLatin1String(key))) {
+            draft.insert(QLatin1String(key), rawSequence.value(QLatin1String(key)));
+        }
+    }
+    return draft;
 }
 
 CloudTimelineSaver::CloudTimelineSaver(TimelineModel& model, std::shared_ptr<accountlib::AccountSession> session,
@@ -49,6 +63,8 @@ CloudTimelineSaver::CloudTimelineSaver(TimelineModel& model, std::shared_ptr<acc
             [this](const QString&, const QString& draft) { applyDraft(draft); });
     connect(m_document.get(), &accountlib::qt::CloudDocument::openFailed, this,
             [this](const QString& reason) { fail(tr("Cloud timeline not opened: %1").arg(reason)); });
+    connect(m_document.get(), &accountlib::qt::CloudDocument::stateChanged, this,
+            [this] { m_model.setReadOnly(m_document->readOnly()); });
     connect(&m_model, &TimelineModel::commandSettled, this, &CloudTimelineSaver::sendEdit);
     m_document->open();
 }
@@ -62,7 +78,7 @@ CloudTimelineSaver::~CloudTimelineSaver() {
 QObject* CloudTimelineSaver::document() const { return m_document.get(); }
 
 void CloudTimelineSaver::sendEdit() {
-    const QJsonObject draft = server::documentForSave(m_model.timeline().raw);
+    const QJsonObject draft = cloudDraft(m_model.timeline().raw);
     m_document->edit(QString::fromUtf8(QJsonDocument(draft).toJson(QJsonDocument::Compact)));
 }
 
@@ -74,7 +90,7 @@ void CloudTimelineSaver::fail(const QString& error) {
 void CloudTimelineSaver::applyDraft(const QString& text) {
     const QJsonObject draft = QJsonDocument::fromJson(text.toUtf8()).object();
     const QJsonObject current = m_model.timeline().raw;
-    if (draft.isEmpty() || draft == server::documentForSave(current)) {
+    if (draft.isEmpty() || draft == cloudDraft(current)) {
         return;
     }
     if (m_model.undoStack()->count() > 0) {
@@ -107,10 +123,24 @@ void CloudTimelineSaver::applyDraft(const QString& text) {
         for (const auto& media : result->timeline->clips) {
             m_model.registerMedia(media);
         }
-        const quint64 token = m_model.applyEdit(QStringLiteral("restoreDocument"),
-                                                QJsonObject{{QStringLiteral("document"), draft}});
-        if (token == 0) {
+        const QJsonObject before = cloudDraft(m_model.timeline().raw);
+        if (server::documentForSave(draft) != server::documentForSave(before) &&
+            m_model.applyEdit(QStringLiteral("restoreDocument"), QJsonObject{{QStringLiteral("document"), draft}}) == 0) {
             fail(tr("The edits kept on this computer could not be applied."));
+            return;
+        }
+        QJsonObject settings;
+        bool changed = false;
+        for (const char* key : kSettings) {
+            const QLatin1String name(key);
+            settings.insert(name, draft.contains(name) ? draft.value(name) : before.value(name));
+            changed = changed || settings.value(name) != before.value(name);
+        }
+        if (changed) {
+            // setProjectSettings keeps a tempo it is not given.
+            if (m_model.applyEdit(QStringLiteral("setProjectSettings"), settings) == 0) {
+                fail(tr("The frame rate and size kept on this computer could not be applied."));
+            }
         }
     });
     worker->start();

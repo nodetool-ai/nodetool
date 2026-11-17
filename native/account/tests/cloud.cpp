@@ -919,6 +919,32 @@ void timelineSaverSendsTheDocument(TestContext& t) {
     CHECK(body["document"]["tracks"].is_array());
     CHECK(body["editingInstance"] == kInstance);
     CHECK(body["schemaVersion"] == kTimelineSchemaVersion);
+    CHECK(!body.contains("fps"));
+  }
+}
+
+// The frame rate and size travel as the sequence's columns, never inside
+// the document, where the server would ignore them.
+void timelineSaverSendsTheSequenceColumns(TestContext& t) {
+  SaverServer server;
+  server.reply = [](const nlohmann::json&) {
+    return HttpResponse{200, R"({"result":{"data":{"json":{"id":"t1","updatedAt":"r2"}}}})"};
+  };
+  TimelineCloudSaver saver(server.client);
+  const SaveResult result =
+      saver.save(kTimelineKey, kInstance, {"r1", "h1"}, R"({"tracks":[],"fps":24,"width":1920,"height":"tall"})");
+  CHECK(result.status == SaveStatus::Ok);
+  const auto sent = server.saves();
+  CHECK(sent.size() == 1);
+  if (!sent.empty()) {
+    const nlohmann::json body = nlohmann::json::parse(sent[0].body);
+    CHECK(body["fps"] == 24);
+    CHECK(body["width"] == 1920);
+    CHECK(!body.contains("height"));
+    CHECK(body["document"]["tracks"].is_array());
+    CHECK(!body["document"].contains("fps"));
+    CHECK(!body["document"].contains("width"));
+    CHECK(!body["document"].contains("height"));
   }
 }
 
@@ -1702,6 +1728,7 @@ int main() {
       {"oneInstancePerOpenDocument", oneInstancePerOpenDocument},
       {"workflowSaverSendsTheGraph", workflowSaverSendsTheGraph},
       {"timelineSaverSendsTheDocument", timelineSaverSendsTheDocument},
+      {"timelineSaverSendsTheSequenceColumns", timelineSaverSendsTheSequenceColumns},
       {"saveWithoutBaseIsRefused", saveWithoutBaseIsRefused},
       {"saverRefusesAnotherAccountsDraft", saverRefusesAnotherAccountsDraft},
       {"conflictIsSentAgainOnTheLatestRevision", conflictIsSentAgainOnTheLatestRevision},

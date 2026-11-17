@@ -103,6 +103,7 @@ QVariantMap TimelineChatHost::execute(const QString& name, const QVariantMap& ar
             }
             durationMs = args.value("durationMs").toDouble();
         }
+        if (m_model.readOnly()) { return failure("This timeline is read-only."); }
         const auto before = m_model.markersJson();
         const auto id = nt::markers::newId();
         const auto after = nt::markers::add(before, {{"id", id}, {"timeMs", ms}, {"label", args.value("label").toString()},
