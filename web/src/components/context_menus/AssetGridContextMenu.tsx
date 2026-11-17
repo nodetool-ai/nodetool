@@ -2,29 +2,21 @@ import type { MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
-  Divider,
   ContextMenu,
   ListSubheader,
   MenuItemPrimitive
 } from "../ui_primitives";
-import ContextMenuItem from "./ContextMenuItem";
-import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import SortByAlphaIcon from "@mui/icons-material/SortByAlpha";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import StorageIcon from "@mui/icons-material/Storage";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 
 const AssetGridContextMenu = () => {
   const { t } = useTranslation();
-  const currentFolder = useAssetGridStore((state) => state.currentFolder);
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
   const closeContextMenu = useContextMenuStore(
     (state) => state.closeContextMenu
-  );
-  const setCreateFolderDialogOpen = useAssetGridStore(
-    (state) => state.setCreateFolderDialogOpen
   );
   const assetsOrder = useSettingsStore((state) => state.settings.assetsOrder);
   const setAssetsOrder = useSettingsStore((state) => state.setAssetsOrder);
@@ -37,7 +29,6 @@ const AssetGridContextMenu = () => {
       closeContextMenu();
     };
 
-  const handleCreateFolder = withMenuClose(() => setCreateFolderDialogOpen(true));
   const handleSortByName = withMenuClose(() => setAssetsOrder("name"));
   const handleSortByDate = withMenuClose(() => setAssetsOrder("date"));
   const handleSortBySize = withMenuClose(() => setAssetsOrder("size"));
@@ -53,15 +44,8 @@ const AssetGridContextMenu = () => {
       position={menuPosition}
     >
       <ListSubheader className="title">
-        {t("screen_editor.folderIn", { folder: currentFolder?.name || t("screen_editor.assets") })}
+        {t("screen_editor.assets")}
       </ListSubheader>
-      <ContextMenuItem
-        onClick={handleCreateFolder}
-        label={t("screen_editor.createFolder")}
-        IconComponent={<CreateNewFolderIcon />}
-        tooltip={t("screen_editor.createFolderIn", { folder: currentFolder?.name || t("screen_editor.assets") })}
-      />
-      <Divider />
       <MenuItemPrimitive
         onClick={handleSortByName}
         label={t("screen_editor.sortByName")}

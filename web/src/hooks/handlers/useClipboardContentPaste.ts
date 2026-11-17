@@ -14,10 +14,6 @@ import { useReactFlow } from "@xyflow/react";
 import { getMousePosition } from "../../utils/MousePosition";
 import { useNodes } from "../../contexts/NodeContext";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
-import {
-  useAssetGridStore,
-  useLibraryCurrentFolderId
-} from "../../stores/AssetGridStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useAuth from "../../stores/useAuth";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -85,13 +81,6 @@ export const useClipboardContentPaste = () => {
   }), shallow);
   const { uploadAsset } = useAssetUpload();
   const addNotification = useNotificationStore((state) => state.addNotification);
-  // Mirrors dropHandlerUtils: canvas paste uploads should follow the Library
-  // sidebar's active folder, falling back to the fullscreen assets page.
-  const libraryFolderId = useLibraryCurrentFolderId();
-  const singletonFolderId = useAssetGridStore(
-    (state) => state.currentFolderId
-  );
-  const currentFolderId = libraryFolderId || singletonFolderId;
   const user = useAuth((auth) => auth.user);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
 
@@ -400,7 +389,7 @@ export const useClipboardContentPaste = () => {
         file,
         source: "clipboard",
         workflow_id: workflow.id,
-        parent_id: currentFolderId || user?.id,
+        parent_id: user?.id,
         onCompleted: (uploadedAsset: Asset) => {
           createImageNode(uploadedAsset, position);
         },
@@ -413,7 +402,6 @@ export const useClipboardContentPaste = () => {
     [
       uploadAsset,
       workflow.id,
-      currentFolderId,
       user?.id,
       createImageNode,
       addNotification

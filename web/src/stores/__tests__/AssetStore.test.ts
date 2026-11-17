@@ -937,53 +937,6 @@ describe("AssetStore", () => {
     });
   });
 
-  describe("getAllAssetsInFolder", () => {
-    it("should fetch flat list via recursive tRPC procedure and flatten it", async () => {
-      const mockResponse = {
-        assets: [
-          {
-            id: "folder1",
-            name: "Folder 1",
-            content_type: "folder"
-          },
-          {
-            id: "file1",
-            name: "file1.txt",
-            content_type: "text/plain"
-          },
-          {
-            id: "file2",
-            name: "file2.txt",
-            content_type: "text/plain"
-          }
-        ]
-      };
-
-      recursiveQuery.mockResolvedValueOnce(mockResponse);
-
-      const { getAllAssetsInFolder } = useAssetStore.getState();
-      const result = await getAllAssetsInFolder("root-folder");
-
-      expect(recursiveQuery).toHaveBeenCalledWith(
-        { id: "root-folder" },
-        {}
-      );
-      // Flat list → three items, no nesting.
-      expect(result).toHaveLength(3);
-      const ids = result.map((a) => a.id).sort();
-      expect(ids).toEqual(["file1", "file2", "folder1"]);
-    });
-
-    it("should handle API errors", async () => {
-      recursiveQuery.mockRejectedValueOnce(new Error("Failed to fetch"));
-
-      const { getAllAssetsInFolder } = useAssetStore.getState();
-      await expect(getAllAssetsInFolder("root-folder")).rejects.toThrow(
-        /Failed to fetch/
-      );
-    });
-  });
-
   describe("error handling", () => {
     it("should handle network errors gracefully", async () => {
       getQuery.mockRejectedValueOnce(new Error("Network error"));

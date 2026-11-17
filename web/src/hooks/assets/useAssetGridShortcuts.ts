@@ -30,9 +30,7 @@ export const useAssetGridShortcuts = (assets: Asset[], enabled: boolean) => {
     setDeleteDialogOpen,
     openAsset,
     deleteDialogOpen,
-    renameDialogOpen,
-    moveToFolderDialogOpen,
-    createFolderDialogOpen
+    renameDialogOpen
   } = useAssetGridStore(
     useShallow((state) => ({
       selectedAssetIds: state.selectedAssetIds,
@@ -41,18 +39,14 @@ export const useAssetGridShortcuts = (assets: Asset[], enabled: boolean) => {
       setDeleteDialogOpen: state.setDeleteDialogOpen,
       openAsset: state.openAsset,
       deleteDialogOpen: state.deleteDialogOpen,
-      renameDialogOpen: state.renameDialogOpen,
-      moveToFolderDialogOpen: state.moveToFolderDialogOpen,
-      createFolderDialogOpen: state.createFolderDialogOpen
+      renameDialogOpen: state.renameDialogOpen
     }))
   );
 
   const overlayOpen =
     !!openAsset ||
     deleteDialogOpen ||
-    renameDialogOpen ||
-    moveToFolderDialogOpen ||
-    createFolderDialogOpen;
+    renameDialogOpen;
 
   const active = enabled && !overlayOpen;
   const hasSelection = selectedAssetIds.length > 0;

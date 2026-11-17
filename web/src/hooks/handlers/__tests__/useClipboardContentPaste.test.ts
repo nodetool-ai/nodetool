@@ -5,7 +5,6 @@ import { useClipboardContentPaste } from "../useClipboardContentPaste";
 import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../../../contexts/NodeContext";
 import { useAssetUpload } from "../../../serverState/useAssetUpload";
-import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import useAuth from "../../../stores/useAuth";
 import useMetadataStore from "../../../stores/MetadataStore";
@@ -25,7 +24,6 @@ jest.mock("@xyflow/react", () => ({
 }));
 jest.mock("../../../contexts/NodeContext");
 jest.mock("../../../serverState/useAssetUpload");
-jest.mock("../../../stores/AssetGridStore");
 jest.mock("../../../stores/NotificationStore");
 jest.mock("../../../stores/useAuth");
 jest.mock("../../../stores/MetadataStore");
@@ -42,7 +40,6 @@ describe("useClipboardContentPaste", () => {
   const mockedUseReactFlow = useReactFlow as jest.Mock;
   const mockedUseNodes = asMock(useNodes);
   const mockedUseAssetUpload = asMock(useAssetUpload);
-  const mockedUseAssetGridStore = asMock(useAssetGridStore);
   const mockedUseNotificationStore =
     asMock(useNotificationStore);
   const mockedUseAuth = asMock(useAuth);
@@ -90,14 +87,6 @@ describe("useClipboardContentPaste", () => {
     // Mock useAssetUpload
     mockedUseAssetUpload.mockReturnValue({
       uploadAsset: mockUploadAsset
-    });
-
-    // Mock useAssetGridStore
-    mockedUseAssetGridStore.mockImplementation((selector) => {
-      if (mockIsFunction(selector)) {
-        return selector({ currentFolderId: "folder-123" });
-      }
-      return { currentFolderId: "folder-123" };
     });
 
     // Mock useAuth
@@ -230,7 +219,7 @@ describe("useClipboardContentPaste", () => {
         expect.objectContaining({
           source: "clipboard",
           workflow_id: "workflow-123",
-          parent_id: "folder-123"
+          parent_id: "user-123"
         })
       );
       global.fetch = originalFetch;

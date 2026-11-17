@@ -19,11 +19,9 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 
 import AudioPlayer from "../audio/AudioPlayer";
 import AssetActionsMenu from "./AssetActionsMenu";
-import AssetCreateFolderConfirmation from "./AssetCreateFolderConfirmation";
 import AssetDeleteConfirmation from "./AssetDeleteConfirmation";
 import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
 import AssetGridContextMenu from "../context_menus/AssetGridContextMenu";
-import AssetMoveToFolderConfirmation from "./AssetMoveToFolderConfirmation";
 import ImageCompareDialog from "./ImageCompareDialog";
 import AssetRenameConfirmation from "./AssetRenameConfirmation";
 import TransformWithWorkflowDialog from "./TransformWithWorkflowDialog";
@@ -31,7 +29,7 @@ import AssetUploadOverlay from "./AssetUploadOverlay";
 import AssetImportDialog from "./AssetImportDialog";
 import Dropzone from "./Dropzone";
 //  panels and styles
-import AssetFoldersPanel from "./panels/AssetFoldersPanel";
+import WorkflowTree from "./WorkflowTree";
 import AssetFilesPanel from "./panels/AssetFilesPanel";
 import assetGridStyles from "./assetGridStyles";
 import useClickOutsideDeselect from "./hooks/useClickOutsideDeselect";
@@ -47,7 +45,6 @@ import AssetViewer from "./AssetViewer";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useShallow } from "zustand/react/shallow";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import useAuth from "../../stores/useAuth";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import AssetGridSplit from "./AssetGridSplit";
 import PanelErrorBoundary from "../common/PanelErrorBoundary";
@@ -55,8 +52,7 @@ import { formatFileSize } from "../../utils/formatUtils";
 import { useOpenProjectConnection } from "../../lib/websocket/openProjectSignal";
 
 const styles = assetGridStyles;
-const FOLDERS_PANEL_HEIGHT = 200;
-const FOLDERS_PANEL_WIDTH = 200;
+const WORKFLOWS_PANEL_WIDTH = 200;
 
 /** Displays count and total size of selected assets, with a clear button */
 const SelectedItemsInfo: React.FC<{
@@ -79,7 +75,7 @@ const SelectedItemsInfo: React.FC<{
   }, [selectedAssetIds, assets]);
 
   // The row keeps its height while nothing is selected: selecting an asset
-  // as a drag starts must not push the folder list under the pointer.
+  // as a drag starts must not push the grid under the pointer.
   const hidden = selectedAssetIds.length === 0;
 
   return (
@@ -120,13 +116,13 @@ interface AssetGridProps {
   itemSpacing?: number;
   isHorizontal?: boolean;
   sortedAssets?: Asset[];
-  initialFoldersPanelWidth?: number;
+  initialWorkflowsPanelWidth?: number;
   isFullscreenAssets?: boolean;
   isMobile?: boolean;
   /**
    * Force the global (all-workflows) asset scope regardless of the currently
-   * open workflow, without adopting the fullscreen page's layout (folders
-   * pinned open, side-by-side position). Used by the "Library" sidebar panel.
+   * open workflow, without adopting the fullscreen page's layout (workflow
+   * list docked beside the grid). Used by the "Library" sidebar panel.
    */
   forceGlobalAssets?: boolean;
 }
@@ -137,7 +133,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   isHorizontal,
   sortedAssets,
   isFullscreenAssets,
-  initialFoldersPanelWidth = FOLDERS_PANEL_WIDTH,
+  initialWorkflowsPanelWidth = WORKFLOWS_PANEL_WIDTH,
   isMobile = false,
   forceGlobalAssets = false
 }) => {
@@ -149,10 +145,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const {
     error,
     folderFilesFiltered,
-    folderTree,
-    navigateToFolderId,
     projectId,
-    refetchAssetsAndFolders
+    refetchAssets
   } = useAssets();
   const {
     setOpenAsset,
@@ -161,11 +155,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     setWorkflowFilter,
     openAsset,
     selectedAssetIds,
-    selectedFolderId,
-    currentAudioAsset,
-    currentFolderId,
-    foldersVisible,
-    workflowFilter
+    currentAudioAsset
   } = useAssetGridStore(
     useShallow((state) => ({
       setOpenAsset: state.setOpenAsset,
@@ -174,11 +164,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       setWorkflowFilter: state.setWorkflowFilter,
       openAsset: state.openAsset,
       selectedAssetIds: state.selectedAssetIds,
-      selectedFolderId: state.selectedFolderId,
-      currentAudioAsset: state.currentAudioAsset,
-      currentFolderId: state.currentFolderId,
-      foldersVisible: state.foldersVisible,
-      workflowFilter: state.workflowFilter
+      currentAudioAsset: state.currentAudioAsset
     }))
   );
   const currentWorkflowId = useWorkflowManager(
@@ -186,8 +172,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   );
   // Default asset scope per surface: the in-editor sidebar follows the current
   // workflow (re-asserted whenever the open workflow changes), while the
-  // fullscreen page opens on the global/all-assets view. A manual pick (a
-  // folder or another workflow) holds until one of these inputs changes.
+  // fullscreen page opens on the global/all-assets view. A manual pick of
+  // another workflow holds until one of these inputs changes.
   useEffect(() => {
     if (forceGlobalAssets) {
       setWorkflowFilter(null);
@@ -199,31 +185,10 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   const theme = useTheme();
 
-  // The sidebar hides an empty folder tree until the user creates a folder.
-  // The fullscreen page always docks it: it also holds the Workflows browser
-  // and is where people expect to create and pick folders.
-  const hasFolders = useMemo(
-    () => !!folderTree && Object.keys(folderTree).length > 0,
-    [folderTree]
-  );
-  // The in-editor "workflow output" sidebar is scoped to the current
-  // workflow's assets and has no folder hierarchy of its own.
-  const isWorkflowOutputScope =
-    !isFullscreenAssets &&
-    !forceGlobalAssets &&
-    !!currentWorkflowId &&
-    workflowFilter === currentWorkflowId;
-  // The fullscreen page docks the folder tree beside the grid and pins it
-  // open. On a phone that 300px pane leaves no room for the grid and there is
-  // no control to close it, so narrow viewports fall back to the sidebar
-  // behaviour: folders stack above the grid and follow the toolbar toggle.
+  // The fullscreen page docks the workflow list beside the grid. On a phone
+  // that pane leaves no room for the grid, so narrow viewports omit it.
   const isNarrow = useMediaQuery(theme.breakpoints.down("sm"));
-  const foldersDocked = Boolean(isFullscreenAssets) && !isNarrow;
-  const effectiveFoldersVisible =
-    !isWorkflowOutputScope &&
-    (foldersDocked || (hasFolders && foldersVisible));
-
-  const user = useAuth((state) => state.user);
+  const workflowsDocked = Boolean(isFullscreenAssets) && !isNarrow;
 
   // Separate selectors prevent unnecessary re-renders when only one key state changes
   const F2KeyPressed = useKeyPressedStore((state) => state.isKeyPressed("F2"));
@@ -277,7 +242,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       files.forEach((file: File) => {
         const upload: Parameters<typeof uploadAsset>[0] = {
           file: file,
-          parent_id: currentFolderId || undefined,
           project_id: projectId
         };
         if (importMode) {
@@ -286,22 +250,14 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         uploadAsset(upload);
       });
     },
-    [currentFolderId, projectId, uploadAsset]
+    [projectId, uploadAsset]
   );
   const importChoice = useImportModeChoice(startUploads);
   const uploadFiles = importChoice.importFiles;
 
-  if (selectedFolderId === null) {
-    if (user) {
-      navigateToFolderId(user?.id);
-    } else {
-      console.error("User is not logged in");
-    }
-  }
-
-  // Folders never appear on a phone: the pane leaves no room for the grid and
-  // there is no control to dismiss it.
-  const showFolders = !isMobile && effectiveFoldersVisible;
+  // The workflow list never appears on a phone: the pane leaves no room for
+  // the grid and there is no control to dismiss it.
+  const showWorkflows = !isMobile && workflowsDocked;
 
   const filesPanel = (
     <PanelErrorBoundary panelName="Assets">
@@ -328,8 +284,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         <AssetActionsMenu
           maxItemSize={maxItemSize}
           onUploadFiles={uploadFiles}
-          isFullscreenAssets={foldersDocked}
-          hideFolderControls={isWorkflowOutputScope}
+          isFullscreenAssets={workflowsDocked}
         />
       )}
       {showInlineFetchError && (
@@ -347,7 +302,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
             <EditorButton
               color="inherit"
               size="small"
-              onClick={() => refetchAssetsAndFolders()}
+              onClick={() => refetchAssets()}
             >
               {t("actions.retry")}
             </EditorButton>
@@ -376,18 +331,23 @@ const AssetGrid: React.FC<AssetGridProps> = ({
             flex: 1
           }}
         >
-          {showFolders ? (
+          {showWorkflows ? (
             <AssetGridSplit
-              orientation={foldersDocked ? "horizontal" : "vertical"}
-              initialSize={
-                foldersDocked ? initialFoldersPanelWidth : FOLDERS_PANEL_HEIGHT
-              }
+              orientation="horizontal"
+              initialSize={initialWorkflowsPanelWidth}
               separatorLabel={t("actions.resizeFolderPane")}
               first={
-                <PanelErrorBoundary panelName="Asset folders">
-                  <AssetFoldersPanel
-                    isFullscreenAssets={Boolean(isFullscreenAssets)}
-                  />
+                <PanelErrorBoundary panelName="Asset workflows">
+                  <Box
+                    sx={{
+                      height: "100%",
+                      overflowY: "auto",
+                      overflowX: "hidden",
+                      bgcolor: "c_editor_bg_color"
+                    }}
+                  >
+                    <WorkflowTree />
+                  </Box>
                 </PanelErrorBoundary>
               }
               second={filesPanel}
@@ -417,10 +377,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       )}
       {openMenuType === "asset-item-context-menu" && <AssetItemContextMenu />}
       {openMenuType === "asset-grid-context-menu" && <AssetGridContextMenu />}
-      <AssetCreateFolderConfirmation />
       <AssetDeleteConfirmation assets={selectedAssetIds} />
       <AssetRenameConfirmation assets={selectedAssetIds} />
-      <AssetMoveToFolderConfirmation assets={selectedAssetIds} />
       <ImageCompareDialog />
       <TransformWithWorkflowDialog />
       <AssetImportDialog

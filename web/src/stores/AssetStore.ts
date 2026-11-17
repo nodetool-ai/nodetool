@@ -8,7 +8,6 @@ import { trpcClient } from "../trpc/client";
 import { Asset, AssetList, AssetSearchResult } from "./ApiTypes";
 import { QueryClient, QueryKey } from "@tanstack/react-query";
 import { assetIdFromRef } from "@nodetool-ai/protocol";
-import type { AssetGridStoreApi } from "./AssetGridStore";
 import { AppError, createErrorMessage } from "../utils/errorHandling";
 import {
   prepareUploadFile,
@@ -283,7 +282,6 @@ export interface AssetStore {
   add: (asset: Asset) => void;
   invalidateQueries: (queryKey: QueryKey) => void;
   get: (id: string, project_id?: string) => Promise<Asset>;
-  getAllAssetsInFolder: (folderId: string, project_id?: string) => Promise<Asset[]>;
   createFolder: (
     parent_id: string | null,
     name: string,
@@ -301,7 +299,6 @@ export interface AssetStore {
   ) => Promise<Asset>;
   load: (query: AssetQuery) => Promise<AssetList>;
   loadFolderTree: (sortBy?: string, project_id?: string) => Promise<FolderTree>;
-  loadCurrentFolder: (gridStore: AssetGridStoreApi, project_id?: string) => Promise<AssetList>;
   search: (
     query: AssetSearchQuery,
     signal?: AbortSignal
@@ -309,11 +306,6 @@ export interface AssetStore {
   update: (asset: AssetUpdate) => Promise<Asset>;
   delete: (id: string) => Promise<string[]>;
   download: (ids: string[]) => Promise<boolean>;
-  getAssetsRecursive: (
-    folderId: string,
-    project_id?: string,
-    signal?: AbortSignal
-  ) => Promise<AssetTreeNode[]>;
 }
 
 export type FolderTree = Record<string, AssetTreeNode>;
@@ -372,9 +364,6 @@ export interface AssetTreeNode extends Asset {
 
 export const useAssetStore = create<AssetStore>((set, get) => ({
   queryClient: null,
-  currentFolderId: null,
-  currentFolder: null,
-  parentFolder: null,
 
   setQueryClient: (queryClient: QueryClient) => {
     set({ queryClient });
@@ -457,44 +446,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     );
   },
 
-  /**
-   * Load the current folder and its parent folder.
-   */
-  loadCurrentFolder: async (
-    gridStore: AssetGridStoreApi,
-    project_id?: string
-  ) => {
-    const currentFolderId = gridStore.getState().currentFolderId;
-    const setCurrentFolder = gridStore.getState().setCurrentFolder;
-    const setParentFolder = gridStore.getState().setParentFolder;
-    // Capture id at call time so a folder switch mid-flight doesn't write
-    // stale header/breadcrumb data into the new folder's view.
-    const requestedFolderId = currentFolderId;
-    const isStillActive = () =>
-      gridStore.getState().currentFolderId === requestedFolderId;
-
-    if (requestedFolderId) {
-      const asset = await get().get(requestedFolderId, project_id);
-      if (!isStillActive()) {
-        const empty: AssetList = { next: "", assets: [] };
-        return empty;
-      }
-      setCurrentFolder(asset);
-      if (asset?.parent_id) {
-        get()
-          .get(asset.parent_id, project_id)
-          .then((parent) => {
-            if (isStillActive()) {
-              setParentFolder(parent);
-            }
-          });
-      }
-    }
-    const assetQuery: AssetQuery = { parent_id: requestedFolderId };
-    if (project_id !== undefined) assetQuery.project_id = project_id;
-    return get().load(assetQuery);
-  },
-
   search: async (
     query: AssetSearchQuery,
     signal?: AbortSignal
@@ -563,28 +514,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     } catch (error) {
       throw normalizeAssetError(error, "Failed to create folder");
     }
-  },
-  getAllAssetsInFolder: async (
-    folderId: string,
-    project_id?: string
-  ): Promise<Asset[]> => {
-    const tree = await get().getAssetsRecursive(folderId, project_id);
-
-    const flatten = (nodes: AssetTreeNode[]): Asset[] => {
-      let result: Asset[] = [];
-      for (const node of nodes) {
-        // Create a copy without children to return as a flat asset
-
-        const { children, ...asset } = node;
-        result.push(asset);
-        if (node.children && node.children.length > 0) {
-          result = result.concat(flatten(node.children));
-        }
-      }
-      return result;
-    };
-
-    return flatten(tree);
   },
   delete: async (id: string): Promise<string[]> => {
     // Capture parent before delete so we can invalidate the listing the
@@ -767,31 +696,12 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       const asset =
         external ??
         (await uploadAsset(payload, preparedFile.file, onUploadProgress));
-      get().invalidateQueries(["assets", { parent_id: asset.parent_id }]);
+      // The flat library lists every directory, so refresh every listing.
+      get().invalidateQueries(["assets"]);
       get().add(asset);
       return asset;
     } catch (error) {
       throw normalizeAssetError(error, "Failed to create asset");
     }
-  },
-
-  getAssetsRecursive: async (
-    folderId: string,
-    project_id?: string,
-    signal?: AbortSignal
-  ): Promise<AssetTreeNode[]> => {
-    const recursiveInput: Parameters<
-      typeof trpcClient.assets.recursive.query
-    >[0] = { id: folderId };
-    if (project_id !== undefined) {
-      recursiveInput.project_id = project_id;
-    }
-    const data = await trpcClient.assets.recursive.query(
-      recursiveInput,
-      signal ? { signal } : {}
-    );
-    // The tRPC `recursive` procedure returns a flat array — convert it to the
-    // tree shape expected by downstream code.
-    return normalizeAssetList((data.assets ?? []) as AssetTreeNode[]);
   }
 }));

@@ -30,7 +30,6 @@ describe("AssetGridStore", () => {
     store.setSelectedAssetIds([]);
     store.setSelectedAssets([]);
     store.setFilteredAssets([]);
-    store.setCurrentFolder(null);
     store.setSearchTerm("");
     store.setViewMode("grid");
     store.setSizeFilter("all");
@@ -75,12 +74,6 @@ describe("AssetGridStore", () => {
       const state = useAssetGridStore.getState();
       expect(state.selectedAssetIds).toEqual([]);
       expect(state.selectedAssets).toEqual([]);
-    });
-
-    it("has no current folder initially", () => {
-      const state = useAssetGridStore.getState();
-      expect(state.currentFolder).toBeNull();
-      // currentFolderId can be null or undefined depending on initialization
     });
 
     it("has no global search active initially", () => {
@@ -223,43 +216,6 @@ describe("AssetGridStore", () => {
     });
   });
 
-  describe("current folder", () => {
-    it("sets current folder", () => {
-      const folder = createMockAsset("folder1", "My Folder");
-      
-      act(() => {
-        useAssetGridStore.getState().setCurrentFolder(folder);
-      });
-
-      const state = useAssetGridStore.getState();
-      expect(state.currentFolder).toEqual(folder);
-      expect(state.currentFolderId).toBe("folder1");
-    });
-
-    it("sets current folder to null", () => {
-      act(() => {
-        useAssetGridStore.getState().setCurrentFolder(createMockAsset("folder1"));
-        useAssetGridStore.getState().setCurrentFolder(null);
-      });
-
-      const state = useAssetGridStore.getState();
-      expect(state.currentFolder).toBeNull();
-      expect(state.currentFolderId).toBeNull();
-      expect(state.parentFolder).toBeNull();
-    });
-
-    it("sets current folder by ID", () => {
-      act(() => {
-        useAssetGridStore.getState().setCurrentFolderId("folder1");
-      });
-
-      const state = useAssetGridStore.getState();
-      expect(state.currentFolderId).toBe("folder1");
-      expect(state.currentFolder).toBeNull();
-      expect(state.parentFolder).toBeNull();
-    });
-  });
-
   describe("search functionality", () => {
     it("sets search term", () => {
       act(() => {
@@ -340,30 +296,6 @@ describe("AssetGridStore", () => {
         useAssetGridStore.getState().setRenameDialogOpen(false);
       });
       expect(useAssetGridStore.getState().renameDialogOpen).toBe(false);
-    });
-
-    it("opens and closes move to folder dialog", () => {
-      act(() => {
-        useAssetGridStore.getState().setMoveToFolderDialogOpen(true);
-      });
-      expect(useAssetGridStore.getState().moveToFolderDialogOpen).toBe(true);
-
-      act(() => {
-        useAssetGridStore.getState().setMoveToFolderDialogOpen(false);
-      });
-      expect(useAssetGridStore.getState().moveToFolderDialogOpen).toBe(false);
-    });
-
-    it("opens and closes create folder dialog", () => {
-      act(() => {
-        useAssetGridStore.getState().setCreateFolderDialogOpen(true);
-      });
-      expect(useAssetGridStore.getState().createFolderDialogOpen).toBe(true);
-
-      act(() => {
-        useAssetGridStore.getState().setCreateFolderDialogOpen(false);
-      });
-      expect(useAssetGridStore.getState().createFolderDialogOpen).toBe(false);
     });
   });
 

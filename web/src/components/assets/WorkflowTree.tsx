@@ -131,9 +131,9 @@ const searchInputSx = {
 };
 
 /**
- * Sibling of the FOLDERS tree shown in the fullscreen asset navigator. Lists
- * the workflows of the explorer's project filter as leaves; selecting one scopes the asset grid to that
- * workflow's assets (mutually exclusive with folder browsing).
+ * Shown beside the fullscreen asset grid. Lists the workflows of the
+ * explorer's project filter as leaves; selecting one scopes the asset grid to
+ * that workflow's assets.
  */
 const WorkflowTree: React.FC = () => {
   const theme = useTheme();
@@ -145,9 +145,6 @@ const WorkflowTree: React.FC = () => {
   const workflowFilter = useAssetGridStore((state) => state.workflowFilter);
   const setWorkflowFilter = useAssetGridStore(
     (state) => state.setWorkflowFilter
-  );
-  const setSelectedFolderIds = useAssetGridStore(
-    (state) => state.setSelectedFolderIds
   );
 
   // Follow the explorer's project filter; "All projects" lists every workflow.
@@ -171,11 +168,10 @@ const WorkflowTree: React.FC = () => {
 
   const handleSelect = useCallback(
     (workflow: Workflow) => {
-      // Selecting a workflow scopes to its assets and clears the folder highlight.
-      setWorkflowFilter(workflow.id);
-      setSelectedFolderIds([]);
+      // Selecting the scoped workflow again lists the whole library.
+      setWorkflowFilter(workflowFilter === workflow.id ? null : workflow.id);
     },
-    [setWorkflowFilter, setSelectedFolderIds]
+    [setWorkflowFilter, workflowFilter]
   );
 
   const toggleExpanded = useCallback(() => setExpanded((prev) => !prev), []);

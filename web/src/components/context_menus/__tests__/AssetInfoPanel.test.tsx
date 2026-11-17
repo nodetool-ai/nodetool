@@ -8,11 +8,6 @@ import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../__mocks__/themeMock";
 
-jest.mock("../../../stores/AssetGridStore", () => ({
-  useAssetGridStore: <T,>(selector: (s: { currentFolder: null }) => T) =>
-    selector({ currentFolder: null })
-}));
-
 jest.mock("../../../contexts/WorkflowManagerContext", () => ({
   useWorkflowManager: <T,>(selector: (s: { getWorkflow: () => null }) => T) =>
     selector({ getWorkflow: () => null })

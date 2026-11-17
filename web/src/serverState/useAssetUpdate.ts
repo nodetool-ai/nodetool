@@ -1,8 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AssetUpdate, useAssetStore } from "../stores/AssetStore";
 import { useNotificationStore } from "../stores/NotificationStore";
-import { useAssetGridStoreApi } from "../stores/AssetGridStore";
-import { AssetList } from "../stores/ApiTypes";
 
 export const useAssetUpdate = () => {
   const queryClient = useQueryClient();
@@ -10,47 +8,9 @@ export const useAssetUpdate = () => {
     (state) => state.addNotification
   );
   const updateAsset = useAssetStore((state) => state.update);
-  const gridStore = useAssetGridStoreApi();
-  const performMutation = async (updates: AssetUpdate[]) => {
-    const results = await Promise.all(
-      updates.map((asset) => updateAsset(asset))
-    );
-    // Renaming a directory of a project folder gives it a new id. A view
-    // open inside it follows the folder to its new id.
-    const { currentFolderId, setCurrentFolderId, setCurrentFolder } =
-      gridStore.getState();
-    updates.forEach((update, index) => {
-      const result = results[index];
-      if (result && result.id !== update.id && currentFolderId === update.id) {
-        setCurrentFolderId(result.id);
-        setCurrentFolder(result);
-      }
-    });
-  };
   const mutation = useMutation({
-    mutationFn: performMutation,
-    onMutate: async (updates: AssetUpdate[]) => {
-      const currentFolderId = gridStore.getState().currentFolderId;
-      const queryKey = ["assets", { parent_id: currentFolderId }];
-
-      // Cancel outgoing refetches so they don't overwrite the optimistic update
-      await queryClient.cancelQueries({ queryKey });
-
-      const previousData = queryClient.getQueryData<AssetList>(queryKey);
-
-      // Immediately remove the moved assets from the current folder view
-      const movedIds = new Set(updates.map((u) => u.id));
-      queryClient.setQueryData<AssetList>(queryKey, (old: AssetList | undefined) => {
-        if (!old) return old;
-        return {
-          ...old,
-          assets: old.assets.filter(
-            (a: { id: string }) => !movedIds.has(a.id)
-          )
-        };
-      });
-
-      return { previousData, currentFolderId };
+    mutationFn: async (updates: AssetUpdate[]) => {
+      await Promise.all(updates.map((asset) => updateAsset(asset)));
     },
     onSuccess: (_data, updates) => {
       mutation.reset();
@@ -61,14 +21,8 @@ export const useAssetUpdate = () => {
         dismissable: false,
       });
     },
-    onError: (err, _updates, context) => {
+    onError: (err) => {
       console.error("Failed to update asset(s):", err);
-      if (context?.previousData !== undefined) {
-        queryClient.setQueryData(
-          ["assets", { parent_id: context.currentFolderId }],
-          context.previousData
-        );
-      }
       addNotification({
         type: "error",
         alert: true,
@@ -76,13 +30,8 @@ export const useAssetUpdate = () => {
         dismissable: false,
       });
     },
-    onSettled: (_data, _error, _updates, context) => {
-      if (context?.currentFolderId !== undefined) {
-        queryClient.invalidateQueries({
-          queryKey: ["assets", { parent_id: context.currentFolderId }]
-        });
-      }
-      queryClient.invalidateQueries({ queryKey: ["folderTree"] });
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["assets"] });
     },
   });
 

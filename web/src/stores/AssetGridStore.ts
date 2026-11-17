@@ -16,47 +16,30 @@ interface AssetGridState {
   typeFilter: TypeFilterKey;
   viewMode: "grid" | "list";
   currentAudioAsset: Asset | null;
-  currentFolder: Asset | null;
-  currentFolderId: string | null;
   deleteDialogOpen: boolean;
   renameDialogOpen: boolean;
-  moveToFolderDialogOpen: boolean;
   filteredAssets: Asset[];
   handleDeselectAssets: () => void;
   handleSelectAllAssets: () => void;
   openAsset: Asset | null;
-  parentFolder: Asset | null;
   searchTerm: string;
   selectedAssetIds: string[];
   selectedAssets: Asset[];
-  selectedFolderId: string | null;
-  selectedFolderIds: string[];
   setAssetItemSize: (size: number) => void;
   setAssetSearchTerm: (term: string) => void;
   setSizeFilter: (filter: SizeFilterKey) => void;
   setTypeFilter: (filter: TypeFilterKey) => void;
   setViewMode: (mode: "grid" | "list") => void;
   setCurrentAudioAsset: (asset: Asset | null) => void;
-  setCurrentFolder: (folder: Asset | null) => void;
-  setCurrentFolderId: (folderId: string | null) => void;
   setDeleteDialogOpen: (open: boolean) => void;
   setFilteredAssets: (assets: Asset[]) => void;
-  setMoveToFolderDialogOpen: (open: boolean) => void;
   setOpenAsset: (asset: Asset | null) => void;
-  setParentFolder: (folder: Asset | null) => void;
   setRenameDialogOpen: (open: boolean) => void;
   setSearchTerm: (term: string) => void;
   setSelectedAssetIds: (assetIds: string[]) => void;
   setSelectedAssets: (assets: Asset[]) => void;
-  setSelectedFolderId: (id: string | null) => void;
-  setSelectedFolderIds: (ids: string[]) => void;
 
-  createFolderDialogOpen: boolean;
-  setCreateFolderDialogOpen: (open: boolean) => void;
 
-  foldersVisible: boolean;
-  toggleFoldersVisible: () => void;
-  setFoldersVisible: (visible: boolean) => void;
 
   /** Type groups the user collapsed in the grid and list views. */
   collapsedAssetGroups: string[];
@@ -90,7 +73,7 @@ interface AssetGridState {
 
   // Workflow filter
   workflowFilter: string | null;
-  /** Project whose folder and selection state this explorer currently represents. */
+  /** Project whose selection state this explorer currently represents. */
   scopeProjectId: string | null;
   resetForProject: (projectId: string) => void;
   /**
@@ -101,7 +84,7 @@ interface AssetGridState {
   setProjectFilter: (projectId: string | null) => void;
   setWorkflowFilter: (workflowId: string | null) => void;
 
-  /** Show only starred assets, from every folder. */
+  /** Show only starred assets. */
   favoritesOnly: boolean;
   setFavoritesOnly: (favoritesOnly: boolean) => void;
   /** Model id from the asset's generation metadata; null shows every asset. */
@@ -118,7 +101,7 @@ export const ALL_PROJECTS = "*all";
 
 /**
  * Build a fresh AssetGrid store bound to its own persistence key. Each surface
- * that wants independent state (folder navigation, selection, filters, view
+ * that wants independent state (selection, filters, view
  * mode) gets its own instance; `persistName` keeps their persisted display
  * prefs from colliding in localStorage.
  */
@@ -132,37 +115,19 @@ const createAssetGridStore = (
   sizeFilter: "all",
   typeFilter: "all",
   viewMode: "grid",
-  currentFolder: null,
-  currentFolderId: null,
   deleteDialogOpen: false,
   filteredAssets: [],
-  moveToFolderDialogOpen: false,
   openAsset: null,
-  parentFolder: null,
   renameDialogOpen: false,
   searchTerm: "",
   selectedAssetIds: [],
   selectedAssets: [],
-  selectedFolderId: null,
-  selectedFolderIds: [],
   setAssetItemSize: (size) => set({ assetItemSize: size }),
-  setCurrentFolder: (folder) =>
-    set({
-      currentFolder: folder,
-      currentFolderId: folder?.id ?? null,
-      parentFolder: null
-    }),
-  setCurrentFolderId: (folderId) =>
-    set({ currentFolderId: folderId, currentFolder: null, parentFolder: null }),
   setDeleteDialogOpen: (open) => set({ deleteDialogOpen: open }),
   setFilteredAssets: (assets) => set({ filteredAssets: assets }),
-  setMoveToFolderDialogOpen: (open) => set({ moveToFolderDialogOpen: open }),
   setOpenAsset: (asset) => set({ openAsset: asset }),
-  setParentFolder: (folder) => set({ parentFolder: folder }),
   setRenameDialogOpen: (open) => set({ renameDialogOpen: open }),
   setSearchTerm: (term) => set({ searchTerm: term }),
-  setSelectedFolderId: (id) => set({ selectedFolderId: id }),
-  setSelectedFolderIds: (ids) => set({ selectedFolderIds: ids }),
 
   assetSearchTerm: null,
   setAssetSearchTerm: (term: string) => set({ assetSearchTerm: term }),
@@ -209,10 +174,7 @@ const createAssetGridStore = (
     set({ selectedAssets: assets });
   },
 
-  createFolderDialogOpen: false,
-  setCreateFolderDialogOpen: (open) => set({ createFolderDialogOpen: open }),
 
-  foldersVisible: false,
   collapsedAssetGroups: [],
   toggleAssetGroupCollapsed: (group) =>
     set((state) => ({
@@ -221,9 +183,6 @@ const createAssetGridStore = (
         : [...state.collapsedAssetGroups, group]
     })),
   setCollapsedAssetGroups: (groups) => set({ collapsedAssetGroups: groups }),
-  toggleFoldersVisible: () =>
-    set((state) => ({ foldersVisible: !state.foldersVisible })),
-  setFoldersVisible: (visible) => set({ foldersVisible: visible }),
   isRenaming: null,
   setIsRenaming: (isRenaming) => set({ isRenaming }),
 
@@ -259,18 +218,13 @@ const createAssetGridStore = (
             scopeProjectId: projectId,
             assetSearchTerm: null,
             currentAudioAsset: null,
-            currentFolder: null,
-            currentFolderId: null,
             globalSearchResults: [],
             globalSearchQuery: "",
             isGlobalSearchActive: false,
             isGlobalSearchMode: false,
             openAsset: null,
-            parentFolder: null,
             selectedAssetIds: [],
             selectedAssets: [],
-            selectedFolderId: null,
-            selectedFolderIds: [],
             workflowFilter: null,
             favoritesOnly: false,
             modelFilter: null
@@ -290,7 +244,6 @@ const createAssetGridStore = (
         version: PERSIST_VERSION,
         storage: createJSONStorage(() => localStorage),
         partialize: (state) => ({
-          foldersVisible: state.foldersVisible,
           collapsedAssetGroups: state.collapsedAssetGroups,
           viewMode: state.viewMode,
           typeFilter: state.typeFilter,
@@ -303,7 +256,7 @@ const createAssetGridStore = (
 
 // Stores are cached by key at module scope so each surface keeps a stable,
 // independent instance across mounts — switching left-panel tabs unmounts and
-// remounts the panel, and we don't want that to reset folder navigation.
+// remounts the panel, and we don't want that to reset selection and filters.
 const storeCache = new Map<string, AssetGridStoreApi>();
 const getOrCreateStore = (key: string): AssetGridStoreApi => {
   let store = storeCache.get(key);
@@ -321,10 +274,7 @@ const getOrCreateStore = (key: string): AssetGridStoreApi => {
 const SINGLETON_ASSET_GRID_STORE_KEY = "asset-grid-storage";
 const singletonStore = getOrCreateStore(SINGLETON_ASSET_GRID_STORE_KEY);
 
-// The sidebar Library panel (PanelLeft) is the surface users browse folders
-// in day-to-day; canvas drop/paste uploads should land in whatever folder is
-// open there, not just the rarely-visited fullscreen assets page (which reads
-// the singleton above).
+// The sidebar Library panel (PanelLeft).
 export const LIBRARY_ASSET_GRID_STORE_KEY = "asset-grid-storage:library";
 
 const libraryStore = getOrCreateStore(LIBRARY_ASSET_GRID_STORE_KEY);
@@ -352,8 +302,8 @@ export const getSelectedAssetForExplorer = (
 };
 
 /**
- * Open `asset`'s folder in one of the sidebar explorers and select it there,
- * the way Premiere's Reveal in Project finds a clip's media in its bin.
+ * Select `asset` in one of the sidebar explorers, the way Premiere's Reveal
+ * in Project finds a clip's media in its bin.
  */
 export const revealAssetInExplorer = (
   asset: Asset,
@@ -362,15 +312,8 @@ export const revealAssetInExplorer = (
   const store = getOrCreateStore(
     explorer === "assets" ? ASSETS_ASSET_GRID_STORE_KEY : LIBRARY_ASSET_GRID_STORE_KEY
   );
-  store.getState().setCurrentFolderId(asset.parent_id || null);
   store.getState().setSelectedAssets([asset]);
 };
-
-/** Reactive access to the Library panel's current folder, for cross-cutting
- * callers (e.g. canvas file-drop/paste) that need it without being inside
- * the panel's provider subtree. */
-export const useLibraryCurrentFolderId = (): string | null =>
-  useStore(libraryStore, (state) => state.currentFolderId);
 
 const AssetGridStoreContext =
   createContext<AssetGridStoreApi>(singletonStore);

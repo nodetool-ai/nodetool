@@ -53,7 +53,7 @@ const AssetExplorer: React.FC = memo(() => {
   const { t } = useTranslation("translation", {
     keyPrefix: "i18n-next42-assets-grid"
   });
-  const { folderFiles, isLoading, error, refetchAssetsAndFolders } =
+  const { folderFiles, isLoading, error, refetchAssets } =
     useAssets();
 
   return (
@@ -77,7 +77,7 @@ const AssetExplorer: React.FC = memo(() => {
               title={t("states.loadError.title")}
               description={error.message || t("states.loadError.description")}
               actionText={t("actions.retry")}
-              onAction={refetchAssetsAndFolders}
+              onAction={refetchAssets}
             />
           </FlexColumn>
         ) : (
@@ -87,7 +87,7 @@ const AssetExplorer: React.FC = memo(() => {
               itemSpacing={2}
               isHorizontal={true}
               isFullscreenAssets={true}
-              initialFoldersPanelWidth={300}
+              initialWorkflowsPanelWidth={300}
               sortedAssets={folderFiles}
             />
           </ContextMenuProvider>

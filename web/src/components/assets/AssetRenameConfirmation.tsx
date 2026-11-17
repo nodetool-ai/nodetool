@@ -29,7 +29,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
   }, [setDialogOpen]);
   const inputRef = useRef<HTMLInputElement>(null);
   const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
-  const { refetchAssetsAndFolders } = useAssets();
+  const { refetchAssets } = useAssets();
   const { mutation } = useAssetUpdate();
   useEffect(() => {
     if (dialogOpen) {
@@ -106,8 +106,8 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
 
     await mutation.mutateAsync(updatedAssetsToRename);
     setDialogOpen(false);
-    refetchAssetsAndFolders();
-  }, [baseNewName, assets, mutation, setDialogOpen, refetchAssetsAndFolders]);
+    refetchAssets();
+  }, [baseNewName, assets, mutation, setDialogOpen, refetchAssets]);
 
   const count = assets?.length ?? 0;
   return (

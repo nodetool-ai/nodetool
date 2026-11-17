@@ -14,10 +14,6 @@ jest.mock("../AssetGridContent", () => ({
   __esModule: true,
   default: () => <div>Project folder contents</div>
 }));
-jest.mock("../BreadcrumbNav", () => ({
-  __esModule: true,
-  default: () => null
-}));
 jest.mock("../AssetTypeFilterBar", () => ({
   __esModule: true,
   default: () => null
@@ -55,8 +51,6 @@ describe("AssetFilesPanel project navigation", () => {
     useAssetGridStore.setState({
       projectFilter: null,
       scopeProjectId: "project-a",
-      currentFolderId: "folder-a",
-      selectedFolderId: "folder-a",
       isGlobalSearchActive: true,
       isGlobalSearchMode: true,
       globalSearchQuery: "shared asset",
@@ -64,7 +58,7 @@ describe("AssetFilesPanel project navigation", () => {
     });
   });
 
-  it("switches to the result project before opening its containing folder", async () => {
+  it("switches to the result project and leaves search", async () => {
     render(
       <ThemeProvider theme={mockTheme}>
         <AssetFilesPanel />
@@ -77,13 +71,12 @@ describe("AssetFilesPanel project navigation", () => {
     expect(useWorkspaceTabsStore.getState().activeProjectId).toBe("project-b");
     expect(useAssetGridStore.getState()).toMatchObject({
       scopeProjectId: "project-b",
-      currentFolderId: "folder-b",
       isGlobalSearchActive: false,
       isGlobalSearchMode: false
     });
   });
 
-  it("opens the folder in place when the explorer lists every project", async () => {
+  it("stays in place when the explorer lists every project", async () => {
     useAssetGridStore.setState({
       projectFilter: ALL_PROJECTS,
       scopeProjectId: ALL_PROJECTS
@@ -101,7 +94,6 @@ describe("AssetFilesPanel project navigation", () => {
     expect(useAssetGridStore.getState()).toMatchObject({
       projectFilter: ALL_PROJECTS,
       scopeProjectId: ALL_PROJECTS,
-      currentFolderId: "folder-b",
       isGlobalSearchActive: false
     });
   });

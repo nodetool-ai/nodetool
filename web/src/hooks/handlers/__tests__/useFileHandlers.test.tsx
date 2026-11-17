@@ -29,11 +29,6 @@ const mockGetLocalFilePath = jest.fn<string | null, [File]>(() => null);
 jest.mock("../../../serverState/useAssetUpload", () => ({
   useAssetUpload: () => ({ uploadAsset: mockUploadAsset })
 }));
-jest.mock("../../../stores/AssetGridStore", () => ({
-  useAssetGridStore: (selector: (state: unknown) => unknown) =>
-    selector({ currentFolderId: null }),
-  useLibraryCurrentFolderId: () => null
-}));
 jest.mock("../../../stores/NotificationStore", () => ({
   useNotificationStore: (selector: (state: unknown) => unknown) =>
     selector({ addNotification: mockAddNotification })

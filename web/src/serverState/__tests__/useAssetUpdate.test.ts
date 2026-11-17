@@ -3,17 +3,8 @@ import { renderHook, act } from "@testing-library/react";
 type UpdateMutationConfig = {
   mutationFn: (updates: { id: string }[]) => Promise<void>;
   onSuccess: (data: undefined, updates: { id: string }[], context: undefined) => void;
-  onError: (
-    error: Error,
-    updates: { id: string }[],
-    context: { currentFolderId?: string }
-  ) => void;
-  onSettled: (
-    data: undefined,
-    error: null,
-    updates: { id: string }[],
-    context: { currentFolderId: string }
-  ) => void;
+  onError: (error: Error) => void;
+  onSettled: () => void;
 };
 
 let mockMutationConfig: UpdateMutationConfig | undefined;
@@ -45,23 +36,6 @@ jest.mock("../../stores/NotificationStore", () => ({
     <T,>(selector: (s: Record<string, unknown>) => T) =>
       selector({ addNotification: mockAddNotification })
   )
-}));
-
-const mockSetCurrentFolderId = jest.fn();
-const mockSetCurrentFolder = jest.fn();
-const mockGridState = () => ({
-  currentFolderId: "folder-1",
-  setCurrentFolderId: mockSetCurrentFolderId,
-  setCurrentFolder: mockSetCurrentFolder
-});
-jest.mock("../../stores/AssetGridStore", () => ({
-  __esModule: true,
-  useAssetGridStore: {
-    getState: jest.fn(() => mockGridState())
-  },
-  useAssetGridStoreApi: jest.fn(() => ({
-    getState: jest.fn(() => mockGridState())
-  }))
 }));
 
 jest.mock("@tanstack/react-query", () => ({
@@ -106,43 +80,19 @@ describe("useAssetUpdate", () => {
     const { result } = renderHook(() => useAssetUpdate());
     await act(async () => {
       await result.current.mutation.mutateAsync([
-        { id: "a1", parent_id: "folder-2" },
-        { id: "a2", parent_id: "folder-2" }
+        { id: "a1", name: "one" },
+        { id: "a2", name: "two" }
       ]);
     });
     expect(mockUpdateAsset).toHaveBeenCalledTimes(2);
     expect(mockUpdateAsset).toHaveBeenCalledWith({
       id: "a1",
-      parent_id: "folder-2"
+      name: "one"
     });
     expect(mockUpdateAsset).toHaveBeenCalledWith({
       id: "a2",
-      parent_id: "folder-2"
+      name: "two"
     });
-  });
-
-  it("follows the open folder to its new id when a rename gives it one", async () => {
-    // A directory of a project folder is named by its path, so a rename
-    // returns the folder under a new id.
-    const renamed = { id: "folder-1-renamed", name: "Takes" };
-    mockUpdateAsset.mockResolvedValueOnce(renamed);
-    const { result } = renderHook(() => useAssetUpdate());
-    await act(async () => {
-      await result.current.mutation.mutateAsync([
-        { id: "folder-1", name: "Takes" }
-      ]);
-    });
-    expect(mockSetCurrentFolderId).toHaveBeenCalledWith("folder-1-renamed");
-    expect(mockSetCurrentFolder).toHaveBeenCalledWith(renamed);
-  });
-
-  it("keeps the open folder when an update keeps the id", async () => {
-    mockUpdateAsset.mockResolvedValueOnce({ id: "folder-1", name: "Same" });
-    const { result } = renderHook(() => useAssetUpdate());
-    await act(async () => {
-      await result.current.mutation.mutateAsync([{ id: "folder-1", name: "Same" }]);
-    });
-    expect(mockSetCurrentFolderId).not.toHaveBeenCalled();
   });
 
   it("shows success notification via onSuccess", () => {
@@ -171,7 +121,7 @@ describe("useAssetUpdate", () => {
   it("shows error notification via onError", () => {
     renderHook(() => useAssetUpdate());
     const config = mutationConfig();
-    config.onError(new Error("fail"), [], {});
+    config.onError(new Error("fail"));
     expect(mockAddNotification).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "error",
@@ -183,16 +133,9 @@ describe("useAssetUpdate", () => {
   it("invalidates queries via onSettled", () => {
     renderHook(() => useAssetUpdate());
     const config = mutationConfig();
-    config.onSettled(undefined, null, [], {
-      currentFolderId: "folder-1"
-    });
+    config.onSettled();
     expect(mockInvalidateQueries).toHaveBeenCalledWith(
-      expect.objectContaining({
-        queryKey: ["assets", { parent_id: "folder-1" }]
-      })
-    );
-    expect(mockInvalidateQueries).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: ["folderTree"] })
+      expect.objectContaining({ queryKey: ["assets"] })
     );
   });
 });

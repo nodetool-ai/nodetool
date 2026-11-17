@@ -34,9 +34,7 @@ const storeState = {
   setDeleteDialogOpen: jest.fn(),
   openAsset: null as Asset | null,
   deleteDialogOpen: false,
-  renameDialogOpen: false,
-  moveToFolderDialogOpen: false,
-  createFolderDialogOpen: false
+  renameDialogOpen: false
 };
 
 jest.mock("../../../stores/AssetGridStore", () => ({
@@ -68,8 +66,6 @@ const resetStore = () => {
   storeState.openAsset = null;
   storeState.deleteDialogOpen = false;
   storeState.renameDialogOpen = false;
-  storeState.moveToFolderDialogOpen = false;
-  storeState.createFolderDialogOpen = false;
   jest.clearAllMocks();
 };
 

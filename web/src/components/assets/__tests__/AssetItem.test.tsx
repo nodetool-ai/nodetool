@@ -34,20 +34,8 @@ jest.mock("../../../utils/localFile", () => ({
 // Mock the asset actions hook to isolate UI behavior
 jest.mock("../useAssetActions", () => ({
   useAssetActions: () => ({
-    isDragHovered: false,
-    handleClick: (
-      onSelect?: () => void,
-      _onClickParent?: (id: string) => void,
-      isParent?: boolean
-    ) => {
-      if (!isParent && onSelect) {onSelect();}
-    },
     handleDrag: jest.fn(),
     handleDragEnd: jest.fn(),
-    handleDragOver: jest.fn(),
-    handleDragEnter: jest.fn(),
-    handleDragLeave: jest.fn(),
-    handleDrop: jest.fn(),
     handleContextMenu: jest.fn(),
     handleDelete: jest.fn()
   })

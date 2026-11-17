@@ -3,7 +3,6 @@ import React, { useCallback, useRef, memo } from "react";
 import SearchErrorBoundary from "../../SearchErrorBoundary";
 import GlobalSearchResults from "../GlobalSearchResults";
 import AssetGridContent from "../AssetGridContent";
-import BreadcrumbNav from "../BreadcrumbNav";
 import AssetTypeFilterBar from "../AssetTypeFilterBar";
 import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import { Asset, AssetWithPath } from "../../../stores/ApiTypes";
@@ -37,9 +36,6 @@ const AssetFilesPanel: React.FC<AssetFilesPanelProps> = ({
   const setIsGlobalSearchModeLocal = useAssetGridStore(
     (state) => state.setIsGlobalSearchMode
   );
-  const setCurrentFolderIdLocal = useAssetGridStore(
-    (state) => state.setCurrentFolderId
-  );
   const resetForProject = useAssetGridStore((state) => state.resetForProject);
   const setProjectFilter = useAssetGridStore(
     (state) => state.setProjectFilter
@@ -64,15 +60,13 @@ const AssetFilesPanel: React.FC<AssetFilesPanelProps> = ({
   );
 
   const handleNavigateToFolder = useCallback(
-    (folderId: string, _folderPath: string, projectId?: string) => {
-      // Across every project the folder is already in scope.
+    (_folderId: string, _folderPath: string, projectId?: string) => {
+      // The library is flat: show the result's project. Across every project
+      // it is already in scope.
       if (scopeProjectId && projectId && projectId !== scopeProjectId) {
         resetForProject(projectId);
-        setCurrentFolderIdLocal(folderId);
         setProjectFilter(null);
         setActiveProjectId(projectId);
-      } else {
-        setCurrentFolderIdLocal(folderId);
       }
       setIsGlobalSearchActiveLocal(false);
       setIsGlobalSearchModeLocal(false);
@@ -82,7 +76,6 @@ const AssetFilesPanel: React.FC<AssetFilesPanelProps> = ({
       resetForProject,
       setActiveProjectId,
       setProjectFilter,
-      setCurrentFolderIdLocal,
       setIsGlobalSearchActiveLocal,
       setIsGlobalSearchModeLocal
     ]
@@ -116,7 +109,6 @@ const AssetFilesPanel: React.FC<AssetFilesPanelProps> = ({
         }}
         ref={containerRef}
       >
-        <BreadcrumbNav />
         {isGlobalSearchModeLocal && isGlobalSearchActiveLocal ? (
           <SearchErrorBoundary fallbackTitle="Search results error">
             <GlobalSearchResults
