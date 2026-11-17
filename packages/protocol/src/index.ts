@@ -28,6 +28,7 @@ export * from "./reasoning-effort.js";
 export * from "./gemini-models.js";
 export * from "./example-needs.js";
 export * from "./provider-failure.js";
+export * from "./agent-model-fit.js";
 export {
   TypeMetadata,
   areTypeNamesCompatible

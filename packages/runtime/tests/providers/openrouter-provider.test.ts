@@ -50,6 +50,42 @@ describe("OpenRouterProvider", () => {
     expect(await provider.hasToolSupport("openai/o3-mini")).toBe(false);
   });
 
+  it("reads tool support from the listing's supported_parameters", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [
+          {
+            id: "meta-llama/llama-3.3-70b-instruct:free",
+            supported_parameters: ["max_tokens", "temperature"]
+          },
+          {
+            id: "openai/o3-mini",
+            supported_parameters: ["tools", "tool_choice", "max_tokens"]
+          },
+          { id: "vendor/unlisted-parameters" }
+        ]
+      })
+    });
+    const provider = new OpenRouterProvider(
+      { OPENROUTER_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+
+    await provider.getAvailableLanguageModels();
+
+    expect(
+      await provider.hasToolSupport("meta-llama/llama-3.3-70b-instruct:free")
+    ).toBe(false);
+    // The listing wins over the o1/o3 name rule.
+    expect(await provider.hasToolSupport("openai/o3-mini")).toBe(true);
+    // A row without supported_parameters keeps the name rule.
+    expect(await provider.hasToolSupport("vendor/unlisted-parameters")).toBe(
+      true
+    );
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
   it("fetches available language models with extra headers", async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,

@@ -12869,6 +12869,14 @@
     "installOnThisComputer": "Install {{installLabel}} on this computer",
     "install": "Install",
     "selectLanguageModel": "Select language model",
+    "agentFit": {
+      "noToolsLabel": "No tools",
+      "noToolsTooltip": "The provider says this model can't call tools. Agents need tool calling, so use it for plain text generation only.",
+      "freeTierLabel": "Free tier",
+      "freeTierTooltip": "OpenRouter rate limits free models per minute and per day. Agent runs make many calls, so they often stall or fail on a free model. The paid route of the same model is not under this limit.",
+      "defaultLabel": "Agent default",
+      "defaultTooltip": "NodeTool uses this model by default for agent work. It is not ranked per task yet: no test results are published for text, image or video work."
+    },
     "searchLanguageModels": "Search language models",
     "installProviderToUseModel": "Install {{installLabel}} to use this model.",
     "modelNotReady": "This model is not ready to use.",
