@@ -20239,6 +20239,19 @@
       "retry": "Try again",
       "donePath": "Your files are in {{path}}",
       "close": "Close"
+    },
+    "preview": {
+      "title": "Preview",
+      "tracks": "tracks",
+      "clips": "clips",
+      "type": {
+        "workflow": "Workflow",
+        "timeline": "Timeline",
+        "storyboard": "Storyboard",
+        "script": "Script",
+        "app": "Mini app",
+        "jsscript": "JS script"
+      }
     }
   },
   "assetPicker": {
