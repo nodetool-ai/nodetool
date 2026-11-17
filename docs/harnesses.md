@@ -2183,7 +2183,7 @@ from `@nodetool-ai/config/pause-points`. Outside a test it returns at once.
 
 Tests: `packages/config/tests/pause-points.test.ts` and
 `packages/models/tests/two-process-postgres.test.ts`. Design:
-[technical design, Harnesses](plans/native-cloud-sync/technical-design.md#harnesses).
+[technical design, Harnesses](https://github.com/nodetool-ai/nodetool/blob/main/docs/plans/native-cloud-sync/technical-design.md#harnesses).
 
 ### npm run crap (CRAP Scores for TypeScript)
 
