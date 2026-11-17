@@ -6,7 +6,7 @@
  * a temporary `PROJECTS_DIR`, and a file asset store. A new runner and job
  * stand for a restarted process.
  */
-import { link, mkdir, mkdtemp, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { link, mkdir, mkdtemp, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -496,6 +496,42 @@ describe("failures", () => {
     expect(status.failures).toEqual([
       expect.objectContaining({ kind: "project", id: film.id, name: "Film" })
     ]);
+  });
+});
+
+describe("document files", () => {
+  it("lists a workflow whose folder is unavailable and writes it on retry", async () => {
+    const film = await legacyProject("Film");
+    expect((await resolveProjectWorkspace(film.id, USER)).ok).toBe(true);
+    const folder = await Workspace.find(
+      USER,
+      (await Project.findOwned(USER, film.id))?.workspace_id ?? ""
+    );
+    if (!folder) throw new Error("no folder");
+    const draft = await legacyWorkflow(film.id, "Draft");
+    // The drive that holds the folder is disconnected.
+    const away = `${folder.path}-away`;
+    await rename(folder.path, away);
+
+    await confirmAndRun();
+
+    const status = await getMigrationStatus(USER, runner);
+    expect(status).toMatchObject({ state: "done", failure_count: 1 });
+    expect(status.failures).toEqual([
+      expect.objectContaining({ kind: "project", id: film.id, name: "Film" })
+    ]);
+    expect((await Workflow.get<Workflow>(draft.id))?.file_path).toBeNull();
+
+    await rename(away, folder.path);
+    await retryMigration(USER, runner, job);
+    await new Promise((resolve) => setImmediate(resolve));
+    await runner.idle(USER);
+
+    expect(await getMigrationStatus(USER, runner)).toMatchObject({
+      state: "done",
+      failure_count: 0
+    });
+    expect((await Workflow.get<Workflow>(draft.id))?.file_path).toBeTruthy();
   });
 });
 

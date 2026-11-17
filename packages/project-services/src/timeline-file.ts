@@ -39,6 +39,7 @@ import {
   documentFileSync,
   writeMissingDocumentFiles,
   type DocumentFileAdapter,
+  type DocumentFileFailure,
   type DocumentFileContent,
   type DocumentFileOwner
 } from "./document-file-sync.js";
@@ -233,7 +234,10 @@ setTimelineFileSync(documentFileSync(timelineFileAdapter));
  * whose folder cannot be reached is skipped and tried again by the next run.
  * Returns how many files were written.
  */
-export async function migrateTimelineFiles(userId?: string): Promise<number> {
+export async function migrateTimelineFiles(
+  userId?: string,
+  onFailure?: (failure: DocumentFileFailure) => void
+): Promise<number> {
   let written = 0;
   for (const {
     user_id,
@@ -246,10 +250,12 @@ export async function migrateTimelineFiles(userId?: string): Promise<number> {
         user_id
       );
     } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
       log.debug("Skipped writing the timeline files of a project", {
         projectId: project_id,
-        error: error instanceof Error ? error.message : String(error)
+        error: reason
       });
+      onFailure?.({ projectId: project_id, userId: user_id, reason });
     }
   }
   return written;

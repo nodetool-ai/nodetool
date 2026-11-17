@@ -81,7 +81,9 @@ location: the user's `PROJECTS_DIR` setting, else the environment variable,
 else `~/NodeTool`.
 
 A changed location must be an absolute path to an existing, writable
-directory. Confirm stores it as the user's `PROJECTS_DIR` setting. On macOS
+directory. Confirm stores it as the user's `PROJECTS_DIR` setting, in the
+same transaction as the move to `confirmed`. A confirmation that loses a race
+with another writes neither. On macOS
 the plan warns when the location is under `~/Documents`, `~/Desktop`,
 `~/Downloads`, iCloud Drive (`~/Library/Mobile Documents`) or `/Volumes`,
 because the OS asks for permission there.
@@ -123,6 +125,6 @@ asset at the same time.
 | Server stops while `running` | The next start continues. Every step is idempotent. |
 | Server stops while `paused` | The next start does nothing bulk until resume. |
 | A copy does not match | The legacy object stays. The asset is listed as failed. Retry moves it again. |
-| A project folder cannot be reached or made | Its assets stay in asset storage. The project is listed as failed. |
+| A project folder cannot be reached or made | Its assets stay in asset storage, and its workflows and timelines have no file yet. The project is listed as failed. Retry tries both again. |
 | The location is not a writable directory | Confirm is refused, and the state stays `plan_shown`. |
 | What is deleted | A legacy object is deleted only after its copy in the folder is verified, as in [the move protocol](../workspaces.md#existing-assets-move-into-the-folder). Hidden workspaces keep their files. The dialog says that nothing is lost, not that nothing is deleted. |

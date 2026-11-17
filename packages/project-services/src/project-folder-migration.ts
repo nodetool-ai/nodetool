@@ -51,6 +51,7 @@ import {
 } from "./project-asset-move-job.js";
 import { migrateTimelineFiles } from "./timeline-file.js";
 import { migrateWorkflowFiles } from "./workflow-file.js";
+import type { DocumentFileFailure } from "./document-file-sync.js";
 
 const log = createLogger("nodetool.project-services.project-folder-migration");
 
@@ -466,8 +467,23 @@ export class ProjectFolderMigrationRunner {
     if (!(await this.stillRunning(userId))) return this.record(userId, failures);
 
     this.setProgress(userId, "files", null);
-    const workflows = await migrateWorkflowFiles(userId);
-    const timelines = await migrateTimelineFiles(userId);
+    const documentFailures: DocumentFileFailure[] = [];
+    const onFailure = (failure: DocumentFileFailure) => documentFailures.push(failure);
+    const workflows = await migrateWorkflowFiles(userId, onFailure);
+    const timelines = await migrateTimelineFiles(userId, onFailure);
+    // One failure per project, also when its folder failed above or both
+    // kinds failed. Retry writes the missing files again.
+    for (const failure of documentFailures) {
+      const projectId =
+        !failure.projectId || failure.projectId === LOOSE_PROJECT_ID
+          ? `personal:${userId}`
+          : failure.projectId;
+      if (failures.some((listed) => listed.kind === "project" && listed.id === projectId)) {
+        continue;
+      }
+      const project = await Project.findOwned(userId, projectId);
+      failures.push(projectFailure(project, projectId, failure.reason));
+    }
     if (workflows + timelines > 0) {
       log.info("Wrote document files for the project folder migration", {
         workflows,
