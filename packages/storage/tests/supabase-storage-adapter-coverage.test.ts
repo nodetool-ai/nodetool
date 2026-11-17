@@ -277,8 +277,13 @@ describe("SupabaseStorageAdapter list", () => {
       { name: "sub", id: null },
       { name: "file.txt", id: "1", metadata: { size: 3 } }
     ];
+    // Only `root` has children, so the flat listing's walk into `root/sub`
+    // finds it empty.
     const { adapter } = makeAdapter({
-      list: vi.fn(async () => ({ data: entries, error: null }))
+      list: vi.fn(async (dir: string) => ({
+        data: dir === "root" ? entries : [],
+        error: null
+      }))
     });
     const withDelim = await adapter.list("root", { delimiter: "/" });
     expect(withDelim.commonPrefixes).toEqual(["root/sub/"]);
@@ -286,6 +291,52 @@ describe("SupabaseStorageAdapter list", () => {
 
     const noDelim = await adapter.list("root");
     expect(noDelim.commonPrefixes).toEqual([]);
+  });
+
+  it("lists files in nested directories when no delimiter is given", async () => {
+    // Supabase lists one level: a directory is an entry with no id.
+    const tree: Record<string, SupabaseObjectEntry[]> = {
+      "projects/a": [
+        { name: ".nodetool", id: null },
+        { name: "Generated", id: null },
+        { name: "top.txt", id: "1", metadata: { size: 1 } }
+      ],
+      "projects/a/.nodetool": [
+        { name: "project.json", id: "2", metadata: { size: 2 } }
+      ],
+      "projects/a/Generated": [
+        { name: "clip.png", id: "3", metadata: { size: 3 } },
+        { name: "Shots", id: null }
+      ],
+      "projects/a/Generated/Shots": [
+        { name: "s1.png", id: "4", metadata: { size: 4 } }
+      ]
+    };
+    const { adapter } = makeAdapter({
+      list: vi.fn(async (dir: string) => ({ data: tree[dir] ?? [], error: null }))
+    });
+    const result = await adapter.list("projects/a/");
+    expect(result.entries.map((e) => [e.key, e.size])).toEqual([
+      ["projects/a/.nodetool/project.json", 2],
+      ["projects/a/Generated/Shots/s1.png", 4],
+      ["projects/a/Generated/clip.png", 3],
+      ["projects/a/top.txt", 1]
+    ]);
+    expect(result.entries[1].uri).toBe(
+      "supabase://uploads/projects/a/Generated/Shots/s1.png"
+    );
+    expect(result.commonPrefixes).toEqual([]);
+  });
+
+  it("throws when a nested directory cannot be listed (flat)", async () => {
+    const { adapter } = makeAdapter({
+      list: vi.fn(async (dir: string) =>
+        dir === "p"
+          ? { data: [{ name: "sub", id: null }], error: null }
+          : { data: null, error: { message: "sub failed" } }
+      )
+    });
+    await expect(adapter.list("p")).rejects.toThrow(/sub failed/);
   });
 
   it("defaults size to 0 and omits contentType when metadata absent", async () => {
