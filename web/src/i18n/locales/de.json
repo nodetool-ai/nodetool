@@ -10789,6 +10789,7 @@
       "levels_one": "{{count}} Ebene",
       "levels_other": "{{count}} Ebenen",
       "allLevels": "Alle Ebenen",
+      "anyDepth": "Beliebige Tiefe",
       "spanName": "Span-Name",
       "focusSpan": "Span fokussieren",
       "wholeRun": "Gesamter Lauf",
@@ -10846,7 +10847,6 @@
       "noRecentRuns": "Keine aktuellen Läufe",
       "noMatchingSpans": "Keine passenden Spans",
       "spanId": "Span {{id}}",
-      "olderRuns": "Ältere Läufe",
       "noRecordedRuns": "Keine Läufe aufgezeichnet",
       "noRunsDescription": "Starte einen App-Vorgang, Workflow oder Chat, um Trace und Protokolle zu untersuchen.",
       "runStatus": {

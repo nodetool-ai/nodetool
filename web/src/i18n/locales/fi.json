@@ -10789,6 +10789,7 @@
       "levels_one": "{{count}} taso",
       "levels_other": "{{count}} tasoa",
       "allLevels": "Kaikki tasot",
+      "anyDepth": "Mikä tahansa syvyys",
       "spanName": "Jänteen nimi",
       "focusSpan": "Kohdista jänteeseen",
       "wholeRun": "Koko ajo",
@@ -10846,7 +10847,6 @@
       "noRecentRuns": "Ei viimeaikaisia ajoja",
       "noMatchingSpans": "Ei vastaavia jänteitä",
       "spanId": "Jänne {{id}}",
-      "olderRuns": "Vanhemmat ajot",
       "noRecordedRuns": "Ei tallennettuja ajoja",
       "noRunsDescription": "Käynnistä sovelluksen toiminto, työnkulku tai keskusteluvuoro tarkastellaksesi sen jäljitystä ja lokeja.",
       "runStatus": {

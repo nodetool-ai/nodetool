@@ -10789,6 +10789,7 @@
       "levels_one": "{{count}} niveau",
       "levels_other": "{{count}} niveaus",
       "allLevels": "Alle niveaus",
+      "anyDepth": "Elke diepte",
       "spanName": "Spannaam",
       "focusSpan": "Focusbereik",
       "wholeRun": "Hele run",
@@ -10846,7 +10847,6 @@
       "noRecentRuns": "Geen recente runs",
       "noMatchingSpans": "Geen overeenkomende overspanningen",
       "spanId": "Bereik {{id}}",
-      "olderRuns": "Oudere runs",
       "noRecordedRuns": "Geen geregistreerde runs",
       "noRunsDescription": "Start een app-bewerking, workflow of chatbeurt om de tracering en logboeken ervan te inspecteren.",
       "runStatus": {

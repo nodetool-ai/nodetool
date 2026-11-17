@@ -10789,6 +10789,7 @@
       "levels_one": "{{count}} レベル",
       "levels_other": "{{count}} レベル",
       "allLevels": "すべてのレベル",
+      "anyDepth": "すべての深さ",
       "spanName": "スパン名",
       "focusSpan": "フォーカススパン",
       "wholeRun": "実行全体",
@@ -10846,7 +10847,6 @@
       "noRecentRuns": "最近の実行はありません",
       "noMatchingSpans": "一致するスパンがありません",
       "spanId": "スパン {{id}}",
-      "olderRuns": "古い実行",
       "noRecordedRuns": "記録された実行はありません",
       "noRunsDescription": "アプリの操作、ワークフロー、またはチャット ターンを開始して、そのトレースとログを検査します。",
       "runStatus": {

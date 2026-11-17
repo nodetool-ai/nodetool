@@ -10789,6 +10789,7 @@
       "levels_one": "{{count}} स्तर",
       "levels_other": "{{count}} स्तर",
       "allLevels": "सभी स्तरों",
+      "anyDepth": "कोई भी गहराई",
       "spanName": "स्पैन नाम",
       "focusSpan": "फोकस अवधि",
       "wholeRun": "पूरे रन",
@@ -10846,7 +10847,6 @@
       "noRecentRuns": "हाल के रन",
       "noMatchingSpans": "कोई मिलान अवधि नहीं",
       "spanId": "अवधि {{id}}",
-      "olderRuns": "पुराने रन",
       "noRecordedRuns": "कोई रिकॉर्ड नहीं",
       "noRunsDescription": "अपने ट्रैक और लॉग का निरीक्षण करने के लिए ऐप ऑपरेशन, वर्कफ़्लो या चैट टर्न शुरू करें।",
       "runStatus": {

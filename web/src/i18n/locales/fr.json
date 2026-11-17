@@ -10955,6 +10955,7 @@
       "levels_one": "Niveau {{count}}",
       "levels_other": "Niveaux {{count}}",
       "allLevels": "Tous niveaux",
+      "anyDepth": "Toute profondeur",
       "spanName": "Nom de l'étendue",
       "focusSpan": "Durée de mise au point",
       "wholeRun": "Course entière",
@@ -11012,7 +11013,6 @@
       "noRecentRuns": "Aucune exécution récente",
       "noMatchingSpans": "Aucune étendue correspondante",
       "spanId": "Portée {{id}}",
-      "olderRuns": "Courses plus anciennes",
       "noRecordedRuns": "Aucune course enregistrée",
       "noRunsDescription": "Démarrez une opération d’application, un flux de travail ou une conversation pour inspecter sa trace et ses journaux.",
       "runStatus": {
