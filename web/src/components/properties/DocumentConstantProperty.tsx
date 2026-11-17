@@ -1,5 +1,5 @@
 import { useCallback, useState, type ReactNode } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 
 import type { PropertyProps } from "../node/PropertyInput.types";
 import { useWorkspaceTabsStore, creationProjectId } from "../../stores/WorkspaceTabsStore";
@@ -8,6 +8,7 @@ import { trpc, trpcClient } from "../../trpc/client";
 import { DRAG_DATA_MIME, deserializeDragData } from "../../lib/dragdrop";
 import { isDocumentFile } from "../workspaces/workspaceTreeActions";
 import ProjectDocumentPreview from "../projects/ProjectDocumentPreview";
+import { EditorButton } from "../editor_ui";
 import {
   BORDER_RADIUS,
   Box,
@@ -16,7 +17,6 @@ import {
   FlexColumn,
   FlexRow,
   GAP,
-  ToolbarIconButton,
   TruncatedText
 } from "../ui_primitives";
 
@@ -101,7 +101,7 @@ interface DocumentConstantPropertyProps extends PropertyProps {
   untitledLabel: string;
   openEditorLabel: string;
   icon: ReactNode;
-  /** Route for this kind outside the workspace, as in DocumentPickerProperty. */
+  /** Unused here: the document always opens in a workspace tab. */
   standaloneRoute?: (id: string) => string;
   /** Fields written onto the ref next to `{type, id}`. */
   extraRefFields?: Record<string, unknown>;
@@ -118,7 +118,6 @@ const DocumentConstantProperty = ({
   untitledLabel,
   openEditorLabel,
   icon,
-  standaloneRoute,
   extraRefFields,
   showPreview = true,
   value,
@@ -137,17 +136,12 @@ const DocumentConstantProperty = ({
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
-  const navigate = useNavigate();
-  const location = useLocation();
   const [isOver, setIsOver] = useState(false);
 
+  // Open the document in a new tab of the workspace, next to the workflow
+  // tab, as the Files panel does. The workflow editor stays open.
   const handleOpenEditor = useCallback(() => {
     if (!selectedId) {
-      return;
-    }
-    const inWorkspace = location.pathname.startsWith("/workspace");
-    if (standaloneRoute && !inWorkspace) {
-      navigate(standaloneRoute(selectedId));
       return;
     }
     openTab({
@@ -157,20 +151,7 @@ const DocumentConstantProperty = ({
       title: document?.name || untitledLabel,
       projectId: document ? projectId : undefined
     });
-    if (!inWorkspace) {
-      navigate("/workspace");
-    }
-  }, [
-    document,
-    documentType,
-    location.pathname,
-    navigate,
-    openTab,
-    projectId,
-    selectedId,
-    standaloneRoute,
-    untitledLabel
-  ]);
+  }, [document, documentType, openTab, projectId, selectedId, untitledLabel]);
 
   const handleDragOver = useCallback((event: React.DragEvent) => {
     if (!event.dataTransfer.types.includes(DRAG_DATA_MIME)) {
@@ -233,13 +214,15 @@ const DocumentConstantProperty = ({
             <TruncatedText showTooltip sx={{ flex: 1, minWidth: 0 }}>
               {name}
             </TruncatedText>
-            <ToolbarIconButton
-              size="small"
-              ariaLabel={openEditorLabel}
-              tooltip={openEditorLabel}
+<EditorButton
+              density="compact"
+              startIcon={<EditOutlinedIcon fontSize="inherit" />}
+              aria-label={openEditorLabel}
+              title={openEditorLabel}
               onClick={handleOpenEditor}
-              icon={icon}
-            />
+            >
+              Edit
+            </EditorButton>
           </FlexRow>
           {showPreview && document && (
             <Box sx={{ borderRadius: BORDER_RADIUS.sm, overflow: "hidden" }}>

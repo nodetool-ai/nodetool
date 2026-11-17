@@ -1,6 +1,6 @@
 import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 
@@ -54,10 +54,16 @@ jest.mock("../../projects/ProjectDocumentPreview", () => ({
 }));
 
 import ScriptProperty from "../ScriptProperty";
+import WorkflowProperty from "../WorkflowProperty";
+
+const LocationProbe = () => (
+  <div data-testid="location">{useLocation().pathname}</div>
+);
 
 const renderScript = (value: unknown, onChange: jest.Mock) =>
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={["/editor/current-workflow"]}>
+      <LocationProbe />
       <ThemeProvider theme={mockTheme}>
         <ScriptProperty
           property={{
@@ -105,13 +111,61 @@ describe("DocumentConstantProperty", () => {
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
-  it("shows the linked document's name and preview, and opens its editor", () => {
+  it("shows the linked document's name and preview", () => {
     renderScript({ type: "script", id: "script-1" }, jest.fn());
     expect(screen.getByText("Launch voiceover")).toBeInTheDocument();
     expect(screen.getByTestId("document-preview")).toBeInTheDocument();
+  });
+
+  it("opens the document in a workspace tab and keeps the workflow open", () => {
+    renderScript({ type: "script", id: "script-1" }, jest.fn());
     fireEvent.click(screen.getByRole("button", { name: "Open in script editor" }));
+    expect(screen.getByText("Edit")).toBeInTheDocument();
+    expect(mockOpenTab).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "script", ref: "script-1", mode: "edit" })
+    );
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/editor/current-workflow"
+    );
+  });
+
+  it("opens the document on a double-click of the node", () => {
+    renderScript({ type: "script", id: "script-1" }, jest.fn());
+    fireEvent.doubleClick(screen.getByTestId("document-constant"));
     expect(mockOpenTab).toHaveBeenCalledWith(
       expect.objectContaining({ type: "script", ref: "script-1" })
+    );
+  });
+
+  it("opens a linked workflow in a workspace tab, not by navigation", () => {
+    render(
+      <MemoryRouter initialEntries={["/editor/current-workflow"]}>
+        <LocationProbe />
+        <ThemeProvider theme={mockTheme}>
+          <WorkflowProperty
+            property={{
+              name: "value",
+              type: { type: "workflow", optional: false, type_args: [] },
+              default: null,
+              title: "Value",
+              description: "",
+              required: false
+            }}
+            nodeType="nodetool.constant.Workflow"
+            nodeId="workflow_constant"
+            propertyIndex="0"
+            value={{ type: "workflow", id: "wf-2" }}
+            onChange={jest.fn()}
+          />
+        </ThemeProvider>
+      </MemoryRouter>
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Open in workflow editor" }));
+    expect(mockOpenTab).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "workflow", ref: "wf-2", mode: "edit" })
+    );
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/editor/current-workflow"
     );
   });
 
