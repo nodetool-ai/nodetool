@@ -450,6 +450,26 @@ export class Project extends DBModel {
     return updated ? new Project(updated) : null;
   }
 
+  /**
+   * Clears the tombstone of the owner's deleted project, for a restore inside
+   * its restore period. Returns null when the row is gone or not the owner's.
+   */
+  static async untombstoneOwned(
+    userId: string,
+    id: string
+  ): Promise<Project | null> {
+    const row = await Project.findOwnedIncludingDeleted(userId, id);
+    if (!row) return null;
+    if (!row.deleted_at) return row;
+    const now = new Date().toISOString();
+    const [updated] = await getPortableDb()
+      .update(projects)
+      .set({ deleted_at: null, updated_at: now })
+      .where(and(eq(projects.id, row.id), eq(projects.user_id, userId)))
+      .returning();
+    return updated ? new Project(updated) : null;
+  }
+
   /** Resolve a caller-supplied project without permitting cross-user writes. */
   static async requireOwned(userId: string, id: string): Promise<Project> {
     // Personal is created lazily, so a client that targets its own id before

@@ -791,3 +791,17 @@ export type {
   CloudOpenStateRow
 } from "./cloud-local-store.js";
 export type { CloudDocumentOptions } from "./schema/cloud-local.js";
+export {
+  setDocumentRetentionDays,
+  documentRetentionDays,
+  listDeletedDocuments,
+  restoreDeletedDocument,
+  endDeletedDocumentRestorePeriod,
+  purgeDeletedDocuments,
+  retainDeletedDocument,
+  registerDeletedDocumentKind,
+  type DeletedDocumentEntry,
+  type DeletedDocumentKind,
+  type DeletedDocumentPayload,
+  type RestoreDeletedOutcome
+} from "./deleted-document.js";

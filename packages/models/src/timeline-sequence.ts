@@ -1,4 +1,4 @@
-import { eq, desc, and, sql, inArray, isNull, count, max } from "drizzle-orm";
+import { eq, desc, and, sql, inArray, isNull, count, max, type SQL } from "drizzle-orm";
 import type {
   TimelineSequence as TimelineSequenceDoc,
   TimelineTrack,
@@ -32,6 +32,16 @@ import {
   type DocumentFileLocation,
   type DocumentFileSync
 } from "./document-file-sync.js";
+import {
+  documentRefTables,
+  insertDependents,
+  readDependents,
+  registerDeletedDocumentKind,
+  retainDeletedDocument,
+  documentRetentionDays,
+  type DependentTable
+} from "./deleted-document.js";
+import { documentCollaborators, documentShares } from "./schema/document-sharing.js";
 import { DocumentRefs } from "./document-refs.js";
 
 export class TimelineSequenceConflictError extends Error {
@@ -536,6 +546,17 @@ export class TimelineSequence extends DBModel {
   static async deleteOwned(userId: string, id: string): Promise<boolean> {
     const row = await TimelineSequence.findById(id);
     if (!row || row.user_id !== userId) return false;
+    // Kept first, so a failure before the delete never loses the timeline.
+    if (documentRetentionDays() !== null) {
+      await retainDeletedDocument({
+        kind: "timeline",
+        documentId: row.id,
+        userId,
+        projectId: row.project_id,
+        name: row.name,
+        payload: { row: row.toRow(), dependents: await readDependents(timelineDependents(row.id)) }
+      });
+    }
     await row.delete();
     await removeDocumentSharing("timeline", row.id);
     await DocumentRefs.removeForDocument("timeline", row.id);
@@ -783,3 +804,37 @@ export class TimelineSequence extends DBModel {
     await this.save();
   }
 }
+
+/** The rows kept with a deleted timeline and put back on restore. */
+function timelineDependents(id: string): DependentTable[] {
+  return [
+    {
+      name: "timeline_sequence_versions",
+      table: timelineSequenceVersions,
+      where: eq(timelineSequenceVersions.timeline_id, id)
+    },
+    {
+      name: "document_collaborators",
+      table: documentCollaborators,
+      where: and(eq(documentCollaborators.document_type, "timeline"), eq(documentCollaborators.document_id, id)) as SQL
+    },
+    {
+      name: "document_shares",
+      table: documentShares,
+      where: and(eq(documentShares.document_type, "timeline"), eq(documentShares.document_id, id)) as SQL
+    },
+    ...documentRefTables("timeline", id)
+  ];
+}
+
+registerDeletedDocumentKind("timeline", {
+  async restore(payload) {
+    const id = String(payload.row["id"]);
+    if (await TimelineSequence.findById(id)) {
+      throw new Error("A timeline with this id exists");
+    }
+    // Through the model, so the timeline's file is written again.
+    await TimelineSequence.create<TimelineSequence>(payload.row);
+    await insertDependents(timelineDependents(id), payload.dependents);
+  }
+});

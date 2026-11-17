@@ -32,6 +32,16 @@ import {
 import type { GraphLink } from "@nodetool-ai/protocol";
 import type { WorkflowRunMode } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { DocumentRefs } from "./document-refs.js";
+import { workflowCollaborators, workflowShares } from "./schema/workflow-sharing.js";
+import {
+  documentRefTables,
+  insertDependents,
+  readDependents,
+  registerDeletedDocumentKind,
+  retainDeletedDocument,
+  documentRetentionDays,
+  type DependentTable
+} from "./deleted-document.js";
 
 export type AccessLevel = "private" | "public";
 export type { WorkflowRunMode };
@@ -547,6 +557,17 @@ export class Workflow extends DBModel {
   static async deleteOwned(userId: string, id: string): Promise<boolean> {
     const wf = await Workflow.get<Workflow>(id);
     if (!wf || wf.user_id !== userId) return false;
+    // Kept first, so a failure before the delete never loses the workflow.
+    if (documentRetentionDays() !== null) {
+      await retainDeletedDocument({
+        kind: "workflow",
+        documentId: wf.id,
+        userId,
+        projectId: wf.project_id,
+        name: wf.name,
+        payload: { row: wf.toRow(), dependents: await readDependents(workflowDependents(wf.id)) }
+      });
+    }
     await wf.delete();
     // `id` may be a 12-character prefix; the dependent rows key on the full id.
     await WorkflowCollaborator.removeAllForWorkflow(wf.id);
@@ -836,3 +857,33 @@ export class Workflow extends DBModel {
     return row ? new Workflow(row) : null;
   }
 }
+
+/**
+ * The rows kept with a deleted workflow and put back on restore. Trigger
+ * registrations are not kept: a restored workflow registers its triggers
+ * again when it is next saved or run.
+ */
+function workflowDependents(id: string): DependentTable[] {
+  return [
+    { name: "workflow_versions", table: workflowVersions, where: eq(workflowVersions.workflow_id, id) },
+    {
+      name: "workflow_collaborators",
+      table: workflowCollaborators,
+      where: eq(workflowCollaborators.workflow_id, id)
+    },
+    { name: "workflow_shares", table: workflowShares, where: eq(workflowShares.workflow_id, id) },
+    ...documentRefTables("workflow", id)
+  ];
+}
+
+registerDeletedDocumentKind("workflow", {
+  async restore(payload) {
+    const id = String(payload.row["id"]);
+    if (await Workflow.get<Workflow>(id)) {
+      throw new Error("A workflow with this id exists");
+    }
+    // Through the model, so the workflow's file is written again.
+    await Workflow.create<Workflow>(payload.row);
+    await insertDependents(workflowDependents(id), payload.dependents);
+  }
+});

@@ -532,6 +532,31 @@ const NATIVE_OAUTH_SESSION_DDL: readonly string[] = [
 ];
 
 /**
+ * Deleted documents kept for their restore period (WP2.2). Applied by the
+ * `add_deleted_documents` migration, and by `initTestDb` through
+ * {@link POST_BASELINE_TABLE_DDL}.
+ */
+const DELETED_DOCUMENTS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS nodetool_deleted_documents (
+    id TEXT PRIMARY KEY NOT NULL,
+    kind TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT,
+    name TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    deleted_at TEXT NOT NULL,
+    purge_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_deleted_documents_document
+    ON nodetool_deleted_documents (kind, document_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_deleted_documents_user
+    ON nodetool_deleted_documents (user_id, deleted_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_deleted_documents_purge
+    ON nodetool_deleted_documents (purge_at)`
+];
+
+/**
  * The local store of the native apps for cloud documents: unsent drafts and
  * the last known open state (docs/plans/native-cloud-sync/technical-design.md,
  * "Local data scoping and durable drafts"). Applied by the
@@ -607,7 +632,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...documentFileDdl("storyboards"),
   ...documentFileDdl("scripts"),
   ...documentFileDdl("applications"),
-  ...documentFileDdl("js_scripts")
+  ...documentFileDdl("js_scripts"),
+  ...DELETED_DOCUMENTS_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5071,7 +5097,24 @@ export const migrations: MigrationDef[] = [
   documentFileMigration("20261129_000002", "applications"),
 
   // A JS script is a JSON file in its project's folder.
-  documentFileMigration("20261129_000003", "js_scripts")
+  documentFileMigration("20261129_000003", "js_scripts"),
+
+  // Deleted documents kept for 30 days, so their owner can restore them
+  // (docs/plans/native-cloud-sync/technical-design.md, WP2.2).
+  {
+    version: "20261130_000000",
+    name: "add_deleted_documents",
+    createsTables: ["nodetool_deleted_documents"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of DELETED_DOCUMENTS_DDL) {
+        await db.execute(statement);
+      }
+    },
+    // The table holds the only copy of each deleted document. A rollback
+    // leaves it: an older server never reads it.
+    async down() {}
+  }
 ];
 
 /**

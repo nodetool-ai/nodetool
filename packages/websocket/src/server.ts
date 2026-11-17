@@ -109,8 +109,13 @@ import {
   isAccessToken,
   McpOauthClient,
   migrateSqliteDb,
-  runSeeds
+  runSeeds,
+  setDocumentRetentionDays
 } from "@nodetool-ai/models";
+import {
+  DELETED_DOCUMENT_RETENTION_DAYS,
+  purgeDueDeletedDocuments
+} from "./lib/deleted-documents.js";
 import {
   applyTransformersJsCacheSetting,
   resolveWorkerSettingsEnv
@@ -432,6 +437,9 @@ try {
     resolveSecret: (key, userId) => getSecret(key, userId)
   });
   stopErrorTraceMaintenance = startErrorTraceMaintenance();
+  // A production server keeps a deleted workflow, timeline or project for 30
+  // days so its owner can restore it (PRD D4). A desktop server deletes at once.
+  if (isProduction) setDocumentRetentionDays(DELETED_DOCUMENT_RETENTION_DAYS);
 
   const runHistoryCleanup = (): void => {
     void runScheduledStorageCleanup(LOCAL_USER_ID)
@@ -443,6 +451,16 @@ try {
       .catch((error) => {
         log.warn(
           "Automatic history cleanup failed",
+          error instanceof Error ? error : new Error(String(error))
+        );
+      });
+    void purgeDueDeletedDocuments()
+      .then((purged) => {
+        if (purged > 0) log.info("Purged deleted documents past their restore period", { purged });
+      })
+      .catch((error) => {
+        log.warn(
+          "Deleted document purge failed",
           error instanceof Error ? error : new Error(String(error))
         );
       });
