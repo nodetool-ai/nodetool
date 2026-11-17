@@ -23,8 +23,20 @@ void LibraryBrowser::configure(const QUrl &origin, const QString &token, const Q
   ++epoch_;
   if (list_) { list_->abort(); }
   folder_.clear(); crumbs_.clear(); error_.clear(); relinkError_.clear();
+  opened_ = false;
   model_.apply({}, true);
   emit changed();
+}
+void LibraryBrowser::setProject(const QString &projectId) {
+  if (project_ == projectId) { return; }
+  project_ = projectId;
+  ++epoch_;
+  if (list_) { list_->abort(); }
+  // The breadcrumbs name folders of the previous project.
+  folder_.clear(); crumbs_.clear(); error_.clear();
+  model_.apply({}, true);
+  emit changed();
+  if (opened_ && !project_.isEmpty()) { refresh(); }
 }
 QNetworkRequest LibraryBrowser::request(const QUrl &url) const {
   QNetworkRequest request(url);
@@ -35,6 +47,7 @@ QNetworkRequest LibraryBrowser::request(const QUrl &url) const {
 }
 void LibraryBrowser::refresh() {
   if (!configured()) { return; }
+  opened_ = true;
   if (crumbs_.isEmpty()) {
     // The server's home folder id is the user id. Without one, as on a local
     // server without accounts, the server lists the home folder by default.
@@ -71,6 +84,7 @@ void LibraryBrowser::list() {
     url = origin_.resolved(QUrl("/trpc/assets.search"));
     input.insert("query", search_.trimmed());
   } else if (!folder_.isEmpty()) { input.insert("parent_id", folder_); }
+  if (!project_.isEmpty()) { input.insert("project_id", project_); }
   query.addQueryItem("input", QString::fromUtf8(QJsonDocument(input).toJson(QJsonDocument::Compact)));
   url.setQuery(query);
   auto *reply = network_.get(request(url));
@@ -163,7 +177,9 @@ void LibraryBrowser::createFolder(const QString &name) {
   if (!configured() || name.trimmed().isEmpty()) { return; }
   QNetworkRequest post = request(origin_.resolved(QUrl("/api/assets")));
   post.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-  const QJsonObject fields{{"name", name.trimmed()}, {"content_type", "folder"}, {"parent_id", folder_.isEmpty() ? user_ : folder_}};
+  QJsonObject fields{{"name", name.trimmed()}, {"content_type", "folder"}, {"parent_id", folder_.isEmpty() ? user_ : folder_}};
+  // Inside a project the server makes a directory of its folder, not a folder row.
+  if (!project_.isEmpty()) { fields.insert("project_id", project_); }
   auto *reply = network_.post(post, QJsonDocument(fields).toJson(QJsonDocument::Compact));
   const auto epoch = epoch_;
   connect(reply, &QNetworkReply::finished, this, [this, reply, epoch] {

@@ -110,7 +110,10 @@ void EditorWindow::initializePanels() {
   connect(&session_, &node_editor::WorkflowSession::workspaceFilesChanged, &library_, &node_editor::LibraryBrowser::workspaceFilesChanged);
   connect(&session_, &node_editor::WorkflowSession::documentFileChanged, &browser_, &node_editor::WorkflowBrowser::documentFileChanged);
   connect(&session_, &node_editor::WorkflowSession::documentFileChanged, &projectFolder_, &node_editor::ProjectFolder::documentFileChanged);
-  connect(&projectFolder_, &node_editor::ProjectFolder::changed, this, [this] { library_.setProjectWorkspace(projectFolder_.workspaceId()); });
+  connect(&projectFolder_, &node_editor::ProjectFolder::changed, this, [this] {
+    library_.setProject(projectFolder_.projectId());
+    library_.setProjectWorkspace(projectFolder_.workspaceId());
+  });
   syncOpenProject();
   connect(this, &EditorWindow::documentEpochChanged, this, [this] {
     runsTotal_ = runsCurrent_ = 0;
