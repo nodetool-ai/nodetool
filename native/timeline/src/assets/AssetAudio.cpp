@@ -15,7 +15,7 @@ QJsonObject extractLinkedAudio(nt::server::ServerClient& client, const QJsonObje
     QTemporaryDir staging;
     if (!file || !staging.isValid()) { return failed; }
     nt::server::AssetCache cache(staging.path(), client.serverKey(), client.userKey(),
-        [&client](QNetworkRequest& request) { client.decorate(request); });
+        [&client](QNetworkRequest& request) { client.decorate(request); }, [&client] { return client.cancelled(); });
     const auto fetched = cache.fetch(video.value("id").toString(), "original", *file);
     if (!fetched.ok() || interrupted()) { return failed; }
     std::string error;

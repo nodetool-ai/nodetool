@@ -180,6 +180,13 @@ public:
   void showCompositorLayoutDialog(const QString &nodeId);
   void restoreTabs();
   void persistTabs() const;
+  // The server this launch started from the app package. It listens on a new
+  // port at every launch, so a tab connected to it is saved as "bundled" and
+  // restored to this launch's URL (review F3). Set before restoreTabs().
+  void setBundledServer(const QUrl &url);
+  // True when the saved tabs name a server of their own, one that is not the
+  // bundled server. The editor then starts no bundled server.
+  static bool savedTabsNameAServer();
   EditorWindow *activeEditor() const;
 
   node_editor::WorkflowDocument *document() { return activeEditor() == this ? &document_ : activeEditor()->document(); }
@@ -768,6 +775,8 @@ private:
   // owner creates them and its tabs borrow them, so the owner's destructor
   // ends them after the tabs.
   std::unique_ptr<nodetool::account::qt::AccountServers> accountServers_;
+  // Owner only: the bundled server of this launch, empty without one.
+  QUrl bundledServer_;
   // The Cloud and Shared with me groups the tabs' workflow browsers show,
   // for the current server's account. Owner only, declared after the
   // servers so it ends first.

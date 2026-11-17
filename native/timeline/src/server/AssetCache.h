@@ -64,10 +64,16 @@ public:
     using Decorate = std::function<void(QNetworkRequest&)>;
     using Recheck = std::function<std::optional<RemoteFile>()>;
     using OnReady = std::function<void(const QString&)>;
+    // True when the fetch must stop, such as after the account signed out.
+    // Called on the fetching thread, so it must be thread-safe.
+    using Cancelled = std::function<bool()>;
     // native-rules #1: std::shared_ptr lease alias with no comment on why unique ownership is impossible
     using Lease = std::shared_ptr<const QString>;
 
-    AssetCache(QString root, QString serverKey, QString userKey, Decorate decorate = {});
+    // `cancelled` is asked before each request, redirect and retry, and
+    // while a response arrives; a true answer aborts the reply and the
+    // fetch fails, keeping a partial file to resume.
+    AssetCache(QString root, QString serverKey, QString userKey, Decorate decorate = {}, Cancelled cancelled = {});
 
     // <= 0: no limit. Default: NODETOOL_TIMELINE_CACHE_BUDGET_MB, else 20 GiB.
     void setBudgetBytes(qint64 bytes) { m_budgetBytes = bytes; }
@@ -90,12 +96,15 @@ public:
 
 private:
     void evict(const QString& justFetched) const;
+    // The thread is interrupted, or `m_cancelled` answers true.
+    bool stopRequested() const;
     static bool removeIfUnprotected(const QString& path);
 
     QString m_root;
     QString m_serverKey;
     QString m_userKey;
     Decorate m_decorate;
+    Cancelled m_cancelled;
     qint64 m_budgetBytes = 0;
     struct Protected {
         // native-rules #10: mutex does not say that it guards paths
