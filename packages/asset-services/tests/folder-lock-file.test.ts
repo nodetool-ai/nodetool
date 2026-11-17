@@ -185,6 +185,39 @@ describe("the folder lock file", () => {
     }
   );
 
+  // A suspended process runs no heartbeat timer, and on macOS or across PID
+  // namespaces nothing tells whether it still runs, so its lock file goes
+  // stale. The lock is still not taken from it: the operating system holds
+  // its lock until the process ends, and a resumed owner is still the only
+  // one inside the protected operation.
+  it.skipIf(process.platform === "win32")(
+    "keeps the lock of a suspended process whose liveness is unknown",
+    async () => {
+      const holder = startHolder(lock, ["hold", "300"]);
+      await holder.held;
+      holder.child.kill("SIGSTOP");
+      // Liveness unknown, as on macOS: no start time is recorded. The file
+      // was last touched long before the stale window.
+      const lines = (await readFile(lock, "utf8")).split("\n");
+      lines[4] = "";
+      await writeFile(lock, lines.join("\n"));
+      const old = new Date(Date.now() - 120_000);
+      await utimes(lock, old, old);
+
+      await expect(
+        acquireFolderLockFile(lock, { staleMs: 200, timeoutMs: 1_200 })
+      ).rejects.toBeInstanceOf(FolderLockTimeoutError);
+
+      holder.child.kill("SIGCONT");
+      const held = await acquireFolderLockFile(lock, { staleMs: 200 });
+      // The resumed owner finished its work before this process got in.
+      expect(holder.output()).toContain("releasing");
+      await held.release();
+      expect(await holder.exited).toBe(0);
+    },
+    30_000
+  );
+
   it("serializes two independent holders in one process", async () => {
     const first = await acquireFolderLockFile(lock);
     let second = false;
