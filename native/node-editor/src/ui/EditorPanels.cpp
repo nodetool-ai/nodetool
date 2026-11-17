@@ -482,8 +482,35 @@ void EditorWindow::openCloudDocument(const QString &documentId, const QString &r
     notify("error", tr("Connect to the local server to open cloud workflows. It keeps their edits on this computer."));
     return;
   }
-  if (!file_.isEmpty() || !document_.nodes().isEmpty() || hasUnsavedChanges() || session_.serverBound() || cloud_) { owner->newTab(); }
+  if (!file_.isEmpty() || !document_.nodes().isEmpty() || hasUnsavedChanges() || session_.serverBound() || cloud_ ||
+      !cloudId_.isEmpty()) { owner->newTab(); }
   owner->activeEditor_->startCloudDocument(session, documentId, role);
+}
+
+void EditorWindow::restoreCloudDocument(const QUrl &localServer, const QString &cloudServer,
+                                        const QString &documentId, const QString &role) {
+  // Kept while the document cannot open, so the tab is restored again.
+  cloudId_ = documentId;
+  cloudOrigin_ = cloudServer;
+  cloudRole_ = role;
+  if (!localServer.isEmpty()) {
+    session_.connectToServer(localServer, qEnvironmentVariable("NODETOOL_TOKEN"));
+  }
+  auto *owner = tabOwner_ ? tabOwner_ : this;
+  auto *account = owner->accountServers_ ? owner->accountServers_->controllerFor(cloudServer) : nullptr;
+  // The start-up read: the controller has not read the keychain yet.
+  const auto session = account ? account->readSession() : nullptr;
+  if (!session) {
+    message_ = tr("Sign in to %1 to reopen this cloud workflow.").arg(QUrl(cloudServer).host());
+    schedulePanelChanged();
+    return;
+  }
+  if (session_.serverUrl().isEmpty()) {
+    message_ = tr("Connect to the local server to reopen this cloud workflow. It keeps its edits on this computer.");
+    schedulePanelChanged();
+    return;
+  }
+  startCloudDocument(session, documentId, role);
 }
 
 void EditorWindow::startCloudDocument(std::shared_ptr<nodetool::account::AccountSession> session,
@@ -495,6 +522,7 @@ void EditorWindow::startCloudDocument(std::shared_ptr<nodetool::account::Account
   cloudOrigin_ = QString::fromStdString(session->serverOrigin());
   cloudServerKey_ = QString::fromStdString(account::serverKey(session->serverOrigin()));
   cloudAccountId_ = QString::fromStdString(session->accountId());
+  cloudRole_ = role;
   account::qt::CloudDocumentServices services;
   services.session = std::move(session);
   services.store = account::makeLocalServerDraftStore(std::make_unique<account::qt::QtHttpTransport>(),

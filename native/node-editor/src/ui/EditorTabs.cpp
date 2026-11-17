@@ -535,6 +535,16 @@ void EditorWindow::persistTabs() const {
         if (tab == active) {
             activeEntry = entries.size();
         }
+        // A cloud tab reopens from its server under the same account, never
+        // as a workflow of the local server. Its drafts stay on that server.
+        if (!tab->cloudId_.isEmpty()) {
+            entries.append(QJsonObject{{"cloud", tab->cloudId_},
+                                       {"cloudServer", tab->cloudOrigin_},
+                                       {"role", tab->cloudRole_},
+                                       {"origin", tab->session_.serverUrl().toString()},
+                                       {"project", tab->projectKey()}});
+            continue;
+        }
         entries.append(QJsonObject{{"file", tab->file_},
                                    {"workflow", tab->session_.serverBound()
                                                     ? tab->session_.workflow()["id"].toString()
@@ -570,7 +580,11 @@ void EditorWindow::restoreTabs() {
         tab->syncOpenProject();
         const auto path = entry["file"].toString();
         const auto id = entry["workflow"].toString();
-        if (!path.isEmpty())
+        const auto cloudId = entry["cloud"].toString();
+        if (!cloudId.isEmpty()) {
+            tab->restoreCloudDocument(QUrl(entry["origin"].toString()), entry["cloudServer"].toString(), cloudId,
+                                      entry["role"].toString());
+        } else if (!path.isEmpty())
             tab->openFile(path);
         else if (!id.isEmpty()) {
             tab->session_.connectToServer(QUrl(entry["origin"].toString()),

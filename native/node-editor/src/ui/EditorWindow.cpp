@@ -3481,6 +3481,12 @@ bool EditorWindow::openDocument(const QByteArray &json, const QString &file) {
   }
   session_.detachServerWorkflow();
   requestedWorkflow_.clear();
+  // A tab whose cloud workflow did not reopen becomes this document's tab.
+  if (!cloud_) {
+    cloudId_.clear();
+    cloudOrigin_.clear();
+    cloudRole_.clear();
+  }
   if (serverSyncDialog_) { serverSyncDialog_->close(); }
   lineage_->setSelectedLinkIds({});
   r = document_.load(candidate.snapshot());
