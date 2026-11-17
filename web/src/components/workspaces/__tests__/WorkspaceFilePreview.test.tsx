@@ -27,8 +27,14 @@ jest.mock("../../ui_primitives", () => {
     ResponsiveImage: ({ locator }: { locator: string }) => (
       <div data-testid="image" data-locator={locator} />
     ),
-    VideoPlayer: ({ locator, muted }: { locator: string; muted: boolean }) => (
-      <div data-testid="video" data-locator={locator} data-muted={String(muted)} />
+    VideoPlayer: (props: { locator: string; muted?: boolean; bare?: boolean; compact?: boolean }) => (
+      <div
+        data-testid="video"
+        data-locator={props.locator}
+        data-muted={String(Boolean(props.muted))}
+        data-bare={String(Boolean(props.bare))}
+        data-compact={String(Boolean(props.compact))}
+      />
     ),
     AudioPlayback: ({ locator }: { locator: string }) => (
       <div data-testid="audio" data-locator={locator} />
@@ -91,10 +97,13 @@ describe("WorkspaceFilePreview", () => {
     expect(screen.getByText(/2(\.0)? KB · image\/png/)).toBeInTheDocument();
   });
 
-  it("plays a video muted", async () => {
+  it("plays a video with compact controls and sound", async () => {
     assetsList.mockResolvedValue({ assets: [asset("v.mp4", "video/mp4")] });
     renderPreview("v.mp4");
-    expect(await screen.findByTestId("video")).toHaveAttribute("data-muted", "true");
+    const video = await screen.findByTestId("video");
+    expect(video).toHaveAttribute("data-muted", "false");
+    expect(video).toHaveAttribute("data-bare", "false");
+    expect(video).toHaveAttribute("data-compact", "true");
   });
 
   it("shows audio and 3D models", async () => {
