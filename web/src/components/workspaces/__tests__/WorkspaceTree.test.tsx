@@ -58,6 +58,23 @@ const folders: Record<string, FolderState> = {
 const listFiles = jest.fn();
 const documentByFile = jest.fn();
 
+// jsdom has no layout, so the virtualized list renders every row.
+jest.mock("@tanstack/react-virtual", () => ({
+  useVirtualizer: ({ count }: { count: number }) => ({
+    getVirtualItems: () =>
+      Array.from({ length: count }, (_, index) => ({
+        index,
+        key: index,
+        start: index * 28,
+        end: (index + 1) * 28,
+        size: 28,
+        lane: 0
+      })),
+    getTotalSize: () => count * 28,
+    scrollToIndex: () => {}
+  })
+}));
+
 jest.mock("../../../trpc/client", () => ({
   trpcClient: {
     workspace: {
