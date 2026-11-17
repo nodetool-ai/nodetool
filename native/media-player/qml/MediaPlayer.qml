@@ -34,17 +34,45 @@ ColumnLayout {
         objectName: "mediaPlayerEngine"
         source: player.source
         audioOutput: QM.AudioOutput { id: output }
-        videoOutput: player.video ? videoView : null
-        onMediaStatusChanged: if (mediaStatus === QM.MediaPlayer.EndOfMedia) position = 0
+        // Always bound: a binding that starts at null (kind defaults to audio)
+        // and switches later can leave the sink detached, and the picture black.
+        videoOutput: videoView.videoSink
+        property bool posterShown: false
+        onSourceChanged: { posterShown = false; videoView.clearFrame() }
+        onMediaStatusChanged: {
+            if (mediaStatus === QM.MediaPlayer.EndOfMedia) {
+                position = 0
+            } else if (mediaStatus === QM.MediaPlayer.LoadedMedia && player.video && !posterShown) {
+                // Qt Multimedia renders no frame until playback starts. Start
+                // muted and pause on the first frame, so the preview shows it.
+                posterShown = true
+                posterPause.armed = true
+                output.muted = true
+                play()
+            } else if (mediaStatus === QM.MediaPlayer.BufferedMedia && posterPause.armed) {
+                posterPause.restart()
+            }
+        }
     }
-    QM.VideoOutput {
+    Timer {
+        id: posterPause
+        property bool armed: false
+        interval: 1
+        onTriggered: {
+            if (!armed) return
+            armed = false
+            media.pause()
+            media.position = 0
+            output.muted = false
+        }
+    }
+    VideoFrameItem {
         id: videoView
         objectName: "mediaPlayerVideo"
         visible: player.video
         Layout.fillWidth: true
         Layout.fillHeight: player.video
         Layout.preferredHeight: visible ? Math.min(width * 9 / 16, Ui.Metrics.comfortable * 8) : 0
-        fillMode: QM.VideoOutput.PreserveAspectFit
     }
     RowLayout {
         Layout.fillWidth: true
