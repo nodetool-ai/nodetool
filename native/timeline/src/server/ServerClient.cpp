@@ -104,7 +104,20 @@ void ServerClient::decorate(QNetworkRequest& request) const {
     // to an external storage URL (signed S3 or Supabase).
     if (!isServerOrigin(request.url())) return;
     request.setRawHeader("X-Nodetool-Client", kClientHeader);
-    nodetool::account::qt::attachServerToken(request, m_base, m_token);
+    if (!m_authorizer) {
+        nodetool::account::qt::attachServerToken(request, m_base, m_token);
+        return;
+    }
+    RequestAuthorization authorization = m_authorizer();
+    nodetool::account::qt::attachServerToken(request, m_base, authorization.token);
+    const std::lock_guard lock(m_authMutex);
+    m_signedOut = std::move(authorization.signedOut);
+}
+
+bool ServerClient::cancelled() const {
+    if (QThread::currentThread()->isInterruptionRequested()) return true;
+    const std::lock_guard lock(m_authMutex);
+    return m_signedOut && m_signedOut();
 }
 
 std::vector<HttpResponse> ServerClient::sendAll(const std::vector<HttpRequest>& requests) {
@@ -112,7 +125,7 @@ std::vector<HttpResponse> ServerClient::sendAll(const std::vector<HttpRequest>& 
     if (requests.empty()) { return out; }
     QElapsedTimer elapsed;
     elapsed.start();
-    if (QThread::currentThread()->isInterruptionRequested()) {
+    if (cancelled()) {
         for (auto& response : out) {
             response.networkErrorCode = QStringLiteral("CANCELLED");
             response.networkError = QStringLiteral("Request cancelled.");
@@ -156,7 +169,7 @@ std::vector<HttpResponse> ServerClient::sendAll(const std::vector<HttpRequest>& 
     }
     QTimer interruption;
     QObject::connect(&interruption, &QTimer::timeout, &loop, [&] {
-        if (QThread::currentThread()->isInterruptionRequested()) { abortPending(QStringLiteral("CANCELLED")); }
+        if (cancelled()) { abortPending(QStringLiteral("CANCELLED")); }
     });
     interruption.start(25);
     if (pending > 0) loop.exec();
@@ -267,7 +280,7 @@ QueryResult ServerClient::upload(const QJsonObject& json, const QString& filePat
 HttpResponse ServerClient::download(const QString& urlOrPath, QIODevice& out,
                                     const std::function<void(qint64, qint64)>& onProgress) {
     HttpResponse resp;
-    if (QThread::currentThread()->isInterruptionRequested()) {
+    if (cancelled()) {
         resp.networkErrorCode = QStringLiteral("CANCELLED");
         resp.networkError = QStringLiteral("Request cancelled.");
         return resp;
@@ -302,7 +315,7 @@ HttpResponse ServerClient::download(const QString& urlOrPath, QIODevice& out,
     QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
     QTimer interruption;
     QObject::connect(&interruption, &QTimer::timeout, &loop, [&] {
-        if (QThread::currentThread()->isInterruptionRequested()) {
+        if (cancelled()) {
             abort(QStringLiteral("CANCELLED"), QStringLiteral("Request cancelled."));
         }
     });
@@ -334,7 +347,7 @@ HttpResponse ServerClient::download(const QString& urlOrPath, QIODevice& out,
 
 QueryResult ServerClient::write(const QString& procedure, QNetworkRequest request, const QByteArray* json,
                                 std::unique_ptr<QHttpMultiPart> multipart, const QString& contentType, bool plainJson) {
-    if (QThread::currentThread()->isInterruptionRequested()) { return failed("CANCELLED", "Request cancelled."); }
+    if (cancelled()) { return failed("CANCELLED", "Request cancelled."); }
     const bool isUpload = multipart != nullptr;
     bool interrupted = false;
     QElapsedTimer clock;
@@ -353,7 +366,7 @@ QueryResult ServerClient::write(const QString& procedure, QNetworkRequest reques
         bool aborted = false;
         QTimer interruption;
         QObject::connect(&interruption, &QTimer::timeout, reply, [&] {
-            if (!aborted && QThread::currentThread()->isInterruptionRequested()) {
+            if (!aborted && cancelled()) {
                 interrupted = true;
                 aborted = true;
                 reply->abort();

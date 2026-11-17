@@ -6,7 +6,8 @@
 
 #include <algorithm>
 #include <cctype>
-#include <regex>
+#include <string_view>
+#include <vector>
 #include <set>
 #include <utility>
 
@@ -121,6 +122,19 @@ SharingState readSharing(CloudClient& client, const std::string& kind, const std
         person.role = text(entry["access"], "role");
         if (entry["access"].contains("options")) {
           person.options = optionsOf(entry["access"]["options"]);
+        }
+        if (entry["access"].contains("grants") && entry["access"]["grants"].is_array()) {
+          for (const nlohmann::json& g : entry["access"]["grants"]) {
+            ShareGrant grant;
+            grant.source = text(g, "source");
+            grant.shareId = text(g, "share_id");
+            grant.role = text(g, "role");
+            if (g.is_object() && g.contains("options")) {
+              grant.options = optionsOf(g["options"]);
+            }
+            grant.linkDisabled = flag(g, "link_disabled");
+            person.grants.push_back(std::move(grant));
+          }
         }
       }
       if (!person.userId.empty()) {
@@ -269,28 +283,112 @@ std::vector<LinkedDocument> linkedDocuments(const std::string& kind, const std::
 
 namespace {
 
+// A secret shape: a prefix and at least `minRun` characters of `inRun`
+// after it. Matched by a scan that is linear in the value's length, because
+// std::regex recurses per character and overflows the stack on a long
+// value (a crash, not an exception).
 struct SecretShape {
-  std::regex pattern;
+  const char* prefix;
+  bool (*inRun)(char);
+  size_t minRun;
   const char* looksLike;
+  bool ignoreCase = false;
 };
 
-const std::vector<SecretShape>& secretShapes() {
-  static const std::vector<SecretShape> shapes = [] {
-    const auto icase = std::regex::ECMAScript | std::regex::icase;
-    std::vector<SecretShape> list;
-    list.push_back({std::regex(R"(sk-ant-[A-Za-z0-9_-]{20,})"), "an Anthropic key"});
-    list.push_back({std::regex(R"(sk-(proj-)?[A-Za-z0-9_-]{20,})"), "an OpenAI key"});
-    list.push_back({std::regex(R"(AKIA[0-9A-Z]{16})"), "an AWS access key"});
-    list.push_back({std::regex(R"(gh[pousr]_[A-Za-z0-9]{36,})"), "a GitHub token"});
-    list.push_back({std::regex(R"(xox[abprs]-[A-Za-z0-9-]{10,})"), "a Slack token"});
-    list.push_back({std::regex(R"(AIza[0-9A-Za-z_-]{35})"), "a Google API key"});
-    list.push_back({std::regex(R"(hf_[A-Za-z0-9]{30,})"), "a Hugging Face token"});
-    list.push_back({std::regex(R"(r8_[A-Za-z0-9]{30,})"), "a Replicate token"});
-    list.push_back({std::regex(R"(-----BEGIN [A-Z ]*PRIVATE KEY-----)"), "a private key"});
-    list.push_back({std::regex(R"(Bearer [A-Za-z0-9._~+/=-]{20,})", icase), "a bearer token"});
-    return list;
-  }();
-  return shapes;
+bool alnum(char c) { return std::isalnum(static_cast<unsigned char>(c)) != 0; }
+bool upperOrDigit(char c) { return (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'); }
+bool keyChar(char c) { return alnum(c) || c == '_' || c == '-'; }
+bool slackChar(char c) { return alnum(c) || c == '-'; }
+bool bearerChar(char c) {
+  return alnum(c) || c == '.' || c == '_' || c == '~' || c == '+' || c == '/' || c == '=' || c == '-';
+}
+
+constexpr SecretShape kSecretShapes[] = {
+    {"sk-ant-", keyChar, 20, "an Anthropic key"},
+    // Covers sk-proj-: `proj-` is part of the run.
+    {"sk-", keyChar, 20, "an OpenAI key"},
+    {"AKIA", upperOrDigit, 16, "an AWS access key"},
+    {"ghp_", alnum, 36, "a GitHub token"},
+    {"gho_", alnum, 36, "a GitHub token"},
+    {"ghu_", alnum, 36, "a GitHub token"},
+    {"ghs_", alnum, 36, "a GitHub token"},
+    {"ghr_", alnum, 36, "a GitHub token"},
+    {"xoxa-", slackChar, 10, "a Slack token"},
+    {"xoxb-", slackChar, 10, "a Slack token"},
+    {"xoxp-", slackChar, 10, "a Slack token"},
+    {"xoxr-", slackChar, 10, "a Slack token"},
+    {"xoxs-", slackChar, 10, "a Slack token"},
+    {"AIza", keyChar, 35, "a Google API key"},
+    {"hf_", alnum, 30, "a Hugging Face token"},
+    {"r8_", alnum, 30, "a Replicate token"},
+    {"bearer ", bearerChar, 20, "a bearer token", true},
+};
+
+char lowerChar(char c) { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); }
+
+bool startsAt(const std::string& s, size_t at, std::string_view prefix, bool ignoreCase) {
+  if (s.size() - at < prefix.size()) {
+    return false;
+  }
+  for (size_t i = 0; i < prefix.size(); ++i) {
+    const char c = s[at + i];
+    if ((ignoreCase ? lowerChar(c) : c) != prefix[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// The length of the run of `inRun` characters from each position, in one
+// pass from the end.
+std::vector<size_t> runLengths(const std::string& s, bool (*inRun)(char)) {
+  std::vector<size_t> runs(s.size() + 1, 0);
+  for (size_t i = s.size(); i-- > 0;) {
+    runs[i] = inRun(s[i]) ? runs[i + 1] + 1 : 0;
+  }
+  return runs;
+}
+
+// `-----BEGIN [A-Z ]*PRIVATE KEY-----`: the run of capitals and spaces
+// after the opening ends in `PRIVATE KEY` and is followed by the dashes.
+bool privateKey(const std::string& s) {
+  constexpr std::string_view open = "-----BEGIN ";
+  constexpr std::string_view close = "PRIVATE KEY-----";
+  for (size_t at = s.find(open); at != std::string::npos; at = s.find(open, at + 1)) {
+    size_t end = at + open.size();
+    while (end < s.size() && ((s[end] >= 'A' && s[end] <= 'Z') || s[end] == ' ')) {
+      ++end;
+    }
+    // The run's last 11 characters are `PRIVATE KEY` and `-----` follows.
+    constexpr size_t words = close.size() - 5;
+    if (end - (at + open.size()) >= words && s.compare(end - words, close.size(), close) == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+const char* secretShape(const std::string& s) {
+  // One run table per character class, built when first needed.
+  std::vector<std::pair<bool (*)(char), std::vector<size_t>>> tables;
+  const auto runsFor = [&](bool (*inRun)(char)) -> const std::vector<size_t>& {
+    for (const auto& [fn, runs] : tables) {
+      if (fn == inRun) {
+        return runs;
+      }
+    }
+    tables.emplace_back(inRun, runLengths(s, inRun));
+    return tables.back().second;
+  };
+  for (const SecretShape& shape : kSecretShapes) {
+    const std::string_view prefix = shape.prefix;
+    for (size_t at = 0; at + prefix.size() <= s.size(); ++at) {
+      if (startsAt(s, at, prefix, shape.ignoreCase) && runsFor(shape.inRun)[at + prefix.size()] >= shape.minRun) {
+        return shape.looksLike;
+      }
+    }
+  }
+  return privateKey(s) ? "a private key" : nullptr;
 }
 
 bool secretName(const std::string& name) {
@@ -318,13 +416,11 @@ void scan(const nlohmann::json& value, const std::string& name, const std::strin
           std::vector<SecretFinding>& found, std::set<std::string>& places) {
   if (value.is_string()) {
     const std::string& s = value.get_ref<const std::string&>();
-    for (const SecretShape& shape : secretShapes()) {
-      if (std::regex_search(s, shape.pattern)) {
-        if (places.insert(place).second) {
-          found.push_back({place, shape.looksLike});
-        }
-        return;
+    if (const char* looksLike = secretShape(s)) {
+      if (places.insert(place).second) {
+        found.push_back({place, looksLike});
       }
+      return;
     }
     if (secretName(name) && keyLike(s) && places.insert(place).second) {
       found.push_back({place, "a key or password"});
