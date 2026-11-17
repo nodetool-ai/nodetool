@@ -21,6 +21,7 @@ import { useProjectFolder } from "../../hooks/useProjectFolder";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { fileManagerKind } from "../../utils/platform";
 import { useOpenProjectConnection } from "../../lib/websocket/openProjectSignal";
+import { serializeDragData } from "../../lib/dragdrop/serialization";
 import {
   folderEntryPath,
   isReservedProjectEntry,
@@ -688,7 +689,15 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
     }
     e.dataTransfer.setData(ENTRY_DRAG_TYPE, itemId);
     e.dataTransfer.effectAllowed = "move";
-  }, []);
+    // A media file also drops onto the canvas as a constant node.
+    const isFolder = isFolderItem(findItemInTree(filesRef.current, itemId));
+    if (!isFolder && !isDocumentFile(itemId)) {
+      serializeDragData(
+        { type: "project-file", payload: { projectId, path: itemId } },
+        e.dataTransfer
+      );
+    }
+  }, [projectId]);
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     const isEntry = carriesEntry(e);
