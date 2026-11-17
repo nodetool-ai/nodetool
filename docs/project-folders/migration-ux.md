@@ -16,8 +16,10 @@ and runs at startup as before, in these cases:
 - An install with nothing to move: no project without a folder, no workflow or
   timeline without a file, and no asset with bytes in asset storage. The state
   is recorded as `done` the first time it is read.
-- `NODETOOL_PROJECT_MIGRATION=auto`. The server confirms for each user with the
-  configured projects folder at startup. Headless servers, CI and tests use it.
+- `NODETOOL_PROJECT_MIGRATION=auto`. The server confirms with the configured
+  projects folder for each user who has not confirmed, at startup and when the
+  status is read. A user who only read the plan counts as not confirmed.
+  Headless servers, CI and tests use it.
 
 The native editors show no dialog of their own. They work through the server,
 so they get the migration that the server runs.
@@ -41,7 +43,17 @@ The server enforces every transition and answers a rejected one with
 `INVALID_INPUT`. `confirm` requires `plan_shown`. `pause` requires `confirmed`
 or `running`. `resume` requires `paused`. `retry` requires `done` or `running`
 with at least one failure. Every mutation is refused with `FORBIDDEN` where the
-migration does not apply.
+migration does not apply, including an install with nothing to move.
+
+A run claims `running` with its own id, its process id and its host, and
+writes a heartbeat every 15 seconds. It stops at its next check once the state
+belongs to another run, as after a pause and a resume. A server continues a
+`confirmed` or `running` state that no live process works on: the owner
+process on the same machine has exited, or the heartbeat is older than a
+minute. It looks at startup, on each status read and every 30 seconds. Every
+state change commits only while the row still holds what it read, so a server
+and a command never overwrite each other's change. A run that stops on an
+error gives the state back as `confirmed` and starts again 30 seconds later.
 
 ## Before and after confirmation
 
@@ -81,19 +93,25 @@ location: the user's `PROJECTS_DIR` setting, else the environment variable,
 else `~/NodeTool`.
 
 A changed location must be an absolute path to an existing, writable
-directory. Confirm stores it as the user's `PROJECTS_DIR` setting, in the
-same transaction as the move to `confirmed`. A confirmation that loses a race
-with another writes neither. On macOS
-the plan warns when the location is under `~/Documents`, `~/Desktop`,
+directory. Confirm writes and removes a small file there first, because macOS
+refuses a folder the app has no permission for only when it writes. The path
+is stored without `..` segments or a trailing separator. Confirm stores it as
+the user's `PROJECTS_DIR` setting, in the same transaction as the move to
+`confirmed`. A confirmation that loses a race with another writes neither. On
+macOS the plan warns when the location is under `~/Documents`, `~/Desktop`,
 `~/Downloads`, iCloud Drive (`~/Library/Mobile Documents`) or `/Volumes`,
-because the OS asks for permission there.
+because the OS asks for permission there. The check ignores letter case and
+also follows a link to one of those folders.
 
 Progress is read from the database, so work done by another process counts:
 `total` is the asset count recorded at confirmation, and `done` is `total`
 minus the assets still waiting. The current project is known only to the
 process doing the work. Failures are stored with the state, at most 50 of them
 plus a count. A failure is an asset whose copy did not verify or could not be
-read, or a project whose folder could not be made or reached.
+read, an asset whose file is missing from asset storage, an asset larger than
+the upload size limit, or a project whose folder could not be made or reached.
+A failed asset is listed again by every run until it moves. Retry looks for
+missing files again.
 
 ## API
 
@@ -110,11 +128,15 @@ read, or a project whose folder could not be made or reached.
 
 ## CLI
 
-`nodetool projects migrate` prints the plan and the state. With `--yes` it
+`nodetool projects migrate` prints the plan and the state, and changes
+nothing, also with `NODETOOL_PROJECT_MIGRATION=auto`. With `--yes` it
 confirms, with `--location <dir>` when given, and runs the migration to the
-end in the command's process. It continues a confirmed or running migration.
-It refuses a paused one. It exits with status 1 when a failure is listed or
-the migration is not `done`. No other command runs a bulk step: commands that run
+end in the command's process. It continues a confirmed migration. A migration
+that another live process runs is waited for, and taken over if that process
+stops. It refuses a paused one, and refuses `--location` once the migration
+was confirmed with another location. Where the migration does not ask, it
+runs the steps for the local user and lists what failed. It exits with status
+1 when a failure is listed or the migration is not `done`. No other command runs a bulk step: commands that run
 workflows only use the lazy folder creation above. Every asset step takes the
 project's cross-process folder lock, so a server and a command never move one
 asset at the same time.
@@ -123,7 +145,8 @@ asset at the same time.
 
 | Case | Result |
 | --- | --- |
-| Server stops while `running` | The next start continues. Every step is idempotent. |
+| Server or command stops while `running` | A server continues it at once when the stopped process ran on the same machine, otherwise once the heartbeat is a minute old. Every step is idempotent. |
+| A run stops on an error | The state goes back to `confirmed`, and the run starts again 30 seconds later. |
 | Server stops while `paused` | The next start does nothing bulk until resume. |
 | An asset changed within the settle time, or a direct upload may still arrive | The run waits the settle time once and moves it then. An asset still not ready moves the state back to `confirmed`, and the server runs it again later. A command reports the migration as unfinished. |
 | A copy does not match | The legacy object stays. The asset is listed as failed. Retry moves it again. |

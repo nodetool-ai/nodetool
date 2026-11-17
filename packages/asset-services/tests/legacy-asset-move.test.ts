@@ -10,9 +10,12 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Asset, ModelObserver, initTestDb, moveTargetOf } from "@nodetool-ai/models";
-import { ProjectDirectoryResolver } from "@nodetool-ai/protocol";
+import {
+  ProjectDirectoryResolver,
+  WORKSPACE_MOVE_TARGET_KEY
+} from "@nodetool-ai/protocol";
 import {
   createLocalWorkspace,
   createWorkspace,
@@ -21,6 +24,8 @@ import {
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import { getAssetStorageKey } from "../src/asset-paths.js";
 import {
+  legacyAssetStagingName,
+  legacyFolderDirectory,
   moveLegacyAssetIntoFolder,
   type LegacyAssetMoveOutcome,
   type LegacyAssetMoveStep
@@ -197,5 +202,220 @@ describe.each(["local", "storage"] as const)("the move into a %s folder", (kind)
     expect(await storedObject(asset)).toBeNull();
     expect(same(await workspace.read("fox.png"), original)).toBe(true);
     expect(moveTargetOf((await Asset.find(USER, asset.id))!)).toBeNull();
+  });
+});
+
+/** Store `bytes` for `asset` under the key `key` beside the canonical one. */
+async function storeUnder(key: string, bytes: Uint8Array): Promise<void> {
+  await store.store(key, bytes, "application/octet-stream");
+}
+
+function storedAt(key: string): Promise<Uint8Array | null> {
+  return store.retrieve(store.uriForKey(key));
+}
+
+/** A legacy row with no object under any key. */
+async function rowWithoutBytes(metadata: Record<string, unknown> | null = null): Promise<Asset> {
+  return Asset.create<Asset>({
+    user_id: USER,
+    project_id: PROJECT,
+    parent_id: null,
+    name: "fox",
+    content_type: "image/png",
+    size: 2048,
+    metadata
+  });
+}
+
+describe.each(["local", "storage"] as const)("the audited move into a %s folder", (kind) => {
+  beforeEach(() => {
+    workspace = kinds[kind]();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("moves an asset whose flat key holds other, stale bytes and keeps that key", async () => {
+    const current = bytesOf(1);
+    const stale = bytesOf(2);
+    const asset = await legacyAsset(current);
+    const flat = `${asset.id}.png`;
+    // `nodetool storage migrate-keys` leaves the flat object when the owner
+    // key exists, so the two can hold different bytes.
+    await storeUnder(flat, stale);
+
+    expect(await move(asset)).toEqual({ status: "moved", path: "fox.png" });
+
+    expect(same(await workspace.read("fox.png"), current)).toBe(true);
+    expect(await storedObject(asset)).toBeNull();
+    expect(same(await storedAt(flat), stale)).toBe(true);
+    expect(moveTargetOf((await Asset.find(USER, asset.id))!)).toBeNull();
+  });
+
+  it("deletes a second legacy key that holds the same bytes as the copy", async () => {
+    const current = bytesOf(1);
+    const asset = await legacyAsset(current);
+    const flat = `${asset.id}.png`;
+    await storeUnder(flat, current);
+
+    expect(await move(asset)).toEqual({ status: "moved", path: "fox.png" });
+
+    expect(await storedObject(asset)).toBeNull();
+    expect(await storedAt(flat)).toBeNull();
+  });
+
+  it("moves a model under its .glb key and keeps an older .bin object with other bytes", async () => {
+    const current = bytesOf(1);
+    const older = bytesOf(2);
+    const model = await Asset.create<Asset>({
+      user_id: USER,
+      project_id: PROJECT,
+      parent_id: null,
+      name: "chair",
+      content_type: "model/gltf-binary",
+      size: current.byteLength
+    });
+    const glb = `${USER}/${model.id}.glb`;
+    const bin = `${USER}/${model.id}.bin`;
+    await storeUnder(glb, current);
+    await storeUnder(bin, older);
+
+    expect(await move(model)).toEqual({ status: "moved", path: "chair.glb" });
+
+    expect(same(await workspace.read("chair.glb"), current)).toBe(true);
+    expect(await storedAt(glb)).toBeNull();
+    expect(same(await storedAt(bin), older)).toBe(true);
+  });
+
+  it("finishes after a stop between the delete of the copied key and the clean-up of the row", async () => {
+    const current = bytesOf(1);
+    const stale = bytesOf(2);
+    const asset = await legacyAsset(current);
+    const flat = `${asset.id}.png`;
+    await storeUnder(flat, stale);
+    await expect(move(asset, "legacy_deleted")).rejects.toThrow("killed after legacy_deleted");
+    expect(moveTargetOf((await Asset.find(USER, asset.id))!)).toBe("fox.png");
+
+    expect(await move(asset)).toEqual({ status: "moved", path: "fox.png" });
+
+    expect(same(await workspace.read("fox.png"), current)).toBe(true);
+    expect(same(await storedAt(flat), stale)).toBe(true);
+    expect(moveTargetOf((await Asset.find(USER, asset.id))!)).toBeNull();
+  });
+
+  it("does not take a file with the same bytes at the recorded target for its copy unless it published it", async () => {
+    const bytes = bytesOf(1);
+    const asset = await legacyAsset(bytes);
+    await expect(move(asset, "claimed")).rejects.toThrow("killed after claimed");
+    // A creator puts the same bytes at that path before the copy is made.
+    await workspace.write("fox.png", bytes);
+
+    expect(await move(asset)).toEqual({ status: "moved", path: "fox-2.png" });
+
+    expect(await files()).toEqual(["fox-2.png", "fox.png"]);
+    expect(same(await workspace.read("fox.png"), bytes)).toBe(true);
+    expect((await Asset.find(USER, asset.id))?.workspace_path).toBe("fox-2.png");
+  });
+
+  it("removes its staging file when the stored object is gone", async () => {
+    const asset = await rowWithoutBytes({ [WORKSPACE_MOVE_TARGET_KEY]: "fox.png" });
+    await workspace.write(legacyAssetStagingName(asset.id), bytesOf(1).subarray(0, 100));
+
+    expect(await move(asset)).toEqual({ status: "no_bytes" });
+
+    expect(await files()).toEqual([]);
+  });
+
+  it("removes its staging file when the move finds the asset settled", async () => {
+    const bytes = bytesOf(1);
+    const asset = await legacyAsset(bytes);
+    await expect(move(asset, "legacy_deleted")).rejects.toThrow("killed after legacy_deleted");
+    // A copy that an earlier attempt cut short left its staging file.
+    await workspace.write(legacyAssetStagingName(asset.id), bytes.subarray(0, 100));
+
+    expect(await move(asset)).toEqual({ status: "moved", path: "fox.png" });
+
+    expect(await files()).toEqual(["fox.png"]);
+  });
+
+  it("marks a row with no stored object without changing its updated_at", async () => {
+    const asset = await rowWithoutBytes();
+    const before = await Asset.find(USER, asset.id);
+
+    expect(await move(asset)).toEqual({ status: "no_bytes" });
+
+    const after = await Asset.find(USER, asset.id);
+    expect(after?.updated_at).toBe(before?.updated_at);
+    expect(after?.metadata?.[Asset.LEGACY_BYTES_MISSING_KEY]).toBe(before?.updated_at);
+    expect(await Asset.listAwaitingFolderMove(USER, PROJECT)).toEqual([]);
+    expect(await Asset.countAwaitingFolderMove(USER)).toBe(0);
+  });
+
+  it("reports an object larger than the read limit as too large and leaves it", async () => {
+    vi.stubEnv("NODETOOL_MAX_UPLOAD_BYTES", String(1024));
+    const bytes = bytesOf(1, 4096);
+    const asset = await legacyAsset(bytes);
+
+    const outcome = await move(asset);
+
+    expect(outcome).toEqual({
+      status: "too_large",
+      reason: "The file is larger than the 1 KiB limit, so it stays in asset storage"
+    });
+    expect(same(await storedObject(asset), bytes)).toBe(true);
+    expect(await files()).toEqual([]);
+    expect(moveTargetOf((await Asset.find(USER, asset.id))!)).toBeNull();
+  });
+
+  it("files an asset under folder names Windows accepts", async () => {
+    const con = await Asset.create<Asset>({
+      user_id: USER,
+      project_id: PROJECT,
+      parent_id: null,
+      name: "CON",
+      content_type: "folder"
+    });
+    const draft = await Asset.create<Asset>({
+      user_id: USER,
+      project_id: PROJECT,
+      parent_id: con.id,
+      name: "Draft: v2.",
+      content_type: "folder"
+    });
+    const bytes = bytesOf(1);
+    const asset = await Asset.create<Asset>({
+      user_id: USER,
+      project_id: PROJECT,
+      parent_id: draft.id,
+      name: "fox",
+      content_type: "image/png",
+      size: bytes.byteLength
+    });
+    await store.store(keyOf(asset), bytes, "image/png");
+
+    const outcome = await moveLegacyAssetIntoFolder(USER, asset.id, {
+      storage: store,
+      workspace,
+      projectId: PROJECT,
+      resolver: new ProjectDirectoryResolver(
+        PROJECT,
+        new Map([con, draft].map((row) => [row.id, row]))
+      )
+    });
+
+    expect(outcome).toEqual({ status: "moved", path: "CON-folder/Draft- v2/fox.png" });
+  });
+});
+
+describe("the directory of a legacy folder path", () => {
+  it("makes every segment portable and keeps hidden ones visible", () => {
+    expect(legacyFolderDirectory("Uploads/nul.raw/Take 1. ")).toBe(
+      "Uploads/nul-folder.raw/Take 1"
+    );
+    expect(legacyFolderDirectory(".git/node_modules/a|b")).toBe(
+      "_.git/_node_modules/a-b"
+    );
+    expect(legacyFolderDirectory("")).toBe("");
   });
 });

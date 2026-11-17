@@ -235,7 +235,7 @@ export function registerProjectCommands(program: Command): void {
               LOCAL_USER_ID,
               opts.location
             );
-            const status = await migration.getMigrationStatus(LOCAL_USER_ID);
+            const status = await migration.readMigrationStatus(LOCAL_USER_ID);
             if (opts.json) {
               asJson({ status, plan });
               return;

@@ -365,13 +365,13 @@ describe("assets router", () => {
       const child2Folder = makeAsset({ id: "c2", content_type: "folder" });
       const grandchild = makeAsset({ id: "gc", content_type: "image/png" });
 
-      // Find returns the correct asset for each lookup.
+      // Find returns the correct asset for each lookup. Each file's row is
+      // read again before it is deleted.
+      const rows = new Map(
+        [folder, child1, child2Folder, grandchild].map((row) => [row.id, row])
+      );
       (Asset.find as ReturnType<typeof vi.fn>).mockImplementation(
-        (_userId: string, id: string) => {
-          if (id === "folder") return Promise.resolve(folder);
-          if (id === "c2") return Promise.resolve(child2Folder);
-          return Promise.resolve(null);
-        }
+        (_userId: string, id: string) => Promise.resolve(rows.get(id) ?? null)
       );
       // getChildren returns the right batch for each parent.
       (Asset.getChildren as ReturnType<typeof vi.fn>).mockImplementation(

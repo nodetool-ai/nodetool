@@ -10,6 +10,7 @@ import {
   isWithinDirectory,
   listsByDirectory,
   parseProjectDirectoryId,
+  portableDirectoryName,
   projectDirectoryId,
   withAncestorDirectories,
   type LegacyFolder
@@ -128,5 +129,43 @@ describe("directory helpers", () => {
     expect(folderNameAsDirectory(" a/b\\c ")).toBe("a-b-c");
     expect(folderNameAsDirectory("..")).toBe("_");
     expect(folderNameAsDirectory("")).toBe("_");
+  });
+
+  it("turns any folder name into a directory name Windows accepts", () => {
+    // Device names, also before the first dot, in any case.
+    expect(folderNameAsDirectory("CON")).toBe("CON-folder");
+    expect(folderNameAsDirectory("nul.backup")).toBe("nul-folder.backup");
+    expect(folderNameAsDirectory("Com1")).toBe("Com1-folder");
+    expect(folderNameAsDirectory("lpt9")).toBe("lpt9-folder");
+    expect(folderNameAsDirectory("COM0")).toBe("COM0");
+    expect(folderNameAsDirectory("Console")).toBe("Console");
+    // Characters Windows refuses in a name, control characters included.
+    expect(folderNameAsDirectory('a<b>c:d"e|f?g*h')).toBe("a-b-c-d-e-f-g-h");
+    expect(folderNameAsDirectory("tab\there")).toBe("tab-here");
+    expect(folderNameAsDirectory("bell\u0007")).toBe("bell-");
+    // Trailing dots and spaces, which Windows drops from a name.
+    expect(folderNameAsDirectory("Draft. . ")).toBe("Draft");
+    expect(folderNameAsDirectory("...")).toBe("_");
+    // A portable name is kept, and a second pass changes nothing.
+    expect(folderNameAsDirectory("Day 1")).toBe("Day 1");
+    for (const name of ["CON", "a<b", "Draft. . ", "nul.backup", "..."]) {
+      const once = folderNameAsDirectory(name);
+      expect(portableDirectoryName(once)).toBe(once);
+    }
+  });
+
+  it("makes one segment of a directory path portable and leaves a leading dot", () => {
+    expect(portableDirectoryName("AUX")).toBe("AUX-folder");
+    expect(portableDirectoryName("Shots:raw.")).toBe("Shots-raw");
+    expect(portableDirectoryName(".hidden")).toBe(".hidden");
+    expect(portableDirectoryName("")).toBe("_");
+  });
+
+  it("trims in linear time when a long run of spaces is not at the end", () => {
+    const name = `a${" ".repeat(200_000)}b`;
+    const started = performance.now();
+    expect(portableDirectoryName(name)).toBe(name);
+    expect(portableDirectoryName(`${name}. .`)).toBe(name);
+    expect(performance.now() - started).toBeLessThan(1_000);
   });
 });
