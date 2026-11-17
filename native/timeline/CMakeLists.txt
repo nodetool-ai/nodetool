@@ -184,6 +184,9 @@ endif()
 if(NOT TARGET nodetool_storyboard)
     add_subdirectory(../storyboard ${CMAKE_CURRENT_BINARY_DIR}/storyboard)
 endif()
+if(NOT TARGET nodetool_script)
+    add_subdirectory(../script ${CMAKE_CURRENT_BINARY_DIR}/script)
+endif()
 # The buffer kernels of native/kernels: the mixer's filters share the
 # Web Audio biquad design with the lib.audio nodes.
 if(NOT TARGET nodetool_kernels)
@@ -197,7 +200,7 @@ endif()
 # Model and scene evaluation: no GUI, shared by the app and the tests.
 add_library(timeline_core STATIC ${NT_core})
 target_include_directories(timeline_core PUBLIC src)
-target_link_libraries(timeline_core PUBLIC Qt6::Core PRIVATE yogacore)
+target_link_libraries(timeline_core PUBLIC Qt6::Core nodetool_script_authoring PRIVATE yogacore)
 target_compile_options(timeline_core PRIVATE ${NT_WARNINGS})
 # The scene port computes what the web computes in JavaScript, one rounding
 # per operation: no fused multiply-add (Clang contracts by default).

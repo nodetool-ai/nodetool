@@ -95,6 +95,17 @@ def module_policy(module):
             },
             'forbidden': FORBIDDEN,
         }
+    # The script editor builds on the storyboard drafts, and no host app leaks into it.
+    if module.name == 'script':
+        return {
+            'subdirs': {'../storyboard'},
+            'qml_imports': {'NodeTool.UiPrimitives', 'NodeTool.Storyboard', 'NodeTool.Script'},
+            'targets': {
+                'nodetool_ui_primitives', 'nodetool_storyboard', 'nodetool_storyboardplugin',
+                'nodetool_script', 'nodetool_scriptplugin', 'nodetool_script_authoring',
+            },
+            'forbidden': FORBIDDEN,
+        }
     if module.name == 'storyboard':
         return {
             'subdirs': {'../ui_primitives', '../media', '../model-picker'},
@@ -292,7 +303,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--module-root', type=Path, default=None)
     args = parser.parse_args()
-    roots = [args.module_root] if args.module_root is not None else [MODULE, MODULE.parent / 'media', MODULE.parent / 'entities', MODULE.parent / 'storyboard', MODULE.parent / 'files', MODULE.parent / 'media-player']
+    roots = [args.module_root] if args.module_root is not None else [MODULE, MODULE.parent / 'media', MODULE.parent / 'entities', MODULE.parent / 'storyboard', MODULE.parent / 'files', MODULE.parent / 'media-player', MODULE.parent / 'script']
     files = []
     errors = []
     for root in roots:

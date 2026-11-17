@@ -1,9 +1,25 @@
-#include "aiassist/ScriptAuthoring.h"
-#include "aiassist/AssistDocument.h"
+#include "ScriptAuthoring.h"
 #include <QHash>
+#include <QRegularExpression>
+#include <optional>
 #include <QUuid>
-namespace nt::aiassist {
+namespace nt::script {
 namespace {
+// A 12-character prefix resolves only when one full id matches it.
+std::optional<QString> resolveId(const QString& input, const QStringList& authorized) {
+    if (authorized.contains(input)) { return input; }
+    static const QRegularExpression shortId(QStringLiteral("^[0-9a-f]{12}$"));
+    if (input.size() != 12 || !shortId.match(input).hasMatch()) { return std::nullopt; }
+    static const QRegularExpression fullId(QStringLiteral("^[0-9a-f]{32}$"));
+    std::optional<QString> result;
+    for (const auto& id : authorized) {
+        if (id.size() == 32 && fullId.match(id).hasMatch() && id.startsWith(input)) {
+            if (result) { return std::nullopt; }
+            result = id;
+        }
+    }
+    return result;
+}
 QString id() { return QUuid::createUuid().toString(QUuid::Id128); }
 QString resolvedLineId(const QJsonObject& script, const QString& input) {
     QStringList ids;
