@@ -46,8 +46,8 @@ Rectangle {
         }
         SaveStatus {
             anchors.verticalCenter: parent.verticalCenter
-            visible: bar.cloudDocument === null
-            autosave: bar.autosave
+            // Without an autosave it stays idle and hidden.
+            autosave: bar.cloudDocument === null ? bar.autosave : null
             compact: bar.width < TimelineMetrics.compactDocumentBarWidth
         }
         Loader {

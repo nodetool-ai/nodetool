@@ -62,10 +62,10 @@ bool isServerUrl(const QUrl& url) {
 }  // namespace
 
 int takeServerArgs(int& argc, char** argv) {
-    // Called once per process, so a call starts from no source.
     Args& a = args();
-    a = Args{};
-    loadedSource().reset();
+    a.cloud = false;
+    a.role.clear();
+    bool tokenGiven = false;
     int out = 1;
     bool seen = false;
     for (int i = 1; i < argc; ++i) {
@@ -88,6 +88,7 @@ int takeServerArgs(int& argc, char** argv) {
             if (!value(a.cacheDir)) return 2;
         } else if (std::strcmp(arg, "--token") == 0) {
             if (!value(a.token)) return 2;
+            tokenGiven = true;
         } else if (std::strcmp(arg, "--loader-report") == 0) {
             if (!value(a.reportPath)) return 2;
         } else if (std::strcmp(arg, "--cloud-server") == 0) {
@@ -122,7 +123,7 @@ int takeServerArgs(int& argc, char** argv) {
                              "       nodetool-timeline --server URL --list-timelines\n");
         return 2;
     }
-    if (a.cloud && (a.list || !a.token.isEmpty())) {
+    if (a.cloud && (a.list || tokenGiven)) {
         std::fprintf(stderr, "error: --cloud-server opens one timeline with the signed-in account\n");
         return 2;
     }
@@ -136,7 +137,12 @@ int takeServerArgs(int& argc, char** argv) {
         return 2;
     }
     if (a.cacheDir.isEmpty()) a.cacheDir = defaultCacheDir();
-    if (a.token.isEmpty() && !a.cloud) a.token = qEnvironmentVariable("NODETOOL_API_TOKEN");
+    if (a.cloud) {
+        // Set by main from the account (setCloudToken), never from the environment.
+        a.token.clear();
+    } else if (a.token.isEmpty()) {
+        a.token = qEnvironmentVariable("NODETOOL_API_TOKEN");
+    }
     if (a.cloud && a.role.isEmpty()) a.role = QStringLiteral("owner");
     a.active = true;
     if (!a.list) {
@@ -175,6 +181,7 @@ void setCloudToken(const QString& token) {
 }
 
 std::optional<SaveTarget> serverSaveTarget() {
+    if (args().active && args().cloud) return std::nullopt;
     const Args& a = loadedSource() ? *loadedSource() : args();
     if (!a.active || a.list || a.cloud) return std::nullopt;
     SaveTarget t;

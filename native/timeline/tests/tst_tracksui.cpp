@@ -2999,7 +2999,6 @@ private slots:
             collect(rootItem, [&](QQuickItem* it) { if (!found && it->objectName() == name) found = it; });
             return found;
         };
-        QVERIFY(find("saveStatus")->isVisible());
         QVERIFY(!find("documentCloudStatus")->property("active").toBool());
         root->setProperty("cloud", QVariant::fromValue(&document));
         QTRY_VERIFY(find("cloud-sync-status") != nullptr);
