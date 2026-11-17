@@ -533,7 +533,12 @@ void EditorWindow::startCloudDocument(std::shared_ptr<nodetool::account::Account
   services.role = role.toStdString();
   cloud_ = std::make_unique<account::qt::CloudDocument>(std::move(services));
   cloudId_ = documentId;
-  connect(cloud_.get(), &account::qt::CloudDocument::stateChanged, this, &EditorWindow::schedulePanelChanged);
+  connect(cloud_.get(), &account::qt::CloudDocument::stateChanged, this, [this] {
+    // The document replaces a kept role with the server's current one, and
+    // the tab keeps that one for the next restore (review F4).
+    if (cloud_) { cloudRole_ = cloud_->role(); }
+    schedulePanelChanged();
+  });
   connect(cloud_.get(), &account::qt::CloudDocument::opened, this, [this](const QString &revision, const QString &draft) {
     auto workflow = QJsonDocument::fromJson(revision.toUtf8()).object();
     // A draft this account left on this computer opens over the revision.

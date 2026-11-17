@@ -1084,6 +1084,59 @@ private slots:
     QCOMPARE(server.count("workflows.autosave", "POST"), 0);
   }
 
+  // A reopened tab passes the role it kept. The server's current role
+  // replaces it, so a role taken away since then is never used (review F4).
+  void reopenUsesTheCurrentRole() {
+    Computer computer;
+    computer.server.addCode("code-r", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-r");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+    ProcedureServer server;
+    server.answer("/api/sync/capabilities", {200, kCapabilities});
+    server.answer("workflows.get", {200, R"({"result":{"data":{"id":"w1","name":"Theirs",)"
+                                         R"("updated_at":"2026-11-16T00:00:00Z","graph":{"nodes":[],"edges":[]}}}})"});
+    const auto openAs = [&](const std::string& keptRole) {
+      CloudDocumentServices services;
+      services.session = account->session();
+      services.store = std::make_unique<MemoryDrafts>();
+      services.kind = "workflow";
+      services.documentId = "w1";
+      services.role = keptRole;
+      services.transport = std::make_unique<SharedTransport>(server);
+      return std::make_unique<CloudDocument>(std::move(services));
+    };
+
+    // Lowered from editor to viewer: the tab opens read-only.
+    server.answer("workflows.sharing.access", {200, R"({"result":{"data":{"access":{"role":"viewer"}}}})"});
+    auto lowered = openAs("editor");
+    QSignalSpy opened(lowered.get(), &CloudDocument::opened);
+    lowered->open();
+    QTRY_COMPARE(opened.count(), 1);
+    QCOMPARE(lowered->role(), QString("viewer"));
+    QVERIFY(lowered->readOnly());
+    lowered->edit(R"({"nodes":[{"id":"n1"}],"edges":[]})");
+    QCOMPARE(server.count("workflows.autosave", "POST"), 0);
+
+    // Access removed: the tab does not open.
+    server.answer("workflows.sharing.access", {200, R"({"result":{"data":{"access":null}}})"});
+    auto removed = openAs("owner");
+    QSignalSpy failed(removed.get(), &CloudDocument::openFailed);
+    removed->open();
+    QTRY_COMPARE(failed.count(), 1);
+    QCOMPARE(removed->syncStatus(), CloudDocument::SyncStatus::NotOpened);
+    QCOMPARE(server.count("workflows.get"), 1);
+
+    // The server cannot answer the access read: the kept role is the hint.
+    server.answer("workflows.sharing.access", {503, "{}"});
+    auto offline = openAs("viewer");
+    QSignalSpy offlineOpened(offline.get(), &CloudDocument::opened);
+    offline->open();
+    QTRY_COMPARE(offlineOpened.count(), 1);
+    QCOMPARE(offline->role(), QString("viewer"));
+    QVERIFY(offline->readOnly());
+  }
+
   // A viewer's document opens read-only and sends nothing. A draft left in
   // the local store opens over the revision.
   void viewerAndResumedDocuments() {

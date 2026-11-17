@@ -86,6 +86,28 @@ bool knownKind(const std::string& kind) {
 
 } // namespace
 
+CurrentAccess readCurrentAccess(CloudClient& client, const std::string& kind, const std::string& id) {
+  CurrentAccess out;
+  if (!knownKind(kind)) {
+    out.status = CloudListStatus::Refused;
+    out.reason = "UNKNOWN_KIND";
+    return out;
+  }
+  const Query q = query(client, procedure(kind, "access"), target(kind, id));
+  out.status = q.status;
+  out.reason = q.reason;
+  if (q.status != CloudListStatus::Ok) {
+    return out;
+  }
+  if (!q.data.is_object() || !q.data.contains("access")) {
+    out.status = CloudListStatus::Refused;
+    out.reason = "INVALID_RESPONSE";
+    return out;
+  }
+  out.role = text(q.data["access"], "role");
+  return out;
+}
+
 SharingState readSharing(CloudClient& client, const std::string& kind, const std::string& id) {
   SharingState out;
   if (!knownKind(kind)) {
