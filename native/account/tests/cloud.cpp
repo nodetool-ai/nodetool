@@ -1517,6 +1517,31 @@ void listingSortsFailures(TestContext& t) {
   CHECK(signedOut.transport.sent().size() == before);
 }
 
+// Review F4: a reopened document asks the server for the account's role.
+void readsTheCurrentAccessOfEachKind(TestContext& t) {
+  ListServer server;
+  server.answers["workflows.sharing.access"] = {200, R"({"result":{"data":{"json":{"access":{"role":"viewer"}}}}})"};
+  server.answers["documentSharing.access"] = {200, R"({"result":{"data":{"json":{"access":null}}}})"};
+  const CurrentAccess workflow = readCurrentAccess(server.client, "workflow", "w1");
+  CHECK(workflow.status == CloudListStatus::Ok);
+  CHECK(workflow.role == "viewer");
+  // No access: the grant was removed or the document is gone.
+  const CurrentAccess timeline = readCurrentAccess(server.client, "timeline", "t1");
+  CHECK(timeline.status == CloudListStatus::Ok);
+  CHECK(timeline.role.empty());
+  bool sawTimeline = false;
+  for (const HttpRequest& r : server.transport.sent()) {
+    if (r.url.find("/trpc/documentSharing.access?input=") != std::string::npos) {
+      sawTimeline = r.url.find("timeline") != std::string::npos;
+    }
+  }
+  CHECK(sawTimeline);
+  CHECK(readCurrentAccess(server.client, "unknown", "x").status == CloudListStatus::Refused);
+  ListServer offline;
+  offline.answers["workflows.sharing.access"] = {503, "{}"};
+  CHECK(readCurrentAccess(offline.client, "workflow", "w1").status == CloudListStatus::Offline);
+}
+
 // ── Sharing (FR52, FR67, SR6) ───────────────────────────────────────
 void readsTheSharingOfEachKind(TestContext& t) {
   ListServer server;
@@ -1768,6 +1793,7 @@ int main() {
       {"followsTheWorkflowPages", followsTheWorkflowPages},
       {"listsTheDocumentsSharedWithTheAccount", listsTheDocumentsSharedWithTheAccount},
       {"listingSortsFailures", listingSortsFailures},
+      {"readsTheCurrentAccessOfEachKind", readsTheCurrentAccessOfEachKind},
       {"readsTheSharingOfEachKind", readsTheSharingOfEachKind},
       {"changesLinksWithMutations", changesLinksWithMutations},
       {"shareUrlsMatchTheWebRoutes", shareUrlsMatchTheWebRoutes},

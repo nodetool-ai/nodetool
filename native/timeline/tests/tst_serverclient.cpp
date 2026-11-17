@@ -1102,6 +1102,59 @@ private slots:
         QCOMPARE(result.error.code, QString("CANCELLED"));
     }
 
+    // Review F2: a sign-out while a timeline's media is downloading stops the
+    // download, through the whole timeline load, as it stops the client's
+    // own requests.
+    void signOutStopsAHeldMediaDownload() {
+        TestHttpServer http;
+        ServedFile slow{QByteArray(512 * 1024, 'w')};
+        slow.chunkDelayMs = 100;  // 32 chunks: about three seconds
+        const QByteArray mediaPath = QStringLiteral("/api/storage/1/%1.wav").arg(kAudio).toLatin1();
+        http.setFile(mediaPath, slow);
+        const QJsonObject doc{{QStringLiteral("id"), QStringLiteral("seq1")},
+                              {QStringLiteral("projectId"), QStringLiteral("p")},
+                              {QStringLiteral("name"), QStringLiteral("Seq")},
+                              {QStringLiteral("fps"), 30},
+                              {QStringLiteral("width"), 64},
+                              {QStringLiteral("height"), 64},
+                              {QStringLiteral("durationMs"), 1000},
+                              {QStringLiteral("tracks"), QJsonArray{QJsonObject{{QStringLiteral("id"), QStringLiteral("t1")},
+                                                                                {QStringLiteral("name"), QStringLiteral("A")},
+                                                                                {QStringLiteral("type"), QStringLiteral("audio")},
+                                                                                {QStringLiteral("index"), 0},
+                                                                                {QStringLiteral("visible"), true},
+                                                                                {QStringLiteral("locked"), false}}}},
+                              {QStringLiteral("clips"), QJsonArray{clipJson(QStringLiteral("music"), QStringLiteral("audio"), 0, kAudio)}},
+                              {QStringLiteral("markers"), QJsonArray{}},
+                              {QStringLiteral("updatedAt"), QStringLiteral("y")}};
+        http.setJson([&](const QByteArray& path, const QUrl&) -> QByteArray {
+            if (path == "/trpc/timeline.get") return envelope(doc);
+            if (path == "/trpc/assets.get") return envelope(assetJson(kAudio, QStringLiteral("audio/wav"), slow.data.size(), {}, {}));
+            return trpcError(QStringLiteral("NOT_FOUND"), QStringLiteral("NOT_FOUND"), 404);
+        });
+
+        QTemporaryDir dir(QCoreApplication::applicationDirPath() + QStringLiteral("/test-cache-XXXXXX"));
+        std::atomic<bool> signedOut = false;
+        ServerOpenOptions options;
+        options.server = http.base();
+        options.timelineId = QStringLiteral("seq1");
+        options.cacheRoot = dir.path();
+        options.probeMedia = false;
+        options.authorizer = [&] {
+            return RequestAuthorization{signedOut ? QString() : QStringLiteral("fresh"), [&] { return signedOut.load(); }};
+        };
+        ServerOpenResult result;
+        // Owns the loading thread; joined below before `result` is read.
+        auto worker = std::unique_ptr<QThread>(QThread::create([&] { result = openServerTimeline(options); }));
+        worker->start();
+        QTRY_VERIFY(http.countRequests("GET", mediaPath) >= 1);
+        signedOut = true;
+        const bool bounded = worker->wait(1500);
+        if (!bounded) { worker->wait(10000); }
+        QVERIFY2(bounded, "the media download held on after the sign-out");
+        QVERIFY(QJsonDocument(result.report).toJson().contains("cancelled"));
+    }
+
     void redirectLoopsFail() {
         TestHttpServer server;
         ServedFile loop;
