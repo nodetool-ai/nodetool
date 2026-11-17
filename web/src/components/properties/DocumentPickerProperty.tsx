@@ -8,6 +8,9 @@ import type { PropertyProps } from "../node/PropertyInput.types";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { NodeSelect, NodeMenuItem } from "../editor_ui";
 import { FlexRow, ToolbarIconButton } from "../ui_primitives";
+import DocumentConstantProperty, {
+  isDocumentConstantNode
+} from "./DocumentConstantProperty";
 
 interface DocumentSummary {
   id: string;
@@ -53,9 +56,24 @@ interface DocumentPickerPropertyProps extends PropertyProps {
 
 /**
  * Pick a persisted document of one kind and jump straight into its editor.
- * Shared by the `timeline`, `script` and `sketch` property editors.
+ * Shared by the `timeline`, `script` and `sketch` property editors. A document
+ * constant node shows its linked document instead and changes only by a drop.
  */
-const DocumentPickerProperty = ({
+const DocumentPickerProperty = (props: DocumentPickerPropertyProps) => {
+  if (isDocumentConstantNode(props.nodeType)) {
+    return (
+      <DocumentConstantProperty
+        {...props}
+        showPreview={
+          props.documentType !== "sketch" && props.documentType !== "timeline"
+        }
+      />
+    );
+  }
+  return <DocumentPicker {...props} />;
+};
+
+const DocumentPicker = ({
   documentType,
   useDocuments,
   untitledLabel,

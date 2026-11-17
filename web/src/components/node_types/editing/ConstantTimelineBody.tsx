@@ -1,17 +1,22 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useMemo } from "react";
-import { useTranslation } from "react-i18next";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import ViewTimelineIcon from "@mui/icons-material/ViewTimeline";
-import { CheckerDropzone, FlexColumn, GAP, PADDING } from "../../ui_primitives";
+import { FlexColumn, GAP, PADDING } from "../../ui_primitives";
 import { NodeInputs } from "../../node/NodeInputs";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import OutputRenderer from "../../node/OutputRenderer";
 import NodeProgress from "../../node/NodeProgress";
 
 export { CONSTANT_TIMELINE_NODE_TYPE } from "./bespokeNodeTypes";
+
+/** True once a timeline is linked. The value field draws the empty hint. */
+const hasTimeline = (value: unknown): boolean =>
+  typeof value === "object" &&
+  value !== null &&
+  typeof (value as { id?: unknown }).id === "string" &&
+  (value as { id: string }).id !== "";
 
 const bodyStyles = css({
   "&.constant-timeline-body": {
@@ -52,7 +57,6 @@ const ConstantTimelineBody: React.FC<ConstantTimelineBodyProps> = ({
   status,
   isOutputNode
 }) => {
-  const { t } = useTranslation();
   const value = data.properties?.value;
   const valueProperty = useMemo(
     () => nodeMetadata.properties?.find((property) => property.name === "value"),
@@ -74,9 +78,7 @@ const ConstantTimelineBody: React.FC<ConstantTimelineBodyProps> = ({
       gap={GAP.tight}
     >
       <FlexColumn className="constant-timeline-body__preview" fullWidth>
-        {value === undefined || value === null ? (
-          <CheckerDropzone message={t("i18n-next80.constantTimeline.chooseTimeline")} icon={<ViewTimelineIcon />} />
-        ) : (
+        {hasTimeline(value) && (
           <OutputRenderer value={value} showTextActions={false} />
         )}
       </FlexColumn>
