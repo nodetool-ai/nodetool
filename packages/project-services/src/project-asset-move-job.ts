@@ -32,7 +32,10 @@ import {
   moveLegacyAssetIntoFolder,
   type LegacyAssetMoveOptions
 } from "@nodetool-ai/asset-services/legacy-asset-move";
-import { withProjectFolderLock } from "@nodetool-ai/asset-services/project-asset";
+import {
+  DirectoryNames,
+  withProjectFolderLock
+} from "@nodetool-ai/asset-services/project-asset";
 import {
   ProjectFolderUnavailableError,
   requireProjectFolder
@@ -371,6 +374,7 @@ export class ProjectAssetMoveJob {
     if (rows.length > 0) this.progressByProject.set(key, progress);
 
     const storage = (this.options.storage ?? getAssetAdapter)();
+    const names = new DirectoryNames();
     for (const row of rows) {
       // Let requests and timers that queued up run before the next asset.
       await nextTurn();
@@ -387,6 +391,7 @@ export class ProjectAssetMoveJob {
           workspace,
           projectId,
           resolver,
+          names,
           afterStep: this.options.afterStep
         });
         if (outcome.status === "moved") {
@@ -469,14 +474,16 @@ async function removeEmptyFolderRows(
   folders: readonly Asset[]
 ): Promise<string[]> {
   // Paths are read before any row goes: a nested path reads its parents.
+  // Deepest first, so a child goes before its parent within one round.
   const remaining = new Map(
     folders
       .filter((row) => row.project_id === projectId)
-      .map((row) => [row, legacyFolderDirectory(resolver.pathOfFolder(row))])
+      .map((row) => [row, legacyFolderDirectory(resolver.pathOfFolder(row))] as const)
+      .sort(([, a], [, b]) => depthOf(b) - depthOf(a))
   );
   const removed: string[] = [];
-  // Each round removes the folders that are empty now, which empties the
-  // folders above them for the next round.
+  // Each round removes the folders that are empty now. A folder whose child
+  // went later in the same round is taken by the next one.
   for (let removedSome = true; removedSome; ) {
     removedSome = false;
     for (const [row, path] of [...remaining]) {
@@ -502,6 +509,10 @@ async function removeEmptyFolderRows(
     }
   }
   return removed;
+}
+
+function depthOf(path: string): number {
+  return path === "" ? 0 : path.split("/").length;
 }
 
 /** The process-wide move job. */

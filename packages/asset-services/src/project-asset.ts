@@ -360,6 +360,9 @@ async function claimSourceOf(
  * The workspace refuses a directory that is the folder of another project
  * inside this one, or lies in it, with a `WorkspaceReservedPathError`. A
  * file written there would be that project's file with a row in this one.
+ *
+ * `names` replaces the listing with one kept across calls, for a caller that
+ * claims many files in one directory (see {@link DirectoryNames}).
  */
 export async function claimFile(
   workspace: Workspace,
@@ -370,14 +373,15 @@ export async function claimFile(
   bytes: Uint8Array | ClaimFromFile,
   contentType: string,
   beforeWrite?: (path: string) => Promise<void>,
-  stagingName?: string
+  stagingName?: string,
+  names?: DirectoryNames
 ): Promise<string> {
   if (!(bytes instanceof Uint8Array) && stagingName !== undefined) {
     throw new Error("A file taken from a path cannot be staged under a name");
   }
-  const taken = new Set(
-    (await workspace.list(directory)).map((entry) => entry.name.toLowerCase())
-  );
+  const taken = names
+    ? await names.of(workspace, directory)
+    : await listedNames(workspace, directory);
   const suffix = extension ? `.${extension}` : "";
   for (let n = 1; n <= MAX_FILE_SUFFIX; n++) {
     const fileName = `${n === 1 ? stem : `${stem}-${n}`}${suffix}`;
@@ -388,6 +392,9 @@ export async function claimFile(
       owner.projectId,
       path
     );
+    // A name found in use stays out of a kept listing, which is what makes
+    // the next claim in the directory start past it.
+    taken.add(fileName.toLowerCase());
     if (rows.length > 0) continue;
     await beforeWrite?.(path);
     if (!(bytes instanceof Uint8Array)) {
@@ -407,6 +414,42 @@ export async function claimFile(
   throw new Error(
     `No free file name for "${stem}${suffix}" in ${directory || "the project folder"}`
   );
+}
+
+async function listedNames(
+  workspace: Workspace,
+  directory: string
+): Promise<Set<string>> {
+  return new Set(
+    (await workspace.list(directory)).map((entry) => entry.name.toLowerCase())
+  );
+}
+
+/**
+ * The names in use in the directories of one workspace, each listed once and
+ * then kept current by {@link claimFile}. Listing a directory reads every
+ * entry in it, so a caller that claims a file for each of many assets in one
+ * directory would otherwise read the directory once per asset.
+ *
+ * A file another writer creates after the listing is not in it. The exclusive
+ * create still refuses its exact name, and the asset rows are still asked for
+ * every candidate. Only a name that differs from it in case alone can be
+ * claimed beside it, on a folder that tells case apart. Keep one for a single
+ * pass over a project, not longer.
+ */
+export class DirectoryNames {
+  private readonly byDirectory = new Map<string, Promise<Set<string>>>();
+
+  of(workspace: Workspace, directory: string): Promise<Set<string>> {
+    let names = this.byDirectory.get(directory);
+    if (!names) {
+      names = listedNames(workspace, directory);
+      // A listing that failed is tried again by the next claim.
+      names.catch(() => this.byDirectory.delete(directory));
+      this.byDirectory.set(directory, names);
+    }
+    return names;
+  }
 }
 
 /** The bytes of a file an asset row names. Throws when the file is gone. */

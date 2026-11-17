@@ -5,7 +5,7 @@
  */
 
 import { isDeepStrictEqual } from "node:util";
-import { eq, and, or, like, desc, isNull, isNotNull, lt, ne, inArray, sql } from "drizzle-orm";
+import { eq, and, or, like, desc, isNull, isNotNull, lt, ne, inArray, sql, count } from "drizzle-orm";
 import {
   PROJECT_DIRECTORY_ID_PREFIX,
   WORKSPACE_MOVE_TARGET_KEY,
@@ -591,14 +591,27 @@ export class Asset extends DBModel {
    * {@link listAwaitingFolderMove} returns, summed over every project.
    */
   static async countAwaitingFolderMove(userId: string): Promise<number> {
-    const rows = await getPortableDb()
+    const db = getPortableDb();
+    const owner = and(eq(assets.user_id, userId), awaitingFolderMove());
+    // A row with no file always counts. Clients poll this during the
+    // migration, so those rows are counted, not read.
+    const [withoutFile] = await db
+      .select({ n: count() })
+      .from(assets)
+      .where(and(owner, isNull(assets.workspace_path)));
+    // A row with a file counts only while its move is not finished. The
+    // metadata match is textual, so those few rows are checked after the read.
+    const withFile = await db
       .select()
       .from(assets)
-      .where(and(eq(assets.user_id, userId), awaitingFolderMove()));
-    return rows
-      .map((row) => new Asset(row))
-      .filter((asset) => !asset.workspace_path || moveTargetOf(asset) !== null)
-      .length;
+      .where(and(owner, isNotNull(assets.workspace_path)));
+    return (
+      Number(withoutFile?.n ?? 0) +
+      withFile
+        .map((row) => new Asset(row))
+        .filter((asset) => !asset.workspace_path || moveTargetOf(asset) !== null)
+        .length
+    );
   }
 
   /**

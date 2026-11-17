@@ -41,8 +41,10 @@ import {
   lookupProjectAssetFile
 } from "../src/external-asset-lookup.js";
 import {
+  DirectoryNames,
   GENERATED_DIRECTORY,
   IMPORTED_DIRECTORY,
+  claimFile,
   deleteProjectAssetFile,
   moveProjectAssetFile,
   projectAssetFileStem,
@@ -921,6 +923,41 @@ describe("local folder files on disk", () => {
     expect(
       await retrieveAssetBytes(assetStore, USER, asset.id, asset.content_type)
     ).toEqual(new Uint8Array([5, 5]));
+  });
+});
+
+describe("claimFile with kept directory names", () => {
+  it("lists a directory once and still skips every name in use", async () => {
+    const workspace = createLocalWorkspace(join(root, PROJECT));
+    await workspace.write("Shots/FOX.png", PNG, "image/png");
+    // A row that records a name whose file is gone keeps that name taken.
+    await Asset.create<Asset>({
+      user_id: USER,
+      project_id: PROJECT,
+      name: "gone",
+      content_type: "image/png",
+      workspace_path: "Shots/fox-2.png"
+    });
+    const list = vi.spyOn(workspace, "list");
+    const names = new DirectoryNames();
+    const owner = { userId: USER, projectId: PROJECT };
+
+    const claimed: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      claimed.push(
+        await claimFile(workspace, owner, "Shots", "fox", "png", PNG, "image/png",
+          undefined, undefined, names)
+      );
+    }
+
+    expect(claimed).toEqual(["Shots/fox-3.png", "Shots/fox-4.png", "Shots/fox-5.png"]);
+    expect(list).toHaveBeenCalledTimes(1);
+    expect((await readdir(join(root, PROJECT, "Shots"))).sort()).toEqual([
+      "FOX.png",
+      "fox-3.png",
+      "fox-4.png",
+      "fox-5.png"
+    ]);
   });
 });
 

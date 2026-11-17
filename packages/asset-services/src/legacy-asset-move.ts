@@ -94,7 +94,8 @@ import {
   assetFileExtension,
   claimFile,
   projectAssetFileStem,
-  withProjectFolderLock
+  withProjectFolderLock,
+  type DirectoryNames
 } from "./project-asset.js";
 
 const log = createLogger("nodetool.asset-services.legacy-asset-move");
@@ -132,6 +133,11 @@ export interface LegacyAssetMoveOptions {
   projectId: string;
   /** Derives the directory of an asset from its `parent_id` chain. */
   resolver: ProjectDirectoryResolver;
+  /**
+   * The names in use in the folder's directories, kept across the moves of
+   * one pass so a directory is listed once, not once per asset.
+   */
+  names?: DirectoryNames;
   /**
    * Called after each step with the step's name. A test throws from it to
    * stop the move where a killed process would have stopped. No cleanup runs
@@ -518,7 +524,8 @@ class LegacyAssetMove {
       source.bytes,
       asset.content_type,
       (candidate) => this.record(asset, candidate, source),
-      legacyAssetStagingName(asset.id)
+      legacyAssetStagingName(asset.id),
+      this.options.names
     );
     return { path, written: true };
   }
