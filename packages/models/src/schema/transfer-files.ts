@@ -62,3 +62,27 @@ export const recoveryCopies = sqliteTable(
     index("idx_recovery_copies_purge").on(table.purge_at)
   ]
 );
+
+/**
+ * Conversations a transfer added to a cloud project, by the id they had on
+ * the sending device (technical design, "Operations of a transfer", Add
+ * conversation). A conversation is never merged: once a source id has a row,
+ * a later transfer of it changes nothing.
+ */
+export const transferredConversations = sqliteTable(
+  "transferred_conversations",
+  {
+    id: text("id").primaryKey(),
+    project_id: text("project_id").notNull(),
+    /** The sender, who owns the conversation. */
+    user_id: text("user_id").notNull(),
+    source_thread_id: text("source_thread_id").notNull(),
+    /** The cloud thread: the source id when it was free, else a new one. */
+    thread_id: text("thread_id").notNull(),
+    transfer_id: text("transfer_id").notNull(),
+    created_at: text("created_at").notNull()
+  },
+  (table) => [
+    index("idx_transferred_conversations_source").on(table.project_id, table.user_id, table.source_thread_id)
+  ]
+);

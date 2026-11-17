@@ -711,7 +711,8 @@ export class Project extends DBModel {
         // The blob cleanup deletes the objects no row names any more.
         "project_blobs",
         "transfer_placements",
-        "recovery_copies"
+        "recovery_copies",
+        "transferred_conversations"
       ]) {
         await executeRaw(
           `DELETE FROM ${table} WHERE user_id = '${owner}' AND project_id = '${project}' RETURNING id`

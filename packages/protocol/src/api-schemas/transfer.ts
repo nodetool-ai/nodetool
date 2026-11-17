@@ -150,7 +150,12 @@ export const transferManifest = z.object({
   required_files: z.array(transferRequiredFile).max(100_000),
   file_operations: z.array(transferFileOperation).max(100_000).optional(),
   /** The sending device's name, for the name of a file kept beside another. */
-  device_name: z.string().min(1).max(255).optional()
+  device_name: z.string().min(1).max(255).optional(),
+  /** Conversations to add, which the person turned on in the review. Off by default. */
+  conversations: z
+    .array(z.object({ thread_id: z.string().min(1).max(128), captured_hash: sha256 }))
+    .max(10_000)
+    .optional()
 });
 export type TransferManifest = z.infer<typeof transferManifest>;
 
@@ -193,6 +198,34 @@ export const transferVersionPayload = z.object({
 });
 export type TransferVersionPayload = z.infer<typeof transferVersionPayload>;
 
+/** One message of a transferred conversation. Its id is kept when it is free. */
+export const transferConversationMessage = z.object({
+  id: z.string().min(1).max(128),
+  role: z.string().min(1).max(64),
+  name: z.string().nullable().optional(),
+  content: z.unknown().optional(),
+  tool_calls: z.array(z.unknown()).nullable().optional(),
+  tool_call_id: z.string().nullable().optional(),
+  input_files: z.array(z.unknown()).nullable().optional(),
+  output_files: z.array(z.unknown()).nullable().optional(),
+  provider: z.string().nullable().optional(),
+  model: z.string().nullable().optional(),
+  created_at: z.string().min(1).max(64)
+});
+export type TransferConversationMessage = z.infer<typeof transferConversationMessage>;
+
+/**
+ * A conversation as the sending device holds it. Its captured hash is the
+ * identity hash of `{ title, kind, messages }`.
+ */
+export const transferConversationPayload = z.object({
+  thread_id: z.string().min(1).max(128),
+  title: z.string().max(1024),
+  kind: z.string().min(1).max(64),
+  messages: z.array(transferConversationMessage).max(100_000)
+});
+export type TransferConversationPayload = z.infer<typeof transferConversationPayload>;
+
 // ── transfer.open ────────────────────────────────────────────────
 export const openTransferInput = z.object({
   transfer_id: fullId,
@@ -217,7 +250,8 @@ export const commitTransferInput = z.object({
   decisions: z.array(transferDecision).max(10_000),
   missing_files: z.array(transferMissingFile).max(100_000),
   payloads: z.array(transferPayload).max(10_000),
-  versions: z.array(transferVersionPayload).max(10_000).optional()
+  versions: z.array(transferVersionPayload).max(10_000).optional(),
+  conversations: z.array(transferConversationPayload).max(10_000).optional()
 });
 export type CommitTransferInput = z.infer<typeof commitTransferInput>;
 
@@ -256,6 +290,7 @@ export const transferFailure = z.object({
   version_id: z.string().optional(),
   project_id: z.string().optional(),
   path: z.string().optional(),
+  thread_id: z.string().optional(),
   /** For BASE_CHANGED: the stored hash a Keep local decision must name. */
   stored_hash: z.string().optional(),
   message: z.string()
@@ -282,7 +317,9 @@ export const transferAttemptResult = z.discriminatedUnion("outcome", [
           kept_asset_id: z.string().optional()
         })
       )
-      .optional()
+      .optional(),
+    /** The cloud thread of each conversation the manifest named. */
+    conversations: z.array(z.object({ source_thread_id: z.string(), thread_id: z.string() })).optional()
   }),
   z.object({ outcome: z.literal("refused"), failures: z.array(transferFailure) })
 ]);

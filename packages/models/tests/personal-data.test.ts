@@ -558,6 +558,7 @@ describe("exportPersonalData", () => {
       "access_epochs",
       "cloud_transfer_attempts",
       "cloud_transfers",
+      "document_activity",
       "mcp_oauth_clients",
       "mcp_oauth_tokens",
       "nodetool_analytics_daily",
@@ -576,6 +577,7 @@ describe("exportPersonalData", () => {
       "resource_change_outbox",
       "run_inbox_messages",
       "transfer_placements",
+      "transferred_conversations",
       "worker_instances",
       "worker_profiles"
     ]);

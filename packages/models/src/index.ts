@@ -867,5 +867,13 @@ export {
   type NewRecoveryCopy,
   type NewTransferPlacement,
   type RecoveryCopyRow,
-  type TransferPlacementRow
+  type TransferPlacementRow,
+  findTransferredConversation,
+  recordTransferredConversation
 } from "./transfer-files.js";
+export {
+  appendDocumentActivity,
+  listDocumentActivity,
+  type DocumentActivityEntry,
+  type DocumentActivityType
+} from "./document-activity.js";

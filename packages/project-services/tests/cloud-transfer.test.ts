@@ -10,6 +10,9 @@ import {
   deletedDocumentExists,
   initTestDb,
   listCloudTransferAttempts,
+  listDocumentActivity,
+  Message,
+  Thread,
   setDocumentRetentionDays,
   Project,
   readableProjectBlob,
@@ -35,6 +38,7 @@ import {
   type TransferRole
 } from "../src/cloud-transfer.js";
 import { identityHash, transferPayloadOf, transferVersionPayloadOf } from "../src/transfer-documents.js";
+import { conversationHash } from "../src/transfer-conversations.js";
 import { initPgliteDb } from "./_helpers/pglite-db.js";
 
 const OWNER = "user-owner";
@@ -676,6 +680,81 @@ describe("cloud transfers on PostgreSQL", { timeout: 30_000 }, () => {
     // The same move again changes nothing.
     expect((await commitMove(targetId)).outcome).toBe("committed");
     expect((await Workflow.get<Workflow>(workflowId))?.project_id).toBe(targetId);
+    // V8: the move is in the activity record once.
+    expect(await listDocumentActivity("workflow", workflowId)).toMatchObject([
+      { seq: 1, type: "move", user_id: OWNER, payload: { from: projectId, to: targetId } }
+    ]);
+  });
+
+  it("records both names of each rename, and nothing for the same name again (V6)", async () => {
+    const { projectId, workflowId } = await publishedProject(host);
+    const rename = async (baseName: string, name: string) => {
+      const transferId = id();
+      const manifest = manifestFor([{ op: "rename_document", kind: "workflow", document_id: workflowId, base_name: baseName, name }]);
+      await openTransfer(host, OWNER, { transfer_id: transferId, project_id: projectId, first_publication: false, manifest });
+      return commitTransfer(host, OWNER, commitInput(transferId, manifest, []));
+    };
+    expect((await rename("First", "Second")).outcome).toBe("committed");
+    expect((await rename("Second", "Third")).outcome).toBe("committed");
+    expect((await rename("Third", "Third")).outcome).toBe("committed");
+    expect((await Workflow.get<Workflow>(workflowId))?.name).toBe("Third");
+    expect(await listDocumentActivity("workflow", workflowId)).toMatchObject([
+      { seq: 1, type: "rename", payload: { from: "First", to: "Second" } },
+      { seq: 2, type: "rename", payload: { from: "Second", to: "Third" } }
+    ]);
+  });
+
+  it("adds a conversation under its id, copies one whose id is taken, and never adds one twice", async () => {
+    const { projectId } = await publishedProject(host);
+    const conversation = (threadId: string, text: string) => ({
+      thread_id: threadId,
+      title: "Ideas",
+      kind: "chat",
+      messages: [
+        { id: id(), role: "user", content: text, created_at: "2026-11-17T10:00:00.000Z" },
+        { id: id(), role: "assistant", content: `Re: ${text}`, created_at: "2026-11-17T10:00:01.000Z" }
+      ]
+    });
+    const send = async (payloads: ReturnType<typeof conversation>[], hashes = payloads.map((p) => conversationHash(p))) => {
+      const transferId = id();
+      const manifest: TransferManifest = {
+        ...manifestFor([]),
+        conversations: payloads.map((p, index) => ({ thread_id: p.thread_id, captured_hash: hashes[index] ?? "" }))
+      };
+      await openTransfer(host, OWNER, { transfer_id: transferId, project_id: projectId, first_publication: false, manifest });
+      return commitTransfer(host, OWNER, commitInput(transferId, manifest, [], { conversations: payloads }));
+    };
+
+    const free = conversation(id(), "free");
+    const takenId = id();
+    const otherProject = id();
+    await Project.create<Project>({ id: otherProject, user_id: "user-other", name: "Theirs", kind: "project" });
+    await Thread.create<Thread>({ id: takenId, user_id: "user-other", project_id: otherProject, title: "Not yours" });
+    const taken = conversation(takenId, "taken");
+
+    expect(await send([free], ["0".repeat(64)])).toMatchObject({
+      outcome: "refused",
+      failures: [{ code: "PAYLOAD_HASH_MISMATCH", thread_id: free.thread_id }]
+    });
+
+    const result = await send([free, taken]);
+    if (result.outcome !== "committed") throw new Error("expected a commit");
+    const copiedId = result.conversations?.[1]?.thread_id ?? "";
+    expect(result.conversations).toEqual([
+      { source_thread_id: free.thread_id, thread_id: free.thread_id },
+      { source_thread_id: takenId, thread_id: copiedId }
+    ]);
+    expect(copiedId).not.toBe(takenId);
+    expect(await Thread.get<Thread>(free.thread_id)).toMatchObject({ user_id: OWNER, project_id: projectId, title: "Ideas" });
+    expect((await Thread.get<Thread>(takenId))?.title).toBe("Not yours");
+    const [copiedMessages] = await Message.paginate(copiedId, { limit: 10 });
+    expect(copiedMessages.map((message) => message.content)).toEqual(["taken", "Re: taken"]);
+
+    // A later transfer of the same conversation changes nothing.
+    const again = await send([conversation(free.thread_id, "more")]);
+    expect(again).toMatchObject({ outcome: "committed", conversations: [{ thread_id: free.thread_id }] });
+    const [freeMessages] = await Message.paginate(free.thread_id, { limit: 10 });
+    expect(freeMessages.map((message) => message.content)).toEqual(["free", "Re: free"]);
   });
 
   it("refuses a first publication into an existing project id", async () => {

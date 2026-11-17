@@ -753,6 +753,24 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "Which file a transfer replaced, with the hash of the replaced bytes, kept for 30 days. The bytes are in the blob store under that hash and go with the account's blob rows. Deleted with the account."
   },
   {
+    table: "transferred_conversations",
+    schemaExport: "transferredConversations",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "Which cloud conversation a transfer made from a conversation on the sending device: two thread ids. The conversation itself is exported with the threads. Deleted with the account."
+  },
+  {
+    table: "document_activity",
+    schemaExport: "documentActivity",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "The person's accepted renames and moves of documents, with the names and project ids before and after. The documents carry their current names. Deleted with the account."
+  },
+  {
     table: "project_blobs",
     schemaExport: "projectBlobs",
     disposition: "delete",
