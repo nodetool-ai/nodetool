@@ -1698,6 +1698,7 @@ void EditorWindow::showBrowser(bool visible) {
 void EditorWindow::openLinkedDocument(const QString &kind, const QString &id) {
   if (id.isEmpty()) { return; }
   if (kind == QStringLiteral("workflow")) { openWorkflow(id); return; }
+  if (kind == QStringLiteral("storyboard")) { openStoryDocument(QStringLiteral("storyboards"), id); return; }
   if (!documentPicker_.open(kind, id)) { notify(QStringLiteral("warning"), tr("This %1 has no editor here. Open it in the web workspace.").arg(kind)); }
 }
 void EditorWindow::openWorkflow(const QString &id) {
@@ -1814,6 +1815,10 @@ bool EditorWindow::inspectorVisible() const {
   if (!tabOwner_) { return activeEditor_->inspectorVisible(); } return inspectorDock_ && !inspectorDock_->isHidden(); }
 QString EditorWindow::workflowName() const {
   if (!tabOwner_) { return activeEditor_->workflowName(); }
+  if (storySource_) {
+    const auto name = storySource_->name();
+    return !name.isEmpty() ? name : storySource_->kind() == "scripts" ? tr("Script") : tr("Storyboard");
+  }
   const auto snapshot = document_.snapshot();
   if (!snapshot.contains("name") && projectWorkflowFile() && !file_.isEmpty()) {
     auto name = QFileInfo(file_).fileName();

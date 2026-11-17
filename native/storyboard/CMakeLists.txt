@@ -19,6 +19,7 @@ qt_add_qml_module(nodetool_storyboard
     OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/NodeTool/Storyboard
     QML_FILES
         qml/StoryboardBoard.qml
+        qml/StoryboardDocumentEditor.qml
         qml/ShotCard.qml
         qml/ShotMediaViewer.qml
         qml/ShotEditor.qml

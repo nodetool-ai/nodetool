@@ -53,6 +53,8 @@ public:
   // The row projects.documentByFile answers, and the inputs it was asked with.
   QJsonValue documentByFile = QJsonValue::Null;
   QList<QJsonObject> documentInputs;
+  // The ids storyboards.get and scripts.get were asked for.
+  QStringList documentGets;
   QHash<QString, QByteArray> contents;
   QWebSocketServer websocket{"drop socket", QWebSocketServer::NonSecureMode};
   QList<QJsonObject> uploadMetadata;
@@ -103,6 +105,13 @@ public:
           else if (target.startsWith("/trpc/projects.documentByFile")) {
             documentInputs.append(QJsonDocument::fromJson(QUrlQuery(url).queryItemValue("input").toUtf8()).object());
             response = {{"result", QJsonObject{{"data", documentByFile}}}};
+          }
+          else if (target.startsWith("/trpc/storyboards.get") || target.startsWith("/trpc/scripts.get")) {
+            const auto input = QJsonDocument::fromJson(QUrlQuery(url).queryItemValue("input").toUtf8()).object();
+            const bool board = target.startsWith("/trpc/storyboards.get");
+            documentGets.append(input["id"].toString());
+            response = {{"result", QJsonObject{{"data", QJsonObject{{"id", input["id"]}, {"name", board ? "Launch" : "Pilot"}, {"updatedAt", "r1"},
+              {"document", board ? QJsonObject{{"shots", QJsonArray{}}} : QJsonObject{{"sections", QJsonArray{}}}}}}}}};
           }
           else if (target.startsWith("/api/content/")) { const auto content = contents.value(url.path().section('/', -1), png); if (delayContent) pendingText.append({socket, content}); else send(socket, content); return; }
           send(socket, QJsonDocument(response).toJson(QJsonDocument::Compact), status);
@@ -315,6 +324,27 @@ private slots:
     QTRY_COMPARE(window.workflowTabs().size(), tabs + 1);
     // The workflow that holds the constant stays open in its own tab.
     QCOMPARE(window.workflowTabs().size(), 2);
+  }
+  void editOpensALinkedStoryboardInADocumentTab() {
+    Server server; EditorWindow window; setup(window, server); QVERIFY(controller(window));
+    server.documentByFile = storyboard("board-7", "Launch");
+    QVERIFY(dropProjectFile(window, "launch.storyboard.json", QPointF(220, 180))); QTRY_COMPARE(window.document()->nodes().size(), 1);
+    const auto tabs = window.workflowTabs().size();
+    QTRY_VERIFY(!rowPoint(window, NodeRowKind::Action, "openDocument").isNull()); const auto edit = rowPoint(window, NodeRowKind::Action, "openDocument");
+    auto *view = window.findChild<QGraphicsView *>();
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, edit.toPoint());
+    QTRY_COMPARE(window.workflowTabs().size(), tabs + 1);
+    QTRY_COMPARE(server.documentGets, QStringList{"board-7"});
+    const auto tab = window.workflowTabs().last().toMap();
+    QCOMPARE(tab["kind"].toString(), QString("storyboards"));
+    QTRY_COMPARE(window.workflowTabs().last().toMap()["title"].toString(), QString("Launch"));
+    QCOMPARE(window.workflowTabs().last().toMap()["dirty"].toBool(), false);
+    QVERIFY(window.findChild<QQuickWidget *>("story-document-editor"));
+    // A second Edit activates the open tab instead of a new one.
+    window.activateTab(0); QTRY_VERIFY(!rowPoint(window, NodeRowKind::Action, "openDocument").isNull());
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, rowPoint(window, NodeRowKind::Action, "openDocument").toPoint());
+    QTRY_COMPARE(window.activeTab(), tabs);
+    QCOMPARE(window.workflowTabs().size(), tabs + 1);
   }
   void authoritativeAssetKinds_data() {
     QTest::addColumn<QString>("mime"); QTest::addColumn<QString>("kind"); QTest::addColumn<QString>("type"); QTest::addColumn<QByteArray>("content");

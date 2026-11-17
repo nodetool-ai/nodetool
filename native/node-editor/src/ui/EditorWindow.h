@@ -26,6 +26,7 @@
 #include "interfaces/ChatWindow.h"
 #include "interfaces/WorkflowHeader.h"
 #include "server/SetupController.h"
+#include "server/StoryDocumentSource.h"
 #include "nodetool/account/qt/AccountController.h"
 #include "nodetool/account/qt/AccountServers.h"
 #include "nodetool/account/qt/CloudBrowser.h"
@@ -202,6 +203,8 @@ public:
   void openWorkflow(const QString &id);
   // Opens a document constant's document: a workflow in a new tab, other kinds in their editor.
   void openLinkedDocument(const QString &kind, const QString &id);
+  // Opens a storyboard or a script ("storyboards" or "scripts") in a document tab.
+  void openStoryDocument(const QString &kind, const QString &id);
   void deleteWorkflows(const QStringList &ids);
   std::optional<QString> editOpenWorkflow(const QString &id, const QVariantMap &patch);
   void deleteWorkflow(const QString &id, const QString &name);
@@ -318,6 +321,9 @@ public:
     bool hasUnsavedChanges() const {
         if (activeEditor() != this) {
             return activeEditor()->hasUnsavedChanges();
+        }
+        if (storyWorkspace_) {
+            return storyWorkspace_->property("dirty").toBool();
         }
         if (inlineChild_ && childParent_) {
             return childParent_->hasUnsavedChanges() || document_.graph() != syncedChildGraph_;
@@ -451,6 +457,10 @@ private:
   EditorWindow *activeEditor_ = nullptr;
   QStackedWidget *tabStack_ = nullptr;
   QString requestedWorkflow_;
+  // A document tab hosts a storyboard or a script editor in place of the canvas.
+  QPointer<node_editor::StoryDocumentSource> storySource_;
+  QPointer<QObject> storyWorkspace_;
+  QString storyId_;
   QPointer<EditorWindow> childParent_;
   QString childNode_;
     bool inlineChild_ = false;
