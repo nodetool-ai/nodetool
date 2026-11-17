@@ -118,8 +118,9 @@ std::chrono::seconds endSessionRetryDelay(unsigned attempt);
 
 // Thread affinity: thread-safe. `mutex_` guards the tokens this app holds.
 // `operationMutex_` lets one refresh, sign-out or server end run at a time
-// in this process. Calls to the TokenEndpoint run with `operationMutex_`
-// held and `mutex_` released.
+// in this process. A refresh calls the TokenEndpoint with `operationMutex_`
+// held and `mutex_` released. A server end calls it with neither held, so a
+// sign-out never waits on it.
 //
 // Ownership: the session borrows the store and the endpoint, which must
 // outlive it. It owns its options and their callbacks, and destroys them
@@ -153,6 +154,11 @@ public:
   // The local sign-out steps, which always complete, then one attempt to end
   // every pending session on the server.
   ServerEnd signOut();
+
+  // The local sign-out steps alone. Returns false when they could not be
+  // written (ServerEnd::NotSaved). The caller ends the server sessions with
+  // endPendingSessions(), such as on another thread.
+  bool signOutLocally();
 
   // One attempt to end every pending session on the server. Call at each
   // connectivity change and at app start, spaced by endSessionRetryDelay.
