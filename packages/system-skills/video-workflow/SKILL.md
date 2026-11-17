@@ -48,7 +48,7 @@ When the user already has a board, a script or a cut they signed off, do not put
 | `nodetool.storyboard.RecastStoryboard` | `storyboard`, `cast`, `replaces`, `reuse_existing` → the copy, `invalidated`, `kept`. Keeps every frame whose prompt did not move. |
 | `nodetool.storyboard.RenderStills` / `RenderClips` | render the stale shots of a derived board. `only_stale`, `max_shots`, `require_keyframe` are the spend gates. |
 | `nodetool.storyboard.AssembleTimeline` | the derived board → `timeline`. A copy inherits the template's cut, titles and music. |
-| `nodetool.storyboard.LoadStoryboard` / `StoryboardShots` | read a board's shots, entities and settings, or stream one message per shot with its still and clip. |
+| `nodetool.constant.Storyboard` / `nodetool.storyboard.StoryboardShots` | bring a board into the graph by reference, or stream one message per shot with its still and clip. |
 | `nodetool.script.WriteScript` / `FillScript` | write a script from a brief and a cast, or fill `{{key}}` placeholders in an approved one. Both make a new row. |
 | `nodetool.timeline.FillTimelineText` | `timeline`, `values` → a new sequence with the overlay filled. |
 | `nodetool.timeline.RetargetTimeline` | `timeline`, `aspect_ratio`, `fit` → a new sequence, plus `cropped` naming the clips the crop cuts into. |
