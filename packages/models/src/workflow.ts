@@ -21,8 +21,6 @@ import { workflows } from "./schema/workflows.js";
 import { workflowVersions } from "./schema/workflow-versions.js";
 import { saveKeepingRevision, type KeepRevision } from "./kept-revision.js";
 import { WorkflowCollaborator } from "./workflow-collaborator.js";
-import { WorkflowShare } from "./workflow-share.js";
-import { WorkflowVersion } from "./workflow-version.js";
 import { TriggerRegistration } from "./trigger-registration.js";
 import {
   assertDocumentFileMayLeave,
@@ -31,15 +29,13 @@ import {
 } from "./document-file-sync.js";
 import type { GraphLink } from "@nodetool-ai/protocol";
 import type { WorkflowRunMode } from "@nodetool-ai/protocol/api-schemas/workflows.js";
-import { DocumentRefs } from "./document-refs.js";
 import { workflowCollaborators, workflowShares } from "./schema/workflow-sharing.js";
 import {
+  deleteDocumentKeeping,
   documentRefTables,
   insertDependents,
-  readDependents,
+  insertDocumentRow,
   registerDeletedDocumentKind,
-  retainDeletedDocument,
-  documentRetentionDays,
   type DependentTable
 } from "./deleted-document.js";
 
@@ -210,6 +206,11 @@ export class Workflow extends DBModel {
     return this.file_path && project !== undefined && project !== this.project_id
       ? { project_id: project, file_path: this.file_path }
       : null;
+  }
+
+  /** Write the file of this row, which a restore inserted without one. */
+  async writeFile(): Promise<void> {
+    await this.syncFile(null);
   }
 
   private async syncFile(previous: DocumentFileLocation | null): Promise<void> {
@@ -557,28 +558,30 @@ export class Workflow extends DBModel {
   static async deleteOwned(userId: string, id: string): Promise<boolean> {
     const wf = await Workflow.get<Workflow>(id);
     if (!wf || wf.user_id !== userId) return false;
-    // Kept first, so a failure before the delete never loses the workflow.
-    if (documentRetentionDays() !== null) {
-      await retainDeletedDocument({
-        kind: "workflow",
-        documentId: wf.id,
-        userId,
-        projectId: wf.project_id,
-        name: wf.name,
-        payload: { row: wf.toRow(), dependents: await readDependents(workflowDependents(wf.id)) }
-      });
-    }
-    await wf.delete();
-    // `id` may be a 12-character prefix; the dependent rows key on the full id.
-    await WorkflowCollaborator.removeAllForWorkflow(wf.id);
-    await WorkflowShare.removeAllForWorkflow(wf.id);
-    await DocumentRefs.removeForDocument("workflow", wf.id);
+    // `id` may be a 12-character prefix; the rows below key on the full id.
+    // The row, its versions, grants and references go in one transaction,
+    // with the copy kept for a restore (PRD D4).
+    await eraseRunTraceParentForModelDeletion({ kind: "workflow", id: wf.id });
+    const deleted = await deleteDocumentKeeping({
+      kind: "workflow",
+      userId,
+      table: workflows,
+      where: and(eq(workflows.id, wf.id), eq(workflows.user_id, userId)) as SQL,
+      dependents: workflowDependents(wf.id),
+      describe: (row) => ({
+        documentId: String(row["id"]),
+        projectId: (row["project_id"] as string | null) ?? null,
+        name: String(row["name"])
+      })
+    });
+    if (!deleted) return false;
+    const gone = new Workflow(deleted);
+    ModelObserver.notify(gone, ModelChangeEvent.DELETED);
+    await eraseRunTraceParentForModelDeletion({ kind: "workflow", id: gone.id });
+    await workflowFileSync?.deleted(gone);
     // No foreign key ties registrations to the workflow, so a deleted
     // workflow's webhook kept accepting events and its file watch kept firing.
     await TriggerRegistration.deleteByWorkflow(wf.id);
-    // Version rows hold full graph snapshots; left behind they kept the
-    // deleted workflow's content (and any secrets typed into it) on disk.
-    await WorkflowVersion.deleteForWorkflow(wf.id);
     return true;
   }
 
@@ -877,13 +880,17 @@ function workflowDependents(id: string): DependentTable[] {
 }
 
 registerDeletedDocumentKind("workflow", {
-  async restore(payload) {
+  *restore(tx, payload) {
     const id = String(payload.row["id"]);
-    if (await Workflow.get<Workflow>(id)) {
-      throw new Error("A workflow with this id exists");
-    }
-    // Through the model, so the workflow's file is written again.
-    await Workflow.create<Workflow>(payload.row);
-    await insertDependents(workflowDependents(id), payload.dependents);
+    yield insertDocumentRow(tx, workflows, payload.row);
+    yield* insertDependents(tx, workflowDependents(id), payload.dependents);
+  },
+  async restored(payload) {
+    const restored = await Workflow.get<Workflow>(String(payload.row["id"]));
+    if (!restored) return;
+    ModelObserver.notify(restored, ModelChangeEvent.CREATED);
+    // The file is written after the rows commit. A row without a file path
+    // gets its file at its next save.
+    await restored.writeFile();
   }
 });

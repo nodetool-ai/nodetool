@@ -94,6 +94,8 @@ function(nt_ui_tests)
     target_link_libraries(tst_tracksui PRIVATE timeline_core timeline_decode Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick
         Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
     target_link_libraries(tst_tracksui PRIVATE timeline_server)
+    # The account fakes (test_support.h) for the cloud saver tests.
+    target_include_directories(tst_tracksui PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../account/tests)
     nt_add_timeline_qml(tst_tracksui OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_tracksui_qml/NodeTool/Timeline)
     # Linux: the render-control case attaches a Vulkan instance (hw::prepareWindow)
     # when the scene graph runs on Vulkan, as CI and the render tests do.

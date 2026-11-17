@@ -57,10 +57,11 @@ struct HelperOptions {
 };
 
 // Thread affinity: handle() and the destructor run on the thread that reads
-// stdin. Keychain reads, sign-out and server calls run in order on one task
-// thread, the wait for the browser on its own thread, and a ticker thread
-// queues the periodic check. The state they share is in Core, under its
-// mutex.
+// stdin. Keychain reads, the local sign-out steps and the state run in order
+// on one task thread, the server ends on a network thread, the wait for the
+// browser on its own thread, and a ticker thread queues the periodic check.
+// The helper never refreshes a token. The state they share is in Core,
+// under its mutex.
 //
 // Ownership: the helper owns its threads and joins them in its destructor,
 // after cancelling a sign-in that waits for the browser. It shares its Core
@@ -93,6 +94,7 @@ private:
   // Started and joined on the thread that calls handle().
   std::thread signInThread_;
   std::thread taskThread_;
+  std::thread networkThread_;
   std::thread tickerThread_;
 };
 
