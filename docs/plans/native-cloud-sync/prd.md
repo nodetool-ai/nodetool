@@ -8,7 +8,7 @@ Nov 15, 2026 · @Matthias Georgi
 
 This is revision 5 of the PRD. Each section states the rules as they are specified now. What each revision changed is in the change log at the end and nowhere else.
 
-Local work needs no account. The native node graph editor and the native timeline sign in through the system browser. A signed-in user opens cloud documents, links a local project to a cloud project and synchronizes it by explicit action, and shares documents and projects.
+Local work needs no account. The native node graph editor and the native timeline sign in through the system browser. The Electron desktop app shares that sign-in (D23). A signed-in user opens cloud documents, links a local project to a cloud project and synchronizes it by explicit action, and shares documents and projects.
 
 The main rules:
 
@@ -142,7 +142,7 @@ The two designs cover timelines, scripts and storyboards. They give no merge sem
 | Code | Goal |
 | --- | --- |
 | G1 | A user signs in from either native app in under one minute without typing a password or a token into the app. |
-| G2 | The sign-in survives restarts and serves both native apps on the machine. |
+| G2 | The sign-in survives restarts and serves both native apps and the Electron desktop app on the machine. |
 | G3 | A user links a local project to a cloud project and synchronizes it by explicit action, repeatedly, without duplicates and without exposing a half-transferred project. |
 | G4 | A user shares a document or a whole project from the native app, and knows what the recipient receives. |
 | G5 | A recipient opens shared work in the browser or in a native app. |
@@ -169,7 +169,8 @@ Each clause of G6 maps to a requirement and a test in the traceability table. G6
 - Keeping a script, a storyboard and a timeline consistent as one unit. Each merges on its own.
 - A native script editor.
 - Teams, organizations and shared billing. Changes to pricing.
-- A new sign-in for the web app, the Electron app or the mobile app. The web app does get the specific changes listed in the rollout section.
+- A new sign-in for the web app or the mobile app. The web app does get the specific changes listed in the rollout section.
+- Cloud documents, linked projects and sharing in the Electron desktop app. It shares the sign-in of the native apps (D23) and gains nothing else from this PRD.
 - SAML.
 
 ### Users
@@ -311,7 +312,9 @@ Capabilities are negotiated per document kind. A client can send transactions fo
 1. The status bar shows an Account control. Signed out, it reads **Sign in**.
 2. **Sign in to NodeTool Cloud** opens the system browser. **Sign in to another server…** asks for a server address first.
 3. The user signs in the way that server offers. The browser shows a consent page that names the app and the device.
-4. After **Allow**, the app shows the account name and the server. The other native app on the machine is signed in to the same account.
+4. After **Allow**, the app shows the account name and the server. The other native app and the Electron desktop app on the machine are signed in to the same account.
+
+The Electron desktop app offers the same sign-in from its Settings (D23). Its consent page names it as the desktop app.
 
 ### Open and edit a cloud document
 
@@ -353,7 +356,7 @@ Capabilities are negotiated per document kind. A client can send transactions fo
 
 ### Sign out, switch account, lose access
 
-1. Sign out removes the credential on this computer for both native apps at once. Online, it also ends the device session on the server. Offline, the app says that the session will be ended on the server when this computer is next online, and that it can be ended now from Settings in the web app.
+1. Sign out removes the credential on this computer for both native apps and the Electron desktop app at once. Online, it also ends the device session on the server. Offline, the app says that the session will be ended on the server when this computer is next online, and that it can be ended now from Settings in the web app.
 2. Sign out with changes waiting for cloud documents offers Keep changes on this computer, Wait and send and Cancel. Local changes in linked projects are not part of that choice. They stay in the project and move only at Synchronize.
 3. After a switch to another account, the first account's waiting changes are listed as Waiting for account A and are never sent under the second account.
 4. When access to a document is removed, the tab becomes read-only, the waiting changes move to Unsent edits, and the app offers Save as a local duplicate where the role allowed duplication.
@@ -781,9 +784,9 @@ Erasing needs no change to either CRDT design. The entries and their references 
 
 ### Sign-in scope
 
-- One sign-in on a machine serves both native apps. Signing in or out in one app applies to the other.
+- One sign-in on a machine serves both native apps and the Electron desktop app (D23). Signing in or out in one of the three applies to the other two.
 - A machine can hold sign-ins to several servers. Each server has at most one signed-in account at a time. The Account control lists them and switches between them.
-- Sign out removes the credential on this machine for both native apps at once, and ends the device session on the server as soon as the server can be reached (see Signing out offline). It does not sign the browser out.
+- Sign out removes the credential on this machine for all three apps at once, and ends the device session on the server as soon as the server can be reached (see Signing out offline). It does not sign the browser out.
 - Each device session appears in the web app's Settings with app name, device name and last use, and can be revoked there.
 
 ### Scoping of local data
@@ -804,7 +807,7 @@ Credentials, drafts, pending transactions, unsent edits and project links are st
 | **Wait and send** | Sign-out waits for the connection, sends, then completes. The user can cancel the wait. |
 | **Cancel** | Nothing changes. |
 
-The app never discards waiting changes as part of sign-out. The dialog counts only changes waiting for cloud documents. Local changes in a linked project are not waiting to be sent. They stay in the project and move only at Synchronize.
+The app never discards waiting changes as part of sign-out. The dialog counts only changes waiting for cloud documents in the app that signs out. Each app keeps its drafts in its own local server, so a sign-out in one app cannot count the other apps' changes. Those stay on disk under A, as with Keep changes on this computer. The Electron desktop app holds no cloud documents, so its sign-out shows no dialog and says that changes waiting in the native apps stay on this computer. Local changes in a linked project are not waiting to be sent. They stay in the project and move only at Synchronize.
 
 ### Signing out offline
 
@@ -812,7 +815,7 @@ A machine that is offline cannot end its session on the server. Sign-out therefo
 
 | Outcome | When | What the user sees |
 | --- | --- | --- |
-| Local | When sign-out completes, online or offline. That is at once, unless the user chose Wait and send. It never depends on the server. The credential is removed for both native apps, and nothing more is sent under the account from this machine. | "Signed out on this computer." |
+| Local | When sign-out completes, online or offline. That is at once, unless the user chose Wait and send. It never depends on the server. The credential is removed for all three apps, and nothing more is sent under the account from this machine. | "Signed out on this computer." |
 | Server, online | At once. The server ends the device session. | The session disappears from Settings in the web app. |
 | Server, offline | When this machine is next online. At sign-in the server issued a revocation handle that can end this one session and do nothing else. The app keeps it after sign-out, uses it at the next connection and then deletes it. | "The session on the server will be ended when this computer is next online. To end it now, open Settings in the web app on another device." The Account control shows "Signed out, session not yet ended on the server" until the server confirms. |
 
@@ -951,7 +954,7 @@ A requirement keeps its id across revisions. Every requirement is P0 for its pha
 | FR3 | The hosted cloud is the default server. Another server can be entered, in Supabase mode or SSO mode. | 1 | Account |
 | FR4 | The app shows who is signed in and to which server, and offers Sign out. | 1 | Account |
 | FR5 | Local work never requires an account, and no dialog blocks a signed-out user. | 1 | Goals |
-| FR6 | One sign-in serves both native apps on the machine. | 1 | Account |
+| FR6 | One sign-in serves both native apps and the Electron desktop app on the machine. | 1 | Account |
 | FR7 | The web app's Settings list each device session and can revoke it. | 1 | Account |
 | FR8 | The pasted-token Connect form stays available for scripts and headless runs. | 1 |  |
 | FR28 | Credentials, drafts, pending transactions, unsent edits and links are scoped by server and account. Nothing is sent under another account. | 1 | Account |
@@ -959,6 +962,7 @@ A requirement keeps its id across revisions. Every requirement is P0 for its pha
 | FR30 | Sign-out with changes waiting offers keep, wait or cancel. | 1 | Account |
 | FR31 | Removed grants, revoked sessions and disabled accounts take effect on connections, transfers and queued writes as tabulated. | 1 | Account |
 | FR76 | Sign-out completes locally whether or not the server can be reached. The server session is ended at once when online, and otherwise at the next connection through the revocation handle. The app states which of the two has happened. | 1 | Account |
+| FR82 | The Electron desktop app signs in, shows the account and server, and signs out through the same session as the native apps. A sign-in or sign-out in any of the three apps shows in the other two within 5 seconds. The desktop app's local work and its local server are unaffected by the cloud sign-in. | 1 | Account |
 
 ### Cloud documents
 
@@ -1061,7 +1065,7 @@ A requirement keeps its id across revisions.
 | --- | --- |
 | SR1 | The app never handles the user's password or identity-provider credentials. Sign-in happens in the system browser. |
 | SR2 | Credentials are stored only in the operating system's credential store, under server and account. Where none exists, the sign-in lasts for the session and the app says so. |
-| SR3 | The long-lived credential is sent only to the server that issued it, over HTTPS. For a transfer, the app hands a short-lived access token to its own bundled local server over loopback, and to nothing else. |
+| SR3 | The long-lived credential is sent only to the server that issued it, over HTTPS. For a transfer, the app hands a short-lived access token to its own bundled local server over loopback, and to nothing else. In the Electron desktop app no token reaches the renderer or the local server. |
 | SR4 | Each device session can be revoked on its own. Sign out removes the local credential at once and ends the session on the server as soon as the server can be reached. The app never reports a session as ended before the server confirmed it. A disabled account loses native access as tabulated in the account section. |
 | SR5 | Credentials stored through the app's secret storage are never transferred or shared. This requirement makes no claim about text in user-authored content. |
 | SR6 | Before publishing or sharing, the app warns when a node property, script or workspace file holds a value that looks like a secret, and names the place. The warning states that the check is best-effort. |
@@ -1152,7 +1156,8 @@ Every criterion below is specified. None has been run. The fixtures are those of
 | AC18 | Account A has changes waiting. Account B signs in on the same server. Then A signs in again. | Nothing is sent under B. The changes are listed as waiting for A. After A signs in, changes for cloud documents are sent automatically. A linked project of A shows Local changes and sends nothing until Synchronize. | FR28 | 1 |
 | AC19 | Sign out while offline with changes waiting for a cloud document, once for each choice. Then go online. | Keep: the credential is gone at once, the app says that the server session is not yet ended, and the changes are on disk. Once online, the session is ended through the revocation handle, the Account control stops showing the pending state, and nothing is sent until the next sign-in. Wait: sign-out completes after sending. Cancel: no change. | FR30, FR76 | 1 |
 | AC32 | The owner deletes a cloud timeline. A collaborator's waiting edit arrives. | The edit is refused with the lifecycle code. The document stays deleted. The edit is in the collaborator's Unsent edits. Phase 3. | SR17, A1 | 3 |
-| AC34 | Sign in from each native app against the hosted cloud, a self-hosted server in Supabase mode and a server in SSO mode. Revoke the device in Settings. | Sign-in completes, the other app is signed in, and both lose access within one minute of the revocation. | FR1 to FR7 | 1 |
+| AC34 | Sign in from each native app and from the Electron desktop app against the hosted cloud, a self-hosted server in Supabase mode and a server in SSO mode. Revoke the device in Settings. | Sign-in completes, the other two apps are signed in within 5 seconds, and all three lose access within one minute of the revocation. | FR1 to FR7, FR82 | 1 |
+| AC75 | With all three apps running and signed in, sign out from the Electron desktop app, once online and once offline. Then sign out from a native app after signing in again. | Each time the other two apps show signed out within 5 seconds and send no request with the credential after the sign-out. No app restores the credential afterward. Online, the device session disappears from Settings. Offline, every app shows that the server session is not yet ended until the server confirms. | FR76, FR82, SR4 | 1 |
 | AC35 | Open, receive and synchronize a shared workflow and a shared app. | No run starts. No credit or key is used. | SR18 | 1 |
 | AC60 | A collaborator saves a cloud workflow while another user holds an offline draft of it. The draft wins on reconnect. | The collaborator's version is in the document's history, or kept as a copy where the kind has no history, and can be restored. | FR27 | 1 |
 
@@ -1265,7 +1270,7 @@ Cloud editing ships first with transitional merge behavior. CRDT timelines ship 
 
 | Phase | Users get | Depends on | Exit criteria |
 | --- | --- | --- | --- |
-| 1. Sign-in and cloud documents | Browser sign-in shared by both native apps, account scoping, the Cloud and Shared with me groups, editing of cloud documents with transitional merge, durable drafts, the two statuses, the share dialog for documents with the new viewer defaults and the rules for combined grants, sign-out with separate local and server outcomes, recovery of a cloud version that a draft replaced | Nothing in the CRDT design | FR1 to FR11, FR21 to FR23, FR27 for cloud documents, FR28 to FR33, FR48 to FR50, FR52, FR67, FR76 and FR77 for document grants pass on macOS, Windows and Linux against the hosted cloud, a self-hosted server in Supabase mode and a server in SSO mode. AC16, AC18, AC19, AC21, AC28, AC34, AC35, AC60 and AC62 for document links pass. The sign-in metrics hold in a two-week beta. |
+| 1. Sign-in and cloud documents | Browser sign-in shared by both native apps and the Electron desktop app, account scoping, the Cloud and Shared with me groups, editing of cloud documents with transitional merge, durable drafts, the two statuses, the share dialog for documents with the new viewer defaults and the rules for combined grants, sign-out with separate local and server outcomes, recovery of a cloud version that a draft replaced | Nothing in the CRDT design | FR1 to FR11, FR21 to FR23, FR27 for cloud documents, FR28 to FR33, FR48 to FR50, FR52, FR67, FR76, FR77 for document grants and FR82 pass on macOS, Windows and Linux against the hosted cloud, a self-hosted server in Supabase mode and a server in SSO mode. AC16, AC18, AC19, AC21, AC28, AC34, AC35, AC60, AC62 for document links and AC75 pass. The sign-in metrics hold in a two-week beta. |
 | 2. Linked projects | Publish, Synchronize, staged transfer with resume and commit attempts, receiving from a fixed revision set with a check against local changes, the three kinds of copy, deletion review, document-level choices for whole-document formats. Timelines are whole-document in this phase. | Amendments A6 and A7 in the technical design | FR12 to FR20, FR26, FR27 for linked projects, FR34 to FR40, FR66 for whole documents, FR73, FR74 and FR79 pass on the three server kinds. AC11 to AC15, AC22, AC25, AC29, AC30, AC33, AC52 on whole documents, AC58 with its crash cases and without its timeline part, AC59, AC66, AC73 and AC74 without its results pass. A 1 GB project makes a round trip with identical content. The kill tests of AC14 pass at every stage. |
 | 3. CRDT timelines | Per-register reconciliation for cloud and linked timelines, the review panel, unsent edits, activity record, forward version restore, legacy conversion, the retained-media view | CRDT phase 0 gate passed with the timeline fixtures of suite version 2 (T1 to T23) and the budgets. CRDT phase 1 shadow-mode results for the legacy conversion. CRDT phase 2 conformance between TypeScript and C++. Amendments A1 to A5 accepted. | FR41 to FR47, FR53 and FR71 pass in the web editor and the native timeline. AC1 to AC10, AC17 and AC32 in timeline form, AC20, AC23 in its five cases, AC24, AC26, AC31, AC36 and the timeline part of AC58 pass. The divergence metric and the count of different transactions under one actor and sequence number are 0 in a four-week beta. |
 | 4. Project sharing and delivery | One link or invitation for a whole project, delivery copies, Open in app | Phases 1 and 2. Delivery copies of timelines need phase 3 only to drop collaborative state, and work on whole documents before it. | FR24, FR25, FR51, FR77 for project grants and FR78 pass. AC27 and AC62 for project links pass. |
@@ -1310,6 +1315,7 @@ The web app's own sign-in is unchanged. These web and server changes are in scop
 | Timeline: selection on clip versions, keyed pushed versions, Retime, the timing basis of a clip | 5b, or 3 where D7 allows |
 | Link validation accepts a missing line as a warning in every caller | 5b |
 | Revocation handle issued at sign-in, and an endpoint that accepts it without a credential | 1 |
+| Electron desktop app: the shared sign-in in Settings, and `desktop` as an app on the consent page and in device sessions | 1 |
 | Options stored on the link and read at every request, one active link per role and scope, and the people list with effective role, options and source | 1 |
 | A version kept when a draft replaces a cloud version under transitional merge | 1 |
 | Revision sets for receiving, commit attempts with recorded results, the missing-file manifest | 2 |
@@ -1366,7 +1372,7 @@ The web app's own sign-in is unchanged. These web and server changes are in scop
 | Code | Question | Working answer |
 | --- | --- | --- |
 | Q3 | Do client-review links need an expiry date or a password? | Not in phases 1 to 4. Candidate. |
-| Q6 | Should the Electron app share the native sign-in? | No. It has its own web session. |
+| Q6 | Should the Electron app share the native sign-in? | Yes. Decided on 2026-11-17 as D23. |
 | Q8 | Is the hosted cloud still labelled alpha when this ships? | If so, the sign-in dialog says it and the review sheet states the retention terms. |
 | Q9 | How long are staged files of an abandoned transfer kept? | Seven days |
 | Q10 | How long is the activity record kept? | As long as the document |
@@ -1376,7 +1382,7 @@ Q1, Q2, Q4, Q5 and Q7 are decided in this document or moved to the blocking deci
 
 ## Blocking product decisions
 
-Each has a recommended default. The document is written as if the default is chosen. D3 also covers what editors of scripts and storyboards receive (SR26). D13 to D20 are choices I made where a review left alternatives open. D21 and D22 were added on 2026-11-16 from the project folder code and are open.
+Each has a recommended default. The document is written as if the default is chosen. D3 also covers what editors of scripts and storyboards receive (SR26). D13 to D20 are choices I made where a review left alternatives open. D21 and D22 were added on 2026-11-16 from the project folder code and are open. D23 was decided on 2026-11-17.
 
 | Code | Decision | Recommended default | Consequence of the default | Blocks |
 | --- | --- | --- | --- | --- |
@@ -1405,12 +1411,20 @@ Each has a recommended default. The document is written as if the default is cho
 | --- | --- | --- | --- | --- |
 | D21 | Is a replicated timeline's file in the project folder a projection of the replicated state? | Yes. An edit to the file in another app becomes transactions against the file NodeTool last wrote. | A remote edit that arrives while another app edits the file is kept. An editor that saves a stale buffer reverts remote changes as one listed edit that can be restored. The alternative keeps the file as the authority and loses such remote edits. | Phase 3 |
 | D22 | How does a transfer handle linked files outside the project folder? | Collect them into the folder first, and otherwise cancel | The asset keeps its id and travels as a file of the folder. Nothing is uploaded from a path outside the folder. | Phase 2 |
+| D23 | Does the Electron desktop app share the sign-in of the native apps? | Yes. Decided by Matthias on 2026-11-17. | One sign-in serves three apps. The desktop app reads and writes the same session record under the same lock as the native apps, and a sign-out in any app ends the credential for all three. The desktop app gets no cloud documents from this PRD. Its local server stays in Local mode and keeps its own launch token. | Phase 1 |
 
 In review of the storyboard and script design you confirmed one behavior change that this document relies on: a new take or render no longer retimes the timeline. D8 and D9 were not addressed there.
 
 ## Decision and change log
 
 The sections above state only the current rules. This section holds the history of the document.
+
+Changes on 2026-11-17. Revision 5 is kept.
+
+| Topic | Before | After |
+| --- | --- | --- |
+| Electron desktop app | Non-goal. Q6 answered that it keeps its own web session. | Shares the native sign-in (D23). G2, FR6, FR82, SR3, AC34, AC75, the sign-in and sign-out flows, the sign-in scope and the changes outside the native apps name it. Cloud documents in the desktop app stay a non-goal. |
+| Sign-out dialog | Counted changes waiting for cloud documents | Counts the changes of the app that signs out. The other apps' changes stay on disk. |
 
 Changes on 2026-11-16, for main at `11a6da4a`. Revision 5 is kept. Project folders, file-backed workflows and timelines, and content hashes landed on main after the commit of F1 to F14.
 
@@ -1525,6 +1539,7 @@ Changes from revision 1 of this PRD.
 | Independent timeline edits merge without a document-level choice | FR41 | Register model, C1. Gates of phase 3. | AC1 |
 | A competing value is retained until someone resolves it explicitly | FR41, FR42, FR43 | C1, T1, T20, A4 | AC2, AC3 |
 | Undo never outranks another person's value, and the app says what it revealed | FR44 | C2, T15 | AC4 |
+| One sign-in serves the three desktop apps, and a sign-out ends it in all of them | FR6, FR76, FR82 | None | AC34, AC75 |
 | A refused edit is recoverable | FR46, FR31 | C5, T16, A1 | AC10, AC17, AC32 |
 | A replaced whole-document version is recoverable | FR26, FR27 | None | AC12, AC33, AC60 |
 | No part of a transfer is visible before its commit | FR15, FR34, FR37 | None | AC13, AC14 |
