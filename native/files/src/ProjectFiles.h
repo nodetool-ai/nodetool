@@ -41,6 +41,18 @@ class ProjectFiles : public QAbstractListModel {
   Q_PROPERTY(int count READ rowCount NOTIFY countChanged)
   Q_PROPERTY(int selectedRow READ selectedRow NOTIFY selectionChanged)
   Q_PROPERTY(QString selectedPath READ selectedPath NOTIFY selectionChanged)
+  // The preview of the selected file (the web WorkspaceFilePreview.tsx).
+  // Kind: image, video, audio, model3d, timeline, workflow, or empty when
+  // the selection has nothing to preview.
+  Q_PROPERTY(QString previewKind READ previewKind NOTIFY previewChanged)
+  Q_PROPERTY(QString previewName READ previewName NOTIFY previewChanged)
+  Q_PROPERTY(QString previewIcon READ previewIcon NOTIFY previewChanged)
+  // "1.2 KB · image/png", or "1.2 KB · Timeline" for a document.
+  Q_PROPERTY(QString previewDetails READ previewDetails NOTIFY previewChanged)
+  // A timeline's "1:04 · 2 tracks · 5 clips" once its file is read, else empty.
+  Q_PROPERTY(QString previewSummary READ previewSummary NOTIFY previewChanged)
+  // The picture of an image file, else empty.
+  Q_PROPERTY(QUrl previewImageUrl READ previewImageUrl NOTIFY previewChanged)
 public:
   enum Role {
     PathRole = Qt::UserRole + 1,
@@ -76,6 +88,12 @@ public:
   bool empty() const;
   int selectedRow() const { return indexOfPath(m_selected); }
   QString selectedPath() const { return m_selected; }
+  QString previewKind() const { return m_preview.kind; }
+  QString previewName() const { return m_preview.name; }
+  QString previewIcon() const { return m_preview.icon; }
+  QString previewDetails() const { return m_preview.details; }
+  QString previewSummary() const { return m_preview.summary; }
+  QUrl previewImageUrl() const;
 
   int rowCount(const QModelIndex &parent = {}) const override;
   QVariant data(const QModelIndex &index, int role) const override;
@@ -109,18 +127,31 @@ public:
   static int naturalCompare(QStringView a, QStringView b);
   // Kind of a file by its name, as workspaceFileKind.ts.
   static QString kindOf(const QString &name);
+  // The preview kind of a file by its name, or empty: the media kinds that
+  // have a picture or a player, and the timeline and workflow documents.
+  static QString previewKindOf(const QString &name);
+  // "0 B", "512 B", "1.2 KB", "3.4 MB": the web formatFileSize.
+  static QString formatSize(qint64 bytes);
+  // "m:ss": the web projectStatus formatDuration.
+  static QString formatDuration(qint64 ms);
+  // "1:04 · 2 tracks · 5 clips" from a .timeline.json document.
+  static QString timelineSummary(const QJsonObject &timeline);
   // /api/workspaces/<id>/download/<path>, each segment encoded, on the origin.
   static QUrl downloadUrl(const QUrl &origin, const QString &workspaceId, const QString &path);
 
   // A listing for a request this object made through requestListing().
   // Unknown or stale tickets are ignored. Public so a test can answer.
   void receiveListing(quint64 ticket, const QJsonArray &entries, const QString &error);
+  // The content of a timeline file this object asked for through
+  // requestTimeline(). A stale ticket or an error leaves the summary empty.
+  void receiveTimeline(quint64 ticket, const QJsonObject &timeline, const QString &error);
 
 signals:
   void folderChanged();
   void stateChanged();
   void countChanged();
   void selectionChanged();
+  void previewChanged();
   // A file to open. The host decides how.
   void openFileRequested(const QString &path);
 
@@ -128,11 +159,15 @@ protected:
   // Starts workspace.listFiles for a path ("." is the root). The answer must
   // arrive through receiveListing with the same ticket. A test overrides it.
   virtual void requestListing(quint64 ticket, const QString &path);
+  // Downloads a timeline file for its summary. The answer must arrive
+  // through receiveTimeline with the same ticket. A test overrides it.
+  virtual void requestTimeline(quint64 ticket, const QString &path);
 
 private:
   struct Entry {
     QString name, path, kind, icon;
     bool isDir = false;
+    qint64 size = 0;
   };
   struct Listing {
     enum State { Loading, Loaded, Failed };
@@ -143,6 +178,12 @@ private:
     QString path, name, kind, icon;
     int depth = 0;
     bool isDir = false, placeholder = false;
+    qint64 size = 0;
+  };
+  struct Preview {
+    QString path, kind, name, icon, details, summary;
+    qint64 size = -1;
+    bool operator==(const Preview &) const = default;
   };
 
   QVector<Entry> entriesOf(const QJsonArray &entries, bool root) const;
@@ -156,6 +197,7 @@ private:
   void clearRequests();
   void emitRowChanged(int row, const QList<int> &roles);
   void setSelected(const QString &path);
+  void updatePreview();
 
   QNetworkAccessManager m_network;
   QUrl m_origin;
@@ -171,5 +213,8 @@ private:
   QSet<quint64> m_refreshTickets;
   QHash<QString, Listing> m_staged;
   bool m_refreshAgain = false;
+  Preview m_preview;
+  // The timeline read in flight for the preview, or 0.
+  quint64 m_timelineTicket = 0;
 };
 }
