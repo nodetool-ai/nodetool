@@ -110,6 +110,23 @@ interface VaultListResult {
   activeVaultId: string;
 }
 
+/** The cloud sign-in shared with the native apps. It holds no token. */
+export interface CloudAccountState {
+  /** False when this build has no account helper, or it stopped. */
+  available: boolean;
+  state: "signedOut" | "signingIn" | "signedIn";
+  displayName: string;
+  serverOrigin: string;
+  /** Signed out here, and the server has not confirmed the end of the session yet. */
+  serverEndPending: boolean;
+  /** False when a managed policy turns the cloud features off. */
+  cloudAvailable: boolean;
+  /** False when the computer has no credential store. */
+  keychainAvailable: boolean;
+  /** Why the last sign-in did not complete, or the policy's reason. */
+  message: string;
+}
+
 interface McpBundleInstallResult {
   ok: boolean;
   opened: boolean;
@@ -189,6 +206,18 @@ declare global {
       };
       /** VST3 instruments. Desktop only. */
       vst?: VstBridge;
+      /**
+       * The cloud sign-in that this app, the node editor and the timeline
+       * share on one computer. Desktop only.
+       */
+      cloudAccount?: {
+        state: () => Promise<CloudAccountState>;
+        signIn: () => Promise<void>;
+        cancelSignIn: () => Promise<void>;
+        signOut: () => Promise<void>;
+        /** Returns the unsubscribe function. */
+        onChange: (callback: (state: CloudAccountState) => void) => () => void;
+      };
       /** Native OS notifications. Desktop only. */
       notifications?: {
         /** Resolves whether a notification was shown: none while focused. */

@@ -341,6 +341,17 @@ jobs:
             node electron/scripts/build-vst-host.mjs --test
           fi
 
+      # The cloud account helper (native/account-helper). electron-builder packs
+      # electron/account-helper/ as resources/account-helper/. On Linux it links
+      # libsecret for the keychain, as keytar does.
+      - name: Install account helper build libraries (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get install -y libsecret-1-dev
+
+      - name: Build account helper
+        shell: bash
+        run: node electron/scripts/build-account-helper.mjs --test
+
       - name: Create Web Build Archive
         if: matrix.os == 'ubuntu-latest'
         shell: bash

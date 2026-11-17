@@ -20242,7 +20242,7 @@
   },
   "deviceSessions": {
     "title": "Påloggede enheter",
-    "description": "Datamaskiner der du har logget på NodeTools skrivebordsapper. Begge appene på én datamaskin deler en økt. Å avslutte en økt logger av den datamaskinen.",
+    "description": "Datamaskiner der du har logget på NodeTools skrivebordsapper. Appene på én datamaskin deler én økt. Å avslutte en økt logger ut den datamaskinen.",
     "empty": "Ingen datamaskin er pålogget.",
     "unnamed": "Navnløs datamaskin",
     "signedInFrom": "Logget på fra {{app}} {{date}}",
@@ -20257,7 +20257,8 @@
     "loadError": "Kunne ikke laste inn påloggede enheter.",
     "apps": {
       "nodeEditor": "Noderedigering",
-      "timeline": "Tidslinje"
+      "timeline": "Tidslinje",
+      "desktop": "Skrivebordsapp"
     }
   },
   "storyboardText": {
@@ -20314,5 +20315,21 @@
         "failed": "Forespørselen mislyktes. Send den på nytt."
       }
     }
+  },
+  "cloudAccount": {
+    "title": "NodeTool Cloud-konto",
+    "description": "Én pålogging for denne appen, noderedigeringen og tidslinjen på denne datamaskinen. Pålogging eller avlogging her gjelder alle tre.",
+    "signedInAs": "Logget på som {{name}}",
+    "server": "Server: {{server}}",
+    "signedOut": "Ikke logget på",
+    "signingIn": "Fullfør påloggingen i nettleseren",
+    "serverEndPending": "Logget ut, økten er ennå ikke avsluttet på serveren",
+    "cloudOff": "Skyfunksjoner er slått av på denne datamaskinen",
+    "noKeychain": "Denne datamaskinen har ingen lagring for påloggingsinformasjon, så påloggingen varer til NodeTool avsluttes.",
+    "signIn": "Logg på",
+    "cancel": "Avbryt",
+    "signOut": "Logg ut",
+    "signOutNote": "Endringer som venter i noderedigeringen eller tidslinjen blir på denne datamaskinen og sendes når du logger på igjen.",
+    "unavailable": "Skypålogging er ikke tilgjengelig i denne versjonen."
   }
 }

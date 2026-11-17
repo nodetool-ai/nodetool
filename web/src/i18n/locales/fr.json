@@ -20553,7 +20553,7 @@
   },
   "deviceSessions": {
     "title": "Appareils connectés",
-    "description": "Ordinateurs sur lesquels vous êtes connecté aux applications de bureau NodeTool. Les deux applications d'un même ordinateur partagent une session. Mettre fin à une session déconnecte cet ordinateur.",
+    "description": "Ordinateurs sur lesquels vous vous êtes connecté aux applications de bureau NodeTool. Les applications d'un même ordinateur partagent une session. Mettre fin à une session déconnecte cet ordinateur.",
     "empty": "Aucun ordinateur n'est connecté.",
     "unnamed": "Ordinateur sans nom",
     "signedInFrom": "Connecté depuis {{app}} le {{date}}",
@@ -20568,7 +20568,8 @@
     "loadError": "Impossible de charger les appareils connectés.",
     "apps": {
       "nodeEditor": "Éditeur de nœuds",
-      "timeline": "Timeline"
+      "timeline": "Timeline",
+      "desktop": "Application de bureau"
     }
   },
   "storyboardText": {
@@ -20625,5 +20626,21 @@
         "failed": "La demande a échoué. Renvoyez-la."
       }
     }
+  },
+  "cloudAccount": {
+    "title": "Compte NodeTool Cloud",
+    "description": "Une seule connexion pour cette application, l'éditeur de nœuds et la timeline sur cet ordinateur. Se connecter ou se déconnecter ici s'applique aux trois.",
+    "signedInAs": "Connecté en tant que {{name}}",
+    "server": "Serveur : {{server}}",
+    "signedOut": "Non connecté",
+    "signingIn": "Terminez la connexion dans votre navigateur",
+    "serverEndPending": "Déconnecté, session pas encore terminée sur le serveur",
+    "cloudOff": "Les fonctions cloud sont désactivées sur cet ordinateur",
+    "noKeychain": "Cet ordinateur n'a pas de magasin d'identifiants, la connexion dure donc jusqu'à la fermeture de NodeTool.",
+    "signIn": "Se connecter",
+    "cancel": "Annuler",
+    "signOut": "Se déconnecter",
+    "signOutNote": "Les modifications en attente dans l'éditeur de nœuds ou la timeline restent sur cet ordinateur et sont envoyées à votre prochaine connexion.",
+    "unavailable": "La connexion au cloud n'est pas disponible dans cette version."
   }
 }

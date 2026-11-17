@@ -20242,7 +20242,7 @@
   },
   "deviceSessions": {
     "title": "Inloggade enheter",
-    "description": "Datorer där du har loggat in i NodeTools skrivbordsappar. Båda apparna på en dator delar en session. Att avsluta en session loggar ut den datorn.",
+    "description": "Datorer där du har loggat in i NodeTools skrivbordsappar. Apparna på en dator delar en session. Att avsluta en session loggar ut den datorn.",
     "empty": "Ingen dator är inloggad.",
     "unnamed": "Namnlös dator",
     "signedInFrom": "Inloggad från {{app}} {{date}}",
@@ -20257,7 +20257,8 @@
     "loadError": "Det gick inte att läsa in inloggade enheter.",
     "apps": {
       "nodeEditor": "Nodredigerare",
-      "timeline": "Tidslinje"
+      "timeline": "Tidslinje",
+      "desktop": "Skrivbordsapp"
     }
   },
   "storyboardText": {
@@ -20314,5 +20315,21 @@
         "failed": "Begäran misslyckades. Skicka den igen."
       }
     }
+  },
+  "cloudAccount": {
+    "title": "NodeTool Cloud-konto",
+    "description": "En inloggning för den här appen, nodredigeraren och tidslinjen på den här datorn. Att logga in eller ut här gäller alla tre.",
+    "signedInAs": "Inloggad som {{name}}",
+    "server": "Server: {{server}}",
+    "signedOut": "Inte inloggad",
+    "signingIn": "Slutför inloggningen i webbläsaren",
+    "serverEndPending": "Utloggad, sessionen är ännu inte avslutad på servern",
+    "cloudOff": "Molnfunktioner är avstängda på den här datorn",
+    "noKeychain": "Den här datorn har ingen lagring för inloggningsuppgifter, så inloggningen varar tills NodeTool avslutas.",
+    "signIn": "Logga in",
+    "cancel": "Avbryt",
+    "signOut": "Logga ut",
+    "signOutNote": "Ändringar som väntar i nodredigeraren eller tidslinjen stannar på den här datorn och skickas när du loggar in igen.",
+    "unavailable": "Molninloggning är inte tillgänglig i den här versionen."
   }
 }

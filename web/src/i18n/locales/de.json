@@ -20242,7 +20242,7 @@
   },
   "deviceSessions": {
     "title": "Angemeldete Geräte",
-    "description": "Computer, auf denen du dich in den NodeTool-Desktop-Apps angemeldet hast. Beide Apps auf einem Computer teilen sich eine Sitzung. Wenn du eine Sitzung beendest, wird dieser Computer abgemeldet.",
+    "description": "Computer, auf denen du dich in den NodeTool-Desktop-Apps angemeldet hast. Die Apps auf einem Computer teilen sich eine Sitzung. Wenn du eine Sitzung beendest, wird dieser Computer abgemeldet.",
     "empty": "Kein Computer ist angemeldet.",
     "unnamed": "Unbenannter Computer",
     "signedInFrom": "Angemeldet über {{app}} am {{date}}",
@@ -20257,7 +20257,8 @@
     "loadError": "Angemeldete Geräte konnten nicht geladen werden.",
     "apps": {
       "nodeEditor": "Node-Editor",
-      "timeline": "Timeline"
+      "timeline": "Timeline",
+      "desktop": "Desktop-App"
     }
   },
   "storyboardText": {
@@ -20314,5 +20315,21 @@
         "failed": "Die Anfrage ist fehlgeschlagen. Sende sie erneut."
       }
     }
+  },
+  "cloudAccount": {
+    "title": "NodeTool-Cloud-Konto",
+    "description": "Eine Anmeldung für diese App, den Node-Editor und die Timeline auf diesem Computer. An- und Abmelden hier gilt für alle drei.",
+    "signedInAs": "Angemeldet als {{name}}",
+    "server": "Server: {{server}}",
+    "signedOut": "Nicht angemeldet",
+    "signingIn": "Schließe die Anmeldung im Browser ab",
+    "serverEndPending": "Abgemeldet, Sitzung auf dem Server noch nicht beendet",
+    "cloudOff": "Cloud-Funktionen sind auf diesem Computer ausgeschaltet",
+    "noKeychain": "Dieser Computer hat keinen Anmeldedatenspeicher. Die Anmeldung gilt deshalb, bis NodeTool beendet wird.",
+    "signIn": "Anmelden",
+    "cancel": "Abbrechen",
+    "signOut": "Abmelden",
+    "signOutNote": "Änderungen, die im Node-Editor oder in der Timeline warten, bleiben auf diesem Computer und werden nach der nächsten Anmeldung gesendet.",
+    "unavailable": "Die Cloud-Anmeldung ist in diesem Build nicht verfügbar."
   }
 }

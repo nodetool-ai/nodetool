@@ -271,6 +271,22 @@ describe("native sign-in: authorize, consent, exchange", () => {
     });
   });
 
+  it("TC115: accepts the desktop app and records its name on the request", async () => {
+    const app = await buildApp();
+    const { challenge } = pkcePair();
+    const res = await app.inject({
+      method: "GET",
+      url: `/oauth/authorize?${authorizeQuery(challenge, { app: "desktop" })}`
+    });
+    const location = new URL(res.headers.location as string, "http://x");
+    expect(location.searchParams.get("error")).toBeNull();
+    const requestId = location.searchParams.get("request_id")!;
+    const summary = await createCaller(makeCtx("user-a")).agentAccess.getOauthRequest({
+      request_id: requestId
+    });
+    expect(summary).toMatchObject({ kind: "native", app_name: "desktop" });
+  });
+
   it("refuses an unknown app, a missing device name, and a foreign resource", async () => {
     const app = await buildApp();
     const { challenge } = pkcePair();

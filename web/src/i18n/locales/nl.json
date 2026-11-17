@@ -20242,7 +20242,7 @@
   },
   "deviceSessions": {
     "title": "Aangemelde apparaten",
-    "description": "Computers waarop je bent aangemeld bij de NodeTool-desktopapps. Beide apps op één computer delen een sessie. Een sessie beëindigen meldt die computer af.",
+    "description": "Computers waarop je bent aangemeld bij de NodeTool-desktopapps. De apps op één computer delen één sessie. Een sessie beëindigen meldt die computer af.",
     "empty": "Er is geen computer aangemeld.",
     "unnamed": "Naamloze computer",
     "signedInFrom": "Aangemeld via {{app}} op {{date}}",
@@ -20257,7 +20257,8 @@
     "loadError": "Kon aangemelde apparaten niet laden.",
     "apps": {
       "nodeEditor": "Node-editor",
-      "timeline": "Tijdlijn"
+      "timeline": "Tijdlijn",
+      "desktop": "Desktop-app"
     }
   },
   "storyboardText": {
@@ -20314,5 +20315,21 @@
         "failed": "Het verzoek is mislukt. Stuur het opnieuw."
       }
     }
+  },
+  "cloudAccount": {
+    "title": "NodeTool Cloud-account",
+    "description": "Eén aanmelding voor deze app, de node-editor en de tijdlijn op deze computer. Aan- of afmelden hier geldt voor alle drie.",
+    "signedInAs": "Aangemeld als {{name}}",
+    "server": "Server: {{server}}",
+    "signedOut": "Niet aangemeld",
+    "signingIn": "Rond het aanmelden af in je browser",
+    "serverEndPending": "Afgemeld, sessie nog niet beëindigd op de server",
+    "cloudOff": "Cloudfuncties zijn uitgeschakeld op deze computer",
+    "noKeychain": "Deze computer heeft geen opslag voor inloggegevens, dus de aanmelding duurt tot NodeTool wordt afgesloten.",
+    "signIn": "Aanmelden",
+    "cancel": "Annuleren",
+    "signOut": "Afmelden",
+    "signOutNote": "Wijzigingen die wachten in de node-editor of de tijdlijn blijven op deze computer en worden verzonden nadat je je opnieuw aanmeldt.",
+    "unavailable": "Aanmelden bij de cloud is niet beschikbaar in deze build."
   }
 }

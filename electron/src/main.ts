@@ -63,6 +63,7 @@ import { updateSetting, readSettingsAsync } from "./settings";
 import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
 import { configureCertificateTrust } from "./certificateTrust";
 import { disposeVstHost } from "./vstHost";
+import { disposeCloudAccount, getCloudAccount } from "./cloudAccount";
 
 configureCertificateTrust();
 
@@ -514,6 +515,12 @@ app.on("ready", async () => {
       }
 
       await initialize();
+      // Start the account helper, so a sign-in or sign-out in the node
+      // editor or the timeline shows here, and a pending end of a session
+      // on the server is retried.
+      if (process.env.NODE_ENV !== "test") {
+        getCloudAccount();
+      }
     }
   });
 });
@@ -615,6 +622,7 @@ process.on(
 
 app.on("will-quit", () => {
   disposeVstHost();
+  disposeCloudAccount();
   globalShortcut.unregisterAll();
   cleanupTrayEvents();
   closeLogStream();

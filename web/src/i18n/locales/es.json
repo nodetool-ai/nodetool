@@ -20553,7 +20553,7 @@
   },
   "deviceSessions": {
     "title": "Dispositivos con sesión iniciada",
-    "description": "Ordenadores en los que iniciaste sesión en las aplicaciones de escritorio de NodeTool. Las dos aplicaciones de un ordenador comparten una sesión. Terminar una sesión cierra la sesión en ese ordenador.",
+    "description": "Ordenadores en los que iniciaste sesión en las aplicaciones de escritorio de NodeTool. Las aplicaciones de un ordenador comparten una sesión. Terminar una sesión cierra la sesión en ese ordenador.",
     "empty": "Ningún ordenador tiene la sesión iniciada.",
     "unnamed": "Ordenador sin nombre",
     "signedInFrom": "Sesión iniciada desde {{app}} el {{date}}",
@@ -20568,7 +20568,8 @@
     "loadError": "No se pudieron cargar los dispositivos.",
     "apps": {
       "nodeEditor": "Editor de nodos",
-      "timeline": "Línea de tiempo"
+      "timeline": "Línea de tiempo",
+      "desktop": "Aplicación de escritorio"
     }
   },
   "storyboardText": {
@@ -20625,5 +20626,21 @@
         "failed": "La solicitud falló. Envíala de nuevo."
       }
     }
+  },
+  "cloudAccount": {
+    "title": "Cuenta de NodeTool Cloud",
+    "description": "Un inicio de sesión para esta aplicación, el editor de nodos y la línea de tiempo en este ordenador. Iniciar o cerrar sesión aquí se aplica a las tres.",
+    "signedInAs": "Sesión iniciada como {{name}}",
+    "server": "Servidor: {{server}}",
+    "signedOut": "Sin iniciar sesión",
+    "signingIn": "Termina de iniciar sesión en tu navegador",
+    "serverEndPending": "Sesión cerrada, aún no terminada en el servidor",
+    "cloudOff": "Las funciones en la nube están desactivadas en este ordenador",
+    "noKeychain": "Este ordenador no tiene almacén de credenciales, así que la sesión dura hasta que NodeTool se cierre.",
+    "signIn": "Iniciar sesión",
+    "cancel": "Cancelar",
+    "signOut": "Cerrar sesión",
+    "signOutNote": "Los cambios pendientes en el editor de nodos o en la línea de tiempo se quedan en este ordenador y se envían cuando vuelvas a iniciar sesión.",
+    "unavailable": "El inicio de sesión en la nube no está disponible en esta versión."
   }
 }

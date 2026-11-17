@@ -127,7 +127,9 @@ const OAuthConsentPage = () => {
       ? t("deviceSessions.apps.timeline")
       : app === "node-editor"
         ? t("deviceSessions.apps.nodeEditor")
-        : (app ?? "");
+        : app === "desktop"
+          ? t("deviceSessions.apps.desktop")
+          : (app ?? "");
 
   return (
     <FlexColumn
