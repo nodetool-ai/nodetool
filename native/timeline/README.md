@@ -1567,6 +1567,12 @@ status in place of the save status. A draft this account left on this
 computer is applied as one `restoreDocument` edit after its media is
 resolved, unless the person edited first.
 
+The owner of a cloud timeline sees Share in the document bar. It opens the
+share dialog of the account library (`ShareDialog.qml`) with the account the
+window was opened with (`nativeCloudAccount`). The dialog lists the scripts
+and storyboards the clips link to, because a link to the timeline does not
+open them.
+
 Frame rate and size edits of a cloud timeline are not sent yet. The media
 resolvers and take switching need a server save target, so they do not run
 for a cloud timeline, and the recent list does not record cloud timelines. A

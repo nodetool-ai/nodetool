@@ -3004,6 +3004,9 @@ private slots:
         QTRY_VERIFY(find("cloud-sync-status") != nullptr);
         QCOMPARE(find("cloud-sync-status")->property("message").toString(), QStringLiteral("Opening"));
         QVERIFY(!find("saveStatus")->isVisible());
+        // Share needs the account the timeline was opened with.
+        QVERIFY(!find("shareButton")->isVisible());
+        QVERIFY(!find("shareDialog")->property("active").toBool());
     }
 
     // A draft replaces the document part of the sequence. The sequence row

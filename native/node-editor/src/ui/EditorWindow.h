@@ -494,6 +494,8 @@ private:
   quint64 credentialsEpoch_ = 0;
   void showWorkflowDetails(const QString &kind);
   void showServerSync();
+  // The share dialog of the tab's cloud workflow, for its owner.
+  void showShareDialog();
   void showRunTrace();
   void showGenerations();
   void showWorkers();
@@ -764,6 +766,8 @@ private:
   // writes the last edit to disk.
   std::unique_ptr<nodetool::account::qt::CloudDocument> cloud_;
   QString cloudId_;
+  // The server the cloud workflow was opened from.
+  QString cloudOrigin_;
   // Set while the opened revision loads, so the load is not sent as an edit.
   bool cloudLoading_ = false;
   void startCloudDocument(std::shared_ptr<nodetool::account::AccountSession> session, const QString &documentId,

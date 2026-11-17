@@ -205,6 +205,7 @@ Rectangle {
             }
             Repeater {
                 model: [
+                    { name: "Share", icon: "link", id: "share" },
                     { name: "Workflow metadata", icon: "info", id: "metadata" },
                     { name: "Server sync", icon: "sync", id: "server-sync" },
                     { name: "Canvas uploads", icon: "fileUpload", id: "uploads" },
@@ -216,6 +217,8 @@ Rectangle {
                     text: modelData.name
                     iconName: modelData.icon
                     enabled: root.header.enabledActions.indexOf(modelData.name) >= 0
+                    // Share shows only on a cloud workflow the account owns.
+                    visible: modelData.id !== "share" || enabled
                     onClicked: root.header.runAction(modelData.name)
                 }
             }

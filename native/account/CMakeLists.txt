@@ -38,6 +38,7 @@ add_library(nodetool_account STATIC
   src/cloud_client.cpp
   src/cloud_drafts.cpp
   src/cloud_listing.cpp
+  src/cloud_sharing.cpp
   src/cloud_savers.cpp
   src/crypto.cpp
   src/http_token_endpoint.cpp

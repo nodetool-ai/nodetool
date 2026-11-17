@@ -62,6 +62,10 @@ class CloudDocument final : public QObject {
   Q_PROPERTY(QString syncText READ syncText NOTIFY stateChanged)
   Q_PROPERTY(bool readOnly READ readOnly NOTIFY stateChanged)
   Q_PROPERTY(QString readOnlyReason READ readOnlyReason NOTIFY stateChanged)
+  Q_PROPERTY(QString kind READ kind CONSTANT)
+  Q_PROPERTY(QString documentId READ documentId CONSTANT)
+  // `owner`, `editor` or `viewer`. Only the owner shares the document.
+  Q_PROPERTY(QString role READ role CONSTANT)
 
 public:
   enum class SyncStatus {
@@ -96,6 +100,14 @@ public:
   QString syncText() const;
   bool readOnly() const { return readOnly_; }
   QString readOnlyReason() const { return readOnlyReason_; }
+  QString kind() const { return kind_; }
+  QString documentId() const { return documentId_; }
+  QString role() const { return role_; }
+
+  // The document as the tab last showed it: the last edit, else the draft
+  // it opened with, else the server's revision. Empty before opened(). The
+  // share dialog reads it for the linked documents and the secret check.
+  Q_INVOKABLE QString content() const { return content_; }
 
   // Reads the document. A draft this account left in the local store
   // opens over the server's revision, and is sent again. Emits opened() or
@@ -136,6 +148,10 @@ private:
   QString refusal_;
   bool readOnly_ = false;
   QString readOnlyReason_;
+  const QString kind_;
+  const QString documentId_;
+  const QString role_;
+  QString content_;
 };
 
 // The status sentence for a state. `lastContact` is the local time of the

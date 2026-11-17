@@ -926,8 +926,12 @@ int main(int argc, char** argv) {
     const auto cloudSource = nt::server::cloudTimelineSource();
     std::shared_ptr<nodetool::account::AccountSession> cloudSession;
     QString cloudToken;
+    // The account of the cloud timeline's server, for the share dialog.
+    // AccountServers owns it.
+    nodetool::account::qt::AccountController* cloudAccount = nullptr;
     if (cloudSource) {
         auto* controller = accountServers ? accountServers->controllerFor(cloudSource->origin.toString()) : nullptr;
+        cloudAccount = controller;
         cloudSession = controller ? controller->readSession() : nullptr;
         if (!cloudSession) {
             std::fprintf(stderr, "error: sign in to %s to open this cloud timeline\n",
@@ -1233,6 +1237,7 @@ int main(int argc, char** argv) {
     view.rootContext()->setContextProperty(QStringLiteral("nativeAccountServers"), accountServers.get());
     view.rootContext()->setContextProperty(QStringLiteral("nativeCloudDocument"),
                                            cloudSaver ? cloudSaver->document() : nullptr);
+    view.rootContext()->setContextProperty(QStringLiteral("nativeCloudAccount"), cloudSaver ? cloudAccount : nullptr);
     view.rootContext()->setContextProperty(QStringLiteral("nativeInteractiveRun"),
                                            !background && QGuiApplication::platformName() != u"offscreen");
     view.loadFromModule("NodeTool.Timeline", "TimelineEditor");

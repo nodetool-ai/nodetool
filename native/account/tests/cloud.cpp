@@ -6,6 +6,7 @@
 #include "nodetool/account/cloud_drafts.h"
 #include "nodetool/account/cloud_listing.h"
 #include "nodetool/account/cloud_savers.h"
+#include "nodetool/account/cloud_sharing.h"
 #include "nodetool/account/crypto.h"
 #include "nodetool/account/http_token_endpoint.h"
 #include "nodetool/account/origin.h"
@@ -1465,6 +1466,194 @@ void listingSortsFailures(TestContext& t) {
   CHECK(signedOut.transport.sent().size() == before);
 }
 
+// ── Sharing (FR52, FR67, SR6) ───────────────────────────────────────
+void readsTheSharingOfEachKind(TestContext& t) {
+  ListServer server;
+  const std::string answer = R"({"result":{"data":{"json":{"collaborators":[],
+    "shares":[
+      {"id":"s1","token":"old","role":"viewer","disabled_at":"2026-11-01T00:00:00Z"},
+      {"id":"s2","token":"tok","role":"viewer","options":{"allow_history":true,"allow_download":false,"allow_duplicate":true}},
+      {"token":"no-id","role":"editor"}],
+    "people":[{"user_id":"u1","display_name":"Ada","email":"ada@example.com",
+      "access":{"role":"editor","options":{"allow_history":true,"allow_download":true,"allow_duplicate":true},
+        "grants":[],"given_by":{"role":[],"allow_history":[],"allow_download":[],"allow_duplicate":[]}}}]}}}})";
+  server.answers["workflows.sharing.get"] = {200, answer};
+  server.answers["documentSharing.get"] = {200, answer};
+
+  const SharingState workflow = readSharing(server.client, "workflow", "w1");
+  CHECK(workflow.status == CloudListStatus::Ok);
+  CHECK(workflow.links.size() == 2);
+  CHECK(workflow.links[0].id == "s2");
+  CHECK(!workflow.links[0].disabled);
+  CHECK(workflow.links[0].options.history);
+  CHECK(!workflow.links[0].options.download);
+  CHECK(workflow.links[0].options.duplicate);
+  CHECK(workflow.links[1].disabled);
+  CHECK(workflow.people.size() == 1);
+  CHECK(workflow.people[0].name == "Ada");
+  CHECK(workflow.people[0].role == "editor");
+  CHECK(workflow.people[0].options.download);
+  CHECK(enabledLink(workflow, "viewer") == &workflow.links[0]);
+  CHECK(enabledLink(workflow, "editor") == nullptr);
+
+  const SharingState timeline = readSharing(server.client, "timeline", "t1");
+  CHECK(timeline.status == CloudListStatus::Ok);
+  const std::vector<HttpRequest> sent = server.transport.sent();
+  bool sawWorkflow = false;
+  bool sawTimeline = false;
+  for (const HttpRequest& r : sent) {
+    if (r.url.find("/trpc/workflows.sharing.get?input=") != std::string::npos) {
+      sawWorkflow = true;
+      CHECK(r.method == "GET");
+    }
+    if (r.url.find("/trpc/documentSharing.get?input=") != std::string::npos) {
+      sawTimeline = true;
+      CHECK(r.url.find("timeline") != std::string::npos);
+    }
+  }
+  CHECK(sawWorkflow);
+  CHECK(sawTimeline);
+
+  // An unknown kind sends nothing.
+  const std::size_t before = server.transport.sent().size();
+  CHECK(readSharing(server.client, "folder", "f1").reason == "UNKNOWN_KIND");
+  CHECK(server.transport.sent().size() == before);
+
+  server.answers["documentSharing.get"] = {200, R"({"result":{"data":{"json":{"people":[]}}}})"};
+  CHECK(readSharing(server.client, "script", "s1").reason == "INVALID_RESPONSE");
+  server.answers["documentSharing.get"] = {403, R"({"error":{"json":{"data":{"apiCode":"FORBIDDEN"}}}})"};
+  const SharingState refused = readSharing(server.client, "script", "s1");
+  CHECK(refused.status == CloudListStatus::Refused);
+  CHECK(refused.reason == "FORBIDDEN");
+}
+
+void changesLinksWithMutations(TestContext& t) {
+  ListServer server;
+  server.answers["documentSharing.createLink"] = {200,
+                                                  R"({"result":{"data":{"json":{"id":"s9","token":"abc","role":"editor"}}}})"};
+  server.answers["documentSharing.revokeLink"] = {200, R"({"result":{"data":{"json":{"ok":true}}}})"};
+  server.answers["workflows.sharing.setLinkOptions"] = {
+      200, R"({"result":{"data":{"json":{"id":"s3","token":"x","role":"viewer",
+        "options":{"allow_history":false,"allow_download":true,"allow_duplicate":false}}}}})"};
+
+  const ShareChange created = createLink(server.client, "storyboard", "b1", "editor");
+  CHECK(created.status == CloudListStatus::Ok);
+  CHECK(created.link.id == "s9");
+  CHECK(created.link.token == "abc");
+  CHECK(disableLink(server.client, "storyboard", "b1", "s9").status == CloudListStatus::Ok);
+  const ShareChange options = setLinkOptions(server.client, "workflow", "w1", "s3", {false, true, false});
+  CHECK(options.status == CloudListStatus::Ok);
+  CHECK(options.link.options.download);
+
+  std::map<std::string, nlohmann::json> bodies;
+  for (const HttpRequest& r : server.transport.sent()) {
+    const std::string prefix = std::string(kServer) + "/trpc/";
+    if (r.method == "POST" && r.url.rfind(prefix, 0) == 0) {
+      bodies[r.url.substr(prefix.size())] = nlohmann::json::parse(r.body);
+    }
+  }
+  CHECK(bodies["documentSharing.createLink"] ==
+        nlohmann::json({{"type", "storyboard"}, {"id", "b1"}, {"role", "editor"}}));
+  CHECK(bodies["documentSharing.revokeLink"] ==
+        nlohmann::json({{"type", "storyboard"}, {"id", "b1"}, {"share_id", "s9"}}));
+  CHECK(bodies["workflows.sharing.setLinkOptions"] ==
+        nlohmann::json({{"id", "w1"},
+                        {"share_id", "s3"},
+                        {"options", {{"allow_history", false}, {"allow_download", true}, {"allow_duplicate", false}}}}));
+
+  server.answers["documentSharing.setRole"] = {200, R"({"result":{"data":{"json":{"user_id":"u1"}}}})"};
+  server.answers["documentSharing.removeCollaborator"] = {200, R"({"result":{"data":{"json":{"ok":true}}}})"};
+  CHECK(setPersonRole(server.client, "script", "s1", "u1", "viewer").status == CloudListStatus::Ok);
+  CHECK(removePerson(server.client, "script", "s1", "u1").status == CloudListStatus::Ok);
+  bodies.clear();
+  for (const HttpRequest& r : server.transport.sent()) {
+    const std::string prefix = std::string(kServer) + "/trpc/";
+    if (r.method == "POST" && r.url.rfind(prefix, 0) == 0) {
+      bodies[r.url.substr(prefix.size())] = nlohmann::json::parse(r.body);
+    }
+  }
+  CHECK(bodies["documentSharing.setRole"] ==
+        nlohmann::json({{"type", "script"}, {"id", "s1"}, {"user_id", "u1"}, {"role", "viewer"}}));
+  CHECK(bodies["documentSharing.removeCollaborator"] ==
+        nlohmann::json({{"type", "script"}, {"id", "s1"}, {"user_id", "u1"}}));
+
+  // A link without an id is not a link.
+  server.answers["documentSharing.createLink"] = {200, R"({"result":{"data":{"json":{"token":"abc"}}}})"};
+  CHECK(createLink(server.client, "script", "s1", "viewer").reason == "INVALID_RESPONSE");
+}
+
+void shareUrlsMatchTheWebRoutes(TestContext& t) {
+  CHECK(shareUrl(kServer, "workflow", "tok", "viewer") == "https://nt.example/share/tok");
+  CHECK(shareUrl(kServer, "workflow", "tok", "public") == "https://nt.example/view/tok");
+  CHECK(shareUrl(kServer, "timeline", "tok", "editor") == "https://nt.example/share/document/tok");
+}
+
+void statesWhatALinkGives(TestContext& t) {
+  CHECK(linkStatement("viewer", {}) ==
+        "Anyone signed in who opens this link can view the current version of the document. They cannot read its "
+        "history, download its files or make a copy.");
+  CHECK(linkStatement("viewer", {true, false, false}) ==
+        "Anyone signed in who opens this link can view the current version of the document. They can also read its "
+        "history.");
+  CHECK(linkStatement("viewer", {true, true, true}) ==
+        "Anyone signed in who opens this link can view the current version of the document. They can also read its "
+        "history, download its files and make their own copy. Downloaded files and copies cannot be taken back.");
+  CHECK(linkStatement("editor", {}).find("edit") != std::string::npos);
+  CHECK(linkStatement("public", {}).find("without signing in") != std::string::npos);
+}
+
+void findsTheDocumentsATimelineLinksTo(TestContext& t) {
+  const std::string timeline = R"({"clips":[
+      {"id":"c1","scriptId":"sc1"},
+      {"id":"c2","storyboardBoardId":"b1"},
+      {"id":"c3","scriptId":"sc1","storyboardBoardId":"b2"},
+      {"id":"c4"}],
+    "storyboardMaterializations":[{"boardId":"b1"},{"boardId":"b3"}]})";
+  const std::vector<LinkedDocument> linked = linkedDocuments("timeline", timeline);
+  CHECK(linked.size() == 4);
+  if (linked.size() == 4) {
+    CHECK(linked[0].kind == "script");
+    CHECK(linked[0].id == "sc1");
+    CHECK(linked[1].kind == "storyboard");
+    CHECK(linked[1].id == "b1");
+    CHECK(linked[2].id == "b2");
+    CHECK(linked[3].id == "b3");
+  }
+  CHECK(linkedDocuments("workflow", timeline).empty());
+  CHECK(linkedDocuments("timeline", "not json").empty());
+}
+
+void warnsOfValuesThatLookLikeSecrets(TestContext& t) {
+  const std::string workflow = R"({"graph":{"nodes":[
+      {"id":"n1","type":"openai.Chat","data":{"prompt":"hello","api_key":"sk-proj-abcdefghijklmnopqrstuvwx"}},
+      {"id":"n2","type":"http.Get","data":{"headers":{"Authorization":"Bearer abcdefghijklmnopqrstuvwxyz012345"}}},
+      {"id":"n3","type":"db.Query","data":{"password":"hunter2hunter2hunter2"}},
+      {"id":"n4","type":"text.Note","data":{"text":"the password is in the vault, ask the team"}},
+      {"id":"n5","type":"text.Note","data":{"text":"short","token_count":"512"}}]}})";
+  const std::vector<SecretFinding> found = findSecretLike("workflow", workflow);
+  CHECK(found.size() == 3);
+  if (found.size() == 3) {
+    CHECK(found[0].place == "node n1 (openai.Chat), property api_key");
+    CHECK(found[0].looksLike == "an OpenAI key");
+    CHECK(found[1].place == "node n2 (http.Get), property headers.Authorization");
+    CHECK(found[1].looksLike == "a bearer token");
+    CHECK(found[2].looksLike == "a key or password");
+  }
+  for (const SecretFinding& f : found) {
+    CHECK(f.place.find("sk-proj") == std::string::npos);
+  }
+
+  const std::vector<SecretFinding> inTimeline =
+      findSecretLike("timeline", R"({"clips":[{"id":"c1","prompt":"AKIAABCDEFGHIJKLMNOP"}]})");
+  CHECK(inTimeline.size() == 1);
+  if (!inTimeline.empty()) {
+    CHECK(inTimeline[0].place == "clips[0].prompt");
+    CHECK(inTimeline[0].looksLike == "an AWS access key");
+  }
+  CHECK(findSecretLike("script", "{\"text\":\"A normal script\"}").empty());
+  CHECK(findSecretLike("script", "not json").empty());
+}
+
 } // namespace
 
 int main() {
@@ -1504,6 +1693,12 @@ int main() {
       {"followsTheWorkflowPages", followsTheWorkflowPages},
       {"listsTheDocumentsSharedWithTheAccount", listsTheDocumentsSharedWithTheAccount},
       {"listingSortsFailures", listingSortsFailures},
+      {"readsTheSharingOfEachKind", readsTheSharingOfEachKind},
+      {"changesLinksWithMutations", changesLinksWithMutations},
+      {"shareUrlsMatchTheWebRoutes", shareUrlsMatchTheWebRoutes},
+      {"statesWhatALinkGives", statesWhatALinkGives},
+      {"findsTheDocumentsATimelineLinksTo", findsTheDocumentsATimelineLinksTo},
+      {"warnsOfValuesThatLookLikeSecrets", warnsOfValuesThatLookLikeSecrets},
       {"oneInstancePerOpenDocument", oneInstancePerOpenDocument},
       {"workflowSaverSendsTheGraph", workflowSaverSendsTheGraph},
       {"timelineSaverSendsTheDocument", timelineSaverSendsTheDocument},

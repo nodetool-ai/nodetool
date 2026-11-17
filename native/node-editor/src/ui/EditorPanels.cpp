@@ -479,6 +479,7 @@ void EditorWindow::startCloudDocument(std::shared_ptr<nodetool::account::Account
   std::vector<std::pair<std::string, std::string>> headers;
   if (!session_.token().isEmpty()) { headers.emplace_back("Authorization", ("Bearer " + session_.token()).toStdString()); }
   const auto local = session_.serverUrl().adjusted(QUrl::RemovePath | QUrl::RemoveQuery | QUrl::RemoveFragment);
+  cloudOrigin_ = QString::fromStdString(session->serverOrigin());
   account::qt::CloudDocumentServices services;
   services.session = std::move(session);
   services.store = account::makeLocalServerDraftStore(std::make_unique<account::qt::QtHttpTransport>(),
