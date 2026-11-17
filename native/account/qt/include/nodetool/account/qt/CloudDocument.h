@@ -36,8 +36,10 @@ struct CloudDocumentServices {
   // `workflow` or `timeline`.
   std::string kind;
   std::string documentId;
-  // The role the account holds on the document, from the browser's list:
-  // `owner`, `editor` or `viewer`.
+  // The role the account holds on the document, from the browser's list or
+  // the role kept with a reopened tab: `owner`, `editor` or `viewer`. open()
+  // asks the server for the current role and uses this one only when the
+  // server cannot answer.
   std::string role = "owner";
   // Default: QtHttpTransport.
   std::unique_ptr<HttpTransport> transport;
@@ -66,7 +68,8 @@ class CloudDocument final : public QObject {
   Q_PROPERTY(QString kind READ kind CONSTANT)
   Q_PROPERTY(QString documentId READ documentId CONSTANT)
   // `owner`, `editor` or `viewer`. Only the owner shares the document.
-  Q_PROPERTY(QString role READ role CONSTANT)
+  // open() replaces the role the app passed with the server's current one.
+  Q_PROPERTY(QString role READ role NOTIFY stateChanged)
 
 public:
   enum class SyncStatus {
@@ -162,7 +165,8 @@ private:
   QString readOnlyReason_;
   const QString kind_;
   const QString documentId_;
-  const QString role_;
+  // Replaced by the server's answer when the document opens.
+  QString role_;
   QString content_;
 };
 

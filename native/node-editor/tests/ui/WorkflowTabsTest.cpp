@@ -345,6 +345,53 @@ private slots:
     QCOMPARE(saved[0].toObject()["file"].toString(), path);
     QSettings().remove("workflowTabs/documents");
   }
+  // The bundled server listens on a new port at every launch. A tab saved on
+  // it reconnects to this launch's port, a cloud tab included, and a saved
+  // bundled tab does not stop the editor from starting that server (review F3).
+  void restoreReconnectsBundledTabsToTheNewPort() {
+    const QUrl before("http://127.0.0.1:51001"), after("http://127.0.0.1:52002");
+    {
+      EditorWindow window;
+      window.setBundledServer(before);
+      window.session()->connectToServer(before, QString());
+      window.persistTabs();
+    }
+    auto saved = QJsonDocument::fromJson(QSettings().value("workflowTabs/documents").toByteArray()).array();
+    QCOMPARE(saved.size(), 1);
+    QVERIFY(saved[0].toObject()["bundled"].toBool());
+    QVERIFY(!EditorWindow::savedTabsNameAServer());
+    auto workflowTab = saved[0].toObject();
+    workflowTab["workflow"] = "w1";
+    saved[0] = workflowTab;
+    saved.append(QJsonObject{{"cloud", "cloud-workflow-id"},
+                             {"cloudServer", "https://cloud.invalid"},
+                             {"role", "editor"},
+                             {"origin", before.toString()},
+                             {"bundled", true},
+                             {"project", ""}});
+    QSettings().setValue("workflowTabs/documents", QJsonDocument(saved).toJson(QJsonDocument::Compact));
+    QSettings().setValue("workflowTabs/active", 1);
+    {
+      EditorWindow restored;
+      restored.setBundledServer(after);
+      restored.restoreTabs();
+      QCOMPARE(restored.workflowTabs().size(), 2);
+      QCOMPARE(restored.session()->serverUrl(), after);
+      restored.activateTab(0);
+      QCOMPARE(restored.session()->serverUrl(), after);
+    }
+    // A tab of a server the user chose stays on it, and keeps the editor
+    // from starting the bundled server.
+    QSettings().setValue("workflowTabs/documents",
+                         QJsonDocument(QJsonArray{QJsonObject{{"file", ""},
+                                                              {"workflow", "w1"},
+                                                              {"origin", "http://localhost:7777"},
+                                                              {"project", ""}}})
+                             .toJson(QJsonDocument::Compact));
+    QVERIFY(EditorWindow::savedTabsNameAServer());
+    QSettings().remove("workflowTabs/documents");
+    QSettings().remove("workflowTabs/active");
+  }
   // Each tab's socket names the tab's project, so the server watches its
   // folder: on open, after opening a workflow of a project, and for a tab
   // created in another project.
