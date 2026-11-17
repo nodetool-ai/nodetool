@@ -94,13 +94,13 @@ function websocketTest(name) {
  */
 export const PATH_CHECKS = [
   {
-    path: /^native\/ui_primitives\//,
+    path: /^native\/(?:ui_primitives|files)\//,
     steps: [
       { label: "native UI: design contracts", command: "python3", args: ["native/ui_primitives/tools/check_design.py", "--strict"] },
       { label: "native UI: dependency boundaries", command: "python3", args: ["native/ui_primitives/tools/check_dependencies.py"] }
     ]
   },
-  { path: /^native\/(?:gpu-preview|graph-runner|jobs|kernels|model-picker|node-editor|realtime|storyboard|timeline)\//, steps: [NATIVE_CTEST] },
+  { path: /^native\/(?:files|gpu-preview|graph-runner|jobs|kernels|model-picker|node-editor|realtime|storyboard|timeline)\//, steps: [NATIVE_CTEST] },
   {
     path: /^native\/parity\//,
     steps: [

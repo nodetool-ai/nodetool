@@ -1,0 +1,11 @@
+nt_qml_sources(src/projectfiles/TimelineProjectFiles.h src/projectfiles/TimelineProjectFiles.cpp)
+function(nt_projectfiles_tests)
+    qt_add_executable(tst_projectfiles src/projectfiles/tst_projectfiles.cpp ${NT_app})
+    set_target_properties(tst_projectfiles PROPERTIES MACOSX_BUNDLE FALSE)
+    target_link_libraries(tst_projectfiles PRIVATE timeline_core timeline_decode timeline_audio timeline_server
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+    nt_add_timeline_qml(tst_projectfiles OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_projectfiles_qml/NodeTool/Timeline)
+    add_test(NAME tst_projectfiles COMMAND tst_projectfiles)
+    set_tests_properties(tst_projectfiles PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endfunction()
+nt_tests(nt_projectfiles_tests)

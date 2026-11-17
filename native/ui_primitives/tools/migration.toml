@@ -4559,3 +4559,31 @@ test_host = "native/node-editor/tests/ui/QueueUiTest.cpp"
 test_scope = "interaction"
 qml_callers = []
 replacement = "NodeTool.UiPrimitives"
+
+[[file]]
+path = "native/files/qml/FilesPanel.qml"
+category = "chrome"
+controls = ["Rectangle", "ColumnLayout", "Ui.PanelHeader", "Ui.ToolbarIconButton", "Ui.CloseButton", "Item", "Ui.BusyIndicator", "Ui.EmptyState", "ListView", "Ui.ScrollBar", "Connections", "Ui.ListRow", "TapHandler", "Ui.Icon", "Image", "Ui.Text", "Ui.ContextMenu", "Ui.MenuItem"]
+signals = ["closeRequested"]
+test_host = "files-tests"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.PanelHeader, Ui.ToolbarIconButton, Ui.CloseButton, Ui.BusyIndicator, Ui.EmptyState, Ui.ScrollBar, Ui.ListRow, Ui.Icon, Ui.Text, Ui.ContextMenu, Ui.MenuItem"
+
+[[exception]]
+path = "native/files/qml/FilesPanel.qml"
+object = "root/ColumnLayout[0]/list/row/TapHandler[0]"
+binding = "onTapped"
+rule = "manual-control"
+owner = "Project Files tree"
+reason = "A right click on a tree row selects it and opens the Reveal menu at the pointer, as the web WorkspaceTree context menu does. Ui.ListRow takes only the left button, and the handler is enabled only for a folder on this machine."
+
+[[file]]
+path = "native/timeline/qml/files/FilesDock.qml"
+category = "chrome"
+controls = ["Item", "TimelineProjectFiles", "FilesPanel"]
+signals = []
+test_host = "tst_projectfiles"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.Files: FilesPanel"

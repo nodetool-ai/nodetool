@@ -298,6 +298,18 @@ describe("buildPlan", () => {
     ]);
   });
 
+  it.each(["native/files/qml/FilesPanel.qml", "native/files/src/ProjectFiles.cpp"])(
+    "selects the native UI checks and the affected ctest tests for %s",
+    (file) => {
+      expect(plan([file]).globalFiles).toEqual([]);
+      expect(labels([file])).toEqual([
+        "native UI: design contracts",
+        "native UI: dependency boundaries",
+        "native ctest: affected tests"
+      ]);
+    }
+  );
+
   it("runs each check once and still runs the owning workspaces", () => {
     expect(
       labels([

@@ -2684,6 +2684,21 @@
       "status": "partial",
       "note": "Workflow and ComfyUI examples, plus the native bundled examples. Apps, storyboard, timeline, sketch, 3D model and game examples are left out, since only workflow examples belong in the node editor. Dragging a card onto the canvas pastes a copy of its graph with the first node at the drop point."
     },
+    "web/src/components/workspaces/WorkspaceTree.tsx": {
+      "native": [
+        "native/files/qml/FilesPanel.qml",
+        "native/files/src/ProjectFiles.cpp"
+      ],
+      "status": "partial",
+      "note": "The rail's Files dock: lazy folders, natural sort, refresh on workspace file pushes, keyboard navigation and Reveal for a local folder. Native has no file viewer, so opening a file only emits openFileRequested. Drop upload, the breadcrumb and Open externally are missing."
+    },
+    "web/src/components/workspaces/useFolderPicker.tsx": {
+      "native": [
+        "native/node-editor/qml/ProjectFolderNotice.qml"
+      ],
+      "status": "partial",
+      "note": "Native locates a missing folder with a platform FolderDialog. The web server-side folder browser for a remote server has no native counterpart."
+    },
     "web/src/components/chat/ChatListPanel.tsx": {
       "native": [
         "native/chat/qml/ThreadList.qml",

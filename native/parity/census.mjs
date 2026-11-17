@@ -30,7 +30,8 @@ export const WEB_COMPONENT_DIRS = [
     "web/src/components/version",
     "web/src/components/examples",
     "web/src/components/chat",
-    "web/src/components/workflows"
+    "web/src/components/workflows",
+    "web/src/components/workspaces"
 ];
 
 // Credit per status. Accepted, out-of-scope and unreviewed items are left out

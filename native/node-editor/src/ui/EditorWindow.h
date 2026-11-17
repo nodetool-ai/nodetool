@@ -44,6 +44,7 @@
 #include "server/WorkflowBrowser.h"
 #include "library/LibraryBrowser.h"
 #include "server/ProjectFolder.h"
+#include "ProjectFiles.h"
 #include "server/WorkflowVersions.h"
 #include "runtime/ChatSession.h"
 #include <QDateTime>
@@ -191,6 +192,7 @@ public:
   node_editor::DynamicPortsController *dynamicPorts() { return activeEditor() == this ? &dynamicPorts_ : activeEditor()->dynamicPorts(); }
   node_editor::WorkflowBrowser *workflowBrowser() { return activeEditor() == this ? &browser_ : activeEditor()->workflowBrowser(); }
   bool browserVisible() const;
+  bool filesVisible() const;
   bool libraryVisible() const;
   bool examplesVisible() const;
   void openWorkflow(const QString &id);
@@ -386,6 +388,10 @@ protected:
   void resizeEvent(QResizeEvent *) override;
 
 private slots:
+  // Opens or closes the Files panel, which shares the left side with the
+  // workflow browser, the asset library and the examples. FilesPanel.qml's
+  // close button calls it by name.
+  void toggleFiles();
   void saveLocalCopyAs();
   // Documents/<workflow name>.json: where a file dialog for this tab starts.
   QString defaultSavePath() const;
@@ -844,8 +850,11 @@ private:
   node_editor::WorkflowBrowser browser_;
   node_editor::LibraryBrowser library_;
   node_editor::ProjectFolder projectFolder_;
+  // The rail's Files view of the same folder (NodeTool.Files).
+  files::ProjectFiles projectFiles_;
   node_editor::ExampleGallery exampleGallery_;
   QDockWidget *browserDock_ = nullptr;
+  QDockWidget *filesDock_ = nullptr;
   QDockWidget *libraryDock_ = nullptr;
   QDockWidget *examplesDock_ = nullptr;
   bool browserRestoreCatalog_ = false;
