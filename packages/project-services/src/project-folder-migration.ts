@@ -131,7 +131,10 @@ export function locationNeedsPermission(
 }
 
 async function readStored(userId: string): Promise<StoredState | null> {
-  const row = await Setting.find(userId, PROJECT_FOLDER_MIGRATION_SETTING);
+  return parseStored(userId, await Setting.find(userId, PROJECT_FOLDER_MIGRATION_SETTING));
+}
+
+function parseStored(userId: string, row: Setting | null): StoredState | null {
   if (!row) return null;
   try {
     return storedState.parse(JSON.parse(row.value));
@@ -155,21 +158,23 @@ async function writeStored(userId: string, state: StoredState): Promise<void> {
 /** Read-modify-write of a user's state, one at a time within this process. */
 const stateQueues = new Map<string, Promise<unknown>>();
 
+function serialized<T>(userId: string, step: () => Promise<T>): Promise<T> {
+  const previous = stateQueues.get(userId) ?? Promise.resolve();
+  const next = previous.catch(() => undefined).then(step);
+  stateQueues.set(userId, next);
+  return next;
+}
+
 function updateStored(
   userId: string,
   change: (current: StoredState | null) => StoredState | null
 ): Promise<StoredState | null> {
-  const previous = stateQueues.get(userId) ?? Promise.resolve();
-  const next = previous
-    .catch(() => undefined)
-    .then(async () => {
-      const current = await readStored(userId);
-      const updated = change(current);
-      if (updated && updated !== current) await writeStored(userId, updated);
-      return updated;
-    });
-  stateQueues.set(userId, next);
-  return next;
+  return serialized(userId, async () => {
+    const current = await readStored(userId);
+    const updated = change(current);
+    if (updated && updated !== current) await writeStored(userId, updated);
+    return updated;
+  });
 }
 
 function refuse(message: string): never {
@@ -626,7 +631,8 @@ export async function confirmMigration(
   requireApplies();
   const runner = options.runner ?? projectFolderMigrationRunner;
   const by = options.by ?? "user";
-  const current = (await readStored(userId)) ?? NOT_STARTED;
+  const row = await Setting.find(userId, PROJECT_FOLDER_MIGRATION_SETTING);
+  const current = parseStored(userId, row) ?? NOT_STARTED;
   const allowed =
     current.state === "plan_shown" || (by === "auto" && current.state === "not_started");
   if (!allowed) {
@@ -640,31 +646,34 @@ export async function confirmMigration(
   if (location.error) {
     throw new ProjectFolderMigrationError("invalid_location", location.error);
   }
+  const confirmed: StoredState = {
+    ...current,
+    state: "confirmed",
+    location: location.path,
+    confirmed_by: by,
+    total_assets: await Asset.countAwaitingFolderMove(userId)
+  };
+  const writes = [
+    { key: PROJECT_FOLDER_MIGRATION_SETTING, value: JSON.stringify(confirmed) }
+  ];
   if (options.location !== undefined) {
     const configured = await configuredProjectsDir(userId);
     if (configured.dir !== location.path || !configured.fromUser) {
-      await Setting.upsert({
-        userId,
-        key: PROJECTS_DIR_SETTING,
-        value: location.path
-      });
+      writes.push({ key: PROJECTS_DIR_SETTING, value: location.path });
     }
   }
-  const totalAssets = await Asset.countAwaitingFolderMove(userId);
-  const confirmed = await updateStored(userId, (latest) => {
-    const state = latest ?? NOT_STARTED;
-    if (state.state !== current.state) {
-      refuse("The migration changed while it was being confirmed");
-    }
-    return {
-      ...state,
-      state: "confirmed",
-      location: location.path,
-      confirmed_by: by,
-      total_assets: totalAssets
-    };
-  });
-  if (confirmed && options.start !== false) void runner.start(userId);
+  // The transition and the location commit together, and only while the
+  // state is still the one read above. A confirmation that lost a race
+  // writes neither, so folder creation reads the winner's location.
+  const committed = await serialized(userId, () =>
+    Setting.upsertManyIf(
+      userId,
+      { key: PROJECT_FOLDER_MIGRATION_SETTING, expected: row?.value ?? null },
+      writes
+    )
+  );
+  if (!committed) refuse("The migration changed while it was being confirmed");
+  if (options.start !== false) void runner.start(userId);
   return getMigrationStatus(userId, runner);
 }
 

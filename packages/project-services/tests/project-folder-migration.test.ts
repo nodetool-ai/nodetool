@@ -317,6 +317,49 @@ describe("location", () => {
     );
   });
 
+  it("keeps the location of the confirmation that won a race", async () => {
+    const film = await legacyProject("Film");
+    const first = join(root, "First");
+    const second = join(root, "Second");
+    await mkdir(first);
+    await mkdir(second);
+    await showMigrationPlan(USER);
+
+    // The second confirmation reads `plan_shown`, then waits while it checks
+    // its location. The first one commits in that time.
+    let hold: (() => void) | null = null;
+    let held: () => void = () => undefined;
+    const reachedHold = new Promise<void>((resolve) => {
+      held = resolve;
+    });
+    let holding = true;
+    const find = Setting.find.bind(Setting);
+    vi.spyOn(Setting, "find").mockImplementation(async (userId, key) => {
+      if (holding && key === "PROJECTS_DIR") {
+        holding = false;
+        held();
+        await new Promise<void>((resolve) => {
+          hold = resolve;
+        });
+      }
+      return find(userId, key);
+    });
+
+    const late = confirmMigration(USER, { location: second, runner, start: false });
+    await reachedHold;
+    await confirmMigration(USER, { location: first, runner, start: false });
+    (hold as (() => void) | null)?.();
+
+    expect(await refusal(late)).toBe("invalid_transition");
+    expect((await getMigrationStatus(USER, runner)).location).toBe(first);
+    expect((await Setting.find(USER, "PROJECTS_DIR"))?.value).toBe(first);
+
+    await runner.start(USER);
+    const project = await Project.findOwned(USER, film.id);
+    const folder = await Workspace.find(USER, project?.workspace_id ?? "");
+    expect(folder?.path).toBe(join(first, "Film"));
+  });
+
   it("warns where macOS asks for permission", () => {
     const home = "/Users/ada";
     for (const path of [
