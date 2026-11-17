@@ -116,9 +116,19 @@ void removePartial(const QString& part) {
     QFile::remove(part + QStringLiteral(".total"));
 }
 
-// One GET. `offset` > 0 sends `Range: bytes=<offset>-` and appends.
-Attempt downloadOnce(QNetworkAccessManager& nam, const AssetCache::Decorate& decorate, const QUrl& url,
-                     const QString& part, qint64 offset, qint64 expectedTotal) {
+using Stop = std::function<bool()>;
+
+Attempt cancelledAttempt() {
+    Attempt a{Attempt::Fail, QStringLiteral("asset download cancelled")};
+    a.keepPartial = true;  // the received prefix stays valid for a later resume
+    return a;
+}
+
+// One GET. `offset` > 0 sends `Range: bytes=<offset>-` and appends. `stop`
+// is polled while the response arrives and aborts it.
+Attempt downloadOnce(QNetworkAccessManager& nam, const AssetCache::Decorate& decorate, const Stop& stop,
+                     const QUrl& url, const QString& part, qint64 offset, qint64 expectedTotal) {
+    if (stop()) return cancelledAttempt();
     QNetworkRequest req(url);
     // Redirects are followed by hand (downloadFollowing), so each hop is
     // decorated for its own origin: credentials never follow a redirect off
@@ -136,8 +146,13 @@ Attempt downloadOnce(QNetworkAccessManager& nam, const AssetCache::Decorate& dec
     QNetworkReply* reply = nam.get(req);
     QEventLoop loop;
     QTimer cancellation;
-    QObject::connect(&cancellation, &QTimer::timeout, &loop, [reply] {
-        if (QThread::currentThread()->isInterruptionRequested()) { reply->abort(); }
+    bool stopped = false;
+    // Runs inside loop.exec() below, while `reply`, `stop` and `stopped` live.
+    QObject::connect(&cancellation, &QTimer::timeout, &loop, [reply, &stop, &stopped] {
+        if (!stopped && stop()) {
+            stopped = true;
+            reply->abort();
+        }
     });
     cancellation.start(25);
 
@@ -253,17 +268,18 @@ Attempt downloadOnce(QNetworkAccessManager& nam, const AssetCache::Decorate& dec
         a = {Attempt::Fail, QStringLiteral("no response: %1").arg(reply->errorString())};
     }
     reply->deleteLater();
+    if (stopped) return cancelledAttempt();
     return a;
 }
 
 constexpr int kMaxRedirects = 5;
 
 // downloadOnce, following up to kMaxRedirects redirects to http(s) URLs.
-Attempt downloadFollowing(QNetworkAccessManager& nam, const AssetCache::Decorate& decorate, const QUrl& url,
-                          const QString& part, qint64 offset, qint64 expectedTotal) {
+Attempt downloadFollowing(QNetworkAccessManager& nam, const AssetCache::Decorate& decorate, const Stop& stop,
+                          const QUrl& url, const QString& part, qint64 offset, qint64 expectedTotal) {
     QUrl at = url;
     for (int hop = 0; hop <= kMaxRedirects; ++hop) {
-        Attempt a = downloadOnce(nam, decorate, at, part, offset, expectedTotal);
+        Attempt a = downloadOnce(nam, decorate, stop, at, part, offset, expectedTotal);
         if (a.kind != Attempt::Redirect) return a;
         if (!a.next.isValid() || (a.next.scheme() != u"http" && a.next.scheme() != u"https")) {
             return {Attempt::Fail, QStringLiteral("redirect to an unusable URL: %1").arg(a.reason)};
@@ -297,12 +313,16 @@ QString safePathPart(const QString& s) {
     return out.left(64);
 }
 
-AssetCache::AssetCache(QString root, QString serverKey, QString userKey, Decorate decorate)
+AssetCache::AssetCache(QString root, QString serverKey, QString userKey, Decorate decorate, Cancelled cancelled)
     : m_root(std::move(root)), m_serverKey(std::move(serverKey)), m_userKey(std::move(userKey)),
-      m_decorate(std::move(decorate)) {
+      m_decorate(std::move(decorate)), m_cancelled(std::move(cancelled)) {
     bool ok = false;
     const qint64 mb = qEnvironmentVariable("NODETOOL_TIMELINE_CACHE_BUDGET_MB").toLongLong(&ok);
     m_budgetBytes = ok ? mb * 1024 * 1024 : qint64(20) * 1024 * 1024 * 1024;
+}
+
+bool AssetCache::stopRequested() const {
+    return QThread::currentThread()->isInterruptionRequested() || (m_cancelled && m_cancelled());
 }
 
 void AssetCache::protect(const QString& path) {
@@ -383,7 +403,7 @@ QString AssetCache::pathFor(const QString& assetId, const QString& variant, cons
 FetchResult AssetCache::fetch(const QString& assetId, const QString& variant, const RemoteFile& file,
                               const Recheck& recheck, const OnReady& onReady) const {
     FetchResult result;
-    if (QThread::currentThread()->isInterruptionRequested()) {
+    if (stopRequested()) {
         result.error = QStringLiteral("asset download cancelled");
         return result;
     }
@@ -446,7 +466,12 @@ FetchResult AssetCache::fetch(const QString& assetId, const QString& variant, co
 
     QNetworkAccessManager nam;
     nam.setProxy(QNetworkProxy::NoProxy);
+    const Stop stop = [this] { return stopRequested(); };
     for (int attempt = 0; attempt < kMaxAttempts; ++attempt) {
+        if (stopRequested()) {
+            result.error = QStringLiteral("asset download cancelled");
+            return result;
+        }
         qint64 offset = QFileInfo(part).isFile() ? QFileInfo(part).size() : 0;
         const qint64 savedTotal = readTotal(part + QStringLiteral(".total"));
         if (offset > 0 && cur.expectedSize >= 0 && savedTotal >= 0 && savedTotal != cur.expectedSize) {
@@ -467,7 +492,7 @@ FetchResult AssetCache::fetch(const QString& assetId, const QString& variant, co
                 continue;
             }
         } else {
-            const Attempt a = downloadFollowing(nam, m_decorate, cur.url, part, offset, expected);
+            const Attempt a = downloadFollowing(nam, m_decorate, stop, cur.url, part, offset, expected);
             result.bytesDownloaded += a.bytes;
             result.resumed = result.resumed || a.resumed;
             if (a.kind == Attempt::Restart) {
