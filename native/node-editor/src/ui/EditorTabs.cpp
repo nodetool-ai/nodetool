@@ -730,6 +730,11 @@ void EditorWindow::renameTab(int index, const QString &name) {
     if (!target || target->childParent_ || target->projectWorkflowFile() || trimmed.isEmpty() || trimmed == target->workflowName()) {
         return;
     }
+    // A viewer's cloud workflow cannot be renamed. An editor's rename below
+    // changes the document, whose next draft carries the name to the cloud.
+    if (target->cloud_ && target->cloud_->readOnly()) {
+        return;
+    }
     if (target->session_.serverBound()) {
         target->versions_.saveMetadata({{"name", trimmed}});
         target->schedulePanelChanged();

@@ -537,8 +537,14 @@ void EditorWindow::startCloudDocument(std::shared_ptr<nodetool::account::Account
   connect(cloud_.get(), &account::qt::CloudDocument::opened, this, [this](const QString &revision, const QString &draft) {
     auto workflow = QJsonDocument::fromJson(revision.toUtf8()).object();
     // A draft this account left on this computer opens over the revision.
-    const auto graph = QJsonDocument::fromJson(draft.toUtf8()).object();
-    if (!graph.isEmpty()) { workflow["graph"] = graph; }
+    // It is {graph, name}, or the graph alone when kept by an earlier version.
+    const auto kept = QJsonDocument::fromJson(draft.toUtf8()).object();
+    if (kept.value("graph").isObject()) {
+      workflow["graph"] = kept.value("graph");
+      if (!kept.value("name").toString().isEmpty()) { workflow["name"] = kept.value("name"); }
+    } else if (!kept.isEmpty()) {
+      workflow["graph"] = kept;
+    }
     cloudLoading_ = true;
     openDocument(QJsonDocument(workflow).toJson(QJsonDocument::Compact), {});
     cloudLoading_ = false;

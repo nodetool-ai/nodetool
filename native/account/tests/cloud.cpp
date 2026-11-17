@@ -900,6 +900,31 @@ void workflowSaverSendsTheGraph(TestContext& t) {
   }
 }
 
+// A draft that keeps the workflow's name sends it beside the graph, so a
+// rename reaches the server. A graph-only draft sends no name.
+void workflowSaverSendsTheName(TestContext& t) {
+  SaverServer server;
+  server.reply = [](const nlohmann::json&) {
+    return HttpResponse{200, R"({"result":{"data":{"id":"w1","updated_at":"r2"}}})"};
+  };
+  WorkflowCloudSaver saver(server.client);
+  CHECK(saver.save(kWorkflowKey, kInstance, {"r1", "h1"},
+                   R"({"graph":{"nodes":[],"edges":[]},"name":"Renamed"})").status == SaveStatus::Ok);
+  CHECK(saver.save(kWorkflowKey, kInstance, {"r2", "h2"}, R"({"graph":{"nodes":[],"edges":[]},"name":""})").status ==
+        SaveStatus::Ok);
+  CHECK(saver.save(kWorkflowKey, kInstance, {"r2", "h2"}, R"({"graph":{"nodes":{}},"name":"Bad"})").status ==
+        SaveStatus::Refused);
+  const auto sent = server.saves();
+  CHECK(sent.size() == 2);
+  if (sent.size() == 2) {
+    const nlohmann::json first = nlohmann::json::parse(sent[0].body);
+    CHECK(first["name"] == "Renamed");
+    CHECK(first["graph"]["nodes"].is_array());
+    CHECK(!first["graph"].contains("name"));
+    CHECK(!nlohmann::json::parse(sent[1].body).contains("name"));
+  }
+}
+
 void timelineSaverSendsTheDocument(TestContext& t) {
   SaverServer server;
   server.reply = [](const nlohmann::json&) {
@@ -1751,6 +1776,7 @@ int main() {
       {"warnsOfValuesThatLookLikeSecrets", warnsOfValuesThatLookLikeSecrets},
       {"oneInstancePerOpenDocument", oneInstancePerOpenDocument},
       {"workflowSaverSendsTheGraph", workflowSaverSendsTheGraph},
+      {"workflowSaverSendsTheName", workflowSaverSendsTheName},
       {"timelineSaverSendsTheDocument", timelineSaverSendsTheDocument},
       {"timelineSaverSendsTheSequenceColumns", timelineSaverSendsTheSequenceColumns},
       {"saveWithoutBaseIsRefused", saveWithoutBaseIsRefused},
