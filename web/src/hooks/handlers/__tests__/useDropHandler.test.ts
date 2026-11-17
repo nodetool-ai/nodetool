@@ -42,8 +42,14 @@ jest.mock("../../useAddExampleModelAsset", () => ({
 }));
 const mockInstallExampleTimeline = jest.fn();
 const mockInstallExampleStoryboard = jest.fn();
+const mockDocumentByFile = jest.fn();
 jest.mock("../../../trpc/client", () => ({
   trpcClient: {
+    projects: {
+      documentByFile: {
+        query: (...args: unknown[]) => mockDocumentByFile(...args)
+      }
+    },
     timeline: {
       installExample: {
         mutate: (...args: unknown[]) => mockInstallExampleTimeline(...args)
@@ -58,7 +64,9 @@ jest.mock("../../../trpc/client", () => ({
 }));
 const mockAssetOfFile = jest.fn();
 jest.mock("../../../components/workspaces/workspaceTreeActions", () => ({
-  assetOfFile: (...args: unknown[]) => mockAssetOfFile(...args)
+  assetOfFile: (...args: unknown[]) => mockAssetOfFile(...args),
+  isDocumentFile: (path: string) =>
+    /\.(workflow|timeline|storyboard|script|app|jsscript)\.json$/.test(path)
 }));
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   creationProjectId: () => "personal:test"
@@ -283,6 +291,95 @@ describe("useDropHandler", () => {
     expect(mockAssetOfFile).toHaveBeenCalledWith("project-a", "footage/clip.mp4");
     expect(mockGetAsset).toHaveBeenCalledWith("asset-9");
     expect(mockAddNodeFromAsset).toHaveBeenCalledWith(asset, { x: 0, y: 0 });
+  });
+
+  it("adds the document's constant node for a document file from the Files panel", async () => {
+    mockDocumentByFile.mockResolvedValue({
+      type: "storyboard",
+      ref: "board-7",
+      name: "Launch board",
+      updatedAt: "2026-01-01T00:00:00Z",
+      file: { path: "boards/launch.storyboard.json", state: "ok", error: null }
+    });
+    const metadata = {
+      node_type: "nodetool.constant.Storyboard",
+      title: "Storyboard",
+      properties: [],
+      outputs: []
+    };
+    mockGetMetadata.mockReturnValue(metadata);
+    const node = { id: "n1", data: { properties: {}, title: "" } };
+    mockCreateNode.mockReturnValue(node);
+    const { result } = renderHook(() => useDropHandler());
+    const dropEvent = stub<React.DragEvent<HTMLDivElement>>({
+      preventDefault: jest.fn(),
+      target: paneTarget(true),
+      clientX: 10,
+      clientY: 10,
+      dataTransfer: {
+        getData: (format: string) =>
+          format === "application/x-nodetool-drag"
+            ? JSON.stringify({
+                type: "project-file",
+                payload: {
+                  projectId: "project-a",
+                  path: "boards/launch.storyboard.json"
+                }
+              })
+            : "",
+        types: ["application/x-nodetool-drag"],
+        items: [],
+        files: []
+      }
+    });
+
+    await act(async () => {
+      await result.current.onDrop(dropEvent);
+    });
+
+    expect(mockDocumentByFile).toHaveBeenCalledWith({
+      id: "project-a",
+      path: "boards/launch.storyboard.json"
+    });
+    expect(mockAssetOfFile).not.toHaveBeenCalled();
+    expect(mockGetMetadata).toHaveBeenCalledWith("nodetool.constant.Storyboard");
+    expect(node.data.properties).toEqual({
+      value: { type: "storyboard", id: "board-7", data: null }
+    });
+    expect(node.data.title).toBe("Launch board");
+    expect(mockAddNode).toHaveBeenCalledWith(node);
+  });
+
+  it("adds no node for a document file whose document is unknown", async () => {
+    mockDocumentByFile.mockResolvedValue(null);
+    const { result } = renderHook(() => useDropHandler());
+    const dropEvent = stub<React.DragEvent<HTMLDivElement>>({
+      preventDefault: jest.fn(),
+      target: paneTarget(true),
+      clientX: 10,
+      clientY: 10,
+      dataTransfer: {
+        getData: (format: string) =>
+          format === "application/x-nodetool-drag"
+            ? JSON.stringify({
+                type: "project-file",
+                payload: { projectId: "project-a", path: "stray.workflow.json" }
+              })
+            : "",
+        types: ["application/x-nodetool-drag"],
+        items: [],
+        files: []
+      }
+    });
+
+    await act(async () => {
+      await result.current.onDrop(dropEvent);
+    });
+
+    expect(mockAddNode).not.toHaveBeenCalled();
+    expect(mockAddNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "warning" })
+    );
   });
 
   it("adds no node for a Files panel file that is not an asset", async () => {
