@@ -108,7 +108,10 @@ Progress is read from the database, so work done by another process counts:
 minus the assets still waiting. The current project is known only to the
 process doing the work. Failures are stored with the state, at most 50 of them
 plus a count. A failure is an asset whose copy did not verify or could not be
-read, or a project whose folder could not be made or reached.
+read, an asset whose file is missing from asset storage, an asset larger than
+the upload size limit, or a project whose folder could not be made or reached.
+A failed asset is listed again by every run until it moves. Retry looks for
+missing files again.
 
 ## API
 

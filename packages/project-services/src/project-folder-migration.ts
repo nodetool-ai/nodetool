@@ -1134,6 +1134,8 @@ export async function retryMigration(
       ...ownedNow()
     };
   });
+  // Look for the bytes of rows found without any again, too.
+  await Asset.clearMissingBytesMarkers(userId);
   job.forgetFailures();
   void runner.idle(userId).then(() => runner.start(userId));
   return readMigrationStatus(userId, runner);

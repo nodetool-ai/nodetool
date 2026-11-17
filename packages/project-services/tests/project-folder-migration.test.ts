@@ -734,6 +734,37 @@ describe("failures across runs", () => {
   });
 });
 
+describe("missing files", () => {
+  it("lists an asset whose file is missing, finishes the count, and looks again on retry", async () => {
+    const film = await legacyProject("Film");
+    const gone = await legacyAsset(film.id, "gone");
+    const key = getAssetStorageKey(USER, gone.id, PNG);
+    const bytes = await store.retrieve(store.uriForKey(key));
+    if (!bytes) throw new Error("no bytes");
+    await rm(join(root, "assets", key));
+
+    await confirmAndRun();
+
+    const status = await getMigrationStatus(USER, runner);
+    expect(status).toMatchObject({
+      state: "done",
+      failure_count: 1,
+      progress: { done: 1, total: 1 }
+    });
+    expect(status.failures).toEqual([expect.objectContaining({ id: gone.id })]);
+
+    await store.store(key, bytes, PNG);
+    await retryMigration(USER, runner, job);
+    await settle();
+
+    expect(await getMigrationStatus(USER, runner)).toMatchObject({
+      state: "done",
+      failure_count: 0
+    });
+    expect(await moved(gone)).toBe(true);
+  });
+});
+
 describe("previews", () => {
   it("reads the status without confirming under NODETOOL_PROJECT_MIGRATION=auto", async () => {
     vi.stubEnv("NODETOOL_PROJECT_MIGRATION", "auto");
