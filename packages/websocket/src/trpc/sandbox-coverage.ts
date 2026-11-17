@@ -1310,6 +1310,22 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "outside every check in this table, for as long as it is valid. " +
       "read_asset returns the bytes to the run instead."
   },
+  "transfers.open": {
+    withheld:
+      "A transfer publishes local documents and files into a cloud " +
+      "project. Only a person sending from the desktop app starts one."
+  },
+  "transfers.commit": {
+    withheld:
+      "A commit replaces and deletes cloud documents on the person's " +
+      "confirmation in the transfer review, which a run cannot give."
+  },
+  "transfers.status": {
+    withheld: "Transfer state belongs to the desktop app that opened the transfer."
+  },
+  "transfers.cancel": {
+    withheld: "Transfer state belongs to the desktop app that opened the transfer."
+  },
   "games.create": { capability: "create_native_game" },
   "games.draftBeforeChange": {
     gap: "Agent-turn undo snapshots are available to the editor; the agent has no change-history read capability."

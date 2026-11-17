@@ -22,7 +22,8 @@ export {
   getRawDb,
   openSqliteFile,
   pingDb,
-  closeDb
+  closeDb,
+  setTestDatabaseConnection
 } from "./db.js";
 export type { DbDialect, DatabaseConnection } from "./db.js";
 
@@ -800,6 +801,7 @@ export {
   restoreDeletedDocument,
   endDeletedDocumentRestorePeriod,
   purgeDeletedDocuments,
+  deletedDocumentExists,
   retainDeletedDocument,
   registerDeletedDocumentKind,
   type DeletedDocumentEntry,
@@ -840,3 +842,16 @@ export {
   projectAccessKey,
   type AccessKey
 } from "./access-epoch.js";
+export {
+  findCloudTransferAttempt,
+  getCloudTransfer,
+  listCloudTransferAttempts,
+  lockCloudTransfer,
+  lockTransferDocumentRow,
+  openCloudTransfer,
+  recordCloudTransferAttempt,
+  setCloudTransferState,
+  type CloudTransferAttemptRow,
+  type CloudTransferRow,
+  type CloudTransferState
+} from "./cloud-transfer.js";

@@ -599,6 +599,40 @@ const ACCESS_EPOCHS_DDL: readonly string[] = [
 ];
 
 /**
+ * Transfers into cloud projects and their commit attempts
+ * (docs/plans/native-cloud-sync/technical-design.md, "Sending: capture,
+ * stage, commit attempt"). Applied by the `add_cloud_transfers` migration.
+ */
+const CLOUD_TRANSFERS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS cloud_transfers (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    first_publication INTEGER NOT NULL,
+    state TEXT NOT NULL,
+    committed_attempt_id TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_cloud_transfers_user
+    ON cloud_transfers (user_id, created_at)`,
+  `CREATE TABLE IF NOT EXISTS cloud_transfer_attempts (
+    id TEXT PRIMARY KEY NOT NULL,
+    transfer_id TEXT NOT NULL,
+    attempt_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    digest TEXT NOT NULL,
+    outcome TEXT NOT NULL,
+    result TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_cloud_transfer_attempts_attempt
+    ON cloud_transfer_attempts (transfer_id, attempt_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_cloud_transfer_attempts_user
+    ON cloud_transfer_attempts (user_id)`
+];
+
+/**
  * The local store of the native apps for cloud documents: unsent drafts and
  * the last known open state (docs/plans/native-cloud-sync/technical-design.md,
  * "Local data scoping and durable drafts"). Applied by the
@@ -677,7 +711,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...documentFileDdl("js_scripts"),
   ...DELETED_DOCUMENTS_DDL,
   ...PROJECT_BLOBS_DDL,
-  ...ACCESS_EPOCHS_DDL
+  ...ACCESS_EPOCHS_DDL,
+  ...CLOUD_TRANSFERS_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5188,6 +5223,19 @@ export const migrations: MigrationDef[] = [
     },
     async down(db) {
       await db.execute("DROP TABLE IF EXISTS access_epochs");
+    }
+  },
+  {
+    version: "20261130_000003",
+    name: "add_cloud_transfers",
+    createsTables: ["cloud_transfers", "cloud_transfer_attempts"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of CLOUD_TRANSFERS_DDL) await db.execute(statement);
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS cloud_transfer_attempts");
+      await db.execute("DROP TABLE IF EXISTS cloud_transfers");
     }
   }
 ];

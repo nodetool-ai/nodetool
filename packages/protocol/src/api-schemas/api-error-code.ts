@@ -42,7 +42,12 @@ export enum ApiErrorCode {
    * The client's protocol version is below the lowest this server accepts
    * writes from. Listing and reading still work.
    */
-  CLIENT_TOO_OLD = "CLIENT_TOO_OLD"
+  CLIENT_TOO_OLD = "CLIENT_TOO_OLD",
+  /**
+   * A transfer's commit attempt id was recorded with other content. A retry
+   * must send what the first attempt sent, or take a new attempt id.
+   */
+  ATTEMPT_CONTENT_MISMATCH = "ATTEMPT_CONTENT_MISMATCH"
 }
 
 export interface ApiErrorResponse {

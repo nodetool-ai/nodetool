@@ -197,6 +197,7 @@ import workflowsRoutes from "./routes/workflows.js";
 import presetRoutes from "./routes/presets.js";
 import nodesRoutes from "./routes/nodes.js";
 import storageRoutes from "./routes/storage.js";
+import transferRoutes from "./routes/transfers.js";
 import openaiRoutes from "./routes/openai.js";
 import oauthRoutes from "./routes/oauth.js";
 import { oauthAsRoutes } from "./routes/oauth-as.js";
@@ -1842,6 +1843,7 @@ await app.register(workflowsRoutes, routeOpts);
 await app.register(nodesRoutes, routeOpts);
 await app.register(presetRoutes);
 await app.register(storageRoutes, routeOpts);
+await app.register(transferRoutes, routeOpts);
 await app.register(openaiRoutes, routeOpts);
 await app.register(oauthRoutes, routeOpts);
 // MCP OAuth 2.1 AS + well-known discovery routes (docs/mcp-oauth-design.md).

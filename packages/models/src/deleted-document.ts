@@ -248,6 +248,16 @@ async function findOwned(userId: string, kind: string, documentId: string, now: 
   return row ?? null;
 }
 
+/** Whether a kept deleted document has the kind and id, past its purge time or not. */
+export async function deletedDocumentExists(kind: string, documentId: string): Promise<boolean> {
+  const [row] = await getPortableDb()
+    .select({ id: deletedDocuments.id })
+    .from(deletedDocuments)
+    .where(and(eq(deletedDocuments.kind, kind), eq(deletedDocuments.document_id, documentId)))
+    .limit(1);
+  return row !== undefined;
+}
+
 async function projectDeleted(projectId: string): Promise<boolean> {
   const [row] = await getPortableDb()
     .select({ deleted_at: projects.deleted_at })
