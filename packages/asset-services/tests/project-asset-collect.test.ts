@@ -170,12 +170,12 @@ describe.each(["local", "storage"] as const)(
     it("finishes the other two after an interruption without copying the first twice", async () => {
       const linked = await threeLinked();
       const controller = new AbortController();
-      const absorb = vi.spyOn(workspace, "absorb");
+      const absorb = vi.spyOn(workspace, "absorbNew");
       absorb.mockImplementation(async function (this: Workspace, ...args) {
         // Stop the run once the first file is on its way.
         controller.abort();
         absorb.mockRestore();
-        return workspace.absorb(...args);
+        return workspace.absorbNew(...args);
       });
 
       const first = await collectLinkedAssets({
@@ -190,7 +190,7 @@ describe.each(["local", "storage"] as const)(
         linked[1]!.external_path
       );
 
-      const absorbed = vi.spyOn(workspace, "absorb");
+      const absorbed = vi.spyOn(workspace, "absorbNew");
       const second = await collectLinkedAssets({
         projectId: PROJECT,
         userId: USER
@@ -214,14 +214,14 @@ describe.each(["local", "storage"] as const)(
 
     it("keeps an edit made to a later asset while an earlier one was copied", async () => {
       const [first, second] = await threeLinked();
-      const absorb = vi.spyOn(workspace, "absorb");
-      absorb.mockImplementationOnce(async (from, to) => {
+      const absorb = vi.spyOn(workspace, "absorbNew");
+      absorb.mockImplementationOnce(async (from, to, contentType) => {
         // The creator renames the second asset during the first copy.
         const row = await Asset.find(USER, second!.id);
         row!.name = "hero take.mp4";
         await row!.save();
         absorb.mockRestore();
-        await workspace.absorb(from, to);
+        return workspace.absorbNew(from, to, contentType);
       });
 
       const result = await collectLinkedAssets({ projectId: PROJECT, userId: USER });
@@ -231,14 +231,15 @@ describe.each(["local", "storage"] as const)(
       expect(await files()).toContain("Imported/hero-take.mp4");
     });
 
-    it("keeps the reconciler off the reserved file until its row names it", async () => {
+    it("keeps the reconciler off the copy until its row names it", async () => {
       await link("take.mp4", "bytes");
       const seen: boolean[] = [];
-      const absorb = vi.spyOn(workspace, "absorb");
-      absorb.mockImplementationOnce(async (from, to) => {
-        seen.push(isProjectAssetPathInFlux(USER, PROJECT, to));
+      const absorb = vi.spyOn(workspace, "absorbNew");
+      absorb.mockImplementationOnce(async (from, to, contentType) => {
         absorb.mockRestore();
-        await workspace.absorb(from, to);
+        const written = await workspace.absorbNew(from, to, contentType);
+        seen.push(isProjectAssetPathInFlux(USER, PROJECT, to));
+        return written;
       });
 
       const result = await collectLinkedAssets({ projectId: PROJECT, userId: USER });
@@ -249,15 +250,17 @@ describe.each(["local", "storage"] as const)(
       ).toBe(false);
     });
 
-    it("copies into the file it reserved when a run stopped during the copy", async () => {
-      const [asset] = [await link("long take.mp4", "the whole take")];
-      // What a run that died after reserving the name, mid-copy, leaves.
-      await workspace.write("Imported/long-take.mp4", "the wh");
-      asset!.metadata = {
-        ...asset!.metadata,
+    it("reuses the copy a run published before it stopped", async () => {
+      const asset = await link("long take.mp4", "the whole take");
+      // What a run that died after publishing its copy, before the row
+      // moved, leaves.
+      await workspace.write("Imported/long-take.mp4", "the whole take");
+      asset.metadata = {
+        ...asset.metadata,
         [COLLECT_PATH_KEY]: "Imported/long-take.mp4"
       };
-      await asset!.save();
+      await asset.save();
+      const absorbed = vi.spyOn(workspace, "absorbNew");
 
       const result = await collectLinkedAssets({
         projectId: PROJECT,
@@ -265,11 +268,35 @@ describe.each(["local", "storage"] as const)(
       });
 
       expect(result.copied).toEqual([
-        { id: asset!.id, name: "long take.mp4", workspace_path: "Imported/long-take.mp4" }
+        { id: asset.id, name: "long take.mp4", workspace_path: "Imported/long-take.mp4" }
       ]);
+      expect(absorbed).not.toHaveBeenCalled();
       expect(await files()).toEqual(["Imported/long-take.mp4"]);
+    });
+
+    it("never writes over a recorded file whose bytes are not the linked file", async () => {
+      const asset = await link("long take.mp4", "the whole take");
+      // A file another app saved at the recorded path since.
+      await workspace.write("Imported/long-take.mp4", "the creator's file");
+      asset.metadata = {
+        ...asset.metadata,
+        [COLLECT_PATH_KEY]: "Imported/long-take.mp4"
+      };
+      await asset.save();
+
+      const result = await collectLinkedAssets({
+        projectId: PROJECT,
+        userId: USER
+      });
+
+      expect(result.copied).toEqual([
+        { id: asset.id, name: "long take.mp4", workspace_path: "Imported/long-take-2.mp4" }
+      ]);
       expect(
         Buffer.from((await workspace.read("Imported/long-take.mp4"))!).toString()
+      ).toBe("the creator's file");
+      expect(
+        Buffer.from((await workspace.read("Imported/long-take-2.mp4"))!).toString()
       ).toBe("the whole take");
     });
 
@@ -294,6 +321,69 @@ describe.each(["local", "storage"] as const)(
       ).toBe("someone else's");
     });
 
+    /**
+     * Another app saves `path` once, as an editor does: a whole new file put
+     * in place in one step, when the copy into the folder starts.
+     */
+    function competingSaveDuringCopy(
+      bytes: string,
+      after?: () => Promise<never>
+    ): void {
+      const methods = workspace as unknown as Record<
+        string,
+        (...args: unknown[]) => Promise<unknown>
+      >;
+      let saved = false;
+      for (const method of ["absorb", "absorbNew"]) {
+        const original = methods[method];
+        if (typeof original !== "function") continue;
+        methods[method] = async (from: unknown, to: unknown, ...rest) => {
+          if (!saved) {
+            saved = true;
+            await workspace.write(to as string, bytes);
+            if (after) await after();
+          }
+          return original.call(workspace, from, to, ...rest);
+        };
+      }
+    }
+
+    it("never replaces a file another app saved over the name during the copy", async () => {
+      const asset = await link("take.mp4", "the linked take");
+      competingSaveDuringCopy("the creator's take");
+
+      const result = await collectLinkedAssets({ projectId: PROJECT, userId: USER });
+
+      expect(result.copied).toEqual([
+        { id: asset.id, name: "take.mp4", workspace_path: "Imported/take-2.mp4" }
+      ]);
+      expect(await files()).toEqual(["Imported/take-2.mp4", "Imported/take.mp4"]);
+      const read = async (path: string): Promise<string> =>
+        Buffer.from((await workspace.read(path))!).toString();
+      expect(await read("Imported/take.mp4")).toBe("the creator's take");
+      expect(await read("Imported/take-2.mp4")).toBe("the linked take");
+    });
+
+    it("keeps a file another app saved over the name when the copy fails", async () => {
+      const asset = await link("take.mp4", "the linked take");
+      competingSaveDuringCopy("the creator's take", () =>
+        Promise.reject(new Error("copy failed"))
+      );
+
+      const result = await collectLinkedAssets({ projectId: PROJECT, userId: USER });
+
+      expect(result.failed).toEqual([
+        { id: asset.id, name: "take.mp4", reason: "copy failed" }
+      ]);
+      expect(await files()).toEqual(["Imported/take.mp4"]);
+      expect(
+        Buffer.from((await workspace.read("Imported/take.mp4"))!).toString()
+      ).toBe("the creator's take");
+      expect((await Asset.find(USER, asset.id))?.external_path).toBe(
+        asset.external_path
+      );
+    });
+
     it("skips and reports an offline linked file and keeps its link", async () => {
       const [present, missing, changed] = await threeLinked();
       await rm(missing!.external_path!);
@@ -315,8 +405,9 @@ describe.each(["local", "storage"] as const)(
 
     it("reports a copy that does not verify, removes it, and keeps the link", async () => {
       const asset = await link("take.mp4", "original bytes");
-      vi.spyOn(workspace, "absorb").mockImplementation(async (_from, to) => {
+      vi.spyOn(workspace, "absorbNew").mockImplementation(async (_from, to) => {
         await workspace.write(to, "corrupted bytes");
+        return true;
       });
 
       const result = await collectLinkedAssets({ projectId: PROJECT, userId: USER });

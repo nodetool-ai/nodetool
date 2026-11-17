@@ -509,6 +509,18 @@ function hasStoreFile(
   return typeof (storage as { storeFile?: unknown }).storeFile === "function";
 }
 
+/** An adapter that publishes a file on this host only to a free key. */
+function hasStoreFileIfAbsent(
+  storage: StorageAdapter
+): storage is StorageAdapter & {
+  storeFileIfAbsent(key: string, sourcePath: string): Promise<string | null>;
+} {
+  return (
+    typeof (storage as { storeFileIfAbsent?: unknown }).storeFileIfAbsent ===
+    "function"
+  );
+}
+
 export class StorageWorkspace implements Workspace {
   readonly storage: StorageAdapter;
   readonly localDir: string | null;
@@ -1205,6 +1217,23 @@ export class StorageWorkspace implements Workspace {
       return;
     }
     await this.write(path, new Uint8Array(await node.fs.readFile(localPath)));
+  }
+
+  absorbNew(
+    localPath: string,
+    path: string,
+    contentType?: string
+  ): Promise<boolean> {
+    return withTaskSpan("io", "workspace.absorb_new", {}, async () => {
+      const { storage } = this;
+      if (this.localDir && hasStoreFileIfAbsent(storage)) {
+        await this.assertContained(path);
+        return (await storage.storeFileIfAbsent(this.key(path), localPath)) !== null;
+      }
+      // An object store takes the file whole, as `absorb` gives it.
+      const bytes = new Uint8Array(await requireNode().fs.readFile(localPath));
+      return this.writeNew(path, bytes, contentType);
+    });
   }
 
   async scratchDir(): Promise<string> {
