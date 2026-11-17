@@ -20,6 +20,7 @@ import {
   FlexRow,
   ResponsiveImage,
   SPACING,
+  Text,
   VideoPlayer
 } from "../ui_primitives";
 import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
@@ -159,11 +160,17 @@ const WorkspaceFilePreview: React.FC<WorkspaceFilePreviewProps> = ({
       sx={{ borderTop: 1, borderColor: "divider", flexShrink: 0 }}
     >
       <CollapsibleSection
-        title={t("projectFolder.preview.title")}
+        title={
+          <Text size="smaller" weight={500} color="secondary">
+            {t("projectFolder.preview.title")}
+          </Text>
+        }
         defaultOpen
         compact
+        iconPosition="end"
+        sx={{ px: SPACING.sm }}
       >
-        <FlexColumn gap={SPACING.xs} sx={{ p: SPACING.sm }}>
+        <FlexColumn gap={SPACING.sm} sx={{ pb: SPACING.sm }}>
           <FlexRow
             align="center"
             justify="center"
@@ -176,15 +183,18 @@ const WorkspaceFilePreview: React.FC<WorkspaceFilePreviewProps> = ({
           >
             <Media preview={preview} />
           </FlexRow>
-          {detailsOf(preview, path, t).map((line, index) => (
-            <Caption
-              key={index}
-              size="smaller"
-              color={index === 0 ? "primary" : "muted"}
-            >
-              {line}
-            </Caption>
-          ))}
+          <FlexColumn sx={{ minWidth: 0 }}>
+            {detailsOf(preview, path, t).map((line, index) => (
+              <Caption
+                key={index}
+                size="smaller"
+                color={index === 0 ? "inherit" : "muted"}
+                noWrap
+              >
+                {line}
+              </Caption>
+            ))}
+          </FlexColumn>
         </FlexColumn>
       </CollapsibleSection>
     </Box>

@@ -262,33 +262,39 @@ Rectangle {
                     source: root.files.previewImageUrl
                 }
             }
-            Ui.Text {
-                objectName: "files-preview-name"
+            // Name and details read as one block, closer than the gap to the media.
+            Column {
+                objectName: "files-preview-text"
                 width: preview.width
-                text: root.files.previewName
-                textFormat: Text.PlainText
-                role: Ui.Typography.SansCaption
-                tone: Ui.Text.Primary
-                elide: Text.ElideMiddle
-            }
-            Ui.Text {
-                objectName: "files-preview-details"
-                width: preview.width
-                text: root.files.previewDetails
-                textFormat: Text.PlainText
-                role: Ui.Typography.SansCaption
-                tone: Ui.Text.Secondary
-                elide: Text.ElideRight
-            }
-            Ui.Text {
-                objectName: "files-preview-summary"
-                width: preview.width
-                visible: text !== ""
-                text: root.files.previewSummary
-                textFormat: Text.PlainText
-                role: Ui.Typography.SansCaption
-                tone: Ui.Text.Secondary
-                elide: Text.ElideRight
+                spacing: 0
+                Ui.Text {
+                    objectName: "files-preview-name"
+                    width: preview.width
+                    text: root.files.previewName
+                    textFormat: Text.PlainText
+                    role: Ui.Typography.SansCaption
+                    tone: Ui.Text.Primary
+                    elide: Text.ElideMiddle
+                }
+                Ui.Text {
+                    objectName: "files-preview-details"
+                    width: preview.width
+                    text: root.files.previewDetails
+                    textFormat: Text.PlainText
+                    role: Ui.Typography.SansCaption
+                    tone: Ui.Text.Secondary
+                    elide: Text.ElideRight
+                }
+                Ui.Text {
+                    objectName: "files-preview-summary"
+                    width: preview.width
+                    visible: text !== ""
+                    text: root.files.previewSummary
+                    textFormat: Text.PlainText
+                    role: Ui.Typography.SansCaption
+                    tone: Ui.Text.Secondary
+                    elide: Text.ElideRight
+                }
             }
         }
     }
