@@ -15,9 +15,13 @@ bool equalsIgnoringCase(std::string_view a, std::string_view b) {
          });
 }
 
+void setHeader(HttpRequest& request, const char* name, std::string value) {
+  std::erase_if(request.headers, [name](const auto& header) { return equalsIgnoringCase(header.first, name); });
+  request.headers.emplace_back(name, std::move(value));
+}
+
 void setBearer(HttpRequest& request, const std::string& token) {
-  std::erase_if(request.headers, [](const auto& header) { return equalsIgnoringCase(header.first, "Authorization"); });
-  request.headers.emplace_back("Authorization", "Bearer " + token);
+  setHeader(request, "Authorization", "Bearer " + token);
 }
 
 CloudSendStatus statusOf(CredentialStatus status) {
@@ -38,6 +42,7 @@ CloudSendResult CloudClient::send(HttpRequest request) {
     return result;
   }
   request.requiredOrigin = origin;
+  setHeader(request, kProtocolHeader, std::to_string(kClientProtocolVersion));
 
   // Sends with one authorization. The cancel flag stays registered with the
   // session until the response is in.

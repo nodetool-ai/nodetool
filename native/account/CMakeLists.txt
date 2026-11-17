@@ -36,9 +36,11 @@ add_library(nodetool_account STATIC
   src/accounts_index.cpp
   src/cloud_client.cpp
   src/cloud_drafts.cpp
+  src/cloud_savers.cpp
   src/crypto.cpp
   src/http_token_endpoint.cpp
   src/origin.cpp
+  src/policy.cpp
   src/session_record.cpp
   src/sign_in.cpp
   src/storage.cpp)
@@ -104,6 +106,11 @@ if(PROJECT_IS_TOP_LEVEL)
   target_link_libraries(account_cloud_tests PRIVATE nodetool_account nlohmann_json::nlohmann_json)
   target_include_directories(account_cloud_tests PRIVATE tests)
   add_test(NAME account_cloud_tests COMMAND account_cloud_tests)
+  # The managed policy file, TC91's policy half.
+  add_executable(account_policy_tests tests/policy.cpp)
+  target_link_libraries(account_policy_tests PRIVATE nodetool_account)
+  target_include_directories(account_policy_tests PRIVATE tests)
+  add_test(NAME account_policy_tests COMMAND account_policy_tests)
   # The platform keychain store against the real credential store. It
   # passes without checking anything when no store answers, and says so.
   add_executable(account_keychain_tests tests/keychain.cpp)

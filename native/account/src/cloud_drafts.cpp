@@ -1,4 +1,5 @@
 #include "nodetool/account/cloud_drafts.h"
+#include "nodetool/account/crypto.h"
 
 #include "nodetool/account/sign_in.h"
 
@@ -185,11 +186,17 @@ DraftList LocalServerDraftStore::list(const std::string& serverKey, const std::s
   return out;
 }
 
+std::string newEditingInstance() {
+  const std::vector<uint8_t> bytes = randomBytes(16);
+  return hexEncode(bytes.data(), bytes.size());
+}
+
 CloudDocumentSaver::CloudDocumentSaver(DraftStore& store, CloudSaver& cloud, CloudDocumentKey key, CloudBase base)
-    : store_(store), cloud_(cloud), key_(std::move(key)), base_(std::move(base)) {}
+    : store_(store), cloud_(cloud), key_(std::move(key)), editingInstance_(newEditingInstance()),
+      base_(std::move(base)) {}
 
 CloudDocumentSaver::CloudDocumentSaver(DraftStore& store, CloudSaver& cloud, StoredDraft resumed)
-    : store_(store), cloud_(cloud), key_(resumed.key), base_(resumed.base) {
+    : store_(store), cloud_(cloud), key_(resumed.key), editingInstance_(newEditingInstance()), base_(resumed.base) {
   storedId_ = resumed.draftId;
   storedDraft_ = std::move(resumed.draft);
   if (resumed.state == DraftState::Waiting) {
@@ -338,7 +345,7 @@ void CloudDocumentSaver::send(int64_t nowMs) {
     return;
   }
 
-  sent.result = cloud_.save(key_, sent.sentBase, draft);
+  sent.result = cloud_.save(key_, editingInstance_, sent.sentBase, draft);
   switch (sent.result.status) {
   case SaveStatus::Ok: {
     {

@@ -11,6 +11,13 @@
 
 namespace nodetool::account {
 
+// The sync protocol version this client speaks, sent on every cloud request
+// in kProtocolHeader. The server answers a version below its minimum by
+// refusing writes with CLIENT_TOO_OLD, and refuses writes from a native
+// session that sends none (the protocol package's sync.ts).
+inline constexpr int kClientProtocolVersion = 1;
+inline constexpr const char* kProtocolHeader = "x-nodetool-protocol";
+
 enum class CloudSendStatus {
   // The request went out. `response` holds what came back, which may be an
   // error status.
@@ -51,6 +58,7 @@ public:
   CloudSendResult send(HttpRequest request);
 
   const std::string& serverOrigin() const { return session_.serverOrigin(); }
+  const std::string& accountId() const { return session_.accountId(); }
 
 private:
   AccountSession& session_;

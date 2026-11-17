@@ -20,8 +20,9 @@ nlohmann_json only. Three interfaces connect it to the rest of the app:
 - `TokenEndpoint` makes the three server calls: the code exchange, the
   refresh and `/oauth/session/end`. `HttpTokenEndpoint` makes them over an
   `HttpTransport`.
-- `CloudSaver` sends one save of a whole document to the cloud server. The
-  call differs by document kind and belongs to each app.
+- `CloudSaver` sends one save of a whole document to the cloud server.
+  `WorkflowCloudSaver` and `TimelineCloudSaver` implement it for the two
+  kinds phase 1 opens from the cloud.
 
 | Header | What it holds |
 |---|---|
@@ -36,6 +37,8 @@ nlohmann_json only. Three interfaces connect it to the rest of the app:
 | `nodetool/account/http_token_endpoint.h` | `HttpTokenEndpoint` and `parseTokenResponse` |
 | `nodetool/account/cloud_client.h` | `CloudClient`, the one request layer that attaches the credential (WP1.10) |
 | `nodetool/account/cloud_drafts.h` | `CloudDocumentSaver`, the saved-state rule (FR11). `DraftStore` and `LocalServerDraftStore`, the client of the local store |
+| `nodetool/account/cloud_savers.h` | `WorkflowCloudSaver` and `TimelineCloudSaver`, the save of each kind, and the schema versions this client writes |
+| `nodetool/account/policy.h` | `ManagedPolicy`, the managed policy file per platform and `checkServer` (WP1.9) |
 | `nodetool/account/crypto.h` | SHA-256, base64url, hex, random bytes, the server key |
 
 Everything is in the namespace `nodetool::account`. The CMake target is the
@@ -132,7 +135,9 @@ checks again at the send. A transport never follows a redirect. On a 401 it
 renews the token with `refresh(rejectedToken)`, which calls the server even
 when the refused token has not expired, and sends once more with a
 different token. A request in flight when the session signs out returns
-`Cancelled`.
+`Cancelled`. Every request also carries `x-nodetool-protocol` with the
+client's protocol version, so a server that needs a newer client refuses its
+writes with `CLIENT_TOO_OLD` (WP1.7).
 
 `CloudDocumentSaver` drives one open cloud document. `edit()` takes the
 whole in-memory document from any thread. `persist()` and `send()` run on
@@ -153,6 +158,22 @@ never delays a local write:
 4. A refused save keeps the draft as unsent edits. Offline and signed-out
    sends are retried every 5 seconds.
 
+Each `CloudDocumentSaver` draws a new editing instance id when the document
+opens and sends it with every save (WP1.6). When a save from one instance
+replaces a revision another instance wrote, the server keeps the replaced
+revision as a version first.
+
+| Kind | Draft | Procedure | Sent with it |
+|---|---|---|---|
+| workflow | the graph, `{"nodes": [], "edges": []}` | `workflows.autosave` | `expected_updated_at`, `editing_instance`, `schema_version`, `force` |
+| timeline | the timeline document | `timeline.update` | `baseUpdatedAt`, `editingInstance`, `schemaVersion` |
+
+A save the server refuses reports the server's API code, such as
+`ALREADY_EXISTS` for a stale base or `SCHEMA_DOWNGRADE`, or `HTTP_<status>`
+when the answer names none. A 5xx counts as offline and is sent again. A
+draft that is not the kind's JSON is never sent and reads as refused with
+`INVALID_DRAFT`.
+
 The local store is the `cloudLocal` tRPC router of the app's bundled
 server, over the `cloud_drafts` and `cloud_open_state` tables
 (`packages/models/src/cloud-local-store.ts`). Each draft write gets a new
@@ -170,10 +191,33 @@ both tables in place.
   signed app reads the macOS item without a prompt, and the Windows and
   macOS builds of `KeychainStore`, which this repository's CI does not
   compile yet.
-- The `CloudSaver` for each document kind, and moving the apps' existing
-  header writes onto `CloudClient` (WP1.10, with Qt).
+- Moving the apps' existing header writes onto `CloudClient` (WP1.10, with
+  Qt).
 - The file watcher, the Account control and the Qt bindings (WP1.11).
-- The managed policy file (WP1.9).
+- The macOS and Windows readers of the managed policy compile only on those
+  platforms, which this repository's CI does not build yet.
+
+## The managed policy
+
+`readManagedPolicy()` reads the administrator's policy from
+`/etc/nodetool/policy.json` on Linux, the managed preferences of the domain
+`ai.nodetool.native` on macOS (only forced values count), and
+`HKEY_LOCAL_MACHINE\SOFTWARE\Policies\NodeTool\Native` on Windows. It
+has two keys:
+
+| Key | JSON and macOS | Windows | When absent |
+|---|---|---|---|
+| `CloudEnabled` | boolean | `REG_DWORD`, 0 or 1 | cloud features on |
+| `AllowedServers` | array of origins | `REG_MULTI_SZ` | any server |
+
+```json
+{ "CloudEnabled": true, "AllowedServers": ["https://nodetool.example.com"] }
+```
+
+`checkServer()` answers Allowed, CloudOff or ServerNotAllowed, with the
+sentence to show. Origins compare after `normalizeOrigin()`, so case, the
+default port and a trailing slash do not matter. A policy that exists and
+cannot be read turns the cloud features off and names the problem.
 
 ## Build and test
 
@@ -195,7 +239,11 @@ across two separately built apps, need the WP0.2 spike on each platform.
 `account_cloud_tests` covers `HttpTokenEndpoint` against canned responses,
 `CloudClient` against the fake token server, `LocalServerDraftStore`
 against a fake bundled server, and `CloudDocumentSaver`, including TC9 (the
-disk fills while editing) and edits made during a send.
+disk fills while editing) and edits made during a send, and the two
+savers against a fake cloud server.
+
+`account_policy_tests` covers the JSON policy, the origin rule and TC91's
+policy half.
 
 `account_keychain_tests` writes, overwrites and removes real items in the
 platform store and stores a full session record. It prints `SKIP` and passes
