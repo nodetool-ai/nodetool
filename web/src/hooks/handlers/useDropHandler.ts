@@ -31,6 +31,7 @@ import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode"
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
 import { sanitizeGraph } from "../../core/workflow/graphMapping";
 import { insertGraphFragment } from "./insertGraphFragment";
+import { assetOfFile } from "../../components/workspaces/workspaceTreeActions";
 
 /** Horizontal spacing between nodes when dropping multiple assets */
 const MULTI_NODE_HORIZONTAL_SPACING = 250;
@@ -372,6 +373,29 @@ export const useDropHandler = (): UseDropHandlerResult => {
             }
             return;
           }
+        } else if (dragData.type === "project-file") {
+          // A Files panel row: the file is an asset, found by its path.
+          const { projectId, path } = dragData.payload;
+          try {
+            const listed = await assetOfFile(projectId, path);
+            if (!listed) {
+              addNotification({
+                type: "warning",
+                content: `${path} is not an asset and cannot become a node.`,
+                alert: true
+              });
+              return;
+            }
+            addNodeFromAsset(await getAsset(listed.id), position);
+          } catch (error) {
+            console.error(`[drop] Failed to load project file ${path}`, error);
+            addNotification({
+              type: "error",
+              content: `Failed to load file: ${error instanceof Error ? error.message : "Unknown error"}`,
+              alert: true
+            });
+          }
+          return;
         } else if (dragData.type === "asset") {
           const asset = dragData.payload;
           try {

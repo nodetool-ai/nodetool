@@ -609,6 +609,39 @@ describe("WorkspaceTree folder management", () => {
     );
   });
 
+  const startDrag = (source: Element): Record<string, string> => {
+    const store: Record<string, string> = {};
+    const dataTransfer = {
+      types: [] as string[],
+      setData: (type: string, value: string) => {
+        store[type] = value;
+        dataTransfer.types.push(type);
+      },
+      getData: (type: string) => store[type] ?? "",
+      files: [],
+      dropEffect: "none",
+      effectAllowed: "all"
+    };
+    fireEvent.dragStart(source, { dataTransfer });
+    return store;
+  };
+
+  it("gives a dragged media file the canvas drag payload", async () => {
+    renderTree();
+    const store = startDrag(await screen.findByText("notes.md"));
+    expect(JSON.parse(store["application/x-nodetool-drag"])).toEqual({
+      type: "project-file",
+      payload: { projectId: "project-a", path: "notes.md" }
+    });
+  });
+
+  it("gives a dragged folder no canvas drag payload", async () => {
+    renderTree();
+    const store = startDrag(await screen.findByText("footage"));
+    expect(store["application/x-nodetool-drag"]).toBeUndefined();
+    expect(store["application/x-nodetool-project-entry"]).toBe("footage");
+  });
+
   it("refuses to move a folder into its own subfolder", async () => {
     renderTree();
     await userEvent.click(await screen.findByText("footage"));

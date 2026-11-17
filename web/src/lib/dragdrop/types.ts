@@ -36,7 +36,8 @@ export type DragDataType =
   | "example-timeline" // Shipped example timeline, installed on drop
   | "example-storyboard" // Shipped example storyboard, installed on drop
   | "example-workflow" // Shipped example workflow, its nodes pasted on drop
-  | "storyboard-shot"; // Storyboard shot dragged onto a timeline as a clip
+  | "storyboard-shot" // Storyboard shot dragged onto a timeline as a clip
+  | "project-file"; // File row from the project Files panel
 
 /** A single image/video/audio block from a chat message, draggable to canvas. */
 export type ChatMediaDragPayload =
@@ -82,6 +83,12 @@ export interface StoryboardShotDragPayload {
   placement: ShotClipPlacement;
 }
 
+/** A file in a project folder, dragged from the Files panel. */
+export interface ProjectFileDragPayload {
+  projectId: string;
+  path: string;
+}
+
 export interface DragPayloadMap {
   "create-node": NodeMetadata;
   asset: Asset;
@@ -98,6 +105,7 @@ export interface DragPayloadMap {
   "example-storyboard": ExampleDocumentDragPayload;
   "example-workflow": ExampleWorkflowDragPayload;
   "storyboard-shot": StoryboardShotDragPayload;
+  "project-file": ProjectFileDragPayload;
 }
 
 interface DragDataFor<T extends DragDataType> {

@@ -56,6 +56,10 @@ jest.mock("../../../trpc/client", () => ({
     }
   }
 }));
+const mockAssetOfFile = jest.fn();
+jest.mock("../../../components/workspaces/workspaceTreeActions", () => ({
+  assetOfFile: (...args: unknown[]) => mockAssetOfFile(...args)
+}));
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   creationProjectId: () => "personal:test"
 }));
@@ -246,6 +250,71 @@ describe("useDropHandler", () => {
     expect(node.data.title).toBe("Launch Cutdown");
     expect(mockAddNode).toHaveBeenCalledWith(node);
     expect(mockAddRecentNode).toHaveBeenCalledWith("nodetool.constant.Timeline");
+  });
+
+  it("adds the asset node for a file dragged from the Files panel", async () => {
+    const asset = { id: "asset-9", name: "clip.mp4", content_type: "video/mp4" };
+    mockAssetOfFile.mockResolvedValue({ id: "asset-9" });
+    mockGetAsset.mockResolvedValue(asset);
+    const { result } = renderHook(() => useDropHandler());
+    const dropEvent = stub<React.DragEvent<HTMLDivElement>>({
+      preventDefault: jest.fn(),
+      target: paneTarget(true),
+      clientX: 10,
+      clientY: 10,
+      dataTransfer: {
+        getData: (format: string) =>
+          format === "application/x-nodetool-drag"
+            ? JSON.stringify({
+                type: "project-file",
+                payload: { projectId: "project-a", path: "footage/clip.mp4" }
+              })
+            : "",
+        types: ["application/x-nodetool-drag"],
+        items: [],
+        files: []
+      }
+    });
+
+    await act(async () => {
+      await result.current.onDrop(dropEvent);
+    });
+
+    expect(mockAssetOfFile).toHaveBeenCalledWith("project-a", "footage/clip.mp4");
+    expect(mockGetAsset).toHaveBeenCalledWith("asset-9");
+    expect(mockAddNodeFromAsset).toHaveBeenCalledWith(asset, { x: 0, y: 0 });
+  });
+
+  it("adds no node for a Files panel file that is not an asset", async () => {
+    mockAssetOfFile.mockResolvedValue(null);
+    const { result } = renderHook(() => useDropHandler());
+    const dropEvent = stub<React.DragEvent<HTMLDivElement>>({
+      preventDefault: jest.fn(),
+      target: paneTarget(true),
+      clientX: 10,
+      clientY: 10,
+      dataTransfer: {
+        getData: (format: string) =>
+          format === "application/x-nodetool-drag"
+            ? JSON.stringify({
+                type: "project-file",
+                payload: { projectId: "project-a", path: "loose.bin" }
+              })
+            : "",
+        types: ["application/x-nodetool-drag"],
+        items: [],
+        files: []
+      }
+    });
+
+    await act(async () => {
+      await result.current.onDrop(dropEvent);
+    });
+
+    expect(mockAddNodeFromAsset).not.toHaveBeenCalled();
+    expect(mockAddNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "warning" })
+    );
   });
 
   it("handles multiple assets drop correctly", async () => {
