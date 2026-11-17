@@ -987,6 +987,9 @@ describe("projectAssetFileStem", () => {
     ["???", "image/png", "asset"],
     ["CON", "image/png", "CON-file"],
     ["nul", "text/plain", "nul-file"],
+    ["NUL.demo", "image/png", "NUL-file.demo"],
+    ["com1.tar.gz", "image/png", "com1-file.tar.gz"],
+    ["console.log", "image/png", "console.log"],
     ["Füchse im Schnee ❄", "image/png", "Füchse-im-Schnee-❄"],
     ["x".repeat(300), "image/png", "x".repeat(100)]
   ])("%j as %s is %j", (name, contentType, stem) => {

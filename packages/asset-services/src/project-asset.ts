@@ -127,7 +127,7 @@ export function assetFileExtension(contentType: string): string {
  * `fox-in-snow`. An extension the name already carries for the same content
  * type is removed so it is not doubled. Leading dots (a hidden file) and
  * trailing dots (refused by Windows) are dropped. A Windows device name gets
- * a suffix.
+ * a suffix, also when it comes before a dot (`NUL.demo`).
  */
 export function projectAssetFileStem(name: string, contentType: string): string {
   const extension = assetFileExtension(contentType);
@@ -155,7 +155,12 @@ export function projectAssetFileStem(name: string, contentType: string): string 
     .join("")
     .replace(/[.-]+$/, "");
   if (!stem) return UNNAMED_FILE;
-  return WINDOWS_RESERVED.test(stem) ? `${stem}-file` : stem;
+  // Windows reserves a device name before any extension: `NUL.demo` too.
+  const firstDot = stem.indexOf(".");
+  const head = firstDot === -1 ? stem : stem.slice(0, firstDot);
+  return WINDOWS_RESERVED.test(head)
+    ? `${head}-file${stem.slice(head.length)}`
+    : stem;
 }
 
 // ── One writer per folder ───────────────────────────────────────────────────
