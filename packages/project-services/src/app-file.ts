@@ -75,8 +75,7 @@ async function parseAppFile(
     ok: true,
     fields: {
       description,
-      // SAFETY: an application document is a plain JSON object.
-      document: document as unknown as Record<string, unknown>
+      document: { ...document }
     }
   };
 }
