@@ -23,26 +23,22 @@ import {
 import { allowLegacyProjectWritesForTests, getPortableDb } from "./db.js";
 import { projects } from "./schema/projects.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
-import { TimelineSequenceVersion } from "./timeline-sequence-version.js";
 import { timelineSequenceVersions } from "./schema/timeline-sequence-versions.js";
 import { saveKeepingRevision, type KeepRevision } from "./kept-revision.js";
-import { removeDocumentSharing } from "./document-sharing.js";
 import {
   assertDocumentFileMayLeave,
   type DocumentFileLocation,
   type DocumentFileSync
 } from "./document-file-sync.js";
 import {
+  deleteDocumentKeeping,
   documentRefTables,
   insertDependents,
-  readDependents,
+  insertDocumentRow,
   registerDeletedDocumentKind,
-  retainDeletedDocument,
-  documentRetentionDays,
   type DependentTable
 } from "./deleted-document.js";
 import { documentCollaborators, documentShares } from "./schema/document-sharing.js";
-import { DocumentRefs } from "./document-refs.js";
 
 export class TimelineSequenceConflictError extends Error {
   constructor(id: string) {
@@ -546,23 +542,25 @@ export class TimelineSequence extends DBModel {
   static async deleteOwned(userId: string, id: string): Promise<boolean> {
     const row = await TimelineSequence.findById(id);
     if (!row || row.user_id !== userId) return false;
-    // Kept first, so a failure before the delete never loses the timeline.
-    if (documentRetentionDays() !== null) {
-      await retainDeletedDocument({
-        kind: "timeline",
-        documentId: row.id,
-        userId,
-        projectId: row.project_id,
-        name: row.name,
-        payload: { row: row.toRow(), dependents: await readDependents(timelineDependents(row.id)) }
-      });
-    }
-    await row.delete();
-    await removeDocumentSharing("timeline", row.id);
-    await DocumentRefs.removeForDocument("timeline", row.id);
-    // Belt-and-braces with the FK cascade: version rows outliving their
-    // document would be unreachable garbage.
-    await TimelineSequenceVersion.deleteForTimeline(row.id);
+    // The row, its versions, grants and references go in one transaction,
+    // with the copy kept for a restore (PRD D4). The row lock makes a save
+    // that races the delete wait, then find no row.
+    const deleted = await deleteDocumentKeeping({
+      kind: "timeline",
+      userId,
+      table: timelineSequences,
+      where: and(eq(timelineSequences.id, row.id), eq(timelineSequences.user_id, userId)) as SQL,
+      dependents: timelineDependents(row.id),
+      describe: (kept) => ({
+        documentId: String(kept["id"]),
+        projectId: (kept["project_id"] as string | null) ?? null,
+        name: String(kept["name"])
+      })
+    });
+    if (!deleted) return false;
+    const gone = new TimelineSequence(deleted);
+    ModelObserver.notify(gone, ModelChangeEvent.DELETED);
+    await timelineFileSync?.deleted(gone);
     return true;
   }
 
@@ -828,13 +826,17 @@ function timelineDependents(id: string): DependentTable[] {
 }
 
 registerDeletedDocumentKind("timeline", {
-  async restore(payload) {
+  *restore(tx, payload) {
     const id = String(payload.row["id"]);
-    if (await TimelineSequence.findById(id)) {
-      throw new Error("A timeline with this id exists");
-    }
-    // Through the model, so the timeline's file is written again.
-    await TimelineSequence.create<TimelineSequence>(payload.row);
-    await insertDependents(timelineDependents(id), payload.dependents);
+    yield insertDocumentRow(tx, timelineSequences, payload.row);
+    yield* insertDependents(tx, timelineDependents(id), payload.dependents);
+  },
+  async restored(payload) {
+    const restored = await TimelineSequence.findById(String(payload.row["id"]));
+    if (!restored) return;
+    ModelObserver.notify(restored, ModelChangeEvent.CREATED);
+    // The file is written after the rows commit. A row without a file path
+    // gets its file at its next save.
+    await restored.syncFile();
   }
 });

@@ -294,32 +294,37 @@ RefreshOutcome AccountSession::refresh(std::string_view rejectedAccessToken) {
 }
 
 ServerEnd AccountSession::signOut() {
-  bool saved = false;
-  {
-    const std::lock_guard operation(operationMutex_);
-    // Local 1. Without the lock the sign-out still proceeds: its marker
-    // makes a refresh that holds the lock discard or undo its write.
-    const auto lock = AccountLock::acquire(lockPath(), options_.lockTimeout);
-    const SessionRecord record = readSessionRecord(store_, keychainAccount_).value_or(SessionRecord{});
-    // Local 2 to 4: the marker, the file, the record, then this app.
-    saved = publishSignOut(record, 0);
-  }
+  const bool saved = signOutLocally();
   const ServerEnd server = endPendingSessions();
   return saved ? server : ServerEnd::NotSaved;
 }
 
-ServerEnd AccountSession::endPendingSessions() {
+bool AccountSession::signOutLocally() {
   const std::lock_guard operation(operationMutex_);
-  // A sign-out killed between its two writes leaves the record signed in
-  // with its handle unmarked. The repair rule completes it and marks the
-  // handle pending, so an app that only retries the server end, and makes
-  // no request, still ends that session.
-  if (const auto lock = AccountLock::acquire(lockPath(), options_.lockTimeout)) {
-    repairLocked();
-  }
+  // Local 1. Without the lock the sign-out still proceeds: its marker
+  // makes a refresh that holds the lock discard or undo its write.
+  const auto lock = AccountLock::acquire(lockPath(), options_.lockTimeout);
+  const SessionRecord record = readSessionRecord(store_, keychainAccount_).value_or(SessionRecord{});
+  // Local 2 to 4: the marker, the file, the record, then this app.
+  return publishSignOut(record, 0);
+}
+
+ServerEnd AccountSession::endPendingSessions() {
   std::vector<std::string> handles;
-  if (const auto record = readSessionRecord(store_, keychainAccount_)) {
-    handles = record->pendingHandles();
+  {
+    // Held for the local steps only: a sign-out never waits for a server
+    // end that the server holds. Ending a handle twice is harmless.
+    const std::lock_guard operation(operationMutex_);
+    // A sign-out killed between its two writes leaves the record signed in
+    // with its handle unmarked. The repair rule completes it and marks the
+    // handle pending, so an app that only retries the server end, and makes
+    // no request, still ends that session.
+    if (const auto lock = AccountLock::acquire(lockPath(), options_.lockTimeout)) {
+      repairLocked();
+    }
+    if (const auto record = readSessionRecord(store_, keychainAccount_)) {
+      handles = record->pendingHandles();
+    }
   }
   {
     const std::lock_guard lock(mutex_);

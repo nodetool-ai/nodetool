@@ -12,8 +12,8 @@
 #ifdef Q_OS_UNIX
 #include <csignal>
 #include <unistd.h>
-#include "nodetool/account/qt/ServerToken.h"
 #endif
+#include "nodetool/account/qt/ServerToken.h"
 namespace nodetool::node_editor {
 void SetupController::configure(const QUrl &origin, const QString &token,
                                 const QString &user) {

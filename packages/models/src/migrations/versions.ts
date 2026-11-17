@@ -546,7 +546,8 @@ const DELETED_DOCUMENTS_DDL: readonly string[] = [
     name TEXT NOT NULL,
     payload TEXT NOT NULL,
     deleted_at TEXT NOT NULL,
-    purge_at TEXT NOT NULL
+    purge_at TEXT NOT NULL,
+    purging_since TEXT
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS idx_deleted_documents_document
     ON nodetool_deleted_documents (kind, document_id)`,

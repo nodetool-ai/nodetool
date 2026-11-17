@@ -8,6 +8,7 @@
 #include "TestHttpServer.h"
 #include "TrickleHttpServer.h"
 
+#include <QBuffer>
 #include <QCoreApplication>
 #include <QChildEvent>
 #include <QDir>
@@ -27,6 +28,7 @@
 #include <QTemporaryDir>
 #include <QUrlQuery>
 #include <QtTest>
+#include <atomic>
 
 using namespace nt::server;
 
@@ -1051,6 +1053,53 @@ private slots:
         FetchResult same = fetch(QStringLiteral("d"), server.base().resolved(QUrl(QStringLiteral("/api/storage/1/same.mp4"))), 100);
         QVERIFY2(same.ok(), qPrintable(same.error));
         QCOMPARE(server.requests().back().headers.value("authorization"), QByteArray("Bearer secret"));
+    }
+
+    // A cloud client asks the account for each request's credential: after
+    // a sign-out the next request carries none, and a running one stops.
+    void accountAuthorizesEachRequest() {
+        TestHttpServer server;
+        server.setFile("/api/storage/1/a.mp4", ServedFile(QByteArray(100, 'a')));
+        std::atomic<bool> signedOut = false;
+        std::atomic<int> asked = 0;
+        ServerClient client(server.base(), QStringLiteral("cache-name"));
+        client.setAuthorizer([&] {
+            ++asked;
+            RequestAuthorization authorization;
+            if (!signedOut) authorization.token = QStringLiteral("fresh");
+            authorization.signedOut = [&] { return signedOut.load(); };
+            return authorization;
+        });
+        QBuffer first;
+        first.open(QIODevice::WriteOnly);
+        QCOMPARE(client.download(QStringLiteral("/api/storage/1/a.mp4"), first).status, 200);
+        QCOMPARE(server.requests().back().headers.value("authorization"), QByteArray("Bearer fresh"));
+        QCOMPARE(asked.load(), 1);
+
+        signedOut = true;
+        QNetworkRequest next(server.base().resolved(QUrl(QStringLiteral("/api/storage/1/a.mp4"))));
+        client.decorate(next);
+        QVERIFY(!next.hasRawHeader("Authorization"));
+        QCOMPARE(client.query(QStringLiteral("assets.search"), {}).error.code, QString("CANCELLED"));
+
+        // A request that is running when the account signs out stops.
+        TrickleHttpServer http(3000, "fixture-instance");
+        std::atomic<bool> trickleSignedOut = false;
+        QueryResult result;
+        auto worker = std::unique_ptr<QThread>(QThread::create([&] {
+            ServerClient trickling(http.base(), {}, 5000);
+            trickling.setAuthorizer([&] {
+                return RequestAuthorization{QStringLiteral("fresh"), [&] { return trickleSignedOut.load(); }};
+            });
+            result = trickling.query(QStringLiteral("assets.search"), {});
+        }));
+        worker->start();
+        QTRY_VERIFY(http.requests() > 0 && http.chunks() >= 2);
+        trickleSignedOut = true;
+        const bool bounded = worker->wait(1000);
+        if (!bounded) { worker->wait(5000); }
+        QVERIFY(bounded);
+        QCOMPARE(result.error.code, QString("CANCELLED"));
     }
 
     void redirectLoopsFail() {
