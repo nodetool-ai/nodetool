@@ -8,7 +8,7 @@ import { useRun, useRunLiveUpdates, useRunLogs, useRuns, useRunTrace } from "../
 import { workflowQueryKey } from "../../serverState/useWorkflow";
 import {
   AlertBanner, Autocomplete, BORDER_RADIUS, Box, Caption, Checkbox, CONTROL, CopyButton, EditorButton, EmptyState,
-  FlexColumn, FlexRow, Label, LoadingSpinner, ScrollArea, SelectField, SPACING, StatusPill, Text, TextInput, TYPOGRAPHY,
+  FieldDensityContext, FlexColumn, FlexRow, Label, LoadingSpinner, ScrollArea, SelectField, SPACING, StatusPill, Text, TextInput, TYPOGRAPHY,
   Tooltip, TruncatedText, VirtualList, type StatusPillTone
 } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
@@ -26,7 +26,7 @@ interface SpanStatusProps { code: SpanStatusCode; message?: string | null }
 interface AttributeListProps { attributes: Record<string, unknown> }
 interface SpanDetailsProps { record: TraceRecord; runStart: number }
 type RunRecord = GetRunResult["run"];
-interface RunPickerProps { runs: RunRecord[]; value: string | null; onChange: (runId: string) => void }
+interface RunPickerProps { runs: RunRecord[]; value: string | null; onChange: (runId: string) => void; hasMore: boolean; onLoadMore: () => void }
 interface SpanPickerProps { label: string; emptyLabel: string; nodes: TraceNode[]; value: string | null; onChange: (spanId: string | null) => void }
 interface FailureBannerProps { result: GetRunResult; onShowSpan: (spanId: string) => void }
 interface ContentStatusProps { flags: RunReaderFlags; limited?: boolean }
@@ -46,7 +46,7 @@ function ContentStatus({ flags, limited }: ContentStatusProps): React.ReactEleme
     flags.incomplete ? t("i18n-cont-panels-12.trace.traceIncomplete") : null,
     limited ? t("i18n-cont-panels-12.trace.boundedPortion") : null
   ].filter(Boolean);
-  return notices.length ? <Caption role="status">{notices.join(" ")}</Caption> : null;
+  return notices.length ? <Caption role="status" color="muted">{notices.join(" ")}</Caption> : null;
 }
 
 function QueryError({ error }: QueryErrorProps): React.ReactElement {
@@ -60,12 +60,12 @@ function QueryError({ error }: QueryErrorProps): React.ReactElement {
 // Name, status, duration, timeline. Fixed meta widths keep the bars aligned across rows.
 const spanGrid = (theme: Theme): string => `minmax(0, 2fr) ${theme.spacing(SPACING.xxxl * 2)} ${theme.spacing(SPACING.xxxl * 4)} minmax(0, 3fr)`;
 
-// Pickers share the 28px control height and field background of SelectField and TextInput, so a filter row lines up.
-const PICKER_SX = {
-  "& .MuiInputBase-root": { height: CONTROL.height.sm, py: 0, bgcolor: "Paper.overlay" },
-  "& .MuiAutocomplete-input": { py: 0 }
-} as const;
+// The panel is a compact surface: every filter is a 28px field with control-size text and no label above it.
+// Pickers pin that height, so a filter row lines up with SelectField and TextInput.
+const PICKER_SX = { "& .MuiInputBase-root": { height: CONTROL.height.sm } } as const;
 const SPAN_ROW_HEIGHT = CONTROL.height.md;
+const LOG_ROW_HEIGHT = CONTROL.height.sm;
+const filterWidth = (columns: number) => (theme: Theme): string => theme.spacing(SPACING.xxxl * columns);
 const LANE_HEADER_HEIGHT = CONTROL.height.sm;
 
 // Buttons and checkboxes beside labelled fields sit in a box of the field's height, so they center on the field rather than on the label.
@@ -256,18 +256,18 @@ function TraceView({ runId, focusedSpanId, onFocus }: RunViewProps): React.React
   const end = nodes.length ? Math.max(...nodes.map(({ record }) => record.end_time_ms)) : 0;
   const focused = focus.data?.nodes.find(({ record }) => record.span_id === focusedSpanId)?.record;
   return <FlexColumn gap={SPACING.md} sx={{ flex: 1, minHeight: 0 }}>
-    <FlexRow gap={SPACING.lg} sx={{ alignItems: "flex-end", flexWrap: "wrap" }}>
-      <Box sx={{ width: (theme) => theme.spacing(SPACING.xxxl * 4) }}>
-        <SelectField label={t("i18n-cont-panels-12.trace.traceDepth")} size="small" value={depth} onChange={setDepth} options={[{ value: "4", label: t("i18n-cont-panels-12.trace.levels", { count: 4 }) }, { value: "16", label: t("i18n-cont-panels-12.trace.levels", { count: 16 }) }, { value: "64", label: t("i18n-cont-panels-12.trace.allLevels") }]} />
+    <FlexRow gap={SPACING.sm} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+      <Box sx={{ width: filterWidth(4) }}>
+        <SelectField label={t("i18n-cont-panels-12.trace.traceDepth")} hideLabel size="small" value={depth} onChange={setDepth} options={[{ value: "4", label: t("i18n-cont-panels-12.trace.levels", { count: 4 }) }, { value: "16", label: t("i18n-cont-panels-12.trace.levels", { count: 16 }) }, { value: "64", label: t("i18n-cont-panels-12.trace.anyDepth") }]} />
       </Box>
-      <Box sx={{ flex: "1 1 auto", minWidth: (theme) => theme.spacing(SPACING.xxxl * 6), maxWidth: (theme) => theme.spacing(SPACING.xxxl * 12) }}>
-        <TextInput label={t("i18n-cont-panels-12.trace.spanName")} size="small" fullWidth value={name} onChange={(event) => setName(event.target.value.slice(0, 200))} />
+      <Box sx={{ width: filterWidth(6), maxWidth: "100%" }}>
+        <TextInput label={t("i18n-cont-panels-12.trace.spanName")} hideLabel placeholder={t("i18n-cont-panels-12.trace.spanName")} size="small" fullWidth value={name} onChange={(event) => setName(event.target.value.slice(0, 200))} />
       </Box>
-      <Box sx={{ width: (theme) => theme.spacing(SPACING.xxxl * 8), maxWidth: "100%" }}>
+      <Box sx={{ width: filterWidth(8), maxWidth: "100%" }}>
         <SpanPicker label={t("i18n-cont-panels-12.trace.focusSpan")} emptyLabel={t("i18n-cont-panels-12.trace.wholeRun")} nodes={trace.data?.nodes ?? []} value={focusedSpanId} onChange={onFocus} />
       </Box>
       <ControlSlot>
-        <Checkbox label={t("i18n-cont-panels-12.trace.errorsOnly")} size="small" checked={errorsOnly} onChange={(_, checked) => setErrorsOnly(checked)} />
+        <Checkbox label={t("i18n-cont-panels-12.trace.errorsOnly")} size="small" compact checked={errorsOnly} onChange={(_, checked) => setErrorsOnly(checked)} />
       </ControlSlot>
       {focusedSpanId && <ControlSlot><EditorButton size="small" onClick={() => onFocus(null)}>{t("i18n-cont-panels-12.trace.clearSpanFocus")}</EditorButton></ControlSlot>}
     </FlexRow>
@@ -310,7 +310,7 @@ function logLevelLabel(level: string | null | undefined, t: ReturnType<typeof us
 }
 
 // Time, level, source, span, message. Fixed meta widths keep the columns aligned across rows.
-const logGrid = (theme: Theme): string => `${theme.spacing(SPACING.xxxl * 3)} ${theme.spacing(SPACING.xxxl * 2)} minmax(0, 0.6fr) minmax(0, 1fr) minmax(0, 3fr)`;
+const logGrid = (theme: Theme): string => `${theme.spacing(SPACING.xxxl * 3)} ${theme.spacing(SPACING.xxxl * 2)} minmax(0, 1fr) minmax(0, 1fr) minmax(0, 3fr)`;
 const LOG_LEVEL_COLOR: Record<string, string> = { error: "error.main", warn: "warning.main" };
 function LogsView({ runId, focusedSpanId, onFocus }: RunViewProps): React.ReactElement {
   const { t, i18n } = useTranslation();
@@ -328,17 +328,17 @@ function LogsView({ runId, focusedSpanId, onFocus }: RunViewProps): React.ReactE
   const trace = useRunTrace(runId);
   const theme = useTheme();
   return <FlexColumn gap={SPACING.md} sx={{ flex: 1, minHeight: 0 }}>
-    <FlexRow gap={SPACING.lg} sx={{ alignItems: "flex-end", flexWrap: "wrap" }}>
-      <Box sx={{ width: (theme) => theme.spacing(SPACING.xxxl * 4) }}>
-        <SelectField label={t("i18n-cont-panels-12.trace.logLevel")} size="small" value={level} onChange={setLevel} options={[{ value: "", label: t("i18n-cont-panels-12.trace.allLevels") }, ...[
+    <FlexRow gap={SPACING.sm} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+      <Box sx={{ width: filterWidth(4) }}>
+        <SelectField label={t("i18n-cont-panels-12.trace.logLevel")} hideLabel size="small" value={level} onChange={setLevel} options={[{ value: "", label: t("i18n-cont-panels-12.trace.allLevels") }, ...[
           { value: "debug", label: t("i18n-cont-panels-12.trace.level.debug") }, { value: "info", label: t("i18n-cont-panels-12.trace.level.info") },
           { value: "warn", label: t("i18n-cont-panels-12.trace.level.warning") }, { value: "error", label: t("i18n-cont-panels-12.trace.level.error") }
         ]]} />
       </Box>
-      <Box sx={{ width: (theme) => theme.spacing(SPACING.xxxl * 5) }}>
-        <SelectField label={t("i18n-cont-panels-12.trace.logSource")} size="small" value={source} onChange={setSource} options={[{ value: "", label: t("i18n-cont-panels-12.trace.allSources") }, ...[...new Set([...entries.map((log) => log.source).filter((value): value is string => Boolean(value)), ...(source ? [source] : [])])].map((value) => ({ value, label: value }))]} />
+      <Box sx={{ width: filterWidth(6), maxWidth: "100%" }}>
+        <SelectField label={t("i18n-cont-panels-12.trace.logSource")} hideLabel size="small" value={source} onChange={setSource} options={[{ value: "", label: t("i18n-cont-panels-12.trace.allSources") }, ...[...new Set([...entries.map((log) => log.source).filter((value): value is string => Boolean(value)), ...(source ? [source] : [])])].map((value) => ({ value, label: value }))]} />
       </Box>
-      <Box sx={{ width: (theme) => theme.spacing(SPACING.xxxl * 8), maxWidth: "100%" }}>
+      <Box sx={{ width: filterWidth(8), maxWidth: "100%" }}>
         <SpanPicker label={t("i18n-cont-panels-12.trace.logSpan")} emptyLabel={t("i18n-cont-panels-12.trace.allSpans")} nodes={trace.data?.nodes ?? []} value={focusedSpanId} onChange={onFocus} />
       </Box>
     </FlexRow>
@@ -359,19 +359,19 @@ function LogsView({ runId, focusedSpanId, onFocus }: RunViewProps): React.ReactE
         <Box sx={{ display: "grid", gridTemplateColumns: logGrid(theme), columnGap: SPACING.lg, alignItems: "center", height: LANE_HEADER_HEIGHT, flexShrink: 0, px: SPACING.sm }}>
           {["time", "levelHeading", "sourceHeading", "spanHeading", "messageHeading"].map((key) => <Caption key={key} color="muted">{t(`i18n-cont-panels-12.trace.columns.${key}`)}</Caption>)}
         </Box>
-        <VirtualList ariaLabel={t("i18n-cont-panels-12.trace.runLogs")} items={entries} estimateSize={SPAN_ROW_HEIGHT} getItemKey={(log) => log.id} sx={{ flex: 1, minHeight: 0 }}
+        <VirtualList ariaLabel={t("i18n-cont-panels-12.trace.runLogs")} items={entries} estimateSize={LOG_ROW_HEIGHT} getItemKey={(log) => log.id} sx={{ flex: 1, minHeight: 0 }}
           renderItem={(log) => <Box sx={{
             display: "grid", gridTemplateColumns: logGrid(theme), columnGap: SPACING.lg, alignItems: "center", height: "100%", px: SPACING.sm, borderRadius: BORDER_RADIUS.sm,
             bgcolor: log.id === selectedLog?.id ? "action.selected" : "transparent", "&:hover": { bgcolor: log.id === selectedLog?.id ? "action.selected" : "action.hover" }
           }}>
             <Caption sx={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{new Date(log.time_ms).toLocaleTimeString(i18n.language)}</Caption>
             <Caption sx={{ color: LOG_LEVEL_COLOR[log.level ?? ""] ?? "text.secondary" }}>{logLevelLabel(log.level, t)}</Caption>
-            <Caption component="div" color="muted" sx={{ minWidth: 0 }}><TruncatedText component="span" variant="inherit">{log.source ?? log.name}</TruncatedText></Caption>
+            <Caption component="div" color="muted" sx={{ minWidth: 0 }}><TruncatedText component="div" variant="inherit" showTooltip>{log.source ?? log.name}</TruncatedText></Caption>
             <EditorButton size="small" variant="text" aria-label={t("i18n-cont-panels-12.trace.inspectLogSpan", { id: log.span_id })} tooltip={log.span_name} onClick={() => onFocus(log.span_id)}
-              sx={{ minWidth: 0, justifyContent: "flex-start", textTransform: "none", px: 0, color: "text.secondary" }}
+              sx={{ minWidth: 0, minHeight: 0, height: "100%", justifyContent: "flex-start", textTransform: "none", px: 0, color: "text.secondary" }}
             ><TruncatedText component="span" variant="inherit">{log.span_name}</TruncatedText></EditorButton>
             <EditorButton size="small" variant="text" aria-label={t("i18n-cont-panels-12.trace.readLogEvent", { name: log.name, id: log.id })} tooltip={logText(log).slice(0, 200)} onClick={() => setSelectedLogId(log.id)}
-              sx={{ minWidth: 0, justifyContent: "flex-start", textTransform: "none", px: 0, color: log.level === "error" ? "error.main" : "text.primary" }}
+              sx={{ minWidth: 0, minHeight: 0, height: "100%", justifyContent: "flex-start", textTransform: "none", px: 0, color: log.level === "error" ? "error.main" : "text.primary" }}
             ><TruncatedText component="span" variant="inherit">{logText(log).slice(0, 200)}</TruncatedText></EditorButton>
           </Box>} />
       </FlexColumn>}
@@ -405,6 +405,7 @@ function runDuration(run: GetRunResult["run"], locale = "en"): string | null {
   return Number.isFinite(ms) && ms >= 0 ? formatDuration(ms, locale) : null;
 }
 
+// The run picker already names the status and when the run started, so the line carries only what the picker does not.
 function runSummaryText({ run, summary }: GetRunResult, t: ReturnType<typeof useTranslation>["t"], locale: string): string {
   const cost = Object.values(summary.cost_by_provider).reduce((total, value) => total + value, 0);
   const duration = runDuration(run, locale);
@@ -412,8 +413,7 @@ function runSummaryText({ run, summary }: GetRunResult, t: ReturnType<typeof use
     duration,
     t("i18n-cont-panels-12.trace.spanCount", { count: summary.span_count }),
     t("i18n-cont-panels-12.trace.eventCount", { count: summary.event_count }),
-    cost > 0 ? formatUsd(cost, locale) : null,
-    t("i18n-cont-panels-12.trace.startedAt", { date: new Date(run.started_at).toLocaleString(locale) })
+    cost > 0 ? formatUsd(cost, locale) : null
   ].filter(Boolean).join(" · ");
 }
 
@@ -428,7 +428,10 @@ function runTitle(run: RunRecord, workflowName: string | undefined, t: ReturnTyp
 
 const matchesQuery = (query: string, ...fields: string[]): boolean => fields.join(" ").toLowerCase().includes(query.trim().toLowerCase());
 
-function RunPicker({ runs, value, onChange }: RunPickerProps): React.ReactElement {
+// Older runs load when the list is scrolled to its end, so the toolbar needs no separate button for them.
+const LOAD_MORE_THRESHOLD_PX = 32;
+
+function RunPicker({ runs, value, onChange, hasMore, onLoadMore }: RunPickerProps): React.ReactElement {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const titleOf = (run: RunRecord): string => {
@@ -436,12 +439,16 @@ function RunPicker({ runs, value, onChange }: RunPickerProps): React.ReactElemen
     return runTitle(run, workflowId ? queryClient.getQueryData<Workflow>(workflowQueryKey(workflowId))?.name : undefined, t);
   };
   return <Autocomplete<RunRecord, false, false>
-    label={t("i18n-cont-panels-12.trace.run")} size="small" sx={PICKER_SX} options={runs} value={runs.find((run) => run.id === value) ?? null}
+    label={t("i18n-cont-panels-12.trace.run")} hideLabel size="small" sx={PICKER_SX} options={runs} value={runs.find((run) => run.id === value) ?? null}
     noOptionsText={t("i18n-cont-panels-12.trace.noMatchingRuns")} placeholder={t("i18n-cont-panels-12.trace.noRecentRuns")}
     getOptionLabel={(run) => `${titleOf(run)} · ${t(`i18n-cont-panels-12.trace.runStatus.${run.status}`)} · ${formatRelativeTime(run.started_at, i18n.language)}`}
     isOptionEqualToValue={(option, selected) => option.id === selected.id}
     filterOptions={(options, { inputValue }) => options.filter((run) => matchesQuery(inputValue, titleOf(run), run.kind, run.status))}
     onChange={(_, run) => { if (run) { onChange(run.id); } }}
+    slotProps={{ listbox: { onScroll: (event: React.UIEvent<HTMLElement>) => {
+      const list = event.currentTarget;
+      if (hasMore && list.scrollTop + list.clientHeight >= list.scrollHeight - LOAD_MORE_THRESHOLD_PX) { onLoadMore(); }
+    } } }}
     // MUI keys options by label, and two runs of one workflow share a label.
     renderOption={({ key: _key, ...props }, run) => <Box component="li" key={run.id || _key} {...props}>
       <FlexColumn gap={SPACING.micro} sx={{ minWidth: 0 }}>
@@ -460,7 +467,7 @@ function SpanPicker({ label, emptyLabel, nodes, value, onChange }: SpanPickerPro
   const { t, i18n } = useTranslation();
   const start = nodes.length ? Math.min(...nodes.map(({ record }) => record.start_time_ms)) : 0;
   return <Autocomplete<TraceNode, false, false>
-    label={label} size="small" sx={PICKER_SX} options={nodes} value={nodes.find(({ record }) => record.span_id === value) ?? null}
+    label={label} hideLabel size="small" sx={PICKER_SX} options={nodes} value={nodes.find(({ record }) => record.span_id === value) ?? null}
     placeholder={value ? t("i18n-cont-panels-12.trace.spanId", { id: value }) : emptyLabel} noOptionsText={t("i18n-cont-panels-12.trace.noMatchingSpans")}
     getOptionLabel={({ record }) => record.name}
     isOptionEqualToValue={(option, selected) => option.record.span_id === selected.record.span_id}
@@ -501,24 +508,21 @@ export default function TracePanel({ view = "trace", workflowId = null }: TraceP
   }, [nodeSpanId, focusSpan]);
   // A run picked from an older page or a link may be missing from the recent list.
   const pickerRuns = summary.data && !runs.some((run) => run.id === summary.data.run.id) ? [summary.data.run, ...runs] : runs;
-  return <FlexColumn gap={SPACING.md} sx={{ flex: 1, minHeight: 0, px: SPACING.xl, py: SPACING.md }}>
-    <FlexRow gap={SPACING.lg} sx={{ alignItems: "flex-end", flexWrap: "wrap" }}>
-      <Box sx={{ flex: "1 1 auto", minWidth: (theme) => theme.spacing(SPACING.xxxl * 6), maxWidth: (theme) => theme.spacing(SPACING.xxxl * 12) }}>
-        <RunPicker runs={pickerRuns} value={canonicalId} onChange={(id) => selectRun(id, workflowId)} />
+  return <FieldDensityContext.Provider value="compact"><FlexColumn gap={SPACING.sm} sx={{ flex: 1, minHeight: 0, px: SPACING.lg, py: SPACING.sm }}>
+    <FlexRow gap={SPACING.md} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+      <Box sx={{ flex: "0 1 auto", width: filterWidth(10), minWidth: filterWidth(6), maxWidth: "100%" }}>
+        <RunPicker runs={pickerRuns} value={canonicalId} onChange={(id) => selectRun(id, workflowId)}
+          hasMore={Boolean(recent.hasNextPage) && !recent.isFetchingNextPage} onLoadMore={() => void recent.fetchNextPage()} />
       </Box>
-      {recent.hasNextPage && <ControlSlot><EditorButton size="small" onClick={() => void recent.fetchNextPage()}>{t("i18n-cont-panels-12.trace.olderRuns")}</EditorButton></ControlSlot>}
-      {summary.data && <ControlSlot>
-        <FlexRow gap={SPACING.sm} sx={{ alignItems: "center" }}>
-          <StatusPill tone={RUN_STATUS_TONE[summary.data.run.status]}>{t(`i18n-cont-panels-12.trace.runStatus.${summary.data.run.status}`)}</StatusPill>
-          <Caption sx={{ fontVariantNumeric: "tabular-nums" }}>{runSummaryText(summary.data, t, i18n.language)}</Caption>
-        </FlexRow>
-      </ControlSlot>}
-      {canonicalId && <ControlSlot><AskRunAgentButton runId={canonicalId} /></ControlSlot>}
+      {summary.data && <Tooltip title={t("i18n-cont-panels-12.trace.startedAt", { date: new Date(summary.data.run.started_at).toLocaleString(i18n.language) })}>
+        <Caption color="muted" sx={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{runSummaryText(summary.data, t, i18n.language)}</Caption>
+      </Tooltip>}
+      {canonicalId && <Box sx={{ ml: "auto" }}><ControlSlot><AskRunAgentButton runId={canonicalId} /></ControlSlot></Box>}
     </FlexRow>
     {recent.error && <QueryError error={recent.error} />}
     {summary.error && <QueryError error={summary.error} />}
     {summary.data && <FailureBanner result={summary.data} onShowSpan={focusSpan} />}
     {!runId && !recent.isLoading && <EmptyState title={t("i18n-cont-panels-12.trace.noRecordedRuns")} description={t("i18n-cont-panels-12.trace.noRunsDescription")} size="small" />}
     {canonicalId && (view === "logs" ? <LogsView key={canonicalId} runId={canonicalId} focusedSpanId={focusedSpanId} onFocus={focusSpan} /> : <TraceView key={canonicalId} runId={canonicalId} focusedSpanId={focusedSpanId} onFocus={focusSpan} />)}
-  </FlexColumn>;
+  </FlexColumn></FieldDensityContext.Provider>;
 }

@@ -10955,6 +10955,7 @@
       "levels_one": "livello {{count}}",
       "levels_other": "{{count}} livelli",
       "allLevels": "Tutti i livelli",
+      "anyDepth": "Qualsiasi profondità",
       "spanName": "Nome della portata",
       "focusSpan": "Intervallo di messa a fuoco",
       "wholeRun": "Tutta la corsa",
@@ -11012,7 +11013,6 @@
       "noRecentRuns": "Nessuna corsa recente",
       "noMatchingSpans": "Nessun intervallo corrispondente",
       "spanId": "Intervallo {{id}}",
-      "olderRuns": "Corse più vecchie",
       "noRecordedRuns": "Nessuna corsa registrata",
       "noRunsDescription": "Avvia un'operazione dell'app, un flusso di lavoro o un turno di chat per esaminarne la traccia e i log.",
       "runStatus": {

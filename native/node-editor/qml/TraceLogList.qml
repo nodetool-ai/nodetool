@@ -14,8 +14,9 @@ ColumnLayout {
     readonly property real timeWidth: Ui.Metrics.xxxl * 3
     readonly property real levelWidth: Ui.Metrics.xxxl * 2
     readonly property real flexibleWidth: Math.max(0, width - timeWidth - levelWidth - Ui.Metrics.sm * 2 - Ui.Metrics.lg * (wide ? 4 : 2))
-    readonly property real sourceWidth: wide ? flexibleWidth * 0.6 / 4.6 : 0
-    readonly property real spanWidth: wide ? flexibleWidth / 4.6 : 0
+    // Source and span share a fifth of the free width each, and the message keeps the rest.
+    readonly property real sourceWidth: wide ? flexibleWidth / 5 : 0
+    readonly property real spanWidth: wide ? flexibleWidth / 5 : 0
     readonly property real rowHeight: Ui.Metrics.standard
     Layout.minimumWidth: 0
     spacing: Ui.Metrics.xs
@@ -72,7 +73,7 @@ ColumnLayout {
                 spacing: Ui.Metrics.lg
                 Ui.Text { objectName: "trace-log-time-" + row.index; Layout.preferredWidth: root.timeWidth; text: row.modelData.time; textFormat: Text.PlainText; role: Ui.Typography.MonoCaption; elide: Text.ElideRight }
                 Ui.Text { objectName: "trace-log-level-" + row.index; Layout.preferredWidth: root.levelWidth; text: row.modelData.level; textFormat: Text.PlainText; role: Ui.Typography.SansCaption; tone: row.modelData.levelKey === "error" ? Ui.Text.Error : row.modelData.levelKey === "warn" ? Ui.Text.Warning : Ui.Text.Secondary; elide: Text.ElideRight }
-                Ui.Text { Layout.preferredWidth: root.sourceWidth; visible: root.wide; text: row.modelData.source; textFormat: Text.PlainText; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary; elide: Text.ElideRight }
+                Ui.Text { Layout.preferredWidth: root.sourceWidth; Layout.maximumWidth: root.sourceWidth; visible: root.wide; text: row.modelData.source; textFormat: Text.PlainText; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary; elide: Text.ElideRight }
                 Ui.EditorButton {
                     id: spanAction
                     objectName: "trace-log-focus-" + row.modelData.id

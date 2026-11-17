@@ -10789,6 +10789,7 @@
       "levels_one": "{{count}} 层",
       "levels_other": "{{count}} 层",
       "allLevels": "所有层级",
+      "anyDepth": "任意深度",
       "spanName": "跨度名称",
       "focusSpan": "聚焦跨度",
       "wholeRun": "整个运行",
@@ -10846,7 +10847,6 @@
       "noRecentRuns": "没有最近的运行",
       "noMatchingSpans": "没有匹配的跨度",
       "spanId": "跨度 {{id}}",
-      "olderRuns": "更早的运行",
       "noRecordedRuns": "没有已记录的运行",
       "noRunsDescription": "启动应用操作、工作流或聊天轮次以检查其跟踪记录和日志。",
       "runStatus": {
