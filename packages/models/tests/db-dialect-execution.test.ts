@@ -32,6 +32,12 @@ import { McpOauthGrant, McpOauthToken } from "../src/mcp-oauth.js";
 import { OauthPending } from "../src/oauth-pending.js";
 import { initPgliteTestDb } from "./helpers/pglite-test-db.js";
 import {
+  BLOB_DELETION_CLAIM_MS,
+  claimBlobDeletion,
+  isBlobDeletionClaimed,
+  releaseBlobDeletion
+} from "../src/project-blob.js";
+import {
   endDeletedDocumentRestorePeriod,
   listDeletedDocuments,
   restoreDeletedDocument,
@@ -690,6 +696,21 @@ describe("model execution on SQLite and PostgreSQL", () => {
     } finally {
       setDocumentRetentionDays(null);
     }
+  }, DIALECT_TEST_TIMEOUT_MS);
+
+  it("gives one blob cleanup the deletion claim of a hash, and lets a later one take a stale claim", async () => {
+    const result = await onBothDialects(async () => {
+      const hash = "a".repeat(64);
+      const now = new Date();
+      const later = new Date(now.getTime() + BLOB_DELETION_CLAIM_MS + 1);
+      const first = await claimBlobDeletion(hash, now);
+      const second = await claimBlobDeletion(hash, now);
+      const seen = await isBlobDeletionClaimed(hash, now);
+      const takenOver = await claimBlobDeletion(hash, later);
+      await releaseBlobDeletion(hash);
+      return { first, second, seen, takenOver, after: await isBlobDeletionClaimed(hash, later) };
+    });
+    expect(result).toEqual({ first: true, second: false, seen: true, takenOver: true, after: false });
   }, DIALECT_TEST_TIMEOUT_MS);
 
   // A refresh that read the token rows before a revocation committed must not

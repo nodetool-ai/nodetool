@@ -12,14 +12,26 @@
  *
  * The row is written before the object, so the cleanup, which deletes
  * objects that no row names, never removes an object a stage is writing.
+ * Across servers the cleanup and a stage meet at a deletion claim per hash
+ * (`blob_deletions`): the cleanup claims, then looks for rows, and a stage
+ * writes its row, then looks for a claim, so one of them always sees the
+ * other (F9).
+ *
+ * An object is written under a staging name and given its key in one step,
+ * so a key never holds part of the bytes. An object a writer without that
+ * step left short is replaced when the hash is staged again (F10).
  */
 import { createHash } from "node:crypto";
 import {
   BLOB_HASH_PATTERN,
+  claimBlobDeletion,
   committedHashesOfOwner,
+  committedSizeOfOwner,
   deleteExpiredStagedBlobs,
+  isBlobDeletionClaimed,
   isBlobHashNamed,
   readableProjectBlob,
+  releaseBlobDeletion,
   stageProjectBlob
 } from "@nodetool-ai/models";
 import type { StorageAdapter } from "@nodetool-ai/storage";
@@ -32,6 +44,13 @@ export const BLOB_PREFIX = "blobs/";
  * that wrote its row and object around a cleanup pass keeps its object.
  */
 export const BLOB_CLEANUP_GRACE_MS = 60 * 60 * 1000;
+
+/** How long a stage waits for a deletion of its hash that is under way. */
+export const BLOB_DELETION_WAIT_MS = 30 * 1000;
+const DELETION_POLL_MS = 50;
+
+/** A staging file a writer left beside its key: `<hash>.<transfer>.staging`. */
+const STAGING_NAME = /^[0-9a-f]{64}\.[A-Za-z0-9_-]+\.staging$/;
 
 /** The storage key of the object holding the bytes with this hash. */
 export function blobKey(hash: string): string {
@@ -96,40 +115,79 @@ export async function stageBlob(
     size: input.size,
     transferId: input.transferId
   });
-  const uri = adapter.uriForKey(blobKey(input.hash));
+  // The row is written, so no cleanup starts on this hash. One that started
+  // before may still delete the object: the bytes are written after it ends.
+  await waitForDeletion(input.hash);
+  const key = blobKey(input.hash);
+  const uri = adapter.uriForKey(key);
   if (adapter.storeIfAbsent) {
-    const stored = await adapter.storeIfAbsent(blobKey(input.hash), input.bytes);
-    return stored === null ? "already_present" : "stored";
+    const options = { stagingName: stagingName(input.hash, input.transferId) };
+    if ((await adapter.storeIfAbsent(key, input.bytes, undefined, options)) !== null) return "stored";
+    if (await isWhole(adapter, uri, input.size)) return "already_present";
+    // A short object is replaced. A writer racing this one writes the same
+    // bytes, and the one that loses the second create finds them whole.
+    await adapter.delete(uri);
+    return (await adapter.storeIfAbsent(key, input.bytes, undefined, options)) === null
+      ? "already_present"
+      : "stored";
   }
   // Two writers of one hash write the same bytes, so a lost race is harmless.
-  if (await adapter.exists(uri)) return "already_present";
-  await adapter.store(blobKey(input.hash), input.bytes);
+  if (await isWhole(adapter, uri, input.size)) return "already_present";
+  await adapter.store(key, input.bytes);
   return "stored";
 }
 
 /**
- * Stages a hash the owner already holds, without its bytes. Returns false
- * when the owner has no committed row for it or the object is gone, in which
- * case the client must send the bytes.
+ * Stages a hash the owner already holds, without its bytes. The row records
+ * the size of the owner's committed row: a declared size that differs is
+ * refused (F11). Returns false when the owner has no committed row for the
+ * hash with that size, or the object is gone or short, in which case the
+ * client must send the bytes.
  */
 export async function stageKnownBlob(
   adapter: StorageAdapter,
   input: Omit<StageBlobInput, "bytes">
 ): Promise<boolean> {
   if (!BLOB_HASH_PATTERN.test(input.hash)) return false;
-  const held = await committedHashesOfOwner(input.userId, [input.hash]);
-  if (!held.has(input.hash)) return false;
-  // The owner's committed row keeps the object from the cleanup, so it is
-  // still there after the row below is written.
-  if (!(await adapter.exists(adapter.uriForKey(blobKey(input.hash))))) return false;
+  const size = await committedSizeOfOwner(input.userId, input.hash);
+  if (size === null || size !== input.size) return false;
   await stageProjectBlob({
     projectId: input.projectId,
     userId: input.userId,
     hash: input.hash,
-    size: input.size,
+    size,
     transferId: input.transferId
   });
-  return true;
+  // The row now keeps the object from any cleanup that starts. One that
+  // started before may have deleted it, which the check below finds.
+  await waitForDeletion(input.hash);
+  return isWhole(adapter, adapter.uriForKey(blobKey(input.hash)), size);
+}
+
+/** The staging name of one transfer's write of `hash`. */
+function stagingName(hash: string, transferId: string): string {
+  return `${hash}.${transferId.replace(/[^A-Za-z0-9_-]/g, "_")}.staging`;
+}
+
+/** Whether the object under `uri` exists with `size` bytes. */
+async function isWhole(adapter: StorageAdapter, uri: string, size: number): Promise<boolean> {
+  const stat = adapter.statStrict ? await adapter.statStrict(uri) : await adapter.stat(uri);
+  return stat !== null && stat.size === size;
+}
+
+/**
+ * Waits until no cleanup is deleting the object of `hash`. Throws when a
+ * deletion holds longer than {@link BLOB_DELETION_WAIT_MS}: the caller's
+ * request fails and the client tries again.
+ */
+async function waitForDeletion(hash: string): Promise<void> {
+  const deadline = Date.now() + BLOB_DELETION_WAIT_MS;
+  while (await isBlobDeletionClaimed(hash)) {
+    if (Date.now() >= deadline) {
+      throw new Error("The blob store is removing this file. Try the transfer again.");
+    }
+    await new Promise((resolve) => setTimeout(resolve, DELETION_POLL_MS));
+  }
 }
 
 /**
@@ -186,13 +244,24 @@ export async function cleanupBlobs(
   let objectsDeleted = 0;
   const { entries } = await adapter.list(BLOB_PREFIX);
   for (const entry of entries) {
-    const hash = entry.key.slice(entry.key.lastIndexOf("/") + 1);
-    if (!BLOB_HASH_PATTERN.test(hash)) continue;
-    if (await isBlobHashNamed(hash)) continue;
-    if (now.getTime() - entry.modifiedAt < BLOB_CLEANUP_GRACE_MS) continue;
-    // A stage may have named the hash since the check above.
-    if (await isBlobHashNamed(hash)) continue;
-    if (await adapter.delete(entry.uri)) objectsDeleted += 1;
+    const name = entry.key.slice(entry.key.lastIndexOf("/") + 1);
+    const old = now.getTime() - entry.modifiedAt >= BLOB_CLEANUP_GRACE_MS;
+    if (STAGING_NAME.test(name)) {
+      // What a writer that stopped left beside its key.
+      if (old) await adapter.delete(entry.uri);
+      continue;
+    }
+    if (!BLOB_HASH_PATTERN.test(name) || !old) continue;
+    if (await isBlobHashNamed(name)) continue;
+    if (!(await claimBlobDeletion(name, now))) continue;
+    try {
+      // A stage writes its row before it looks for the claim, so a row
+      // written since the check above is seen here.
+      if (await isBlobHashNamed(name)) continue;
+      if (await adapter.delete(entry.uri)) objectsDeleted += 1;
+    } finally {
+      await releaseBlobDeletion(name);
+    }
   }
   return { stagedRowsDeleted, objectsDeleted };
 }
