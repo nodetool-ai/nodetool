@@ -158,6 +158,11 @@ never delays a local write:
 4. A refused save keeps the draft as unsent edits. Offline and signed-out
    sends are retried every 5 seconds.
 
+`flush()` writes the latest edit at once, without the delay or the retry
+wait, for a document that closes. `makeLocalServerDraftStore` returns a
+`LocalServerDraftStore` that owns its transport, for an owner that hands the
+store on.
+
 Each `CloudDocumentSaver` draws a new editing instance id when the document
 opens and sends it with every save (WP1.6). When a save from one instance
 replaces a revision another instance wrote, the server keeps the replaced
@@ -193,9 +198,8 @@ both tables in place.
   compile yet.
 - Moving the apps' existing header writes onto `CloudClient` (WP1.10, with
   Qt).
-- Opening a cloud document in an app tab, which connects `CloudDocument` to
-  each app's document model, and the Cloud and Shared groups in each app's
-  document browser (WP1.11).
+- Opening a cloud timeline in the timeline app, and the Cloud and Shared
+  groups in its document list (WP1.11). The node editor does both.
 - The macOS and Windows readers of the managed policy compile only on those
   platforms, which this repository's CI does not build yet.
 
@@ -264,14 +268,16 @@ needs Qt Core and Network.
   from `listOwnDocuments` and `listSharedDocuments`
   (`cloud_listing.h`), as two list models. It empties both when the
   account signs out or changes, and keeps the last lists when the server
-  is offline.
+  is offline. A view of the lists calls `requestOpen()`, and the app opens
+  the document on `openRequested()`.
 - `CloudDocument` holds one open cloud document. It reads the document
   with the kind's saver, opens a draft the local store kept over the
   revision, ticks `CloudDocumentSaver` every 250 ms on its task thread, and
   shows the synchronization status: Saved to cloud, Sending, changes
   waiting with a count, Offline with the last connection, Cloud status
   unknown, Not saving, Unsent edits and signed out. A viewer's document
-  and one whose access was removed are read-only.
+  and one whose access was removed are read-only. Its destructor writes
+  the last edit to the local store before the tab closes.
 
 `qt/qml/` holds the QML both apps compile: `AccountControl.qml`, with the
 server menu and the Sign in to another server dialog, `CloudDocumentsPanel.qml`

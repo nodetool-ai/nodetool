@@ -5,6 +5,7 @@
 // server.
 #include "interfaces/PanelLayout.h"
 #include "interfaces/StatusModel.h"
+#include "server/WorkflowBrowser.h"
 #include "nodetool/account/qt/AccountController.h"
 #include "nodetool/account/qt/AccountServers.h"
 #include "nodetool/account/qt/CloudBrowser.h"
@@ -32,6 +33,7 @@ using nodetool::account::qt::CloudBrowser;
 using nodetool::account::qt::AccountServices;
 using nodetool::node_editor::PanelLayout;
 using nodetool::node_editor::StatusModel;
+using nodetool::node_editor::WorkflowBrowser;
 
 namespace {
 
@@ -327,6 +329,57 @@ private slots:
         account->signOut();
         QTRY_VERIFY(shown(root, "cloud-documents-signed-out"));
         QTRY_COMPARE(named(root, "cloud-documents")->property("count").toInt(), 0);
+    }
+
+    // The workflow browser shows the cloud groups below the workflows on
+    // this computer, and a chosen row reaches the window through the
+    // CloudBrowser.
+    void workflowBrowserHostsTheCloudGroups() {
+        Computer computer;
+        computer.server.addCode("code-w", "u1", "Ada");
+        auto account = computer.app();
+        connect(account.get(), &AccountController::browserRequested, this,
+                [](const QUrl &url) { std::thread([url] { completeInBrowser(url, "code-w"); }).detach(); });
+        account->signIn();
+        QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+        CloudBrowser cloud("workflow", std::make_unique<ListTransport>());
+        cloud.setAccount(account.get());
+        QSignalSpy open(&cloud, &CloudBrowser::openRequested);
+
+        WorkflowBrowser browser;
+        PanelLayout panels;
+        StatusModel status;
+        status.setStatus({.connected = true});
+        QQuickView view;
+        view.setInitialProperties({{"browser", QVariant::fromValue(&browser)},
+                                   {"panels", QVariant::fromValue(&panels)},
+                                   {"status", QVariant::fromValue(&status)},
+                                   {"cloudBrowser", QVariant::fromValue(&cloud)}});
+        view.setResizeMode(QQuickView::SizeRootObjectToView);
+        view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/WorkflowBrowser.qml"));
+        QCOMPARE(view.status(), QQuickView::Ready);
+        view.resize(360, 700);
+        view.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&view));
+        auto *root = view.rootObject();
+        QTRY_VERIFY(named(root, "cloud-documents") != nullptr);
+        QTRY_COMPARE(named(root, "cloud-documents")->property("count").toInt(), 1);
+        std::function<QQuickItem *(QQuickItem *)> rowOf = [&](QQuickItem *item) -> QQuickItem * {
+            if (item->property("documentId").toString() == "w1") {
+                return item;
+            }
+            for (auto *child : item->childItems()) {
+                if (auto *found = rowOf(child)) {
+                    return found;
+                }
+            }
+            return nullptr;
+        };
+        click(view, rowOf(named(root, "cloud-documents")));
+        QTRY_COMPARE(open.count(), 1);
+        QCOMPARE(open.at(0).at(0).toString(), QString("workflow"));
+        QCOMPARE(open.at(0).at(1).toString(), QString("w1"));
+        QCOMPARE(open.at(0).at(3).toString(), QString("owner"));
     }
 };
 

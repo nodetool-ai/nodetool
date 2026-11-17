@@ -91,10 +91,16 @@ public:
   // Lists both groups again. Signed out, both are emptied and nothing is
   // sent.
   Q_INVOKABLE void refresh();
+  // A row was chosen in a view of the lists. Emits openRequested(), which
+  // the app connects to the code that opens the document in a tab.
+  Q_INVOKABLE void requestOpen(const QString& kind, const QString& documentId, const QString& name,
+                               const QString& role);
 
 signals:
   void accountChanged();
   void stateChanged();
+  // `role` is `owner`, `editor` or `viewer`.
+  void openRequested(const QString& kind, const QString& documentId, const QString& name, const QString& role);
 
 private slots:
   void drainInbox();

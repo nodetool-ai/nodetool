@@ -154,6 +154,11 @@ CloudDocument::~CloudDocument() {
     shared_->inbox.clear();
   }
   tasks_.reset();
+  // The task thread has ended, so this thread writes the edits the timer
+  // did not reach yet. The tab closes with them on disk (FR11).
+  if (const auto saver = shared_->currentDocument()) {
+    saver->flush(shared_->services.nowMs());
+  }
 }
 
 void CloudDocument::drainInbox() {

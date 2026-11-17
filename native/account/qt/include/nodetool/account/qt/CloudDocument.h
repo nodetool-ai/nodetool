@@ -54,7 +54,8 @@ struct CloudDocumentServices {
 // saver of the kind and the CloudDocumentSaver, and the tasks share it, so
 // a task still running when the document closes finds no document to report
 // to and its objects stay alive until it ends. The destructor joins the
-// task thread.
+// task thread, then writes the last edits to the local store on the UI
+// thread, which blocks the close for that one call.
 class CloudDocument final : public QObject {
   Q_OBJECT
   Q_PROPERTY(SyncStatus syncStatus READ syncStatus NOTIFY stateChanged)

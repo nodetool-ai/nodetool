@@ -156,9 +156,16 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
           return services;
         },
         QSettings().value(QStringLiteral("cloud/server")).toString().toStdString());
+    cloudBrowser_ = std::make_unique<nodetool::account::qt::CloudBrowser>("workflow");
+    cloudBrowser_->setAccount(accountServers_->current());
     connect(accountServers_.get(), &nodetool::account::qt::AccountServers::currentChanged, this, [this] {
       QSettings().setValue(QStringLiteral("cloud/server"), accountServers_->currentServer());
+      cloudBrowser_->setAccount(accountServers_->current());
     });
+    connect(cloudBrowser_.get(), &nodetool::account::qt::CloudBrowser::openRequested, this,
+            [this](const QString &kind, const QString &documentId, const QString &, const QString &role) {
+              if (kind == QLatin1String("workflow")) { openCloudDocument(documentId, role); }
+            });
     connect(accountServers_.get(), &nodetool::account::qt::AccountServers::browserRequested, this,
             [](const QUrl &url, nodetool::account::qt::AccountController *account) {
               if (!QDesktopServices::openUrl(url)) {
@@ -763,6 +770,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   auto browserProperties = chromeProperties;
   browserProperties.insert("browser", QVariant::fromValue(&browser_));
   browserProperties.insert("folder", QVariant::fromValue(&projectFolder_));
+  browserProperties.insert("cloudBrowser", QVariant::fromValue((tabOwner_ ? tabOwner_ : this)->cloudBrowser_.get()));
   browserDock_ = dock(tr("Workflows"), "WorkflowBrowser", Qt::LeftDockWidgetArea, browserProperties);
   browserDock_->setObjectName("workflow-browser-dock");
   browserDock_->hide();
@@ -1010,6 +1018,10 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     });
     connect(&document_, &node_editor::WorkflowDocument::changed, this, [this] {
         sendLiveEdits();
+        // A cloud workflow's draft is its graph (WorkflowCloudSaver).
+        if (cloud_ && !cloudLoading_) {
+            cloud_->edit(QString::fromUtf8(QJsonDocument(document_.graph()).toJson(QJsonDocument::Compact)));
+        }
         // GenerationHistory copies the document on the next inspector sync.
         historyWorkflowStale_ = true;
         const bool replaced = std::exchange(documentReplaced_, false);
@@ -1269,6 +1281,7 @@ QString EditorWindow::serverSaveState() const {
 QString EditorWindow::saveState() const {
   if (!tabOwner_) { return activeEditor_->saveState(); }
     if (inlineChild_ && childParent_) { return childParent_->saveState(); }
+  if (cloud_) { return cloud_->syncText(); }
   if (session_.serverBound() || session_.saving() || serverSyncNeedsAttention()) { return serverSaveState(); }
   if (file_.isEmpty()) { return document_.undoStack()->isClean() ? tr("New workflow") : tr("Unsaved"); }
   return document_.undoStack()->isClean() ? tr("Saved locally") : tr("Unsaved local changes");
@@ -2393,6 +2406,9 @@ bool EditorWindow::singleRunnableCardSelected() const {
 }
 QString EditorWindow::readOnlyReason() const {
   if (!tabOwner_) { return activeEditor_->readOnlyReason(); }
+  if (cloud_ && cloud_->readOnly()) {
+    return tr("Read-only: %1").arg(cloud_->readOnlyReason());
+  }
   if (document_.isReadOnly()) {
     return document_.readOnlyReason();
   }

@@ -788,6 +788,37 @@ private slots:
     QVERIFY(rows.size() == 1 && rows[0].state == DraftState::Unsent);
   }
 
+  // A tab that closes right after an edit leaves the edit on disk, before
+  // the timer wrote it.
+  void closingWritesTheLastEdit() {
+    Computer computer;
+    computer.server.addCode("code-c", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-c");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+    ProcedureServer server;
+    server.answer("/api/sync/capabilities", {200, kCapabilities});
+    server.answer("workflows.get", {200, R"({"result":{"data":{"id":"w1","name":"Mine",)"
+                                         R"("updated_at":"2026-11-16T00:00:00Z","graph":{"nodes":[],"edges":[]}}}})"});
+    MemoryDrafts drafts;
+    CloudDocumentServices services;
+    services.session = account->session();
+    services.store = std::make_unique<SharedDrafts>(drafts);
+    services.kind = "workflow";
+    services.documentId = "w1";
+    services.transport = std::make_unique<SharedTransport>(server);
+    auto document = std::make_unique<CloudDocument>(std::move(services));
+    QSignalSpy opened(document.get(), &CloudDocument::opened);
+    document->open();
+    QTRY_COMPARE(opened.count(), 1);
+    document->edit(R"({"nodes":[{"id":"n9"}],"edges":[]})");
+    document.reset();
+    const auto rows = drafts.list({}, {}).drafts;
+    QCOMPARE(rows.size(), std::size_t(1));
+    QVERIFY(rows[0].draft.find("n9") != std::string::npos);
+    QCOMPARE(server.count("workflows.autosave", "POST"), 0);
+  }
+
   // A viewer's document opens read-only and sends nothing. A draft left in
   // the local store opens over the revision.
   void viewerAndResumedDocuments() {

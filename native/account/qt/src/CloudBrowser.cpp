@@ -164,6 +164,11 @@ void CloudBrowser::refresh() {
   });
 }
 
+void CloudBrowser::requestOpen(const QString& kind, const QString& documentId, const QString& name,
+                               const QString& role) {
+  emit openRequested(kind, documentId, name, role);
+}
+
 void CloudBrowser::finish(quint64 sequence, const CloudListing& own, const CloudListing& shared) {
   if (sequence != sequence_) {
     return;

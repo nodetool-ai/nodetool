@@ -392,6 +392,20 @@ void offlineWhenNoAnswer(TestContext& t) {
 
 const CloudDocumentKey kKey{"a1b2c3d4e5f60718", "account-a", "workflow", "doc-1"};
 
+// The store a CloudDocument owns keeps its transport alive and calls the
+// same procedures.
+void ownedLocalStoreCallsTheServer(TestContext& t) {
+  std::vector<std::string> urls;
+  auto transport = std::make_unique<FakeTransport>([&urls](const HttpRequest& request) {
+    urls.push_back(request.url + " " + header(request, "Authorization"));
+    return HttpResponse{200, R"({"result":{"data":{"draft_id":"d4"}}})"};
+  });
+  const std::unique_ptr<DraftStore> store =
+      makeLocalServerDraftStore(std::move(transport), "http://127.0.0.1:7777", {{"Authorization", "Bearer local"}});
+  CHECK(store->put(kKey, {"t0", "h0"}, R"({"nodes":[]})") == std::optional<std::string>("d4"));
+  CHECK(urls == (std::vector<std::string>{"http://127.0.0.1:7777/trpc/cloudLocal.drafts.put Bearer local"}));
+}
+
 void callsTheLocalStoreProcedures(TestContext& t) {
   FakeTransport transport([](const HttpRequest& request) {
     if (request.url.ends_with("cloudLocal.drafts.put")) {
@@ -1133,6 +1147,31 @@ void saverSignedOutAndOffline(TestContext& t) {
   }
 }
 
+// Closing the document writes the latest edit at once, before its delay
+// and during a retry wait.
+void flushWritesAtOnce(TestContext& t) {
+  FakeDraftStore store;
+  FakeCloud cloud;
+  CloudDocumentSaver saver(store, cloud, kKey, {"t0", "h0"});
+  CHECK(saver.flush(0));
+  CHECK(store.puts().empty());
+  saver.edit("v1", 0);
+  saver.persist(10);
+  CHECK(store.puts().empty());
+  CHECK(saver.flush(10));
+  CHECK(store.puts() == (std::vector<std::string>{"v1"}));
+  CHECK(!saver.state().unstoredEdits);
+
+  store.full = true;
+  saver.edit("v2", 20);
+  CHECK(!saver.flush(20));
+  CHECK(saver.state().status == DocumentStatus::NotSaving);
+  store.full = false;
+  CHECK(saver.flush(30));
+  CHECK(store.puts() == (std::vector<std::string>{"v1", "v2"}));
+  CHECK(!saver.state().unstoredEdits);
+}
+
 // A cloud save that hangs does not hold back the local write of a newer
 // edit: it reaches the store within the 750 ms target while the send is out.
 void slowCloudDoesNotDelayLocalWrites(TestContext& t) {
@@ -1446,6 +1485,7 @@ int main() {
       {"reportsAPersistent401", reportsAPersistent401},
       {"offlineWhenNoAnswer", offlineWhenNoAnswer},
       {"callsTheLocalStoreProcedures", callsTheLocalStoreProcedures},
+      {"ownedLocalStoreCallsTheServer", ownedLocalStoreCallsTheServer},
       {"savedOnlyAfterAcceptance", savedOnlyAfterAcceptance},
       {"writesWithin750msWhileTyping", writesWithin750msWhileTyping},
       {"tc9DiskFull", tc9DiskFull},
@@ -1455,6 +1495,7 @@ int main() {
       {"retriesWhileOfflineOrSignedOut", retriesWhileOfflineOrSignedOut},
       {"editsFromAnotherThread", editsFromAnotherThread},
       {"slowCloudDoesNotDelayLocalWrites", slowCloudDoesNotDelayLocalWrites},
+      {"flushWritesAtOnce", flushWritesAtOnce},
       {"aFailedLocalRecordIsNotSentAgain", aFailedLocalRecordIsNotSentAgain},
       {"aRefusalIsShownOnlyOnceStored", aRefusalIsShownOnlyOnceStored},
       {"resumesAStoredDraft", resumesAStoredDraft},
