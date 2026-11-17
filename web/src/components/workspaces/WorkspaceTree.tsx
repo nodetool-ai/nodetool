@@ -27,6 +27,7 @@ import {
   revealLabelKey
 } from "./projectFolderPaths";
 import WorkspaceTreeRow from "./WorkspaceTreeItem";
+import WorkspaceFilePreview from "./WorkspaceFilePreview";
 import {
   WorkspaceDeleteDialog,
   WorkspaceNameDialog,
@@ -40,24 +41,10 @@ import {
   countFilesUnder,
   createFolder,
   deleteEntry,
+  isDocumentFile,
   moveEntry,
   renameEntry
 } from "./workspaceTreeActions";
-
-/** File names of the documents that open in their own editor from Files. */
-const DOCUMENT_FILE_SUFFIXES = [
-  ".workflow.json",
-  ".timeline.json",
-  ".storyboard.json",
-  ".script.json",
-  ".app.json",
-  ".jsscript.json"
-] as const;
-
-const isDocumentFile = (path: string): boolean => {
-  const lower = path.toLowerCase();
-  return DOCUMENT_FILE_SUFFIXES.some((suffix) => lower.endsWith(suffix));
-};
 
 /** Props forwarded onto a rendered tree row. */
 interface TreeViewItemSlotProps {
@@ -825,6 +812,16 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
     [visibleRows, selectedFilePath, expandedItems, toggleFolder, handleItemDoubleClick, virtualizer]
   );
 
+  // A selected file, not a folder or a placeholder row, gets a preview.
+  const selectedItem = findItemInTree(files, selectedFilePath);
+  const previewPath =
+    selectedFilePath &&
+    !isPlaceholderId(selectedFilePath) &&
+    selectedItem &&
+    !isFolderItem(selectedItem)
+      ? selectedFilePath
+      : null;
+
   return (
     <Box css={workspaceTreeStyles(theme)}>
       <PanelHeader
@@ -932,6 +929,10 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
           />
         )}
       </div>
+
+      {previewPath && (
+        <WorkspaceFilePreview projectId={projectId} path={previewPath} />
+      )}
 
       <ContextMenu
         open={menu !== null}
