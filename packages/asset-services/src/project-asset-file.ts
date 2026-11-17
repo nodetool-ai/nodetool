@@ -172,15 +172,22 @@ export const WORKSPACE_OFFLINE_KEY = "workspace_offline";
  */
 export const WORKSPACE_MOVE_PUBLISHED_KEY = "workspace_move_published";
 
+/**
+ * The metadata keys the move of legacy asset bytes records on a row: where
+ * the bytes are moving to, the hash of the legacy object that was copied,
+ * and whether the copy was published. Only the move writes them.
+ */
+export const WORKSPACE_MOVE_KEYS = [
+  WORKSPACE_MOVE_TARGET_KEY,
+  WORKSPACE_MOVE_SOURCE_KEY,
+  WORKSPACE_MOVE_PUBLISHED_KEY
+] as const;
+
 /** Every metadata key the server owns on an asset in a project folder. */
 export const WORKSPACE_SERVER_KEYS = [
   ...WORKSPACE_FINGERPRINT_KEYS,
   WORKSPACE_OFFLINE_KEY,
-  // Where the bytes of an asset from before project folders are moving to,
-  // and the hash of the legacy object that was copied.
-  WORKSPACE_MOVE_TARGET_KEY,
-  WORKSPACE_MOVE_SOURCE_KEY,
-  WORKSPACE_MOVE_PUBLISHED_KEY
+  ...WORKSPACE_MOVE_KEYS
 ] as const;
 
 /**
