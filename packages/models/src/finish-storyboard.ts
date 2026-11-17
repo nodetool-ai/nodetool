@@ -49,6 +49,7 @@ export async function commitFinishedStoryboard(input: FinishStoryboardWrite): Pr
   if (!board || !timeline) throw new Error("Finished resources disappeared before confirmation.");
   // The row was written outside the model, so its file is written here.
   await timeline.syncFile();
+  await board.syncFile();
   ModelObserver.notify(board, ModelChangeEvent.UPDATED);
   ModelObserver.notify(timeline, input.timeline ? ModelChangeEvent.UPDATED : ModelChangeEvent.CREATED);
   return { board, timeline };

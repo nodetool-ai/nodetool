@@ -546,12 +546,15 @@ export async function copyProjectDocument(args: {
     await Promise.allSettled(storedUris.map((uri) => args.storage.delete(uri)));
     throw error;
   }
-  // A timeline is a file in its project's folder. The copy was inserted
-  // without the model, so its file is written here.
+  // A timeline or a storyboard is a file in its project's folder. The copy
+  // was inserted without the model, so its file is written here.
   for (const [key, id] of documentIds) {
-    if (!key.startsWith("timeline:")) continue;
-    const timeline = await TimelineSequence.findById(id);
-    await timeline?.syncFile();
+    const type = key.slice(0, key.indexOf(":"));
+    if (type === "timeline") {
+      await (await TimelineSequence.findById(id))?.syncFile();
+    } else if (type === "storyboard") {
+      await (await Storyboard.findById(id))?.syncFile();
+    }
   }
 
   const root = sources.get(`${args.type}:${args.id}`);

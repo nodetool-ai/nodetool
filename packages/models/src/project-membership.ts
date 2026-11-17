@@ -21,6 +21,7 @@ import { scripts } from "./schema/scripts.js";
 import { storyboards } from "./schema/storyboards.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
 import { TimelineSequence } from "./timeline-sequence.js";
+import { Storyboard } from "./storyboard.js";
 import type { ProjectDocumentType } from "./project-summary.js";
 
 /**
@@ -222,23 +223,25 @@ export async function reassignProjectDocuments(
     await saveAssetInProject(new Asset(row), toProjectId);
     moved += 1;
   }
-  // A timeline is a file in its project's folder too, and takes it along.
-  const timelines = await db
-    .select({ id: timelineSequences.id })
-    .from(timelineSequences)
-    .where(
-      and(
-        eq(timelineSequences.project_id, fromProjectId),
-        eq(timelineSequences.user_id, userId)
-      )
-    );
-  for (const { id } of timelines) {
-    if (await TimelineSequence.moveToProject(userId, id, toProjectId)) {
-      moved += 1;
+  // A document that is a file in its project's folder takes the file along,
+  // one document at a time.
+  const fileKinds = [
+    [timelineSequences, TimelineSequence],
+    [storyboards, Storyboard]
+  ] as const;
+  for (const [table, model] of fileKinds) {
+    const owned = await db
+      .select({ id: table.id })
+      .from(table)
+      .where(
+        and(eq(table.project_id, fromProjectId), eq(table.user_id, userId))
+      );
+    for (const { id } of owned) {
+      if (await model.moveToProject(userId, id, toProjectId)) moved += 1;
     }
   }
   for (const table of DOCUMENT_TABLES) {
-    if (table === timelineSequences) continue;
+    if (fileKinds.some(([fileTable]) => fileTable === table)) continue;
     const owned = and(
       eq(table.project_id, fromProjectId),
       eq(table.user_id, userId)
@@ -280,14 +283,8 @@ export async function moveDocumentToProject(
       return true;
     }
     case "storyboard": {
-      const rows = await db
-        .update(storyboards)
-        .set(fields)
-        .where(
-          and(eq(storyboards.id, documentId), eq(storyboards.user_id, userId))
-        )
-        .returning({ id: storyboards.id });
-      return rows.length > 0;
+      // A storyboard is a file in its project's folder, which moves with it.
+      return Storyboard.moveToProject(userId, documentId, projectId);
     }
     case "script": {
       const rows = await db

@@ -1,5 +1,5 @@
 /**
- * The state of the file a workflow or timeline has in its project folder, as
+ * The state of the file a document has in its project folder, as
  * the project's document list shows it (PRD T5, T8).
  *
  * The reconcile in `@nodetool-ai/project-services` records what it found on
@@ -11,6 +11,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 
 import { getPortableDb } from "./db.js";
+import { storyboards } from "./schema/storyboards.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
 import { workflows } from "./schema/workflows.js";
 
@@ -18,7 +19,6 @@ import { workflows } from "./schema/workflows.js";
 export const DOCUMENT_FILE_MISSING = "File missing";
 
 /** A document kind that is a file in its project folder. */
-export type FileDocumentType = "workflow" | "timeline";
 
 /**
  * The file of one document. `ok`: the file matches the document. `invalid`:
@@ -53,8 +53,14 @@ export function documentFileOf(
 
 const TABLES = {
   workflow: workflows,
-  timeline: timelineSequences
+  timeline: timelineSequences,
+  storyboard: storyboards
 } as const;
+
+/** A document kind that is a file in its project folder. */
+export type FileDocumentType = keyof typeof TABLES;
+
+const FILE_DOCUMENT_TYPES = Object.keys(TABLES) as FileDocumentType[];
 
 /** Most ids one query names, below the SQLite bound on parameters. */
 const IDS_PER_QUERY = 500;
@@ -102,7 +108,7 @@ export interface DocumentOfFile {
 }
 
 /**
- * The workflow or timeline of `userId` whose file is `path`, among the rows
+ * The document of `userId` whose file is `path`, among the rows
  * of `projectIds`, or null. `path` is relative to the project folder, as the
  * row records it.
  */
@@ -112,7 +118,7 @@ export async function findDocumentByFile(
   path: string
 ): Promise<DocumentOfFile | null> {
   if (projectIds.length === 0) return null;
-  for (const type of ["workflow", "timeline"] as const) {
+  for (const type of FILE_DOCUMENT_TYPES) {
     const table = TABLES[type];
     const [row] = await getPortableDb()
       .select({

@@ -626,15 +626,15 @@ const newestFirst = <T extends { updatedAt: string }>(refs: T[]): T[] =>
   refs.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 
 /**
- * Every document naming this project, newest first. A workflow and a
- * timeline carry the state of their file in the project folder.
+ * Every document naming this project, newest first. A document that is a
+ * file in the project folder carries the state of that file.
  */
 export async function listProjectDocuments(
   userId: string,
   projectId: string
 ): Promise<ProjectDocumentListEntry[]> {
   const rows = await loadProjectDocuments(userId, projectId);
-  const [workflowFiles, timelineFiles] = await Promise.all([
+  const [workflowFiles, timelineFiles, storyboardFiles] = await Promise.all([
     listDocumentFiles(
       "workflow",
       userId,
@@ -644,6 +644,11 @@ export async function listProjectDocuments(
       "timeline",
       userId,
       rows.timelines.map((row) => row.id)
+    ),
+    listDocumentFiles(
+      "storyboard",
+      userId,
+      rows.storyboards.map((row) => row.id)
     )
   ]);
   const withFile = <T extends { ref: string }>(
@@ -657,7 +662,9 @@ export async function listProjectDocuments(
     ...rows.workflows.map((row) =>
       withFile(toRef("workflow", row), workflowFiles)
     ),
-    ...rows.storyboards.map((row) => toRef("storyboard", row)),
+    ...rows.storyboards.map((row) =>
+      withFile(toRef("storyboard", row), storyboardFiles)
+    ),
     ...rows.scripts.map((row) => toRef("script", row)),
     ...rows.timelines.map((row) =>
       withFile(toRef("timeline", row), timelineFiles)

@@ -75,6 +75,7 @@ import {
   projectResponse,
   relocateProjectInput,
   restoreDocumentFileInput,
+  type FileDocumentType,
   type ProjectDocumentRef,
   type ProjectResponse
 } from "@nodetool-ai/protocol/api-schemas/projects.js";
@@ -101,6 +102,7 @@ import {
 } from "@nodetool-ai/project-services/document-file-sync";
 import { workflowFileAdapter } from "@nodetool-ai/project-services/workflow-file";
 import { timelineFileAdapter } from "@nodetool-ai/project-services/timeline-file";
+import { storyboardFileAdapter } from "@nodetool-ai/project-services/storyboard-file";
 import {
   ProjectFolderOpenError,
   openProjectFolder,
@@ -299,6 +301,32 @@ async function loadOpened(userId: string, id: string): Promise<Project> {
   return project;
 }
 
+/** A document that is a file in its project folder, and how to write its file. */
+interface FileDocument {
+  row: Workflow | TimelineSequence | Storyboard;
+  write: () => Promise<unknown>;
+}
+
+async function loadFileDocument(
+  type: FileDocumentType,
+  ref: string
+): Promise<FileDocument | null> {
+  switch (type) {
+    case "workflow": {
+      const row = await Workflow.get<Workflow>(ref);
+      return row && { row, write: () => restoreDocumentFile(workflowFileAdapter, row) };
+    }
+    case "timeline": {
+      const row = await TimelineSequence.findById(ref);
+      return row && { row, write: () => restoreDocumentFile(timelineFileAdapter, row) };
+    }
+    case "storyboard": {
+      const row = await Storyboard.findById(ref);
+      return row && { row, write: () => restoreDocumentFile(storyboardFileAdapter, row) };
+    }
+  }
+}
+
 export const projectsRouter = router({
   migration: projectFolderMigrationRouter,
 
@@ -424,19 +452,13 @@ export const projectsRouter = router({
     .input(restoreDocumentFileInput)
     .output(projectFileDocument)
     .mutation(async ({ ctx, input }) => {
-      const row =
-        input.type === "workflow"
-          ? await Workflow.get<Workflow>(input.ref)
-          : await TimelineSequence.findById(input.ref);
-      if (!row || row.user_id !== ctx.userId) {
+      const restore = await loadFileDocument(input.type, input.ref);
+      if (!restore || restore.row.user_id !== ctx.userId) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Document not found");
       }
+      const { row } = restore;
       try {
-        if (row instanceof Workflow) {
-          await restoreDocumentFile(workflowFileAdapter, row);
-        } else {
-          await restoreDocumentFile(timelineFileAdapter, row);
-        }
+        await restore.write();
       } catch (error) {
         if (error instanceof ProjectFolderUnavailableError) {
           throwApiError(

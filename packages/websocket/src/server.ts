@@ -85,8 +85,9 @@ import { deriveKey, getMasterKey, initMasterKey } from "@nodetool-ai/security";
 import { setDefaultModelInterfaces } from "@nodetool-ai/runtime";
 import { startProjectFolderMigration } from "@nodetool-ai/project-services/project-folder-migration";
 import { setWorkflowFileNodeRegistry } from "@nodetool-ai/project-services/workflow-file";
-// Installs the timeline file sync.
+// Install the file sync of each document kind.
 import "@nodetool-ai/project-services/timeline-file";
+import "@nodetool-ai/project-services/storyboard-file";
 import { serverModelInterfaces } from "./websocket-client-session.js";
 import {
   WorkerManager,

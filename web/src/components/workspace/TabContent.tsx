@@ -10,6 +10,14 @@ import type { Message } from "../../stores/ApiTypes";
 
 const NO_MESSAGES: Message[] = [];
 
+/** The tab types whose document is a file in the project folder. */
+const FILE_DOCUMENT_TYPES = ["workflow", "timeline", "storyboard"] as const;
+
+const isFileDocumentTab = (
+  type: WorkspaceTab["type"]
+): type is (typeof FILE_DOCUMENT_TYPES)[number] =>
+  (FILE_DOCUMENT_TYPES as readonly string[]).includes(type);
+
 // One surface per document type, each behind its own chunk. Imported eagerly
 // they landed in the workspace chunk together — opening the app downloaded the
 // node editor, Monaco, Lexical, three.js, wavesurfer and the app builder before
@@ -217,10 +225,10 @@ const TabContent = ({ tab, active }: TabContentProps) => {
       {surfaceFor(tab, active)}
     </Suspense>
   );
-  // A workflow and a timeline are files in the project folder. What is wrong
+  // A document of these kinds is a file in the project folder. What is wrong
   // with the file shows above the editor. The wrapper is always there, so a
   // notice that comes and goes never remounts the editor.
-  if (tab.type !== "workflow" && tab.type !== "timeline") {
+  if (!isFileDocumentTab(tab.type)) {
     return surface;
   }
   return (

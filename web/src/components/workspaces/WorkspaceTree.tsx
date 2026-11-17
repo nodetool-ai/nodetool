@@ -27,7 +27,11 @@ import {
 import WorkspaceTreeRow from "./WorkspaceTreeItem";
 
 /** File names of the documents that open in their own editor from Files. */
-const DOCUMENT_FILE_SUFFIXES = [".workflow.json", ".timeline.json"] as const;
+const DOCUMENT_FILE_SUFFIXES = [
+  ".workflow.json",
+  ".timeline.json",
+  ".storyboard.json"
+] as const;
 
 const isDocumentFile = (path: string): boolean => {
   const lower = path.toLowerCase();

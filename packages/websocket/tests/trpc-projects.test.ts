@@ -443,7 +443,13 @@ describe("projects router", () => {
         type: "storyboard",
         ref: board.id,
         name: "Board",
-        updatedAt: board.updated_at
+        updatedAt: board.updated_at,
+        // A storyboard is a file in the project folder.
+        file: {
+          path: "Storyboards/Board.storyboard.json",
+          state: "ok",
+          error: null
+        }
       }
     ]);
   });

@@ -309,7 +309,8 @@ export type { ImageDocumentSaveType } from "./image-document-version.js";
 export {
   Storyboard,
   StoryboardConflictError,
-  emptyStoryboardDocument
+  emptyStoryboardDocument,
+  setStoryboardFileSync
 } from "./storyboard.js";
 export type {
   StoryboardDocument,

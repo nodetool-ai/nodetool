@@ -4,9 +4,9 @@
  * A document of a kind that lives in the folder is a readable JSON file
  * there. The database row is the cache the runtime reads. This module keeps
  * the two in step, in both directions, for every kind through one
- * {@link DocumentFileAdapter}. Workflows (`workflow-file.ts`) and timelines
- * (`timeline-file.ts`) are the kinds. A new kind adds an adapter and nothing
- * here.
+ * {@link DocumentFileAdapter}. The kinds are workflows (`workflow-file.ts`),
+ * timelines (`timeline-file.ts`) and storyboards (`storyboard-file.ts`). A
+ * new kind adds an adapter and nothing here.
  *
  * NodeTool to file: the model calls {@link documentFileSync} after it saved
  * or deleted a row. A save writes the file and records its path and the hash
@@ -1496,4 +1496,32 @@ export async function writeMissingDocumentFiles(
     }
     return written;
   });
+}
+
+/**
+ * Write a file for every row of `adapter`'s kind that has none yet, in each
+ * project `unwritten` names: the documents from before project folders. Safe
+ * to interrupt and to run again, and a second run writes nothing. A project
+ * whose folder cannot be reached is skipped and tried again by the next run.
+ * Returns how many files were written.
+ */
+export async function migrateDocumentFiles<Row extends DocumentRow, Fields>(
+  adapter: DocumentFileAdapter<Row, Fields>,
+  unwritten: () => Promise<Array<{ user_id: string; project_id: string }>>,
+  onFailure?: (failure: DocumentFileFailure) => void
+): Promise<number> {
+  let written = 0;
+  for (const { user_id, project_id } of await unwritten()) {
+    try {
+      written += await writeMissingDocumentFiles([adapter], project_id, user_id);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      log.debug(`Skipped writing the ${adapter.kind} files of a project`, {
+        projectId: project_id,
+        error: reason
+      });
+      onFailure?.({ projectId: project_id, userId: user_id, reason });
+    }
+  }
+  return written;
 }

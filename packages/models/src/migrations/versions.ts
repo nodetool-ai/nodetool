@@ -459,6 +459,41 @@ const TIMELINE_LAST_WRITER_DDL =
 const TIMELINE_SCHEMA_VERSION_DDL =
   "ALTER TABLE timeline_sequences ADD COLUMN schema_version INTEGER NOT NULL DEFAULT 1";
 
+/**
+ * The same three file columns for the other document kinds that are JSON
+ * files in their project's folder: storyboards, scripts, mini apps and JS
+ * scripts.
+ */
+function documentFileDdl(table: string): readonly string[] {
+  return ["file_path", "file_hash", "file_error"].map(
+    (column) => `ALTER TABLE ${table} ADD COLUMN ${column} TEXT`
+  );
+}
+
+/**
+ * A migration that adds the file columns to `table`. Rows from before keep a
+ * null path until their project is next reconciled, which writes their files.
+ */
+function documentFileMigration(version: string, table: string): MigrationDef {
+  return {
+    version,
+    name: `add_${table}_file_columns`,
+    createsTables: [],
+    modifiesTables: [table],
+    async up(db) {
+      if (!(await db.tableExists(table))) return;
+      for (const [index, column] of ["file_path", "file_hash", "file_error"].entries()) {
+        if (!(await db.columnExists(table, column))) {
+          await db.execute(documentFileDdl(table)[index]!);
+        }
+      }
+    },
+    async down() {
+      // The columns stay: dropping them would lose where each file is.
+    }
+  };
+}
+
 const USER_PERMISSIONS_DDL: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS nodetool_user_permissions (
     user_id TEXT PRIMARY KEY NOT NULL,
@@ -568,7 +603,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   WORKFLOW_LAST_WRITER_DDL,
   WORKFLOW_SCHEMA_VERSION_DDL,
   TIMELINE_LAST_WRITER_DDL,
-  TIMELINE_SCHEMA_VERSION_DDL
+  TIMELINE_SCHEMA_VERSION_DDL,
+  ...documentFileDdl("storyboards")
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5020,7 +5056,10 @@ export const migrations: MigrationDef[] = [
     async down() {
       // The column stays: dropping it would lose which writer to keep.
     }
-  }
+  },
+
+  // A storyboard is a JSON file in its project's folder.
+  documentFileMigration("20261129_000000", "storyboards")
 ];
 
 /**

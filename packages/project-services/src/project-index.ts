@@ -100,6 +100,7 @@ import {
   flushAssetManifestWrites,
   scheduleAssetManifestWrite
 } from "./project-manifest.js";
+import { storyboardFileAdapter } from "./storyboard-file.js";
 import { timelineFileAdapter } from "./timeline-file.js";
 import { workflowFileAdapter } from "./workflow-file.js";
 
@@ -969,7 +970,7 @@ export async function reconcileInBackground(
   // the asset index as it was reconciled.
   try {
     await reconcileDocumentFiles(
-      [workflowFileAdapter, timelineFileAdapter],
+      [workflowFileAdapter, timelineFileAdapter, storyboardFileAdapter],
       report.projectId,
       userId,
       {

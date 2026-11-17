@@ -387,6 +387,7 @@ describe("project files", () => {
         .sort()
     ).toEqual([
       `${prefix}Generated/fox-in-snow.txt`,
+      `${prefix}Storyboards/Board.storyboard.json`,
       `${prefix}footage/day 1/take.bin`
     ]);
     expect(entries[`${prefix}footage/day 1/take.bin`]).toEqual(take);
@@ -395,6 +396,7 @@ describe("project files", () => {
     );
     expect(manifest.workspace_files.map((f) => f.path).sort()).toEqual([
       "Generated/fox-in-snow.txt",
+      "Storyboards/Board.storyboard.json",
       "footage/day 1/take.bin"
     ]);
     // The documents that live in the database, not in the folder.

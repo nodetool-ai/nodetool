@@ -34,6 +34,7 @@ import {
   PERSONAL_PROJECT_KIND,
   Project,
   Setting,
+  Storyboard,
   TimelineSequence,
   Workflow,
   Workspace
@@ -53,6 +54,7 @@ import {
   type ProjectAssetMoveJob
 } from "./project-asset-move-job.js";
 import { migrateTimelineFiles } from "./timeline-file.js";
+import { migrateStoryboardFiles } from "./storyboard-file.js";
 import { migrateWorkflowFiles } from "./workflow-file.js";
 import type { DocumentFileFailure } from "./document-file-sync.js";
 
@@ -281,21 +283,47 @@ async function unwrittenCount(
   return (await rows).reduce((sum, row) => sum + Number(row.count), 0);
 }
 
+/**
+ * The document kinds besides workflows and timelines that are files in the
+ * project folder. The migration plan does not count them apart, so they
+ * count as work only.
+ */
+const OTHER_DOCUMENT_KINDS: ReadonlyArray<{
+  name: string;
+  unwritten: (
+    userId?: string
+  ) => Promise<Array<{ user_id: string; project_id: string; count: number }>>;
+  migrate: (
+    userId?: string,
+    onFailure?: (failure: DocumentFileFailure) => void
+  ) => Promise<number>;
+}> = [
+  {
+    name: "storyboards",
+    unwritten: (userId) => Storyboard.projectsWithUnwrittenFiles(userId),
+    migrate: migrateStoryboardFiles
+  }
+];
+
 interface WorkCounts {
   projects: Project[];
   assets: number;
   workflows: number;
   timelines: number;
+  /** Unwritten files of the {@link OTHER_DOCUMENT_KINDS}. */
+  documents: number;
 }
 
 async function countWork(userId: string): Promise<WorkCounts> {
-  const [projects, assets, workflows, timelines] = await Promise.all([
+  const [projects, assets, workflows, timelines, ...others] = await Promise.all([
     projectsWithoutFolder(userId),
     Asset.countAwaitingFolderMove(userId),
     unwrittenCount(Workflow.projectsWithUnwrittenFiles(userId)),
-    unwrittenCount(TimelineSequence.projectsWithUnwrittenFiles(userId))
+    unwrittenCount(TimelineSequence.projectsWithUnwrittenFiles(userId)),
+    ...OTHER_DOCUMENT_KINDS.map((kind) => unwrittenCount(kind.unwritten(userId)))
   ]);
-  return { projects, assets, workflows, timelines };
+  const documents = others.reduce((sum, count) => sum + count, 0);
+  return { projects, assets, workflows, timelines, documents };
 }
 
 function hasWork(counts: WorkCounts): boolean {
@@ -303,7 +331,8 @@ function hasWork(counts: WorkCounts): boolean {
     counts.projects.length > 0 ||
     counts.assets > 0 ||
     counts.workflows > 0 ||
-    counts.timelines > 0
+    counts.timelines > 0 ||
+    counts.documents > 0
   );
 }
 
@@ -356,6 +385,9 @@ async function usersWithWork(): Promise<Set<string>> {
   }
   for (const row of await TimelineSequence.projectsWithUnwrittenFiles()) {
     users.add(row.user_id);
+  }
+  for (const kind of OTHER_DOCUMENT_KINDS) {
+    for (const row of await kind.unwritten()) users.add(row.user_id);
   }
   return users;
 }
@@ -744,6 +776,10 @@ export class ProjectFolderMigrationRunner {
     const onFailure = (failure: DocumentFileFailure) => documentFailures.push(failure);
     const workflows = await migrateWorkflowFiles(userId, onFailure);
     const timelines = await migrateTimelineFiles(userId, onFailure);
+    const others: Record<string, number> = {};
+    for (const kind of OTHER_DOCUMENT_KINDS) {
+      others[kind.name] = await kind.migrate(userId, onFailure);
+    }
     // One failure per project, also when its folder failed above or both
     // kinds failed. Retry writes the missing files again.
     for (const failure of documentFailures) {
@@ -755,10 +791,12 @@ export class ProjectFolderMigrationRunner {
       const project = await Project.findOwned(userId, projectId);
       failures.push(projectFailure(project, projectId, failure.reason));
     }
-    if (workflows + timelines > 0) {
+    const otherCount = Object.values(others).reduce((sum, n) => sum + n, 0);
+    if (workflows + timelines + otherCount > 0) {
       log.info("Wrote document files for the project folder migration", {
         workflows,
-        timelines
+        timelines,
+        ...others
       });
     }
     if (!(await proceed())) return "stopped";
@@ -1172,6 +1210,10 @@ export async function runMigrationSteps(
   if (workflows > 0) log.info(`Workflow files: ${workflows} written`);
   const timelines = await migrateTimelineFiles(userId);
   if (timelines > 0) log.info(`Timeline files: ${timelines} written`);
+  for (const kind of OTHER_DOCUMENT_KINDS) {
+    const written = await kind.migrate(userId);
+    if (written > 0) log.info(`${kind.name} files: ${written} written`);
+  }
   const projects = await scheduleLegacyAssetMoves(job, userId);
   if (projects > 0) {
     log.info(`Moving asset files into project folders: ${projects} projects`);

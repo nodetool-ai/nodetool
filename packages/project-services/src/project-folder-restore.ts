@@ -57,13 +57,18 @@ import {
   writeProjectAssetManifest,
   type AssetManifestEntry
 } from "./project-manifest.js";
+import { storyboardFileAdapter } from "./storyboard-file.js";
 import { timelineFileAdapter } from "./timeline-file.js";
 import { workflowFileAdapter } from "./workflow-file.js";
 
 const log = createLogger("nodetool.project-services.project-folder-restore");
 
 /** The document kinds that are files in the folder, as the restore reads them. */
-const DOCUMENT_KINDS = [workflowFileAdapter, timelineFileAdapter].map(
+const DOCUMENT_KINDS = [
+  workflowFileAdapter,
+  timelineFileAdapter,
+  storyboardFileAdapter
+].map(
   ({ kind, suffix, format, exists }) => ({ kind, suffix, format, exists })
 );
 type DocumentKind = (typeof DOCUMENT_KINDS)[number];
