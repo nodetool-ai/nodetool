@@ -207,8 +207,9 @@ void EditorWindow::openStoryDocument(const QString &kind, const QString &id) {
     const auto &session = opener ? opener->session_ : tab->session_;
     tab->storyId_ = id;
     tab->storySource_ = new node_editor::StoryDocumentSource(kind, session.serverUrl(), session.token(), session.userId(), tab);
-    const auto file = kind == "scripts" ? QStringLiteral("ScriptDocumentEditor") : QStringLiteral("StoryboardDocumentEditor");
-    auto editor = tab->panel("qrc:/qt/qml/NodeTool/Storyboard/qml/" + file + ".qml",
+    const auto file = kind == "scripts" ? QStringLiteral("qrc:/qt/qml/NodeTool/Script/qml/ScriptDocumentEditor.qml")
+                                        : QStringLiteral("qrc:/qt/qml/NodeTool/Storyboard/qml/StoryboardDocumentEditor.qml");
+    auto editor = tab->panel(file,
                              {{"controller", QVariant::fromValue<QObject *>(tab->storySource_)}});
     editor->setObjectName("story-document-editor");
     if (auto root = editor->rootObject()) {

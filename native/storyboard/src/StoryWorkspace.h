@@ -44,6 +44,8 @@ public:
     Q_INVOKABLE bool removeShot(const QString& shotId);
     Q_INVOKABLE bool moveShot(const QString& shotId, const QString& sceneId, int position);
     Q_INVOKABLE bool patchBoard(const QString& field, const QJsonValue& value);
+    // Keeps an edit made elsewhere, such as a script line, as the draft of the open document.
+    Q_INVOKABLE bool replaceResource(const QJsonObject& edited);
     Q_INVOKABLE bool save();
     Q_INVOKABLE void discard();
     Q_INVOKABLE QString json(const QJsonValue& value) const;

@@ -1699,6 +1699,7 @@ void EditorWindow::openLinkedDocument(const QString &kind, const QString &id) {
   if (id.isEmpty()) { return; }
   if (kind == QStringLiteral("workflow")) { openWorkflow(id); return; }
   if (kind == QStringLiteral("storyboard")) { openStoryDocument(QStringLiteral("storyboards"), id); return; }
+  if (kind == QStringLiteral("script")) { openStoryDocument(QStringLiteral("scripts"), id); return; }
   if (!documentPicker_.open(kind, id)) { notify(QStringLiteral("warning"), tr("This %1 has no editor here. Open it in the web workspace.").arg(kind)); }
 }
 void EditorWindow::openWorkflow(const QString &id) {

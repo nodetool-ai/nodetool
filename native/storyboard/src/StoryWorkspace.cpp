@@ -93,6 +93,10 @@ bool StoryWorkspace::patchBoard(const QString& field, const QJsonValue& value) {
     const auto result = nt::storyworkspace::patchBoard(QJsonObject::fromVariantMap(resource()), field, value);
     return retain(result.resource, result.error);
 }
+bool StoryWorkspace::replaceResource(const QJsonObject& edited) {
+    const bool same = !edited.value("id").toString().isEmpty() && edited.value("id") == current().value("id");
+    return retain(edited, same ? QString{} : QStringLiteral("The edit belongs to another document."));
+}
 bool StoryWorkspace::save() {
     if (!m_controller || busy() || !dirty()) { return false; }
     for (const auto& raw : m_jsonDrafts.value(key())) {

@@ -29,13 +29,13 @@ using namespace nodetool;
 namespace {
 QJsonArray metadata() {
   QJsonArray result;
-  const QHash<QString, QString> kinds{{"Image", "image"}, {"Audio", "audio"}, {"Video", "video"}, {"Document", "document"}, {"Model3D", "model_3d"}, {"String", "str"}, {"DataFrame", "dataframe"}, {"Storyboard", "storyboard"}, {"Workflow", "workflow"}};
+  const QHash<QString, QString> kinds{{"Image", "image"}, {"Audio", "audio"}, {"Video", "video"}, {"Document", "document"}, {"Model3D", "model_3d"}, {"String", "str"}, {"DataFrame", "dataframe"}, {"Storyboard", "storyboard"}, {"Workflow", "workflow"}, {"Script", "script"}};
   for (auto it = kinds.begin(); it != kinds.end(); ++it) {
     result.append(QJsonObject{{"node_type", "nodetool.constant." + it.key()}, {"title", it.key()},
       {"properties", QJsonArray{QJsonObject{{"name", "value"}, {"type", QJsonObject{{"type", it.value()}}}, {"default", QJsonValue::Null}}, QJsonObject{{"name", "extra"}, {"type", QJsonObject{{"type", "str"}}}, {"default", "kept"}}}},
       {"outputs", QJsonArray{QJsonObject{{"name", "output"}, {"type", QJsonObject{{"type", it.value()}}}}}}});
     // Document constants draw their value inline, as the server lists them.
-    if (it.value() == "storyboard" || it.value() == "workflow") {
+    if (it.value() == "storyboard" || it.value() == "workflow" || it.value() == "script") {
       auto entry = result.last().toObject(); entry["inline_fields"] = QJsonArray{"value"}; entry["input_fields"] = QJsonArray{}; result[result.size() - 1] = entry;
     }
   }
@@ -345,6 +345,28 @@ private slots:
     QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, rowPoint(window, NodeRowKind::Action, "openDocument").toPoint());
     QTRY_COMPARE(window.activeTab(), tabs);
     QCOMPARE(window.workflowTabs().size(), tabs + 1);
+  }
+  void editOpensALinkedScriptInADocumentTab() {
+    Server server; EditorWindow window; setup(window, server); QVERIFY(controller(window));
+    auto linked = storyboard("script-3", "Pilot"); linked["type"] = "script"; server.documentByFile = linked;
+    QVERIFY(dropProjectFile(window, "pilot.script.json", QPointF(220, 180))); QTRY_COMPARE(window.document()->nodes().size(), 1);
+    QCOMPARE(window.document()->nodes()[0].toObject()["type"].toString(), QString("nodetool.constant.Script"));
+    const auto tabs = window.workflowTabs().size();
+    QTRY_VERIFY(!rowPoint(window, NodeRowKind::Action, "openDocument").isNull());
+    auto *view = window.findChild<QGraphicsView *>();
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, rowPoint(window, NodeRowKind::Action, "openDocument").toPoint());
+    QTRY_COMPARE(window.workflowTabs().size(), tabs + 1);
+    QTRY_COMPARE(server.documentGets, QStringList{"script-3"});
+    QCOMPARE(window.workflowTabs().last().toMap()["kind"].toString(), QString("scripts"));
+    QTRY_COMPARE(window.workflowTabs().last().toMap()["title"].toString(), QString("Pilot"));
+    // An edit in the script editor marks the tab dirty.
+    auto *editor = window.findChild<QQuickWidget *>("story-document-editor"); QVERIFY(editor && editor->rootObject());
+    QCOMPARE(editor->rootObject()->objectName(), QString("scriptDocumentEditor"));
+    auto *drafts = editor->rootObject()->property("workspace").value<QObject *>(); QVERIFY(drafts);
+    auto edited = drafts->property("resource").toMap(); edited["document"] = QVariantMap{{"sections", QVariantList{QVariantMap{{"id", "s1"}, {"lines", QVariantList{}}}}}};
+    bool kept = false; QVERIFY(QMetaObject::invokeMethod(drafts, "replaceResource", Q_RETURN_ARG(bool, kept), Q_ARG(QJsonObject, QJsonObject::fromVariantMap(edited)))); QVERIFY(kept);
+    QTRY_VERIFY(window.workflowTabs().last().toMap()["dirty"].toBool());
+    QVERIFY(window.hasUnsavedChanges());
   }
   void authoritativeAssetKinds_data() {
     QTest::addColumn<QString>("mime"); QTest::addColumn<QString>("kind"); QTest::addColumn<QString>("type"); QTest::addColumn<QByteArray>("content");
