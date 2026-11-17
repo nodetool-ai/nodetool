@@ -1,5 +1,4 @@
 #include "ChatClient.h"
-#include "nodetool/account/qt/ServerToken.h"
 #include <QBuffer>
 #include <QDesktopServices>
 #include <QUuid>
@@ -14,6 +13,29 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 namespace nt::chat {
+namespace {
+// Sets `Authorization: Bearer <token>` only on a request to the connected
+// server's origin, with ws and wss counted as http and https. Chat builds
+// without the account service, so this mirrors its ServerToken.h
+// (native/account/qt) rather than including it.
+void attachServerToken(QNetworkRequest &request, const QUrl &server, const QString &token) {
+  const auto http = [](const QString &scheme) {
+    return scheme == u"wss" ? QStringLiteral("https") : scheme == u"ws" ? QStringLiteral("http") : scheme;
+  };
+  const QUrl &url = request.url();
+  const QString scheme = http(url.scheme());
+  if (token.isEmpty() || scheme != http(server.scheme()) || (scheme != u"http" && scheme != u"https") ||
+      url.host().isEmpty() || url.host().compare(server.host(), Qt::CaseInsensitive) != 0) {
+    return;
+  }
+  const int port = scheme == u"https" ? 443 : 80;
+  if (url.port(port) != server.port(port)) {
+    return;
+  }
+  request.setRawHeader("Authorization", "Bearer " + token.toUtf8());
+}
+} // namespace
+
 ChatClient::ChatClient(QObject *parent)
     : QObject(parent), m_network(this),
       m_socket(QString(), QWebSocketProtocol::VersionLatest, this) {
@@ -69,7 +91,7 @@ void ChatClient::connectToServer(const QUrl &base, const QString &token) {
   url.setFragment({});
   QNetworkRequest request(url);
   request.setRawHeader("X-Nodetool-Client", "native-chat");
-  nodetool::account::qt::attachServerToken(request, base, token);
+  attachServerToken(request, base, token);
   m_socket.open(request);
 }
 void ChatClient::disconnectFromServer() {
@@ -173,7 +195,7 @@ void ChatClient::upload(const QString &id, const QUrl &local, Callback callback,
   request.setTransferTimeout(60000);
   request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                        QNetworkRequest::ManualRedirectPolicy);
-  nodetool::account::qt::attachServerToken(request, m_base, m_token);
+  attachServerToken(request, m_base, m_token);
   auto *reply = m_network.post(request, multipart);
   reply->setProperty("uploadId", id);
   multipart->setParent(reply);
@@ -223,7 +245,7 @@ void ChatClient::downloadMedia(const QUrl &input, Callback callback) {
   QNetworkRequest request(url);
   request.setTransferTimeout(30000);
   request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-  nodetool::account::qt::attachServerToken(request, m_base, m_token);
+  attachServerToken(request, m_base, m_token);
   auto *reply = m_network.get(request);
   ++m_mediaRequests;
   const auto epoch = m_epoch;
@@ -288,7 +310,7 @@ void ChatClient::fetchMedia(const QUrl &input, Callback callback) {
   request.setTransferTimeout(30000);
   request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                        QNetworkRequest::ManualRedirectPolicy);
-  nodetool::account::qt::attachServerToken(request, m_base, m_token);
+  attachServerToken(request, m_base, m_token);
   auto *reply = m_network.get(request);
   ++m_mediaRequests;
   const auto epoch = m_epoch;
@@ -344,7 +366,7 @@ void ChatClient::call(const QString &procedure, QJsonObject input,
                        QNetworkRequest::ManualRedirectPolicy);
   request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
   request.setRawHeader("X-Nodetool-Client", "native-chat");
-  nodetool::account::qt::attachServerToken(request, m_base, m_token);
+  attachServerToken(request, m_base, m_token);
   auto *reply =
       mutation ? m_network.post(request, body) : m_network.get(request);
   connect(reply, &QNetworkReply::readyRead, this, [reply] {

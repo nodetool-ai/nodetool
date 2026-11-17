@@ -8,5 +8,6 @@ set(CMAKE_AUTOMOC ON)
 find_package(Qt6 6.12 REQUIRED COMPONENTS Core Network Test)
 add_executable(node_editor_browser_tests WorkflowBrowserTests.cpp
  ../../src/server/WorkflowBrowser.cpp ../../src/server/WorkflowBrowser.h)
+target_include_directories(node_editor_browser_tests PRIVATE ../../../account/qt/include)
 target_link_libraries(node_editor_browser_tests PRIVATE Qt6::Core Qt6::Network Qt6::Test)
 add_test(NAME node_editor_browser COMMAND node_editor_browser_tests)

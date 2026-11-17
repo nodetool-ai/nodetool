@@ -18,7 +18,14 @@ add_library(nodetool_account_qt STATIC
   src/QtHttpTransport.cpp
   include/nodetool/account/qt/QtHttpTransport.h
   src/TaskQueue.h)
-include(ServerToken.cmake)
+# The header that attaches a server token to a request to that server only.
+# It needs Qt Network and nothing else from the account service, so the
+# timeline's server client links this target alone.
+add_library(nodetool_account_server_token INTERFACE)
+target_sources(nodetool_account_server_token INTERFACE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/nodetool/account/qt/ServerToken.h)
+target_include_directories(nodetool_account_server_token INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(nodetool_account_server_token INTERFACE Qt6::Core Qt6::Network)
 target_link_libraries(nodetool_account_qt PUBLIC nodetool_account_server_token)
 set_target_properties(nodetool_account_qt PROPERTIES AUTOMOC ON)
 target_include_directories(nodetool_account_qt PUBLIC include)

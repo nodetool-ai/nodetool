@@ -306,12 +306,13 @@ needs Qt Core and Network.
   `Authorization: Bearer` only when the token is not empty and the request
   goes to that server's origin, where a socket URL (`ws`, `wss`) counts as
   its HTTP origin. A request to any other host, such as a provider's media
-  URL, carries no token. The node editor, the timeline and native chat
-  send their server requests through it. A cloud document's requests go
-  through `CloudClient`, and the local draft store's client, which talks to
-  the local server alone, takes the token in its headers. The header needs only Qt Network, so its CMake
-  target `nodetool_account_server_token` comes from `qt/ServerToken.cmake`,
-  which native chat includes without the rest of the account service.
+  URL, carries no token. The node editor and the timeline send their
+  server requests through it. Native chat builds without the account
+  service, so `ChatClient` keeps the same rule in a helper of its own. A
+  cloud document's requests go through `CloudClient`, and the local draft
+  store's client, which talks to the local server alone, takes the token in
+  its headers. The header needs only Qt Network, so the timeline's server
+  client links its interface target `nodetool_account_server_token` alone.
 
 `qt/qml/` holds the QML both apps compile: `AccountControl.qml`, with the
 server menu and the Sign in to another server dialog, `CloudDocumentsPanel.qml`,
