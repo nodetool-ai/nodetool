@@ -15,6 +15,8 @@
 #include "nodetool/account/qt/ShareController.h"
 #include "test_support.h"
 
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
 #include <QSignalSpy>
 #include <QTcpServer>
 #include <QTcpSocket>
@@ -24,6 +26,7 @@
 #include <atomic>
 #include <map>
 #include <chrono>
+#include <condition_variable>
 #include <future>
 #include <mutex>
 #include <vector>
@@ -244,6 +247,34 @@ private:
   HttpTransport& target_;
 };
 
+// Holds every request whose URL contains `needle` until release(), and
+// forwards the rest. Thread-safe: `mutex_` guards `held_`.
+class HoldingTransport final : public HttpTransport {
+public:
+  HoldingTransport(HttpTransport& target, std::string needle) : target_(target), needle_(std::move(needle)) {}
+  HttpResponse send(const HttpRequest& request) override {
+    if (request.url.find(needle_) != std::string::npos) {
+      std::unique_lock lock(mutex_);
+      released_.wait(lock, [this] { return !held_; });
+    }
+    return target_.send(request);
+  }
+  void release() {
+    {
+      const std::lock_guard lock(mutex_);
+      held_ = false;
+    }
+    released_.notify_all();
+  }
+
+private:
+  HttpTransport& target_;
+  const std::string needle_;
+  std::mutex mutex_;
+  std::condition_variable released_;
+  bool held_ = true;
+};
+
 // One draft row per document, as the local server keeps them. Thread-safe:
 // `mutex_` guards the rows.
 class MemoryDrafts final : public DraftStore {
@@ -317,6 +348,26 @@ public:
 
 private:
   DraftStore& t_;
+};
+
+// A local store that cannot be read or written, such as while the local
+// server is down. `writes` counts the attempts.
+class BrokenDrafts final : public DraftStore {
+public:
+  std::optional<std::string> put(const CloudDocumentKey&, const CloudBase&, const std::string&) override {
+    ++writes;
+    return std::nullopt;
+  }
+  std::optional<AcceptOutcome> accept(const CloudDocumentKey&, const std::string&, const CloudBase&, const CloudBase&,
+                                      const std::string&, const CloudDocumentOptions&) override {
+    return std::nullopt;
+  }
+  bool markUnsent(const CloudDocumentKey&, const std::string&, const std::string&) override { return false; }
+  DraftLoad load(const CloudDocumentKey&) override { return {loadOk, std::nullopt}; }
+  DraftList list(const std::string&, const std::string&) override { return {false, {}}; }
+
+  bool loadOk = true;
+  std::atomic<int> writes = 0;
 };
 
 constexpr const char* kCapabilities =
@@ -908,6 +959,37 @@ private slots:
     QVERIFY(sameServerOrigin(QUrl("https://nt.example"), QUrl("https://nt.example:443/x")));
   }
 
+  // RF13: a request with the token follows no redirect to another origin,
+  // because Qt would copy the header there. A redirect inside the origin
+  // still works.
+  void serverTokenNeverFollowsARedirectAway() {
+    CannedServer other("HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok");
+    const QByteArray away = "http://127.0.0.1:" + QByteArray::number(other.port()) + "/x";
+    CannedServer server("HTTP/1.1 302 Found\r\nLocation: " + away +
+                        "\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+    const QUrl origin(QStringLiteral("http://127.0.0.1:%1").arg(server.port()));
+    QNetworkAccessManager network;
+    QNetworkRequest request(origin.resolved(QUrl("/api/a")));
+    QVERIFY(attachServerToken(request, origin, "t1"));
+    QNetworkReply* reply = network.get(request);
+    QTRY_VERIFY(reply->isFinished());
+    QVERIFY(server.lastHead().contains("Authorization: Bearer t1"));
+    QCOMPARE(other.requests(), 0);
+    QVERIFY(reply->error() != QNetworkReply::NoError);
+    reply->deleteLater();
+
+    // A request that reads redirects itself keeps its policy.
+    QNetworkRequest manual(origin.resolved(QUrl("/api/b")));
+    manual.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
+    QVERIFY(attachServerToken(manual, origin, "t1"));
+    QCOMPARE(manual.attribute(QNetworkRequest::RedirectPolicyAttribute).toInt(),
+             int(QNetworkRequest::ManualRedirectPolicy));
+    QNetworkRequest same(origin.resolved(QUrl("/api/c")));
+    QVERIFY(attachServerToken(same, origin, "t1"));
+    QCOMPARE(same.attribute(QNetworkRequest::RedirectPolicyAttribute).toInt(),
+             int(QNetworkRequest::SameOriginRedirectPolicy));
+  }
+
   // A tab that closes right after an edit leaves the edit on disk, before
   // the timer wrote it.
   void closingWritesTheLastEdit() {
@@ -984,6 +1066,99 @@ private slots:
     QCOMPARE(editorOpened.at(0).at(1).toString(), QString(R"({"tracks":[1]})"));
     QTRY_COMPARE(editor->syncStatus(), CloudDocument::SyncStatus::SavedToCloud);
     QCOMPARE(server.count("timeline.update"), 1);
+  }
+
+  // A send the server holds does not hold the local writes: an edit made
+  // while it waits reaches the disk in time (FR11).
+  void slowSendKeepsWritingDrafts() {
+    Computer computer;
+    computer.server.addCode("code-h", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-h");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+    ProcedureServer server;
+    server.answer("/api/sync/capabilities", {200, kCapabilities});
+    server.answer("workflows.get", {200, R"({"result":{"data":{"id":"w1","name":"Mine",)"
+                                         R"("updated_at":"2026-11-16T00:00:00Z","graph":{"nodes":[],"edges":[]}}}})"});
+    server.answer("workflows.autosave", {200, R"({"result":{"data":{"id":"w1","updated_at":"2026-11-16T00:01:00Z"}}})"});
+    MemoryDrafts drafts;
+    auto holding = std::make_unique<HoldingTransport>(server, "workflows.autosave");
+    HoldingTransport& gate = *holding;
+    CloudDocumentServices services;
+    services.session = account->session();
+    services.store = std::make_unique<SharedDrafts>(drafts);
+    services.kind = "workflow";
+    services.documentId = "w1";
+    services.transport = std::move(holding);
+    auto document = std::make_unique<CloudDocument>(std::move(services));
+    // Released before the document joins its threads, also on a failure.
+    struct Release {
+      HoldingTransport& gate;
+      ~Release() { gate.release(); }
+    } releaseOnExit{gate};
+    QSignalSpy opened(document.get(), &CloudDocument::opened);
+    document->open();
+    QTRY_COMPARE(opened.count(), 1);
+    document->edit(R"({"nodes":[{"id":"first"}],"edges":[]})");
+    QTRY_COMPARE(document->syncStatus(), CloudDocument::SyncStatus::Sending);
+    document->edit(R"({"nodes":[{"id":"second"}],"edges":[]})");
+    QTRY_VERIFY_WITH_TIMEOUT(
+        [&] {
+          const auto rows = drafts.list({}, {}).drafts;
+          return rows.size() == 1 && rows[0].draft.find("second") != std::string::npos;
+        }(),
+        1500);
+    gate.release();
+    QTRY_COMPARE_WITH_TIMEOUT(document->syncStatus(), CloudDocument::SyncStatus::SavedToCloud, 10000);
+  }
+
+  // When the local store can't say whether a draft is kept, the document
+  // opens read-only and writes nothing over a kept draft. When it can't
+  // write, writeLocally() says so before the tab closes.
+  void unreadableStoreKeepsTheDraft() {
+    Computer computer;
+    computer.server.addCode("code-u", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-u");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+    ProcedureServer server;
+    server.answer("/api/sync/capabilities", {200, kCapabilities});
+    server.answer("workflows.get", {200, R"({"result":{"data":{"id":"w1","name":"Mine",)"
+                                         R"("updated_at":"2026-11-16T00:00:00Z","graph":{"nodes":[],"edges":[]}}}})"});
+    const auto open = [&](bool loadOk) {
+      auto store = std::make_unique<BrokenDrafts>();
+      store->loadOk = loadOk;
+      BrokenDrafts& kept = *store;
+      CloudDocumentServices services;
+      services.session = account->session();
+      services.store = std::move(store);
+      services.kind = "workflow";
+      services.documentId = "w1";
+      services.transport = std::make_unique<SharedTransport>(server);
+      return std::pair{std::make_unique<CloudDocument>(std::move(services)), &kept};
+    };
+
+    auto [unreadable, unreadableStore] = open(false);
+    QSignalSpy opened(unreadable.get(), &CloudDocument::opened);
+    unreadable->open();
+    QTRY_COMPARE(opened.count(), 1);
+    QVERIFY(unreadable->readOnly());
+    QVERIFY(unreadable->readOnlyReason().contains("could not be read"));
+    unreadable->edit(R"({"nodes":[{"id":"n1"}],"edges":[]})");
+    QTest::qWait(600);
+    QCOMPARE(unreadableStore->writes.load(), 0);
+    QVERIFY(unreadable->writeLocally());
+
+    auto [unwritable, unwritableStore] = open(true);
+    QSignalSpy writableOpened(unwritable.get(), &CloudDocument::opened);
+    unwritable->open();
+    QTRY_COMPARE(writableOpened.count(), 1);
+    QVERIFY(!unwritable->readOnly());
+    QVERIFY(unwritable->writeLocally());
+    unwritable->edit(R"({"nodes":[{"id":"n1"}],"edges":[]})");
+    QVERIFY(!unwritable->writeLocally());
+    QVERIFY(unwritableStore->writes.load() > 0);
+    QTRY_COMPARE(unwritable->syncStatus(), CloudDocument::SyncStatus::NotSaving);
   }
 
   void statusSentences() {
