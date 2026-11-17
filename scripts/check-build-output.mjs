@@ -16,15 +16,26 @@ const ALLOWED_PREFIXES = [
   "scripts/__tests__/fixtures/test-affected-native/out/"
 ];
 
+// The build folders of a native project, as .gitignore names them. Any file
+// in one is build output, a library or program as much as CMake's own files.
+const NATIVE_BUILD_DIR = /^native\/[^/]+\/(build|build-[^/]+|cmake-build-[^/]+)\//;
 const BUILD_DIR_SEGMENT = /(^|\/)(CMakeFiles|\.qt|[^/]+_autogen)\//;
 const BUILD_FILE_NAME = /(^|\/)(CMakeCache\.txt|\.ninja_deps|\.ninja_log|build\.ninja|cmake_install\.cmake|CTestTestfile\.cmake|compile_commands\.json)$/;
-const OBJECT_FILE = /\.(o|obj|o\.d)$/;
+// GCC and Clang objects. MSVC's `.obj` is left out because a Wavefront
+// model has the same extension; an MSVC object sits under CMakeFiles/ or a
+// native build folder, which the rules above catch.
+const OBJECT_FILE = /\.(o|o\.d)$/;
 
 export function isBuildOutput(path) {
   if (ALLOWED_PREFIXES.some((prefix) => path.startsWith(prefix))) {
     return false;
   }
-  return BUILD_DIR_SEGMENT.test(path) || BUILD_FILE_NAME.test(path) || OBJECT_FILE.test(path);
+  return (
+    NATIVE_BUILD_DIR.test(path) ||
+    BUILD_DIR_SEGMENT.test(path) ||
+    BUILD_FILE_NAME.test(path) ||
+    OBJECT_FILE.test(path)
+  );
 }
 
 export function findBuildOutput(paths) {
