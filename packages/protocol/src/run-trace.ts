@@ -127,7 +127,7 @@ const SAFE_SPAN_NAMES = new RegExp("^(?:" + [
   String.raw`provider\.[a-zA-Z0-9]+`,
   String.raw`python\.(?:execute|execute_stream)|ws\.command`,
   String.raw`storage\.(?:store|retrieve|delete|list)`,
-  String.raw`workspace\.(?:read|write|write_new|list|materialize|absorb)|subprocess\.run`,
+  String.raw`workspace\.(?:read|write|write_new|list|materialize|absorb|absorb_new)|subprocess\.run`,
   String.raw`image\.(?:encode_png|rasterize_svg|extract_region|thumbnail)|audio\.(?:peaks|thumbnail)|video\.(?:encode_proxy|thumbnail)`,
   String.raw`media\.(?:probe_video_duration|trim_video_window|extract_audio)|sdcpp\.http|wan2gp\.(?:rpc|upload|download)|blender\.(?:run|worker\.status)`,
   String.raw`app\.build(?:\.(?:spec|plan|author|check|run|judge))?`,
