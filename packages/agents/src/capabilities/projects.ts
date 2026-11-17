@@ -1,6 +1,6 @@
 /**
- * The `projects` capability module — list, search, edit and delete the
- * caller's projects.
+ * The `projects` capability module — list, search, create, edit, move items
+ * into and delete the caller's projects.
  *
  * Reads and edits go through `Project` in `@nodetool-ai/models`, the same
  * model methods the tRPC `projects` router calls. Deletion is different: the
@@ -22,9 +22,12 @@ import type {
 import {
   listProjectsSpec,
   searchProjectsSpec,
+  createProjectSpec,
   updateProjectSpec,
+  moveToProjectSpec,
   deleteProjectSpec,
-  MAX_PROJECTS_PER_CALL
+  MAX_PROJECTS_PER_CALL,
+  MOVABLE_PROJECT_ITEM_TYPES
 } from "./projects.specs.js";
 import { isNonBlankString, isString } from "../utils/type-guards.js";
 
@@ -184,6 +187,141 @@ const updateProject: CapabilityExport = {
   }
 };
 
+const createProject: CapabilityExport = {
+  spec: createProjectSpec,
+  impl: async (run, params) => {
+    const userId = userOf(run);
+    if (isError(userId)) return userId;
+    const name = params["name"];
+    if (!isString(name) || name.trim() === "" || name.length > 200) {
+      return { error: "name must be 1 to 200 characters." };
+    }
+    const kind = params["kind"] ?? "";
+    if (!isString(kind) || kind.length > 64) {
+      return { error: "kind must be a string of at most 64 characters." };
+    }
+    const { Project, PERSONAL_PROJECT_KIND } = await import(
+      "@nodetool-ai/models"
+    );
+    if (kind === PERSONAL_PROJECT_KIND) {
+      return {
+        error: `The "${PERSONAL_PROJECT_KIND}" kind is reserved for the Personal project.`
+      };
+    }
+    const project = await Project.insertNew({
+      user_id: userId,
+      name: name.trim(),
+      kind
+    });
+    if (!project) return { error: "The project could not be created." };
+    // The folder is part of the create, as in the projects router: a project
+    // whose folder cannot be made is removed again.
+    const { ensureProjectFolder } = await import(
+      "@nodetool-ai/execution/service"
+    );
+    try {
+      await ensureProjectFolder(project);
+    } catch (error) {
+      await project.delete();
+      return {
+        error: `The project folder could not be created: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
+    return { project: summarizeProject(project) };
+  }
+};
+
+type MovableType = (typeof MOVABLE_PROJECT_ITEM_TYPES)[number];
+
+const isMovableType = (value: unknown): value is MovableType =>
+  isString(value) &&
+  (MOVABLE_PROJECT_ITEM_TYPES as readonly string[]).includes(value);
+
+/**
+ * The full id of an item the caller owns, from a full id or a 12-char prefix.
+ * Null when the caller owns no such item.
+ */
+async function ownedItemId(
+  userId: string,
+  type: Exclude<MovableType, "asset" | "entity">,
+  id: string
+): Promise<string | null> {
+  const models = await import("@nodetool-ai/models");
+  const getters: Record<
+    typeof type,
+    () => Promise<{ id: string; user_id: string } | null>
+  > = {
+    storyboard: () => models.Storyboard.get(id),
+    script: () => models.Script.get(id),
+    timeline: () => models.TimelineSequence.get(id),
+    sketch: () => models.ImageDocument.get(id),
+    application: () => models.Application.get(id),
+    jsscript: () => models.JsScript.get(id)
+  };
+  const row = await getters[type]();
+  return row && row.user_id === userId ? row.id : null;
+}
+
+const moveToProject: CapabilityExport = {
+  spec: moveToProjectSpec,
+  impl: async (run, params) => {
+    const userId = userOf(run);
+    if (isError(userId)) return userId;
+    const named = projectIdOf(params);
+    if (isError(named)) return named;
+    const type = params["type"];
+    if (!isMovableType(type)) {
+      return {
+        error: `type must be one of ${MOVABLE_PROJECT_ITEM_TYPES.join(", ")}.`
+      };
+    }
+    const rawId = params["id"];
+    if (!isNonBlankString(rawId)) return { error: "id is required." };
+    const itemId = rawId.trim();
+
+    const models = await import("@nodetool-ai/models");
+    const target = await models.Project.findOwned(userId, named);
+    if (!target) return notFound(named);
+
+    try {
+      if (type === "asset") {
+        const asset = await models.Asset.find(userId, itemId);
+        if (!asset) return { error: `Asset ${itemId} was not found.` };
+        await models.saveAssetInProject(asset, target.id);
+        return { moved: true, type, id: asset.id, project_id: target.id };
+      }
+      let fullId = itemId;
+      if (type === "entity") {
+        const asset = await models.Asset.find(userId, itemId);
+        if (!asset) return { error: `Entity ${itemId} was not found.` };
+        fullId = asset.id;
+      } else {
+        const owned = await ownedItemId(userId, type, itemId);
+        if (!owned) return { error: `${type} ${itemId} was not found.` };
+        fullId = owned;
+      }
+      if (await models.hasProjectDocumentDependents(userId, type, fullId)) {
+        return {
+          error:
+            "Other documents reference this item, so it cannot move. Copy it into the destination project instead."
+        };
+      }
+      const moved = await models.moveDocumentToProject(
+        userId,
+        type,
+        fullId,
+        target.id
+      );
+      if (!moved) return { error: `${type} ${itemId} was not found.` };
+      return { moved: true, type, id: fullId, project_id: target.id };
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+};
+
 const deleteProject: CapabilityExport = {
   spec: deleteProjectSpec,
   impl: async (run, params) => {
@@ -226,7 +364,9 @@ const deleteProject: CapabilityExport = {
 export const PROJECT_CAPABILITIES: readonly CapabilityExport[] = [
   listProjects,
   searchProjects,
+  createProject,
   updateProject,
+  moveToProject,
   deleteProject
 ];
 
@@ -235,4 +375,11 @@ export const module: CapabilityModule = {
   exports: PROJECT_CAPABILITIES
 };
 
-export { listProjects, searchProjects, updateProject, deleteProject };
+export {
+  listProjects,
+  searchProjects,
+  createProject,
+  updateProject,
+  moveToProject,
+  deleteProject
+};

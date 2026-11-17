@@ -38,7 +38,6 @@ describe("quickAccessCategories", () => {
     const ids = LEFT_PANEL_TOP_LEVEL.map((c) => c.id);
     expect(ids).toEqual([
       "chats",
-      "documents",
       "files",
       "library",
       "entities",
@@ -48,7 +47,6 @@ describe("quickAccessCategories", () => {
     ]);
     expect(LEFT_PANEL_DIRECT.map((category) => category.id)).toEqual([
       "chats",
-      "documents",
       "files",
       "library",
       "entities",

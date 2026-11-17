@@ -2159,10 +2159,30 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "create_project",
+    module: "projects",
+    impl: "packages/agents/src/capabilities/projects.ts",
+    contract: "656a87ab3dc2",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-projects.test.ts",
+    ],
+  },
+  {
     name: "update_project",
     module: "projects",
     impl: "packages/agents/src/capabilities/projects.ts",
     contract: "27411eee910e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-projects.test.ts",
+    ],
+  },
+  {
+    name: "move_to_project",
+    module: "projects",
+    impl: "packages/agents/src/capabilities/projects.ts",
+    contract: "97bd5ccd1c6c",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-projects.test.ts",

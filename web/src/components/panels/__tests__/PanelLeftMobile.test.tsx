@@ -241,7 +241,6 @@ it("keeps the consolidated document tree and utility views in the mobile tab row
     [
       "Projects",
       "Chats",
-      "Documents",
       "Files",
       "Library",
       "Entities",
@@ -265,11 +264,11 @@ it("offers Projects in the workspace shell", async () => {
   await user.click(projects);
 });
 
-it("reaches documents directly and utility pages through More", async () => {
+it("reaches files directly and utility pages through More", async () => {
   const user = userEvent.setup();
   renderPanel();
 
-  expect(screen.getByLabelText("Documents")).toHaveAttribute(
+  expect(screen.getByLabelText("Files")).toHaveAttribute(
     "aria-pressed",
     "true"
   );
@@ -282,8 +281,8 @@ it("reaches documents directly and utility pages through More", async () => {
   expect(screen.queryByTestId("workflow-list")).not.toBeInTheDocument();
   expect(screen.queryByTestId("create-workflow")).not.toBeInTheDocument();
 
-  await user.click(screen.getByLabelText("Documents"));
-  expect(screen.getByTestId("documents-tree")).toBeInTheDocument();
+  await user.click(screen.getByLabelText("Files"));
+  expect(screen.getByTestId("workspace-tree")).toBeInTheDocument();
   expect(screen.queryByText("Downloads")).not.toBeInTheDocument();
 });
 
@@ -305,10 +304,6 @@ it("searches nested panels and application destinations together", async () => {
 it("switches the sheet to the view whose tab was tapped", async () => {
   const user = userEvent.setup();
   renderPanel();
-
-  await user.click(screen.getByLabelText("Documents"));
-  expect(usePanelStore.getState().panel.activeView).toBe("documents");
-  expect(screen.getByTestId("documents-tree")).toBeInTheDocument();
 
   await user.click(screen.getByLabelText("Chats"));
   expect(usePanelStore.getState().panel.activeView).toBe("chats");
@@ -334,15 +329,10 @@ it("opens global skills from More without a create control", async () => {
   expect(screen.queryByTestId("create-skill")).not.toBeInTheDocument();
 });
 
-it("scopes the document tree and workspace tree to the active project", async () => {
+it("scopes the workspace tree to the active project", async () => {
   const user = userEvent.setup();
   renderPanel();
 
-  await user.click(screen.getByLabelText("Documents"));
-  expect(screen.getByTestId("documents-tree")).toHaveAttribute(
-    "data-project-id",
-    "project-a"
-  );
   await user.click(screen.getByLabelText("Files"));
   expect(screen.getByTestId("workspace-tree")).toHaveAttribute(
     "data-project-id",
@@ -353,7 +343,6 @@ it("scopes the document tree and workspace tree to the active project", async ()
 describe("project sections", () => {
   const sections = [
     { tab: "Chats", testId: "chat-list" },
-    { tab: "Documents", testId: "documents-tree" },
     { tab: "Files", testId: "workspace-tree" }
   ];
 
@@ -375,7 +364,7 @@ describe("project sections", () => {
     }
   );
 
-  it("switches all three sections to the other project", async () => {
+  it("switches both sections to the other project", async () => {
     const user = userEvent.setup();
     const view = renderPanel();
 
@@ -422,10 +411,10 @@ it("lists the active project's entities from the rail", async () => {
   expect(screen.queryByTestId("documents-tree")).not.toBeInTheDocument();
 });
 
-it("maps a legacy document view to the document tree", () => {
+it("maps a legacy document view to the files tree", () => {
   usePanelStore.getState().setActiveView("storyboards");
   renderPanel();
 
-  expect(screen.getByTestId("documents-tree")).toBeInTheDocument();
+  expect(screen.getByTestId("workspace-tree")).toBeInTheDocument();
   expect(screen.queryByTestId("storyboard-list")).not.toBeInTheDocument();
 });
