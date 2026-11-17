@@ -293,7 +293,7 @@ jobs:
           [
             {
               "check": "lint",
-              "command": "npm run lint && npm run lint:anti-slop:check && node scripts/check-workspace-deps.mjs && node scripts/check-circular-deps.mjs && node scripts/check-key-boundaries.mjs && node scripts/check-coupled-deps.mjs && node scripts/check-lockfile-sync.mjs && node scripts/check-execution-boundary.mjs && npm run check:lockfile-libc && npm run check:document-sync && npm run check:agents-docs",
+              "command": "npm run lint && npm run lint:anti-slop:check && node scripts/check-workspace-deps.mjs && node scripts/check-circular-deps.mjs && node scripts/check-key-boundaries.mjs && node scripts/check-coupled-deps.mjs && node scripts/check-lockfile-sync.mjs && node scripts/check-execution-boundary.mjs && npm run check:lockfile-libc && npm run check:document-sync && npm run check:agents-docs && npm run check:build-output",
               "when": "always",
               "timeout": 20
             },

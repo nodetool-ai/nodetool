@@ -24,6 +24,9 @@ __pycache__
 .claude/settings.local.json
 .pi/*
 build/
+# CMake build trees of native projects (native/account/build-qt was committed once).
+native/*/build-*/
+native/*/cmake-build-*/
 coverage/
 dist/
 # Storybook build output
