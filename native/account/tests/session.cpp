@@ -10,7 +10,9 @@
 #include "nodetool/account/sign_in.h"
 #include "test_support.h"
 
+#include <algorithm>
 #include <condition_variable>
+#include <atomic>
 #include <fstream>
 #include <latch>
 #include <sstream>
@@ -370,7 +372,7 @@ void tc17SignOutDuringTraffic(TestContext& t) {
   Computer pc;
   pc.signIn();
   std::atomic<bool> generationWritten{false};
-  std::atomic<int64_t> socketClosedAfterMs{-1};
+  std::atomic<int64_t> signedOutAtNs{0};
   std::atomic<int64_t> writtenAtNs{0};
   auto steadyNs = [] {
     return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch())
@@ -378,9 +380,9 @@ void tc17SignOutDuringTraffic(TestContext& t) {
   };
 
   auto optionsB = pc.options();
-  optionsB.onSignedOut = [&] {
-    socketClosedAfterMs = (steadyNs() - writtenAtNs.load()) / 1'000'000;
-  };
+  // B's watcher can see the new generation before A's fault hook records
+  // the time of the write, so the interval is taken after both happened.
+  optionsB.onSignedOut = [&] { signedOutAtNs = steadyNs(); };
   AccountSession appB(pc.keychain, pc.server, optionsB);
   CHECK(appB.credentialForRequest().status == CredentialStatus::Ready);
 
@@ -427,7 +429,8 @@ void tc17SignOutDuringTraffic(TestContext& t) {
   CHECK(sentBefore > 0);
   CHECK(sentAfterWrite == 0);
   CHECK(refusedAfterWrite > 0);
-  CHECK(socketClosedAfterMs >= 0);
+  CHECK(signedOutAtNs != 0);
+  const int64_t socketClosedAfterMs = std::max<int64_t>(0, signedOutAtNs - writtenAtNs) / 1'000'000;
   CHECK(socketClosedAfterMs < 1000);
 }
 
@@ -552,6 +555,29 @@ void offlineRefreshKeepsTheSession(TestContext& t) {
   CHECK(pc.record().state == SessionState::SignedIn);
   pc.server.offline = false;
   CHECK(app.credentialForRequest().status == CredentialStatus::Ready);
+}
+
+// A session the policy no longer allows gets no credential and renews
+// nothing, and the record stays as it was. Signing out still works.
+void policyGateHoldsTheCredential(TestContext& t) {
+  Computer pc;
+  pc.signIn();
+  std::atomic<bool> allowed{false};
+  AccountSessionOptions options = pc.options();
+  options.credentialAllowed = [&] { return allowed.load(); };
+  AccountSession app(pc.keychain, pc.server, options);
+  pc.clock.advance(15 * 60 * 1000);
+  CHECK(app.credentialForRequest().status == CredentialStatus::SignedOut);
+  CHECK(app.authorizeRequest().status == CredentialStatus::SignedOut);
+  CHECK(app.refresh() == RefreshOutcome::SignedOut);
+  CHECK(pc.server.refreshCalls == 0);
+  CHECK(pc.record().state == SessionState::SignedIn);
+  allowed = true;
+  CHECK(app.credentialForRequest().status == CredentialStatus::Ready);
+  CHECK(pc.server.refreshCalls == 1);
+  allowed = false;
+  app.signOut();
+  CHECK(pc.record().state == SessionState::SignedOut);
 }
 
 // A refresh that cannot take the lock fails as offline.
@@ -742,6 +768,7 @@ int main() {
       {"signInKilledBeforeGenerationWrite", signInKilledBeforeGenerationWrite},
       {"refusedRefreshSignsBothAppsOut", refusedRefreshSignsBothAppsOut},
       {"offlineRefreshKeepsTheSession", offlineRefreshKeepsTheSession},
+      {"policyGateHoldsTheCredential", policyGateHoldsTheCredential},
       {"lockTimeoutFailsAsOffline", lockTimeoutFailsAsOffline},
       {"signInAgainKeepsThePendingHandle", signInAgainKeepsThePendingHandle},
       {"refreshPublishedAfterSignOutLoses", refreshPublishedAfterSignOutLoses},

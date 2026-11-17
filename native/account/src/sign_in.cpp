@@ -370,17 +370,23 @@ SignInFlow::SignInFlow(SecretStore& store, TokenEndpoint& endpoint, AccountSessi
     : store_(store), endpoint_(endpoint), options_(std::move(options)) {}
 
 std::optional<std::string> SignInFlow::begin(std::string_view app, std::string_view deviceName) {
-  listener_ = LoopbackListener::open();
-  if (!listener_) {
+  auto listener = LoopbackListener::open();
+  if (!listener) {
     return std::nullopt;
+  }
+  const std::string redirectUri = listener->redirectUri();
+  {
+    const std::lock_guard lock(listenerMutex_);
+    listener_ = std::move(listener);
   }
   pkce_ = makePkce();
   state_ = randomToken();
-  return authorizeUrl({options_.serverOrigin, listener_->redirectUri(), pkce_.challenge, state_,
-                       std::string(app), defaultDeviceName(deviceName)});
+  return authorizeUrl({options_.serverOrigin, redirectUri, pkce_.challenge, state_, std::string(app),
+                       defaultDeviceName(deviceName)});
 }
 
 void SignInFlow::cancel() {
+  const std::lock_guard lock(listenerMutex_);
   if (listener_) {
     listener_->cancel();
   }
@@ -388,12 +394,22 @@ void SignInFlow::cancel() {
 
 SignInResult SignInFlow::finish(std::chrono::milliseconds timeout) {
   SignInResult out;
-  if (!listener_) {
+  LoopbackListener* listener = nullptr;
+  {
+    const std::lock_guard lock(listenerMutex_);
+    listener = listener_.get();
+  }
+  if (listener == nullptr) {
     return out;
   }
-  const auto callback = listener_->waitForCallback(state_, timeout);
-  const std::string redirectUri = listener_->redirectUri();
-  listener_.reset();
+  // The wait runs without the mutex, so cancel() can wake it. Only this
+  // thread destroys the listener, after the wait.
+  const auto callback = listener->waitForCallback(state_, timeout);
+  const std::string redirectUri = listener->redirectUri();
+  {
+    const std::lock_guard lock(listenerMutex_);
+    listener_.reset();
+  }
   if (!callback) {
     out.status = SignInStatus::TimedOut;
     return out;

@@ -55,6 +55,13 @@ struct AccountSessionOptions {
   // the thread that noticed, with no lock held. The app aborts its cloud
   // requests and closes its sockets here, posting to its UI thread.
   std::function<void()> onSignedOut;
+  // Whether this session may use its credential now, such as the managed
+  // policy's answer for the server. When it returns false, a request gets
+  // no credential and a refresh sends nothing, both answering as signed
+  // out, and the record is left as it is. Sign-out and ending pending
+  // sessions on the server still run. Unset allows. Called on the thread
+  // of the request or refresh, with no lock held.
+  std::function<bool()> credentialAllowed;
 };
 
 // The access token is renewed when it expires within this margin.
