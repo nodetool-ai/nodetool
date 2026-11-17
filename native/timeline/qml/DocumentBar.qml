@@ -12,8 +12,10 @@ Rectangle {
     objectName: "documentBar"
     required property TimelineModel timeline
     property QtObject autosave: null
-    // The NodeTool Cloud account. Null hides the Account control.
-    property AccountController account: null
+    // The cloud servers and their accounts. Null hides the Account control,
+    // which shows the current server's account.
+    property AccountServers accountServers: null
+    readonly property AccountController account: accountServers ? accountServers.current : null
     // Controls after Undo and Redo, such as the layout menu.
     default property alias leading: leadingRow.data
 
@@ -91,7 +93,7 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             active: bar.account !== null
             visible: active
-            sourceComponent: AccountControl { account: bar.account }
+            sourceComponent: AccountControl { account: bar.account; servers: bar.accountServers }
         }
     }
 }

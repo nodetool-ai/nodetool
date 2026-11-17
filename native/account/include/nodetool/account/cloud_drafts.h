@@ -181,6 +181,9 @@ struct DocumentState {
   // Milliseconds since the Unix epoch of the last answer from the cloud
   // server, 0 for none.
   int64_t lastContactMs = 0;
+  // Edits the server has not accepted yet: every edit since the last
+  // accepted save, or 1 for a draft resumed from the store.
+  uint64_t waitingEdits = 0;
 };
 
 // A draft is written once the edits pause for kDraftIdleMs, and at the
@@ -229,6 +232,8 @@ private:
     std::string draftId;
     CloudBase sentBase;
     SaveResult result;
+    // The edit count the sent draft holds.
+    uint64_t edits = 0;
   };
 
   // Sets the status, or Not saving while a local write fails. Call with
@@ -249,6 +254,9 @@ private:
   int64_t firstUnstoredMs_ = 0;
   int64_t lastEditMs_ = 0;
   uint64_t editCount_ = 0;
+  // The edit count of the stored draft, and of the newest accepted one.
+  uint64_t storedEdits_ = 0;
+  uint64_t acceptedEdits_ = 0;
   bool writeFailing_ = false;
   bool recordFailing_ = false;
   DocumentState state_;

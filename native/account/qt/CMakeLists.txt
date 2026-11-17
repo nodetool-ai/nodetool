@@ -7,8 +7,15 @@ find_package(Qt6 6.12 REQUIRED COMPONENTS Core Network)
 add_library(nodetool_account_qt STATIC
   src/AccountController.cpp
   include/nodetool/account/qt/AccountController.h
+  src/AccountServers.cpp
+  include/nodetool/account/qt/AccountServers.h
+  src/CloudBrowser.cpp
+  include/nodetool/account/qt/CloudBrowser.h
+  src/CloudDocument.cpp
+  include/nodetool/account/qt/CloudDocument.h
   src/QtHttpTransport.cpp
-  include/nodetool/account/qt/QtHttpTransport.h)
+  include/nodetool/account/qt/QtHttpTransport.h
+  src/TaskQueue.h)
 set_target_properties(nodetool_account_qt PROPERTIES AUTOMOC ON)
 target_include_directories(nodetool_account_qt PUBLIC include)
 target_link_libraries(nodetool_account_qt PUBLIC nodetool_account Qt6::Core Qt6::Network)

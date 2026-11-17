@@ -144,8 +144,9 @@ int main(int argc, char** argv) {
     assert.doesNotMatch(output, /Warning \(dev\)/);
     const expected = [...readdirSync(path.join(directory, 'qml'), { recursive: true })
       .filter(file => /\.(qml|js)$/.test(file) && !file.split(path.sep).includes('tests')).map(file => `qml/${file.split(path.sep).join("/")}`), 'src/app/PanelSlot.qml',
-      // The Account control is compiled from native/account under this alias.
-      'AccountControl.qml'].sort();
+      // The Account control and the cloud document views are compiled from
+      // native/account under these aliases.
+      'AccountControl.qml', 'CloudDocumentsPanel.qml', 'CloudSyncStatus.qml'].sort();
     // The shared module keeps the complete discovered resource list for every host.
     for (const target of ['timeline_qml']) {
       const resources = readFileSync(path.join(build, '.qt', 'rcc', `${target}_raw_qml_0.qrc`), 'utf8');

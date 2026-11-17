@@ -193,8 +193,9 @@ both tables in place.
   compile yet.
 - Moving the apps' existing header writes onto `CloudClient` (WP1.10, with
   Qt).
-- The Account control and the Cloud and Shared lists in QML, and their
-  wiring into the two apps (WP1.11).
+- Opening a cloud document in an app tab, which connects `CloudDocument` to
+  each app's document model, and the Cloud and Shared groups in each app's
+  document browser (WP1.11).
 - The macOS and Windows readers of the managed policy compile only on those
   platforms, which this repository's CI does not build yet.
 
@@ -251,6 +252,30 @@ needs Qt Core and Network.
   controller is gone. It is null while the managed policy holds the server
   back, and a session handed out earlier then gets no credential and
   renews none. Sign-out and a pending server end still run.
+
+- `AccountServers` lists the servers one app can sign in to: the default,
+  every server in `accounts.json`, and any address added with
+  `addServer()`, which accepts HTTPS origins only and reads an address
+  without a scheme as HTTPS. It keeps one `AccountController` per server,
+  so switching never drops another account's session or its drafts. The
+  app stores the current server (`cloud/server` in its settings) and passes
+  it back at start.
+- `CloudBrowser` fills the Cloud and Shared with me groups for one kind
+  from `listOwnDocuments` and `listSharedDocuments`
+  (`cloud_listing.h`), as two list models. It empties both when the
+  account signs out or changes, and keeps the last lists when the server
+  is offline.
+- `CloudDocument` holds one open cloud document. It reads the document
+  with the kind's saver, opens a draft the local store kept over the
+  revision, ticks `CloudDocumentSaver` every 250 ms on its task thread, and
+  shows the synchronization status: Saved to cloud, Sending, changes
+  waiting with a count, Offline with the last connection, Cloud status
+  unknown, Not saving, Unsent edits and signed out. A viewer's document
+  and one whose access was removed are read-only.
+
+`qt/qml/` holds the QML both apps compile: `AccountControl.qml`, with the
+server menu and the Sign in to another server dialog, `CloudDocumentsPanel.qml`
+and `CloudSyncStatus.qml`.
 
 The controller runs the keychain, lock and server calls on one task
 thread. Results come back through an inbox guarded by a mutex, and a

@@ -8,9 +8,11 @@ Rectangle {
     id: root
     required property StatusModel status
     required property PanelLayout panels
-    // The account the Account control shows. A host without cloud sign-in
-    // leaves it null, and the control is hidden.
-    property AccountController account: null
+    // The servers and accounts the Account control shows. A host without
+    // cloud sign-in leaves both null, and the control is hidden. With
+    // accountServers set, the control shows its current account.
+    property AccountServers accountServers: null
+    property AccountController account: accountServers ? accountServers.current : null
     EditorRoles { id: roles }
     color: roles.chrome
     implicitHeight: roles.statusHeight
@@ -138,7 +140,7 @@ Rectangle {
             active: root.account !== null
             visible: active
             Layout.leftMargin: Ui.Metrics.lg
-            sourceComponent: AccountControl { account: root.account }
+            sourceComponent: AccountControl { account: root.account; servers: root.accountServers }
         }
     }
 }

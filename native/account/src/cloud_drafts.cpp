@@ -199,6 +199,9 @@ CloudDocumentSaver::CloudDocumentSaver(DraftStore& store, CloudSaver& cloud, Sto
     : store_(store), cloud_(cloud), key_(resumed.key), editingInstance_(newEditingInstance()), base_(resumed.base) {
   storedId_ = resumed.draftId;
   storedDraft_ = std::move(resumed.draft);
+  // The store keeps the draft, not the edits in it. It counts as one.
+  editCount_ = 1;
+  storedEdits_ = 1;
   if (resumed.state == DraftState::Waiting) {
     sendPending_ = true;
     state_.status = DocumentStatus::ChangesWaiting;
@@ -254,6 +257,7 @@ void CloudDocumentSaver::persist(int64_t nowMs) {
   writeFailing_ = false;
   storedId_ = *id;
   storedDraft_ = std::move(*toWrite);
+  storedEdits_ = editsAtTake;
   sendPending_ = true;
   nextSendMs_ = std::min(nextSendMs_, nowMs);
   nextWriteMs_ = 0;
@@ -282,6 +286,7 @@ bool CloudDocumentSaver::recordAcceptance(const Sent& sent, int64_t nowMs) {
   }
   recordFailing_ = false;
   unrecorded_.reset();
+  acceptedEdits_ = std::max(acceptedEdits_, sent.edits);
   const bool latest = storedId_ == sent.draftId;
   if (latest) {
     storedId_.reset();
@@ -329,6 +334,7 @@ void CloudDocumentSaver::send(int64_t nowMs) {
     } else if (sendPending_ && storedId_) {
       sent.draftId = *storedId_;
       sent.sentBase = base_;
+      sent.edits = storedEdits_;
       draft = storedDraft_;
     } else {
       return;
@@ -383,7 +389,9 @@ void CloudDocumentSaver::send(int64_t nowMs) {
 
 DocumentState CloudDocumentSaver::state() const {
   const std::lock_guard lock(mutex_);
-  return state_;
+  DocumentState out = state_;
+  out.waitingEdits = editCount_ - acceptedEdits_;
+  return out;
 }
 
 } // namespace nodetool::account

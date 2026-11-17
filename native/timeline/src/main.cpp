@@ -49,7 +49,7 @@
 #include "aiassist/AssistantCommands.h"
 #include "aiassist/AssistantSession.h"
 #include "chat/TimelineChatHost.h"
-#include "nodetool/account/qt/AccountController.h"
+#include "nodetool/account/qt/AccountServers.h"
 #include "runtime/ChatSession.h"
 #include <QtQml/QQmlExtensionPlugin>
 Q_IMPORT_QML_PLUGIN(NodeTool_ChatPlugin)
@@ -63,6 +63,7 @@ extern "C" {
 
 #include <QCommandLineParser>
 #include <QDesktopServices>
+#include <QSettings>
 #include <QCoreApplication>
 #include <QElapsedTimer>
 #include <QEvent>
@@ -1035,18 +1036,28 @@ int main(int argc, char** argv) {
                             parser.value(playStillsOpt), frames, {}, {}, {}, {}, parser.value(monitorStateOpt).toUtf8());
     }
 
-    // The NodeTool Cloud account the document bar shows. Interactive runs
-    // only, so a test, benchmark or capture run never reads the keychain.
-    // Declared before the view, whose QML holds it, so it outlives the view.
-    std::unique_ptr<nodetool::account::qt::AccountController> account;
+    // The cloud servers and their accounts the document bar shows.
+    // Interactive runs only, so a test, benchmark or capture run never reads
+    // the keychain. Declared before the view, whose QML holds them, so they
+    // outlive the view.
+    std::unique_ptr<nodetool::account::qt::AccountServers> accountServers;
     if (!background && !bench && QGuiApplication::platformName() != u"offscreen") {
-        nodetool::account::qt::AccountServices accountServices;
-        accountServices.dataDir = nodetool::account::qt::sharedDataDir();
-        accountServices.serverOrigin = nodetool::account::qt::cloudServerOrigin();
-        accountServices.app = "timeline";
-        account = std::make_unique<nodetool::account::qt::AccountController>(std::move(accountServices));
-        QObject::connect(account.get(), &nodetool::account::qt::AccountController::browserRequested, &app,
-                         [controller = account.get()](const QUrl& url) {
+        accountServers = std::make_unique<nodetool::account::qt::AccountServers>(
+            nodetool::account::qt::sharedDataDir(), nodetool::account::qt::cloudServerOrigin(),
+            [](const std::string& origin) {
+                nodetool::account::qt::AccountServices services;
+                services.dataDir = nodetool::account::qt::sharedDataDir();
+                services.serverOrigin = origin;
+                services.app = "timeline";
+                return services;
+            },
+            QSettings().value(QStringLiteral("cloud/server")).toString().toStdString());
+        QObject::connect(accountServers.get(), &nodetool::account::qt::AccountServers::currentChanged, &app,
+                         [servers = accountServers.get()] {
+                             QSettings().setValue(QStringLiteral("cloud/server"), servers->currentServer());
+                         });
+        QObject::connect(accountServers.get(), &nodetool::account::qt::AccountServers::browserRequested, &app,
+                         [](const QUrl& url, nodetool::account::qt::AccountController* controller) {
                              if (!QDesktopServices::openUrl(url)) {
                                  controller->browserNotOpened();
                              }
@@ -1179,7 +1190,7 @@ int main(int argc, char** argv) {
     view.rootContext()->setContextProperty(QStringLiteral("nativeAssistantTools"), &assistantTools);
     view.rootContext()->setContextProperty(QStringLiteral("nativeChatInitiallyOpen"), parser.isSet(chatOpt));
     view.rootContext()->setContextProperty(QStringLiteral("autosave"), autosave.get());
-    view.rootContext()->setContextProperty(QStringLiteral("nativeAccount"), account.get());
+    view.rootContext()->setContextProperty(QStringLiteral("nativeAccountServers"), accountServers.get());
     view.rootContext()->setContextProperty(QStringLiteral("nativeInteractiveRun"),
                                            !background && QGuiApplication::platformName() != u"offscreen");
     view.loadFromModule("NodeTool.Timeline", "TimelineEditor");

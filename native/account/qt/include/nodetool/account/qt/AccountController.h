@@ -31,6 +31,10 @@ class AccountSession;
 
 namespace nodetool::account::qt {
 
+namespace detail {
+class TaskQueue;
+} // namespace detail
+
 // What an app hands the controller. Every member except the first three
 // has a default the apps use, and tests replace.
 struct AccountServices {
@@ -148,10 +152,9 @@ private:
   void scheduleServerEnd();
   void onSignInFinished(bool signedIn, const QString& name, const QString& message);
 
-  class TaskThread;
   std::shared_ptr<Core> core_;
   // Runs the keychain reads, refreshes and server calls in order.
-  std::unique_ptr<TaskThread> tasks_;
+  std::unique_ptr<detail::TaskQueue> tasks_;
   // Waits for the browser. Joined before the next sign-in and by the
   // destructor, which cancels the wait first.
   std::thread signInThread_;

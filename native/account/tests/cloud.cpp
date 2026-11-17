@@ -4,6 +4,7 @@
 // with TC9 (the disk fills while editing) and edits made during a send.
 #include "nodetool/account/cloud_client.h"
 #include "nodetool/account/cloud_drafts.h"
+#include "nodetool/account/cloud_listing.h"
 #include "nodetool/account/cloud_savers.h"
 #include "nodetool/account/crypto.h"
 #include "nodetool/account/http_token_endpoint.h"
@@ -15,6 +16,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <functional>
+#include <map>
 #include <mutex>
 #include <thread>
 #include <vector>
@@ -1249,6 +1251,181 @@ void resumesAStoredDraft(TestContext& t) {
   }
 }
 
+// The count of changes waiting covers every edit the server has not
+// accepted, including one made while a save was out.
+void countsTheChangesWaiting(TestContext& t) {
+  FakeDraftStore store;
+  FakeCloud cloud;
+  CloudDocumentSaver saver(store, cloud, kKey, {"t0", "h0"});
+  CHECK(saver.state().waitingEdits == 0);
+  cloud.status = SaveStatus::Offline;
+  saver.edit("v1", 0);
+  saver.edit("v2", 10);
+  saver.edit("v3", 20);
+  CHECK(saver.state().waitingEdits == 3);
+  tick(saver, 300);
+  CHECK(saver.state().status == DocumentStatus::Offline);
+  CHECK(saver.state().waitingEdits == 3);
+  cloud.status = SaveStatus::Ok;
+  cloud.onNextSave([&] { saver.edit("v4", 5300); });
+  tick(saver, 5400);
+  // The save of v3 was accepted. v4 still waits.
+  CHECK(saver.state().waitingEdits == 1);
+  tick(saver, 6000);
+  CHECK(saver.state().status == DocumentStatus::SavedToCloud);
+  CHECK(saver.state().waitingEdits == 0);
+
+  // A draft resumed from the store counts as one change.
+  FakeDraftStore kept;
+  kept.put(kKey, {"t0", "h0"}, "kept");
+  CloudDocumentSaver resumed(kept, cloud, *kept.load(kKey).draft);
+  CHECK(resumed.state().waitingEdits == 1);
+}
+
+// ── Cloud and Shared with me lists ─────────────────────────────────
+
+// A signed-in cloud server that answers each procedure from `answers`.
+struct ListServer {
+  SignedInApp app;
+  std::map<std::string, HttpResponse> answers;
+  FakeTransport transport{[this](const HttpRequest& r) {
+    if (app.answer(r).status != 200) {
+      return HttpResponse{401, "{}"};
+    }
+    const std::string prefix = std::string(kServer) + "/trpc/";
+    std::string procedure = r.url.substr(prefix.size());
+    procedure = procedure.substr(0, procedure.find('?'));
+    const auto it = answers.find(procedure);
+    return it == answers.end() ? HttpResponse{404, R"({"error":{"json":{"data":{"apiCode":"NOT_FOUND"}}}})"}
+                               : it->second;
+  }};
+  CloudClient client{*app.session, transport};
+};
+
+void listsTheAccountsOwnDocuments(TestContext& t) {
+  ListServer server;
+  server.answers["workflows.list"] = {
+      200, R"({"result":{"data":{"workflows":[)"
+           R"({"id":"w1","name":"Old","updated_at":"2026-11-01T10:00:00Z"},)"
+           R"({"id":"w2","name":"New","updated_at":"2026-11-16T10:00:00Z"},)"
+           R"({"name":"no id"}],"next":null}}})"};
+  server.answers["timeline.list"] = {
+      200, R"({"result":{"data":{"json":[{"id":"t1","projectId":"p","name":"Cut","updatedAt":"2026-11-02T00:00:00Z"}]}}})"};
+  const CloudListing workflows = listOwnDocuments(server.client, "workflow");
+  CHECK(workflows.status == CloudListStatus::Ok);
+  CHECK(workflows.items.size() == 2);
+  if (workflows.items.size() == 2) {
+    CHECK(workflows.items[0].id == "w2");
+    CHECK(workflows.items[0].role == "owner");
+    CHECK(workflows.items[1].name == "Old");
+  }
+  const CloudListing timelines = listOwnDocuments(server.client, "timeline");
+  CHECK(timelines.status == CloudListStatus::Ok);
+  CHECK(timelines.items.size() == 1 && timelines.items[0].kind == "timeline" &&
+        timelines.items[0].updatedAt == "2026-11-02T00:00:00Z");
+  CHECK(listOwnDocuments(server.client, "sketch").status == CloudListStatus::Refused);
+
+  const auto sent = server.transport.sent();
+  CHECK(!sent.empty());
+  if (!sent.empty()) {
+    CHECK(sent[0].method == "GET");
+    CHECK(sent[0].url.find("/trpc/workflows.list?input=") != std::string::npos);
+    CHECK(header(sent[0], "Authorization").starts_with("Bearer ntd_"));
+  }
+}
+
+void followsTheWorkflowPages(TestContext& t) {
+  ListServer server;
+  int pages = 0;
+  FakeTransport transport([&](const HttpRequest& r) {
+    if (server.app.answer(r).status != 200) {
+      return HttpResponse{401, "{}"};
+    }
+    ++pages;
+    const bool first = r.url.find("cursor") == std::string::npos;
+    return first ? HttpResponse{200, R"({"result":{"data":{"workflows":[{"id":"a","name":"A"}],"next":"c2"}}})"}
+                 : HttpResponse{200, R"({"result":{"data":{"workflows":[{"id":"b","name":"B"}],"next":null}}})"};
+  });
+  CloudClient client(*server.app.session, transport);
+  const CloudListing listing = listOwnDocuments(client, "workflow");
+  CHECK(listing.status == CloudListStatus::Ok);
+  CHECK(listing.items.size() == 2);
+  CHECK(pages == 2);
+
+  // A server that always names a next page is read at most kMaxListPages
+  // times.
+  int endless = 0;
+  FakeTransport loop([&](const HttpRequest& r) {
+    if (server.app.answer(r).status != 200) {
+      return HttpResponse{401, "{}"};
+    }
+    ++endless;
+    return HttpResponse{200, R"({"result":{"data":{"workflows":[],"next":"again"}}})"};
+  });
+  CloudClient looping(*server.app.session, loop);
+  CHECK(listOwnDocuments(looping, "workflow").status == CloudListStatus::Ok);
+  CHECK(endless == kMaxListPages);
+}
+
+void listsTheDocumentsSharedWithTheAccount(TestContext& t) {
+  ListServer server;
+  server.answers["workflows.sharing.sharedWithMe"] = {
+      200, R"({"result":{"data":{"workflows":[{"id":"w9","name":"Theirs","updated_at":"2026-11-10T00:00:00Z",)"
+           R"("shared_role":"viewer"}]}}})"};
+  server.answers["documentSharing.sharedWithMe"] = {
+      200, R"({"result":{"data":{"documents":[)"
+           R"({"type":"storyboard","id":"s1","name":"Board","owner_id":"u2","role":"editor"},)"
+           R"({"type":"timeline","id":"t9","name":"Edit","owner_id":"u2","role":"editor","updated_at":null}]}}})"};
+  const CloudListing workflows = listSharedDocuments(server.client, "workflow");
+  CHECK(workflows.status == CloudListStatus::Ok);
+  CHECK(workflows.items.size() == 1 && workflows.items[0].role == "viewer");
+  const CloudListing timelines = listSharedDocuments(server.client, "timeline");
+  CHECK(timelines.status == CloudListStatus::Ok);
+  // Only timelines open in the timeline app.
+  CHECK(timelines.items.size() == 1);
+  if (timelines.items.size() == 1) {
+    CHECK(timelines.items[0].id == "t9");
+    CHECK(timelines.items[0].ownerId == "u2");
+    CHECK(timelines.items[0].role == "editor");
+    CHECK(timelines.items[0].updatedAt.empty());
+  }
+  const auto sent = server.transport.sent();
+  bool sentInput = false;
+  for (const HttpRequest& r : sent) {
+    if (r.url.find("documentSharing.sharedWithMe") != std::string::npos) {
+      // The procedure takes no input.
+      sentInput = sentInput || r.url.find('?') != std::string::npos;
+    }
+  }
+  CHECK(!sentInput);
+}
+
+void listingSortsFailures(TestContext& t) {
+  for (const auto& [status, expected] : std::vector<std::pair<int, CloudListStatus>>{
+           {500, CloudListStatus::Offline},
+           {503, CloudListStatus::Offline},
+           {429, CloudListStatus::Offline},
+           {0, CloudListStatus::Offline},
+           {403, CloudListStatus::Refused},
+           {200, CloudListStatus::Refused}}) {
+    ListServer server;
+    server.answers["timeline.list"] = {status, status == 200 ? "not json" : "{}"};
+    const CloudListing listing = listOwnDocuments(server.client, "timeline");
+    CHECK(listing.status == expected);
+    CHECK(listing.items.empty());
+  }
+  ListServer refused;
+  refused.answers["timeline.list"] = {403, R"({"error":{"json":{"data":{"apiCode":"FORBIDDEN"}}}})"};
+  CHECK(listOwnDocuments(refused.client, "timeline").reason == "FORBIDDEN");
+
+  // Signed out, nothing is sent.
+  ListServer signedOut;
+  signedOut.app.session->signOut();
+  const std::size_t before = signedOut.transport.sent().size();
+  CHECK(listOwnDocuments(signedOut.client, "workflow").status == CloudListStatus::SignedOut);
+  CHECK(signedOut.transport.sent().size() == before);
+}
+
 } // namespace
 
 int main() {
@@ -1281,6 +1458,11 @@ int main() {
       {"aFailedLocalRecordIsNotSentAgain", aFailedLocalRecordIsNotSentAgain},
       {"aRefusalIsShownOnlyOnceStored", aRefusalIsShownOnlyOnceStored},
       {"resumesAStoredDraft", resumesAStoredDraft},
+      {"countsTheChangesWaiting", countsTheChangesWaiting},
+      {"listsTheAccountsOwnDocuments", listsTheAccountsOwnDocuments},
+      {"followsTheWorkflowPages", followsTheWorkflowPages},
+      {"listsTheDocumentsSharedWithTheAccount", listsTheDocumentsSharedWithTheAccount},
+      {"listingSortsFailures", listingSortsFailures},
       {"oneInstancePerOpenDocument", oneInstancePerOpenDocument},
       {"workflowSaverSendsTheGraph", workflowSaverSendsTheGraph},
       {"timelineSaverSendsTheDocument", timelineSaverSendsTheDocument},

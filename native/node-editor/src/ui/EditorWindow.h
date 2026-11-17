@@ -739,9 +739,10 @@ private:
   // types and the Theme singleton exist once. It outlives the tabs, which the
   // owner deletes in its destructor body.
   QQmlEngine *engine_ = nullptr;
-  // The NodeTool Cloud account the status bar shows. The window owner creates
-  // it and its tabs borrow it, so the owner's destructor ends it after the tabs.
-  std::unique_ptr<nodetool::account::qt::AccountController> account_;
+  // The cloud servers and their accounts the status bar shows. The window
+  // owner creates them and its tabs borrow them, so the owner's destructor
+  // ends them after the tabs.
+  std::unique_ptr<nodetool::account::qt::AccountServers> accountServers_;
   QMainWindow *dockHost_ = nullptr;
   // The node library overlays the canvas column, as the fixed web left panel does.
   QPointer<QQuickWidget> catalogPanel_;

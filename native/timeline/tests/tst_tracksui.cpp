@@ -77,7 +77,7 @@
 #include <atomic>
 #include <thread>
 #include <QTemporaryDir>
-#include "nodetool/account/qt/AccountController.h"
+#include "nodetool/account/qt/AccountServers.h"
 
 #include <cmath>
 #include <functional>
@@ -2938,23 +2938,27 @@ private slots:
         QVERIFY(!find("saveStatus")->isVisible());
     }
 
-    // The Account control sits in the document bar only when main gives an
-    // account. The account here has a temporary data folder, a keychain in
-    // memory and cloud features turned off, so it reaches no server.
+    // The Account control sits in the document bar only when main gives the
+    // account servers. The account here has a temporary data folder, a
+    // keychain in memory and cloud features turned off, so it reaches no
+    // server.
     void documentBarHostsTheAccountControl() {
         load({2, 2});
         QTemporaryDir data;
-        nodetool::account::qt::AccountServices services;
-        services.dataDir = data.path().toStdString();
-        services.serverOrigin = "https://nt.example";
-        services.app = "timeline";
-        services.store = std::make_unique<nodetool::account::MemorySecretStore>();
-        services.policy = [] { return nodetool::account::parsePolicyJson("{\"CloudEnabled\": false}"); };
-        nodetool::account::qt::AccountController account(std::move(services));
+        nodetool::account::qt::AccountServers servers(
+            data.path().toStdString(), "https://nt.example", [&data](const std::string& origin) {
+                nodetool::account::qt::AccountServices services;
+                services.dataDir = data.path().toStdString();
+                services.serverOrigin = origin;
+                services.app = "timeline";
+                services.store = std::make_unique<nodetool::account::MemorySecretStore>();
+                services.policy = [] { return nodetool::account::parsePolicyJson("{\"CloudEnabled\": false}"); };
+                return services;
+            });
         QQmlComponent harness(view->engine());
         harness.setData("import QtQuick\nimport NodeTool.Timeline\nItem { width: 1200; height: 40; property alias bar: bar;"
-                        " property TimelineModel model; property AccountController account: null;"
-                        " DocumentBar { id: bar; width: 1200; timeline: parent.model; account: parent.account } }",
+                        " property TimelineModel model; property AccountServers servers: null;"
+                        " DocumentBar { id: bar; width: 1200; timeline: parent.model; accountServers: parent.servers } }",
                         QUrl());
         std::unique_ptr<QObject> root(harness.createWithInitialProperties({{"model", QVariant::fromValue(model)}}));
         QVERIFY2(root, qPrintable(harness.errorString()));
@@ -2966,7 +2970,7 @@ private slots:
             return found;
         };
         QVERIFY(!find("documentAccount")->property("active").toBool());
-        root->setProperty("account", QVariant::fromValue(&account));
+        root->setProperty("servers", QVariant::fromValue(&servers));
         QTRY_VERIFY(find("account-sign-in") && find("account-sign-in")->isVisible());
         QVERIFY(!find("account-sign-in")->property("enabled").toBool());
         QTRY_COMPARE(find("account-status")->property("text").toString(),
