@@ -264,10 +264,42 @@
                   "gap": 24,
                   "left": [
                     {
+                      "type": "ChoiceCards",
+                      "props": {
+                        "id": "in-prompttemplate-choices",
+                        "binding": "var:promptTemplate",
+                        "label": "Start from a look",
+                        "columns": 2,
+                        "options": [
+                          {
+                            "value": "{{title}} in {{color}}, {{description}}. The camera makes one slow, steady quarter orbit around the product, which stays still at the centre of the frame on a seamless studio sweep. A soft key light from the upper left glides across its surface as the camera moves, and a faint reflection stays under it on the floor. The product's shape, colour, material and markings stay exactly as in the photo. No text, no hands, no other objects.",
+                            "title": "Studio orbit",
+                            "description": "A slow quarter orbit while a soft key light slides across the product. Fits most packshots."
+                          },
+                          {
+                            "value": "{{title}} in {{color}}, {{description}}. The camera glides straight in from the full product to a close-up of its surface, so the texture of its material and the edges of the finish fill the frame by the end. The light stays soft and even, and focus stays on the product the whole way. The product's shape, colour, material and markings stay exactly as in the photo. No text, no hands, no other objects.",
+                            "title": "Detail push-in",
+                            "description": "The camera moves in to a close-up of the material and finish."
+                          },
+                          {
+                            "value": "{{title}} in {{color}}, {{description}}. The camera stays locked. A narrow band of white light sweeps once from left to right across the product, bringing up its highlights and edges as it passes, then the scene settles back to soft studio light. The product's shape, colour, material and markings stay exactly as in the photo. No text, no hands, no other objects.",
+                            "title": "Light sweep",
+                            "description": "The camera holds still while one band of light passes over the product."
+                          },
+                          {
+                            "value": "{{title}} in {{color}}, {{description}}. The product turns one half rotation on a hidden turntable, at an even, slow speed, and stops facing the camera again. The camera and the soft studio light stay fixed, and the product stays centred and upright. The product's shape, colour, material and markings stay exactly as in the photo. No text, no hands, no other objects.",
+                            "title": "Turntable",
+                            "description": "The product turns on a hidden turntable while the camera stays fixed."
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
                       "type": "Text",
                       "props": {
                         "id": "note-2",
-                        "text": "Read the catalog, then click a field below the prompt to insert its placeholder. You can also type {{column}}, for example {{title}} or {{color}}. Describe the camera move and the light once for the whole catalog."
+                        "text": "Read the catalog, then click a field below the prompt to insert its placeholder. You can also type {{column}}, for example {{title}} or {{color}}. Pick a look to start, then edit it. Describe one camera move and the light once for the whole catalog."
                       }
                     },
                     {
@@ -1111,7 +1143,7 @@
           "type": "str",
           "optional": true
         },
-        "default": "{{title}} in {{color}}, {{description}}. Slow three-quarter orbit around the product on a seamless studio backdrop, soft key light, gentle reflections. The product stays centred, sharp and unchanged. No text, no hands.",
+        "default": "{{title}} in {{color}}, {{description}}. The camera makes one slow, steady quarter orbit around the product, which stays still at the centre of the frame on a seamless studio sweep. A soft key light from the upper left glides across its surface as the camera moves, and a faint reflection stays under it on the floor. The product's shape, colour, material and markings stay exactly as in the photo. No text, no hands, no other objects.",
         "scope": "user",
         "persist": true
       },
@@ -1122,7 +1154,7 @@
           "type": "str",
           "optional": true
         },
-        "default": "text, changing logos, warped product, extra objects, hands",
+        "default": "text, captions, changing logos, warped or melting product, morphing shape, flicker, extra objects, hands",
         "scope": "user",
         "persist": true
       },
@@ -1263,7 +1295,7 @@
             "type": "nodetool.input.StringInput",
             "data": {
               "name": "prompt_template",
-              "value": "{{title}} in {{color}}, {{description}}. Slow three-quarter orbit around the product on a seamless studio backdrop, soft key light, gentle reflections. The product stays centred, sharp and unchanged. No text, no hands.",
+              "value": "{{title}} in {{color}}, {{description}}. The camera makes one slow, steady quarter orbit around the product, which stays still at the centre of the frame on a seamless studio sweep. A soft key light from the upper left glides across its surface as the camera moves, and a faint reflection stays under it on the floor. The product's shape, colour, material and markings stay exactly as in the photo. No text, no hands, no other objects.",
               "description": "The video prompt. {{column}} inserts that product's value",
               "line_mode": "multi_line"
             },
@@ -1585,7 +1617,7 @@
             "type": "nodetool.input.StringInput",
             "data": {
               "name": "prompt_template",
-              "value": "{{title}} in {{color}}, {{description}}. Slow three-quarter orbit around the product on a seamless studio backdrop, soft key light, gentle reflections. The product stays centred, sharp and unchanged. No text, no hands.",
+              "value": "{{title}} in {{color}}, {{description}}. The camera makes one slow, steady quarter orbit around the product, which stays still at the centre of the frame on a seamless studio sweep. A soft key light from the upper left glides across its surface as the camera moves, and a faint reflection stays under it on the floor. The product's shape, colour, material and markings stay exactly as in the photo. No text, no hands, no other objects.",
               "description": "The video prompt. {{column}} inserts that product's value",
               "line_mode": "multi_line"
             },
@@ -1804,7 +1836,7 @@
             "type": "nodetool.input.StringInput",
             "data": {
               "name": "negative_prompt",
-              "value": "text, changing logos, warped product, extra objects, hands",
+              "value": "text, captions, changing logos, warped or melting product, morphing shape, flicker, extra objects, hands",
               "description": "What every clip should avoid"
             },
             "ui_properties": {

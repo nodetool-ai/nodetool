@@ -1535,7 +1535,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 400,
           "y": 1660,
           "width": 300,
-          "subtitle": "text, changing logos, warped product, extra objects, hands"
+          "subtitle": "text, captions, changing logos, warped or melting product, morphing shape, flicker, extra objects, hands"
         },
         {
           "id": "each",
@@ -1836,7 +1836,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 0,
           "y": 560,
           "width": 300,
-          "subtitle": "{{title}} in {{color}}, {{description}}. Slow three-quarter orbit around the product on a seamless studio backdrop, soft key light, gentle…"
+          "subtitle": "{{title}} in {{color}}, {{description}}. The camera makes one slow, steady quarter orbit around the product, which stays still at the centr…"
         },
         {
           "id": "image_column",
@@ -1911,7 +1911,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 400,
           "y": 1660,
           "width": 300,
-          "subtitle": "text, changing logos, warped product, extra objects, hands"
+          "subtitle": "text, captions, changing logos, warped or melting product, morphing shape, flicker, extra objects, hands"
         },
         {
           "id": "read",
@@ -18098,7 +18098,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 0,
           "y": 560,
           "width": 300,
-          "subtitle": "{{title}} in {{color}}, {{description}}. Slow three-quarter orbit around the product on a seamless studio backdrop, soft key light, gentle…"
+          "subtitle": "{{title}} in {{color}}, {{description}}. The camera makes one slow, steady quarter orbit around the product, which stays still at the centr…"
         },
         {
           "id": "image_column",

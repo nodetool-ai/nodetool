@@ -65,7 +65,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "prompt_template",
-          "value": "The product from {{product_image}}: {{title}} in {{color}}, {{description}}. Set it in the scene from {{background_image}} with the props from {{decoration_image}}. Slow three-quarter orbit around the product, soft key light, gentle reflections. The product stays centred, sharp and unchanged. No text, no hands.",
+          "value": "The product from {{product_image}}: {{title}} in {{color}}, {{description}}. Set it in the scene from {{background_image}} with the props from {{decoration_image}} around it. The camera makes one slow quarter orbit around the product while soft light from the scene falls across it. The product's shape, colour, material and markings stay exactly as in {{product_image}}. No text, no hands.",
           "description": "The video prompt. {{column}} inserts that product's value",
           "line_mode": "multi_line"
         },
@@ -284,7 +284,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "negative_prompt",
-          "value": "text, changing logos, warped product, extra objects, hands",
+          "value": "text, captions, changing logos, warped or melting product, morphing shape, flicker, extra objects, hands",
           "description": "What every clip should avoid"
         },
         "ui_properties": {

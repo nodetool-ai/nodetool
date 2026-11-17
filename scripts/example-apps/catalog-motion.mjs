@@ -12,15 +12,66 @@
 // image to Reference To Video, numbered image 1, image 2 and image 3.
 
 export const CATALOG_SAMPLE = "package://nodetool-base/recipe-inputs/catalog/products.csv";
-export const CATALOG_PROMPT_TEMPLATE =
-  "{{title}} in {{color}}, {{description}}. Slow three-quarter orbit around the product on a seamless studio backdrop, soft key light, gentle reflections. The product stays centred, sharp and unchanged. No text, no hands.";
-export const CATALOG_NEGATIVE_PROMPT = "text, changing logos, warped product, extra objects, hands";
+
+// Every look ends with the same lock on the product, so a clip moves the camera
+// and the light but never redesigns what the shopper is buying.
+const PRODUCT_LOCK =
+  "The product's shape, colour, material and markings stay exactly as in the photo. No text, no hands, no other objects.";
+const REFERENCE_LOCK =
+  "The product's shape, colour, material and markings stay exactly as in {{product_image}}. No text, no hands.";
+
+// Ready prompt templates for the start-frame app. The product photo is the
+// first frame, so each look directs one camera or light move and nothing that
+// would need a new setting.
+export const CATALOG_LOOKS = [
+  {
+    value: `{{title}} in {{color}}, {{description}}. The camera makes one slow, steady quarter orbit around the product, which stays still at the centre of the frame on a seamless studio sweep. A soft key light from the upper left glides across its surface as the camera moves, and a faint reflection stays under it on the floor. ${PRODUCT_LOCK}`,
+    title: "Studio orbit",
+    description: "A slow quarter orbit while a soft key light slides across the product. Fits most packshots."
+  },
+  {
+    value: `{{title}} in {{color}}, {{description}}. The camera glides straight in from the full product to a close-up of its surface, so the texture of its material and the edges of the finish fill the frame by the end. The light stays soft and even, and focus stays on the product the whole way. ${PRODUCT_LOCK}`,
+    title: "Detail push-in",
+    description: "The camera moves in to a close-up of the material and finish."
+  },
+  {
+    value: `{{title}} in {{color}}, {{description}}. The camera stays locked. A narrow band of white light sweeps once from left to right across the product, bringing up its highlights and edges as it passes, then the scene settles back to soft studio light. ${PRODUCT_LOCK}`,
+    title: "Light sweep",
+    description: "The camera holds still while one band of light passes over the product."
+  },
+  {
+    value: `{{title}} in {{color}}, {{description}}. The product turns one half rotation on a hidden turntable, at an even, slow speed, and stops facing the camera again. The camera and the soft studio light stay fixed, and the product stays centred and upright. ${PRODUCT_LOCK}`,
+    title: "Turntable",
+    description: "The product turns on a hidden turntable while the camera stays fixed."
+  }
+];
+export const CATALOG_PROMPT_TEMPLATE = CATALOG_LOOKS[0].value;
+export const CATALOG_NEGATIVE_PROMPT =
+  "text, captions, changing logos, warped or melting product, morphing shape, flicker, extra objects, hands";
 // The role placeholders of the references app. The reader keeps them in the
 // prompt, and "Animate a Product Catalog with References" turns each one into
 // "image N" by the image's place in the reference list.
 export const CATALOG_REFERENCE_ROLES = ["product_image", "background_image", "decoration_image"];
-export const CATALOG_REFERENCE_PROMPT_TEMPLATE =
-  "The product from {{product_image}}: {{title}} in {{color}}, {{description}}. Set it in the scene from {{background_image}} with the props from {{decoration_image}}. Slow three-quarter orbit around the product, soft key light, gentle reflections. The product stays centred, sharp and unchanged. No text, no hands.";
+// Looks for the references app. The model builds a new shot from the images,
+// so these may place the product in the background reference's scene.
+export const CATALOG_REFERENCE_LOOKS = [
+  {
+    value: `The product from {{product_image}}: {{title}} in {{color}}, {{description}}. Set it in the scene from {{background_image}} with the props from {{decoration_image}} around it. The camera makes one slow quarter orbit around the product while soft light from the scene falls across it. ${REFERENCE_LOCK}`,
+    title: "Product in your scene",
+    description: "The product stands in your background with your props, and the camera orbits it."
+  },
+  {
+    value: `The product from {{product_image}}: {{title}} in {{color}}, {{description}}. It stands on a tabletop in the setting from {{background_image}}, with the props from {{decoration_image}} arranged loosely behind it and slightly out of focus. The camera pushes in slowly until the product fills the centre of the frame. ${REFERENCE_LOCK}`,
+    title: "Styled tabletop",
+    description: "Props sit soft behind the product and the camera pushes in."
+  },
+  {
+    value: `The product from {{product_image}}: {{title}} in {{color}}, {{description}}. It stands alone at the centre of the scene from {{background_image}}. The camera stays locked while one band of warm light sweeps across the product from left to right, then the scene settles. ${REFERENCE_LOCK}`,
+    title: "Hero light sweep",
+    description: "The product alone in your scene, with one sweep of light across it."
+  }
+];
+export const CATALOG_REFERENCE_PROMPT_TEMPLATE = CATALOG_REFERENCE_LOOKS[0].value;
 
 const VIDEO = { $demo: "video" };
 // The run's two real steps. Left unset, the list would also show the model
@@ -41,7 +92,10 @@ const demoProducts = (template) =>
   ].map(([title, color, description, file], i) => ({
     Row: i + 1,
     Product: title,
-    Prompt: template.replace("{{title}}", title).replace("{{color}}", color).replace("{{description}}", description),
+    Prompt: template
+      .replaceAll("{{title}}", title)
+      .replaceAll("{{color}}", color)
+      .replaceAll("{{description}}", description),
     Image: `${file}.jpg`
   }));
 
@@ -207,9 +261,15 @@ export function catalogMotionApp({ mode }) {
         intro: "One template for the whole catalog. Each product's own values fill it in.",
         controls: [
           {
+            choices: { variable: "promptTemplate" },
+            label: "Start from a look",
+            columns: 2,
+            options: refs ? CATALOG_REFERENCE_LOOKS : CATALOG_LOOKS
+          },
+          {
             note: refs
-              ? "Read the catalog, then click a field below the prompt to insert its placeholder. You can also type {{column}}, for example {{title}} or {{color}}. Name the images with {{product_image}}, {{background_image}} and {{decoration_image}}. The model gets them in that order: image 1 is the product, then the background, then the decoration. A reference you leave out is skipped, and its placeholder is removed from the prompt."
-              : "Read the catalog, then click a field below the prompt to insert its placeholder. You can also type {{column}}, for example {{title}} or {{color}}. Describe the camera move and the light once for the whole catalog."
+              ? "Read the catalog, then click a field below the prompt to insert its placeholder. You can also type {{column}}, for example {{title}} or {{color}}. Name the images with {{product_image}}, {{background_image}} and {{decoration_image}}. The model gets them in that order: image 1 is the product, then the background, then the decoration. A reference you leave out is skipped, and its placeholder is removed from the prompt. Pick a look to start, then edit it."
+              : "Read the catalog, then click a field below the prompt to insert its placeholder. You can also type {{column}}, for example {{title}} or {{color}}. Pick a look to start, then edit it. Describe one camera move and the light once for the whole catalog."
           },
           { textVar: "promptTemplate", label: "Prompt template", multiline: true, cameraPresets: true,
             placeholderFields: { op: "preview", output: "fields", demo: refs ? [...DEMO_FIELDS, ...CATALOG_REFERENCE_ROLES] : DEMO_FIELDS } },
