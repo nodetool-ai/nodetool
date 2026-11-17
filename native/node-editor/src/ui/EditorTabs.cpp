@@ -6,6 +6,7 @@
 #include <QNetworkReply>
 #include <QUrlQuery>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QSettings>
 #include <QQuickWidget>
 #include <QShortcut>
@@ -377,6 +378,31 @@ bool EditorWindow::confirmTabClose(bool closeAfterSave) {
         node_editor::childGraphKey(childParent_->document_.node(childNode_)) == "graph" &&
         document_.graph() == node_editor::childGraph(childParent_->document_.node(childNode_))) {
         return true;
+    }
+    // A cloud workflow keeps its edits in the local drafts. The close waits
+    // for the last one to be written, and asks when it can't be.
+    while (cloud_ && !cloud_->writeLocally()) {
+        tabOwner_->activateSurface(tabOwner_->tabs_.indexOf(this));
+        QMessageBox box(QMessageBox::Warning, tr("Changes not saved on this computer"),
+                        tr("The last changes to this workflow could not be written on this computer, so they are "
+                           "not sent to the cloud yet. Closing now loses them."),
+                        QMessageBox::NoButton, this);
+        const auto retry = box.addButton(tr("Try Again"), QMessageBox::AcceptRole);
+        const auto exportFile = box.addButton(tr("Save a Copy…"), QMessageBox::ActionRole);
+        const auto discard = box.addButton(tr("Close Without Them"), QMessageBox::DestructiveRole);
+        box.addButton(QMessageBox::Cancel);
+        box.setDefaultButton(retry);
+        box.exec();
+        if (box.clickedButton() == discard) {
+            return true;
+        }
+        if (box.clickedButton() == exportFile) {
+            saveLocalCopyAs();
+            return false;
+        }
+        if (box.clickedButton() != retry) {
+            return false;
+        }
     }
     if (!hasUnsavedChanges()) {
         return true;
