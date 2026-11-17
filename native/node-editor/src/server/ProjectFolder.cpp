@@ -97,7 +97,7 @@ void ProjectFolder::request(const QByteArray &method, const QString &procedure, 
       done({}, message.isEmpty() ? tr("HTTP %1").arg(status) : message);
       return;
     }
-    auto data = envelope["result"].toObject()["data"];
+    QJsonValue data = envelope["result"].toObject()["data"];
     if (data.isObject() && data.toObject().contains("json")) { data = data.toObject()["json"]; }
     done(data, {});
   });

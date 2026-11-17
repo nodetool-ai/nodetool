@@ -3,6 +3,8 @@
 #include "FakeProjectFiles.h"
 
 #include <QElapsedTimer>
+#include <QFile>
+#include <QJsonDocument>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QTemporaryDir>
@@ -107,6 +109,117 @@ private slots:
     files.toggle(0);
     QVERIFY(files.answer("alpha", {FakeProjectFiles::entry("alpha/.nodetool", true)}));
     QCOMPARE(names(files).at(1), QStringLiteral(".nodetool"));
+  }
+
+  void dragCarriesTheEntryAndACanvasPayloadForMediaFiles() {
+    FakeProjectFiles files;
+    files.setProject("p 1");
+    open(files, {FakeProjectFiles::entry("footage", true), FakeProjectFiles::entry("cut.timeline.json"),
+                 FakeProjectFiles::entry("clip.mp4")});
+    files.toggle(rowOf(files, "footage"));
+    QVERIFY(files.answer("footage", {FakeProjectFiles::entry("footage/shot.png")}));
+
+    const auto folder = files.dragData(rowOf(files, "footage"));
+    QCOMPARE(folder.value(ProjectFiles::EntryMime).toString(), QStringLiteral("footage"));
+    QVERIFY(!folder.contains(ProjectFiles::DragMime));
+    QVERIFY(!files.dragData(rowOf(files, "cut.timeline.json")).contains(ProjectFiles::DragMime));
+
+    const auto image = files.dragData(rowOf(files, "footage/shot.png"));
+    QCOMPARE(image.value(ProjectFiles::EntryMime).toString(), QStringLiteral("footage/shot.png"));
+    const auto drag = QJsonDocument::fromJson(image.value(ProjectFiles::DragMime).toString().toUtf8()).object();
+    QCOMPARE(drag["type"].toString(), QStringLiteral("project-file"));
+    const auto payload = drag["payload"].toObject();
+    QCOMPARE(payload["projectId"].toString(), QStringLiteral("p 1"));
+    QCOMPARE(payload["path"].toString(), QStringLiteral("footage/shot.png"));
+    QCOMPARE(payload["directoryId"].toString(), QStringLiteral("dir:p%201:footage"));
+    QCOMPARE(ProjectFiles::projectDirectoryId("p", "."), QStringLiteral("dir:p:"));
+  }
+
+  void dropOnARowTargetsItsFolder() {
+    FakeProjectFiles files;
+    open(files, {FakeProjectFiles::entry("footage", true), FakeProjectFiles::entry("notes.md")});
+    files.toggle(rowOf(files, "footage"));
+    QVERIFY(files.answer("footage", {FakeProjectFiles::entry("footage/shot.png")}));
+    QCOMPARE(files.dropDirectory(rowOf(files, "footage")), QStringLiteral("footage"));
+    QCOMPARE(files.dropDirectory(rowOf(files, "footage/shot.png")), QStringLiteral("footage"));
+    QCOMPARE(files.dropDirectory(rowOf(files, "notes.md")), QStringLiteral("."));
+    QCOMPARE(files.dropDirectory(-1), QStringLiteral("."));
+  }
+
+  void movesAnEntryIntoAFolderAndRefusesCycles() {
+    FakeProjectFiles files;
+    files.setProject("p1");
+    open(files, {FakeProjectFiles::entry("footage", true), FakeProjectFiles::entry("notes.md")});
+    files.toggle(rowOf(files, "footage"));
+    QVERIFY(files.answer("footage", {FakeProjectFiles::entry("footage/raw", true)}));
+
+    QVERIFY(files.moveEntry("notes.md", "footage"));
+    QVERIFY(!files.moveEntry("notes.md", "."));                  // already there
+    QVERIFY(!files.moveEntry("footage", "footage/raw"));         // into its own subfolder
+    QVERIFY(!files.moveEntry("footage", "footage"));             // into itself
+    QVERIFY(files.moveEntry("footage/raw", "."));
+    QCOMPARE(files.moves.size(), 2);
+    QCOMPARE(files.moves[0].source, QStringLiteral("notes.md"));
+    QVERIFY(!files.moves[0].isDirectory);
+    QCOMPARE(files.moves[0].directory, QStringLiteral("footage"));
+    QVERIFY(files.moves[1].isDirectory);
+
+    // A finished change lists the folder again. A failure is reported.
+    QSignalSpy failed(&files, &ProjectFiles::changeFailed);
+    files.changeFinished("ws1", "HTTP 500");
+    QCOMPARE(failed.size(), 1);
+    QVERIFY(files.answer(".", {FakeProjectFiles::entry("footage", true)}));
+  }
+
+  void copiesLocalFilesIntoTheDropFolder() {
+    FakeProjectFiles files;
+    open(files, {FakeProjectFiles::entry("footage", true)});
+    QTemporaryDir dir;
+    QFile file(dir.filePath("take.png"));
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    file.write("png");
+    file.close();
+    const QList<QUrl> urls{QUrl::fromLocalFile(file.fileName()), QUrl::fromLocalFile(dir.path()), QUrl("https://example.com/a.png")};
+    // Without a project there is nowhere to upload.
+    QCOMPARE(files.copyIn(urls, "footage"), 0);
+    files.setProject("p1");
+    QCOMPARE(files.copyIn(urls, "footage"), 1);
+    QCOMPARE(files.uploads.size(), 1);
+    QCOMPARE(files.uploads[0].first, file.fileName());
+    QCOMPARE(files.uploads[0].second, QStringLiteral("footage"));
+  }
+
+  void panelDropMovesOrCopiesIntoTheRowUnderThePointer() {
+    FakeProjectFiles files;
+    files.setProject("p1");
+    open(files, {FakeProjectFiles::entry("footage", true), FakeProjectFiles::entry("notes.md")});
+    auto view = panel(files);
+    QVERIFY(QTest::qWaitForWindowExposed(view.get()));
+    auto *list = named(view->rootObject(), "files-list");
+    QVERIFY(named(view->rootObject(), "files-drop-area"));
+    QTRY_VERIFY(rowItem(list, "footage"));
+    const auto folder = view->rootObject()->mapFromScene(centerOf(rowItem(list, "footage")));
+    int row = -2;
+    QVERIFY(QMetaObject::invokeMethod(view->rootObject(), "rowAt", Q_RETURN_ARG(int, row), Q_ARG(double, folder.x()), Q_ARG(double, folder.y())));
+    QCOMPARE(row, rowOf(files, "footage"));
+    QVERIFY(QMetaObject::invokeMethod(view->rootObject(), "rowAt", Q_RETURN_ARG(int, row), Q_ARG(double, 1.0), Q_ARG(double, 1.0)));
+    QCOMPARE(row, -1);  // the header, outside the list
+
+    bool moved = false;
+    QVERIFY(QMetaObject::invokeMethod(view->rootObject(), "dropOn", Q_RETURN_ARG(bool, moved), Q_ARG(int, rowOf(files, "footage")), Q_ARG(QString, QStringLiteral("notes.md")), Q_ARG(QVariant, QVariantList{})));
+    QVERIFY(moved);
+    QCOMPARE(files.moves.size(), 1);
+    QCOMPARE(files.moves[0].directory, QStringLiteral("footage"));
+
+    QTemporaryDir dir;
+    QFile file(dir.filePath("take.wav"));
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    file.close();
+    bool copied = false;
+    QVERIFY(QMetaObject::invokeMethod(view->rootObject(), "dropOn", Q_RETURN_ARG(bool, copied), Q_ARG(int, -1), Q_ARG(QString, QString()), Q_ARG(QVariant, QVariantList{QUrl::fromLocalFile(file.fileName())})));
+    QVERIFY(copied);
+    QCOMPARE(files.uploads.size(), 1);
+    QCOMPARE(files.uploads[0].second, QStringLiteral("."));
   }
 
   void comparesNamesNaturally() {

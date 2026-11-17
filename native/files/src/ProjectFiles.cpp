@@ -2,7 +2,9 @@
 
 #include <QDesktopServices>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
+#include <QHttpMultiPart>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -12,6 +14,7 @@
 #include <QNetworkReply>
 #include <QUrlQuery>
 #include <algorithm>
+#include <memory>
 
 namespace nodetool::files {
 namespace {
@@ -48,6 +51,26 @@ const QSet<QString> &textBasenames() {
   static const QSet<QString> names{"license", "licence", "readme", "changelog", "authors", "contributing",
                                    "notice", "copying", "makefile", "dockerfile", "procfile"};
   return names;
+}
+// Documents that open in their own editor and enter no canvas as a node
+// (DOCUMENT_FILE_SUFFIXES in the web workspaceTreeActions.ts).
+bool isDocumentFile(const QString &path) {
+  const auto lower = path.toLower();
+  for (const auto *suffix : {".workflow.json", ".timeline.json", ".storyboard.json", ".script.json", ".app.json", ".jsscript.json"}) {
+    if (lower.endsWith(QLatin1String(suffix))) { return true; }
+  }
+  return false;
+}
+QString parentOf(const QString &path) {
+  const auto slash = path.lastIndexOf('/');
+  return slash > 0 ? path.left(slash) : QString();
+}
+// The asset API spells the root "", the tree ".".
+QString assetDirectory(const QString &path) { return path == QLatin1String(Root) ? QString() : path; }
+QString replyError(QNetworkReply *reply) {
+  const auto status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+  if (reply->error() == QNetworkReply::NoError && status >= 200 && status < 300) { return {}; }
+  return QObject::tr("HTTP %1").arg(status);
 }
 QString iconOf(const QString &kind) {
   static const QHash<QString, QString> icons{
@@ -636,7 +659,7 @@ void ProjectFiles::requestListing(quint64 ticket, const QString &path) {
       receiveListing(ticket, {}, message.isEmpty() ? tr("HTTP %1").arg(status) : message);
       return;
     }
-    auto data = envelope["result"].toObject()["data"];
+    QJsonValue data = envelope["result"].toObject()["data"];
     if (data.isObject() && data.toObject().contains("json")) { data = data.toObject()["json"]; }
     receiveListing(ticket, data.toArray(), data.isArray() ? QString() : tr("Invalid response"));
   });
@@ -660,6 +683,169 @@ void ProjectFiles::requestTimeline(quint64 ticket, const QString &path) {
       return;
     }
     receiveTimeline(ticket, QJsonDocument::fromJson(reply->readAll()).object(), {});
+  });
+}
+
+QString ProjectFiles::projectDirectoryId(const QString &projectId, const QString &path) {
+  // encodeURIComponent leaves these marks as they are.
+  const QByteArray keep("!'()*");
+  return "dir:" + QString::fromLatin1(QUrl::toPercentEncoding(projectId, keep)) + ':'
+         + QString::fromLatin1(QUrl::toPercentEncoding(assetDirectory(path), keep));
+}
+
+QVariantMap ProjectFiles::dragData(int row) const {
+  if (row < 0 || row >= m_rows.size() || m_rows.at(row).placeholder) { return {}; }
+  const auto &entry = m_rows.at(row);
+  QVariantMap data{{EntryMime, entry.path}};
+  if (!entry.isDir && !isDocumentFile(entry.path) && !m_project.isEmpty()) {
+    const QJsonObject payload{{"projectId", m_project},
+                              {"path", entry.path},
+                              {"directoryId", projectDirectoryId(m_project, parentOf(entry.path))}};
+    data.insert(DragMime, QString::fromUtf8(QJsonDocument(QJsonObject{{"type", "project-file"}, {"payload", payload}})
+                                                .toJson(QJsonDocument::Compact)));
+  }
+  return data;
+}
+
+QString ProjectFiles::dropDirectory(int row) const {
+  if (row < 0 || row >= m_rows.size()) { return Root; }
+  const auto &entry = m_rows.at(row);
+  if (entry.isDir && !entry.placeholder) { return entry.path; }
+  if (entry.placeholder) { return Root; }
+  const auto parent = parentOf(entry.path);
+  return parent.isEmpty() ? QString(Root) : parent;
+}
+
+bool ProjectFiles::canMoveInto(const QString &source, const QString &directory) const {
+  if (source.isEmpty() || source == QLatin1String(Root)) { return false; }
+  const auto to = assetDirectory(directory);
+  if (parentOf(source) == to) { return false; }
+  const int row = indexOfPath(source);
+  const bool isDir = row >= 0 && m_rows.at(row).isDir;
+  return !(isDir && (to == source || to.startsWith(source + '/')));
+}
+
+bool ProjectFiles::moveEntry(const QString &source, const QString &directory) {
+  if (m_project.isEmpty() || !canMoveInto(source, directory)) { return false; }
+  const int row = indexOfPath(source);
+  if (row < 0 || m_rows.at(row).placeholder) { return false; }
+  requestMove(source, m_rows.at(row).isDir, directory);
+  return true;
+}
+
+int ProjectFiles::copyIn(const QList<QUrl> &urls, const QString &directory) {
+  if (m_project.isEmpty()) { return 0; }
+  int started = 0;
+  for (const auto &url : urls) {
+    if (!url.isLocalFile() || !QFileInfo(url.toLocalFile()).isFile()) { continue; }
+    requestUpload(url.toLocalFile(), directory);
+    ++started;
+  }
+  return started;
+}
+
+void ProjectFiles::changeFinished(const QString &workspaceId, const QString &error) {
+  if (workspaceId != m_workspace) { return; }
+  if (!error.isEmpty()) { emit changeFailed(error); }
+  refresh();
+}
+
+void ProjectFiles::requestMove(const QString &source, bool isDirectory, const QString &directory) {
+  const auto workspace = m_workspace;
+  const auto project = m_project;
+  const auto authorize = [this](QNetworkRequest &request) {
+    request.setTransferTimeout(30000);
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
+    if (!m_token.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8()); }
+    if (!m_user.isEmpty()) { request.setRawHeader("x-user-id", m_user.toUtf8()); }
+  };
+  // assets.update with the target directory as the parent (moveEntry in the
+  // web workspaceTreeActions.ts).
+  const auto update = [this, workspace, project, directory, authorize](const QString &id) {
+    QNetworkRequest request(m_origin.resolved(QUrl("/trpc/assets.update")));
+    authorize(request);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    const QJsonObject input{{"id", id}, {"parent_id", projectDirectoryId(project, directory)}};
+    auto *reply = m_network.post(request, QJsonDocument(input).toJson(QJsonDocument::Compact));
+    connect(reply, &QNetworkReply::finished, this, [this, reply, workspace] {
+      reply->deleteLater();
+      const auto error = replyError(reply);
+      changeFinished(workspace, error.isEmpty() ? QString() : tr("Could not move the entry (%1).").arg(error));
+    });
+  };
+  if (isDirectory) {
+    update(projectDirectoryId(project, source));
+    return;
+  }
+  // A file is the asset whose workspace_path it is (assetOfFile on the web).
+  auto url = m_origin.resolved(QUrl("/trpc/assets.list"));
+  QUrlQuery query;
+  query.addQueryItem("input", QString::fromUtf8(QJsonDocument(QJsonObject{{"project_id", project},
+                                                                           {"parent_id", projectDirectoryId(project, parentOf(source))}})
+                                                    .toJson(QJsonDocument::Compact)));
+  url.setQuery(query);
+  QNetworkRequest request(url);
+  authorize(request);
+  auto *reply = m_network.get(request);
+  connect(reply, &QNetworkReply::readyRead, reply, [reply] {
+    if (reply->bytesAvailable() > ResponseLimit) { reply->abort(); }
+  });
+  connect(reply, &QNetworkReply::finished, this, [this, reply, workspace, source, update] {
+    reply->deleteLater();
+    if (workspace != m_workspace) { return; }
+    if (const auto error = replyError(reply); !error.isEmpty()) {
+      changeFinished(workspace, tr("Could not move the entry (%1).").arg(error));
+      return;
+    }
+    auto data = QJsonDocument::fromJson(reply->readAll()).object()["result"].toObject()["data"].toObject();
+    if (data["json"].isObject()) { data = data["json"].toObject(); }
+    for (const auto &value : data["assets"].toArray()) {
+      const auto asset = value.toObject();
+      if (asset["workspace_path"].toString() == source) {
+        update(asset["id"].toString());
+        return;
+      }
+    }
+    emit changeFailed(tr("%1 is not an asset, so it cannot move.").arg(source));
+  });
+}
+
+void ProjectFiles::requestUpload(const QString &localFile, const QString &directory) {
+  // POST /api/assets as the web createAsset does: the server writes the file
+  // into the project's folder at `directory`.
+  auto multipart = std::make_unique<QHttpMultiPart>(QHttpMultiPart::FormDataType);
+  auto *file = new QFile(localFile, multipart.get());
+  if (!file->open(QIODevice::ReadOnly)) {
+    emit changeFailed(tr("Could not read %1.").arg(QFileInfo(localFile).fileName()));
+    return;
+  }
+  const auto mime = QMimeDatabase{}.mimeTypeForFile(localFile).name();
+  QHttpPart metadata;
+  metadata.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"json\"");
+  metadata.setBody(QJsonDocument(QJsonObject{{"name", QFileInfo(localFile).fileName()},
+                                             {"content_type", mime},
+                                             {"project_id", m_project},
+                                             {"directory", directory}})
+                       .toJson(QJsonDocument::Compact));
+  multipart->append(metadata);
+  QHttpPart data;
+  data.setHeader(QNetworkRequest::ContentTypeHeader, mime);
+  // The file name is metadata. A fixed multipart filename avoids header injection.
+  data.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"file\"; filename=\"upload\"");
+  data.setBodyDevice(file);
+  multipart->append(data);
+  QNetworkRequest request(m_origin.resolved(QUrl("/api/assets")));
+  request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
+  if (!m_token.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8()); }
+  if (!m_user.isEmpty()) { request.setRawHeader("x-user-id", m_user.toUtf8()); }
+  auto *reply = m_network.post(request, multipart.get());
+  multipart.release()->setParent(reply);  // The reply owns the multipart from here.
+  const auto workspace = m_workspace;
+  const auto name = QFileInfo(localFile).fileName();
+  connect(reply, &QNetworkReply::finished, this, [this, reply, workspace, name] {
+    reply->deleteLater();
+    const auto error = replyError(reply);
+    changeFinished(workspace, error.isEmpty() ? QString() : tr("Could not copy %1 into the project (%2).").arg(name, error));
   });
 }
 }  // namespace nodetool::files
