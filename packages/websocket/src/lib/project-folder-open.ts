@@ -69,12 +69,12 @@ const UNTITLED_PROJECT = "Untitled project";
  * The real path of a folder the caller chose: allowed by `resolveLocalPath`,
  * an existing directory, and writable, since the manifest is written into it.
  */
-async function resolveFolder(path: string): Promise<string> {
+async function resolveFolder(
+  path: string,
+  disabledMessage = "Opening a folder as a project is disabled on this server"
+): Promise<string> {
   if (!isLocalDeployment()) {
-    throw new ProjectFolderOpenError(
-      "forbidden",
-      "Opening a folder as a project is disabled on this server"
-    );
+    throw new ProjectFolderOpenError("forbidden", disabledMessage);
   }
   const allowed = await resolveLocalPath(path);
   if (!allowed.ok) {
@@ -115,6 +115,18 @@ async function realFolderPath(row: WorkspaceRow): Promise<string> {
   }
 }
 
+/** Each local project folder of the user, by real path, with its project. */
+async function* localProjectFolders(
+  userId: string
+): AsyncGenerator<{ project: Project; folder: string }> {
+  for (const project of await Project.listWithFolder(userId)) {
+    if (!project.workspace_id) continue;
+    const row = await WorkspaceRow.find(userId, project.workspace_id);
+    if (!row || row.isVirtual()) continue;
+    yield { project, folder: await realFolderPath(row) };
+  }
+}
+
 /**
  * Refuse a folder that is, contains, or sits inside the folder of another
  * project of the user. `exceptProjectId` is the project being pointed at the
@@ -125,11 +137,8 @@ async function refuseOverlap(
   folder: string,
   exceptProjectId?: string
 ): Promise<void> {
-  for (const project of await Project.listWithFolder(userId)) {
-    if (project.id === exceptProjectId || !project.workspace_id) continue;
-    const row = await WorkspaceRow.find(userId, project.workspace_id);
-    if (!row || row.isVirtual()) continue;
-    const other = await realFolderPath(row);
+  for await (const { project, folder: other } of localProjectFolders(userId)) {
+    if (project.id === exceptProjectId) continue;
     let relation: string | null = null;
     if (folder === other) relation = "is already the folder of";
     else if (isWithin(folder, other)) relation = "is inside the folder of";
@@ -412,6 +421,40 @@ async function openFolder(
   }
   await refuseOverlap(userId, folder, existing.id);
   return pointAt(existing, folder);
+}
+
+/**
+ * Run `create` with the real path of `location`, the directory a new
+ * project's folder is to be created in, in place of the projects folder.
+ *
+ * The location may be anywhere the caller can reach, with the checks of
+ * opening a folder: local installs only, allowed by `resolveLocalPath`, an
+ * existing writable directory. It must not be or lie inside the folder of
+ * another project of the user, since the new folder would be inside that
+ * one. A location that holds project folders, such as the projects folder
+ * itself, is allowed. `create` runs under the lock of opening a folder, so a
+ * folder opened at the same moment cannot become the location's project.
+ */
+export function withProjectLocation<T>(
+  userId: string,
+  location: string,
+  create: (parentDir: string) => Promise<T>
+): Promise<T> {
+  return withFolderOpenLock(userId, async () => {
+    const parentDir = await resolveFolder(
+      location,
+      "Choosing where a project's folder goes is disabled on this server"
+    );
+    for await (const { project, folder } of localProjectFolders(userId)) {
+      if (isWithin(parentDir, folder)) {
+        throw new ProjectFolderOpenError(
+          "conflict",
+          `This location is inside the folder of project "${project.name}"`
+        );
+      }
+    }
+    return create(parentDir);
+  });
 }
 
 /**

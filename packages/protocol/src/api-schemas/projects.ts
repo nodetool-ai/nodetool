@@ -113,7 +113,14 @@ export const createProjectInput = z.object({
     })
     .optional(),
   name: z.string().min(1).max(200),
-  kind: z.string().max(64).default("")
+  kind: z.string().max(64).default(""),
+  /**
+   * The directory the new project's folder is created in, on a local install.
+   * Unset, the folder goes in the projects folder (`PROJECTS_DIR`). Any
+   * existing writable directory the caller may reach is allowed, except one
+   * inside another project's folder.
+   */
+  location: z.string().trim().min(1).max(4096).optional()
 });
 export type CreateProjectInput = z.infer<typeof createProjectInput>;
 

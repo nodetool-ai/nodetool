@@ -425,8 +425,15 @@ export async function checkProjectsDir(
   return dir;
 }
 
-/** Create a new folder for the project and record it. */
-async function createFolder(project: Project): Promise<WorkspaceRow> {
+/**
+ * Create a new folder for the project and record it. A local folder goes in
+ * `parentDir` when given, which the caller has checked, and otherwise in the
+ * projects folder.
+ */
+async function createFolder(
+  project: Project,
+  parentDir?: string
+): Promise<WorkspaceRow> {
   let path: string;
   let createdDir: string | null = null;
   if (workspaceStorageKind() === "cloud") {
@@ -437,7 +444,7 @@ async function createFolder(project: Project): Promise<WorkspaceRow> {
     );
   } else {
     path = await claimLocalFolder(
-      await projectsParent(project.user_id),
+      parentDir ?? (await projectsParent(project.user_id)),
       projectFolderName(project.name)
     );
     createdDir = path;
@@ -479,6 +486,12 @@ export interface EnsureProjectFolderOptions {
    * the row belongs to the project and no game uses it.
    */
   preferredWorkspaceId?: string;
+  /**
+   * The directory a new local folder is created in, in place of the projects
+   * folder. The caller checks it. Ignored for a cloud folder and for a project
+   * that already has or takes a folder.
+   */
+  parentDir?: string;
 }
 
 /**
@@ -535,7 +548,7 @@ export async function ensureProjectFolder(
     const claimable =
       (row.project_id === project.id || row.project_id === LOOSE_PROJECT_ID) &&
       !(await WorkspaceRow.isUsedByGame(row.id));
-    if (!claimable) return createFolder(project);
+    if (!claimable) return createFolder(project, options.parentDir);
     if (row.project_id !== project.id) {
       row.project_id = project.id;
       await row.save();
@@ -553,7 +566,7 @@ export async function ensureProjectFolder(
     return claim(project, candidate);
   }
 
-  return createFolder(project);
+  return createFolder(project, options.parentDir);
 }
 
 /**
