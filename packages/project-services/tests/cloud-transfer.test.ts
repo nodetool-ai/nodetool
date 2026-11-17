@@ -14,6 +14,7 @@ import {
   Project,
   readableProjectBlob,
   TimelineSequence,
+  TimelineSequenceVersion,
   Workflow,
   WorkflowVersion
 } from "@nodetool-ai/models";
@@ -33,7 +34,7 @@ import {
   type TransferHost,
   type TransferRole
 } from "../src/cloud-transfer.js";
-import { identityHash, transferPayloadOf } from "../src/transfer-documents.js";
+import { identityHash, transferPayloadOf, transferVersionPayloadOf } from "../src/transfer-documents.js";
 import { initPgliteDb } from "./_helpers/pglite-db.js";
 
 const OWNER = "user-owner";
@@ -499,6 +500,182 @@ describe("cloud transfers on PostgreSQL", { timeout: 30_000 }, () => {
     await openTransfer(host, OWNER, { transfer_id: transferId, project_id: projectId, first_publication: true, manifest });
     const result = await commitTransfer(host, OWNER, commitInput(transferId, manifest, []));
     expect(await cancelTransfer(OWNER, transferId)).toEqual({ state: "committed", result });
+  });
+
+  it("keeps both only with a decision that names the stored revision, and leaves the cloud document as it is", async () => {
+    const { projectId, workflowId } = await publishedProject(host);
+    const stored = (await transferPayloadOf("workflow", workflowId))!;
+    const copyId = id();
+    const local = workflowPayload("Local copy");
+    const manifest = manifestFor([
+      { op: "keep_both", kind: "workflow", document_id: workflowId, new_document_id: copyId, captured_hash: identityHash(local) }
+    ]);
+    const transferId = id();
+    await openTransfer(host, OWNER, { transfer_id: transferId, project_id: projectId, first_publication: false, manifest });
+    const payloads = [{ kind: "workflow" as const, document_id: copyId, document: local }];
+
+    const refused = await commitTransfer(host, OWNER, commitInput(transferId, manifest, payloads));
+    expect(refused).toMatchObject({
+      outcome: "refused",
+      failures: [{ code: "DECISION_REQUIRED", document_id: workflowId, stored_hash: identityHash(stored) }]
+    });
+    expect(await Workflow.get<Workflow>(copyId)).toBeNull();
+
+    const kept = await commitTransfer(
+      host,
+      OWNER,
+      commitInput(transferId, manifest, payloads, {
+        decisions: [{ kind: "workflow", document_id: workflowId, choice: "keep_local", cloud_hash: identityHash(stored) }]
+      })
+    );
+    expect(kept).toEqual({
+      outcome: "committed",
+      project_id: projectId,
+      documents: [
+        { kind: "workflow", document_id: workflowId, hash: identityHash(stored) },
+        { kind: "workflow", document_id: copyId, hash: identityHash(local) }
+      ]
+    });
+    expect((await Workflow.get<Workflow>(workflowId))?.name).toBe("First");
+    expect((await Workflow.get<Workflow>(copyId))?.project_id).toBe(projectId);
+    expect(host.publishedCalls).toContain(`workflow:${copyId}`);
+
+    // The new id is fixed by the manifest, so another transfer cannot create it twice.
+    const again = id();
+    await openTransfer(host, OWNER, { transfer_id: again, project_id: projectId, first_publication: false, manifest });
+    const twice = await commitTransfer(
+      host,
+      OWNER,
+      commitInput(again, manifest, payloads, {
+        decisions: [{ kind: "workflow", document_id: workflowId, choice: "keep_local", cloud_hash: identityHash(stored) }]
+      })
+    );
+    expect(twice).toMatchObject({ outcome: "refused", failures: [{ code: "DOCUMENT_EXISTS", document_id: copyId }] });
+  });
+
+  it("adds saved versions under their ids, skips one already held and refuses an id with other content", async () => {
+    const { projectId, workflowId } = await publishedProject(host);
+    const first = { name: "Morning", description: null, graph: { nodes: [], edges: [] }, save_type: "manual" };
+    const second = { name: null, description: "auto", graph: { nodes: [], edges: [] }, save_type: "autosave" };
+    const firstId = id();
+    const secondId = id();
+    const manifest = manifestFor([
+      {
+        op: "add_versions",
+        kind: "workflow",
+        document_id: workflowId,
+        versions: [
+          { version_id: firstId, hash: identityHash(first) },
+          { version_id: secondId, hash: identityHash(second) }
+        ]
+      }
+    ]);
+    const versions = [
+      { kind: "workflow" as const, document_id: workflowId, version_id: firstId, version: first },
+      { kind: "workflow" as const, document_id: workflowId, version_id: secondId, version: second }
+    ];
+    const transferId = id();
+    await openTransfer(host, OWNER, { transfer_id: transferId, project_id: projectId, first_publication: false, manifest });
+
+    const missing = await commitTransfer(host, OWNER, commitInput(transferId, manifest, [], { versions: versions.slice(0, 1) }));
+    expect(missing).toMatchObject({ outcome: "refused", failures: [{ code: "PAYLOAD_MISSING", version_id: secondId }] });
+
+    const added = await commitTransfer(host, OWNER, commitInput(transferId, manifest, [], { versions }));
+    expect(added.outcome).toBe("committed");
+    expect(await transferVersionPayloadOf("workflow", firstId)).toEqual(first);
+    expect(await transferVersionPayloadOf("workflow", secondId)).toEqual(second);
+    const stored = await WorkflowVersion.listForWorkflow(workflowId);
+    expect(stored.map((version) => version.id).sort()).toEqual([firstId, secondId].sort());
+
+    // Sent again with the same content, the versions count as done.
+    const repeat = id();
+    await openTransfer(host, OWNER, { transfer_id: repeat, project_id: projectId, first_publication: false, manifest });
+    const numbers = (list: WorkflowVersion[]) => list.map((version) => `${version.id}:${version.version}`).sort();
+    const before = numbers(stored);
+    expect((await commitTransfer(host, OWNER, commitInput(repeat, manifest, [], { versions }))).outcome).toBe("committed");
+    expect(numbers(await WorkflowVersion.listForWorkflow(workflowId))).toEqual(before);
+
+    // The same id with other content is refused.
+    const changed = { ...first, name: "Evening" };
+    const conflicting = manifestFor([
+      { op: "add_versions", kind: "workflow", document_id: workflowId, versions: [{ version_id: firstId, hash: identityHash(changed) }] }
+    ]);
+    const conflict = id();
+    await openTransfer(host, OWNER, { transfer_id: conflict, project_id: projectId, first_publication: false, manifest: conflicting });
+    const refused = await commitTransfer(
+      host,
+      OWNER,
+      commitInput(conflict, conflicting, [], {
+        versions: [{ kind: "workflow", document_id: workflowId, version_id: firstId, version: changed }]
+      })
+    );
+    expect(refused).toMatchObject({ outcome: "refused", failures: [{ code: "VERSION_CONFLICT", version_id: firstId }] });
+  });
+
+  it("creates a document before it adds the saved versions listed ahead of it", async () => {
+    const { projectId } = await publishedProject(host);
+    const timelineId = id();
+    const versionId = id();
+    const timeline = timelinePayload("Cut");
+    const version = {
+      name: "Rough cut",
+      save_type: "manual",
+      fps: 24,
+      width: 1280,
+      height: 720,
+      document: { tracks: [], clips: [{ id: "c1", startMs: 0, durationMs: 2000 }], markers: [] }
+    };
+    const manifest = manifestFor([
+      { op: "add_versions", kind: "timeline", document_id: timelineId, versions: [{ version_id: versionId, hash: identityHash(version) }] },
+      { op: "create_document", kind: "timeline", document_id: timelineId, captured_hash: identityHash(timeline) }
+    ]);
+    const transferId = id();
+    await openTransfer(host, OWNER, { transfer_id: transferId, project_id: projectId, first_publication: false, manifest });
+    const result = await commitTransfer(
+      host,
+      OWNER,
+      commitInput(transferId, manifest, [{ kind: "timeline", document_id: timelineId, document: timeline }], {
+        versions: [{ kind: "timeline", document_id: timelineId, version_id: versionId, version }]
+      })
+    );
+    expect(result.outcome).toBe("committed");
+    const stored = await TimelineSequenceVersion.get<TimelineSequenceVersion>(versionId);
+    expect(stored?.timeline_id).toBe(timelineId);
+    expect(stored?.duration_ms).toBe(2000);
+    expect(await transferVersionPayloadOf("timeline", versionId)).toEqual(version);
+  });
+
+  it("moves a document to another project of its owner, and counts a document already there as moved", async () => {
+    const { projectId, workflowId } = await publishedProject(host);
+    const { projectId: targetId } = await publishedProject(host);
+    const strangerProject = id();
+    await Project.create<Project>({ id: strangerProject, user_id: "user-stranger", name: "Theirs", kind: "project" });
+    const move = (target: string) =>
+      manifestFor([
+        { op: "move_document", kind: "workflow", document_id: workflowId, base_project_id: projectId, target_project_id: target }
+      ]);
+    const commitMove = async (target: string) => {
+      const transferId = id();
+      const manifest = move(target);
+      await openTransfer(host, OWNER, { transfer_id: transferId, project_id: projectId, first_publication: false, manifest });
+      return commitTransfer(host, OWNER, commitInput(transferId, manifest, []));
+    };
+
+    expect(await commitMove(strangerProject)).toMatchObject({
+      outcome: "refused",
+      failures: [{ code: "PROJECT_EDITOR_REQUIRED", project_id: strangerProject }]
+    });
+    expect(await commitMove(id())).toMatchObject({ outcome: "refused", failures: [{ code: "PROJECT_NOT_FOUND" }] });
+
+    host.roles.set(`workflow:${workflowId}`, "editor");
+    expect(await commitMove(targetId)).toMatchObject({ outcome: "refused", failures: [{ code: "OWNER_REQUIRED" }] });
+    host.roles.delete(`workflow:${workflowId}`);
+
+    expect((await commitMove(targetId)).outcome).toBe("committed");
+    expect((await Workflow.get<Workflow>(workflowId))?.project_id).toBe(targetId);
+    // The same move again changes nothing.
+    expect((await commitMove(targetId)).outcome).toBe("committed");
+    expect((await Workflow.get<Workflow>(workflowId))?.project_id).toBe(targetId);
   });
 
   it("refuses a first publication into an existing project id", async () => {

@@ -42,6 +42,33 @@ export const transferOperation = z.discriminatedUnion("op", [
     base_name: z.string().max(1024),
     name: z.string().min(1).max(1024)
   }),
+  /**
+   * Keep both: the local document is created under `new_document_id`, and the
+   * cloud document stays as it is. A Keep local decision must name the
+   * stored hash of `document_id`.
+   */
+  z.object({
+    op: z.literal("keep_both"),
+    kind: transferDocumentKind,
+    document_id: fullId,
+    new_document_id: fullId,
+    captured_hash: sha256
+  }),
+  /** Saved versions the cloud lacks. Each one's content is in `versions` of the attempt. */
+  z.object({
+    op: z.literal("add_versions"),
+    kind: transferDocumentKind,
+    document_id: fullId,
+    versions: z.array(z.object({ version_id: fullId, hash: sha256 })).min(1).max(10_000)
+  }),
+  /** Move the document from `base_project_id`, the transfer's project, to another project. */
+  z.object({
+    op: z.literal("move_document"),
+    kind: transferDocumentKind,
+    document_id: fullId,
+    base_project_id: fullId,
+    target_project_id: fullId
+  }),
   /** Confirmed in the deletion review. The document keeps its restore period. */
   z.object({
     op: z.literal("delete_document"),
@@ -100,6 +127,15 @@ export const transferPayload = z.object({
 });
 export type TransferPayload = z.infer<typeof transferPayload>;
 
+/** The content of one saved version, as the kind's version payload function captured it. */
+export const transferVersionPayload = z.object({
+  kind: transferDocumentKind,
+  document_id: fullId,
+  version_id: fullId,
+  version: z.record(z.string(), z.unknown())
+});
+export type TransferVersionPayload = z.infer<typeof transferVersionPayload>;
+
 // ── transfer.open ────────────────────────────────────────────────
 export const openTransferInput = z.object({
   transfer_id: fullId,
@@ -123,7 +159,8 @@ export const commitTransferInput = z.object({
   manifest: transferManifest,
   decisions: z.array(transferDecision).max(10_000),
   missing_files: z.array(transferMissingFile).max(100_000),
-  payloads: z.array(transferPayload).max(10_000)
+  payloads: z.array(transferPayload).max(10_000),
+  versions: z.array(transferVersionPayload).max(10_000).optional()
 });
 export type CommitTransferInput = z.infer<typeof commitTransferInput>;
 
@@ -146,7 +183,10 @@ export const transferRefusalCode = z.enum([
   "ACCESS_REMOVED",
   "FILE_NOT_READABLE",
   "FILE_NOT_STAGED",
-  "BASE_CHANGED"
+  "BASE_CHANGED",
+  "DECISION_REQUIRED",
+  "VERSION_CONFLICT",
+  "PROJECT_EDITOR_REQUIRED"
 ]);
 export type TransferRefusalCode = z.infer<typeof transferRefusalCode>;
 
@@ -156,6 +196,8 @@ export const transferFailure = z.object({
   document_id: z.string().optional(),
   asset_id: z.string().optional(),
   hash: z.string().optional(),
+  version_id: z.string().optional(),
+  project_id: z.string().optional(),
   /** For BASE_CHANGED: the stored hash a Keep local decision must name. */
   stored_hash: z.string().optional(),
   message: z.string()
