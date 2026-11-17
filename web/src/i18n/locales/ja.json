@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "コード#状態",
       "signInWindowClosed": "サインインウィンドウは閉じていますか?",
       "openAgain": "もう一度開いてください",
-      "linkExpiry": "。リンクは 10 分後に期限切れになります。"
+      "linkExpiry": "。リンクは 10 分後に期限切れになります。",
+      "nativeSubtitle": "があなたの NodeTool アカウントへのサインインを求めています。",
+      "app": "アプリ",
+      "device": "デバイス",
+      "nativeNote": "このコンピューターの NodeTool デスクトップアプリから自分でサインインを始めた場合にのみ承認してください。承認すると、サインアウトするか設定でセッションを終了するまで、アプリはクラウド上のドキュメントを開いて編集し保存できます。"
     },
     "integrations": {
       "loadingAccounts": "接続されているアカウントをロードしています",
@@ -6136,6 +6140,10 @@
         "title": "新しいプロジェクト",
         "confirm": "プロジェクトの作成",
         "nameLabel": "プロジェクト名",
+        "locationLabel": "場所",
+        "locationDefault": "プロジェクトフォルダー",
+        "locationChoose": "選択…",
+        "locationReset": "プロジェクトフォルダーを使用",
         "createError": "プロジェクトを作成できませんでした: {{error}}",
         "openFolder": "フォルダを開く…",
         "openFolderHint": "既存のフォルダがありますか？プロジェクトとして開けます。ファイルは移動しません。",
@@ -19087,6 +19095,26 @@
       "typeMore": "2文字以上入力してください",
       "noMatches": "一致するユーザーがいません",
       "failed": "アクセスを付与できませんでした。"
+    },
+    "options": {
+      "history": "履歴",
+      "historyDescription": "閲覧者は保存済みのバージョンを開けます。",
+      "download": "ダウンロード",
+      "downloadDescription": "閲覧者は元のファイルをダウンロードできます。",
+      "duplicate": "複製",
+      "duplicateDescription": "閲覧者はファイルごと自分のライブラリにコピーできます。",
+      "turnedOff": "すでにダウンロードまたは複製されたものは相手の手元に残ります。",
+      "historyOffNotice": "このリンクの閲覧者は保存済みのバージョンを表示できなくなりました。履歴をオンにすると元に戻ります。",
+      "turnOnHistory": "履歴をオンにする",
+      "dismiss": "閉じる",
+      "failed": "オプションを変更できませんでした。"
+    },
+    "people": {
+      "from": "アクセス元: {{sources}}",
+      "sourceInvitation": "招待",
+      "sourceViewLink": "閲覧リンク",
+      "sourceEditLink": "編集リンク",
+      "sourceDisabled": "{{source}}（無効）"
     }
   },
   "timelineAutomation": {
@@ -20216,6 +20244,27 @@
     "removeBody": "アセットは NodeTool から削除されます。これを使用しているドキュメントでは表示できなくなります。",
     "cancel": "キャンセル"
   },
+  "deviceSessions": {
+    "title": "サインイン中のデバイス",
+    "description": "NodeTool デスクトップアプリにサインインしたコンピューターです。同じコンピューターのアプリは 1 つのセッションを共有します。セッションを終了すると、そのコンピューターはサインアウトします。",
+    "empty": "サインイン中のコンピューターはありません。",
+    "unnamed": "名前のないコンピューター",
+    "signedInFrom": "{{date}} に {{app}} からサインイン",
+    "lastUsed": "最終使用: {{date}}",
+    "neverUsed": "サインイン後は未使用",
+    "end": "セッションを終了",
+    "confirmTitle": "このセッションを終了しますか？",
+    "confirmBody": "{{device}} の NodeTool デスクトップアプリは 1 分以内にサインアウトされます。",
+    "cancel": "キャンセル",
+    "ended": "セッションを終了しました。",
+    "endError": "セッションを終了できませんでした: {{error}}",
+    "loadError": "サインイン中のデバイスを読み込めませんでした。",
+    "apps": {
+      "nodeEditor": "ノードエディター",
+      "timeline": "タイムライン",
+      "desktop": "デスクトップアプリ"
+    }
+  },
   "storyboardText": {
     "mode": "テキスト",
     "editorLabel": "Markdown テキストとしてのストーリーボード",
@@ -20270,5 +20319,21 @@
         "failed": "リクエストに失敗しました。もう一度送信してください。"
       }
     }
+  },
+  "cloudAccount": {
+    "title": "NodeTool Cloud アカウント",
+    "description": "このコンピューターでは、このアプリ、ノードエディター、タイムラインが 1 つのサインインを共有します。ここでのサインインとサインアウトは 3 つすべてに適用されます。",
+    "signedInAs": "{{name}} としてサインイン中",
+    "server": "サーバー: {{server}}",
+    "signedOut": "サインインしていません",
+    "signingIn": "ブラウザーでサインインを完了してください",
+    "serverEndPending": "サインアウト済み、サーバー上のセッションはまだ終了していません",
+    "cloudOff": "このコンピューターではクラウド機能がオフになっています",
+    "noKeychain": "このコンピューターには資格情報ストアがないため、サインインは NodeTool を終了するまで有効です。",
+    "signIn": "サインイン",
+    "cancel": "キャンセル",
+    "signOut": "サインアウト",
+    "signOutNote": "ノードエディターやタイムラインで送信待ちの変更はこのコンピューターに残り、再度サインインした後に送信されます。",
+    "unavailable": "このビルドではクラウドへのサインインを利用できません。"
   }
 }

@@ -26,6 +26,10 @@
 #include "interfaces/ChatWindow.h"
 #include "interfaces/WorkflowHeader.h"
 #include "server/SetupController.h"
+#include "nodetool/account/qt/AccountController.h"
+#include "nodetool/account/qt/AccountServers.h"
+#include "nodetool/account/qt/CloudBrowser.h"
+#include "nodetool/account/qt/CloudDocument.h"
 #include "server/PackSetup.h"
 #include "server/ComfyBackend.h"
 #include "document/WorkflowDocument.h"
@@ -275,6 +279,9 @@ public:
     void refreshGenerations();
     // Opens a workflow document ({name, graph}) in a new unsaved tab.
     void openWorkflowDocument(const QJsonObject &workflow);
+    // Opens a cloud workflow of the current account in its own tab, or
+    // switches to the tab that has it. `role` is owner, editor or viewer.
+    void openCloudDocument(const QString &documentId, const QString &role);
     // Opens the Report issue for a failed job in the queue history.
     void reportJob(const QString &jobId);
     // Opens a queue job output's get_url in the browser, resolved against the server.
@@ -312,6 +319,11 @@ public:
         }
         if (inlineChild_ && childParent_) {
             return childParent_->hasUnsavedChanges() || document_.graph() != syncedChildGraph_;
+        }
+        // A cloud workflow keeps its edits in the local draft store, and
+        // closing the tab writes the last one.
+        if (cloud_) {
+            return false;
         }
         return !document_.undoStack()->isClean() || session_.conflictPending()
             || (session_.serverBound() && session_.dirty());
@@ -488,6 +500,8 @@ private:
   quint64 credentialsEpoch_ = 0;
   void showWorkflowDetails(const QString &kind);
   void showServerSync();
+  // The share dialog of the tab's cloud workflow, for its owner.
+  void showShareDialog();
   void showRunTrace();
   void showGenerations();
   void showWorkers();
@@ -744,6 +758,26 @@ private:
   // types and the Theme singleton exist once. It outlives the tabs, which the
   // owner deletes in its destructor body.
   QQmlEngine *engine_ = nullptr;
+  // The cloud servers and their accounts the status bar shows. The window
+  // owner creates them and its tabs borrow them, so the owner's destructor
+  // ends them after the tabs.
+  std::unique_ptr<nodetool::account::qt::AccountServers> accountServers_;
+  // The Cloud and Shared with me groups the tabs' workflow browsers show,
+  // for the current server's account. Owner only, declared after the
+  // servers so it ends first.
+  std::unique_ptr<nodetool::account::qt::CloudBrowser> cloudBrowser_;
+  // A tab's open cloud workflow (PRD "Open and edit a cloud document"). It
+  // keeps every edit in the local server's draft store and sends it. Null
+  // for a file, server or new workflow. Destroyed with the tab, which
+  // writes the last edit to disk.
+  std::unique_ptr<nodetool::account::qt::CloudDocument> cloud_;
+  QString cloudId_;
+  // The server the cloud workflow was opened from.
+  QString cloudOrigin_;
+  // Set while the opened revision loads, so the load is not sent as an edit.
+  bool cloudLoading_ = false;
+  void startCloudDocument(std::shared_ptr<nodetool::account::AccountSession> session, const QString &documentId,
+                          const QString &role);
   QMainWindow *dockHost_ = nullptr;
   // The node library overlays the canvas column, as the fixed web left panel does.
   QPointer<QQuickWidget> catalogPanel_;

@@ -543,8 +543,34 @@ export enum IpcChannels {
   VST_OPEN_EDITOR = "vst-open-editor",
   VST_CLOSE_EDITOR = "vst-close-editor",
   VST_EVENT = "vst-event",
+  // The cloud account the native apps share, through nodetool-account-helper
+  CLOUD_ACCOUNT_STATE = "cloud-account-state",
+  CLOUD_ACCOUNT_SIGN_IN = "cloud-account-sign-in",
+  CLOUD_ACCOUNT_CANCEL_SIGN_IN = "cloud-account-cancel-sign-in",
+  CLOUD_ACCOUNT_SIGN_OUT = "cloud-account-sign-out",
+  CLOUD_ACCOUNT_EVENT = "cloud-account-event",
   // Native OS notifications, shown while no app window is focused
   SYSTEM_NOTIFICATION_SHOW = "system-notification-show",
+}
+
+/**
+ * The cloud account as the renderer sees it. It holds no token: the session
+ * stays in the account helper.
+ */
+export interface CloudAccountState {
+  /** False when this build has no account helper, or it stopped. */
+  available: boolean;
+  state: "signedOut" | "signingIn" | "signedIn";
+  displayName: string;
+  serverOrigin: string;
+  /** Signed out on this computer, and the server has not confirmed the end of the session yet. */
+  serverEndPending: boolean;
+  /** False when a managed policy turns the cloud features off. */
+  cloudAvailable: boolean;
+  /** False when the computer has no credential store. A sign-in then lasts until the app quits. */
+  keychainAvailable: boolean;
+  /** Why the last sign-in did not complete, or the policy's reason. */
+  message: string;
 }
 
 /** Whether VST3 instruments can play, and why not when they cannot. */
@@ -791,6 +817,10 @@ export interface IpcRequest {
   [IpcChannels.VST_RENDER]: VstRenderRequest;
   [IpcChannels.VST_OPEN_EDITOR]: VstOpenEditorRequest;
   [IpcChannels.VST_CLOSE_EDITOR]: string;
+  [IpcChannels.CLOUD_ACCOUNT_STATE]: void;
+  [IpcChannels.CLOUD_ACCOUNT_SIGN_IN]: void;
+  [IpcChannels.CLOUD_ACCOUNT_CANCEL_SIGN_IN]: void;
+  [IpcChannels.CLOUD_ACCOUNT_SIGN_OUT]: void;
   [IpcChannels.SYSTEM_NOTIFICATION_SHOW]: SystemNotificationRequest;
 }
 
@@ -894,6 +924,10 @@ export interface IpcResponse {
   [IpcChannels.VST_RENDER]: VstRenderResult;
   [IpcChannels.VST_OPEN_EDITOR]: void;
   [IpcChannels.VST_CLOSE_EDITOR]: void;
+  [IpcChannels.CLOUD_ACCOUNT_STATE]: CloudAccountState;
+  [IpcChannels.CLOUD_ACCOUNT_SIGN_IN]: void;
+  [IpcChannels.CLOUD_ACCOUNT_CANCEL_SIGN_IN]: void;
+  [IpcChannels.CLOUD_ACCOUNT_SIGN_OUT]: void;
   [IpcChannels.SYSTEM_NOTIFICATION_SHOW]: boolean;
 }
 
@@ -909,6 +943,7 @@ export interface IpcEvents {
   [IpcChannels.MENU_EVENT]: MenuEventData;
   [IpcChannels.PACKAGE_UPDATES_AVAILABLE]: PackageUpdateInfo[];
   [IpcChannels.VST_EVENT]: VstHostEvent;
+  [IpcChannels.CLOUD_ACCOUNT_EVENT]: CloudAccountState;
 }
 
 export type PythonPackages = string[];

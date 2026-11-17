@@ -4,6 +4,17 @@ Editable source: [https://claude.ai/artifact/C7vB5BB2k1GvXrya2k2hvn](https://cla
 
 Nov 15, 2026 · @Matthias Georgi
 
+## Revision 4
+
+Revision 4, 2026-11-17, records decision D23: the Electron desktop app shares the sign-in of the native apps. It changes no rule of the native apps.
+
+| Change | Where |
+| --- | --- |
+| The desktop app as a third client of the session record, through a helper process that links `native/account` | Architecture (K16), The Electron desktop app |
+| `desktop` as an app name at sign-in | Sign-in protocol |
+| Tests TC109 to TC115, failure cases FC28 and FC29, risk TR10 | Tests for phase 1, Failure cases, Risks |
+| Work package WP1.13 | Implementation plan |
+
 ## Revision 3
 
 Revision 3, 2026-11-16, brings this design up to main at `11a6da4a`. Main is 109 commits past `ff95e848` and adds project folders (PF07 to PF14, PF16 to PF18) and the fixes for nested folders. Revision 3 adds no requirement. Each change follows from a repository fact that changed, and each has a test that fails without it.
@@ -101,6 +112,7 @@ None of D1 to D20 is decided. This design uses the default the PRD documents for
 | D20 | The owner frees storage by erase, ending restore periods and deleting versions | The erased list and its filters are dropped. |
 | D21 | For a linked or cloud timeline the replicated state in the local database is the local authority. The timeline file is a projection of it, and an edit to the file is converted against the last file the app wrote (Local side of phase 3). | File as authority: each file edit replaces the state through the whole-document adapter, and siblings and tombstones the file cannot show are lost. Or no file for replicated timelines: folder copies and git history no longer carry them. |
 | D22 | A transfer that requires a linked file collects it into the project folder first, after the person confirms, as export does today (CF6). | Upload in place: capture hashes the outside file at every Synchronize, and a receiver gets it as a new file in Imported/. Or refuse the transfer and name the files. |
+| D23 | Decided on 2026-11-17: the Electron desktop app shares the sign-in through the helper of WP1.13. | Not applicable. |
 
 ### Amendments applied
 
@@ -183,24 +195,26 @@ Every arrow ends at the access module's decision: a request, a save, a commit an
 | K13 | Project grants, delivery copies and snapshots | `packages/models`, K2 | New | 4 |
 | K14 | Execution ledger, start, cancel and batch commands, completion permit | `packages/models/src/durable-generation.ts`, `packages/execution` | Changed | 5a |
 | K15 | Provider-neutral durable lifecycle with a declared recovery class | `packages/execution/src/generation-lifecycle.ts`, `packages/runtime/src/providers/` | Changed | 5a |
+| K16 | Desktop app account client: the account helper process over K4, the main-process client with its request forwarder, the Settings section | New `native/account-helper/`, new `electron/src/cloudAccount.ts`, `web/src/components/settings/` | New | 1 |
 
 Trust boundaries.
 
 - The long-lived credential leaves the keychain only toward the server that issued it (SR3). The app's bundled local server receives a short-lived access token over loopback for a transfer and never the refresh token.
+- In the desktop app the session lives in the account helper. Electron's main process sees a token only while it forwards a token request to the server origin. The renderer and the desktop app's local server never receive one.
 - A blob is readable only through a row that ties it to a project. The object store's own addresses are never handed to a client for longer than 60 seconds, and never for a delivery copy.
 - The ledger and the activity table are outside every document. No document write can change them.
 - A job has no user credential. It writes through the completion permit, which the transaction validator enforces by shape (phase 5a).
 
 ## Phase 1 design: sign-in and cloud documents
 
-Phase 1 depends on nothing in the CRDT designs. It delivers FR1 to FR11, FR21 to FR23, FR27 for cloud documents, FR28 to FR33, FR48 to FR50, FR52, FR67, FR76 and FR77 for document grants.
+Phase 1 depends on nothing in the CRDT designs. It delivers FR1 to FR11, FR21 to FR23, FR27 for cloud documents, FR28 to FR33, FR48 to FR50, FR52, FR67, FR76, FR77 for document grants, and FR82.
 
 ### Sign-in protocol
 
 The app runs the authorization code flow with PKCE against the existing authorization server (RF1).
 
 1. The app opens a listener on `127.0.0.1` at a free port and creates a code verifier and a `state` value.
-2. It opens the system browser at `/oauth/authorize` with `client_id=nodetool-native`, `scope=native`, `resource=<server origin>`, the S256 challenge, the loopback redirect, `app` (`node-editor` or `timeline`) and `device_name`.
+2. It opens the system browser at `/oauth/authorize` with `client_id=nodetool-native`, `scope=native`, `resource=<server origin>`, the S256 challenge, the loopback redirect, `app` (`node-editor`, `timeline` or `desktop`) and `device_name`.
 3. The user signs in to the web app the way that server offers, in Supabase mode or SSO mode. The consent page shows the app and the device name as text and asks Allow or Deny.
 4. The app receives the code on the loopback listener, checks `state`, and exchanges the code at `/oauth/token`.
 5. The response carries an access token, a refresh token, the session id, the user id and display name, and a revocation handle. The handle is returned by this exchange only, never by a refresh.
@@ -253,13 +267,39 @@ Sign-out has a local step that always completes and a server step that completes
 | Local 1 | Take `account.lock`, waiting at most 15 seconds. When it cannot be taken, continue. Step 5 of the refresh protects against the holder. |  |
 | Local 2 | Write the generation file: the generation plus one, state `signed_out`. From this write on, the request rule stops both apps from attaching the credential to a new request. |  |
 | Local 3 | Write the session record: state `signed_out`, both tokens removed, the revocation handle marked pending. |  |
-| Local 4 | Drop the tokens from memory, abort the app's cloud requests that are in flight and close its sockets. The other app does the same when its watch on the generation file fires, at most 1 second later, or at its next request. | "Signed out on this computer." |
+| Local 4 | Drop the tokens from memory, abort the app's cloud requests that are in flight and close its sockets. The other apps do the same when their watch on the generation file fires, at most 1 second later, or at their next request. The desktop app's helper polls the file every second (The Electron desktop app). | "Signed out on this computer." |
 | Server, reachable | Call `/oauth/session/end` with the handle. On 200, delete the handle. | Signed out |
 | Server, unreachable | Keep the handle. Retry at each connectivity change and at app start, with backoff from 5 seconds to 15 minutes. | "Signed out, session not yet ended on the server" |
 
 What this guarantees, and what it does not. No request that either app starts after local step 2 carries the credential, because each request compares the generation first. A refresh that was in flight during the sign-out discards its response at its step 5, so no credential is stored again. A request that was already on the wire cannot be recalled. It is aborted locally, and the server stops accepting the session when it processes the handle. The file watcher only speeds up the other app's display. Nothing in the guarantee depends on it.
 
 The handle is in the record from sign-in on, so a crash at any point of the local steps leaves a state that the repair rule completes at the next start or the next request of either app, never a session that nothing on the machine can end. The app shows the session as ended only after a 200 from the server.
+
+### The Electron desktop app
+
+D23 makes the Electron desktop app a third client of the session record. It runs the same library as the native apps rather than a second implementation of the rules above.
+
+A TypeScript implementation in Electron's main process was rejected. `account.lock` is a `flock` lock on macOS and Linux and a `LockFileEx` lock on Windows (`native/account/src/storage.cpp`). Node has no API for either, and a lock the native apps do not honor breaks FC1 and FC16 across apps. A second implementation of the refresh, sign-out and repair rules would also need its own copy of TC4 and TC16 to TC18.
+
+| Item | Contract |
+| --- | --- |
+| Helper | `nodetool-account-helper`, a C++ executable in `native/account-helper/` that links `nodetool_account` and the platform keychain store. Electron's main process starts one per launch and exchanges JSON lines with it over stdin and stdout. It is packed as `resources/account-helper/` and built the way the VST host is. |
+| What the helper owns | The `AccountSession` for the server, the sign-in flow with its loopback listener, the keychain reads and writes, the lock, the generation file, sign-out with the retries of `/oauth/session/end`, and the managed policy check (WP1.9). It is the only part of the desktop app that reads the session record. |
+| HTTP | The library has no network stack. The helper asks the main process to send each request: an `http` message with method, URL, headers, body, deadline and required origin. It blocks on the answer. The main process sends it with Chromium's network stack (`net.fetch`) and never follows a redirect. It answers status 0 without sending when the URL is not HTTPS on the server origin the helper was started for, or when it differs from the request's required origin. The token endpoint calls carry tokens in their bodies, so a refresh token is in the main process's memory while such a request is in flight, and nowhere else outside the helper. |
+| Browser | The helper sends the authorize URL. The main process opens it with `shell.openExternal` only when its origin is the server origin and its path is `/oauth/authorize`. A refused or failed open is reported back and ends the attempt with a message. |
+| Renderer | Receives the state only: signed out, signing in or signed in, display name, server, whether the server end is pending, whether policy allows cloud features, whether a keychain exists, and a message. It can ask to sign in, to cancel and to sign out. No token, handle or record crosses the IPC boundary. |
+| Local server | Unchanged. It runs in Local mode, and Electron's windows reach it with the per-launch local client token (`electron/src/localClientToken.ts`). That token authenticates the desktop app's windows to its own server and is unrelated to the cloud session. The cloud sign-in gives the local server no token in phase 1. |
+| App name | `desktop`. The authorization server accepts it beside `node-editor` and `timeline`. The consent page and the device sessions in Settings name it the NodeTool desktop app. The three apps share one device session (OQ1), and the name records the app that signed in. |
+| Data folder | `NodeTool/native` under the generic data location, as the Qt apps' `sharedDataDir()` computes it: `$XDG_DATA_HOME` or `~/.local/share` on Linux, `~/Library/Application Support` on macOS, `%LOCALAPPDATA%` on Windows. The helper applies the same rules without Qt. |
+| Server | `NODETOOL_CLOUD_SERVER` when it is an HTTPS origin, otherwise `https://api.nodetool.ai`, as in the Qt apps. Any other value turns sign-in off. |
+| Noticing the other apps | The helper reads the generation file and `accounts.json` every second. A sign-in or sign-out in a native app shows in the desktop app within 1 second plus one IPC message. The desktop app holds the credential nowhere but the helper, so a sign-out the helper notices needs no abort elsewhere. |
+| Helper missing or stopped | The Settings section says that cloud sign-in is unavailable. A helper that exits is started again after 1, 5 and 30 seconds, then left stopped until the next launch. Local work does not depend on it. The operating system releases `account.lock` with the process. |
+| Sign-out with waiting changes | The desktop app has no drafts, so its sign-out shows no dialog. The native apps' drafts stay on disk under the account, as with Keep changes on this computer. |
+| Quit | The main process closes stdin. The helper cancels a sign-in that waits for the browser and exits. A code exchanged after the cancel is ended on the server, as the Qt controller does. |
+
+The guarantees of the Sign-out section hold unchanged. The desktop app is one more process that applies the request rule, the refresh algorithm and the sign-out steps through the same library. In phase 1 it sends only the token endpoint calls and `/oauth/session/end`, and each of those passes through the library's rules.
+
+What this does not guarantee: the main process can read a refresh token while it forwards a token request. Code that controls the main process already controls the app, as code in a Qt app's process can read what its network stack sends.
 
 ### Local data scoping and durable drafts
 
@@ -377,6 +417,13 @@ Tests added in revision 2 for account coordination and the attach rule. A record
 | TC17 | App B sends 50 requests per second and holds an open socket. App A signs out. | No request that B started after the generation write carries the credential. B's socket closes within 1 second, and B shows the signed-out state. | FR76 |
 | TC18 | Kill app A with a process kill between the generation file write and the record write, once during a sign-out and once during a refresh. Then app B makes a request. | Sign-out: B completes the sign-out and sends nothing. Refresh: B sets the file to the record's generation, and the session continues through the lost-rotation rule. | Repair rule |
 | TC19 | An editor of document D saves D with a reference to an asset id from another user's private project. Then request the file as that editor and as a viewer of D. | The save is refused with `FILE_NOT_READABLE` and D is unchanged. Both requests return 404. | SR8, attach rule |
+| TC109 | Two helpers stand in for two apps, against one data folder and a file-backed test keychain. Sign in through one, sign out through the other, then the reverse. | Each helper reports the other's change within 2 seconds. After each sign-out neither returns a credential, and no later refresh writes a token into the record. | FR82, AC75 |
+| TC110 | The fake server answers a token request with a 302 to another host. Separately, ask the forwarder to send to another origin, to an `http` URL, and with a required origin that differs from the URL. | The refresh fails as offline. The forwarder sends nothing in each case and answers status 0. The other host receives no request. | SR3 |
+| TC111 | The helper asks the main process to open a URL that is not the server's authorize endpoint | The URL is not opened, and the attempt ends with a message | SR1 |
+| TC112 | TC16 with the helper as the app that signs out while a native app's refresh is held back. The helper never refreshes in phase 1, so it is never the app whose refresh is held. | The held response is discarded. The record is signed out and holds no token. | FR76 |
+| TC113 | Kill the helper during a sign-in after the record write, and during a sign-out after the generation file write. Start it again. | The repair rule completes each case as in TC18. A restarted process that only ends pending sessions runs the repair first, so the killed sign-out's handle is ended too. The desktop app shows the state the record holds. | Repair rule |
+| TC114 | Record every IPC message from the main process to the renderer during a sign-in, a refresh and a sign-out | No message holds a token, a revocation handle or the record | SR3 |
+| TC115 | Authorize with `app=desktop`, and with an unknown app | `desktop` reaches the consent page, which names the desktop app. The unknown app is refused. | FR82 |
 
 ## Phase 2 design: linked projects and transfer
 
@@ -1034,6 +1081,8 @@ Failure cases from the review of 2026-11-16. Each was a gap between a guarantee 
 | FC25 | A second consecutive undo does nothing | Undo chain with link cells, timeline design revision 4 | TC49 |
 | FC26 | Undoing a pick shows no result or an older adoption | `restores` on the restored selection | TC69 |
 | FC27 | A reissue under a new actor leaves `selectionSeen` naming old dots | Typed recovery visitor | TC48 |
+| FC28 | The desktop app runs its own lock or session logic and refreshes while a native app holds `account.lock` | The desktop app runs the native library in the account helper | TC109, TC112 |
+| FC29 | A redirect or a forged URL makes Electron's main process send a token to another host | The forwarder sends only HTTPS to the session's origin and never follows a redirect | TC110 |
 
 ### Harnesses
 
@@ -1094,11 +1143,12 @@ Transfers and the CRDT integration stay behind their gates. A1 is the only step 
 | WP1.9 | Managed policy file per platform | S | WP1.8 | TC91 |
 | WP1.10 | Local `cloud_drafts` and `cloud_open_state`, the saved-state rule in both apps, one request layer that attaches the credential in place of the scattered header writes (RF13) | L | WP0.4, WP1.8 | TC9, TC10 |
 | WP1.11 | Native surfaces: Account control, Cloud and Shared with me, the two statuses, the share dialog with its statements, linked documents and the secret warning | L | WP1.4, WP1.10 | TC15, AC62 |
+| WP1.13 | Electron desktop app (D23): `native/account-helper` and its JSON-lines protocol, the main-process client in `electron/src/cloudAccount.ts` with the request forwarder and the browser check, the account section in Settings, `desktop` on the authorization server, the consent page and device sessions, packaging in the desktop release, and a CI workflow on macOS, Windows and Linux | M | WP1.8, WP1.9 | TC109 to TC115, AC75 |
 | WP1.12 | Test rig for the hosted cloud, a Supabase-mode server and an SSO-mode server, on macOS, Windows and Linux. Two-week beta with the sign-in metrics. | M | All | AC34 |
 
 WP1.4 to WP1.7 touch only the server and the web app and do not depend on the sign-in work, so they can start at once. WP1.4 changes what existing view links expose and should ship first, on its own, with its notice.
 
-Exit: the PRD's phase 1 exit criteria, and TC1 to TC15 passing on the three server kinds.
+Exit: the PRD's phase 1 exit criteria, and TC1 to TC15 passing on the three server kinds. TC109 to TC115 pass on macOS, Windows and Linux.
 
 ### Phase 2: linked projects
 
@@ -1223,6 +1273,7 @@ Gaps found against `11a6da4a`.
 | Code | Risk | Mitigation |
 | --- | --- | --- |
 | TR9 | A text editor that saves a stale buffer of a timeline file reverts remote changes as new transactions (D21) | The revert is one listed transaction and the version named "Before file edit" restores it (TC107). The project lock does not prevent it, because other apps do not take the lock. |
+| TR10 | The helper inside the Electron bundle is a third signed binary that reads the keychain item. On macOS it may prompt when another app created the item (TR1). The WP1.13 workflow is also the first CI build of the macOS and Windows keychain stores. | WP0.2 covers the helper. The WP1.13 workflow compiles the library and runs its tests on all three platforms. |
 
 ### Open questions
 

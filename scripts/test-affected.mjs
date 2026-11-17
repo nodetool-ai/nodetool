@@ -188,6 +188,12 @@ export const PATH_CHECKS = [
     steps: [{ label: "vst-host: build and vst_host_test", command: "node", args: ["electron/scripts/build-vst-host.mjs", "--test"] }]
   },
   {
+    // The account library and the desktop app's helper build with CMake. The
+    // account helper workflow runs the same build on macOS and Windows.
+    path: /^native\/(?:account|account-helper)\//,
+    steps: [{ label: "account helper: build and tests", command: "node", args: ["electron/scripts/build-account-helper.mjs", "--test"] }]
+  },
+  {
     // The rankings sync, its matcher and the naming helper the GenSpend sync
     // shares. The matcher is covered in model-pricing, and the route listing
     // against the real providers in runtime.

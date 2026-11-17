@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "코드#상태",
       "signInWindowClosed": "로그인 창이 닫혔나요?",
       "openAgain": "다시 열어보세요",
-      "linkExpiry": ". 링크는 10분 후에 만료됩니다."
+      "linkExpiry": ". 링크는 10분 후에 만료됩니다.",
+      "nativeSubtitle": "에서 NodeTool 계정에 로그인하려고 합니다.",
+      "app": "앱",
+      "device": "기기",
+      "nativeNote": "이 컴퓨터의 NodeTool 데스크톱 앱에서 직접 로그인을 시작한 경우에만 승인하세요. 승인하면 로그아웃하거나 설정에서 세션을 종료할 때까지 앱이 클라우드 문서를 열고 편집하고 저장할 수 있습니다."
     },
     "integrations": {
       "loadingAccounts": "연결된 계정 로드 중",
@@ -6136,6 +6140,10 @@
         "title": "새 프로젝트",
         "confirm": "프로젝트 생성",
         "nameLabel": "프로젝트 이름",
+        "locationLabel": "위치",
+        "locationDefault": "프로젝트 폴더",
+        "locationChoose": "선택…",
+        "locationReset": "프로젝트 폴더 사용",
         "createError": "프로젝트를 생성할 수 없습니다: {{error}}",
         "openFolder": "폴더 열기…",
         "openFolderHint": "이미 폴더가 있나요? 프로젝트로 여세요. 파일은 이동하지 않습니다.",
@@ -19087,6 +19095,26 @@
       "typeMore": "2자 이상 입력하세요",
       "noMatches": "일치하는 사용자가 없습니다",
       "failed": "액세스 권한을 줄 수 없습니다."
+    },
+    "options": {
+      "history": "기록",
+      "historyDescription": "보기 권한자가 저장된 버전을 열 수 있습니다.",
+      "download": "다운로드",
+      "downloadDescription": "보기 권한자가 원본 파일을 다운로드할 수 있습니다.",
+      "duplicate": "복제",
+      "duplicateDescription": "보기 권한자가 파일과 함께 자신의 라이브러리로 복사할 수 있습니다.",
+      "turnedOff": "이미 다운로드하거나 복제한 항목은 그대로 남습니다.",
+      "historyOffNotice": "이 링크의 보기 권한자는 더 이상 저장된 버전을 볼 수 없습니다. 기록을 켜면 다시 볼 수 있습니다.",
+      "turnOnHistory": "기록 켜기",
+      "dismiss": "닫기",
+      "failed": "옵션을 변경할 수 없습니다."
+    },
+    "people": {
+      "from": "{{sources}}을(를) 통한 접근",
+      "sourceInvitation": "초대",
+      "sourceViewLink": "보기 링크",
+      "sourceEditLink": "편집 링크",
+      "sourceDisabled": "{{source}}(비활성화됨)"
     }
   },
   "timelineAutomation": {
@@ -20216,6 +20244,27 @@
     "removeBody": "에셋이 NodeTool에서 제거됩니다. 이 에셋을 사용하는 문서에서 더 이상 표시할 수 없습니다.",
     "cancel": "취소"
   },
+  "deviceSessions": {
+    "title": "로그인된 기기",
+    "description": "NodeTool 데스크톱 앱에 로그인한 컴퓨터입니다. 한 컴퓨터의 앱은 하나의 세션을 공유합니다. 세션을 종료하면 해당 컴퓨터가 로그아웃됩니다.",
+    "empty": "로그인된 컴퓨터가 없습니다.",
+    "unnamed": "이름 없는 컴퓨터",
+    "signedInFrom": "{{date}}에 {{app}}에서 로그인",
+    "lastUsed": "마지막 사용: {{date}}",
+    "neverUsed": "로그인 후 사용 안 함",
+    "end": "세션 종료",
+    "confirmTitle": "이 세션을 종료할까요?",
+    "confirmBody": "{{device}}의 NodeTool 데스크톱 앱이 1분 안에 로그아웃됩니다.",
+    "cancel": "취소",
+    "ended": "세션을 종료했습니다.",
+    "endError": "세션을 종료하지 못했습니다: {{error}}",
+    "loadError": "로그인된 기기를 불러오지 못했습니다.",
+    "apps": {
+      "nodeEditor": "노드 편집기",
+      "timeline": "타임라인",
+      "desktop": "데스크톱 앱"
+    }
+  },
   "storyboardText": {
     "mode": "텍스트",
     "editorLabel": "Markdown 텍스트로 보는 스토리보드",
@@ -20270,5 +20319,21 @@
         "failed": "요청이 실패했습니다. 다시 보내세요."
       }
     }
+  },
+  "cloudAccount": {
+    "title": "NodeTool Cloud 계정",
+    "description": "이 컴퓨터에서 이 앱, 노드 편집기, 타임라인이 하나의 로그인을 사용합니다. 여기서 로그인하거나 로그아웃하면 세 앱 모두에 적용됩니다.",
+    "signedInAs": "{{name}}(으)로 로그인됨",
+    "server": "서버: {{server}}",
+    "signedOut": "로그인되지 않음",
+    "signingIn": "브라우저에서 로그인을 완료하세요",
+    "serverEndPending": "로그아웃됨, 서버의 세션은 아직 종료되지 않음",
+    "cloudOff": "이 컴퓨터에서 클라우드 기능이 꺼져 있습니다",
+    "noKeychain": "이 컴퓨터에는 자격 증명 저장소가 없으므로 로그인은 NodeTool을 종료할 때까지만 유지됩니다.",
+    "signIn": "로그인",
+    "cancel": "취소",
+    "signOut": "로그아웃",
+    "signOutNote": "노드 편집기나 타임라인에서 대기 중인 변경 사항은 이 컴퓨터에 남아 있다가 다시 로그인하면 전송됩니다.",
+    "unavailable": "이 빌드에서는 클라우드 로그인을 사용할 수 없습니다."
   }
 }

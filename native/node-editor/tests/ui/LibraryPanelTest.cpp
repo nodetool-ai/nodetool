@@ -19,6 +19,10 @@ class LibraryHttp final : public QObject {
 public:
   QTcpServer server;
   QStringList parents;
+  // The project_id of each list and search, empty when the input had none.
+  QStringList projects;
+  // The bodies of POST /api/assets.
+  QList<QJsonObject> creates;
   // image-1's file is missing from its project folder.
   bool offline = false;
   // assets.relinkExternal answers with this status and body, and records its inputs.
@@ -47,12 +51,14 @@ public:
             socket->disconnectFromHost();
             return;
           }
+          if (target.path() == "/api/assets") creates.append(QJsonDocument::fromJson(bytes.mid(split + 4, length)).object());
           QJsonObject result;
           if (target.path() == "/trpc/assets.list" || target.path() == "/trpc/assets.search") {
             const bool search = target.path().endsWith("search");
             const auto input = QJsonDocument::fromJson(QUrlQuery(target).queryItemValue("input", QUrl::FullyDecoded).toUtf8()).object();
             const auto parent = input["parent_id"].toString();
             parents.append(search ? "search:" + input["query"].toString() : parent);
+            projects.append(input["project_id"].toString());
             QJsonObject image{{"id", "image-1"}, {"name", "cat.png"}, {"content_type", "image/png"}, {"parent_id", "user-1"}, {"created_at", "2026-01-02"}};
             if (offline) image["offline"] = true;
             const QJsonArray home{
@@ -115,6 +121,40 @@ private slots:
     QTRY_COMPARE(browser.assetModel()->count(), 2);
     QCOMPARE(browser.mediaType(QVariantMap{{"content_type", "video/mp4"}}), QString("video"));
     QCOMPARE(browser.mediaUrl("/api/assets/image-1/thumb"), http.url().resolved(QUrl("/api/assets/image-1/thumb")));
+  }
+  // Inside a project the Library lists that project and makes a new folder
+  // there, where the server creates a directory of the project folder. A
+  // project change returns to the new project's root.
+  void listsAndCreatesInTheTabsProject() {
+    LibraryHttp http;
+    node_editor::LibraryBrowser browser;
+    browser.configure(http.url(), {}, "user-1");
+    browser.setProject("project-a");
+    QVERIFY(http.projects.isEmpty());
+    browser.refresh();
+    QTRY_COMPARE(browser.assetModel()->count(), 2);
+    QCOMPARE(http.projects, QStringList{"project-a"});
+    browser.setSearchText("cat");
+    QTRY_COMPARE(http.parents.last(), QString("search:cat"));
+    QCOMPARE(http.projects.last(), QString("project-a"));
+    browser.setSearchText("");
+    QTRY_COMPARE(browser.assetModel()->count(), 2);
+    browser.openFolder("folder-1");
+    QTRY_COMPARE(browser.assetModel()->count(), 1);
+    const auto lists = http.parents.size();
+    browser.createFolder("Footage");
+    QTRY_COMPARE(http.creates.size(), 1);
+    QCOMPARE(http.creates[0]["project_id"].toString(), QString("project-a"));
+    QCOMPARE(http.creates[0]["parent_id"].toString(), QString("folder-1"));
+    QCOMPARE(http.creates[0]["content_type"].toString(), QString("folder"));
+    QTRY_VERIFY(http.parents.size() > lists);
+    QTRY_VERIFY(!browser.busy());
+    browser.setProject("project-b");
+    QCOMPARE(browser.folderId(), QString("user-1"));
+    QCOMPARE(browser.breadcrumbs().size(), 1);
+    QTRY_COMPARE(http.projects.last(), QString("project-b"));
+    QCOMPARE(http.parents.last(), QString("user-1"));
+    QTRY_COMPARE(browser.assetModel()->count(), 2);
   }
   // A workspacefile push lists the open folder again when it names the shown
   // project's folder, or when either id is unknown.

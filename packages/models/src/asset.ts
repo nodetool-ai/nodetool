@@ -5,7 +5,7 @@
  */
 
 import { isDeepStrictEqual } from "node:util";
-import { eq, and, or, like, desc, isNull, isNotNull, lt, ne, inArray, sql } from "drizzle-orm";
+import { eq, and, or, like, desc, isNull, isNotNull, lt, ne, not, inArray, sql, count } from "drizzle-orm";
 import {
   PROJECT_DIRECTORY_ID_PREFIX,
   WORKSPACE_MOVE_TARGET_KEY,
@@ -204,6 +204,137 @@ export class Asset extends DBModel {
    */
   saveMoveStateIf(expected: AssetFilePlacement): Promise<boolean> {
     return this.updateIfPlaced(expected, { metadata: this.storedMetadata() });
+  }
+
+  /**
+   * The metadata key that marks a row from before project folders whose
+   * bytes are under no asset store key. Its value is the row's `updated_at`
+   * when it was written. See {@link markLegacyBytesMissing}.
+   */
+  static readonly LEGACY_BYTES_MISSING_KEY = "legacy_bytes_missing";
+
+  /**
+   * Record that the move into the project folder found no object under any
+   * legacy key of this row, through {@link saveMoveStateIf} with the row as
+   * read and no file. The row then leaves {@link listAwaitingFolderMove} and
+   * {@link countAwaitingFolderMove}, so the migration can finish. It comes
+   * back when the row is saved again, which changes `updated_at`, such as by
+   * a bytes update, or when {@link clearMissingBytesMarkers} runs. False when
+   * the row changed since it was read. Nothing is written then.
+   */
+  async markLegacyBytesMissing(): Promise<boolean> {
+    const read = this.metadata;
+    this.metadata = {
+      ...(read ?? {}),
+      [Asset.LEGACY_BYTES_MISSING_KEY]: this.updated_at
+    };
+    const saved = await this.saveMoveStateIf({
+      workspace_path: null,
+      metadata: read
+    });
+    if (!saved) this.metadata = read;
+    return saved;
+  }
+
+  /**
+   * The rows of the user in `projectId` that {@link markLegacyBytesMissing}
+   * marked and that were not saved since: the rows its mark leaves out of
+   * {@link listAwaitingFolderMove}. Oldest first.
+   */
+  static async listLegacyBytesMissing(
+    userId: string,
+    projectId: string
+  ): Promise<Asset[]> {
+    const rows = await getPortableDb()
+      .select()
+      .from(assets)
+      .where(
+        and(
+          eq(assets.user_id, userId),
+          eq(assets.project_id, projectId),
+          isNull(assets.workspace_path),
+          isNull(assets.external_path),
+          legacyBytesMissing()
+        )
+      )
+      .orderBy(assets.created_at, assets.id);
+    return rows.map((row) => new Asset(row));
+  }
+
+  /**
+   * Remove the mark {@link markLegacyBytesMissing} wrote from every row of
+   * the user, so the next move pass looks for their bytes again. Only the
+   * metadata is written, and only while it is what was read. `updated_at`
+   * stays. Returns how many rows were cleared.
+   */
+  static async clearMissingBytesMarkers(userId: string): Promise<number> {
+    const db = getPortableDb();
+    const owner = eq(assets.user_id, userId);
+    const rows = await db
+      .select({ id: assets.id, metadata: assets.metadata })
+      .from(assets)
+      .where(and(owner, carriesMissingBytesKey()));
+    let cleared = 0;
+    for (const row of rows) {
+      const stored = row.metadata;
+      if (!stored || !Object.hasOwn(stored, Asset.LEGACY_BYTES_MISSING_KEY)) {
+        continue;
+      }
+      const metadata = Object.fromEntries(
+        Object.entries(stored).filter(
+          ([key]) => key !== Asset.LEGACY_BYTES_MISSING_KEY
+        )
+      );
+      const updated = await db
+        .update(assets)
+        .set({ metadata })
+        .where(and(eq(assets.id, row.id), owner, eq(assets.metadata, stored)))
+        .returning({ id: assets.id });
+      cleared += updated.length;
+    }
+    return cleared;
+  }
+
+  /**
+   * Record the size of a client-direct upload, but only while its bytes are
+   * still under its storage key: no file in a project folder, no external
+   * file and no move under way. Only `size` and `updated_at` are written.
+   * False when the row is gone or the mover took it. Nothing is written then.
+   */
+  async saveUploadSizeIf(size: number): Promise<boolean> {
+    const updatedAt = new Date().toISOString();
+    const updated = await getPortableDb()
+      .update(assets)
+      .set({ size, updated_at: updatedAt })
+      .where(and(eq(assets.id, this.id), eq(assets.user_id, this.user_id), bytesUnderKey()))
+      .returning({ id: assets.id });
+    if (updated.length === 0) return false;
+    this.size = size;
+    this.updated_at = updatedAt;
+    ModelObserver.notify(this, ModelChangeEvent.UPDATED);
+    return true;
+  }
+
+  /**
+   * Delete the row of a client-direct upload that was never finalized: no
+   * size yet, and its bytes, if any, still under its storage key. False when
+   * the row is gone or no longer pending. Nothing is deleted then.
+   */
+  async deleteIfPendingUpload(): Promise<boolean> {
+    const deleted = await getPortableDb()
+      .delete(assets)
+      .where(
+        and(
+          eq(assets.id, this.id),
+          eq(assets.user_id, this.user_id),
+          isNull(assets.size),
+          bytesUnderKey()
+        )
+      )
+      .returning({ id: assets.id });
+    if (deleted.length === 0) return false;
+    ModelObserver.notify(this, ModelChangeEvent.DELETED);
+    return true;
   }
 
   private storedMetadata(): Record<string, unknown> | null {
@@ -540,7 +671,9 @@ export class Asset extends DBModel {
    * The rows of the user in `projectId` whose bytes are not in the project
    * folder yet, or whose move there is not finished: a row with no
    * `workspace_path` and no `external_path` that is not a folder, and any row
-   * that still carries {@link WORKSPACE_MOVE_TARGET_KEY}. Oldest first.
+   * that still carries {@link WORKSPACE_MOVE_TARGET_KEY}. A row
+   * {@link markLegacyBytesMissing} marked is left out until it is saved again
+   * or the mark is cleared. Oldest first.
    */
   static async listAwaitingFolderMove(
     userId: string,
@@ -591,14 +724,27 @@ export class Asset extends DBModel {
    * {@link listAwaitingFolderMove} returns, summed over every project.
    */
   static async countAwaitingFolderMove(userId: string): Promise<number> {
-    const rows = await getPortableDb()
+    const db = getPortableDb();
+    const owner = and(eq(assets.user_id, userId), awaitingFolderMove());
+    // A row with no file always counts. Clients poll this during the
+    // migration, so those rows are counted, not read.
+    const [withoutFile] = await db
+      .select({ n: count() })
+      .from(assets)
+      .where(and(owner, isNull(assets.workspace_path)));
+    // A row with a file counts only while its move is not finished. The
+    // metadata match is textual, so those few rows are checked after the read.
+    const withFile = await db
       .select()
       .from(assets)
-      .where(and(eq(assets.user_id, userId), awaitingFolderMove()));
-    return rows
-      .map((row) => new Asset(row))
-      .filter((asset) => !asset.workspace_path || moveTargetOf(asset) !== null)
-      .length;
+      .where(and(owner, isNotNull(assets.workspace_path)));
+    return (
+      Number(withoutFile?.n ?? 0) +
+      withFile
+        .map((row) => new Asset(row))
+        .filter((asset) => !asset.workspace_path || moveTargetOf(asset) !== null)
+        .length
+    );
   }
 
   /**
@@ -1087,15 +1233,45 @@ function carriesMoveTarget() {
   return sql`${assets.metadata} LIKE ${`%"${WORKSPACE_MOVE_TARGET_KEY}"%`}`;
 }
 
-/** Rows with bytes outside their project folder, or a move not finished. */
+/** Rows whose bytes are under the storage key, with no move under way. */
+function bytesUnderKey() {
+  return and(
+    isNull(assets.workspace_path),
+    isNull(assets.external_path),
+    or(isNull(assets.metadata), not(carriesMoveTarget()))
+  );
+}
+
+/** Rows whose stored metadata names `Asset.LEGACY_BYTES_MISSING_KEY`. */
+function carriesMissingBytesKey() {
+  return sql`${assets.metadata} LIKE ${`%"${Asset.LEGACY_BYTES_MISSING_KEY}"%`}`;
+}
+
+/**
+ * Rows that `Asset.markLegacyBytesMissing` marked and that were not saved
+ * since. The mark holds `updated_at`, and JSON text puts it right after the
+ * key, so the match is exact: a string value cannot hold an unescaped quote.
+ */
+function legacyBytesMissing() {
+  const key = `%"${Asset.LEGACY_BYTES_MISSING_KEY}":"`;
+  return sql`(${assets.metadata} LIKE (${key} || ${assets.updated_at} || ${'"%'}))`;
+}
+
+/**
+ * Rows with bytes outside their project folder, or a move not finished,
+ * except those whose bytes the move found under no key since their last save.
+ */
 function awaitingFolderMove() {
-  return or(
-    and(
-      isNull(assets.workspace_path),
-      isNull(assets.external_path),
-      ne(assets.content_type, "folder")
+  return and(
+    or(
+      and(
+        isNull(assets.workspace_path),
+        isNull(assets.external_path),
+        ne(assets.content_type, "folder")
+      ),
+      carriesMoveTarget()
     ),
-    carriesMoveTarget()
+    or(isNull(assets.metadata), not(legacyBytesMissing()))
   );
 }
 

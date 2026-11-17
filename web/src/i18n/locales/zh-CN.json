@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "code#state",
       "signInWindowClosed": "登录窗口已关闭？",
       "openAgain": "重新打开",
-      "linkExpiry": "。此链接将在 10 分钟后过期。"
+      "linkExpiry": "。此链接将在 10 分钟后过期。",
+      "nativeSubtitle": "想要登录你的 NodeTool 账户。",
+      "app": "应用",
+      "device": "设备",
+      "nativeNote": "仅当你在这台电脑上的 NodeTool 桌面应用中自己发起此登录时才批准。批准后，该应用可以打开、编辑并保存你的云端文档，直到你退出登录或在设置中结束会话。"
     },
     "integrations": {
       "loadingAccounts": "正在加载已连接的账户",
@@ -6136,6 +6140,10 @@
         "title": "新建项目",
         "confirm": "创建项目",
         "nameLabel": "项目名称",
+        "locationLabel": "位置",
+        "locationDefault": "项目文件夹",
+        "locationChoose": "选择…",
+        "locationReset": "使用项目文件夹",
         "createError": "无法创建项目：{{error}}",
         "openFolder": "打开文件夹…",
         "openFolderHint": "已有文件夹？将其作为项目打开。不会移动任何文件。",
@@ -19087,6 +19095,26 @@
       "typeMore": "至少输入 2 个字符",
       "noMatches": "没有匹配的人",
       "failed": "无法授予访问权限。"
+    },
+    "options": {
+      "history": "历史记录",
+      "historyDescription": "查看者可以打开已保存的版本。",
+      "download": "下载",
+      "downloadDescription": "查看者可以下载原始文件。",
+      "duplicate": "复制",
+      "duplicateDescription": "查看者可以将其连同文件复制到自己的资料库。",
+      "turnedOff": "已下载或已复制的内容仍保留在对方手中。",
+      "historyOffNotice": "此链接的查看者已无法查看已保存的版本。开启历史记录即可恢复。",
+      "turnOnHistory": "开启历史记录",
+      "dismiss": "关闭",
+      "failed": "无法更改选项。"
+    },
+    "people": {
+      "from": "访问来源：{{sources}}",
+      "sourceInvitation": "邀请",
+      "sourceViewLink": "查看链接",
+      "sourceEditLink": "编辑链接",
+      "sourceDisabled": "{{source}}（已停用）"
     }
   },
   "timelineAutomation": {
@@ -20216,6 +20244,27 @@
     "removeBody": "该素材将从 NodeTool 中移除。使用它的文档将无法再显示它。",
     "cancel": "取消"
   },
+  "deviceSessions": {
+    "title": "已登录的设备",
+    "description": "你登录过 NodeTool 桌面应用的计算机。同一台计算机上的应用共享一个会话。结束会话会让该计算机退出登录。",
+    "empty": "没有已登录的电脑。",
+    "unnamed": "未命名的电脑",
+    "signedInFrom": "于 {{date}} 通过 {{app}} 登录",
+    "lastUsed": "上次使用：{{date}}",
+    "neverUsed": "登录后未使用",
+    "end": "结束会话",
+    "confirmTitle": "结束此会话？",
+    "confirmBody": "{{device}} 上的 NodeTool 桌面应用将在一分钟内退出登录。",
+    "cancel": "取消",
+    "ended": "会话已结束。",
+    "endError": "无法结束会话：{{error}}",
+    "loadError": "无法加载已登录的设备。",
+    "apps": {
+      "nodeEditor": "节点编辑器",
+      "timeline": "时间线",
+      "desktop": "桌面应用"
+    }
+  },
   "storyboardText": {
     "mode": "文本",
     "editorLabel": "Markdown 文本形式的故事板",
@@ -20270,5 +20319,21 @@
         "failed": "请求失败，请重新发送。"
       }
     }
+  },
+  "cloudAccount": {
+    "title": "NodeTool Cloud 账户",
+    "description": "此应用、节点编辑器和时间线在这台计算机上共用一次登录。在这里登录或退出会同时作用于三者。",
+    "signedInAs": "已登录为 {{name}}",
+    "server": "服务器：{{server}}",
+    "signedOut": "未登录",
+    "signingIn": "请在浏览器中完成登录",
+    "serverEndPending": "已退出登录，服务器上的会话尚未结束",
+    "cloudOff": "此计算机已关闭云功能",
+    "noKeychain": "此计算机没有凭据存储，因此登录只持续到 NodeTool 退出。",
+    "signIn": "登录",
+    "cancel": "取消",
+    "signOut": "退出登录",
+    "signOutNote": "节点编辑器或时间线中等待发送的更改会保留在这台计算机上，并在你再次登录后发送。",
+    "unavailable": "此版本不支持云登录。"
   }
 }

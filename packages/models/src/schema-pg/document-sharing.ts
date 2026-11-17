@@ -1,8 +1,15 @@
+import { sql } from "drizzle-orm";
 import { pgTable, text, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { integerBoolean } from "./helpers.js";
 
 /**
  * Sharing for project documents other than workflows, which keep their own
  * tables. A row names its document by `(document_type, document_id)`.
+ *
+ * A person may hold several grants on one document: at most one invitation
+ * (`share_id` null) and one per link they redeemed. The options of a link
+ * grant are read from its link at every request, so the grant's own option
+ * columns are used by invitations only.
  */
 export const documentCollaborators = pgTable(
   "nodetool_document_collaborators",
@@ -13,14 +20,25 @@ export const documentCollaborators = pgTable(
     user_id: text("user_id").notNull(),
     role: text("role").notNull().default("viewer"),
     invited_by: text("invited_by").notNull(),
-    created_at: text("created_at").notNull()
+    created_at: text("created_at").notNull(),
+    share_id: text("share_id"),
+    allow_history: integerBoolean("allow_history")
+      .notNull()
+      .default(sql`0`),
+    allow_download: integerBoolean("allow_download")
+      .notNull()
+      .default(sql`0`),
+    allow_duplicate: integerBoolean("allow_duplicate")
+      .notNull()
+      .default(sql`0`)
   },
   (table) => [
-    uniqueIndex("idx_dcol_document_user").on(
-      table.document_type,
-      table.document_id,
-      table.user_id
-    ),
+    uniqueIndex("idx_dcol_document_user_invitation")
+      .on(table.document_type, table.document_id, table.user_id)
+      .where(sql`share_id IS NULL`),
+    uniqueIndex("idx_dcol_document_user_share")
+      .on(table.document_type, table.document_id, table.user_id, table.share_id)
+      .where(sql`share_id IS NOT NULL`),
     index("idx_dcol_user_id").on(table.user_id)
   ]
 );
@@ -35,10 +53,31 @@ export const documentShares = pgTable(
     role: text("role").notNull().default("viewer"),
     created_by: text("created_by").notNull(),
     created_at: text("created_at").notNull(),
-    revoked_at: text("revoked_at")
+    /** Kept for old readers. Equal to `disabled_at` since the link options. */
+    revoked_at: text("revoked_at"),
+    /** A disabled link admits nobody new. Its options stay live (P3). */
+    disabled_at: text("disabled_at"),
+    allow_history: integerBoolean("allow_history")
+      .notNull()
+      .default(sql`0`),
+    allow_download: integerBoolean("allow_download")
+      .notNull()
+      .default(sql`0`),
+    allow_duplicate: integerBoolean("allow_duplicate")
+      .notNull()
+      .default(sql`0`),
+    /**
+     * A notice the owner has not dismissed yet. `history_off` marks a
+     * timeline view link from before the options, whose viewers could read
+     * history and no longer can (R7 of the PRD).
+     */
+    owner_notice: text("owner_notice")
   },
   (table) => [
     uniqueIndex("idx_dshare_token").on(table.token),
-    index("idx_dshare_document").on(table.document_type, table.document_id)
+    index("idx_dshare_document").on(table.document_type, table.document_id),
+    uniqueIndex("idx_dshare_active_role")
+      .on(table.document_type, table.document_id, table.role)
+      .where(sql`disabled_at IS NULL`)
   ]
 );

@@ -492,7 +492,7 @@ jobs:
 
       - name: Upload export golden failure frames
         if: github.event_name != 'push' && failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: native-timeline-export-golden-${{ runner.os }}
           path: native/timeline/build-ci/**/export-golden-failures/
@@ -500,7 +500,7 @@ jobs:
 
       - name: Upload Linux matte diagnostics
         if: github.event_name != 'push' && failure() && runner.os == 'Linux'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: native-timeline-matte-backtrace
           path: ${{ runner.temp }}/matte-gdb.log
@@ -668,7 +668,7 @@ jobs:
           xvfb-run -a ctest --preset "${{ matrix.preset }}" --output-on-failure "${sel[@]}"
       - name: Upload sanitizer logs
         if: github.event_name != 'push' && always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: native-timeline-${{ matrix.preset }}
           path: native/timeline/build-${{ matrix.preset }}/Testing/Temporary/

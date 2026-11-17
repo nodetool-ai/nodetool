@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "code#état",
       "signInWindowClosed": "Fenêtre de connexion fermée ?",
       "openAgain": "Ouvrez-le à nouveau",
-      "linkExpiry": ". Le lien expire après 10 minutes."
+      "linkExpiry": ". Le lien expire après 10 minutes.",
+      "nativeSubtitle": "souhaite se connecter à votre compte NodeTool.",
+      "app": "Application",
+      "device": "Appareil",
+      "nativeNote": "N'approuvez que si vous avez lancé cette connexion depuis une application de bureau NodeTool sur cet ordinateur. L'application pourra alors ouvrir, modifier et enregistrer vos documents cloud jusqu'à ce que vous vous déconnectiez ou mettiez fin à la session dans les Paramètres."
     },
     "integrations": {
       "loadingAccounts": "Chargement des comptes connectés",
@@ -6215,6 +6219,10 @@
         "title": "Nouveau projet",
         "confirm": "Créer un projet",
         "nameLabel": "Nom du projet",
+        "locationLabel": "Emplacement",
+        "locationDefault": "Dossier des projets",
+        "locationChoose": "Choisir…",
+        "locationReset": "Utiliser le dossier des projets",
         "createError": "Impossible de créer le projet : {{error}}",
         "openFolder": "Ouvrir un dossier…",
         "openFolderHint": "Vous avez déjà un dossier ? Ouvrez-le comme projet. Aucun fichier n'est déplacé.",
@@ -19397,6 +19405,26 @@
       "typeMore": "Saisissez au moins 2 caractères",
       "noMatches": "Aucun résultat",
       "failed": "Impossible de donner l'accès."
+    },
+    "options": {
+      "history": "Historique",
+      "historyDescription": "Les lecteurs peuvent ouvrir les versions enregistrées.",
+      "download": "Téléchargement",
+      "downloadDescription": "Les lecteurs peuvent télécharger les fichiers originaux.",
+      "duplicate": "Duplication",
+      "duplicateDescription": "Les lecteurs peuvent le copier avec ses fichiers dans leur propre bibliothèque.",
+      "turnedOff": "Les personnes gardent ce qu’elles ont déjà téléchargé ou dupliqué.",
+      "historyOffNotice": "Les lecteurs de ce lien ne voient plus les versions enregistrées. Activez l’historique pour les leur rendre.",
+      "turnOnHistory": "Activer l’historique",
+      "dismiss": "Ignorer",
+      "failed": "Impossible de modifier les options."
+    },
+    "people": {
+      "from": "Accès via {{sources}}",
+      "sourceInvitation": "invitation",
+      "sourceViewLink": "lien de lecture",
+      "sourceEditLink": "lien de modification",
+      "sourceDisabled": "{{source}} (désactivé)"
     }
   },
   "timelineAutomation": {
@@ -20527,6 +20555,27 @@
     "removeBody": "La ressource est retirée de NodeTool. Les documents qui l'utilisent ne peuvent plus l'afficher.",
     "cancel": "Annuler"
   },
+  "deviceSessions": {
+    "title": "Appareils connectés",
+    "description": "Ordinateurs sur lesquels vous vous êtes connecté aux applications de bureau NodeTool. Les applications d'un même ordinateur partagent une session. Mettre fin à une session déconnecte cet ordinateur.",
+    "empty": "Aucun ordinateur n'est connecté.",
+    "unnamed": "Ordinateur sans nom",
+    "signedInFrom": "Connecté depuis {{app}} le {{date}}",
+    "lastUsed": "Dernière utilisation {{date}}",
+    "neverUsed": "Pas utilisé depuis la connexion",
+    "end": "Mettre fin à la session",
+    "confirmTitle": "Mettre fin à cette session ?",
+    "confirmBody": "Les applications de bureau NodeTool sur {{device}} sont déconnectées en moins d'une minute.",
+    "cancel": "Annuler",
+    "ended": "Session terminée.",
+    "endError": "Impossible de mettre fin à la session : {{error}}",
+    "loadError": "Impossible de charger les appareils connectés.",
+    "apps": {
+      "nodeEditor": "Éditeur de nœuds",
+      "timeline": "Timeline",
+      "desktop": "Application de bureau"
+    }
+  },
   "storyboardText": {
     "mode": "Texte",
     "editorLabel": "Storyboard en texte Markdown",
@@ -20581,5 +20630,21 @@
         "failed": "La demande a échoué. Renvoyez-la."
       }
     }
+  },
+  "cloudAccount": {
+    "title": "Compte NodeTool Cloud",
+    "description": "Une seule connexion pour cette application, l'éditeur de nœuds et la timeline sur cet ordinateur. Se connecter ou se déconnecter ici s'applique aux trois.",
+    "signedInAs": "Connecté en tant que {{name}}",
+    "server": "Serveur : {{server}}",
+    "signedOut": "Non connecté",
+    "signingIn": "Terminez la connexion dans votre navigateur",
+    "serverEndPending": "Déconnecté, session pas encore terminée sur le serveur",
+    "cloudOff": "Les fonctions cloud sont désactivées sur cet ordinateur",
+    "noKeychain": "Cet ordinateur n'a pas de magasin d'identifiants, la connexion dure donc jusqu'à la fermeture de NodeTool.",
+    "signIn": "Se connecter",
+    "cancel": "Annuler",
+    "signOut": "Se déconnecter",
+    "signOutNote": "Les modifications en attente dans l'éditeur de nœuds ou la timeline restent sur cet ordinateur et sont envoyées à votre prochaine connexion.",
+    "unavailable": "La connexion au cloud n'est pas disponible dans cette version."
   }
 }

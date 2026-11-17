@@ -2,7 +2,7 @@ import React, { memo, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { CREATE_REF, type WorkspaceTab } from "../../stores/WorkspaceTabsStore";
-import { Box, FlexColumn, LoadingSpinner } from "../ui_primitives";
+import { FlexColumn, LoadingSpinner } from "../ui_primitives";
 import { isPageTabKey } from "./pageTabs";
 import DocumentFileNotice from "./DocumentFileNotice";
 import { inferMediaCategory } from "../chat/generation/extractGenerationTurns";
@@ -230,7 +230,14 @@ const TabContent = ({ tab, active }: TabContentProps) => {
         refId={tab.ref}
         projectId={tab.projectId}
       />
-      <Box sx={{ flex: 1, minHeight: 0, position: "relative" }}>{surface}</Box>
+      {/* A flex column, like the tab layer: surfaces fill it with `flex: 1`,
+          which a block box ignores, so a guided flow grew past the tab and
+          its action row was clipped off the bottom. */}
+      <FlexColumn
+        sx={{ flex: 1, minHeight: 0, minWidth: 0, position: "relative" }}
+      >
+        {surface}
+      </FlexColumn>
     </FlexColumn>
   );
 };

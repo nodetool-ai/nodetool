@@ -320,11 +320,14 @@ describe("the timeline file sync hook", () => {
     const timeline = await makeTimeline();
     const etag = timeline.getEtag();
     // The etag a timeline had before it had a file: the row without the
-    // three columns that describe the file.
+    // three columns that describe the file, and the two that describe the
+    // save.
     const {
       file_path: _path,
       file_hash: _hash,
       file_error: _error,
+      last_writer_instance: _writer,
+      schema_version: _schema,
       ...content
     } = timeline.toRow();
     expect(etag).toBe(computeEtag(content));

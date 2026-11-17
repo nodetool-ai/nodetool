@@ -90,7 +90,7 @@ const Fields kSequenceSupported = {
 const Fields kSequenceInert = {
     QStringLiteral("dropFrame"),
     QStringLiteral("projectId"), QStringLiteral("workflowId"), QStringLiteral("createdAt"),
-    QStringLiteral("updatedAt"), QStringLiteral("markers"), QStringLiteral("trackFolders"),
+    QStringLiteral("updatedAt"), QStringLiteral("schemaVersion"), QStringLiteral("markers"), QStringLiteral("trackFolders"),
     QStringLiteral("storyboardMaterializations"), QStringLiteral("transcript"), QStringLiteral("scriptEnabled"),
     QStringLiteral("setup"), QStringLiteral("templateId"), QStringLiteral("source"), QStringLiteral("mediaTracks"),
 };

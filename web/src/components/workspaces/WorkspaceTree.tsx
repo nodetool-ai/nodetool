@@ -1,17 +1,16 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import isEqual from "../../utils/isEqual";
 import { useQuery } from "@tanstack/react-query";
 import { FileInfo } from "../../stores/ApiTypes";
 import { trpcClient } from "../../trpc/client";
 import { Box, EditorButton, Skeleton, BORDER_RADIUS, MOTION, SPACING, getSpacingPx, PanelHeader, EmptyState, ContextMenu, MenuItemPrimitive } from "../ui_primitives";
-import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
-import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { RefreshButton } from "../ui_primitives";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
@@ -25,6 +24,7 @@ import {
   isReservedProjectEntry,
   revealLabelKey
 } from "./projectFolderPaths";
+import WorkspaceTreeRow from "./WorkspaceTreeItem";
 
 /** File names of the documents that open in their own editor from Files. */
 const DOCUMENT_FILE_SUFFIXES = [".workflow.json", ".timeline.json"] as const;
@@ -88,38 +88,6 @@ const workspaceTreeStyles = (theme: Theme) =>
       }
     },
 
-    ".breadcrumb": {
-      display: "flex",
-      alignItems: "center",
-      gap: getSpacingPx(SPACING.micro),
-      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
-      fontSize: "var(--fontSizeSmall)",
-      color: theme.vars.palette.text.secondary,
-      backgroundColor: theme.vars.palette.background.paper,
-      borderRadius: BORDER_RADIUS.sm,
-      overflow: "hidden",
-      whiteSpace: "nowrap"
-    },
-
-    ".breadcrumb-segment": {
-      cursor: "pointer",
-      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`,
-      borderRadius: BORDER_RADIUS.sm,
-      transition: `color ${MOTION.fast}, background-color ${MOTION.fast}`,
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      "&:hover": {
-        color: theme.vars.palette.primary.main,
-        backgroundColor: theme.vars.palette.action.hover
-      }
-    },
-
-    ".breadcrumb-separator": {
-      color: theme.vars.palette.grey[600],
-      fontSize: "var(--fontSizeNormal)",
-      flexShrink: 0
-    },
-
     ".skeleton-tree": {
       display: "flex",
       flexDirection: "column",
@@ -128,46 +96,91 @@ const workspaceTreeStyles = (theme: Theme) =>
     }
   });
 
-const treeViewStyles = (theme: Theme) => ({
-  ".MuiTreeItem-content": {
-    borderRadius: BORDER_RADIUS.xs,
-    padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
-    userSelect: "none",
-    cursor: "pointer"
-  },
-  ".MuiTreeItem-content.Mui-selected": {
-    backgroundColor: `${theme.vars.palette.primary.main}44 !important`,
-    color: theme.vars.palette.primary.light
-  },
-  ".MuiTreeItem-content:hover": {
-    backgroundColor: `${theme.vars.palette.action.hover} !important`
-  },
-  ".MuiTreeItem-content.Mui-selected:hover": {
-    backgroundColor: `${theme.vars.palette.primary.main}66 !important`
-  },
-  ".MuiTreeItem-label": {
-    backgroundColor: "transparent !important",
-    fontWeight: 400,
-    fontSize: "var(--fontSizeNormal)"
-  },
-  ".MuiTreeItem-content:has(.MuiTreeItem-iconContainer svg) .MuiTreeItem-label":
-  {
-    fontWeight: 600
-  },
-  ".folder-item .MuiTreeItem-label": {
-    color: theme.vars.palette.info.light
-  },
-  ".file-item .MuiTreeItem-label": {
-    color: theme.vars.palette.grey[200]
-  },
-  "[id$='/error'] .MuiTreeItem-content": {
-    color: theme.vars.palette.warning.main
-  },
-  ".loading-item .MuiTreeItem-label": {
-    color: theme.vars.palette.grey[500],
-    fontStyle: "italic"
+/** Row height of the Files list, in px. Fixed, so the list can virtualize. */
+const ROW_HEIGHT = 28;
+
+const treeListStyles = (theme: Theme) =>
+  css({
+    position: "relative",
+    width: "100%",
+    "--tree-indent": getSpacingPx(SPACING.lg),
+    outline: "none",
+
+    ".tree-row": {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      display: "flex",
+      alignItems: "center",
+      gap: getSpacingPx(SPACING.sm),
+      paddingRight: getSpacingPx(SPACING.sm),
+      borderRadius: BORDER_RADIUS.xs,
+      cursor: "pointer",
+      userSelect: "none",
+      fontSize: "var(--fontSizeSmall)",
+      color: theme.vars.palette.text.primary,
+      "&:hover": {
+        backgroundColor: theme.vars.palette.action.hover
+      }
+    },
+    ".tree-row.selected": {
+      backgroundColor: `${theme.vars.palette.primary.main}44`,
+      color: theme.vars.palette.primary.light
+    },
+    ".tree-row.placeholder": {
+      color: theme.vars.palette.text.disabled,
+      fontStyle: "italic",
+      cursor: "default"
+    },
+    ".tree-label": {
+      fontSize: "inherit",
+      color: "inherit",
+      minWidth: 0
+    },
+    ".tree-chevron": {
+      display: "inline-flex",
+      width: "var(--fontSizeNormal)",
+      flexShrink: 0
+    },
+    ".row-icon": {
+      fontSize: "var(--fontSizeNormal)",
+      color: theme.vars.palette.text.secondary,
+      flexShrink: 0,
+      transition: MOTION.transform
+    },
+    ".row-icon.expanded": {
+      transform: "rotate(90deg)"
+    },
+    ".folder-icon": {
+      color: theme.vars.palette.info.light
+    }
+  });
+
+/** One visible row of the flattened tree. */
+interface VisibleRow {
+  readonly item: TreeViewItem;
+  readonly depth: number;
+}
+
+const isPlaceholderId = (id: string): boolean =>
+  id.endsWith("/loading") || id.endsWith("/error");
+
+/** The rows the tree shows: every root item, plus the children of expanded folders. */
+const flattenVisible = (
+  items: TreeViewItem[],
+  expanded: ReadonlySet<string>,
+  depth = 0,
+  out: VisibleRow[] = []
+): VisibleRow[] => {
+  for (const item of items) {
+    out.push({ item, depth });
+    if (item.children && expanded.has(item.id)) {
+      flattenVisible(item.children, expanded, depth + 1, out);
+    }
   }
-});
+  return out;
+};
 
 const createErrorItem = (itemId: string, errorLabel: string): TreeViewItem => ({
   id: `${itemId}/error`,
@@ -211,6 +224,11 @@ const fetchWorkspaceFiles = async (
   // `.nodetool/` is NodeTool's own data. It sits at the folder root only.
   return data
     .filter((file) => !isReservedProjectEntry(file))
+    .sort((a, b) =>
+      a.is_dir !== b.is_dir
+        ? a.is_dir ? -1 : 1
+        : a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" })
+    )
     .map((file) => fileToTreeItem(file, loadingLabel));
 };
 
@@ -402,14 +420,6 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
     [t]
   );
 
-  const handleItemClick = useCallback(
-    async (_event: React.MouseEvent, itemId: string) => {
-      setSelectedFilePath(itemId);
-      await loadItemChildren(itemId);
-    },
-    [loadItemChildren]
-  );
-
   // Double-click opens the file as a workspace tab. A workflow or timeline
   // file opens its document's editor. Handing it to the OS is a secondary
   // action on the selected file ("Open Externally"), Electron only.
@@ -553,10 +563,89 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
     [projectId, refetchFiles, uploadAsset]
   );
 
-  const breadcrumbSegments =
-    selectedFilePath && !selectedFilePath.includes("/loading")
-      ? selectedFilePath.split("/").filter(Boolean)
-      : [];
+  const visibleRows = useMemo(
+    () => flattenVisible(files, new Set(expandedItems)),
+    [files, expandedItems]
+  );
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const virtualizer = useVirtualizer({
+    count: visibleRows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 12
+  });
+
+  const toggleFolder = useCallback(
+    (itemId: string) => {
+      const isOpen = expandedItemsRef.current.includes(itemId);
+      setExpandedItems((prev) =>
+        isOpen ? prev.filter((id) => id !== itemId) : [...prev, itemId]
+      );
+      if (!isOpen) {
+        void loadItemChildren(itemId);
+      }
+    },
+    [loadItemChildren]
+  );
+
+  const rowIdFromEvent = (event: React.SyntheticEvent): string | null =>
+    (event.target as HTMLElement)
+      .closest('[data-testid="tree-item"]')
+      ?.getAttribute("data-itemid") ?? null;
+
+  const handleListClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const itemId = rowIdFromEvent(event);
+      if (!itemId || isPlaceholderId(itemId)) { return; }
+      setSelectedFilePath(itemId);
+      if (findItemInTree(filesRef.current, itemId)?.children) {
+        toggleFolder(itemId);
+      }
+    },
+    [toggleFolder]
+  );
+
+  const handleListKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      const index = visibleRows.findIndex(
+        (row) => row.item.id === selectedFilePath
+      );
+      const current = index >= 0 ? visibleRows[index] : undefined;
+      const select = (next: number): void => {
+        const row = visibleRows[Math.max(0, Math.min(visibleRows.length - 1, next))];
+        if (row) {
+          setSelectedFilePath(row.item.id);
+          virtualizer.scrollToIndex(visibleRows.indexOf(row));
+        }
+      };
+      switch (event.key) {
+        case "ArrowDown":
+          select(index + 1);
+          break;
+        case "ArrowUp":
+          select(index - 1);
+          break;
+        case "ArrowRight":
+          if (current?.item.children && !expandedItems.includes(current.item.id)) {
+            toggleFolder(current.item.id);
+          }
+          break;
+        case "ArrowLeft":
+          if (current?.item.children && expandedItems.includes(current.item.id)) {
+            toggleFolder(current.item.id);
+          }
+          break;
+        case "Enter":
+          if (current) { void handleItemDoubleClick(event as unknown as React.MouseEvent, current.item.id); }
+          break;
+        default:
+          return;
+      }
+      event.preventDefault();
+    },
+    [visibleRows, selectedFilePath, expandedItems, toggleFolder, handleItemDoubleClick, virtualizer]
+  );
 
   return (
     <Box css={workspaceTreeStyles(theme)}>
@@ -571,27 +660,6 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
           />
         }
       />
-
-      {breadcrumbSegments.length > 0 && (
-        <div className="breadcrumb">
-          <span
-            className="breadcrumb-segment"
-            role="button"
-            aria-label={t("projectFolder.tree.goToRoot")}
-            tabIndex={0}
-            onClick={() => setSelectedFilePath("")}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { setSelectedFilePath(""); } }}
-          >
-            ~
-          </span>
-          {breadcrumbSegments.map((segment, index) => (
-            <span key={`${index}-${segment}`} style={{ display: "contents" }}>
-              <NavigateNextIcon className="breadcrumb-separator" />
-              <span className="breadcrumb-segment">{segment}</span>
-            </span>
-          ))}
-        </div>
-      )}
 
       {selectedFilePath && !selectedFilePath.includes("/loading") && (
         <div className="tree-actions">
@@ -609,6 +677,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
       )}
 
       <div
+        ref={scrollRef}
         className={`file-tree-container${isDropActive ? " drop-active" : ""}`}
         data-testid="workspace-file-drop"
         onContextMenu={handleContextMenu}
@@ -633,28 +702,37 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
             description={t("projectFolder.tree.noFolderDescription")}
           />
         ) : files.length > 0 ? (
-          <div onDoubleClick={handleTreeDoubleClick}>
-            <RichTreeView
-              onItemClick={handleItemClick}
-              expandedItems={expandedItems}
-              onExpandedItemsChange={(_event: React.SyntheticEvent, itemIds: string[]) => {
-                setExpandedItems(itemIds);
-                for (const itemId of itemIds) {
-                  loadItemChildren(itemId);
-                }
-              }}
-              items={files}
-              aria-label={t("projectFolder.tree.fileBrowser")}
-              selectedItems={selectedFilePath}
-              sx={treeViewStyles(theme)}
-              slotProps={{
-                item: ({ itemId }) =>
-                  ({
-                    "data-testid": "tree-item",
-                    "data-itemid": itemId
-                  }) as Record<string, string>
-              }}
-            />
+          <div
+            role="tree"
+            tabIndex={0}
+            aria-label={t("projectFolder.tree.fileBrowser")}
+            aria-activedescendant={
+              selectedFilePath ? `workspace-tree-${selectedFilePath}` : undefined
+            }
+            css={treeListStyles(theme)}
+            style={{ height: virtualizer.getTotalSize() }}
+            onClick={handleListClick}
+            onDoubleClick={handleTreeDoubleClick}
+            onKeyDown={handleListKeyDown}
+          >
+            {virtualizer.getVirtualItems().map((virtualRow) => {
+              const { item, depth } = visibleRows[virtualRow.index];
+              return (
+                <WorkspaceTreeRow
+                  key={item.id}
+                  id={item.id}
+                  label={item.label}
+                  depth={depth}
+                  isFolder={Boolean(item.children) && !isPlaceholderId(item.id)}
+                  isPlaceholder={isPlaceholderId(item.id)}
+                  expanded={expandedItems.includes(item.id)}
+                  selected={item.id === selectedFilePath}
+                  workspaceId={workspaceId}
+                  top={virtualRow.start}
+                  height={ROW_HEIGHT}
+                />
+              );
+            })}
           </div>
         ) : (
           <EmptyState

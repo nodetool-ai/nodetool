@@ -41,6 +41,12 @@ public:
   QString tagFilter() const { return tag_; }
   bool favoritesOnly() const { return favorites_; }
   QString relinkError() const { return relinkError_; }
+  // The project the tab shows, as projects.list names it, empty while
+  // unknown. Lists, searches and new folders are scoped to it, so inside a
+  // project the folders are the directories of its folder. A change returns
+  // to the project's root and lists it when the panel listed before.
+  void setProject(const QString &projectId);
+  QString project() const { return project_; }
   // The folder workspace of the project the tab shows, empty while unknown.
   void setProjectWorkspace(const QString &workspaceId) { projectWorkspace_ = workspaceId; }
   // A `workspacefile` push: files in that workspace changed, so a renamed
@@ -77,10 +83,13 @@ private:
   AssetListModel model_;
   QNetworkAccessManager network_;
   QUrl origin_;
-  QString token_, user_, folder_, error_, relinkError_, projectWorkspace_;
+  QString token_, user_, folder_, error_, relinkError_, project_, projectWorkspace_;
   QString search_, type_, tag_;
   bool favorites_ = false;
   bool dragging_ = false;
+  // Whether refresh() ran since the last configure(), so a project change
+  // lists the new project's root.
+  bool opened_ = false;
   // The opened folders from the home folder down: {id, name} rows.
   QVariantList crumbs_;
   // The reply owns itself through deleteLater. A newer list replaces it.

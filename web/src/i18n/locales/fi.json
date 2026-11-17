@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "code#state",
       "signInWindowClosed": "Suljettiinko kirjautumisikkuna?",
       "openAgain": "Avaa se uudelleen",
-      "linkExpiry": ". Linkki vanhenee 10 minuutin kuluttua."
+      "linkExpiry": ". Linkki vanhenee 10 minuutin kuluttua.",
+      "nativeSubtitle": "haluaa kirjautua NodeTool-tilillesi.",
+      "app": "Sovellus",
+      "device": "Laite",
+      "nativeNote": "Hyväksy vain, jos aloitit tämän kirjautumisen itse NodeTool-työpöytäsovelluksessa tällä tietokoneella. Sovellus voi sen jälkeen avata, muokata ja tallentaa pilviasiakirjojasi, kunnes kirjaudut ulos tai lopetat istunnon asetuksissa."
     },
     "integrations": {
       "loadingAccounts": "Ladataan yhdistettyjä tilejä",
@@ -6136,6 +6140,10 @@
         "title": "Uusi projekti",
         "confirm": "Luo projekti",
         "nameLabel": "Projektin nimi",
+        "locationLabel": "Sijainti",
+        "locationDefault": "Projektikansio",
+        "locationChoose": "Valitse…",
+        "locationReset": "Käytä projektikansiota",
         "createError": "Projektia ei voitu luoda: {{error}}",
         "openFolder": "Avaa kansio…",
         "openFolderHint": "Onko sinulla jo kansio? Avaa se projektina. Tiedostoja ei siirretä.",
@@ -19087,6 +19095,26 @@
       "typeMore": "Kirjoita vähintään 2 merkkiä",
       "noMatches": "Ei osumia",
       "failed": "Käyttöoikeutta ei voitu antaa."
+    },
+    "options": {
+      "history": "Historia",
+      "historyDescription": "Katselijat voivat avata tallennetut versiot.",
+      "download": "Lataus",
+      "downloadDescription": "Katselijat voivat ladata alkuperäiset tiedostot.",
+      "duplicate": "Kopiointi",
+      "duplicateDescription": "Katselijat voivat kopioida sen tiedostoineen omaan kirjastoonsa.",
+      "turnedOff": "Jo ladattu tai kopioitu sisältö jää ihmisille.",
+      "historyOffNotice": "Tämän linkin katselijat eivät enää näe tallennettuja versioita. Ota historia käyttöön palauttaaksesi ne.",
+      "turnOnHistory": "Ota historia käyttöön",
+      "dismiss": "Sulje",
+      "failed": "Asetuksia ei voitu muuttaa."
+    },
+    "people": {
+      "from": "Pääsy: {{sources}}",
+      "sourceInvitation": "kutsu",
+      "sourceViewLink": "katselulinkki",
+      "sourceEditLink": "muokkauslinkki",
+      "sourceDisabled": "{{source}} (poistettu käytöstä)"
     }
   },
   "timelineAutomation": {
@@ -20216,6 +20244,27 @@
     "removeBody": "Aineisto poistetaan NodeToolista. Sitä käyttävät dokumentit eivät voi enää näyttää sitä.",
     "cancel": "Peruuta"
   },
+  "deviceSessions": {
+    "title": "Kirjautuneet laitteet",
+    "description": "Tietokoneet, joilla olet kirjautunut NodeToolin työpöytäsovelluksiin. Saman tietokoneen sovellukset jakavat yhden istunnon. Istunnon päättäminen kirjaa tietokoneen ulos.",
+    "empty": "Yksikään tietokone ei ole kirjautuneena.",
+    "unnamed": "Nimetön tietokone",
+    "signedInFrom": "Kirjautunut sovelluksesta {{app}} {{date}}",
+    "lastUsed": "Viimeksi käytetty {{date}}",
+    "neverUsed": "Ei käytetty kirjautumisen jälkeen",
+    "end": "Lopeta istunto",
+    "confirmTitle": "Lopetetaanko tämä istunto?",
+    "confirmBody": "NodeTool-työpöytäsovellukset laitteella {{device}} kirjautuvat ulos minuutin kuluessa.",
+    "cancel": "Peruuta",
+    "ended": "Istunto lopetettiin.",
+    "endError": "Istuntoa ei voitu lopettaa: {{error}}",
+    "loadError": "Kirjautuneita laitteita ei voitu ladata.",
+    "apps": {
+      "nodeEditor": "Solmueditori",
+      "timeline": "Aikajana",
+      "desktop": "Työpöytäsovellus"
+    }
+  },
   "storyboardText": {
     "mode": "Teksti",
     "editorLabel": "Kuvakäsikirjoitus Markdown-tekstinä",
@@ -20270,5 +20319,21 @@
         "failed": "Pyyntö epäonnistui. Lähetä se uudelleen."
       }
     }
+  },
+  "cloudAccount": {
+    "title": "NodeTool Cloud -tili",
+    "description": "Yksi kirjautuminen tälle sovellukselle, solmueditorille ja aikajanalle tällä tietokoneella. Kirjautuminen sisään tai ulos täällä koskee kaikkia kolmea.",
+    "signedInAs": "Kirjautunut käyttäjänä {{name}}",
+    "server": "Palvelin: {{server}}",
+    "signedOut": "Ei kirjautunut",
+    "signingIn": "Viimeistele kirjautuminen selaimessa",
+    "serverEndPending": "Kirjauduttu ulos, istuntoa ei ole vielä päätetty palvelimella",
+    "cloudOff": "Pilviominaisuudet ovat pois päältä tällä tietokoneella",
+    "noKeychain": "Tällä tietokoneella ei ole tunnistetietojen säilöä, joten kirjautuminen kestää, kunnes NodeTool suljetaan.",
+    "signIn": "Kirjaudu sisään",
+    "cancel": "Peruuta",
+    "signOut": "Kirjaudu ulos",
+    "signOutNote": "Solmueditorissa tai aikajanalla odottavat muutokset jäävät tälle tietokoneelle ja lähetetään, kun kirjaudut uudelleen.",
+    "unavailable": "Pilvikirjautuminen ei ole käytettävissä tässä versiossa."
   }
 }

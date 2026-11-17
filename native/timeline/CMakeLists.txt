@@ -270,7 +270,7 @@ qt_add_shaders(timeline_qml timeline_compositor_shaders
 list(REMOVE_DUPLICATES NT_qml_includes)
 target_include_directories(timeline_qml PUBLIC src/model src/playback src/preview src/ui src/edit ${NT_qml_includes})
 target_link_libraries(timeline_qml PUBLIC timeline_core timeline_decode timeline_audio
-    nodetool_model_picker nodetool_media nodetool_files nodetool_entities nodetool_storyboard nodetool_chat Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
+    nodetool_model_picker nodetool_media nodetool_files nodetool_entities nodetool_storyboard nodetool_chat nodetool_account_qt Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
 
 function(nt_add_timeline_qml target)
     # OUTPUT_DIRECTORY belonged to the former per-executable module. Keep the

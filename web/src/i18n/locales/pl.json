@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "kod#stan",
       "signInWindowClosed": "Okno logowania zamknięte?",
       "openAgain": "Otwórz ponownie",
-      "linkExpiry": ". Link wygasa po 10 minutach."
+      "linkExpiry": ". Link wygasa po 10 minutach.",
+      "nativeSubtitle": "chce zalogować się na Twoje konto NodeTool.",
+      "app": "Aplikacja",
+      "device": "Urządzenie",
+      "nativeNote": "Zatwierdź tylko wtedy, gdy to Ty rozpocząłeś to logowanie w aplikacji desktopowej NodeTool na tym komputerze. Aplikacja będzie mogła otwierać, edytować i zapisywać Twoje dokumenty w chmurze, dopóki się nie wylogujesz lub nie zakończysz sesji w Ustawieniach."
     },
     "integrations": {
       "loadingAccounts": "Ładowanie połączonych kont",
@@ -6294,6 +6298,10 @@
         "title": "Nowy projekt",
         "confirm": "Utwórz projekt",
         "nameLabel": "Nazwa projektu",
+        "locationLabel": "Lokalizacja",
+        "locationDefault": "Folder projektów",
+        "locationChoose": "Wybierz…",
+        "locationReset": "Użyj folderu projektów",
         "createError": "Nie można utworzyć projektu: {{error}}",
         "openFolder": "Otwórz folder…",
         "openFolderHint": "Masz już folder? Otwórz go jako projekt. Żadne pliki nie zostaną przeniesione.",
@@ -19707,6 +19715,26 @@
       "typeMore": "Wpisz co najmniej 2 znaki",
       "noMatches": "Brak wyników",
       "failed": "Nie udało się nadać dostępu."
+    },
+    "options": {
+      "history": "Historia",
+      "historyDescription": "Przeglądający mogą otwierać zapisane wersje.",
+      "download": "Pobieranie",
+      "downloadDescription": "Przeglądający mogą pobierać oryginalne pliki.",
+      "duplicate": "Duplikowanie",
+      "duplicateDescription": "Przeglądający mogą skopiować go wraz z plikami do własnej biblioteki.",
+      "turnedOff": "To, co już pobrano lub zduplikowano, zostaje u tych osób.",
+      "historyOffNotice": "Przeglądający ten link nie widzą już zapisanych wersji. Włącz historię, aby je przywrócić.",
+      "turnOnHistory": "Włącz historię",
+      "dismiss": "Zamknij",
+      "failed": "Nie udało się zmienić opcji."
+    },
+    "people": {
+      "from": "Dostęp przez: {{sources}}",
+      "sourceInvitation": "zaproszenie",
+      "sourceViewLink": "link do podglądu",
+      "sourceEditLink": "link do edycji",
+      "sourceDisabled": "{{source}} (wyłączony)"
     }
   },
   "timelineAutomation": {
@@ -20838,6 +20866,27 @@
     "removeBody": "Zasób zostanie usunięty z NodeTool. Dokumenty, które go używają, nie będą mogły go wyświetlić.",
     "cancel": "Anuluj"
   },
+  "deviceSessions": {
+    "title": "Zalogowane urządzenia",
+    "description": "Komputery, na których zalogowano się w aplikacjach desktopowych NodeTool. Aplikacje na jednym komputerze współdzielą jedną sesję. Zakończenie sesji wylogowuje ten komputer.",
+    "empty": "Żaden komputer nie jest zalogowany.",
+    "unnamed": "Komputer bez nazwy",
+    "signedInFrom": "Zalogowano z {{app}} {{date}}",
+    "lastUsed": "Ostatnio używane {{date}}",
+    "neverUsed": "Nieużywane od zalogowania",
+    "end": "Zakończ sesję",
+    "confirmTitle": "Zakończyć tę sesję?",
+    "confirmBody": "Aplikacje desktopowe NodeTool na {{device}} zostaną wylogowane w ciągu minuty.",
+    "cancel": "Anuluj",
+    "ended": "Sesja zakończona.",
+    "endError": "Nie udało się zakończyć sesji: {{error}}",
+    "loadError": "Nie udało się wczytać zalogowanych urządzeń.",
+    "apps": {
+      "nodeEditor": "Edytor węzłów",
+      "timeline": "Oś czasu",
+      "desktop": "Aplikacja desktopowa"
+    }
+  },
   "storyboardText": {
     "mode": "Tekst",
     "editorLabel": "Storyboard jako tekst Markdown",
@@ -20892,5 +20941,21 @@
         "failed": "Prośba się nie powiodła. Wyślij ją ponownie."
       }
     }
+  },
+  "cloudAccount": {
+    "title": "Konto NodeTool Cloud",
+    "description": "Jedno logowanie dla tej aplikacji, edytora węzłów i osi czasu na tym komputerze. Logowanie i wylogowanie tutaj dotyczy wszystkich trzech.",
+    "signedInAs": "Zalogowano jako {{name}}",
+    "server": "Serwer: {{server}}",
+    "signedOut": "Nie zalogowano",
+    "signingIn": "Dokończ logowanie w przeglądarce",
+    "serverEndPending": "Wylogowano, sesja na serwerze nie została jeszcze zakończona",
+    "cloudOff": "Funkcje chmury są wyłączone na tym komputerze",
+    "noKeychain": "Ten komputer nie ma magazynu poświadczeń, więc logowanie trwa do zamknięcia NodeTool.",
+    "signIn": "Zaloguj się",
+    "cancel": "Anuluj",
+    "signOut": "Wyloguj się",
+    "signOutNote": "Zmiany oczekujące w edytorze węzłów lub na osi czasu pozostają na tym komputerze i zostaną wysłane po ponownym zalogowaniu.",
+    "unavailable": "Logowanie do chmury nie jest dostępne w tej wersji."
   }
 }

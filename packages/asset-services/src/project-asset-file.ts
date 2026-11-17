@@ -163,14 +163,31 @@ export const PARTIAL_HASH_SPAN = 1024 * 1024;
  */
 export const WORKSPACE_OFFLINE_KEY = "workspace_offline";
 
+/**
+ * The metadata key the move of legacy asset bytes sets, next to
+ * `WORKSPACE_MOVE_TARGET_KEY`, once it has published its copy at the target:
+ * the modification time the file had then. The recorded target only reserves
+ * a name. A file there is the move's own copy only while it still has this
+ * time and the recorded hash. Removed together with the target.
+ */
+export const WORKSPACE_MOVE_PUBLISHED_KEY = "workspace_move_published";
+
+/**
+ * The metadata keys the move of legacy asset bytes records on a row: where
+ * the bytes are moving to, the hash of the legacy object that was copied,
+ * and whether the copy was published. Only the move writes them.
+ */
+export const WORKSPACE_MOVE_KEYS = [
+  WORKSPACE_MOVE_TARGET_KEY,
+  WORKSPACE_MOVE_SOURCE_KEY,
+  WORKSPACE_MOVE_PUBLISHED_KEY
+] as const;
+
 /** Every metadata key the server owns on an asset in a project folder. */
 export const WORKSPACE_SERVER_KEYS = [
   ...WORKSPACE_FINGERPRINT_KEYS,
   WORKSPACE_OFFLINE_KEY,
-  // Where the bytes of an asset from before project folders are moving to,
-  // and the hash of the legacy object that was copied.
-  WORKSPACE_MOVE_TARGET_KEY,
-  WORKSPACE_MOVE_SOURCE_KEY
+  ...WORKSPACE_MOVE_KEYS
 ] as const;
 
 /**

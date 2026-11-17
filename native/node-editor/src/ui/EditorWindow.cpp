@@ -146,6 +146,32 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     tabStack_ = new QStackedWidget(this);
     setCentralWidget(tabStack_);
     engine_ = new QQmlEngine(this);
+    accountServers_ = std::make_unique<nodetool::account::qt::AccountServers>(
+        nodetool::account::qt::sharedDataDir(), nodetool::account::qt::cloudServerOrigin(),
+        [](const std::string &origin) {
+          nodetool::account::qt::AccountServices services;
+          services.dataDir = nodetool::account::qt::sharedDataDir();
+          services.serverOrigin = origin;
+          services.app = "node-editor";
+          return services;
+        },
+        QSettings().value(QStringLiteral("cloud/server")).toString().toStdString());
+    cloudBrowser_ = std::make_unique<nodetool::account::qt::CloudBrowser>("workflow");
+    cloudBrowser_->setAccount(accountServers_->current());
+    connect(accountServers_.get(), &nodetool::account::qt::AccountServers::currentChanged, this, [this] {
+      QSettings().setValue(QStringLiteral("cloud/server"), accountServers_->currentServer());
+      cloudBrowser_->setAccount(accountServers_->current());
+    });
+    connect(cloudBrowser_.get(), &nodetool::account::qt::CloudBrowser::openRequested, this,
+            [this](const QString &kind, const QString &documentId, const QString &, const QString &role) {
+              if (kind == QLatin1String("workflow")) { openCloudDocument(documentId, role); }
+            });
+    connect(accountServers_.get(), &nodetool::account::qt::AccountServers::browserRequested, this,
+            [](const QUrl &url, nodetool::account::qt::AccountController *account) {
+              if (!QDesktopServices::openUrl(url)) {
+                account->browserNotOpened();
+              }
+            });
     // Panels are QQuickWidgets sized to their strip, so an overlay tooltip clips there.
     // Ui.Tooltip hands its text to the window, which forwards it to the active tab.
     if (auto *tooltips = engine_->singletonInstance<QObject *>("NodeTool.UiPrimitives", "TooltipHost")) {
@@ -746,6 +772,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   auto browserProperties = chromeProperties;
   browserProperties.insert("browser", QVariant::fromValue(&browser_));
   browserProperties.insert("folder", QVariant::fromValue(&projectFolder_));
+  browserProperties.insert("cloudBrowser", QVariant::fromValue((tabOwner_ ? tabOwner_ : this)->cloudBrowser_.get()));
   browserDock_ = dock(tr("Workflows"), "WorkflowBrowser", Qt::LeftDockWidgetArea, browserProperties);
   browserDock_->setObjectName("workflow-browser-dock");
   browserDock_->hide();
@@ -825,7 +852,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     resizeTabs();
   syncChrome();
   auto status = panel("StatusBar", {{"status", QVariant::fromValue(&statusModel_)},
-                                    {"panels", QVariant::fromValue(&panelLayout_)}});
+                                    {"panels", QVariant::fromValue(&panelLayout_)},
+                                    {"accountServers", QVariant::fromValue((tabOwner_ ? tabOwner_ : this)->accountServers_.get())}});
   status->setFixedHeight(status->initialSize().height());
   statusBar_ = status;
   // native-rules #2: naked new with no QObject parent, a later addLayout call takes ownership
@@ -1000,6 +1028,10 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     });
     connect(&document_, &node_editor::WorkflowDocument::changed, this, [this] {
         sendLiveEdits();
+        // A cloud workflow's draft is its graph (WorkflowCloudSaver).
+        if (cloud_ && !cloudLoading_) {
+            cloud_->edit(QString::fromUtf8(QJsonDocument(document_.graph()).toJson(QJsonDocument::Compact)));
+        }
         // GenerationHistory copies the document on the next inspector sync.
         historyWorkflowStale_ = true;
         const bool replaced = std::exchange(documentReplaced_, false);
@@ -1260,6 +1292,7 @@ QString EditorWindow::serverSaveState() const {
 QString EditorWindow::saveState() const {
   if (!tabOwner_) { return activeEditor_->saveState(); }
     if (inlineChild_ && childParent_) { return childParent_->saveState(); }
+  if (cloud_) { return cloud_->syncText(); }
   if (session_.serverBound() || session_.saving() || serverSyncNeedsAttention()) { return serverSaveState(); }
   if (file_.isEmpty()) { return document_.undoStack()->isClean() ? tr("New workflow") : tr("Unsaved"); }
   return document_.undoStack()->isClean() ? tr("Saved locally") : tr("Unsaved local changes");
@@ -1389,6 +1422,26 @@ void EditorWindow::showServerSync() {
     connect(root, SIGNAL(saveLocalAsRequested()), this, SLOT(saveLocalCopyAs()));
   }
   showOverlayDialog(dialog, content, this, {720, 640});
+}
+void EditorWindow::showShareDialog() {
+  if (!tabOwner_) { activeEditor_->showShareDialog(); return; }
+  if (!menuActionEnabled(QStringLiteral("Share"))) { return; }
+  auto *account = (tabOwner_ ? tabOwner_ : this)->accountServers_->controllerFor(cloudOrigin_);
+  for (auto *existing : findChildren<QDialog *>("share-dialog")) { existing->close(); }
+  auto *dialog = new QDialog(this);
+  dialog->setObjectName("share-dialog");
+  dialog->setWindowTitle(tr("Share %1").arg(workflowName()));
+  auto *content = createOverlayDialog(dialog, engine_,
+                                      {{"account", QVariant::fromValue(account)},
+                                       {"kind", QStringLiteral("workflow")},
+                                       {"documentId", cloudId_},
+                                       {"content", cloud_->content()}},
+                                      QUrl("qrc:/qt/qml/NodeTool/NodeEditor/SharePanel.qml"));
+  if (const auto root = content->rootObject()) {
+    connect(root, SIGNAL(closeRequested()), dialog, SLOT(close()));
+  }
+  connect(this, &EditorWindow::documentEpochChanged, dialog, &QDialog::close);
+  showOverlayDialog(dialog, content, this, {640, 720});
 }
 void EditorWindow::showCanvasDrops() {
   if (canvasDropDialog_) { canvasDropDialog_->show(); canvasDropDialog_->raise(); return; }
@@ -2387,6 +2440,9 @@ bool EditorWindow::singleRunnableCardSelected() const {
 }
 QString EditorWindow::readOnlyReason() const {
   if (!tabOwner_) { return activeEditor_->readOnlyReason(); }
+  if (cloud_ && cloud_->readOnly()) {
+    return tr("Read-only: %1").arg(cloud_->readOnlyReason());
+  }
   if (document_.isReadOnly()) {
     return document_.readOnlyReason();
   }
@@ -2711,7 +2767,7 @@ void EditorWindow::syncChrome() {
   // The outer window shows the active tab's commands.
   const auto *source = tabOwner_ || !activeEditor_ ? this : activeEditor_;
   QStringList enabled;
-  for (const auto *name : {"Workflow metadata", "Server sync", "Canvas uploads", "Command menu",
+  for (const auto *name : {"Share", "Workflow metadata", "Server sync", "Canvas uploads", "Command menu",
                            "Instant Update: On", "Canvas navigation: Mouse"}) {
     if (source->menuActionEnabled(QString::fromLatin1(name))) { enabled << QString::fromLatin1(name); }
   }
@@ -3556,6 +3612,7 @@ void EditorWindow::action(const QString &name) {
   if (name == "Open child") { openChild(); return; }
   if (name == "Linked workflows") { showLinkedWorkflows(); return; }
   if (name == "Server sync") { showServerSync(); return; }
+  if (name == "Share") { showShareDialog(); return; }
   if (name == "Run trace") { showRunTrace(); return; }
   if (name == "Canvas uploads") { showCanvasDrops(); return; }
   if (name == "Save local copy as") { saveLocalCopyAs(); return; }

@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "codice#stato",
       "signInWindowClosed": "La finestra di accesso è chiusa?",
       "openAgain": "Aprilo di nuovo",
-      "linkExpiry": ". Il collegamento scade dopo 10 minuti."
+      "linkExpiry": ". Il collegamento scade dopo 10 minuti.",
+      "nativeSubtitle": "vuole accedere al tuo account NodeTool.",
+      "app": "App",
+      "device": "Dispositivo",
+      "nativeNote": "Approva solo se hai avviato questo accesso da un'app desktop NodeTool su questo computer. L'app potrà aprire, modificare e salvare i tuoi documenti cloud finché non esci o termini la sessione nelle Impostazioni."
     },
     "integrations": {
       "loadingAccounts": "Caricamento degli account collegati",
@@ -6215,6 +6219,10 @@
         "title": "Nuovo progetto",
         "confirm": "Crea progetto",
         "nameLabel": "Nome del progetto",
+        "locationLabel": "Posizione",
+        "locationDefault": "Cartella dei progetti",
+        "locationChoose": "Scegli…",
+        "locationReset": "Usa la cartella dei progetti",
         "createError": "Impossibile creare il progetto: {{error}}",
         "openFolder": "Apri cartella…",
         "openFolderHint": "Hai già una cartella? Aprila come progetto. Nessun file viene spostato.",
@@ -19397,6 +19405,26 @@
       "typeMore": "Scrivi almeno 2 caratteri",
       "noMatches": "Nessun risultato",
       "failed": "Impossibile dare l'accesso."
+    },
+    "options": {
+      "history": "Cronologia",
+      "historyDescription": "Chi visualizza può aprire le versioni salvate.",
+      "download": "Download",
+      "downloadDescription": "Chi visualizza può scaricare i file originali.",
+      "duplicate": "Duplicazione",
+      "duplicateDescription": "Chi visualizza può copiarlo con i suoi file nella propria libreria.",
+      "turnedOff": "Le persone conservano ciò che hanno già scaricato o duplicato.",
+      "historyOffNotice": "Chi visualizza questo link non vede più le versioni salvate. Attiva la cronologia per restituirle.",
+      "turnOnHistory": "Attiva cronologia",
+      "dismiss": "Chiudi",
+      "failed": "Impossibile modificare le opzioni."
+    },
+    "people": {
+      "from": "Accesso tramite {{sources}}",
+      "sourceInvitation": "invito",
+      "sourceViewLink": "link di visualizzazione",
+      "sourceEditLink": "link di modifica",
+      "sourceDisabled": "{{source}} (disattivato)"
     }
   },
   "timelineAutomation": {
@@ -20527,6 +20555,27 @@
     "removeBody": "La risorsa viene rimossa da NodeTool. I documenti che la usano non possono più mostrarla.",
     "cancel": "Annulla"
   },
+  "deviceSessions": {
+    "title": "Dispositivi connessi",
+    "description": "Computer su cui hai effettuato l'accesso alle app desktop di NodeTool. Le app di un computer condividono una sessione. Terminare una sessione disconnette quel computer.",
+    "empty": "Nessun computer è connesso.",
+    "unnamed": "Computer senza nome",
+    "signedInFrom": "Accesso da {{app}} il {{date}}",
+    "lastUsed": "Ultimo utilizzo {{date}}",
+    "neverUsed": "Non usato dall'accesso",
+    "end": "Termina sessione",
+    "confirmTitle": "Terminare questa sessione?",
+    "confirmBody": "Le app desktop NodeTool su {{device}} vengono disconnesse entro un minuto.",
+    "cancel": "Annulla",
+    "ended": "Sessione terminata.",
+    "endError": "Impossibile terminare la sessione: {{error}}",
+    "loadError": "Impossibile caricare i dispositivi connessi.",
+    "apps": {
+      "nodeEditor": "Editor di nodi",
+      "timeline": "Timeline",
+      "desktop": "App desktop"
+    }
+  },
   "storyboardText": {
     "mode": "Testo",
     "editorLabel": "Storyboard come testo Markdown",
@@ -20581,5 +20630,21 @@
         "failed": "La richiesta non è riuscita. Inviala di nuovo."
       }
     }
+  },
+  "cloudAccount": {
+    "title": "Account NodeTool Cloud",
+    "description": "Un unico accesso per questa app, l'editor di nodi e la timeline su questo computer. Accedere o uscire qui vale per tutte e tre.",
+    "signedInAs": "Accesso eseguito come {{name}}",
+    "server": "Server: {{server}}",
+    "signedOut": "Accesso non eseguito",
+    "signingIn": "Completa l'accesso nel browser",
+    "serverEndPending": "Disconnesso, sessione non ancora terminata sul server",
+    "cloudOff": "Le funzioni cloud sono disattivate su questo computer",
+    "noKeychain": "Questo computer non ha un archivio di credenziali, quindi l'accesso dura finché NodeTool non viene chiuso.",
+    "signIn": "Accedi",
+    "cancel": "Annulla",
+    "signOut": "Esci",
+    "signOutNote": "Le modifiche in attesa nell'editor di nodi o nella timeline restano su questo computer e vengono inviate al prossimo accesso.",
+    "unavailable": "L'accesso al cloud non è disponibile in questa build."
   }
 }

@@ -49,6 +49,9 @@
 #include "aiassist/AssistantCommands.h"
 #include "aiassist/AssistantSession.h"
 #include "chat/TimelineChatHost.h"
+#include "account/CloudTimelineSaver.h"
+#include "nodetool/account/account_session.h"
+#include "nodetool/account/qt/AccountServers.h"
 #include "runtime/ChatSession.h"
 #include <QtQml/QQmlExtensionPlugin>
 Q_IMPORT_QML_PLUGIN(NodeTool_ChatPlugin)
@@ -61,6 +64,8 @@ extern "C" {
 }
 
 #include <QCommandLineParser>
+#include <QDesktopServices>
+#include <QSettings>
 #include <QCoreApplication>
 #include <QElapsedTimer>
 #include <QEvent>
@@ -890,6 +895,59 @@ int main(int argc, char** argv) {
     if (sources.size() != 1) {
         parser.showHelp(2);
     }
+    // The cloud servers and their accounts the document bar shows.
+    // Interactive runs only, so a test, benchmark or capture run never reads
+    // the keychain. Declared before the view, whose QML holds them, so they
+    // outlive the view.
+    std::unique_ptr<nodetool::account::qt::AccountServers> accountServers;
+    if (!background && !bench && QGuiApplication::platformName() != u"offscreen") {
+        accountServers = std::make_unique<nodetool::account::qt::AccountServers>(
+            nodetool::account::qt::sharedDataDir(), nodetool::account::qt::cloudServerOrigin(),
+            [](const std::string& origin) {
+                nodetool::account::qt::AccountServices services;
+                services.dataDir = nodetool::account::qt::sharedDataDir();
+                services.serverOrigin = origin;
+                services.app = "timeline";
+                return services;
+            },
+            QSettings().value(QStringLiteral("cloud/server")).toString().toStdString());
+        QObject::connect(accountServers.get(), &nodetool::account::qt::AccountServers::currentChanged, &app,
+                         [servers = accountServers.get()] {
+                             QSettings().setValue(QStringLiteral("cloud/server"), servers->currentServer());
+                         });
+        QObject::connect(accountServers.get(), &nodetool::account::qt::AccountServers::browserRequested, &app,
+                         [](const QUrl& url, nodetool::account::qt::AccountController* controller) {
+                             if (!QDesktopServices::openUrl(url)) {
+                                 controller->browserNotOpened();
+                             }
+                         });
+    }
+    // A cloud timeline is read with the account signed in to its server.
+    const auto cloudSource = nt::server::cloudTimelineSource();
+    std::shared_ptr<nodetool::account::AccountSession> cloudSession;
+    QString cloudToken;
+    // The account of the cloud timeline's server, for the share dialog.
+    // AccountServers owns it.
+    nodetool::account::qt::AccountController* cloudAccount = nullptr;
+    if (cloudSource) {
+        auto* controller = accountServers ? accountServers->controllerFor(cloudSource->origin.toString()) : nullptr;
+        cloudAccount = controller;
+        cloudSession = controller ? controller->readSession() : nullptr;
+        if (!cloudSession) {
+            std::fprintf(stderr, "error: sign in to %s to open this cloud timeline\n",
+                         qPrintable(cloudSource->origin.toString()));
+            return 1;
+        }
+        const auto credential = cloudSession->credentialForRequest();
+        if (credential.status != nodetool::account::CredentialStatus::Ready) {
+            std::fprintf(stderr, "error: %s\n", credential.status == nodetool::account::CredentialStatus::SignedOut
+                                                     ? "signed out of the cloud server"
+                                                     : "the cloud server could not be reached");
+            return 1;
+        }
+        cloudToken = QString::fromStdString(credential.accessToken);
+        nt::server::setCloudToken(cloudToken);
+    }
     const QString source = sources.first();
     const auto loaded = nt::server::loadTimelineSource(source);
     const QStringList wh = parser.value(sizeOpt).split(QLatin1Char('x'));
@@ -1033,6 +1091,22 @@ int main(int argc, char** argv) {
                             parser.value(playStillsOpt), frames, {}, {}, {}, {}, parser.value(monitorStateOpt).toUtf8());
     }
 
+    // A cloud timeline keeps its edits in the local drafts and sends them.
+    // Declared before the view, whose QML shows its document.
+    std::unique_ptr<nt::account::CloudTimelineSaver> cloudSaver;
+    if (cloudSource) {
+        nt::account::CloudTimelineOptions options;
+        options.origin = cloudSource->origin;
+        options.timelineId = cloudSource->timelineId;
+        options.role = cloudSource->role;
+        options.localServer = QUrl(qEnvironmentVariable("NODETOOL_SERVER_URL", QStringLiteral("http://127.0.0.1:7777")));
+        options.localToken = qEnvironmentVariable("NODETOOL_API_TOKEN");
+        options.cacheRoot = cloudSource->cacheDir;
+        options.accessToken = cloudToken;
+        cloudSaver = std::make_unique<nt::account::CloudTimelineSaver>(model, cloudSession, std::move(options));
+        QObject::connect(cloudSaver.get(), &nt::account::CloudTimelineSaver::errorChanged, &app,
+                         [saver = cloudSaver.get()] { qWarning().noquote() << saver->error(); });
+    }
     QQuickView view;
     nt::hw::prepareWindow(&view);
     view.setResizeMode(QQuickView::SizeRootObjectToView);
@@ -1160,6 +1234,10 @@ int main(int argc, char** argv) {
     view.rootContext()->setContextProperty(QStringLiteral("nativeAssistantTools"), &assistantTools);
     view.rootContext()->setContextProperty(QStringLiteral("nativeChatInitiallyOpen"), parser.isSet(chatOpt));
     view.rootContext()->setContextProperty(QStringLiteral("autosave"), autosave.get());
+    view.rootContext()->setContextProperty(QStringLiteral("nativeAccountServers"), accountServers.get());
+    view.rootContext()->setContextProperty(QStringLiteral("nativeCloudDocument"),
+                                           cloudSaver ? cloudSaver->document() : nullptr);
+    view.rootContext()->setContextProperty(QStringLiteral("nativeCloudAccount"), cloudSaver ? cloudAccount : nullptr);
     view.rootContext()->setContextProperty(QStringLiteral("nativeInteractiveRun"),
                                            !background && QGuiApplication::platformName() != u"offscreen");
     view.loadFromModule("NodeTool.Timeline", "TimelineEditor");

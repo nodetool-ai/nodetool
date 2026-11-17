@@ -598,7 +598,7 @@ describe.each(["local", "storage"] as const)(
       expect(await folderFiles(kind)).toEqual(["Shots/fox.png"]);
     });
 
-    it("leaves a row with no stored bytes as it is", async () => {
+    it("leaves a row with no stored bytes where it is, marked and reported", async () => {
       // A row from before project folders. A row with no size made in the
       // last hours may still get the bytes of a client-direct upload.
       const orphan = await Asset.create<Asset>({
@@ -613,7 +613,13 @@ describe.each(["local", "storage"] as const)(
       const report = await newJob().run(PROJECT, USER);
 
       expect(report.withoutBytes).toEqual([orphan.id]);
-      expect((await reload(orphan)).toRow()).toEqual(before);
+      expect(report.failed).toEqual([orphan.id]);
+      // Only the mark is new. `updated_at` versions the asset's URL and stays.
+      expect((await reload(orphan)).toRow()).toEqual({
+        ...before,
+        metadata: { [Asset.LEGACY_BYTES_MISSING_KEY]: before.updated_at }
+      });
+      expect(await Asset.countAwaitingFolderMove(USER)).toBe(0);
       expect(await folderFiles(kind)).toEqual([]);
     });
 

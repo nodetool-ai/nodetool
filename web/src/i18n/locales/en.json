@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "code#state",
       "signInWindowClosed": "Sign-in window closed?",
       "openAgain": "Open it again",
-      "linkExpiry": ". The link expires after 10 minutes."
+      "linkExpiry": ". The link expires after 10 minutes.",
+      "nativeSubtitle": "wants to sign in to your NodeTool account.",
+      "app": "App",
+      "device": "Device",
+      "nativeNote": "Approve only if you started this sign-in from a NodeTool desktop app on this computer. The app can then open, edit and save your cloud documents until you sign out or end the session in Settings."
     },
     "integrations": {
       "loadingAccounts": "Loading connected accounts",
@@ -6136,6 +6140,10 @@
         "title": "New project",
         "confirm": "Create project",
         "nameLabel": "Project name",
+        "locationLabel": "Location",
+        "locationDefault": "Projects folder",
+        "locationChoose": "Choose…",
+        "locationReset": "Use projects folder",
         "createError": "Could not create the project: {{error}}",
         "openFolder": "Open folder…",
         "openFolderHint": "Already have a folder? Open it as a project. No files move.",
@@ -19087,6 +19095,26 @@
       "typeMore": "Type at least 2 characters",
       "noMatches": "No one matches",
       "failed": "Could not give access."
+    },
+    "options": {
+      "history": "History",
+      "historyDescription": "Viewers can open saved versions.",
+      "download": "Download",
+      "downloadDescription": "Viewers can download the original files.",
+      "duplicate": "Duplicate",
+      "duplicateDescription": "Viewers can copy it and its files into their own library.",
+      "turnedOff": "People keep anything they already downloaded or duplicated.",
+      "historyOffNotice": "Viewers of this link no longer see saved versions. Turn history on to give them back.",
+      "turnOnHistory": "Turn on history",
+      "dismiss": "Dismiss",
+      "failed": "Could not change the options."
+    },
+    "people": {
+      "from": "Access from {{sources}}",
+      "sourceInvitation": "invitation",
+      "sourceViewLink": "view link",
+      "sourceEditLink": "edit link",
+      "sourceDisabled": "{{source}} (disabled)"
     }
   },
   "timelineAutomation": {
@@ -20216,6 +20244,27 @@
     "removeBody": "The asset is removed from NodeTool. Documents that use it can no longer show it.",
     "cancel": "Cancel"
   },
+  "deviceSessions": {
+    "title": "Signed-in devices",
+    "description": "Computers where you signed in to the NodeTool desktop apps. The apps on one computer share one session. Ending a session signs that computer out.",
+    "empty": "No computer is signed in.",
+    "unnamed": "Unnamed computer",
+    "signedInFrom": "Signed in from {{app}} on {{date}}",
+    "lastUsed": "Last used {{date}}",
+    "neverUsed": "Not used since sign-in",
+    "end": "End session",
+    "confirmTitle": "End this session?",
+    "confirmBody": "The NodeTool desktop apps on {{device}} are signed out within a minute.",
+    "cancel": "Cancel",
+    "ended": "Session ended.",
+    "endError": "Could not end the session: {{error}}",
+    "loadError": "Could not load signed-in devices.",
+    "apps": {
+      "nodeEditor": "Node editor",
+      "timeline": "Timeline",
+      "desktop": "Desktop app"
+    }
+  },
   "storyboardText": {
     "mode": "Text",
     "editorLabel": "Storyboard as Markdown text",
@@ -20270,5 +20319,21 @@
         "failed": "The request failed. Send it again."
       }
     }
+  },
+  "cloudAccount": {
+    "title": "NodeTool Cloud account",
+    "description": "One sign-in for this app, the node editor and the timeline on this computer. Signing in or out here applies to all three.",
+    "signedInAs": "Signed in as {{name}}",
+    "server": "Server: {{server}}",
+    "signedOut": "Not signed in",
+    "signingIn": "Finish signing in in your browser",
+    "serverEndPending": "Signed out, session not yet ended on the server",
+    "cloudOff": "Cloud features are turned off on this computer",
+    "noKeychain": "This computer has no credential store, so the sign-in lasts until NodeTool quits.",
+    "signIn": "Sign in",
+    "cancel": "Cancel",
+    "signOut": "Sign out",
+    "signOutNote": "Changes waiting in the node editor or the timeline stay on this computer and are sent after you sign in again.",
+    "unavailable": "Cloud sign-in is not available in this build."
   }
 }

@@ -78,8 +78,14 @@ function pendingAsset(overrides: Record<string, unknown> = {}) {
     duration: null,
     sketch_document_id: null,
     created_at: "2026-07-27T00:00:00Z",
+    project_id: "default",
     save: vi.fn().mockResolvedValue(undefined),
     delete: vi.fn().mockResolvedValue(undefined),
+    saveUploadSizeIf: vi.fn(async function (this: { size: number | null }, size: number) {
+      this.size = size;
+      return true;
+    }),
+    deleteIfPendingUpload: vi.fn().mockResolvedValue(true),
     ...overrides
   };
 }
@@ -242,7 +248,7 @@ describe("assets.finalizeUpload", () => {
 
     expect(adapter.stat).toHaveBeenCalledWith("file:///assets/user-1/a1.png");
     expect(asset.size).toBe(4096);
-    expect(asset.save).toHaveBeenCalled();
+    expect(asset.saveUploadSizeIf).toHaveBeenCalledWith(4096);
     expect(result.size).toBe(4096);
   });
 
@@ -254,7 +260,7 @@ describe("assets.finalizeUpload", () => {
     await expect(
       createCaller(makeCtx()).assets.finalizeUpload({ asset_id: "a1" })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    expect(asset.delete).toHaveBeenCalled();
+    expect(asset.deleteIfPendingUpload).toHaveBeenCalled();
   });
 
   it("treats a zero-byte object as no upload", async () => {
@@ -265,7 +271,7 @@ describe("assets.finalizeUpload", () => {
     await expect(
       createCaller(makeCtx()).assets.finalizeUpload({ asset_id: "a1" })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    expect(asset.delete).toHaveBeenCalled();
+    expect(asset.deleteIfPendingUpload).toHaveBeenCalled();
   });
 
   it("removes an over-cap object instead of keeping it", async () => {
@@ -280,7 +286,7 @@ describe("assets.finalizeUpload", () => {
     expect(adapter.delete).toHaveBeenCalledWith(
       "file:///assets/user-1/a1.png"
     );
-    expect(asset.delete).toHaveBeenCalled();
+    expect(asset.deleteIfPendingUpload).toHaveBeenCalled();
   });
 
   it("does not finalize another user's asset", async () => {

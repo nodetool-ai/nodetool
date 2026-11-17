@@ -12,7 +12,7 @@
  * that names it, and an old file is removed only after the row has moved on.
  */
 import { createLogger } from "@nodetool-ai/config";
-import { Asset, setAssetFileMover } from "@nodetool-ai/models";
+import { Asset, moveTargetOf, setAssetFileMover } from "@nodetool-ai/models";
 import {
   WORKSPACE_MOVE_SOURCE_KEY,
   WORKSPACE_MOVE_TARGET_KEY,
@@ -32,6 +32,7 @@ import {
   verifiedExternalPath
 } from "./external-asset-lookup.js";
 import {
+  WORKSPACE_MOVE_PUBLISHED_KEY,
   WORKSPACE_SERVER_KEYS,
   keepFingerprint,
   localProjectAssetPath,
@@ -107,8 +108,13 @@ export type SaveProjectAssetArgs = {
   /**
    * A row that already exists and gets this file, instead of a new row: an
    * upload whose row was created before its bytes arrived. It must belong to
-   * `userId` and have no file yet, and `path` must not name a file another
-   * row already has.
+   * `userId`, and `path` must not name a file another row already has.
+   *
+   * The row is read again under the folder lock, and the row returned is
+   * that one. When the move of legacy asset bytes has given it a file since
+   * the caller read it, the bytes go to that file and no other is claimed.
+   * When the move has started and not named a file yet, nothing is written
+   * and the call throws.
    */
   asset?: Asset;
 } & ({ bytes: Uint8Array } | { localPath: string });
@@ -127,7 +133,7 @@ export function assetFileExtension(contentType: string): string {
  * `fox-in-snow`. An extension the name already carries for the same content
  * type is removed so it is not doubled. Leading dots (a hidden file) and
  * trailing dots (refused by Windows) are dropped. A Windows device name gets
- * a suffix.
+ * a suffix, also when it comes before a dot (`NUL.demo`).
  */
 export function projectAssetFileStem(name: string, contentType: string): string {
   const extension = assetFileExtension(contentType);
@@ -155,7 +161,12 @@ export function projectAssetFileStem(name: string, contentType: string): string 
     .join("")
     .replace(/[.-]+$/, "");
   if (!stem) return UNNAMED_FILE;
-  return WINDOWS_RESERVED.test(stem) ? `${stem}-file` : stem;
+  // Windows reserves a device name before any extension: `NUL.demo` too.
+  const firstDot = stem.indexOf(".");
+  const head = firstDot === -1 ? stem : stem.slice(0, firstDot);
+  return WINDOWS_RESERVED.test(head)
+    ? `${head}-file${stem.slice(head.length)}`
+    : stem;
 }
 
 // ── One writer per folder ───────────────────────────────────────────────────
@@ -288,12 +299,12 @@ export interface ClaimFromFile {
 }
 
 /**
- * Create `path` from a file on this host. The name is taken with an
- * exclusive create of an empty file, then the bytes are copied over it in
- * chunks, which `absorb` publishes whole with one rename. False when the name
- * was taken. The path is held while the copy runs, so the reconciler never
- * indexes the empty file, and a copy that fails removes the file this call
- * created. A process that dies mid-copy leaves the empty file behind.
+ * Create `path` from a file on this host. `Workspace.absorbNew` copies the
+ * bytes in chunks to a staging file of its own and publishes it only when
+ * nothing is at `path`, so a file another app saves there during the copy is
+ * never replaced. False when the name was taken. The path is held while the
+ * copy runs, so the reconciler never indexes the file before its row names
+ * it. A copy that fails leaves `path` as it was.
  */
 async function claimFromFile(
   workspace: Workspace,
@@ -302,20 +313,12 @@ async function claimFromFile(
   source: ClaimFromFile,
   contentType: string
 ): Promise<boolean> {
-  if (!(await workspace.writeNew(path, new Uint8Array(0), contentType))) {
-    return false;
-  }
   const release = holdPaths(owner.userId, owner.projectId, [path]);
   try {
-    await workspace.absorb(source.localPath, path);
-  } catch (error) {
-    // The exclusive create made this file, so it is this call's to remove.
-    await workspace.delete(path).catch(() => undefined);
-    throw error;
+    return await workspace.absorbNew(source.localPath, path, contentType);
   } finally {
     release();
   }
-  return true;
 }
 
 /**
@@ -360,6 +363,9 @@ async function claimSourceOf(
  * The workspace refuses a directory that is the folder of another project
  * inside this one, or lies in it, with a `WorkspaceReservedPathError`. A
  * file written there would be that project's file with a row in this one.
+ *
+ * `names` replaces the listing with one kept across calls, for a caller that
+ * claims many files in one directory (see {@link DirectoryNames}).
  */
 export async function claimFile(
   workspace: Workspace,
@@ -370,14 +376,15 @@ export async function claimFile(
   bytes: Uint8Array | ClaimFromFile,
   contentType: string,
   beforeWrite?: (path: string) => Promise<void>,
-  stagingName?: string
+  stagingName?: string,
+  names?: DirectoryNames
 ): Promise<string> {
   if (!(bytes instanceof Uint8Array) && stagingName !== undefined) {
     throw new Error("A file taken from a path cannot be staged under a name");
   }
-  const taken = new Set(
-    (await workspace.list(directory)).map((entry) => entry.name.toLowerCase())
-  );
+  const taken = names
+    ? await names.of(workspace, directory)
+    : await listedNames(workspace, directory);
   const suffix = extension ? `.${extension}` : "";
   for (let n = 1; n <= MAX_FILE_SUFFIX; n++) {
     const fileName = `${n === 1 ? stem : `${stem}-${n}`}${suffix}`;
@@ -388,6 +395,9 @@ export async function claimFile(
       owner.projectId,
       path
     );
+    // A name found in use stays out of a kept listing, which is what makes
+    // the next claim in the directory start past it.
+    taken.add(fileName.toLowerCase());
     if (rows.length > 0) continue;
     await beforeWrite?.(path);
     if (!(bytes instanceof Uint8Array)) {
@@ -407,6 +417,42 @@ export async function claimFile(
   throw new Error(
     `No free file name for "${stem}${suffix}" in ${directory || "the project folder"}`
   );
+}
+
+async function listedNames(
+  workspace: Workspace,
+  directory: string
+): Promise<Set<string>> {
+  return new Set(
+    (await workspace.list(directory)).map((entry) => entry.name.toLowerCase())
+  );
+}
+
+/**
+ * The names in use in the directories of one workspace, each listed once and
+ * then kept current by {@link claimFile}. Listing a directory reads every
+ * entry in it, so a caller that claims a file for each of many assets in one
+ * directory would otherwise read the directory once per asset.
+ *
+ * A file another writer creates after the listing is not in it. The exclusive
+ * create still refuses its exact name, and the asset rows are still asked for
+ * every candidate. Only a name that differs from it in case alone can be
+ * claimed beside it, on a folder that tells case apart. Keep one for a single
+ * pass over a project, not longer.
+ */
+export class DirectoryNames {
+  private readonly byDirectory = new Map<string, Promise<Set<string>>>();
+
+  of(workspace: Workspace, directory: string): Promise<Set<string>> {
+    let names = this.byDirectory.get(directory);
+    if (!names) {
+      names = listedNames(workspace, directory);
+      // A listing that failed is tried again by the next claim.
+      names.catch(() => this.byDirectory.delete(directory));
+      this.byDirectory.set(directory, names);
+    }
+    return names;
+  }
 }
 
 /** The bytes of a file an asset row names. Throws when the file is gone. */
@@ -481,21 +527,35 @@ export async function saveProjectAsset(
     const atPath = exactPath
       ? await Asset.findByWorkspacePath(args.userId, projectId, exactPath)
       : [];
+    let current: Asset | null = null;
     if (args.asset) {
       if (args.asset.user_id !== args.userId) {
         throw new Error("The asset belongs to another user");
       }
-      // Its file would be left in the folder with no row naming it.
-      if (args.asset.workspace_path) {
+      // The row as it is now. The move of legacy asset bytes may have named
+      // a file on it, or begun to, since the caller read it.
+      current = await Asset.find(args.userId, args.asset.id);
+      if (!current || current.id !== args.asset.id) {
+        throw new Error(`Asset ${args.asset.id} is gone`);
+      }
+      if (current.project_id !== projectId) {
+        throw new Error(`Asset ${current.id} moved to another project`);
+      }
+      if (current.workspace_path) {
+        return fillAssetFile(current, workspace, source, contentType);
+      }
+      // The move recorded a target and may have put its copy there. A second
+      // file would leave that copy with no row once the move finishes.
+      if (moveTargetOf(current) !== null) {
         throw new Error(
-          `The asset already has the file ${args.asset.workspace_path}`
+          `The bytes of asset ${current.id} are being moved into its project folder`
         );
       }
-      if (atPath.some((row) => row.id !== args.asset?.id)) {
+      if (atPath.some((row) => row.id !== current?.id)) {
         throw new Error(`Another asset already has the file ${exactPath}`);
       }
     }
-    const existing = args.asset ? [args.asset] : atPath;
+    const existing = current ? [current] : atPath;
 
     let path: string;
     if (exactPath) {
@@ -575,6 +635,46 @@ export async function saveProjectAsset(
       throw error;
     }
   });
+}
+
+/**
+ * Give an existing asset that already has a file in its project folder the
+ * bytes of `source`, for {@link saveProjectAsset}, which holds the folder
+ * lock. No second file is claimed. Nothing is written when the file already
+ * holds exactly these bytes. Otherwise they replace the file as
+ * {@link replaceProjectAssetBytes} replaces it.
+ */
+async function fillAssetFile(
+  asset: Asset,
+  workspace: Workspace,
+  source: ThumbnailSource,
+  contentType: string
+): Promise<Asset> {
+  const path = asset.workspace_path;
+  if (!path || !("bytes" in source)) {
+    throw new Error(`The asset already has the file ${path ?? ""}`);
+  }
+  if (contentType === asset.content_type) {
+    const info = await workspace.stat(path);
+    // The file is read only when its size could make it the same bytes.
+    const held =
+      info && !info.isDirectory && info.size === source.bytes.byteLength
+        ? await workspace.read(path)
+        : null;
+    if (held !== null && Buffer.compare(held, source.bytes) === 0) return asset;
+  }
+  asset.content_type = contentType;
+  const change = await replaceFileBytes(asset, workspace, path, source.bytes);
+  try {
+    asset.duration = await probeAssetDurationSeconds(contentType, source);
+    await storeAssetThumbnail(asset.user_id, asset.id, contentType, source);
+    await asset.save();
+  } catch (error) {
+    await change.undo();
+    throw error;
+  }
+  await change.commit();
+  return asset;
 }
 
 // ── Change ──────────────────────────────────────────────────────────────────
@@ -740,99 +840,111 @@ export async function replaceProjectAssetBytes(
 ): Promise<ProjectAssetFileChange | null> {
   const file = await locateProjectAssetFile(asset);
   if (!file) return null;
-  const { workspace } = file;
+  const change = await withProjectFolderLock(asset.user_id, asset.project_id, () =>
+    replaceFileBytes(asset, file.workspace, file.path, bytes)
+  );
+  // Made after the lock, so a slow thumbnail holds up no other save.
+  await storeAssetThumbnail(asset.user_id, asset.id, asset.content_type, {
+    bytes
+  });
+  return change;
+}
+
+/**
+ * The work of {@link replaceProjectAssetBytes} on the file at `path`, for a
+ * caller that holds the project's folder lock. No thumbnail is made.
+ */
+async function replaceFileBytes(
+  asset: Asset,
+  workspace: Workspace,
+  path: string,
+  bytes: Uint8Array
+): Promise<ProjectAssetFileChange> {
   const wanted = assetFileExtension(asset.content_type);
-  const foreign = await new NestedFolders(workspace).holds(file.path);
+  const foreign = await new NestedFolders(workspace).holds(path);
   // The file to replace, or null when the row names no file of its own.
-  const from = foreign ? null : file.path;
+  const from = foreign ? null : path;
   const { directory, stem, extension } = foreign
     ? {
         directory: IMPORTED_DIRECTORY,
         stem: projectAssetFileStem(asset.name, asset.content_type),
         extension: ""
       }
-    : splitPath(file.path);
+    : splitPath(path);
 
-  const change = await withProjectFolderLock(asset.user_id, asset.project_id, async () => {
-    const moves = from === null || extension.toLowerCase() !== wanted;
-    let to = from ?? "";
-    if (moves) {
-      to = await claimFile(
-        workspace,
-        { userId: asset.user_id, projectId: asset.project_id },
-        directory,
-        stem,
-        wanted,
-        bytes,
-        asset.content_type
-      );
-    }
-    const release = holdPaths(
-      asset.user_id,
-      asset.project_id,
-      moves ? (from === null ? [to] : [from, to]) : []
+  const moves = from === null || extension.toLowerCase() !== wanted;
+  let to = from ?? "";
+  if (moves) {
+    to = await claimFile(
+      workspace,
+      { userId: asset.user_id, projectId: asset.project_id },
+      directory,
+      stem,
+      wanted,
+      bytes,
+      asset.content_type
     );
-    const previous = {
-      path: asset.workspace_path,
-      metadata: asset.metadata,
-      size: asset.size,
-      contentHash: asset.content_hash
-    };
-    try {
-      // The asset's own file, replaced in place.
-      if (!moves) await workspace.write(to, bytes, asset.content_type);
-      const fingerprint = await fingerprintOf(
-        workspace,
-        to,
-        partialContentHash(bytes)
-      );
-      asset.workspace_path = to;
-      asset.size = fingerprint.workspace_size;
-      asset.metadata = withWorkspaceFingerprint(asset.metadata, fingerprint);
-      asset.content_hash = null;
-    } catch (error) {
-      release();
-      throw error;
-    }
-    return {
-      commit: async () => {
-        try {
-          if (moves && from !== null) {
-            await removeFile(
-              workspace,
-              from,
-              "Could not remove an asset's file of the previous type"
-            );
-          }
-        } finally {
-          release();
+  }
+  const release = holdPaths(
+    asset.user_id,
+    asset.project_id,
+    moves ? (from === null ? [to] : [from, to]) : []
+  );
+  const previous = {
+    path: asset.workspace_path,
+    metadata: asset.metadata,
+    size: asset.size,
+    contentHash: asset.content_hash
+  };
+  try {
+    // The asset's own file, replaced in place.
+    if (!moves) await workspace.write(to, bytes, asset.content_type);
+    const fingerprint = await fingerprintOf(
+      workspace,
+      to,
+      partialContentHash(bytes)
+    );
+    asset.workspace_path = to;
+    asset.size = fingerprint.workspace_size;
+    asset.metadata = withWorkspaceFingerprint(asset.metadata, fingerprint);
+    asset.content_hash = null;
+  } catch (error) {
+    release();
+    throw error;
+  }
+  return {
+    commit: async () => {
+      try {
+        if (moves && from !== null) {
+          await removeFile(
+            workspace,
+            from,
+            "Could not remove an asset's file of the previous type"
+          );
         }
-      },
-      undo: async () => {
-        asset.workspace_path = previous.path;
-        asset.metadata = previous.metadata;
-        asset.size = previous.size;
-        asset.content_hash = previous.contentHash;
-        // Bytes written over the file in place cannot be taken back.
-        try {
-          if (moves) {
-            await removeFile(
-              workspace,
-              to,
-              "Could not remove the new file of an asset whose update was not saved"
-            );
-          }
-        } finally {
-          release();
-        }
+      } finally {
+        release();
       }
-    };
-  });
-  // Made after the lock, so a slow thumbnail holds up no other save.
-  await storeAssetThumbnail(asset.user_id, asset.id, asset.content_type, {
-    bytes
-  });
-  return change;
+    },
+    undo: async () => {
+      asset.workspace_path = previous.path;
+      asset.metadata = previous.metadata;
+      asset.size = previous.size;
+      asset.content_hash = previous.contentHash;
+      // Bytes written over the file in place cannot be taken back.
+      try {
+        if (moves) {
+          await removeFile(
+            workspace,
+            to,
+            "Could not remove the new file of an asset whose update was not saved"
+          );
+        }
+      } finally {
+        release();
+      }
+    }
+  };
 }
 
 /** What {@link storeLegacyAssetBytes} did with the bytes. */
@@ -866,8 +978,8 @@ const MAX_PROJECT_CHANGES = 3;
  * The lock is the one of the project the row names when the lock is taken.
  * When the asset was moved to another project after the caller loaded it,
  * `asset` takes the new project and the lock of that project is taken. The
- * move's record of an interrupted move (its target and the hash of the
- * object it copied) is kept from the row, so the save in `store` does not
+ * move's record of an interrupted move (its target, the hash of the object
+ * it copied and whether it published the copy) is kept from the row, so the save in `store` does not
  * erase it and leave the move's copy in the folder with no row that claims
  * it.
  */
@@ -899,7 +1011,11 @@ export async function storeLegacyAssetBytes(
           asset.metadata = keepFingerprint(
             asset.metadata ?? {},
             current.metadata,
-            [WORKSPACE_MOVE_TARGET_KEY, WORKSPACE_MOVE_SOURCE_KEY]
+            [
+              WORKSPACE_MOVE_TARGET_KEY,
+              WORKSPACE_MOVE_SOURCE_KEY,
+              WORKSPACE_MOVE_PUBLISHED_KEY
+            ]
           );
         }
         await store();
@@ -911,6 +1027,46 @@ export async function storeLegacyAssetBytes(
       throw new Error(
         `Asset ${asset.id} kept changing project while its bytes were stored`
       );
+    }
+  }
+}
+
+/**
+ * Run `task` under the folder lock of the project the row of `asset` names,
+ * with the row read again inside the lock. `task` gets null when the row is
+ * gone.
+ *
+ * The move of legacy asset bytes into the project folder writes the row
+ * under this lock: it names the file, records where the bytes go, and
+ * deletes the legacy object. A row loaded before the lock can predate all of
+ * that, and saving or deleting it would undo the move. Inside `task` the row
+ * is current, and stays so until `task` returns. `task` must not take the
+ * folder lock itself.
+ *
+ * When the asset was moved to another project since `asset` was loaded,
+ * `asset` takes the new project and the lock of that project is taken.
+ */
+export async function withLockedAssetRow<T>(
+  asset: Asset,
+  task: (current: Asset | null) => Promise<T>
+): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    const projectId = asset.project_id;
+    const outcome = await withProjectFolderLock(
+      asset.user_id,
+      projectId,
+      async (): Promise<{ value: T } | "project_changed"> => {
+        const current = await Asset.find(asset.user_id, asset.id);
+        if (current && current.project_id !== projectId) {
+          asset.project_id = current.project_id;
+          return "project_changed";
+        }
+        return { value: await task(current) };
+      }
+    );
+    if (outcome !== "project_changed") return outcome.value;
+    if (attempt + 1 >= MAX_PROJECT_CHANGES) {
+      throw new Error(`Asset ${asset.id} kept changing project while it was locked`);
     }
   }
 }
@@ -1320,7 +1476,7 @@ async function partialHashInFolder(
  * Copy one linked asset's file into `Imported/`, verify the copy, then point
  * the row at it. The steps are ordered so an interruption at any point
  * leaves the asset readable: the row keeps `external_path` until the copy is
- * verified, and the reserved file is recorded on the row so the next run
+ * verified, and the published copy is recorded on the row so the next run
  * reuses it.
  */
 async function collectOne(
@@ -1341,32 +1497,43 @@ async function collectOne(
   }
 
   let path: string | null = null;
-  // The reserved file has no row until the copy is verified. Holding its
-  // path keeps the reconciler from indexing it as a second asset.
-  let release: (() => void) | null = null;
+  // The copy has no row until it is verified. Holding its path keeps the
+  // reconciler from indexing it as a second asset.
+  let release = (): void => undefined;
+  const hold = (candidate: string): void => {
+    release();
+    release = holdPaths(asset.user_id, projectId, [candidate]);
+  };
   try {
     const sourceHash = await partialContentHashOfFile(source);
-    const reserved = await withProjectFolderLock(asset.user_id, projectId, async () => {
-      // An empty file reserves the name. The bytes are copied outside the
-      // lock, so a long copy does not hold up other saves to this folder.
-      const claimed =
-        (await pendingCollectPath(workspace, asset, projectId)) ??
-        (await claimFile(
-          workspace,
-          { userId: asset.user_id, projectId },
-          workspace.key(IMPORTED_DIRECTORY),
-          projectAssetFileStem(asset.name, asset.content_type),
-          assetFileExtension(asset.content_type),
-          new Uint8Array(0),
-          asset.content_type
-        ));
-      return { claimed, hold: holdPaths(asset.user_id, projectId, [claimed]) };
+    // A path on the row is a copy an earlier run published and then stopped.
+    // It is reused only when it still holds the linked file's bytes. Any
+    // other file there is left as it is.
+    const pending = await withProjectFolderLock(asset.user_id, projectId, async () => {
+      const recorded = await pendingCollectPath(workspace, asset, projectId);
+      if (recorded) hold(recorded);
+      return recorded;
     });
-    path = reserved.claimed;
-    release = reserved.hold;
-    await setCollectPath(asset, path);
+    if (pending && (await partialHashInFolder(workspace, pending)) === sourceHash) {
+      path = pending;
+    } else {
+      // The bytes are copied outside the folder lock, so a long copy does
+      // not hold up other saves. The copy is published only to a free name,
+      // so a file another app saves meanwhile is never replaced.
+      const published = await claimFile(
+        workspace,
+        { userId: asset.user_id, projectId },
+        workspace.key(IMPORTED_DIRECTORY),
+        projectAssetFileStem(asset.name, asset.content_type),
+        assetFileExtension(asset.content_type),
+        { localPath: source },
+        asset.content_type,
+        async (candidate) => hold(candidate)
+      );
+      path = published;
+      await setCollectPath(asset, published);
+    }
 
-    await workspace.absorb(source, path);
     const copyHash = await partialHashInFolder(workspace, path);
     if (copyHash !== sourceHash) {
       throw new Error("The copy does not match the linked file");
@@ -1396,7 +1563,7 @@ async function collectOne(
     const reason = error instanceof Error ? error.message : String(error);
     log.warn("Could not collect a linked asset", { assetId: asset.id, reason });
     if (path) {
-      // The file is the reservation this collect made. No row names it.
+      // The file is the copy this collect published. No row names it.
       await removeFile(workspace, path, "Could not remove a failed collect copy");
       try {
         await setCollectPath(asset, null);
@@ -1409,7 +1576,7 @@ async function collectOne(
     }
     return { kind: "failed", asset: { ...label, reason } };
   } finally {
-    release?.();
+    release();
   }
 }
 

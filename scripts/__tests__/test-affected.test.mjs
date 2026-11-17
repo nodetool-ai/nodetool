@@ -226,6 +226,16 @@ describe("buildPlan", () => {
     ]);
   });
 
+  it.each(["native/account/src/account_session.cpp", "native/account-helper/src/main.cpp"])(
+    "builds and tests the account helper when %s changes",
+    (file) => {
+      const steps = plan([file]).steps;
+      expect(steps.map((s) => [s.command, ...s.args])).toEqual([
+        ["node", "electron/scripts/build-account-helper.mjs", "--test"]
+      ]);
+    }
+  );
+
   it.each([
     "native/parity/census.mjs",
     "native/parity/registry.json",

@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "code#state",
       "signInWindowClosed": "Anmeldefenster geschlossen?",
       "openAgain": "Erneut öffnen",
-      "linkExpiry": ". Der Link läuft nach 10 Minuten ab."
+      "linkExpiry": ". Der Link läuft nach 10 Minuten ab.",
+      "nativeSubtitle": "möchte sich bei deinem NodeTool-Konto anmelden.",
+      "app": "App",
+      "device": "Gerät",
+      "nativeNote": "Bestätige nur, wenn du diese Anmeldung in einer NodeTool-Desktop-App auf diesem Computer gestartet hast. Die App kann dann deine Cloud-Dokumente öffnen, bearbeiten und speichern, bis du dich abmeldest oder die Sitzung in den Einstellungen beendest."
     },
     "integrations": {
       "loadingAccounts": "Verknüpfte Konten werden geladen",
@@ -6136,6 +6140,10 @@
         "title": "Neues Projekt",
         "confirm": "Projekt erstellen",
         "nameLabel": "Projektname",
+        "locationLabel": "Speicherort",
+        "locationDefault": "Projektordner",
+        "locationChoose": "Auswählen…",
+        "locationReset": "Projektordner verwenden",
         "createError": "Projekt konnte nicht erstellt werden: {{error}}",
         "openFolder": "Ordner öffnen…",
         "openFolderHint": "Sie haben schon einen Ordner? Öffnen Sie ihn als Projekt. Es werden keine Dateien verschoben.",
@@ -19087,6 +19095,26 @@
       "typeMore": "Mindestens 2 Zeichen eingeben",
       "noMatches": "Niemand gefunden",
       "failed": "Zugriff konnte nicht erteilt werden."
+    },
+    "options": {
+      "history": "Verlauf",
+      "historyDescription": "Betrachter können gespeicherte Versionen öffnen.",
+      "download": "Herunterladen",
+      "downloadDescription": "Betrachter können die Originaldateien herunterladen.",
+      "duplicate": "Duplizieren",
+      "duplicateDescription": "Betrachter können es samt Dateien in ihre eigene Bibliothek kopieren.",
+      "turnedOff": "Bereits Heruntergeladenes oder Dupliziertes bleibt erhalten.",
+      "historyOffNotice": "Betrachter dieses Links sehen keine gespeicherten Versionen mehr. Schalte den Verlauf ein, um sie wieder freizugeben.",
+      "turnOnHistory": "Verlauf einschalten",
+      "dismiss": "Schließen",
+      "failed": "Die Optionen konnten nicht geändert werden."
+    },
+    "people": {
+      "from": "Zugriff über {{sources}}",
+      "sourceInvitation": "Einladung",
+      "sourceViewLink": "Ansichtslink",
+      "sourceEditLink": "Bearbeitungslink",
+      "sourceDisabled": "{{source}} (deaktiviert)"
     }
   },
   "timelineAutomation": {
@@ -20216,6 +20244,27 @@
     "removeBody": "Das Asset wird aus NodeTool entfernt. Dokumente, die es verwenden, können es nicht mehr anzeigen.",
     "cancel": "Abbrechen"
   },
+  "deviceSessions": {
+    "title": "Angemeldete Geräte",
+    "description": "Computer, auf denen du dich in den NodeTool-Desktop-Apps angemeldet hast. Die Apps auf einem Computer teilen sich eine Sitzung. Wenn du eine Sitzung beendest, wird dieser Computer abgemeldet.",
+    "empty": "Kein Computer ist angemeldet.",
+    "unnamed": "Unbenannter Computer",
+    "signedInFrom": "Angemeldet über {{app}} am {{date}}",
+    "lastUsed": "Zuletzt verwendet {{date}}",
+    "neverUsed": "Seit der Anmeldung nicht verwendet",
+    "end": "Sitzung beenden",
+    "confirmTitle": "Diese Sitzung beenden?",
+    "confirmBody": "Die NodeTool-Desktop-Apps auf {{device}} werden innerhalb einer Minute abgemeldet.",
+    "cancel": "Abbrechen",
+    "ended": "Sitzung beendet.",
+    "endError": "Die Sitzung konnte nicht beendet werden: {{error}}",
+    "loadError": "Angemeldete Geräte konnten nicht geladen werden.",
+    "apps": {
+      "nodeEditor": "Node-Editor",
+      "timeline": "Timeline",
+      "desktop": "Desktop-App"
+    }
+  },
   "storyboardText": {
     "mode": "Text",
     "editorLabel": "Storyboard als Markdown-Text",
@@ -20270,5 +20319,21 @@
         "failed": "Die Anfrage ist fehlgeschlagen. Sende sie erneut."
       }
     }
+  },
+  "cloudAccount": {
+    "title": "NodeTool-Cloud-Konto",
+    "description": "Eine Anmeldung für diese App, den Node-Editor und die Timeline auf diesem Computer. An- und Abmelden hier gilt für alle drei.",
+    "signedInAs": "Angemeldet als {{name}}",
+    "server": "Server: {{server}}",
+    "signedOut": "Nicht angemeldet",
+    "signingIn": "Schließe die Anmeldung im Browser ab",
+    "serverEndPending": "Abgemeldet, Sitzung auf dem Server noch nicht beendet",
+    "cloudOff": "Cloud-Funktionen sind auf diesem Computer ausgeschaltet",
+    "noKeychain": "Dieser Computer hat keinen Anmeldedatenspeicher. Die Anmeldung gilt deshalb, bis NodeTool beendet wird.",
+    "signIn": "Anmelden",
+    "cancel": "Abbrechen",
+    "signOut": "Abmelden",
+    "signOutNote": "Änderungen, die im Node-Editor oder in der Timeline warten, bleiben auf diesem Computer und werden nach der nächsten Anmeldung gesendet.",
+    "unavailable": "Die Cloud-Anmeldung ist in diesem Build nicht verfügbar."
   }
 }

@@ -191,6 +191,7 @@ void EditorWindow::installApplicationMenu() {
     command(workflow, tr("Open from Server…"), QStringLiteral("Server Open"));
     command(workflow, tr("Save to Server"), QStringLiteral("Server Save"));
     command(workflow, tr("Sync with Server…"), QStringLiteral("Server sync"));
+    command(workflow, tr("Share…"), QStringLiteral("Share"));
     command(workflow, tr("Reconnect"), QStringLiteral("Reconnect"));
     workflow->addSeparator();
     command(workflow, tr("Linked Workflows…"), QStringLiteral("Linked workflows"));

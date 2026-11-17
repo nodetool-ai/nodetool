@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "code#staat",
       "signInWindowClosed": "Inlogvenster gesloten?",
       "openAgain": "Open het opnieuw",
-      "linkExpiry": ". De link vervalt na 10 minuten."
+      "linkExpiry": ". De link vervalt na 10 minuten.",
+      "nativeSubtitle": "wil inloggen op je NodeTool-account.",
+      "app": "App",
+      "device": "Apparaat",
+      "nativeNote": "Keur alleen goed als je deze aanmelding zelf in een NodeTool-desktopapp op deze computer hebt gestart. De app kan daarna je clouddocumenten openen, bewerken en opslaan tot je uitlogt of de sessie in Instellingen beëindigt."
     },
     "integrations": {
       "loadingAccounts": "Verbonden accounts laden",
@@ -6136,6 +6140,10 @@
         "title": "Nieuw project",
         "confirm": "Project aanmaken",
         "nameLabel": "Projectnaam",
+        "locationLabel": "Locatie",
+        "locationDefault": "Projectenmap",
+        "locationChoose": "Kiezen…",
+        "locationReset": "Projectenmap gebruiken",
         "createError": "Kon het project niet aanmaken: {{error}}",
         "openFolder": "Map openen…",
         "openFolderHint": "Heb je al een map? Open die als project. Er worden geen bestanden verplaatst.",
@@ -19087,6 +19095,26 @@
       "typeMore": "Typ minstens 2 tekens",
       "noMatches": "Niemand gevonden",
       "failed": "Kon geen toegang geven."
+    },
+    "options": {
+      "history": "Geschiedenis",
+      "historyDescription": "Kijkers kunnen opgeslagen versies openen.",
+      "download": "Downloaden",
+      "downloadDescription": "Kijkers kunnen de originele bestanden downloaden.",
+      "duplicate": "Dupliceren",
+      "duplicateDescription": "Kijkers kunnen het met de bestanden naar hun eigen bibliotheek kopiëren.",
+      "turnedOff": "Wat al gedownload of gedupliceerd is, houden mensen.",
+      "historyOffNotice": "Kijkers van deze link zien geen opgeslagen versies meer. Zet geschiedenis aan om ze terug te geven.",
+      "turnOnHistory": "Geschiedenis aanzetten",
+      "dismiss": "Sluiten",
+      "failed": "De opties konden niet worden gewijzigd."
+    },
+    "people": {
+      "from": "Toegang via {{sources}}",
+      "sourceInvitation": "uitnodiging",
+      "sourceViewLink": "bekijklink",
+      "sourceEditLink": "bewerklink",
+      "sourceDisabled": "{{source}} (uitgeschakeld)"
     }
   },
   "timelineAutomation": {
@@ -20216,6 +20244,27 @@
     "removeBody": "Het item wordt uit NodeTool verwijderd. Documenten die het gebruiken, kunnen het niet meer tonen.",
     "cancel": "Annuleren"
   },
+  "deviceSessions": {
+    "title": "Aangemelde apparaten",
+    "description": "Computers waarop je bent aangemeld bij de NodeTool-desktopapps. De apps op één computer delen één sessie. Een sessie beëindigen meldt die computer af.",
+    "empty": "Er is geen computer aangemeld.",
+    "unnamed": "Naamloze computer",
+    "signedInFrom": "Aangemeld via {{app}} op {{date}}",
+    "lastUsed": "Laatst gebruikt {{date}}",
+    "neverUsed": "Niet gebruikt sinds aanmelding",
+    "end": "Sessie beëindigen",
+    "confirmTitle": "Deze sessie beëindigen?",
+    "confirmBody": "De NodeTool-desktopapps op {{device}} worden binnen een minuut afgemeld.",
+    "cancel": "Annuleren",
+    "ended": "Sessie beëindigd.",
+    "endError": "Kon de sessie niet beëindigen: {{error}}",
+    "loadError": "Kon aangemelde apparaten niet laden.",
+    "apps": {
+      "nodeEditor": "Node-editor",
+      "timeline": "Tijdlijn",
+      "desktop": "Desktop-app"
+    }
+  },
   "storyboardText": {
     "mode": "Tekst",
     "editorLabel": "Storyboard als Markdown-tekst",
@@ -20270,5 +20319,21 @@
         "failed": "Het verzoek is mislukt. Stuur het opnieuw."
       }
     }
+  },
+  "cloudAccount": {
+    "title": "NodeTool Cloud-account",
+    "description": "Eén aanmelding voor deze app, de node-editor en de tijdlijn op deze computer. Aan- of afmelden hier geldt voor alle drie.",
+    "signedInAs": "Aangemeld als {{name}}",
+    "server": "Server: {{server}}",
+    "signedOut": "Niet aangemeld",
+    "signingIn": "Rond het aanmelden af in je browser",
+    "serverEndPending": "Afgemeld, sessie nog niet beëindigd op de server",
+    "cloudOff": "Cloudfuncties zijn uitgeschakeld op deze computer",
+    "noKeychain": "Deze computer heeft geen opslag voor inloggegevens, dus de aanmelding duurt tot NodeTool wordt afgesloten.",
+    "signIn": "Aanmelden",
+    "cancel": "Annuleren",
+    "signOut": "Afmelden",
+    "signOutNote": "Wijzigingen die wachten in de node-editor of de tijdlijn blijven op deze computer en worden verzonden nadat je je opnieuw aanmeldt.",
+    "unavailable": "Aanmelden bij de cloud is niet beschikbaar in deze build."
   }
 }

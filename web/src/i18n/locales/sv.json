@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "kod#tillstånd",
       "signInWindowClosed": "Inloggningsfönstret stängt?",
       "openAgain": "Öppna den igen",
-      "linkExpiry": ". Länken upphör att gälla efter 10 minuter."
+      "linkExpiry": ". Länken upphör att gälla efter 10 minuter.",
+      "nativeSubtitle": "vill logga in på ditt NodeTool-konto.",
+      "app": "App",
+      "device": "Enhet",
+      "nativeNote": "Godkänn bara om du själv startade inloggningen i en NodeTool-skrivbordsapp på den här datorn. Appen kan sedan öppna, redigera och spara dina molndokument tills du loggar ut eller avslutar sessionen i Inställningar."
     },
     "integrations": {
       "loadingAccounts": "Laddar anslutna konton",
@@ -6136,6 +6140,10 @@
         "title": "Nytt projekt",
         "confirm": "Skapa projekt",
         "nameLabel": "Projektnamn",
+        "locationLabel": "Plats",
+        "locationDefault": "Projektmapp",
+        "locationChoose": "Välj…",
+        "locationReset": "Använd projektmappen",
         "createError": "Kunde inte skapa projektet: {{error}}",
         "openFolder": "Öppna mapp…",
         "openFolderHint": "Har du redan en mapp? Öppna den som ett projekt. Inga filer flyttas.",
@@ -19087,6 +19095,26 @@
       "typeMore": "Skriv minst 2 tecken",
       "noMatches": "Ingen träff",
       "failed": "Kunde inte ge åtkomst."
+    },
+    "options": {
+      "history": "Historik",
+      "historyDescription": "Läsare kan öppna sparade versioner.",
+      "download": "Nedladdning",
+      "downloadDescription": "Läsare kan ladda ner originalfilerna.",
+      "duplicate": "Duplicering",
+      "duplicateDescription": "Läsare kan kopiera det med filerna till sitt eget bibliotek.",
+      "turnedOff": "Det som redan har laddats ner eller duplicerats behåller folk.",
+      "historyOffNotice": "Läsare av den här länken ser inte längre sparade versioner. Slå på historik för att ge tillbaka dem.",
+      "turnOnHistory": "Slå på historik",
+      "dismiss": "Stäng",
+      "failed": "Det gick inte att ändra alternativen."
+    },
+    "people": {
+      "from": "Åtkomst via {{sources}}",
+      "sourceInvitation": "inbjudan",
+      "sourceViewLink": "visningslänk",
+      "sourceEditLink": "redigeringslänk",
+      "sourceDisabled": "{{source}} (inaktiverad)"
     }
   },
   "timelineAutomation": {
@@ -20216,6 +20244,27 @@
     "removeBody": "Resursen tas bort från NodeTool. Dokument som använder den kan inte längre visa den.",
     "cancel": "Avbryt"
   },
+  "deviceSessions": {
+    "title": "Inloggade enheter",
+    "description": "Datorer där du har loggat in i NodeTools skrivbordsappar. Apparna på en dator delar en session. Att avsluta en session loggar ut den datorn.",
+    "empty": "Ingen dator är inloggad.",
+    "unnamed": "Namnlös dator",
+    "signedInFrom": "Inloggad från {{app}} {{date}}",
+    "lastUsed": "Senast använd {{date}}",
+    "neverUsed": "Inte använd sedan inloggningen",
+    "end": "Avsluta session",
+    "confirmTitle": "Avsluta den här sessionen?",
+    "confirmBody": "NodeTools skrivbordsappar på {{device}} loggas ut inom en minut.",
+    "cancel": "Avbryt",
+    "ended": "Sessionen avslutades.",
+    "endError": "Det gick inte att avsluta sessionen: {{error}}",
+    "loadError": "Det gick inte att läsa in inloggade enheter.",
+    "apps": {
+      "nodeEditor": "Nodredigerare",
+      "timeline": "Tidslinje",
+      "desktop": "Skrivbordsapp"
+    }
+  },
   "storyboardText": {
     "mode": "Text",
     "editorLabel": "Storyboard som Markdown-text",
@@ -20270,5 +20319,21 @@
         "failed": "Begäran misslyckades. Skicka den igen."
       }
     }
+  },
+  "cloudAccount": {
+    "title": "NodeTool Cloud-konto",
+    "description": "En inloggning för den här appen, nodredigeraren och tidslinjen på den här datorn. Att logga in eller ut här gäller alla tre.",
+    "signedInAs": "Inloggad som {{name}}",
+    "server": "Server: {{server}}",
+    "signedOut": "Inte inloggad",
+    "signingIn": "Slutför inloggningen i webbläsaren",
+    "serverEndPending": "Utloggad, sessionen är ännu inte avslutad på servern",
+    "cloudOff": "Molnfunktioner är avstängda på den här datorn",
+    "noKeychain": "Den här datorn har ingen lagring för inloggningsuppgifter, så inloggningen varar tills NodeTool avslutas.",
+    "signIn": "Logga in",
+    "cancel": "Avbryt",
+    "signOut": "Logga ut",
+    "signOutNote": "Ändringar som väntar i nodredigeraren eller tidslinjen stannar på den här datorn och skickas när du loggar in igen.",
+    "unavailable": "Molninloggning är inte tillgänglig i den här versionen."
   }
 }

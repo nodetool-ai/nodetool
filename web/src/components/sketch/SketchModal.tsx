@@ -39,7 +39,7 @@ import {
 } from "./types";
 import type { SketchTool } from "./types";
 import { SKETCH_Z_INDEX, settingRowChildrenSx } from "./sketchStyles";
-import { displayCombo } from "./shortcuts";
+import { displayCombo } from "./shortcuts/normalize";
 import {
   Caption,
   FlexColumn,

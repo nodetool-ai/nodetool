@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "kode#stat",
       "signInWindowClosed": "Påloggingsvinduet er lukket?",
       "openAgain": "Åpne den igjen",
-      "linkExpiry": ". Linken utløper etter 10 minutter."
+      "linkExpiry": ". Linken utløper etter 10 minutter.",
+      "nativeSubtitle": "vil logge på NodeTool-kontoen din.",
+      "app": "App",
+      "device": "Enhet",
+      "nativeNote": "Godkjenn bare hvis du selv startet påloggingen i en NodeTool-skrivebordsapp på denne datamaskinen. Appen kan da åpne, redigere og lagre skydokumentene dine til du logger av eller avslutter økten i Innstillinger."
     },
     "integrations": {
       "loadingAccounts": "Laster tilkoblede kontoer",
@@ -6136,6 +6140,10 @@
         "title": "Nytt prosjekt",
         "confirm": "Lag prosjekt",
         "nameLabel": "Prosjektnavn",
+        "locationLabel": "Plassering",
+        "locationDefault": "Prosjektmappe",
+        "locationChoose": "Velg…",
+        "locationReset": "Bruk prosjektmappen",
         "createError": "Kunne ikke opprette prosjektet: {{error}}",
         "openFolder": "Åpne mappe…",
         "openFolderHint": "Har du allerede en mappe? Åpne den som et prosjekt. Ingen filer flyttes.",
@@ -19087,6 +19095,26 @@
       "typeMore": "Skriv minst 2 tegn",
       "noMatches": "Ingen treff",
       "failed": "Kunne ikke gi tilgang."
+    },
+    "options": {
+      "history": "Historikk",
+      "historyDescription": "Lesere kan åpne lagrede versjoner.",
+      "download": "Nedlasting",
+      "downloadDescription": "Lesere kan laste ned originalfilene.",
+      "duplicate": "Duplisering",
+      "duplicateDescription": "Lesere kan kopiere det med filene til sitt eget bibliotek.",
+      "turnedOff": "Det som allerede er lastet ned eller duplisert, beholder folk.",
+      "historyOffNotice": "Lesere av denne lenken ser ikke lenger lagrede versjoner. Slå på historikk for å gi dem tilbake.",
+      "turnOnHistory": "Slå på historikk",
+      "dismiss": "Lukk",
+      "failed": "Kunne ikke endre alternativene."
+    },
+    "people": {
+      "from": "Tilgang via {{sources}}",
+      "sourceInvitation": "invitasjon",
+      "sourceViewLink": "visningslenke",
+      "sourceEditLink": "redigeringslenke",
+      "sourceDisabled": "{{source}} (deaktivert)"
     }
   },
   "timelineAutomation": {
@@ -20216,6 +20244,27 @@
     "removeBody": "Ressursen fjernes fra NodeTool. Dokumenter som bruker den, kan ikke lenger vise den.",
     "cancel": "Avbryt"
   },
+  "deviceSessions": {
+    "title": "Påloggede enheter",
+    "description": "Datamaskiner der du har logget på NodeTools skrivebordsapper. Appene på én datamaskin deler én økt. Å avslutte en økt logger ut den datamaskinen.",
+    "empty": "Ingen datamaskin er pålogget.",
+    "unnamed": "Navnløs datamaskin",
+    "signedInFrom": "Logget på fra {{app}} {{date}}",
+    "lastUsed": "Sist brukt {{date}}",
+    "neverUsed": "Ikke brukt siden pålogging",
+    "end": "Avslutt økt",
+    "confirmTitle": "Avslutte denne økten?",
+    "confirmBody": "NodeTools skrivebordsapper på {{device}} logges av innen ett minutt.",
+    "cancel": "Avbryt",
+    "ended": "Økten ble avsluttet.",
+    "endError": "Kunne ikke avslutte økten: {{error}}",
+    "loadError": "Kunne ikke laste inn påloggede enheter.",
+    "apps": {
+      "nodeEditor": "Noderedigering",
+      "timeline": "Tidslinje",
+      "desktop": "Skrivebordsapp"
+    }
+  },
   "storyboardText": {
     "mode": "Tekst",
     "editorLabel": "Storyboard som Markdown-tekst",
@@ -20270,5 +20319,21 @@
         "failed": "Forespørselen mislyktes. Send den på nytt."
       }
     }
+  },
+  "cloudAccount": {
+    "title": "NodeTool Cloud-konto",
+    "description": "Én pålogging for denne appen, noderedigeringen og tidslinjen på denne datamaskinen. Pålogging eller avlogging her gjelder alle tre.",
+    "signedInAs": "Logget på som {{name}}",
+    "server": "Server: {{server}}",
+    "signedOut": "Ikke logget på",
+    "signingIn": "Fullfør påloggingen i nettleseren",
+    "serverEndPending": "Logget ut, økten er ennå ikke avsluttet på serveren",
+    "cloudOff": "Skyfunksjoner er slått av på denne datamaskinen",
+    "noKeychain": "Denne datamaskinen har ingen lagring for påloggingsinformasjon, så påloggingen varer til NodeTool avsluttes.",
+    "signIn": "Logg på",
+    "cancel": "Avbryt",
+    "signOut": "Logg ut",
+    "signOutNote": "Endringer som venter i noderedigeringen eller tidslinjen blir på denne datamaskinen og sendes når du logger på igjen.",
+    "unavailable": "Skypålogging er ikke tilgjengelig i denne versjonen."
   }
 }

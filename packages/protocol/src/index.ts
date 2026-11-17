@@ -22,6 +22,7 @@ export * from "./mime-types.js";
 export * from "./chat-attachment.js";
 export * from "./package-assets.js";
 export * from "./resource-uri.js";
+export * from "./closure.js";
 export * from "./model-selection.js";
 export * from "./reasoning-effort.js";
 export * from "./gemini-models.js";

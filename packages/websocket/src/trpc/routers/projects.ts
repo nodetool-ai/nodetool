@@ -104,7 +104,8 @@ import { timelineFileAdapter } from "@nodetool-ai/project-services/timeline-file
 import {
   ProjectFolderOpenError,
   openProjectFolder,
-  relocateProjectFolder
+  relocateProjectFolder,
+  withProjectLocation
 } from "../../lib/project-folder-open.js";
 import { workspaceFromRow } from "../../lib/workflow-workspace.js";
 import { projectFolderMigrationRouter } from "./project-folder-migration.js";
@@ -519,21 +520,22 @@ export const projectsRouter = router({
     .output(projectResponse)
     .mutation(async ({ ctx, input }) => {
       await prepareUser(ctx.userId);
-      // The insert never rewrites an existing row: the primary key is
-      // install-global, so an upsert here could hand one user's project to
-      // another. A conflict is re-read instead — the caller's own id answers
-      // idempotently with the row that is already there.
-      const project = await Project.insertNew({
-        id: input.id,
-        user_id: ctx.userId,
-        name: input.name,
-        kind: input.kind
-      });
-      if (project) {
+      const insert = async (parentDir?: string): Promise<Project | null> => {
+        // The insert never rewrites an existing row: the primary key is
+        // install-global, so an upsert here could hand one user's project to
+        // another. A conflict is re-read instead — the caller's own id answers
+        // idempotently with the row that is already there.
+        const project = await Project.insertNew({
+          id: input.id,
+          user_id: ctx.userId,
+          name: input.name,
+          kind: input.kind
+        });
+        if (!project) return null;
         // The folder is part of the create. A project whose folder cannot be
         // made is removed again, so no project exists without one.
         try {
-          await ensureProjectFolder(project);
+          await ensureProjectFolder(project, { parentDir });
         } catch (error) {
           await project.delete();
           throwApiError(
@@ -541,8 +543,25 @@ export const projectsRouter = router({
             projectFolderFailure(error)
           );
         }
-        return toResponse(project);
+        return project;
+      };
+      let project: Project | null;
+      const location = input.location;
+      if (location) {
+        // The location is checked before the insert, so a refused one leaves
+        // no project behind.
+        try {
+          project = await withProjectLocation(ctx.userId, location, insert);
+        } catch (error) {
+          if (error instanceof ProjectFolderOpenError) {
+            throwApiError(FOLDER_OPEN_ERROR_CODES[error.code], error.message);
+          }
+          throw error;
+        }
+      } else {
+        project = await insert();
       }
+      if (project) return toResponse(project);
 
       const existing = input.id ? await Project.findById(input.id) : null;
       if (!existing) {

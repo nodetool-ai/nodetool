@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { isRecord } from "../predicates.js";
 import { exampleNeeds } from "../example-needs.js";
+import { documentSchemaVersion, editingInstanceId } from "./sync.js";
 
 // ── WorkflowRunMode ──────────────────────────────────────────────────────────
 
@@ -153,7 +154,9 @@ export const workflowResponse = z.object({
   needs: exampleNeeds.nullable().optional(),
   html_app: z.string().nullable(),
   app_doc: z.record(z.string(), z.unknown()).nullable().optional(),
-  etag: z.string().nullable()
+  etag: z.string().nullable(),
+  /** The schema version the stored graph was written in. See sync.ts. */
+  schema_version: z.number().int().optional()
 });
 export type WorkflowResponse = z.infer<typeof workflowResponse>;
 
@@ -333,7 +336,11 @@ export type CreateInput = z.infer<typeof createInput>;
 
 export const updateInput = workflowBody.extend({
   id: z.string().min(1),
-  expected_updated_at: z.string().optional()
+  expected_updated_at: z.string().optional(),
+  /** See {@link editingInstanceId}. */
+  editing_instance: editingInstanceId.optional(),
+  /** The document schema version of `graph`, see `sync.ts`. */
+  schema_version: documentSchemaVersion.optional()
 });
 export type UpdateInput = z.infer<typeof updateInput>;
 
@@ -383,7 +390,11 @@ export const autosaveInput = z.object({
   client_id: z.string().optional(),
   force: z.boolean().optional(),
   max_versions: z.number().int().optional(),
-  expected_updated_at: z.string().optional()
+  expected_updated_at: z.string().optional(),
+  /** See {@link editingInstanceId}. */
+  editing_instance: editingInstanceId.optional(),
+  /** The document schema version of `graph`, see `sync.ts`. */
+  schema_version: documentSchemaVersion.optional()
 });
 export type AutosaveInput = z.infer<typeof autosaveInput>;
 
@@ -526,7 +537,9 @@ export type VersionGetInput = z.infer<typeof versionGetInput>;
 // version restore (POST /api/workflows/:id/versions/:version/restore)
 export const versionRestoreInput = z.object({
   id: z.string().min(1),
-  version: z.number().int().min(1)
+  version: z.number().int().min(1),
+  /** The restoring editing instance. See {@link editingInstanceId}. */
+  editing_instance: editingInstanceId.optional()
 });
 export type VersionRestoreInput = z.infer<typeof versionRestoreInput>;
 
@@ -611,6 +624,73 @@ export type CollaboratorRoleValue = z.infer<typeof collaboratorRoleSchema>;
 export const shareRoleSchema = z.enum(["viewer", "editor", "public"]);
 export type ShareRoleValue = z.infer<typeof shareRoleSchema>;
 
+/**
+ * What a viewer may do beyond opening a document: read its history,
+ * download its original files, duplicate it. All off by default. An editor
+ * and the owner may do all three.
+ */
+export const shareOptionsSchema = z.object({
+  allow_history: z.boolean(),
+  allow_download: z.boolean(),
+  allow_duplicate: z.boolean()
+});
+export type ShareOptionsValue = z.infer<typeof shareOptionsSchema>;
+
+/** The options to change. An option left out keeps its value. */
+export const shareOptionsPatch = shareOptionsSchema.partial();
+export type ShareOptionsPatch = z.infer<typeof shareOptionsPatch>;
+
+/** Where a grant comes from. */
+export const accessSourceSchema = z.enum([
+  "owner",
+  "invitation",
+  "link",
+  "public"
+]);
+export type AccessSourceValue = z.infer<typeof accessSourceSchema>;
+
+/** One grant that covers the caller or a person on the document. */
+export const accessGrantItem = z.object({
+  source: accessSourceSchema,
+  /** The grant row, null for the owner and for public access. */
+  grant_id: z.string().nullable(),
+  /** The link of a link grant, else null. */
+  share_id: z.string().nullable(),
+  role: z.enum(["owner", "editor", "viewer"]),
+  options: shareOptionsSchema,
+  /** A link grant whose link admits nobody new. Its options stay live. */
+  link_disabled: z.boolean()
+});
+export type AccessGrantItem = z.infer<typeof accessGrantItem>;
+
+/**
+ * A person's effective access (P1 to P6 of the PRD): the highest role among
+ * the grants, each option on when any grant turns it on, and the grants
+ * that give the role and each option.
+ */
+export const effectiveAccessItem = z.object({
+  role: z.enum(["owner", "editor", "viewer"]),
+  options: shareOptionsSchema,
+  grants: z.array(accessGrantItem),
+  /** Indexes into `grants`: which give the role and each option. */
+  given_by: z.object({
+    role: z.array(z.number().int()),
+    allow_history: z.array(z.number().int()),
+    allow_download: z.array(z.number().int()),
+    allow_duplicate: z.array(z.number().int())
+  })
+});
+export type EffectiveAccessItem = z.infer<typeof effectiveAccessItem>;
+
+/** A person on the document, with their effective access (P6). */
+export const sharingPersonItem = z.object({
+  user_id: z.string(),
+  display_name: z.string().nullable().optional(),
+  email: z.string().nullable().optional(),
+  access: effectiveAccessItem
+});
+export type SharingPersonItem = z.infer<typeof sharingPersonItem>;
+
 export const collaboratorItem = z.object({
   workflow_id: z.string(),
   user_id: z.string(),
@@ -620,6 +700,10 @@ export const collaboratorItem = z.object({
   /** From the user directory, when the collaborator has signed in through SSO. */
   display_name: z.string().nullable().optional(),
   email: z.string().nullable().optional(),
+  /** The link this grant came from, null for an invitation. */
+  share_id: z.string().nullable().optional(),
+  /** An invitation's own options. A link grant reads its link's. */
+  options: shareOptionsSchema.optional()
 });
 export type CollaboratorItem = z.infer<typeof collaboratorItem>;
 
@@ -629,7 +713,12 @@ export const shareItem = z.object({
   token: z.string(),
   role: shareRoleSchema,
   created_at: z.string().nullable().optional(),
-  revoked_at: z.string().nullable().optional()
+  /** Same as `disabled_at`. Kept for older clients. */
+  revoked_at: z.string().nullable().optional(),
+  disabled_at: z.string().nullable().optional(),
+  options: shareOptionsSchema.optional(),
+  /** A notice for the owner, such as `history_off`, until dismissed. */
+  owner_notice: z.string().nullable().optional()
 });
 export type ShareItem = z.infer<typeof shareItem>;
 
@@ -638,7 +727,9 @@ export type SharingGetInput = z.infer<typeof sharingGetInput>;
 
 export const sharingGetOutput = z.object({
   collaborators: z.array(collaboratorItem),
-  shares: z.array(shareItem)
+  shares: z.array(shareItem),
+  /** Each person once, with their effective role and options (P6). */
+  people: z.array(sharingPersonItem).optional()
 });
 export type SharingGetOutput = z.infer<typeof sharingGetOutput>;
 
@@ -669,9 +760,46 @@ export type SharingRemoveCollaboratorInput = z.infer<
   typeof sharingRemoveCollaboratorInput
 >;
 
-/** Give a person from the user directory access by name, without a link. */
-export const sharingInviteInput = sharingSetRoleInput;
+/**
+ * Give a person from the user directory access by name, without a link.
+ * The options are the invitation's own.
+ */
+export const sharingInviteInput = sharingSetRoleInput.extend({
+  options: shareOptionsPatch.optional()
+});
 export type SharingInviteInput = z.infer<typeof sharingInviteInput>;
+
+/** Change a link's options. They apply to everyone who joined through it. */
+export const sharingSetLinkOptionsInput = z.object({
+  id: z.string().min(1),
+  share_id: z.string().min(1),
+  options: shareOptionsPatch
+});
+export type SharingSetLinkOptionsInput = z.infer<
+  typeof sharingSetLinkOptionsInput
+>;
+
+/** Change the options of a person's invitation. */
+export const sharingSetInvitationOptionsInput = z.object({
+  id: z.string().min(1),
+  user_id: z.string().min(1),
+  options: shareOptionsPatch
+});
+export type SharingSetInvitationOptionsInput = z.infer<
+  typeof sharingSetInvitationOptionsInput
+>;
+
+/** The caller's role and options on a workflow, null without access. */
+export const sharingAccessOutput = z.object({
+  access: effectiveAccessItem.nullable()
+});
+export type SharingAccessOutput = z.infer<typeof sharingAccessOutput>;
+
+/** Dismiss the owner notice on a link. */
+export const sharingDismissNoticeInput = sharingRevokeLinkInput;
+export type SharingDismissNoticeInput = z.infer<
+  typeof sharingDismissNoticeInput
+>;
 
 export const sharingOkOutput = z.object({ ok: z.literal(true) });
 export type SharingOkOutput = z.infer<typeof sharingOkOutput>;

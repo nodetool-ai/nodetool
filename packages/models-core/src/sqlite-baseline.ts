@@ -121,3 +121,10 @@ export const WORKFLOW_FILE_PATH_DDL = "ALTER TABLE nodetool_workflows ADD COLUMN
 export const WORKFLOW_FILE_HASH_DDL = "ALTER TABLE nodetool_workflows ADD COLUMN file_hash TEXT";
 /** What the last reconcile found wrong with a workflow's file, if anything. */
 export const WORKFLOW_FILE_ERROR_DDL = "ALTER TABLE nodetool_workflows ADD COLUMN file_error TEXT";
+/**
+ * The editing instance that wrote the stored revision. A save from another
+ * instance first keeps the stored revision as a version.
+ */
+export const WORKFLOW_LAST_WRITER_DDL = "ALTER TABLE nodetool_workflows ADD COLUMN last_writer_instance TEXT";
+/** The document schema version the stored graph was written in. */
+export const WORKFLOW_SCHEMA_VERSION_DDL = "ALTER TABLE nodetool_workflows ADD COLUMN schema_version INTEGER NOT NULL DEFAULT 1";

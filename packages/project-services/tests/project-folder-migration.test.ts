@@ -6,8 +6,8 @@
  * a temporary `PROJECTS_DIR`, and a file asset store. A new runner and job
  * stand for a restarted process.
  */
-import { link, mkdir, mkdtemp, readdir, rm, stat, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { link, mkdir, mkdtemp, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -40,6 +40,7 @@ import {
   getMigrationStatus,
   locationNeedsPermission,
   pauseMigration,
+  readMigrationStatus,
   resumeMigration,
   retryMigration,
   runMigrationToEnd,
@@ -63,8 +64,12 @@ let job: ProjectAssetMoveJob;
 let runner: ProjectFolderMigrationRunner;
 
 /** A job and runner that stand for one server process. */
-function newProcess(afterStep?: LegacyAssetMoveOptions["afterStep"]): void {
-  job = new ProjectAssetMoveJob({ settleMs: 0, afterStep, gate: bulkMigrationAllowed });
+function newProcess(
+  afterStep?: LegacyAssetMoveOptions["afterStep"],
+  settleMs = 0
+): void {
+  runner?.stop();
+  job = new ProjectAssetMoveJob({ settleMs, afterStep, gate: bulkMigrationAllowed });
   runner = new ProjectFolderMigrationRunner(job);
 }
 
@@ -145,6 +150,32 @@ async function storedState(): Promise<Record<string, unknown> | null> {
   return row ? (JSON.parse(row.value) as Record<string, unknown>) : null;
 }
 
+/** Store a state as another process left it. */
+async function storeState(changes: Record<string, unknown>): Promise<void> {
+  await Setting.upsert({
+    userId: USER,
+    key: PROJECT_FOLDER_MIGRATION_SETTING,
+    value: JSON.stringify({ ...(await storedState()), ...changes })
+  });
+}
+
+/** A process id that no process on this machine has. */
+async function deadPid(): Promise<number> {
+  for (let pid = 4_000_000; ; pid++) {
+    try {
+      process.kill(pid, 0);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ESRCH") return pid;
+    }
+  }
+}
+
+/** Let a run that a transition started in the background begin and end. */
+async function settle(): Promise<void> {
+  await new Promise((resolve) => setImmediate(resolve));
+  await runner.idle(USER);
+}
+
 async function refusal(promise: Promise<unknown>): Promise<string> {
   const error = await promise.then(
     () => null,
@@ -178,6 +209,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  runner.stop();
   await runner.idle(USER);
   await job.idle();
   job.stop();
@@ -315,6 +347,49 @@ describe("location", () => {
     expect((await stat(join(chosen, "Film", ".nodetool", "project.json"))).isFile()).toBe(
       true
     );
+  });
+
+  it("keeps the location of the confirmation that won a race", async () => {
+    const film = await legacyProject("Film");
+    const first = join(root, "First");
+    const second = join(root, "Second");
+    await mkdir(first);
+    await mkdir(second);
+    await showMigrationPlan(USER);
+
+    // The second confirmation reads `plan_shown`, then waits while it checks
+    // its location. The first one commits in that time.
+    let hold: (() => void) | null = null;
+    let held: () => void = () => undefined;
+    const reachedHold = new Promise<void>((resolve) => {
+      held = resolve;
+    });
+    let holding = true;
+    const find = Setting.find.bind(Setting);
+    vi.spyOn(Setting, "find").mockImplementation(async (userId, key) => {
+      if (holding && key === "PROJECTS_DIR") {
+        holding = false;
+        held();
+        await new Promise<void>((resolve) => {
+          hold = resolve;
+        });
+      }
+      return find(userId, key);
+    });
+
+    const late = confirmMigration(USER, { location: second, runner, start: false });
+    await reachedHold;
+    await confirmMigration(USER, { location: first, runner, start: false });
+    (hold as (() => void) | null)?.();
+
+    expect(await refusal(late)).toBe("invalid_transition");
+    expect((await getMigrationStatus(USER, runner)).location).toBe(first);
+    expect((await Setting.find(USER, "PROJECTS_DIR"))?.value).toBe(first);
+
+    await runner.start(USER);
+    const project = await Project.findOwned(USER, film.id);
+    const folder = await Workspace.find(USER, project?.workspace_id ?? "");
+    expect(folder?.path).toBe(join(first, "Film"));
   });
 
   it("warns where macOS asks for permission", () => {
@@ -456,6 +531,42 @@ describe("failures", () => {
   });
 });
 
+describe("document files", () => {
+  it("lists a workflow whose folder is unavailable and writes it on retry", async () => {
+    const film = await legacyProject("Film");
+    expect((await resolveProjectWorkspace(film.id, USER)).ok).toBe(true);
+    const folder = await Workspace.find(
+      USER,
+      (await Project.findOwned(USER, film.id))?.workspace_id ?? ""
+    );
+    if (!folder) throw new Error("no folder");
+    const draft = await legacyWorkflow(film.id, "Draft");
+    // The drive that holds the folder is disconnected.
+    const away = `${folder.path}-away`;
+    await rename(folder.path, away);
+
+    await confirmAndRun();
+
+    const status = await getMigrationStatus(USER, runner);
+    expect(status).toMatchObject({ state: "done", failure_count: 1 });
+    expect(status.failures).toEqual([
+      expect.objectContaining({ kind: "project", id: film.id, name: "Film" })
+    ]);
+    expect((await Workflow.get<Workflow>(draft.id))?.file_path).toBeNull();
+
+    await rename(away, folder.path);
+    await retryMigration(USER, runner, job);
+    await new Promise((resolve) => setImmediate(resolve));
+    await runner.idle(USER);
+
+    expect(await getMigrationStatus(USER, runner)).toMatchObject({
+      state: "done",
+      failure_count: 0
+    });
+    expect((await Workflow.get<Workflow>(draft.id))?.file_path).toBeTruthy();
+  });
+});
+
 describe("where the migration does not ask", () => {
   it.each([
     ["cloud storage", { NODETOOL_WORKSPACE_STORAGE: "cloud" }],
@@ -528,6 +639,51 @@ describe("nodetool projects migrate", () => {
     expect(await moved(fox)).toBe(true);
   });
 
+  it("waits for an asset changed just before it ran", async () => {
+    newProcess(undefined, 300);
+    const film = await legacyProject("Film");
+    const fox = await legacyAsset(film.id, "fox");
+    // The asset was edited a moment ago, so the mover defers it.
+    await getPortableDb()
+      .update(assets)
+      .set({ updated_at: new Date().toISOString() });
+
+    const status = await runMigrationToEnd(USER, { runner });
+
+    expect(status).toMatchObject({ state: "done", progress: { done: 1, total: 1 } });
+    expect(await moved(fox)).toBe(true);
+  });
+
+  it("stays unfinished while an asset still waits, and a second run continues", async () => {
+    const film = await legacyProject("Film");
+    // A client-direct upload that may still get its bytes.
+    const upload = await Asset.create<Asset>({
+      user_id: USER,
+      project_id: film.id,
+      parent_id: null,
+      name: "upload",
+      content_type: PNG,
+      size: null
+    });
+    await store.store(getAssetStorageKey(USER, upload.id, PNG), bytesOf(++seed), PNG);
+
+    const first = await runMigrationToEnd(USER, { runner });
+
+    expect(first.state).not.toBe("done");
+    expect(first.progress).toMatchObject({ done: 0, total: 1 });
+    expect(await moved(upload)).toBe(false);
+
+    // The upload window has passed.
+    await getPortableDb()
+      .update(assets)
+      .set({ created_at: "2024-01-01T00:00:00.000Z", updated_at: "2024-01-01T00:00:00.000Z" });
+    newProcess();
+    const second = await runMigrationToEnd(USER, { runner });
+
+    expect(second).toMatchObject({ state: "done", progress: { done: 1, total: 1 } });
+    expect(await moved(upload)).toBe(true);
+  });
+
   it("refuses a migration the user paused", async () => {
     const film = await legacyProject("Film");
     const fox = await legacyAsset(film.id, "fox");
@@ -538,5 +694,303 @@ describe("nodetool projects migrate", () => {
     expect(await refusal(runMigrationToEnd(USER, { runner }))).toBe("invalid_transition");
     expect(await moved(fox)).toBe(false);
     expect((await storedState())?.state).toBe("paused");
+  });
+});
+
+describe("failures across runs", () => {
+  it("keeps listing an asset that failed before a pause and resume", async () => {
+    const film = await legacyProject("Film");
+    // The move takes the oldest asset first: fox fails, then owl moves.
+    const fox = await legacyAsset(film.id, "fox");
+    const owl = await legacyAsset(film.id, "owl");
+    await link(join(root, "assets", getAssetStorageKey(USER, fox.id, PNG)), join(root, "alias"));
+    newProcess(async (step, assetId) => {
+      if (step === "legacy_deleted" && assetId === owl.id) await pauseMigration(USER, runner);
+    });
+    await confirmAndRun();
+    expect((await getMigrationStatus(USER, runner)).failure_count).toBe(1);
+
+    // Resumed within the time a failed asset waits before its next try.
+    await resumeMigration(USER, runner);
+    await settle();
+
+    const status = await getMigrationStatus(USER, runner);
+    expect(status).toMatchObject({ state: "done", failure_count: 1 });
+    expect(status.failures).toEqual([expect.objectContaining({ id: fox.id })]);
+    expect([await moved(fox), await moved(owl)]).toEqual([false, true]);
+  });
+
+  it("lists a project once when its folder and its assets both fail", async () => {
+    const film = await legacyProject("Film");
+    await legacyAsset(film.id, "fox");
+    await showMigrationPlan(USER);
+    await confirmMigration(USER, { runner, start: false });
+    await writeFile(join(root, "NodeTool"), "not a directory");
+    await runner.start(USER);
+
+    const status = await getMigrationStatus(USER, runner);
+    expect(status.failures.filter((failure) => failure.id === film.id)).toHaveLength(1);
+    expect(status.failure_count).toBe(status.failures.length);
+  });
+});
+
+describe("missing files", () => {
+  it("lists an asset whose file is missing, finishes the count, and looks again on retry", async () => {
+    const film = await legacyProject("Film");
+    const gone = await legacyAsset(film.id, "gone");
+    const key = getAssetStorageKey(USER, gone.id, PNG);
+    const bytes = await store.retrieve(store.uriForKey(key));
+    if (!bytes) throw new Error("no bytes");
+    await rm(join(root, "assets", key));
+
+    await confirmAndRun();
+
+    const status = await getMigrationStatus(USER, runner);
+    expect(status).toMatchObject({
+      state: "done",
+      failure_count: 1,
+      progress: { done: 1, total: 1 }
+    });
+    expect(status.failures).toEqual([expect.objectContaining({ id: gone.id })]);
+
+    await store.store(key, bytes, PNG);
+    await retryMigration(USER, runner, job);
+    await settle();
+
+    expect(await getMigrationStatus(USER, runner)).toMatchObject({
+      state: "done",
+      failure_count: 0
+    });
+    expect(await moved(gone)).toBe(true);
+  });
+});
+
+describe("previews", () => {
+  it("reads the status without confirming under NODETOOL_PROJECT_MIGRATION=auto", async () => {
+    vi.stubEnv("NODETOOL_PROJECT_MIGRATION", "auto");
+    const film = await legacyProject("Film");
+    const fox = await legacyAsset(film.id, "fox");
+
+    expect((await readMigrationStatus(USER, runner)).state).toBe("not_started");
+    await runner.idle(USER);
+
+    expect(await storedState()).toBeNull();
+    expect(await moved(fox)).toBe(false);
+  });
+
+  it("reads a fresh install as done without writing", async () => {
+    expect(await readMigrationStatus(USER, runner)).toMatchObject({
+      applies: false,
+      state: "done"
+    });
+    expect(await storedState()).toBeNull();
+  });
+});
+
+describe("work another process left", () => {
+  it("continues a migration whose process stopped", async () => {
+    const film = await legacyProject("Film");
+    const fox = await legacyAsset(film.id, "fox");
+    await showMigrationPlan(USER);
+    await confirmMigration(USER, { runner, start: false });
+    // A `nodetool projects migrate` process claimed the run and was killed.
+    await storeState({
+      state: "running",
+      run_id: "gone",
+      owner_pid: await deadPid(),
+      owner_host: hostname(),
+      heartbeat_at: new Date().toISOString()
+    });
+
+    await getMigrationStatus(USER, runner);
+    await runner.idle(USER);
+
+    expect((await getMigrationStatus(USER, runner)).state).toBe("done");
+    expect(await moved(fox)).toBe(true);
+  });
+
+  it("continues a migration a stopped command left waiting", async () => {
+    const film = await legacyProject("Film");
+    const fox = await legacyAsset(film.id, "fox");
+    await showMigrationPlan(USER);
+    await confirmMigration(USER, { runner, start: false });
+    await storeState({
+      state: "confirmed",
+      owner_pid: await deadPid(),
+      owner_host: hostname(),
+      heartbeat_at: new Date().toISOString()
+    });
+
+    await getMigrationStatus(USER, runner);
+    await runner.idle(USER);
+
+    expect(await moved(fox)).toBe(true);
+  });
+
+  it("leaves a migration that a live process runs", async () => {
+    const film = await legacyProject("Film");
+    const fox = await legacyAsset(film.id, "fox");
+    await showMigrationPlan(USER);
+    await confirmMigration(USER, { runner, start: false });
+    await storeState({
+      state: "running",
+      run_id: "elsewhere",
+      owner_pid: process.ppid,
+      owner_host: hostname(),
+      heartbeat_at: new Date().toISOString()
+    });
+
+    await getMigrationStatus(USER, runner);
+    await runner.idle(USER);
+
+    expect((await storedState())?.state).toBe("running");
+    expect(await moved(fox)).toBe(false);
+  });
+
+  it("takes over a run whose heartbeat stopped", async () => {
+    const film = await legacyProject("Film");
+    const fox = await legacyAsset(film.id, "fox");
+    await showMigrationPlan(USER);
+    await confirmMigration(USER, { runner, start: false });
+    await storeState({
+      state: "running",
+      run_id: "elsewhere",
+      owner_pid: process.ppid,
+      owner_host: "another-machine",
+      heartbeat_at: "2024-01-01T00:00:00.000Z"
+    });
+
+    await getMigrationStatus(USER, runner);
+    await runner.idle(USER);
+
+    expect(await moved(fox)).toBe(true);
+  });
+
+  it("runs a migration once when a second process starts it during the run", async () => {
+    const film = await legacyProject("Film");
+    await legacyAsset(film.id, "fox");
+    await legacyAsset(film.id, "owl");
+    await showMigrationPlan(USER);
+    await confirmMigration(USER, { runner, start: false });
+    let secondSteps = 0;
+    const second = new ProjectFolderMigrationRunner(
+      new ProjectAssetMoveJob({
+        settleMs: 0,
+        gate: bulkMigrationAllowed,
+        afterStep: async () => {
+          secondSteps++;
+        }
+      })
+    );
+    const list = Asset.listProjectsAwaitingFolderMove.bind(Asset);
+    let started = false;
+    vi.spyOn(Asset, "listProjectsAwaitingFolderMove").mockImplementation(async (...args) => {
+      if (!started) {
+        // The first run is in its asset phase when the other process starts.
+        started = true;
+        await second.start(USER);
+      }
+      return list(...args);
+    });
+
+    await runner.start(USER);
+
+    expect(secondSteps).toBe(0);
+    expect((await storedState())?.state).toBe("done");
+    second.stop();
+  });
+});
+
+describe("a run that throws", () => {
+  it("returns the migration to confirmed and starts again", async () => {
+    const film = await legacyProject("Film");
+    const fox = await legacyAsset(film.id, "fox");
+    runner = new ProjectFolderMigrationRunner(job, { errorRestartMs: 10 });
+    const list = Asset.listProjectsAwaitingFolderMove.bind(Asset);
+    let thrown = false;
+    vi.spyOn(Asset, "listProjectsAwaitingFolderMove").mockImplementation(async (...args) => {
+      if (!thrown) {
+        thrown = true;
+        throw new Error("database is locked");
+      }
+      return list(...args);
+    });
+
+    await confirmAndRun();
+    expect((await storedState())?.state).toBe("confirmed");
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await runner.idle(USER);
+    expect((await storedState())?.state).toBe("done");
+    expect(await moved(fox)).toBe(true);
+  });
+});
+
+describe("auto confirmation", () => {
+  it("confirms a user who only read the plan", async () => {
+    const film = await legacyProject("Film");
+    const fox = await legacyAsset(film.id, "fox");
+    await showMigrationPlan(USER);
+    vi.stubEnv("NODETOOL_PROJECT_MIGRATION", "auto");
+
+    await startProjectFolderMigration(runner);
+    await runner.idle(USER);
+
+    expect((await storedState())?.state).toBe("done");
+    expect(await moved(fox)).toBe(true);
+  });
+});
+
+describe("nothing to move", () => {
+  it("refuses every transition with not_applicable", async () => {
+    expect(await refusal(showMigrationPlan(USER))).toBe("not_applicable");
+    expect(await refusal(confirmMigration(USER, { runner }))).toBe("not_applicable");
+    expect(await refusal(pauseMigration(USER, runner))).toBe("not_applicable");
+    expect(await refusal(resumeMigration(USER, runner))).toBe("not_applicable");
+    expect(await refusal(retryMigration(USER, runner, job))).toBe("not_applicable");
+    expect(await refusal(dismissMigration(USER, runner))).toBe("not_applicable");
+    expect((await getMigrationStatus(USER, runner)).applies).toBe(false);
+  });
+});
+
+describe("command line", () => {
+  it("refuses a location once the migration is confirmed", async () => {
+    await legacyProject("Film");
+    const chosen = join(root, "Elsewhere");
+    await mkdir(chosen);
+    await showMigrationPlan(USER);
+    await confirmMigration(USER, { runner, start: false });
+
+    expect(await refusal(runMigrationToEnd(USER, { location: chosen, runner }))).toBe(
+      "invalid_transition"
+    );
+  });
+
+  it("stores a chosen location without a trailing separator", async () => {
+    await legacyProject("Film");
+    const chosen = join(root, "Elsewhere");
+    await mkdir(chosen);
+
+    await confirmAndRun(`${chosen}/`);
+
+    expect((await Setting.find(USER, "PROJECTS_DIR"))?.value).toBe(chosen);
+  });
+
+  it("reports failures where the migration does not ask", async () => {
+    vi.stubEnv("NODETOOL_ENV", "production");
+    const film = await legacyProject("Film");
+    const fox = await legacyAsset(film.id, "fox");
+    await link(join(root, "assets", getAssetStorageKey(USER, fox.id, PNG)), join(root, "alias"));
+
+    const status = await runMigrationToEnd(USER, { runner });
+
+    expect(status).toMatchObject({ applies: false, failure_count: 1 });
+  });
+});
+
+describe("macOS permission", () => {
+  it("ignores letter case", () => {
+    expect(locationNeedsPermission("/Users/ada/documents/x", "darwin", "/Users/ada")).toBe(true);
+    expect(locationNeedsPermission("/volumes/Archive", "darwin", "/Users/ada")).toBe(true);
   });
 });

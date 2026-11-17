@@ -41,6 +41,11 @@ export type { TimelineBeat, TimelineSetup, TimelineSetupStage };
 export type { ProductionGenerationSnapshot } from "@nodetool-ai/protocol";
 
 export interface TimelineSequence {
+  /**
+   * The document schema version the stored revision was written in, on a
+   * server read. A client that cannot write it opens the timeline read-only.
+   */
+  schemaVersion?: number;
   /** Working color space contract. Absent preserves legacy rendering. */
   workingColorSpaceVersion?: number;
   /** Show timecode as drop-frame at 29.97, 59.94 and 119.88 fps. Display only. */

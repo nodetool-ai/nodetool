@@ -24,10 +24,11 @@ import {
 } from "@nodetool-ai/models";
 import type { ResourceKind } from "@nodetool-ai/app-runtime";
 import {
-  deleteProjectAssetFile,
+  withLockedAssetRow,
   renameProjectAssetFile,
   type ProjectAssetFileChange
 } from "@nodetool-ai/asset-services/project-asset";
+import { requireProjectAssetFile } from "@nodetool-ai/asset-services/project-asset-file";
 import {
   createResourceInput,
   deleteResourceInput,
@@ -239,10 +240,17 @@ const assetProvider: ResourceProvider = {
     const asset = await Asset.find(userId, id);
     if (!asset) return false;
     // The file in the project folder goes with its row, and goes first, so
-    // a failure never leaves a file without one.
-    await deleteProjectAssetFile(asset);
-    await asset.delete();
-    return true;
+    // a failure never leaves a file without one. The row is read again under
+    // the folder lock: a move into the folder may have given it a file since.
+    return withLockedAssetRow(asset, async (current) => {
+      if (!current) return false;
+      // The lock is held, so the file is removed directly rather than through
+      // `deleteProjectAssetFile`, which takes the lock itself.
+      const file = await requireProjectAssetFile(current);
+      if (file) await file.workspace.delete(file.path);
+      await current.delete();
+      return true;
+    });
   }
 };
 

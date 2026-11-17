@@ -1,0 +1,979 @@
+// The Qt half of the account service. QtHttpTransport runs against a local
+// HTTP server on its own thread. Two AccountControllers on one data folder
+// and one in-memory keychain stand in for the two apps, against the fake
+// token server.
+#include "nodetool/account/account_session.h"
+#include "nodetool/account/accounts_index.h"
+#include "nodetool/account/crypto.h"
+#include "nodetool/account/cloud_drafts.h"
+#include "nodetool/account/qt/AccountController.h"
+#include "nodetool/account/qt/AccountServers.h"
+#include "nodetool/account/qt/CloudBrowser.h"
+#include "nodetool/account/qt/CloudDocument.h"
+#include "nodetool/account/qt/QtHttpTransport.h"
+#include "nodetool/account/qt/ShareController.h"
+#include "test_support.h"
+
+#include <QSignalSpy>
+#include <QTcpServer>
+#include <QTcpSocket>
+#include <QTest>
+#include <QUrlQuery>
+
+#include <atomic>
+#include <map>
+#include <chrono>
+#include <future>
+#include <mutex>
+#include <vector>
+#include <thread>
+
+using namespace nodetool::account;
+using namespace nodetool::account::qt;
+
+namespace {
+
+constexpr const char* kServer = "https://nt.example";
+
+// A local HTTP server that answers every request with one canned response,
+// and records the last request's head. An empty response never answers. A
+// server with a drip interval sends the response one byte per interval.
+//
+// Thread affinity: thread-safe. The QTcpServer and its sockets live on the
+// server's own std::thread and use Qt's blocking calls, so nothing crosses
+// threads through Qt's event queue. `mutex_` guards the record.
+class CannedServer {
+public:
+  explicit CannedServer(QByteArray response, std::chrono::milliseconds drip = {})
+      : response_(std::move(response)), drip_(drip) {
+    std::promise<quint16> ready;
+    auto port = ready.get_future();
+    thread_ = std::thread([this, &ready] { run(ready); });
+    port_ = port.get();
+  }
+  CannedServer(const CannedServer&) = delete;
+  CannedServer& operator=(const CannedServer&) = delete;
+  ~CannedServer() {
+    stopping_ = true;
+    thread_.join();
+  }
+  quint16 port() const { return port_; }
+  QByteArray lastHead() {
+    const std::lock_guard lock(mutex_);
+    return lastHead_;
+  }
+  int requests() {
+    const std::lock_guard lock(mutex_);
+    return requests_;
+  }
+
+private:
+  void run(std::promise<quint16>& ready) {
+    QTcpServer server;
+    server.listen(QHostAddress::LocalHost);
+    ready.set_value(server.serverPort());
+    std::vector<std::unique_ptr<QTcpSocket>> open;
+    while (!stopping_) {
+      if (!server.waitForNewConnection(20)) {
+        continue;
+      }
+      std::unique_ptr<QTcpSocket> socket(server.nextPendingConnection());
+      // The server parents its sockets. This scope owns it instead.
+      socket->setParent(nullptr);
+      QByteArray buffer;
+      while (!stopping_ && buffer.indexOf("\r\n\r\n") < 0) {
+        if (socket->waitForReadyRead(20)) {
+          buffer += socket->readAll();
+        }
+      }
+      {
+        const std::lock_guard lock(mutex_);
+        lastHead_ = buffer.left(buffer.indexOf("\r\n\r\n"));
+        ++requests_;
+      }
+      if (response_.isEmpty()) {
+        // Hold the connection open and never answer.
+        open.push_back(std::move(socket));
+        continue;
+      }
+      if (drip_.count() > 0) {
+        for (qsizetype i = 0; i < response_.size() && !stopping_; ++i) {
+          socket->write(response_.mid(i, 1));
+          socket->waitForBytesWritten(1000);
+          std::this_thread::sleep_for(drip_);
+        }
+      } else {
+        socket->write(response_);
+        socket->waitForBytesWritten(1000);
+      }
+      socket->disconnectFromHost();
+      if (socket->state() != QAbstractSocket::UnconnectedState) {
+        socket->waitForDisconnected(1000);
+      }
+    }
+  }
+
+  const QByteArray response_;
+  const std::chrono::milliseconds drip_;
+  std::atomic<bool> stopping_{false};
+  quint16 port_ = 0;
+  std::mutex mutex_;
+  QByteArray lastHead_;
+  int requests_ = 0;
+  // Declared last, so it starts after the members it reads.
+  std::thread thread_;
+};
+
+HttpResponse sendOffThread(const HttpRequest& request) {
+  HttpResponse response;
+  std::thread([&] { response = QtHttpTransport().send(request); }).join();
+  return response;
+}
+
+// Store and endpoint wrappers, so two controllers share one keychain and
+// one token server as two apps on a computer do.
+//
+// Thread affinity: thread-safe, as the wrapped object.
+class SharedStore final : public SecretStore {
+public:
+  explicit SharedStore(MemorySecretStore& store) : store_(store) {}
+  bool available() const override { return true; }
+  std::optional<std::string> read(std::string_view s, std::string_view a) override { return store_.read(s, a); }
+  bool write(std::string_view s, std::string_view a, std::string_view v) override { return store_.write(s, a, v); }
+  void remove(std::string_view s, std::string_view a) override { store_.remove(s, a); }
+
+private:
+  MemorySecretStore& store_;
+};
+
+class SharedEndpoint final : public TokenEndpoint {
+public:
+  explicit SharedEndpoint(TokenEndpoint& endpoint) : endpoint_(endpoint) {}
+  TokenResult exchangeCode(const CodeExchange& e) override { return endpoint_.exchangeCode(e); }
+  TokenResult refresh(std::string_view t) override { return endpoint_.refresh(t); }
+  EndSessionStatus endSession(std::string_view h) override { return endpoint_.endSession(h); }
+
+private:
+  TokenEndpoint& endpoint_;
+};
+
+struct Computer {
+  account_test::TempDir data;
+  MemorySecretStore keychain;
+  account_test::FakeClock clock;
+  account_test::FakeTokenServer server{clock};
+  ManagedPolicy policy;
+
+  AccountServices services(const std::string& name, const std::string& origin = kServer) {
+    AccountServices services;
+    services.dataDir = data.path();
+    services.serverOrigin = origin;
+    services.app = name;
+    services.store = std::make_unique<SharedStore>(keychain);
+    services.endpoint = std::make_unique<SharedEndpoint>(server);
+    services.policy = [this] { return policy; };
+    services.nowMs = clock.fn();
+    services.signInTimeout = std::chrono::seconds(10);
+    return services;
+  }
+
+  std::unique_ptr<AccountController> app(const std::string& name) {
+    return std::make_unique<AccountController>(services(name));
+  }
+};
+
+// Plays the browser: sends the code to the loopback redirect the authorize
+// URL names.
+void completeInBrowser(const QUrl& authorize, const QString& code) {
+  const QUrlQuery query(authorize);
+  QUrl callback(query.queryItemValue("redirect_uri", QUrl::FullyDecoded));
+  QUrlQuery params;
+  params.addQueryItem("code", code);
+  params.addQueryItem("state", query.queryItemValue("state", QUrl::FullyDecoded));
+  callback.setQuery(params);
+  HttpRequest request;
+  request.url = callback.toString(QUrl::FullyEncoded).toStdString();
+  request.timeout = std::chrono::seconds(5);
+  sendOffThread(request);
+}
+
+// A cloud server answering by tRPC procedure, for the browser and the
+// document. Thread-safe: `mutex_` guards the answers and the log.
+class ProcedureServer final : public HttpTransport {
+public:
+  void answer(const std::string& procedure, HttpResponse response) {
+    const std::lock_guard lock(mutex_);
+    answers_[procedure] = std::move(response);
+  }
+  HttpResponse send(const HttpRequest& request) override {
+    const std::lock_guard lock(mutex_);
+    sent_.push_back(request);
+    std::string path = request.url.substr(std::string(kServer).size());
+    path = path.substr(0, path.find('?'));
+    if (path.starts_with("/trpc/")) {
+      path = path.substr(6);
+    }
+    const auto it = answers_.find(path);
+    return it == answers_.end() ? HttpResponse{404, "{}"} : it->second;
+  }
+  int count(const std::string& needle, const std::string& method = {}) {
+    const std::lock_guard lock(mutex_);
+    int n = 0;
+    for (const HttpRequest& r : sent_) {
+      if (r.url.find(needle) != std::string::npos && (method.empty() || r.method == method)) {
+        ++n;
+      }
+    }
+    return n;
+  }
+
+private:
+  std::mutex mutex_;
+  std::map<std::string, HttpResponse> answers_;
+  std::vector<HttpRequest> sent_;
+};
+
+// Forwards to a ProcedureServer the test keeps.
+class SharedTransport final : public HttpTransport {
+public:
+  explicit SharedTransport(HttpTransport& target) : target_(target) {}
+  HttpResponse send(const HttpRequest& request) override { return target_.send(request); }
+
+private:
+  HttpTransport& target_;
+};
+
+// One draft row per document, as the local server keeps them. Thread-safe:
+// `mutex_` guards the rows.
+class MemoryDrafts final : public DraftStore {
+public:
+  std::optional<std::string> put(const CloudDocumentKey& key, const CloudBase& base, const std::string& draft) override {
+    const std::lock_guard lock(mutex_);
+    StoredDraft row{key, "d" + std::to_string(++next_), base, draft, DraftState::Waiting, {}};
+    rows_[key.documentId] = row;
+    return row.draftId;
+  }
+  std::optional<AcceptOutcome> accept(const CloudDocumentKey& key, const std::string& draftId, const CloudBase&,
+                                      const CloudBase& base, const std::string&, const CloudDocumentOptions&) override {
+    const std::lock_guard lock(mutex_);
+    const auto it = rows_.find(key.documentId);
+    if (it == rows_.end()) {
+      return AcceptOutcome::NoDraft;
+    }
+    if (it->second.draftId == draftId) {
+      rows_.erase(it);
+      return AcceptOutcome::Deleted;
+    }
+    it->second.base = base;
+    return AcceptOutcome::Rebased;
+  }
+  bool markUnsent(const CloudDocumentKey& key, const std::string& draftId, const std::string& reason) override {
+    const std::lock_guard lock(mutex_);
+    const auto it = rows_.find(key.documentId);
+    if (it != rows_.end() && it->second.draftId == draftId) {
+      it->second.state = DraftState::Unsent;
+      it->second.refusal = reason;
+    }
+    return true;
+  }
+  DraftLoad load(const CloudDocumentKey& key) override {
+    const std::lock_guard lock(mutex_);
+    const auto it = rows_.find(key.documentId);
+    return {true, it == rows_.end() ? std::nullopt : std::optional<StoredDraft>(it->second)};
+  }
+  DraftList list(const std::string&, const std::string&) override {
+    const std::lock_guard lock(mutex_);
+    DraftList out{true, {}};
+    for (const auto& [id, row] : rows_) {
+      out.drafts.push_back(row);
+    }
+    return out;
+  }
+
+private:
+  std::mutex mutex_;
+  std::map<std::string, StoredDraft> rows_;
+  int next_ = 0;
+};
+
+// Forwards to a MemoryDrafts the test keeps.
+class SharedDrafts final : public DraftStore {
+public:
+  explicit SharedDrafts(DraftStore& target) : t_(target) {}
+  std::optional<std::string> put(const CloudDocumentKey& k, const CloudBase& b, const std::string& d) override {
+    return t_.put(k, b, d);
+  }
+  std::optional<AcceptOutcome> accept(const CloudDocumentKey& k, const std::string& id, const CloudBase& s,
+                                      const CloudBase& b, const std::string& r,
+                                      const CloudDocumentOptions& o) override {
+    return t_.accept(k, id, s, b, r, o);
+  }
+  bool markUnsent(const CloudDocumentKey& k, const std::string& id, const std::string& r) override {
+    return t_.markUnsent(k, id, r);
+  }
+  DraftLoad load(const CloudDocumentKey& k) override { return t_.load(k); }
+  DraftList list(const std::string& s, const std::string& a) override { return t_.list(s, a); }
+
+private:
+  DraftStore& t_;
+};
+
+constexpr const char* kCapabilities =
+    R"({"protocol_version":1,"min_client_protocol_version":1,"kinds":{)"
+    R"("workflow":{"read":[1],"write":[1],"modes":["whole"]},"timeline":{"read":[1],"write":[1],"modes":["whole"]}}})";
+
+// Signs `account` in through the fake browser.
+void signInWith(QObject* context, AccountController& account, const QString& code) {
+  QObject::connect(&account, &AccountController::browserRequested, context,
+                   [code](const QUrl& url) { std::thread([url, code] { completeInBrowser(url, code); }).detach(); });
+  account.signIn();
+}
+
+} // namespace
+
+class AccountQtTest final : public QObject {
+  Q_OBJECT
+
+private slots:
+  void transportSendsAndReads() {
+    CannedServer server("HTTP/1.1 201 Created\r\nContent-Length: 7\r\nConnection: close\r\n\r\n{\"a\":1}");
+    HttpRequest request;
+    request.method = "POST";
+    request.url = "http://127.0.0.1:" + std::to_string(server.port()) + "/trpc/x";
+    request.headers = {{"Authorization", "Bearer t1"}, {"x-nodetool-protocol", "1"}, {"Content-Type", "application/json"}};
+    request.body = "{}";
+    const HttpResponse response = sendOffThread(request);
+    QCOMPARE(response.status, 201);
+    QCOMPARE(QByteArray::fromStdString(response.body), QByteArray("{\"a\":1}"));
+    // Header names are case-insensitive, and Qt may change their case.
+    const QByteArray head = server.lastHead().toLower();
+    QVERIFY(head.startsWith("post /trpc/x http/1.1"));
+    QVERIFY(head.contains("authorization: bearer t1"));
+    QVERIFY(head.contains("x-nodetool-protocol: 1"));
+  }
+
+  // A redirect would take the credential to another URL.
+  void transportNeverFollowsARedirect() {
+    // Redirects to itself, so a followed redirect would arrive here again.
+    CannedServer server("HTTP/1.1 302 Found\r\nLocation: /elsewhere\r\nContent-Length: 0\r\n"
+                        "Connection: close\r\n\r\n");
+    HttpRequest request;
+    request.url = "http://127.0.0.1:" + std::to_string(server.port()) + "/";
+    request.timeout = std::chrono::seconds(2);
+    QCOMPARE(sendOffThread(request).status, 302);
+    QCOMPARE(server.requests(), 1);
+  }
+
+  void transportReportsNoAnswerAsZero() {
+    // Accepts the connection and never answers.
+    CannedServer silent{QByteArray()};
+    HttpRequest request;
+    request.url = "http://127.0.0.1:" + std::to_string(silent.port()) + "/";
+    request.timeout = std::chrono::milliseconds(300);
+    QCOMPARE(sendOffThread(request).status, 0);
+
+    QTcpServer closed;
+    QVERIFY(closed.listen(QHostAddress::LocalHost));
+    const quint16 port = closed.serverPort();
+    closed.close();
+    request.url = "http://127.0.0.1:" + std::to_string(port) + "/";
+    QCOMPARE(sendOffThread(request).status, 0);
+  }
+
+  // The timeout bounds the whole request. A server that keeps sending a
+  // byte at a time never resets it.
+  void transportDeadlineIsWallClock() {
+    CannedServer drip("HTTP/1.1 200 OK\r\nContent-Length: 60\r\nConnection: close\r\n\r\n" + QByteArray(60, 'x'),
+                      std::chrono::milliseconds(50));
+    HttpRequest request;
+    request.url = "http://127.0.0.1:" + std::to_string(drip.port()) + "/";
+    request.timeout = std::chrono::milliseconds(500);
+    const auto start = std::chrono::steady_clock::now();
+    QCOMPARE(sendOffThread(request).status, 0);
+    QVERIFY(std::chrono::steady_clock::now() - start < std::chrono::seconds(2));
+  }
+
+  // A body cut short after the headers is no response, not a short one.
+  void transportReportsATruncatedBodyAsZero() {
+    CannedServer cut("HTTP/1.1 200 OK\r\nContent-Length: 100\r\nConnection: close\r\n\r\n{\"a\":");
+    HttpRequest request;
+    request.url = "http://127.0.0.1:" + std::to_string(cut.port()) + "/";
+    request.timeout = std::chrono::seconds(2);
+    QCOMPARE(sendOffThread(request).status, 0);
+  }
+
+  // The cancel flag stops a request in flight.
+  void transportStopsOnCancel() {
+    CannedServer silent{QByteArray()};
+    HttpRequest request;
+    request.url = "http://127.0.0.1:" + std::to_string(silent.port()) + "/";
+    request.timeout = std::chrono::seconds(30);
+    auto cancel = std::make_shared<RequestCancel>();
+    request.cancel = cancel;
+    std::thread canceller([cancel] {
+      std::this_thread::sleep_for(std::chrono::milliseconds(200));
+      cancel->cancel();
+    });
+    const auto start = std::chrono::steady_clock::now();
+    QCOMPARE(sendOffThread(request).status, 0);
+    canceller.join();
+    QVERIFY(std::chrono::steady_clock::now() - start < std::chrono::seconds(3));
+  }
+
+  // A request bound to an origin is not sent anywhere else.
+  void transportKeepsTheRequiredOrigin() {
+    CannedServer server("HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}");
+    HttpRequest request;
+    request.url = "http://127.0.0.1:" + std::to_string(server.port()) + "/";
+    request.requiredOrigin = kServer;
+    request.timeout = std::chrono::seconds(2);
+    QCOMPARE(sendOffThread(request).status, 0);
+    QCOMPARE(server.requests(), 0);
+  }
+
+  // A session reference stays usable after the controller is gone, with
+  // the store and endpoint it borrows.
+  void sessionOutlivesTheController() {
+    Computer computer;
+    computer.server.addCode("code-1", "u1", "Ada");
+    auto editor = computer.app("node-editor");
+    connect(editor.get(), &AccountController::browserRequested, this,
+            [](const QUrl& url) { std::thread([url] { completeInBrowser(url, "code-1"); }).detach(); });
+    editor->signIn();
+    QTRY_COMPARE(editor->state(), AccountController::State::SignedIn);
+    const std::shared_ptr<AccountSession> session = editor->session();
+    QVERIFY(session != nullptr);
+    editor.reset();
+    // Past the access token's expiry, so the request renews it through the
+    // endpoint the controller owned.
+    computer.clock.advance(15 * 60 * 1000);
+    QCOMPARE(session->credentialForRequest().status, CredentialStatus::Ready);
+  }
+
+  // A start-up open reads the other app's sign-in at once, before the new
+  // controller's own read has finished, and finds none on another server.
+  void readSessionFindsTheSignedInAccount() {
+    Computer computer;
+    computer.server.addCode("code-1", "u1", "Ada");
+    auto editor = computer.app("node-editor");
+    connect(editor.get(), &AccountController::browserRequested, this,
+            [](const QUrl& url) { std::thread([url] { completeInBrowser(url, "code-1"); }).detach(); });
+    QVERIFY(editor->readSession() == nullptr);
+    editor->signIn();
+    QTRY_COMPARE(editor->state(), AccountController::State::SignedIn);
+
+    auto timeline = computer.app("timeline");
+    const std::shared_ptr<AccountSession> session = timeline->readSession();
+    QVERIFY(session != nullptr);
+    QCOMPARE(session->accountId(), std::string("u1"));
+    QCOMPARE(session->credentialForRequest().status, CredentialStatus::Ready);
+
+    computer.policy = parsePolicyJson("{\"CloudEnabled\": false}");
+    auto held = computer.app("timeline");
+    QCOMPARE(held->readSession(), nullptr);
+  }
+
+  // A session restored from the record is held back by a policy that turns
+  // its server off, including a reference handed out before.
+  void policyHoldsARestoredSession() {
+    Computer computer;
+    computer.server.addCode("code-1", "u1", "Ada");
+    auto editor = computer.app("node-editor");
+    connect(editor.get(), &AccountController::browserRequested, this,
+            [](const QUrl& url) { std::thread([url] { completeInBrowser(url, "code-1"); }).detach(); });
+    editor->signIn();
+    QTRY_COMPARE(editor->state(), AccountController::State::SignedIn);
+    const std::shared_ptr<AccountSession> earlier = editor->session();
+
+    computer.policy = parsePolicyJson("{\"CloudEnabled\": false}");
+    auto timeline = computer.app("timeline");
+    editor->reload();
+    QCOMPARE(timeline->session(), nullptr);
+    QCOMPARE(editor->session(), nullptr);
+    QTRY_COMPARE(editor->state(), AccountController::State::SignedOut);
+    QCOMPARE(timeline->state(), AccountController::State::SignedOut);
+    computer.clock.advance(15 * 60 * 1000);
+    const int refreshes = computer.server.refreshCalls;
+    QCOMPARE(earlier->credentialForRequest().status, CredentialStatus::SignedOut);
+    QCOMPARE(computer.server.refreshCalls.load(), refreshes);
+
+    computer.policy = ManagedPolicy{};
+    editor->reload();
+    QTRY_COMPARE(editor->state(), AccountController::State::SignedIn);
+    QVERIFY(editor->session() != nullptr);
+  }
+
+  // A cancel before the browser opens ends the attempt at once.
+  void cancelBeforeTheBrowserOpens() {
+    Computer computer;
+    auto editor = computer.app("node-editor");
+    editor->signIn();
+    editor->cancelSignIn();
+    QTRY_COMPARE_WITH_TIMEOUT(editor->state(), AccountController::State::SignedOut, 3000);
+    QCOMPARE(editor->session(), nullptr);
+  }
+
+  // TC1's second app: a sign-in in one app shows in the other without a
+  // browser, within 5 seconds.
+  void signInShowsInTheOtherApp() {
+    Computer computer;
+    computer.server.addCode("code-1", "u1", "Ada");
+    auto editor = computer.app("node-editor");
+    auto timeline = computer.app("timeline");
+    QTRY_COMPARE(editor->state(), AccountController::State::SignedOut);
+    QTRY_COMPARE(timeline->state(), AccountController::State::SignedOut);
+
+    connect(editor.get(), &AccountController::browserRequested, this,
+            [](const QUrl& url) { std::thread([url] { completeInBrowser(url, "code-1"); }).detach(); });
+    QSignalSpy timelineBrowser(timeline.get(), &AccountController::browserRequested);
+    editor->signIn();
+    QCOMPARE(editor->state(), AccountController::State::SigningIn);
+    QTRY_COMPARE(editor->state(), AccountController::State::SignedIn);
+    QCOMPARE(editor->displayName(), QString("Ada"));
+    QVERIFY(editor->message().isEmpty());
+    QVERIFY(editor->session() != nullptr);
+    QCOMPARE(computer.server.lastExchange().resource, std::string(kServer));
+
+    QTRY_COMPARE_WITH_TIMEOUT(timeline->state(), AccountController::State::SignedIn, 5000);
+    QCOMPARE(timeline->displayName(), QString("Ada"));
+    QCOMPARE(timelineBrowser.count(), 0);
+    QCOMPARE(AccountsIndex(computer.data.path()).list().size(), size_t(1));
+  }
+
+  // A sign-out in one app signs the other out, and the session ends on the
+  // server.
+  void signOutReachesTheOtherApp() {
+    Computer computer;
+    computer.server.addCode("code-1", "u1", "Ada");
+    auto editor = computer.app("node-editor");
+    auto timeline = computer.app("timeline");
+    connect(editor.get(), &AccountController::browserRequested, this,
+            [](const QUrl& url) { std::thread([url] { completeInBrowser(url, "code-1"); }).detach(); });
+    editor->signIn();
+    QTRY_COMPARE_WITH_TIMEOUT(timeline->state(), AccountController::State::SignedIn, 5000);
+    QTRY_VERIFY(timeline->session() != nullptr);
+    // The other app holds the tokens once it made a request.
+    QCOMPARE(timeline->session()->credentialForRequest().status, CredentialStatus::Ready);
+
+    QSignalSpy timelineSignedOut(timeline.get(), &AccountController::signedOut);
+    editor->signOut();
+    QTRY_COMPARE(editor->state(), AccountController::State::SignedOut);
+    QTRY_COMPARE_WITH_TIMEOUT(timeline->state(), AccountController::State::SignedOut, 5000);
+    QTRY_VERIFY_WITH_TIMEOUT(timelineSignedOut.count() >= 1, 5000);
+    QVERIFY(!editor->serverEndPending());
+    QCOMPARE(editor->statusText(), QString("Not signed in"));
+    QVERIFY(!computer.server.grantActive(1));
+  }
+
+  void declinedSignInSaysWhy() {
+    Computer computer;
+    auto editor = computer.app("node-editor");
+    connect(editor.get(), &AccountController::browserRequested, this, [](const QUrl& url) {
+      std::thread([url] {
+        const QUrlQuery query(url);
+        QUrl callback(query.queryItemValue("redirect_uri", QUrl::FullyDecoded));
+        QUrlQuery params;
+        params.addQueryItem("error", "access_denied");
+        params.addQueryItem("error_description", "Native sign-in is turned off on this server");
+        params.addQueryItem("state", query.queryItemValue("state", QUrl::FullyDecoded));
+        callback.setQuery(params);
+        HttpRequest request;
+        request.url = callback.toString(QUrl::FullyEncoded).toStdString();
+        sendOffThread(request);
+      }).detach();
+    });
+    editor->signIn();
+    QTRY_COMPARE(editor->state(), AccountController::State::SignedOut);
+    QVERIFY2(editor->message().contains("Native sign-in is turned off on this server"), qPrintable(editor->message()));
+  }
+
+  void cancelEndsTheWait() {
+    Computer computer;
+    auto editor = computer.app("node-editor");
+    QSignalSpy browser(editor.get(), &AccountController::browserRequested);
+    editor->signIn();
+    QTRY_COMPARE(browser.count(), 1);
+    editor->cancelSignIn();
+    QTRY_COMPARE(editor->state(), AccountController::State::SignedOut);
+    QVERIFY(editor->message().isEmpty());
+  }
+
+  // TC91, the policy half: sign-in to a server the policy does not allow is
+  // refused with the reason, and no browser opens.
+  void policyRefusesSignIn() {
+    Computer computer;
+    computer.policy = parsePolicyJson("{\"AllowedServers\": [\"https://other.example\"]}");
+    auto editor = computer.app("node-editor");
+    QSignalSpy browser(editor.get(), &AccountController::browserRequested);
+    QVERIFY(editor->cloudAvailable());
+    editor->signIn();
+    QCOMPARE(editor->state(), AccountController::State::SignedOut);
+    QVERIFY2(editor->message().contains("https://other.example"), qPrintable(editor->message()));
+    QCOMPARE(browser.count(), 0);
+
+    computer.policy = parsePolicyJson("{\"CloudEnabled\": false}");
+    editor->reload();
+    QVERIFY(!editor->cloudAvailable());
+    QTRY_COMPARE(editor->statusText(), QString("Cloud features are turned off on this computer"));
+    editor->signIn();
+    QCOMPARE(browser.count(), 0);
+  }
+
+  // Both apps find the same data folder and server without configuration.
+  void defaultsAreSharedByBothApps() {
+    QVERIFY(sharedDataDir().generic_string().ends_with("NodeTool/native"));
+    qunsetenv("NODETOOL_CLOUD_SERVER");
+    QCOMPARE(cloudServerOrigin(), std::string("https://api.nodetool.ai"));
+    qputenv("NODETOOL_CLOUD_SERVER", " https://nt.example ");
+    QCOMPARE(cloudServerOrigin(), std::string("https://nt.example"));
+    // Only an HTTPS origin: no browser and no credential goes over HTTP.
+    for (const char* refused : {"http://nt.example", "http://127.0.0.1:7777", "nt.example", "https://nt.example/path",
+                                "https://user@nt.example"}) {
+      qputenv("NODETOOL_CLOUD_SERVER", refused);
+      QCOMPARE(cloudServerOrigin(), std::string());
+    }
+    qunsetenv("NODETOOL_CLOUD_SERVER");
+  }
+
+  // A server that is not an HTTPS origin never gets a browser opened for it.
+  void plainHttpServerRefusesSignIn() {
+    Computer computer;
+    AccountServices services;
+    services.dataDir = computer.data.path();
+    services.serverOrigin = "http://nt.example";
+    services.app = "node-editor";
+    services.store = std::make_unique<SharedStore>(computer.keychain);
+    services.endpoint = std::make_unique<SharedEndpoint>(computer.server);
+    services.policy = [] { return ManagedPolicy{}; };
+    AccountController editor(std::move(services));
+    QSignalSpy browser(&editor, &AccountController::browserRequested);
+    editor.signIn();
+    QCOMPARE(editor.state(), AccountController::State::SignedOut);
+    QVERIFY2(editor.message().contains("HTTPS"), qPrintable(editor.message()));
+    QCOMPARE(browser.count(), 0);
+    QCOMPARE(editor.session(), nullptr);
+  }
+
+  // When the app cannot open the browser, the attempt ends with a reason
+  // and can be tried again.
+  void browserThatDoesNotOpenEndsTheAttempt() {
+    Computer computer;
+    computer.server.addCode("code-1", "u1", "Ada");
+    auto editor = computer.app("node-editor");
+    AccountController* controller = editor.get();
+    bool opens = false;
+    connect(controller, &AccountController::browserRequested, this, [&](const QUrl& url) {
+      if (opens) {
+        std::thread([url] { completeInBrowser(url, "code-1"); }).detach();
+      } else {
+        controller->browserNotOpened();
+      }
+    });
+    editor->signIn();
+    QTRY_COMPARE_WITH_TIMEOUT(editor->state(), AccountController::State::SignedOut, 3000);
+    QVERIFY2(editor->message().contains("browser"), qPrintable(editor->message()));
+    opens = true;
+    editor->signIn();
+    QTRY_COMPARE(editor->state(), AccountController::State::SignedIn);
+    QVERIFY(editor->message().isEmpty());
+  }
+  // Sign in to another server (PRD "Sign in" step 2): only HTTPS origins,
+  // one controller per server, and each keeps its own account.
+  void serversAddAndSwitch() {
+    Computer computer;
+    AccountServers servers(computer.data.path(), kServer,
+                           [&](const std::string& origin) { return computer.services("node-editor", origin); });
+    AccountController* cloud = servers.current();
+    QVERIFY(cloud != nullptr);
+    QCOMPARE(servers.currentServer(), QString(kServer));
+    QCOMPARE(servers.servers(), QStringList{kServer});
+
+    QSignalSpy switched(&servers, &AccountServers::currentChanged);
+    QVERIFY(!servers.addServer("http://plain.example").isEmpty());
+    QVERIFY(!servers.addServer("https://a.example/path").isEmpty());
+    QVERIFY(!servers.addServer("  ").isEmpty());
+    QCOMPARE(switched.count(), 0);
+
+    QVERIFY(servers.addServer("  Team.Example ").isEmpty());
+    QCOMPARE(switched.count(), 1);
+    QCOMPARE(servers.currentServer(), QString("https://team.example"));
+    QCOMPARE(servers.current()->serverOrigin(), QString("https://team.example"));
+    QCOMPARE(servers.servers(), (QStringList{kServer, "https://team.example"}));
+
+    QVERIFY(servers.switchTo(kServer));
+    QCOMPARE(servers.current(), cloud);
+    QVERIFY(!servers.switchTo("https://unlisted.example"));
+    QCOMPARE(servers.current(), cloud);
+
+    // A server an account signed in to before is listed again at start,
+    // and the app starts on the server it used last.
+    QVERIFY(AccountsIndex(computer.data.path()).upsert({"https://past.example", "u7", "Ada"}, std::chrono::seconds(1)));
+    AccountServers again(computer.data.path(), kServer,
+                         [&](const std::string& origin) { return computer.services("timeline", origin); },
+                         "https://past.example");
+    QCOMPARE(again.currentServer(), QString("https://past.example"));
+    QVERIFY(again.servers().contains("https://past.example"));
+    AccountServers unknown(computer.data.path(), kServer,
+                           [&](const std::string& origin) { return computer.services("timeline", origin); },
+                           "https://gone.example");
+    QCOMPARE(unknown.currentServer(), QString(kServer));
+  }
+
+  // The Cloud and Shared with me groups list the signed-in account's
+  // documents, and empty at sign-out.
+  void browserListsCloudAndShared() {
+    Computer computer;
+    computer.server.addCode("code-b", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-b");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    ProcedureServer server;
+    server.answer("workflows.list", {200, R"({"result":{"data":{"workflows":[{"id":"w1","name":"Mine",)"
+                                          R"("updated_at":"2026-11-16T00:00:00Z"}],"next":null}}})"});
+    server.answer("workflows.sharing.sharedWithMe",
+                  {200, R"({"result":{"data":{"workflows":[{"id":"w2","name":"Theirs","shared_role":"editor"}]}}})"});
+    CloudBrowser browser("workflow", std::make_unique<SharedTransport>(server));
+    browser.setAccount(account.get());
+    QTRY_COMPARE(browser.cloud()->count(), 1);
+    QTRY_COMPARE(browser.shared()->count(), 1);
+    QVERIFY(!browser.loading());
+    QVERIFY(browser.message().isEmpty());
+    const QModelIndex shared = browser.shared()->index(0);
+    QCOMPARE(browser.shared()->data(shared, CloudDocumentList::NameRole).toString(), QString("Theirs"));
+    QCOMPARE(browser.shared()->data(shared, CloudDocumentList::AccessRole).toString(), QString("editor"));
+
+    // Offline, the lists keep what they showed and say why.
+    server.answer("workflows.list", {503, "{}"});
+    browser.refresh();
+    QTRY_VERIFY(!browser.loading());
+    QVERIFY(!browser.message().isEmpty());
+    QCOMPARE(browser.cloud()->count(), 1);
+
+    account->signOut();
+    QTRY_COMPARE(account->state(), AccountController::State::SignedOut);
+    QTRY_COMPARE(browser.cloud()->count(), 0);
+    QCOMPARE(browser.shared()->count(), 0);
+    QVERIFY(!browser.signedIn());
+  }
+
+  // A cloud document shows each synchronization status the PRD names, and
+  // reads Saved to cloud only after the server accepted.
+  void documentShowsItsStatus() {
+    Computer computer;
+    computer.server.addCode("code-d", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-d");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    ProcedureServer server;
+    server.answer("/api/sync/capabilities", {200, kCapabilities});
+    server.answer("workflows.get", {200, R"({"result":{"data":{"id":"w1","name":"Mine",)"
+                                         R"("updated_at":"2026-11-16T00:00:00Z","graph":{"nodes":[],"edges":[]}}}})"});
+    server.answer("workflows.autosave", {200, R"({"result":{"data":{"id":"w1","updated_at":"2026-11-16T00:01:00Z"}}})"});
+    MemoryDrafts drafts;
+    CloudDocumentServices services;
+    services.session = account->session();
+    services.store = std::make_unique<SharedDrafts>(drafts);
+    services.kind = "workflow";
+    services.documentId = "w1";
+    services.transport = std::make_unique<SharedTransport>(server);
+    CloudDocument document(std::move(services));
+    QSignalSpy opened(&document, &CloudDocument::opened);
+    document.open();
+    QTRY_COMPARE(opened.count(), 1);
+    QVERIFY(opened.at(0).at(0).toString().contains("\"Mine\""));
+    QVERIFY(opened.at(0).at(1).toString().isEmpty());
+    QVERIFY(!document.readOnly());
+    QCOMPARE(document.syncStatus(), CloudDocument::SyncStatus::SavedToCloud);
+    QCOMPARE(document.content(), opened.at(0).at(0).toString());
+    QCOMPARE(document.kind(), QString("workflow"));
+    QCOMPARE(document.role(), QString("owner"));
+
+    document.edit(R"({"nodes":[{"id":"n1"}],"edges":[]})");
+    QCOMPARE(document.content(), QString(R"({"nodes":[{"id":"n1"}],"edges":[]})"));
+    QCOMPARE(document.syncStatus(), CloudDocument::SyncStatus::ChangesWaiting);
+    QCOMPARE(document.syncText(), QString("1 change waiting"));
+    QTRY_COMPARE(document.syncStatus(), CloudDocument::SyncStatus::SavedToCloud);
+    QCOMPARE(server.count("workflows.autosave", "POST"), 1);
+    QVERIFY(drafts.list({}, {}).drafts.empty());
+
+    // Offline: the edit waits on disk and the status names the last
+    // contact.
+    server.answer("workflows.autosave", {503, "{}"});
+    document.edit(R"({"nodes":[],"edges":[]})");
+    document.edit(R"({"nodes":[{"id":"n2"}],"edges":[]})");
+    QTRY_COMPARE(document.syncStatus(), CloudDocument::SyncStatus::Offline);
+    QVERIFY(document.syncText().startsWith("Offline, 2 changes waiting, last connected "));
+    QCOMPARE(drafts.list({}, {}).drafts.size(), std::size_t(1));
+
+    // Access removed: the tab turns read-only and the edits stay unsent.
+    server.answer("workflows.autosave", {403, R"({"error":{"json":{"data":{"apiCode":"FORBIDDEN"}}}})"});
+    QTRY_COMPARE_WITH_TIMEOUT(document.syncStatus(), CloudDocument::SyncStatus::Unsent, 10000);
+    QVERIFY(document.readOnly());
+    QCOMPARE(document.syncText(), QString("Unsent edits: access removed"));
+    const auto rows = drafts.list({}, {}).drafts;
+    QVERIFY(rows.size() == 1 && rows[0].state == DraftState::Unsent);
+  }
+
+
+  // The share dialog reads the links, people and linked documents, warns of
+  // a secret in the document, and changes a link through the server.
+  void shareDialogReadsAndChanges() {
+    Computer computer;
+    computer.server.addCode("code-s", "u1", "Ada");
+    auto account = computer.app("timeline");
+    signInWith(this, *account, "code-s");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    ProcedureServer server;
+    server.answer("documentSharing.get",
+                  {200, R"({"result":{"data":{"collaborators":[],"shares":[)"
+                        R"({"id":"s1","token":"tok1","role":"viewer","options":{"allow_history":true,)"
+                        R"("allow_download":false,"allow_duplicate":false}}],"people":[{"user_id":"u2",)"
+                        R"("display_name":"Bob","access":{"role":"viewer","options":{"allow_history":true,)"
+                        R"("allow_download":false,"allow_duplicate":false},"grants":[],"given_by":{"role":[],)"
+                        R"("allow_history":[],"allow_download":[],"allow_duplicate":[]}}}]}}})"});
+    server.answer("documentSharing.setLinkOptions", {200, R"({"result":{"data":{"id":"s1","token":"tok1","role":"viewer"}}})"});
+    ShareController share(std::make_unique<SharedTransport>(server));
+    share.setAccount(account.get());
+    share.setKind("timeline");
+    share.setContent(R"({"clips":[{"id":"c1","scriptId":"sc1","prompt":"AKIAABCDEFGHIJKLMNOP"}]})");
+    share.setDocumentId("t1");
+    QTRY_VERIFY(!share.loading());
+    QVERIFY(share.message().isEmpty());
+
+    const QVariantMap viewer = share.viewerLink();
+    QVERIFY(viewer.value("exists").toBool());
+    QCOMPARE(viewer.value("url").toString(), QString(kServer) + "/share/document/tok1");
+    QVERIFY(viewer.value("history").toBool());
+    QVERIFY(viewer.value("statement").toString().contains("read its history"));
+    QVERIFY(!share.editorLink().value("exists").toBool());
+    QVERIFY(share.editorLink().value("statement").toString().contains("cannot be taken back"));
+    QCOMPARE(share.people().size(), 1);
+    QCOMPARE(share.people().at(0).toMap().value("name").toString(), QString("Bob"));
+
+    // The script answers like the timeline, so it has a link of its own.
+    QCOMPARE(share.linkedDocuments().size(), 1);
+    const QVariantMap script = share.linkedDocuments().at(0).toMap();
+    QCOMPARE(script.value("kind").toString(), QString("script"));
+    QCOMPARE(script.value("state").toString(), QString("shared"));
+    QCOMPARE(share.secretWarnings().size(), 1);
+    QCOMPARE(share.secretWarnings().at(0).toMap().value("place").toString(), QString("clips[0].prompt"));
+
+    // A refused read keeps what the dialog showed and says why.
+    server.answer("documentSharing.get", {403, R"({"error":{"json":{"data":{"apiCode":"FORBIDDEN"}}}})"});
+    share.refresh();
+    QTRY_VERIFY(!share.loading());
+    QVERIFY(!share.message().isEmpty());
+    QVERIFY(share.viewerLink().value("exists").toBool());
+
+    const int before = server.count("documentSharing.setLinkOptions", "POST");
+    share.setViewerOptions(false, true, false);
+    QTRY_COMPARE(server.count("documentSharing.setLinkOptions", "POST"), before + 1);
+    QTRY_VERIFY(!share.busy());
+
+    // Signed out, nothing is shown and nothing is sent.
+    account->signOut();
+    QTRY_COMPARE(account->state(), AccountController::State::SignedOut);
+    QTRY_VERIFY(!share.viewerLink().value("exists").toBool());
+    const int sent = server.count("documentSharing");
+    share.createLink("editor");
+    QCOMPARE(server.count("documentSharing"), sent);
+    QVERIFY(!share.message().isEmpty());
+  }
+
+  // A tab that closes right after an edit leaves the edit on disk, before
+  // the timer wrote it.
+  void closingWritesTheLastEdit() {
+    Computer computer;
+    computer.server.addCode("code-c", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-c");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+    ProcedureServer server;
+    server.answer("/api/sync/capabilities", {200, kCapabilities});
+    server.answer("workflows.get", {200, R"({"result":{"data":{"id":"w1","name":"Mine",)"
+                                         R"("updated_at":"2026-11-16T00:00:00Z","graph":{"nodes":[],"edges":[]}}}})"});
+    MemoryDrafts drafts;
+    CloudDocumentServices services;
+    services.session = account->session();
+    services.store = std::make_unique<SharedDrafts>(drafts);
+    services.kind = "workflow";
+    services.documentId = "w1";
+    services.transport = std::make_unique<SharedTransport>(server);
+    auto document = std::make_unique<CloudDocument>(std::move(services));
+    QSignalSpy opened(document.get(), &CloudDocument::opened);
+    document->open();
+    QTRY_COMPARE(opened.count(), 1);
+    document->edit(R"({"nodes":[{"id":"n9"}],"edges":[]})");
+    document.reset();
+    const auto rows = drafts.list({}, {}).drafts;
+    QCOMPARE(rows.size(), std::size_t(1));
+    QVERIFY(rows[0].draft.find("n9") != std::string::npos);
+    QCOMPARE(server.count("workflows.autosave", "POST"), 0);
+  }
+
+  // A viewer's document opens read-only and sends nothing. A draft left in
+  // the local store opens over the revision.
+  void viewerAndResumedDocuments() {
+    Computer computer;
+    computer.server.addCode("code-v", "u1", "Ada");
+    auto account = computer.app("timeline");
+    signInWith(this, *account, "code-v");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+    ProcedureServer server;
+    server.answer("/api/sync/capabilities", {200, kCapabilities});
+    server.answer("timeline.get", {200, R"({"result":{"data":{"id":"t1","name":"Cut","updatedAt":"r1"}}})"});
+    server.answer("timeline.update", {200, R"({"result":{"data":{"id":"t1","updatedAt":"r2"}}})"});
+
+    MemoryDrafts drafts;
+    const auto open = [&](const std::string& role) {
+      CloudDocumentServices services;
+      services.session = account->session();
+      services.store = std::make_unique<SharedDrafts>(drafts);
+      services.kind = "timeline";
+      services.documentId = "t1";
+      services.role = role;
+      services.transport = std::make_unique<SharedTransport>(server);
+      return std::make_unique<CloudDocument>(std::move(services));
+    };
+
+    auto viewer = open("viewer");
+    QSignalSpy viewerOpened(viewer.get(), &CloudDocument::opened);
+    viewer->open();
+    QTRY_COMPARE(viewerOpened.count(), 1);
+    QVERIFY(viewer->readOnly());
+    viewer->edit(R"({"tracks":[]})");
+    QTest::qWait(600);
+    QCOMPARE(server.count("timeline.update"), 0);
+    QVERIFY(drafts.list({}, {}).drafts.empty());
+    viewer.reset();
+
+    const std::shared_ptr<AccountSession> session = account->session();
+    drafts.put({serverKey(kServer), session->accountId(), "timeline", "t1"}, {"r1", "h1"}, R"({"tracks":[1]})");
+    auto editor = open("editor");
+    QSignalSpy editorOpened(editor.get(), &CloudDocument::opened);
+    editor->open();
+    QTRY_COMPARE(editorOpened.count(), 1);
+    QCOMPARE(editorOpened.at(0).at(1).toString(), QString(R"({"tracks":[1]})"));
+    QTRY_COMPARE(editor->syncStatus(), CloudDocument::SyncStatus::SavedToCloud);
+    QCOMPARE(server.count("timeline.update"), 1);
+  }
+
+  void statusSentences() {
+    using S = CloudDocument::SyncStatus;
+    QCOMPARE(syncStatusText(S::SavedToCloud, 0, {}, {}), QString("Saved to cloud"));
+    QCOMPARE(syncStatusText(S::Sending, 1, {}, {}), QString("Sending"));
+    QCOMPARE(syncStatusText(S::ChangesWaiting, 3, {}, {}), QString("3 changes waiting"));
+    QCOMPARE(syncStatusText(S::Offline, 3, "14:02", {}), QString("Offline, 3 changes waiting, last connected 14:02"));
+    QCOMPARE(syncStatusText(S::Offline, 0, "14:02", {}), QString("Offline, last connected 14:02"));
+    QCOMPARE(syncStatusText(S::CloudStatusUnknown, 1, {}, {}), QString("Cloud status unknown, 1 change waiting"));
+    QVERIFY(syncStatusText(S::NotSaving, 1, {}, {}).startsWith("Not saving"));
+    QCOMPARE(syncStatusText(S::Unsent, 1, {}, "SCHEMA_DOWNGRADE"),
+             QString("Unsent edits: stored in a newer format than this app writes"));
+  }
+};
+
+QTEST_GUILESS_MAIN(AccountQtTest)
+#include "tst_account_qt.moc"

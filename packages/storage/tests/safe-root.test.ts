@@ -95,6 +95,44 @@ describe("SafeRoot", () => {
     });
   });
 
+  describe("copyInNew", () => {
+    it("copies a file to a free path and leaves only that file", async () => {
+      await fs.writeFile(path.join(outside, "src.txt"), "source");
+      expect(
+        await root.copyInNew("in/src.txt", path.join(outside, "src.txt"), { maxBytes: 100 })
+      ).toBe(true);
+      expect(await fs.readFile(path.join(rootDir, "in", "src.txt"), "utf8")).toBe("source");
+      expect(await fs.readdir(path.join(rootDir, "in"))).toEqual(["src.txt"]);
+      if (process.platform !== "win32") {
+        expect((await fs.stat(path.join(rootDir, "in", "src.txt"))).nlink).toBe(1);
+      }
+    });
+
+    it("never replaces a file at the path", async () => {
+      await fs.writeFile(path.join(outside, "src.txt"), "source");
+      await root.write("in/src.txt", Buffer.from("someone else's"));
+      expect(
+        await root.copyInNew("in/src.txt", path.join(outside, "src.txt"), { maxBytes: 100 })
+      ).toBe(false);
+      expect(await fs.readFile(path.join(rootDir, "in", "src.txt"), "utf8")).toBe(
+        "someone else's"
+      );
+      expect(await fs.readdir(path.join(rootDir, "in"))).toEqual(["src.txt"]);
+    });
+
+    it("leaves a file at the path and removes its staging file when the copy fails", async () => {
+      await fs.writeFile(path.join(outside, "src.txt"), "source");
+      await root.write("in/src.txt", Buffer.from("someone else's"));
+      expect(
+        await code(root.copyInNew("in/src.txt", path.join(outside, "src.txt"), { maxBytes: 3 }))
+      ).toBe("too-large");
+      expect(await fs.readFile(path.join(rootDir, "in", "src.txt"), "utf8")).toBe(
+        "someone else's"
+      );
+      expect(await fs.readdir(path.join(rootDir, "in"))).toEqual(["src.txt"]);
+    });
+  });
+
   describe("path traversal", () => {
     it.each([
       ["../outside/secret.txt"],

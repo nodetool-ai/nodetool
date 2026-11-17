@@ -18,6 +18,7 @@ export {
   getDbType,
   getPostgresClient,
   getRawDb,
+  openSqliteFile,
   pingDb,
   closeDb
 } from "./db.js";
@@ -160,12 +161,18 @@ export type {
 } from "./workflow.js";
 
 export { WorkflowVersion } from "./workflow-version.js";
+export type { KeepRevision } from "./kept-revision.js";
 export {
   WorkflowCollaborator,
   isCollaboratorRole,
   type CollaboratorRole
 } from "./workflow-collaborator.js";
-export { WorkflowShare, type ShareRole } from "./workflow-share.js";
+export {
+  WorkflowShare,
+  applyShareOptions,
+  type ShareRole,
+  type ShareOptions
+} from "./workflow-share.js";
 export {
   DocumentCollaborator,
   DocumentShare,
@@ -174,6 +181,12 @@ export {
   removeDocumentSharing,
   type SharedDocumentType
 } from "./document-sharing.js";
+export {
+  DocumentRefs,
+  type DocumentRefScopeValue,
+  type DocumentRefSetFiles,
+  type DocumentRefSetRow
+} from "./document-refs.js";
 export {
   getUserSharing,
   listPublicWorkflows,
@@ -594,7 +607,28 @@ export {
   MCP_OAUTH_ACCESS_TOKEN_PREFIX,
   MCP_OAUTH_REFRESH_TOKEN_PREFIX
 } from "./mcp-oauth.js";
-export type { McpOauthClientRow, McpOauthGrantRow } from "./mcp-oauth.js";
+export type {
+  McpOauthClientRow,
+  McpOauthGrantRow,
+  RefreshRotation,
+  RevocationHandleOutcome
+} from "./mcp-oauth.js";
+export {
+  NATIVE_ACCESS_TOKEN_PREFIX,
+  NATIVE_ACCESS_TTL_MS,
+  NATIVE_CLIENT_ID,
+  NATIVE_CLIENT_NAME,
+  NATIVE_REFRESH_IDLE_TTL_MS,
+  NATIVE_REVOCATION_HANDLE_PREFIX,
+  NATIVE_SCOPE,
+  type OauthGrantKind
+} from "./native-session-constants.js";
+export {
+  OauthPending,
+  OAUTH_PENDING_TTL_MS,
+  type OauthPendingCode,
+  type OauthPendingPayload
+} from "./oauth-pending.js";
 
 // ── Seeds ────────────────────────────────────────────────────────────
 export { runSeeds, seedCostData, COST_SEED_USER_ID } from "./seeds/index.js";
@@ -686,6 +720,7 @@ export type {
   UserStatus
 } from "./user-account.js";
 export { userAccounts } from "./schema/user-accounts.js";
+export { oauthPendingEntries } from "./schema/mcp-oauth.js";
 
 export {
   DEFAULT_QUOTA_SUBJECT,
@@ -737,3 +772,14 @@ export { threadHasTraceContentTools } from "./trace-provenance.js";
 export { listAppInstanceMetadata } from "./app-instance-list.js";
 
 export { openResourceChangeChannel, openResourceChangeChannelWithFallback, resolveResourceChangeListenerUrl, NOTIFY_PAYLOAD_LIMIT, MAX_PENDING_NOTIFICATIONS, RESYNC_MESSAGE, packResourceChangeMessages, encodeResourceChangeGroup } from "./resource-change-channel.js";
+
+export { CloudLocalStore } from "./cloud-local-store.js";
+export type {
+  AcceptOutcome,
+  CloudBase,
+  CloudDocumentRef,
+  CloudDraftRow,
+  CloudLocalScope,
+  CloudOpenStateRow
+} from "./cloud-local-store.js";
+export type { CloudDocumentOptions } from "./schema/cloud-local.js";

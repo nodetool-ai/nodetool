@@ -12,6 +12,14 @@ Controls.Control {
     required property TimelineModel timeline
     required property PlaybackClock clock
     property QtObject saver: typeof autosave !== "undefined" ? autosave : null
+    // main sets nativeAccountServers for the app. Tests without it show no
+    // Account control.
+    property AccountServers accountServers: typeof nativeAccountServers !== "undefined" ? nativeAccountServers : null
+    // main sets nativeCloudDocument for a cloud timeline: its status takes
+    // the place of the save status.
+    property CloudDocument cloudDocument: typeof nativeCloudDocument !== "undefined" ? nativeCloudDocument : null
+    // The account of that timeline's server. The owner shares from it.
+    property AccountController cloudAccount: typeof nativeCloudAccount !== "undefined" ? nativeCloudAccount : null
     property var chatSession: typeof nativeChatSession !== "undefined" ? nativeChatSession : null
     property var chatHost: typeof nativeChatHost !== "undefined" ? nativeChatHost : null
     readonly property bool chatInitiallyOpen: typeof nativeChatInitiallyOpen !== "undefined" && nativeChatInitiallyOpen
@@ -204,6 +212,9 @@ Controls.Control {
                 Layout.fillWidth: true
                 timeline: root.timeline
                 autosave: root.saver
+                cloudDocument: root.cloudDocument
+                cloudAccount: root.cloudAccount
+                accountServers: root.accountServers
                 DockLayoutMenu {
                     anchors.verticalCenter: parent.verticalCenter
                     store: layoutStore

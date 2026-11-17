@@ -41,6 +41,8 @@ public:
   void setProject(const QString &projectKey);
   // The server workflow open in the tab, or empty. A change loads its file state.
   void setDocument(const QString &workflowId);
+  // The project's id from projects.list, empty until it answers.
+  QString projectId() const { return m_project.value("id").toString(); }
   QString projectName() const { return m_project.value("name").toString(); }
   QString folderState() const;
   QString folderPath() const { return folder().value("path").toString(); }

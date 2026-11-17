@@ -64,6 +64,7 @@ import {
   useProjectFolders,
   type ProjectFolderFixture
 } from "./project-folder-fixture.js";
+import { KEPT_REVISION_LABEL } from "../src/lib/document-save-rules.js";
 
 const createCaller = createCallerFactory(appRouter);
 const USER = "1";
@@ -294,7 +295,12 @@ describe.each(["local", "cloud"] as const)(
       const versions = await TimelineSequenceVersion.listForTimeline(fox.id, {
         saveType: "manual"
       });
-      expect(versions.map((version) => version.name)).toEqual(["Before file edit"]);
+      // createFox's save carried no editing instance, so it kept the empty
+      // timeline first.
+      expect(versions.map((version) => version.name)).toEqual([
+        "Before file edit",
+        KEPT_REVISION_LABEL
+      ]);
 
       // The editor's save names the state it loaded and is refused.
       await expect(

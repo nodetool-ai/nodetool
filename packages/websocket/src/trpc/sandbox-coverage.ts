@@ -40,6 +40,11 @@ export type SandboxApiVerdict =
   | { readonly withheld: string; readonly capability?: never; readonly elsewhere?: never; readonly gap?: never }
   | { readonly gap: string; readonly capability?: never; readonly elsewhere?: never; readonly withheld?: never };
 
+const CLOUD_LOCAL_WITHHELD =
+  "The local store of a native app's unsent cloud edits. A run that wrote or " +
+  "accepted a draft would change what the app sends to the person's cloud " +
+  "account, or drop edits that exist nowhere else.";
+
 /**
  * Every tRPC procedure path, and what sandboxed code can do about it.
  *
@@ -170,6 +175,16 @@ export const SANDBOX_API_COVERAGE: Readonly<
     withheld:
       "Revoking a connected client's grant is denial of service against the " +
       "user's own tooling, same rule as revokeToken."
+  },
+  "agentAccess.listDeviceSessions": {
+    withheld:
+      "Enumerates which computers hold a signed-in desktop session — " +
+      "credential reconnaissance, same rule as listOauthGrants."
+  },
+  "agentAccess.endDeviceSession": {
+    withheld:
+      "Ending a device session signs the user out of their desktop apps, " +
+      "denial of service against the user's own tooling."
   },
   "antigravity.install": {
     withheld:
@@ -392,6 +407,14 @@ export const SANDBOX_API_COVERAGE: Readonly<
   },
   "assets.search": { capability: "asset_search" },
   "assets.update": { capability: "update_asset" },
+  "cloudLocal.drafts.accept": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudLocal.drafts.discard": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudLocal.drafts.get": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudLocal.drafts.list": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudLocal.drafts.markUnsent": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudLocal.drafts.put": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudLocal.openState.get": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudLocal.openState.record": { withheld: CLOUD_LOCAL_WITHHELD },
   "codeGen.generate": {
     elsewhere:
       "Sandboxed code authors node bodies with validate_code / " +
@@ -497,6 +520,29 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Sharing grants named people and link holders access to a " +
       "document. Handing access to a *particular* account is the " +
       "user's decision, as it is for `workflows.sharing`."
+  },
+  "documentSharing.access": {
+    withheld:
+      "Reports the caller's own role and options on a shared " +
+      "document, with the grants they come from. A run acts on the " +
+      "documents its own user owns, so there is nothing to ask."
+  },
+  "documentSharing.setLinkOptions": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "document. Handing access to a *particular* account is the " +
+      "user's decision, as it is for `workflows.sharing`."
+  },
+  "documentSharing.setInvitationOptions": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "document. Handing access to a *particular* account is the " +
+      "user's decision, as it is for `workflows.sharing`."
+  },
+  "documentSharing.dismissNotice": {
+    withheld:
+      "Dismisses a notice shown to the owner in the share dialog. " +
+      "It is the owner's acknowledgement, not a run's."
   },
   "documentSharing.sharedWithMe": {
     withheld:
@@ -962,7 +1008,9 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "is missing is the grouping itself — creating one, and reading the " +
       "status and spend rollup `projects.get` derives. Work, not a " +
       "boundary: nothing here is a credential, another tenant, or host " +
-      "control."
+      "control. Its optional `location` is a host path, so a capability " +
+      "that wraps this procedure must leave it out, for the reason " +
+      "`projects.openFolder` is withheld."
   },
   "projects.delete": { capability: "delete_project" },
   "projects.documentPage": {
@@ -1354,6 +1402,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "here, or seeding from list_entities, would close it."
   },
   "storyboards.update": { capability: "edit_storyboard" },
+  "sync.capabilities": {
+    withheld:
+      "Protocol and schema versions steer a client that keeps its own copy " +
+      "of a document. A run writes through capabilities that follow the " +
+      "server's own versions."
+  },
   "memories.delete": { capability: "memory_delete" },
   "errorTraces.list": { capability: "list_error_traces" },
   "errorTraces.summary": { capability: "list_error_traces" },
@@ -1635,6 +1689,29 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "exposed, and it is classified `external` so the gate asks; " +
       "handing access to a *particular* account is a step further and " +
       "stays with the user."
+  },
+  "workflows.sharing.access": {
+    withheld:
+      "Reports the caller's own role and options on a shared " +
+      "workflow, with the grants they come from. A run acts on the " +
+      "workflows its own user owns, so there is nothing to ask."
+  },
+  "workflows.sharing.setLinkOptions": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "workflow. Handing access to a *particular* account is the " +
+      "user's decision."
+  },
+  "workflows.sharing.setInvitationOptions": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "workflow. Handing access to a *particular* account is the " +
+      "user's decision."
+  },
+  "workflows.sharing.dismissNotice": {
+    withheld:
+      "Dismisses a notice shown to the owner in the share dialog. " +
+      "It is the owner's acknowledgement, not a run's."
   },
   "workflows.sharing.sharedWithMe": {
     withheld:

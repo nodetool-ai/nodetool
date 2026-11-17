@@ -137,7 +137,7 @@ replacement = "Named picker geometry scaled by Ui.Theme.uiScale"
 [[file]]
 path = "native/timeline/qml/DocumentBar.qml"
 category = "chrome"
-controls = ["Rectangle", "Ui.Text", "ToolButton"]
+controls = ["Rectangle", "Ui.Text", "ToolButton", "Loader", "AccountControl", "ShareDialog"]
 signals = []
 test_host = "tst_wiringedit"
 test_scope = "build/import"
@@ -2883,6 +2883,56 @@ qml_callers = []
 replacement = "Synthetic timeline hit-testing fixture; no product chrome"
 
 [[file]]
+path = "native/account/qt/qml/AccountControl.qml"
+category = "chrome"
+controls = ["RowLayout", "Ui.Text", "Ui.EditorButton", "Ui.MenuButton", "Ui.ContextMenu", "Ui.MenuItem", "Instantiator", "Basic.MenuSeparator", "Ui.Separator", "Ui.Dialog", "Ui.TextField"]
+signals = []
+test_host = "native/node-editor/tests/ui/AccountControlComponentTest.cpp"
+test_scope = "interaction"
+qml_callers = ["native/node-editor/qml/StatusBar.qml", "native/timeline/qml/DocumentBar.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton, Ui.MenuButton, Ui.ContextMenu, Ui.MenuItem, Ui.Separator, Ui.Dialog, Ui.TextField"
+
+[[file]]
+path = "native/account/qt/qml/CloudDocumentsPanel.qml"
+category = "chrome"
+controls = ["ColumnLayout", "RowLayout", "ListView", "Ui.PanelHeader", "Ui.Text", "Ui.ListRow", "Ui.Status", "Ui.ToolbarIconButton"]
+signals = ["openRequested"]
+test_host = "native/node-editor/tests/ui/AccountControlComponentTest.cpp"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.PanelHeader, Ui.Text, Ui.ListRow, Ui.Status, Ui.ToolbarIconButton"
+
+[[file]]
+path = "native/account/qt/qml/CloudSyncStatus.qml"
+category = "chrome"
+controls = ["Ui.Status"]
+signals = []
+test_host = "native/node-editor/tests/ui/AccountControlComponentTest.cpp"
+test_scope = "build"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Status"
+
+[[file]]
+path = "native/account/qt/qml/ShareDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "SharePanel"]
+signals = []
+test_host = "native/node-editor/tests/ui/AccountControlComponentTest.cpp"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/DocumentBar.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog"
+
+[[file]]
+path = "native/account/qt/qml/SharePanel.qml"
+category = "chrome"
+controls = ["ShareController", "TextEdit", "ColumnLayout", "RowLayout", "ListView", "Ui.ScrollArea", "Ui.PanelHeader", "Ui.Text", "Ui.TextField", "Ui.EditorButton", "Ui.Toggle", "Ui.Select", "Ui.Banner", "Ui.BusyIndicator"]
+signals = ["closeRequested"]
+test_host = "native/node-editor/tests/ui/AccountControlComponentTest.cpp"
+test_scope = "interaction"
+qml_callers = ["native/account/qt/qml/ShareDialog.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ScrollArea, Ui.PanelHeader, Ui.Text, Ui.TextField, Ui.EditorButton, Ui.Toggle, Ui.Select, Ui.Banner, Ui.BusyIndicator"
+
+[[file]]
 path = "native/node-editor/qml/ActionPanel.qml"
 category = "pending"
 controls = ["Rectangle", "ColumnLayout", "RowLayout", "Ui.Text", "Ui.EditorButton", "Flow", "Ui.SegmentedControl", "ShortcutKeyboard", "Ui.TextField", "ListView", "Ui.ScrollBar", "Ui.ListRow"]
@@ -3545,7 +3595,7 @@ replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Tooltip"
 [[file]]
 path = "native/node-editor/qml/StatusBar.qml"
 category = "chrome"
-controls = ["Rectangle", "EditorRoles", "RowLayout", "Ui.Text", "Ui.EditorButton", "Ui.TabBar", "Item", "Readout"]
+controls = ["Rectangle", "EditorRoles", "RowLayout", "Ui.Text", "Ui.EditorButton", "Ui.TabBar", "Item", "Readout", "Loader", "AccountControl"]
 signals = []
 test_host = "native/node-editor/tests/ui/ServerSyncHostTest.cpp"
 test_scope = "build/import"

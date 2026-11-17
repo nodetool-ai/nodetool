@@ -48,7 +48,9 @@ import DefaultModelsMenu from "./DefaultModelsMenu";
 import MCPSettingsMenu from "./MCPSettingsMenu";
 import BrowserExtensionSettingsMenu from "./BrowserExtensionSettingsMenu";
 import VaultsSettings from "./VaultsSettings";
+import CloudAccountSettings from "./CloudAccountSettings";
 import ConnectedAccountsSettings from "../settings/ConnectedAccountsSettings";
+import DeviceSessionsSettings from "../settings/DeviceSessionsSettings";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback, useEffect, useRef } from "react";
 import SettingsSidebar from "./SettingsSidebar";
@@ -547,6 +549,9 @@ function SettingsPage() {
         { id: "editor", label: "Editor" },
         ...(isElectron ? [{ id: "updates", label: "Updates" }] : []),
         ...(isElectron ? [{ id: "vaults", label: "Vaults" }] : []),
+        ...(isElectron && window.api?.cloudAccount
+          ? [{ id: "cloud-account", label: "Cloud account" }]
+          : []),
         { id: "appearance", label: "Appearance" }
       ]
     },
@@ -584,7 +589,12 @@ function SettingsPage() {
       { category: "Configuration", items: configItems },
       {
         category: "Accounts",
-        items: [{ id: "connected-accounts", label: "Connected accounts" }]
+        items: [
+          { id: "connected-accounts", label: "Connected accounts" },
+          ...(isLocalhost
+            ? []
+            : [{ id: "signed-in-devices", label: "Signed-in devices" }])
+        ]
       },
       ...(isLocalhost
         ? [
@@ -900,6 +910,11 @@ function SettingsPage() {
                     {isElectron &&
                       generalMatches("vaults isolated database") && (
                         <VaultsSettings />
+                      )}
+
+                    {isElectron &&
+                      generalMatches("cloud account sign in sign out") && (
+                        <CloudAccountSettings />
                       )}
 
                     <div className="settings-section">
@@ -1272,6 +1287,11 @@ function SettingsPage() {
                       <ConnectedAccountsSettings />
                     </>
                   )}
+
+                  {matchesSearch(
+                    "signed in devices desktop sessions sign out",
+                    search
+                  ) && <DeviceSessionsSettings />}
 
                   {isLocalhost &&
                     matchesSearch(
