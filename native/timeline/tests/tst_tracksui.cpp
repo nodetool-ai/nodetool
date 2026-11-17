@@ -77,7 +77,9 @@
 #include <atomic>
 #include <thread>
 #include <QTemporaryDir>
+#include "account/CloudTimelineSaver.h"
 #include "nodetool/account/qt/AccountServers.h"
+#include "nodetool/account/qt/CloudDocument.h"
 
 #include <cmath>
 #include <functional>
@@ -2977,6 +2979,47 @@ private slots:
                      QStringLiteral("Cloud features are turned off on this computer"));
     }
 
+
+    // A cloud timeline shows its synchronization status in place of the
+    // server save status.
+    void documentBarShowsTheCloudStatus() {
+        load({2, 2});
+        nodetool::account::qt::CloudDocument document(nodetool::account::qt::CloudDocumentServices{});
+        QQmlComponent harness(view->engine());
+        harness.setData("import QtQuick\nimport NodeTool.Timeline\nItem { width: 1200; height: 40;"
+                        " property TimelineModel model; property CloudDocument cloud: null;"
+                        " DocumentBar { width: 1200; timeline: parent.model; cloudDocument: parent.cloud } }",
+                        QUrl());
+        std::unique_ptr<QObject> root(harness.createWithInitialProperties({{"model", QVariant::fromValue(model)}}));
+        QVERIFY2(root, qPrintable(harness.errorString()));
+        auto* rootItem = qobject_cast<QQuickItem*>(root.get());
+        rootItem->setParentItem(region);
+        const auto find = [&](const QString& name) {
+            QQuickItem* found = nullptr;
+            collect(rootItem, [&](QQuickItem* it) { if (!found && it->objectName() == name) found = it; });
+            return found;
+        };
+        QVERIFY(find("saveStatus")->isVisible());
+        QVERIFY(!find("documentCloudStatus")->property("active").toBool());
+        root->setProperty("cloud", QVariant::fromValue(&document));
+        QTRY_VERIFY(find("cloud-sync-status") != nullptr);
+        QCOMPARE(find("cloud-sync-status")->property("message").toString(), QStringLiteral("Opening"));
+        QVERIFY(!find("saveStatus")->isVisible());
+    }
+
+    // A draft replaces the document part of the sequence. The sequence row
+    // fields stay, and fields the draft dropped are gone.
+    void cloudDraftKeepsTheSequenceRow() {
+        const QJsonObject raw{{"id", "t1"}, {"name", "Cut"}, {"fps", 30}, {"updatedAt", "u1"},
+                              {"clips", QJsonArray{}}, {"tracks", QJsonArray{}}, {"markers", QJsonArray{}}};
+        const QJsonObject draft{{"clips", QJsonArray{QJsonObject{{"id", "c"}}}}, {"tracks", QJsonArray{}}};
+        const QJsonObject merged = nt::account::CloudTimelineSaver::withDraft(raw, draft);
+        QCOMPARE(merged.value("id").toString(), QStringLiteral("t1"));
+        QCOMPARE(merged.value("name").toString(), QStringLiteral("Cut"));
+        QCOMPARE(merged.value("updatedAt").toString(), QStringLiteral("u1"));
+        QCOMPARE(merged.value("clips").toArray().size(), 1);
+        QVERIFY(!merged.contains("markers"));
+    }
 
     // Review F10: a probed source length belongs to one version of a file. A
     // new document whose file was replaced in place probes it again.

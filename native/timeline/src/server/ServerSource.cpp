@@ -28,6 +28,10 @@ struct Args {
     QString cacheDir;
     QString token;
     QString reportPath;
+    // A cloud timeline: `server` is the cloud origin and `token` the
+    // account's access token, which main sets with setCloudToken.
+    bool cloud = false;
+    QString role;
     std::string label;  // the positional argument put into argv
 };
 
@@ -58,7 +62,10 @@ bool isServerUrl(const QUrl& url) {
 }  // namespace
 
 int takeServerArgs(int& argc, char** argv) {
+    // Called once per process, so a call starts from no source.
     Args& a = args();
+    a = Args{};
+    loadedSource().reset();
     int out = 1;
     bool seen = false;
     for (int i = 1; i < argc; ++i) {
@@ -83,6 +90,16 @@ int takeServerArgs(int& argc, char** argv) {
             if (!value(a.token)) return 2;
         } else if (std::strcmp(arg, "--loader-report") == 0) {
             if (!value(a.reportPath)) return 2;
+        } else if (std::strcmp(arg, "--cloud-server") == 0) {
+            if (!value(a.server)) return 2;
+            a.cloud = true;
+            seen = true;
+        } else if (std::strcmp(arg, "--cloud-timeline") == 0) {
+            if (!value(a.timeline)) return 2;
+            a.cloud = true;
+            seen = true;
+        } else if (std::strcmp(arg, "--cloud-role") == 0) {
+            if (!value(a.role)) return 2;
         } else if (std::strcmp(arg, "--list-timelines") == 0) {
             a.list = true;
             seen = true;
@@ -105,16 +122,26 @@ int takeServerArgs(int& argc, char** argv) {
                              "       nodetool-timeline --server URL --list-timelines\n");
         return 2;
     }
+    if (a.cloud && (a.list || !a.token.isEmpty())) {
+        std::fprintf(stderr, "error: --cloud-server opens one timeline with the signed-in account\n");
+        return 2;
+    }
     const QUrl url(a.server);
+    if (a.cloud && url.scheme() != u"https") {
+        std::fprintf(stderr, "error: --cloud-server must be an https origin, got '%s'\n", qPrintable(a.server));
+        return 2;
+    }
     if (!isServerUrl(url)) {
         std::fprintf(stderr, "error: --server must be an http(s) URL, got '%s'\n", qPrintable(a.server));
         return 2;
     }
     if (a.cacheDir.isEmpty()) a.cacheDir = defaultCacheDir();
-    if (a.token.isEmpty()) a.token = qEnvironmentVariable("NODETOOL_API_TOKEN");
+    if (a.token.isEmpty() && !a.cloud) a.token = qEnvironmentVariable("NODETOOL_API_TOKEN");
+    if (a.cloud && a.role.isEmpty()) a.role = QStringLiteral("owner");
     a.active = true;
     if (!a.list) {
-        a.label = (a.server + QStringLiteral("#timeline=") + a.timeline).toStdString();
+        const auto key = a.cloud ? QStringLiteral("#cloud_timeline=") : QStringLiteral("#timeline=");
+        a.label = (a.server + key + a.timeline).toStdString();
         // The removed options took at least two slots, so the label fits.
         argv[out++] = a.label.data();
     }
@@ -137,9 +164,19 @@ int listTimelinesMain() {
     return 0;
 }
 
+std::optional<CloudSource> cloudTimelineSource() {
+    const Args& a = args();
+    if (!a.active || !a.cloud) return std::nullopt;
+    return CloudSource{QUrl(a.server), a.timeline, a.role, a.cacheDir};
+}
+
+void setCloudToken(const QString& token) {
+    if (args().cloud) args().token = token;
+}
+
 std::optional<SaveTarget> serverSaveTarget() {
     const Args& a = loadedSource() ? *loadedSource() : args();
-    if (!a.active || a.list) return std::nullopt;
+    if (!a.active || a.list || a.cloud) return std::nullopt;
     SaveTarget t;
     t.server = QUrl(a.server);
     t.token = a.token;

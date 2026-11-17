@@ -119,6 +119,11 @@ public:
   // controller is destroyed. When the policy turns the server off later,
   // the session gives no credential and renews none.
   std::shared_ptr<AccountSession> session() const;
+  // The signed-in session, read from `accounts.json` and the records now on
+  // the calling thread, for a start-up open that cannot wait for the
+  // controller's own read. It may block on the keychain. Null when no
+  // account is signed in to this server, or when the policy holds it back.
+  std::shared_ptr<AccountSession> readSession();
 
 signals:
   void changed();

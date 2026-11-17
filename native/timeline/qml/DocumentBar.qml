@@ -12,6 +12,9 @@ Rectangle {
     objectName: "documentBar"
     required property TimelineModel timeline
     property QtObject autosave: null
+    // An open cloud timeline. Its synchronization status replaces the save
+    // status.
+    property CloudDocument cloudDocument: null
     // The cloud servers and their accounts. Null hides the Account control,
     // which shows the current server's account.
     property AccountServers accountServers: null
@@ -43,8 +46,16 @@ Rectangle {
         }
         SaveStatus {
             anchors.verticalCenter: parent.verticalCenter
+            visible: bar.cloudDocument === null
             autosave: bar.autosave
             compact: bar.width < TimelineMetrics.compactDocumentBarWidth
+        }
+        Loader {
+            objectName: "documentCloudStatus"
+            anchors.verticalCenter: parent.verticalCenter
+            active: bar.cloudDocument !== null
+            visible: active
+            sourceComponent: CloudSyncStatus { document: bar.cloudDocument }
         }
         ToolbarDivider { anchors.verticalCenter: parent.verticalCenter }
         Row {

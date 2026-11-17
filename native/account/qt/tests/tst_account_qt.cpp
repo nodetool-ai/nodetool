@@ -449,6 +449,29 @@ private slots:
     QCOMPARE(session->credentialForRequest().status, CredentialStatus::Ready);
   }
 
+  // A start-up open reads the other app's sign-in at once, before the new
+  // controller's own read has finished, and finds none on another server.
+  void readSessionFindsTheSignedInAccount() {
+    Computer computer;
+    computer.server.addCode("code-1", "u1", "Ada");
+    auto editor = computer.app("node-editor");
+    connect(editor.get(), &AccountController::browserRequested, this,
+            [](const QUrl& url) { std::thread([url] { completeInBrowser(url, "code-1"); }).detach(); });
+    QVERIFY(editor->readSession() == nullptr);
+    editor->signIn();
+    QTRY_COMPARE(editor->state(), AccountController::State::SignedIn);
+
+    auto timeline = computer.app("timeline");
+    const std::shared_ptr<AccountSession> session = timeline->readSession();
+    QVERIFY(session != nullptr);
+    QCOMPARE(session->accountId(), std::string("u1"));
+    QCOMPARE(session->credentialForRequest().status, CredentialStatus::Ready);
+
+    computer.policy = parsePolicyJson("{\"CloudEnabled\": false}");
+    auto held = computer.app("timeline");
+    QCOMPARE(held->readSession(), nullptr);
+  }
+
   // A session restored from the record is held back by a policy that turns
   // its server off, including a reference handed out before.
   void policyHoldsARestoredSession() {

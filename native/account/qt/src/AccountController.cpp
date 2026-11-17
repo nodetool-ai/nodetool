@@ -249,6 +249,17 @@ std::shared_ptr<AccountSession> AccountController::session() const {
   return std::shared_ptr<AccountSession>(held, held->session.get());
 }
 
+std::shared_ptr<AccountSession> AccountController::readSession() {
+  if (!core_->policyAllows.load(std::memory_order_acquire)) {
+    return nullptr;
+  }
+  const std::shared_ptr<AccountSession> session = core_->sessionFromIndex();
+  if (!session || session->status().state != SessionState::SignedIn) {
+    return nullptr;
+  }
+  return this->session();
+}
+
 bool AccountController::readPolicy() {
   PolicyCheck check = checkServer(core_->services.policy(), core_->services.serverOrigin);
   if (check.decision == PolicyDecision::Allowed && !canonicalHttpsOrigin(core_->services.serverOrigin)) {

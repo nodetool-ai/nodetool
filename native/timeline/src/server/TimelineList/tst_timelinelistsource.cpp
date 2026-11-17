@@ -174,6 +174,39 @@ private slots:
         QCOMPARE(selected.countRequests("GET", "/trpc/timeline.get"), 1);
     }
 
+    // A cloud timeline names its server and id. It has no server save
+    // target: its edits go to the drafts, not to timeline.update.
+    void cloudServerArgs() {
+        QByteArray program("test"), serverFlag("--cloud-server"), serverUrl("https://cloud.example");
+        QByteArray timelineFlag("--cloud-timeline"), id("t1"), roleFlag("--cloud-role"), role("editor");
+        std::array<char*, 8> argv = {program.data(), serverFlag.data(), serverUrl.data(), timelineFlag.data(),
+                                     id.data(), roleFlag.data(), role.data(), nullptr};
+        int argc = static_cast<int>(argv.size() - 1);
+        QCOMPARE(nt::server::takeServerArgs(argc, argv.data()), 0);
+        QCOMPARE(argc, 2);
+        QCOMPARE(QString::fromUtf8(argv[1]), QString("https://cloud.example#cloud_timeline=t1"));
+        const auto cloud = nt::server::cloudTimelineSource();
+        QVERIFY(cloud.has_value());
+        QCOMPARE(cloud->origin, QUrl("https://cloud.example"));
+        QCOMPARE(cloud->timelineId, QString("t1"));
+        QCOMPARE(cloud->role, QString("editor"));
+        QCOMPARE(cloud->cacheDir, m_cache.path());
+        QVERIFY(!nt::server::serverSaveTarget().has_value());
+
+        // The local server's token is never sent to the cloud, and the
+        // account's token never goes to a plain HTTP address.
+        QByteArray tokenFlag("--token"), token("local-token"), plain("http://cloud.example");
+        std::array<char*, 8> withToken = {program.data(), serverFlag.data(), serverUrl.data(), timelineFlag.data(),
+                                          id.data(), tokenFlag.data(), token.data(), nullptr};
+        argc = static_cast<int>(withToken.size() - 1);
+        QCOMPARE(nt::server::takeServerArgs(argc, withToken.data()), 2);
+        std::array<char*, 6> http = {program.data(), serverFlag.data(), plain.data(), timelineFlag.data(), id.data(),
+                                     nullptr};
+        argc = static_cast<int>(http.size() - 1);
+        QCOMPARE(nt::server::takeServerArgs(argc, http.data()), 2);
+        QVERIFY(!nt::server::cloudTimelineSource().has_value());
+    }
+
     void cleanupTestCase() {
         const auto restore = [](const char* name, const QByteArray& value) {
             if (value.isNull()) {

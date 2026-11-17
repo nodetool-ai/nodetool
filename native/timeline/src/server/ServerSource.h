@@ -27,10 +27,22 @@
 #include "server/AutosaveController.h"
 
 #include <QString>
+#include <QUrl>
 
 #include <optional>
 
 namespace nt::server {
+
+// A cloud timeline opens with the account signed in to that server:
+//
+//   nodetool-timeline --cloud-server https://api.nodetool.ai --cloud-timeline <id>
+//                     [--cloud-role owner|editor|viewer] [mode options]
+//
+// main reads the account's access token and hands it to setCloudToken before
+// loadTimelineSource, which reads the timeline and its media from the cloud
+// server. serverSaveTarget() is empty for it: the edits go to the local
+// drafts and then to the cloud (CloudTimelineSaver), not to timeline.update
+// on the server directly.
 
 // Returns 0 to go on, or the exit code for main() on a usage error.
 int takeServerArgs(int& argc, char** argv);
@@ -39,6 +51,19 @@ bool listTimelinesRequested();
 int listTimelinesMain();
 
 ParseResult loadTimelineSource(const QString& source);
+
+struct CloudSource {
+    QUrl origin;
+    QString timelineId;
+    // `owner`, `editor` or `viewer`, from the list the timeline was opened from.
+    QString role;
+    // The media cache folder.
+    QString cacheDir;
+};
+// The cloud timeline the command line names, or nullopt.
+std::optional<CloudSource> cloudTimelineSource();
+// The access token the cloud timeline and its media are read with.
+void setCloudToken(const QString& token);
 
 // Where a save of the server timeline goes, when the source is a server
 // (`--server ... --timeline ...` or a loaded positional server label).

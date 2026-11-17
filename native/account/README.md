@@ -198,8 +198,6 @@ both tables in place.
   compile yet.
 - Moving the apps' existing header writes onto `CloudClient` (WP1.10, with
   Qt).
-- Opening a cloud timeline in the timeline app, and the Cloud and Shared
-  groups in its document list (WP1.11). The node editor does both.
 - The macOS and Windows readers of the managed policy compile only on those
   platforms, which this repository's CI does not build yet.
 
@@ -256,6 +254,9 @@ needs Qt Core and Network.
   controller is gone. It is null while the managed policy holds the server
   back, and a session handed out earlier then gets no credential and
   renews none. Sign-out and a pending server end still run.
+  `readSession()` reads the signed-in session at once on the calling
+  thread, for a window that opens a cloud document before the controller's
+  own read finishes. It may block on the keychain.
 
 - `AccountServers` lists the servers one app can sign in to: the default,
   every server in `accounts.json`, and any address added with
