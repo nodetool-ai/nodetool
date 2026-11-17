@@ -61,6 +61,15 @@ Rectangle {
             visible: active
             sourceComponent: CloudSyncStatus { document: bar.cloudDocument }
         }
+        // A viewer's cloud timeline, or one whose access was removed, takes
+        // no edit (TimelineModel.readOnly).
+        Ui.Status {
+            objectName: "documentReadOnly"
+            anchors.verticalCenter: parent.verticalCenter
+            visible: bar.cloudDocument !== null && bar.cloudDocument.readOnly
+            message: visible ? "Read-only: " + bar.cloudDocument.readOnlyReason : ""
+            status: Ui.Status.Info
+        }
         ToolbarDivider { anchors.verticalCenter: parent.verticalCenter }
         Row {
             anchors.verticalCenter: parent.verticalCenter

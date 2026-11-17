@@ -308,6 +308,43 @@ private slots:
     QVERIFY(restored.openFile(a));
     restored.openWorkflow("server-workflow"); QCOMPARE(restored.workflowTabs().size(), count + 1);
   }
+  // A cloud tab is saved as a cloud entry, never as a local workflow. When
+  // no account is signed in to its server, the restored tab says so and
+  // keeps the entry until another document takes the tab.
+  void restoreKeepsACloudTab() {
+    QTemporaryDir files; QVERIFY(files.isValid());
+    const auto path = files.filePath("local.json");
+    QSettings().setValue("workflowTabs/documents",
+                         QJsonDocument(QJsonArray{QJsonObject{{"cloud", "cloud-workflow-id"},
+                                                              {"cloudServer", "https://cloud.invalid"},
+                                                              {"role", "editor"},
+                                                              {"origin", ""},
+                                                              {"project", ""}}})
+                             .toJson(QJsonDocument::Compact));
+    QSettings().setValue("workflowTabs/active", 0);
+    {
+      EditorWindow restored;
+      restored.restoreTabs();
+      QCOMPARE(restored.workflowTabs().size(), 1);
+      QVERIFY(restored.message().contains("cloud.invalid"));
+      restored.persistTabs();
+      const auto saved = QJsonDocument::fromJson(QSettings().value("workflowTabs/documents").toByteArray()).array();
+      QCOMPARE(saved.size(), 1);
+      QCOMPARE(saved[0].toObject()["cloud"].toString(), QString("cloud-workflow-id"));
+      QCOMPARE(saved[0].toObject()["cloudServer"].toString(), QString("https://cloud.invalid"));
+      QCOMPARE(saved[0].toObject()["role"].toString(), QString("editor"));
+      QVERIFY(!saved[0].toObject().contains("workflow"));
+      QVERIFY(restored.document()->load(workflow("Local")));
+      QVERIFY(restored.saveFile(path));
+      QVERIFY(restored.openFile(path));
+      restored.persistTabs();
+    }
+    const auto saved = QJsonDocument::fromJson(QSettings().value("workflowTabs/documents").toByteArray()).array();
+    QCOMPARE(saved.size(), 1);
+    QVERIFY(!saved[0].toObject().contains("cloud"));
+    QCOMPARE(saved[0].toObject()["file"].toString(), path);
+    QSettings().remove("workflowTabs/documents");
+  }
   // Each tab's socket names the tab's project, so the server watches its
   // folder: on open, after opening a workflow of a project, and for a tab
   // created in another project.

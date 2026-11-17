@@ -141,6 +141,9 @@ public:
   nodetool::account::EndSessionStatus endSession(std::string_view handle) override {
     using namespace nodetool::account;
     ++endCalls;
+    if (beforeEndSessionReturns) {
+      beforeEndSessionReturns();
+    }
     if (offline) {
       return EndSessionStatus::Offline;
     }
@@ -186,6 +189,8 @@ public:
   // Runs after a refresh was decided and before it returns, so a test can
   // hold the response.
   std::function<void()> beforeRefreshReturns;
+  // Runs when a server end arrives, so a test can hold it.
+  std::function<void()> beforeEndSessionReturns;
 
 private:
   struct Grant {

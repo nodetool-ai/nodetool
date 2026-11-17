@@ -68,5 +68,5 @@ export { userQuotas } from "./user-quotas.js";
 export { userPermissions } from "./user-permissions.js";
 export { cloudDrafts, cloudOpenState } from "./cloud-local.js";
 export { deletedDocuments } from "./deleted-documents.js";
-export { projectBlobs } from "./project-blobs.js";
+export { blobDeletions, projectBlobs } from "./project-blobs.js";
 export { accessEpochs } from "./access-epochs.js";

@@ -1028,9 +1028,12 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     });
     connect(&document_, &node_editor::WorkflowDocument::changed, this, [this] {
         sendLiveEdits();
-        // A cloud workflow's draft is its graph (WorkflowCloudSaver).
+        // A cloud workflow's draft is its graph and its name, so a rename
+        // reaches the server with the next save (WorkflowCloudSaver).
         if (cloud_ && !cloudLoading_) {
-            cloud_->edit(QString::fromUtf8(QJsonDocument(document_.graph()).toJson(QJsonDocument::Compact)));
+            const QJsonObject draft{{"graph", document_.graph()},
+                                    {"name", document_.snapshot().value("name").toString()}};
+            cloud_->edit(QString::fromUtf8(QJsonDocument(draft).toJson(QJsonDocument::Compact)));
         }
         // GenerationHistory copies the document on the next inspector sync.
         historyWorkflowStale_ = true;
@@ -3481,6 +3484,12 @@ bool EditorWindow::openDocument(const QByteArray &json, const QString &file) {
   }
   session_.detachServerWorkflow();
   requestedWorkflow_.clear();
+  // A tab whose cloud workflow did not reopen becomes this document's tab.
+  if (!cloud_) {
+    cloudId_.clear();
+    cloudOrigin_.clear();
+    cloudRole_.clear();
+  }
   if (serverSyncDialog_) { serverSyncDialog_->close(); }
   lineage_->setSelectedLinkIds({});
   r = document_.load(candidate.snapshot());

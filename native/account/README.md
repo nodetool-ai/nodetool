@@ -170,8 +170,8 @@ revision as a version first.
 
 | Kind | Draft | Procedure | Sent with it |
 |---|---|---|---|
-| workflow | the graph, `{"nodes": [], "edges": []}` | `workflows.autosave` | `expected_updated_at`, `editing_instance`, `schema_version`, `force` |
-| timeline | the timeline document | `timeline.update` | `baseUpdatedAt`, `editingInstance`, `schemaVersion` |
+| workflow | `{"graph": {"nodes": [], "edges": []}, "name": "..."}`, or the graph alone in a draft kept before the name was | `workflows.autosave` | `expected_updated_at`, `editing_instance`, `schema_version`, `force`, and `name` when the draft has a non-empty one |
+| timeline | the timeline document, with `fps`, `width` and `height` | `timeline.update` | `baseUpdatedAt`, `editingInstance`, `schemaVersion`, and the three settings as the sequence's columns |
 
 A save the server refuses reports the server's API code, such as
 `ALREADY_EXISTS` for a stale base or `SCHEMA_DOWNGRADE`, or `HTTP_<status>`
@@ -290,12 +290,17 @@ needs Qt Core and Network.
   the document on `openRequested()`.
 - `CloudDocument` holds one open cloud document. It reads the document
   with the kind's saver, opens a draft the local store kept over the
-  revision, ticks `CloudDocumentSaver` every 250 ms on its task thread, and
+  revision, ticks `CloudDocumentSaver` every 250 ms, with the local writes
+  and the sends on two task threads so a slow send never holds an edit in
+  memory, and
   shows the synchronization status: Saved to cloud, Sending, changes
   waiting with a count, Offline with the last connection, Cloud status
   unknown, Not saving, Unsent edits and signed out. A viewer's document
-  and one whose access was removed are read-only. Its destructor writes
-  the last edit to the local store before the tab closes. `content()`
+  and one whose access was removed are read-only, and so is one whose
+  kept draft could not be read, so no new draft replaces it.
+  `writeLocally()` writes the last edit before the tab closes and says
+  when it could not, so the app asks before closing. The destructor writes
+  it once more. `content()`
   returns the document as the tab last showed it.
 - `ShareController` reads and changes the sharing of one document on its
   task thread, and gives QML the viewer and editor links with their
@@ -305,7 +310,9 @@ needs Qt Core and Network.
   token, local or self-hosted, to a request. `attachServerToken()` sets
   `Authorization: Bearer` only when the token is not empty and the request
   goes to that server's origin, where a socket URL (`ws`, `wss`) counts as
-  its HTTP origin. A request to any other host, such as a provider's media
+  its HTTP origin. Qt copies the headers to every redirect it follows, so a
+  request with the token follows redirects inside its origin only, unless
+  it reads redirects itself. A request to any other host, such as a provider's media
   URL, carries no token. The node editor and the timeline send their
   server requests through it. Native chat builds without the account
   service, so `ChatClient` keeps the same rule in a helper of its own. A

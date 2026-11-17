@@ -282,6 +282,12 @@ public:
     // Opens a cloud workflow of the current account in its own tab, or
     // switches to the tab that has it. `role` is owner, editor or viewer.
     void openCloudDocument(const QString &documentId, const QString &role);
+    // Reopens a cloud tab that persistTabs saved: connects the tab to the
+    // local server that keeps its drafts and opens the document with the
+    // account signed in to `cloudServer`. Without that account the tab
+    // keeps the document's id and says to sign in.
+    void restoreCloudDocument(const QUrl &localServer, const QString &cloudServer, const QString &documentId,
+                              const QString &role);
     // Opens the Report issue for a failed job in the queue history.
     void reportJob(const QString &jobId);
     // Opens a queue job output's get_url in the browser, resolved against the server.
@@ -320,8 +326,8 @@ public:
         if (inlineChild_ && childParent_) {
             return childParent_->hasUnsavedChanges() || document_.graph() != syncedChildGraph_;
         }
-        // A cloud workflow keeps its edits in the local draft store, and
-        // closing the tab writes the last one.
+        // A cloud workflow keeps its edits in the local draft store.
+        // confirmTabClose writes the last one, and asks when it can't.
         if (cloud_) {
             return false;
         }
@@ -772,8 +778,13 @@ private:
   // writes the last edit to disk.
   std::unique_ptr<nodetool::account::qt::CloudDocument> cloud_;
   QString cloudId_;
+  // `owner`, `editor` or `viewer`, as the Cloud list gave it.
+  QString cloudRole_;
   // The server the cloud workflow was opened from.
   QString cloudOrigin_;
+  // The canonical server and the account the cloud document is open under.
+  QString cloudServerKey_;
+  QString cloudAccountId_;
   // Set while the opened revision loads, so the load is not sent as an edit.
   bool cloudLoading_ = false;
   void startCloudDocument(std::shared_ptr<nodetool::account::AccountSession> session, const QString &documentId,

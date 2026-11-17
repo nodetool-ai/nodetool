@@ -32,3 +32,16 @@ export const projectBlobs = sqliteTable(
     index("idx_project_blobs_staged").on(table.committed_at, table.created_at)
   ]
 );
+
+/**
+ * A deletion of the object of one hash that the blob cleanup claimed. A
+ * stage or reuse of the hash writes its row first and then looks here, and
+ * the cleanup writes this row first and then looks for rows of the hash, so
+ * across servers at least one of the two sees the other: the cleanup skips
+ * a hash a stage names, and a stage waits for a deletion that is under way.
+ * A claim older than the claim lifetime was left by a stopped cleanup.
+ */
+export const blobDeletions = sqliteTable("blob_deletions", {
+  hash: text("hash").primaryKey(),
+  claimed_at: text("claimed_at").notNull()
+});

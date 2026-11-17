@@ -21,7 +21,9 @@ export const deletedDocuments = sqliteTable(
     payload: text("payload").notNull(),
     deleted_at: text("deleted_at").notNull(),
     /** When the purge job deletes the row for good. */
-    purge_at: text("purge_at").notNull()
+    purge_at: text("purge_at").notNull(),
+    /** Set when a purge claimed the row. A restore then refuses it. */
+    purging_since: text("purging_since")
   },
   (table) => [
     uniqueIndex("idx_deleted_documents_document").on(table.kind, table.document_id),
