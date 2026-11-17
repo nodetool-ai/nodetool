@@ -268,8 +268,7 @@ export async function applyFileOperations(
       createdIds.push(entry.asset.id);
       continue;
     }
-    const asset = await Asset.create<Asset>({
-      ...(entry.id ? { id: entry.id } : {}),
+    const fields: Record<string, unknown> = {
       user_id: context.userId,
       project_id: context.projectId,
       // The user's home folder, where an asset with no folder of its own lists.
@@ -279,7 +278,9 @@ export async function applyFileOperations(
       workspace_path: entry.path,
       size: entry.size,
       content_hash: entry.hash
-    });
+    };
+    if (entry.id) fields["id"] = entry.id;
+    const asset = await Asset.create<Asset>(fields);
     createdIds.push(asset.id);
     placementAsset.set(entry.path, asset.id);
   }

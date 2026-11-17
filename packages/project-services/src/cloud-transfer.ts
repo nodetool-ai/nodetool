@@ -733,12 +733,12 @@ export async function commitTransfer(
       const after = await TRANSFER_DOCUMENT_KINDS[target.kind].lock(target.id);
       if (after) documents.push({ kind: target.kind, document_id: target.id, hash: identityHash(after.payload) });
     }
-    const committed: TransferAttemptResult = {
+    const committed: Extract<TransferAttemptResult, { outcome: "committed" }> = {
       outcome: "committed",
       project_id: projectId,
-      documents,
-      ...(keptBeside.length > 0 ? { kept_beside: keptBeside } : {})
+      documents
     };
+    if (keptBeside.length > 0) committed.kept_beside = keptBeside;
     await recordCloudTransferAttempt({
       transferId: transfer.id,
       attemptId: input.attempt_id,
