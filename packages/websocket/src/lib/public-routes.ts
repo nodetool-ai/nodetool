@@ -105,7 +105,8 @@ export function isPublicMcpOauthAsRequest(pathname: string): boolean {
     pathname === "/oauth/authorize" ||
     pathname === "/oauth/token" ||
     pathname === "/oauth/register" ||
-    pathname === "/oauth/revoke"
+    pathname === "/oauth/revoke" ||
+    pathname === "/oauth/session/end"
   );
 }
 

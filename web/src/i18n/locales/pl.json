@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "kod#stan",
       "signInWindowClosed": "Okno logowania zamknięte?",
       "openAgain": "Otwórz ponownie",
-      "linkExpiry": ". Link wygasa po 10 minutach."
+      "linkExpiry": ". Link wygasa po 10 minutach.",
+      "nativeSubtitle": "chce zalogować się na Twoje konto NodeTool.",
+      "app": "Aplikacja",
+      "device": "Urządzenie",
+      "nativeNote": "Zatwierdź tylko wtedy, gdy to Ty rozpocząłeś to logowanie w aplikacji desktopowej NodeTool na tym komputerze. Aplikacja będzie mogła otwierać, edytować i zapisywać Twoje dokumenty w chmurze, dopóki się nie wylogujesz lub nie zakończysz sesji w Ustawieniach."
     },
     "integrations": {
       "loadingAccounts": "Ładowanie połączonych kont",
@@ -20837,6 +20841,26 @@
     "removeTitle": "Usunąć „{{name}}”?",
     "removeBody": "Zasób zostanie usunięty z NodeTool. Dokumenty, które go używają, nie będą mogły go wyświetlić.",
     "cancel": "Anuluj"
+  },
+  "deviceSessions": {
+    "title": "Zalogowane urządzenia",
+    "description": "Komputery, na których zalogowano się w aplikacjach desktopowych NodeTool. Obie aplikacje na jednym komputerze dzielą jedną sesję. Zakończenie sesji wylogowuje ten komputer.",
+    "empty": "Żaden komputer nie jest zalogowany.",
+    "unnamed": "Komputer bez nazwy",
+    "signedInFrom": "Zalogowano z {{app}} {{date}}",
+    "lastUsed": "Ostatnio używane {{date}}",
+    "neverUsed": "Nieużywane od zalogowania",
+    "end": "Zakończ sesję",
+    "confirmTitle": "Zakończyć tę sesję?",
+    "confirmBody": "Aplikacje desktopowe NodeTool na {{device}} zostaną wylogowane w ciągu minuty.",
+    "cancel": "Anuluj",
+    "ended": "Sesja zakończona.",
+    "endError": "Nie udało się zakończyć sesji: {{error}}",
+    "loadError": "Nie udało się wczytać zalogowanych urządzeń.",
+    "apps": {
+      "nodeEditor": "Edytor węzłów",
+      "timeline": "Oś czasu"
+    }
   },
   "storyboardText": {
     "mode": "Tekst",

@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "code#state",
       "signInWindowClosed": "Anmeldefenster geschlossen?",
       "openAgain": "Erneut öffnen",
-      "linkExpiry": ". Der Link läuft nach 10 Minuten ab."
+      "linkExpiry": ". Der Link läuft nach 10 Minuten ab.",
+      "nativeSubtitle": "möchte sich bei deinem NodeTool-Konto anmelden.",
+      "app": "App",
+      "device": "Gerät",
+      "nativeNote": "Bestätige nur, wenn du diese Anmeldung in einer NodeTool-Desktop-App auf diesem Computer gestartet hast. Die App kann dann deine Cloud-Dokumente öffnen, bearbeiten und speichern, bis du dich abmeldest oder die Sitzung in den Einstellungen beendest."
     },
     "integrations": {
       "loadingAccounts": "Verknüpfte Konten werden geladen",
@@ -20215,6 +20219,26 @@
     "removeTitle": "„{{name}}“ entfernen?",
     "removeBody": "Das Asset wird aus NodeTool entfernt. Dokumente, die es verwenden, können es nicht mehr anzeigen.",
     "cancel": "Abbrechen"
+  },
+  "deviceSessions": {
+    "title": "Angemeldete Geräte",
+    "description": "Computer, auf denen du dich in den NodeTool-Desktop-Apps angemeldet hast. Beide Apps auf einem Computer teilen sich eine Sitzung. Wenn du eine Sitzung beendest, wird dieser Computer abgemeldet.",
+    "empty": "Kein Computer ist angemeldet.",
+    "unnamed": "Unbenannter Computer",
+    "signedInFrom": "Angemeldet über {{app}} am {{date}}",
+    "lastUsed": "Zuletzt verwendet {{date}}",
+    "neverUsed": "Seit der Anmeldung nicht verwendet",
+    "end": "Sitzung beenden",
+    "confirmTitle": "Diese Sitzung beenden?",
+    "confirmBody": "Die NodeTool-Desktop-Apps auf {{device}} werden innerhalb einer Minute abgemeldet.",
+    "cancel": "Abbrechen",
+    "ended": "Sitzung beendet.",
+    "endError": "Die Sitzung konnte nicht beendet werden: {{error}}",
+    "loadError": "Angemeldete Geräte konnten nicht geladen werden.",
+    "apps": {
+      "nodeEditor": "Node-Editor",
+      "timeline": "Timeline"
+    }
   },
   "storyboardText": {
     "mode": "Text",

@@ -36,6 +36,11 @@ export type ProbeWorkerHealth = (
 
 export interface Context {
   userId: string | null;
+  /**
+   * The device session id when the caller authenticated with a native
+   * access token. Procedures that create credentials refuse it.
+   */
+  nativeSessionId?: string | null;
   registry: NodeRegistry;
   apiOptions: HttpApiOptions;
   pythonBridge: PythonBridge;
@@ -70,6 +75,7 @@ export interface ContextFactoryInput {
  */
 interface ContextRequest {
   userId?: string | null;
+  nativeSessionId?: string | null;
 }
 
 export function createContextFactory(
@@ -77,6 +83,7 @@ export function createContextFactory(
 ): (opts: { req: ContextRequest }) => Context {
   return ({ req }) => ({
     userId: req.userId ?? null,
+    nativeSessionId: req.nativeSessionId ?? null,
     registry: deps.registry,
     apiOptions: deps.apiOptions,
     pythonBridge: deps.pythonBridge,

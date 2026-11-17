@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "コード#状態",
       "signInWindowClosed": "サインインウィンドウは閉じていますか?",
       "openAgain": "もう一度開いてください",
-      "linkExpiry": "。リンクは 10 分後に期限切れになります。"
+      "linkExpiry": "。リンクは 10 分後に期限切れになります。",
+      "nativeSubtitle": "があなたの NodeTool アカウントへのサインインを求めています。",
+      "app": "アプリ",
+      "device": "デバイス",
+      "nativeNote": "このコンピューターの NodeTool デスクトップアプリから自分でサインインを始めた場合にのみ承認してください。承認すると、サインアウトするか設定でセッションを終了するまで、アプリはクラウド上のドキュメントを開いて編集し保存できます。"
     },
     "integrations": {
       "loadingAccounts": "接続されているアカウントをロードしています",
@@ -20215,6 +20219,26 @@
     "removeTitle": "「{{name}}」を削除しますか？",
     "removeBody": "アセットは NodeTool から削除されます。これを使用しているドキュメントでは表示できなくなります。",
     "cancel": "キャンセル"
+  },
+  "deviceSessions": {
+    "title": "サインイン中のデバイス",
+    "description": "NodeTool デスクトップアプリにサインインしたコンピューターです。同じコンピューターの 2 つのアプリは 1 つのセッションを共有します。セッションを終了すると、そのコンピューターはサインアウトされます。",
+    "empty": "サインイン中のコンピューターはありません。",
+    "unnamed": "名前のないコンピューター",
+    "signedInFrom": "{{date}} に {{app}} からサインイン",
+    "lastUsed": "最終使用: {{date}}",
+    "neverUsed": "サインイン後は未使用",
+    "end": "セッションを終了",
+    "confirmTitle": "このセッションを終了しますか？",
+    "confirmBody": "{{device}} の NodeTool デスクトップアプリは 1 分以内にサインアウトされます。",
+    "cancel": "キャンセル",
+    "ended": "セッションを終了しました。",
+    "endError": "セッションを終了できませんでした: {{error}}",
+    "loadError": "サインイン中のデバイスを読み込めませんでした。",
+    "apps": {
+      "nodeEditor": "ノードエディター",
+      "timeline": "タイムライン"
+    }
   },
   "storyboardText": {
     "mode": "テキスト",

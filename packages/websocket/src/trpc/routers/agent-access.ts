@@ -15,6 +15,9 @@
 import {
   createTokenInput,
   createTokenOutput,
+  endDeviceSessionInput,
+  endDeviceSessionOutput,
+  listDeviceSessionsOutput,
   getOauthRequestOutput,
   listOauthGrantsOutput,
   listTokensOutput,
@@ -31,7 +34,7 @@ import { AccessToken, McpOauthGrant } from "@nodetool-ai/models";
 import { isAuthEnforced } from "@nodetool-ai/config";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
-import { protectedProcedure } from "../middleware.js";
+import { interactiveProcedure, protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import {
   configuredMcpUrl,
@@ -39,6 +42,8 @@ import {
   MCP_ENABLE_FLAG
 } from "../../lib/mcp-mount.js";
 import { pendingStore } from "../../oauth/pending-store.js";
+import { nativeSignInState } from "../../oauth/native-gate.js";
+import { endNativeSessionLocally } from "../../oauth/native-session.js";
 
 /** The listable half of a token: everything the row holds but the hash. */
 function summarize(token: AccessToken): AccessTokenSummary {
@@ -129,7 +134,7 @@ export const agentAccessRouter = router({
    * Mint a token. The plaintext is in this response and nowhere else, so a
    * client that loses it revokes and mints again.
    */
-  createToken: protectedProcedure
+  createToken: interactiveProcedure
     .input(createTokenInput)
     .output(createTokenOutput)
     .mutation(async ({ ctx, input }) => {
@@ -164,8 +169,8 @@ export const agentAccessRouter = router({
   getOauthRequest: protectedProcedure
     .input(oauthRequestIdInput)
     .output(getOauthRequestOutput)
-    .query(({ input }) => {
-      const request = pendingStore.takeRequestForApproval(input.request_id);
+    .query(async ({ input }) => {
+      const request = await pendingStore.takeRequestForApproval(input.request_id);
       if (!request) {
         return null;
       }
@@ -173,7 +178,10 @@ export const agentAccessRouter = router({
         client_name: request.clientName,
         redirect_host: new URL(request.redirectUri).host,
         scope: request.scope,
-        loopback_only: request.redirectHostIsLoopbackOnly
+        loopback_only: request.redirectHostIsLoopbackOnly,
+        kind: request.scope,
+        app_name: request.appName ?? null,
+        device_name: request.deviceName ?? null
       };
     }),
 
@@ -182,21 +190,32 @@ export const agentAccessRouter = router({
    * signed-in user, mint an authorization code for it, and hand back the
    * redirect the SPA sends the browser to.
    */
-  approveOauthRequest: protectedProcedure
+  approveOauthRequest: interactiveProcedure
     .input(oauthRequestIdInput)
     .output(oauthRedirectOutput)
     .mutation(async ({ ctx, input }) => {
-      const request = pendingStore.consumeRequest(input.request_id);
+      const request = await pendingStore.consumeRequest(input.request_id);
       if (!request) {
         throwApiError(ApiErrorCode.NOT_FOUND, OAUTH_REQUEST_NOT_FOUND);
       }
-      // Re-consent supersedes: revoke any live grant this client already
-      // holds, so "Connected MCP clients" shows one row per client and
-      // revoking it disconnects the client for real.
-      const existing = await McpOauthGrant.listForUser(ctx.userId);
-      for (const prior of existing) {
-        if (prior.client_id === request.clientId) {
-          await McpOauthGrant.revoke(ctx.userId, prior.id);
+      const native = request.scope === "native";
+      if (native && nativeSignInState().state !== "enabled") {
+        throwApiError(
+          ApiErrorCode.FORBIDDEN,
+          "Signing in from the desktop apps is turned off on this server."
+        );
+      }
+      // Re-consent supersedes for an MCP client: revoke any live grant it
+      // already holds, so "Connected MCP clients" shows one row per client
+      // and revoking it disconnects the client for real. A native sign-in
+      // never does: every device holds its own session of the one native
+      // client, and signing in on one must not sign out another.
+      if (!native) {
+        const existing = await McpOauthGrant.listForUser(ctx.userId);
+        for (const prior of existing) {
+          if (prior.client_id === request.clientId) {
+            await McpOauthGrant.revoke(ctx.userId, prior.id);
+          }
         }
       }
       const grant = await McpOauthGrant.create({
@@ -204,9 +223,12 @@ export const agentAccessRouter = router({
         client_id: request.clientId,
         client_name: request.clientName,
         scope: request.scope,
-        resource: request.resource
+        resource: request.resource,
+        kind: request.scope,
+        app_name: request.appName ?? null,
+        device_name: request.deviceName ?? null
       });
-      const code = pendingStore.putCode({
+      const code = await pendingStore.putCode({
         request,
         userId: ctx.userId,
         grantId: grant.id
@@ -222,11 +244,11 @@ export const agentAccessRouter = router({
 
   /** Deny a pending request: consume it (Approve/Deny each get one shot at
    * it) and redirect with the OAuth 2.1 `access_denied` error. */
-  denyOauthRequest: protectedProcedure
+  denyOauthRequest: interactiveProcedure
     .input(oauthRequestIdInput)
     .output(oauthRedirectOutput)
-    .mutation(({ input }) => {
-      const request = pendingStore.consumeRequest(input.request_id);
+    .mutation(async ({ input }) => {
+      const request = await pendingStore.consumeRequest(input.request_id);
       if (!request) {
         throwApiError(ApiErrorCode.NOT_FOUND, OAUTH_REQUEST_NOT_FOUND);
       }
@@ -246,7 +268,7 @@ export const agentAccessRouter = router({
     .query(async ({ ctx }) => {
       const grants = await McpOauthGrant.listForUser(ctx.userId);
       return {
-        grants: grants.map((grant) => ({
+        grants: grants.filter((grant) => grant.kind === "mcp").map((grant) => ({
           id: grant.id,
           client_name: grant.client_name,
           client_id: grant.client_id,
@@ -262,6 +284,49 @@ export const agentAccessRouter = router({
     .input(revokeOauthGrantInput)
     .output(revokeOauthGrantOutput)
     .mutation(async ({ ctx, input }) => {
-      return { ok: await McpOauthGrant.revoke(ctx.userId, input.grant_id) };
+      const ok = await McpOauthGrant.revoke(ctx.userId, input.grant_id);
+      if (ok) endNativeSessionLocally(input.grant_id);
+      return { ok };
+    }),
+
+  /**
+   * The signed-in user's device sessions: one row per sign-in from the
+   * desktop apps on a computer. Both apps on one computer share a row.
+   */
+  listDeviceSessions: protectedProcedure
+    .output(listDeviceSessionsOutput)
+    .query(async ({ ctx }) => {
+      const available = nativeSignInState().state !== "unavailable";
+      const grants = available ? await McpOauthGrant.listForUser(ctx.userId) : [];
+      return {
+        available,
+        sessions: grants
+          .filter((grant) => grant.kind === "native")
+          .map((grant) => ({
+            id: grant.id,
+            app_name: grant.app_name,
+            device_name: grant.device_name,
+            created_at: grant.created_at.toISOString(),
+            last_used_at: grant.last_used_at?.toISOString() ?? null
+          }))
+      };
+    }),
+
+  /**
+   * End a device session from Settings. Its tokens are deleted at once; its
+   * open sockets close at once on this process and within 30 seconds on
+   * the others. The apps show the signed-out state at their next request.
+   */
+  endDeviceSession: protectedProcedure
+    .input(endDeviceSessionInput)
+    .output(endDeviceSessionOutput)
+    .mutation(async ({ ctx, input }) => {
+      const grant = await McpOauthGrant.get(input.session_id);
+      if (!grant || grant.user_id !== ctx.userId || grant.kind !== "native") {
+        return { ok: false };
+      }
+      const ok = await McpOauthGrant.revoke(ctx.userId, input.session_id);
+      if (ok) endNativeSessionLocally(input.session_id);
+      return { ok };
     })
 });

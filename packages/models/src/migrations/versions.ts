@@ -365,6 +365,33 @@ const USER_PERMISSIONS_DDL: readonly string[] = [
   )`
 ];
 
+/**
+ * Native device sessions on the OAuth grant table, and the authorize-flow
+ * state that moved from process memory into the database so a consent and its
+ * token exchange may reach different server processes. Applied by the
+ * `add_native_oauth_sessions` migration, and by `initTestDb` through
+ * {@link POST_BASELINE_TABLE_DDL}.
+ */
+const NATIVE_OAUTH_SESSION_DDL: readonly string[] = [
+  "ALTER TABLE mcp_oauth_grants ADD COLUMN kind TEXT NOT NULL DEFAULT 'mcp'",
+  "ALTER TABLE mcp_oauth_grants ADD COLUMN app_name TEXT",
+  "ALTER TABLE mcp_oauth_grants ADD COLUMN device_name TEXT",
+  "ALTER TABLE mcp_oauth_grants ADD COLUMN last_used_at TEXT",
+  "ALTER TABLE mcp_oauth_grants ADD COLUMN revocation_handle_hash TEXT",
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_mcp_oauth_grant_revocation_handle
+    ON mcp_oauth_grants (revocation_handle_hash)`,
+  `CREATE TABLE IF NOT EXISTS oauth_pending_entries (
+    id TEXT PRIMARY KEY NOT NULL,
+    entry_type TEXT NOT NULL,
+    user_id TEXT,
+    payload TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    consumed_at TEXT
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_oauth_pending_created
+    ON oauth_pending_entries (created_at)`
+];
+
 export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OUTBOX_DDL,...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ...ANALYTICS_DDL, ...DOCUMENT_SHARING_DDL,
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_ids TEXT",
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_warnings TEXT",
@@ -382,7 +409,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   WORKFLOW_FILE_ERROR_DDL,
   TIMELINE_FILE_PATH_DDL,
   TIMELINE_FILE_HASH_DDL,
-  TIMELINE_FILE_ERROR_DDL
+  TIMELINE_FILE_ERROR_DDL,
+  ...NATIVE_OAUTH_SESSION_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -4643,6 +4671,42 @@ export const migrations: MigrationDef[] = [
     },
     async down() {
       // The column stays: the next reconcile would record the same state.
+    }
+  },
+
+  // Native device sessions: the grant columns that tell a native sign-in
+  // apart from an MCP connection, the revocation handle, and the shared
+  // authorize-flow table (docs/plans/native-cloud-sync/technical-design.md,
+  // "Sign-in protocol").
+  {
+    version: "20261125_000000",
+    name: "add_native_oauth_sessions",
+    createsTables: ["oauth_pending_entries"],
+    modifiesTables: ["mcp_oauth_grants"],
+    async up(db) {
+      if (await db.tableExists("mcp_oauth_grants")) {
+        const columns: Array<[string, string]> = [
+          ["kind", NATIVE_OAUTH_SESSION_DDL[0]!],
+          ["app_name", NATIVE_OAUTH_SESSION_DDL[1]!],
+          ["device_name", NATIVE_OAUTH_SESSION_DDL[2]!],
+          ["last_used_at", NATIVE_OAUTH_SESSION_DDL[3]!],
+          ["revocation_handle_hash", NATIVE_OAUTH_SESSION_DDL[4]!]
+        ];
+        for (const [column, statement] of columns) {
+          if (!(await db.columnExists("mcp_oauth_grants", column))) {
+            await db.execute(statement);
+          }
+        }
+        await db.execute(NATIVE_OAUTH_SESSION_DDL[5]!);
+      }
+      await db.execute(NATIVE_OAUTH_SESSION_DDL[6]!);
+      await db.execute(NATIVE_OAUTH_SESSION_DDL[7]!);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_oauth_pending_created");
+      await db.execute("DROP TABLE IF EXISTS oauth_pending_entries");
+      // The grant columns stay: dropping them would forget which grants are
+      // device sessions and leave their handles unable to end them.
     }
   }
 ];

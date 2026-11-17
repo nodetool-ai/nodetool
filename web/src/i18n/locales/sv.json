@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "kod#tillstånd",
       "signInWindowClosed": "Inloggningsfönstret stängt?",
       "openAgain": "Öppna den igen",
-      "linkExpiry": ". Länken upphör att gälla efter 10 minuter."
+      "linkExpiry": ". Länken upphör att gälla efter 10 minuter.",
+      "nativeSubtitle": "vill logga in på ditt NodeTool-konto.",
+      "app": "App",
+      "device": "Enhet",
+      "nativeNote": "Godkänn bara om du själv startade inloggningen i en NodeTool-skrivbordsapp på den här datorn. Appen kan sedan öppna, redigera och spara dina molndokument tills du loggar ut eller avslutar sessionen i Inställningar."
     },
     "integrations": {
       "loadingAccounts": "Laddar anslutna konton",
@@ -20215,6 +20219,26 @@
     "removeTitle": "Ta bort ”{{name}}”?",
     "removeBody": "Resursen tas bort från NodeTool. Dokument som använder den kan inte längre visa den.",
     "cancel": "Avbryt"
+  },
+  "deviceSessions": {
+    "title": "Inloggade enheter",
+    "description": "Datorer där du har loggat in i NodeTools skrivbordsappar. Båda apparna på en dator delar en session. Att avsluta en session loggar ut den datorn.",
+    "empty": "Ingen dator är inloggad.",
+    "unnamed": "Namnlös dator",
+    "signedInFrom": "Inloggad från {{app}} {{date}}",
+    "lastUsed": "Senast använd {{date}}",
+    "neverUsed": "Inte använd sedan inloggningen",
+    "end": "Avsluta session",
+    "confirmTitle": "Avsluta den här sessionen?",
+    "confirmBody": "NodeTools skrivbordsappar på {{device}} loggas ut inom en minut.",
+    "cancel": "Avbryt",
+    "ended": "Sessionen avslutades.",
+    "endError": "Det gick inte att avsluta sessionen: {{error}}",
+    "loadError": "Det gick inte att läsa in inloggade enheter.",
+    "apps": {
+      "nodeEditor": "Nodredigerare",
+      "timeline": "Tidslinje"
+    }
   },
   "storyboardText": {
     "mode": "Text",

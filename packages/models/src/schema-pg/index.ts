@@ -46,7 +46,8 @@ export { bugReports } from "./bug-reports.js";
 export {
   mcpOauthClients,
   mcpOauthGrants,
-  mcpOauthTokens
+  mcpOauthTokens,
+  oauthPendingEntries
 } from "./mcp-oauth.js";
 export { generationAttempts } from "./generation-attempts.js";
 export { generationWebhookDeliveries } from "./generation-webhook-deliveries.js";
