@@ -133,13 +133,38 @@ export function isWithinDirectory(path: string, directory: string): boolean {
   );
 }
 
+/** Windows device names, which Windows refuses as a name, also before a dot. */
+const WINDOWS_DEVICE_NAME = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
+
+/**
+ * `segment` as a directory name that every OS accepts, so a folder made on
+ * one system opens on Windows too. Each character Windows refuses in a name,
+ * control characters and slashes included, becomes a hyphen. Trailing dots
+ * and spaces, which Windows drops, are removed. A device name gets a suffix,
+ * also before the first dot (`NUL.backup` becomes `NUL-folder.backup`). A
+ * leading dot stays. A name with nothing left is "_". A portable name is
+ * returned as it is.
+ */
+export function portableDirectoryName(segment: string): string {
+  const cleaned = segment
+    // eslint-disable-next-line no-control-regex -- control characters are the point
+    .replace(/[\u0000-\u001f\u007f<>:"/\\|?*]/g, "-")
+    .replace(/[. ]+$/, "");
+  if (cleaned === "") return "_";
+  const dot = cleaned.indexOf(".");
+  const head = dot === -1 ? cleaned : cleaned.slice(0, dot);
+  return WINDOWS_DEVICE_NAME.test(head)
+    ? `${head}-folder${cleaned.slice(head.length)}`
+    : cleaned;
+}
+
 /**
  * The directory name a legacy folder row stands for. A folder name may hold a
- * slash or be empty. Neither can be one path segment.
+ * slash, be empty, or be a name Windows refuses. None of these can be one
+ * path segment. See {@link portableDirectoryName}.
  */
 export function folderNameAsDirectory(name: string): string {
-  const cleaned = name.replace(/[/\\]/g, "-").trim();
-  return cleaned === "" || cleaned === "." || cleaned === ".." ? "_" : cleaned;
+  return portableDirectoryName(name.trim());
 }
 
 /** The fields of an asset row that place it in a directory. */
