@@ -158,5 +158,70 @@ describe("NewProjectDialog", () => {
     expect(
       screen.queryByRole("button", { name: "Open folder…" })
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Choose…" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("creates the project in the projects folder by default", async () => {
+    const user = userEvent.setup();
+    createProject.mockResolvedValue({ id: "p1", name: "Film" });
+    renderDialog();
+
+    expect(screen.getByText("Projects folder")).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Project name"), "Film");
+    await user.click(screen.getByRole("button", { name: "Create project" }));
+
+    await waitFor(() => {
+      expect(createProject).toHaveBeenCalledWith({ name: "Film" });
+    });
+  });
+
+  it("creates the project's folder in the location the user chose", async () => {
+    const user = userEvent.setup();
+    pickFolder.mockResolvedValue("/Volumes/Media/Clients");
+    createProject.mockResolvedValue({ id: "p1", name: "Film" });
+    renderDialog();
+
+    await user.type(screen.getByLabelText("Project name"), "Film");
+    await user.click(screen.getByRole("button", { name: "Choose…" }));
+    expect(await screen.findByText("/Volumes/Media/Clients")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Create project" }));
+
+    await waitFor(() => {
+      expect(createProject).toHaveBeenCalledWith({
+        name: "Film",
+        location: "/Volumes/Media/Clients"
+      });
+    });
+    expect(openFolder).not.toHaveBeenCalled();
+  });
+
+  it("goes back to the projects folder when the user resets the location", async () => {
+    const user = userEvent.setup();
+    pickFolder.mockResolvedValue("/Volumes/Media/Clients");
+    createProject.mockResolvedValue({ id: "p1", name: "Film" });
+    renderDialog();
+
+    await user.click(screen.getByRole("button", { name: "Choose…" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Use projects folder" })
+    );
+    expect(screen.getByText("Projects folder")).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Project name"), "Film");
+    await user.click(screen.getByRole("button", { name: "Create project" }));
+
+    await waitFor(() => {
+      expect(createProject).toHaveBeenCalledWith({ name: "Film" });
+    });
+  });
+
+  it("has no location choice on a production server", () => {
+    canManage = false;
+    renderDialog();
+
+    expect(
+      screen.queryByRole("button", { name: "Choose…" })
+    ).not.toBeInTheDocument();
   });
 });

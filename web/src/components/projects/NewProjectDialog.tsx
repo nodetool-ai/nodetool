@@ -16,8 +16,10 @@ import {
   Dialog,
   EditorButton,
   FlexColumn,
+  FlexRow,
   SPACING,
-  TextInput
+  TextInput,
+  TruncatedText
 } from "../ui_primitives";
 import { isElectron } from "../../lib/env";
 
@@ -99,6 +101,65 @@ const OpenFolderAction = ({
   );
 };
 
+interface LocationFieldProps {
+  /** The chosen directory, or null for the projects folder. */
+  location: string | null;
+  disabled: boolean;
+  onChange: (location: string | null) => void;
+}
+
+/**
+ * Where the new project's folder is created. By default it goes in the
+ * projects folder. "Choose…" picks any other directory. Renders nothing on a
+ * server that refuses host folders.
+ */
+const LocationField = ({ location, disabled, onChange }: LocationFieldProps) => {
+  const { t } = useTranslation();
+  const { canManage } = useWorkspaces();
+  const { pickFolder, dialog } = useFolderPicker();
+
+  const choose = useCallback(async () => {
+    const path = await pickFolder();
+    if (path) {
+      onChange(path);
+    }
+  }, [onChange, pickFolder]);
+
+  if (!canManage) {
+    return null;
+  }
+
+  return (
+    <FlexColumn gap={SPACING.xs} align="stretch">
+      <Caption color="secondary">
+        {t("pass3_32.projects.newProject.locationLabel")}
+      </Caption>
+      <FlexRow gap={SPACING.sm} align="center">
+        <TruncatedText showTooltip sx={{ flex: 1, minWidth: 0 }}>
+          {location ?? t("pass3_32.projects.newProject.locationDefault")}
+        </TruncatedText>
+        {location && (
+          <EditorButton
+            variant="text"
+            onClick={() => onChange(null)}
+            disabled={disabled}
+          >
+            {t("pass3_32.projects.newProject.locationReset")}
+          </EditorButton>
+        )}
+        <EditorButton
+          variant="outlined"
+          onClick={() => void choose()}
+          disabled={disabled}
+        >
+          {t("pass3_32.projects.newProject.locationChoose")}
+        </EditorButton>
+      </FlexRow>
+      {dialog}
+    </FlexColumn>
+  );
+};
+
 interface NewProjectDialogProps {
   open: boolean;
   onClose: () => void;
@@ -108,12 +169,13 @@ interface NewProjectDialogProps {
  * Names and creates a project, then opens its Home. Every "New project" entry
  * point uses it, so a click always leaves a project in the Projects list.
  *
- * On the desktop app it also opens a folder the user already has as a
- * project. The server refuses that in production, where the option is absent.
+ * On the desktop app it also lets the user choose where the project's folder
+ * is created, and opens a folder the user already has as a project. The server refuses that in production, where the option is absent.
  */
 const NewProjectDialog = ({ open, onClose }: NewProjectDialogProps) => {
   const { t } = useTranslation();
   const [name, setName] = useState("");
+  const [location, setLocation] = useState<string | null>(null);
   const [error, setError] = useState<string | undefined>();
   const createProject = useCreateProject();
   const openProject = useOpenProject();
@@ -124,6 +186,7 @@ const NewProjectDialog = ({ open, onClose }: NewProjectDialogProps) => {
 
   const close = useCallback(() => {
     setName("");
+    setLocation(null);
     setError(undefined);
     onClose();
   }, [onClose]);
@@ -133,7 +196,9 @@ const NewProjectDialog = ({ open, onClose }: NewProjectDialogProps) => {
       return;
     }
     try {
-      const project = await createProject.mutateAsync({ name: trimmed });
+      const project = await createProject.mutateAsync(
+        location ? { name: trimmed, location } : { name: trimmed }
+      );
       close();
       if (await openProject(project)) {
         openNewProjectTab();
@@ -149,6 +214,7 @@ const NewProjectDialog = ({ open, onClose }: NewProjectDialogProps) => {
     close,
     createProject,
     isPending,
+    location,
     openNewProjectTab,
     openProject,
     t,
@@ -193,6 +259,16 @@ const NewProjectDialog = ({ open, onClose }: NewProjectDialogProps) => {
             }
           }}
         />
+        {isElectron && (
+          <LocationField
+            location={location}
+            disabled={isPending}
+            onChange={(next) => {
+              setLocation(next);
+              setError(undefined);
+            }}
+          />
+        )}
         {isElectron && (
           <OpenFolderAction
             name={trimmed}

@@ -1008,7 +1008,9 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "is missing is the grouping itself — creating one, and reading the " +
       "status and spend rollup `projects.get` derives. Work, not a " +
       "boundary: nothing here is a credential, another tenant, or host " +
-      "control."
+      "control. Its optional `location` is a host path, so a capability " +
+      "that wraps this procedure must leave it out, for the reason " +
+      "`projects.openFolder` is withheld."
   },
   "projects.delete": { capability: "delete_project" },
   "projects.documentPage": {
