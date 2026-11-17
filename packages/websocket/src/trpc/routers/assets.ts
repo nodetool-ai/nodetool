@@ -76,6 +76,7 @@ import {
   saveProjectAsset,
   storeLegacyAssetBytes,
   uploadDirectory,
+  withProjectFolderLock,
   type ProjectAssetFileChange,
   type ProjectAssetRelinkSource
 } from "@nodetool-ai/asset-services/project-asset";
@@ -639,6 +640,27 @@ async function deleteProjectDirectory(
   return deleted;
 }
 
+
+/**
+ * Delete the row of a client-direct upload that is still pending, then run
+ * `afterDelete`. It runs under the project folder lock the asset move takes,
+ * and the delete is conditional on the row still being pending, so a row
+ * whose bytes the move took is kept. Returns that row, or null when the row
+ * was deleted or is gone.
+ */
+function removePendingUpload(
+  asset: AssetModel,
+  afterDelete?: () => Promise<void>
+): Promise<AssetModel | null> {
+  return withProjectFolderLock(asset.user_id, asset.project_id, async () => {
+    if (await asset.deleteIfPendingUpload()) {
+      await afterDelete?.();
+      return null;
+    }
+    return Asset.find(asset.user_id, asset.id);
+  });
+}
+
 export const assetsRouter = router({
   list: protectedProcedure
     .input(listInput)
@@ -871,22 +893,30 @@ export const assetsRouter = router({
       if (asset.workspace_path) return toAssetResponse(asset);
       const stat = await adapter.stat(adapter.uriForKey(key));
       if (!stat || stat.size === 0) {
-        await asset.delete();
+        const kept = await removePendingUpload(asset);
+        if (kept) return toAssetResponse(kept);
         throwApiError(ApiErrorCode.INVALID_INPUT, "No uploaded object found");
       }
 
       const max = getMaxUploadBytes();
       if (stat.size > max) {
-        await adapter.delete(adapter.uriForKey(key));
-        await asset.delete();
+        const kept = await removePendingUpload(asset, async () => {
+          await adapter.delete(adapter.uriForKey(key));
+        });
+        if (kept) return toAssetResponse(kept);
         throwApiError(
           ApiErrorCode.INVALID_INPUT,
           `Upload exceeds maximum size: ${stat.size} > ${max} bytes`
         );
       }
 
-      asset.size = stat.size;
-      await asset.save();
+      // The asset move may have taken the row since it was read. The size is
+      // then not written, and the moved row is returned as it is.
+      if (!(await asset.saveUploadSizeIf(stat.size))) {
+        const current = await Asset.find(ctx.userId, asset.id);
+        if (!current) throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
+        return toAssetResponse(current);
+      }
 
       // The client wrote to the storage key, which is outside any project
       // folder. The bytes move into the folder: the file is written and the

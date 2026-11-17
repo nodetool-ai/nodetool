@@ -155,6 +155,22 @@ export interface Workspace {
   absorb(localPath: string, path: string): Promise<void>;
 
   /**
+   * Copy a real local file to `path` only when nothing is there. Returns
+   * false when a file is there, and that file is left as it was.
+   *
+   * Like {@link writeNew}, the check and the write are one step, so a file
+   * another app saves at `path` while the copy runs is never replaced. A
+   * folder on this host copies the file in chunks to a staging file of its
+   * own, and `path` holds the whole file or nothing. Throws when the backend
+   * cannot create a file without replacing one.
+   */
+  absorbNew(
+    localPath: string,
+    path: string,
+    contentType?: string
+  ): Promise<boolean>;
+
+  /**
    * A real directory a host binary may use for its inputs and outputs. The
    * workspace root on a local workspace; a per-run scratch directory on a
    * virtual one, whose contents reach storage only through `absorb`.
@@ -401,6 +417,11 @@ export function observeWorkspace(
     async absorb(localPath, path) {
       await inner.absorb(localPath, path);
       notify("write", path);
+    },
+    async absorbNew(localPath, path, contentType) {
+      const written = await inner.absorbNew(localPath, path, contentType);
+      if (written) notify("write", path);
+      return written;
     }
   };
 }

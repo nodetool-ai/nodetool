@@ -32,6 +32,7 @@ import {
   verifiedExternalPath
 } from "./external-asset-lookup.js";
 import {
+  WORKSPACE_MOVE_PUBLISHED_KEY,
   WORKSPACE_SERVER_KEYS,
   keepFingerprint,
   localProjectAssetPath,
@@ -127,7 +128,7 @@ export function assetFileExtension(contentType: string): string {
  * `fox-in-snow`. An extension the name already carries for the same content
  * type is removed so it is not doubled. Leading dots (a hidden file) and
  * trailing dots (refused by Windows) are dropped. A Windows device name gets
- * a suffix.
+ * a suffix, also when it comes before a dot (`NUL.demo`).
  */
 export function projectAssetFileStem(name: string, contentType: string): string {
   const extension = assetFileExtension(contentType);
@@ -155,7 +156,12 @@ export function projectAssetFileStem(name: string, contentType: string): string 
     .join("")
     .replace(/[.-]+$/, "");
   if (!stem) return UNNAMED_FILE;
-  return WINDOWS_RESERVED.test(stem) ? `${stem}-file` : stem;
+  // Windows reserves a device name before any extension: `NUL.demo` too.
+  const firstDot = stem.indexOf(".");
+  const head = firstDot === -1 ? stem : stem.slice(0, firstDot);
+  return WINDOWS_RESERVED.test(head)
+    ? `${head}-file${stem.slice(head.length)}`
+    : stem;
 }
 
 // ── One writer per folder ───────────────────────────────────────────────────
@@ -288,12 +294,12 @@ export interface ClaimFromFile {
 }
 
 /**
- * Create `path` from a file on this host. The name is taken with an
- * exclusive create of an empty file, then the bytes are copied over it in
- * chunks, which `absorb` publishes whole with one rename. False when the name
- * was taken. The path is held while the copy runs, so the reconciler never
- * indexes the empty file, and a copy that fails removes the file this call
- * created. A process that dies mid-copy leaves the empty file behind.
+ * Create `path` from a file on this host. `Workspace.absorbNew` copies the
+ * bytes in chunks to a staging file of its own and publishes it only when
+ * nothing is at `path`, so a file another app saves there during the copy is
+ * never replaced. False when the name was taken. The path is held while the
+ * copy runs, so the reconciler never indexes the file before its row names
+ * it. A copy that fails leaves `path` as it was.
  */
 async function claimFromFile(
   workspace: Workspace,
@@ -302,20 +308,12 @@ async function claimFromFile(
   source: ClaimFromFile,
   contentType: string
 ): Promise<boolean> {
-  if (!(await workspace.writeNew(path, new Uint8Array(0), contentType))) {
-    return false;
-  }
   const release = holdPaths(owner.userId, owner.projectId, [path]);
   try {
-    await workspace.absorb(source.localPath, path);
-  } catch (error) {
-    // The exclusive create made this file, so it is this call's to remove.
-    await workspace.delete(path).catch(() => undefined);
-    throw error;
+    return await workspace.absorbNew(source.localPath, path, contentType);
   } finally {
     release();
   }
-  return true;
 }
 
 /**
@@ -909,8 +907,8 @@ const MAX_PROJECT_CHANGES = 3;
  * The lock is the one of the project the row names when the lock is taken.
  * When the asset was moved to another project after the caller loaded it,
  * `asset` takes the new project and the lock of that project is taken. The
- * move's record of an interrupted move (its target and the hash of the
- * object it copied) is kept from the row, so the save in `store` does not
+ * move's record of an interrupted move (its target, the hash of the object
+ * it copied and whether it published the copy) is kept from the row, so the save in `store` does not
  * erase it and leave the move's copy in the folder with no row that claims
  * it.
  */
@@ -942,7 +940,11 @@ export async function storeLegacyAssetBytes(
           asset.metadata = keepFingerprint(
             asset.metadata ?? {},
             current.metadata,
-            [WORKSPACE_MOVE_TARGET_KEY, WORKSPACE_MOVE_SOURCE_KEY]
+            [
+              WORKSPACE_MOVE_TARGET_KEY,
+              WORKSPACE_MOVE_SOURCE_KEY,
+              WORKSPACE_MOVE_PUBLISHED_KEY
+            ]
           );
         }
         await store();
@@ -1363,7 +1365,7 @@ async function partialHashInFolder(
  * Copy one linked asset's file into `Imported/`, verify the copy, then point
  * the row at it. The steps are ordered so an interruption at any point
  * leaves the asset readable: the row keeps `external_path` until the copy is
- * verified, and the reserved file is recorded on the row so the next run
+ * verified, and the published copy is recorded on the row so the next run
  * reuses it.
  */
 async function collectOne(
@@ -1384,32 +1386,43 @@ async function collectOne(
   }
 
   let path: string | null = null;
-  // The reserved file has no row until the copy is verified. Holding its
-  // path keeps the reconciler from indexing it as a second asset.
-  let release: (() => void) | null = null;
+  // The copy has no row until it is verified. Holding its path keeps the
+  // reconciler from indexing it as a second asset.
+  let release = (): void => undefined;
+  const hold = (candidate: string): void => {
+    release();
+    release = holdPaths(asset.user_id, projectId, [candidate]);
+  };
   try {
     const sourceHash = await partialContentHashOfFile(source);
-    const reserved = await withProjectFolderLock(asset.user_id, projectId, async () => {
-      // An empty file reserves the name. The bytes are copied outside the
-      // lock, so a long copy does not hold up other saves to this folder.
-      const claimed =
-        (await pendingCollectPath(workspace, asset, projectId)) ??
-        (await claimFile(
-          workspace,
-          { userId: asset.user_id, projectId },
-          workspace.key(IMPORTED_DIRECTORY),
-          projectAssetFileStem(asset.name, asset.content_type),
-          assetFileExtension(asset.content_type),
-          new Uint8Array(0),
-          asset.content_type
-        ));
-      return { claimed, hold: holdPaths(asset.user_id, projectId, [claimed]) };
+    // A path on the row is a copy an earlier run published and then stopped.
+    // It is reused only when it still holds the linked file's bytes. Any
+    // other file there is left as it is.
+    const pending = await withProjectFolderLock(asset.user_id, projectId, async () => {
+      const recorded = await pendingCollectPath(workspace, asset, projectId);
+      if (recorded) hold(recorded);
+      return recorded;
     });
-    path = reserved.claimed;
-    release = reserved.hold;
-    await setCollectPath(asset, path);
+    if (pending && (await partialHashInFolder(workspace, pending)) === sourceHash) {
+      path = pending;
+    } else {
+      // The bytes are copied outside the folder lock, so a long copy does
+      // not hold up other saves. The copy is published only to a free name,
+      // so a file another app saves meanwhile is never replaced.
+      const published = await claimFile(
+        workspace,
+        { userId: asset.user_id, projectId },
+        workspace.key(IMPORTED_DIRECTORY),
+        projectAssetFileStem(asset.name, asset.content_type),
+        assetFileExtension(asset.content_type),
+        { localPath: source },
+        asset.content_type,
+        async (candidate) => hold(candidate)
+      );
+      path = published;
+      await setCollectPath(asset, published);
+    }
 
-    await workspace.absorb(source, path);
     const copyHash = await partialHashInFolder(workspace, path);
     if (copyHash !== sourceHash) {
       throw new Error("The copy does not match the linked file");
@@ -1439,7 +1452,7 @@ async function collectOne(
     const reason = error instanceof Error ? error.message : String(error);
     log.warn("Could not collect a linked asset", { assetId: asset.id, reason });
     if (path) {
-      // The file is the reservation this collect made. No row names it.
+      // The file is the copy this collect published. No row names it.
       await removeFile(workspace, path, "Could not remove a failed collect copy");
       try {
         await setCollectPath(asset, null);
@@ -1452,7 +1465,7 @@ async function collectOne(
     }
     return { kind: "failed", asset: { ...label, reason } };
   } finally {
-    release?.();
+    release();
   }
 }
 

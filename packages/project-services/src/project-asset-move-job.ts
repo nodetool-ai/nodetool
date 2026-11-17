@@ -169,6 +169,11 @@ export class ProjectAssetMoveJob {
     this.gate = options.gate ?? null;
   }
 
+  /** How long a changed row waits before it moves, in ms. */
+  get settleMs(): number {
+    return this.options.settleMs ?? MOVE_SETTLE_MS;
+  }
+
   /** Install or remove the gate. See {@link AssetMoveGate}. */
   setGate(gate: AssetMoveGate | null): void {
     this.gate = gate;
@@ -313,7 +318,7 @@ export class ProjectAssetMoveJob {
     userId: string
   ): Promise<{ rows: Asset[]; deferred: Asset[] }> {
     const now = Date.now();
-    const settleMs = this.options.settleMs ?? MOVE_SETTLE_MS;
+    const settleMs = this.settleMs;
     const rows: Asset[] = [];
     const deferred: Asset[] = [];
     for (const row of await Asset.listAwaitingFolderMove(userId, projectId)) {
@@ -452,7 +457,7 @@ export class ProjectAssetMoveJob {
     const timer = setTimeout(() => {
       this.followUps.delete(timer);
       this.schedule(projectId, userId);
-    }, this.options.settleMs ?? MOVE_SETTLE_MS);
+    }, this.settleMs);
     // A waiting pass must not hold the process open at shutdown.
     timer.unref?.();
     this.followUps.add(timer);

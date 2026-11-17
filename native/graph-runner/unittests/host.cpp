@@ -287,6 +287,51 @@ void filesRefuseTheReservedFolder() {
   CHECK(run(*e, "text(__host.files.readFile(" + lit(t.path(".nodetool/outside.txt")) + "))") == "outside");
 }
 
+// A Personal workspace can hold the folder of another project, marked by its
+// .nodetool/ directory. A recursive removal or a rename of a directory with
+// such a folder or a reserved directory anywhere below it is refused before
+// anything changes, as StorageWorkspace.move refuses it ("holds").
+void filesRefuseTreesThatHoldReservedFolders() {
+  TempDir t;
+  writeText(t.path("ws/projects/Film/.nodetool/project.json"), "{}");
+  writeText(t.path("ws/projects/Film/footage.mov"), "frames");
+  writeText(t.path("ws/projects/Aaa/a.txt"), "a");
+  writeText(t.path("ws/projects/Zzz/z.txt"), "z");
+  writeText(t.path("ws/legacy/deep/.NodeTool/x.txt"), "x");
+  writeText(t.path("ws/loose/b.txt"), "b");
+  gr::HostOptions o;
+  o.workspaceDir = t.path("ws");
+  auto e = engineWith(o);
+  const auto refused = [](const std::string& result) {
+    return startsWith(result, "error: EACCES") && result.find(".nodetool/") != std::string::npos;
+  };
+  const auto untouched = [&] {
+    return readText(t.path("ws/projects/Film/.nodetool/project.json")) == "{}" &&
+           readText(t.path("ws/projects/Film/footage.mov")) == "frames" &&
+           readText(t.path("ws/projects/Aaa/a.txt")) == "a" && readText(t.path("ws/projects/Zzz/z.txt")) == "z" &&
+           readText(t.path("ws/legacy/deep/.NodeTool/x.txt")) == "x";
+  };
+
+  CHECK(refused(run(*e, "__host.files.rm('projects', true, false)")));
+  CHECK(refused(run(*e, "__host.files.rm('projects', true, true)")));
+  CHECK(refused(run(*e, "__host.files.rm('projects/Film', true, false)")));
+  CHECK(refused(run(*e, "__host.files.rm('legacy', true, false)")));
+  CHECK(untouched());
+  CHECK(refused(run(*e, "__host.files.rename('projects', 'moved')")));
+  CHECK(refused(run(*e, "__host.files.rename('projects/Film', 'Film')")));
+  CHECK(refused(run(*e, "__host.files.rename('legacy', 'moved')")));
+  CHECK(untouched());
+  CHECK(!fs::exists(t.path("ws/moved")) && !fs::exists(t.path("ws/Film")));
+
+  // A tree with no such directory below it is removed and renamed as before.
+  CHECK(run(*e, "__host.files.rename('projects/Zzz', 'zzz')") == "ok");
+  CHECK(readText(t.path("ws/zzz/z.txt")) == "z");
+  CHECK(run(*e, "__host.files.rm('projects/Aaa', true, false)") == "ok");
+  CHECK(run(*e, "__host.files.rm('loose', true, false)") == "ok");
+  CHECK(!fs::exists(t.path("ws/projects/Aaa")) && !fs::exists(t.path("ws/loose")));
+  CHECK(fs::exists(t.path("ws/projects/Film/footage.mov")));
+}
+
 void filesReadRootsAreReadOnly() {
   TempDir t;
   writeText(t.path("library/a.txt"), "shelf");
@@ -1023,6 +1068,7 @@ int main() {
       {"filesCreatePrivateTemporaryDirectories", filesCreatePrivateTemporaryDirectories},
       {"filesRefuseEscapes", filesRefuseEscapes},
       {"filesRefuseTheReservedFolder", filesRefuseTheReservedFolder},
+      {"filesRefuseTreesThatHoldReservedFolders", filesRefuseTreesThatHoldReservedFolders},
       {"filesReadRootsAreReadOnly", filesReadRootsAreReadOnly},
       {"filesAcceptTheRootAsNamed", filesAcceptTheRootAsNamed},
       {"filesAllowOnlyTheGrantedSqliteDirectory", filesAllowOnlyTheGrantedSqliteDirectory},

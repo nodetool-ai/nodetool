@@ -7,7 +7,7 @@
 
 import { eq, and } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getPortableDb } from "./db.js";
+import { getDatabase, getPortableDb } from "./db.js";
 import { appSettings } from "./schema/settings.js";
 
 export class Setting extends DBModel {
@@ -73,6 +73,62 @@ export class Setting extends DBModel {
       description: opts.description ?? "",
       created_at: now,
       updated_at: now
+    });
+  }
+
+  /**
+   * Upsert `writes` in one transaction, but only while the user's setting
+   * `guard.key` still holds `guard.expected` (null: no row). Returns false,
+   * with nothing written, when it does not.
+   */
+  static async upsertManyIf(
+    userId: string,
+    guard: { key: string; expected: string | null },
+    writes: Array<{ key: string; value: string }>
+  ): Promise<boolean> {
+    const now = new Date().toISOString();
+    const rows = writes.map((write) => ({
+      id: createTimeOrderedUuid(),
+      user_id: userId,
+      key: write.key,
+      value: write.value,
+      description: "",
+      created_at: now,
+      updated_at: now
+    }));
+    const connection = getDatabase();
+    if (connection.dialect === "sqlite") {
+      const table = connection.schema.appSettings;
+      const owner = and(eq(table.user_id, userId), eq(table.key, guard.key));
+      return connection.db.transaction(
+        (tx): boolean => {
+          const [current] = tx.select({ value: table.value }).from(table)
+            .where(owner).limit(1).all();
+          if ((current?.value ?? null) !== guard.expected) return false;
+          for (const row of rows) {
+            tx.insert(table).values(row).onConflictDoUpdate({
+              target: [table.user_id, table.key],
+              set: { value: row.value, updated_at: now }
+            }).run();
+          }
+          return true;
+        },
+        { behavior: "immediate" }
+      );
+    }
+    const table = connection.schema.appSettings;
+    const owner = and(eq(table.user_id, userId), eq(table.key, guard.key));
+    return connection.db.transaction(async (tx): Promise<boolean> => {
+      const [current] = await tx.select({ value: table.value }).from(table)
+        .where(owner).limit(1).for("update");
+      if ((current?.value ?? null) !== guard.expected) return false;
+      for (const row of rows) {
+        await tx.insert(table).values(row).onConflictDoUpdate({
+          target: [table.user_id, table.key],
+          set: { value: row.value, updated_at: now }
+        });
+      }
+      return true;
     });
   }
 

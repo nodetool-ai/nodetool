@@ -1461,6 +1461,13 @@ export async function reconcileDocumentFiles(
   );
 }
 
+/** A project whose missing document files could not be written. */
+export interface DocumentFileFailure {
+  projectId: string;
+  userId: string;
+  reason: string;
+}
+
 /**
  * Write the file of every row of `projectId` that has none, and return how
  * many were written. Nothing else is compared. A second call writes nothing.

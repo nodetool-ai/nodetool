@@ -2,7 +2,20 @@
  * A lock that holds across processes on one host: the desktop server and a
  * `nodetool` CLI command that share one SQLite database, for example.
  *
- * The lock is a file created with an exclusive create. It records its owner
+ * The holder first takes an operating system lock: an exclusive transaction
+ * on an empty SQLite file beside the lock file, `<lock>.sqlite`. The
+ * operating system keeps that lock for as long as the holder's process
+ * exists, suspended or blocked included, and drops it when the process
+ * exits. No other process can take it from a live holder, however long the
+ * holder's heartbeat stops and whether or not its liveness can be read. It
+ * reaches every process that shares the database, since SQLite relies on
+ * the same file locks for the database itself.
+ *
+ * Under that lock the holder takes the lock file. The lock file
+ * names the owner and still excludes a process whose operating system lock
+ * did not hold, as on a file system without byte-range locks.
+ *
+ * The lock file is created with an exclusive create. It records its owner
  * (process id, host name, a random token, the process's PID namespace and
  * boot, and on Linux the process's start time), and the owner touches it
  * every {@link FolderLockFileOptions.heartbeatMs}. Another process takes the
@@ -54,7 +67,7 @@ import { hostname, uptime } from "node:os";
 import { join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { createLogger } from "@nodetool-ai/config";
-import { getDbType, getRawDb } from "@nodetool-ai/models";
+import { getDbType, getRawDb, openSqliteFile } from "@nodetool-ai/models";
 
 const log = createLogger("nodetool.asset-services.folder-lock-file");
 
@@ -238,6 +251,35 @@ async function removeFile(path: string): Promise<void> {
   }
 }
 
+/** A connection that holds the operating system lock of one lock file. */
+type SystemLock = ReturnType<typeof openSqliteFile>;
+
+/**
+ * Take the operating system lock at `path`: an exclusive transaction on an
+ * empty SQLite file, which no other connection, in this process or another,
+ * can begin while it is open. Null while another holder has it.
+ */
+function tryTakeSystemLock(path: string): SystemLock | null {
+  const db = openSqliteFile(path);
+  try {
+    db.exec("BEGIN EXCLUSIVE");
+    return db;
+  } catch (error) {
+    db.close();
+    if (error instanceof Error && failedWith(error, "SQLITE_BUSY")) return null;
+    throw error;
+  }
+}
+
+/** Give up the operating system lock. */
+function releaseSystemLock(db: SystemLock): void {
+  try {
+    db.exec("ROLLBACK");
+  } finally {
+    db.close();
+  }
+}
+
 /** A lock file this process holds. */
 export interface HeldFolderLock {
   /** Remove the lock file, when it still records this owner. */
@@ -266,16 +308,29 @@ class LockFile {
     const contents = ownerText(owner);
     const started = Date.now();
     let pause = 5;
-    for (;;) {
-      const handle = await this.tryCreate(contents);
-      if (handle) return this.held(handle, contents);
-      await this.takeOverIfGone();
+    const wait = async (): Promise<void> => {
       const waited = Date.now() - started;
       if (waited >= this.options.timeoutMs) {
         throw new FolderLockTimeoutError(this.path, waited);
       }
       await delay(pause);
       pause = Math.min(pause * 2, this.options.maxPollMs);
+    };
+    let system = tryTakeSystemLock(`${this.path}.sqlite`);
+    while (system === null) {
+      await wait();
+      system = tryTakeSystemLock(`${this.path}.sqlite`);
+    }
+    try {
+      for (;;) {
+        const handle = await this.tryCreate(contents);
+        if (handle) return this.held(handle, contents, system);
+        await this.takeOverIfGone();
+        await wait();
+      }
+    } catch (error) {
+      releaseSystemLock(system);
+      throw error;
     }
   }
 
@@ -298,7 +353,11 @@ class LockFile {
     }
   }
 
-  private held(handle: FileHandle, contents: string): HeldFolderLock {
+  private held(
+    handle: FileHandle,
+    contents: string,
+    system: SystemLock
+  ): HeldFolderLock {
     let beat: Promise<void> = Promise.resolve();
     const touch = async (): Promise<void> => {
       const now = new Date();
@@ -325,9 +384,13 @@ class LockFile {
         clearInterval(timer);
         await beat;
         await handle.close().catch(() => undefined);
-        await this.underGuard(async () => {
-          if ((await readText(this.path)) === contents) await unlink(this.path);
-        });
+        try {
+          await this.underGuard(async () => {
+            if ((await readText(this.path)) === contents) await unlink(this.path);
+          });
+        } finally {
+          releaseSystemLock(system);
+        }
       }
     };
   }

@@ -193,11 +193,10 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     opts: { delimiter?: string } = {}
   ): Promise<StorageListResult> {
     const delimiter = opts.delimiter ?? null;
-    // Supabase storage `list(path)` lists immediate children of `path` (a
-    // pseudo-directory). For hierarchical mode we use that directly; for
-    // flat mode we'd have to walk recursively — implement hierarchical only
-    // for now and fall back to a single-level listing without commonPrefixes
-    // for flat mode (callers wanting recursion should walk themselves).
+    // Supabase storage `list(path)` lists the immediate children of `path`
+    // (a pseudo-directory). With a "/" delimiter that is the answer. Without
+    // one the listing is flat, as the StorageAdapter contract requires, so
+    // every pseudo-directory is listed in turn.
     // Normalize the (possibly caller-supplied) prefix the way the file and S3
     // adapters do. normalizeStorageKey rejects path-traversal keys and uses no
     // polynomial regex, avoiding the ReDoS that `prefix.replace(/\/+$/, "")`
@@ -216,11 +215,51 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     if (dir.endsWith("/")) {
       dir = dir.slice(0, -1);
     }
-    // A listing that cannot be read throws. Callers judge from it whether a
-    // directory holds another project's folder, so an empty answer for a
-    // failed call would let the outer workspace reach that folder. The call
-    // returns at most one page, so every page is read: an entry past the first
-    // page, a `.nodetool` marker among them, must not go unseen.
+
+    const entries: StorageEntry[] = [];
+    const commonPrefixes: string[] = [];
+    const directories = [dir];
+    for (let next = directories.pop(); next !== undefined; next = directories.pop()) {
+      for (const item of await this.listDirectory(next)) {
+        const childKey = next ? `${next}/${item.name}` : item.name;
+        // Supabase entries with `id == null` are pseudo-directories.
+        if (item.id == null) {
+          if (delimiter === "/") {
+            commonPrefixes.push(`${childKey}/`);
+          } else {
+            directories.push(childKey);
+          }
+          continue;
+        }
+        const entry: StorageEntry = {
+          key: childKey,
+          uri: `supabase://${this.bucket}/${childKey}`,
+          size: item.metadata?.size ?? 0,
+          modifiedAt: item.updated_at
+            ? new Date(item.updated_at).getTime()
+            : Date.now()
+        };
+        if (item.metadata?.mimetype) {
+          entry.contentType = item.metadata.mimetype;
+        }
+        entries.push(entry);
+      }
+    }
+    return {
+      entries: entries.sort((a, b) => compareStorageKeys(a.key, b.key)),
+      commonPrefixes: commonPrefixes.sort()
+    };
+  }
+
+  /**
+   * Every child of one pseudo-directory. A listing that cannot be read
+   * throws. Callers judge from it whether a directory holds another project's
+   * folder, so an empty answer for a failed call would let the outer
+   * workspace reach that folder. The call returns at most one page, so every
+   * page is read: an entry past the first page, a `.nodetool` marker among
+   * them, must not go unseen.
+   */
+  private async listDirectory(dir: string): Promise<SupabaseObjectEntry[]> {
     const data: SupabaseObjectEntry[] = [];
     for (let offset = 0; ; offset += LIST_PAGE_SIZE) {
       const { data: page, error } = await this.getClient()
@@ -232,38 +271,8 @@ export class SupabaseStorageAdapter implements StorageAdapter {
         );
       }
       data.push(...page);
-      if (page.length < LIST_PAGE_SIZE) break;
+      if (page.length < LIST_PAGE_SIZE) return data;
     }
-
-    const entries: StorageEntry[] = [];
-    const commonPrefixes: string[] = [];
-    for (const item of data) {
-      const childKey = dir ? `${dir}/${item.name}` : item.name;
-      // Supabase entries with `id == null` are pseudo-directories.
-      const isDir = item.id == null;
-      if (isDir) {
-        if (delimiter === "/") {
-          commonPrefixes.push(`${childKey}/`);
-        }
-        continue;
-      }
-      const entry: StorageEntry = {
-        key: childKey,
-        uri: `supabase://${this.bucket}/${childKey}`,
-        size: item.metadata?.size ?? 0,
-        modifiedAt: item.updated_at
-          ? new Date(item.updated_at).getTime()
-          : Date.now()
-      };
-      if (item.metadata?.mimetype) {
-        entry.contentType = item.metadata.mimetype;
-      }
-      entries.push(entry);
-    }
-    return {
-      entries: entries.sort((a, b) => compareStorageKeys(a.key, b.key)),
-      commonPrefixes: commonPrefixes.sort()
-    };
   }
 
   /**

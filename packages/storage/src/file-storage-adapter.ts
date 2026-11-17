@@ -296,6 +296,20 @@ export class FileStorageAdapter implements StorageAdapter {
     return this.uriForKey(rel);
   }
 
+  /**
+   * Publish a local file under `key` only when nothing is there, using a
+   * bounded streaming copy. Null when the key was taken, and that file is
+   * left untouched.
+   */
+  async storeFileIfAbsent(key: string, sourcePath: string): Promise<string | null> {
+    const r = await this.rootPromise;
+    const rel = normalizeStorageKey(key);
+    const created = await r.copyInNew(rel, sourcePath, {
+      maxBytes: getMaxLocalUploadBytes()
+    });
+    return created ? this.uriForKey(rel) : null;
+  }
+
   async exists(uri: string): Promise<boolean> {
     const key = this.keyFromUri(uri);
     if (!key) return false;

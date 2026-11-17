@@ -14,6 +14,7 @@
  * nothing moves before confirmation or while the migration is paused.
  */
 import { homedir } from "node:os";
+import { setTimeout as delay } from "node:timers/promises";
 import { posix } from "node:path";
 import { z } from "zod";
 import { createLogger, workspaceStorageKind } from "@nodetool-ai/config";
@@ -51,6 +52,7 @@ import {
 } from "./project-asset-move-job.js";
 import { migrateTimelineFiles } from "./timeline-file.js";
 import { migrateWorkflowFiles } from "./workflow-file.js";
+import type { DocumentFileFailure } from "./document-file-sync.js";
 
 const log = createLogger("nodetool.project-services.project-folder-migration");
 
@@ -65,6 +67,9 @@ export const PROJECT_FOLDER_MIGRATION_ENV = "NODETOOL_PROJECT_MIGRATION";
 
 /** Failures kept with the state. The count covers the rest. */
 const MAX_STORED_FAILURES = 50;
+
+/** The shortest wait before a run that left assets waiting starts again. */
+const MIN_RESTART_MS = 1_000;
 
 /** Projects read per query while counting projects without a folder. */
 const COUNT_BATCH = 500;
@@ -131,7 +136,10 @@ export function locationNeedsPermission(
 }
 
 async function readStored(userId: string): Promise<StoredState | null> {
-  const row = await Setting.find(userId, PROJECT_FOLDER_MIGRATION_SETTING);
+  return parseStored(userId, await Setting.find(userId, PROJECT_FOLDER_MIGRATION_SETTING));
+}
+
+function parseStored(userId: string, row: Setting | null): StoredState | null {
   if (!row) return null;
   try {
     return storedState.parse(JSON.parse(row.value));
@@ -155,21 +163,23 @@ async function writeStored(userId: string, state: StoredState): Promise<void> {
 /** Read-modify-write of a user's state, one at a time within this process. */
 const stateQueues = new Map<string, Promise<unknown>>();
 
+function serialized<T>(userId: string, step: () => Promise<T>): Promise<T> {
+  const previous = stateQueues.get(userId) ?? Promise.resolve();
+  const next = previous.catch(() => undefined).then(step);
+  stateQueues.set(userId, next);
+  return next;
+}
+
 function updateStored(
   userId: string,
   change: (current: StoredState | null) => StoredState | null
 ): Promise<StoredState | null> {
-  const previous = stateQueues.get(userId) ?? Promise.resolve();
-  const next = previous
-    .catch(() => undefined)
-    .then(async () => {
-      const current = await readStored(userId);
-      const updated = change(current);
-      if (updated && updated !== current) await writeStored(userId, updated);
-      return updated;
-    });
-  stateQueues.set(userId, next);
-  return next;
+  return serialized(userId, async () => {
+    const current = await readStored(userId);
+    const updated = change(current);
+    if (updated && updated !== current) await writeStored(userId, updated);
+    return updated;
+  });
 }
 
 function refuse(message: string): never {
@@ -404,6 +414,7 @@ function projectFailure(
 export class ProjectFolderMigrationRunner {
   private readonly active = new Map<string, Promise<void>>();
   private readonly progressByUser = new Map<string, RunProgress>();
+  private readonly restarts = new Set<NodeJS.Timeout>();
 
   constructor(private readonly job: ProjectAssetMoveJob = projectAssetMoveJob) {}
 
@@ -424,6 +435,12 @@ export class ProjectFolderMigrationRunner {
       });
     this.active.set(userId, run);
     return run;
+  }
+
+  /** Cancel the restarts this runner scheduled. A run under way finishes. */
+  stop(): void {
+    for (const timer of this.restarts) clearTimeout(timer);
+    this.restarts.clear();
   }
 
   /** The phase and project this process works on for the user, if any. */
@@ -461,8 +478,23 @@ export class ProjectFolderMigrationRunner {
     if (!(await this.stillRunning(userId))) return this.record(userId, failures);
 
     this.setProgress(userId, "files", null);
-    const workflows = await migrateWorkflowFiles(userId);
-    const timelines = await migrateTimelineFiles(userId);
+    const documentFailures: DocumentFileFailure[] = [];
+    const onFailure = (failure: DocumentFileFailure) => documentFailures.push(failure);
+    const workflows = await migrateWorkflowFiles(userId, onFailure);
+    const timelines = await migrateTimelineFiles(userId, onFailure);
+    // One failure per project, also when its folder failed above or both
+    // kinds failed. Retry writes the missing files again.
+    for (const failure of documentFailures) {
+      const projectId =
+        !failure.projectId || failure.projectId === LOOSE_PROJECT_ID
+          ? `personal:${userId}`
+          : failure.projectId;
+      if (failures.some((listed) => listed.kind === "project" && listed.id === projectId)) {
+        continue;
+      }
+      const project = await Project.findOwned(userId, projectId);
+      failures.push(projectFailure(project, projectId, failure.reason));
+    }
     if (workflows + timelines > 0) {
       log.info("Wrote document files for the project folder migration", {
         workflows,
@@ -478,54 +510,98 @@ export class ProjectFolderMigrationRunner {
       await Project.migrateToPersonal(userId);
       waiting = await Asset.listProjectsAwaitingFolderMove(userId);
     }
+    let deferred: string[] = [];
     for (const { projectId } of waiting) {
       if (!projectId || projectId === LOOSE_PROJECT_ID) continue;
-      const project = await Project.findOwned(userId, projectId);
-      this.setProgress(userId, "assets", project?.name ?? null);
-      try {
-        const report = await this.job.run(projectId, userId);
-        for (const assetId of report.failed) {
-          failures.push(
-            assetFailure(
-              await Asset.find(userId, assetId),
-              assetId,
-              project,
-              report.failureReasons[assetId] ?? "The copy could not be verified"
-            )
-          );
-        }
-        if (report.stopped) return this.record(userId, failures);
-      } catch (error) {
-        const reason = error instanceof Error ? error.message : String(error);
-        if (!(error instanceof ProjectFolderUnavailableError)) {
-          log.warn("Moving the assets of a project failed", { projectId, error: reason });
-        }
-        failures.push(projectFailure(project, projectId, reason));
-      }
-      if (!(await this.stillRunning(userId))) return this.record(userId, failures);
+      const outcome = await this.moveAssets(userId, projectId, failures);
+      if (outcome === "stopped") return this.record(userId, failures);
+      if (outcome === "deferred") deferred.push(projectId);
     }
-    await this.record(userId, failures, true);
+    if (deferred.length > 0) {
+      // Assets changed within the settle time wait for it once, so a run
+      // started right after an edit still finishes. The timer keeps a
+      // `nodetool projects migrate` process alive while it waits.
+      await delay(this.job.settleMs);
+      if (!(await this.stillRunning(userId))) return this.record(userId, failures);
+      const again = deferred;
+      deferred = [];
+      for (const projectId of again) {
+        const outcome = await this.moveAssets(userId, projectId, failures);
+        if (outcome === "stopped") return this.record(userId, failures);
+        if (outcome === "deferred") deferred.push(projectId);
+      }
+    }
+    await this.record(userId, failures, deferred.length > 0 ? "waiting" : "finished");
+  }
+
+  /**
+   * One pass of the asset move over a project. Failures are added to
+   * `failures`. "deferred" when assets changed too recently to move.
+   */
+  private async moveAssets(
+    userId: string,
+    projectId: string,
+    failures: ProjectFolderMigrationFailure[]
+  ): Promise<"stopped" | "deferred" | "passed"> {
+    const project = await Project.findOwned(userId, projectId);
+    this.setProgress(userId, "assets", project?.name ?? null);
+    try {
+      const report = await this.job.run(projectId, userId);
+      for (const assetId of report.failed) {
+        failures.push(
+          assetFailure(
+            await Asset.find(userId, assetId),
+            assetId,
+            project,
+            report.failureReasons[assetId] ?? "The copy could not be verified"
+          )
+        );
+      }
+      if (report.stopped) return "stopped";
+      if (!(await this.stillRunning(userId))) return "stopped";
+      return report.deferred.length > 0 ? "deferred" : "passed";
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      if (!(error instanceof ProjectFolderUnavailableError)) {
+        log.warn("Moving the assets of a project failed", { projectId, error: reason });
+      }
+      failures.push(projectFailure(project, projectId, reason));
+      return (await this.stillRunning(userId)) ? "passed" : "stopped";
+    }
   }
 
   /**
    * Store what this run could not finish. A finished run moves `running` to
-   * `done`. A paused one stays paused.
+   * `done`. A run that left assets waiting moves it back to `confirmed`, so
+   * the next run of any process continues, and this process starts one once
+   * they may have settled. A paused one stays paused.
    */
   private async record(
     userId: string,
     failures: ProjectFolderMigrationFailure[],
-    finished = false
+    outcome: "stopped" | "waiting" | "finished" = "stopped"
   ): Promise<void> {
-    await updateStored(userId, (current) => {
+    const recorded = await updateStored(userId, (current) => {
       if (!current) return current;
       const next: StoredState = {
         ...current,
         failures: failures.slice(0, MAX_STORED_FAILURES),
         failure_count: failures.length
       };
-      if (finished && current.state === "running") next.state = "done";
+      if (current.state === "running" && outcome !== "stopped") {
+        next.state = outcome === "finished" ? "done" : "confirmed";
+      }
       return next;
     });
+    if (outcome === "waiting" && recorded?.state === "confirmed") {
+      const timer = setTimeout(() => {
+        this.restarts.delete(timer);
+        void this.idle(userId).then(() => this.start(userId));
+      }, Math.max(this.job.settleMs, MIN_RESTART_MS));
+      // A server keeps running. A command reports the unfinished state.
+      timer.unref?.();
+      this.restarts.add(timer);
+    }
   }
 }
 
@@ -626,7 +702,8 @@ export async function confirmMigration(
   requireApplies();
   const runner = options.runner ?? projectFolderMigrationRunner;
   const by = options.by ?? "user";
-  const current = (await readStored(userId)) ?? NOT_STARTED;
+  const row = await Setting.find(userId, PROJECT_FOLDER_MIGRATION_SETTING);
+  const current = parseStored(userId, row) ?? NOT_STARTED;
   const allowed =
     current.state === "plan_shown" || (by === "auto" && current.state === "not_started");
   if (!allowed) {
@@ -640,31 +717,34 @@ export async function confirmMigration(
   if (location.error) {
     throw new ProjectFolderMigrationError("invalid_location", location.error);
   }
+  const confirmed: StoredState = {
+    ...current,
+    state: "confirmed",
+    location: location.path,
+    confirmed_by: by,
+    total_assets: await Asset.countAwaitingFolderMove(userId)
+  };
+  const writes = [
+    { key: PROJECT_FOLDER_MIGRATION_SETTING, value: JSON.stringify(confirmed) }
+  ];
   if (options.location !== undefined) {
     const configured = await configuredProjectsDir(userId);
     if (configured.dir !== location.path || !configured.fromUser) {
-      await Setting.upsert({
-        userId,
-        key: PROJECTS_DIR_SETTING,
-        value: location.path
-      });
+      writes.push({ key: PROJECTS_DIR_SETTING, value: location.path });
     }
   }
-  const totalAssets = await Asset.countAwaitingFolderMove(userId);
-  const confirmed = await updateStored(userId, (latest) => {
-    const state = latest ?? NOT_STARTED;
-    if (state.state !== current.state) {
-      refuse("The migration changed while it was being confirmed");
-    }
-    return {
-      ...state,
-      state: "confirmed",
-      location: location.path,
-      confirmed_by: by,
-      total_assets: totalAssets
-    };
-  });
-  if (confirmed && options.start !== false) void runner.start(userId);
+  // The transition and the location commit together, and only while the
+  // state is still the one read above. A confirmation that lost a race
+  // writes neither, so folder creation reads the winner's location.
+  const committed = await serialized(userId, () =>
+    Setting.upsertManyIf(
+      userId,
+      { key: PROJECT_FOLDER_MIGRATION_SETTING, expected: row?.value ?? null },
+      writes
+    )
+  );
+  if (!committed) refuse("The migration changed while it was being confirmed");
+  if (options.start !== false) void runner.start(userId);
   return getMigrationStatus(userId, runner);
 }
 

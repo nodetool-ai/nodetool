@@ -651,6 +651,83 @@ describe.each(["local", "storage"] as const)(
       expect(existsSync(source)).toBe(true);
     });
 
+    /**
+     * Another app saves `path` once, the way an editor does: a whole new file
+     * put in place in one step. It lands when the copy of a file on this
+     * host into the folder starts, whichever workspace method makes the copy.
+     */
+    function competingSaveDuringCopy(
+      bytes: string,
+      after?: () => Promise<never>
+    ): void {
+      const created = kinds[kind](PROJECT);
+      folders.set(PROJECT, created);
+      const workspace = created.workspace as unknown as Record<
+        string,
+        (...args: unknown[]) => Promise<unknown>
+      >;
+      let saved = false;
+      for (const method of ["absorb", "absorbNew"]) {
+        const original = workspace[method];
+        if (typeof original !== "function") continue;
+        workspace[method] = async (from: unknown, to: unknown, ...rest) => {
+          if (!saved) {
+            saved = true;
+            await created.workspace.write(to as string, bytes);
+            if (after) await after();
+          }
+          return original.call(created.workspace, from, to, ...rest);
+        };
+      }
+    }
+
+    it("never replaces a file another app saved over the name during the copy", async () => {
+      const source = join(root, "take.mp4");
+      await writeFile(source, "the import");
+      competingSaveDuringCopy("the creator's take");
+
+      const asset = await saveProjectAsset({
+        projectId: PROJECT,
+        userId: USER,
+        name: "take",
+        contentType: "video/mp4",
+        localPath: source
+      });
+
+      expect(asset.workspace_path).toBe("Generated/take-2.mp4");
+      expect(await folder().files()).toEqual([
+        "Generated/take-2.mp4",
+        "Generated/take.mp4"
+      ]);
+      const read = async (path: string): Promise<string> =>
+        Buffer.from((await folder().workspace.read(path))!).toString();
+      expect(await read("Generated/take.mp4")).toBe("the creator's take");
+      expect(await read("Generated/take-2.mp4")).toBe("the import");
+    });
+
+    it("keeps a file another app saved over the name when the copy fails", async () => {
+      const source = join(root, "take.mp4");
+      await writeFile(source, "the import");
+      competingSaveDuringCopy("the creator's take", () =>
+        Promise.reject(new Error("copy failed"))
+      );
+
+      await expect(
+        saveProjectAsset({
+          projectId: PROJECT,
+          userId: USER,
+          name: "take",
+          contentType: "video/mp4",
+          localPath: source
+        })
+      ).rejects.toThrow("copy failed");
+
+      expect(await folder().files()).toEqual(["Generated/take.mp4"]);
+      expect(
+        Buffer.from((await folder().workspace.read("Generated/take.mp4"))!).toString()
+      ).toBe("the creator's take");
+    });
+
     it("writes nothing and creates no row when the folder cannot be reached", async () => {
       await fox();
       unreachable = PROJECT;
@@ -987,6 +1064,9 @@ describe("projectAssetFileStem", () => {
     ["???", "image/png", "asset"],
     ["CON", "image/png", "CON-file"],
     ["nul", "text/plain", "nul-file"],
+    ["NUL.demo", "image/png", "NUL-file.demo"],
+    ["com1.tar.gz", "image/png", "com1-file.tar.gz"],
+    ["console.log", "image/png", "console.log"],
     ["Füchse im Schnee ❄", "image/png", "Füchse-im-Schnee-❄"],
     ["x".repeat(300), "image/png", "x".repeat(100)]
   ])("%j as %s is %j", (name, contentType, stem) => {

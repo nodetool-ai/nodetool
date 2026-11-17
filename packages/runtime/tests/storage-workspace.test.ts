@@ -306,6 +306,23 @@ describe.each(backends)("Workspace over $name", ({ isLocal }) => {
     expect(await workspace.readText("out/rendered.txt")).toBe("output");
   });
 
+  it("absorbNew copies a local file to a free path and never replaces one", async () => {
+    const source = join(dir, "..", `${dir.split("/").pop()}-source.txt`);
+    await writeFile(source, "the import");
+    try {
+      expect(await workspace.absorbNew(source, "in/take.txt")).toBe(true);
+      expect(await workspace.readText("in/take.txt")).toBe("the import");
+      await workspace.write("in/other.txt", "someone else's");
+      expect(await workspace.absorbNew(source, "in/other.txt")).toBe(false);
+      expect(await workspace.readText("in/other.txt")).toBe("someone else's");
+      expect(
+        (await workspace.list("in")).map((entry) => entry.path).sort()
+      ).toEqual(["in/other.txt", "in/take.txt"]);
+    } finally {
+      await rm(source, { force: true });
+    }
+  });
+
   it("removes staged scratch files when the run ends", async () => {
     if (isLocal) return;
     const [scratch, second] = await Promise.all([

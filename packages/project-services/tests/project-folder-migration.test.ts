@@ -6,7 +6,7 @@
  * a temporary `PROJECTS_DIR`, and a file asset store. A new runner and job
  * stand for a restarted process.
  */
-import { link, mkdir, mkdtemp, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { link, mkdir, mkdtemp, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -63,8 +63,12 @@ let job: ProjectAssetMoveJob;
 let runner: ProjectFolderMigrationRunner;
 
 /** A job and runner that stand for one server process. */
-function newProcess(afterStep?: LegacyAssetMoveOptions["afterStep"]): void {
-  job = new ProjectAssetMoveJob({ settleMs: 0, afterStep, gate: bulkMigrationAllowed });
+function newProcess(
+  afterStep?: LegacyAssetMoveOptions["afterStep"],
+  settleMs = 0
+): void {
+  runner?.stop();
+  job = new ProjectAssetMoveJob({ settleMs, afterStep, gate: bulkMigrationAllowed });
   runner = new ProjectFolderMigrationRunner(job);
 }
 
@@ -178,6 +182,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  runner.stop();
   await runner.idle(USER);
   await job.idle();
   job.stop();
@@ -315,6 +320,49 @@ describe("location", () => {
     expect((await stat(join(chosen, "Film", ".nodetool", "project.json"))).isFile()).toBe(
       true
     );
+  });
+
+  it("keeps the location of the confirmation that won a race", async () => {
+    const film = await legacyProject("Film");
+    const first = join(root, "First");
+    const second = join(root, "Second");
+    await mkdir(first);
+    await mkdir(second);
+    await showMigrationPlan(USER);
+
+    // The second confirmation reads `plan_shown`, then waits while it checks
+    // its location. The first one commits in that time.
+    let hold: (() => void) | null = null;
+    let held: () => void = () => undefined;
+    const reachedHold = new Promise<void>((resolve) => {
+      held = resolve;
+    });
+    let holding = true;
+    const find = Setting.find.bind(Setting);
+    vi.spyOn(Setting, "find").mockImplementation(async (userId, key) => {
+      if (holding && key === "PROJECTS_DIR") {
+        holding = false;
+        held();
+        await new Promise<void>((resolve) => {
+          hold = resolve;
+        });
+      }
+      return find(userId, key);
+    });
+
+    const late = confirmMigration(USER, { location: second, runner, start: false });
+    await reachedHold;
+    await confirmMigration(USER, { location: first, runner, start: false });
+    (hold as (() => void) | null)?.();
+
+    expect(await refusal(late)).toBe("invalid_transition");
+    expect((await getMigrationStatus(USER, runner)).location).toBe(first);
+    expect((await Setting.find(USER, "PROJECTS_DIR"))?.value).toBe(first);
+
+    await runner.start(USER);
+    const project = await Project.findOwned(USER, film.id);
+    const folder = await Workspace.find(USER, project?.workspace_id ?? "");
+    expect(folder?.path).toBe(join(first, "Film"));
   });
 
   it("warns where macOS asks for permission", () => {
@@ -456,6 +504,42 @@ describe("failures", () => {
   });
 });
 
+describe("document files", () => {
+  it("lists a workflow whose folder is unavailable and writes it on retry", async () => {
+    const film = await legacyProject("Film");
+    expect((await resolveProjectWorkspace(film.id, USER)).ok).toBe(true);
+    const folder = await Workspace.find(
+      USER,
+      (await Project.findOwned(USER, film.id))?.workspace_id ?? ""
+    );
+    if (!folder) throw new Error("no folder");
+    const draft = await legacyWorkflow(film.id, "Draft");
+    // The drive that holds the folder is disconnected.
+    const away = `${folder.path}-away`;
+    await rename(folder.path, away);
+
+    await confirmAndRun();
+
+    const status = await getMigrationStatus(USER, runner);
+    expect(status).toMatchObject({ state: "done", failure_count: 1 });
+    expect(status.failures).toEqual([
+      expect.objectContaining({ kind: "project", id: film.id, name: "Film" })
+    ]);
+    expect((await Workflow.get<Workflow>(draft.id))?.file_path).toBeNull();
+
+    await rename(away, folder.path);
+    await retryMigration(USER, runner, job);
+    await new Promise((resolve) => setImmediate(resolve));
+    await runner.idle(USER);
+
+    expect(await getMigrationStatus(USER, runner)).toMatchObject({
+      state: "done",
+      failure_count: 0
+    });
+    expect((await Workflow.get<Workflow>(draft.id))?.file_path).toBeTruthy();
+  });
+});
+
 describe("where the migration does not ask", () => {
   it.each([
     ["cloud storage", { NODETOOL_WORKSPACE_STORAGE: "cloud" }],
@@ -526,6 +610,51 @@ describe("nodetool projects migrate", () => {
 
     expect(status.state).toBe("done");
     expect(await moved(fox)).toBe(true);
+  });
+
+  it("waits for an asset changed just before it ran", async () => {
+    newProcess(undefined, 300);
+    const film = await legacyProject("Film");
+    const fox = await legacyAsset(film.id, "fox");
+    // The asset was edited a moment ago, so the mover defers it.
+    await getPortableDb()
+      .update(assets)
+      .set({ updated_at: new Date().toISOString() });
+
+    const status = await runMigrationToEnd(USER, { runner });
+
+    expect(status).toMatchObject({ state: "done", progress: { done: 1, total: 1 } });
+    expect(await moved(fox)).toBe(true);
+  });
+
+  it("stays unfinished while an asset still waits, and a second run continues", async () => {
+    const film = await legacyProject("Film");
+    // A client-direct upload that may still get its bytes.
+    const upload = await Asset.create<Asset>({
+      user_id: USER,
+      project_id: film.id,
+      parent_id: null,
+      name: "upload",
+      content_type: PNG,
+      size: null
+    });
+    await store.store(getAssetStorageKey(USER, upload.id, PNG), bytesOf(++seed), PNG);
+
+    const first = await runMigrationToEnd(USER, { runner });
+
+    expect(first.state).not.toBe("done");
+    expect(first.progress).toMatchObject({ done: 0, total: 1 });
+    expect(await moved(upload)).toBe(false);
+
+    // The upload window has passed.
+    await getPortableDb()
+      .update(assets)
+      .set({ created_at: "2024-01-01T00:00:00.000Z", updated_at: "2024-01-01T00:00:00.000Z" });
+    newProcess();
+    const second = await runMigrationToEnd(USER, { runner });
+
+    expect(second).toMatchObject({ state: "done", progress: { done: 1, total: 1 } });
+    expect(await moved(upload)).toBe(true);
   });
 
   it("refuses a migration the user paused", async () => {

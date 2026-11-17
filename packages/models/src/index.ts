@@ -18,6 +18,7 @@ export {
   getDbType,
   getPostgresClient,
   getRawDb,
+  openSqliteFile,
   pingDb,
   closeDb
 } from "./db.js";
