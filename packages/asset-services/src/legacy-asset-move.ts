@@ -78,10 +78,12 @@
  * store is read through `storedObjectsOf`, because the store itself answers
  * a key it cannot read from the file the row points at.
  *
- * A bytes update of an asset with no file in the folder stores its bytes and
- * saves its row under the same folder lock (`storeLegacyAssetBytes`), so it
- * never lands between this module's last read of the legacy object and the
- * delete.
+ * Every other writer of a row this module may still move takes the same
+ * folder lock and reads the row again inside it (`withLockedAssetRow` in
+ * `project-asset.ts`): an asset update, a bytes update, a delete and the
+ * finalize of a client-direct upload. None of them lands between this
+ * module's last read of the legacy object and the delete, and none saves a
+ * row it read before the move pointed it at its file.
  *
  * External assets, folder rows and assets of another project are never
  * touched. Thumbnails and other derived objects stay in the asset store.

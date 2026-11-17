@@ -329,6 +329,21 @@ describe.each(["local", "cloud"] as const)(
       expect(await Asset.listByProject(USER, project.id)).toEqual([]);
     });
 
+    it("a resource delete that loaded the row before the move removes the moved file", async () => {
+      const { project, folder } = await projectWithFolder(USER, "Film");
+      const notes = await legacyNotes(project.id, NOTES.byteLength);
+      const move = moveAfterFirstLoad(notes, project.id);
+
+      await createCaller(makeCtx()).resources.delete({
+        ref: { kind: "asset", id: notes.id }
+      });
+
+      expect(move.report()?.moved).toEqual([notes.id]);
+      expect(await Asset.find(USER, notes.id)).toBeNull();
+      expect(await folderFiles(folder)).toEqual([]);
+      expect((await reconcileProjectIndex(project.id, USER)).created).toEqual([]);
+    });
+
     it("a finalize that runs after a move stopped after its copy leaves the bytes to the move", async () => {
       const { project, folder } = await projectWithFolder(USER, "Film");
       const upload = await legacyNotes(project.id, null);
