@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type {
+  ApplicationRef,
   ASRModel,
   AudioRef,
   DataframeRef,
@@ -8,6 +9,7 @@ import type {
   Entity,
   ImageModel,
   ImageRef,
+  JsScriptRef,
   LanguageModel,
   Model3DRef,
   ScriptRef,
@@ -16,10 +18,12 @@ import type {
   TimelineRef,
   TTSModel,
   VideoModel,
-  VideoRef
+  VideoRef,
+  WorkflowDocumentRef
 } from "@nodetool-ai/protocol";
 import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
 import {
+  applicationRefDefault,
   audioRefDefault,
   dataframeRefDefault,
   documentRefDefault,
@@ -27,12 +31,14 @@ import {
   imageRefDefault,
   imageSizeDefault,
   jsonRefDefault,
+  jsScriptRefDefault,
   model3DRefDefault,
   scriptRefDefault,
   sketchRefDefault,
   storyboardRefDefault,
   timelineRefDefault,
-  videoRefDefault
+  videoRefDefault,
+  workflowRefDefault
 } from "./ref-defaults.js";
 
 interface ImageSizeValue {
@@ -481,6 +487,93 @@ export class ConstantStoryboardNode extends BaseNode {
   declare value: StoryboardRef;
 
   async process(): Promise<ConstantStoryboardNodeOutputs> {
+    return { output: this.value ?? {} };
+  }
+}
+
+/** Output handles ConstantWorkflowNode.process() emits. */
+type ConstantWorkflowNodeOutputs = {
+  output: WorkflowDocumentRef;
+};
+
+export class ConstantWorkflowNode extends BaseNode {
+  static readonly nodeType = "nodetool.constant.Workflow";
+  static readonly retrySafe = true;
+  static readonly title = "Workflow";
+  static readonly description =
+    "References a saved workflow in the workflow.\n    workflow, graph, pipeline, subgraph, reference\n\n    Use cases:\n    - Pass a workflow between nodes that run or inspect it\n    - Bring a workflow file from the project into a graph\n    - Provide a fixed workflow input for downstream nodes";
+  static readonly metadataOutputTypes = {
+    output: "workflow"
+  };
+  static readonly inlineFields = ["value"];
+  static readonly inputFields = [];
+
+  @prop({
+    type: "workflow",
+    default: workflowRefDefault,
+    title: "Value"
+  })
+  declare value: WorkflowDocumentRef;
+
+  async process(): Promise<ConstantWorkflowNodeOutputs> {
+    return { output: this.value ?? {} };
+  }
+}
+
+/** Output handles ConstantApplicationNode.process() emits. */
+type ConstantApplicationNodeOutputs = {
+  output: ApplicationRef;
+};
+
+export class ConstantApplicationNode extends BaseNode {
+  static readonly nodeType = "nodetool.constant.Application";
+  static readonly retrySafe = true;
+  static readonly title = "Application";
+  static readonly description =
+    "References a mini app in the workflow.\n    application, app, mini app, screen, reference\n\n    Use cases:\n    - Pass a mini app between nodes\n    - Open and edit the referenced app in the app builder\n    - Bring an app file from the project into a graph";
+  static readonly metadataOutputTypes = {
+    output: "application"
+  };
+  static readonly inlineFields = ["value"];
+  static readonly inputFields = [];
+
+  @prop({
+    type: "application",
+    default: applicationRefDefault,
+    title: "Value"
+  })
+  declare value: ApplicationRef;
+
+  async process(): Promise<ConstantApplicationNodeOutputs> {
+    return { output: this.value ?? {} };
+  }
+}
+
+/** Output handles ConstantJsScriptNode.process() emits. */
+type ConstantJsScriptNodeOutputs = {
+  output: JsScriptRef;
+};
+
+export class ConstantJsScriptNode extends BaseNode {
+  static readonly nodeType = "nodetool.constant.JsScript";
+  static readonly retrySafe = true;
+  static readonly title = "JS Script";
+  static readonly description =
+    "References a JavaScript script document in the workflow.\n    javascript, js, script, code, reference\n\n    Use cases:\n    - Pass a JS script between nodes\n    - Open and edit the referenced script in the code editor\n    - Bring a JS script file from the project into a graph";
+  static readonly metadataOutputTypes = {
+    output: "jsscript"
+  };
+  static readonly inlineFields = ["value"];
+  static readonly inputFields = [];
+
+  @prop({
+    type: "jsscript",
+    default: jsScriptRefDefault,
+    title: "Value"
+  })
+  declare value: JsScriptRef;
+
+  async process(): Promise<ConstantJsScriptNodeOutputs> {
     return { output: this.value ?? {} };
   }
 }
@@ -1096,6 +1189,9 @@ export const CONSTANT_NODES = tagAsUniversal([
   ConstantTimelineNode,
   ConstantScriptNode,
   ConstantStoryboardNode,
+  ConstantWorkflowNode,
+  ConstantApplicationNode,
+  ConstantJsScriptNode,
   ConstantEntityNode,
   ConstantJSONNode,
   ConstantModel3DNode,
