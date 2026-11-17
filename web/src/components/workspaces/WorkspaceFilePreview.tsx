@@ -98,10 +98,20 @@ const Media: React.FC<{ preview: FilePreview }> = ({ preview }) => {
       );
     case "video":
       return (
-        <VideoPlayer locator={assetLocator(preview.asset)} muted bare />
+        <VideoPlayer
+          locator={assetLocator(preview.asset)}
+          label={preview.asset.name}
+          compact
+        />
       );
     case "audio":
-      return <AudioPlayback locator={assetLocator(preview.asset)} />;
+      return (
+        <AudioPlayback
+          locator={assetLocator(preview.asset)}
+          label={preview.asset.name}
+          sx={{ px: SPACING.sm }}
+        />
+      );
     case "model3d":
       return <LazyModel3DViewer asset={preview.asset} compact />;
     case "document":

@@ -17976,7 +17976,9 @@
       "seek": "Seek",
       "playbackSpeed": "Playback speed",
       "exitFullscreen": "Exit fullscreen",
-      "enterFullscreen": "Enter fullscreen"
+      "enterFullscreen": "Enter fullscreen",
+      "mute": "Mute",
+      "unmute": "Unmute"
     },
     "tagInput": {
       "placeholder": "Type and press Enter to add a tag…",
