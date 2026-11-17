@@ -120,6 +120,7 @@ const bool registered = [] {
         {"panelMotion", "Go to Motion", "motion", "Motion"},
         {"panelColor", "Go to Color", "color", "Color"}, {"panelScopes", "Go to Scopes", "scopes", "Scopes"},
         {"panelEntities", "Go to Entities", "entities", "Entities"}, {"panelMarkers", "Go to Markers", "markers", "Markers"},
+        {"panelFiles", "Go to Files", "files", "Files"},
         {"panelAssistant", "Go to the Assistant", "assistant", "Assistant"}, {"panelAi", "Go to AI", "ai", "AI"},
         {"panelActivity", "Go to Activity", "activity", "Activity"}};
     int panelOrder = 100;
