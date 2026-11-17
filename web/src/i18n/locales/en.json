@@ -20166,7 +20166,10 @@
       "noFolderDescription": "This project has no folder yet.",
       "revealInFinder": "Reveal in Finder",
       "revealInExplorer": "Show in File Explorer",
-      "revealInFileManager": "Show in file manager"
+      "revealInFileManager": "Show in file manager",
+      "moveIntoItself": "A folder cannot move into itself or a folder inside it.",
+      "notAnAsset": "This file is not in the project's assets, so it cannot be changed here.",
+      "actionFailed": "The change was not saved: {{error}}"
     },
     "documentFile": {
       "invalidTitle": "This file has an error",

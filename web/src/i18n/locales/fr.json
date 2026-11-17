@@ -20477,7 +20477,10 @@
       "noFolderDescription": "Ce projet n'a pas encore de dossier.",
       "revealInFinder": "Afficher dans le Finder",
       "revealInExplorer": "Afficher dans l'Explorateur de fichiers",
-      "revealInFileManager": "Afficher dans le gestionnaire de fichiers"
+      "revealInFileManager": "Afficher dans le gestionnaire de fichiers",
+      "moveIntoItself": "Un dossier ne peut pas être déplacé dans lui-même ni dans l'un de ses sous-dossiers.",
+      "notAnAsset": "Ce fichier ne fait pas partie des ressources du projet et ne peut pas être modifié ici.",
+      "actionFailed": "La modification n'a pas été enregistrée : {{error}}"
     },
     "documentFile": {
       "invalidTitle": "Ce fichier contient une erreur",

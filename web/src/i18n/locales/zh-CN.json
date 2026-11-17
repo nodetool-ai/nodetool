@@ -20166,7 +20166,10 @@
       "noFolderDescription": "此项目还没有文件夹。",
       "revealInFinder": "在 Finder 中显示",
       "revealInExplorer": "在文件资源管理器中显示",
-      "revealInFileManager": "在文件管理器中显示"
+      "revealInFileManager": "在文件管理器中显示",
+      "moveIntoItself": "文件夹不能移动到自身或其子文件夹中。",
+      "notAnAsset": "此文件不在项目资源中，因此无法在此处更改。",
+      "actionFailed": "更改未保存：{{error}}"
     },
     "documentFile": {
       "invalidTitle": "此文件有错误",

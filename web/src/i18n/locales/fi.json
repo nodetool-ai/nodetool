@@ -20166,7 +20166,10 @@
       "noFolderDescription": "Tällä projektilla ei ole vielä kansiota.",
       "revealInFinder": "Näytä Finderissa",
       "revealInExplorer": "Näytä Resurssienhallinnassa",
-      "revealInFileManager": "Näytä tiedostonhallinnassa"
+      "revealInFileManager": "Näytä tiedostonhallinnassa",
+      "moveIntoItself": "Kansiota ei voi siirtää itseensä tai sen alikansioon.",
+      "notAnAsset": "Tämä tiedosto ei kuulu projektin resursseihin, joten sitä ei voi muuttaa täällä.",
+      "actionFailed": "Muutosta ei tallennettu: {{error}}"
     },
     "documentFile": {
       "invalidTitle": "Tässä tiedostossa on virhe",

@@ -20166,7 +20166,10 @@
       "noFolderDescription": "Det här projektet har ingen mapp än.",
       "revealInFinder": "Visa i Finder",
       "revealInExplorer": "Visa i Utforskaren",
-      "revealInFileManager": "Visa i filhanteraren"
+      "revealInFileManager": "Visa i filhanteraren",
+      "moveIntoItself": "En mapp kan inte flyttas in i sig själv eller en av dess undermappar.",
+      "notAnAsset": "Den här filen finns inte bland projektets tillgångar och kan inte ändras här.",
+      "actionFailed": "Ändringen sparades inte: {{error}}"
     },
     "documentFile": {
       "invalidTitle": "Den här filen har ett fel",

@@ -20477,7 +20477,10 @@
       "noFolderDescription": "Este projeto ainda não tem uma pasta.",
       "revealInFinder": "Mostrar no Finder",
       "revealInExplorer": "Mostrar no Explorador de Arquivos",
-      "revealInFileManager": "Mostrar no gerenciador de arquivos"
+      "revealInFileManager": "Mostrar no gerenciador de arquivos",
+      "moveIntoItself": "Uma pasta não pode ser movida para dentro de si mesma ou de uma subpasta.",
+      "notAnAsset": "Este arquivo não está nos recursos do projeto, por isso não pode ser alterado aqui.",
+      "actionFailed": "A alteração não foi salva: {{error}}"
     },
     "documentFile": {
       "invalidTitle": "Este arquivo tem um erro",

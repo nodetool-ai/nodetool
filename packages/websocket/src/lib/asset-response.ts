@@ -150,6 +150,7 @@ export async function toAssetResponse(asset: Asset): Promise<AssetResponse> {
     project_id: asset.project_id,
     favorite: asset.favorite
   };
+  if (asset.workspace_path) response.workspace_path = asset.workspace_path;
   // Only assets that reference a file in place carry the flag, and an asset
   // whose file the reconciler found missing from its project folder.
   if (asset.external_path) {

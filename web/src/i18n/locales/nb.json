@@ -20166,7 +20166,10 @@
       "noFolderDescription": "Dette prosjektet har ingen mappe ennå.",
       "revealInFinder": "Vis i Finder",
       "revealInExplorer": "Vis i Filutforsker",
-      "revealInFileManager": "Vis i filbehandleren"
+      "revealInFileManager": "Vis i filbehandleren",
+      "moveIntoItself": "En mappe kan ikke flyttes inn i seg selv eller en av undermappene sine.",
+      "notAnAsset": "Denne filen er ikke blant prosjektets ressurser, så den kan ikke endres her.",
+      "actionFailed": "Endringen ble ikke lagret: {{error}}"
     },
     "documentFile": {
       "invalidTitle": "Denne filen har en feil",

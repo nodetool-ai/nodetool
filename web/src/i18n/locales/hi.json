@@ -20166,7 +20166,10 @@
       "noFolderDescription": "इस प्रोजेक्ट का अभी कोई फ़ोल्डर नहीं है।",
       "revealInFinder": "Finder में दिखाएँ",
       "revealInExplorer": "फ़ाइल एक्सप्लोरर में दिखाएँ",
-      "revealInFileManager": "फ़ाइल मैनेजर में दिखाएँ"
+      "revealInFileManager": "फ़ाइल मैनेजर में दिखाएँ",
+      "moveIntoItself": "फ़ोल्डर को स्वयं में या उसके किसी उप-फ़ोल्डर में नहीं ले जाया जा सकता।",
+      "notAnAsset": "यह फ़ाइल प्रोजेक्ट के एसेट में नहीं है, इसलिए इसे यहाँ बदला नहीं जा सकता।",
+      "actionFailed": "बदलाव सहेजा नहीं गया: {{error}}"
     },
     "documentFile": {
       "invalidTitle": "इस फ़ाइल में त्रुटि है",

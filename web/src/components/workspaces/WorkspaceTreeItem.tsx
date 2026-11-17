@@ -105,6 +105,7 @@ const WorkspaceTreeRow: React.FC<WorkspaceTreeRowProps> = ({
     aria-expanded={isFolder ? expanded : undefined}
     data-testid="tree-item"
     data-itemid={id}
+    draggable={!isPlaceholder}
     className={`tree-row${selected ? " selected" : ""}${
       isPlaceholder ? " placeholder" : ""
     }`}

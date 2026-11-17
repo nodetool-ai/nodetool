@@ -20166,7 +20166,10 @@
       "noFolderDescription": "이 프로젝트에는 아직 폴더가 없습니다.",
       "revealInFinder": "Finder에서 보기",
       "revealInExplorer": "파일 탐색기에서 보기",
-      "revealInFileManager": "파일 관리자에서 보기"
+      "revealInFileManager": "파일 관리자에서 보기",
+      "moveIntoItself": "폴더를 자기 자신이나 하위 폴더로 이동할 수 없습니다.",
+      "notAnAsset": "이 파일은 프로젝트 에셋에 없으므로 여기에서 변경할 수 없습니다.",
+      "actionFailed": "변경 사항이 저장되지 않았습니다: {{error}}"
     },
     "documentFile": {
       "invalidTitle": "이 파일에 오류가 있습니다",

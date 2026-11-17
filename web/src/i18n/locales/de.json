@@ -20166,7 +20166,10 @@
       "noFolderDescription": "Dieses Projekt hat noch keinen Ordner.",
       "revealInFinder": "Im Finder anzeigen",
       "revealInExplorer": "Im Datei-Explorer anzeigen",
-      "revealInFileManager": "Im Dateimanager anzeigen"
+      "revealInFileManager": "Im Dateimanager anzeigen",
+      "moveIntoItself": "Ein Ordner kann nicht in sich selbst oder einen seiner Unterordner verschoben werden.",
+      "notAnAsset": "Diese Datei gehört nicht zu den Assets des Projekts und kann hier nicht geändert werden.",
+      "actionFailed": "Die Änderung wurde nicht gespeichert: {{error}}"
     },
     "documentFile": {
       "invalidTitle": "Diese Datei hat einen Fehler",

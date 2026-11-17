@@ -20166,7 +20166,10 @@
       "noFolderDescription": "このプロジェクトにはまだフォルダがありません。",
       "revealInFinder": "Finderで表示",
       "revealInExplorer": "エクスプローラーで表示",
-      "revealInFileManager": "ファイルマネージャーで表示"
+      "revealInFileManager": "ファイルマネージャーで表示",
+      "moveIntoItself": "フォルダーをそれ自身やそのサブフォルダーに移動することはできません。",
+      "notAnAsset": "このファイルはプロジェクトのアセットに含まれていないため、ここでは変更できません。",
+      "actionFailed": "変更は保存されませんでした: {{error}}"
     },
     "documentFile": {
       "invalidTitle": "このファイルにはエラーがあります",

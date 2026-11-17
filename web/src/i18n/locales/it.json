@@ -20477,7 +20477,10 @@
       "noFolderDescription": "Questo progetto non ha ancora una cartella.",
       "revealInFinder": "Mostra nel Finder",
       "revealInExplorer": "Mostra in Esplora file",
-      "revealInFileManager": "Mostra nel gestore file"
+      "revealInFileManager": "Mostra nel gestore file",
+      "moveIntoItself": "Una cartella non può essere spostata in se stessa o in una sua sottocartella.",
+      "notAnAsset": "Questo file non fa parte delle risorse del progetto, quindi non può essere modificato qui.",
+      "actionFailed": "La modifica non è stata salvata: {{error}}"
     },
     "documentFile": {
       "invalidTitle": "Questo file contiene un errore",

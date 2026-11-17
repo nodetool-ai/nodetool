@@ -86,6 +86,26 @@ jest.mock("../../../trpc/client", () => ({
   }
 }));
 
+const mockActions = {
+  createFolder: jest.fn(),
+  renameEntry: jest.fn(),
+  deleteEntry: jest.fn(),
+  moveEntry: jest.fn(),
+  countFilesUnder: jest.fn()
+};
+
+jest.mock("../workspaceTreeActions", () => {
+  const actual = jest.requireActual("../workspaceTreeActions");
+  return {
+    ...actual,
+    createFolder: (...args: unknown[]) => mockActions.createFolder(...args),
+    renameEntry: (...args: unknown[]) => mockActions.renameEntry(...args),
+    deleteEntry: (...args: unknown[]) => mockActions.deleteEntry(...args),
+    moveEntry: (...args: unknown[]) => mockActions.moveEntry(...args),
+    countFilesUnder: (...args: unknown[]) => mockActions.countFilesUnder(...args)
+  };
+});
+
 jest.mock("../../../hooks/useProjectFolder", () => ({
   useProjectFolder: (projectId: string) => folders[projectId]
 }));
@@ -367,18 +387,24 @@ describe("WorkspaceTree", () => {
       );
     });
 
-    it("has no menu in a browser", async () => {
+    it("offers no reveal in a browser", async () => {
       renderTree();
       fireEvent.contextMenu(await screen.findByText("notes.md"));
-      expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+      expect(await screen.findByRole("menu")).toBeInTheDocument();
+      expect(
+        screen.queryByRole("menuitem", { name: "Reveal in Finder" })
+      ).not.toBeInTheDocument();
     });
 
-    it("has no menu for a cloud folder, even in the desktop app", async () => {
+    it("offers no reveal for a cloud folder, even in the desktop app", async () => {
       withDesktop("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)");
       renderTree("project-cloud");
 
       fireEvent.contextMenu(await screen.findByText("notes.md"));
-      expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+      expect(await screen.findByRole("menu")).toBeInTheDocument();
+      expect(
+        screen.queryByRole("menuitem", { name: "Reveal in Finder" })
+      ).not.toBeInTheDocument();
     });
   });
 });
@@ -436,5 +462,134 @@ describe("WorkspaceTree file drop", () => {
     const folder = await screen.findByText("footage");
     fireEvent.drop(folder, { dataTransfer: { types: ["text/plain"], files: [] } });
     expect(uploadAsset).not.toHaveBeenCalled();
+  });
+});
+
+describe("WorkspaceTree folder management", () => {
+  beforeEach(() => {
+    Object.values(mockActions).forEach((fn) => {
+      fn.mockReset();
+      fn.mockResolvedValue(undefined);
+    });
+    listFiles.mockReset();
+    listFiles.mockImplementation(({ path }: { path: string }) =>
+      Promise.resolve(
+        path === "."
+          ? [
+              { name: "footage", path: "footage", is_dir: true, size: 0 },
+              { name: "notes.md", path: "notes.md", is_dir: false, size: 12 }
+            ]
+          : path === "footage"
+            ? [{ name: "raw", path: "footage/raw", is_dir: true, size: 0 }]
+            : []
+      )
+    );
+  });
+
+  const openMenu = async (label: string): Promise<void> => {
+    fireEvent.contextMenu(await screen.findByText(label));
+    await screen.findByRole("menu");
+  };
+
+  it("creates a folder inside the folder the menu opened on", async () => {
+    const client = new QueryClient();
+    const invalidate = jest.spyOn(client, "invalidateQueries");
+    renderTree("project-a", client);
+    await openMenu("footage");
+    await userEvent.click(screen.getByRole("menuitem", { name: "New folder" }));
+
+    const input = await screen.findByLabelText("Name");
+    await userEvent.clear(input);
+    await userEvent.type(input, "Shots{Enter}");
+
+    await waitFor(() =>
+      expect(mockActions.createFolder).toHaveBeenCalledWith("project-a", "footage", "Shots")
+    );
+    await waitFor(() =>
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ["assets"] })
+    );
+  });
+
+  it("creates a folder at the root from the empty area", async () => {
+    renderTree();
+    await screen.findByText("notes.md");
+    fireEvent.contextMenu(document.querySelector(".file-tree-container") as HTMLElement);
+    await userEvent.click(await screen.findByRole("menuitem", { name: "New folder" }));
+    expect(screen.queryByRole("menuitem", { name: "Rename" })).not.toBeInTheDocument();
+
+    const input = await screen.findByLabelText("Name");
+    await userEvent.clear(input);
+    await userEvent.type(input, "Audio{Enter}");
+
+    await waitFor(() =>
+      expect(mockActions.createFolder).toHaveBeenCalledWith("project-a", ".", "Audio")
+    );
+  });
+
+  it("renames a file", async () => {
+    renderTree();
+    await openMenu("notes.md");
+    expect(screen.queryByRole("menuitem", { name: "New folder" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("menuitem", { name: "Rename" }));
+
+    const input = await screen.findByLabelText("Name");
+    expect(input).toHaveValue("notes.md");
+    await userEvent.clear(input);
+    await userEvent.type(input, "plan.md{Enter}");
+
+    await waitFor(() =>
+      expect(mockActions.renameEntry).toHaveBeenCalledWith("project-a", "notes.md", false, "plan.md")
+    );
+  });
+
+  it("names how many files a folder delete removes, then deletes on confirm", async () => {
+    mockActions.countFilesUnder.mockResolvedValue(3);
+    renderTree();
+    await openMenu("footage");
+    await userEvent.click(screen.getByRole("menuitem", { name: "Delete" }));
+
+    expect(await screen.findByText(/3 files/)).toBeInTheDocument();
+    expect(mockActions.deleteEntry).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    await waitFor(() =>
+      expect(mockActions.deleteEntry).toHaveBeenCalledWith("project-a", "footage", true)
+    );
+  });
+
+  const dragEntry = (source: Element, target: Element): void => {
+    const store: Record<string, string> = {};
+    const dataTransfer = {
+      types: [] as string[],
+      setData: (type: string, value: string) => {
+        store[type] = value;
+        dataTransfer.types.push(type);
+      },
+      getData: (type: string) => store[type] ?? "",
+      files: [],
+      dropEffect: "none",
+      effectAllowed: "all"
+    };
+    fireEvent.dragStart(source, { dataTransfer });
+    fireEvent.dragOver(target, { dataTransfer });
+    fireEvent.drop(target, { dataTransfer });
+  };
+
+  it("moves a file dropped on a folder into that folder", async () => {
+    renderTree();
+    dragEntry(await screen.findByText("notes.md"), await screen.findByText("footage"));
+    await waitFor(() =>
+      expect(mockActions.moveEntry).toHaveBeenCalledWith("project-a", "notes.md", false, "footage")
+    );
+  });
+
+  it("refuses to move a folder into its own subfolder", async () => {
+    renderTree();
+    await userEvent.click(await screen.findByText("footage"));
+    const sub = await screen.findByText("raw");
+
+    dragEntry(screen.getByText("footage"), sub);
+
+    expect(mockActions.moveEntry).not.toHaveBeenCalled();
   });
 });

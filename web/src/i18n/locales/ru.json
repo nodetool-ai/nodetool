@@ -20788,7 +20788,10 @@
       "noFolderDescription": "У этого проекта ещё нет папки.",
       "revealInFinder": "Показать в Finder",
       "revealInExplorer": "Показать в проводнике",
-      "revealInFileManager": "Показать в файловом менеджере"
+      "revealInFileManager": "Показать в файловом менеджере",
+      "moveIntoItself": "Папку нельзя переместить в саму себя или в её подпапку.",
+      "notAnAsset": "Этот файл не входит в ресурсы проекта, поэтому его нельзя изменить здесь.",
+      "actionFailed": "Изменение не сохранено: {{error}}"
     },
     "documentFile": {
       "invalidTitle": "В этом файле ошибка",

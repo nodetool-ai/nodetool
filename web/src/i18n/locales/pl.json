@@ -20788,7 +20788,10 @@
       "noFolderDescription": "Ten projekt nie ma jeszcze folderu.",
       "revealInFinder": "Pokaż w Finderze",
       "revealInExplorer": "Pokaż w Eksploratorze plików",
-      "revealInFileManager": "Pokaż w menedżerze plików"
+      "revealInFileManager": "Pokaż w menedżerze plików",
+      "moveIntoItself": "Folderu nie można przenieść do niego samego ani do jego podfolderu.",
+      "notAnAsset": "Ten plik nie należy do zasobów projektu, więc nie można go tutaj zmienić.",
+      "actionFailed": "Zmiana nie została zapisana: {{error}}"
     },
     "documentFile": {
       "invalidTitle": "Ten plik zawiera błąd",

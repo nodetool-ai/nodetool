@@ -20477,7 +20477,10 @@
       "noFolderDescription": "Este proyecto aún no tiene carpeta.",
       "revealInFinder": "Mostrar en el Finder",
       "revealInExplorer": "Mostrar en el Explorador de archivos",
-      "revealInFileManager": "Mostrar en el administrador de archivos"
+      "revealInFileManager": "Mostrar en el administrador de archivos",
+      "moveIntoItself": "Una carpeta no se puede mover dentro de sí misma ni de una de sus subcarpetas.",
+      "notAnAsset": "Este archivo no está en los recursos del proyecto, así que no se puede cambiar aquí.",
+      "actionFailed": "No se guardó el cambio: {{error}}"
     },
     "documentFile": {
       "invalidTitle": "Este archivo tiene un error",

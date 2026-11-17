@@ -3,8 +3,9 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import isEqual from "../../utils/isEqual";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileInfo } from "../../stores/ApiTypes";
+import { isWithinDirectory } from "@nodetool-ai/protocol";
 import { trpcClient } from "../../trpc/client";
 import { Box, EditorButton, Skeleton, BORDER_RADIUS, MOTION, SPACING, getSpacingPx, PanelHeader, EmptyState, ContextMenu, MenuItemPrimitive, FlexRow, ToolbarIconButton } from "../ui_primitives";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -15,6 +16,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { RefreshButton } from "../ui_primitives";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { usePanelStore } from "../../stores/PanelStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import { useProjectFolder } from "../../hooks/useProjectFolder";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { fileManagerKind } from "../../utils/platform";
@@ -25,6 +27,22 @@ import {
   revealLabelKey
 } from "./projectFolderPaths";
 import WorkspaceTreeRow from "./WorkspaceTreeItem";
+import {
+  WorkspaceDeleteDialog,
+  WorkspaceNameDialog,
+  type DeleteRequest,
+  type NameRequest
+} from "./WorkspaceTreeDialogs";
+import {
+  NotAnAssetError,
+  assetDirectoryPath,
+  canMoveInto,
+  countFilesUnder,
+  createFolder,
+  deleteEntry,
+  moveEntry,
+  renameEntry
+} from "./workspaceTreeActions";
 
 /** File names of the documents that open in their own editor from Files. */
 const DOCUMENT_FILE_SUFFIXES = [
@@ -294,9 +312,24 @@ const dropDirectoryFor = (itemId: string | null, item: TreeViewItem | undefined)
   return slash > 0 ? itemId.slice(0, slash) : ".";
 };
 
+/** The drag type of a Files row moved inside the tree. */
+const ENTRY_DRAG_TYPE = "application/x-nodetool-project-entry";
+
+/** True when a drag carries a row of the tree. */
+const carriesEntry = (event: React.DragEvent): boolean =>
+  Array.from(event.dataTransfer.types).includes(ENTRY_DRAG_TYPE);
+
 /** True when a drag carries files from the OS rather than an in-app item. */
 const carriesFiles = (event: React.DragEvent): boolean =>
   Array.from(event.dataTransfer.types).includes("Files");
+
+const rowIdFromEvent = (event: React.SyntheticEvent): string | null =>
+  (event.target as HTMLElement)
+    .closest('[data-testid="tree-item"]')
+    ?.getAttribute("data-itemid") ?? null;
+
+const isFolderItem = (item: TreeViewItem | undefined): boolean =>
+  item?.treeItemProps?.className === "folder-item";
 
 const shouldLoadChildren = (item: TreeViewItem | undefined, loadingLabel: string): boolean => {
   return Boolean(
@@ -490,7 +523,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
 
   const handleContextMenu = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
-      if (!canReveal) {
+      if (!workspaceIdRef.current) {
         return;
       }
       event.preventDefault();
@@ -504,7 +537,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
           itemId.endsWith("/loading") || itemId.endsWith("/error") ? "" : itemId
       });
     },
-    [canReveal]
+    []
   );
 
   const closeMenu = useCallback(() => setMenu(null), []);
@@ -540,10 +573,141 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
     }
   }, [handleItemDoubleClick]);
 
+  const queryClient = useQueryClient();
+  const addNotification = useNotificationStore((state) => state.addNotification);
+  const [nameRequest, setNameRequest] = useState<
+    (NameRequest & { path: string }) | null
+  >(null);
+  const [deleteRequest, setDeleteRequest] = useState<
+    (DeleteRequest & { path: string }) | null
+  >(null);
+
+  // Every change reaches the tree and the asset library.
+  const runChange = useCallback(
+    async (change: () => Promise<void>): Promise<void> => {
+      try {
+        await change();
+      } catch (error) {
+        addNotification({
+          type: "error",
+          alert: true,
+          content:
+            error instanceof NotAnAssetError
+              ? t("projectFolder.tree.notAnAsset")
+              : t("projectFolder.tree.actionFailed", {
+                  error: error instanceof Error ? error.message : String(error)
+                })
+        });
+      } finally {
+        void refetchFiles();
+        void queryClient.invalidateQueries({ queryKey: ["assets"] });
+      }
+    },
+    [addNotification, queryClient, refetchFiles, t]
+  );
+
+  const moveDroppedEntry = useCallback(
+    async (source: string, directory: string): Promise<void> => {
+      if (!source || isPlaceholderId(source)) { return; }
+      const isDirectory = isFolderItem(findItemInTree(filesRef.current, source));
+      if (!canMoveInto(source, isDirectory, directory)) {
+        if (isDirectory && isWithinDirectory(assetDirectoryPath(directory), source)) {
+          addNotification({
+            type: "error",
+            alert: true,
+            content: t("projectFolder.tree.moveIntoItself")
+          });
+        }
+        return;
+      }
+      await runChange(() => moveEntry(projectId, source, isDirectory, directory));
+    },
+    [addNotification, projectId, runChange, t]
+  );
+
+  const menuItem = menu ? findItemInTree(files, menu.itemId) : undefined;
+  const menuIsDirectory = !menu?.itemId || isFolderItem(menuItem);
+
+  const handleNewFolder = useCallback(() => {
+    if (!menu) { return; }
+    const parent = menu.itemId || ".";
+    setNameRequest({
+      kind: "create",
+      initialName: t("i18n-next27.assetCreateFolder.defaultName"),
+      isDirectory: true,
+      path: parent
+    });
+    setMenu(null);
+  }, [menu, t]);
+
+  const handleRename = useCallback(() => {
+    if (!menu?.itemId) { return; }
+    const item = findItemInTree(filesRef.current, menu.itemId);
+    setNameRequest({
+      kind: "rename",
+      initialName: item?.label ?? menu.itemId.split("/").pop() ?? menu.itemId,
+      isDirectory: isFolderItem(item),
+      path: menu.itemId
+    });
+    setMenu(null);
+  }, [menu]);
+
+  const handleDelete = useCallback(() => {
+    if (!menu?.itemId) { return; }
+    const path = menu.itemId;
+    const item = findItemInTree(filesRef.current, path);
+    const isDirectory = isFolderItem(item);
+    setMenu(null);
+    const name = item?.label ?? path;
+    if (!isDirectory) {
+      setDeleteRequest({ name, isDirectory, fileCount: 1, path });
+      return;
+    }
+    void runChange(async () => {
+      const fileCount = await countFilesUnder(projectId, path);
+      setDeleteRequest({ name, isDirectory, fileCount, path });
+    });
+  }, [menu, projectId, runChange]);
+
+  const submitName = useCallback(
+    (name: string) => {
+      const request = nameRequest;
+      setNameRequest(null);
+      if (!request) { return; }
+      void runChange(() =>
+        request.kind === "create"
+          ? createFolder(projectId, request.path, name)
+          : renameEntry(projectId, request.path, request.isDirectory, name)
+      );
+    },
+    [nameRequest, projectId, runChange]
+  );
+
+  const confirmDelete = useCallback(() => {
+    const request = deleteRequest;
+    setDeleteRequest(null);
+    if (!request) { return; }
+    void runChange(() => deleteEntry(projectId, request.path, request.isDirectory));
+  }, [deleteRequest, projectId, runChange]);
+
+  const closeNameDialog = useCallback(() => setNameRequest(null), []);
+  const closeDeleteDialog = useCallback(() => setDeleteRequest(null), []);
+
+  const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    const itemId = rowIdFromEvent(e);
+    if (!itemId || isPlaceholderId(itemId)) {
+      e.preventDefault();
+      return;
+    }
+    e.dataTransfer.setData(ENTRY_DRAG_TYPE, itemId);
+    e.dataTransfer.effectAllowed = "move";
+  }, []);
+
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    if (!carriesFiles(e)) { return; }
+    const isEntry = carriesEntry(e);
+    if (!isEntry && !carriesFiles(e)) { return; }
     e.preventDefault();
-    e.dataTransfer.dropEffect = "copy";
+    e.dataTransfer.dropEffect = isEntry ? "move" : "copy";
     setIsDropActive(true);
   }, []);
 
@@ -556,7 +720,8 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
   // directory it was dropped on, and becomes an asset there.
   const handleDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
-      if (!carriesFiles(e)) { return; }
+      const isEntry = carriesEntry(e);
+      if (!isEntry && !carriesFiles(e)) { return; }
       e.preventDefault();
       setIsDropActive(false);
       const treeItem = (e.target as HTMLElement).closest('[data-testid="tree-item"]');
@@ -565,6 +730,10 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
         itemId,
         itemId ? findItemInTree(filesRef.current, itemId) : undefined
       );
+      if (isEntry) {
+        void moveDroppedEntry(e.dataTransfer.getData(ENTRY_DRAG_TYPE), directory);
+        return;
+      }
       for (const file of Array.from(e.dataTransfer.files)) {
         uploadAsset({
           file,
@@ -574,7 +743,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
         });
       }
     },
-    [projectId, refetchFiles, uploadAsset]
+    [moveDroppedEntry, projectId, refetchFiles, uploadAsset]
   );
 
   const visibleRows = useMemo(
@@ -602,11 +771,6 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
     },
     [loadItemChildren]
   );
-
-  const rowIdFromEvent = (event: React.SyntheticEvent): string | null =>
-    (event.target as HTMLElement)
-      .closest('[data-testid="tree-item"]')
-      ?.getAttribute("data-itemid") ?? null;
 
   const handleListClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
@@ -705,6 +869,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
         className={`file-tree-container${isDropActive ? " drop-active" : ""}`}
         data-testid="workspace-file-drop"
         onContextMenu={handleContextMenu}
+        onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -773,11 +938,41 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
         position={menu ? { x: menu.x, y: menu.y } : null}
         onClose={closeMenu}
       >
-        <MenuItemPrimitive
-          label={t(revealLabelKey(fileManagerKind()))}
-          onClick={handleReveal}
-        />
+        {menuIsDirectory && (
+          <MenuItemPrimitive
+            label={t("assets.newFolder")}
+            onClick={handleNewFolder}
+          />
+        )}
+        {Boolean(menu?.itemId) && (
+          <MenuItemPrimitive
+            label={t("batch2_0.rename")}
+            onClick={handleRename}
+          />
+        )}
+        {Boolean(menu?.itemId) && (
+          <MenuItemPrimitive
+            label={t("i18n-next27.assetDelete.delete")}
+            onClick={handleDelete}
+          />
+        )}
+        {canReveal && (
+          <MenuItemPrimitive
+            label={t(revealLabelKey(fileManagerKind()))}
+            onClick={handleReveal}
+          />
+        )}
       </ContextMenu>
+      <WorkspaceNameDialog
+        request={nameRequest}
+        onClose={closeNameDialog}
+        onSubmit={submitName}
+      />
+      <WorkspaceDeleteDialog
+        request={deleteRequest}
+        onClose={closeDeleteDialog}
+        onConfirm={confirmDelete}
+      />
     </Box>
   );
 };

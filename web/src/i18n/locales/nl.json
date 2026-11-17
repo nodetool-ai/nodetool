@@ -20166,7 +20166,10 @@
       "noFolderDescription": "Dit project heeft nog geen map.",
       "revealInFinder": "Toon in Finder",
       "revealInExplorer": "Toon in Verkenner",
-      "revealInFileManager": "Toon in bestandsbeheer"
+      "revealInFileManager": "Toon in bestandsbeheer",
+      "moveIntoItself": "Een map kan niet naar zichzelf of een van de submappen worden verplaatst.",
+      "notAnAsset": "Dit bestand hoort niet bij de assets van het project en kan hier niet worden gewijzigd.",
+      "actionFailed": "De wijziging is niet opgeslagen: {{error}}"
     },
     "documentFile": {
       "invalidTitle": "Dit bestand bevat een fout",

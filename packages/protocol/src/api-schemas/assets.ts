@@ -54,6 +54,11 @@ export const assetResponse = z.object({
    */
   linked: z.boolean().optional(),
   /**
+   * The project-relative path of the asset's file in its project folder.
+   * Absent on an asset with no file there.
+   */
+  workspace_path: z.string().optional(),
+  /**
    * Present only on a video asset on a local server: the state of its
    * all-intra preview proxy. `ready` means `proxy_url` plays it. A proxy made
    * from an earlier version of the file is not ready.
