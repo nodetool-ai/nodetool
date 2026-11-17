@@ -96,6 +96,8 @@ std::pair<QString, QJsonObject> documentFileConstant(const QString &type, const 
   if (type == "storyboard") value["data"] = QJsonValue::Null;
   return {nodeTypes.value(type), value};
 }
+// A document constant's zone names its kind "document:<kind>".
+bool documentZone(const QString &target) { return target.startsWith(QLatin1String("document:")); }
 // A Collection's zone names its kind "collection", or "collection:<type>" once
 // its first item locks the type. It takes any asset kind until then.
 bool collectionZone(const QString &target) { return target == QLatin1String("collection") || target.startsWith(QLatin1String("collection:")); }
@@ -327,6 +329,10 @@ QStringList CanvasDropController::clickZone(const QPoint &viewportPosition) cons
                 return {};
             }
             const auto &row = model_.layout(node->nodeId()).rows[index];
+            // A document constant changes only by a drop, so its zone takes no click.
+            if (documentZone(row.typeName)) {
+                return {};
+            }
             // A Collection's grid holds its tiles, so only the empty grid opens the picker.
             if (collectionZone(row.typeName)) {
                 return row.placeholder ? zone << QStringLiteral("pick") : QStringList{};
@@ -354,6 +360,15 @@ void CanvasDropController::drop(const QMimeData *mime, const QPointF &position, 
     node["ui_properties"] = ui;
     if (!node["id"].toString().isEmpty() && applyCommand(QJsonObject{{"op", "addNode"}, {"node", node}})) { emit nodeCreated(node["id"].toString()); }
     return;
+  }
+  if (zone.size() >= 3 && documentZone(zone[2])) {
+    // DocumentConstantProperty.tsx: only a Files panel file of the same kind replaces the value.
+    const auto file = projectFileDrop(dragPayload(mime));
+    const auto kind = zone[2].section(QLatin1Char(':'), 1);
+    if (file.path.isEmpty() || !isDocumentFile(file.path)) {
+      emit warningOccurred(tr("Drop a %1 file from the Files panel here.").arg(kind));
+      return;
+    }
   }
   if (const auto file = projectFileDrop(dragPayload(mime)); !file.path.isEmpty()) {
     Transfer row; row.key = QUuid::createUuid().toString(QUuid::Id128); row.position = position;
@@ -481,7 +496,7 @@ void CanvasDropController::lookupProjectFile(const QString &key) {
 void CanvasDropController::lookupDocumentFile(const QString &key) {
   if (!transfers_.contains(key)) return;
   auto &row = transfers_[key]; row.state = "loading";
-  if (!row.targetNode.isEmpty()) { fail(key, tr("Drop a document file on the canvas, not on a media property")); return; }
+  if (!row.targetNode.isEmpty() && !documentZone(row.targetKind)) { fail(key, tr("Drop a document file on the canvas, not on a media property")); return; }
   const auto path = row.projectPath; const auto serial = row.serial; emit changed();
   if (!transfers_.contains(key) || transfers_[key].serial != serial) return;
   // projects.documentByFile resolves the file to its owner-scoped document row.
@@ -497,6 +512,20 @@ void CanvasDropController::lookupDocumentFile(const QString &key) {
     if (reply->error() != QNetworkReply::NoError || status != 200) { fail(key, tr("Could not find the dropped file (HTTP %1)").arg(status)); return; }
     const auto document = trpcData(reply->readAll());
     const auto [type, value] = documentFileConstant(document["type"].toString(), document["ref"].toString());
+    const auto row = transfers_[key];
+    if (documentZone(row.targetKind)) {
+      // A drop on a document constant replaces its value, and only with its own kind.
+      const auto kind = row.targetKind.section(QLatin1Char(':'), 1);
+      transfers_.remove(key); order_.removeAll(key); emit changed();
+      if (type.isEmpty() || document["type"].toString() != kind) {
+        emit warningOccurred(tr("%1 is not a %2 file. The node keeps its document.").arg(path, kind));
+        return;
+      }
+      auto linked = value; linked["name"] = document["name"].toString();
+      const QJsonObject command{{"op", "setProperty"}, {"id", row.targetNode}, {"name", row.targetProperty}, {"value", linked}};
+      if (model_.readOnly() || !applyCommand || !applyCommand(command)) { emit errorOccurred(tr("Could not link %1. Local work is unchanged.").arg(path)); }
+      return;
+    }
     if (type.isEmpty()) { fail(key, tr("%1 has no document, so it cannot become a node").arg(path)); return; }
     if (model_.readOnly() || !catalog_.contains(type) || !createNode || !applyCommand) { fail(key, tr("Could not create a node for %1: metadata is missing.").arg(path)); return; }
     auto node = createNode(catalog_.value(type), transfers_[key].position, QJsonObject{{"value", value}});

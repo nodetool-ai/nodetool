@@ -200,6 +200,8 @@ public:
   bool libraryVisible() const;
   bool examplesVisible() const;
   void openWorkflow(const QString &id);
+  // Opens a document constant's document: a workflow in a new tab, other kinds in their editor.
+  void openLinkedDocument(const QString &kind, const QString &id);
   void deleteWorkflows(const QStringList &ids);
   std::optional<QString> editOpenWorkflow(const QString &id, const QVariantMap &patch);
   void deleteWorkflow(const QString &id, const QString &name);

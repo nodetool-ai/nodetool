@@ -33,6 +33,8 @@ public slots:
 signals:
   void changed();
   void errorOccurred(QString message);
+  // A drop the target refuses, such as a file of another kind on a document constant.
+  void warningOccurred(QString message);
   void nodeCreated(QString id);
   void workflowFileDropped(QString path);
   // The Copy action of a loaded image on a card.

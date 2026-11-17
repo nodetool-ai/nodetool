@@ -29,11 +29,15 @@ using namespace nodetool;
 namespace {
 QJsonArray metadata() {
   QJsonArray result;
-  const QHash<QString, QString> kinds{{"Image", "image"}, {"Audio", "audio"}, {"Video", "video"}, {"Document", "document"}, {"Model3D", "model_3d"}, {"String", "str"}, {"DataFrame", "dataframe"}, {"Storyboard", "storyboard"}};
+  const QHash<QString, QString> kinds{{"Image", "image"}, {"Audio", "audio"}, {"Video", "video"}, {"Document", "document"}, {"Model3D", "model_3d"}, {"String", "str"}, {"DataFrame", "dataframe"}, {"Storyboard", "storyboard"}, {"Workflow", "workflow"}};
   for (auto it = kinds.begin(); it != kinds.end(); ++it) {
     result.append(QJsonObject{{"node_type", "nodetool.constant." + it.key()}, {"title", it.key()},
       {"properties", QJsonArray{QJsonObject{{"name", "value"}, {"type", QJsonObject{{"type", it.value()}}}, {"default", QJsonValue::Null}}, QJsonObject{{"name", "extra"}, {"type", QJsonObject{{"type", "str"}}}, {"default", "kept"}}}},
       {"outputs", QJsonArray{QJsonObject{{"name", "output"}, {"type", QJsonObject{{"type", it.value()}}}}}}});
+    // Document constants draw their value inline, as the server lists them.
+    if (it.value() == "storyboard" || it.value() == "workflow") {
+      auto entry = result.last().toObject(); entry["inline_fields"] = QJsonArray{"value"}; entry["input_fields"] = QJsonArray{}; result[result.size() - 1] = entry;
+    }
   }
   result.append(QJsonObject{{"node_type", "nodetool.input.AssetFolderInput"}, {"title", "Asset folder"}, {"properties", QJsonArray{QJsonObject{{"name", "value"}, {"type", QJsonObject{{"type", "folder"}}}}, QJsonObject{{"name", "name"}, {"type", QJsonObject{{"type", "str"}}}, {"default", "folder"}}}}});
   return result;
@@ -252,9 +256,65 @@ private slots:
     server.documentByFile = QJsonValue::Null;
     QMimeData stray;
     stray.setData("application/x-nodetool-drag", QJsonDocument(QJsonObject{{"type", "project-file"}, {"payload", QJsonObject{{"projectId", "p1"}, {"path", "stray.workflow.json"}, {"directoryId", "dir:p1:"}}}}).toJson(QJsonDocument::Compact));
-    QVERIFY(drop(window, stray, QPointF(420, 300)));
+    QVERIFY(drop(window, stray, QPointF(900, 700)));
     QTRY_COMPARE(controller(window)->transfers().last().toMap()["state"].toString(), QString("failed"));
     QCOMPARE(window.document()->nodes().size(), 1);
+  }
+  // Drops the Files panel file `path` at a viewport point.
+  static bool dropProjectFile(EditorWindow &window, const QString &path, const QPointF &point) {
+    QMimeData mime;
+    mime.setData("application/x-nodetool-drag", QJsonDocument(QJsonObject{{"type", "project-file"}, {"payload", QJsonObject{{"projectId", "p1"}, {"path", path}, {"directoryId", "dir:p1:"}}}}).toJson(QJsonDocument::Compact));
+    return drop(window, mime, point);
+  }
+  // The viewport point of a row of the only card, by its action or kind.
+  static QPointF rowPoint(EditorWindow &window, NodeRowKind kind, const QString &action = {}) {
+    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel()); const auto id = *model.allNodeIds().begin();
+    auto *view = window.findChild<QGraphicsView *>(); auto *node = window.scene()->nodeGraphicsObject(id);
+    for (const auto &row : model.layout(id).rows) if (row.kind == kind && (action.isEmpty() || row.action == action)) return view->mapFromScene(node->scenePos() + row.rect.center());
+    return {};
+  }
+  static QJsonObject storyboard(const QString &ref, const QString &name) {
+    return {{"type", "storyboard"}, {"ref", ref}, {"name", name}, {"updatedAt", "2026-01-01T00:00:00Z"}, {"file", QJsonObject{{"path", name}, {"state", "ok"}, {"error", QJsonValue::Null}}}};
+  }
+  void documentFileDroppedOnItsConstantReplacesTheValue() {
+    Server server; EditorWindow window; setup(window, server); QVERIFY(controller(window));
+    QSignalSpy warnings(controller(window), &CanvasDropController::warningOccurred);
+    server.documentByFile = storyboard("board-7", "Launch");
+    QVERIFY(dropProjectFile(window, "launch.storyboard.json", QPointF(220, 180))); QTRY_COMPARE(window.document()->nodes().size(), 1);
+    const auto value = [&] { return window.document()->nodes()[0].toObject()["data"].toObject()["value"].toObject(); };
+    QTRY_VERIFY(!rowPoint(window, NodeRowKind::DropZone).isNull()); const auto zone = rowPoint(window, NodeRowKind::DropZone);
+
+    // A file of the same kind replaces the value, and adds no node.
+    server.documentByFile = storyboard("board-8", "Teaser");
+    QVERIFY(dropProjectFile(window, "teaser.storyboard.json", zone));
+    QTRY_COMPARE(value()["id"].toString(), QString("board-8"));
+    QCOMPARE(value()["name"].toString(), QString("Teaser"));
+    QCOMPARE(window.document()->nodes().size(), 1); QCOMPARE(warnings.count(), 0);
+
+    // A document of another kind is refused with a warning, and the value stays.
+    auto script = storyboard("script-1", "Voiceover"); script["type"] = "script"; server.documentByFile = script;
+    QVERIFY(dropProjectFile(window, "voiceover.script.json", zone));
+    QTRY_COMPARE(warnings.count(), 1);
+    QCOMPARE(value()["id"].toString(), QString("board-8")); QCOMPARE(window.document()->nodes().size(), 1);
+
+    // A media file is refused too, without asking the server.
+    const auto asked = server.documentInputs.size();
+    QVERIFY(dropProjectFile(window, "clip.png", zone));
+    QTRY_COMPARE(warnings.count(), 2);
+    QCOMPARE(server.documentInputs.size(), asked); QCOMPARE(window.document()->nodes().size(), 1);
+  }
+  void editOpensALinkedWorkflowInANewTab() {
+    Server server; EditorWindow window; setup(window, server); QVERIFY(controller(window));
+    auto linked = storyboard("wf-2", "Child flow"); linked["type"] = "workflow"; server.documentByFile = linked;
+    QVERIFY(dropProjectFile(window, "child.workflow.json", QPointF(220, 180))); QTRY_COMPARE(window.document()->nodes().size(), 1);
+    QCOMPARE(window.document()->nodes()[0].toObject()["type"].toString(), QString("nodetool.constant.Workflow"));
+    const auto tabs = window.workflowTabs().size();
+    QTRY_VERIFY(!rowPoint(window, NodeRowKind::Action, "openDocument").isNull()); const auto edit = rowPoint(window, NodeRowKind::Action, "openDocument");
+    auto *view = window.findChild<QGraphicsView *>();
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, edit.toPoint());
+    QTRY_COMPARE(window.workflowTabs().size(), tabs + 1);
+    // The workflow that holds the constant stays open in its own tab.
+    QCOMPARE(window.workflowTabs().size(), 2);
   }
   void authoritativeAssetKinds_data() {
     QTest::addColumn<QString>("mime"); QTest::addColumn<QString>("kind"); QTest::addColumn<QString>("type"); QTest::addColumn<QByteArray>("content");
