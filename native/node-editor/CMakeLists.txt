@@ -15,6 +15,10 @@ add_subdirectory(../ui_primitives ui_primitives)
 add_subdirectory(../model-picker model-picker)
 add_subdirectory(../media media)
 add_subdirectory(../chat chat)
+# The account service with its Qt half, for the Account control (native cloud
+# sign-in, WP1.11).
+set(NODETOOL_ACCOUNT_QT ON)
+add_subdirectory(../account account)
 # The C++ interfaces that editor QML components take as required properties,
 # with what they need and nothing of the editor window. A component test links
 # these, node_editor_qml and the UI primitives only.
@@ -55,13 +59,15 @@ add_library(node_editor_interfaces STATIC
  src/library/LibraryBrowser.cpp src/library/LibraryBrowser.h)
 target_include_directories(node_editor_interfaces PUBLIC src)
 # nodetool_media for the asset list model that LibraryBrowser fills.
-target_link_libraries(node_editor_interfaces PUBLIC nodetool_media Qt6::Core Qt6::Gui Qt6::Network)
+target_link_libraries(node_editor_interfaces PUBLIC nodetool_media nodetool_account_qt Qt6::Core Qt6::Gui Qt6::Network)
 # QML_FOREIGN in the module and qmllint read these types from the metatypes.
 qt_extract_metatypes(node_editor_interfaces)
 # The editor's QML as the NodeTool.NodeEditor module, compiled by qmlcachegen.
 # Files load as qrc:/qt/qml/NodeTool/NodeEditor/<File>.qml: the alias drops the
 # qml/ source directory from the resource path.
 file(GLOB node_editor_qml_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS qml/*.qml qml/*.js)
+# The Account control is shared with the timeline (native/account/qt/qml).
+list(APPEND node_editor_qml_files ../account/qt/qml/AccountControl.qml)
 foreach(file IN LISTS node_editor_qml_files)
     get_filename_component(name ${file} NAME)
     set_source_files_properties(${file} PROPERTIES QT_RESOURCE_ALIAS ${name})
@@ -132,6 +138,16 @@ if(BUILD_TESTING)
     nodetool_use_ui_primitives(node_editor_workflow_browser_component_tests)
     add_test(NAME node_editor_workflow_browser_component COMMAND node_editor_workflow_browser_component_tests)
     set_tests_properties(node_editor_workflow_browser_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+if(BUILD_TESTING)
+    # AccountControl.qml and its slot in StatusBar.qml against a real
+    # AccountController and the account library's fake token server.
+    qt_add_executable(node_editor_account_control_component_tests tests/ui/AccountControlComponentTest.cpp)
+    target_link_libraries(node_editor_account_control_component_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin Qt6::Quick Qt6::Test)
+    target_include_directories(node_editor_account_control_component_tests PRIVATE ../account/tests)
+    nodetool_use_ui_primitives(node_editor_account_control_component_tests)
+    add_test(NAME node_editor_account_control_component COMMAND node_editor_account_control_component_tests)
+    set_tests_properties(node_editor_account_control_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()
 if(NODETOOL_NODE_EDITOR_COMPONENTS_ONLY)
     return()

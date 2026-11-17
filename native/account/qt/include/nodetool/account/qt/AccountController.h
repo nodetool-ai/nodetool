@@ -8,6 +8,7 @@
 // on the generation file.
 #pragma once
 
+#include "nodetool/account/http_transport.h"
 #include "nodetool/account/policy.h"
 #include "nodetool/account/storage.h"
 #include "nodetool/account/token_endpoint.h"
@@ -26,7 +27,6 @@
 
 namespace nodetool::account {
 class AccountSession;
-class HttpTransport;
 } // namespace nodetool::account
 
 namespace nodetool::account::qt {
@@ -103,6 +103,9 @@ public:
   // authorize URL and waits for the browser.
   Q_INVOKABLE void signIn();
   Q_INVOKABLE void cancelSignIn();
+  // The app could not open the URL of browserRequested. The attempt ends,
+  // the message says why, and sign-in can be tried again.
+  void browserNotOpened();
   Q_INVOKABLE void signOut();
 
   // The session of the account, for the request layer. Null when no
@@ -167,6 +170,17 @@ private:
   // Whether `message_` holds the policy's reason, which a later read of an
   // allowing policy clears.
   bool policyMessageShown_ = false;
+  // The current attempt ended because the browser did not open.
+  bool browserFailed_ = false;
 };
+
+// The data folder both apps share: `NodeTool/native` under the generic
+// data location, such as ~/.local/share on Linux.
+std::filesystem::path sharedDataDir();
+
+// The cloud server the apps sign in to: NODETOOL_CLOUD_SERVER when set,
+// otherwise https://api.nodetool.ai. Empty when the variable is set to
+// anything but an HTTPS origin, and the controller then refuses sign-in.
+std::string cloudServerOrigin();
 
 } // namespace nodetool::account::qt

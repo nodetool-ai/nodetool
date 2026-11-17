@@ -76,6 +76,8 @@
 
 #include <atomic>
 #include <thread>
+#include <QTemporaryDir>
+#include "nodetool/account/qt/AccountController.h"
 
 #include <cmath>
 #include <functional>
@@ -2934,6 +2936,41 @@ private slots:
         // A local file has no saver: no status.
         rootItem->setProperty("saver", QVariant::fromValue<QObject*>(nullptr));
         QVERIFY(!find("saveStatus")->isVisible());
+    }
+
+    // The Account control sits in the document bar only when main gives an
+    // account. The account here has a temporary data folder, a keychain in
+    // memory and cloud features turned off, so it reaches no server.
+    void documentBarHostsTheAccountControl() {
+        load({2, 2});
+        QTemporaryDir data;
+        nodetool::account::qt::AccountServices services;
+        services.dataDir = data.path().toStdString();
+        services.serverOrigin = "https://nt.example";
+        services.app = "timeline";
+        services.store = std::make_unique<nodetool::account::MemorySecretStore>();
+        services.policy = [] { return nodetool::account::parsePolicyJson("{\"CloudEnabled\": false}"); };
+        nodetool::account::qt::AccountController account(std::move(services));
+        QQmlComponent harness(view->engine());
+        harness.setData("import QtQuick\nimport NodeTool.Timeline\nItem { width: 1200; height: 40; property alias bar: bar;"
+                        " property TimelineModel model; property AccountController account: null;"
+                        " DocumentBar { id: bar; width: 1200; timeline: parent.model; account: parent.account } }",
+                        QUrl());
+        std::unique_ptr<QObject> root(harness.createWithInitialProperties({{"model", QVariant::fromValue(model)}}));
+        QVERIFY2(root, qPrintable(harness.errorString()));
+        auto* rootItem = qobject_cast<QQuickItem*>(root.get());
+        rootItem->setParentItem(region);
+        const auto find = [&](const QString& name) {
+            QQuickItem* found = nullptr;
+            collect(rootItem, [&](QQuickItem* it) { if (!found && it->objectName() == name) found = it; });
+            return found;
+        };
+        QVERIFY(!find("documentAccount")->property("active").toBool());
+        root->setProperty("account", QVariant::fromValue(&account));
+        QTRY_VERIFY(find("account-sign-in") && find("account-sign-in")->isVisible());
+        QVERIFY(!find("account-sign-in")->property("enabled").toBool());
+        QTRY_COMPARE(find("account-status")->property("text").toString(),
+                     QStringLiteral("Cloud features are turned off on this computer"));
     }
 
 

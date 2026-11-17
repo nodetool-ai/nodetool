@@ -9,7 +9,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[3]
 MODULE = Path(__file__).resolve().parents[1]
-ROOTS = ('native/timeline/qml', 'native/timeline/src', 'native/chat/qml', 'native/model-picker/qml', 'native/media/qml', 'native/entities/qml', 'native/storyboard/qml', 'native/node-editor/qml')
+ROOTS = ('native/timeline/qml', 'native/timeline/src', 'native/chat/qml', 'native/model-picker/qml', 'native/media/qml', 'native/entities/qml', 'native/storyboard/qml', 'native/node-editor/qml', 'native/account/qt/qml')
 # Roots still being migrated. A pending file under one does not fail --strict, so
 # its reviewed files are gated while the rest await review.
 MIGRATING = ('native/node-editor/qml/',)

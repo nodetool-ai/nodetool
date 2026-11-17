@@ -27,12 +27,20 @@
 #include "interfaces/Notifications.h"
 #include "interfaces/PropertyHost.h"
 #include "server/PackSetup.h"
+#include "nodetool/account/qt/AccountController.h"
 
 // The C++ interface types that NodeTool.NodeEditor components take as required
 // properties. They live in node_editor_interfaces, outside the QML module, so a
 // host or a test can link them without the editor. The owner creates each one,
 // so QML cannot.
 namespace nodetool::node_editor::qml {
+
+struct AccountControllerForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::account::qt::AccountController)
+    QML_NAMED_ELEMENT(AccountController)
+    QML_UNCREATABLE("An AccountController comes from its owner.")
+};
 
 struct NodeCatalogForeign {
     Q_GADGET

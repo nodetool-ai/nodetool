@@ -452,6 +452,65 @@ private slots:
     editor->signIn();
     QCOMPARE(browser.count(), 0);
   }
+
+  // Both apps find the same data folder and server without configuration.
+  void defaultsAreSharedByBothApps() {
+    QVERIFY(sharedDataDir().generic_string().ends_with("NodeTool/native"));
+    qunsetenv("NODETOOL_CLOUD_SERVER");
+    QCOMPARE(cloudServerOrigin(), std::string("https://api.nodetool.ai"));
+    qputenv("NODETOOL_CLOUD_SERVER", " https://nt.example ");
+    QCOMPARE(cloudServerOrigin(), std::string("https://nt.example"));
+    // Only an HTTPS origin: no browser and no credential goes over HTTP.
+    for (const char* refused : {"http://nt.example", "http://127.0.0.1:7777", "nt.example", "https://nt.example/path",
+                                "https://user@nt.example"}) {
+      qputenv("NODETOOL_CLOUD_SERVER", refused);
+      QCOMPARE(cloudServerOrigin(), std::string());
+    }
+    qunsetenv("NODETOOL_CLOUD_SERVER");
+  }
+
+  // A server that is not an HTTPS origin never gets a browser opened for it.
+  void plainHttpServerRefusesSignIn() {
+    Computer computer;
+    AccountServices services;
+    services.dataDir = computer.data.path();
+    services.serverOrigin = "http://nt.example";
+    services.app = "node-editor";
+    services.store = std::make_unique<SharedStore>(computer.keychain);
+    services.endpoint = std::make_unique<SharedEndpoint>(computer.server);
+    services.policy = [] { return ManagedPolicy{}; };
+    AccountController editor(std::move(services));
+    QSignalSpy browser(&editor, &AccountController::browserRequested);
+    editor.signIn();
+    QCOMPARE(editor.state(), AccountController::State::SignedOut);
+    QVERIFY2(editor.message().contains("HTTPS"), qPrintable(editor.message()));
+    QCOMPARE(browser.count(), 0);
+    QCOMPARE(editor.session(), nullptr);
+  }
+
+  // When the app cannot open the browser, the attempt ends with a reason
+  // and can be tried again.
+  void browserThatDoesNotOpenEndsTheAttempt() {
+    Computer computer;
+    computer.server.addCode("code-1", "u1", "Ada");
+    auto editor = computer.app("node-editor");
+    AccountController* controller = editor.get();
+    bool opens = false;
+    connect(controller, &AccountController::browserRequested, this, [&](const QUrl& url) {
+      if (opens) {
+        std::thread([url] { completeInBrowser(url, "code-1"); }).detach();
+      } else {
+        controller->browserNotOpened();
+      }
+    });
+    editor->signIn();
+    QTRY_COMPARE_WITH_TIMEOUT(editor->state(), AccountController::State::SignedOut, 3000);
+    QVERIFY2(editor->message().contains("browser"), qPrintable(editor->message()));
+    opens = true;
+    editor->signIn();
+    QTRY_COMPARE(editor->state(), AccountController::State::SignedIn);
+    QVERIFY(editor->message().isEmpty());
+  }
 };
 
 QTEST_GUILESS_MAIN(AccountQtTest)
