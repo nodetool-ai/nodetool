@@ -117,8 +117,10 @@ void EditorWindow::initializePanels() {
     library_.setProject(projectFolder_.projectId());
     library_.setProjectWorkspace(projectFolder_.workspaceId());
     // Reveal needs the folder on this machine, as ProjectFolder::revealable says.
+    projectFiles_.setProject(projectFolder_.projectId());
     projectFiles_.setFolder(projectFolder_.workspaceId(), projectFolder_.revealable() ? projectFolder_.folderPath() : QString());
   });
+  connect(&projectFiles_, &files::ProjectFiles::changeFailed, this, [this](const QString &message) { notify("error", message); });
   syncOpenProject();
   connect(this, &EditorWindow::documentEpochChanged, this, [this] {
     runsTotal_ = runsCurrent_ = 0;

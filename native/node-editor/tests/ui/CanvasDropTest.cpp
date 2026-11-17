@@ -43,6 +43,9 @@ public:
   struct Pending { QPointer<QTcpSocket> socket; QJsonObject body; int status; };
   QJsonObject workflow{{"id", "bound"}, {"updated_at", "r1"}, {"name", "Canvas drop fixture"}, {"graph", QJsonObject{{"nodes", QJsonArray{}}, {"edges", QJsonArray{}}}}};
   QHash<QString, QJsonObject> assets;
+  // The rows assets.list answers, and the inputs it was asked with.
+  QJsonArray listed;
+  QList<QJsonObject> listInputs;
   QHash<QString, QByteArray> contents;
   QWebSocketServer websocket{"drop socket", QWebSocketServer::NonSecureMode};
   QList<QJsonObject> uploadMetadata;
@@ -86,7 +89,10 @@ public:
             if (mismatchId) asset["id"] = "ffffffffffffffffffffffffffffffff";
             response = {{"result", QJsonObject{{"data", asset}}}};
             if (delayAsset) { pending.append({socket, response, status}); return; }
-          } else if (target.startsWith("/trpc/assets.list") || target.startsWith("/trpc/assets.search")) response = {{"result", QJsonObject{{"data", QJsonObject{{"assets", QJsonArray{}}, {"next", QJsonValue::Null}}}}}};
+          } else if (target.startsWith("/trpc/assets.list") || target.startsWith("/trpc/assets.search")) {
+            if (target.startsWith("/trpc/assets.list")) listInputs.append(QJsonDocument::fromJson(QUrlQuery(url).queryItemValue("input").toUtf8()).object());
+            response = {{"result", QJsonObject{{"data", QJsonObject{{"assets", listed}, {"next", QJsonValue::Null}}}}}};
+          }
           else if (target.startsWith("/api/content/")) { const auto content = contents.value(url.path().section('/', -1), png); if (delayContent) pendingText.append({socket, content}); else send(socket, content); return; }
           send(socket, QJsonDocument(response).toJson(QJsonDocument::Compact), status);
         });
@@ -196,6 +202,30 @@ private slots:
     QMimeData onBody; assetMime(first, onBody);
     QVERIFY(!drop(window, onBody, view->mapFromScene(node->scenePos() + QPointF(50, 25)))); QTest::qWait(20);
     QCOMPARE(controller(window)->transfers(), before); QCOMPARE(created.count(), 0); QCOMPARE(window.document()->nodes().size(), 2);
+  }
+  void projectFilesPanelFileBecomesItsAssetNode() {
+    Server server; EditorWindow window; setup(window, server); QVERIFY(controller(window));
+    const QString id = "0123456789abcdef0123456789abcdef";
+    server.assets[id] = {{"id", id}, {"name", "shot.png"}, {"content_type", "image/png"}};
+    server.listed = QJsonArray{QJsonObject{{"id", "ffffffffffffffffffffffffffffffff"}, {"workspace_path", "footage/other.png"}},
+                               QJsonObject{{"id", id}, {"workspace_path", "footage/shot.png"}}};
+    const auto payload = QJsonObject{{"projectId", "p1"}, {"path", "footage/shot.png"}, {"directoryId", "dir:p1:footage"}};
+    QMimeData mime;
+    mime.setData("application/x-nodetool-drag", QJsonDocument(QJsonObject{{"type", "project-file"}, {"payload", payload}}).toJson(QJsonDocument::Compact));
+    mime.setData("application/x-nodetool-project-entry", "footage/shot.png");
+    QVERIFY(drop(window, mime, QPointF(220, 180))); QTRY_COMPARE(window.document()->nodes().size(), 1); QCOMPARE(server.uploads, 0);
+    QCOMPARE(server.listInputs.last()["project_id"].toString(), QString("p1"));
+    QCOMPARE(server.listInputs.last()["parent_id"].toString(), QString("dir:p1:footage"));
+    const auto node = window.document()->nodes()[0].toObject();
+    QCOMPARE(node["type"].toString(), QString("nodetool.constant.Image"));
+    QCOMPARE(node["data"].toObject()["value"].toObject()["asset_id"].toString(), id);
+
+    // A file no asset owns adds no node and fails its transfer.
+    QMimeData loose;
+    loose.setData("application/x-nodetool-drag", QJsonDocument(QJsonObject{{"type", "project-file"}, {"payload", QJsonObject{{"projectId", "p1"}, {"path", "loose.png"}, {"directoryId", "dir:p1:"}}}}).toJson(QJsonDocument::Compact));
+    QVERIFY(drop(window, loose, QPointF(420, 300)));
+    QTRY_COMPARE(controller(window)->transfers().last().toMap()["state"].toString(), QString("failed"));
+    QCOMPARE(window.document()->nodes().size(), 1);
   }
   void authoritativeAssetKinds_data() {
     QTest::addColumn<QString>("mime"); QTest::addColumn<QString>("kind"); QTest::addColumn<QString>("type"); QTest::addColumn<QByteArray>("content");

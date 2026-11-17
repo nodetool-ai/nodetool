@@ -36,6 +36,22 @@ Rectangle {
     implicitWidth: Ui.Metrics.panelWidth
     color: Ui.Theme.surfacePanel
 
+    // A drop on the list (the web WorkspaceTree.tsx handleDrop): a row of this
+    // tree moves into the directory under the drop, and files from the OS are
+    // copied into it. `row` is -1 below the last row, which is the root.
+    readonly property string entryMime: "application/x-nodetool-project-entry"
+    // The list row under a point of the panel, or -1.
+    function rowAt(x: real, y: real): int {
+        const point = list.mapFromItem(root, x, y)
+        if (!list.visible || !list.contains(point)) return -1
+        return list.indexAt(point.x + list.contentX, point.y + list.contentY)
+    }
+    function dropOn(row: int, entryPath: string, urls: var): bool {
+        const directory = files.dropDirectory(row)
+        if (entryPath !== "") return files.moveEntry(entryPath, directory)
+        return files.copyIn(urls, directory) > 0
+    }
+
     function openMenu(path: string, item: Item, x: real, y: real) {
         menu.path = path
         menu.returnFocusTo = list
@@ -174,6 +190,22 @@ Rectangle {
                 // The focused row takes Enter, which opens a file, not the click that toggles.
                 Keys.onReturnPressed: root.files.activate(row.index)
                 Keys.onEnterPressed: root.files.activate(row.index)
+                // Drag a row onto a folder to move it, or a media file onto
+                // the workflow canvas to add its constant node.
+                // The mime data is built when a drag starts, not for every row.
+                Drag.dragType: Drag.Automatic
+                Drag.supportedActions: Qt.CopyAction | Qt.MoveAction
+                Drag.proposedAction: Qt.MoveAction
+                DragHandler {
+                    id: rowDrag
+                    objectName: "files-row-drag"
+                    target: null
+                    enabled: !row.placeholder
+                    onActiveChanged: {
+                        if (active) row.Drag.mimeData = root.files.dragData(row.index)
+                        row.Drag.active = active
+                    }
+                }
                 TapHandler {
                     acceptedButtons: Qt.RightButton
                     enabled: root.files.revealable
@@ -319,6 +351,33 @@ Rectangle {
                     elide: Text.ElideRight
                 }
             }
+        }
+    }
+
+    // The drop target of a move or a copy in from the OS: the whole panel.
+    DropArea {
+        id: panelDrop
+        objectName: "files-drop-area"
+        anchors.fill: parent
+        enabled: root.files.hasFolder
+        onEntered: drag => {
+            const entry = drag.formats.indexOf(root.entryMime) >= 0
+            if (!entry && !drag.hasUrls) { drag.accepted = false; return }
+            drag.accept(entry ? Qt.MoveAction : Qt.CopyAction)
+        }
+        onDropped: drop => {
+            const entry = drop.formats.indexOf(root.entryMime) >= 0 ? drop.getDataAsString(root.entryMime) : ""
+            if (root.dropOn(root.rowAt(drop.x, drop.y), entry, drop.hasUrls ? drop.urls : []))
+                drop.accept(entry !== "" ? Qt.MoveAction : Qt.CopyAction)
+        }
+        Rectangle {
+            objectName: "files-drop-highlight"
+            anchors.fill: parent
+            visible: panelDrop.containsDrag
+            color: "transparent"
+            radius: Ui.Metrics.radiusControl
+            border.color: Ui.Theme.accentPrimary
+            border.width: Ui.Metrics.border
         }
     }
 

@@ -55,6 +55,16 @@ QStringList assetIds(const QJsonObject &drag) {
   for (const auto &id : ids) if (id.isEmpty() || id.size() > 1024) return {};
   return ids;
 }
+// A file from the project Files panel (web lib/dragdrop "project-file"): its
+// project, its path in the folder, and the asset id of the folder it is in.
+struct ProjectFileDrop { QString projectId, path, directoryId; };
+ProjectFileDrop projectFileDrop(const QJsonObject &drag) {
+  if (drag["type"] != "project-file") return {};
+  const auto payload = drag["payload"].toObject();
+  ProjectFileDrop file{payload["projectId"].toString(), payload["path"].toString(), payload["directoryId"].toString()};
+  if (file.projectId.isEmpty() || file.path.isEmpty() || file.directoryId.isEmpty() || file.path.size() > 4096 || file.directoryId.size() > 8192) return {};
+  return file;
+}
 // A saved sketch or timeline enters the graph as a constant node that names the
 // document by ID (web hooks/handlers/useDropHandler.ts:195-239).
 struct DocumentDrop { QString nodeType, kind, id, title; };
@@ -186,7 +196,7 @@ bool CanvasDropController::accepts(const QMimeData *mime) const {
   // A document reference needs no upload, so it needs no server.
   if (!model_.readOnly() && !documentDrop(dragPayload(mime)).id.isEmpty()) return true;
   if (origin_.isEmpty() || model_.readOnly()) return false;
-  if (!assetIds(dragPayload(mime)).isEmpty()) return true;
+  if (!assetIds(dragPayload(mime)).isEmpty() || !projectFileDrop(dragPayload(mime)).path.isEmpty()) return true;
   if (!mime->hasUrls() || mime->urls().isEmpty() || mime->urls().size() > 256) return false;
   for (const auto &url : mime->urls()) if (url.isLocalFile() && QFileInfo(url.toLocalFile()).isFile()) return true;
   return false;
@@ -223,7 +233,8 @@ bool CanvasDropController::eventFilter(QObject *object, QEvent *event) {
   if (!(dropEvent->possibleActions() & Qt::CopyAction)) { dropEvent->ignore(); return true; }
   const auto document = documentDrop(dragPayload(dropEvent->mimeData()));
   const auto zone = document.id.isEmpty() ? dropZone(dropEvent->position().toPoint()) : QStringList{};
-  if ((!assetIds(dragPayload(dropEvent->mimeData())).isEmpty() && zone.isEmpty()) || !document.id.isEmpty()) {
+  const bool namesAsset = !assetIds(dragPayload(dropEvent->mimeData())).isEmpty() || !projectFileDrop(dragPayload(dropEvent->mimeData())).path.isEmpty();
+  if ((namesAsset && zone.isEmpty()) || !document.id.isEmpty()) {
     for (auto *entry : view_.items(dropEvent->position().toPoint())) for (auto *item = entry; item; item = item->parentItem())
       if (qgraphicsitem_cast<QtNodes::NodeGraphicsObject *>(item)) { dropEvent->ignore(); return true; }
   }
@@ -325,6 +336,13 @@ void CanvasDropController::drop(const QMimeData *mime, const QPointF &position, 
     if (!node["id"].toString().isEmpty() && applyCommand(QJsonObject{{"op", "addNode"}, {"node", node}})) { emit nodeCreated(node["id"].toString()); }
     return;
   }
+  if (const auto file = projectFileDrop(dragPayload(mime)); !file.path.isEmpty()) {
+    Transfer row; row.key = QUuid::createUuid().toString(QUuid::Id128); row.position = position;
+    row.projectId = file.projectId; row.projectPath = file.path; row.directoryId = file.directoryId; row.name = file.path.section('/', -1);
+    if (!zone.isEmpty()) { row.targetNode = zone[0]; row.targetProperty = zone[1]; row.targetKind = zone[2]; }
+    transfers_.insert(row.key, row); order_.append(row.key); start(row.key);
+    return;
+  }
   const auto ids = assetIds(dragPayload(mime));
   // A drop zone takes one file, as the web's single media property does. A Collection takes them all.
   const auto count = !zone.isEmpty() && !collectionZone(zone[2]) ? qsizetype(1) : ids.isEmpty() ? mime->urls().size() : ids.size();
@@ -344,7 +362,11 @@ void CanvasDropController::start(const QString &key) {
   if (!transfers_.contains(key)) return;
   auto &row = transfers_[key]; row.serial = ++nextSerial_; row.error.clear(); row.sent = row.total = 0; row.hasValue = false;
   if (origin_.isEmpty() || model_.readOnly()) { fail(key, tr("Connect to a server and enable graph editing before dropping files")); return; }
-  if (row.file.isEmpty()) { fetchAsset(key); return; }
+  if (row.file.isEmpty()) {
+    if (!row.projectPath.isEmpty() && row.assetId.isEmpty()) lookupProjectFile(key);
+    else fetchAsset(key);
+    return;
+  }
   if (!row.file.isLocalFile() || !QFileInfo(row.file.toLocalFile()).isFile()) { fail(key, tr("Drop a readable local file")); return; }
   const auto mime = QMimeDatabase{}.mimeTypeForFile(row.file.toLocalFile()).name(); row.kind = mediaKind(mime, row.name);
   if (!row.targetNode.isEmpty() && !zoneTakes(row.targetKind, row.kind)) {
@@ -409,6 +431,31 @@ void CanvasDropController::fetchAsset(const QString &key) {
       downloadText(key, contentUrl); return;
     }
     finish(key, row.hasValue ? row.value : QJsonValue(QJsonObject{{"type", kind}, {"asset_id", id}, {"uri", kind == "folder" ? QString{} : "asset://" + id}}));
+  });
+}
+void CanvasDropController::lookupProjectFile(const QString &key) {
+  if (!transfers_.contains(key)) return;
+  auto &row = transfers_[key]; row.state = "loading";
+  const auto path = row.projectPath; const auto serial = row.serial; emit changed();
+  if (!transfers_.contains(key) || transfers_[key].serial != serial) return;
+  // assetOfFile in the web workspaceTreeActions.ts: the folder's assets, matched by workspace_path.
+  auto url = origin_.resolved(QUrl("/trpc/assets.list")); QUrlQuery query;
+  query.addQueryItem("input", QString::fromUtf8(QJsonDocument(QJsonObject{{"project_id", row.projectId}, {"parent_id", row.directoryId}}).toJson(QJsonDocument::Compact))); url.setQuery(query);
+  QNetworkRequest request(url); request.setTransferTimeout(30000); request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
+  request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); request.setRawHeader("x-user-id", user_.toUtf8());
+  auto *reply = network_.get(request); replies_.insert(key, reply); const auto epoch = epoch_;
+  connect(reply, &QNetworkReply::readyRead, this, [reply] { if (reply->bytesAvailable() > 16 * 1024 * 1024) reply->abort(); });
+  connect(reply, &QNetworkReply::finished, this, [this, reply, key, epoch, path, serial] {
+    reply->deleteLater(); if (epoch != epoch_ || !transfers_.contains(key) || transfers_[key].serial != serial || transfers_[key].state == "cancelled") return; replies_.remove(key);
+    const auto status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    if (reply->error() != QNetworkReply::NoError || status != 200) { fail(key, tr("Could not find the dropped file (HTTP %1)").arg(status)); return; }
+    for (const auto &value : trpcData(reply->readAll())["assets"].toArray()) {
+      const auto asset = value.toObject();
+      if (asset["workspace_path"].toString() == path && !asset["id"].toString().isEmpty()) {
+        transfers_[key].assetId = asset["id"].toString(); fetchAsset(key); return;
+      }
+    }
+    fail(key, tr("%1 is not an asset, so it cannot become a node").arg(path));
   });
 }
 void CanvasDropController::downloadText(const QString &key, const QUrl &url) {

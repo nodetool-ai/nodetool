@@ -39,6 +39,7 @@ void TimelineProjectFiles::syncFolder() {
         m_files.setFolder({});
         return;
     }
+    m_files.setProject(m_folder->projectId());
     // Reveal needs the folder on this machine, as ProjectFolderState::canReveal says.
     m_files.setFolder(m_folder->workspaceId(), m_folder->canReveal() ? m_folder->folderPath() : QString());
 }

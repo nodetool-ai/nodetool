@@ -75,12 +75,23 @@ public:
   explicit ProjectFiles(QObject *parent = nullptr);
   ~ProjectFiles() override;
 
+  // The in-app drag of a row, as the web WorkspaceTree.tsx sets it: the row's
+  // path under EntryMime, and for a media file a "project-file" drag under
+  // DragMime that a host's canvas turns into a constant node.
+  static constexpr auto EntryMime = "application/x-nodetool-project-entry";
+  static constexpr auto DragMime = "application/x-nodetool-drag";
+
   // Drops every listing and request. An empty origin stops listing.
   void configure(const QUrl &origin, const QString &token, const QString &userId);
   // The folder of the shown project: its workspace id, empty when it has no
   // folder, and its absolute path when it is on this machine. A new id lists
   // its root.
   void setFolder(const QString &workspaceId, const QString &localPath = {});
+
+  // The project that owns the folder. Moves, uploads and canvas drags name
+  // its files through the project's asset API, so they need it.
+  void setProject(const QString &projectId) { m_project = projectId; }
+  QString projectId() const { return m_project; }
 
   QString workspaceId() const { return m_workspace; }
   bool hasFolder() const { return !m_workspace.isEmpty(); }
@@ -124,6 +135,24 @@ public:
   // that holds a file. Only when revealable.
   Q_INVOKABLE void reveal(const QString &path);
 
+  // Drag and drop (the web WorkspaceTree.tsx).
+  // The mime data of a row's drag: { mime: text }. Empty for a placeholder.
+  Q_INVOKABLE QVariantMap dragData(int row) const;
+  // The directory a drop on a row lands in: a folder row is that folder, a
+  // file row is the folder it is in, and no row (-1) is the root ".".
+  Q_INVOKABLE QString dropDirectory(int row) const;
+  // Whether the entry at `source` may move into `directory`: not into the
+  // folder it is already in, and a folder not into itself or below it.
+  Q_INVOKABLE bool canMoveInto(const QString &source, const QString &directory) const;
+  // Moves a file or folder into `directory`. False when refused.
+  Q_INVOKABLE bool moveEntry(const QString &source, const QString &directory);
+  // Copies local files into `directory` of the project as assets. Returns how
+  // many uploads started. Folders and remote URLs are skipped.
+  Q_INVOKABLE int copyIn(const QList<QUrl> &urls, const QString &directory);
+  // dir:<project>:<path>, the asset id of a project directory
+  // (projectDirectoryId in @nodetool-ai/protocol). The root is "".
+  static QString projectDirectoryId(const QString &projectId, const QString &path);
+
   // A `workspacefile` push: files in that workspace changed. Refreshes when
   // it is this folder or the id is unknown.
   void workspaceFilesChanged(const QString &workspaceId);
@@ -159,6 +188,8 @@ signals:
   void previewChanged();
   // A file to open. The host decides how.
   void openFileRequested(const QString &path);
+  // A move or an upload failed. The host shows the message.
+  void changeFailed(const QString &message);
 
 protected:
   // Starts workspace.listFiles for a path ("." is the root). The answer must
@@ -167,6 +198,13 @@ protected:
   // Downloads a timeline file for its summary. The answer must arrive
   // through receiveTimeline with the same ticket. A test overrides it.
   virtual void requestTimeline(quint64 ticket, const QString &path);
+  // Sends a checked move to the server: assets.update with the new parent.
+  // A test overrides it.
+  virtual void requestMove(const QString &source, bool isDirectory, const QString &directory);
+  // Uploads one local file into a directory of the project. A test overrides it.
+  virtual void requestUpload(const QString &localFile, const QString &directory);
+  // A move or an upload finished. Refreshes, or reports the failure.
+  void changeFinished(const QString &workspaceId, const QString &error);
 
 private:
   struct Entry {
@@ -206,6 +244,7 @@ private:
 
   QNetworkAccessManager m_network;
   QUrl m_origin;
+  QString m_project;
   QString m_token, m_user, m_workspace, m_localPath, m_selected, m_rootError;
   QHash<QString, Listing> m_listings;
   QSet<QString> m_expanded;
