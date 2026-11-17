@@ -220,6 +220,16 @@ public:
     const auto it = answers_.find(path);
     return it == answers_.end() ? HttpResponse{404, "{}"} : it->second;
   }
+  // The body of the last request whose URL contains `needle`.
+  std::string lastBody(const std::string& needle) {
+    const std::lock_guard lock(mutex_);
+    for (auto it = sent_.rbegin(); it != sent_.rend(); ++it) {
+      if (it->url.find(needle) != std::string::npos) {
+        return it->body;
+      }
+    }
+    return {};
+  }
   int count(const std::string& needle, const std::string& method = {}) {
     const std::lock_guard lock(mutex_);
     int n = 0;
@@ -935,6 +945,59 @@ private slots:
     QVERIFY(!share.message().isEmpty());
   }
 
+
+  // A disabled link that people joined through keeps its options, so the
+  // dialog lists it and changes them by share id. Each person shows where
+  // the access comes from (P3, P6).
+  void shareDialogManagesDisabledLinks() {
+    Computer computer;
+    computer.server.addCode("code-x", "u1", "Ada");
+    auto account = computer.app("timeline");
+    signInWith(this, *account, "code-x");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    ProcedureServer server;
+    server.answer("documentSharing.get",
+                  {200, R"({"result":{"data":{"collaborators":[],"shares":[)"
+                        R"({"id":"s2","token":"tok2","role":"viewer","options":{"allow_history":false,)"
+                        R"("allow_download":false,"allow_duplicate":false}},)"
+                        R"({"id":"s1","token":"tok1","role":"viewer","disabled_at":"2026-11-17T00:00:00Z","options":{"allow_history":true,)"
+                        R"("allow_download":false,"allow_duplicate":false}},)"
+                        R"({"id":"s0","token":"tok0","role":"viewer","disabled_at":"2026-11-17T00:00:00Z","options":{}}],)"
+                        R"("people":[{"user_id":"u2","display_name":"Bob","access":{"role":"viewer",)"
+                        R"("options":{"allow_history":true,"allow_download":false,"allow_duplicate":false},)"
+                        R"("grants":[{"source":"link","grant_id":"g1","share_id":"s1","role":"viewer",)"
+                        R"("options":{"allow_history":true,"allow_download":false,"allow_duplicate":false},)"
+                        R"("link_disabled":true}],"given_by":{"role":[0],"allow_history":[0],)"
+                        R"("allow_download":[],"allow_duplicate":[]}}}]}}})"});
+    server.answer("documentSharing.setLinkOptions", {200, R"({"result":{"data":{"id":"s1","token":"tok1","role":"viewer"}}})"});
+    ShareController share(std::make_unique<SharedTransport>(server));
+    share.setAccount(account.get());
+    share.setKind("timeline");
+    share.setContent(R"({"clips":[]})");
+    share.setDocumentId("t1");
+    QTRY_VERIFY(!share.loading());
+
+    // Only s1 has people: s0 admits nobody and gives nobody access.
+    QCOMPARE(share.disabledLinks().size(), 1);
+    const QVariantMap disabled = share.disabledLinks().at(0).toMap();
+    QCOMPARE(disabled.value("shareId").toString(), QString("s1"));
+    QCOMPARE(disabled.value("people").toInt(), 1);
+    QVERIFY(disabled.value("history").toBool());
+    const QVariantMap bob = share.people().at(0).toMap();
+    QCOMPARE(bob.value("sources").toString(), QString("Joined through a disabled viewer link"));
+    QVERIFY(bob.value("history").toBool());
+    QVERIFY(!bob.value("download").toBool());
+
+    // Turning history off on the enabled link does not touch s1. The
+    // disabled link's own option does.
+    share.setLinkOptions("s1", false, false, false);
+    QTRY_COMPARE(server.count("documentSharing.setLinkOptions", "POST"), 1);
+    QTRY_VERIFY(!share.busy());
+    QVERIFY(server.lastBody("documentSharing.setLinkOptions").find("\"share_id\":\"s1\"") != std::string::npos);
+    share.setLinkOptions("unknown", true, true, true);
+    QCOMPARE(server.count("documentSharing.setLinkOptions", "POST"), 1);
+  }
 
   // RF13: the server token goes to the server's own origin only, sockets
   // included, and an empty token adds no header.

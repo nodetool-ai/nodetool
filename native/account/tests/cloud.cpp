@@ -1678,6 +1678,30 @@ void warnsOfValuesThatLookLikeSecrets(TestContext& t) {
   }
   CHECK(findSecretLike("script", "{\"text\":\"A normal script\"}").empty());
   CHECK(findSecretLike("script", "not json").empty());
+
+  // Each shape, and its near miss.
+  const auto shapeOf = [](const std::string& value) {
+    const auto found = findSecretLike("script", nlohmann::json{{"text", value}}.dump());
+    return found.empty() ? std::string() : found[0].looksLike;
+  };
+  CHECK(shapeOf("x sk-ant-" + std::string(20, 'a')) == "an Anthropic key");
+  CHECK(shapeOf("sk-" + std::string(19, 'a')).empty());
+  CHECK(shapeOf("AKIA" + std::string(15, 'A')).empty());
+  CHECK(shapeOf("ghp_" + std::string(36, 'a')) == "a GitHub token");
+  CHECK(shapeOf("ghx_" + std::string(36, 'a')).empty());
+  CHECK(shapeOf("xoxb-0123456789") == "a Slack token");
+  CHECK(shapeOf("AIza" + std::string(35, '_')) == "a Google API key");
+  CHECK(shapeOf("hf_" + std::string(30, 'a')) == "a Hugging Face token");
+  CHECK(shapeOf("r8_" + std::string(29, 'a')).empty());
+  CHECK(shapeOf("-----BEGIN RSA PRIVATE KEY-----\nabc") == "a private key");
+  CHECK(shapeOf("-----BEGIN PRIVATE KEY-----") == "a private key");
+  CHECK(shapeOf("-----BEGIN PUBLIC KEY-----").empty());
+  CHECK(shapeOf("BEARER abcdefghijklmnopqrst") == "a bearer token");
+
+  // A long value is scanned without recursion: std::regex overflowed the
+  // stack on this one (#7672 review).
+  CHECK(shapeOf("sk-proj-" + std::string(100000, 'a')) == "an OpenAI key");
+  CHECK(shapeOf(std::string(200000, 's') + "k-").empty());
 }
 
 } // namespace
