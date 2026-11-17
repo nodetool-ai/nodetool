@@ -486,6 +486,56 @@ describe.each(["local", "cloud"] as const)(
       expect(await serve(response.get_url ?? "")).toEqual(updated);
     });
 
+    it.each([
+      ["the key resolves to the moved file", false],
+      ["nothing is left under the key", true]
+    ])("finalizing a direct upload the mover took keeps the moved asset: %s", async (_case, keyEmpty) => {
+      const { project, folder } = await projectWithFolder(USER, "Film");
+      // A client-direct upload whose row was never finalized, old enough for
+      // the mover to take it.
+      const upload = await Asset.create<Asset>({
+        user_id: USER,
+        project_id: project.id,
+        parent_id: null,
+        name: "upload",
+        content_type: "text/plain",
+        size: null
+      });
+      await mocks.adapter?.store(
+        getAssetStorageKey(USER, upload.id, "text/plain"),
+        UPLOAD,
+        "text/plain"
+      );
+      await getPortableDb().update(assets).set({
+        created_at: "2024-01-01T00:00:00.000Z",
+        updated_at: "2024-01-01T00:00:00.000Z"
+      });
+      // The finalize read the row. The mover moves its bytes before the
+      // finalize looks at the storage key.
+      const adapter = mocks.adapter;
+      if (!adapter) throw new Error("no adapter");
+      const stat = adapter.stat.bind(adapter);
+      let moveFirst = true;
+      vi.spyOn(adapter, "stat").mockImplementation(async (uri) => {
+        if (moveFirst) {
+          moveFirst = false;
+          const report = await projectAssetMoveJob.run(project.id, USER);
+          expect(report.moved).toEqual([upload.id]);
+          if (keyEmpty) return null;
+        }
+        return stat(uri);
+      });
+
+      const response = await createCaller(makeCtx()).assets.finalizeUpload({
+        asset_id: upload.id
+      });
+
+      expect(response.id).toBe(upload.id);
+      const row = await reload(upload);
+      expect(row.workspace_path).toBe("upload.txt");
+      expect(await folderOf(folder).read("upload.txt")).toEqual(UPLOAD);
+    });
+
     it("a project with nothing to move reports no move", async () => {
       const { project } = await projectWithFolder(USER, "Empty");
       const caller = createCaller(makeCtx());

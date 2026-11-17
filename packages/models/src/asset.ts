@@ -5,7 +5,7 @@
  */
 
 import { isDeepStrictEqual } from "node:util";
-import { eq, and, or, like, desc, isNull, isNotNull, lt, ne, inArray, sql, count } from "drizzle-orm";
+import { eq, and, or, like, desc, isNull, isNotNull, lt, ne, not, inArray, sql, count } from "drizzle-orm";
 import {
   PROJECT_DIRECTORY_ID_PREFIX,
   WORKSPACE_MOVE_TARGET_KEY,
@@ -204,6 +204,48 @@ export class Asset extends DBModel {
    */
   saveMoveStateIf(expected: AssetFilePlacement): Promise<boolean> {
     return this.updateIfPlaced(expected, { metadata: this.storedMetadata() });
+  }
+
+  /**
+   * Record the size of a client-direct upload, but only while its bytes are
+   * still under its storage key: no file in a project folder, no external
+   * file and no move under way. Only `size` and `updated_at` are written.
+   * False when the row is gone or the mover took it. Nothing is written then.
+   */
+  async saveUploadSizeIf(size: number): Promise<boolean> {
+    const updatedAt = new Date().toISOString();
+    const updated = await getPortableDb()
+      .update(assets)
+      .set({ size, updated_at: updatedAt })
+      .where(and(eq(assets.id, this.id), eq(assets.user_id, this.user_id), bytesUnderKey()))
+      .returning({ id: assets.id });
+    if (updated.length === 0) return false;
+    this.size = size;
+    this.updated_at = updatedAt;
+    ModelObserver.notify(this, ModelChangeEvent.UPDATED);
+    return true;
+  }
+
+  /**
+   * Delete the row of a client-direct upload that was never finalized: no
+   * size yet, and its bytes, if any, still under its storage key. False when
+   * the row is gone or no longer pending. Nothing is deleted then.
+   */
+  async deleteIfPendingUpload(): Promise<boolean> {
+    const deleted = await getPortableDb()
+      .delete(assets)
+      .where(
+        and(
+          eq(assets.id, this.id),
+          eq(assets.user_id, this.user_id),
+          isNull(assets.size),
+          bytesUnderKey()
+        )
+      )
+      .returning({ id: assets.id });
+    if (deleted.length === 0) return false;
+    ModelObserver.notify(this, ModelChangeEvent.DELETED);
+    return true;
   }
 
   private storedMetadata(): Record<string, unknown> | null {
@@ -1098,6 +1140,15 @@ function carriesMoveTarget() {
   // The metadata column is JSON text on both dialects, so the key is found
   // as text. A value that merely holds the word is filtered out after the read.
   return sql`${assets.metadata} LIKE ${`%"${WORKSPACE_MOVE_TARGET_KEY}"%`}`;
+}
+
+/** Rows whose bytes are under the storage key, with no move under way. */
+function bytesUnderKey() {
+  return and(
+    isNull(assets.workspace_path),
+    isNull(assets.external_path),
+    or(isNull(assets.metadata), not(carriesMoveTarget()))
+  );
 }
 
 /** Rows with bytes outside their project folder, or a move not finished. */
