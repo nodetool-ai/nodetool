@@ -440,6 +440,9 @@ export const MODULES = {
       timingSafeEqual: pure("not part of guest/host/crypto.mjs")
     }
   },
+  "node:async_hooks": {
+    whole: unavailable("server-only", "AsyncLocalStorage, which the models package uses only for database transactions")
+  },
   "node:buffer": {
     provider: { package: "buffer/" },
     wrap: true,

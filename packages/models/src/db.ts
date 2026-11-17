@@ -250,7 +250,14 @@ interface AmbientTransaction {
   connection: DatabaseConnection;
 }
 
-const ambient = new AsyncLocalStorage<AmbientTransaction>();
+// Created by the first transaction, so a host without node:async_hooks,
+// such as the native runner's guest bundle, can load this module.
+let _ambient: AsyncLocalStorage<AmbientTransaction> | null = null;
+
+function ambientStore(): AsyncLocalStorage<AmbientTransaction> {
+  _ambient ??= new AsyncLocalStorage<AmbientTransaction>();
+  return _ambient;
+}
 // The SQLite transaction that is open now, if any. Code outside its body
 // that reaches the database while it is open would write into it.
 let _openSqliteTransaction: AmbientTransaction | null = null;
@@ -260,7 +267,7 @@ export function getDatabase(): DatabaseConnection {
   if (!_connection) {
     throw new Error("Database not initialized. Call initDb() or initPostgresDb() first.");
   }
-  const inside = ambient.getStore();
+  const inside = _ambient?.getStore();
   if (inside) return inside.connection;
   if (_openSqliteTransaction) {
     throw new Error(
@@ -273,7 +280,7 @@ export function getDatabase(): DatabaseConnection {
 
 /** Whether the caller runs inside a `withTransaction` body. */
 export function inTransaction(): boolean {
-  return ambient.getStore() !== undefined;
+  return _ambient?.getStore() !== undefined;
 }
 
 /**
@@ -294,6 +301,7 @@ export function inTransaction(): boolean {
  * while it is open: their queries throw instead of writing into it.
  */
 export async function withTransaction<T>(body: () => Promise<T>): Promise<T> {
+  const ambient = ambientStore();
   if (ambient.getStore()) return body();
   const connection = getDatabase();
   if (connection.dialect === "postgres") {
