@@ -54,25 +54,33 @@ int main(int argc, char **argv) {
 namespace {
 int runEditor(QApplication &app, const QCommandLineParser &parser) {
   nodetool::EditorWindow window;
-  if (!parser.isSet("open") && !parser.isSet("workflow")) window.restoreTabs();
-  if (parser.isSet("open") && !window.openFile(parser.value("open"))) {
-    return 2;
-  }
+  const bool restore = !parser.isSet("open") && !parser.isSet("workflow");
   // An interactive start connects to the local server, as the web app does.
   // Headless export and replay runs stay offline unless --server is given.
   const bool headless = parser.isSet("screenshot") || parser.isSet("dump") || parser.isSet("save") || parser.isSet("replay");
-  // A package with a bundled backend starts that server instead.
+  // A package with a bundled backend starts that server instead. It starts
+  // before the tabs are restored, so a tab saved on the bundled server
+  // reconnects to this launch's port (review F3).
   const nodetool::node_editor::ServerStartOptions start{
       parser.isSet("server") ? QUrl(parser.value("server")) : QUrl(), parser.isSet("offline"), headless,
-      !window.session()->serverUrl().isEmpty()};
-  const auto server = nodetool::node_editor::chooseServer(start, [] {
+      restore && nodetool::EditorWindow::savedTabsNameAServer()};
+  QUrl bundled;
+  const auto server = nodetool::node_editor::chooseServer(start, [&bundled] {
     QString error;
-    QUrl url = nodetool::node_editor::startBundledServer(&error);
+    bundled = nodetool::node_editor::startBundledServer(&error);
     if (!error.isEmpty()) std::fprintf(stderr, "nodetool-node-editor: %s\n", qPrintable(error));
-    return url;
+    return bundled;
   });
+  window.setBundledServer(bundled);
+  if (restore) window.restoreTabs();
+  if (parser.isSet("open") && !window.openFile(parser.value("open"))) {
+    return 2;
+  }
   if (!server.isEmpty()) {
-    window.session()->connectToServer(server, qEnvironmentVariable("NODETOOL_TOKEN"));
+    // A restored tab may already be connected to it, with a cloud document open.
+    if (window.session()->serverUrl() != server) {
+      window.session()->connectToServer(server, qEnvironmentVariable("NODETOOL_TOKEN"));
+    }
     window.session()->loadCatalog();
   }
   if (parser.isSet("workflow")) {

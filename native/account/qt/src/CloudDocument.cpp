@@ -3,6 +3,7 @@
 #include "nodetool/account/account_session.h"
 #include "nodetool/account/cloud_client.h"
 #include "nodetool/account/cloud_savers.h"
+#include "nodetool/account/cloud_sharing.h"
 #include "nodetool/account/crypto.h"
 #include "nodetool/account/qt/QtHttpTransport.h"
 #include "TaskQueue.h"
@@ -209,6 +210,31 @@ void CloudDocument::open() {
       state->saver = std::make_unique<WorkflowCloudSaver>(*state->client);
     }
     state->key = {serverKey(session.serverOrigin()), session.accountId(), services.kind, services.documentId};
+    // The role the app passed is what it knew when it listed or last opened
+    // the document. The server's current answer replaces it, so a role taken
+    // away since then is never used (review F4). The kept role stays only
+    // when the server cannot answer; the read then fails or the first save
+    // is refused.
+    const CurrentAccess current = readCurrentAccess(*state->client, services.kind, services.documentId);
+    if (current.status == CloudListStatus::Ok) {
+      if (current.role.empty()) {
+        const QString reason = QCoreApplication::translate("CloudDocument", "you no longer have access to this document");
+        state->toUi([reason](CloudDocument& document) {
+          document.status_ = SyncStatus::NotOpened;
+          document.refusal_ = reason;
+          emit document.stateChanged();
+          emit document.openFailed(reason);
+        });
+        return;
+      }
+      services.role = current.role;
+      state->toUi([role = QString::fromStdString(current.role)](CloudDocument& document) {
+        if (document.role_ != role) {
+          document.role_ = role;
+          emit document.stateChanged();
+        }
+      });
+    }
     state->saver->setAccess(services.documentId, {services.role == "viewer" ? "viewer" : "editor", {}});
     const OpenedDocument opened = state->saver->open(state->key);
     if (opened.status != SaveStatus::Ok) {
