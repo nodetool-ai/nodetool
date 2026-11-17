@@ -13,9 +13,11 @@
  * asks {@link bulkMigrationAllowed} before each pass and each asset, so
  * nothing moves before confirmation or while the migration is paused.
  */
-import { homedir } from "node:os";
+import { randomUUID } from "node:crypto";
+import { open, realpath, stat, unlink } from "node:fs/promises";
+import { homedir, hostname } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
-import { posix } from "node:path";
+import { isAbsolute, join, posix, resolve } from "node:path";
 import { z } from "zod";
 import { createLogger, workspaceStorageKind } from "@nodetool-ai/config";
 import {
@@ -74,6 +76,27 @@ const MIN_RESTART_MS = 1_000;
 /** Projects read per query while counting projects without a folder. */
 const COUNT_BATCH = 500;
 
+/** How often a run records that it is alive. */
+const HEARTBEAT_MS = 15_000;
+
+/**
+ * How long a run may go without a heartbeat before another process takes it
+ * over. Used only when the owner's process cannot be checked directly.
+ */
+const STALE_MS = 60_000;
+
+/** How often a server looks for a migration another process left. */
+const WATCH_MS = 30_000;
+
+/** The wait before a run that stopped on an error starts again. */
+const ERROR_RESTART_MS = 30_000;
+
+/** Attempts of one compare-and-set state change before giving up. */
+const MAX_STATE_ATTEMPTS = 20;
+
+/** How often `nodetool projects migrate` looks whether another run ended. */
+const FOREIGN_RUN_POLL_MS = 2_000;
+
 const storedState = z.object({
   state: projectFolderMigrationState,
   location: z.string().nullable().default(null),
@@ -82,7 +105,13 @@ const storedState = z.object({
   failures: z.array(projectFolderMigrationFailure).default([]),
   failure_count: z.number().int().nonnegative().default(0),
   nothing_to_move: z.boolean().default(false),
-  dismissed: z.boolean().default(false)
+  dismissed: z.boolean().default(false),
+  /** The run that holds `running`, so a run another process took over stops. */
+  run_id: z.string().nullable().default(null),
+  /** The process that last claimed the state, to tell a stopped one. */
+  owner_pid: z.number().int().nullable().default(null),
+  owner_host: z.string().nullable().default(null),
+  heartbeat_at: z.string().nullable().default(null)
 });
 type StoredState = z.infer<typeof storedState>;
 
@@ -123,13 +152,14 @@ export function locationNeedsPermission(
   home: string = homedir()
 ): boolean {
   if (platform !== "darwin") return false;
-  const normalized = posix.normalize(path);
+  // The default macOS file system ignores letter case.
+  const normalized = posix.normalize(path).toLowerCase();
   const roots = [
     "/Volumes",
     ...["Documents", "Desktop", "Downloads", "Library/Mobile Documents"].map(
       (name) => posix.join(home, name)
     )
-  ];
+  ].map((root) => root.toLowerCase());
   return roots.some(
     (root) => normalized === root || normalized.startsWith(`${root}/`)
   );
@@ -152,14 +182,6 @@ function parseStored(userId: string, row: Setting | null): StoredState | null {
   }
 }
 
-async function writeStored(userId: string, state: StoredState): Promise<void> {
-  await Setting.upsert({
-    userId,
-    key: PROJECT_FOLDER_MIGRATION_SETTING,
-    value: JSON.stringify(state)
-  });
-}
-
 /** Read-modify-write of a user's state, one at a time within this process. */
 const stateQueues = new Map<string, Promise<unknown>>();
 
@@ -170,16 +192,56 @@ function serialized<T>(userId: string, step: () => Promise<T>): Promise<T> {
   return next;
 }
 
+/**
+ * Change a user's state. The write commits only while the row still holds
+ * what `change` was given, so a server and a `nodetool` command never
+ * overwrite each other's change. `change` runs again on a lost race, so it
+ * must not have side effects. It may throw to refuse.
+ */
 function updateStored(
   userId: string,
   change: (current: StoredState | null) => StoredState | null
 ): Promise<StoredState | null> {
   return serialized(userId, async () => {
-    const current = await readStored(userId);
-    const updated = change(current);
-    if (updated && updated !== current) await writeStored(userId, updated);
-    return updated;
+    for (let attempt = 0; attempt < MAX_STATE_ATTEMPTS; attempt++) {
+      const row = await Setting.find(userId, PROJECT_FOLDER_MIGRATION_SETTING);
+      const current = parseStored(userId, row);
+      const updated = change(current);
+      if (!updated || updated === current) return updated;
+      const committed = await Setting.upsertManyIf(
+        userId,
+        { key: PROJECT_FOLDER_MIGRATION_SETTING, expected: row?.value ?? null },
+        [{ key: PROJECT_FOLDER_MIGRATION_SETTING, value: JSON.stringify(updated) }]
+      );
+      if (committed) return updated;
+    }
+    throw new Error("The project folder migration state kept changing while it was updated");
   });
+}
+
+/** This process, as the owner of a state it claims. */
+function ownedNow(): Pick<StoredState, "owner_pid" | "owner_host" | "heartbeat_at"> {
+  return {
+    owner_pid: process.pid,
+    owner_host: hostname(),
+    heartbeat_at: new Date().toISOString()
+  };
+}
+
+/** True when a process with this id runs on this machine. */
+function processAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    // EPERM: the process exists but belongs to another user.
+    return (error as NodeJS.ErrnoException).code === "EPERM";
+  }
+}
+
+/** Absolute paths lose `..` segments and a trailing separator. */
+function normalizeLocation(location: string): string {
+  return isAbsolute(location) ? resolve(location) : location;
 }
 
 function refuse(message: string): never {
@@ -193,6 +255,10 @@ function requireApplies(): void {
       "This server moves projects into folders without asking"
     );
   }
+}
+
+function nothingToMove(): never {
+  throw new ProjectFolderMigrationError("not_applicable", "There is nothing to move");
 }
 
 // ── What there is to move ───────────────────────────────────────────────────
@@ -239,6 +305,36 @@ function hasWork(counts: WorkCounts): boolean {
     counts.workflows > 0 ||
     counts.timelines > 0
   );
+}
+
+const NOTHING_TO_MOVE: StoredState = storedState.parse({
+  state: "done",
+  nothing_to_move: true
+});
+
+/**
+ * A user without a state and with nothing to move is recorded as done.
+ * Returns the recorded state, or null when there is something to move or the
+ * user has a state.
+ */
+async function recordNothingToMove(userId: string): Promise<StoredState | null> {
+  if (hasWork(await countWork(userId))) return null;
+  const recorded = await updateStored(userId, (current) => current ?? NOTHING_TO_MOVE);
+  return recorded?.nothing_to_move ? recorded : null;
+}
+
+/** Refuse a request where the migration does not apply to the user. */
+async function requireMigrationApplies(userId: string): Promise<StoredState | null> {
+  requireApplies();
+  const stored = await readStored(userId);
+  if (stored?.nothing_to_move) nothingToMove();
+  if (!stored && (await recordNothingToMove(userId))) nothingToMove();
+  return stored;
+}
+
+/** States where `NODETOOL_PROJECT_MIGRATION=auto` answers for the user. */
+function awaitsAnswer(stored: StoredState | null): boolean {
+  return !stored || stored.state === "not_started" || stored.state === "plan_shown";
 }
 
 /** Every user that has something to move, across the whole database. */
@@ -289,7 +385,7 @@ export async function describeMigrationLocation(
   chosen?: string
 ): Promise<ProjectFolderMigrationLocation> {
   const configured = await configuredProjectsDir(userId);
-  const path = chosen ?? configured.dir;
+  const path = chosen === undefined ? configured.dir : normalizeLocation(chosen);
   let error: string | null = null;
   try {
     // The default directory is created when it is missing. A directory the
@@ -306,12 +402,32 @@ export async function describeMigrationLocation(
       error = reason instanceof Error ? reason.message : String(reason);
     }
   }
+  // A link into Documents asks for permission as Documents does.
+  const real = await realpath(path).catch(() => path);
   return {
     path,
     is_default: chosen === undefined && !configured.fromUser,
-    permission_prompt: locationNeedsPermission(path),
+    permission_prompt: locationNeedsPermission(path) || locationNeedsPermission(real),
     error
   };
+}
+
+/**
+ * Write and remove a file in an existing location. A writable mode is not
+ * enough: macOS refuses a folder the app has no permission for only on write.
+ */
+async function probeWritable(path: string): Promise<string | null> {
+  if (!(await stat(path).catch(() => null))) return null;
+  const probe = join(path, `.nodetool-write-check-${process.pid}-${randomUUID()}`);
+  try {
+    const handle = await open(probe, "wx");
+    await handle.close();
+    await unlink(probe);
+    return null;
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    return `The projects folder is not writable${code ? ` (${code})` : ""}`;
+  }
 }
 
 /** What confirming the migration does for the user. */
@@ -375,6 +491,9 @@ interface RunProgress {
   currentProject: string | null;
 }
 
+/** How a run's steps ended. */
+type StepsOutcome = "stopped" | "waiting" | "finished";
+
 function assetFailure(
   asset: Asset | null,
   assetId: string,
@@ -406,23 +525,62 @@ function projectFailure(
   };
 }
 
+function listsProject(
+  failures: ProjectFolderMigrationFailure[],
+  projectId: string
+): boolean {
+  return failures.some((listed) => listed.kind === "project" && listed.id === projectId);
+}
+
+export interface ProjectFolderMigrationRunnerOptions {
+  /** See {@link HEARTBEAT_MS}. */
+  heartbeatMs?: number;
+  /** See {@link STALE_MS}. */
+  staleMs?: number;
+  /** See {@link WATCH_MS}. */
+  watchMs?: number;
+  /** See {@link ERROR_RESTART_MS}. */
+  errorRestartMs?: number;
+}
+
 /**
  * Works through a user's migration: folders, then document files, then the
  * asset move. Each step is idempotent, so a run that stops for a pause or a
  * server stop continues from the database the next time.
+ *
+ * A run claims the state with its own id. It stops at the next check once
+ * the state belongs to another run, which happens when another process took
+ * over a run it found stopped, or when the user paused and resumed.
  */
 export class ProjectFolderMigrationRunner {
   private readonly active = new Map<string, Promise<void>>();
   private readonly progressByUser = new Map<string, RunProgress>();
   private readonly restarts = new Set<NodeJS.Timeout>();
+  /** Users whose run this process starts again once a timer fires. */
+  private readonly restartPending = new Set<string>();
+  private watcher: NodeJS.Timeout | null = null;
+  private readonly heartbeatMs: number;
+  private readonly staleMs: number;
+  private readonly watchMs: number;
+  private readonly errorRestartMs: number;
 
-  constructor(private readonly job: ProjectAssetMoveJob = projectAssetMoveJob) {}
+  constructor(
+    private readonly job: ProjectAssetMoveJob = projectAssetMoveJob,
+    options: ProjectFolderMigrationRunnerOptions = {}
+  ) {
+    this.heartbeatMs = options.heartbeatMs ?? HEARTBEAT_MS;
+    this.staleMs = options.staleMs ?? STALE_MS;
+    this.watchMs = options.watchMs ?? WATCH_MS;
+    this.errorRestartMs = options.errorRestartMs ?? ERROR_RESTART_MS;
+  }
 
   /** Start the user's run, or return the one under way. Never rejects. */
   start(userId: string): Promise<void> {
     const running = this.active.get(userId);
     if (running) return running;
-    const run = this.run(userId)
+    const runId = randomUUID();
+    const run = this.run(userId, runId)
+      .catch((error: unknown) => this.recover(userId, runId, error))
       .catch((error: unknown) => {
         log.warn("The project folder migration stopped", {
           userId,
@@ -437,10 +595,13 @@ export class ProjectFolderMigrationRunner {
     return run;
   }
 
-  /** Cancel the restarts this runner scheduled. A run under way finishes. */
+  /** Cancel the restarts and the watch this runner scheduled. A run under way finishes. */
   stop(): void {
     for (const timer of this.restarts) clearTimeout(timer);
     this.restarts.clear();
+    this.restartPending.clear();
+    if (this.watcher) clearInterval(this.watcher);
+    this.watcher = null;
   }
 
   /** The phase and project this process works on for the user, if any. */
@@ -454,28 +615,129 @@ export class ProjectFolderMigrationRunner {
     while (this.active.get(userId)) await this.active.get(userId);
   }
 
+  /**
+   * True when no process works on the state although it is confirmed or
+   * running: its owner stopped, or it stopped sending heartbeats.
+   */
+  private stalled(state: StoredState, userId: string): boolean {
+    if (state.state !== "confirmed" && state.state !== "running") return false;
+    if (state.owner_pid === null || state.heartbeat_at === null) return true;
+    if (state.owner_host === hostname()) {
+      if (state.owner_pid === process.pid) {
+        return !this.active.has(userId) && !this.restartPending.has(userId);
+      }
+      if (!processAlive(state.owner_pid)) return true;
+    }
+    const beat = Date.parse(state.heartbeat_at);
+    return !Number.isFinite(beat) || Date.now() - beat > this.staleMs;
+  }
+
+  /**
+   * Continue the user's migration when it is confirmed or running and no
+   * process works on it. A run that still belongs to a live process is left
+   * alone.
+   */
+  async continueIfStalled(userId: string): Promise<void> {
+    if (this.active.has(userId)) return;
+    const stored = await readStored(userId);
+    if (!stored || !this.stalled(stored, userId)) return;
+    if (stored.state === "running") {
+      const released = await updateStored(userId, (current) =>
+        current?.state === "running" && this.stalled(current, userId)
+          ? { ...current, state: "confirmed", run_id: null }
+          : current
+      );
+      if (released?.state !== "confirmed") return;
+    }
+    void this.start(userId);
+  }
+
+  /**
+   * Look for migrations another process left, now and every
+   * {@link WATCH_MS}, for as long as this runner lives.
+   */
+  watch(): void {
+    if (this.watcher) return;
+    const look = async () => {
+      if (!projectFolderMigrationApplies()) return;
+      for (const row of await Setting.listByKey(PROJECT_FOLDER_MIGRATION_SETTING)) {
+        await this.continueIfStalled(row.user_id);
+      }
+    };
+    this.watcher = setInterval(() => {
+      void look().catch(logStepFailure);
+    }, this.watchMs);
+    this.watcher.unref?.();
+  }
+
   private setProgress(userId: string, phase: Phase, currentProject: string | null) {
     this.progressByUser.set(userId, { phase, currentProject });
   }
 
-  private async stillRunning(userId: string): Promise<boolean> {
-    return (await readStored(userId))?.state === "running";
+  private async owns(userId: string, runId: string): Promise<boolean> {
+    const stored = await readStored(userId);
+    return stored?.state === "running" && stored.run_id === runId;
   }
 
-  private async run(userId: string): Promise<void> {
-    const started = await updateStored(userId, (current) =>
-      current?.state === "confirmed" ? { ...current, state: "running" } : current
-    );
-    if (started?.state !== "running") return;
-    const failures: ProjectFolderMigrationFailure[] = [];
+  private async run(userId: string, runId: string): Promise<void> {
+    let claimed = false;
+    await updateStored(userId, (current) => {
+      claimed = current?.state === "confirmed";
+      return claimed && current
+        ? { ...current, state: "running", run_id: runId, ...ownedNow() }
+        : current;
+    });
+    if (!claimed) return;
 
+    const heartbeat = setInterval(() => {
+      void updateStored(userId, (current) =>
+        current?.state === "running" && current.run_id === runId
+          ? { ...current, ...ownedNow() }
+          : current
+      ).catch(logStepFailure);
+    }, this.heartbeatMs);
+    heartbeat.unref?.();
+    try {
+      const failures: ProjectFolderMigrationFailure[] = [];
+      const outcome = await this.steps(userId, failures, () => this.owns(userId, runId));
+      await this.record(userId, runId, failures, outcome);
+    } finally {
+      clearInterval(heartbeat);
+    }
+  }
+
+  /**
+   * The steps of a run without a state: what `nodetool projects migrate`
+   * runs where the migration does not ask.
+   */
+  async runUnasked(
+    userId: string
+  ): Promise<{ failures: ProjectFolderMigrationFailure[]; outcome: StepsOutcome }> {
+    const failures: ProjectFolderMigrationFailure[] = [];
+    try {
+      const outcome = await this.steps(userId, failures, async () => true);
+      return { failures, outcome };
+    } finally {
+      this.progressByUser.delete(userId);
+    }
+  }
+
+  /**
+   * Folders, document files and the asset move, while `proceed` says so.
+   * Failures are added to `failures`.
+   */
+  private async steps(
+    userId: string,
+    failures: ProjectFolderMigrationFailure[],
+    proceed: () => Promise<boolean>
+  ): Promise<StepsOutcome> {
     this.setProgress(userId, "folders", null);
     const folders = await migrateProjectFolders({ userId });
     for (const failure of folders.failures) {
       const project = await Project.findOwned(userId, failure.projectId);
       failures.push(projectFailure(project, failure.projectId, failure.reason));
     }
-    if (!(await this.stillRunning(userId))) return this.record(userId, failures);
+    if (!(await proceed())) return "stopped";
 
     this.setProgress(userId, "files", null);
     const documentFailures: DocumentFileFailure[] = [];
@@ -489,9 +751,7 @@ export class ProjectFolderMigrationRunner {
         !failure.projectId || failure.projectId === LOOSE_PROJECT_ID
           ? `personal:${userId}`
           : failure.projectId;
-      if (failures.some((listed) => listed.kind === "project" && listed.id === projectId)) {
-        continue;
-      }
+      if (listsProject(failures, projectId)) continue;
       const project = await Project.findOwned(userId, projectId);
       failures.push(projectFailure(project, projectId, failure.reason));
     }
@@ -501,7 +761,7 @@ export class ProjectFolderMigrationRunner {
         timelines
       });
     }
-    if (!(await this.stillRunning(userId))) return this.record(userId, failures);
+    if (!(await proceed())) return "stopped";
 
     this.setProgress(userId, "assets", null);
     let waiting = await Asset.listProjectsAwaitingFolderMove(userId);
@@ -513,8 +773,8 @@ export class ProjectFolderMigrationRunner {
     let deferred: string[] = [];
     for (const { projectId } of waiting) {
       if (!projectId || projectId === LOOSE_PROJECT_ID) continue;
-      const outcome = await this.moveAssets(userId, projectId, failures);
-      if (outcome === "stopped") return this.record(userId, failures);
+      const outcome = await this.moveAssets(userId, projectId, failures, proceed);
+      if (outcome === "stopped") return "stopped";
       if (outcome === "deferred") deferred.push(projectId);
     }
     if (deferred.length > 0) {
@@ -522,16 +782,16 @@ export class ProjectFolderMigrationRunner {
       // started right after an edit still finishes. The timer keeps a
       // `nodetool projects migrate` process alive while it waits.
       await delay(this.job.settleMs);
-      if (!(await this.stillRunning(userId))) return this.record(userId, failures);
+      if (!(await proceed())) return "stopped";
       const again = deferred;
       deferred = [];
       for (const projectId of again) {
-        const outcome = await this.moveAssets(userId, projectId, failures);
-        if (outcome === "stopped") return this.record(userId, failures);
+        const outcome = await this.moveAssets(userId, projectId, failures, proceed);
+        if (outcome === "stopped") return "stopped";
         if (outcome === "deferred") deferred.push(projectId);
       }
     }
-    await this.record(userId, failures, deferred.length > 0 ? "waiting" : "finished");
+    return deferred.length > 0 ? "waiting" : "finished";
   }
 
   /**
@@ -541,7 +801,8 @@ export class ProjectFolderMigrationRunner {
   private async moveAssets(
     userId: string,
     projectId: string,
-    failures: ProjectFolderMigrationFailure[]
+    failures: ProjectFolderMigrationFailure[],
+    proceed: () => Promise<boolean>
   ): Promise<"stopped" | "deferred" | "passed"> {
     const project = await Project.findOwned(userId, projectId);
     this.setProgress(userId, "assets", project?.name ?? null);
@@ -558,31 +819,36 @@ export class ProjectFolderMigrationRunner {
         );
       }
       if (report.stopped) return "stopped";
-      if (!(await this.stillRunning(userId))) return "stopped";
+      if (!(await proceed())) return "stopped";
       return report.deferred.length > 0 ? "deferred" : "passed";
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       if (!(error instanceof ProjectFolderUnavailableError)) {
         log.warn("Moving the assets of a project failed", { projectId, error: reason });
       }
-      failures.push(projectFailure(project, projectId, reason));
-      return (await this.stillRunning(userId)) ? "passed" : "stopped";
+      // A folder that could not be made is listed once, from the first step.
+      if (!listsProject(failures, projectId)) {
+        failures.push(projectFailure(project, projectId, reason));
+      }
+      return (await proceed()) ? "passed" : "stopped";
     }
   }
 
   /**
-   * Store what this run could not finish. A finished run moves `running` to
-   * `done`. A run that left assets waiting moves it back to `confirmed`, so
-   * the next run of any process continues, and this process starts one once
-   * they may have settled. A paused one stays paused.
+   * Store what the run could not finish, while the state is still the run's
+   * own. A finished run moves `running` to `done`. A run that left assets
+   * waiting moves it back to `confirmed`, so the next run of any process
+   * continues, and this process starts one once they may have settled. A
+   * paused one stays paused. A run another process took over writes nothing.
    */
   private async record(
     userId: string,
+    runId: string,
     failures: ProjectFolderMigrationFailure[],
-    outcome: "stopped" | "waiting" | "finished" = "stopped"
+    outcome: StepsOutcome
   ): Promise<void> {
     const recorded = await updateStored(userId, (current) => {
-      if (!current) return current;
+      if (!current || current.run_id !== runId) return current;
       const next: StoredState = {
         ...current,
         failures: failures.slice(0, MAX_STORED_FAILURES),
@@ -590,18 +856,43 @@ export class ProjectFolderMigrationRunner {
       };
       if (current.state === "running" && outcome !== "stopped") {
         next.state = outcome === "finished" ? "done" : "confirmed";
+        next.run_id = null;
+        Object.assign(next, ownedNow());
       }
       return next;
     });
     if (outcome === "waiting" && recorded?.state === "confirmed") {
-      const timer = setTimeout(() => {
-        this.restarts.delete(timer);
-        void this.idle(userId).then(() => this.start(userId));
-      }, Math.max(this.job.settleMs, MIN_RESTART_MS));
-      // A server keeps running. A command reports the unfinished state.
-      timer.unref?.();
-      this.restarts.add(timer);
+      this.restartLater(userId, Math.max(this.job.settleMs, MIN_RESTART_MS));
     }
+  }
+
+  /**
+   * A run that threw gives the state back as `confirmed` and starts again
+   * later. Every step is idempotent, so the next run continues.
+   */
+  private async recover(userId: string, runId: string, error: unknown): Promise<void> {
+    log.warn("The project folder migration stopped on an error and starts again later", {
+      userId,
+      error: error instanceof Error ? error.message : String(error)
+    });
+    const released = await updateStored(userId, (current) =>
+      current?.state === "running" && current.run_id === runId
+        ? { ...current, state: "confirmed", run_id: null, ...ownedNow() }
+        : current
+    );
+    if (released?.state === "confirmed") this.restartLater(userId, this.errorRestartMs);
+  }
+
+  private restartLater(userId: string, ms: number): void {
+    this.restartPending.add(userId);
+    const timer = setTimeout(() => {
+      this.restarts.delete(timer);
+      this.restartPending.delete(userId);
+      void this.idle(userId).then(() => this.start(userId));
+    }, ms);
+    // A server keeps running. A command reports the unfinished state.
+    timer.unref?.();
+    this.restarts.add(timer);
   }
 }
 
@@ -610,34 +901,59 @@ export const projectFolderMigrationRunner = new ProjectFolderMigrationRunner();
 
 // ── Transitions ─────────────────────────────────────────────────────────────
 
-/** The user's migration as a client shows it. */
+/**
+ * The user's migration as a client shows it, as the server answers it. With
+ * `NODETOOL_PROJECT_MIGRATION=auto` it confirms for a user who has not
+ * answered, a user with nothing to move is recorded as done, and a migration
+ * another process left is continued.
+ */
 export async function getMigrationStatus(
   userId: string,
   runner: ProjectFolderMigrationRunner = projectFolderMigrationRunner
 ): Promise<ProjectFolderMigrationStatus> {
-  const progress = runner.progress(userId);
-  if (!projectFolderMigrationApplies()) {
-    return statusOf(storedState.parse({ state: "done", nothing_to_move: true }), 0, progress);
-  }
-  let stored = await readStored(userId);
-  if (!stored && projectFolderMigrationAutoConfirms()) {
+  if (!projectFolderMigrationApplies()) return unaskedStatus(runner, userId);
+  let stored = (await readStored(userId)) ?? (await recordNothingToMove(userId));
+  if (projectFolderMigrationAutoConfirms() && awaitsAnswer(stored)) {
     stored = await confirmAutomatically(userId, runner);
   }
-  if (!stored) {
-    if (!hasWork(await countWork(userId))) {
-      stored = await updateStored(userId, (current) =>
-        current ?? storedState.parse({ state: "done", nothing_to_move: true })
-      );
-    }
-  }
-  const state = stored ?? NOT_STARTED;
+  await runner.continueIfStalled(userId);
+  return statusFor(userId, stored, runner);
+}
+
+/**
+ * The user's migration as a client shows it, without changing anything. For
+ * a preview such as `nodetool projects migrate` without `--yes`.
+ */
+export async function readMigrationStatus(
+  userId: string,
+  runner: ProjectFolderMigrationRunner = projectFolderMigrationRunner
+): Promise<ProjectFolderMigrationStatus> {
+  if (!projectFolderMigrationApplies()) return unaskedStatus(runner, userId);
+  let stored = await readStored(userId);
+  if (!stored && !hasWork(await countWork(userId))) stored = NOTHING_TO_MOVE;
+  return statusFor(userId, stored, runner);
+}
+
+function unaskedStatus(
+  runner: ProjectFolderMigrationRunner,
+  userId: string
+): ProjectFolderMigrationStatus {
+  return statusOf(NOTHING_TO_MOVE, 0, runner.progress(userId));
+}
+
+async function statusFor(
+  userId: string,
+  stored: StoredState | null,
+  runner: ProjectFolderMigrationRunner
+): Promise<ProjectFolderMigrationStatus> {
+  const state = (await readStored(userId)) ?? stored ?? NOT_STARTED;
   const counting =
     state.state === "confirmed" ||
     state.state === "running" ||
     state.state === "paused" ||
     (state.state === "done" && !state.nothing_to_move);
   const remaining = counting ? await Asset.countAwaitingFolderMove(userId) : 0;
-  return statusOf(state, remaining, progress);
+  return statusOf(state, remaining, runner.progress(userId));
 }
 
 function statusOf(
@@ -670,7 +986,7 @@ export async function showMigrationPlan(
   userId: string,
   location?: string
 ): Promise<ProjectFolderMigrationPlan> {
-  requireApplies();
+  await requireMigrationApplies(userId);
   const plan = await buildMigrationPlan(userId, location);
   await updateStored(userId, (current) =>
     current === null || current.state === "not_started"
@@ -692,14 +1008,14 @@ interface ConfirmOptions {
 /**
  * Confirm the migration and start it. Requires `plan_shown`, except for the
  * automatic path, which may confirm from `not_started`. A chosen location
- * must be an absolute path to an existing, writable directory, and becomes
- * the user's `PROJECTS_DIR` setting.
+ * must be an absolute path to an existing directory this process can write
+ * a file in, and becomes the user's `PROJECTS_DIR` setting.
  */
 export async function confirmMigration(
   userId: string,
   options: ConfirmOptions = {}
 ): Promise<ProjectFolderMigrationStatus> {
-  requireApplies();
+  await requireMigrationApplies(userId);
   const runner = options.runner ?? projectFolderMigrationRunner;
   const by = options.by ?? "user";
   const row = await Setting.find(userId, PROJECT_FOLDER_MIGRATION_SETTING);
@@ -714,15 +1030,16 @@ export async function confirmMigration(
     );
   }
   const location = await describeMigrationLocation(userId, options.location);
-  if (location.error) {
-    throw new ProjectFolderMigrationError("invalid_location", location.error);
-  }
+  const error = location.error ?? (await probeWritable(location.path));
+  if (error) throw new ProjectFolderMigrationError("invalid_location", error);
   const confirmed: StoredState = {
     ...current,
     state: "confirmed",
     location: location.path,
     confirmed_by: by,
-    total_assets: await Asset.countAwaitingFolderMove(userId)
+    total_assets: await Asset.countAwaitingFolderMove(userId),
+    run_id: null,
+    ...ownedNow()
   };
   const writes = [
     { key: PROJECT_FOLDER_MIGRATION_SETTING, value: JSON.stringify(confirmed) }
@@ -745,7 +1062,7 @@ export async function confirmMigration(
   );
   if (!committed) refuse("The migration changed while it was being confirmed");
   if (options.start !== false) void runner.start(userId);
-  return getMigrationStatus(userId, runner);
+  return readMigrationStatus(userId, runner);
 }
 
 async function confirmAutomatically(
@@ -769,14 +1086,14 @@ export async function pauseMigration(
   userId: string,
   runner: ProjectFolderMigrationRunner = projectFolderMigrationRunner
 ): Promise<ProjectFolderMigrationStatus> {
-  requireApplies();
+  await requireMigrationApplies(userId);
   await updateStored(userId, (current) => {
     if (current?.state !== "running" && current?.state !== "confirmed") {
       refuse("Only a migration that is under way can be paused");
     }
     return { ...current, state: "paused" };
   });
-  return getMigrationStatus(userId, runner);
+  return readMigrationStatus(userId, runner);
 }
 
 /** Continue a paused migration. */
@@ -784,15 +1101,15 @@ export async function resumeMigration(
   userId: string,
   runner: ProjectFolderMigrationRunner = projectFolderMigrationRunner
 ): Promise<ProjectFolderMigrationStatus> {
-  requireApplies();
+  await requireMigrationApplies(userId);
   await updateStored(userId, (current) => {
     if (current?.state !== "paused") refuse("Only a paused migration can be resumed");
-    return { ...current, state: "confirmed" };
+    return { ...current, state: "confirmed", run_id: null, ...ownedNow() };
   });
   // A run of this process may still be finishing its current asset. The next
   // one starts once it has.
   void runner.idle(userId).then(() => runner.start(userId));
-  return getMigrationStatus(userId, runner);
+  return readMigrationStatus(userId, runner);
 }
 
 /** Try every failed asset and project again. */
@@ -801,7 +1118,7 @@ export async function retryMigration(
   runner: ProjectFolderMigrationRunner = projectFolderMigrationRunner,
   job: ProjectAssetMoveJob = projectAssetMoveJob
 ): Promise<ProjectFolderMigrationStatus> {
-  requireApplies();
+  await requireMigrationApplies(userId);
   await updateStored(userId, (current) => {
     if (current?.state !== "done" && current?.state !== "running") {
       refuse("Only a started migration can be retried");
@@ -812,12 +1129,14 @@ export async function retryMigration(
       state: "confirmed",
       failures: [],
       failure_count: 0,
-      dismissed: false
+      dismissed: false,
+      run_id: null,
+      ...ownedNow()
     };
   });
   job.forgetFailures();
   void runner.idle(userId).then(() => runner.start(userId));
-  return getMigrationStatus(userId, runner);
+  return readMigrationStatus(userId, runner);
 }
 
 /** Hide the finished state in the client. */
@@ -825,12 +1144,12 @@ export async function dismissMigration(
   userId: string,
   runner: ProjectFolderMigrationRunner = projectFolderMigrationRunner
 ): Promise<ProjectFolderMigrationStatus> {
-  requireApplies();
+  await requireMigrationApplies(userId);
   await updateStored(userId, (current) => {
     if (current?.state !== "done") refuse("Only a finished migration can be dismissed");
     return { ...current, dismissed: true };
   });
-  return getMigrationStatus(userId, runner);
+  return readMigrationStatus(userId, runner);
 }
 
 // ── Hosts ───────────────────────────────────────────────────────────────────
@@ -860,10 +1179,12 @@ export async function runMigrationSteps(
 /**
  * Server startup. Where the migration does not ask, the bulk steps run for
  * every user. Otherwise each user's state decides: a confirmed or running
- * migration continues, a finished one runs the steps again for anything new,
- * a paused one waits, and a user with nothing to move is recorded as done.
- * `NODETOOL_PROJECT_MIGRATION=auto` confirms for every user that has not
- * answered. Returns once every run is started, not finished.
+ * migration that no live process works on continues, a finished one runs the
+ * steps again for anything new, a paused one waits, and a user with nothing
+ * to move is recorded as done. `NODETOOL_PROJECT_MIGRATION=auto` confirms for
+ * every user that has not answered. From then on the runner looks for
+ * migrations another process left. Returns once every run is started, not
+ * finished.
  */
 export async function startProjectFolderMigration(
   runner: ProjectFolderMigrationRunner = projectFolderMigrationRunner
@@ -877,30 +1198,16 @@ export async function startProjectFolderMigration(
     users.add(row.user_id);
   }
   for (const userId of users) {
-    const stored = await readStored(userId);
-    if (!stored) {
-      if (projectFolderMigrationAutoConfirms()) {
-        await confirmAutomatically(userId, runner);
-      } else if (!hasWork(await countWork(userId))) {
-        await updateStored(userId, (current) =>
-          current ?? storedState.parse({ state: "done", nothing_to_move: true })
-        );
-      }
-      continue;
-    }
-    if (stored.state === "confirmed" || stored.state === "running") {
-      // A run that a stopped server left `running` continues. The runner
-      // moves `confirmed` to `running` itself.
-      if (stored.state === "running") {
-        await updateStored(userId, (current) =>
-          current?.state === "running" ? { ...current, state: "confirmed" } : current
-        );
-      }
-      void runner.start(userId);
-    } else if (stored.state === "done") {
+    const stored = (await readStored(userId)) ?? (await recordNothingToMove(userId));
+    if (projectFolderMigrationAutoConfirms() && awaitsAnswer(stored)) {
+      await confirmAutomatically(userId, runner);
+    } else if (stored?.state === "done" && !stored.nothing_to_move) {
       void runMigrationSteps(userId).catch(logStepFailure);
+    } else {
+      await runner.continueIfStalled(userId);
     }
   }
+  runner.watch();
 }
 
 function logStepFailure(error: unknown): void {
@@ -912,9 +1219,11 @@ function logStepFailure(error: unknown): void {
 
 /**
  * `nodetool projects migrate --yes`: show the plan when nobody has, confirm
- * it, and run the migration to the end in this process. A confirmed or
- * running migration is continued. A paused one is refused, because the user
- * paused it in the app.
+ * it, and run the migration to the end in this process. A confirmed
+ * migration is continued. A running one is continued once its process has
+ * stopped, or reported once it ends. A paused one is refused, because the
+ * user paused it in the app. Where the migration does not ask, the steps run
+ * without a state and the status lists what failed.
  */
 export async function runMigrationToEnd(
   userId: string,
@@ -922,13 +1231,31 @@ export async function runMigrationToEnd(
 ): Promise<ProjectFolderMigrationStatus> {
   const runner = options.runner ?? projectFolderMigrationRunner;
   if (!projectFolderMigrationApplies()) {
-    await runMigrationSteps(userId);
-    await projectAssetMoveJob.idle();
-    return getMigrationStatus(userId, runner);
+    const before = await Asset.countAwaitingFolderMove(userId);
+    const { failures, outcome } = await runner.runUnasked(userId);
+    const remaining = await Asset.countAwaitingFolderMove(userId);
+    return {
+      ...statusOf(NOTHING_TO_MOVE, remaining, null),
+      state: outcome === "finished" ? "done" : "confirmed",
+      progress: { done: Math.max(0, before - remaining), total: before, phase: null, current_project: null },
+      failures: failures.slice(0, MAX_STORED_FAILURES),
+      failure_count: failures.length
+    };
   }
   let stored = (await readStored(userId)) ?? NOT_STARTED;
   if (stored.state === "paused") {
     refuse("The migration is paused. Resume it in NodeTool first");
+  }
+  if (
+    options.location !== undefined &&
+    stored.state !== "not_started" &&
+    stored.state !== "plan_shown" &&
+    normalizeLocation(options.location) !== stored.location
+  ) {
+    refuse(
+      `The migration was confirmed with ${stored.location ?? "the configured folder"}. ` +
+        "A location can only be chosen before it is confirmed"
+    );
   }
   if (stored.state === "not_started") {
     await showMigrationPlan(userId, options.location);
@@ -940,13 +1267,21 @@ export async function runMigrationToEnd(
       start: false,
       runner
     });
-  } else if (stored.state === "running") {
-    // Another process may hold it, or one that stopped. Both continue from
-    // the database, and every asset step takes the folder lock.
-    await updateStored(userId, (current) =>
-      current?.state === "running" ? { ...current, state: "confirmed" } : current
-    );
   }
-  await runner.start(userId);
-  return getMigrationStatus(userId, runner);
+  // Run a confirmed migration once. A run of another process continues
+  // there: wait for it to end, or take it over once that process stopped.
+  let ran = false;
+  for (;;) {
+    const current = await readStored(userId);
+    if (current?.state === "confirmed" && !ran) {
+      ran = true;
+      await runner.start(userId);
+      continue;
+    }
+    if (current?.state !== "running") break;
+    await runner.continueIfStalled(userId);
+    await runner.idle(userId);
+    if ((await readStored(userId))?.state === "running") await delay(FOREIGN_RUN_POLL_MS);
+  }
+  return readMigrationStatus(userId, runner);
 }
