@@ -1546,6 +1546,32 @@ fixtures, and one timeline with a ready, pending (held encode), failed and
 absent proxy. A second server whose `ffmpeg` hides libx264 makes a VP9 proxy
 (`scripts/fake-ffmpeg.sh`). The script writes only to these servers.
 
+## Cloud timelines
+
+```bash
+./build-m5/nodetool-timeline --cloud-server https://api.nodetool.ai --cloud-timeline <id> [--cloud-role editor]
+```
+
+The Open timeline list shows the Cloud and Shared with me groups of the
+account signed in to the current server. A chosen timeline opens in a new
+window with these options. The window reads the timeline and its media from
+the cloud server with the account's access token, which it reads at start
+(`AccountController::readSession`). It refuses an address that is not HTTPS
+and a `--token`, so the local server's token never goes to the cloud.
+
+A cloud timeline has no server save target. `CloudTimelineSaver`
+(`src/account/`) hands each committed edit to `CloudDocument`, which writes it
+to the local drafts of the window's local server (`NODETOOL_SERVER_URL`) and
+then sends it with `timeline.update`. The document bar shows the cloud
+status in place of the save status. A draft this account left on this
+computer is applied as one `restoreDocument` edit after its media is
+resolved, unless the person edited first.
+
+Frame rate and size edits of a cloud timeline are not sent yet. The media
+resolvers and take switching need a server save target, so they do not run
+for a cloud timeline, and the recent list does not record cloud timelines. A
+viewer's window still accepts edits, which `CloudDocument` does not keep.
+
 ## Project folders
 
 Every project has a folder ([PRD](../../docs/project-folders/prd.md)). The

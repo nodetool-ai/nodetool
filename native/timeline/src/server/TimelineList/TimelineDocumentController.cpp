@@ -24,6 +24,37 @@ TimelineDocumentController::TimelineDocumentController(QObject* parent)
     : QObject(parent), m_list(listTarget().server, listTarget().token, listTarget().expectedInstance, this) {
     connect(&m_list, &TimelineListController::openRequested, this, &TimelineDocumentController::switchTo);
 }
+TimelineDocumentController::~TimelineDocumentController() = default;
+QObject* TimelineDocumentController::accountServers() const { return m_servers; }
+QObject* TimelineDocumentController::cloudBrowser() const { return m_cloud.get(); }
+void TimelineDocumentController::setAccountServers(QObject* object) {
+    namespace account = nodetool::account::qt;
+    auto* servers = qobject_cast<account::AccountServers*>(object);
+    if (m_servers == servers) {
+        return;
+    }
+    if (m_servers) {
+        disconnect(m_servers, nullptr, this, nullptr);
+    }
+    m_servers = servers;
+    m_cloud.reset();
+    if (servers) {
+        m_cloud = std::make_unique<account::CloudBrowser>("timeline");
+        m_cloud->setAccount(servers->current());
+        connect(servers, &account::AccountServers::currentChanged, this, [this] {
+            if (m_cloud && m_servers) {
+                m_cloud->setAccount(m_servers->current());
+            }
+        });
+        connect(m_cloud.get(), &account::CloudBrowser::openRequested, this,
+                [this](const QString& kind, const QString& id, const QString&, const QString& role) {
+                    if (kind == u"timeline") {
+                        openCloud(id, role);
+                    }
+                });
+    }
+    emit cloudChanged();
+}
 void TimelineDocumentController::setAnchor(QQuickItem* anchor) {
     if (m_anchor == anchor) {
         return;
@@ -128,18 +159,45 @@ void TimelineDocumentController::createAndOpen() {
     }
     m_list.openTimeline(created.value("id").toString());
 }
+bool TimelineDocumentController::leaveCurrent() {
+    bind();
+    if (!m_menus || !m_menus->preferences()) {
+        fail(QStringLiteral("Could not access timeline preferences. Try opening the timeline again."));
+        return false;
+    }
+    if (auto* save = findAutosave(); save && !save->flushBeforeQuit(5000)) {
+        fail(QStringLiteral("Could not save the current timeline. %1").arg(save->lastError()));
+        return false;
+    }
+    return true;
+}
+void TimelineDocumentController::openCloud(const QString& id, const QString& role) {
+    if (m_switching || !m_anchor || !m_anchor->window() || !m_servers || !m_servers->current()) {
+        return;
+    }
+    const QScopedValueRollback switching(m_switching, true);
+    if (m_servers->current()->state() != nodetool::account::qt::AccountController::State::SignedIn) {
+        fail(QStringLiteral("Sign in to open a cloud timeline."));
+        return;
+    }
+    if (!leaveCurrent()) {
+        return;
+    }
+    QStringList arguments{QStringLiteral("--cloud-server"), m_servers->currentServer(), QStringLiteral("--cloud-timeline"),
+                          id, QStringLiteral("--cloud-role"), role.isEmpty() ? QStringLiteral("owner") : role};
+    // The new window keeps its drafts on this window's local server.
+    auto environment = timelineLaunchEnvironment(listTarget());
+    if (!listTarget().server.isEmpty()) {
+        environment.insert(QStringLiteral("NODETOOL_SERVER_URL"), listTarget().server.toString());
+    }
+    launch(std::move(arguments), environment);
+}
 void TimelineDocumentController::switchTo(const QString& source) {
     if (m_switching || !m_anchor || !m_anchor->window()) {
         return;
     }
     const QScopedValueRollback switching(m_switching, true);
-    bind();
-    if (!m_menus || !m_menus->preferences()) {
-        fail(QStringLiteral("Could not access timeline preferences. Try opening the timeline again."));
-        return;
-    }
-    if (auto* save = findAutosave(); save && !save->flushBeforeQuit(5000)) {
-        fail(QStringLiteral("Could not save the current timeline. %1").arg(save->lastError()));
+    if (!leaveCurrent()) {
         return;
     }
     const QUrl url(source);
@@ -147,6 +205,18 @@ void TimelineDocumentController::switchTo(const QString& source) {
     const auto server = url.adjusted(QUrl::RemoveFragment);
     const QVariantMap entry{{"kind", "server"}, {"server", server.toString()}, {"timelineId", id}};
     auto arguments = nt::app::recentTimelineArguments(entry);
+    QString label = QStringLiteral("Untitled video");
+    for (const auto& value : m_list.documents()) {
+        const auto row = value.toMap();
+        if (row.value("id").toString() == id && !row.value("name").toString().isEmpty()) {
+            label = row.value("name").toString();
+            break;
+        }
+    }
+    m_menus->preferences()->addRecentServer(label, {server, {}, id, {}, {}});
+    launch(std::move(arguments), timelineLaunchEnvironment(listTarget()));
+}
+void TimelineDocumentController::launch(QStringList arguments, const QProcessEnvironment& environment) {
     // The new window keeps this one's audio output and decoder, so a run
     // started with --audio null (no sound device) does not die at launch.
     const auto own = QCoreApplication::arguments();
@@ -159,15 +229,6 @@ void TimelineDocumentController::switchTo(const QString& source) {
             }
         }
     }
-    QString label = QStringLiteral("Untitled video");
-    for (const auto& value : m_list.documents()) {
-        const auto row = value.toMap();
-        if (row.value("id").toString() == id && !row.value("name").toString().isEmpty()) {
-            label = row.value("name").toString();
-            break;
-        }
-    }
-    m_menus->preferences()->addRecentServer(label, {server, {}, id, {}, {}});
     bool started = false;
     const auto capture = qEnvironmentVariable("NT_TIMELINE_SWITCH_CAPTURE");
     if (!capture.isEmpty() && qEnvironmentVariableIsSet("NT_TIMELINE_DOCUMENT_CHECK")) {
@@ -181,7 +242,7 @@ void TimelineDocumentController::switchTo(const QString& source) {
         QProcess child;
         child.setProgram(nt::server::appRelaunchProgram());
         child.setArguments(arguments);
-        child.setProcessEnvironment(timelineLaunchEnvironment(listTarget()));
+        child.setProcessEnvironment(environment);
         started = child.startDetached();
     }
     if (!started) {

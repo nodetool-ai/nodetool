@@ -186,6 +186,46 @@ DraftList LocalServerDraftStore::list(const std::string& serverKey, const std::s
   return out;
 }
 
+namespace {
+
+// Thread affinity: as LocalServerDraftStore. Owns the transport the store
+// borrows. The store is declared after it, so it ends first.
+class OwningLocalServerDraftStore final : public DraftStore {
+public:
+  OwningLocalServerDraftStore(std::unique_ptr<HttpTransport> transport, std::string localOrigin,
+                              std::vector<std::pair<std::string, std::string>> headers)
+      : transport_(std::move(transport)), store_(*transport_, std::move(localOrigin), std::move(headers)) {}
+
+  std::optional<std::string> put(const CloudDocumentKey& key, const CloudBase& base,
+                                 const std::string& draft) override {
+    return store_.put(key, base, draft);
+  }
+  std::optional<AcceptOutcome> accept(const CloudDocumentKey& key, const std::string& draftId,
+                                      const CloudBase& sentBase, const CloudBase& base, const std::string& role,
+                                      const CloudDocumentOptions& options) override {
+    return store_.accept(key, draftId, sentBase, base, role, options);
+  }
+  bool markUnsent(const CloudDocumentKey& key, const std::string& draftId, const std::string& reason) override {
+    return store_.markUnsent(key, draftId, reason);
+  }
+  DraftLoad load(const CloudDocumentKey& key) override { return store_.load(key); }
+  DraftList list(const std::string& serverKey, const std::string& accountId) override {
+    return store_.list(serverKey, accountId);
+  }
+
+private:
+  std::unique_ptr<HttpTransport> transport_;
+  LocalServerDraftStore store_;
+};
+
+} // namespace
+
+std::unique_ptr<DraftStore> makeLocalServerDraftStore(std::unique_ptr<HttpTransport> transport, std::string localOrigin,
+                                                      std::vector<std::pair<std::string, std::string>> headers) {
+  return std::make_unique<OwningLocalServerDraftStore>(std::move(transport), std::move(localOrigin),
+                                                       std::move(headers));
+}
+
 std::string newEditingInstance() {
   const std::vector<uint8_t> bytes = randomBytes(16);
   return hexEncode(bytes.data(), bytes.size());
@@ -199,6 +239,9 @@ CloudDocumentSaver::CloudDocumentSaver(DraftStore& store, CloudSaver& cloud, Sto
     : store_(store), cloud_(cloud), key_(resumed.key), editingInstance_(newEditingInstance()), base_(resumed.base) {
   storedId_ = resumed.draftId;
   storedDraft_ = std::move(resumed.draft);
+  // The store keeps the draft, not the edits in it. It counts as one.
+  editCount_ = 1;
+  storedEdits_ = 1;
   if (resumed.state == DraftState::Waiting) {
     sendPending_ = true;
     state_.status = DocumentStatus::ChangesWaiting;
@@ -229,14 +272,25 @@ void CloudDocumentSaver::publishLocked(DocumentStatus status) {
 }
 
 void CloudDocumentSaver::persist(int64_t nowMs) {
+  write(nowMs, false);
+}
+
+bool CloudDocumentSaver::flush(int64_t nowMs) {
+  return write(nowMs, true);
+}
+
+bool CloudDocumentSaver::write(int64_t nowMs, bool force) {
   std::optional<std::string> toWrite;
   CloudBase base;
   uint64_t editsAtTake = 0;
   {
     const std::lock_guard lock(mutex_);
+    if (!unstored_) {
+      return true;
+    }
     const bool due = nowMs - lastEditMs_ >= kDraftIdleMs || nowMs - firstUnstoredMs_ >= kDraftForceMs;
-    if (!unstored_ || !due || nowMs < nextWriteMs_) {
-      return;
+    if (!force && (!due || nowMs < nextWriteMs_)) {
+      return false;
     }
     toWrite = *unstored_;
     base = base_;
@@ -249,11 +303,12 @@ void CloudDocumentSaver::persist(int64_t nowMs) {
     writeFailing_ = true;
     publishLocked(DocumentStatus::NotSaving);
     nextWriteMs_ = nowMs + kDraftRetryMs;
-    return;
+    return false;
   }
   writeFailing_ = false;
   storedId_ = *id;
   storedDraft_ = std::move(*toWrite);
+  storedEdits_ = editsAtTake;
   sendPending_ = true;
   nextSendMs_ = std::min(nextSendMs_, nowMs);
   nextWriteMs_ = 0;
@@ -266,6 +321,7 @@ void CloudDocumentSaver::persist(int64_t nowMs) {
     firstUnstoredMs_ = nowMs;
   }
   publishLocked(DocumentStatus::Sending);
+  return !unstored_;
 }
 
 bool CloudDocumentSaver::recordAcceptance(const Sent& sent, int64_t nowMs) {
@@ -282,6 +338,7 @@ bool CloudDocumentSaver::recordAcceptance(const Sent& sent, int64_t nowMs) {
   }
   recordFailing_ = false;
   unrecorded_.reset();
+  acceptedEdits_ = std::max(acceptedEdits_, sent.edits);
   const bool latest = storedId_ == sent.draftId;
   if (latest) {
     storedId_.reset();
@@ -329,6 +386,7 @@ void CloudDocumentSaver::send(int64_t nowMs) {
     } else if (sendPending_ && storedId_) {
       sent.draftId = *storedId_;
       sent.sentBase = base_;
+      sent.edits = storedEdits_;
       draft = storedDraft_;
     } else {
       return;
@@ -383,7 +441,9 @@ void CloudDocumentSaver::send(int64_t nowMs) {
 
 DocumentState CloudDocumentSaver::state() const {
   const std::lock_guard lock(mutex_);
-  return state_;
+  DocumentState out = state_;
+  out.waitingEdits = editCount_ - acceptedEdits_;
+  return out;
 }
 
 } // namespace nodetool::account

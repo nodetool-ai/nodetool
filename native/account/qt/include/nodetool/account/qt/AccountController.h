@@ -31,6 +31,10 @@ class AccountSession;
 
 namespace nodetool::account::qt {
 
+namespace detail {
+class TaskQueue;
+} // namespace detail
+
 // What an app hands the controller. Every member except the first three
 // has a default the apps use, and tests replace.
 struct AccountServices {
@@ -115,6 +119,11 @@ public:
   // controller is destroyed. When the policy turns the server off later,
   // the session gives no credential and renews none.
   std::shared_ptr<AccountSession> session() const;
+  // The signed-in session, read from `accounts.json` and the records now on
+  // the calling thread, for a start-up open that cannot wait for the
+  // controller's own read. It may block on the keychain. Null when no
+  // account is signed in to this server, or when the policy holds it back.
+  std::shared_ptr<AccountSession> readSession();
 
 signals:
   void changed();
@@ -148,10 +157,9 @@ private:
   void scheduleServerEnd();
   void onSignInFinished(bool signedIn, const QString& name, const QString& message);
 
-  class TaskThread;
   std::shared_ptr<Core> core_;
   // Runs the keychain reads, refreshes and server calls in order.
-  std::unique_ptr<TaskThread> tasks_;
+  std::unique_ptr<detail::TaskQueue> tasks_;
   // Waits for the browser. Joined before the next sign-in and by the
   // destructor, which cancels the wait first.
   std::thread signInThread_;

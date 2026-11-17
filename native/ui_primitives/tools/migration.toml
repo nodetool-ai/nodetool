@@ -2885,12 +2885,32 @@ replacement = "Synthetic timeline hit-testing fixture; no product chrome"
 [[file]]
 path = "native/account/qt/qml/AccountControl.qml"
 category = "chrome"
-controls = ["RowLayout", "Ui.Text", "Ui.EditorButton", "Ui.MenuButton", "Ui.ContextMenu", "Ui.MenuItem", "Basic.MenuSeparator", "Ui.Separator"]
+controls = ["RowLayout", "Ui.Text", "Ui.EditorButton", "Ui.MenuButton", "Ui.ContextMenu", "Ui.MenuItem", "Instantiator", "Basic.MenuSeparator", "Ui.Separator", "Ui.Dialog", "Ui.TextField"]
 signals = []
 test_host = "native/node-editor/tests/ui/AccountControlComponentTest.cpp"
 test_scope = "interaction"
 qml_callers = ["native/node-editor/qml/StatusBar.qml", "native/timeline/qml/DocumentBar.qml"]
-replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton, Ui.MenuButton, Ui.ContextMenu, Ui.MenuItem, Ui.Separator"
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton, Ui.MenuButton, Ui.ContextMenu, Ui.MenuItem, Ui.Separator, Ui.Dialog, Ui.TextField"
+
+[[file]]
+path = "native/account/qt/qml/CloudDocumentsPanel.qml"
+category = "chrome"
+controls = ["ColumnLayout", "RowLayout", "ListView", "Ui.PanelHeader", "Ui.Text", "Ui.ListRow", "Ui.Status", "Ui.ToolbarIconButton"]
+signals = ["openRequested"]
+test_host = "native/node-editor/tests/ui/AccountControlComponentTest.cpp"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.PanelHeader, Ui.Text, Ui.ListRow, Ui.Status, Ui.ToolbarIconButton"
+
+[[file]]
+path = "native/account/qt/qml/CloudSyncStatus.qml"
+category = "chrome"
+controls = ["Ui.Status"]
+signals = []
+test_host = "native/node-editor/tests/ui/AccountControlComponentTest.cpp"
+test_scope = "build"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Status"
 
 [[file]]
 path = "native/node-editor/qml/ActionPanel.qml"

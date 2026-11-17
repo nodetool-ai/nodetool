@@ -20,6 +20,7 @@
 
 #include <cstdint>
 #include <mutex>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -131,6 +132,11 @@ private:
   const std::vector<std::pair<std::string, std::string>> headers_;
 };
 
+// A LocalServerDraftStore that owns its transport, for an owner that hands
+// the store on, such as CloudDocumentServices.
+std::unique_ptr<DraftStore> makeLocalServerDraftStore(std::unique_ptr<HttpTransport> transport, std::string localOrigin,
+                                                      std::vector<std::pair<std::string, std::string>> headers = {});
+
 enum class SaveStatus { Ok, Refused, Offline, SignedOut };
 
 struct SaveResult {
@@ -181,6 +187,9 @@ struct DocumentState {
   // Milliseconds since the Unix epoch of the last answer from the cloud
   // server, 0 for none.
   int64_t lastContactMs = 0;
+  // Edits the server has not accepted yet: every edit since the last
+  // accepted save, or 1 for a draft resumed from the store.
+  uint64_t waitingEdits = 0;
 };
 
 // A draft is written once the edits pause for kDraftIdleMs, and at the
@@ -214,6 +223,11 @@ public:
   // retries a failed write. Call at least every 250 ms.
   void persist(int64_t nowMs);
 
+  // Writes the latest edit now, without waiting for the delay or a retry,
+  // such as when the document closes. Returns false when an edit is still
+  // only in memory.
+  bool flush(int64_t nowMs);
+
   // Step 3: sends the stored draft, records the acceptance or refusal
   // locally, and retries a failed step. A local record that failed is
   // retried alone, never by sending again. Call at least every 250 ms.
@@ -229,11 +243,16 @@ private:
     std::string draftId;
     CloudBase sentBase;
     SaveResult result;
+    // The edit count the sent draft holds.
+    uint64_t edits = 0;
   };
 
   // Sets the status, or Not saving while a local write fails. Call with
   // mutex_ held.
   void publishLocked(DocumentStatus status);
+  // persist() and flush(). `force` skips the delay and the retry wait.
+  // Returns false when an edit is still only in memory.
+  bool write(int64_t nowMs, bool force);
   // Records an acceptance. Returns false when the store did not commit.
   bool recordAcceptance(const Sent& sent, int64_t nowMs);
   // Records a refusal. Returns false when the store did not commit.
@@ -249,6 +268,9 @@ private:
   int64_t firstUnstoredMs_ = 0;
   int64_t lastEditMs_ = 0;
   uint64_t editCount_ = 0;
+  // The edit count of the stored draft, and of the newest accepted one.
+  uint64_t storedEdits_ = 0;
+  uint64_t acceptedEdits_ = 0;
   bool writeFailing_ = false;
   bool recordFailing_ = false;
   DocumentState state_;

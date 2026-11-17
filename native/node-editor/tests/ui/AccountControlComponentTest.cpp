@@ -1,10 +1,14 @@
 // AccountControl.qml and its place in StatusBar.qml, against a real
 // AccountController on a temporary data folder, an in-memory keychain and the
-// account library's fake token server. No EditorWindow, graph runner, QtNodes
-// or cloud server.
+// account library's fake token server, and CloudDocumentsPanel.qml against a
+// fake cloud transport. No EditorWindow, graph runner, QtNodes or cloud
+// server.
 #include "interfaces/PanelLayout.h"
 #include "interfaces/StatusModel.h"
+#include "server/WorkflowBrowser.h"
 #include "nodetool/account/qt/AccountController.h"
+#include "nodetool/account/qt/AccountServers.h"
+#include "nodetool/account/qt/CloudBrowser.h"
 #include "nodetool/account/qt/QtHttpTransport.h"
 #include "test_support.h"
 
@@ -16,6 +20,7 @@
 #include <QtQml/QQmlExtensionPlugin>
 #include <QtTest>
 
+#include <functional>
 #include <thread>
 
 Q_IMPORT_QML_PLUGIN(NodeTool_NodeEditorPlugin)
@@ -23,9 +28,12 @@ Q_IMPORT_QML_PLUGIN(NodeTool_NodeEditorPlugin)
 using nodetool::account::MemorySecretStore;
 using nodetool::account::ManagedPolicy;
 using nodetool::account::qt::AccountController;
+using nodetool::account::qt::AccountServers;
+using nodetool::account::qt::CloudBrowser;
 using nodetool::account::qt::AccountServices;
 using nodetool::node_editor::PanelLayout;
 using nodetool::node_editor::StatusModel;
+using nodetool::node_editor::WorkflowBrowser;
 
 namespace {
 
@@ -75,17 +83,33 @@ struct Computer {
     account_test::FakeTokenServer server{clock};
     ManagedPolicy policy;
 
-    std::unique_ptr<AccountController> app() {
+    AccountServices services(const std::string &origin = "https://nt.example") {
         AccountServices services;
         services.dataDir = data.path();
-        services.serverOrigin = "https://nt.example";
+        services.serverOrigin = origin;
         services.app = "node-editor";
         services.store = std::make_unique<MemorySecretStore>();
         services.endpoint = std::make_unique<Endpoint>(server);
         services.policy = [this] { return policy; };
         services.nowMs = clock.fn();
         services.signInTimeout = std::chrono::seconds(10);
-        return std::make_unique<AccountController>(std::move(services));
+        return services;
+    }
+
+    std::unique_ptr<AccountController> app() { return std::make_unique<AccountController>(services()); }
+};
+
+// The cloud server's lists. Thread-safe: it holds no mutable state.
+class ListTransport final : public nodetool::account::HttpTransport {
+public:
+    nodetool::account::HttpResponse send(const nodetool::account::HttpRequest &request) override {
+        if (request.url.find("/trpc/workflows.list") != std::string::npos) {
+            return {200, R"({"result":{"data":{"workflows":[{"id":"w1","name":"Launch film"}],"next":null}}})"};
+        }
+        if (request.url.find("/trpc/workflows.sharing.sharedWithMe") != std::string::npos) {
+            return {200, R"({"result":{"data":{"workflows":[{"id":"w2","name":"Team graph","shared_role":"viewer"}]}}})"};
+        }
+        return {404, "{}"};
     }
 };
 
@@ -184,8 +208,8 @@ private slots:
         QVERIFY(!named(root, "account-sign-in")->property("enabled").toBool());
     }
 
-    // The status bar shows the control only when the host gives it an
-    // account.
+    // The status bar shows the control only when the host gives it the
+    // account servers.
     void statusBarHostsTheControl() {
         StatusModel status;
         PanelLayout panels;
@@ -197,17 +221,165 @@ private slots:
             QVERIFY(!named(view.rootObject(), "status-account")->property("active").toBool());
         }
         Computer computer;
-        auto account = computer.app();
+        AccountServers servers(computer.data.path(), "https://nt.example",
+                               [&](const std::string &origin) { return computer.services(origin); });
         QQuickView view;
         view.setInitialProperties({{"status", QVariant::fromValue(&status)},
                                    {"panels", QVariant::fromValue(&panels)},
-                                   {"account", QVariant::fromValue(account.get())}});
+                                   {"accountServers", QVariant::fromValue(&servers)}});
         view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/StatusBar.qml"));
         QCOMPARE(view.status(), QQuickView::Ready);
         view.resize(1200, 28);
         view.show();
         QVERIFY(named(view.rootObject(), "status-account")->property("active").toBool());
         QTRY_VERIFY(shown(view.rootObject(), "account-sign-in"));
+        QTRY_VERIFY(shown(view.rootObject(), "account-server-button"));
+        QCOMPARE(named(view.rootObject(), "account-server-button")->property("text").toString(), QString("NodeTool Cloud"));
+    }
+
+    // Sign in to another server… asks for the address first, refuses one
+    // that is not HTTPS, then switches to the server and opens its sign-in.
+    void signsInToAnotherServer() {
+        Computer computer;
+        AccountServers servers(computer.data.path(), "https://nt.example",
+                               [&](const std::string &origin) { return computer.services(origin); });
+        QQuickView view;
+        view.setInitialProperties({{"account", QVariant::fromValue(servers.current())},
+                                   {"servers", QVariant::fromValue(&servers)}});
+        view.setResizeMode(QQuickView::SizeRootObjectToView);
+        view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/AccountControl.qml"));
+        QCOMPARE(view.status(), QQuickView::Ready);
+        view.resize(700, 320);
+        view.show();
+        auto *root = view.rootObject();
+        // The window binds `account` to the current server, as the status
+        // bar does.
+        connect(&servers, &AccountServers::currentChanged, root,
+                [&] { root->setProperty("account", QVariant::fromValue(servers.current())); });
+        QSignalSpy browser(&servers, &AccountServers::browserRequested);
+
+        click(view, named(root, "account-server-button"));
+        auto *add = root->findChild<QQuickItem *>("account-add-server");
+        QVERIFY(add);
+        click(view, add);
+        auto *address = root->findChild<QQuickItem *>("account-server-address");
+        QVERIFY(address);
+        QTRY_VERIFY(address->isVisible());
+        address->setProperty("text", "http://plain.example");
+        click(view, root->findChild<QQuickItem *>("account-server-continue"));
+        auto *error = root->findChild<QQuickItem *>("account-server-error");
+        QTRY_VERIFY(error && error->isVisible());
+        QCOMPARE(servers.currentServer(), QString("https://nt.example"));
+        QCOMPARE(browser.count(), 0);
+
+        address->setProperty("text", "team.example");
+        click(view, root->findChild<QQuickItem *>("account-server-continue"));
+        QTRY_COMPARE(servers.currentServer(), QString("https://team.example"));
+        QTRY_COMPARE(browser.count(), 1);
+        QCOMPARE(servers.current()->state(), AccountController::State::SigningIn);
+        QTRY_VERIFY(!address->isVisible());
+        QCOMPARE(named(root, "account-server-button")->property("text").toString(), QString("team.example"));
+        servers.current()->cancelSignIn();
+        QTRY_COMPARE(servers.current()->state(), AccountController::State::SignedOut);
+    }
+
+    // The Cloud and Shared with me groups list the signed-in account's
+    // documents and ask the app to open the one chosen.
+    void cloudDocumentsPanelLists() {
+        Computer computer;
+        computer.server.addCode("code-p", "u1", "Ada");
+        auto account = computer.app();
+        connect(account.get(), &AccountController::browserRequested, this,
+                [](const QUrl &url) { std::thread([url] { completeInBrowser(url, "code-p"); }).detach(); });
+        account->signIn();
+        QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+        CloudBrowser browser("workflow", std::make_unique<ListTransport>());
+        browser.setAccount(account.get());
+
+        QQuickView view;
+        view.setInitialProperties({{"browser", QVariant::fromValue(&browser)}});
+        view.setResizeMode(QQuickView::SizeRootObjectToView);
+        view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/CloudDocumentsPanel.qml"));
+        QCOMPARE(view.status(), QQuickView::Ready);
+        view.resize(400, 400);
+        view.show();
+        auto *root = view.rootObject();
+        QTRY_COMPARE(named(root, "cloud-documents")->property("count").toInt(), 1);
+        QTRY_COMPARE(named(root, "shared-documents")->property("count").toInt(), 1);
+        QVERIFY(!shown(root, "cloud-documents-signed-out"));
+
+        QSignalSpy open(root, SIGNAL(openRequested(QString, QString, QString, QString)));
+        // Delegates belong to the list's content item, not its QObject tree.
+        std::function<QQuickItem *(QQuickItem *)> rowOf = [&](QQuickItem *item) -> QQuickItem * {
+            if (item->property("documentId").toString() == "w2") {
+                return item;
+            }
+            for (auto *child : item->childItems()) {
+                if (auto *found = rowOf(child)) {
+                    return found;
+                }
+            }
+            return nullptr;
+        };
+        click(view, rowOf(named(root, "shared-documents")));
+        QTRY_COMPARE(open.count(), 1);
+        QCOMPARE(open.at(0).at(1).toString(), QString("w2"));
+        QCOMPARE(open.at(0).at(3).toString(), QString("viewer"));
+
+        account->signOut();
+        QTRY_VERIFY(shown(root, "cloud-documents-signed-out"));
+        QTRY_COMPARE(named(root, "cloud-documents")->property("count").toInt(), 0);
+    }
+
+    // The workflow browser shows the cloud groups below the workflows on
+    // this computer, and a chosen row reaches the window through the
+    // CloudBrowser.
+    void workflowBrowserHostsTheCloudGroups() {
+        Computer computer;
+        computer.server.addCode("code-w", "u1", "Ada");
+        auto account = computer.app();
+        connect(account.get(), &AccountController::browserRequested, this,
+                [](const QUrl &url) { std::thread([url] { completeInBrowser(url, "code-w"); }).detach(); });
+        account->signIn();
+        QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+        CloudBrowser cloud("workflow", std::make_unique<ListTransport>());
+        cloud.setAccount(account.get());
+        QSignalSpy open(&cloud, &CloudBrowser::openRequested);
+
+        WorkflowBrowser browser;
+        PanelLayout panels;
+        StatusModel status;
+        status.setStatus({.connected = true});
+        QQuickView view;
+        view.setInitialProperties({{"browser", QVariant::fromValue(&browser)},
+                                   {"panels", QVariant::fromValue(&panels)},
+                                   {"status", QVariant::fromValue(&status)},
+                                   {"cloudBrowser", QVariant::fromValue(&cloud)}});
+        view.setResizeMode(QQuickView::SizeRootObjectToView);
+        view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/WorkflowBrowser.qml"));
+        QCOMPARE(view.status(), QQuickView::Ready);
+        view.resize(360, 700);
+        view.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&view));
+        auto *root = view.rootObject();
+        QTRY_VERIFY(named(root, "cloud-documents") != nullptr);
+        QTRY_COMPARE(named(root, "cloud-documents")->property("count").toInt(), 1);
+        std::function<QQuickItem *(QQuickItem *)> rowOf = [&](QQuickItem *item) -> QQuickItem * {
+            if (item->property("documentId").toString() == "w1") {
+                return item;
+            }
+            for (auto *child : item->childItems()) {
+                if (auto *found = rowOf(child)) {
+                    return found;
+                }
+            }
+            return nullptr;
+        };
+        click(view, rowOf(named(root, "cloud-documents")));
+        QTRY_COMPARE(open.count(), 1);
+        QCOMPARE(open.at(0).at(0).toString(), QString("workflow"));
+        QCOMPARE(open.at(0).at(1).toString(), QString("w1"));
+        QCOMPARE(open.at(0).at(3).toString(), QString("owner"));
     }
 };
 

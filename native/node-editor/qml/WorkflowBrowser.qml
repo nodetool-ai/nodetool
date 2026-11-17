@@ -14,6 +14,9 @@ Rectangle {
     required property StatusModel status
     // The folder of the tab's project, or null in a host that shows none.
     property ProjectFolder folder: null
+    // The Cloud and Shared with me groups of the account the window uses, or
+    // null in a host without cloud documents.
+    property CloudBrowser cloudBrowser: null
     EditorRoles { id: roles }
     color: roles.panel
     implicitWidth: Ui.Metrics.dialogCompactWidth
@@ -384,6 +387,18 @@ Rectangle {
                     }
                 }
                 Ui.EditorButton { objectName: "load-more-workflows"; text: "Load more workflows"; Layout.fillWidth: true; visible: root.browser.hasNext; enabled: !root.pending; onClicked: root.browser.loadNext() }
+                // The account's cloud workflows below the ones on this computer.
+                Loader {
+                    objectName: "workflow-browser-cloud"
+                    Layout.fillWidth: true
+                    Layout.topMargin: Ui.Metrics.lg
+                    active: root.cloudBrowser !== null
+                    visible: active
+                    sourceComponent: CloudDocumentsPanel {
+                        browser: root.cloudBrowser
+                        onOpenRequested: (kind, documentId, name, role) => root.cloudBrowser.requestOpen(kind, documentId, name, role)
+                    }
+                }
             }
         }
     }

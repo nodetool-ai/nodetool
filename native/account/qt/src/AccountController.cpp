@@ -7,6 +7,7 @@
 #include "nodetool/account/origin.h"
 #include "nodetool/account/qt/QtHttpTransport.h"
 #include "nodetool/account/sign_in.h"
+#include "TaskQueue.h"
 
 #include <QFileInfo>
 #include <QStandardPaths>
@@ -14,7 +15,6 @@
 #include <QSysInfo>
 
 #include <atomic>
-#include <condition_variable>
 #include <deque>
 #include <mutex>
 #include <thread>
@@ -139,57 +139,6 @@ struct AccountController::Core : std::enable_shared_from_this<Core> {
   }
 };
 
-// One thread that runs posted tasks in order.
-//
-// Thread affinity: thread-safe. `mutex_` guards the queue and `stopping_`.
-// The destructor stops the thread and drops the tasks that did not start.
-class AccountController::TaskThread {
-public:
-  TaskThread() : thread_([this] { run(); }) {}
-  TaskThread(const TaskThread&) = delete;
-  TaskThread& operator=(const TaskThread&) = delete;
-  ~TaskThread() {
-    {
-      const std::lock_guard lock(mutex_);
-      stopping_ = true;
-    }
-    wake_.notify_all();
-    thread_.join();
-  }
-
-  void post(std::function<void()> task) {
-    {
-      const std::lock_guard lock(mutex_);
-      queue_.push_back(std::move(task));
-    }
-    wake_.notify_one();
-  }
-
-private:
-  void run() {
-    for (;;) {
-      std::function<void()> task;
-      {
-        std::unique_lock lock(mutex_);
-        wake_.wait(lock, [this] { return stopping_ || !queue_.empty(); });
-        if (stopping_) {
-          return;
-        }
-        task = std::move(queue_.front());
-        queue_.pop_front();
-      }
-      task();
-    }
-  }
-
-  std::mutex mutex_;
-  std::condition_variable wake_;
-  std::deque<std::function<void()>> queue_;
-  bool stopping_ = false;
-  // Declared last, so it starts after the members it reads.
-  std::thread thread_;
-};
-
 AccountController::AccountController(AccountServices services, QObject* parent)
     : QObject(parent), core_(std::make_shared<Core>()), serverOrigin_(QString::fromStdString(services.serverOrigin)) {
   if (!services.store) {
@@ -212,7 +161,7 @@ AccountController::AccountController(AccountServices services, QObject* parent)
   }
   core_->services = std::move(services);
   core_->controller = this;
-  tasks_ = std::make_unique<TaskThread>();
+  tasks_ = std::make_unique<detail::TaskQueue>();
   serverEndTimer_.setSingleShot(true);
   connect(&serverEndTimer_, &QTimer::timeout, this, [this] {
     tasks_->post([core = core_] {
@@ -298,6 +247,17 @@ std::shared_ptr<AccountSession> AccountController::session() const {
   };
   const auto held = std::make_shared<Held>(Held{core_, std::move(session)});
   return std::shared_ptr<AccountSession>(held, held->session.get());
+}
+
+std::shared_ptr<AccountSession> AccountController::readSession() {
+  if (!core_->policyAllows.load(std::memory_order_acquire)) {
+    return nullptr;
+  }
+  const std::shared_ptr<AccountSession> session = core_->sessionFromIndex();
+  if (!session || session->status().state != SessionState::SignedIn) {
+    return nullptr;
+  }
+  return this->session();
 }
 
 bool AccountController::readPolicy() {

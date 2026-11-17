@@ -12,8 +12,13 @@ Rectangle {
     objectName: "documentBar"
     required property TimelineModel timeline
     property QtObject autosave: null
-    // The NodeTool Cloud account. Null hides the Account control.
-    property AccountController account: null
+    // An open cloud timeline. Its synchronization status replaces the save
+    // status.
+    property CloudDocument cloudDocument: null
+    // The cloud servers and their accounts. Null hides the Account control,
+    // which shows the current server's account.
+    property AccountServers accountServers: null
+    readonly property AccountController account: accountServers ? accountServers.current : null
     // Controls after Undo and Redo, such as the layout menu.
     default property alias leading: leadingRow.data
 
@@ -41,8 +46,16 @@ Rectangle {
         }
         SaveStatus {
             anchors.verticalCenter: parent.verticalCenter
-            autosave: bar.autosave
+            // Without an autosave it stays idle and hidden.
+            autosave: bar.cloudDocument === null ? bar.autosave : null
             compact: bar.width < TimelineMetrics.compactDocumentBarWidth
+        }
+        Loader {
+            objectName: "documentCloudStatus"
+            anchors.verticalCenter: parent.verticalCenter
+            active: bar.cloudDocument !== null
+            visible: active
+            sourceComponent: CloudSyncStatus { document: bar.cloudDocument }
         }
         ToolbarDivider { anchors.verticalCenter: parent.verticalCenter }
         Row {
@@ -91,7 +104,7 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             active: bar.account !== null
             visible: active
-            sourceComponent: AccountControl { account: bar.account }
+            sourceComponent: AccountControl { account: bar.account; servers: bar.accountServers }
         }
     }
 }

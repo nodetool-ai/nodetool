@@ -3,6 +3,7 @@
 // SettingsHeaderButton.tsx, inspector/RunSelectedNodesSection.tsx,
 // costs/WorkflowCostEstimatePanel.tsx and panels/PanelBottom.tsx.
 #include "EditorWindow.h"
+#include "nodetool/account/qt/QtHttpTransport.h"
 #include <QtMath>
 #include <QSettings>
 #include "graph/CanvasDropController.h"
@@ -447,6 +448,63 @@ void EditorWindow::openWorkflowDocument(const QJsonObject &workflow) {
   if (!file_.isEmpty() || !document_.nodes().isEmpty() || hasUnsavedChanges() || session_.serverBound()) { owner->newTab(); }
   // An unsaved tab: Save asks for a file, as for an opened example.
   owner->activeEditor_->openDocument(QJsonDocument(workflow).toJson(QJsonDocument::Compact), {});
+}
+
+void EditorWindow::openCloudDocument(const QString &documentId, const QString &role) {
+  if (!tabOwner_) { activeEditor_->openCloudDocument(documentId, role); return; }
+  auto *owner = tabOwner_;
+  for (int i = 0; i < owner->tabs_.size(); ++i) {
+    if (owner->tabs_[i]->cloudId_ == documentId) { owner->activateSurface(i); return; }
+  }
+  auto *account = owner->accountServers_->current();
+  const auto session = account && account->state() == nodetool::account::qt::AccountController::State::SignedIn
+                           ? account->session()
+                           : nullptr;
+  if (!session) {
+    notify("error", tr("Sign in to open cloud workflows."));
+    return;
+  }
+  // The drafts live in the local server's store, so a tab without it cannot keep the edits.
+  if (session_.serverUrl().isEmpty()) {
+    notify("error", tr("Connect to the local server to open cloud workflows. It keeps their edits on this computer."));
+    return;
+  }
+  if (!file_.isEmpty() || !document_.nodes().isEmpty() || hasUnsavedChanges() || session_.serverBound() || cloud_) { owner->newTab(); }
+  owner->activeEditor_->startCloudDocument(session, documentId, role);
+}
+
+void EditorWindow::startCloudDocument(std::shared_ptr<nodetool::account::AccountSession> session,
+                                      const QString &documentId, const QString &role) {
+  namespace account = nodetool::account;
+  std::vector<std::pair<std::string, std::string>> headers;
+  if (!session_.token().isEmpty()) { headers.emplace_back("Authorization", ("Bearer " + session_.token()).toStdString()); }
+  const auto local = session_.serverUrl().adjusted(QUrl::RemovePath | QUrl::RemoveQuery | QUrl::RemoveFragment);
+  account::qt::CloudDocumentServices services;
+  services.session = std::move(session);
+  services.store = account::makeLocalServerDraftStore(std::make_unique<account::qt::QtHttpTransport>(),
+                                                      local.toString(QUrl::StripTrailingSlash).toStdString(),
+                                                      std::move(headers));
+  services.kind = "workflow";
+  services.documentId = documentId.toStdString();
+  services.role = role.toStdString();
+  cloud_ = std::make_unique<account::qt::CloudDocument>(std::move(services));
+  cloudId_ = documentId;
+  connect(cloud_.get(), &account::qt::CloudDocument::stateChanged, this, &EditorWindow::schedulePanelChanged);
+  connect(cloud_.get(), &account::qt::CloudDocument::opened, this, [this](const QString &revision, const QString &draft) {
+    auto workflow = QJsonDocument::fromJson(revision.toUtf8()).object();
+    // A draft this account left on this computer opens over the revision.
+    const auto graph = QJsonDocument::fromJson(draft.toUtf8()).object();
+    if (!graph.isEmpty()) { workflow["graph"] = graph; }
+    cloudLoading_ = true;
+    openDocument(QJsonDocument(workflow).toJson(QJsonDocument::Compact), {});
+    cloudLoading_ = false;
+    schedulePanelChanged();
+  });
+  connect(cloud_.get(), &account::qt::CloudDocument::openFailed, this, [this](const QString &reason) {
+    message_ = tr("Cloud workflow not opened: %1").arg(reason);
+    schedulePanelChanged();
+  });
+  cloud_->open();
 }
 
 void EditorWindow::reportJob(const QString &jobId) {
