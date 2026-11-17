@@ -50,6 +50,24 @@ describe("TabContent file notice", () => {
     ).toBeTruthy();
   });
 
+  it.each<WorkspaceTab>([
+    { id: "workflow:wf-1", type: "workflow", ref: "wf-1", mode: "edit", title: "Fox", projectId: "film" },
+    { id: "timeline:tl-1", type: "timeline", ref: "tl-1", mode: "edit", title: "Cut", projectId: "film" }
+  ])("puts the $type surface in a column that bounds its height", async (tab) => {
+    renderTab(tab);
+
+    await screen.findByText(/surface/);
+    // Surfaces fill the tab with `flex: 1`. In a block box that rule does
+    // nothing, the surface grows to its content, and a guided flow's action
+    // row is clipped off the bottom of the tab.
+    const body = screen.getByTestId("file-notice").nextElementSibling;
+    expect(body).not.toBeNull();
+    const style = window.getComputedStyle(body as Element);
+    expect(style.display).toBe("flex");
+    expect(style.flexDirection).toBe("column");
+    expect(style.minHeight).toBe("0");
+  });
+
   it("adds no file notice to a document that is not a file", async () => {
     renderTab({ id: "script:a", type: "script", ref: "a", mode: "edit", title: "Lines" });
 
