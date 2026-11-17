@@ -15,7 +15,7 @@ QJsonObject withProbedVideoDuration(nt::server::ServerClient& client, QJsonObjec
     QTemporaryDir staging;
     if (!staging.isValid()) { return asset; }
     nt::server::AssetCache cache(staging.path(), client.serverKey(), client.userKey(),
-        [&client](QNetworkRequest& request) { client.decorate(request); });
+        [&client](QNetworkRequest& request) { client.decorate(request); }, [&client] { return client.cancelled(); });
     const auto fetched = cache.fetch(asset.value("id").toString(), "original", *file);
     if (!fetched.ok()) { return asset; }
     const auto facts = nt::probeMedia(fetched.path.toStdString());
