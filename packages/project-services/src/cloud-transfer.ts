@@ -36,6 +36,7 @@ import {
 } from "@nodetool-ai/models";
 import type { StorageAdapter } from "@nodetool-ai/storage";
 import { hashesToSend, stageBlob, stageKnownBlob } from "@nodetool-ai/asset-services/blob-store";
+import { requireProjectFolder } from "@nodetool-ai/asset-services/project-asset-file";
 import type {
   CancelTransferOutput,
   CommitTransferInput,
@@ -53,6 +54,7 @@ import {
   type TransferDocument,
   type TransferPayloadContent
 } from "./transfer-documents.js";
+import { applyFileOperations, planFileOperations, runTransferPlacements } from "./transfer-files.js";
 
 export type TransferRole = "owner" | "editor" | "viewer";
 
@@ -96,8 +98,16 @@ function atLeast(role: TransferRole | null, minimum: TransferRole): boolean {
   return role !== null && ROLE_RANK[role] >= ROLE_RANK[minimum];
 }
 
+/** Every file the manifest needs staged, by hash: the referenced files and the files it puts. */
+function stagedFiles(manifest: TransferManifest): { hash: string; size: number }[] {
+  return [
+    ...manifest.required_files,
+    ...(manifest.file_operations ?? []).flatMap((op) => (op.op === "delete_workspace_file" ? [] : [op]))
+  ];
+}
+
 function requiredHashes(manifest: TransferManifest): string[] {
-  return [...new Set(manifest.required_files.map((file) => file.hash))];
+  return [...new Set(stagedFiles(manifest).map((file) => file.hash))];
 }
 
 async function ownedTransfer(userId: string, transferId: string) {
@@ -135,7 +145,7 @@ export async function openTransfer(
 
   const hashes = requiredHashes(input.manifest);
   const needed = new Set(await hashesToSend(host.storage, userId, hashes));
-  for (const file of input.manifest.required_files) {
+  for (const file of stagedFiles(input.manifest)) {
     if (needed.has(file.hash)) continue;
     const staged = await stageKnownBlob(host.storage, {
       projectId: input.project_id,
@@ -286,6 +296,7 @@ export async function commitTransfer(
   }
   const digest = attemptDigest(input);
   const written: { kind: TransferDocumentKind; id: string; toAdmit: string[] }[] = [];
+  let placing = false;
   const result = await withTransaction(async () => {
     const transfer = await lockCloudTransfer(input.transfer_id);
     if (!transfer || transfer.user_id !== userId) {
@@ -419,7 +430,7 @@ export async function commitTransfer(
     if (transfer.first_publication) {
       if (project) return refuse([failure("PROJECT_EXISTS", "A project with this id exists")]);
       const committed = await committedHashesOfOwner(userId, requiredHashes(input.manifest));
-      const sizes = new Map(input.manifest.required_files.map((file) => [file.hash, file.size]));
+      const sizes = new Map(stagedFiles(input.manifest).map((file) => [file.hash, file.size]));
       let added = 0;
       for (const [hash, size] of sizes) if (!committed.has(hash)) added += size;
       if (await exceedsStorageAllowance(userId, added)) {
@@ -615,6 +626,28 @@ export async function commitTransfer(
         failures.push(failure("FILE_NOT_STAGED", "The file was not staged", { asset_id: file.asset_id, hash: file.hash }));
       }
     }
+    const fileOperations = input.manifest.file_operations ?? [];
+    for (const op of fileOperations) {
+      if (op.op === "delete_workspace_file") continue;
+      const row = await readableProjectBlob({ projectId, hash: op.hash, transferId: transfer.id });
+      if (!row) failures.push(failure("FILE_NOT_STAGED", "The file was not staged", { path: op.path, hash: op.hash }));
+    }
+
+    // Step 7 for files: each put and delete against what the cloud holds at its path.
+    // A first publication has no folder yet, so every path is free.
+    const now = new Date();
+    const filePlan = await planFileOperations({
+      projectId,
+      userId,
+      operations: fileOperations,
+      workspace:
+        fileOperations.length > 0 && !transfer.first_publication
+          ? (await requireProjectFolder(projectId, userId)).workspace
+          : null,
+      deviceName: input.manifest.device_name,
+      failures,
+      now
+    });
 
     // Step 9: anything collected refuses the attempt, and nothing else was written.
     if (failures.length > 0) return refuse(failures);
@@ -691,6 +724,8 @@ export async function commitTransfer(
       if (!deleted.has(key)) written.push({ ...target, toAdmit: admissions.get(key) ?? [] });
     }
     await commitProjectBlobs(projectId, transfer.id);
+    const keptBeside = await applyFileOperations(filePlan, { projectId, userId, transferId: transfer.id, now });
+    placing = filePlan.placements.length > 0;
 
     // Step 11: record the attempt and the transfer as committed.
     const documents: { kind: TransferDocumentKind; document_id: string; hash: string }[] = [];
@@ -698,7 +733,12 @@ export async function commitTransfer(
       const after = await TRANSFER_DOCUMENT_KINDS[target.kind].lock(target.id);
       if (after) documents.push({ kind: target.kind, document_id: target.id, hash: identityHash(after.payload) });
     }
-    const committed: TransferAttemptResult = { outcome: "committed", project_id: projectId, documents };
+    const committed: TransferAttemptResult = {
+      outcome: "committed",
+      project_id: projectId,
+      documents,
+      ...(keptBeside.length > 0 ? { kept_beside: keptBeside } : {})
+    };
     await recordCloudTransferAttempt({
       transferId: transfer.id,
       attemptId: input.attempt_id,
@@ -711,5 +751,9 @@ export async function commitTransfer(
     return committed;
   });
   for (const document of written) await host.published(document.kind, document.id, document.toAdmit);
+  if (placing && result.outcome === "committed") {
+    // A placement that fails here is the sweeper's to repeat.
+    await runTransferPlacements(host.storage, result.project_id).catch(() => 0);
+  }
   return result;
 }

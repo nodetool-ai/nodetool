@@ -80,6 +80,60 @@ export const transferOperation = z.discriminatedUnion("op", [
 ]);
 export type TransferOperation = z.infer<typeof transferOperation>;
 
+/**
+ * A path relative to the project folder. It names a file inside the folder,
+ * never `.nodetool/`, which NodeTool keeps for itself.
+ */
+const workspacePath = z
+  .string()
+  .min(1)
+  .max(1024)
+  .refine(
+    (path) => {
+      const segments = path.split("/");
+      return (
+        !path.includes("\\") &&
+        segments.every((segment) => segment !== "" && segment !== "." && segment !== "..") &&
+        segments[0] !== ".nodetool"
+      );
+    },
+    { message: "A path is relative to the project folder, without empty, '.' or '..' segments, and outside .nodetool/" }
+  );
+
+/**
+ * A file of the project folder. The bytes are staged under `hash` like a
+ * required file. A put whose base is not what the cloud holds keeps both:
+ * the sent file goes beside the cloud one, and the commit result lists it.
+ */
+export const transferFileOperation = z.discriminatedUnion("op", [
+  /** An asset's file, by the asset id. A null base creates the asset. */
+  z.object({
+    op: z.literal("put_asset_file"),
+    asset_id: fullId,
+    path: workspacePath,
+    hash: sha256,
+    size: z.number().int().nonnegative(),
+    base_hash: sha256.nullable(),
+    name: z.string().min(1).max(1024),
+    content_type: z.string().min(1).max(255)
+  }),
+  /** A file of the folder that no asset names. A null base expects no file at the path. */
+  z.object({
+    op: z.literal("put_workspace_file"),
+    path: workspacePath,
+    hash: sha256,
+    size: z.number().int().nonnegative(),
+    base_hash: sha256.nullable()
+  }),
+  /** Confirmed in the deletion review. Only the project's owner deletes a file. */
+  z.object({
+    op: z.literal("delete_workspace_file"),
+    path: workspacePath,
+    base_hash: sha256
+  })
+]);
+export type TransferFileOperation = z.infer<typeof transferFileOperation>;
+
 /** A file a transferred document refers to, by its asset id and content. */
 export const transferRequiredFile = z.object({
   asset_id: fullId,
@@ -93,7 +147,10 @@ export const transferManifest = z.object({
   /** The name of the project, for a first publication. */
   project_name: z.string().min(1).max(1024).optional(),
   operations: z.array(transferOperation).max(10_000),
-  required_files: z.array(transferRequiredFile).max(100_000)
+  required_files: z.array(transferRequiredFile).max(100_000),
+  file_operations: z.array(transferFileOperation).max(100_000).optional(),
+  /** The sending device's name, for the name of a file kept beside another. */
+  device_name: z.string().min(1).max(255).optional()
 });
 export type TransferManifest = z.infer<typeof transferManifest>;
 
@@ -198,6 +255,7 @@ export const transferFailure = z.object({
   hash: z.string().optional(),
   version_id: z.string().optional(),
   project_id: z.string().optional(),
+  path: z.string().optional(),
   /** For BASE_CHANGED: the stored hash a Keep local decision must name. */
   stored_hash: z.string().optional(),
   message: z.string()
@@ -209,7 +267,22 @@ export const transferAttemptResult = z.discriminatedUnion("outcome", [
     outcome: z.literal("committed"),
     project_id: z.string(),
     /** The stored content hash of each document the attempt wrote. */
-    documents: z.array(z.object({ kind: transferDocumentKind, document_id: z.string(), hash: z.string() }))
+    documents: z.array(z.object({ kind: transferDocumentKind, document_id: z.string(), hash: z.string() })),
+    /**
+     * Files sent over a cloud file that changed since their base. The cloud
+     * file stays at `path` and the sent one went to `kept_path`, as a new
+     * asset `kept_asset_id` for an asset file.
+     */
+    kept_beside: z
+      .array(
+        z.object({
+          path: z.string(),
+          kept_path: z.string(),
+          asset_id: z.string().optional(),
+          kept_asset_id: z.string().optional()
+        })
+      )
+      .optional()
   }),
   z.object({ outcome: z.literal("refused"), failures: z.array(transferFailure) })
 ]);

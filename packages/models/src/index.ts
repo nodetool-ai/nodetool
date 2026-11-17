@@ -855,3 +855,17 @@ export {
   type CloudTransferRow,
   type CloudTransferState
 } from "./cloud-transfer.js";
+export {
+  addTransferPlacements,
+  deleteTransferPlacement,
+  listRecoveryCopies,
+  listTransferPlacements,
+  pendingPlacementPaths,
+  projectsWithStalePlacements,
+  recordRecoveryCopy,
+  RECOVERY_COPY_LIFETIME_MS,
+  type NewRecoveryCopy,
+  type NewTransferPlacement,
+  type RecoveryCopyRow,
+  type TransferPlacementRow
+} from "./transfer-files.js";

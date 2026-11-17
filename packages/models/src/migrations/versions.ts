@@ -633,6 +633,50 @@ const CLOUD_TRANSFERS_DDL: readonly string[] = [
 ];
 
 /**
+ * Files a committed transfer still has to place, and the content it replaced
+ * (docs/plans/native-cloud-sync/technical-design.md, "Blob store" and
+ * "Operations of a transfer"). Applied by the `add_transfer_files` migration,
+ * and by `initTestDb` through {@link POST_BASELINE_TABLE_DDL}. `size` is a
+ * SQLite INTEGER, which holds 64 bits; the migration writes BIGINT on
+ * PostgreSQL.
+ */
+const TRANSFER_FILES_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS transfer_placements (
+    id TEXT PRIMARY KEY NOT NULL,
+    project_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    transfer_id TEXT NOT NULL,
+    path TEXT NOT NULL,
+    hash TEXT,
+    asset_id TEXT,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_transfer_placements_project
+    ON transfer_placements (project_id, path)`,
+  `CREATE INDEX IF NOT EXISTS idx_transfer_placements_created
+    ON transfer_placements (created_at)`,
+  `CREATE TABLE IF NOT EXISTS recovery_copies (
+    id TEXT PRIMARY KEY NOT NULL,
+    project_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    document_kind TEXT,
+    document_id TEXT,
+    workspace_path TEXT,
+    asset_id TEXT,
+    blob_hash TEXT,
+    size INTEGER,
+    operation TEXT NOT NULL,
+    transfer_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    purge_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_recovery_copies_project
+    ON recovery_copies (project_id, created_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_recovery_copies_purge
+    ON recovery_copies (purge_at)`
+];
+
+/**
  * The local store of the native apps for cloud documents: unsent drafts and
  * the last known open state (docs/plans/native-cloud-sync/technical-design.md,
  * "Local data scoping and durable drafts"). Applied by the
@@ -712,7 +756,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...DELETED_DOCUMENTS_DDL,
   ...PROJECT_BLOBS_DDL,
   ...ACCESS_EPOCHS_DDL,
-  ...CLOUD_TRANSFERS_DDL
+  ...CLOUD_TRANSFERS_DDL,
+  ...TRANSFER_FILES_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5237,6 +5282,22 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP TABLE IF EXISTS cloud_transfer_attempts");
       await db.execute("DROP TABLE IF EXISTS cloud_transfers");
     }
+  },
+  {
+    version: "20261130_000004",
+    name: "add_transfer_files",
+    createsTables: ["transfer_placements", "recovery_copies"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of TRANSFER_FILES_DDL) {
+        await db.execute(
+          db.dbType === "sqlite" ? statement : statement.replace("size INTEGER", "size BIGINT")
+        );
+      }
+    },
+    // A recovery copy names the only copy of replaced bytes. A rollback
+    // leaves the rows: an older server never reads them.
+    async down() {}
   }
 ];
 

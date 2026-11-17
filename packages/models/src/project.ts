@@ -709,7 +709,9 @@ export class Project extends DBModel {
         "nodetool_workspaces",
         "nodetool_predictions",
         // The blob cleanup deletes the objects no row names any more.
-        "project_blobs"
+        "project_blobs",
+        "transfer_placements",
+        "recovery_copies"
       ]) {
         await executeRaw(
           `DELETE FROM ${table} WHERE user_id = '${owner}' AND project_id = '${project}' RETURNING id`

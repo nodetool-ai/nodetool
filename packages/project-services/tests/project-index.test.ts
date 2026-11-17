@@ -13,6 +13,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   Asset,
+  addTransferPlacements,
   ModelChangeEvent,
   ModelObserver,
   Project,
@@ -803,6 +804,23 @@ describe.each(["local", "storage"] as const)(
         linked.id
       );
       expect(await rowsOf()).toEqual([]);
+    });
+
+    it("leaves a path a transfer has not placed yet alone: the row stays online and the old file gets no row", async () => {
+      // What a server that died between a transfer commit and its placement
+      // leaves: the asset row naming the path, and no file there yet.
+      const asset = await saveImage("fox");
+      await folder(kind).delete("Generated/fox.png");
+      await addTransferPlacements([
+        { projectId: PROJECT, userId: USER, transferId: "transfer-1", path: "Generated/fox.png", hash: "a".repeat(64), assetId: asset.id }
+      ]);
+
+      const report = await reconcileProjectIndex(PROJECT, USER);
+
+      expect(report.offline).toEqual([]);
+      const rows = await rowsOf();
+      expect(rows.map((row) => row.id)).toEqual([asset.id]);
+      expect(isProjectAssetOffline(rows[0]!)).toBe(false);
     });
 
     it("does not bring back a row that was deleted while the scan ran", async () => {

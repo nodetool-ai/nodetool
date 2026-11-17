@@ -115,6 +115,7 @@ import {
   setStorageAllowanceBytes
 } from "@nodetool-ai/models";
 import { cleanupBlobs } from "@nodetool-ai/asset-services/blob-store";
+import { startTransferPlacementSweeper } from "@nodetool-ai/project-services/transfer-files";
 import {
   DELETED_DOCUMENT_RETENTION_DAYS,
   purgeDueDeletedDocuments
@@ -329,6 +330,7 @@ const startupT0 = performance.now();
 const PROCESS_STARTED_AT = new Date().toISOString();
 let stopGenerationReconcileWorker: (() => void) | null = null;
 let stopErrorTraceMaintenance: (() => void) | null = null;
+let stopPlacementSweeper: (() => void) | null = null;
 function startupMs(): string {
   return `${(performance.now() - startupT0).toFixed(0)}ms`;
 }
@@ -441,6 +443,9 @@ try {
     resolveSecret: (key, userId) => getSecret(key, userId)
   });
   stopErrorTraceMaintenance = startErrorTraceMaintenance();
+  // Files a transfer commit recorded and no placement wrote, after a crash
+  // (WP2.4). Only a production server takes transfers.
+  if (isProduction) stopPlacementSweeper = startTransferPlacementSweeper(getAssetAdapter());
   // A production server keeps a deleted workflow, timeline or project for 30
   // days so its owner can restore it (PRD D4). A desktop server deletes at once.
   if (isProduction) setDocumentRetentionDays(DELETED_DOCUMENT_RETENTION_DAYS);
@@ -2238,6 +2243,7 @@ async function shutdown(signal: string): Promise<void> {
   stopJobCancelPoller();
   stopGenerationReconcileWorker?.();
   stopErrorTraceMaintenance?.();
+  stopPlacementSweeper?.();
   try {
     await triggerServices.stop();
   } catch (err) {

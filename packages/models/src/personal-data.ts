@@ -88,6 +88,7 @@ import {
 import { cloudDrafts, cloudOpenState } from "./schema/cloud-local.js";
 import { deletedDocuments } from "./schema/deleted-documents.js";
 import { projectBlobs } from "./schema/project-blobs.js";
+import { recoveryCopies, transferPlacements } from "./schema/transfer-files.js";
 import { cloudTransferAttempts, cloudTransfers } from "./schema/cloud-transfers.js";
 import { memories } from "./schema/memories.js";
 import { messages } from "./schema/messages.js";
@@ -545,6 +546,8 @@ export const ERASURE_STEPS: readonly ErasureStep[] = [
   directStep("nodetool_memories", memories, memories.user_id),
   directStep("cloud_drafts", cloudDrafts, cloudDrafts.user_id),
   directStep("nodetool_deleted_documents", deletedDocuments, deletedDocuments.user_id),
+  directStep("transfer_placements", transferPlacements, transferPlacements.user_id),
+  directStep("recovery_copies", recoveryCopies, recoveryCopies.user_id),
   directStep("project_blobs", projectBlobs, projectBlobs.user_id),
   directStep("cloud_transfer_attempts", cloudTransferAttempts, cloudTransferAttempts.user_id),
   directStep("cloud_transfers", cloudTransfers, cloudTransfers.user_id),
