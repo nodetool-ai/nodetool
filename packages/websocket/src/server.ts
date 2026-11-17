@@ -110,7 +110,9 @@ import {
   McpOauthClient,
   migrateSqliteDb,
   runSeeds,
-  setDocumentRetentionDays
+  parseStorageAllowance,
+  setDocumentRetentionDays,
+  setStorageAllowanceBytes
 } from "@nodetool-ai/models";
 import { cleanupBlobs } from "@nodetool-ai/asset-services/blob-store";
 import {
@@ -441,6 +443,8 @@ try {
   // A production server keeps a deleted workflow, timeline or project for 30
   // days so its owner can restore it (PRD D4). A desktop server deletes at once.
   if (isProduction) setDocumentRetentionDays(DELETED_DOCUMENT_RETENTION_DAYS);
+  // One allowance for every owner (PRD D5). Unset means unlimited.
+  setStorageAllowanceBytes(parseStorageAllowance(process.env["NODETOOL_STORAGE_ALLOWANCE_BYTES"]));
 
   const runHistoryCleanup = (): void => {
     void runScheduledStorageCleanup(LOCAL_USER_ID)

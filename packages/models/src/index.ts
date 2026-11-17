@@ -817,3 +817,17 @@ export {
   stageProjectBlob,
   type ProjectBlobRow
 } from "./project-blob.js";
+export {
+  STORAGE_WARNING_FRACTION,
+  exceedsStorageAllowance,
+  parseStorageAllowance,
+  setStorageAllowanceBytes,
+  storageAllowanceBytes,
+  storageFiles,
+  storageAllowanceStatus,
+  storageUse,
+  type StorageFile,
+  type StorageHolder,
+  type StorageAllowanceStatus,
+  type StorageUse
+} from "./storage-accounting.js";
