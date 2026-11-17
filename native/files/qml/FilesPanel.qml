@@ -19,6 +19,9 @@ Rectangle {
     readonly property real rowHeight: Ui.Metrics.compact
     readonly property real thumbSize: Ui.Metrics.small
     readonly property real indent: Ui.Metrics.lg
+    // The media area of the preview, as the web FILE_PREVIEW_HEIGHT (168px).
+    readonly property real previewHeight: Ui.Metrics.xxl * 7
+    property bool previewExpanded: true
     implicitWidth: Ui.Metrics.panelWidth
     color: Ui.Theme.surfacePanel
 
@@ -214,6 +217,78 @@ Rectangle {
                     tight: true
                     elide: Text.ElideRight
                 }
+            }
+        }
+        // The selected file at a glance (the web WorkspaceFilePreview.tsx).
+        // Hidden when the selection has nothing to preview. Only an image
+        // loads a picture, decoded off the UI thread at the area's size.
+        // Video, audio, 3D models and documents show their type glyph.
+        Ui.Separator {
+            visible: preview.visible
+            Layout.fillWidth: true
+        }
+        Ui.InspectorSection {
+            id: preview
+            objectName: "files-preview"
+            visible: root.files.previewKind !== ""
+            Layout.fillWidth: true
+            title: "Preview"
+            expanded: root.previewExpanded
+            onExpansionRequested: next => root.previewExpanded = next
+            Rectangle {
+                objectName: "files-preview-media"
+                width: preview.width
+                height: root.previewHeight
+                radius: Ui.Metrics.radiusControl
+                color: Ui.Theme.surfaceCanvas
+                clip: true
+                Ui.Icon {
+                    objectName: "files-preview-glyph"
+                    anchors.centerIn: parent
+                    visible: previewImage.status !== Image.Ready
+                    name: root.files.previewIcon
+                    size: Ui.Metrics.xxxl
+                }
+                Image {
+                    id: previewImage
+                    objectName: "files-preview-image"
+                    anchors.fill: parent
+                    visible: status === Image.Ready
+                    asynchronous: true
+                    cache: true
+                    smooth: true
+                    fillMode: Image.PreserveAspectFit
+                    sourceSize: Qt.size(Math.ceil(width * Screen.devicePixelRatio), Math.ceil(height * Screen.devicePixelRatio))
+                    source: root.files.previewImageUrl
+                }
+            }
+            Ui.Text {
+                objectName: "files-preview-name"
+                width: preview.width
+                text: root.files.previewName
+                textFormat: Text.PlainText
+                role: Ui.Typography.SansCaption
+                tone: Ui.Text.Primary
+                elide: Text.ElideMiddle
+            }
+            Ui.Text {
+                objectName: "files-preview-details"
+                width: preview.width
+                text: root.files.previewDetails
+                textFormat: Text.PlainText
+                role: Ui.Typography.SansCaption
+                tone: Ui.Text.Secondary
+                elide: Text.ElideRight
+            }
+            Ui.Text {
+                objectName: "files-preview-summary"
+                width: preview.width
+                visible: text !== ""
+                text: root.files.previewSummary
+                textFormat: Text.PlainText
+                role: Ui.Typography.SansCaption
+                tone: Ui.Text.Secondary
+                elide: Text.ElideRight
             }
         }
     }

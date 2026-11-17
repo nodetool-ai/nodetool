@@ -6,6 +6,8 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLocale>
+#include <QMimeDatabase>
 #include <QNetworkCookieJar>
 #include <QNetworkReply>
 #include <QUrlQuery>
@@ -14,6 +16,8 @@
 namespace nodetool::files {
 namespace {
 constexpr qint64 ResponseLimit = 16 * 1024 * 1024;
+// A timeline larger than this shows no summary rather than parse on the UI thread.
+constexpr qint64 TimelineLimit = 2 * 1024 * 1024;
 constexpr auto Root = ".";
 // NodeTool's own data at the folder root (isReservedProjectEntry in
 // the web projectFolderPaths.ts).
@@ -54,7 +58,9 @@ QString iconOf(const QString &kind) {
 }
 }  // namespace
 
-ProjectFiles::ProjectFiles(QObject *parent) : QAbstractListModel(parent), m_network(this) {}
+ProjectFiles::ProjectFiles(QObject *parent) : QAbstractListModel(parent), m_network(this) {
+  connect(this, &ProjectFiles::selectionChanged, this, &ProjectFiles::updatePreview);
+}
 
 ProjectFiles::~ProjectFiles() { clearRequests(); }
 
@@ -198,6 +204,92 @@ QString ProjectFiles::kindOf(const QString &name) {
              : QStringLiteral("binary");
 }
 
+QString ProjectFiles::previewKindOf(const QString &name) {
+  const auto base = name.section('/', -1).toLower();
+  if (base.endsWith(QLatin1String(".timeline.json"))) { return QStringLiteral("timeline"); }
+  if (base.endsWith(QLatin1String(".workflow.json"))) { return QStringLiteral("workflow"); }
+  const auto kind = kindOf(base);
+  static const QSet<QString> media{"image", "video", "audio", "model3d"};
+  return media.contains(kind) ? kind : QString();
+}
+
+QString ProjectFiles::formatSize(qint64 bytes) {
+  if (bytes < 1024) { return QStringLiteral("%1 B").arg(std::max<qint64>(0, bytes)); }
+  static const char *units[] = {"KB", "MB", "GB", "TB"};
+  double value = double(bytes);
+  int unit = -1;
+  while (value >= 1024 && unit < 3) {
+    value /= 1024;
+    ++unit;
+  }
+  return QStringLiteral("%1 %2").arg(QString::number(value, 'f', 1), QLatin1String(units[unit]));
+}
+
+QString ProjectFiles::formatDuration(qint64 ms) {
+  const qint64 total = std::max<qint64>(0, (ms + 500) / 1000);
+  return QStringLiteral("%1:%2").arg(total / 60).arg(total % 60, 2, 10, QLatin1Char('0'));
+}
+
+QString ProjectFiles::timelineSummary(const QJsonObject &timeline) {
+  const auto document = timeline.value("document").toObject();
+  const auto tracks = document.value("tracks").toArray().size();
+  const auto clips = document.value("clips").toArray().size();
+  return tr("%1 · %2 %3 · %4 %5")
+      .arg(formatDuration(qint64(timeline.value("duration_ms").toDouble())))
+      .arg(tracks)
+      .arg(tracks == 1 ? tr("track") : tr("tracks"))
+      .arg(clips)
+      .arg(clips == 1 ? tr("clip") : tr("clips"));
+}
+
+QUrl ProjectFiles::previewImageUrl() const {
+  return m_preview.kind == QLatin1String("image") ? downloadUrl(m_origin, m_workspace, m_preview.path) : QUrl();
+}
+
+void ProjectFiles::updatePreview() {
+  Preview next;
+  const int row = indexOfPath(m_selected);
+  const auto kind = row >= 0 && !m_rows.at(row).isDir ? previewKindOf(m_rows.at(row).name) : QString();
+  if (!kind.isEmpty()) {
+    const auto &entry = m_rows.at(row);
+    next.path = entry.path;
+    next.kind = kind;
+    next.name = entry.name;
+    next.size = entry.size;
+    next.icon = kind == QLatin1String("timeline") ? QStringLiteral("movie")
+                : kind == QLatin1String("workflow") ? QStringLiteral("accountTree")
+                                                    : iconOf(kind);
+    QString type;
+    if (kind == QLatin1String("timeline")) {
+      type = tr("Timeline");
+    } else if (kind == QLatin1String("workflow")) {
+      type = tr("Workflow");
+    } else {
+      type = QMimeDatabase().mimeTypeForFile(entry.name, QMimeDatabase::MatchExtension).name();
+    }
+    next.details = formatSize(entry.size) + QStringLiteral(" · ") + type;
+    // The same file at the same size keeps the summary it has.
+    if (next.path == m_preview.path && next.size == m_preview.size) { next.summary = m_preview.summary; }
+  }
+  if (next == m_preview) { return; }
+  const bool reread = next.kind == QLatin1String("timeline") && (next.path != m_preview.path || next.size != m_preview.size);
+  m_preview = next;
+  m_timelineTicket = 0;
+  if (reread && next.size <= TimelineLimit && !m_origin.isEmpty()) {
+    m_timelineTicket = ++m_nextTicket;
+    requestTimeline(m_timelineTicket, next.path);
+  }
+  emit previewChanged();
+}
+
+void ProjectFiles::receiveTimeline(quint64 ticket, const QJsonObject &timeline, const QString &error) {
+  if (ticket == 0 || ticket != m_timelineTicket) { return; }
+  m_timelineTicket = 0;
+  if (!error.isEmpty() || timeline.isEmpty()) { return; }
+  m_preview.summary = timelineSummary(timeline);
+  emit previewChanged();
+}
+
 QUrl ProjectFiles::downloadUrl(const QUrl &origin, const QString &workspaceId, const QString &path) {
   if (origin.isEmpty() || workspaceId.isEmpty() || path.isEmpty()) { return {}; }
   QByteArray encoded = "/api/workspaces/" + QUrl::toPercentEncoding(workspaceId) + "/download";
@@ -223,6 +315,7 @@ QVector<ProjectFiles::Entry> ProjectFiles::entriesOf(const QJsonArray &entries, 
     if (entry.path.isEmpty() || (root && entry.path == QLatin1String(Reserved))) { continue; }
     if (entry.name.isEmpty()) { entry.name = entry.path.section('/', -1); }
     entry.isDir = object.value("is_dir").toBool();
+    entry.size = qint64(object.value("size").toDouble());
     entry.kind = entry.isDir ? QStringLiteral("folder") : kindOf(entry.name);
     entry.icon = iconOf(entry.kind);
     result.append(std::move(entry));
@@ -247,7 +340,7 @@ void ProjectFiles::appendChildren(QVector<Row> &rows, const QString &dir, int de
     return;
   }
   for (const auto &entry : listing->entries) {
-    rows.append({entry.path, entry.name, entry.kind, entry.icon, depth, entry.isDir, false});
+    rows.append({entry.path, entry.name, entry.kind, entry.icon, depth, entry.isDir, false, entry.size});
     if (entry.isDir && m_expanded.contains(entry.path)) { appendChildren(rows, entry.path, depth + 1); }
   }
 }
@@ -449,6 +542,7 @@ quint64 ProjectFiles::list(const QString &path) {
 
 void ProjectFiles::clearRequests() {
   m_pending.clear();
+  m_timelineTicket = 0;
   m_refreshTickets.clear();
   m_rootTicket = 0;
   for (auto *reply : m_network.findChildren<QNetworkReply *>()) {
@@ -533,6 +627,27 @@ void ProjectFiles::requestListing(quint64 ticket, const QString &path) {
     auto data = envelope["result"].toObject()["data"];
     if (data.isObject() && data.toObject().contains("json")) { data = data.toObject()["json"]; }
     receiveListing(ticket, data.toArray(), data.isArray() ? QString() : tr("Invalid response"));
+  });
+}
+
+void ProjectFiles::requestTimeline(quint64 ticket, const QString &path) {
+  QNetworkRequest request(downloadUrl(m_origin, m_workspace, path));
+  request.setTransferTimeout(30000);
+  request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
+  if (!m_token.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8()); }
+  if (!m_user.isEmpty()) { request.setRawHeader("x-user-id", m_user.toUtf8()); }
+  auto *reply = m_network.get(request);  // m_network owns the reply until deleteLater.
+  connect(reply, &QNetworkReply::readyRead, reply, [reply] {
+    if (reply->bytesAvailable() > TimelineLimit) { reply->abort(); }
+  });
+  connect(reply, &QNetworkReply::finished, this, [this, reply, ticket] {
+    reply->deleteLater();
+    const auto status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    if (reply->error() != QNetworkReply::NoError || status < 200 || status >= 300) {
+      receiveTimeline(ticket, {}, tr("HTTP %1").arg(status));
+      return;
+    }
+    receiveTimeline(ticket, QJsonDocument::fromJson(reply->readAll()).object(), {});
   });
 }
 }  // namespace nodetool::files

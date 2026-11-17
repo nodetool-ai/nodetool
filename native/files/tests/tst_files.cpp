@@ -356,6 +356,116 @@ private slots:
     QCOMPARE(closed.size(), 1);
   }
 
+  void previewKindsFollowTheWebPreview() {
+    QCOMPARE(ProjectFiles::previewKindOf("a.PNG"), QStringLiteral("image"));
+    QCOMPARE(ProjectFiles::previewKindOf("clip.mov"), QStringLiteral("video"));
+    QCOMPARE(ProjectFiles::previewKindOf("song.wav"), QStringLiteral("audio"));
+    QCOMPARE(ProjectFiles::previewKindOf("chair.glb"), QStringLiteral("model3d"));
+    QCOMPARE(ProjectFiles::previewKindOf("Timelines/Cut.timeline.json"), QStringLiteral("timeline"));
+    QCOMPARE(ProjectFiles::previewKindOf("Workflows/Flow.workflow.json"), QStringLiteral("workflow"));
+    QCOMPARE(ProjectFiles::previewKindOf("data.json"), QString());
+    QCOMPARE(ProjectFiles::previewKindOf("notes.md"), QString());
+    QCOMPARE(ProjectFiles::previewKindOf("doc.pdf"), QString());
+    QCOMPARE(ProjectFiles::formatSize(0), QStringLiteral("0 B"));
+    QCOMPARE(ProjectFiles::formatSize(512), QStringLiteral("512 B"));
+    QCOMPARE(ProjectFiles::formatSize(1536), QStringLiteral("1.5 KB"));
+    QCOMPARE(ProjectFiles::formatSize(3 * 1024 * 1024), QStringLiteral("3.0 MB"));
+    QCOMPARE(ProjectFiles::formatDuration(64000), QStringLiteral("1:04"));
+    QCOMPARE(ProjectFiles::formatDuration(-5), QStringLiteral("0:00"));
+  }
+
+  void previewFollowsTheSelection() {
+    FakeProjectFiles files;
+    open(files, {FakeProjectFiles::entry("Timelines", true), FakeProjectFiles::entry("a.png", false, 2048),
+                 FakeProjectFiles::entry("Cut.timeline.json", false, 900), FakeProjectFiles::entry("notes.md")});
+    QSignalSpy changed(&files, &ProjectFiles::previewChanged);
+    QCOMPARE(files.previewKind(), QString());
+
+    files.select(rowOf(files, "a.png"));
+    QCOMPARE(files.previewKind(), QStringLiteral("image"));
+    QCOMPARE(files.previewName(), QStringLiteral("a.png"));
+    QCOMPARE(files.previewDetails(), QStringLiteral("2.0 KB · image/png"));
+    QCOMPARE(files.previewImageUrl(), ProjectFiles::downloadUrl(Origin, "ws1", "a.png"));
+    QVERIFY(files.timelineRequests.isEmpty());
+
+    // A timeline reads its file once for the summary.
+    files.select(rowOf(files, "Cut.timeline.json"));
+    QCOMPARE(files.previewKind(), QStringLiteral("timeline"));
+    QCOMPARE(files.previewDetails(), QStringLiteral("900 B · Timeline"));
+    QCOMPARE(files.previewImageUrl(), QUrl());
+    QCOMPARE(files.previewSummary(), QString());
+    QCOMPARE(files.timelineRequests.size(), 1);
+    QCOMPARE(files.timelineRequests.first().path, QStringLiteral("Cut.timeline.json"));
+    const QJsonObject timeline{{"duration_ms", 64000},
+                               {"document", QJsonObject{{"tracks", QJsonArray{QJsonObject{}, QJsonObject{}}},
+                                                        {"clips", QJsonArray{QJsonObject{}}}}}};
+    QVERIFY(files.answerTimeline(timeline));
+    QCOMPARE(files.previewSummary(), QStringLiteral("1:04 · 2 tracks · 1 clip"));
+
+    // A refresh with the same size keeps the summary and reads nothing.
+    files.refresh();
+    QVERIFY(files.answer(".", {FakeProjectFiles::entry("Timelines", true), FakeProjectFiles::entry("a.png", false, 2048),
+                               FakeProjectFiles::entry("Cut.timeline.json", false, 900), FakeProjectFiles::entry("notes.md")}));
+    QCOMPARE(files.previewSummary(), QStringLiteral("1:04 · 2 tracks · 1 clip"));
+    QVERIFY(files.timelineRequests.isEmpty());
+
+    // A read that answers after the selection moved on is dropped.
+    files.select(rowOf(files, "a.png"));
+    files.select(rowOf(files, "Cut.timeline.json"));
+    QCOMPARE(files.timelineRequests.size(), 1);
+    const auto stale = files.timelineRequests.takeFirst();
+    files.select(rowOf(files, "a.png"));
+    files.timelineRequests.append(stale);
+    QVERIFY(files.answerTimeline(timeline));
+    QCOMPARE(files.previewSummary(), QString());
+
+    // A file or folder without a preview hides it.
+    files.select(rowOf(files, "notes.md"));
+    QCOMPARE(files.previewKind(), QString());
+    files.select(rowOf(files, "Timelines"));
+    QCOMPARE(files.previewKind(), QString());
+    QVERIFY(changed.size() > 0);
+  }
+
+  void panelShowsThePreviewOfTheSelection() {
+    FakeProjectFiles files;
+    open(files, {FakeProjectFiles::entry("clip.mp4", false, 4096), FakeProjectFiles::entry("notes.md")});
+    auto view = panel(files);
+    auto *root = view->rootObject();
+    QVERIFY2(root, "FilesPanel did not load");
+    QVERIFY(QTest::qWaitForWindowExposed(view.get()));
+    auto *preview = named(root, "files-preview");
+    QVERIFY(preview);
+    QVERIFY(!preview->isVisible());
+
+    files.select(rowOf(files, "clip.mp4"));
+    QTRY_VERIFY(preview->isVisible());
+    QCOMPARE(named(root, "files-preview-name")->property("text").toString(), QStringLiteral("clip.mp4"));
+    QCOMPARE(named(root, "files-preview-details")->property("text").toString(), QStringLiteral("4.0 KB · video/mp4"));
+    QVERIFY(named(root, "files-preview-glyph")->isVisible());
+    QVERIFY(!named(root, "files-preview-summary")->isVisible());
+    auto *media = named(root, "files-preview-media");
+    QVERIFY(media->isVisible());
+    QVERIFY(media->height() > 0);
+    // The tree keeps its rows above the preview.
+    auto *list = named(root, "files-list");
+    QVERIFY(list->height() > 0);
+    QTRY_VERIFY2(list->mapToScene({0, list->height()}).y() <= preview->mapToScene({0, 0}).y() + 0.5,
+                 qPrintable(QStringLiteral("list bottom %1, preview top %2, preview height %3")
+                                .arg(list->mapToScene({0, list->height()}).y())
+                                .arg(preview->mapToScene({0, 0}).y())
+                                .arg(preview->height())));
+
+    // The section collapses to its header.
+    QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, centerOf(named(preview, "sectionToggle")));
+    QTRY_VERIFY(!media->isVisible());
+    QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, centerOf(named(preview, "sectionToggle")));
+    QTRY_VERIFY(media->isVisible());
+
+    files.select(rowOf(files, "notes.md"));
+    QTRY_VERIFY(!preview->isVisible());
+  }
+
   // The performance contract: a 5,000-entry folder with 3,000 images builds
   // about a screen of delegates, and a toggle inserts or removes rows
   // without resetting the model. Prints the measured times.
