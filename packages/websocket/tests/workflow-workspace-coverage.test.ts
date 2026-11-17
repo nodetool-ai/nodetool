@@ -20,6 +20,7 @@ vi.mock("@nodetool-ai/models", () => ({
   setTimelineFileSync: () => {},
   setStoryboardFileSync: () => {},
   setScriptFileSync: () => {},
+  setApplicationFileSync: () => {},
   Project: {
     findOwned: (u: string, id: string) => findOwned(u, id),
     ensurePersonal: (u: string) => ensurePersonal(u)

@@ -89,6 +89,7 @@ import { setWorkflowFileNodeRegistry } from "@nodetool-ai/project-services/workf
 import "@nodetool-ai/project-services/timeline-file";
 import "@nodetool-ai/project-services/storyboard-file";
 import "@nodetool-ai/project-services/script-file";
+import "@nodetool-ai/project-services/app-file";
 import { serverModelInterfaces } from "./websocket-client-session.js";
 import {
   WorkerManager,

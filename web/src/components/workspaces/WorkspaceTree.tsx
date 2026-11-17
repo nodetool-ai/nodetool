@@ -31,7 +31,8 @@ const DOCUMENT_FILE_SUFFIXES = [
   ".workflow.json",
   ".timeline.json",
   ".storyboard.json",
-  ".script.json"
+  ".script.json",
+  ".app.json"
 ] as const;
 
 const isDocumentFile = (path: string): boolean => {

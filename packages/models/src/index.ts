@@ -323,13 +323,15 @@ export {
   ApplicationIdInUseError,
   InvalidApplicationIdError,
   normalizeApplicationId,
+  isApplicationId,
   deriveCapabilities,
   publishApplication,
   listApplicationVersions,
   releasedApplicationVersion,
   releasedApplicationRelease,
   applicationReleaseVersion,
-  releaseApplicationVersion
+  releaseApplicationVersion,
+  setApplicationFileSync
 } from "./application.js";
 export type {
   ApplicationCapabilities,

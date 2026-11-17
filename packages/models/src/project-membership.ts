@@ -22,6 +22,7 @@ import { storyboards } from "./schema/storyboards.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
 import { TimelineSequence } from "./timeline-sequence.js";
 import { Storyboard } from "./storyboard.js";
+import { Application } from "./application.js";
 import { Script } from "./script.js";
 import type { ProjectDocumentType } from "./project-summary.js";
 
@@ -229,7 +230,8 @@ export async function reassignProjectDocuments(
   const fileKinds = [
     [timelineSequences, TimelineSequence],
     [storyboards, Storyboard],
-    [scripts, Script]
+    [scripts, Script],
+    [applications, Application]
   ] as const;
   for (const [table, model] of fileKinds) {
     const owned = await db
@@ -310,14 +312,8 @@ export async function moveDocumentToProject(
       return rows.length > 0;
     }
     case "application": {
-      const rows = await db
-        .update(applications)
-        .set(fields)
-        .where(
-          and(eq(applications.id, documentId), eq(applications.user_id, userId))
-        )
-        .returning({ id: applications.id });
-      return rows.length > 0;
+      // An app is a file in its project's folder, which moves with it.
+      return Application.moveToProject(userId, documentId, projectId);
     }
     case "jsscript": {
       const rows = await db

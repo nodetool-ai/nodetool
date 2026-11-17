@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@nodetool-ai/agents": "*",
+    "@nodetool-ai/app-runtime": "*",
     "@nodetool-ai/asset-services": "*",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/dsl": "*",

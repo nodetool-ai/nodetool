@@ -13,6 +13,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { getPortableDb } from "./db.js";
 import { storyboards } from "./schema/storyboards.js";
 import { scripts } from "./schema/scripts.js";
+import { applications } from "./schema/applications.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
 import { workflows } from "./schema/workflows.js";
 
@@ -56,7 +57,8 @@ const TABLES = {
   workflow: workflows,
   timeline: timelineSequences,
   storyboard: storyboards,
-  script: scripts
+  script: scripts,
+  application: applications
 } as const;
 
 /** A document kind that is a file in its project folder. */

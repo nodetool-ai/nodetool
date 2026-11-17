@@ -5,8 +5,9 @@
  * there. The database row is the cache the runtime reads. This module keeps
  * the two in step, in both directions, for every kind through one
  * {@link DocumentFileAdapter}. The kinds are workflows (`workflow-file.ts`),
- * timelines (`timeline-file.ts`), storyboards (`storyboard-file.ts`) and
- * scripts (`script-file.ts`). A new kind adds an adapter and nothing here.
+ * timelines (`timeline-file.ts`), storyboards (`storyboard-file.ts`),
+ * scripts (`script-file.ts`) and mini apps (`app-file.ts`). A new kind adds
+ * an adapter and nothing here.
  *
  * NodeTool to file: the model calls {@link documentFileSync} after it saved
  * or deleted a row. A save writes the file and records its path and the hash

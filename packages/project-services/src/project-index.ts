@@ -102,6 +102,7 @@ import {
 } from "./project-manifest.js";
 import { storyboardFileAdapter } from "./storyboard-file.js";
 import { scriptFileAdapter } from "./script-file.js";
+import { appFileAdapter } from "./app-file.js";
 import { timelineFileAdapter } from "./timeline-file.js";
 import { workflowFileAdapter } from "./workflow-file.js";
 
@@ -972,7 +973,8 @@ export async function reconcileInBackground(
   try {
     await reconcileDocumentFiles(
       [workflowFileAdapter, timelineFileAdapter, storyboardFileAdapter,
-        scriptFileAdapter
+        scriptFileAdapter,
+        appFileAdapter
       ],
       report.projectId,
       userId,

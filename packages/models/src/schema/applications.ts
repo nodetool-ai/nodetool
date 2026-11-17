@@ -21,6 +21,13 @@ export const applications = sqliteTable(
     name: text("name").notNull(),
     description: text("description").notNull(),
     document: text("document").notNull(),
+    // Path of the app's file, relative to the folder of the project in
+    // `project_id`: `Apps/<name>.app.json`. Null until the file is first written.
+    file_path: text("file_path"),
+    // SHA-256 of the file as NodeTool last wrote or imported it, in hex.
+    file_hash: text("file_hash"),
+    // What the last reconcile found wrong with the file, or null.
+    file_error: text("file_error"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },
