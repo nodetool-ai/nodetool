@@ -556,6 +556,7 @@ describe("exportPersonalData", () => {
     const excluded = dump.excluded.map((row) => row.table).sort();
     expect(excluded).toEqual([
       "access_epochs",
+      "blob_deletions",
       "cloud_transfer_attempts",
       "cloud_transfers",
       "document_activity",

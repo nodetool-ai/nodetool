@@ -45,16 +45,17 @@ struct CloudDocumentServices {
   std::function<int64_t()> nowMs;
 };
 
-// Thread affinity: UI thread only. Reads, draft writes and sends run on one
-// task thread. edit() hands the document to CloudDocumentSaver, which is
+// Thread affinity: UI thread only. Reads and sends run on one task thread,
+// draft writes on a second one, so a slow send never delays a local write
+// (CloudDocumentSaver's contract). edit() hands the document to CloudDocumentSaver, which is
 // thread-safe under its own mutex. Results come back through an inbox
 // guarded by the shared state's mutex.
 //
 // Ownership: the shared state owns the services, the cloud client, the
 // saver of the kind and the CloudDocumentSaver, and the tasks share it, so
 // a task still running when the document closes finds no document to report
-// to and its objects stay alive until it ends. The destructor joins the
-// task thread, then writes the last edits to the local store on the UI
+// to and its objects stay alive until it ends. The destructor joins both
+// task threads, then writes the last edits to the local store on the UI
 // thread, which blocks the close for that one call.
 class CloudDocument final : public QObject {
   Q_OBJECT
@@ -90,6 +91,8 @@ public:
   // How often the document writes and sends. A tick every 250 ms keeps
   // each edit within kDraftMaxDelayMs of the disk.
   static constexpr std::chrono::milliseconds kTickInterval{250};
+  // How long writeLocally() waits for the local store.
+  static constexpr std::chrono::milliseconds kWriteLocallyTimeout{5000};
 
   explicit CloudDocument(CloudDocumentServices services, QObject* parent = nullptr);
   ~CloudDocument() override;
@@ -116,6 +119,11 @@ public:
   // The tab's document changed. `document` is the whole document JSON of
   // the kind. Ignored before opened() and while read-only.
   Q_INVOKABLE void edit(const QString& document);
+  // Writes the last edit to the local store now, such as before the tab
+  // closes, and waits up to kWriteLocallyTimeout. Returns false when an
+  // edit is still only in memory: the tab must not close without asking.
+  // True when nothing is open.
+  Q_INVOKABLE bool writeLocally();
 
 signals:
   void stateChanged();
@@ -138,9 +146,13 @@ private:
                 const DocumentState& state);
 
   std::shared_ptr<Shared> shared_;
+  // Reads and sends.
   std::unique_ptr<detail::TaskQueue> tasks_;
+  // Draft writes.
+  std::unique_ptr<detail::TaskQueue> persistTasks_;
   QTimer timer_;
-  bool tickRunning_ = false;
+  bool persistRunning_ = false;
+  bool sendRunning_ = false;
   bool opened_ = false;
   SyncStatus status_ = SyncStatus::Opening;
   uint64_t waitingEdits_ = 0;

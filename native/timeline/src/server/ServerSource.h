@@ -29,6 +29,7 @@
 #include <QString>
 #include <QUrl>
 
+#include <memory>
 #include <optional>
 
 namespace nt::server {
@@ -62,8 +63,27 @@ struct CloudSource {
 };
 // The cloud timeline the command line names, or nullopt.
 std::optional<CloudSource> cloudTimelineSource();
-// The access token the cloud timeline and its media are read with.
-void setCloudToken(const QString& token);
+// The account's access token, which names the media cache folder, and the
+// authorizer each request of the cloud timeline and its media goes through,
+// so a sign-out in any app stops them.
+void setCloudToken(const QString& token, RequestAuthorizer authorizer);
+
+// Where the open timeline's media is read: the server of a server timeline,
+// or the cloud server of a cloud timeline, whose requests go through the
+// account's authorizer. Reads only: features that write to the server keep
+// using serverSaveTarget(), which is empty for a cloud timeline.
+struct MediaSource {
+    QUrl server;
+    QString token;
+    RequestAuthorizer authorizer;
+    QString expectedInstance;
+    // The media cache folder that loadTimelineSource used.
+    QString cacheRoot;
+    // A client for one worker; ServerClient is not shared between threads.
+    std::unique_ptr<ServerClient> client(int timeoutMs) const;
+};
+// Returns nullopt for a fixture file.
+std::optional<MediaSource> mediaSource();
 
 // Where a save of the server timeline goes, when the source is a server
 // (`--server ... --timeline ...` or a loaded positional server label).

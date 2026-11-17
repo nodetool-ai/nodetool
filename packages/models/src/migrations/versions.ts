@@ -546,7 +546,8 @@ const DELETED_DOCUMENTS_DDL: readonly string[] = [
     name TEXT NOT NULL,
     payload TEXT NOT NULL,
     deleted_at TEXT NOT NULL,
-    purge_at TEXT NOT NULL
+    purge_at TEXT NOT NULL,
+    purging_since TEXT
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS idx_deleted_documents_document
     ON nodetool_deleted_documents (kind, document_id)`,
@@ -581,7 +582,11 @@ const PROJECT_BLOBS_DDL: readonly string[] = [
   `CREATE INDEX IF NOT EXISTS idx_project_blobs_hash
     ON project_blobs (hash)`,
   `CREATE INDEX IF NOT EXISTS idx_project_blobs_staged
-    ON project_blobs (committed_at, created_at)`
+    ON project_blobs (committed_at, created_at)`,
+  `CREATE TABLE IF NOT EXISTS blob_deletions (
+    hash TEXT PRIMARY KEY NOT NULL,
+    claimed_at TEXT NOT NULL
+  )`
 ];
 
 /**
@@ -5278,7 +5283,7 @@ export const migrations: MigrationDef[] = [
   {
     version: "20261130_000001",
     name: "add_project_blobs",
-    createsTables: ["project_blobs"],
+    createsTables: ["project_blobs", "blob_deletions"],
     modifiesTables: [],
     async up(db) {
       for (const statement of PROJECT_BLOBS_DDL) {

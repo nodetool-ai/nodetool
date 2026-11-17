@@ -31,6 +31,18 @@ import { Workspace } from "../src/workspace.js";
 import { McpOauthGrant, McpOauthToken } from "../src/mcp-oauth.js";
 import { OauthPending } from "../src/oauth-pending.js";
 import { initPgliteTestDb } from "./helpers/pglite-test-db.js";
+import {
+  BLOB_DELETION_CLAIM_MS,
+  claimBlobDeletion,
+  isBlobDeletionClaimed,
+  releaseBlobDeletion
+} from "../src/project-blob.js";
+import {
+  endDeletedDocumentRestorePeriod,
+  listDeletedDocuments,
+  restoreDeletedDocument,
+  setDocumentRetentionDays
+} from "../src/deleted-document.js";
 import { eq } from "drizzle-orm";
 import { mcpOauthGrants, mcpOauthTokens } from "../src/schema/mcp-oauth.js";
 
@@ -639,6 +651,66 @@ describe("model execution on SQLite and PostgreSQL", () => {
       lost: null,
       workflowVersions: [[1, "Flow", "Kept", "a"], [2, "Flow", "Kept", "b"]]
     });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
+  it("deletes, keeps, restores and purges a document in one transaction each", async () => {
+    setDocumentRetentionDays(30);
+    try {
+      const result = await onBothDialects(async () => {
+        const project = await Project.create<Project>({ user_id: OWNER, name: "Kept" });
+        const timeline = await TimelineSequence.create<TimelineSequence>({
+          user_id: OWNER, project_id: project.id, name: "Cut", document: JSON.stringify(TIMELINE_DOCUMENT)
+        });
+        await TimelineSequenceVersion.snapshot(timeline, { saveType: "manual" });
+        const workflow = await Workflow.create<Workflow>({ user_id: OWNER, name: "Flow", graph: { nodes: [], edges: [] } });
+        const deleted = [
+          await TimelineSequence.deleteOwned(OWNER, timeline.id),
+          await Workflow.deleteOwned(OWNER, workflow.id),
+          await Workflow.deleteOwned(OWNER, workflow.id)
+        ];
+        const listed = (await listDeletedDocuments(OWNER)).map((entry) => entry.kind).sort();
+        // A recreated workflow keeps the id: the restore refuses and changes nothing.
+        await Workflow.create<Workflow>({ ...workflow.toRow(), name: "Again" });
+        const refused = (await restoreDeletedDocument(OWNER, "workflow", workflow.id)).outcome;
+        const restored = (await restoreDeletedDocument(OWNER, "timeline", timeline.id)).outcome;
+        const versions = (await TimelineSequenceVersion.listForTimeline(timeline.id)).length;
+        const ended = await endDeletedDocumentRestorePeriod(OWNER, "workflow", workflow.id);
+        return {
+          deleted, listed, refused, restored, versions, ended,
+          workflowName: (await Workflow.get<Workflow>(workflow.id))?.name,
+          timelineName: (await TimelineSequence.findById(timeline.id))?.name,
+          left: await listDeletedDocuments(OWNER)
+        };
+      });
+      expect(result).toEqual({
+        deleted: [true, true, false],
+        listed: ["timeline", "workflow"],
+        refused: "failed",
+        restored: "restored",
+        versions: 1,
+        ended: true,
+        workflowName: "Again",
+        timelineName: "Cut",
+        left: []
+      });
+    } finally {
+      setDocumentRetentionDays(null);
+    }
+  }, DIALECT_TEST_TIMEOUT_MS);
+
+  it("gives one blob cleanup the deletion claim of a hash, and lets a later one take a stale claim", async () => {
+    const result = await onBothDialects(async () => {
+      const hash = "a".repeat(64);
+      const now = new Date();
+      const later = new Date(now.getTime() + BLOB_DELETION_CLAIM_MS + 1);
+      const first = await claimBlobDeletion(hash, now);
+      const second = await claimBlobDeletion(hash, now);
+      const seen = await isBlobDeletionClaimed(hash, now);
+      const takenOver = await claimBlobDeletion(hash, later);
+      await releaseBlobDeletion(hash);
+      return { first, second, seen, takenOver, after: await isBlobDeletionClaimed(hash, later) };
+    });
+    expect(result).toEqual({ first: true, second: false, seen: true, takenOver: true, after: false });
   }, DIALECT_TEST_TIMEOUT_MS);
 
   // A refresh that read the token rows before a revocation committed must not

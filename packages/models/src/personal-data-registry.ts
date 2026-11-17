@@ -771,6 +771,15 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "The person's accepted renames and moves of documents, with the names and project ids before and after. The documents carry their current names. Deleted with the account."
   },
   {
+    table: "blob_deletions",
+    schemaExport: "blobDeletions",
+    disposition: "not-personal",
+    reach: { kind: "none" },
+    exported: false,
+    justification:
+      "A short-lived claim of the blob cleanup on one file hash while it deletes the object. It holds a hash and a time, and no column naming a person."
+  },
+  {
     table: "project_blobs",
     schemaExport: "projectBlobs",
     disposition: "delete",

@@ -5,10 +5,10 @@
  * records that a project holds a hash. A staged row belongs to the transfer
  * that staged it until the commit sets `committed_at`.
  */
-import { and, eq, inArray, isNotNull, isNull, lt } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, isNull, lt } from "drizzle-orm";
 import { createTimeOrderedUuid } from "./base-model.js";
 import { getPortableDb } from "./db.js";
-import { projectBlobs } from "./schema/project-blobs.js";
+import { blobDeletions, projectBlobs } from "./schema/project-blobs.js";
 
 export type ProjectBlobRow = typeof projectBlobs.$inferSelect;
 
@@ -116,6 +116,60 @@ export async function readableProjectBlob(input: {
     rows.find((row) => input.transferId !== undefined && row.transfer_id === input.transferId) ??
     null
   );
+}
+
+/**
+ * The size the owner's committed rows record for `hash`, or null when the
+ * owner has none. A reuse stages this size, never one the client declares.
+ */
+export async function committedSizeOfOwner(userId: string, hash: string): Promise<number | null> {
+  const [row] = await getPortableDb()
+    .select({ size: projectBlobs.size })
+    .from(projectBlobs)
+    .where(and(eq(projectBlobs.user_id, userId), eq(projectBlobs.hash, hash), isNotNull(projectBlobs.committed_at)))
+    .limit(1);
+  return row ? Number(row.size) : null;
+}
+
+/** How long a deletion claim holds before another cleanup may take it over. */
+export const BLOB_DELETION_CLAIM_MS = 5 * 60 * 1000;
+
+/**
+ * Claims the deletion of the object of `hash` for one cleanup. False when
+ * another cleanup holds a claim younger than {@link BLOB_DELETION_CLAIM_MS}.
+ * The claim is an insert into a table keyed by hash, so across servers one
+ * cleanup wins.
+ */
+export async function claimBlobDeletion(hash: string, now: Date = new Date()): Promise<boolean> {
+  const db = getPortableDb();
+  // A claim a stopped cleanup left is removed first, then raced for.
+  const staleBefore = new Date(now.getTime() - BLOB_DELETION_CLAIM_MS).toISOString();
+  await db.delete(blobDeletions).where(and(eq(blobDeletions.hash, hash), lt(blobDeletions.claimed_at, staleBefore)));
+  const claimed = await db
+    .insert(blobDeletions)
+    .values({ hash, claimed_at: now.toISOString() })
+    .onConflictDoNothing()
+    .returning({ hash: blobDeletions.hash });
+  return claimed.length > 0;
+}
+
+/** Ends the cleanup's claim on `hash`, after it deleted the object or skipped it. */
+export async function releaseBlobDeletion(hash: string): Promise<void> {
+  await getPortableDb().delete(blobDeletions).where(eq(blobDeletions.hash, hash));
+}
+
+/**
+ * Whether a cleanup may be deleting the object of `hash` now: a claim
+ * younger than {@link BLOB_DELETION_CLAIM_MS} exists.
+ */
+export async function isBlobDeletionClaimed(hash: string, now: Date = new Date()): Promise<boolean> {
+  const staleBefore = new Date(now.getTime() - BLOB_DELETION_CLAIM_MS).toISOString();
+  const [row] = await getPortableDb()
+    .select({ hash: blobDeletions.hash })
+    .from(blobDeletions)
+    .where(and(eq(blobDeletions.hash, hash), gte(blobDeletions.claimed_at, staleBefore)))
+    .limit(1);
+  return row !== undefined;
 }
 
 /** Whether any row, staged or committed, names the hash. */

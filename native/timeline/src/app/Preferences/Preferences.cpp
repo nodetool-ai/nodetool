@@ -162,6 +162,15 @@ QString safeServerUrl(const QUrl& url) {
     }
     return url.adjusted(QUrl::RemoveUserInfo | QUrl::RemoveQuery | QUrl::RemoveFragment).toString(QUrl::FullyEncoded);
 }
+// The HTTPS origin of a cloud server, or empty: a cloud entry never names a
+// path, a plain HTTP address or user info.
+QString cloudOrigin(const QUrl& url) {
+    if (url.scheme() != "https" || url.host().isEmpty()) {
+        return {};
+    }
+    return url.adjusted(QUrl::RemoveUserInfo | QUrl::RemovePath | QUrl::RemoveQuery | QUrl::RemoveFragment)
+        .toString(QUrl::FullyEncoded);
+}
 struct InteractiveSource { bool interactive = true; QString path; };
 InteractiveSource interactiveSource(const QStringList& arguments) {
     const QSet<QString> switches{"--play", "--on-top"};
@@ -210,6 +219,10 @@ QVariantList Preferences::recentTimelines() const {
                     server.insert("bundled", true);
                 }
                 entries.append(server);
+            } else if (entry.value("kind") == "cloud") {
+                entries.append(QVariantMap{{"kind", "cloud"}, {"label", entry.value("label")},
+                    {"server", cloudOrigin(QUrl(entry.value("server").toString()))},
+                    {"timelineId", entry.value("timelineId")}, {"role", entry.value("role")}});
             } else {
                 entries.append(QVariantMap{{"kind", "file"}, {"label", entry.value("label")}, {"path", entry.value("path")}});
             }
@@ -253,8 +266,19 @@ void Preferences::addRecentServer(const QString& label, const nt::server::SaveTa
     }
     addRecent(entry);
 }
+void Preferences::addRecentCloud(const QString& label, const nt::server::CloudSource& cloud) {
+    addRecent({{"kind", "cloud"}, {"label", label}, {"server", cloudOrigin(cloud.origin)},
+               {"timelineId", cloud.timelineId}, {"role", cloud.role}});
+}
 void Preferences::clearRecentTimelines() { writeRecent({}); }
 QStringList recentTimelineArguments(const QVariantMap& entry) {
+    if (entry.value("kind") == "cloud") {
+        const QString server = cloudOrigin(QUrl(entry.value("server").toString()));
+        const QString id = entry.value("timelineId").toString();
+        const QString role = entry.value("role").toString();
+        if (server.isEmpty() || id.isEmpty() || !QStringList{"owner", "editor", "viewer"}.contains(role)) return {};
+        return {"--cloud-server", server, "--cloud-timeline", id, "--cloud-role", role};
+    }
     if (entry.value("kind") == "server") {
         const QString bundled = entry.value("bundled").toBool() ? safeServerUrl(nt::server::bundledServerUrl()) : QString();
         const QString server = bundled.isEmpty() ? safeServerUrl(QUrl(entry.value("server").toString())) : bundled;
@@ -266,10 +290,15 @@ QStringList recentTimelineArguments(const QVariantMap& entry) {
 }
 bool interactiveTimelineRun(const QStringList& arguments) { return interactiveSource(arguments).interactive; }
 bool recordOpenedTimeline(Preferences& preferences, const QStringList& arguments, bool active, const QString& label,
-                          const std::optional<nt::server::SaveTarget>& target) {
+                          const std::optional<nt::server::SaveTarget>& target,
+                          const std::optional<nt::server::CloudSource>& cloud) {
     const auto source = interactiveSource(arguments);
     if (!active || !source.interactive) {
         return false;
+    }
+    if (cloud) {
+        preferences.addRecentCloud(label, *cloud);
+        return !cloudOrigin(cloud->origin).isEmpty();
     }
     if (target && !safeServerUrl(target->server).isEmpty() && !target->timelineId.isEmpty()) {
         preferences.addRecentServer(label, *target);
@@ -391,7 +420,8 @@ void ShellPreferences::recordActiveTimeline() {
     for (auto* item = m_anchor.data(); item; item = item->parentItem()) {
         const auto timeline = item->property("timeline");
         if (auto* model = qobject_cast<TimelineModel*>(timeline.value<QObject*>())) {
-            m_recorded = recordOpenedTimeline(*m_store, QCoreApplication::arguments(), true, model->name(), nt::server::serverSaveTarget());
+            m_recorded = recordOpenedTimeline(*m_store, QCoreApplication::arguments(), true, model->name(), nt::server::serverSaveTarget(),
+                                              nt::server::cloudTimelineSource());
             return;
         }
     }
