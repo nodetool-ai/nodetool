@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   lstat,
   mkdir,
@@ -11,7 +11,7 @@ import {
   symlink,
   writeFile
 } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { existsSync, promises as fsPromises } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -405,6 +405,39 @@ describe("a save with Save to workspace off in a run with a workspace", () => {
           ).rejects.toThrow(WorkspaceReservedPathError);
           expect(existsSync(path.join(dir, ".nodetool", "a.png"))).toBe(false);
         }
+      }
+    );
+
+    it.runIf(existsSync("/proc/self/fd"))(
+      "at a directory above it after the name was found absent leaves the other project's file",
+      async () => {
+        await mkdir(path.join(dir, "projects", "abc", "renders"));
+        const theirs = path.join(dir, "projects", "abc", "renders", "clip.wav");
+        await writeFile(theirs, "their bytes");
+        await mkdir(path.join(dir, "out"));
+        const target = path.join(dir, "out", "clip.wav");
+        // The name is absent when the save looks. Before it opens the name,
+        // `out` becomes a link into the nested project, which has clip.wav.
+        const realLstat = fsPromises.lstat.bind(fsPromises);
+        const spy = vi.spyOn(fsPromises, "lstat").mockImplementation((async (
+          p: string
+        ) => {
+          const looked = realLstat(p);
+          if (p === target) {
+            await looked.catch(() => undefined);
+            await rename(path.join(dir, "out"), path.join(dir, "out-moved"));
+            await symlink(path.join(dir, "projects", "abc", "renders"), path.join(dir, "out"), "dir");
+          }
+          return looked;
+        }) as typeof fsPromises.lstat);
+        try {
+          await expect(writeSaveTargetFile(run(), target, "new")).rejects.toThrow(
+            WorkspaceReservedPathError
+          );
+        } finally {
+          spy.mockRestore();
+        }
+        expect(await readFile(theirs, "utf8")).toBe("their bytes");
       }
     );
   });

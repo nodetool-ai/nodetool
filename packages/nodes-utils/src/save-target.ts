@@ -252,6 +252,44 @@ export interface SaveTargetFileOptions {
   exclusive?: boolean;
 }
 
+type FsPromises = Awaited<ReturnType<typeof loadNodeFsPromises>>;
+type FileHandle = Awaited<ReturnType<FsPromises["open"]>>;
+
+/**
+ * Remove `opened`, a file this call created through `handle` and then
+ * refused. Node has no `unlinkat`, so the directory is opened and the name is
+ * unlinked through `/proc/self/fd/<dir>/<name>`, which names that directory
+ * rather than resolving its path again. The name must still hold the file
+ * the handle created, by device and inode: a file someone else put there is
+ * left alone.
+ */
+async function removeCreatedFile(
+  fs: FsPromises,
+  handle: FileHandle,
+  opened: string
+): Promise<void> {
+  const { constants } = await loadNodeFsSync();
+  const path = await loadNodePath();
+  const dir = await fs
+    .open(path.dirname(opened), constants.O_RDONLY | constants.O_DIRECTORY)
+    .catch(() => null);
+  if (dir === null) return;
+  try {
+    const entry = `/proc/self/fd/${dir.fd}/${path.basename(opened)}`;
+    const [made, found] = await Promise.all([handle.stat(), fs.lstat(entry)]);
+    if (made.dev === found.dev && made.ino === found.ino) {
+      await fs.unlink(entry);
+    }
+  } catch {
+    // The file is gone or was replaced, and either way is not removed.
+  } finally {
+    await dir.close();
+  }
+}
+
+/** How often a name that keeps appearing and vanishing is tried. */
+const SAVE_OPEN_ATTEMPTS = 3;
+
 /**
  * Write `bytes` to `target`, a path {@link assertSaveTargetIsOwn} accepted.
  *
@@ -259,9 +297,12 @@ export interface SaveTargetFileOptions {
  * would redirect a plain `writeFile`. So the name is opened with
  * `O_NOFOLLOW`, and, where the host can say which file a descriptor is
  * (`/proc/self/fd` on Linux), the opened file is checked again where it
- * really is, before a byte is written. A file this call created and then
- * refused is removed. A link at the name that the check accepted, one to a
- * file of the folder's own, is written through by its resolved path.
+ * really is, before a byte is written. A name found absent is created with
+ * `O_EXCL`, so a file that appears there before the open, as one does when a
+ * directory above it is swapped for a link, is never taken for this call's
+ * own. Only a file this call created is removed when it is refused. A link at
+ * the name that the check accepted, one to a file of the folder's own, is
+ * written through by its resolved path.
  *
  * Returns false when `exclusive` is set and the name is taken.
  */
@@ -274,64 +315,77 @@ export async function writeSaveTargetFile(
   const fs = await loadNodeFsPromises();
   const { constants } = await loadNodeFsSync();
   const exclusive = options.exclusive === true;
-  const flags =
-    constants.O_WRONLY |
-    constants.O_CREAT |
-    (constants.O_NOFOLLOW ?? 0) |
-    (exclusive ? constants.O_EXCL : 0);
-  let opening = target;
-  let existed = await fs.lstat(target).then(
-    (info) => (info.isSymbolicLink() ? "link" : "file"),
-    () => "none"
-  );
-  if (existed === "link" && !exclusive) {
-    // Resolved and checked again: the link may have changed since the check.
-    try {
-      opening = await fs.realpath(target);
-    } catch {
-      throw new Error(
-        `'${target}' is a link to a file that does not exist. A save does ` +
-          `not create a file through a link. Choose another name.`
-      );
-    }
-    await assertSaveTargetIsOwn(run, opening);
-    existed = "file";
-  }
-  let handle: Awaited<ReturnType<typeof fs.open>>;
-  try {
-    handle = await fs.open(opening, flags, 0o666);
-  } catch (error) {
-    if (!(error instanceof Error)) throw error;
-    if (exclusive && hasCode(error, "EEXIST")) return false;
-    if (hasCode(error, "ELOOP")) {
-      throw new Error(
-        `'${target}' became a link while it was saved. The save was ` +
-          `stopped rather than written through it.`,
-        { cause: error }
-      );
-    }
-    throw error;
-  }
-  try {
-    const opened = await fs
-      .readlink(`/proc/self/fd/${handle.fd}`)
-      .catch(() => null);
-    if (opened !== null && opened !== opening) {
+  for (let attempt = 1; ; attempt++) {
+    let opening = target;
+    let existed = await fs.lstat(target).then(
+      (info) => (info.isSymbolicLink() ? "link" : "file"),
+      () => "none"
+    );
+    if (existed === "link" && !exclusive) {
+      // Resolved and checked again: the link may have changed since the check.
       try {
-        await assertSaveTargetIsOwn(run, opened);
-      } catch (refusal) {
-        if (exclusive || existed === "none") {
-          await fs.unlink(opened).catch(() => undefined);
-        }
-        throw refusal;
+        opening = await fs.realpath(target);
+      } catch {
+        throw new Error(
+          `'${target}' is a link to a file that does not exist. A save does ` +
+            `not create a file through a link. Choose another name.`
+        );
       }
+      await assertSaveTargetIsOwn(run, opening);
+      existed = "file";
     }
-    if (!exclusive) await handle.truncate(0);
-    await handle.writeFile(bytes);
-  } finally {
-    await handle.close();
+    const creates = exclusive || existed === "none";
+    const flags =
+      constants.O_WRONLY |
+      constants.O_CREAT |
+      (constants.O_NOFOLLOW ?? 0) |
+      (creates ? constants.O_EXCL : 0);
+    let handle: FileHandle;
+    try {
+      handle = await fs.open(opening, flags, 0o666);
+    } catch (error) {
+      if (!(error instanceof Error)) throw error;
+      if (hasCode(error, "EEXIST")) {
+        if (exclusive) return false;
+        if (attempt < SAVE_OPEN_ATTEMPTS) {
+          // A file appeared at the name since it was found absent. The path
+          // may lead somewhere else now, so it is checked again.
+          await assertSaveTargetIsOwn(run, target);
+          continue;
+        }
+        throw new Error(
+          `'${target}' kept changing while it was saved. The save was stopped.`,
+          { cause: error }
+        );
+      }
+      if (hasCode(error, "ELOOP")) {
+        throw new Error(
+          `'${target}' became a link while it was saved. The save was ` +
+            `stopped rather than written through it.`,
+          { cause: error }
+        );
+      }
+      throw error;
+    }
+    try {
+      const opened = await fs
+        .readlink(`/proc/self/fd/${handle.fd}`)
+        .catch(() => null);
+      if (opened !== null && opened !== opening) {
+        try {
+          await assertSaveTargetIsOwn(run, opened);
+        } catch (refusal) {
+          if (creates) await removeCreatedFile(fs, handle, opened);
+          throw refusal;
+        }
+      }
+      if (!exclusive) await handle.truncate(0);
+      await handle.writeFile(bytes);
+    } finally {
+      await handle.close();
+    }
+    return true;
   }
-  return true;
 }
 
 export interface SaveTargetOptions extends SaveFolderOptions {
