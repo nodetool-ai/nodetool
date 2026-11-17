@@ -14,6 +14,7 @@ import { getPortableDb } from "./db.js";
 import { storyboards } from "./schema/storyboards.js";
 import { scripts } from "./schema/scripts.js";
 import { applications } from "./schema/applications.js";
+import { jsScripts } from "./schema/js-scripts.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
 import { workflows } from "./schema/workflows.js";
 
@@ -58,7 +59,8 @@ const TABLES = {
   timeline: timelineSequences,
   storyboard: storyboards,
   script: scripts,
-  application: applications
+  application: applications,
+  jsscript: jsScripts
 } as const;
 
 /** A document kind that is a file in its project folder. */

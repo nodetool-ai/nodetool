@@ -86,15 +86,15 @@ On the desktop app, **New project → Open folder…** makes a folder you alread
 
 ### Open a project folder from another machine
 
-A project folder carries its workflows and timelines as files, its media, and the asset manifest. Copy the folder to another machine and open it there with **Open folder…**. The project opens with its workflows, timelines and assets, and the references between them work.
+A project folder carries its workflows, timelines, storyboards, scripts, mini apps and JS scripts as files, its media, and the asset manifest. Copy the folder to another machine and open it there with **Open folder…**. The project opens with its workflows, timelines and assets, and the references between them work.
 
-Chats, sketches and JS scripts are not files in the folder. They stay on the machine they were made on, and the **Open folder** dialog says so. A reference from a workflow or a timeline to one of them names a document the new machine does not have. Linked media stays where it is too, because its file is outside the folder.
+Chats and sketches are not files in the folder. They stay on the machine they were made on, and the **Open folder** dialog says so. A reference from a workflow or a timeline to one of them names a document the new machine does not have. Linked media stays where it is too, because its file is outside the folder.
 
 What happens depends on the project `.nodetool/project.json` names:
 
 | The manifest's project | Result |
 | --- | --- |
-| Unknown on this install | The project is created under that ID. Each asset in `.nodetool/assets.json` gets a row with the ID and path the manifest records. Each workflow and timeline is created from its file under the ID in the file. |
+| Unknown on this install | The project is created under that ID. Each asset in `.nodetool/assets.json` gets a row with the ID and path the manifest records. Each document file is created as its document under the ID in the file. |
 | Yours, and its recorded folder is gone | The project moves to this folder and keeps every row and ID. |
 | Yours, and its recorded folder still exists | The folder is a copy. It becomes a second project with a new ID, named after the folder unless you typed a name. Its assets, workflows and timelines get new IDs. |
 | Another user's, or a project you deleted | Refused: `This folder belongs to a project that cannot be opened here` |
@@ -397,6 +397,7 @@ These documents are JSON files in the project folder too. Each follows the rules
 | Storyboard | `Storyboards/<name>.storyboard.json` | `nodetool.storyboard` | `document` | The schema the storyboard save route checks a document with (`storyboardDocument`) | None. An import replaces the storyboard without a version, and a file edit a save replaces is not kept. |
 | Script | `Scripts/<name>.script.json` | `nodetool.script` | `document` | The schema the script save route checks a document with (`scriptDocument`) | None, as for a storyboard. |
 | Mini app | `Apps/<name>.app.json` | `nodetool.app` | `description`, `document` | The parser `create_app` reads a document with (`parseApplicationDocument`) | None. The versions of an app are its published releases, and an edit is no release. |
+| JS script | `JsScripts/<name>.jsscript.json` | `nodetool.jsscript` | `document` | The validation `save_js_script` runs (`validateJsScriptDoc`, with the owner's secret names), refused on the errors that tool refuses | Yes. An import keeps the script as it was as a version named "Before file edit", and a file edit a save replaces is kept as "File edit replaced by a save". |
 
 The file name is the document's name, and the file has no `name` field. Owner, links to other documents and timestamps stay in the database. The editor of each of these documents shows the state of its file, and `projects.documents`, `projects.documentByFile` and `projects.restoreDocumentFile` include them.
 
@@ -404,7 +405,7 @@ The file name is the document's name, and the file has no `name` field. Owner, l
 
 The left panel lists **Chats**, **Documents** and **Files** under the name of the open project. Files is a tree of the project folder. It updates when a run or a tool adds a file, and it hides `.nodetool/`.
 
-Double-click a file to open it. A `.workflow.json` file opens the workflow editor on its workflow, a `.timeline.json` file opens the timeline editor on its timeline, a `.storyboard.json` file opens the storyboard editor on its storyboard, a `.script.json` file opens the script editor on its script, and a `.app.json` file opens the app editor on its app. The document is the one whose `file_path` is that file. Any other file opens in a file tab, and so does a document file that no workflow or timeline owns yet.
+Double-click a file to open it. A `.workflow.json` file opens the workflow editor on its workflow, a `.timeline.json` file opens the timeline editor on its timeline, a `.storyboard.json` file opens the storyboard editor on its storyboard, a `.script.json` file opens the script editor on its script, a `.app.json` file opens the app editor on its app, and a `.jsscript.json` file opens the JS script editor on its script. The document is the one whose `file_path` is that file. Any other file opens in a file tab, and so does a document file that no workflow or timeline owns yet.
 
 Right-click a file or folder to reveal it in your file manager. The menu reads **Reveal in Finder** on macOS, **Show in File Explorer** on Windows and **Show in file manager** on Linux. It appears in the desktop app only. The browser app and a cloud deployment show the tree without it, because the files are not on your machine.
 

@@ -318,7 +318,7 @@ describe("US11: Locate after the folder moved", () => {
 });
 
 describe("US12: opening a copied folder", () => {
-  it("restores the files and leaves chats and database documents behind", async () => {
+  it("restores the files, the documents that are files, and leaves chats behind", async () => {
     const project = await caller().projects.create({ name: "Travelling" });
     const original = project.folder?.path ?? "";
     const still = await saveStill(project.id, "still", "#ff0000");
@@ -351,7 +351,8 @@ describe("US12: opening a copied folder", () => {
 
     expect(opened.id).toBe(project.id);
     expect(await Thread.find(USER, thread.id)).toBeNull();
-    expect(await JsScript.findById(script.id)).toBeNull();
+    // A JS script is a file in the folder, and travels with it.
+    expect((await JsScript.findById(script.id))?.name).toBe("A script");
     const restored = await Asset.find(USER, still.id);
     expect(restored?.workspace_path).toBeTruthy();
     expect(await bytesOf(restored as Asset)).toEqual(await solidPng("#ff0000"));

@@ -400,7 +400,8 @@ describe.each(["local", "cloud"] as const)("runs in the project folder (%s)", (m
 
       expect(response.statusCode).toBe(200);
       expect(response.json().outputs.names).toEqual({
-        names: ["script.txt"],
+        // The script's own file, JsScripts/<name>.jsscript.json, is there too.
+        names: ["JsScripts", "script.txt"],
         refused: true
       });
     } finally {

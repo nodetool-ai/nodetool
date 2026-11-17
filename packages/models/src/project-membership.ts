@@ -23,6 +23,7 @@ import { timelineSequences } from "./schema/timeline-sequences.js";
 import { TimelineSequence } from "./timeline-sequence.js";
 import { Storyboard } from "./storyboard.js";
 import { Application } from "./application.js";
+import { JsScript } from "./js-script.js";
 import { Script } from "./script.js";
 import type { ProjectDocumentType } from "./project-summary.js";
 
@@ -231,7 +232,8 @@ export async function reassignProjectDocuments(
     [timelineSequences, TimelineSequence],
     [storyboards, Storyboard],
     [scripts, Script],
-    [applications, Application]
+    [applications, Application],
+    [jsScripts, JsScript]
   ] as const;
   for (const [table, model] of fileKinds) {
     const owned = await db
@@ -316,12 +318,8 @@ export async function moveDocumentToProject(
       return Application.moveToProject(userId, documentId, projectId);
     }
     case "jsscript": {
-      const rows = await db
-        .update(jsScripts)
-        .set(fields)
-        .where(and(eq(jsScripts.id, documentId), eq(jsScripts.user_id, userId)))
-        .returning({ id: jsScripts.id });
-      return rows.length > 0;
+      // A JS script is a file in its project's folder, which moves with it.
+      return JsScript.moveToProject(userId, documentId, projectId);
     }
     case "game": {
       return false;

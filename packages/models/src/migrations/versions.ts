@@ -606,7 +606,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   TIMELINE_SCHEMA_VERSION_DDL,
   ...documentFileDdl("storyboards"),
   ...documentFileDdl("scripts"),
-  ...documentFileDdl("applications")
+  ...documentFileDdl("applications"),
+  ...documentFileDdl("js_scripts")
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5067,7 +5068,10 @@ export const migrations: MigrationDef[] = [
   documentFileMigration("20261129_000001", "scripts"),
 
   // A application is a JSON file in its project's folder.
-  documentFileMigration("20261129_000002", "applications")
+  documentFileMigration("20261129_000002", "applications"),
+
+  // A JS script is a JSON file in its project's folder.
+  documentFileMigration("20261129_000003", "js_scripts")
 ];
 
 /**

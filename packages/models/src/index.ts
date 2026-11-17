@@ -450,7 +450,11 @@ export {
   countScriptLines,
   setScriptFileSync
 } from "./script.js";
-export { JsScript, JsScriptConflictError } from "./js-script.js";
+export {
+  JsScript,
+  JsScriptConflictError,
+  setJsScriptFileSync
+} from "./js-script.js";
 export type { JsScriptResponse } from "./js-script.js";
 export { Skill, SkillConflictError } from "./skill.js";
 export type { SkillResponse, SkillListItem } from "./skill.js";

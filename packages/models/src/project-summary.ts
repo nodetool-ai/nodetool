@@ -634,7 +634,14 @@ export async function listProjectDocuments(
   projectId: string
 ): Promise<ProjectDocumentListEntry[]> {
   const rows = await loadProjectDocuments(userId, projectId);
-  const [workflowFiles, timelineFiles, storyboardFiles, scriptFiles, appFiles] =
+  const [
+    workflowFiles,
+    timelineFiles,
+    storyboardFiles,
+    scriptFiles,
+    appFiles,
+    jsScriptFiles
+  ] =
     await Promise.all([
     listDocumentFiles(
       "workflow",
@@ -660,6 +667,11 @@ export async function listProjectDocuments(
       "application",
       userId,
       rows.applications.map((row) => row.id)
+    ),
+    listDocumentFiles(
+      "jsscript",
+      userId,
+      rows.jsScripts.map((row) => row.id)
     )
   ]);
   const withFile = <T extends { ref: string }>(
@@ -684,7 +696,9 @@ export async function listProjectDocuments(
     ...rows.applications.map((row) =>
       withFile(toRef("application", row), appFiles)
     ),
-    ...rows.jsScripts.map((row) => toRef("jsscript", row)),
+    ...rows.jsScripts.map((row) =>
+      withFile(toRef("jsscript", row), jsScriptFiles)
+    ),
     ...rows.games.map((row) => toRef("game", row))
   ]);
 }

@@ -8,6 +8,11 @@ export const jsScripts = pgTable(
     project_id: text("project_id").notNull(),
     name: text("name").notNull(),
     document: text("document").notNull(),
+    // File in the project folder and the hash last synced — see
+    // schema/js-scripts.ts.
+    file_path: text("file_path"),
+    file_hash: text("file_hash"),
+    file_error: text("file_error"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

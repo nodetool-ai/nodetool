@@ -90,6 +90,7 @@ import "@nodetool-ai/project-services/timeline-file";
 import "@nodetool-ai/project-services/storyboard-file";
 import "@nodetool-ai/project-services/script-file";
 import "@nodetool-ai/project-services/app-file";
+import "@nodetool-ai/project-services/js-script-file";
 import { serverModelInterfaces } from "./websocket-client-session.js";
 import {
   WorkerManager,
