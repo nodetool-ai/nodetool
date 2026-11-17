@@ -1,4 +1,6 @@
 // NodeTool.MediaPlayer: the controls of the shared player, with no media.
+#include <QFileInfo>
+#include <QGuiApplication>
 #include <QQuickItem>
 #include <QQuickView>
 #include <QtQml/QQmlExtensionPlugin>
@@ -16,13 +18,13 @@ QQuickItem *named(QQuickItem *root, const QString &name) {
   return nullptr;
 }
 
-std::unique_ptr<QQuickView> player(const QString &kind, bool compact) {
+std::unique_ptr<QQuickView> player(const QString &kind, bool compact, bool shown = true) {
   auto view = std::make_unique<QQuickView>();
   view->setInitialProperties({{"kind", kind}, {"compact", compact}, {"label", "clip.mp4"}});
   view->loadFromModule("NodeTool.MediaPlayer", "MediaPlayer");
   view->setResizeMode(QQuickView::SizeRootObjectToView);
   view->resize(240, 168);
-  view->show();
+  if (shown) { view->show(); }
   return view;
 }
 }  // namespace
@@ -48,6 +50,23 @@ private slots:
     QVERIFY(mute->mapToScene({mute->width(), 0}).x() <= root->width() + 0.5);
   }
 
+  // The first frame shows before play, in a view that is not a window of its
+  // own (the node editor hosts panels in QQuickWidgets).
+  void videoShowsItsFirstFrame() {
+    // The macOS media backend loads only on the Cocoa event loop; offscreen it
+    // stays in LoadingMedia. Run it with -platform cocoa: no window opens.
+    if (QGuiApplication::platformName() == QStringLiteral("offscreen")) {
+      QSKIP("needs the native platform plugin to load media");
+    }
+    const auto file = QStringLiteral(NODETOOL_TEST_VIDEO);
+    QVERIFY2(QFileInfo::exists(file), qPrintable(file));
+    auto view = player("video", true, false);
+    auto *root = view->rootObject();
+    QVERIFY(root);
+    root->setProperty("source", QUrl::fromLocalFile(QFileInfo(file).canonicalFilePath()));
+    auto *video = named(root, "mediaPlayerVideo");
+    QTRY_VERIFY_WITH_TIMEOUT(video->property("hasFrame").toBool(), 10000);
+  }
   void audioHasNoPicture() {
     auto view = player("audio", false);
     auto *root = view->rootObject();

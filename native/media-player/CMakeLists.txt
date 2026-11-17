@@ -12,12 +12,15 @@ qt_add_qml_module(nodetool_media_player
     URI NodeTool.MediaPlayer
     RESOURCE_PREFIX /qt/qml
     OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/NodeTool/MediaPlayer
-    QML_FILES qml/MediaPlayer.qml)
+    QML_FILES qml/MediaPlayer.qml
+    SOURCES src/VideoFrameItem.h src/VideoFrameItem.cpp)
+target_include_directories(nodetool_media_player PRIVATE src)
 target_link_libraries(nodetool_media_player PUBLIC nodetool_ui_primitives)
 target_link_libraries(nodetool_media_player PUBLIC Qt6::Core Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Multimedia)
 if(BUILD_TESTING)
     qt_add_executable(media-player-tests tests/tst_media_player.cpp)
     target_link_libraries(media-player-tests PRIVATE nodetool_media_player nodetool_media_playerplugin Qt6::Test Qt6::Quick)
+    target_compile_definitions(media-player-tests PRIVATE NODETOOL_TEST_VIDEO=\"${CMAKE_CURRENT_LIST_DIR}/tests/fixtures/clip.mp4\")
     nodetool_use_ui_primitives(media-player-tests)
     add_test(NAME media-player-tests COMMAND media-player-tests)
     set_tests_properties(media-player-tests PROPERTIES
