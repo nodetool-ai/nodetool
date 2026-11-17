@@ -246,6 +246,10 @@ export function registerProjectCommands(program: Command): void {
           const status = await migration.runMigrationToEnd(LOCAL_USER_ID, {
             location: opts.location
           });
+          // Files that changed recently or still wait for an upload keep the
+          // migration unfinished.
+          const unfinished = status.state !== "done";
+          if (unfinished || status.failure_count > 0) process.exitCode = 1;
           if (opts.json) {
             asJson(status);
             return;
@@ -257,7 +261,13 @@ export function registerProjectCommands(program: Command): void {
           for (const failure of status.failures) {
             console.error(`  failed: ${failure.kind} ${failure.name}: ${failure.reason}`);
           }
-          if (status.failure_count > 0) process.exitCode = 1;
+          if (status.state === "paused") {
+            console.error("  The migration was paused in NodeTool. Resume it there.");
+          } else if (unfinished) {
+            console.error(
+              "  Some files are not ready to move yet. Run this command again later to finish."
+            );
+          }
         } catch (e) {
           fail(e);
         }

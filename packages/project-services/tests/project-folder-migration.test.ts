@@ -63,8 +63,12 @@ let job: ProjectAssetMoveJob;
 let runner: ProjectFolderMigrationRunner;
 
 /** A job and runner that stand for one server process. */
-function newProcess(afterStep?: LegacyAssetMoveOptions["afterStep"]): void {
-  job = new ProjectAssetMoveJob({ settleMs: 0, afterStep, gate: bulkMigrationAllowed });
+function newProcess(
+  afterStep?: LegacyAssetMoveOptions["afterStep"],
+  settleMs = 0
+): void {
+  runner?.stop();
+  job = new ProjectAssetMoveJob({ settleMs, afterStep, gate: bulkMigrationAllowed });
   runner = new ProjectFolderMigrationRunner(job);
 }
 
@@ -178,6 +182,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  runner.stop();
   await runner.idle(USER);
   await job.idle();
   job.stop();
@@ -605,6 +610,51 @@ describe("nodetool projects migrate", () => {
 
     expect(status.state).toBe("done");
     expect(await moved(fox)).toBe(true);
+  });
+
+  it("waits for an asset changed just before it ran", async () => {
+    newProcess(undefined, 300);
+    const film = await legacyProject("Film");
+    const fox = await legacyAsset(film.id, "fox");
+    // The asset was edited a moment ago, so the mover defers it.
+    await getPortableDb()
+      .update(assets)
+      .set({ updated_at: new Date().toISOString() });
+
+    const status = await runMigrationToEnd(USER, { runner });
+
+    expect(status).toMatchObject({ state: "done", progress: { done: 1, total: 1 } });
+    expect(await moved(fox)).toBe(true);
+  });
+
+  it("stays unfinished while an asset still waits, and a second run continues", async () => {
+    const film = await legacyProject("Film");
+    // A client-direct upload that may still get its bytes.
+    const upload = await Asset.create<Asset>({
+      user_id: USER,
+      project_id: film.id,
+      parent_id: null,
+      name: "upload",
+      content_type: PNG,
+      size: null
+    });
+    await store.store(getAssetStorageKey(USER, upload.id, PNG), bytesOf(++seed), PNG);
+
+    const first = await runMigrationToEnd(USER, { runner });
+
+    expect(first.state).not.toBe("done");
+    expect(first.progress).toMatchObject({ done: 0, total: 1 });
+    expect(await moved(upload)).toBe(false);
+
+    // The upload window has passed.
+    await getPortableDb()
+      .update(assets)
+      .set({ created_at: "2024-01-01T00:00:00.000Z", updated_at: "2024-01-01T00:00:00.000Z" });
+    newProcess();
+    const second = await runMigrationToEnd(USER, { runner });
+
+    expect(second).toMatchObject({ state: "done", progress: { done: 1, total: 1 } });
+    expect(await moved(upload)).toBe(true);
   });
 
   it("refuses a migration the user paused", async () => {

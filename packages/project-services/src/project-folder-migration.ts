@@ -14,6 +14,7 @@
  * nothing moves before confirmation or while the migration is paused.
  */
 import { homedir } from "node:os";
+import { setTimeout as delay } from "node:timers/promises";
 import { posix } from "node:path";
 import { z } from "zod";
 import { createLogger, workspaceStorageKind } from "@nodetool-ai/config";
@@ -66,6 +67,9 @@ export const PROJECT_FOLDER_MIGRATION_ENV = "NODETOOL_PROJECT_MIGRATION";
 
 /** Failures kept with the state. The count covers the rest. */
 const MAX_STORED_FAILURES = 50;
+
+/** The shortest wait before a run that left assets waiting starts again. */
+const MIN_RESTART_MS = 1_000;
 
 /** Projects read per query while counting projects without a folder. */
 const COUNT_BATCH = 500;
@@ -410,6 +414,7 @@ function projectFailure(
 export class ProjectFolderMigrationRunner {
   private readonly active = new Map<string, Promise<void>>();
   private readonly progressByUser = new Map<string, RunProgress>();
+  private readonly restarts = new Set<NodeJS.Timeout>();
 
   constructor(private readonly job: ProjectAssetMoveJob = projectAssetMoveJob) {}
 
@@ -430,6 +435,12 @@ export class ProjectFolderMigrationRunner {
       });
     this.active.set(userId, run);
     return run;
+  }
+
+  /** Cancel the restarts this runner scheduled. A run under way finishes. */
+  stop(): void {
+    for (const timer of this.restarts) clearTimeout(timer);
+    this.restarts.clear();
   }
 
   /** The phase and project this process works on for the user, if any. */
@@ -499,54 +510,98 @@ export class ProjectFolderMigrationRunner {
       await Project.migrateToPersonal(userId);
       waiting = await Asset.listProjectsAwaitingFolderMove(userId);
     }
+    let deferred: string[] = [];
     for (const { projectId } of waiting) {
       if (!projectId || projectId === LOOSE_PROJECT_ID) continue;
-      const project = await Project.findOwned(userId, projectId);
-      this.setProgress(userId, "assets", project?.name ?? null);
-      try {
-        const report = await this.job.run(projectId, userId);
-        for (const assetId of report.failed) {
-          failures.push(
-            assetFailure(
-              await Asset.find(userId, assetId),
-              assetId,
-              project,
-              report.failureReasons[assetId] ?? "The copy could not be verified"
-            )
-          );
-        }
-        if (report.stopped) return this.record(userId, failures);
-      } catch (error) {
-        const reason = error instanceof Error ? error.message : String(error);
-        if (!(error instanceof ProjectFolderUnavailableError)) {
-          log.warn("Moving the assets of a project failed", { projectId, error: reason });
-        }
-        failures.push(projectFailure(project, projectId, reason));
-      }
-      if (!(await this.stillRunning(userId))) return this.record(userId, failures);
+      const outcome = await this.moveAssets(userId, projectId, failures);
+      if (outcome === "stopped") return this.record(userId, failures);
+      if (outcome === "deferred") deferred.push(projectId);
     }
-    await this.record(userId, failures, true);
+    if (deferred.length > 0) {
+      // Assets changed within the settle time wait for it once, so a run
+      // started right after an edit still finishes. The timer keeps a
+      // `nodetool projects migrate` process alive while it waits.
+      await delay(this.job.settleMs);
+      if (!(await this.stillRunning(userId))) return this.record(userId, failures);
+      const again = deferred;
+      deferred = [];
+      for (const projectId of again) {
+        const outcome = await this.moveAssets(userId, projectId, failures);
+        if (outcome === "stopped") return this.record(userId, failures);
+        if (outcome === "deferred") deferred.push(projectId);
+      }
+    }
+    await this.record(userId, failures, deferred.length > 0 ? "waiting" : "finished");
+  }
+
+  /**
+   * One pass of the asset move over a project. Failures are added to
+   * `failures`. "deferred" when assets changed too recently to move.
+   */
+  private async moveAssets(
+    userId: string,
+    projectId: string,
+    failures: ProjectFolderMigrationFailure[]
+  ): Promise<"stopped" | "deferred" | "passed"> {
+    const project = await Project.findOwned(userId, projectId);
+    this.setProgress(userId, "assets", project?.name ?? null);
+    try {
+      const report = await this.job.run(projectId, userId);
+      for (const assetId of report.failed) {
+        failures.push(
+          assetFailure(
+            await Asset.find(userId, assetId),
+            assetId,
+            project,
+            report.failureReasons[assetId] ?? "The copy could not be verified"
+          )
+        );
+      }
+      if (report.stopped) return "stopped";
+      if (!(await this.stillRunning(userId))) return "stopped";
+      return report.deferred.length > 0 ? "deferred" : "passed";
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      if (!(error instanceof ProjectFolderUnavailableError)) {
+        log.warn("Moving the assets of a project failed", { projectId, error: reason });
+      }
+      failures.push(projectFailure(project, projectId, reason));
+      return (await this.stillRunning(userId)) ? "passed" : "stopped";
+    }
   }
 
   /**
    * Store what this run could not finish. A finished run moves `running` to
-   * `done`. A paused one stays paused.
+   * `done`. A run that left assets waiting moves it back to `confirmed`, so
+   * the next run of any process continues, and this process starts one once
+   * they may have settled. A paused one stays paused.
    */
   private async record(
     userId: string,
     failures: ProjectFolderMigrationFailure[],
-    finished = false
+    outcome: "stopped" | "waiting" | "finished" = "stopped"
   ): Promise<void> {
-    await updateStored(userId, (current) => {
+    const recorded = await updateStored(userId, (current) => {
       if (!current) return current;
       const next: StoredState = {
         ...current,
         failures: failures.slice(0, MAX_STORED_FAILURES),
         failure_count: failures.length
       };
-      if (finished && current.state === "running") next.state = "done";
+      if (current.state === "running" && outcome !== "stopped") {
+        next.state = outcome === "finished" ? "done" : "confirmed";
+      }
       return next;
     });
+    if (outcome === "waiting" && recorded?.state === "confirmed") {
+      const timer = setTimeout(() => {
+        this.restarts.delete(timer);
+        void this.idle(userId).then(() => this.start(userId));
+      }, Math.max(this.job.settleMs, MIN_RESTART_MS));
+      // A server keeps running. A command reports the unfinished state.
+      timer.unref?.();
+      this.restarts.add(timer);
+    }
   }
 }
 

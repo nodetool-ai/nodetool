@@ -33,7 +33,7 @@ share it through the SQLite database. The settings list never shows it.
 | `not_started` | No row. The plan was never read. | `plan_shown` |
 | `plan_shown` | A client read the plan. | `confirmed` |
 | `confirmed` | The user confirmed, with the chosen location. | `running`, `paused` |
-| `running` | The server or a `nodetool projects migrate` command works through it. | `paused`, `done` |
+| `running` | The server or a `nodetool projects migrate` command works through it. | `paused`, `done`, `confirmed` |
 | `paused` | The user paused. Nothing bulk runs, after a restart too. | `running` |
 | `done` | Every step ran. Failures are listed. | `running` (retry) |
 
@@ -113,7 +113,8 @@ read, or a project whose folder could not be made or reached.
 `nodetool projects migrate` prints the plan and the state. With `--yes` it
 confirms, with `--location <dir>` when given, and runs the migration to the
 end in the command's process. It continues a confirmed or running migration.
-It refuses a paused one. No other command runs a bulk step: commands that run
+It refuses a paused one. It exits with status 1 when a failure is listed or
+the migration is not `done`. No other command runs a bulk step: commands that run
 workflows only use the lazy folder creation above. Every asset step takes the
 project's cross-process folder lock, so a server and a command never move one
 asset at the same time.
@@ -124,6 +125,7 @@ asset at the same time.
 | --- | --- |
 | Server stops while `running` | The next start continues. Every step is idempotent. |
 | Server stops while `paused` | The next start does nothing bulk until resume. |
+| An asset changed within the settle time, or a direct upload may still arrive | The run waits the settle time once and moves it then. An asset still not ready moves the state back to `confirmed`, and the server runs it again later. A command reports the migration as unfinished. |
 | A copy does not match | The legacy object stays. The asset is listed as failed. Retry moves it again. |
 | A project folder cannot be reached or made | Its assets stay in asset storage, and its workflows and timelines have no file yet. The project is listed as failed. Retry tries both again. |
 | The location is not a writable directory | Confirm is refused, and the state stays `plan_shown`. |
