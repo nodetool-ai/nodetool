@@ -798,9 +798,12 @@ export {
   restoreDeletedDocument,
   endDeletedDocumentRestorePeriod,
   purgeDeletedDocuments,
-  retainDeletedDocument,
+  retainDeletedProject,
   registerDeletedDocumentKind,
+  type TransactionStep,
+  type RetainedRows,
   type DeletedDocumentEntry,
+  type DeletedDocumentMember,
   type DeletedDocumentKind,
   type DeletedDocumentPayload,
   type RestoreDeletedOutcome
