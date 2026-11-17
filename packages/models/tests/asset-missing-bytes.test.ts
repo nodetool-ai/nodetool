@@ -66,6 +66,9 @@ describe.each(["sqlite", "postgres"] as const)("%s rows without stored bytes", (
       [Asset.LEGACY_BYTES_MISSING_KEY]: updatedAt
     });
     expect(await waitingNames()).toEqual(["other", "named"]);
+    expect(
+      (await Asset.listLegacyBytesMissing(OWNER, PROJECT)).map((row) => row.name)
+    ).toEqual(["missing", "moving"]);
     expect(await Asset.countAwaitingFolderMove(OWNER)).toBe(2);
     expect(await Asset.listProjectsAwaitingFolderMove(OWNER)).toEqual([
       { userId: OWNER, projectId: PROJECT }
@@ -79,6 +82,9 @@ describe.each(["sqlite", "postgres"] as const)("%s rows without stored bytes", (
     saved!.name = "other renamed";
     await saved!.save();
     expect(await waitingNames()).toEqual(["other renamed", "named"]);
+    expect(
+      (await Asset.listLegacyBytesMissing(OWNER, PROJECT)).map((row) => row.name)
+    ).toEqual(["missing", "moving"]);
 
     expect(await Asset.clearMissingBytesMarkers(OWNER)).toBe(3);
     expect(await Asset.clearMissingBytesMarkers(OWNER)).toBe(0);

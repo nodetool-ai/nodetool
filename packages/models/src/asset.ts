@@ -237,6 +237,31 @@ export class Asset extends DBModel {
   }
 
   /**
+   * The rows of the user in `projectId` that {@link markLegacyBytesMissing}
+   * marked and that were not saved since: the rows its mark leaves out of
+   * {@link listAwaitingFolderMove}. Oldest first.
+   */
+  static async listLegacyBytesMissing(
+    userId: string,
+    projectId: string
+  ): Promise<Asset[]> {
+    const rows = await getPortableDb()
+      .select()
+      .from(assets)
+      .where(
+        and(
+          eq(assets.user_id, userId),
+          eq(assets.project_id, projectId),
+          isNull(assets.workspace_path),
+          isNull(assets.external_path),
+          legacyBytesMissing()
+        )
+      )
+      .orderBy(assets.created_at, assets.id);
+    return rows.map((row) => new Asset(row));
+  }
+
+  /**
    * Remove the mark {@link markLegacyBytesMissing} wrote from every row of
    * the user, so the next move pass looks for their bytes again. Only the
    * metadata is written, and only while it is what was read. `updated_at`
