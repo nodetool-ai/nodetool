@@ -90,15 +90,25 @@ Basic.ComboBox {
         required property int index
         required property var modelData
         text: modelData.label
-        width: root.popup.width
+        width: root.popup.availableWidth
+        leftPadding: Metrics.md; rightPadding: Metrics.md
         enabled: !root.readOnly && root.enabled && modelData.enabled !== false
         highlighted: list.currentIndex === index
         onClicked: { root.commitIndex(index); root.popup.close() }
         contentItem: Ui.Text { text: item.modelData.label; role: Typography.SansLabel; tone: item.enabled ? Ui.Text.Primary : Ui.Text.Disabled; elide: Text.ElideRight }
         background: Rectangle { color: item.highlighted ? Theme.actionSelected : item.hovered ? Theme.actionHover : "transparent"; radius: Metrics.radiusControl }
     }
+    // A narrow control, such as a speed menu, keeps a popup wide enough for its labels.
+    TextMetrics { id: optionMetrics; font: label.font }
+    function widestOption() {
+        let widest = 0
+        for (const option of root.options) { optionMetrics.text = option.label; widest = Math.max(widest, optionMetrics.advanceWidth) }
+        return Math.ceil(widest)
+    }
     popup: Basic.Popup {
-        y: root.height; width: root.width; padding: Metrics.xs
+        property real optionWidth: 0
+        y: root.height; width: Math.max(root.width, optionWidth + Metrics.md * 2 + leftPadding + rightPadding); padding: Metrics.xs
+        onAboutToShow: optionWidth = root.widestOption()
         onClosed: root.forceActiveFocus(Qt.PopupFocusReason)
         onOpened: { if (root.readOnly) { close(); return }; list.currentIndex = root.currentIndex; list.forceActiveFocus() }
         contentItem: ListView {

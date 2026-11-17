@@ -43,6 +43,7 @@ import {
   toRawGraphInput
 } from "@nodetool-ai/execution";
 import {
+  graphNodeTitle,
   persistableOutputs,
   withoutInlineAssetBytes
 } from "@nodetool-ai/execution/service";
@@ -84,7 +85,7 @@ import {
 } from "@nodetool-ai/node-sdk/cost-estimate";
 import { extractPricingParams } from "@nodetool-ai/node-sdk/pricing-params";
 import { getModelUnitPrice } from "@nodetool-ai/model-pricing";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { ProcessingContext, Workspace } from "@nodetool-ai/runtime";
 import { applicationReleaseResponse } from "@nodetool-ai/protocol/api-schemas/applications.js";
 import { appRunSnapshot } from "@nodetool-ai/protocol/api-schemas/app-runs.js";
 import type {
@@ -1712,9 +1713,23 @@ export class JobExecutionManager {
     }
     const preRunMs = performance.now() - phaseStartedAt;
 
-    const workspace = this.session.workspaceResolver
-      ? await this.session.workspaceResolver(workflowId ?? null, userId)
-      : null;
+    // The project's folder is read once, here, and kept for the whole run. An
+    // unreachable folder refuses the run instead of sending its files
+    // somewhere else.
+    let workspace: Workspace | null = null;
+    if (this.session.workspaceResolver) {
+      const folder = await this.session.workspaceResolver(projectId, userId);
+      if (!folder.ok) {
+        await this.emitBeforeRunFailure(
+          jobId,
+          workflowId,
+          new Error(folder.reason),
+          executionOptions.persistence === "job"
+        );
+        return;
+      }
+      workspace = folder.workspace;
+    }
 
     const appRun = req.app_run_id
       ? await getAppRun(userId, req.app_run_id)
@@ -2419,8 +2434,14 @@ export class JobExecutionManager {
                     {
                       userId,
                       workflowId: active.workflowId,
+                      projectId: active.context.projectId,
                       jobId: active.jobId,
                       nodeId,
+                      nodeName:
+                        graphNodeTitle(graphNodeMap.get(nodeId)) ??
+                        (isString(outbound.node_name)
+                          ? outbound.node_name
+                          : undefined),
                       textOutputName: primaryTextOutputName(meta),
                       generationIndex: arrivalIndex,
                       properties:

@@ -146,7 +146,9 @@ export {
   getManagedWorkspacesDir,
   getManagedWorkspaceDir,
   managedWorkspaceKey,
-  workspaceStorageKind
+  workspaceStorageKind,
+  DEFAULT_PROJECTS_DIR,
+  getProjectsDir
 } from "./paths.js";
 
 export {

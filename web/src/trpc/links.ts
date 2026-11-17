@@ -6,14 +6,23 @@ import {
   type TRPCLink
 } from "@trpc/client";
 import { TRPC_MAX_BATCH_SIZE } from "@nodetool-ai/protocol";
+import {
+  SYNC_PROTOCOL_HEADER,
+  SYNC_PROTOCOL_VERSION
+} from "@nodetool-ai/protocol/api-schemas/sync.js";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { isAuthRequired } from "../lib/runtimeConfig";
 import { authHeader } from "../lib/auth";
 import { BASE_URL } from "../stores/BASE_URL";
 
-async function authHeaders(): Promise<Record<string, string>> {
-  if (!isAuthRequired()) return {};
-  return authHeader();
+/**
+ * The auth header, and the sync protocol version: a request without it is
+ * read as a legacy client, whose saves are in the legacy schema.
+ */
+async function requestHeaders(): Promise<Record<string, string>> {
+  const protocol = { [SYNC_PROTOCOL_HEADER]: String(SYNC_PROTOCOL_VERSION) };
+  if (!isAuthRequired()) return protocol;
+  return { ...(await authHeader()), ...protocol };
 }
 
 /**
@@ -37,13 +46,13 @@ export function createTrpcLinks(): TRPCLink<AppRouter>[] {
       true: httpLink({
         url,
         methodOverride: "POST",
-        headers: authHeaders
+        headers: requestHeaders
       }),
       false: httpBatchLink({
         url,
         maxItems: TRPC_MAX_BATCH_SIZE,
         methodOverride: "POST",
-        headers: authHeaders
+        headers: requestHeaders
       })
     })
   ];

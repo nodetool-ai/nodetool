@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Window
 import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
@@ -14,9 +15,6 @@ Rectangle {
     required property ExampleGallery gallery
     // The tab's MediaResolver, which loads each card's preview image.
     property var resolver: null
-    readonly property var visibleGroups: gallery.groups.filter(group =>
-        (gallery.filter === "all" || gallery.filter === group.key)
-        && (group.count > 0 || (gallery.search.trim() === "" && (group.loading || group.error !== ""))))
     implicitWidth: Ui.Metrics.dialogCompactWidth
     color: Ui.Theme.surfacePanel
 
@@ -102,85 +100,119 @@ Rectangle {
                 onActionTriggered: root.gallery.search = ""
             }
         }
-        Flickable {
-            id: flick
+        ListView {
+            id: list
             objectName: "examples-list"
+            // The narrowest card before the grid drops a column, as AutoGrid minItemWidth 128.
+            readonly property real minCard: Ui.Metrics.xxl * 5
+            readonly property real cardSpacing: Ui.Metrics.md
+            readonly property int columns: Math.max(1, Math.floor((width + cardSpacing) / (minCard + cardSpacing)))
+            readonly property real cardWidth: (width - cardSpacing * (columns - 1)) / columns
+            onColumnsChanged: root.rebuild()
             visible: root.visibleGroups.length > 0
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
-            contentWidth: width
-            contentHeight: sections.implicitHeight
+            model: root.lines
+            // A screen of cards builds ahead of the scroll, so previews load before they enter.
+            cacheBuffer: Math.max(0, height)
+            reuseItems: true
+            pixelAligned: true
             boundsBehavior: Flickable.StopAtBounds
             Basic.ScrollBar.vertical: Ui.ScrollBar {}
-            Column {
-                id: sections
-                width: flick.width
-                spacing: Ui.Metrics.lg
-                Repeater {
-                    model: root.visibleGroups
-                    Column {
-                        id: section
-                        required property var modelData
-                        readonly property var entries: root.gallery.rows.filter(row => row.group === section.modelData.key)
-                        objectName: "examples-section-" + section.modelData.key
-                        width: sections.width
-                        spacing: Ui.Metrics.sm
-                        Accessible.role: Accessible.Grouping
-                        Accessible.name: "Example " + section.modelData.label
-                        Ui.Text {
-                            text: section.modelData.label
-                            role: Ui.Typography.SansLabel
-                            tone: Ui.Text.Secondary
-                        }
-                        Ui.BusyIndicator {
-                            objectName: "examples-loading-" + section.modelData.key
-                            visible: section.modelData.loading && section.entries.length === 0
-                            running: visible
-                            accessibleName: "Loading " + section.modelData.label
-                        }
-                        Ui.Banner {
-                            objectName: "examples-error-" + section.modelData.key
-                            visible: section.modelData.error !== ""
-                            width: section.width
-                            status: Ui.Status.Error
-                            message: section.modelData.error
-                            actionText: "Retry"
-                            onActionTriggered: root.gallery.refresh()
-                        }
-                        Flow {
-                            id: cards
-                            // The narrowest card before the grid drops a column, as AutoGrid minItemWidth 128.
-                            readonly property real minCard: Ui.Metrics.xxl * 5
-                            readonly property int columns: Math.max(1, Math.floor((width + spacing) / (minCard + spacing)))
-                            readonly property real cardWidth: (width - spacing * (columns - 1)) / columns
-                            width: section.width
-                            spacing: Ui.Metrics.md
-                            Repeater {
-                                model: section.entries
-                                ExampleCard {}
-                            }
-                        }
-                    }
-                }
+            delegate: Loader {
+                id: line
+                required property var modelData
+                width: list.width
+                sourceComponent: modelData.kind === "header" ? headerLine : cardLine
+            }
+        }
+    }
+
+    // The list's lines: a header for each visible group, then its cards in
+    // rows of list.columns. Rebuilt only when the list or the column count
+    // changes, so a copy in progress keeps every card and its preview.
+    property var visibleGroups: []
+    property var lines: []
+    function rebuild() {
+        const groups = gallery.groups.filter(group =>
+            (gallery.filter === "all" || gallery.filter === group.key)
+            && (group.count > 0 || (gallery.search.trim() === "" && (group.loading || group.error !== ""))))
+        const rows = gallery.rows
+        const columns = list.columns
+        const result = []
+        for (const group of groups) {
+            const entries = rows.filter(row => row.group === group.key)
+            result.push({kind: "header", group: group, empty: entries.length === 0, last: entries.length === 0})
+            for (let i = 0; i < entries.length; i += columns) {
+                result.push({kind: "cards", entries: entries.slice(i, i + columns), last: i + columns >= entries.length})
+            }
+        }
+        visibleGroups = groups
+        lines = result
+    }
+    Component.onCompleted: rebuild()
+    Connections {
+        target: root.gallery
+        function onListChanged() { root.rebuild() }
+    }
+
+    Component {
+        id: headerLine
+        Column {
+            id: header
+            readonly property var lineData: parent ? parent.modelData : ({})
+            readonly property var group: lineData.group || ({})
+            objectName: "examples-section-" + header.group.key
+            spacing: Ui.Metrics.sm
+            bottomPadding: header.lineData.last ? Ui.Metrics.lg : Ui.Metrics.sm
+            Accessible.role: Accessible.Grouping
+            Accessible.name: "Example " + header.group.label
+            Ui.Text {
+                text: header.group.label
+                role: Ui.Typography.SansLabel
+                tone: Ui.Text.Secondary
+            }
+            Ui.BusyIndicator {
+                objectName: "examples-loading-" + header.group.key
+                visible: header.group.loading && header.lineData.empty
+                running: visible
+                accessibleName: "Loading " + header.group.label
+            }
+            Ui.Banner {
+                objectName: "examples-error-" + header.group.key
+                visible: header.group.error !== ""
+                width: list.width
+                status: Ui.Status.Error
+                message: header.group.error
+                actionText: "Retry"
+                onActionTriggered: root.gallery.refresh()
+            }
+        }
+    }
+
+    Component {
+        id: cardLine
+        Row {
+            id: cardRow
+            readonly property var lineData: parent ? parent.modelData : ({})
+            readonly property real cardWidth: list.cardWidth
+            spacing: list.cardSpacing
+            bottomPadding: cardRow.lineData.last ? Ui.Metrics.lg : list.cardSpacing
+            Repeater {
+                model: cardRow.lineData.entries
+                ExampleCard {}
             }
         }
     }
 
     // One example, a button whose content is the preview and the labels. The
-    // preview image loads once the card scrolls near the view.
+    // list builds the card, and so loads its preview, near the view.
     component ExampleCard: Ui.EditorButton {
         id: card
         required property var modelData
         readonly property bool opening: root.gallery.openingKey === modelData.key
         readonly property bool busy: root.gallery.openingKey !== ""
-        // The card's top in the list: its place in the section's grid, the
-        // grid's place in the section and the section's place in the list.
-        readonly property real listTop: card.y + (parent ? parent.y + (parent.parent ? parent.parent.y : 0) : 0)
-        readonly property bool nearView: listTop + height >= flick.contentY - flick.height && listTop <= flick.contentY + flick.height * 2
-        property bool seen: false
-        onNearViewChanged: if (nearView) seen = true
-        Component.onCompleted: if (nearView) seen = true
         objectName: "example-card-" + modelData.key
         width: parent ? parent.cardWidth : 0
         height: implicitHeight
@@ -195,6 +227,17 @@ Rectangle {
         bottomPadding: Ui.Metrics.none
         implicitHeight: content.implicitHeight
         onClicked: root.gallery.open(modelData.key)
+        // ExampleCard in ExamplesPanel.tsx: drag onto the workflow canvas to add its nodes.
+        Drag.active: cardDrag.active
+        Drag.dragType: Drag.Automatic
+        Drag.supportedActions: Qt.CopyAction
+        Drag.mimeData: ({"application/x-nodetool-example": card.modelData.key})
+        DragHandler {
+            id: cardDrag
+            objectName: "example-card-drag"
+            target: null
+            enabled: !card.busy
+        }
         contentItem: ColumnLayout {
             id: content
             spacing: Ui.Metrics.none
@@ -203,35 +246,44 @@ Rectangle {
                 Layout.preferredHeight: width * 9 / 16
                 variant: Ui.Surface.Canvas
                 clip: true
-                Loader {
+                // The preview is decoration, so pointer and focus stay on the card.
+                // A plain Image, not MediaPreview: a card needs no player,
+                // dialogs or zoom, and those made each card slow to build.
+                Image {
+                    id: thumb
+                    property string key: ""
                     anchors.fill: parent
-                    // The preview is decoration, so pointer and focus stay on the card.
                     enabled: false
-                    active: card.seen && card.modelData.thumbnail !== "" && root.resolver !== null
-                    sourceComponent: Component {
-                        MediaPreview {
-                            mediaKind: "image"
-                            locator: ({type: "image", uri: card.modelData.thumbnail})
-                            resolver: root.resolver
-                            requestKey: "example-thumbnail:" + card.modelData.key
-                            showFilename: false
-                            showDownload: false
-                            fillPreview: true
-                        }
+                    asynchronous: true
+                    fillMode: Image.PreserveAspectCrop
+                    sourceSize.width: Math.ceil(width * Screen.devicePixelRatio)
+                    visible: status === Image.Ready
+                    function request() {
+                        if (card.modelData.thumbnail === "" || root.resolver === null) { return }
+                        key = "example-thumbnail:" + card.modelData.key
+                        root.resolver.resolve(key, {type: "image", uri: card.modelData.thumbnail})
+                    }
+                    Component.onCompleted: request()
+                    Component.onDestruction: if (key !== "" && root.resolver) { root.resolver.cancel(key); root.resolver.release(key) }
+                    Connections {
+                        target: root.resolver
+                        function onResolved(key, url) { if (key === thumb.key) { thumb.source = url } }
                     }
                 }
                 Ui.Icon {
                     anchors.centerIn: parent
-                    visible: card.modelData.thumbnail === "" || root.resolver === null
+                    visible: thumb.status !== Image.Ready
                     name: "accountTree"
                     tone: Ui.Text.Secondary
                     size: Ui.Metrics.iconLg
                 }
-                Ui.BusyIndicator {
+                Loader {
                     anchors.centerIn: parent
-                    visible: card.opening
-                    running: card.opening
-                    accessibleName: "Adding a copy"
+                    active: card.opening
+                    sourceComponent: Ui.BusyIndicator {
+                        running: true
+                        accessibleName: "Adding a copy"
+                    }
                 }
             }
             ColumnLayout {

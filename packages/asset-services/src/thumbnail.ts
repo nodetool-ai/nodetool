@@ -356,6 +356,57 @@ export async function generateThumbnailForStoredAsset(
 }
 
 /**
+ * Generate and store the thumbnail of an asset whose bytes the caller holds
+ * or has on this host, such as a file just written to a project folder. The
+ * thumbnail is a derived object in the asset store, never a file in the
+ * folder. Failures are logged and swallowed.
+ */
+export async function storeAssetThumbnail(
+  userId: string,
+  assetId: string,
+  contentType: string,
+  source: ThumbnailSource
+): Promise<void> {
+  const generator = thumbGeneratorFor(contentType);
+  if (!generator) return;
+  await storeThumbnail(
+    getAssetAdapter(),
+    userId,
+    assetId,
+    contentType,
+    generator,
+    () => Promise.resolve(source)
+  );
+}
+
+/**
+ * Replace the thumbnail of an asset whose file changed in place. The stored
+ * thumbnail is keyed by the asset id alone, so the old one is removed first:
+ * when no new one can be made, or `source` is null, the asset has no
+ * thumbnail instead of a picture of its previous contents. Failures are
+ * logged and swallowed.
+ */
+export async function refreshAssetThumbnail(
+  userId: string,
+  assetId: string,
+  contentType: string,
+  source: ThumbnailSource | null
+): Promise<void> {
+  const adapter = getAssetAdapter();
+  try {
+    await adapter.delete(
+      adapter.uriForKey(assetObjectKey(userId, thumbnailKey(assetId)))
+    );
+  } catch (err) {
+    log.warn("removing a stale thumbnail failed", {
+      assetId,
+      error: String(err)
+    });
+  }
+  if (source) await storeAssetThumbnail(userId, assetId, contentType, source);
+}
+
+/**
  * Store an asset's bytes and, when applicable, generate and store a
  * thumbnail. Thumbnail failures are logged and swallowed — the original
  * upload still succeeds.

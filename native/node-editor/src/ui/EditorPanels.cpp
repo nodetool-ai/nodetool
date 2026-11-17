@@ -3,12 +3,15 @@
 // SettingsHeaderButton.tsx, inspector/RunSelectedNodesSection.tsx,
 // costs/WorkflowCostEstimatePanel.tsx and panels/PanelBottom.tsx.
 #include "EditorWindow.h"
+#include <QtMath>
+#include <QSettings>
 #include "graph/CanvasDropController.h"
 #include <QClipboard>
 #include <QDesktopServices>
 #include <QGuiApplication>
 #include <QDateTime>
 #include <QDockWidget>
+#include <QGraphicsView>
 #include <QJsonDocument>
 #include <QQmlEngine>
 #include <QQuickItem>
@@ -100,6 +103,18 @@ void EditorWindow::initializePanels() {
     }
     schedulePanelChanged();
   });
+  // The server watches the folder of the tab's project for this socket and
+  // pushes what changes in it.
+  connect(&session_, &node_editor::WorkflowSession::stateChanged, this, &EditorWindow::syncOpenProject);
+  connect(&session_, &node_editor::WorkflowSession::workflowChanged, this, &EditorWindow::syncOpenProject);
+  connect(&session_, &node_editor::WorkflowSession::workspaceFilesChanged, &library_, &node_editor::LibraryBrowser::workspaceFilesChanged);
+  connect(&session_, &node_editor::WorkflowSession::documentFileChanged, &browser_, &node_editor::WorkflowBrowser::documentFileChanged);
+  connect(&session_, &node_editor::WorkflowSession::documentFileChanged, &projectFolder_, &node_editor::ProjectFolder::documentFileChanged);
+  connect(&projectFolder_, &node_editor::ProjectFolder::changed, this, [this] {
+    library_.setProject(projectFolder_.projectId());
+    library_.setProjectWorkspace(projectFolder_.workspaceId());
+  });
+  syncOpenProject();
   connect(this, &EditorWindow::documentEpochChanged, this, [this] {
     runsTotal_ = runsCurrent_ = 0;
     runsJob_.clear();
@@ -188,6 +203,10 @@ void EditorWindow::reportBug(node_editor::BugReportContext context) {
   QDesktopServices::openUrl(node_editor::bugReportUrl(context, system));
 }
 
+void EditorWindow::reportError(const QString &source, const QString &text) {
+  reportBug({.source = source, .errorText = text});
+}
+
 QVariantMap EditorWindow::costEstimate() const {
   if (!tabOwner_) { return activeEditor_->costEstimate(); }
   return costEstimate_;
@@ -239,20 +258,104 @@ bool EditorWindow::versionsVisible() const {
 
 bool EditorWindow::queueVisible() const {
   if (!tabOwner_) { return activeEditor_->queueVisible(); }
-  const auto *queue = queueOverlay_ ? queueOverlay_->rootObject() : nullptr;
-  return queue && queue->property("presented").toBool() && queue->property("showList").toBool();
+  const auto *dock = findChild<QDockWidget *>(QStringLiteral("queue-dock"));
+  return dock && !dock->isHidden();
+}
+
+QRect EditorWindow::queueArea() const {
+  return {view_->mapTo(centralWidget(), QPoint(0, 0)), view_->size()};
+}
+
+QSize EditorWindow::queueSize(const QRect &area) const {
+  using node_editor::docked_overlay::margin;
+  constexpr int width = 304;
+  const auto *root = queueOverlay_ ? queueOverlay_->rootObject() : nullptr;
+  const int desired = root ? qCeil(root->property("contentHeight").toReal()) : 0;
+  return {std::clamp(area.width() - 2 * margin, 0, width), std::clamp(area.height() - 2 * margin, 0, desired)};
+}
+
+void EditorWindow::moveQueue(double dx, double dy) {
+  if (!queueOverlay_) { return; }
+  using namespace node_editor::docked_overlay;
+  const auto area = queueArea();
+  const auto size = queueSize(area);
+  const auto from = queueDragPoint_.value_or(queueOverlay_->pos());
+  const QPoint to = from + QPoint(qRound(dx), qRound(dy));
+  // Clamped at each step, so a pointer that went past an edge moves the
+  // overlay again as soon as it comes back toward it.
+  queueDragPoint_ = place({false, false, to.x() - area.left(), to.y() - area.top()}, area, size);
+  queueOverlay_->move(*queueDragPoint_);
+}
+
+void EditorWindow::finishQueueMove() {
+  if (!queueDragPoint_) { return; }
+  const auto area = queueArea();
+  const auto position = node_editor::docked_overlay::dockAt(*queueDragPoint_, area, queueSize(area));
+  queueDragPoint_.reset();
+  setQueuePosition(position);
+}
+
+void EditorWindow::nudgeQueue(double dx, double dy) {
+  if (!queueOverlay_) { return; }
+  const auto area = queueArea();
+  setQueuePosition(node_editor::docked_overlay::dockAt(queueOverlay_->pos() + QPoint(qRound(dx), qRound(dy)), area, queueSize(area)));
+}
+
+void EditorWindow::resetQueuePosition() { setQueuePosition(std::nullopt); }
+
+void EditorWindow::setQueuePosition(std::optional<node_editor::docked_overlay::Position> position) {
+  QSettings settings;
+  if (position) {
+    settings.setValue("queueOverlay/position", node_editor::docked_overlay::toVariant(*position));
+  } else {
+    settings.remove("queueOverlay/position");
+  }
+  // The position holds for every workflow tab, as the web keeps one per user.
+  const auto tabs = tabOwner_ ? tabOwner_->tabs_ : QList<EditorWindow *>{this};
+  for (auto *tab : tabs) {
+    tab->queuePosition_ = position;
+    tab->layoutOverlays();
+  }
+  if (!tabs.contains(this)) {
+    queuePosition_ = position;
+    layoutOverlays();
+  }
 }
 
 void EditorWindow::toggleQueue() {
   if (!tabOwner_) { activeEditor_->toggleQueue(); return; }
-  auto *queue = queueOverlay_ ? queueOverlay_->rootObject() : nullptr;
-  if (!queue) { return; }
-  // The web Queue tab opens the queue at any time and closes it when it is the open view.
-  const bool open = !queueVisible();
-  queue->setProperty("opened", open);
-  queue->setProperty("expanded", open);
-  layoutOverlays();
+  // The web Queue tab opens QueuePanel in the bottom panel at any time and closes
+  // it when it is the open view. The canvas QueueOverlay still shows while jobs run.
+  if (auto *dock = findChild<QDockWidget *>(QStringLiteral("queue-dock")); dock && !dock->isHidden()) {
+    dock->close();
+  } else {
+    showQueue();
+  }
   schedulePanelChanged();
+}
+
+void EditorWindow::showQueue() {
+  for (auto *existing : findChildren<QDockWidget *>(QStringLiteral("queue-dock"))) { existing->close(); }
+  // Parented to the dock host and deleted when it closes.
+  auto *dock = new QDockWidget(tr("Queue"), dockHost_);
+  dock->setObjectName(QStringLiteral("queue-dock"));
+  dock->setAttribute(Qt::WA_DeleteOnClose);
+  dock->setTitleBarWidget(new QWidget(dock));
+  dock->setAllowedAreas(Qt::BottomDockWidgetArea);
+  outputDock_->hide();
+  auto *content = new QQuickWidget(engine_, dock);
+  content->setResizeMode(QQuickWidget::SizeRootObjectToView);
+  content->setInitialProperties({{"runs", QVariant::fromValue(&runState_)},
+                                 {"resolver", QVariant::fromValue<QObject *>(&mediaResolver_)}});
+  content->setSource(QUrl(QStringLiteral("qrc:/qt/qml/NodeTool/NodeEditor/QueuePanel.qml")));
+  dock->setWidget(content);
+  if (content->rootObject()) { connect(content->rootObject(), SIGNAL(closeRequested()), dock, SLOT(close())); }
+  // The status bar Queue tab shows whether the panel is open.
+  connect(dock, &QDockWidget::visibilityChanged, this, &EditorWindow::schedulePanelChanged);
+  connect(dock, &QObject::destroyed, this, &EditorWindow::schedulePanelChanged);
+  dockHost_->addDockWidget(Qt::BottomDockWidgetArea, dock);
+  dockHost_->resizeDocks({dock}, {height() / 2}, Qt::Vertical);
+  dock->show();
 }
 
 bool EditorWindow::generationsVisible() const {
@@ -279,6 +382,39 @@ void EditorWindow::showGenerations() {
   if (content->rootObject()) { connect(content->rootObject(), SIGNAL(closeRequested()), dock, SLOT(close())); }
   connect(this, &EditorWindow::credentialsEpochChanged, dock, &QDockWidget::close);
   // The status bar Generations tab shows whether the panel is open.
+  connect(dock, &QDockWidget::visibilityChanged, this, &EditorWindow::schedulePanelChanged);
+  connect(dock, &QObject::destroyed, this, &EditorWindow::schedulePanelChanged);
+  dockHost_->addDockWidget(Qt::BottomDockWidgetArea, dock);
+  dockHost_->resizeDocks({dock}, {height() / 2}, Qt::Vertical);
+  dock->show();
+}
+
+bool EditorWindow::workersVisible() const {
+  if (!tabOwner_) { return activeEditor_->workersVisible(); }
+  const auto *dock = findChild<QDockWidget *>(QStringLiteral("workers-dock"));
+  return dock && !dock->isHidden();
+}
+
+void EditorWindow::showWorkers() {
+  for (auto *existing : findChildren<QDockWidget *>(QStringLiteral("workers-dock"))) { existing->close(); }
+  auto *fleet = &tabOwner_->workers_;
+  // The tab's server and credentials. A tab with no server shows the empty state.
+  fleet->setServer(session_.serverUrl(), session_.token());
+  // Parented to the dock host and deleted when it closes.
+  auto *dock = new QDockWidget(tr("Workers"), dockHost_);
+  dock->setObjectName(QStringLiteral("workers-dock"));
+  dock->setAttribute(Qt::WA_DeleteOnClose);
+  dock->setTitleBarWidget(new QWidget(dock));
+  dock->setAllowedAreas(Qt::BottomDockWidgetArea);
+  outputDock_->hide();
+  auto *content = new QQuickWidget(engine_, dock);
+  content->setResizeMode(QQuickWidget::SizeRootObjectToView);
+  content->setInitialProperties({{"fleet", QVariant::fromValue(fleet)}});
+  content->setSource(QUrl(QStringLiteral("qrc:/qt/qml/NodeTool/NodeEditor/WorkersPanel.qml")));
+  dock->setWidget(content);
+  if (content->rootObject()) { connect(content->rootObject(), SIGNAL(closeRequested()), dock, SLOT(close())); }
+  connect(this, &EditorWindow::credentialsEpochChanged, dock, &QDockWidget::close);
+  // The status bar Workers tab shows whether the panel is open.
   connect(dock, &QDockWidget::visibilityChanged, this, &EditorWindow::schedulePanelChanged);
   connect(dock, &QObject::destroyed, this, &EditorWindow::schedulePanelChanged);
   dockHost_->addDockWidget(Qt::BottomDockWidgetArea, dock);
@@ -345,6 +481,9 @@ void EditorWindow::toggleStatusView(const QString &view) {
   } else if (view == "generations") {
     if (auto *dock = findChild<QDockWidget *>(QStringLiteral("generations-dock")); dock && !dock->isHidden()) { dock->close(); }
     else { showGenerations(); }
+  } else if (view == "workers") {
+    if (auto *dock = findChild<QDockWidget *>(QStringLiteral("workers-dock")); dock && !dock->isHidden()) { dock->close(); }
+    else { showWorkers(); }
   } else if (view == "trace") {
     if (auto *dock = findChild<QDockWidget *>(QStringLiteral("run-trace-dock")); dock && !dock->isHidden()) { dock->close(); }
     else { action(QStringLiteral("Run trace")); }

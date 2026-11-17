@@ -49,6 +49,21 @@ jest.mock("../../widgets", () => ({
   )
 }));
 
+const mockRelink = jest.fn();
+const mockRemove = jest.fn(() => Promise.resolve({ deleted_asset_ids: [] }));
+jest.mock("../../../serverState/useRelinkAsset", () => ({
+  useRelinkAsset: () => ({ mutate: mockRelink, isPending: false })
+}));
+jest.mock("../../../serverState/useAssetDeletion", () => ({
+  useAssetDeletion: () => ({
+    mutation: { mutateAsync: mockRemove, isPending: false }
+  })
+}));
+jest.mock("../../../utils/localFile", () => ({
+  canResolveLocalFilePaths: () => true,
+  getLocalFilePath: (file: File) => `/disk/${file.name}`
+}));
+
 import AssetViewer from "../AssetViewer";
 
 const asset = (id: string, overrides: Partial<Asset> = {}): Asset =>
@@ -96,6 +111,39 @@ beforeEach(() => {
 });
 
 describe("AssetViewer", () => {
+  it("marks a missing asset Missing, relinks it, and closes after Remove", async () => {
+    const missing = asset("m1", { offline: true });
+    const { onClose } = renderViewer({ asset: missing, sortedAssets: [missing] });
+    expect(screen.getByTestId("asset-media-missing")).toHaveTextContent("Missing");
+
+    const input = document.querySelector(
+      '[data-testid="asset-file-status"] input[type="file"]'
+    ) as HTMLInputElement;
+    fireEvent.change(input, {
+      target: { files: [new File(["x"], "m1.png", { type: "image/png" })] }
+    });
+    expect(mockRelink).toHaveBeenCalledWith(
+      { id: "m1", path: "/disk/m1.png" },
+      expect.anything()
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    fireEvent.click(
+      (await screen.findAllByRole("button", { name: "Remove" })).at(-1)!
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(mockRemove).toHaveBeenCalledWith(["m1"]);
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("marks a linked asset Linked", () => {
+    const linked = asset("l1", { linked: true });
+    renderViewer({ asset: linked, sortedAssets: [linked] });
+    expect(screen.getByTestId("asset-linked")).toHaveTextContent("Linked");
+  });
+
   it("renders nothing while closed", () => {
     renderViewer({ open: false });
     expect(screen.queryByTestId("media")).not.toBeInTheDocument();

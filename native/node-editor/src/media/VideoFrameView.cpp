@@ -11,6 +11,7 @@
 #include <QQmlEngine>
 #include <QVideoFrame>
 #include <qqml.h>
+#include <algorithm>
 #include <mutex>
 namespace nodetool::node_editor {
 class MediaViewerHost : public QObject {
@@ -63,10 +64,30 @@ void VideoFrameView::paint(QPainter *painter) {
   painter->setRenderHint(QPainter::SmoothPixmapTransform);
   painter->drawImage(target, frame_);
 }
+ImageThumbnail::ImageThumbnail(QQuickItem *parent) : QQuickPaintedItem(parent) {
+  connect(this, &QQuickItem::widthChanged, this, [this] { update(); });
+  connect(this, &QQuickItem::heightChanged, this, [this] { update(); });
+}
+void ImageThumbnail::setImage(const QImage &image) {
+  if (image.cacheKey() == image_.cacheKey()) { return; }
+  image_ = image;
+  emit imageChanged();
+  update();
+}
+void ImageThumbnail::paint(QPainter *painter) {
+  if (image_.isNull() || width() <= 0 || height() <= 0) { return; }
+  const auto box = boundingRect();
+  const auto scale = std::max(box.width() / image_.width(), box.height() / image_.height());
+  QSizeF shown(image_.width() * scale, image_.height() * scale);
+  QRectF target(box.center() - QPointF(shown.width() / 2, shown.height() / 2), shown);
+  painter->setRenderHint(QPainter::SmoothPixmapTransform);
+  painter->setClipRect(box);
+  painter->drawImage(target, image_);
+}
 void registerMediaTypes() {
   // native-rules #14: function-static mutable registration flag
   static std::once_flag registered;
-  std::call_once(registered, [] { qmlRegisterType<MediaViewerHost>("NodeTool.NodeEditor.Media", 1, 0, "MediaViewerHost"); qmlRegisterType<MediaClipboard>("NodeTool.NodeEditor.Media", 1, 0, "MediaClipboard"); qmlRegisterType<MediaGalleryModel>("NodeTool.NodeEditor.Media", 1, 0, "MediaGalleryModel"); qmlRegisterType<LiveAudioVisualizer>("NodeTool.NodeEditor.Media", 1, 0, "LiveAudioVisualizer"); qmlRegisterType<AudioWaveform>("NodeTool.NodeEditor.Media", 1, 0, "AudioWaveform"); qmlRegisterType<VideoFrameView>("NodeTool.NodeEditor.Media", 1, 0, "VideoFrameView"); });
+  std::call_once(registered, [] { qmlRegisterType<MediaViewerHost>("NodeTool.NodeEditor.Media", 1, 0, "MediaViewerHost"); qmlRegisterType<MediaClipboard>("NodeTool.NodeEditor.Media", 1, 0, "MediaClipboard"); qmlRegisterType<MediaGalleryModel>("NodeTool.NodeEditor.Media", 1, 0, "MediaGalleryModel"); qmlRegisterType<LiveAudioVisualizer>("NodeTool.NodeEditor.Media", 1, 0, "LiveAudioVisualizer"); qmlRegisterType<AudioWaveform>("NodeTool.NodeEditor.Media", 1, 0, "AudioWaveform"); qmlRegisterType<VideoFrameView>("NodeTool.NodeEditor.Media", 1, 0, "VideoFrameView"); qmlRegisterType<ImageThumbnail>("NodeTool.NodeEditor.Media", 1, 0, "ImageThumbnail"); });
 }
 }
 

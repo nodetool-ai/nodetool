@@ -1,6 +1,7 @@
 /** Run a test command with a timeout, killing its whole process group. */
 
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { join } from "node:path";
 
 export interface CommandResult {
   code: number;
@@ -30,7 +31,10 @@ export class ShellRunner implements CommandRunner {
     return new Promise((resolvePromise) => {
       const child = spawn(command, {
         cwd,
-        shell: true,
+        shell: process.platform === "win32"
+          ? this.env.NODETOOL_BASH ?? join(this.env.ProgramFiles ?? "C:/Program Files", "Git", "bin", "bash.exe")
+          : true,
+        windowsHide: true,
         detached: process.platform !== "win32",
         env: { ...this.env, CI: this.env.CI ?? "true", FORCE_COLOR: "0" },
         stdio: ["ignore", "pipe", "pipe"]
@@ -95,8 +99,12 @@ function killGroup(pid: number | undefined): void {
   if (pid === undefined) {
     return;
   }
+  if (process.platform === "win32") {
+    spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
+    return;
+  }
   try {
-    process.kill(process.platform === "win32" ? pid : -pid, "SIGKILL");
+    process.kill(-pid, "SIGKILL");
   } catch {
     // The group has already exited.
   }

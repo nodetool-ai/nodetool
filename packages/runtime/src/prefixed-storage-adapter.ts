@@ -5,6 +5,11 @@ import {
   type StorageStat
 } from "./context.js";
 
+/** The options of the wrapped adapter's exclusive create. */
+type StoreIfAbsentOptions = Parameters<
+  NonNullable<StorageAdapter["storeIfAbsent"]>
+>[3];
+
 /**
  * A `StorageAdapter` that carves a key prefix out of another one.
  *
@@ -40,6 +45,29 @@ export class PrefixedStorageAdapter implements StorageAdapter {
 
   store(key: string, data: Uint8Array, contentType?: string): Promise<string> {
     return this.inner.store(this.scope(key), data, contentType);
+  }
+
+  /**
+   * Exclusive create under the prefix. Null when the key is taken, and also
+   * the inner adapter's own answer when it has no such operation.
+   */
+  storeIfAbsent(
+    key: string,
+    data: Uint8Array,
+    contentType?: string,
+    options?: StoreIfAbsentOptions
+  ): Promise<string | null> {
+    if (!this.inner.storeIfAbsent) {
+      return Promise.reject(
+        new Error("The storage behind this prefix has no exclusive create")
+      );
+    }
+    return this.inner.storeIfAbsent(
+      this.scope(key),
+      data,
+      contentType,
+      options
+    );
   }
 
   retrieve(uri: string): Promise<Uint8Array | null> {

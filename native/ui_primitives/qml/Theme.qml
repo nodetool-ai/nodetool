@@ -37,6 +37,9 @@ QtObject {
     readonly property color destructivePrimary: dark ? "#c62828" : "#b42318"
     readonly property color destructiveHover: dark ? "#a32020" : "#912018"
     readonly property color accentHover: dark ? "#2a4d80" : "#244e9e"
+    readonly property color accentOutline: dark ? "#803e68a7" : "#803062c3"
+    readonly property color outlinedDisabledInk: dark ? "#4dffffff" : "#4d17171a"
+    readonly property color outlinedDisabledOutline: dark ? "#1affffff" : "#141a1a1a"
     readonly property color accentSecondary: dark ? "#e879f9" : "#b13bcf"
     readonly property color statusWarningSurface: dark ? "#3d2b10" : "#fff1d6"
     readonly property color statusWarningOnSurface: dark ? "#ffd08a" : "#825100"
@@ -48,4 +51,37 @@ QtObject {
     readonly property color statusInfo: dark ? "#22d3ee" : "#0e7490"
     readonly property color scrimMedia: Qt.rgba(0,0,0,0.6)
     readonly property color scrimModal: Qt.rgba(0,0,0,0.6)
+    // Node graph tokens. The node editor canvas, cards and media read these through its presentation map.
+    // A graph token that equals a token above reuses it: chrome is surfaceCanvas, overlay is surfaceOverlay,
+    // mediaScrim is scrimMedia and the disabled outline is fieldDisabled.
+    readonly property color graphCanvas: dark ? "#08090a" : "#f6f6f8"
+    readonly property color graphGrid: dark ? "#1f2126" : "#d9d9df"
+    readonly property color graphNode: dark ? "#0d0e10" : "#ffffff"
+    readonly property color graphPaper: dark ? "#101113" : "#fafafb"
+    readonly property color graphReroutePaper: dark ? "#101113" : "#ffffff"
+    readonly property color graphRerouteBorder: dark ? "#808590" : "#71717a"
+    // The edge of a card inside a group, and the fill that replaces the card color (ARGB).
+    readonly property color graphGroupHeader: dark ? "#2a2d33" : "#f5f5f6"
+    readonly property color graphGroupFill: dark ? "#8c222222" : "#8ccccccc"
+    readonly property color graphZoomedTitle: dark ? "#b4b7bd" : "#3f3f46"
+    readonly property color graphPreviewSelected: dark ? "#d4d6db" : "#27272a"
+    readonly property color graphOutputSelected: dark ? "#4adbf1" : "#398da4"
+    readonly property color graphDivider: dark ? "#14ffffff" : "#e4e4e7"
+    readonly property color graphShadow: dark ? "#4d000000" : "#22000000"
+    readonly property color graphChecker: dark ? "#06ffffff" : "#061a1a1a"
+    readonly property color graphOutline: dark ? "#803e68a7" : "#803062c3"
+    readonly property color graphDisabledInk: dark ? "#4dffffff" : "#4d17171a"
+    readonly property color fieldSurface: dark ? "#08ffffff" : "#062a2a2a"
+    readonly property color fieldSurfaceFocus: dark ? "#0dffffff" : "#121c1c1c"
+    readonly property color fieldSurfaceDisabled: dark ? "#1affffff" : "#141a1a1a"
+    // Fixed in both schemes: the alpha surface behind an image, the scrim ink and strong scrim on media,
+    // the comparison metadata ink, the subgraph accent and the control wire.
+    readonly property color alphaSurfaceBase: "#1e1e1e"
+    readonly property color alphaSurfaceChecker: "#2a2a2a"
+    readonly property color mediaScrimInk: dark ? "#d4d6db" : "#27272a"
+    readonly property color mediaScrimStrong: "#d9000000"
+    readonly property color comparisonMetadataInk: "#ccffffff"
+    readonly property color subgraphAccent: "#7c3aed"
+    readonly property color projectAccent: dark ? "#67e8f9" : "#22a5c4"
+    readonly property color graphControlWire: "#f59e0b"
 }

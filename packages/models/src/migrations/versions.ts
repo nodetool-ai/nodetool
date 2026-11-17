@@ -7,7 +7,17 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL } from "@nodetool-ai/models-core";
+import {
+  JOB_TRACE_MARKER_DDL,
+  ASSET_FAVORITE_DDL,
+  ASSET_WORKSPACE_PATH_DDL,
+  ASSET_CONTENT_HASH_DDL,
+  WORKFLOW_FILE_PATH_DDL,
+  WORKFLOW_FILE_HASH_DDL,
+  WORKFLOW_FILE_ERROR_DDL,
+  WORKFLOW_LAST_WRITER_DDL,
+  WORKFLOW_SCHEMA_VERSION_DDL
+} from "@nodetool-ai/models-core";
 import { RUN_TRACES_DDL, applyRunTraceRls } from "./run-traces.js";
 
 import {
@@ -233,6 +243,104 @@ const DOCUMENT_SHARING_DDL: readonly string[] = [
     ON nodetool_document_shares (document_type, document_id)`
 ];
 
+/** Option columns of grants and links. See schema/document-sharing.ts. */
+const SHARING_OPTION_COLUMNS: ReadonlyArray<{
+  table: string;
+  column: string;
+  ddl: string;
+}> = [
+  ...[
+    "nodetool_document_collaborators",
+    "nodetool_workflow_collaborators",
+    "nodetool_document_shares",
+    "nodetool_workflow_shares"
+  ].flatMap((table) =>
+    ["allow_history", "allow_download", "allow_duplicate"].map((column) => ({
+      table,
+      column,
+      ddl: `ALTER TABLE ${table} ADD COLUMN ${column} INTEGER NOT NULL DEFAULT 0`
+    }))
+  ),
+  ...["nodetool_document_collaborators", "nodetool_workflow_collaborators"].map(
+    (table) => ({
+      table,
+      column: "share_id",
+      ddl: `ALTER TABLE ${table} ADD COLUMN share_id TEXT`
+    })
+  ),
+  ...["nodetool_document_shares", "nodetool_workflow_shares"].flatMap(
+    (table) =>
+      ["disabled_at", "owner_notice"].map((column) => ({
+        table,
+        column,
+        ddl: `ALTER TABLE ${table} ADD COLUMN ${column} TEXT`
+      }))
+  )
+];
+
+/**
+ * Grant indexes once a person can hold an invitation and a grant per link,
+ * and the one-active-link-per-role index (P4). The link index needs the
+ * duplicate active links disabled first; see the migration.
+ */
+const SHARING_GRANT_INDEX_DDL: readonly string[] = [
+  "DROP INDEX IF EXISTS idx_dcol_document_user",
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_dcol_document_user_invitation
+    ON nodetool_document_collaborators (document_type, document_id, user_id)
+    WHERE share_id IS NULL`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_dcol_document_user_share
+    ON nodetool_document_collaborators (document_type, document_id, user_id, share_id)
+    WHERE share_id IS NOT NULL`,
+  "DROP INDEX IF EXISTS idx_wcol_workflow_user",
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_wcol_workflow_user_invitation
+    ON nodetool_workflow_collaborators (workflow_id, user_id)
+    WHERE share_id IS NULL`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_wcol_workflow_user_share
+    ON nodetool_workflow_collaborators (workflow_id, user_id, share_id)
+    WHERE share_id IS NOT NULL`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_dshare_active_role
+    ON nodetool_document_shares (document_type, document_id, role)
+    WHERE disabled_at IS NULL`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_wshare_active_role
+    ON nodetool_workflow_shares (workflow_id, role)
+    WHERE disabled_at IS NULL`
+];
+
+/** DDL for the reference set tables. See schema/document-refs.ts. */
+const DOCUMENT_REFS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS nodetool_document_refs (
+    id TEXT PRIMARY KEY NOT NULL,
+    document_type TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    scope TEXT NOT NULL,
+    version_id TEXT NOT NULL DEFAULT '',
+    file TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_drefs_entry
+    ON nodetool_document_refs (document_type, document_id, version_id, scope, file)`,
+  `CREATE INDEX IF NOT EXISTS idx_drefs_file
+    ON nodetool_document_refs (file)`,
+  `CREATE TABLE IF NOT EXISTS nodetool_document_ref_sets (
+    id TEXT PRIMARY KEY NOT NULL,
+    document_type TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    version_id TEXT NOT NULL DEFAULT '',
+    content_hash TEXT NOT NULL,
+    written_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_dref_sets_entry
+    ON nodetool_document_ref_sets (document_type, document_id, version_id)`,
+  `CREATE TABLE IF NOT EXISTS nodetool_document_admitted_files (
+    id TEXT PRIMARY KEY NOT NULL,
+    document_type TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    file TEXT NOT NULL,
+    admitted_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_dadmitted_entry
+    ON nodetool_document_admitted_files (document_type, document_id, file)`
+];
+
 /**
  * Idempotent DDL for tables created by migrations newer than the frozen
  * SQLite baseline, in migration order. Only `initTestDb` reads it: the
@@ -320,6 +428,37 @@ const USER_QUOTAS_DDL: readonly string[] = [
 const THREAD_KIND_DDL =
   "ALTER TABLE nodetool_threads ADD COLUMN kind TEXT NOT NULL DEFAULT 'chat'";
 
+const MESSAGE_BRANCH_DDL: readonly string[] = [
+  "ALTER TABLE nodetool_messages ADD COLUMN branch_id TEXT",
+  "ALTER TABLE nodetool_messages ADD COLUMN branch_after TEXT"
+];
+
+/**
+ * A project's folder is one workspace row, and the row records whether
+ * NodeTool made the folder or the user brought it.
+ */
+const PROJECT_FOLDER_DDL: readonly string[] = [
+  "ALTER TABLE projects ADD COLUMN workspace_id TEXT",
+  "ALTER TABLE nodetool_workspaces ADD COLUMN origin TEXT NOT NULL DEFAULT 'created'"
+];
+
+/**
+ * A project timeline is a JSON file in its project's folder. The row records
+ * the file's path relative to that folder, the SHA-256 of the file content
+ * last synced with the row, and what the last reconcile found wrong with the
+ * file. The same three columns `nodetool_workflows` has.
+ */
+const TIMELINE_FILE_PATH_DDL =
+  "ALTER TABLE timeline_sequences ADD COLUMN file_path TEXT";
+const TIMELINE_FILE_HASH_DDL =
+  "ALTER TABLE timeline_sequences ADD COLUMN file_hash TEXT";
+const TIMELINE_FILE_ERROR_DDL =
+  "ALTER TABLE timeline_sequences ADD COLUMN file_error TEXT";
+const TIMELINE_LAST_WRITER_DDL =
+  "ALTER TABLE timeline_sequences ADD COLUMN last_writer_instance TEXT";
+const TIMELINE_SCHEMA_VERSION_DDL =
+  "ALTER TABLE timeline_sequences ADD COLUMN schema_version INTEGER NOT NULL DEFAULT 1";
+
 const USER_PERMISSIONS_DDL: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS nodetool_user_permissions (
     user_id TEXT PRIMARY KEY NOT NULL,
@@ -330,6 +469,79 @@ const USER_PERMISSIONS_DDL: readonly string[] = [
   )`
 ];
 
+/**
+ * Native device sessions on the OAuth grant table, and the authorize-flow
+ * state that moved from process memory into the database so a consent and its
+ * token exchange may reach different server processes. Applied by the
+ * `add_native_oauth_sessions` migration, and by `initTestDb` through
+ * {@link POST_BASELINE_TABLE_DDL}.
+ */
+const NATIVE_OAUTH_SESSION_DDL: readonly string[] = [
+  "ALTER TABLE mcp_oauth_grants ADD COLUMN kind TEXT NOT NULL DEFAULT 'mcp'",
+  "ALTER TABLE mcp_oauth_grants ADD COLUMN app_name TEXT",
+  "ALTER TABLE mcp_oauth_grants ADD COLUMN device_name TEXT",
+  "ALTER TABLE mcp_oauth_grants ADD COLUMN last_used_at TEXT",
+  "ALTER TABLE mcp_oauth_grants ADD COLUMN revocation_handle_hash TEXT",
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_mcp_oauth_grant_revocation_handle
+    ON mcp_oauth_grants (revocation_handle_hash)`,
+  `CREATE TABLE IF NOT EXISTS oauth_pending_entries (
+    id TEXT PRIMARY KEY NOT NULL,
+    entry_type TEXT NOT NULL,
+    user_id TEXT,
+    payload TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    consumed_at TEXT
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_oauth_pending_created
+    ON oauth_pending_entries (created_at)`
+];
+
+/**
+ * The local store of the native apps for cloud documents: unsent drafts and
+ * the last known open state (docs/plans/native-cloud-sync/technical-design.md,
+ * "Local data scoping and durable drafts"). Applied by the
+ * `add_cloud_local_store` migration, and by `initTestDb` through
+ * {@link POST_BASELINE_TABLE_DDL}.
+ */
+const CLOUD_LOCAL_STORE_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS cloud_drafts (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    server_key TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    base_updated_at TEXT NOT NULL,
+    base_content_hash TEXT NOT NULL,
+    draft TEXT NOT NULL,
+    state TEXT NOT NULL,
+    refusal_reason TEXT,
+    draft_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_cloud_drafts_document
+    ON cloud_drafts (user_id, server_key, account_id, kind, document_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_cloud_drafts_account
+    ON cloud_drafts (user_id, server_key, account_id)`,
+  `CREATE TABLE IF NOT EXISTS cloud_open_state (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    server_key TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    options TEXT NOT NULL,
+    base_updated_at TEXT,
+    base_content_hash TEXT,
+    last_contact_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_cloud_open_state_document
+    ON cloud_open_state (user_id, server_key, account_id, kind, document_id)`
+];
+
 export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OUTBOX_DDL,...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ...ANALYTICS_DDL, ...DOCUMENT_SHARING_DDL,
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_ids TEXT",
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_warnings TEXT",
@@ -337,7 +549,26 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...USER_QUOTAS_DDL,
   "ALTER TABLE nodetool_predictions ADD COLUMN key_source TEXT",
   ...USER_PERMISSIONS_DDL,
-  THREAD_KIND_DDL
+  THREAD_KIND_DDL,
+  ...MESSAGE_BRANCH_DDL,
+  ...PROJECT_FOLDER_DDL,
+  ASSET_WORKSPACE_PATH_DDL,
+  ASSET_CONTENT_HASH_DDL,
+  WORKFLOW_FILE_PATH_DDL,
+  WORKFLOW_FILE_HASH_DDL,
+  WORKFLOW_FILE_ERROR_DDL,
+  TIMELINE_FILE_PATH_DDL,
+  TIMELINE_FILE_HASH_DDL,
+  TIMELINE_FILE_ERROR_DDL,
+  ...NATIVE_OAUTH_SESSION_DDL,
+  ...CLOUD_LOCAL_STORE_DDL,
+  ...SHARING_OPTION_COLUMNS.map((entry) => entry.ddl),
+  ...SHARING_GRANT_INDEX_DDL,
+  ...DOCUMENT_REFS_DDL,
+  WORKFLOW_LAST_WRITER_DDL,
+  WORKFLOW_SCHEMA_VERSION_DDL,
+  TIMELINE_LAST_WRITER_DDL,
+  TIMELINE_SCHEMA_VERSION_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -4406,6 +4637,388 @@ export const migrations: MigrationDef[] = [
     },
     async down() {
       // Keep kind: dropping it would turn Create sessions into empty chats.
+    }
+  },
+
+  // Edit and Retry keep the replaced tail of a conversation as an earlier
+  // version instead of deleting it, so the person can switch back to it.
+  {
+    version: "20261115_000000",
+    name: "add_message_branches",
+    createsTables: [],
+    modifiesTables: ["nodetool_messages"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_messages"))) return;
+      const columns = ["branch_id", "branch_after"];
+      for (const [index, column] of columns.entries()) {
+        if (!(await db.columnExists("nodetool_messages", column))) {
+          await db.execute(MESSAGE_BRANCH_DDL[index]);
+        }
+      }
+    },
+    async down() {
+      // no-op: dropping columns is unsafe across dialects and versions
+    }
+  },
+
+  // Every project has one folder: `projects.workspace_id` names its workspace
+  // row, and `nodetool_workspaces.origin` says who made the folder.
+  {
+    version: "20261116_000000",
+    name: "add_project_folder",
+    createsTables: [],
+    modifiesTables: ["projects", "nodetool_workspaces"],
+    async up(db) {
+      const columns: Array<[string, string]> = [
+        ["projects", "workspace_id"],
+        ["nodetool_workspaces", "origin"]
+      ];
+      for (const [index, [table, column]] of columns.entries()) {
+        if (!(await db.tableExists(table))) continue;
+        if (!(await db.columnExists(table, column))) {
+          await db.execute(PROJECT_FOLDER_DDL[index]);
+        }
+      }
+    },
+    async down() {
+      // Keep both columns: dropping them would lose which folder is a project's.
+    }
+  },
+
+  // An asset is a file in its project's folder. `workspace_path` is that
+  // file's path relative to the folder. Rows from before keep null and read
+  // their bytes from `external_path` or the legacy storage key.
+  {
+    version: "20261117_000000",
+    name: "add_asset_workspace_path",
+    createsTables: [],
+    modifiesTables: ["nodetool_assets"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_assets"))) return;
+      if (!(await db.columnExists("nodetool_assets", "workspace_path"))) {
+        await db.execute(ASSET_WORKSPACE_PATH_DDL);
+      }
+    },
+    async down() {
+      // The column stays: dropping it would lose where each asset's file is.
+    }
+  },
+
+  // The SHA-256 of an asset's whole file in its project folder. A background
+  // job fills it in, so every row starts with null.
+  {
+    version: "20261118_000000",
+    name: "add_asset_content_hash",
+    createsTables: [],
+    modifiesTables: ["nodetool_assets"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_assets"))) return;
+      if (!(await db.columnExists("nodetool_assets", "content_hash"))) {
+        await db.execute(ASSET_CONTENT_HASH_DDL);
+      }
+    },
+    async down() {
+      // The column stays: a dropped hash costs a full read of every file.
+    }
+  },
+
+  // A project workflow is a JSON file in its project's folder. `file_path`
+  // is that file's path relative to the folder. Rows from before keep null
+  // until the project is next reconciled, which writes their files.
+  {
+    version: "20261119_000000",
+    name: "add_workflow_file_path",
+    createsTables: [],
+    modifiesTables: ["nodetool_workflows"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_workflows"))) return;
+      if (!(await db.columnExists("nodetool_workflows", "file_path"))) {
+        await db.execute(WORKFLOW_FILE_PATH_DDL);
+      }
+    },
+    async down() {
+      // The column stays: dropping it would lose where each workflow's file is.
+    }
+  },
+
+  // The SHA-256 of the workflow file content last synced with the row. The
+  // reconciler compares it with the file to tell an outside edit apart.
+  {
+    version: "20261120_000000",
+    name: "add_workflow_file_hash",
+    createsTables: [],
+    modifiesTables: ["nodetool_workflows"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_workflows"))) return;
+      if (!(await db.columnExists("nodetool_workflows", "file_hash"))) {
+        await db.execute(WORKFLOW_FILE_HASH_DDL);
+      }
+    },
+    async down() {
+      // The column stays: without it every file reads as an outside edit.
+    }
+  },
+
+  // What the last reconcile found wrong with a workflow's file: the file is
+  // missing, or an edit to it was refused. Null while row and file agree.
+  {
+    version: "20261121_000000",
+    name: "add_workflow_file_error",
+    createsTables: [],
+    modifiesTables: ["nodetool_workflows"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_workflows"))) return;
+      if (!(await db.columnExists("nodetool_workflows", "file_error"))) {
+        await db.execute(WORKFLOW_FILE_ERROR_DDL);
+      }
+    },
+    async down() {
+      // The column stays: the next reconcile would record the same state.
+    }
+  },
+
+  // A project timeline is a JSON file in its project's folder. `file_path`
+  // is that file's path relative to the folder. Rows from before keep null
+  // until the project is next reconciled, which writes their files.
+  {
+    version: "20261122_000000",
+    name: "add_timeline_file_path",
+    createsTables: [],
+    modifiesTables: ["timeline_sequences"],
+    async up(db) {
+      if (!(await db.tableExists("timeline_sequences"))) return;
+      if (!(await db.columnExists("timeline_sequences", "file_path"))) {
+        await db.execute(TIMELINE_FILE_PATH_DDL);
+      }
+    },
+    async down() {
+      // The column stays: dropping it would lose where each timeline's file is.
+    }
+  },
+
+  // The SHA-256 of the timeline file content last synced with the row. The
+  // reconciler compares it with the file to tell an outside edit apart.
+  {
+    version: "20261123_000000",
+    name: "add_timeline_file_hash",
+    createsTables: [],
+    modifiesTables: ["timeline_sequences"],
+    async up(db) {
+      if (!(await db.tableExists("timeline_sequences"))) return;
+      if (!(await db.columnExists("timeline_sequences", "file_hash"))) {
+        await db.execute(TIMELINE_FILE_HASH_DDL);
+      }
+    },
+    async down() {
+      // The column stays: without it every file reads as an outside edit.
+    }
+  },
+
+  // What the last reconcile found wrong with a timeline's file: the file is
+  // missing, or an edit to it was refused. Null while row and file agree.
+  {
+    version: "20261124_000000",
+    name: "add_timeline_file_error",
+    createsTables: [],
+    modifiesTables: ["timeline_sequences"],
+    async up(db) {
+      if (!(await db.tableExists("timeline_sequences"))) return;
+      if (!(await db.columnExists("timeline_sequences", "file_error"))) {
+        await db.execute(TIMELINE_FILE_ERROR_DDL);
+      }
+    },
+    async down() {
+      // The column stays: the next reconcile would record the same state.
+    }
+  },
+
+  // Native device sessions: the grant columns that tell a native sign-in
+  // apart from an MCP connection, the revocation handle, and the shared
+  // authorize-flow table (docs/plans/native-cloud-sync/technical-design.md,
+  // "Sign-in protocol").
+  {
+    version: "20261125_000000",
+    name: "add_native_oauth_sessions",
+    createsTables: ["oauth_pending_entries"],
+    modifiesTables: ["mcp_oauth_grants"],
+    async up(db) {
+      if (await db.tableExists("mcp_oauth_grants")) {
+        const columns: Array<[string, string]> = [
+          ["kind", NATIVE_OAUTH_SESSION_DDL[0]!],
+          ["app_name", NATIVE_OAUTH_SESSION_DDL[1]!],
+          ["device_name", NATIVE_OAUTH_SESSION_DDL[2]!],
+          ["last_used_at", NATIVE_OAUTH_SESSION_DDL[3]!],
+          ["revocation_handle_hash", NATIVE_OAUTH_SESSION_DDL[4]!]
+        ];
+        for (const [column, statement] of columns) {
+          if (!(await db.columnExists("mcp_oauth_grants", column))) {
+            await db.execute(statement);
+          }
+        }
+        await db.execute(NATIVE_OAUTH_SESSION_DDL[5]!);
+      }
+      await db.execute(NATIVE_OAUTH_SESSION_DDL[6]!);
+      await db.execute(NATIVE_OAUTH_SESSION_DDL[7]!);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_oauth_pending_created");
+      await db.execute("DROP TABLE IF EXISTS oauth_pending_entries");
+      // The grant columns stay: dropping them would forget which grants are
+      // device sessions and leave their handles unable to end them.
+    }
+  },
+  // The native apps' local store for cloud documents: durable drafts and the
+  // last known open state of each document.
+  {
+    version: "20261126_000000",
+    name: "add_cloud_local_store",
+    createsTables: ["cloud_drafts", "cloud_open_state"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of CLOUD_LOCAL_STORE_DDL) {
+        await db.execute(statement);
+      }
+    },
+    // The draft table holds the only copy of edits the cloud server has not
+    // accepted. A rollback leaves both tables in place: an older server
+    // never reads them, and moving forward again finds them intact.
+    async down() {}
+  },
+  // Link and invitation options, disabled links, a grant per link, one
+  // active link per role, and the reference sets
+  // (docs/plans/native-cloud-sync/technical-design.md, WP1.4 and WP1.5).
+  // Existing links and grants get every option off (D2). Existing view links
+  // on timelines carry a notice to their owner, because their viewers read
+  // history before and do not now (R7).
+  {
+    version: "20261127_000000",
+    name: "add_sharing_options_and_document_refs",
+    createsTables: [
+      "nodetool_document_refs",
+      "nodetool_document_ref_sets",
+      "nodetool_document_admitted_files"
+    ],
+    modifiesTables: [
+      "nodetool_document_collaborators",
+      "nodetool_workflow_collaborators",
+      "nodetool_document_shares",
+      "nodetool_workflow_shares"
+    ],
+    async up(db) {
+      for (const entry of SHARING_OPTION_COLUMNS) {
+        if (!(await db.tableExists(entry.table))) continue;
+        if (!(await db.columnExists(entry.table, entry.column))) {
+          await db.execute(entry.ddl);
+        }
+      }
+      const now = new Date().toISOString();
+      for (const [table, key] of [
+        ["nodetool_document_shares", "document_type, document_id"],
+        ["nodetool_workflow_shares", "workflow_id"]
+      ] as const) {
+        if (!(await db.tableExists(table))) continue;
+        await db.execute(
+          `UPDATE ${table} SET disabled_at = revoked_at
+             WHERE revoked_at IS NOT NULL AND disabled_at IS NULL`
+        );
+        // Keep the newest active link of each role, disable the others.
+        const same = key
+          .split(", ")
+          .map((column) => `newer.${column} = ${table}.${column}`)
+          .join(" AND ");
+        await db.execute(
+          `UPDATE ${table} SET disabled_at = ?, revoked_at = COALESCE(revoked_at, ?)
+             WHERE disabled_at IS NULL AND EXISTS (
+               SELECT 1 FROM ${table} newer
+                WHERE ${same} AND newer.role = ${table}.role
+                  AND newer.disabled_at IS NULL
+                  AND (newer.created_at > ${table}.created_at
+                    OR (newer.created_at = ${table}.created_at
+                      AND newer.id > ${table}.id)))`,
+          [now, now]
+        );
+      }
+      if (await db.tableExists("nodetool_document_shares")) {
+        await db.execute(
+          `UPDATE nodetool_document_shares SET owner_notice = 'history_off'
+             WHERE document_type = 'timeline' AND role = 'viewer'
+               AND disabled_at IS NULL AND owner_notice IS NULL`
+        );
+      }
+      for (const statement of SHARING_GRANT_INDEX_DDL) {
+        await db.execute(statement);
+      }
+      for (const statement of DOCUMENT_REFS_DDL) {
+        await db.execute(statement);
+      }
+    },
+    async down() {
+      // The columns and tables stay: dropping them would reopen disabled
+      // links and give every grant on a document one row again.
+    }
+  },
+  // The editing instance that wrote a document's stored revision, and the
+  // document schema version it was written in. A save from another instance
+  // keeps the stored revision as a version first. A save in a lower schema
+  // version is refused.
+  {
+    version: "20261128_000000",
+    name: "add_workflow_last_writer_instance",
+    createsTables: [],
+    modifiesTables: ["nodetool_workflows"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_workflows"))) return;
+      if (!(await db.columnExists("nodetool_workflows", "last_writer_instance"))) {
+        await db.execute(WORKFLOW_LAST_WRITER_DDL);
+      }
+    },
+    async down() {
+      // The column stays: dropping it would lose which writer to keep.
+    }
+  },
+  {
+    version: "20261128_000001",
+    name: "add_workflow_schema_version",
+    createsTables: [],
+    modifiesTables: ["nodetool_workflows"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_workflows"))) return;
+      if (!(await db.columnExists("nodetool_workflows", "schema_version"))) {
+        await db.execute(WORKFLOW_SCHEMA_VERSION_DDL);
+      }
+    },
+    async down() {
+      // The column stays: dropping it would lose which writer to keep.
+    }
+  },
+  {
+    version: "20261128_000002",
+    name: "add_timeline_last_writer_instance",
+    createsTables: [],
+    modifiesTables: ["timeline_sequences"],
+    async up(db) {
+      if (!(await db.tableExists("timeline_sequences"))) return;
+      if (!(await db.columnExists("timeline_sequences", "last_writer_instance"))) {
+        await db.execute(TIMELINE_LAST_WRITER_DDL);
+      }
+    },
+    async down() {
+      // The column stays: dropping it would lose which writer to keep.
+    }
+  },
+  {
+    version: "20261128_000003",
+    name: "add_timeline_schema_version",
+    createsTables: [],
+    modifiesTables: ["timeline_sequences"],
+    async up(db) {
+      if (!(await db.tableExists("timeline_sequences"))) return;
+      if (!(await db.columnExists("timeline_sequences", "schema_version"))) {
+        await db.execute(TIMELINE_SCHEMA_VERSION_DDL);
+      }
+    },
+    async down() {
+      // The column stays: dropping it would lose which writer to keep.
     }
   }
 ];

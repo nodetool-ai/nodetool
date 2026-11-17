@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 import type { StoreApi } from "zustand";
 
-import { dockGroupOfPanel } from "../../../stores/dock/DockLayout";
+import { allDockGroups, dockGroupOfPanel } from "../../../stores/dock/DockLayout";
 import type { DockLayoutState } from "../../../stores/dock/DockLayoutStore";
 import type { DockMaximizeController } from "../../dock/DockCanvas";
 import type { TimelinePanelId } from "../../../stores/timeline/TimelineDockLayout";
@@ -24,6 +24,11 @@ export interface TimelineDockController {
   /** Switches to the built-in workspace at `index`, counting from 0. */
   readonly switchWorkspace: (index: number) => void;
   readonly toggleProgramFullscreen: () => void;
+  /**
+   * Focuses the shown panel of the next (`1`) or previous (`-1`) group, counting from the group
+   * under focus, else the Timeline's. Only the maximized group counts while one is maximized.
+   */
+  readonly cyclePanel: (step: 1 | -1) => boolean;
 }
 
 export interface TimelineDockControllerOptions {
@@ -72,7 +77,19 @@ export function createTimelineDockController(options: TimelineDockControllerOpti
       if (name === undefined) { return; }
       state.selectLayout(name);
     },
-    toggleProgramFullscreen: requestProgramFullscreen
+    toggleProgramFullscreen: requestProgramFullscreen,
+    cyclePanel(step) {
+      const maximized = maximize()?.current() ?? null;
+      const groups = allDockGroups(store.getState().layout).filter((group) => !maximized || group.id === maximized);
+      if (groups.length === 0) { return false; }
+      const focusedId = focusedGroupId();
+      const current = groups.findIndex((group) =>
+        focusedId ? group.id === focusedId : group.panels.includes("tracks"));
+      const next = groups[(Math.max(0, current) + step + groups.length) % groups.length];
+      store.getState().revealPanel(next.activePanelId);
+      focusPanel(next.activePanelId as TimelinePanelId);
+      return true;
+    }
   };
 }
 

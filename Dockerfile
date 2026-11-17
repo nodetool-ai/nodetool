@@ -42,6 +42,8 @@ COPY turbo.json ./
 # exporter (web/src/components/timeline/render), so the sources come along.
 COPY web/src/ web/src/
 COPY web/vite-node-stubs/ web/vite-node-stubs/
+# The realtime compiler bundles this canonical native schema during its build.
+COPY native/realtime/schema/plan-v1.schema.json native/realtime/schema/plan-v1.schema.json
 
 RUN npm run build:packages
 
@@ -175,12 +177,12 @@ RUN python3 -m venv /opt/venv \
     && rm -rf /root/.cache
 ENV PATH="/opt/venv/bin:$PATH"
 
-# JS document libraries the DOCX/PDF agents import from ad-hoc Node scripts.
+# JS document library the PDF agents import from ad-hoc Node scripts.
 # Installed globally with NODE_PATH set so require('pdf-lib') resolves from
 # any workspace directory without a per-run npm install. NODE_PATH only
 # affects CommonJS resolution as a last-resort fallback; the ESM server
 # ignores it, so /app/backend/node_modules resolution is unchanged.
-RUN npm install -g pdf-lib@1.17.1 docx@9.7.1 && npm cache clean --force
+RUN npm install -g pdf-lib@1.17.1 && npm cache clean --force
 ENV NODE_PATH=/usr/local/lib/node_modules
 
 WORKDIR /app

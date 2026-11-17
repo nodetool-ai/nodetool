@@ -6,6 +6,8 @@ nt_qml_files(qml/TimelineEditor.qml)
 function(nt_app_tests)
     # The comparison helpers of scripts/plan-conformance.mjs (node:test).
     add_test(NAME plan_compare COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/scripts/plan-compare.test.mjs)
+    # The missing-helper check of scripts/op-conformance.mjs (node:test).
+    add_test(NAME op_conformance_helpers COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/scripts/op-conformance.test.mjs)
     # The menu label report of scripts/menu-parity.mjs (node:test). It reports gaps and never fails on one.
     add_test(NAME menu_parity_report COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/scripts/menu-parity.test.mjs)
     # The scratch-server safety rules of scripts/server-check.mjs (node:test).

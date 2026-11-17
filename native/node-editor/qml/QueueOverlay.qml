@@ -1,16 +1,19 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls.Basic as Basic
 import NodeTool.UiPrimitives as Ui
 
 Ui.Surface {
     id: root
     variant: Ui.Surface.Overlay
-    elevated: true
+    elevated: !docked
     property bool expanded: false
     // Set by the owner when the status bar opens the queue. An opened queue
     // shows with no active jobs, as the web QueuePanel does.
     property bool opened: false
+    // QueuePanel.qml fills the bottom panel with the list: always open, with
+    // no drag or collapse, and the header's button asks to close the panel.
+    property bool docked: false
+    signal closeRequested
     property string historyFilter: "all"
     property var retained: []
     property var localStarts: ({})
@@ -20,16 +23,22 @@ Ui.Surface {
     required property RunState runs
     // The tab's MediaResolver, which loads the history's image outputs.
     property var resolver: null
+    // The header drag and the grip's keys. EditorWindow moves the overlay inside
+    // the canvas and keeps the dropped position (useDockedPanelPlacement.ts).
+    signal moveRequested(real dx, real dy)
+    signal moveFinished
+    signal nudgeRequested(real dx, real dy)
+    signal resetPositionRequested
     readonly property var source: runs.queue
     readonly property var live: source.map((job, index) => Object.assign({}, job, {
             queueIndex: index
         }))
     readonly property int runningCount: live.filter(job => job.status === "running").length
     readonly property bool hasJobs: live.some(job => ["running", "queued", "scheduled", "starting"].includes(job.status))
-    readonly property bool shown: hasJobs || opened
+    readonly property bool shown: hasJobs || opened || docked
     readonly property bool presented: shown || exitDelay.running
     // Without active jobs there is nothing to summarize, so the opened queue lists everything.
-    readonly property bool showList: expanded || (opened && !hasJobs)
+    readonly property bool showList: docked || expanded || (opened && !hasJobs)
     readonly property bool clockRunning: clock.running
     readonly property var rows: shown ? live : retained
     readonly property var running: rows.filter(job => job.status === "running")
@@ -82,6 +91,8 @@ Ui.Surface {
     }
     onShownChanged: {
         if (shown) {
+            // The day groups read the clock, which stands still while the queue is hidden.
+            now = Date.now();
             retained = live;
             exitDelay.stop();
         } else if (!Ui.Theme.reducedMotion) {
@@ -97,6 +108,13 @@ Ui.Surface {
         interval: 1000
         repeat: true
         running: root.runningCount > 0
+        onTriggered: root.now = Date.now()
+    }
+    // With nothing running, the shown history's day groups still move past midnight.
+    Timer {
+        interval: 60000
+        repeat: true
+        running: root.shown && root.runningCount === 0
         onTriggered: root.now = Date.now()
     }
     // isFailed and historyBucket in QueuePanel.tsx.
@@ -193,6 +211,82 @@ Ui.Surface {
         const total = Math.max(0, Math.floor((now - (start || now)) / 1000));
         return Math.floor(total / 60) + ":" + String(total % 60).padStart(2, "0");
     }
+    // The move grip. Arrow keys move the overlay, Shift moves it further, and
+    // Home returns it to the canvas's top-left corner (QueueOverlay.tsx MoveGrip).
+    component MoveGrip: Item {
+        id: grip
+        signal nudge(real dx, real dy)
+        signal reset
+        implicitWidth: Ui.Metrics.iconSm
+        implicitHeight: Ui.Metrics.iconSm
+        activeFocusOnTab: true
+        Accessible.role: Accessible.Button
+        Accessible.name: "Move queue"
+        Accessible.description: gripTip.text
+        Keys.onPressed: event => {
+            const step = event.modifiers & Qt.ShiftModifier ? Ui.Metrics.xxxl * 2 : Ui.Metrics.xl;
+            const moves = {
+                [Qt.Key_Left]: [-step, 0],
+                [Qt.Key_Right]: [step, 0],
+                [Qt.Key_Up]: [0, -step],
+                [Qt.Key_Down]: [0, step]
+            };
+            if (event.key === Qt.Key_Home) {
+                grip.reset();
+                event.accepted = true;
+            } else if (moves[event.key]) {
+                grip.nudge(moves[event.key][0], moves[event.key][1]);
+                event.accepted = true;
+            }
+        }
+        HoverHandler {
+            id: gripHover
+        }
+        Ui.Icon {
+            anchors.centerIn: parent
+            name: "dragIndicator"
+            size: Ui.Metrics.iconSm
+        }
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: -Ui.Metrics.micro
+            visible: grip.activeFocus
+            color: "transparent"
+            radius: Ui.Metrics.radiusControl
+            border.width: Ui.Metrics.focus
+            border.color: Ui.Theme.borderFocus
+        }
+        Ui.Tooltip {
+            id: gripTip
+            trigger: grip
+            visible: gripHover.hovered
+            text: "Drag to move. Arrow keys move it, Home resets it."
+        }
+    }
+    // Dragging a header row moves the overlay. Its buttons keep their presses.
+    component HeaderDrag: DragHandler {
+        id: headerDrag
+        signal moved(real dx, real dy)
+        signal finished
+        target: null
+        cursorShape: Qt.ClosedHandCursor
+        grabPermissions: PointerHandler.CanTakeOverFromHandlersOfDifferentType | PointerHandler.ApprovesTakeOverByAnything
+        property point last
+        onActiveChanged: {
+            if (active) {
+                last = centroid.scenePosition;
+            } else {
+                headerDrag.finished();
+            }
+        }
+        // The overlay follows the pointer, so the pointer stays at the same
+        // scene point and each move reports the distance it still has to go.
+        onCentroidChanged: {
+            if (active) {
+                headerDrag.moved(centroid.scenePosition.x - last.x, centroid.scenePosition.y - last.y);
+            }
+        }
+    }
     ColumnLayout {
         id: summary
         visible: !root.showList
@@ -202,6 +296,23 @@ Ui.Surface {
         RowLayout {
             Layout.fillWidth: true
             spacing: Ui.Metrics.md
+            HeaderDrag {
+                objectName: "queue-summary-drag"
+                onMoved: (dx, dy) => root.moveRequested(dx, dy)
+                onFinished: root.moveFinished()
+            }
+            HoverHandler {
+                cursorShape: Qt.OpenHandCursor
+            }
+            // A double click returns the overlay to the default corner.
+            TapHandler {
+                onDoubleTapped: root.resetPositionRequested()
+            }
+            MoveGrip {
+                objectName: "queue-move-grip"
+                onNudge: (dx, dy) => root.nudgeRequested(dx, dy)
+                onReset: root.resetPositionRequested()
+            }
             Ui.StatusDot {
                 active: root.running.length > 0
             }
@@ -257,8 +368,26 @@ Ui.Surface {
         RowLayout {
             id: header
             Layout.fillWidth: true
-            Ui.Icon {
-                name: "layers"
+            HeaderDrag {
+                objectName: "queue-header-drag"
+                enabled: !root.docked
+                onMoved: (dx, dy) => root.moveRequested(dx, dy)
+                onFinished: root.moveFinished()
+            }
+            HoverHandler {
+                enabled: !root.docked
+                cursorShape: Qt.OpenHandCursor
+            }
+            // A double click returns the overlay to the default corner.
+            TapHandler {
+                enabled: !root.docked
+                onDoubleTapped: root.resetPositionRequested()
+            }
+            MoveGrip {
+                objectName: "queue-header-move-grip"
+                visible: !root.docked
+                onNudge: (dx, dy) => root.nudgeRequested(dx, dy)
+                onReset: root.resetPositionRequested()
             }
             Ui.Text {
                 objectName: "queue-title"
@@ -293,11 +422,13 @@ Ui.Surface {
                 }
                 Ui.ToolbarIconButton {
                     objectName: "queue-collapse"
-                    iconName: "remove"
-                    accessibleName: root.hasJobs ? "Collapse queue" : "Close queue"
+                    iconName: root.docked ? "close" : "remove"
+                    accessibleName: root.hasJobs && !root.docked ? "Collapse queue" : "Close queue"
                     description: accessibleName
                     onClicked: {
-                        if (root.hasJobs) {
+                        if (root.docked) {
+                            root.closeRequested();
+                        } else if (root.hasJobs) {
                             root.expanded = false;
                         } else {
                             root.close();
@@ -306,11 +437,10 @@ Ui.Surface {
                 }
             }
         }
-        Basic.ScrollView {
+        Ui.ScrollArea {
             id: queueScroll
             Layout.fillWidth: true
             Layout.fillHeight: true
-            clip: true
             ColumnLayout {
                 id: sections
                 width: queueScroll.availableWidth

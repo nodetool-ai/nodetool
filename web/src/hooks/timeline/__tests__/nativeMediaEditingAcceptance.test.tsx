@@ -1,7 +1,7 @@
 /**
  * P0 native media editing acceptance journey.
  *
- * This intentionally crosses the inspector, direct-generation recovery,
+ * This intentionally crosses the Inspector and AI panels, direct-generation recovery,
  * take history, TimelineStore apply/undo, and export seams. The provider is
  * a deterministic fake: it records the generate_media request and completes
  * only through the reload lookup path.
@@ -169,6 +169,9 @@ jest.spyOn(
 const { TimelineInspector } = require(
   "../../../components/timeline/Inspector/TimelineInspector"
 ) as typeof import("../../../components/timeline/Inspector/TimelineInspector");
+const { TimelineAiPanel } = require(
+  "../../../components/timeline/Inspector/TimelineClipPanels"
+) as typeof import("../../../components/timeline/Inspector/TimelineClipPanels");
 const { useDirectGenPendingStore } = require("../directGenPending") as typeof import("../directGenPending");
 const { reattachSequenceJobs } = require("../useTimelineDirectGenJob") as typeof import("../useTimelineDirectGenJob");
 const { useTimelineExport } = require("../useTimelineExport") as typeof import("../useTimelineExport");
@@ -278,12 +281,13 @@ describe("native media editing P0 acceptance journey", () => {
       <ThemeProvider theme={mockTheme}>
           <TimelineProvider instance={initial}>
           <TimelineInspector />
+          <TimelineAiPanel />
           <AcceptanceDriver />
         </TimelineProvider>
       </ThemeProvider>
     );
 
-    // Submission goes through the inspector's production hook. The mocked
+    // Submission goes through the AI panel's production hook. The mocked
     // provider gives this journey a deterministic completion boundary.
     await user.type(
       firstView.getByRole("textbox", { name: "Edit instruction" }),
@@ -400,6 +404,7 @@ describe("native media editing P0 acceptance journey", () => {
       <ThemeProvider theme={mockTheme}>
           <TimelineProvider instance={reloaded}>
           <TimelineInspector />
+          <TimelineAiPanel />
           <AcceptanceDriver />
         </TimelineProvider>
       </ThemeProvider>

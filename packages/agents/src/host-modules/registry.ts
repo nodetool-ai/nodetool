@@ -7,8 +7,8 @@
  * the functions, which only a host runs.
  *
  * Every entry is loaded lazily. Nothing here sits in an entry graph, so a
- * process that never runs a Code node importing `@nodetool-ai/sandbox-xlsx`
- * never loads exceljs — the same property the old `data.*` bridges had, kept
+ * process that never runs a Code node importing `@nodetool-ai/sandbox-pdf`
+ * never loads pdf-parse — the same property the old `data.*` bridges had, kept
  * for the same reason.
  */
 
@@ -44,22 +44,9 @@ const LOADERS: Readonly<Record<string, Loader>> = {
     const mod = await import("./xml.js");
     return { parse: mod.parse };
   },
-  xlsx: async () => {
-    const mod = await import("./xlsx.js");
-    return { parse: mod.parse, write: mod.write };
-  },
   ocr: async () => {
     const mod = await import("./ocr.js");
     return { recognize: mod.recognize };
-  },
-  tfjs: async () => {
-    const mod = await import("./tfjs.js");
-    return {
-      classify: mod.classify,
-      embed: mod.embed,
-      detect: mod.detect,
-      answer: mod.answer
-    };
   },
   zip: async () => {
     const mod = await import("./zip.js");
@@ -89,30 +76,9 @@ const LOADERS: Readonly<Record<string, Loader>> = {
     const mod = await import("./twilio.js");
     return { request: mod.request };
   },
-  docx: async () => {
-    const mod = await import("./docx.js");
-    return { build: mod.build };
-  },
-  mammoth: async () => {
-    const mod = await import("./mammoth.js");
-    return { extractRawText: mod.extractRawText, convertToHtml: mod.convertToHtml };
-  },
-  epub: async () => {
-    const mod = await import("./epub.js");
-    return {
-      metadata: mod.metadata,
-      tableOfContents: mod.tableOfContents,
-      extractText: mod.extractText,
-      extractChapters: mod.extractChapters
-    };
-  },
   pdf: async () => {
     const mod = await import("./pdf.js");
     return { extractText: mod.extractText, extractPages: mod.extractPages };
-  },
-  pptx: async () => {
-    const mod = await import("./pptx.js");
-    return { extractText: mod.extractText, extractSlides: mod.extractSlides };
   },
   fabric: async () => {
     const mod = await import("./fabric.js");
@@ -126,10 +92,6 @@ const LOADERS: Readonly<Record<string, Loader>> = {
   pdflib: async () => {
     const mod = await import("./pdflib.js");
     return { build: mod.build, merge: mod.merge };
-  },
-  pptxgen: async () => {
-    const mod = await import("./pptxgen.js");
-    return { build: mod.build };
   },
   chrono: async () => {
     const mod = await import("./chrono.js");

@@ -4,8 +4,9 @@
  *
  * Playback adjustments shared by imported and generated clips. Audio and MIDI
  * clips get Audio controls because both travel through AudioGraph. Clips that
- * draw pixels get Render, Transform, Color, Effects, Mask, Matte, and
- * Transition controls because those fields are applied by the compositor.
+ * draw pixels get Render, Transform, Effects, Mask and Matte controls in the
+ * Effect Controls panel and the Color section in the Color panel, because
+ * those fields are applied by the compositor.
  *
  * Section fold state is persisted (shared keys with the rest of the inspector)
  * so a panel stays open/closed across selections.
@@ -54,7 +55,6 @@ import { parseFiniteNumber, parseSeconds } from "./InspectorPrimitives.helpers";
 import { ClipAudioEffects } from "./ClipAudioEffects";
 import { ClipEffectsList } from "./ClipEffectsList";
 import { ClipMaskMatte } from "./ClipMaskMatte";
-import { ClipTransitionSection } from "./ClipTransitionSection";
 import { KeyframedPropertyRow } from "./KeyframedPropertyRow";
 import {
   OPACITY_ROW,
@@ -133,24 +133,32 @@ const SCRUB_SECONDS = { step: 0.02, min: 0 };
 
 // ── Component ──────────────────────────────────────────────────────────────
 
+/** Which panel the sections render in. */
+export type ClipAdjustmentsPart = "effectControls" | "color";
+
 interface ClipAdjustmentsProps {
   clip: TimelineClip;
+  /**
+   * `effectControls`: Audio for audio and midi clips, otherwise Render,
+   * Transform, Effects, Mask and Matte. `color`: the Color section of a clip
+   * that draws pixels, and nothing for a sounding clip.
+   */
+  part?: ClipAdjustmentsPart;
 }
 
 /**
- * Audio controls for audio and midi clips. Visual clips instead get Render,
- * Transform, Color, Effects, Mask, Matte and Transition sections.
- * Leads with an {@link InspectorDivider}; the caller supplies the trailing one.
+ * The clip's adjustment sections for one panel. The Effect Controls part
+ * leads with an {@link InspectorDivider}; the caller supplies the trailing one.
  */
 export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
-  ({ clip }) => {
+  ({ clip, part = "effectControls" }) => {
     const { t } = useTranslation();
     const theme = useTheme();
     const patchClip = useTimelineStore((s) => s.patchClip);
 
     const [renderOpen, setRenderOpen] = usePersistedFold("render");
     const [transformOpen, setTransformOpen] = usePersistedFold("transform");
-    const [colorOpen, setColorOpen] = usePersistedFold("color");
+    const [colorOpen, setColorOpen] = usePersistedFold("color", true);
 
     const isSounding = clip.mediaType === "audio" || clip.mediaType === "midi";
     const isMidi = clip.mediaType === "midi";
@@ -383,8 +391,12 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
       )
     }));
 
+    const effectControls = part === "effectControls";
+
     return (
       <>
+        {effectControls && (
+        <>
         <InspectorDivider />
         <CollapsibleSection
           title={
@@ -494,8 +506,10 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
             )}
           </FlexColumn>
         </CollapsibleSection>
+        </>
+        )}
 
-        {!isSounding && (
+        {effectControls && !isSounding && (
           <>
             <InspectorDivider />
             <CollapsibleSection
@@ -612,9 +626,8 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
           </>
         )}
 
-        {!isSounding && (
+        {part === "color" && !isSounding && (
           <>
-            <InspectorDivider />
             <CollapsibleSection
               title={
                 <InspectorSectionTitle
@@ -742,13 +755,12 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
           </>
         )}
 
-        {isSounding && <ClipAudioEffects clip={clip} />}
+        {effectControls && isSounding && <ClipAudioEffects clip={clip} />}
 
-        {!isSounding && (
+        {effectControls && !isSounding && (
           <>
             <ClipEffectsList clip={clip} />
             <ClipMaskMatte clip={clip} />
-            <ClipTransitionSection clip={clip} />
           </>
         )}
       </>

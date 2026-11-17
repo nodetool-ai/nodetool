@@ -505,6 +505,17 @@ describe("verify-backend-bundle", () => {
     expect(output).toContain("node-av-linux-x64/node-av.node");
   });
 
+  it("fails when node-av's downloaded FFmpeg CLI is staged", () => {
+    const binaryDir = path.join(tempDir, "_modules", "node-av", "binary");
+    fs.mkdirSync(binaryDir, { recursive: true });
+    fs.writeFileSync(path.join(binaryDir, "node-av.node"), "x");
+    expect(runVerify(tempDir).status).toBe(0);
+    fs.writeFileSync(path.join(binaryDir, "ffmpeg"), "x", { mode: 0o755 });
+    const { status, output } = runVerify(tempDir);
+    expect(status).toBe(1);
+    expect(output).toContain("node-av/binary/ffmpeg is staged");
+  });
+
   it("fails when the staged libvips does not match what the prebuild pins", () => {
     writeStagedPackage(tempDir, "@img/sharp-libvips-linux-x64", {
       version: "1.2.4",

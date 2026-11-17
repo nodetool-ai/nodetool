@@ -157,7 +157,8 @@ test("jobs that publish or deploy never restore a shared cache", () => {
    const action = parse(readFileSync(new URL("../actions/setup-build/action.yml", import.meta.url), "utf8"));
    const setup = action.runs.steps.find((step) => step.uses?.startsWith("actions/setup-node"));
    assert.equal(setup.with["package-manager-cache"], false);
-   assert.match(setup.with.cache, /inputs.cache == 'read-write'/);
+   // No npm download cache at all: only `npm ci` on a node_modules miss read it.
+   assert.equal(setup.with.cache, undefined);
    const audit = read("dependency-audit.yml");
    assert.equal(audit.jobs.audit["cache-mode"], "none");
    assert.equal(audit.jobs.audit.steps.find((step) => step.uses?.startsWith("actions/setup-node")).with["package-manager-cache"], false);

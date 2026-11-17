@@ -36,6 +36,46 @@ describe("resident toolbelt", () => {
     ).toEqual(["ui_app_add_component", "ui_app_get_snapshot"]);
   });
 
+  it("keeps the graph tools resident on a focused workflow canvas", () => {
+    // The graph tools carry no `ui_workflow_` prefix, so the node editor's
+    // chat used to get none of them and authored new saved workflows instead.
+    const names = [
+      "ui_get_graph",
+      "ui_add_node",
+      "ui_connect_nodes",
+      "ui_run_workflow",
+      "ui_new_workflow",
+      "ui_workflow_plan",
+      "ui_app_add_component"
+    ];
+
+    expect(
+      focusedUiToolNames({ focused: { type: "workflow", id: "wf-1" } }, names)
+    ).toEqual([
+      "ui_get_graph",
+      "ui_add_node",
+      "ui_connect_nodes",
+      "ui_run_workflow",
+      "ui_new_workflow",
+      "ui_workflow_plan"
+    ]);
+    expect(
+      focusedUiToolNames({ focused: { type: "app", id: "app-1" } }, names)
+    ).toEqual(["ui_app_add_component"]);
+  });
+
+  it("builds on the open canvas before the saved-workflow loop", () => {
+    const section = CHAT_AGENT_SYSTEM_PROMPT.split("# Building workflows")[1];
+    expect(section).toBeDefined();
+    const editorRule = section.indexOf("ui_add_node");
+    expect(editorRule).toBeGreaterThan(-1);
+    expect(editorRule).toBeLessThan(section.indexOf("nodetool.workflows.validate"));
+    expect(section).toContain("ui_new_workflow");
+    expect(section).toContain("wait: true");
+    expect(section).toContain("ui_focus_nodes");
+    expect(section).toContain("ui_undo");
+  });
+
   it("does not add UI tools when no document has focus", () => {
     expect(focusedUiToolNames(null, ["ui_app_add_component"])).toEqual([]);
   });

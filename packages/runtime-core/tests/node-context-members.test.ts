@@ -23,7 +23,7 @@ describe("node-context-members.json", () => {
 
   it("changes when a member is removed from the interface", () => {
     const source: string = readFileSync(SOURCE, "utf8");
-    const line = source.split("\n").find((text) => /^\s+readonly \w+: \(.*\) => .*;$/.test(text));
+    const line = source.split("\n").find((text) => /^\s+readonly \w+: \(.*\) => .*;\r?$/.test(text));
     expect(line).toBeDefined();
     const edited = source.replace(`${line}\n`, "");
     const before: Member[] = nodeContextMembers(source);

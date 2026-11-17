@@ -9,6 +9,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { memoryFolder } from "./_helpers/memory-folder.js";
 import { BaseNode, NodeRegistry, type GraphInput } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
@@ -119,7 +120,7 @@ describe("cancelling a background run", () => {
       userId: "user-7",
       background: true,
       environment: { registry },
-      resolveWorkspace: async () => null
+      resolveWorkspace: memoryFolder
     });
     expect(outcome.kind).toBe("payload");
     await running;
@@ -153,7 +154,7 @@ describe("cancelling a background run", () => {
       userId: "user-7",
       background: true,
       environment: { registry },
-      resolveWorkspace: async () => null
+      resolveWorkspace: memoryFolder
     });
     await running;
     // A cancel that lands before the row is written still stops the run;

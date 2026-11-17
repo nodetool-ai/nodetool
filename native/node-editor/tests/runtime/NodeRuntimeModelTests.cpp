@@ -6,6 +6,12 @@ using namespace nodetool::node_editor;
 class NodeRuntimeModelTests : public QObject {
  Q_OBJECT
 private slots:
+ // The editor window clears its live run on these, as the session and the
+ // web's SETTLED_JOB_STATUSES do, including timed_out and error.
+ void terminalStatusesMatchTheSession() {
+  for (const auto *status : {"completed", "finished", "failed", "cancelled", "timed_out", "error"}) { QVERIFY2(isTerminalRunStatus(status), status); }
+  for (const auto *status : {"queued", "running", "starting", "scheduled", ""}) { QVERIFY2(!isTerminalRunStatus(status), status); }
+ }
  void isolatesAndReplays() {
   NodeRuntimeModel model;
   QSignalSpy changed(&model, &NodeRuntimeModel::nodeChanged);

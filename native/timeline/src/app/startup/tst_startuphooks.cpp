@@ -1,7 +1,10 @@
 #include "app/startup/DecodeDefault.h"
 #include "app/startup/LocalDocumentSaver.h"
 #include "model/TimelineJson.h"
+#include <QDir>
 #include <QFile>
+#include <QJsonArray>
+#include <QJsonObject>
 #include <QTemporaryDir>
 #include <QJsonDocument>
 #include <QtTest>
@@ -54,6 +57,80 @@ private slots:
             model.addMarker(25, "pending at quit");
         }
         QCOMPARE(nt::loadTimelineFile(path).timeline->raw, model.timeline().raw);
+    }
+    // A project folder holds `Timelines/<name>.timeline.json`: the sequence
+    // settings beside `document`, with no name (the file name is the name).
+    void projectTimelineFileKeepsItsEnvelope() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QVERIFY(QDir(dir.path()).mkpath("Timelines"));
+        const auto path = dir.filePath("Timelines/Opening cut.timeline.json");
+        const QJsonObject document{
+            {"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"name", "V1"}, {"type", "video"}}}},
+            {"clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "v"}, {"mediaType", "shape"},
+                                             {"startMs", 0}, {"durationMs", 1500}}}},
+            {"markers", QJsonArray{}},
+            {"unknown", QJsonObject{{"keep", true}}}};
+        const QJsonObject envelope{{"format", "nodetool.timeline"}, {"version", 1}, {"id", "tl-file"},
+                                   {"fps", 25}, {"width", 640}, {"height", 360}, {"duration_ms", 1500},
+                                   {"document", document}};
+        {
+            QFile file(path);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write(QJsonDocument(envelope).toJson());
+        }
+        auto parsed = nt::loadTimelineFile(path);
+        QVERIFY2(parsed.timeline, qPrintable(parsed.error));
+        QCOMPARE(parsed.timeline->tracks.size(), size_t(1));
+        QCOMPARE(parsed.timeline->clips.size(), size_t(1));
+        QCOMPARE(parsed.timeline->fps, 25.0);
+        QCOMPARE(parsed.timeline->width, 640);
+        QCOMPARE(parsed.timeline->durationMs, 1500.0);
+        QCOMPARE(QString::fromStdString(parsed.timeline->id), QString("tl-file"));
+        QCOMPARE(QString::fromStdString(parsed.timeline->name), QString("Opening cut"));
+        TimelineModel model;
+        model.setTimeline(*parsed.timeline);
+        nt::app::LocalDocumentSaver saver(model, path, 1);
+        model.addMarker(12, "edit");
+        QVERIFY(saver.flush());
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto saved = QJsonDocument::fromJson(file.readAll()).object();
+        QCOMPARE(saved.value("format").toString(), QString("nodetool.timeline"));
+        QCOMPARE(saved.value("version").toInt(), 1);
+        QCOMPARE(saved.value("id").toString(), QString("tl-file"));
+        QCOMPARE(saved.value("fps").toDouble(), 25.0);
+        QCOMPARE(saved.value("width").toInt(), 640);
+        QCOMPARE(saved.value("height").toInt(), 360);
+        QVERIFY(saved.contains("duration_ms"));
+        QVERIFY2(!saved.contains("name"), "the file name is the name");
+        for (const char* key : {"tracks", "clips", "markers", "durationMs"}) {
+            QVERIFY2(!saved.contains(key), key);
+        }
+        const auto savedDocument = saved.value("document").toObject();
+        QCOMPARE(savedDocument.value("tracks"), document.value("tracks"));
+        QCOMPARE(savedDocument.value("clips"), document.value("clips"));
+        QCOMPARE(savedDocument.value("unknown"), document.value("unknown"));
+        QCOMPARE(savedDocument.value("markers").toArray().size(), 1);
+        for (const char* key : {"id", "name", "fps", "width", "height", "durationMs"}) {
+            QVERIFY2(!savedDocument.contains(key), key);
+        }
+        // The saved file opens to the edited document.
+        const auto reopened = nt::loadTimelineFile(path);
+        QVERIFY(reopened.timeline);
+        QCOMPARE(reopened.timeline->raw, model.timeline().raw);
+    }
+    void unknownTimelineFileVersionDoesNotOpen() {
+        QTemporaryDir dir;
+        const auto path = dir.filePath("later.timeline.json");
+        {
+            QFile file(path);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write(R"({"format":"nodetool.timeline","version":2,"id":"x","fps":30,"width":100,"height":100,"document":{"tracks":[],"clips":[],"markers":[]}})");
+        }
+        const auto parsed = nt::loadTimelineFile(path);
+        QVERIFY(!parsed.timeline);
+        QVERIFY2(parsed.error.contains("version 2"), qPrintable(parsed.error));
     }
     void failedLocalSaveDoesNotReportSuccessfulExit() {
         QTemporaryDir dir;

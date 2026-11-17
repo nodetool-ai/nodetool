@@ -108,8 +108,16 @@ import {
 } from "./provider-error.js";
 import {
   buildProviderCallFailure,
+  providerFailureKind,
   type ProviderCallFailureInput
 } from "./provider-call-failure.js";
+import {
+  markProviderCreditExhausted,
+  readProviderCredit,
+  type CreditAccount,
+  type ProviderCredit,
+  type ReadProviderCreditOptions
+} from "./provider-credits.js";
 import { applyEntityReferences } from "./entity-references.js";
 import {
   expandVideoContentAsFrames,
@@ -482,6 +490,9 @@ export abstract class BaseProvider {
    * @internal
    */
   recordCallFailure(input: Omit<ProviderCallFailureInput, "provider">): void {
+    if (this._creditAccount && providerFailureKind(input.error) === "payment") {
+      markProviderCreditExhausted(this._creditAccount.key, this.provider);
+    }
     logProviderRequestFailure({
       provider: this.provider,
       model: input.model ?? "unknown",
@@ -699,6 +710,30 @@ export abstract class BaseProvider {
    */
   async unavailableReason(): Promise<string | null> {
     return null;
+  }
+
+  private _creditAccount: CreditAccount | null = null;
+
+  /**
+   * Tie this instance to the credential it was built with, so its remaining
+   * credit can be read and a payment refusal remembered for that credential.
+   * The registry calls it right after construction.
+   * @internal
+   */
+  bindCreditAccount(account: CreditAccount): void {
+    this._creditAccount = account;
+  }
+
+  /**
+   * The remaining credit on this provider's account, or `null` when nothing
+   * is known: no balance endpoint and no payment refusal on record. Answers
+   * from a short cache. See `provider-credits.ts`.
+   */
+  async creditStatus(
+    options: ReadProviderCreditOptions = {}
+  ): Promise<ProviderCredit | null> {
+    if (!this._creditAccount) return null;
+    return readProviderCredit(this._creditAccount, options);
   }
 
   /**

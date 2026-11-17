@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "código#estado",
       "signInWindowClosed": "¿Ventana de inicio de sesión cerrada?",
       "openAgain": "Ábrelo de nuevo",
-      "linkExpiry": ". El enlace caduca después de 10 minutos."
+      "linkExpiry": ". El enlace caduca después de 10 minutos.",
+      "nativeSubtitle": "quiere iniciar sesión en tu cuenta de NodeTool.",
+      "app": "Aplicación",
+      "device": "Dispositivo",
+      "nativeNote": "Aprueba solo si iniciaste este inicio de sesión desde una aplicación de escritorio de NodeTool en este ordenador. La aplicación podrá abrir, editar y guardar tus documentos en la nube hasta que cierres sesión o termines la sesión en Ajustes."
     },
     "integrations": {
       "loadingAccounts": "Cargando cuentas conectadas",
@@ -295,6 +299,8 @@
     "addWorkflowTooltip": "Agregar un nodo de flujo de trabajo",
     "addSubgraph": "Agregar subgrafo",
     "addSubgraphTooltip": "Agregar un nodo de subgrafo en línea",
+    "addComfySubgraph": "Añadir subgrafo de Comfy",
+    "addComfySubgraphTooltip": "Añade un subgrafo de nodos de ComfyUI que se ejecuta como un único trabajo de Comfy",
     "addApp": "Agregar aplicación",
     "addAppTooltip": "Ejecute una mini aplicación como nodo",
     "property": "Propiedad",
@@ -700,61 +706,15 @@
   },
   "batch2_1": {
     "common": {
-      "workspace": "Espacio de trabajo",
       "loading": "Cargando…",
       "refresh": "Actualizar",
       "remove": "Quitar",
       "cancel": "Cancelar"
     },
-    "page": {
-      "title": "Espacios de trabajo",
-      "subtitle": "Carpetas protegidas en las que los agentes y los flujos de trabajo pueden leer, escribir y organizar archivos."
-    },
-    "folderPicker": {
-      "title": "Seleccionar carpeta del espacio de trabajo"
-    },
-    "notifications": {
-      "added": "Espacio de trabajo agregado",
-      "removed": "Espacio de trabajo eliminado"
-    },
-    "errors": {
-      "loadTitle": "No se pudieron cargar los espacios de trabajo",
-      "loadSummary": "Los espacios de trabajo no se pudieron cargar",
-      "loadDescription": "Comprueba tu conexión y vuelve a intentarlo.",
-      "operation": "Error en la operación del espacio de trabajo: {{error}}"
-    },
-    "manager": {
-      "inaccessible": "Inaccesible",
-      "defaultWorkspace": "Espacio de trabajo predeterminado",
-      "setDefault": "Establecer como predeterminado",
-      "emptyTitle": "No hay espacios de trabajo configurados",
-      "emptyCanManage": "Agregue un espacio de trabajo para permitir que los agentes accedan a las carpetas locales",
-      "emptyManaged": "Esta implementación administra su espacio de trabajo por usted",
-      "adding": "Añadiendo…",
-      "addWorkspace": "Agregar espacio de trabajo",
-      "removeTitle": "¿Eliminar este espacio de trabajo?",
-      "removeDescription": "El espacio de trabajo se eliminará de NodeTool. La carpeta en sí no se eliminará."
-    },
-    "select": {
-      "defaultWithPath": "Predeterminado ({{path}})",
-      "description": "Los agentes leen y escriben archivos aquí durante la ejecución, incluidas imágenes guardadas, texto, datos y otros resultados. Explore los resultados en el panel del espacio de trabajo. Los agentes solo pueden acceder a los archivos dentro de esta carpeta. Un flujo de trabajo que se deja en Predeterminado utiliza su espacio de trabajo predeterminado.",
-      "createNew": "Crear nuevo espacio de trabajo",
-      "addWorkspace": "Agregar espacio de trabajo…"
-    },
     "tree": {
       "loading": "Cargando…",
       "accessDenied": "⚠️ Acceso denegado",
-      "title": "Explorador del espacio de trabajo",
-      "manage": "Administrar espacios de trabajo",
-      "goToRoot": "Ir a la raíz del espacio de trabajo",
-      "openInFolder": "Abrir en carpeta",
-      "openExternally": "Abierto externamente",
-      "noneSelected": "Ningún espacio de trabajo seleccionado",
-      "selectOrCreate": "Seleccione un espacio de trabajo arriba o cree uno.",
-      "createWorkspace": "Crear espacio de trabajo",
-      "fileBrowser": "Explorador de archivos del espacio de trabajo",
-      "emptyTitle": "El espacio de trabajo está vacío",
-      "emptyDescription": "Agregue archivos a la carpeta de su espacio de trabajo para verlos aquí."
+      "openExternally": "Abierto externamente"
     }
   },
   "batch2_10": {
@@ -1628,7 +1588,11 @@
       "assistant": "Asistente",
       "history": "Historia",
       "code": "Código",
-      "storyboard": "Guión gráfico"
+      "storyboard": "Guión gráfico",
+      "effectControls": "Controles de efectos",
+      "motion": "Movimiento",
+      "color": "Color",
+      "ai": "IA"
     },
     "unavailable": {
       "tracks": "El modo DAW tiene su propia vista de pista. Desactívelo (Alt+M) para abrir el panel Línea de tiempo.",
@@ -1766,7 +1730,6 @@
       "packageManager": "Administrador de paquetes",
       "assets": "Activos",
       "collections": "Colecciones",
-      "workspaces": "Espacios de trabajo",
       "memory": "Memoria",
       "settings": "Configuración",
       "help": "Ayuda",
@@ -2601,6 +2564,10 @@
       "connected": "Conectado",
       "connectedProviders": "Proveedores conectados",
       "connectedViaOAuth": "Conectado con el inicio de sesión",
+      "creditLeft": "Crédito restante: {{amount}}",
+      "creditLeftOf": "Crédito restante: {{amount}} de {{limit}}",
+      "creditExhausted": "No queda crédito. Recarga en {{provider}} para usarlo.",
+      "creditRefused": "{{provider}} rechazó una llamada por falta de crédito. Recarga y pulsa Probar.",
       "connecting": "Conectando…",
       "delete": "Eliminar",
       "deleteApiKeyConfirmation": "La clave API {{provider}} se eliminará y sus modelos dejarán de funcionar hasta que agregue una clave nuevamente.",
@@ -6252,7 +6219,19 @@
         "title": "Nuevo proyecto",
         "confirm": "Crear proyecto",
         "nameLabel": "Nombre del proyecto",
-        "createError": "No se pudo crear el proyecto: {{error}}"
+        "createError": "No se pudo crear el proyecto: {{error}}",
+        "openFolder": "Abrir carpeta…",
+        "openFolderHint": "¿Ya tienes una carpeta? Ábrela como proyecto. No se mueve ningún archivo.",
+        "openFolderTravels": "Una carpeta copiada desde otro equipo se abre con sus flujos de trabajo, líneas de tiempo y recursos. Los chats, storyboards, guiones, bocetos, apps y scripts JS no viajan con la carpeta.",
+        "openFolderError": "No se pudo abrir la carpeta: {{error}}"
+      },
+      "folder": {
+        "notFound": "Carpeta no encontrada",
+        "notFoundDetail": "La carpeta de {{name}} se movió, se renombró o está en una unidad no conectada. Las ejecuciones no empiezan hasta que la localices.",
+        "locate": "Localizar",
+        "locateError": "No se pudo localizar la carpeta: {{error}}",
+        "moving": "Moviendo archivos a la carpeta del proyecto",
+        "movingDetail": "{{done}} de {{total}} archivos movidos. Tus recursos siguen disponibles mientras tanto."
       },
       "home": {
         "homeTab": "Inicio",
@@ -6547,16 +6526,42 @@
           "export": "Exportar",
           "archive": "Archivo",
           "restore": "Restaurar",
-          "delete": "Eliminar"
+          "delete": "Eliminar",
+          "collect": "Reunir archivos"
         },
         "projectActions": "Acciones del proyecto",
         "actionsForProject": "Acciones para {{projectName}}",
         "exporting": "Exportando…",
         "deleteProject": "Eliminar proyecto",
         "confirmDeleteTitle": "¿Eliminar {{projectName}}?",
-        "confirmDeleteBody": "Elimine {{projectName}} y todos sus documentos, conversaciones, resultados generados, activos, trabajos y archivos de proyecto.",
+        "confirmDeleteBody": "Elimine {{projectName}} y todos sus documentos, conversaciones, trabajos y activos almacenados fuera de la carpeta del proyecto.",
         "deleteIrreversible": "Esto no se puede deshacer.",
-        "error": "No se pudo {{action}} {{projectName}}: {{error}}"
+        "deleteFolderTrash": "La carpeta del proyecto se mueve a la papelera.",
+        "deleteFolderRemove": "La carpeta del proyecto y todos sus archivos se eliminan del almacenamiento en la nube.",
+        "deleteFolderKeep": "La carpeta del proyecto se queda donde está con todos sus archivos. NodeTool solo elimina la carpeta .nodetool que contiene.",
+        "deleteFolderMissing": "No se puede acceder a la carpeta del proyecto, así que NodeTool la deja como está.",
+        "folderMovedAsideTo": "No se pudo acceder a la papelera. La carpeta del proyecto se movió a {{path}}.",
+        "folderMovedAside": "No se pudo acceder a la papelera. La carpeta del proyecto se movió a la carpeta .trash de la carpeta de proyectos.",
+        "folderTrashFailedAt": "No se pudo mover la carpeta del proyecto a la papelera. Sigue en {{path}}.",
+        "folderTrashFailed": "No se pudo mover la carpeta del proyecto a la papelera. Sigue donde estaba.",
+        "error": "No se pudo {{action}} {{projectName}}: {{error}}",
+        "collecting": "Reuniendo archivos…",
+        "collectResult": "Archivos reunidos en {{projectName}}: {{copied}} copiados, {{skipped}} omitidos, {{failed}} con error.",
+        "linkedTitle": "{{projectName}} vincula archivos fuera de su carpeta",
+        "linkedBody": "Una exportación contiene la carpeta del proyecto. Estos archivos están vinculados desde otro lugar y no están en ella:",
+        "linkedChoice": "Reunir y exportar los copia en la carpeta Imported y luego exporta. Cancelar mantiene los vínculos y no exporta nada.",
+        "collectAndExport": "Reunir y exportar"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "¿Copiar o vincular?",
+        "confirm": "Importar",
+        "copy": "Copiar en la carpeta del proyecto",
+        "copyHint": "El proyecto guarda su propia copia. Los cambios en el original no la afectan.",
+        "link": "Vincular en su lugar",
+        "linkHint": "No se copia nada. El proyecto lee el archivo donde está. Reunir archivos lo copia más tarde.",
+        "threshold": "Los archivos de {{size}} o más se vinculan de forma predeterminada."
       }
     }
   },
@@ -6617,7 +6622,16 @@
         "couldNotLoadDocuments": "No se pudieron cargar los documentos",
         "noDocuments": "Aún no hay documentos",
         "noMatchingDocuments": "No hay documentos coincidentes",
-        "searchProjectsAndDocuments": "Buscar proyectos y documentos"
+        "searchProjectsDocumentsAndChats": "Buscar proyectos, documentos y chats",
+        "documentsAndChats": "Documentos y chats",
+        "chats": "Chats",
+        "loadingChats": "Cargando chats…",
+        "couldNotLoadChats": "No se pudieron cargar los chats",
+        "noChats": "Aún no hay chats",
+        "noMatchingChats": "No hay chats que coincidan",
+        "allChats": "Todos los chats",
+        "untitledChat": "Chat sin título",
+        "searchShort": "Buscar"
       },
       "rail": {
         "projects": "Proyectos"
@@ -6724,8 +6738,6 @@
       "runModeTool": "Herramienta",
       "runModeDescription": "Cómo se ejecuta y se puede activar este flujo de trabajo",
       "advanced": "Avanzado",
-      "workspace": "Espacio de trabajo",
-      "workspaceDescription": "Asociar una carpeta de espacio de trabajo con este flujo de trabajo para el acceso del agente",
       "toolName": "Nombre de la herramienta",
       "toolNameDescription": "Identificador para el uso de API/herramienta. Letras, números y guiones bajos únicamente.",
       "toolNamePlaceholder": "mi_herramienta_flujo_de_trabajo",
@@ -9094,6 +9106,7 @@
         "Qué tipo de aplicación envió el evento (nube, escritorio, web local), la versión de la aplicación y la familia del sistema operativo.",
         "Que se inició la aplicación, se creó un flujo de trabajo o se ejecutó un flujo de trabajo.",
         "Para una ejecución: local o en la nube, el nodo cuenta como un rango (como 6 a 20), la duración como un rango y, para una falla, una categoría como proveedor o tiempo de espera.",
+        "En una primera sesión: que se mostraron las opciones de inicio, cuál se eligió, el tipo del primer resultado (como chat o storyboard) con el tiempo hasta él como rango y la clase de pantalla (teléfono, tableta o escritorio).",
         "Una identificación aleatoria guardada en este navegador que cambia cada 30 días y una identificación aleatoria para esta sesión."
       ],
       "never": "nunca",
@@ -9238,10 +9251,6 @@
         "REPLICATE_API_TOKEN": {
           "button": "Obtener token de API replicado",
           "tooltip": "Ir a la página Replicar tokens de API"
-        },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Obtener la contraseña de la aplicación de Google",
-          "tooltip": "Vaya a la página de contraseñas de la aplicación de la cuenta de Google"
         },
         "ELEVENLABS_API_KEY": {
           "button": "Obtenga la clave API de ElevenLabs",
@@ -10813,9 +10822,9 @@
         "jsScripts": "secuencias de comandos JS",
         "skills": "Habilidades",
         "assets": "Activos",
-        "workspace": "Espacio de trabajo",
         "library": "Biblioteca",
-        "more": "Más"
+        "more": "Más",
+        "files": "Archivos"
       },
       "categoryDescriptions": {
         "documents": "Explore todos los documentos del proyecto actual.",
@@ -10835,9 +10844,9 @@
         "jsScripts": "Cree y administre código JavaScript reutilizable.",
         "skills": "Habilidades del agente: instrucciones de rebajas que coinciden con el objetivo.",
         "assets": "Explore los activos disponibles en el contexto actual.",
-        "workspace": "Explore los archivos en la carpeta del espacio de trabajo seleccionado.",
         "library": "Explorar activos en el proyecto actual.",
-        "more": "Abra paneles adicionales de flujo de trabajo, editor, desarrollador y espacio de trabajo."
+        "more": "Abre más paneles de flujos de trabajo, editor y desarrollo.",
+        "files": "Explora los archivos de la carpeta del proyecto."
       }
     },
     "queue": {
@@ -10856,6 +10865,8 @@
       "queuedCount_one": "{{count}} en cola",
       "queuedCount_other": "{{count}} en cola",
       "collapseQueue": "Colapsar cola",
+      "moveQueue": "Mover cola",
+      "moveQueueHint": "Arrastra para moverla. Las flechas la mueven e Inicio la restablece.",
       "enqueued": "en cola",
       "jobsRunning_many": "{{count}} trabajos en ejecución",
       "queuedCount_many": "{{count}} en cola"
@@ -13408,8 +13419,9 @@
         },
         "showCode": "Mostrar código",
         "showArguments": "Mostrar argumentos",
-        "allow": "Permitir",
-        "allowForChat": "Permitir este chat",
+        "allowOnce": "Permitir una vez",
+        "allowAlways": "Permitir siempre",
+        "allowAlwaysHint": "Ejecutar {{tool}} sin preguntar a partir de ahora. Puedes cambiarlo en Ajustes › Permisos.",
         "deny": "Negar"
       }
     }
@@ -13649,7 +13661,8 @@
         "sendMessage": "No se pudo enviar el mensaje: {{error}}",
         "compact": "No se pudo compactar la conversación: {{error}}",
         "copyConversation": "No se pudo copiar la conversación.",
-        "rewindConversation": "No se pudo rebobinar la conversación: {{error}}"
+        "rewindConversation": "No se pudo rebobinar la conversación: {{error}}",
+        "switchVersion": "No se pudo cambiar de versión: {{error}}"
       },
       "notifications": {
         "copiedMessages_one": "Se copió el mensaje {{count}} como Markdown.",
@@ -13672,8 +13685,14 @@
         },
         "connectProviderTitle": "Conecte un proveedor de IA para comenzar",
         "connectProviderButton": "Conectar un proveedor",
-        "title": "¿Cómo puedo ayudarte hoy?",
-        "subtitle": "Pregunte cualquier cosa, agregue archivos o comience con uno de estos:"
+        "greeting": {
+          "morning": "Buenos días",
+          "afternoon": "Buenas tardes",
+          "evening": "Buenas noches",
+          "morningName": "Buenos días, {{name}}",
+          "afternoonName": "Buenas tardes, {{name}}",
+          "eveningName": "Buenas noches, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Tareas",
@@ -14217,8 +14236,7 @@
       "search": "Buscar en todos los paneles",
       "group": {
         "workflow-tools": "Herramientas de flujo de trabajo",
-        "agent-tools": "Herramientas del agente",
-        "workspace": "Espacio de trabajo"
+        "agent-tools": "Herramientas del agente"
       },
       "category": {
         "favorites": {
@@ -14236,10 +14254,6 @@
         "skills": {
           "label": "Habilidades",
           "description": "Habilidades del agente: instrucciones de rebajas que coinciden con el objetivo."
-        },
-        "workspace-files": {
-          "label": "Espacio de trabajo",
-          "description": "Explore los archivos en la carpeta del espacio de trabajo seleccionado."
         }
       }
     },
@@ -14908,9 +14922,6 @@
       "runGroup": {
         "groupRunning": "El grupo esta corriendo",
         "runGroup": "Ejecutar grupo"
-      },
-      "saveDestinationHint": {
-        "workspace": "Espacio de trabajo"
       }
     }
   },
@@ -15369,7 +15380,6 @@
       "csv": "archivo CSV",
       "unknown": "Tipo de archivo desconocido",
       "unknownContentType": "Tipo de contenido desconocido",
-      "offline": "Medios fuera de línea",
       "thumbnail": "Miniatura",
       "folder": "Carpeta"
     },
@@ -16149,9 +16159,9 @@
       "jsscripts": "secuencias de comandos JS",
       "skills": "Habilidades",
       "assets": "Activos",
-      "workspace-files": "Espacio de trabajo",
       "library": "Biblioteca",
-      "more": "Más"
+      "more": "Más",
+      "files": "Archivos"
     }
   },
   "i18n-next55": {
@@ -16282,7 +16292,6 @@
         "models": "Gerente de modelos",
         "packages": "Administrador de paquetes",
         "collections": "Colecciones",
-        "workspaces": "Espacios de trabajo",
         "entities": "Entidades",
         "memory": "Memoria",
         "settings": "Configuración",
@@ -17037,8 +17046,8 @@
         "extendEdit": "Extender el punto de edición al cabezal de reproducción",
         "trimEditLeft": "Recortar el punto de edición un cuadro hacia atrás",
         "trimEditRight": "Recortar el punto de edición un fotograma",
-        "trimEditLeftLarge": "Recortar el punto de edición diez fotogramas hacia atrás",
-        "trimEditRightLarge": "Recortar el punto de edición diez fotogramas",
+        "trimEditLeftLarge": "Recortar el punto de edición cinco fotogramas hacia atrás",
+        "trimEditRightLarge": "Recortar el punto de edición cinco fotogramas",
         "duplicate": "Duplicar después de la selección.",
         "duplicateWithGap": "Duplicar con un intervalo de 1 s",
         "applyDefaultTransition": "Fundido cruzado en clips seleccionados",
@@ -17119,7 +17128,49 @@
         "exitExpandedPreview": "Salir de la vista previa ampliada",
         "moveOnePixel": "Mueve el clip un píxel",
         "moveTenPixels": "Mueve el clip diez píxeles.",
-        "resetTransform": "Restablecer la transformación"
+        "resetTransform": "Restablecer la transformación",
+        "extendPrevEdit": "Extender la edición anterior hasta el cabezal",
+        "extendNextEdit": "Extender la edición siguiente hasta el cabezal",
+        "selectPrevClip": "Seleccionar el clip anterior",
+        "selectNextClip": "Seleccionar el clip siguiente",
+        "clipVolumeUp": "Subir el volumen del clip 1 dB",
+        "clipVolumeDown": "Bajar el volumen del clip 1 dB",
+        "clipVolumeUpMore": "Subir el volumen del clip 6 dB",
+        "clipVolumeDownMore": "Bajar el volumen del clip 6 dB",
+        "slideLeft": "Deslizar los clips seleccionados un fotograma atrás",
+        "slideRight": "Deslizar los clips seleccionados un fotograma adelante",
+        "slowShuttleBack": "Avance lento hacia atrás (de nuevo: más rápido)",
+        "slowShuttleForward": "Avance lento hacia delante (de nuevo: más rápido)",
+        "goToSequenceStart": "Ir al inicio de la secuencia",
+        "goToSequenceEnd": "Ir al final de la secuencia",
+        "goToSelectedStart": "Ir al inicio de la selección",
+        "goToSelectedEnd": "Ir al último fotograma de la selección",
+        "markSelection": "Marcar la selección (entrada y salida a su alrededor)",
+        "clearIn": "Borrar la entrada",
+        "clearOut": "Borrar la salida",
+        "prevCutAnyTrack": "Corte anterior en cualquier pista",
+        "nextCutAnyTrack": "Corte siguiente en cualquier pista",
+        "prevGap": "Ir al hueco anterior de la secuencia",
+        "nextGap": "Ir al hueco siguiente de la secuencia",
+        "addRangeMarker": "Añadir un marcador de rango de un segundo en el cabezal",
+        "addMarkerInOut": "Añadir un marcador de la entrada a la salida",
+        "clearAllMarkers": "Borrar todos los marcadores",
+        "playAround": "Reproducir alrededor del cabezal",
+        "playInToOutWithRoll": "Reproducir de la entrada a la salida con prerroll y postroll",
+        "playToOut": "Reproducir del cabezal a la salida",
+        "expandAllTracks": "Expandir todas las pistas (de nuevo: restaurar)",
+        "minimizeAllTracks": "Minimizar todas las pistas (de nuevo: restaurar)",
+        "audioTracksTaller": "Hacer más altas las pistas de audio",
+        "audioTracksShorter": "Hacer más bajas las pistas de audio",
+        "panelSource": "Ir a Origen",
+        "panelTimeline": "Ir a la línea de tiempo",
+        "panelProgram": "Ir a Programa",
+        "panelEffectControls": "Ir a Controles de efectos",
+        "panelInspector": "Ir al Inspector",
+        "panelScript": "Ir al Guion",
+        "panelStoryboard": "Ir al Storyboard",
+        "nextPanel": "Ir al panel siguiente",
+        "prevPanel": "Ir al panel anterior"
       }
     },
     "vst": {
@@ -18613,9 +18664,12 @@
       "result": "Resultado",
       "copyResult": "Copiar resultado",
       "editMessage": "Editar mensaje",
-      "editWarning": "El envío reemplaza todo después de este mensaje.",
+      "editWarning": "Al enviar se crea una nueva versión. La actual sigue disponible.",
       "editAndResend": "Editar y reenviar",
       "regenerate": "regenerar",
+      "previousVersion": "Versión anterior",
+      "nextVersion": "Versión siguiente",
+      "versionOf": "Versión {{index}} de {{count}}",
       "copyMessage": "Copiar mensaje",
       "enterCredential": "Introduzca una credencial",
       "credentialSubtitle": "Guardado en tu tienda secreta. El agente nunca ve el valor.",
@@ -18854,7 +18908,7 @@
   },
   "i18n-next110": {
     "workspaceFile": {
-      "invalidReference": "Referencia de archivo de espacio de trabajo no válida"
+      "invalidReference": "Referencia de archivo no válida"
     }
   },
   "i18n-next109": {
@@ -19347,6 +19401,26 @@
       "typeMore": "Escribe al menos 2 caracteres",
       "noMatches": "Nadie coincide",
       "failed": "No se pudo dar acceso."
+    },
+    "options": {
+      "history": "Historial",
+      "historyDescription": "Los lectores pueden abrir las versiones guardadas.",
+      "download": "Descargar",
+      "downloadDescription": "Los lectores pueden descargar los archivos originales.",
+      "duplicate": "Duplicar",
+      "duplicateDescription": "Los lectores pueden copiarlo con sus archivos en su propia biblioteca.",
+      "turnedOff": "Las personas conservan lo que ya descargaron o duplicaron.",
+      "historyOffNotice": "Los lectores de este enlace ya no ven las versiones guardadas. Activa el historial para devolverles el acceso.",
+      "turnOnHistory": "Activar historial",
+      "dismiss": "Descartar",
+      "failed": "No se pudieron cambiar las opciones."
+    },
+    "people": {
+      "from": "Acceso mediante {{sources}}",
+      "sourceInvitation": "invitación",
+      "sourceViewLink": "enlace de lectura",
+      "sourceEditLink": "enlace de edición",
+      "sourceDisabled": "{{source}} (desactivado)"
     }
   },
   "timelineAutomation": {
@@ -20319,5 +20393,254 @@
     "label": "Envíame correos sobre lanzamientos y ofertas gratuitas",
     "description": "Entérate de nuevas funciones, modelos y ofertas gratuitas. Cada correo incluye un enlace para darte de baja, y puedes desactivarlo aquí cuando quieras.",
     "saveFailed": "No se guardó tu preferencia de correo. Inténtalo de nuevo."
+  },
+  "firstRun": {
+    "ariaLabel": "Empieza con un resultado",
+    "heading": "Crea algo en menos de un minuto",
+    "subline": "Todo viene ya rellenado. Prueba uno y luego cámbialo por tu propia idea.",
+    "firstTask": {
+      "label": "Tu primer prompt",
+      "prompt": "Dame tres ideas para un vídeo de 30 segundos sobre un zorro en la primera nevada, una línea cada una.",
+      "hint": "Responde en segundos con el modelo gratuito predeterminado.",
+      "action": "Enviar"
+    },
+    "game": {
+      "title": "Crea un juego pequeño",
+      "description": "Un zorro busca la última bellota. Se abre en el diseño, un clic para escribirlo."
+    },
+    "storyboard": {
+      "title": "Haz el storyboard de un corto",
+      "description": "Un farero y un robot varado. Se abre en el guion, un clic para escribirlo.",
+      "brief": "Un farero encuentra un pequeño robot arrastrado por el mar tras una tormenta y le enseña a mantener la luz encendida."
+    },
+    "template": {
+      "title": "Ejecuta una plantilla",
+      "description": "Textos publicitarios en tres tonos, con el producto ya escrito. Pulsa Ejecutar."
+    },
+    "opening": "Abriendo…",
+    "startFailed": "No se pudo abrir el ejemplo: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "Ningún clip seleccionado",
+    "severalClips": "Varios clips seleccionados",
+    "effectControls": {
+      "empty": "Selecciona un clip en la línea de tiempo para ajustar su transformación, opacidad, efectos y máscaras.",
+      "several": "Selecciona un solo clip para ajustarlo."
+    },
+    "motion": {
+      "empty": "Selecciona un clip en la línea de tiempo para animarlo.",
+      "several": "Selecciona un solo clip para animarlo.",
+      "unsupportedTitle": "Nada que animar",
+      "unsupported": "Selecciona un clip de vídeo, imagen, texto o forma para animarlo."
+    },
+    "color": {
+      "empty": "Selecciona un clip en la línea de tiempo para corregir su color.",
+      "several": "Selecciona un solo clip para corregir su color.",
+      "unsupportedTitle": "Este clip no tiene imagen",
+      "unsupported": "Selecciona un clip de vídeo, imagen, texto o forma para corregir su color."
+    },
+    "ai": {
+      "empty": "Selecciona un clip en la línea de tiempo para generar a partir de él o editarlo con IA.",
+      "several": "Selecciona un solo clip para generar a partir de él.",
+      "unsupportedTitle": "No hay herramientas de IA para este clip",
+      "unsupported": "Selecciona un clip de vídeo o imagen, o un clip generado."
+    }
+  },
+  "toolPermissions": {
+    "tab": "Permisos",
+    "title": "Permisos de herramientas",
+    "sidebarCategory": "Herramientas",
+    "intro": "Elige qué herramientas puede usar el asistente sin preguntar. Una herramienta configurada como Preguntar muestra un aviso en el chat antes de ejecutarse.",
+    "modes": "En el modo predeterminado, cada herramienta configurada como Preguntar pide confirmación primero. En el modo automático, las herramientas se ejecutan sin preguntar, salvo una acción de código que borra, publica o gasta dinero. Configura Execute code como Permitir siempre para quitar también ese aviso. El modo plan bloquea cualquier cambio, sea cual sea la regla.",
+    "alwaysAllow": "Permitir siempre",
+    "ask": "Preguntar",
+    "saveFailed": "No se pudo guardar este permiso.",
+    "loadFailed": "No se pudo cargar la lista de herramientas.",
+    "noMatches": "Ninguna herramienta coincide con tu búsqueda."
+  },
+  "projectFolder": {
+    "name": "Carpeta del proyecto",
+    "picker": {
+      "title": "Seleccionar una carpeta"
+    },
+    "tree": {
+      "title": "Archivos",
+      "goToRoot": "Ir a la raíz de la carpeta del proyecto",
+      "fileBrowser": "Archivos del proyecto",
+      "emptyTitle": "La carpeta del proyecto está vacía",
+      "emptyDescription": "Añade archivos a la carpeta del proyecto para verlos aquí.",
+      "noFolderTitle": "Sin carpeta de proyecto",
+      "noFolderDescription": "Este proyecto aún no tiene carpeta.",
+      "revealInFinder": "Mostrar en el Finder",
+      "revealInExplorer": "Mostrar en el Explorador de archivos",
+      "revealInFileManager": "Mostrar en el administrador de archivos"
+    },
+    "documentFile": {
+      "invalidTitle": "Este archivo tiene un error",
+      "invalidBody": "{{path}} no se cargó: {{error}}. La última versión válida sigue abierta y se puede ejecutar.",
+      "openFile": "Abrir archivo",
+      "missingTitle": "Falta el archivo",
+      "missingBody": "{{path}} ya no está en la carpeta del proyecto. Restaurar lo vuelve a escribir desde este documento.",
+      "restore": "Restaurar",
+      "delete": "Eliminar",
+      "cancel": "Cancelar",
+      "deleteTitle": "¿Eliminar {{name}}?",
+      "deleteDescription": "«{{name}}» y su historial de versiones se eliminarán de forma permanente.",
+      "restoreFailed": "No se restauró el archivo: {{error}}",
+      "deleteFailed": "No se eliminó el documento: {{error}}"
+    },
+    "migration": {
+      "title": "Mueve tus proyectos a carpetas",
+      "intro": "NodeTool ahora guarda cada proyecto en su propia carpeta de este ordenador. Tus archivos, flujos de trabajo y líneas de tiempo se mueven allí y puedes abrirlos en otras apps.",
+      "planProjects": "Proyectos que reciben una carpeta",
+      "planFiles": "Archivos que se moverán",
+      "planWorkflows": "Flujos de trabajo guardados como archivos",
+      "planTimelines": "Líneas de tiempo guardadas como archivos",
+      "extraTitle": "Proyectos con más de una carpeta",
+      "extraBody": "Cada uno de estos proyectos conserva una carpeta. NodeTool deja de mostrar las demás y sus archivos se quedan donde están.",
+      "extraKeeps": "{{project}} conserva {{folder}}",
+      "extraHidden": "Ya no se muestra: {{folder}}",
+      "location": "Ubicación",
+      "changeLocation": "Cambiar ubicación",
+      "locationError": "Esta ubicación no se puede usar: {{error}}",
+      "permissionWarning": "macOS te preguntará si NodeTool puede usar esta carpeta. Elige Permitir, o elige una carpeta fuera de Documentos, Escritorio, Descargas, iCloud Drive y unidades externas.",
+      "safety": "No se pierde nada. Cada archivo se copia y se comprueba antes de eliminar su copia anterior. Puedes seguir trabajando mientras se mueven los archivos.",
+      "later": "Ahora no",
+      "confirm": "Mover archivos",
+      "planError": "No se pudo cargar el plan: {{error}}",
+      "confirmError": "El movimiento no se inició: {{error}}",
+      "actionError": "No se pudo cambiar el movimiento: {{error}}",
+      "progressRegion": "Moviendo archivos a las carpetas de proyecto",
+      "progressTitle": "Moviendo archivos a las carpetas de proyecto",
+      "pausedTitle": "El movimiento de archivos está en pausa",
+      "doneTitle": "Archivos movidos",
+      "progressCount": "{{done}} de {{total}} archivos movidos",
+      "phaseFolders": "Creando carpetas de proyecto",
+      "phaseFiles": "Guardando flujos de trabajo y líneas de tiempo como archivos",
+      "currentProject": "Moviendo los archivos de {{project}}",
+      "pause": "Pausar",
+      "resume": "Reanudar",
+      "failuresTitle": "No se pudieron mover ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "Hay más sin mostrar: {{count}}",
+      "retry": "Reintentar",
+      "donePath": "Tus archivos están en {{path}}",
+      "close": "Cerrar"
+    }
+  },
+  "assetPicker": {
+    "sourceTabs": "Origen del recurso",
+    "projectTab": "Este proyecto",
+    "personalTab": "Personal",
+    "personalHint": "Al elegir de Personal, el archivo se copia en este proyecto.",
+    "copying": "Copiando en este proyecto…",
+    "copyFailed": "No se pudo copiar el recurso en este proyecto."
+  },
+  "assetFileStatus": {
+    "missing": "Falta",
+    "missingTooltip": "El archivo no está donde este recurso lo espera. Vuelve a vincularlo con la nueva ubicación del archivo o quita el recurso.",
+    "linked": "Vinculado",
+    "linkedTooltip": "Este recurso usa en su sitio un archivo fuera de la carpeta del proyecto.",
+    "relink": "Volver a vincular",
+    "relinkTooltip": "Elige la nueva ubicación del archivo",
+    "relinkNoPath": "No se pudo leer la ubicación de ese archivo. Elige un archivo de este equipo.",
+    "relinkFailed": "Error al volver a vincular: {{error}}",
+    "remove": "Quitar",
+    "removeTooltip": "Quitar este recurso de NodeTool",
+    "removeTitle": "¿Quitar «{{name}}»?",
+    "removeBody": "El recurso se quita de NodeTool. Los documentos que lo usan ya no pueden mostrarlo.",
+    "cancel": "Cancelar"
+  },
+  "deviceSessions": {
+    "title": "Dispositivos con sesión iniciada",
+    "description": "Ordenadores en los que iniciaste sesión en las aplicaciones de escritorio de NodeTool. Las aplicaciones de un ordenador comparten una sesión. Terminar una sesión cierra la sesión en ese ordenador.",
+    "empty": "Ningún ordenador tiene la sesión iniciada.",
+    "unnamed": "Ordenador sin nombre",
+    "signedInFrom": "Sesión iniciada desde {{app}} el {{date}}",
+    "lastUsed": "Último uso {{date}}",
+    "neverUsed": "Sin uso desde el inicio de sesión",
+    "end": "Terminar sesión",
+    "confirmTitle": "¿Terminar esta sesión?",
+    "confirmBody": "Las aplicaciones de escritorio de NodeTool en {{device}} cierran sesión en menos de un minuto.",
+    "cancel": "Cancelar",
+    "ended": "Sesión terminada.",
+    "endError": "No se pudo terminar la sesión: {{error}}",
+    "loadError": "No se pudieron cargar los dispositivos.",
+    "apps": {
+      "nodeEditor": "Editor de nodos",
+      "timeline": "Línea de tiempo",
+      "desktop": "Aplicación de escritorio"
+    }
+  },
+  "storyboardText": {
+    "mode": "Texto",
+    "editorLabel": "Storyboard como texto Markdown",
+    "hint": "Escribe # para un acto, ## para una escena, ### para un plano y - **Motion:** para un campo. Escribe @ para mencionar una entidad o una imagen.",
+    "issues": "Líneas que requieren atención: {{lines}}",
+    "loading": "Cargando el texto…",
+    "warnings": {
+      "media_outside_shot": "Una imagen pertenece a un plano. Colócala bajo un encabezado ### de plano.",
+      "second_media": "Un plano tiene una imagen fija y un clip seleccionados. Este no se usa.",
+      "unknown_shot_field": "\"{{label}}\" no es un campo del storyboard. Se guarda en las notas del plano.",
+      "unknown_field": "\"{{label}}\" no es un campo aquí. No se guarda.",
+      "text_in_scene": "Una escena solo tiene encabezado e iluminación. Pon este texto bajo un plano o empiézalo con \"Lighting:\".",
+      "bad_duration": "Plano {{shot}}: \"{{value}}\" no es un número de segundos.",
+      "bad_render": "Plano {{shot}}: el render es keyframe, direct o reference.",
+      "no_next_shot": "Plano {{shot}}: una transición lleva al plano siguiente y no hay ninguno.",
+      "missing_action": "El plano {{shot}} aún no tiene acción. Escribe la imagen que se renderizará bajo su encabezado."
+    },
+    "outline": "Esquema",
+    "outlineEmpty": "Escribe ### y un título para empezar un plano.",
+    "untitledShot": "Plano sin título",
+    "untitledAct": "Acto sin título",
+    "untitledScene": "Escena sin título",
+    "issuesTitle": "Requiere atención",
+    "stillOf": "Imagen fija del plano {{shot}}",
+    "assist": {
+      "lines": "{{lines}} líneas seleccionadas",
+      "proposal": "Reemplazo propuesto",
+      "note": "Nota del agente",
+      "discard": "Descartar",
+      "close": "Cerrar",
+      "replace": "Reemplazar selección",
+      "stale": "El pasaje cambió después de seleccionarlo. Selecciónalo de nuevo.",
+      "thinking": "Pensando…",
+      "stop": "Detener",
+      "placeholder": "Dile al agente qué hacer con este pasaje",
+      "refinePlaceholder": "Refinar el resultado",
+      "instruction": "Solicitud al agente",
+      "send": "Enviar al agente",
+      "failed": "La solicitud al modelo falló.",
+      "context": "Enviado con la solicitud: todo el storyboard, {{shots}} planos y {{entities}} entidades de la biblioteca.",
+      "quick": {
+        "tighten": "Condensar",
+        "visual": "Más visual",
+        "camera": "Sugerir cámara",
+        "continuity": "Revisar continuidad",
+        "summarize": "Resumir",
+        "inconsistencies": "Buscar incoherencias"
+      },
+      "errors": {
+        "no_model": "Elige un modelo de dirección para este storyboard, o un modelo de chat, para usar el agente.",
+        "empty": "El modelo no devolvió respuesta. Envía la solicitud de nuevo.",
+        "failed": "La solicitud falló. Envíala de nuevo."
+      }
+    }
+  },
+  "cloudAccount": {
+    "title": "Cuenta de NodeTool Cloud",
+    "description": "Un inicio de sesión para esta aplicación, el editor de nodos y la línea de tiempo en este ordenador. Iniciar o cerrar sesión aquí se aplica a las tres.",
+    "signedInAs": "Sesión iniciada como {{name}}",
+    "server": "Servidor: {{server}}",
+    "signedOut": "Sin iniciar sesión",
+    "signingIn": "Termina de iniciar sesión en tu navegador",
+    "serverEndPending": "Sesión cerrada, aún no terminada en el servidor",
+    "cloudOff": "Las funciones en la nube están desactivadas en este ordenador",
+    "noKeychain": "Este ordenador no tiene almacén de credenciales, así que la sesión dura hasta que NodeTool se cierre.",
+    "signIn": "Iniciar sesión",
+    "cancel": "Cancelar",
+    "signOut": "Cerrar sesión",
+    "signOutNote": "Los cambios pendientes en el editor de nodos o en la línea de tiempo se quedan en este ordenador y se envían cuando vuelvas a iniciar sesión.",
+    "unavailable": "El inicio de sesión en la nube no está disponible en esta versión."
   }
 }

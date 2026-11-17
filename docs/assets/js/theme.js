@@ -759,4 +759,47 @@
       }
     }
   }
+
+  // --- Translate menu ----------------------------------------------------------
+  // Links open the page through Google's translation proxy
+  // (<host-with-dashes>.translate.goog). The server-rendered hrefs use
+  // translate.google.com/translate, which redirects there, so the menu also
+  // works without this script.
+  const translateMenu = document.querySelector('.translate-menu');
+  if (translateMenu) {
+    const list = translateMenu.querySelector('.translate-list');
+    const source = new URL(list.dataset.sourceUrl);
+    const proxyHost = source.hostname.replace(/-/g, '--').replace(/\./g, '-') + '.translate.goog';
+    const currentLang = window.location.hostname.endsWith('.translate.goog')
+      ? new URLSearchParams(window.location.search).get('_x_tr_tl') || ''
+      : 'en';
+
+    translateMenu.querySelectorAll('.translate-link').forEach((link) => {
+      const lang = link.dataset.lang;
+      if (lang === currentLang) link.setAttribute('aria-current', 'true');
+      if (lang === 'en') {
+        link.href = source.href + window.location.hash;
+        return;
+      }
+      const target = new URL(source.pathname, 'https://' + proxyHost);
+      target.search = new URLSearchParams({
+        _x_tr_sl: 'en',
+        _x_tr_tl: lang,
+        _x_tr_hl: lang,
+        _x_tr_pto: 'wapp'
+      }).toString();
+      target.hash = window.location.hash;
+      link.href = target.href;
+    });
+
+    document.addEventListener('click', (event) => {
+      if (translateMenu.open && !translateMenu.contains(event.target)) translateMenu.open = false;
+    });
+    translateMenu.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && translateMenu.open) {
+        translateMenu.open = false;
+        translateMenu.querySelector('summary').focus();
+      }
+    });
+  }
 })();

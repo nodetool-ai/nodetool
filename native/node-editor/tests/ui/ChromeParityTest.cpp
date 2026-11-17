@@ -1,3 +1,4 @@
+#include "EntryMenuSupport.h"
 #include "FakeRunServer.h"
 #include "server/MsgPack.h"
 #include "ui/EditorWindow.h"
@@ -125,9 +126,27 @@ private:
     static void hover(QQuickWidget *host, QQuickItem *item) {
         QVERIFY(host);
         QVERIFY(item);
+        // The window tooltip opens at the cursor, so park the cursor on the item as a real pointer would be.
+        // Moving it first lets the window system's enter and leave settle before the quick window sees the move.
+        QToolTip::hideText();
+        QTRY_VERIFY(!QToolTip::isVisible());
+        QCursor::setPos(host->mapToGlobal(center(item)));
+        QCoreApplication::processEvents();
         QTest::mouseMove(host->quickWindow(), QPoint(2, 2));
         QTest::mouseMove(host->quickWindow(), center(item));
         QCoreApplication::processEvents();
+    }
+
+    // The text a user sees. A Ui.Tooltip that fits its panel overlay shows there. One that does not
+    // (a thin QQuickWidget) hands its text to the window, which shows it through QToolTip.
+    static QString shownTooltip(QQuickWidget *host) {
+        for (auto *object : host->rootObject()->findChildren<QObject *>()) {
+            if (object->property("followsTrigger").isValid() && object->property("visible").toBool()
+                && object->property("opacity").toReal() > 0) {
+                return object->property("text").toString();
+            }
+        }
+        return QToolTip::text();
     }
 
     static void openCatalog(EditorWindow &window) {
@@ -332,7 +351,7 @@ private slots:
             {"rail-nodes", "Nodes"},
             {"rail-theme", "Switch to light mode"},
             {"rail-panel", "Toggle panel"},
-            {"rail-projects", "Projects has no native surface yet. Switch projects from the project menu in the tab strip."},
+            {"rail-projects", "Switch or create a project"},
             {"rail-library", "Library"},
             {"rail-examples", "Examples"},
         };
@@ -340,7 +359,7 @@ private slots:
             auto *entry = find(rail->rootObject(), tip.first);
             QVERIFY2(entry, qPrintable(tip.first));
             hover(rail, entry);
-            QTRY_COMPARE_WITH_TIMEOUT(QToolTip::text(), tip.second, 1000);
+            QTRY_COMPARE_WITH_TIMEOUT(shownTooltip(rail), tip.second, 1000);
             const bool unavailable = !entry->property("unavailable").toString().isEmpty();
             QCOMPARE(entry->property("button").value<QObject *>()->property("enabled").toBool(), !unavailable);
         }
@@ -375,8 +394,12 @@ private slots:
         QTRY_VERIFY(entry("rail-examples")->property("active").toBool());
         click(rail, entry("rail-examples"));
         QTRY_VERIFY(!window.examplesVisible());
+        // Projects opens the project menu, as the tab strip's project selector does.
+        click(rail, entry("rail-projects"));
+        QTRY_VERIFY(entry_menu::host(window, "project-menu"));
+        entry_menu::host(window, "project-menu")->hide();
         // A disabled entry changes nothing.
-        for (const auto *name : {"rail-projects", "rail-library"}) {
+        for (const auto *name : {"rail-library"}) {
             click(rail, entry(name));
             QTest::qWait(30);
             QVERIFY2(!window.catalogVisible() && !window.browserVisible() && !window.chatVisible(), name);
@@ -412,7 +435,7 @@ private slots:
         for (int i = 0; i < tabs.size(); ++i) {
             auto *tab = find(root, QString("status-%1").arg(tabs[i].toLower()));
             QCOMPARE(tab->property("label").toString(), tabs[i]);
-            QCOMPARE(tab->property("glyph").toString(), glyphs[i]);
+            QCOMPARE(tab->property("iconName").toString(), glyphs[i]);
         }
         QCOMPARE(find(root, "status-nodes-value")->property("text").toString(), QString("12"));
         QCOMPARE(find(root, "status-nodes-key")->property("text").toString(), QString("nodes"));
@@ -434,34 +457,40 @@ private slots:
         QTest::qWait(120);
         auto *status = panel(window, QStringLiteral("StatusBar"));
         auto *root = status->rootObject();
-        const QList<QPair<QString, QString>> reasons{
-            {"status-workers", "Workers has no native panel yet."},
-        };
-        for (const auto &reason : reasons) {
-            auto *tab = find(root, reason.first);
-            hover(status, tab);
-            QTRY_COMPARE_WITH_TIMEOUT(QToolTip::text(), reason.second, 1000);
-            click(status, tab);
-            QTest::qWait(30);
-            QVERIFY(!window.outputVisible());
-        }
-        // Logs shows the run output panel. Versions opens the version history panel.
+        // Workers opens the workers panel and closes it again.
+        click(status, find(root, "status-workers"));
+        QTRY_VERIFY(window.workersVisible());
+        QTRY_VERIFY(find(root, "status-workers")->property("active").toBool());
+        click(status, find(root, "status-workers"));
+        QTRY_VERIFY(!window.workersVisible());
+        // Logs shows the run output panel above the status bar, as the other views open.
+        const auto *statusParent = status->parentWidget();
+        const auto statusBottom = status->mapTo(&window, QPoint(0, status->height())).y();
         click(status, find(root, "status-logs"));
         QTRY_VERIFY(window.outputVisible());
         QVERIFY(find(root, "status-logs")->property("active").toBool());
+        QCOMPARE(status->parentWidget(), statusParent);
+        QCOMPARE(status->mapTo(&window, QPoint(0, status->height())).y(), statusBottom);
         click(status, find(root, "status-logs"));
+        QTRY_VERIFY(!window.outputVisible());
+        // Its close button closes it, as on the other views.
+        click(status, find(root, "status-logs"));
+        QTRY_VERIFY(window.outputVisible());
+        auto *logs = panel(window, QStringLiteral("RunOutput"));
+        QVERIFY(logs);
+        click(logs, find(logs->rootObject(), "logs-close"));
         QTRY_VERIFY(!window.outputVisible());
         click(status, find(root, "status-versions"));
         QTRY_VERIFY(window.findChild<QDockWidget *>(QStringLiteral("workflow-versions-dock")));
         QTRY_VERIFY(window.findChild<QDockWidget *>(QStringLiteral("workflow-versions-dock"))->isVisible());
-        // Queue opens with no jobs, as the web QueuePanel does, and closes on a second click.
-        auto *overlay = panel(window, QStringLiteral("QueueOverlay"));
-        QVERIFY(overlay);
+        // Queue opens its bottom panel with no jobs, as the web QueuePanel does, and closes on a second click.
         QVERIFY(!window.queueAvailable());
         click(status, find(root, "status-queue"));
-        QTRY_VERIFY(overlay->rootObject()->property("presented").toBool());
+        QTRY_VERIFY(window.findChild<QDockWidget *>(QStringLiteral("queue-dock")));
         QTRY_VERIFY(find(root, "status-queue")->property("active").toBool());
-        QVERIFY(find(overlay->rootObject(), "queue-active-empty")->isVisible());
+        auto *queuePanel = panel(window, QStringLiteral("QueuePanel"));
+        QVERIFY(queuePanel);
+        QTRY_VERIFY(find(queuePanel->rootObject(), "queue-active-empty")->isVisible());
         click(status, find(root, "status-queue"));
         QTRY_VERIFY(!find(root, "status-queue")->property("active").toBool());
         // Generations opens its bottom panel and closes it again.
@@ -484,6 +513,8 @@ private slots:
             connect(peer, &QWebSocket::binaryMessageReceived, this, [&](const QByteArray &bytes) {
                 const auto message = node_editor::decodeMsgPack(bytes);
                 QVERIFY(message);
+                // The open-project signal goes with every socket open. WorkflowSessionTests checks it.
+                if (message->toObject()["command"] == "set_open_project") { return; }
                 commands.append(message->toObject());
             });
         });
@@ -514,17 +545,19 @@ private slots:
         peer->sendBinaryMessage(node_editor::encodeMsgPack(QJsonObject{{"type", "system_stats"},
             {"stats", QJsonObject{{"cpu_percent", 7.0}, {"memory_percent", 63.0}}}}));
         QTRY_COMPARE(find(root, "status-memory-value")->property("text").toString(), QString("63%"));
-        // A started run shows the queue summary, and the tab expands the queue panel.
+        // A started run shows the queue summary on the canvas, and the tab opens the queue panel.
         auto *queue = find(root, "status-queue");
-        QCOMPARE(queue->property("unavailable").toString(), QString());
+        QCOMPARE(queue->property("disabledReason").toString(), QString());
         window.action("Run");
         QTRY_VERIFY_WITH_TIMEOUT(!commands.isEmpty(), 2000);
         QTRY_VERIFY(window.queueAvailable());
         auto *overlay = panel(window, QStringLiteral("QueueOverlay"));
         QVERIFY(overlay);
+        QTRY_VERIFY(overlay->rootObject()->property("presented").toBool());
         QVERIFY(!overlay->rootObject()->property("expanded").toBool());
         click(status, queue);
-        QTRY_VERIFY(overlay->rootObject()->property("expanded").toBool());
+        QTRY_VERIFY(window.queueVisible());
+        QVERIFY(panel(window, QStringLiteral("QueuePanel")));
         // A dropped socket drops the stats, and the web names a started but closed connection offline.
         peer->close();
         QTRY_COMPARE(find(root, "status-connection")->property("text").toString(), QString("Offline"));
@@ -679,7 +712,7 @@ private slots:
         QVERIFY(link->mapToItem(catalog->rootObject(), QPointF()).x() > count->mapToItem(catalog->rootObject(), QPointF()).x());
         QCOMPARE(link->property("accessibleName").toString(), QStringLiteral("Nodes documentation"));
         hover(catalog, link);
-        QTRY_COMPARE_WITH_TIMEOUT(QToolTip::text(), QStringLiteral("Nodes documentation"), 1500);
+        QTRY_COMPARE_WITH_TIMEOUT(shownTooltip(catalog), QStringLiteral("Nodes documentation"), 1500);
         UrlCatcher catcher;
         QDesktopServices::setUrlHandler(QStringLiteral("https"), &catcher, "open");
         click(catalog, link);
@@ -878,7 +911,8 @@ private slots:
 
     // W23: PanelBottom.tsx draws the status bar as the bottom panel's tab strip, so an open
     // panel puts the bar above its body.
-    void outputPanelUsesTheStatusBarAsItsTabStrip() {
+    // Logs opens like the other status views: above the status bar, which stays at the window bottom.
+    void outputPanelOpensAboveTheStatusBar() {
         EditorWindow window;
         show(window, fixture()["metadata"].toArray());
         QVERIFY(window.document()->load(fixture()["workflow"].toObject()));
@@ -890,14 +924,13 @@ private slots:
         click(status, find(status->rootObject(), QStringLiteral("status-logs")));
         QTRY_VERIFY(window.outputVisible());
         QTRY_VERIFY(output->isVisible());
-        QTRY_COMPARE(top(status) + status->height(), top(output));
-        QVERIFY(top(output) + output->height() <= window.height());
+        QCOMPARE(top(status) + status->height(), window.height());
+        QVERIFY(top(output) + output->height() <= top(status));
         auto *view = window.activeEditor()->findChild<QGraphicsView *>();
-        QVERIFY(top(view) + view->height() <= top(status));
-        // The open view's tab closes the panel and the bar returns to the window bottom.
+        QVERIFY(top(view) + view->height() <= top(output));
         click(status, find(status->rootObject(), QStringLiteral("status-logs")));
         QTRY_VERIFY(!window.outputVisible());
-        QTRY_COMPARE(top(status) + status->height(), window.height());
+        QCOMPARE(top(status) + status->height(), window.height());
     }
 
     // W23: the web Logs view always shows the run picker and, without runs, the

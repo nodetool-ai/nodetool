@@ -45,7 +45,6 @@ import useWorkflowRunsStore from "./WorkflowRunsStore";
 import { useFavoriteWorkflowsStore } from "./FavoriteWorkflowsStore";
 import { useWorkflowAssetStore } from "./WorkflowAssetStore";
 import { useSubgraphTabsStore } from "./SubgraphTabsStore";
-import { useCurrentWorkspaceStore } from "./CurrentWorkspaceStore";
 import { setWorkflowResourceReloader } from "./resourceChangeHandler";
 import { shouldApplyWorkflowRefresh } from "./workflowRefreshPolicy";
 import { isString } from "../utils/typePredicates";
@@ -57,6 +56,7 @@ import { orderParentsFirst } from "../core/workflow/graphMapping";
 import { reportDocumentConflicts } from "./documentConflictReporter";
 import { noteWorkflowCreatedHere } from "./workflowsCreatedHere";
 import { trackProductEvent } from "../lib/analytics";
+import { editingInstanceFor } from "../lib/editingInstance";
 import type { Node, Edge } from "@xyflow/react";
 import type { NodeData } from "./NodeData";
 
@@ -597,11 +597,11 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           thumbnail_url: workflow.thumbnail_url,
           settings: workflow.settings,
           run_mode: workflow.run_mode,
-          workspace_id: workflow.workspace_id,
           html_app: workflow.html_app,
           expected_updated_at: neverPersisted
             ? undefined
-            : workflow.updated_at ?? undefined
+            : workflow.updated_at ?? undefined,
+          editing_instance: editingInstanceFor("workflow", workflow.id)
         };
         if (workflow.project_id) {
           updateInput.project_id = workflow.project_id;
@@ -733,8 +733,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @returns {Workflow} A new workflow object with default values
        */
       newWorkflow: (projectId?: string) => {
-        const lastUsedWorkspaceId =
-          useCurrentWorkspaceStore.getState().lastUsedWorkspaceId;
         const data: Workflow = {
           id: crypto.randomUUID(),
           name: "New Workflow",
@@ -750,8 +748,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           settings: {
             hide_ui: false
           },
-          run_mode: "workflow",
-          workspace_id: lastUsedWorkspaceId ?? null
+          run_mode: "workflow"
         };
         if (projectId) {
           data.project_id = projectId;
@@ -845,8 +842,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             thumbnail_url: workflow.thumbnail_url,
             settings: workflow.settings,
             run_mode: workflow.run_mode,
-            workspace_id: workflow.workspace_id,
-            html_app: workflow.html_app,
+              html_app: workflow.html_app,
             from_example_package: fromExamplePackage,
             from_example_name: fromExampleName
           };
@@ -937,7 +933,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           settings: workflow.settings,
           run_mode: workflow.run_mode,
           tool_name: workflow.tool_name,
-          workspace_id: workflow.workspace_id,
           html_app: workflow.html_app,
           app_doc: workflow.app_doc
         };

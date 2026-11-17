@@ -39,6 +39,9 @@ export type ChatStatus =
 /** Width of the message column and the composer beneath it, in px. */
 export const CHAT_COLUMN_MAX_WIDTH = 800;
 
+/** Leading of reply prose: claude.ai sets replies near 1.65. */
+export const CHAT_READING_LINE_HEIGHT = 1.65;
+
 /**
  * A `/name` command typed into the composer. It runs instead of being sent.
  * A returned string replaces the prompt, for a command that hands text back.

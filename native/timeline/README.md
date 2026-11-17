@@ -97,9 +97,12 @@ Tested on Arch Linux with GCC 16, CMake 4, Qt 6.12.0 from `aqtinstall`
 (`linux_gcc_64` with `qtshadertools`), the distribution's FFmpeg 9.0
 (`libavcodec` 63) with its headers, libva 2.24, the Vulkan loader and
 headers, and an NVIDIA RTX 3060 with `nvidia-vaapi-driver` 0.0.18 (direct
-backend) for VAAPI. The system FFmpeg builds as is; the LGPL build of
-`scripts/build-ffmpeg-lgpl.sh` is the packaging and CI choice, not a
-requirement. Run from `native/timeline/`:
+backend) for VAAPI. A system FFmpeg of 7.1 or later builds as is (the export
+code calls `avcodec_get_supported_config`, which 7.1 added, so Ubuntu 24.04's
+6.1 does not). The LGPL build of `scripts/build-ffmpeg-lgpl.sh` is the
+packaging and CI choice and works on any distribution: point `PKG_CONFIG_PATH`
+and `LD_LIBRARY_PATH` at `build-ffmpeg-lgpl/install/lib` before configuring.
+Run from `native/timeline/`:
 
 ```bash
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=$HOME/qt/6.12.0/gcc_64
@@ -330,8 +333,9 @@ is run only by `scripts/window-checks.sh`.
   names a recovery copy only through the controller's `keptCopy` and
   `recoveryError`.
 
-Not here yet: the web's per-change conflict merge in the banner (Accept and
-Discard, D34), and Retry on a failed save (the controller has no invokable
+A merge that refuses some of the server's changes lists each one with Accept
+and Discard in `ExternalConflictsBanner` (D34), as the web's ConflictBanner
+does. Not here yet: Retry on a failed save (the controller has no invokable
 save).
 
 ## Editing (M4)
@@ -376,10 +380,16 @@ targets (a ripple still moves a group with its children), and a split or drop
 that would split or remove a clip owning a media track.
 
 ```bash
-node native/timeline/scripts/op-conformance.mjs   # needs build-m2/timeline-ops
+cmake --build build --target conformance-helpers  # timeline-ops and every suite's oracle
+node native/timeline/scripts/op-conformance.mjs   # defaults to build/timeline-ops
 ./build/tst_tracksui                               # gestures, keys, undo (offscreen)
 ./build/tst_editpreview                            # the preview draws an edit on the next frame
 ```
+
+The full build makes every helper the run needs. After a partial build,
+`conformance-helpers` builds just the app, `timeline-ops` and the oracle each
+suite in `scripts/conformance/suites/` calls. A missing helper stops the run
+before vitest starts and names the binary.
 
 `op-conformance.mjs` checks the native code against the TypeScript in four
 ways, through `timeline-ops` (one call per process, JSON in and out):
@@ -438,9 +448,11 @@ Tests: `tst_menus`, `tst_appshell_menus`, `menu_parity_report`.
 
 ### Keyboard presets
 
-`src/edit/KeymapOverlay.h` holds the Premiere keys. The preset uses Ctrl+K to split,
-Ctrl+Shift+L for loop, Shift+1 to Shift+9 for panels and Shift+= and Shift+- to
-expand and minimize tracks. A key the preset binds means that action alone, even
+The Premiere keys come from the web table, which binds Ctrl+Shift+L for loop,
+Shift+2 to Shift+0 for panels and Shift+= and Shift+- to expand and minimize
+tracks. `src/edit/KeymapOverlay.h` holds the keys only the native editor binds:
+Ctrl+K to split, Ctrl+Shift+E to export a frame, Alt+M to clear a marker, and
+Shift+1, Shift+6 and Shift+7 for the Library, Mixer and Effects panels. A key the preset binds means that action alone, even
 when it refuses, and a registered default key gives way to the preset.
 
 The first interactive launch shows a keyboard layout prompt, which does not block
@@ -558,9 +570,9 @@ Timing. Text shows for a text clip, Shape for a shape and Caption for a caption.
 when a transition is selected, which means its clip's start edit point: click the hatched wedge of an
 incoming transition, or the clip's start edge to set one up. Any other click on the clip clears it.
 
-The Motion panel owns how a clip moves over time: Animate, Advanced motion, Follow object and Smart
-reframe. The AI panel owns generation for the selected clip, and it is the tab next to the Assistant,
-which stays a chat surface. Open them from Window > Motion and Window > AI. No Premiere key applies.
+The Motion panel owns how a clip moves over time: Animate and Advanced motion. The AI panel owns
+generation for the selected clip and the tools that run a tracking model, Follow object and Smart
+reframe, as on the web. It is the tab next to the Assistant, which stays a chat surface. Open them from Window > Motion and Window > AI. No Premiere key applies.
 Export Frame's Use as start frame opens the AI panel on image to video. A group clip's Inspector shows
 the Group section and Timing, and its animation is in the Motion panel.
 
@@ -1283,8 +1295,9 @@ each extracted backend with
 [scripts/smoke-backend-bundle.mjs](../../scripts/smoke-backend-bundle.mjs).
 Opened without a file, the app starts that server on a free loopback port and
 lists its timelines ([src/server/BundledServer.h](src/server/BundledServer.h)).
-The server stops when the app quits and logs to `server.log` in the app's
-data folder.
+Windows opened from that window, through Open timeline, Recent or a Premiere
+import, use the same server. The server stops after the last of these windows
+quits, and logs to `server.log` in the app's data folder.
 
 The workflow builds only the app, checks the extracted packages with
 [scripts/smoke-package.py](scripts/smoke-package.py), and retains the existing
@@ -1532,6 +1545,41 @@ own `HOME`, `XDG_*`, `DB_PATH`, `ASSET_FOLDER`, `STORAGE_PATH` and
 fixtures, and one timeline with a ready, pending (held encode), failed and
 absent proxy. A second server whose `ffmpeg` hides libx264 makes a VP9 proxy
 (`scripts/fake-ffmpeg.sh`). The script writes only to these servers.
+
+## Project folders
+
+Every project has a folder ([PRD](../../docs/project-folders/prd.md)). The
+socket of an open server timeline (`src/server/sync/ResourceChangeClient`)
+sends `set_open_project` after `set_mode` on every connection, and again when
+the timeline moves to another project. Personal and a loose timeline send
+`"default"`. The server then watches that folder and pushes two events:
+
+- `workspacefile`: files in the folder changed. The Library lists its rows
+  again, so an outside rename shows the new name and an outside delete shows
+  the asset as offline. A push for another folder is ignored once the
+  project's `folder.workspace_id` is known.
+- `documentfile`: a timeline's file became invalid, went missing or is fine
+  again. The file banner asks `projects.documents` again for the open
+  timeline, and the timeline list refreshes while it is shown. The startup
+  timeline list has no socket, so it hears of no push.
+
+`ProjectFolderState` (`src/server/projectfolder/`) reads the folder from
+`projects.list` and the timeline's file from `projects.documents`:
+
+- The Library header shows the folder's path, with Show in file manager when
+  the folder exists on this machine. A folder the server cannot reach shows
+  Folder not found with Locate, which sends the picked folder to
+  `projects.relocate` and shows the server's error when it refuses.
+- Under the save banners, an `invalid` file shows the server's error, and a
+  `missing` file offers Restore (`projects.restoreDocumentFile`).
+- The selected Library asset shows Missing (`offline`) with Relink, which
+  sends the picked file to `assets.relinkExternal`, or Linked (`linked`).
+
+A local `Timelines/<name>.timeline.json` opens as a timeline document. The
+loader reads the sequence settings and `document` of the envelope, and takes
+the name from the file name. Saving keeps `format`, `version` and `id`,
+writes the settings and `document` back, and writes no `name`. A file of
+another version does not open.
 
 ## Fixtures
 

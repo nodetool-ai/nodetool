@@ -85,6 +85,20 @@ QJsonObject serialized(const MergeResult& result)
 class SyncTest : public QObject {
     Q_OBJECT
 private slots:
+    void historyRebaseKeepsLocalOrderAndAdoptedUnits() {
+        const auto unit = [](const char* id, int start) { return QJsonObject{{"id", id}, {"startMs", start}}; };
+        // Draft a,b,c. The server changed b, removed c, inserted x after a, and renamed the row.
+        const QJsonObject draft{{"name", "Old"}, {"fps", 30}, {"clips", QJsonArray{unit("a", 0), unit("b", 10), unit("c", 20)}}};
+        const QJsonObject merged{{"name", "New"}, {"fps", 30},
+            {"clips", QJsonArray{unit("a", 0), unit("x", 5), unit("b", 99)}}};
+        // A checkpoint from before a local reorder: c,b,a, with a local value for a.
+        const QJsonObject snapshot{{"name", "Old"}, {"fps", 30}, {"clips", QJsonArray{unit("c", 20), unit("b", 10), unit("a", 7)}}};
+        const auto rebased = rebaseHistoryDocument(snapshot, draft, merged);
+        QCOMPARE(rebased.value("name").toString(), QString("New"));
+        QCOMPARE(rebased.value("clips").toArray(), (QJsonArray{unit("x", 5), unit("b", 99), unit("a", 7)}));
+        // No delta leaves the checkpoint as it was.
+        QCOMPARE(rebaseHistoryDocument(snapshot, draft, draft), snapshot);
+    }
     void syncDiagnosticsUseQtLogging() {
         QTemporaryDir cache;
         QUndoStack undo;
@@ -501,6 +515,147 @@ private slots:
         send(message);
         QTRY_COMPARE_WITH_TIMEOUT(changes.size(), 2, 1000);
         QVERIFY(changes.last()[3].toBool());
+    }
+    void openProjectFollowsSocket()
+    {
+        WsFixture ws;
+        QVERIFY(ws.server.listen(QHostAddress::LocalHost, 0));
+        ResourceChangeClient client(ws.server.serverUrl(), "sequence");
+        client.setBackoffBase(20);
+        const auto openProject = [](const QString& id) {
+            return QJsonObject{{"command", "set_open_project"}, {"data", QJsonObject{{"project_id", id}}}};
+        };
+        const auto frame = [&](int peer, int index) {
+            return QJsonDocument::fromJson(ws.frames[peer][index].toUtf8()).object();
+        };
+        client.setOpenProject("project-a");
+        client.start();
+        QTRY_COMPARE(ws.frames.size(), 1);
+        QTRY_COMPARE(ws.frames[0].size(), 2);
+        QCOMPARE(frame(0, 0)["command"].toString(), QString("set_mode"));
+        QCOMPARE(frame(0, 1), openProject("project-a"));
+        // A change while connected is sent at once, a repeat is not.
+        client.setOpenProject("project-b");
+        QTRY_COMPARE(ws.frames[0].size(), 3);
+        QCOMPARE(frame(0, 2), openProject("project-b"));
+        client.setOpenProject("project-b");
+        // Personal and a loose timeline both name the loose bucket.
+        client.setOpenProject("personal:1");
+        QTRY_COMPARE(ws.frames[0].size(), 4);
+        QCOMPARE(frame(0, 3), openProject("default"));
+        client.setOpenProject(QString());
+        QTest::qWait(100);
+        QCOMPARE(ws.frames[0].size(), 4);
+        // Every new connection names the project again, after set_mode.
+        ws.peers[0]->close(QWebSocketProtocol::CloseCodeGoingAway, "restart");
+        QTRY_COMPARE(ws.frames.size(), 2);
+        QTRY_COMPARE(ws.frames[1].size(), 2);
+        QCOMPARE(frame(1, 0)["command"].toString(), QString("set_mode"));
+        QCOMPARE(frame(1, 1), openProject("default"));
+        // Changed while disconnected: the next open sends the new project only.
+        client.stop();
+        client.setOpenProject("project-c");
+        client.start();
+        QTRY_COMPARE(ws.frames.size(), 3);
+        QTRY_COMPARE(ws.frames[2].size(), 2);
+        QCOMPARE(frame(2, 1), openProject("project-c"));
+        QTest::qWait(50);
+        QCOMPARE(ws.frames[2].size(), 2);
+    }
+    void folderPushes()
+    {
+        WsFixture ws;
+        QVERIFY(ws.server.listen(QHostAddress::LocalHost, 0));
+        ResourceChangeClient client(ws.server.serverUrl(), "seq");
+        QSignalSpy changes(&client, &ResourceChangeClient::changed);
+        QSignalSpy workspaces(&client, &ResourceChangeClient::workspaceFilesChanged);
+        QSignalSpy files(&client, &ResourceChangeClient::documentFileChanged);
+        client.start();
+        QTRY_COMPARE(ws.peers.size(), 1);
+        QTRY_VERIFY(client.connected());
+        const auto send = [&](const QByteArray& text) { ws.peers[0]->sendTextMessage(QString::fromUtf8(text)); };
+        send(R"({"type":"resource_change","event":"updated","resource_type":"workspacefile","resource":{"id":"ws-1"}})");
+        QTRY_COMPARE(workspaces.size(), 1);
+        QCOMPARE(workspaces[0][0].toString(), QString("ws-1"));
+        const QByteArray file = R"({"type":"resource_change","event":"updated","resource_type":"documentfile","resource":{"id":"seq","type":"timeline","project_id":"p","file_path":"Timelines/x.timeline.json","file_error":"bad"}})";
+        send(file);
+        QTRY_COMPARE(files.size(), 1);
+        QCOMPARE(qvariant_cast<QJsonObject>(files[0][0]), QJsonDocument::fromJson(file).object()["resource"].toObject());
+        // The timeline's own filter is unchanged: a document file of the same id is no change of the row.
+        send(R"({"type":"resource_change","event":"updated","resource_type":"timelinesequence","resource":{"id":"other"}})");
+        send(R"({"type":"resource_update","resource_type":"workspacefile","resource":{"id":"ws-2"}})");
+        send(R"({"type":"resource_change","event":"updated","resource_type":"timelinesequence","resource":{"id":"seq","updated_at":"u1"}})");
+        QTRY_COMPARE(changes.size(), 1);
+        QCOMPARE(workspaces.size(), 1);
+        QCOMPARE(files.size(), 1);
+    }
+    void controllerOpensDocumentProject()
+    {
+        WsFixture ws;
+        QVERIFY(ws.server.listen(QHostAddress::LocalHost, 0));
+        TestHttpServer http;
+        QTemporaryDir cache;
+        auto raw = document();
+        raw["id"] = "seq";
+        raw["projectId"] = "project-a";
+        raw["updatedAt"] = "u0";
+        QJsonArray shapes;
+        for (const auto& value : raw["clips"].toArray()) {
+            auto item = value.toObject();
+            item["mediaType"] = "shape";
+            shapes.append(item);
+        }
+        raw["clips"] = shapes;
+        http.setJson([&](const QByteArray&, const QUrl&) {
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", raw}}}}).toJson();
+        });
+        http.setPost([&](const QByteArray&, const QByteArray&) {
+            // The server filed the timeline under another project while it was open.
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", QJsonObject{
+                {"updatedAt", "u1"}, {"projectId", "project-c"}, {"stripped", QJsonArray{}}}}}}}).toJson();
+        });
+        QUndoStack undo;
+        setDocumentApplier([&](QUndoStack*, const QJsonObject& next, const nt::Timeline&) { raw = next; return true; });
+        const auto reset = qScopeGuard([] { setDocumentApplier({}); });
+        nt::server::AutosaveController save({http.base(), {}, "seq", cache.path(), {}}, &undo, [&] { return raw; }, "u0");
+        save.setAutosave(false);
+        save.setQuitFallbackDirs({});
+        save.setExternalSyncUrl(ws.server.serverUrl());
+        QSignalSpy workspaces(&save, &nt::server::AutosaveController::workspaceFilesChanged);
+        QSignalSpy files(&save, &nt::server::AutosaveController::documentFileChanged);
+        const auto openFrames = [&] {
+            QStringList ids;
+            for (const auto& text : ws.frames.value(0)) {
+                const auto object = QJsonDocument::fromJson(text.toUtf8()).object();
+                if (object["command"] == "set_open_project") {
+                    ids << object["data"].toObject()["project_id"].toString();
+                }
+            }
+            return ids;
+        };
+        QTRY_COMPARE(openFrames(), QStringList{"project-a"});
+        QCOMPARE(QJsonDocument::fromJson(ws.frames[0][0].toUtf8()).object()["command"].toString(), QString("set_mode"));
+        // The subscription's first refresh fetches the timeline on a worker. A save while that
+        // fetch is in flight is refused, so wait for it as the other sync tests do.
+        QTRY_COMPARE(http.countRequests("GET", "/trpc/timeline.get"), 1);
+        QTRY_COMPARE(save.externalState(), QString("idle"));
+        raw["projectId"] = "project-b";
+        save.syncOpenProject();
+        QTRY_COMPARE(openFrames(), (QStringList{"project-a", "project-b"}));
+        save.syncOpenProject();
+        raw["markers"] = QJsonArray{QJsonObject{{"id", "m"}, {"timeMs", 10}}};
+        save.documentChanged();
+        const auto saved = save.saveNow();
+        QVERIFY2(saved.ok, qPrintable(QString("saveNow failed: error \"%1\", conflict %2, recovery error \"%3\", "
+            "external state %4, timeline.update posts %5").arg(saved.error).arg(saved.conflict).arg(saved.recoveryError,
+            save.externalState()).arg(http.countRequests("POST", "/trpc/timeline.update"))));
+        QTRY_COMPARE(openFrames(), (QStringList{"project-a", "project-b", "project-c"}));
+        ws.peers[0]->sendTextMessage(R"({"type":"resource_change","event":"updated","resource_type":"workspacefile","resource":{"id":"ws-1"}})");
+        ws.peers[0]->sendTextMessage(R"({"type":"resource_change","event":"updated","resource_type":"documentfile","resource":{"id":"seq","type":"timeline","file_error":null}})");
+        QTRY_COMPARE(workspaces.size(), 1);
+        QTRY_COMPARE(files.size(), 1);
+        QCOMPARE(workspaces[0][0].toString(), QString("ws-1"));
+        QCOMPARE(qvariant_cast<QJsonObject>(files[0][0])["id"].toString(), QString("seq"));
     }
     void reconnectBackoffAndRefresh_data()
     {

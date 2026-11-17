@@ -1,4 +1,5 @@
 #include "DocumentApplier.h"
+#include "TimelineMerge.h"
 #include "app/EditRegistry.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
@@ -53,7 +54,12 @@ const bool registered = [] {
                 clip.generatedMattePath = source->generatedMattePath;
             }
         }
-        model->setTimeline(std::move(*parsed.timeline));
+        // The delta from the draft to the adopted document rebases undo, so a
+        // server write no longer costs the local history (B54).
+        const auto draft = model->timeline().raw;
+        model->adoptExternalTimeline(std::move(*parsed.timeline), [&draft, &raw](const QJsonObject& snapshot) {
+            return nt::server::sync::rebaseHistoryDocument(snapshot, draft, raw);
+        });
         return true;
     });
     return nt::app::registerEdit(QStringLiteral("acceptExternalUnit"), nt::server::sync::applyAcceptedUnit);

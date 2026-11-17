@@ -22,13 +22,7 @@ import {
   SPACING
 } from "../../ui_primitives";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
-import useMediaGenerationStore, {
-  type MediaMode
-} from "../../../stores/MediaGenerationStore";
 import MediaControlChip from "./MediaControlChip";
-import ModeChips from "./ModeChips";
-import { buildMediaGenerationRequest } from "./mediaGenerationRequest";
-import ModeSelectChip from "./ModeSelectChip";
 import ModelChip, { type ModelPickerHandle } from "./ModelChip";
 import ModeProviderSetupBanner from "./ModeProviderSetupBanner";
 import SelectModelBanner from "./SelectModelBanner";
@@ -41,10 +35,8 @@ import type {
 } from "../../../stores/ApiTypes";
 import {
   isModelSelected,
-  type Entity,
-  type ModelSelection
+  type Entity
 } from "@nodetool-ai/protocol";
-import type { MediaGenerationRequest } from "../types/media.types";
 import type { ChatCommand } from "../types/chat.types";
 import {
   assetToUri,
@@ -68,7 +60,6 @@ import { useMessageQueue } from "../../../hooks/useMessageQueue";
 import { createMediaComposerStyles } from "./MediaChatComposer.styles";
 import { useChatDraftStore } from "../../../stores/ChatDraftStore";
 import { StopGenerationButton } from "./StopGenerationButton";
-import MediaCostEstimate from "./MediaCostEstimate";
 import PermissionSelector from "./PermissionSelector";
 import ReasoningSelector from "./ReasoningSelector";
 import { useAutoFocusEnabled } from "../../../hooks/useAutoFocusEnabled";
@@ -107,8 +98,7 @@ interface MediaChatComposerProps {
   isStreaming: boolean;
   onSendMessage: (
     content: MessageContent[],
-    prompt: string,
-    mediaGeneration?: MediaGenerationRequest
+    prompt: string
   ) => void | boolean | Promise<void | boolean>;
   /** Thread commands the `/` menu offers next to `/model` and `/mode`. */
   commands?: readonly ChatCommand[];
@@ -121,11 +111,8 @@ interface MediaChatComposerProps {
   requireToolSupport?: boolean;
   /** Focus the prompt textarea on mount. Defaults to true (chat panel). */
   autoFocus?: boolean;
-  /** Override the auto-generated, mode-aware textarea placeholder. */
+  /** Override the auto-generated textarea placeholder. */
   placeholder?: string;
-  /** Pure chat panel: hide the mode picker and force "chat" mode. Used by the
-   *  app builder / video / 3d editor agent panels which are hardcoded to chat. */
-  hideModePicker?: boolean;
   /**
    * Hide the language-model chip. The Studio beginner shell pins the assistant
    * to a curated model, so there is nothing to pick.
@@ -138,21 +125,8 @@ interface MediaChatComposerProps {
 }
 
 /**
- * Media-generation chat composer.
- *
- * Renders a slick rounded glass card with:
- *   - A large prompt textarea
- *   - A footer chip row whose content adapts to the selected mode:
- *       • chat  → language model + permission mode
- *       • image → model, resolution (1K/2K/4K), aspect ratio, # variations
- *       • video → model, duration, resolution (720p/1080p/1440p/4K), aspect ratio
- *     Each mode's cluster lives in {@link ModeChips} and owns the menus it
- *     opens, so switching mode unmounts them.
- *   - A primary "Generate" button (or plain Send for chat mode)
- *
- * The selected mode + params are attached to the outgoing chat_message via the
- * `media_generation` field so the server can route to provider.textToImage /
- * provider.textToVideo instead of a regular LLM round.
+ * Chat composer: a prompt textarea over a chip row with attachments, the
+ * permission mode, the reasoning level and the language model, plus Send.
  */
 const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   isLoading,
@@ -167,7 +141,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   requireToolSupport,
   autoFocus = true,
   placeholder: placeholderOverride,
-  hideModePicker = false,
   hideModelPicker = false,
   threadId
 }) => {
@@ -201,26 +174,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const shrinksChips =
     !isMobile && cardWidth >= WRAP_CARD_WIDTH && cardWidth < SHRINK_CARD_WIDTH;
 
-  // Mode + media params from persistent store. The params are read here for
-  // the outgoing `media_generation` payload; the chips that edit them read
-  // their own slice.
-  const storeMode = useMediaGenerationStore((s) => s.mode);
-  const setMode = useMediaGenerationStore((s) => s.setMode);
-  const imageParams = useMediaGenerationStore((s) => s.image);
-  const imageEditParams = useMediaGenerationStore((s) => s.imageEdit);
-  const videoParams = useMediaGenerationStore((s) => s.video);
-  const imageToVideoParams = useMediaGenerationStore((s) => s.imageToVideo);
-  const referenceToVideoParams = useMediaGenerationStore(
-    (s) => s.referenceToVideo
-  );
-  const musicParams = useMediaGenerationStore((s) => s.music);
-  const audioParams = useMediaGenerationStore((s) => s.audio);
-  const retakeParams = useMediaGenerationStore((s) => s.retake);
-  const extendParams = useMediaGenerationStore((s) => s.extend);
-  const presetIds = useMediaGenerationStore((s) => s.presetIds);
-
-  // Language-model selection from chat store (used in chat mode & forwarded
-  // as provider/model for media calls when a media model is not picked).
+  // Language-model selection from the chat store.
   const languageModel = useGlobalChatStore((s) =>
     s.getSelectedModel(threadId ?? s.currentThreadId)
   );
@@ -231,16 +185,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     s.getPermissionMode(threadId ?? s.currentThreadId)
   );
 
-  // Pure-chat panels force chat mode and ignore the global media mode.
-  const mode: MediaMode = hideModePicker ? "chat" : storeMode;
+  // With no language-model provider configured, surface a setup banner and
+  // route the send into the provider-onboarding dialog instead of letting the
+  // request fail server-side.
+  const providerSetup = useModeProviderSetup("chat");
 
-  // When the selected mode's capability has no configured provider, surface a
-  // setup banner and route the send into the provider-onboarding dialog
-  // instead of letting the request fail server-side.
-  const providerSetup = useModeProviderSetup(mode);
-
-  // The mounted model chip for this mode — chat's, or the one `ModeChips`
-  // renders. Exactly one exists at a time, and a refused send opens it.
+  // The language model chip. A refused send opens it.
   const modelPickerRef = useRef<ModelPickerHandle>(null);
   const openModelPicker = useCallback(() => {
     modelPickerRef.current?.open();
@@ -334,20 +284,17 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const setPermissionMode = useGlobalChatStore(
     (state) => state.setPermissionMode
   );
-  // The model chip and the permission chip are hidden together in chat mode,
-  // and a command must not reach a control the surface does not show.
-  const hasChatControls = mode !== "chat" || !hideModelPicker;
+  // The model chip and the permission chip are hidden together, and a command
+  // must not reach a control the surface does not show.
   const slashCommands = useMemo((): ChatCommand[] => {
     const own: ChatCommand[] = [];
-    if (hasChatControls) {
+    if (!hideModelPicker) {
       own.push({
         name: "model",
         description: t("i18n-next54.composer.commands.model"),
         run: openModelPicker,
         whileBusy: true
       });
-    }
-    if (mode === "chat" && !hideModelPicker) {
       own.push({
         name: "mode",
         description: t("i18n-next54.composer.commands.mode"),
@@ -368,8 +315,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     }
     return [...own, ...commands];
   }, [
-    hasChatControls,
-    mode,
     hideModelPicker,
     commands,
     openModelPicker,
@@ -479,43 +424,11 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     addDroppedFiles(files);
   }, [addDroppedFiles, pendingAttachments, takeAttachments, threadId]);
 
-  // Build media_generation payload from current state
-  const buildMediaGeneration = useCallback(
-    (): MediaGenerationRequest =>
-      buildMediaGenerationRequest(mode, {
-        image: imageParams,
-        imageEdit: imageEditParams,
-        video: videoParams,
-        imageToVideo: imageToVideoParams,
-        referenceToVideo: referenceToVideoParams,
-        retake: retakeParams,
-        extend: extendParams,
-        audio: audioParams,
-        music: musicParams,
-        presetIds
-      }),
-    [
-      mode,
-      imageParams,
-      imageEditParams,
-      videoParams,
-      imageToVideoParams,
-      referenceToVideoParams,
-      retakeParams,
-      extendParams,
-      audioParams,
-      musicParams,
-      presetIds
-    ]
-  );
-
   const { queuedMessage, sendMessage, cancelQueued, sendQueuedNow } =
     useMessageQueue({
       isLoading,
       isStreaming,
-      onSendMessage: (content, promptText) => {
-        return onSendMessage(content, promptText, buildMediaGeneration());
-      },
+      onSendMessage: (content, promptText) => onSendMessage(content, promptText),
       onStop,
       textareaRef
     });
@@ -524,48 +437,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (placeholderOverride) {
       return placeholderOverride;
     }
-    if (mode === "image") {
-      return isMobile
-        ? t("i18n-next54.composer.placeholder.imageShort")
-        : t("i18n-next54.composer.placeholder.image");
-    }
-    if (mode === "image_edit") {
-      return isMobile
-        ? t("i18n-next54.composer.placeholder.editsShort")
-        : t("i18n-next54.composer.placeholder.edits");
-    }
-    if (mode === "video") {
-      return isMobile
-        ? t("i18n-next54.composer.placeholder.videoShort")
-        : t("i18n-next54.composer.placeholder.video");
-    }
-    if (mode === "image_to_video") {
-      return isMobile
-        ? t("i18n-next54.composer.placeholder.animationShort")
-        : t("i18n-next54.composer.placeholder.animation");
-    }
-    if (mode === "reference_to_video") {
-      return isMobile
-        ? t("i18n-next54.composer.placeholder.shotShort")
-        : t("i18n-next54.composer.placeholder.shot");
-    }
-    if (mode === "audio") {
-      return t("i18n-next54.composer.placeholder.spokenText");
-    }
-    if (mode === "music") return t("i18n-next54.composer.placeholder.music");
-    if (mode === "audio_to_video") {
-      return t("i18n-next54.composer.placeholder.audioVideo");
-    }
-    if (mode === "retake") {
-      return t("i18n-next54.composer.placeholder.retake");
-    }
-    if (mode === "extend") {
-      return t("i18n-next54.composer.placeholder.extend");
-    }
-    if (mode === "motion_control") {
-      return t("i18n-next54.composer.placeholder.motion");
-    }
-    if (mode === "chat" && permissionMode === "plan") {
+    if (permissionMode === "plan") {
       return isMobile
         ? t("i18n-next54.composer.placeholder.planShort")
         : t("i18n-next54.composer.placeholder.plan");
@@ -573,74 +445,13 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     return isMobile
       ? t("i18n-next54.composer.placeholder.messageShort")
       : t("i18n-next54.composer.placeholder.message");
-  }, [mode, isMobile, placeholderOverride, permissionMode, t]);
-
-  const isMediaMode =
-    mode === "image" ||
-    mode === "image_edit" ||
-    mode === "video" ||
-    mode === "image_to_video" ||
-    mode === "reference_to_video" ||
-    mode === "retake" ||
-    mode === "extend" ||
-    mode === "audio" ||
-    mode === "music";
+  }, [isMobile, placeholderOverride, permissionMode, t]);
 
   const chatModel = selectedModel ?? languageModel;
 
-  const modelGate = useMemo((): {
-    model: ModelSelection | null | undefined;
-    label: string;
-  } | null => {
-    if (mode === "chat") {
-      return { model: chatModel, label: "language" };
-    }
-    if (mode === "image") {
-      return { model: imageParams.model, label: "image" };
-    }
-    if (mode === "image_edit") {
-      return { model: imageEditParams.model, label: "image edit" };
-    }
-    if (mode === "video") {
-      return { model: videoParams.model, label: "video" };
-    }
-    if (mode === "image_to_video") {
-      return { model: imageToVideoParams.model, label: "image to video" };
-    }
-    if (mode === "reference_to_video") {
-      return {
-        model: referenceToVideoParams.model,
-        label: "reference to video"
-      };
-    }
-    if (mode === "retake") {
-      return { model: retakeParams.model, label: "retake" };
-    }
-    if (mode === "extend") {
-      return { model: extendParams.model, label: "video extension" };
-    }
-    if (mode === "audio") {
-      return { model: audioParams.model, label: "speech" };
-    }
-    if (mode === "music") return { model: musicParams.model, label: "music" };
-    return null;
-  }, [
-    mode,
-    chatModel,
-    imageParams.model,
-    imageEditParams.model,
-    videoParams.model,
-    imageToVideoParams.model,
-    referenceToVideoParams.model,
-    retakeParams.model,
-    extendParams.model,
-    audioParams.model,
-    musicParams.model
-  ]);
-
   // A send with no model picked can only fail on the server, so the composer
   // refuses it and opens the picker instead.
-  const needsModel = !!modelGate && !isModelSelected(modelGate.model);
+  const needsModel = !isModelSelected(chatModel);
 
   // A file still uploading is not in `droppedFiles` yet, so sending now would
   // leave it out of this message and attach it to the next one.
@@ -676,13 +487,13 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         }
         return;
       }
-      // No configured provider can serve this mode — sending would only fail on
+      // No configured provider can serve chat — sending would only fail on
       // the server. Keep the prompt and guide the user through provider setup.
       if (providerSetup.needsSetup) {
         providerSetup.openSetup();
         return;
       }
-      // Nothing is picked for this mode. The server rejects such a turn, so keep
+      // No language model is picked. The server rejects such a turn, so keep
       // the prompt and open the picker instead of sending.
       if (needsModel) {
         openModelPicker();
@@ -726,17 +537,16 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     (transcript: string) => {
       const typed = prompt.trim();
       const text = typed.length > 0 ? `${typed} ${transcript}` : transcript;
-      // A chat turn sends straight away. A media mode bills for the run it
-      // would start, so a dictated prompt lands in the box for review instead.
-      // So does one dictated while a file is still uploading.
-      if (isMediaMode || isUploading) {
+      // A dictated prompt sends straight away, unless a file is still
+      // uploading: then it lands in the box for review.
+      if (isUploading) {
         setPrompt(text);
         textareaRef.current?.focus();
         return;
       }
       submitPrompt(text, prompt);
     },
-    [prompt, submitPrompt, isMediaMode, isUploading]
+    [prompt, submitPrompt, isUploading]
   );
 
   const handlePaste = useCallback(
@@ -883,14 +693,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           />
         )}
 
-        {!providerSetup.needsSetup && needsModel && modelGate && (
+        {!providerSetup.needsSetup && needsModel && (
           <SelectModelBanner
               reason={t("i18n-next54.composer.pickModel", {
-                kind: modelGate.label,
-                // The button labels are capitalized; mid-sentence they are not.
-                action: t(
-                  isMediaMode ? "i18n-next54.composer.generate" : "i18n-next54.composer.send"
-                ).toLocaleLowerCase()
+                kind: "language",
+                // The button label is capitalized; mid-sentence it is not.
+                action: t("i18n-next54.composer.send").toLocaleLowerCase()
               })}
             onSelect={openModelPicker}
           />
@@ -945,7 +753,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         <div
           className={`media-chip-row${isCompact ? " narrow" : ""}${shrinksChips ? " shrink" : ""}`}
         >
-          {/* Chip cluster: mode/model chips. */}
+          {/* Chip cluster: attach and permission chips. */}
           <div className="media-chip-main">
             <MediaControlChip
               icon={
@@ -961,16 +769,24 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
               showChevron={false}
             />
 
-            {!hideModePicker && (
-              <ModeSelectChip
-                mode={mode}
-                onChange={setMode}
-                compact={isCompact}
-              />
+            {!hideModelPicker && (
+              <PermissionSelector threadId={threadId} compact={isCompact} />
             )}
+          </div>
 
-            {mode === "chat" && !hideModelPicker && (
+          {/* Send, or Stop while a run is in flight. Send stays visible while
+              the prompt is empty so the composer always shows where the
+              message goes. */}
+          <div className="media-primary-action">
+            {/* As in Claude, the chat model sits beside Send, the button
+                that uses it. */}
+            {!hideModelPicker && (
               <>
+                <ReasoningSelector
+                  provider={chatModel?.provider}
+                  model={chatModel?.id}
+                  compact={isCompact}
+                />
                 <ModelChip
                   openRef={modelPickerRef}
                   icon={null}
@@ -984,26 +800,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                     onPick: (model) => onModelChange?.(model)
                   }}
                 />
-                <ReasoningSelector
-                  provider={chatModel?.provider}
-                  model={chatModel?.id}
-                  compact={isCompact}
-                />
-                <PermissionSelector threadId={threadId} compact={isCompact} />
               </>
             )}
-
-            <ModeChips mode={mode} openModelPickerRef={modelPickerRef} />
-          </div>
-
-          {/* Send in chat mode, Generate in media modes, or Stop while a run
-              is in flight. Send stays visible while the prompt is empty so
-              the composer always shows where the message goes. */}
-          <div className="media-primary-action">
-            {/* What the next Generate would cost, next to the button that
-                spends it. Silent in chat mode and whenever no price can be
-                reached. */}
-            {isMediaMode && !isBusy && <MediaCostEstimate mode={mode} />}
             <VoiceInputControl
               onTranscript={handleVoiceTranscript}
               overlayHost={composeCardRef}
@@ -1011,16 +809,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             />
             {isBusy ? (
               onStop && <StopGenerationButton onClick={onStop} />
-            ) : isMediaMode ? (
-              <button
-                type="button"
-                className="media-generate-btn"
-                onClick={handleSend}
-                disabled={isDisabled || !canGenerate}
-                aria-label={t("i18n-next54.composer.generate")}
-              >
-                {t("i18n-next54.composer.generate")}
-              </button>
             ) : (
               <Tooltip title={t("i18n-next54.composer.send")}>
                 <span>

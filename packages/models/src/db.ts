@@ -307,6 +307,16 @@ export function getRawDb(): Database.Database {
   return _sqlite;
 }
 
+/**
+ * Open the SQLite file at `path` on a connection of its own, which answers
+ * `SQLITE_BUSY` at once instead of waiting for a lock held elsewhere. For a
+ * lock between processes that the operating system releases when its
+ * holder exits (see `folder-lock-file.ts` in asset-services).
+ */
+export function openSqliteFile(path: string): Database.Database {
+  return new Database(path, { timeout: 0 });
+}
+
 /** Execute dynamic SQL against the active database connection. */
 export async function executeRaw(sql: string): Promise<{ rows: unknown[] }> {
   if (_connection?.dialect === "postgres") {

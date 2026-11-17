@@ -18,7 +18,7 @@ and the [chat reducer](../../../web/src/core/chat/chatProtocol.ts).
 | Text and mixed-part ordering | matched | Native preserves role text, Harmony cleanup and ordered text/tool/media parts. |
 | Unknown content and null | matched | Unknown payloads remain retained and readable through fallback details. |
 | Persisted tool results | matched | Full call IDs associate live and reloaded results without replacing arguments or raw history. |
-| Tool grouping and phrasing | differs | Count/list rules, previews, MCP names, durations, individual expansion and the timeline footer ("Worked for", step count, folding) exist, with buttons and surfaces instead of the web rail. |
+| Tool grouping and phrasing | matched | Count/list rules, previews, MCP names, durations and the timeline footer ("Worked for", step count, folding) render as web rail rows: a category glyph joined by a hairline, the verb with its target in mono, the timing, and a header that folds the details open. A failed call also names its failure, which web shows only in the result. |
 | Specialized tool results | matched | Web search results render as numbered linked rows with sources, and `generate_batch` calls show live batch progress with per-item status, timing, model, prompt and errors. |
 | Code execution | matched | Code, output, copy and running/failure state exist, and code is highlighted with the web One Dark and One Light palettes. |
 | Sub-agent transcripts | differs | Live objectives and nested transcripts work in bounded lists, but fresh history lacks server-persisted child transcript tags, as on web. |
@@ -38,10 +38,11 @@ and the [chat reducer](../../../web/src/core/chat/chatProtocol.ts).
 | Plan documents | matched | Object/string parsing, task/step counts, dependencies, instructions and execution notes follow the web parser cases. |
 | Secret requests | matched | The key can be entered and saved in chat through the server secret store, with settings and Not now as alternatives. |
 | Compaction | differs | Dedicated collapsed summaries omit the history prefix and use an explicit expansion button. |
+| Message actions and versions | differs | Edit and Copy under a prompt, Copy and Retry under the latest reply, the version switcher, the reply line height and block spacing, and the responding pulse follow the web. The model label and the timestamp are not shown. |
 | Error, stop and resume | differs | Native reconciles replay and shows turn errors, but exact web visual equivalence is unmeasured. |
 | Embedded Assistant layout | differs | Shared-theme fixture checks cover dock widths, with horizontal scrolling below 320 px; the running timeline shell remains untested. |
 
-The table contains 11 matched, 13 differs and 1 gap row.
+The table contains 11 matched, 14 differs and 1 gap row.
 
 ## Remaining decisions
 

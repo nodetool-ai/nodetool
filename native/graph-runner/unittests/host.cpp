@@ -226,6 +226,112 @@ void filesRefuseEscapes() {
   CHECK(startsWith(run(*e, "__host.files.readFile('hard.txt')"), "error: EACCES"));
 }
 
+// A project folder keeps NodeTool's own files in .nodetool/ (docs/workspaces.md).
+// Any path segment with that exact name, in any case, is refused, as
+// packages/runtime-core/src/workspace.ts isReservedWorkspaceKey refuses it.
+void filesRefuseTheReservedFolder() {
+  TempDir t;
+  writeText(t.path("ws/.nodetool/state.json"), "{}");
+  writeText(t.path("ws/sub/.NodeTool/x.txt"), "nested");
+  writeText(t.path("ws/.nodetool.md"), "notes");
+  writeText(t.path("ws/.nodetool-old/x.txt"), "old");
+  gr::HostOptions o;
+  o.workspaceDir = t.path("ws");
+  // A read root above the workspace must not open a way around the guard.
+  o.readRoots = {t.root.string()};
+  auto e = engineWith(o);
+  const std::string ws = fs::canonical(t.path("ws")).string();
+  const auto refused = [](const std::string& result) {
+    return startsWith(result, "error: EACCES") &&
+           result.find("NodeTool reserves .nodetool/ for its own files") != std::string::npos;
+  };
+
+  CHECK(refused(run(*e, "__host.files.readFile('.nodetool/state.json')")));
+  CHECK(refused(run(*e, "__host.files.readFile(" + lit(ws + "/.nodetool/state.json") + ")")));
+  CHECK(refused(run(*e, "__host.files.readFile('sub/../.nodetool/state.json')")));
+  CHECK(refused(run(*e, "__host.files.readFile('sub/.NodeTool/x.txt')")));
+  CHECK(refused(run(*e, "__host.files.readFile('.NODETOOL/state.json')")));
+  CHECK(refused(run(*e, "__host.files.stat('.nodetool', true)")));
+  CHECK(refused(run(*e, "__host.files.stat('.nodetool', false)")));
+  CHECK(refused(run(*e, "__host.files.readdir('.nodetool')")));
+  CHECK(refused(run(*e, "__host.files.realpath('.nodetool')")));
+  CHECK(refused(run(*e, "__host.files.writeFile('.nodetool/state.json', bytes('x'), false)")));
+  CHECK(refused(run(*e, "__host.files.writeFile('.nodetool/new.txt', bytes('x'), false)")));
+  CHECK(refused(run(*e, "__host.files.mkdir('made/.nodetool/deep', true)")));
+  CHECK(refused(run(*e, "__host.files.mkdtemp('.nodetool/tmp-')")));
+  CHECK(refused(run(*e, "__host.files.rm('.nodetool', true, false)")));
+  CHECK(refused(run(*e, "__host.files.rm('.nodetool/state.json', false, true)")));
+  CHECK(refused(run(*e, "__host.files.rmdir('.nodetool')")));
+  CHECK(refused(run(*e, "__host.files.rename('.nodetool', 'moved')")));
+  CHECK(refused(run(*e, "__host.files.rename('.nodetool.md', '.nodetool/notes.md')")));
+  CHECK(refused(run(*e, "__host.files.copyFile('.nodetool/state.json', 'copy.json')")));
+  CHECK(refused(run(*e, "__host.files.copyFile('.nodetool.md', '.nodetool/copy.md')")));
+  CHECK(readText(t.path("ws/.nodetool/state.json")) == "{}");
+  CHECK(!fs::exists(t.path("ws/.nodetool/new.txt")) && !fs::exists(t.path("ws/made")));
+  CHECK(!fs::exists(t.path("ws/moved")) && !fs::exists(t.path("ws/copy.json")));
+  CHECK(fs::exists(t.path("ws/.nodetool.md")));
+
+  // A symlink inside the workspace that leads into the folder is refused too.
+  fs::create_directory_symlink(t.path("ws/.nodetool"), t.path("ws/alias"));
+  CHECK(refused(run(*e, "__host.files.readFile('alias/state.json')")));
+  CHECK(refused(run(*e, "__host.files.writeFile('alias/new.txt', bytes('x'), false)")));
+  CHECK(!fs::exists(t.path("ws/.nodetool/new.txt")));
+
+  // Only the exact name is reserved.
+  CHECK(run(*e, "text(__host.files.readFile('.nodetool.md'))") == "notes");
+  CHECK(run(*e, "text(__host.files.readFile('.nodetool-old/x.txt'))") == "old");
+  CHECK(run(*e, "__host.files.writeFile('fox.nodetool', bytes('x'), false)") == "ok");
+  CHECK(run(*e, "__host.files.mkdir('.nodetools/a', true)") == ws + "/.nodetools");
+  // A .nodetool folder outside the workspace is not the workspace's.
+  writeText(t.path(".nodetool/outside.txt"), "outside");
+  CHECK(run(*e, "text(__host.files.readFile(" + lit(t.path(".nodetool/outside.txt")) + "))") == "outside");
+}
+
+// A Personal workspace can hold the folder of another project, marked by its
+// .nodetool/ directory. A recursive removal or a rename of a directory with
+// such a folder or a reserved directory anywhere below it is refused before
+// anything changes, as StorageWorkspace.move refuses it ("holds").
+void filesRefuseTreesThatHoldReservedFolders() {
+  TempDir t;
+  writeText(t.path("ws/projects/Film/.nodetool/project.json"), "{}");
+  writeText(t.path("ws/projects/Film/footage.mov"), "frames");
+  writeText(t.path("ws/projects/Aaa/a.txt"), "a");
+  writeText(t.path("ws/projects/Zzz/z.txt"), "z");
+  writeText(t.path("ws/legacy/deep/.NodeTool/x.txt"), "x");
+  writeText(t.path("ws/loose/b.txt"), "b");
+  gr::HostOptions o;
+  o.workspaceDir = t.path("ws");
+  auto e = engineWith(o);
+  const auto refused = [](const std::string& result) {
+    return startsWith(result, "error: EACCES") && result.find(".nodetool/") != std::string::npos;
+  };
+  const auto untouched = [&] {
+    return readText(t.path("ws/projects/Film/.nodetool/project.json")) == "{}" &&
+           readText(t.path("ws/projects/Film/footage.mov")) == "frames" &&
+           readText(t.path("ws/projects/Aaa/a.txt")) == "a" && readText(t.path("ws/projects/Zzz/z.txt")) == "z" &&
+           readText(t.path("ws/legacy/deep/.NodeTool/x.txt")) == "x";
+  };
+
+  CHECK(refused(run(*e, "__host.files.rm('projects', true, false)")));
+  CHECK(refused(run(*e, "__host.files.rm('projects', true, true)")));
+  CHECK(refused(run(*e, "__host.files.rm('projects/Film', true, false)")));
+  CHECK(refused(run(*e, "__host.files.rm('legacy', true, false)")));
+  CHECK(untouched());
+  CHECK(refused(run(*e, "__host.files.rename('projects', 'moved')")));
+  CHECK(refused(run(*e, "__host.files.rename('projects/Film', 'Film')")));
+  CHECK(refused(run(*e, "__host.files.rename('legacy', 'moved')")));
+  CHECK(untouched());
+  CHECK(!fs::exists(t.path("ws/moved")) && !fs::exists(t.path("ws/Film")));
+
+  // A tree with no such directory below it is removed and renamed as before.
+  CHECK(run(*e, "__host.files.rename('projects/Zzz', 'zzz')") == "ok");
+  CHECK(readText(t.path("ws/zzz/z.txt")) == "z");
+  CHECK(run(*e, "__host.files.rm('projects/Aaa', true, false)") == "ok");
+  CHECK(run(*e, "__host.files.rm('loose', true, false)") == "ok");
+  CHECK(!fs::exists(t.path("ws/projects/Aaa")) && !fs::exists(t.path("ws/loose")));
+  CHECK(fs::exists(t.path("ws/projects/Film/footage.mov")));
+}
+
 void filesReadRootsAreReadOnly() {
   TempDir t;
   writeText(t.path("library/a.txt"), "shelf");
@@ -961,6 +1067,8 @@ int main() {
       {"filesReadAndWriteInTheWorkspace", filesReadAndWriteInTheWorkspace},
       {"filesCreatePrivateTemporaryDirectories", filesCreatePrivateTemporaryDirectories},
       {"filesRefuseEscapes", filesRefuseEscapes},
+      {"filesRefuseTheReservedFolder", filesRefuseTheReservedFolder},
+      {"filesRefuseTreesThatHoldReservedFolders", filesRefuseTreesThatHoldReservedFolders},
       {"filesReadRootsAreReadOnly", filesReadRootsAreReadOnly},
       {"filesAcceptTheRootAsNamed", filesAcceptTheRootAsNamed},
       {"filesAllowOnlyTheGrantedSqliteDirectory", filesAllowOnlyTheGrantedSqliteDirectory},

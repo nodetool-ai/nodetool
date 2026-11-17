@@ -717,7 +717,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     return json(res, 200, {});
   }
   if (method === "POST" && (path === "/upload/image" || path === "/upload/mask")) {
-    const request = new Request(url, { method, headers: req.headers as Record<string, string>, body: await body(req) });
+    const request = new Request(url, { method, headers: req.headers as Record<string, string>, body: new Uint8Array(await body(req)) });
     const form = await request.formData();
     const file = form.get("image");
     if (!(file instanceof File)) return json(res, 400, { error: "no image" });

@@ -219,8 +219,8 @@ line of the program runs
 In auto mode a `low` action runs unattended and a `high` one asks once — for
 the whole action, because the action, not the bridged call, is what the user is
 being shown. A denied action never runs, and the refusal is the observation.
-"Allow for this chat" is keyed on `execute_code` itself, so it stops the asking
-for the rest of the thread.
+"Allow for this chat" and "Always allow" are keyed on `execute_code` itself,
+so they stop the asking for the rest of the thread, or for every thread.
 
 It fails closed: a call with no `risk`, or one carrying anything outside the
 enum, reads as `high`. The program's own imports set a floor under the

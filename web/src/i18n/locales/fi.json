@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "code#state",
       "signInWindowClosed": "Suljettiinko kirjautumisikkuna?",
       "openAgain": "Avaa se uudelleen",
-      "linkExpiry": ". Linkki vanhenee 10 minuutin kuluttua."
+      "linkExpiry": ". Linkki vanhenee 10 minuutin kuluttua.",
+      "nativeSubtitle": "haluaa kirjautua NodeTool-tilillesi.",
+      "app": "Sovellus",
+      "device": "Laite",
+      "nativeNote": "Hyväksy vain, jos aloitit tämän kirjautumisen itse NodeTool-työpöytäsovelluksessa tällä tietokoneella. Sovellus voi sen jälkeen avata, muokata ja tallentaa pilviasiakirjojasi, kunnes kirjaudut ulos tai lopetat istunnon asetuksissa."
     },
     "integrations": {
       "loadingAccounts": "Ladataan yhdistettyjä tilejä",
@@ -295,6 +299,8 @@
     "addWorkflowTooltip": "Lisää työnkulkusolmu",
     "addSubgraph": "Lisää aligraafi",
     "addSubgraphTooltip": "Lisää upotettu aligraafisolmu",
+    "addComfySubgraph": "Lisää Comfy-aligraafi",
+    "addComfySubgraphTooltip": "Lisää ComfyUI-solmujen aligraafi, joka ajetaan yhtenä Comfy-työnä",
     "addApp": "Lisää sovellus",
     "addAppTooltip": "Suorita miniapp solmuna",
     "property": "Ominaisuus",
@@ -694,61 +700,15 @@
   },
   "batch2_1": {
     "common": {
-      "workspace": "Työtila",
       "loading": "Ladataan…",
       "refresh": "Päivitä",
       "remove": "Poista",
       "cancel": "Peruuta"
     },
-    "page": {
-      "title": "Työtilat",
-      "subtitle": "Eristetyt kansiot, joissa agentit ja työnkulut voivat lukea, kirjoittaa ja järjestellä tiedostoja."
-    },
-    "folderPicker": {
-      "title": "Valitse työtilan kansio"
-    },
-    "notifications": {
-      "added": "Työtila lisätty",
-      "removed": "Työtila poistettu"
-    },
-    "errors": {
-      "loadTitle": "Työtiloja ei voitu ladata",
-      "loadSummary": "Työtilojen lataaminen epäonnistui",
-      "loadDescription": "Tarkista yhteys ja yritä uudelleen.",
-      "operation": "Työtilatoiminto epäonnistui: {{error}}"
-    },
-    "manager": {
-      "inaccessible": "Ei käytettävissä",
-      "defaultWorkspace": "Oletustyötila",
-      "setDefault": "Aseta oletukseksi",
-      "emptyTitle": "Työtiloja ei ole määritetty",
-      "emptyCanManage": "Lisää työtila, jotta agentit voivat käyttää paikallisia kansioita",
-      "emptyManaged": "Tämä käyttöönotto hallitsee työtilaasi puolestasi",
-      "adding": "Lisätään…",
-      "addWorkspace": "Lisää työtila",
-      "removeTitle": "Poistetaanko tämä työtila?",
-      "removeDescription": "Työtila poistetaan NodeToolista. Itse kansiota ei poisteta."
-    },
-    "select": {
-      "defaultWithPath": "Oletus ({{path}})",
-      "description": "Agentit lukevat ja kirjoittavat tiedostoja tähän suorituksen aikana, mukaan lukien tallennetut kuvat, tekstit, data ja muut tulosteet. Selaa tuloksia Työtila-paneelissa. Agentit voivat käyttää vain tämän kansion sisällä olevia tiedostoja. Oletus-asetukselle jätetty työnkulku käyttää oletustyötilaasi.",
-      "createNew": "Luo uusi työtila",
-      "addWorkspace": "Lisää työtila…"
-    },
     "tree": {
       "loading": "Ladataan…",
       "accessDenied": "⚠️ Pääsy estetty",
-      "title": "Työtilan selain",
-      "manage": "Hallitse työtiloja",
-      "goToRoot": "Siirry työtilan juureen",
-      "openInFolder": "Avaa kansiossa",
-      "openExternally": "Avaa ulkoisesti",
-      "noneSelected": "Työtilaa ei ole valittu",
-      "selectOrCreate": "Valitse työtila yläpuolelta tai luo uusi.",
-      "createWorkspace": "Luo työtila",
-      "fileBrowser": "Työtilan tiedostoselain",
-      "emptyTitle": "Työtila on tyhjä",
-      "emptyDescription": "Lisää tiedostoja työtilakansioosi, niin ne näkyvät täällä."
+      "openExternally": "Avaa ulkoisesti"
     }
   },
   "batch2_10": {
@@ -1617,7 +1577,11 @@
       "assistant": "Avustaja",
       "history": "Historia",
       "code": "Koodi",
-      "storyboard": "Kuvakäsikirjoitus"
+      "storyboard": "Kuvakäsikirjoitus",
+      "effectControls": "Tehosteasetukset",
+      "motion": "Liike",
+      "color": "Väri",
+      "ai": "Tekoäly"
     },
     "unavailable": {
       "tracks": "DAW-tilassa on oma raitanäkymänsä. Poista se käytöstä (Alt+M) avataksesi Aikajana-paneelin.",
@@ -1754,7 +1718,6 @@
       "packageManager": "Pakettien hallinta",
       "assets": "Aineistot",
       "collections": "Kokoelmat",
-      "workspaces": "Työtilat",
       "memory": "Muisti",
       "settings": "Asetukset",
       "help": "Ohje",
@@ -2579,6 +2542,10 @@
       "connected": "Yhdistetty",
       "connectedProviders": "Yhdistetyt palveluntarjoajat",
       "connectedViaOAuth": "Yhdistetty kirjautumalla",
+      "creditLeft": "Saldoa jäljellä: {{amount}}",
+      "creditLeftOf": "Saldoa jäljellä: {{amount}} / {{limit}}",
+      "creditExhausted": "Saldo on lopussa. Lisää saldoa palvelussa {{provider}} käyttääksesi sitä.",
+      "creditRefused": "{{provider}} hylkäsi kutsun riittämättömän saldon vuoksi. Lisää saldoa ja paina sitten Testaa.",
       "connecting": "Yhdistetään…",
       "delete": "Poista",
       "deleteApiKeyConfirmation": "Palveluntarjoajan {{provider}} API-avain poistetaan, eivätkä sen mallit toimi ennen kuin lisäät avaimen uudelleen.",
@@ -6173,7 +6140,19 @@
         "title": "Uusi projekti",
         "confirm": "Luo projekti",
         "nameLabel": "Projektin nimi",
-        "createError": "Projektia ei voitu luoda: {{error}}"
+        "createError": "Projektia ei voitu luoda: {{error}}",
+        "openFolder": "Avaa kansio…",
+        "openFolderHint": "Onko sinulla jo kansio? Avaa se projektina. Tiedostoja ei siirretä.",
+        "openFolderTravels": "Toiselta koneelta kopioitu kansio avautuu työnkulkuineen, aikajanoineen ja resursseineen. Keskustelut, kuvakäsikirjoitukset, käsikirjoitukset, luonnokset, sovellukset ja JS-skriptit eivät siirry kansion mukana.",
+        "openFolderError": "Kansiota ei voitu avata: {{error}}"
+      },
+      "folder": {
+        "notFound": "Kansiota ei löydy",
+        "notFoundDetail": "Projektin {{name}} kansio on siirretty, nimetty uudelleen tai se on asemalla, joka ei ole yhdistettynä. Ajot eivät käynnisty ennen kuin paikannat sen.",
+        "locate": "Paikanna",
+        "locateError": "Kansiota ei voitu paikantaa: {{error}}",
+        "moving": "Tiedostoja siirretään projektikansioon",
+        "movingDetail": "{{done}}/{{total}} tiedostoa siirretty. Resurssisi pysyvät käytettävissä siirron ajan."
       },
       "home": {
         "homeTab": "Koti",
@@ -6452,16 +6431,42 @@
           "export": "Vie",
           "archive": "Arkistoi",
           "restore": "Palauta",
-          "delete": "Poista"
+          "delete": "Poista",
+          "collect": "Kokoa tiedostot"
         },
         "projectActions": "Projektin toiminnot",
         "actionsForProject": "Toiminnot projektille {{projectName}}",
         "exporting": "Viedään…",
         "deleteProject": "Poista projekti",
         "confirmDeleteTitle": "Poistetaanko {{projectName}}?",
-        "confirmDeleteBody": "Poista {{projectName}} ja kaikki sen dokumentit, keskustelut, generoidut tulokset, aineistot, työt ja projektitiedostot.",
+        "confirmDeleteBody": "Poista {{projectName}} ja kaikki sen dokumentit, keskustelut, työt ja projektikansion ulkopuolelle tallennetut aineistot.",
         "deleteIrreversible": "Tätä ei voi kumota.",
-        "error": "Toiminto {{action}} epäonnistui projektille {{projectName}}: {{error}}"
+        "deleteFolderTrash": "Projektikansio siirretään roskakoriin.",
+        "deleteFolderRemove": "Projektikansio ja kaikki sen tiedostot poistetaan pilvitallennustilasta.",
+        "deleteFolderKeep": "Projektikansio jää paikalleen kaikkine tiedostoineen. NodeTool poistaa vain sen sisällä olevan .nodetool-kansion.",
+        "deleteFolderMissing": "Projektikansioon ei saada yhteyttä, joten NodeTool jättää sen ennalleen.",
+        "folderMovedAsideTo": "Roskakoriin ei saatu yhteyttä. Projektikansio siirrettiin sijaintiin {{path}}.",
+        "folderMovedAside": "Roskakoriin ei saatu yhteyttä. Projektikansio siirrettiin projektien kansion .trash-kansioon.",
+        "folderTrashFailedAt": "Projektikansiota ei voitu siirtää roskakoriin. Se on edelleen sijainnissa {{path}}.",
+        "folderTrashFailed": "Projektikansiota ei voitu siirtää roskakoriin. Se jää paikalleen.",
+        "error": "Toiminto {{action}} epäonnistui projektille {{projectName}}: {{error}}",
+        "collecting": "Kootaan tiedostoja…",
+        "collectResult": "Tiedostot koottu projektiin {{projectName}}: {{copied}} kopioitu, {{skipped}} ohitettu, {{failed}} epäonnistui.",
+        "linkedTitle": "{{projectName}} linkittää tiedostoja kansionsa ulkopuolelta",
+        "linkedBody": "Vienti sisältää projektikansion. Nämä tiedostot on linkitetty muualta, eivätkä ne ole kansiossa:",
+        "linkedChoice": "Kokoa ja vie kopioi ne kansion Imported-hakemistoon ja vie sitten projektin. Peruuta säilyttää linkit eikä vie mitään.",
+        "collectAndExport": "Kokoa ja vie"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Kopioidaanko vai linkitetäänkö?",
+        "confirm": "Tuo",
+        "copy": "Kopioi projektikansioon",
+        "copyHint": "Projekti säilyttää oman kopionsa. Alkuperäisen muutokset eivät näy siinä.",
+        "link": "Linkitä paikallaan",
+        "linkHint": "Mitään ei kopioida. Projekti lukee tiedoston sen nykyisestä sijainnista. Kokoa tiedostot kopioi sen myöhemmin.",
+        "threshold": "Vähintään {{size}} kokoiset tiedostot linkitetään oletuksena."
       }
     }
   },
@@ -6521,7 +6526,16 @@
         "couldNotLoadDocuments": "Dokumentteja ei voitu ladata",
         "noDocuments": "Ei vielä dokumentteja",
         "noMatchingDocuments": "Ei vastaavia dokumentteja",
-        "searchProjectsAndDocuments": "Hae projekteja ja dokumentteja"
+        "searchProjectsDocumentsAndChats": "Hae projekteja, dokumentteja ja keskusteluja",
+        "documentsAndChats": "Dokumentit ja keskustelut",
+        "chats": "Keskustelut",
+        "loadingChats": "Ladataan keskusteluja…",
+        "couldNotLoadChats": "Keskusteluja ei voitu ladata",
+        "noChats": "Ei vielä keskusteluja",
+        "noMatchingChats": "Ei vastaavia keskusteluja",
+        "allChats": "Kaikki keskustelut",
+        "untitledChat": "Nimetön keskustelu",
+        "searchShort": "Hae"
       },
       "rail": {
         "projects": "Projektit"
@@ -6627,8 +6641,6 @@
       "runModeTool": "Työkalu",
       "runModeDescription": "Miten tämä työnkulku suoritetaan ja käynnistetään",
       "advanced": "Lisäasetukset",
-      "workspace": "Työtila",
-      "workspaceDescription": "Liitä työnkulkuun työtilakansio agentin käyttöön",
       "toolName": "Työkalun nimi",
       "toolNameDescription": "Tunniste API- ja työkalukäyttöön. Vain kirjaimia, numeroita ja alaviivoja.",
       "toolNamePlaceholder": "my_workflow_tool",
@@ -8955,6 +8967,7 @@
         "Minkä tyyppinen sovellus lähetti tapahtuman (Cloud, työpöytä, paikallinen verkko), sovelluksen versio ja käyttöjärjestelmäperhe.",
         "Että sovellus käynnistyi, työnkulku luotiin tai työnkulku suoritettiin.",
         "Ajosta: paikallinen vai pilvi, solmujen määrä välinä (esim. 6–20), kesto välinä ja epäonnistumisesta luokka, kuten palveluntarjoaja tai aikakatkaisu.",
+        "Ensimmäisessä istunnossa: että aloitusvaihtoehdot näytettiin, mikä niistä valittiin, ensimmäisen tuloksen laji (kuten keskustelu tai kuvakäsikirjoitus) ja siihen kulunut aika vaihteluvälinä sekä näyttöluokka (puhelin, tabletti tai tietokone).",
         "Tähän selaimeen tallennettu satunnainen tunniste, joka vaihtuu 30 päivän välein, sekä tämän istunnon satunnainen tunniste."
       ],
       "never": "Ei koskaan",
@@ -9094,10 +9107,6 @@
         "REPLICATE_API_TOKEN": {
           "button": "Hanki Replicate API-tunnus",
           "tooltip": "Siirry Replicaten API-tunnussivulle"
-        },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Hanki Googlen sovellussalasana",
-          "tooltip": "Siirry Google-tilin sovellussalasanasivulle"
         },
         "ELEVENLABS_API_KEY": {
           "button": "Hanki ElevenLabs API-avain",
@@ -10650,9 +10659,9 @@
         "jsScripts": "JS-skriptit",
         "skills": "Taidot",
         "assets": "Aineistot",
-        "workspace": "Työtila",
         "library": "Kirjasto",
-        "more": "Lisää"
+        "more": "Lisää",
+        "files": "Tiedostot"
       },
       "categoryDescriptions": {
         "documents": "Selaa nykyisen projektin kaikkia dokumentteja.",
@@ -10672,9 +10681,9 @@
         "jsScripts": "Luo ja hallitse uudelleenkäytettävää JavaScript-koodia.",
         "skills": "Agentin taidot — tavoitteeseen sovitettuja markdown-ohjeita.",
         "assets": "Selaa nykyisessä kontekstissa käytettävissä olevia aineistoja.",
-        "workspace": "Selaa valitun työtilakansion tiedostoja.",
         "library": "Selaa nykyisen projektin aineistoja.",
-        "more": "Avaa lisää työnkulku-, editori-, kehittäjä- ja työtilapaneeleja."
+        "more": "Avaa lisää työnkulku-, editori- ja kehittäjäpaneeleja.",
+        "files": "Selaa projektikansion tiedostoja."
       }
     },
     "queue": {
@@ -10693,6 +10702,8 @@
       "queuedCount_one": "{{count}} jonossa",
       "queuedCount_other": "{{count}} jonossa",
       "collapseQueue": "Tiivistä jono",
+      "moveQueue": "Siirrä jonoa",
+      "moveQueueHint": "Siirrä vetämällä. Nuolinäppäimet siirtävät, Home palauttaa.",
       "enqueued": "Lisätty jonoon"
     },
     "toolbar": {
@@ -13196,8 +13207,9 @@
         },
         "showCode": "Näytä koodi",
         "showArguments": "Näytä argumentit",
-        "allow": "Salli",
-        "allowForChat": "Salli tässä keskustelussa",
+        "allowOnce": "Salli kerran",
+        "allowAlways": "Salli aina",
+        "allowAlwaysHint": "Suorita {{tool}} tästä lähtien kysymättä. Voit muuttaa tätä kohdassa Asetukset › Käyttöoikeudet.",
         "deny": "Estä"
       }
     }
@@ -13434,7 +13446,8 @@
         "sendMessage": "Viestiä ei voitu lähettää: {{error}}",
         "compact": "Keskustelua ei voitu tiivistää: {{error}}",
         "copyConversation": "Keskustelua ei voitu kopioida.",
-        "rewindConversation": "Keskustelua ei voitu kelata taaksepäin: {{error}}"
+        "rewindConversation": "Keskustelua ei voitu kelata taaksepäin: {{error}}",
+        "switchVersion": "Version vaihtaminen epäonnistui: {{error}}"
       },
       "notifications": {
         "copiedMessages_one": "Kopioitiin {{count}} viesti Markdownina.",
@@ -13456,8 +13469,14 @@
         },
         "connectProviderTitle": "Aloita yhdistämällä tekoälypalveluntarjoaja",
         "connectProviderButton": "Yhdistä palveluntarjoaja",
-        "title": "Miten voin auttaa tänään?",
-        "subtitle": "Kysy mitä tahansa, pudota tiedostoja tai aloita jollakin näistä:"
+        "greeting": {
+          "morning": "Hyvää huomenta",
+          "afternoon": "Hyvää iltapäivää",
+          "evening": "Hyvää iltaa",
+          "morningName": "Hyvää huomenta, {{name}}",
+          "afternoonName": "Hyvää iltapäivää, {{name}}",
+          "eveningName": "Hyvää iltaa, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Tehtävät",
@@ -13975,8 +13994,7 @@
       "search": "Hae kaikista paneeleista",
       "group": {
         "workflow-tools": "Työnkulkutyökalut",
-        "agent-tools": "Agenttityökalut",
-        "workspace": "Työtila"
+        "agent-tools": "Agenttityökalut"
       },
       "category": {
         "favorites": {
@@ -13994,10 +14012,6 @@
         "skills": {
           "label": "Taidot",
           "description": "Agenttitaidot — tavoitteeseen sovitettuja markdown-ohjeita."
-        },
-        "workspace-files": {
-          "label": "Työtila",
-          "description": "Selaa valitun työtilakansion tiedostoja."
         }
       }
     },
@@ -14653,9 +14667,6 @@
       "runGroup": {
         "groupRunning": "Ryhmä on käynnissä",
         "runGroup": "Suorita ryhmä"
-      },
-      "saveDestinationHint": {
-        "workspace": "Työtila"
       }
     }
   },
@@ -15098,7 +15109,6 @@
       "csv": "CSV-tiedosto",
       "unknown": "Tuntematon tiedostotyyppi",
       "unknownContentType": "Tuntematon sisältötyyppi",
-      "offline": "Media ei saatavilla",
       "thumbnail": "Pikkukuva",
       "folder": "Kansio"
     },
@@ -15874,9 +15884,9 @@
       "jsscripts": "JS-skriptit",
       "skills": "Taidot",
       "assets": "Aineistot",
-      "workspace-files": "Työtila",
       "library": "Kirjasto",
-      "more": "Lisää"
+      "more": "Lisää",
+      "files": "Tiedostot"
     }
   },
   "i18n-next55": {
@@ -16003,7 +16013,6 @@
         "models": "Mallien hallinta",
         "packages": "Pakettien hallinta",
         "collections": "Kokoelmat",
-        "workspaces": "Työtilat",
         "entities": "Entiteetit",
         "memory": "Muisti",
         "settings": "Asetukset",
@@ -16745,8 +16754,8 @@
         "extendEdit": "Jatka leikkauskohta toistokohtaan",
         "trimEditLeft": "Trimmaa leikkauskohtaa yksi kehys taaksepäin",
         "trimEditRight": "Trimmaa leikkauskohtaa yksi kehys eteenpäin",
-        "trimEditLeftLarge": "Trimmaa leikkauskohtaa kymmenen kehystä taaksepäin",
-        "trimEditRightLarge": "Trimmaa leikkauskohtaa kymmenen kehystä eteenpäin",
+        "trimEditLeftLarge": "Trimmaa leikkauskohtaa viisi kehystä taaksepäin",
+        "trimEditRightLarge": "Trimmaa leikkauskohtaa viisi kehystä eteenpäin",
         "duplicate": "Monista valinnan perään",
         "duplicateWithGap": "Monista 1 s:n raolla",
         "applyDefaultTransition": "Ristihäivytä valittuihin leikkeisiin",
@@ -16827,7 +16836,49 @@
         "exitExpandedPreview": "Poistu laajennetusta esikatselusta",
         "moveOnePixel": "Siirrä leikettä yksi pikseli",
         "moveTenPixels": "Siirrä leikettä kymmenen pikseliä",
-        "resetTransform": "Palauta muunnos"
+        "resetTransform": "Palauta muunnos",
+        "extendPrevEdit": "Laajenna edellinen leikkauskohta toistokohtaan",
+        "extendNextEdit": "Laajenna seuraava leikkauskohta toistokohtaan",
+        "selectPrevClip": "Valitse edellinen leike",
+        "selectNextClip": "Valitse seuraava leike",
+        "clipVolumeUp": "Nosta leikkeen äänenvoimakkuutta 1 dB",
+        "clipVolumeDown": "Laske leikkeen äänenvoimakkuutta 1 dB",
+        "clipVolumeUpMore": "Nosta leikkeen äänenvoimakkuutta 6 dB",
+        "clipVolumeDownMore": "Laske leikkeen äänenvoimakkuutta 6 dB",
+        "slideLeft": "Liu'uta valittuja leikkeitä yksi kehys taaksepäin",
+        "slideRight": "Liu'uta valittuja leikkeitä yksi kehys eteenpäin",
+        "slowShuttleBack": "Kelaa hitaasti taaksepäin (uudelleen: nopeammin)",
+        "slowShuttleForward": "Kelaa hitaasti eteenpäin (uudelleen: nopeammin)",
+        "goToSequenceStart": "Siirry sekvenssin alkuun",
+        "goToSequenceEnd": "Siirry sekvenssin loppuun",
+        "goToSelectedStart": "Siirry valinnan alkuun",
+        "goToSelectedEnd": "Siirry valinnan viimeiseen kehykseen",
+        "markSelection": "Merkitse valinta (sisään- ja ulostulokohta sen ympärille)",
+        "clearIn": "Tyhjennä sisääntulokohta",
+        "clearOut": "Tyhjennä ulostulokohta",
+        "prevCutAnyTrack": "Edellinen leikkaus millä tahansa raidalla",
+        "nextCutAnyTrack": "Seuraava leikkaus millä tahansa raidalla",
+        "prevGap": "Siirry sekvenssin edelliseen aukkoon",
+        "nextGap": "Siirry sekvenssin seuraavaan aukkoon",
+        "addRangeMarker": "Lisää sekunnin pituinen aluemerkki toistokohtaan",
+        "addMarkerInOut": "Lisää merkki sisääntulokohdasta ulostulokohtaan",
+        "clearAllMarkers": "Tyhjennä kaikki merkit",
+        "playAround": "Toista toistokohdan ympäriltä",
+        "playInToOutWithRoll": "Toista sisääntulokohdasta ulostulokohtaan esi- ja jälkitoistolla",
+        "playToOut": "Toista toistokohdasta ulostulokohtaan",
+        "expandAllTracks": "Laajenna kaikki raidat (uudelleen: palauta)",
+        "minimizeAllTracks": "Pienennä kaikki raidat (uudelleen: palauta)",
+        "audioTracksTaller": "Kasvata ääniraitojen korkeutta",
+        "audioTracksShorter": "Pienennä ääniraitojen korkeutta",
+        "panelSource": "Siirry lähteeseen",
+        "panelTimeline": "Siirry aikajanalle",
+        "panelProgram": "Siirry ohjelmaan",
+        "panelEffectControls": "Siirry tehosteiden säätöihin",
+        "panelInspector": "Siirry tarkastimeen",
+        "panelScript": "Siirry käsikirjoitukseen",
+        "panelStoryboard": "Siirry kuvakäsikirjoitukseen",
+        "nextPanel": "Siirry seuraavaan paneeliin",
+        "prevPanel": "Siirry edelliseen paneeliin"
       }
     },
     "vst": {
@@ -18306,9 +18357,12 @@
       "result": "Tulos",
       "copyResult": "Kopioi tulos",
       "editMessage": "Muokkaa viestiä",
-      "editWarning": "Lähettäminen korvaa kaiken tämän viestin jälkeen.",
+      "editWarning": "Lähettäminen aloittaa uuden version. Nykyinen versio säilyy.",
       "editAndResend": "Muokkaa ja lähetä uudelleen",
       "regenerate": "Luo uudelleen",
+      "previousVersion": "Edellinen versio",
+      "nextVersion": "Seuraava versio",
+      "versionOf": "Versio {{index}}/{{count}}",
       "copyMessage": "Kopioi viesti",
       "enterCredential": "Anna tunnistetieto",
       "credentialSubtitle": "Tallennetaan salaisuuksien säilöösi. Agentti ei koskaan näe arvoa.",
@@ -18546,7 +18600,7 @@
   },
   "i18n-next110": {
     "workspaceFile": {
-      "invalidReference": "Virheellinen työtilatiedoston viittaus"
+      "invalidReference": "Virheellinen tiedostoviittaus"
     }
   },
   "i18n-next109": {
@@ -19037,6 +19091,26 @@
       "typeMore": "Kirjoita vähintään 2 merkkiä",
       "noMatches": "Ei osumia",
       "failed": "Käyttöoikeutta ei voitu antaa."
+    },
+    "options": {
+      "history": "Historia",
+      "historyDescription": "Katselijat voivat avata tallennetut versiot.",
+      "download": "Lataus",
+      "downloadDescription": "Katselijat voivat ladata alkuperäiset tiedostot.",
+      "duplicate": "Kopiointi",
+      "duplicateDescription": "Katselijat voivat kopioida sen tiedostoineen omaan kirjastoonsa.",
+      "turnedOff": "Jo ladattu tai kopioitu sisältö jää ihmisille.",
+      "historyOffNotice": "Tämän linkin katselijat eivät enää näe tallennettuja versioita. Ota historia käyttöön palauttaaksesi ne.",
+      "turnOnHistory": "Ota historia käyttöön",
+      "dismiss": "Sulje",
+      "failed": "Asetuksia ei voitu muuttaa."
+    },
+    "people": {
+      "from": "Pääsy: {{sources}}",
+      "sourceInvitation": "kutsu",
+      "sourceViewLink": "katselulinkki",
+      "sourceEditLink": "muokkauslinkki",
+      "sourceDisabled": "{{source}} (poistettu käytöstä)"
     }
   },
   "timelineAutomation": {
@@ -20008,5 +20082,254 @@
     "label": "Lähetä minulle sähköpostia julkaisuista ja ilmaisista tarjouksista",
     "description": "Kuule uusista ominaisuuksista, malleista ja ilmaisista tarjouksista. Jokaisessa viestissä on peruutuslinkki, ja voit poistaa tämän käytöstä täällä milloin tahansa.",
     "saveFailed": "Sähköpostiasetusta ei tallennettu. Yritä uudelleen."
+  },
+  "firstRun": {
+    "ariaLabel": "Aloita tuloksesta",
+    "heading": "Tee jotain alle minuutissa",
+    "subline": "Kaikki on valmiiksi täytetty. Kokeile yhtä ja muuta se sitten omaksi ideaksesi.",
+    "firstTask": {
+      "label": "Ensimmäinen kehotteesi",
+      "prompt": "Anna kolme ideaa 30 sekunnin videoon ketusta ensilumessa, yksi rivi kustakin.",
+      "hint": "Vastaa sekunneissa ilmaisella oletusmallilla.",
+      "action": "Lähetä"
+    },
+    "game": {
+      "title": "Tee pieni peli",
+      "description": "Kettu etsii viimeistä tammenterhoa. Avautuu suunnitteluun, yksi napsautus kirjoittaa sen."
+    },
+    "storyboard": {
+      "title": "Tee lyhytelokuvan kuvakäsikirjoitus",
+      "description": "Majakanvartija ja rantaan ajautunut robotti. Avautuu käsikirjoitukseen, yksi napsautus kirjoittaa sen.",
+      "brief": "Majakanvartija löytää myrskyn jälkeen rantaan ajautuneen pienen robotin ja opettaa sen pitämään valon palamassa."
+    },
+    "template": {
+      "title": "Suorita malli",
+      "description": "Mainosteksti kolmella sävyllä, tuote on jo täytetty. Paina Suorita."
+    },
+    "opening": "Avataan…",
+    "startFailed": "Aloitusta ei voitu avata: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "Leikettä ei ole valittu",
+    "severalClips": "Useita leikkeitä valittu",
+    "effectControls": {
+      "empty": "Valitse leike aikajanalta säätääksesi sen muunnosta, peittävyyttä, tehosteita ja maskeja.",
+      "several": "Valitse yksi leike säätääksesi sitä."
+    },
+    "motion": {
+      "empty": "Valitse leike aikajanalta animoidaksesi sen.",
+      "several": "Valitse yksi leike animoidaksesi sen.",
+      "unsupportedTitle": "Ei mitään animoitavaa",
+      "unsupported": "Valitse video-, kuva-, teksti- tai muotoleike animoidaksesi sen."
+    },
+    "color": {
+      "empty": "Valitse leike aikajanalta värimäärittääksesi sen.",
+      "several": "Valitse yksi leike värimäärittääksesi sen.",
+      "unsupportedTitle": "Tässä leikkeessä ei ole kuvaa",
+      "unsupported": "Valitse video-, kuva-, teksti- tai muotoleike värimäärittääksesi sen."
+    },
+    "ai": {
+      "empty": "Valitse leike aikajanalta luodaksesi siitä uutta tai muokataksesi sitä tekoälyllä.",
+      "several": "Valitse yksi leike luodaksesi siitä uutta.",
+      "unsupportedTitle": "Tälle leikkeelle ei ole tekoälytyökaluja",
+      "unsupported": "Valitse video- tai kuvaleike tai luotu leike."
+    }
+  },
+  "toolPermissions": {
+    "tab": "Käyttöoikeudet",
+    "title": "Työkalujen käyttöoikeudet",
+    "sidebarCategory": "Työkalut",
+    "intro": "Valitse, mitä työkaluja avustaja saa käyttää kysymättä. Kysy-tilaan asetettu työkalu näyttää kysymyksen keskustelussa ennen suoritusta.",
+    "modes": "Oletustilassa jokainen Kysy-tilaan asetettu työkalu kysyy ensin. Automaattitilassa työkalut suoritetaan kysymättä, paitsi koodiaktio, joka poistaa, julkaisee tai kuluttaa rahaa. Aseta Execute code tilaan Salli aina, niin myös tämä kysymys jää pois. Suunnittelutila estää kaikki muutokset säännöstä riippumatta.",
+    "alwaysAllow": "Salli aina",
+    "ask": "Kysy",
+    "saveFailed": "Käyttöoikeuden tallennus epäonnistui.",
+    "loadFailed": "Työkaluluettelon lataus epäonnistui.",
+    "noMatches": "Yksikään työkalu ei vastaa hakuasi."
+  },
+  "projectFolder": {
+    "name": "Projektikansio",
+    "picker": {
+      "title": "Valitse kansio"
+    },
+    "tree": {
+      "title": "Tiedostot",
+      "goToRoot": "Siirry projektikansion juureen",
+      "fileBrowser": "Projektin tiedostot",
+      "emptyTitle": "Projektikansio on tyhjä",
+      "emptyDescription": "Lisää tiedostoja projektikansioon, niin ne näkyvät tässä.",
+      "noFolderTitle": "Ei projektikansiota",
+      "noFolderDescription": "Tällä projektilla ei ole vielä kansiota.",
+      "revealInFinder": "Näytä Finderissa",
+      "revealInExplorer": "Näytä Resurssienhallinnassa",
+      "revealInFileManager": "Näytä tiedostonhallinnassa"
+    },
+    "documentFile": {
+      "invalidTitle": "Tässä tiedostossa on virhe",
+      "invalidBody": "Tiedostoa {{path}} ei ladattu: {{error}}. Viimeisin kelvollinen versio pysyy auki ja toimii.",
+      "openFile": "Avaa tiedosto",
+      "missingTitle": "Tiedosto puuttuu",
+      "missingBody": "{{path}} ei ole enää projektikansiossa. Palauta kirjoittaa sen uudelleen tästä dokumentista.",
+      "restore": "Palauta",
+      "delete": "Poista",
+      "cancel": "Peruuta",
+      "deleteTitle": "Poistetaanko {{name}}?",
+      "deleteDescription": "”{{name}}” ja sen versiohistoria poistetaan pysyvästi.",
+      "restoreFailed": "Tiedostoa ei palautettu: {{error}}",
+      "deleteFailed": "Dokumenttia ei poistettu: {{error}}"
+    },
+    "migration": {
+      "title": "Siirrä projektit kansioihin",
+      "intro": "NodeTool tallentaa nyt jokaisen projektin omaan kansioonsa tällä tietokoneella. Tiedostosi, työnkulkusi ja aikajanasi siirretään sinne, ja voit avata ne muissa sovelluksissa.",
+      "planProjects": "Projektit, jotka saavat kansion",
+      "planFiles": "Siirrettävät tiedostot",
+      "planWorkflows": "Tiedostoina tallennettavat työnkulut",
+      "planTimelines": "Tiedostoina tallennettavat aikajanat",
+      "extraTitle": "Projektit, joilla on useita kansioita",
+      "extraBody": "Jokainen näistä projekteista säilyttää yhden kansion. NodeTool lopettaa muiden näyttämisen, ja niiden tiedostot jäävät paikoilleen.",
+      "extraKeeps": "{{project}} säilyttää kansion {{folder}}",
+      "extraHidden": "Ei enää näkyvissä: {{folder}}",
+      "location": "Sijainti",
+      "changeLocation": "Vaihda sijaintia",
+      "locationError": "Tätä sijaintia ei voi käyttää: {{error}}",
+      "permissionWarning": "macOS kysyy, saako NodeTool käyttää tätä kansiota. Valitse Salli tai valitse kansio, joka ei ole Dokumentit-, Työpöytä-, Lataukset- eikä iCloud Drive -kansiossa eikä ulkoisella asemalla.",
+      "safety": "Mitään ei katoa. Jokainen tiedosto kopioidaan ja tarkistetaan ennen kuin sen vanha kopio poistetaan. Voit jatkaa työskentelyä tiedostojen siirtyessä.",
+      "later": "Ei nyt",
+      "confirm": "Siirrä tiedostot",
+      "planError": "Suunnitelmaa ei voitu ladata: {{error}}",
+      "confirmError": "Siirto ei käynnistynyt: {{error}}",
+      "actionError": "Siirtoa ei voitu muuttaa: {{error}}",
+      "progressRegion": "Tiedostoja siirretään projektikansioihin",
+      "progressTitle": "Tiedostoja siirretään projektikansioihin",
+      "pausedTitle": "Tiedostojen siirto on keskeytetty",
+      "doneTitle": "Tiedostot siirretty",
+      "progressCount": "{{done}} / {{total}} tiedostoa siirretty",
+      "phaseFolders": "Luodaan projektikansioita",
+      "phaseFiles": "Tallennetaan työnkulkuja ja aikajanoja tiedostoina",
+      "currentProject": "Siirretään projektin {{project}} tiedostoja",
+      "pause": "Keskeytä",
+      "resume": "Jatka",
+      "failuresTitle": "Siirto epäonnistui ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "Lisää, joita ei näytetä: {{count}}",
+      "retry": "Yritä uudelleen",
+      "donePath": "Tiedostosi ovat kansiossa {{path}}",
+      "close": "Sulje"
+    }
+  },
+  "assetPicker": {
+    "sourceTabs": "Aineiston lähde",
+    "projectTab": "Tämä projekti",
+    "personalTab": "Henkilökohtainen",
+    "personalHint": "Kun valitset Henkilökohtaisesta, tiedosto kopioidaan tähän projektiin.",
+    "copying": "Kopioidaan tähän projektiin…",
+    "copyFailed": "Aineistoa ei voitu kopioida tähän projektiin."
+  },
+  "assetFileStatus": {
+    "missing": "Puuttuu",
+    "missingTooltip": "Tiedosto ei ole siellä, missä tämä aineisto odottaa sitä. Linkitä se tiedoston uuteen sijaintiin tai poista aineisto.",
+    "linked": "Linkitetty",
+    "linkedTooltip": "Tämä aineisto käyttää projektikansion ulkopuolista tiedostoa sen omalla paikalla.",
+    "relink": "Linkitä uudelleen",
+    "relinkTooltip": "Valitse tiedoston uusi sijainti",
+    "relinkNoPath": "Tiedoston sijaintia ei voitu lukea. Valitse tiedosto tältä tietokoneelta.",
+    "relinkFailed": "Uudelleenlinkitys epäonnistui: {{error}}",
+    "remove": "Poista",
+    "removeTooltip": "Poista tämä aineisto NodeToolista",
+    "removeTitle": "Poistetaanko ”{{name}}”?",
+    "removeBody": "Aineisto poistetaan NodeToolista. Sitä käyttävät dokumentit eivät voi enää näyttää sitä.",
+    "cancel": "Peruuta"
+  },
+  "deviceSessions": {
+    "title": "Kirjautuneet laitteet",
+    "description": "Tietokoneet, joilla olet kirjautunut NodeToolin työpöytäsovelluksiin. Saman tietokoneen sovellukset jakavat yhden istunnon. Istunnon päättäminen kirjaa tietokoneen ulos.",
+    "empty": "Yksikään tietokone ei ole kirjautuneena.",
+    "unnamed": "Nimetön tietokone",
+    "signedInFrom": "Kirjautunut sovelluksesta {{app}} {{date}}",
+    "lastUsed": "Viimeksi käytetty {{date}}",
+    "neverUsed": "Ei käytetty kirjautumisen jälkeen",
+    "end": "Lopeta istunto",
+    "confirmTitle": "Lopetetaanko tämä istunto?",
+    "confirmBody": "NodeTool-työpöytäsovellukset laitteella {{device}} kirjautuvat ulos minuutin kuluessa.",
+    "cancel": "Peruuta",
+    "ended": "Istunto lopetettiin.",
+    "endError": "Istuntoa ei voitu lopettaa: {{error}}",
+    "loadError": "Kirjautuneita laitteita ei voitu ladata.",
+    "apps": {
+      "nodeEditor": "Solmueditori",
+      "timeline": "Aikajana",
+      "desktop": "Työpöytäsovellus"
+    }
+  },
+  "storyboardText": {
+    "mode": "Teksti",
+    "editorLabel": "Kuvakäsikirjoitus Markdown-tekstinä",
+    "hint": "Kirjoita # näytökselle, ## kohtaukselle, ### otokselle ja - **Motion:** kentälle. Kirjoita @ mainitaksesi entiteetin tai kuvan.",
+    "issues": "Huomiota vaativat rivit: {{lines}}",
+    "loading": "Ladataan tekstiä…",
+    "warnings": {
+      "media_outside_shot": "Kuva kuuluu otokseen. Sijoita se ###-otosotsikon alle.",
+      "second_media": "Otoksella on yksi valittu still-kuva ja yksi valittu leike. Tätä ei käytetä.",
+      "unknown_shot_field": "”{{label}}” ei ole kuvakäsikirjoituksen kenttä. Se tallennetaan otoksen muistiinpanoihin.",
+      "unknown_field": "”{{label}}” ei ole kenttä tässä. Sitä ei tallenneta.",
+      "text_in_scene": "Kohtauksella on vain otsikkorivi ja valaistus. Siirrä teksti otoksen alle tai aloita se sanalla ”Lighting:”.",
+      "bad_duration": "Otos {{shot}}: ”{{value}}” ei ole sekuntimäärä.",
+      "bad_render": "Otos {{shot}}: render on keyframe, direct tai reference.",
+      "no_next_shot": "Otos {{shot}}: siirtymä johtaa seuraavaan otokseen, eikä sellaista ole.",
+      "missing_action": "Otoksella {{shot}} ei ole vielä toimintaa. Kirjoita renderöitävä kuva sen otsikon alle."
+    },
+    "outline": "Jäsennys",
+    "outlineEmpty": "Kirjoita ### ja otsikko aloittaaksesi otoksen.",
+    "untitledShot": "Nimetön otos",
+    "untitledAct": "Nimetön näytös",
+    "untitledScene": "Nimetön kohtaus",
+    "issuesTitle": "Vaatii huomiota",
+    "stillOf": "Still-kuva otokselle {{shot}}",
+    "assist": {
+      "lines": "{{lines}} riviä valittu",
+      "proposal": "Ehdotettu korvaus",
+      "note": "Agentin huomautus",
+      "discard": "Hylkää",
+      "close": "Sulje",
+      "replace": "Korvaa valinta",
+      "stale": "Kohta muuttui valinnan jälkeen. Valitse se uudelleen.",
+      "thinking": "Ajattelee…",
+      "stop": "Pysäytä",
+      "placeholder": "Kerro agentille, mitä tälle kohdalle tehdään",
+      "refinePlaceholder": "Tarkenna tulosta",
+      "instruction": "Pyyntö agentille",
+      "send": "Lähetä agentille",
+      "failed": "Pyyntö mallille epäonnistui.",
+      "context": "Lähetetty pyynnön mukana: koko kuvakäsikirjoitus, {{shots}} otosta ja kirjaston {{entities}} entiteettiä.",
+      "quick": {
+        "tighten": "Tiivistä",
+        "visual": "Visuaalisemmin",
+        "camera": "Ehdota kameraa",
+        "continuity": "Tarkista jatkuvuus",
+        "summarize": "Tiivistelmä",
+        "inconsistencies": "Etsi ristiriidat"
+      },
+      "errors": {
+        "no_model": "Valitse tälle kuvakäsikirjoitukselle ohjausmalli tai chat-malli käyttääksesi agenttia.",
+        "empty": "Malli ei palauttanut vastausta. Lähetä pyyntö uudelleen.",
+        "failed": "Pyyntö epäonnistui. Lähetä se uudelleen."
+      }
+    }
+  },
+  "cloudAccount": {
+    "title": "NodeTool Cloud -tili",
+    "description": "Yksi kirjautuminen tälle sovellukselle, solmueditorille ja aikajanalle tällä tietokoneella. Kirjautuminen sisään tai ulos täällä koskee kaikkia kolmea.",
+    "signedInAs": "Kirjautunut käyttäjänä {{name}}",
+    "server": "Palvelin: {{server}}",
+    "signedOut": "Ei kirjautunut",
+    "signingIn": "Viimeistele kirjautuminen selaimessa",
+    "serverEndPending": "Kirjauduttu ulos, istuntoa ei ole vielä päätetty palvelimella",
+    "cloudOff": "Pilviominaisuudet ovat pois päältä tällä tietokoneella",
+    "noKeychain": "Tällä tietokoneella ei ole tunnistetietojen säilöä, joten kirjautuminen kestää, kunnes NodeTool suljetaan.",
+    "signIn": "Kirjaudu sisään",
+    "cancel": "Peruuta",
+    "signOut": "Kirjaudu ulos",
+    "signOutNote": "Solmueditorissa tai aikajanalla odottavat muutokset jäävät tälle tietokoneelle ja lähetetään, kun kirjaudut uudelleen.",
+    "unavailable": "Pilvikirjautuminen ei ole käytettävissä tässä versiossa."
   }
 }

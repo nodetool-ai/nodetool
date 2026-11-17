@@ -53,6 +53,32 @@ pass when editing Markdown. User-facing copy also follows [Brand & Verbal
 Guidelines](docs/BRAND.md). Published docs pages also follow the [Docs
 Editorial Spec](docs/docs-editorial.spec.md).
 
+## GitHub Issue Claims
+
+Agents often share one GitHub account, so the assignee field cannot tell
+agents apart. A claim is the `agent:claimed` label plus a claim comment.
+Use `gh` for every step.
+
+1. Read the issue and its comments before you start work on it:
+   `gh issue view <n> --comments`.
+2. Skip the issue if it has the `agent:claimed` label and a claim comment
+   younger than 24 hours. Pick another issue or ask the user.
+3. Claim the issue with the label and a comment:
+   `gh issue edit <n> --add-label agent:claimed` and
+   `gh issue comment <n> --body "Claimed by <agent-id> on branch <branch>."`.
+   Use a stable `<agent-id>`, such as the session ID or worktree name.
+4. Read the comments again. If an earlier claim comment from another agent
+   is present, release your claim and stop.
+5. Comment on progress at least every 24 hours while the work continues.
+   A claim with no comment for 24 hours is stale, and another agent can
+   take it over with a new claim comment.
+6. Link the pull request with `Closes #<n>` in its body.
+7. Release the claim when you stop without a merged fix:
+   `gh issue edit <n> --remove-label agent:claimed` and a comment that
+   states what you finished and what remains.
+
+Claim an issue only when the user asks you to work on it or to pick one.
+
 ## Quick Navigation
 
 - **[Development Standards](docs/DEVELOPMENT_STANDARDS.md)** — Required for all work.
@@ -60,6 +86,7 @@ Editorial Spec](docs/docs-editorial.spec.md).
 - **[Design System](docs/DESIGN.md)** — Required for React UI work.
 - **[Native C++ and Qt](native/AGENTS.md)** — Memory, thread ownership and sanitizer rules for every project under `native/`.
 - **[Native UI primitives](native/ui_primitives/AGENTS.md)** — Qt Quick presentation rules and the independent [native design specification](native/ui_primitives/DESIGN.md).
+- **[Qt Quick performance](native/ui_primitives/PERFORMANCE.md)** — Required for native lists, grids and scrolling panels: virtualized views, row-level models, async images, frame measurement.
 - **[UX Guidelines](docs/UX_GUIDELINES.md)** — Required for UI work: entry points, model defaults, keeping work, empty states, errors, labels, small windows. Drawn from the UX research studies.
 - **[UI Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** — Required for frontend work.
 - **[Harness-First Engineering](docs/HARNESS_FIRST.md)** — The doctrine: every surface headlessly drivable, the registry, `nodetool harness audit`
@@ -97,7 +124,7 @@ Use these sections for the detailed rules summarized below.
 | Language and runtime | [TypeScript](docs/DEVELOPMENT_STANDARDS.md#1-typescript), [ES modules](docs/DEVELOPMENT_STANDARDS.md#2-es-modules--node-runtime), [error handling](docs/DEVELOPMENT_STANDARDS.md#18-error-handling) |
 | Components and state | [React](docs/DEVELOPMENT_STANDARDS.md#3-react), [Zustand](docs/DEVELOPMENT_STANDARDS.md#4-zustand), [TanStack Query](docs/DEVELOPMENT_STANDARDS.md#6-tanstack-query-v5), [ReactFlow](docs/DEVELOPMENT_STANDARDS.md#7-reactflow-12) |
 | UI quality | [MUI and primitives](docs/DEVELOPMENT_STANDARDS.md#5-mui-v7--emotion--ui-primitives), [accessibility](docs/DEVELOPMENT_STANDARDS.md#14-accessibility-a11y), [performance](docs/DEVELOPMENT_STANDARDS.md#15-performance) |
-| Native Qt UI | [Native presentation rules](docs/DEVELOPMENT_STANDARDS.md#23-native-qt-ui), [native design specification](native/ui_primitives/DESIGN.md) |
+| Native Qt UI | [Native presentation rules](docs/DEVELOPMENT_STANDARDS.md#23-native-qt-ui), [native design specification](native/ui_primitives/DESIGN.md), [Qt Quick performance](native/ui_primitives/PERFORMANCE.md) |
 | API and persistence | [Fastify](docs/DEVELOPMENT_STANDARDS.md#9-fastify-http--websocket-server), [Drizzle](docs/DEVELOPMENT_STANDARDS.md#10-drizzle-orm), [Zod](docs/DEVELOPMENT_STANDARDS.md#11-zod-validation), [WebSocket protocol](docs/DEVELOPMENT_STANDARDS.md#13-websocket-protocol) |
 | Verification and diagnostics | [testing](docs/DEVELOPMENT_STANDARDS.md#8-testing), [observability](docs/DEVELOPMENT_STANDARDS.md#17-observability), [enforcement](docs/DEVELOPMENT_STANDARDS.md#22-enforcement) |
 | Security boundaries | [application security](docs/DEVELOPMENT_STANDARDS.md#16-security), [Electron security](docs/DEVELOPMENT_STANDARDS.md#12-electron-security) |
@@ -198,8 +225,12 @@ Keep their dependency separation and packed-consumer checks described in the
 
 - Use ESM and `@nodetool-ai/<package>` imports across packages. Never import
   from `dist/` in source. Relative imports need `.js` in compiled output.
+- A project is a folder. `Workspace` is the code interface to it: a local
+  directory, or a key prefix in object storage in the cloud. A run's
+  `context.workspace` is its project's folder, and `.nodetool/` in it is
+  reserved. See [Project folders](docs/workspaces.md).
 - Access run files through `context.workspace`: `read`, `write`, `list`, `stat`,
-  `copy`, `move`, `delete` with workspace-relative paths. Do not branch on local
+  `copy`, `move`, `delete` with folder-relative paths. Do not branch on local
   versus cloud storage. `workspace.localDir` is null for virtual workspaces.
   Host binaries stage files through `materialize`/`absorb` and `scratchDir`.
   Nodes holding live files must require a local workspace. `context.workspaceDir`

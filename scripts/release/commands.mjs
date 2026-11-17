@@ -1,6 +1,10 @@
 import { spawn, spawnSync } from "node:child_process";
+import { packageManagerInvocation } from "../package-manager.mjs";
 
 export function runReleaseCommand(command, args, options) {
+  if (command === "npm" || command === "npx") {
+    ({ command, args } = packageManagerInvocation(command, args, options?.env));
+  }
   const result = spawnSync(command, args, { encoding: "utf8", timeout: 300_000, ...options });
   if (result.status !== 0) {
     throw new Error(`${command} ${args.join(" ")} exited ${result.status}\n${result.stdout ?? ""}${result.stderr ?? ""}`);
@@ -10,6 +14,9 @@ export function runReleaseCommand(command, args, options) {
 
 /** Like spawnSync, but leaves the event loop free so registry calls can overlap. */
 export function spawnCapture(command, args, options = {}) {
+  if (command === "npm" || command === "npx") {
+    ({ command, args } = packageManagerInvocation(command, args, options.env));
+  }
   return new Promise((resolvePromise, reject) => {
     const child = spawn(command, args, { timeout: 300_000, ...options, stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "";

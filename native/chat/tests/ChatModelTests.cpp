@@ -306,6 +306,18 @@ private slots:
         QCOMPARE(parts->rowCount(), 3);
         QCOMPARE(partAt(parts, 2)["label"].toString(), "Working · 0/2");
         QVERIFY(partAt(parts, 2)["running"].toBool());
+        // ToolCallRow: the verb and the thing it acted on are separate, each
+        // row names its glyph, and the rail ties the first row to the second.
+        QCOMPARE(partAt(parts, 0)["verb"].toString(), "Searched");
+        QCOMPARE(partAt(parts, 0)["detail"].toString(), "a");
+        QCOMPARE(partAt(parts, 0)["icon"].toString(), "search");
+        QVERIFY(partAt(parts, 0)["connected"].toBool());
+        QVERIFY(!partAt(parts, 0)["afterTool"].toBool());
+        QCOMPARE(partAt(parts, 1)["icon"].toString(), "code");
+        QCOMPARE(partAt(parts, 1)["detail"].toString(), "");
+        QVERIFY(partAt(parts, 1)["afterTool"].toBool());
+        QVERIFY(!partAt(parts, 1)["connected"].toBool());
+        QVERIFY(partAt(parts, 2)["afterTool"].toBool());
         model.upsert({{"id", "r1"}, {"role", "tool"}, {"tool_call_id", "one"}, {"content", "done"}, {"created_at", "2026-11-13T10:00:03.000Z"}});
         model.upsert({{"id", "r2"}, {"role", "tool"}, {"tool_call_id", "two"}, {"content", "2"}, {"created_at", "2026-11-13T10:00:42.000Z"}});
         parts = partsFor(model);
@@ -318,6 +330,8 @@ private slots:
         qobject_cast<PartModel *>(parts)->toggleExpanded(parts->rowCount() - 1);
         QVERIFY(!partAt(parts, parts->rowCount() - 1)["expanded"].toBool());
         QVERIFY(partAt(parts, 0)["timelineHidden"].toBool());
+        // Folded, nothing sits above the footer to join it.
+        QVERIFY(!partAt(parts, parts->rowCount() - 1)["afterTool"].toBool());
         QVERIFY(partAt(parts, 1)["timelineHidden"].toBool());
         MessageModel single;
         single.upsert({{"id", "one"}, {"role", "assistant"}, {"content", ""},
@@ -441,6 +455,37 @@ private slots:
         }
         QVERIFY(sections.first().toMap()["text"].toString().contains("[NodeTool](https://nodetool.ai)"));
         QVERIFY(sections.last().toMap()["text"].toString().contains("[NodeTool](https://nodetool.ai)"));
+    }
+    // ChatThreadView.styles.ts: a reply reads at 165% line height with space
+    // between blocks, a small gap between list items and room above a heading.
+    void readingRhythmSpacesBlocks() {
+        QTextDocument document;
+        document.setMarkdown("Intro paragraph.\n\n## Heading\n\n- one\n- two\n- three\n\nClosing paragraph.\n");
+        const auto plain = document.toPlainText();
+        styleReadingRhythm(document, 12, 4, 16);
+        QList<QTextBlock> blocks;
+        for (auto block = document.begin(); block.isValid(); block = block.next()) { blocks.append(block); }
+        QCOMPARE(blocks.size(), 6);
+        for (const auto &block : blocks) {
+            QCOMPARE(block.blockFormat().lineHeightType(), int(QTextBlockFormat::ProportionalHeight));
+            QCOMPARE(block.blockFormat().lineHeight(), 165.0);
+        }
+        QCOMPARE(blocks[0].blockFormat().topMargin(), 0.0);
+        QCOMPARE(blocks[0].blockFormat().bottomMargin(), 12.0);
+        QCOMPARE(blocks[1].blockFormat().topMargin(), 16.0);
+        QCOMPARE(blocks[1].blockFormat().bottomMargin(), 8.0);
+        QCOMPARE(blocks[2].blockFormat().bottomMargin(), 0.0);
+        QCOMPARE(blocks[3].blockFormat().topMargin(), 4.0);
+        QCOMPARE(blocks[4].blockFormat().topMargin(), 4.0);
+        QCOMPARE(blocks[4].blockFormat().bottomMargin(), 12.0);
+        QCOMPARE(blocks[5].blockFormat().bottomMargin(), 0.0);
+        QCOMPARE(document.toPlainText(), plain);
+        // A second pass finds nothing to change, so it cannot loop with the
+        // view's text-changed handler.
+        int changes = 0;
+        QObject::connect(&document, &QTextDocument::contentsChange, &document, [&changes](int, int, int) { ++changes; });
+        styleReadingRhythm(document, 12, 4, 16);
+        QCOMPARE(changes, 0);
     }
     // rehypeSanitizeChatHtml.ts keeps formatting and drops active content.
     void htmlIsSanitized() {

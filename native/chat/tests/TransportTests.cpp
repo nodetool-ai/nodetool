@@ -24,6 +24,14 @@ public:
     bool holdHistory = false;
     bool holdUploads = false;
     bool failUploads = false;
+    // messages.list answers with these rows, messages.rewind with
+    // `rewound` as deleted_ids and messages.versions with `forks`.
+    QJsonArray history;
+    QJsonArray rewound;
+    QJsonArray forks;
+    // threads.list answers with these rows and threads.create with `created`.
+    QJsonArray threads{QJsonObject{{"id", ThreadId}, {"title", "Server conversation"}, {"project_id", "default"}}};
+    QJsonObject created{{"id", ThreadId}, {"title", "Created"}, {"project_id", "default"}};
     QPointer<QTcpSocket> uploadSocket;
     ChatServer() {
         connect(&http, &QTcpServer::newConnection, this, [this] {
@@ -60,17 +68,21 @@ public:
                     }
                     QJsonValue data;
                     if (target.startsWith("/trpc/threads.list")) {
-                        data = QJsonObject{{"threads", QJsonArray{QJsonObject{{"id", ThreadId}, {"title", "Server conversation"}, {"project_id", "default"}}}}, {"next", QJsonValue::Null}};
+                        data = QJsonObject{{"threads", threads}, {"next", QJsonValue::Null}};
                     } else if (target.startsWith("/trpc/messages.list")) {
                         if (paginateHistory) {
                             const bool earlier = target.contains("cursor-one");
                             data = QJsonObject{{"messages", QJsonArray{QJsonObject{{"id", earlier ? "earlier" : "latest"}, {"role", "user"}, {"content", earlier ? "Earlier" : "Latest"}}}},
                                 {"next", earlier ? QJsonValue(QJsonValue::Null) : QJsonValue("cursor-one")}};
                         } else {
-                            data = QJsonObject{{"messages", QJsonArray{}}, {"next", QJsonValue::Null}};
+                            data = QJsonObject{{"messages", history}, {"next", QJsonValue::Null}};
                         }
+                    } else if (target.startsWith("/trpc/messages.rewind")) {
+                        data = QJsonObject{{"deleted_ids", rewound}};
+                    } else if (target.startsWith("/trpc/messages.versions")) {
+                        data = QJsonObject{{"forks", forks}};
                     } else if (target.startsWith("/trpc/threads.create")) {
-                        data = QJsonObject{{"id", ThreadId}, {"title", "Created"}, {"project_id", "default"}};
+                        data = created;
                     } else {
                         data = QJsonObject{};
                     }
@@ -102,10 +114,31 @@ public:
         }
         if (peer) { peer->sendTextMessage(QString::fromUtf8(QJsonDocument(event).toJson(QJsonDocument::Compact))); }
     }
+    // Project ids of the set_open_project commands received from `from` on.
+    QStringList openProjects(qsizetype from = 0) const {
+        QStringList ids;
+        for (auto i = from; i < frames.size(); ++i) {
+            if (frames[i]["command"] == "set_open_project") {
+                ids.append(frames[i]["data"].toObject()["project_id"].toString());
+            }
+        }
+        return ids;
+    }
     int count(const QString& field, const QString& value) const {
         return static_cast<int>(std::count_if(frames.cbegin(), frames.cend(), [&](const auto& frame) { return frame[field] == value; }));
     }
 };
+// True once the session has shown the action, so a test can answer it.
+bool hasAction(ChatSession& session, const QString& id) {
+    const auto* messages = qobject_cast<MessageModel*>(session.messages());
+    if (!messages) { return false; }
+    for (const auto& row : messages->snapshot()) {
+        for (const auto& part : row.toObject()["parts"].toArray()) {
+            if (part.toObject()["actionId"] == id) { return true; }
+        }
+    }
+    return false;
+}
 }
 class TransportTests : public QObject {
     Q_OBJECT
@@ -312,7 +345,8 @@ private slots:
                           {"tool_name", "write"}, {"message", "Change document?"}});
         server.emitEvent({{"type", "plan_approval_request"}, {"thread_id", ThreadId}, {"approval_id", "plan-kept"},
                           {"plan", QJsonObject{}}}, 20);
-        QTest::qWait(80);
+        QTRY_VERIFY(hasAction(session, "approval-auto"));
+        QTRY_VERIFY(hasAction(session, "plan-kept"));
         session.setPermissionMode("auto");
         QTRY_COMPARE(server.count("command", "set_permission_mode"), 1);
         const auto mode = *std::find_if(server.frames.cbegin(), server.frames.cend(), [](const auto& frame) { return frame["command"] == "set_permission_mode"; });
@@ -333,10 +367,10 @@ private slots:
         const auto sent = *std::find_if(server.frames.cbegin(), server.frames.cend(), [](const auto& frame) { return frame["command"] == "chat_message"; });
         QCOMPARE(sent["data"].toObject()["permission_mode"].toString(), QStringLiteral("auto"));
     }
-    // ToolApprovalCard.tsx and SecretRequestCard.tsx: Allow for this chat
-    // sends allow_for_chat, and a saved key goes to settings.secrets.upsert
+    // ToolApprovalCard.tsx and SecretRequestCard.tsx: Always allow sends
+    // allow_always, and a saved key goes to settings.secrets.upsert
     // before the request is answered with saved.
-    void allowForChatAndSavedSecretReachTheServer() {
+    void allowAlwaysAndSavedSecretReachTheServer() {
         ChatServer server;
         QVERIFY(server.listen());
         ChatSession session;
@@ -347,13 +381,14 @@ private slots:
                           {"tool_name", "write"}, {"message", "Change document?"}});
         server.emitEvent({{"type", "secret_request"}, {"thread_id", ThreadId}, {"approval_id", "secret-one"},
                           {"key", "OPENAI_API_KEY"}, {"reason", "Needed for images"}}, 20);
-        QTest::qWait(80);
-        session.allowActionForChat("secret-one");
-        session.allowActionForChat("approval-chat");
+        QTRY_VERIFY(hasAction(session, "approval-chat"));
+        QTRY_VERIFY(hasAction(session, "secret-one"));
+        session.allowActionAlways("secret-one");
+        session.allowActionAlways("approval-chat");
         QTRY_COMPARE(server.count("type", "tool_approval_response"), 1);
         const auto allowed = *std::find_if(server.frames.cbegin(), server.frames.cend(), [](const auto& frame) { return frame["type"] == "tool_approval_response"; });
         QCOMPARE(allowed["approval_id"].toString(), QStringLiteral("approval-chat"));
-        QCOMPARE(allowed["decision"].toString(), QStringLiteral("allow_for_chat"));
+        QCOMPARE(allowed["decision"].toString(), QStringLiteral("allow_always"));
         session.saveSecret("secret-one", "   ");
         session.saveSecret("secret-one", " sk-test ");
         QTRY_COMPARE(server.count("type", "secret_request_response"), 1);
@@ -398,6 +433,36 @@ private slots:
         QCOMPARE(restored.mediaMode(), QStringLiteral("chat"));
         restored.setMediaMode("image");
         QCOMPARE(restored.mediaSettings()["aspectRatio"], picked);
+    }
+    // Each editor tab owns a session with its own settings handle. A save
+    // from one tab keeps the preferences another tab saved.
+    void preferencesFromTwoTabsKeepEachOther() {
+        QTemporaryDir directory;
+        QVERIFY(directory.isValid());
+        const auto file = directory.filePath("chat.ini");
+        ChatSession first;
+        first.usePreferences(std::make_unique<QSettings>(file, QSettings::IniFormat));
+        ChatSession second;
+        second.usePreferences(std::make_unique<QSettings>(file, QSettings::IniFormat));
+        first.setPermissionMode("plan");
+        second.setReasoningEffort("high");
+        second.setMediaMode("image");
+        const auto initial = second.mediaSettings()["aspectRatio"];
+        QVariant picked;
+        for (const auto &option : second.mediaOptions("aspectRatio")) {
+            if (option.toMap()["value"] != initial) {
+                picked = option.toMap()["value"];
+            }
+        }
+        QVERIFY(picked.isValid());
+        second.setMediaSetting("aspectRatio", picked);
+        first.setReasoningEffort("low");
+        ChatSession restarted;
+        restarted.usePreferences(std::make_unique<QSettings>(file, QSettings::IniFormat));
+        QCOMPARE(restarted.permissionMode(), QStringLiteral("plan"));
+        QCOMPARE(restarted.reasoningEffort(), QStringLiteral("low"));
+        restarted.setMediaMode("image");
+        QCOMPARE(restarted.mediaSettings()["aspectRatio"], picked);
     }
     void interruptedInitialHistoryCanReconnectAndSend() {
         ChatServer server;
@@ -495,6 +560,123 @@ private slots:
         server.emitEvent({{"type", "chunk"}, {"chat_seq", 2}, {"thread_id", ThreadId}, {"content", "Paris"}, {"done", true}});
         QTRY_COMPARE(session.messages()->rowCount(), 1);
         QVERIFY(session.error().isEmpty());
+    }
+    // Edit rewinds the thread on the server, drops the replaced turns from the
+    // view and sends the edited prompt. The versions the server reports put a
+    // switcher on the first message after the fork.
+    void editRewindsSendsAndShowsVersions() {
+        ChatServer server;
+        // Newest first, as messages.list answers with reverse set.
+        server.history = QJsonArray{
+            QJsonObject{{"id", "reply"}, {"role", "assistant"}, {"content", "A Quiet Harbour"}},
+            QJsonObject{{"id", "prompt"}, {"role", "user"}, {"content", QJsonArray{QJsonObject{{"type", "text"}, {"text", "Draft a title"}},
+                QJsonObject{{"type", "image_url"}, {"image", QJsonObject{{"uri", "asset://brief"}}}}}}}};
+        server.rewound = QJsonArray{"prompt", "reply"};
+        server.forks = QJsonArray{QJsonObject{{"after", ""}, {"first_message_id", "prompt"},
+            {"versions", QJsonArray{"older", QJsonValue::Null}}, {"active", 1}}};
+        QVERIFY(server.listen());
+        ChatSession session;
+        QSignalSpy versionsChanged(&session, &ChatSession::versionsChanged);
+        session.connectToServer(server.url(), {});
+        QTRY_COMPARE(session.selectedThreadId(), QString::fromLatin1(ThreadId));
+        QTRY_COMPARE(session.messages()->rowCount(), 2);
+        QTRY_VERIFY(session.versions().contains("prompt"));
+        QCOMPARE(session.versions()["prompt"].toMap()["index"].toInt(), 2);
+        QCOMPARE(session.versions()["prompt"].toMap()["count"].toInt(), 2);
+        QVERIFY(versionsChanged.size() > 0);
+        session.setProvider("test-provider");
+        session.setModel("test-model");
+        QTRY_COMPARE(session.connectionStatus(), QStringLiteral("connected"));
+        session.resendFrom("prompt", "Draft a shorter title");
+        QTRY_COMPARE(server.count("command", "chat_message"), 1);
+        const auto rewind = std::find_if(server.requests.cbegin(), server.requests.cend(),
+                                         [](const auto& request) { return request.contains("/trpc/messages.rewind"); });
+        QVERIFY(rewind != server.requests.cend());
+        QVERIFY(rewind->contains("prompt"));
+        const auto sent = *std::find_if(server.frames.cbegin(), server.frames.cend(), [](const auto& frame) { return frame["command"] == "chat_message"; });
+        const auto content = sent["data"].toObject()["content"].toArray();
+        QCOMPARE(content.size(), 2);
+        QCOMPARE(content[0].toObject()["text"].toString(), QStringLiteral("Draft a shorter title"));
+        QCOMPARE(content[1].toObject()["type"].toString(), QStringLiteral("image_url"));
+        // The rewound rows left; only the edited prompt shows.
+        QCOMPARE(session.messages()->rowCount(), 1);
+        QCOMPARE(session.turnStatus(), QStringLiteral("loading"));
+        // A second Edit while the turn runs does nothing.
+        session.resendFrom(sent["data"].toObject()["id"].toString(), "Again");
+        QTest::qWait(100);
+        QCOMPARE(server.count("command", "chat_message"), 1);
+    }
+    void retryLatestSendsTheLastPromptAgain() {
+        ChatServer server;
+        // messages.list is asked for newest first and the client flips it.
+        server.history = QJsonArray{
+            QJsonObject{{"id", "latest"}, {"role", "assistant"}, {"content", "Second answer"}},
+            QJsonObject{{"id", "second"}, {"role", "user"}, {"content", "Two"}},
+            QJsonObject{{"id", "answer"}, {"role", "assistant"}, {"content", "First answer"}},
+            QJsonObject{{"id", "first"}, {"role", "user"}, {"content", "One"}}};
+        server.rewound = QJsonArray{"second", "latest"};
+        QVERIFY(server.listen());
+        ChatSession session;
+        session.connectToServer(server.url(), {});
+        QTRY_COMPARE(session.selectedThreadId(), QString::fromLatin1(ThreadId));
+        QTRY_COMPARE(session.messages()->rowCount(), 4);
+        session.setProvider("test-provider");
+        session.setModel("test-model");
+        QTRY_COMPARE(session.connectionStatus(), QStringLiteral("connected"));
+        session.retryLatest();
+        QTRY_COMPARE(server.count("command", "chat_message"), 1);
+        const auto sent = *std::find_if(server.frames.cbegin(), server.frames.cend(), [](const auto& frame) { return frame["command"] == "chat_message"; });
+        QCOMPARE(sent["data"].toObject()["content"].toArray().first().toObject()["text"].toString(), QStringLiteral("Two"));
+        QCOMPARE(session.messages()->rowCount(), 3);
+    }
+    // The server watches the folder of the project a connection has open. The
+    // chat's open project is the selected thread's, sent right after the mode
+    // acknowledgement on every connect and again when the selection moves to
+    // another project.
+    void openProjectFollowsTheSelectedThread() {
+        constexpr auto First = "11111111111111111111111111111111";
+        constexpr auto Second = "22222222222222222222222222222222";
+        constexpr auto Loose = "33333333333333333333333333333333";
+        ChatServer server;
+        server.threads = QJsonArray{
+            QJsonObject{{"id", First}, {"title", "First"}, {"project_id", "project-one"}, {"updated_at", "2026-02-01"}},
+            QJsonObject{{"id", Second}, {"title", "Second"}, {"project_id", "project-two"}, {"updated_at", "2026-01-01"}},
+            QJsonObject{{"id", Loose}, {"title", "Loose"}, {"project_id", QJsonValue::Null}, {"updated_at", "2025-12-01"}}};
+        server.created = QJsonObject{{"id", ThreadId}, {"title", "Created"}, {"project_id", "project-three"}};
+        QVERIFY(server.listen());
+        ChatSession session;
+        session.connectToServer(server.url(), {});
+        QTRY_COMPARE(session.selectedThreadId(), QString::fromLatin1(First));
+        QTRY_COMPARE(server.openProjects(), (QStringList{"default", "project-one"}));
+        QCOMPARE(server.frames.value(0)["command"].toString(), QStringLiteral("set_mode"));
+        QCOMPARE(server.frames.value(1)["command"].toString(), QStringLiteral("set_open_project"));
+
+        session.selectThread(Second);
+        QTRY_COMPARE(server.openProjects().size(), 3);
+        QCOMPARE(server.openProjects().last(), QStringLiteral("project-two"));
+        session.selectThread(Second);
+        session.selectThread(Loose);
+        QTRY_COMPARE(server.openProjects().size(), 4);
+        QCOMPARE(server.openProjects().last(), QStringLiteral("default"));
+        session.selectThread(Second);
+        QTRY_COMPARE(server.openProjects().size(), 5);
+        QCOMPARE(server.openProjects().last(), QStringLiteral("project-two"));
+
+        QVERIFY(server.peer);
+        server.peer->close();
+        QTRY_COMPARE(session.connectionStatus(), QStringLiteral("disconnected"));
+        const auto reconnectedFrom = server.frames.size();
+        session.resumeConnection();
+        QTRY_COMPARE(session.connectionStatus(), QStringLiteral("connected"));
+        QTRY_COMPARE(server.openProjects(reconnectedFrom), QStringList{"project-two"});
+        QCOMPARE(server.frames.value(reconnectedFrom)["command"].toString(), QStringLiteral("set_mode"));
+        QCOMPARE(server.frames.value(reconnectedFrom + 1)["command"].toString(), QStringLiteral("set_open_project"));
+
+        session.createThread();
+        QTRY_COMPARE(session.selectedThreadId(), QString::fromLatin1(ThreadId));
+        QTRY_COMPARE(server.openProjects(reconnectedFrom), (QStringList{"project-two", "project-three"}));
+        QTest::qWait(30);
+        QCOMPARE(server.openProjects(reconnectedFrom).size(), 2);
     }
     void renameThreadUpdatesTheServerAndTheList() {
         ChatServer server;

@@ -996,7 +996,7 @@ describe("runDirectMediaGeneration", () => {
     ).rejects.toThrow("padding or aspect_ratio is required for outpaint");
   });
 
-  it("stores provider-encoded audio under its own mime, defaulting an unknown one to .flac", async () => {
+  it("stores provider-encoded audio under its own mime as one file in Generated/", async () => {
     const provider = asProvider({
       getTotalCost: () => 0,
       async textToSpeechEncoded(args: { audioFormat?: string }) {
@@ -1011,11 +1011,56 @@ describe("runDirectMediaGeneration", () => {
     );
     const row = await Asset.find("1", asset_ids[0]);
     expect(row?.content_type).toBe("audio/x-strange");
-    // The unknown-mime fallback stored the file with the flac extension.
+    // A type with no known extension is a `.bin` file in the project folder,
+    // which is the name readers ask for, so the id-based key resolves to it.
+    expect(row?.workspace_path).toMatch(/^Generated\/[^/]+\.bin$/);
     const adapter = getAssetAdapter();
     expect(
-      await adapter.exists(adapter.uriForKey(`1/${asset_ids[0]}.flac`))
+      await adapter.exists(adapter.uriForKey(`1/${asset_ids[0]}.bin`))
     ).toBe(true);
+  });
+
+  it("names a generated file after its prompt, with a numeric suffix for a repeat", async () => {
+    const provider = asProvider({
+      getTotalCost: () => 0,
+      async textToImages(_params: unknown, n: number) {
+        return Array.from({ length: n }, () => PNG_1x1);
+      }
+    });
+    const { handler } = makeHandler(provider);
+    const req = mediaReq({ prompt: "A red fox, in the snow!" });
+    const first = await handler.runDirectMediaGeneration(req);
+    const second = await handler.runDirectMediaGeneration(req);
+    const paths = await Promise.all(
+      [first, second].map(
+        async (r) => (await Asset.find("1", r.asset_ids[0]))?.workspace_path
+      )
+    );
+    expect(paths).toEqual([
+      "Generated/A-red-fox-in-the-snow.png",
+      "Generated/A-red-fox-in-the-snow-2.png"
+    ]);
+    expect((await Asset.find("1", first.asset_ids[0]))?.name).toBe(
+      "A red fox in the snow.png"
+    );
+  });
+
+  it("names two variations of one prompt as two files", async () => {
+    const provider = asProvider({
+      getTotalCost: () => 0,
+      async textToImages(_params: unknown, n: number) {
+        return Array.from({ length: n }, () => PNG_1x1);
+      }
+    });
+    const { handler } = makeHandler(provider);
+    const { asset_ids } = await handler.runDirectMediaGeneration(
+      mediaReq({ prompt: "blue door", variations: 2 })
+    );
+    const paths = (
+      await Promise.all(asset_ids.map((id) => Asset.find("1", id)))
+    ).map((row) => row?.workspace_path);
+    expect(new Set(paths).size).toBe(2);
+    for (const path of paths) expect(path).toMatch(/^Generated\/blue-door(-\d)?\.png$/);
   });
 
   it("wraps the streaming-PCM fallback in a WAV container at the chunks' sample rate", async () => {

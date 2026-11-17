@@ -61,6 +61,7 @@ import {
   reviewFingerprintOf,
   REVIEW_REQUIRED
 } from "../video/productionAuthoring";
+import { recordFirstResult } from "../../../lib/analytics";
 
 /**
  * A board's stage, with the field's absence read as `done` — an old board has
@@ -321,6 +322,7 @@ export const useStoryboardSetupFlow = ({
       const directed = await direct(boardId, requestedShots, signal);
       if (directed) {
         keepPreviousScreenplay(boardId, replaced);
+        recordFirstResult("storyboard");
       }
       return directed;
     },

@@ -33,12 +33,18 @@ export const ScrollToBottomButton: React.FC<ScrollToBottomButtonProps> = ({
       transform="translateX(-50%)"
       zIndex={Z_INDEX.overlay}
       size={32}
-      backgroundColor="grey.500"
-      hoverBackgroundColor="grey.400"
-      color="grey.0"
+      backgroundColor="background.paper"
+      hoverBackgroundColor="action.hover"
+      color="text.primary"
       isVisible={isVisible}
-      opacity={isVisible ? 0.85 : 0}
+      opacity={isVisible ? 1 : 0}
       className="scroll-to-bottom-button"
+      sx={{
+        border: 1,
+        borderColor: "divider",
+        boxShadow: (theme) =>
+          `0 4px 12px ${theme.vars.palette.c_scrim_soft}`
+      }}
     />
   );
 };

@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
+import NodeTool.NodeEditor.Media as Media
 
 // CompositorEditor.tsx's side panel: the canvas size, the selected layer's
 // transform with Reset, and the layer stack with Add layer. The stage beside
@@ -152,6 +153,30 @@ Rectangle {
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: Ui.Metrics.xs
+                            // LayerRow.tsx: the layer's image, or an image icon while it is unwired.
+                            Ui.Surface {
+                                objectName: "compositor-thumb-" + layerRow.index
+                                Layout.preferredWidth: Ui.Metrics.xxxl
+                                Layout.preferredHeight: Ui.Metrics.xxxl
+                                variant: Ui.Surface.Input
+                                radius: Ui.Metrics.radiusControl
+                                clip: true
+                                Accessible.name: "Layer " + (layerRow.index + 1) + " thumbnail"
+                                Media.ImageThumbnail {
+                                    id: thumbnail
+                                    objectName: "compositor-thumb-image-" + layerRow.index
+                                    anchors.fill: parent
+                                    anchors.margins: Ui.Metrics.border
+                                    // modelData changes with every edit, so the image follows a newly loaded input.
+                                    image: layerRow.modelData.ready ? root.editor.layerImage(layerRow.index) : null
+                                }
+                                Ui.Icon {
+                                    anchors.centerIn: parent
+                                    visible: !thumbnail.hasImage
+                                    name: "image"
+                                    tone: Ui.Text.Disabled
+                                }
+                            }
                             Ui.Text {
                                 Layout.fillWidth: true
                                 text: layerRow.modelData.name

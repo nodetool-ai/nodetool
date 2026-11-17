@@ -136,40 +136,9 @@ Item {
             horizontalAlignment: Text.AlignHCenter
         }
     }
-    Ui.Dialog {
+    DeleteThreadDialog {
         id: deleteDialog
         objectName: "chatDeleteDialog"
-        property string threadId: ""
-        property string label: ""
-        title: qsTr("Delete this conversation?")
-        width: Math.min(420 * Ui.Theme.uiScale, (root.Window.window ? root.Window.window.width : 420) - Ui.Metrics.xl * 2)
-        function openFor(id, name) {
-            threadId = id
-            label = name
-            open()
-        }
-        ColumnLayout {
-            width: parent.width
-            spacing: Ui.Metrics.lg
-            Ui.Text {
-                Layout.fillWidth: true
-                wrapMode: Text.WordWrap
-                text: qsTr("“%1” and its messages are removed for good.").arg(deleteDialog.label)
-            }
-            RowLayout {
-                Layout.alignment: Qt.AlignRight
-                spacing: Ui.Metrics.md
-                Ui.EditorButton { text: qsTr("Cancel"); onClicked: deleteDialog.close() }
-                Ui.EditorButton {
-                    objectName: "chatDeleteConfirm"
-                    text: qsTr("Delete")
-                    variant: Ui.EditorButton.Destructive
-                    onClicked: {
-                        root.session.deleteThread(deleteDialog.threadId)
-                        deleteDialog.close()
-                    }
-                }
-            }
-        }
+        session: root.session
     }
 }

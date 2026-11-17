@@ -18,6 +18,7 @@ export {
   getDbType,
   getPostgresClient,
   getRawDb,
+  openSqliteFile,
   pingDb,
   closeDb
 } from "./db.js";
@@ -146,7 +147,13 @@ export type {
   TableErasureReport
 } from "./personal-data.js";
 
-export { Workflow } from "./workflow.js";
+export { Workflow, setWorkflowFileSync } from "./workflow.js";
+export { DocumentFileMoveError } from "./document-file-sync.js";
+export type {
+  DocumentFileLocation,
+  DocumentFileRow,
+  DocumentFileSync
+} from "./document-file-sync.js";
 export type {
   AccessLevel,
   WorkflowGraph,
@@ -154,12 +161,18 @@ export type {
 } from "./workflow.js";
 
 export { WorkflowVersion } from "./workflow-version.js";
+export type { KeepRevision } from "./kept-revision.js";
 export {
   WorkflowCollaborator,
   isCollaboratorRole,
   type CollaboratorRole
 } from "./workflow-collaborator.js";
-export { WorkflowShare, type ShareRole } from "./workflow-share.js";
+export {
+  WorkflowShare,
+  applyShareOptions,
+  type ShareRole,
+  type ShareOptions
+} from "./workflow-share.js";
 export {
   DocumentCollaborator,
   DocumentShare,
@@ -169,20 +182,38 @@ export {
   type SharedDocumentType
 } from "./document-sharing.js";
 export {
+  DocumentRefs,
+  type DocumentRefScopeValue,
+  type DocumentRefSetFiles,
+  type DocumentRefSetRow
+} from "./document-refs.js";
+export {
   getUserSharing,
   listPublicWorkflows,
   type UserSharing
 } from "./sharing-admin.js";
 
-export { Asset } from "./asset.js";
-export type { AssetRow, AssetInsert } from "./asset.js";
+export {
+  Asset,
+  moveTargetOf,
+  saveAssetInProject,
+  setAssetFileMover
+} from "./asset.js";
+export type {
+  AssetRow,
+  AssetInsert,
+  AssetFileMove,
+  AssetFileMover,
+  AssetFilePlacement
+} from "./asset.js";
 export { entityFromAsset } from "./entity.js";
 
 export {
   Message,
   COMPACTION_EVENT_TYPE,
   compactionMessageContent,
-  isCompactionMessage
+  isCompactionMessage,
+  type MessageFork
 } from "./message.js";
 
 export { Thread, type ThreadKind } from "./thread.js";
@@ -261,6 +292,7 @@ export type {
 export {
   TimelineSequence,
   TimelineSequenceConflictError,
+  setTimelineFileSync,
   timelineDocumentDurationMs
 } from "./timeline-sequence.js";
 export type {
@@ -333,7 +365,8 @@ export {
   Project,
   LOOSE_PROJECT_ID,
   PERSONAL_PROJECT_KIND,
-  PERSONAL_PROJECT_NAME
+  PERSONAL_PROJECT_NAME,
+  setPersonalFolderProvider
 } from "./project.js";
 export type { PersonalMigrationReport, ProjectResponse } from "./project.js";
 export {
@@ -350,6 +383,7 @@ export {
 } from "./project-summary.js";
 export type {
   CategorySpend,
+  ProjectDocumentListEntry,
   ProjectDocumentPage,
   ProjectDocumentRef,
   ProjectEntitySummary,
@@ -367,6 +401,17 @@ export type {
   TimelineStatus
 } from "./project-summary.js";
 export { listDocumentIndex } from "./document-index.js";
+export {
+  DOCUMENT_FILE_MISSING,
+  documentFileOf,
+  findDocumentByFile,
+  listDocumentFiles
+} from "./document-file-state.js";
+export type {
+  DocumentOfFile,
+  FileDocumentType,
+  ProjectDocumentFile
+} from "./document-file-state.js";
 export type {
   DocumentIndex,
   DocumentIndexEntry,
@@ -426,7 +471,17 @@ export type {
 } from "./image-document.js";
 
 export { OAuthCredential } from "./oauth-credential.js";
-export { resolveCodexAccessToken } from "./codex-token.js";
+export {
+  resolveCodexAccessToken,
+  discoverChatGptOAuth,
+  chatGptAccountKey,
+  parseChatGptAccountKey,
+  hasChatGptPlanScope,
+  isUsableChatGptCredential,
+  findChatGptRegistration,
+  resetChatGptDiscoveryForTests,
+  type ChatGptOAuthEndpoints
+} from "./codex-token.js";
 export {
   GOOGLE_ACCESS_TOKEN_KEY,
   GOOGLE_CREDENTIAL_PROVIDER,
@@ -450,6 +505,7 @@ export type {
 } from "./prediction.js";
 
 export { Workspace } from "./workspace.js";
+export type { WorkspaceOrigin } from "./workspace.js";
 export { Game, AmbiguousGameIdError, InvalidGameDocumentError, MissingGameDraftSourceError } from "./game.js";
 
 export { RunEvent } from "./run-event.js";
@@ -551,7 +607,28 @@ export {
   MCP_OAUTH_ACCESS_TOKEN_PREFIX,
   MCP_OAUTH_REFRESH_TOKEN_PREFIX
 } from "./mcp-oauth.js";
-export type { McpOauthClientRow, McpOauthGrantRow } from "./mcp-oauth.js";
+export type {
+  McpOauthClientRow,
+  McpOauthGrantRow,
+  RefreshRotation,
+  RevocationHandleOutcome
+} from "./mcp-oauth.js";
+export {
+  NATIVE_ACCESS_TOKEN_PREFIX,
+  NATIVE_ACCESS_TTL_MS,
+  NATIVE_CLIENT_ID,
+  NATIVE_CLIENT_NAME,
+  NATIVE_REFRESH_IDLE_TTL_MS,
+  NATIVE_REVOCATION_HANDLE_PREFIX,
+  NATIVE_SCOPE,
+  type OauthGrantKind
+} from "./native-session-constants.js";
+export {
+  OauthPending,
+  OAUTH_PENDING_TTL_MS,
+  type OauthPendingCode,
+  type OauthPendingPayload
+} from "./oauth-pending.js";
 
 // ── Seeds ────────────────────────────────────────────────────────────
 export { runSeeds, seedCostData, COST_SEED_USER_ID } from "./seeds/index.js";
@@ -643,6 +720,7 @@ export type {
   UserStatus
 } from "./user-account.js";
 export { userAccounts } from "./schema/user-accounts.js";
+export { oauthPendingEntries } from "./schema/mcp-oauth.js";
 
 export {
   DEFAULT_QUOTA_SUBJECT,
@@ -694,3 +772,14 @@ export { threadHasTraceContentTools } from "./trace-provenance.js";
 export { listAppInstanceMetadata } from "./app-instance-list.js";
 
 export { openResourceChangeChannel, openResourceChangeChannelWithFallback, resolveResourceChangeListenerUrl, NOTIFY_PAYLOAD_LIMIT, MAX_PENDING_NOTIFICATIONS, RESYNC_MESSAGE, packResourceChangeMessages, encodeResourceChangeGroup } from "./resource-change-channel.js";
+
+export { CloudLocalStore } from "./cloud-local-store.js";
+export type {
+  AcceptOutcome,
+  CloudBase,
+  CloudDocumentRef,
+  CloudDraftRow,
+  CloudLocalScope,
+  CloudOpenStateRow
+} from "./cloud-local-store.js";
+export type { CloudDocumentOptions } from "./schema/cloud-local.js";

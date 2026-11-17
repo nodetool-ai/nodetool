@@ -1,3 +1,4 @@
+import { basename, dirname } from "node:path";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
@@ -33,7 +34,7 @@ export async function startPackedRegistry(tarballs) {
 if (!isMainThread) {
   const artifacts = new Map();
   for (const [name, file] of Object.entries(workerData)) {
-    const result = spawnSync("tar", ["-xOf", file, "package/package.json"], { encoding: "utf8" });
+    const result = spawnSync("tar", ["-xOf", basename(file), "package/package.json"], { cwd: dirname(file), encoding: "utf8" });
     if (result.status !== 0) { throw new Error(`Cannot read artifact ${file}: ${result.stderr}`); }
     const manifest = JSON.parse(result.stdout);
     if (manifest.name !== name || !manifest.version) { throw new Error(`Artifact identity differs: ${name}`); }

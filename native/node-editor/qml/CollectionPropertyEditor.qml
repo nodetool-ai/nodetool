@@ -76,7 +76,7 @@ ColumnLayout {
         enabled: root.writable && root.matches.length > 0
         onValueCommitted: value => root.choose(value)
     }
-    NodeButton { text: "Refresh collections"; enabled: root.writable && root.controller && !root.loading; onClicked: root.refresh() }
+    Ui.EditorButton { variant: Ui.EditorButton.Outlined; text: "Refresh collections"; enabled: root.writable && root.controller && !root.loading; onClicked: root.refresh() }
     Ui.Text {
         Layout.fillWidth: true
         text: root.error || (!root.controller ? "Connect to a server to choose a collection." : root.loading ? "Loading collections…" : root.loaded && !root.matches.length ? "No matching collections." : "")

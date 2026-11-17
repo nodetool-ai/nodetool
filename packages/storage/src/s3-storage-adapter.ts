@@ -1,9 +1,12 @@
+import { randomUUID } from "node:crypto";
 import {
   S3Client,
+  S3Error,
   type S3Api,
   type S3ClientOptions,
   type S3ListObjectsV2Input,
-  type S3PutObjectInput
+  type S3PutObjectInput,
+  type S3PutObjectResult
 } from "./s3/client.js";
 import type {
   DownloadUrlOptions,
@@ -22,6 +25,21 @@ import {
 } from "./storage-keys.js";
 import { SIGNED_URL_TTL } from "@nodetool-ai/config";
 import { objectCacheControl } from "./cache-control.js";
+
+/**
+ * The endpoint answered a conditional put (`If-None-Match: *`) over an
+ * existing object by replacing it. It does not honor the header, so it cannot
+ * create a file without replacing one.
+ */
+export class ConditionalWriteUnsupportedError extends Error {
+  constructor(endpoint: string) {
+    super(
+      `The storage endpoint ${endpoint} ignores the If-None-Match header on writes, so NodeTool cannot create a file there without risking the replacement of another one. ` +
+        "Use storage that supports conditional writes (AWS S3, Cloudflare R2, current MinIO), or a local project folder."
+    );
+    this.name = "ConditionalWriteUnsupportedError";
+  }
+}
 
 export interface S3StorageAdapterOptions {
   bucket: string;
@@ -43,6 +61,11 @@ export class S3StorageAdapter implements StorageAdapter {
   private client: S3Api | null;
   private readonly region: string;
   private readonly endpoint: string | undefined;
+  /**
+   * The one probe of whether the endpoint honors `If-None-Match`. A probe that
+   * failed for another reason is dropped, so the next write tries again.
+   */
+  private conditionalWrites: Promise<void> | null = null;
 
   constructor(opts: S3StorageAdapterOptions) {
     if (!opts.bucket) {
@@ -114,6 +137,130 @@ export class S3StorageAdapter implements StorageAdapter {
       }
       await this.getClient().putObject(put);
     } catch (err) {
+      throw new Error(
+        `S3 upload failed for s3://${this.bucket}/${objectKey}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+        { cause: err }
+      );
+    }
+    return `s3://${this.bucket}/${objectKey}`;
+  }
+
+  /**
+   * Prove once per adapter that the endpoint honors `If-None-Match: *`. Some
+   * S3-compatible stores accept the header and ignore it, and a write through
+   * one of them silently replaces the object. The probe puts a scratch object
+   * twice, the second time conditionally. The second put must be refused. It
+   * throws {@link ConditionalWriteUnsupportedError} when it is not, and the
+   * answer is kept, so every later write is refused without another request.
+   */
+  private requireConditionalWrites(): Promise<void> {
+    this.conditionalWrites ??= this.probeConditionalWrites().catch(
+      (cause: unknown) => {
+        // An unsupported endpoint stays unsupported. Anything else (a network
+        // error, a denied put) says nothing about the header, so it is tried
+        // again on the next write.
+        if (!(cause instanceof ConditionalWriteUnsupportedError)) {
+          this.conditionalWrites = null;
+        }
+        throw cause;
+      }
+    );
+    return this.conditionalWrites;
+  }
+
+  private async probeConditionalWrites(): Promise<void> {
+    const client = this.getClient();
+    const key = joinStorageKey(
+      this.prefix ?? undefined,
+      `.storage-probe/${randomUUID()}`
+    );
+    const put = (ifNoneMatch?: string): Promise<S3PutObjectResult> => {
+      const input: S3PutObjectInput = {
+        bucket: this.bucket,
+        key,
+        body: new Uint8Array(0)
+      };
+      if (ifNoneMatch) {
+        input.ifNoneMatch = ifNoneMatch;
+      }
+      return client.putObject(input);
+    };
+    let honored = false;
+    try {
+      await put();
+      try {
+        await put("*");
+      } catch (error) {
+        if (
+          error instanceof S3Error &&
+          (error.statusCode === 412 || error.statusCode === 409)
+        ) {
+          honored = true;
+        } else {
+          throw error;
+        }
+      }
+    } catch (error) {
+      if (error instanceof ConditionalWriteUnsupportedError) throw error;
+      throw new Error(
+        `S3 conditional-write probe failed for s3://${this.bucket}/${key}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        { cause: error }
+      );
+    } finally {
+      try {
+        await client.deleteObject({ bucket: this.bucket, key });
+      } catch {
+        // A scratch object that cannot be removed does not change the answer.
+        // It sits in a directory of its own, outside every project file.
+      }
+    }
+    if (!honored) {
+      throw new ConditionalWriteUnsupportedError(
+        this.endpoint ?? `s3://${this.bucket}`
+      );
+    }
+  }
+
+  /**
+   * A conditional put (`If-None-Match: *`). The store refuses it with 412
+   * when an object exists, and with 409 when another conditional put for the
+   * key is in flight. Both mean the key is taken. The endpoint must support
+   * conditional writes: AWS S3, Cloudflare R2 and current MinIO do. The first
+   * call probes the endpoint, and an endpoint that ignores the header is
+   * refused with {@link ConditionalWriteUnsupportedError} before any file is
+   * written.
+   */
+  async storeIfAbsent(
+    key: string,
+    data: Uint8Array,
+    contentType?: string
+  ): Promise<string | null> {
+    assertUploadWithinLimit(key, data.byteLength);
+    await this.requireConditionalWrites();
+    const objectKey = joinStorageKey(this.prefix ?? undefined, key);
+    try {
+      const put: S3PutObjectInput = {
+        bucket: this.bucket,
+        key: objectKey,
+        body: data,
+        cacheControl: objectCacheControl(),
+        ifNoneMatch: "*"
+      };
+      if (contentType) {
+        put.contentType = contentType;
+      }
+      await this.getClient().putObject(put);
+    } catch (err) {
+      if (
+        err instanceof S3Error &&
+        (err.statusCode === 412 || err.statusCode === 409)
+      ) {
+        return null;
+      }
       throw new Error(
         `S3 upload failed for s3://${this.bucket}/${objectKey}: ${
           err instanceof Error ? err.message : String(err)
@@ -238,6 +385,15 @@ export class S3StorageAdapter implements StorageAdapter {
   }
 
   async stat(uri: string): Promise<StorageStat | null> {
+    try {
+      return await this.statStrict(uri);
+    } catch {
+      return null;
+    }
+  }
+
+  /** As {@link stat}, but only a 404 reads as no object. Any other failure throws. */
+  async statStrict(uri: string): Promise<StorageStat | null> {
     const parsed = this.parseUri(uri);
     if (!parsed || parsed.bucket !== this.bucket) return null;
     try {
@@ -257,8 +413,9 @@ export class S3StorageAdapter implements StorageAdapter {
         stat.cacheControl = response.cacheControl;
       }
       return stat;
-    } catch {
-      return null;
+    } catch (error) {
+      if (error instanceof S3Error && error.statusCode === 404) return null;
+      throw error;
     }
   }
 

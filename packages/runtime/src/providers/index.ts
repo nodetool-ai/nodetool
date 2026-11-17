@@ -378,6 +378,10 @@ export {
   pendingCount as kieWebhookPendingCount
 } from "./kie-webhook-registry.js";
 export {
+  isValidKieWebhookToken,
+  kieWebhookCallbackUrl
+} from "./kie-endpoint.js";
+export {
   AtlasWebhookWaitTimeout,
   registerAtlasWebhookWait,
   resolveAtlasWebhook,
@@ -490,6 +494,25 @@ export type {
   CredentialAccountState,
   CheckCredentialOptions
 } from "./credential-check.js";
+export {
+  cachedProviderCredit,
+  clearProviderCredit,
+  creditAccountFor,
+  creditAccountKey,
+  creditBlockReason,
+  creditEndpointProviderIds,
+  fetchProviderCredit,
+  hasCreditEndpoint,
+  markProviderCreditExhausted,
+  readProviderCredit
+} from "./provider-credits.js";
+export type {
+  CreditAccount as ProviderCreditAccount,
+  ProviderCredit,
+  ProviderCreditState,
+  ProviderCreditUnit,
+  ReadProviderCreditOptions
+} from "./provider-credits.js";
 export {
   listOfflineModelIds,
   listOfflineRequiredTextInputs,

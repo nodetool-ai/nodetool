@@ -36,6 +36,22 @@ export const ERROR_CATEGORIES = [
 ] as const;
 export type ErrorCategory = (typeof ERROR_CATEGORIES)[number];
 
+/**
+ * Viewport width class, from the window width alone: under 600 CSS pixels is
+ * a phone, under 1024 a tablet. Never a size, a device model or a user agent.
+ */
+export const VIEWPORT_CLASSES = ["phone", "tablet", "desktop"] as const;
+export type ViewportClass = (typeof VIEWPORT_CLASSES)[number];
+
+/** The first-run starters on Home. */
+export const FIRST_RUN_STARTERS = [
+  "first_task",
+  "game",
+  "storyboard",
+  "template"
+] as const;
+export type FirstRunStarter = (typeof FIRST_RUN_STARTERS)[number];
+
 /** The product area a backend execution belongs to. */
 export const FEATURES = [
   "workflow",

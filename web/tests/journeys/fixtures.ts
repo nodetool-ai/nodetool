@@ -17,6 +17,7 @@ import {
   waitForAppReady,
   type PageLoadError
 } from "../smoke/pageLoadHelpers";
+import { emptyOwnedFolders } from "./ownedFolders";
 
 /** Ids seeded by `packages/websocket/src/screenshot-server.ts`. */
 export const FIXTURES = {
@@ -66,6 +67,9 @@ type JourneyFixtures = {
 
 export const test = base.extend<JourneyFixtures>({
   pageErrors: [async ({ page, request }, use, testInfo) => {
+    // Files first: the reset reseeds the database, and a file left over from
+    // the previous test would be imported as a new document beside the seed.
+    emptyOwnedFolders();
     const reset = await request.post("/api/test/reset");
     if (!reset.ok()) {
       throw new Error(

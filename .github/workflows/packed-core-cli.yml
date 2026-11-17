@@ -1,33 +1,51 @@
 name: Packed Core CLI
 
+# What the packed tarballs install depends on the manifests, the lockfile and
+# the packing scripts. A pull request runs this workflow when it changes one
+# of them. A change to package source alone runs it after the merge, on the
+# push to `main`, and `publish.yaml` runs both smokes before every release.
+# The install takes about half an hour, the longest job on a pull request,
+# and its one failure in 62 runs was a registry error that passed on rerun.
 on:
-  pull_request:
+  push:
+    branches:
+      - main
     paths:
       - 'packages/**'
       - 'scripts/smoke-packed-cli.mjs'
       - 'scripts/packed-*.mjs'
       - 'scripts/fixtures/packed-fal-preload.mjs'
-      - 'scripts/__tests__/packed-*.test.mjs'
-      - 'scripts/packed-verification.mjs'
-      - 'scripts/test-affected.mjs'
-      - 'scripts/ci-plan.mjs'
+      - 'scripts/package-manager.mjs'
       - 'scripts/run-turbo.mjs'
-      - 'scripts/__tests__/packed-verification.test.mjs'
-      - 'web/jest.config.ts'
-      - 'scripts/__tests__/jest-worker-memory.test.mjs'
       - 'scripts/fixtures/codec-identity.mp4'
       - 'scripts/node-catalog/tiers.mjs'
       - 'scripts/prepare-publish.mjs'
       - 'scripts/publish-packages.mjs'
       - 'scripts/release/**'
-      - 'scripts/__tests__/pin-catalog.test.mjs'
-      - 'scripts/__tests__/publish-packages.test.mjs'
-      - 'scripts/__tests__/smoke-packed-cli.test.mjs'
       - 'package.json'
       - 'package-lock.json'
       - '.nvmrc'
       - '.github/actions/setup-build/**'
-      - '.github/actions/chromium-sandbox/**'
+      - 'docker/ci/**'
+      - '.github/workflows/packed-core-cli.yml'
+  pull_request:
+    paths:
+      - 'packages/*/package.json'
+      - 'reliability/*/package.json'
+      - 'scripts/smoke-packed-cli.mjs'
+      - 'scripts/packed-*.mjs'
+      - 'scripts/fixtures/packed-fal-preload.mjs'
+      - 'scripts/package-manager.mjs'
+      - 'scripts/run-turbo.mjs'
+      - 'scripts/fixtures/codec-identity.mp4'
+      - 'scripts/node-catalog/tiers.mjs'
+      - 'scripts/prepare-publish.mjs'
+      - 'scripts/publish-packages.mjs'
+      - 'scripts/release/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.nvmrc'
+      - '.github/actions/setup-build/**'
       - 'docker/ci/**'
       - '.github/workflows/packed-core-cli.yml'
   workflow_dispatch:
@@ -37,9 +55,11 @@ permissions:
   # Pull the CI image.
   packages: read
 
+# A new push to a pull request cancels its running run. A push to `main`
+# waits for the running `main` run instead, as the group's one pending run.
 concurrency:
   group: packed-core-cli-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # The Linux image the jobs below run in (docker/ci/). Built here on the
@@ -50,15 +70,14 @@ jobs:
       contents: read
       packages: write
 
-  # A pull request into `main` also runs the Test workflow, whose Quality
-  # Gate runs these same checks in parallel shards: the affected suites,
-  # typecheck, lint, harness gate and backend smoke. Running them again
-  # here costs a second set of runners for the same selection. Stacked pull
-  # requests into other branches get no Test run, so they still verify
-  # here, as do manual runs. Skipping the plan skips the verification
+  # Every pull request and every push to `main` also runs the Test workflow,
+  # whose Quality Gate runs these same checks in parallel shards: the
+  # affected suites, typecheck, lint, harness gate and backend smoke. Running
+  # them again here costs a second set of runners for the same selection, so
+  # only a manual run verifies here. Skipping the plan skips the verification
   # matrix that needs it.
   verification-plan:
-    if: github.event_name != 'pull_request' || github.base_ref != 'main'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     outputs:
@@ -123,6 +142,7 @@ jobs:
         run: npm --prefix mobile ci
       - name: Prepare Chromium crash capture
         if: matrix.task == 'test-packages-game'
+        shell: bash
         run: |
           crash_dir="$RUNNER_TEMP/chromium-crashes"
           mkdir -p "$crash_dir/cores" "$crash_dir/upload"
@@ -183,6 +203,7 @@ jobs:
         run: node scripts/packed-verification.mjs run "$RUNNER_TEMP/packed-verification.json" "$PACKED_TASK"
       - name: Diagnose Chromium cores and restore the core handler
         if: always() && matrix.task == 'test-packages-game'
+        shell: bash
         env:
           BUCKET_OUTCOME: ${{ steps.verification-bucket.outcome }}
           DEBUGINFOD_URLS: https://debuginfod.ubuntu.com
@@ -280,41 +301,17 @@ jobs:
           PLAN_RESULT: ${{ needs.verification-plan.result }}
           VERIFICATION_RESULT: ${{ needs.verification.result }}
           PACKED_INSTALL_RESULT: ${{ needs.packed-install.result }}
-          QUALITY_GATE_VERIFIES: ${{ github.event_name == 'pull_request' && github.base_ref == 'main' }}
+          QUALITY_GATE_VERIFIES: ${{ github.event_name != 'workflow_dispatch' }}
         run: |
           if [ "$PACKED_INSTALL_RESULT" != "success" ]; then
             echo "Packed CLI installation did not pass."
             exit 1
           fi
           if [ "$PLAN_RESULT" = "skipped" ] && [ "$VERIFICATION_RESULT" = "skipped" ] && [ "$QUALITY_GATE_VERIFIES" = "true" ]; then
-            echo "The Test workflow's Quality Gate verifies this pull request into main."
+            echo "The Test workflow's Quality Gate verifies this pull request or push."
             exit 0
           fi
           if [ "$PLAN_RESULT" != "success" ] || [ "$VERIFICATION_RESULT" != "success" ]; then
             echo "Packed CLI verification did not pass."
             exit 1
           fi
-  release-pins:
-    needs: ci-image
-    runs-on: ubuntu-latest
-    container:
-      image: ${{ needs.ci-image.outputs.image }}
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-      options: --init --user 1001
-      volumes:
-        - /usr/share/dotnet:/reclaim/dotnet
-        - /usr/local/lib/android:/reclaim/android
-        - /opt/ghc:/reclaim/ghc
-        - /usr/local/.ghcup:/reclaim/ghcup
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-build
-        with:
-          cache: read-only
-      - name: Pin workspace versions in the test tarballs
-        run: node scripts/prepare-publish.mjs
-      - name: Measure and pin original pack tarballs without publishing
-        run: node scripts/publish-packages.mjs --pack-only --tarballs-dir .release-pins

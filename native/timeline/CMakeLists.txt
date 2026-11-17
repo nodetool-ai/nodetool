@@ -267,7 +267,7 @@ qt_add_shaders(timeline_qml timeline_compositor_shaders
 list(REMOVE_DUPLICATES NT_qml_includes)
 target_include_directories(timeline_qml PUBLIC src/model src/playback src/preview src/ui src/edit ${NT_qml_includes})
 target_link_libraries(timeline_qml PUBLIC timeline_core timeline_decode timeline_audio
-    nodetool_model_picker nodetool_media nodetool_entities nodetool_storyboard nodetool_chat Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
+    nodetool_model_picker nodetool_media nodetool_entities nodetool_storyboard nodetool_chat nodetool_account_qt Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
 
 function(nt_add_timeline_qml target)
     # OUTPUT_DIRECTORY belonged to the former per-executable module. Keep the
@@ -321,6 +321,19 @@ target_link_libraries(bench_scene PRIVATE timeline_core)
 get_property(NT_TEST_CALLBACKS GLOBAL PROPERTY NT_test_callbacks)
 foreach(callback IN LISTS NT_TEST_CALLBACKS)
     cmake_language(CALL ${callback})
+endforeach()
+
+# What scripts/op-conformance.mjs and scripts/plan-conformance.mjs run: the
+# app, timeline-ops and the oracle each suite in scripts/conformance/suites/
+# names next to timeline-ops.
+add_custom_target(conformance-helpers)
+foreach(helper nodetool-timeline timeline-ops nt_assets_oracle nt_assist_oracle structure-ops targeting-ops
+        timeline-gizmo-oracle track-ops tst_clipaudio tst_inspectorprimitives tst_keyframes tst_reframe tst_speed
+        tst_sync tst_tempo tst_transitions)
+    if(NOT TARGET ${helper})
+        message(FATAL_ERROR "conformance-helpers: no target ${helper}")
+    endif()
+    add_dependencies(conformance-helpers ${helper})
 endforeach()
 
 if(NT_FUZZ)

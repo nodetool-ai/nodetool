@@ -44,7 +44,11 @@ import type {
   ProviderStreamItem
 } from "../providers/types.js";
 import { withSpan } from "../tracing-helpers.js";
-import type { GenerationContext, GenerationHost } from "./context-host.js";
+import type {
+  GenerationAssetArgs,
+  GenerationContext,
+  GenerationHost
+} from "./context-host.js";
 import { dispatchCapability } from "./provider-dispatch.js";
 
 export type PredictionStatus =
@@ -403,6 +407,19 @@ export async function runGenerationWith<T>(
 }
 
 /**
+ * The path buffer `index` of a generation is saved at: the caller's path for
+ * the first, then `-2`, `-3` before the extension.
+ */
+function numberedPath(path: string | undefined, index: number): string | undefined {
+  if (!path || index === 0) return path;
+  const slash = path.lastIndexOf("/");
+  const dot = path.lastIndexOf(".");
+  return dot > slash + 1
+    ? `${path.slice(0, dot)}-${index + 1}${path.slice(dot)}`
+    : `${path}-${index + 1}`;
+}
+
+/**
  * Save a generation's media output as assets, stamping the generation id
  * on each. Bytes only: a segmentation result, a transcript or an embedding
  * is a result and stays on the message.
@@ -446,15 +463,18 @@ async function persistGenerationBytes(
       buffers.length === 1 || !persistName
         ? (persistName ?? `${req.capability}-${startedName(id)}.${ext}`)
         : persistName.replace(/(\.[a-z0-9]+)?$/i, `-${index + 1}$1`);
+    const createArgs: GenerationAssetArgs = {
+      name,
+      contentType: mime,
+      content: bytes,
+      parentId: req.persist?.parentId ?? null,
+      nodeId: req.nodeId ?? null,
+      metadata: { ...metadata }
+    };
+    const path = numberedPath(req.persist?.path, index);
+    if (path) createArgs.path = path;
     try {
-      const created = await context.createAsset({
-        name,
-        contentType: mime,
-        content: bytes,
-        parentId: req.persist?.parentId ?? null,
-        nodeId: req.nodeId ?? null,
-        metadata: { ...metadata }
-      });
+      const created = await context.createAsset(createArgs);
       const assetId =
         isRecord(created) && typeof created.id === "string"
           ? created.id

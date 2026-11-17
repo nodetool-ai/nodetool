@@ -1,8 +1,184 @@
 #include "ChildPorts.h"
 #include <QHash>
 #include <QQueue>
+#include <QRegularExpression>
 #include <QSet>
 namespace nodetool::node_editor {
+namespace {
+// The Comfy graph helpers of packages/protocol/src/comfy-graph.ts.
+bool isComfyNodeType(const QString &type) { return type.startsWith(QStringLiteral("comfy.")); }
+bool isComfyBoundaryNodeType(const QString &type) {
+  return type.startsWith(QStringLiteral("nodetool.input.")) || type.startsWith(QStringLiteral("nodetool.output."));
+}
+bool isComfyGraph(const QJsonArray &nodes) {
+  static const QSet<QString> editorOnly{
+      QStringLiteral("nodetool.workflows.base_node.Comment"), QStringLiteral("nodetool.workflows.base_node.Group"),
+      QStringLiteral("nodetool.workflows.base_node.Preview"), QStringLiteral("nodetool.control.Reroute")};
+  int comfy = 0;
+  for (const auto &value : nodes) {
+    const auto type = value.toObject()["type"].toString();
+    if (editorOnly.contains(type) || isComfyBoundaryNodeType(type)) { continue; }
+    if (!isComfyNodeType(type)) { return false; }
+    ++comfy;
+  }
+  return comfy > 0;
+}
+QJsonObject comfyNodeValues(const QJsonObject &node) {
+  return node["properties"].isObject() ? node["properties"].toObject() : node["data"].toObject();
+}
+QString comfyPromptField(const QJsonObject &node) {
+  const auto values = comfyNodeValues(node);
+  if (node["type"].toString().startsWith(QStringLiteral("comfy.PrimitiveString")) && values["value"].isString()) {
+    return QStringLiteral("value");
+  }
+  for (const auto *field : {"text", "prompt", "tags", "caption"}) {
+    if (values[QLatin1String(field)].isString()) { return QLatin1String(field); }
+  }
+  return {};
+}
+// The node that holds the positive prompt: upstream from the `positive`
+// socket, or the only text encoder of a graph without one.
+QJsonObject comfyPositivePrompt(const QJsonArray &nodes, const QJsonArray &edges, QString &field) {
+  QHash<QString, QJsonObject> byId;
+  for (const auto &value : nodes) { byId.insert(value.toObject()["id"].toString(), value.toObject()); }
+  QQueue<QString> pending;
+  for (const auto &value : edges) {
+    const auto edge = value.toObject();
+    if (edge["targetHandle"].toString() == QLatin1String("positive")) { pending.enqueue(edge["source"].toString()); }
+  }
+  QSet<QString> seen;
+  while (!pending.isEmpty()) {
+    const auto id = pending.dequeue();
+    if (seen.contains(id)) { continue; }
+    seen.insert(id);
+    if (!byId.contains(id)) { continue; }
+    const auto node = byId.value(id);
+    field = comfyPromptField(node);
+    if (!field.isEmpty()) { return node; }
+    for (const auto &value : edges) {
+      const auto edge = value.toObject();
+      if (edge["target"].toString() == id) { pending.enqueue(edge["source"].toString()); }
+    }
+  }
+  QJsonObject only;
+  int encoders = 0;
+  for (const auto &value : nodes) {
+    const auto node = value.toObject();
+    const auto type = node["type"].toString();
+    if (isComfyNodeType(type) && type.contains(QStringLiteral("TextEncode")) && !comfyPromptField(node).isEmpty()) {
+      only = node;
+      ++encoders;
+    }
+  }
+  field = encoders == 1 ? comfyPromptField(only) : QString();
+  return encoders == 1 ? only : QJsonObject{};
+}
+QString comfySaveKind(const QString &classType) {
+  static const QRegularExpression save(QStringLiteral("^(Save|VHS_VideoCombine)"));
+  static const QRegularExpression image(QStringLiteral("Image|WEBP|PNG"));
+  if (!save.match(classType).hasMatch()) { return {}; }
+  if (classType.contains(QStringLiteral("Video"))) { return QStringLiteral("video"); }
+  if (classType.contains(QStringLiteral("Audio"))) { return QStringLiteral("audio"); }
+  return image.match(classType).hasMatch() ? QStringLiteral("image") : QString();
+}
+QJsonObject comfyNodePosition(const QJsonObject &node) {
+  const auto position = node["ui_properties"].toObject()["position"].toObject();
+  return position["x"].isDouble() && position["y"].isDouble() ? position : QJsonObject{{"x", 0}, {"y", 0}};
+}
+} // namespace
+
+bool isComfyGraph(const QJsonObject &graph) { return isComfyGraph(graph["nodes"].toArray()); }
+
+QJsonObject exposeComfyInterface(const QJsonObject &graph) {
+  const auto nodes = graph["nodes"].toArray();
+  if (!isComfyGraph(nodes)) { return graph; }
+  for (const auto &value : nodes) {
+    if (isComfyBoundaryNodeType(value.toObject()["type"].toString())) { return graph; }
+  }
+  const auto edges = graph["edges"].toArray();
+  QJsonArray added, addedEdges;
+  QHash<QString, int> counts;
+  const auto uniqueName = [&counts](const QString &base) {
+    const auto count = ++counts[base];
+    return count == 1 ? base : QStringLiteral("%1_%2").arg(base).arg(count);
+  };
+  const auto boundary = [](const QString &id, const QString &type, const QJsonObject &values, const QJsonObject &target,
+                           double dx) {
+    const auto position = comfyNodePosition(target);
+    return QJsonObject{{"id", id},
+                       {"type", type},
+                       {"data", values},
+                       {"properties", values},
+                       {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", position["x"].toDouble() + dx},
+                                                                              {"y", position["y"].toDouble()}}},
+                                                     {"width", 280}}},
+                       {"dynamic_properties", QJsonObject{}},
+                       {"dynamic_outputs", QJsonObject{}}};
+  };
+  const auto addInput = [&](const QJsonObject &target, const QString &field, const QString &type, const QString &name,
+                            const QJsonValue &value) {
+    const auto targetId = target["id"].toString();
+    const auto id = QStringLiteral("input_%1_%2").arg(targetId, field);
+    added.append(boundary(id, type, QJsonObject{{"name", name}, {"description", ""}, {"value", value}}, target, -340));
+    addedEdges.append(QJsonObject{{"id", QStringLiteral("%1-%2").arg(id, targetId)}, {"source", id}, {"sourceHandle", "output"},
+                                  {"target", targetId}, {"targetHandle", field}, {"ui_properties", QJsonValue::Null}});
+  };
+  QString promptField;
+  const auto prompt = comfyPositivePrompt(nodes, edges, promptField);
+  if (!prompt.isEmpty()) {
+    addInput(prompt, promptField, QStringLiteral("nodetool.input.StringInput"), uniqueName(QStringLiteral("prompt")),
+             comfyNodeValues(prompt)[promptField]);
+  }
+  struct Load {
+    const char *kind;
+    const char *type;
+    const char *field;
+  };
+  static const QHash<QString, Load> loads{{QStringLiteral("LoadImage"), {"image", "nodetool.input.ImageInput", "image"}},
+                                          {QStringLiteral("LoadAudio"), {"audio", "nodetool.input.AudioInput", "audio"}},
+                                          {QStringLiteral("LoadVideo"), {"video", "nodetool.input.VideoInput", "file"}}};
+  QJsonArray out;
+  for (const auto &value : nodes) {
+    auto node = value.toObject();
+    const auto type = node["type"].toString();
+    if (!isComfyNodeType(type)) {
+      out.append(node);
+      continue;
+    }
+    const auto classType = type.mid(int(qstrlen("comfy.")));
+    if (loads.contains(classType)) {
+      const auto load = loads.value(classType);
+      const auto kind = QLatin1String(load.kind);
+      addInput(node, QLatin1String(load.field), QLatin1String(load.type), uniqueName(kind),
+               QJsonObject{{"type", kind}, {"uri", ""}});
+      out.append(node);
+      continue;
+    }
+    const auto kind = comfySaveKind(classType);
+    if (kind.isEmpty()) {
+      out.append(node);
+      continue;
+    }
+    const auto nodeId = node["id"].toString();
+    const auto id = QStringLiteral("output_%1").arg(nodeId);
+    added.append(boundary(id, QStringLiteral("nodetool.output.Output"),
+                          QJsonObject{{"name", uniqueName(QStringLiteral("output"))}, {"description", ""}}, node, 340));
+    addedEdges.append(QJsonObject{{"id", QStringLiteral("%1-%2").arg(nodeId, id)}, {"source", nodeId}, {"sourceHandle", "output"},
+                                  {"target", id}, {"targetHandle", "value"}, {"ui_properties", QJsonValue::Null}});
+    auto dynamicOutputs = node["dynamic_outputs"].toObject();
+    dynamicOutputs["output"] = QJsonObject{{"type", kind}, {"optional", true}, {"type_args", QJsonArray{}}};
+    node["dynamic_outputs"] = dynamicOutputs;
+    out.append(node);
+  }
+  for (const auto &value : added) { out.append(value); }
+  auto allEdges = edges;
+  for (const auto &value : addedEdges) { allEdges.append(value); }
+  auto result = graph;
+  result["nodes"] = out;
+  result["edges"] = allEdges;
+  return result;
+}
+
 QString childGraphKey(const QJsonObject &n) {
   const auto type = n["type"].toString();
   if (type == "nodetool.workflows.subgraph.Subgraph") {
@@ -37,7 +213,7 @@ QJsonObject withChildPorts(const QJsonObject &raw, const QJsonArray &metadata) {
                                       {"Integer", "int"},  {"Float", "float"},
                                       {"Boolean", "bool"}, {"Image", "image"},
                                       {"Audio", "audio"},  {"Video", "video"}};
-  const auto graph = childGraph(n);
+  auto graph = childGraph(n);
   QJsonArray nodes = graph["nodes"].toArray();
   if (childGraphKey(n) == "workflow_json" && graph["nodes"].isObject()) {
     const auto object = graph["nodes"].toObject();
@@ -45,6 +221,11 @@ QJsonObject withChildPorts(const QJsonObject &raw, const QJsonArray &metadata) {
       nodes.append(it.value());
     }
   }
+  // A stored Comfy graph has no Input or Output nodes. extractDynamicIO
+  // derives its ports the way the server runs it.
+  graph["nodes"] = nodes;
+  graph = exposeComfyInterface(graph);
+  nodes = graph["nodes"].toArray();
   const auto data = n["data"].toObject();
   auto snapshot = data["app_json"].toObject();
   const auto bindings = snapshot["input_bindings"].toObject();

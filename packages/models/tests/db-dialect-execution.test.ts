@@ -26,8 +26,13 @@ import { Storyboard, emptyStoryboardDocument } from "../src/storyboard.js";
 import { TimelineSequence, type TimelineDocument } from "../src/timeline-sequence.js";
 import { TimelineSequenceVersion } from "../src/timeline-sequence-version.js";
 import { Workflow } from "../src/workflow.js";
+import { WorkflowVersion } from "../src/workflow-version.js";
 import { Workspace } from "../src/workspace.js";
+import { McpOauthGrant, McpOauthToken } from "../src/mcp-oauth.js";
+import { OauthPending } from "../src/oauth-pending.js";
 import { initPgliteTestDb } from "./helpers/pglite-test-db.js";
+import { eq } from "drizzle-orm";
+import { mcpOauthGrants, mcpOauthTokens } from "../src/schema/mcp-oauth.js";
 
 const OWNER = "dialect-owner";
 const TIMELINE_DOCUMENT: TimelineDocument = { tracks: [], clips: [], markers: [] };
@@ -254,6 +259,36 @@ describe("model execution on SQLite and PostgreSQL", () => {
     });
   }, DIALECT_TEST_TIMEOUT_MS);
 
+  it("finds assets by a string in their metadata, with LIKE wildcards escaped", async () => {
+    await onBothDialects(async () => {
+      const copyOf = (sourceId: string, name: string) =>
+        Asset.create<Asset>({
+          user_id: OWNER,
+          name,
+          metadata: { workspace_hash: "h", copied_from_asset_id: sourceId }
+        });
+      await copyOf("a_c%", "copy");
+      // `_` and `%` are LIKE wildcards; an unescaped pattern would match these.
+      await copyOf("abc%", "wildcard twin");
+      await copyOf("a_cX", "longer id");
+      await Asset.create<Asset>({ user_id: OWNER, name: "plain", metadata: null });
+      await Asset.create<Asset>({
+        user_id: "someone-else",
+        name: "theirs",
+        metadata: { copied_from_asset_id: "a_c%" }
+      });
+      const found = await Asset.findByMetadataString(OWNER, "default", "copied_from_asset_id", "a_c%");
+      expect(found.map((asset) => asset.name)).toEqual(["copy"]);
+      expect(await Asset.findByMetadataString(
+        OWNER,
+        "other-project",
+        "copied_from_asset_id",
+        "a_c%"
+      )).toEqual([]);
+      return found.map((asset) => asset.name);
+    });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
   it("rejects missing, foreign and deleted projects without inserting or notifying", async () => {
     await onBothDialects(async () => {
       await Project.create<Project>({ id: "foreign-project", user_id: "another-owner" });
@@ -287,6 +322,200 @@ describe("model execution on SQLite and PostgreSQL", () => {
       await expect(Asset.get<Asset>(prefix)).rejects.toThrow(`short id "${prefix}" matches more than one row; use the full id`);
       expect(await Asset.get<Asset>("012345abcde")).toBeNull();
       return { single: single?.id, full: (await Asset.get<Asset>(secondId))?.id };
+    });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
+  it("rewrites the paths under a project directory in one statement, case-sensitively and without wildcards", async () => {
+    await onBothDialects(async () => {
+      const project = "default";
+      await Project.create<Project>({ id: "elsewhere", user_id: OWNER, name: "Elsewhere" });
+      const make = (workspace_path: string, project_id = project) =>
+        Asset.create<Asset>({ user_id: OWNER, project_id, workspace_path });
+      const inside = await make("Shots/a.png");
+      const nested = await make("Shots/day 1/b.png");
+      // A sibling whose name starts like the directory, a differently cased
+      // one, and another project's file stay.
+      const sibling = await make("Shots2/c.png");
+      const cased = await make("shots/d.png");
+      const other = await make("Shots/f.png", "elsewhere");
+      // `_` is a LIKE wildcard, so `A_b/%` would also match `Axb/`.
+      const underscore = await make("A_b/g.png");
+      const lookalike = await make("Axb/h.png");
+      const moved = await Asset.moveWorkspaceDirectory(OWNER, project, "Shots", "Takes/Wide");
+      const movedUnderscore = await Asset.moveWorkspaceDirectory(OWNER, project, "A_b", "C");
+      const paths = await Promise.all(
+        [inside, nested, sibling, cased, other, underscore, lookalike].map(
+          async (asset) => (await Asset.get<Asset>(asset.id))?.workspace_path
+        )
+      );
+      expect([moved, movedUnderscore]).toEqual([2, 1]);
+      expect(paths).toEqual([
+        "Takes/Wide/a.png",
+        "Takes/Wide/day 1/b.png",
+        "Shots2/c.png",
+        "shots/d.png",
+        "Shots/f.png",
+        "C/g.png",
+        "Axb/h.png"
+      ]);
+      return { moved, paths };
+    });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
+  it("lists a row filed under a directory id at Home outside a project listing", async () => {
+    await onBothDialects(async () => {
+      const filed = await Asset.create<Asset>({
+        user_id: OWNER,
+        name: "filed",
+        parent_id: "dir:p1:Shots"
+      });
+      await Asset.create<Asset>({ user_id: OWNER, name: "in a folder row", parent_id: "folder-row" });
+      const [home] = await Asset.paginate(OWNER, { parentId: OWNER });
+      const names = home.map((asset) => asset.name);
+      expect(names).toEqual([filed.name]);
+      return names;
+    });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
+  it("lists only the rows whose bytes still have to move into the project folder", async () => {
+    await onBothDialects(async () => {
+      const project = "default";
+      await Project.create<Project>({ id: "elsewhere", user_id: OWNER, name: "Elsewhere" });
+      const make = (name: string, fields: Record<string, unknown> = {}) =>
+        Asset.create<Asset>({
+          user_id: OWNER,
+          project_id: project,
+          name,
+          created_at: `2024-01-01T00:00:0${name.length % 10}.000Z`,
+          ...fields
+        });
+      const legacy = await make("a");
+      const started = await make("bb", {
+        metadata: { workspace_move_target: "Shots/bb.png" }
+      });
+      const switched = await make("ccc", {
+        workspace_path: "ccc.png",
+        metadata: { workspace_move_target: "ccc.png", workspace_size: 3 }
+      });
+      // Never listed: a file in the folder, a file referenced in place, a
+      // folder row, a row that only holds the key's name as a value, and a
+      // row of another project.
+      await make("dddd", { workspace_path: "dddd.png" });
+      await make("eeeee", { external_path: "/media/eeeee.png" });
+      await make("ffffff", { content_type: "folder" });
+      await make("ggggggg", {
+        workspace_path: "ggggggg.png",
+        metadata: { note: "\"workspace_move_target\"" }
+      });
+      const other = await make("hhhhhhhh", { project_id: "elsewhere" });
+
+      const waiting = (await Asset.listAwaitingFolderMove(OWNER, project)).map(
+        (asset) => asset.name
+      );
+      expect(waiting).toEqual([legacy.name, started.name, switched.name]);
+
+      const projects = (await Asset.listProjectsAwaitingFolderMove())
+        .map((row) => `${row.userId}/${row.projectId}`)
+        .sort();
+      expect(projects).toEqual([`${OWNER}/${project}`, `${OWNER}/${other.project_id}`]);
+
+      // The count covers every project: the three above and the other one.
+      const count = await Asset.countAwaitingFolderMove(OWNER);
+      expect(count).toBe(waiting.length + 1);
+
+      // Only a row with no file yet holds a path for its copy.
+      const moving = (await Asset.findMovingTo(OWNER, project)).map((a) => a.name);
+      expect(moving).toEqual([started.name]);
+      const exact = await Asset.findMovingTo(OWNER, project, "Shots/bb.png");
+      const none = await Asset.findMovingTo(OWNER, project, "Shots/BB.png");
+      expect([exact.length, none.length]).toEqual([1, 0]);
+
+      const children = [
+        await Asset.countChildren(OWNER, "no-such-folder"),
+        await (async () => {
+          await make("i", { parent_id: legacy.id });
+          return Asset.countChildren(OWNER, legacy.id);
+        })(),
+        await Asset.countChildren("someone-else", legacy.id)
+      ];
+      expect(children).toEqual([0, 1, 0]);
+      return { waiting, projects, count, moving, children };
+    });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
+  it("writes where an asset's bytes are only while the row is what was read", async () => {
+    await onBothDialects(async () => {
+      const read = { note: "kept", size: 1 };
+      const asset = await Asset.create<Asset>({
+        user_id: OWNER,
+        name: "fox",
+        metadata: read
+      });
+      const updatedAt = (await Asset.get<Asset>(asset.id))?.updated_at;
+      const events: ModelChangeEvent[] = [];
+      ModelObserver.subscribe((_, event) => events.push(event), "Asset");
+
+      // Recording a step of the move writes metadata alone and stays silent.
+      asset.metadata = { ...read, workspace_move_target: "fox.png" };
+      asset.name = "not written";
+      expect(await asset.saveMoveStateIf({ workspace_path: null, metadata: { other: 1 } })).toBe(false);
+      expect(await asset.saveMoveStateIf({ workspace_path: "fox.png", metadata: read })).toBe(false);
+      expect(await asset.saveMoveStateIf({ workspace_path: null, metadata: read })).toBe(true);
+      expect(events).toEqual([]);
+      const recorded = asset.metadata;
+
+      // Another writer renames the asset. Only the placement columns are
+      // written afterwards, so the new name stays.
+      const renamed = await Asset.get<Asset>(asset.id);
+      renamed!.name = "renamed";
+      await renamed!.save();
+      events.length = 0;
+
+      asset.workspace_path = "fox.png";
+      asset.parent_id = OWNER;
+      asset.size = 3;
+      asset.metadata = { ...recorded, workspace_size: 3 };
+      expect(await asset.saveFilePlacementIf({ workspace_path: null, metadata: read })).toBe(false);
+      expect(await asset.saveFilePlacementIf({ workspace_path: null, metadata: recorded })).toBe(true);
+      // The same write again finds the row changed and writes nothing.
+      expect(await asset.saveFilePlacementIf({ workspace_path: null, metadata: recorded })).toBe(false);
+      expect(events).toEqual([ModelChangeEvent.UPDATED]);
+
+      const stored = await Asset.get<Asset>(asset.id);
+      const row = {
+        name: stored?.name,
+        workspace_path: stored?.workspace_path,
+        parent_id: stored?.parent_id,
+        size: stored?.size,
+        metadata: stored?.metadata
+      };
+      expect(row).toEqual({
+        name: "renamed",
+        workspace_path: "fox.png",
+        parent_id: OWNER,
+        size: 3,
+        metadata: { ...recorded, workspace_size: 3 }
+      });
+      // `updated_at` versions the asset's URL, and the bytes did not change.
+      expect(stored?.updated_at).toBe(renamed!.updated_at);
+      expect(updatedAt).toBeDefined();
+
+      // A row that references a file in place is never given a folder file.
+      const linked = await Asset.create<Asset>({
+        user_id: OWNER,
+        external_path: "/media/plate.png"
+      });
+      linked.workspace_path = "plate.png";
+      const refused = await linked.saveFilePlacementIf({ workspace_path: null, metadata: null });
+      expect(refused).toBe(false);
+      expect((await Asset.get<Asset>(linked.id))?.workspace_path).toBeNull();
+
+      // A deleted row is not brought back.
+      await stored!.delete();
+      asset.metadata = {};
+      expect(await asset.saveMoveStateIf({ workspace_path: "fox.png", metadata: row.metadata! })).toBe(false);
+      expect(await Asset.get<Asset>(asset.id)).toBeNull();
+      return { row, refused };
     });
   }, DIALECT_TEST_TIMEOUT_MS);
 
@@ -363,6 +592,145 @@ describe("model execution on SQLite and PostgreSQL", () => {
         ["Storyboard", ModelChangeEvent.UPDATED], ["TimelineSequence", ModelChangeEvent.UPDATED]
       ]);
       return { document: second.timeline.document, width: second.timeline.width, height: second.timeline.height, events };
+    });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
+  it("keeps the replaced revision in the save's transaction, and nothing on a lost compare-and-set", async () => {
+    const result = await onBothDialects(async () => {
+      const keep = { name: "Kept", saveType: "manual" };
+      const timeline = await TimelineSequence.create<TimelineSequence>({
+        user_id: OWNER, project_id: "default", name: "Timeline", document: JSON.stringify(TIMELINE_DOCUMENT)
+      });
+      const stale = await TimelineSequence.updateFieldsIfUnchanged(
+        timeline.id, "2000-01-01T00:00:00.000Z", { name: "Stale" }, undefined, keep
+      );
+      const saved = await TimelineSequence.updateFieldsIfUnchanged(
+        timeline.id, timeline.updated_at, { name: "Saved" }, undefined, keep
+      );
+      const timelineVersions = await TimelineSequenceVersion.listForTimeline(timeline.id);
+
+      const workflow = await Workflow.create<Workflow>({
+        user_id: OWNER, name: "Flow", graph: { nodes: [{ id: "a" }], edges: [] }
+      });
+      const workflowKeep = { name: null, saveType: "checkpoint", description: "Kept" };
+      const lost = await Workflow.updateFieldsIfUnchanged(
+        workflow.id, "2000-01-01T00:00:00.000Z", { name: "Lost" }, undefined, workflowKeep
+      );
+      const first = await Workflow.updateFieldsIfUnchanged(
+        workflow.id, workflow.updated_at, { graph: { nodes: [{ id: "b" }], edges: [] } }, undefined, workflowKeep
+      );
+      await Workflow.updateFieldsIfUnchanged(
+        workflow.id, first!.updated_at, { graph: { nodes: [{ id: "c" }], edges: [] } }, undefined, workflowKeep
+      );
+      const workflowVersions = await WorkflowVersion.listForWorkflow(workflow.id);
+      return {
+        stale, savedName: saved?.name,
+        timelineVersions: timelineVersions.map((v) => [v.version, v.name, v.save_type]),
+        lost,
+        workflowVersions: workflowVersions
+          .map((v) => [v.version, v.name, v.description, (v.graph.nodes[0] as { id: string }).id])
+          .sort()
+      };
+    });
+    expect(result).toEqual({
+      stale: null,
+      savedName: "Saved",
+      timelineVersions: [[1, "Kept", "manual"]],
+      lost: null,
+      workflowVersions: [[1, "Flow", "Kept", "a"], [2, "Flow", "Kept", "b"]]
+    });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
+  // A refresh that read the token rows before a revocation committed must not
+  // issue a pair afterwards: rotation and minting check the grant under its
+  // lock. The fixture leaves the token rows of a revoked grant in place, the
+  // state that refresh saw in the race.
+  it("issues no tokens for a revoked grant on both engines", async () => {
+    const result = await onBothDialects(async () => {
+      const grant = await McpOauthGrant.create({
+        user_id: OWNER,
+        client_id: "nodetool-native",
+        client_name: "NodeTool desktop apps",
+        scope: "native",
+        resource: "https://nodetool.example",
+        kind: "native",
+        app_name: "timeline",
+        device_name: "Edit bay"
+      });
+      const pair = await McpOauthToken.mintPair(grant.id, "native");
+      await getPortableDb()
+        .update(mcpOauthGrants)
+        .set({ revoked_at: new Date().toISOString() })
+        .where(eq(mcpOauthGrants.id, grant.id));
+      const rotation = await McpOauthToken.rotateRefresh(pair.refreshToken);
+      let minted = "minted";
+      try {
+        await McpOauthToken.mintPair(grant.id, "native");
+      } catch {
+        minted = "refused";
+      }
+      const live = await getPortableDb()
+        .select({ id: mcpOauthTokens.id })
+        .from(mcpOauthTokens)
+        .where(eq(mcpOauthTokens.grant_id, grant.id));
+      await McpOauthGrant.revoke(OWNER, grant.id);
+      const afterRevoke = await getPortableDb()
+        .select({ id: mcpOauthTokens.id })
+        .from(mcpOauthTokens)
+        .where(eq(mcpOauthTokens.grant_id, grant.id));
+      return { rotation, minted, tokens: live.length, afterRevoke: afterRevoke.length };
+    });
+    expect(result).toEqual({ rotation: null, minted: "refused", tokens: 2, afterRevoke: 0 });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
+  it("runs a native device session's rotation, lost-rotation retry and handle on both engines", async () => {
+    const result = await onBothDialects(async () => {
+      const grant = await McpOauthGrant.create({
+        user_id: OWNER,
+        client_id: "nodetool-native",
+        client_name: "NodeTool desktop apps",
+        scope: "native",
+        resource: "https://nodetool.example",
+        kind: "native",
+        app_name: "timeline",
+        device_name: "Edit bay"
+      });
+      const handle = await McpOauthGrant.issueRevocationHandle(grant.id);
+      const secondHandle = await McpOauthGrant.issueRevocationHandle(grant.id);
+      const pair = await McpOauthToken.mintPair(grant.id, "native");
+      const first = await McpOauthToken.rotateRefresh(pair.refreshToken);
+      const lost = await McpOauthToken.rotateRefresh(pair.refreshToken);
+      const discarded =
+        first && "accessToken" in first
+          ? await McpOauthToken.rotateRefresh(first.refreshToken)
+          : null;
+      const verified = await McpOauthToken.verifyNativeAccess(pair.accessToken);
+      const ended = await McpOauthGrant.endByRevocationHandle(handle!);
+      const again = await McpOauthGrant.endByRevocationHandle(handle!);
+      const code = await OauthPending.putCode({ grantId: grant.id }, OWNER);
+      const spent = await OauthPending.consumeCode(code);
+      const replay = await OauthPending.consumeCode(code);
+      return {
+        prefixes: [pair.accessToken.slice(0, 4), pair.refreshToken.slice(0, 4)],
+        handleOnce: [handle?.startsWith("nth_"), secondHandle],
+        first: first !== null && "grantKind" in first ? first.grantKind : null,
+        lost: lost !== null && "accessToken" in lost,
+        discarded,
+        verifiedUser: verified?.userId,
+        ended: [ended.outcome, again.outcome],
+        code: [spent?.consumedBefore, replay?.consumedBefore]
+      };
+    });
+    expect(result).toEqual({
+      prefixes: ["ntd_", "ntr_"],
+      handleOnce: [true, null],
+      first: "native",
+      lost: true,
+      // The lost rotation's unused replacement is gone after the retry.
+      discarded: null,
+      verifiedUser: OWNER,
+      ended: ["ended", "already_ended"],
+      code: [false, true]
     });
   }, DIALECT_TEST_TIMEOUT_MS);
 });

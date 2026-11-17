@@ -50,6 +50,7 @@ const unavailable = (reason, note) => ({ kind: "unavailable", reason, note });
 
 const RT = "@nodetool-ai/runtime";
 const realRuntime = (path) => guest(`${RT}/${path}`);
+const realWorkspace = guest("@nodetool-ai/runtime-core");
 const nodeMedia = (note = "the runtime implements it with node-av, and host media has no equivalent yet") =>
   unavailable("not-yet-ported", note);
 const hostBinaries = unavailable("host-binary", "part of the runtime's host program launcher");
@@ -69,6 +70,7 @@ export const MODULES = {
     provider: "host/runtime.mjs",
     exports: {
       ACTIVE_MODEL_CONTEXT_KEY: pure("a constant of the runtime's processing context"),
+      APPROVAL_DECISIONS: realRuntime("permission-gate.js"),
       BaseProvider: realRuntime("providers/base-provider.js"),
       BlenderExecutorError: blender,
       DEFAULT_YT_DLP_FORMAT: ytDlp,
@@ -78,6 +80,7 @@ export const MODULES = {
       MAX_ARTIFACT_BYTES: hostBinaries,
       MAX_CAPTURED_BYTES: hostBinaries,
       PERMISSION_GATE_CONTEXT_KEY: realRuntime("permission-gate.js"),
+      RESERVED_WORKSPACE_DIR: realWorkspace,
       ProcessingContext: impl("host/context.mjs", "GuestContext"),
       RECOMMENDED_MODELS: pure("the runtime's recommended model list"),
       RecoverableNodeError: realRuntime("recoverable-node-error.js"),
@@ -86,6 +89,8 @@ export const MODULES = {
       WAN2GP_MAX_MEDIA_BYTES: wan2gp,
       WEB_SEARCH_TOOL_NAME: realRuntime("providers/types.js"),
       WebsocketPythonBridge: python,
+      WorkspaceReservedPathError: realWorkspace,
+      assertLocalPathIsOwn: impl("host/runtime.mjs"),
       assetRefToPromptToken: realRuntime("prompt-asset-refs"),
       budgetFromContext: realRuntime("turn-budget.js"),
       calendarCreateEvent: google,
@@ -93,6 +98,7 @@ export const MODULES = {
       calendarListCalendars: google,
       calendarListEvents: google,
       clampTimeoutSeconds: hostBinaries,
+      comfyCloudFetch: comfy,
       configureRunTraceStore: unavailable("server-only", "configures the server's run trace store"),
       connectPythonBridgeForGraph: python,
       countTokens: unavailable("native-addon", "loads the tiktoken tokenizer through importOptionalModule"),
@@ -101,6 +107,8 @@ export const MODULES = {
       createRunBudget: realRuntime("turn-budget.js"),
       createSemaphore: pure("a pure helper of the runtime's turn budget"),
       createWorkspace: unavailable("server-only", "creates a server workspace instead of using context.workspace"),
+      creditBlockReason: realRuntime("providers/provider-credits.js"),
+      ensureRunFile: impl("host/runtime.mjs"),
       currentGenerationReceipt: generations,
       decidePermission: realRuntime("permission-gate.js"),
       detectImageMime: realRuntime("providers/image-mime.js"),
@@ -133,13 +141,16 @@ export const MODULES = {
       gmailModifyLabels: google,
       gmailSearchMessages: google,
       gmailSendMessage: google,
+      grantsStandingApproval: realRuntime("permission-gate.js"),
       headlessDenialReason: pure("a pure helper of the runtime's permission gate"),
       headlessGate: realRuntime("permission-gate.js"),
       imageModelSupportsTask: pure("a pure helper of the runtime's image model table"),
       inAppRunCostAccount: unavailable("server-only", "part of the server's app run billing"),
       initTelemetry: unavailable("server-only", "starts the server's OpenTelemetry exporter"),
       initializeTokenCounter: unavailable("native-addon", "loads the tiktoken tokenizer through importOptionalModule"),
+      isApprovingDecision: realRuntime("permission-gate.js"),
       isChunk: guest("@nodetool-ai/protocol"),
+      isPreapproved: realRuntime("permission-gate.js"),
       isProviderConfigured: providerRegistry,
       isProviderGenerationsUnsupported: pure("a pure helper of the runtime's provider generations"),
       isProviderMessageEvent: pure("a pure helper of the runtime's provider types"),
@@ -177,7 +188,14 @@ export const MODULES = {
       resolvePythonNodeExecutor: python,
       runHostBinary: hostBinaries,
       safeFetch: impl("host/media-fetch.mjs"),
+      // The guest keeps no project folders: the asset goes through the assets
+      // capability and the file through the files capability, where the node
+      // reads it back. See host/runtime.mjs.
+      saveRunFileAsset: impl("host/runtime.mjs"),
       selectedYtDlpFormats: ytDlp,
+      // Real state, not a stub: execution's project folder module installs a
+      // resolver when it loads, and a stub would throw at bundle start.
+      setProjectFolderResolver: realWorkspace,
       sheetsAppendRows: google,
       sheetsCreateSpreadsheet: google,
       sheetsReadRange: google,
@@ -267,6 +285,14 @@ export const MODULES = {
     }
   },
 
+  "@nodetool-ai/storage/storage-keys": {
+    provider: "host/storage.mjs",
+    exports: {
+      joinStorageKey: guest("@nodetool-ai/storage/storage-keys"),
+      normalizeStorageKey: guest("@nodetool-ai/storage/storage-keys")
+    }
+  },
+
   "@nodetool-ai/config": {
     provider: "shims/config.cjs",
     exports: {
@@ -285,6 +311,7 @@ export const MODULES = {
       getNodeBuiltinSync: impl("shims/config.cjs"),
       getNodetoolCacheDir: unavailable("server-only", "a data directory of the server"),
       getNodetoolDataDir: unavailable("server-only", "a data directory of the server"),
+      getProjectsDir: unavailable("server-only", "the server's directory of project folders"),
       importHidden: impl("shims/config.cjs"),
       importNodeBuiltin: impl("shims/config.cjs"),
       importOptionalModule: impl("shims/config.cjs"),
@@ -357,7 +384,7 @@ export const MODULES = {
   "node:fs/promises": {
     provider: "host/fs-promises.mjs",
     exports: Object.fromEntries(
-      ["default", "lstat", "mkdir", "mkdtemp", "open", "readFile", "readdir", "realpath", "rename", "rm", "stat", "unlink", "writeFile"]
+      ["access", "default", "lstat", "mkdir", "mkdtemp", "open", "readFile", "readdir", "realpath", "rename", "rm", "stat", "unlink", "writeFile"]
         .map((name) => [name, impl("host/fs-promises.mjs")])
     )
   },
@@ -487,6 +514,12 @@ export const MODULES = {
     provider: "host/canvas.mjs",
     wrap: true,
     exports: { createCanvas: impl("host/canvas.mjs"), loadImage: impl("host/canvas.mjs") }
+  },
+
+  // Server packages the guest does not load.
+  "@nodetool-ai/asset-services": {
+    whole: unavailable("server-only", "keeps asset files in the server's project folders"),
+    subpaths: true
   },
 
   // Packages QuickJS cannot load: native addons, WebAssembly and launchers

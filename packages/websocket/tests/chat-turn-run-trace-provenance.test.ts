@@ -13,7 +13,7 @@ describe("chat run protected content provenance", () => {
 
   it("suppresses content from protected tools older than the compaction and recent probe", async () => {
     const thread = await Thread.create<Thread>({ user_id: "1" });
-    const protectedName = listCapabilitySpecs().find((spec) => capabilityModuleOf(spec.name) === "email")?.name;
+    const protectedName = listCapabilitySpecs().find((spec) => capabilityModuleOf(spec.name) === "google")?.name;
     expect(protectedName).toBeDefined();
     await Message.create({ thread_id: thread.id, user_id: "1", role: "tool", name: protectedName, content: "protected mail body" });
     for (let index = 0; index < 55; index++) {

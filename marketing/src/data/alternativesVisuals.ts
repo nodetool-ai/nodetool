@@ -223,3 +223,8 @@ export function alternativeVisuals(c: Competitor): AlternativeVisualSet {
   const set = VISUALS[c.category] ?? VISUALS["AI filmmaking"];
   return c.hero ? { ...set, ...c.hero } : set;
 }
+
+/** The visual set for a category, as the competitor pages in it use it. */
+export function categoryVisuals(category: string): AlternativeVisualSet {
+  return VISUALS[category] ?? VISUALS["AI filmmaking"];
+}

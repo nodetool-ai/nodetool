@@ -300,7 +300,9 @@ describe("gated capability matches a real CI trigger", () => {
     "preset-ejection": "dev:nodetool -- harness gate",
     "backend-smoke": "npm run backend:smoke",
     "packed-core-cli": "node scripts/smoke-packed-cli.mjs --core-only",
-    "release-pins": "scripts/__tests__/pin-catalog.test.mjs",
+    // Its cheap selfcheck runs in the harness gate when a diff touches the
+    // release scripts. The packed workflow only listed its tests as a trigger.
+    "release-pins": "dev:nodetool -- harness gate",
     "docker-smoke": "docker-smoke.mjs http://localhost:7777",
     "provider-contract": "provider-contract-probes",
     "provider-codegen": "npm run generate:fal:check -- --strict",
@@ -417,6 +419,51 @@ describe("harness gate", () => {
     expect(plan.checks.map((entry) => entry.harnessId)).not.toContain("native-graph-runner");
     expect(plan.manual.find((entry) => entry.harnessId === "native-graph-runner")?.command)
       .toBe("node scripts/check-native-graph-runner.mjs");
+  });
+
+  it.each([
+    "packages/agents/src/host-binary-guard.ts",
+    "packages/runtime/src/index.ts",
+    "native/graph-runner/guest/module-contract.mjs"
+  ])("checks the guest bundle against its module contract for %s", (file) => {
+    const plan = planGate([file]);
+    expect(plan.unmappedFiles).toEqual([]);
+    expect(plan.checks.find((entry) => entry.harnessId === "native-guest-contract"))
+      .toMatchObject({ cost: "cheap" });
+  });
+
+  it.each([
+    "packages/realtime-compiler/src/compileRealtimeGraph.ts",
+    "native/realtime/schema/plan-v1.schema.json"
+  ])("selects the compiler schema and snapshot checks for %s", (file) => {
+    const plan = planGate([file]);
+    expect(plan.unmappedFiles).toEqual([]);
+    expect(plan.checks.find((entry) => entry.harnessId === "realtime-compiler"))
+      .toMatchObject({ command: "npm run test --workspace=packages/realtime-compiler", cost: "cheap" });
+  });
+
+  it("maps every browser comparison source to its manual harness", () => {
+    const directory = "native/realtime/spike/browser";
+    const files = readdirSync(join(repoRoot, directory))
+      .filter((name) => /\.(mjs|py|cpp)$/.test(name))
+      .map((name) => `${directory}/${name}`);
+    expect(files.length).toBeGreaterThan(0);
+    for (const file of files) {
+      const plan = planGate([file]);
+      expect(plan.unmappedFiles).toEqual([]);
+      expect(plan.manual.map((entry) => entry.harnessId)).toContain("realtime-browser-comparison");
+    }
+  });
+
+  it.each([
+    "native/realtime/src/offline.cpp",
+    "native/realtime/scripts/check.mjs",
+    "native/realtime/budgets/offline.json",
+    "native/graph-runner/src/main.cpp"
+  ])("selects the offline realtime check for %s", (file) => {
+    const plan = planGate([file]);
+    expect(plan.checks.find((entry) => entry.harnessId === "realtime-offline"))
+      .toMatchObject({ command: "node native/realtime/scripts/check.mjs", cost: "expensive" });
   });
 
   it.each([
@@ -607,7 +654,7 @@ describe("harness gate", () => {
   it("selfchecks are keyless commands from the repo root", () => {
     for (const h of HARNESSES) {
       if (!h.selfcheck) continue;
-      expect(h.selfcheck.command, h.id).toMatch(/^(npm|node|python3) /);
+      expect(h.selfcheck.command, h.id).toMatch(/^(npm|node|python3|py -3) /);
     }
   });
 });

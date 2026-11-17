@@ -19,6 +19,10 @@ and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
 - `CodeActExecutor` keeps the message contract, memory writes, and failure
   semantics the step loop has always had — consumers work unchanged. Bridged
   tool calls surface as `tool_call_update` events (ids `codeact_<n>`).
+- A bridged call whose result carries an `error` string throws in the guest
+  (`extractErrorPayload` in `tool-api.ts`). A `missing_pack` refusal is no
+  exception: it throws `missing_pack: <pack and install step>`, and a guest
+  that wants to continue catches it.
 - The core set goes top level. Every NodeTool tool that mirrors a Claude Agent
   SDK built-in (`CORE_TOOL_NAMES` in `@nodetool-ai/runtime` — the file set,
   `glob`/`grep`, `web_search`, `browser`/`http_request`/`download_file`,
@@ -122,7 +126,8 @@ and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `"provider/model_id"`; plus `probe(path)` and `edit(operation, opts)`, the
   typed in-process media operations in `src/media-edit.ts` whose every path
   is confined to the workspace by `confineMediaPaths`
-  (`src/host-binary-guard.ts`), and the host binary
+  (`src/host-binary-guard.ts`), which also refuses a path in the folder of
+  another project inside the workspace, and the host binary
   `downloadVideo(url, outputFile)`, whose argv is confined the same way and
   bounded on wall clock, captured output, artifact size and concurrency by
   `src/host-binaries.ts`), `nodetool.nodes`
@@ -142,7 +147,7 @@ and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   run's own scratchpad, beside thread-scoped `nodetool.memory`),
   `nodetool.threads` (`list/get/last/message` over `list_threads`/`get_thread`/
   `get_message` — the chat history itself, read-only), `nodetool.style`
-  (`profile/record`), `nodetool.email` (`search/archive/label`), plus `assets`
+  (`profile/record`), plus `assets`
   (`list/search/images/get/save/read`), `jobs` (with
   `wait(id, {timeoutMs, pollMs})` polling a background job to settlement),
   `collections` (`list/query`; `index/indexBatch/search/hybridSearch` work

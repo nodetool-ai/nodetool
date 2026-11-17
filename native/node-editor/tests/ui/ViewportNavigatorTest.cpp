@@ -2,10 +2,10 @@
 #include "graph/WorkflowGraphModel.h"
 #include "ui/EditorWindow.h"
 #include "PropertyFixture.h"
+#include "EntryMenuSupport.h"
 #include <QDockWidget>
 #include <QGraphicsView>
 #include <QDir>
-#include <QMenu>
 #include <QPainter>
 #include <QQmlEngine>
 #include <QQuickItem>
@@ -184,6 +184,8 @@ private slots:
    {false, {"#64748b", "#818cf8", "#22c55e"}, {"#3b82f6", "#8b5cf6", "#64748b", "#6366f1", "#22c55e", "#f59e0b"}, {"#3b82f6", "#8b5cf6", "#f59e0b"}}};
   for (const auto &palette : palettes) {
    QSettings().clear();
+   // A closed chat lets fit view fill the canvas, so each node is large enough to count.
+   QSettings().setValue("canvas-chat-dock/collapsed", true);
    EditorWindow window;
    window.setDarkTheme(palette.dark);
    loadCategories(window);
@@ -438,16 +440,12 @@ private slots:
   QCOMPARE(animation->duration(), motionNormal(window));
   QTRY_VERIFY(!viewAnimation(window));
   QVERIFY(std::abs(view->transform().m11() - 1.2) < 1e-9);
-  QTimer::singleShot(150, &window, [] {
-   if (auto *menu = qobject_cast<QMenu *>(QApplication::activePopupWidget())) {
-    for (auto *entry : menu->actions()) {
-     if (entry->text() == "50%") { entry->trigger(); }
-    }
-    menu->close();
-   }
-  });
-  QTimer::singleShot(2500, &window, [] { if (auto *popup = QApplication::activePopupWidget()) { popup->close(); } });
   window.userAction("Zoom presets");
+  auto *presets = entry_menu::host(window, "zoom-presets-menu");
+  QVERIFY(presets);
+  QVERIFY(entry_menu::entry(presets, "100%").contains("checked"));
+  QVERIFY(!entry_menu::entry(presets, "100%")["checked"].toBool());
+  QVERIFY(entry_menu::click(presets, "zoom:50%"));
   animation = viewAnimation(window);
   QVERIFY(animation);
   QCOMPARE(animation->duration(), motionNormal(window));

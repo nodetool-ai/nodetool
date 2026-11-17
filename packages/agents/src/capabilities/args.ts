@@ -178,6 +178,27 @@ function checked(
   return args;
 }
 
+/**
+ * The argument keys a schema does not declare, ignoring the reserved protocol
+ * fields and a camelCase spelling of a declared key.
+ *
+ * For a filter-only capability an unread key is a filter that silently does
+ * nothing: `list_models({capability: "text_to_3d"})` answered with every
+ * model the providers offer, which reads as a match.
+ */
+export function unknownArgKeys(
+  schema: JsonSchema,
+  args: Record<string, unknown>
+): string[] {
+  const properties = isRecord(schema.properties) ? schema.properties : {};
+  return Object.keys(args).filter((key) => {
+    if (key in properties) return false;
+    if (key === USER_MESSAGE_FIELD || key === TOOL_CALL_ID_FIELD) return false;
+    const snake = key.replace(/[A-Z]/g, (ch) => `_${ch.toLowerCase()}`);
+    return !(snake in properties);
+  });
+}
+
 function requiredKeys(schema: JsonSchema): string[] {
   const required = schema.required;
   if (!Array.isArray(required)) return [];

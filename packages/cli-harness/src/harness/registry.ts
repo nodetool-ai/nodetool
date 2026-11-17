@@ -269,6 +269,11 @@ const LEAN_SERVER_PACKAGES = [
   "runtime-core", "security-core", "server-core", "server-feature-sandbox",
   "server-features", "server-minimal"
 ];
+const NATIVE_UI_PYTHON = process.platform === "win32" ? "py -3" : "python3";
+const NATIVE_UI_DESIGN_CHECK =
+  `${NATIVE_UI_PYTHON} native/ui_primitives/tools/check_design.py --strict && ` +
+  `${NATIVE_UI_PYTHON} native/ui_primitives/tools/check_dependencies.py`;
+
 const LEAN_SERVER_CHECK =
   `npm run test ${LEAN_SERVER_PACKAGES.map(name => `--workspace=packages/${name}`).join(" ")} && ` +
   "node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/minimal-dependency-guard.test.mjs && " +
@@ -1287,6 +1292,19 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "project-folders",
+    title: "Project folder lifecycle (create, rename on disk, copy and hard link, offline and restore)",
+    command: "npm run test --workspace=packages/project-services -- project-folder-selfcheck",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "docs/project-folders/prd.md § Testing decisions",
+    selfcheck: {
+      command: "npm run test --workspace=packages/project-services -- project-folder-selfcheck",
+      cost: "cheap",
+      suiteOnly: true
+    }
+  },
+  {
     id: "storage-and-security",
     title: "Storage, security, auth, and config packages",
     command:
@@ -1359,12 +1377,72 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "realtime-portable-spikes",
+    title: "Realtime buffered audio and recording analysis preparation",
+    command: "npm run test:affected:native -- --project realtime --all",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "native/realtime/README.md"
+  },
+  {
+    id: "realtime-offline",
+    title: "Realtime offline PNG/WAV export and native core",
+    command: "node native/realtime/scripts/check.mjs",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "native/realtime/offline.md",
+    selfcheck: {
+      command: "node native/realtime/scripts/check.mjs",
+      cost: "expensive"
+    }
+  },
+  {
+    id: "realtime-browser-comparison",
+    title: "Realtime C++/Wasm and TypeScript browser comparison",
+    command: "node native/realtime/spike/browser/verify.mjs <candidate-directory> <native-executable>",
+    kind: "execution",
+    capabilities: ["browser", "no-db"],
+    docs: "native/realtime/spike/browser/README.md"
+  },
+  {
+    id: "realtime-compiler",
+    title: "Pure realtime graph compiler and IR snapshots",
+    command: "npm run test --workspace=packages/realtime-compiler",
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "packages/realtime-compiler/README.md",
+    selfcheck: { command: "npm run test --workspace=packages/realtime-compiler", cost: "cheap" }
+  },
+  {
+    id: "realtime-audio-worklet-spike",
+    title: "Realtime native and AudioWorklet offline parity spike",
+    command:
+      "node --test native/realtime/spike/audio-worklet/timing.test.mjs && " +
+      "node native/realtime/spike/audio-worklet/build.mjs && " +
+      "node native/realtime/spike/audio-worklet/verify.mjs",
+    kind: "execution",
+    capabilities: ["json", "browser", "no-db"],
+    docs: "native/realtime/spike/audio-worklet/README.md"
+  },
+  {
     id: "native-graph-runner",
     title: "Native QuickJS graph runner",
     command: "node scripts/check-native-graph-runner.mjs",
     kind: "execution",
     capabilities: [],
     docs: "docs/harnesses.md § Native graph runner"
+  },
+  {
+    id: "native-guest-contract",
+    title: "Native graph runner guest bundle against its module contract",
+    command: "node native/graph-runner/guest/build.mjs native/graph-runner/build/contract-check/guest.js",
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "docs/harnesses.md § Native graph runner guest contract",
+    selfcheck: {
+      command: "node native/graph-runner/guest/build.mjs native/graph-runner/build/contract-check/guest.js",
+      cost: "cheap"
+    }
   },
   {
     id: "native-node-editor",
@@ -1385,16 +1463,12 @@ export const HARNESSES: HarnessEntry[] = [
   {
     id: "native-ui-design",
     title: "Native UI presentation and dependency contracts",
-    command:
-      "python3 native/ui_primitives/tools/check_design.py --strict && " +
-      "python3 native/ui_primitives/tools/check_dependencies.py",
+    command: NATIVE_UI_DESIGN_CHECK,
     kind: "static",
     capabilities: ["no-db"],
     docs: "native/ui_primitives/README.md",
     selfcheck: {
-      command:
-        "python3 native/ui_primitives/tools/check_design.py --strict && " +
-        "python3 native/ui_primitives/tools/check_dependencies.py",
+      command: NATIVE_UI_DESIGN_CHECK,
       cost: "cheap"
     }
   },
@@ -2433,6 +2507,18 @@ export const SURFACES: SurfaceEntry[] = [
     paths: ["packages/analytics/"]
   },
   {
+    id: "project-folders",
+    title: "Project folders (folder index, asset files, workflow and timeline files)",
+    harnesses: ["project-folders"],
+    paths: [
+      "packages/project-services/",
+      "packages/asset-services/src/project-",
+      "packages/runtime-core/src/workspace.ts",
+      "packages/runtime-core/src/storage-workspace.ts",
+      "packages/execution/src/service/project-folder.ts"
+    ]
+  },
+  {
     id: "storage-and-security",
     title: "Storage, secrets, auth middleware, and config loading",
     harnesses: ["storage-and-security"],
@@ -2568,6 +2654,50 @@ export const SURFACES: SurfaceEntry[] = [
     ]
   },
   {
+    id: "realtime-browser-comparison",
+    title: "Realtime browser executor comparison and wasm32 preparation",
+    harnesses: ["realtime-browser-comparison"],
+    paths: ["native/realtime/spike/browser/"],
+    gap: "Build the native offline executable and the pinned Emscripten/Emdawn candidate first. " +
+      "The documented verification and benchmark commands need an installed Chrome or Chromium browser. " +
+      "The native realtime workflow runs these checks; the default gate lists them as manual work."
+  },
+  {
+    id: "realtime-audio-worklet-spike",
+    title: "Realtime native and AudioWorklet offline parity spike",
+    harnesses: ["realtime-audio-worklet-spike"],
+    paths: ["native/realtime/spike/audio-worklet/"],
+    gap:
+      "The offline parity check needs clang with wasm-ld (or Zig) and an installed Chrome channel. " +
+      "Run its documented build and verification commands separately from the root gate. " +
+      "Live-device deadlines and the macOS M0 measurements remain separate qualification work."
+  },
+  {
+    id: "realtime-portable-spikes",
+    title: "Realtime buffered audio and recording analysis preparation",
+    harnesses: ["realtime-portable-spikes"],
+    paths: ["native/realtime/CMakeLists.txt", "native/realtime/.gitignore",
+      "native/realtime/spike/buffered-audio/", "native/realtime/spike/sync/"],
+    gap: "Configure native/realtime/build and build the runtime media package before running CTest. " +
+      "The null audio backend and synthetic recording cannot qualify macOS scheduling, GPU contention or physical A/V sync."
+  },
+  {
+    id: "realtime-offline",
+    title: "Realtime offline plan execution and exports",
+    harnesses: ["realtime-offline"],
+    paths: ["native/realtime/src/", "native/realtime/include/", "native/realtime/schema/",
+      "native/realtime/tests/", "native/realtime/scripts/", "native/realtime/budgets/",
+      "native/realtime/cmake/", "native/realtime/CMakeLists.txt", "native/realtime/CMakePresets.json",
+      "native/graph-runner/src/main.cpp", "native/graph-runner/CMakeLists.txt",
+      "native/graph-runner/guest/host/gpu-catalog.mjs", ".github/workflows/native-realtime.yml"]
+  },
+  {
+    id: "realtime-compiler",
+    title: "Realtime graph-to-IR compiler",
+    harnesses: ["realtime-compiler"],
+    paths: ["packages/realtime-compiler/", "native/realtime/schema/"]
+  },
+  {
     id: "native-graph-runner",
     title: "Native graph execution and editor local-run dependency",
     harnesses: ["native-graph-runner"],
@@ -2585,6 +2715,34 @@ export const SURFACES: SurfaceEntry[] = [
       "The check needs CMake, clang and libvips 8.18.7, libwebp 1.6.0 and Tesseract 5.5.3 built from " +
       "pinned sources. The dedicated native-graph-runner workflow provides them, while the root gate " +
       "lists the check as manual work."
+  },
+  {
+    id: "native-guest-contract",
+    title: "Native graph runner guest bundle and module contract",
+    harnesses: ["native-guest-contract"],
+    // The packages whose sources the default guest bundle contains, read from
+    // its esbuild metafile. A new import of a host package in any of them
+    // must be classified in guest/module-contract.mjs, and the native
+    // workflow does not run for most of them. packages/compute is bundled
+    // too and stays in UNCLAIMED_PATHS.
+    paths: [
+      "native/graph-runner/guest/",
+      "packages/agents/src/", "packages/app-runtime/src/", "packages/asset-services/src/",
+      "packages/audio-nodes/src/", "packages/automation-nodes/src/", "packages/browser/src/",
+      "packages/code-nodes/src/", "packages/core-nodes/src/", "packages/data-nodes/src/",
+      "packages/database-sqlite/src/", "packages/document-nodes/src/",
+      "packages/document-processing/src/", "packages/execution/src/",
+      "packages/execution-core/src/", "packages/game-nodes/src/", "packages/game-runtime/src/",
+      "packages/gpu/src/", "packages/image-editor/src/", "packages/image-nodes/src/",
+      "packages/kernels/src/", "packages/llm-nodes/src/", "packages/model-pricing/src/",
+      "packages/model3d/src/", "packages/models/src/", "packages/models-core/src/",
+      "packages/node-catalog/src/", "packages/node-sdk/src/", "packages/nodes-utils/src/",
+      "packages/pack-core/src/", "packages/presets/src/", "packages/protocol/src/",
+      "packages/runtime/src/", "packages/runtime-core/src/", "packages/sandbox-runtime/src/",
+      "packages/security/src/", "packages/security-core/src/", "packages/storage/src/",
+      "packages/storyboard/src/", "packages/text-nodes/src/", "packages/timeline/src/",
+      "packages/vectorstore/src/", "packages/video-nodes/src/"
+    ]
   },
   {
     id: "native-node-editor",

@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls.Basic as Basic
 import NodeTool.UiPrimitives as Ui
 
 // The buttons above the mini-map's top right corner (MiniMapNavigator.tsx): the
@@ -23,11 +24,12 @@ Item {
         radius: Ui.Metrics.radiusControl
         border.width: Ui.Metrics.border
         border.color: roles.divider
-        NodeButton {
+        Ui.EditorButton {
             id: button
+            display: Basic.AbstractButton.IconOnly
             anchors.fill: parent
             text: ""
-            variant: NodeButton.Flat
+            variant: Ui.EditorButton.Outlined; flat: true
             iconName: frame.iconName
             accessibleName: frame.accessibleName
             onClicked: frame.clicked()

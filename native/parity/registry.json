@@ -405,7 +405,11 @@
       "inventory": "F03"
     },
     "web/src/components/context_menus/ConnectionMatchMenu.tsx": {
-      "missing": "Handle-to-handle match menu shown when a dropped wire fits several handles. No native counterpart found.",
+      "native": [
+        "native/node-editor/src/graph/CompatibleNodePicker.cpp",
+        "native/node-editor/qml/CompatibleNodePicker.qml"
+      ],
+      "note": "A wire dropped on a card body that fits several ports lists those ports in the picker (CompatibleNodePicker::openBody), with search and arrow keys. One fitting port connects at once.",
       "inventory": "F03"
     },
     "web/src/components/context_menus/ContextMenuItem.tsx": {
@@ -818,7 +822,12 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/CollectionBody.tsx": {
-      "missing": "Bespoke body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "status": "partial",
+      "note": "Drop and pick files or assets, one locked type, image thumbnails, index badges, remove and clear. Video and audio tiles show an icon instead of a frame, and the output handle keeps its declared any type.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/ColorOverlayBody.tsx": {
@@ -840,7 +849,7 @@
         "native/node-editor/qml/CompositorLayoutPanel.qml"
       ],
       "status": "partial",
-      "note": "Layer handles, live composite, layer rows, Add another layer and the Edit layout dialog (move, scale and rotate gizmo, transform fields, canvas size, layer stack) are native. The dialog's layer rows show names where the web shows thumbnails.",
+      "note": "Layer handles, live composite, layer rows, Add another layer and the Edit layout dialog (move, scale and rotate gizmo, transform fields, canvas size, layer stack) are native. The dialog's layer rows show each layer's image as a thumbnail, as LayerRow.tsx does.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/ConstantSketchBody.tsx": {
@@ -880,7 +889,12 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/ExtractVideoFrameBody.tsx": {
-      "missing": "Bespoke body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "status": "partial",
+      "note": "Video handle, previous and next frame, the time box and the frame and timecode readouts at 30 fps. No in-card player, scrubber, play, mute or frame download: the preview shows the extracted frame after a run.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/FitBody.tsx": {
@@ -936,7 +950,12 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/ListGeneratorBody.tsx": {
-      "missing": "Bespoke body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "status": "partial",
+      "note": "Numbered rows of the settled list that open to their full text, Copy and the model chip. Items appear when the list output arrives, not one by one while streaming, and an open item shows plain text instead of rendered markdown.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/MaskBody.tsx": {
@@ -1210,8 +1229,10 @@
     },
     "web/src/components/node/BypassGroupButton.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/qml/AuthoredControls.qml",
+        "native/node-editor/src/ui/EditorWindow.cpp"
       ],
+      "note": "Disable all and Enable all act on the group's direct children.",
       "inventory": "F07"
     },
     "web/src/components/node/CalendarEventView.tsx": {
@@ -1345,7 +1366,7 @@
         "native/node-editor/src/graph/CardBodies.cpp"
       ],
       "status": "partial",
-      "note": "Shell matches. No pricing footer.",
+      "note": "Shell matches. The pricing chip is ProviderPriceChip.qml.",
       "inventory": "W4"
     },
     "web/src/components/node/DynamicFalSchemaNode/FalSchemaLoader.tsx": {
@@ -1362,7 +1383,7 @@
         "native/node-editor/src/graph/CardBodies.cpp"
       ],
       "status": "partial",
-      "note": "Shell matches. No credits footer.",
+      "note": "Shell matches. The credits chip is ProviderPriceChip.qml.",
       "inventory": "W4"
     },
     "web/src/components/node/DynamicKieSchemaNode/KieSchemaLoader.tsx": {
@@ -1411,7 +1432,13 @@
       "inventory": "F05"
     },
     "web/src/components/node/FalPricingFooter.tsx": {
-      "missing": "FAL price chip and popover on selected FAL nodes. Not found natively."
+      "native": [
+        "native/node-editor/qml/ProviderPriceChip.qml",
+        "native/node-editor/src/graph/ProviderPricing.cpp",
+        "native/node-editor/src/ui/EditorPriceChip.cpp"
+      ],
+      "status": "partial",
+      "note": "The chip under the selected card, from the metadata or the bundled list price, and its popover with the pricing lines, the per-run estimate, the account credits, the API keys link and View on fal.ai. Native shows it for a single selected card only, does not fetch live prices, has no inspector variant, and draws the chip in the tone's text color instead of a filled tone."
     },
     "web/src/components/node/GhostNode.tsx": {
       "native": [
@@ -1426,7 +1453,7 @@
         "native/node-editor/src/graph/EditorScene.cpp"
       ],
       "status": "partial",
-      "note": "Open: exact icon ink, custom colors, group-body pointer pass-through, Ctrl-held group selection.",
+      "note": "Open: exact icon ink.",
       "inventory": "F07"
     },
     "web/src/components/node/HandleColumn.tsx": {
@@ -1475,14 +1502,25 @@
       "inventory": "W1"
     },
     "web/src/components/node/KeyboardConnectionPicker.tsx": {
-      "missing": "Keyboard path to connect a handle (from the handle tooltip). Not found natively.",
+      "native": [
+        "native/node-editor/src/graph/CompatibleNodePicker.cpp",
+        "native/node-editor/src/ui/EditorWindow.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
+      ],
+      "note": "With a node focused (Ctrl+Alt+N), Tab and Shift+Tab walk its handles and Enter or Space opens the picker: compatible ports on existing nodes first, then the catalog, and Disconnect when the handle has wires. It opens beside the handle rather than as a dialog.",
       "inventory": "F42"
     },
     "web/src/components/node/KeyframeTimingStrip.tsx": {
       "missing": "Time axis under keyframe model nodes. Native marks keyframe lists unsupported."
     },
     "web/src/components/node/KieCreditsFooter.tsx": {
-      "missing": "KIE credits chip and popover. Not found natively."
+      "native": [
+        "native/node-editor/qml/ProviderPriceChip.qml",
+        "native/node-editor/src/graph/ProviderPricing.cpp",
+        "native/node-editor/src/ui/EditorPriceChip.cpp"
+      ],
+      "status": "partial",
+      "note": "The chip on every selected KIE card, \"KIE credits\" without a bundled price, and its popover with the pricing lines or the no-price note, the account credits, the API keys link, View pricing and Top up. The Last run cost row is missing, and the FAL footer's differences apply."
     },
     "web/src/components/node/MediaAspectResizeControl.tsx": {
       "missing": "Media aspect resize is open.",
@@ -1852,10 +1890,10 @@
     },
     "web/src/components/node/RunGroupButton.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/qml/AuthoredControls.qml",
+        "native/node-editor/src/ui/EditorWindow.cpp"
       ],
-      "status": "partial",
-      "note": "A group Run acts on every descendant where the web acts on direct children.",
+      "note": "Runs the group's direct children, as the web does.",
       "inventory": "F25"
     },
     "web/src/components/node/SaveDestinationHint.tsx": {
@@ -2029,10 +2067,11 @@
     },
     "web/src/components/panels/jobs/QueuePanel.tsx": {
       "native": [
+        "native/node-editor/qml/QueuePanel.qml",
         "native/node-editor/qml/QueueOverlay.qml"
       ],
       "status": "partial",
-      "note": "Opens at any time with the Active and History sections, filters, day groups and the Could not load jobs state, as a canvas overlay rather than a bottom panel view. It shows no loading spinner before the first jobs page.",
+      "note": "The status bar Queue tab opens the panel in the bottom dock at any time, with the Active and History sections, filters, day groups and the Could not load jobs state. It shows no loading spinner before the first jobs page.",
       "inventory": "C11"
     },
     "web/src/components/panels/LogPanel.tsx": {
@@ -2090,7 +2129,7 @@
         "native/node-editor/qml/QueueOverlay.qml"
       ],
       "status": "partial",
-      "note": "Pinned focus and acceptance are open.",
+      "note": "The drag, the grip's keys, the canvas clamp and the stored position match. Pinned focus and acceptance are open.",
       "inventory": "F24"
     },
     "web/src/components/panels/RailAppMenu.tsx": {
@@ -2643,7 +2682,7 @@
         "native/node-editor/src/interfaces/ExampleGallery.cpp"
       ],
       "status": "partial",
-      "note": "Workflow and ComfyUI examples, plus the native bundled examples. Apps, storyboard, timeline, sketch, 3D model and game examples are left out, since only workflow examples belong in the node editor. Dragging a card onto the canvas is not ported."
+      "note": "Workflow and ComfyUI examples, plus the native bundled examples. Apps, storyboard, timeline, sketch, 3D model and game examples are left out, since only workflow examples belong in the node editor. Dragging a card onto the canvas pastes a copy of its graph with the first node at the drop point."
     },
     "web/src/components/chat/ChatListPanel.tsx": {
       "native": [

@@ -98,7 +98,12 @@ describe("TrackHeader height separator", () => {
     act(() => {
       fireEvent.keyDown(separator, { key: "ArrowUp", shiftKey: true });
     });
-    // 72 - 32 clamps at the 48px minimum.
-    expect(useTimelineStore.getState().tracks[0].heightPx).toBe(48);
+    expect(useTimelineStore.getState().tracks[0].heightPx).toBe(40);
+
+    act(() => {
+      fireEvent.keyDown(separator, { key: "ArrowUp", shiftKey: true });
+    });
+    // 40 - 32 clamps at the 24px minimum.
+    expect(useTimelineStore.getState().tracks[0].heightPx).toBe(24);
   });
 });

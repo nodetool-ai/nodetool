@@ -38,6 +38,7 @@ jest.mock("../../../../trpc/client", () => {
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { TimelineInspector } from "../TimelineInspector";
+import { TimelineEffectControlsPanel, TimelineMotionPanel } from "../TimelineClipPanels";
 import { TimelineProvider } from "../../../../stores/timeline/TimelineInstance";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
@@ -52,7 +53,11 @@ const renderInspector = () =>
       <ThemeProvider theme={mockTheme}>
         <MemoryRouter>
           <TimelineProvider>
-            <TimelineInspector />
+            <>
+              <TimelineInspector />
+              <TimelineEffectControlsPanel />
+              <TimelineMotionPanel />
+            </>
           </TimelineProvider>
         </MemoryRouter>
       </ThemeProvider>

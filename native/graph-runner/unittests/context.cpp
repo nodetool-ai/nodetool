@@ -42,17 +42,15 @@ int main(int argc, char **argv) {
     auto host = engine->get(engine->global(), "__host");
     auto context = engine->object();
     std::atomic<bool> cancelled{false};
-    int closed = 0, next = 0, httpCalls = 0, modelResourceDenials = 0;
+    int closed = 0, next = 0, httpCalls = 0;
     gr::host::ContextOptions grants;
     grants.cancelled = [&] { return cancelled.load(); };
     grants.ocrDataDirectory = GR_TEST_TESSDATA;
     grants.operations["http:request"] = [&](const std::string &payload) {
       const auto request = Json::parse(payload);
-      if (request.at("url") != "https://fixture.invalid/echo") {
-        ++modelResourceDenials;
+      if (request.at("url") != "https://fixture.invalid/echo")
         throw std::runtime_error("HTTP resource is not granted: " +
                                  request.at("url").get<std::string>());
-      }
       ++httpCalls;
       if (request.at("url") != "https://fixture.invalid/echo" ||
           request.at("method") != "POST" ||
@@ -126,8 +124,6 @@ int main(int argc, char **argv) {
     std::cout << engine->toString(engine->evaluateScript(
                      "JSON.stringify(__g5Result)", "result.js"))
               << '\n';
-    if (modelResourceDenials != 4)
-      throw std::runtime_error("Model weight grant denials were not exercised");
     if (httpCalls != 1)
       throw std::runtime_error(
           "Fetch grant count or private address policy differs");

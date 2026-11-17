@@ -1,7 +1,7 @@
 name: Setup and build backend
 description: >-
-  Set up Node (with npm cache), restore the cached node_modules (running npm ci
-  + native rebuild only on a miss), restore Turbo's build cache, and
+  Set up Node, restore the cached node_modules (running npm ci + native
+  rebuild only on a miss), restore Turbo's build cache, and
   (optionally) build the backend packages. It installs no system packages: jobs
   that need more than the runner image ships (the Vulkan driver, the browser
   libraries) run in the CI image (docker/ci/). The calling job must check out
@@ -73,13 +73,14 @@ runs:
       uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
       with:
         node-version-file: ".nvmrc"
-        cache: ${{ inputs.cache == 'read-write' && 'npm' || '' }}
         package-manager-cache: false
 
     # Cache the installed workspace node_modules keyed on the lockfile (and Node
     # version). On a hit we skip `npm ci` and the native rebuild entirely — the
-    # restored tree already has better-sqlite3 built for this runner. setup-node's
-    # npm caches registry responses as well as tarballs; this caches the linked tree.
+    # restored tree already has better-sqlite3 built for this runner. There is no
+    # npm download cache: it was about as large as the tree, every job restored
+    # it, and only `npm ci` on a miss read it. A miss downloads from the
+    # registry instead.
     - name: Cache node_modules
       id: node-modules-cache
       if: inputs.cache == 'read-write'

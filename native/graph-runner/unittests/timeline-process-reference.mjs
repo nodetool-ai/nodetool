@@ -11,8 +11,12 @@ const assetRoot = join(root, 'assets');
 await mkdir(assetRoot);
 process.env.ASSET_FOLDER = assetRoot;
 process.env.NODETOOL_STORAGE_BACKEND = 'file';
+// As on the server, createAsset saves into the run's project folder. Loading
+// @nodetool-ai/execution/service installs the production project folder resolver.
+process.env.PROJECTS_DIR = join(root, 'projects');
 try {
   await initMigratedDb(join(root, 'timeline.sqlite'));
+  await import('@nodetool-ai/execution/service');
   const { createAssetModelInterface } = await import('@nodetool-ai/asset-services');
   const context = new ProcessingContext({ userId: 'alice', jobId: 'timeline', inheritHostDefaults: false,
     assetStorage: new FileStorageAdapter(assetRoot), modelInterfaces: { ...documentModelInterfaces(), createAsset: createAssetModelInterface,

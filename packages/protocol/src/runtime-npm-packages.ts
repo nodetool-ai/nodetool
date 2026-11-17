@@ -72,21 +72,6 @@ export const RUNTIME_NPM_PACKAGES = {
     packageNames: ["@huggingface/transformers", "kokoro-js"],
     description: "Local Transformers.js models, including the ONNX Runtime."
   },
-  "tensorflow-js": {
-    npmPackages: [
-      "@tensorflow/tfjs@4.22.0",
-      "@tensorflow-models/mobilenet@2.1.1",
-      "@tensorflow-models/coco-ssd@2.2.3",
-      "@tensorflow-models/qna@1.0.2"
-    ],
-    packageNames: [
-      "@tensorflow/tfjs",
-      "@tensorflow-models/mobilenet",
-      "@tensorflow-models/coco-ssd",
-      "@tensorflow-models/qna"
-    ],
-    description: "TensorFlow.js image classification, detection and Q&A nodes."
-  },
   "node-llama-cpp": {
     npmPackages: ["node-llama-cpp@3.19.1"],
     packageNames: ["node-llama-cpp"],
@@ -112,23 +97,9 @@ export const RUNTIME_NPM_PACKAGES = {
     description: "PDF reading, extraction and editing."
   },
   "office-documents": {
-    npmPackages: [
-      "exceljs@4.4.0",
-      "docx@9.7.1",
-      "mammoth@1.12.1",
-      "pptxgenjs@4.0.1",
-      "office-text-extractor@4.0.0",
-      "epub2@3.0.2"
-    ],
-    packageNames: [
-      "exceljs",
-      "docx",
-      "mammoth",
-      "pptxgenjs",
-      "office-text-extractor",
-      "epub2"
-    ],
-    description: "Excel, Word, PowerPoint and EPUB files."
+    npmPackages: ["mammoth@1.12.1"],
+    packageNames: ["mammoth"],
+    description: "Word document text for script imports and document conversion."
   },
   "tesseract-ocr": {
     npmPackages: ["tesseract.js@7.0.0"],
@@ -139,11 +110,6 @@ export const RUNTIME_NPM_PACKAGES = {
     npmPackages: ["fabric@7.4.0"],
     packageNames: ["fabric"],
     description: "Fabric.js scene rendering."
-  },
-  "email-imap": {
-    npmPackages: ["imapflow@1.7.1", "mailparser@3.9.15"],
-    packageNames: ["imapflow", "mailparser"],
-    description: "Gmail search, archive and labels over IMAP."
   },
   tokenizer: {
     npmPackages: ["js-tiktoken@1.0.21"],

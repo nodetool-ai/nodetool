@@ -25,6 +25,8 @@ class LibraryBrowser : public QObject {
   Q_PROPERTY(QString typeFilter READ typeFilter WRITE setTypeFilter NOTIFY changed)
   Q_PROPERTY(QString tagFilter READ tagFilter WRITE setTagFilter NOTIFY changed)
   Q_PROPERTY(bool favoritesOnly READ favoritesOnly WRITE setFavoritesOnly NOTIFY changed)
+  // Why the last Relink failed, or empty.
+  Q_PROPERTY(QString relinkError READ relinkError NOTIFY changed)
 public:
   explicit LibraryBrowser(QObject *parent = nullptr);
   void configure(const QUrl &origin, const QString &token, const QString &userId);
@@ -38,6 +40,23 @@ public:
   QString typeFilter() const { return type_; }
   QString tagFilter() const { return tag_; }
   bool favoritesOnly() const { return favorites_; }
+  QString relinkError() const { return relinkError_; }
+  // The project the tab shows, as projects.list names it, empty while
+  // unknown. Lists, searches and new folders are scoped to it, so inside a
+  // project the folders are the directories of its folder. A change returns
+  // to the project's root and lists it when the panel listed before.
+  void setProject(const QString &projectId);
+  QString project() const { return project_; }
+  // The folder workspace of the project the tab shows, empty while unknown.
+  void setProjectWorkspace(const QString &workspaceId) { projectWorkspace_ = workspaceId; }
+  // A `workspacefile` push: files in that workspace changed, so a renamed
+  // asset has a new name and a deleted one is offline. Lists the open folder
+  // again when the workspace is the shown project's folder, when either id is
+  // unknown, and never before the first list.
+  void workspaceFilesChanged(const QString &workspaceId);
+  // Points an asset at a file at another place, as assets.relinkExternal does:
+  // the file's absolute path on the server's disk.
+  Q_INVOKABLE void relink(const QString &id, const QUrl &file);
   void setSearchText(const QString &);
   void setTypeFilter(const QString &);
   void setTagFilter(const QString &);
@@ -64,10 +83,13 @@ private:
   AssetListModel model_;
   QNetworkAccessManager network_;
   QUrl origin_;
-  QString token_, user_, folder_, error_;
+  QString token_, user_, folder_, error_, relinkError_, project_, projectWorkspace_;
   QString search_, type_, tag_;
   bool favorites_ = false;
   bool dragging_ = false;
+  // Whether refresh() ran since the last configure(), so a project change
+  // lists the new project's root.
+  bool opened_ = false;
   // The opened folders from the home folder down: {id, name} rows.
   QVariantList crumbs_;
   // The reply owns itself through deleteLater. A newer list replaces it.

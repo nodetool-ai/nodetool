@@ -4,8 +4,10 @@
  * on after `GET /oauth/authorize` parks the pending request server-side. It
  * shows who is asking (client_name), where they redirect to (the host, not
  * the full URI — the spec's own consent requirement), and the scope, then
- * lets the signed-in user approve or deny. Both actions resolve to a redirect
- * URL the SPA navigates the browser to; this page never builds one itself.
+ * lets the signed-in user approve or deny. A sign-in from the desktop apps
+ * (`kind: "native"`) shows the app and the device name instead. Both actions
+ * resolve to a redirect URL the SPA navigates the browser to; this page never
+ * builds one itself.
  */
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
@@ -117,6 +119,18 @@ const OAuthConsentPage = () => {
     );
   }
 
+  // A sign-in from the desktop apps names the app and the computer, as
+  // text, instead of a redirect host and a scope.
+  const native = request.kind === "native";
+  const appLabel = (app: string | null): string =>
+    app === "timeline"
+      ? t("deviceSessions.apps.timeline")
+      : app === "node-editor"
+        ? t("deviceSessions.apps.nodeEditor")
+        : app === "desktop"
+          ? t("deviceSessions.apps.desktop")
+          : (app ?? "");
+
   return (
     <FlexColumn
       align="center"
@@ -127,28 +141,55 @@ const OAuthConsentPage = () => {
         <PageHeader
           variant="plain"
           title={request.client_name}
-          subtitle={t("screen_settings.oauth.connectSubtitle")}
+          subtitle={
+            native
+              ? t("screen_settings.oauth.nativeSubtitle")
+              : t("screen_settings.oauth.connectSubtitle")
+          }
         />
 
-        <FlexColumn gap={1} sx={{ mt: 1 }}>
-          <FlexRow justify="space-between">
-            <Text className="description">
-              {t("screen_settings.oauth.redirectsTo")}
-            </Text>
-            <Text>{request.redirect_host}</Text>
-          </FlexRow>
-          <FlexRow justify="space-between">
-            <Text className="description">
-              {t("screen_settings.oauth.access")}
-            </Text>
-            <Text>{request.scope}</Text>
-          </FlexRow>
-        </FlexColumn>
+        {native ? (
+          <FlexColumn gap={1} sx={{ mt: 1 }}>
+            <FlexRow justify="space-between">
+              <Text className="description">
+                {t("screen_settings.oauth.app")}
+              </Text>
+              <Text>{appLabel(request.app_name)}</Text>
+            </FlexRow>
+            <FlexRow justify="space-between">
+              <Text className="description">
+                {t("screen_settings.oauth.device")}
+              </Text>
+              <Text>{request.device_name}</Text>
+            </FlexRow>
+          </FlexColumn>
+        ) : (
+          <FlexColumn gap={1} sx={{ mt: 1 }}>
+            <FlexRow justify="space-between">
+              <Text className="description">
+                {t("screen_settings.oauth.redirectsTo")}
+              </Text>
+              <Text>{request.redirect_host}</Text>
+            </FlexRow>
+            <FlexRow justify="space-between">
+              <Text className="description">
+                {t("screen_settings.oauth.access")}
+              </Text>
+              <Text>{request.scope}</Text>
+            </FlexRow>
+          </FlexColumn>
+        )}
 
-        {request.loopback_only && (
-          <AlertBanner severity="warning">
-            {t("screen_settings.oauth.localhostWarning")}
+        {native ? (
+          <AlertBanner severity="info">
+            {t("screen_settings.oauth.nativeNote")}
           </AlertBanner>
+        ) : (
+          request.loopback_only && (
+            <AlertBanner severity="warning">
+              {t("screen_settings.oauth.localhostWarning")}
+            </AlertBanner>
+          )
         )}
 
         {mutationError && (

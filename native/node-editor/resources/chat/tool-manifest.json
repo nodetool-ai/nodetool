@@ -69,6 +69,187 @@
     }
   },
   {
+    "name": "ui_apply_graph_patch",
+    "description": "Apply several graph edits as one undo step, in this order: delete_edge_ids, delete_node_ids, add_nodes, update_nodes, move_nodes, add_edges. Each entry takes the arguments of the matching single-edit tool. If one entry fails, no edit is applied and the error names the entry.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "delete_edge_ids": {
+          "description": "Edge ids to delete. Applied first.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "delete_node_ids": {
+          "description": "Node ids to delete, with their edges. Applied second.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "add_nodes": {
+          "description": "Nodes to add, each as ui_add_node takes it.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Unique node id within the workflow. Must be a stable, model-chosen string (e.g. 'llm_1', 'image_out')."
+              },
+              "type": {
+                "type": "string",
+                "description": "Node type identifier from `ui_search_nodes` (e.g. 'nodetool.text.Format'). Same as `node_type` in search results."
+              },
+              "position": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "x": {
+                        "type": "number"
+                      },
+                      "y": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "x",
+                      "y"
+                    ]
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "description": "Canvas coordinates: `{ x: number, y: number }`. Space nodes ~240px horizontally, ~160px vertically."
+              },
+              "properties": {
+                "description": "Optional initial property values keyed by property name. Required properties left unset will be reported as warnings.",
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "position"
+            ]
+          }
+        },
+        "update_nodes": {
+          "description": "Node data overlays, each as ui_update_node_data takes it. A Code node's body goes here before its edges.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "node_id": {
+                "type": "string",
+                "description": "Id of the node to update."
+              },
+              "data": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {},
+                "description": "Partial node-data overlay merged into `data` (e.g. `{ properties: { x: 1 }, title: 'New' }`). Unspecified keys are preserved."
+              }
+            },
+            "required": [
+              "node_id",
+              "data"
+            ]
+          }
+        },
+        "move_nodes": {
+          "description": "Node moves, each as ui_move_node takes it.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "node_id": {
+                "type": "string",
+                "description": "Id of the node to move."
+              },
+              "position": {
+                "type": "object",
+                "properties": {
+                  "x": {
+                    "type": "number"
+                  },
+                  "y": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "x",
+                  "y"
+                ],
+                "description": "Absolute canvas coordinates `{x, y}` (numbers, not a string)."
+              }
+            },
+            "required": [
+              "node_id",
+              "position"
+            ]
+          }
+        },
+        "add_edges": {
+          "description": "Connections, each as ui_connect_nodes takes it. Applied last, so they can use nodes added above.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source_node_id": {
+                "type": "string",
+                "description": "Id of the node producing the value."
+              },
+              "source_handle": {
+                "type": "string",
+                "description": "Output port name on the source node (from `outputs[].name` in ui_search_nodes)."
+              },
+              "target_node_id": {
+                "type": "string",
+                "description": "Id of the node consuming the value."
+              },
+              "target_handle": {
+                "type": "string",
+                "description": "Input port name on the target node (the property name from `properties[].name` in ui_search_nodes)."
+              }
+            },
+            "required": [
+              "source_node_id",
+              "source_handle",
+              "target_node_id",
+              "target_handle"
+            ]
+          }
+        },
+        "workflow_id": {
+          "description": "Optional workflow id; when omitted/null, the current workflow is used.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "based_on_revision": {
+          "description": "Revision returned by ui_get_graph or the previous mutation. Refuse this edit if the graph has changed. Covers the graph fields exposed by ui_get_graph.",
+          "type": "string",
+          "pattern": "^graph:[a-f0-9]{64}$"
+        }
+      }
+    }
+  },
+  {
     "name": "ui_connect_nodes",
     "description": "Connect two nodes by port name. Required: source/target node ids and handle (port) names. On a Code node, any name the body reads as `inputs.<name>` or `stream(\"<name>\")` is already a target handle — do not add a dynamic input first. On a node that accepts dynamic inputs (Concat, Prompt, Images To List…), a new target handle name declares that input, typed after the source output.",
     "parameters": {
@@ -196,8 +377,39 @@
     }
   },
   {
+    "name": "ui_focus_nodes",
+    "description": "Select nodes and frame them on the canvas, so the user sees what you changed. Required: `node_ids`.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "node_ids": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Ids of the nodes to select and frame on the canvas."
+        },
+        "workflow_id": {
+          "description": "Optional workflow id; when omitted/null, the current workflow is used.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "node_ids"
+      ]
+    }
+  },
+  {
     "name": "ui_get_graph",
-    "description": "Read a workflow graph (nodes and edges). Reads the open editor when the workflow has one, otherwise the saved workflow from the server — so a workflow created over the API is readable without opening it. `source` says which one answered.",
+    "description": "Read a workflow graph (nodes and edges). Reads the open editor when the workflow has one, otherwise the saved workflow from the server — so a workflow created over the API is readable without opening it. `source` says which one answered. In the editor, each node carries `last_run` (status, error, output) from the run the canvas shows.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -265,6 +477,19 @@
     }
   },
   {
+    "name": "ui_new_workflow",
+    "description": "Create an empty workflow, open it in a new editor tab, and switch to it. Returns its `workflow_id` for the graph tools.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Name of the new workflow (default \"New Workflow\").",
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
     "name": "ui_open_document",
     "description": "Open a document in the workspace as a tab so the other ui_* tools can act on it. Use this to show a document to the user. For edits to a closed timeline, storyboard, script or sketch, use its server edit capability. Types: workflow, timeline, storyboard, script, jsscript, sketch, app, svg, audio. The id is the document's id (from list_timelines, list_sketches, list_storyboards, list_scripts, list_js_scripts, a resource link, or the user); for svg and audio it is the asset id. Documents open in edit mode; already-open documents are focused rather than duplicated. Returns once the editor has loaded and the document's tools are usable.",
     "parameters": {
@@ -323,7 +548,7 @@
   },
   {
     "name": "ui_run_workflow",
-    "description": "Run a workflow by id.",
+    "description": "Run a workflow in the editor, where the user sees each node run. Pass `wait: true` to get the status, outputs keyed by output name, and node errors when the run ends.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -338,6 +563,16 @@
             "type": "string"
           },
           "additionalProperties": {}
+        },
+        "wait": {
+          "description": "Wait for the run to end and return its status, outputs keyed by output name, and node errors. Default false returns only the job_id.",
+          "type": "boolean"
+        },
+        "timeout_seconds": {
+          "description": "With wait, the most seconds to wait (default 300). A run still going at the limit returns status \"running\" and keeps going.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1800
         }
       },
       "required": [
@@ -468,6 +703,40 @@
       },
       "required": [
         "tab_index"
+      ]
+    }
+  },
+  {
+    "name": "ui_undo",
+    "description": "Undo your own last graph edits in the editor. Required: `based_on_revision`, the document_revision your last edit returned. Refuses when the user edited the graph after that. Optional: `steps`.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "based_on_revision": {
+          "type": "string",
+          "pattern": "^graph:[a-f0-9]{64}$",
+          "description": "The document_revision your last graph edit returned. If the graph changed after it, nothing is undone."
+        },
+        "steps": {
+          "description": "How many of your own edits to undo, newest first (default 1). A ui_apply_graph_patch call is one edit.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "workflow_id": {
+          "description": "Optional workflow id; when omitted/null, the current workflow is used.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "based_on_revision"
       ]
     }
   },

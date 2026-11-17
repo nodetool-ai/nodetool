@@ -41,7 +41,16 @@ export {
 export {
   WorkspacePathError,
   WorkspaceNotLocalError,
+  WorkspaceReservedPathError,
+  RESERVED_WORKSPACE_DIR,
+  NestedFolders,
+  WorkspaceFolderCheckError,
+  isReservedWorkspaceKey,
   observeWorkspace,
+  getProjectFolderResolver,
+  setProjectFolderResolver,
+  type ProjectFolderResolution,
+  type ProjectFolderResolver,
   type Workspace,
   type WorkspaceChange,
   type WorkspaceEntry,
@@ -49,10 +58,18 @@ export {
 } from "./workspace.js";
 export {
   StorageWorkspace,
+  assertLocalPathIsOwn,
   createWorkspace,
   createLocalWorkspace
 } from "./storage-workspace.js";
 export { PrefixedStorageAdapter } from "./prefixed-storage-adapter.js";
+export {
+  ensureRunFile,
+  runWorkspaceIsProjectFolder,
+  saveRunFileAsset,
+  type RunFileAssetContext,
+  type SavedRunFile
+} from "./run-file-asset.js";
 export {
   publishModelLoad,
   subscribeModelLoads,
@@ -377,10 +394,14 @@ export type {
 } from "./cost-reconciler.js";
 export * from "./google/index.js";
 export {
+  APPROVAL_DECISIONS,
   PERMISSION_GATE_CONTEXT_KEY,
   decidePermission,
+  grantsStandingApproval,
   headlessDenialReason,
-  headlessGate
+  headlessGate,
+  isApprovingDecision,
+  isPreapproved
 } from "./permission-gate.js";
 export type {
   ApprovalDecision,

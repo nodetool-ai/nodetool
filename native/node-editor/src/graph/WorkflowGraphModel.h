@@ -73,6 +73,16 @@ public:
   // Steps back to the previously focused node. False when there is none.
   bool focusBack();
   qsizetype focusHistorySize() const { return focusHistory_.size(); }
+  // The handle of the focused node that Tab has reached (web HandleTooltip's
+  // tabIndex=0 wrapper). Enter opens the keyboard connection picker for it.
+  // A focus change to another node clears it.
+  struct FocusedHandle { QtNodes::PortType side = QtNodes::PortType::None; QString name; };
+  const FocusedHandle &focusedHandle() const { return focusedHandle_; }
+  void setFocusedHandle(QtNodes::PortType side, const QString &name);
+  // Moves the handle focus to the next (or previous) visible handle of the
+  // focused node: inputs top to bottom, then outputs. False at either end,
+  // which clears the handle focus, as Tab leaves the node's handles.
+  bool focusNextHandle(bool backwards);
   // `secretKeys` lists every secret the server knows, configured or not.
   void setConfiguredSecrets(const QStringList &keys, bool known, const QStringList &secretKeys = {});
   // Thumbnails and load states of the media values cards show, from CardMediaLoader.
@@ -88,7 +98,13 @@ signals:
   void projectionAboutToChange();
   // Emitted after every projection, after modelReset() or the incremental signals.
   void projectionChanged();
+  // The shown run changed as a whole: a run switch, a reset, a connection or a
+  // terminal status. Listeners refresh every card.
   void runtimeChanged();
+  // One node's run state changed. Its card is already invalidated through nodeUpdated.
+  void runtimeNodeChanged(QtNodes::NodeId id);
+  // One wire's run state changed: its flow, status or item counter.
+  void runtimeEdgeChanged(QtNodes::ConnectionId id);
 public:
   QString resourceId(QtNodes::NodeId id) const;
   QtNodes::NodeFlags nodeFlags(QtNodes::NodeId) const override {
@@ -116,6 +132,8 @@ public:
   // The Before/After and Mask preview tabs are view state too, as the web
   // bodies' useState, and never enter the document or undo.
   void setPreviewTab(QtNodes::NodeId id, const QString &tab);
+  // Opens or closes one item of a List Generator card. View state, not part of the document.
+  void toggleListItem(QtNodes::NodeId id, int index);
   // The command that writes a property, with the linked other dimension in the
   // same batch so one undo step reverts both.
   QJsonObject propertyCommand(QtNodes::NodeId id, const QString &name, const QJsonValue &value) const;
@@ -205,6 +223,7 @@ private:
   QSet<QString> secretKeys_;
   QString focusedNode_;
   QStringList focusHistory_;
+  FocusedHandle focusedHandle_;
   // How many input nodes carry each name, for InputNodeNameWarning.tsx.
   QHash<QString, int> inputNames_;
   CardMediaStore cardMedia_;
@@ -222,6 +241,7 @@ private:
   QTimer runningTimer_;
   QHash<QString, double> dimensionLinks_;
   QHash<QString, QString> previewTabs_;
+  QHash<QString, QSet<int>> expandedListItems_;
   // Names Set Variable nodes publish, read by the Prompt and Get Variable bodies.
   QStringList graphVariables_;
   QHash<QtNodes::NodeId, QPointF> positions_;

@@ -119,6 +119,12 @@ import {
   transitionLengthAtCut,
   planTransitionAtCut
 } from "../transitionAtCut.js";
+import { closeGap, findGap, rippleDelete } from "../rippleEdit.js";
+import {
+  removeFillers,
+  rippleDeleteRange,
+  type TranscriptEditLocks
+} from "../transcriptOps.js";
 import { retimeCaption, trimClip } from "../trimClip.js";
 import { retimeClipSpeed } from "../clipSpeed.js";
 import type {
@@ -1200,6 +1206,52 @@ function runBeatEdit(
 }
 
 /** One handler per op, so each is checked against its own op type. */
+/** Locked tracks and locked clips, the way the ripple edits take them. */
+function rippleLocks(scope: OpScope): {
+  lockedTrackIds: Set<string>;
+  lockedClipIds: Set<string>;
+  followLinks: boolean;
+} {
+  return {
+    lockedTrackIds: new Set(scope.tracks.filter((t) => t.locked).map((t) => t.id)),
+    lockedClipIds: new Set(scope.clips.filter((c) => c.locked).map((c) => c.id)),
+    followLinks: scope.ctx.followLinks !== false
+  };
+}
+
+/** Every clip in an edit unit that holds a locked clip or a clip on a locked track. */
+function transcriptLocks(scope: OpScope): TranscriptEditLocks {
+  const lockedTracks = new Set(scope.tracks.filter((t) => t.locked).map((t) => t.id));
+  const seeds = scope.clips
+    .filter((c) => c.locked || lockedTracks.has(c.trackId))
+    .map((c) => c.id);
+  return {
+    lockedClipIds: new Set(
+      seeds.length ? moveUnitIds(scope.clips, seeds, { followLinks: true }) : []
+    )
+  };
+}
+
+/** Write a ripple result and report which clips moved or went. */
+function commitRipple(
+  scope: OpScope,
+  next: TimelineClip[]
+): { movedClipIds: string[]; removedClipIds: string[] } {
+  const before = new Map(scope.clips.map((c) => [c.id, c]));
+  const after = new Set(next.map((c) => c.id));
+  const movedClipIds = next
+    .filter((c) => {
+      const prev = before.get(c.id);
+      return prev !== undefined && (prev.startMs !== c.startMs || prev.durationMs !== c.durationMs);
+    })
+    .map((c) => c.id);
+  const removedClipIds = [...before.keys()].filter((id) => !after.has(id));
+  scope.clips = next;
+  scope.state.selectedClipIds = scope.state.selectedClipIds.filter((id) => after.has(id));
+  scope.touch(...movedClipIds, ...removedClipIds, ...next.filter((c) => !before.has(c.id)).map((c) => c.id));
+  return { movedClipIds, removedClipIds };
+}
+
 const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
   get_state: (scope) => {
     const state = scope.state;
@@ -2302,6 +2354,9 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
     if (op.color !== undefined) {
       marker.color = op.color;
     }
+    if (op.durationMs !== undefined && op.durationMs > 0) {
+      marker.durationMs = Math.round(op.durationMs);
+    }
     if (op.note !== undefined) {
       marker.note = op.note;
     }
@@ -2789,6 +2844,107 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
     clip.notes = scope.buildNotes(op.notes, clip.name);
     scope.touch(clip.id);
     return { ok: true, clip: scope.clipOut(clip) };
+  },
+
+  set_track: (scope, op) => {
+    const track = scope.resolveTrack(op.track);
+    // Unlocking is the one change a locked track takes; everything else waits for it.
+    const others = Object.keys(op).filter(
+      (key) => key !== "op" && key !== "track" && key !== "locked"
+    );
+    if (track.locked && op.locked !== false && others.length > 0) {
+      throw new Error(
+        `Track "${track.name}" is locked. Send locked: false first, then change ${others.join(", ")}.`
+      );
+    }
+    if ((op.volumeDb !== undefined || op.pan !== undefined) && track.type !== "audio" && track.type !== "midi") {
+      throw new Error(
+        `Track "${track.name}" is a ${track.type} track. volumeDb and pan apply to audio and midi tracks only.`
+      );
+    }
+    if (op.name !== undefined) track.name = op.name;
+    if (op.muted !== undefined) track.muted = op.muted;
+    if (op.solo !== undefined) track.solo = op.solo;
+    if (op.locked !== undefined) track.locked = op.locked;
+    if (op.visible !== undefined) track.visible = op.visible;
+    if (op.volumeDb !== undefined) track.volumeDb = op.volumeDb;
+    if (op.pan !== undefined) track.pan = op.pan;
+    if (op.heightPx !== undefined) track.heightPx = Math.round(op.heightPx);
+    return { ok: true, track: scope.trackOut(track) };
+  },
+
+  ripple_delete: (scope, op) => {
+    const targets = op.targets.map((ref) => scope.resolveClip(ref));
+    const ids = new Set<string>();
+    for (const clip of targets) {
+      for (const unit of scope.editTargets(clip)) ids.add(unit.id);
+    }
+    const removing = scope.clips.filter((c) => ids.has(c.id));
+    const next = rippleDelete(scope.clips, ids, rippleLocks(scope));
+    const result = commitRipple(scope, next);
+    // rippleDelete removes the clips and leaves every span open when closing
+    // one would separate a link group. With nothing after a span there is no
+    // hole to close.
+    const followed = next.some((n) =>
+      removing.some((c) => n.startMs >= c.startMs + c.durationMs)
+    );
+    const closed = !followed || result.movedClipIds.length > 0;
+    const out: Record<string, unknown> = {
+      ok: true,
+      deleted: removing.map((c) => scope.clipOut(c)),
+      ...result,
+      gapClosed: closed
+    };
+    if (!closed) {
+      out.note =
+        "The clips were removed, but closing the gap would separate a link group, so the gap stays.";
+    }
+    return out;
+  },
+
+  close_gap: (scope, op) => {
+    const track = scope.resolveTrack(op.track);
+    const gap = findGap(scope.clips, track.id, op.atMs);
+    if (!gap) {
+      return {
+        ok: true,
+        closed: false,
+        note: `No gap on "${track.name}" at ${op.atMs} ms: a clip covers that time or no clip follows it.`
+      };
+    }
+    const next = closeGap(scope.clips, track.id, op.atMs, rippleLocks(scope));
+    const result = commitRipple(scope, next);
+    const closed = result.movedClipIds.length > 0;
+    const out: Record<string, unknown> = { ok: true, closed, gap, ...result };
+    if (!closed) {
+      out.note = "Closing the gap would separate a link group, so nothing moved.";
+    }
+    return out;
+  },
+
+  cut_transcript: (scope, op) => {
+    const locks = transcriptLocks(scope);
+    if (op.fillers) {
+      if (op.startMs !== undefined || op.endMs !== undefined) {
+        throw new Error("Send either fillers: true or startMs and endMs, not both.");
+      }
+      return { ok: true, ...commitRipple(scope, removeFillers(scope.clips, locks).clips) };
+    }
+    if (op.startMs === undefined || op.endMs === undefined || op.endMs <= op.startMs) {
+      throw new Error("Send startMs and endMs with endMs after startMs, or fillers: true.");
+    }
+    const lockedWord = scope.clips.some(
+      (clip) =>
+        locks.lockedClipIds?.has(clip.id) &&
+        (clip.caption?.words ?? []).some(
+          (w) => clip.startMs + w.startMs < op.endMs! && clip.startMs + w.endMs > op.startMs!
+        )
+    );
+    if (lockedWord) {
+      throw new Error("The span covers a word of a locked clip. Unlock it, or cut a span that avoids it.");
+    }
+    const out = rippleDeleteRange(scope.clips, op.startMs, op.endMs, locks);
+    return { ok: true, ...commitRipple(scope, out.clips) };
   },
 
   set_tempo: (scope, op) => {

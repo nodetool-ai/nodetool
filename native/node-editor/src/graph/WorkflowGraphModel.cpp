@@ -371,7 +371,15 @@ void WorkflowGraphModel::setRuntimeModel(node_editor::NodeRuntimeModel *runtime)
   runningSince_.clear();
   runningTimer_.stop();
   if (runtime_) {
-    connect(runtime_, &node_editor::NodeRuntimeModel::nodeChanged, this, [this](const QString &id) { refreshRuntimeNode(id); emit runtimeChanged(); });
+    connect(runtime_, &node_editor::NodeRuntimeModel::nodeChanged, this, [this](const QString &id) {
+      refreshRuntimeNode(id);
+      if (const auto found = ids_.constFind(id); found != ids_.cend() && nodes_.contains(*found)) { emit runtimeNodeChanged(*found); }
+    });
+    connect(runtime_, &node_editor::NodeRuntimeModel::edgeChanged, this, [this](const QString &edgeId) {
+      for (const auto &[connection, edge] : edgeByConnection_) {
+        if (edge["id"].toString() == edgeId) { emit runtimeEdgeChanged(connection); }
+      }
+    });
     // Previews stay across a run change. EditorWindow::syncRuntimePreviews
     // replaces or removes each one, so a card keeps its image until the next loads.
     connect(runtime_, &node_editor::NodeRuntimeModel::projectionChanged, this, [this] {
@@ -443,6 +451,10 @@ bool WorkflowGraphModel::hasRuntimeOutput(NodeId id) const {
         return false;
     }
     const auto state = runtimeState(id);
+    // The List Generator lists its own items and a Collection shows its tiles. Only an error still shows below them.
+    if (body == CardBody::ListGenerator || body == CardBody::Collection) {
+        return !state["error"].toString().isEmpty();
+    }
     for (const auto *key : {"error", "text"}) {
         if (!state[key].toString().isEmpty()) {
             return true;
@@ -487,6 +499,7 @@ void WorkflowGraphModel::clearCardMedia() {
 void WorkflowGraphModel::setFocusedNode(const QString &resourceId) {
   if (resourceId == focusedNode_) { return; }
   const auto previous = std::exchange(focusedNode_, resourceId);
+  focusedHandle_ = {};
   if (!resourceId.isEmpty()) {
     focusHistory_.append(resourceId);
     while (focusHistory_.size() > 20) { focusHistory_.removeFirst(); }
@@ -498,6 +511,30 @@ void WorkflowGraphModel::setFocusedNode(const QString &resourceId) {
       emit nodeUpdated(*it);
     }
   }
+}
+void WorkflowGraphModel::setFocusedHandle(QtNodes::PortType side, const QString &name) {
+  if (focusedHandle_.side == side && focusedHandle_.name == name) { return; }
+  focusedHandle_ = name.isEmpty() ? FocusedHandle{} : FocusedHandle{side, name};
+  if (const auto node = ids_.value(focusedNode_, QtNodes::InvalidNodeId); node != QtNodes::InvalidNodeId) { emit nodeUpdated(node); }
+}
+bool WorkflowGraphModel::focusNextHandle(bool backwards) {
+  const auto node = ids_.value(focusedNode_, QtNodes::InvalidNodeId);
+  if (node == QtNodes::InvalidNodeId) { setFocusedHandle(QtNodes::PortType::None, {}); return false; }
+  QVector<FocusedHandle> handles;
+  for (const auto side : {QtNodes::PortType::In, QtNodes::PortType::Out}) {
+    const auto list = ports(node, side);
+    for (qsizetype i = 0; i < list.size(); ++i) {
+      if (portVisible(node, side, QtNodes::PortIndex(i))) { handles.append({side, list[i].toObject()["name"].toString()}); }
+    }
+  }
+  qsizetype index = -1;
+  for (qsizetype i = 0; i < handles.size(); ++i) {
+    if (handles[i].side == focusedHandle_.side && handles[i].name == focusedHandle_.name) { index = i; }
+  }
+  const auto next = index < 0 ? (backwards ? handles.size() - 1 : 0) : index + (backwards ? -1 : 1);
+  if (next < 0 || next >= handles.size()) { setFocusedHandle(QtNodes::PortType::None, {}); return false; }
+  setFocusedHandle(handles[next].side, handles[next].name);
+  return true;
 }
 bool WorkflowGraphModel::focusBack() {
   if (focusHistory_.size() < 2) { return false; }
@@ -530,10 +567,19 @@ void WorkflowGraphModel::setCanvasMediaNodes(const QSet<QString> &nodes) {
 }
 QRectF WorkflowGraphModel::canvasPlaybackRect(NodeId id) const {
   if (!canvasMediaNodes_.contains(resourceId(id)) || collapsed(id)) { return {}; }
-  const auto size = layout(id).size;
+  const auto &card = layout(id);
+  // A card that lays out a result area plays its media there, at full size.
+  if (!card.resultRect.isEmpty()) {
+    return card.resultRect;
+  }
+  const auto size = card.size;
   constexpr auto inset = node_metrics::padding + node_metrics::borderWidth;
-  return QRectF(inset, size.height() - node_metrics::playbackHeight - node_metrics::rowHeight,
-                size.width() - 2 * inset, node_metrics::playbackHeight);
+  // The player fills the card from the end of its content to the footer row,
+  // so a taller card gives the player the extra height.
+  const auto bottom = double(size.height() - node_metrics::rowHeight);
+  const auto top = std::min(card.mediaTop > 0 ? card.mediaTop : bottom - node_metrics::playbackHeight,
+                            bottom - node_metrics::playbackHeight);
+  return QRectF(inset, top, size.width() - 2 * inset, bottom - top);
 }
 QRectF WorkflowGraphModel::canvasResultRect(NodeId id) const {
   if (!nodeExists(id) || collapsed(id) || isGroup(id) || isComment(id) || isReroute(id)) { return {}; }
@@ -648,8 +694,10 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
     const auto minimumWidth = isGroup(id) ? 200 : 30;
     const auto minimumHeight = isGroup(id) ? 200 : 40;
     result.minimumSize = QSize(minimumWidth, minimumHeight);
-    result.size = QSize(std::max(minimumWidth, ui["width"].toInt(isGroup(id) ? 400 : 300)),
-                        std::max(minimumHeight, ui["height"].toInt(isGroup(id) ? 300 : 160)));
+    // React Flow stores fractional sizes after a resize. toInt() would read
+    // those as missing and fall back to the default size.
+    result.size = QSize(std::max(minimumWidth, qRound(ui["width"].toDouble(isGroup(id) ? 400 : 300))),
+                        std::max(minimumHeight, qRound(ui["height"].toDouble(isGroup(id) ? 300 : 160))));
     return *layouts_.insert(id, result);
   }
   const auto type = node["type"].toString();
@@ -841,8 +889,10 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
                                  graphVariables_, previewTabs_.value(resourceId(id)), result.sources,
                                  histograms_.contains(resourceId(id)) ? std::optional(histograms_.value(resourceId(id))) : std::nullopt,
                                  painters_.value(resourceId(id)),
-                                 result.body == CardBody::Painter ? paintMask(resourceId(id), node["data"].toObject()) : QImage{}});
+                                 result.body == CardBody::Painter ? paintMask(resourceId(id), node["data"].toObject()) : QImage{},
+                                 runtimeState(id), expandedListItems_.value(resourceId(id)), &cardMedia_});
       if (canvasMediaNodes_.contains(resourceId(id))) {
+          result.mediaTop = result.size.height();
           result.size.rheight() += nm::playbackHeight + nm::rowHeight;
       } else if (result.resultRect.isEmpty() && hasRuntimeOutput(id)) {
           result.size.rheight() += nm::previewHeight + nm::rowHeight;
@@ -855,7 +905,7 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
       // A body such as Compare Images sets a wider minimum than the 150 px corner limit.
       result.minimumSize = QSize(std::max(150, result.minimumSize.width()),
                                  result.body == CardBody::Preview ? nm::outputPlaceholderHeight : result.size.height() - result.flexHeight);
-      result.size.setHeight(std::max(result.size.height(), ui["height"].toInt()));
+      result.size.setHeight(std::max(result.size.height(), qRound(ui["height"].toDouble())));
       addRenameControls();
       if (ui["collapsed"].toBool()) { result = collapsedLayout(result, ui); }
       return *layouts_.insert(id, result);
@@ -1402,7 +1452,10 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
   const auto minimum = nm::contentTop + nm::rowHeight + nm::padding + nm::borderWidth;
   result.size = QSize(width > 0 ? int(width) : nm::defaultWidth,
                       int(std::ceil(std::max<double>(end, minimum) + nm::padding)));
-  if (canvasMediaNodes_.contains(resourceId(id))) { result.size.rheight() += nm::playbackHeight + nm::rowHeight; }
+  if (canvasMediaNodes_.contains(resourceId(id))) {
+    result.mediaTop = result.size.height();
+    result.size.rheight() += nm::playbackHeight + nm::rowHeight;
+  }
   else if (hasRuntimeOutput(id)) { result.size.rheight() += nm::previewHeight + nm::rowHeight; }
     result.runningProgress = result.subgraph && runtimeState(id)["status"] == "running" && runtimeState(id)["total"].toDouble() > 0;
     if (result.runningProgress) { result.size.rheight() += nm::handleRowStep; }
@@ -1415,7 +1468,7 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
     if (result.subgraph) { result.size.rheight() += nm::handleRowStep; }
   result.minimumSize = QSize(150, result.size.height());
   const auto natural = result.size.height();
-  result.size.setHeight(std::max(result.size.height(), ui["height"].toInt()));
+  result.size.setHeight(std::max(result.size.height(), qRound(ui["height"].toDouble())));
   stretchCodeField(result, result.size.height() - natural);
   stretchCardMedia(result, type);
   addRenameControls();
@@ -1450,7 +1503,7 @@ QJsonArray WorkflowGraphModel::ports(NodeId id, PortType type) const {
   if (const auto metadata = catalogEntry(n["type"]); !metadata.isEmpty()) {
     QSet<QString> connectedInputs;
     if (type == PortType::In) {
-      for (const auto &value : edges_) {
+      for (const auto &value : incident_.value(n["id"].toString())) {
         const auto edge = value.toObject();
         if (edge["target"] == n["id"]) { connectedInputs.insert(edge["targetHandle"].toString()); }
       }
@@ -1499,7 +1552,7 @@ QJsonArray WorkflowGraphModel::ports(NodeId id, PortType type) const {
     }
   }
   // Unknown incident names remain available without changing the document.
-  for (const auto &value : edges_) {
+  for (const auto &value : incident_.value(resourceId(id))) {
     const auto edge = value.toObject();
     const auto key = type == PortType::In ? "target" : "source";
     const auto handle = type == PortType::In ? "targetHandle" : "sourceHandle";
@@ -1689,6 +1742,17 @@ void WorkflowGraphModel::setPreviewTab(NodeId id, const QString &tab) {
         return;
     }
     previewTabs_.insert(resource, tab);
+    refreshRuntimeNode(resource);
+}
+void WorkflowGraphModel::toggleListItem(NodeId id, int index) {
+    const auto resource = resourceId(id);
+    if (resource.isEmpty() || index < 0) {
+        return;
+    }
+    auto &expanded = expandedListItems_[resource];
+    if (!expanded.remove(index)) {
+        expanded.insert(index);
+    }
     refreshRuntimeNode(resource);
 }
 void WorkflowGraphModel::setDimensionsLinked(NodeId id, bool linked) {
@@ -1891,8 +1955,9 @@ int WorkflowGraphModel::dropZoneAt(NodeId id, const QPointF &point) const {
     }
     const auto &rows = layout(id).rows;
     for (int i = 0; i < rows.size(); ++i) {
-        // A list's zone appends files, which the canvas does not do yet.
-        if (rows[i].kind == NodeRowKind::DropZone && !rows[i].mediaList && rows[i].rect.contains(point)) {
+        // A list's zone appends files, which the canvas does not do yet. A Collection's zone does.
+        if (rows[i].kind == NodeRowKind::DropZone && (!rows[i].mediaList || layout(id).body == CardBody::Collection)
+            && rows[i].rect.contains(point)) {
             return i;
         }
     }

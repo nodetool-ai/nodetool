@@ -1,16 +1,20 @@
 #include "interfaces/RunState.h"
 #include "server/MsgPack.h"
+#include "ui/DockedOverlay.h"
 #include "ui/EditorWindow.h"
 #include <QApplication>
 #include <QDateTime>
 #include <QDir>
 #include <QDockWidget>
+#include <QGraphicsView>
 #include <QJsonDocument>
-#include <QMenu>
+#include "EntryMenuSupport.h"
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QQuickWidget>
+#include <QSettings>
+#include <QStyleHints>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QUrl>
@@ -65,6 +69,15 @@ class QueueUiTest final : public QObject {
         }
         return nullptr;
     }
+    // The canvas overlay opened with no jobs, as its own list button leaves it.
+    static void openOverlay(EditorWindow &w) {
+        for (auto widget : w.findChildren<QQuickWidget *>()) {
+            if (widget->source().fileName() == "QueueOverlay.qml" && widget->rootObject()) {
+                widget->rootObject()->setProperty("opened", true);
+                widget->rootObject()->setProperty("expanded", true);
+            }
+        }
+    }
     static void click(QQuickWidget *widget, const QString &name) {
         QVERIFY(widget);
         auto item = find(widget->rootObject(), name);
@@ -75,7 +88,148 @@ class QueueUiTest final : public QObject {
             item->mapToScene({item->width() / 2, item->height() / 2})
                 .toPoint());
     }
+    // The editor canvas: the largest graphics view in the window.
+    static QGraphicsView *canvas(EditorWindow &window) {
+        QGraphicsView *best = nullptr;
+        for (auto view : window.findChildren<QGraphicsView *>()) {
+            if (view->isVisible() && (!best || view->width() * view->height() > best->width() * best->height())) {
+                best = view;
+            }
+        }
+        return best;
+    }
+    static QRect canvasRect(EditorWindow &window, QWidget *parent) {
+        auto view = canvas(window);
+        return {view->mapTo(parent, QPoint(0, 0)), view->size()};
+    }
+    // Presses the item, passes the drag threshold, then moves the pointer by delta on screen.
+    static void drag(QQuickWidget *widget, const QString &name, QPoint delta) {
+        auto item = find(widget->rootObject(), name);
+        QVERIFY(item);
+        auto *window = widget->quickWindow();
+        const QPoint start = item->mapToScene({item->width() / 2, item->height() / 2}).toPoint();
+        const QPoint armed = start + QPoint(QGuiApplication::styleHints()->startDragDistance() + 4, 0);
+        QTest::mousePress(window, Qt::LeftButton, Qt::NoModifier, start);
+        QTest::mouseMove(window, armed);
+        QTest::mouseMove(window, armed + delta);
+        // The overlay followed the pointer, so the pointer is back at the scene
+        // point where the drag armed when the button comes up.
+        QTest::mouseRelease(window, Qt::LeftButton, Qt::NoModifier, armed);
+    }
 private slots:
+    void dockedPosition() {
+        using namespace docked_overlay;
+        const QRect area(50, 76, 1390, 792);
+        const QSize size(304, 70);
+        QCOMPARE(place(defaultPosition, area, size), QPoint(66, 92));
+        QCOMPARE(place({true, true, 20, 30}, area, size), QPoint(1440 - 20 - 304, 868 - 30 - 70));
+        // A right-docked overlay stays at the right edge of a narrower canvas.
+        QCOMPARE(place({true, false, 16, 16}, QRect(50, 76, 850, 792), size).x(), 900 - 16 - 304);
+        // A stored offset that no longer fits is clamped inside the canvas.
+        QCOMPARE(place({false, false, 900, 900}, QRect(0, 0, 400, 300), size), QPoint(400 - 16 - 304, 300 - 16 - 70));
+        // An overlay larger than the canvas keeps its header reachable.
+        QCOMPARE(place({true, true, 0, 0}, QRect(0, 0, 200, 50), size), QPoint(16, 16));
+        const auto docked = dockAt({1100, 760}, area, size);
+        QCOMPARE(docked, (Position{true, true, 1440 - 1100 - 304, 868 - 760 - 70}));
+        QCOMPARE(place(dockAt({700, 300}, area, size), area, size), QPoint(700, 300));
+        QCOMPARE(fromVariant(toVariant(docked)), std::optional<Position>(docked));
+        // The stored form is the web's JSON: {anchorX, anchorY, x, y}.
+        QCOMPARE(toVariant(docked)["anchorX"].toString(), QString("right"));
+        QVERIFY(!fromVariant(QVariantMap{{"anchorX", "middle"}, {"anchorY", "top"}, {"x", 1}, {"y", 1}}));
+        QVERIFY(!fromVariant(QVariantMap{{"anchorX", "left"}, {"anchorY", "top"}, {"x", "wide"}, {"y", 1}}));
+        QVERIFY(!fromVariant(QVariant()));
+    }
+    void dragDocksAndPersists() {
+        QSettings().remove("queueOverlay/position");
+        EditorWindow window;
+        window.resize(1200, 800);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        openOverlay(window);
+        QQuickWidget *queue = nullptr;
+        QTRY_VERIFY((queue = panel(window, "QueueOverlay.qml")));
+        auto *parent = queue->parentWidget();
+        QTRY_COMPARE(queue->pos(), canvasRect(window, parent).topLeft() + QPoint(16, 16));
+        // Inside the canvas: the output dock and its tabs stay uncovered.
+        QVERIFY(canvasRect(window, parent).contains(queue->geometry()));
+
+        // Dragging the header moves the overlay, and the drop docks it to the nearer edges.
+        const QPoint from = queue->pos();
+        drag(queue, "queue-header-move-grip", {500, 120});
+        QTRY_COMPARE(queue->pos(), from + QPoint(500, 120));
+        const auto stored = docked_overlay::fromVariant(QSettings().value("queueOverlay/position"));
+        QVERIFY(stored);
+        QVERIFY(stored->right);
+        if (const auto capture = qEnvironmentVariable("NODETOOL_QUEUE_CAPTURE_DIR"); !capture.isEmpty()) {
+            QVERIFY(QDir().mkpath(capture));
+            QTest::qWait(300);
+            QVERIFY(window.grab().save(capture + "/queue-dragged.png"));
+        }
+        // A drag that starts on a button leaves the overlay where it is.
+        drag(queue, "queue-collapse", {-300, 0});
+        QTest::qWait(100);
+        QCOMPARE(queue->pos(), from + QPoint(500, 120));
+
+        // The right-docked overlay keeps its distance from the right edge as the window narrows,
+        // and stays inside the canvas.
+        const int rightGap = canvasRect(window, parent).right() - queue->geometry().right();
+        window.resize(900, 700);
+        QTRY_COMPARE(canvasRect(window, parent).right() - queue->geometry().right(), rightGap);
+        QVERIFY(canvasRect(window, parent).contains(queue->geometry()));
+
+        // A new window reads the stored position.
+        {
+            EditorWindow other;
+            other.resize(900, 700);
+            other.show();
+            QVERIFY(QTest::qWaitForWindowExposed(&other));
+            openOverlay(other);
+            QQuickWidget *otherQueue = nullptr;
+            QTRY_VERIFY((otherQueue = panel(other, "QueueOverlay.qml")));
+            QTRY_COMPARE(canvasRect(other, otherQueue->parentWidget()).right() - otherQueue->geometry().right(), rightGap);
+        }
+
+        // Arrow keys on the grip move it, and Home returns it to the default corner.
+        auto grip = find(queue->rootObject(), "queue-header-move-grip");
+        QVERIFY(grip);
+        grip->forceActiveFocus();
+        const QPoint keyed = queue->pos();
+        QTest::keyClick(queue->quickWindow(), Qt::Key_Left);
+        QTRY_COMPARE(queue->pos(), keyed - QPoint(16, 0));
+        QTest::keyClick(queue->quickWindow(), Qt::Key_Home);
+        QTRY_COMPARE(queue->pos(), canvasRect(window, parent).topLeft() + QPoint(16, 16));
+        QVERIFY(!QSettings().contains("queueOverlay/position"));
+    }
+    // PanelBottom.tsx: the Queue tab opens QueuePanel in the bottom panel at any
+    // time, and the tab or the header's close button closes it again.
+    void queueTabOpensBottomPanel() {
+        EditorWindow window;
+        window.resize(1200, 800);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY(!window.queueVisible());
+        window.toggleStatusView("queue");
+        QTRY_VERIFY(window.queueVisible());
+        auto *dock = window.findChild<QDockWidget *>("queue-dock");
+        QVERIFY(dock);
+        QQuickWidget *queue = nullptr;
+        QTRY_VERIFY((queue = panel(window, "QueuePanel.qml")));
+        // The list fills the panel: no drag grip and no collapse to a summary.
+        auto *list = find(queue->rootObject(), "queue-panel-list");
+        QVERIFY(list);
+        QVERIFY(list->property("showList").toBool());
+        QVERIFY(!find(queue->rootObject(), "queue-header-move-grip")->isVisible());
+        QCOMPARE(find(queue->rootObject(), "queue-collapse")->property("accessibleName").toString(), QString("Close queue"));
+        // The canvas overlay stays hidden while no job runs.
+        QVERIFY(!panel(window, "QueueOverlay.qml"));
+        QVERIFY(queue->height() > 200);
+        window.toggleStatusView("queue");
+        QTRY_VERIFY(!window.queueVisible());
+        window.toggleStatusView("queue");
+        QTRY_VERIFY((queue = panel(window, "QueuePanel.qml")));
+        click(queue, "queue-collapse");
+        QTRY_VERIFY(!window.queueVisible());
+    }
     void roundedCorners() {
         RunOutputModel output;
         QueueFixture session(output);
@@ -190,6 +344,12 @@ private slots:
         const auto idleNow = root->property("now");
         QTest::qWait(1100);
         QCOMPARE(root->property("now"), idleNow);
+        // Opening the queue reads the clock, so its day groups are current.
+        root->setProperty("now", 0.0);
+        root->setProperty("opened", true);
+        QTRY_VERIFY(root->property("now").toDouble() > 0);
+        root->setProperty("opened", false);
+        QTRY_VERIFY(!root->property("presented").toBool());
         auto theme = widget.engine()->singletonInstance<QObject *>(
             "NodeTool.UiPrimitives", "Theme");
         QVERIFY(theme);
@@ -259,6 +419,8 @@ private slots:
                     [&](QByteArray bytes) {
                         auto decoded = decodeMsgPack(bytes);
                         QVERIFY(decoded);
+                        // The open-project signal goes with every socket open. WorkflowSessionTests checks it.
+                        if (decoded->toObject()["command"] == "set_open_project") { return; }
                         commands.append(decoded->toObject());
                     });
         });
@@ -275,18 +437,9 @@ private slots:
         for (const auto label :
              {QString("Instant Update: Off"), QString("Instant Update: On")}) {
             click(toolbar, "toolbar-more");
-            auto menu =
-                qobject_cast<QMenu *>(QApplication::activePopupWidget());
-            QTRY_VERIFY(menu);
-            QAction *toggle = nullptr;
-            for (auto action : menu->actions()) {
-                if (action->text() == label) {
-                    toggle = action;
-                }
-            }
-            QVERIFY(toggle);
-            QTest::mouseClick(menu, Qt::LeftButton, Qt::NoModifier,
-                              menu->actionGeometry(toggle).center());
+            QQuickWidget *menu = nullptr;
+            QTRY_VERIFY((menu = entry_menu::host(window, "more")));
+            QVERIFY(entry_menu::click(menu, label));
         }
         click(toolbar, "run-workflow");
         QTRY_COMPARE(commands.size(), 1);
@@ -387,13 +540,7 @@ private slots:
                             click(queue,
                                   expanded ? "queue-toggle" : "queue-collapse");
                         }
-                        QTest::qWait(250);
-                        auto catalog = panel(window, "Catalog.qml");
-                        QVERIFY(catalog);
-                        auto empty = find(catalog->rootObject(), "catalog-empty-state");
-                        QVERIFY(empty);
-                        QVERIFY(empty->isVisible());
-                        QVERIFY(empty->width() >= 250);
+                        QTest::qWait(600);
                         const auto name =
                             QString("/queue-%1-%2-%3.png")
                                 .arg(size.width())

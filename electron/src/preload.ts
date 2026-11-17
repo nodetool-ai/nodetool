@@ -668,6 +668,21 @@ const api = {
   },
 
   // ============================================================================
+  // cloudAccount: the cloud sign-in the native apps share
+  // ============================================================================
+  cloudAccount: {
+    /** The account state. It holds no token. */
+    state: () => ipcRenderer.invoke(IpcChannels.CLOUD_ACCOUNT_STATE),
+    /** Opens the server's sign-in page in the system browser. */
+    signIn: () => ipcRenderer.invoke(IpcChannels.CLOUD_ACCOUNT_SIGN_IN),
+    cancelSignIn: () => ipcRenderer.invoke(IpcChannels.CLOUD_ACCOUNT_CANCEL_SIGN_IN),
+    /** Signs out of the node editor, the timeline and this app. */
+    signOut: () => ipcRenderer.invoke(IpcChannels.CLOUD_ACCOUNT_SIGN_OUT),
+    /** Every change of the state, including one made by another app. */
+    onChange: createEventSubscription(IpcChannels.CLOUD_ACCOUNT_EVENT),
+  },
+
+  // ============================================================================
   // notifications: Native OS notifications
   // ============================================================================
   notifications: {

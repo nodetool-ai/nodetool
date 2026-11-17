@@ -8,7 +8,10 @@ import { describe, expect, it } from "vitest";
 import {
   BaseProvider,
   ComfyCloudProvider,
-  ComfyRouterClient
+  ComfyRouterClient,
+  clearProviderCredit,
+  creditAccountFor,
+  markProviderCreditExhausted
 } from "@nodetool-ai/runtime";
 import type {
   AudioToAudioModel,
@@ -617,6 +620,31 @@ describe("find_model through the adapter", () => {
     expect(result.note).toMatch(/huggingface .*@huggingface\/inference/);
   });
 
+  it("skips a provider whose account is out of credit, and says why", async () => {
+    const empty = new FakeImageProvider("kie" as ProviderId, [
+      { id: "flux-kontext", name: "Flux Kontext", provider: "kie" } as ImageModel
+    ]);
+    const account = creditAccountFor("kie", "find-model-empty-key");
+    empty.bindCreditAccount(account);
+    markProviderCreditExhausted(account.key, "kie");
+    const tool = asTool(findModel, {
+      fal_ai: new FakeImageProvider("fal_ai" as ProviderId, [
+        { id: "fal-ai/flux/schnell", name: "Flux Schnell", provider: "fal_ai" } as ImageModel
+      ]),
+      kie: empty
+    });
+    try {
+      const result = (await tool.process(ctx, {
+        capability: "text_to_image",
+        query: "flux"
+      })) as { note: string; results: { provider: string }[] };
+      expect(result.results.map((r) => r.provider)).toEqual(["fal_ai"]);
+      expect(result.note).toMatch(/kie .*lack of credit/);
+    } finally {
+      clearProviderCredit(account.key);
+    }
+  });
+
   it("says so when the run carries no providers", async () => {
     const result = (await asTool(findModel).process(ctx, {
       capability: "text_to_image"
@@ -636,6 +664,74 @@ describe("find_model through the adapter", () => {
       capability: "text_to_image"
     })) as { total: number };
     expect(result.total).toBe(1);
+  });
+});
+
+describe("find_model: a provider_hint it cannot honour", () => {
+  const fal = () =>
+    new FakeImageProvider("fal_ai" as ProviderId, [
+      { id: "flux-1", name: "Flux 1", provider: "fal_ai" } as ImageModel
+    ]);
+
+  it("says the hinted provider is not configured instead of answering silently", async () => {
+    const tool = asTool(findModel, { fal_ai: fal() });
+    const result = (await tool.process(ctx, {
+      capability: "text_to_image",
+      provider_hint: "codex"
+    })) as {
+      results: { provider: string }[];
+      provider_hint_matched?: boolean;
+      note?: string;
+    };
+    expect(result.results[0].provider).toBe("fal_ai");
+    expect(result.provider_hint_matched).toBe(false);
+    expect(result.note).toMatch(
+      /^provider_hint 'codex' is not configured here \(configured: fal_ai\)/
+    );
+  });
+
+  it("says when the hinted provider does not offer the capability", async () => {
+    const anthropic = new FakeLanguageProvider("anthropic" as ProviderId, [
+      { id: "claude", name: "Claude", provider: "anthropic" } as LanguageModel
+    ]);
+    const tool = asTool(findModel, { fal_ai: fal(), anthropic });
+    const result = (await tool.process(ctx, {
+      capability: "text_to_image",
+      provider_hint: "anthropic"
+    })) as { provider_hint_matched?: boolean; note?: string };
+    expect(result.provider_hint_matched).toBe(false);
+    expect(result.note).toMatch(/'anthropic' does not offer text_to_image/);
+  });
+
+  it("reads `provider` as the hint", async () => {
+    const openai = new FakeImageProvider("openai" as ProviderId, [
+      { id: "gpt-image-1", name: "GPT Image 1", provider: "openai" } as ImageModel
+    ]);
+    const tool = asTool(findModel, { openai, fal_ai: fal() });
+    const result = (await tool.process(ctx, {
+      capability: "text_to_image",
+      provider: "fal_ai"
+    })) as { results: { provider: string }[]; provider_hint_matched?: boolean };
+    expect(result.results[0].provider).toBe("fal_ai");
+    expect(result.provider_hint_matched).toBe(true);
+  });
+
+  it("omits provider_hint_matched when no hint was given", async () => {
+    const tool = asTool(findModel, { fal_ai: fal() });
+    const result = (await tool.process(ctx, {
+      capability: "text_to_image"
+    })) as Record<string, unknown>;
+    expect(result).not.toHaveProperty("provider_hint_matched");
+  });
+
+  it("rejects an argument it does not read", async () => {
+    const tool = asTool(findModel, { fal_ai: fal() });
+    const result = (await tool.process(ctx, {
+      capability: "text_to_image",
+      vendor: "codex"
+    })) as { error?: string; total: number };
+    expect(result.total).toBe(0);
+    expect(result.error).toMatch(/find_model has no argument 'vendor'/);
   });
 });
 
@@ -773,6 +869,45 @@ describe("list_providers through the adapter", () => {
       available: false,
       unavailable_reason: "missing SDK"
     });
+  });
+
+  it("reports remaining credit and marks an empty account unavailable", async () => {
+    const funded = new FakeImageProvider("meshy" as ProviderId, []);
+    funded.bindCreditAccount(
+      creditAccountFor("meshy", "list-providers-key", {
+        fetchImpl: (async () =>
+          new Response(JSON.stringify({ balance: 120 }), { status: 200 })) as typeof fetch
+      })
+    );
+    const empty = new FakeLanguageProvider("openai" as ProviderId, []);
+    const emptyAccount = creditAccountFor("openai", "list-providers-empty");
+    empty.bindCreditAccount(emptyAccount);
+    markProviderCreditExhausted(emptyAccount.key, "openai");
+    try {
+      const result = (await asTool(listProviders, {
+        meshy: funded,
+        openai: empty,
+        ollama: new FakeLanguageProvider("ollama" as ProviderId, [])
+      }).process(ctx, {})) as {
+        providers: {
+          id: string;
+          available: boolean;
+          credit?: { state: string; remaining?: number; unit?: string };
+        }[];
+      };
+      const byId = Object.fromEntries(result.providers.map((p) => [p.id, p]));
+      expect(byId.meshy).toMatchObject({
+        available: true,
+        credit: { state: "available", remaining: 120, unit: "credits" }
+      });
+      expect(byId.openai).toMatchObject({
+        available: false,
+        credit: { state: "exhausted" }
+      });
+      expect(byId.ollama.credit).toBeUndefined();
+    } finally {
+      clearProviderCredit();
+    }
   });
 
   it("says when nothing is configured", async () => {

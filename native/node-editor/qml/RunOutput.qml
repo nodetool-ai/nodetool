@@ -4,7 +4,8 @@ import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
 
 // The body of the web Logs view (components/panels/TracePanel.tsx): the run picker,
-// the empty state and compact rows. The status bar above it is the tab strip.
+// the empty state and compact rows. It opens above the status bar, with a title
+// and a close button, as the other status bar views do.
 Rectangle {
     id: root
     required property PanelLayout panels
@@ -17,6 +18,7 @@ Rectangle {
     implicitHeight: Ui.Metrics.comfortable * 10
     implicitWidth: Ui.Metrics.dialogCompactWidth
     readonly property bool hasRuns: runs.outputRuns.length > 0
+    signal closeRequested()
     // Run status labels of the web picker (i18n trace.runStatus).
     function statusLabel(status) {
         const labels = { completed: qsTr("Completed"), failed: qsTr("Failed"), cancelled: qsTr("Cancelled"), running: qsTr("Running") }
@@ -32,6 +34,11 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
             spacing: Ui.Metrics.lg
+            Ui.Text {
+                objectName: "logs-title"
+                text: qsTr("Logs")
+                role: Ui.Typography.SansLabel
+            }
             Ui.Select {
                 id: runPicker
                 objectName: "run-history"
@@ -56,12 +63,18 @@ Rectangle {
                 onClicked: root.runs.askAgent(root.runs.selectedRunId)
             }
             Item { Layout.fillWidth: true }
-            NodeButton {
+            Ui.EditorButton {
                 objectName: "clear-run-history"
                 visible: root.hasRuns
                 text: "Clear history"
-                variant: NodeButton.Flat
+                variant: Ui.EditorButton.Outlined; flat: true
                 onClicked: root.runs.clearOutput()
+            }
+            Ui.CloseButton {
+                objectName: "logs-close"
+                accessibleName: qsTr("Close logs")
+                description: accessibleName
+                onClicked: root.closeRequested()
             }
         }
         Ui.Text {

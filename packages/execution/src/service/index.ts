@@ -27,15 +27,47 @@ export type {
 } from "./debug-sessions.js";
 
 export {
-  resolveWorkflowWorkspace,
-  resolveWorkflowWorkspaceDir,
+  PROJECT_FOLDER_NOT_FOUND,
+  nodetoolDirFromRow,
+  resolveProjectWorkspace,
   workspaceFromRow,
   setWorkspaceCloudStorage,
   setWorkspaceChangeNotifier,
   usesCloudWorkspaces,
   buildWorkspaceExecutionContext
 } from "./workflow-workspace.js";
-export type { WorkspaceFileChange } from "./workflow-workspace.js";
+export type {
+  ProjectWorkspaceResolution,
+  WorkspaceFileChange
+} from "./workflow-workspace.js";
+
+export {
+  PROJECT_MANIFEST_FILE,
+  PROJECT_MANIFEST_PATH,
+  PROJECTS_DIR_SETTING,
+  ProjectFolderError,
+  checkProjectsDir,
+  configuredProjectsDir,
+  describeProjectFolder,
+  ensurePersonalProject,
+  ensureProjectFolder,
+  isFolderMarkedCreated,
+  isLocalDeployment,
+  markFolderCreated,
+  migrateProjectFolders,
+  projectFolderName,
+  projectManifest,
+  readProjectManifest,
+  removeProjectManifest,
+  unmarkFolderCreated,
+  writeProjectManifest
+} from "./project-folder.js";
+export type {
+  FolderCreatedMark,
+  ProjectFolderInfo,
+  ProjectFolderMigrationReport,
+  ProjectManifest
+} from "./project-folder.js";
 
 export { createAppServerRunner } from "./app-run-server.js";
 export {
@@ -56,6 +88,7 @@ export {
   persistableOutputs,
   withoutInlineAssetBytes,
   modelSelectionErrors,
+  graphNodeTitle,
   MAX_INTERACTIVE_DECISIONS,
   MAX_INTERACTIVE_RETRIES_PER_NODE,
   MAX_INTERACTIVE_DECISION_TIMEOUT_MS

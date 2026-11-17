@@ -9,7 +9,7 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import { pack, unpack } from "msgpackr";
-import { initTestDb } from "@nodetool-ai/models";
+import { initTestDb, Setting } from "@nodetool-ai/models";
 import { BaseProvider } from "@nodetool-ai/runtime";
 import {
   WebSocketClientSession,
@@ -350,5 +350,65 @@ describe("codeact permission prompts", () => {
     expect(String(observation.content)).toContain('"wrote"');
 
     await runner.disconnect();
+  }, 60_000);
+
+  it("saves Always allow for the user, so a later chat runs the tool without asking", async () => {
+    initTestDb();
+    const code =
+      'import { write_file } from "@nodetool-ai/sandbox-nodetool/files";\n' +
+      `const r = await write_file({ file_path: "note.txt", content: "hi" });\n` +
+      `return { wrote: String(r) };`;
+    const startChat = async (threadId: string) => {
+      const ws = new MockWS();
+      const runner = new WebSocketClientSession({
+        resolveExecutor: noop,
+        resolveProvider: codeActProvider(code)
+      });
+      await runner.connect(ws);
+      void runner.receiveMessages();
+      void runner.handleCommand({
+        command: "chat_message",
+        data: {
+          thread_id: threadId,
+          content: "write a note",
+          provider: "mock",
+          model: "m",
+          permission_mode: "default"
+        }
+      });
+      return { ws, runner };
+    };
+
+    const first = await startChat("t-always-1");
+    const request = await waitFor(() =>
+      sentMsgs(first.ws).find((m) => m.type === "tool_approval_request")
+    );
+    first.ws.push({
+      type: "websocket.receive",
+      bytes: pack({
+        type: "tool_approval_response",
+        approval_id: request.approval_id,
+        decision: "allow_always"
+      })
+    } as WebSocketReceiveFrame);
+    await waitFor(() =>
+      sentMsgs(first.ws).find((m) => m.type === "message" && m.role === "tool")
+    );
+    await first.runner.disconnect();
+
+    const rows = await Setting.listForUser("1");
+    const rule = rows.find((row) => row.key === "tool_permissions.always_allow");
+    expect(JSON.parse(rule?.value ?? "[]")).toContain("write_file");
+
+    // A new chat, in a new session, starts with the saved rule.
+    const second = await startChat("t-always-2");
+    const observation = await waitFor(() =>
+      sentMsgs(second.ws).find((m) => m.type === "message" && m.role === "tool")
+    );
+    expect(String(observation.content)).toContain('"wrote"');
+    expect(
+      sentMsgs(second.ws).some((m) => m.type === "tool_approval_request")
+    ).toBe(false);
+    await second.runner.disconnect();
   }, 60_000);
 });

@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QGraphicsView>
+#include <QQmlEngine>
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QQuickWindow>
@@ -134,8 +135,8 @@ private slots:
         QSettings().remove("catalog/recentNodes");
     }
 
-    // The library sends hover text up as a signal, and the window shows it.
-    void libraryHoverTextReachesTheWindowToolTip() {
+    // A tooltip that a panel overlay cannot hold goes to the window through Ui.TooltipHost.
+    void hostedTooltipTextReachesTheWindowToolTip() {
         EditorWindow window;
         window.setCatalog(catalogFixture());
         window.show();
@@ -143,9 +144,12 @@ private slots:
         QTest::qWait(100);
         auto catalogWidget = catalogPanel(window);
         QVERIFY(catalogWidget);
-        QVERIFY(QMetaObject::invokeMethod(catalogWidget->rootObject(), "toolTipRequested", Q_ARG(QString, "Node library")));
+        auto *host = catalogWidget->engine()->singletonInstance<QObject *>("NodeTool.UiPrimitives", "TooltipHost");
+        QVERIFY(host);
+        QVERIFY(host->property("routeToHost").toBool());
+        QVERIFY(QMetaObject::invokeMethod(host, "requested", Q_ARG(QString, "Node library")));
         QTRY_COMPARE_WITH_TIMEOUT(QToolTip::text(), QString("Node library"), 1000);
-        QVERIFY(QMetaObject::invokeMethod(catalogWidget->rootObject(), "toolTipRequested", Q_ARG(QString, QString())));
+        QVERIFY(QMetaObject::invokeMethod(host, "requested", Q_ARG(QString, QString())));
         QTRY_VERIFY_WITH_TIMEOUT(!QToolTip::isVisible(), 1000);
     }
 

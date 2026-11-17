@@ -48,7 +48,9 @@ import DefaultModelsMenu from "./DefaultModelsMenu";
 import MCPSettingsMenu from "./MCPSettingsMenu";
 import BrowserExtensionSettingsMenu from "./BrowserExtensionSettingsMenu";
 import VaultsSettings from "./VaultsSettings";
+import CloudAccountSettings from "./CloudAccountSettings";
 import ConnectedAccountsSettings from "../settings/ConnectedAccountsSettings";
+import DeviceSessionsSettings from "../settings/DeviceSessionsSettings";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback, useEffect, useRef } from "react";
 import SettingsSidebar from "./SettingsSidebar";
@@ -74,6 +76,10 @@ import {
 } from "../themes/themeContrasts";
 import LanguageSetting from "../settings/LanguageSetting";
 import StorageHistorySettings from "../settings/StorageHistorySettings";
+import ToolPermissionsSettings, {
+  toolPermissionGroupAnchor
+} from "../settings/ToolPermissionsSettings";
+import { useToolPermissions } from "../../serverState/useToolPermissions";
 import {
   SETTINGS_TAB_ITEMS,
   matchesSearch,
@@ -99,6 +105,7 @@ const settingsDocsTopic = (section: SettingsSection): DocsTopic =>
 const SETTINGS_TAB_KEYS = {
   general: "screens4_6.settings.tabs.general",
   providers: "screens4_6.settings.tabs.providers",
+  permissions: "toolPermissions.tab",
   integrations: "screens4_6.settings.tabs.integrations",
   privacy: "screens4_6.settings.tabs.privacy",
   about: "screens4_6.settings.tabs.about"
@@ -542,6 +549,9 @@ function SettingsPage() {
         { id: "editor", label: "Editor" },
         ...(isElectron ? [{ id: "updates", label: "Updates" }] : []),
         ...(isElectron ? [{ id: "vaults", label: "Vaults" }] : []),
+        ...(isElectron && window.api?.cloudAccount
+          ? [{ id: "cloud-account", label: "Cloud account" }]
+          : []),
         { id: "appearance", label: "Appearance" }
       ]
     },
@@ -579,7 +589,12 @@ function SettingsPage() {
       { category: "Configuration", items: configItems },
       {
         category: "Accounts",
-        items: [{ id: "connected-accounts", label: "Connected accounts" }]
+        items: [
+          { id: "connected-accounts", label: "Connected accounts" },
+          ...(isLocalhost
+            ? []
+            : [{ id: "signed-in-devices", label: "Signed-in devices" }])
+        ]
       },
       ...(isLocalhost
         ? [
@@ -605,10 +620,29 @@ function SettingsPage() {
     ];
   }, [remoteSettings, session?.access_token]);
 
+  // The Permissions sidebar lists the same tool groups the panel renders.
+  const { groups: toolPermissionGroups } = useToolPermissions({
+    enabled: section === "permissions"
+  });
+  const permissionsSidebarSections = useMemo(
+    () => [
+      {
+        category: t("toolPermissions.sidebarCategory"),
+        items: toolPermissionGroups.map((group) => ({
+          id: toolPermissionGroupAnchor(group.id),
+          label: group.title
+        }))
+      }
+    ],
+    [t, toolPermissionGroups]
+  );
+
   const allSidebarSections =
     section === "general"
       ? generalSidebarSections
-      : section === "integrations"
+      : section === "permissions"
+        ? permissionsSidebarSections
+        : section === "integrations"
         ? integrationsSidebarSections
         : section === "about"
           ? getAboutSidebarSections()
@@ -876,6 +910,11 @@ function SettingsPage() {
                     {isElectron &&
                       generalMatches("vaults isolated database") && (
                         <VaultsSettings />
+                      )}
+
+                    {isElectron &&
+                      generalMatches("cloud account sign in sign out") && (
+                        <CloudAccountSettings />
                       )}
 
                     <div className="settings-section">
@@ -1210,13 +1249,19 @@ function SettingsPage() {
                   </Box>
                 </TabPanel>
 
+                <TabPanel section="permissions" current={section}>
+                  {section === "permissions" && (
+                    <ToolPermissionsSettings search={searchTerm} />
+                  )}
+                </TabPanel>
+
                 <TabPanel section="integrations" current={section}>
                   <div className="integrations-settings">
                   <RemoteSettingsMenuComponent search={searchTerm} />
 
                   {!isCloudProfile() &&
                     matchesSearch(
-                    "folders assets workspace directory storage",
+                    "folders assets project folder directory storage",
                     search
                   ) && (
                     <>
@@ -1242,6 +1287,11 @@ function SettingsPage() {
                       <ConnectedAccountsSettings />
                     </>
                   )}
+
+                  {matchesSearch(
+                    "signed in devices desktop sessions sign out",
+                    search
+                  ) && <DeviceSessionsSettings />}
 
                   {isLocalhost &&
                     matchesSearch(

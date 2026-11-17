@@ -40,7 +40,7 @@ User prompt: "Break this brief into six shots and render stills."
 
 | Area | What it holds |
 |---|---|
-| Document bar | Board title, save state, Undo and Redo, **Board** and **Preview**, the Board settings and Assistant toggles, **Render**, **Open timeline**, and the ⋮ menu |
+| Document bar | Board title, save state, Undo and Redo, **Board**, **Preview** and **Text**, the Board settings and Assistant toggles, **Render**, **Open timeline**, and the ⋮ menu |
 | Board settings | Genre chip, screenplay fields, direction settings, and the **Direct** button |
 | Banners | A stale-version notice and a **Retry N failed** button, shown only when they apply |
 | Shot grid | Scene headers with shot cards under them |
@@ -213,6 +213,75 @@ When a render fails, **Retry N failed** appears under the document bar. It retri
 
 - **Slideshow** (in ⋮) opens a fullscreen player. It shows each shot's clip or still with its caption. Use the left and right arrow keys or **Previous shot** and **Next shot**. **Autoplay** advances for you, and **Edit shot** jumps to the editor. Unrendered shots read "Not rendered yet".
 - **Preview** in the document bar plays the board's shots in sequence in place of the grid. **Board** returns to the grid. A board with no still or clip yet says so.
+
+---
+
+## Edit the board as text
+
+**Text** in the document bar shows the whole board as Markdown in place of the grid. The text is the board: each change is read back into the same scenes and shots the grid shows, and autosave stores it.
+
+```markdown
+# Mars Greenhouse {#5f2c…}
+A twenty second opening.
+
+- **Style:** Warm practicals against cold Martian blue
+- **Aspect ratio:** 2.39:1
+
+# Act I (Setup) {#9a41…}
+Show how fragile the greenhouse is.
+
+## INT. GREENHOUSE DOME - DAWN {#c3d0…}
+- **Lighting:** Cold blue dawn through the panels
+
+### First light {#b7e2…}
+![Still](asset://c0a1….png)
+
+[Nova](entity://0f1e…) kneels by a single green shoot under the dome.
+
+- **Framing:** wide
+- **Motion:** Slow push in
+- **Duration:** 5s
+- **Continuity:** until [Shot 2](#d4f9…) — One breath of the score {#c1}
+```
+
+| You write | It becomes |
+|-----------|------------|
+| The first `#` heading, and the text under it | The screenplay title and the board brief |
+| `- **Style:**`, `Logline`, `Aspect ratio`, `Genre`, `Cast`, `Music`, `Narration` under the title | The board's fields |
+| A later `#` heading, and the text under it | An act and its objective |
+| `## Slugline` and `- **Lighting:**` | A scene. Shots below it belong to it |
+| `### Slug` and the text under it | A shot and its action. Shot numbers are computed |
+| `Framing`, `Lens`, `Angle`, `Camera movement`, `Rig`, `Motion`, `End`, `Sound`, `Dialogue`, `Narration`, `Duration`, `Render`, `Notes` | The shot's fields |
+| `[Nova](entity://<id>)` in a shot, or `- **Cast:**` and `- **Location:**` | The shot's entities |
+| `![Still](asset://<id>.png)` under a shot heading | The selected still. A video file selects the clip |
+| `- **Transition:**` | A transition to the next shot |
+| `- **Continuity:** until [Shot 7](#<id>)` | Intent that runs from this shot through shot 7 |
+
+Type `@` to mention an entity or an image from the library. The `{#…}` marks and link targets show only on the line that holds the caret. A new heading gets its mark when you type it.
+
+A still line shows the image under it. Beside the text, **Outline** lists the acts, scenes and shots, marks the one the caret is in, and lists the lines that need attention. Click an entry to jump to its line. The outline needs a window at least as wide as a laptop screen.
+
+### Ask the agent about a passage
+
+Select text and a prompt opens under it. Type what to do with the passage, or use the microphone to dictate it, and press Enter. The quick actions are **Tighten**, **More visual**, **Suggest camera** and **Check continuity** for a passage, and **Summarize** and **Find inconsistencies** for a selection across several shots.
+
+The agent receives the whole board as Markdown, the entity library with each descriptor, and the selection marked inside its lines. It answers with a proposed replacement or a note. **Replace selection** puts the replacement in the text as one undo step. Type again in the prompt to refine the answer.
+
+The board's director model answers. Before one is picked, the chat model answers. With neither, the prompt says to pick one. The call goes through `generate_text` and is billed by the provider at its rates.
+
+- A selection across several shots gets a note, never a replacement.
+- If the passage changes while the agent works, **Replace selection** refuses and asks you to select it again.
+- A failed call shows the provider's error with **Report**.
+
+The marks are what keep a shot's takes, render records, status and models with it. Deleting a still line clears the selection and keeps the takes. Moving a shot's lines moves the shot. Deleting a heading's mark gives the shot a new id, and its takes stay with the old one.
+
+Field labels are English in every language. A line that does not fit gets a red mark in the margin and a tooltip:
+
+- A label the grammar does not know is saved in the shot's notes. On the board, an act or a scene it is not saved.
+- Plain text under a scene heading is not saved. A scene holds a slugline and lighting only.
+- A duration that is not a number, or a transition on the last shot, is ignored.
+
+When the board changes elsewhere while the text is open, for example a render finishes or **Undo** in the document bar runs, the text is written again from the board, in the standard layout. Extra blank lines and alias labels such as `Movement:` for `Motion:` are not kept.
 
 ---
 

@@ -14,10 +14,12 @@ import {
   and,
   desc,
   eq,
+  gt,
   inArray,
   isNotNull,
   isNull,
-  notInArray
+  notInArray,
+  or
 } from "drizzle-orm";
 import {
   DBModel,
@@ -25,6 +27,7 @@ import {
   ModelObserver,
   createTimeOrderedUuid
 } from "./base-model.js";
+import { createLogger } from "@nodetool-ai/config";
 import { executeRaw, getPortableDb } from "./db.js";
 import { projects } from "./schema/projects.js";
 import { jobs } from "./schema/jobs.js";
@@ -56,6 +59,24 @@ export const LOOSE_PROJECT_ID = "default";
 
 export const PERSONAL_PROJECT_KIND = "personal";
 export const PERSONAL_PROJECT_NAME = "Personal";
+
+const log = createLogger("nodetool.models.project");
+
+/** Gives a newly created Personal project its folder. */
+type PersonalFolderProvider = (project: Project) => Promise<void>;
+
+let personalFolderProvider: PersonalFolderProvider | null = null;
+
+/**
+ * Install what gives a new Personal project its folder (PRD D1). Project
+ * folders live in `@nodetool-ai/execution`, which depends on this package, so
+ * it installs `ensureProjectFolder` here rather than this package importing it.
+ */
+export function setPersonalFolderProvider(
+  provider: PersonalFolderProvider | null
+): void {
+  personalFolderProvider = provider;
+}
 
 /**
  * The rows the Personal migration may claim: never assigned, or assigned to the
@@ -232,6 +253,8 @@ export class Project extends DBModel {
   declare archived_at: string | null;
   declare deleted_at: string | null;
   declare thread_id: string | null;
+  /** The workspace row that is this project's folder, or null before it has one. */
+  declare workspace_id: string | null;
   declare created_at: string;
   declare updated_at: string;
 
@@ -242,6 +265,7 @@ export class Project extends DBModel {
     this.name ??= "Untitled project";
     this.kind ??= "";
     this.thread_id ??= null;
+    this.workspace_id ??= null;
     this.archived_at ??= null;
     this.deleted_at ??= null;
     this.created_at ??= now;
@@ -291,7 +315,21 @@ export class Project extends DBModel {
       name: PERSONAL_PROJECT_NAME,
       kind: PERSONAL_PROJECT_KIND
     });
-    if (created) return created;
+    if (created) {
+      // Personal is created lazily, by whatever first needs it. Its folder is
+      // made here, with the row, so no run in it finds the project without one.
+      // A folder that cannot be made is logged: the startup migration retries
+      // it, and a run reports the missing folder rather than writing elsewhere.
+      try {
+        await personalFolderProvider?.(created);
+      } catch (error) {
+        log.warn("Could not give the Personal project a folder", {
+          projectId: created.id,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+      return created;
+    }
 
     const resolved = await db
       .select()
@@ -446,6 +484,94 @@ export class Project extends DBModel {
     return row ? new Project(row as Record<string, unknown>) : null;
   }
 
+  /**
+   * Record `workspaceId` as the project's folder unless another caller already
+   * recorded one.
+   *
+   * The write applies only while the column still holds `expected` (null, or
+   * a row id that no longer exists), so two callers racing (a create and the
+   * startup migration) settle on one folder. Answers the folder the project
+   * ends up with, or null when the project is gone.
+   */
+  static async claimWorkspace(
+    userId: string,
+    id: string,
+    workspaceId: string,
+    expected: string | null = null
+  ): Promise<string | null> {
+    const db = getPortableDb();
+    const rows = await db
+      .update(projects)
+      // `updated_at` is left alone: naming the folder is bookkeeping.
+      .set({ workspace_id: workspaceId })
+      .where(
+        and(
+          eq(projects.id, id),
+          eq(projects.user_id, userId),
+          expected === null
+            ? isNull(projects.workspace_id)
+            : eq(projects.workspace_id, expected)
+        )
+      )
+      .returning();
+    if (rows.length > 0) return workspaceId;
+    const current = await Project.get<Project>(id);
+    return current?.user_id === userId ? current.workspace_id : null;
+  }
+
+  /**
+   * Live projects of every user, or of `userId` when given, that have no
+   * folder yet, in creation order, starting after the `after` cursor.
+   */
+  static async listWithoutFolder(
+    limit: number,
+    after?: { created_at: string; id: string },
+    userId?: string
+  ): Promise<Project[]> {
+    const db = getPortableDb();
+    const rows = await db
+      .select()
+      .from(projects)
+      .where(
+        and(
+          isNull(projects.workspace_id),
+          isNull(projects.deleted_at),
+          userId === undefined ? undefined : eq(projects.user_id, userId),
+          after
+            ? or(
+                gt(projects.created_at, after.created_at),
+                and(
+                  eq(projects.created_at, after.created_at),
+                  gt(projects.id, after.id)
+                )
+              )
+            : undefined
+        )
+      )
+      .orderBy(projects.created_at, projects.id)
+      .limit(limit);
+    return rows.map((row) => new Project(row));
+  }
+
+  /**
+   * Every live project of the user that has a folder, archived ones included.
+   * Opening a folder as a project compares it with each of their folders.
+   */
+  static async listWithFolder(userId: string): Promise<Project[]> {
+    const db = getPortableDb();
+    const rows = await db
+      .select()
+      .from(projects)
+      .where(
+        and(
+          eq(projects.user_id, userId),
+          isNull(projects.deleted_at),
+          isNotNull(projects.workspace_id)
+        )
+      );
+    return rows.map((row) => new Project(row));
+  }
+
   static async listByUser(
     userId: string,
     limit = 100,
@@ -493,6 +619,7 @@ export class Project extends DBModel {
         archived_at: project.archived_at,
         deleted_at: project.deleted_at,
         thread_id: project.thread_id,
+        workspace_id: project.workspace_id,
         created_at: project.created_at,
         updated_at: project.updated_at
       })

@@ -114,8 +114,12 @@ leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
 - **Hand-set keyframes are one custom animation** (`src/keyframes.ts`):
   `preset: "custom"`, role `emphasis`, `params.keyframed`, duration equal to
   the clip's, one curve per property. The sampler plays it like any custom
-  animation. Times are `t` over the clip, so a trim stretches its keyframes;
-  a caller that needs absolute times converts through `keyframeTimesMs`.
+  animation. Times are `t` over the clip. A trim keeps every key at its
+  instant (`retimeKeyframeAnimations`): a key it cuts off stays stored with
+  `t` outside 0..1, the sampler eases toward it at the clip's edge,
+  `keyframeTimesMs` leaves it out, and trimming back out shows it again, as
+  in Premiere. `paramCurves` follow the same rule. A caller that needs
+  absolute times converts through `keyframeTimesMs`.
   A keyframe value folds onto the clip's authored value the way the sampler
   folds it, so a UI that shows the composed number converts with
   `composeKeyframeValue` and `keyframeValueForComposed`, never by hand.

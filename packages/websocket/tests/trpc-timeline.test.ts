@@ -4,6 +4,18 @@ import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
 import type { TimelineDocument } from "@nodetool-ai/models";
 
+// Reference sets live in the database this suite replaces with stubs. Their
+// behavior is covered by tests/document-refs.test.ts.
+vi.mock("../src/lib/document-refs.js", () => ({
+  checkAttach: vi.fn().mockResolvedValue([]),
+  findUnreadableFile: vi.fn().mockResolvedValue({ unreadable: null, toAdmit: [] }),
+  fileNotReadableMessage: (file: string) => file,
+  ensureCurrentSet: vi.fn().mockResolvedValue("current:"),
+  publishSave: vi.fn().mockResolvedValue(undefined),
+  ensureVersionSets: vi.fn().mockResolvedValue(undefined),
+  readableSharedFiles: vi.fn().mockResolvedValue(new Set())
+}));
+
 vi.mock("@nodetool-ai/models", async (orig) => {
   const actual = await orig<typeof import("@nodetool-ai/models")>();
   class StubTimelineSequence {
@@ -335,6 +347,19 @@ describe("timeline router", () => {
           ],
           markers: []
         }
+      } as never);
+      expect(out.stripped).toBeUndefined();
+    });
+
+    // The native editor saves back the sequence it read, which carries the
+    // row's schema version beside the document.
+    it("does not report the row's schemaVersion as a dropped field", async () => {
+      TS.findById.mockResolvedValue(makeSeq());
+      TS.update.mockResolvedValue(makeSeq());
+      const caller = createCaller(makeCtx());
+      const out = await caller.timeline.update({
+        id: "seq-1",
+        document: { tracks: [], clips: [], markers: [], schemaVersion: 1 }
       } as never);
       expect(out.stripped).toBeUndefined();
     });

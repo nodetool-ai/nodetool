@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { createCatalog, presetSchema, presetToWorkflow, type PresetMode } from "@nodetool-ai/presets";
-import { initDb, closeDb } from "@nodetool-ai/models";
+import { initDb, closeDb, migrateSqliteDb } from "@nodetool-ai/models";
 import { createFakeContext } from "@nodetool-ai/runtime";
 import { runValidate } from "../src/validate/index.js";
 import { normalizeGraph } from "../src/debug/target.js";
@@ -11,6 +11,10 @@ import { runOnServer } from "../src/debug/server-runner.js";
 
 const catalog = createCatalog(JSON.parse(readFileSync(new URL("../../presets/preset-catalog.json", import.meta.url), "utf8")));
 const dir = mkdtempSync(join(tmpdir(), "preset-ejection-"));
+// A run with no stored workflow works in Personal's folder, which the run
+// creates on first use. Keep it out of the real home and data directories.
+process.env["PROJECTS_DIR"] = join(dir, "projects");
+process.env["NODETOOL_WORKSPACES_DIR"] = join(dir, "workspaces");
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 const modes: PresetMode[] = ["video", "image_to_video", "reference_to_video", "image", "image_edit", "video_edit"];
 function modelFor(mode: PresetMode) {
@@ -53,7 +57,11 @@ describe("preset ejection validation", () => {
 
   it("runs an ejected graph on the nodetool debug server surface with the fake provider", async () => {
     const preset = presetSchema.parse({ id: "look.fixture", version: 1, kind: "look", name: "Fixture", description: "Fixture", modes: ["image"], prompt: { default: "Soft light." } });
-    initDb(":memory:");
+    // Open the database the way `nodetool debug` does: migrated, then opened.
+    // A bare `initDb` leaves every column added after the baseline missing.
+    const dbPath = join(dir, "debug.db");
+    await migrateSqliteDb(dbPath);
+    initDb(dbPath);
     const fake = createFakeContext({ persistOutputAssets: false });
     try {
       const provider = await fake.context.getProvider("fake");

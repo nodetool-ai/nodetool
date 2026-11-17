@@ -105,7 +105,8 @@ export function isPublicMcpOauthAsRequest(pathname: string): boolean {
     pathname === "/oauth/authorize" ||
     pathname === "/oauth/token" ||
     pathname === "/oauth/register" ||
-    pathname === "/oauth/revoke"
+    pathname === "/oauth/revoke" ||
+    pathname === "/oauth/session/end"
   );
 }
 
@@ -199,7 +200,7 @@ export function isPublicAtlasCloudWebhookRequest(
 /**
  * Paths that skip session auth in the server's `onRequest` hook. Every entry
  * must carry no per-caller private state, or authenticate on its own (webhook
- * secret, OAuth PKCE state, KIE webhook signature, fal and AtlasCloud Ed25519
+ * secret, OAuth PKCE state, KIE callback token, fal and AtlasCloud Ed25519
  * signatures).
  * All of these are still
  * covered by the global `@fastify/rate-limit` plugin registered before auth.
@@ -213,6 +214,10 @@ export function isPublicAuthExemptRoute(
     pathname === "/ready" ||
     pathname === "/api/health" ||
     pathname === "/api/config" ||
+    // Sync capabilities name no user data. A client reads them before it
+    // signs in. Only this exact GET is exempt: the tRPC procedure that
+    // returns the same answer still passes the auth hook.
+    (pathname === "/api/sync/capabilities" && method === "GET") ||
     // Anonymous analytics carry no account by design: the route must never
     // resolve a user, so it never runs the auth hook.
     (pathname === "/api/analytics/v1/events" && method === "POST") ||

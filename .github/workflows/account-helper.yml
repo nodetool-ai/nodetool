@@ -1,0 +1,53 @@
+name: Account helper
+
+# Builds nodetool-account-helper and the account library it links, and runs
+# both test suites, on every desktop platform when either changes. It is the
+# only CI build of the macOS and Windows credential stores
+# (native/account/src/keychain_*.cpp). The desktop release builds the helper
+# the same way.
+on:
+  pull_request:
+    paths:
+      - "native/account/**"
+      - "native/account-helper/**"
+      - "electron/scripts/build-account-helper.mjs"
+      - ".github/workflows/account-helper.yml"
+  push:
+    branches: [main]
+    paths:
+      - "native/account/**"
+      - "native/account-helper/**"
+      - "electron/scripts/build-account-helper.mjs"
+      - ".github/workflows/account-helper.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: account-helper-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-2022]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install libsecret (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsecret-1-dev
+
+      - name: Build and test
+        shell: bash
+        run: node electron/scripts/build-account-helper.mjs --test

@@ -20,7 +20,7 @@
  * files as its own, since it always builds them: graph-runner and the node
  * editor build native/jobs. A project's `sharedDirs` count as part of it for
  * selection too: the timeline build compiles native/ui_primitives,
- * native/chat and native/model-picker and runs their tests.
+ * native/chat, native/model-picker and native/storyboard and runs their tests.
  *
  * The dependency model of each test is read from the build directory:
  *
@@ -143,7 +143,7 @@ export const PROJECTS = {
   // no test input selects every timeline test, as a file under
   // native/timeline/ does.
   timeline: {
-    sharedDirs: ["native/ui_primitives", "native/chat", "native/model-picker"]
+    sharedDirs: ["native/ui_primitives", "native/chat", "native/model-picker", "native/storyboard"]
   }
 };
 

@@ -16,6 +16,7 @@
 #include <algorithm>
 namespace {
 constexpr auto ThreadId = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const QString CreatedWorkflowId = QStringLiteral("dddddddddddddddddddddddddddddddd");
 class ChatServer : public QObject {
   public:
     QTcpServer http;
@@ -70,6 +71,20 @@ class ChatServer : public QObject {
                                          : QByteArray("HTTP/1.1 200 OK\r\n")) +
                             "Content-Type: application/json\r\nConnection: close\r\nContent-Length: " +
                             QByteArray::number(body.size()) + "\r\n\r\n" + body);
+                        socket->disconnectFromHost();
+                        return;
+                    }
+                    if (target.startsWith("/api/workflows")) {
+                        const auto body = QJsonDocument(QJsonObject{
+                                              {"id", CreatedWorkflowId},
+                                              {"name", "Spiral"},
+                                              {"access", "private"},
+                                              {"updated_at", "2026-11-15T00:00:00Z"},
+                                              {"graph", QJsonObject{{"nodes", QJsonArray{}}, {"edges", QJsonArray{}}}}})
+                                              .toJson(QJsonDocument::Compact);
+                        socket->write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: "
+                                      "close\r\nContent-Length: " +
+                                      QByteArray::number(body.size()) + "\r\n\r\n" + body);
                         socket->disconnectFromHost();
                         return;
                     }
@@ -204,6 +219,20 @@ class EditorChatToolsTest final : public QObject {
         return {{"id", id}, {"type", "fixture.Text"}, {"position", QJsonObject{{"x", 0}, {"y", 0}}}};
     }
   private slots:
+    void loadBindsChatContext() {
+        // A thread sent workflow_id null because the context only followed
+        // panel and tab changes, and a workflow load emits neither.
+        nodetool::EditorWindow window;
+        QVERIFY(window.document()->load(
+            {{"id", "workflow-loaded"},
+             {"name", "Loaded"},
+             {"graph", QJsonObject{{"nodes", QJsonArray{}}, {"edges", QJsonArray{}}}}}));
+        const auto context = window.chatSession()->property("hostContext").toMap();
+        QCOMPARE(context["workflow_id"].toString(), QString("workflow-loaded"));
+        const auto focused = context["ui_context"].toMap()["focused"].toMap();
+        QCOMPARE(focused["id"].toString(), QString("workflow-loaded"));
+        QCOMPARE(focused["type"].toString(), QString("workflow"));
+    }
     void toolsAndUndo() {
         ChatServer server;
         nodetool::EditorWindow window;
@@ -438,6 +467,154 @@ class EditorChatToolsTest final : public QObject {
         QVERIFY(!result["result"].toObject()["job_id"].toString().isEmpty());
         QVERIFY(!call(window, server, "ui_get_graph", {{"workflow_id", "not-open"}})["ok"].toBool());
     }
+    void runWorkflowWaitReportsTheRun() {
+        ChatServer server;
+        nodetool::EditorWindow window;
+        setup(window, server);
+        QVERIFY(window.document()->load(
+            {{"id", "workflow-tools"},
+             {"graph",
+              QJsonObject{{"nodes",
+                           QJsonArray{QJsonObject{{"id", "step"}, {"type", "fixture.Text"},
+                                                  {"data", QJsonObject{{"title", "Step"}}}},
+                                      QJsonObject{{"id", "out"}, {"type", "nodetool.output.Output"},
+                                                  {"data", QJsonObject{{"properties", QJsonObject{{"name", "spiral"}}}}}}}},
+                          {"edges", QJsonArray{}}}}}));
+        window.session()->connectToServer(server.url(), {}, "fixture-user");
+        window.askAgent({});
+        QTRY_VERIFY(window.session()->connected());
+        QTRY_COMPARE(window.chatSession()->connectionStatus(), QString("connected"));
+        window.chatSession()->upsertThread({{"id", ThreadId}, {"workflow_id", "workflow-tools"}});
+        window.chatSession()->selectThread(ThreadId);
+        QTRY_VERIFY(!window.chatSession()->historyLoading());
+        QSignalSpy submitted(window.session(), &nodetool::node_editor::WorkflowSession::runSubmitted);
+        window.chatSession()->applyEvent({{"type", "tool_call"},
+                                          {"thread_id", ThreadId},
+                                          {"tool_call_id", "wait-run"},
+                                          {"name", "ui_run_workflow"},
+                                          {"args", QJsonObject{{"workflow_id", "workflow-tools"}, {"wait", true}}}});
+        QTRY_COMPARE(submitted.size(), 1);
+        const auto job = submitted.first().first().toString();
+        const auto answered = [&server] {
+            for (const auto &frame : server.frames) {
+                if (frame["tool_call_id"] == "wait-run" && frame["type"] == "tool_result") {
+                    return frame;
+                }
+            }
+            return QJsonObject{};
+        };
+        auto *session = window.session();
+        emit session->runEvent(job, {{"type", "job_update"}, {"job_id", job}, {"status", "running"}});
+        emit session->runEvent(job, {{"type", "output_update"}, {"job_id", job}, {"node_id", "out"},
+                                     {"output_name", "output"}, {"value", "first"}});
+        emit session->runEvent(job, {{"type", "node_update"}, {"job_id", job}, {"node_id", "step"},
+                                     {"status", "error"}, {"error", "inputs.size is undefined"}});
+        QTest::qWait(30);
+        QVERIFY(answered().isEmpty());
+        emit session->runEvent(job, {{"type", "job_update"}, {"job_id", job}, {"status", "failed"},
+                                     {"error", "Node step failed"}});
+        QTRY_VERIFY(!answered().isEmpty());
+        const auto report = answered()["result"].toObject();
+        QCOMPARE(report["job_id"].toString(), job);
+        QCOMPARE(report["status"].toString(), QString("error"));
+        QCOMPARE(report["error"].toString(), QString("Node step failed"));
+        QCOMPARE(report["outputs"].toObject()["spiral"].toString(), QString("first"));
+        const auto errors = report["node_errors"].toArray();
+        QCOMPARE(errors.size(), 1);
+        QCOMPARE(errors[0].toObject()["node_id"].toString(), QString("step"));
+        QCOMPARE(errors[0].toObject()["title"].toString(), QString("Step"));
+        const auto graph = call(window, server, "ui_get_graph", {{"workflow_id", "workflow-tools"}})["result"].toObject();
+        QCOMPARE(graph["last_run_job_id"].toString(), job);
+        for (const auto &value : graph["nodes"].toArray()) {
+            const auto node = value.toObject();
+            if (node["id"] == "step") {
+                QCOMPARE(node["last_run"].toObject()["error"].toString(), QString("inputs.size is undefined"));
+            }
+        }
+    }
+    void newWorkflowOpensASavedTab() {
+        ChatServer server;
+        nodetool::EditorWindow window;
+        setup(window, server);
+        window.session()->connectToServer(server.url(), {}, "fixture-user");
+        QTRY_VERIFY(window.session()->connected());
+        const auto result = call(window, server, "ui_new_workflow", {{"name", "Spiral"}});
+        QVERIFY2(result["ok"].toBool(), qPrintable(QString::fromUtf8(QJsonDocument(result).toJson())));
+        QCOMPARE(result["result"].toObject()["workflow_id"].toString(), CreatedWorkflowId);
+        const auto post = std::find_if(server.requests.cbegin(), server.requests.cend(), [](const QByteArray &request) {
+            return request.startsWith("POST /api/workflows ");
+        });
+        QVERIFY(post != server.requests.cend());
+        QVERIFY(post->contains("\"name\":\"Spiral\""));
+        QCOMPARE(window.document()->snapshot()["id"].toString(), CreatedWorkflowId);
+    }
+    // An agent passes the 12-character id; the server replies with the full id.
+    void openWorkflowAcceptsIdPrefix() {
+        ChatServer server;
+        nodetool::EditorWindow window;
+        setup(window, server);
+        window.session()->connectToServer(server.url(), {}, "fixture-user");
+        QTRY_VERIFY(window.session()->connected());
+        const auto opened = call(window, server, "ui_open_workflow", {{"workflow_id", CreatedWorkflowId.left(12)}});
+        QVERIFY2(opened["ok"].toBool(), qPrintable(QString::fromUtf8(QJsonDocument(opened).toJson())));
+        QCOMPARE(opened["result"].toObject()["workflow_id"].toString(), CreatedWorkflowId);
+        QCOMPARE(window.document()->snapshot()["id"].toString(), CreatedWorkflowId);
+    }
+    void graphPatchIsOneUndoStep() {
+        ChatServer server;
+        nodetool::EditorWindow window;
+        setup(window, server);
+        const auto edge = QJsonObject{{"source_node_id", "a"}, {"source_handle", "out"},
+                                      {"target_node_id", "b"}, {"target_handle", "text"}};
+        const auto result = call(window, server, "ui_apply_graph_patch",
+                                 {{"add_nodes", QJsonArray{add("a"), add("b")}}, {"add_edges", QJsonArray{edge}}});
+        QVERIFY2(result["ok"].toBool(), qPrintable(QString::fromUtf8(QJsonDocument(result).toJson())));
+        QCOMPARE(result["result"].toObject()["applied"].toArray().size(), 3);
+        QCOMPARE(window.document()->nodeCount(), 2);
+        QCOMPARE(window.document()->edges().size(), 1);
+        window.document()->undo();
+        QCOMPARE(window.document()->nodeCount(), 0);
+        QCOMPARE(window.document()->edges().size(), 0);
+
+        const auto before = window.document()->snapshot();
+        auto broken = edge;
+        broken["source_handle"] = "missing";
+        const auto failed = call(window, server, "ui_apply_graph_patch",
+                                 {{"add_nodes", QJsonArray{add("a"), add("b")}}, {"add_edges", QJsonArray{broken}}});
+        QVERIFY(!failed["ok"].toBool());
+        QVERIFY(failed["error"].toString().startsWith("add_edges[0]: "));
+        QCOMPARE(window.document()->snapshot()["graph"], before["graph"]);
+    }
+    void focusAndUndo() {
+        ChatServer server;
+        nodetool::EditorWindow window;
+        setup(window, server);
+        QVERIFY(call(window, server, "ui_add_node", add("a"))["ok"].toBool());
+        const auto last = call(window, server, "ui_add_node", add("b"))["result"].toObject();
+
+        const auto focused = call(window, server, "ui_focus_nodes", {{"node_ids", QJsonArray{"b", "gone"}}});
+        QVERIFY2(focused["ok"].toBool(), qPrintable(QString::fromUtf8(QJsonDocument(focused).toJson())));
+        QCOMPARE(focused["result"].toObject()["focused"].toArray(), QJsonArray{"b"});
+        QCOMPARE(focused["result"].toObject()["missing"].toArray(), QJsonArray{"gone"});
+        // The chat context reports the canvas selection.
+        QTRY_COMPARE(window.chatSession()->property("hostContext").toMap()["ui_context"].toMap()["selection"]
+                         .toMap()["node_ids"].toStringList(),
+                     QStringList{"b"});
+        QVERIFY(!call(window, server, "ui_focus_nodes", {{"node_ids", QJsonArray{"gone"}}})["ok"].toBool());
+
+        const auto undone = call(window, server, "ui_undo", {{"based_on_revision", last["document_revision"]}});
+        QVERIFY2(undone["ok"].toBool(), qPrintable(QString::fromUtf8(QJsonDocument(undone).toJson())));
+        QCOMPARE(undone["result"].toObject()["undone"].toInt(), 1);
+        QCOMPARE(window.document()->nodeCount(), 1);
+
+        const QJsonValue current =
+            call(window, server, "ui_get_graph", {})["result"].toObject().value("document_revision");
+        QVERIFY(window.document()->applyCommand({{"op", "patchChatData"}, {"id", "a"},
+                                                 {"data", QJsonObject{{"title", "Renamed by the user"}}}}));
+        const auto before = window.document()->snapshot();
+        QVERIFY(!call(window, server, "ui_undo", {{"based_on_revision", current}})["ok"].toBool());
+        QCOMPARE(window.document()->snapshot(), before);
+    }
     void resourcePrefixes() {
         ChatServer server;
         nodetool::EditorWindow window;
@@ -511,7 +688,8 @@ class EditorChatToolsTest final : public QObject {
                                       "ui_delete_edge",    "ui_update_node_data", "ui_search_nodes",
                                       "ui_search_models",  "ui_switch_tab",       "ui_copy",
                                       "ui_paste",          "ui_open_workflow",    "ui_run_workflow",
-                                      "ui_open_document"};
+                                      "ui_open_document",  "ui_new_workflow",     "ui_apply_graph_patch",
+                                      "ui_focus_nodes",    "ui_undo"};
         QCOMPARE(web.size(), implemented.size());
         ChatServer server;
         nodetool::EditorWindow window;

@@ -109,5 +109,16 @@ return { image: imageBytes };
 - **Host execution.** Fabric.js depends on canvas and DOM APIs that do not exist
   in the pure WebAssembly QuickJS guest. It runs on the host and passes plain
   serializable data across the sandbox boundary.
-- **Dimensions are bounded.** Canvas dimensions are clamped to a maximum of 8192
-  pixels to prevent excessive memory consumption.
+- **Dimensions are bounded.** Each side is at most 8192 pixels, and one output
+  is at most 4096 x 4096 pixels after the `multiplier` (width x height x
+  multiplier² ≤ 16,777,216).
+- **Effects are budgeted.** A scene holds at most 2000 objects, and a shadow
+  blur is at most 100. A scene has at most 32 shadows and image filters, and
+  each counts as one pass over the output: their number times width x height
+  x multiplier² is at most 33,554,432. That allows two at 4096 x 4096, eight
+  at 2048 x 2048 and 32 at 1024 x 1024 or smaller.
+- **Images must be inline.** An image or pattern `src` must be a `data:image/…`
+  URI in PNG, JPEG, GIF, WebP, BMP or AVIF. URLs and file paths are refused.
+  Fetch a remote image first and pass its bytes as a data URI. `loadSVG`
+  refuses an SVG that references anything outside itself: only `#fragment`
+  references and inline raster images are allowed.

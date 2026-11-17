@@ -122,7 +122,9 @@ asked once, for the plan as a whole, and then tasks stream in as they finish,
 independent ones together. Ask for a change first ("run it without the last
 task") and the amended plan is what runs.
 
-In Auto the agent labels every code action it writes `low` or `high` risk. A `low` action — reading, computing, work you asked for and can undo — runs with no prompt. A `high` one — deleting or overwriting something, publishing or sending anything outside the account, spending real money — asks you first, once, showing the program it wants to run. Unlabeled counts as high. "Allow for this chat" stops the asking for the rest of the thread.
+In Auto the agent labels every code action it writes `low` or `high` risk. A `low` action — reading, computing, work you asked for and can undo — runs with no prompt. A `high` one — deleting or overwriting something, publishing or sending anything outside the account, spending real money — asks you first, once, showing the program it wants to run. Unlabeled counts as high. "Always allow" stops the asking in every chat.
+
+Every approval card offers **Allow once**, **Always allow** and **Deny**. Always allow saves a rule for that tool, and no chat asks about it again. **Settings › Permissions** lists every tool that can ask, grouped by what it works on, with Always allow or Ask each, so you can take a rule back. Plan mode still blocks every change, whatever the rule.
 
 ### Watching an Agent Work
 

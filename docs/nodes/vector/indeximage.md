@@ -11,7 +11,7 @@ namespace: "vector"
 
 ## Description
 
-Index a list of image assets or files.
+Index a list of image assets or files. Outputs the collection once indexing finishes, so a query can wait for it.
     vector, embedding, collection, RAG, index, image, batch
 
 ## Properties
@@ -26,7 +26,9 @@ Index a list of image assets or files.
 
 ## Outputs
 
-_(none)_
+| Output | Type | Description |
+|--------|------|-------------|
+| output | `collection` |  |
 
 ## Related Nodes
 

@@ -683,4 +683,76 @@ describe("settings router", () => {
       ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
     });
   });
+  describe("toolPermissions", () => {
+    const toolsIn = (groups: { tools: { name: string; rule: string }[] }[]) =>
+      new Map(groups.flatMap((group) => group.tools.map((tool) => [tool.name, tool.rule])));
+
+    it("lists only tools that can ask, with every rule Ask by default", async () => {
+      vi.mocked(Setting.find).mockResolvedValueOnce(null);
+      const caller = createCaller(makeCtx());
+      const { groups } = await caller.settings.toolPermissions.list();
+      const tools = toolsIn(groups);
+      expect(groups.length).toBeGreaterThan(1);
+      expect(tools.get("execute_code")).toBe("ask");
+      expect(tools.get("write_file")).toBe("ask");
+      // Read-class tools never ask, so a rule for one would change nothing.
+      expect(tools.has("read_file")).toBe(false);
+      expect(groups[0].title).toBe("Code");
+    });
+
+    it("shows a saved rule, including one for a key no tool owns", async () => {
+      vi.mocked(Setting.find).mockResolvedValueOnce({
+        value: JSON.stringify(["write_file", "run_apify_actor:apify/web"])
+      } as never);
+      const caller = createCaller(makeCtx());
+      const { groups } = await caller.settings.toolPermissions.list();
+      const tools = toolsIn(groups);
+      expect(tools.get("write_file")).toBe("always_allow");
+      expect(tools.get("run_apify_actor:apify/web")).toBe("always_allow");
+      expect(groups.at(-1)?.title).toBe("Other");
+    });
+
+    it("reads a malformed row as no saved rules", async () => {
+      vi.mocked(Setting.find).mockResolvedValueOnce({ value: "{not json" } as never);
+      const caller = createCaller(makeCtx());
+      const { groups } = await caller.settings.toolPermissions.list();
+      expect(toolsIn(groups).get("write_file")).toBe("ask");
+    });
+
+    it("saves Always allow and Ask under the caller's user", async () => {
+      vi.mocked(Setting.find).mockResolvedValueOnce({
+        value: JSON.stringify(["generate_image"])
+      } as never);
+      const caller = createCaller(makeCtx());
+      const { groups } = await caller.settings.toolPermissions.set({
+        name: "write_file",
+        rule: "always_allow"
+      });
+      expect(Setting.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: "user-1",
+          key: "tool_permissions.always_allow",
+          value: JSON.stringify(["generate_image", "write_file"])
+        })
+      );
+      expect(toolsIn(groups).get("write_file")).toBe("always_allow");
+
+      vi.mocked(Setting.upsert).mockClear();
+      vi.mocked(Setting.find).mockResolvedValueOnce({
+        value: JSON.stringify(["generate_image", "write_file"])
+      } as never);
+      await caller.settings.toolPermissions.set({ name: "write_file", rule: "ask" });
+      expect(Setting.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ value: JSON.stringify(["generate_image"]) })
+      );
+    });
+
+    it("does not write when the rule is unchanged", async () => {
+      vi.mocked(Setting.find).mockResolvedValueOnce(null);
+      vi.mocked(Setting.upsert).mockClear();
+      const caller = createCaller(makeCtx());
+      await caller.settings.toolPermissions.set({ name: "write_file", rule: "ask" });
+      expect(Setting.upsert).not.toHaveBeenCalled();
+    });
+  });
 });

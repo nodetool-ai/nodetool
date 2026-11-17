@@ -8,7 +8,7 @@
 #include <QCryptographicHash>
 #include <QDir>
 #include <QJsonDocument>
-#include <QMenu>
+#include "EntryMenuSupport.h"
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QGraphicsView>
@@ -193,11 +193,10 @@ private slots:
     QCOMPARE(parent->snapshot(), original);
     QVERIFY(click(w, "close-tab-1"));
     w.action("Linked workflows");
-    auto menu = w.activeEditor()->findChild<QMenu *>("linked-workflows-menu");
+    auto menu = entry_menu::host(*w.activeEditor(), "linked-workflows-menu");
     QVERIFY(menu);
-    QVERIFY(!menu->actions().isEmpty());
-    QTest::mouseClick(menu, Qt::LeftButton, Qt::NoModifier,
-                      menu->actionGeometry(menu->actions().first()).center());
+    QVERIFY(!entry_menu::entries(menu).isEmpty());
+    QVERIFY(entry_menu::click(menu, entry_menu::entries(menu).first().toMap()["id"].toString()));
     QTRY_VERIFY(server.pending);
     ChildServer::respond(server.pending, response);
     server.pending.clear();
@@ -330,6 +329,56 @@ private slots:
     QVERIFY(derived["dynamic_inputs"].toObject().contains("custom"));
     QVERIFY(derived["dynamic_outputs"].toObject().contains("Output"));
   }
+  void comfyWorkflowPorts() {
+    // A Comfy workflow saved without Input or Output nodes gets the ports the
+    // server derives when it runs it (exposeComfyInterface).
+    const QJsonArray nodes{
+        QJsonObject{{"id", "1"}, {"type", "comfy.CLIPTextEncode"}, {"data", QJsonObject{{"text", "a fox"}}}},
+        QJsonObject{{"id", "2"}, {"type", "comfy.KSampler"}, {"data", QJsonObject{}}},
+        QJsonObject{{"id", "3"}, {"type", "comfy.LoadImage"}, {"data", QJsonObject{{"image", "x.png"}}}},
+        QJsonObject{{"id", "4"}, {"type", "comfy.SaveImage"}, {"data", QJsonObject{}}},
+        QJsonObject{{"id", "5"}, {"type", "comfy.SaveImage"}, {"data", QJsonObject{}}}};
+    const QJsonArray edges{QJsonObject{{"source", "1"}, {"sourceHandle", "CONDITIONING"}, {"target", "2"}, {"targetHandle", "positive"}}};
+    const QJsonObject workflow{{"id", "comfy-wf"}, {"name", "Comfy"}, {"graph", QJsonObject{{"nodes", nodes}, {"edges", edges}}}};
+    const QJsonObject node{{"id", "w"}, {"type", "nodetool.workflows.workflow_node.Workflow"},
+                           {"data", QJsonObject{{"workflow_json", workflow}}}};
+    const auto derived = withChildPorts(node);
+    const auto inputs = derived["dynamic_inputs"].toObject();
+    QCOMPARE(inputs.keys(), (QStringList{"image", "prompt"}));
+    QCOMPARE(inputs["prompt"].toObject()["type"].toObject()["type"].toString(), QString("str"));
+    QCOMPARE(inputs["image"].toObject()["type"].toObject()["type"].toString(), QString("image"));
+    QCOMPARE(derived["dynamic_properties"].toObject()["prompt"].toString(), QString("a fox"));
+    QCOMPARE(derived["dynamic_outputs"].toObject().keys(), (QStringList{"output", "output_2"}));
+    // A graph with its own Input or Output nodes keeps them as they are.
+    auto mixed = nodes;
+    mixed.append(QJsonObject{{"id", "in"}, {"type", "nodetool.input.StringInput"}, {"data", QJsonObject{{"name", "text"}}}});
+    QCOMPARE(exposeComfyInterface(QJsonObject{{"nodes", mixed}})["nodes"].toArray().size(), mixed.size());
+    // Any other graph is unchanged.
+    const QJsonObject plain{{"nodes", QJsonArray{QJsonObject{{"id", "a"}, {"type", "test.Source"}}}}};
+    QCOMPARE(exposeComfyInterface(plain), plain);
+    QVERIFY(isComfyGraph(QJsonObject{{"nodes", nodes}}));
+    QVERIFY(isComfyGraph(QJsonObject{{"nodes", mixed}}));
+    QVERIFY(!isComfyGraph(plain));
+  }
+  // SubgraphTabsStore.ts buildSubgraphWorkflow: a subgraph of ComfyUI nodes
+  // runs as one Comfy job, so its surface edits it as a Comfy workflow.
+  void comfySubgraphSurfaceEditsAsComfyWorkflow() {
+    EditorWindow window;
+    window.show();
+    auto child = subgraph();
+    child["data"] = QJsonObject{{"graph", QJsonObject{
+        {"nodes", QJsonArray{QJsonObject{{"id", "1"}, {"type", "comfy.CLIPTextEncode"}, {"data", QJsonObject{{"text", "a fox"}}}}}},
+        {"edges", QJsonArray{}}}}};
+    QVERIFY(window.document()->load(
+        {{"name", "Host"},
+         {"graph", QJsonObject{{"nodes", QJsonArray{child}}, {"edges", QJsonArray{}}}}}));
+    auto parent = window.document();
+    QVERIFY(window.selectNode("child"));
+    QVERIFY(click(window, "selection-open-child"));
+    QVERIFY(window.document() != parent);
+    QCOMPARE(window.document()->snapshot()["run_mode"].toString(), QString("comfy"));
+    QVERIFY(parent->snapshot()["run_mode"].toString() != QLatin1String("comfy"));
+  }
   void stripCloseCascadeAndRestore() {
       QTemporaryDir files;
       QVERIFY(files.isValid());
@@ -426,6 +475,8 @@ private slots:
       connect(peer, &QWebSocket::binaryMessageReceived, this, [&](const QByteArray &bytes) {
         const auto value = decodeMsgPack(bytes);
         QVERIFY(value);
+        // The open-project signal goes with every socket open. WorkflowSessionTests checks it.
+        if (value->toObject()["command"] == "set_open_project") { return; }
         commands.append(value->toObject());
       });
     });
@@ -478,6 +529,61 @@ private slots:
     QCOMPARE(window.runOutput()->runs().size(), 0);
     QTRY_COMPARE(window.runState()->outputRuns().size(), 1);
     QTRY_VERIFY(!window.runState()->queue().isEmpty());
+  }
+  void documentBarUndoesTheWorkflowFromASubgraph() {
+    // WorkflowDocumentBar.tsx reads the workflow's NodeStore, so its Undo on a
+    // subgraph tab steps the workflow's history and the tab rebuilds from it.
+    EditorWindow window;
+    window.show();
+    window.setCatalog({QJsonObject{{"node_type", "nodetool.workflows.subgraph.Subgraph"}, {"title", "Subgraph"}}});
+    auto child = subgraph();
+    auto inner = graph();
+    auto nested = subgraph();
+    nested["id"] = "nested";
+    inner["nodes"] = QJsonArray{input(), nested};
+    child["data"] = QJsonObject{{"graph", inner}};
+    QVERIFY(window.document()->load(
+        {{"name", "Parent"}, {"graph", QJsonObject{{"nodes", QJsonArray{child}}, {"edges", QJsonArray{}}}}}));
+    auto parent = window.document();
+    const auto before = parent->node("child");
+    QVERIFY(window.selectNode("child"));
+    QVERIFY(click(window, "selection-open-child"));
+    QVERIFY(window.selectNode("nested"));
+    QVERIFY(click(window, "selection-open-child"));
+    auto surface = window.document();
+    QVERIFY(surface != parent);
+    QVERIFY(!window.workflowHeader()->canUndo());
+
+    QVERIFY(surface->applyCommand(
+        {{"op", "moveNodes"}, {"positions", QJsonObject{{"input", QJsonObject{{"x", 480}, {"y", 240}}}}}}));
+    // The pending write already counts as a step to undo.
+    QCoreApplication::processEvents();
+    QTRY_VERIFY(window.workflowHeader()->canUndo());
+    QTRY_VERIFY(parent->node("child") != before);
+    const auto after = parent->node("child");
+
+    window.workflowHeader()->undo();
+    QCOMPARE(parent->node("child"), before);
+    QCOMPARE(window.document(), surface);
+    QCOMPARE(surface->node("input")["ui_properties"].toObject().value("position"),
+             input()["ui_properties"].toObject().value("position"));
+    QCOMPARE(window.canvasStrips().size(), 2);
+    QTRY_VERIFY(window.workflowHeader()->canRedo());
+
+    window.workflowHeader()->redo();
+    QCOMPARE(parent->node("child"), after);
+    QCOMPARE(surface->node("input")["ui_properties"].toObject()["position"].toObject()["x"].toDouble(), 480.0);
+
+    // The rebuilt surface keeps writing back to the workflow.
+    QVERIFY(surface->applyCommand(
+        {{"op", "moveNodes"}, {"positions", QJsonObject{{"input", QJsonObject{{"x", 600}, {"y", 240}}}}}}));
+    QTRY_VERIFY(parent->node("child") != after);
+
+    // Ctrl+Z still undoes the canvas on screen, not the workflow.
+    const auto surfaceIndex = surface->undoStack()->index();
+    window.action("Undo");
+    QCOMPARE(surface->undoStack()->index(), surfaceIndex - 1);
+    QTRY_COMPARE(parent->node("child"), after);
   }
   void replacementDiscardsPendingChildWriteback() {
       EditorWindow window;

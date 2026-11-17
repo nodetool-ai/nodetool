@@ -74,7 +74,7 @@ export function stdioLaunch(options: { npx: boolean }): McpLaunch {
 }
 
 /** The first executable with this name on `PATH`, or null. */
-function findOnPath(name: string, env: NodeJS.ProcessEnv): string | null {
+export function findOnPath(name: string, env: NodeJS.ProcessEnv): string | null {
   const dirs = (env["PATH"] ?? "").split(delimiter).filter(Boolean);
   const exts =
     process.platform === "win32"

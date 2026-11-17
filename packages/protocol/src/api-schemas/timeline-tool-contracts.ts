@@ -295,6 +295,56 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
       finalize: strictParams
     },
 
+    ui_timeline_set_track: {
+      description:
+        "Change a track's own settings: `name`, `muted`, `solo`, `locked`, `visible`, `volumeDb` (the channel fader, audio and midi tracks only), `pan` (-1 left to 1 right, audio and midi tracks only) or `heightPx` (the row height in the editor). Send only the fields to change. Mute and volume here apply to every clip on the track; use ui_timeline_set_clip_params for one clip. A locked track refuses every other edit, so unlock it in its own call first.",
+      shape: {
+        track: z.string().describe("Track id or name (case-insensitive)."),
+        name: z.string().min(1).optional(),
+        muted: z.boolean().optional(),
+        solo: z.boolean().optional(),
+        locked: z.boolean().optional(),
+        visible: z.boolean().optional(),
+        volumeDb: z.number().min(-60).max(12).optional(),
+        pan: z.number().min(-1).max(1).optional(),
+        heightPx: z.number().min(24).max(300).optional()
+      },
+      finalize: strictParams
+    },
+
+    ui_timeline_ripple_delete: {
+      description:
+        "Delete clips and close the hole they leave: every clip on an unlocked track that starts after a removed span moves left by its length, on every track, so voiceover and captions stay in sync with the picture. Use ui_timeline_delete_clip to leave the gap. Link groups move whole; when closing a span would separate one, the clips are still removed and that span stays open, and the result says so.",
+      shape: {
+        targets: z
+          .array(targetParam)
+          .min(1)
+          .describe("The clips to remove.")
+      },
+      finalize: strictParams
+    },
+
+    ui_timeline_close_gap: {
+      description:
+        "Close the empty stretch on a track at a time: everything on an unlocked track that starts at or after the gap's end moves left by the gap's length. `atMs` is any time inside the gap. Nothing changes when a clip covers `atMs`, when no clip follows the gap, or when closing it would separate a link group; the result says which.",
+      shape: {
+        track: z.string().describe("Track id or name (case-insensitive)."),
+        atMs: z.number().min(0).describe("A time inside the gap, in ms.")
+      },
+      finalize: strictParams
+    },
+
+    ui_timeline_cut_transcript: {
+      description:
+        "Cut words out of the transcript, which cuts the media under them: the span is ripple-deleted across every track, so later clips move left. Give `startMs` and `endMs` (absolute sequence times; a word's absolute time is its clip's `startMs` plus the word's own `startMs`), or `fillers: true` to remove every filler word (um, uh, and the like) in one pass. A span over a word of a locked clip is refused.",
+      shape: {
+        startMs: z.number().min(0).optional(),
+        endMs: z.number().min(0).optional(),
+        fillers: z.boolean().optional()
+      },
+      finalize: strictParams
+    },
+
     ui_timeline_add_media_clip: {
       description:
         "Place an existing asset — a video, image, or audio file already in the library — on the specified timeline sequence. `asset` is an asset id or `asset://<id>.<ext>` URI (list_assets returns both). Without a track the clip lands on a track matching its media kind, creating one when needed; without `startMs` it is appended after that track's existing content, so calling this once per asset lays them end to end. Duration comes from the asset unless `durationMs` overrides it.",
@@ -646,7 +696,12 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         note: z
           .string()
           .optional()
-          .describe("Longer note attached to the marker.")
+          .describe("Longer note attached to the marker."),
+        durationMs: z
+          .number()
+          .min(0)
+          .optional()
+          .describe("Length of a range marker in ms. Absent or 0 is a point marker.")
       }
     },
 
@@ -931,8 +986,12 @@ export function buildTimelineToolContracts(
   return contracts;
 }
 
-/** Browser tool batching delegates through the browser registry. */
-export const BROWSER_ONLY_TIMELINE_TOOL_NAMES = ["ui_timeline_edit"] as const;
+/** Browser tool batching and undo go through the browser editor. */
+export const BROWSER_ONLY_TIMELINE_TOOL_NAMES = [
+  "ui_timeline_edit",
+  // The editor keeps the undo history. The headless bridge has none.
+  "ui_timeline_undo"
+] as const;
 
 /**
  * Tools only the headless bridge registers. `ui_timeline_insert_composition`

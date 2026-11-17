@@ -1,6 +1,9 @@
 #include "app/EditRegistry.h"
 #include "wiring/WiringFixture.h"
 #include "wiring/SourceDurations.h"
+#include "edit/transitions/TransitionController.h"
+#include "ui/MediaVersion.h"
+#include <QTemporaryDir>
 #include "model/TimelineJson.h"
 #include "edit/ClipGestureController.h"
 #include "playback/PlaybackClock.h"
@@ -379,6 +382,32 @@ private slots:
         const auto clips = grownWith({keyframe(0, 100), keyframe(1, 2100)});
         QCOMPARE(clips[0].toObject().value("durationMs").toDouble(), 1000.0);
         QCOMPARE(clips[1].toObject().value("transitionIn").toObject().value("durationMs").toDouble(), 300.0);
+    }
+    void aProbeFinishingMidGestureCapsTheGrowth() {
+        // B63: the source length becomes known after the press, so preview and commit must read it.
+        QTemporaryDir media; QVERIFY(media.isValid());
+        const auto path = media.filePath("late.mp4");
+        { QFile file(path); QVERIFY(file.open(QIODevice::WriteOnly)); file.write("x"); }
+        const auto clip = [](const QString& id, double startMs) {
+            return QJsonObject{{"id", id}, {"trackId", "v"}, {"startMs", startMs}, {"durationMs", 4000}, {"mediaType", "video"}};
+        };
+        auto outgoing = clip("out", 0);
+        outgoing.insert("mediaPath", path); outgoing.insert("inPointMs", 0); outgoing.insert("outPointMs", 4000);
+        auto incoming = clip("in", 4000); incoming.insert("transitionIn", QJsonObject{{"type", "crossfade"}, {"durationMs", 500}});
+        TimelineModel local;
+        load(local, {{"name", "B63"}, {"width", 640}, {"height", 360}, {"fps", 30}, {"durationMs", 8000},
+                     {"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"type", "video"}, {"name", "Video"}}}},
+                     {"clips", QJsonArray{outgoing, incoming}}});
+        TransitionController controller; controller.setModel(&local);
+        controller.beginGesture("setTransitionDuration", {{"clipId", "in"}, {"durationMs", 500}});
+        nt::wiring::rememberSourceDuration(path, nt::ui::mediaVersionKey(path), 4000);
+        controller.preview({{"durationMs", 1000}});
+        const auto previewed = local.clipsJson()[0].toObject();
+        QCOMPARE(previewed.value("outPointMs").toDouble(), 4000.0);
+        controller.commit("setTransitionDuration", {{"durationMs", 1000}});
+        QCOMPARE(local.clipsJson()[0].toObject().value("outPointMs").toDouble(), 4000.0);
+        QCOMPARE(local.clipsJson()[0].toObject().value("durationMs").toDouble(), 4000.0);
+        QCOMPARE(local.undoStack()->count(), 1);
     }
     void uiUndo() {
         TimelineModel model; load(model, fixture());

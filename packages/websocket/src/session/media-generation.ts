@@ -21,7 +21,7 @@ import {
 } from "@nodetool-ai/presets";
 import { createLogger } from "@nodetool-ai/config";
 import { encryptFernet, getMasterKey } from "@nodetool-ai/security";
-import { Asset, Prediction } from "@nodetool-ai/models";
+import { Prediction } from "@nodetool-ai/models";
 import {
   attachRunCostLedger,
   createFalGenerationLifecycleHooks,
@@ -39,7 +39,7 @@ import type {
 import type { GenerationReceipt } from "@nodetool-ai/protocol";
 
 import { createAssetModelInterface } from "../lib/asset-model-interface.js";
-import { storeAssetWithThumbnail } from "../lib/thumbnail.js";
+import { saveProjectAsset } from "@nodetool-ai/asset-services/project-asset";
 
 const log = createLogger("nodetool.websocket.media-generation");
 
@@ -123,6 +123,36 @@ export interface GenerationRun {
   ): Promise<string>;
 }
 
+/** Most words of a prompt that name its file. */
+const TITLE_WORDS = 8;
+/** Longest title, in characters, before the file name rules shorten it more. */
+const TITLE_CHARS = 60;
+
+/**
+ * The title a generated file is named after: the first words of the prompt
+ * (`prompt`, or the `text` of a speech request), the same wording the Create
+ * tab shows for the take. An `entity://` mention and the characters a file
+ * name cannot carry are left to the file-name rules. Returns undefined when
+ * the request has no prompt, so the seam keeps its `<capability>-<time>-<id>`
+ * fallback. A repeat of the title gets a numeric suffix at save time.
+ */
+export function generationTitle(
+  params: Record<string, unknown>
+): string | undefined {
+  const raw = [params.prompt, params.text].find(
+    (value): value is string => typeof value === "string"
+  );
+  if (!raw) return undefined;
+  const words = raw
+    .replace(/entity:\/\/\S+/g, " ")
+    .split(/\s+/)
+    .map((word) => word.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ""))
+    .filter(Boolean)
+    .slice(0, TITLE_WORDS);
+  const title = words.join(" ").slice(0, TITLE_CHARS).trim();
+  return title || undefined;
+}
+
 export function createGenerationRun(
   options: GenerationRunOptions
 ): GenerationRun {
@@ -177,6 +207,10 @@ export function createGenerationRun(
         })
       : null;
 
+  // The title of the latest request, so a file stored when the seam did not
+  // persist is named the way a seam-persisted one is.
+  let latestTitle: string | undefined;
+
   return {
     async generate<T>(
       capability: GenerationRequest["capability"],
@@ -185,6 +219,7 @@ export function createGenerationRun(
       call: (abort: AbortSignal) => Promise<T>,
       id?: string
     ) {
+      latestTitle = generationTitle(params);
       const runOptions: RuntimeGenerationRunOptions = {};
       if (receiptAfterPersist) {
         runOptions.receiptAfterPersist = receiptAfterPersist;
@@ -207,7 +242,13 @@ export function createGenerationRun(
             params,
             origin,
             destination,
-            persist: persist ? { ...persist, parentId: userId } : undefined,
+            persist: persist
+              ? {
+                  ...persist,
+                  name: persist.name ?? generationTitle(params),
+                  parentId: userId
+                }
+              : undefined,
             signal
           },
           async (_provider, abort) => {
@@ -236,26 +277,19 @@ export function createGenerationRun(
       return result.assets[index]?.asset_id ?? null;
     },
 
-    async storeAsset(bytes, contentType, ext) {
-      const asset = new Asset({
-        user_id: userId,
-        workflow_id: workflowId,
-        project_id: projectId ?? "default",
-        name: `${assetNamePrefix}_${Date.now()}`,
-        content_type: contentType,
+    async storeAsset(bytes, contentType) {
+      // One file in `Generated/` of the chat's project, and its row.
+      const asset = await saveProjectAsset({
+        projectId: projectId ?? null,
+        userId,
+        name: latestTitle ?? `${assetNamePrefix}_${Date.now()}`,
+        contentType,
+        bytes,
+        provenance: { workflow_id: workflowId ?? null },
         // Home, the same folder an upload lands in. A null parent is
         // unreachable from the folder the asset browser opens on.
-        parent_id: userId
+        parentId: userId
       });
-      await storeAssetWithThumbnail(
-        asset.user_id,
-        asset.id,
-        `${asset.id}.${ext}`,
-        bytes,
-        contentType
-      );
-      asset.size = bytes.length;
-      await asset.save();
       return asset.id;
     }
   };

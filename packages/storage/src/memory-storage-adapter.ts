@@ -34,6 +34,16 @@ export class InMemoryStorageAdapter implements StorageAdapter {
     return `memory://${normalized}`;
   }
 
+  async storeIfAbsent(
+    key: string,
+    data: Uint8Array,
+    contentType?: string
+  ): Promise<string | null> {
+    // One synchronous check-and-set: nothing can run between the two.
+    if (this._store.has(normalizeStorageKey(key))) return null;
+    return this.store(key, data, contentType);
+  }
+
   async retrieve(uri: string): Promise<Uint8Array | null> {
     if (!uri.startsWith("memory://")) return null;
     const key = uri.slice("memory://".length);
@@ -109,6 +119,11 @@ export class InMemoryStorageAdapter implements StorageAdapter {
     if (!uri.startsWith("memory://")) return false;
     const key = uri.slice("memory://".length);
     return this._store.delete(key);
+  }
+
+  /** The store is in memory, so a lookup cannot fail. */
+  statStrict(uri: string): Promise<StorageStat | null> {
+    return this.stat(uri);
   }
 
   async stat(uri: string): Promise<StorageStat | null> {

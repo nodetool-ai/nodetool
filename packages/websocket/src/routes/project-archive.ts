@@ -1,6 +1,8 @@
 /**
  * Project file download and upload —
  *   `GET  /api/projects/:id/export`  a `.nodetool-project` zip of the project
+ *                                    (409 naming any linked files, unless
+ *                                    `?linked=collect` collects them first)
  *   `POST /api/projects/import`      a multipart upload that becomes a new project
  *
  * Projects are read and written over `/trpc/projects.*`; these are the
@@ -13,11 +15,14 @@ import type { FastifyPluginAsync } from "fastify";
 import { Project } from "@nodetool-ai/models";
 import { bridge, streamedResponse } from "../lib/bridge.js";
 import { getUserId, type HttpApiOptions } from "../http-api.js";
+import { ProjectFolderUnavailableError } from "@nodetool-ai/asset-services/project-asset-file";
 import {
   importProjectArchive,
   MAX_PROJECT_ARCHIVE_BYTES,
+  prepareProjectExport,
   PROJECT_ARCHIVE_EXTENSION,
   ProjectArchiveError,
+  ProjectLinkedFilesError,
   writeProjectArchive
 } from "../lib/project-archive.js";
 import { projectArchiveHost } from "../lib/project-archive-host.js";
@@ -102,6 +107,30 @@ const projectArchiveRoutes: FastifyPluginAsync<RouteOptions> = async (
       const userId = userIdOf(request);
       const project = await Project.findOwned(userId, id);
       if (!project) return jsonError(404, "Project not found");
+      const linked = new URL(request.url).searchParams.get("linked");
+      try {
+        await prepareProjectExport({
+          userId,
+          projectId: project.id,
+          linkedFiles: linked === "collect" ? "collect" : "refuse"
+        });
+      } catch (error) {
+        if (error instanceof ProjectLinkedFilesError) {
+          // The creator chooses: collect the files and export, or keep the
+          // links and do not export.
+          return new Response(
+            JSON.stringify({
+              detail: error.message,
+              linked_files: error.files
+            }),
+            { status: 409, headers: { "content-type": "application/json" } }
+          );
+        }
+        if (error instanceof ProjectFolderUnavailableError) {
+          return jsonError(503, error.message);
+        }
+        throw error;
+      }
       const body = streamZip(async (writer) => {
         await writeProjectArchive(
           {

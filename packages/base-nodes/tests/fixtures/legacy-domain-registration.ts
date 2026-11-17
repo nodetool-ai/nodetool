@@ -48664,7 +48664,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Index Image',
-    description: 'Index a list of image assets or files.\n' +
+    description: 'Index a list of image assets or files. Outputs the collection once indexing finishes, so a query can wait for it.\n' +
       '    vector, embedding, collection, RAG, index, image, batch',
     namespace: 'vector',
     node_type: 'vector.IndexImage',
@@ -48756,7 +48756,15 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: false
       }
     ],
-    outputs: [],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'collection',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [
       'index_id',
@@ -48800,7 +48808,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Index Embedding',
-    description: 'Index a single embedding vector into a collection with optional metadata. Creates a searchable entry that can be queried for similarity matching.\n' +
+    description: 'Index a single embedding vector into a collection with optional metadata. Creates a searchable entry that can be queried for similarity matching. Outputs the collection once indexing finishes, so a query can wait for it.\n' +
       '    vector, index, embedding, storage, RAG',
     namespace: 'vector',
     node_type: 'vector.IndexEmbedding',
@@ -48906,7 +48914,15 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: {}
       }
     ],
-    outputs: [],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'collection',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [
       'index_id'
@@ -48949,7 +48965,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Index Text Chunk',
-    description: 'Index a single text chunk.\n' +
+    description: 'Index a single text chunk. Outputs the collection once indexing finishes, so a query can wait for it.\n' +
       '    vector, embedding, collection, RAG, index, text, chunk',
     namespace: 'vector',
     node_type: 'vector.IndexTextChunk',
@@ -49020,7 +49036,15 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: {}
       }
     ],
-    outputs: [],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'collection',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [
       'document_id',
@@ -49063,7 +49087,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Index Aggregated Text',
-    description: 'Index multiple text chunks at once with aggregated embeddings from Ollama.\n' +
+    description: 'Index multiple text chunks at once with aggregated embeddings from Ollama. Outputs the collection once indexing finishes, so a query can wait for it.\n' +
       '    vector, embedding, collection, RAG, index, text, chunk, batch, ollama',
     namespace: 'vector',
     node_type: 'vector.IndexAggregatedText',
@@ -49189,7 +49213,15 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: 'mean'
       }
     ],
-    outputs: [],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'collection',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [
       'document',
@@ -49233,7 +49265,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Index String',
-    description: 'Index a string with a Document ID to a collection.\n' +
+    description: 'Index a string with a Document ID to a collection. Outputs the collection once indexing finishes, so a query can wait for it.\n' +
       '    vector, embedding, collection, RAG, index, text, string',
     namespace: 'vector',
     node_type: 'vector.IndexString',
@@ -49304,7 +49336,15 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: {}
       }
     ],
-    outputs: [],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'collection',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [
       'text',

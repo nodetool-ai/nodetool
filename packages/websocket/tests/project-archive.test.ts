@@ -1,13 +1,16 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
+import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import nodePath from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import {
   Asset,
   emptyScriptDocument,
   Game,
   getPortableDb,
+  ImageDocument,
   Message,
   PERSONAL_PROJECT_KIND,
   Project,
@@ -21,12 +24,36 @@ import {
   initTestDb,
   type StoryboardDocument
 } from "@nodetool-ai/models";
-import { createLocalWorkspace } from "@nodetool-ai/runtime";
+import {
+  createLocalWorkspace,
+  createWorkspace,
+  getProjectFolderResolver,
+  setProjectFolderResolver,
+  type ProjectFolderResolver,
+  type Workspace as RuntimeWorkspace
+} from "@nodetool-ai/runtime";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
+import {
+  ensureProjectFolder,
+  isFolderMarkedCreated,
+  markFolderCreated,
+  resolveProjectWorkspace,
+  setWorkspaceCloudStorage,
+  unmarkFolderCreated,
+  workspaceFromRow
+} from "@nodetool-ai/execution/service";
+import {
+  documentFileText,
+  reconcileDocumentFiles
+} from "@nodetool-ai/project-services/document-file-sync";
+import { reconcileProjectIndex } from "@nodetool-ai/project-services/project-index";
+import { timelineFileAdapter } from "@nodetool-ai/project-services/timeline-file";
 import { getAssetStorageKey } from "../src/lib/asset-paths.js";
 import {
   importProjectArchive,
+  prepareProjectExport,
   ProjectArchiveError,
+  ProjectLinkedFilesError,
   readProjectArchiveManifest,
   writeProjectArchive,
   type OpenWorkspace
@@ -261,6 +288,154 @@ describe("project files", () => {
     expect(records).not.toContain(root);
   });
 
+  it("imports a workflow as never synced with a file of the new folder", async () => {
+    const seeded = await seedProject();
+    const [source] = await Workflow.listForProjects(owner, [seeded.projectId]);
+    await Workflow.setFileState(source!.id, {
+      file_path: "Workflows/Launch.workflow.json",
+      file_hash: "a".repeat(64),
+      file_error: "File missing"
+    });
+    const { bytes } = await exportProject(owner, seeded.projectId);
+
+    const { project } = await importArchive(bytes);
+
+    // The hash names a file of the folder the archive was made from.
+    const [imported] = await Workflow.listForProjects(importer, [project.id]);
+    expect(imported).toMatchObject({
+      file_path: "Workflows/Launch.workflow.json",
+      file_hash: null,
+      file_error: null
+    });
+  });
+
+  it("imports a timeline as newer than its file, so the file is written from the row", async () => {
+    const seeded = await seedProject();
+    await TimelineSequence.setFileState(seeded.timeline.id, {
+      file_path: "Timelines/Cut.timeline.json",
+      file_hash: "a".repeat(64),
+      file_error: "File missing"
+    });
+    const { bytes } = await exportProject(owner, seeded.projectId);
+
+    const { project } = await importArchive(bytes);
+
+    // The hash names a file of the folder the archive was made from.
+    const [imported] = await TimelineSequence.listForProjects(importer, [
+      project.id
+    ]);
+    expect(imported).toMatchObject({
+      file_path: "Timelines/Cut.timeline.json",
+      file_hash: null,
+      file_error: null
+    });
+  });
+
+  it("exports the project folder's files with the storyboards, scripts, and sketches", async () => {
+    const project = (await Project.insertNew({
+      user_id: owner,
+      name: "Folder film"
+    }))!;
+    const previousDir = process.env["PROJECTS_DIR"];
+    process.env["PROJECTS_DIR"] = nodePath.join(root, "NodeTool");
+    let folder: Workspace;
+    try {
+      folder = await ensureProjectFolder(project);
+    } finally {
+      if (previousDir === undefined) delete process.env["PROJECTS_DIR"];
+      else process.env["PROJECTS_DIR"] = previousDir;
+    }
+    expect(folder.path).toBe(nodePath.join(root, "NodeTool", "Folder film"));
+    expect(project.workspace_id).toBe(folder.id);
+    const files = createLocalWorkspace(folder.path);
+    const take = new Uint8Array([0, 255, 254, 128, 10, 13]);
+    await files.write("footage/day 1/take.bin", take);
+    await files.write("Generated/fox-in-snow.txt", "fox");
+    // The folder of another project inside this one, as Personal's managed
+    // folder holds them. Its files are exported with that project only.
+    const inner = nodePath.join(folder.path, "projects", "a".repeat(64));
+    await mkdir(nodePath.join(inner, ".nodetool"), { recursive: true });
+    await mkdir(nodePath.join(inner, "Generated"), { recursive: true });
+    await writeFile(nodePath.join(inner, ".nodetool", "project.json"), "{}");
+    await writeFile(nodePath.join(inner, "Generated", "wolf.txt"), "wolf");
+    const board = await Storyboard.create<Storyboard>({
+      user_id: owner,
+      project_id: project.id,
+      name: "Board",
+      document: JSON.stringify(storyboardDocument("none"))
+    });
+    const script = await Script.create<Script>({
+      user_id: owner,
+      project_id: project.id,
+      name: "Script",
+      document: JSON.stringify(emptyScriptDocument())
+    });
+    const sketch = await ImageDocument.create<ImageDocument>({
+      user_id: owner,
+      project_id: project.id,
+      name: "Sketch"
+    });
+
+    const { bytes, manifest } = await exportProject(owner, project.id);
+    const entries = unzipSync(bytes);
+
+    // The folder's files, under the folder's workspace, byte for byte.
+    const prefix = `workspaces/${folder.id}/`;
+    expect(
+      Object.keys(entries)
+        .filter((name) => name.startsWith("workspaces/"))
+        .sort()
+    ).toEqual([
+      `${prefix}Generated/fox-in-snow.txt`,
+      `${prefix}footage/day 1/take.bin`
+    ]);
+    expect(entries[`${prefix}footage/day 1/take.bin`]).toEqual(take);
+    expect(strFromU8(entries[`${prefix}Generated/fox-in-snow.txt`]!)).toBe(
+      "fox"
+    );
+    expect(manifest.workspace_files.map((f) => f.path).sort()).toEqual([
+      "Generated/fox-in-snow.txt",
+      "footage/day 1/take.bin"
+    ]);
+    // The documents that live in the database, not in the folder.
+    const records = JSON.parse(strFromU8(entries["records.json"]!)) as Record<
+      string,
+      Array<Record<string, unknown>>
+    >;
+    expect(records["storyboards"]!.map((row) => row["id"])).toEqual([board.id]);
+    expect(records["scripts"]!.map((row) => row["id"])).toEqual([script.id]);
+    expect(records["image_documents"]!.map((row) => row["id"])).toEqual([
+      sketch.id
+    ]);
+    expect(records["workspaces"]!.map((row) => row["id"])).toEqual([folder.id]);
+    expect(manifest.skipped).toEqual([]);
+  });
+
+  it("marks an imported folder as created by NodeTool, whoever made the exported one", async () => {
+    const seeded = await seedProject();
+    seeded.workspace.origin = "adopted";
+    await seeded.workspace.save();
+    const { bytes } = await exportProject(owner, seeded.projectId);
+
+    const result = await importProjectArchive(bytes, {
+      userId: importer,
+      storage,
+      openWorkspace,
+      workspacePath,
+      markCreatedFolder: markFolderCreated
+    });
+
+    const [imported] = await Workspace.listByProject(
+      importer,
+      result.project.id
+    );
+    if (!imported) throw new Error("the import made no workspace");
+    expect(imported.path).toContain(nodePath.join(root, "imported"));
+    expect(imported.origin).toBe("created");
+    // The record a delete requires before it moves the folder to the trash.
+    expect(await isFolderMarkedCreated(imported)).toBe(true);
+  });
+
   it("imports as a new project with every id and reference rewritten", async () => {
     const seeded = await seedProject();
     const { bytes } = await exportProject(owner, seeded.projectId);
@@ -426,6 +601,67 @@ describe("project files", () => {
     expect(assets.find((a) => a.name === "secrets")?.external_path).toBeNull();
   });
 
+  it("writes nothing for a project that links files outside its folder", async () => {
+    const seeded = await seedProject();
+    const linked = await Asset.create<Asset>({
+      user_id: owner,
+      project_id: seeded.projectId,
+      parent_id: owner,
+      name: "long take.mp4",
+      content_type: "video/mp4",
+      external_path: nodePath.join(root, "long take.mp4")
+    });
+
+    const writer = new ZipStreamWriter(async () => {});
+    const added = vi.spyOn(writer, "add");
+    await expect(
+      writeProjectArchive(
+        { userId: owner, projectId: seeded.projectId, storage, openWorkspace },
+        writer
+      )
+    ).rejects.toEqual(
+      expect.objectContaining({
+        files: [{ id: linked.id, name: "long take.mp4" }]
+      })
+    );
+    expect(added).not.toHaveBeenCalled();
+    await expect(
+      prepareProjectExport({
+        userId: owner,
+        projectId: seeded.projectId,
+        linkedFiles: "refuse"
+      })
+    ).rejects.toBeInstanceOf(ProjectLinkedFilesError);
+  });
+
+  it("never keeps a project folder path from the file", async () => {
+    const seeded = await seedProject();
+    const { bytes } = await exportProject(owner, seeded.projectId);
+    const entries = unzipSync(bytes);
+    const records = JSON.parse(strFromU8(entries["records.json"]!)) as Record<
+      string,
+      Array<Record<string, unknown>>
+    >;
+    // A kept path would tie the row to whatever file has it in the new
+    // folder, and deleting the asset would then delete that file.
+    records["assets"]!.push({
+      id: "d".repeat(32),
+      parent_id: null,
+      name: "fox",
+      content_type: "image/png",
+      workspace_path: "Generated/fox-in-snow.png",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+    entries["records.json"] = strToU8(JSON.stringify(records));
+
+    const result = await importArchive(zipSync(entries));
+    const assets = await Asset.listByProject(importer, result.project.id);
+    const fox = assets.find((a) => a.name === "fox");
+    expect(fox).toBeDefined();
+    expect(fox?.workspace_path).toBeNull();
+  });
+
   it("removes stored bytes and workspace files when the rows fail to insert", async () => {
     const seeded = await seedProject();
     const { bytes } = await exportProject(owner, seeded.projectId);
@@ -458,6 +694,49 @@ describe("project files", () => {
     entries["records.json"] = strToU8(JSON.stringify(records));
     await expect(importArchive(zipSync(entries))).rejects.toThrow(/thread_id/);
     expect(await Project.listByUser(importer)).toEqual([]);
+  });
+
+  it("skips .nodetool/ entries from an archive written before the directory was reserved", async () => {
+    const seeded = await seedProject();
+    const { bytes } = await exportProject(owner, seeded.projectId);
+    // An older export listed the exporting project's manifest as a file.
+    const entries = unzipSync(bytes);
+    const manifest = JSON.parse(strFromU8(entries["manifest.json"]!));
+    const stale = strToU8('{"format":"nodetool.project","version":1,"id":"old","name":"Old"}');
+    const file = `workspaces/${seeded.workspace.id}/.nodetool/project.json`;
+    entries[file] = stale;
+    manifest.workspace_files.push({
+      workspace_id: seeded.workspace.id,
+      path: ".nodetool/project.json",
+      file,
+      bytes: stale.byteLength,
+      sha256: createHash("sha256").update(stale).digest("hex")
+    });
+    entries["manifest.json"] = strToU8(JSON.stringify(manifest));
+
+    const result = await importArchive(zipSync(entries));
+
+    const { readProjectArchiveRecords } = await import("@nodetool-ai/models");
+    const records = await readProjectArchiveRecords(importer, result.project.id);
+    const imported = new Workspace(records.workspaces[0]!);
+    expect(await createLocalWorkspace(imported.path).readText("notes/readme.txt")).toBe("hello");
+    expect(existsSync(nodePath.join(imported.path, ".nodetool", "project.json"))).toBe(false);
+  });
+
+  it("gives the imported project a folder its runs can use", async () => {
+    const seeded = await seedProject();
+    const { bytes } = await exportProject(owner, seeded.projectId);
+
+    const result = await importProjectArchive(bytes, {
+      userId: importer,
+      storage,
+      openWorkspace,
+      workspacePath,
+      ensureFolder: ensureProjectFolder
+    });
+
+    const folder = await resolveProjectWorkspace(result.project.id, importer);
+    expect(folder).toMatchObject({ ok: true, projectId: result.project.id });
   });
 
   it("rehashes current and historical drafts after rewriting game references", async () => {
@@ -560,4 +839,288 @@ describe("project files", () => {
     expect(writer.bytesWritten).toBe(emitted);
   });
 
+});
+
+/**
+ * An imported project's folder is `projects/<segment>` in the managed folder,
+ * which is Personal's folder. Personal can be open while the import writes,
+ * and its folder is then compared with its rows every time a file lands.
+ */
+describe.each(["local", "storage"] as const)(
+  "importing into a folder inside another project's folder (%s)",
+  (kind) => {
+    const OUTER = "outer-project";
+    /** A 1x1 PNG. */
+    const PNG = Uint8Array.from(
+      Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+        "base64"
+      )
+    );
+    const TIMELINE_DOCUMENT = JSON.stringify({
+      tracks: [
+        { id: "v1", name: "Video", type: "video", index: 0, visible: true, locked: false }
+      ],
+      clips: [
+        {
+          id: "c1",
+          trackId: "v1",
+          name: "hello",
+          startMs: 0,
+          durationMs: 1000,
+          mediaType: "shape",
+          shapeStyle: { kind: "rect", fill: "#ff0000", x: 0, y: 0, width: 1, height: 1 },
+          sourceType: "imported",
+          status: "generated",
+          locked: false,
+          versions: []
+        }
+      ],
+      markers: []
+    });
+    let folders: InMemoryStorageAdapter;
+    let previousResolver: ProjectFolderResolver | null;
+    let reconciles: number;
+
+    const outerLocation = (): string =>
+      kind === "local"
+        ? nodePath.join(root, "outer")
+        : `workspaces/${importer}`;
+    const open = (location: string): RuntimeWorkspace =>
+      nodePath.isAbsolute(location)
+        ? createLocalWorkspace(location)
+        : createWorkspace(folders, { prefix: location });
+    const innerPath = async (_userId: string, workspaceId: string) => {
+      const segment = createHash("sha256").update(workspaceId).digest("hex");
+      return kind === "local"
+        ? nodePath.join(outerLocation(), "projects", segment)
+        : `${outerLocation()}/projects/${segment}`;
+    };
+    /** What Personal's watcher starts while the import writes its files. */
+    const reconcileOuter = async (): Promise<void> => {
+      reconciles++;
+      await reconcileProjectIndex(OUTER, importer);
+      await reconcileDocumentFiles([timelineFileAdapter], OUTER, importer);
+    };
+    /** The imported folder, with the outer folder compared after every write. */
+    const openWhileOuterIsOpen: OpenWorkspace = (row) => {
+      const inner = open(row.path);
+      return new Proxy(inner, {
+        get(target, property, receiver): unknown {
+          if (property === "write") {
+            return async (
+              path: string,
+              data: Uint8Array | string,
+              contentType?: string
+            ): Promise<void> => {
+              await target.write(path, data, contentType);
+              await reconcileOuter();
+            };
+          }
+          const value: unknown = Reflect.get(target, property, receiver);
+          return typeof value === "function" ? value.bind(target) : value;
+        }
+      });
+    };
+
+    /** A project whose folder holds a media file and a valid timeline file. */
+    async function exportWithFolderFiles(): Promise<Uint8Array> {
+      const seeded = await seedProject();
+      const cut = await TimelineSequence.create<TimelineSequence>({
+        user_id: owner,
+        project_id: seeded.projectId,
+        name: "Cut two",
+        duration_ms: 1000,
+        document: TIMELINE_DOCUMENT
+      });
+      const files = createLocalWorkspace(seeded.workspace.path);
+      await files.write("Generated/fox.png", PNG);
+      await files.write(
+        "Timelines/Cut two.timeline.json",
+        documentFileText(timelineFileAdapter, cut.id, timelineFileAdapter.fieldsOf(cut))
+      );
+      return (await exportProject(owner, seeded.projectId)).bytes;
+    }
+
+    beforeEach(async () => {
+      initTestDb();
+      storage = new InMemoryStorageAdapter();
+      folders = new InMemoryStorageAdapter();
+      root = await mkdtemp(nodePath.join(tmpdir(), "project-archive-nested-"));
+      reconciles = 0;
+      setWorkspaceCloudStorage(kind === "storage" ? folders : null);
+      previousResolver = getProjectFolderResolver();
+      // Only the outer project has a folder here. A row of any other
+      // project then writes no file of its own into the outer folder.
+      setProjectFolderResolver(async (projectId) =>
+        projectId === OUTER
+          ? { ok: true, projectId: OUTER, workspace: open(outerLocation()) }
+          : {
+              ok: false,
+              projectId: projectId ?? null,
+              reason: `Project folder not found: ${projectId}`
+            }
+      );
+    });
+
+    afterEach(async () => {
+      setProjectFolderResolver(previousResolver);
+      setWorkspaceCloudStorage(null);
+      await rm(root, { recursive: true, force: true });
+    });
+
+    it("the outer project takes none of the files while the import writes them", async () => {
+      const bytes = await exportWithFolderFiles();
+
+      const result = await importProjectArchive(bytes, {
+        userId: importer,
+        storage,
+        openWorkspace: openWhileOuterIsOpen,
+        workspacePath: innerPath,
+        markCreatedFolder: markFolderCreated,
+        unmarkCreatedFolder: unmarkFolderCreated
+      });
+
+      // The outer folder was compared with its rows after every file.
+      expect(reconciles).toBeGreaterThan(2);
+      expect(await Asset.listProjectFiles(importer, OUTER)).toEqual([]);
+      const taken = await TimelineSequence.listForProjects(importer, [OUTER]);
+      expect(taken.map((row) => [row.name, row.file_path])).toEqual([]);
+      // The import kept every ID it chose: no row of the outer project took one.
+      const timelines = await TimelineSequence.listForProjects(importer, [
+        result.project.id
+      ]);
+      expect(timelines.map((row) => row.name).sort()).toEqual(["Cut", "Cut two"]);
+      const [folder] = await Workspace.listByProject(importer, result.project.id);
+      const inner = open(folder!.path);
+      expect(
+        (await inner.list("", { recursive: true })).map((entry) => entry.path)
+      ).toContain("Generated/fox.png");
+      expect(await isFolderMarkedCreated(folder!)).toBe(true);
+    });
+
+    it("marks the folder as another project's before the first file is written", async () => {
+      const bytes = await exportWithFolderFiles();
+      const marked: boolean[] = [];
+      const observe: OpenWorkspace = (row) => {
+        const inner = open(row.path);
+        const key = row.path.slice(outerLocation().length + 1).replaceAll("\\", "/");
+        return new Proxy(inner, {
+          get(target, property, receiver): unknown {
+            if (property === "write") {
+              return async (
+                path: string,
+                data: Uint8Array | string,
+                contentType?: string
+              ): Promise<void> => {
+                marked.push(await open(outerLocation()).isNestedFolder(key));
+                await target.write(path, data, contentType);
+              };
+            }
+            const value: unknown = Reflect.get(target, property, receiver);
+            return typeof value === "function" ? value.bind(target) : value;
+          }
+        });
+      };
+
+      await importProjectArchive(bytes, {
+        userId: importer,
+        storage,
+        openWorkspace: observe,
+        workspacePath: innerPath,
+        markCreatedFolder: markFolderCreated,
+        unmarkCreatedFolder: unmarkFolderCreated
+      });
+
+      expect(marked.length).toBeGreaterThan(2);
+      expect(marked).not.toContain(false);
+    });
+
+    it("leaves no file and no mark behind when the import fails", async () => {
+      const entries = unzipSync(await exportWithFolderFiles());
+      const records = JSON.parse(strFromU8(entries["records.json"]!)) as Record<
+        string,
+        Array<Record<string, unknown>>
+      >;
+      // A storyboard without its required document column cannot be inserted.
+      delete records["storyboards"]![0]!["document"];
+      entries["records.json"] = strToU8(JSON.stringify(records));
+
+      await expect(
+        importProjectArchive(zipSync(entries), {
+          userId: importer,
+          storage,
+          openWorkspace: (row) => open(row.path),
+          workspacePath: innerPath,
+          markCreatedFolder: markFolderCreated,
+          unmarkCreatedFolder: unmarkFolderCreated
+        })
+      ).rejects.toThrow();
+
+      expect(await Project.listByUser(importer)).toEqual([]);
+      if (kind === "local") {
+        const left = await readdir(
+          nodePath.join(outerLocation(), "projects")
+        ).catch(() => []);
+        expect(left).toEqual([]);
+      } else {
+        expect((await folders.list("")).entries).toEqual([]);
+      }
+    });
+  }
+);
+
+/**
+ * A cloud project folder is a key prefix in object storage (PRD D6, US14).
+ * Download returns that folder as an archive, as it does for a local one.
+ */
+describe("project files of a cloud folder", () => {
+  beforeEach(() => {
+    initTestDb();
+    storage = new InMemoryStorageAdapter();
+    vi.stubEnv("NODETOOL_WORKSPACE_STORAGE", "cloud");
+    setWorkspaceCloudStorage(new InMemoryStorageAdapter());
+  });
+
+  afterEach(() => {
+    setWorkspaceCloudStorage(null);
+    vi.unstubAllEnvs();
+  });
+
+  it("exports the files under the folder's storage prefix", async () => {
+    const project = (await Project.insertNew({
+      user_id: owner,
+      name: "Cloud film"
+    }))!;
+    const folder = await ensureProjectFolder(project);
+    expect(folder.isVirtual(), "a cloud folder is a storage prefix").toBe(true);
+    const files = workspaceFromRow(folder)!;
+    const image = new Uint8Array([137, 80, 78, 71, 1, 2, 3]);
+    await files.write("Generated/fox-in-snow.png", image);
+    await files.write("footage/notes.txt", "day one");
+
+    let manifest: Awaited<ReturnType<typeof writeProjectArchive>> | undefined;
+    const bytes = await collectZip(async (writer) => {
+      manifest = await writeProjectArchive(
+        {
+          userId: owner,
+          projectId: project.id,
+          storage,
+          openWorkspace: workspaceFromRow
+        },
+        writer
+      );
+    });
+
+    expect(manifest!.skipped).toEqual([]);
+    expect(manifest!.workspace_files.map((f) => f.path).sort()).toEqual([
+      "Generated/fox-in-snow.png",
+      "footage/notes.txt"
+    ]);
+    const entries = unzipSync(bytes);
+    expect(entries[`workspaces/${folder.id}/Generated/fox-in-snow.png`]).toEqual(image);
+    expect(
+      strFromU8(entries[`workspaces/${folder.id}/footage/notes.txt`]!)
+    ).toBe("day one");
+  });
 });

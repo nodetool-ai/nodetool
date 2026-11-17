@@ -144,6 +144,7 @@ import useOnboardingStore, {
   isOnboardingFinished
 } from "../../stores/OnboardingStore";
 import GettingStartedChecklist from "../onboarding/GettingStartedChecklist";
+import FirstRunStarters from "../onboarding/FirstRunStarters";
 import CurrentProjectDocuments from "./CurrentProjectDocuments";
 import RecentChats from "./RecentChats";
 import RecentProjects from "./RecentProjects";
@@ -715,6 +716,14 @@ const NewProjectSurface = ({
         dismissed: state.dismissed
       })
   );
+  // Until the first result, the first-run starters take the checklist's
+  // place: one guided task and three filled-in starters, each a click from
+  // output.
+  const firstResult = useOnboardingStore((state) => state.firstResult);
+  const showFirstRun = showOnboarding && !firstResult;
+  // The first task fills the prompt, then starts it on the next render, once
+  // `handleStart` reads the new prompt.
+  const [pendingFirstTask, setPendingFirstTask] = useState<string | null>(null);
 
   // Blank documents opened from here are loose, as the strip promises — the
   // project being described does not exist yet.
@@ -2232,6 +2241,19 @@ const NewProjectSurface = ({
     void resumeProject.current();
   }, [pendingStart, hasConfiguredProvider]);
 
+  const handleTryFirstTask = useCallback((text: string) => {
+    setGoal("chat");
+    setPrompt(text);
+    setPendingFirstTask(text);
+  }, []);
+  useEffect(() => {
+    if (pendingFirstTask === null || prompt !== pendingFirstTask) {
+      return;
+    }
+    setPendingFirstTask(null);
+    void resumeProject.current();
+  }, [pendingFirstTask, prompt]);
+
   useEffect(() => {
     if (!pendingModelStart || !isModelSelected(selectedModel)) {
       return;
@@ -2477,7 +2499,13 @@ const NewProjectSurface = ({
         >
           {/* The getting-started steps read as a thin bar above the page rather
               than a block wedged between the composer and the footer. */}
-          {showOnboarding && (
+          {showFirstRun && (
+            <FirstRunStarters
+              onTryFirstTask={handleTryFirstTask}
+              busy={starting || isUploading || pendingFlow !== null}
+            />
+          )}
+          {showOnboarding && !showFirstRun && (
             <GettingStartedChecklist
               hasConfiguredProvider={hasConfiguredProvider}
               onConnectProvider={handleConnectProvider}

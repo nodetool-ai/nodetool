@@ -37,7 +37,7 @@ import {
   initTelemetry
 } from "@nodetool-ai/runtime";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
-import type { AssetOutputMode } from "@nodetool-ai/runtime";
+import type { AssetOutputMode, Workspace } from "@nodetool-ai/runtime";
 import { mkdirSync } from "node:fs";
 import {
   addSupervisorOptions,
@@ -412,7 +412,7 @@ export async function createProgram(): Promise<CommanderCommand> {
       )
       .option(
         "--workspace <dir>",
-        "Workspace directory for workspace-mode asset output (default: ./nodetool-output)"
+        "Directory the run reads and writes files in (default: the project folder)"
       )
       .option(
         "--trigger-event <json>",
@@ -519,13 +519,16 @@ export async function createProgram(): Promise<CommanderCommand> {
         // Resolve asset URIs (e.g. /api/storage/<key>) against the local
         // assets directory, so workflows referencing stored assets run the
         // same decode path the server does.
-        // Apply the workflow's assigned workspace (if any) so file ops and
-        // workspace-driving nodes land in the same directory as a server run.
-        const { resolveWorkflowWorkspace } =
+        // The run works in its project's folder, as a server run does: a
+        // stored workflow's project, else Personal for a file with no record.
+        const { ensurePersonalProject, resolveProjectWorkspace } =
           await import("@nodetool-ai/execution/service");
-        const assignedWorkspace = workflowId
-          ? await resolveWorkflowWorkspace(workflowId, "1")
+        const storedWorkflow = workflowId
+          ? await Workflow.find(LOCAL_USER_ID, workflowId)
           : null;
+        const runProjectId =
+          storedWorkflow?.project_id ??
+          (await ensurePersonalProject(LOCAL_USER_ID)).id;
         const ASSET_OUTPUT_MODES = [
           "native",
           "raw",
@@ -543,25 +546,21 @@ export async function createProgram(): Promise<CommanderCommand> {
           );
         }
 
-        // `--workspace <dir>` wins, then whatever the workflow is assigned.
-        // `workspace` asset mode writes each output into <workspace>/assets, so
-        // it needs somewhere to write even when the run has no saved workflow (a
-        // JSON or DSL file target). Fall back to ./nodetool-output so a bare
-        // `workflows run file.json --asset-output-mode workspace` produces files
-        // in the current directory rather than failing.
-        const overrideWorkspaceDir =
-          opts.workspace ??
-          (assignedWorkspace
-            ? null
-            : assetOutputMode === "workspace"
-              ? resolve(process.cwd(), "nodetool-output")
-              : null);
+        // `--workspace <dir>` wins. Otherwise the project's folder, and a run
+        // whose folder is unreachable does not start.
+        const overrideWorkspaceDir = opts.workspace ?? null;
+        let runWorkspace: Workspace;
         if (overrideWorkspaceDir) {
           mkdirSync(overrideWorkspaceDir, { recursive: true });
+          runWorkspace = createLocalWorkspace(overrideWorkspaceDir);
+        } else {
+          const folder = await resolveProjectWorkspace(
+            runProjectId,
+            LOCAL_USER_ID
+          );
+          if (!folder.ok) throw new Error(folder.reason);
+          runWorkspace = folder.workspace;
         }
-        const runWorkspace = overrideWorkspaceDir
-          ? createLocalWorkspace(overrideWorkspaceDir)
-          : assignedWorkspace;
 
         const assetStorage = new FileStorageAdapter(getDefaultAssetsPath());
         const context = new ProcessingContext({

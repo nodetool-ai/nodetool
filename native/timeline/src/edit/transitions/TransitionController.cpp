@@ -48,8 +48,9 @@ void TransitionController::beginGesture(const QString& action, const QJsonObject
 void TransitionController::preview(const QJsonObject& payload) {
     if (!m_gesture || !m_model || m_before.isEmpty() || m_generation != m_model->documentGeneration()) { return; }
     if (m_lastPreview != m_model->clipsJson()) { m_gesture = false; m_cancelled = true; return; }
-    auto merged = m_payload;
-    // Keep the gesture attached to the clip selected on press.
+    // Keep the gesture attached to the clip selected on press, and read the source
+    // lengths again: a probe can finish after the press.
+    auto merged = withSourceCaps(m_payload);
     for (const auto& key : {QString("durationMs"), QString("patch")}) {
         if (payload.contains(key)) { merged.insert(key, payload.value(key)); }
     }

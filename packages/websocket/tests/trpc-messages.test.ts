@@ -11,7 +11,9 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     Message: {
       ...actual.Message,
       paginate: vi.fn(),
-      rewind: vi.fn()
+      rewind: vi.fn(),
+      versions: vi.fn(),
+      switchVersion: vi.fn()
     },
     Thread: {
       ...actual.Thread,
@@ -213,6 +215,84 @@ describe("messages router", () => {
 
       await expect(
         caller.messages.rewind({ thread_id: "thread-1", message_id: "nope" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+
+  describe("versions", () => {
+    it("lists the forks of a thread the caller owns", async () => {
+      vi.mocked(Thread.find).mockResolvedValue({ id: "thread-1" } as never);
+      const fork = {
+        after: "",
+        first_message_id: "m3",
+        versions: ["branch-1", null],
+        active: 1
+      };
+      vi.mocked(Message.versions).mockResolvedValue([fork]);
+      const caller = createCaller(makeCtx());
+
+      const result = await caller.messages.versions({ thread_id: "thread-1" });
+
+      expect(Message.versions).toHaveBeenCalledWith("thread-1");
+      expect(result).toEqual({ forks: [fork] });
+    });
+
+    it("refuses another user's thread", async () => {
+      vi.mocked(Thread.find).mockResolvedValue(null);
+      const caller = createCaller(makeCtx());
+
+      await expect(
+        caller.messages.versions({ thread_id: "thread-x" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      expect(Message.versions).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("switchVersion", () => {
+    it("switches a version in a thread the caller owns", async () => {
+      vi.mocked(Thread.find).mockResolvedValue({ id: "thread-1" } as never);
+      vi.mocked(Message.switchVersion).mockResolvedValue(true);
+      const caller = createCaller(makeCtx());
+
+      const result = await caller.messages.switchVersion({
+        thread_id: "thread-1",
+        after: "m1",
+        branch_id: "branch-1"
+      });
+
+      expect(Message.switchVersion).toHaveBeenCalledWith(
+        "thread-1",
+        "m1",
+        "branch-1"
+      );
+      expect(result).toEqual({ ok: true });
+    });
+
+    it("refuses another user's thread without touching it", async () => {
+      vi.mocked(Thread.find).mockResolvedValue(null);
+      const caller = createCaller(makeCtx());
+
+      await expect(
+        caller.messages.switchVersion({
+          thread_id: "thread-x",
+          after: "",
+          branch_id: "branch-1"
+        })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      expect(Message.switchVersion).not.toHaveBeenCalled();
+    });
+
+    it("reports a version that is not at that fork", async () => {
+      vi.mocked(Thread.find).mockResolvedValue({ id: "thread-1" } as never);
+      vi.mocked(Message.switchVersion).mockResolvedValue(false);
+      const caller = createCaller(makeCtx());
+
+      await expect(
+        caller.messages.switchVersion({
+          thread_id: "thread-1",
+          after: "",
+          branch_id: "nope"
+        })
       ).rejects.toMatchObject({ code: "NOT_FOUND" });
     });
   });

@@ -356,8 +356,8 @@ paths:
 `;
 
 describe("parseKieSchema", () => {
-  it("maps KIE OpenAPI media URL fields to AssetRef handles", () => {
-    const node = parseKieSchema(seedanceDocs, {
+  it.each(["\n", "\r\n"])("maps KIE OpenAPI media URL fields with %j line endings", (newline) => {
+    const node = parseKieSchema(seedanceDocs.replace(/\r?\n/g, newline), {
       category: "Video Models > Bytedance",
       title: "bytedance-seedance-2",
       url: "https://docs.kie.ai/market/bytedance/seedance-2.md",

@@ -42,12 +42,14 @@
 #include "audio/AudioMode.h"
 #include "server/FieldAudit.h"
 #include "server/SaveCli.h"
+#include "server/BundledServer.h"
 #include "server/ServerSource.h"
 
 #include "aiassist/AgentBridge.h"
 #include "aiassist/AssistantCommands.h"
 #include "aiassist/AssistantSession.h"
 #include "chat/TimelineChatHost.h"
+#include "nodetool/account/qt/AccountController.h"
 #include "runtime/ChatSession.h"
 #include <QtQml/QQmlExtensionPlugin>
 Q_IMPORT_QML_PLUGIN(NodeTool_ChatPlugin)
@@ -60,6 +62,7 @@ extern "C" {
 }
 
 #include <QCommandLineParser>
+#include <QDesktopServices>
 #include <QCoreApplication>
 #include <QElapsedTimer>
 #include <QEvent>
@@ -737,6 +740,8 @@ int main(int argc, char** argv) {
 
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QGuiApplication app(argc, argv);
+    // A window opened from one that runs the bundled server keeps that server running.
+    nt::server::joinBundledServer();
     // NT_QMLPROF=PORT: accept `qmlprofiler --attach localhost -p PORT`.
     if (const int port = qEnvironmentVariableIntValue("NT_QMLPROF"); port > 0) {
         QQmlDebuggingEnabler::enableDebugging(true);
@@ -1030,6 +1035,23 @@ int main(int argc, char** argv) {
                             parser.value(playStillsOpt), frames, {}, {}, {}, {}, parser.value(monitorStateOpt).toUtf8());
     }
 
+    // The NodeTool Cloud account the document bar shows. Interactive runs
+    // only, so a test, benchmark or capture run never reads the keychain.
+    // Declared before the view, whose QML holds it, so it outlives the view.
+    std::unique_ptr<nodetool::account::qt::AccountController> account;
+    if (!background && !bench && QGuiApplication::platformName() != u"offscreen") {
+        nodetool::account::qt::AccountServices accountServices;
+        accountServices.dataDir = nodetool::account::qt::sharedDataDir();
+        accountServices.serverOrigin = nodetool::account::qt::cloudServerOrigin();
+        accountServices.app = "timeline";
+        account = std::make_unique<nodetool::account::qt::AccountController>(std::move(accountServices));
+        QObject::connect(account.get(), &nodetool::account::qt::AccountController::browserRequested, &app,
+                         [controller = account.get()](const QUrl& url) {
+                             if (!QDesktopServices::openUrl(url)) {
+                                 controller->browserNotOpened();
+                             }
+                         });
+    }
     QQuickView view;
     nt::hw::prepareWindow(&view);
     view.setResizeMode(QQuickView::SizeRootObjectToView);
@@ -1050,6 +1072,9 @@ int main(int argc, char** argv) {
                          &nt::server::AutosaveController::documentChanged);
         QObject::connect(autosave.get(), &nt::server::AutosaveController::projectChanged, &model,
                          &TimelineModel::setProjectId);
+        // The Library's project check can also move the document (AssetBrowser::receive).
+        QObject::connect(&model, &TimelineModel::timelineChanged, autosave.get(),
+                         &nt::server::AutosaveController::syncOpenProject);
     }
     if (!autosave && !bench && !parser.isSet(realtimeOpt) && !parser.isSet(teardownOpt) &&
         QFileInfo(source).isFile()) {
@@ -1154,6 +1179,7 @@ int main(int argc, char** argv) {
     view.rootContext()->setContextProperty(QStringLiteral("nativeAssistantTools"), &assistantTools);
     view.rootContext()->setContextProperty(QStringLiteral("nativeChatInitiallyOpen"), parser.isSet(chatOpt));
     view.rootContext()->setContextProperty(QStringLiteral("autosave"), autosave.get());
+    view.rootContext()->setContextProperty(QStringLiteral("nativeAccount"), account.get());
     view.rootContext()->setContextProperty(QStringLiteral("nativeInteractiveRun"),
                                            !background && QGuiApplication::platformName() != u"offscreen");
     view.loadFromModule("NodeTool.Timeline", "TimelineEditor");
@@ -1461,6 +1487,8 @@ int main(int argc, char** argv) {
     // exit code 4 when no folder took them.
     const int rc = nt::app::exitCodeAfterLocalSave(localSaver.get(),
         nt::server::exitCodeAfterQuit(autosave.get(), app.exec(), 5000));
+    // The save above may need the bundled server, so it stops only now.
+    nt::server::stopBundledServer();
     if ((bench || parser.isSet(teardownOpt)) && !*completed) {
         std::fprintf(stderr, "error: the window closed before the %s finished; no report\n",
                      "bench");

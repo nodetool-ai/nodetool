@@ -70,10 +70,11 @@ export type IndexImageInputs = {
 };
 
 export interface IndexImageOutputs {
+  output: unknown;
 }
 
-export function indexImage(inputs: IndexImageInputs, options?: NodeOptions): NodeWithOutputs<IndexImageOutputs> {
-  return createNode("vector.IndexImage", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
+export function indexImage(inputs: IndexImageInputs, options?: NodeOptions): NodeWithOutputs<IndexImageOutputs, "output"> {
+  return createNode("vector.IndexImage", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"collection"}, defaultOutput: "output" });
 }
 
 // Index Embedding — vector.IndexEmbedding
@@ -85,10 +86,11 @@ export type IndexEmbeddingInputs = {
 };
 
 export interface IndexEmbeddingOutputs {
+  output: unknown;
 }
 
-export function indexEmbedding(inputs: IndexEmbeddingInputs, options?: NodeOptions): NodeWithOutputs<IndexEmbeddingOutputs> {
-  return createNode("vector.IndexEmbedding", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
+export function indexEmbedding(inputs: IndexEmbeddingInputs, options?: NodeOptions): NodeWithOutputs<IndexEmbeddingOutputs, "output"> {
+  return createNode("vector.IndexEmbedding", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"collection"}, defaultOutput: "output" });
 }
 
 // Index Text Chunk — vector.IndexTextChunk
@@ -100,10 +102,11 @@ export type IndexTextChunkInputs = {
 };
 
 export interface IndexTextChunkOutputs {
+  output: unknown;
 }
 
-export function indexTextChunk(inputs: IndexTextChunkInputs, options?: NodeOptions): NodeWithOutputs<IndexTextChunkOutputs> {
-  return createNode("vector.IndexTextChunk", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
+export function indexTextChunk(inputs: IndexTextChunkInputs, options?: NodeOptions): NodeWithOutputs<IndexTextChunkOutputs, "output"> {
+  return createNode("vector.IndexTextChunk", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"collection"}, defaultOutput: "output" });
 }
 
 // Index Aggregated Text — vector.IndexAggregatedText
@@ -117,10 +120,11 @@ export type IndexAggregatedTextInputs = {
 };
 
 export interface IndexAggregatedTextOutputs {
+  output: unknown;
 }
 
-export function indexAggregatedText(inputs: IndexAggregatedTextInputs, options?: NodeOptions): NodeWithOutputs<IndexAggregatedTextOutputs> {
-  return createNode("vector.IndexAggregatedText", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
+export function indexAggregatedText(inputs: IndexAggregatedTextInputs, options?: NodeOptions): NodeWithOutputs<IndexAggregatedTextOutputs, "output"> {
+  return createNode("vector.IndexAggregatedText", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"collection"}, defaultOutput: "output" });
 }
 
 // Index String — vector.IndexString
@@ -132,10 +136,11 @@ export type IndexStringInputs = {
 };
 
 export interface IndexStringOutputs {
+  output: unknown;
 }
 
-export function indexString(inputs: IndexStringInputs, options?: NodeOptions): NodeWithOutputs<IndexStringOutputs> {
-  return createNode("vector.IndexString", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
+export function indexString(inputs: IndexStringInputs, options?: NodeOptions): NodeWithOutputs<IndexStringOutputs, "output"> {
+  return createNode("vector.IndexString", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"collection"}, defaultOutput: "output" });
 }
 
 // Query Image — vector.QueryImage

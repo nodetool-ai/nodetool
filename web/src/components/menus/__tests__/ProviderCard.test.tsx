@@ -17,6 +17,10 @@ import { useProviders } from "../../../hooks/useProviders";
 
 jest.mock("../../../hooks/useOAuthConnection");
 jest.mock("../../../hooks/useProviders");
+// The credit line has its own suite (ProviderCardCredit.test.tsx).
+jest.mock("../../../serverState/useProviderCredits", () => ({
+  useProviderCredit: () => ({ credit: null, refresh: jest.fn() })
+}));
 
 const mockUseOAuthConnection = useOAuthConnection as jest.MockedFunction<
   typeof useOAuthConnection

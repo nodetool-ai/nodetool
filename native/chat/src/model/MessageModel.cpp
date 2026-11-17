@@ -95,6 +95,23 @@ QString toolKind(QString name) {
   }
   return "generic";
 }
+// toolCallIcon.tsx: a category glyph for the timeline rail, matched on
+// keywords so any provider's tool naming lands in a bucket.
+QString toolIcon(const QString &name) {
+  const auto lower = name.toLower();
+  static const QList<QPair<QRegularExpression, QString>> categories{
+    {QRegularExpression("subtask|agent|task|plan"), "accountTree"},
+    {QRegularExpression("database|query|sql|collection|vector|index|table|record"), "dataObject"},
+    {QRegularExpression("search|find|grep|glob|lookup|list"), "search"},
+    {QRegularExpression("file|read|write|edit|directory|folder|asset|document|save|open"), "descriptionOutlined"},
+    {QRegularExpression("http|web|fetch|url|browser|download|upload|request|api|notif|send|mail|message"), "language"},
+    {QRegularExpression("image|video|audio|speech|generate|render|draw|media"), "image"},
+    {QRegularExpression("shell|bash|terminal|command|exec|run|code|script|node|workflow"), "code"}};
+  for (const auto &[pattern, icon] : categories) {
+    if (pattern.match(lower).hasMatch()) { return icon; }
+  }
+  return "wrench";
+}
 QString toolDetail(const QJsonObject &args, bool shortUrl = false) {
   for (const auto key : {"url", "uri", "path", "file", "filename", "target", "query", "q", "objective"}) {
     auto value = args[key].toString().trimmed();
@@ -215,6 +232,11 @@ QJsonObject presentPart(QJsonObject part) {
   else if (kind == "write" && !detail.isEmpty()) label = "Edited";
   else if (kind == "read" && !detail.isEmpty()) label = "Read";
   part["label"] = label + (detail.isEmpty() ? QString() : " " + detail);
+  // MessageView.tsx ToolCallRow sets the verb in sans and the thing it acted
+  // on in mono beside it.
+  part["verb"] = label;
+  part["detail"] = detail;
+  part["icon"] = toolIcon(name);
   part["tool"] = true;
   const auto result = part.value("result");
   const bool failed = part["is_error"].toBool() ||
@@ -246,6 +268,7 @@ QJsonObject presentPart(QJsonObject part) {
       const auto title = other[key].toString().trimmed();
       if (!title.isEmpty()) { part["label"] = title; break; }
     }
+    part["detail"] = QString();
     part["objective"] = other.value("prompt").toString(other.value("instructions").toString());
     for (const auto key : {"description", "title", "query", "prompt", "instructions"}) { other.remove(key); }
     part["argumentsText"] = other.isEmpty() ? QString() : displayJson(other);
@@ -256,6 +279,7 @@ QJsonObject presentPart(QJsonObject part) {
     if (!args.toObject()["title"].toString().isEmpty()) {
       part["label"] = args.toObject()["title"];
     }
+    part["detail"] = QString();
     auto other = args.toObject();
     other.remove("code");
     other.remove("title");
@@ -518,13 +542,19 @@ QJsonArray projectedParts(const QJsonObject &m, const QHash<QString, QJsonObject
         else if (status != "Failed" && item["displayStatus"] == "Running") { status = "Running"; }
       }
       if (listed) {
-        for (const auto &call : calls) { grouped.append(call); }
+        // A run listed call by call sits flush, so it reads as one step.
+        for (qsizetype i = 0; i < calls.size(); ++i) {
+          auto call = calls[i].toObject();
+          call["tight"] = i > 0;
+          grouped.append(call);
+        }
         first = end;
         continue;
       }
       const auto headline = sameMessage ? shared : countLabel(name, calls.size());
       if (preview.size() == 1 && headline.contains(preview.first())) { preview.clear(); }
       group["label"] = headline;
+      group["detail"] = QString();
       group["preview"] = preview.mid(0, 3).join(" · ") + (preview.size() > 3 ? QString(" +%1").arg(preview.size() - 3) : QString());
       group["count"] = calls.size();
       group["duration"] = completed == calls.size() ? durationLabel(duration) : QString();
@@ -537,6 +567,16 @@ QJsonArray projectedParts(const QJsonObject &m, const QHash<QString, QJsonObject
     }
     grouped.append(group);
     first = end;
+  }
+  // ToolRowRail in MessageView.tsx: a hairline ties each tool row to the
+  // next one unless that row sits tight against it.
+  for (qsizetype i = 0; i < grouped.size(); ++i) {
+    auto item = grouped[i].toObject();
+    if (!item["tool"].toBool()) { continue; }
+    const auto next = i + 1 < grouped.size() ? grouped[i + 1].toObject() : QJsonObject{};
+    item["afterTool"] = i > 0 && grouped[i - 1].toObject()["tool"].toBool();
+    item["connected"] = next["tool"].toBool() && !next["tight"].toBool();
+    grouped[i] = item;
   }
   // ToolCallTimeline in MessageView.tsx: two or more tool rows get a footer
   // that sums up the work and folds the rows away.
@@ -559,7 +599,8 @@ QJsonArray projectedParts(const QJsonObject &m, const QHash<QString, QJsonObject
     grouped.append(QJsonObject{{"type", "tool_timeline"},
       {"label", running ? QString("Working · %1/%2").arg(completed).arg(calls)
                         : longest >= 0 ? "Worked for " + durationLabel(longest) : steps},
-      {"steps", steps}, {"running", running}});
+      {"steps", steps}, {"running", running},
+      {"afterTool", !grouped.isEmpty() && grouped.last().toObject()["tool"].toBool()}});
   }
   return grouped;
 }
@@ -621,6 +662,8 @@ QVariant PartModel::data(const QModelIndex &index, int role) const {
     }
     if (data.value("type") == "tool_timeline") {
       data["expanded"] = !m_expanded.contains("timeline");
+      // Folded, the rows above the footer are hidden and nothing joins it.
+      data["afterTool"] = data.value("afterTool").toBool() && !m_expanded.contains("timeline");
     } else if (data.value("tool").toBool()) {
       data["timelineHidden"] = m_expanded.contains("timeline");
     }

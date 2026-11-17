@@ -945,7 +945,9 @@ void ClipGestureController::pressEmptyLane(const QString& trackId, double sceneX
     g.before = m_timeline->clipsJson();
     g.generation = m_timeline->documentGeneration();
     const auto mods = Qt::KeyboardModifiers(modifiers);
-    g.additiveSelection = mods & (Qt::ShiftModifier | Qt::ControlModifier | Qt::MetaModifier);
+    // TrackLane.tsx: only Shift keeps the previous selection. A Ctrl/Cmd band
+    // replaces it, so a following Delete removes only what was boxed.
+    g.additiveSelection = mods & Qt::ShiftModifier;
     if (g.additiveSelection) { g.selectionAtStart = m_selection; }
     const auto p = m_viewport->mapFromScene({sceneX, sceneY});
     g.laneStart = {p.x() + m_view->scrollLeftPx(), p.y() + m_view->scrollTopPx()};
@@ -996,6 +998,10 @@ void ClipGestureController::pasteAttributes(const QVariantMap& source, const QSt
     if (!m_timeline) { return; }
     m_timeline->applyEdit("pasteAttributes", {{"source", QJsonObject::fromVariantMap(source)},
                          {"selectedIds", QJsonArray::fromStringList(ids)}, {"groups", QJsonArray::fromStringList(groups)}});
+}
+
+double ClipGestureController::resizedTrackHeight(const Gesture& g) const {
+    return std::clamp(g.trackHeightAtStart + (g.lastY - g.startY) / m_view->verticalZoom(), 24.0, 300.0);
 }
 
 bool ClipGestureController::pressTrack(const QString& id, const QString& kind, double sceneX, double sceneY) {
@@ -1095,6 +1101,7 @@ void ClipGestureController::mouseMoveEvent(QMouseEvent* event) {
     } else if (m_gesture.kind == u"resize" || m_gesture.kind == u"reorder") {
         m_gesture.dragging = true;
         if (m_gesture.kind == u"reorder") { updateTrackDrag(); }
+        else if (m_timeline && m_view) { m_timeline->previewTrackHeight(m_gesture.clipId, resizedTrackHeight(m_gesture)); }
     } else if (m_gesture.kind == u"move") {
         applyMove();
     } else if (m_gesture.kind == u"slip") {
@@ -1166,6 +1173,9 @@ void ClipGestureController::cancelGesture() {
     if (m_gesture.kind.isEmpty()) return;
     const Gesture g = m_gesture;
     dropGesture();
+    if (m_timeline && g.kind == u"resize" && g.generation == m_timeline->documentGeneration()) {
+        m_timeline->previewTrackHeight(g.clipId, g.trackHeightAtStart);
+    }
     if (m_timeline && g.dragging && g.kind != u"resize" && g.kind != u"reorder" && g.kind != u"marquee" && g.generation == m_timeline->documentGeneration()) {
         m_timeline->replaceClips(g.before);
     }
@@ -1202,9 +1212,11 @@ void ClipGestureController::finishGesture(bool completed, Qt::KeyboardModifiers 
         m_trackDropY = -1;
         if (window() && window()->mouseGrabberItem() == this) { ungrabMouse(); }
         emit gestureChanged();
+        // The edit below records the change from the starting height.
+        if (g.kind == u"resize" && m_timeline) { m_timeline->previewTrackHeight(g.clipId, g.trackHeightAtStart); }
         if (completed && g.dragging && m_timeline && m_view) {
             if (g.kind == u"resize") {
-                const double height = std::clamp(g.trackHeightAtStart + (g.lastY - g.startY) / m_view->verticalZoom(), 48.0, 300.0);
+                const double height = resizedTrackHeight(g);
                 if (height != g.trackHeightAtStart) {
                     m_timeline->applyEdit("setTrackHeight", {{"trackId", g.clipId}, {"heightPx", height}});
                 }

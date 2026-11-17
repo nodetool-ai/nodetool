@@ -48,27 +48,13 @@ Rectangle {
         id: roles
     }
 
-    function showHint(text) {
-        root.header.showToolTip(text)
-    }
-
-    component HeaderButton: PanelRow {
-        id: button
-        property string iconName: ""
+    component HeaderButton: Ui.ToolbarIconButton {
         property string tooltip: text
+        accessibleName: tooltip
         implicitWidth: Ui.Metrics.compact
         implicitHeight: Ui.Metrics.compact
-        accessibleName: tooltip
-        HoverHandler {
-            onHoveredChanged: root.showHint(hovered ? button.tooltip : "")
-        }
-        Ui.Icon {
-            anchors.centerIn: parent
-            name: button.iconName
-            size: Ui.Metrics.iconSm
-            tone: button.enabled ? Ui.Text.Secondary : Ui.Text.Disabled
-            domainColor: button.active ? Ui.Theme.accentPrimary : undefined
-        }
+        iconTone: Ui.Text.Secondary
+        iconColor: active ? Ui.Theme.accentPrimary : undefined
     }
 
     component SlotDivider: Rectangle {
@@ -126,7 +112,7 @@ Rectangle {
                 text: root.saveLabel
                 role: Ui.Typography.SansCaption
                 tone: Ui.Text.Secondary
-                lineHeight: 1
+                tight: true
             }
         }
         Ui.EditorButton {
@@ -219,8 +205,6 @@ Rectangle {
             }
             Repeater {
                 model: [
-                    { name: "Save", icon: "saveOutlined", id: "save" },
-                    { name: "Version history", icon: "history", id: "versions" },
                     { name: "Workflow metadata", icon: "info", id: "metadata" },
                     { name: "Server sync", icon: "sync", id: "server-sync" },
                     { name: "Canvas uploads", icon: "fileUpload", id: "uploads" },

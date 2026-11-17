@@ -70,6 +70,7 @@ import {
   fetchKieTaskCredits,
   getWebhookBaseUrl,
   kieHeaders,
+  kieWebhookCallbackUrl,
   uploadKieMedia
 } from "./kie-endpoint.js";
 import { sniffAudioMime } from "./audio-mime.js";
@@ -582,10 +583,8 @@ async function submitTaskWithWebhook(
   input: Record<string, unknown>,
   signal?: AbortSignal
 ): Promise<string> {
-  const webhookBase = getWebhookBaseUrl();
-  const finalInput = webhookBase
-    ? { ...input, callBackUrl: `${webhookBase}/api/kie/webhook` }
-    : input;
+  const webhookUrl = kieWebhookCallbackUrl();
+  const finalInput = webhookUrl ? { ...input, callBackUrl: webhookUrl } : input;
   return submitTask(apiKey, model, finalInput, signal);
 }
 
@@ -685,9 +684,7 @@ async function submitSuno(
   input: Record<string, unknown>,
   signal?: AbortSignal
 ): Promise<string> {
-  const callBackUrl = getWebhookBaseUrl()
-    ? `${getWebhookBaseUrl()}/api/kie/webhook`
-    : KIE_SUNO_CALLBACK;
+  const callBackUrl = kieWebhookCallbackUrl() ?? KIE_SUNO_CALLBACK;
   const body = { ...input, callBackUrl };
   const res = await fetch(`${KIE_API_BASE}${endpoint}`, {
     method: "POST",

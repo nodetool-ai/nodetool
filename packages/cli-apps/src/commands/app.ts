@@ -276,7 +276,7 @@ async function runAppBuild(
     { buildFullRegistry },
     { runOnServer },
     { defaultBuildOutDir, writeBuildBundle, writeRunMessages },
-    { initDb, Workflow },
+    { initDb, migrateSqliteDb, Workflow },
     { resolveLocalSecret },
     { initMasterKey },
     { getDefaultAssetsPath, getDefaultDbPath },
@@ -296,6 +296,9 @@ async function runAppBuild(
     import("@nodetool-ai/storage")
   ]);
 
+  // Migrate before opening, as `app debug` does: a bare `initDb` leaves every
+  // column added after the SQLite baseline missing on a fresh data dir.
+  await migrateSqliteDb(getDefaultDbPath());
   initDb(getDefaultDbPath());
   try {
     await initMasterKey();

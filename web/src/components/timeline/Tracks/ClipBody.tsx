@@ -766,8 +766,11 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
         : undefined;
     const handleAnimationMarkerClick = (event: React.MouseEvent) => {
       event.stopPropagation();
-      useTimelineUIStore.getState().selectClip(clipId);
+      const ui = useTimelineUIStore.getState();
+      ui.selectClip(clipId);
       openPersistedFold("animate");
+      // Animate is in the Motion panel.
+      ui.setPanelTab("motion");
     };
 
     const disabled = isClipDisabled(clip);

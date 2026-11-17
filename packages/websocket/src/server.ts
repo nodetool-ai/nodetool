@@ -83,6 +83,10 @@ import {
 } from "@nodetool-ai/runtime";
 import { deriveKey, getMasterKey, initMasterKey } from "@nodetool-ai/security";
 import { setDefaultModelInterfaces } from "@nodetool-ai/runtime";
+import { startProjectFolderMigration } from "@nodetool-ai/project-services/project-folder-migration";
+import { setWorkflowFileNodeRegistry } from "@nodetool-ai/project-services/workflow-file";
+// Installs the timeline file sync.
+import "@nodetool-ai/project-services/timeline-file";
 import { serverModelInterfaces } from "./websocket-client-session.js";
 import {
   WorkerManager,
@@ -100,7 +104,6 @@ import {
   openResourceChangeChannelWithFallback,
   isAccessToken,
   McpOauthClient,
-  MCP_OAUTH_ACCESS_TOKEN_PREFIX,
   migrateSqliteDb,
   runSeeds
 } from "@nodetool-ai/models";
@@ -108,11 +111,13 @@ import {
   applyTransformersJsCacheSetting,
   resolveWorkerSettingsEnv
 } from "./worker-settings-env.js";
-import { isMcpHttpEnabled, MCP_ENABLE_FLAG } from "./lib/mcp-mount.js";
 import {
-  authenticateMcpAccessToken,
-  mcpBearerChallenge
-} from "./oauth/gate.js";
+  isLocalMcpSession,
+  isMcpHttpEnabled,
+  MCP_ENABLE_FLAG
+} from "./lib/mcp-mount.js";
+import { mcpBearerChallenge } from "./oauth/gate.js";
+import { decideOauthBearer } from "./oauth/bearer.js";
 import { registerPythonProviders, relayWorkerDownload } from "./models-api.js";
 import { createProviderRegistrar } from "./python-bridge-gate.js";
 import { syncCustomProviderRegistry } from "./custom-providers.js";
@@ -170,6 +175,7 @@ import {
 import websocketPlugin from "./plugins/websocket.js";
 import healthRoute, { getVersion } from "./routes/health.js";
 import configRoute, { describeMissingAnonKey } from "./routes/config.js";
+import syncCapabilitiesRoute from "./routes/sync-capabilities.js";
 import oidcAuthRoutes from "./routes/oidc-auth.js";
 import { createAnalyticsRoute } from "./routes/analytics.js";
 import assetsRoutes from "./routes/assets.js";
@@ -1077,6 +1083,8 @@ const appSessionProvider = new AppSessionTokenProvider(appSessionSigningKey);
 
 app.decorateRequest("userId", null);
 app.decorateRequest("authToken", null);
+app.decorateRequest("nativeSessionId", null);
+app.decorateRequest("nativeTokenExpiresAt", null);
 app.decorateRequest("appSession", null);
 
 // Global @fastify/rate-limit (registered above) runs before this hook on every
@@ -1172,31 +1180,35 @@ app.addHook("onRequest", async (req, reply) => {
       )
     : provider.extractTokenFromHeaders(req.headers as Record<string, string>);
 
-  // MCP OAuth access tokens (`nta_`) authorize `/mcp` ONLY — the audience
-  // binding is structural, not claim-parsing (docs/mcp-oauth-design.md §
-  // "Token model and storage"). A valid token whose stored `resource` no
-  // longer matches this deployment's canonical `/mcp` URI (the server was
-  // rehosted since it was minted) or that is presented outside `/mcp` is
-  // denied with `invalid_token`, never silently ignored — falling through to
-  // the `ntk_`/session checks below would let an audience-scoped credential
-  // be probed against the rest of the API.
-  if (token && token.startsWith(MCP_OAUTH_ACCESS_TOKEN_PREFIX)) {
-    const decision = await authenticateMcpAccessToken(
-      token,
-      req.url.split("?")[0] ?? "/"
-    );
-    if (decision.ok) {
+  // Bearer credentials of this server's OAuth flow, decided by prefix
+  // (`oauth/bearer.ts`). MCP access tokens (`nta_`) authorize `/mcp` ONLY —
+  // the audience binding is structural, not claim-parsing
+  // (docs/mcp-oauth-design.md § "Token model and storage"). Native device
+  // session tokens (`ntd_`) authorize every route except `/mcp`, and mark the
+  // request with `nativeSessionId` so procedures that create credentials can
+  // refuse it. Refresh tokens and revocation handles are never bearer
+  // credentials. A denied one is never passed to the checks below: that
+  // would let an audience-scoped credential be probed against the API.
+  if (token) {
+    // The method decides whether a native token may be answered from the
+    // cache: a write never is.
+    const decision = await decideOauthBearer(token, pathname ?? "/", req.method);
+    if (decision.kind === "grant") {
       req.userId = decision.userId;
       req.authToken = token;
+      req.nativeSessionId = decision.nativeSessionId;
+      req.nativeTokenExpiresAt = decision.nativeTokenExpiresAt;
       return;
     }
-    denyUnauthorized(
-      req,
-      reply,
-      { error: "invalid_token" },
-      decision.challenge
-    );
-    return;
+    if (decision.kind === "deny") {
+      denyUnauthorized(
+        req,
+        reply,
+        { error: "invalid_token" },
+        decision.challenge
+      );
+      return;
+    }
   }
 
   // Access tokens (`ntk_`) are the credential a person mints in the app and
@@ -1766,6 +1778,7 @@ app.get("/api/server/features", {
 
 await app.register(healthRoute);
 await app.register(configRoute);
+await app.register(syncCapabilitiesRoute);
 if (oidcClient) {
   await app.register(oidcAuthRoutes, {
     client: oidcClient,
@@ -1799,6 +1812,19 @@ await app.register(workspaceRoutes, routeOpts);
 // A cloud deployment keeps workspaces in the asset bucket rather than on the
 // machine's disk, which it would lose on every replacement. No-op locally.
 initWorkspaceStorage();
+// A workflow file edited in a project folder is checked against this registry,
+// as `update_workflow` checks a graph.
+setWorkflowFileNodeRegistry(() => registry);
+// Projects from before project folders get folders, document files and their
+// asset bytes moved in. On a local install the user confirms that first
+// (docs/project-folders/migration-ux.md). Every step is idempotent, so a
+// restart mid-way continues where it stopped.
+void startProjectFolderMigration().catch((error: unknown) => {
+  log.warn(
+    "Project folder migration failed",
+    error instanceof Error ? error : new Error(String(error))
+  );
+});
 // The Workspace Explorer has no other way to hear about a file a run wrote:
 // workspace files are not database rows.
 initWorkspaceChangeEvents();
@@ -1879,9 +1905,16 @@ if (mcpHttpEnabled) {
               ? Buffer.alloc(0)
               : JSON.stringify(req.body);
 
+    // Abort the request when the client goes away before its response is
+    // written, so the MCP mount cancels the tool calls it carried.
+    const disconnect = new AbortController();
+    reply.raw.on("close", () => {
+      if (!reply.raw.writableFinished) disconnect.abort();
+    });
     const request = new Request(url, {
       method: req.method,
       headers,
+      signal: disconnect.signal,
       body: Buffer.isBuffer(requestBody)
         ? new Uint8Array(requestBody)
         : requestBody,
@@ -1898,7 +1931,12 @@ if (mcpHttpEnabled) {
       registry,
       examplesDir: apiOptions.examplesDir,
       frontendRendererRegistry,
-      allowLocalFilePaths: !isProduction && isLoopbackAddress(req.ip),
+      allowLocalFilePaths: isLocalMcpSession({
+        isProduction,
+        enforceAuth,
+        userId: req.userId,
+        fromLoopback: isLoopbackAddress(req.ip)
+      }),
       agentToolsScope: req.userId
         ? {
             userId: req.userId,

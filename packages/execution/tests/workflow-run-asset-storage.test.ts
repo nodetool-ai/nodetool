@@ -9,6 +9,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
+import { memoryFolder } from "./_helpers/memory-folder.js";
 import {
   BaseNode,
   NodeRegistry,
@@ -109,7 +110,7 @@ async function runWith(
     workflowId: "wf-1",
     userId: "user-7",
     environment: { registry, assetStorage },
-    resolveWorkspace: async () => null
+    resolveWorkspace: memoryFolder
   });
   if (outcome.kind !== "payload") {
     throw new Error(`run failed: ${outcome.detail}`);

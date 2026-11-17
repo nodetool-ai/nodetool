@@ -43,7 +43,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | Meta AI | ✅ | ✅ | | | ✅ | | |
 | MiniMax | ✅ | ✅ | ✅ | ✅ | | | |
 | Z.ai | ✅ | ✅ | ✅ | | ✅ | | |
-| Codex (OpenAI OAuth) | ✅ | ✅ | | | | | |
+| Codex (Sign in with ChatGPT) | ✅ | ✅ | | | | | |
 | Claude Agent SDK | ✅ | | | | | | |
 | Antigravity | ✅ | ✅ | | | | | |
 | GitHub Copilot | ✅ | | | | | | |
@@ -241,9 +241,11 @@ Meta AI serves the Muse family at `https://api.meta.ai/v1`. Cloud only, keyed by
 - **Speech to text.** Muse Voice Transcribe (`muse-voice-transcribe-1.0`) returns the transcript and timed turns. Audio that is not mono 16-bit WAV at 16 or 24 kHz is converted in process first. It has no word-level timestamps.
 - **Segmentation.** SAM 3.1 (`sam-3.1`) segments an image from a short noun phrase, a box, or points, and returns one full-frame mask per object.
 
-## Codex (OpenAI OAuth)
+## Codex (Sign in with ChatGPT)
 
-Codex reaches GPT chat models and GPT Image generation (GPT Image 2 and 1.5) through your ChatGPT/Codex OAuth session instead of an API key, and usage bills against that subscription. Sign in with the **Codex** card in Settings → Models & Providers. The provider reads the stored `CODEX_ACCESS_TOKEN`, so no `OPENAI_API_KEY` is needed. The Codex backend serves only the Responses API, so the `codex` node namespace has Web Search and Create Image. Embeddings, moderation, speech, transcription, translation, and realtime nodes need an API key and stay in `openai`.
+The `codex` provider runs GPT models on your ChatGPT plan instead of an API key, and usage counts against that plan. Sign in with the **ChatGPT** card in Settings → Models & Providers. NodeTool follows OpenAI's [Sign in with ChatGPT](https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt) flow: the first sign-in registers NodeTool as an app on your ChatGPT account, and you approve plan usage on the consent screen. Requests go to the public Responses API (`https://api.openai.com/v1/responses`), and the model list comes from `GET /v1/models` for the signed-in account. The provider reads the stored `CODEX_ACCESS_TOKEN`, so no `OPENAI_API_KEY` is needed.
+
+The plan token reaches only the Responses API, so the `codex` node namespace has Web Search and Create Image. Embeddings, moderation, speech, transcription, translation, and realtime nodes need an API key and stay in `openai`. When you reach your plan's usage limit, the error links to [ChatGPT usage settings](https://chatgpt.com/settings/usage). Disconnecting revokes the sign-in. You can also remove NodeTool from ChatGPT's connected apps. Sign-ins made with the earlier Codex CLI login no longer work, so sign in again once.
 
 ## Claude Agent SDK
 
@@ -445,7 +447,7 @@ When a missing provider blocks you (a model dropdown, a node warning, the gettin
 
 ![Connect an AI provider](assets/screenshots/provider-onboarding-dialog.png)
 
-**Settings → Models & Providers** is the full list, grouped as Popular, Language Models, Media Generation, Gateways & Hubs, Web Search, Compute & Local, and Services & Advanced. Each configured provider has a **Test** button that calls the provider to confirm the key still works, and a **Manage** button to replace it. Codex and Claude Code offer sign-in with your account instead of a key. The dialog's OpenAI sign-in stores a ChatGPT Codex token, so it enables the `codex` provider and leaves `openai` unconfigured until you paste an API key. Claude Code sign-in is hidden on hosted deployments because it finishes on the server's own machine.
+**Settings → Models & Providers** is the full list, grouped as Popular, Language Models, Media Generation, Gateways & Hubs, Web Search, Compute & Local, and Services & Advanced. Each configured provider has a **Test** button that calls the provider to confirm the key still works, and a **Manage** button to replace it. Codex and Claude Code offer sign-in with your account instead of a key. The dialog's ChatGPT sign-in stores a ChatGPT plan token, so it enables the `codex` provider and leaves `openai` unconfigured until you paste an API key. Claude Code sign-in is hidden on hosted deployments because it finishes on the server's own machine.
 
 ![Models & Providers settings](assets/screenshots/settings-providers-test.png)
 
@@ -483,6 +485,28 @@ Every cloud call records its token counts and cost. The **Costs** page (`/costs`
 ![Costs dashboard](assets/screenshots/costs-dashboard.png)
 
 The same records are readable from the terminal: `nodetool costs summary`, `costs list` (filter with `--provider` and `--model`), `costs by-provider`, and `costs by-model`. Each takes `--json`. For estimates before a run, spend limits, and hosted credits, see [Costs and credits](costs-and-credits.md).
+
+## Remaining credit
+
+The provider card in **Settings → Models & Providers** shows the credit left on the account, for providers whose API reports it to the same key NodeTool already holds. Press **Test** on a card to read it again. The other providers show nothing, which means unknown, not unlimited.
+
+When a call fails because the account cannot pay (HTTP 402, OpenAI's `insufficient_quota`, Anthropic's "credit balance is too low" and the other wordings in `classifyProviderFailure`), NodeTool marks that key out of credit for 15 minutes. A rate limit or a free-tier model quota does not count. While a key is marked, `find_model` and `list_models` skip the provider and name it in their note, and `list_providers` reports it as unavailable with its `credit`. A balance read that shows credit again clears the mark. Balance reads are cached for 10 minutes per key. The code is `packages/runtime/src/providers/provider-credits.ts`.
+
+| Provider | Endpoint read | What it reports |
+|---|---|---|
+| OpenRouter | `GET /api/v1/key` | The key's spending cap left (`limit_remaining`). A key with no cap reports nothing, because the account balance (`/api/v1/credits`) needs a management key. |
+| DeepSeek | `GET /user/balance` | Account balance and `is_available`. |
+| Moonshot (Kimi) | `GET /v1/users/me/balance` | `available_balance` in USD. |
+| kie.ai | `GET /api/v1/chat/credit` | Credits left. |
+| FAL | `GET api.fal.ai/v1/account/billing?expand=credits` | Balance, only for a key with the `billing:usage:read` permission (the Billing, Read-only and Full presets). A plain API key reports nothing. |
+| ElevenLabs | `GET /v1/user/subscription` | Credits left this period. An account with usage-based billing is never marked out of credit. |
+| Meshy AI | `GET /openapi/v1/balance` | Credits left. |
+| Topaz | `GET /account/v1/credits/balance` | Available credits. |
+| AtlasCloud | `GET /public/v1/balance` | Available balance. |
+| Evolink | `GET /v1/credits` | The smaller of the key's and the account's remaining credits. |
+| Comfy Cloud | `GET cloud.comfy.org/api/billing/usage/timeseries` | `summary.balance`, in cents. |
+
+No documented endpoint reports remaining credit to a regular API key for OpenAI, Anthropic, Gemini, Groq, Mistral, xAI, Together AI, Replicate, Cohere, Hugging Face, MiniMax, Z.ai and Cerebras. OpenAI, Anthropic and xAI report spend only to admin or management keys, and per-minute rate-limit headers say nothing about the balance. Codex (Sign in with ChatGPT) and the Claude Agent SDK run on subscription plans with no public usage endpoint. These providers rely on the payment-failure mark alone.
 
 ## Adding a new provider
 

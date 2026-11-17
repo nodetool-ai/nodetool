@@ -158,7 +158,7 @@ void WorkflowBrowser::setSortBy(const QString &sortBy) {
   const auto value = sortBy == "name" ? QStringLiteral("name") : QStringLiteral("date");
   if (m_sortBy == value) { return; }
   m_sortBy = value;
-  saveViewSettings();
+  saveViewSetting("workflows/sortBy", m_sortBy);
   emit changed();
 }
 void WorkflowBrowser::setFavoritesOnly(bool only) {
@@ -169,7 +169,7 @@ void WorkflowBrowser::setFavoritesOnly(bool only) {
 void WorkflowBrowser::setShowGraphPreview(bool show) {
   if (m_showGraphPreview == show) { return; }
   m_showGraphPreview = show;
-  saveViewSettings();
+  saveViewSetting("workflows/showGraphPreview", m_showGraphPreview);
   emit changed();
 }
 void WorkflowBrowser::setSelectionMode(bool on) {
@@ -189,7 +189,7 @@ void WorkflowBrowser::toggleFavorite(const QString &id) {
   // favourite set in another tab is kept.
   if (m_persist) { m_favorites = QSettings().value("workflows/favorites").toStringList(); }
   if (m_favorites.removeAll(id) == 0) { m_favorites.append(id); }
-  saveViewSettings();
+  saveViewSetting("workflows/favorites", m_favorites);
   emit changed();
 }
 void WorkflowBrowser::toggleSelected(const QString &id) {
@@ -200,13 +200,13 @@ void WorkflowBrowser::toggleSelected(const QString &id) {
 void WorkflowBrowser::toggleTag(const QString &tag) {
   if (tag.isEmpty()) { return; }
   if (m_selectedTags.removeAll(tag) == 0) { m_selectedTags.append(tag); }
-  saveViewSettings();
+  saveViewSetting("workflows/selectedTags", m_selectedTags);
   emit changed();
 }
 void WorkflowBrowser::clearTags() {
   if (m_selectedTags.isEmpty()) { return; }
   m_selectedTags.clear();
-  saveViewSettings();
+  saveViewSetting("workflows/selectedTags", m_selectedTags);
   emit changed();
 }
 void WorkflowBrowser::restoreViewSettings() {
@@ -218,13 +218,11 @@ void WorkflowBrowser::restoreViewSettings() {
   m_selectedTags = settings.value("workflows/selectedTags").toStringList();
   emit changed();
 }
-void WorkflowBrowser::saveViewSettings() const {
+// Each tab holds its own browser, so a save writes only the setting that
+// changed. Writing every key would put back another tab's older choices.
+void WorkflowBrowser::saveViewSetting(const QString &key, const QVariant &value) const {
   if (!m_persist) { return; }
-  QSettings settings;
-  settings.setValue("workflows/favorites", m_favorites);
-  settings.setValue("workflows/sortBy", m_sortBy);
-  settings.setValue("workflows/showGraphPreview", m_showGraphPreview);
-  settings.setValue("workflows/selectedTags", m_selectedTags);
+  QSettings().setValue(key, value);
 }
 void WorkflowBrowser::setProjectId(const QString &id) {
   if (m_project == id) { return; }
@@ -281,6 +279,11 @@ void WorkflowBrowser::refresh() {
   if (m_busy) { return; }
   cancel();
   page(false);
+}
+void WorkflowBrowser::documentFileChanged(const QJsonObject &resource) {
+  if (m_origin.isEmpty() || resource.value("type").toString() == QLatin1String("timeline")) { return; }
+  if (m_rows.isEmpty() && !m_loading) { return; }
+  refresh();
 }
 void WorkflowBrowser::loadTriggers() {
   // WorkflowTriggerIndicator.tsx: a bolt on each workflow with an armed
@@ -393,6 +396,7 @@ void WorkflowBrowser::createWorkflow(const QString &name) {
   });
 }
 void WorkflowBrowser::renameWorkflow(const QString &id, const QString &name) {
+  if (!id.isEmpty() && !name.trimmed().isEmpty() && editOpenWorkflow(id, {{"name", name.trimmed()}})) { return; }
   if (id.isEmpty() || !mutationReady(name)) { return; }
   const auto path = "/api/workflows/" + QString::fromLatin1(QUrl::toPercentEncoding(id));
   request("GET", path, {}, [this, path, id, name](QJsonValue response) {
@@ -406,6 +410,15 @@ void WorkflowBrowser::renameWorkflow(const QString &id, const QString &name) {
       m_busy = false; emit renamed(id); refresh();
     });
   });
+}
+// A separate PUT would move the server revision under the open tab, and its
+// next save would report a conflict.
+bool WorkflowBrowser::editOpenWorkflow(const QString &id, const QVariantMap &patch) {
+  if (!m_openEditor || m_busy || m_loading || m_projectsLoading) { return false; }
+  const auto result = m_openEditor(id, patch);
+  if (!result) { return false; }
+  if (!result->isEmpty()) { fail(*result); }
+  return true;
 }
 void WorkflowBrowser::deleteWorkflow(const QString &id) {
   if (id.isEmpty() || !mutationReady()) { return; }
@@ -474,8 +487,9 @@ void WorkflowBrowser::updateWorkflow(const QString &id, const QVariantMap &patch
     if (fields.contains(it.key())) { changes.insert(it.key(), QJsonValue::fromVariant(it.value())); }
   }
   if (changes.contains("name") && changes["name"].toString().trimmed().isEmpty()) { fail(tr("Enter a workflow name")); return; }
-  if (id.isEmpty() || changes.isEmpty() || !mutationReady()) { return; }
   if (changes.contains("name")) { changes["name"] = changes["name"].toString().trimmed(); }
+  if (!id.isEmpty() && !changes.isEmpty() && editOpenWorkflow(id, changes.toVariantMap())) { return; }
+  if (id.isEmpty() || changes.isEmpty() || !mutationReady()) { return; }
   const auto path = "/api/workflows/" + QString::fromLatin1(QUrl::toPercentEncoding(id));
   request("GET", path, {}, [this, path, id, changes](QJsonValue response) {
     auto body = response.toObject();

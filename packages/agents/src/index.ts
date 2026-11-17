@@ -75,7 +75,10 @@ export {
   permissionCategoryFor,
   decidePermission,
   headlessGate,
-  headlessDenialReason
+  headlessDenialReason,
+  APPROVAL_DECISIONS,
+  grantsStandingApproval,
+  isPreapproved
 } from "./tools/tool-permissions.js";
 export { gateLegacyTools, capabilityRunForLegacyTool, capabilityRunForTools } from "./capabilities/legacy-tools.js";
 export { gateFromContext } from "./capabilities/gate-from-context.js";
@@ -123,6 +126,11 @@ export {
   resolveCapabilityMessage,
   UNGATED
 } from "./capabilities/index.js";
+export {
+  isStorageReference,
+  ownedStorageReference,
+  type StorageReferenceDecision
+} from "./capabilities/storage-reference.js";
 export type {
   AvailableSecretsResolver,
   CapabilitySpec,
@@ -844,6 +852,18 @@ export {
   toSlotTypeRecord,
   type SlotTypeLookup
 } from "./dynamic-slots.js";
+export {
+  prepareWorkflowGraphForSave,
+  unknownNodeTypeError,
+  type WorkflowGraphSaveOptions,
+  type WorkflowGraphSaveResult
+} from "./workflow-graph-save.js";
+export {
+  prepareTimelineDocumentForSave,
+  type TimelineDocumentSaveOptions,
+  type TimelineDocumentSaveResult,
+  type TimelineRenderSettings
+} from "./timeline-document-save.js";
 export { normalizeModelProperties } from "./normalize-model-properties.js";
 export type { ModelPropertyRegistry } from "./normalize-model-properties.js";
 export { authorGraph, AUTHOR_GRAPH_MAX_ITERATIONS } from "./author-graph.js";

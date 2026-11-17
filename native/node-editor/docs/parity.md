@@ -228,7 +228,9 @@ stored with a clear recovery message and block execution rather than choosing a
 different generation. The native history list still differs from the web grouped
 thumbnail grid and single-view pager.
 
-Group runs expand runnable descendants recursively. Cached/live values sharing a
+A selected group's Run selected expands its runnable descendants recursively.
+The group header's Run and Disable all act on its direct children, as
+`GroupNode.tsx` does. Cached/live values sharing a
 typed-list input use ValueInput feeder nodes so the kernel retains every
 contributor. Scalar mixed inputs and cached/replay contributors sharing an input
 are refused. No refusal silently executes an unselected generator.
@@ -368,6 +370,7 @@ covers library drags.
 | 19 | Reconnect keeps the edge on its own handle, moves it to a valid handle, and deletes it elsewhere (`hooks/handlers/useEdgeHandlers.ts` 95-114, `NodeStore.ts` 920-988) | Implemented | Implemented |
 | 20 | A middle click on a wire deletes it (`useEdgeHandlers.ts` 116-126) | Missing. Middle press always panned | Implemented. A middle drag that starts on a wire still pans |
 | 21 | One undo step per connect. A dynamic slot and its wire share one (`NodeStore.ts` 992-994, `useConnectionHandlers.ts` 405-426) | Implemented. Picker node and wire also share one, where the web takes two | Implemented |
+| 22 | Tab reaches a focused node's handles, and Enter opens the keyboard connection picker: compatible ports on existing nodes, then new nodes, and Disconnect (`HandleTooltip.tsx` 189-212, `node/KeyboardConnectionPicker.tsx`, `node/keyboardConnection.ts`) | Missing | Implemented. Tab works while keyboard navigation has focused a node (Ctrl+Alt+N). The handle gets a warning ring, and the picker opens beside it. `CompatibleNodePickerTest::keyboardPickerListsExistingPortsAndDisconnects`, `MenusTest::keyboardHandleFocusOpensConnectionPicker` |
 
 Evidence: [BodyDropHostTest](../tests/ui/BodyDropHostTest.cpp)
 `dragMarksConnectableHandles` drags from a real output and reads the handle
@@ -445,8 +448,8 @@ build was run beside them, so no pixel comparison with the web exists.
 | 3 | An edge flows while its source node is starting, running or booting, or the edge reports `message_sent` (`useProcessedEdges.ts` 418-451, `CustomEdge.tsx` 62, `handle_edge_tooltip.css` 148-155) | Partial. The flow followed the target node and the edge statuses `running` and `active` | Implemented in `WorkflowGraphModel::runtimeWireFlowing`. Control edges never flow |
 | 4 | An edge that carried more than one item shows its count in a pill (`CustomEdge.tsx` 60, 120-135) | Missing | Implemented in `WirePainter`, with the card background, 600 weight and pill radius |
 | 5 | A streaming source draws its flow wider (`useProcessedEdges.ts` 305-309, `handle_edge_tooltip.css` 158-162) | Missing | Implemented. The flow is 4 wide when the source declares `is_streaming_output` |
-| 6 | After a run, the untaken side of an If or Switch fades to 0.4, a node with one live input stays, and a selection's 0.2 wins (`untakenBranches.ts`, `ReactFlowWrapper.tsx` 862-947, `nodes.states.css` 75-78) | Missing | Implemented by `src/run/UntakenBranch.h` and `EditorScene::updateBranchDimming`. Edge reports now outlive the finished run, as the web store does |
-| 7 | A selection keeps its branch at full opacity and fades the rest to 0.2 (`reactFlowGraphModel.ts` 178-263) | Implemented | Implemented |
+| 6 | After a run, the untaken side of an If or Switch fades to 0.4, a node with one live input stays, and a selection's 0.6 wins (`untakenBranches.ts`, `ReactFlowWrapper.tsx` 862-947, `nodes.states.css` 75-78) | Missing | Implemented by `src/run/UntakenBranch.h` and `EditorScene::updateBranchDimming`. Edge reports now outlive the finished run, as the web store does |
+| 7 | A selection keeps its branch at full opacity and fades the rest to 0.6 (`reactFlowGraphModel.ts` 178-263) | Implemented | Implemented |
 | 8 | An Agent control edge leaves the bottom center of the controller, enters the top center of the controlled node and draws amber, dashed 8 4, 2 wide at 0.7 opacity and 3 wide at full opacity when selected (`ControlEdge.tsx` 12-40, `BaseNode.tsx` 756, 840) | Partial. The edge became a typed wire between side handles and the card showed a "control" row | Implemented. The handle sits at the card's top or bottom center, takes no row, and the wire paints as `ControlEdge` does |
 | 9 | Control edges select, delete and open the edge menu like other edges (`EdgeContextMenu.tsx` 43, 154) | Implemented through the shared wire | Implemented |
 | 10 | An edge from or to a bypassed node draws dashed at half opacity (`useProcessedEdges.ts` 298-302) | Implemented | Implemented |
@@ -1050,7 +1053,7 @@ Source identifiers below come from the web owners. Open rows describe the exact 
 | ConnectableNodes.tsx | `connectableNodes` | Open: this exact web action is not exposed by the native menus. Existing inspector functionality, where available, remains separate. |
 | ConnectableNodes.tsx | `noNodesMatch` | Open: this exact web action is not exposed by the native menus. Existing inspector functionality, where available, remains separate. |
 | ConnectableNodes.tsx | `searchNodes` | Open: this exact web action is not exposed by the native menus. Existing inspector functionality, where available, remains separate. |
-| ConnectionMatchMenu.tsx | `selectConnection` | Open: this exact web action is not exposed by the native menus. Existing inspector functionality, where available, remains separate. |
+| ConnectionMatchMenu.tsx | `selectConnection` | Mapped: a body drop that fits several ports lists them in the compatible picker (`CompatibleNodePicker::openBody`). |
 | EdgeContextMenu.tsx | `deleteConnection` | Open: this exact web action is not exposed by the native menus. Existing inspector functionality, where available, remains separate. |
 | EdgeContextMenu.tsx | `deleteEdge` | Mapped through this work: Delete edge. |
 | EdgeContextMenu.tsx | `deleteLink` | Mapped through this work: Delete link. |
@@ -1378,7 +1381,7 @@ Remaining differences:
 - Find highlights no inspector property for a property match, and the web 150 ms debounce is not tied to a live node store.
 - Help shows the native bindings, not every web shortcut. The Assets category is empty. The web list shows both platforms at once, the native list follows the platform toggle. Web hover and press tooltips on keys are native tooltips.
 - Right-click on an empty selection rectangle and the property, input and output context menus of F03 are unchanged.
-- The Command menu and the More dropdown remain the earlier panel and `QMenu`.
+- The Command menu remains the earlier panel. The More dropdown uses the shared Quick context-menu overlay.
 - Offscreen tests do not establish platform accessibility, fractional-DPI rendering or real popup behavior.
 
 The shortcut inventory includes surrounding web panels and asset shortcuts. Those remain open when their native surface or binding is absent.
@@ -1456,18 +1459,21 @@ Web sources: [GroupNode.tsx](../../../web/src/components/node/GroupNode.tsx),
 |---|---|---|---|
 | F07.1 | Ctrl+G, the toolbar and the context menu surround two or more cards with a group at (minX − 20, minY − 50), sized to the cards plus 40 and at least 200. Children keep their canvas place and the change is one undo step (`useSurroundWithGroup.ts`). | I | `groupNodes` in `WorkflowDocument.cpp`. `GroupAuthoringTest::keyboardGroupingAndNestedMovement`. The web skips group nodes, native also wraps nested frames. |
 | F07.2 | The label is plain text above the frame, scaled with the zoom. A double-click edits it, and the edit saves 500 ms after the last key (`GroupNode.tsx` 401-418, 599-624). | I | `InlineTitleTest::groupHeadlineAndCommentIsolation`, `GroupPresentationTest::labelZoomMatchesWeb`. Native commits once on Enter or blur. |
-| F07.3 | The frame ignores the pointer. Only the label selects and drags the group (`GroupNode.tsx` 521-534). | P | Native selects and drags a group from its body too. Open. |
+| F07.3 | The frame ignores the pointer. Only the label selects and drags the group, and the label is as wide as its text (`GroupNode.tsx` 521-534, `ReactFlowWrapper.tsx` `selectGroupFromLabel`). A press on the body starts a box selection, a click clears the selection, a right-click opens the pane menu and a double-click opens the node menu. Shift, Ctrl or Cmd on the label adds the group to the selection or takes it out. A plain click selects the group alone. | I | `GroupAuthoringTest::groupBodyPressStartsABoxSelection`, `labelClickTogglesWithShiftAndSelectsAlone`, `rightClickOnTheBodyReachesThePane`. Groups accept no mouse button, so the scene leaves a body press unaccepted and the view starts its box. The resize edges and the corner handle still take the press. |
 | F07.4 | Moving a group moves its children (`GroupNode`, React Flow parent). | I | `GroupAuthoringTest::createGroupEditAndUndo`. |
 | F07.5 | Resize handle and edges, minimum 200 × 200, children stay where they are (`GroupNode.tsx` 53-54, 389-399, 693-698). | I | `GroupPresentationTest::resizeCommitsOnceAndPreservesChildren`. |
 | F07.6 | Header actions show on header hover or selection: More and Run (`GroupNode.tsx` 494, 626-647). Run runs the children through Run selected (343-349). | I | `GroupAuthoringTest::pointerRunSubmitsGroupWithoutSelectingIt`, which also checks the spinner and the "Group is running" name (`RunGroupButton.tsx`). Disabled cards: `NodeActionsTest::disabledCardPaintsStripesAndAWarningBadge`. Bypass exclusion: `PartialRunPlannerTest::bypassedNodesLeaveWithTheirIncidentEdges`. Acceptance pending. |
-| F07.7 | The menu holds Disable all or Enable all, shown only with children, and a color picker (`GroupNode.tsx` 649-678, 351-363). Bypass is one undo step. | P | `pointerBypassAndColorRoundTrip`. Native has the web swatches. Custom colors are missing. |
+| F07.7 | The menu holds Disable all or Enable all, shown only with children, and a color picker (`GroupNode.tsx` 649-678, 351-363). The group passes no `showCustom`, so its picker has swatches only (`ColorPicker.tsx`). Bypass is one undo step. | I | `pointerBypassAndColorRoundTrip`. Native has the web swatches. |
 | F07.8 | Dropping a card on a group moves it in and keeps its canvas position. The group grows to hold it with 25 px right and 50 px below, and never shrinks (`useDragHandlers.ts` 113-138, 153-172, `useAddToGroup.ts`). Cards that already have a group stay. Groups never join groups. | I | New. `GroupAuthoringTest::dropOnGroupJoinsKeepsPlaceGrowsAndUndoesOnce`, `dropOutsideEveryGroupLeavesTheCardLoose`, `groupedCardDroppedInsideItsGroupStaysGrouped`. The drop and the growth are one undo step. Native joins the smallest overlapping group, the web the first. |
 | F07.9 | The group a dragged card overlaps draws at 0.8 opacity with a 60 percent primary edge (`GroupNode.tsx` 521-534). | I | New. `dropTargetGroupHighlightsWhileDragging`. |
 | F07.10 | Alt while dragging takes the cards out of their group. A quick shake does the same (`useDragHandlers.ts` 94-104, `MousePosition.ts` 12-91). Cards keep their canvas place. | I | New. `altDragTakesTheCardOutOfItsGroup`, `shakingTheCardTakesItOutOfItsGroup`, `steadyDragIsNotAShake`, `dragWithoutAltKeepsTheGroup`. `DragWiggle.h` ports the detector. The out and in steps are one undo step. |
 | F07.11 | Remove from group is in the node More menu (`NodeToolButtons.tsx` 105-109, 250-256) and sets a card loose at its canvas place (`useRemoveFromGroup.ts`). | I | `GroupAuthoringTest::createGroupEditAndUndo`. Native also has Ungroup, which the web lacks. |
-| F07.12 | While a group has a selected child and Ctrl or Cmd is held, the group becomes selectable and dimmed so a box can start inside it (`GroupNode.tsx` 480-489). | M | Open. |
-| F07.13 | A help hint above the group lists how to remove nodes (`GroupNode.tsx` 681-691). | M | Open on purpose. The web text says Ctrl or Cmd while the code uses Alt, so native does not copy it. |
+| F07.12 | While a group has a selected direct child and Alt (Option) is held, the group takes the pointer on its body and draws at 0.5 opacity (`GroupNode.tsx` `modifierActive`). | I | `GroupAuthoringTest::altMakesTheGroupOfASelectedCardTakeThePointer`. Alt is read from key events and from the modifiers of every pointer event. |
+| F07.13 | A dragged card that stays over a group for a second shows a hint 32 px above the frame: "REMOVE NODES FROM GROUP", "Drag out while holding Alt (Option ⌥ on Mac)" and "Shake rapidly, then drag out" (`GroupNode.tsx` help-text, `TOOLTIP_DESCRIPTION_DELAY`). | I | `GroupAuthoringTest::dropHintShowsAfterASecondOverTheGroup`. The box scales with the canvas, as in the web. Native shows it at once after the delay and does not fade it in. |
 | F07.14 | Read-only: no group edits. | I | `pointerColorIsBlockedAfterReadOnlyTransition`. The drag outcome is ignored when read-only. |
+| F07.15 | A box selection selects a group only when it encloses the frame, and selects every card it touches (`useSelectionEvents.ts` `selectGroupsWithinSelection`, the default `selectionMode: "partial"`). | I | `GroupAuthoringTest::boxEnclosingTheGroupSelectsIt`, `groupBodyPressStartsABoxSelection`. Like the web, a box also takes out a selected group it does not enclose. |
+| F07.16 | Every grouped card has React Flow `expandParent` (`useSurroundWithGroup.ts`). A card dragged past its frame stays in the group and the frame grows to hold it exactly. Past the left or top edge the frame moves out and its other cards keep their canvas place. | I | `GroupAuthoringTest::groupingRealCardsDrawsAFrameAndDraggingMovesIt`, which also groups three fixture cards with Ctrl-click and Ctrl+G and drags the frame by its label. The growth and the move are one undo step. React Flow grows the frame during the drag, native when the card is dropped. |
+| F07.17 | React Flow stores fractional group and comment sizes after a resize. | I | `GroupPresentationTest::fractionalSizesKeepTheirSize`. Native rounds them. It used to read them as missing and draw a 400 × 300 frame. |
 
 ## F08 comments
 
@@ -2080,10 +2086,17 @@ Running cards select the output lens only for the current workflow, using pointe
 Enter or Space activation. The selected card shows On canvas. Pinned canvas
 focus remains different from the web store.
 
-The overlay is 304 logical pixels wide at the canvas leading margin, beyond the
-native rail and catalog. Its maximum height is the window height minus 112 logical pixels. Like the web
-overlay, it floats above the output dock. Narrow
-canvases constrain its width to keep controls inside the viewport. Enter and exit
+The overlay is 304 logical pixels wide and starts 16 logical pixels inside the
+canvas's top-left corner, past the rail, the catalog and the document bar. It
+stays inside the canvas, so it never covers the output dock or its tabs, and
+narrow or short canvases shrink it. Dragging its header or grip moves it. The
+drop docks it to the nearer horizontal and vertical canvas edges, so it keeps
+that corner when the window or the docks resize, and a bottom-docked overlay
+grows upward. Arrow keys on the focused grip move it, Shift moves it further,
+and Home or a header double click returns it to the default corner. Both
+clients store the same `{anchorX, anchorY, x, y}` record: the native editor in
+QSettings `queueOverlay/position`, the web per user in local storage. The pure
+model is `src/ui/DockedOverlay.h` and `web/src/utils/dockedPanelPosition.ts`. Enter and exit
 use the primitive normal motion duration with retained exit content. Reduced
 motion removes transitions and progress animation. Elapsed clocks use server
 `started_at` when available, otherwise the locally observed running time. The
@@ -2091,7 +2104,9 @@ one-second timer stops when no live job runs.
 
 `QueueUiTest.cpp` uses pointer and keyboard events against QML and deterministic
 MsgPack events through EditorWindow. `NODETOOL_QUEUE_CAPTURE_DIR` enables dark
-and light captures at wide and narrow sizes, in both expansion states. F24 remains
+and light captures at wide and narrow sizes, in both expansion states, plus a
+capture after a drag. Its drag test covers the drop, the stored position, a
+narrower window, a second window and the grip's keys. F24 remains
 partial pending visual acceptance and pinned canvas focus parity. The expanded
 header centers counts with the title. Shared Surface shadows are disabled on the
 software renderer because the unblurred offset rectangle is clipped into dark
@@ -2215,8 +2230,12 @@ document bar shows and renames the workflow, the status bar counts its nodes
 and edges, and Run and Stop flush the subgraph edits and run or stop the whole
 workflow on its session. The run toolbar, queue overlay and run output follow
 that run. Run selected still runs the selected inner nodes, and the run output
-shows whichever of the two ran last. Undo and redo stay with the shown canvas,
-while the web document bar buttons undo the workflow store. Subgraph card
+shows whichever of the two ran last. Ctrl+Z and Ctrl+Shift+Z undo the shown
+canvas, as the web canvas keys undo the subgraph's own store. The document bar's
+Undo and Redo step the workflow's history, as the web document bar reads the
+workflow store: pending inline edits flush first, and the subgraph surfaces
+between the workflow and the shown canvas rebuild from the graphs their nodes
+now store. Subgraph card
 progress uses the secondary progress color and the
 [NodeProgress](../../../web/src/components/node/NodeProgress.tsx) label with its
 remaining-time estimate, which every card progress band now shares.
@@ -3142,7 +3161,7 @@ is visible only on inspection.
 | W5 | Card typography and geometry | Width 280, radius 8, 1 px border at 8% white, Inter 13 title in the 400 face, first port at 46 and 28 px steps. | Same measurements. | Low | Matches. |
 | W6 | Ports and wires | 12 px handles with a 2 px ring in the card color. Wires are 1.5 px in the source type color. | Same measurements. | Low | Matches. |
 | W7 | Grid | 25-unit crosses 3 units wide, which scale with zoom. | Same pattern. | Low | Matches. |
-| W8 | Selection | Selecting a node keeps it and every node upstream or downstream of it at full opacity and fades all other nodes, groups, notes and wires to 0.2 (`reactFlowGraphModel.ts` `branchNodeIds`, `markComprehensionEdges`, `nodes.zoomed.css`). With several nodes selected the branches join. A wire is related when both of its ends are. The fade has no transition, so reduced motion changes nothing. The node action toolbar floats above the selected card. | Same rule, at the same 0.2 opacity, through item opacity in `EditorScene.cpp`. Media widgets and group labels follow the card. A single selected card gets the web node toolbar above it, centered with an 8 px gap, and the toolbar follows the card through pan, zoom, resize and move and hides while the card drags. A group, a comment or several nodes keep the canvas toolbar at the top center, where the web shows none. | Medium | Dimming, toolbar position and the delay fixed. Asserted by `SelectionPresentationTest` and `NodeActionsTest` with real pointer clicks. The toolbar appears 200 ms after the card is selected and still (`NodeSelectionToolbar.tsx` `TOOLBAR_SHOW_DELAY`, `useDelayedVisibility`), hides at once on deselect or drag, and restarts its delay when the card is selected again (`toolbarShowsTwoHundredMillisecondsAfterTheSelection`). Acceptance pending. |
+| W8 | Selection | Selecting a node keeps it and every node upstream or downstream of it at full opacity and fades all other nodes, groups, notes and wires to 0.6 (`reactFlowGraphModel.ts` `branchNodeIds`, `markComprehensionEdges`, `nodes.zoomed.css`). With several nodes selected the branches join. A wire is related when both of its ends are. The fade has no transition, so reduced motion changes nothing. The node action toolbar floats above the selected card. | Same rule, at the same 0.6 opacity, through item opacity in `EditorScene.cpp`. Media widgets and group labels follow the card. A single selected card gets the web node toolbar above it, centered with an 8 px gap, and the toolbar follows the card through pan, zoom, resize and move and hides while the card drags. A group, a comment or several nodes keep the canvas toolbar at the top center, where the web shows none. | Medium | Dimming, toolbar position and the delay fixed. Asserted by `SelectionPresentationTest` and `NodeActionsTest` with real pointer clicks. The toolbar appears 200 ms after the card is selected and still (`NodeSelectionToolbar.tsx` `TOOLBAR_SHOW_DELAY`, `useDelayedVisibility`), hides at once on deselect or drag, and restarts its delay when the card is selected again (`toolbarShowsTwoHundredMillisecondsAfterTheSelection`). Acceptance pending. |
 | W9 | Selection viewport | A canvas click never moves the viewport. The inspector slides over the canvas and `useClearInspectorOverlap` pans left over 200 ms only when it covers a node, and never past the point where the selected node is 16 px from the canvas edge. Find centers the node at 100% over 300 ms. The node info Focus button centers at 150%. The web editor has no outline. | A selection never refits. The docked inspector narrows the canvas, so native applies the same pan rule to the inspector width, animated over 200 ms and instant under reduced motion or for a programmatic selection. Find centers at 100% over 300 ms, and Focus in the inspector Help tab centers at 150% over 300 ms. | Medium | Fixed in `EditorWindow.cpp`, `InspectorClearance.h`. Asserted by `SelectionPresentationTest`. `EditorTest::fitKeepsEveryNodeVisibleAcrossPanels` changed. Open: native has no node info panel. Its Focus button sits in the inspector Help tab (`ViewportNavigatorTest::inspectorFocusButtonRunsFocus`). Native pans 300 px in the capture where the web pans 371 px, because card sizes and positions still differ. The fit zoom before selection differs (web 71%, native 67%) and is not part of this row. |
 | W10 | Running ring | Running cards draw a conic ring in their type colors. | Same ring. | Low | Matches. |
 | W11 | Run status on cards | A status changes no card and shows no text. | Every card with a status grew by 98 px and printed "completed" or "running 40%". | High | Fixed in `WorkflowGraphModel.cpp` and `EditorScene.cpp`. Errors and a lost connection keep a label. Asserted by `runStatusKeepsCardSizeAndShowsProgress`. |

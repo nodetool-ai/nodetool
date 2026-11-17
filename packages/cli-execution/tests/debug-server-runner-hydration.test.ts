@@ -68,7 +68,14 @@ vi.mock("@nodetool-ai/runtime", () => ({
   },
   FileStorageAdapter: class {}
 }));
-vi.mock("@nodetool-ai/execution/service", () => ({ resolveWorkflowWorkspace: async () => null }));
+vi.mock("@nodetool-ai/execution/service", () => ({
+  ensurePersonalProject: async () => ({ id: "personal:1" }),
+  resolveProjectWorkspace: async (projectId: string) => ({
+    ok: true,
+    projectId,
+    workspace: null
+  })
+}));
 vi.mock("@nodetool-ai/node-sdk", () => ({
   createGraphNodeTypeResolver: () => ({ resolveNodeType: async () => ({}) })
 }));

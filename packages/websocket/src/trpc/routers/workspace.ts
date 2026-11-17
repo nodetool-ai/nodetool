@@ -2,20 +2,17 @@
  * Workspace router — migrated from REST `/api/workspaces*`.
  *
  * NOTE: the binary-read endpoint `GET /api/workspaces/:id/download/:path` stays
- * on REST because tRPC's JSON link doesn't carry binary payloads. The other
- * CRUD + listFiles (which returns JSON metadata) endpoints move here.
+ * on REST because tRPC's JSON link doesn't carry binary payloads. `list`, the
+ * listing and the text read and write procedures (which return JSON) live here.
  *
- * Pointing a workspace at an arbitrary host folder browses the local
- * filesystem, so create/update/delete are disabled in production via the
- * `NODETOOL_ENV=production` env var. Reading is not: every user has a default
- * workspace, and in production it is the server-managed folder under the data
- * dir — listing and downloading from that reaches nothing the deployment did
- * not create itself.
+ * A workspace is a project's folder. Projects create and adopt their folders
+ * (`projects.create`), so this router has no procedure that creates, repoints
+ * or deletes a workspace row. Reading is gated by `NODETOOL_ENV=production`:
+ * in production only the server-managed folder under the data dir is readable,
+ * which reaches nothing the deployment did not create itself.
  */
 
-import { stat, access } from "node:fs/promises";
-import { existsSync, constants } from "node:fs";
-import { isAbsolute, basename } from "node:path";
+import { basename } from "node:path";
 import { Workspace } from "@nodetool-ai/models";
 import type { WorkspaceEntry } from "@nodetool-ai/runtime";
 import { workspaceFromRow } from "../../lib/workflow-workspace.js";
@@ -26,11 +23,6 @@ import { throwApiError } from "../error-formatter.js";
 import {
   listInput,
   listOutput,
-  workspaceResponse,
-  createInput,
-  updateInput,
-  deleteInput,
-  deleteOutput,
   listFilesInput,
   listFilesOutput,
   readFileInput,
@@ -42,7 +34,6 @@ import {
   type FileEntry
 } from "@nodetool-ai/protocol/api-schemas/workspace.js";
 import type { Workspace as RunWorkspace } from "@nodetool-ai/runtime";
-import { isObjectLike } from "../../lib/wire-values.js";
 
 function toWorkspaceResponse(ws: Workspace): WorkspaceResponse {
   return {
@@ -64,16 +55,6 @@ function canManageWorkspaces(): boolean {
   return process.env["NODETOOL_ENV"] !== "production";
 }
 
-/** Guard: choosing a workspace folder is disabled in production. */
-function requireNonProduction(): void {
-  if (!canManageWorkspaces()) {
-    throwApiError(
-      ApiErrorCode.FORBIDDEN,
-      "Managing workspace folders is disabled in production"
-    );
-  }
-}
-
 /**
  * Guard for the read paths: in production only the managed workspace may be
  * read. A row created while the deployment ran locally can point anywhere on
@@ -85,40 +66,6 @@ function requireReadable(ws: Workspace): void {
       ApiErrorCode.FORBIDDEN,
       "This workspace is not readable in production"
     );
-  }
-}
-
-/**
- * Validate a workspace path: absolute, existing, a directory, and writable.
- * Shared by create and update so update can't repoint a workspace at an
- * arbitrary directory (e.g. /etc) and read it via listFiles.
- */
-async function validateWorkspacePath(candidate: string): Promise<void> {
-  if (!isAbsolute(candidate)) {
-    throwApiError(ApiErrorCode.INVALID_INPUT, "Path must be absolute");
-  }
-  if (!existsSync(candidate)) {
-    throwApiError(ApiErrorCode.INVALID_INPUT, "Path does not exist");
-  }
-  try {
-    const s = await stat(candidate);
-    if (!s.isDirectory()) {
-      throwApiError(ApiErrorCode.INVALID_INPUT, "Path is not a directory");
-    }
-  } catch (err) {
-    if (
-      isObjectLike(err) &&
-      "name" in err &&
-      (err as { name: string }).name === "TRPCError"
-    ) {
-      throw err; // already a throwApiError result — rethrow
-    }
-    throwApiError(ApiErrorCode.INVALID_INPUT, "Cannot access path");
-  }
-  try {
-    await access(candidate, constants.W_OK);
-  } catch {
-    throwApiError(ApiErrorCode.INVALID_INPUT, "Path is not writable");
   }
 }
 
@@ -162,10 +109,17 @@ async function resolveFileTarget(
   return { row, workspace };
 }
 
-/** Containment is the workspace's own rule; surface its refusal as a 403. */
+/**
+ * Containment is the workspace's own rule; surface its refusal as a 403. A
+ * path in `.nodetool/` or in the folder of another project is refused with
+ * the workspace's reason.
+ */
 function rethrowTraversal(err: unknown): never {
   if (err instanceof Error && err.name === "WorkspacePathError") {
     throwApiError(ApiErrorCode.FORBIDDEN, "Path traversal not allowed");
+  }
+  if (err instanceof Error && err.name === "WorkspaceReservedPathError") {
+    throwApiError(ApiErrorCode.FORBIDDEN, err.message);
   }
   throw err;
 }
@@ -176,8 +130,8 @@ export const workspaceRouter = router({
     .output(listOutput)
     .query(async ({ ctx, input }) => {
       // Listing creates the default workspace when the user has none, so the
-      // editor never has to render a "no workspace" state and a run always has
-      // somewhere to write.
+      // editor never has to render a "no workspace" state. Runs do not use it:
+      // they work in their project's folder.
       await Workspace.ensureDefault(ctx.userId);
       const page: Parameters<typeof Workspace.paginate>[1] = {
         limit: input.limit
@@ -192,89 +146,6 @@ export const workspaceRouter = router({
         can_manage: canManageWorkspaces(),
         next: null
       };
-    }),
-
-  create: protectedProcedure
-    .input(createInput)
-    .output(workspaceResponse)
-    .mutation(async ({ ctx, input }) => {
-      requireNonProduction();
-
-      await validateWorkspacePath(input.path);
-
-      if (input.is_default) {
-        await Workspace.unsetOtherDefaults(ctx.userId);
-      }
-
-      const workspaceInput: Record<string, unknown> = {
-        user_id: ctx.userId,
-        name: input.name,
-        path: input.path,
-        is_default: input.is_default
-      };
-      if (input.project_id !== undefined) {
-        workspaceInput.project_id = input.project_id;
-      }
-      const ws = (await Workspace.create(workspaceInput)) as Workspace;
-
-      return toWorkspaceResponse(ws);
-    }),
-
-  update: protectedProcedure
-    .input(updateInput)
-    .output(workspaceResponse)
-    .mutation(async ({ ctx, input }) => {
-      requireNonProduction();
-      const ws = await Workspace.find(ctx.userId, input.id);
-      if (!ws) {
-        throwApiError(ApiErrorCode.NOT_FOUND, "Workspace not found");
-      }
-
-      if (input.name !== undefined) ws.name = input.name;
-      if (input.path !== undefined) {
-        // Validate exactly as create does — otherwise a user could repoint
-        // their workspace at any directory (/etc, /root) and enumerate/read it
-        // via listFiles and the REST download endpoint.
-        await validateWorkspacePath(input.path);
-        ws.path = input.path;
-      }
-      if (input.is_default !== undefined) {
-        if (input.is_default) {
-          await Workspace.unsetOtherDefaults(ctx.userId);
-        }
-        ws.is_default = input.is_default;
-      }
-      await ws.save();
-      return toWorkspaceResponse(ws);
-    }),
-
-  delete: protectedProcedure
-    .input(deleteInput)
-    .output(deleteOutput)
-    .mutation(async ({ ctx, input }) => {
-      requireNonProduction();
-      const ws = await Workspace.find(ctx.userId, input.id);
-      if (!ws) {
-        throwApiError(ApiErrorCode.NOT_FOUND, "Workspace not found");
-      }
-
-      if (ws.is_default) {
-        throwApiError(
-          ApiErrorCode.INVALID_INPUT,
-          "Cannot delete the default workspace"
-        );
-      }
-
-      const hasWorkflows = await Workspace.hasLinkedWorkflows(input.id);
-      if (hasWorkflows) {
-        throwApiError(
-          ApiErrorCode.INVALID_INPUT,
-          "Cannot delete workspace with linked workflows"
-        );
-      }
-
-      await ws.delete();
-      return { message: "Workspace deleted successfully" };
     }),
 
   listFiles: protectedProcedure
@@ -312,6 +183,9 @@ export const workspaceRouter = router({
       } catch (err) {
         if (err instanceof Error && err.name === "WorkspacePathError") {
           throwApiError(ApiErrorCode.FORBIDDEN, "Path traversal not allowed");
+        }
+        if (err instanceof Error && err.name === "WorkspaceReservedPathError") {
+          throwApiError(ApiErrorCode.FORBIDDEN, err.message);
         }
         throwApiError(ApiErrorCode.NOT_FOUND, "Directory not found");
       }

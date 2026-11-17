@@ -52,6 +52,10 @@
         {
             "from": "vst-host",
             "to": "vst-host"
+        },
+        {
+            "from": "account-helper",
+            "to": "account-helper"
         }
     ],
     "publish": [

@@ -352,7 +352,19 @@ export interface TimelineUIState {
    * Id of the MIDI track selected in the right-panel Instruments tab.
    */
   expandedInstrumentTrackId: string | null;
-  panelTab: "inspector" | "shot" | "source" | "instrument" | "agent" | "history" | "script" | "code";
+  panelTab:
+    | "inspector"
+    | "effectControls"
+    | "motion"
+    | "color"
+    | "ai"
+    | "shot"
+    | "source"
+    | "instrument"
+    | "agent"
+    | "history"
+    | "script"
+    | "code";
   /**
    * Counts every request to show `panelTab`, including one for the tab that is
    * already current. The desktop dock opens the matching panel when it changes.

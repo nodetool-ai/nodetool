@@ -2,7 +2,12 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { trpcClient } from "../../../trpc/client";
 import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
-import { WorkflowEditorRedirect, ChatThreadRedirect } from "../RouteRedirects";
+import { usePanelStore } from "../../../stores/PanelStore";
+import {
+  WorkflowEditorRedirect,
+  ChatThreadRedirect,
+  ProjectFilesRedirect
+} from "../RouteRedirects";
 
 const mockGlobalChatState = {
   threads: {} as Record<string, { id: string; project_id: string }>
@@ -36,6 +41,7 @@ const renderRedirect = (path: string) =>
       <Routes>
         <Route path="/editor/:workflowId" element={<WorkflowEditorRedirect />} />
         <Route path="/chat/:thread_id" element={<ChatThreadRedirect />} />
+        <Route path="/workspaces" element={<ProjectFilesRedirect />} />
         <Route path="/workspace" element={<div>Workspace</div>} />
       </Routes>
     </MemoryRouter>
@@ -76,4 +82,17 @@ it("opens a locally created thread that is not on the server yet", async () => {
   const state = useWorkspaceTabsStore.getState();
   expect(state.activeProjectId).toBe("p-local");
   expect(state.tabs.find((tab) => tab.ref === "local-thread")?.projectId).toBe("p-local");
+});
+
+it("sends /workspaces to the Files section of the selected project", async () => {
+  useWorkspaceTabsStore.setState({ activeProjectId: "p-1" });
+  usePanelStore.getState().setActiveView("documents");
+  usePanelStore.getState().setVisibility(false);
+
+  renderRedirect("/workspaces");
+
+  await waitFor(() => expect(screen.getByText("Workspace")).toBeInTheDocument());
+  expect(usePanelStore.getState().panel.activeView).toBe("files");
+  expect(usePanelStore.getState().panel.isVisible).toBe(true);
+  expect(useWorkspaceTabsStore.getState().activeProjectId).toBe("p-1");
 });

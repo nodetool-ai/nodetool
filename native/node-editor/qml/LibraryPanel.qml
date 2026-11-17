@@ -16,6 +16,8 @@ Rectangle {
     required property LibraryBrowser library
     // The tab's AssetPickerController, which uploads imported files.
     required property var assets
+    // The folder of the tab's project, or null in a host that shows none.
+    property ProjectFolder folder: null
     EditorRoles { id: roles }
     color: roles.panel
     implicitWidth: Ui.Metrics.dialogCompactWidth
@@ -35,7 +37,7 @@ Rectangle {
             LibraryLabel { Layout.fillWidth: true; text: "Library"; tone: Ui.Text.Primary }
             LibraryButton { objectName: "library-refresh"; iconName: "refresh"; accessibleName: "Refresh"; enabled: root.library.configured && !root.library.busy; onClicked: root.library.refresh() }
             LibraryButton { objectName: "library-create-folder"; iconName: "createNewFolder"; accessibleName: "New folder"; enabled: root.library.configured && !root.library.busy; onClicked: { folderName.text = ""; folderDialog.open() } }
-            LibraryButton { objectName: "library-import"; iconName: "fileUpload"; accessibleName: "Import"; enabled: root.library.configured; onClicked: { importError.text = ""; importDialog.open() } }
+            LibraryButton { objectName: "library-import"; iconName: "fileUpload"; accessibleName: "Import"; enabled: root.library.configured; onClicked: { importError.message = ""; importDialog.open() } }
             LibraryButton { objectName: "library-close"; iconName: "close"; accessibleName: "Close the asset library"; onClicked: root.panels.toggleLibrary() }
         }
         RowLayout {
@@ -123,8 +125,50 @@ Rectangle {
             }
         }
         LibraryButton { visible: !root.library.configured; text: "Connect to server"; onClicked: root.status.connectServer() }
-        LibraryLabel { objectName: "library-error"; Layout.fillWidth: true; visible: root.library.error !== ""; text: root.library.error; tone: Ui.Text.Error }
-        LibraryLabel { id: importError; objectName: "library-import-error"; Layout.fillWidth: true; visible: text !== ""; tone: Ui.Text.Error }
+        Loader {
+            Layout.fillWidth: true
+            active: root.folder !== null && root.library.configured
+            visible: active && (root.folder.folderState !== "" || root.folder.locateError !== "")
+            sourceComponent: ProjectFolderNotice { folder: root.folder }
+        }
+        // AssetItem in NodeTool.Media draws no badge, so the selected asset says it is missing.
+        Ui.Banner {
+            objectName: "library-missing"
+            Layout.fillWidth: true
+            visible: !!grid.selectedAsset && grid.selectedAsset.offline === true
+            status: Ui.Status.Warning
+            textFormat: Text.StyledText
+            message: "<b>" + qsTr("Missing") + "</b><br>" + qsTr("The file is not where this asset expects it. Relink it to the file's new location, or remove the asset.")
+            actionText: qsTr("Relink")
+            onActionTriggered: { relinkDialog.assetId = grid.selectedAsset.id; relinkDialog.open() }
+        }
+        Ui.Banner {
+            objectName: "library-relink-error"
+            Layout.fillWidth: true
+            visible: root.library.relinkError !== ""
+            status: Ui.Status.Error
+            message: root.library.relinkError
+        }
+        Ui.Banner {
+            objectName: "library-error"
+            Layout.fillWidth: true
+            visible: root.library.error !== ""
+            status: Ui.Status.Error
+            message: root.library.error
+            retryable: true
+            reportable: true
+            onRetryRequested: root.library.refresh()
+            onReportRequested: root.status.reportError(qsTr("Library error"), root.library.error)
+        }
+        Ui.Banner {
+            id: importError
+            objectName: "library-import-error"
+            Layout.fillWidth: true
+            visible: message !== ""
+            status: Ui.Status.Error
+            reportable: true
+            onReportRequested: root.status.reportError(qsTr("Library import error"), message)
+        }
         LibraryLabel { visible: root.library.busy; text: "Loading Library…" }
         LibraryLabel { Layout.fillWidth: true; visible: grid.filtered; text: "Filters search across all folders." }
         RowLayout {
@@ -151,9 +195,17 @@ Rectangle {
             Layout.fillHeight: true
             browser: root.library
             externalDrag: true
-            onImportRequested: { importError.text = ""; importDialog.open() }
+            onImportRequested: { importError.message = ""; importDialog.open() }
             onClearFiltersRequested: root.clearFilters()
         }
+    }
+    FileDialog {
+        id: relinkDialog
+        objectName: "library-relink-dialog"
+        property string assetId: ""
+        title: qsTr("Pick the file's new location")
+        fileMode: FileDialog.OpenFile
+        onAccepted: root.library.relink(assetId, selectedFile)
     }
     FileDialog {
         id: importDialog
@@ -177,6 +229,6 @@ Rectangle {
     Connections {
         target: root.assets
         function onUploaded(key) { if (key.startsWith("library-import:")) root.library.refresh() }
-        function onFailed(key, message) { if (key.startsWith("library-import:")) importError.text = message }
+        function onFailed(key, message) { if (key.startsWith("library-import:")) importError.message = message }
     }
 }

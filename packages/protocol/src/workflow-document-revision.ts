@@ -9,7 +9,8 @@ export const WORKFLOW_REVISION_TOOL_NAMES = [
   "ui_delete_node",
   "ui_delete_edge",
   "ui_move_node",
-  "ui_set_node_title"
+  "ui_set_node_title",
+  "ui_apply_graph_patch"
 ] as const;
 
 function record(value: unknown): Record<string, unknown> {

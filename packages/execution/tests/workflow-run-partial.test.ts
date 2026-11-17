@@ -9,6 +9,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { memoryFolder } from "./_helpers/memory-folder.js";
 import {
   BaseNode,
   NodeRegistry,
@@ -199,7 +200,7 @@ async function run(
         persisted.push(generation);
       }
     },
-    resolveWorkspace: async () => null,
+    resolveWorkspace: memoryFolder,
     ...options
   });
 }
@@ -318,14 +319,31 @@ describe("generation saves", () => {
       {
         userId: "user-7",
         workflowId: "wf-1",
+        projectId: null,
         jobId: "job-1",
         nodeId: "gen",
+        // A node with no title reports its type as its name.
+        nodeName: "test.partial.Gen",
         nodeType: "test.partial.Gen",
         index: 0,
         outputs: { output: "generated a cat" },
         properties: expect.anything()
       }
     ]);
+  });
+
+  it("names a generation after the title the editor gave its node", async () => {
+    const gen = graph.nodes.find((node) => node.id === "gen");
+    if (!gen) throw new Error("missing generator");
+    gen.ui_properties = { title: "  fox in snow " };
+    try {
+      payloadOf(await run());
+      expect(persisted.map((generation) => generation.nodeName)).toEqual([
+        "fox in snow"
+      ]);
+    } finally {
+      delete gen.ui_properties;
+    }
   });
 
   it("saves nothing for an inline graph run", async () => {

@@ -23,6 +23,17 @@ public:
     QString serverUrl = "http://127.0.0.1:8188";
     QJsonObject lastUpdate, createdWorkflow, importedPrompt;
     int catalogReads = 0;
+    // Worker rental: the RunPod key, the instances, and how many health checks
+    // a started worker fails before ComfyUI answers.
+    bool runpodKey = true;
+    QJsonArray instances;
+    int healthChecks = 0, readyAfter = 2;
+    QStringList terminated;
+    static QJsonObject preset() {
+        return {{"id", "minimax-h3"}, {"label", "MiniMax H3"}, {"profileName", "ComfyUI MiniMax H3"},
+                {"gpus", QJsonArray{"NVIDIA RTX PRO 4500 Blackwell", "NVIDIA GeForce RTX 5090"}},
+                {"hourlyUsd", QJsonObject{{"min", 0.72}, {"max", 1.19}}}, {"maxLifetimeMinutes", 120}};
+    }
     Server() {
         listen(QHostAddress::LocalHost);
         connect(this, &QTcpServer::newConnection, this, [this] {
@@ -89,7 +100,30 @@ private:
             serverUrl = settings["COMFY_SERVER_URL"].toString(serverUrl);
             send(socket, trpc({{"success", true}}));
         } else if (route.startsWith("/trpc/worker.instances.list")) {
-            send(socket, QJsonObject{{"result", QJsonObject{{"data", QJsonArray{}}}}});
+            send(socket, QJsonObject{{"result", QJsonObject{{"data", instances}}}});
+        } else if (route.startsWith("/trpc/worker.comfyPresets")) {
+            send(socket, QJsonObject{{"result", QJsonObject{{"data", QJsonArray{preset()}}}}});
+        } else if (route.startsWith("/trpc/worker.apiKeyStatus")) {
+            send(socket, trpc({{"runpod", runpodKey}, {"vast", false}, {"verda", false}}));
+        } else if (route.startsWith("/trpc/worker.startComfyPreset")) {
+            const QJsonObject instance{{"id", "i1"}, {"profile_name", "ComfyUI MiniMax H3"}, {"target", "runpod"},
+                                       {"ws_url", "wss://pod-8188.proxy.runpod.net"}, {"status", "running"}, {"estimated_cost_usd", 0.42}};
+            instances.append(instance);
+            send(socket, trpc(instance));
+        } else if (route.startsWith("/trpc/worker.health")) {
+            const bool ready = ++healthChecks > readyAfter;
+            send(socket, trpc({{"healthy", ready}, {"comfyEndpoint", "https://pod-8188.proxy.runpod.net"}}));
+        } else if (route.startsWith("/trpc/worker.terminate")) {
+            const auto id = body["id"].toString();
+            terminated.append(id);
+            for (qsizetype i = 0; i < instances.size(); ++i) {
+                auto instance = instances[i].toObject();
+                if (instance["id"].toString() == id) {
+                    instance["status"] = "terminated";
+                    instances[i] = instance;
+                }
+            }
+            send(socket, trpc({{"id", id}, {"status", "terminated"}}));
         } else if (route.startsWith("/trpc/settings.secrets.list")) {
             send(socket, trpc({{"secrets", QJsonArray{}}, {"next_key", QJsonValue::Null}}));
         } else if (route.startsWith("/trpc/packs.listBuiltins")) {
@@ -160,6 +194,78 @@ private slots:
         QCOMPARE(prompt["3"].toObject()["inputs"].toObject()["steps"].toInt(), 25);
         QCOMPARE(prompt["3"].toObject()["inputs"].toObject()["seed"].toInt(), 7);
         QCOMPARE(comfyStarterPrompt({}, 1)["4"].toObject()["inputs"].toObject()["ckpt_name"].toString(), QStringLiteral("flux1-schnell-fp8.safetensors"));
+    }
+    void describesRentalPresets() {
+        using namespace node_editor;
+        QCOMPARE(comfyEndpointFromWsUrl("wss://pod-8188.proxy.runpod.net"), QStringLiteral("https://pod-8188.proxy.runpod.net"));
+        QCOMPARE(comfyEndpointFromWsUrl("ws://10.0.0.2:8188"), QStringLiteral("http://10.0.0.2:8188"));
+        QCOMPARE(comfyPresetPrice(Server::preset()), QStringLiteral("$0.72–$1.19/hr"));
+        QCOMPARE(comfyPresetPrice({{"hourlyUsd", QJsonObject{{"min", 0.5}, {"max", 0.5}}}}), QStringLiteral("$0.50/hr"));
+        QCOMPARE(comfyPresetPrice({}), QString{});
+        const auto confirm = comfyRentConfirmText(Server::preset());
+        QVERIFY(confirm.contains("GPU: RTX PRO 4500 Blackwell or RTX 5090"));
+        QVERIFY(confirm.contains("Price: $0.72–$1.19/hr, billed to your RunPod account"));
+        QVERIFY(confirm.contains("after 2 hours"));
+        QCOMPARE(comfyRentLabel("MiniMax H3", 20000), QStringLiteral("Starting MiniMax H3 worker…"));
+        QCOMPARE(comfyRentLabel("MiniMax H3", 185000), QStringLiteral("Starting MiniMax H3 worker… 3 min"));
+    }
+    void rentedWorkerBecomesTheTargetAndReleasesBack() {
+        Server server;
+        EditorWindow window;
+        window.show();
+        window.session()->connectToServer(server.url(), {}, "one");
+        QVERIFY(window.document()->load(workflow("comfy")));
+        auto *comfy = window.comfyBackend();
+        QTRY_COMPARE(comfy->rentPresets().size(), 1);
+        QVERIFY(!comfy->rentKeyMissing());
+        QTRY_COMPARE(window.editorCommands()->comfyTarget(), QStringLiteral("Server: 127.0.0.1:8188"));
+        comfy->setRentTiming(20, 60000);
+
+        // Starting: the toolbar shows the rent until ComfyUI answers, then the target moves to the pod.
+        comfy->rentWorker("minimax-h3");
+        QVERIFY(comfy->renting());
+        QCOMPARE(window.editorCommands()->comfyTarget(), QStringLiteral("Starting MiniMax H3 worker…"));
+        QTRY_COMPARE(server.serverUrl, QStringLiteral("https://pod-8188.proxy.runpod.net"));
+        QVERIFY(server.healthChecks > server.readyAfter);
+        QVERIFY(!comfy->renting());
+        QTRY_COMPARE(window.editorCommands()->comfyTarget(), QStringLiteral("Server: pod-8188.proxy.runpod.net"));
+        QTRY_COMPARE(comfy->rentedWorkers().size(), 1);
+        const auto rented = comfy->rentedWorkers().first().toMap();
+        QCOMPARE(rented["cost"].toString(), QStringLiteral("$0.42"));
+        QVERIFY(rented["current"].toBool());
+        QCOMPARE(window.notifications().last().toMap()["content"].toString(),
+                 QStringLiteral("The MiniMax H3 worker is ready. Comfy workflows now run on it."));
+        QCOMPARE(window.notifications().last().toMap()["type"].toString(), QStringLiteral("success"));
+
+        // Releasing terminates the pod and puts the target back where it was.
+        comfy->releaseWorker("i1");
+        QTRY_COMPARE(server.terminated, QStringList{"i1"});
+        QTRY_COMPARE(server.serverUrl, QStringLiteral("http://127.0.0.1:8188"));
+        QTRY_COMPARE(window.editorCommands()->comfyTarget(), QStringLiteral("Server: 127.0.0.1:8188"));
+        QTRY_VERIFY(comfy->rentedWorkers().isEmpty());
+    }
+    void cancellingARentReleasesItsWorker() {
+        Server server;
+        server.readyAfter = 1000;
+        EditorWindow window;
+        window.show();
+        window.session()->connectToServer(server.url(), {}, "one");
+        auto *comfy = window.comfyBackend();
+        QTRY_COMPARE(comfy->rentPresets().size(), 1);
+        comfy->setRentTiming(20, 60000);
+        comfy->rentWorker("minimax-h3");
+        // Cancelled before the server answered: the worker is released as soon as it exists.
+        comfy->cancelRent();
+        QTRY_COMPARE(server.terminated, QStringList{"i1"});
+        QVERIFY(!comfy->renting());
+        QCOMPARE(server.serverUrl, QStringLiteral("http://127.0.0.1:8188"));
+    }
+    void missingRunPodKeyIsReported() {
+        Server server;
+        server.runpodKey = false;
+        EditorWindow window;
+        window.session()->connectToServer(server.url(), {}, "one");
+        QTRY_VERIFY(window.comfyBackend()->rentKeyMissing());
     }
     void mergesAndFiltersCatalogs() {
         using namespace node_editor;

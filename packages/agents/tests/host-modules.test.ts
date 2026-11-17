@@ -6,9 +6,7 @@
  * refusals, and the trust rule that keeps host execution first-party.
  */
 import { describe, it, expect } from "vitest";
-import { createRequire } from "node:module";
-import { Workbook } from "exceljs";
-import { zipSync, strToU8, unzipSync, strFromU8 } from "fflate";
+import { zipSync } from "fflate";
 import {
   SANDBOX_HOST_MODULES,
   type ResolvedSandboxModule,
@@ -24,6 +22,11 @@ import {
   registeredSandboxHostModuleIds,
   sandboxHostModuleDrift
 } from "../src/host-modules/registry.js";
+import {
+  MAX_FABRIC_EFFECT_PIXELS,
+  assertRenderBudget,
+  assertSvgHasNoExternalResources
+} from "../src/host-modules/fabric.js";
 import { MAX_UNZIP_TOTAL_BYTES } from "../src/host-modules/zip.js";
 import {
   DEFAULT_SELECT_HTML_LIMIT,
@@ -204,131 +207,6 @@ describe("@nodetool-ai/sandbox-csv", () => {
     );
     expect(result.success).toBe(true);
     expect(result.result).toMatch(/rows must be an array/);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// xlsx
-// ---------------------------------------------------------------------------
-
-describe("@nodetool-ai/sandbox-xlsx", () => {
-  async function workbookBase64(): Promise<string> {
-    const wb = new Workbook();
-    const sheet = wb.addWorksheet("Products");
-    sheet.addRow(["product", "price"]);
-    sheet.addRow(["Lamp", 49]);
-    sheet.addRow(["Desk", 349]);
-    const other = wb.addWorksheet("Notes");
-    other.addRow(["note"]);
-    other.addRow(["hello"]);
-    const buffer = await wb.xlsx.writeBuffer();
-    return Buffer.from(buffer as ArrayBuffer).toString("base64");
-  }
-
-  it("parses sheets to records keyed by the header row", async () => {
-    const b64 = await workbookBase64();
-    const result = await run(
-      `import { parse } from "@nodetool-ai/sandbox-xlsx";
-       const bytes = fromBase64("${b64}");
-       const all = await parse(bytes);
-       const one = await parse(bytes, { sheet: "Products" });
-       return { names: Object.keys(all), one };`,
-      "xlsx"
-    );
-    expect(result.success).toBe(true);
-    const r = result.result as { names: string[]; one: unknown[] };
-    expect(r.names).toEqual(["Products", "Notes"]);
-    expect(r.one).toEqual([
-      { product: "Lamp", price: 49 },
-      { product: "Desk", price: 349 }
-    ]);
-  });
-
-  it("names the available sheets when the requested one is missing", async () => {
-    const b64 = await workbookBase64();
-    const result = await run(
-      `import { parse } from "@nodetool-ai/sandbox-xlsx";
-       try { await parse(fromBase64("${b64}"), { sheet: "Nope" }); return "no throw"; }
-       catch (e) { return e.message; }`,
-      "xlsx"
-    );
-    expect(result.success).toBe(true);
-    expect(result.result).toMatch(/no sheet named "Nope".*Products/);
-  });
-
-  it("rejects non-binary input", async () => {
-    const result = await run(
-      `import { parse } from "@nodetool-ai/sandbox-xlsx";
-       try { await parse("text"); return "no throw"; }
-       catch (e) { return e.message; }`,
-      "xlsx"
-    );
-    expect(result.success).toBe(true);
-    expect(result.result).toMatch(/must be a Uint8Array/);
-  });
-
-  it("writes records to a workbook the parser reads back", async () => {
-    const result = await run(
-      `import { parse, write } from "@nodetool-ai/sandbox-xlsx";
-       const bytes = await write({
-         Costs: [{ item: "Lamp", usd: 49 }, { item: "Desk", usd: 349 }],
-         Notes: [{ note: "draft" }]
-       });
-       return await parse(bytes);`,
-      "xlsx"
-    );
-    expect(result.success).toBe(true);
-    expect(result.result).toEqual({
-      Costs: [
-        { item: "Lamp", usd: 49 },
-        { item: "Desk", usd: 349 }
-      ],
-      Notes: [{ note: "draft" }]
-    });
-  });
-
-  it("takes per-sheet column order, header-less rows, and cell styles", async () => {
-    const result = await run(
-      `import { parse, write } from "@nodetool-ai/sandbox-xlsx";
-       const bytes = await write([
-         {
-           name: "Costs",
-           rows: [{ usd: 49, item: "Lamp" }],
-           columns: ["item", "usd"],
-           styles: [{ range: "A1:B1", bold: true, background: "#FFE9A8" }]
-         },
-         { name: "Raw", rows: [["a", 1], ["b", 2]], header: false }
-       ]);
-       const sheets = await parse(bytes);
-       const raw = await parse(bytes, { sheet: "Raw", header: false });
-       return { costs: sheets.Costs, raw };`,
-      "xlsx"
-    );
-    expect(result.success).toBe(true);
-    expect(result.result).toEqual({
-      costs: [{ item: "Lamp", usd: 49 }],
-      raw: [
-        ["a", 1],
-        ["b", 2]
-      ]
-    });
-  });
-
-  it("refuses a workbook past the cell cap", async () => {
-    const { write, MAX_WRITE_CELLS } = await import("../src/host-modules/xlsx.js");
-    const rows = Array.from({ length: MAX_WRITE_CELLS }, (_, i) => ({ a: i, b: i }));
-    await expect(write({ Big: rows })).rejects.toThrow(/exceeds the 250000 cell limit/);
-  });
-
-  it("refuses a style whose range is not a rectangle of cells", async () => {
-    const result = await run(
-      `import { write } from "@nodetool-ai/sandbox-xlsx";
-       try { await write([{ name: "S", rows: [{ a: 1 }], styles: [{ range: "rows 1-3" }] }]); return "no throw"; }
-       catch (e) { return e.message; }`,
-      "xlsx"
-    );
-    expect(result.success).toBe(true);
-    expect(result.result).toMatch(/is not a cell range/);
   });
 });
 
@@ -640,11 +518,11 @@ describe("@nodetool-ai/sandbox-tokens", () => {
   });
 });
 // ---------------------------------------------------------------------------
-// ocr and tfjs
+// ocr
 //
-// Both download data on first use — the engine's language file, the models'
-// weights — so what runs here is everything up to that point: the argument
-// contract, the caps, and the refusals.
+// It downloads the engine's language file on first use, so what runs here is
+// everything up to that point: the argument contract, the caps, and the
+// refusals.
 // ---------------------------------------------------------------------------
 
 describe("@nodetool-ai/sandbox-ocr", () => {
@@ -668,253 +546,6 @@ describe("@nodetool-ai/sandbox-ocr", () => {
     );
     expect(result.success).toBe(true);
     expect(result.result).toMatch(/is not a Tesseract language code/);
-  });
-});
-
-describe("@nodetool-ai/sandbox-tfjs", () => {
-  it("refuses an image that is not bytes", async () => {
-    const result = await run(
-      `import { classify } from "@nodetool-ai/sandbox-tfjs";
-       try { await classify("a photo"); return "no throw"; }
-       catch (e) { return e.message; }`,
-      "tfjs"
-    );
-    expect(result.success).toBe(true);
-    expect(result.result).toMatch(/tfjs\.classify: image must be a Uint8Array/);
-  });
-
-  it("answers nothing when the question or the passage is empty", async () => {
-    const result = await run(
-      `import { answer } from "@nodetool-ai/sandbox-tfjs";
-       return await answer("  ", "a passage");`,
-      "tfjs"
-    );
-    expect(result.success).toBe(true);
-    expect(result.result).toEqual([]);
-  });
-
-  it("refuses a passage that is not text", async () => {
-    const result = await run(
-      `import { answer } from "@nodetool-ai/sandbox-tfjs";
-       try { await answer("who?", 42); return "no throw"; }
-       catch (e) { return e.message; }`,
-      "tfjs"
-    );
-    expect(result.success).toBe(true);
-    expect(result.result).toMatch(/passage must be a string/);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// docx (write) + mammoth (read)
-// ---------------------------------------------------------------------------
-
-describe("@nodetool-ai/sandbox-docx", () => {
-  it("builds a document with a heading, a paragraph, and a table", async () => {
-    const result = await run(
-      `import { build } from "@nodetool-ai/sandbox-docx";
-       const bytes = await build({
-         properties: { title: "Report" },
-         elements: [
-           { type: "heading", text: "Title", level: 1 },
-           { type: "paragraph", text: "Hello world", bold: true },
-           { type: "table", rows: [["a", "b"], ["c", "d"]] },
-           { type: "pageBreak" }
-         ]
-       });
-       return { isBytes: bytes instanceof Uint8Array, isZip: bytes[0] === 0x50 && bytes[1] === 0x4b };`,
-      "docx"
-    );
-    expect(result.success).toBe(true);
-    expect(result.result).toEqual({ isBytes: true, isZip: true });
-  });
-
-  it("round-trips text through mammoth", async () => {
-    const result = await run(
-      `import { build } from "@nodetool-ai/sandbox-docx";
-       import { extractRawText } from "@nodetool-ai/sandbox-mammoth";
-       const bytes = await build({
-         elements: [{ type: "paragraph", text: "Round trip content" }]
-       });
-       return await extractRawText(bytes);`,
-      "docx",
-      "mammoth"
-    );
-    expect(result.success).toBe(true);
-    expect(result.result).toContain("Round trip content");
-  });
-
-  it("rejects a non-array elements value", async () => {
-    const result = await run(
-      `import { build } from "@nodetool-ai/sandbox-docx";
-       try { await build({ elements: [{ text: "no type" }] }); return "no throw"; }
-       catch (e) { return e.message; }`,
-      "docx"
-    );
-    expect(result.success).toBe(true);
-    expect(result.result).toMatch(/missing a "type"/);
-  });
-});
-
-describe("@nodetool-ai/sandbox-mammoth", () => {
-  async function docxBase64(): Promise<string> {
-    const { Document, Packer, Paragraph, TextRun } = await import("docx");
-    const doc = new Document({
-      sections: [
-        {
-          children: [
-            new Paragraph({ children: [new TextRun("Hello from DOCX")] })
-          ]
-        }
-      ]
-    });
-    const buffer = await Packer.toBuffer(doc);
-    return Buffer.from(buffer).toString("base64");
-  }
-
-  it("extracts raw text", async () => {
-    const b64 = await docxBase64();
-    const result = await run(
-      `import { extractRawText } from "@nodetool-ai/sandbox-mammoth";
-       return await extractRawText(fromBase64("${b64}"));`,
-      "mammoth"
-    );
-    expect(result.success).toBe(true);
-    expect(result.result).toContain("Hello from DOCX");
-  });
-
-  it("converts to HTML", async () => {
-    const b64 = await docxBase64();
-    const result = await run(
-      `import { convertToHtml } from "@nodetool-ai/sandbox-mammoth";
-       return await convertToHtml(fromBase64("${b64}"));`,
-      "mammoth"
-    );
-    expect(result.success).toBe(true);
-    expect(result.result).toContain("Hello from DOCX");
-    expect(String(result.result)).toMatch(/<p>/);
-  });
-
-  it("rejects non-binary input", async () => {
-    const result = await run(
-      `import { extractRawText } from "@nodetool-ai/sandbox-mammoth";
-       try { await extractRawText("text"); return "no throw"; }
-       catch (e) { return e.message; }`,
-      "mammoth"
-    );
-    expect(result.success).toBe(true);
-    expect(result.result).toMatch(/must be a Uint8Array/);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// epub
-// ---------------------------------------------------------------------------
-
-describe("@nodetool-ai/sandbox-epub", () => {
-  function epubBase64(): string {
-    const container = `<?xml version="1.0"?>
-<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
-  <rootfiles>
-    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
-  </rootfiles>
-</container>`;
-    const opf = `<?xml version="1.0" encoding="UTF-8"?>
-<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="bookid" version="2.0">
-  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
-    <dc:title>Test Book</dc:title>
-    <dc:creator>Test Author</dc:creator>
-    <dc:language>en</dc:language>
-    <dc:identifier id="bookid">test-id-123</dc:identifier>
-  </metadata>
-  <manifest>
-    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
-    <item id="ch1" href="chapter1.xhtml" media-type="application/xhtml+xml"/>
-    <item id="ch2" href="chapter2.xhtml" media-type="application/xhtml+xml"/>
-  </manifest>
-  <spine toc="ncx">
-    <itemref idref="ch1"/>
-    <itemref idref="ch2"/>
-  </spine>
-</package>`;
-    const ncx = `<?xml version="1.0" encoding="UTF-8"?>
-<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
-  <head><meta name="dtb:uid" content="test-id-123"/></head>
-  <docTitle><text>Test Book</text></docTitle>
-  <navMap>
-    <navPoint id="ch1" playOrder="1"><navLabel><text>Chapter One</text></navLabel><content src="chapter1.xhtml"/></navPoint>
-    <navPoint id="ch2" playOrder="2"><navLabel><text>Chapter Two</text></navLabel><content src="chapter2.xhtml"/></navPoint>
-  </navMap>
-</ncx>`;
-    const ch1 = `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 1</title></head>
-<body><h1>Chapter One</h1><p>This is the first chapter content.</p></body></html>`;
-    const ch2 = `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 2</title></head>
-<body><h1>Chapter Two</h1><p>The second chapter has different text.</p></body></html>`;
-
-    const archive = zipSync({
-      mimetype: [strToU8("application/epub+zip"), { level: 0 }],
-      "META-INF/container.xml": strToU8(container),
-      "OEBPS/content.opf": strToU8(opf),
-      "OEBPS/toc.ncx": strToU8(ncx),
-      "OEBPS/chapter1.xhtml": strToU8(ch1),
-      "OEBPS/chapter2.xhtml": strToU8(ch2)
-    });
-    return Buffer.from(archive).toString("base64");
-  }
-
-  it("reads metadata", async () => {
-    const b64 = epubBase64();
-    const result = await run(
-      `import { metadata } from "@nodetool-ai/sandbox-epub";
-       return await metadata(fromBase64("${b64}"));`,
-      "epub"
-    );
-    expect(result.success).toBe(true);
-    const meta = result.result as Record<string, unknown>;
-    expect(meta.title).toBe("Test Book");
-    expect(meta.creator).toBe("Test Author");
-  });
-
-  it("reads the table of contents in order", async () => {
-    const b64 = epubBase64();
-    const result = await run(
-      `import { tableOfContents } from "@nodetool-ai/sandbox-epub";
-       return await tableOfContents(fromBase64("${b64}"));`,
-      "epub"
-    );
-    expect(result.success).toBe(true);
-    const toc = result.result as Array<{ title: string }>;
-    expect(toc.map((t) => t.title)).toEqual(["Chapter One", "Chapter Two"]);
-  });
-
-  it("extracts concatenated chapter text", async () => {
-    const b64 = epubBase64();
-    const result = await run(
-      `import { extractText } from "@nodetool-ai/sandbox-epub";
-       return await extractText(fromBase64("${b64}"));`,
-      "epub"
-    );
-    expect(result.success).toBe(true);
-    expect(result.result).toContain("first chapter content");
-    expect(result.result).toContain("second chapter has different text");
-  });
-
-  it("extracts each chapter as its own item", async () => {
-    const b64 = epubBase64();
-    const result = await run(
-      `import { extractChapters } from "@nodetool-ai/sandbox-epub";
-       return await extractChapters(fromBase64("${b64}"));`,
-      "epub"
-    );
-    expect(result.success).toBe(true);
-    const chapters = result.result as Array<{ title: string; text: string }>;
-    expect(chapters).toHaveLength(2);
-    expect(chapters[0].title).toBe("Chapter One");
-    expect(chapters[0].text).toContain("first chapter content");
   });
 });
 
@@ -1003,126 +634,6 @@ describe("@nodetool-ai/sandbox-pdf", () => {
 });
 
 // ---------------------------------------------------------------------------
-// pptx
-// ---------------------------------------------------------------------------
-
-describe("@nodetool-ai/sandbox-pptx", () => {
-  function pptxBase64(): string {
-    const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-  <Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>
-  <Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>
-  <Override PartName="/ppt/slides/slide2.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>
-</Types>`;
-    const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/>
-</Relationships>`;
-    const presentation = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
-  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-  <p:sldIdLst>
-    <p:sldId id="256" r:id="rId1"/>
-    <p:sldId id="257" r:id="rId2"/>
-  </p:sldIdLst>
-</p:presentation>`;
-    const slide1 = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
-       xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
-  <p:cSld><p:spTree>
-    <p:sp><p:txBody><a:p><a:r><a:t>Welcome to slide one</a:t></a:r></a:p></p:txBody></p:sp>
-  </p:spTree></p:cSld>
-</p:sld>`;
-    const slide2 = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
-       xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
-  <p:cSld><p:spTree>
-    <p:sp><p:txBody><a:p><a:r><a:t>Slide two title</a:t></a:r><a:r><a:t>Bullet point</a:t></a:r></a:p></p:txBody></p:sp>
-  </p:spTree></p:cSld>
-</p:sld>`;
-
-    const archive = zipSync({
-      "[Content_Types].xml": strToU8(contentTypes),
-      "_rels/.rels": strToU8(rels),
-      "ppt/presentation.xml": strToU8(presentation),
-      "ppt/slides/slide1.xml": strToU8(slide1),
-      "ppt/slides/slide2.xml": strToU8(slide2)
-    });
-    return Buffer.from(archive).toString("base64");
-  }
-
-  // office-text-extractor is an optional root dependency: its xlsx tarball
-  // comes from cdn.sheetjs.com, which some proxies block, and npm then skips it.
-  const hasExtractor = (() => {
-    try {
-      createRequire(import.meta.url).resolve("office-text-extractor");
-      return true;
-    } catch {
-      return false;
-    }
-  })();
-
-  it.runIf(!hasExtractor)(
-    "names the missing package when office-text-extractor is absent",
-    async () => {
-      const result = await run(
-        `import { extractText } from "@nodetool-ai/sandbox-pptx";
-         try { await extractText(fromBase64("${pptxBase64()}")); return "no throw"; }
-         catch (e) { return e.message; }`,
-        "pptx"
-      );
-      expect(result.success).toBe(true);
-      expect(result.result).toMatch(
-        /optional "office-text-extractor" package is not installed/
-      );
-    }
-  );
-
-  it.runIf(hasExtractor)("extracts full text from all slides", async () => {
-    const b64 = pptxBase64();
-    const result = await run(
-      `import { extractText } from "@nodetool-ai/sandbox-pptx";
-       return await extractText(fromBase64("${b64}"));`,
-      "pptx"
-    );
-    expect(result.success).toBe(true);
-    const text = String(result.result);
-    expect(text).toContain("Welcome to slide one");
-    expect(text).toContain("Slide two title");
-    expect(text).toContain("Bullet point");
-  });
-
-  it("extracts text per slide, preserving order", async () => {
-    const b64 = pptxBase64();
-    const result = await run(
-      `import { extractSlides } from "@nodetool-ai/sandbox-pptx";
-       return await extractSlides(fromBase64("${b64}"));`,
-      "pptx"
-    );
-    expect(result.success).toBe(true);
-    const slides = result.result as Array<{ slideNumber: number; text: string }>;
-    expect(slides).toHaveLength(2);
-    expect(slides[0].slideNumber).toBe(1);
-    expect(slides[0].text).toContain("Welcome to slide one");
-    expect(slides[1].slideNumber).toBe(2);
-    expect(slides[1].text).toContain("Slide two title");
-  });
-
-  it("rejects non-binary input", async () => {
-    const result = await run(
-      `import { extractText } from "@nodetool-ai/sandbox-pptx";
-       try { await extractText("text"); return "no throw"; }
-       catch (e) { return e.message; }`,
-      "pptx"
-    );
-    expect(result.success).toBe(true);
-    expect(result.result).toMatch(/must be a Uint8Array/);
-  });
-});
-
-// ---------------------------------------------------------------------------
 // Fabric.js (canvas rendering / SVG)
 // ---------------------------------------------------------------------------
 
@@ -1161,6 +672,162 @@ describe("sandbox-fabric in the guest", () => {
     expect(typeof result.result).toBe("string");
     expect(result.result).toMatch(/^data:image\/png;base64,/);
   });
+
+  it("refuses an image source that is not an inline raster data URI", async () => {
+    for (const src of ["file:///etc/hostname", "http://127.0.0.1:1/x.png", "data:image/svg+xml;base64,PHN2Zy8+"]) {
+      const result = await run(
+        `import { render } from "@nodetool-ai/sandbox-fabric";
+         return await render({
+           width: 4,
+           height: 4,
+           objects: [{ type: "Image", src: ${JSON.stringify(src)} }]
+         });`,
+        "fabric"
+      );
+      expect(result.success).toBe(false);
+      expect(String(result.error)).toMatch(/inline data:image URI/);
+    }
+  });
+
+  it("refuses an external source nested in a clip path or pattern", async () => {
+    const result = await run(
+      `import { renderSVG } from "@nodetool-ai/sandbox-fabric";
+       return await renderSVG({
+         width: 4,
+         height: 4,
+         objects: [{ type: "rect", width: 4, height: 4,
+           fill: { type: "pattern", source: "file:///etc/hostname" } }]
+       });`,
+      "fabric"
+    );
+    expect(result.success).toBe(false);
+    expect(String(result.error)).toMatch(/source must be an inline data:image URI/);
+  });
+
+  it("refuses an SVG that references an external resource", async () => {
+    for (const svg of [
+      '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><image xlink:href="file:///etc/hostname"/></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg"><rect style="fill:url(http://127.0.0.1:1/p)"/></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg"><style>@import "file:///x.css";</style></svg>'
+    ]) {
+      const result = await run(
+        `import { loadSVG } from "@nodetool-ai/sandbox-fabric";
+         return await loadSVG(${JSON.stringify(svg)});`,
+        "fabric"
+      );
+      expect(result.success).toBe(false);
+      expect(String(result.error)).toMatch(/external resource|@import/);
+    }
+  });
+
+  it("passes an SVG with fragment references and an inline image", () => {
+    expect(() =>
+      assertSvgHasNoExternalResources(
+        "test",
+        '<svg xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g"/></defs>' +
+          '<rect fill="url(#g)"/><use href="#g"/><image href="data:image/png;base64,iVBORw0KGgo="/></svg>'
+      )
+    ).not.toThrow();
+  });
+
+  it("refuses an output larger than the pixel cap before rendering", async () => {
+    const result = await run(
+      `import { render } from "@nodetool-ai/sandbox-fabric";
+       return await render({ width: 8000, height: 8000 }, { multiplier: 4 });`,
+      "fabric"
+    );
+    expect(result.success).toBe(false);
+    expect(String(result.error)).toMatch(/at most 16777216 pixels/);
+  });
+
+  it("refuses an image source given as an array or other non-string value", async () => {
+    // Fabric assigns `src` to an image as is, so an array stringifies to the
+    // URL it holds and would load it.
+    for (const src of [["file:///etc/hostname"], ["http://127.0.0.1:1/x.png"], { toString: "x" }, 1]) {
+      const result = await run(
+        `import { render } from "@nodetool-ai/sandbox-fabric";
+         return await render({
+           width: 4,
+           height: 4,
+           objects: [{ type: "Image", src: ${JSON.stringify(src)} }]
+         });`,
+        "fabric"
+      );
+      expect(result.success).toBe(false);
+      expect(String(result.error)).toMatch(/src must be a string/);
+    }
+  });
+
+  it("refuses a scene with more shadows than the output size allows", () => {
+    const shadowed = (count: number) => ({
+      objects: Array.from({ length: count }, () => ({
+        type: "rect",
+        width: 10,
+        height: 10,
+        shadow: { color: "#000", blur: 20, offsetX: 1, offsetY: 1 }
+      }))
+    });
+    const large = 4096 * 4096;
+    expect(() => assertRenderBudget("test", shadowed(2), large)).not.toThrow();
+    expect(() => assertRenderBudget("test", shadowed(3), large)).toThrow(/too many shadows and image filters/);
+    // A small canvas affords more, up to a fixed count.
+    expect(() => assertRenderBudget("test", shadowed(32), 512 * 512)).not.toThrow();
+    expect(() => assertRenderBudget("test", shadowed(33), 16)).toThrow(/too many shadows and image filters/);
+  });
+
+  it("counts shadows and filters inside groups", () => {
+    const scene = {
+      objects: [{
+        type: "group",
+        objects: [
+          { type: "image", src: "data:image/png;base64,iVBORw0KGgo=", filters: [{ type: "Blur" }, { type: "Grayscale" }] },
+          { type: "rect", shadow: "rgba(0,0,0,0.5) 2px 2px 10px" },
+          { type: "rect", shadow: { blur: 5 } }
+        ]
+      }]
+    };
+    expect(() => assertRenderBudget("test", scene, MAX_FABRIC_EFFECT_PIXELS / 4)).not.toThrow();
+    expect(() => assertRenderBudget("test", scene, MAX_FABRIC_EFFECT_PIXELS / 3)).toThrow(/too many shadows/);
+  });
+
+  it("refuses a shadow blur over the limit, in object or string form", () => {
+    for (const shadow of [{ blur: 2000 }, "#000000 1px 1px 2000px"]) {
+      expect(() =>
+        assertRenderBudget("test", { objects: [{ type: "rect", shadow }] }, 16)
+      ).toThrow(/shadow blur must be at most 100/);
+    }
+  });
+
+  it("refuses a scene with too many objects", () => {
+    const objects = Array.from({ length: 2001 }, () => ({ type: "rect", width: 1, height: 1 }));
+    expect(() => assertRenderBudget("test", { objects }, 16)).toThrow(/at most 2000 objects/);
+  });
+
+  it("applies the render budget to guest calls", async () => {
+    const result = await run(
+      `import { render } from "@nodetool-ai/sandbox-fabric";
+       const objects = [];
+       for (let i = 0; i < 20; i++) {
+         objects.push({ type: "rect", width: 4096, height: 4096, shadow: { color: "#000", blur: 100 } });
+       }
+       return await render({ width: 4096, height: 4096, objects });`,
+      "fabric"
+    );
+    expect(result.success).toBe(false);
+    expect(String(result.error)).toMatch(/too many shadows and image filters/);
+  });
+
+  it("returns plain objects from loadSVG", async () => {
+    const result = await run(
+      `import { loadSVG } from "@nodetool-ai/sandbox-fabric";
+       const parsed = await loadSVG('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10"><rect x="1" y="2" width="5" height="4" fill="#ff0000"/></svg>');
+       return { count: parsed.objects.length, type: parsed.objects[0].type, fill: parsed.objects[0].fill };`,
+      "fabric"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toMatchObject({ count: 1, fill: "#ff0000" });
+    expect(String((result.result as { type: string }).type).toLowerCase()).toBe("rect");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -1197,10 +864,6 @@ describe("@nodetool-ai/sandbox-pdflib", () => {
     expect(result.result).toEqual({ ok: true, bigger: true });
   });
 });
-
-// ---------------------------------------------------------------------------
-// PptxGenJS (write)
-// ---------------------------------------------------------------------------
 
 describe("@nodetool-ai/sandbox-chrono", () => {
   it("parses a relative date against a fixed now", async () => {
@@ -1278,34 +941,6 @@ describe("@nodetool-ai/sandbox-exif", () => {
     );
     expect(result.success).toBe(true);
     expect(result.result).toMatch(/must be a Uint8Array/);
-  });
-});
-
-describe("@nodetool-ai/sandbox-pptxgen", () => {
-  it("builds a deck with text and an embedded PNG", async () => {
-    const result = await run(
-      `import { build } from "@nodetool-ai/sandbox-pptxgen";
-       const bytes = await build({
-         title: "Deck",
-         slides: [{ items: [
-           { type: "text", x: 0.5, y: 0.5, w: 8, h: 1, text: "Hello" },
-           { type: "image", x: 1, y: 2, w: 1, h: 1,
-             data: fromBase64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/FxoAAAAASUVORK5CYII=") }
-         ] }]
-       });
-       return toBase64(bytes);`,
-      "pptxgen"
-    );
-    expect(result.success).toBe(true);
-    expect(typeof result.result).toBe("string");
-    if (typeof result.result !== "string") {
-      throw new Error("PPTX build did not return base64 bytes");
-    }
-    const archive = unzipSync(Buffer.from(result.result, "base64"));
-    expect(strFromU8(archive["ppt/slides/slide1.xml"])).toContain("Hello");
-    expect(
-      Object.keys(archive).filter((name) => name.startsWith("ppt/media/") && name.endsWith(".png"))
-    ).toHaveLength(1);
   });
 });
 

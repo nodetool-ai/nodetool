@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { z } from "zod";
 import { importPack } from "@nodetool-ai/node-catalog";
 import { createLogger, getManagedWorkspaceDir, managedWorkspaceKey, workspaceStorageKind } from "@nodetool-ai/config";
@@ -71,8 +71,11 @@ async function workspaceOf(user: string, game: Game): Promise<RunWorkspace | nul
 }
 
 async function projectWorkspace(user: string, projectId: string): Promise<Workspace | null> {
+  // The project folder belongs to the project. A game keeps its own row, so
+  // its sources never land in the folder.
+  const folderId = (await Project.findOwned(user, projectId))?.workspace_id ?? null;
   const existing = (await Workspace.listByProject(user, projectId))
-    .find((row) => row.isAccessible() && (process.env["NODETOOL_ENV"] !== "production" || row.isManaged()));
+    .find((row) => row.id !== folderId && row.isAccessible() && (process.env["NODETOOL_ENV"] !== "production" || row.isManaged()));
   if (existing) return existing;
   const defaultRow = await Workspace.ensureDefault(user);
   const managedPath = workspaceStorageKind() === "cloud"
@@ -86,11 +89,11 @@ async function projectWorkspace(user: string, projectId: string): Promise<Worksp
   });
   const root = openWorkspace(rootRow);
   if (!root) return null;
-  const segment = createHash("sha256").update(projectId).digest("hex");
-  await root.mkdir(`projects/${segment}`);
-  const path = rootRow.isVirtual()
-    ? `${rootRow.path}/projects/${segment}`
-    : join(rootRow.path, "projects", segment);
+  // A cloud project folder uses the same managed key shape, so take the
+  // first segment no row holds yet.
+  const path = await Workspace.freeManagedProjectPath(projectId, (segment) =>
+    rootRow.isVirtual() ? `${rootRow.path}/projects/${segment}` : join(rootRow.path, "projects", segment));
+  await root.mkdir(`projects/${basename(path)}`);
   return (await Workspace.create({
     user_id: user,
     project_id: projectId,

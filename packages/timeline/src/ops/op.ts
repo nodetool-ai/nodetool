@@ -370,6 +370,7 @@ export interface AddMarkerOp {
   label?: string;
   color?: string;
   note?: string;
+  durationMs?: number;
 }
 
 export interface DeleteMarkerOp {
@@ -485,7 +486,11 @@ type ContractOpName =
   | "plan_beats"
   | "update_beat"
   | "remove_beat"
-  | "generate_from_beats";
+  | "generate_from_beats"
+  | "set_track"
+  | "ripple_delete"
+  | "close_gap"
+  | "cut_transcript";
 type ContractOp = {
   [K in ContractOpName]: { op: K } & (K extends "add_midi_clip"
     ? Omit<
@@ -573,6 +578,10 @@ export const TIMELINE_OP_NAMES = [
   "add_track",
   "move_track",
   "delete_track",
+  "set_track",
+  "ripple_delete",
+  "close_gap",
+  "cut_transcript",
   "add_text_clip",
   "add_media_clip",
   "add_shape_clip",

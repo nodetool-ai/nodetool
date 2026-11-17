@@ -19,6 +19,11 @@ process.env.ASSET_FOLDER = mkdtempSync(join(tmpdir(), "nt-autosave-test-"));
 import { describe, it, expect, beforeEach } from "vitest";
 import { initTestDb, Asset } from "@nodetool-ai/models";
 import { RAW_RGBA_MIME } from "@nodetool-ai/protocol";
+import {
+  getProjectFolderResolver,
+  setProjectFolderResolver
+} from "@nodetool-ai/runtime";
+import { WORKSPACE_FINGERPRINT_KEYS } from "@nodetool-ai/asset-services/project-asset-file";
 
 import {
   autoSaveAssets,
@@ -56,6 +61,19 @@ const saveOpts = (
   nodeId: "node-one",
   ...overrides
 });
+
+/**
+ * What auto-save stored about the generation, without the file fingerprint
+ * every asset in a project folder also carries.
+ */
+function savedMetadata(
+  row: Asset | null | undefined
+): Record<string, unknown> {
+  const owned = new Set<string>(WORKSPACE_FINGERPRINT_KEYS);
+  return Object.fromEntries(
+    Object.entries(row?.metadata ?? {}).filter(([key]) => !owned.has(key))
+  );
+}
 
 async function assetsForJob(jobId: string): Promise<Asset[]> {
   const [rows] = await Asset.paginate("1", { jobId, limit: 1000 });
@@ -254,11 +272,15 @@ describe("autoSaveAssets", () => {
     expect(row?.job_id).toBe(opts.jobId);
     expect(row?.node_id).toBe("node-one");
     expect(row?.size).toBe(PNG_1x1.length);
-    expect(row?.metadata).toEqual({
+    expect(savedMetadata(row)).toEqual({
       prompt: "a fox in snow",
       generation_index: 3,
       output_name: "out"
     });
+    // The output is a file in the run's project folder, here Personal's.
+    // The folder outlives each test's database, so the name may be suffixed.
+    expect(row?.workspace_path).toMatch(/^Generated\/image_node-one(-\d+)?\.png$/);
+    expect(row?.metadata).toMatchObject({ workspace_size: PNG_1x1.length });
   });
 
   it("keeps the model and the settings the node ran with", async () => {
@@ -281,7 +303,7 @@ describe("autoSaveAssets", () => {
       })
     );
     const row = await Asset.find("1", image.asset_id as string);
-    expect(row?.metadata).toEqual({
+    expect(savedMetadata(row)).toEqual({
       prompt: "a fox in snow",
       generation: {
         provider: "fal",
@@ -313,7 +335,7 @@ describe("autoSaveAssets", () => {
       await autoSaveAssets({ image }, saveOpts({ properties: { prompt } }));
       const row = await Asset.find("1", image.asset_id as string);
       // Only the output handle, which every media asset carries.
-      expect(row?.metadata).toEqual({ output_name: "image" });
+      expect(savedMetadata(row)).toEqual({ output_name: "image" });
     }
   });
 
@@ -428,7 +450,11 @@ describe("autoSaveAssets", () => {
     expect(rows).toHaveLength(1);
     const row = rows[0];
     expect(row.content_type).toBe("text/plain");
-    expect(row.metadata).toEqual({ text: "hello world", generation_index: 5 });
+    expect(savedMetadata(row)).toEqual({
+      text: "hello world",
+      generation_index: 5
+    });
+    expect(row.workspace_path).toMatch(/^Generated\/text_node-one(-\d+)?\.txt$/);
     const bytes = await retrieveAssetBytes(getAssetAdapter(), "1", row.id, "text/plain");
     expect(new TextDecoder().decode(bytes ?? new Uint8Array())).toBe("hello world");
   });
@@ -501,27 +527,40 @@ describe("autoSaveAssets", () => {
     expect(await assetsForJob(optsBig.jobId)).toHaveLength(0);
   });
 
-  it("swallows storage failures on every persistence branch instead of throwing", async () => {
-    // A NUL byte in the user id makes the file adapter's path invalid, so
-    // adapter.store rejects inside each branch's try. The save must warn and
-    // move on — a failed autosave must never take the relay down.
-    const badUser = "u\0bad";
-    const image: Record<string, unknown> = { type: "image", data: PNG_B64 };
-    await expect(
-      autoSaveAssets({ image }, saveOpts({ userId: badUser }))
-    ).resolves.toBeUndefined();
-    expect(image.asset_id).toBeUndefined();
+  it("swallows a save that fails on every persistence branch instead of throwing", async () => {
+    // With the project folder unreachable no save can land. Each branch must
+    // warn and move on: a failed autosave must never take the relay down, and
+    // it must not write the bytes anywhere else.
+    const resolver = getProjectFolderResolver();
+    setProjectFolderResolver(async (projectId) => ({
+      ok: false,
+      projectId: projectId ?? null,
+      reason: "Project folder not found: unplugged"
+    }));
+    try {
+      const image: Record<string, unknown> = { type: "image", data: PNG_B64 };
+      const imageOpts = saveOpts();
+      await expect(
+        autoSaveAssets({ image }, imageOpts)
+      ).resolves.toBeUndefined();
+      expect(image.asset_id).toBeUndefined();
 
-    await expect(
-      autoSaveAssets(
-        { answer: "hello" },
-        saveOpts({ userId: badUser, textOutputName: "answer" })
-      )
-    ).resolves.toBeUndefined();
+      const textOpts = saveOpts({ textOutputName: "answer" });
+      await expect(
+        autoSaveAssets({ answer: "hello" }, textOpts)
+      ).resolves.toBeUndefined();
 
-    await expect(
-      autoSaveAssets({ items: [1] }, saveOpts({ userId: badUser }))
-    ).resolves.toBeUndefined();
+      const jsonOpts = saveOpts();
+      await expect(
+        autoSaveAssets({ items: [1] }, jsonOpts)
+      ).resolves.toBeUndefined();
+
+      for (const opts of [imageOpts, textOpts, jsonOpts]) {
+        expect(await assetsForJob(opts.jobId)).toEqual([]);
+      }
+    } finally {
+      setProjectFolderResolver(resolver);
+    }
   });
 
   it("routes an empty text output into the JSON fallback instead of a text asset", async () => {

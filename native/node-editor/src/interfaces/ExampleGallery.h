@@ -1,5 +1,6 @@
 #pragma once
 #include <QJsonArray>
+#include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QObject>
 #include <QUrl>
@@ -30,10 +31,10 @@ class ExampleGallery : public QObject {
     // The rows that match the group filter and the search, in group order.
     // Each row: key, group, name, secondary, description, thumbnail (a server
     // path or empty) and tags.
-    Q_PROPERTY(QVariantList rows READ rows NOTIFY changed)
+    Q_PROPERTY(QVariantList rows READ rows NOTIFY listChanged)
     // The groups with their count of matching rows: key, label, count,
     // loading and error.
-    Q_PROPERTY(QVariantList groups READ groups NOTIFY changed)
+    Q_PROPERTY(QVariantList groups READ groups NOTIFY listChanged)
     Q_PROPERTY(QString filter READ filter WRITE setFilter NOTIFY changed)
     Q_PROPERTY(QString search READ search WRITE setSearch NOTIFY changed)
     Q_PROPERTY(bool connected READ connected NOTIFY changed)
@@ -68,6 +69,11 @@ public:
     Q_INVOKABLE void refresh();
     // Opens the example with this row key.
     Q_INVOKABLE void open(const QString &key);
+    // The example's graph, for a drag onto the canvas that pastes its nodes
+    // (the web "example-workflow" drag). Empty for an unknown key.
+    QJsonObject graph(const QString &key) const;
+    // The drag's MIME type. Its data is the row key.
+    static constexpr auto DragMime = "application/x-nodetool-example";
     Q_INVOKABLE void connectServer() { emit connectRequested(); }
     Q_INVOKABLE void close() { emit closeRequested(); }
 
@@ -77,6 +83,9 @@ public:
 
 signals:
     void changed();
+    // The rows or the groups changed. A copy in progress does not emit it,
+    // so the panel keeps its cards while openingKey changes.
+    void listChanged();
     // A server example was copied into the account under this id.
     void workflowCopied(const QString &id, const QString &exampleName);
     void bundledRequested(const QString &resource);
@@ -88,6 +97,7 @@ private:
     struct Row {
         QString key, group, name, description, secondary, thumbnail, resource, packageName, seed;
         QStringList tags;
+        QJsonObject graph;
     };
     QVariantMap rowMap(const Row &row) const;
     bool shown(const Row &row) const;

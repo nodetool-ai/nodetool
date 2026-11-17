@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import {
+  link,
   lstat,
   mkdir,
   open,
@@ -10,6 +11,21 @@ import {
   type FileHandle
 } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
+
+export interface SafeRootCreateOptions {
+  /**
+   * A file name beside the target that belongs to the caller alone. The
+   * bytes are written under it first and the target is then given them with
+   * a hard link, which fails when something is at the target. So the target
+   * holds the whole file or nothing, also when the process dies during the
+   * write. A file under this name when the call starts is what such a writer
+   * left, and is removed. The name is always removed before the call returns.
+   */
+  stagingName?: string;
+}
+
+/** `link` errors that mean the file system has no hard links. */
+const NO_HARD_LINKS = new Set(["EPERM", "ENOTSUP", "EOPNOTSUPP", "ENOSYS", "EISDIR"]);
 
 /**
  * A directory that confines every file operation to itself.
@@ -32,6 +48,16 @@ export interface SafeRoot {
   /** Atomically create or replace a file, creating parent directories. */
   write(relativePath: string, data: Uint8Array): Promise<void>;
   /**
+   * Create a file only when nothing is at the path, creating parent
+   * directories. False when something is there, and it is left untouched.
+   * With `stagingName`, the path gets the whole file in one step.
+   */
+  create(
+    relativePath: string,
+    data: Uint8Array,
+    options?: SafeRootCreateOptions
+  ): Promise<boolean>;
+  /**
    * Atomically copy `sourcePath` (an absolute path outside the root is fine)
    * into the root. Rejects a symlinked or hardlinked source.
    */
@@ -40,6 +66,18 @@ export interface SafeRoot {
     sourcePath: string,
     options: { maxBytes: number }
   ): Promise<void>;
+  /**
+   * Copy `sourcePath` into the root only when nothing is at the path. False
+   * when something is there, and it is left untouched. The bytes go to a
+   * staging file of this call's own, and the path gets the whole file in one
+   * step that fails when anything is at the path. Nothing but the staging
+   * file is removed, whatever happens.
+   */
+  copyInNew(
+    relativePath: string,
+    sourcePath: string,
+    options: { maxBytes: number }
+  ): Promise<boolean>;
   /**
    * Whether the path exists. Symlinks are followed while they stay inside the
    * root; one that leaves it throws.
@@ -176,6 +214,40 @@ async function readBounded(handle: FileHandle, maxBytes: number): Promise<Buffer
   }
 }
 
+/** Copy `source` from its position to `target` in chunks, up to `maxBytes`. */
+async function copyChunks(
+  source: FileHandle,
+  target: FileHandle,
+  maxBytes: number
+): Promise<void> {
+  const buffer = Buffer.allocUnsafe(COPY_CHUNK_BYTES);
+  let total = 0;
+  for (;;) {
+    const { bytesRead } = await source.read(buffer, 0, buffer.length, null);
+    if (bytesRead === 0) return;
+    total += bytesRead;
+    if (total > maxBytes) {
+      throw new SafeRootError("too-large", `file exceeds limit of ${maxBytes} bytes`);
+    }
+    let offset = 0;
+    while (offset < bytesRead) {
+      const { bytesWritten } = await target.write(buffer, offset, bytesRead - offset);
+      offset += bytesWritten;
+    }
+  }
+}
+
+/** Throw when `sourcePath` no longer names the file that was opened. */
+async function assertSourceUnchanged(
+  sourcePath: string,
+  opened: { dev: number; ino: number }
+): Promise<void> {
+  const current = await lstat(sourcePath);
+  if (current.isSymbolicLink() || !sameFile(current, opened)) {
+    throw new SafeRootError("path-changed", "copy source changed");
+  }
+}
+
 /** Persist a rename. Directories cannot be opened for fsync on Windows. */
 async function syncDirectory(dir: string): Promise<void> {
   if (process.platform === "win32") return;
@@ -297,34 +369,75 @@ class SafeRootImpl implements SafeRoot {
       const sourceStat = await source.stat();
       await this.replaceFile(
         relativePath,
-        async (target) => {
-          const buffer = Buffer.allocUnsafe(COPY_CHUNK_BYTES);
-          let total = 0;
-          for (;;) {
-            const { bytesRead } = await source.read(buffer, 0, buffer.length, null);
-            if (bytesRead === 0) break;
-            total += bytesRead;
-            if (total > options.maxBytes) {
-              throw new SafeRootError(
-                "too-large",
-                `file exceeds limit of ${options.maxBytes} bytes`
-              );
-            }
-            let offset = 0;
-            while (offset < bytesRead) {
-              const { bytesWritten } = await target.write(buffer, offset, bytesRead - offset);
-              offset += bytesWritten;
-            }
-          }
-        },
-        async () => {
-          // The source path must still name the file that was copied.
-          const current = await lstat(sourcePath);
-          if (current.isSymbolicLink() || !sameFile(current, sourceStat)) {
-            throw new SafeRootError("path-changed", "copy source changed");
-          }
-        }
+        (target) => copyChunks(source, target, options.maxBytes),
+        // The source path must still name the file that was copied.
+        () => assertSourceUnchanged(sourcePath, sourceStat)
       );
+    } finally {
+      await source.close().catch(() => {});
+    }
+  }
+
+  /**
+   * The copy is written and synced under a staging name of this call's own
+   * beside the target, and the target is then linked to it. `link` fails
+   * when anything is at the target, so the check and the publish are one
+   * step and nothing is replaced: a file another app saved at the target
+   * while the copy ran stays as it is. A process that dies leaves no target,
+   * or the whole file, plus at most the staging file.
+   *
+   * A file system without hard links gets the target opened exclusively and
+   * written in place from the staging file.
+   */
+  async copyInNew(
+    relativePath: string,
+    sourcePath: string,
+    options: { maxBytes: number }
+  ): Promise<boolean> {
+    if (sourcePath.includes("\0")) {
+      throw new SafeRootError("invalid-path", "source path contains a NUL byte");
+    }
+    const source = await openVerifiedFile(sourcePath, options.maxBytes);
+    try {
+      const sourceStat = await source.stat();
+      const { parent, name } = await this.ensureParent(relativePath);
+      const target = join(parent, name);
+      const staging = join(parent, `.${name}.${process.pid}.${randomUUID()}.tmp`);
+      const handle = await open(
+        staging,
+        constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | noFollowFlag(),
+        0o600
+      );
+      try {
+        try {
+          // `open` applies the umask; set the mode the file should have.
+          await handle.chmod(0o600);
+          await copyChunks(source, handle, options.maxBytes);
+          await handle.sync();
+        } finally {
+          await handle.close().catch(() => {});
+        }
+        await assertSourceUnchanged(sourcePath, sourceStat);
+        try {
+          await link(staging, target);
+        } catch (error) {
+          const code = errorCode(error);
+          if (code === "EEXIST") return false;
+          if (code === undefined || !NO_HARD_LINKS.has(code)) throw error;
+          return await this.createInPlace(parent, target, async (into) => {
+            const staged = await open(staging, readFlags());
+            try {
+              await copyChunks(staged, into, options.maxBytes);
+            } finally {
+              await staged.close().catch(() => {});
+            }
+          });
+        }
+      } finally {
+        await rm(staging, { force: true }).catch(() => {});
+      }
+      await syncDirectory(parent);
+      return true;
     } finally {
       await source.close().catch(() => {});
     }
@@ -336,11 +449,13 @@ class SafeRootImpl implements SafeRoot {
    * over the target. A symlink at the target itself is replaced, never
    * written through, and only when it points inside the root.
    */
-  private async replaceFile(
-    relativePath: string,
-    fill: (handle: FileHandle) => Promise<void>,
-    beforeCommit?: () => Promise<void>
-  ): Promise<void> {
+  /**
+   * Create the directories above `relativePath` and check each one: no
+   * symlinked component, and the last one inside the root.
+   */
+  private async ensureParent(
+    relativePath: string
+  ): Promise<{ parent: string; name: string }> {
     const segments = this.segments(relativePath);
     const name = segments.pop()!;
     let parent = this.dir;
@@ -362,7 +477,143 @@ class SafeRootImpl implements SafeRoot {
     if (!isInside(this.dir, await realpath(parent))) {
       throw new SafeRootError("outside-root", "directory is outside the root");
     }
+    return { parent, name };
+  }
 
+  /**
+   * Create a file only when nothing is at the path. False when something is,
+   * and that file is left untouched.
+   *
+   * The file is opened with `O_EXCL`, so the check and the create are one
+   * step for every process on the machine: of two writers racing for one
+   * name exactly one gets it. A symlink at the path, dangling or not, counts
+   * as taken. The bytes are written in place, since a rename would replace
+   * whatever another writer put there in the meantime.
+   */
+  async create(
+    relativePath: string,
+    data: Uint8Array,
+    options: SafeRootCreateOptions = {}
+  ): Promise<boolean> {
+    const { parent, name } = await this.ensureParent(relativePath);
+    const target = join(parent, name);
+    if (options.stagingName !== undefined) {
+      return this.createStaged(parent, name, options.stagingName, data);
+    }
+    return this.createInPlace(parent, target, (handle) => handle.writeFile(data));
+  }
+
+  /**
+   * Open `target` exclusively and let `fill` write into it. False when
+   * something is at `target`. A file is removed again only after the
+   * exclusive open made it, so nothing another writer put there is ever
+   * touched.
+   */
+  private async createInPlace(
+    parent: string,
+    target: string,
+    fill: (handle: FileHandle) => Promise<void>
+  ): Promise<boolean> {
+    let handle: FileHandle;
+    try {
+      handle = await open(
+        target,
+        constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | noFollowFlag(),
+        0o600
+      );
+    } catch (error) {
+      if (errorCode(error) === "EEXIST") return false;
+      throw error;
+    }
+    try {
+      try {
+        // `open` applies the umask; set the mode the file should have.
+        await handle.chmod(0o600);
+        await fill(handle);
+        await handle.sync();
+      } finally {
+        await handle.close().catch(() => {});
+      }
+      await syncDirectory(parent);
+    } catch (error) {
+      // The exclusive open made this file, so it is this call's to remove.
+      await rm(target, { force: true }).catch(() => {});
+      throw error;
+    }
+    return true;
+  }
+
+  /**
+   * {@link create} through a staging file: the bytes are written and synced
+   * under `stagingName` beside the target, and the target is then linked to
+   * them. `link` fails when anything is at the target, a symlink included,
+   * so the check and the publish are one step and nothing is replaced. A
+   * process that dies at any point leaves either no target or the whole
+   * file, plus at most the staging file, which the next call removes.
+   *
+   * A file system without hard links gets the unstaged create instead: the
+   * target is opened exclusively and written in place.
+   */
+  private async createStaged(
+    parent: string,
+    name: string,
+    stagingName: string,
+    data: Uint8Array
+  ): Promise<boolean> {
+    if (
+      stagingName === "" ||
+      stagingName === "." ||
+      stagingName === ".." ||
+      stagingName === name ||
+      stagingName.includes("\0") ||
+      /[\\/]/.test(stagingName)
+    ) {
+      throw new SafeRootError(
+        "invalid-path",
+        "staging name must be one file name beside the target"
+      );
+    }
+    const target = join(parent, name);
+    const staging = join(parent, stagingName);
+    // The name is the caller's own: what is under it is a dead writer's.
+    await rm(staging, { force: true });
+    const handle = await open(
+      staging,
+      constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | noFollowFlag(),
+      0o600
+    );
+    try {
+      try {
+        // `open` applies the umask; set the mode the file should have.
+        await handle.chmod(0o600);
+        await handle.writeFile(data);
+        await handle.sync();
+      } finally {
+        await handle.close().catch(() => {});
+      }
+      try {
+        await link(staging, target);
+      } catch (error) {
+        const code = errorCode(error);
+        if (code === "EEXIST") return false;
+        if (code === undefined || !NO_HARD_LINKS.has(code)) throw error;
+        return await this.createInPlace(parent, target, (into) =>
+          into.writeFile(data)
+        );
+      }
+    } finally {
+      await rm(staging, { force: true }).catch(() => {});
+    }
+    await syncDirectory(parent);
+    return true;
+  }
+
+  private async replaceFile(
+    relativePath: string,
+    fill: (handle: FileHandle) => Promise<void>,
+    beforeCommit?: () => Promise<void>
+  ): Promise<void> {
+    const { parent, name } = await this.ensureParent(relativePath);
     const target = join(parent, name);
     let mode = 0o600;
     try {

@@ -14,7 +14,7 @@ vi.mock("@nodetool-ai/execution/service", () => ({
   },
   setWorkspaceCloudStorage: vi.fn(),
   usesCloudWorkspaces: () => false,
-  resolveWorkflowWorkspace: vi.fn(),
+  resolveProjectWorkspace: vi.fn(),
   workspaceFromRow: vi.fn(),
   buildWorkspaceExecutionContext: vi.fn()
 }));
@@ -23,6 +23,8 @@ vi.mock("@nodetool-ai/asset-services/storage", () => ({
   getAssetAdapter: vi.fn()
 }));
 
+import { Project, initTestDb } from "@nodetool-ai/models";
+import { notifyProjectFolderChanged } from "@nodetool-ai/project-services/project-index";
 import { initWorkspaceChangeEvents } from "../src/lib/workflow-workspace.js";
 import { resourceEvents } from "../src/resource-events.js";
 
@@ -88,5 +90,28 @@ describe("initWorkspaceChangeEvents", () => {
     registered?.({ kind: "write", path: "b.md", workspaceId: "ws-1", userId: "u1" });
     vi.runAllTimers();
     expect(seen).toHaveLength(2);
+  });
+
+  it("pushes a change the reconciler or the folder watcher found to the project's workspace", async () => {
+    initTestDb();
+    await Project.create<Project>({
+      id: "project-a",
+      user_id: "user-1",
+      name: "A",
+      workspace_id: "ws-a"
+    });
+
+    notifyProjectFolderChanged("project-a", "user-1");
+    notifyProjectFolderChanged("project-a", "user-1");
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    expect(seen).toEqual([
+      {
+        event: "updated",
+        resource_type: "workspacefile",
+        resource: { id: "ws-a" },
+        userId: "user-1"
+      }
+    ]);
   });
 });

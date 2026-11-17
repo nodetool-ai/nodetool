@@ -104,14 +104,17 @@ private slots:
         QTRY_COMPARE(inspector.size(), 1);
         QVERIFY(!named(root, "header-more"));
         // A disabled command sends nothing. An enabled one sends its menu name.
-        click(view, named(root, "header-versions"));
+        // Save and Version history are in the application menu, not the toolbar.
+        QVERIFY(!named(root, "header-save"));
+        QVERIFY(!named(root, "header-versions"));
+        click(view, named(root, "header-metadata"));
         QTest::qWait(20);
         QCOMPARE(commands.size(), 0);
-        header.setActions({"Version history", "Instant Update: On"}, true, false);
-        QTRY_VERIFY(named(root, "header-versions")->isEnabled());
-        click(view, named(root, "header-versions"));
+        header.setActions({"Workflow metadata", "Instant Update: On"}, true, false);
+        QTRY_VERIFY(named(root, "header-metadata")->isEnabled());
+        click(view, named(root, "header-metadata"));
         QTRY_COMPARE(commands.size(), 1);
-        QCOMPARE(commands.first().first().toString(), QString("Version history"));
+        QCOMPARE(commands.first().first().toString(), QString("Workflow metadata"));
         QVERIFY(named(root, "header-instant-update")->property("active").toBool());
         click(view, named(root, "header-instant-update"));
         QTRY_COMPARE(commands.size(), 2);
@@ -139,7 +142,6 @@ private slots:
         QSignalSpy examples(&panels, &PanelLayout::toggleExamplesRequested);
         QSignalSpy catalog(&panels, &PanelLayout::toggleCatalogRequested);
         QSignalSpy panel(&panels, &PanelLayout::togglePanelRequested);
-        QSignalSpy hints(&panels, &PanelLayout::toolTipRequested);
 
         QQuickView view;
         show(view, {{"panels", QVariant::fromValue(&panels)}}, "Rail.qml", {56, 700});
@@ -161,18 +163,13 @@ private slots:
         click(view, button("rail-panel"));
         QTRY_COMPARE(panel.size(), 1);
 
-        // A view with no native panel stays disabled, and its hover says why.
-        QVERIFY(!button("rail-projects")->isEnabled());
-        QTest::mouseMove(&view, centre(named(root, "rail-projects")));
-        const auto hinted = [&hints](const QString &text) {
-            for (const auto &call : hints) {
-                if (call.first().toString() == text) {
-                    return true;
-                }
-            }
-            return false;
-        };
-        QTRY_VERIFY(hinted("Projects has no native surface yet. Switch projects from the project menu in the tab strip."));
+        // Projects opens the project menu. Its tooltip text is the button's
+        // accessible name (ChromeParityTest checks it shown on hover).
+        QCOMPARE(button("rail-projects")->property("accessibleName").toString(), QString("Switch or create a project"));
+        QSignalSpy projects(&panels, &PanelLayout::projectsRequested);
+        QVERIFY(button("rail-projects")->isEnabled());
+        click(view, button("rail-projects"));
+        QTRY_COMPARE(projects.size(), 1);
 
         panels.setPanels({.examples = true});
         QTRY_VERIFY(button("rail-examples")->property("active").toBool());

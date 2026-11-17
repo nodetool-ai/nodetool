@@ -37,7 +37,7 @@ constexpr double DEFAULT_AUDIO_TRANSITION_MS = 500;
 // TracksRegion.tsx TRACK_HEIGHT_STEP, as a vertical zoom.
 constexpr double TRACK_ZOOM_STEP = 0.25;
 constexpr double AUDIO_TRACK_HEIGHT_STEP_PX = 12;
-constexpr double MIN_TRACK_HEIGHT_PX = 48;
+constexpr double MIN_TRACK_HEIGHT_PX = 24;
 constexpr double MAX_TRACK_HEIGHT_PX = 300;
 constexpr double DEFAULT_TRACK_HEIGHT_PX = 64;
 constexpr double LARGE_VOLUME_STEP_DB = 6;
@@ -419,8 +419,8 @@ const bool registered = [] {
         }},
         {"trimEditLeft", "Trim edit point one frame back", "Editing", [](C g, V c) { return trimEditByFrames(g, -1, c); }},
         {"trimEditRight", "Trim edit point one frame on", "Editing", [](C g, V c) { return trimEditByFrames(g, 1, c); }},
-        {"trimEditLeftLarge", "Trim edit point ten frames back", "Editing", [](C g, V c) { return trimEditByFrames(g, -10, c); }},
-        {"trimEditRightLarge", "Trim edit point ten frames on", "Editing", [](C g, V c) { return trimEditByFrames(g, 10, c); }},
+        {"trimEditLeftLarge", "Trim edit point five frames back", "Editing", [](C g, V c) { return trimEditByFrames(g, -5, c); }},
+        {"trimEditRightLarge", "Trim edit point five frames on", "Editing", [](C g, V c) { return trimEditByFrames(g, 5, c); }},
         {"audioGain", "Audio gain of selected clips", "Editing", [](C g, V) {
             if (g.selection().isEmpty()) return false;
             auto* host = nt::wiring::w::windowItem(&g, "audioGainHost");

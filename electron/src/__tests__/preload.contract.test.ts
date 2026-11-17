@@ -82,6 +82,11 @@ const IpcChannels = {
   VST_CLOSE_EDITOR: "vst-close-editor",
   VST_EVENT: "vst-event",
   SYSTEM_NOTIFICATION_SHOW: "system-notification-show",
+  CLOUD_ACCOUNT_STATE: "cloud-account-state",
+  CLOUD_ACCOUNT_SIGN_IN: "cloud-account-sign-in",
+  CLOUD_ACCOUNT_CANCEL_SIGN_IN: "cloud-account-cancel-sign-in",
+  CLOUD_ACCOUNT_SIGN_OUT: "cloud-account-sign-out",
+  CLOUD_ACCOUNT_EVENT: "cloud-account-event",
 } as const;
 
 jest.mock("../types.d", () => ({ IpcChannels, IpcEvents: {} }));
@@ -177,14 +182,14 @@ describe("preload contract", () => {
   test("runtime package methods route to expected IPC channels", () => {
     jest.mocked(electronMock.ipcRenderer.invoke).mockClear();
 
-    api.packages.installRuntime("tensorflow-js");
-    api.packages.uninstallRuntime("tensorflow-js");
-    api.packages.updateRuntime("tensorflow-js");
+    api.packages.installRuntime("transformers-js");
+    api.packages.uninstallRuntime("transformers-js");
+    api.packages.updateRuntime("transformers-js");
 
     expect(jest.mocked(electronMock.ipcRenderer.invoke).mock.calls).toEqual([
-      [IpcChannels.RUNTIME_PACKAGE_INSTALL, { packageId: "tensorflow-js", installLocation: undefined }],
-      [IpcChannels.RUNTIME_PACKAGE_UNINSTALL, { packageId: "tensorflow-js" }],
-      [IpcChannels.RUNTIME_PACKAGE_UPDATE, { packageId: "tensorflow-js" }],
+      [IpcChannels.RUNTIME_PACKAGE_INSTALL, { packageId: "transformers-js", installLocation: undefined }],
+      [IpcChannels.RUNTIME_PACKAGE_UNINSTALL, { packageId: "transformers-js" }],
+      [IpcChannels.RUNTIME_PACKAGE_UPDATE, { packageId: "transformers-js" }],
     ]);
   });
 
@@ -249,6 +254,27 @@ describe("preload contract", () => {
     ]);
     expect(jest.mocked(electronMock.ipcRenderer.invoke).mock.calls[1][1]).toEqual({ rescan: true });
     expect(jest.mocked(electronMock.ipcRenderer.on).mock.calls[0][0]).toBe(IpcChannels.VST_EVENT);
+  });
+
+  test("cloudAccount methods route to their channels and pass no arguments", () => {
+    jest.mocked(electronMock.ipcRenderer.invoke).mockClear();
+    jest.mocked(electronMock.ipcRenderer.on).mockClear();
+
+    api.cloudAccount.state();
+    api.cloudAccount.signIn();
+    api.cloudAccount.cancelSignIn();
+    api.cloudAccount.signOut();
+    api.cloudAccount.onChange(() => {});
+
+    expect(jest.mocked(electronMock.ipcRenderer.invoke).mock.calls).toEqual([
+      [IpcChannels.CLOUD_ACCOUNT_STATE],
+      [IpcChannels.CLOUD_ACCOUNT_SIGN_IN],
+      [IpcChannels.CLOUD_ACCOUNT_CANCEL_SIGN_IN],
+      [IpcChannels.CLOUD_ACCOUNT_SIGN_OUT],
+    ]);
+    expect(jest.mocked(electronMock.ipcRenderer.on).mock.calls[0][0]).toBe(
+      IpcChannels.CLOUD_ACCOUNT_EVENT,
+    );
   });
 
   test("notifications.show routes to the notification channel with string fields only", () => {

@@ -91,7 +91,16 @@ type AgentExecutionToolCalls = Record<string, Record<string, StepToolCall[]>>;
 const DEFAULT_PERMISSION_MODE: PermissionMode = "default";
 
 /** Decision a user can make on an inline tool-approval prompt. */
-export type ApprovalDecision = "allow" | "allow_for_chat" | "deny";
+/**
+ * An answer to a tool approval card. The card offers `allow` (once),
+ * `allow_always` (saved per user, editable under Settings › Permissions) and
+ * `deny`. `allow_for_chat` stays valid on the wire for older clients.
+ */
+export type ApprovalDecision =
+  | "allow"
+  | "allow_for_chat"
+  | "allow_always"
+  | "deny";
 
 /**
  * A pending tool-approval request awaiting a user decision. Keyed by

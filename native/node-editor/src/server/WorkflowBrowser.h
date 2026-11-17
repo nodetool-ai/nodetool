@@ -6,6 +6,7 @@
 #include <QSet>
 #include <QUrl>
 #include <functional>
+#include <optional>
 
 namespace nodetool::node_editor {
 // REST workflow contracts: websocket/src/http-api.ts. Project choices use
@@ -93,6 +94,9 @@ public:
   Q_INVOKABLE void deleteWorkflows(const QStringList &ids);
   Q_INVOKABLE void loadTriggers();
   Q_INVOKABLE void refresh();
+  // A `documentfile` push: the file of a workflow became invalid, went
+  // missing or is fine again. Reloads a list that has loaded or is loading.
+  void documentFileChanged(const QJsonObject &resource);
   Q_INVOKABLE void loadNext();
   Q_INVOKABLE void loadProjects();
   Q_INVOKABLE void createWorkflow(const QString &name);
@@ -104,6 +108,11 @@ public:
   Q_INVOKABLE void confirmDelete(const QString &id, const QString &name) { emit deleteRequested(id, name); }
   Q_INVOKABLE void confirmDeleteSelected() { if (!m_selected.isEmpty()) { emit deleteSelectedRequested(m_selected); } }
   Q_INVOKABLE void reload() { emit reloadRequested(); }
+  // A workflow open in a tab saves its own name and details, so its session
+  // keeps the server revision. The editor answers nullopt when the workflow is
+  // not open, an empty string when the tab took the change, or an error.
+  using OpenWorkflowEditor = std::function<std::optional<QString>(const QString &id, const QVariantMap &patch)>;
+  void setOpenWorkflowEditor(OpenWorkflowEditor editor) { m_openEditor = std::move(editor); }
 signals:
   void changed();
   void created(QString id);
@@ -123,7 +132,8 @@ private:
                const QJsonObject &body, Result done, bool quiet = false);
   bool mutationReady(const QString &name = QStringLiteral("valid"));
   void deleteNext(QStringList ids, int failures);
-  void saveViewSettings() const;
+  bool editOpenWorkflow(const QString &id, const QVariantMap &patch);
+  void saveViewSetting(const QString &key, const QVariant &value) const;
   QNetworkAccessManager m_network;
   QUrl m_origin;
   QString m_token, m_user, m_project, m_search, m_next, m_error;
@@ -138,5 +148,6 @@ private:
   bool m_loading = false, m_busy = false, m_projectsLoading = false;
   bool m_favoritesOnly = false, m_showGraphPreview = false, m_selectionMode = false;
   bool m_persist = false;
+  OpenWorkflowEditor m_openEditor;
 };
 }

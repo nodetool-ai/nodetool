@@ -18,9 +18,11 @@ import {
   FONT_SIZE_SANS,
   FONT_WEIGHT,
   SPACING,
+  Tooltip,
   TYPOGRAPHY
 } from "../../ui_primitives";
 import { isString } from "../../../utils/typePredicates";
+import { toolDisplayName } from "../../../utils/toolDisplayName";
 import type { ApprovalDecision } from "../../../stores/GlobalChatStore";
 
 interface ToolApprovalCardProps {
@@ -86,10 +88,12 @@ const styles = (theme: Theme) =>
  * arguments stay folded: a wall of unfolded JavaScript is not something a user
  * can answer yes or no to, but it has to be readable for the ones who want it.
  *
- * Three decisions: Allow (this call), Allow for this chat (session grant), Deny.
+ * Three decisions, as in Claude: Allow once (this call), Always allow (saved
+ * for the user, editable under Settings › Permissions), Deny.
  */
 const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
   approvalId,
+  toolName,
   category,
   message,
   description,
@@ -128,8 +132,8 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
     () => onResolve(approvalId, "allow"),
     [approvalId, onResolve]
   );
-  const handleAllowForChat = useCallback(
-    () => onResolve(approvalId, "allow_for_chat"),
+  const handleAllowAlways = useCallback(
+    () => onResolve(approvalId, "allow_always"),
     [approvalId, onResolve]
   );
   const handleDeny = useCallback(
@@ -189,16 +193,23 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
           disableElevation
           onClick={handleAllow}
         >
-          {t("i18n-next19.chat.toolApprovalCard.allow")}
+          {t("i18n-next19.chat.toolApprovalCard.allowOnce")}
         </EditorButton>
-        <EditorButton
-          variant="outlined"
-          color="primary"
-          density="normal"
-          onClick={handleAllowForChat}
+        <Tooltip
+          describeChild
+          title={t("i18n-next19.chat.toolApprovalCard.allowAlwaysHint", {
+            tool: toolDisplayName(toolName)
+          })}
         >
-          {t("i18n-next19.chat.toolApprovalCard.allowForChat")}
-        </EditorButton>
+          <EditorButton
+            variant="outlined"
+            color="primary"
+            density="normal"
+            onClick={handleAllowAlways}
+          >
+            {t("i18n-next19.chat.toolApprovalCard.allowAlways")}
+          </EditorButton>
+        </Tooltip>
         <EditorButton
           variant="text"
           color="inherit"

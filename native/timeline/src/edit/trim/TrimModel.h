@@ -112,8 +112,7 @@ std::vector<EdgeMark> edgeMarks(const EditDoc& doc, const EditPoints& points);
 
 // The frame grid point `frames` frames from `ms`, as a whole ms at or just before
 // the frame's time. A frame shows the clips with start <= time < end, so this edge
-// puts the cut exactly on that frame. frameStepMs rounds, and when it rounds up
-// the frame still belongs to the clip before the edge.
+// puts the cut exactly on that frame. frameStepMs follows the same rule.
 double frameEdgeMs(double ms, double frames, double fps);
 
 struct TrimResult {

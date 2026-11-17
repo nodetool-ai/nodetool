@@ -6,11 +6,32 @@
  *                                  row counts, and a sha256 for every file
  *   records.json                 — every project row, table by table
  *                                  (`PROJECT_ARCHIVE_TABLES` in models)
- *   assets/<asset id><ext>       — stored bytes of each non-folder asset
- *   workspaces/<workspace id>/…  — every file in the project's workspaces
+ *   assets/<asset id><ext>       — bytes of each non-folder asset
+ *   workspaces/<workspace id>/…  — every file in the project folder, and in
+ *                                  any other workspace filed under the
+ *                                  project, such as a game's
+ *
+ * The project folder is a workspace row of the project, so its files travel
+ * under `workspaces/`, and `manifest.json` names it
+ * (`project.folder_workspace_id`). The import makes the same workspace the
+ * new project's folder. An archive from before that field was written
+ * predicts the folder the way `importedProjectFolder` describes. `.nodetool/` is NodeTool's own and stays out: an
+ * imported project gets a manifest of its own. Storyboards, scripts, sketches,
+ * apps, JS scripts and chats live in the database and travel in
+ * `records.json`.
+ *
+ * An asset whose file is in the project folder is in the archive twice: its
+ * bytes under `assets/`, read through the asset's storage key, and the file
+ * itself under `workspaces/`. Its row names the file in `workspace_path`.
+ * The export keeps writing both, so an install from before project folders
+ * can import the file. The import takes such an asset once, as described
+ * below.
  *
  * Export copies rows whole, minus the owner and project columns, and the
  * workspace path, which only means something on the exporting machine.
+ * A project with linked files (assets with `external_path`) is not exported:
+ * the caller collects them into the project folder first, or the export is
+ * refused with their names (`prepareProjectExport`).
  *
  * Import always creates a new project. Every row gets a fresh id, and every
  * reference to an exported id is rewritten wherever it appears: id columns,
@@ -19,6 +40,20 @@
  * any such token that names an exported row. Bytes are stored first and the
  * rows are inserted in one transaction, so a failed import leaves nothing
  * visible and removes the bytes it stored.
+ *
+ * Every workspace is imported into a new folder NodeTool creates, so no file
+ * that was on this install before is written, replaced or deleted. Each
+ * asset is imported once:
+ *
+ * | Archive | Imported asset |
+ * | --- | --- |
+ * | The row has a `workspace_path`, and the project folder carries a file there with the asset's bytes | The row names the file in the new folder. Nothing is stored under the asset's storage key. |
+ * | The row has no `workspace_path`, as in every archive from before project folders | The bytes are stored under the asset's storage key. The move job later moves them into the folder. |
+ * | The row has a `workspace_path`, and the folder carries no file there or one with other bytes | As the row above. The file in the folder, if any, is not the asset's. |
+ *
+ * Without the first row, an asset would be imported as stored bytes next to
+ * its own file. Opening the project would then index the file as a second
+ * asset and move the stored bytes into the folder as a second file.
  */
 import { createHash } from "node:crypto";
 import { rm } from "node:fs/promises";
@@ -26,6 +61,7 @@ import nodePath from "node:path";
 import { strFromU8, strToU8, unzipSync } from "fflate";
 import { z } from "zod";
 import {
+  createLogger,
   getManagedWorkspaceDir,
   managedWorkspaceKey,
   workspaceStorageKind
@@ -46,14 +82,29 @@ import {
   type ProjectArchiveRow,
   type ProjectArchiveTableName
 } from "@nodetool-ai/models";
-import { getAssetFileName } from "@nodetool-ai/protocol";
-import type { Workspace as RuntimeWorkspace } from "@nodetool-ai/runtime";
+import {
+  getAssetFileName,
+  WORKSPACE_MOVE_SOURCE_KEY,
+  WORKSPACE_MOVE_TARGET_KEY
+} from "@nodetool-ai/protocol";
+import {
+  WorkspaceReservedPathError,
+  type Workspace as RuntimeWorkspace
+} from "@nodetool-ai/runtime";
 import type { StorageAdapter } from "@nodetool-ai/storage";
 import {
   getAssetStorageKey,
   localAssetPath,
   retrieveAssetBytes
 } from "@nodetool-ai/asset-services/asset-paths";
+import {
+  collectLinkedAssets,
+  type CollectLinkedAssetsResult
+} from "@nodetool-ai/asset-services/project-asset";
+import {
+  partialContentHash,
+  withWorkspaceFingerprint
+} from "@nodetool-ai/asset-services/project-asset-file";
 import { unzipBounded } from "./timeline-bundle.js";
 import {
   exportSourceSize,
@@ -62,6 +113,8 @@ import {
   type ExportSource,
   type ZipStreamWriter
 } from "./zip-stream.js";
+
+const log = createLogger("nodetool.project-services.archive");
 
 export const PROJECT_ARCHIVE_FORMAT = "nodetool-project";
 export const PROJECT_ARCHIVE_VERSION = 1;
@@ -87,7 +140,13 @@ const manifestSchema = z.object({
     id: z.string(),
     name: z.string(),
     kind: z.string(),
-    thread_id: z.string().nullable().optional()
+    thread_id: z.string().nullable().optional(),
+    /**
+     * The archived workspace that was the project's folder. Absent in
+     * archives from before it was recorded, and when the folder did not
+     * travel.
+     */
+    folder_workspace_id: z.string().nullable().optional()
   }),
   counts: z.record(z.string(), z.number()),
   assets: z.array(fileEntry.extend({ id: z.string() })),
@@ -179,9 +238,83 @@ function stripOwner(row: ProjectArchiveRow): ProjectArchiveRow {
   return copy;
 }
 
+// ---------------------------------------------------------------------------
+// Linked files
+// ---------------------------------------------------------------------------
+
+/** An asset that references a file outside the project folder. */
+export interface LinkedProjectFile {
+  id: string;
+  name: string;
+}
+
+/**
+ * Thrown when a project still has linked files at export. An export carries
+ * the project folder, and a linked file is not in it, so the creator collects
+ * the files first or does not export.
+ */
+export class ProjectLinkedFilesError extends Error {
+  readonly files: LinkedProjectFile[];
+  constructor(files: LinkedProjectFile[]) {
+    super(
+      `The project links ${files.length} file(s) outside its folder: ` +
+        files.map((file) => file.name).join(", ")
+    );
+    this.name = "ProjectLinkedFilesError";
+    this.files = files;
+  }
+}
+
+function linkedFilesOf(rows: Iterable<Asset>): LinkedProjectFile[] {
+  const linked: LinkedProjectFile[] = [];
+  for (const asset of rows) {
+    if (asset.external_path && asset.content_type !== "folder") {
+      linked.push({ id: asset.id, name: asset.name });
+    }
+  }
+  return linked;
+}
+
+/** The project's assets that link a file outside its folder. */
+export async function linkedProjectFiles(
+  userId: string,
+  projectId: string
+): Promise<LinkedProjectFile[]> {
+  return linkedFilesOf(await Asset.listByProject(userId, projectId));
+}
+
+/** What an export does with linked files: copy them in first, or refuse. */
+export type LinkedFilesChoice = "collect" | "refuse";
+
+/**
+ * Get a project ready to export. With `collect`, every linked file is copied
+ * into the project folder first. Throws {@link ProjectLinkedFilesError}
+ * naming the files that are still linked: all of them with `refuse`, and
+ * with `collect` the ones that were offline or failed to copy. Returns the
+ * collect result, or null when nothing was linked or `refuse` found nothing.
+ */
+export async function prepareProjectExport(options: {
+  userId: string;
+  projectId: string;
+  linkedFiles: LinkedFilesChoice;
+}): Promise<CollectLinkedAssetsResult | null> {
+  const { userId, projectId } = options;
+  const linked = await linkedProjectFiles(userId, projectId);
+  if (linked.length === 0) return null;
+  if (options.linkedFiles === "refuse") {
+    throw new ProjectLinkedFilesError(linked);
+  }
+  const collected = await collectLinkedAssets({ userId, projectId });
+  const remaining = await linkedProjectFiles(userId, projectId);
+  if (remaining.length > 0) throw new ProjectLinkedFilesError(remaining);
+  return collected;
+}
+
 /**
  * Write a project to `writer`. The caller has checked that `userId` owns the
- * project. Returns the manifest that was written.
+ * project and run {@link prepareProjectExport}. Returns the manifest that
+ * was written. Throws {@link ProjectLinkedFilesError} before writing anything
+ * when the project still has linked files.
  */
 export async function writeProjectArchive(
   options: WriteProjectArchiveOptions,
@@ -191,6 +324,8 @@ export async function writeProjectArchive(
   const project = await Project.findOwned(userId, options.projectId);
   if (!project) throw new Error("Project not found");
   const records = await readProjectArchiveRecords(userId, project.id);
+  const linked = linkedFilesOf(records.assets.map((row) => new Asset(row)));
+  if (linked.length > 0) throw new ProjectLinkedFilesError(linked);
   let totalBytes = 0;
   let totalEntries = 0;
   let directoryBytes = 22;
@@ -220,7 +355,12 @@ export async function writeProjectArchive(
       id: project.id,
       name: project.name,
       kind: project.kind,
-      thread_id: project.thread_id
+      thread_id: project.thread_id,
+      folder_workspace_id: records.workspaces.some(
+        (row) => row["id"] === project.workspace_id
+      )
+        ? project.workspace_id
+        : null
     },
     counts: {},
     assets: [],
@@ -420,8 +560,41 @@ export interface ImportProjectArchiveOptions {
     contentType: string;
     bytes: Uint8Array;
   }) => Promise<void>;
-  /** Removes every object created by the asset hook, including thumbnails. */
+  /**
+   * Renders the thumbnail of an asset whose bytes stay a file in the project
+   * folder. Such an asset stores nothing through `storeAssetBytes`.
+   */
+  readonly storeAssetThumbnail?: (args: {
+    userId: string;
+    assetId: string;
+    contentType: string;
+    bytes: Uint8Array;
+  }) => Promise<void>;
+  /** Removes every object created by the asset hooks, including thumbnails. */
   readonly removeAssetBytes?: (userId: string, assetId: string, contentType: string) => Promise<void>;
+  /**
+   * Gives the imported project its folder (PRD D1), so its runs find one
+   * without waiting for the startup migration. The host passes
+   * `ensureProjectFolder`. `preferredWorkspaceId` names the imported
+   * workspace whose files the import matched to the asset rows, so that
+   * workspace must become the folder.
+   */
+  readonly ensureFolder?: (
+    project: Project,
+    options: { preferredWorkspaceId?: string }
+  ) => Promise<unknown>;
+  /**
+   * Records in an imported workspace's folder that NodeTool created it. The
+   * host passes `markFolderCreated`. Without the record, deleting the
+   * imported project keeps the folder as if the user had brought it.
+   */
+  readonly markCreatedFolder?: (row: Workspace) => Promise<void>;
+  /**
+   * Removes the record `markCreatedFolder` wrote, for an import that failed.
+   * The host passes `unmarkFolderCreated`. A folder in object storage has no
+   * directory to remove, so without it the record would be left behind.
+   */
+  readonly unmarkCreatedFolder?: (row: Workspace) => Promise<void>;
   readonly maxBytes?: number;
 }
 
@@ -478,6 +651,80 @@ function parseJsonEntry<T>(
 
 function sha256(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
+}
+
+/** A file the import wrote into the new project folder. */
+interface ImportedFolderFile {
+  /** The file's path in the new folder, as the folder keys it. */
+  path: string;
+  /** The bytes that were written. */
+  data: Uint8Array;
+  /** SHA-256 of the bytes the archive carries for the file. */
+  archivedSha256: string;
+  /** SHA-256 of `data`. A JSON file is written with the new ids in it. */
+  writtenSha256: string;
+}
+
+/**
+ * The exported id of the workspace that becomes the imported project's
+ * folder, or null when the archive has none that can. A workspace a game
+ * uses never can.
+ *
+ * 1. The workspace the manifest records as the project's folder.
+ * 2. In an archive from before that was recorded: for a Personal project,
+ *    its default workspace, which is the folder Personal is given.
+ * 3. Otherwise the oldest workspace: what `ensureProjectFolder` and the
+ *    startup migration give a project without a folder
+ *    (`Workspace.oldestProjectFolderCandidate`), applied to the rows about
+ *    to be inserted.
+ *
+ * The import gives the project this folder (`ensureFolder` with
+ * `preferredWorkspaceId`), so the assets that keep a `workspace_path` are
+ * the ones whose file is in it. `imported` and `games` hold the rows with
+ * their new ids, in the order of `exported`.
+ */
+function importedProjectFolder(
+  project: ProjectArchiveManifest["project"],
+  exported: readonly ProjectArchiveRow[],
+  imported: readonly ProjectArchiveRow[],
+  games: readonly ProjectArchiveRow[]
+): string | null {
+  const usedByGame = new Set(games.map((game) => game["workspace_id"]));
+  const candidates = imported
+    .map((row, index) => ({ row, exported: exported[index] }))
+    .filter(({ row }) => !usedByGame.has(String(row["id"])));
+  const recorded = project.folder_workspace_id;
+  if (recorded) {
+    const named = candidates.find(({ exported: row }) => row?.["id"] === recorded);
+    if (named) return recorded;
+  }
+  if (recorded === undefined && project.kind === PERSONAL_PROJECT_KIND) {
+    const defaults = candidates.filter(({ exported: row }) => row?.["is_default"] === true);
+    if (defaults.length === 1) return String(defaults[0]!.exported!["id"]);
+  }
+  let oldest: { createdAt: string; id: string; exportedId: string } | null = null;
+  for (const { row, exported: source } of candidates) {
+    const id = String(row["id"]);
+    const createdAt = row["created_at"];
+    // Without a creation time the order the database applies is unknown.
+    if (typeof createdAt !== "string") return null;
+    if (
+      oldest === null ||
+      createdAt < oldest.createdAt ||
+      (createdAt === oldest.createdAt && id < oldest.id)
+    ) {
+      oldest = { createdAt, id, exportedId: String(source?.["id"]) };
+    }
+  }
+  return oldest?.exportedId ?? null;
+}
+
+/** Metadata of an imported asset row as an object, whatever the file holds. */
+function metadataOf(row: ProjectArchiveRow): Record<string, unknown> {
+  const metadata = row["metadata"];
+  return metadata && typeof metadata === "object" && !Array.isArray(metadata)
+    ? { ...metadata }
+    : {};
 }
 
 /** Reads a project file's manifest without importing it. */
@@ -582,19 +829,44 @@ export async function importProjectArchive(
     // An external path names a file on the exporting machine. Kept, it would
     // let a file point an asset at any path on this one.
     row["external_path"] = null;
+    // A kept `workspace_path` would tie the row to whatever file has that
+    // path in the new folder, and deleting or renaming the asset would then
+    // delete or rename that file. The path is set again below, only for an
+    // asset whose own file the import wrote into the new project folder.
+    row["workspace_path"] = null;
   }
-  // An import never publishes anything.
-  for (const row of imported.workflows) row["access"] = "private";
+  for (const row of imported.workflows) {
+    // An import never publishes anything.
+    row["access"] = "private";
+    // The hash is of the file in the folder the archive was made from. The
+    // imported row was never synced with a file of the new folder, so the
+    // reconcile writes its file when there is none and compares the content
+    // when there is one.
+    row["file_hash"] = null;
+    row["file_error"] = null;
+  }
+  for (const row of imported.timeline_sequences) {
+    // As for a workflow: the row was never synced with a file of the new
+    // folder.
+    row["file_hash"] = null;
+    row["file_error"] = null;
+  }
 
   const missing: string[] = [];
   const checksumMismatches: string[] = [];
   const storedAssets: Array<{ assetId: string; contentType: string }> = [];
   const createdWorkspaces: RuntimeWorkspace[] = [];
+  /** Rows of the folders that carry the record `markCreatedFolder` wrote. */
+  const markedFolders: Workspace[] = [];
   try {
     const workspaces = new Map<string, RuntimeWorkspace>();
     for (const [index, row] of imported.workspaces.entries()) {
       row["path"] = await workspacePath(userId, String(row["id"]));
       row["is_default"] = false;
+      // NodeTool makes this folder, whoever made the exported one. Deleting
+      // the imported project reads `origin` and the record `markCreatedFolder`
+      // writes to decide what happens to it.
+      row["origin"] = "created";
       const opened = options.openWorkspace(new Workspace(row));
       if (!opened) {
         if (workspaceStorageKind() !== "cloud") await rm(String(row["path"]), { recursive: true, force: true });
@@ -602,39 +874,19 @@ export async function importProjectArchive(
       }
       createdWorkspaces.push(opened);
       workspaces.set(String(records.workspaces[index]!["id"]), opened);
-    }
-    // Asset bytes.
-    const assetRows = new Map(
-      imported.assets.map((row, index) => [
-        String(records.assets[index]!["id"]),
-        row
-      ])
-    );
-    for (const entry of manifest.assets) {
-      const row = assetRows.get(entry.id);
-      if (!row) continue;
-      const bytes = entries[entry.file];
-      if (!bytes) {
-        missing.push(entry.file);
-        continue;
+      // The record goes into the folder before any file does. The folder can
+      // lie inside another project's folder: an imported project's is
+      // `projects/<id>` in the managed folder, which is Personal's. From the
+      // first file on, a `.nodetool/` directory tells Personal's reconcile
+      // that the files are not Personal's. Without it a reconcile that runs
+      // during the import gives Personal rows for them, some under the IDs
+      // this import is about to insert.
+      if (options.markCreatedFolder) {
+        const folder = new Workspace(row);
+        await options.markCreatedFolder(folder);
+        markedFolders.push(folder);
       }
-      if (sha256(bytes) !== entry.sha256) checksumMismatches.push(entry.file);
-      const assetId = String(row["id"]);
-      const contentType = String(row["content_type"]);
-      row["size"] = bytes.byteLength;
-      storedAssets.push({ assetId, contentType });
-      if (options.storeAssetBytes) {
-        await options.storeAssetBytes({ userId, assetId, contentType, bytes });
-      } else {
-        await storage.store(
-          getAssetStorageKey(userId, assetId, contentType),
-          bytes,
-          contentType
-        );
-      }
-
     }
-
     // Versioned game drafts name a digest of their contents. Rehash after
     // rewriting IDs, then update both the filenames and history references.
     const draftVersions = new Map<string, string>();
@@ -658,6 +910,15 @@ export async function importProjectArchive(
       const previous = records.game_draft_changes[index]?.["before_digest"];
       if (typeof previous === "string" && draftVersions.has(previous)) row["before_digest"] = draftVersions.get(previous);
     }
+    const folderId = importedProjectFolder(
+      manifest.project,
+      records.workspaces,
+      imported.workspaces,
+      imported.games
+    );
+    const folder = folderId === null ? undefined : workspaces.get(folderId);
+    /** The files written into the new project folder, by exported path. */
+    const folderFiles = new Map<string, ImportedFolderFile>();
     for (const entry of manifest.workspace_files) {
       const workspace = workspaces.get(entry.workspace_id);
       if (!workspace) continue;
@@ -666,13 +927,108 @@ export async function importProjectArchive(
         missing.push(entry.file);
         continue;
       }
-      if (sha256(bytes) !== entry.sha256) checksumMismatches.push(entry.file);
+      const archivedSha256 = sha256(bytes);
+      if (archivedSha256 !== entry.sha256) checksumMismatches.push(entry.file);
       const path = draftPaths.get(entry.path) ?? remap.string(entry.path);
       // Game sources and drafts are JSON that names their own ids.
       const data = path.endsWith(".json")
         ? remapJsonText(bytes, remap)
         : bytes;
-      await workspace.write(path, data);
+      try {
+        await workspace.write(path, data);
+      } catch (error) {
+        // An archive written before `.nodetool/` was reserved carries the old
+        // project's manifest. The imported project gets a manifest of its own.
+        if (!(error instanceof WorkspaceReservedPathError)) throw error;
+        continue;
+      }
+      if (workspace === folder) {
+        folderFiles.set(entry.path, {
+          path: workspace.key(path),
+          data,
+          archivedSha256,
+          writtenSha256: data === bytes ? archivedSha256 : sha256(data)
+        });
+      }
+    }
+
+    // Asset bytes. An asset whose file is in the new project folder keeps
+    // that file and stores nothing else. Any other asset's bytes go under its
+    // storage key.
+    const assetEntries = new Map(
+      manifest.assets.map((entry) => [entry.id, entry])
+    );
+    const namedFiles = new Set<string>();
+    for (const [index, row] of imported.assets.entries()) {
+      const source = records.assets[index]!;
+      const entry = assetEntries.get(String(source["id"]));
+      const bytes = entry ? entries[entry.file] : undefined;
+      let archivedSha256: string | null = null;
+      if (entry && !bytes) missing.push(entry.file);
+      if (entry && bytes) {
+        archivedSha256 = sha256(bytes);
+        if (archivedSha256 !== entry.sha256) checksumMismatches.push(entry.file);
+      }
+      const assetId = String(row["id"]);
+      const contentType = String(row["content_type"]);
+
+      const exportedPath = source["workspace_path"];
+      const file =
+        typeof exportedPath === "string"
+          ? folderFiles.get(exportedPath)
+          : undefined;
+      // The file is the asset's when the archive carries no other bytes for
+      // the asset. Two rows never share a file: the first one keeps it.
+      if (
+        folder &&
+        file &&
+        !namedFiles.has(file.path) &&
+        (archivedSha256 === null || archivedSha256 === file.archivedSha256)
+      ) {
+        namedFiles.add(file.path);
+        row["workspace_path"] = file.path;
+        row["size"] = file.data.byteLength;
+        row["content_hash"] = file.writtenSha256;
+        // The move the exporting install may have been in has no legacy
+        // object to finish with here.
+        const metadata = metadataOf(row);
+        delete metadata[WORKSPACE_MOVE_TARGET_KEY];
+        delete metadata[WORKSPACE_MOVE_SOURCE_KEY];
+        // The fingerprint is of the file as written, so the first reconcile
+        // finds it unchanged. Without one it reads the file.
+        const info = await folder.stat(file.path);
+        row["metadata"] =
+          info && !info.isDirectory
+            ? withWorkspaceFingerprint(metadata, {
+                workspace_size: info.size,
+                workspace_mtime: info.modifiedAt,
+                workspace_hash: partialContentHash(file.data)
+              })
+            : metadata;
+        if (options.storeAssetThumbnail) {
+          storedAssets.push({ assetId, contentType });
+          await options.storeAssetThumbnail({
+            userId,
+            assetId,
+            contentType,
+            bytes: file.data
+          });
+        }
+        continue;
+      }
+
+      if (!bytes) continue;
+      row["size"] = bytes.byteLength;
+      storedAssets.push({ assetId, contentType });
+      if (options.storeAssetBytes) {
+        await options.storeAssetBytes({ userId, assetId, contentType, bytes });
+      } else {
+        await storage.store(
+          getAssetStorageKey(userId, assetId, contentType),
+          bytes,
+          contentType
+        );
+      }
     }
 
     const project = new Project({
@@ -704,6 +1060,21 @@ export async function importProjectArchive(
       },
       records: imported
     });
+    // The rows are committed, so a folder that cannot be made does not undo
+    // the import. The startup migration retries it, and a run reports the
+    // missing folder rather than writing elsewhere.
+    try {
+      const preferred = folderId === null ? undefined : ids.get(folderId);
+      await options.ensureFolder?.(
+        project,
+        preferred === undefined ? {} : { preferredWorkspaceId: preferred }
+      );
+    } catch (error) {
+      log.warn("Could not give the imported project a folder", {
+        projectId: project.id,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
 
     const counts: Record<string, number> = {};
     for (const name of PROJECT_ARCHIVE_TABLE_NAMES) {
@@ -727,7 +1098,12 @@ export async function importProjectArchive(
         } finally {
           if (workspace.localDir) await rm(workspace.localDir, { recursive: true, force: true });
         }
-      })
+      }),
+      // `deleteAll` leaves `.nodetool/` alone. A local folder goes with its
+      // directory. One in object storage keeps the record until it is removed.
+      ...markedFolders
+        .filter((folder) => folder.isVirtual())
+        .map(async (folder) => options.unmarkCreatedFolder?.(folder))
     ]);
     throw error;
   }

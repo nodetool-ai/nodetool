@@ -285,6 +285,9 @@ export function applyWorkflowDocumentTool(
   args: Record<string, unknown>,
   options: WorkflowDocumentToolOptions
 ): WorkflowDocumentToolResult {
+  if (name === "ui_apply_graph_patch") {
+    return applyGraphPatch(source, args, options);
+  }
   const graph = structuredClone(source);
   if (name === "ui_get_graph") {
     return {
@@ -526,4 +529,57 @@ export function applyWorkflowDocumentTool(
   }
   applyInferredCodeHandles(node);
   return { graph, result: { ok: true, node_id: nodeId }, changed: true };
+}
+
+/** The patch keys in the order they apply, with the single-edit tool each uses. */
+const GRAPH_PATCH_STEPS = [
+  ["delete_edge_ids", "ui_delete_edge", (value: unknown) => ({ edge_id: value })],
+  ["delete_node_ids", "ui_delete_node", (value: unknown) => ({ node_id: value })],
+  ["add_nodes", "ui_add_node", (value: unknown) => value],
+  ["update_nodes", "ui_update_node_data", (value: unknown) => value],
+  ["move_nodes", "ui_move_node", (value: unknown) => value],
+  ["add_edges", "ui_connect_nodes", (value: unknown) => value]
+] as const;
+
+/**
+ * Apply several single edits in order. Each runs on the previous result, so a
+ * failure throws before the caller sees any graph and nothing is changed.
+ */
+function applyGraphPatch(
+  source: Graph,
+  args: Record<string, unknown>,
+  options: WorkflowDocumentToolOptions
+): WorkflowDocumentToolResult {
+  let graph = source;
+  let changed = false;
+  const applied: Array<Record<string, unknown>> = [];
+  for (const [key, tool, toArgs] of GRAPH_PATCH_STEPS) {
+    const entries = args[key];
+    if (entries === undefined) continue;
+    if (!Array.isArray(entries)) {
+      throw new Error(`${key} must be an array.`);
+    }
+    entries.forEach((entry: unknown, index: number) => {
+      const entryArgs = toArgs(entry);
+      if (!isRecord(entryArgs)) {
+        throw new Error(`${key}[${index}] must be an object.`);
+      }
+      let step: WorkflowDocumentToolResult;
+      try {
+        step = applyWorkflowDocumentTool(graph, tool, entryArgs, options);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`${key}[${index}]: ${message} No change was applied.`);
+      }
+      graph = step.graph;
+      changed ||= step.changed;
+      const { ok: _ok, ...result } = step.result;
+      applied.push({ op: key, ...result });
+    });
+  }
+  return {
+    graph: changed ? graph : structuredClone(source),
+    result: { ok: true, applied },
+    changed
+  };
 }

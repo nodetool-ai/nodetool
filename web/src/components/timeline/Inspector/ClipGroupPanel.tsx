@@ -4,9 +4,9 @@
  * A group draws nothing: it is a transform parent its children name with
  * `parentId`, so the imported-clip panel's Media and Speed rows have nothing to
  * say about it. This panel shows what a group actually owns — its name, the
- * window it imposes on its children, how many clips hang off it — and keeps the
- * sections that compose down the tree: animations, and the transform, blend and
- * effects the children inherit.
+ * window it imposes on its children, how many clips hang off it. The sections
+ * that compose down the tree live in their own panels: the transform, blend and
+ * effects the children inherit in Effect Controls, the animations in Motion.
  */
 
 import React, { memo, useCallback } from "react";
@@ -33,8 +33,6 @@ import {
   InspectorToggleRow
 } from "./InspectorPrimitives";
 import { formatTimecode, parseSeconds, parseTimecode } from "./InspectorPrimitives.helpers";
-import { ClipAdjustments } from "./ClipAdjustments";
-import { ClipAnimations } from "./ClipAnimations";
 
 const SCRUB_DURATION = { step: 0.02, min: 0.01 };
 
@@ -175,9 +173,6 @@ export const ClipGroupPanel: React.FC<ClipGroupPanelProps> = memo(
           </FlexColumn>
         </CollapsibleSection>
 
-        <ClipAdjustments clip={clip} />
-
-        <ClipAnimations clip={clip} />
       </>
     );
   }

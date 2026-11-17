@@ -17,6 +17,7 @@ class ChatSession : public QObject {
 public:
   Q_INVOKABLE QVariantList markdownPages(const QString &text) const;
   Q_INVOKABLE void styleMarkdownLinks(QQuickTextDocument *document, const QColor &colour);
+  Q_INVOKABLE void styleReadingRhythm(QQuickTextDocument *document, qreal blockGap, qreal itemGap, qreal headingGap);
   Q_INVOKABLE void copyText(const QString &text);
   Q_PROPERTY(QAbstractItemModel *threads READ threads CONSTANT)
   Q_PROPERTY(QAbstractItemModel *messages READ messages NOTIFY stateChanged)
@@ -121,6 +122,9 @@ public:
     QVariantList workflowThreads() const;
     QString threadTitle() const;
     Q_INVOKABLE void setWorkflow(const QString &id);
+    // The next workflow this session binds to gets a new thread instead of
+    // resuming its latest one. A newly opened editor tab sets it.
+    void setFreshThreadPending(bool pending) { m_freshThread = pending; }
     Q_INVOKABLE void deleteThread(const QString &id);
     Q_INVOKABLE void renameThread(const QString &id, const QString &title);
     // Cloud providers that take an API key, from settings.providerCatalog:
@@ -132,6 +136,19 @@ public:
     Q_INVOKABLE void loadProviderKeys();
     Q_INVOKABLE void saveProviderKey(const QString &key, const QString &value);
     Q_INVOKABLE void retry();
+    // ChatView.tsx handleResendFrom: Edit and Retry rewind the thread to just
+    // before a user message and send it again, with `text` in place of its
+    // text when one is given. The server keeps the replaced turns as an
+    // earlier version.
+    Q_INVOKABLE void resendFrom(const QString &messageId, const QString &text = {});
+    // Retry on the latest reply: sends the last user message again.
+    Q_INVOKABLE void retryLatest();
+    // Versions that Edit and Retry kept, by the message whose switcher shows
+    // them: messageId → {index (1-based, the live one), count}.
+    Q_PROPERTY(QVariantMap versions READ versions NOTIFY versionsChanged)
+    QVariantMap versions() const;
+    // Makes the version at the 1-based `index` live at that message's fork.
+    Q_INVOKABLE void selectVersion(const QString &messageId, int index);
     bool hasActiveTurns() const;
   Q_INVOKABLE void createThread(const QString &draft = {});
   Q_INVOKABLE void send();
@@ -168,9 +185,10 @@ public:
     // GenerationBatchProgress.tsx: a batch's counts, time left and item rows
     // at nowMs, so the view can tick once a second.
     Q_INVOKABLE QVariantMap batchProgress(const QVariantMap &batch, double nowMs) const;
-    // ToolApprovalCard.tsx: Allow for this chat grants the tool for the rest
-    // of the conversation (decision allow_for_chat).
-    Q_INVOKABLE void allowActionForChat(const QString &id);
+    // ToolApprovalCard.tsx: Always allow saves the tool for the user, so no
+    // chat asks about it again until Settings › Permissions sets it back to
+    // Ask (decision allow_always).
+    Q_INVOKABLE void allowActionAlways(const QString &id);
     // SecretRequestCard.tsx: saves the key with settings.secrets.upsert, then
     // answers the request with saved. A failure keeps the request open.
     Q_INVOKABLE void saveSecret(const QString &id, const QString &value);
@@ -195,10 +213,15 @@ signals:
     // A chat send found no usable model: the host opens its API key dialog.
     void providerSetupRequested();
     void providerKeySaved(QString provider);
+    void versionsChanged();
+    // This view sent a prompt; its row is now the thread's last row.
+    void promptSent(QString threadId);
 
 private:
   struct State {
     bool reconciling = false;
+    // An earlier page is on its way; scrolling to the top asks only once.
+    bool loadingEarlier = false;
     bool reloadHistory = false;
     bool uncertainReplay = false;
     QJsonArray bufferedEvents;
@@ -208,11 +231,23 @@ private:
     QString draft, status = "idle", cursor, error;
     qint64 sequence = 0;
     QVariantList attachments;
+    // messages.versions: each fork where Edit or Retry left versions.
+    QJsonArray forks;
   };
   State &state(const QString &);
   const State *current() const;
   void loadHistory(const QString &, bool);
+  void loadVersions(const QString &);
+  void reduceEvent(const QJsonObject &);
+  // The composer checks a send makes before anything leaves: a usable model
+  // for the mode, or the way to one. False after reporting the problem.
+  bool modelReady(bool media);
+  // Sends `content` as the selected thread's next user turn with the
+  // composer's model, mode and host context. False when nothing was sent.
+  bool dispatch(const QJsonArray &content);
   void fail(const QString &);
+  // Tells the server the selected thread's project, "default" when none.
+  void syncOpenProject();
   void answerAction(const QString &id, const QJsonObject &response, const QString &status);
   void storeMedia(const QString &key, const QString &url, const QString &error, qint64 bytes);
   QVariantMap m_resolvedMedia;
@@ -223,6 +258,7 @@ private:
                     const QString &projectionKey = {});
   QSet<QString> m_creatingWorkflows;
   QString m_workflow;
+  bool m_freshThread = false;
   QHash<QString, QString> m_threadWorkflows, m_workflowThreads;
   QStringList m_resourceKinds;
   ThreadModel m_threads;
@@ -236,7 +272,8 @@ private:
     QHash<QString, QString> m_permissionModes;
     QString m_lastPermissionMode = "default";
     std::unique_ptr<QSettings> m_preferences;
-    void savePreferences();
+    void savePreference(const QString &key, const QVariant &value);
+    void savePreferenceEntry(const QString &key, const QString &entry, const QVariant &value);
     QVariantList m_assetResults;
     QVariantList m_recentAssets;
     QString m_assetQuery;

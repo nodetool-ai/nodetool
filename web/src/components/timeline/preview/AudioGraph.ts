@@ -4,6 +4,7 @@ import {
   INSTRUMENT_DEVICE_ID,
   isAutomationLaneActive,
   midiClipNoteEvents,
+  paramCurveAt,
   resolveClipFades,
   sampleFadeShape,
   timeRemapAudioSegments
@@ -152,6 +153,38 @@ interface TrackAutomationState {
 
 /** Longest straight ramp a curved automation segment is cut into. */
 const AUTOMATION_STEP_MS = 10;
+
+/**
+ * A clip's keyed Volume (the `volumeDb` param curve) as a gain node ramping in
+ * dB on top of the clip's own level, scheduled from `currentTimeMs` on the
+ * audio clock. Null when the clip has no Volume keys.
+ */
+function clipVolumeEnvelope(
+  ctx: BaseAudioContext,
+  clip: TimelineClip,
+  currentTimeMs: number,
+  now: number,
+  rate: number
+): GainNode | null {
+  const curve = clip.paramCurves?.find((c) => c.property === "volumeDb");
+  if (!curve || curve.keyframes.length === 0 || clip.durationMs <= 0) return null;
+  const points = [...curve.keyframes]
+    .sort((a, b) => a.t - b.t)
+    .map((k) => ({ timeMs: clip.startMs + k.t * clip.durationMs, value: k.value, easing: k.easing }));
+  const fromMs = Math.max(currentTimeMs, clip.startMs);
+  const breakpoints = automationBreakpoints(points, fromMs, {
+    maxStepMs: AUTOMATION_STEP_MS,
+    subdivideLinear: true
+  });
+  const atCtx = (ms: number): number => now + (ms - currentTimeMs) / 1000 / rate;
+  const envelope = ctx.createGain();
+  envelope.gain.value = dbToGain(paramCurveAt(clip, "volumeDb", fromMs));
+  envelope.gain.setValueAtTime(dbToGain(breakpoints[0].value), atCtx(breakpoints[0].timeMs));
+  for (const bp of breakpoints.slice(1)) {
+    envelope.gain.linearRampToValueAtTime(dbToGain(bp.value), atCtx(bp.timeMs));
+  }
+  return envelope;
+}
 
 /** Analyser window for channel meters: about 43 ms at 48 kHz. */
 const METER_FFT_SIZE = 2048;
@@ -1508,6 +1541,10 @@ export class AudioGraph {
         : 1;
       const clipGain = ctx.createGain();
       clipGain.gain.value = volumeLinear;
+      // Sources feed the keyed Volume first, so the fades still shape its output.
+      const envelope = clipVolumeEnvelope(ctx, clip, currentTimeMs, now, g);
+      envelope?.connect(clipGain);
+      const clipInput = envelope ?? clipGain;
 
       // Schedule each stretch's start on the audio clock. If it begins in the
       // future (relative to the playhead), defer src.start; otherwise start
@@ -1616,7 +1653,7 @@ export class AudioGraph {
             this.streamSegment(
               ctx as AudioContext,
               streamUrl,
-              clipGain,
+              clipInput,
               now + segLeadSec,
               now + segLeadSec + segRemainingMs / 1000 / g,
               offsetSec,
@@ -1628,7 +1665,7 @@ export class AudioGraph {
         const src = ctx.createBufferSource();
         src.buffer = buffer;
         src.playbackRate.value = segment.rate * g;
-        src.connect(clipGain);
+        src.connect(clipInput);
         src.start(
           now + segLeadSec,
           offsetSec,
@@ -1812,7 +1849,7 @@ export class AudioGraph {
       MEDIA_ELEMENT_MAX_RATE,
       Math.max(MEDIA_ELEMENT_MIN_RATE, segment.rate)
     );
-    const volume = clip.volumeDb ? Math.pow(10, clip.volumeDb / 20) : 1;
+    const volume = dbToGain((clip.volumeDb ?? 0) + (paramCurveAt(clip, "volumeDb", atMs) ?? 0));
     const gain = voice.gain.gain;
     holdParam(gain, ctx.currentTime);
     gain.setValueAtTime(0, ctx.currentTime);

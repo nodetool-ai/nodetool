@@ -1,13 +1,71 @@
 #include "chat/TimelineChatHost.h"
+#include "aiassist/AgentBridge.h"
 #include "app/startup/LocalDocumentSaver.h"
 #include "model/TimelineJson.h"
 #include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QTemporaryDir>
 #include <QtTest>
 
 class TestChatHost : public QObject {
     Q_OBJECT
 private slots:
+    // The native tools are narrower than the shared contracts the web editor and
+    // the headless bridge register. Each one must stay a subset of its contract,
+    // so a call the native app accepts means the same thing on every host.
+    // resources/chat/tool-manifest.json is written by scripts/generate-tool-manifest.mjs.
+    void nativeToolsAreSubsetsOfTheSharedContracts() {
+        QFile file(QStringLiteral(NT_TOOL_MANIFEST));
+        QVERIFY2(file.open(QIODevice::ReadOnly), qPrintable(file.fileName()));
+        QHash<QString, QJsonObject> contracts;
+        for (const auto& entry : QJsonDocument::fromJson(file.readAll()).array()) {
+            contracts.insert(entry.toObject().value("name").toString(), entry.toObject().value("parameters").toObject());
+        }
+        QVERIFY(contracts.size() > 40);
+        QJsonArray native = nt::aiassist::assistantTools();
+        for (const auto& tool : nt::chat::TimelineChatHost::tools()) {
+            native.append(QJsonObject::fromVariantMap(tool.toMap()));
+        }
+        const auto typesOf = [](const QJsonObject& schema) {
+            QSet<QString> out;
+            const auto type = schema.value("type");
+            for (const auto& value : type.isArray() ? type.toArray() : QJsonArray{type}) {
+                const auto name = value.toString();
+                out.insert(name == QStringLiteral("integer") ? QStringLiteral("number") : name);
+            }
+            for (const auto& branch : schema.value("anyOf").toArray()) {
+                const auto t = branch.toObject().value("type").toString();
+                out.insert(t == QStringLiteral("integer") ? QStringLiteral("number") : t);
+            }
+            if (schema.contains("enum") && out.isEmpty()) out.insert(QStringLiteral("string"));
+            out.remove(QString());
+            return out;
+        };
+        int checked = 0;
+        for (const auto& value : native) {
+            const auto tool = value.toObject();
+            const auto name = tool.value("name").toString();
+            if (!contracts.contains(name)) continue;
+            ++checked;
+            const auto shared = contracts.value(name).value("properties").toObject();
+            const auto own = tool.value("parameters").toObject().value("properties").toObject();
+            for (auto it = own.begin(); it != own.end(); ++it) {
+                QVERIFY2(shared.contains(it.key()),
+                         qPrintable(QStringLiteral("%1.%2 is not in the shared contract").arg(name, it.key())));
+                const auto ownTypes = typesOf(it.value().toObject());
+                const auto sharedTypes = typesOf(shared.value(it.key()).toObject());
+                if (sharedTypes.isEmpty()) continue;
+                for (const auto& type : ownTypes) {
+                    QVERIFY2(sharedTypes.contains(type),
+                             qPrintable(QStringLiteral("%1.%2 is %3 here and %4 in the shared contract")
+                                            .arg(name, it.key(), type, QStringList(sharedTypes.values()).join('|'))));
+                }
+            }
+        }
+        QVERIFY(checked >= 10);
+    }
     void toolEditUsesUndoAndPersistence() {
         QTemporaryDir dir;
         const auto path = dir.filePath("timeline.json");

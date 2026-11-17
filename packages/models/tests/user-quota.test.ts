@@ -80,6 +80,21 @@ describe("user quotas", () => {
     expect(local.key_source).toBe("server");
   });
 
+  it("records a ChatGPT sign-in run as the user's, and leaves it out of usage", async () => {
+    setProviderCredentialKeyResolver((provider) =>
+      provider === "codex" ? "CODEX_ACCESS_TOKEN" : `${provider.toUpperCase()}_API_KEY`
+    );
+    const row = await predict({
+      provider: "codex",
+      input_tokens: 400,
+      output_tokens: 100
+    });
+    expect(row.key_source).toBe("user");
+
+    const usage = await quotaUsage(USER, "month", NOW);
+    expect(usage.tokens).toBe(0);
+  });
+
   it("leaves the source unset when no resolver is registered", async () => {
     setProviderCredentialKeyResolver(null);
     const row = await predict({});

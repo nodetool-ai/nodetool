@@ -134,6 +134,8 @@ const comfyPresetOutput = z.object({
   id: z.string(),
   label: z.string(),
   profileName: z.string(),
+  /** GPUs tried in order, so the UI can name the card before the user rents. */
+  gpus: z.array(z.string()),
   hourlyUsd: z.object({ min: z.number(), max: z.number() }),
   maxLifetimeMinutes: z.number()
 });
@@ -231,7 +233,11 @@ export const workerRouter = router({
 
   comfyPresets: protectedProcedure
     .output(z.array(comfyPresetOutput))
-    .query(() => (isProductionServer() ? [] : [...COMFY_PRESETS])),
+    .query(() =>
+      isProductionServer()
+        ? []
+        : COMFY_PRESETS.map((preset) => ({ ...preset, gpus: [...preset.gpus] }))
+    ),
 
   startComfyPreset: localProcedure
     .input(z.object({ presetId: z.string().min(1) }))

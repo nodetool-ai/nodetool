@@ -1,5 +1,7 @@
 import {
   createSupabaseStorageClient,
+  hasDotSegment,
+  type SupabaseObjectEntry,
   type SupabaseStorageApi,
   type SupabaseUploadOptions
 } from "./supabase-rest.js";
@@ -14,11 +16,17 @@ import type {
 } from "./storage-adapter.js";
 import { SIGNED_URL_TTL } from "@nodetool-ai/config";
 import { compareStorageKeys, normalizeStorageKey } from "./storage-keys.js";
-import { assertUploadWithinLimit } from "./storage-limits.js";
+import {
+  assertUploadWithinLimit,
+  UploadTooLargeError
+} from "./storage-limits.js";
 import { objectCacheControl } from "./cache-control.js";
 
 /** Supabase upload tokens last two hours and the sign call takes no TTL. */
 const SUPABASE_UPLOAD_URL_TTL_MS = 2 * 60 * 60 * 1000;
+
+/** Entries read per `list` call. Supabase returns no more than this. */
+const LIST_PAGE_SIZE = 1000;
 
 export interface SupabaseStorageAdapterOptions {
   url: string;
@@ -36,6 +44,11 @@ export interface SupabaseStorageAdapterOptions {
  * client-facing HTTPS URL (the temp-url resolver in the websocket runner does
  * this for `temp_url` asset output mode).
  */
+/** Storage answered a `HEAD` with an error other than not found. */
+class StorageStatError extends Error {
+  override name = "StorageStatError";
+}
+
 export class SupabaseStorageAdapter implements StorageAdapter {
   readonly bucket: string;
   readonly url: string;
@@ -66,10 +79,10 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     if (slashIndex <= 0 || slashIndex === withoutScheme.length - 1) {
       return null;
     }
-    return {
-      bucket: withoutScheme.slice(0, slashIndex),
-      key: withoutScheme.slice(slashIndex + 1)
-    };
+    const key = withoutScheme.slice(slashIndex + 1);
+    // A dot segment would climb out of the key once `fetch` parses the URL.
+    if (hasDotSegment(key)) return null;
+    return { bucket: withoutScheme.slice(0, slashIndex), key };
   }
 
   async store(
@@ -89,7 +102,47 @@ export class SupabaseStorageAdapter implements StorageAdapter {
       .storage.from(this.bucket)
       .upload(key, data, uploadOptions);
     if (error) {
-      throw new Error(`Supabase upload failed for "${key}": ${error.message}`);
+      const message = `Supabase upload failed for "${key}": ${error.message}`;
+      // The project's global file size limit answers 413 ("The object
+      // exceeded the maximum allowed size") before any bucket limit applies.
+      if (error.status === 413 || /maximum allowed size/i.test(error.message)) {
+        throw new UploadTooLargeError(message, data.byteLength, null);
+      }
+      throw new Error(message);
+    }
+    return `supabase://${this.bucket}/${key}`;
+  }
+
+  /**
+   * An upload without `x-upsert`. Storage refuses it with 409 ("The resource
+   * already exists") when an object is under the key, and leaves that object
+   * as it was.
+   */
+  async storeIfAbsent(
+    key: string,
+    data: Uint8Array,
+    contentType?: string
+  ): Promise<string | null> {
+    assertUploadWithinLimit(key, data.byteLength);
+    const uploadOptions: SupabaseUploadOptions = {
+      upsert: false,
+      cacheControl: objectCacheControl()
+    };
+    if (contentType) {
+      uploadOptions.contentType = contentType;
+    }
+    const { error } = await this.getClient()
+      .storage.from(this.bucket)
+      .upload(key, data, uploadOptions);
+    if (error) {
+      if (error.status === 409 || /already exists/i.test(error.message)) {
+        return null;
+      }
+      const message = `Supabase upload failed for "${key}": ${error.message}`;
+      if (error.status === 413 || /maximum allowed size/i.test(error.message)) {
+        throw new UploadTooLargeError(message, data.byteLength, null);
+      }
+      throw new Error(message);
     }
     return `supabase://${this.bucket}/${key}`;
   }
@@ -140,11 +193,10 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     opts: { delimiter?: string } = {}
   ): Promise<StorageListResult> {
     const delimiter = opts.delimiter ?? null;
-    // Supabase storage `list(path)` lists immediate children of `path` (a
-    // pseudo-directory). For hierarchical mode we use that directly; for
-    // flat mode we'd have to walk recursively — implement hierarchical only
-    // for now and fall back to a single-level listing without commonPrefixes
-    // for flat mode (callers wanting recursion should walk themselves).
+    // Supabase storage `list(path)` lists the immediate children of `path`
+    // (a pseudo-directory). With a "/" delimiter that is the answer. Without
+    // one the listing is flat, as the StorageAdapter contract requires, so
+    // every pseudo-directory is listed in turn.
     // Normalize the (possibly caller-supplied) prefix the way the file and S3
     // adapters do. normalizeStorageKey rejects path-traversal keys and uses no
     // polynomial regex, avoiding the ReDoS that `prefix.replace(/\/+$/, "")`
@@ -163,35 +215,35 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     if (dir.endsWith("/")) {
       dir = dir.slice(0, -1);
     }
-    const { data, error } = await this.getClient()
-      .storage.from(this.bucket)
-      .list(dir, { limit: 1000 });
-    if (error || !data) return { entries: [], commonPrefixes: [] };
 
     const entries: StorageEntry[] = [];
     const commonPrefixes: string[] = [];
-    for (const item of data) {
-      const childKey = dir ? `${dir}/${item.name}` : item.name;
-      // Supabase entries with `id == null` are pseudo-directories.
-      const isDir = item.id == null;
-      if (isDir) {
-        if (delimiter === "/") {
-          commonPrefixes.push(`${childKey}/`);
+    const directories = [dir];
+    for (let next = directories.pop(); next !== undefined; next = directories.pop()) {
+      for (const item of await this.listDirectory(next)) {
+        const childKey = next ? `${next}/${item.name}` : item.name;
+        // Supabase entries with `id == null` are pseudo-directories.
+        if (item.id == null) {
+          if (delimiter === "/") {
+            commonPrefixes.push(`${childKey}/`);
+          } else {
+            directories.push(childKey);
+          }
+          continue;
         }
-        continue;
+        const entry: StorageEntry = {
+          key: childKey,
+          uri: `supabase://${this.bucket}/${childKey}`,
+          size: item.metadata?.size ?? 0,
+          modifiedAt: item.updated_at
+            ? new Date(item.updated_at).getTime()
+            : Date.now()
+        };
+        if (item.metadata?.mimetype) {
+          entry.contentType = item.metadata.mimetype;
+        }
+        entries.push(entry);
       }
-      const entry: StorageEntry = {
-        key: childKey,
-        uri: `supabase://${this.bucket}/${childKey}`,
-        size: item.metadata?.size ?? 0,
-        modifiedAt: item.updated_at
-          ? new Date(item.updated_at).getTime()
-          : Date.now()
-      };
-      if (item.metadata?.mimetype) {
-        entry.contentType = item.metadata.mimetype;
-      }
-      entries.push(entry);
     }
     return {
       entries: entries.sort((a, b) => compareStorageKeys(a.key, b.key)),
@@ -200,17 +252,62 @@ export class SupabaseStorageAdapter implements StorageAdapter {
   }
 
   /**
+   * Every child of one pseudo-directory. A listing that cannot be read
+   * throws. Callers judge from it whether a directory holds another project's
+   * folder, so an empty answer for a failed call would let the outer
+   * workspace reach that folder. The call returns at most one page, so every
+   * page is read: an entry past the first page, a `.nodetool` marker among
+   * them, must not go unseen.
+   */
+  private async listDirectory(dir: string): Promise<SupabaseObjectEntry[]> {
+    const data: SupabaseObjectEntry[] = [];
+    for (let offset = 0; ; offset += LIST_PAGE_SIZE) {
+      const { data: page, error } = await this.getClient()
+        .storage.from(this.bucket)
+        .list(dir, { limit: LIST_PAGE_SIZE, offset });
+      if (error || !page) {
+        throw new Error(
+          `Supabase list failed for "${dir}": ${error?.message ?? "no data"}`
+        );
+      }
+      data.push(...page);
+      if (page.length < LIST_PAGE_SIZE) return data;
+    }
+  }
+
+  /**
    * Read the object's metadata with a `HEAD` of its exact key rather than a
    * `list` folder search, so the result does not depend on the list
    * endpoint's name filter or result limit.
    */
   async stat(uri: string): Promise<StorageStat | null> {
+    try {
+      return await this.statStrict(uri);
+    } catch (error) {
+      // An error Storage answered with reads as no object, as it always
+      // has. A request that could not be sent still throws.
+      if (error instanceof StorageStatError) return null;
+      throw error;
+    }
+  }
+
+  /**
+   * As {@link stat}, but only an answer that the object is not found reads
+   * as no object. Storage answers a missing key with 404, or with 400 and
+   * the real status in a body that a `HEAD` does not carry. Any other
+   * failure throws.
+   */
+  async statStrict(uri: string): Promise<StorageStat | null> {
     const parsed = this.parseUri(uri);
     if (!parsed || parsed.bucket !== this.bucket) return null;
     const { data, error } = await this.getClient()
       .storage.from(parsed.bucket)
       .info(parsed.key);
-    if (error || !data) return null;
+    if (error) {
+      if (error.status === 404 || error.status === 400) return null;
+      throw new StorageStatError(`Could not stat ${parsed.key}: ${error.message}`);
+    }
+    if (!data) return null;
     const stat: StorageStat = {
       key: parsed.key,
       size: data.size,

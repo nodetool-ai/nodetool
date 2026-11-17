@@ -26,7 +26,7 @@ A media track stores a subject's position over source time. Bind a clip's
 position, scale, or mask to that track when a title, graphic, or mask must
 follow a moving subject.
 
-Create the track with the agent's `track_object` tool (it needs a provider that implements `track_object`, and a box around the subject at the start of the range), then attach the dependent clip. The Inspector's **Tracking** section lists a clip's tracks. Its **Follow object** section binds the clip to a track in **Position** or **Position + scale** mode, with offsets and smoothing. The **Subject matte** section uses a track for a mask.
+Create the track with the agent's `track_object` tool (it needs a provider that implements `track_object`, and a box around the subject at the start of the range), then attach the dependent clip. The **AI** panel's **Tracking** section lists a clip's tracks. Its **Follow object** section binds the clip to a track in **Position** or **Position + scale** mode, with offsets and smoothing. The **Subject matte** section uses a track for a mask.
 The binding follows trims and clip movement because it uses source time rather
 than the timeline's absolute position. A changed source asset makes its media
 tracks stale. Re-run tracking before relying on a stale track.
@@ -41,7 +41,7 @@ Choose **Adapt format** in the timeline's overflow menu (the three-dot button in
 | Smart Reframe | Uses subject tracks or authored framing. Unavailable until every visual clip has a current subject track or authored framing. |
 | Follow selected object | Follows one ready subject track. Unavailable until a track exists. |
 
-Review the derived cut, then open **Smart Reframe** in the Inspector for a clip. Choose its subject (auto, center, or a track) and add manual framing keys where the automatic crop needs direction. Framing is stored in source time, so it follows trims and moves. The section flags automatic framing as stale when the source asset changes. Preview and render use the same framing data.
+Review the derived cut, then open **Smart Reframe** in the **AI** panel for a clip. Choose its subject (auto, center, or a track) and add manual framing keys where the automatic crop needs direction. Framing is stored in source time, so it follows trims and moves. The section flags automatic framing as stale when the source asset changes. Preview and render use the same framing data.
 
 ## Repair or extend a shot
 

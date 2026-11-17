@@ -164,6 +164,8 @@ QtObject {
     // ArrowDropDown
     readonly property string arrowDropDown: "m7 10 5 5 5-5z"
     readonly property string arrowRight: "m10 17 5-5-5-5z"
+    readonly property string chevronLeft: "M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+    readonly property string chevronRight: "M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
     // Undo
     readonly property string undo: "M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8"
     // Redo

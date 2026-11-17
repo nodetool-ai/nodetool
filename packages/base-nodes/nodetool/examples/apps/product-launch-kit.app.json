@@ -646,7 +646,7 @@
             "id": "comment-intro",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🖼️ Product Mockup Generator\n\nOne product photo in, a coordinated set of lifestyle mockups out. Use it when you need several distinct scenes for one product instead of one prompt and one image.\n\n**How it works:** \"1️⃣ Product name\", \"5️⃣ Product description\", \"4️⃣ Target audience\" and \"2️⃣ Scene count\" (6) fill \"6️⃣ Build scene prompt\". \"7️⃣ Scene concept agent\" invents distinct scenes, and \"8️⃣ Build image prompt\" turns them into photography prompts. \"9️⃣ Split into per-scene prompts\" emits one prompt per scene to two branches. \"🔟 Render scene (text-to-image)\" draws the empty scene for the \"scene\" output. \"🅰️ Composite product into scene (image-to-image)\" places \"3️⃣ Product image\" into the scene at strength 0.65. Two Brightness/Contrast passes, \"🅱️ Brightness / contrast polish\" and \"©️ Final color adjust → mockup\" (contrast 1.1), finish the \"mockup\" output. Pick models on \"7️⃣ Scene concept agent\" and \"9️⃣ Split into per-scene prompts\".\n\n**Try this:** Change \"4️⃣ Target audience\" to \"college students on a budget\" and watch the whole shot list shift."
+              "comment": "# Product Mockup Generator\n\nOne product photo in, a coordinated set of lifestyle mockups out. Use it when you need several distinct scenes for one product instead of one prompt and one image.\n\n**How it works:** \"1 Product name\", \"5 Product description\", \"4 Target audience\" and \"2 Scene count\" (6) fill \"6 Build scene prompt\". \"7 Scene concept agent\" invents distinct scenes, and \"8 Build image prompt\" turns them into photography prompts. \"9 Split into per-scene prompts\" emits one prompt per scene to two branches. \"10 Render scene (text-to-image)\" draws the empty scene for the \"scene\" output. \"Composite product into scene (image-to-image)\" places \"3 Product image\" into the scene at strength 0.65. Two Brightness/Contrast passes, \"Brightness / contrast polish\" and \"Final color adjust → mockup\" (contrast 1.1), finish the \"mockup\" output. Pick models on \"7 Scene concept agent\" and \"9 Split into per-scene prompts\".\n\n**Try this:** Change \"4 Target audience\" to \"college students on a budget\" and watch the whole shot list shift."
             },
             "ui_properties": {
               "selected": false,
@@ -679,7 +679,7 @@
               "width": 280,
               "selectable": true,
               "bypassed": false,
-              "title": "©️ Final color adjust → mockup"
+              "title": "Final color adjust → mockup"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -700,7 +700,7 @@
               "width": 280,
               "selectable": true,
               "bypassed": false,
-              "title": "🅱️ Brightness / contrast polish"
+              "title": "Brightness / contrast polish"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -733,7 +733,7 @@
               "selectable": true,
               "bypassed": false,
               "height": 400,
-              "title": "🅰️ Composite product into scene (image-to-image)"
+              "title": "Composite product into scene (image-to-image)"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {},
@@ -759,7 +759,7 @@
               "width": 280,
               "selectable": true,
               "bypassed": false,
-              "title": "3️⃣ Product image"
+              "title": "3 Product image"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -788,7 +788,7 @@
               "width": 280,
               "selectable": true,
               "bypassed": false,
-              "title": "9️⃣ Split into per-scene prompts"
+              "title": "9 Split into per-scene prompts"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -808,7 +808,7 @@
               "width": 280,
               "selectable": true,
               "bypassed": false,
-              "title": "8️⃣ Build image prompt"
+              "title": "8 Build image prompt"
             },
             "dynamic_properties": {
               "scenes": "Studio shot on a matte black surface with soft key lighting; lifestyle scene on a wooden desk beside a laptop",
@@ -857,7 +857,7 @@
               "width": 280,
               "selectable": true,
               "bypassed": false,
-              "title": "7️⃣ Scene concept agent"
+              "title": "7 Scene concept agent"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -877,7 +877,7 @@
               "width": 280,
               "selectable": true,
               "bypassed": false,
-              "title": "6️⃣ Build scene prompt"
+              "title": "6 Build scene prompt"
             },
             "dynamic_properties": {
               "name": "Premium Wireless Headphones",
@@ -904,7 +904,7 @@
               "width": 280,
               "selectable": true,
               "bypassed": false,
-              "title": "1️⃣ Product name"
+              "title": "1 Product name"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -926,7 +926,7 @@
               "width": 280,
               "selectable": true,
               "bypassed": false,
-              "title": "5️⃣ Product description"
+              "title": "5 Product description"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -948,7 +948,7 @@
               "width": 280,
               "selectable": true,
               "bypassed": false,
-              "title": "4️⃣ Target audience"
+              "title": "4 Target audience"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -972,7 +972,7 @@
               "width": 280,
               "selectable": true,
               "bypassed": false,
-              "title": "2️⃣ Scene count"
+              "title": "2 Scene count"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -1003,7 +1003,7 @@
               "selectable": true,
               "bypassed": false,
               "height": 400,
-              "title": "🔟 Render scene (text-to-image)"
+              "title": "10 Render scene (text-to-image)"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -1139,7 +1139,7 @@
             "id": "comment-1",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🎬 Product Video Generator\n\nTurns a campaign brief and product image into a cinematic 16:9 launch clip. Use it when you already have a product photo and want a short animated shot.\n\n**How it works:** \"1️⃣ Campaign brief\", \"2️⃣ Target audience\" and \"3️⃣ Key features\" fill \"5️⃣ Build prompt\". \"6️⃣ Write video prompt\" is an Agent that reads that prompt together with \"4️⃣ Product image\" and writes one image-to-video paragraph. \"7️⃣ Animate product video\" animates the same product image with that prompt for 8 seconds at 720p. Pick a language model on \"6️⃣ Write video prompt\". The animation step uses your default video model, or the one you pick on the node. It is a paid video generation, so each run costs noticeably more than an image-only template.\n\n**Try this:** Change \"2️⃣ Target audience\" to \"retirees who walk daily\" and compare the setting and pace of the new clip."
+              "comment": "# Product Video Generator\n\nTurns a campaign brief and product image into a cinematic 16:9 launch clip. Use it when you already have a product photo and want a short animated shot.\n\n**How it works:** \"1 Campaign brief\", \"2 Target audience\" and \"3 Key features\" fill \"5 Build prompt\". \"6 Write video prompt\" is an Agent that reads that prompt together with \"4 Product image\" and writes one image-to-video paragraph. \"7 Animate product video\" animates the same product image with that prompt for 8 seconds at 720p. Pick a language model on \"6 Write video prompt\". The animation step uses your default video model, or the one you pick on the node. It is a paid video generation, so each run costs noticeably more than an image-only template.\n\n**Try this:** Change \"2 Target audience\" to \"retirees who walk daily\" and compare the setting and pace of the new clip."
             },
             "ui_properties": {
               "position": {
@@ -1170,7 +1170,7 @@
               "zIndex": 0,
               "width": 486,
               "height": 567,
-              "title": "5️⃣ Build prompt",
+              "title": "5 Build prompt",
               "selectable": true,
               "bypassed": false
             },
@@ -1213,7 +1213,7 @@
               "zIndex": 0,
               "width": 457,
               "height": 429,
-              "title": "6️⃣ Write video prompt",
+              "title": "6 Write video prompt",
               "selectable": true,
               "bypassed": false
             },
@@ -1235,7 +1235,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "1️⃣ Campaign brief",
+              "title": "1 Campaign brief",
               "selectable": true,
               "bypassed": false
             },
@@ -1257,7 +1257,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "2️⃣ Target audience",
+              "title": "2 Target audience",
               "selectable": true,
               "bypassed": false
             },
@@ -1279,7 +1279,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "3️⃣ Key features",
+              "title": "3 Key features",
               "selectable": true,
               "bypassed": false
             },
@@ -1304,7 +1304,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "4️⃣ Product image",
+              "title": "4 Product image",
               "selectable": true,
               "bypassed": false
             },
@@ -1338,7 +1338,7 @@
               "zIndex": 0,
               "width": 739,
               "height": 453,
-              "title": "7️⃣ Animate product video",
+              "title": "7 Animate product video",
               "selectable": true,
               "bypassed": false,
               "selected_generation": "2059791e2f4e44e29db7d3424ab0ee18"

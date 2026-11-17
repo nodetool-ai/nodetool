@@ -1,9 +1,10 @@
 #include "ui/EditorWindow.h"
 #include "server/MsgPack.h"
+#include "server/AccountJobs.h"
 #include <QApplication>
 #include <QGraphicsView>
 #include <QJsonDocument>
-#include <QMenu>
+#include "EntryMenuSupport.h"
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QTcpServer>
@@ -30,6 +31,7 @@ public:
     QJsonArray assets;
     int assetLists = 0;
     int lists = 0;
+    int workflowGets = 0;
     QStringList cancelled;
     JobsServer() {
         http.listen(QHostAddress::LocalHost);
@@ -38,7 +40,9 @@ public:
             peer->setParent(this);
             peers.append(peer);
             connect(peer, &QWebSocket::binaryMessageReceived, this, [this](QByteArray bytes) {
-                commands.append(decodeMsgPack(bytes)->toObject());
+                // The open-project signal goes with every socket open. WorkflowSessionTests checks it.
+                const auto command = decodeMsgPack(bytes)->toObject();
+                if (command["command"] != "set_open_project") { commands.append(command); }
             });
         });
         connect(&http, &QTcpServer::newConnection, this, [this] {
@@ -96,6 +100,7 @@ public:
                     ++assetLists;
                     respond(socket, {{"assets", assets}, {"next", QJsonValue::Null}});
                 } else if (header.contains("workflows.get")) {
+                    ++workflowGets;
                     respond(socket, {{"name", "Fallback workflow"}});
                 } else {
                     respond(socket, {});
@@ -291,16 +296,9 @@ private slots:
         QVERIFY(server.commands.isEmpty());
         auto toolbar = panel(window, "Toolbar.qml");
         click(toolbar, "toolbar-more");
-        auto menu = qobject_cast<QMenu *>(QApplication::activePopupWidget());
-        QVERIFY(menu);
-        QAction *toggle = nullptr;
-        for (auto action : menu->actions()) {
-            if (action->text() == "Instant Update: Off") {
-                toggle = action;
-            }
-        }
-        QVERIFY(toggle);
-        QTest::mouseClick(menu, Qt::LeftButton, Qt::NoModifier, menu->actionGeometry(toggle).center());
+        QQuickWidget *menu = nullptr;
+        QTRY_VERIFY((menu = entry_menu::host(window, "more")));
+        QVERIFY(entry_menu::click(menu, "Instant Update: Off"));
         QVERIFY(window.commitProperty("a", "value", "first"));
         QVERIFY(window.commitProperty("a", "value", "latest"));
         QTest::qWait(100);
@@ -380,6 +378,24 @@ private slots:
     }
     // useJobAssets in JobItem.tsx lists a completed job's outputs once, and
     // QueuePanel.tsx shows when the jobs list fails to load.
+    // A job without a name shows its workflow's name. A refresh keeps the name
+    // it fetched and asks the server only once per workflow.
+    void unnamedJobsKeepTheirWorkflowName() {
+        JobsServer server;
+        auto unnamed = JobsServer::job("done", "completed", "wf-unnamed");
+        unnamed["name"] = "";
+        server.jobs = {unnamed};
+        AccountJobs jobs(server.url(), {});
+        jobs.refresh();
+        QTRY_COMPARE(jobs.rows().isEmpty() ? QString() : jobs.rows().at(0).toObject()["name"].toString(), QString("Fallback workflow"));
+        QCOMPARE(server.workflowGets, 1);
+        QSignalSpy changed(&jobs, &AccountJobs::changed);
+        jobs.refresh();
+        QTRY_VERIFY(!changed.isEmpty());
+        QCOMPARE(jobs.rows().at(0).toObject()["name"].toString(), QString("Fallback workflow"));
+        QTest::qWait(50);
+        QCOMPARE(server.workflowGets, 1);
+    }
     void completedJobOutputsAndListErrors() {
         JobsServer server;
         server.failList = true;

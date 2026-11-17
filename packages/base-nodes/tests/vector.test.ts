@@ -190,6 +190,20 @@ describe("PeekNode", () => {
   });
 });
 
+describe("Index nodes output their collection", () => {
+  // A query can only wait for indexing when the Index node has an output to
+  // connect. Every key process() returns must be a declared output slot.
+  it.each([
+    IndexImageNode,
+    IndexEmbeddingNode,
+    IndexTextChunkNode,
+    IndexAggregatedTextNode,
+    IndexStringNode
+  ])("%o declares a collection output", (nodeClass) => {
+    expect(nodeClass.metadataOutputTypes).toEqual({ output: "collection" });
+  });
+});
+
 describe("IndexImageNode", () => {
   it("upserts image record with uri and metadata", async () => {
     const node = new IndexImageNode();
@@ -199,7 +213,7 @@ describe("IndexImageNode", () => {
       metadata: { tag: "test" }
     });
     const result = await node.process();
-    expect(result).toEqual({ output: null });
+    expect(result).toEqual({ output: { type: "collection", name: "img-col" } });
     expect(mockCollection.upsert).toHaveBeenCalledWith([
       { id: "img1", uri: "http://example.com/img.png", metadata: { tag: "test" } }
     ]);
@@ -268,7 +282,8 @@ describe("IndexEmbeddingNode", () => {
       index_id: "emb1",
       metadata: { source: "test" }
     });
-    await node.process();
+    const result = await node.process();
+    expect(result).toEqual({ output: { type: "collection", name: "emb-col" } });
     expect(mockCollection.upsert).toHaveBeenCalledWith([
       { id: "emb1", embedding: [0.1, 0.2, 0.3], metadata: { source: "test" } }
     ]);
@@ -345,7 +360,8 @@ describe("IndexTextChunkNode", () => {
       text: "hello world",
       metadata: { page: 1 }
     });
-    await node.process();
+    const result = await node.process();
+    expect(result).toEqual({ output: { type: "collection", name: "txt-col" } });
     expect(mockCollection.upsert).toHaveBeenCalledWith([
       { id: "doc-1", document: "hello world", metadata: { page: 1 } }
     ]);
@@ -369,7 +385,8 @@ describe("IndexAggregatedTextNode", () => {
       text_chunks: ["chunk1", "chunk2"],
       aggregation: "mean"
     });
-    await node.process();
+    const result = await node.process();
+    expect(result).toEqual({ output: { type: "collection", name: "agg-col" } });
     expect(mockCollection.upsert).toHaveBeenCalledWith([
       expect.objectContaining({
         id: "agg-1",
@@ -432,7 +449,8 @@ describe("IndexStringNode", () => {
       text: "hello",
       document_id: "str-1"
     });
-    await node.process();
+    const result = await node.process();
+    expect(result).toEqual({ output: { type: "collection", name: "str-col" } });
     expect(mockCollection.upsert).toHaveBeenCalledWith([
       { id: "str-1", document: "hello" }
     ]);

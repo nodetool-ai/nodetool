@@ -25,7 +25,7 @@ interface Diagnostic {
 const testsDir = fileURLToPath(new URL(".", import.meta.url));
 const repoRoot = join(testsDir, "..", "..", "..", "..");
 const configPath = join(testsDir, "oxlintrc.fixture.json");
-const oxlint = join(repoRoot, "node_modules", ".bin", "oxlint");
+const oxlint = join(repoRoot, "node_modules", "oxlint", "bin", "oxlint");
 
 /** Cases, keyed by fixture file name. Line numbers in comments are 1-based. */
 const cases: Record<string, { source: string[]; expected: number[] }> = {
@@ -131,7 +131,7 @@ beforeAll(() => {
     writeFileSync(join(workDir, `${name}.ts`), `${source.join("\n")}\n`);
     reported.set(name, []);
   }
-  const run = spawnSync(oxlint, ["--config", configPath, "--format", "json", workDir], {
+  const run = spawnSync(process.execPath, [oxlint, "--config", configPath, "--format", "json", workDir], {
     cwd: repoRoot,
     encoding: "utf8",
   });

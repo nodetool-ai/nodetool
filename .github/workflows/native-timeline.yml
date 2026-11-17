@@ -26,6 +26,7 @@ on:
       - "native/ui_primitives/**"
       - "native/chat/**"
       - "native/model-picker/**"
+      - "native/storyboard/**"
       - "native/kernels/**"
       - ".github/workflows/native-timeline.yml"
       - ".github/actions/setup-native-timeline/**"
@@ -40,6 +41,7 @@ on:
       - "native/ui_primitives/**"
       - "native/chat/**"
       - "native/model-picker/**"
+      - "native/storyboard/**"
       - "native/kernels/**"
       - ".github/workflows/native-timeline.yml"
       - ".github/actions/setup-native-timeline/**"
@@ -82,7 +84,7 @@ jobs:
           REPO: ${{ github.repository }}
           REF: ${{ github.ref_name }}
           # The web references the oracles and export_golden compare against.
-          REFERENCE_PATHS: packages/timeline packages/gpu packages/cli-timeline
+          REFERENCE_PATHS: packages/timeline packages/gpu packages/cli-timeline packages/protocol
         run: |
           set -euo pipefail
           if [[ "$EVENT" != "schedule" ]]; then
@@ -300,6 +302,7 @@ jobs:
         if: github.event_name != 'push'
         run: |
           node native/timeline/scripts/check-ci-prerequisites.mjs
+          node native/timeline/scripts/generate-tool-manifest.mjs --check
           node --test native/timeline/scripts/check-ci-prerequisites.test.mjs \
             native/timeline/scripts/measure-psnr.test.mjs \
             native/timeline/src/server/sync/sync-e2e-transport.test.mjs
@@ -489,7 +492,7 @@ jobs:
 
       - name: Upload export golden failure frames
         if: github.event_name != 'push' && failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: native-timeline-export-golden-${{ runner.os }}
           path: native/timeline/build-ci/**/export-golden-failures/
@@ -497,7 +500,7 @@ jobs:
 
       - name: Upload Linux matte diagnostics
         if: github.event_name != 'push' && failure() && runner.os == 'Linux'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: native-timeline-matte-backtrace
           path: ${{ runner.temp }}/matte-gdb.log
@@ -665,7 +668,7 @@ jobs:
           xvfb-run -a ctest --preset "${{ matrix.preset }}" --output-on-failure "${sel[@]}"
       - name: Upload sanitizer logs
         if: github.event_name != 'push' && always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: native-timeline-${{ matrix.preset }}
           path: native/timeline/build-${{ matrix.preset }}/Testing/Temporary/

@@ -173,6 +173,24 @@ describe("ListModelsTool — listing", () => {
     expect(result.error).toMatch(/model_type must be one of/);
   });
 
+  it("rejects a filter it does not read instead of returning everything", async () => {
+    const tool = listModelsTool({ openai: openai(), fal_ai: falAi() });
+    const result = (await tool.process(ctx, {
+      capability: "text_to_3d"
+    })) as Result;
+    expect(result.total).toBe(0);
+    expect(result.results).toEqual([]);
+    expect(result.error).toMatch(/list_models has no filter 'capability'/);
+    expect(result.error).toMatch(/Accepted: provider, model_type, downloaded_only, limit/);
+  });
+
+  it("accepts a camelCase spelling of a declared filter", async () => {
+    const tool = listModelsTool({ openai: openai(), fal_ai: falAi() });
+    const result = (await tool.process(ctx, { modelType: "image" })) as Result;
+    expect(result.error).toBeUndefined();
+    expect(result.results.every((m) => m.type === "image")).toBe(true);
+  });
+
   it("marks local providers as downloaded and honours downloaded_only", async () => {
     const tool = listModelsTool({ openai: openai(), ollama: ollama() });
     const result = (await tool.process(ctx, {

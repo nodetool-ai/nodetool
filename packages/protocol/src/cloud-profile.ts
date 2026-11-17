@@ -162,7 +162,7 @@ export const CLOUD_HOST_FILE_NODES: readonly string[] = [
   "nodetool.input.FilePathInput",
   "nodetool.input.FolderPathInput",
   // Media loaders/savers that go to disk. Their asset-store siblings
-  // (LoadImageAssets, SaveImage, SaveAudio, SaveVideo, …) stay.
+  // (SaveImage, SaveAudio, SaveVideo, …) stay.
   "nodetool.audio.LoadAudioFile",
   "nodetool.audio.LoadAudioFolder",
   "nodetool.audio.SaveAudioFile",
@@ -172,7 +172,14 @@ export const CLOUD_HOST_FILE_NODES: readonly string[] = [
   "nodetool.video.LoadVideoFile",
   "nodetool.video.SaveVideoFile",
   "nodetool.model3d.LoadModel3DFile",
-  "nodetool.model3d.SaveModel3DFile"
+  "nodetool.model3d.SaveModel3DFile",
+  // Named "Assets", but they read the folder ref's `uri` (or a plain string)
+  // as a host directory with fs.readdir/readFile. They never consult the
+  // asset store, so on a shared server they read whatever directory a graph
+  // names. nodetool.text.LoadTextAssets has the same shape (listed below).
+  "nodetool.image.LoadImageAssets",
+  "nodetool.audio.LoadAudioAssets",
+  "nodetool.video.LoadVideoAssets"
 ];
 
 /**

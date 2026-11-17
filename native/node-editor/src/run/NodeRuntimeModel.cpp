@@ -6,10 +6,11 @@
 #include <algorithm>
 
 namespace nodetool::node_editor {
-namespace {
-bool terminal(const QString &status) {
+bool isTerminalRunStatus(const QString &status) {
   return status == "completed" || status == "finished" || status == "failed" || status == "cancelled" || status == "timed_out" || status == "error";
 }
+namespace {
+bool terminal(const QString &status) { return isTerminalRunStatus(status); }
 constexpr qsizetype TextLimit = 65536;
 constexpr qsizetype ValueBudget = 131072;
 constexpr qsizetype CollectionLimit = 128;
@@ -100,6 +101,10 @@ QString text(const QJsonValue &value) {
 }
 }
 NodeRuntimeModel::NodeRuntimeModel(QObject *parent) : QObject(parent) {}
+QJsonObject NodeRuntimeModel::runNodeState(const QString &jobId, const QString &nodeId) const {
+  const auto run = runs_.constFind(jobId);
+  return run == runs_.cend() ? QJsonObject{} : run->nodes.value(nodeId);
+}
 QJsonObject NodeRuntimeModel::nodeState(const QString &nodeId) const {
   const auto run = runs_.constFind(selected_);
   if (run == runs_.cend()) { return {}; }
@@ -220,7 +225,7 @@ void NodeRuntimeModel::ingest(QString jobId, const QJsonObject event) {
       run.truncated = true;
     }
     run.edges[id] = state;
-    if (selected_ == jobId) { emit projectionChanged(); }
+    if (selected_ == jobId) { emit edgeChanged(id); }
     return;
   }
   // Late node frames of a cancelled run are dropped, as handleNodeUpdate does on the web.

@@ -4,19 +4,28 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import SaveDestinationHint from "../SaveDestinationHint";
 import { NodeData } from "../../../stores/NodeData";
+import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
 
-const renders = { id: "ws-1", name: "Renders", path: "/home/me/renders" };
+const filmFolder = {
+  folder: {
+    workspace_id: "ws-film",
+    path: "/home/me/NodeTool/My Film",
+    origin: "created",
+    is_accessible: true
+  },
+  projectName: "My Film",
+  isLoading: false
+};
 
-let currentWorkspace: typeof renders | undefined = renders;
+let folderState: {
+  folder: typeof filmFolder.folder | null;
+  projectName: string | null;
+  isLoading: boolean;
+} = filmFolder;
+const useProjectFolder = jest.fn((_projectId: string) => folderState);
 
-jest.mock("../../../hooks/useCurrentWorkspace", () => ({
-  useCurrentWorkspace: () => ({
-    workspaceId: currentWorkspace?.id,
-    workspace: currentWorkspace,
-    setWorkspaceId: jest.fn(),
-    hasActiveWorkflow: true,
-    canManage: true
-  })
+jest.mock("../../../hooks/useProjectFolder", () => ({
+  useProjectFolder: (projectId: string) => useProjectFolder(projectId)
 }));
 
 const renderHint = (properties: Record<string, unknown>) =>
@@ -30,18 +39,24 @@ const renderHint = (properties: Record<string, unknown>) =>
 
 describe("SaveDestinationHint", () => {
   beforeEach(() => {
-    currentWorkspace = renders;
+    folderState = filmFolder;
+    useProjectFolder.mockClear();
+    useWorkspaceTabsStore.setState({
+      activeProjectId: "project-film",
+      personalProjectId: "personal"
+    });
   });
 
-  it("names the workspace the file will land in", async () => {
+  it("names the folder of the active project", async () => {
     renderHint({ save_to_workspace: true });
-    expect(await screen.findByText("Renders")).toBeInTheDocument();
+    expect(await screen.findByText("My Film")).toBeInTheDocument();
+    expect(useProjectFolder).toHaveBeenCalledWith("project-film");
   });
 
-  it("falls back to a bare label while the list is still loading", () => {
-    currentWorkspace = undefined;
+  it("falls back to a bare label while the projects are still loading", () => {
+    folderState = { folder: null, projectName: null, isLoading: true };
     renderHint({ save_to_workspace: true });
-    expect(screen.getByText("Workspace")).toBeInTheDocument();
+    expect(screen.getByText("Project folder")).toBeInTheDocument();
   });
 
   it("renders nothing while the toggle is off", () => {

@@ -7,7 +7,7 @@ import { afterAll, describe, expect, it } from "vitest";
 
 const root = fileURLToPath(new URL("../../../../", import.meta.url));
 const fixtureDirectory = mkdtempSync(join(root, "packages", "websocket", "src", ".pack-import-test-"));
-const oxlint = join(root, "node_modules", ".bin", "oxlint");
+const oxlint = join(root, "node_modules", "oxlint", "bin", "oxlint");
 const config = join(root, ".oxlintrc.json");
 
 afterAll(() => { rmSync(fixtureDirectory, { recursive: true, force: true }); });
@@ -15,7 +15,7 @@ afterAll(() => { rmSync(fixtureDirectory, { recursive: true, force: true }); });
 function lint(source: string): { status: number | null; errors: string[] } {
   const file = join(fixtureDirectory, "fixture.ts");
   writeFileSync(file, source);
-  const result = spawnSync(oxlint, [file, "--config", config, "--format=json"], { cwd: root, encoding: "utf8" });
+  const result = spawnSync(process.execPath, [oxlint, file, "--config", config, "--format=json"], { cwd: root, encoding: "utf8" });
   expect(result.error).toBeUndefined();
   const report = JSON.parse(result.stdout);
   const errors = report.diagnostics.filter((item: { code: string }) => item.code === "pack-boundaries(no-direct-pack-imports)");
@@ -54,7 +54,7 @@ describe("core pack import migration ratchet", () => {
       mkdirSync(join(isolatedRoot, "packages/websocket/src"), { recursive: true });
       cpSync(join(root, "tools/oxlint/pack-boundaries/index.mjs"), join(pluginDirectory, "index.mjs"));
       cpSync(join(root, "scripts/node-catalog/tiers.mjs"), join(isolatedRoot, "scripts/node-catalog/tiers.mjs"));
-      symlinkSync(join(root, "node_modules"), join(isolatedRoot, "node_modules"));
+      symlinkSync(join(root, "node_modules"), join(isolatedRoot, "node_modules"), process.platform === "win32" ? "junction" : "dir");
       const statement = 'import("@nodetool-ai/fal-nodes")';
       writeFileSync(join(pluginDirectory, "migration-baseline.json"), JSON.stringify({
         "packages/websocket/src/fixture.ts": [{ kind: "dynamic", specifier: "@nodetool-ai/fal-nodes", statement, count: 1 }]
@@ -68,7 +68,7 @@ describe("core pack import migration ratchet", () => {
         ['void importPack("fal");', 1, "unused migration baseline"]
       ] as const) {
         writeFileSync(fixture, source);
-        const result = spawnSync(oxlint, [fixture, "--config", isolatedConfig, "--format=json"], { cwd: isolatedRoot, encoding: "utf8" });
+        const result = spawnSync(process.execPath, [oxlint, fixture, "--config", isolatedConfig, "--format=json"], { cwd: isolatedRoot, encoding: "utf8" });
         expect(result.error).toBeUndefined();
         expect(result.status, result.stdout + result.stderr).toBe(status);
         if (message) { expect(result.stdout).toContain(message); }

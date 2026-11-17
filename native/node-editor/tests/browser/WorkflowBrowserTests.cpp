@@ -3,6 +3,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QPointer>
+#include <QSettings>
+#include <QStandardPaths>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QUrlQuery>
@@ -69,6 +71,28 @@ private slots:
     QVERIFY(!browser.busy());
     browser.refresh();
     QVERIFY(browser.error().contains("Connect to a server first"));
+  }
+  // A documentfile push reloads a list that has loaded, because a file of one
+  // of its workflows became invalid, went missing or is fine again.
+  void documentFilePushReloadsALoadedList() {
+    Fixture server;
+    server.respond = [](QByteArray) { return QByteArray(R"({"workflows":[{"id":"a","name":"Alpha"}],"next":null})"); };
+    WorkflowBrowser browser;
+    browser.configure(server.url());
+    browser.documentFileChanged({{"id", "a"}, {"type", "workflow"}});
+    QTest::qWait(50);
+    QCOMPARE(server.requests.size(), 0);
+    browser.refresh();
+    QTRY_VERIFY(!browser.loading());
+    QCOMPARE(server.requests.size(), 1);
+    browser.documentFileChanged({{"id", "t"}, {"type", "timeline"}});
+    QTest::qWait(50);
+    QCOMPARE(server.requests.size(), 1);
+    browser.documentFileChanged({{"id", "a"}, {"type", "workflow"}, {"file_error", "Unexpected token"}});
+    QTRY_COMPARE(server.requests.size(), 2);
+    QVERIFY(server.requests.last().startsWith("GET /api/workflows?"));
+    QTRY_VERIFY(!browser.loading());
+    QCOMPARE(browser.rows().size(), 1);
   }
   void liveDisposableWorkflow() {
     const auto origin = qEnvironmentVariable("NODETOOL_BROWSER_LIVE_URL");
@@ -329,6 +353,27 @@ private slots:
     QTRY_COMPARE(deleted.count(), 2);
     QTRY_VERIFY(!browser.busy() && !browser.loading());
     QVERIFY(browser.error().contains("1 workflow"));
+  }
+  // Every tab holds its own browser. A view choice saved in one tab keeps
+  // what another tab saved, such as a favourite.
+  void viewSettingsFromTwoTabsKeepEachOther() {
+    QStandardPaths::setTestModeEnabled(true);
+    QCoreApplication::setOrganizationName("nodetool-browser-tests");
+    QCoreApplication::setApplicationName("view-settings");
+    QSettings().clear();
+    WorkflowBrowser first, second;
+    first.restoreViewSettings();
+    second.restoreViewSettings();
+    first.toggleFavorite("wf-1");
+    second.setSortBy("name");
+    second.setShowGraphPreview(true);
+    second.toggleTag("video");
+    QCOMPARE(QSettings().value("workflows/favorites").toStringList(), QStringList{"wf-1"});
+    QCOMPARE(QSettings().value("workflows/sortBy").toString(), QString("name"));
+    first.setShowGraphPreview(false);
+    QCOMPARE(QSettings().value("workflows/selectedTags").toStringList(), QStringList{"video"});
+    QCOMPARE(QSettings().value("workflows/sortBy").toString(), QString("name"));
+    QSettings().clear();
   }
   void invalidResponseAndRetry() {
     Fixture server;

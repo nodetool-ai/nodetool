@@ -2,7 +2,8 @@
 export {
   getMaxUploadBytes,
   getMaxLocalUploadBytes,
-  assertUploadWithinLimit
+  assertUploadWithinLimit,
+  UploadTooLargeError
 } from "./storage-limits.js";
 
 // URI-based asset storage (used by the runtime / websocket server)
@@ -12,6 +13,7 @@ export type {
   StorageEntry,
   StorageListResult,
   StorageStat,
+  StoreIfAbsentOptions,
   UploadTarget,
   UploadUrlOptions
 } from "./storage-adapter.js";
@@ -29,11 +31,13 @@ export { InMemoryStorageAdapter } from "./memory-storage-adapter.js";
 export { objectCacheControl } from "./cache-control.js";
 export {
   FileStorageAdapter,
+  setAssetFolderPathLookup,
   type ExternalPathLookup,
   type FileStorageAdapterOptions
 } from "./file-storage-adapter.js";
 export {
   S3StorageAdapter,
+  ConditionalWriteUnsupportedError,
   type S3StorageAdapterOptions
 } from "./s3-storage-adapter.js";
 export {

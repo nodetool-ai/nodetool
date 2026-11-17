@@ -5,6 +5,7 @@ import mockTheme from "../../../../__mocks__/themeMock";
 import WelcomePlaceholder from "../WelcomePlaceholder";
 import { useLanguageModelProviders } from "../../../../hooks/useProviders";
 import { openProviderOnboarding } from "../../../../stores/ProviderOnboardingStore";
+import useAuth from "../../../../stores/useAuth";
 
 jest.mock("../../../../hooks/useProviders", () => ({
   useLanguageModelProviders: jest.fn()
@@ -72,10 +73,7 @@ describe("WelcomePlaceholder", () => {
 
     renderWelcome(onSuggestionClick);
 
-    expect(screen.getByText("How can I help you today?")).toBeInTheDocument();
-    expect(
-      screen.getByText("Ask anything, drop in files, or start with one of these:")
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
     expect(
       screen.queryByText("Connect an AI provider to get started")
     ).not.toBeInTheDocument();
@@ -105,9 +103,51 @@ describe("WelcomePlaceholder", () => {
 
     renderWelcome();
 
-    expect(screen.getByText("How can I help you today?")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
     expect(
       screen.queryByText("Connect an AI provider to get started")
     ).not.toBeInTheDocument();
+  });
+
+  describe("greeting", () => {
+    beforeEach(() => {
+      mockUseLanguageModelProviders.mockReturnValue({
+        providers: [{ provider: "openai", capabilities: ["generate_message"] }],
+        isLoading: false,
+        isFetching: false,
+        error: null
+      });
+    });
+    afterEach(() => {
+      jest.restoreAllMocks();
+      useAuth.setState({ user: null });
+    });
+
+    it("greets the user by the time of day and first name, as Claude does", () => {
+      jest.spyOn(Date.prototype, "getHours").mockReturnValue(19);
+      useAuth.setState({
+        user: {
+          id: "user-1",
+          user_metadata: { given_name: "Matthias", full_name: "Matthias Georgi" }
+        } as never
+      });
+
+      renderWelcome();
+
+      expect(
+        screen.getByRole("heading", { level: 1, name: "Good evening, Matthias" })
+      ).toBeInTheDocument();
+    });
+
+    it("greets without a name when the account has none", () => {
+      jest.spyOn(Date.prototype, "getHours").mockReturnValue(8);
+      useAuth.setState({ user: { id: "local" } });
+
+      renderWelcome();
+
+      expect(
+        screen.getByRole("heading", { level: 1, name: "Good morning" })
+      ).toBeInTheDocument();
+    });
   });
 });

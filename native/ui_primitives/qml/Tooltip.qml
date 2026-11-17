@@ -17,7 +17,27 @@ ToolTip {
     readonly property rect triggerBounds: tracker.bounds
     x: Math.max(0, Math.min(parent ? parent.width - width : 0, anchorPoint.x))
     y: parent && anchorPoint.y + height <= parent.height ? anchorPoint.y : Math.max(0, anchorPoint.y - (trigger ? trigger.height : 0) - height)
-    onAboutToShow: tracker.prepare()
+    // A host that sets TooltipHost.routeToHost shows the text itself when this overlay cannot place it
+    // beside the trigger, as in a QQuickWidget sized to a toolbar. The popup then stays invisible.
+    readonly property bool fitsOverlay: !parent || (implicitWidth <= parent.width && (anchorPoint.y + implicitHeight <= parent.height || anchorPoint.y - (trigger ? trigger.height : 0) - implicitHeight >= 0))
+    readonly property bool hosted: TooltipHost.routeToHost && !fitsOverlay
+    property bool hostShowing: false
+    opacity: hosted ? 0 : 1
+    function syncHost(showing) {
+        if (showing && hosted) {
+            hostShowing = true
+            TooltipHost.requested(text)
+        } else if (hostShowing) {
+            hostShowing = false
+            TooltipHost.requested("")
+        }
+    }
+    onHostedChanged: syncHost(visible)
+    onTextChanged: if (hostShowing) syncHost(true)
+    // Hide on aboutToHide, not closed: the exit transition delays closed, so a stale hide would arrive after
+    // the next tooltip's request and cancel it.
+    onAboutToHide: syncHost(false)
+    onAboutToShow: { tracker.prepare(); syncHost(true) }
     Ui.TooltipTracker {
         id: tracker
         trigger: root.trigger

@@ -9,6 +9,7 @@ import {
   within
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import ChatView from "../../../../components/chat/containers/ChatView";
@@ -146,10 +147,18 @@ jest.mock("../../../../components/chat/containers/ChatInputSection", () => ({
 }));
 
 const renderWithProviders = (component: React.ReactElement) => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } }
+  });
+  // A wrapper survives rerender, which passes only the theme and keyboard.
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
   return render(
     <ThemeProvider theme={mockTheme}>
       <KeyboardProvider>{component}</KeyboardProvider>
-    </ThemeProvider>
+    </ThemeProvider>,
+    { wrapper }
   );
 };
 
@@ -282,6 +291,28 @@ describe("ChatView", () => {
 
       expect(screen.getByTestId("chat-thread-view")).toBeInTheDocument();
       expect(screen.getByText("Messages: 1")).toBeInTheDocument();
+    });
+
+    it("lets a conversation scroll across the whole panel", () => {
+      const messages: Message[] = [
+        {
+          id: "1",
+          type: "message",
+          role: "user",
+          content: [{ type: "text", text: "Hello" }]
+        }
+      ];
+      const { rerender } = renderWithProviders(
+        <ChatView {...baseProps} messages={[]} />
+      );
+      const container = () =>
+        screen.getByTestId("chat-input-section").ownerDocument.querySelector(
+          ".chat-thread-container"
+        );
+      expect(container()).not.toHaveClass("has-thread");
+
+      rerender(<ChatView {...baseProps} messages={messages} />);
+      expect(container()).toHaveClass("has-thread");
     });
 
     it("renders messages with different roles correctly", () => {
@@ -842,18 +873,10 @@ describe("ChatView", () => {
 
     it("ignores the shortcut in a background workspace tab", () => {
       const onNewChat = jest.fn();
-      render(
-        <ThemeProvider theme={mockTheme}>
-          <KeyboardProvider>
-            <div inert>
-              <ChatView
-                {...baseProps}
-                onNewChat={onNewChat}
-                showNewChatButton
-              />
-            </div>
-          </KeyboardProvider>
-        </ThemeProvider>
+      renderWithProviders(
+        <div inert>
+          <ChatView {...baseProps} onNewChat={onNewChat} showNewChatButton />
+        </div>
       );
 
       act(() => {

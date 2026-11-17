@@ -10,7 +10,7 @@
  * for six node packs per case.
  */
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import { sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
 
@@ -26,7 +26,8 @@ import {
   FLOW_INVOKE_DEPTH_KEY,
   MAX_FLOW_INVOKE_DEPTH,
   MAX_OPEN_NODE_STREAMS,
-  setFlowBackend
+  setFlowBackend,
+  unavailableNodeRefusal
 } from "../src/capabilities/flow.js";
 import { createChatCodeActSession } from "../src/codeact/chat-codeact.js";
 
@@ -464,4 +465,61 @@ describe("the guest surface", () => {
     expect(observation.result).toEqual({ a: 1, b: 2 });
     expect(fake.calls[0].type).toBe("test.Echo");
   }, 60_000);
+});
+
+describe("node types the server does not run", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("refuses a host-filesystem node on the cloud profile without running it", async () => {
+    vi.stubEnv("NODETOOL_NODE_PROFILE", "cloud");
+    const fake = pinFake();
+    const result = await run().invoke("invoke_node", {
+      type: "nodetool.document.LoadDocumentFile",
+      inputs: { path: "/proc/self/environ" }
+    });
+    expect(result).toMatchObject({
+      error: "node_not_available",
+      type: "nodetool.document.LoadDocumentFile"
+    });
+    expect(fake.calls).toHaveLength(0);
+  });
+
+  it("refuses to open a stream on such a node", async () => {
+    vi.stubEnv("NODETOOL_NODE_PROFILE", "cloud");
+    const fake = pinFake();
+    const result = await run().invoke("open_node_stream", {
+      type: "nodetool.text.SaveTextFile",
+      inputs: {}
+    });
+    expect(result).toMatchObject({ error: "node_not_available" });
+    expect(fake.calls).toHaveLength(0);
+  });
+
+  it("still runs a node the cloud profile keeps", async () => {
+    vi.stubEnv("NODETOOL_NODE_PROFILE", "cloud");
+    const fake = pinFake();
+    await run().invoke("invoke_node", { type: "nodetool.text.Concat", inputs: {} });
+    expect(fake.calls.map((call) => call.type)).toEqual(["nodetool.text.Concat"]);
+  });
+
+  it("follows the same rule as the server's registry policy", () => {
+    expect(unavailableNodeRefusal("nodetool.document.LoadDocumentFile", {})).toBeNull();
+    expect(
+      unavailableNodeRefusal("nodetool.document.LoadDocumentFile", { NODETOOL_ENV: "production" })
+    ).not.toBeNull();
+    expect(
+      unavailableNodeRefusal("nodetool.document.LoadDocumentFile", {
+        NODETOOL_ENV: "production",
+        NODETOOL_NODE_PROFILE: "full"
+      })
+    ).toBeNull();
+    expect(
+      unavailableNodeRefusal("vector.QueryText", {
+        NODETOOL_ENV: "production",
+        NODETOOL_NODE_PROFILE: "full"
+      })
+    ).not.toBeNull();
+  });
 });

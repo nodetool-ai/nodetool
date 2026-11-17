@@ -23,9 +23,10 @@ import type {
   BaseProvider,
   JsonSchema,
   ProviderCapability,
+  ProviderCredit,
   RecommendedUnifiedModel
 } from "@nodetool-ai/runtime";
-import { RECOMMENDED_MODELS } from "@nodetool-ai/runtime";
+import { RECOMMENDED_MODELS, creditBlockReason } from "@nodetool-ai/runtime";
 import {
   getModelRank,
   modelRankings,
@@ -48,8 +49,11 @@ import {
   listProvidersSpec,
   PROVIDER_CAPABILITY_TOOLS,
   SUPPORTED_CAPABILITIES,
-  MODEL_TYPES
+  MODEL_TYPES,
+  FIND_MODEL_INPUT_SCHEMA,
+  LIST_MODELS_SCHEMA
 } from "./models.specs.js";
+import { unknownArgKeys } from "./args.js";
 import {
   isFunction,
   isNonBlankString,
@@ -91,7 +95,8 @@ const LOCAL_PROVIDER_IDS = new Set([
  * Why a configured provider still cannot serve a call, or `null` when it can.
  * A provider that answers with a reason is dropped from the ranking and named
  * in the result's note — ranking a model nothing can run turns a discovery
- * call into a failed generation call.
+ * call into a failed generation call. An account known to be out of credit
+ * counts: every call it gets would fail on payment.
  */
 async function unavailableReasonOf(
   provider: BaseProvider
@@ -99,11 +104,29 @@ async function unavailableReasonOf(
   // Guarded rather than called outright: a provider from an older build has no
   // such method, and hiding every provider over that would be a far worse
   // failure than the one this prevents.
-  if (!isFunction(provider.unavailableReason)) return null;
+  if (isFunction(provider.unavailableReason)) {
+    try {
+      const reason = await provider.unavailableReason();
+      if (reason) return reason;
+    } catch (e) {
+      return e instanceof Error ? e.message : String(e);
+    }
+  }
+  // From the cache only, so a search never waits on a balance request. A stale
+  // entry is refreshed in the background for the next search.
+  return creditBlockReason(await creditOf(provider, { cachedOnly: true }));
+}
+
+/** The provider's known credit, or null. Never throws. */
+async function creditOf(
+  provider: BaseProvider,
+  options: { cachedOnly?: boolean } = {}
+): Promise<ProviderCredit | null> {
+  if (!isFunction(provider.creditStatus)) return null;
   try {
-    return await provider.unavailableReason();
-  } catch (e) {
-    return e instanceof Error ? e.message : String(e);
+    return await provider.creditStatus(options);
+  } catch {
+    return null;
   }
 }
 
@@ -593,6 +616,20 @@ const findModel: CapabilityExport = {
       };
     }
 
+    const unknown = unknownArgKeys(FIND_MODEL_INPUT_SCHEMA, params).filter(
+      (key) => key !== "provider"
+    );
+    if (unknown.length > 0) {
+      return {
+        capability,
+        total: 0,
+        results: [],
+        error:
+          `find_model has no argument ${unknown.map((k) => `'${k}'`).join(", ")}. ` +
+          `Accepted: ${Object.keys(FIND_MODEL_INPUT_SCHEMA.properties ?? {}).join(", ")}.`
+      };
+    }
+
     const task =
       isString(params["task"])
         ? params["task"]
@@ -601,10 +638,12 @@ const findModel: CapabilityExport = {
       isString(params["query"])
         ? params["query"]
         : undefined;
-    const providerHint =
-      isString(params["provider_hint"])
-        ? params["provider_hint"]
-        : undefined;
+    // `provider` is the name `list_models` uses, so it is what a caller
+    // reaches for. It is read as the hint rather than dropped.
+    const providerHintRaw = params["provider_hint"] ?? params["provider"];
+    const providerHint = isString(providerHintRaw)
+      ? providerHintRaw
+      : undefined;
     const modelHintRaw = params["model_hint"];
     const modelHints: Set<string> = new Set(
       isString(modelHintRaw)
@@ -632,6 +671,17 @@ const findModel: CapabilityExport = {
     const recommendedSet = getRecommendedSet(capability);
     const candidates: Array<{ providerId: string; model: AnyModel }> = [];
     const unavailable: string[] = [];
+    // Why the hinted provider contributed no candidate, when it did not. A hint
+    // used to be a score bonus and nothing else, so a hint naming a provider
+    // that was not configured here answered with another provider's models
+    // and no word about it.
+    let hintMiss: string | undefined =
+      providerHint && !providerEntries.some(([id]) => id === providerHint)
+        ? `is not configured here (configured: ${providerEntries
+            .map(([id]) => id)
+            .sort()
+            .join(", ")})`
+        : undefined;
 
     const wantsFake = providerHint?.toLowerCase() === "fake" ||
       /\bfake\b/i.test(query ?? "") ||
@@ -642,26 +692,34 @@ const findModel: CapabilityExport = {
       if ((providerId === "fake") !== wantsFake) {
         continue;
       }
+      const hinted = providerId === providerHint;
       let supports: boolean;
       try {
         supports = instance
           .getCapabilities()
           .includes(capability);
       } catch {
+        supports = false;
+      }
+      if (!supports) {
+        if (hinted) hintMiss = `does not offer ${capability}`;
         continue;
       }
-      if (!supports) continue;
 
       const blocked = await unavailableReasonOf(instance);
       if (blocked) {
         unavailable.push(`${providerId} (${blocked})`);
+        if (hinted) hintMiss = `cannot run here (${blocked})`;
         continue;
       }
 
       let models: AnyModel[];
       try {
         models = await fetchModelsForCapability(instance, capability);
-      } catch {
+      } catch (e) {
+        if (hinted) {
+          hintMiss = `failed to list models (${e instanceof Error ? e.message : String(e)})`;
+        }
         continue;
       }
 
@@ -776,6 +834,18 @@ const findModel: CapabilityExport = {
       total: collected.length,
       results
     };
+    if (providerHint && !wantsFake) {
+      const matched = collected.some((r) => r.provider === providerHint);
+      answer.provider_hint_matched = matched;
+      if (!matched) {
+        const reason =
+          hintMiss ?? `has no ${capability} model matching this search`;
+        // First, so a caller that reads one sentence reads this one.
+        notes.unshift(
+          `provider_hint '${providerHint}' ${reason}. The results come from other providers.`
+        );
+      }
+    }
     const best = results[0];
     if (best !== undefined) {
       answer.ref = best.ref;
@@ -849,6 +919,11 @@ interface FindModelAnswer {
   prompting_skill?: string;
   results: RankedModel[];
   query_matched?: boolean;
+  /**
+   * Present when `provider_hint` was passed. `false` means no result comes
+   * from the hinted provider, and `note` says why.
+   */
+  provider_hint_matched?: boolean;
   note?: string;
 }
 
@@ -950,6 +1025,18 @@ function normalizeModelType(raw: unknown): ModelType | null | "invalid" {
 const listModels: CapabilityExport = {
   spec: listModelsSpec,
   impl: async (run, params) => {
+    const unknown = unknownArgKeys(LIST_MODELS_SCHEMA, params);
+    if (unknown.length > 0) {
+      const accepted = Object.keys(LIST_MODELS_SCHEMA.properties ?? {});
+      return {
+        total: 0,
+        results: [],
+        error:
+          `list_models has no filter ${unknown.map((k) => `'${k}'`).join(", ")}. ` +
+          `Accepted: ${accepted.join(", ")}. ` +
+          "To search by capability or model name, use find_model."
+      };
+    }
     const providers = providersOf(run);
     const modelType = normalizeModelType(params["model_type"]);
     if (modelType === "invalid") {
@@ -1101,9 +1188,31 @@ interface ListedProvider {
   local: boolean;
   available: boolean;
   unavailable_reason?: string;
+  /**
+   * Remaining credit, when the provider has a balance endpoint or a call was
+   * refused for payment. Absent means unknown, not unlimited.
+   */
+  credit?: ListedCredit;
   capabilities: ProviderCapability[];
   /** Capability → the tool that runs it, for the capabilities a tool covers. */
   tools: Partial<Record<ProviderCapability, string>>;
+}
+
+/** The credit fields an agent needs: state, amount and one line to quote. */
+interface ListedCredit {
+  state: ProviderCredit["state"];
+  remaining?: number;
+  unit?: ProviderCredit["unit"];
+  currency?: string;
+  summary: string;
+}
+
+function listedCredit(credit: ProviderCredit): ListedCredit {
+  const listed: ListedCredit = { state: credit.state, summary: credit.summary };
+  if (credit.remaining !== undefined) listed.remaining = credit.remaining;
+  if (credit.unit !== undefined) listed.unit = credit.unit;
+  if (credit.currency !== undefined) listed.currency = credit.currency;
+  return listed;
 }
 
 const CAPABILITY_TOOL_ENTRIES: ReadonlyMap<ProviderCapability, string> =
@@ -1119,6 +1228,16 @@ const listProviders: CapabilityExport = {
     const capabilityFilter = isNonBlankString(params["capability"])
       ? params["capability"].trim()
       : undefined;
+
+    // Balance reads run in parallel and are cached, so a listing waits for
+    // the slowest provider once per cache period at most.
+    const credits = new Map(
+      await Promise.all(
+        Object.entries(providers).map(
+          async ([id, instance]) => [id, await creditOf(instance)] as const
+        )
+      )
+    );
 
     const rows: ListedProvider[] = [];
     for (const [id, instance] of Object.entries(providers)) {
@@ -1148,6 +1267,8 @@ const listProviders: CapabilityExport = {
         tools
       };
       if (reason !== null) row.unavailable_reason = reason;
+      const credit = credits.get(id);
+      if (credit) row.credit = listedCredit(credit);
       rows.push(row);
     }
     rows.sort((a, b) => a.id.localeCompare(b.id));

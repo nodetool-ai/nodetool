@@ -67,6 +67,7 @@ The server recognizes these credentials. Prefixed tokens are checked before the 
 | SSO session token | `nts_` | Everything | SSO mode only. Minted by the server after an OIDC sign-in. Expires after `OIDC_SESSION_TTL_SECONDS`. |
 | Access token | `ntk_` | Everything, in every mode | Minted by a signed-in person for an agent or MCP client. Revocable. A failed check falls through to the mode's rules. |
 | MCP OAuth access token | `nta_` | `/mcp` only | Issued by the MCP OAuth flow. Presented anywhere else, or after the server was rehosted, it is refused with `invalid_token`. See [MCP production](mcp-production.md). |
+| Desktop session token | `ntd_` | Everything except `/mcp` | Issued when a person signs in from the NodeTool desktop apps. Lives 15 minutes and is renewed with its refresh token. See [Desktop sign-in](#desktop-sign-in). |
 | App session token | `nda_` | `/ws` only | Issued to a visitor of a deployed mini app. Confined to that one app. A failed check is refused, never retried against other providers. |
 | Delegated token | none | Everything, as the linked user | Used by messaging bridges. Enabled only when `NODETOOL_INTEGRATION_TOKEN` is set to 16 or more characters. |
 
@@ -89,7 +90,7 @@ These paths skip session auth. They are still covered by the per-IP rate limiter
 - `/api/integrations/*`. Each handler requires `NODETOOL_INTEGRATION_TOKEN`.
 - `GET /api/apps/:token` and `POST /api/apps/:token/session`, the deployed mini app routes (production only).
 - `GET /api/shared-workflows/:token`, the read behind a workflow's public share link.
-- The MCP OAuth surface: `/.well-known/oauth-protected-resource*`, `/.well-known/oauth-authorization-server*`, `/oauth/authorize`, `/oauth/token`, `/oauth/register`, and `/oauth/revoke`.
+- The MCP OAuth surface: `/.well-known/oauth-protected-resource*`, `/.well-known/oauth-authorization-server*`, `/oauth/authorize`, `/oauth/token`, `/oauth/register`, `/oauth/revoke`, and `/oauth/session/end`, which ends a desktop session by its revocation handle.
 - Static web app files, when the server serves the bundled UI. Paths under `/api`, `/ws`, `/v1`, `/trpc`, and `/mcp` still require auth.
 
 Source: `packages/websocket/src/lib/public-routes.ts`.
@@ -171,7 +172,7 @@ SAML is not built in. Providers that only speak SAML can sit behind an OIDC brid
 | `AUTH_REDIRECT_URL` | no | Where the browser lands after sign-in, when the web app is served from another address than the API, such as the Vite dev server. |
 | `OIDC_SCOPES` | no | Space- or comma-separated scopes. Default `openid email profile`. `openid` is always added. |
 | `OIDC_PROVIDER_NAME` | no | Label on the sign-in button. Default `SSO`. |
-| `OIDC_ALLOWED_DOMAINS` | no | Comma-separated email domains allowed to sign in. Requires an `email` claim whose `email_verified` is not `false`. |
+| `OIDC_ALLOWED_DOMAINS` | no | Comma-separated email domains allowed to sign in. Requires an `email` claim with `email_verified: true`. Providers that omit `email_verified`, such as Microsoft Entra ID, are refused: use `OIDC_ALLOWED_GROUPS` there. |
 | `OIDC_ALLOWED_GROUPS` | no | Comma-separated groups allowed to sign in. A user needs at least one. |
 | `OIDC_GROUPS_CLAIM` | no | Claim holding the groups. Default `groups`. A dotted path reads a nested claim, such as `realm_access.roles` for Keycloak realm roles. Most providers include groups only when asked, through a scope or a client mapper. |
 | `OIDC_ADMIN_GROUPS` | no | Comma-separated groups whose members are NodeTool admins. Read from the same claim as `OIDC_ALLOWED_GROUPS`. |
@@ -254,6 +255,24 @@ The checks for `use_llm`, `generate_media` and `use_server_keys` run at the same
 In SSO mode the share dialog of a workflow or document can give a person access by name, without a link. Typing two or more characters searches active accounts by name and email through `people.search`, and **Invite** gives the chosen person viewer or editor access through `workflows.sharing.invite` or `documentSharing.invite`. Inviting someone who already has access sets their role. Searching and inviting need the `share_links` permission, and disabled accounts never appear. The dialog shows each collaborator's name and email instead of their user id.
 
 The **Sharing** button on a person's row on the Admin page lists what that person shares and holds: their active share links, the people they gave access, the documents others gave them access to, and their public workflows. From there an admin can revoke a link, remove one person's access, or make a public workflow private. The same actions are available as `admin.sharing.*`. Moving a document to another owner is not supported yet.
+
+### Desktop sign-in
+
+The NodeTool desktop apps sign in to a server through the same OAuth authorization server as MCP clients, with the built-in client `nodetool-native` and the scope `native`. The app opens the server's `/oauth/authorize` page in the browser. The person approves on a consent page that names the app and the computer, and the browser returns to a loopback address the app listens on.
+
+Desktop sign-in needs a server that enforces authentication (Supabase or SSO mode) and has `NODETOOL_PUBLIC_URL` set to an `https` address or a loopback address. It works whether or not the MCP endpoint is mounted. In Local mode the routes answer 404, because there is no account to sign in to.
+
+| Credential | Prefix | Lifetime |
+|---|---|---|
+| Access token | `ntd_` | 15 minutes |
+| Refresh token | `ntr_` | Rotated on every use. Expires after 90 days without use. |
+| Revocation handle | `nth_` | Until the session ends. Returned once, on the code exchange. |
+
+Each computer holds one session, shared by both apps on it. Signing in on one computer never ends the session on another. **Settings → Signed-in devices** lists the sessions with their computer name, app and last use, and **End session** ends one. Its tokens are deleted at once, its open WebSockets close with code `4401`, and requests on other server processes are refused within 30 seconds. An app that signs out sends its revocation handle to `POST /oauth/session/end`.
+
+A desktop session cannot mint access tokens or approve OAuth requests. Those need a sign-in in the web app.
+
+Set `NODETOOL_DISABLE_NATIVE_SIGNIN=1` to turn desktop sign-in off. New sign-ins are refused with `access_denied`, existing desktop tokens stop working, and refreshing one returns `invalid_grant`. Apps can still end their sessions.
 
 ### Sign-in failures
 

@@ -58,6 +58,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <cerrno>
 #include <cmath>
 #include <cstdint>
@@ -69,6 +70,7 @@
 #include <memory>
 #include <limits>
 #include <optional>
+#include <string_view>
 #ifdef __linux__
 #include <sys/syscall.h>
 #endif
@@ -201,6 +203,131 @@ private:
 // the target's parent path and leaf.
 constexpr uint64_t kRemoveWorkspaceBytes = kMaxRemoveDepth * sizeof(RemoveLevel) + sizeof(DirBatch) +
                                            DirBatch::kStreamBytes + 2 * (PATH_MAX + 1);
+
+const char* kHoldsReserved = "it holds a .nodetool/ directory: NodeTool's own files or the folder of another project";
+
+// Whether `name` is `.nodetool`, compared without case as host/paths.cpp
+// compares a path segment.
+bool reservedName(std::string_view name) {
+  return name.size() == 9 && std::equal(name.begin(), name.end(), ".nodetool", [](char a, char b) {
+           return std::tolower(static_cast<unsigned char>(a)) == b;
+         });
+}
+
+// Looks for a `.nodetool` entry at any depth below one directory, before a
+// recursive removal or a rename takes the tree, so a refused operation
+// changes nothing. It walks as removeTree does: relative to directory
+// descriptors it holds, never following a symlink, to at most
+// kMaxRemoveDepth levels. Each level remembers where its reading stopped, so
+// the walk returns to a directory after a subdirectory: on Linux the
+// getdents64 offset of the next entry, elsewhere the number of entries read,
+// where the directory is read again from its start. Its memory is
+// kScanWorkspaceBytes.
+//
+// Thread affinity: the thread running the operation.
+class ReservedScan {
+  struct Level {
+    UniqueFd fd;
+    uint64_t next = 0;
+  };
+
+public:
+  static constexpr size_t kLevelBytes = sizeof(Level);
+
+  // Whether the directory `fd` holds `.nodetool` at any depth. Throws FsError
+  // naming `path` for `syscall`.
+  bool holdsReserved(UniqueFd fd, const std::string& path, const char* syscall) {
+    levels_.clear();
+    levels_.reserve(kMaxRemoveDepth);
+    levels_.push_back(Level{std::move(fd), 0});
+    while (!levels_.empty()) {
+      const int dir = levels_.back().fd.get();
+#ifdef __linux__
+      if (fsapi::lseek(dir, off_t(levels_.back().next), SEEK_SET) < 0) throwErrno(errno, syscall, path);
+      const long n = ::syscall(SYS_getdents64, dir, buffer_.data(), buffer_.size());
+      if (n < 0) throwErrno(errno, syscall, path);
+      if (n == 0) {
+        levels_.pop_back();
+        continue;
+      }
+      for (long at = 0; at < n;) {
+        // struct linux_dirent64: d_ino (8), d_off (8), d_reclen (2), d_type (1), name.
+        uint16_t length = 0;
+        int64_t next = 0;
+        std::memcpy(&length, buffer_.data() + at + 16, sizeof length);
+        std::memcpy(&next, buffer_.data() + at + 8, sizeof next);
+        const auto type = static_cast<unsigned char>(buffer_[size_t(at) + 18]);
+        const char* name = buffer_.data() + at + 19;
+        at += length;
+        levels_.back().next = uint64_t(next);
+        if (std::strcmp(name, ".") == 0 || std::strcmp(name, "..") == 0) continue;
+        if (reservedName(name)) return true;
+        if (directory(dir, name, type, path, syscall)) {
+          descend(dir, name, path, syscall);
+          break;
+        }
+      }
+#else
+      if (fsapi::lseek(dir, 0, SEEK_SET) < 0) throwErrno(errno, syscall, path);
+      UniqueFd copy(fsapi::dup(dir));
+      if (!copy) throwErrno(errno, syscall, path);
+      auto stream = fsapi::fdopendir(copy.get());
+      if (!stream) {
+        const int err = errno;
+        throwErrno(err, syscall, path);
+      }
+      copy.release();
+      uint64_t seen = 0;
+      bool descended = false;
+      while (fsapi::Entry* e = fsapi::readdir(stream.get())) {
+        if (seen++ < levels_.back().next) continue;
+        levels_.back().next = seen;
+        if (std::strcmp(e->d_name, ".") == 0 || std::strcmp(e->d_name, "..") == 0) continue;
+        if (reservedName(e->d_name)) return true;
+        if (directory(dir, e->d_name, e->d_type, path, syscall)) {
+          descend(dir, e->d_name, path, syscall);
+          descended = true;
+          break;
+        }
+      }
+      if (!descended) levels_.pop_back();
+#endif
+    }
+    return false;
+  }
+
+private:
+  static bool directory(int at, const char* name, unsigned char type, const std::string& path, const char* syscall) {
+    if (type != DT_UNKNOWN) return type == DT_DIR;
+    fsapi::FileStat st {};
+    if (fsapi::fstatat(at, name, &st, AT_SYMLINK_NOFOLLOW) != 0) {
+      if (errno == ENOENT) return false;
+      throwErrno(errno, syscall, path);
+    }
+    return S_ISDIR(st.st_mode);
+  }
+
+  void descend(int at, const char* name, const std::string& path, const char* syscall) {
+    if (levels_.size() >= kMaxRemoveDepth) {
+      throw FsError("ENAMETOOLONG", syscall, path,
+                    "the tree is more than " + std::to_string(kMaxRemoveDepth) + " directories deep");
+    }
+    UniqueFd fd(fsapi::openat(at, name, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC));
+    if (!fd) throwErrno(errno, syscall, path);
+    levels_.push_back(Level{std::move(fd), 0});
+  }
+
+  std::vector<Level> levels_;
+#ifdef __linux__
+  alignas(8) std::array<char, 8 * 1024> buffer_{};
+#endif
+};
+
+// The memory a scan holds at most. It ends before the removal starts, so the
+// removal's reservation covers it.
+constexpr uint64_t kScanWorkspaceBytes = kMaxRemoveDepth * ReservedScan::kLevelBytes + sizeof(ReservedScan) +
+                                         DirBatch::kStreamBytes + 2 * (PATH_MAX + 1);
+static_assert(kScanWorkspaceBytes <= kRemoveWorkspaceBytes);
 
 // The engine's FileJobHooks, kept as host state until installFiles reads them.
 constexpr const char* kHooksState = "gr.fileJobHooks";
@@ -423,7 +550,11 @@ struct FileGrants {
   // confined target, is reached by path, as every confined operation is
   // (host/paths.h). Checks `stop` before each batch and each entry and
   // returns false when it stopped, with part of the tree removed.
-  bool removeTree(const std::string& real, const std::string& path, const std::stop_token& stop = {}) const {
+  //
+  // With `guard`, an entry named `.nodetool` stops the removal with EACCES,
+  // for a tree that gained one after refuseHeldReserved looked.
+  bool removeTree(const std::string& real, const std::string& path, bool guard,
+                  const std::stop_token& stop = {}) const {
     const std::string leaf = real.substr(real.rfind('/') + 1);
     UniqueFd parent(fsapi::open(parentOf(real).c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC));
     if (!parent) throwErrno(errno, "rm", path);
@@ -464,6 +595,7 @@ struct FileGrants {
       for (size_t i = 0; i < count; ++i) {
         if (stop.stop_requested()) return false;
         const char* name = batch->name(i);
+        if (guard && reservedName(name)) throw FsError("EACCES", "rm", path, kHoldsReserved);
         bool directory = batch->type(i) == DT_DIR;
         if (batch->type(i) == DT_UNKNOWN) {
           if (fsapi::fstatat(dir, name, &st, AT_SYMLINK_NOFOLLOW) != 0) {
@@ -481,6 +613,29 @@ struct FileGrants {
       }
     }
     return true;
+  }
+
+  // Whether `real` lies in a root that reserves `.nodetool/`.
+  bool guarded(const std::string& real) const {
+    return std::any_of(roots.begin(), roots.end(),
+                       [&](const Root& root) { return root.reservesNodetool && isWithin(root.dir, real); });
+  }
+
+  // Throws EACCES when the directory `real` in a guarded root holds a
+  // `.nodetool` directory at any depth: NodeTool's own files, or the folder
+  // of another project, which a Personal workspace can hold. Moving or
+  // removing the tree would take it along, so the whole operation is refused
+  // before anything changes, as StorageWorkspace.move refuses it.
+  void refuseHeldReserved(const std::string& real, const std::string& path, const char* syscall) const {
+    if (!guarded(real)) return;
+    UniqueFd parent(fsapi::open(parentOf(real).c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC));
+    if (!parent) throwErrno(errno, syscall, path);
+    const std::string leaf = real.substr(real.rfind('/') + 1);
+    UniqueFd fd(fsapi::openat(parent.get(), leaf.c_str(), O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC));
+    if (!fd) throwErrno(errno, syscall, path);
+    if (std::make_unique<ReservedScan>()->holdsReserved(std::move(fd), path, syscall)) {
+      throw FsError("EACCES", syscall, path, kHoldsReserved);
+    }
   }
 
   // Returns false when `stop` ended a recursive removal part-way.
@@ -504,7 +659,8 @@ struct FileGrants {
     if (S_ISDIR(st.st_mode) && !recursive) {
       throw FsError("EISDIR", "rm", path);  // Node: ERR_FS_EISDIR
     }
-    return removeTree(r.real, path, stop);
+    if (S_ISDIR(st.st_mode)) refuseHeldReserved(r.real, path, "rm");
+    return removeTree(r.real, path, guarded(r.real), stop);
   }
 
   void rmdir(const std::string& path) const {
@@ -526,6 +682,9 @@ struct FileGrants {
     Resolved a = resolve(from, Access::Write, "rename");
     if (!a.exists) throw FsError("ENOENT", "rename", from);
     Resolved b = resolve(to, Access::Write, "rename");
+    fsapi::FileStat st {};
+    if (fsapi::lstat(a.real.c_str(), &st) != 0) throwErrno(errno, "rename", from);
+    if (S_ISDIR(st.st_mode)) refuseHeldReserved(a.real, from, "rename");
     if (fsapi::rename(a.real.c_str(), b.real.c_str()) != 0) throwErrno(errno, "rename", from);
   }
 
@@ -793,6 +952,7 @@ void installFiles(js::Engine& e, const js::Value& object, const HostOptions& opt
     if (!options.sqliteDirectory.empty()) dirs.emplace_back(options.sqliteDirectory, true);
     for (const auto& d : options.readRoots) dirs.emplace_back(d, false);
     grants->roots = canonicalRoots(dirs);
+    reserveWorkspace(grants->roots, options.workspaceDir);
     if (!options.workspaceDir.empty()) {
       const auto workspaceRoots = canonicalRoots({{options.workspaceDir, true}});
       if (!workspaceRoots.empty()) grants->cwd = workspaceRoots.front().dir;
@@ -964,7 +1124,7 @@ void installFiles(js::Engine& e, const js::Value& object, const HostOptions& opt
     Submission s = begin(*binding);
     std::string from = pathArg(en, a, 0, s.reservation, "from");
     std::string to = pathArg(en, a, 1, s.reservation, "to");
-    const JobCost cost{from.size() + to.size(), 0, 0};
+    const JobCost cost{from.size() + to.size(), 0, kScanWorkspaceBytes};
     auto job = makeCostedJob(cost, [grants, from = std::move(from), to = std::move(to)](std::stop_token) {
       grants->rename(from, to);
       return JobOutcome::value(nullptr);

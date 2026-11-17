@@ -4,7 +4,12 @@ These rules apply to every project under `native/`: the C++/Qt editors, the
 media pipeline, the graph runner and the VST host. Area overlays such as
 [Native UI primitives](ui_primitives/AGENTS.md) and
 [Native chat](chat/AGENTS.md) add to them. For C++ idioms, use the
-[modern-cpp skill](../.claude/skills/modern-cpp/SKILL.md).
+[modern-cpp skill](../.claude/skills/modern-cpp/SKILL.md). For Qt Quick views
+that load or scroll, follow
+[Qt Quick performance](ui_primitives/PERFORMANCE.md).
+
+[Realtime engine rules](realtime/AGENTS.md) cover the headless realtime core
+and its provisional milestone gates.
 
 The memory and thread ownership rules below are non-negotiable. Code that
 breaks any of them has a bug, even when it compiles and its tests pass. If a
@@ -83,7 +88,8 @@ that needs a marker.
     `--build <project>=<dir>` to reuse a build directory, and `--dry-run` to
     see the selection first. A project with changes and no configured build
     fails the run and prints the command that configures it. Pull request
-    runs of the native timeline and graph-runner workflows apply the same
-    selection to their own build through
-    `scripts/native-ci-test-selection.mjs`. A file under a project that maps
+    runs of the native timeline and graph-runner workflows, and main push
+    runs of the graph-runner workflow, apply the same selection to their own
+    build through `scripts/native-ci-test-selection.mjs`. The graph runner's
+    nightly run tests everything. A file under a project that maps
     to no test input runs every test, so new runtime inputs need no CI change.

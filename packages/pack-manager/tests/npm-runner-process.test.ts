@@ -46,6 +46,7 @@ it("Windows long roots launch a fixed bootstrap with the root and npm arguments 
 });
 
 it("short Windows and long POSIX working directories retain their existing npm invocation", async () => {
+  Object.defineProperty(process, "platform", { value: "linux", configurable: true });
   const root = "/fixture/" + "x".repeat(300);
   await installerNpmVersion(root);
   expect(mock.calls[0].cwd).toBe(root); expect(mock.calls[0].args.at(-1)).toBe("--version");

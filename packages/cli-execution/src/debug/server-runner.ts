@@ -8,7 +8,7 @@
  * and Python bridge — so it is exercised end-to-end rather than unit-tested.
  */
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
-import { getSecret, Project, Workflow } from "@nodetool-ai/models";
+import { getSecret, Workflow } from "@nodetool-ai/models";
 import {
   ExecutionSession,
   isExecutionPreflightError
@@ -65,11 +65,14 @@ export interface ServerRunOutcome {
 /**
  * The project a server run of this workflow uses: the stored workflow's
  * project, else the user's Personal project, where uploads land. Without it
- * project-scoped capabilities such as `get_asset` reject every asset.
+ * project-scoped capabilities such as `get_asset` reject every asset. The run
+ * reads and writes that project's folder.
  */
 async function resolveRunProjectId(workflowId: string | null): Promise<string> {
   const workflow = workflowId ? await Workflow.find("1", workflowId) : null;
-  return workflow?.project_id ?? (await Project.ensurePersonal("1")).id;
+  if (workflow) return workflow.project_id;
+  const { ensurePersonalProject } = await import("@nodetool-ai/execution/service");
+  return (await ensurePersonalProject("1")).id;
 }
 
 export async function runOnServer(
@@ -88,16 +91,19 @@ export async function runOnServer(
   const registry = await buildFullRegistry();
   const jobId = `debug-${Date.now()}`;
 
-  // Match a server run's workspace assignment so file/workspace nodes land in
-  // the same place a real run would.
-  const { resolveWorkflowWorkspace } = await import("@nodetool-ai/execution/service");
-  const workspace = await resolveWorkflowWorkspace(workflowId ?? null, "1");
+  // Match a server run's folder so file/workspace nodes land in the same
+  // place a real run would. An unreachable folder stops the run here.
+  const { resolveProjectWorkspace } = await import("@nodetool-ai/execution/service");
+  const projectId = await resolveRunProjectId(workflowId);
+  const folder = await resolveProjectWorkspace(projectId, "1");
+  if (!folder.ok) throw new Error(folder.reason);
+  const workspace = folder.workspace;
 
   const contextInit = {
     jobId,
     workflowId,
     userId: "1",
-    projectId: await resolveRunProjectId(workflowId),
+    projectId,
     secretResolver: getSecret,
     storage: new FileStorageAdapter(getDefaultAssetsPath()),
     workspace,
