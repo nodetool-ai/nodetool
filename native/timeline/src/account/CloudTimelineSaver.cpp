@@ -9,6 +9,8 @@
 
 #include <QEvent>
 #include <QJsonDocument>
+#include <QScopeGuard>
+#include <QUndoStack>
 
 #include <utility>
 #include <vector>
@@ -52,9 +54,14 @@ CloudTimelineSaver::CloudTimelineSaver(TimelineModel& model, std::shared_ptr<acc
     const QUrl local = m_options.localServer.adjusted(QUrl::RemovePath | QUrl::RemoveQuery | QUrl::RemoveFragment);
     accountlib::qt::CloudDocumentServices services;
     services.session = std::move(session);
-    services.store = accountlib::makeLocalServerDraftStore(std::make_unique<accountlib::qt::QtHttpTransport>(),
-                                                           local.toString(QUrl::StripTrailingSlash).toStdString(),
-                                                           std::move(headers));
+    services.store = m_options.draftStore
+                         ? m_options.draftStore()
+                         : accountlib::makeLocalServerDraftStore(std::make_unique<accountlib::qt::QtHttpTransport>(),
+                                                                 local.toString(QUrl::StripTrailingSlash).toStdString(),
+                                                                 std::move(headers));
+    if (m_options.transport) {
+        services.transport = m_options.transport();
+    }
     services.kind = "timeline";
     services.documentId = m_options.timelineId.toStdString();
     services.role = m_options.role.toStdString();
@@ -65,6 +72,9 @@ CloudTimelineSaver::CloudTimelineSaver(TimelineModel& model, std::shared_ptr<acc
             [this](const QString& reason) { fail(tr("Cloud timeline not opened: %1").arg(reason)); });
     connect(m_document.get(), &accountlib::qt::CloudDocument::stateChanged, this, &CloudTimelineSaver::updateReadOnly);
     connect(&m_model, &TimelineModel::commandSettled, this, &CloudTimelineSaver::sendEdit);
+    // Settings, moves, undo and redo change the stack without settling a
+    // command, as the server autosave hears them (AutosaveController).
+    connect(m_model.undoStack(), &QUndoStack::indexChanged, this, &CloudTimelineSaver::sendEdit);
     // No edit before the draft this account kept is known and applied: an
     // edit on the server's revision would replace that draft.
     updateReadOnly();
@@ -134,8 +144,16 @@ void CloudTimelineSaver::recovered() {
 }
 
 void CloudTimelineSaver::sendEdit() {
+    if (m_recovering || m_applying) {
+        return;
+    }
     const QJsonObject draft = cloudDraft(m_model.timeline().raw);
-    m_document->edit(QString::fromUtf8(QJsonDocument(draft).toJson(QJsonDocument::Compact)));
+    const QString text = QString::fromUtf8(QJsonDocument(draft).toJson(QJsonDocument::Compact));
+    if (text == m_lastSent) {
+        return;
+    }
+    m_lastSent = text;
+    m_document->edit(text);
 }
 
 void CloudTimelineSaver::fail(const QString& error) {
@@ -147,6 +165,8 @@ void CloudTimelineSaver::applyDraft(const QString& text) {
     const QJsonObject draft = QJsonDocument::fromJson(text.toUtf8()).object();
     const QJsonObject current = m_model.timeline().raw;
     if (draft.isEmpty() || draft == cloudDraft(current)) {
+        // The revision opened is what the cloud holds: nothing to send yet.
+        m_lastSent = QString::fromUtf8(QJsonDocument(cloudDraft(current)).toJson(QJsonDocument::Compact));
         recovered();
         return;
     }
@@ -173,7 +193,14 @@ void CloudTimelineSaver::applyDraft(const QString& text) {
             fail(tr("The edits kept on this computer could not be opened: %1").arg(result->error));
             return;
         }
+        // The edits below go onto the stack as one restored draft: none is
+        // sent until all are applied, so the cloud never sees half of it.
+        m_applying = true;
         recovered();
+        const auto applied = qScopeGuard([this] {
+            m_applying = false;
+            sendEdit();
+        });
         for (const auto& media : result->timeline->clips) {
             m_model.registerMedia(media);
         }

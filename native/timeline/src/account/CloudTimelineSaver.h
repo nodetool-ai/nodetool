@@ -18,6 +18,11 @@
 // A draft with other settings restores them with one setProjectSettings
 // edit after the document.
 //
+// Every change of the undo stack is sent, as the server autosave sees it:
+// an edit, a change of the project settings, a clip move, an undo and a
+// redo (QUndoStack::indexChanged), besides a settled command. While the
+// kept draft is applied nothing is sent, and the applied result goes once.
+//
 // The model is read-only while the document is: a viewer's window, or one
 // whose access was removed, takes no edit (TimelineModel::readOnly).
 
@@ -30,12 +35,15 @@
 #include <QThread>
 #include <QUrl>
 
+#include <functional>
 #include <memory>
 
 class TimelineModel;
 
 namespace nodetool::account {
 class AccountSession;
+class DraftStore;
+class HttpTransport;
 }
 namespace nodetool::account::qt {
 class CloudDocument;
@@ -56,6 +64,9 @@ struct CloudTimelineOptions {
     QString accessToken;
     // Authorizes each request for the media of a draft through the account.
     server::RequestAuthorizer authorizer;
+    // Tests only. Unset: the local server's draft store and QtHttpTransport.
+    std::function<std::unique_ptr<nodetool::account::DraftStore>()> draftStore;
+    std::function<std::unique_ptr<nodetool::account::HttpTransport>()> transport;
 };
 
 // Thread affinity: UI thread only. The media of a draft is resolved on one
@@ -121,6 +132,10 @@ private:
     QString m_error;
     // True until the kept draft is known and applied.
     bool m_recovering = true;
+    // True while the kept draft's edits go onto the stack.
+    bool m_applying = false;
+    // The last draft given to the document, so one change is sent once.
+    QString m_lastSent;
     QPointer<QWindow> m_window;
     bool m_closeBlocked = false;
     // Set by discardAndClose: the next close goes through.

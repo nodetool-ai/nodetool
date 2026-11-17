@@ -69,7 +69,9 @@
 #include <csignal>
 #include <cstdio>
 #include <condition_variable>
+#include <map>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <utility>
 #endif
@@ -78,6 +80,12 @@
 #include <thread>
 #include <QTemporaryDir>
 #include "account/CloudTimelineSaver.h"
+#include "nodetool/account/account_session.h"
+#include "nodetool/account/cloud_drafts.h"
+#include "nodetool/account/crypto.h"
+#include "nodetool/account/http_transport.h"
+#include "nodetool/account/storage.h"
+#include "test_support.h"
 #include "nodetool/account/qt/AccountServers.h"
 #include "nodetool/account/qt/CloudDocument.h"
 
@@ -156,6 +164,135 @@ nt::Timeline parseTimeline(const QJsonObject& doc) {
 nt::Timeline makeTimeline(const Layout& layout) {
     return parseTimeline(makeTimelineJson(layout));
 }
+
+// A signed-in account, a cloud server that holds one timeline and refuses
+// nothing, and the local drafts in memory, for CloudTimelineSaver.
+constexpr const char* kCloud = "https://nt.example";
+
+// One draft row per document, as the local server keeps them. Thread-safe:
+// `mutex_` guards the rows.
+class MemoryDrafts final : public nodetool::account::DraftStore {
+public:
+    std::optional<std::string> put(const nodetool::account::CloudDocumentKey& key,
+                                   const nodetool::account::CloudBase& base, const std::string& draft) override {
+        const std::lock_guard lock(mutex_);
+        rows_[key.documentId] = {key, "d" + std::to_string(++next_), base, draft, {}, {}};
+        return rows_[key.documentId].draftId;
+    }
+    std::optional<nodetool::account::AcceptOutcome> accept(const nodetool::account::CloudDocumentKey& key,
+                                                           const std::string& draftId,
+                                                           const nodetool::account::CloudBase&,
+                                                           const nodetool::account::CloudBase& base, const std::string&,
+                                                           const nodetool::account::CloudDocumentOptions&) override {
+        const std::lock_guard lock(mutex_);
+        const auto it = rows_.find(key.documentId);
+        if (it == rows_.end()) return nodetool::account::AcceptOutcome::NoDraft;
+        if (it->second.draftId == draftId) {
+            rows_.erase(it);
+            return nodetool::account::AcceptOutcome::Deleted;
+        }
+        it->second.base = base;
+        return nodetool::account::AcceptOutcome::Rebased;
+    }
+    bool markUnsent(const nodetool::account::CloudDocumentKey&, const std::string&, const std::string&) override {
+        return true;
+    }
+    nodetool::account::DraftLoad load(const nodetool::account::CloudDocumentKey& key) override {
+        const std::lock_guard lock(mutex_);
+        const auto it = rows_.find(key.documentId);
+        return {true, it == rows_.end() ? std::nullopt : std::optional<nodetool::account::StoredDraft>(it->second)};
+    }
+    nodetool::account::DraftList list(const std::string&, const std::string&) override {
+        const std::lock_guard lock(mutex_);
+        nodetool::account::DraftList out{true, {}};
+        for (const auto& [id, row] : rows_) out.drafts.push_back(row);
+        return out;
+    }
+
+private:
+    std::mutex mutex_;
+    std::map<std::string, nodetool::account::StoredDraft> rows_;
+    int next_ = 0;
+};
+
+// Forwards to the rig's drafts, which outlive every saver of a test.
+// Thread-safe: the target is.
+class RigDrafts final : public nodetool::account::DraftStore {
+public:
+    explicit RigDrafts(DraftStore& target) : t_(target) {}
+    std::optional<std::string> put(const nodetool::account::CloudDocumentKey& k, const nodetool::account::CloudBase& b,
+                                   const std::string& d) override { return t_.put(k, b, d); }
+    std::optional<nodetool::account::AcceptOutcome> accept(const nodetool::account::CloudDocumentKey& k,
+                                                           const std::string& id, const nodetool::account::CloudBase& s,
+                                                           const nodetool::account::CloudBase& b, const std::string& r,
+                                                           const nodetool::account::CloudDocumentOptions& o) override {
+        return t_.accept(k, id, s, b, r, o);
+    }
+    bool markUnsent(const nodetool::account::CloudDocumentKey& k, const std::string& id, const std::string& r) override {
+        return t_.markUnsent(k, id, r);
+    }
+    nodetool::account::DraftLoad load(const nodetool::account::CloudDocumentKey& k) override { return t_.load(k); }
+    nodetool::account::DraftList list(const std::string& s, const std::string& a) override { return t_.list(s, a); }
+
+private:
+    DraftStore& t_;
+};
+
+// The cloud: the capabilities, the timeline, and an update that is offline,
+// so every edit stays in the local drafts. Thread-safe: it holds no state.
+class OfflineCloud final : public nodetool::account::HttpTransport {
+public:
+    nodetool::account::HttpResponse send(const nodetool::account::HttpRequest& request) override {
+        if (request.url.find("/api/sync/capabilities") != std::string::npos) {
+            return {200, R"({"protocol_version":1,"min_client_protocol_version":1,"kinds":{)"
+                         R"("timeline":{"read":[1],"write":[1],"modes":["whole"]}}})"};
+        }
+        if (request.url.find("timeline.get") != std::string::npos) {
+            return {200, R"({"result":{"data":{"id":"t1","name":"Cut","updatedAt":"r1"}}})"};
+        }
+        return {503, "{}"};
+    }
+};
+
+// Thread affinity: the test thread. Owns the session, shared with the
+// savers' documents as the app shares it.
+struct CloudSaverRig {
+    account_test::TempDir data;
+    nodetool::account::MemorySecretStore keychain;
+    account_test::FakeClock clock;
+    account_test::FakeTokenServer server{clock};
+    std::shared_ptr<nodetool::account::AccountSession> session;
+    MemoryDrafts drafts;
+
+    CloudSaverRig() {
+        nodetool::account::AccountSessionOptions options;
+        options.dataDir = data.path();
+        options.serverOrigin = kCloud;
+        options.userId = "u1";
+        options.nowMs = clock.fn();
+        server.addCode("code", "u1", "Ada");
+        const auto tokens = server.exchangeCode({"code", "v", "http://127.0.0.1/callback", kCloud});
+        nodetool::account::recordSignIn(keychain, options, tokens.tokens);
+        // Shared with each CloudDocument the savers open, as the app shares it.
+        session = std::make_shared<nodetool::account::AccountSession>(keychain, server, options);
+    }
+
+    // Leaves `draft` in the local drafts, as a window closed with edits unsent.
+    void keep(const std::string& draft) {
+        drafts.put({nodetool::account::serverKey(kCloud), session->accountId(), "timeline", "t1"}, {"r1", "h1"}, draft);
+    }
+
+    nt::account::CloudTimelineOptions options() {
+        nt::account::CloudTimelineOptions options;
+        options.origin = QUrl(kCloud);
+        options.timelineId = "t1";
+        options.role = "owner";
+        options.localServer = QUrl("http://127.0.0.1:1");
+        options.draftStore = [this] { return std::make_unique<RigDrafts>(drafts); };
+        options.transport = [] { return std::make_unique<OfflineCloud>(); };
+        return options;
+    }
+};
 
 void collect(QQuickItem* item, const std::function<void(QQuickItem*)>& fn) {
     fn(item);
@@ -3025,6 +3162,52 @@ private slots:
         const QJsonObject withRate =
             nt::account::CloudTimelineSaver::withDraft(raw, QJsonObject{{"tracks", QJsonArray{}}, {"fps", 24}});
         QCOMPARE(withRate.value("fps").toInt(), 24);
+    }
+
+    // Review F1: every change of the undo stack reaches the cloud document,
+    // through the saver itself: a settings-only change, an undo and a redo.
+    // The last one is in the local drafts when the window goes.
+    void cloudSaverSendsEveryStackChange() {
+        CloudSaverRig rig;
+        TimelineModel model;
+        model.setTimeline(makeTimeline({1, 2}));
+        auto saver = std::make_unique<nt::account::CloudTimelineSaver>(model, rig.session, rig.options());
+        auto* document = qobject_cast<nodetool::account::qt::CloudDocument*>(saver->document());
+        QVERIFY(document);
+        QTRY_VERIFY(!model.readOnly());
+        const auto fpsOf = [](const QString& text) {
+            return QJsonDocument::fromJson(text.toUtf8()).object().value("fps").toInt();
+        };
+
+        QVERIFY(model.applyEdit("setProjectSettings", QJsonObject{{"fps", 24}, {"width", 1920}, {"height", 1080}}) != 0);
+        QCOMPARE(fpsOf(document->content()), 24);
+        model.undoStack()->undo();
+        QCOMPARE(fpsOf(document->content()), 30);
+        model.undoStack()->redo();
+        QCOMPARE(fpsOf(document->content()), 24);
+
+        // Closing right after the change keeps it on this computer.
+        saver.reset();
+        const auto rows = rig.drafts.list({}, {}).drafts;
+        QCOMPARE(rows.size(), std::size_t(1));
+        QCOMPARE(fpsOf(QString::fromStdString(rows[0].draft)), 24);
+    }
+
+    // A kept draft goes to the document once it is applied whole: the
+    // restored document and its settings together.
+    void cloudSaverSendsARestoredDraftWhole() {
+        CloudSaverRig rig;
+        TimelineModel model;
+        model.setTimeline(makeTimeline({1, 2}));
+        QJsonObject kept = nt::account::CloudTimelineSaver::cloudDraft(makeTimelineJson({1, 1}));
+        kept.insert("fps", 25);
+        rig.keep(QJsonDocument(kept).toJson(QJsonDocument::Compact).toStdString());
+        nt::account::CloudTimelineSaver saver(model, rig.session, rig.options());
+        auto* document = qobject_cast<nodetool::account::qt::CloudDocument*>(saver.document());
+        QTRY_VERIFY(!model.readOnly());
+        QTRY_COMPARE(QJsonDocument::fromJson(document->content().toUtf8()).object().value("fps").toInt(), 25);
+        QCOMPARE(model.timeline().raw.value("clips").toArray().size(), 1);
+        QCOMPARE(QJsonDocument::fromJson(document->content().toUtf8()).object().value("clips").toArray().size(), 1);
     }
 
     // What a cloud timeline sends: its document with the frame rate and size,
