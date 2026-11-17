@@ -1304,6 +1304,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Per-layer generation takes and layer editing are the editor's " +
       "own surface; edit_sketch covers the document."
   },
+  "storage.allowance": {
+    gap: "Storage use and the allowance show in the app; the agent has no capability that reads them."
+  },
+  "storage.files": {
+    gap: "The storage view lists stored files and what holds them in the app; the agent has no capability for it."
+  },
   "storage.signUrl": {
     withheld:
       "A signed URL grants whoever holds it direct object access, " +
@@ -1325,6 +1331,17 @@ export const SANDBOX_API_COVERAGE: Readonly<
   },
   "transfers.cancel": {
     withheld: "Transfer state belongs to the desktop app that opened the transfer."
+  },
+  "deletedDocuments.list": {
+    gap: "The app lists deleted documents for restore; the agent has no capability that reads them."
+  },
+  "deletedDocuments.restore": {
+    gap: "Restoring a deleted document is available in the app; the agent has no restore capability."
+  },
+  "deletedDocuments.endRestorePeriod": {
+    withheld:
+      "Ending the restore period destroys the kept copy for good. Only the " +
+      "person decides that, in the app."
   },
   "games.create": { capability: "create_native_game" },
   "games.draftBeforeChange": {
