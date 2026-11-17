@@ -44,6 +44,24 @@ describe("DocumentBar", () => {
     expect(onRename).toHaveBeenCalledWith("Konzept A");
   });
 
+  it("leaves the title out when the host shows it, keeping it in the label", () => {
+    renderWithTheme(
+      <DocumentBar
+        title="Konzept B"
+        showTitle={false}
+        mode={<button type="button">mode</button>}
+        view={<button type="button">view</button>}
+      />
+    );
+
+    expect(
+      screen.getByRole("toolbar", { name: "Konzept B document" })
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Konzept B")).toBeNull();
+    // No rule before the first slot when the Identity slot is empty.
+    expect(screen.getAllByRole("separator")).toHaveLength(1);
+  });
+
   it("keeps a fixed title when there is no rename handler", async () => {
     const user = userEvent.setup();
     renderWithTheme(<DocumentBar title="Read only doc" />);
