@@ -160,4 +160,12 @@ describe("directory helpers", () => {
     expect(portableDirectoryName(".hidden")).toBe(".hidden");
     expect(portableDirectoryName("")).toBe("_");
   });
+
+  it("trims in linear time when a long run of spaces is not at the end", () => {
+    const name = `a${" ".repeat(200_000)}b`;
+    const started = performance.now();
+    expect(portableDirectoryName(name)).toBe(name);
+    expect(portableDirectoryName(`${name}. .`)).toBe(name);
+    expect(performance.now() - started).toBeLessThan(1_000);
+  });
 });

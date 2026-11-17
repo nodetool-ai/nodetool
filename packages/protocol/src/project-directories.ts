@@ -146,10 +146,14 @@ const WINDOWS_DEVICE_NAME = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
  * returned as it is.
  */
 export function portableDirectoryName(segment: string): string {
-  const cleaned = segment
-    // eslint-disable-next-line no-control-regex -- control characters are the point
-    .replace(/[\u0000-\u001f\u007f<>:"/\\|?*]/g, "-")
-    .replace(/[. ]+$/, "");
+  // eslint-disable-next-line no-control-regex -- control characters are the point
+  const replaced = segment.replace(/[\u0000-\u001f\u007f<>:"/\\|?*]/g, "-");
+  // A scan, not /[. ]+$/, which is quadratic on a long run of dots or spaces.
+  let end = replaced.length;
+  while (end > 0 && (replaced[end - 1] === "." || replaced[end - 1] === " ")) {
+    end -= 1;
+  }
+  const cleaned = replaced.slice(0, end);
   if (cleaned === "") return "_";
   const dot = cleaned.indexOf(".");
   const head = dot === -1 ? cleaned : cleaned.slice(0, dot);
