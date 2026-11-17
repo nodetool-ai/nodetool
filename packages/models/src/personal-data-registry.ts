@@ -735,6 +735,15 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "The recorded result of each commit attempt of a transfer: a digest and the outcome with refusal codes and document ids. Operational state; deleted with the account."
   },
   {
+    table: "blob_deletions",
+    schemaExport: "blobDeletions",
+    disposition: "not-personal",
+    reach: { kind: "none" },
+    exported: false,
+    justification:
+      "A short-lived claim of the blob cleanup on one file hash while it deletes the object. It holds a hash and a time, and no column naming a person."
+  },
+  {
     table: "project_blobs",
     schemaExport: "projectBlobs",
     disposition: "delete",

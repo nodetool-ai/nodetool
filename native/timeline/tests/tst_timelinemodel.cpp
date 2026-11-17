@@ -123,6 +123,27 @@ private slots:
         QCOMPARE(model.findClip(QStringLiteral("clip-1-1"))->startMs, 4000.0);
         QVERIFY(!model.moveClip(QStringLiteral("missing"), 0));
     }
+
+    // A read-only document (a viewer's cloud timeline) takes no edit, and
+    // its cleared history cannot change it either.
+    void readOnlyTakesNoEdit() {
+        TimelineModel model;
+        load(model);
+        QVERIFY(model.moveClip(QStringLiteral("clip-1-1"), 4000));
+        QSignalSpy changed(&model, &TimelineModel::readOnlyChanged);
+        model.setReadOnly(true);
+        QCOMPARE(changed.count(), 1);
+        QVERIFY(model.readOnly());
+        QCOMPARE(model.undoStack()->count(), 0);
+        QVERIFY(!model.moveClip(QStringLiteral("clip-1-1"), 0));
+        QVERIFY(model.addMarker(100, QStringLiteral("m")).isEmpty());
+        QCOMPARE(model.applyEdit(QStringLiteral("restoreDocument"), QJsonObject{{"document", document()}}), 0u);
+        QCOMPARE(model.undoStack()->count(), 0);
+        QCOMPARE(model.findClip(QStringLiteral("clip-1-1"))->startMs, 4000.0);
+        QVERIFY(model.markersJson().isEmpty());
+        model.setReadOnly(false);
+        QVERIFY(model.moveClip(QStringLiteral("clip-1-1"), 0));
+    }
 };
 
 QTEST_GUILESS_MAIN(TestTimelineModel)

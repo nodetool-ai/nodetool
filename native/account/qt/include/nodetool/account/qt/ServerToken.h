@@ -9,6 +9,7 @@
 #include <QNetworkRequest>
 #include <QString>
 #include <QUrl>
+#include <QVariant>
 
 namespace nodetool::account::qt {
 
@@ -31,11 +32,21 @@ inline bool sameServerOrigin(const QUrl& a, const QUrl& b) {
 // Sets `Authorization: Bearer <token>` when the token is not empty and the
 // request goes to `server`'s origin. Returns whether it did. A request to
 // another host, such as a media URL from a provider, never carries it.
+//
+// Qt copies the request's headers to every redirect it follows, to any
+// origin, so a request that carries the token follows redirects inside its
+// origin only (SameOriginRedirectPolicy). A request that reads redirects
+// itself (ManualRedirectPolicy) keeps that policy. Set the policy before
+// this call: a policy set after it replaces this one.
 inline bool attachServerToken(QNetworkRequest& request, const QUrl& server, const QString& token) {
   if (token.isEmpty() || !sameServerOrigin(request.url(), server)) {
     return false;
   }
   request.setRawHeader("Authorization", "Bearer " + token.toUtf8());
+  const QVariant policy = request.attribute(QNetworkRequest::RedirectPolicyAttribute);
+  if (!policy.isValid() || policy.toInt() != QNetworkRequest::ManualRedirectPolicy) {
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::SameOriginRedirectPolicy);
+  }
   return true;
 }
 

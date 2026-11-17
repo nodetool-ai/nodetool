@@ -13,6 +13,7 @@
 #include <QMetaObject>
 
 #include <deque>
+#include <future>
 #include <mutex>
 
 namespace nodetool::account::qt {
@@ -147,6 +148,7 @@ CloudDocument::CloudDocument(CloudDocumentServices services, QObject* parent)
   shared_->services = std::move(services);
   shared_->owner = this;
   tasks_ = std::make_unique<detail::TaskQueue>();
+  persistTasks_ = std::make_unique<detail::TaskQueue>();
   timer_.setInterval(kTickInterval);
   connect(&timer_, &QTimer::timeout, this, &CloudDocument::tick);
 }
@@ -158,7 +160,8 @@ CloudDocument::~CloudDocument() {
     shared_->inbox.clear();
   }
   tasks_.reset();
-  // The task thread has ended, so this thread writes the edits the timer
+  persistTasks_.reset();
+  // Both task threads have ended, so this thread writes the edits the timer
   // did not reach yet. The tab closes with them on disk (FR11).
   if (const auto saver = shared_->currentDocument()) {
     saver->flush(shared_->services.nowMs());
@@ -232,9 +235,20 @@ void CloudDocument::open() {
     // A draft this account left behind, whether waiting or refused, opens
     // over the revision: its edits are never dropped by a reopen.
     const DraftLoad load = state->services.store->load(state->key);
+    if (!load.ok) {
+      // Without knowing whether a draft is kept, the document opens without
+      // a saver, read-only: a new draft would replace a kept one.
+      const QString revision = QString::fromStdString(opened.data);
+      const QString reason =
+          QCoreApplication::translate("CloudDocument", "the edits kept on this computer could not be read");
+      state->toUi([revision, reason](CloudDocument& document) {
+        document.onOpened(revision, QString(), false, reason, DocumentState{});
+      });
+      return;
+    }
     std::shared_ptr<CloudDocumentSaver> saver;
     QString draft;
-    if (load.ok && load.draft) {
+    if (load.draft) {
       draft = QString::fromStdString(load.draft->draft);
       saver = std::make_shared<CloudDocumentSaver>(*state->services.store, *state->saver, *load.draft);
     } else {
@@ -280,25 +294,61 @@ void CloudDocument::edit(const QString& document) {
   apply(saver->state());
 }
 
-void CloudDocument::tick() {
-  if (tickRunning_) {
-    return;
+bool CloudDocument::writeLocally() {
+  const auto saver = shared_->currentDocument();
+  if (!opened_ || !saver) {
+    return true;
   }
-  tickRunning_ = true;
-  tasks_->post([state = shared_] {
-    const auto saver = state->currentDocument();
-    if (!saver) {
-      state->toUi([](CloudDocument& document) { document.tickRunning_ = false; });
-      return;
-    }
-    saver->persist(state->services.nowMs());
-    saver->send(state->services.nowMs());
+  // The write runs on the persistence thread, after any write it is
+  // running, so an older draft never lands over this one.
+  auto written = std::make_shared<std::promise<bool>>();
+  std::future<bool> result = written->get_future();
+  persistTasks_->post([state = shared_, saver, written] {
+    written->set_value(saver->flush(state->services.nowMs()));
     const DocumentState after = saver->state();
-    state->toUi([after](CloudDocument& document) {
-      document.tickRunning_ = false;
-      document.apply(after);
-    });
+    state->toUi([after](CloudDocument& document) { document.apply(after); });
   });
+  if (result.wait_for(kWriteLocallyTimeout) != std::future_status::ready) {
+    return false;
+  }
+  return result.get();
+}
+
+void CloudDocument::tick() {
+  // The local write and the send run on their own threads, so a slow send
+  // never holds an edit in memory past kDraftMaxDelayMs (FR11).
+  if (!persistRunning_) {
+    persistRunning_ = true;
+    persistTasks_->post([state = shared_] {
+      const auto saver = state->currentDocument();
+      if (saver) {
+        saver->persist(state->services.nowMs());
+      }
+      const DocumentState after = saver ? saver->state() : DocumentState{};
+      state->toUi([after, hasSaver = saver != nullptr](CloudDocument& document) {
+        document.persistRunning_ = false;
+        if (hasSaver) {
+          document.apply(after);
+        }
+      });
+    });
+  }
+  if (!sendRunning_) {
+    sendRunning_ = true;
+    tasks_->post([state = shared_] {
+      const auto saver = state->currentDocument();
+      if (saver) {
+        saver->send(state->services.nowMs());
+      }
+      const DocumentState after = saver ? saver->state() : DocumentState{};
+      state->toUi([after, hasSaver = saver != nullptr](CloudDocument& document) {
+        document.sendRunning_ = false;
+        if (hasSaver) {
+          document.apply(after);
+        }
+      });
+    });
+  }
 }
 
 void CloudDocument::apply(const DocumentState& state) {

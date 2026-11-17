@@ -2,12 +2,11 @@
 #include "model/TimelineModel.h"
 #include "server/ServerClient.h"
 #include "server/ServerTimeline.h"
-#include <QDir>
 #include <QFileInfo>
 
 namespace nt::motion {
-MatteResolver::MatteResolver(TimelineModel& model, nt::server::SaveTarget target)
-    : QObject(&model), m_model(&model), m_target(std::move(target)) {
+MatteResolver::MatteResolver(TimelineModel& model, nt::server::MediaSource source)
+    : QObject(&model), m_model(&model), m_source(std::move(source)) {
     connect(&model, &TimelineModel::documentReplaced, this, [this] { reset(); });
     connect(&model, &TimelineModel::clipsChanged, this, [this] { scan(false); });
     reset();
@@ -54,17 +53,16 @@ void MatteResolver::next() {
     const auto lookupId = nt::server::assetIdForReference(id);
     const auto generation = m_model->documentGeneration();
     const auto protectionGeneration = m_protection->generation();
-    const auto root = QDir::cleanPath(QDir(m_target.backupDir).absoluteFilePath("../../.."));
-    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
+    // Shared by the worker, which writes it, and the finished handler, which
+    // reads it after the worker ends.
     auto result = std::make_shared<nt::Clip>();
-    const auto target = m_target;
-    auto* worker = QThread::create([target, lookupId, root, protection = m_protection, protectionGeneration, result] {
-        nt::server::ServerClient client(target.server, target.token, 10000);
-        client.setExpectedInstance(target.expectedInstance);
+    const auto source = m_source;
+    auto* worker = QThread::create([source, lookupId, protection = m_protection, protectionGeneration, result] {
+        const auto client = source.client(10000);
         if (protection->generation() != protectionGeneration || QThread::currentThread()->isInterruptionRequested()) return;
-        const auto asset = client.getAsset(lookupId);
+        const auto asset = client->getAsset(lookupId);
         if (!asset.ok()) return;
-        *result = nt::assets::resolveDroppedMedia(client, root, asset.data.toObject(),
+        *result = nt::assets::resolveDroppedMedia(*client, source.cacheRoot, asset.data.toObject(),
             QJsonObject{{"mediaType", "image"}}, *protection, protectionGeneration);
     });
     worker->setParent(this);

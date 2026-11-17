@@ -130,6 +130,10 @@ private:
   bool writable_ = false;
 };
 
+// A workflow draft is `{"graph": {...}, "name": "..."}`, so a rename is
+// sent with the graph. A draft that is the graph alone, as drafts written
+// before the name was kept are, sends no name.
+//
 // Thread affinity: thread-safe, as TrpcCloudSaver.
 class WorkflowCloudSaver final : public TrpcCloudSaver {
 public:
@@ -147,6 +151,11 @@ protected:
 };
 
 // Thread affinity: thread-safe, as TrpcCloudSaver.
+//
+// A timeline draft is the document with the sequence columns `fps`, `width`
+// and `height` beside its fields. The save sends those three as the
+// sequence's columns and the rest as the document, as timeline.update takes
+// them. A column that is not a number stays as the server holds it.
 class TimelineCloudSaver final : public TrpcCloudSaver {
 public:
   using TrpcCloudSaver::TrpcCloudSaver;

@@ -6,6 +6,7 @@
 #include <QNetworkReply>
 #include <QUrlQuery>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QSettings>
 #include <QQuickWidget>
 #include <QShortcut>
@@ -378,6 +379,31 @@ bool EditorWindow::confirmTabClose(bool closeAfterSave) {
         document_.graph() == node_editor::childGraph(childParent_->document_.node(childNode_))) {
         return true;
     }
+    // A cloud workflow keeps its edits in the local drafts. The close waits
+    // for the last one to be written, and asks when it can't be.
+    while (cloud_ && !cloud_->writeLocally()) {
+        tabOwner_->activateSurface(tabOwner_->tabs_.indexOf(this));
+        QMessageBox box(QMessageBox::Warning, tr("Changes not saved on this computer"),
+                        tr("The last changes to this workflow could not be written on this computer, so they are "
+                           "not sent to the cloud yet. Closing now loses them."),
+                        QMessageBox::NoButton, this);
+        const auto retry = box.addButton(tr("Try Again"), QMessageBox::AcceptRole);
+        const auto exportFile = box.addButton(tr("Save a Copy…"), QMessageBox::ActionRole);
+        const auto discard = box.addButton(tr("Close Without Them"), QMessageBox::DestructiveRole);
+        box.addButton(QMessageBox::Cancel);
+        box.setDefaultButton(retry);
+        box.exec();
+        if (box.clickedButton() == discard) {
+            return true;
+        }
+        if (box.clickedButton() == exportFile) {
+            saveLocalCopyAs();
+            return false;
+        }
+        if (box.clickedButton() != retry) {
+            return false;
+        }
+    }
     if (!hasUnsavedChanges()) {
         return true;
     }
@@ -509,6 +535,16 @@ void EditorWindow::persistTabs() const {
         if (tab == active) {
             activeEntry = entries.size();
         }
+        // A cloud tab reopens from its server under the same account, never
+        // as a workflow of the local server. Its drafts stay on that server.
+        if (!tab->cloudId_.isEmpty()) {
+            entries.append(QJsonObject{{"cloud", tab->cloudId_},
+                                       {"cloudServer", tab->cloudOrigin_},
+                                       {"role", tab->cloudRole_},
+                                       {"origin", tab->session_.serverUrl().toString()},
+                                       {"project", tab->projectKey()}});
+            continue;
+        }
         entries.append(QJsonObject{{"file", tab->file_},
                                    {"workflow", tab->session_.serverBound()
                                                     ? tab->session_.workflow()["id"].toString()
@@ -544,7 +580,11 @@ void EditorWindow::restoreTabs() {
         tab->syncOpenProject();
         const auto path = entry["file"].toString();
         const auto id = entry["workflow"].toString();
-        if (!path.isEmpty())
+        const auto cloudId = entry["cloud"].toString();
+        if (!cloudId.isEmpty()) {
+            tab->restoreCloudDocument(QUrl(entry["origin"].toString()), entry["cloudServer"].toString(), cloudId,
+                                      entry["role"].toString());
+        } else if (!path.isEmpty())
             tab->openFile(path);
         else if (!id.isEmpty()) {
             tab->session_.connectToServer(QUrl(entry["origin"].toString()),
@@ -688,6 +728,11 @@ void EditorWindow::renameTab(int index, const QString &name) {
     const auto trimmed = name.trimmed();
     // A project folder's workflow file is named by its file name, which a rename would move.
     if (!target || target->childParent_ || target->projectWorkflowFile() || trimmed.isEmpty() || trimmed == target->workflowName()) {
+        return;
+    }
+    // A viewer's cloud workflow cannot be renamed. An editor's rename below
+    // changes the document, whose next draft carries the name to the cloud.
+    if (target->cloud_ && target->cloud_->readOnly()) {
         return;
     }
     if (target->session_.serverBound()) {
