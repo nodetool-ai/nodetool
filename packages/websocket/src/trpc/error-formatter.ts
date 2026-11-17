@@ -77,9 +77,29 @@ const TRPC_CODE_BY_API_CODE = {
   // malformed request.
   [ApiErrorCode.MODEL_NOT_AVAILABLE]: "FORBIDDEN",
   [ApiErrorCode.MISSING_RUNTIME_PACKAGE]: "PRECONDITION_FAILED",
+  [ApiErrorCode.SCHEMA_DOWNGRADE]: "CONFLICT",
+  [ApiErrorCode.CLIENT_TOO_OLD]: "PRECONDITION_FAILED",
   // The attach rule: the save names a file the writer may not read.
   [ApiErrorCode.FILE_NOT_READABLE]: "FORBIDDEN"
 } satisfies Record<ApiErrorCode, TRPCError["code"]>;
+
+/**
+ * Run a check that throws a refusal carrying an API code, and rethrow the
+ * refusal as the tRPC error for that code.
+ */
+export function withApiRefusal<T>(
+  check: () => T,
+  isRefusal: (error: unknown) => error is Error & { code: ApiErrorCode }
+): T {
+  try {
+    return check();
+  } catch (error) {
+    if (isRefusal(error)) {
+      throwApiError(error.code, error.message);
+    }
+    throw error;
+  }
+}
 
 export function throwApiError(
   apiCode: ApiErrorCode,

@@ -14,7 +14,9 @@ import {
   ASSET_CONTENT_HASH_DDL,
   WORKFLOW_FILE_PATH_DDL,
   WORKFLOW_FILE_HASH_DDL,
-  WORKFLOW_FILE_ERROR_DDL
+  WORKFLOW_FILE_ERROR_DDL,
+  WORKFLOW_LAST_WRITER_DDL,
+  WORKFLOW_SCHEMA_VERSION_DDL
 } from "@nodetool-ai/models-core";
 import { RUN_TRACES_DDL, applyRunTraceRls } from "./run-traces.js";
 
@@ -452,6 +454,10 @@ const TIMELINE_FILE_HASH_DDL =
   "ALTER TABLE timeline_sequences ADD COLUMN file_hash TEXT";
 const TIMELINE_FILE_ERROR_DDL =
   "ALTER TABLE timeline_sequences ADD COLUMN file_error TEXT";
+const TIMELINE_LAST_WRITER_DDL =
+  "ALTER TABLE timeline_sequences ADD COLUMN last_writer_instance TEXT";
+const TIMELINE_SCHEMA_VERSION_DDL =
+  "ALTER TABLE timeline_sequences ADD COLUMN schema_version INTEGER NOT NULL DEFAULT 1";
 
 const USER_PERMISSIONS_DDL: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS nodetool_user_permissions (
@@ -558,7 +564,11 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...CLOUD_LOCAL_STORE_DDL,
   ...SHARING_OPTION_COLUMNS.map((entry) => entry.ddl),
   ...SHARING_GRANT_INDEX_DDL,
-  ...DOCUMENT_REFS_DDL
+  ...DOCUMENT_REFS_DDL,
+  WORKFLOW_LAST_WRITER_DDL,
+  WORKFLOW_SCHEMA_VERSION_DDL,
+  TIMELINE_LAST_WRITER_DDL,
+  TIMELINE_SCHEMA_VERSION_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -4945,6 +4955,70 @@ export const migrations: MigrationDef[] = [
     async down() {
       // The columns and tables stay: dropping them would reopen disabled
       // links and give every grant on a document one row again.
+    }
+  },
+  // The editing instance that wrote a document's stored revision, and the
+  // document schema version it was written in. A save from another instance
+  // keeps the stored revision as a version first. A save in a lower schema
+  // version is refused.
+  {
+    version: "20261128_000000",
+    name: "add_workflow_last_writer_instance",
+    createsTables: [],
+    modifiesTables: ["nodetool_workflows"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_workflows"))) return;
+      if (!(await db.columnExists("nodetool_workflows", "last_writer_instance"))) {
+        await db.execute(WORKFLOW_LAST_WRITER_DDL);
+      }
+    },
+    async down() {
+      // The column stays: dropping it would lose which writer to keep.
+    }
+  },
+  {
+    version: "20261128_000001",
+    name: "add_workflow_schema_version",
+    createsTables: [],
+    modifiesTables: ["nodetool_workflows"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_workflows"))) return;
+      if (!(await db.columnExists("nodetool_workflows", "schema_version"))) {
+        await db.execute(WORKFLOW_SCHEMA_VERSION_DDL);
+      }
+    },
+    async down() {
+      // The column stays: dropping it would lose which writer to keep.
+    }
+  },
+  {
+    version: "20261128_000002",
+    name: "add_timeline_last_writer_instance",
+    createsTables: [],
+    modifiesTables: ["timeline_sequences"],
+    async up(db) {
+      if (!(await db.tableExists("timeline_sequences"))) return;
+      if (!(await db.columnExists("timeline_sequences", "last_writer_instance"))) {
+        await db.execute(TIMELINE_LAST_WRITER_DDL);
+      }
+    },
+    async down() {
+      // The column stays: dropping it would lose which writer to keep.
+    }
+  },
+  {
+    version: "20261128_000003",
+    name: "add_timeline_schema_version",
+    createsTables: [],
+    modifiesTables: ["timeline_sequences"],
+    async up(db) {
+      if (!(await db.tableExists("timeline_sequences"))) return;
+      if (!(await db.columnExists("timeline_sequences", "schema_version"))) {
+        await db.execute(TIMELINE_SCHEMA_VERSION_DDL);
+      }
+    },
+    async down() {
+      // The column stays: dropping it would lose which writer to keep.
     }
   }
 ];

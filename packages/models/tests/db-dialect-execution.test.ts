@@ -26,6 +26,7 @@ import { Storyboard, emptyStoryboardDocument } from "../src/storyboard.js";
 import { TimelineSequence, type TimelineDocument } from "../src/timeline-sequence.js";
 import { TimelineSequenceVersion } from "../src/timeline-sequence-version.js";
 import { Workflow } from "../src/workflow.js";
+import { WorkflowVersion } from "../src/workflow-version.js";
 import { Workspace } from "../src/workspace.js";
 import { McpOauthGrant, McpOauthToken } from "../src/mcp-oauth.js";
 import { OauthPending } from "../src/oauth-pending.js";
@@ -591,6 +592,52 @@ describe("model execution on SQLite and PostgreSQL", () => {
         ["Storyboard", ModelChangeEvent.UPDATED], ["TimelineSequence", ModelChangeEvent.UPDATED]
       ]);
       return { document: second.timeline.document, width: second.timeline.width, height: second.timeline.height, events };
+    });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
+  it("keeps the replaced revision in the save's transaction, and nothing on a lost compare-and-set", async () => {
+    const result = await onBothDialects(async () => {
+      const keep = { name: "Kept", saveType: "manual" };
+      const timeline = await TimelineSequence.create<TimelineSequence>({
+        user_id: OWNER, project_id: "default", name: "Timeline", document: JSON.stringify(TIMELINE_DOCUMENT)
+      });
+      const stale = await TimelineSequence.updateFieldsIfUnchanged(
+        timeline.id, "2000-01-01T00:00:00.000Z", { name: "Stale" }, undefined, keep
+      );
+      const saved = await TimelineSequence.updateFieldsIfUnchanged(
+        timeline.id, timeline.updated_at, { name: "Saved" }, undefined, keep
+      );
+      const timelineVersions = await TimelineSequenceVersion.listForTimeline(timeline.id);
+
+      const workflow = await Workflow.create<Workflow>({
+        user_id: OWNER, name: "Flow", graph: { nodes: [{ id: "a" }], edges: [] }
+      });
+      const workflowKeep = { name: null, saveType: "checkpoint", description: "Kept" };
+      const lost = await Workflow.updateFieldsIfUnchanged(
+        workflow.id, "2000-01-01T00:00:00.000Z", { name: "Lost" }, undefined, workflowKeep
+      );
+      const first = await Workflow.updateFieldsIfUnchanged(
+        workflow.id, workflow.updated_at, { graph: { nodes: [{ id: "b" }], edges: [] } }, undefined, workflowKeep
+      );
+      await Workflow.updateFieldsIfUnchanged(
+        workflow.id, first!.updated_at, { graph: { nodes: [{ id: "c" }], edges: [] } }, undefined, workflowKeep
+      );
+      const workflowVersions = await WorkflowVersion.listForWorkflow(workflow.id);
+      return {
+        stale, savedName: saved?.name,
+        timelineVersions: timelineVersions.map((v) => [v.version, v.name, v.save_type]),
+        lost,
+        workflowVersions: workflowVersions
+          .map((v) => [v.version, v.name, v.description, (v.graph.nodes[0] as { id: string }).id])
+          .sort()
+      };
+    });
+    expect(result).toEqual({
+      stale: null,
+      savedName: "Saved",
+      timelineVersions: [[1, "Kept", "manual"]],
+      lost: null,
+      workflowVersions: [[1, "Flow", "Kept", "a"], [2, "Flow", "Kept", "b"]]
     });
   }, DIALECT_TEST_TIMEOUT_MS);
 

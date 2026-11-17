@@ -252,11 +252,14 @@ describe("the workflow file sync hook", () => {
     const workflow = await makeWorkflow();
     const etag = workflow.getEtag();
     // The etag a workflow had before it had a file: the row without the
-    // three columns that describe the file.
+    // three columns that describe the file, and the two that describe the
+    // save.
     const {
       file_path: _path,
       file_hash: _hash,
       file_error: _error,
+      last_writer_instance: _writer,
+      schema_version: _schema,
       ...content
     } = workflow.toRow();
     expect(etag).toBe(computeEtag(content));

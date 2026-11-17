@@ -32,7 +32,17 @@ export enum ApiErrorCode {
    * A save adds a file the writer may not read: neither their own asset nor
    * a file of a document they may duplicate. Nothing was written.
    */
-  FILE_NOT_READABLE = "FILE_NOT_READABLE"
+  FILE_NOT_READABLE = "FILE_NOT_READABLE",
+  /**
+   * The save is written in a lower document schema version than the stored
+   * document. It would replace the document with a reduced copy.
+   */
+  SCHEMA_DOWNGRADE = "SCHEMA_DOWNGRADE",
+  /**
+   * The client's protocol version is below the lowest this server accepts
+   * writes from. Listing and reading still work.
+   */
+  CLIENT_TOO_OLD = "CLIENT_TOO_OLD"
 }
 
 export interface ApiErrorResponse {

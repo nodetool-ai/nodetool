@@ -2,6 +2,7 @@ import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonBridge } from "@nodetool-ai/runtime";
 import type { WorkerConnection, WorkerManager } from "@nodetool-ai/compute";
 import type { HttpApiOptions } from "../http-api.js";
+import * as sync from "@nodetool-ai/protocol/api-schemas/sync.js";
 
 /**
  * Re-point the live Python bridge at a worker's `{wsUrl, token}` (attach) or
@@ -37,6 +38,12 @@ export type ProbeWorkerHealth = (
 export interface Context {
   userId: string | null;
   /**
+   * The protocol version the client named in the `x-nodetool-protocol`
+   * header. Null or absent when it sent none, as callers inside the server
+   * do. See `sync.ts` in the protocol package.
+   */
+  clientProtocol?: number | null;
+  /**
    * The device session id when the caller authenticated with a native
    * access token. Procedures that create credentials refuse it.
    */
@@ -69,12 +76,13 @@ export interface ContextFactoryInput {
 }
 
 /**
- * The one request field the context reads. Both `FastifyRequest` (with the
+ * The request fields the context reads. Both `FastifyRequest` (with the
  * `userId` the auth plugin attaches) and the plain `IncomingMessage` the
  * test-UI server serves satisfy it.
  */
 interface ContextRequest {
   userId?: string | null;
+  headers?: Record<string, string | string[] | undefined>;
   nativeSessionId?: string | null;
 }
 
@@ -83,6 +91,9 @@ export function createContextFactory(
 ): (opts: { req: ContextRequest }) => Context {
   return ({ req }) => ({
     userId: req.userId ?? null,
+    clientProtocol: sync.clientProtocolVersion(
+      req.headers?.[sync.SYNC_PROTOCOL_HEADER]
+    ),
     nativeSessionId: req.nativeSessionId ?? null,
     registry: deps.registry,
     apiOptions: deps.apiOptions,

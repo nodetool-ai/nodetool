@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.workflow`.
  */
 
-import { eq, and, desc, or, isNull, lt, inArray, count, type SQL } from "drizzle-orm";
+import { eq, and, desc, or, isNull, lt, inArray, count, max, type SQL } from "drizzle-orm";
 import {
   DBModel,
   ModelChangeEvent,
@@ -18,6 +18,8 @@ import { allowLegacyProjectWritesForTests, getPortableDb } from "./db.js";
 import { projects } from "./schema/projects.js";
 import { eraseRunTraceParentForModelDeletion } from "./run-trace.js";
 import { workflows } from "./schema/workflows.js";
+import { workflowVersions } from "./schema/workflow-versions.js";
+import { saveKeepingRevision, type KeepRevision } from "./kept-revision.js";
 import { WorkflowCollaborator } from "./workflow-collaborator.js";
 import { WorkflowShare } from "./workflow-share.js";
 import { WorkflowVersion } from "./workflow-version.js";
@@ -74,6 +76,8 @@ export type WorkflowUpdateFields = Partial<{
   app_doc: Record<string, unknown> | null;
   receive_clipboard: boolean | null;
   access: AccessLevel;
+  last_writer_instance: string | null;
+  schema_version: number;
 }>;
 
 let workflowFileSync: DocumentFileSync<Workflow> | null = null;
@@ -130,6 +134,14 @@ export class Workflow extends DBModel {
   declare file_hash: string | null;
   /** What the last reconcile found wrong with the file, or null. */
   declare file_error: string | null;
+  /**
+   * The editing instance that wrote the stored revision, or null when that
+   * save carried none. A save from another instance first keeps the stored
+   * revision as a version.
+   */
+  declare last_writer_instance: string | null;
+  /** The document schema version the stored revision was written in. */
+  declare schema_version: number;
   declare created_at: string;
   declare updated_at: string;
 
@@ -146,12 +158,16 @@ export class Workflow extends DBModel {
    * about the file and no content of the workflow. Recording them must not
    * read as a change of the workflow to a client that holds its etag, such
    * as an SDK client checking `workflow_etag` or an open editor.
+   * The writer instance and schema version describe the save, and stay out
+   * of the etag for the same reason.
    */
   override getEtag(): string {
     const {
       file_path: _path,
       file_hash: _hash,
       file_error: _error,
+      last_writer_instance: _writer,
+      schema_version: _schema,
       ...content
     } = this.toRow();
     return computeEtag(content);
@@ -326,6 +342,8 @@ export class Workflow extends DBModel {
     this.file_path ??= null;
     this.file_hash ??= null;
     this.file_error ??= null;
+    this.last_writer_instance ??= null;
+    this.schema_version ??= 1;
     this.rememberFileProject();
     this.created_at ??= now;
     this.updated_at ??= now;
@@ -389,7 +407,8 @@ export class Workflow extends DBModel {
     id: string,
     expectedUpdatedAt: string,
     fields: WorkflowUpdateFields,
-    meta?: ModelChangeMeta
+    meta?: ModelChangeMeta,
+    keep?: KeepRevision
   ): Promise<Workflow | null> {
     const db = getPortableDb();
     // A change of project leaves the file in the folder the workflow was in.
@@ -407,18 +426,42 @@ export class Workflow extends DBModel {
         previous = { project_id: before.project_id, file_path: before.file_path };
       }
     }
-    const rows = await db
-      .update(workflows)
-      .set({
-        ...fields,
-        updated_at: nextUpdatedAtAfter(expectedUpdatedAt)
-      })
-      .where(
-        and(eq(workflows.id, id), eq(workflows.updated_at, expectedUpdatedAt))
-      )
-      .returning();
-
-    const row = rows[0];
+    const unchanged = and(
+      eq(workflows.id, id),
+      eq(workflows.updated_at, expectedUpdatedAt)
+    );
+    const set = { ...fields, updated_at: nextUpdatedAtAfter(expectedUpdatedAt) };
+    let row: typeof workflows.$inferSelect | null | undefined;
+    if (keep) {
+      // The replaced revision becomes a version in the same transaction as
+      // the compare-and-set, so a lost race or a crash writes neither.
+      row = await saveKeepingRevision<
+        typeof workflows.$inferSelect,
+        typeof workflows.$inferSelect
+      >({
+        stored: (tx) => tx.select().from(workflows).where(unchanged).limit(1),
+        highestVersion: (tx) =>
+          tx
+            .select({ value: max(workflowVersions.version) })
+            .from(workflowVersions)
+            .where(eq(workflowVersions.workflow_id, id)),
+        keep: (tx, stored, version) =>
+          tx.insert(workflowVersions).values({
+            id: createTimeOrderedUuid(),
+            workflow_id: id,
+            user_id: stored.user_id,
+            name: keep.name ?? stored.name,
+            description: keep.description ?? null,
+            graph: stored.graph,
+            version,
+            save_type: keep.saveType,
+            created_at: new Date().toISOString()
+          }),
+        write: (tx) => tx.update(workflows).set(set).where(unchanged).returning()
+      });
+    } else {
+      [row] = await db.update(workflows).set(set).where(unchanged).returning();
+    }
     if (!row) return null;
 
     const updated = new Workflow(row);

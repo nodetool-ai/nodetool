@@ -34,6 +34,12 @@ type ExampleLoadOptions = NonNullable<Parameters<typeof loadExampleGraph>[2]>;
 
 import { permissionRefusal, permissionsFor } from "./permissions.js";
 import {
+  DocumentSaveRefusal,
+  acceptedSchemaVersion,
+  revisionToKeep,
+  writerOf
+} from "./document-save-rules.js";
+import {
   publishSave,
   fileNotReadableMessage,
   findUnreadableFile,
@@ -99,6 +105,12 @@ export interface WorkflowWriteInput {
   html_app?: string | null;
   app_doc?: Record<string, unknown> | null;
   expected_updated_at?: string;
+  /** The editing instance of the save, see document-save-rules.ts. */
+  editing_instance?: string;
+  /** The document schema version of `graph`, see document-save-rules.ts. */
+  schema_version?: number;
+  /** True when the request carried no protocol header, see sync.ts. */
+  legacy_client?: boolean;
 }
 
 /** Seed a new workflow from a shipped example when the caller sent no graph. */
@@ -313,10 +325,32 @@ export async function updateWorkflow(
       userId,
       graph
     );
+
+    try {
+      fields.schema_version = acceptedSchemaVersion(
+        "workflow",
+        existing.schema_version,
+        input.schema_version,
+        input.legacy_client === true
+      );
+    } catch (error) {
+      if (error instanceof DocumentSaveRefusal) {
+        throw new WorkflowServiceError(error.code, error.message, error.status);
+      }
+      throw error;
+    }
+    const writer = writerOf(userId, input.editing_instance);
+    fields.last_writer_instance = writer;
+
     const updated = await Workflow.updateFieldsIfUnchanged(
       id,
       input.expected_updated_at ?? existing.updated_at,
-      fields
+      fields,
+      undefined,
+      revisionToKeep("workflow", existing, {
+        writer,
+        base: input.expected_updated_at
+      })
     );
     if (!updated) {
       throw new WorkflowServiceError(

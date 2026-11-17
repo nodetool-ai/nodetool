@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { isRecord } from "../predicates.js";
 import { exampleNeeds } from "../example-needs.js";
+import { documentSchemaVersion, editingInstanceId } from "./sync.js";
 
 // ── WorkflowRunMode ──────────────────────────────────────────────────────────
 
@@ -153,7 +154,9 @@ export const workflowResponse = z.object({
   needs: exampleNeeds.nullable().optional(),
   html_app: z.string().nullable(),
   app_doc: z.record(z.string(), z.unknown()).nullable().optional(),
-  etag: z.string().nullable()
+  etag: z.string().nullable(),
+  /** The schema version the stored graph was written in. See sync.ts. */
+  schema_version: z.number().int().optional()
 });
 export type WorkflowResponse = z.infer<typeof workflowResponse>;
 
@@ -333,7 +336,11 @@ export type CreateInput = z.infer<typeof createInput>;
 
 export const updateInput = workflowBody.extend({
   id: z.string().min(1),
-  expected_updated_at: z.string().optional()
+  expected_updated_at: z.string().optional(),
+  /** See {@link editingInstanceId}. */
+  editing_instance: editingInstanceId.optional(),
+  /** The document schema version of `graph`, see `sync.ts`. */
+  schema_version: documentSchemaVersion.optional()
 });
 export type UpdateInput = z.infer<typeof updateInput>;
 
@@ -383,7 +390,11 @@ export const autosaveInput = z.object({
   client_id: z.string().optional(),
   force: z.boolean().optional(),
   max_versions: z.number().int().optional(),
-  expected_updated_at: z.string().optional()
+  expected_updated_at: z.string().optional(),
+  /** See {@link editingInstanceId}. */
+  editing_instance: editingInstanceId.optional(),
+  /** The document schema version of `graph`, see `sync.ts`. */
+  schema_version: documentSchemaVersion.optional()
 });
 export type AutosaveInput = z.infer<typeof autosaveInput>;
 
@@ -526,7 +537,9 @@ export type VersionGetInput = z.infer<typeof versionGetInput>;
 // version restore (POST /api/workflows/:id/versions/:version/restore)
 export const versionRestoreInput = z.object({
   id: z.string().min(1),
-  version: z.number().int().min(1)
+  version: z.number().int().min(1),
+  /** The restoring editing instance. See {@link editingInstanceId}. */
+  editing_instance: editingInstanceId.optional()
 });
 export type VersionRestoreInput = z.infer<typeof versionRestoreInput>;
 
