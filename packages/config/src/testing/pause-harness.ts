@@ -113,10 +113,8 @@ function settle<T>(task: () => Promise<T>): Promise<PromiseSettledResult<T>> {
   } catch (error) {
     running = Promise.reject(error);
   }
-  return running.then(
-    (value): PromiseSettledResult<T> => ({ status: "fulfilled", value }),
-    (reason: unknown): PromiseSettledResult<T> => ({ status: "rejected", reason })
-  );
+  // allSettled of one promise attaches its handlers now.
+  return Promise.allSettled([running]).then(([outcome]) => outcome!);
 }
 
 export interface PausableProcess {
