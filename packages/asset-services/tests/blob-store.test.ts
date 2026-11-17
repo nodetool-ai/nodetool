@@ -2,8 +2,8 @@
  * The blob store (WP2.1): the server's hash check, the presence check scoped
  * to one owner, the read rule and the cleanup.
  */
-import { beforeEach, describe, expect, it } from "vitest";
-import { commitProjectBlobs, initTestDb } from "@nodetool-ai/models";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { claimBlobDeletion, commitProjectBlobs, initTestDb, releaseBlobDeletion } from "@nodetool-ai/models";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import {
   BLOB_CLEANUP_GRACE_MS,
@@ -116,6 +116,54 @@ describe("blob store", () => {
     });
     expect(await storage.exists(storage.uriForKey(blobKey(HASH)))).toBe(false);
     expect(await readBlob(storage, { projectId: "p1", hash: committedHash })).toEqual(committedBytes);
+  });
+
+  it("writes the bytes after a cleanup that was deleting the hash ends (F9)", async () => {
+    await storage.store(blobKey(HASH), BYTES);
+    expect(await claimBlobDeletion(HASH)).toBe(true);
+    const staged = stage("t1");
+    // The cleanup claimed before the stage's row, so it deletes the object.
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    await storage.delete(storage.uriForKey(blobKey(HASH)));
+    await releaseBlobDeletion(HASH);
+    expect(await staged).toBe("stored");
+    expect(await readBlob(storage, { projectId: "p1", hash: HASH, transferId: "t1" })).toEqual(BYTES);
+  });
+
+  it("skips a hash another cleanup claimed, and releases its own claims (F9)", async () => {
+    await storage.store(blobKey(HASH), BYTES);
+    const later = new Date(Date.now() + 2 * BLOB_CLEANUP_GRACE_MS);
+    expect(await claimBlobDeletion(HASH, later)).toBe(true);
+    expect((await cleanupBlobs(storage, later)).objectsDeleted).toBe(0);
+    await releaseBlobDeletion(HASH);
+    expect((await cleanupBlobs(storage, later)).objectsDeleted).toBe(1);
+    // No claim is left behind: a new claim succeeds at once.
+    expect(await claimBlobDeletion(HASH, later)).toBe(true);
+  });
+
+  it("writes through a staging name and replaces a short object (F10)", async () => {
+    await storage.store(blobKey(HASH), BYTES.slice(0, 2));
+    const create = vi.spyOn(storage, "storeIfAbsent");
+    expect(await stage("t1")).toBe("stored");
+    expect(create.mock.calls[0]?.[3]).toEqual({ stagingName: `${HASH}.t1.staging` });
+    expect(await readBlob(storage, { projectId: "p1", hash: HASH, transferId: "t1" })).toEqual(BYTES);
+    // A whole object is kept.
+    expect(await stage("t2")).toBe("already_present");
+  });
+
+  it("removes a staging file a stopped writer left", async () => {
+    await storage.store(`blobs/${HASH}.t1.staging`, BYTES.slice(0, 2));
+    await cleanupBlobs(storage, new Date(Date.now() + 2 * BLOB_CLEANUP_GRACE_MS));
+    expect(await storage.exists(storage.uriForKey(`blobs/${HASH}.t1.staging`))).toBe(false);
+  });
+
+  it("refuses a reuse whose declared size differs from the committed one (F11)", async () => {
+    await stage("t1");
+    await commitProjectBlobs("p1", "t1");
+    const reuse = (size: number) =>
+      stageKnownBlob(storage, { projectId: "p2", userId: "u1", transferId: "t2", hash: HASH, size });
+    expect(await reuse(4)).toBe(false);
+    expect(await reuse(BYTES.byteLength)).toBe(true);
   });
 
   it("keeps a young object that no row names yet", async () => {

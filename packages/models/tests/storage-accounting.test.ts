@@ -5,7 +5,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Asset } from "../src/asset.js";
 import { initTestDb } from "../src/db.js";
-import { retainDeletedDocument, setDocumentRetentionDays } from "../src/deleted-document.js";
+import { retainDeletedProject, setDocumentRetentionDays } from "../src/deleted-document.js";
 import { DocumentRefs } from "../src/document-refs.js";
 import { Project } from "../src/project.js";
 import { commitProjectBlobs, stageProjectBlob } from "../src/project-blob.js";
@@ -185,7 +185,7 @@ describe("storage accounting", () => {
     // The use is unchanged: the deleted document still holds the file.
     expect((await storageUse(OWNER)).usedBytes).toBe(100);
 
-    await retainDeletedDocument({
+    await retainDeletedProject({
       kind: "project",
       documentId: "p1",
       userId: OWNER,

@@ -42,11 +42,11 @@ Rectangle {
 
     // Copies through a text field, so the dialog needs no clipboard type.
     TextEdit { id: clipboard; visible: false }
-    function copy(text: string) {
+    function copy(text: string, note: string) {
         clipboard.text = text
         clipboard.selectAll()
         clipboard.copy()
-        copied.text = "Link copied."
+        copied.text = note ? note : "Link copied."
     }
 
     component LinkSection: ColumnLayout {
@@ -80,7 +80,7 @@ Rectangle {
                 objectName: "share-" + section.linkRole + "-copy"
                 text: "Copy link"
                 variant: Ui.EditorButton.Primary
-                onClicked: root.copy(section.link.url)
+                onClicked: root.copy(section.link.url, "")
             }
             Ui.EditorButton {
                 objectName: "share-" + section.linkRole + "-disable"
@@ -175,11 +175,31 @@ Rectangle {
                         required property var modelData
                         width: ListView.view.width
                         spacing: Ui.Metrics.sm
-                        Ui.Text {
-                            text: person.modelData.name || person.modelData.email || person.modelData.userId
-                            role: Ui.Typography.SansLabel
-                            elide: Text.ElideRight
+                        ColumnLayout {
                             Layout.fillWidth: true
+                            spacing: Ui.Metrics.micro
+                            Ui.Text {
+                                text: person.modelData.name || person.modelData.email || person.modelData.userId
+                                role: Ui.Typography.SansLabel
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
+                            // Where the access comes from and what it allows (P6).
+                            Ui.Text {
+                                objectName: "share-person-access"
+                                readonly property var allowed: [
+                                    person.modelData.history ? "read the history" : "",
+                                    person.modelData.download ? "download the files" : "",
+                                    person.modelData.duplicate ? "make a copy" : ""].filter(x => x !== "")
+                                text: [person.modelData.sources,
+                                       person.modelData.role === "viewer" && allowed.length > 0 ? "Can " + allowed.join(", ") : ""]
+                                      .filter(x => x).join(". ")
+                                visible: text !== ""
+                                role: Ui.Typography.SansCaption
+                                tone: Ui.Text.Secondary
+                                wrapMode: Text.Wrap
+                                Layout.fillWidth: true
+                            }
                         }
                         Ui.Select {
                             accessibleName: "Role of " + (person.modelData.name || person.modelData.userId)
@@ -193,6 +213,57 @@ Rectangle {
                             variant: Ui.EditorButton.Destructive
                             enabled: !root.controller.busy
                             onClicked: root.controller.removePerson(person.modelData.userId)
+                        }
+                    }
+                }
+            }
+
+            ColumnLayout {
+                visible: root.controller.disabledLinks.length > 0
+                Layout.fillWidth: true
+                spacing: Ui.Metrics.xs
+                Ui.PanelHeader { text: "Disabled links"; Layout.fillWidth: true }
+                Ui.Text {
+                    text: "Nobody new can join through these links. The people who joined keep their access, and these settings still apply to them. Remove a person to end their access."
+                    role: Ui.Typography.SansCaption
+                    tone: Ui.Text.Secondary
+                    wrapMode: Text.Wrap
+                    Layout.fillWidth: true
+                }
+                Repeater {
+                    model: root.controller.disabledLinks
+                    delegate: ColumnLayout {
+                        id: disabled
+                        required property var modelData
+                        objectName: "share-disabled-" + modelData.shareId
+                        Layout.fillWidth: true
+                        spacing: Ui.Metrics.micro
+                        Ui.Text {
+                            text: (disabled.modelData.role === "editor" ? "Editor link, " : "Viewer link, ")
+                                  + (disabled.modelData.people === 1 ? "1 person" : disabled.modelData.people + " people")
+                            role: Ui.Typography.SansLabel
+                            Layout.fillWidth: true
+                        }
+                        Ui.Toggle {
+                            visible: disabled.modelData.role === "viewer"
+                            text: "They can read the history"
+                            checked: disabled.modelData.history
+                            enabled: !root.controller.busy
+                            onCheckedChangedByUser: c => root.controller.setLinkOptions(disabled.modelData.shareId, c, disabled.modelData.download, disabled.modelData.duplicate)
+                        }
+                        Ui.Toggle {
+                            visible: disabled.modelData.role === "viewer"
+                            text: "They can download the files"
+                            checked: disabled.modelData.download
+                            enabled: !root.controller.busy
+                            onCheckedChangedByUser: c => root.controller.setLinkOptions(disabled.modelData.shareId, disabled.modelData.history, c, disabled.modelData.duplicate)
+                        }
+                        Ui.Toggle {
+                            visible: disabled.modelData.role === "viewer"
+                            text: "They can make their own copy"
+                            checked: disabled.modelData.duplicate
+                            enabled: !root.controller.busy
+                            onCheckedChangedByUser: c => root.controller.setLinkOptions(disabled.modelData.shareId, disabled.modelData.history, disabled.modelData.download, c)
                         }
                     }
                 }
@@ -220,7 +291,6 @@ Rectangle {
                     delegate: RowLayout {
                         id: linked
                         required property var modelData
-                        readonly property string linkUrl: modelData.viewerUrl || modelData.editorUrl
                         width: ListView.view.width
                         spacing: Ui.Metrics.sm
                         ColumnLayout {
@@ -228,7 +298,10 @@ Rectangle {
                             spacing: Ui.Metrics.micro
                             Ui.Text { text: linked.modelData.label; role: Ui.Typography.SansLabel; elide: Text.ElideRight; Layout.fillWidth: true }
                             Ui.Text {
-                                text: linked.modelData.state === "shared" ? "Has its own link. Send it along."
+                                text: linked.modelData.state === "shared"
+                                      ? (linked.modelData.editorUrl
+                                         ? "Has its own link. Its editor link lets anyone who has it change the document."
+                                         : "Has its own link. Send it along.")
                                     : linked.modelData.state === "notShared" ? "Not shared. People who join cannot open it."
                                     : linked.modelData.state === "unavailable" ? "You cannot share it from this account. People who join cannot open it."
                                     : "Checking…"
@@ -238,17 +311,35 @@ Rectangle {
                                 Layout.fillWidth: true
                             }
                         }
+                        // Each role has its own action, so an editor link is
+                        // never copied in place of a viewer link.
                         Ui.EditorButton {
-                            visible: linked.modelData.state === "shared"
-                            text: "Copy link"
-                            onClicked: root.copy(linked.linkUrl)
+                            objectName: "share-linked-copy-viewer"
+                            visible: linked.modelData.state === "shared" && !!linked.modelData.viewerUrl
+                            text: "Copy viewer link"
+                            onClicked: root.copy(linked.modelData.viewerUrl, "Viewer link copied.")
                         }
                         Ui.EditorButton {
-                            visible: linked.modelData.state === "notShared"
-                            text: root.controller.editorLink.exists && !root.controller.viewerLink.exists ? "Share as editor" : "Share as viewer"
+                            objectName: "share-linked-copy-editor"
+                            visible: linked.modelData.state === "shared" && !!linked.modelData.editorUrl
+                            text: "Copy editor link"
+                            onClicked: root.copy(linked.modelData.editorUrl,
+                                                 "Editor link copied. Anyone who has it can change the document.")
+                        }
+                        Ui.EditorButton {
+                            objectName: "share-linked-add-viewer"
+                            visible: (linked.modelData.state === "notShared"
+                                      || (linked.modelData.state === "shared" && !linked.modelData.viewerUrl))
+                            text: linked.modelData.state === "shared" ? "Add viewer link" : "Share as viewer"
                             enabled: !root.controller.busy
-                            onClicked: root.controller.shareLinked(linked.modelData.kind, linked.modelData.documentId,
-                                                         root.controller.editorLink.exists && !root.controller.viewerLink.exists ? "editor" : "viewer")
+                            onClicked: root.controller.shareLinked(linked.modelData.kind, linked.modelData.documentId, "viewer")
+                        }
+                        Ui.EditorButton {
+                            objectName: "share-linked-add-editor"
+                            visible: linked.modelData.state === "notShared"
+                            text: "Share as editor"
+                            enabled: !root.controller.busy
+                            onClicked: root.controller.shareLinked(linked.modelData.kind, linked.modelData.documentId, "editor")
                         }
                     }
                 }

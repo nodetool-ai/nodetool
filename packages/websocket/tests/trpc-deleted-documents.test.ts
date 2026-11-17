@@ -8,6 +8,7 @@ import {
   initTestDb,
   ModelObserver,
   Project,
+  purgeDeletedDocuments,
   setDocumentRetentionDays,
   TimelineSequence,
   Workflow
@@ -131,6 +132,33 @@ describe("deletedDocuments router", () => {
     expect((await Workflow.get<Workflow>(wf.id))?.project_id).toBe(project.id);
     expect((await TimelineSequence.findById(timeline.id))?.name).toBe("cut");
     expect((await owner.deletedDocuments.list({})).documents).toEqual([]);
+  });
+
+  it("restores only the documents the project delete moved (F8)", async () => {
+    const owner = createCaller(makeCtx(OWNER));
+    const project = await makeProject();
+    const earlier = await makeWorkflow(project.id, "deleted first");
+    const kept = await makeWorkflow(project.id, "deleted with the project");
+    expect(await Workflow.deleteOwned(OWNER, earlier.id)).toBe(true);
+    await owner.projects.delete({ id: project.id });
+
+    await owner.deletedDocuments.restore({ kind: "project", document_id: project.id });
+    expect((await Workflow.get<Workflow>(kept.id))?.name).toBe("deleted with the project");
+    expect(await Workflow.get<Workflow>(earlier.id)).toBeNull();
+    const listed = (await owner.deletedDocuments.list({})).documents;
+    expect(listed.map((d) => d.document_id)).toEqual([earlier.id]);
+  });
+
+  it("never purges a project a restore took first (F5)", async () => {
+    const owner = createCaller(makeCtx(OWNER));
+    const project = await makeProject();
+    const wf = await makeWorkflow(project.id);
+    await owner.projects.delete({ id: project.id });
+    await owner.deletedDocuments.restore({ kind: "project", document_id: project.id });
+
+    expect(await purgeDeletedDocuments(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000))).toBe(0);
+    expect((await Project.findOwned(OWNER, project.id))?.deleted_at).toBeNull();
+    expect(await Workflow.get<Workflow>(wf.id)).not.toBeNull();
   });
 
   it("removes a kept project's content when its restore period ends", async () => {
