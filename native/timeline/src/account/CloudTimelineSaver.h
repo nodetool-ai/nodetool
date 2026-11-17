@@ -9,8 +9,9 @@
 // (loadTimelineSource). A draft this account left on this computer arrives
 // with CloudDocument::opened and is applied as one restoreDocument edit,
 // after its media is resolved off the UI thread, so it is sent again and can
-// be undone. A draft that arrives after the person already edited is not
-// applied: the person's edits replace it.
+// be undone. The model is read-only until then, so no edit on the server's
+// revision replaces the draft. A draft that can't be opened or applied
+// leaves the window read-only and the draft kept.
 //
 // The draft is the document with the sequence's `fps`, `width` and `height`
 // beside it (cloudDraft), so a change of the project settings is sent too.
@@ -24,6 +25,7 @@
 
 #include <QObject>
 #include <QPointer>
+#include <QWindow>
 #include <QString>
 #include <QThread>
 #include <QUrl>
@@ -50,8 +52,10 @@ struct CloudTimelineOptions {
     QString localToken;
     // Where the cloud media is cached, as loadTimelineSource used it.
     QString cacheRoot;
-    // The access token the media of a draft is read with.
+    // The access token, which names the media cache folder.
     QString accessToken;
+    // Authorizes each request for the media of a draft through the account.
+    server::RequestAuthorizer authorizer;
 };
 
 // Thread affinity: UI thread only. The media of a draft is resolved on one
@@ -62,6 +66,9 @@ class CloudTimelineSaver final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QObject* document READ document CONSTANT)
     Q_PROPERTY(QString error READ error NOTIFY errorChanged)
+    // True while the window's close waits on the person: the last edit
+    // could not be written to the local drafts.
+    Q_PROPERTY(bool closeBlocked READ closeBlocked NOTIFY closeBlockedChanged)
 
 public:
     CloudTimelineSaver(TimelineModel& model, std::shared_ptr<nodetool::account::AccountSession> session,
@@ -71,6 +78,17 @@ public:
     ~CloudTimelineSaver() override;
 
     QObject* document() const;
+    bool closeBlocked() const { return m_closeBlocked; }
+
+    // Keeps `window` open while its last edit is only in memory: a close
+    // writes the edit to the local drafts first, and when that fails the
+    // window stays open and closeBlocked asks the person.
+    void guardClose(QWindow* window);
+    // The answers to closeBlocked: write again and close, close without the
+    // last edits, or keep the window open.
+    Q_INVOKABLE void retryClose();
+    Q_INVOKABLE void discardAndClose();
+    Q_INVOKABLE void cancelClose();
     QString error() const { return m_error; }
 
     // The raw sequence with its document part (documentForSave) replaced by
@@ -83,17 +101,30 @@ public:
 
 signals:
     void errorChanged();
+    void closeBlockedChanged();
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
     void sendEdit();
     void applyDraft(const QString& draft);
     void fail(const QString& error);
+    void updateReadOnly();
+    // The kept draft is applied, or there was none.
+    void recovered();
 
     TimelineModel& m_model;
     CloudTimelineOptions m_options;
     std::unique_ptr<nodetool::account::qt::CloudDocument> m_document;
     QPointer<QThread> m_worker;
     QString m_error;
+    // True until the kept draft is known and applied.
+    bool m_recovering = true;
+    QPointer<QWindow> m_window;
+    bool m_closeBlocked = false;
+    // Set by discardAndClose: the next close goes through.
+    bool m_closeApproved = false;
 };
 
 }  // namespace nt::account

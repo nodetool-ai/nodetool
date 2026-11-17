@@ -22,6 +22,7 @@
 
 #include "model/TimelineTypes.h"
 #include "server/AssetCache.h"
+#include "server/ServerClient.h"
 
 #include <QJsonObject>
 #include <QString>
@@ -39,6 +40,9 @@ struct ServerOpenOptions {
     QString timelineId;
     QString cacheRoot;
     QString token;
+    // Set for a cloud timeline: each request is authorized through the
+    // account (ServerClient::setAuthorizer).
+    RequestAuthorizer authorizer;
     bool probeMedia = true;  // run probeMedia (D10a) on each picture file
     QString expectedInstance;
 };

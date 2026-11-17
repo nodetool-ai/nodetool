@@ -7,8 +7,8 @@
 #include "nodetool/account/qt/QtHttpTransport.h"
 #include "server/AutosaveController.h"
 
+#include <QEvent>
 #include <QJsonDocument>
-#include <QUndoStack>
 
 #include <utility>
 #include <vector>
@@ -63,9 +63,11 @@ CloudTimelineSaver::CloudTimelineSaver(TimelineModel& model, std::shared_ptr<acc
             [this](const QString&, const QString& draft) { applyDraft(draft); });
     connect(m_document.get(), &accountlib::qt::CloudDocument::openFailed, this,
             [this](const QString& reason) { fail(tr("Cloud timeline not opened: %1").arg(reason)); });
-    connect(m_document.get(), &accountlib::qt::CloudDocument::stateChanged, this,
-            [this] { m_model.setReadOnly(m_document->readOnly()); });
+    connect(m_document.get(), &accountlib::qt::CloudDocument::stateChanged, this, &CloudTimelineSaver::updateReadOnly);
     connect(&m_model, &TimelineModel::commandSettled, this, &CloudTimelineSaver::sendEdit);
+    // No edit before the draft this account kept is known and applied: an
+    // edit on the server's revision would replace that draft.
+    updateReadOnly();
     m_document->open();
 }
 
@@ -76,6 +78,60 @@ CloudTimelineSaver::~CloudTimelineSaver() {
 }
 
 QObject* CloudTimelineSaver::document() const { return m_document.get(); }
+
+void CloudTimelineSaver::guardClose(QWindow* window) {
+    if (m_window) {
+        m_window->removeEventFilter(this);
+    }
+    m_window = window;
+    if (window) {
+        window->installEventFilter(this);
+    }
+}
+
+bool CloudTimelineSaver::eventFilter(QObject* watched, QEvent* event) {
+    if (event->type() != QEvent::Close || watched != m_window || m_closeApproved) {
+        return QObject::eventFilter(watched, event);
+    }
+    if (m_document->writeLocally()) {
+        return QObject::eventFilter(watched, event);
+    }
+    event->ignore();
+    if (!m_closeBlocked) {
+        m_closeBlocked = true;
+        emit closeBlockedChanged();
+    }
+    return true;
+}
+
+void CloudTimelineSaver::retryClose() {
+    cancelClose();
+    if (m_window) {
+        m_window->close();
+    }
+}
+
+void CloudTimelineSaver::discardAndClose() {
+    m_closeApproved = true;
+    cancelClose();
+    if (m_window) {
+        m_window->close();
+    }
+}
+
+void CloudTimelineSaver::cancelClose() {
+    if (m_closeBlocked) {
+        m_closeBlocked = false;
+        emit closeBlockedChanged();
+    }
+}
+
+void CloudTimelineSaver::updateReadOnly() { m_model.setReadOnly(m_recovering || m_document->readOnly()); }
+
+void CloudTimelineSaver::recovered() {
+    m_recovering = false;
+    updateReadOnly();
+}
 
 void CloudTimelineSaver::sendEdit() {
     const QJsonObject draft = cloudDraft(m_model.timeline().raw);
@@ -91,16 +147,16 @@ void CloudTimelineSaver::applyDraft(const QString& text) {
     const QJsonObject draft = QJsonDocument::fromJson(text.toUtf8()).object();
     const QJsonObject current = m_model.timeline().raw;
     if (draft.isEmpty() || draft == cloudDraft(current)) {
-        return;
-    }
-    if (m_model.undoStack()->count() > 0) {
-        // The person edited before the draft arrived. Their document replaces it.
-        sendEdit();
+        recovered();
         return;
     }
     const QJsonObject raw = withDraft(current, draft);
-    const server::ServerOpenOptions options{m_options.origin, m_options.timelineId, m_options.cacheRoot,
-                                            m_options.accessToken, true, {}};
+    server::ServerOpenOptions options;
+    options.server = m_options.origin;
+    options.timelineId = m_options.timelineId;
+    options.cacheRoot = m_options.cacheRoot;
+    options.token = m_options.accessToken;
+    options.authorizer = m_options.authorizer;
     // Shared with the worker thread, which writes it, and with the finished
     // handler on the UI thread, which reads it after the worker ended.
     auto result = std::make_shared<server::ServerOpenResult>();
@@ -112,20 +168,20 @@ void CloudTimelineSaver::applyDraft(const QString& text) {
     m_worker = worker;
     connect(worker, &QThread::finished, this, [this, worker, result, draft] {
         worker->deleteLater();
-        if (m_model.undoStack()->count() > 0) {
-            sendEdit();
-            return;
-        }
         if (!result->timeline) {
+            // The window stays read-only, so the kept draft is not replaced.
             fail(tr("The edits kept on this computer could not be opened: %1").arg(result->error));
             return;
         }
+        recovered();
         for (const auto& media : result->timeline->clips) {
             m_model.registerMedia(media);
         }
         const QJsonObject before = cloudDraft(m_model.timeline().raw);
         if (server::documentForSave(draft) != server::documentForSave(before) &&
             m_model.applyEdit(QStringLiteral("restoreDocument"), QJsonObject{{QStringLiteral("document"), draft}}) == 0) {
+            m_recovering = true;
+            updateReadOnly();
             fail(tr("The edits kept on this computer could not be applied."));
             return;
         }

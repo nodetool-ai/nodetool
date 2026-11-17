@@ -1555,8 +1555,10 @@ absent proxy. A second server whose `ffmpeg` hides libx264 makes a VP9 proxy
 The Open timeline list shows the Cloud and Shared with me groups of the
 account signed in to the current server. A chosen timeline opens in a new
 window with these options. The window reads the timeline and its media from
-the cloud server with the account's access token, which it reads at start
-(`AccountController::readSession`). It refuses an address that is not HTTPS
+the cloud server with the account signed in at start
+(`AccountController::readSession`). Each of those requests asks the account
+for its credential (`ServerClient::setAuthorizer`), so a sign-out in either
+app leaves the next request without the token and stops a running one. It refuses an address that is not HTTPS
 and a `--token`, so the local server's token never goes to the cloud.
 
 A cloud timeline has no server save target. `CloudTimelineSaver`
@@ -1566,8 +1568,15 @@ then sends it with `timeline.update`. The draft carries the frame rate and
 size beside the document, and the save sends them as the sequence's
 columns. The document bar shows the cloud status in place of the save
 status. A draft this account left on this computer is applied as one
-`restoreDocument` edit after its media is resolved, unless the person
-edited first, and its frame rate and size as one `setProjectSettings` edit.
+`restoreDocument` edit after its media is resolved, and its frame rate and
+size as one `setProjectSettings` edit. The window is read-only until then,
+so no edit replaces the kept draft. A draft that can't be opened or applied
+leaves the window read-only and the draft kept. When the local drafts can't
+be read at all, the window opens read-only too.
+
+Closing the window writes the last edit to the local drafts first. When that
+fails, the window stays open and asks whether to try again, keep it open or
+close without the last changes.
 
 A viewer's window, and one whose access was removed, is read-only:
 `TimelineModel::readOnly` refuses every edit and clears the undo history,
