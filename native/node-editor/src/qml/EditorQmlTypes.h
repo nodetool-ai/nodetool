@@ -31,6 +31,7 @@
 #include "nodetool/account/qt/AccountServers.h"
 #include "nodetool/account/qt/CloudBrowser.h"
 #include "nodetool/account/qt/CloudDocument.h"
+#include "nodetool/account/qt/ShareController.h"
 
 // The C++ interface types that NodeTool.NodeEditor components take as required
 // properties. They live in node_editor_interfaces, outside the QML module, so a
@@ -71,6 +72,13 @@ struct CloudDocumentForeign {
     QML_FOREIGN(nodetool::account::qt::CloudDocument)
     QML_NAMED_ELEMENT(CloudDocument)
     QML_UNCREATABLE("A CloudDocument comes from its owner.")
+};
+
+// The share dialog creates its own controller.
+struct ShareControllerForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::account::qt::ShareController)
+    QML_NAMED_ELEMENT(ShareController)
 };
 
 struct NodeCatalogForeign {

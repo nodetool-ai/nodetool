@@ -10,6 +10,7 @@
 #include "nodetool/account/qt/AccountServers.h"
 #include "nodetool/account/qt/CloudBrowser.h"
 #include "nodetool/account/qt/QtHttpTransport.h"
+#include "nodetool/account/qt/ShareController.h"
 #include "test_support.h"
 
 #include <QGuiApplication>
@@ -20,7 +21,10 @@
 #include <QtQml/QQmlExtensionPlugin>
 #include <QtTest>
 
+#include <algorithm>
 #include <functional>
+#include <mutex>
+#include <vector>
 #include <thread>
 
 Q_IMPORT_QML_PLUGIN(NodeTool_NodeEditorPlugin)
@@ -111,6 +115,38 @@ public:
         }
         return {404, "{}"};
     }
+};
+
+// The cloud server's sharing procedures for one workflow. Thread-safe:
+// `mutex_` guards the link and the log.
+class ShareTransport final : public nodetool::account::HttpTransport {
+public:
+    nodetool::account::HttpResponse send(const nodetool::account::HttpRequest &request) override {
+        const std::lock_guard lock(mutex_);
+        sent_.push_back(request.url);
+        if (request.url.find("/trpc/workflows.sharing.createLink") != std::string::npos) {
+            editorLink_ = true;
+            return {200, R"({"result":{"data":{"id":"s2","token":"edit","role":"editor"}}})"};
+        }
+        if (request.url.find("/trpc/workflows.sharing.get") != std::string::npos) {
+            std::string shares = R"({"id":"s1","token":"view","role":"viewer"})";
+            if (editorLink_) {
+                shares += R"(,{"id":"s2","token":"edit","role":"editor"})";
+            }
+            return {200, R"({"result":{"data":{"collaborators":[],"shares":[)" + shares + "]}}}"};
+        }
+        return {404, "{}"};
+    }
+    int count(const std::string &needle) {
+        const std::lock_guard lock(mutex_);
+        return static_cast<int>(std::count_if(sent_.begin(), sent_.end(),
+                                              [&](const std::string &url) { return url.find(needle) != std::string::npos; }));
+    }
+
+private:
+    std::mutex mutex_;
+    bool editorLink_ = false;
+    std::vector<std::string> sent_;
 };
 
 // Plays the browser: sends the code to the loopback redirect.
@@ -329,6 +365,54 @@ private slots:
         account->signOut();
         QTRY_VERIFY(shown(root, "cloud-documents-signed-out"));
         QTRY_COMPARE(named(root, "cloud-documents")->property("count").toInt(), 0);
+    }
+
+
+    // The share panel of a cloud workflow: the viewer link with its
+    // statement, a warning about a key in the graph, and an editor link the
+    // owner creates after reading what it gives.
+    void sharePanelCreatesAnEditorLink() {
+        Computer computer;
+        computer.server.addCode("code-s", "u1", "Ada");
+        auto account = computer.app();
+        connect(account.get(), &AccountController::browserRequested, this,
+                [](const QUrl &url) { std::thread([url] { completeInBrowser(url, "code-s"); }).detach(); });
+        account->signIn();
+        QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+        auto transport = std::make_unique<ShareTransport>();
+        auto *server = transport.get();
+        nodetool::account::qt::ShareController controller(std::move(transport));
+        controller.setAccount(account.get());
+        controller.setKind("workflow");
+        controller.setContent(R"({"nodes":[{"id":"n1","type":"openai.Chat","data":{"api_key":"sk-proj-abcdefghijklmnopqrstuvwx"}}],"edges":[]})");
+        controller.setDocumentId("w1");
+
+        QQuickView view;
+        view.setInitialProperties({{"account", QVariant::fromValue<AccountController *>(nullptr)},
+                                   {"kind", "workflow"},
+                                   {"documentId", "w1"},
+                                   {"controller", QVariant::fromValue(&controller)}});
+        view.setResizeMode(QQuickView::SizeRootObjectToView);
+        view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/SharePanel.qml"));
+        QCOMPARE(view.status(), QQuickView::Ready);
+        view.resize(640, 900);
+        view.show();
+        auto *root = view.rootObject();
+        QTRY_VERIFY(shown(root, "share-viewer-url"));
+        QCOMPARE(named(root, "share-viewer-url")->property("text").toString(), QString("https://nt.example/share/view"));
+        QVERIFY(shown(root, "share-secret-warning"));
+        QVERIFY(named(root, "share-secret-warning")->property("message").toString().contains("an OpenAI key"));
+        QVERIFY(shown(root, "share-editor-create"));
+        QVERIFY(named(root, "share-editor-statement")->property("text").toString().contains("cannot be taken back"));
+
+        click(view, named(root, "share-editor-create"));
+        QTRY_COMPARE(server->count("workflows.sharing.createLink"), 1);
+        QTRY_VERIFY(shown(root, "share-editor-url"));
+        QCOMPARE(named(root, "share-editor-url")->property("text").toString(), QString("https://nt.example/share/edit"));
+
+        QSignalSpy closed(root, SIGNAL(closeRequested()));
+        click(view, named(root, "share-close"));
+        QCOMPARE(closed.count(), 1);
     }
 
     // The workflow browser shows the cloud groups below the workflows on

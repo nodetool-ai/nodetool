@@ -133,7 +133,11 @@ struct CloudDocument::Shared {
 };
 
 CloudDocument::CloudDocument(CloudDocumentServices services, QObject* parent)
-    : QObject(parent), shared_(std::make_shared<Shared>()) {
+    : QObject(parent),
+      shared_(std::make_shared<Shared>()),
+      kind_(QString::fromStdString(services.kind)),
+      documentId_(QString::fromStdString(services.documentId)),
+      role_(QString::fromStdString(services.role)) {
   if (!services.transport) {
     services.transport = std::make_unique<QtHttpTransport>();
   }
@@ -257,6 +261,7 @@ void CloudDocument::onOpened(const QString& revision, const QString& draft, bool
   opened_ = true;
   readOnly_ = !writable;
   readOnlyReason_ = writable ? QString() : reason;
+  content_ = draft.isEmpty() ? revision : draft;
   apply(state);
   timer_.start();
   emit opened(revision, draft);
@@ -266,6 +271,7 @@ void CloudDocument::edit(const QString& document) {
   if (!opened_ || readOnly_) {
     return;
   }
+  content_ = document;
   const auto saver = shared_->currentDocument();
   if (!saver) {
     return;

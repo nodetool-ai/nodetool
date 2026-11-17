@@ -1412,6 +1412,26 @@ void EditorWindow::showServerSync() {
   }
   showOverlayDialog(dialog, content, this, {720, 640});
 }
+void EditorWindow::showShareDialog() {
+  if (!tabOwner_) { activeEditor_->showShareDialog(); return; }
+  if (!menuActionEnabled(QStringLiteral("Share"))) { return; }
+  auto *account = (tabOwner_ ? tabOwner_ : this)->accountServers_->controllerFor(cloudOrigin_);
+  for (auto *existing : findChildren<QDialog *>("share-dialog")) { existing->close(); }
+  auto *dialog = new QDialog(this);
+  dialog->setObjectName("share-dialog");
+  dialog->setWindowTitle(tr("Share %1").arg(workflowName()));
+  auto *content = createOverlayDialog(dialog, engine_,
+                                      {{"account", QVariant::fromValue(account)},
+                                       {"kind", QStringLiteral("workflow")},
+                                       {"documentId", cloudId_},
+                                       {"content", cloud_->content()}},
+                                      QUrl("qrc:/qt/qml/NodeTool/NodeEditor/SharePanel.qml"));
+  if (const auto root = content->rootObject()) {
+    connect(root, SIGNAL(closeRequested()), dialog, SLOT(close()));
+  }
+  connect(this, &EditorWindow::documentEpochChanged, dialog, &QDialog::close);
+  showOverlayDialog(dialog, content, this, {640, 720});
+}
 void EditorWindow::showCanvasDrops() {
   if (canvasDropDialog_) { canvasDropDialog_->show(); canvasDropDialog_->raise(); return; }
   auto *dialog = new QDialog(this);
@@ -2733,7 +2753,7 @@ void EditorWindow::syncChrome() {
   // The outer window shows the active tab's commands.
   const auto *source = tabOwner_ || !activeEditor_ ? this : activeEditor_;
   QStringList enabled;
-  for (const auto *name : {"Workflow metadata", "Server sync", "Canvas uploads", "Command menu",
+  for (const auto *name : {"Share", "Workflow metadata", "Server sync", "Canvas uploads", "Command menu",
                            "Instant Update: On", "Canvas navigation: Mouse"}) {
     if (source->menuActionEnabled(QString::fromLatin1(name))) { enabled << QString::fromLatin1(name); }
   }
@@ -3558,6 +3578,7 @@ void EditorWindow::action(const QString &name) {
   if (name == "Open child") { openChild(); return; }
   if (name == "Linked workflows") { showLinkedWorkflows(); return; }
   if (name == "Server sync") { showServerSync(); return; }
+  if (name == "Share") { showShareDialog(); return; }
   if (name == "Run trace") { showRunTrace(); return; }
   if (name == "Canvas uploads") { showCanvasDrops(); return; }
   if (name == "Save local copy as") { saveLocalCopyAs(); return; }

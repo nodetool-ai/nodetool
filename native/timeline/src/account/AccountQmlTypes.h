@@ -6,6 +6,7 @@
 #include "nodetool/account/qt/AccountServers.h"
 #include "nodetool/account/qt/CloudBrowser.h"
 #include "nodetool/account/qt/CloudDocument.h"
+#include "nodetool/account/qt/ShareController.h"
 
 #include <QtQml/qqmlregistration.h>
 
@@ -44,6 +45,13 @@ struct CloudDocumentForeign {
     QML_FOREIGN(nodetool::account::qt::CloudDocument)
     QML_NAMED_ELEMENT(CloudDocument)
     QML_UNCREATABLE("A CloudDocument comes from its owner.")
+};
+
+// The share dialog creates its own controller.
+struct ShareControllerForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::account::qt::ShareController)
+    QML_NAMED_ELEMENT(ShareController)
 };
 
 } // namespace nt::account

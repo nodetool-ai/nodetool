@@ -15,6 +15,10 @@ Rectangle {
     // An open cloud timeline. Its synchronization status replaces the save
     // status.
     property CloudDocument cloudDocument: null
+    // The account the cloud timeline was opened with. With it, the owner
+    // sees Share, which opens the share dialog.
+    property AccountController cloudAccount: null
+    readonly property bool canShare: cloudDocument !== null && cloudAccount !== null && cloudDocument.role === "owner"
     // The cloud servers and their accounts. Null hides the Account control,
     // which shows the current server's account.
     property AccountServers accountServers: null
@@ -89,6 +93,14 @@ Rectangle {
         anchors.rightMargin: Ui.Metrics.md
         anchors.verticalCenter: parent.verticalCenter
         spacing: Ui.Metrics.md
+        ToolButton {
+            objectName: "shareButton"
+            anchors.verticalCenter: parent.verticalCenter
+            visible: bar.canShare
+            label: "Share"
+            iconName: "link"
+            onClicked: shareDialog.active = true
+        }
         SlotItems {
             anchors.verticalCenter: parent.verticalCenter
             slot: "documentBarActions"
@@ -98,6 +110,23 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             slot: "documentBar"
             slotProperties: ({ timeline: bar.timeline })
+        }
+        // Made on first use, so a timeline nobody shares reads nothing.
+        Loader {
+            id: shareDialog
+            objectName: "shareDialog"
+            active: false
+            sourceComponent: ShareDialog {
+                account: bar.cloudAccount
+                kind: "timeline"
+                documentId: bar.cloudDocument ? bar.cloudDocument.documentId : ""
+                documentName: bar.timeline.name
+                Component.onCompleted: {
+                    content = bar.cloudDocument.content()
+                    open()
+                }
+                onClosed: shareDialog.active = false
+            }
         }
         Loader {
             objectName: "documentAccount"

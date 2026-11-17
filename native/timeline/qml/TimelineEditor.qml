@@ -18,6 +18,8 @@ Controls.Control {
     // main sets nativeCloudDocument for a cloud timeline: its status takes
     // the place of the save status.
     property CloudDocument cloudDocument: typeof nativeCloudDocument !== "undefined" ? nativeCloudDocument : null
+    // The account of that timeline's server. The owner shares from it.
+    property AccountController cloudAccount: typeof nativeCloudAccount !== "undefined" ? nativeCloudAccount : null
     property var chatSession: typeof nativeChatSession !== "undefined" ? nativeChatSession : null
     property var chatHost: typeof nativeChatHost !== "undefined" ? nativeChatHost : null
     readonly property bool chatInitiallyOpen: typeof nativeChatInitiallyOpen !== "undefined" && nativeChatInitiallyOpen
@@ -211,6 +213,7 @@ Controls.Control {
                 timeline: root.timeline
                 autosave: root.saver
                 cloudDocument: root.cloudDocument
+                cloudAccount: root.cloudAccount
                 accountServers: root.accountServers
                 DockLayoutMenu {
                     anchors.verticalCenter: parent.verticalCenter

@@ -190,6 +190,25 @@ and `list` read the rows back, and the second `CloudDocumentSaver`
 constructor resumes one after a restart. Rolling the migration back leaves
 both tables in place.
 
+## Sharing
+
+`cloud_sharing.h` holds what the share dialog sends and checks (PRD FR21,
+FR52, FR67, SR6). A workflow uses `workflows.sharing.*` with its id, and
+every other kind uses `documentSharing.*` with its kind and id. Only the
+owner may call them.
+
+- `readSharing()` reads the links, enabled ones first, and the people with
+  their effective role. `createLink()`, `disableLink()`,
+  `setLinkOptions()`, `setPersonRole()` and `removePerson()` change them.
+- `shareUrl()` builds the address of the web route that accepts a link.
+- `linkStatement()` is the sentence that says what a link gives, including
+  that downloaded files and copies cannot be taken back.
+- `linkedDocuments()` lists the scripts and storyboards a timeline's clips
+  name. A link to the timeline does not open them.
+- `findSecretLike()` reports each place, never the value, where a string
+  has the shape of a common key or token, or a long value sits under a name
+  such as `api_key` or `password`. It is best-effort, and the dialog says so.
+
 ## Not in this library yet
 
 - The WP0.2 checks that need each platform: whether a second, separately
@@ -278,11 +297,20 @@ needs Qt Core and Network.
   waiting with a count, Offline with the last connection, Cloud status
   unknown, Not saving, Unsent edits and signed out. A viewer's document
   and one whose access was removed are read-only. Its destructor writes
-  the last edit to the local store before the tab closes.
+  the last edit to the local store before the tab closes. `content()`
+  returns the document as the tab last showed it.
+- `ShareController` reads and changes the sharing of one document on its
+  task thread, and gives QML the viewer and editor links with their
+  statements, the people, the linked documents with whether each has a link
+  of its own, and the secret warnings. QML creates it.
 
 `qt/qml/` holds the QML both apps compile: `AccountControl.qml`, with the
-server menu and the Sign in to another server dialog, `CloudDocumentsPanel.qml`
-and `CloudSyncStatus.qml`.
+server menu and the Sign in to another server dialog, `CloudDocumentsPanel.qml`,
+`CloudSyncStatus.qml`, `SharePanel.qml` and `ShareDialog.qml`, which shows
+the panel in a dialog. The node editor shows the panel in its own overlay
+window from Workflow > Share or the header's Share button, and the timeline
+shows the dialog from Share in the document bar. Both show Share only on a
+cloud document the account owns.
 
 The controller runs the keychain, lock and server calls on one task
 thread. Results come back through an inbox guarded by a mutex, and a

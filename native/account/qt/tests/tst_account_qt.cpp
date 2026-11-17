@@ -11,6 +11,7 @@
 #include "nodetool/account/qt/CloudBrowser.h"
 #include "nodetool/account/qt/CloudDocument.h"
 #include "nodetool/account/qt/QtHttpTransport.h"
+#include "nodetool/account/qt/ShareController.h"
 #include "test_support.h"
 
 #include <QSignalSpy>
@@ -785,8 +786,12 @@ private slots:
     QVERIFY(opened.at(0).at(1).toString().isEmpty());
     QVERIFY(!document.readOnly());
     QCOMPARE(document.syncStatus(), CloudDocument::SyncStatus::SavedToCloud);
+    QCOMPARE(document.content(), opened.at(0).at(0).toString());
+    QCOMPARE(document.kind(), QString("workflow"));
+    QCOMPARE(document.role(), QString("owner"));
 
     document.edit(R"({"nodes":[{"id":"n1"}],"edges":[]})");
+    QCOMPARE(document.content(), QString(R"({"nodes":[{"id":"n1"}],"edges":[]})"));
     QCOMPARE(document.syncStatus(), CloudDocument::SyncStatus::ChangesWaiting);
     QCOMPARE(document.syncText(), QString("1 change waiting"));
     QTRY_COMPARE(document.syncStatus(), CloudDocument::SyncStatus::SavedToCloud);
@@ -809,6 +814,73 @@ private slots:
     QCOMPARE(document.syncText(), QString("Unsent edits: access removed"));
     const auto rows = drafts.list({}, {}).drafts;
     QVERIFY(rows.size() == 1 && rows[0].state == DraftState::Unsent);
+  }
+
+
+  // The share dialog reads the links, people and linked documents, warns of
+  // a secret in the document, and changes a link through the server.
+  void shareDialogReadsAndChanges() {
+    Computer computer;
+    computer.server.addCode("code-s", "u1", "Ada");
+    auto account = computer.app("timeline");
+    signInWith(this, *account, "code-s");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    ProcedureServer server;
+    server.answer("documentSharing.get",
+                  {200, R"({"result":{"data":{"collaborators":[],"shares":[)"
+                        R"({"id":"s1","token":"tok1","role":"viewer","options":{"allow_history":true,)"
+                        R"("allow_download":false,"allow_duplicate":false}}],"people":[{"user_id":"u2",)"
+                        R"("display_name":"Bob","access":{"role":"viewer","options":{"allow_history":true,)"
+                        R"("allow_download":false,"allow_duplicate":false},"grants":[],"given_by":{"role":[],)"
+                        R"("allow_history":[],"allow_download":[],"allow_duplicate":[]}}}]}}})"});
+    server.answer("documentSharing.setLinkOptions", {200, R"({"result":{"data":{"id":"s1","token":"tok1","role":"viewer"}}})"});
+    ShareController share(std::make_unique<SharedTransport>(server));
+    share.setAccount(account.get());
+    share.setKind("timeline");
+    share.setContent(R"({"clips":[{"id":"c1","scriptId":"sc1","prompt":"AKIAABCDEFGHIJKLMNOP"}]})");
+    share.setDocumentId("t1");
+    QTRY_VERIFY(!share.loading());
+    QVERIFY(share.message().isEmpty());
+
+    const QVariantMap viewer = share.viewerLink();
+    QVERIFY(viewer.value("exists").toBool());
+    QCOMPARE(viewer.value("url").toString(), QString(kServer) + "/share/document/tok1");
+    QVERIFY(viewer.value("history").toBool());
+    QVERIFY(viewer.value("statement").toString().contains("read its history"));
+    QVERIFY(!share.editorLink().value("exists").toBool());
+    QVERIFY(share.editorLink().value("statement").toString().contains("cannot be taken back"));
+    QCOMPARE(share.people().size(), 1);
+    QCOMPARE(share.people().at(0).toMap().value("name").toString(), QString("Bob"));
+
+    // The script answers like the timeline, so it has a link of its own.
+    QCOMPARE(share.linkedDocuments().size(), 1);
+    const QVariantMap script = share.linkedDocuments().at(0).toMap();
+    QCOMPARE(script.value("kind").toString(), QString("script"));
+    QCOMPARE(script.value("state").toString(), QString("shared"));
+    QCOMPARE(share.secretWarnings().size(), 1);
+    QCOMPARE(share.secretWarnings().at(0).toMap().value("place").toString(), QString("clips[0].prompt"));
+
+    // A refused read keeps what the dialog showed and says why.
+    server.answer("documentSharing.get", {403, R"({"error":{"json":{"data":{"apiCode":"FORBIDDEN"}}}})"});
+    share.refresh();
+    QTRY_VERIFY(!share.loading());
+    QVERIFY(!share.message().isEmpty());
+    QVERIFY(share.viewerLink().value("exists").toBool());
+
+    const int before = server.count("documentSharing.setLinkOptions", "POST");
+    share.setViewerOptions(false, true, false);
+    QTRY_COMPARE(server.count("documentSharing.setLinkOptions", "POST"), before + 1);
+    QTRY_VERIFY(!share.busy());
+
+    // Signed out, nothing is shown and nothing is sent.
+    account->signOut();
+    QTRY_COMPARE(account->state(), AccountController::State::SignedOut);
+    QTRY_VERIFY(!share.viewerLink().value("exists").toBool());
+    const int sent = server.count("documentSharing");
+    share.createLink("editor");
+    QCOMPARE(server.count("documentSharing"), sent);
+    QVERIFY(!share.message().isEmpty());
   }
 
   // A tab that closes right after an edit leaves the edit on disk, before
