@@ -1588,9 +1588,13 @@ window was opened with (`nativeCloudAccount`). The dialog lists the scripts
 and storyboards the clips link to, because a link to the timeline does not
 open them.
 
-The media resolvers and take switching need a server save target, so they
-do not run for a cloud timeline, and the recent list does not record cloud
-timelines.
+Take switching and the generated-matte resolver read their files from the
+cloud server too. Both get their server from `mediaSource()`
+(`src/server/ServerSource.h`), which names the cloud server and the account's
+authorizer for a cloud timeline, and the local server for a server timeline.
+Features that write to the server, such as generation, the Library and
+frame export, use `serverSaveTarget()` and stay off for a cloud timeline.
+The recent list does not record cloud timelines.
 
 ## Project folders
 
