@@ -1,6 +1,7 @@
 #include "nodetool/account/account_session.h"
 
 #include "nodetool/account/accounts_index.h"
+#include "nodetool/account/origin.h"
 
 #include <algorithm>
 
@@ -44,7 +45,9 @@ std::chrono::seconds endSessionRetryDelay(unsigned attempt) {
 AccountSession::AccountSession(SecretStore& store, TokenEndpoint& endpoint, AccountSessionOptions options)
     : store_(store), endpoint_(endpoint), options_(std::move(options)),
       dir_(account::accountDir(options_.dataDir, options_.serverOrigin, options_.userId)),
-      keychainAccount_(keychainAccount(options_.serverOrigin, options_.userId)) {}
+      keychainAccount_(keychainAccount(options_.serverOrigin, options_.userId)),
+      origin_(canonicalHttpsOrigin(options_.serverOrigin).value_or(std::string())),
+      endpointMismatch_(!endpoint.serverOrigin().empty() && endpoint.serverOrigin() != origin_) {}
 
 int64_t AccountSession::now() const { return options_.nowMs ? options_.nowMs() : systemNowMs(); }
 
@@ -210,8 +213,13 @@ Authorization AccountSession::authorizeRequest() {
   return out;
 }
 
-RefreshOutcome AccountSession::refresh() {
+RefreshOutcome AccountSession::refresh(std::string_view rejectedAccessToken) {
   const std::lock_guard operation(operationMutex_);
+  if (endpointMismatch_) {
+    // The refresh token never goes to a server the session did not sign in
+    // to.
+    return RefreshOutcome::Offline;
+  }
   for (int attempt = 0; attempt < kRefreshAttempts; ++attempt) {
     // Step 1.
     const auto lock = AccountLock::acquire(lockPath(), options_.lockTimeout);
@@ -229,7 +237,8 @@ RefreshOutcome AccountSession::refresh() {
       return RefreshOutcome::SignedOut;
     }
     // Step 3: the other app renewed the token already.
-    if (record->accessExpiresAtMs - now() > kRefreshMarginMs) {
+    const bool rejected = !rejectedAccessToken.empty() && record->accessToken == rejectedAccessToken;
+    if (!rejected && record->accessExpiresAtMs - now() > kRefreshMarginMs) {
       adopt(heldFrom(*record));
       return RefreshOutcome::Adopted;
     }

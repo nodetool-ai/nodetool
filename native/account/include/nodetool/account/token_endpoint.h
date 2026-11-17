@@ -63,6 +63,10 @@ public:
   virtual TokenResult exchangeCode(const CodeExchange& exchange) = 0;
   virtual TokenResult refresh(std::string_view refreshToken) = 0;
   virtual EndSessionStatus endSession(std::string_view revocationHandle) = 0;
+  // The canonical HTTPS origin the calls go to, or empty for an endpoint
+  // that is not HTTP, such as a test fake. A session refuses to refresh
+  // through an endpoint bound to another origin.
+  virtual std::string serverOrigin() const { return {}; }
 };
 
 } // namespace nodetool::account

@@ -680,6 +680,24 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "A reusable preset for provisioning a GPU worker: image, hardware spec, timeouts. Operator configuration shared by the whole install, with no column naming a person."
   },
   {
+    table: "cloud_drafts",
+    schemaExport: "cloudDrafts",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: true,
+    justification:
+      "Edits of a cloud document that the native app has not yet sent to the cloud server. The content is the person's own work. Deleted with the account; exported because it may be the only copy of those edits."
+  },
+  {
+    table: "cloud_open_state",
+    schemaExport: "cloudOpenState",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: true,
+    justification:
+      "The role, options and last contact the native app recorded for each cloud document the person opened. Deleted with the account; exported because it lists which documents the person worked on."
+  },
+  {
     table: "worker_instances",
     schemaExport: "workerInstances",
     disposition: "not-personal",

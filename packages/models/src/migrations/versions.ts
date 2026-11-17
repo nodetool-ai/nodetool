@@ -392,6 +392,52 @@ const NATIVE_OAUTH_SESSION_DDL: readonly string[] = [
     ON oauth_pending_entries (created_at)`
 ];
 
+/**
+ * The local store of the native apps for cloud documents: unsent drafts and
+ * the last known open state (docs/plans/native-cloud-sync/technical-design.md,
+ * "Local data scoping and durable drafts"). Applied by the
+ * `add_cloud_local_store` migration, and by `initTestDb` through
+ * {@link POST_BASELINE_TABLE_DDL}.
+ */
+const CLOUD_LOCAL_STORE_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS cloud_drafts (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    server_key TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    base_updated_at TEXT NOT NULL,
+    base_content_hash TEXT NOT NULL,
+    draft TEXT NOT NULL,
+    state TEXT NOT NULL,
+    refusal_reason TEXT,
+    draft_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_cloud_drafts_document
+    ON cloud_drafts (user_id, server_key, account_id, kind, document_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_cloud_drafts_account
+    ON cloud_drafts (user_id, server_key, account_id)`,
+  `CREATE TABLE IF NOT EXISTS cloud_open_state (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    server_key TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    options TEXT NOT NULL,
+    base_updated_at TEXT,
+    base_content_hash TEXT,
+    last_contact_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_cloud_open_state_document
+    ON cloud_open_state (user_id, server_key, account_id, kind, document_id)`
+];
+
 export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OUTBOX_DDL,...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ...ANALYTICS_DDL, ...DOCUMENT_SHARING_DDL,
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_ids TEXT",
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_warnings TEXT",
@@ -410,7 +456,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   TIMELINE_FILE_PATH_DDL,
   TIMELINE_FILE_HASH_DDL,
   TIMELINE_FILE_ERROR_DDL,
-  ...NATIVE_OAUTH_SESSION_DDL
+  ...NATIVE_OAUTH_SESSION_DDL,
+  ...CLOUD_LOCAL_STORE_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -4708,6 +4755,23 @@ export const migrations: MigrationDef[] = [
       // The grant columns stay: dropping them would forget which grants are
       // device sessions and leave their handles unable to end them.
     }
+  },
+  // The native apps' local store for cloud documents: durable drafts and the
+  // last known open state of each document.
+  {
+    version: "20261126_000000",
+    name: "add_cloud_local_store",
+    createsTables: ["cloud_drafts", "cloud_open_state"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of CLOUD_LOCAL_STORE_DDL) {
+        await db.execute(statement);
+      }
+    },
+    // The draft table holds the only copy of edits the cloud server has not
+    // accepted. A rollback leaves both tables in place: an older server
+    // never reads them, and moving forward again finds them intact.
+    async down() {}
   }
 ];
 
