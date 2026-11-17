@@ -805,3 +805,15 @@ export {
   type DeletedDocumentPayload,
   type RestoreDeletedOutcome
 } from "./deleted-document.js";
+export {
+  BLOB_HASH_PATTERN,
+  STAGED_BLOB_LIFETIME_MS,
+  commitProjectBlobs,
+  committedHashesOfOwner,
+  deleteExpiredStagedBlobs,
+  deleteStagedBlobsOfTransfer,
+  isBlobHashNamed,
+  readableProjectBlob,
+  stageProjectBlob,
+  type ProjectBlobRow
+} from "./project-blob.js";

@@ -708,6 +708,15 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "A reusable preset for provisioning a GPU worker: image, hardware spec, timeouts. Operator configuration shared by the whole install, with no column naming a person."
   },
   {
+    table: "project_blobs",
+    schemaExport: "projectBlobs",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "Which file hashes and sizes each cloud project holds. The files themselves are exported with the assets that name them, so these rows add nothing to an export. Deleted with the account; the blob cleanup then deletes the objects no row names."
+  },
+  {
     table: "nodetool_deleted_documents",
     schemaExport: "deletedDocuments",
     disposition: "delete",

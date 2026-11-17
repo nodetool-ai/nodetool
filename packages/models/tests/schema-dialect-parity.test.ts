@@ -44,9 +44,12 @@ type ColumnFacts = {
 };
 
 // Drizzle reports PostgreSQL custom types as `custom`, including integer booleans.
+// A SQLite INTEGER holds 64 bits, so a PostgreSQL BIGINT read as a number is
+// its twin. File sizes need it: a PostgreSQL INTEGER stops at 2 GiB.
 const COLUMN_TYPE_EQUIVALENCES = new Map([
   ["SQLiteBoolean:boolean:integer", { columnType: "Boolean", dataType: "boolean" }],
-  ["PgCustomColumn:custom:integer", { columnType: "Boolean", dataType: "boolean" }]
+  ["PgCustomColumn:custom:integer", { columnType: "Boolean", dataType: "boolean" }],
+  ["PgBigInt53:number:bigint", { columnType: "Integer", dataType: "number" }]
 ]);
 
 /** SQLite spells a boolean default `false`, PostgreSQL `0`. */

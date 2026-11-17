@@ -112,6 +112,7 @@ import {
   runSeeds,
   setDocumentRetentionDays
 } from "@nodetool-ai/models";
+import { cleanupBlobs } from "@nodetool-ai/asset-services/blob-store";
 import {
   DELETED_DOCUMENT_RETENTION_DAYS,
   purgeDueDeletedDocuments
@@ -215,7 +216,7 @@ import { SdkLiveRunnerRegistry } from "./sdk/sdk-live-runner-registry.js";
 import { createSdkV1Service } from "./sdk/sdk-v1-service.js";
 import { createSdkV1ImplementationBoundary } from "./sdk/sdk-v1-handler-map.js";
 import { createSdkV1TemporaryAssetService } from "./sdk/sdk-temporary-asset-service.js";
-import { getTempAdapter } from "./lib/storage.js";
+import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
 import { FrontendRendererRegistry } from "./frontend-renderer-registry.js";
 import workspaceRoutes from "./routes/workspace.js";
 import {
@@ -454,6 +455,22 @@ try {
           error instanceof Error ? error : new Error(String(error))
         );
       });
+    // Cloud project files: staged rows past seven days and objects no row
+    // names (WP2.1). Only a production server holds them.
+    if (isProduction) {
+      void cleanupBlobs(getAssetAdapter())
+        .then((result) => {
+          if (result.stagedRowsDeleted > 0 || result.objectsDeleted > 0) {
+            log.info("Blob store cleanup", { ...result });
+          }
+        })
+        .catch((error) => {
+          log.warn(
+            "Blob store cleanup failed",
+            error instanceof Error ? error : new Error(String(error))
+          );
+        });
+    }
     void purgeDueDeletedDocuments()
       .then((purged) => {
         if (purged > 0) log.info("Purged deleted documents past their restore period", { purged });
