@@ -81,7 +81,9 @@ export class PauseGate {
 /**
  * Runs `tasks` concurrently `runs` times, each time starting them in a
  * shuffled order with a yield between starts. `check` runs after each round
- * with the round's results.
+ * with the round's results. Each task's outcome is settled as it starts, so
+ * a task that fails before the later ones start is never an unhandled
+ * rejection.
  */
 export async function repeatUnordered<T>(
   runs: number,
@@ -93,14 +95,28 @@ export async function repeatUnordered<T>(
     const order = tasks
       .map((task, index) => ({ task, index, key: random() }))
       .sort((a, b) => a.key - b.key);
-    const started: Array<{ index: number; result: Promise<T> }> = [];
+    const started: Array<{ index: number; result: Promise<PromiseSettledResult<T>> }> = [];
     for (const { task, index } of order) {
-      started.push({ index, result: task() });
+      started.push({ index, result: settle(task) });
       await new Promise<void>((resolve) => setImmediate(resolve));
     }
     started.sort((a, b) => a.index - b.index);
-    await check(await Promise.allSettled(started.map((entry) => entry.result)), round);
+    await check(await Promise.all(started.map((entry) => entry.result)), round);
   }
+}
+
+/** Starts `task` and settles its outcome at once, a synchronous throw included. */
+function settle<T>(task: () => Promise<T>): Promise<PromiseSettledResult<T>> {
+  let running: Promise<T>;
+  try {
+    running = task();
+  } catch (error) {
+    running = Promise.reject(error);
+  }
+  return running.then(
+    (value): PromiseSettledResult<T> => ({ status: "fulfilled", value }),
+    (reason: unknown): PromiseSettledResult<T> => ({ status: "rejected", reason })
+  );
 }
 
 export interface PausableProcess {

@@ -1,8 +1,9 @@
 /**
- * A child process for the two-process rig test. It locks the row of
- * `lock_target` with id 1 inside a transaction, reaches the step
- * "holding-row-lock", and then commits. Started with `NODETOOL_PAUSE_AT` it
- * holds the lock until the harness kills it. With `--wait-ms <n>` it gives up
+ * A child process for the two-process rig test. Inside a transaction it
+ * locks the row of `lock_target` with id 1, writes its pid to the row,
+ * reaches the step "holding-row-lock", and then commits. Started with
+ * `NODETOOL_PAUSE_AT` it holds the lock and its uncommitted write until the
+ * harness kills it. With `--wait-ms <n>` it gives up
  * waiting for the lock after n milliseconds and prints `LOCK_TIMEOUT`.
  */
 import postgres from "postgres";
@@ -16,8 +17,10 @@ try {
     if (flag === "--wait-ms") await tx.unsafe(`SET LOCAL lock_timeout = '${Number(waitMs)}ms'`);
     await tx`SELECT id FROM lock_target WHERE id = 1 FOR UPDATE`;
     process.stdout.write("LOCKED\n");
-    await pausePoint("holding-row-lock");
+    // Written before the pause, so a kill there has a write to roll back.
     await tx`UPDATE lock_target SET writer = ${process.pid} WHERE id = 1`;
+    process.stdout.write("UPDATED\n");
+    await pausePoint("holding-row-lock");
   });
   process.stdout.write("COMMITTED\n");
 } catch (error) {

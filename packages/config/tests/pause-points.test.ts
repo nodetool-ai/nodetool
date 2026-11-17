@@ -91,6 +91,38 @@ describe("pause points", () => {
     expect(new Set(rounds).size).toBeGreaterThan(1);
   });
 
+  it("settles a task that fails before the later tasks start (F12)", async () => {
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => unhandled.push(reason);
+    process.on("unhandledRejection", onUnhandled);
+    try {
+      let seen: string[] = [];
+      await repeatUnordered(
+        1,
+        [
+          () => Promise.reject(new Error("early")),
+          () => {
+            throw new Error("synchronous");
+          },
+          async () => {
+            // Later starts give an unhandled rejection time to be reported.
+            await new Promise<void>((resolve) => setTimeout(resolve, 20));
+            return "late";
+          }
+        ],
+        (results) => {
+          seen = results.map((r) => (r.status === "fulfilled" ? String(r.value) : (r.reason as Error).message));
+        },
+        () => 0
+      );
+      await new Promise<void>((resolve) => setTimeout(resolve, 20));
+      expect(seen).toEqual(["early", "synchronous", "late"]);
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off("unhandledRejection", onUnhandled);
+    }
+  });
+
   it("kills a process at a named step so the step after it never runs", async () => {
     const dir = mkdtempSync(join(tmpdir(), "pause-"));
     try {

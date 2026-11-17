@@ -14,6 +14,8 @@ import { startPostgresServer, type PostgresServer } from "./helpers/postgres-ser
 const here = dirname(fileURLToPath(import.meta.url));
 const CHILD = join(here, "fixtures", "row-lock-child.ts");
 const REPO = resolve(here, "../../..");
+// The value the row holds before any child writes.
+const EARLIER = 7;
 
 function child(url: string, options: { pauseAt?: string; waitMs?: number } = {}) {
   return startPausableProcess({
@@ -39,7 +41,7 @@ describe("two server processes on one PostgreSQL instance", () => {
     server = await startPostgresServer();
     sql = postgres(server.url, { max: 1, onnotice: () => {} });
     await sql`CREATE TABLE lock_target (id INTEGER PRIMARY KEY, writer INTEGER)`;
-    await sql`INSERT INTO lock_target (id, writer) VALUES (1, NULL)`;
+    await sql`INSERT INTO lock_target (id, writer) VALUES (1, ${EARLIER})`;
   }, 60_000);
 
   afterAll(async () => {
@@ -50,16 +52,19 @@ describe("two server processes on one PostgreSQL instance", () => {
   it("holds a second process at a row lock until the first is killed, and rolls the first back", async () => {
     const holder = child(server.url, { pauseAt: "holding-row-lock" });
     expect(await holder.paused).toBe("holding-row-lock");
-    expect(holder.output()).toContain("LOCKED");
+    // The holder wrote its pid inside the transaction before it paused.
+    expect(holder.output()).toContain("UPDATED");
 
-    // While the holder is paused inside its transaction, the lock is taken.
+    // While the holder is paused inside its transaction, the lock is taken,
+    // and its write is not visible.
     const blocked = child(server.url, { waitMs: 300 });
     await blocked.exited;
     expect(blocked.output()).toContain("LOCK_TIMEOUT");
+    expect((await sql`SELECT writer FROM lock_target WHERE id = 1`)[0]?.writer).toBe(EARLIER);
 
     await holder.kill();
-    // The killed transaction never committed its write.
-    expect((await sql`SELECT writer FROM lock_target WHERE id = 1`)[0]?.writer).toBeNull();
+    // The database rolled the killed transaction back: the earlier value survives.
+    expect((await sql`SELECT writer FROM lock_target WHERE id = 1`)[0]?.writer).toBe(EARLIER);
 
     const next = child(server.url, { waitMs: 5000 });
     expect((await next.exited).code).toBe(0);
