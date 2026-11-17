@@ -376,8 +376,10 @@ static ServerOpenResult openServerTimelineImpl(const ServerOpenOptions& options,
 
     // Downloads, one file per asset and variant.
     step.restart();
+    // A sign-out stops the media downloads as it stops the client's own
+    // requests (review F2). The cache lives in this call, as does `client`.
     AssetCache cache(options.cacheRoot, client.serverKey(), client.userKey(),
-                     [&client](QNetworkRequest& r) { client.decorate(r); });
+                     [&client](QNetworkRequest& r) { client.decorate(r); }, [&client] { return client.cancelled(); });
     int downloads = 0;
     int hits = 0;
     QJsonArray assetsReport;

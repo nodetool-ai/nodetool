@@ -74,7 +74,7 @@ nt::server::FetchResult resolveOriginalMedia(nt::server::ServerClient& client, c
     const auto original = nt::server::originalFile(client, fresh.data.toObject(), &error);
     if (!original) { return {{}, error}; }
     nt::server::AssetCache cache(cacheRoot, client.serverKey(), client.userKey(),
-        [&client](QNetworkRequest& request) { client.decorate(request); });
+        [&client](QNetworkRequest& request) { client.decorate(request); }, [&client] { return client.cancelled(); });
     const auto budget = cache.budgetBytes();
     cache.setBudgetBytes(0);
     const auto fetched = cache.fetch(assetId, "original", *original, [&]() -> std::optional<nt::server::RemoteFile> {
@@ -99,7 +99,7 @@ nt::Clip resolveDroppedMedia(nt::server::ServerClient& client, const QString& ca
     const bool audio = media.mediaType == nt::MediaType::Video || media.mediaType == nt::MediaType::Audio;
     const auto id = asset.value("id").toString();
     nt::server::AssetCache cache(cacheRoot, client.serverKey(), client.userKey(),
-        [&client](QNetworkRequest& request) { client.decorate(request); });
+        [&client](QNetworkRequest& request) { client.decorate(request); }, [&client] { return client.cancelled(); });
     const auto budget = cache.budgetBytes();
     cache.setBudgetBytes(0);
     const auto fetch = [&](const QString& variant, const nt::server::RemoteFile& file) {

@@ -8,7 +8,7 @@ ScrubSource fetchScrubSource(nt::server::ServerClient& client, const QString& ca
     const auto id = asset.value("id").toString();
     if (id.isEmpty() || (interrupted && interrupted())) { return {}; }
     nt::server::AssetCache cache(cacheRoot, client.serverKey(), client.userKey(),
-        [&client](QNetworkRequest& request) { client.decorate(request); });
+        [&client](QNetworkRequest& request) { client.decorate(request); }, [&client] { return client.cancelled(); });
     const auto budget = cache.budgetBytes();
     cache.setBudgetBytes(0);
     const auto fetch = [&](const QString& variant, const nt::server::RemoteFile& file) {

@@ -146,9 +146,11 @@ public:
     QueryResult listTimelines(const QString& projectId = QString());
     QueryResult getAsset(const QString& id) { return query(QStringLiteral("assets.get"), {{QStringLiteral("id"), id}}); }
 
-private:
     // True when the thread is interrupted or the account signed out.
+    // Thread-safe: an AssetCache fetching for this client asks it.
     bool cancelled() const;
+
+private:
     QueryResult write(const QString& operation, QNetworkRequest request, const QByteArray* json,
                       std::unique_ptr<QHttpMultiPart> multipart = nullptr, const QString& contentType = {},
                       bool plainJson = false);
