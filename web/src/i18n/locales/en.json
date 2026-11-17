@@ -19091,6 +19091,26 @@
       "typeMore": "Type at least 2 characters",
       "noMatches": "No one matches",
       "failed": "Could not give access."
+    },
+    "options": {
+      "history": "History",
+      "historyDescription": "Viewers can open saved versions.",
+      "download": "Download",
+      "downloadDescription": "Viewers can download the original files.",
+      "duplicate": "Duplicate",
+      "duplicateDescription": "Viewers can copy it and its files into their own library.",
+      "turnedOff": "People keep anything they already downloaded or duplicated.",
+      "historyOffNotice": "Viewers of this link no longer see saved versions. Turn history on to give them back.",
+      "turnOnHistory": "Turn on history",
+      "dismiss": "Dismiss",
+      "failed": "Could not change the options."
+    },
+    "people": {
+      "from": "Access from {{sources}}",
+      "sourceInvitation": "invitation",
+      "sourceViewLink": "view link",
+      "sourceEditLink": "edit link",
+      "sourceDisabled": "{{source}} (disabled)"
     }
   },
   "timelineAutomation": {

@@ -19091,6 +19091,26 @@
       "typeMore": "Mindestens 2 Zeichen eingeben",
       "noMatches": "Niemand gefunden",
       "failed": "Zugriff konnte nicht erteilt werden."
+    },
+    "options": {
+      "history": "Verlauf",
+      "historyDescription": "Betrachter können gespeicherte Versionen öffnen.",
+      "download": "Herunterladen",
+      "downloadDescription": "Betrachter können die Originaldateien herunterladen.",
+      "duplicate": "Duplizieren",
+      "duplicateDescription": "Betrachter können es samt Dateien in ihre eigene Bibliothek kopieren.",
+      "turnedOff": "Bereits Heruntergeladenes oder Dupliziertes bleibt erhalten.",
+      "historyOffNotice": "Betrachter dieses Links sehen keine gespeicherten Versionen mehr. Schalte den Verlauf ein, um sie wieder freizugeben.",
+      "turnOnHistory": "Verlauf einschalten",
+      "dismiss": "Schließen",
+      "failed": "Die Optionen konnten nicht geändert werden."
+    },
+    "people": {
+      "from": "Zugriff über {{sources}}",
+      "sourceInvitation": "Einladung",
+      "sourceViewLink": "Ansichtslink",
+      "sourceEditLink": "Bearbeitungslink",
+      "sourceDisabled": "{{source}} (deaktiviert)"
     }
   },
   "timelineAutomation": {

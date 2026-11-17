@@ -9,6 +9,11 @@ export { workspaces } from "./workspaces.js";
 export { workflowVersions } from "./workflow-versions.js";
 export { workflowCollaborators, workflowShares } from "./workflow-sharing.js";
 export { documentCollaborators, documentShares } from "./document-sharing.js";
+export {
+  documentRefs,
+  documentRefSets,
+  documentAdmittedFiles
+} from "./document-refs.js";
 export { oauthCredentials } from "./oauth-credentials.js";
 export { predictions } from "./predictions.js";
 export { runEvents } from "./run-events.js";

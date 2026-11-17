@@ -19091,6 +19091,26 @@
       "typeMore": "至少输入 2 个字符",
       "noMatches": "没有匹配的人",
       "failed": "无法授予访问权限。"
+    },
+    "options": {
+      "history": "历史记录",
+      "historyDescription": "查看者可以打开已保存的版本。",
+      "download": "下载",
+      "downloadDescription": "查看者可以下载原始文件。",
+      "duplicate": "复制",
+      "duplicateDescription": "查看者可以将其连同文件复制到自己的资料库。",
+      "turnedOff": "已下载或已复制的内容仍保留在对方手中。",
+      "historyOffNotice": "此链接的查看者已无法查看已保存的版本。开启历史记录即可恢复。",
+      "turnOnHistory": "开启历史记录",
+      "dismiss": "关闭",
+      "failed": "无法更改选项。"
+    },
+    "people": {
+      "from": "访问来源：{{sources}}",
+      "sourceInvitation": "邀请",
+      "sourceViewLink": "查看链接",
+      "sourceEditLink": "编辑链接",
+      "sourceDisabled": "{{source}}（已停用）"
     }
   },
   "timelineAutomation": {

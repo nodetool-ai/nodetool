@@ -19711,6 +19711,26 @@
       "typeMore": "Wpisz co najmniej 2 znaki",
       "noMatches": "Brak wyników",
       "failed": "Nie udało się nadać dostępu."
+    },
+    "options": {
+      "history": "Historia",
+      "historyDescription": "Przeglądający mogą otwierać zapisane wersje.",
+      "download": "Pobieranie",
+      "downloadDescription": "Przeglądający mogą pobierać oryginalne pliki.",
+      "duplicate": "Duplikowanie",
+      "duplicateDescription": "Przeglądający mogą skopiować go wraz z plikami do własnej biblioteki.",
+      "turnedOff": "To, co już pobrano lub zduplikowano, zostaje u tych osób.",
+      "historyOffNotice": "Przeglądający ten link nie widzą już zapisanych wersji. Włącz historię, aby je przywrócić.",
+      "turnOnHistory": "Włącz historię",
+      "dismiss": "Zamknij",
+      "failed": "Nie udało się zmienić opcji."
+    },
+    "people": {
+      "from": "Dostęp przez: {{sources}}",
+      "sourceInvitation": "zaproszenie",
+      "sourceViewLink": "link do podglądu",
+      "sourceEditLink": "link do edycji",
+      "sourceDisabled": "{{source}} (wyłączony)"
     }
   },
   "timelineAutomation": {

@@ -19091,6 +19091,26 @@
       "typeMore": "Skriv minst 2 tegn",
       "noMatches": "Ingen treff",
       "failed": "Kunne ikke gi tilgang."
+    },
+    "options": {
+      "history": "Historikk",
+      "historyDescription": "Lesere kan åpne lagrede versjoner.",
+      "download": "Nedlasting",
+      "downloadDescription": "Lesere kan laste ned originalfilene.",
+      "duplicate": "Duplisering",
+      "duplicateDescription": "Lesere kan kopiere det med filene til sitt eget bibliotek.",
+      "turnedOff": "Det som allerede er lastet ned eller duplisert, beholder folk.",
+      "historyOffNotice": "Lesere av denne lenken ser ikke lenger lagrede versjoner. Slå på historikk for å gi dem tilbake.",
+      "turnOnHistory": "Slå på historikk",
+      "dismiss": "Lukk",
+      "failed": "Kunne ikke endre alternativene."
+    },
+    "people": {
+      "from": "Tilgang via {{sources}}",
+      "sourceInvitation": "invitasjon",
+      "sourceViewLink": "visningslenke",
+      "sourceEditLink": "redigeringslenke",
+      "sourceDisabled": "{{source}} (deaktivert)"
     }
   },
   "timelineAutomation": {

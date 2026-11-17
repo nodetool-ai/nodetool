@@ -521,6 +521,29 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "document. Handing access to a *particular* account is the " +
       "user's decision, as it is for `workflows.sharing`."
   },
+  "documentSharing.access": {
+    withheld:
+      "Reports the caller's own role and options on a shared " +
+      "document, with the grants they come from. A run acts on the " +
+      "documents its own user owns, so there is nothing to ask."
+  },
+  "documentSharing.setLinkOptions": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "document. Handing access to a *particular* account is the " +
+      "user's decision, as it is for `workflows.sharing`."
+  },
+  "documentSharing.setInvitationOptions": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "document. Handing access to a *particular* account is the " +
+      "user's decision, as it is for `workflows.sharing`."
+  },
+  "documentSharing.dismissNotice": {
+    withheld:
+      "Dismisses a notice shown to the owner in the share dialog. " +
+      "It is the owner's acknowledgement, not a run's."
+  },
   "documentSharing.sharedWithMe": {
     withheld:
       "Lists other users' documents the user was given access to, and " +
@@ -1658,6 +1681,29 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "exposed, and it is classified `external` so the gate asks; " +
       "handing access to a *particular* account is a step further and " +
       "stays with the user."
+  },
+  "workflows.sharing.access": {
+    withheld:
+      "Reports the caller's own role and options on a shared " +
+      "workflow, with the grants they come from. A run acts on the " +
+      "workflows its own user owns, so there is nothing to ask."
+  },
+  "workflows.sharing.setLinkOptions": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "workflow. Handing access to a *particular* account is the " +
+      "user's decision."
+  },
+  "workflows.sharing.setInvitationOptions": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "workflow. Handing access to a *particular* account is the " +
+      "user's decision."
+  },
+  "workflows.sharing.dismissNotice": {
+    withheld:
+      "Dismisses a notice shown to the owner in the share dialog. " +
+      "It is the owner's acknowledgement, not a run's."
   },
   "workflows.sharing.sharedWithMe": {
     withheld:

@@ -92,6 +92,10 @@ import {
   sharingAcceptInput,
   sharingAcceptOutput,
   sharingPublicTokenInput,
+  sharingAccessOutput,
+  sharingDismissNoticeInput,
+  sharingSetInvitationOptionsInput,
+  sharingSetLinkOptionsInput,
   shareItem,
   collaboratorItem,
   sharedWithMeInput,
@@ -107,6 +111,17 @@ import {
 } from "../../lib/public-workflow-share.js";
 import { requirePermission } from "../../lib/permissions.js";
 import { requireInvitee, withPersonNames } from "../../lib/people.js";
+import {
+  effectiveAccess,
+  mayReadHistory,
+  peopleOn
+} from "../../lib/document-access.js";
+import { invalidateSharedAssets } from "../../lib/shared-assets.js";
+import {
+  checkAttach,
+  publishSave,
+  ensureVersionSets
+} from "../../lib/document-refs.js";
 
 const log = createLogger("nodetool.websocket.trpc.workflows");
 
@@ -141,6 +156,19 @@ async function resolveWorkflowRole(
   if (grant) return grant.role;
   if (workflow.access === "public") return "viewer";
   return null;
+}
+
+/**
+ * Require that the caller may read a workflow's versions: an editor, the
+ * owner, or a viewer with the history option. Anyone else gets the 404 a
+ * missing workflow gets.
+ */
+async function requireHistory(workflowId: string, userId: string): Promise<void> {
+  const { role } = await requireWorkflowRole(workflowId, userId, "viewer");
+  if (role !== "viewer") return;
+  if (!mayReadHistory(await effectiveAccess(userId, "workflow", workflowId))) {
+    throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
+  }
 }
 
 /** Load a workflow and require at least `minimum` access, else 404. */
@@ -307,7 +335,13 @@ function toCollaboratorItem(grant: WorkflowCollaborator) {
     user_id: grant.user_id,
     role: grant.role,
     invited_by: grant.invited_by,
-    created_at: grant.created_at ?? null
+    created_at: grant.created_at ?? null,
+    share_id: grant.share_id ?? null,
+    options: {
+      allow_history: grant.allow_history === true,
+      allow_download: grant.allow_download === true,
+      allow_duplicate: grant.allow_duplicate === true
+    }
   };
 }
 
@@ -318,8 +352,27 @@ function toShareItem(share: WorkflowShare) {
     token: share.token,
     role: share.role,
     created_at: share.created_at ?? null,
-    revoked_at: share.revoked_at ?? null
+    revoked_at: share.disabled_at ?? null,
+    disabled_at: share.disabled_at ?? null,
+    options: {
+      allow_history: share.allow_history === true,
+      allow_download: share.allow_download === true,
+      allow_duplicate: share.allow_duplicate === true
+    },
+    owner_notice: share.owner_notice ?? null
   };
+}
+
+/** A link of the workflow, else NOT_FOUND. */
+async function requireShareOf(
+  workflowId: string,
+  shareId: string
+): Promise<WorkflowShare> {
+  const share = (await WorkflowShare.get(shareId)) as WorkflowShare | null;
+  if (!share || share.workflow_id !== workflowId) {
+    throwApiError(ApiErrorCode.NOT_FOUND, "Share not found");
+  }
+  return share;
 }
 
 // ── Example workflow helpers ────────────────────────────────────────────────
@@ -596,6 +649,12 @@ export const workflowsRouter = router({
         }
         fields.access = input.access;
       }
+      const toAdmit = await checkAttach(
+        "workflow",
+        { id: workflow.id, user_id: workflow.user_id, before: workflow.graph ?? null },
+        ctx.userId,
+        input.graph
+      );
       const savedWorkflow = await Workflow.updateFieldsIfUnchanged(
         input.id,
         input.expected_updated_at ?? workflow.updated_at,
@@ -607,6 +666,7 @@ export const workflowsRouter = router({
           "Workflow was modified since last read (optimistic concurrency conflict)"
         );
       }
+      await publishSave("workflow", savedWorkflow, toAdmit);
       await syncTriggerRegistrations(savedWorkflow);
       recordAutosave(input.id, Date.now());
 
@@ -783,8 +843,9 @@ export const workflowsRouter = router({
       .input(versionsListInput)
       .output(versionsListOutput)
       .query(async ({ ctx, input }) => {
-        // Owners and editors see version history
-        await requireWorkflowRole(input.id, ctx.userId, "editor");
+        // Owners and editors see version history, and viewers with the
+        // history option (AC26).
+        await requireHistory(input.id, ctx.userId);
         const versions = await WorkflowVersion.listForWorkflow(input.id, {
           limit: input.limit
         });
@@ -832,6 +893,13 @@ export const workflowsRouter = router({
         // Same write path as autosave: a whole-row save would overwrite a
         // concurrent edit, and the restored graph's trigger nodes must be
         // armed or disarmed like any other graph change.
+        await ensureVersionSets("workflow", workflow);
+        const toAdmit = await checkAttach(
+          "workflow",
+          { id: workflow.id, user_id: workflow.user_id, before: workflow.graph ?? null },
+          ctx.userId,
+          version.graph
+        );
         const restored = await Workflow.updateFieldsIfUnchanged(
           input.id,
           workflow.updated_at,
@@ -843,6 +911,7 @@ export const workflowsRouter = router({
             "Workflow was modified since last read (optimistic concurrency conflict)"
           );
         }
+        await publishSave("workflow", restored, toAdmit);
         await syncTriggerRegistrations(restored);
         return toWorkflowResponse(restored);
       }),
@@ -880,7 +949,11 @@ export const workflowsRouter = router({
       .input(sharingGetInput)
       .output(sharingGetOutput)
       .query(async ({ ctx, input }) => {
-        await requireWorkflowRole(input.id, ctx.userId, "owner");
+        const { workflow } = await requireWorkflowRole(
+          input.id,
+          ctx.userId,
+          "owner"
+        );
         const [collaborators, shares] = await Promise.all([
           WorkflowCollaborator.listForWorkflow(input.id),
           WorkflowShare.listForWorkflow(input.id)
@@ -889,7 +962,14 @@ export const workflowsRouter = router({
           collaborators: await withPersonNames(
             collaborators.map(toCollaboratorItem)
           ),
-          shares: shares.map(toShareItem)
+          shares: shares.map(toShareItem),
+          people: await withPersonNames(
+            await peopleOn(
+              "workflow",
+              workflow,
+              collaborators.map((c) => c.user_id)
+            )
+          )
         };
       }),
 
@@ -911,19 +991,41 @@ export const workflowsRouter = router({
         return toShareItem(share);
       }),
 
-    // Stop new redemptions of a link. Existing collaborators keep access.
+    // Disable a link: it admits nobody new. People who joined keep access,
+    // and the link's options stay live for them (P3).
     revokeLink: protectedProcedure
       .input(sharingRevokeLinkInput)
       .output(sharingOkOutput)
       .mutation(async ({ ctx, input }) => {
         await requireWorkflowRole(input.id, ctx.userId, "owner");
-        const share = (await WorkflowShare.get(
-          input.share_id
-        )) as WorkflowShare | null;
-        if (!share || share.workflow_id !== input.id) {
-          throwApiError(ApiErrorCode.NOT_FOUND, "Share not found");
-        }
+        const share = await requireShareOf(input.id, input.share_id);
         if (!share.isRevoked) await share.revoke();
+        return { ok: true as const };
+      }),
+
+    // Options are settings of the link and apply to everyone who joined
+    // through it from their next request, also on a disabled link (P3).
+    setLinkOptions: protectedProcedure
+      .input(sharingSetLinkOptionsInput)
+      .output(shareItem)
+      .mutation(async ({ ctx, input }) => {
+        await requireWorkflowRole(input.id, ctx.userId, "owner");
+        const share = await requireShareOf(input.id, input.share_id);
+        await share.setOptions(input.options);
+        invalidateSharedAssets();
+        return toShareItem(share);
+      }),
+
+    dismissNotice: protectedProcedure
+      .input(sharingDismissNoticeInput)
+      .output(sharingOkOutput)
+      .mutation(async ({ ctx, input }) => {
+        await requireWorkflowRole(input.id, ctx.userId, "owner");
+        const share = await requireShareOf(input.id, input.share_id);
+        if (share.owner_notice !== null) {
+          share.owner_notice = null;
+          await share.save();
+        }
         return { ok: true as const };
       }),
 
@@ -940,38 +1042,59 @@ export const workflowsRouter = router({
         );
         await requirePermission(ctx.userId, "share_links");
         await requireInvitee(ctx.userId, input.user_id);
-        const grant = await WorkflowCollaborator.upsert({
+        const grant = await WorkflowCollaborator.invite({
           workflowId: workflow.id,
           userId: input.user_id,
           role: input.role,
-          invitedBy: ctx.userId
+          invitedBy: ctx.userId,
+          options: input.options
         });
-        if (grant.role !== input.role) {
-          grant.role = input.role;
-          await grant.save();
-        }
+        invalidateSharedAssets(input.user_id);
         const [item] = await withPersonNames([toCollaboratorItem(grant)]);
         return item;
       }),
 
-    // Change a collaborator's role. Owner only.
+    // Change the options of a person's invitation. Owner only.
+    setInvitationOptions: protectedProcedure
+      .input(sharingSetInvitationOptionsInput)
+      .output(collaboratorItem)
+      .mutation(async ({ ctx, input }) => {
+        await requireWorkflowRole(input.id, ctx.userId, "owner");
+        const grant = await WorkflowCollaborator.findInvitation(
+          input.id,
+          input.user_id
+        );
+        if (!grant) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Invitation not found");
+        }
+        const updated = await WorkflowCollaborator.invite({
+          workflowId: input.id,
+          userId: input.user_id,
+          role: grant.role,
+          invitedBy: grant.invited_by,
+          options: input.options
+        });
+        invalidateSharedAssets(input.user_id);
+        const [item] = await withPersonNames([toCollaboratorItem(updated)]);
+        return item;
+      }),
+
+    // Change a collaborator's role on every grant they hold. Owner only.
     setRole: protectedProcedure
       .input(sharingSetRoleInput)
       .output(collaboratorItem)
       .mutation(async ({ ctx, input }) => {
         await requireWorkflowRole(input.id, ctx.userId, "owner");
-        const grant = await WorkflowCollaborator.findFor(
+        const grants = await WorkflowCollaborator.setRole(
           input.id,
-          input.user_id
+          input.user_id,
+          input.role
         );
-        if (!grant) {
+        if (grants.length === 0) {
           throwApiError(ApiErrorCode.NOT_FOUND, "Collaborator not found");
         }
-        if (grant.role !== input.role) {
-          grant.role = input.role;
-          await grant.save();
-        }
-        return toCollaboratorItem(grant);
+        invalidateSharedAssets(input.user_id);
+        return toCollaboratorItem(grants[0]);
       }),
 
     // Remove a collaborator. Owner removes anyone; a collaborator may
@@ -990,6 +1113,7 @@ export const workflowsRouter = router({
         if (!removed) {
           throwApiError(ApiErrorCode.NOT_FOUND, "Collaborator not found");
         }
+        invalidateSharedAssets(input.user_id);
         return { ok: true as const };
       }),
 
@@ -1015,15 +1139,30 @@ export const workflowsRouter = router({
         }
         // The owner opening their own link is a no-op, not a grant.
         if (workflow.user_id !== ctx.userId) {
-          await WorkflowCollaborator.upsert({
-            workflowId: workflow.id,
-            userId: ctx.userId,
-            role: share.role,
-            invitedBy: share.created_by
-          });
+          await WorkflowCollaborator.redeem(share, ctx.userId);
+          invalidateSharedAssets(ctx.userId);
         }
-        return { workflow: toWorkflowResponse(workflow), role: share.role };
+        const access = await effectiveAccess(
+          ctx.userId,
+          "workflow",
+          workflow.id
+        );
+        return {
+          workflow: toWorkflowResponse(workflow),
+          role:
+            access?.role === "owner" || access?.role === "editor"
+              ? "editor"
+              : "viewer"
+        };
       }),
+
+    // The caller's role and options, and the grants that give them.
+    access: protectedProcedure
+      .input(sharingGetInput)
+      .output(sharingAccessOutput)
+      .query(async ({ ctx, input }) => ({
+        access: await effectiveAccess(ctx.userId, "workflow", input.id)
+      })),
 
     // Copy a publicly linked workflow into the caller's own workflows as a
     // new private row. The source stays untouched and grants nothing. The
@@ -1042,7 +1181,7 @@ export const workflowsRouter = router({
             graph: parseSharedGraph(source.graph),
             settings: source.settings,
             run_mode: source.run_mode
-          })
+          }, undefined, { checkAttach: false })
         );
         return toWorkflowResponse(copy);
       }),
@@ -1053,7 +1192,16 @@ export const workflowsRouter = router({
       .output(sharedWithMeOutput)
       .query(async ({ ctx, input }) => {
         const grants = await WorkflowCollaborator.listForUser(ctx.userId);
-        const limited = grants.slice(0, input.limit);
+        // A person may hold an invitation and link grants on one workflow:
+        // list it once, with the highest role.
+        const byWorkflow = new Map<string, WorkflowCollaborator>();
+        for (const grant of grants) {
+          const seen = byWorkflow.get(grant.workflow_id);
+          if (!seen || (seen.role === "viewer" && grant.role === "editor")) {
+            byWorkflow.set(grant.workflow_id, grant);
+          }
+        }
+        const limited = [...byWorkflow.values()].slice(0, input.limit);
         const loaded = await Promise.all(
           limited.map(async (grant) => ({
             grant,
