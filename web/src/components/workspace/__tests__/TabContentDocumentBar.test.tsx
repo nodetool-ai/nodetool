@@ -12,6 +12,11 @@ jest.mock("../ScriptSurface", () => ({
   __esModule: true,
   default: () => <div>Script surface</div>
 }));
+// The file notice queries the project's documents over tRPC, which this test does not provide.
+jest.mock("../DocumentFileNotice", () => ({
+  __esModule: true,
+  default: () => null
+}));
 
 import TabContent from "../TabContent";
 

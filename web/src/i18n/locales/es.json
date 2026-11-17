@@ -10955,6 +10955,7 @@
       "levels_one": "{{count}} nivel",
       "levels_other": "{{count}} niveles",
       "allLevels": "Todos los niveles",
+      "anyDepth": "Cualquier profundidad",
       "spanName": "Nombre del tramo",
       "focusSpan": "Lapso de enfoque",
       "wholeRun": "Carrera completa",
@@ -11012,7 +11013,6 @@
       "noRecentRuns": "No hay ejecuciones recientes",
       "noMatchingSpans": "No hay tramos coincidentes",
       "spanId": "Intervalo {{id}}",
-      "olderRuns": "Carreras más antiguas",
       "noRecordedRuns": "No hay carreras registradas",
       "noRunsDescription": "Inicie una operación de aplicación, flujo de trabajo o turno de chat para inspeccionar su seguimiento y registros.",
       "runStatus": {

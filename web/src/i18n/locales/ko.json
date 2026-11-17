@@ -10789,6 +10789,7 @@
       "levels_one": "{{count}} 레벨",
       "levels_other": "{{count}} 레벨",
       "allLevels": "모든 레벨",
+      "anyDepth": "모든 깊이",
       "spanName": "스팬 이름",
       "focusSpan": "초점 범위",
       "wholeRun": "전체 실행",
@@ -10846,7 +10847,6 @@
       "noRecentRuns": "최근 실행 없음",
       "noMatchingSpans": "일치하는 범위 없음",
       "spanId": "범위 {{id}}",
-      "olderRuns": "이전 실행",
       "noRecordedRuns": "기록된 실행 없음",
       "noRunsDescription": "앱 작업, 워크플로 또는 채팅 차례를 시작하여 추적 및 로그를 검사합니다.",
       "runStatus": {
