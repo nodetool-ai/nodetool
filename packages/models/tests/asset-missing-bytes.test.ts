@@ -20,12 +20,19 @@ afterEach(async () => {
   await closeDb();
 });
 
+// The waiting rows list in creation order. Rows made in the same
+// millisecond would tie and fall back to their random ids, so each row gets
+// its own creation time.
+let createdRows = 0;
+
 function legacyRow(name: string, fields: Record<string, unknown> = {}): Promise<Asset> {
+  createdRows += 1;
   return Asset.create<Asset>({
     user_id: OWNER,
     project_id: PROJECT,
     name,
     content_type: "image/png",
+    created_at: new Date(Date.UTC(2026, 0, 1, 0, 0, createdRows)).toISOString(),
     ...fields
   });
 }
