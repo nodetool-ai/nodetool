@@ -305,7 +305,7 @@ const MOVE_KEYS = [
  */
 function isPublishedFile(asset: Asset, info: WorkspaceStat): boolean {
   const published = asset.metadata?.[WORKSPACE_MOVE_PUBLISHED_KEY];
-  return typeof published === "number" && published === info.modifiedAt;
+  return published === info.modifiedAt;
 }
 
 /** The file a move copies into. `written` says this call created it. */
