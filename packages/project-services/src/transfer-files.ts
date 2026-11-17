@@ -28,7 +28,7 @@ import {
 } from "@nodetool-ai/models";
 import type { Workspace } from "@nodetool-ai/runtime";
 import type { StorageAdapter } from "@nodetool-ai/storage";
-import { blobHash, blobKey, readBlob } from "@nodetool-ai/asset-services/blob-store";
+import { blobHash, readBlob, storeNamedBlob } from "@nodetool-ai/asset-services/blob-store";
 import { withProjectFolderLock } from "@nodetool-ai/asset-services/project-asset";
 import {
   partialContentHash,
@@ -307,15 +307,6 @@ function recoveryOperation(placement: TransferPlacementRow) {
   return placement.asset_id ? ("put_asset_file" as const) : ("put_workspace_file" as const);
 }
 
-/** Writes bytes to the blob store under their hash, when no object is there. */
-async function keepBlob(storage: StorageAdapter, hash: string, bytes: Uint8Array): Promise<void> {
-  if (storage.storeIfAbsent) {
-    await storage.storeIfAbsent(blobKey(hash), bytes);
-    return;
-  }
-  if (!(await storage.exists(storage.uriForKey(blobKey(hash))))) await storage.store(blobKey(hash), bytes);
-}
-
 /** One placement: keep what it replaces, write or delete the file, record the fingerprint. */
 async function place(storage: StorageAdapter, workspace: Workspace, placement: TransferPlacementRow): Promise<void> {
   const existing = await workspace.read(placement.path);
@@ -332,7 +323,7 @@ async function place(storage: StorageAdapter, workspace: Workspace, placement: T
       blobHash: existingHash,
       size: existing.byteLength
     });
-    await keepBlob(storage, existingHash, existing);
+    await storeNamedBlob(storage, existingHash, existing, placement.transfer_id);
   }
   if (placement.hash === null) {
     if (existing) await workspace.delete(placement.path);

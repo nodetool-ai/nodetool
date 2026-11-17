@@ -335,7 +335,9 @@ SaveResult TrpcCloudSaver::save(const CloudDocumentKey& key, const std::string& 
 
 std::optional<std::string> WorkflowCloudSaver::input(const CloudDocumentKey& key, const std::string& editingInstance,
                                                      const CloudBase& base, const std::string& draft) const {
-  const nlohmann::json graph = nlohmann::json::parse(draft, nullptr, false);
+  const nlohmann::json parsed = nlohmann::json::parse(draft, nullptr, false);
+  const bool wrapped = parsed.is_object() && parsed.contains("graph");
+  const nlohmann::json& graph = wrapped ? parsed["graph"] : parsed;
   if (!graph.is_object() || !graph.contains("nodes") || !graph["nodes"].is_array() || !graph.contains("edges") ||
       !graph["edges"].is_array()) {
     return std::nullopt;
@@ -349,6 +351,10 @@ std::optional<std::string> WorkflowCloudSaver::input(const CloudDocumentKey& key
                           {"editing_instance", editingInstance},
                           {"schema_version", kWorkflowSchemaVersion}};
   input["expected_updated_at"] = base.updatedAt;
+  if (wrapped && parsed.contains("name") && parsed["name"].is_string() &&
+      !parsed["name"].get<std::string>().empty()) {
+    input["name"] = parsed["name"];
+  }
   return input.dump();
 }
 
@@ -358,14 +364,24 @@ std::optional<std::string> WorkflowCloudSaver::updatedAt(const std::string& data
 
 std::optional<std::string> TimelineCloudSaver::input(const CloudDocumentKey& key, const std::string& editingInstance,
                                                      const CloudBase& base, const std::string& draft) const {
-  const nlohmann::json document = nlohmann::json::parse(draft, nullptr, false);
+  nlohmann::json document = nlohmann::json::parse(draft, nullptr, false);
   if (!document.is_object()) {
     return std::nullopt;
   }
   nlohmann::json input = {{"id", key.documentId},
-                          {"document", document},
                           {"editingInstance", editingInstance},
                           {"schemaVersion", kTimelineSchemaVersion}};
+  for (const char* column : {"fps", "width", "height"}) {
+    const auto found = document.find(column);
+    if (found == document.end()) {
+      continue;
+    }
+    if (found->is_number()) {
+      input[column] = *found;
+    }
+    document.erase(found);
+  }
+  input["document"] = std::move(document);
   input["baseUpdatedAt"] = base.updatedAt;
   return input.dump();
 }

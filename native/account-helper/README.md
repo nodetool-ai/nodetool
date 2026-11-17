@@ -16,8 +16,9 @@ the same library in this helper instead of a second implementation.
 - Signs in with the app name `desktop`, through the browser and a loopback
   redirect, as the native apps do.
 - Signs out of all three apps: it ends the shared record and the server
-  session. When the server cannot be reached, the record is signed out at
-  once and the server end is retried later.
+  session. The record is signed out at once. The server end runs on its own
+  thread, so a server that is slow or unreachable never delays a sign-out,
+  and it is retried later.
 - Every second it reads the generation file and `accounts.json`, so a sign-in
   or sign-out in another app shows within a second.
 - It never refreshes a token and never hands one out. Electron's renderer
@@ -70,7 +71,9 @@ node electron/scripts/build-account-helper.mjs --test   # also run ctest and the
 ```
 
 Linux needs `libsecret-1-dev`. Without a credential store the helper keeps
-the sign-in in memory and reports `keychainAvailable: false`.
+the sign-in in memory and reports `keychainAvailable: false`. It then shows
+only the accounts it holds in that memory. An account another app keeps in
+a keychain the helper can't read is left alone.
 
 The CMake option `NODETOOL_ACCOUNT_HELPER_TESTS` builds the tests and a
 separate `nodetool-account-helper-test` binary. Only that binary reads the

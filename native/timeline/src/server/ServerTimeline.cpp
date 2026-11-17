@@ -162,6 +162,7 @@ static ServerOpenResult openServerTimelineImpl(const ServerOpenOptions& options,
     ServerOpenResult out;
     ServerClient client(options.server, options.token);
     client.setExpectedInstance(options.expectedInstance);
+    if (options.authorizer) client.setAuthorizer(options.authorizer);
     QJsonObject report{
         {QStringLiteral("source"),
          QJsonObject{{QStringLiteral("server"), options.server.toString()},

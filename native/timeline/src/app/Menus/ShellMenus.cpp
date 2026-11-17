@@ -137,7 +137,7 @@ std::vector<Menu> shellMenuDescription(const QString& preset, const QVariantList
     auto& recentItems = menus.front().items.front().children;
     for (qsizetype index = 0; index < recent.size(); ++index) {
         const auto entry = recent[index].toMap();
-        const bool server = entry.value("kind") == "server";
+        const bool server = entry.value("kind") == "server" || entry.value("kind") == "cloud";
         const QString path = entry.value("path").toString();
         const QString suffix = server ? QUrl(entry.value("server").toString()).host() : QFileInfo(path).fileName();
         recentItems.push_back({entry.value("label").toString() + " (" + suffix + ")", QString("recent:%1").arg(index), {}, {},
@@ -290,7 +290,17 @@ bool ShellMenus::trigger(const QString& action) {
             return false;
         }
         nt::server::noteBundledServerHandoff();
-        return QProcess::startDetached(nt::server::appRelaunchProgram(), arguments);
+        QProcess process;
+        process.setProgram(nt::server::appRelaunchProgram());
+        process.setArguments(arguments);
+        // A cloud window keeps its drafts on this window's local server.
+        const QUrl bundled = nt::server::bundledServerUrl();
+        if (entry.value("kind") == "cloud" && !bundled.isEmpty()) {
+            auto environment = QProcessEnvironment::systemEnvironment();
+            environment.insert(QStringLiteral("NODETOOL_SERVER_URL"), bundled.toString());
+            process.setProcessEnvironment(environment);
+        }
+        return process.startDetached();
     }
     if (action == "openTimeline") {
         emit openTimelineRequested();

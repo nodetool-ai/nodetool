@@ -159,7 +159,8 @@ private slots:
         nt::server::SaveTarget target;
         target.server = http.base();
         target.backupDir = dir.filePath("server/user/timelines");
-        nt::motion::MatteResolver resolver(model, target);
+        nt::motion::MatteResolver resolver(model,
+            nt::server::MediaSource{target.server, target.token, {}, target.expectedInstance, dir.path()});
         std::vector<std::unique_ptr<AssetBrowser>> browsers;
         for (int i = 0; i < browserCount; ++i) {
             auto browser = std::make_unique<AssetBrowser>();
