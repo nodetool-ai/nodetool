@@ -399,7 +399,14 @@ private slots:
         click(rail, entry("rail-files"));
         QTRY_VERIFY(window.filesVisible());
         QVERIFY(!window.catalogVisible());
-        QVERIFY(window.findChild<QDockWidget *>("files-dock"));
+        auto *filesDock = window.findChild<QDockWidget *>("files-dock");
+        QVERIFY(filesDock);
+        // The dock gives the shared FilesPanel the shared player for its preview.
+        auto *filesRoot = qobject_cast<QQuickWidget *>(filesDock->widget())->rootObject();
+        QVERIFY2(filesRoot, "the Files dock did not load");
+        QCOMPARE(filesRoot->objectName(), QStringLiteral("projectFilesDock"));
+        QVERIFY(filesRoot->property("previewDelegate").value<QObject *>());
+        QVERIFY(filesRoot->property("resolver").value<QObject *>());
         QTRY_VERIFY(entry("rail-files")->property("active").toBool());
         click(rail, entry("rail-examples"));
         QTRY_VERIFY(window.examplesVisible());

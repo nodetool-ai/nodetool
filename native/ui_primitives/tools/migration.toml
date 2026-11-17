@@ -15,14 +15,14 @@ qml_callers = ["native/chat/qml/ConversationView.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.TextArea, Ui.Text, Ui.Progress, Ui.EditorButton, Ui.ToolbarIconButton"
 
 [[file]]
-path = "native/chat/qml/ChatMediaPlayer.qml"
+path = "native/media-player/qml/MediaPlayer.qml"
 category = "chrome"
-controls = ["Ui.EditorButton", "Ui.Slider", "Ui.Text", "VideoOutput"]
+controls = ["QM.MediaPlayer", "QM.AudioOutput", "QM.VideoOutput", "RowLayout", "Ui.ToolbarIconButton", "Ui.EditorButton", "Ui.Slider", "Ui.Text"]
 signals = []
-test_host = "node native/chat/scripts/check.mjs"
+test_host = "native/media-player/tests/tst_media_player.cpp"
 test_scope = "build"
-qml_callers = []
-replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.Slider, Ui.Text"
+qml_callers = ["native/chat/qml/MessageDelegate.qml", "native/node-editor/qml/ProjectFilesDock.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.ToolbarIconButton, Ui.Slider, Ui.Text"
 
 [[file]]
 path = "native/chat/qml/ChatMetrics.qml"
@@ -4559,6 +4559,16 @@ test_host = "native/node-editor/tests/ui/WorkersPanelTest.cpp"
 test_scope = "interaction"
 qml_callers = []
 replacement = "NodeTool.UiPrimitives"
+
+[[file]]
+path = "native/node-editor/qml/ProjectFilesDock.qml"
+category = "chrome"
+controls = ["FilesPanel", "Component", "Item", "Connections", "MediaPlayer", "Ui.BusyIndicator", "Ui.Text"]
+signals = []
+test_host = "native/node-editor/tests/ui/ChromeParityTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.Files FilesPanel with the NodeTool.MediaPlayer player"
 
 [[file]]
 path = "native/node-editor/qml/WorkerProfilesDialog.qml"

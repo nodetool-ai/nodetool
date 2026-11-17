@@ -19,9 +19,9 @@ foreach(chat_qml IN LISTS chat_qml_files)
     set_source_files_properties("${chat_qml}" PROPERTIES QT_RESOURCE_ALIAS "${chat_qml_name}")
 endforeach()
 set_source_files_properties(qml/ChatMetrics.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
-set(chat_media_qml)
-if(TARGET Qt6::Multimedia)
-    set(chat_media_qml qml/ChatMediaPlayer.qml)
+# The inline player is the shared NodeTool.MediaPlayer.
+if(TARGET Qt6::Multimedia AND NOT TARGET nodetool_media_player)
+    add_subdirectory(../media-player ${CMAKE_CURRENT_BINARY_DIR}/media-player)
 endif()
 qt_add_library(nodetool_chat STATIC)
 qt_add_qml_module(nodetool_chat
@@ -31,7 +31,6 @@ qt_add_qml_module(nodetool_chat
         qml/ChatMetrics.qml qml/ChatPanel.qml qml/Main.qml qml/ThreadList.qml
         qml/ConversationView.qml qml/MessageDelegate.qml qml/ChatComposer.qml
         qml/ProviderKeyDialog.qml qml/DeleteThreadDialog.qml
-        ${chat_media_qml}
     SOURCES
         src/model/ThreadModel.h src/model/ThreadModel.cpp
         src/model/MessageModel.h src/model/MessageModel.cpp
@@ -45,7 +44,7 @@ qt_add_qml_module(nodetool_chat
 target_include_directories(nodetool_chat PUBLIC src PRIVATE src/runtime)
 target_link_libraries(nodetool_chat PUBLIC nodetool_ui_primitives nodetool_model_picker Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::WebSockets)
 if(TARGET Qt6::Multimedia)
-    target_link_libraries(nodetool_chat PUBLIC Qt6::Multimedia)
+    target_link_libraries(nodetool_chat PUBLIC Qt6::Multimedia nodetool_media_player nodetool_media_playerplugin)
     target_compile_definitions(nodetool_chat PRIVATE NODETOOL_CHAT_MEDIA)
 endif()
 if(MSVC)

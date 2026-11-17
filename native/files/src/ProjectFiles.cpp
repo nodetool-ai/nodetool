@@ -246,6 +246,18 @@ QUrl ProjectFiles::previewImageUrl() const {
   return m_preview.kind == QLatin1String("image") ? downloadUrl(m_origin, m_workspace, m_preview.path) : QUrl();
 }
 
+QUrl ProjectFiles::previewMediaUrl() const {
+  static const QSet<QString> playable{"video", "audio", "model3d"};
+  if (!playable.contains(m_preview.kind)) { return {}; }
+  if (!m_localPath.isEmpty() && QFileInfo(m_localPath).isDir()) {
+    const auto file = QDir(m_localPath).filePath(QDir::cleanPath(m_preview.path));
+    if (QFileInfo(file).canonicalFilePath().startsWith(QFileInfo(m_localPath).canonicalFilePath() + '/')) {
+      return QUrl::fromLocalFile(file);
+    }
+  }
+  return downloadUrl(m_origin, m_workspace, m_preview.path);
+}
+
 void ProjectFiles::updatePreview() {
   Preview next;
   const int row = indexOfPath(m_selected);
