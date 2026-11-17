@@ -75,6 +75,9 @@ function isAwaitingClientUpload(row: Asset, now: number): boolean {
 /** How long an asset whose move failed waits for its next try, in ms. */
 export const MOVE_RETRY_MS = 5 * 60_000;
 
+/** Why a row with no object under any legacy key did not move. */
+export const MISSING_BYTES_REASON = "The file is missing from asset storage";
+
 /** How long a project opened again waits for its next look, in ms. */
 export const OPEN_MOVE_INTERVAL_MS = 10_000;
 
@@ -91,9 +94,17 @@ export interface ProjectAssetMoveReport {
   projectId: string;
   /** Assets whose bytes are in the folder now, with no legacy object left. */
   moved: string[];
-  /** Rows with no object under any legacy key. Left as they are. */
+  /**
+   * Rows found with no object under any legacy key in this pass. Each is
+   * marked so it stops counting as waiting, and is also in {@link failed}.
+   */
   withoutBytes: string[];
-  /** Assets whose move could not finish. Still readable, tried again later. */
+  /**
+   * Assets whose move could not finish. Still readable, tried again later,
+   * except one too large to move. It includes the assets that wait for
+   * their next try and the rows marked as having no stored bytes, so every
+   * pass reports every asset that is not moved.
+   */
   failed: string[];
   /** Why each asset in {@link failed} could not move, by asset id. */
   failureReasons: Record<string, string>;
@@ -132,6 +143,8 @@ interface MoveTarget {
 interface Skipped {
   updatedAt: string;
   until: number;
+  /** Why its move failed. A pass that leaves it out reports it with this. */
+  reason: string;
 }
 
 function targetKey(projectId: string, userId: string): string {
@@ -193,7 +206,8 @@ export class ProjectAssetMoveJob {
 
   /**
    * Forget the assets whose move failed, so the next pass tries them at once
-   * instead of after {@link MOVE_RETRY_MS}. Rows without bytes stay skipped.
+   * instead of after {@link MOVE_RETRY_MS}. An asset too large to move stays
+   * skipped until the process restarts.
    */
   forgetFailures(): void {
     for (const [id, skip] of this.skipped) {
@@ -236,7 +250,7 @@ export class ProjectAssetMoveJob {
     if (!(await this.allows(userId))) return null;
     this.lastPrepared.set(key, Date.now());
     try {
-      const { rows } = await this.work(projectId, userId);
+      const { rows } = await this.work(projectId, userId, Date.now());
       if (rows.length === 0) return null;
       const progress = { done: 0, total: rows.length };
       this.progressByProject.set(key, progress);
@@ -310,20 +324,27 @@ export class ProjectAssetMoveJob {
   }
 
   /**
-   * The rows of the project this pass moves, and the ones it leaves for a
-   * later pass because they changed within the settle time.
+   * The rows of the project this pass moves, the ones it leaves for a later
+   * pass because they changed within the settle time, and the ones whose
+   * move failed and that wait for their next try, with the reason.
    */
   private async work(
     projectId: string,
-    userId: string
-  ): Promise<{ rows: Asset[]; deferred: Asset[] }> {
-    const now = Date.now();
+    userId: string,
+    now: number
+  ): Promise<{
+    rows: Asset[];
+    deferred: Asset[];
+    retrying: Array<{ row: Asset; reason: string }>;
+  }> {
     const settleMs = this.settleMs;
     const rows: Asset[] = [];
     const deferred: Asset[] = [];
+    const retrying: Array<{ row: Asset; reason: string }> = [];
     for (const row of await Asset.listAwaitingFolderMove(userId, projectId)) {
       const skip = this.skipped.get(row.id);
       if (skip && skip.updatedAt === row.updated_at && now < skip.until) {
+        retrying.push({ row, reason: skip.reason });
         continue;
       }
       // A move that already started is finished whatever the row's age: its
@@ -334,7 +355,7 @@ export class ProjectAssetMoveJob {
           !isAwaitingClientUpload(row, now));
       (settled ? rows : deferred).push(row);
     }
-    return { rows, deferred };
+    return { rows, deferred, retrying };
   }
 
   /**
@@ -368,8 +389,19 @@ export class ProjectAssetMoveJob {
     if (folder.projectId !== projectId) return report;
     const { workspace } = folder;
 
-    const { rows, deferred } = await this.work(projectId, userId);
+    const { rows, deferred, retrying } = await this.work(
+      projectId,
+      userId,
+      Date.now()
+    );
     report.deferred = deferred.map((row) => row.id);
+    // The migration lists the failures each run's reports hold, so an asset
+    // that waits for its next try, or that has no stored bytes, is reported
+    // by every pass, not only by the one that found it.
+    for (const { row, reason } of retrying) this.fail(report, row.id, reason);
+    for (const row of await Asset.listLegacyBytesMissing(userId, projectId)) {
+      this.fail(report, row.id, MISSING_BYTES_REASON);
+    }
     const folders = await Asset.listFolders(userId);
     const resolver = new ProjectDirectoryResolver(
       projectId,
@@ -380,18 +412,18 @@ export class ProjectAssetMoveJob {
 
     const storage = (this.options.storage ?? getAssetAdapter)();
     const names = new DirectoryNames();
-    for (const row of rows) {
-      // Let requests and timers that queued up run before the next asset.
-      await nextTurn();
-      if (this.abort.signal.aborted) return report;
-      // A paused migration stops here. The asset before this one finished,
-      // and the next pass continues with this one.
-      if (!(await this.allows(userId))) {
-        report.stopped = true;
-        return report;
-      }
-      try {
-        const outcome = await moveLegacyAssetIntoFolder(userId, row.id, {
+    try {
+      for (const row of rows) {
+        // Let requests and timers that queued up run before the next asset.
+        await nextTurn();
+        if (this.abort.signal.aborted) return report;
+        // A paused migration stops here. The asset before this one finished,
+        // and the next pass continues with this one.
+        if (!(await this.allows(userId))) {
+          report.stopped = true;
+          return report;
+        }
+        await this.moveOne(report, row, {
           storage,
           workspace,
           projectId,
@@ -399,57 +431,102 @@ export class ProjectAssetMoveJob {
           names,
           afterStep: this.options.afterStep
         });
-        if (outcome.status === "moved") {
-          report.moved.push(row.id);
-        } else if (outcome.status === "no_bytes") {
-          report.withoutBytes.push(row.id);
-          this.skip(row, Number.POSITIVE_INFINITY);
-        } else if (outcome.status === "waiting") {
-          report.failed.push(row.id);
-          report.failureReasons[row.id] = outcome.reason;
-          this.skip(row, Date.now() + MOVE_RETRY_MS);
-          log.info("An asset stays in the asset store for now", {
-            assetId: row.id,
-            reason: outcome.reason
-          });
-        }
+        progress.done++;
+      }
+      if (this.abort.signal.aborted) return report;
+      // A pause that came while the last asset moved also holds the folder
+      // rows back.
+      if (!(await this.allows(userId))) {
+        report.stopped = true;
+        return report;
+      }
+      try {
+        report.foldersRemoved = await removeEmptyFolderRows(
+          userId,
+          projectId,
+          workspace,
+          resolver,
+          folders
+        );
       } catch (error) {
-        report.failed.push(row.id);
-        report.failureReasons[row.id] =
-          error instanceof Error ? error.message : String(error);
-        this.skip(row, Date.now() + MOVE_RETRY_MS);
-        log.warn("Could not move an asset into its project folder", {
-          assetId: row.id,
+        // The folder rows stay for a later pass. What moved is reported.
+        log.warn("Could not remove the empty legacy folders of a project", {
+          projectId,
           error: error instanceof Error ? error.message : String(error)
         });
       }
-      progress.done++;
+      return report;
+    } finally {
+      this.afterMoves(report, userId);
+      if (deferred.length > 0 && !this.abort.signal.aborted) {
+        this.scheduleFollowUp(projectId, userId);
+      }
     }
-    if (this.abort.signal.aborted) return report;
-
-    report.foldersRemoved = await removeEmptyFolderRows(
-      userId,
-      projectId,
-      workspace,
-      resolver,
-      folders
-    );
-    if (report.moved.length > 0) {
-      scheduleAssetManifestWrite(projectId, userId);
-      scheduleProjectHashing(projectId, userId);
-      log.info("Moved assets into a project folder", {
-        projectId,
-        moved: report.moved.length,
-        failed: report.failed.length,
-        foldersRemoved: report.foldersRemoved.length
-      });
-    }
-    if (deferred.length > 0) this.scheduleFollowUp(projectId, userId);
-    return report;
   }
 
-  private skip(row: Asset, until: number): void {
-    this.skipped.set(row.id, { updatedAt: row.updated_at, until });
+  /** Move one asset and add what happened to `report`. Never throws. */
+  private async moveOne(
+    report: ProjectAssetMoveReport,
+    row: Asset,
+    options: LegacyAssetMoveOptions
+  ): Promise<void> {
+    try {
+      const outcome = await moveLegacyAssetIntoFolder(row.user_id, row.id, options);
+      if (outcome.status === "moved") {
+        report.moved.push(row.id);
+      } else if (outcome.status === "no_bytes") {
+        // The move marked the row, so later passes list it from the mark.
+        report.withoutBytes.push(row.id);
+        this.fail(report, row.id, MISSING_BYTES_REASON);
+      } else if (outcome.status === "too_large") {
+        this.fail(report, row.id, outcome.reason);
+        this.skip(row, Number.POSITIVE_INFINITY, outcome.reason);
+        log.info("An asset is too large to move into its project folder", {
+          assetId: row.id
+        });
+      } else if (outcome.status === "waiting") {
+        this.fail(report, row.id, outcome.reason);
+        this.skip(row, Date.now() + MOVE_RETRY_MS, outcome.reason);
+        log.info("An asset stays in the asset store for now", {
+          assetId: row.id,
+          reason: outcome.reason
+        });
+      }
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.fail(report, row.id, reason);
+      this.skip(row, Date.now() + MOVE_RETRY_MS, reason);
+      log.warn("Could not move an asset into its project folder", {
+        assetId: row.id,
+        error: reason
+      });
+    }
+  }
+
+  private fail(report: ProjectAssetMoveReport, assetId: string, reason: string): void {
+    if (!(assetId in report.failureReasons)) report.failed.push(assetId);
+    report.failureReasons[assetId] = reason;
+  }
+
+  /**
+   * Ask for the manifest and the full hashes of what a pass moved. Runs also
+   * when a pause or a stop ended the pass early.
+   */
+  private afterMoves(report: ProjectAssetMoveReport, userId: string): void {
+    if (report.moved.length === 0) return;
+    scheduleAssetManifestWrite(report.projectId, userId);
+    scheduleProjectHashing(report.projectId, userId);
+    log.info("Moved assets into a project folder", {
+      projectId: report.projectId,
+      moved: report.moved.length,
+      failed: report.failed.length,
+      foldersRemoved: report.foldersRemoved.length,
+      stopped: report.stopped
+    });
+  }
+
+  private skip(row: Asset, until: number, reason: string): void {
+    this.skipped.set(row.id, { updatedAt: row.updated_at, until, reason });
   }
 
   /** Give the rows that changed too recently their pass once they settle. */
