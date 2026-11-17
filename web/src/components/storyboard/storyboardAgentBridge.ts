@@ -1,4 +1,5 @@
 import { createAgentHandlerRegistry } from "../../lib/tools/agentHandlerRegistry";
+import { shortResourceId } from "@nodetool-ai/protocol";
 /**
  * storyboardAgentBridge
  *
@@ -377,7 +378,7 @@ export function getStoryboardAgentHandler(
     throw new Error(
       `No storyboard "${boardId}" is open. ` +
         (open.length > 0
-          ? `Open storyboards: ${open.join(", ")}. `
+          ? `Open storyboards: ${open.map(shortResourceId).join(", ")}. `
           : "No storyboards are currently open. ") +
         "Not open in the editor. Use edit_storyboard to edit it, or ui_open_document to show it to the user."
     );

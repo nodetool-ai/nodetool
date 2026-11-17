@@ -82,7 +82,8 @@ export const RENDER_STILLS_SCHEMA: JsonSchema = {
     model: {
       type: "string",
       description:
-        "Model id (from find_model). Defaults to the board's image model."
+        "Model id with `provider`, or the whole nodetool.models.pick() / " +
+        "find_model result or its `.ref`. Defaults to the board's image model."
     },
     style: {
       type: "string",
@@ -117,7 +118,8 @@ export const RENDER_CLIPS_SCHEMA: JsonSchema = {
     model: {
       type: "string",
       description:
-        "Model id (from find_model). Defaults to the board's video model."
+        "Model id with `provider`, or the whole nodetool.models.pick() / " +
+        "find_model result or its `.ref`. Defaults to the board's video model."
     },
     resolution: {
       type: "string",

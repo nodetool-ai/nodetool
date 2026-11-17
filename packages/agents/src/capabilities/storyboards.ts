@@ -75,6 +75,7 @@ import type {
   CapabilityModule,
   CapabilityRun
 } from "./types.js";
+import { modelFromRecord } from "./model-args.js";
 import { stampScriptStoryboardId } from "./script-link.js";
 import {
   listStoryboardsSpec,
@@ -745,13 +746,35 @@ async function filterStale(
   };
 }
 
-function modelOverrides(params: Record<string, unknown>): ShotRenderPlanOptions {
+/**
+ * The per-call provider and model. `model` takes an id string (with
+ * `provider`) or the object `nodetool.models.pick()` / find_model return, or
+ * its `.ref`. A `model` that names no model is refused: dropping it left the
+ * board's missing model to report, and the caller retried the same call.
+ */
+function modelOverrides(
+  params: Record<string, unknown>
+): ShotRenderPlanOptions | ToolError {
   const options: ShotRenderPlanOptions = { presetCatalog: presetCatalog() };
   if (isNonBlankString(params["provider"])) {
     options.provider = params["provider"];
   }
-  if (isNonBlankString(params["model"])) {
-    options.model = params["model"];
+  const model = params["model"];
+  if (isNonBlankString(model)) {
+    options.model = model;
+  } else if (isRecord(model)) {
+    const picked = modelFromRecord(model);
+    if (!picked) {
+      return {
+        error: `model ${JSON.stringify(model)} names no model. Pass a model id string with provider, or the result of nodetool.models.pick() (or find_model), or its .ref ({provider, id}).`
+      };
+    }
+    options.provider = picked.provider;
+    options.model = picked.model;
+  } else if (model !== undefined && model !== null && model !== "") {
+    return {
+      error: `model must be a model id string or a model object such as nodetool.models.pick().ref; got ${JSON.stringify(model)}.`
+    };
   }
   return options;
 }
@@ -760,8 +783,16 @@ function missingPlanModel(plan: ShotRenderPlan): ToolError | undefined {
   if (plan.model.provider && plan.model.model) {
     return undefined;
   }
+  const capability = plan.kind === "keyframe"
+    ? "text_to_image"
+    : plan.mode === "direct"
+      ? "text_to_video"
+      : plan.mode === "reference" ? "reference_to_video" : "image_to_video";
+  const given = plan.model.model && !plan.model.provider
+    ? ` Model "${plan.model.model}" has no provider; pass provider with it.`
+    : "";
   return {
-    error: `No ${plan.kind === "keyframe" ? "still" : "clip"} model is set for shot ${plan.shotId}. Pass provider + model (use find_model), or set one on the shot or board.`
+    error: `No ${plan.kind === "keyframe" ? "still" : "clip"} model is set for shot ${plan.shotId}.${given} Pass model: the result of nodetool.models.pick("${capability}") in code, or the find_model tool's hit, or a provider + model id pair. Or set one on the shot or board.`
   };
 }
 
@@ -875,6 +906,7 @@ const renderStoryboardStills: CapabilityExport = {
     // override is the point — a version rendered against something other than
     // the board's settings reads stale against the board, correctly.
     const planOptions = modelOverrides(params);
+    if (isError(planOptions)) return planOptions;
     if (isString(params["style"])) {
       planOptions.style = params["style"];
     }
@@ -958,6 +990,7 @@ const renderStoryboardClips: CapabilityExport = {
     const { planShotRenders, renderShots } =
       await import("@nodetool-ai/storyboard");
     const readinessOptions = modelOverrides(params);
+    if (isError(readinessOptions)) return readinessOptions;
     if (override !== undefined) {
       readinessOptions.mode = override;
     }
@@ -1011,7 +1044,7 @@ const renderStoryboardClips: CapabilityExport = {
     // As in the stills path: the record says what this call rendered with, so
     // a per-call model or style override reads stale against the board.
     const planOptions: ShotRenderPlanOptions = {
-      ...modelOverrides(params),
+      ...readinessOptions,
       style: isString(params["style"]) ? params["style"] : doc.style || "",
       scriptLines: scriptLinesById(scriptDoc?.sections ?? [])
     };
@@ -1483,7 +1516,7 @@ function parseBoardOps(raw: unknown): ParsedBoardOp[] | ToolError {
   if (!Array.isArray(raw) || raw.length === 0) {
     return {
       error:
-        'ops must be a non-empty array, e.g. [{"op": "add_shot", "action": "Wide of the lighthouse at dusk"}].'
+        'ops must be a non-empty array of flat op objects. Each holds `op` and that op\'s fields side by side, and add_shot\'s `action` is the shot description as a string, e.g. [{"op": "add_shot", "action": "Wide of the lighthouse at dusk", "duration_seconds": 4}].'
     };
   }
   if (raw.length > MAX_BOARD_OPS) {
@@ -1498,6 +1531,15 @@ function parseBoardOps(raw: unknown): ParsedBoardOp[] | ToolError {
     }
     const { op, ...args } = entry as Record<string, unknown>;
     const resolved = isString(op) ? resolveBoardOpName(op) : null;
+    if (op === undefined) {
+      // `{add_shot: {...}}` keys the op by name instead of writing `op`.
+      const keyed = Object.keys(args).find((key) => resolveBoardOpName(key));
+      return {
+        error: keyed
+          ? `ops[${index}] has no \`op\` field. Write {"op": "${keyed}", ...fields} with the fields beside \`op\`, not {"${keyed}": {...}}.`
+          : `ops[${index}] has no \`op\` field. Each op is {"op": <name>, ...fields}; name is one of ${BOARD_OPS.join(", ")}.`
+      };
+    }
     if (!resolved) {
       return {
         error: `ops[${index}] names "${String(op)}"; expected one of ${BOARD_OPS.join(", ")}.`
@@ -1991,9 +2033,15 @@ function applyBoardOp(
   switch (op) {
     case "add_shot": {
       assertKnownShotFields("add_shot", args);
+      if (isRecord(args["action"])) {
+        throw new Error(
+          "add_shot got an object for `action`. `action` is the shot description as a string, and the other shot fields sit beside `op`: " +
+            '{"op": "add_shot", "action": "Wide of the lighthouse at dusk", "duration_seconds": 4}.'
+        );
+      }
       if (!isString(args["action"]) || args["action"].trim() === "") {
         throw new Error(
-          "add_shot needs a non-empty `action` describing the shot."
+          `add_shot needs a non-empty \`action\` string describing the shot; got ${args["action"] === undefined ? "no `action`" : JSON.stringify(args["action"])}.`
         );
       }
       const shot = applyShotFields(
@@ -2657,6 +2705,22 @@ async function applyStoryboardEdit(
       }
     }
 
+    const failed = records.filter((record) => !record.ok);
+    if (failed.length === records.length) {
+      // Nothing changed, so nothing is saved and the revision stays put. A
+      // write here would bump the revision and turn the caller's retry with
+      // the old `expected_revision` into a false conflict.
+      return {
+        storyboard_id: row.id,
+        updated_at: row.updated_at,
+        revision: row.revision,
+        applied: 0,
+        failed: failed.length,
+        saved: false,
+        ops: records
+      };
+    }
+
     if (doc.screenplay) {
       doc.screenplay.shots = doc.shots;
     }
@@ -2681,7 +2745,6 @@ async function applyStoryboardEdit(
     );
     if (!saved) continue;
 
-    const failed = records.filter((record) => !record.ok);
     return withCopiedAssets({
       storyboard_id: row.id,
       updated_at: saved.updated_at,

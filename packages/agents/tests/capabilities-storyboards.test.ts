@@ -545,6 +545,40 @@ describe("storyboards capability behaviour", () => {
     }
   });
 
+  it("keeps the revision when every op in a batch fails", async () => {
+    const board = await makeBoard([]);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const result = (await run(ctx()).invoke("edit_storyboard", {
+        storyboard_id: board.id,
+        expected_revision: board.revision,
+        ops: [{ op: "add_shot", action: { description: "Wide" } }]
+      })) as { applied: number; failed: number; revision: number; saved: boolean };
+      expect(result).toMatchObject({ applied: 0, failed: 1, revision: board.revision, saved: false });
+    }
+    expect((await Storyboard.findById(board.id))!.revision).toBe(board.revision);
+  });
+
+  it("says add_shot got an object for action and shows the flat shape", async () => {
+    const board = await makeBoard([]);
+    const result = (await run(ctx()).invoke("edit_storyboard", {
+      storyboard_id: board.id,
+      ops: [{ op: "add_shot", action: { description: "Wide", duration_seconds: 4 } }]
+    })) as { ops: Array<{ error: string }> };
+    expect(result.ops[0].error).toContain("got an object for `action`");
+    expect(result.ops[0].error).toContain('{"op": "add_shot", "action": "');
+  });
+
+  it("names the op when it is used as the key instead of `op`", async () => {
+    const board = await makeBoard([]);
+    const result = (await run(ctx()).invoke("edit_storyboard", {
+      storyboard_id: board.id,
+      ops: [{ add_shot: { action: "Wide" } }]
+    })) as { error: string };
+    expect(result.error).toContain("ops[0] has no `op` field");
+    expect(result.error).toContain('{"op": "add_shot", ...fields}');
+    expect(result.error).not.toContain("undefined");
+  });
+
   it("refuses malformed storyboard graphics intent without saving it", async () => {
     const board = await makeBoard([shot({ id: "s1", index: 0 })]);
     const before = board.toDocument();
@@ -897,6 +931,46 @@ describe("storyboards capability behaviour", () => {
       storyboard_id: board.id
     })) as { error: string };
     expect(result.error).toContain("find_model");
+  });
+
+  it.each([
+    ["the pick() ref", { type: "image_model", provider: "fal_ai", id: "img-picked" }],
+    ["the whole pick() result", { provider: "fal_ai", model_id: "img-picked", ref: { type: "image_model", provider: "fal_ai", id: "img-picked" } }]
+  ])("renders with %s passed as model", async (_label, model) => {
+    const board = await makeBoard([shot({ id: "s1", index: 0 })], {
+      imageModel: null
+    });
+    const context = ctx();
+    const result = (await run(context).invoke("render_storyboard_stills", {
+      storyboard_id: board.id,
+      model
+    })) as { rendered: number };
+    expect(result).toMatchObject({ rendered: 1 });
+    const req = context.runProviderPrediction.mock.calls[0][0] as unknown as {
+      provider: string;
+      model: string;
+    };
+    expect(req).toMatchObject({ provider: "fal_ai", model: "img-picked" });
+  });
+
+  it("names the model object it could not read instead of dropping it", async () => {
+    const board = await makeBoard([shot({ id: "s1", index: 0 })]);
+    const result = (await run(ctx()).invoke("render_storyboard_stills", {
+      storyboard_id: board.id,
+      model: { name: "Flux" }
+    })) as { error: string };
+    expect(result.error).toContain('model {"name":"Flux"} names no model');
+    expect(result.error).toContain("nodetool.models.pick()");
+  });
+
+  it("points the missing-model error at a callable that exists", async () => {
+    const board = await makeBoard([shot({ id: "s1", index: 0 })], {
+      imageModel: null
+    });
+    const result = (await run(ctx()).invoke("render_storyboard_stills", {
+      storyboard_id: board.id
+    })) as { error: string };
+    expect(result.error).toContain('nodetool.models.pick("text_to_image")');
   });
 
   it.each([
