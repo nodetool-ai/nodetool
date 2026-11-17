@@ -5,11 +5,11 @@
 #include <QNetworkReply>
 #include <QUrlQuery>
 #include <algorithm>
+#include "nodetool/account/qt/ServerToken.h"
 namespace nodetool::node_editor {
 namespace {
 constexpr qsizetype ItemLimit = 8 * 1024 * 1024;
 constexpr qsizetype HistoryLimit = 64 * 1024 * 1024;
-bool sameOrigin(const QUrl &a,const QUrl &b) { return a.scheme()==b.scheme() && a.host()==b.host() && a.port(a.scheme()=="https"?443:80)==b.port(b.scheme()=="https"?443:80); }
 void collectMedia(const QJsonValue &value, QVariantList &media, int &visited, int depth=0) {
   if (++visited>1024 || depth>16) { return; }
   if (value.isArray()) { for (const auto &item:value.toArray()) { collectMedia(item,media,visited,depth+1); } return; }
@@ -45,7 +45,7 @@ void GenerationHistory::fail(const QString &message){loading_=false;error_=messa
 void GenerationHistory::fetch(const QUrl &url,quint64 epoch,std::function<void(QByteArray)> done){
   if(!url.isValid() || (url.scheme()!="http" && url.scheme()!="https") || !url.userInfo().isEmpty() || (origin_.scheme()=="https" && url.scheme()!="https")){fail(tr("Generation asset has no supported download URL"));return;}
   QNetworkRequest request(url);request.setTransferTimeout(30000);request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,QNetworkRequest::ManualRedirectPolicy);
-  if(sameOrigin(url,origin_)){request.setRawHeader("Authorization","Bearer "+token_.toUtf8());request.setRawHeader("x-user-id",user_.toUtf8());}
+  if (nodetool::account::qt::sameServerOrigin(url, origin_)){nodetool::account::qt::attachServerToken(request, origin_, token_);request.setRawHeader("x-user-id",user_.toUtf8());}
   auto reply=network_.get(request);
   connect(reply,&QNetworkReply::readyRead,this,[reply]{if(reply->bytesAvailable()>ItemLimit){reply->setProperty("generationTooLarge",true);reply->abort();}});
   connect(reply,&QNetworkReply::finished,this,[this,reply,epoch,done=std::move(done)]{

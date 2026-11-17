@@ -5,6 +5,7 @@
 #include <QNetworkReply>
 #include <QUrlQuery>
 #include <utility>
+#include "nodetool/account/qt/ServerToken.h"
 
 namespace nodetool::node_editor {
 QSharedPointer<AccountJobs> AccountJobs::acquire(const QUrl &base, const QString &token, const QString &user) {
@@ -40,7 +41,7 @@ void AccountJobs::request(const QString &procedure, const QJsonObject &input, bo
     QNetworkRequest request(url);
     request.setTransferTimeout(30000);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-    request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
+    nodetool::account::qt::attachServerToken(request, m_base, m_token);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     auto reply = mutation ? m_network.post(request, bytes) : m_network.get(request);
     connect(reply, &QNetworkReply::finished, this, [reply, callback = std::move(callback)] {

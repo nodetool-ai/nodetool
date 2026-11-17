@@ -5,6 +5,7 @@
 #include <QSet>
 #include <QUrlQuery>
 #include <algorithm>
+#include "nodetool/account/qt/ServerToken.h"
 
 namespace nodetool::node_editor {
 namespace {
@@ -51,7 +52,7 @@ void PreviewSourceAssets::fetch(const QString &source, quint64 epoch) {
   url.setQuery(query);
   QNetworkRequest request(url);
   request.setTransferTimeout(30000);
-  if (!token_.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); }
+  nodetool::account::qt::attachServerToken(request, origin_, token_);
   if (!user_.isEmpty()) { request.setRawHeader("x-user-id", user_.toUtf8()); }
   auto reply = network_.get(request);
   connect(reply, &QNetworkReply::readyRead, this, [reply] { if (reply->bytesAvailable() > ResponseLimit) { reply->abort(); } });

@@ -215,8 +215,6 @@ owner may call them.
   signed app reads the macOS item without a prompt, and the Windows and
   macOS builds of `KeychainStore`, which this repository's CI does not
   compile yet.
-- Moving the apps' existing header writes onto `CloudClient` (WP1.10, with
-  Qt).
 - The macOS and Windows readers of the managed policy compile only on those
   platforms, which this repository's CI does not build yet.
 
@@ -303,6 +301,18 @@ needs Qt Core and Network.
   task thread, and gives QML the viewer and editor links with their
   statements, the people, the linked documents with whether each has a link
   of its own, and the secret warnings. QML creates it.
+- `ServerToken.h` is the one place the apps attach their own server's
+  token, local or self-hosted, to a request. `attachServerToken()` sets
+  `Authorization: Bearer` only when the token is not empty and the request
+  goes to that server's origin, where a socket URL (`ws`, `wss`) counts as
+  its HTTP origin. A request to any other host, such as a provider's media
+  URL, carries no token. The node editor and the timeline send their
+  server requests through it. Native chat builds without the account
+  service, so `ChatClient` keeps the same rule in a helper of its own. A
+  cloud document's requests go through `CloudClient`, and the local draft
+  store's client, which talks to the local server alone, takes the token in
+  its headers. The header needs only Qt Network, so the timeline's server
+  client links its interface target `nodetool_account_server_token` alone.
 
 `qt/qml/` holds the QML both apps compile: `AccountControl.qml`, with the
 server menu and the Sign in to another server dialog, `CloudDocumentsPanel.qml`,

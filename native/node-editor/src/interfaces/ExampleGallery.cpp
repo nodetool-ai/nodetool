@@ -10,6 +10,7 @@
 #include <QNetworkRequest>
 #include <QRegularExpression>
 #include <QUrlQuery>
+#include "nodetool/account/qt/ServerToken.h"
 
 namespace nodetool::node_editor {
 namespace {
@@ -196,7 +197,7 @@ void ExampleGallery::refresh() {
     request.setTransferTimeout(30000);
     // As the other server clients: a redirect never carries the token elsewhere.
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-    if (!token_.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); }
+    nodetool::account::qt::attachServerToken(request, origin_, token_);
     request.setRawHeader("x-user-id", user_.toUtf8());
     auto *reply = network_.get(request);
     connect(reply, &QNetworkReply::readyRead, this, [reply] {
@@ -271,7 +272,7 @@ void ExampleGallery::copy(const Row &row) {
     request.setTransferTimeout(30000);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    if (!token_.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); }
+    nodetool::account::qt::attachServerToken(request, origin_, token_);
     request.setRawHeader("x-user-id", user_.toUtf8());
     auto *reply = network_.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
     const auto epoch = epoch_;

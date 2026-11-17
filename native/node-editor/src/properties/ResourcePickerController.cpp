@@ -7,6 +7,7 @@
 #include <QSet>
 #include <QHttpMultiPart>
 #include <memory>
+#include "nodetool/account/qt/ServerToken.h"
 namespace nodetool::node_editor {
 ResourcePickerController::ResourcePickerController(QObject* parent) : QObject(parent), m_network(this) {}
 void ResourcePickerController::cancel(const QString& key) {
@@ -32,7 +33,7 @@ void ResourcePickerController::query(const QString& key, const QString& procedur
  QUrlQuery parameters; parameters.addQueryItem("input", QString::fromUtf8(QJsonDocument(input).toJson(QJsonDocument::Compact))); url.setQuery(parameters);
  QNetworkRequest request(url); request.setTransferTimeout(30000);
  request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
- if (!m_token.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8()); }
+ nodetool::account::qt::attachServerToken(request, m_origin, m_token);
  request.setRawHeader("x-user-id", m_user.toUtf8());
  auto* reply = m_network.get(request); m_replies.insert(key, reply);
  connect(reply, &QNetworkReply::readyRead, this, [reply] { if (reply->bytesAvailable() > 32 * 1024 * 1024) { reply->abort(); } });
@@ -182,9 +183,7 @@ void ResourcePickerController::createFolder(const QString& key, const QString& p
     request.setTransferTimeout(30000);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     request.setRawHeader("x-user-id", m_user.toUtf8());
-    if (!m_token.isEmpty()) {
-        request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
-    }
+    nodetool::account::qt::attachServerToken(request, m_origin, m_token);
     auto* reply = m_network.post(request, multipart.get());
     multipart.release()->setParent(reply);
     m_replies.insert(key, reply);

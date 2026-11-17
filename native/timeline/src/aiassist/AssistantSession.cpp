@@ -17,6 +17,7 @@
 #include <QThread>
 #include <QUuid>
 #include <cmath>
+#include "nodetool/account/qt/ServerToken.h"
 AssistantSession::AssistantSession(QObject *parent)
     : QObject(parent), m_planningTimeout(this),
       m_socket(QString(), QWebSocketProtocol::VersionLatest, this),
@@ -164,9 +165,7 @@ bool AssistantSession::connectServer() {
   url.setFragment(QString{});
   QNetworkRequest request(url);
   request.setRawHeader("X-Nodetool-Client", nt::server::kClientHeader);
-  if (!target->token.isEmpty()) {
-    request.setRawHeader("Authorization", "Bearer " + target->token.toUtf8());
-  }
+  nodetool::account::qt::attachServerToken(request, target->server, target->token);
   m_socket.open(request);
   return true;
 }

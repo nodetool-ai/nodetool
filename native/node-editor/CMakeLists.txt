@@ -286,7 +286,7 @@ if(BUILD_TESTING)
         src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h)
     node_editor_use_code_inference(node_editor_remaining_property_tests)
     target_include_directories(node_editor_remaining_property_tests PRIVATE src)
-    target_link_libraries(node_editor_remaining_property_tests PRIVATE Qt6::Network Qt6::Test Qt6::Quick Qt6::Widgets Qt6::Multimedia)
+    target_link_libraries(node_editor_remaining_property_tests PRIVATE nodetool_account_server_token Qt6::Network Qt6::Test Qt6::Quick Qt6::Widgets Qt6::Multimedia)
     qt_add_resources(node_editor_remaining_property_tests remaining_property_qml PREFIX /editor BASE qml FILES
         qml/RemainingResourcePropertyEditor.qml qml/PathPropertyEditor.qml qml/FilePropertyEditor.qml
         qml/ToolsPropertyEditor.qml qml/MediaParameterPropertyEditor.qml qml/AssetPropertyEditor.qml

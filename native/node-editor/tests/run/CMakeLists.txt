@@ -15,6 +15,7 @@ set_tests_properties(node_editor_run_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFO
 find_package(Qt6 REQUIRED COMPONENTS Network)
 add_executable(node_editor_preview_source_assets_tests PreviewSourceAssetsTests.cpp ../../src/run/PreviewSourceAssets.cpp ../../src/run/PreviewSourceAssets.h)
 target_include_directories(node_editor_preview_source_assets_tests PRIVATE ../../src)
+target_include_directories(node_editor_preview_source_assets_tests PRIVATE ../../../account/qt/include)
 target_link_libraries(node_editor_preview_source_assets_tests PRIVATE Qt6::Core Qt6::Network Qt6::Test)
 add_test(NAME node_editor_preview_source_assets_tests COMMAND node_editor_preview_source_assets_tests)
 add_executable(node_editor_bug_report_tests BugReportTest.cpp ../../src/run/BugReport.cpp ../../src/run/BugReport.h)
