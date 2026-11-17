@@ -983,12 +983,7 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Looking people up in the user directory serves inviting them, " +
       "which stays with the user."
   },
-  "projects.assignDocument": {
-    gap:
-      "Same grouping surface as `projects.create`. Moves one document " +
-      "between projects; both the document and the project are the " +
-      "caller's own rows."
-  },
+  "projects.assignDocument": { capability: "move_to_project" },
   "projects.archive": {
     elsewhere: "`update_project` with `archived: true` archives a project."
   },
@@ -1001,17 +996,7 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "project. The caller owns both sides, but no sandbox capability " +
       "yet exposes the operation-wide reference remapping contract."
   },
-  "projects.create": {
-    gap:
-      "A project groups documents that already carry its id, and a run " +
-      "reaches every one of those documents by its own capability. What " +
-      "is missing is the grouping itself — creating one, and reading the " +
-      "status and spend rollup `projects.get` derives. Work, not a " +
-      "boundary: nothing here is a credential, another tenant, or host " +
-      "control. Its optional `location` is a host path, so a capability " +
-      "that wraps this procedure must leave it out, for the reason " +
-      "`projects.openFolder` is withheld."
-  },
+  "projects.create": { capability: "create_project" },
   "projects.delete": { capability: "delete_project" },
   "projects.documentPage": {
     gap:

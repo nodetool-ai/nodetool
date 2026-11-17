@@ -10,7 +10,17 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { ModelObserver, Project, initTestDb } from "@nodetool-ai/models";
+import { mkdtemp, rm, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  Asset,
+  ModelObserver,
+  Project,
+  Setting,
+  Storyboard,
+  initTestDb
+} from "@nodetool-ai/models";
 import { module as projects } from "../src/capabilities/projects.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import {
@@ -23,7 +33,9 @@ import type { ProjectDeleter } from "../src/tools/mcp-tools.js";
 const NAMES = [
   "list_projects",
   "search_projects",
+  "create_project",
   "update_project",
+  "move_to_project",
   "delete_project"
 ] as const;
 
@@ -307,6 +319,121 @@ describe("projects capability behaviour", () => {
         project.id
       );
       expect(tombstone?.deleted_at).toBeTruthy();
+    });
+  });
+
+  describe("create and move", () => {
+    let root: string;
+
+    beforeEach(async () => {
+      root = await mkdtemp(join(tmpdir(), "projects-capability-"));
+      await Setting.upsert({ userId: "u1", key: "PROJECTS_DIR", value: root });
+    });
+
+    afterEach(async () => {
+      await rm(root, { recursive: true, force: true });
+    });
+
+    it("creates a project with its folder", async () => {
+      const result = (await run().invoke("create_project", {
+        name: "Woofly launch",
+        kind: "campaign"
+      })) as { project: { id: string; name: string; kind: string } };
+      expect(result.project.name).toBe("Woofly launch");
+      expect(result.project.kind).toBe("campaign");
+      expect((await stat(join(root, "Woofly launch"))).isDirectory()).toBe(true);
+      const row = await Project.findOwned("u1", result.project.id);
+      expect(row?.workspace_id).toBeTruthy();
+    });
+
+    it("refuses a blank name and the Personal kind", async () => {
+      expect(await run().invoke("create_project", { name: " " })).toEqual({
+        error: "name must be 1 to 200 characters."
+      });
+      const personal = (await run().invoke("create_project", {
+        name: "X",
+        kind: "personal"
+      })) as { error?: string };
+      expect(personal.error).toMatch(/reserved/);
+    });
+
+    it("moves an asset and a storyboard by short id", async () => {
+      await makeProject("dest-project", "Destination");
+      const asset = (await Asset.create({
+        user_id: "u1",
+        name: "dog.png",
+        content_type: "image/png",
+        project_id: "default"
+      })) as Asset;
+      const board = await Storyboard.create<Storyboard>({
+        user_id: "u1",
+        project_id: "default",
+        name: "Board",
+        document: JSON.stringify({ shots: [] })
+      });
+
+      expect(
+        await run().invoke("move_to_project", {
+          project_id: "dest-project",
+          type: "asset",
+          id: asset.id.slice(0, 12)
+        })
+      ).toEqual({
+        moved: true,
+        type: "asset",
+        id: asset.id,
+        project_id: "dest-project"
+      });
+      expect((await Asset.find("u1", asset.id))?.project_id).toBe(
+        "dest-project"
+      );
+
+      await run().invoke("move_to_project", {
+        project_id: "dest-project",
+        type: "storyboard",
+        id: board.id.slice(0, 12)
+      });
+      expect((await Storyboard.get<Storyboard>(board.id))?.project_id).toBe(
+        "dest-project"
+      );
+    });
+
+    it("reads another user's item or project as missing", async () => {
+      await makeProject("mine", "Mine");
+      await makeProject("theirs", "Theirs", { userId: "u2" });
+      const board = await Storyboard.create<Storyboard>({
+        user_id: "u2",
+        project_id: "theirs",
+        name: "Board",
+        document: JSON.stringify({ shots: [] })
+      });
+      expect(
+        await run().invoke("move_to_project", {
+          project_id: "theirs",
+          type: "storyboard",
+          id: board.id
+        })
+      ).toEqual({ error: "Project theirs was not found." });
+      expect(
+        await run().invoke("move_to_project", {
+          project_id: "mine",
+          type: "storyboard",
+          id: board.id
+        })
+      ).toEqual({ error: `storyboard ${board.id} was not found.` });
+      expect((await Storyboard.get<Storyboard>(board.id))?.project_id).toBe(
+        "theirs"
+      );
+    });
+
+    it("refuses an unknown type", async () => {
+      await makeProject("mine", "Mine");
+      const result = (await run().invoke("move_to_project", {
+        project_id: "mine",
+        type: "workflow",
+        id: "x"
+      })) as { error?: string };
+      expect(result.error).toBeTruthy();
     });
   });
 

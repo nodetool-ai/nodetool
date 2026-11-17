@@ -148,7 +148,9 @@ A project's conversations are chats filed under it, and the server can also hold
 |---|---|
 | `list_projects` | Lists your projects, newest first. Pass `archived` to list archived ones. |
 | `search_projects` | Finds projects by name or kind. Every word must match. |
+| `create_project` | Creates a project and its folder. |
 | `update_project` | Renames a project, changes its kind, or archives and restores it. |
+| `move_to_project` | Moves one asset, entity, storyboard, script, timeline, sketch, app or JS script into another project. A file in the project folder moves too. Workflows and games do not move this way. |
 | `delete_project` | Permanently deletes a project and reports what happened to its folder, as described above. It refuses the Personal project and the project the conversation belongs to. |
 
 The agent is told to confirm with you before deleting and to prefer archiving.

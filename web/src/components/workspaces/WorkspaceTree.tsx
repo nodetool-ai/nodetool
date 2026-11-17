@@ -6,7 +6,7 @@ import isEqual from "../../utils/isEqual";
 import { useQuery } from "@tanstack/react-query";
 import { FileInfo } from "../../stores/ApiTypes";
 import { trpcClient } from "../../trpc/client";
-import { Box, EditorButton, Skeleton, BORDER_RADIUS, MOTION, SPACING, getSpacingPx, PanelHeader, EmptyState, ContextMenu, MenuItemPrimitive } from "../ui_primitives";
+import { Box, EditorButton, Skeleton, BORDER_RADIUS, MOTION, SPACING, getSpacingPx, PanelHeader, EmptyState, ContextMenu, MenuItemPrimitive, FlexRow, ToolbarIconButton } from "../ui_primitives";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -511,6 +511,13 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
     setMenu(null);
   }, [menu, revealPath]);
 
+  const canOpenFolder = Boolean(revealPath && window.api?.shell?.openPath);
+  const handleOpenFolder = useCallback(() => {
+    if (revealPath) {
+      void window.api?.shell?.openPath?.(revealPath);
+    }
+  }, [revealPath]);
+
   const handleRefresh = useCallback(() => {
     refetchFiles();
   }, [refetchFiles]);
@@ -653,11 +660,21 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
         title={t("projectFolder.tree.title")}
         docsTopic="workspaces"
         actions={
-          <RefreshButton
-            onClick={handleRefresh}
-            tooltip={t("batch2_1.common.refresh")}
-            tooltipPlacement="bottom"
-          />
+          <FlexRow gap={SPACING.xs} align="center">
+            {canOpenFolder && (
+              <ToolbarIconButton
+                icon={<FolderOpenIcon />}
+                tooltip={t(revealLabelKey(fileManagerKind()))}
+                tooltipPlacement="bottom"
+                onClick={handleOpenFolder}
+              />
+            )}
+            <RefreshButton
+              onClick={handleRefresh}
+              tooltip={t("batch2_1.common.refresh")}
+              tooltipPlacement="bottom"
+            />
+          </FlexRow>
         }
       />
 

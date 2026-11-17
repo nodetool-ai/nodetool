@@ -1105,7 +1105,7 @@ const PanelLeft: React.FC = () => {
     activeView === "assets"
       ? "library"
       : isDocumentPanelView(activeView)
-        ? "documents"
+        ? "files"
       : isWorkflowEditOnlyView(activeView) && !isWorkflowEditActive
         ? "workflows"
         : activeView;
@@ -1139,8 +1139,8 @@ const PanelLeft: React.FC = () => {
   useEffect(() => {
     if (activeView === "assets") {
       setActiveView("library");
-    } else if (isDocumentPanelView(activeView) && activeView !== "documents") {
-      setActiveView("documents");
+    } else if (isDocumentPanelView(activeView)) {
+      setActiveView("files");
     } else if (!isWorkflowEditActive && isWorkflowEditOnlyView(activeView)) {
       setActiveView("workflows");
     }

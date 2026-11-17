@@ -130,7 +130,7 @@ export const usePanelStore = createResizablePanelStore<
   name: "left-panel-storage",
   version: 3,
   sizes: { drag: 60, min: 160, max: 800, initial: 500 },
-  defaultView: "documents",
+  defaultView: "files",
   isView: isLeftPanelView,
   persistVisibility: true,
   extraState: { activeNodeCategory: "all" },

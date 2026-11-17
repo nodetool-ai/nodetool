@@ -282,7 +282,9 @@ export function getAllMcpCapabilitySpecs(
     // projects. `delete_project` reads the host's injected deleter off the run.
     "list_projects",
     "search_projects",
+    "create_project",
     "update_project",
+    "move_to_project",
     "delete_project",
     // jobs
     "list_jobs",
