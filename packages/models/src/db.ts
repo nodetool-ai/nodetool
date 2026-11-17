@@ -6,6 +6,7 @@
  */
 
 import Database from "better-sqlite3";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import {
@@ -240,12 +241,84 @@ export function allowLegacyProjectWritesForTests(): boolean {
   return _allowLegacyProjectWritesForTests;
 }
 
+/**
+ * The transaction a `withTransaction` body runs in. PostgreSQL keeps the
+ * transaction's own handle. SQLite has one connection, so the handle is the
+ * connection itself and the store only marks the body as inside.
+ */
+interface AmbientTransaction {
+  connection: DatabaseConnection;
+}
+
+const ambient = new AsyncLocalStorage<AmbientTransaction>();
+// The SQLite transaction that is open now, if any. Code outside its body
+// that reaches the database while it is open would write into it.
+let _openSqliteTransaction: AmbientTransaction | null = null;
+
 /** The active driver and its own schema. Narrow the dialect before querying. */
 export function getDatabase(): DatabaseConnection {
   if (!_connection) {
     throw new Error("Database not initialized. Call initDb() or initPostgresDb() first.");
   }
+  const inside = ambient.getStore();
+  if (inside) return inside.connection;
+  if (_openSqliteTransaction) {
+    throw new Error(
+      "The database is inside a transaction that another task opened. " +
+        "A withTransaction body must not wait on anything but the database."
+    );
+  }
   return _connection;
+}
+
+/** Whether the caller runs inside a `withTransaction` body. */
+export function inTransaction(): boolean {
+  return ambient.getStore() !== undefined;
+}
+
+/**
+ * Runs `body` in one database transaction. Every query that reaches the
+ * database through `getDatabase()` or `getPortableDb()` inside the body,
+ * including those of model methods, runs in it. The transaction commits when
+ * the body resolves and rolls back when it throws. A call inside a body runs
+ * in the outer transaction.
+ *
+ * PostgreSQL runs the body in a driver transaction, so other requests keep
+ * their own connections meanwhile.
+ *
+ * SQLite has one connection that every request shares. The body starts at a
+ * new turn of the event loop, when nothing else is queued, and must await
+ * only database calls. Those complete without returning to the event loop,
+ * so no other request runs until the transaction ends. A body that waits on
+ * anything else, such as a file or the network, lets other requests run
+ * while it is open: their queries throw instead of writing into it.
+ */
+export async function withTransaction<T>(body: () => Promise<T>): Promise<T> {
+  if (ambient.getStore()) return body();
+  const connection = getDatabase();
+  if (connection.dialect === "postgres") {
+    return connection.db.transaction(async (tx) =>
+      ambient.run({ connection: { ...connection, db: tx } }, body)
+    );
+  }
+  const sqlite = _sqlite;
+  if (!sqlite) {
+    throw new Error("withTransaction needs the SQLite connection that initDb() opened.");
+  }
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  const store: AmbientTransaction = { connection };
+  sqlite.exec("BEGIN IMMEDIATE");
+  _openSqliteTransaction = store;
+  try {
+    const result = await ambient.run(store, body);
+    sqlite.exec("COMMIT");
+    return result;
+  } catch (error) {
+    if (sqlite.inTransaction) sqlite.exec("ROLLBACK");
+    throw error;
+  } finally {
+    _openSqliteTransaction = null;
+  }
 }
 
 /**

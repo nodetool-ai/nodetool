@@ -53,6 +53,7 @@ import {
 } from "./schema/application-budgets.js";
 import type { SharedDocumentType } from "./document-sharing.js";
 import { Thread } from "./thread.js";
+import { changingAccess } from "./access-epoch.js";
 
 /** The bucket documents land in when no project is active. */
 export const LOOSE_PROJECT_ID = "default";
@@ -437,17 +438,19 @@ export class Project extends DBModel {
     userId: string,
     id: string
   ): Promise<Project | null> {
-    const row = await Project.findOwnedIncludingDeleted(userId, id);
-    if (!row || row.kind === PERSONAL_PROJECT_KIND) return null;
-    if (row.deleted_at) return row;
-    const now = new Date().toISOString();
-    const db = getPortableDb();
-    const [updated] = await db
-      .update(projects)
-      .set({ deleted_at: now, archived_at: null, updated_at: now })
-      .where(and(eq(projects.id, row.id), eq(projects.user_id, userId)))
-      .returning();
-    return updated ? new Project(updated) : null;
+    return changingAccess([{ kind: "project", id }], async () => {
+      const row = await Project.findOwnedIncludingDeleted(userId, id);
+      if (!row || row.kind === PERSONAL_PROJECT_KIND) return null;
+      if (row.deleted_at) return row;
+      const now = new Date().toISOString();
+      const db = getPortableDb();
+      const [updated] = await db
+        .update(projects)
+        .set({ deleted_at: now, archived_at: null, updated_at: now })
+        .where(and(eq(projects.id, row.id), eq(projects.user_id, userId)))
+        .returning();
+      return updated ? new Project(updated) : null;
+    });
   }
 
   /**
@@ -656,62 +659,64 @@ export class Project extends DBModel {
 
   /** Delete all project-owned rows and leave a tombstone for late run writes. */
   static async deleteOwned(userId: string, id: string): Promise<boolean> {
-    // `get` resolves a short resource id. Every write below must use the full
-    // id, or it matches no row and the delete silently does nothing.
-    const row = await Project.findOwnedIncludingDeleted(userId, id);
-    if (!row) return false;
-    if (row.kind === PERSONAL_PROJECT_KIND) return false;
-    const projectId = row.id;
-    const db = getPortableDb();
-    const now = new Date().toISOString();
-    await Project.tombstoneOwned(userId, projectId);
+    return changingAccess([{ kind: "project", id }], async () => {
+      // `get` resolves a short resource id. Every write below must use the full
+      // id, or it matches no row and the delete silently does nothing.
+      const row = await Project.findOwnedIncludingDeleted(userId, id);
+      if (!row) return false;
+      if (row.kind === PERSONAL_PROJECT_KIND) return false;
+      const projectId = row.id;
+      const db = getPortableDb();
+      const now = new Date().toISOString();
+      await Project.tombstoneOwned(userId, projectId);
 
-    // Mark active jobs before removing them. Their runner observes
-    // cancellation, and the tombstone blocks delayed output writes.
-    await db
-      .update(jobs)
-      .set({ status: "cancelled", finished_at: now, updated_at: now })
-      .where(
-        and(
-          eq(jobs.user_id, userId),
-          eq(jobs.project_id, projectId),
-          notInArray(jobs.status, ["completed", "failed", "cancelled"])
-        )
-      );
+      // Mark active jobs before removing them. Their runner observes
+      // cancellation, and the tombstone blocks delayed output writes.
+      await db
+        .update(jobs)
+        .set({ status: "cancelled", finished_at: now, updated_at: now })
+        .where(
+          and(
+            eq(jobs.user_id, userId),
+            eq(jobs.project_id, projectId),
+            notInArray(jobs.status, ["completed", "failed", "cancelled"])
+          )
+        );
 
-    const owner = userId.replace(/'/g, "''");
-    const project = projectId.replace(/'/g, "''");
-    await executeRaw(
-      `DELETE FROM nodetool_messages WHERE thread_id IN (SELECT id FROM nodetool_threads WHERE user_id = '${owner}' AND project_id = '${project}') RETURNING id`
-    );
-    await executeRaw(
-      `DELETE FROM nodetool_memories WHERE user_id = '${owner}' AND thread_id IN (SELECT id FROM nodetool_threads WHERE user_id = '${owner}' AND project_id = '${project}') RETURNING id`
-    );
-    await removeProjectDependents(owner, project);
-    // This mirrors the complete ownership inventory. Global credentials,
-    // templates, and copies in other projects carry no matching project id.
-    for (const table of [
-      "storyboards",
-      "scripts",
-      "timeline_sequences",
-      "image_documents",
-      "applications",
-      "js_scripts",
-      "games",
-      "nodetool_assets",
-      "nodetool_workflows",
-      "nodetool_threads",
-      "nodetool_jobs",
-      "nodetool_workspaces",
-      "nodetool_predictions",
-      // The blob cleanup deletes the objects no row names any more.
-      "project_blobs"
-    ]) {
+      const owner = userId.replace(/'/g, "''");
+      const project = projectId.replace(/'/g, "''");
       await executeRaw(
-        `DELETE FROM ${table} WHERE user_id = '${owner}' AND project_id = '${project}' RETURNING id`
+        `DELETE FROM nodetool_messages WHERE thread_id IN (SELECT id FROM nodetool_threads WHERE user_id = '${owner}' AND project_id = '${project}') RETURNING id`
       );
-    }
-    return true;
+      await executeRaw(
+        `DELETE FROM nodetool_memories WHERE user_id = '${owner}' AND thread_id IN (SELECT id FROM nodetool_threads WHERE user_id = '${owner}' AND project_id = '${project}') RETURNING id`
+      );
+      await removeProjectDependents(owner, project);
+      // This mirrors the complete ownership inventory. Global credentials,
+      // templates, and copies in other projects carry no matching project id.
+      for (const table of [
+        "storyboards",
+        "scripts",
+        "timeline_sequences",
+        "image_documents",
+        "applications",
+        "js_scripts",
+        "games",
+        "nodetool_assets",
+        "nodetool_workflows",
+        "nodetool_threads",
+        "nodetool_jobs",
+        "nodetool_workspaces",
+        "nodetool_predictions",
+        // The blob cleanup deletes the objects no row names any more.
+        "project_blobs"
+      ]) {
+        await executeRaw(
+          `DELETE FROM ${table} WHERE user_id = '${owner}' AND project_id = '${project}' RETURNING id`
+        );
+      }
+      return true;
+    });
   }
 
   static async archiveOwned(

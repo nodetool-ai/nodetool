@@ -13,6 +13,8 @@ export {
   migrateSqliteDb,
   initMigratedDb,
   getPortableDb,
+  inTransaction,
+  withTransaction,
   getDb,
   getDatabase,
   getDbType,
@@ -831,3 +833,10 @@ export {
   type StorageAllowanceStatus,
   type StorageUse
 } from "./storage-accounting.js";
+export {
+  bumpAccessEpochs,
+  changingAccess,
+  lockAccessEpochs,
+  projectAccessKey,
+  type AccessKey
+} from "./access-epoch.js";

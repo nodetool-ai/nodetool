@@ -42,6 +42,7 @@ import {
   documentRetentionDays,
   type DependentTable
 } from "./deleted-document.js";
+import { changingAccess } from "./access-epoch.js";
 
 export type AccessLevel = "private" | "public";
 export type { WorkflowRunMode };
@@ -555,31 +556,33 @@ export class Workflow extends DBModel {
    * workflow its holder was never given.
    */
   static async deleteOwned(userId: string, id: string): Promise<boolean> {
-    const wf = await Workflow.get<Workflow>(id);
-    if (!wf || wf.user_id !== userId) return false;
-    // Kept first, so a failure before the delete never loses the workflow.
-    if (documentRetentionDays() !== null) {
-      await retainDeletedDocument({
-        kind: "workflow",
-        documentId: wf.id,
-        userId,
-        projectId: wf.project_id,
-        name: wf.name,
-        payload: { row: wf.toRow(), dependents: await readDependents(workflowDependents(wf.id)) }
-      });
-    }
-    await wf.delete();
-    // `id` may be a 12-character prefix; the dependent rows key on the full id.
-    await WorkflowCollaborator.removeAllForWorkflow(wf.id);
-    await WorkflowShare.removeAllForWorkflow(wf.id);
-    await DocumentRefs.removeForDocument("workflow", wf.id);
-    // No foreign key ties registrations to the workflow, so a deleted
-    // workflow's webhook kept accepting events and its file watch kept firing.
-    await TriggerRegistration.deleteByWorkflow(wf.id);
-    // Version rows hold full graph snapshots; left behind they kept the
-    // deleted workflow's content (and any secrets typed into it) on disk.
-    await WorkflowVersion.deleteForWorkflow(wf.id);
-    return true;
+    return changingAccess([{ kind: "workflow", id }], async () => {
+      const wf = await Workflow.get<Workflow>(id);
+      if (!wf || wf.user_id !== userId) return false;
+      // Kept first, so a failure before the delete never loses the workflow.
+      if (documentRetentionDays() !== null) {
+        await retainDeletedDocument({
+          kind: "workflow",
+          documentId: wf.id,
+          userId,
+          projectId: wf.project_id,
+          name: wf.name,
+          payload: { row: wf.toRow(), dependents: await readDependents(workflowDependents(wf.id)) }
+        });
+      }
+      await wf.delete();
+      // `id` may be a 12-character prefix; the dependent rows key on the full id.
+      await WorkflowCollaborator.removeAllForWorkflow(wf.id);
+      await WorkflowShare.removeAllForWorkflow(wf.id);
+      await DocumentRefs.removeForDocument("workflow", wf.id);
+      // No foreign key ties registrations to the workflow, so a deleted
+      // workflow's webhook kept accepting events and its file watch kept firing.
+      await TriggerRegistration.deleteByWorkflow(wf.id);
+      // Version rows hold full graph snapshots; left behind they kept the
+      // deleted workflow's content (and any secrets typed into it) on disk.
+      await WorkflowVersion.deleteForWorkflow(wf.id);
+      return true;
+    });
   }
 
   static async paginate(

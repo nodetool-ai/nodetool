@@ -43,6 +43,7 @@ import {
 } from "./deleted-document.js";
 import { documentCollaborators, documentShares } from "./schema/document-sharing.js";
 import { DocumentRefs } from "./document-refs.js";
+import { changingAccess } from "./access-epoch.js";
 
 export class TimelineSequenceConflictError extends Error {
   constructor(id: string) {
@@ -399,45 +400,47 @@ export class TimelineSequence extends DBModel {
     id: string,
     projectId: string
   ): Promise<boolean> {
-    const db = getPortableDb();
-    const [before] = await db
-      .select()
-      .from(timelineSequences)
-      .where(
-        and(eq(timelineSequences.id, id), eq(timelineSequences.user_id, userId))
-      )
-      .limit(1);
-    if (!before) return false;
-    const moves = before.project_id !== projectId;
-    if (moves) {
-      await assertDocumentFileMayLeave(
-        timelineFileSync,
-        new TimelineSequence(before)
+    return changingAccess([{ kind: "timeline", id }], async () => {
+      const db = getPortableDb();
+      const [before] = await db
+        .select()
+        .from(timelineSequences)
+        .where(
+          and(eq(timelineSequences.id, id), eq(timelineSequences.user_id, userId))
+        )
+        .limit(1);
+      if (!before) return false;
+      const moves = before.project_id !== projectId;
+      if (moves) {
+        await assertDocumentFileMayLeave(
+          timelineFileSync,
+          new TimelineSequence(before)
+        );
+      }
+      const rows = await db
+        .update(timelineSequences)
+        .set({
+          project_id: projectId,
+          // A host with no file sync cannot take the file along. The path and
+          // the hash name a file of the folder the timeline left, so the row
+          // forgets them and the reconcile of its new folder writes a file.
+          ...(!timelineFileSync &&
+            moves && { file_path: null, file_hash: null, file_error: null })
+        })
+        .where(
+          and(eq(timelineSequences.id, id), eq(timelineSequences.user_id, userId))
+        )
+        .returning();
+      const row = rows[0];
+      if (!row) return false;
+      const moved = new TimelineSequence(row);
+      await moved.syncFile(
+        before.file_path && moves
+          ? { project_id: before.project_id, file_path: before.file_path }
+          : null
       );
-    }
-    const rows = await db
-      .update(timelineSequences)
-      .set({
-        project_id: projectId,
-        // A host with no file sync cannot take the file along. The path and
-        // the hash name a file of the folder the timeline left, so the row
-        // forgets them and the reconcile of its new folder writes a file.
-        ...(!timelineFileSync &&
-          moves && { file_path: null, file_hash: null, file_error: null })
-      })
-      .where(
-        and(eq(timelineSequences.id, id), eq(timelineSequences.user_id, userId))
-      )
-      .returning();
-    const row = rows[0];
-    if (!row) return false;
-    const moved = new TimelineSequence(row);
-    await moved.syncFile(
-      before.file_path && moves
-        ? { project_id: before.project_id, file_path: before.file_path }
-        : null
-    );
-    return true;
+      return true;
+    });
   }
 
   override beforeSave(): void {
@@ -544,26 +547,28 @@ export class TimelineSequence extends DBModel {
    * Missing and not-yours are the same answer, so a caller cannot probe ids.
    */
   static async deleteOwned(userId: string, id: string): Promise<boolean> {
-    const row = await TimelineSequence.findById(id);
-    if (!row || row.user_id !== userId) return false;
-    // Kept first, so a failure before the delete never loses the timeline.
-    if (documentRetentionDays() !== null) {
-      await retainDeletedDocument({
-        kind: "timeline",
-        documentId: row.id,
-        userId,
-        projectId: row.project_id,
-        name: row.name,
-        payload: { row: row.toRow(), dependents: await readDependents(timelineDependents(row.id)) }
-      });
-    }
-    await row.delete();
-    await removeDocumentSharing("timeline", row.id);
-    await DocumentRefs.removeForDocument("timeline", row.id);
-    // Belt-and-braces with the FK cascade: version rows outliving their
-    // document would be unreachable garbage.
-    await TimelineSequenceVersion.deleteForTimeline(row.id);
-    return true;
+    return changingAccess([{ kind: "timeline", id }], async () => {
+      const row = await TimelineSequence.findById(id);
+      if (!row || row.user_id !== userId) return false;
+      // Kept first, so a failure before the delete never loses the timeline.
+      if (documentRetentionDays() !== null) {
+        await retainDeletedDocument({
+          kind: "timeline",
+          documentId: row.id,
+          userId,
+          projectId: row.project_id,
+          name: row.name,
+          payload: { row: row.toRow(), dependents: await readDependents(timelineDependents(row.id)) }
+        });
+      }
+      await row.delete();
+      await removeDocumentSharing("timeline", row.id);
+      await DocumentRefs.removeForDocument("timeline", row.id);
+      // Belt-and-braces with the FK cascade: version rows outliving their
+      // document would be unreachable garbage.
+      await TimelineSequenceVersion.deleteForTimeline(row.id);
+      return true;
+    });
   }
 
   static async findById(id: string): Promise<TimelineSequence | null> {
