@@ -19,6 +19,8 @@ class PanelLayout : public QObject {
     // The workflow browser, the documents view of the rail.
     Q_PROPERTY(bool browserVisible READ browserVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool chatVisible READ chatVisible NOTIFY panelsChanged)
+    // The project folder tree (NodeTool.Files).
+    Q_PROPERTY(bool filesVisible READ filesVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool libraryVisible READ libraryVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool examplesVisible READ examplesVisible NOTIFY panelsChanged)
     // The node library.
@@ -38,6 +40,7 @@ public:
     struct Panels {
         bool browser = false;
         bool chat = false;
+        bool files = false;
         bool library = false;
         bool examples = false;
         bool catalog = false;
@@ -57,6 +60,7 @@ public:
 
     bool browserVisible() const { return panels_.browser; }
     bool chatVisible() const { return panels_.chat; }
+    bool filesVisible() const { return panels_.files; }
     bool libraryVisible() const { return panels_.library; }
     bool examplesVisible() const { return panels_.examples; }
     bool catalogVisible() const { return panels_.catalog; }
@@ -75,6 +79,7 @@ public:
     Q_INVOKABLE void showProjects(const QPointF &global) { emit projectsRequested(global); }
     Q_INVOKABLE void toggleBrowser() { emit toggleBrowserRequested(); }
     Q_INVOKABLE void toggleChat() { emit toggleChatRequested(); }
+    Q_INVOKABLE void toggleFiles() { emit toggleFilesRequested(); }
     Q_INVOKABLE void toggleLibrary() { emit toggleLibraryRequested(); }
     Q_INVOKABLE void toggleExamples() { emit toggleExamplesRequested(); }
     Q_INVOKABLE void toggleCatalog() { emit toggleCatalogRequested(); }
@@ -91,6 +96,7 @@ signals:
     void projectsRequested(const QPointF &global);
     void toggleBrowserRequested();
     void toggleChatRequested();
+    void toggleFilesRequested();
     void toggleLibraryRequested();
     void toggleExamplesRequested();
     void toggleCatalogRequested();

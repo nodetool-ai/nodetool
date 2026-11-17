@@ -111,9 +111,12 @@ void EditorWindow::initializePanels() {
   connect(&session_, &node_editor::WorkflowSession::workspaceFilesChanged, &library_, &node_editor::LibraryBrowser::workspaceFilesChanged);
   connect(&session_, &node_editor::WorkflowSession::documentFileChanged, &browser_, &node_editor::WorkflowBrowser::documentFileChanged);
   connect(&session_, &node_editor::WorkflowSession::documentFileChanged, &projectFolder_, &node_editor::ProjectFolder::documentFileChanged);
+  connect(&session_, &node_editor::WorkflowSession::workspaceFilesChanged, &projectFiles_, &files::ProjectFiles::workspaceFilesChanged);
   connect(&projectFolder_, &node_editor::ProjectFolder::changed, this, [this] {
     library_.setProject(projectFolder_.projectId());
     library_.setProjectWorkspace(projectFolder_.workspaceId());
+    // Reveal needs the folder on this machine, as ProjectFolder::revealable says.
+    projectFiles_.setFolder(projectFolder_.workspaceId(), projectFolder_.revealable() ? projectFolder_.folderPath() : QString());
   });
   syncOpenProject();
   connect(this, &EditorWindow::documentEpochChanged, this, [this] {

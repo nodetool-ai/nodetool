@@ -70,6 +70,13 @@ Rectangle {
             onActivated: root.panels.toggleChat()
         }
         RailEntry {
+            objectName: "rail-files"
+            label: "Files"
+            glyph: "folderOutlined"
+            active: root.panels.filesVisible
+            onActivated: root.panels.toggleFiles()
+        }
+        RailEntry {
             objectName: "rail-library"
             label: "Library"
             glyph: "collectionsOutlined"

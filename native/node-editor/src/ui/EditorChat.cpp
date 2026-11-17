@@ -13,6 +13,7 @@
 Q_IMPORT_QML_PLUGIN(NodeTool_ChatPlugin)
 Q_IMPORT_QML_PLUGIN(NodeTool_ModelPickerPlugin)
 Q_IMPORT_QML_PLUGIN(NodeTool_NodeEditorPlugin)
+Q_IMPORT_QML_PLUGIN(NodeTool_FilesPlugin)
 
 namespace nodetool {
 nt::chat::ChatSession *EditorWindow::chatSession() {

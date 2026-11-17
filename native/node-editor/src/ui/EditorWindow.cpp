@@ -331,6 +331,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&panelLayout_, &node_editor::PanelLayout::toggleChatRequested, this, &EditorWindow::toggleChat);
   connect(&panelLayout_, &node_editor::PanelLayout::toggleLibraryRequested, this, [this] { action("Library"); });
   connect(&panelLayout_, &node_editor::PanelLayout::toggleExamplesRequested, this, [this] { action("Examples"); });
+  connect(&panelLayout_, &node_editor::PanelLayout::toggleFilesRequested, this, [this] { action("Files"); });
   connect(&panelLayout_, &node_editor::PanelLayout::projectsRequested, this, &EditorWindow::showProjectMenu);
   connect(&panelLayout_, &node_editor::PanelLayout::toggleCatalogRequested, this, [this] { action("Toggle nodes"); });
   connect(&panelLayout_, &node_editor::PanelLayout::toggleInspectorRequested, this, [this] { action("Toggle inspector"); });
@@ -395,6 +396,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     previewAssets_.configure(origin, token, userId);
     library_.configure(origin, token, userId);
     projectFolder_.configure(origin, token, userId);
+    projectFiles_.configure(origin, token, userId);
     exampleGallery_.configure(origin, token, userId);
     if (browserVisible() && !origin.isEmpty()) { loadBrowser(); }
     if (libraryVisible()) { library_.refresh(); }
@@ -778,6 +780,14 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   libraryProperties.insert("library", QVariant::fromValue(&library_));
   libraryProperties.insert("assets", QVariant::fromValue<QObject *>(&assetPicker_));
   libraryProperties.insert("folder", QVariant::fromValue(&projectFolder_));
+  // The project folder tree, as the web left panel's Files view.
+  filesDock_ = dock(tr("Files"), QStringLiteral("qrc:/qt/qml/NodeTool/Files/FilesPanel.qml"), Qt::LeftDockWidgetArea,
+                    {{"files", QVariant::fromValue(&projectFiles_)}});
+  filesDock_->setObjectName("files-dock");
+  filesDock_->hide();
+  if (auto *files = qobject_cast<QQuickWidget *>(filesDock_->widget()); files && files->rootObject()) {
+    connect(files->rootObject(), SIGNAL(closeRequested()), this, SLOT(toggleFiles()));
+  }
   libraryDock_ = dock(tr("Library"), "LibraryPanel", Qt::LeftDockWidgetArea, libraryProperties);
   libraryDock_->setObjectName("library-dock");
   libraryDock_->hide();
@@ -1265,7 +1275,8 @@ QQuickWidget *EditorWindow::panel(const QString &file, const QVariantMap &proper
     if (!properties.isEmpty()) {
         w->setInitialProperties(properties);
     }
-  w->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/" + file + ".qml"));
+  // A panel from another module names its whole resource URL.
+  w->setSource(file.startsWith(QLatin1String("qrc:")) ? QUrl(file) : QUrl("qrc:/qt/qml/NodeTool/NodeEditor/" + file + ".qml"));
   return w;
 }
 QString EditorWindow::serverSaveState() const {
@@ -1639,6 +1650,8 @@ void EditorWindow::syncRuntimePreviews() {
 }
 bool EditorWindow::browserVisible() const {
   if (!tabOwner_) { return activeEditor_->browserVisible(); } return browserDock_ && !browserDock_->isHidden(); }
+bool EditorWindow::filesVisible() const {
+  if (!tabOwner_) { return activeEditor_->filesVisible(); } return filesDock_ && !filesDock_->isHidden(); }
 bool EditorWindow::libraryVisible() const {
   if (!tabOwner_) { return activeEditor_->libraryVisible(); } return libraryDock_ && !libraryDock_->isHidden(); }
 bool EditorWindow::examplesVisible() const {
@@ -1657,6 +1670,7 @@ void EditorWindow::showBrowser(bool visible) {
   if (visible) {
     browserRestoreCatalog_ = catalogVisible();
     catalogPanel_->hide();
+    if (filesDock_) { filesDock_->hide(); }
     if (libraryDock_) { libraryDock_->hide(); }
     if (examplesDock_) { examplesDock_->hide(); }
     inspectorDock_->hide();
@@ -2760,6 +2774,7 @@ void EditorWindow::syncChrome() {
   workflowHeader_.setActions(enabled, source->instantUpdate_, mouseNavigation());
   panelLayout_.setPanels({.browser = browserVisible(),
                           .chat = chatVisible(),
+                          .files = filesVisible(),
                           .library = libraryVisible(),
                           .examples = examplesVisible(),
                           .catalog = catalogVisible(),
@@ -3369,6 +3384,24 @@ void EditorWindow::openExample(const QString &resource) {
         editor->refresh();
     }
 }
+void EditorWindow::toggleFiles() {
+    if (!tabOwner_) { activeEditor_->toggleFiles(); return; }
+    if (!filesDock_) { return; }
+    // Files shares the left side with the other views of the web left panel.
+    if (filesDock_->isHidden()) {
+        showBrowser(false);
+        catalogPanel_->hide();
+        if (libraryDock_) { libraryDock_->hide(); }
+        if (examplesDock_) { examplesDock_->hide(); }
+        filesDock_->show();
+        projectFolder_.refresh();
+        if (projectFiles_.hasFolder() && !projectFiles_.loading()) { projectFiles_.refresh(); }
+    } else {
+        filesDock_->hide();
+    }
+    schedulePanelChanged();
+    scheduleViewportSettle();
+}
 void EditorWindow::toggleExamples() {
     if (!tabOwner_) { activeEditor_->toggleExamples(); return; }
     if (!examplesDock_) { return; }
@@ -3377,6 +3410,7 @@ void EditorWindow::toggleExamples() {
     if (examplesDock_->isHidden()) {
         showBrowser(false);
         catalogPanel_->hide();
+        if (filesDock_) { filesDock_->hide(); }
         if (libraryDock_) { libraryDock_->hide(); }
         examplesDock_->show();
         if (exampleGallery_.connected() && !exampleGallery_.loading()) { exampleGallery_.refresh(); }
@@ -3748,6 +3782,10 @@ void EditorWindow::action(const QString &name) {
       toggleExamples();
       return;
     }
+    if (filesVisible()) {
+      toggleFiles();
+      return;
+    }
     action("Toggle nodes");
     return;
   }
@@ -3762,6 +3800,7 @@ void EditorWindow::action(const QString &name) {
   if (name == "Toggle nodes") {
     if (browserVisible()) { showBrowser(false); catalogPanel_->show(); return; }
     if (examplesVisible()) { toggleExamples(); catalogPanel_->show(); return; }
+    if (filesVisible()) { toggleFiles(); catalogPanel_->show(); return; }
     catalogAutoHidden_ = false;
     catalogPanel_->setVisible(!catalogVisible());
     return;
@@ -3908,6 +3947,7 @@ void EditorWindow::action(const QString &name) {
     if (show) {
       showBrowser(false); catalogPanel_->hide();
       if (examplesDock_) { examplesDock_->hide(); }
+      if (filesDock_) { filesDock_->hide(); }
       libraryDock_->show(); library_.refresh(); projectFolder_.refresh();
     }
     else if (libraryDock_) { libraryDock_->hide(); }
@@ -3917,6 +3957,10 @@ void EditorWindow::action(const QString &name) {
   }
   if (name == "Examples") {
     toggleExamples();
+    return;
+  }
+  if (name == "Files") {
+    toggleFiles();
     return;
   }
   if (name == "Server Open" || name == "Open" || name == "Workflows") {

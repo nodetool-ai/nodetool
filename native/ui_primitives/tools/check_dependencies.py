@@ -21,6 +21,14 @@ FORBIDDEN_STORYBOARD = re.compile(
     r'(?:^|[\s/"\'])web/|'
     r'(?:\.\./)+(?:timeline|chat|web|packages)(?:[/\s"\']|$)|'
     r'\b(?:npm|npx|yarn|pnpm)\s+(?:run|install|exec|build)\b', re.MULTILINE)
+# The Files package talks to the server itself, so it may use Qt Network, and
+# neither host app may leak into it.
+FORBIDDEN_FILES = re.compile(
+    r'NodeTool\.(?:Timeline|Chat|ModelPicker|NodeEditor|Media)|'
+    r'\b(?:FFmpeg|FFMPEG|GuiPrivate|QRhi|node_modules)\b|'
+    r'(?:^|[\s/"\'])web/|'
+    r'(?:\.\./)+(?:timeline|chat|model-picker|node-editor|media|web|packages)(?:[/\s"\']|$)|'
+    r'\b(?:npm|npx|yarn|pnpm)\s+(?:run|install|exec|build)\b', re.MULTILINE)
 ARGUMENTS = re.compile(r'#[^\n]*|"(?:\\.|[^"\\])*"|[()]|[^\s()"]+')
 
 
@@ -57,6 +65,14 @@ def module_policy(module):
             'qml_imports': {'NodeTool.UiPrimitives', 'NodeTool.Media'},
             'targets': {'nodetool_ui_primitives', 'nodetool_ui_primitivesplugin', 'nodetool_media', 'nodetool_mediaplugin'},
             'forbidden': FORBIDDEN,
+        }
+    if module.name == 'files':
+        return {
+            'subdirs': {'../ui_primitives'},
+            'qml_imports': {'NodeTool.UiPrimitives', 'NodeTool.Files'},
+            'targets': {'nodetool_ui_primitives', 'nodetool_ui_primitivesplugin', 'nodetool_files', 'nodetool_filesplugin'},
+            'qt': {'Network'},
+            'forbidden': FORBIDDEN_FILES,
         }
     if module.name == 'entities':
         return {
@@ -245,7 +261,7 @@ def audit_module(module):
         if path.suffix == '.cmake' or path.name == 'CMakeLists.txt':
             errors.extend('{}: {}'.format(label, error) for error in cmake_path_errors(text, path, module, policy['subdirs']))
             for qt_target in re.findall(r'Qt6::([A-Za-z0-9_]+)', text):
-                if qt_target not in ALLOWED_QT:
+                if qt_target not in ALLOWED_QT | policy.get('qt', set()):
                     errors.append('{}: forbidden Qt dependency {}'.format(label, qt_target))
             for command in re.findall(r'\b(?:execute_process|add_custom_command|add_custom_target)\s*\(([^)]*)\)', text, re.DOTALL):
                 if re.search(r'\b(?:node|npm|npx|yarn|pnpm)\b', command):
@@ -256,7 +272,7 @@ def audit_module(module):
                         continue
                     if target in policy['targets']:
                         continue
-                    if target.startswith('Qt6::') and target[5:] in ALLOWED_QT:
+                    if target.startswith('Qt6::') and target[5:] in ALLOWED_QT | policy.get('qt', set()):
                         continue
                     errors.append('{}: external link target {}'.format(label, target))
     return files, errors
@@ -266,7 +282,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--module-root', type=Path, default=None)
     args = parser.parse_args()
-    roots = [args.module_root] if args.module_root is not None else [MODULE, MODULE.parent / 'media', MODULE.parent / 'entities', MODULE.parent / 'storyboard']
+    roots = [args.module_root] if args.module_root is not None else [MODULE, MODULE.parent / 'media', MODULE.parent / 'entities', MODULE.parent / 'storyboard', MODULE.parent / 'files']
     files = []
     errors = []
     for root in roots:

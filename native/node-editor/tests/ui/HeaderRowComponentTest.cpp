@@ -138,6 +138,7 @@ private slots:
         panels.setPanels({.library = true});
         QSignalSpy browser(&panels, &PanelLayout::toggleBrowserRequested);
         QSignalSpy chat(&panels, &PanelLayout::toggleChatRequested);
+        QSignalSpy files(&panels, &PanelLayout::toggleFilesRequested);
         QSignalSpy library(&panels, &PanelLayout::toggleLibraryRequested);
         QSignalSpy examples(&panels, &PanelLayout::toggleExamplesRequested);
         QSignalSpy catalog(&panels, &PanelLayout::toggleCatalogRequested);
@@ -154,6 +155,8 @@ private slots:
         QTRY_COMPARE(browser.size(), 1);
         click(view, button("rail-chats"));
         QTRY_COMPARE(chat.size(), 1);
+        click(view, button("rail-files"));
+        QTRY_COMPARE(files.size(), 1);
         click(view, button("rail-library"));
         QTRY_COMPARE(library.size(), 1);
         click(view, button("rail-examples"));
@@ -171,6 +174,8 @@ private slots:
         click(view, button("rail-projects"));
         QTRY_COMPARE(projects.size(), 1);
 
+        panels.setPanels({.files = true});
+        QTRY_VERIFY(button("rail-files")->property("active").toBool());
         panels.setPanels({.examples = true});
         QTRY_VERIFY(button("rail-examples")->property("active").toBool());
         panels.setPanels({.catalog = true});

@@ -175,6 +175,9 @@ endif()
 if(NOT TARGET nodetool_media)
     add_subdirectory(../media ${CMAKE_CURRENT_BINARY_DIR}/media)
 endif()
+if(NOT TARGET nodetool_files)
+    add_subdirectory(../files ${CMAKE_CURRENT_BINARY_DIR}/files)
+endif()
 if(NOT TARGET nodetool_entities)
     add_subdirectory(../entities ${CMAKE_CURRENT_BINARY_DIR}/entities)
 endif()
@@ -267,7 +270,7 @@ qt_add_shaders(timeline_qml timeline_compositor_shaders
 list(REMOVE_DUPLICATES NT_qml_includes)
 target_include_directories(timeline_qml PUBLIC src/model src/playback src/preview src/ui src/edit ${NT_qml_includes})
 target_link_libraries(timeline_qml PUBLIC timeline_core timeline_decode timeline_audio
-    nodetool_model_picker nodetool_media nodetool_entities nodetool_storyboard nodetool_chat nodetool_account_qt Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
+    nodetool_model_picker nodetool_media nodetool_files nodetool_entities nodetool_storyboard nodetool_chat nodetool_account_qt Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
 
 function(nt_add_timeline_qml target)
     # OUTPUT_DIRECTORY belonged to the former per-executable module. Keep the
@@ -283,7 +286,7 @@ function(nt_add_timeline_qml target)
     set_property(TARGET ${target} PROPERTY SOURCES "${host_sources}")
     nodetool_use_ui_primitives(${target})
     target_link_libraries(${target} PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,timeline_qml>"
-        nodetool_model_pickerplugin nodetool_mediaplugin nodetool_entitiesplugin nodetool_storyboardplugin nodetool_chatplugin)
+        nodetool_model_pickerplugin nodetool_mediaplugin nodetool_filesplugin nodetool_entitiesplugin nodetool_storyboardplugin nodetool_chatplugin)
 endfunction()
 nt_add_timeline_qml(nodetool-timeline)
 # Compile-only check of the Linux hardware path on macOS: with a

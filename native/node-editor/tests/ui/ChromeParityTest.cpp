@@ -316,10 +316,10 @@ private slots:
         EditorWindow window;
         show(window, fixture()["metadata"].toArray());
         auto *rail = panel(window, QStringLiteral("Rail"));
-        const QStringList names{"rail-projects", "rail-documents", "rail-chats", "rail-library",
+        const QStringList names{"rail-projects", "rail-documents", "rail-chats", "rail-files", "rail-library",
                                 "rail-examples", "rail-nodes", "rail-theme", "rail-panel"};
-        const QStringList labels{"Projects", "Documents", "Chats", "Library", "Examples", "Nodes", "Light", "Toggle panel"};
-        const QStringList icons{"toolProjects", "folderCopyOutlined", "forumOutlined", "collectionsOutlined",
+        const QStringList labels{"Projects", "Documents", "Chats", "Files", "Library", "Examples", "Nodes", "Light", "Toggle panel"};
+        const QStringList icons{"toolProjects", "folderCopyOutlined", "forumOutlined", "folderOutlined", "collectionsOutlined",
                                 "exploreOutlined", "hub", "sunny", "code"};
         qreal previous = -1;
         for (int i = 0; i < names.size(); ++i) {
@@ -352,6 +352,7 @@ private slots:
             {"rail-theme", "Switch to light mode"},
             {"rail-panel", "Toggle panel"},
             {"rail-projects", "Switch or create a project"},
+            {"rail-files", "Files"},
             {"rail-library", "Library"},
             {"rail-examples", "Examples"},
         };
@@ -394,6 +395,28 @@ private slots:
         QTRY_VERIFY(entry("rail-examples")->property("active").toBool());
         click(rail, entry("rail-examples"));
         QTRY_VERIFY(!window.examplesVisible());
+        // Files opens the project folder tree in the left dock, in place of the other views.
+        click(rail, entry("rail-files"));
+        QTRY_VERIFY(window.filesVisible());
+        QVERIFY(!window.catalogVisible());
+        QVERIFY(window.findChild<QDockWidget *>("files-dock"));
+        QTRY_VERIFY(entry("rail-files")->property("active").toBool());
+        click(rail, entry("rail-examples"));
+        QTRY_VERIFY(window.examplesVisible());
+        QVERIFY(!window.filesVisible());
+        click(rail, entry("rail-files"));
+        QTRY_VERIFY(window.filesVisible());
+        QVERIFY(!window.examplesVisible());
+        // The panel toggle closes it, and the dock's close button does too.
+        click(rail, entry("rail-panel"));
+        QTRY_VERIFY(!window.filesVisible());
+        click(rail, entry("rail-files"));
+        QTRY_VERIFY(window.filesVisible());
+        auto *filesPanel = qobject_cast<QQuickWidget *>(window.findChild<QDockWidget *>("files-dock")->widget());
+        QVERIFY(filesPanel && filesPanel->rootObject());
+        QVERIFY(find(filesPanel->rootObject(), "files-no-folder")->isVisible());
+        click(filesPanel, find(filesPanel->rootObject(), "files-close"));
+        QTRY_VERIFY(!window.filesVisible());
         // Projects opens the project menu, as the tab strip's project selector does.
         click(rail, entry("rail-projects"));
         QTRY_VERIFY(entry_menu::host(window, "project-menu"));

@@ -1,0 +1,231 @@
+pragma ComponentBehavior: Bound
+import QtQuick
+import QtQuick.Window
+import QtQuick.Controls.Basic as Basic
+import QtQuick.Layouts
+import NodeTool.UiPrimitives as Ui
+import NodeTool.Files
+
+// The project's Files view (the web WorkspaceTree.tsx):
+// the tree of the project folder as one virtualized list of its visible rows.
+// The rows, their order and their kinds come from ProjectFiles. A delegate
+// only draws its row.
+Rectangle {
+    id: root
+    required property ProjectFiles files
+    // A host whose dock has its own close control hides the panel's button.
+    property bool closable: true
+    signal closeRequested()
+    readonly property real rowHeight: Ui.Metrics.compact
+    readonly property real thumbSize: Ui.Metrics.small
+    readonly property real indent: Ui.Metrics.lg
+    implicitWidth: Ui.Metrics.panelWidth
+    color: Ui.Theme.surfacePanel
+
+    function openMenu(path: string, item: Item, x: real, y: real) {
+        menu.path = path
+        menu.returnFocusTo = list
+        const point = item.mapToItem(root, x, y)
+        menu.popup(root, point.x, point.y)
+    }
+
+    ColumnLayout {
+        anchors.fill: parent
+        anchors.margins: Ui.Metrics.md
+        spacing: Ui.Metrics.sm
+        Ui.PanelHeader {
+            objectName: "files-header"
+            Layout.fillWidth: true
+            text: "Files"
+            Ui.ToolbarIconButton {
+                objectName: "files-refresh"
+                visible: root.files.hasFolder
+                iconName: "refresh"
+                accessibleName: "Refresh files"
+                description: accessibleName
+                loading: root.files.busy
+                onClicked: root.files.refresh()
+            }
+            Ui.CloseButton {
+                objectName: "files-close"
+                visible: root.closable
+                accessibleName: "Close files"
+                description: accessibleName
+                onClicked: root.closeRequested()
+            }
+        }
+        Item {
+            objectName: "files-state"
+            visible: list.count === 0
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Ui.BusyIndicator {
+                objectName: "files-loading"
+                anchors.centerIn: parent
+                visible: root.files.loading
+                running: visible
+            }
+            Ui.EmptyState {
+                objectName: "files-no-folder"
+                anchors.centerIn: parent
+                visible: !root.files.hasFolder
+                maxTextWidth: Math.min(parent.width, Ui.Metrics.panelWidth)
+                title: "No project folder"
+                message: "This project has no folder yet."
+            }
+            Ui.EmptyState {
+                objectName: "files-empty"
+                anchors.centerIn: parent
+                visible: root.files.hasFolder && root.files.empty
+                maxTextWidth: Math.min(parent.width, Ui.Metrics.panelWidth)
+                title: "Project folder is empty"
+                message: "Add files to the project folder to see them here."
+            }
+            Ui.EmptyState {
+                objectName: "files-error"
+                anchors.centerIn: parent
+                visible: root.files.hasFolder && root.files.error !== ""
+                maxTextWidth: Math.min(parent.width, Ui.Metrics.panelWidth)
+                title: "The project folder was not listed"
+                message: root.files.error
+                actionText: "Try again"
+                onActionTriggered: root.files.refresh()
+            }
+        }
+        ListView {
+            id: list
+            objectName: "files-list"
+            visible: count > 0
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            clip: true
+            model: root.files
+            focus: true
+            activeFocusOnTab: true
+            Accessible.role: Accessible.Tree
+            Accessible.name: "Project files"
+            // Rows have one height, so the view lays out a 5,000-row folder
+            // without measuring it, and builds only what is near the viewport.
+            cacheBuffer: root.rowHeight * 4
+            reuseItems: true
+            pixelAligned: true
+            boundsBehavior: Flickable.StopAtBounds
+            // The view gives its current row the focus, so it follows the selection.
+            keyNavigationEnabled: false
+            currentIndex: root.files.selectedRow
+            highlightFollowsCurrentItem: false
+            Basic.ScrollBar.vertical: Ui.ScrollBar {}
+            Keys.onUpPressed: root.files.moveSelection(-1)
+            Keys.onDownPressed: root.files.moveSelection(1)
+            Keys.onRightPressed: root.files.expandSelected()
+            Keys.onLeftPressed: root.files.collapseSelected()
+            Keys.onReturnPressed: root.files.activate(root.files.selectedRow)
+            Keys.onEnterPressed: root.files.activate(root.files.selectedRow)
+            Connections {
+                target: root.files
+                function onSelectionChanged() {
+                    if (root.files.selectedRow >= 0) { list.positionViewAtIndex(root.files.selectedRow, ListView.Contain) }
+                }
+            }
+            delegate: Ui.ListRow {
+                id: row
+                required property int index
+                required property string path
+                required property string name
+                required property int depth
+                required property bool isDir
+                required property bool expanded
+                required property bool placeholder
+                required property string kind
+                required property string iconName
+                required property url thumbnailUrl
+                required property bool selected
+                objectName: "files-row"
+                // A pooled row waits for reuse off screen.
+                property bool pooled: false
+                ListView.onPooled: pooled = true
+                ListView.onReused: pooled = false
+                width: ListView.view.width
+                height: root.rowHeight
+                flat: true
+                focusPolicy: Qt.NoFocus
+                active: row.selected
+                enabled: !row.placeholder
+                accessibleName: row.name
+                onClicked: {
+                    list.forceActiveFocus()
+                    root.files.click(row.index)
+                }
+                onDoubleClicked: root.files.activate(row.index)
+                // The focused row takes Enter, which opens a file, not the click that toggles.
+                Keys.onReturnPressed: root.files.activate(row.index)
+                Keys.onEnterPressed: root.files.activate(row.index)
+                TapHandler {
+                    acceptedButtons: Qt.RightButton
+                    enabled: root.files.revealable
+                    onTapped: eventPoint => {
+                        root.files.select(row.index)
+                        root.openMenu(row.path, row, eventPoint.position.x, eventPoint.position.y)
+                    }
+                }
+                Ui.Icon {
+                    objectName: "files-chevron"
+                    x: Ui.Metrics.xs + row.depth * root.indent
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: row.isDir
+                    name: "chevronRight"
+                    size: Ui.Metrics.iconXs
+                    rotation: row.expanded ? 90 : 0
+                }
+                Ui.Icon {
+                    id: kindIcon
+                    objectName: "files-kind-icon"
+                    x: Ui.Metrics.xs + row.depth * root.indent + Ui.Metrics.iconXs + Ui.Metrics.xs + (root.thumbSize - width) / 2
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: row.iconName !== "" && thumb.status !== Image.Ready
+                    name: row.iconName
+                    tone: row.kind === "error" ? Ui.Text.Warning : row.isDir ? Ui.Text.Info : Ui.Text.Secondary
+                }
+                Image {
+                    id: thumb
+                    objectName: "files-thumbnail"
+                    x: Ui.Metrics.xs + row.depth * root.indent + Ui.Metrics.iconXs + Ui.Metrics.xs
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: root.thumbSize
+                    height: root.thumbSize
+                    visible: status === Image.Ready
+                    asynchronous: true
+                    cache: true
+                    smooth: true
+                    fillMode: Image.PreserveAspectCrop
+                    sourceSize: Qt.size(Math.ceil(root.thumbSize * Screen.devicePixelRatio), Math.ceil(root.thumbSize * Screen.devicePixelRatio))
+                    source: row.thumbnailUrl
+                }
+                Ui.Text {
+                    objectName: "files-name"
+                    x: thumb.x + root.thumbSize + Ui.Metrics.sm
+                    width: Math.max(0, row.width - x - Ui.Metrics.xs)
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: row.name
+                    textFormat: Text.PlainText
+                    role: Ui.Typography.SansLabel
+                    weight: row.isDir ? Font.Medium : Font.Normal
+                    tone: row.kind === "error" ? Ui.Text.Warning : row.placeholder ? Ui.Text.Secondary : Ui.Text.Primary
+                    tight: true
+                    elide: Text.ElideRight
+                }
+            }
+        }
+    }
+
+    Ui.ContextMenu {
+        id: menu
+        objectName: "files-menu"
+        property string path: ""
+        Ui.MenuItem {
+            objectName: "files-reveal"
+            text: root.files.revealLabel
+            onTriggered: root.files.reveal(menu.path)
+        }
+    }
+}
