@@ -16,6 +16,10 @@ jest.mock("../ScriptSurface", () => ({
   __esModule: true,
   default: () => <div>Script surface</div>
 }));
+jest.mock("../SketchSurface", () => ({
+  __esModule: true,
+  default: () => <div>Sketch surface</div>
+}));
 jest.mock("../DocumentFileNotice", () => ({
   __esModule: true,
   default: (props: { type: string; refId: string; projectId?: string }) => (
@@ -37,7 +41,8 @@ const renderTab = (tab: WorkspaceTab) =>
 describe("TabContent file notice", () => {
   it.each<WorkspaceTab>([
     { id: "workflow:wf-1", type: "workflow", ref: "wf-1", mode: "edit", title: "Fox", projectId: "film" },
-    { id: "timeline:tl-1", type: "timeline", ref: "tl-1", mode: "edit", title: "Cut", projectId: "film" }
+    { id: "timeline:tl-1", type: "timeline", ref: "tl-1", mode: "edit", title: "Cut", projectId: "film" },
+    { id: "script:sc-1", type: "script", ref: "sc-1", mode: "edit", title: "Lines", projectId: "film" }
   ])("puts the file notice of a $type above its editor", async (tab) => {
     renderTab(tab);
 
@@ -69,9 +74,9 @@ describe("TabContent file notice", () => {
   });
 
   it("adds no file notice to a document that is not a file", async () => {
-    renderTab({ id: "script:a", type: "script", ref: "a", mode: "edit", title: "Lines" });
+    renderTab({ id: "sketch:a", type: "sketch", ref: "a", mode: "edit", title: "Draft" });
 
-    expect(await screen.findByText("Script surface")).toBeInTheDocument();
+    expect(await screen.findByText("Sketch surface")).toBeInTheDocument();
     expect(screen.queryByTestId("file-notice")).toBeNull();
   });
 });

@@ -554,6 +554,8 @@ export async function copyProjectDocument(args: {
       await (await TimelineSequence.findById(id))?.syncFile();
     } else if (type === "storyboard") {
       await (await Storyboard.findById(id))?.syncFile();
+    } else if (type === "script") {
+      await (await Script.findById(id))?.syncFile();
     }
   }
 

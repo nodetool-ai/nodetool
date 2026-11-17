@@ -604,7 +604,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   WORKFLOW_SCHEMA_VERSION_DDL,
   TIMELINE_LAST_WRITER_DDL,
   TIMELINE_SCHEMA_VERSION_DDL,
-  ...documentFileDdl("storyboards")
+  ...documentFileDdl("storyboards"),
+  ...documentFileDdl("scripts")
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5059,7 +5060,10 @@ export const migrations: MigrationDef[] = [
   },
 
   // A storyboard is a JSON file in its project's folder.
-  documentFileMigration("20261129_000000", "storyboards")
+  documentFileMigration("20261129_000000", "storyboards"),
+
+  // A script is a JSON file in its project's folder.
+  documentFileMigration("20261129_000001", "scripts")
 ];
 
 /**

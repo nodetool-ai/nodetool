@@ -845,7 +845,7 @@ export async function importProjectArchive(
     row["file_hash"] = null;
     row["file_error"] = null;
   }
-  for (const row of [...imported.timeline_sequences, ...imported.storyboards]) {
+  for (const row of [...imported.timeline_sequences, ...imported.storyboards, ...imported.scripts]) {
     // As for a workflow: the row was never synced with a file of the new
     // folder.
     row["file_hash"] = null;

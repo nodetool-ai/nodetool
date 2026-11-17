@@ -12,6 +12,11 @@ export const scripts = pgTable(
     timeline_id: text("timeline_id"),
     /** Storyboard this script is linked to, if any. */
     storyboard_id: text("storyboard_id"),
+    // File in the project folder and the hash last synced — see
+    // schema/scripts.ts.
+    file_path: text("file_path"),
+    file_hash: text("file_hash"),
+    file_error: text("file_error"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

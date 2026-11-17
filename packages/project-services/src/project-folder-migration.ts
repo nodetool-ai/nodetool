@@ -35,6 +35,7 @@ import {
   Project,
   Setting,
   Storyboard,
+  Script,
   TimelineSequence,
   Workflow,
   Workspace
@@ -55,6 +56,7 @@ import {
 } from "./project-asset-move-job.js";
 import { migrateTimelineFiles } from "./timeline-file.js";
 import { migrateStoryboardFiles } from "./storyboard-file.js";
+import { migrateScriptFiles } from "./script-file.js";
 import { migrateWorkflowFiles } from "./workflow-file.js";
 import type { DocumentFileFailure } from "./document-file-sync.js";
 
@@ -302,6 +304,11 @@ const OTHER_DOCUMENT_KINDS: ReadonlyArray<{
     name: "storyboards",
     unwritten: (userId) => Storyboard.projectsWithUnwrittenFiles(userId),
     migrate: migrateStoryboardFiles
+  },
+  {
+    name: "scripts",
+    unwritten: (userId) => Script.projectsWithUnwrittenFiles(userId),
+    migrate: migrateScriptFiles
   }
 ];
 

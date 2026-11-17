@@ -387,6 +387,7 @@ describe("project files", () => {
         .sort()
     ).toEqual([
       `${prefix}Generated/fox-in-snow.txt`,
+      `${prefix}Scripts/Script.script.json`,
       `${prefix}Storyboards/Board.storyboard.json`,
       `${prefix}footage/day 1/take.bin`
     ]);
@@ -396,6 +397,7 @@ describe("project files", () => {
     );
     expect(manifest.workspace_files.map((f) => f.path).sort()).toEqual([
       "Generated/fox-in-snow.txt",
+      "Scripts/Script.script.json",
       "Storyboards/Board.storyboard.json",
       "footage/day 1/take.bin"
     ]);

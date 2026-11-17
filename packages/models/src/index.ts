@@ -445,7 +445,8 @@ export {
   Script,
   ScriptConflictError,
   emptyScriptDocument,
-  countScriptLines
+  countScriptLines,
+  setScriptFileSync
 } from "./script.js";
 export { JsScript, JsScriptConflictError } from "./js-script.js";
 export type { JsScriptResponse } from "./js-script.js";

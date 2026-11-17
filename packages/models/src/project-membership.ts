@@ -22,6 +22,7 @@ import { storyboards } from "./schema/storyboards.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
 import { TimelineSequence } from "./timeline-sequence.js";
 import { Storyboard } from "./storyboard.js";
+import { Script } from "./script.js";
 import type { ProjectDocumentType } from "./project-summary.js";
 
 /**
@@ -227,7 +228,8 @@ export async function reassignProjectDocuments(
   // one document at a time.
   const fileKinds = [
     [timelineSequences, TimelineSequence],
-    [storyboards, Storyboard]
+    [storyboards, Storyboard],
+    [scripts, Script]
   ] as const;
   for (const [table, model] of fileKinds) {
     const owned = await db
@@ -287,12 +289,8 @@ export async function moveDocumentToProject(
       return Storyboard.moveToProject(userId, documentId, projectId);
     }
     case "script": {
-      const rows = await db
-        .update(scripts)
-        .set(fields)
-        .where(and(eq(scripts.id, documentId), eq(scripts.user_id, userId)))
-        .returning({ id: scripts.id });
-      return rows.length > 0;
+      // A script is a file in its project's folder, which moves with it.
+      return Script.moveToProject(userId, documentId, projectId);
     }
     case "timeline": {
       // A timeline is a file in its project's folder, which moves with it.

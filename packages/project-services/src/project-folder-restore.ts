@@ -58,6 +58,7 @@ import {
   type AssetManifestEntry
 } from "./project-manifest.js";
 import { storyboardFileAdapter } from "./storyboard-file.js";
+import { scriptFileAdapter } from "./script-file.js";
 import { timelineFileAdapter } from "./timeline-file.js";
 import { workflowFileAdapter } from "./workflow-file.js";
 
@@ -67,7 +68,8 @@ const log = createLogger("nodetool.project-services.project-folder-restore");
 const DOCUMENT_KINDS = [
   workflowFileAdapter,
   timelineFileAdapter,
-  storyboardFileAdapter
+  storyboardFileAdapter,
+  scriptFileAdapter
 ].map(
   ({ kind, suffix, format, exists }) => ({ kind, suffix, format, exists })
 );
