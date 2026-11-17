@@ -781,8 +781,9 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   libraryProperties.insert("assets", QVariant::fromValue<QObject *>(&assetPicker_));
   libraryProperties.insert("folder", QVariant::fromValue(&projectFolder_));
   // The project folder tree, as the web left panel's Files view.
-  filesDock_ = dock(tr("Files"), QStringLiteral("qrc:/qt/qml/NodeTool/Files/FilesPanel.qml"), Qt::LeftDockWidgetArea,
-                    {{"files", QVariant::fromValue(&projectFiles_)}});
+  filesDock_ = dock(tr("Files"), QStringLiteral("ProjectFilesDock"), Qt::LeftDockWidgetArea,
+                    {{"files", QVariant::fromValue(&projectFiles_)},
+                     {"resolver", QVariant::fromValue<QObject *>(&mediaResolver_)}});
   filesDock_->setObjectName("files-dock");
   filesDock_->hide();
   if (auto *files = qobject_cast<QQuickWidget *>(filesDock_->widget()); files && files->rootObject()) {

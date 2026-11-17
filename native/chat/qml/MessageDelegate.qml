@@ -998,7 +998,7 @@ ColumnLayout {
                     active: !!loaded && !!loaded.url
                     visible: active
                     onLoaded: item.source = Qt.binding(() => playerLoader.loaded && playerLoader.loaded.url ? playerLoader.loaded.url : "")
-                    Component.onCompleted: setSource("ChatMediaPlayer.qml", {source: "", video: partFrame.kind === "video", label: partFrame.part.label || ""})
+                    Component.onCompleted: setSource("qrc:/qt/qml/NodeTool/MediaPlayer/MediaPlayer.qml", {source: "", kind: partFrame.kind, label: partFrame.part.label || ""})
                 }
                 Ui.Text {
                     visible: !!playerLoader.loaded && !!playerLoader.loaded.error

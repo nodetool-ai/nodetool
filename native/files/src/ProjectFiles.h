@@ -53,6 +53,10 @@ class ProjectFiles : public QAbstractListModel {
   Q_PROPERTY(QString previewSummary READ previewSummary NOTIFY previewChanged)
   // The picture of an image file, else empty.
   Q_PROPERTY(QUrl previewImageUrl READ previewImageUrl NOTIFY previewChanged)
+  // The file of a video, audio or 3D model selection, for a host's player:
+  // a file:// URL when the folder is on this machine, else the download URL,
+  // which needs the server's credentials. Empty for any other selection.
+  Q_PROPERTY(QUrl previewMediaUrl READ previewMediaUrl NOTIFY previewChanged)
 public:
   enum Role {
     PathRole = Qt::UserRole + 1,
@@ -94,6 +98,7 @@ public:
   QString previewDetails() const { return m_preview.details; }
   QString previewSummary() const { return m_preview.summary; }
   QUrl previewImageUrl() const;
+  QUrl previewMediaUrl() const;
 
   int rowCount(const QModelIndex &parent = {}) const override;
   QVariant data(const QModelIndex &index, int role) const override;

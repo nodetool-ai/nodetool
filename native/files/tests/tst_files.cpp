@@ -3,6 +3,9 @@
 #include "FakeProjectFiles.h"
 
 #include <QElapsedTimer>
+#include <QQmlComponent>
+#include <QQmlEngine>
+#include <QTemporaryDir>
 #include <QQuickItem>
 #include <QQuickView>
 #include <QSignalSpy>
@@ -464,6 +467,70 @@ private slots:
 
     files.select(rowOf(files, "notes.md"));
     QTRY_VERIFY(!preview->isVisible());
+  }
+
+  void previewMediaUrlPicksTheLocalFileOrTheDownload() {
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    QFile clip(dir.filePath("clip.mp4"));
+    QVERIFY(clip.open(QIODevice::WriteOnly));
+    clip.close();
+    FakeProjectFiles files;
+    files.configure(Origin, "token", "user");
+    files.setFolder("ws1", dir.path());
+    QVERIFY(files.answer(".", {FakeProjectFiles::entry("clip.mp4", false, 10), FakeProjectFiles::entry("song.wav", false, 10),
+                               FakeProjectFiles::entry("a.png", false, 10)}));
+    files.select(rowOf(files, "clip.mp4"));
+    QCOMPARE(files.previewMediaUrl(), QUrl::fromLocalFile(QDir(dir.path()).filePath("clip.mp4")));
+    // The file is not on disk, so the server serves it.
+    files.select(rowOf(files, "song.wav"));
+    QCOMPARE(files.previewMediaUrl(), ProjectFiles::downloadUrl(Origin, "ws1", "song.wav"));
+    files.select(rowOf(files, "a.png"));
+    QCOMPARE(files.previewMediaUrl(), QUrl());
+  }
+
+  void previewDelegatePlaysVideoAndAudio() {
+    FakeProjectFiles files;
+    open(files, {FakeProjectFiles::entry("clip.mp4", false, 4096), FakeProjectFiles::entry("song.wav", false, 10),
+                 FakeProjectFiles::entry("chair.glb", false, 10)});
+    auto view = panel(files);
+    auto *root = view->rootObject();
+    QVERIFY2(root, "FilesPanel did not load");
+    QQmlComponent player(view->engine());
+    player.setData("import QtQuick\nItem { objectName: \"host-player\"; property url source; property string kind }", {});
+    QVERIFY2(player.isReady(), qPrintable(player.errorString()));
+    root->setProperty("previewDelegate", QVariant::fromValue(&player));
+    QVERIFY(QTest::qWaitForWindowExposed(view.get()));
+
+    files.select(rowOf(files, "clip.mp4"));
+    QQuickItem *hosted = nullptr;
+    QTRY_VERIFY((hosted = named(root, "host-player")) && hosted->isVisible());
+    QCOMPARE(hosted->property("kind").toString(), QStringLiteral("video"));
+    QCOMPARE(hosted->property("source").toUrl(), ProjectFiles::downloadUrl(Origin, "ws1", "clip.mp4"));
+    QTRY_VERIFY(hosted->width() > 0 && hosted->height() > 0);
+    QVERIFY(!named(root, "files-preview-glyph")->isVisible());
+
+    files.select(rowOf(files, "song.wav"));
+    QTRY_COMPARE(named(root, "host-player")->property("kind").toString(), QStringLiteral("audio"));
+    QCOMPARE(named(root, "host-player")->property("source").toUrl(), ProjectFiles::downloadUrl(Origin, "ws1", "song.wav"));
+
+    // A kind the host does not play keeps the glyph.
+    files.select(rowOf(files, "chair.glb"));
+    QTRY_VERIFY(!named(root, "host-player"));
+    QVERIFY(named(root, "files-preview-glyph")->isVisible());
+  }
+
+  void previewWithoutDelegateShowsTheGlyph() {
+    FakeProjectFiles files;
+    open(files, {FakeProjectFiles::entry("clip.mp4", false, 4096)});
+    auto view = panel(files);
+    auto *root = view->rootObject();
+    QVERIFY2(root, "FilesPanel did not load");
+    QVERIFY(QTest::qWaitForWindowExposed(view.get()));
+    files.select(rowOf(files, "clip.mp4"));
+    QTRY_VERIFY(named(root, "files-preview")->isVisible());
+    QVERIFY(named(root, "files-preview-glyph")->isVisible());
+    QVERIFY(!named(root, "files-preview-player")->property("active").toBool());
   }
 
   // The performance contract: a 5,000-entry folder with 3,000 images builds

@@ -22,6 +22,17 @@ Rectangle {
     // The media area of the preview, as the web FILE_PREVIEW_HEIGHT (168px).
     readonly property real previewHeight: Ui.Metrics.xxl * 7
     property bool previewExpanded: true
+    // The host's player for a video, audio or 3D model selection. The Files
+    // module has no player of its own. The loaded item gets two properties,
+    // `source` (url, the file's previewMediaUrl) and `kind` ("video", "audio"
+    // or "model3d"), and fills the media area. Without a delegate, or for a
+    // kind the delegate cannot show, the area shows the file's glyph.
+    property Component previewDelegate: null
+    // The kinds the host's delegate plays.
+    property var previewDelegateKinds: ["video", "audio"]
+    readonly property bool previewPlayable: previewDelegate !== null
+        && previewDelegateKinds.indexOf(files.previewKind) >= 0
+        && files.previewMediaUrl.toString() !== ""
     implicitWidth: Ui.Metrics.panelWidth
     color: Ui.Theme.surfacePanel
 
@@ -220,9 +231,9 @@ Rectangle {
             }
         }
         // The selected file at a glance (the web WorkspaceFilePreview.tsx).
-        // Hidden when the selection has nothing to preview. Only an image
-        // loads a picture, decoded off the UI thread at the area's size.
-        // Video, audio, 3D models and documents show their type glyph.
+        // Hidden when the selection has nothing to preview. An image loads a
+        // picture, decoded off the UI thread at the area's size. Video and
+        // audio play in the host's previewDelegate. Other kinds show their glyph.
         Ui.Separator {
             visible: preview.visible
             Layout.fillWidth: true
@@ -245,7 +256,7 @@ Rectangle {
                 Ui.Icon {
                     objectName: "files-preview-glyph"
                     anchors.centerIn: parent
-                    visible: previewImage.status !== Image.Ready
+                    visible: previewImage.status !== Image.Ready && !previewPlayer.active
                     name: root.files.previewIcon
                     size: Ui.Metrics.xxxl
                 }
@@ -260,6 +271,18 @@ Rectangle {
                     fillMode: Image.PreserveAspectFit
                     sourceSize: Qt.size(Math.ceil(width * Screen.devicePixelRatio), Math.ceil(height * Screen.devicePixelRatio))
                     source: root.files.previewImageUrl
+                }
+                Loader {
+                    id: previewPlayer
+                    objectName: "files-preview-player"
+                    anchors.fill: parent
+                    anchors.margins: Ui.Metrics.xs
+                    active: root.previewPlayable && preview.expanded
+                    sourceComponent: root.previewDelegate
+                    onLoaded: {
+                        item.source = Qt.binding(() => root.files.previewMediaUrl)
+                        item.kind = Qt.binding(() => root.files.previewKind)
+                    }
                 }
             }
             // Name and details read as one block, closer than the gap to the media.
