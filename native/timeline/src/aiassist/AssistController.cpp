@@ -539,3 +539,30 @@ bool AssistController::scriptDirty() const {
     return resource.value("document").toObject().value("sections").isArray() &&
         !m_scriptDrafts.value(draftKey(resource.value("id").toString())).isEmpty();
 }
+
+QString AssistController::draftScope() const {
+    if (!m_model) { return {}; }
+    QByteArray scope;
+    if (const auto target = nt::server::serverSaveTarget()) {
+        scope = target->server.toEncoded() + '\0' + target->token.toUtf8() + '\0' + target->expectedInstance.toUtf8();
+    }
+    const auto timeline = m_model->timeline().raw;
+    scope += '\0' + timeline.value("projectId").toString().toUtf8() + '\0' + timeline.value("id").toString().toUtf8();
+    return QString::fromLatin1(scope.toBase64());
+}
+QVariantList AssistController::linkedResources() const {
+    QVariantList result;
+    if (!m_model) { return result; }
+    QSet<QString> seen;
+    for (const auto& value : m_model->timeline().raw.value("clips").toArray()) {
+        const auto clip = value.toObject();
+        for (const auto& field : {QStringLiteral("scriptId"), QStringLiteral("storyboardBoardId")}) {
+            const auto id = clip.value(field).toString();
+            const QString kind = field == "scriptId" ? "scripts" : "storyboards";
+            if (id.isEmpty() || seen.contains(kind + ':' + id)) { continue; }
+            seen.insert(kind + ':' + id);
+            result.append(QVariantMap{{"id", id}, {"kind", kind}});
+        }
+    }
+    return result;
+}

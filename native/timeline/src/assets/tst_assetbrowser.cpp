@@ -914,6 +914,13 @@ private slots:
         QTRY_VERIFY(itemNamed(root, "timelineStoryboardPanel"));
         auto* story = itemNamed(root, "timelineScriptPanel");
         QVERIFY(itemNamed(story, "storyWorkspaceEditor"));
+        // The shared StoryWorkspace from NodeTool.Storyboard holds each panel's drafts.
+        for (const auto& [name, drafts] : {std::pair{"timelineStoryboardPanel", "storyboardDrafts"}, std::pair{"timelineScriptPanel", "scriptDrafts"}}) {
+            auto* workspace = itemNamed(root, name)->findChild<QObject*>(drafts);
+            QVERIFY(workspace);
+            QCOMPARE(QString(workspace->metaObject()->className()), QString("StoryWorkspace"));
+            QVERIFY(workspace->property("controller").value<QObject*>());
+        }
         for (auto* child : story->findChildren<QObject*>()) {
             const auto text = child->property("text").toString();
             QVERIFY(text != "Production" && text != "Workspace");

@@ -1,5 +1,6 @@
 #include <QFontInfo>
-#include "storyworkspace/StoryWorkspace.h"
+#include "StoryWorkspace.h"
+#include "aiassist/AssistController.h"
 #include "aiassist/ScriptVoicing.h"
 #include "aiassist/CandidatePreview.h"
 #include "aiassist/ShotWorkflow.h"
