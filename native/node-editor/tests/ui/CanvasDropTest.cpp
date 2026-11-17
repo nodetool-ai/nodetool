@@ -29,7 +29,7 @@ using namespace nodetool;
 namespace {
 QJsonArray metadata() {
   QJsonArray result;
-  const QHash<QString, QString> kinds{{"Image", "image"}, {"Audio", "audio"}, {"Video", "video"}, {"Document", "document"}, {"Model3D", "model_3d"}, {"String", "str"}, {"DataFrame", "dataframe"}};
+  const QHash<QString, QString> kinds{{"Image", "image"}, {"Audio", "audio"}, {"Video", "video"}, {"Document", "document"}, {"Model3D", "model_3d"}, {"String", "str"}, {"DataFrame", "dataframe"}, {"Storyboard", "storyboard"}};
   for (auto it = kinds.begin(); it != kinds.end(); ++it) {
     result.append(QJsonObject{{"node_type", "nodetool.constant." + it.key()}, {"title", it.key()},
       {"properties", QJsonArray{QJsonObject{{"name", "value"}, {"type", QJsonObject{{"type", it.value()}}}, {"default", QJsonValue::Null}}, QJsonObject{{"name", "extra"}, {"type", QJsonObject{{"type", "str"}}}, {"default", "kept"}}}},
@@ -46,6 +46,9 @@ public:
   // The rows assets.list answers, and the inputs it was asked with.
   QJsonArray listed;
   QList<QJsonObject> listInputs;
+  // The row projects.documentByFile answers, and the inputs it was asked with.
+  QJsonValue documentByFile = QJsonValue::Null;
+  QList<QJsonObject> documentInputs;
   QHash<QString, QByteArray> contents;
   QWebSocketServer websocket{"drop socket", QWebSocketServer::NonSecureMode};
   QList<QJsonObject> uploadMetadata;
@@ -92,6 +95,10 @@ public:
           } else if (target.startsWith("/trpc/assets.list") || target.startsWith("/trpc/assets.search")) {
             if (target.startsWith("/trpc/assets.list")) listInputs.append(QJsonDocument::fromJson(QUrlQuery(url).queryItemValue("input").toUtf8()).object());
             response = {{"result", QJsonObject{{"data", QJsonObject{{"assets", listed}, {"next", QJsonValue::Null}}}}}};
+          }
+          else if (target.startsWith("/trpc/projects.documentByFile")) {
+            documentInputs.append(QJsonDocument::fromJson(QUrlQuery(url).queryItemValue("input").toUtf8()).object());
+            response = {{"result", QJsonObject{{"data", documentByFile}}}};
           }
           else if (target.startsWith("/api/content/")) { const auto content = contents.value(url.path().section('/', -1), png); if (delayContent) pendingText.append({socket, content}); else send(socket, content); return; }
           send(socket, QJsonDocument(response).toJson(QJsonDocument::Compact), status);
@@ -224,6 +231,28 @@ private slots:
     QMimeData loose;
     loose.setData("application/x-nodetool-drag", QJsonDocument(QJsonObject{{"type", "project-file"}, {"payload", QJsonObject{{"projectId", "p1"}, {"path", "loose.png"}, {"directoryId", "dir:p1:"}}}}).toJson(QJsonDocument::Compact));
     QVERIFY(drop(window, loose, QPointF(420, 300)));
+    QTRY_COMPARE(controller(window)->transfers().last().toMap()["state"].toString(), QString("failed"));
+    QCOMPARE(window.document()->nodes().size(), 1);
+  }
+  void projectDocumentFileBecomesItsConstantNode() {
+    Server server; EditorWindow window; setup(window, server); QVERIFY(controller(window));
+    server.documentByFile = QJsonObject{{"type", "storyboard"}, {"ref", "board-7"}, {"name", "Launch board"}, {"updatedAt", "2026-01-01T00:00:00Z"},
+      {"file", QJsonObject{{"path", "boards/launch.storyboard.json"}, {"state", "ok"}, {"error", QJsonValue::Null}}}};
+    QMimeData mime;
+    mime.setData("application/x-nodetool-drag", QJsonDocument(QJsonObject{{"type", "project-file"}, {"payload", QJsonObject{{"projectId", "p1"}, {"path", "boards/launch.storyboard.json"}, {"directoryId", "dir:p1:boards"}}}}).toJson(QJsonDocument::Compact));
+    QVERIFY(drop(window, mime, QPointF(220, 180))); QTRY_COMPARE(window.document()->nodes().size(), 1);
+    QCOMPARE(server.documentInputs.last()["id"].toString(), QString("p1"));
+    QCOMPARE(server.documentInputs.last()["path"].toString(), QString("boards/launch.storyboard.json"));
+    const auto node = window.document()->nodes()[0].toObject();
+    QCOMPARE(node["type"].toString(), QString("nodetool.constant.Storyboard"));
+    const auto value = node["data"].toObject()["value"].toObject();
+    QCOMPARE(value["type"].toString(), QString("storyboard")); QCOMPARE(value["id"].toString(), QString("board-7")); QVERIFY(value["data"].isNull());
+
+    // A document file with no row adds no node and fails its transfer.
+    server.documentByFile = QJsonValue::Null;
+    QMimeData stray;
+    stray.setData("application/x-nodetool-drag", QJsonDocument(QJsonObject{{"type", "project-file"}, {"payload", QJsonObject{{"projectId", "p1"}, {"path", "stray.workflow.json"}, {"directoryId", "dir:p1:"}}}}).toJson(QJsonDocument::Compact));
+    QVERIFY(drop(window, stray, QPointF(420, 300)));
     QTRY_COMPARE(controller(window)->transfers().last().toMap()["state"].toString(), QString("failed"));
     QCOMPARE(window.document()->nodes().size(), 1);
   }

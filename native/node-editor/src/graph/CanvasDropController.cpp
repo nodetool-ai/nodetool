@@ -20,6 +20,7 @@
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <cmath>
 #include <optional>
+#include <utility>
 #include <limits>
 #include "nodetool/account/qt/ServerToken.h"
 namespace nodetool {
@@ -76,6 +77,24 @@ DocumentDrop documentDrop(const QJsonObject &drag) {
     const auto name = payload["name"].toString();
     if (kind == "sketch") { return {"nodetool.constant.Sketch", kind, id, name.isEmpty() ? QObject::tr("Untitled sketch") : name}; }
     return {"nodetool.constant.Timeline", kind, id, name.isEmpty() ? QObject::tr("Untitled video") : name};
+}
+// A document file of a project folder (project-services *-file.ts suffixes).
+bool isDocumentFile(const QString &path) {
+  const auto lower = path.toLower();
+  for (const auto *suffix : {".workflow.json", ".timeline.json", ".storyboard.json", ".script.json", ".app.json", ".jsscript.json"})
+    if (lower.endsWith(QLatin1String(suffix))) return true;
+  return false;
+}
+// The constant node and ref value a document enters the graph as (web
+// hooks/handlers/documentFileConstant.ts). Empty for an unknown type.
+std::pair<QString, QJsonObject> documentFileConstant(const QString &type, const QString &id) {
+  static const QHash<QString, QString> nodeTypes{{"workflow", "nodetool.constant.Workflow"}, {"timeline", "nodetool.constant.Timeline"},
+    {"storyboard", "nodetool.constant.Storyboard"}, {"script", "nodetool.constant.Script"},
+    {"application", "nodetool.constant.Application"}, {"jsscript", "nodetool.constant.JsScript"}};
+  if (!nodeTypes.contains(type) || id.isEmpty()) return {};
+  QJsonObject value{{"type", type}, {"id", id}};
+  if (type == "storyboard") value["data"] = QJsonValue::Null;
+  return {nodeTypes.value(type), value};
 }
 // A Collection's zone names its kind "collection", or "collection:<type>" once
 // its first item locks the type. It takes any asset kind until then.
@@ -363,7 +382,8 @@ void CanvasDropController::start(const QString &key) {
   auto &row = transfers_[key]; row.serial = ++nextSerial_; row.error.clear(); row.sent = row.total = 0; row.hasValue = false;
   if (origin_.isEmpty() || model_.readOnly()) { fail(key, tr("Connect to a server and enable graph editing before dropping files")); return; }
   if (row.file.isEmpty()) {
-    if (!row.projectPath.isEmpty() && row.assetId.isEmpty()) lookupProjectFile(key);
+    if (!row.projectPath.isEmpty() && isDocumentFile(row.projectPath)) lookupDocumentFile(key);
+    else if (!row.projectPath.isEmpty() && row.assetId.isEmpty()) lookupProjectFile(key);
     else fetchAsset(key);
     return;
   }
@@ -456,6 +476,33 @@ void CanvasDropController::lookupProjectFile(const QString &key) {
       }
     }
     fail(key, tr("%1 is not an asset, so it cannot become a node").arg(path));
+  });
+}
+void CanvasDropController::lookupDocumentFile(const QString &key) {
+  if (!transfers_.contains(key)) return;
+  auto &row = transfers_[key]; row.state = "loading";
+  if (!row.targetNode.isEmpty()) { fail(key, tr("Drop a document file on the canvas, not on a media property")); return; }
+  const auto path = row.projectPath; const auto serial = row.serial; emit changed();
+  if (!transfers_.contains(key) || transfers_[key].serial != serial) return;
+  // projects.documentByFile resolves the file to its owner-scoped document row.
+  auto url = origin_.resolved(QUrl("/trpc/projects.documentByFile")); QUrlQuery query;
+  query.addQueryItem("input", QString::fromUtf8(QJsonDocument(QJsonObject{{"id", row.projectId}, {"path", path}}).toJson(QJsonDocument::Compact))); url.setQuery(query);
+  QNetworkRequest request(url); request.setTransferTimeout(30000); request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
+  request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); request.setRawHeader("x-user-id", user_.toUtf8());
+  auto *reply = network_.get(request); replies_.insert(key, reply); const auto epoch = epoch_;
+  connect(reply, &QNetworkReply::readyRead, this, [reply] { if (reply->bytesAvailable() > 1024 * 1024) reply->abort(); });
+  connect(reply, &QNetworkReply::finished, this, [this, reply, key, epoch, path, serial] {
+    reply->deleteLater(); if (epoch != epoch_ || !transfers_.contains(key) || transfers_[key].serial != serial || transfers_[key].state == "cancelled") return; replies_.remove(key);
+    const auto status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    if (reply->error() != QNetworkReply::NoError || status != 200) { fail(key, tr("Could not find the dropped file (HTTP %1)").arg(status)); return; }
+    const auto document = trpcData(reply->readAll());
+    const auto [type, value] = documentFileConstant(document["type"].toString(), document["ref"].toString());
+    if (type.isEmpty()) { fail(key, tr("%1 has no document, so it cannot become a node").arg(path)); return; }
+    if (model_.readOnly() || !catalog_.contains(type) || !createNode || !applyCommand) { fail(key, tr("Could not create a node for %1: metadata is missing.").arg(path)); return; }
+    auto node = createNode(catalog_.value(type), transfers_[key].position, QJsonObject{{"value", value}});
+    auto ui = node["ui_properties"].toObject(); ui["title"] = document["name"].toString(); node["ui_properties"] = ui;
+    if (node["id"].toString().isEmpty() || !applyCommand(QJsonObject{{"op", "addNode"}, {"node", node}})) { fail(key, tr("Could not add the dropped document. Local work is unchanged.")); return; }
+    transfers_.remove(key); order_.removeAll(key); emit changed(); emit nodeCreated(node["id"].toString());
   });
 }
 void CanvasDropController::downloadText(const QString &key, const QUrl &url) {
