@@ -2169,6 +2169,7 @@ controls = ["Ui.Surface"]
 test_host = "node_editor_canvas_drop_tests"
 test_scope = "build/import"
 cpp_callers = ["native/node-editor/src/ui/EditorTabs.cpp"]
+replacement = "NodeTool.UiPrimitives: Ui.Surface"
 
 [[file]]
 path = "native/script/qml/ScriptDocumentEditor.qml"
@@ -2177,6 +2178,7 @@ controls = ["Ui.Surface", "Ui.Text", "Ui.EditorButton", "Ui.TextArea", "Ui.Scrol
 test_host = "node_editor_canvas_drop_tests"
 test_scope = "build/import"
 cpp_callers = ["native/node-editor/src/ui/EditorTabs.cpp"]
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text, Ui.EditorButton, Ui.TextArea, Ui.ScrollBar"
 
 [[file]]
 path = "native/storyboard/qml/LinkDocumentDialog.qml"
