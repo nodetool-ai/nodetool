@@ -30,8 +30,14 @@ function legacyRow(name: string, fields: Record<string, unknown> = {}): Promise<
   });
 }
 
+// Rows created in the same millisecond tie on created_at, and the random id
+// orders them, so the names are compared sorted.
 async function waitingNames(): Promise<string[]> {
-  return (await Asset.listAwaitingFolderMove(OWNER, PROJECT)).map((row) => row.name);
+  return (await Asset.listAwaitingFolderMove(OWNER, PROJECT)).map((row) => row.name).sort();
+}
+
+async function missingNames(): Promise<string[]> {
+  return (await Asset.listLegacyBytesMissing(OWNER, PROJECT)).map((row) => row.name).sort();
 }
 
 describe.each(["sqlite", "postgres"] as const)("%s rows without stored bytes", (dialect) => {
@@ -65,10 +71,8 @@ describe.each(["sqlite", "postgres"] as const)("%s rows without stored bytes", (
       note: "kept",
       [Asset.LEGACY_BYTES_MISSING_KEY]: updatedAt
     });
-    expect(await waitingNames()).toEqual(["other", "named"]);
-    expect(
-      (await Asset.listLegacyBytesMissing(OWNER, PROJECT)).map((row) => row.name)
-    ).toEqual(["missing", "moving"]);
+    expect(await waitingNames()).toEqual(["named", "other"]);
+    expect(await missingNames()).toEqual(["missing", "moving"]);
     expect(await Asset.countAwaitingFolderMove(OWNER)).toBe(2);
     expect(await Asset.listProjectsAwaitingFolderMove(OWNER)).toEqual([
       { userId: OWNER, projectId: PROJECT }
@@ -81,14 +85,12 @@ describe.each(["sqlite", "postgres"] as const)("%s rows without stored bytes", (
     await new Promise((resolve) => setTimeout(resolve, 5));
     saved!.name = "other renamed";
     await saved!.save();
-    expect(await waitingNames()).toEqual(["other renamed", "named"]);
-    expect(
-      (await Asset.listLegacyBytesMissing(OWNER, PROJECT)).map((row) => row.name)
-    ).toEqual(["missing", "moving"]);
+    expect(await waitingNames()).toEqual(["named", "other renamed"]);
+    expect(await missingNames()).toEqual(["missing", "moving"]);
 
     expect(await Asset.clearMissingBytesMarkers(OWNER)).toBe(3);
     expect(await Asset.clearMissingBytesMarkers(OWNER)).toBe(0);
-    expect(await waitingNames()).toEqual(["missing", "moving", "other renamed", "named"]);
+    expect(await waitingNames()).toEqual(["missing", "moving", "named", "other renamed"]);
     expect((await Asset.find(OWNER, missing.id))?.metadata).toEqual({ note: "kept" });
     expect((await Asset.find(OWNER, missing.id))?.updated_at).toBe(updatedAt);
   }, DIALECT_TEST_TIMEOUT_MS);
