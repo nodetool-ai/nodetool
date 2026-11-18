@@ -1592,6 +1592,40 @@ private slots:
     QCOMPARE(server.calls().size(), before);
   }
 
+  // Closing the sheet while a long request runs returns at once: the
+  // controller cancels the request before it joins its task thread, instead
+  // of waiting out the request's deadline (review F42).
+  void closingCancelsARunningRequest() {
+    Computer computer;
+    computer.server.addCode("code-c", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-c");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+    // Answers only once the request is cancelled, or after 20 seconds.
+    class UntilCancelled final : public HttpTransport {
+    public:
+      std::atomic<bool> started{false};
+      HttpResponse send(const HttpRequest& request) override {
+        started = true;
+        const auto until = std::chrono::steady_clock::now() + std::chrono::seconds(20);
+        while (std::chrono::steady_clock::now() < until && !(request.cancel && request.cancel->cancelled())) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+        return {0, {}};
+      }
+    };
+    UntilCancelled server;
+    auto transfer = std::make_unique<TransferController>(std::make_unique<SharedTransport>(server));
+    transfer->setAccount(account.get());
+    transfer->setServerUrl(QUrl(kLocalServer));
+    transfer->setProjectId(QString(32, 'p'));
+    transfer->start();
+    QTRY_VERIFY(server.started.load());
+    const auto before = std::chrono::steady_clock::now();
+    transfer.reset();
+    QVERIFY(std::chrono::steady_clock::now() - before < std::chrono::seconds(5));
+  }
+
   void statusSentences() {
     using S = CloudDocument::SyncStatus;
     QCOMPARE(syncStatusText(S::SavedToCloud, 0, {}, {}), QString("Saved to cloud"));

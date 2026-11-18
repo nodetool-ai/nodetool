@@ -11,6 +11,7 @@
 #include "nodetool/account/http_transport.h"
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -200,9 +201,11 @@ public:
   // `localOrigin` is the app's bundled server on this computer
   // (isLoopbackHttpOrigin). Any other origin refuses every call with
   // NOT_LOCAL_SERVER before a credential is read, so the access token never
-  // reaches another server.
+  // reaches another server. `cancel`, when set, stops every request of this
+  // client once it turns true, so its owner can end a long run (review F42).
   LocalTransferClient(HttpTransport& transport, std::string localOrigin,
-                      std::vector<std::pair<std::string, std::string>> headers, AccountSession& session);
+                      std::vector<std::pair<std::string, std::string>> headers, AccountSession& session,
+                      std::shared_ptr<const RequestCancel> cancel = nullptr);
 
   SendCapture captureSend(const std::string& projectId, const std::string& projectName = {},
                           const std::string& deviceName = {});
@@ -240,6 +243,7 @@ private:
   const std::string origin_;
   const std::vector<std::pair<std::string, std::string>> headers_;
   AccountSession& session_;
+  const std::shared_ptr<const RequestCancel> cancel_;
 };
 
 enum class ReviewSection {

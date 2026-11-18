@@ -120,8 +120,9 @@ std::string receiveStateName(ReceiveState state) {
 
 LocalTransferClient::LocalTransferClient(HttpTransport& transport, std::string localOrigin,
                                          std::vector<std::pair<std::string, std::string>> headers,
-                                         AccountSession& session)
-    : transport_(transport), origin_(std::move(localOrigin)), headers_(std::move(headers)), session_(session) {}
+                                         AccountSession& session, std::shared_ptr<const RequestCancel> cancel)
+    : transport_(transport), origin_(std::move(localOrigin)), headers_(std::move(headers)), session_(session),
+      cancel_(std::move(cancel)) {}
 
 LocalTransferClient::Answer LocalTransferClient::post(const std::string& procedure, const std::string& body) {
   HttpRequest request;
@@ -132,6 +133,7 @@ LocalTransferClient::Answer LocalTransferClient::post(const std::string& procedu
   request.body = body;
   const bool run = procedure.ends_with(".run") || procedure.ends_with("resume");
   request.timeout = run ? std::chrono::milliseconds(kRunTimeout) : std::chrono::milliseconds(kCaptureTimeout);
+  request.cancel = cancel_;
   const HttpResponse response = transport_.send(request);
   Answer out;
   if (response.status == 0) {

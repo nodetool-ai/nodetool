@@ -151,7 +151,7 @@ struct TransferController::Applied {
 TransferController::TransferController(QObject* parent) : TransferController(nullptr, parent) {}
 
 TransferController::TransferController(std::unique_ptr<HttpTransport> transport, QObject* parent)
-    : QObject(parent), shared_(std::make_shared<Shared>()) {
+    : QObject(parent), shared_(std::make_shared<Shared>()), cancel_(std::make_shared<RequestCancel>()) {
   shared_->transport = transport ? std::move(transport) : std::make_unique<QtHttpTransport>();
   shared_->controller = this;
   tasks_ = std::make_unique<detail::TaskQueue>();
@@ -163,6 +163,8 @@ TransferController::~TransferController() {
     shared_->controller = nullptr;
     shared_->inbox.clear();
   }
+  // A request in flight returns now, and the tasks still queued are dropped.
+  cancel_->cancel();
   tasks_.reset();
 }
 
@@ -309,9 +311,9 @@ void TransferController::start() {
   stage_ = Stage::Capturing;
   message_.clear();
   emit stateChanged();
-  tasks_->post([state = shared_, current, origin = origin(), headers = headers(), projectId = projectId_.toStdString(),
+  tasks_->post([state = shared_, cancel = std::shared_ptr<const RequestCancel>(cancel_), current, origin = origin(), headers = headers(), projectId = projectId_.toStdString(),
                 name = projectName_.toStdString(), linked = linked_, sequence] {
-    LocalTransferClient client(*state->transport, origin, headers, *current);
+    LocalTransferClient client(*state->transport, origin, headers, *current, cancel);
     Captured captured;
     captured.send = client.captureSend(projectId, name);
     if (linked && captured.send.status == TransferStatus::Ok && !captured.send.collectFirst) {
@@ -404,12 +406,12 @@ void TransferController::apply() {
   stage_ = Stage::Running;
   message_.clear();
   emit stateChanged();
-  tasks_->post([state = shared_, current, origin = origin(), headers = headers(), review = review_, transferId = transferId_,
+  tasks_->post([state = shared_, cancel = std::shared_ptr<const RequestCancel>(cancel_), current, origin = origin(), headers = headers(), review = review_, transferId = transferId_,
                 setId = received_ ? std::string() : setId_,
                 sendWork = sendWork_ || !linked_ || !review_.confirmedDeletes().empty(),
                 approved = approved_, projectId = projectId_.toStdString(), name = projectName_.toStdString(),
                 sequence]() mutable {
-    LocalTransferClient client(*state->transport, origin, headers, *current);
+    LocalTransferClient client(*state->transport, origin, headers, *current, cancel);
     Applied applied;
     const auto report = [&] {
       state->toUi([sequence, applied = std::move(applied)](TransferController& self) {
@@ -572,8 +574,8 @@ void TransferController::endSend(const std::string& transferId) {
   if (transferId.empty() || !current) {
     return;
   }
-  tasks_->post([state = shared_, current, origin = origin(), headers = headers(), transferId] {
-    LocalTransferClient(*state->transport, origin, headers, *current).cancelSend(transferId);
+  tasks_->post([state = shared_, cancel = std::shared_ptr<const RequestCancel>(cancel_), current, origin = origin(), headers = headers(), transferId] {
+    LocalTransferClient(*state->transport, origin, headers, *current, cancel).cancelSend(transferId);
   });
 }
 

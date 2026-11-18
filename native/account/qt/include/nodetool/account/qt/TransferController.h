@@ -152,6 +152,10 @@ private:
   void finishApply(quint64 sequence, const Applied& applied);
 
   std::shared_ptr<Shared> shared_;
+  // Turned on by the destructor, so a running request returns at once
+  // instead of holding the join of the task thread (review F42). Shared
+  // with the tasks, which may still run while the destructor joins.
+  std::shared_ptr<RequestCancel> cancel_;
   std::unique_ptr<detail::TaskQueue> tasks_;
   QPointer<AccountController> account_;
   QUrl serverUrl_;
