@@ -555,6 +555,7 @@ export class TimelineSequence extends DBModel {
         table: timelineSequences,
         where: and(eq(timelineSequences.id, row.id), eq(timelineSequences.user_id, userId)) as SQL,
         dependents: timelineDependents(row.id),
+        grants: "document_collaborators",
         describe: (kept) => ({
           documentId: String(kept["id"]),
           projectId: (kept["project_id"] as string | null) ?? null,
@@ -562,8 +563,8 @@ export class TimelineSequence extends DBModel {
         })
       });
       if (!deleted) return false;
-      const gone = new TimelineSequence(deleted);
-      ModelObserver.notify(gone, ModelChangeEvent.DELETED);
+      const gone = new TimelineSequence(deleted.row);
+      ModelObserver.notify(gone, ModelChangeEvent.DELETED, { sharedWith: deleted.sharedWith });
       await timelineFileSync?.deleted(gone);
       return true;
     });
