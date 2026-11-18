@@ -4,6 +4,17 @@ Editable source: [https://claude.ai/artifact/C7vB5BB2k1GvXrya2k2hvn](https://cla
 
 Nov 15, 2026 · @Matthias Georgi
 
+## Revision 5
+
+Revision 5, 2026-11-18, records decision D24: the Electron desktop app gets cloud documents, sharing, Publish and Synchronize, after the native apps. It changes no rule of the native apps. Decisions D25 and D26 of the PRD are open, and this design follows their defaults.
+
+| Change | Where |
+| --- | --- |
+| The desktop app's cloud client: cloud requests and transfer calls that the account helper authorizes, a cloud tRPC client in the web app, a media scheme, drafts in the desktop app's local server | Architecture (K17), Cloud documents, sharing and transfer in the desktop app |
+| The local server of the desktop app receives an access token with a transfer call | Trust boundaries, The Electron desktop app |
+| Tests TC116 to TC125, failure cases FC30 to FC32, risks TR11 and TR12 | Tests for phase 1, Tests for phase 2, Failure cases, Risks |
+| Work packages WP1.14, WP1.15, WP2.14 and WP4.4 | Implementation plan |
+
 ## Revision 4
 
 Revision 4, 2026-11-17, records decision D23: the Electron desktop app shares the sign-in of the native apps. It changes no rule of the native apps.
@@ -196,11 +207,12 @@ Every arrow ends at the access module's decision: a request, a save, a commit an
 | K14 | Execution ledger, start, cancel and batch commands, completion permit | `packages/models/src/durable-generation.ts`, `packages/execution` | Changed | 5a |
 | K15 | Provider-neutral durable lifecycle with a declared recovery class | `packages/execution/src/generation-lifecycle.ts`, `packages/runtime/src/providers/` | Changed | 5a |
 | K16 | Desktop app account client: the account helper process over K4, the main-process client with its request forwarder, the Settings section | New `native/account-helper/`, new `electron/src/cloudAccount.ts`, `web/src/components/settings/` | New | 1 |
+| K17 | Desktop app cloud client: authorized cloud requests and transfer calls through K16, the cloud tRPC client and the document origin in the web app, the media scheme, the review sheet | `native/account-helper/`, `electron/src/cloudAccount.ts`, new `electron/src/cloudRequests.ts`, `web/src/trpc/`, new `web/src/components/cloud/` | New | 1, transfer in 2 |
 
 Trust boundaries.
 
 - The long-lived credential leaves the keychain only toward the server that issued it (SR3). The app's bundled local server receives a short-lived access token over loopback for a transfer and never the refresh token.
-- In the desktop app the session lives in the account helper. Electron's main process sees a token only while it forwards a token request to the server origin. The renderer and the desktop app's local server never receive one.
+- In the desktop app the session lives in the account helper. Electron's main process sees a token only while it forwards a request that the helper built, to the server origin or, for a transfer call, to the desktop app's own local server. The renderer never receives one. The desktop app's local server receives an access token only inside a transfer call, as a native app's bundled server does.
 - A blob is readable only through a row that ties it to a project. The object store's own addresses are never handed to a client for longer than 60 seconds, and never for a delivery copy.
 - The ledger and the activity table are outside every document. No document write can change them.
 - A job has no user credential. It writes through the completion permit, which the transaction validator enforces by shape (phase 5a).
@@ -288,18 +300,50 @@ A TypeScript implementation in Electron's main process was rejected. `account.lo
 | HTTP | The library has no network stack. The helper asks the main process to send each request: an `http` message with method, URL, headers, body, deadline and required origin. It blocks on the answer. The main process sends it with Chromium's network stack (`net.fetch`) and never follows a redirect. It answers status 0 without sending when the URL is not HTTPS on the server origin the helper was started for, or when it differs from the request's required origin. The token endpoint calls carry tokens in their bodies, so a refresh token is in the main process's memory while such a request is in flight, and nowhere else outside the helper. |
 | Browser | The helper sends the authorize URL. The main process opens it with `shell.openExternal` only when its origin is the server origin and its path is `/oauth/authorize`. A refused or failed open is reported back and ends the attempt with a message. |
 | Renderer | Receives the state only: signed out, signing in or signed in, display name, server, whether the server end is pending, whether policy allows cloud features, whether a keychain exists, and a message. It can ask to sign in, to cancel and to sign out. No token, handle or record crosses the IPC boundary. |
-| Local server | Unchanged. It runs in Local mode, and Electron's windows reach it with the per-launch local client token (`electron/src/localClientToken.ts`). That token authenticates the desktop app's windows to its own server and is unrelated to the cloud session. The cloud sign-in gives the local server no token in phase 1. |
+| Local server | It runs in Local mode, and Electron's windows reach it with the per-launch local client token (`electron/src/localClientToken.ts`). That token authenticates the desktop app's windows to its own server and is unrelated to the cloud session. The local server holds the desktop app's drafts and receives an access token only inside a transfer call (Cloud documents, sharing and transfer in the desktop app). |
 | App name | `desktop`. The authorization server accepts it beside `node-editor` and `timeline`. The consent page and the device sessions in Settings name it the NodeTool desktop app. The three apps share one device session (OQ1), and the name records the app that signed in. |
 | Data folder | `NodeTool/native` under the generic data location, as the Qt apps' `sharedDataDir()` computes it: `$XDG_DATA_HOME` or `~/.local/share` on Linux, `~/Library/Application Support` on macOS, `%LOCALAPPDATA%` on Windows. The helper applies the same rules without Qt. |
 | Server | `NODETOOL_CLOUD_SERVER` when it is an HTTPS origin, otherwise `https://api.nodetool.ai`, as in the Qt apps. Any other value turns sign-in off. |
 | Noticing the other apps | The helper reads the generation file and `accounts.json` every second. A sign-in or sign-out in a native app shows in the desktop app within 1 second plus one IPC message. The desktop app holds the credential nowhere but the helper, so a sign-out the helper notices needs no abort elsewhere. |
 | Helper missing or stopped | The Settings section says that cloud sign-in is unavailable. A helper that exits is started again after 1, 5 and 30 seconds, then left stopped until the next launch. Local work does not depend on it. The operating system releases `account.lock` with the process. |
-| Sign-out with waiting changes | The desktop app has no drafts, so its sign-out shows no dialog. The native apps' drafts stay on disk under the account, as with Keep changes on this computer. |
+| Sign-out with waiting changes | The desktop app counts its own drafts in its local server and shows the dialog of FR30 when there are any. The native apps' drafts stay on disk under the account, as with Keep changes on this computer. |
 | Quit | The main process closes stdin. The helper cancels a sign-in that waits for the browser and exits. A code exchanged after the cancel is ended on the server, as the Qt controller does. |
 
-The guarantees of the Sign-out section hold unchanged. The desktop app is one more process that applies the request rule, the refresh algorithm and the sign-out steps through the same library. In phase 1 it sends only the token endpoint calls and `/oauth/session/end`, and each of those passes through the library's rules.
+The guarantees of the Sign-out section hold unchanged. The desktop app is one more process that applies the request rule, the refresh algorithm and the sign-out steps through the same library. Every request it sends with the credential, the cloud requests of the next section included, is built by the helper and passes through the library's rules.
 
 What this does not guarantee: the main process can read a refresh token while it forwards a token request. Code that controls the main process already controls the app, as code in a Qt app's process can read what its network stack sends.
+
+### Cloud documents, sharing and transfer in the desktop app
+
+D24 gives the desktop app the cloud features of the native apps. The renderer is the web app, so the editors, the share dialog and the project views exist. What the desktop app lacks is a way for the renderer to reach the cloud server without holding a credential, a store for drafts, and the review sheet. The rules of the native apps hold unchanged: the statuses, the saved-state rule, scoping by server and account, the transfer stages. This section defines only how the desktop app meets them.
+
+A design that gives the renderer an access token was rejected. The renderer runs page code and loads media from many origins, and SR3 keeps every token out of it. A design in which the desktop app's local server proxies the cloud was rejected too. The local server would then hold a usable credential for the whole session, which SR3 allows only for the length of a transfer call.
+
+| Item | Contract |
+| --- | --- |
+| Cloud request | The renderer calls `cloud.request` over IPC with method, path, headers without `Authorization`, and body. The main process accepts it only for the signed-in origin, with a path under `/trpc/` or on the list of file routes (`/api/assets/` and the transfer file routes), and refuses every path the server excludes for access tokens. It hands the request to the helper as a `request` message. The helper calls `authorizeRequest()`, attaches the access token and sends the request through the existing `http` forwarder. On 401 it calls `refresh(rejected)` and sends once more. It answers with status, headers without `Set-Cookie` and body. The renderer never sees a request with the credential. |
+| Request rule in the desktop app | The helper applies the generation check of the request rule before every attach, so a sign-out in a native app stops the next cloud request of the desktop app even before the 1-second poll notices it (FC30). The main process aborts every pending cloud request when the state changes to signed out and answers it with `SIGNED_OUT`. |
+| Cloud tRPC client | The web app gains a second tRPC client whose links send through `cloud.request`. Its router type is `AppRouter`, because the cloud runs the same server. Each open document carries a document origin, `local` or `cloud` with server and account. Hooks that act on a document take the client from its origin. Query keys include the origin, so a local and a cloud document with the same id never share a cache entry (TC124). |
+| Media | The main process registers the privileged scheme `nodetool-cloud:`. Its handler maps a URL to a file route of the signed-in origin, forwards a GET with its `Range` header through `cloud.request`, and streams the answer. The media boundary of the web app (`utils/resolveMediaUri.ts`) resolves an asset of a cloud document to that scheme. The handler refuses another origin, a route off the list and any request while signed out (TC121). |
+| Drafts | The renderer writes drafts through the desktop app's local server, `cloudLocal.drafts.*` with the local client token, the same rows the native apps write (WP1.10). The desktop saver follows `CloudDocument`'s states and the saved-state rule: the draft commits within 750 ms, a save goes out after it, and Saved to cloud shows only after the accept. The saver is TypeScript, so its states are checked against the same scenarios as the Qt saver (TC120, TR11). |
+| Share dialog | `ShareDocumentDialog` over the cloud client. Its statements, the people list and the admin permissions are the web app's. |
+| Transfer call | A transfer runs in the desktop app's local server, as in the native apps (K9). The renderer calls `cloud.transfer` over IPC with a `cloudTransfer.*` procedure and its input without a token. The main process hands it to the helper as a `transfer` message. The helper calls `authorizeRequest()`, adds `origin`, `account_id` and `access_token` to the input, and sends it through the `http` forwarder to the local server's `/trpc/` with the local client token, which the main process adds. The forwarder accepts the local server's loopback origin as a second required origin only for `transfer` messages. The local server receives the access token only in that call and keeps it no longer than the call. |
+| Review sheet | A React sheet with the stages of `TransferController` (Capturing, Reviewing, Running, CollectFirst, Finished, Failed) and its `readLink` rule: it asks `cloudTransfer.link` first and publishes or synchronizes from the answer. File → Publish to Cloud… and File → Synchronize… in the application menu open it for the project of the focused window, enabled for a project folder with a full id while signed in. |
+| Runs of a cloud document | D25: Run goes to the cloud server, as in the web app. The helper answers a `socketToken` message with an access token for one WebSocket upgrade. The main process opens the socket with it in the `Authorization` header, drops the token after the upgrade, and relays frames to the renderer over IPC. The server's periodic re-validation and its `session_revoked` event close the socket (WP1.2). A sign-out closes it from the client side. |
+| Kinds | D26: workflows and timelines in phase 1. A row of another kind offers Open in browser. |
+
+What this does not guarantee: code that runs in the renderer can make authenticated cloud requests through `cloud.request` while the account is signed in, as page code in the hosted web app can with that app's session. It cannot read the token, so it loses that ability at sign-out and cannot carry it to another process (TR12).
+
+Helper protocol, version 2. Version 1 messages are unchanged.
+
+| Direction | Message | Fields |
+| --- | --- | --- |
+| Main to helper | `request` | `id`, `method`, `path`, `headers`, `body`, `timeoutMs` |
+| Main to helper | `transfer` | `id`, `procedure`, `input`, `localOrigin`, `timeoutMs` |
+| Main to helper | `socketToken` | `id` |
+| Main to helper | `requestCancel` | `id` |
+| Helper to main | `response` | `id`, `status`, `headers`, `body`, `error` (`SIGNED_OUT`, `OFFLINE` or empty) |
+| Helper to main | `socketTokenResult` | `id`, `token` or `error` |
 
 ### Local data scoping and durable drafts
 
@@ -420,10 +464,23 @@ Tests added in revision 2 for account coordination and the attach rule. A record
 | TC109 | Two helpers stand in for two apps, against one data folder and a file-backed test keychain. Sign in through one, sign out through the other, then the reverse. | Each helper reports the other's change within 2 seconds. After each sign-out neither returns a credential, and no later refresh writes a token into the record. | FR82, AC75 |
 | TC110 | The fake server answers a token request with a 302 to another host. Separately, ask the forwarder to send to another origin, to an `http` URL, and with a required origin that differs from the URL. | The refresh fails as offline. The forwarder sends nothing in each case and answers status 0. The other host receives no request. | SR3 |
 | TC111 | The helper asks the main process to open a URL that is not the server's authorize endpoint | The URL is not opened, and the attempt ends with a message | SR1 |
-| TC112 | TC16 with the helper as the app that signs out while a native app's refresh is held back. The helper never refreshes in phase 1, so it is never the app whose refresh is held. | The held response is discarded. The record is signed out and holds no token. | FR76 |
+| TC112 | TC16 with the helper as the app that signs out while a native app's refresh is held back, and again with a native app signing out while the helper's refresh for a cloud request is held back | The held response is discarded. The record is signed out and holds no token. | FR76 |
 | TC113 | Kill the helper during a sign-in after the record write, and during a sign-out after the generation file write. Start it again. | The repair rule completes each case as in TC18. A restarted process that only ends pending sessions runs the repair first, so the killed sign-out's handle is ended too. The desktop app shows the state the record holds. | Repair rule |
 | TC114 | Record every IPC message from the main process to the renderer during a sign-in, a refresh and a sign-out | No message holds a token, a revocation handle or the record | SR3 |
 | TC115 | Authorize with `app=desktop`, and with an unknown app | `desktop` reaches the consent page, which names the desktop app. The unknown app is refused. | FR82 |
+
+Tests added in revision 5 for the desktop app's cloud client. The fake server issues tokens with a recognizable prefix, and a recorder logs every IPC message between main process and renderer.
+
+| Code | Scenario | Expected outcome | Covers |
+| --- | --- | --- | --- |
+| TC116 | Open, edit, save and share a cloud workflow in the desktop app, with one refresh during the session | No IPC message, renderer-visible response header or body holds a token, a refresh token or a revocation handle | FR87, SR3 |
+| TC117 | Ask `cloud.request` for another origin, an `http` URL, `/oauth/token`, a credential-creating route, a path off the list, and a request whose answer is a redirect | Nothing is sent in the first five cases, and the call fails. The redirect is not followed. | FR87, FC31 |
+| TC118 | TC4 with three apps: both native apps and the desktop helper hold access tokens that expire together, and each sends a request | One call to the token endpoint. All three end with the same valid access token. | FR6, FC1 |
+| TC119 | TC17 with the desktop app as app B: it sends 50 cloud requests per second while a native app signs out | No request that the helper built after the generation write carries the credential. Pending requests answer `SIGNED_OUT`. The renderer shows Signed out within 5 seconds. | FR76, FC30 |
+| TC120 | Run the saver scenarios of the Qt `CloudDocument` tests against the desktop saver, with the same fake server: edit, offline edit, refused save, failed local write, kill after the draft commit | The same statuses in the same order, and the same draft rows | FR11, FR83, TR11 |
+| TC121 | Load `nodetool-cloud:` URLs for another origin, a route off the list, while signed out, and with a `Range` header | The first three are refused. The ranged request returns the bytes of that range. | SR3, SR8 |
+| TC124 | Open a local workflow and a cloud workflow that have the same id in two tabs, and edit each | Each tab reads and saves its own document. No query result of one appears in the other. | FR83 |
+| TC125 | AC18 in the desktop app: account A's drafts, then account B signs in on the same server | Nothing is sent under B. A's drafts are listed as waiting for A. | FR28, FR83 |
 
 ## Phase 2 design: linked projects and transfer
 
@@ -638,6 +695,13 @@ Tests for the project folder.
 | TC104 | Hold a receive after the comparison of its commit step. Edit the received workflow's file in another app. Release. | The row and the file hold the received graph. The edit is a version named "File edit replaced by a save". The receive result lists the workflow. | Receive window |
 | TC105 | Open a project in one app. Copy its folder and open the copy in the second app. Then kill the first app and open the original in the second. | The copy opens for writing, because its lock names another project id. While the first app runs, the original opens read-only and names it. After the kill it opens for writing. | Lock file |
 | TC108 | Change one asset's bytes in place on this computer, and in another way through a second linked copy that has synchronized. Synchronize. | Both are kept: the received bytes are a new asset under a name with the device and date, documents keep the local id, and the path is listed. The cloud's replaced bytes are readable as a recovery copy for 30 days. | Put asset file, V22 |
+
+Tests added in revision 5 for transfers from the desktop app.
+
+| Code | Scenario | Expected outcome | Covers |
+| --- | --- | --- | --- |
+| TC122 | Publish and synchronize a project from the desktop app while recording IPC traffic and the local server's request log | The renderer's traffic holds no token. The local server receives an access token only in `cloudTransfer.*` calls that the forwarder sent with the local client token. A `transfer` message for another local origin is refused. | SR3, FR85 |
+| TC123 | Run the review sheet scenarios of the Qt `TransferController` tests against the React sheet, with the same fake local server: publish, synchronize, linked elsewhere, collect first, a refused keep-local, cancel | The same calls in the same order and the same stages | FR13, FR85, TR11 |
 
 ## Phase 3 design: CRDT timelines
 
@@ -1095,6 +1159,9 @@ Failure cases from the review of 2026-11-16. Each was a gap between a guarantee 
 | FC27 | A reissue under a new actor leaves `selectionSeen` naming old dots | Typed recovery visitor | TC48 |
 | FC28 | The desktop app runs its own lock or session logic and refreshes while a native app holds `account.lock` | The desktop app runs the native library in the account helper | TC109, TC112 |
 | FC29 | A redirect or a forged URL makes Electron's main process send a token to another host | The forwarder sends only HTTPS to the session's origin and never follows a redirect | TC110 |
+| FC30 | A native app signs out, and the desktop app sends a cloud request before its 1-second poll notices | The helper applies the generation check before each attach | TC119 |
+| FC31 | Page code in the renderer asks `cloud.request` for a route that creates a credential, or for another host | The main process accepts only listed paths on the signed-in origin, and the server refuses credential-creating routes for access tokens | TC117 |
+| FC32 | A transfer call sends the access token to a process that is not the desktop app's local server | The forwarder sends a `transfer` message only to the loopback origin of the local server the main process started, with its local client token | TC122 |
 
 ### Harnesses
 
@@ -1162,6 +1229,15 @@ WP1.4 to WP1.7 touch only the server and the web app and do not depend on the si
 
 Exit: the PRD's phase 1 exit criteria, and TC1 to TC15 passing on the three server kinds. TC109 to TC115 pass on macOS, Windows and Linux.
 
+Work packages added in revision 5 for the desktop app (D24). They start after WP1.10 and WP1.11 and do not hold the exit above.
+
+| Code | Work package | Size | Depends on | Tests |
+| --- | --- | --- | --- | --- |
+| WP1.14 | Helper protocol version 2 (`request`, `transfer`, `socketToken`), `electron/src/cloudRequests.ts` with the path list and the abort on sign-out, the IPC calls in the preload, the `nodetool-cloud:` scheme, the WebSocket relay of D25 | M | WP1.13, WP1.2 | TC116 to TC119, TC121 |
+| WP1.15 | Web app in the desktop app: the cloud tRPC client and document origins, the Cloud and Shared with me groups, cloud tabs with the two statuses, the TypeScript saver over `cloudLocal.drafts`, the share dialog over the cloud client, sign-out with the dialog of FR30 | L | WP1.14, WP1.10 | TC120, TC124, TC125, AC76, AC77 |
+
+Exit for the desktop app in phase 1: TC116 to TC121, TC124 and TC125 pass on macOS, Windows and Linux, and AC76 and AC77 pass against the three server kinds.
+
 ### Phase 2: linked projects
 
 Gate: decisions D4, D5, D20 and D22.
@@ -1188,6 +1264,14 @@ Work packages added in revision 3.
 | WP2.13 | The lock file `.nodetool/open.lock` with the stale rules, and read-only opening in both native apps | S | WP0.4 |
 
 WP2.1, WP2.2 and WP2.6 can start during phase 1. Exit: the PRD's phase 2 exit criteria, TC20 to TC31, TC95 to TC105, TC108, and the kill tests at every named step.
+
+Work package added in revision 5.
+
+| Code | Work package | Size | Depends on |
+| --- | --- | --- | --- |
+| WP2.14 | The desktop app's Publish to Cloud and Synchronize: the application menu entries, the React review sheet with `readLink`, transfer calls through the helper | M | WP2.8, WP1.14 |
+
+Exit for the desktop app in phase 2: TC122, TC123 and AC78 pass.
 
 ### Phase 3: CRDT timelines
 
@@ -1219,6 +1303,7 @@ Gate: phases 1 and 2, decision D13.
 | WP4.1 | Project grant tables, `effectiveAccess` with project scope, the enumeration test over every document procedure and route | L | WP1.4 |
 | WP4.2 | Delivery copies, snapshots, the streaming file route, the 30-day deletion of superseded snapshots | M | WP2.1, WP1.5 |
 | WP4.3 | Open in app from the share page, and the project scope in both share dialogs | M | WP4.1 |
+| WP4.4 | The project scope in the desktop app's share dialog, and Open in NodeTool on the share page with the desktop app's link handler | S | WP4.3, WP1.15 |
 
 Phase 4 does not need phase 3 and can run beside it. Exit: the PRD's phase 4 exit criteria and TC50 to TC53.
 
@@ -1286,6 +1371,8 @@ Gaps found against `11a6da4a`.
 | --- | --- | --- |
 | TR9 | A text editor that saves a stale buffer of a timeline file reverts remote changes as new transactions (D21) | The revert is one listed transaction and the version named "Before file edit" restores it (TC107). The project lock does not prevent it, because other apps do not take the lock. |
 | TR10 | The helper inside the Electron bundle is a third signed binary that reads the keychain item. On macOS it may prompt when another app created the item (TR1). The WP1.13 workflow is also the first CI build of the macOS and Windows keychain stores. | WP0.2 covers the helper. The WP1.13 workflow compiles the library and runs its tests on all three platforms. |
+| TR11 | The saver and the review sheet exist twice, in C++ for the native apps and in TypeScript for the desktop app, and their states drift apart | TC120 and TC123 run the Qt test scenarios against the TypeScript versions with the same fake servers. A scenario added to one suite is added to the other in the same pull request. |
+| TR12 | Page code in the renderer can act as the signed-in account through `cloud.request` without reading the token | The path list, the server's refusal of credential-creating routes for access tokens, and the renderer's content security policy. The exposure equals that of page code in the hosted web app. |
 
 ### Open questions
 

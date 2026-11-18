@@ -8,7 +8,7 @@ Nov 15, 2026 · @Matthias Georgi
 
 This is revision 5 of the PRD. Each section states the rules as they are specified now. What each revision changed is in the change log at the end and nowhere else.
 
-Local work needs no account. The native node graph editor and the native timeline sign in through the system browser. The Electron desktop app shares that sign-in (D23). A signed-in user opens cloud documents, links a local project to a cloud project and synchronizes it by explicit action, and shares documents and projects.
+Local work needs no account. The native node graph editor and the native timeline sign in through the system browser. The Electron desktop app shares that sign-in (D23). After the native apps, the desktop app gets the same cloud documents, sharing, Publish and Synchronize (D24). A signed-in user opens cloud documents, links a local project to a cloud project and synchronizes it by explicit action, and shares documents and projects.
 
 The main rules:
 
@@ -144,8 +144,8 @@ The two designs cover timelines, scripts and storyboards. They give no merge sem
 | G1 | A user signs in from either native app in under one minute without typing a password or a token into the app. |
 | G2 | The sign-in survives restarts and serves both native apps and the Electron desktop app on the machine. |
 | G3 | A user links a local project to a cloud project and synchronizes it by explicit action, repeatedly, without duplicates and without exposing a half-transferred project. |
-| G4 | A user shares a document or a whole project from the native app, and knows what the recipient receives. |
-| G5 | A recipient opens shared work in the browser or in a native app. |
+| G4 | A user shares a document or a whole project from a native app or the desktop app, and knows what the recipient receives. |
+| G5 | A recipient opens shared work in the browser, in a native app or in the desktop app. |
 | G6 | Work is recoverable. Every edit is on disk before the app treats it as saved. A value that a person wrote and that loses to a concurrent value is retained until someone resolves it. A value that an agent, a directing run or a job suggested is retained until the person uses it, dismisses it or edits the field again, and its text is then in the activity record. A replaced whole document is in version history. A refused edit is in a list the user can act on. |
 | G7 | Local work never requires an account. |
 | G8 | The feature works against the hosted cloud, a self-hosted server in Supabase mode and a self-hosted server in SSO mode, and each is tested. |
@@ -170,7 +170,6 @@ Each clause of G6 maps to a requirement and a test in the traceability table. G6
 - A native script editor.
 - Teams, organizations and shared billing. Changes to pricing.
 - A new sign-in for the web app or the mobile app. The web app does get the specific changes listed in the rollout section.
-- Cloud documents, linked projects and sharing in the Electron desktop app. It shares the sign-in of the native apps (D23) and gains nothing else from this PRD.
 - SAML.
 
 ### Users
@@ -315,6 +314,20 @@ Capabilities are negotiated per document kind. A client can send transactions fo
 4. After **Allow**, the app shows the account name and the server. The other native app and the Electron desktop app on the machine are signed in to the same account.
 
 The Electron desktop app offers the same sign-in from its Settings (D23). Its consent page names it as the desktop app.
+
+### The same flows in the desktop app
+
+The desktop app is the web app running against its own local server. Each flow below also runs there, with the same rules and the same statuses (D24). The desktop app gets each one after the native apps have it in the same phase.
+
+| Flow | Where it starts in the desktop app |
+| --- | --- |
+| Open and edit a cloud document | The Cloud and Shared with me groups beside the local projects. A cloud document opens in an editor tab with the two statuses. |
+| Link a local project, Synchronize | **File → Publish to Cloud…** and **File → Synchronize…** in the application menu, and the same actions in the project's menu. The review sheet has the sections of the native sheet. |
+| Share | Share… in the editor header and the command menu, on a cloud document or a linked project. |
+| Receive shared work | The share page offers **Open in NodeTool** beside the native apps (phase 4). |
+| Sign out | Settings, Cloud account. The dialog of Signing out with changes waiting counts the desktop app's own drafts. |
+
+Runs of a cloud document follow D25. The kinds that open as cloud documents follow D26.
 
 ### Open and edit a cloud document
 
@@ -807,7 +820,7 @@ Credentials, drafts, pending transactions, unsent edits and project links are st
 | **Wait and send** | Sign-out waits for the connection, sends, then completes. The user can cancel the wait. |
 | **Cancel** | Nothing changes. |
 
-The app never discards waiting changes as part of sign-out. The dialog counts only changes waiting for cloud documents in the app that signs out. Each app keeps its drafts in its own local server, so a sign-out in one app cannot count the other apps' changes. Those stay on disk under A, as with Keep changes on this computer. The Electron desktop app holds no cloud documents, so its sign-out shows no dialog and says that changes waiting in the native apps stay on this computer. Local changes in a linked project are not waiting to be sent. They stay in the project and move only at Synchronize.
+The app never discards waiting changes as part of sign-out. The dialog counts only changes waiting for cloud documents in the app that signs out. Each app keeps its drafts in its own local server, so a sign-out in one app cannot count the other apps' changes. Those stay on disk under A, as with Keep changes on this computer. The Electron desktop app keeps its drafts in its own local server too, so its dialog counts only those. Local changes in a linked project are not waiting to be sent. They stay in the project and move only at Synchronize.
 
 ### Signing out offline
 
@@ -1031,6 +1044,16 @@ A requirement keeps its id across revisions. Every requirement is P0 for its pha
 | FR78 | Updating a delivery copy creates a new snapshot. The delivery link returns the latest snapshot and nothing earlier. Recipients of a delivery copy are viewers. | 4 | Sharing |
 | FR79 | The owner can free storage: erase a file that no current content shows, end the restore period of a deleted document or project, and delete a saved version where the document kind allows it. An erased file is on the project's erased list and is not required, uploaded or served until the owner takes it off. The storage view shows what each action frees. | 2. Results in 5. | Sharing, Freeing storage |
 
+### The desktop app
+
+| Code | Requirement | Phase | Defined in |
+| --- | --- | --- | --- |
+| FR83 | The desktop app browses, opens and edits cloud documents under FR9 to FR11, FR32 and FR33, for the kinds of D26. Its drafts are in its own local server and follow FR11 and FR28 unchanged. | 1 | The same flows in the desktop app |
+| FR84 | The desktop app shares documents with the dialog of FR21, FR23, FR48 and FR52. | 1 | Sharing |
+| FR85 | The desktop app publishes and synchronizes a local project under FR12 to FR18, FR20, FR26 and FR40, with a review sheet that has the sections of FR13. | 2 | The same flows in the desktop app |
+| FR86 | The desktop app shares a whole project under FR24, and the share page offers Open in NodeTool for it under FR25. | 4 | Sharing |
+| FR87 | In the desktop app no access token, refresh token or revocation handle reaches the renderer. Cloud requests from the renderer carry no credential of their own. | 1 | SR3 |
+
 ### Scripts, storyboards, generation and links
 
 | Code | Requirement | Phase | Defined in |
@@ -1065,7 +1088,7 @@ A requirement keeps its id across revisions.
 | --- | --- |
 | SR1 | The app never handles the user's password or identity-provider credentials. Sign-in happens in the system browser. |
 | SR2 | Credentials are stored only in the operating system's credential store, under server and account. Where none exists, the sign-in lasts for the session and the app says so. |
-| SR3 | The long-lived credential is sent only to the server that issued it, over HTTPS. For a transfer, the app hands a short-lived access token to its own bundled local server over loopback, and to nothing else. In the Electron desktop app no token reaches the renderer or the local server. |
+| SR3 | The long-lived credential is sent only to the server that issued it, over HTTPS. For a transfer, the app hands a short-lived access token to its own bundled local server over loopback, and to nothing else. In the Electron desktop app no token reaches the renderer, and the local server receives one only with a transfer call. |
 | SR4 | Each device session can be revoked on its own. Sign out removes the local credential at once and ends the session on the server as soon as the server can be reached. The app never reports a session as ended before the server confirmed it. A disabled account loses native access as tabulated in the account section. |
 | SR5 | Credentials stored through the app's secret storage are never transferred or shared. This requirement makes no claim about text in user-authored content. |
 | SR6 | Before publishing or sharing, the app warns when a node property, script or workspace file holds a value that looks like a secret, and names the place. The warning states that the check is best-effort. |
@@ -1158,6 +1181,9 @@ Every criterion below is specified. None has been run. The fixtures are those of
 | AC32 | The owner deletes a cloud timeline. A collaborator's waiting edit arrives. | The edit is refused with the lifecycle code. The document stays deleted. The edit is in the collaborator's Unsent edits. Phase 3. | SR17, A1 | 3 |
 | AC34 | Sign in from each native app and from the Electron desktop app against the hosted cloud, a self-hosted server in Supabase mode and a server in SSO mode. Revoke the device in Settings. | Sign-in completes, the other two apps are signed in within 5 seconds, and all three lose access within one minute of the revocation. | FR1 to FR7, FR82 | 1 |
 | AC75 | With all three apps running and signed in, sign out from the Electron desktop app, once online and once offline. Then sign out from a native app after signing in again. | Each time the other two apps show signed out within 5 seconds and send no request with the credential after the sign-out. No app restores the credential afterward. Online, the device session disappears from Settings. Offline, every app shows that the server session is not yet ended until the server confirms. | FR76, FR82, SR4 | 1 |
+| AC76 | In the desktop app, open a cloud workflow, edit it offline, quit the app 1 second after the last edit, start it again and go online. | The status reads Changes waiting while offline. After the restart the edit is still there and is sent. A native app signed in to the same account opens the document with the edit. | FR83, FR11 | 1 |
+| AC77 | In the desktop app, open a cloud document, share it, then sign out from a native app while a save from the desktop app is in flight. | The share dialog states what each link gives. After the sign-out the desktop app sends no request with the credential, shows Signed out within 5 seconds, and keeps the edit as a draft. The renderer's memory and its IPC traffic hold no token at any point. | FR84, FR87, FR76 | 1 |
+| AC78 | Publish a local project from the desktop app, then change it in a native app on the same account and choose Synchronize in the desktop app. | The review sheet lists the same sections and documents as the native sheet for the same project. The project publishes once, and the second transfer receives the change. | FR85, FR13, FR14 | 2 |
 | AC35 | Open, receive and synchronize a shared workflow and a shared app. | No run starts. No credit or key is used. | SR18 | 1 |
 | AC60 | A collaborator saves a cloud workflow while another user holds an offline draft of it. The draft wins on reconnect. | The collaborator's version is in the document's history, or kept as a copy where the kind has no history, and can be restored. | FR27 | 1 |
 
@@ -1283,6 +1309,14 @@ Phase 5 has two parts. Each contract is in the exit criteria of the phase that s
 | 5a. Replicated scripts | Per-register reconciliation for cloud and linked scripts, the review panel, requests with a separate start and the execution ledger, the rules for the current take, Synchronize and start, result labels, version history, legacy conversion, generated edits that defer to people | Phase 3 shipped. The storyboard and script design approved for implementation, which it is not today. Fixture suite version 2 and properties P1 to P8 passing in the prototype. Decisions D7, D10, D12 and D14 to D20. A recovery class declared and tested for every provider integration that ships. Amendments A16, A17 and A19 are written into revision 3 of that design. The web script editor and the agent tools sending transactions, or the web stores meeting the design's condition W1. The take manifest checked against the voicing path. | FR54, FR55, FR57, FR58, FR60 to FR64, FR68 to FR70, FR72, FR75, FR80 and FR81 pass for scripts. AC37 to AC42, AC48 to AC51, AC53 to AC57, AC61 without its timeline part, AC63 to AC65, AC67 to AC72 and the results of AC74 pass in script form. The divergence metric and the count of request ids with more than one execution or charge are 0 in a four-week beta. |
 | 5b. Replicated storyboards and links | The same for storyboards, line assignment by entity, the link panel, the keyed push to timelines with explicit Retime, deletion without a write to linked documents | Phase 5a. Decisions D8 and D9. Every caller of the link validation accepting a missing line as a warning. The keyframe and clip manifests checked against the render path. The directing run writing shots by id. Timeline amendments C2, C3 and C5 in place. Amendment A18 written into the storyboard and script design. | FR56, FR59, FR65 and FR66 for replicated documents pass, and the phase 5a requirements pass for storyboards. AC43 to AC47, AC52 on replicated documents and the timeline part of AC61 pass. |
 
+The desktop app's work in each phase has its own exit criteria (D24). They do not hold the phase for the native apps.
+
+| Phase | The desktop app gets | Exit criteria |
+| --- | --- | --- |
+| 1 | Cloud documents of the kinds of D26, the two statuses, drafts, the share dialog, sign-out with the dialog of FR30 | FR83, FR84 and FR87 pass on macOS, Windows and Linux against the three server kinds. AC76 and AC77 pass. |
+| 2 | Publish to Cloud, Synchronize and the review sheet | FR85 passes against the three server kinds. AC78 passes. |
+| 4 | Project sharing and Open in NodeTool | FR86 passes. |
+
 If the CRDT gate fails or slips, phases 1, 2 and 4 are unaffected. Timelines keep whole-document behavior, goal G9 is unmet, and the documentation keeps saying so. Phase 5 does not start before phase 3. If phase 5 fails or slips, scripts and storyboards keep whole-document behavior and today's link behavior, and goals G10 to G12 are unmet for them.
 
 Phase 5 is mostly work outside the native apps: the web editors, the agent tools, the generation services and the server. The native storyboard component needs it to edit cloud and linked storyboards per register. Until then it edits them as whole documents.
@@ -1316,6 +1350,9 @@ The web app's own sign-in is unchanged. These web and server changes are in scop
 | Link validation accepts a missing line as a warning in every caller | 5b |
 | Revocation handle issued at sign-in, and an endpoint that accepts it without a credential | 1 |
 | Electron desktop app: the shared sign-in in Settings, and `desktop` as an app on the consent page and in device sessions | 1 |
+| Electron desktop app: the Cloud and Shared with me groups, cloud document tabs with drafts and the two statuses, and the share dialog over a cloud client in the web app | 1 |
+| Electron desktop app: Publish to Cloud and Synchronize in the application menu, and the review sheet in the web app | 2 |
+| Electron desktop app: project sharing, and Open in NodeTool on the share page | 4 |
 | Options stored on the link and read at every request, one active link per role and scope, and the people list with effective role, options and source | 1 |
 | A version kept when a draft replaces a cloud version under transitional merge | 1 |
 | Revision sets for receiving, commit attempts with recorded results, the missing-file manifest | 2 |
@@ -1382,7 +1419,7 @@ Q1, Q2, Q4, Q5 and Q7 are decided in this document or moved to the blocking deci
 
 ## Blocking product decisions
 
-Each has a recommended default. The document is written as if the default is chosen. D3 also covers what editors of scripts and storyboards receive (SR26). D13 to D20 are choices I made where a review left alternatives open. D21 and D22 were added on 2026-11-16 from the project folder code and are open. D23 was decided on 2026-11-17.
+Each has a recommended default. The document is written as if the default is chosen. D3 also covers what editors of scripts and storyboards receive (SR26). D13 to D20 are choices I made where a review left alternatives open. D21 and D22 were added on 2026-11-16 from the project folder code and are open. D23 was decided on 2026-11-17 and D24 on 2026-11-18. D25 and D26 were added on 2026-11-18 and are open.
 
 | Code | Decision | Recommended default | Consequence of the default | Blocks |
 | --- | --- | --- | --- | --- |
@@ -1411,13 +1448,24 @@ Each has a recommended default. The document is written as if the default is cho
 | --- | --- | --- | --- | --- |
 | D21 | Is a replicated timeline's file in the project folder a projection of the replicated state? | Yes. An edit to the file in another app becomes transactions against the file NodeTool last wrote. | A remote edit that arrives while another app edits the file is kept. An editor that saves a stale buffer reverts remote changes as one listed edit that can be restored. The alternative keeps the file as the authority and loses such remote edits. | Phase 3 |
 | D22 | How does a transfer handle linked files outside the project folder? | Collect them into the folder first, and otherwise cancel | The asset keeps its id and travels as a file of the folder. Nothing is uploaded from a path outside the folder. | Phase 2 |
-| D23 | Does the Electron desktop app share the sign-in of the native apps? | Yes. Decided by Matthias on 2026-11-17. | One sign-in serves three apps. The desktop app reads and writes the same session record under the same lock as the native apps, and a sign-out in any app ends the credential for all three. The desktop app gets no cloud documents from this PRD. Its local server stays in Local mode and keeps its own launch token. | Phase 1 |
+| D23 | Does the Electron desktop app share the sign-in of the native apps? | Yes. Decided by Matthias on 2026-11-17. | One sign-in serves three apps. The desktop app reads and writes the same session record under the same lock as the native apps, and a sign-out in any app ends the credential for all three. Its local server stays in Local mode and keeps its own launch token. What else the desktop app gets is D24. | Phase 1 |
+| D24 | Does the desktop app get cloud documents, sharing, Publish and Synchronize? | Yes, after the native apps. Decided by Matthias on 2026-11-18. | FR83 to FR87. In each phase the desktop app's work follows the native apps' work and does not hold the native exit criteria. Its own criteria are listed under Rollout. | Phases 1, 2 and 4 |
+| D25 | Where does Run on a cloud document go in the desktop app? | To the cloud server, as in the web app (Q11), over a connection the desktop app's main process opens | Runs use cloud credits and the cloud's providers, the same as in the browser. The main process holds an access token while it opens that connection. The alternative runs cloud documents on the local server with local keys, which makes the same document cost different things in different apps. | Phase 1 for the desktop app |
+| D26 | Which kinds open as cloud documents in the desktop app? | Workflows and timelines in phase 1, as in the native apps. Sketches, apps, JS scripts, scripts and storyboards once their reference sets exist (technical design WP2.10). Until then their rows offer Open in browser. | The desktop app never edits a kind whose file references the server cannot check. The alternative opens every kind the web app edits in phase 1 and leaves their file references unchecked. | Phase 1 for the desktop app |
 
 In review of the storyboard and script design you confirmed one behavior change that this document relies on: a new take or render no longer retimes the timeline. D8 and D9 were not addressed there.
 
 ## Decision and change log
 
 The sections above state only the current rules. This section holds the history of the document.
+
+Changes on 2026-11-18. Revision 5 is kept.
+
+| Topic | Before | After |
+| --- | --- | --- |
+| Electron desktop app | Sign-in only (D23). Cloud documents, linked projects and sharing in the desktop app were a non-goal. | The desktop app gets them after the native apps (D24). The summary, G4, G5, the flows, FR83 to FR87, SR3, AC76 to AC78, the rollout and the changes outside the native apps name it. The non-goal is removed. |
+| Desktop sign-out dialog | The desktop app held no drafts and showed no dialog | It counts the desktop app's own drafts, as each native app does |
+| Open decisions | None for the desktop app | D25 for runs of a cloud document, D26 for the kinds it opens |
 
 Changes on 2026-11-17. Revision 5 is kept.
 
@@ -1540,6 +1588,7 @@ Changes from revision 1 of this PRD.
 | A competing value is retained until someone resolves it explicitly | FR41, FR42, FR43 | C1, T1, T20, A4 | AC2, AC3 |
 | Undo never outranks another person's value, and the app says what it revealed | FR44 | C2, T15 | AC4 |
 | One sign-in serves the three desktop apps, and a sign-out ends it in all of them | FR6, FR76, FR82 | None | AC34, AC75 |
+| The desktop app's renderer never holds a credential | FR87, SR3 | None | AC77 |
 | A refused edit is recoverable | FR46, FR31 | C5, T16, A1 | AC10, AC17, AC32 |
 | A replaced whole-document version is recoverable | FR26, FR27 | None | AC12, AC33, AC60 |
 | No part of a transfer is visible before its commit | FR15, FR34, FR37 | None | AC13, AC14 |
