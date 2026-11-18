@@ -8,10 +8,11 @@
  */
 import { createHash, randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { setPauseHandler } from "@nodetool-ai/config/pause-points";
 import { PauseGate } from "@nodetool-ai/config/testing/pause-harness";
 import {
   Asset,
@@ -454,6 +455,77 @@ describe("receiving a cloud project", { timeout: 30_000 }, () => {
       const kept = outcome.result.keptBeside[0];
       expect(kept?.path).toBe("media/still.png");
       expect(Buffer.from((await folder.read(kept!.keptPath))!).equals(newer)).toBe(true);
+    } finally {
+      gate.uninstall();
+    }
+  });
+
+  it("places a conflict's received bytes and their asset once when a crash repeats the placement (review F48)", async () => {
+    const bytes = randomBytes(64);
+    const document = cloud.putWorkflow("Edit", { bytes, name: "still.png", path: "media/still.png" });
+    await runReceive(cloud, (await captureReceive(cloud, link)).setId);
+    const newer = randomBytes(64);
+    const file = document.files[0]!;
+    file.hash = sha(newer);
+    file.size = newer.byteLength;
+    cloud.blobs.set(file.hash, newer);
+    document.payload = workflowPayload("Edit", file.asset_id, "two");
+    const edited = randomBytes(32);
+    await folder.write("media/still.png", edited);
+
+    const review = await captureReceive(cloud, link);
+    // The process dies after the received bytes and their asset exist, before the placement is cleared.
+    setPauseHandler((name) => {
+      if (name === "receive.place.placed") throw new Error("killed");
+    });
+    try {
+      await expect(runReceive(cloud, review.setId)).rejects.toThrow("killed");
+    } finally {
+      setPauseHandler(null);
+    }
+    const [outcome] = await resumeReceives(() => cloud, USER);
+    if (outcome?.status !== "finished") throw new Error("expected a finished receive");
+    expect(outcome.result.keptBeside).toHaveLength(1);
+    const kept = outcome.result.keptBeside[0]!;
+    expect((await readdir(join(folder.localDir!, "media"))).sort()).toEqual(
+      ["still.png", kept.keptPath.slice("media/".length)].sort()
+    );
+    expect(Buffer.from((await folder.read(kept.keptPath))!).equals(newer)).toBe(true);
+    expect(await Asset.get<Asset>(kept.assetId)).toMatchObject({ workspace_path: kept.keptPath, content_hash: file.hash });
+  });
+
+  it("puts back local bytes a failed replacement moved aside, also when the received bytes go beside (review F49)", async () => {
+    const bytes = randomBytes(64);
+    const document = cloud.putWorkflow("Edit", { bytes, name: "still.png", path: "media/still.png" });
+    await runReceive(cloud, (await captureReceive(cloud, link)).setId);
+    const newer = randomBytes(64);
+    const file = document.files[0]!;
+    file.hash = sha(newer);
+    file.size = newer.byteLength;
+    cloud.blobs.set(file.hash, newer);
+    document.payload = workflowPayload("Edit", file.asset_id, "two");
+
+    // Another app saves the file after the receive checked it, and saves it
+    // again at the path after the receive moved the first save aside.
+    const edited = randomBytes(32);
+    const third = randomBytes(48);
+    const gate = new PauseGate([REPLACING, "receive.place.moved-aside"]).install();
+    try {
+      const review = await captureReceive(cloud, link);
+      const running = runReceive(cloud, review.setId);
+      await gate.waitFor(REPLACING);
+      await folder.write("media/still.png", edited);
+      gate.release(REPLACING);
+      await gate.waitFor("receive.place.moved-aside");
+      await folder.write("media/still.png", third);
+      gate.release("receive.place.moved-aside");
+      const outcome = await running;
+      if (outcome.status !== "finished") throw new Error("expected a finished receive");
+      expect(Buffer.from((await folder.read("media/still.png"))!).equals(third)).toBe(true);
+      expect(Buffer.from((await folder.read(outcome.result.keptBeside[0]!.keptPath))!).equals(newer)).toBe(true);
+      const local = outcome.result.localKept ?? [];
+      expect(local).toHaveLength(1);
+      expect(Buffer.from((await folder.read(local[0]!.keptPath))!).equals(edited)).toBe(true);
     } finally {
       gate.uninstall();
     }
