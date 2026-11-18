@@ -17976,7 +17976,9 @@
       "seek": "Siirry",
       "playbackSpeed": "Toistonopeus",
       "exitFullscreen": "Poistu koko näytöstä",
-      "enterFullscreen": "Koko näyttö"
+      "enterFullscreen": "Koko näyttö",
+      "mute": "Mykistä",
+      "unmute": "Poista mykistys"
     },
     "tagInput": {
       "placeholder": "Kirjoita ja lisää tunniste painamalla Enter…",
@@ -20239,6 +20241,19 @@
       "retry": "Yritä uudelleen",
       "donePath": "Tiedostosi ovat kansiossa {{path}}",
       "close": "Sulje"
+    },
+    "preview": {
+      "clips": "leikettä",
+      "title": "Esikatselu",
+      "tracks": "raitaa",
+      "type": {
+        "app": "Miniapp",
+        "jsscript": "JS-skripti",
+        "script": "Käsikirjoitus",
+        "storyboard": "Kuvakäsikirjoitus",
+        "timeline": "Aikajana",
+        "workflow": "Työnkulku"
+      }
     }
   },
   "assetPicker": {

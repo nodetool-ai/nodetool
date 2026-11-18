@@ -17976,7 +17976,9 @@
       "seek": "シーク",
       "playbackSpeed": "再生速度",
       "exitFullscreen": "全画面表示を終了する",
-      "enterFullscreen": "全画面表示に入る"
+      "enterFullscreen": "全画面表示に入る",
+      "mute": "ミュート",
+      "unmute": "ミュート解除"
     },
     "tagInput": {
       "placeholder": "タグを追加するには、入力して Enter キーを押します…",
@@ -20239,6 +20241,19 @@
       "retry": "再試行",
       "donePath": "ファイルは {{path}} にあります",
       "close": "閉じる"
+    },
+    "preview": {
+      "clips": "クリップ",
+      "title": "プレビュー",
+      "tracks": "トラック",
+      "type": {
+        "app": "ミニアプリ",
+        "jsscript": "JS スクリプト",
+        "script": "スクリプト",
+        "storyboard": "ストーリーボード",
+        "timeline": "タイムライン",
+        "workflow": "ワークフロー"
+      }
     }
   },
   "assetPicker": {
