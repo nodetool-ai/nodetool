@@ -256,6 +256,30 @@ export async function isFileInReadableSet(
   );
 }
 
+/**
+ * The files among `files` that `access` may read through the sets of the
+ * document `id`, in their order. Empty when the document is gone. The sets
+ * are brought up to date first.
+ */
+export async function readableFilesOf(
+  kind: RefDocumentKind,
+  id: string,
+  access: EffectiveAccessItem,
+  files: readonly string[]
+): Promise<string[]> {
+  if (files.length === 0) return [];
+  const document = await loadRefDocument(kind, id);
+  if (!document) return [];
+  const current = await ensureCurrentSet(kind, document);
+  if (readsVersions(access)) await ensureVersionSets(kind, document);
+  const scopes = readableScopes(access);
+  const readable: string[] = [];
+  for (const file of files) {
+    if (await DocumentRefs.contains(kind, document.id, file, scopes, current)) readable.push(file);
+  }
+  return readable;
+}
+
 /** The workflows and timelines `userId` holds a grant on, each once. */
 async function grantedRefDocuments(
   userId: string,

@@ -8,6 +8,7 @@
 import { and, eq, gte, inArray, isNotNull, isNull, lt } from "drizzle-orm";
 import { createTimeOrderedUuid } from "./base-model.js";
 import { getPortableDb } from "./db.js";
+import { isHashInLiveRevisionSet } from "./revision-set.js";
 import { blobDeletions, projectBlobs } from "./schema/project-blobs.js";
 
 export type ProjectBlobRow = typeof projectBlobs.$inferSelect;
@@ -172,14 +173,17 @@ export async function isBlobDeletionClaimed(hash: string, now: Date = new Date()
   return row !== undefined;
 }
 
-/** Whether any row, staged or committed, names the hash. */
-export async function isBlobHashNamed(hash: string): Promise<boolean> {
+/**
+ * Whether any row, staged or committed, names the hash, or a revision set
+ * that has not expired names it (Y1).
+ */
+export async function isBlobHashNamed(hash: string, now: Date = new Date()): Promise<boolean> {
   const [row] = await getPortableDb()
     .select({ id: projectBlobs.id })
     .from(projectBlobs)
     .where(eq(projectBlobs.hash, hash))
     .limit(1);
-  return row !== undefined;
+  return row !== undefined || (await isHashInLiveRevisionSet(hash, now));
 }
 
 /** Deletes staged rows older than the staged lifetime. Returns how many. */

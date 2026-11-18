@@ -34,6 +34,7 @@ import { openverseRouter } from "./routers/openverse.js";
 import { peopleRouter } from "./routers/people.js";
 import { storageRouter } from "./routers/storage.js";
 import { transfersRouter } from "./routers/transfers.js";
+import { receiveRouter } from "./routers/receive.js";
 import { threadsRouter } from "./routers/threads.js";
 import { memoriesRouter } from "./routers/memories.js";
 import { errorTracesRouter } from "./routers/error-traces.js";
@@ -102,6 +103,7 @@ type AppRouterRecord = {
   resources: typeof resourcesRouter;
   storage: typeof storageRouter;
   transfers: typeof transfersRouter;
+  receive: typeof receiveRouter;
   threads: typeof threadsRouter;
   memories: typeof memoriesRouter;
   errorTraces: typeof errorTracesRouter;
@@ -160,6 +162,7 @@ export const appRouter: ReturnType<typeof router<AppRouterRecord>> = router({
   resources: resourcesRouter,
   storage: storageRouter,
   transfers: transfersRouter,
+  receive: receiveRouter,
   threads: threadsRouter,
   memories: memoriesRouter,
   errorTraces: errorTracesRouter,

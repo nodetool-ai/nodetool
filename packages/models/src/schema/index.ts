@@ -74,3 +74,4 @@ export { accessEpochs } from "./access-epochs.js";
 export { cloudTransfers, cloudTransferAttempts } from "./cloud-transfers.js";
 export { transferPlacements, recoveryCopies, transferredConversations } from "./transfer-files.js";
 export { documentActivity } from "./document-activity.js";
+export { revisionSets, revisionSetEntries, revisionSetFiles } from "./revision-sets.js";
