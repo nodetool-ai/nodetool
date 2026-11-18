@@ -49,7 +49,7 @@ vi.mock("../src/lib/cloud-transfer-transport.js", () => ({
         return {
           outcome: "committed" as const,
           project_id: PROJECT,
-          documents: input.manifest.operations.map((operation) => ({
+          documents: input.manifest.operations.filter((operation) => operation.op !== "delete_document").map((operation) => ({
             kind: operation.kind,
             document_id: operation.document_id,
             hash: operation.captured_hash
