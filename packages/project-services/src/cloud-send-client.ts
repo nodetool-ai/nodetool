@@ -226,16 +226,12 @@ export async function captureSend(target: SendTarget): Promise<SendReview> {
   const link = await getCloudLink(target.userId, target.projectId);
   const { workspace } = await requireProjectFolder(target.projectId, target.userId);
   const transferId = newId();
-  // The reconcile takes the folder lock again.
-  const plan = await withProjectFolderLock(
-    target.userId,
-    target.projectId,
-    async () => {
-      await reconcileInBackground(target.projectId, target.userId);
-      return capturePlan(target, link, workspace);
-    },
-    { allowNested: true }
-  );
+  // The reconcile runs under this hold of the folder lock. Work it leaves
+  // running, such as its delayed follow-up, queues for the lock (review F35).
+  const plan = await withProjectFolderLock(target.userId, target.projectId, async (hold) => {
+    await reconcileInBackground(target.projectId, target.userId, { under: hold });
+    return capturePlan(target, link, workspace);
+  });
   await createCloudSend({
     transferId,
     link,
