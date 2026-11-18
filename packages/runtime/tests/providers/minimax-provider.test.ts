@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import { Agent as UndiciAgent } from "undici";
 import { MinimaxProvider } from "../../src/providers/minimax-provider.js";
 import type {
   ImageModel,
@@ -158,6 +159,7 @@ describe("MinimaxProvider", () => {
     expect(fetchFn).toHaveBeenCalledTimes(1);
     const [url, init] = fetchFn.mock.calls[0];
     expect(url).toBe(`https://${host}/v1/images/generations`);
+    expect(init.dispatcher).toBeInstanceOf(UndiciAgent);
     expect(JSON.parse(init.body)).toEqual({
       model: id, prompt: "a lighthouse", n: 1, response_format: "b64_json", size: "2720x1536"
     });

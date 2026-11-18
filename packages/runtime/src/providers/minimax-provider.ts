@@ -15,7 +15,7 @@ import {
   type OpenAICompatProviderOptions
 } from "./openai-compat-provider.js";
 import type { OpenAIProvider } from "./openai-provider.js";
-import { Agent } from "undici";
+import type { Dispatcher } from "undici";
 import { MINIMAX_H3_IMAGE_MODELS, minimaxImageData } from "./minimax-image.js";
 import { createLogger } from "@nodetool-ai/config";
 import { safeFetch } from "./safe-url.js";
@@ -48,8 +48,16 @@ import { endFrameUnsupportedError } from "./manifest-models.js";
 
 const log = createLogger("nodetool.runtime.providers.minimax");
 
-// H3 may take ten minutes to send its first response headers.
-const h3Dispatcher = new Agent({ headersTimeout: 610_000, bodyTimeout: 610_000 });
+// H3 may take ten minutes to send its first response headers. undici loads on
+// the first H3 request so browser bundles of this module never import it.
+let h3Dispatcher: Promise<Dispatcher> | undefined;
+function getH3Dispatcher(): Promise<Dispatcher> {
+  h3Dispatcher ??= import("undici").then(
+    ({ Agent: UndiciAgent }) =>
+      new UndiciAgent({ headersTimeout: 610_000, bodyTimeout: 610_000 })
+  );
+  return h3Dispatcher;
+}
 
 const MINIMAX_BASE_URL = "https://api.minimax.io";
 const MINIMAX_OPENAI_BASE_URL = `${MINIMAX_BASE_URL}/v1`;
@@ -276,12 +284,12 @@ export class MinimaxProvider extends OpenAICompatProvider {
     signal?: AbortSignal
   ): Promise<Record<string, unknown>> {
     const isH3 = path === "images/generations";
-    const init: RequestInit & { dispatcher?: Agent } = {
+    const init: RequestInit & { dispatcher?: Dispatcher } = {
       method: "POST",
       headers: this.headers(),
       body: JSON.stringify(body)
     };
-    if (isH3) init.dispatcher = h3Dispatcher;
+    if (isH3) init.dispatcher = await getH3Dispatcher();
     if (signal) init.signal = signal;
     const res = await this._minimaxFetch(
       `${isH3 ? this._h3BaseUrl : MINIMAX_BASE_URL}/v1/${path}`,
