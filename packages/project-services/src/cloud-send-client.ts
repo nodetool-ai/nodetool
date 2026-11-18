@@ -581,6 +581,13 @@ export interface SendRunOptions {
    */
   confirmDeletes?: DeleteConfirmation[];
   /**
+   * Set only by {@link resumeSends}: the run continues an attempt a crash
+   * interrupted, with the approvals recorded for it. Every other run is a
+   * reviewed attempt, and its deletions are exactly `confirmDeletes`, none
+   * when it is absent (review F43).
+   */
+  resume?: boolean;
+  /**
    * Called once each step is recorded: `staged` after the files are sent,
    * `committing` once the attempt id is recorded. A kill test throws here.
    */
@@ -618,10 +625,13 @@ export async function runSend(transport: SendTransport, transferId: string, opti
     return { status: "missing_files_unconfirmed", transferId, missingFiles: plan.missingFiles };
   }
   if (options.decisions) plan.decisions = options.decisions;
-  if (options.confirmDeletes) {
+  if (!options.resume) {
+    // A withdrawn confirmation must not survive in the saved manifest of an
+    // earlier attempt (review F43).
+    const confirmDeletes = options.confirmDeletes ?? [];
     plan.manifest.operations = plan.manifest.operations.filter((operation) => operation.op !== "delete_document");
     for (const deleted of plan.deletedLocally) {
-      const confirmation = options.confirmDeletes.find(
+      const confirmation = confirmDeletes.find(
         (entry) => entry.kind === deleted.kind && entry.cloudId === deleted.cloudId
       );
       if (!confirmation) continue;
@@ -727,7 +737,7 @@ export async function resumeSends(
     const transport = transportFor({ serverKey: row.server_key, accountId: row.account_id });
     if (!transport) continue;
     try {
-      outcomes.push(await runSend(transport, row.id));
+      outcomes.push(await runSend(transport, row.id, { resume: true }));
     } catch (error) {
       log.warn("Could not resume a send", {
         transferId: row.id,
