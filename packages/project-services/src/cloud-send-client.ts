@@ -553,6 +553,14 @@ function sameMissingFiles(listed: TransferMissingFile[], confirmed: TransferMiss
   return want.size === got.size && [...want].every((key) => got.has(key));
 }
 
+/** A deletion the person confirmed, bound to the cloud revision the sheet showed. */
+export interface DeleteConfirmation {
+  kind: TransferDocumentKind;
+  cloudId: string;
+  /** The cloud document's hash as the review showed it: the base, or a newer hash the cloud reported. */
+  cloudHash: string;
+}
+
 /** Options of {@link runSend}. */
 export interface SendRunOptions {
   /** Keep local over cloud revisions the person reviewed (BASE_CHANGED). */
@@ -563,8 +571,13 @@ export interface SendRunOptions {
    * size and documents, exactly as the capture listed them (X7).
    */
   confirmMissingFiles?: TransferMissingFile[];
-  /** Local ids of documents the deletion review confirmed for deletion on the cloud. */
-  confirmDeletes?: string[];
+  /**
+   * Documents the deletion review confirmed for deletion on the cloud, each
+   * with the cloud revision the person reviewed. That hash is the delete's
+   * precondition, so a cloud edit made after the review refuses the delete
+   * and the review asks again (V4, review F40).
+   */
+  confirmDeletes?: DeleteConfirmation[];
   /**
    * Called once each step is recorded: `staged` after the files are sent,
    * `committing` once the attempt id is recorded. A kill test throws here.
@@ -604,15 +617,17 @@ export async function runSend(transport: SendTransport, transferId: string, opti
   }
   if (options.decisions) plan.decisions = options.decisions;
   if (options.confirmDeletes) {
-    const confirmed = new Set(options.confirmDeletes);
     plan.manifest.operations = plan.manifest.operations.filter((operation) => operation.op !== "delete_document");
     for (const deleted of plan.deletedLocally) {
-      if (!confirmed.has(deleted.localId)) continue;
+      const confirmation = options.confirmDeletes.find(
+        (entry) => entry.kind === deleted.kind && entry.cloudId === deleted.cloudId
+      );
+      if (!confirmation) continue;
       plan.manifest.operations.push({
         op: "delete_document",
         kind: deleted.kind,
         document_id: deleted.cloudId,
-        base_hash: deleted.baseHash,
+        base_hash: confirmation.cloudHash,
         confirmed: true
       });
     }

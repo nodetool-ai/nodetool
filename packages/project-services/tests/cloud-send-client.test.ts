@@ -109,6 +109,10 @@ class FakeCloud implements SendTransport {
       if (operation.op === "create_document" || operation.op === "replace_document") {
         expect(payloads.get(operation.document_id)).toBe(operation.captured_hash);
       }
+      if (operation.op === "delete_document" && this.documents.get(operation.document_id) !== operation.base_hash) {
+        const stored = this.documents.get(operation.document_id);
+        failures.push({ code: "BASE_CHANGED", document_id: operation.document_id, stored_hash: stored, message: "changed" });
+      }
       if (operation.op === "replace_document") {
         const stored = this.documents.get(operation.document_id);
         const covered = input.decisions.some(
@@ -312,7 +316,9 @@ describe("sending a project to the cloud", { timeout: 30_000 }, () => {
     const review = await captureSend(TARGET);
     expect(review.deletedLocally).toMatchObject([{ localId: workflow.id }]);
     expect(review.operations).toEqual([]);
-    await runSend(cloud, review.transferId, { confirmDeletes: [workflow.id] });
+    await runSend(cloud, review.transferId, {
+      confirmDeletes: [{ kind: "workflow", cloudId: workflow.id, cloudHash: review.deletedLocally[0]!.baseHash }]
+    });
     expect(cloud.commits.at(-1)!.manifest.operations).toMatchObject([{ op: "delete_document", document_id: workflow.id }]);
     expect(cloud.documents.has(workflow.id)).toBe(false);
     const link = await getCloudLink(USER, PROJECT);
@@ -425,5 +431,33 @@ describe("sending a project to the cloud", { timeout: 30_000 }, () => {
 
     expect(await runSend(cloud, review.transferId, { confirmMissingFiles: [listed] })).toMatchObject({ status: "committed" });
     expect(cloud.commits.at(-1)!.missing_files).toMatchObject([{ asset_id: asset!.id }]);
+  });
+
+  it("deletes a document the cloud edited after its local deletion once the person confirms that cloud revision (V4, review F40)", async () => {
+    const { workflow } = await workflowWithFile(null);
+    await runSend(cloud, (await captureSend(TARGET)).transferId);
+    await Workflow.deleteOwned(USER, workflow.id);
+    // A collaborator saved the cloud document after the local deletion.
+    const newer = "e".repeat(64);
+    cloud.documents.set(workflow.id, newer);
+
+    const review = await captureSend(TARGET);
+    const [deleted] = review.deletedLocally;
+    // Confirming against the last exchanged hash is refused with the newer one.
+    const refused = await runSend(cloud, review.transferId, {
+      confirmDeletes: [{ kind: "workflow", cloudId: workflow.id, cloudHash: deleted!.baseHash }]
+    });
+    expect(refused).toMatchObject({ status: "refused", failures: [{ code: "BASE_CHANGED", stored_hash: newer }] });
+    expect(cloud.documents.get(workflow.id)).toBe(newer);
+
+    // The sheet shows the newer revision and the person confirms it.
+    const confirmed = await runSend(cloud, review.transferId, {
+      confirmDeletes: [{ kind: "workflow", cloudId: workflow.id, cloudHash: newer }]
+    });
+    expect(confirmed.status).toBe("committed");
+    expect(cloud.commits.at(-1)!.manifest.operations).toMatchObject([
+      { op: "delete_document", document_id: workflow.id, base_hash: newer, confirmed: true }
+    ]);
+    expect(cloud.documents.has(workflow.id)).toBe(false);
   });
 });
