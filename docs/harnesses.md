@@ -1899,6 +1899,37 @@ grades at least one outcome, names no tool in its objective, and **fails its own
 checks on an untouched world** — a job whose outcomes pass before the agent does
 anything is measuring nothing.
 
+### Product-chat jobs and fine-tuning data
+
+`jtbd run` hands a job's tools to the model as native tool calls. The product
+never does that. A chat turn with tools runs in CodeAct behind the chat system
+prompt, and the browser's `ui_*` tools are called from inside `execute_code`.
+`packages/websocket/src/chat-jtbd.ts` runs a job through that real path:
+
+- A `WebSocketClientSession` receives the objective as a `chat_message`.
+- The job's headless bridge plays the browser. It is registered as the client
+  tool manifest and answers every `tool_call` frame.
+- The harness approves every tool and declines every key request, as an
+  unattended user would.
+- The job's own checks grade the world afterwards.
+
+A job is skipped when one of its tool names is also a server capability,
+because the dispatcher would route the call to the server instead of the
+bridge.
+
+```bash
+npx tsx packages/websocket/scripts/chat-jtbd.ts -p ollama -m gemma4:12b-it-qat \
+  --manifest manifest.json --out nodetool-debug/chat-jtbd/gemma.json
+```
+
+`packages/websocket/scripts/finetune-data.ts` builds training data on the same
+path. It covers the jobs and the `tool-loop` eval cases the chat path can run.
+It also generates tasks from seeded families, each with its own starting
+document, checks and reference solution. It records each model request and
+reply at the wire, and keeps only runs whose checks passed. The training side, its render
+and loss-mask rules, and the measurement loop are in
+[scripts/finetune/README.md](https://github.com/nodetool-ai/nodetool/blob/main/scripts/finetune/README.md).
+
 ### nodetool packs compile (Sandbox npm Modules)
 
 A sandbox pack can declare a guest module by npm dependency name instead of
