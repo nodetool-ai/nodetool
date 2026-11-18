@@ -60,10 +60,13 @@ int runEditor(QApplication &app, const QCommandLineParser &parser) {
   const bool headless = parser.isSet("screenshot") || parser.isSet("dump") || parser.isSet("save") || parser.isSet("replay");
   // A package with a bundled backend starts that server instead. It starts
   // before the tabs are restored, so a tab saved on the bundled server
-  // reconnects to this launch's port (review F3).
+  // reconnects to this launch's port (review F3). It starts whenever a
+  // restored tab needs it, also beside tabs of a server the user chose
+  // (review F24).
+  const auto saved = restore ? nodetool::EditorWindow::savedTabServers() : nodetool::EditorWindow::SavedTabServers{};
   const nodetool::node_editor::ServerStartOptions start{
       parser.isSet("server") ? QUrl(parser.value("server")) : QUrl(), parser.isSet("offline"), headless,
-      restore && nodetool::EditorWindow::savedTabsNameAServer()};
+      saved.own && !saved.bundled};
   QUrl bundled;
   const auto server = nodetool::node_editor::chooseServer(start, [&bundled] {
     QString error;
@@ -77,8 +80,10 @@ int runEditor(QApplication &app, const QCommandLineParser &parser) {
     return 2;
   }
   if (!server.isEmpty()) {
-    // A restored tab may already be connected to it, with a cloud document open.
-    if (window.session()->serverUrl() != server) {
+    // A restored tab may already be connected to it, with a cloud document
+    // open, or to a server the user chose, which it keeps (review F24).
+    const bool keep = !window.session()->serverUrl().isEmpty() && start.given.isEmpty();
+    if (!keep && window.session()->serverUrl() != server) {
       window.session()->connectToServer(server, qEnvironmentVariable("NODETOOL_TOKEN"));
     }
     window.session()->loadCatalog();

@@ -359,7 +359,8 @@ private slots:
     auto saved = QJsonDocument::fromJson(QSettings().value("workflowTabs/documents").toByteArray()).array();
     QCOMPARE(saved.size(), 1);
     QVERIFY(saved[0].toObject()["bundled"].toBool());
-    QVERIFY(!EditorWindow::savedTabsNameAServer());
+    QVERIFY(!EditorWindow::savedTabServers().own);
+    QVERIFY(EditorWindow::savedTabServers().bundled);
     auto workflowTab = saved[0].toObject();
     workflowTab["workflow"] = "w1";
     saved[0] = workflowTab;
@@ -388,7 +389,45 @@ private slots:
                                                               {"origin", "http://localhost:7777"},
                                                               {"project", ""}}})
                              .toJson(QJsonDocument::Compact));
-    QVERIFY(EditorWindow::savedTabsNameAServer());
+    QVERIFY(EditorWindow::savedTabServers().own);
+    QVERIFY(!EditorWindow::savedTabServers().bundled);
+    QSettings().remove("workflowTabs/documents");
+    QSettings().remove("workflowTabs/active");
+  }
+  // A session with a tab of a server the user chose and a tab of the bundled
+  // server still starts the bundled server, and a bundled tab reconnects to
+  // this launch's port (review F24). A record saved before the "bundled"
+  // key existed has no provenance, so it keeps the URL it names, whatever
+  // its port (review F54). Tabs share one connection, so the last restored
+  // tab's server is the one every tab ends on.
+  void mixedRestoreStartsTheBundledServer() {
+    const QUrl chosen("http://localhost:7777"), before("http://127.0.0.1:51001"), after("http://127.0.0.1:52002");
+    const QJsonObject chosenTab{{"file", ""}, {"workflow", "w1"}, {"origin", chosen.toString()}, {"bundled", false}, {"project", ""}};
+    const QJsonObject bundledTab{{"file", ""}, {"workflow", "w2"}, {"origin", before.toString()}, {"bundled", true}, {"project", ""}};
+    const QJsonObject legacyLoopbackTab{{"file", ""}, {"workflow", "w3"}, {"origin", before.toString()}, {"project", ""}};
+    const QJsonObject legacyOwnTab{{"file", ""}, {"workflow", "w4"}, {"origin", "http://127.0.0.1:7777"}, {"project", ""}};
+    struct Case {
+      QJsonArray entries;
+      bool own;
+      bool bundled;
+      QUrl restored;
+    };
+    const QList<Case> cases{{{chosenTab, bundledTab}, true, true, after},
+                            {{bundledTab, chosenTab}, true, true, chosen},
+                            {{chosenTab, bundledTab, legacyLoopbackTab}, true, true, before},
+                            {{legacyLoopbackTab}, true, false, before},
+                            {{legacyOwnTab}, true, false, QUrl("http://127.0.0.1:7777")}};
+    for (const auto &item : cases) {
+      QSettings().setValue("workflowTabs/documents", QJsonDocument(item.entries).toJson(QJsonDocument::Compact));
+      QSettings().setValue("workflowTabs/active", 0);
+      QCOMPARE(EditorWindow::savedTabServers().own, item.own);
+      QCOMPARE(EditorWindow::savedTabServers().bundled, item.bundled);
+      EditorWindow restored;
+      restored.setBundledServer(after);
+      restored.restoreTabs();
+      QCOMPARE(restored.workflowTabs().size(), item.entries.size());
+      QCOMPARE(restored.session()->serverUrl(), item.restored);
+    }
     QSettings().remove("workflowTabs/documents");
     QSettings().remove("workflowTabs/active");
   }

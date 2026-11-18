@@ -552,9 +552,9 @@ void EditorWindow::persistTabs() const {
                                 {"origin", tab->session_.serverUrl().toString()},
                                 {"project", tab->projectKey()}};
         }
-        if (!bundledServer_.isEmpty() && tab->session_.serverUrl() == bundledServer_) {
-            entry["bundled"] = true;
-        }
+        // Written on every record, so a record without it is from a launch
+        // before the key existed.
+        entry["bundled"] = !bundledServer_.isEmpty() && tab->session_.serverUrl() == bundledServer_;
         entries.append(entry);
     }
     QSettings settings;
@@ -569,16 +569,31 @@ void EditorWindow::setBundledServer(const QUrl &url) {
     }
     bundledServer_ = url;
 }
-bool EditorWindow::savedTabsNameAServer() {
+namespace {
+// Whether a saved tab was connected to the bundled server, as the record's
+// "bundled" key says. A record saved before the key existed names only an
+// origin, and a loopback port says nothing about who started the server
+// there, so it stays on the URL it names (review F54).
+bool usedBundledServer(const QJsonObject &entry) {
+    return entry["bundled"].toBool(false);
+}
+}  // namespace
+EditorWindow::SavedTabServers EditorWindow::savedTabServers() {
     const auto entries =
         QJsonDocument::fromJson(QSettings().value("workflowTabs/documents").toByteArray()).array();
+    SavedTabServers servers;
     for (const auto &value : entries) {
         const auto entry = value.toObject();
-        if (!entry["bundled"].toBool() && !entry["origin"].toString().isEmpty()) {
-            return true;
+        if (entry["origin"].toString().isEmpty()) {
+            continue;
+        }
+        if (usedBundledServer(entry)) {
+            servers.bundled = true;
+        } else {
+            servers.own = true;
         }
     }
-    return false;
+    return servers;
 }
 void EditorWindow::restoreTabs() {
     if (tabOwner_) {
@@ -606,7 +621,7 @@ void EditorWindow::restoreTabs() {
         const auto cloudId = entry["cloud"].toString();
         // A tab of the bundled server reconnects to this launch's port, not
         // the port the last launch had.
-        const QUrl origin = entry["bundled"].toBool() && !bundledServer_.isEmpty()
+        const QUrl origin = usedBundledServer(entry) && !bundledServer_.isEmpty()
                                 ? bundledServer_
                                 : QUrl(entry["origin"].toString());
         if (!cloudId.isEmpty()) {

@@ -105,6 +105,13 @@ CurrentAccess readCurrentAccess(CloudClient& client, const std::string& kind, co
     return out;
   }
   out.role = text(q.data["access"], "role");
+  // A role this client does not know grants nothing it can act on, so the
+  // answer is unreadable rather than a role (review F55).
+  if (!out.role.empty() && out.role != "owner" && out.role != "editor" && out.role != "viewer") {
+    out.role.clear();
+    out.status = CloudListStatus::Refused;
+    out.reason = "INVALID_RESPONSE";
+  }
   return out;
 }
 

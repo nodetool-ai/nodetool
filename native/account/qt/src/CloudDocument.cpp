@@ -213,9 +213,29 @@ void CloudDocument::open() {
     // The role the app passed is what it knew when it listed or last opened
     // the document. The server's current answer replaces it, so a role taken
     // away since then is never used (review F4). The kept role stays only
-    // when the server cannot answer; the read then fails or the first save
-    // is refused.
+    // when the server cannot be reached. A refused or unreadable answer opens
+    // the document read-only, since it says nothing about the role (review
+    // F25).
     const CurrentAccess current = readCurrentAccess(*state->client, services.kind, services.documentId);
+    if (current.status == CloudListStatus::SignedOut) {
+      const QString reason = QCoreApplication::translate("CloudDocument", "signed out");
+      state->toUi([reason](CloudDocument& document) {
+        document.status_ = SyncStatus::NotOpened;
+        document.refusal_ = reason;
+        emit document.stateChanged();
+        emit document.openFailed(reason);
+      });
+      return;
+    }
+    if (current.status == CloudListStatus::Refused) {
+      services.role = "viewer";
+      state->toUi([](CloudDocument& document) {
+        if (document.role_ != u"viewer") {
+          document.role_ = QStringLiteral("viewer");
+          emit document.stateChanged();
+        }
+      });
+    }
     if (current.status == CloudListStatus::Ok) {
       if (current.role.empty()) {
         const QString reason = QCoreApplication::translate("CloudDocument", "you no longer have access to this document");
@@ -233,6 +253,15 @@ void CloudDocument::open() {
           document.role_ = role;
           emit document.stateChanged();
         }
+      });
+    }
+    // A kept role this app does not know grants nothing, so the document
+    // opens read-only (review F55).
+    if (services.role != "owner" && services.role != "editor" && services.role != "viewer") {
+      services.role = "viewer";
+      state->toUi([](CloudDocument& document) {
+        document.role_ = QStringLiteral("viewer");
+        emit document.stateChanged();
       });
     }
     state->saver->setAccess(services.documentId, {services.role == "viewer" ? "viewer" : "editor", {}});
