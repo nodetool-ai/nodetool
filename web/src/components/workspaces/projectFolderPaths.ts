@@ -8,24 +8,6 @@ export const isReservedProjectEntry = (file: { path: string }): boolean =>
   file.path === PROJECT_METADATA_DIR;
 
 /**
- * True for the folder `<name>.sketch/` that holds the layer images of the
- * sketch file `<name>.sketch.json` among `siblings`. The images are part of
- * the sketch, so Files shows the sketch file alone.
- */
-export const isSketchAssetFolder = (
-  file: { name: string; is_dir: boolean },
-  siblings: ReadonlyArray<{ name: string; is_dir: boolean }>
-): boolean => {
-  if (!file.is_dir || !file.name.toLowerCase().endsWith(".sketch")) {
-    return false;
-  }
-  const json = `${file.name}.json`.toLowerCase();
-  return siblings.some(
-    (sibling) => !sibling.is_dir && sibling.name.toLowerCase() === json
-  );
-};
-
-/**
  * The host path of a folder entry, in the separator style of the folder's own
  * path so the OS file manager accepts it on Windows too.
  */

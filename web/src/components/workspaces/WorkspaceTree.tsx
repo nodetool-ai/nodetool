@@ -25,7 +25,6 @@ import { serializeDragData } from "../../lib/dragdrop/serialization";
 import {
   folderEntryPath,
   isReservedProjectEntry,
-  isSketchAssetFolder,
   revealLabelKey
 } from "./projectFolderPaths";
 import WorkspaceTreeRow from "./WorkspaceTreeItem";
@@ -236,11 +235,8 @@ const fetchWorkspaceFiles = async (
     path
   });
   // `.nodetool/` is NodeTool's own data. It sits at the folder root only.
-  // A sketch's image folder shows as the sketch file.
   return data
-    .filter(
-      (file) => !isReservedProjectEntry(file) && !isSketchAssetFolder(file, data)
-    )
+    .filter((file) => !isReservedProjectEntry(file))
     .sort((a, b) =>
       a.is_dir !== b.is_dir
         ? a.is_dir ? -1 : 1

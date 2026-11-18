@@ -20,7 +20,7 @@ const DOCUMENT_FILE_SUFFIXES = [
   ".script.json",
   ".app.json",
   ".jsscript.json",
-  ".sketch.json"
+  ".sketch.ora"
 ] as const;
 
 export const isDocumentFile = (path: string): boolean => {
