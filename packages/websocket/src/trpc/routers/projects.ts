@@ -13,6 +13,7 @@
  *   documentPage   (query)    — ProjectDocumentPage (one page of cards)
  *   documents      (query)    — ProjectDocumentListEntry[] (with file state)
  *   documentByFile (query)    — ProjectFileDocument | null (by file path)
+ *   fileThumbnail  (query)    — ProjectFileThumbnail (a sketch file's thumbnail)
  *   restoreDocumentFile (mutation) — ProjectFileDocument (rewrites the file)
  *   unassigned     (query)    — ProjectDocumentRef[] in the loose bucket
  *   thread         (mutation) — { threadId } (the project's agent thread)
@@ -72,6 +73,7 @@ import {
   projectDocumentPageInput,
   projectDocumentRef,
   projectFileDocument,
+  projectFileThumbnail,
   projectResponse,
   relocateProjectInput,
   restoreDocumentFileInput,
@@ -84,7 +86,10 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { getAssetAdapter } from "../../lib/storage.js";
-import { ProjectFolderUnavailableError } from "@nodetool-ai/asset-services/project-asset-file";
+import {
+  ProjectFolderUnavailableError,
+  requireProjectFolder
+} from "@nodetool-ai/asset-services/project-asset-file";
 import {
   copyProjectDocument,
   ProjectCopyError
@@ -106,7 +111,11 @@ import { storyboardFileAdapter } from "@nodetool-ai/project-services/storyboard-
 import { scriptFileAdapter } from "@nodetool-ai/project-services/script-file";
 import { appFileAdapter } from "@nodetool-ai/project-services/app-file";
 import { jsScriptFileAdapter } from "@nodetool-ai/project-services/js-script-file";
-import { sketchFileAdapter } from "@nodetool-ai/project-services/sketch-file";
+import {
+  SKETCH_FILE_SUFFIX,
+  sketchFileAdapter,
+  sketchFileThumbnail
+} from "@nodetool-ai/project-services/sketch-file";
 import {
   ProjectFolderOpenError,
   openProjectFolder,
@@ -460,6 +469,36 @@ export const projectsRouter = router({
         name: found.name,
         updatedAt: found.updated_at,
         file: found.file
+      };
+    }),
+
+  /**
+   * The thumbnail a document file in the project folder carries. A sketch
+   * file (`.sketch.ora`) holds one. Every other file carries none.
+   */
+  fileThumbnail: protectedProcedure
+    .input(projectDocumentByFileInput)
+    .output(projectFileThumbnail)
+    .query(async ({ ctx, input }) => {
+      await prepareUser(ctx.userId);
+      const project = await loadOwned(ctx.userId, input.id);
+      if (!input.path.toLowerCase().endsWith(SKETCH_FILE_SUFFIX)) {
+        return { thumbnail: null };
+      }
+      const folder = await requireProjectFolder(project.id, ctx.userId).catch(
+        (error: unknown) => {
+          if (error instanceof ProjectFolderUnavailableError) return null;
+          throw error;
+        }
+      );
+      const bytes = folder
+        ? await folder.workspace.read(input.path).catch(() => null)
+        : null;
+      const png = bytes ? sketchFileThumbnail(bytes) : null;
+      return {
+        thumbnail: png
+          ? `data:image/png;base64,${Buffer.from(png).toString("base64")}`
+          : null
       };
     }),
 

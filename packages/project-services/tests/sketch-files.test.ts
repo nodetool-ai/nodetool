@@ -1,9 +1,10 @@
 /**
- * Sketches as files in the project folder: `Sketches/<name>.sketch.json`,
- * with each raster layer's pixels a PNG in `Sketches/<name>.sketch/`. An
- * import keeps the sketch as it was as a version.
+ * Sketches as files in the project folder: `Sketches/<name>.sketch.ora`, an
+ * OpenRaster zip with the layer rasters as PNGs. An import keeps the sketch
+ * as it was as a version.
  */
 import { createHash } from "node:crypto";
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -34,8 +35,12 @@ import {
   documentFileSync,
   reconcileDocumentFiles
 } from "../src/document-file-sync.js";
-import { migrateSketchFiles, sketchFileAdapter } from "../src/sketch-file.js";
-import { isInSketchAssetFolder } from "../src/project-index.js";
+import {
+  SKETCH_THUMBNAIL_ENTRY,
+  migrateSketchFiles,
+  sketchFileAdapter,
+  sketchFileThumbnail
+} from "../src/sketch-file.js";
 
 function documentWith(
   marker: string,
@@ -62,7 +67,7 @@ function sketchOf(row: ImageDocument): Record<string, unknown> {
 describeDocumentFiles("sketch files", {
   memberType: "sketch",
   directory: "Sketches",
-  suffix: ".sketch.json",
+  suffix: ".sketch.ora",
   format: "nodetool.sketch",
   adapter: sketchFileAdapter,
   install: (sync) =>
@@ -99,26 +104,79 @@ describeDocumentFiles("sketch files", {
     (await ImageDocumentVersion.listForDocument(id)).length
 });
 
-// ── Layer images ────────────────────────────────────────────────────────────
+// ── The zip ─────────────────────────────────────────────────────────────────
 
-/** Bytes that stand for a PNG: the sync never decodes them. */
-const PIXELS = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4]);
-const EDITED = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 9, 9, 9, 9]);
-const SVG = `data:image/svg+xml;base64,${Buffer.from("<svg/>").toString("base64")}`;
-const pngUrl = (bytes: Uint8Array): string =>
+const sha256 = (bytes: Uint8Array): string =>
+  createHash("sha256").update(bytes).digest("hex");
+
+let pngs: { red: Uint8Array; blue: Uint8Array; mask: Uint8Array };
+
+/** A real PNG of `width`×`height` in one color. */
+async function solidPng(color: string, width = 8, height = 8): Promise<Uint8Array> {
+  const { loadCanvas } = await import("@nodetool-ai/runtime");
+  const { createCanvas } = await loadCanvas();
+  const canvas = createCanvas(width, height);
+  const context = canvas.getContext("2d");
+  context.fillStyle = color;
+  context.fillRect(0, 0, width, height);
+  return new Uint8Array(await canvas.encode("png"));
+}
+
+const dataUrl = (bytes: Uint8Array): string =>
   `data:image/png;base64,${Buffer.from(bytes).toString("base64")}`;
-const bytesOf = (bytes: Uint8Array | null): Buffer | null =>
-  bytes && Buffer.from(bytes);
-const sha256 = (text: string): string =>
-  createHash("sha256").update(text).digest("hex");
+const ntlayer = (image: string): string =>
+  `ntlayer:${Buffer.from(
+    JSON.stringify({ version: 1, image, bounds: { x: 2, y: 3, width: 8, height: 8 } })
+  ).toString("base64")}`;
+const SVG = `data:image/svg+xml;base64,${Buffer.from(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="green"/></svg>'
+).toString("base64")}`;
 
-const layers = (raster: Uint8Array): Array<Record<string, unknown>> => [
-  { id: "paint", name: "Paint", type: "raster", data: pngUrl(raster) },
-  { id: "shape", name: "Shape", type: "vector", data: SVG },
-  { id: "empty", name: "Empty", type: "raster", data: null }
+const base = {
+  visible: true,
+  opacity: 1,
+  locked: false,
+  alphaLock: false,
+  blendMode: "normal",
+  transform: { x: 0, y: 0 },
+  contentBounds: { x: 0, y: 0, width: 8, height: 8 },
+  effects: []
+};
+
+const stackLayers = (): Array<Record<string, unknown>> => [
+  { ...base, id: "group", name: "Group", type: "group", data: null },
+  { ...base, id: "paint", name: "Paint", type: "raster", parentId: "group", blendMode: "multiply", data: ntlayer(dataUrl(pngs.red)) },
+  { ...base, id: "shape", name: "Shape", type: "vector", data: SVG },
+  { ...base, id: "mask", name: "Mask", type: "mask", visible: false, data: dataUrl(pngs.mask) }
 ];
 
-describe("sketch layer images", () => {
+const historyEntry = (): Record<string, unknown> => ({
+  layerSnapshots: { paint: ntlayer(dataUrl(pngs.blue)), shape: null },
+  layerStructure: [],
+  documentCanvas: { width: 16, height: 16 },
+  activeLayerId: "paint",
+  maskLayerId: "mask",
+  restoreMode: "full",
+  action: "paint",
+  timestamp: 1
+});
+
+function documentOf(layers: Array<Record<string, unknown>>): Record<string, unknown> {
+  return {
+    sketch: {
+      version: 3,
+      canvas: { width: 16, height: 16, backgroundColor: "#ffffff" },
+      layers,
+      activeLayerId: "paint",
+      maskLayerId: "mask",
+      history: [historyEntry()],
+      historyIndex: 0
+    },
+    layerBindings: []
+  };
+}
+
+describe("sketch zip", () => {
   let root: string;
   let folders: Map<string, Workspace>;
 
@@ -130,36 +188,39 @@ describe("sketch layer images", () => {
     }
     return workspace;
   };
-  const make = (name = "Fox", raster = PIXELS): Promise<ImageDocument> =>
+  const make = (name = "Fox"): Promise<ImageDocument> =>
     ImageDocument.create<ImageDocument>({
       user_id: USER,
       project_id: PROJECT,
       name,
-      document: JSON.stringify(documentWith("paint", layers(raster)))
+      width: 16,
+      height: 16,
+      document: JSON.stringify(documentOf(stackLayers()))
     });
   const reload = async (id: string): Promise<ImageDocument> => {
     const row = await ImageDocument.findById(id);
     if (!row) throw new Error(`row ${id} is gone`);
     return row;
   };
-  const fileLayers = async (
+  const zipAt = async (
     path: string,
     projectId = PROJECT
-  ): Promise<Array<Record<string, unknown>>> => {
-    const text = await folder(projectId).readText(path);
-    if (text === null) throw new Error(`no file at ${path}`);
-    const file = JSON.parse(text) as Record<string, unknown>;
-    const document = file["document"] as Record<string, unknown>;
-    return (document["sketch"] as Record<string, unknown>)["layers"] as Array<
-      Record<string, unknown>
-    >;
+  ): Promise<Record<string, Uint8Array>> => {
+    const bytes = await folder(projectId).read(path);
+    if (bytes === null) throw new Error(`no file at ${path}`);
+    return unzipSync(bytes);
   };
-  const rowLayers = (row: ImageDocument): Array<Record<string, unknown>> =>
-    sketchOf(row)["layers"] as Array<Record<string, unknown>>;
+  const reconcile = () =>
+    reconcileDocumentFiles([sketchFileAdapter], PROJECT, USER);
 
   beforeEach(async () => {
     initTestDb();
-    root = await mkdtemp(join(tmpdir(), "nodetool-sketch-files-"));
+    pngs = {
+      red: await solidPng("#ff0000"),
+      blue: await solidPng("#0000ff"),
+      mask: await solidPng("#ffffff")
+    };
+    root = await mkdtemp(join(tmpdir(), "nodetool-sketch-zip-"));
     folders = new Map();
     setImageDocumentFileSync(documentFileSync(sketchFileAdapter));
     setProjectFolderResolver(
@@ -177,100 +238,133 @@ describe("sketch layer images", () => {
     await rm(root, { recursive: true, force: true });
   });
 
-  it("writes a raster layer as a PNG beside the file and keeps a vector layer inline", async () => {
+  it("writes one OpenRaster zip with PNGs and no base64 in the JSON", async () => {
     const row = await make();
+    const bytes = (await folder().read("Sketches/Fox.sketch.ora")) as Uint8Array;
+    const entries = unzipSync(bytes);
 
-    const [paint, shape, empty] = await fileLayers("Sketches/Fox.sketch.json");
-    expect(paint?.["data"]).toBe("Fox.sketch/paint.png");
-    expect(shape?.["data"]).toBe(SVG);
-    expect(empty?.["data"]).toBeNull();
-    expect(bytesOf(await folder().read("Sketches/Fox.sketch/paint.png"))).toEqual(Buffer.from(PIXELS));
-    expect((await folder().list("Sketches/Fox.sketch")).map((e) => e.name)).toEqual([
-      "paint.png"
-    ]);
+    // `mimetype` comes first and is stored, so the zip reads as OpenRaster.
+    expect(strFromU8(bytes.subarray(30, 38))).toBe("mimetype");
+    expect(strFromU8(entries["mimetype"] as Uint8Array)).toBe("image/openraster");
+    expect(Buffer.from(entries["data/paint.png"] as Uint8Array)).toEqual(Buffer.from(pngs.red));
+    expect(Buffer.from(entries["data/mask.png"] as Uint8Array)).toEqual(Buffer.from(pngs.mask));
+    expect(Buffer.from(entries["nodetool/history/0/paint.png"] as Uint8Array)).toEqual(
+      Buffer.from(pngs.blue)
+    );
+    expect(entries["data/shape.composite.png"]).toBeDefined();
+    expect(entries["mergedimage.png"]).toBeDefined();
+    expect(sketchFileThumbnail(bytes)).toEqual(entries[SKETCH_THUMBNAIL_ENTRY]);
 
-    // The hash covers the file and its images: it is the inline document's.
-    const stored = await reload(row.id);
-    const inline = (await sketchFileAdapter.assets?.inline(
-      (await folder().readText("Sketches/Fox.sketch.json")) ?? "",
-      "Sketches/Fox.sketch.json",
-      (path) => folder().read(path)
-    )) as string;
-    expect(stored.file_hash).toBe(sha256(inline));
-    expect(JSON.parse(inline).document).toEqual(JSON.parse(stored.document));
+    const json = strFromU8(entries["nodetool/sketch.json"] as Uint8Array);
+    expect(json).not.toContain(";base64,iVBOR");
+    expect(json).not.toContain("ntlayer:");
+    const file = JSON.parse(json) as Record<string, unknown>;
+    expect(file).toMatchObject({ format: "nodetool.sketch", id: row.id, width: 16 });
+    const layers = ((file["document"] as Record<string, unknown>)["sketch"] as Record<string, unknown>)["layers"] as Array<Record<string, unknown>>;
+    expect(layers.find((layer) => layer["id"] === "paint")?.["data"]).toEqual({
+      ntlayer: { version: 1, image: "data/paint.png", bounds: { x: 2, y: 3, width: 8, height: 8 } }
+    });
+    expect(layers.find((layer) => layer["id"] === "mask")?.["data"]).toBe("data/mask.png");
+    expect(layers.find((layer) => layer["id"] === "shape")?.["data"]).toBe(SVG);
+
+    const stack = strFromU8(entries["stack.xml"] as Uint8Array);
+    expect(stack).toContain('<image version="0.0.5" w="16" h="16">');
+    expect(stack).toMatch(/<stack name="Group"[^>]*>\s*<layer name="Paint"[^>]*composite-op="svg:multiply" src="data\/paint.png" x="2" y="3"\/>/);
+    expect(stack).toContain('src="data/shape.composite.png" x="0" y="0"');
+    expect(stack).toMatch(/<layer name="Mask" [^>]*visibility="hidden"/);
+    // The top of the stack comes first.
+    expect(stack.indexOf('name="Mask"')).toBeLessThan(stack.indexOf('name="Group"'));
+
+    // The hash is of the zip's bytes.
+    expect((await reload(row.id)).file_hash).toBe(sha256(bytes));
   });
 
-  it("reads the images back, so an untouched folder changes nothing", async () => {
+  it("reads the zip back as the document the row holds", async () => {
     const row = await make();
-    const report = await reconcileDocumentFiles([sketchFileAdapter], PROJECT, USER);
+    const text = await sketchFileAdapter.codec?.decode(
+      (await folder().read("Sketches/Fox.sketch.ora")) as Uint8Array
+    );
+    expect((JSON.parse(text ?? "{}") as Record<string, unknown>)["document"]).toEqual(
+      JSON.parse(row.document)
+    );
+    const report = await reconcile();
     expect(report.unchanged).toBe(1);
     expect(report.imported).toEqual([]);
-    expect(rowLayers(await reload(row.id))[0]?.["data"]).toBe(pngUrl(PIXELS));
   });
 
-  it("imports a PNG edited outside NodeTool", async () => {
+  it("refuses a zip whose layer PNG is gone and keeps the row", async () => {
     const row = await make();
-    await folder().write("Sketches/Fox.sketch/paint.png", EDITED);
+    const entries = await zipAt("Sketches/Fox.sketch.ora");
+    delete entries["data/paint.png"];
+    await folder().write("Sketches/Fox.sketch.ora", zipSync(entries));
 
-    const report = await reconcileDocumentFiles([sketchFileAdapter], PROJECT, USER, {
-      paths: ["Sketches/Fox.sketch/paint.png"]
-    });
-
-    expect(report.imported).toEqual([row.id]);
-    expect(rowLayers(await reload(row.id))[0]?.["data"]).toBe(pngUrl(EDITED));
-  });
-
-  it("refuses a file whose layer image is gone and keeps the row", async () => {
-    const row = await make();
-    await folder().delete("Sketches/Fox.sketch/paint.png");
-
-    const report = await reconcileDocumentFiles([sketchFileAdapter], PROJECT, USER);
+    const report = await reconcile();
 
     expect(report.invalid).toEqual([row.id]);
+    expect((await reload(row.id)).file_error).toContain("data/paint.png");
+  });
+
+  it("imports a zip another app saved, without nodetool/sketch.json, as raster layers", async () => {
+    const row = await make();
+    const before = (await ImageDocumentVersion.listForDocument(row.id)).length;
+    await folder().write(
+      "Sketches/Fox.sketch.ora",
+      zipSync({
+        mimetype: [strToU8("image/openraster"), { level: 0 }],
+        "stack.xml": strToU8(
+          '<?xml version="1.0"?><image w="16" h="16"><stack>' +
+            '<layer name="Top" src="data/top.png" x="4" y="5" opacity="0.5" composite-op="svg:screen"/>' +
+            '<stack name="G"><layer name="Bottom" src="data/bottom.png" visibility="hidden"/></stack>' +
+            "</stack></image>"
+        ),
+        "data/top.png": pngs.red,
+        "data/bottom.png": pngs.blue
+      })
+    );
+
+    const report = await reconcile();
+
+    expect(report.imported).toEqual([row.id]);
     const stored = await reload(row.id);
-    expect(stored.file_error).toContain("paint");
-    expect(rowLayers(stored)[0]?.["data"]).toBe(pngUrl(PIXELS));
-  });
-
-  it("deletes an image the document no longer names", async () => {
-    const row = await make();
-    await ImageDocument.updateFieldsIfUnchanged(row.id, row.updated_at, {
-      document: JSON.stringify(documentWith("shape", layers(PIXELS).slice(1)))
+    const sketch = (JSON.parse(stored.document) as Record<string, unknown>)["sketch"] as Record<string, unknown>;
+    const layers = sketch["layers"] as Array<Record<string, unknown>>;
+    expect(layers.map((layer) => [layer["name"], layer["type"]])).toEqual([
+      ["Bottom", "raster"],
+      ["Top", "raster"]
+    ]);
+    expect(layers[1]).toMatchObject({
+      opacity: 0.5,
+      blendMode: "screen",
+      transform: { x: 4, y: 5 },
+      data: dataUrl(pngs.red)
     });
-    expect(await folder().exists("Sketches/Fox.sketch/paint.png")).toBe(false);
+    expect(layers[0]?.["visible"]).toBe(false);
+    // The sketch as it was is kept as "Before file edit".
+    const versions = await ImageDocumentVersion.listForDocument(row.id);
+    expect(versions.length).toBe(before + 1);
+    expect(versions.map((version) => version.name)).toContain("Before file edit");
+    // The file is written again in NodeTool's own form.
+    expect((await zipAt("Sketches/Fox.sketch.ora"))["nodetool/sketch.json"]).toBeDefined();
   });
 
-  it("renames the image folder with the sketch", async () => {
+  it("renames, moves and deletes the single file", async () => {
     const row = await make();
-    await ImageDocument.updateFieldsIfUnchanged(row.id, row.updated_at, {
+    const renamed = await ImageDocument.updateFieldsIfUnchanged(row.id, row.updated_at, {
       name: "Wolf"
     });
+    expect(await folder().exists("Sketches/Fox.sketch.ora")).toBe(false);
+    expect((await reload(row.id)).file_path).toBe("Sketches/Wolf.sketch.ora");
+    expect(renamed).not.toBeNull();
 
-    expect(await folder().exists("Sketches/Fox.sketch.json")).toBe(false);
-    expect(await folder().exists("Sketches/Fox.sketch/paint.png")).toBe(false);
-    expect((await fileLayers("Sketches/Wolf.sketch.json"))[0]?.["data"]).toBe(
-      "Wolf.sketch/paint.png"
-    );
-    expect(bytesOf(await folder().read("Sketches/Wolf.sketch/paint.png"))).toEqual(Buffer.from(PIXELS));
-  });
+    expect(await moveDocumentToProject(USER, "sketch", row.id, OTHER_PROJECT)).toBe(true);
+    expect(await folder().exists("Sketches/Wolf.sketch.ora")).toBe(false);
+    expect(
+      (await zipAt("Sketches/Wolf.sketch.ora", OTHER_PROJECT))["data/paint.png"]
+    ).toBeDefined();
 
-  it("deletes the image folder with the sketch", async () => {
-    const row = await make();
-    await row.delete();
-    expect(await folder().exists("Sketches/Fox.sketch.json")).toBe(false);
-    expect(await folder().exists("Sketches/Fox.sketch/paint.png")).toBe(false);
-  });
-
-  it("moves the image folder with the sketch to another project", async () => {
-    const row = await make();
-
-    expect(await moveDocumentToProject(USER, "sketch", row.id, OTHER_PROJECT)).toBe(
-      true
-    );
-
-    expect(await folder().exists("Sketches/Fox.sketch/paint.png")).toBe(false);
-    expect(bytesOf(await folder(OTHER_PROJECT).read("Sketches/Fox.sketch/paint.png"))).toEqual(Buffer.from(PIXELS));
-    expect((await reload(row.id)).project_id).toBe(OTHER_PROJECT);
+    await (await reload(row.id)).delete();
+    expect(await folder(OTHER_PROJECT).exists("Sketches/Wolf.sketch.ora")).toBe(false);
+    expect(await folder(OTHER_PROJECT).list("Sketches")).toEqual([]);
   });
 
   it("writes the files of sketches from before project folders", async () => {
@@ -282,21 +376,15 @@ describe("sketch layer images", () => {
     expect(await migrateSketchFiles()).toBe(1);
 
     const stored = await reload(legacy.id);
-    expect(stored.file_path).toBe("Sketches/Old.sketch.json");
+    expect(stored.file_path).toBe("Sketches/Old.sketch.ora");
     expect(stored.updated_at).toBe(legacy.updated_at);
-    expect(bytesOf(await folder().read("Sketches/Old.sketch/paint.png"))).toEqual(Buffer.from(PIXELS));
+    expect((await zipAt("Sketches/Old.sketch.ora"))["data/paint.png"]).toBeDefined();
     expect(await migrateSketchFiles()).toBe(0);
   });
 
   it("finds the sketch of a file, as projects.documentByFile does", async () => {
     const row = await make();
-    const found = await findDocumentByFile(USER, [PROJECT], "Sketches/Fox.sketch.json");
+    const found = await findDocumentByFile(USER, [PROJECT], "Sketches/Fox.sketch.ora");
     expect(found).toMatchObject({ type: "sketch", id: row.id, name: "Fox" });
-  });
-
-  it("keeps the layer images out of the asset index", () => {
-    expect(isInSketchAssetFolder("Sketches/Fox.sketch/paint.png")).toBe(true);
-    expect(isInSketchAssetFolder("Sketches/Fox.sketch.json")).toBe(false);
-    expect(isInSketchAssetFolder("Generated/fox.png")).toBe(false);
   });
 });

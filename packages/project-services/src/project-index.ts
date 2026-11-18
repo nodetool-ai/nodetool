@@ -105,10 +105,7 @@ import { storyboardFileAdapter } from "./storyboard-file.js";
 import { scriptFileAdapter } from "./script-file.js";
 import { appFileAdapter } from "./app-file.js";
 import { jsScriptFileAdapter } from "./js-script-file.js";
-import {
-  SKETCH_ASSET_FOLDER_SUFFIX,
-  sketchFileAdapter
-} from "./sketch-file.js";
+import { sketchFileAdapter } from "./sketch-file.js";
 import { timelineFileAdapter } from "./timeline-file.js";
 import { workflowFileAdapter } from "./workflow-file.js";
 
@@ -172,14 +169,6 @@ export interface ProjectIndexReport {
 
 function fileName(path: string): string {
   return path.slice(path.lastIndexOf("/") + 1);
-}
-
-/** Whether `path` lies in the folder that holds a sketch's layer images. */
-export function isInSketchAssetFolder(path: string): boolean {
-  return path
-    .split("/")
-    .slice(0, -1)
-    .some((part) => part.toLowerCase().endsWith(SKETCH_ASSET_FOLDER_SUFFIX));
 }
 
 /** The content type a file in a project folder gets from its name. */
@@ -835,8 +824,6 @@ async function reconcileAndScan(
     for (const file of files.values()) {
       if (indexed.has(file.path) || inFlux(file.path)) continue;
       if (!INDEXED_MEDIA.test(contentTypeOfFile(file.path))) continue;
-      // A sketch's layer images are part of the sketch, not assets.
-      if (isInSketchAssetFolder(file.path)) continue;
       const hash = await hashFile(workspace, file.path);
       if (hash === null) continue;
 

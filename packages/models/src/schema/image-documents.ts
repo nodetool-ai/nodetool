@@ -20,11 +20,10 @@ export const imageDocuments = sqliteTable(
      */
     revision: integer("revision").notNull().default(0),
     // Path of the sketch's file, relative to the folder of the project in
-    // `project_id`: `Sketches/<name>.sketch.json`. Its layer images are in
-    // the sibling folder `<name>.sketch/`. Null until the file is first written.
+    // `project_id`: `Sketches/<name>.sketch.ora`, an OpenRaster zip. Null
+    // until the file is first written.
     file_path: text("file_path"),
-    // SHA-256 of the file and its layer images as NodeTool last wrote or
-    // imported them, in hex.
+    // SHA-256 of the zip as NodeTool last wrote or imported it, in hex.
     file_hash: text("file_hash"),
     // What the last reconcile found wrong with the file, or null.
     file_error: text("file_error"),

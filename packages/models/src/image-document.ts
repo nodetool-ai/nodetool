@@ -83,8 +83,8 @@ export class ImageDocument extends DBModel {
   /** The sketch's file, relative to its project's folder. */
   declare file_path: string | null;
   /**
-   * SHA-256 of the file and its layer images as NodeTool last wrote or
-   * imported them. Any other hash means an edit NodeTool has not seen.
+   * SHA-256 of the sketch's zip as NodeTool last wrote or imported it. Any
+   * other hash means an edit NodeTool has not seen.
    */
   declare file_hash: string | null;
   /** What the last reconcile found wrong with the file, or null. */

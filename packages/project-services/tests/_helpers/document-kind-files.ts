@@ -76,16 +76,25 @@ export function describeDocumentFiles<Row extends DocumentRow>(
   };
   const pathOf = (name: string): string =>
     `${spec.directory}/${name}${spec.suffix}`;
+  // A binary kind's file is read and written through its codec.
+  const codec = spec.adapter.codec;
+  const textOf = async (path: string, projectId = PROJECT): Promise<string | null> => {
+    if (!codec) return folder(projectId).readText(path);
+    const bytes = await folder(projectId).read(path);
+    return bytes === null ? null : codec.decode(bytes);
+  };
   const jsonOf = async (
     path: string,
     projectId = PROJECT
   ): Promise<Record<string, unknown>> => {
-    const text = await folder(projectId).readText(path);
+    const text = await textOf(path, projectId);
     if (text === null) throw new Error(`no file at ${path}`);
     return JSON.parse(text) as Record<string, unknown>;
   };
-  const write = (path: string, file: Record<string, unknown>): Promise<void> =>
-    folder().write(path, `${JSON.stringify(file, null, 2)}\n`);
+  const write = async (path: string, file: Record<string, unknown>): Promise<void> => {
+    const text = `${JSON.stringify(file, null, 2)}\n`;
+    await folder().write(path, codec ? await codec.encode(text) : text);
+  };
   const reload = async (id: string): Promise<Row> => {
     const row = await spec.reload(id);
     if (!row) throw new Error(`row ${id} is gone`);
@@ -117,8 +126,10 @@ export function describeDocumentFiles<Row extends DocumentRow>(
 
     it(`writes ${spec.directory}/<name>${spec.suffix} on save`, async () => {
       const row = await spec.make("Fox", "first");
-      const text = await folder().readText(pathOf("Fox"));
+      const text = await textOf(pathOf("Fox"));
       expect(text).not.toBeNull();
+      // The hash is of the bytes on disk.
+      const bytes = await folder().read(pathOf("Fox"));
       const file = JSON.parse(text ?? "") as Record<string, unknown>;
       expect(file["format"]).toBe(spec.format);
       expect(file["version"]).toBe(1);
@@ -127,7 +138,7 @@ export function describeDocumentFiles<Row extends DocumentRow>(
       const stored = await reload(row.id);
       expect(stored.file_path).toBe(pathOf("Fox"));
       expect(stored.file_hash).toBe(
-        createHash("sha256").update(text ?? "").digest("hex")
+        createHash("sha256").update(bytes ?? "").digest("hex")
       );
       expect(stored.file_error).toBeNull();
     });

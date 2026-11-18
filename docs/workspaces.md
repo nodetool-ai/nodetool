@@ -397,10 +397,22 @@ These documents are JSON files in the project folder too. Each follows the rules
 | Storyboard | `Storyboards/<name>.storyboard.json` | `nodetool.storyboard` | `document` | The schema the storyboard save route checks a document with (`storyboardDocument`) | None. An import replaces the storyboard without a version, and a file edit a save replaces is not kept. |
 | Script | `Scripts/<name>.script.json` | `nodetool.script` | `document` | The schema the script save route checks a document with (`scriptDocument`) | None, as for a storyboard. |
 | Mini app | `Apps/<name>.app.json` | `nodetool.app` | `description`, `document` | The parser `create_app` reads a document with (`parseApplicationDocument`) | None. The versions of an app are its published releases, and an edit is no release. |
-| Sketch | `Sketches/<name>.sketch.json`, with its layer images in `Sketches/<name>.sketch/` | `nodetool.sketch` | `width`, `height`, `background_color`, `workflow_id`, `document` | The rule every sketch write applies (`sketch` and `layerBindings` present), positive integer size, and every layer image file present | Yes, as for a JS script. |
+| Sketch | `Sketches/<name>.sketch.ora`, an OpenRaster zip | `nodetool.sketch`, in the zip's `nodetool/sketch.json` | `width`, `height`, `background_color`, `workflow_id`, `document` | The rule every sketch write applies (`sketch` and `layerBindings` present), positive integer size, and every layer image the JSON names present in the zip | Yes, as for a JS script. |
 | JS script | `JsScripts/<name>.jsscript.json` | `nodetool.jsscript` | `document` | The validation `save_js_script` runs (`validateJsScriptDoc`, with the owner's secret names), refused on the errors that tool refuses | Yes. An import keeps the script as it was as a version named "Before file edit", and a file edit a save replaces is kept as "File edit replaced by a save". |
 
-A sketch file keeps each raster layer's pixels as a PNG in the sketch's folder, and the layer's `data` in the file is the path of that PNG, relative to the file. A vector layer keeps its SVG inline. Reading the file reads the images back into the document, and the file hash covers the file and its images. A rename, a move and a delete take the folder along, the asset index skips it, and Files shows the sketch file without it.
+A sketch file is one zip that Krita, GIMP and other OpenRaster readers open:
+
+| Entry | Content |
+| --- | --- |
+| `mimetype` | `image/openraster`, the first entry, stored |
+| `stack.xml` | Layer order, position, opacity, visibility, blend mode (`svg:` composite ops, `svg:src-over` where OpenRaster has none) and names. A group is a nested stack. |
+| `data/<layerId>.png` | The raster of each raster and mask layer, stored |
+| `data/<layerId>.composite.png` | A vector layer, or a scaled, rotated or warped raster layer, rendered alone at canvas size for `stack.xml` |
+| `mergedimage.png`, `Thumbnails/thumbnail.png` | The flattened sketch, and the same at most 256 px on a side. Files shows the thumbnail. |
+| `nodetool/sketch.json` | The document, with each raster's `data` replaced by its PNG path. An `ntlayer:` envelope becomes `{ "ntlayer": { "image": "data/<layerId>.png", "bounds": … } }`. |
+| `nodetool/history/<entry>/<layerId>.png` | The rasters of the undo history |
+
+The JSON holds no base64 raster. Reading the zip puts the PNGs back into the document, so the row is the same document. The file hash is the hash of the zip's bytes. A zip without `nodetool/sketch.json`, saved by another app, is imported from `stack.xml` as plain raster layers, with groups flattened. The sketch as it was is kept as "Before file edit", and the file is then written again in NodeTool's form. A layer PNG the JSON names and the zip lacks refuses the file. Every save renders `mergedimage.png`, the thumbnail and the composite PNGs with the headless sketch renderer.
 
 The file name is the document's name, and the file has no `name` field. Owner, links to other documents and timestamps stay in the database. The editor of each of these documents shows the state of its file, and `projects.documents`, `projects.documentByFile` and `projects.restoreDocumentFile` include them.
 
@@ -408,7 +420,7 @@ The file name is the document's name, and the file has no `name` field. Owner, l
 
 The left panel lists **Chats**, **Documents** and **Files** under the name of the open project. Files is a tree of the project folder. It updates when a run or a tool adds a file, and it hides `.nodetool/`.
 
-Double-click a file to open it. A `.workflow.json` file opens the workflow editor on its workflow, a `.timeline.json` file opens the timeline editor on its timeline, a `.storyboard.json` file opens the storyboard editor on its storyboard, a `.script.json` file opens the script editor on its script, a `.app.json` file opens the app editor on its app a `.jsscript.json` file opens the JS script editor on its script, and a `.sketch.json` file opens the sketch editor on its sketch. The document is the one whose `file_path` is that file. Any other file opens in a file tab, and so does a document file that no workflow or timeline owns yet.
+Double-click a file to open it. A `.workflow.json` file opens the workflow editor on its workflow, a `.timeline.json` file opens the timeline editor on its timeline, a `.storyboard.json` file opens the storyboard editor on its storyboard, a `.script.json` file opens the script editor on its script, a `.app.json` file opens the app editor on its app, a `.jsscript.json` file opens the JS script editor on its script, and a `.sketch.ora` file opens the sketch editor on its sketch. A `.sketch.ora` file dropped on the canvas becomes a Sketch constant node. The document is the one whose `file_path` is that file. Any other file opens in a file tab, and so does a document file that no workflow or timeline owns yet.
 
 Right-click a file or folder to reveal it in your file manager. The menu reads **Reveal in Finder** on macOS, **Show in File Explorer** on Windows and **Show in file manager** on Linux. It appears in the desktop app only. The browser app and a cloud deployment show the tree without it, because the files are not on your machine.
 

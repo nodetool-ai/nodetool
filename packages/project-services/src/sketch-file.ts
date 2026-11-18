@@ -1,51 +1,47 @@
 /**
  * Sketches as files in the project folder (PRD T5):
- * `Sketches/<name>.sketch.json`, with its layer images in the folder
- * `Sketches/<name>.sketch/` beside it.
+ * `Sketches/<name>.sketch.ora`, one OpenRaster zip per sketch.
  *
- * ```json
- * {
- *   "format": "nodetool.sketch",
- *   "version": 1,
- *   "id": "<image document id>",
- *   "width": 1024,
- *   "height": 1024,
- *   "background_color": "#ffffff",
- *   "workflow_id": null,
- *   "document": {
- *     "sketch": { "layers": [{ "id": "layer-1", "data": "Fox.sketch/layer-1.png" }] },
- *     "layerBindings": []
- *   }
- * }
- * ```
+ * | Entry | Content |
+ * | --- | --- |
+ * | `mimetype` | `image/openraster`, first and stored, as OpenRaster asks |
+ * | `stack.xml` | The layer stack for other OpenRaster readers: order, position, opacity, visibility, blend mode, names, groups as nested stacks |
+ * | `data/<layerId>.png` | The raster of each raster and mask layer, stored |
+ * | `data/<layerId>.composite.png` | A vector layer, or a raster layer with a scale, rotation or warp, rendered alone at canvas size for `stack.xml` |
+ * | `mergedimage.png`, `Thumbnails/thumbnail.png` | The flattened sketch, and the same at most 256 px on a side |
+ * | `nodetool/sketch.json` | The file's JSON: `format`, `version`, `id`, `width`, `height`, `background_color`, `workflow_id` and `document` |
+ * | `nodetool/history/<entry>/<layerId>.png` | The rasters of the undo history |
  *
- * The row keeps a raster layer's pixels as a base64 data URL in the layer's
- * `data`. In the file that `data` is the path of a PNG in the sketch's
- * folder, relative to the file. A vector layer keeps its SVG data URL inline,
- * since it is short text. Reading the file reads the images back into the
- * document, so the rest of NodeTool sees the document the row holds. The
- * hash covers the file and every image.
+ * The row keeps each raster as a base64 data URL, alone or inside the
+ * `ntlayer:` envelope with its bounds. In `nodetool/sketch.json` that image
+ * is the path of its PNG in the zip, and an envelope is the object
+ * `{ "ntlayer": { ...envelope } }`, so no base64 stays in the JSON. A vector
+ * layer keeps its SVG data URL. Reading the zip puts the images back, so the
+ * rest of NodeTool sees the document the row holds.
+ *
+ * A zip without `nodetool/sketch.json`, saved by Krita or GIMP, is read from
+ * `stack.xml` as plain raster layers. Its import keeps the sketch as it was
+ * as a version, as every import does.
  *
  * The file name is the sketch's name and the file holds no `name` field.
- * Owner, the thumbnail and timestamps stay in the database. The sync itself
- * is `document-file-sync.ts`. This module is the sketch kind.
+ * Owner, the thumbnail asset and timestamps stay in the database. The sync
+ * itself is `document-file-sync.ts`. This module is the sketch kind.
  *
  * Loading this module installs the sync on the `ImageDocument` model, so
- * every write of a sketch row writes the file. An import keeps the sketch as
- * it was as a version.
+ * every write of a sketch row writes the file.
  */
+import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from "fflate";
 import {
   ImageDocument,
   ImageDocumentVersion,
   setImageDocumentFileSync
 } from "@nodetool-ai/models";
 import {
-  documentAssetFolder,
+  DOCUMENT_FILE_VERSION,
   documentFileSync,
   migrateDocumentFiles,
-  type DocumentAssetFile,
   type DocumentFileAdapter,
-  type DocumentFileAssets,
+  type DocumentFileCodec,
   type DocumentFileContent,
   type DocumentFileFailure
 } from "./document-file-sync.js";
@@ -53,11 +49,17 @@ import {
 /** The directory sketch files are written in. */
 export const SKETCH_FILE_DIRECTORY = "Sketches";
 /** The end of every sketch file name. */
-export const SKETCH_FILE_SUFFIX = ".sketch.json";
-/** The end of the name of the folder that holds a sketch's layer images. */
-export const SKETCH_ASSET_FOLDER_SUFFIX = ".sketch";
-/** The `format` value of a sketch file. */
+export const SKETCH_FILE_SUFFIX = ".sketch.ora";
+/** The `format` value of a sketch file's JSON. */
 export const SKETCH_FILE_FORMAT = "nodetool.sketch";
+/** The MIME type of a sketch file. */
+export const SKETCH_FILE_CONTENT_TYPE = "image/openraster";
+/** The zip entry that holds the sketch document. */
+export const SKETCH_DOCUMENT_ENTRY = "nodetool/sketch.json";
+/** The zip entry that holds the thumbnail. */
+export const SKETCH_THUMBNAIL_ENTRY = "Thumbnails/thumbnail.png";
+/** Longest side of the thumbnail, in pixels. */
+export const SKETCH_THUMBNAIL_SIZE = 256;
 /** The name of the version that keeps a sketch as it was before an import. */
 export const SKETCH_FILE_EDIT_VERSION_NAME = "Before file edit";
 /** The name of the version that keeps a file edit a save in NodeTool replaced. */
@@ -73,7 +75,6 @@ export interface SketchFileFields {
   document: Record<string, unknown>;
 }
 
-/** Image data URLs a layer image file is made from, by MIME type. */
 const IMAGE_EXTENSIONS: Record<string, string> = {
   "image/png": "png",
   "image/jpeg": "jpg",
@@ -83,118 +84,483 @@ const IMAGE_TYPES: Record<string, string> = Object.fromEntries(
   Object.entries(IMAGE_EXTENSIONS).map(([type, ext]) => [ext, type])
 );
 const IMAGE_DATA_URL = /^data:(image\/(?:png|jpeg|webp));base64,/;
+/** An image path in `nodetool/sketch.json`. */
+const IMAGE_PATH = /^(?:data|nodetool\/history)\/[^/]+(?:\/[^/]+)?\.(png|jpg|webp)$/;
 const SAFE_FILE_STEM = /^[A-Za-z0-9_-]{1,100}$/;
+const NTLAYER = "ntlayer:";
+/**
+ * The date every zip entry carries, so that equal content gives equal bytes.
+ * The file's own modification time says when it was written.
+ */
+const ENTRY_DATE = new Date(2000, 0, 1);
+const STORED = { level: 0 } as const;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+/** OpenRaster `composite-op` for a NodeTool blend mode. */
+const COMPOSITE_OPS: Record<string, string> = {
+  normal: "svg:src-over",
+  multiply: "svg:multiply",
+  screen: "svg:screen",
+  overlay: "svg:overlay",
+  darken: "svg:darken",
+  lighten: "svg:lighten",
+  "color-dodge": "svg:color-dodge",
+  "color-burn": "svg:color-burn",
+  "hard-light": "svg:hard-light",
+  "soft-light": "svg:soft-light",
+  difference: "svg:difference",
+  exclusion: "svg:exclusion",
+  add: "svg:plus"
+};
+const BLEND_MODES: Record<string, string> = Object.fromEntries(
+  Object.entries(COMPOSITE_OPS).map(([mode, op]) => [op, mode])
+);
+
+type Json = Record<string, unknown>;
+
+function isRecord(value: unknown): value is Json {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function directoryOf(path: string): string {
-  const slash = path.lastIndexOf("/");
-  return slash >= 0 ? path.slice(0, slash) : "";
-}
-
-function fileNameOf(path: string): string {
-  return path.slice(path.lastIndexOf("/") + 1);
-}
-
-function joinPath(directory: string, name: string): string {
-  return directory ? `${directory}/${name}` : name;
-}
-
-/** The layers of a file's document, or an empty list when it has none. */
-function layersOf(file: Record<string, unknown>): Record<string, unknown>[] {
-  const document = file["document"];
-  if (!isRecord(document)) return [];
-  const sketch = document["sketch"];
-  if (!isRecord(sketch) || !Array.isArray(sketch["layers"])) return [];
-  return sketch["layers"].filter(isRecord);
 }
 
 function fileText(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
-/**
- * Whether `data` names a layer image file: a relative path with no `..`
- * part and an image extension.
- */
-function isImagePath(data: string): boolean {
-  if (data.startsWith("data:") || data.startsWith("/")) return false;
-  if (data.split("/").some((part) => part === ".." || part === "")) return false;
-  const ext = data.slice(data.lastIndexOf(".") + 1).toLowerCase();
-  return ext in IMAGE_TYPES;
+function base64OfText(text: string): string {
+  return Buffer.from(text, "utf8").toString("base64");
 }
 
-/** The layer images of a sketch file, in the folder beside it. */
-export const sketchFileAssets: DocumentFileAssets = {
-  split(text, path) {
-    let file: unknown;
-    try {
-      file = JSON.parse(text);
-    } catch {
-      return { text, files: [] };
-    }
-    if (!isRecord(file)) return { text, files: [] };
-    const folder = documentAssetFolder(path);
-    const folderName = fileNameOf(folder);
-    const files: DocumentAssetFile[] = [];
-    const used = new Set<string>();
-    for (const [index, layer] of layersOf(file).entries()) {
-      const data = layer["data"];
-      if (typeof data !== "string") continue;
-      const match = IMAGE_DATA_URL.exec(data);
-      if (!match) continue;
-      const contentType = match[1] as string;
-      const id = layer["id"];
-      let stem =
-        typeof id === "string" && SAFE_FILE_STEM.test(id) ? id : `layer-${index + 1}`;
-      while (used.has(stem.toLowerCase())) stem = `${stem}-${index + 1}`;
-      used.add(stem.toLowerCase());
-      const name = `${stem}.${IMAGE_EXTENSIONS[contentType]}`;
-      files.push({
-        path: joinPath(folder, name),
-        data: Buffer.from(data.slice(match[0].length), "base64"),
-        contentType
-      });
-      layer["data"] = `${folderName}/${name}`;
-    }
-    return files.length === 0 ? { text, files } : { text: fileText(file), files };
-  },
+function textOfBase64(base64: string): string {
+  return Buffer.from(base64, "base64").toString("utf8");
+}
 
-  async inline(text, path, read) {
-    let file: unknown;
-    try {
-      file = JSON.parse(text);
-    } catch {
-      return text;
-    }
-    if (!isRecord(file)) return text;
-    const directory = directoryOf(path);
-    const ownFolder = documentAssetFolder(path);
-    let changed = false;
-    for (const layer of layersOf(file)) {
-      const data = layer["data"];
-      if (typeof data !== "string" || !isImagePath(data)) continue;
-      // A file renamed together with its folder still names the old folder.
-      const bytes =
-        (await read(joinPath(directory, data))) ??
-        (await read(joinPath(ownFolder, fileNameOf(data))));
-      if (bytes === null) continue;
-      const ext = data.slice(data.lastIndexOf(".") + 1).toLowerCase();
-      layer["data"] = `data:${IMAGE_TYPES[ext]};base64,${Buffer.from(bytes).toString("base64")}`;
-      changed = true;
-    }
-    return changed ? fileText(file) : text;
+/** The sketch document of a file's JSON, or null when it has none. */
+function sketchOf(file: Json): Json | null {
+  const document = file["document"];
+  if (!isRecord(document)) return null;
+  const sketch = document["sketch"];
+  return isRecord(sketch) ? sketch : null;
+}
+
+function layersOf(file: Json): Json[] {
+  const layers = sketchOf(file)?.["layers"];
+  return Array.isArray(layers) ? layers.filter(isRecord) : [];
+}
+
+function historyOf(file: Json): Json[] {
+  const history = sketchOf(file)?.["history"];
+  return Array.isArray(history) ? history.filter(isRecord) : [];
+}
+
+/** File name stems for layer IDs: the ID when it is safe, unique in the zip. */
+function stemsOf(ids: readonly unknown[]): string[] {
+  const used = new Set<string>();
+  return ids.map((id, index) => {
+    let stem =
+      typeof id === "string" && SAFE_FILE_STEM.test(id) ? id : `layer-${index + 1}`;
+    while (used.has(stem.toLowerCase())) stem = `${stem}-${index + 1}`;
+    used.add(stem.toLowerCase());
+    return stem;
+  });
+}
+
+// ── Writing ─────────────────────────────────────────────────────────────────
+
+/** The bytes of a raster data URL, with its extension. Null for anything else. */
+function rasterOf(source: unknown): { bytes: Uint8Array; ext: string } | null {
+  if (typeof source !== "string") return null;
+  const match = IMAGE_DATA_URL.exec(source);
+  if (!match) return null;
+  return {
+    bytes: Buffer.from(source.slice(match[0].length), "base64"),
+    ext: IMAGE_EXTENSIONS[match[1] as string] as string
+  };
+}
+
+/** The envelope inside an `ntlayer:` layer data string, or null. */
+function envelopeOf(data: unknown): Json | null {
+  if (typeof data !== "string" || !data.startsWith(NTLAYER)) return null;
+  try {
+    const value: unknown = JSON.parse(textOfBase64(data.slice(NTLAYER.length)));
+    return isRecord(value) ? value : null;
+  } catch {
+    return null;
   }
+}
+
+/**
+ * Take the raster out of a layer `data` value: a bare data URL becomes the
+ * path `<base>.<ext>`, an envelope with a raster becomes `{ ntlayer }` with
+ * that path as its image. Anything else stays as it is.
+ */
+function externalize(
+  data: unknown,
+  base: string,
+  entries: Map<string, Uint8Array>
+): { data: unknown; raster: string | null } {
+  const bare = rasterOf(data);
+  if (bare) {
+    const path = `${base}.${bare.ext}`;
+    entries.set(path, bare.bytes);
+    return { data: path, raster: path };
+  }
+  const envelope = envelopeOf(data);
+  const inner = envelope ? rasterOf(envelope["image"]) : null;
+  if (envelope && inner) {
+    const path = `${base}.${inner.ext}`;
+    entries.set(path, inner.bytes);
+    return { data: { ntlayer: { ...envelope, image: path } }, raster: path };
+  }
+  return { data, raster: null };
+}
+
+function escapeXml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function numberOf(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+/** Whether a layer's raster sits on the canvas unscaled and unrotated. */
+function isPlaced(transform: unknown): boolean {
+  if (!isRecord(transform)) return true;
+  if (transform["kind"] === "quad") return false;
+  return (
+    numberOf(transform["scaleX"], 1) === 1 &&
+    numberOf(transform["scaleY"], 1) === 1 &&
+    numberOf(transform["rotation"], 0) === 0
+  );
+}
+
+/** Where a placed raster's top-left corner is on the canvas. */
+function originOf(layer: Json, envelope: Json | null): { x: number; y: number } {
+  const transform = isRecord(layer["transform"]) ? layer["transform"] : {};
+  const bounds = isRecord(envelope?.["bounds"])
+    ? envelope["bounds"]
+    : isRecord(layer["contentBounds"])
+      ? layer["contentBounds"]
+      : {};
+  return {
+    x: Math.round(numberOf(bounds["x"], 0) + numberOf(transform["x"], 0)),
+    y: Math.round(numberOf(bounds["y"], 0) + numberOf(transform["y"], 0))
+  };
+}
+
+/** A layer of the stack: what `stack.xml` names for it. */
+interface StackLayer {
+  layer: Json;
+  /** The PNG `stack.xml` points at, and where it goes. Null for a group or an empty layer. */
+  src: { path: string; x: number; y: number } | null;
+}
+
+function stackXml(width: number, height: number, stack: readonly StackLayer[]): string {
+  const children = new Map<string | null, StackLayer[]>();
+  const ids = new Set(stack.map(({ layer }) => layer["id"]));
+  for (const entry of stack) {
+    const parent = entry.layer["parentId"];
+    const key = typeof parent === "string" && ids.has(parent) ? parent : null;
+    children.set(key, [...(children.get(key) ?? []), entry]);
+  }
+  const attributes = (layer: Json): string => {
+    const blend = typeof layer["blendMode"] === "string" ? layer["blendMode"] : "normal";
+    return [
+      `name="${escapeXml(String(layer["name"] ?? layer["id"] ?? ""))}"`,
+      `opacity="${numberOf(layer["opacity"], 1)}"`,
+      `visibility="${layer["visible"] === false ? "hidden" : "visible"}"`,
+      `composite-op="${COMPOSITE_OPS[blend] ?? "svg:src-over"}"`
+    ].join(" ");
+  };
+  const render = (parent: string | null, depth: number): string[] => {
+    const indent = "  ".repeat(depth);
+    // OpenRaster lists the top of the stack first. The sketch lists the bottom first.
+    return [...(children.get(parent) ?? [])].reverse().flatMap(({ layer, src }) => {
+      if (layer["type"] === "group") {
+        return [
+          `${indent}<stack ${attributes(layer)}>`,
+          ...render(String(layer["id"]), depth + 1),
+          `${indent}</stack>`
+        ];
+      }
+      if (!src) return [];
+      return [
+        `${indent}<layer ${attributes(layer)} src="${escapeXml(src.path)}" x="${src.x}" y="${src.y}"/>`
+      ];
+    });
+  };
+  return [
+    `<?xml version="1.0" encoding="UTF-8"?>`,
+    `<image version="0.0.5" w="${width}" h="${height}">`,
+    `  <stack>`,
+    ...render(null, 2),
+    `  </stack>`,
+    `</image>`,
+    ""
+  ].join("\n");
+}
+
+/** Renders of the document this module needs, from the headless sketch renderer. */
+async function renderer(): Promise<
+  (document: unknown, options?: { width?: number; height?: number; layerId?: string }) => Promise<Uint8Array>
+> {
+  // Loaded on the first write of a sketch file, so that loading this module
+  // does not load the canvas.
+  const { renderSketch } = await import("@nodetool-ai/agents/sketch-render");
+  return async (document, options = {}) => (await renderSketch(document, options)).bytes;
+}
+
+/** The zip for the document text of a sketch file. Equal text gives equal bytes. */
+export async function encodeSketchFile(text: string): Promise<Uint8Array> {
+  const inline = JSON.parse(text) as Json;
+  const file = JSON.parse(text) as Json;
+  const width = numberOf(file["width"], 1);
+  const height = numberOf(file["height"], 1);
+  const images = new Map<string, Uint8Array>();
+  const render = await renderer();
+
+  const layers = layersOf(file);
+  const stems = stemsOf(layers.map((layer) => layer["id"]));
+  const stack: StackLayer[] = [];
+  for (const [index, layer] of layers.entries()) {
+    const stem = stems[index] as string;
+    const envelope = envelopeOf(layer["data"]);
+    const { data, raster } = externalize(layer["data"], `data/${stem}`, images);
+    layer["data"] = data;
+    let src: StackLayer["src"] = null;
+    if (raster?.endsWith(".png") && isPlaced(layer["transform"])) {
+      src = { path: raster, ...originOf(layer, envelope) };
+    } else if (layer["type"] !== "group" && layer["data"] !== null && layer["data"] !== undefined) {
+      // OpenRaster places a PNG by its corner, so a vector layer or a
+      // scaled, rotated or warped raster is drawn alone at canvas size.
+      const path = `data/${stem}.composite.png`;
+      images.set(path, await render(inline["document"], { layerId: String(layer["id"]) }));
+      src = { path, x: 0, y: 0 };
+    }
+    stack.push({ layer, src });
+  }
+
+  for (const [entryIndex, entry] of historyOf(file).entries()) {
+    const snapshots = entry["layerSnapshots"];
+    if (!isRecord(snapshots)) continue;
+    const keys = Object.keys(snapshots);
+    const snapshotStems = stemsOf(keys);
+    for (const [index, key] of keys.entries()) {
+      snapshots[key] = externalize(
+        snapshots[key],
+        `nodetool/history/${entryIndex}/${snapshotStems[index] as string}`,
+        images
+      ).data;
+    }
+  }
+
+  const merged = await render(inline["document"]);
+  const scale = Math.min(1, SKETCH_THUMBNAIL_SIZE / Math.max(width, height));
+  const thumbnail = await render(inline["document"], {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale))
+  });
+
+  const entries: Zippable = {
+    mimetype: [strToU8(SKETCH_FILE_CONTENT_TYPE), STORED],
+    "stack.xml": strToU8(stackXml(width, height, stack)),
+    "mergedimage.png": [merged, STORED],
+    [SKETCH_THUMBNAIL_ENTRY]: [thumbnail, STORED]
+  };
+  for (const [path, bytes] of images) entries[path] = [bytes, STORED];
+  entries[SKETCH_DOCUMENT_ENTRY] = strToU8(fileText(file));
+  return zipSync(entries, { mtime: ENTRY_DATE });
+}
+
+// ── Reading ─────────────────────────────────────────────────────────────────
+
+function dataUrlOf(path: string, bytes: Uint8Array): string {
+  const ext = path.slice(path.lastIndexOf(".") + 1).toLowerCase();
+  return `data:${IMAGE_TYPES[ext] ?? "image/png"};base64,${Buffer.from(bytes).toString("base64")}`;
+}
+
+/**
+ * Put the raster back into a layer `data` value of `nodetool/sketch.json`.
+ * A path whose image is not in the zip stays a path, which the import refuses.
+ */
+function internalize(data: unknown, entries: Record<string, Uint8Array>): unknown {
+  if (typeof data === "string" && IMAGE_PATH.test(data)) {
+    const bytes = entries[data];
+    return bytes ? dataUrlOf(data, bytes) : data;
+  }
+  if (isRecord(data) && isRecord(data["ntlayer"])) {
+    const envelope = data["ntlayer"];
+    const image = envelope["image"];
+    if (typeof image === "string" && IMAGE_PATH.test(image)) {
+      const bytes = entries[image];
+      if (!bytes) return data;
+      envelope["image"] = dataUrlOf(image, bytes);
+    }
+    return `${NTLAYER}${base64OfText(JSON.stringify(envelope))}`;
+  }
+  return data;
+}
+
+function attributesOf(tag: string): Record<string, string> {
+  const attributes: Record<string, string> = {};
+  for (const match of tag.matchAll(/([\w:-]+)="([^"]*)"/g)) {
+    attributes[match[1] as string] = (match[2] as string)
+      .replace(/&quot;/g, '"')
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&amp;/g, "&");
+  }
+  return attributes;
+}
+
+/** Width and height of a PNG, from its header. */
+function pngSize(bytes: Uint8Array): { width: number; height: number } | null {
+  if (bytes.length < 24 || bytes[0] !== 0x89 || bytes[1] !== 0x50) return null;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  return { width: view.getUint32(16), height: view.getUint32(20) };
+}
+
+/**
+ * The file's JSON for an OpenRaster zip another app saved: each layer of
+ * `stack.xml` with a PNG becomes a raster layer, groups flattened.
+ */
+function importedSketchFile(entries: Record<string, Uint8Array>): Json {
+  const xml = entries["stack.xml"];
+  if (!xml) {
+    throw new Error(`The file is no sketch: it has neither ${SKETCH_DOCUMENT_ENTRY} nor stack.xml`);
+  }
+  const text = strFromU8(xml);
+  const image = attributesOf(/<image\b[^>]*>/.exec(text)?.[0] ?? "");
+  const width = Number.parseInt(image["w"] ?? "", 10);
+  const height = Number.parseInt(image["h"] ?? "", 10);
+  if (!(width > 0 && height > 0)) {
+    throw new Error("The stack.xml of the file has no valid image size");
+  }
+  const layers: Json[] = [];
+  const tags = [...text.matchAll(/<layer\b[^>]*>/g)].map((match) => attributesOf(match[0]));
+  for (const [index, tag] of tags.entries()) {
+    const src = tag["src"] ?? "";
+    const bytes = entries[src];
+    if (!bytes) {
+      throw new Error(`The image of layer "${tag["name"] ?? index + 1}" is missing: ${src}`);
+    }
+    const size = pngSize(bytes) ?? { width, height };
+    const x = Number.parseFloat(tag["x"] ?? "0") || 0;
+    const y = Number.parseFloat(tag["y"] ?? "0") || 0;
+    const opacity = Number.parseFloat(tag["opacity"] ?? "1");
+    layers.push({
+      id: `layer-${index + 1}`,
+      name: tag["name"] || `Layer ${index + 1}`,
+      type: "raster",
+      visible: tag["visibility"] !== "hidden",
+      opacity: Number.isFinite(opacity) ? opacity : 1,
+      locked: false,
+      alphaLock: false,
+      blendMode: BLEND_MODES[tag["composite-op"] ?? ""] ?? "normal",
+      data: dataUrlOf(src, bytes),
+      transform: { x, y },
+      contentBounds: { x: 0, y: 0, width: size.width, height: size.height },
+      effects: []
+    });
+  }
+  // `stack.xml` lists the top of the stack first. The sketch lists the bottom first.
+  layers.reverse();
+  return {
+    format: SKETCH_FILE_FORMAT,
+    version: DOCUMENT_FILE_VERSION,
+    width,
+    height,
+    background_color: "#ffffff",
+    workflow_id: null,
+    document: {
+      sketch: {
+        version: 3,
+        canvas: { width, height, backgroundColor: "#ffffff" },
+        layers,
+        activeLayerId: layers.at(-1)?.["id"] ?? "",
+        maskLayerId: null
+      },
+      layerBindings: []
+    }
+  };
+}
+
+/** The document text of a sketch zip. Throws when the bytes are no sketch file. */
+export async function decodeSketchFile(bytes: Uint8Array): Promise<string> {
+  let entries: Record<string, Uint8Array>;
+  try {
+    entries = unzipSync(bytes);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(`The file is not a zip: ${reason}`);
+  }
+  const mimetype = entries["mimetype"];
+  if (mimetype && strFromU8(mimetype).trim() !== SKETCH_FILE_CONTENT_TYPE) {
+    throw new Error(`The file's mimetype must be "${SKETCH_FILE_CONTENT_TYPE}"`);
+  }
+  const json = entries[SKETCH_DOCUMENT_ENTRY];
+  if (!json) return fileText(importedSketchFile(entries));
+  let file: unknown;
+  try {
+    file = JSON.parse(strFromU8(json));
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(`The ${SKETCH_DOCUMENT_ENTRY} of the file is not valid JSON: ${reason}`);
+  }
+  if (!isRecord(file)) {
+    throw new Error(`The ${SKETCH_DOCUMENT_ENTRY} of the file is not a JSON object`);
+  }
+  for (const layer of layersOf(file)) {
+    layer["data"] = internalize(layer["data"], entries);
+  }
+  for (const entry of historyOf(file)) {
+    const snapshots = entry["layerSnapshots"];
+    if (!isRecord(snapshots)) continue;
+    for (const key of Object.keys(snapshots)) {
+      snapshots[key] = internalize(snapshots[key], entries);
+    }
+  }
+  return fileText(file);
+}
+
+/** The zip a sketch file is. */
+export const sketchFileCodec: DocumentFileCodec = {
+  contentType: SKETCH_FILE_CONTENT_TYPE,
+  encode: encodeSketchFile,
+  decode: decodeSketchFile
 };
+
+/** The thumbnail PNG of a sketch file, or null when it has none. */
+export function sketchFileThumbnail(bytes: Uint8Array): Uint8Array | null {
+  try {
+    return unzipSync(bytes, {
+      filter: (entry) => entry.name === SKETCH_THUMBNAIL_ENTRY
+    })[SKETCH_THUMBNAIL_ENTRY] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// ── The kind ────────────────────────────────────────────────────────────────
+
+/** A layer image a zip did not hold, named for the error. */
+function missingImage(data: unknown): string | null {
+  if (typeof data === "string" && IMAGE_PATH.test(data)) return data;
+  if (isRecord(data)) {
+    const image = isRecord(data["ntlayer"]) ? data["ntlayer"]["image"] : undefined;
+    return typeof image === "string" ? image : JSON.stringify(data);
+  }
+  return null;
+}
 
 /**
  * Check the body of a sketch file with the rule every write of a sketch row
- * applies, and refuse a layer whose image file is gone.
+ * applies, and refuse a layer whose image is not in the zip.
  */
 async function parseSketchFile(
-  body: Record<string, unknown>
+  body: Json
 ): Promise<DocumentFileContent<SketchFileFields>> {
   const document = body["document"];
   if (!isRecord(document)) {
@@ -207,23 +573,29 @@ async function parseSketchFile(
     };
   }
   for (const layer of layersOf(body)) {
-    const data = layer["data"];
-    if (data !== null && data !== undefined && typeof data !== "string") {
+    const missing = missingImage(layer["data"]);
+    if (missing !== null) {
       return {
         ok: false,
-        error: `The "data" of layer "${String(layer["id"])}" must be a string or null`
-      };
-    }
-    // A layer image path that is still a path names an image that is gone.
-    if (typeof data === "string" && isImagePath(data)) {
-      return {
-        ok: false,
-        error: `The image of layer "${String(layer["id"])}" is missing: ${String(data)}`
+        error: `The image of layer "${String(layer["id"])}" is missing: ${missing}`
       };
     }
   }
-  const { width, height } = body;
-  for (const [key, value] of [["width", width], ["height", height]] as const) {
+  for (const entry of historyOf(body)) {
+    const snapshots = entry["layerSnapshots"];
+    if (!isRecord(snapshots)) continue;
+    for (const [key, value] of Object.entries(snapshots)) {
+      const missing = missingImage(value);
+      if (missing !== null) {
+        return {
+          ok: false,
+          error: `The history image of layer "${key}" is missing: ${missing}`
+        };
+      }
+    }
+  }
+  for (const key of ["width", "height"] as const) {
+    const value = body[key];
     if (typeof value !== "number" || !Number.isInteger(value) || value <= 0) {
       return { ok: false, error: `"${key}" must be a positive integer` };
     }
@@ -239,8 +611,8 @@ async function parseSketchFile(
   return {
     ok: true,
     fields: {
-      width: width as number,
-      height: height as number,
+      width: body["width"] as number,
+      height: body["height"] as number,
       background_color: background,
       workflow_id: workflowId,
       document
@@ -258,7 +630,7 @@ export const sketchFileAdapter: DocumentFileAdapter<
   suffix: SKETCH_FILE_SUFFIX,
   format: SKETCH_FILE_FORMAT,
   untitled: "Untitled sketch",
-  assets: sketchFileAssets,
+  codec: sketchFileCodec,
 
   // SAFETY: the model refuses to store a document that is not an object.
   fieldsOf: (row) => ({
@@ -266,7 +638,7 @@ export const sketchFileAdapter: DocumentFileAdapter<
     height: row.height,
     background_color: row.background_color,
     workflow_id: row.workflow_id,
-    document: JSON.parse(row.document) as Record<string, unknown>
+    document: JSON.parse(row.document) as Json
   }),
 
   body: (fields) => ({

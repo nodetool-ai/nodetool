@@ -49,7 +49,11 @@ import {
   partialContentHashOfWorkspaceFile,
   requireProjectFolder
 } from "@nodetool-ai/asset-services/project-asset-file";
-import { isDocumentFileId } from "./document-file-sync.js";
+import {
+  isDocumentFileId,
+  readDocumentFileText,
+  writeDocumentFileFromText
+} from "./document-file-sync.js";
 import { scanFolder } from "./project-folder-scan.js";
 import { contentTypeOfFile, reconcileInBackground } from "./project-index.js";
 import {
@@ -77,7 +81,7 @@ const DOCUMENT_KINDS = [
   jsScriptFileAdapter,
   sketchFileAdapter
 ].map(
-  ({ kind, suffix, format, exists }) => ({ kind, suffix, format, exists })
+  ({ kind, suffix, format, exists, codec }) => ({ kind, suffix, format, exists, codec })
 );
 type DocumentKind = (typeof DOCUMENT_KINDS)[number];
 
@@ -395,7 +399,7 @@ async function documentsIn(workspace: Workspace): Promise<FolderDocument[]> {
     if (!kind) continue;
     let content: z.infer<typeof documentFile>;
     try {
-      const text = await workspace.readText(path);
+      const text = await readDocumentFileText(kind, workspace, path);
       if (text === null) continue;
       const parsed = documentFile.safeParse(JSON.parse(text));
       if (!parsed.success || parsed.data["format"] !== kind.format) continue;
@@ -505,10 +509,11 @@ export async function restoreProjectFolder(
       const id = newIds.get(document.path);
       const next = id === undefined ? remapped : { ...remapped, id };
       if (JSON.stringify(next) === JSON.stringify(document.content)) continue;
-      await workspace.write(
+      await writeDocumentFileFromText(
+        document.kind,
+        workspace,
         document.path,
-        `${JSON.stringify(next, null, 2)}\n`,
-        "application/json"
+        `${JSON.stringify(next, null, 2)}\n`
       );
       report.rewritten.push(document.path);
     }
