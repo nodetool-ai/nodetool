@@ -156,6 +156,8 @@ struct TransferController::Shared {
 };
 
 struct TransferController::Captured {
+  // The link the server answered, when readLink asked for it.
+  std::optional<LocalTransferClient::LinkStatus> link;
   SendCapture send;
   ReceiveCapture receive;
 };
@@ -274,6 +276,14 @@ void TransferController::setLinked(bool linked) {
   emit projectChanged();
 }
 
+void TransferController::setReadLink(bool readLink) {
+  if (readLink_ == readLink) {
+    return;
+  }
+  readLink_ = readLink;
+  emit projectChanged();
+}
+
 std::shared_ptr<AccountSession> TransferController::session() const {
   return account_ && account_->state() == AccountController::State::SignedIn ? account_->session() : nullptr;
 }
@@ -362,9 +372,19 @@ void TransferController::start() {
   message_.clear();
   emit stateChanged();
   tasks_->post([state = shared_, cancel = std::shared_ptr<const RequestCancel>(cancel_), current, origin = origin(), headers = headers(), projectId = projectId_.toStdString(),
-                name = projectName_.toStdString(), linked = linked_, sequence] {
+                name = projectName_.toStdString(), linked = linked_, readLink = readLink_, sequence]() mutable {
     LocalTransferClient client(*state->transport, origin, headers, *current, cancel);
     Captured captured;
+    if (readLink) {
+      captured.link = client.linkStatus(projectId);
+      if (captured.link->status != TransferStatus::Ok || captured.link->link == LocalTransferClient::Link::LinkedElsewhere) {
+        state->toUi([sequence, captured = std::move(captured)](TransferController& self) {
+          self.finishCapture(sequence, captured);
+        });
+        return;
+      }
+      linked = captured.link->link == LocalTransferClient::Link::Linked;
+    }
     captured.send = client.captureSend(projectId, name);
     if (linked && captured.send.status == TransferStatus::Ok && !captured.send.collectFirst) {
       captured.receive = client.captureReceive(projectId);
@@ -382,6 +402,17 @@ void TransferController::finishCapture(quint64 sequence, const Captured& capture
     // Cancelled while it captured: end the send it opened.
     endSend(captured.send.transferId);
     return;
+  }
+  if (captured.link) {
+    if (captured.link->status != TransferStatus::Ok) {
+      fail(failure(captured.link->status, captured.link->reason));
+      return;
+    }
+    if (captured.link->link == LocalTransferClient::Link::LinkedElsewhere) {
+      fail(tr("This project is linked to another cloud server or account. Sign in to that account to synchronize it."));
+      return;
+    }
+    setLinked(captured.link->link == LocalTransferClient::Link::Linked);
   }
   if (captured.send.status != TransferStatus::Ok) {
     fail(failure(captured.send.status, captured.send.reason));
