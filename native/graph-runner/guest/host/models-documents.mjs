@@ -38,7 +38,7 @@ function response(kind, row) {
   const common = { id: row.id, projectId: row.project_id, name: row.name, createdAt: row.created_at, updatedAt: row.updated_at };
   if (kind === 'timelines') {
     return { ...common, workflowId: row.workflow_id ?? undefined, fps: row.fps, width: row.width, height: row.height,
-      durationMs: row.duration_ms, ...Object.fromEntries(TIMELINE_FIELDS.map((field) => [field, document[field]])), transcript: document.transcript ?? [] };
+      durationMs: row.duration_ms, ...Object.fromEntries(TIMELINE_FIELDS.map((field) => [field, document[field]])), transcript: document.transcript ?? [], schemaVersion: row.schema_version };
   }
   if (kind === 'images') {
     return { ...common, workflowId: row.workflow_id ?? undefined, width: row.width, height: row.height,
