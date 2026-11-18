@@ -102,6 +102,13 @@ const OMITS_SECRET_RESOLVER: Record<string, { reason: string; sites: number }> =
     "packages/agents/src/tools/mcp-tools.ts": {
       reason: "document belt validates no graph",
       sites: 1
+    },
+    "packages/websocket/src/finetune/families/capabilities.ts": {
+      reason:
+        "fine-tuning world seeding and reference solutions: workflow, memory " +
+        "and skill CRUD only, never validate_workflow, and sampled runs must " +
+        "not reach the provider key store",
+      sites: 1
     }
   };
 
