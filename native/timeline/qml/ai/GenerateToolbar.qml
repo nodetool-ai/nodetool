@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.TimelinePlayer
 import NodeTool.UiPrimitives as Ui
 import NodeTool.ModelPicker
 import "../Tracks" as Tracks

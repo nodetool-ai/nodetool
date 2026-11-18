@@ -275,6 +275,7 @@ TransformGizmoController { width: 200; height: 100; selection: ["picture"] })", 
         component.setData(R"(
             import QtQuick
             import NodeTool.Timeline
+            import NodeTool.TimelinePlayer
             Item {
                 required property TimelineModel timeline
                 required property PlaybackClock clock

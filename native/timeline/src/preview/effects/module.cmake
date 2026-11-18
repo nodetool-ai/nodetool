@@ -4,6 +4,15 @@
 nt_sources(app ${NT_EFFECTS_REGISTRAR})
 
 function(nt_effects_tests)
+    # NT_SCENE_PRECISION_TEST adds a working-storage observer to
+    # PreviewCompositor and changes its layout, so the precision tests compile
+    # the player's QML module sources with it instead of linking
+    # nodetool_timeline_player.
+    set(player ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player)
+    set(precision_player_sources
+        ${player}/src/playback/PlaybackClock.h ${player}/src/playback/PlaybackClock.cpp
+        ${player}/src/preview/PreviewCompositor.h ${player}/src/preview/PreviewCompositor.cpp
+        ${player}/src/preview/hw/HwWindow.h ${player}/src/preview/hw/HwWindow.cpp)
     qt_add_executable(tst_workingprecision src/preview/effects/tst_workingprecision.cpp)
     target_link_libraries(tst_workingprecision PRIVATE timeline_decode Qt6::GuiPrivate Qt6::Test)
     target_compile_definitions(tst_workingprecision PRIVATE
@@ -35,14 +44,12 @@ function(nt_effects_tests)
         ${NT_RENDER2D_REGISTRAR}
         src/model/TimelineModel.h src/model/TimelineModel.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp
-        src/playback/PlaybackClock.h src/playback/PlaybackClock.cpp
-        src/preview/PreviewCompositor.h src/preview/PreviewCompositor.cpp
-        src/preview/hw/HwWindow.h src/preview/hw/HwWindow.cpp)
+        ${precision_player_sources})
     set_target_properties(tst_sceneprecision PROPERTIES MACOSX_BUNDLE FALSE)
     target_link_libraries(tst_sceneprecision PRIVATE timeline_core timeline_decode
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test ${NT_APP_PLATFORM_LIBS})
-    qt_add_shaders(tst_sceneprecision "precision_compositor_shaders" PREFIX "/shaders" BASE shaders
-        FILES shaders/composite.vert shaders/composite.frag shaders/monitorview.frag)
+    qt_add_shaders(tst_sceneprecision "precision_compositor_shaders" PREFIX "/shaders" BASE ${player}/shaders
+        FILES ${player}/shaders/composite.vert ${player}/shaders/composite.frag ${player}/shaders/monitorview.frag)
     target_compile_definitions(tst_sceneprecision PRIVATE NT_SCENE_PRECISION_TEST
         NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
     add_test(NAME tst_sceneprecision COMMAND tst_sceneprecision)
@@ -53,14 +60,12 @@ function(nt_effects_tests)
         ${NT_RENDER2D_REGISTRAR}
         src/model/TimelineModel.h src/model/TimelineModel.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp
-        src/playback/PlaybackClock.h src/playback/PlaybackClock.cpp
-        src/preview/PreviewCompositor.h src/preview/PreviewCompositor.cpp
-        src/preview/hw/HwWindow.h src/preview/hw/HwWindow.cpp)
+        ${precision_player_sources})
     set_target_properties(tst_precisioncost PROPERTIES MACOSX_BUNDLE FALSE)
     target_link_libraries(tst_precisioncost PRIVATE timeline_core timeline_decode
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test ${NT_APP_PLATFORM_LIBS})
-    qt_add_shaders(tst_precisioncost "cost_compositor_shaders" PREFIX "/shaders" BASE shaders
-        FILES shaders/composite.vert shaders/composite.frag shaders/monitorview.frag)
+    qt_add_shaders(tst_precisioncost "cost_compositor_shaders" PREFIX "/shaders" BASE ${player}/shaders
+        FILES ${player}/shaders/composite.vert ${player}/shaders/composite.frag ${player}/shaders/monitorview.frag)
     target_compile_definitions(tst_precisioncost PRIVATE NT_SCENE_PRECISION_TEST
         NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
     add_test(NAME tst_precisioncost COMMAND tst_precisioncost)
@@ -69,15 +74,10 @@ function(nt_effects_tests)
     qt_add_executable(tst_effectsblend src/preview/effects/tst_effectsblend.cpp
         ${NT_EFFECTS_REGISTRAR}
         src/model/TimelineModel.h src/model/TimelineModel.cpp
-        src/model/TrackListModel.h src/model/TrackListModel.cpp
-        src/playback/PlaybackClock.h src/playback/PlaybackClock.cpp
-        src/preview/PreviewCompositor.h src/preview/PreviewCompositor.cpp
-        src/preview/hw/HwWindow.h src/preview/hw/HwWindow.cpp)
+        src/model/TrackListModel.h src/model/TrackListModel.cpp)
     set_target_properties(tst_effectsblend PROPERTIES MACOSX_BUNDLE FALSE)
-    target_link_libraries(tst_effectsblend PRIVATE timeline_core timeline_decode
+    target_link_libraries(tst_effectsblend PRIVATE nodetool_timeline_player timeline_core timeline_decode
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test ${NT_APP_PLATFORM_LIBS})
-    qt_add_shaders(tst_effectsblend "effects_compositor_shaders" PREFIX "/shaders" BASE shaders
-        FILES shaders/composite.vert shaders/composite.frag shaders/monitorview.frag)
     add_test(NAME tst_effectsblend_registry COMMAND tst_effectsblend registeredModes)
     set_tests_properties(tst_effectsblend_registry PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     add_test(NAME tst_effectsblend_documents COMMAND tst_effectsblend documents clipDocuments trackDocuments animatedGrain adjustmentDocuments)

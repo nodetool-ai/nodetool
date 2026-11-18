@@ -4,6 +4,7 @@
 // the playhead at its viewport x; it reads the clock once, on the click.
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.TimelinePlayer
 import NodeTool.UiPrimitives as Ui
 
 Row {

@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Controls.Basic as Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.TimelinePlayer
 import "assets/AssetContext.js" as Context
 import NodeTool.UiPrimitives as Ui
 

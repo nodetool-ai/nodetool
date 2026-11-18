@@ -55,8 +55,10 @@ if(NT_PORTABLE)
 endif()
 
 # The timeline player: the document model and scene evaluation
-# (nodetool_timeline_scene) and decode, effects and render2d
-# (nodetool_timeline_decode), which the node editor also builds. render2d
+# (nodetool_timeline_scene), decode, effects and render2d
+# (nodetool_timeline_decode), and the QML module NodeTool.TimelinePlayer
+# with the clock and the compositor (nodetool_timeline_player), which the
+# node editor also builds. render2d
 # falls back to the repository's fonts in a build tree.
 set(NT_PLAYER_FONTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../packages/timeline/fonts")
 if(NOT TARGET nodetool_timeline_scene)
@@ -203,16 +205,17 @@ qt_add_qml_module(timeline_qml
     URI NodeTool.Timeline
     NO_PLUGIN
     OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/NodeTool/Timeline
+    # PlaybackClock, PreviewCompositor and TimelineSource, the base of
+    # TimelineModel. The QML files import it.
+    DEPENDENCIES NodeTool.TimelinePlayer
+    # Where qmlcachegen and qmllint find that module's qmldir and types.
+    IMPORT_PATH ${CMAKE_CURRENT_BINARY_DIR}/timeline-player
     QML_FILES ${NT_qml_files}
     RESOURCES ${NT_qml_resources}
     SOURCES ${NT_qml})
-qt_add_shaders(timeline_qml timeline_compositor_shaders
-    PREFIX "/shaders"
-    BASE shaders
-    FILES shaders/composite.vert shaders/composite.frag shaders/monitorview.frag)
 list(REMOVE_DUPLICATES NT_qml_includes)
 target_include_directories(timeline_qml PUBLIC src/model src/playback src/preview src/ui src/edit ${NT_qml_includes})
-target_link_libraries(timeline_qml PUBLIC timeline_core timeline_decode timeline_audio
+target_link_libraries(timeline_qml PUBLIC nodetool_timeline_player timeline_core timeline_decode timeline_audio
     nodetool_model_picker nodetool_media nodetool_files nodetool_entities nodetool_storyboard nodetool_chat nodetool_account_qt Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
 
 function(nt_add_timeline_qml target)
@@ -229,7 +232,7 @@ function(nt_add_timeline_qml target)
     set_property(TARGET ${target} PROPERTY SOURCES "${host_sources}")
     nodetool_use_ui_primitives(${target})
     target_link_libraries(${target} PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,timeline_qml>"
-        nodetool_model_pickerplugin nodetool_mediaplugin nodetool_filesplugin nodetool_entitiesplugin nodetool_storyboardplugin nodetool_chatplugin)
+        nodetool_timeline_playerplugin nodetool_model_pickerplugin nodetool_mediaplugin nodetool_filesplugin nodetool_entitiesplugin nodetool_storyboardplugin nodetool_chatplugin)
 endfunction()
 nt_add_timeline_qml(nodetool-timeline)
 # Compile-only check of the Linux hardware path on macOS: with a
@@ -238,7 +241,8 @@ nt_add_timeline_qml(nodetool-timeline)
 # objects are not linked (scripts/check-portable.sh).
 set(NT_CHECK_VULKAN_HEADERS "" CACHE PATH "macOS: a Vulkan-Headers include folder, to compile the Linux hardware path")
 if(APPLE AND NT_CHECK_VULKAN_HEADERS)
-    add_library(nt_linux_hw_check OBJECT ../timeline-player/src/preview/hw/VulkanInterop.cpp src/preview/hw/HwWindow.cpp)
+    add_library(nt_linux_hw_check OBJECT ../timeline-player/src/preview/hw/VulkanInterop.cpp
+        ../timeline-player/src/preview/hw/HwWindow.cpp)
     target_compile_definitions(nt_linux_hw_check PRIVATE NT_HW_SYNTAX_CHECK_VAAPI)
     target_include_directories(nt_linux_hw_check PRIVATE ${NT_CHECK_VULKAN_HEADERS})
     target_link_libraries(nt_linux_hw_check PRIVATE timeline_core Qt6::Gui Qt6::GuiPrivate Qt6::Quick PkgConfig::FFMPEG)

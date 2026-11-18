@@ -4,10 +4,13 @@ cmake_minimum_required(VERSION 3.24)
 # nodetool_timeline_scene (the timeline document, its JSON parser and scene
 # evaluation, with Qt Core and Yoga only) and nodetool_timeline_decode (the
 # media sources, the GPU effects, the hook registries and render2d),
-# nodetool_timeline_audio (the audio engine and mixer), and
+# nodetool_timeline_audio (the audio engine and mixer),
+# nodetool_timeline_player (the QML module NodeTool.TimelinePlayer: the clock,
+# the compositor item and the window preparation), and
 # nodetool_timeline_player_server (the server loader, Qt Network).
 # native/timeline adds this directory with add_subdirectory and links the
-# libraries into timeline_core, timeline_decode and timeline_audio.
+# libraries into timeline_core, timeline_decode, timeline_audio and
+# timeline_qml.
 project(NodeToolTimelinePlayer LANGUAGES CXX)
 if(APPLE)
     # VideoToolboxInterop.mm
@@ -23,7 +26,7 @@ endif()
 # GuiPrivate carries the include path of the semi-public QRhi API (<rhi/qrhi.h>),
 # which is only compatible within one Qt minor version.
 set(QT_NO_PRIVATE_MODULE_WARNING ON)
-find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui GuiPrivate Network ShaderTools Test)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui GuiPrivate Network Qml Quick ShaderTools Test)
 if(Qt6_VERSION VERSION_GREATER_EQUAL 6.13)
     message(FATAL_ERROR "The timeline player is tested with Qt 6.12 (private QRhi API). Found ${Qt6_VERSION}.")
 endif()
@@ -98,8 +101,8 @@ target_compile_options(nodetool_timeline_scene PRIVATE ${NT_PLAYER_WARNINGS})
 if(NT_PORTABLE)
     target_compile_definitions(nodetool_timeline_scene PUBLIC NT_PORTABLE_PLATFORM)
 endif()
-# The timeline app's QML module registers TimelineSource with QML_FOREIGN,
-# which reads these metatypes.
+# NodeTool.TimelinePlayer registers TimelineSource with QML_FOREIGN
+# (src/model/TimelineSourceQml.h), which reads these metatypes.
 qt_extract_metatypes(nodetool_timeline_scene)
 # The scene port computes what the web computes in JavaScript, one rounding
 # per operation: no fused multiply-add (Clang contracts by default).
@@ -314,6 +317,34 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
     target_link_options(nodetool_timeline_audio INTERFACE -fexperimental-library)
 endif()
 set_source_files_properties(src/audio/miniaudio.cpp PROPERTIES COMPILE_OPTIONS "${NT_PLAYER_NO_WARNINGS}")
+
+# The QML module NodeTool.TimelinePlayer: PlaybackClock, PreviewCompositor
+# (a QQuickRhiItem) and TimelineSource, with the compositor's shaders as
+# resources. HwWindow prepares the QQuickWindow for the hardware decode path.
+# A host links nodetool_timeline_player and nodetool_timeline_playerplugin.
+qt_add_library(nodetool_timeline_player STATIC)
+set_target_properties(nodetool_timeline_player PROPERTIES AUTOMOC ON)
+qt_add_qml_module(nodetool_timeline_player
+    URI NodeTool.TimelinePlayer
+    RESOURCE_PREFIX /qt/qml
+    OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/NodeTool/TimelinePlayer
+    SOURCES
+        src/model/TimelineSourceQml.h
+        src/playback/PlaybackClock.h
+        src/playback/PlaybackClock.cpp
+        src/preview/PreviewCompositor.h
+        src/preview/PreviewCompositor.cpp
+        src/preview/hw/HwWindow.h
+        src/preview/hw/HwWindow.cpp)
+qt_add_shaders(nodetool_timeline_player nodetool_timeline_player_shaders
+    PREFIX "/shaders" BASE shaders
+    FILES shaders/composite.vert shaders/composite.frag shaders/monitorview.frag)
+target_link_libraries(nodetool_timeline_player
+    PUBLIC nodetool_timeline_decode Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick
+    PRIVATE nodetool_timeline_audio)
+target_compile_options(nodetool_timeline_player PRIVATE ${NT_PLAYER_WARNINGS})
+# The generated type registration includes each header by its file name.
+target_include_directories(nodetool_timeline_player PRIVATE src/model src/playback src/preview)
 
 add_library(nodetool_timeline_player_server STATIC
     src/model/TimelineDocumentLoader.h

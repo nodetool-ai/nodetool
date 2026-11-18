@@ -10,6 +10,9 @@ the [README](README.md) before changes. The [native rules](../AGENTS.md) apply.
   editing code. `TimelineModel`, the track list models and the edit registry
   stay in `native/timeline`.
 - `nodetool_timeline_scene` uses Qt Core and Yoga only.
+- QML here imports `NodeTool.TimelinePlayer` and `NodeTool.UiPrimitives`,
+  never `NodeTool.Timeline`. `TimelineSource` is registered with QML only in
+  this module. See [QML module](README.md#qml-module).
 - A host that renders timelines must get the standard hooks, through the
   registrar object libraries or `nt::registerStandardHooks()`. See
   [Standard hooks](README.md#standard-hooks). A new process-wide registration

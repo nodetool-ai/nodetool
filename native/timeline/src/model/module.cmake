@@ -1,5 +1,4 @@
 nt_sources(qml
-    src/model/TimelineSourceQml.h
     src/model/TimelineModel.h
     src/model/TimelineModel.cpp
     src/model/TrackListModel.h

@@ -40,7 +40,7 @@ class TestAutomationUi : public QObject {
     bool open(const QByteArray& body, QVariantMap properties = {}) {
         engine=std::make_unique<QQmlEngine>();
         QQmlComponent component(engine.get());
-        component.setData("import QtQuick\nimport NodeTool.Timeline\n"+body,QUrl());
+        component.setData("import QtQuick\nimport NodeTool.Timeline\nimport NodeTool.TimelinePlayer\n"+body,QUrl());
         properties.insert("timeline",QVariant::fromValue(&model));
         root.reset(component.createWithInitialProperties(properties));
         if (!root) { qWarning().noquote()<<component.errorString(); return false; }

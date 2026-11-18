@@ -10,9 +10,6 @@ function(nt_library_scrub_tests)
     target_link_libraries(tst_libraryscrub PRIVATE timeline_core timeline_decode timeline_audio timeline_server
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
     nt_add_timeline_qml(tst_libraryscrub OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_libraryscrub_qml/NodeTool/Timeline)
-    if(UNIX AND NOT APPLE)
-        target_sources(tst_libraryscrub PRIVATE src/preview/hw/HwWindow.h src/preview/hw/HwWindow.cpp)
-    endif()
     target_compile_definitions(tst_libraryscrub PRIVATE NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
     add_test(NAME tst_libraryscrub COMMAND tst_libraryscrub)
     set_tests_properties(tst_libraryscrub PROPERTIES FIXTURES_REQUIRED media

@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import NodeTool.Timeline
+import NodeTool.TimelinePlayer
 import "../src/edit/inspectorsections" as Sections
 import NodeTool.UiPrimitives as Ui
 

@@ -12,6 +12,7 @@ the native node editor. The
 | `nodetool_timeline_decode` | `nodetool_timeline_scene`, Qt Gui and GuiPrivate (QRhi), FFmpeg, HarfBuzz, FreeType, the platform's hardware decode libraries | The media sources and their pools (`FfmpegSource`, `SourcePool`, `FrameCache`, `SurfacePool`, `RetireQueue`), the hardware interop (`preview/hw/`), the layer and compose hook registries, the effects, render2d and the effect shaders (`shaders/effects/`) |
 | `nodetool_timeline_effects_registrar`, `nodetool_timeline_render2d_registrar` | `nodetool_timeline_decode` | Object libraries that register the [standard hooks](#standard-hooks) at application startup |
 | `nodetool_timeline_audio` | `nodetool_timeline_scene`, FFmpeg, `nodetool_kernels`, miniaudio, platform audio libraries | The playback engine, mixer, audio sources, shuttle stretch, effects, mix and output-device hooks, and loudness processing |
+| `nodetool_timeline_player`, `nodetool_timeline_playerplugin` | `nodetool_timeline_decode`, `nodetool_timeline_audio`, Qt Qml and Quick | The [QML module](#qml-module) `NodeTool.TimelinePlayer`: `PlaybackClock`, `PreviewCompositor`, `HwWindow` and the composite shaders (`shaders/`) |
 | `nodetool_timeline_player_server` | Qt Network, `nodetool_timeline_scene` | `TimelineDocumentLoader`, `ServerTimelineLoader`, tRPC, media resolution and cache leases |
 | `yogacore` | none | [Yoga 3.2.1](third_party/yoga/README.md), the flex layout engine, unchanged |
 
@@ -24,6 +25,30 @@ they round as the web's JavaScript does.
 
 `nodetool_timeline_decode` carries the effect shaders as Qt resources, so every
 executable that links it can load `:/effects/*.qsb`.
+
+## QML module
+
+`nodetool_timeline_player` is the static QML module `NodeTool.TimelinePlayer`.
+A host links it and `nodetool_timeline_playerplugin`, and its QML files
+`import NodeTool.TimelinePlayer`. The module registers:
+
+- `PlaybackClock`, which QML cannot create. The host owns it.
+- `PreviewCompositor`, a `QQuickRhiItem` that draws the timeline at the clock's
+  time. Its `timeline` property takes a `TimelineSource`.
+- `TimelineSource`, without a QML name (`src/model/TimelineSourceQml.h`).
+
+`TimelineSource` is registered only here. A host QML module whose C++ types
+derive from it, such as the timeline's `TimelineModel`, lists
+`DEPENDENCIES NodeTool.TimelinePlayer` and does not register it again. Its
+`.qmltypes` then names `TimelineSource` as the prototype, and QML can assign
+the host's object to `PreviewCompositor.timeline`. Give the host module this
+directory's build folder as an `IMPORT_PATH`, so `qmlcachegen` and `qmllint`
+find the module.
+
+The compositor loads its shaders from `:/shaders/`, which the library carries
+as resources. `nt::hw::selectGraphicsApi()` and `nt::hw::prepareWindow()`
+(`src/preview/hw/HwWindow.h`) prepare the host's `QQuickWindow` for hardware
+decode.
 
 ## Hardware decode
 
@@ -99,7 +124,8 @@ requests worker interruption. A new load supersedes the previous one.
 
 The timeline build adds this directory with `add_subdirectory`. It links
 `nodetool_timeline_scene` into `timeline_core`, `nodetool_timeline_decode`
-into `timeline_decode`, and `nodetool_timeline_audio` into `timeline_audio`.
+into `timeline_decode`, `nodetool_timeline_audio` into `timeline_audio`, and
+`nodetool_timeline_player` into its QML module `timeline_qml`.
 The module adds `native/kernels` if `nodetool_kernels` is missing, including
 in standalone builds. Build and test from the timeline build:
 
@@ -114,7 +140,10 @@ checks this module's `src/` and `tests/`.
 
 Tests that read the timeline's fixtures, such as `tst_sceneeval`,
 `tst_timelinejson`, `tst_ffmpegsource`, `tst_effectsblend` and `tst_audioengine`, stay in
-`native/timeline` and link these libraries.
+`native/timeline` and link these libraries. `tst_sceneprecision` and
+`tst_precisioncost` compile the QML module's sources themselves instead,
+because `NT_SCENE_PRECISION_TEST` adds a working-storage observer to
+`PreviewCompositor` and changes its layout.
 
 ## Dependency check
 

@@ -107,7 +107,7 @@ The resize-helper pass below is separate from the decoded spatial test added her
 
 ## Capture boundary
 
-[PreviewCompositor](../../../../native/timeline/src/preview/PreviewCompositor.cpp)
+[PreviewCompositor](../../../../native/timeline-player/src/preview/PreviewCompositor.cpp)
 now reads its canvas using `Format_RGBA8888_Premultiplied` or
 `Format_RGBA16FPx4_Premultiplied`, selected from the captured texture. The
 completion lambda retains that format rather than consulting mutable renderer

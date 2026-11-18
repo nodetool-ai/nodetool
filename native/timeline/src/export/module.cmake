@@ -49,8 +49,7 @@ function(nt_export_tests)
     set_tests_properties(export_wav_audio export_cleanup PROPERTIES FIXTURES_REQUIRED media
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     qt_add_executable(tst_exportdialog src/export/tst_exportdialog.cpp src/export/ExportPanel.cpp
-        src/export/ExportEngine.cpp src/export/OffscreenFrames.cpp src/export/PngZip.cpp
-        src/preview/hw/HwWindow.cpp)
+        src/export/ExportEngine.cpp src/export/OffscreenFrames.cpp src/export/PngZip.cpp)
     set_target_properties(tst_exportdialog PROPERTIES MACOSX_BUNDLE FALSE)
     target_compile_definitions(tst_exportdialog PRIVATE
         NT_EXPORT_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
@@ -63,7 +62,7 @@ function(nt_export_tests)
         cancelExportDuringAudio cancelBlockedAudio cancelOfflineMix stuckChildTeardownCleansStaging
         fitFrameModes)
     set_tests_properties(tst_exportdialog PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
-    qt_add_executable(tst_framecapture src/export/tst_framecapture.cpp src/export/OffscreenFrames.cpp src/preview/hw/HwWindow.cpp)
+    qt_add_executable(tst_framecapture src/export/tst_framecapture.cpp src/export/OffscreenFrames.cpp)
     set_target_properties(tst_framecapture PROPERTIES MACOSX_BUNDLE FALSE)
     target_compile_definitions(tst_framecapture PRIVATE
         NT_EXPORT_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
@@ -135,12 +134,12 @@ endfunction()
 nt_tests(nt_export_queue_tests)
 nt_qml_sources(src/export/FrameExporter.h src/export/FrameExporter.cpp)
 function(nt_frameexport_tests)
-    qt_add_executable(tst_frameexport src/export/tst_frameexport.cpp src/playback/PlaybackClock.h src/playback/PlaybackClock.cpp
+    qt_add_executable(tst_frameexport src/export/tst_frameexport.cpp
         src/export/FrameExporter.h src/export/FrameExporter.cpp src/export/FrameCapture.h src/export/FrameCapture.cpp
         src/export/ExportController.h src/export/ExportController.cpp
         src/export/ExportSettings.h src/export/ExportSettings.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp src/model/TrackListModel.h src/model/TrackListModel.cpp)
-    target_link_libraries(tst_frameexport PRIVATE timeline_core timeline_decode timeline_server
+    target_link_libraries(tst_frameexport PRIVATE nodetool_timeline_player timeline_core timeline_decode timeline_server
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test ${NT_APP_PLATFORM_LIBS})
     target_compile_definitions(tst_frameexport PRIVATE NT_EXPORT_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
         NT_EXPORT_BINARY="$<TARGET_FILE:nodetool-timeline>")

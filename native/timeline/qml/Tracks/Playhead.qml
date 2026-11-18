@@ -5,6 +5,7 @@
 import QtQuick
 import QtQuick.Shapes
 import NodeTool.Timeline
+import NodeTool.TimelinePlayer
 import NodeTool.UiPrimitives as Ui
 
 Item {

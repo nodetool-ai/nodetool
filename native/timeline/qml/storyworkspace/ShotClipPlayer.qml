@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.TimelinePlayer
 import NodeTool.UiPrimitives as Ui
 
 // Plays one clip take with a play button, a position slider, and the time.

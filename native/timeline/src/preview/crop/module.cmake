@@ -9,9 +9,6 @@ function(nt_reframe_tests)
     target_link_libraries(tst_reframe PRIVATE timeline_core timeline_decode timeline_audio timeline_server
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
     nt_add_timeline_qml(tst_reframe OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_reframe_qml/NodeTool/Timeline)
-    if(UNIX AND NOT APPLE)
-        target_sources(tst_reframe PRIVATE src/preview/hw/HwWindow.h src/preview/hw/HwWindow.cpp)
-    endif()
     add_test(NAME crop_comparator COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/src/preview/crop/crop-comparator.test.mjs)
     add_test(NAME crop_golden COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/scripts/compare-golden.mjs
         ${CMAKE_CURRENT_SOURCE_DIR}/src/preview/crop/fixtures/static-crops.json
