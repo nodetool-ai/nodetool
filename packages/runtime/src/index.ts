@@ -427,3 +427,5 @@ export type { RunTraceScope } from "./run-trace-context.js";
 export { stringifyTraceContent } from "./run-trace-serialization.js";
 
 export { getProviderStreamTrace } from "./providers/loop-tracing.js";
+
+export { MINIMAX_H3_IMAGE_MODELS, minimaxImageData } from "./providers/minimax-image.js";

@@ -15,6 +15,8 @@ import {
   type OpenAICompatProviderOptions
 } from "./openai-compat-provider.js";
 import type { OpenAIProvider } from "./openai-provider.js";
+import { Agent } from "undici";
+import { MINIMAX_H3_IMAGE_MODELS, minimaxImageData } from "./minimax-image.js";
 import { createLogger } from "@nodetool-ai/config";
 import { safeFetch } from "./safe-url.js";
 import { fetchWithRetry, pollUntilTerminal } from "./http-transport.js";
@@ -45,6 +47,9 @@ import { recordGenerationReceiptAsync } from "../generation-receipt.js";
 import { endFrameUnsupportedError } from "./manifest-models.js";
 
 const log = createLogger("nodetool.runtime.providers.minimax");
+
+// H3 may take ten minutes to send its first response headers.
+const h3Dispatcher = new Agent({ headersTimeout: 610_000, bodyTimeout: 610_000 });
 
 const MINIMAX_BASE_URL = "https://api.minimax.io";
 const MINIMAX_OPENAI_BASE_URL = `${MINIMAX_BASE_URL}/v1`;
@@ -218,10 +223,11 @@ export class MinimaxProvider extends OpenAICompatProvider {
     return ["MINIMAX_API_KEY"];
   }
 
+  private readonly _h3BaseUrl: string;
   private readonly _minimaxFetch: typeof fetch;
 
   constructor(
-    secrets: { MINIMAX_API_KEY?: string },
+    secrets: { MINIMAX_API_KEY?: string; MINIMAX_IMAGE_REGION?: string },
     options: OpenAICompatProviderOptions = {}
   ) {
     const apiKey = secrets.MINIMAX_API_KEY;
@@ -240,6 +246,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
       { ...options, fetchFn }
     );
 
+    this._h3BaseUrl = secrets.MINIMAX_IMAGE_REGION === "china" ? "https://api.minimax.cn" : MINIMAX_BASE_URL;
     this._minimaxFetch = fetchFn;
   }
 
@@ -268,14 +275,16 @@ export class MinimaxProvider extends OpenAICompatProvider {
     body: Record<string, unknown>,
     signal?: AbortSignal
   ): Promise<Record<string, unknown>> {
-    const init: RequestInit = {
+    const isH3 = path === "images/generations";
+    const init: RequestInit & { dispatcher?: Agent } = {
       method: "POST",
       headers: this.headers(),
       body: JSON.stringify(body)
     };
+    if (isH3) init.dispatcher = h3Dispatcher;
     if (signal) init.signal = signal;
     const res = await this._minimaxFetch(
-      `${MINIMAX_BASE_URL}/v1/${path}`,
+      `${isH3 ? this._h3BaseUrl : MINIMAX_BASE_URL}/v1/${path}`,
       init
     );
     if (!res.ok) {
@@ -342,12 +351,13 @@ export class MinimaxProvider extends OpenAICompatProvider {
         metadata: { task_id: taskId, file_id: fileId }
       };
     }
+    const isH3 = route === "image" && MINIMAX_H3_IMAGE_MODELS.includes(req.model);
     const data = await this._postJson(
-      MINIMAX_ENDPOINT_PATHS[route],
+      isH3 ? "images/generations" : MINIMAX_ENDPOINT_PATHS[route],
       body,
       req.signal
     );
-    const requestId = traceIdOf(data);
+    const requestId = isH3 && typeof data.request_id === "string" ? data.request_id : traceIdOf(data);
     if (requestId) {
       await recordGenerationReceiptAsync({ provider_request_id: requestId });
     }
@@ -406,7 +416,14 @@ export class MinimaxProvider extends OpenAICompatProvider {
         name: "MiniMax Image-01",
         provider: "minimax",
         supportedTasks: ["text_to_image", "image_to_image"]
-      }
+      },
+      ...MINIMAX_H3_IMAGE_MODELS.map((id): ImageModel => ({
+        id,
+        name: id,
+        provider: "minimax",
+        supportedTasks: ["text_to_image"],
+        resolutions: ["1K", "2K", "4K"]
+      }))
     ];
   }
 
@@ -626,7 +643,14 @@ export class MinimaxProvider extends OpenAICompatProvider {
       ? `${params.prompt.trim()}\n\nDo not include: ${params.negativePrompt.trim()}`
       : params.prompt;
 
-    if (numImages > 9) {
+    const isH3 = MINIMAX_H3_IMAGE_MODELS.includes(params.model.id);
+    if (isH3 && referenceImages) {
+      throw new Error("MiniMax H3 image generation requires a text prompt without reference images");
+    }
+    if (isH3 && (!Number.isInteger(numImages) || numImages < 1 || numImages > 10)) {
+      throw new Error("MiniMax H3 supports 1 to 10 images per request");
+    }
+    if (!isH3 && numImages > 9) {
       throw new Error(
         `MiniMax image_generation supports at most 9 images per request (got ${numImages})`
       );
@@ -636,16 +660,24 @@ export class MinimaxProvider extends OpenAICompatProvider {
       model: params.model.id || "image-01",
       prompt,
       n: Math.max(1, numImages),
-      response_format: "base64",
-      prompt_optimizer: true
+      ...(isH3
+        ? { response_format: numImages === 1 ? "b64_json" : "url" }
+        : { response_format: "base64", prompt_optimizer: true })
     };
 
     const aspect = chooseAspectRatio(
       params.width ?? undefined,
       params.height ?? undefined
     );
-    if (aspect) body.aspect_ratio = aspect;
-    if (params.seed != null) body.seed = params.seed;
+    if (isH3 && params.width && params.height) {
+      body.size = `${params.width}x${params.height}`;
+    } else if (isH3) {
+      if (params.aspectRatio) body.aspect_ratio = params.aspectRatio;
+      if (params.resolution) body.area = params.resolution;
+    } else {
+      if (aspect) body.aspect_ratio = aspect;
+      if (params.seed != null) body.seed = params.seed;
+    }
 
     // MiniMax i2i accepts multiple subject/reference images via a
     // subject_reference array; each entry carries a base64 Data URL. The first
@@ -660,17 +692,17 @@ export class MinimaxProvider extends OpenAICompatProvider {
 
     log.debug("MiniMax textToImage", { model: body.model, n: body.n });
 
-    const data = await this._postJson("image_generation", body);
-
-    const payload = data.data as Record<string, unknown> | undefined;
-    const b64List = payload?.image_base64 as string[] | undefined;
+    const data = await this._postJson(isH3 ? "images/generations" : "image_generation", body, params.signal);
+    if (isH3 && typeof data.request_id === "string") {
+      await recordGenerationReceiptAsync({ provider_request_id: data.request_id });
+    }
+    const { imageBase64: b64List, imageUrls: urls } = minimaxImageData(data.data);
     if (b64List && b64List.length > 0) {
       return b64List.map(
         (encoded) => new Uint8Array(Buffer.from(encoded, "base64"))
       );
     }
 
-    const urls = payload?.image_urls as string[] | undefined;
     if (urls && urls.length > 0) {
       const results: Uint8Array[] = [];
       for (const url of urls) {

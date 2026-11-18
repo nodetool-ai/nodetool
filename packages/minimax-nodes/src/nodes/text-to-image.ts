@@ -1,6 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { MINIMAX_H3_IMAGE_MODELS, type ProcessingContext } from "@nodetool-ai/runtime";
 import {
   callMinimax,
   imageRefFromBytes,
@@ -17,7 +17,7 @@ export class MinimaxTextToImageNode extends BaseNode {
   static readonly body = "content_card";
   static readonly title = "MiniMax Text to Image";
   static readonly description =
-    "Generate images from text prompts using MiniMax image-01.\n" +
+    "Generate images from text prompts using MiniMax image models.\n" +
     "image, generation, text-to-image, t2i, minimax\n\n" +
     "Use cases:\n" +
     "- Create illustrations and concept art\n" +
@@ -34,7 +34,7 @@ export class MinimaxTextToImageNode extends BaseNode {
     default: "image-01",
     title: "Model",
     description: "The MiniMax image model to use.",
-    values: ["image-01"]
+    values: ["image-01", ...MINIMAX_H3_IMAGE_MODELS]
   })
   declare model: any;
 
@@ -83,13 +83,16 @@ export class MinimaxTextToImageNode extends BaseNode {
       ? `${basePrompt.trim()}\n\nDo not include: ${negative}`
       : basePrompt;
 
+    const model = String(this.model ?? "image-01") || "image-01";
+    const optimize = Boolean(this.prompt_optimizer ?? true);
     const body = {
-      model: String(this.model ?? "image-01") || "image-01",
+      model,
       prompt,
       aspect_ratio: String(this.aspect_ratio ?? "1:1"),
       n: 1,
-      response_format: "base64",
-      prompt_optimizer: Boolean(this.prompt_optimizer ?? true)
+      ...(MINIMAX_H3_IMAGE_MODELS.includes(model)
+        ? { response_format: "b64_json", disable_prompt_enhanced: !optimize }
+        : { response_format: "base64", prompt_optimizer: optimize })
     };
 
     if (!context) {
