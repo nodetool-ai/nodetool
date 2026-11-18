@@ -65,7 +65,9 @@ function testHost(): TestHost {
     async readableFiles(_userId, kind, _documentId, content): Promise<ReceiveFileInfo[]> {
       return refsOf(kind, content).flatMap((assetId) => {
         const file = host.files.get(assetId);
-        return file ? [{ assetId, hash: file.hash, size: file.size }] : [];
+        return file
+          ? [{ assetId, hash: file.hash, size: file.size, name: "still.png", contentType: "image/png", path: null }]
+          : [];
       });
     }
   };
@@ -149,7 +151,7 @@ function receiveSuite(name: string, init: () => Promise<void>): void {
           name: "Edit",
           revision_id: expect.stringMatching(/^[0-9a-f]{32}$/),
           content_hash: identityHash(captured),
-          files: [{ asset_id: assetId, hash, size: bytes.byteLength }],
+          files: [{ asset_id: assetId, hash, size: bytes.byteLength, name: "still.png", content_type: "image/png", path: null }],
           missing_files: []
         }
       ]);

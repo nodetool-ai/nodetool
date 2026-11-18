@@ -11,6 +11,7 @@
  * leaves a row pointing at nothing: a new file is written before the row
  * that names it, and an old file is removed only after the row has moved on.
  */
+import { AsyncLocalStorage } from "node:async_hooks";
 import { createLogger } from "@nodetool-ai/config";
 import { Asset, moveTargetOf, setAssetFileMover } from "@nodetool-ai/models";
 import {
@@ -173,6 +174,9 @@ export function projectAssetFileStem(name: string, contentType: string): string 
 
 const folderQueues = new Map<string, Promise<unknown>>();
 
+/** The folder locks the current task holds, by folder key. */
+const heldFolderLocks = new AsyncLocalStorage<ReadonlyMap<string, { held: boolean }>>();
+
 /**
  * Run `task` after every earlier task for the same project folder. Choosing a
  * free file name and writing the file are two steps, and two saves of the
@@ -187,6 +191,10 @@ const folderQueues = new Map<string, Promise<unknown>>();
  * at the head of the queue also holds the folder's lock file
  * (`folder-lock-file.ts`). A wait for another process gives up with a
  * `FolderLockTimeoutError`.
+ *
+ * A task that calls this again for the same folder runs at once, inside the
+ * lock it already holds, so a receive can run the reconcile and write
+ * document files without letting another writer in between.
  */
 export function withProjectFolderLock<T>(
   userId: string,
@@ -194,8 +202,22 @@ export function withProjectFolderLock<T>(
   task: () => Promise<T>
 ): Promise<T> {
   const key = `${userId}\u0000${projectId}`;
+  const holds = heldFolderLocks.getStore();
+  // The caller already holds this folder's lock: waiting for it would wait forever.
+  if (holds?.get(key)?.held) return task();
   const previous = folderQueues.get(key) ?? Promise.resolve();
-  const locked = () => withFolderLockFile(userId, projectId, task);
+  const locked = async () => {
+    const hold = { held: true };
+    const held = new Map(holds ?? []);
+    held.set(key, hold);
+    try {
+      return await heldFolderLocks.run(held, () => withFolderLockFile(userId, projectId, task));
+    } finally {
+      // Work the task started and left running keeps this context. Once the
+      // task is done it queues for the lock like any other caller.
+      hold.held = false;
+    }
+  };
   const next = previous.then(locked, locked);
   const settled = next.catch(() => undefined);
   folderQueues.set(key, settled);

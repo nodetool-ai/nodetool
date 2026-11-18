@@ -719,6 +719,64 @@ const TRANSFER_ACTIVITY_DDL: readonly string[] = [
  * the `add_revision_sets` migration, and by `initTestDb` through
  * {@link POST_BASELINE_TABLE_DDL}.
  */
+const CLOUD_LINKS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS cloud_links (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    server_key TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    cloud_project_id TEXT NOT NULL,
+    state TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_cloud_links_project
+    ON cloud_links (user_id, project_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_cloud_links_account
+    ON cloud_links (user_id, server_key, account_id)`,
+  `CREATE TABLE IF NOT EXISTS cloud_link_documents (
+    id TEXT PRIMARY KEY NOT NULL,
+    link_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    local_id TEXT NOT NULL,
+    cloud_id TEXT NOT NULL,
+    base_content_hash TEXT NOT NULL,
+    base_cloud_revision TEXT,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_cloud_link_documents_local
+    ON cloud_link_documents (link_id, kind, local_id)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_cloud_link_documents_cloud
+    ON cloud_link_documents (link_id, kind, cloud_id)`,
+  `CREATE TABLE IF NOT EXISTS cloud_link_files (
+    id TEXT PRIMARY KEY NOT NULL,
+    link_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    asset_id TEXT NOT NULL,
+    cloud_asset_id TEXT NOT NULL,
+    base_hash TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_cloud_link_files_asset
+    ON cloud_link_files (link_id, asset_id)`,
+  `CREATE TABLE IF NOT EXISTS cloud_receives (
+    id TEXT PRIMARY KEY NOT NULL,
+    link_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    state TEXT NOT NULL,
+    plan TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_cloud_receives_user
+    ON cloud_receives (user_id, project_id)`
+];
+
 const REVISION_SETS_DDL: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS revision_sets (
     id TEXT PRIMARY KEY NOT NULL,
@@ -844,7 +902,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...CLOUD_TRANSFERS_DDL,
   ...TRANSFER_FILES_DDL,
   ...TRANSFER_ACTIVITY_DDL,
-  ...REVISION_SETS_DDL
+  ...REVISION_SETS_DDL,
+  ...CLOUD_LINKS_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5415,6 +5474,21 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP TABLE IF EXISTS revision_set_files");
       await db.execute("DROP TABLE IF EXISTS revision_set_entries");
       await db.execute("DROP TABLE IF EXISTS revision_sets");
+    }
+  },
+  {
+    version: "20261130_000007",
+    name: "add_cloud_links",
+    createsTables: ["cloud_links", "cloud_link_documents", "cloud_link_files", "cloud_receives"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of CLOUD_LINKS_DDL) await db.execute(statement);
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS cloud_receives");
+      await db.execute("DROP TABLE IF EXISTS cloud_link_files");
+      await db.execute("DROP TABLE IF EXISTS cloud_link_documents");
+      await db.execute("DROP TABLE IF EXISTS cloud_links");
     }
   }
 ];

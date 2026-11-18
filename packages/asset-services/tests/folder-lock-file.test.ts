@@ -270,4 +270,45 @@ describe("withProjectFolderLock", () => {
     });
     expect(outputAtStart).not.toContain("releasing");
   }, 30_000);
+
+  it("runs a task that takes the lock again inside it at once", async () => {
+    setProjectFolderLockDirectory(dir);
+    const order: string[] = [];
+    await withProjectFolderLock("user", "project", async () => {
+      order.push("outer");
+      await withProjectFolderLock("user", "project", async () => {
+        order.push("inner");
+      });
+      order.push("outer done");
+    });
+    expect(order).toEqual(["outer", "inner", "outer done"]);
+  }, 30_000);
+
+  it("queues work a task left running once the task is done", async () => {
+    setProjectFolderLockDirectory(dir);
+    const order: string[] = [];
+    let later: Promise<void> | undefined;
+    let releaseNext!: () => void;
+    const nextHolds = new Promise<void>((resolve) => {
+      releaseNext = resolve;
+    });
+    await withProjectFolderLock("user", "project", async () => {
+      later = (async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        await withProjectFolderLock("user", "project", async () => {
+          order.push("left running");
+        });
+      })();
+    });
+    const next = withProjectFolderLock("user", "project", async () => {
+      order.push("next");
+      await nextHolds;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(order).toEqual(["next"]);
+    releaseNext();
+    await next;
+    await later;
+    expect(order).toEqual(["next", "left running"]);
+  }, 30_000);
 });

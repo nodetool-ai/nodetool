@@ -717,7 +717,12 @@ export class Project extends DBModel {
         "transferred_conversations",
         "revision_set_files",
         "revision_set_entries",
-        "revision_sets"
+        "revision_sets",
+        // A local project's link to a cloud project goes with it.
+        "cloud_receives",
+        "cloud_link_files",
+        "cloud_link_documents",
+        "cloud_links"
       ]) {
         await executeRaw(
           `DELETE FROM ${table} WHERE user_id = '${owner}' AND project_id = '${project}' RETURNING id`

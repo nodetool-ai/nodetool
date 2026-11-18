@@ -492,6 +492,37 @@ async function recordFileState<Row extends DocumentRow, Fields>(
 const reconciling = new AsyncLocalStorage<true>();
 
 /**
+ * Runs `task` with the save hooks of every document kind turned off, so a
+ * row saved inside it writes no file. For a caller that saves rows inside a
+ * database transaction and writes their files afterwards with
+ * {@link writeDocumentFileUnderLock}.
+ */
+export function withoutDocumentFileWrites<T>(task: () => Promise<T>): Promise<T> {
+  return reconciling.run(true, task);
+}
+
+/**
+ * Writes the file of `row` in the folder of `projectId` as a save would,
+ * keeping an edit NodeTool has not seen as a version first. Call it under the
+ * folder lock. `editReplaced` tells whether the file held such an edit, which
+ * is now a version and no longer the file.
+ */
+export async function writeDocumentFileUnderLock<Row extends DocumentRow, Fields>(
+  adapter: DocumentFileAdapter<Row, Fields>,
+  workspace: Workspace,
+  projectId: string,
+  row: Row
+): Promise<{ outcome: "written" | "kept"; editReplaced: boolean }> {
+  const current = row.file_path ? await readText(workspace, row.file_path) : null;
+  const unseen =
+    current !== null &&
+    hashOf(current) !== row.file_hash &&
+    current !== documentFileText(adapter, row.id, adapter.fieldsOf(row));
+  const outcome = await writeDocumentFile(adapter, workspace, projectId, row);
+  return { outcome, editReplaced: unseen && outcome === "written" };
+}
+
+/**
  * Write the file of `row` and record its path and hash on the row. Call it
  * under the folder lock.
  *

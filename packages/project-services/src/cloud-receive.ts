@@ -46,6 +46,10 @@ export interface ReceiveFileInfo {
   /** The content hash, or null when the cloud holds no bytes for it. */
   hash: string | null;
   size: number;
+  name: string;
+  contentType: string;
+  /** The path in the project folder, or null for a file stored outside one. */
+  path: string | null;
 }
 
 /** What a receive needs from the server that hosts it. */
@@ -146,7 +150,14 @@ async function captureDocument(
       name: held.name,
       revision_id: held.revisionId,
       content_hash: contentHash,
-      files: present.map((file) => ({ asset_id: file.assetId, hash: file.hash, size: file.size })),
+      files: present.map((file) => ({
+        asset_id: file.assetId,
+        hash: file.hash,
+        size: file.size,
+        name: file.name,
+        content_type: file.contentType,
+        path: file.path
+      })),
       missing_files: files.filter((file) => file.hash === null).map((file) => file.assetId)
     };
   });

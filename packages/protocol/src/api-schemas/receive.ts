@@ -23,7 +23,11 @@ export type CaptureRevisionSetInput = z.infer<typeof captureRevisionSetInput>;
 export const revisionSetFile = z.object({
   asset_id: fullId,
   hash: sha256,
-  size: z.number().int().nonnegative()
+  size: z.number().int().nonnegative(),
+  name: z.string(),
+  content_type: z.string(),
+  /** The path in the cloud project's folder, or null for a file stored outside one. */
+  path: z.string().nullable()
 });
 export type RevisionSetFile = z.infer<typeof revisionSetFile>;
 

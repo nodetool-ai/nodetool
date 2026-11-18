@@ -557,6 +557,10 @@ describe("exportPersonalData", () => {
     expect(excluded).toEqual([
       "access_epochs",
       "blob_deletions",
+      "cloud_link_documents",
+      "cloud_link_files",
+      "cloud_links",
+      "cloud_receives",
       "cloud_transfer_attempts",
       "cloud_transfers",
       "document_activity",
