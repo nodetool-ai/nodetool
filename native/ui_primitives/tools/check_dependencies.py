@@ -114,7 +114,14 @@ def module_policy(module):
                 'nodetool_timeline_decode', 'nodetool_timeline_audio',
                 'nodetool_timeline_player', 'nodetool_timeline_playerplugin', 'nodetool_timeline_player_server',
                 'nodetool_ui_primitives', 'nodetool_ui_primitivesplugin', 'nodetool_kernels',
-                'PkgConfig::FFMPEG',
+                'nodetool_timeline_effects_registrar', 'nodetool_timeline_render2d_registrar',
+                'PkgConfig::FFMPEG', 'harfbuzz::harfbuzz', 'Freetype::Freetype',
+            },
+            # Values a link variable such as ${NT_PLAYER_DECODE_PLATFORM_LIBS}
+            # may hold: the hardware decode libraries of each platform.
+            'platform_links': {
+                '-framework CoreVideo', '-framework IOSurface', '-framework Metal', '-framework Foundation',
+                'd3d11', 'dxgi', 'Vulkan::Vulkan', 'PkgConfig::LIBVA',
             },
             'qt': {'GuiPrivate', 'Network', 'ShaderTools'},
             'forbidden': FORBIDDEN_TIMELINE_PLAYER,
@@ -290,11 +297,23 @@ def audit_module(module):
             for command in re.findall(r'\b(?:execute_process|add_custom_command|add_custom_target)\s*\(([^)]*)\)', text, re.DOTALL):
                 if re.search(r'\b(?:node|npm|npx|yarn|pnpm)\b', command):
                     errors.append('{}: JavaScript build command'.format(label))
+            link_variables = {}
+            for command, args in cmake_calls(text):
+                if command == 'set' and args:
+                    # A forward to the parent scope repeats the value.
+                    values = set(args[1:]) - {'PARENT_SCOPE', '${' + args[0] + '}'}
+                    link_variables.setdefault(args[0], set()).update(values)
             for links in re.findall(r'\btarget_link_libraries\s*\(([^)]*)\)', text, re.DOTALL):
                 for target in links.split()[1:]:
                     if target in {'PUBLIC', 'PRIVATE', 'INTERFACE'}:
                         continue
                     if target in policy['targets']:
+                        continue
+                    variable = re.fullmatch(r'\$\{(\w+)\}', target)
+                    if variable and variable.group(1) in link_variables and policy.get('platform_links'):
+                        values = link_variables[variable.group(1)] - {''}
+                        for value in sorted(values - policy['platform_links'] - policy['targets']):
+                            errors.append('{}: external link target {} in {}'.format(label, value, target))
                         continue
                     if target.startswith('Qt6::') and target[5:] in ALLOWED_QT | policy.get('qt', set()):
                         continue

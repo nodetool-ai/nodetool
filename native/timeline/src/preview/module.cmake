@@ -1,22 +1,6 @@
-nt_sources(decode
-    src/preview/LayerSource.h
-    src/preview/FrameRing.h
-    src/preview/FrameRing.cpp
-    src/preview/YuvFormat.h
-    src/preview/YuvFormat.cpp
-    src/preview/FfmpegSource.h
-    src/preview/FfmpegSource.cpp
-    src/preview/SourcePool.h
-    src/preview/SourcePool.cpp
-    src/preview/SurfacePool.h
-    src/preview/FrameCache.h
-    src/preview/FrameCache.cpp
-    src/preview/SyntheticSource.h
-    src/preview/SyntheticSource.cpp
-    src/preview/StillImageSource.h
-    src/preview/StillImageSource.cpp
-    src/preview/RetireQueue.h
-)
+# The sources, pools and hook registries are in native/timeline-player
+# (nodetool_timeline_decode). Their tests read the timeline's fixtures, so
+# they stay here.
 nt_qml_files(qml/preview/PreviewArea.qml)
 nt_sources(qml
     src/preview/PreviewCompositor.h
@@ -90,7 +74,7 @@ function(nt_preview_tests)
         set_tests_properties(tst_d3d11window PROPERTIES LABELS render)
     endif()
     # Linux: the VAAPI interop's frame completion marks on a Vulkan QRhi.
-    if(UNIX AND NOT APPLE AND Vulkan_FOUND AND LIBVA_FOUND)
+    if(NT_PLAYER_HAVE_VAAPI_VULKAN)
         qt_add_executable(tst_vulkaninterop tests/tst_vulkaninterop.cpp)
         target_compile_options(tst_vulkaninterop PRIVATE ${NT_WARNINGS})
         target_compile_definitions(tst_vulkaninterop PRIVATE NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")

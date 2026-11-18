@@ -71,7 +71,6 @@ function(nt_export_tests)
     target_link_libraries(tst_framecapture PRIVATE timeline_core timeline_decode timeline_server
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test)
     nt_add_timeline_qml(tst_framecapture)
-    nt_effects_shaders(tst_framecapture)
     add_test(NAME native_backend_routes COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/src/export/check-backends.py
         $<TARGET_FILE:nodetool-timeline>)
     set_tests_properties(native_backend_routes PROPERTIES LABELS render RUN_SERIAL TRUE TIMEOUT 180)

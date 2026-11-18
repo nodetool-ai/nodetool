@@ -1,4 +1,4 @@
-nt_sources(decode src/preview/layers/LayerRegistry.h src/preview/layers/LayerRegistry.cpp)
+# LayerRegistry is in native/timeline-player (nodetool_timeline_decode).
 function(nt_layer_hook_tests)
     qt_add_executable(tst_layerhooks src/preview/layers/tst_layerhooks.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp

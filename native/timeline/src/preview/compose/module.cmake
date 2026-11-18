@@ -1,4 +1,4 @@
-nt_sources(decode src/preview/compose/ComposeRegistry.h src/preview/compose/ComposeRegistry.cpp)
+# ComposeRegistry is in native/timeline-player (nodetool_timeline_decode).
 function(nt_compose_hook_tests)
     qt_add_executable(tst_composehooks src/preview/compose/tst_composehooks.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp

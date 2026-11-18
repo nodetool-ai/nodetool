@@ -41,10 +41,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
     add_link_options(-fexperimental-library)
 endif()
 
-# Platforms (M6). The hardware decode path is chosen at compile time
-# (src/preview/hw/HwInterop.h): VideoToolbox on macOS, D3D11VA on Windows,
-# VAAPI with DMA-BUF import into Vulkan on Linux when libva and Vulkan are
-# found, else none (software decode only).
+# Platforms (M6). The hardware decode path and its libraries are chosen in
+# native/timeline-player (NT_PLAYER_DECODE_PLATFORM_LIBS).
 # NT_PORTABLE builds the code of the other platforms on macOS: no
 # VideoToolbox and the portable platform code, so it compiles and its tests
 # run on the development machine.
@@ -57,28 +55,20 @@ set(NT_PLATFORM_DEFINES "")
 if(NT_PORTABLE)
     list(APPEND NT_PLATFORM_DEFINES NT_HW_NONE NT_PORTABLE_PLATFORM)
 endif()
-set(NT_DECODE_PLATFORM_SOURCES src/preview/hw/HwInterop.h src/preview/hw/HwInterop.cpp)
-set(NT_DECODE_PLATFORM_LIBS "")
-if(NT_APPLE_CODE)
-    list(APPEND NT_DECODE_PLATFORM_SOURCES src/preview/hw/VideoToolboxInterop.h src/preview/hw/VideoToolboxInterop.mm)
-    set(NT_DECODE_PLATFORM_LIBS "-framework CoreVideo" "-framework IOSurface" "-framework Metal" "-framework Foundation")
-elseif(APPLE)
-    # NT_PORTABLE: QRhi's Metal backend still runs the compositor.
-    set(NT_DECODE_PLATFORM_LIBS "-framework Foundation")
-elseif(WIN32)
-    list(APPEND NT_DECODE_PLATFORM_SOURCES src/preview/hw/D3D11Interop.h src/preview/hw/D3D11Interop.cpp)
-    set(NT_DECODE_PLATFORM_LIBS d3d11 dxgi)
-elseif(UNIX)
-    find_package(Vulkan)
-    pkg_check_modules(LIBVA IMPORTED_TARGET libva libva-drm)
-    if(Vulkan_FOUND AND LIBVA_FOUND)
-        list(APPEND NT_DECODE_PLATFORM_SOURCES src/preview/hw/VulkanInterop.h src/preview/hw/VulkanInterop.cpp)
-        list(APPEND NT_PLATFORM_DEFINES NT_HAVE_VAAPI_VULKAN)
-        set(NT_DECODE_PLATFORM_LIBS Vulkan::Vulkan PkgConfig::LIBVA)
-    else()
-        message(STATUS "nodetool-timeline: no libva or Vulkan, software decode only")
-    endif()
+
+# The timeline player: the document model and scene evaluation
+# (nodetool_timeline_scene) and decode, effects and render2d
+# (nodetool_timeline_decode), which the node editor also builds. render2d
+# falls back to the repository's fonts in a build tree.
+set(NT_PLAYER_FONTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../packages/timeline/fonts")
+if(NOT TARGET nodetool_timeline_scene)
+    add_subdirectory(../timeline-player ${CMAKE_CURRENT_BINARY_DIR}/timeline-player)
 endif()
+# The startup registrars of the standard preview hooks: each executable that
+# renders effects or text compiles them in (timeline-player README).
+set(NT_EFFECTS_REGISTRAR $<TARGET_OBJECTS:nodetool_timeline_effects_registrar>)
+set(NT_RENDER2D_REGISTRAR $<TARGET_OBJECTS:nodetool_timeline_render2d_registrar>)
+
 if(APPLE)
     set(NT_AUDIO_PLATFORM_LIBS "-framework CoreAudio" "-framework AudioToolbox" "-framework CoreFoundation")
 elseif(UNIX)
@@ -97,7 +87,7 @@ if(NT_APPLE_CODE)
 else()
     set(NT_APP_PLATFORM_SOURCES src/platform/ProcessActivity.h src/platform/SchedulingDiagnostics.h
         src/platform/PlatformStubs.cpp)
-    set(NT_APP_PLATFORM_LIBS ${NT_DECODE_PLATFORM_LIBS})
+    set(NT_APP_PLATFORM_LIBS ${NT_PLAYER_DECODE_PLATFORM_LIBS})
 endif()
 add_compile_definitions(${NT_PLATFORM_DEFINES})
 
@@ -183,25 +173,16 @@ if(NOT TARGET nodetool_kernels)
     set_target_properties(nodetool_kernels PROPERTIES CXX_SCAN_FOR_MODULES OFF)
 endif()
 
-# The document model and scene evaluation (nodetool_timeline_scene) live in
-# native/timeline-player, which the node editor also builds.
-if(NOT TARGET nodetool_timeline_scene)
-    add_subdirectory(../timeline-player ${CMAKE_CURRENT_BINARY_DIR}/timeline-player)
-endif()
-
 # The timeline's Core-only code, shared by the app, timeline-ops and the tests.
 add_library(timeline_core STATIC ${NT_core})
 target_include_directories(timeline_core PUBLIC src)
 target_link_libraries(timeline_core PUBLIC nodetool_timeline_scene Qt6::Core)
 target_compile_options(timeline_core PRIVATE ${NT_WARNINGS})
 
-# Decode and GPU sources: FFmpeg, QRhi textures, the source pool.
+# The timeline's decode code over nodetool_timeline_decode: export
+# capabilities and the shot scan.
 add_library(timeline_decode STATIC ${NT_decode})
-if(NT_APPLE_CODE)
-    set_source_files_properties(src/preview/hw/VideoToolboxInterop.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
-endif()
-target_link_libraries(timeline_decode PUBLIC timeline_core Qt6::Gui Qt6::GuiPrivate PkgConfig::FFMPEG
-    ${NT_DECODE_PLATFORM_LIBS})
+target_link_libraries(timeline_decode PUBLIC timeline_core nodetool_timeline_decode Qt6::Gui Qt6::GuiPrivate PkgConfig::FFMPEG)
 target_compile_options(timeline_decode PRIVATE ${NT_WARNINGS})
 
 # Audio (M3): miniaudio device, PCM rings, the mixer, fade curves.
@@ -282,7 +263,7 @@ nt_add_timeline_qml(nodetool-timeline)
 # objects are not linked (scripts/check-portable.sh).
 set(NT_CHECK_VULKAN_HEADERS "" CACHE PATH "macOS: a Vulkan-Headers include folder, to compile the Linux hardware path")
 if(APPLE AND NT_CHECK_VULKAN_HEADERS)
-    add_library(nt_linux_hw_check OBJECT src/preview/hw/VulkanInterop.cpp src/preview/hw/HwWindow.cpp)
+    add_library(nt_linux_hw_check OBJECT ../timeline-player/src/preview/hw/VulkanInterop.cpp src/preview/hw/HwWindow.cpp)
     target_compile_definitions(nt_linux_hw_check PRIVATE NT_HW_SYNTAX_CHECK_VAAPI)
     target_include_directories(nt_linux_hw_check PRIVATE ${NT_CHECK_VULKAN_HEADERS})
     target_link_libraries(nt_linux_hw_check PRIVATE timeline_core Qt6::Gui Qt6::GuiPrivate Qt6::Quick PkgConfig::FFMPEG)

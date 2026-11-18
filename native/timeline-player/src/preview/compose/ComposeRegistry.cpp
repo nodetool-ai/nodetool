@@ -1,4 +1,5 @@
 #include "preview/compose/ComposeRegistry.h"
+#include "preview/compose/BackdropStage.h"
 #include <algorithm>
 #include <mutex>
 
@@ -85,4 +86,40 @@ std::vector<SecondSourceProvider> registeredSecondSourceProviders() {
     return providers;
 }
 
+namespace {
+struct BackdropRegistry {
+    std::mutex mutex;
+    BackdropStageToken next = 1;
+    std::vector<std::pair<BackdropStageToken, BackdropStageFactory>> factories;
+};
+// native-rules #14: static process-wide mutable registry
+BackdropRegistry& backdropRegistry() { static BackdropRegistry value; return value; }
+}
+BackdropStageToken registerBackdropStage(BackdropStageFactory factory) {
+    auto& registry = backdropRegistry();
+    const std::scoped_lock lock(registry.mutex);
+    const auto token = registry.next++;
+    registry.factories.emplace_back(token, std::move(factory));
+    return token;
+}
+void unregisterBackdropStage(BackdropStageToken token) {
+    auto& registry = backdropRegistry();
+    const std::scoped_lock lock(registry.mutex);
+    std::erase_if(registry.factories, [token](const auto& entry) { return entry.first == token; });
+}
+std::vector<std::unique_ptr<BackdropStage>> registeredBackdropStages() {
+    std::vector<BackdropStageFactory> factories;
+    {
+        auto& registry = backdropRegistry();
+        const std::scoped_lock lock(registry.mutex);
+        for (const auto& [token, factory] : registry.factories) { factories.push_back(factory); }
+    }
+    std::vector<std::unique_ptr<BackdropStage>> stages;
+    for (const auto& factory : factories) {
+        if (factory) {
+            if (auto stage = factory()) { stages.push_back(std::move(stage)); }
+        }
+    }
+    return stages;
+}
 }

@@ -21,6 +21,11 @@ async function runProcess(program, args, options = {}) {
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const baselinePath = path.join(root, 'tools/sanitizers/clang-tidy-baseline.json');
+// The timeline builds the shared player module (native/timeline-player) too.
+// Its files are reported relative to native/timeline, as ../timeline-player/...
+const player = path.resolve(root, '../timeline-player');
+const ownPath = /^(?:\.\.\/timeline-player\/)?(?:src|tests)\//;
+const relative = (file) => path.relative(root, file).replaceAll(path.sep, '/');
 
 function diagnostics(output, directory) {
   const result = new Set();
@@ -30,7 +35,7 @@ function diagnostics(output, directory) {
       continue;
     }
     const file = path.relative(directory, match[1]).replaceAll(path.sep, '/');
-    if (!file.startsWith('../') && !path.isAbsolute(file)) {
+    if (ownPath.test(file)) {
       result.add(`${file} | ${match[3]} | ${match[2]}`);
     }
   }
@@ -66,8 +71,7 @@ async function selfTest() {
 
 async function check(build, writeBaseline = false) {
   const commands = JSON.parse(readFileSync(path.join(build, 'compile_commands.json'), 'utf8'));
-  const sourceRoot = root;
-  const own = (file) => /^(src|tests)\//.test(path.relative(root, file).replaceAll(path.sep, '/'));
+  const own = (file) => ownPath.test(relative(path.resolve(file)));
   const sources = [...new Set(commands.map((entry) => entry.file).filter(own))];
   if (sources.length === 0) {
     throw new Error('No project sources in compile_commands.json');
@@ -75,10 +79,10 @@ async function check(build, writeBaseline = false) {
   if (commands.some((entry) => own(entry.file) && !/clang/.test(entry.command ?? entry.arguments.join(' ')))) {
     throw new Error('Use compile_commands.json from a Clang build');
   }
-  const escaped = sourceRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const escape = (directory) => directory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const owned = `^(${escape(root)}|${escape(player)})/(src|tests)/`;
   const run = await runProcess('nice', ['-n', '10', '/usr/bin/run-clang-tidy', '-j', '3', '-quiet', '-p', build,
-    `-config-file=${root}/.clang-tidy`, `-header-filter=^${escaped}/(src|tests)/`,
-    `^${escaped}/(src|tests)/`],
+    `-config-file=${root}/.clang-tidy`, `-header-filter=${owned}`, owned],
   { encoding: 'utf8' });
   const output = (run.stdout ?? '') + (run.stderr ?? '');
   writeFileSync(path.join(build, 'clang-tidy.log'), output);
@@ -90,7 +94,7 @@ async function check(build, writeBaseline = false) {
   if (!inspected || Number(inspected[1]) !== sources.length) {
     throw new Error(`Expected ${sources.length} inspected sources, got ${inspected?.[1] ?? 'none'}`);
   }
-  const actual = diagnostics(output, sourceRoot).filter((line) => /^(src|tests)\//.test(line));
+  const actual = diagnostics(output, root);
   if (writeBaseline) {
     if (actual.length === 0) {
       throw new Error('Refusing an empty first baseline. Inspect clang-tidy.log');

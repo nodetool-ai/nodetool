@@ -35,7 +35,7 @@ function(nt_keyed_render_tests)
     qt_add_executable(tst_keyedrender src/edit/keyframes/tst_keyedrender.cpp
         src/edit/keyframes/KeyframeEdits.cpp
         src/preview/crop/CropDecorator.cpp
-        src/preview/effects/EffectsRegistrations.cpp
+        ${NT_EFFECTS_REGISTRAR}
         src/model/TimelineModel.h src/model/TimelineModel.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp
         src/playback/PlaybackClock.h src/playback/PlaybackClock.cpp
@@ -48,7 +48,6 @@ function(nt_keyed_render_tests)
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test ${NT_APP_PLATFORM_LIBS})
     qt_add_shaders(tst_keyedrender "keyed_composite_shaders" PREFIX "/shaders" BASE shaders
         FILES shaders/composite.vert shaders/composite.frag shaders/monitorview.frag)
-    nt_effects_shaders(tst_keyedrender)
     add_test(NAME tst_keyedrender COMMAND tst_keyedrender)
     set_tests_properties(tst_keyedrender PROPERTIES LABELS render)
 endfunction()

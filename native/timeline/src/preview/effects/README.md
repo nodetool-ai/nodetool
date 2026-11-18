@@ -1,6 +1,8 @@
 # Timeline effects
 
-The app compiles `EffectsRegistrations.cpp` directly into its executable.
+The effects, their shaders and their hook registration are in the
+[timeline player module](../../../../timeline-player/README.md#standard-hooks).
+The app links its startup registrar, `nodetool_timeline_effects_registrar`.
 It registers hooks only with a `QGuiApplication`, so `--dump-plan` keeps the
 existing plan. Blend handlers receive container-sized premultiplied surfaces
 with opacity already applied. They undo premultiplication for the channel

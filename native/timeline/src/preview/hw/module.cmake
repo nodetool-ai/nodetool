@@ -1,4 +1,5 @@
-nt_sources(decode ${NT_DECODE_PLATFORM_SOURCES})
+# The hardware interop is in native/timeline-player (nodetool_timeline_decode).
+# HwWindow, which prepares a QQuickWindow, stays here.
 nt_sources(app
     src/preview/hw/HwWindow.h
     src/preview/hw/HwWindow.cpp

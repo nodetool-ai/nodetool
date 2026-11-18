@@ -1,24 +1,8 @@
-# QTextLayout/QRawFont alone differ from Canvas in GPOS advances, variable
-# weights and transformed glyph coverage. HarfBuzz shapes the selected face,
-# and FreeType rasterizes it to keep the example comparisons above 35 dB.
-# HarfBuzz's own CMake package is missing on Debian and Ubuntu and points at
-# a wrong prefix in vcpkg, so find the header and the library directly.
-find_path(NT_HARFBUZZ_INCLUDE_DIR hb.h PATH_SUFFIXES harfbuzz REQUIRED)
-find_library(NT_HARFBUZZ_LIBRARY NAMES harfbuzz REQUIRED)
-add_library(harfbuzz::harfbuzz UNKNOWN IMPORTED GLOBAL)
-set_target_properties(harfbuzz::harfbuzz PROPERTIES
-    IMPORTED_LOCATION "${NT_HARFBUZZ_LIBRARY}"
-    INTERFACE_INCLUDE_DIRECTORIES "${NT_HARFBUZZ_INCLUDE_DIR}")
-find_package(Freetype REQUIRED)
-cmake_language(DEFER CALL target_link_libraries timeline_decode PRIVATE harfbuzz::harfbuzz Freetype::Freetype)
-nt_sources(decode src/render2d/Rasterizer.h src/render2d/Rasterizer.cpp
-    src/render2d/Paint.h src/render2d/Paint.cpp src/render2d/LayerStyle.h src/render2d/LayerStyle.cpp
-    src/render2d/RasterSource.h src/render2d/RasterSource.cpp)
-# Compile the startup registrar into the executable, never a static archive.
-nt_sources(app src/render2d/Render2dRegistrations.cpp)
+# The rasterizer, layer style, raster sources and their hook registration are
+# in native/timeline-player (nodetool_timeline_decode). The inspector sections
+# and the tests, which read packages/timeline, stay here.
+nt_sources(app ${NT_RENDER2D_REGISTRAR})
 nt_qml_sources(src/render2d/Render2dSections.cpp)
-set_source_files_properties(src/render2d/Rasterizer.cpp PROPERTIES
-    COMPILE_DEFINITIONS NT_TIMELINE_FONTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../../packages/timeline/fonts")
 
 function(nt_render2d_copy_fonts)
     file(GLOB fonts CONFIGURE_DEPENDS
@@ -34,7 +18,7 @@ endfunction()
 cmake_language(DEFER CALL nt_render2d_copy_fonts)
 
 function(nt_render2d_tests)
-    qt_add_executable(tst_render2d src/render2d/tst_render2d.cpp src/render2d/Render2dRegistrations.cpp)
+    qt_add_executable(tst_render2d src/render2d/tst_render2d.cpp ${NT_RENDER2D_REGISTRAR})
     set_target_properties(tst_render2d PROPERTIES MACOSX_BUNDLE FALSE)
     target_link_libraries(tst_render2d PRIVATE timeline_decode Qt6::Test)
     target_compile_definitions(tst_render2d PRIVATE NT_RENDER2D_REFERENCE_DIR="${CMAKE_CURRENT_BINARY_DIR}/render2d-reference")

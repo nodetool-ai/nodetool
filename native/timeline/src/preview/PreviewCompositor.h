@@ -1,6 +1,7 @@
 #pragma once
 #include "model/TimelineSource.h"
 #include "preview/WorkingFormat.h"
+#include "preview/compose/BackdropStage.h"
 
 #include <QImage>
 #include <QPointer>
@@ -14,30 +15,7 @@
 #include <memory>
 #include <cstdint>
 
-class QJsonObject;
 namespace nt { struct Timeline; }
-class QRhiTextureRenderTarget;
-namespace nt {
-struct EffectContext;
-struct LayerFrame;
-struct SceneAdjustment;
-class BackdropStage {
-public:
-    virtual ~BackdropStage() = default;
-    virtual bool applies(const QJsonObject& ext) const = 0;
-    // Full-surface premultiplied input, read-only and distinct from output.
-    // Write the complete replacement in framebuffer orientation. Retire every
-    // GPU resource through the context until its last use.
-    virtual bool render(const EffectContext&, const LayerFrame& accumulation, QRhiTextureRenderTarget& output,
-                        const SceneAdjustment&) = 0;
-};
-using BackdropStageToken = std::uint64_t;
-using BackdropStageFactory = std::function<std::unique_ptr<BackdropStage>()>;
-BackdropStageToken registerBackdropStage(BackdropStageFactory factory);
-void unregisterBackdropStage(BackdropStageToken token);
-// Each renderer owns a snapshot, in registration order, taken at QRhi initialization.
-std::vector<std::unique_ptr<BackdropStage>> registeredBackdropStages();
-}
 
 class PlaybackClock;
 

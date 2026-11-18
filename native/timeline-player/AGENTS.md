@@ -10,6 +10,11 @@ the [README](README.md) before changes. The [native rules](../AGENTS.md) apply.
   editing code. `TimelineModel`, the track list models and the edit registry
   stay in `native/timeline`.
 - `nodetool_timeline_scene` uses Qt Core and Yoga only.
+- A host that renders timelines must get the standard hooks, through the
+  registrar object libraries or `nt::registerStandardHooks()`. See
+  [Standard hooks](README.md#standard-hooks). A new process-wide registration
+  that documents need belongs in `registerEffectHooks()` or
+  `registerRender2dHooks()`, with a check in its `missing…Hooks()`.
 - Keep the folder layout of `native/timeline/src`, so a moved file keeps its
   include path.
 - Tests that need the timeline's fixtures or `packages/` stay in
