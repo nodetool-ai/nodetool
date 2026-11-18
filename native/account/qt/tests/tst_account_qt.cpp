@@ -1685,7 +1685,7 @@ private slots:
     QueueServer server;
     server.answer("cloudTransfer.send.capture",
                   trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[)"
-                           R"({"op":"replace_document","kind":"workflow","document_id":"c1"}],)"
+                           R"({"op":"replace_document","kind":"workflow","document_id":"c1","captured_hash":"lh1"}],)"
                            R"("documents":[{"kind":"workflow","local_id":"l1","cloud_id":"c1","name":"Mine"}],)"
                            R"("missing_files":[],"skipped":[],"deleted_locally":[]})"));
     // After the receive, the document equals the cloud: nothing to send.
@@ -1695,7 +1695,7 @@ private slots:
     server.answer("cloudTransfer.receive.capture", trpcData(R"({"set_id":"s1","documents":[]})"));
     server.answer("cloudTransfer.receive.capture",
                   trpcData(R"({"set_id":"s2","documents":[)"
-                           R"({"kind":"workflow","cloud_id":"c1","local_id":"l1","name":"Mine","content_hash":"n1",)"
+                           R"({"kind":"workflow","cloud_id":"c1","local_id":"l1","name":"Mine","content_hash":"n1","local_hash":"lh1",)"
                            R"("status":"both_changed","decision":null,"files":[],"missing_files":[]},)"
                            R"({"kind":"workflow","cloud_id":"c9","local_id":"l9","name":"Unseen","content_hash":"n9",)"
                            R"("status":"cloud_changed","decision":"receive","files":[],"missing_files":[]}]})"));
@@ -1744,6 +1744,74 @@ private slots:
     }
     QCOMPARE(runs, std::size_t(1));
     QCOMPARE(transfer.result().value("received").toStringList(), QStringList{"Mine"});
+  }
+
+  // Receive on a refused document is an approval of two revisions: the
+  // cloud revision the refusal named and the local copy the sheet was about
+  // to send. When either changed before Apply, nothing is received and the
+  // sheet asks again (review F46).
+  void receivingARefusedDocumentAsksAgainWhenEitherSideChanged_data() {
+    QTest::addColumn<QString>("cloudHash");
+    QTest::addColumn<QString>("localHash");
+    QTest::newRow("local edited") << "n1" << "lh2";
+    QTest::newRow("cloud edited") << "n2" << "lh1";
+  }
+
+  void receivingARefusedDocumentAsksAgainWhenEitherSideChanged() {
+    QFETCH(QString, cloudHash);
+    QFETCH(QString, localHash);
+    Computer computer;
+    computer.server.addCode("code-g", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-g");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[)"
+                           R"({"op":"replace_document","kind":"workflow","document_id":"c1","captured_hash":"lh1"}],)"
+                           R"("documents":[{"kind":"workflow","local_id":"l1","cloud_id":"c1","name":"Mine"}],)"
+                           R"("missing_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.receive.capture", trpcData(R"({"set_id":"s1","documents":[]})"));
+    server.answer("cloudTransfer.receive.capture",
+                  trpcData(R"({"set_id":"s2","documents":[)"
+                           R"({"kind":"workflow","cloud_id":"c1","local_id":"l1","name":"Mine","content_hash":")" +
+                           cloudHash.toStdString() + R"(","local_hash":")" + localHash.toStdString() +
+                           R"(","status":"both_changed","decision":null,"files":[],"missing_files":[]}]})"));
+    server.answer("cloudTransfer.receive.run",
+                  trpcData(R"({"status":"finished","set_id":"s1","result":{"received":[],)"
+                           R"("changed_during_receive":[],"not_received":[],"kept_beside":[],"missing_files":[],)"
+                           R"("file_kept":[]}})"));
+    server.answer("cloudTransfer.receive.cancel", trpcData(R"({"state":"cancelled"})"));
+    server.answer("cloudTransfer.send.run",
+                  trpcData(R"({"status":"refused","transfer_id":"t1","failures":[{"code":"BASE_CHANGED",)"
+                           R"("kind":"workflow","document_id":"c1","stored_hash":"n1","message":"changed"}]})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setLinked(true);
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QVERIFY(transfer.choose(0, "receive"));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    // Only the first set was received, and the new one was released.
+    std::size_t receives = 0;
+    for (const auto& call : server.calls()) {
+      receives += call == "cloudTransfer.receive.run" ? 1 : 0;
+    }
+    QCOMPARE(receives, std::size_t(1));
+    QCOMPARE(nlohmann::json::parse(server.body("cloudTransfer.receive.cancel"))["set_id"].get<std::string>(),
+             std::string("s2"));
+    // The row asks again, for the cloud revision as it is now.
+    const QVariantMap row = transfer.rows().at(0).toMap();
+    QCOMPARE(row.value("section").toString(), QString("choice"));
+    QVERIFY(row.value("choice").toString().isEmpty());
+    QVERIFY(!transfer.ready());
   }
 
   // After a refused attempt, withdrawing the last deletion confirmation

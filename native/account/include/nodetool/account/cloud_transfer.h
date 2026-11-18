@@ -192,6 +192,8 @@ struct ReceiveDocument {
   // The choice taken without the person, or empty when the review asks.
   std::optional<ReceiveChoice> decision;
   std::size_t missingFiles = 0;
+  // The hash of this computer's copy at the capture, empty when it has none.
+  std::string localHash;
 };
 
 struct ReceiveCapture {
@@ -358,7 +360,14 @@ public:
   // The refused documents the person chose to receive. Their new cloud
   // revision is not in the receive set the sheet was read with, so the
   // controller captures and receives it before the send (review F39).
-  std::vector<ReceiveDecision> refusalsToReceive() const;
+  struct RefusalReceive {
+    std::string kind;
+    std::string cloudId;
+    // The cloud revision the refusal named, which the person chose to
+    // receive. A newer one asks again (review F46).
+    std::string cloudHash;
+  };
+  std::vector<RefusalReceive> refusalsToReceive() const;
   // The refusals the person answered already: a BASE_CHANGED refusal of a
   // document they chose Keep local for, whose stored hash is the cloud
   // revision they saw. Any other refusal is left for addRefusal.

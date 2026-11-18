@@ -605,7 +605,8 @@ void aRefusedDocumentKeepsOneRow(TestContext& t) {
   CHECK(review.receiveDecisions().empty());
   CHECK(review.keepLocalDecisions().empty());
   const auto receives = review.refusalsToReceive();
-  CHECK(receives.size() == 1 && receives[0].kind == "workflow" && receives[0].documentId == "c1");
+  CHECK(receives.size() == 1 && receives[0].kind == "workflow" && receives[0].cloudId == "c1" &&
+        receives[0].cloudHash == "s2");
 }
 
 // A receive closed before it applies ends on the local router, which

@@ -394,6 +394,7 @@ ReceiveCapture LocalTransferClient::captureReceive(const std::string& projectId)
     document.localId = str(item, "local_id");
     document.name = str(item, "name");
     document.contentHash = str(item, "content_hash");
+    document.localHash = str(item, "local_hash");
     document.state = *state;
     const std::string decision = str(item, "decision");
     if (decision == "receive") {
@@ -627,11 +628,11 @@ void TransferReview::addRefusal(const std::vector<TransferFailure>& failures) {
   }
 }
 
-std::vector<ReceiveDecision> TransferReview::refusalsToReceive() const {
-  std::vector<ReceiveDecision> out;
+std::vector<TransferReview::RefusalReceive> TransferReview::refusalsToReceive() const {
+  std::vector<RefusalReceive> out;
   for (const ReviewRow& row : rows_) {
     if (row.section == ReviewSection::Choice && !row.cloudHash.empty() && row.choice == ReceiveChoice::Receive) {
-      out.push_back({row.kind, row.cloudId.empty() ? row.documentId : row.cloudId, ReceiveChoice::Receive});
+      out.push_back({row.kind, row.cloudId.empty() ? row.documentId : row.cloudId, row.cloudHash});
     }
   }
   return out;

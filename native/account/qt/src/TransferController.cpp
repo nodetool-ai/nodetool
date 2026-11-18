@@ -150,6 +150,9 @@ struct TransferController::Applied {
   // The receive of the refused documents the person chose to receive, from
   // a set captured for them (review F39).
   std::optional<ReceiveRun> refusalReceive;
+  // Refused documents picked for Receive whose cloud revision or local copy
+  // changed since the review. Nothing was received (review F46).
+  std::vector<TransferFailure> changedAgain;
   // Set when the send was captured again after the receive.
   std::optional<SendCapture> recaptured;
   // Operations of the recapture the sheet did not show. Nothing was sent.
@@ -441,7 +444,7 @@ void TransferController::apply() {
   emit stateChanged();
   tasks_->post([state = shared_, cancel = std::shared_ptr<const RequestCancel>(cancel_), current, origin = origin(), headers = headers(), review = review_, transferId = transferId_,
                 setId = received_ ? std::string() : setId_,
-                refusals = linked_ ? review_.refusalsToReceive() : std::vector<ReceiveDecision>{},
+                refusals = linked_ ? review_.refusalsToReceive() : std::vector<TransferReview::RefusalReceive>{},
                 sendWork = sendWork_ || !linked_ || !review_.confirmedDeletes().empty(),
                 approved = approved_, approvedFiles = approvedFiles_, projectId = projectId_.toStdString(), name = projectName_.toStdString(),
                 sequence]() mutable {
@@ -481,15 +484,40 @@ void TransferController::apply() {
         if (document.state == ReceiveState::Same) {
           continue;
         }
-        bool receive = false;
-        for (const ReceiveDecision& refusal : refusals) {
-          receive = receive || (refusal.kind == document.kind && refusal.documentId == document.cloudId);
+        const TransferReview::RefusalReceive* refusal = nullptr;
+        for (const TransferReview::RefusalReceive& candidate : refusals) {
+          if (candidate.kind == document.kind && candidate.cloudId == document.cloudId) {
+            refusal = &candidate;
+          }
         }
-        wanted = wanted || receive;
+        if (refusal) {
+          // The approval covers the two revisions the person saw: the cloud
+          // revision the refusal named, and this computer's copy the sheet
+          // was about to send. Either one changed asks again (review F46).
+          std::string reviewedLocal;
+          for (const TransferOperation& operation : approved) {
+            if (operation.kind == document.kind && operation.documentId == document.cloudId) {
+              reviewedLocal = operation.capturedHash;
+            }
+          }
+          if (document.contentHash != refusal->cloudHash || reviewedLocal.empty() ||
+              document.localHash != reviewedLocal) {
+            applied.changedAgain.push_back({"BASE_CHANGED", document.kind, document.cloudId, document.contentHash,
+                                            "changed since the review"});
+          }
+        }
+        wanted = wanted || refusal != nullptr;
         decisions.push_back(
-            {document.kind, document.cloudId, receive ? ReceiveChoice::Receive : ReceiveChoice::KeepLocal});
+            {document.kind, document.cloudId, refusal ? ReceiveChoice::Receive : ReceiveChoice::KeepLocal});
       }
-      if (wanted) {
+      if (!applied.changedAgain.empty()) {
+        client.cancelReceive(fresh.setId);
+        report();
+        return;
+      }
+      if (!wanted) {
+        client.cancelReceive(fresh.setId);
+      } else {
         applied.refusalReceive = client.runReceive(fresh.setId, decisions);
         if (applied.refusalReceive->status != TransferStatus::Ok || applied.refusalReceive->outcome != "finished") {
           report();
@@ -572,6 +600,16 @@ void TransferController::finishApply(quint64 sequence, const Applied& applied) {
                        {QStringLiteral("notReceived"), listOf(run.notReceived)},
                        {QStringLiteral("changedDuringReceive"), listOf(run.changedDuringReceive)},
                        {QStringLiteral("missingFiles"), static_cast<int>(run.missingFiles)}};
+  }
+  if (!applied.changedAgain.empty()) {
+    // Ask again, naming the cloud revision as it is now.
+    review_.addRefusal(applied.changedAgain);
+    stage_ = Stage::Reviewing;
+    message_ = tr("%n document(s) changed here or in the cloud since you chose. Choose again.", nullptr,
+                  static_cast<int>(applied.changedAgain.size()));
+    emit rowsChanged();
+    emit stateChanged();
+    return;
   }
   if (applied.refusalReceive) {
     const ReceiveRun& run = *applied.refusalReceive;

@@ -138,6 +138,12 @@ export const receiveReviewDocument = z.object({
    * the cloud refuses with this stored hash was reviewed already.
    */
   content_hash: z.string(),
+  /**
+   * The hash of this computer's copy when the set was captured, or null
+   * when it has none. A receive the person approved for other hashes asks
+   * again (review F46).
+   */
+  local_hash: z.string().nullable(),
   status: receiveDocumentStatus,
   /** The decision taken without the person, or null when the review sheet must ask. */
   decision: receiveDecision.nullable(),

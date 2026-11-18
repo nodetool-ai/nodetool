@@ -132,6 +132,7 @@ function reviewDocument(document: PlannedDocument) {
     local_id: document.localId,
     name: document.name,
     content_hash: document.contentHash,
+    local_hash: document.localHash,
     status: document.status,
     decision: document.decision,
     files: document.files,

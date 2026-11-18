@@ -231,7 +231,14 @@ describe("cloudTransfer router", () => {
     ];
     const set = await createCaller(makeCtx(USER)).cloudTransfer.receive.capture({ ...SESSION, project_id: PROJECT });
     expect(set.documents).toEqual([
-      expect.objectContaining({ cloud_id: "d".repeat(32), content_hash: hash, status: "new", decision: "receive" })
+      expect.objectContaining({
+        cloud_id: "d".repeat(32),
+        content_hash: hash,
+        // This computer has no copy yet (review F46).
+        local_hash: null,
+        status: "new",
+        decision: "receive"
+      })
     ]);
   });
 
