@@ -26,7 +26,9 @@ import { createLogger } from "@nodetool-ai/config";
 import {
   addTransferPlacements,
   Asset,
+  createTimeOrderedUuid,
   deleteCloudReceive,
+  deletedDocumentExists,
   deleteTransferPlacement,
   getCloudLinkById,
   getCloudLinkDocumentByCloudId,
@@ -202,6 +204,17 @@ function defaultDecision(status: ReceiveDocumentStatus): ReceiveDecision | null 
   }
 }
 
+/**
+ * Whether a local document other than this project's copy holds `id`: a
+ * document of another project or another user, or a deleted one that can
+ * still be restored. A cloud document is then received under a new id.
+ */
+async function idTakenElsewhere(kind: TransferDocumentKind, id: string, link: CloudLinkRow): Promise<boolean> {
+  const row = kind === "workflow" ? await Workflow.get<Workflow>(id) : await TimelineSequence.findById(id);
+  if (row) return row.project_id !== link.project_id || row.user_id !== link.user_id;
+  return deletedDocumentExists(kind, id);
+}
+
 async function localHashOf(kind: TransferDocumentKind, localId: string, projectId: string): Promise<string | null> {
   const payload = await transferPayloadOf(kind, localId);
   if (!payload) return null;
@@ -259,7 +272,12 @@ export async function captureReceive(
   const documents: PlannedDocument[] = [];
   for (const document of set.documents) {
     const linked = await getCloudLinkDocumentByCloudId(link.id, document.kind, document.document_id);
-    const localId = linked?.local_id ?? document.document_id;
+    // The plan keeps the pair, and the commit records it as the link document.
+    const localId =
+      linked?.local_id ??
+      ((await idTakenElsewhere(document.kind, document.document_id, link))
+        ? createTimeOrderedUuid()
+        : document.document_id);
     const baseHash = linked?.base_content_hash ?? null;
     const localHash = await localHashOf(document.kind, localId, link.project_id);
     const status = statusOf(document.content_hash, baseHash, localHash);
@@ -372,6 +390,10 @@ async function stage(transport: ReceiveTransport, row: CloudReceiveRow, plan: Re
 async function writeDocument(link: CloudLinkRow, document: PlannedDocument, payload: TransferPayloadContent): Promise<void> {
   const handler = TRANSFER_DOCUMENT_KINDS[document.kind];
   const current = await handler.lock(document.localId);
+  // Never replace a document of another project or person under the same id.
+  if (current && (current.projectId !== link.project_id || current.userId !== link.user_id)) {
+    throw new Error(`The local ${document.kind} ${document.localId} belongs to another project`);
+  }
   if (current) {
     await handler.replace(current, payload);
   } else {

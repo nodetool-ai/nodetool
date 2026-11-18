@@ -227,6 +227,42 @@ describe("receiving a cloud project", { timeout: 30_000 }, () => {
     expect(cloud.downloads).toHaveLength(1);
   });
 
+  it("receives a cloud document whose id a document of another project holds under a new id (review F15)", async () => {
+    const otherProject = "b".repeat(32);
+    const document = cloud.putWorkflow("Edit", null);
+    const theirs = await Workflow.create<Workflow>({
+      id: document.id,
+      user_id: USER,
+      project_id: otherProject,
+      name: "Another project's workflow",
+      description: "",
+      tags: [],
+      access: "private",
+      graph: { nodes: [], edges: [] },
+      run_mode: "workflow"
+    });
+    const before = identityHash(await transferPayloadOf("workflow", theirs.id));
+
+    const review = await captureReceive(cloud, link);
+    const [planned] = review.documents;
+    expect(planned).toMatchObject({ cloudId: document.id, status: "new", decision: "receive" });
+    expect(planned?.localId).not.toBe(document.id);
+    expect(await runReceive(cloud, review.setId)).toMatchObject({ status: "finished" });
+
+    const kept = await Workflow.get<Workflow>(document.id);
+    expect(kept).toMatchObject({ project_id: otherProject, name: "Another project's workflow" });
+    expect(identityHash(await transferPayloadOf("workflow", document.id))).toBe(before);
+    const received = await Workflow.get<Workflow>(planned?.localId ?? "");
+    expect(received).toMatchObject({ project_id: PROJECT, name: "Edit" });
+    expect(await getCloudLinkDocumentByCloudId(link.id, "workflow", document.id)).toMatchObject({
+      local_id: planned?.localId
+    });
+
+    // The next receive finds the pair and changes nothing.
+    const again = await captureReceive(cloud, link);
+    expect(again.documents).toMatchObject([{ localId: planned?.localId, status: "same" }]);
+  });
+
   it("takes a cloud change over an unchanged local copy and keeps the local revision as a version", async () => {
     const document = cloud.putWorkflow("Edit", null);
     await runReceive(cloud, (await captureReceive(cloud, link)).setId);
