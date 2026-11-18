@@ -32,7 +32,7 @@ import {
 const stepIcons = [FileSpreadsheet, Palette, FlaskConical, Clapperboard];
 const lookTitle = (id: string): string =>
   CATALOG_LOOKS.find((look) => look.id === id)?.title ?? id;
-const renderNote = `${SAMPLE_RENDER.model} on ${SAMPLE_RENDER.provider} · ${SAMPLE_RENDER.seconds} s · ${SAMPLE_RENDER.resolution}`;
+const renderNote = `${SAMPLE_RENDER.model} on ${SAMPLE_RENDER.provider} · ${SAMPLE_RENDER.seconds} s · ${SAMPLE_RENDER.resolution} ${SAMPLE_RENDER.aspect}`;
 
 const fill = (template: string, sample: CatalogSample): string =>
   template
@@ -220,6 +220,10 @@ const expectations = [
   },
   {
     ok: false,
+    text: "Match the photo to the clip's shape. These samples are 16:9 clips made from square photos, so each one opens zoomed in and pulls back, and the tall bottle never fits the frame. Crop photos to the frame you render.",
+  },
+  {
+    ok: false,
     text: "A clean packshot on a plain background animates best. Busy lifestyle photos give the model more to reinterpret.",
   },
   {
@@ -316,8 +320,9 @@ export default function CatalogMotionPage() {
               </h2>
               <p className="mt-4 text-lg leading-relaxed text-slate-400">
                 The four rows of the CSV that ships with the app, rendered
-                unedited with the app&apos;s own looks. {renderNote}. Hover a
-                clip to compare it with the photo it started from.
+                with the app&apos;s own looks and shown here as a centred
+                square crop. {renderNote}. Hover a clip to compare it with the
+                photo it started from.
               </p>
             </div>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">

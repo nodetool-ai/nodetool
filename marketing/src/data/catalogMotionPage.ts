@@ -20,7 +20,8 @@ export const SAMPLE_RENDER = {
   provider: "fal",
   seconds: 5,
   resolution: "720p",
-  aspect: "1:1",
+  /** The clips came back 16:9; the page shows a centred square crop. */
+  aspect: "16:9",
 } as const;
 
 export type CatalogLook = {
