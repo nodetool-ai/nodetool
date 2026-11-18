@@ -10,9 +10,11 @@
  */
 import { createHash } from "node:crypto";
 import {
+  changingAccess,
   lockTransferDocumentRow,
   TimelineSequence,
   TimelineSequenceVersion,
+  timelineDocumentDurationMs,
   Workflow,
   WorkflowVersion
 } from "@nodetool-ai/models";
@@ -54,6 +56,14 @@ export interface TransferDocumentKindHandler {
   rename(document: TransferDocument, name: string): Promise<void>;
   /** Deletes the document as its owner. It keeps its restore period. */
   remove(document: TransferDocument): Promise<void>;
+  /** Points the document at another project, taking its file along. */
+  move(document: TransferDocument, projectId: string): Promise<void>;
+  /** Why the version payload cannot be stored as a saved version, or null when it can. */
+  invalidVersion(payload: TransferPayloadContent): string | null;
+  /** The document and content hash of a stored saved version, or null when the id is free. */
+  findVersion(versionId: string): Promise<{ documentId: string; hash: string } | null>;
+  /** Adds a saved version under its id, as the next version number of the document. */
+  addVersion(document: { id: string; userId: string }, versionId: string, payload: TransferPayloadContent): Promise<void>;
 }
 
 function isFullId(id: string): boolean {
@@ -99,6 +109,36 @@ function workflowFields(payload: TransferPayloadContent) {
     },
     settings: payload.settings === null ? null : objectOf(payload.settings),
     run_mode: typeof payload.run_mode === "string" ? payload.run_mode : null
+  };
+}
+
+function nullableText(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
+}
+
+const SAVE_TYPES = new Set(["manual", "autosave", "restore"]);
+
+function saveType(value: unknown): string {
+  return typeof value === "string" && SAVE_TYPES.has(value) ? value : "manual";
+}
+
+function invalidSaveType(payload: TransferPayloadContent): string | null {
+  return payload.save_type === undefined || (typeof payload.save_type === "string" && SAVE_TYPES.has(payload.save_type))
+    ? null
+    : "A saved version's save type is manual, autosave or restore";
+}
+
+/**
+ * The content of a saved workflow version: what a person sees of it, without
+ * its id, its number or its time. Version numbers count per server, so a
+ * version keeps its id and takes the next number where it is stored.
+ */
+function workflowVersionPayload(version: WorkflowVersion): TransferPayloadContent {
+  return {
+    name: version.name,
+    description: version.description,
+    graph: version.graph,
+    save_type: version.save_type
   };
 }
 
@@ -162,6 +202,36 @@ const workflowHandler: TransferDocumentKindHandler = {
   },
   async remove(document) {
     await Workflow.deleteOwned(document.userId, document.id);
+  },
+  async move(document, projectId) {
+    // A document's project is part of its access, so the move bumps its epoch.
+    await changingAccess([{ kind: "workflow", id: document.id }], async () => {
+      const workflow = await Workflow.get<Workflow>(document.id);
+      if (!workflow) throw new Error(`Workflow ${document.id} is gone`);
+      workflow.project_id = projectId;
+      await workflow.save();
+    });
+  },
+  invalidVersion(payload) {
+    if (!hasArrays(payload.graph, ["nodes", "edges"])) return "A saved version's graph needs nodes and edges arrays";
+    return invalidSaveType(payload);
+  },
+  async findVersion(versionId) {
+    const version = await WorkflowVersion.get<WorkflowVersion>(versionId);
+    return version ? { documentId: version.workflow_id, hash: identityHash(workflowVersionPayload(version)) } : null;
+  },
+  async addVersion(document, versionId, payload) {
+    const fields = workflowFields(payload);
+    await WorkflowVersion.create<WorkflowVersion>({
+      id: versionId,
+      workflow_id: document.id,
+      user_id: document.userId,
+      name: nullableText(payload.name),
+      description: nullableText(payload.description),
+      graph: fields.graph,
+      save_type: saveType(payload.save_type),
+      version: await WorkflowVersion.nextVersion(document.id)
+    });
   }
 };
 
@@ -182,6 +252,17 @@ function timelinePayload(timeline: TimelineSequence): TransferPayloadContent {
     width: timeline.width,
     height: timeline.height,
     document
+  };
+}
+
+function timelineVersionPayload(version: TimelineSequenceVersion): TransferPayloadContent {
+  return {
+    name: version.name,
+    save_type: version.save_type,
+    fps: version.fps,
+    width: version.width,
+    height: version.height,
+    document: parsedTimelineDocument(version.document)
   };
 }
 
@@ -249,6 +330,39 @@ const timelineHandler: TransferDocumentKindHandler = {
   },
   async remove(document) {
     await TimelineSequence.deleteOwned(document.userId, document.id);
+  },
+  async move(document, projectId) {
+    const moved = await TimelineSequence.moveToProject(document.userId, document.id, projectId);
+    if (!moved) throw new Error(`Timeline ${document.id} is gone`);
+  },
+  invalidVersion(payload) {
+    if (!positive(payload.fps) || !positive(payload.width) || !positive(payload.height)) {
+      return "A saved version needs a positive frame rate, width and height";
+    }
+    if (!hasArrays(payload.document, ["tracks", "clips", "markers"])) {
+      return "A saved version's document needs tracks, clips and markers arrays";
+    }
+    return invalidSaveType(payload);
+  },
+  async findVersion(versionId) {
+    const version = await TimelineSequenceVersion.get<TimelineSequenceVersion>(versionId);
+    return version ? { documentId: version.timeline_id, hash: identityHash(timelineVersionPayload(version)) } : null;
+  },
+  async addVersion(document, versionId, payload) {
+    const fields = timelineFields(payload);
+    await TimelineSequenceVersion.create<TimelineSequenceVersion>({
+      id: versionId,
+      timeline_id: document.id,
+      user_id: document.userId,
+      name: nullableText(payload.name),
+      save_type: saveType(payload.save_type),
+      fps: fields.fps,
+      width: fields.width,
+      height: fields.height,
+      duration_ms: timelineDocumentDurationMs(JSON.parse(fields.document)),
+      document: fields.document,
+      version: await TimelineSequenceVersion.nextVersion(document.id)
+    });
   }
 };
 
@@ -256,6 +370,19 @@ export const TRANSFER_DOCUMENT_KINDS: Record<TransferDocumentKind, TransferDocum
   workflow: workflowHandler,
   timeline: timelineHandler
 };
+
+/** The payload of a stored saved version, for the client's capture and for tests. */
+export async function transferVersionPayloadOf(
+  kind: TransferDocumentKind,
+  versionId: string
+): Promise<TransferPayloadContent | null> {
+  if (kind === "workflow") {
+    const version = await WorkflowVersion.get<WorkflowVersion>(versionId);
+    return version ? workflowVersionPayload(version) : null;
+  }
+  const version = await TimelineSequenceVersion.get<TimelineSequenceVersion>(versionId);
+  return version ? timelineVersionPayload(version) : null;
+}
 
 /** The payload of a stored document, for the client's capture and for tests. */
 export async function transferPayloadOf(

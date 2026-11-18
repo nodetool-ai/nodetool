@@ -224,6 +224,12 @@ export function attemptDigest(input: CommitTransferInput): string {
       kind: payload.kind,
       document_id: payload.document_id,
       hash: identityHash(payload.document)
+    })),
+    versions: (input.versions ?? []).map((version) => ({
+      kind: version.kind,
+      document_id: version.document_id,
+      version_id: version.version_id,
+      hash: identityHash(version.version)
     }))
   });
 }
@@ -236,18 +242,49 @@ function documentKey(kind: string, id: string): string {
   return `${kind}:${id}`;
 }
 
-/** The operations' targets, in the manifest's order, without repeats. */
+/** The documents the operations name, in the manifest's order, without repeats. */
 function targets(operations: readonly TransferOperation[]): { kind: TransferDocumentKind; id: string }[] {
   const seen = new Set<string>();
   const out: { kind: TransferDocumentKind; id: string }[] = [];
-  for (const op of operations) {
-    const key = documentKey(op.kind, op.document_id);
-    if (seen.has(key)) continue;
+  const add = (kind: TransferDocumentKind, id: string) => {
+    const key = documentKey(kind, id);
+    if (seen.has(key)) return;
     seen.add(key);
-    out.push({ kind: op.kind, id: op.document_id });
+    out.push({ kind, id });
+  };
+  for (const op of operations) {
+    add(op.kind, op.document_id);
+    if (op.op === "keep_both") add(op.kind, op.new_document_id);
   }
   return out;
 }
+
+/** The document an operation writes content to under a payload, or null for one that carries none. */
+function payloadTarget(op: TransferOperation): { id: string; capturedHash: string } | null {
+  switch (op.op) {
+    case "create_document":
+    case "replace_document":
+      return { id: op.document_id, capturedHash: op.captured_hash };
+    case "keep_both":
+      return { id: op.new_document_id, capturedHash: op.captured_hash };
+    default:
+      return null;
+  }
+}
+
+/**
+ * The order the operations apply in: documents are created first, so a later
+ * operation can name them, and deleted last.
+ */
+const APPLY_ORDER: Record<TransferOperation["op"], number> = {
+  create_document: 0,
+  keep_both: 0,
+  replace_document: 1,
+  rename_document: 1,
+  add_versions: 1,
+  move_document: 2,
+  delete_document: 3
+};
 
 /**
  * Runs one commit attempt: the steps of "Sending: capture, stage, commit
@@ -312,45 +349,84 @@ export async function commitTransfer(
       ...input.manifest.required_files.map((file) => file.asset_id),
       ...input.missing_files.map((file) => file.asset_id)
     ]);
-    for (const op of operations) {
-      if (op.op !== "create_document" && op.op !== "replace_document") continue;
-      const payload = payloads.get(documentKey(op.kind, op.document_id));
-      if (!payload) {
-        failures.push(failure("PAYLOAD_MISSING", "The operation has no payload", { kind: op.kind, document_id: op.document_id }));
-        continue;
-      }
-      if (identityHash(payload) !== op.captured_hash) {
-        failures.push(
-          failure("PAYLOAD_HASH_MISMATCH", "The payload does not have the captured hash", {
-            kind: op.kind,
-            document_id: op.document_id
-          })
-        );
-        continue;
-      }
-      const invalid = TRANSFER_DOCUMENT_KINDS[op.kind].invalid(payload);
-      if (invalid) {
-        failures.push(failure("PAYLOAD_INVALID", invalid, { kind: op.kind, document_id: op.document_id }));
-        continue;
-      }
-      for (const file of TRANSFER_DOCUMENT_KINDS[op.kind].files(payload)) {
+    const versionPayloads = new Map<string, TransferPayloadContent>();
+    for (const version of input.versions ?? []) {
+      versionPayloads.set(documentKey(version.kind, version.version_id), version.version);
+    }
+    const listedFiles = (op: TransferOperation, content: TransferPayloadContent, extra: Partial<TransferFailure>) => {
+      for (const file of TRANSFER_DOCUMENT_KINDS[op.kind].files(content)) {
         if (!listed.has(file)) {
           failures.push(
             failure("MANIFEST_INCOMPLETE", "The document refers to a file the manifest does not list", {
               kind: op.kind,
-              document_id: op.document_id,
+              ...extra,
               asset_id: file
             })
           );
         }
       }
+    };
+    for (const op of operations) {
+      if (op.op === "move_document" && op.base_project_id !== transfer.project_id) {
+        failures.push(
+          failure("DOCUMENT_NOT_IN_PROJECT", "A move starts from the project of the transfer", {
+            kind: op.kind,
+            document_id: op.document_id,
+            project_id: op.base_project_id
+          })
+        );
+        continue;
+      }
+      if (op.op === "add_versions") {
+        for (const entry of op.versions) {
+          const where = { kind: op.kind, document_id: op.document_id, version_id: entry.version_id };
+          const version = versionPayloads.get(documentKey(op.kind, entry.version_id));
+          if (!version) {
+            failures.push(failure("PAYLOAD_MISSING", "The saved version has no payload", where));
+            continue;
+          }
+          if (identityHash(version) !== entry.hash) {
+            failures.push(failure("PAYLOAD_HASH_MISMATCH", "The saved version does not have its hash", where));
+            continue;
+          }
+          const invalid = TRANSFER_DOCUMENT_KINDS[op.kind].invalidVersion(version);
+          if (invalid) {
+            failures.push(failure("PAYLOAD_INVALID", invalid, where));
+            continue;
+          }
+          listedFiles(op, version, { document_id: op.document_id, version_id: entry.version_id });
+        }
+        continue;
+      }
+      const target = payloadTarget(op);
+      if (!target) continue;
+      const where = { kind: op.kind, document_id: target.id };
+      const payload = payloads.get(documentKey(op.kind, target.id));
+      if (!payload) {
+        failures.push(failure("PAYLOAD_MISSING", "The operation has no payload", where));
+        continue;
+      }
+      if (identityHash(payload) !== target.capturedHash) {
+        failures.push(failure("PAYLOAD_HASH_MISMATCH", "The payload does not have the captured hash", where));
+        continue;
+      }
+      const invalid = TRANSFER_DOCUMENT_KINDS[op.kind].invalid(payload);
+      if (invalid) {
+        failures.push(failure("PAYLOAD_INVALID", invalid, where));
+        continue;
+      }
+      listedFiles(op, payload, { document_id: target.id });
     }
     if (failures.length > 0) return refuse(failures);
 
     // Step 4: lock the access epochs, then check the sender's role on the project.
     const projectId = transfer.project_id;
+    const targetProjects = [
+      ...new Set(operations.flatMap((op) => (op.op === "move_document" ? [op.target_project_id] : [])))
+    ].filter((id) => id !== projectId);
     const epochKeys: AccessKey[] = [
       { kind: "project", id: projectId },
+      ...targetProjects.map((id): AccessKey => ({ kind: "project", id })),
       ...targets(operations).map((target) => ({ kind: target.kind, id: target.id }))
     ];
     await lockAccessEpochs(epochKeys);
@@ -380,29 +456,78 @@ export async function commitTransfer(
       const document = await TRANSFER_DOCUMENT_KINDS[target.kind].lock(target.id);
       if (document) stored.set(documentKey(target.kind, target.id), document);
     }
+    const created = new Set<string>();
+    for (const op of operations) {
+      if (op.op === "create_document") created.add(documentKey(op.kind, op.document_id));
+      if (op.op === "keep_both") created.add(documentKey(op.kind, op.new_document_id));
+    }
+    const admit = (key: string, files: readonly string[]) => {
+      admissions.set(key, [...(admissions.get(key) ?? []), ...files]);
+    };
+    // A document the attempt creates: its id is free, live or deleted, and
+    // the sender may attach what it refers to.
+    const checkNew = async (kind: TransferDocumentKind, id: string) => {
+      const where = { kind, document_id: id };
+      if (stored.has(documentKey(kind, id)) || (await deletedDocumentExists(kind, id))) {
+        failures.push(failure("DOCUMENT_EXISTS", "A document with this id exists", where));
+        return;
+      }
+      const handler = TRANSFER_DOCUMENT_KINDS[kind];
+      const check = await host.checkAttach(
+        userId,
+        kind,
+        { id, user_id: userId, before: null },
+        handler.content(payloads.get(documentKey(kind, id)) ?? {})
+      );
+      if (check.unreadable) {
+        failures.push(failure("FILE_NOT_READABLE", "The sender may not attach this file", { ...where, asset_id: check.unreadable }));
+      }
+      admit(documentKey(kind, id), check.toAdmit);
+    };
+    // Saved versions: an id the cloud holds with the same content counts as
+    // done, with other content it refuses. A new version passes the attach
+    // rule against the document it joins.
+    const presentVersions = new Set<string>();
+    const checkVersions = async (op: Extract<TransferOperation, { op: "add_versions" }>, document: TransferDocument | null) => {
+      const handler = TRANSFER_DOCUMENT_KINDS[op.kind];
+      for (const entry of op.versions) {
+        const where = { kind: op.kind, document_id: op.document_id, version_id: entry.version_id };
+        const found = await handler.findVersion(entry.version_id);
+        if (found) {
+          if (found.documentId === op.document_id && found.hash === entry.hash) {
+            presentVersions.add(entry.version_id);
+          } else {
+            failures.push(failure("VERSION_CONFLICT", "A saved version with this id holds other content", where));
+          }
+          continue;
+        }
+        const check = await host.checkAttach(
+          userId,
+          op.kind,
+          {
+            id: op.document_id,
+            user_id: document?.userId ?? userId,
+            before: document ? handler.content(document.payload) : null
+          },
+          handler.content(versionPayloads.get(documentKey(op.kind, entry.version_id)) ?? {})
+        );
+        if (check.unreadable) {
+          failures.push(failure("FILE_NOT_READABLE", "The sender may not attach this file", { ...where, asset_id: check.unreadable }));
+        }
+        admit(documentKey(op.kind, op.document_id), check.toAdmit);
+      }
+    };
     for (const op of operations) {
       const key = documentKey(op.kind, op.document_id);
       const handler = TRANSFER_DOCUMENT_KINDS[op.kind];
       const document = stored.get(key) ?? null;
       const where = { kind: op.kind, document_id: op.document_id };
       if (op.op === "create_document") {
-        if (document || (await deletedDocumentExists(op.kind, op.document_id))) {
-          failures.push(failure("DOCUMENT_EXISTS", "A document with this id exists", where));
-          continue;
-        }
-        const payload = payloads.get(key) ?? {};
-        const check = await host.checkAttach(
-          userId,
-          op.kind,
-          { id: op.document_id, user_id: userId, before: null },
-          handler.content(payload)
-        );
-        if (check.unreadable) {
-          failures.push(
-            failure("FILE_NOT_READABLE", "The sender may not attach this file", { ...where, asset_id: check.unreadable })
-          );
-        }
-        admissions.set(key, check.toAdmit);
+        await checkNew(op.kind, op.document_id);
+        continue;
+      }
+      if (op.op === "add_versions" && !document && created.has(key)) {
+        await checkVersions(op, null);
         continue;
       }
       if (!document) {
@@ -413,6 +538,8 @@ export async function commitTransfer(
         );
         continue;
       }
+      // A document already in the target project counts as moved.
+      if (op.op === "move_document" && document.projectId === op.target_project_id) continue;
       if (document.projectId !== projectId) {
         failures.push(failure("DOCUMENT_NOT_IN_PROJECT", "The document is not in this project", where));
         continue;
@@ -422,30 +549,69 @@ export async function commitTransfer(
         failures.push(failure("ACCESS_REMOVED", "The sender no longer has access to the document", where));
         continue;
       }
-      if (op.op === "delete_document") {
-        if (role !== "owner") failures.push(failure("OWNER_REQUIRED", "Only the owner deletes a document", where));
+      if (op.op === "delete_document" || op.op === "move_document") {
+        if (role !== "owner") {
+          failures.push(
+            failure("OWNER_REQUIRED", `Only the owner ${op.op === "delete_document" ? "deletes" : "moves"} a document`, where)
+          );
+        }
       } else if (!atLeast(role, "editor")) {
         failures.push(failure("EDITOR_REQUIRED", "The sender may only view the document", where));
         continue;
       }
-      if (op.op === "replace_document") {
-        const check = await host.checkAttach(
-          userId,
-          op.kind,
-          { id: document.id, user_id: document.userId, before: handler.content(document.payload) },
-          handler.content(payloads.get(key) ?? {})
-        );
-        if (check.unreadable) {
-          failures.push(
-            failure("FILE_NOT_READABLE", "The sender may not attach this file", { ...where, asset_id: check.unreadable })
-          );
+      const storedHash = identityHash(document.payload);
+      switch (op.op) {
+        case "move_document": {
+          // Projects have no grants before phase 4, so the editor of the
+          // target project is its owner.
+          const target = await Project.get<Project>(op.target_project_id);
+          if (!target || target.deleted_at) {
+            failures.push(failure("PROJECT_NOT_FOUND", "The target project is gone", { ...where, project_id: op.target_project_id }));
+          } else if (target.user_id !== userId) {
+            failures.push(
+              failure("PROJECT_EDITOR_REQUIRED", "The sender may not add documents to the target project", {
+                ...where,
+                project_id: op.target_project_id
+              })
+            );
+          }
+          break;
         }
-        admissions.set(key, check.toAdmit);
+        case "keep_both":
+          if (decisions.get(key) !== storedHash) {
+            failures.push(
+              failure("DECISION_REQUIRED", "Keep both needs a decision that names the stored revision", {
+                ...where,
+                stored_hash: storedHash
+              })
+            );
+          }
+          await checkNew(op.kind, op.new_document_id);
+          break;
+        case "add_versions":
+          await checkVersions(op, document);
+          break;
+        case "replace_document": {
+          const check = await host.checkAttach(
+            userId,
+            op.kind,
+            { id: document.id, user_id: document.userId, before: handler.content(document.payload) },
+            handler.content(payloads.get(key) ?? {})
+          );
+          if (check.unreadable) {
+            failures.push(
+              failure("FILE_NOT_READABLE", "The sender may not attach this file", { ...where, asset_id: check.unreadable })
+            );
+          }
+          admit(key, check.toAdmit);
+          break;
+        }
+        default:
+          break;
       }
       // Step 7: the stored content must be the base. For a replace, a Keep
       // local decision may name the stored hash instead.
       if (op.op === "replace_document" || op.op === "delete_document") {
-        const storedHash = identityHash(document.payload);
         const decided = op.op === "replace_document" && decisions.get(key) === storedHash;
         if (storedHash !== op.base_hash && !decided) {
           failures.push(
@@ -477,27 +643,67 @@ export async function commitTransfer(
         kind: "project"
       });
     }
-    for (const op of operations) {
+    const ordered = operations
+      .map((op, index) => ({ op, index }))
+      .sort((a, b) => APPLY_ORDER[a.op.op] - APPLY_ORDER[b.op.op] || a.index - b.index)
+      .map((entry) => entry.op);
+    const publish = new Set<string>();
+    const publishList: { kind: TransferDocumentKind; id: string }[] = [];
+    const willPublish = (kind: TransferDocumentKind, id: string) => {
+      const key = documentKey(kind, id);
+      if (publish.has(key)) return;
+      publish.add(key);
+      publishList.push({ kind, id });
+    };
+    for (const op of ordered) {
       const key = documentKey(op.kind, op.document_id);
       const handler = TRANSFER_DOCUMENT_KINDS[op.kind];
       const document = stored.get(key);
       switch (op.op) {
         case "create_document":
           await handler.create({ id: op.document_id, userId, projectId, payload: payloads.get(key) ?? {} });
+          willPublish(op.kind, op.document_id);
           break;
+        case "keep_both": {
+          const newKey = documentKey(op.kind, op.new_document_id);
+          await handler.create({ id: op.new_document_id, userId, projectId, payload: payloads.get(newKey) ?? {} });
+          willPublish(op.kind, op.new_document_id);
+          break;
+        }
         case "replace_document":
           if (document) await handler.replace(document, payloads.get(key) ?? {});
+          willPublish(op.kind, op.document_id);
           break;
         case "rename_document":
           if (document) await handler.rename(document, op.name);
+          willPublish(op.kind, op.document_id);
+          break;
+        case "add_versions": {
+          const owner = { id: op.document_id, userId: document?.userId ?? userId };
+          for (const entry of op.versions) {
+            if (presentVersions.has(entry.version_id)) continue;
+            await handler.addVersion(owner, entry.version_id, versionPayloads.get(documentKey(op.kind, entry.version_id)) ?? {});
+          }
+          willPublish(op.kind, op.document_id);
+          break;
+        }
+        case "move_document":
+          if (document && document.projectId !== op.target_project_id) {
+            await handler.move(document, op.target_project_id);
+          }
+          willPublish(op.kind, op.document_id);
           break;
         case "delete_document":
           if (document) await handler.remove(document);
           break;
       }
-      if (op.op !== "delete_document") {
-        written.push({ kind: op.kind, id: op.document_id, toAdmit: admissions.get(key) ?? [] });
-      }
+    }
+    const deleted = new Set(
+      operations.flatMap((op) => (op.op === "delete_document" ? [documentKey(op.kind, op.document_id)] : []))
+    );
+    for (const target of publishList) {
+      const key = documentKey(target.kind, target.id);
+      if (!deleted.has(key)) written.push({ ...target, toAdmit: admissions.get(key) ?? [] });
     }
     await commitProjectBlobs(projectId, transfer.id);
 
