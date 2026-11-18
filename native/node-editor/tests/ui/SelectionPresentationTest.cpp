@@ -1,6 +1,7 @@
 #include "graph/EditorScene.h"
 #include "graph/WorkflowGraphModel.h"
 #include "ui/EditorWindow.h"
+#include <QSettings>
 #include "ui/InspectorClearance.h"
 #include <QDockWidget>
 #include <QGraphicsView>
@@ -174,6 +175,8 @@ private:
 private slots:
     void initTestCase() {
         QStandardPaths::setTestModeEnabled(true);
+        // The chat state persists, and a visible chat keeps the inspector closed.
+        QSettings().setValue("canvas-chat-dock/collapsed", true);
     }
 
     // Selecting a node keeps the node and everything upstream or downstream of
@@ -301,6 +304,31 @@ private slots:
         clickEmptyCanvas(window);
         QTest::qWait(300);
         QCOMPARE(view->transform().m11(), zoom);
+    }
+
+    // A select opens the inspector by itself only while the chat is hidden.
+    // With the chat visible, the inspector button still opens it.
+    void chatVisibleKeepsTheInspectorClosedOnSelect() {
+        QSettings().setValue("canvas-chat-dock/collapsed", true);
+        {
+            EditorWindow window;
+            load(window, 300);
+            QVERIFY(!window.chatVisible());
+            click(window, "a");
+            QTRY_VERIFY(window.inspectorVisible());
+        }
+        EditorWindow window;
+        load(window, 300);
+        window.toggleChat();
+        QVERIFY(window.chatVisible());
+        click(window, "a");
+        QCOMPARE(window.selection(), QString("a"));
+        QTest::qWait(100);
+        QVERIFY(!window.inspectorVisible());
+        window.action("Toggle inspector");
+        QTRY_VERIFY(window.inspectorVisible());
+        window.toggleChat();
+        QSettings().setValue("canvas-chat-dock/collapsed", true);
     }
 
     // The inspector pans the canvas only when it would cover a node.
