@@ -493,6 +493,43 @@ describe("receiving a cloud project", { timeout: 30_000 }, () => {
     expect(await Asset.get<Asset>(kept.assetId)).toMatchObject({ workspace_path: kept.keptPath, content_hash: file.hash });
   });
 
+  it("puts back local bytes a failed replacement moved aside, also when the received bytes go beside (review F49)", async () => {
+    const bytes = randomBytes(64);
+    const document = cloud.putWorkflow("Edit", { bytes, name: "still.png", path: "media/still.png" });
+    await runReceive(cloud, (await captureReceive(cloud, link)).setId);
+    const newer = randomBytes(64);
+    const file = document.files[0]!;
+    file.hash = sha(newer);
+    file.size = newer.byteLength;
+    cloud.blobs.set(file.hash, newer);
+    document.payload = workflowPayload("Edit", file.asset_id, "two");
+
+    // Another app saves the file after the receive checked it, and saves it
+    // again at the path after the receive moved the first save aside.
+    const edited = randomBytes(32);
+    const third = randomBytes(48);
+    const gate = new PauseGate([REPLACING, "receive.place.moved-aside"]).install();
+    try {
+      const review = await captureReceive(cloud, link);
+      const running = runReceive(cloud, review.setId);
+      await gate.waitFor(REPLACING);
+      await folder.write("media/still.png", edited);
+      gate.release(REPLACING);
+      await gate.waitFor("receive.place.moved-aside");
+      await folder.write("media/still.png", third);
+      gate.release("receive.place.moved-aside");
+      const outcome = await running;
+      if (outcome.status !== "finished") throw new Error("expected a finished receive");
+      expect(Buffer.from((await folder.read("media/still.png"))!).equals(third)).toBe(true);
+      expect(Buffer.from((await folder.read(outcome.result.keptBeside[0]!.keptPath))!).equals(newer)).toBe(true);
+      const local = outcome.result.localKept ?? [];
+      expect(local).toHaveLength(1);
+      expect(Buffer.from((await folder.read(local[0]!.keptPath))!).equals(edited)).toBe(true);
+    } finally {
+      gate.uninstall();
+    }
+  });
+
   it("lists a file the cloud no longer held at capture as missing and still receives the document", async () => {
     const document = cloud.putWorkflow("Edit", { bytes: randomBytes(16), name: "gone.png", path: "gone.png" });
     cloud.blobs.clear();

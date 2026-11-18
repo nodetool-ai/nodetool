@@ -661,6 +661,7 @@ async function replaceUnchanged(
     // The file went away after it was checked. The next pass sees a free path.
     return false;
   }
+  await pausePoint("receive.place.moved-aside");
   if ((await contentHashOfFile(displaced)) !== baseHash) {
     if (await workspace.absorbNew(displaced, target)) await rm(displaced, { force: true });
     return false;
@@ -825,6 +826,9 @@ async function place(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePlan
         });
       }
     }
+    // Local bytes a failed replacement moved aside go back before the
+    // placement that names them is cleared (review F49).
+    await restoreDisplaced(workspace, dir, placement.id, placement.path, planned.replaceIfHash, now, plan);
     await pausePoint("receive.place.placed");
     await deleteTransferPlacement(placement.id);
   }
