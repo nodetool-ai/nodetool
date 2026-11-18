@@ -36,10 +36,10 @@ export interface SocketLike {
   send(data: Uint8Array | string): void;
   close(code?: number, reason?: string): void;
   terminate(): void;
-  on(event: "open", listener: () => void): unknown;
-  on(event: "message", listener: (data: Buffer | ArrayBuffer | Buffer[], isBinary: boolean) => void): unknown;
-  on(event: "close", listener: (code: number, reason: Buffer) => void): unknown;
-  on(event: "error", listener: (error: Error) => void): unknown;
+  on(event: "open", listener: () => void): void;
+  on(event: "message", listener: (data: Buffer | ArrayBuffer | Buffer[], isBinary: boolean) => void): void;
+  on(event: "close", listener: (code: number, reason: Buffer) => void): void;
+  on(event: "error", listener: (error: Error) => void): void;
 }
 
 const OPEN = 1;
@@ -171,7 +171,7 @@ export class CloudSockets {
     if (!entry || entry.owner !== owner || !entry.socket || entry.socket.readyState !== OPEN) {
       return false;
     }
-    const size = typeof data === "string" ? Buffer.byteLength(data) : data.byteLength;
+    const size = data instanceof Uint8Array ? data.byteLength : Buffer.byteLength(data);
     if (size > MAX_SOCKET_FRAME_BYTES || entry.socket.bufferedAmount + size > MAX_SOCKET_BUFFERED_BYTES) {
       return false;
     }
