@@ -72,6 +72,13 @@ export function openModelRepository(databasePath, userId) {
       // instance that wrote the stored revision, and its schema version.
       if (!timelineColumns.some((column) => column.name === 'last_writer_instance')) client.exec('ALTER TABLE timeline_sequences ADD COLUMN last_writer_instance TEXT');
       if (!timelineColumns.some((column) => column.name === 'schema_version')) client.exec('ALTER TABLE timeline_sequences ADD COLUMN schema_version INTEGER NOT NULL DEFAULT 1');
+      // The 20261129_000000 and 20261129_000001 add_*_file_columns migrations.
+      for (const table of ['storyboards', 'scripts']) {
+        const columns = client.pragma(`table_info("${table}")`);
+        for (const name of ['file_path', 'file_hash', 'file_error']) {
+          if (!columns.some((column) => column.name === name)) client.exec(`ALTER TABLE ${table} ADD COLUMN ${name} TEXT`);
+        }
+      }
     })();
     db = drizzle(client);
   } catch (error) {
