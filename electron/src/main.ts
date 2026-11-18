@@ -63,7 +63,12 @@ import { updateSetting, readSettingsAsync } from "./settings";
 import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
 import { configureCertificateTrust } from "./certificateTrust";
 import { disposeVstHost } from "./vstHost";
-import { disposeCloudAccount, getCloudAccount } from "./cloudAccount";
+import {
+  disposeCloudAccount,
+  getCloudAccount,
+  handleCloudMediaScheme,
+  registerCloudMediaScheme,
+} from "./cloudAccount";
 
 configureCertificateTrust();
 
@@ -487,7 +492,12 @@ async function checkMediaPermissions(): Promise<void> {
 
 let isInitialized = false;
 
+// Before ready, as Electron requires for a privileged scheme.
+registerCloudMediaScheme();
+
 app.on("ready", async () => {
+  // Cloud documents load their media from nodetool-cloud: URLs.
+  handleCloudMediaScheme();
   // Run settings warmup, IPC setup, and media permission check in parallel
   const settingsPromise = readSettingsAsync().catch((error) => {
     logMessage(`Failed to warm up settings cache: ${errorMessage(error)}`, "warn");

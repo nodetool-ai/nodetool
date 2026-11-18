@@ -84,6 +84,23 @@ import {
 import { isBoolean, isNonEmptyString } from "./typePredicates";
 
 const nodePackInstallRequestSchema = z.object({ spec: z.string() }).strict();
+// A cloud request names no credential and no host: the path is checked
+// against the list of routes in cloudRequests.ts, and the helper adds the
+// account's token.
+const cloudRequestSchema = z
+  .object({
+    method: z.enum(["GET", "HEAD", "POST"]),
+    path: z.string().max(8192),
+    headers: z.record(z.string(), z.string()),
+    body: z.union([z.string(), z.instanceof(Uint8Array)]).optional(),
+  })
+  .strict();
+const cloudTransferSchema = z
+  .object({
+    procedure: z.string().max(200),
+    input: z.record(z.string(), z.unknown()),
+  })
+  .strict();
 const nodePackUninstallRequestSchema = z.object({ name: z.string() }).strict();
 const nodePackTrustRequestSchema = z.object({ name: z.string() }).strict();
 
@@ -155,6 +172,10 @@ const QUIET_CHANNELS = [
   "frontend-log",
   // Renders carry plug-in state and note lists, one per clip edit.
   "vst-render",
+  // Cloud documents send one per query and save. Their bodies are document
+  // content, so they are never logged.
+  "cloud-request",
+  "cloud-transfer",
 ];
 /**
  * Defense-in-depth check for URLs passed to `shell.openExternal` / browser.
@@ -1028,6 +1049,22 @@ export function initializeIpcHandlers(): void {
   });
   createIpcMainHandler(IpcChannels.CLOUD_ACCOUNT_SIGN_OUT, async () => {
     getCloudAccount().signOut();
+  });
+  // Cloud requests and transfer calls of cloud documents (WP1.14). Neither
+  // the input nor the answer holds a token.
+  createIpcMainHandler(IpcChannels.CLOUD_REQUEST, async (_event, request) => {
+    const parsed = cloudRequestSchema.safeParse(request);
+    if (!parsed.success) {
+      return { ok: false, error: "REFUSED" } as const;
+    }
+    return getCloudAccount().request(parsed.data);
+  });
+  createIpcMainHandler(IpcChannels.CLOUD_TRANSFER, async (_event, request) => {
+    const parsed = cloudTransferSchema.safeParse(request);
+    if (!parsed.success) {
+      return { status: "refused", reason: "INVALID", data: null } as const;
+    }
+    return getCloudAccount().transfer(parsed.data.procedure, parsed.data.input);
   });
 
   createIpcMainHandler(IpcChannels.SHELL_BEEP, async () => {

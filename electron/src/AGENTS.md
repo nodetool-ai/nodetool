@@ -132,6 +132,11 @@ are in [native/account-helper](../../native/account-helper/README.md).
   origin only, with no redirects, and opens only `<origin>/oauth/authorize`.
 - The renderer reaches it over `window.api.cloudAccount.*` (IPC
   `CLOUD_ACCOUNT_*`) and receives the account state, never a token.
+- Cloud requests and transfer calls go over `window.api.cloud.*` (IPC
+  `CLOUD_REQUEST`, `CLOUD_TRANSFER`). `cloudRequests.ts` applies the list of
+  routes and sends a helper `http` message only when it matches a pending
+  request. Media loads through the `nodetool-cloud:` scheme, which maps to
+  `/api/assets/*` on the signed-in server only.
 - Unlike the VST host, the helper is never loaded from the user data folder.
 
 ## Rules

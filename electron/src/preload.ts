@@ -27,6 +27,10 @@ import {
   VstOpenEditorRequest,
   VstRenderRequest,
   SystemNotificationRequest,
+  CloudRequestInput,
+  CloudResponse,
+  CloudTransferInput,
+  TransferResult,
 } from "./types.d";
 import { isString } from "./typePredicates";
 
@@ -680,6 +684,21 @@ const api = {
     signOut: () => ipcRenderer.invoke(IpcChannels.CLOUD_ACCOUNT_SIGN_OUT),
     /** Every change of the state, including one made by another app. */
     onChange: createEventSubscription(IpcChannels.CLOUD_ACCOUNT_EVENT),
+  },
+
+  // ============================================================================
+  // cloud: requests to the signed-in cloud server, without the credential
+  // ============================================================================
+  cloud: {
+    /**
+     * A request to a route of the signed-in server. The account helper adds
+     * the token. A 3xx comes back as it is.
+     */
+    request: (request: CloudRequestInput): Promise<CloudResponse> =>
+      ipcRenderer.invoke(IpcChannels.CLOUD_REQUEST, request),
+    /** A call of the local server's transfer router for Publish to Cloud and Synchronize. */
+    transfer: (request: CloudTransferInput): Promise<TransferResult> =>
+      ipcRenderer.invoke(IpcChannels.CLOUD_TRANSFER, request),
   },
 
   // ============================================================================
