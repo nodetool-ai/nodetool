@@ -166,6 +166,8 @@ export interface SendReview {
   transferId: string;
   firstPublication: boolean;
   operations: TransferOperation[];
+  /** Each captured document's ids and name, so the sheet can name an operation's document. */
+  documents: Array<{ kind: TransferDocumentKind; localId: string; cloudId: string; name: string }>;
   /** Files the send puts, also for documents it leaves unchanged. A send with operations or file operations has work. */
   fileOperations: TransferFileOperation[];
   missingFiles: TransferMissingFile[];
@@ -315,6 +317,7 @@ export async function captureSend(target: SendTarget): Promise<SendReview> {
     transferId,
     firstPublication: plan.firstPublication,
     operations: plan.manifest.operations,
+    documents: plan.documents.map(({ kind, localId, cloudId, name }) => ({ kind, localId, cloudId, name })),
     fileOperations: plan.manifest.file_operations ?? [],
     missingFiles: plan.missingFiles,
     skipped: plan.skipped,

@@ -225,6 +225,9 @@ describe("sending a project to the cloud", { timeout: 30_000 }, () => {
     const review = await captureSend(TARGET);
     expect(review.firstPublication).toBe(true);
     expect(review.operations).toMatchObject([{ op: "create_document", document_id: workflow.id }]);
+    expect(review.documents).toEqual([
+      { kind: "workflow", localId: workflow.id, cloudId: workflow.id, name: workflow.name }
+    ]);
 
     const outcome = await runSend(cloud, review.transferId);
     expect(outcome.status).toBe("committed");

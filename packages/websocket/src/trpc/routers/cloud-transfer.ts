@@ -131,7 +131,10 @@ function reviewDocument(document: PlannedDocument) {
     cloud_id: document.cloudId,
     local_id: document.localId,
     name: document.name,
+    content_hash: document.contentHash,
+    local_hash: document.localHash,
     status: document.status,
+    changed_files: document.changedFiles,
     decision: document.decision,
     files: document.files,
     missing_files: document.missingFiles
@@ -191,6 +194,12 @@ export const cloudTransferRouter = router({
             transfer_id: review.transferId,
             first_publication: review.firstPublication,
             operations: review.operations,
+            documents: review.documents.map((document) => ({
+              kind: document.kind,
+              local_id: document.localId,
+              cloud_id: document.cloudId,
+              name: document.name
+            })),
             file_operations: review.fileOperations,
             missing_files: review.missingFiles,
             missing_document_files: review.missingDocumentFiles,

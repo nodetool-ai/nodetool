@@ -46,6 +46,8 @@ export const capturedSend = z.object({
   transfer_id: z.string(),
   first_publication: z.boolean(),
   operations: z.array(transferOperation),
+  /** The captured documents, so the sheet names the document of each operation. */
+  documents: z.array(z.object({ kind: transferDocumentKind, local_id: z.string(), cloud_id: z.string(), name: z.string() })),
   /** Files the send puts, also for documents it leaves unchanged (review F33). */
   file_operations: z.array(transferFileOperation),
   missing_files: z.array(transferMissingFile),
@@ -131,7 +133,24 @@ export const receiveReviewDocument = z.object({
   cloud_id: z.string(),
   local_id: z.string(),
   name: z.string(),
+  /**
+   * The content hash of the cloud revision the sheet shows. A send that
+   * the cloud refuses with this stored hash was reviewed already.
+   */
+  content_hash: z.string(),
+  /**
+   * The hash of this computer's copy when the set was captured, or null
+   * when it has none. A receive the person approved for other hashes asks
+   * again (review F46).
+   */
+  local_hash: z.string().nullable(),
   status: receiveDocumentStatus,
+  /**
+   * Files of the document whose cloud bytes this folder does not hold. A
+   * document whose own content is the same still has work when this is
+   * above 0 (reviews F33, F51).
+   */
+  changed_files: z.number().int().nonnegative(),
   /** The decision taken without the person, or null when the review sheet must ask. */
   decision: receiveDecision.nullable(),
   files: z.array(revisionSetFile),

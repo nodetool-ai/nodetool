@@ -3,6 +3,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
+
 #include <chrono>
 #include <utility>
 
@@ -83,6 +85,36 @@ std::vector<std::string> namesOf(const json& list) {
 
 } // namespace
 
+std::vector<TransferOperation> unreviewedOperations(const std::vector<TransferOperation>& approved,
+                                                    const std::vector<TransferOperation>& recaptured) {
+  const auto same = [](const TransferOperation& a, const TransferOperation& b) {
+    return a.op == b.op && a.kind == b.kind && a.documentId == b.documentId && a.name == b.name &&
+           a.capturedHash == b.capturedHash && a.baseHash == b.baseHash;
+  };
+  std::vector<TransferOperation> out;
+  for (const TransferOperation& op : recaptured) {
+    if (std::none_of(approved.begin(), approved.end(), [&](const TransferOperation& seen) { return same(seen, op); })) {
+      out.push_back(op);
+    }
+  }
+  return out;
+}
+
+std::vector<TransferFileOperation> unreviewedFileOperations(const std::vector<TransferFileOperation>& approved,
+                                                            const std::vector<TransferFileOperation>& recaptured) {
+  const auto same = [](const TransferFileOperation& a, const TransferFileOperation& b) {
+    return a.op == b.op && a.assetId == b.assetId && a.path == b.path && a.hash == b.hash && a.baseHash == b.baseHash;
+  };
+  std::vector<TransferFileOperation> out;
+  for (const TransferFileOperation& op : recaptured) {
+    if (std::none_of(approved.begin(), approved.end(),
+                     [&](const TransferFileOperation& seen) { return same(seen, op); })) {
+      out.push_back(op);
+    }
+  }
+  return out;
+}
+
 std::string receiveStateName(ReceiveState state) {
   switch (state) {
   case ReceiveState::New:
@@ -103,8 +135,9 @@ std::string receiveStateName(ReceiveState state) {
 
 LocalTransferClient::LocalTransferClient(HttpTransport& transport, std::string localOrigin,
                                          std::vector<std::pair<std::string, std::string>> headers,
-                                         AccountSession& session)
-    : transport_(transport), origin_(std::move(localOrigin)), headers_(std::move(headers)), session_(session) {}
+                                         AccountSession& session, std::shared_ptr<const RequestCancel> cancel)
+    : transport_(transport), origin_(std::move(localOrigin)), headers_(std::move(headers)), session_(session),
+      cancel_(std::move(cancel)) {}
 
 LocalTransferClient::Answer LocalTransferClient::post(const std::string& procedure, const std::string& body) {
   HttpRequest request;
@@ -115,6 +148,7 @@ LocalTransferClient::Answer LocalTransferClient::post(const std::string& procedu
   request.body = body;
   const bool run = procedure.ends_with(".run") || procedure.ends_with("resume");
   request.timeout = run ? std::chrono::milliseconds(kRunTimeout) : std::chrono::milliseconds(kCaptureTimeout);
+  request.cancel = cancel_;
   const HttpResponse response = transport_.send(request);
   Answer out;
   if (response.status == 0) {
@@ -224,26 +258,39 @@ SendCapture LocalTransferClient::captureSend(const std::string& projectId, const
   out.transferId = str(data, "transfer_id");
   out.firstPublication = data.value("first_publication", false);
   for (const json& op : data.value("operations", json::array())) {
-    out.operations.push_back({str(op, "op"), str(op, "kind"), str(op, "document_id"), str(op, "name")});
+    out.operations.push_back({str(op, "op"), str(op, "kind"), str(op, "document_id"), str(op, "name"),
+                              str(op, "captured_hash"), str(op, "base_hash")});
+  }
+  for (const json& op : data.value("file_operations", json::array())) {
+    out.fileOperations.push_back(
+        {str(op, "op"), str(op, "asset_id"), str(op, "path"), str(op, "hash"), str(op, "base_hash")});
+  }
+  for (const json& item : data.value("documents", json::array())) {
+    out.documents.push_back({str(item, "kind"), str(item, "local_id"), str(item, "cloud_id"), str(item, "name")});
   }
   for (const json& file : data.value("missing_files", json::array())) {
-    TransferMissingFile missing{str(file, "asset_id"), str(file, "reason"), {}};
+    TransferMissingFile missing{str(file, "asset_id"), str(file, "reason"), {}, file.dump()};
     for (const json& ref : file.value("documents", json::array())) {
       missing.documents.emplace_back(str(ref, "kind"), str(ref, "document_id"));
     }
     out.missingFiles.push_back(std::move(missing));
   }
+  for (const json& item : data.value("missing_document_files", json::array())) {
+    out.missingDocumentFiles.push_back({str(item, "kind"), str(item, "id"), str(item, "name"), "document_file_missing"});
+  }
   for (const json& item : data.value("skipped", json::array())) {
     out.skipped.push_back({str(item, "kind"), str(item, "id"), str(item, "name"), str(item, "detail")});
   }
   for (const json& item : data.value("deleted_locally", json::array())) {
-    out.deletedLocally.push_back({str(item, "kind"), str(item, "local_id"), str(item, "cloud_id")});
+    out.deletedLocally.push_back(
+        {str(item, "kind"), str(item, "local_id"), str(item, "cloud_id"), str(item, "base_hash")});
   }
   return out;
 }
 
 SendRun LocalTransferClient::runSend(const std::string& transferId, const std::vector<KeepLocalDecision>& decisions,
-                                     const std::vector<std::string>& confirmDeletes) {
+                                     const std::vector<DeleteConfirmation>& confirmDeletes,
+                                     const std::vector<TransferMissingFile>& confirmMissing) {
   json input{{"transfer_id", transferId}};
   if (!decisions.empty()) {
     json list = json::array();
@@ -255,8 +302,23 @@ SendRun LocalTransferClient::runSend(const std::string& transferId, const std::v
     }
     input["decisions"] = std::move(list);
   }
-  if (!confirmDeletes.empty()) {
-    input["confirm_deletes"] = confirmDeletes;
+  {
+    // Always the complete list, [] when the person withdrew every
+    // confirmation, so the router never reuses the deletions of an earlier
+    // attempt (review F43).
+    json list = json::array();
+    for (const DeleteConfirmation& confirmation : confirmDeletes) {
+      list.push_back(
+          {{"kind", confirmation.kind}, {"cloud_id", confirmation.cloudId}, {"cloud_hash", confirmation.cloudHash}});
+    }
+    input["confirm_deletes"] = std::move(list);
+  }
+  if (!confirmMissing.empty()) {
+    json list = json::array();
+    for (const TransferMissingFile& file : confirmMissing) {
+      list.push_back(json::parse(file.raw, nullptr, false));
+    }
+    input["confirm_missing_files"] = std::move(list);
   }
   const Answer answer = mutate("cloudTransfer.send.run", input.dump(), true);
   SendRun out;
@@ -270,6 +332,10 @@ SendRun LocalTransferClient::runSend(const std::string& transferId, const std::v
   if (status == "committed") {
     out.committed = true;
     out.cloudProjectId = str(data.value("result", json::object()), "project_id");
+    return out;
+  }
+  if (status == "missing_files_unconfirmed") {
+    out.missingUnconfirmed = true;
     return out;
   }
   if (status != "refused") {
@@ -295,6 +361,48 @@ LocalTransferClient::Cancel LocalTransferClient::cancelSend(const std::string& t
   return out;
 }
 
+LocalTransferClient::ReceiveCancel LocalTransferClient::cancelReceive(const std::string& setId) {
+  const Answer answer = mutate("cloudTransfer.receive.cancel", json{{"set_id", setId}}.dump(), true);
+  ReceiveCancel out;
+  out.status = answer.status;
+  out.reason = answer.reason;
+  if (answer.status == TransferStatus::Ok) {
+    out.applied = str(json::parse(answer.data, nullptr, false), "state") == "applied";
+  }
+  return out;
+}
+
+// Reads the review documents of a receive set. False for a state this
+// client does not know, which is never received without review.
+static bool readReceiveDocuments(const json& list, std::vector<ReceiveDocument>& out) {
+  out.clear();
+  for (const json& item : list) {
+    const auto state = stateFrom(str(item, "status"));
+    if (!state) {
+      out.clear();
+      return false;
+    }
+    ReceiveDocument document;
+    document.kind = str(item, "kind");
+    document.cloudId = str(item, "cloud_id");
+    document.localId = str(item, "local_id");
+    document.name = str(item, "name");
+    document.contentHash = str(item, "content_hash");
+    document.localHash = str(item, "local_hash");
+    document.changedFiles = item.value("changed_files", std::size_t{0});
+    document.state = *state;
+    const std::string decision = str(item, "decision");
+    if (decision == "receive") {
+      document.decision = ReceiveChoice::Receive;
+    } else if (decision == "keep_local") {
+      document.decision = ReceiveChoice::KeepLocal;
+    }
+    document.missingFiles = item.value("missing_files", json::array()).size();
+    out.push_back(std::move(document));
+  }
+  return true;
+}
+
 ReceiveCapture LocalTransferClient::captureReceive(const std::string& projectId) {
   const Answer answer = mutate("cloudTransfer.receive.capture", json{{"project_id", projectId}}.dump(), true);
   ReceiveCapture out;
@@ -305,29 +413,9 @@ ReceiveCapture LocalTransferClient::captureReceive(const std::string& projectId)
   }
   const json data = json::parse(answer.data, nullptr, false);
   out.setId = str(data, "set_id");
-  for (const json& item : data.value("documents", json::array())) {
-    const auto state = stateFrom(str(item, "status"));
-    if (!state) {
-      // A state this client does not know is never received without review.
-      out.status = TransferStatus::Refused;
-      out.reason = "INVALID_RESPONSE";
-      out.documents.clear();
-      return out;
-    }
-    ReceiveDocument document;
-    document.kind = str(item, "kind");
-    document.cloudId = str(item, "cloud_id");
-    document.localId = str(item, "local_id");
-    document.name = str(item, "name");
-    document.state = *state;
-    const std::string decision = str(item, "decision");
-    if (decision == "receive") {
-      document.decision = ReceiveChoice::Receive;
-    } else if (decision == "keep_local") {
-      document.decision = ReceiveChoice::KeepLocal;
-    }
-    document.missingFiles = item.value("missing_files", json::array()).size();
-    out.documents.push_back(std::move(document));
+  if (!readReceiveDocuments(data.value("documents", json::array()), out.documents)) {
+    out.status = TransferStatus::Refused;
+    out.reason = "INVALID_RESPONSE";
   }
   return out;
 }
@@ -357,7 +445,15 @@ ReceiveRun LocalTransferClient::runReceive(const std::string& setId, const std::
     out.changedDuringReceive = namesOf(result.value("changed_during_receive", json::array()));
     out.notReceived = namesOf(result.value("not_received", json::array()));
     out.missingFiles = result.value("missing_files", json::array()).size();
-  } else if (out.outcome != "expired" && out.outcome != "waiting_for_review") {
+  } else if (out.outcome == "waiting_for_review") {
+    // The set to review, which may be a new one, and its documents (F50).
+    out.setId = str(data, "set_id");
+    out.reviewProvided = data.contains("documents");
+    if (!readReceiveDocuments(data.value("documents", json::array()), out.documents)) {
+      out.status = TransferStatus::Refused;
+      out.reason = "INVALID_RESPONSE";
+    }
+  } else if (out.outcome != "expired") {
     out.status = TransferStatus::Refused;
     out.reason = "INVALID_RESPONSE";
   }
@@ -395,21 +491,31 @@ TransferReview::TransferReview(const SendCapture& send, const ReceiveCapture& re
     return rows_.back();
   };
   for (const ReceiveDocument& document : receive.documents) {
-    if (document.state == ReceiveState::Same) {
+    if (document.state == ReceiveState::Same && document.changedFiles == 0) {
       continue;
     }
     const std::string id = document.localId.empty() ? document.cloudId : document.localId;
     if (document.state == ReceiveState::LocalDeleted) {
       ReviewRow& row = deletionRow(document.kind, id);
+      row.cloudId = document.cloudId;
       row.name = document.name;
       row.receiveListed = true;
+      // The cloud revision as it is now, which a cloud edit since the last
+      // exchange made newer than the base (V4).
+      row.seenHash = document.contentHash;
       continue;
     }
     ReviewRow row;
     row.kind = document.kind;
     row.documentId = id;
+    row.cloudId = document.cloudId;
+    row.seenHash = document.contentHash;
     row.name = document.name;
     row.detail = receiveStateName(document.state);
+    if (document.state == ReceiveState::Same) {
+      // Only its files changed in the cloud: the sheet shows them (F51).
+      row.detail = "cloud_file_changed";
+    }
     if (!document.decision) {
       row.section = ReviewSection::Choice;
     } else if (*document.decision == ReceiveChoice::Receive) {
@@ -425,12 +531,66 @@ TransferReview::TransferReview(const SendCapture& send, const ReceiveCapture& re
     row.section = ReviewSection::Send;
     row.kind = op.kind;
     row.documentId = op.documentId;
-    row.name = op.name;
+    // An operation names the cloud id, which is the local id until the
+    // document was linked under another one.
+    for (const TransferDocument& document : send.documents) {
+      if (document.kind == op.kind && (document.cloudId == op.documentId || document.localId == op.documentId)) {
+        row.documentId = document.localId;
+        row.cloudId = document.cloudId;
+        row.name = document.name;
+        break;
+      }
+    }
+    // A rename shows the new name.
+    if (!op.name.empty()) {
+      row.name = op.name;
+    }
+    row.detail = op.op;
+    rows_.push_back(std::move(row));
+  }
+  // A document whose file is missing is still sent, from its last saved
+  // row. Its row says so, and one is added when nothing else lists it
+  // (CF3, review F56).
+  for (const TransferSkipped& missing : send.missingDocumentFiles) {
+    bool listed = false;
+    for (ReviewRow& row : rows_) {
+      if (row.section == ReviewSection::Send && row.kind == missing.kind && row.documentId == missing.id) {
+        row.documentFileMissing = true;
+        listed = true;
+      }
+    }
+    if (!listed) {
+      ReviewRow row;
+      row.section = ReviewSection::Send;
+      row.kind = missing.kind;
+      row.documentId = missing.id;
+      row.name = missing.name;
+      row.detail = missing.detail;
+      row.documentFileMissing = true;
+      rows_.push_back(std::move(row));
+    }
+  }
+  // A file sent over its earlier version gets a row, also when no document
+  // that uses it changed (review F33). A new file goes with its new document.
+  for (const TransferFileOperation& op : send.fileOperations) {
+    if (op.baseHash.empty()) {
+      continue;
+    }
+    ReviewRow row;
+    row.section = ReviewSection::Send;
+    row.kind = "file";
+    row.documentId = op.assetId;
+    row.name = op.path;
     row.detail = op.op;
     rows_.push_back(std::move(row));
   }
   for (const TransferDeleted& deleted : send.deletedLocally) {
-    deletionRow(deleted.kind, deleted.localId).sendListed = true;
+    ReviewRow& row = deletionRow(deleted.kind, deleted.localId);
+    row.cloudId = deleted.cloudId;
+    row.sendListed = true;
+    if (row.seenHash.empty()) {
+      row.seenHash = deleted.baseHash;
+    }
   }
   for (const TransferSkipped& skipped : send.skipped) {
     ReviewRow row;
@@ -441,6 +601,8 @@ TransferReview::TransferReview(const SendCapture& send, const ReceiveCapture& re
     row.detail = skipped.detail;
     rows_.push_back(std::move(row));
   }
+  // A missing file is sent without only once the person confirms it (X7).
+  missingFiles_ = send.missingFiles;
   for (const TransferMissingFile& missing : send.missingFiles) {
     for (const auto& [kind, id] : missing.documents) {
       ReviewRow row;
@@ -448,6 +610,14 @@ TransferReview::TransferReview(const SendCapture& send, const ReceiveCapture& re
       row.kind = kind;
       row.documentId = id;
       row.detail = "file " + missing.assetId + ": " + missing.reason;
+      row.assetId = missing.assetId;
+      rows_.push_back(std::move(row));
+    }
+    if (missing.documents.empty()) {
+      ReviewRow row;
+      row.section = ReviewSection::Problem;
+      row.detail = "file " + missing.assetId + ": " + missing.reason;
+      row.assetId = missing.assetId;
       rows_.push_back(std::move(row));
     }
   }
@@ -459,9 +629,28 @@ void TransferReview::addRefusal(const std::vector<TransferFailure>& failures) {
       continue;
     }
     bool found = false;
-    for (ReviewRow& row : rows_) {
-      if (row.kind == failure.kind && row.documentId == failure.documentId &&
+    // One row per kind and cloud id: a second row that names the refused
+    // document is dropped (review F39).
+    std::vector<std::size_t> duplicates;
+    for (std::size_t i = 0; i < rows_.size(); ++i) {
+      ReviewRow& row = rows_[i];
+      // A deletion refused for a newer cloud revision asks again, for that
+      // revision (V4, review F40).
+      if (row.section == ReviewSection::Deletion && row.kind == failure.kind && row.cloudId == failure.documentId) {
+        row.seenHash = failure.storedHash;
+        row.confirmed = false;
+        row.detail = "cloud_changed";
+        found = true;
+        continue;
+      }
+      // A refusal names the cloud id, as the manifest does.
+      const bool same = row.cloudId.empty() ? row.documentId == failure.documentId : row.cloudId == failure.documentId;
+      if (row.kind == failure.kind && same &&
           (row.section == ReviewSection::Send || row.section == ReviewSection::Choice)) {
+        if (found) {
+          duplicates.push_back(i);
+          continue;
+        }
         row.section = ReviewSection::Choice;
         row.detail = "both_changed";
         row.cloudHash = failure.storedHash;
@@ -469,16 +658,48 @@ void TransferReview::addRefusal(const std::vector<TransferFailure>& failures) {
         found = true;
       }
     }
+    for (auto it = duplicates.rbegin(); it != duplicates.rend(); ++it) {
+      rows_.erase(rows_.begin() + static_cast<std::ptrdiff_t>(*it));
+    }
     if (!found) {
       ReviewRow row;
       row.section = ReviewSection::Choice;
       row.kind = failure.kind;
       row.documentId = failure.documentId;
+      row.cloudId = failure.documentId;
       row.detail = "both_changed";
       row.cloudHash = failure.storedHash;
       rows_.push_back(std::move(row));
     }
   }
+}
+
+std::vector<TransferReview::RefusalReceive> TransferReview::refusalsToReceive() const {
+  std::vector<RefusalReceive> out;
+  for (const ReviewRow& row : rows_) {
+    if (row.section == ReviewSection::Choice && !row.cloudHash.empty() && row.choice == ReceiveChoice::Receive) {
+      out.push_back({row.kind, row.cloudId.empty() ? row.documentId : row.cloudId, row.cloudHash});
+    }
+  }
+  return out;
+}
+
+std::vector<KeepLocalDecision> TransferReview::answeredRefusals(const std::vector<TransferFailure>& failures) const {
+  std::vector<KeepLocalDecision> out;
+  for (const TransferFailure& failure : failures) {
+    if (failure.code != "BASE_CHANGED" || failure.storedHash.empty()) {
+      continue;
+    }
+    for (const ReviewRow& row : rows_) {
+      // A refusal names the cloud id, as the manifest does.
+      if (row.section == ReviewSection::Choice && row.kind == failure.kind && row.cloudId == failure.documentId &&
+          row.cloudHash.empty() && row.choice == ReceiveChoice::KeepLocal && row.seenHash == failure.storedHash) {
+        out.push_back({failure.kind, failure.documentId, failure.storedHash});
+        break;
+      }
+    }
+  }
+  return out;
 }
 
 bool TransferReview::choose(std::size_t index, std::optional<ReceiveChoice> choice) {
@@ -497,23 +718,49 @@ bool TransferReview::confirmDeletion(std::size_t index, bool confirmed) {
   return true;
 }
 
+bool TransferReview::confirmMissingFile(std::size_t index, bool confirmed) {
+  if (index >= rows_.size() || rows_[index].section != ReviewSection::Problem || rows_[index].assetId.empty()) {
+    return false;
+  }
+  const std::string assetId = rows_[index].assetId;
+  for (ReviewRow& row : rows_) {
+    if (row.section == ReviewSection::Problem && row.assetId == assetId) {
+      row.confirmed = confirmed;
+    }
+  }
+  return true;
+}
+
 bool TransferReview::ready() const {
   for (const ReviewRow& row : rows_) {
     if (row.section == ReviewSection::Choice && !row.choice) {
+      return false;
+    }
+    if (row.section == ReviewSection::Problem && !row.assetId.empty() && !row.confirmed) {
       return false;
     }
   }
   return true;
 }
 
+std::vector<TransferMissingFile> TransferReview::confirmedMissingFiles() const {
+  for (const ReviewRow& row : rows_) {
+    if (row.section == ReviewSection::Problem && !row.assetId.empty() && !row.confirmed) {
+      return {};
+    }
+  }
+  return missingFiles_;
+}
+
 std::vector<ReceiveDecision> TransferReview::receiveDecisions() const {
   std::vector<ReceiveDecision> out;
   for (const ReviewRow& row : rows_) {
+    // The receive names each document by its cloud id.
     if (row.section == ReviewSection::Choice && row.cloudHash.empty() && row.choice) {
-      out.push_back({row.kind, row.documentId, *row.choice});
+      out.push_back({row.kind, row.cloudId, *row.choice});
     } else if (row.section == ReviewSection::Deletion && row.receiveListed) {
       // Restore from cloud unless the person kept the deletion.
-      out.push_back({row.kind, row.documentId, row.confirmed ? ReceiveChoice::KeepLocal : ReceiveChoice::Receive});
+      out.push_back({row.kind, row.cloudId, row.confirmed ? ReceiveChoice::KeepLocal : ReceiveChoice::Receive});
     }
   }
   return out;
@@ -523,17 +770,17 @@ std::vector<KeepLocalDecision> TransferReview::keepLocalDecisions() const {
   std::vector<KeepLocalDecision> out;
   for (const ReviewRow& row : rows_) {
     if (row.section == ReviewSection::Choice && !row.cloudHash.empty() && row.choice == ReceiveChoice::KeepLocal) {
-      out.push_back({row.kind, row.documentId, row.cloudHash});
+      out.push_back({row.kind, row.cloudId.empty() ? row.documentId : row.cloudId, row.cloudHash});
     }
   }
   return out;
 }
 
-std::vector<std::string> TransferReview::confirmedDeletes() const {
-  std::vector<std::string> out;
+std::vector<DeleteConfirmation> TransferReview::confirmedDeletes() const {
+  std::vector<DeleteConfirmation> out;
   for (const ReviewRow& row : rows_) {
     if (row.section == ReviewSection::Deletion && row.sendListed && row.confirmed) {
-      out.push_back(row.documentId);
+      out.push_back({row.kind, row.cloudId, row.seenHash});
     }
   }
   return out;

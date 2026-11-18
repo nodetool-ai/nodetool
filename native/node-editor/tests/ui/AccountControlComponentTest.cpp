@@ -11,6 +11,7 @@
 #include "nodetool/account/qt/CloudBrowser.h"
 #include "nodetool/account/qt/QtHttpTransport.h"
 #include "nodetool/account/qt/ShareController.h"
+#include "nodetool/account/qt/TransferController.h"
 #include "test_support.h"
 
 #include <QGuiApplication>
@@ -147,6 +148,53 @@ private:
     std::mutex mutex_;
     bool editorLink_ = false;
     std::vector<std::string> sent_;
+};
+
+// The app's own server for a Synchronize: one document changed on both
+// sides and one deleted here. Records each procedure and its body.
+//
+// Thread affinity: thread-safe. `mutex_` guards the record.
+class TransferTransport final : public nodetool::account::HttpTransport {
+public:
+    nodetool::account::HttpResponse send(const nodetool::account::HttpRequest &request) override {
+        const std::lock_guard lock(mutex_);
+        const std::string procedure = request.url.substr(request.url.find("/trpc/") + 6);
+        sent_.emplace_back(procedure, request.body);
+        if (procedure == "cloudTransfer.send.capture") {
+            return {200, R"({"result":{"data":{"status":"captured","transfer_id":"t1","first_publication":false,)"
+                         R"("operations":[],"documents":[],"missing_files":[],"skipped":[],)"
+                         R"("deleted_locally":[{"kind":"workflow","local_id":"w2","cloud_id":"w2","base_hash":"b"}]}}})"};
+        }
+        if (procedure == "cloudTransfer.receive.capture") {
+            return {200, R"({"result":{"data":{"set_id":"s1","documents":[)"
+                         R"({"kind":"workflow","cloud_id":"w1","local_id":"w1","name":"Flow","content_hash":"h1",)"
+                         R"("status":"both_changed","decision":null,"files":[],"missing_files":[]},)"
+                         R"({"kind":"workflow","cloud_id":"w2","local_id":"w2","name":"Old flow","content_hash":"h2",)"
+                         R"("status":"local_deleted","decision":null,"files":[],"missing_files":[]}]}}})"};
+        }
+        if (procedure == "cloudTransfer.receive.run") {
+            return {200, R"({"result":{"data":{"status":"finished","set_id":"s1","result":{"received":[)"
+                         R"({"kind":"workflow","id":"w1","name":"Flow"},{"kind":"workflow","id":"w2","name":"Old flow"}],)"
+                         R"("changed_during_receive":[],"not_received":[],"kept_beside":[],"missing_files":[],"file_kept":[]}}}})"};
+        }
+        if (procedure == "cloudTransfer.send.cancel") {
+            return {200, R"({"result":{"data":{"state":"cancelled"}}})"};
+        }
+        return {404, "{}"};
+    }
+    std::string body(const std::string &procedure) {
+        const std::lock_guard lock(mutex_);
+        for (const auto &[name, body] : sent_) {
+            if (name == procedure) {
+                return body;
+            }
+        }
+        return {};
+    }
+
+private:
+    std::mutex mutex_;
+    std::vector<std::pair<std::string, std::string>> sent_;
 };
 
 // Plays the browser: sends the code to the loopback redirect.
@@ -413,6 +461,59 @@ private slots:
         QSignalSpy closed(root, SIGNAL(closeRequested()));
         click(view, named(root, "share-close"));
         QCOMPARE(closed.count(), 1);
+    }
+
+    // The Synchronize sheet: a document changed on both sides blocks the
+    // button until a version is picked, a deletion is off by default so the
+    // document comes back from the cloud, and the result names what came in.
+    void transferPanelSynchronizes() {
+        Computer computer;
+        computer.server.addCode("code-t", "u1", "Ada");
+        auto account = computer.app();
+        connect(account.get(), &AccountController::browserRequested, this,
+                [](const QUrl &url) { std::thread([url] { completeInBrowser(url, "code-t"); }).detach(); });
+        account->signIn();
+        QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+        auto transport = std::make_unique<TransferTransport>();
+        auto *server = transport.get();
+        nodetool::account::qt::TransferController controller(std::move(transport));
+        controller.setAccount(account.get());
+        controller.setServerUrl(QUrl("http://127.0.0.1:7777"));
+        controller.setBundledServerUrl(QUrl("http://127.0.0.1:7777"));
+        controller.setProjectId(QString(32, 'p'));
+        controller.setLinked(true);
+
+        QQuickView view;
+        view.setInitialProperties({{"account", QVariant::fromValue<AccountController *>(nullptr)},
+                                   {"serverUrl", QUrl("http://127.0.0.1:7777")},
+                                   {"bundledServerUrl", QUrl("http://127.0.0.1:7777")},
+                                   {"projectId", QString(32, 'p')},
+                                   {"linked", true},
+                                   {"controller", QVariant::fromValue(&controller)}});
+        view.setResizeMode(QQuickView::SizeRootObjectToView);
+        view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/TransferPanel.qml"));
+        QCOMPARE(view.status(), QQuickView::Ready);
+        view.resize(640, 900);
+        view.show();
+        auto *root = view.rootObject();
+        controller.start();
+        QTRY_VERIFY(shown(root, "transfer-row-0"));
+        QVERIFY(shown(root, "transfer-row-1"));
+        auto *apply = named(root, "transfer-apply");
+        QVERIFY(apply && apply->isVisible());
+        QVERIFY(!apply->isEnabled());
+        QVERIFY(!named(root, "transfer-delete-1")->property("checked").toBool());
+
+        click(view, named(root, "transfer-choice-0-keepLocal"));
+        QTRY_VERIFY(apply->isEnabled());
+        click(view, apply);
+        QTRY_VERIFY(shown(root, "transfer-finished"));
+        QVERIFY(named(root, "transfer-finished")->property("message").toString().contains("Old flow"));
+        // Keep local for the first, the deleted one restored from the cloud.
+        const std::string decisions = server->body("cloudTransfer.receive.run");
+        QVERIFY(decisions.find(R"({"decision":"keep_local","document_id":"w1","kind":"workflow"})") != std::string::npos);
+        QVERIFY(decisions.find(R"({"decision":"receive","document_id":"w2","kind":"workflow"})") != std::string::npos);
+        QVERIFY(server->body("cloudTransfer.send.run").empty());
     }
 
     // The workflow browser shows the cloud groups below the workflows on
