@@ -64,6 +64,7 @@ import type {
   TransferRequiredFile,
   TransferStatusOutput
 } from "@nodetool-ai/protocol/api-schemas/transfer.js";
+import { CloudRequestError } from "./cloud-http-transport.js";
 import { reconcileInBackground } from "./project-index.js";
 import { identityHash, TRANSFER_DOCUMENT_KINDS, transferPayloadOf } from "./transfer-documents.js";
 
@@ -152,6 +153,12 @@ interface SendPlan {
   missingConfirmed?: boolean;
   /** The cloud opened the transfer. Until then the send exists only here (review F41). */
   opened?: boolean;
+  /**
+   * An open request was sent, recorded before it went out. False only on a
+   * plan that never sent one, so a cancel deletes it here alone. A plan
+   * without the field predates it and is treated as uncertain (review F52).
+   */
+  openAttempted?: boolean;
 }
 
 /** What {@link captureSend} found, for the review sheet. */
@@ -490,7 +497,8 @@ async function planFiles(
     skipped,
     missingDocumentFiles,
     deletedLocally,
-    decisions: []
+    decisions: [],
+    openAttempted: false
   };
 }
 
@@ -645,6 +653,12 @@ export async function runSend(transport: SendTransport, transferId: string, opti
     }
   }
 
+  if (!plan.opened && !plan.openAttempted) {
+    // A crash or a lost answer after this point leaves the cloud's state
+    // unknown, so a cancel must ask the cloud (review F52).
+    plan.openAttempted = true;
+    await updateCloudSend(transferId, { plan });
+  }
   const opened = await transport.open({
     transfer_id: row.id,
     project_id: row.cloud_project_id,
@@ -701,18 +715,28 @@ async function recordedResult(
 }
 
 /**
- * Cancels a send. A send the cloud never opened, such as one whose review
- * was closed, is only deleted here. A transfer that committed already only
- * updates the local bases.
+ * Cancels a send. A send that never sent an open request, such as one whose
+ * review was closed, is only deleted here. Any other send is cancelled on the
+ * cloud, which also settles an open whose answer was lost: a cloud that never
+ * opened it answers not found (review F52). A transfer that committed
+ * already only updates the local bases.
  */
 export async function cancelSend(transport: SendTransport, transferId: string): Promise<"cancelled" | "committed"> {
   const row = await getCloudSend(transferId);
   if (!row) return "cancelled";
-  if (!parsePlan(row).opened) {
+  const plan = parsePlan(row);
+  if (row.state === "open" && !plan.opened && plan.openAttempted === false) {
     await deleteCloudSend(transferId);
     return "cancelled";
   }
-  const answer = await transport.cancel({ transfer_id: transferId });
+  let answer: Awaited<ReturnType<SendTransport["cancel"]>>;
+  try {
+    answer = await transport.cancel({ transfer_id: transferId });
+  } catch (error) {
+    if (!(error instanceof CloudRequestError && error.code === "NOT_FOUND") || plan.opened) throw error;
+    await deleteCloudSend(transferId);
+    return "cancelled";
+  }
   if (answer.state === "committed" && answer.result.outcome === "committed") {
     await finishCommitted(row, parsePlan(row), answer.result);
     return "committed";
