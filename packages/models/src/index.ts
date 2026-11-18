@@ -810,18 +810,16 @@ export {
   type RestoreDeletedOutcome
 } from "./deleted-document.js";
 export {
-  BLOB_DELETION_CLAIM_MS,
   BLOB_HASH_PATTERN,
+  BLOB_LOCK_TIMEOUT_MS,
   STAGED_BLOB_LIFETIME_MS,
-  claimBlobDeletion,
   commitProjectBlobs,
   committedHashesOfOwner,
   committedSizeOfOwner,
-  isBlobDeletionClaimed,
-  releaseBlobDeletion,
   deleteExpiredStagedBlobs,
   deleteStagedBlobsOfTransfer,
   isBlobHashNamed,
+  deleteUnnamedBlob,
   readableProjectBlob,
   stageProjectBlob,
   type ProjectBlobRow

@@ -582,11 +582,7 @@ const PROJECT_BLOBS_DDL: readonly string[] = [
   `CREATE INDEX IF NOT EXISTS idx_project_blobs_hash
     ON project_blobs (hash)`,
   `CREATE INDEX IF NOT EXISTS idx_project_blobs_staged
-    ON project_blobs (committed_at, created_at)`,
-  `CREATE TABLE IF NOT EXISTS blob_deletions (
-    hash TEXT PRIMARY KEY NOT NULL,
-    claimed_at TEXT NOT NULL
-  )`
+    ON project_blobs (committed_at, created_at)`
 ];
 
 /**
@@ -5155,7 +5151,7 @@ export const migrations: MigrationDef[] = [
   {
     version: "20261130_000001",
     name: "add_project_blobs",
-    createsTables: ["project_blobs", "blob_deletions"],
+    createsTables: ["project_blobs"],
     modifiesTables: [],
     async up(db) {
       for (const statement of PROJECT_BLOBS_DDL) {
