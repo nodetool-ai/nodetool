@@ -660,13 +660,20 @@ export async function runReceive(
     await after("installed");
   }
   const current = row;
-  await withProjectFolderLock(link.user_id, link.project_id, async () => {
-    if (current.state === "installed") {
-      await commit(current, link, plan, dir);
-      await after("applied");
-    }
-    await place(current, link, plan, workspace, dir);
-  });
+  // The commit and the placing take the folder lock again for the reconcile
+  // and the document files.
+  await withProjectFolderLock(
+    link.user_id,
+    link.project_id,
+    async () => {
+      if (current.state === "installed") {
+        await commit(current, link, plan, dir);
+        await after("applied");
+      }
+      await place(current, link, plan, workspace, dir);
+    },
+    { allowNested: true }
+  );
   await after("placed");
   await finish(transport, current, dir);
   return { status: "finished", setId, result: plan.result };
