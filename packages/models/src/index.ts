@@ -869,6 +869,7 @@ export {
   deleteTransferPlacement,
   listRecoveryCopies,
   listTransferPlacements,
+  lockProjectFiles,
   pendingPlacementPaths,
   projectsWithStalePlacements,
   recordRecoveryCopy,
