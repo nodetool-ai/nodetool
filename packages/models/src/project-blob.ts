@@ -193,7 +193,9 @@ export async function deleteUnnamedBlob(
 ): Promise<boolean> {
   return withBlobLock(hash, async (db) => {
     const [row] = await db.select({ id: projectBlobs.id }).from(projectBlobs).where(eq(projectBlobs.hash, hash)).limit(1);
-    if (row !== undefined || (await isHashInLiveRevisionSet(hash, now))) return false;
+    // Through the locked transaction, so a pool of one connection does not
+    // wait on itself.
+    if (row !== undefined || (await isHashInLiveRevisionSet(hash, now, db))) return false;
     return remove();
   });
 }
