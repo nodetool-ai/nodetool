@@ -58,7 +58,19 @@ QStringList listOf(const std::vector<std::string>& names) {
 
 } // namespace
 
+static QString transferRowDetail(const ReviewRow& row);
+
 QString transferRowText(const ReviewRow& row) {
+  const QString text = transferRowDetail(row);
+  if (row.section == ReviewSection::Send && row.documentFileMissing) {
+    const QString missing = TransferController::tr(
+        "Its file is missing from the project folder, so its last saved version will be sent.");
+    return row.detail == "document_file_missing" ? missing : text + QStringLiteral(". ") + missing;
+  }
+  return text;
+}
+
+static QString transferRowDetail(const ReviewRow& row) {
   const std::string& d = row.detail;
   switch (row.section) {
   case ReviewSection::Send:

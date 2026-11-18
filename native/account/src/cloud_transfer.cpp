@@ -275,6 +275,9 @@ SendCapture LocalTransferClient::captureSend(const std::string& projectId, const
     }
     out.missingFiles.push_back(std::move(missing));
   }
+  for (const json& item : data.value("missing_document_files", json::array())) {
+    out.missingDocumentFiles.push_back({str(item, "kind"), str(item, "id"), str(item, "name"), "document_file_missing"});
+  }
   for (const json& item : data.value("skipped", json::array())) {
     out.skipped.push_back({str(item, "kind"), str(item, "id"), str(item, "name"), str(item, "detail")});
   }
@@ -523,6 +526,28 @@ TransferReview::TransferReview(const SendCapture& send, const ReceiveCapture& re
     }
     row.detail = op.op;
     rows_.push_back(std::move(row));
+  }
+  // A document whose file is missing is still sent, from its last saved
+  // row. Its row says so, and one is added when nothing else lists it
+  // (CF3, review F56).
+  for (const TransferSkipped& missing : send.missingDocumentFiles) {
+    bool listed = false;
+    for (ReviewRow& row : rows_) {
+      if (row.section == ReviewSection::Send && row.kind == missing.kind && row.documentId == missing.id) {
+        row.documentFileMissing = true;
+        listed = true;
+      }
+    }
+    if (!listed) {
+      ReviewRow row;
+      row.section = ReviewSection::Send;
+      row.kind = missing.kind;
+      row.documentId = missing.id;
+      row.name = missing.name;
+      row.detail = missing.detail;
+      row.documentFileMissing = true;
+      rows_.push_back(std::move(row));
+    }
   }
   // A file sent over its earlier version gets a row, also when no document
   // that uses it changed (review F33). A new file goes with its new document.

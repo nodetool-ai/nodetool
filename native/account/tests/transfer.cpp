@@ -502,6 +502,35 @@ void fileOnlyChangesAreSendWork(TestContext& t) {
 
 // A send goes without a missing file only once the person confirms it, and
 // the confirmation is the capture's entry as listed (X7, review F36).
+// A workflow whose file is missing from the folder is sent from its last
+// saved row, and the sheet says so on its row (CF3, review F56).
+void aMissingDocumentFileIsShown(TestContext& t) {
+  SignedInApp app;
+  FakeTransport transport([](const HttpRequest&) {
+    return ok({{"status", "captured"},
+               {"transfer_id", kTransfer},
+               {"first_publication", false},
+               {"operations", json::array({{{"op", "replace_document"}, {"kind", "workflow"}, {"document_id", "w1"}}})},
+               {"documents", json::array({{{"kind", "workflow"}, {"local_id", "w1"}, {"cloud_id", "w1"}, {"name", "Flow"}}})},
+               {"missing_files", json::array()},
+               {"missing_document_files", json::array({{{"kind", "workflow"}, {"id", "w1"}, {"name", "Flow"}},
+                                                        {{"kind", "timeline"}, {"id", "t1"}, {"name", "Cut"}}})},
+               {"skipped", json::array()},
+               {"deleted_locally", json::array()}});
+  });
+  LocalTransferClient client(transport, kLocal, {}, *app.session);
+  const SendCapture send = client.captureSend(kProject);
+  CHECK(send.missingDocumentFiles.size() == 2);
+  TransferReview review(send, {});
+  std::size_t flagged = 0;
+  for (const ReviewRow& row : review.rows()) {
+    flagged += row.section == ReviewSection::Send && row.documentFileMissing ? 1 : 0;
+  }
+  CHECK(flagged == 2);
+  CHECK(countOf(review, ReviewSection::Send) == 2);
+  CHECK(review.ready());
+}
+
 // A send attempt names every deletion it carries, [] when there is none,
 // so a withdrawn confirmation never survives from an earlier attempt
 // (review F43).
@@ -649,6 +678,7 @@ int main() {
       {"fileOnlyChangesAreSendWork", fileOnlyChangesAreSendWork},
       {"missingFilesNeedAConfirmation", missingFilesNeedAConfirmation},
       {"everySendNamesItsDeletions", everySendNamesItsDeletions},
+      {"aMissingDocumentFileIsShown", aMissingDocumentFileIsShown},
       {"aRefusedDeletionAsksAgain", aRefusedDeletionAsksAgain},
       {"aRefusedDocumentKeepsOneRow", aRefusedDocumentKeepsOneRow},
       {"cancelsAReceive", cancelsAReceive},

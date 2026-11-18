@@ -137,6 +137,9 @@ struct SendCapture {
   std::vector<TransferMissingFile> missingFiles;
   std::vector<TransferSkipped> skipped;
   std::vector<TransferDeleted> deletedLocally;
+  // Documents whose file is missing from the project folder. Each is sent
+  // from its last saved row (CF3, review F56).
+  std::vector<TransferSkipped> missingDocumentFiles;
 };
 
 // A Keep local choice for a document whose cloud version changed since its
@@ -332,6 +335,9 @@ struct ReviewRow {
   bool receiveListed = false;
   // For a Choice row raised by a refused send: the hash Keep local names.
   std::string cloudHash;
+  // For a Send row: the document's file is missing from the project folder,
+  // so its last saved row is sent (CF3, review F56).
+  bool documentFileMissing = false;
   // For a Choice row from the receive half: the hash of the cloud revision
   // the person saw. For a Deletion row: the cloud revision a confirmed
   // deletion deletes, the newest one the sheet showed (review F40).
