@@ -7,7 +7,7 @@
  */
 import { and, eq, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { createTimeOrderedUuid } from "./base-model.js";
-import { getDatabase, getPortableDb } from "./db.js";
+import { getDatabase, getPortableDb, portableDbOf } from "./db.js";
 import { isHashInLiveRevisionSet } from "./revision-set.js";
 import { projectBlobs } from "./schema/project-blobs.js";
 
@@ -173,7 +173,7 @@ export async function withBlobLock<T>(hash: string, work: (db: PortableDb) => Pr
       await tx.execute(sql.raw(`SET LOCAL lock_timeout = ${BLOB_LOCK_TIMEOUT_MS}`));
       await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`blob:${hash}`}, 0))`);
       // The portable surface over the transaction, as getPortableDb() is over the pool.
-      return work(tx as unknown as PortableDb);
+      return work(portableDbOf(tx));
     });
   } finally {
     release();
