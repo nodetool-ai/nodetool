@@ -7,7 +7,7 @@ type MediaElement = HTMLImageElement | HTMLCanvasElement | HTMLVideoElement;
  * Intrinsic aspect ratio (width / height) of a media element, or `null` when it
  * has no usable dimensions yet (image not decoded, empty canvas, …).
  */
-function intrinsicRatio(el: Element): number | null {
+export function intrinsicRatio(el: Element): number | null {
   if (el instanceof HTMLImageElement) {
     return el.naturalWidth > 0 && el.naturalHeight > 0
       ? el.naturalWidth / el.naturalHeight
@@ -92,6 +92,36 @@ export function measureNodeMedia(
 
   return {
     ratio,
+    sidePad: Math.max(0, nodeWidth - boxWidth),
+    chrome: Math.max(0, nodeHeight - boxHeight)
+  };
+}
+
+/**
+ * Chrome offsets around a node's media container, measured even before the
+ * media decodes. Null when the node has no media container.
+ */
+export function measureMediaChrome(
+  nodeEl: HTMLElement,
+  zoom: number,
+  nodeWidth: number,
+  nodeHeight: number
+): Pick<MediaBox, "sidePad" | "chrome"> | null {
+  const media = findMediaElement(nodeEl);
+  const container =
+    media?.closest<HTMLElement>(MEDIA_CONTAINER_SELECTOR) ??
+    media?.parentElement ??
+    nodeEl.querySelector<HTMLElement>(MEDIA_CONTAINER_SELECTOR);
+  if (!container) {
+    return null;
+  }
+  const rect = container.getBoundingClientRect();
+  const boxWidth = rect.width / zoom;
+  const boxHeight = rect.height / zoom;
+  if (boxWidth <= 0) {
+    return null;
+  }
+  return {
     sidePad: Math.max(0, nodeWidth - boxWidth),
     chrome: Math.max(0, nodeHeight - boxHeight)
   };

@@ -1952,7 +1952,10 @@ void EditorWindow::syncInspector() {
   emit inspectorSynced();
   if (browserVisible()) { return; }
   if (!inspectorDock_) { return; }
-  const bool show = !inspectorDismissed_ && (!selected_.isEmpty() || readOnly());
+  // The chat panel needs the room, so a select or an add does not open the
+  // inspector while the chat shows. The inspector button still opens it.
+  const bool show = !inspectorDismissed_ && (!selected_.isEmpty() || readOnly())
+                    && !(chatVisible_ && inspectorDock_->isHidden());
   inspectorDock_->setVisible(show);
   // A narrow window shows one side panel at a time and restores the catalog afterward.
   if (show && width() < narrowWindowWidth && catalogVisible()) {

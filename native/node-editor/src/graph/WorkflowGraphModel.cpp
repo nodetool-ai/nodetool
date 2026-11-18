@@ -252,6 +252,7 @@ void WorkflowGraphModel::project(const QJsonObject &snapshot,
     inputs_.clear();
     outputs_.clear();
     layouts_.clear();
+    legacyMediaFit_.clear();
     nodes_ = nodes;
     edges_ = edges;
     incident_ = incident;
@@ -462,6 +463,38 @@ void WorkflowGraphModel::setRuntimePreview(const QString &nodeId, const QImage &
   }
   refreshRuntimeNode(nodeId);
   emit runtimeChanged();
+}
+double WorkflowGraphModel::mediaRatio(NodeId id) const {
+  const auto &node = nodes_.value(id);
+  const auto type = node["type"].toString();
+  // A constant Image or Video shows its value: asset metadata first, then the loaded thumbnail.
+  if (cardMediaFills(type)) {
+    const auto value = node["data"].toObject().value("value");
+    auto natural = cardMediaDimensions(value);
+    if (!natural.isValid()) {
+      const auto locator = value.toObject().toVariantMap();
+      natural = cardMedia_.item(resourceId(id), QStringLiteral("value"), 0, cardMediaIdentity(locator)).natural;
+    }
+    return cardMediaRatio(natural);
+  }
+  // A result area shows the run result: its ref's size, then the decoded preview.
+  if (const auto ratio = cardMediaRatio(cardMediaDimensions(runtimeState(id)["result"])); ratio > 0) { return ratio; }
+  const auto preview = previews_.constFind(resourceId(id));
+  return preview == previews_.cend() ? 0 : cardMediaRatio(preview->size());
+}
+void WorkflowGraphModel::markHandSized(NodeId id, QJsonObject &ui) const {
+  if (const auto ratio = mediaRatio(id); ratio > 0) { ui["media_fit_ratio"] = cardMediaFitKey(ratio); }
+  else { ui.remove("media_fit_ratio"); }
+}
+bool WorkflowGraphModel::authoredHeightApplies(NodeId id, const QJsonObject &ui) const {
+  const auto ratio = mediaRatio(id);
+  if (ratio <= 0 || ui["height"].toDouble() <= 0) { return true; }
+  const auto key = cardMediaFitKey(ratio);
+  if (ui.contains("media_fit_ratio")) { return qFuzzyCompare(ui["media_fit_ratio"].toDouble(), key); }
+  // A saved height without a key keeps the media the document opened with.
+  auto seen = legacyMediaFit_.find(id);
+  if (seen == legacyMediaFit_.end()) { seen = legacyMediaFit_.insert(id, key); }
+  return qFuzzyCompare(*seen, key);
 }
 QImage WorkflowGraphModel::runtimePreview(NodeId id) const { return previews_.value(resourceId(id)); }
 bool WorkflowGraphModel::hasRuntimeOutput(NodeId id) const {
@@ -906,12 +939,28 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
               result.sources.insert(name, item);
           }
       }
-      layoutBespokeBody(result, {node, meta, inputs, int(outputs.size()), fields, dimensionLinks_.contains(resourceId(id)),
+      // A card fits its result area to the media it shows unless the user sized it for that media.
+      const auto ratio = mediaRatio(id);
+      const bool authored = authoredHeightApplies(id, ui);
+      auto bodyNode = node;
+      if (!authored) {
+          auto bodyUi = ui;
+          bodyUi.remove("height");
+          bodyNode["ui_properties"] = bodyUi;
+      }
+      layoutBespokeBody(result, {bodyNode, meta, inputs, int(outputs.size()), fields, dimensionLinks_.contains(resourceId(id)),
                                  graphVariables_, previewTabs_.value(resourceId(id)), result.sources,
                                  histograms_.contains(resourceId(id)) ? std::optional(histograms_.value(resourceId(id))) : std::nullopt,
                                  painters_.value(resourceId(id)),
                                  result.body == CardBody::Painter ? paintMask(resourceId(id), node["data"].toObject()) : QImage{},
                                  runtimeState(id), expandedListItems_.value(resourceId(id)), &cardMedia_});
+      if (ratio > 0 && !authored && !result.resultRect.isEmpty()) {
+          const auto area = result.resultRect;
+          const auto fitted = std::max(double(nm::outputPlaceholderHeight) / 2, area.width() / ratio);
+          const auto extra = int(std::lround(fitted - area.height()));
+          resizeResultArea(result, extra);
+          result.flexHeight = std::max(0, result.flexHeight + extra);
+      }
       if (canvasMediaNodes_.contains(resourceId(id))) {
           result.mediaTop = result.size.height();
           result.size.rheight() += nm::playbackHeight + nm::rowHeight;
@@ -926,7 +975,7 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
       // A body such as Compare Images sets a wider minimum than the 150 px corner limit.
       result.minimumSize = QSize(std::max(150, result.minimumSize.width()),
                                  result.body == CardBody::Preview ? nm::outputPlaceholderHeight : result.size.height() - result.flexHeight);
-      result.size.setHeight(std::max(result.size.height(), qRound(ui["height"].toDouble())));
+      if (authored) { result.size.setHeight(std::max(result.size.height(), qRound(ui["height"].toDouble()))); }
       addRenameControls();
       if (ui["collapsed"].toBool()) { result = collapsedLayout(result, ui); }
       return *layouts_.insert(id, result);
@@ -1525,7 +1574,7 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
     if (result.subgraph) { result.size.rheight() += nm::handleRowStep; }
   result.minimumSize = QSize(150, result.size.height());
   const auto natural = result.size.height();
-  result.size.setHeight(std::max(result.size.height(), qRound(ui["height"].toDouble())));
+  if (authoredHeightApplies(id, ui)) { result.size.setHeight(std::max(result.size.height(), qRound(ui["height"].toDouble()))); }
   stretchCodeField(result, result.size.height() - natural);
   stretchCardMedia(result, type);
   addRenameControls();
@@ -2149,6 +2198,7 @@ bool WorkflowGraphModel::setNodeData(NodeId id, NodeRole r, QVariant v) {
     auto ui = nodes_[id]["ui_properties"].toObject();
     ui["width"] = size.width();
     ui["height"] = size.height();
+    markHandSized(id, ui);
     nodes_[id]["ui_properties"] = ui;
     layouts_.remove(id);
     emit nodeUpdated(id);

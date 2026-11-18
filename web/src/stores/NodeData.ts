@@ -80,6 +80,11 @@ export type NodeData = {
   setupStepId?: string;
   // Original node type from the workflow graph (useful when React Flow falls back to "default" type)
   originalType?: string;
+  /**
+   * Media ratio the node height was last fitted to. A node with the same
+   * ratio keeps its size, so a manual resize survives until new content.
+   */
+  mediaFitRatio?: number;
   size?: {
     width: number;
     height: number;
