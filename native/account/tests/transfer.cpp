@@ -1,6 +1,7 @@
 // The transfer client of the native apps (WP2.8): LocalTransferClient
 // against a fake bundled server, and the rows and choices of TransferReview.
 #include "nodetool/account/cloud_transfer.h"
+#include "nodetool/account/origin.h"
 #include "nodetool/account/storage.h"
 #include "test_support.h"
 
@@ -375,6 +376,25 @@ void aRefusedSendAsksAgain(TestContext& t) {
 
 } // namespace
 
+void sendsNothingToAServerOffThisComputer(TestContext& t) {
+  SignedInApp app;
+  FakeTransport transport([](const HttpRequest&) { return ok({{"status", "captured"}}); });
+  for (const char* origin : {"https://editor.example", "http://192.168.1.4:7777", "http://127.0.0.1.evil.example:80",
+                             "http://localhost@evil.example:80", "https://127.0.0.1:7777"}) {
+    LocalTransferClient client(transport, origin, {{"Authorization", "Bearer local"}}, *app.session);
+    const SendRun run = client.runSend(kTransfer, {}, {});
+    CHECK(run.status == TransferStatus::Refused);
+    CHECK(run.reason == "NOT_LOCAL_SERVER");
+    CHECK(client.captureReceive(kProject).status == TransferStatus::Refused);
+  }
+  CHECK(transport.sent().empty());
+  CHECK(isLoopbackHttpOrigin("http://127.0.0.1:7777"));
+  CHECK(isLoopbackHttpOrigin("http://localhost:8000/"));
+  CHECK(isLoopbackHttpOrigin("http://[::1]:7777"));
+  CHECK(!isLoopbackHttpOrigin("http://127.0.0.1"));
+  CHECK(!isLoopbackHttpOrigin("http://127.0.0.1:7777/trpc"));
+}
+
 int main() {
   return account_test::runTests({
       {"callsTheLocalRouterForTheAccount", callsTheLocalRouterForTheAccount},
@@ -384,5 +404,6 @@ int main() {
       {"readsTheReceiveCapture", readsTheReceiveCapture},
       {"reviewListsEachDocumentOnce", reviewListsEachDocumentOnce},
       {"aRefusedSendAsksAgain", aRefusedSendAsksAgain},
+      {"sendsNothingToAServerOffThisComputer", sendsNothingToAServerOffThisComputer},
   });
 }
