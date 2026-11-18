@@ -717,6 +717,24 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "A counter per document and project that orders access changes against writes. It names a document or project id and a number, never a person."
   },
   {
+    table: "cloud_transfers",
+    schemaExport: "cloudTransfers",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "Which cloud project a person sent a transfer to, its state and its times. Operational state of the upload; the documents and files it carried are exported with their own tables. Deleted with the account."
+  },
+  {
+    table: "cloud_transfer_attempts",
+    schemaExport: "cloudTransferAttempts",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "The recorded result of each commit attempt of a transfer: a digest and the outcome with refusal codes and document ids. Operational state; deleted with the account."
+  },
+  {
     table: "project_blobs",
     schemaExport: "projectBlobs",
     disposition: "delete",

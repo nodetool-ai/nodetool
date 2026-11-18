@@ -33,6 +33,7 @@ import { fontsRouter } from "./routers/fonts.js";
 import { openverseRouter } from "./routers/openverse.js";
 import { peopleRouter } from "./routers/people.js";
 import { storageRouter } from "./routers/storage.js";
+import { transfersRouter } from "./routers/transfers.js";
 import { threadsRouter } from "./routers/threads.js";
 import { memoriesRouter } from "./routers/memories.js";
 import { errorTracesRouter } from "./routers/error-traces.js";
@@ -100,6 +101,7 @@ type AppRouterRecord = {
   appRuns: typeof appRunsRouter;
   resources: typeof resourcesRouter;
   storage: typeof storageRouter;
+  transfers: typeof transfersRouter;
   threads: typeof threadsRouter;
   memories: typeof memoriesRouter;
   errorTraces: typeof errorTracesRouter;
@@ -157,6 +159,7 @@ export const appRouter: ReturnType<typeof router<AppRouterRecord>> = router({
   appRuns: appRunsRouter,
   resources: resourcesRouter,
   storage: storageRouter,
+  transfers: transfersRouter,
   threads: threadsRouter,
   memories: memoriesRouter,
   errorTraces: errorTracesRouter,

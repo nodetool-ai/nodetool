@@ -539,6 +539,16 @@ async function findOwned(userId: string, kind: string, documentId: string, now: 
   return row ?? null;
 }
 
+/** Whether a kept deleted document has the kind and id, past its purge time or not. */
+export async function deletedDocumentExists(kind: string, documentId: string): Promise<boolean> {
+  const [row] = await getPortableDb()
+    .select({ id: deletedDocuments.id })
+    .from(deletedDocuments)
+    .where(and(eq(deletedDocuments.kind, kind), eq(deletedDocuments.document_id, documentId)))
+    .limit(1);
+  return row !== undefined;
+}
+
 /** Why the project of a document refuses its restore, or null when it does not. */
 function* projectRefusal(tx: DbTransaction, projectId: string, userId: string): Generator<TransactionStep, string | null, RetainedRows> {
   if (projectId === "default") return null;

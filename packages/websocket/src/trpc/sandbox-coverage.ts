@@ -1316,6 +1316,22 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "outside every check in this table, for as long as it is valid. " +
       "read_asset returns the bytes to the run instead."
   },
+  "transfers.open": {
+    withheld:
+      "A transfer publishes local documents and files into a cloud " +
+      "project. Only a person sending from the desktop app starts one."
+  },
+  "transfers.commit": {
+    withheld:
+      "A commit replaces and deletes cloud documents on the person's " +
+      "confirmation in the transfer review, which a run cannot give."
+  },
+  "transfers.status": {
+    withheld: "Transfer state belongs to the desktop app that opened the transfer."
+  },
+  "transfers.cancel": {
+    withheld: "Transfer state belongs to the desktop app that opened the transfer."
+  },
   "deletedDocuments.list": {
     gap: "The app lists deleted documents for restore; the agent has no capability that reads them."
   },
