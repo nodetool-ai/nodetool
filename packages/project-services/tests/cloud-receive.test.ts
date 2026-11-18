@@ -218,6 +218,28 @@ function receiveSuite(name: string, init: () => Promise<void>): void {
       expect(await WorkflowVersion.listForWorkflow(workflow.id)).toHaveLength(1);
     });
 
+    it("never holds a revision in an autosave the autosave limit prunes (review F30)", async () => {
+      const projectId = await cloudProject();
+      const workflow = await workflowIn(projectId, null);
+      const autosave = await WorkflowVersion.create<WorkflowVersion>({
+        workflow_id: workflow.id,
+        user_id: OWNER,
+        name: null,
+        description: null,
+        graph: workflow.graph,
+        save_type: "autosave",
+        version: await WorkflowVersion.nextVersion(workflow.id)
+      });
+      const captured = await transferPayloadOf("workflow", workflow.id);
+
+      const set = await captureRevisionSet(host, OWNER, { kind: "workflow", document_id: workflow.id });
+      expect(set.documents[0]?.revision_id).not.toBe(autosave.id);
+
+      await WorkflowVersion.pruneOldAutosaves(workflow.id, 0);
+      const document = await receiveDocument(host, OWNER, { set_id: set.set_id, kind: "workflow", document_id: workflow.id });
+      expect(document.document).toEqual(captured);
+    });
+
     it("captures a timeline at its stored revision", async () => {
       const projectId = await cloudProject();
       const timeline = await TimelineSequence.create<TimelineSequence>({
