@@ -1215,5 +1215,113 @@
   ],
   "supports_dynamic_inputs": false,
   "title": "Video Model Constant"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.Application",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "application",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": {
+     "id": null,
+     "type": "application"
+    },
+    "name": "value",
+    "required": false,
+    "title": "Value",
+    "type": {
+     "type": "application",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Application"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.JsScript",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "jsscript",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": {
+     "id": null,
+     "type": "jsscript"
+    },
+    "name": "value",
+    "required": false,
+    "title": "Value",
+    "type": {
+     "type": "jsscript",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "JS Script"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.Workflow",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "workflow",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": {
+     "id": null,
+     "type": "workflow"
+    },
+    "name": "value",
+    "required": false,
+    "title": "Value",
+    "type": {
+     "type": "workflow",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Workflow"
  }
 ]

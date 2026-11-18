@@ -115,6 +115,21 @@ export const storyboardRefDefault = {
   data: null
 };
 
+export const workflowRefDefault = {
+  type: "workflow",
+  id: null
+};
+
+export const applicationRefDefault = {
+  type: "application",
+  id: null
+};
+
+export const jsScriptRefDefault = {
+  type: "jsscript",
+  id: null
+};
+
 export const entityDefault = {
   type: "entity",
   id: "",

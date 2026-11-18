@@ -208,6 +208,9 @@ QRectF cropControlled(const QString &control, const QVariant &value, const QRect
 // body whose web preview-area flexes grows it to fill an authored height or
 // the web default height, and records the growth in NodeLayout::flexHeight.
 void layoutBespokeBody(NodeLayout &layout, const CardBodyInput &input);
+// Grows (or shrinks, for a negative extra) the result area by extra px and
+// moves every row below it, as a web preview-area that flexes.
+void resizeResultArea(NodeLayout &layout, int extra);
 
 // The type of a Set Variable node, whose name the Prompt and Get Variable bodies offer.
 inline constexpr auto setVariableType = "nodetool.variable.SetVariable";

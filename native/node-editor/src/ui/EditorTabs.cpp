@@ -1,4 +1,5 @@
 #include "EditorWindow.h"
+#include "StoryWorkspace.h"
 #include <QJsonDocument>
 #include "document/ChildPorts.h"
 #include "EntryMenu.h"
@@ -8,6 +9,9 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QSettings>
+#include <QDockWidget>
+#include <QBoxLayout>
+#include <QQuickItem>
 #include <QQuickWidget>
 #include <QShortcut>
 #include <QStackedWidget>
@@ -31,7 +35,8 @@ QVariantList EditorWindow::workflowTabs() const {
         result.append(QVariantMap{{"title", title},
                                   {"dirty", tab->hasUnsavedChanges()},
                                   {"running", tab->runActive() && !tab->instantUpdate_ && !tab->scrubbing_},
-                                  {"renamable", !tab->childParent_ && !tab->projectWorkflowFile()}});
+                                  {"renamable", !tab->storySource_ && !tab->childParent_ && !tab->projectWorkflowFile()},
+                                  {"kind", tab->storySource_ ? tab->storySource_->kind() : QStringLiteral("workflow")}});
     }
     return result;
 }
@@ -185,6 +190,46 @@ void EditorWindow::newTab() {
   connect(&tab->session_, &node_editor::WorkflowSession::errorOccurred, tab, [tab] { tab->closeAfterServerSave_ = false; });
   connect(&tab->session_, &node_editor::WorkflowSession::credentialsChanged, tab, [tab] { tab->closeAfterServerSave_ = false; });
   activateSurface(tabs_.size() - 1);
+}
+void EditorWindow::openStoryDocument(const QString &kind, const QString &id) {
+    if (tabOwner_) { tabOwner_->openStoryDocument(kind, id); return; }
+    if (id.isEmpty()) { return; }
+    for (int i = 0; i < tabs_.size(); ++i) {
+        if (tabs_[i]->storySource_ && tabs_[i]->storySource_->kind() == kind && tabs_[i]->storyId_ == id) {
+            activateSurface(i);
+            return;
+        }
+    }
+    const auto opener = activeEditor_;
+    newTab();
+    auto tab = activeEditor_;
+    if (!tab || tab == opener) { return; }
+    const auto &session = opener ? opener->session_ : tab->session_;
+    tab->storyId_ = id;
+    tab->storySource_ = new node_editor::StoryDocumentSource(kind, session.serverUrl(), session.token(), session.userId(), tab);
+    const auto file = kind == "scripts" ? QStringLiteral("qrc:/qt/qml/NodeTool/Script/qml/ScriptDocumentEditor.qml")
+                                        : QStringLiteral("qrc:/qt/qml/NodeTool/Storyboard/qml/StoryboardDocumentEditor.qml");
+    auto editor = tab->panel(file,
+                             {{"controller", QVariant::fromValue<QObject *>(tab->storySource_)}});
+    editor->setObjectName("story-document-editor");
+    if (auto root = editor->rootObject()) {
+        tab->storyWorkspace_ = root->property("workspace").value<QObject *>();
+    }
+    // The document replaces the canvas column, and the canvas docks hide.
+    for (auto dock : tab->dockHost_->findChildren<QDockWidget *>(Qt::FindDirectChildrenOnly)) { dock->hide(); }
+    // The canvas column keeps its widgets, because the tab still owns them.
+    auto column = tab->dockHost_->centralWidget();
+    for (auto child : column->findChildren<QWidget *>(Qt::FindDirectChildrenOnly)) { child->hide(); }
+    editor->setParent(column);
+    qobject_cast<QBoxLayout *>(column->layout())->addWidget(editor, 1);
+    editor->show();
+    const auto refresh = [this, tab] { tab->schedulePanelChanged(); notifyTabs(); };
+    connect(tab->storySource_, &node_editor::StoryDocumentSource::changed, tab, refresh);
+    if (auto drafts = qobject_cast<StoryWorkspace *>(tab->storyWorkspace_)) { connect(drafts, &StoryWorkspace::changed, tab, refresh); }
+    if (!tab->storySource_->load(id)) {
+        notify(QStringLiteral("warning"), tr("Connect to a server to open this document."));
+    }
+    notifyTabs();
 }
 void EditorWindow::activateTab(int index) {
     auto owner = tabOwner_ ? tabOwner_ : this;
@@ -408,13 +453,20 @@ bool EditorWindow::confirmTabClose(bool closeAfterSave) {
         return true;
     }
     tabOwner_->activateSurface(tabOwner_->tabs_.indexOf(this));
+    const auto title = !storySource_ ? tr("Unsaved workflow")
+        : storySource_->kind() == "scripts" ? tr("Unsaved script") : tr("Unsaved storyboard");
     const auto choice = QMessageBox::warning(
-        this, tr("Unsaved workflow"), tr("Save changes before closing?"),
+        this, title, tr("Save changes before closing?"),
         QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Cancel);
     if (choice == QMessageBox::Discard) {
         return true;
     }
     if (choice != QMessageBox::Save) {
+        return false;
+    }
+    if (storyWorkspace_) {
+        // The save confirms later, so the tab stays open with the draft.
+        QMetaObject::invokeMethod(storyWorkspace_, "save");
         return false;
     }
     if (session_.serverBound()) {

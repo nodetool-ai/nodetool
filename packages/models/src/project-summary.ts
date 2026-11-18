@@ -640,7 +640,8 @@ export async function listProjectDocuments(
     storyboardFiles,
     scriptFiles,
     appFiles,
-    jsScriptFiles
+    jsScriptFiles,
+    sketchFiles
   ] =
     await Promise.all([
     listDocumentFiles(
@@ -672,6 +673,11 @@ export async function listProjectDocuments(
       "jsscript",
       userId,
       rows.jsScripts.map((row) => row.id)
+    ),
+    listDocumentFiles(
+      "sketch",
+      userId,
+      rows.sketches.map((row) => row.id)
     )
   ]);
   const withFile = <T extends { ref: string }>(
@@ -692,7 +698,9 @@ export async function listProjectDocuments(
     ...rows.timelines.map((row) =>
       withFile(toRef("timeline", row), timelineFiles)
     ),
-    ...rows.sketches.map((row) => toRef("sketch", row)),
+    ...rows.sketches.map((row) =>
+      withFile(toRef("sketch", row), sketchFiles)
+    ),
     ...rows.applications.map((row) =>
       withFile(toRef("application", row), appFiles)
     ),

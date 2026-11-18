@@ -17976,7 +17976,9 @@
       "seek": "हिन्दी",
       "playbackSpeed": "प्लेबैक गति",
       "exitFullscreen": "एक्सिट फुलस्क्रीन",
-      "enterFullscreen": "फुलस्क्रीन दर्ज करें"
+      "enterFullscreen": "फुलस्क्रीन दर्ज करें",
+      "mute": "म्यूट करें",
+      "unmute": "अनम्यूट करें"
     },
     "tagInput": {
       "placeholder": "टाइप करें और प्रेस एक टैग जोड़ने के लिए प्रवेश करें ...",
@@ -20239,6 +20241,19 @@
       "retry": "फिर कोशिश करें",
       "donePath": "आपकी फ़ाइलें {{path}} में हैं",
       "close": "बंद करें"
+    },
+    "preview": {
+      "clips": "क्लिप",
+      "title": "पूर्वावलोकन",
+      "tracks": "ट्रैक",
+      "type": {
+        "app": "मिनी ऐप",
+        "jsscript": "JS स्क्रिप्ट",
+        "script": "स्क्रिप्ट",
+        "storyboard": "स्टोरीबोर्ड",
+        "timeline": "टाइमलाइन",
+        "workflow": "वर्कफ़्लो"
+      }
     }
   },
   "assetPicker": {

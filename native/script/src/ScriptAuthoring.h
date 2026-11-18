@@ -2,7 +2,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QUrl>
-namespace nt::aiassist {
+namespace nt::script {
 // Document editing retains the full script response for CAS saving.
 QJsonObject addScriptLine(QJsonObject script, const QJsonObject& payload = {});
 QJsonObject patchScriptLineText(QJsonObject script, const QJsonObject& payload);

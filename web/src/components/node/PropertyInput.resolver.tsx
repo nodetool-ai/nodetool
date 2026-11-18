@@ -34,6 +34,8 @@ import SketchProperty from "../properties/SketchProperty";
 import TimelineProperty from "../properties/TimelineProperty";
 import ScriptProperty from "../properties/ScriptProperty";
 import StoryboardProperty from "../properties/StoryboardProperty";
+import ApplicationProperty from "../properties/ApplicationProperty";
+import JsScriptProperty from "../properties/JsScriptProperty";
 import EntityProperty from "../properties/EntityProperty";
 import ImageSizeProperty from "../properties/ImageSizeProperty";
 import JSONProperty from "../properties/JSONProperty";
@@ -210,6 +212,10 @@ function componentForType(type: string): ComponentType<PropertyProps> {
       return ScriptProperty;
     case "storyboard":
       return StoryboardProperty;
+    case "application":
+      return ApplicationProperty;
+    case "jsscript":
+      return JsScriptProperty;
     case "entity":
       return EntityProperty;
     case "workflow":

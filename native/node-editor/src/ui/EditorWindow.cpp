@@ -566,7 +566,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     inlinePresenter_->activate(id, name);
     if (inlinePresenter_->active() && !inlinePresenter_->expanded()) { inlinePresenter_->expand(); }
   });
-  connect(scene_, &EditorScene::documentOpenRequested, this, [this](const QString &kind, const QString &id) { documentPicker_.open(kind, id); });
+  connect(scene_, &EditorScene::documentOpenRequested, this, [this](const QString &kind, const QString &id) { openLinkedDocument(kind, id); });
   // The web opens provider onboarding at the key. Native opens the server's provider settings.
   connect(scene_, &EditorScene::providerConnectRequested, this, [this] { packSetup()->openProviderSettings(); });
   // The scene selects the card before it asks, so Run selected runs that node.
@@ -781,8 +781,9 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   libraryProperties.insert("assets", QVariant::fromValue<QObject *>(&assetPicker_));
   libraryProperties.insert("folder", QVariant::fromValue(&projectFolder_));
   // The project folder tree, as the web left panel's Files view.
-  filesDock_ = dock(tr("Files"), QStringLiteral("qrc:/qt/qml/NodeTool/Files/FilesPanel.qml"), Qt::LeftDockWidgetArea,
-                    {{"files", QVariant::fromValue(&projectFiles_)}});
+  filesDock_ = dock(tr("Files"), QStringLiteral("ProjectFilesDock"), Qt::LeftDockWidgetArea,
+                    {{"files", QVariant::fromValue(&projectFiles_)},
+                     {"resolver", QVariant::fromValue<QObject *>(&mediaResolver_)}});
   filesDock_->setObjectName("files-dock");
   filesDock_->hide();
   if (auto *files = qobject_cast<QQuickWidget *>(filesDock_->widget()); files && files->rootObject()) {
@@ -975,7 +976,15 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(outputDock_, &QDockWidget::visibilityChanged, this,
           [this] { schedulePanelChanged(); });
   connect(scene_, &QtNodes::BasicGraphicsScene::nodeDoubleClicked, this, [this](QtNodes::NodeId id) {
-    if (node_editor::isChildNode(document_.node(model_.resourceId(id)))) { selected_ = model_.resourceId(id); openChild(); }
+    if (node_editor::isChildNode(document_.node(model_.resourceId(id)))) { selected_ = model_.resourceId(id); openChild(); return; }
+    // A document constant opens its document, as its Edit button does.
+    for (const auto &row : model_.layout(id).rows) {
+      if (row.action == QStringLiteral("openDocument")) {
+        const auto reference = model_.nodeSnapshot(id)["data"].toObject()[row.propertyName].toObject();
+        if (!reference["id"].toString().isEmpty()) { openLinkedDocument(row.value, reference["id"].toString()); }
+        return;
+      }
+    }
   });
   connect(scene_, &EditorScene::headerDoubleClicked, this, [this](QtNodes::NodeId id) {
     if (readOnly()) { return; }
@@ -1718,6 +1727,15 @@ void EditorWindow::showBrowser(bool visible) {
   schedulePanelChanged();
   scheduleViewportSettle();
 }
+// A workflow opens in a new tab beside this one. The other kinds have no
+// native editor, so they open in the web editor as before.
+void EditorWindow::openLinkedDocument(const QString &kind, const QString &id) {
+  if (id.isEmpty()) { return; }
+  if (kind == QStringLiteral("workflow")) { openWorkflow(id); return; }
+  if (kind == QStringLiteral("storyboard")) { openStoryDocument(QStringLiteral("storyboards"), id); return; }
+  if (kind == QStringLiteral("script")) { openStoryDocument(QStringLiteral("scripts"), id); return; }
+  if (!documentPicker_.open(kind, id)) { notify(QStringLiteral("warning"), tr("This %1 has no editor here. Open it in the web workspace.").arg(kind)); }
+}
 void EditorWindow::openWorkflow(const QString &id) {
   if (id.isEmpty()) return;
   auto owner = tabOwner_ ? tabOwner_ : this;
@@ -1832,6 +1850,10 @@ bool EditorWindow::inspectorVisible() const {
   if (!tabOwner_) { return activeEditor_->inspectorVisible(); } return inspectorDock_ && !inspectorDock_->isHidden(); }
 QString EditorWindow::workflowName() const {
   if (!tabOwner_) { return activeEditor_->workflowName(); }
+  if (storySource_) {
+    const auto name = storySource_->name();
+    return !name.isEmpty() ? name : storySource_->kind() == "scripts" ? tr("Script") : tr("Storyboard");
+  }
   const auto snapshot = document_.snapshot();
   if (!snapshot.contains("name") && projectWorkflowFile() && !file_.isEmpty()) {
     auto name = QFileInfo(file_).fileName();
@@ -1961,7 +1983,10 @@ void EditorWindow::syncInspector() {
   emit inspectorSynced();
   if (browserVisible()) { return; }
   if (!inspectorDock_) { return; }
-  const bool show = !inspectorDismissed_ && (!selected_.isEmpty() || readOnly());
+  // The chat panel needs the room, so a select or an add does not open the
+  // inspector while the chat shows. The inspector button still opens it.
+  const bool show = !inspectorDismissed_ && (!selected_.isEmpty() || readOnly())
+                    && !(chatVisible_ && inspectorDock_->isHidden());
   inspectorDock_->setVisible(show);
   // A narrow window shows one side panel at a time and restores the catalog afterward.
   if (show && width() < narrowWindowWidth && catalogVisible()) {

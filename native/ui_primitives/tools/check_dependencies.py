@@ -59,6 +59,16 @@ def cmake_calls(text):
 
 
 def module_policy(module):
+    # The shared player: the one module that may use Qt Multimedia. Hosts
+    # inject it, so neither NodeTool.Media nor NodeTool.Files depends on it.
+    if module.name == 'media-player':
+        return {
+            'subdirs': {'../ui_primitives'},
+            'qml_imports': {'NodeTool.UiPrimitives', 'NodeTool.MediaPlayer', 'QtMultimedia'},
+            'targets': {'nodetool_ui_primitives', 'nodetool_ui_primitivesplugin', 'nodetool_media_player', 'nodetool_media_playerplugin'},
+            'qt': {'Multimedia'},
+            'forbidden': FORBIDDEN,
+        }
     if module.name == 'media':
         return {
             'subdirs': {'../ui_primitives'},
@@ -82,6 +92,17 @@ def module_policy(module):
                 'nodetool_ui_primitives', 'nodetool_ui_primitivesplugin',
                 'nodetool_media', 'nodetool_mediaplugin',
                 'nodetool_entities', 'nodetool_entitiesplugin',
+            },
+            'forbidden': FORBIDDEN,
+        }
+    # The script editor builds on the storyboard drafts, and no host app leaks into it.
+    if module.name == 'script':
+        return {
+            'subdirs': {'../storyboard'},
+            'qml_imports': {'NodeTool.UiPrimitives', 'NodeTool.Storyboard', 'NodeTool.Script'},
+            'targets': {
+                'nodetool_ui_primitives', 'nodetool_storyboard', 'nodetool_storyboardplugin',
+                'nodetool_script', 'nodetool_scriptplugin', 'nodetool_script_authoring',
             },
             'forbidden': FORBIDDEN,
         }
@@ -282,7 +303,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--module-root', type=Path, default=None)
     args = parser.parse_args()
-    roots = [args.module_root] if args.module_root is not None else [MODULE, MODULE.parent / 'media', MODULE.parent / 'entities', MODULE.parent / 'storyboard', MODULE.parent / 'files']
+    roots = [args.module_root] if args.module_root is not None else [MODULE, MODULE.parent / 'media', MODULE.parent / 'entities', MODULE.parent / 'storyboard', MODULE.parent / 'files', MODULE.parent / 'media-player', MODULE.parent / 'script']
     files = []
     errors = []
     for root in roots:

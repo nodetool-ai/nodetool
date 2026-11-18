@@ -1,5 +1,5 @@
-import {useScriptStore, lineStatus, effectiveVoice} from '../../../../../web/src/stores/script/ScriptStore.ts';
-import {paceSpeed} from '../../../../../packages/protocol/src/script-pace.ts';
+import {useScriptStore, lineStatus, effectiveVoice} from '../../../../web/src/stores/script/ScriptStore.ts';
+import {paceSpeed} from '../../../../packages/protocol/src/script-pace.ts';
 import {writeFileSync} from 'node:fs';
 Date.now=()=>1700000000000;
 const voice={provider:'openai',model:'tts-1',voice:'alloy'};

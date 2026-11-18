@@ -12,6 +12,22 @@ import {
 import { trpcClient } from "../../trpc/client";
 import { useAssetStore } from "../../stores/AssetStore";
 
+/** File names of the documents that open in their own editor from Files. */
+const DOCUMENT_FILE_SUFFIXES = [
+  ".workflow.json",
+  ".timeline.json",
+  ".storyboard.json",
+  ".script.json",
+  ".app.json",
+  ".jsscript.json",
+  ".sketch.ora"
+] as const;
+
+export const isDocumentFile = (path: string): boolean => {
+  const lower = path.toLowerCase();
+  return DOCUMENT_FILE_SUFFIXES.some((suffix) => lower.endsWith(suffix));
+};
+
 /** A tree path as the asset API spells it: the root is "", never ".". */
 export const assetDirectoryPath = (treePath: string): string =>
   treePath === "." ? "" : treePath;
@@ -24,16 +40,28 @@ export class NotAnAssetError extends Error {
   }
 }
 
+type ListedAsset = Awaited<
+  ReturnType<typeof trpcClient.assets.list.query>
+>["assets"][number];
+
+/** The asset whose file is `path`, or null when no asset owns it. */
+export const assetOfFile = async (
+  projectId: string,
+  path: string
+): Promise<ListedAsset | null> => {
+  const { assets } = await trpcClient.assets.list.query({
+    project_id: projectId,
+    parent_id: projectDirectoryId(projectId, parentDirectory(path))
+  });
+  return assets.find((entry) => entry.workspace_path === path) ?? null;
+};
+
 /** The id of the asset whose file is `path`. */
 export const assetIdOfFile = async (
   projectId: string,
   path: string
 ): Promise<string> => {
-  const { assets } = await trpcClient.assets.list.query({
-    project_id: projectId,
-    parent_id: projectDirectoryId(projectId, parentDirectory(path))
-  });
-  const asset = assets.find((entry) => entry.workspace_path === path);
+  const asset = await assetOfFile(projectId, path);
   if (!asset) {
     throw new NotAnAssetError(path);
   }

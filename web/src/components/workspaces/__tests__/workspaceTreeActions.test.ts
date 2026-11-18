@@ -5,6 +5,7 @@ import {
   countFilesUnder,
   createFolder,
   deleteEntry,
+  isDocumentFile,
   moveEntry,
   renameEntry
 } from "../workspaceTreeActions";
@@ -99,5 +100,13 @@ describe("workspaceTreeActions", () => {
     expect(canMoveInto("footage-2", true, "footage")).toBe(true);
     expect(canMoveInto("footage/raw", true, ".")).toBe(true);
     expect(canMoveInto("notes.md", false, ".")).toBe(false);
+  });
+});
+
+describe("isDocumentFile", () => {
+  it("knows a sketch file by its .sketch.ora suffix", () => {
+    expect(isDocumentFile("Sketches/Fox.sketch.ora")).toBe(true);
+    expect(isDocumentFile("Sketches/Fox.ora")).toBe(false);
+    expect(isDocumentFile("Sketches/Fox.sketch.json")).toBe(false);
   });
 });

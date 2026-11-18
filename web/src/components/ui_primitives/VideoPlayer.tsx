@@ -3,7 +3,7 @@
  * VideoPlayer
  *
  * Embeddable video player with custom controls — play/pause, seek,
- * timestamp readout, and playback-speed selector. Used by ContentCardBody
+ * timestamp readout, and playback-speed selector (a mute toggle when compact). Used by ContentCardBody
  * (video variant) and anywhere else a compact in-node video preview is needed.
  *
  * Controls auto-hide after a short delay of mouse inactivity over the surface
@@ -26,6 +26,8 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
+import VolumeUpIcon from "@mui/icons-material/VolumeUp";
+import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import { IconButton } from "@mui/material";
 import { BORDER_RADIUS, MOTION, reducedMotion } from "./tokens";
 import { SPACING, getSpacingPx } from "./spacing";
@@ -88,7 +90,7 @@ const styles = (theme: Theme, controlsVisible: boolean) =>
       opacity: 1,
       pointerEvents: "auto"
     },
-    ".play-button, .fullscreen-button": {
+    ".play-button, .mute-button, .fullscreen-button": {
       width: 28,
       height: 28,
       flexShrink: 0,
@@ -209,6 +211,11 @@ export interface VideoPlayerProps {
    * again whenever the value changes. A timeline's match frame uses it.
    */
   seekToSeconds?: number;
+  /**
+   * Lay the controls out for a narrow panel: a mute toggle replaces the
+   * playback-speed selector.
+   */
+  compact?: boolean;
   className?: string;
 }
 
@@ -225,6 +232,7 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
   hoverControls = false,
   bare = false,
   seekToSeconds,
+  compact = false,
   className
 }) => {
   const theme = useTheme();
@@ -239,6 +247,18 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
   const [speed, setSpeed] = useState(1);
   const [controlsVisible, setControlsVisible] = useState(!hoverControls);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMuted, setIsMuted] = useState(muted);
+
+  useEffect(() => {
+    setIsMuted(muted);
+  }, [muted]);
+
+  const handleToggleMute = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) {return;}
+    v.muted = !v.muted;
+    setIsMuted(v.muted);
+  }, []);
 
   const scheduleHide = useCallback(() => {
     if (hideTimerRef.current) {clearTimeout(hideTimerRef.current);}
@@ -382,7 +402,7 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
         poster={poster || undefined}
         autoPlay={autoplay}
         loop={loop}
-        muted={muted}
+        muted={isMuted}
         playsInline
         preload="metadata"
         aria-label={playerLabel}
@@ -444,18 +464,29 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
           <span className="timestamp">
             {formatTime(currentTime)} / {formatTime(duration)}
           </span>
-          <select
-            className="speed-select"
-            value={speed}
-            onChange={handleSpeedChange}
-            aria-label={t("i18n-next86.videoPlayer.playbackSpeed")}
-          >
-            {SPEED_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {s}×
-              </option>
-            ))}
-          </select>
+          {compact ? (
+            <IconButton
+              className="mute-button"
+              size="small"
+              onClick={handleToggleMute}
+              aria-label={isMuted ? t("i18n-next86.videoPlayer.unmute") : t("i18n-next86.videoPlayer.mute")}
+            >
+              {isMuted ? <VolumeOffIcon /> : <VolumeUpIcon />}
+            </IconButton>
+          ) : (
+            <select
+              className="speed-select"
+              value={speed}
+              onChange={handleSpeedChange}
+              aria-label={t("i18n-next86.videoPlayer.playbackSpeed")}
+            >
+              {SPEED_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s}×
+                </option>
+              ))}
+            </select>
+          )}
           {fullscreenAvailable && (
             <IconButton
               className="fullscreen-button"

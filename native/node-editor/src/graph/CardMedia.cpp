@@ -2,6 +2,7 @@
 #include "CardBodyPainter.h"
 #include "EditorScene.h"
 #include <QCoreApplication>
+#include <QJsonObject>
 #include <QPainter>
 #include <QPainterPath>
 #include <QSet>
@@ -34,7 +35,7 @@ QSize naturalOr(const QSize &natural, double aspect) {
     return natural.width() > 0 && natural.height() > 0 ? natural : QSize(1000, int(std::lround(1000 * aspect)));
 }
 
-double aspectOf(const QSize &size) { return double(size.height()) / size.width(); }
+double aspectOf(const QSize &size) { return 1.0 / cardMediaRatio(size); }
 
 void paintPrompt(QPainter *painter, const CanvasTheme &theme, const QRectF &rect, const QString &text, bool dashed) {
     if (dashed) {
@@ -149,6 +150,37 @@ bool cardMediaBare(const QString &nodeType) {
            || nodeType == QLatin1String("nodetool.constant.Audio");
 }
 
+QSize cardMediaDimensions(const QJsonValue &value) {
+    const auto own = [](const QJsonObject &object) {
+        for (const auto &source : {object, object["metadata"].toObject()}) {
+            const QSize size(source["width"].toInt(), source["height"].toInt());
+            if (size.width() > 0 && size.height() > 0) {
+                return size;
+            }
+        }
+        return QSize();
+    };
+    const auto object = value.toObject();
+    if (const auto size = own(object); size.isValid()) {
+        return size;
+    }
+    for (const auto &child : object) {
+        if (const auto size = own(child.toObject()); size.isValid()) {
+            return size;
+        }
+    }
+    return {};
+}
+
+double cardMediaRatio(const QSize &natural) {
+    if (natural.width() <= 0 || natural.height() <= 0) {
+        return 0;
+    }
+    return std::clamp(double(natural.width()) / natural.height(), cm::minimumRatio, cm::maximumRatio);
+}
+
+double cardMediaFitKey(double ratio) { return std::round(ratio * 100) / 100; }
+
 bool cardMediaFills(const QString &nodeType) {
     return nodeType == QLatin1String("nodetool.constant.Image") || nodeType == QLatin1String("nodetool.constant.Video");
 }
@@ -186,6 +218,10 @@ double layoutCardMedia(NodeRow &row, const CardMediaField &field, double top, do
         }
         auto item = store.item(field.node, field.property, int(row.media.size()), identity);
         item.locator = values[index];
+        // Asset metadata sizes the area before the media loads.
+        if (!item.natural.isValid()) {
+            item.natural = cardMediaDimensions(QJsonValue::fromVariant(values[index]));
+        }
         row.media.append(item);
     }
     if (field.list) {
@@ -236,9 +272,13 @@ double layoutCardMedia(NodeRow &row, const CardMediaField &field, double top, do
     const auto inner = width - 2 * padding;
     if (kind == "image") {
         double height = cm::messageHeight;
-        if (item.state == CardMediaState::Ready && !item.image.isNull()) {
+        const bool ready = item.state == CardMediaState::Ready && !item.image.isNull();
+        if (ready || (item.state != CardMediaState::Failed && item.natural.isValid())) {
             const auto natural = naturalOr(item.natural, 1);
             height = fills ? width * aspectOf(natural) : std::min(cm::imageMaxHeight, inner * aspectOf(natural));
+        }
+        if (ready) {
+            const auto natural = naturalOr(item.natural, 1);
             row.value = QStringLiteral("%1×%2").arg(natural.width()).arg(natural.height());
         } else {
             row.value = item.state == CardMediaState::Failed ? tr("Image could not be loaded").toUpper() : QString{};

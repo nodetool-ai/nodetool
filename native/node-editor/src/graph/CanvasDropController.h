@@ -33,6 +33,8 @@ public slots:
 signals:
   void changed();
   void errorOccurred(QString message);
+  // A drop the target refuses, such as a file of another kind on a document constant.
+  void warningOccurred(QString message);
   void nodeCreated(QString id);
   void workflowFileDropped(QString path);
   // The Copy action of a loaded image on a card.
@@ -45,6 +47,8 @@ private:
     // A drop on a card's media drop zone sets that property instead of adding a node.
     QString targetNode, targetProperty, targetKind;
     QUrl file;
+    // A file dragged from the project Files panel, found by its workspace path.
+    QString projectId, projectPath, directoryId;
     QPointF position;
     QJsonValue value;
     bool hasValue = false;
@@ -65,6 +69,10 @@ private:
   void fail(const QString &, const QString &);
   void start(const QString &);
   void fetchAsset(const QString &);
+  // Finds the asset of a Files panel file, then fetches it as a dropped asset.
+  void lookupProjectFile(const QString &);
+  // Resolves a Files panel document file to its row and adds its constant node.
+  void lookupDocumentFile(const QString &);
   void downloadText(const QString &, const QUrl &);
   void finish(const QString &, const QJsonValue &);
   // Appends a dropped asset to a Collection card's items.
