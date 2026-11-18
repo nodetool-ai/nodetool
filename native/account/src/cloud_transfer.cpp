@@ -179,6 +179,37 @@ LocalTransferClient::Answer LocalTransferClient::post(const std::string& procedu
   return out;
 }
 
+std::optional<bool> LocalTransferClient::carriesToken(std::string_view procedure) {
+  // The procedures of packages/websocket/src/trpc/routers/cloud-transfer.ts.
+  // Capture of a send and the link query read the bundled server only.
+  static constexpr std::pair<std::string_view, bool> kProcedures[] = {
+      {"cloudTransfer.send.capture", false},   {"cloudTransfer.send.run", true},
+      {"cloudTransfer.send.cancel", true},     {"cloudTransfer.receive.capture", true},
+      {"cloudTransfer.receive.run", true},     {"cloudTransfer.receive.cancel", true},
+      {"cloudTransfer.link", false},           {"cloudTransfer.resume", true},
+  };
+  for (const auto& [name, token] : kProcedures) {
+    if (name == procedure) {
+      return token;
+    }
+  }
+  return std::nullopt;
+}
+
+LocalTransferClient::Answer LocalTransferClient::call(const std::string& procedure, const std::string& inputJson) {
+  const std::optional<bool> token = carriesToken(procedure);
+  if (!token) {
+    return {TransferStatus::Refused, "UNKNOWN_PROCEDURE", {}};
+  }
+  json input = json::parse(inputJson, nullptr, false);
+  if (!input.is_object()) {
+    return {TransferStatus::Refused, "INVALID_INPUT", {}};
+  }
+  // Only the session supplies a token.
+  input.erase("access_token");
+  return mutate(procedure, input.dump(), *token);
+}
+
 LocalTransferClient::Answer LocalTransferClient::mutate(const std::string& procedure, const std::string& inputJson,
                                                         bool withToken) {
   // The router runs on the app's bundled server. A request to any other

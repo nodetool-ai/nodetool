@@ -9,8 +9,14 @@ namespace {
 constexpr std::chrono::milliseconds kCancelPoll{50};
 } // namespace
 
-account::HttpResponse PipeTransport::send(const account::HttpRequest& request) {
-  if (request.cancel && request.cancel->cancelled()) {
+account::HttpResponse PipeTransport::send(const account::HttpRequest& request) { return send(request, {}, nullptr); }
+
+account::HttpResponse PipeTransport::send(const account::HttpRequest& request, const nlohmann::json& fields,
+                                          std::shared_ptr<const account::RequestCancel> alsoCancel) {
+  const auto stopped = [&] {
+    return (request.cancel && request.cancel->cancelled()) || (alsoCancel && alsoCancel->cancelled());
+  };
+  if (stopped()) {
     return {};
   }
   uint64_t id = 0;
@@ -26,14 +32,22 @@ account::HttpResponse PipeTransport::send(const account::HttpRequest& request) {
   for (const auto& [name, value] : request.headers) {
     headers.push_back({name, value});
   }
-  emit_({{"type", "http"},
-         {"id", id},
-         {"method", request.method},
-         {"url", request.url},
-         {"headers", headers},
-         {"body", request.body},
-         {"timeoutMs", request.timeout.count()},
-         {"requiredOrigin", request.requiredOrigin}});
+  nlohmann::json message = {{"type", "http"},
+                            {"id", id},
+                            {"method", request.method},
+                            {"url", request.url},
+                            {"headers", headers},
+                            {"body", request.body},
+                            {"timeoutMs", request.timeout.count()},
+                            {"requiredOrigin", request.requiredOrigin}};
+  if (fields.is_object()) {
+    for (const auto& [key, value] : fields.items()) {
+      if (!message.contains(key)) {
+        message[key] = value;
+      }
+    }
+  }
+  emit_(message);
 
   const auto deadline = std::chrono::steady_clock::now() + request.timeout;
   std::unique_lock lock(mutex_);
@@ -44,7 +58,7 @@ account::HttpResponse PipeTransport::send(const account::HttpRequest& request) {
       waiting_.erase(it);
       return response;
     }
-    const bool cancelled = request.cancel && request.cancel->cancelled();
+    const bool cancelled = stopped();
     if (closed_ || cancelled || std::chrono::steady_clock::now() >= deadline) {
       waiting_.erase(it);
       const bool tellMain = !closed_;
