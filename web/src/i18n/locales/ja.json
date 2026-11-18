@@ -12869,6 +12869,14 @@
     "installOnThisComputer": "このコンピュータに {{installLabel}} をインストールします",
     "install": "インストール",
     "selectLanguageModel": "言語モデルの選択",
+    "agentFit": {
+      "noToolsLabel": "ツールなし",
+      "noToolsTooltip": "プロバイダーによると、このモデルはツールを呼び出せません。エージェントにはツール呼び出しが必要なため、通常のテキスト生成にのみ使用してください。",
+      "freeTierLabel": "無料枠",
+      "freeTierTooltip": "OpenRouter は無料モデルに 1 分あたりと 1 日あたりの制限を設けています。エージェントの実行は多くのリクエストを送るため、無料モデルでは止まったり失敗したりしがちです。同じモデルの有料ルートにはこの制限はありません。",
+      "defaultLabel": "エージェントの既定",
+      "defaultTooltip": "NodeTool はエージェント作業にこのモデルを既定で使います。タスク別の評価はまだありません。テキスト、画像、動画の作業についてのテスト結果は公開されていません。"
+    },
     "searchLanguageModels": "言語モデルの検索",
     "installProviderToUseModel": "このモデルを使用するには、{{installLabel}} をインストールしてください。",
     "modelNotReady": "このモデルは使用する準備ができていません。",

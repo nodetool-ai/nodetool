@@ -12869,6 +12869,14 @@
     "installOnThisComputer": "在此电脑上安装{{installLabel}}",
     "install": "安装",
     "selectLanguageModel": "选择语言模型",
+    "agentFit": {
+      "noToolsLabel": "不支持工具",
+      "noToolsTooltip": "提供方表示此模型无法调用工具。智能体需要工具调用，因此只能将它用于纯文本生成。",
+      "freeTierLabel": "免费档",
+      "freeTierTooltip": "OpenRouter 对免费模型有每分钟和每天的请求限制。智能体运行会发出大量请求，因此使用免费模型时常会卡住或失败。同一模型的付费线路不受此限制。",
+      "defaultLabel": "智能体默认",
+      "defaultTooltip": "NodeTool 默认使用此模型进行智能体工作。它尚未按任务评级：文本、图像或视频工作的测试结果均未发布。"
+    },
     "searchLanguageModels": "搜索语言模型",
     "installProviderToUseModel": "安装{{installLabel}}以使用此模型。",
     "modelNotReady": "此模型尚未准备就绪。",

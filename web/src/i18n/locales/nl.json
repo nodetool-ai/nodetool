@@ -12869,6 +12869,14 @@
     "installOnThisComputer": "Installeer {{installLabel}} op deze computer",
     "install": "Installeren",
     "selectLanguageModel": "Selecteer taalmodel",
+    "agentFit": {
+      "noToolsLabel": "Geen tools",
+      "noToolsTooltip": "Volgens de provider kan dit model geen tools aanroepen. Agents hebben toolaanroepen nodig, dus gebruik het alleen voor gewone tekstgeneratie.",
+      "freeTierLabel": "Gratis niveau",
+      "freeTierTooltip": "OpenRouter beperkt gratis modellen per minuut en per dag. Een agentrun doet veel verzoeken, dus met een gratis model loopt die vaak vast of mislukt. De betaalde route van hetzelfde model valt niet onder deze limiet.",
+      "defaultLabel": "Standaard voor agents",
+      "defaultTooltip": "NodeTool gebruikt dit model standaard voor agentwerk. Het is nog niet per taak gerangschikt: er zijn geen testresultaten gepubliceerd voor tekst-, beeld- of videowerk."
+    },
     "searchLanguageModels": "Zoek taalmodellen",
     "installProviderToUseModel": "Installeer {{installLabel}} om dit model te gebruiken.",
     "modelNotReady": "Dit model is niet klaar voor gebruik.",
