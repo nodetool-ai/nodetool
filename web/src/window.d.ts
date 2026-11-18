@@ -116,6 +116,8 @@ export interface CloudAccountState {
   available: boolean;
   state: "signedOut" | "signingIn" | "signedIn";
   displayName: string;
+  /** The signed-in account's id, empty otherwise. Not a credential. */
+  accountId: string;
   serverOrigin: string;
   /** Signed out here, and the server has not confirmed the end of the session yet. */
   serverEndPending: boolean;

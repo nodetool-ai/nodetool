@@ -196,6 +196,7 @@ const boundedText = z
 const helperStateSchema = z.object({
   state: z.enum(["signedOut", "signingIn", "signedIn"]).catch("signedOut"),
   displayName: boundedText,
+  accountId: boundedText,
   serverOrigin: boundedText,
   serverEndPending: z.boolean().catch(false),
   cloudAvailable: z.boolean().catch(false),
@@ -299,6 +300,7 @@ export interface CloudAccountDeps {
 const UNAVAILABLE: Omit<CloudAccountState, "available" | "serverOrigin"> = {
   state: "signedOut",
   displayName: "",
+  accountId: "",
   serverEndPending: false,
   cloudAvailable: true,
   keychainAvailable: true,
