@@ -549,6 +549,9 @@ export enum IpcChannels {
   CLOUD_ACCOUNT_CANCEL_SIGN_IN = "cloud-account-cancel-sign-in",
   CLOUD_ACCOUNT_SIGN_OUT = "cloud-account-sign-out",
   CLOUD_ACCOUNT_EVENT = "cloud-account-event",
+  // Cloud requests and transfer calls, sent with the account by the helper
+  CLOUD_REQUEST = "cloud-request",
+  CLOUD_TRANSFER = "cloud-transfer",
   // Native OS notifications, shown while no app window is focused
   SYSTEM_NOTIFICATION_SHOW = "system-notification-show",
 }
@@ -571,6 +574,44 @@ export interface CloudAccountState {
   keychainAvailable: boolean;
   /** Why the last sign-in did not complete, or the policy's reason. */
   message: string;
+}
+
+/** Methods a cloud request may use. */
+export type CloudMethod = "GET" | "HEAD" | "POST";
+
+/**
+ * A request of the renderer to the signed-in cloud server. It names no
+ * credential: the account helper adds it.
+ */
+export interface CloudRequestInput {
+  method: CloudMethod;
+  /** A path on the signed-in server, with its query, such as `/trpc/workflows.get?input=…`. */
+  path: string;
+  headers: Record<string, string>;
+  body?: string | Uint8Array;
+}
+
+export type CloudRequestError = "SIGNED_OUT" | "OFFLINE" | "REFUSED" | "CANCELLED" | "BUSY";
+
+/** The server's answer, with any status, or why no request was sent or answered. */
+export type CloudResponse =
+  | { ok: true; status: number; headers: [string, string][]; body: Uint8Array }
+  | { ok: false; error: CloudRequestError };
+
+/** A call of the local server's `cloudTransfer` router, without account or token. */
+export interface CloudTransferInput {
+  procedure: string;
+  input: Record<string, unknown>;
+}
+
+export type TransferStatus = "ok" | "signedOut" | "offline" | "refused" | "localUnavailable" | "cancelled";
+
+export interface TransferResult {
+  status: TransferStatus;
+  /** The API code when the call did not succeed. */
+  reason: string;
+  /** The procedure's result when `status` is `ok`. */
+  data: unknown;
 }
 
 /** Whether VST3 instruments can play, and why not when they cannot. */
@@ -821,6 +862,8 @@ export interface IpcRequest {
   [IpcChannels.CLOUD_ACCOUNT_SIGN_IN]: void;
   [IpcChannels.CLOUD_ACCOUNT_CANCEL_SIGN_IN]: void;
   [IpcChannels.CLOUD_ACCOUNT_SIGN_OUT]: void;
+  [IpcChannels.CLOUD_REQUEST]: CloudRequestInput;
+  [IpcChannels.CLOUD_TRANSFER]: CloudTransferInput;
   [IpcChannels.SYSTEM_NOTIFICATION_SHOW]: SystemNotificationRequest;
 }
 
@@ -928,6 +971,8 @@ export interface IpcResponse {
   [IpcChannels.CLOUD_ACCOUNT_SIGN_IN]: void;
   [IpcChannels.CLOUD_ACCOUNT_CANCEL_SIGN_IN]: void;
   [IpcChannels.CLOUD_ACCOUNT_SIGN_OUT]: void;
+  [IpcChannels.CLOUD_REQUEST]: CloudResponse;
+  [IpcChannels.CLOUD_TRANSFER]: TransferResult;
   [IpcChannels.SYSTEM_NOTIFICATION_SHOW]: boolean;
 }
 

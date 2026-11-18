@@ -127,6 +127,25 @@ export interface CloudAccountState {
   message: string;
 }
 
+/** A request to the signed-in cloud server. The desktop app adds the credential. */
+export interface CloudRequestInput {
+  method: "GET" | "HEAD" | "POST";
+  /** A path on the signed-in server, with its query. */
+  path: string;
+  headers: Record<string, string>;
+  body?: string | Uint8Array;
+}
+
+export type CloudResponse =
+  | { ok: true; status: number; headers: [string, string][]; body: Uint8Array }
+  | { ok: false; error: "SIGNED_OUT" | "OFFLINE" | "REFUSED" | "CANCELLED" | "BUSY" };
+
+export interface CloudTransferResult {
+  status: "ok" | "signedOut" | "offline" | "refused" | "localUnavailable" | "cancelled";
+  reason: string;
+  data: unknown;
+}
+
 interface McpBundleInstallResult {
   ok: boolean;
   opened: boolean;
@@ -217,6 +236,17 @@ declare global {
         signOut: () => Promise<void>;
         /** Returns the unsubscribe function. */
         onChange: (callback: (state: CloudAccountState) => void) => () => void;
+      };
+      /**
+       * Requests to the signed-in cloud server and the local transfer router,
+       * sent with the shared account. No token reaches the page. Desktop only.
+       */
+      cloud?: {
+        request: (request: CloudRequestInput) => Promise<CloudResponse>;
+        transfer: (request: {
+          procedure: string;
+          input: Record<string, unknown>;
+        }) => Promise<CloudTransferResult>;
       };
       /** Native OS notifications. Desktop only. */
       notifications?: {
