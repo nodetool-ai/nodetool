@@ -106,6 +106,7 @@ import { storyboardFileAdapter } from "@nodetool-ai/project-services/storyboard-
 import { scriptFileAdapter } from "@nodetool-ai/project-services/script-file";
 import { appFileAdapter } from "@nodetool-ai/project-services/app-file";
 import { jsScriptFileAdapter } from "@nodetool-ai/project-services/js-script-file";
+import { sketchFileAdapter } from "@nodetool-ai/project-services/sketch-file";
 import {
   ProjectFolderOpenError,
   openProjectFolder,
@@ -306,7 +307,7 @@ async function loadOpened(userId: string, id: string): Promise<Project> {
 
 /** A document that is a file in its project folder, and how to write its file. */
 interface FileDocument {
-  row: Workflow | TimelineSequence | Storyboard | Script | Application | JsScript;
+  row: Workflow | TimelineSequence | Storyboard | Script | Application | JsScript | ImageDocument;
   write: () => Promise<unknown>;
 }
 
@@ -338,6 +339,10 @@ async function loadFileDocument(
     case "jsscript": {
       const row = await JsScript.findById(ref);
       return row && { row, write: () => restoreDocumentFile(jsScriptFileAdapter, row) };
+    }
+    case "sketch": {
+      const row = await ImageDocument.findById(ref);
+      return row && { row, write: () => restoreDocumentFile(sketchFileAdapter, row) };
     }
   }
 }

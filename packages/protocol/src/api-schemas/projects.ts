@@ -174,7 +174,7 @@ export const projectDocumentType = z.enum([
 export type ProjectDocumentType = z.infer<typeof projectDocumentType>;
 
 /** The document kinds that are JSON files in the project folder. */
-export const fileDocumentType = z.enum(["workflow", "timeline", "storyboard", "script", "application", "jsscript"]);
+export const fileDocumentType = z.enum(["workflow", "timeline", "storyboard", "script", "application", "jsscript", "sketch"]);
 export type FileDocumentType = z.infer<typeof fileDocumentType>;
 
 /**

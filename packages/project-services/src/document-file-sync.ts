@@ -6,8 +6,10 @@
  * the two in step, in both directions, for every kind through one
  * {@link DocumentFileAdapter}. The kinds are workflows (`workflow-file.ts`),
  * timelines (`timeline-file.ts`), storyboards (`storyboard-file.ts`),
- * scripts (`script-file.ts`), mini apps (`app-file.ts`) and JS scripts
- * (`js-script-file.ts`). A new kind adds an adapter and nothing here.
+ * scripts (`script-file.ts`), mini apps (`app-file.ts`), JS scripts
+ * (`js-script-file.ts`) and sketches (`sketch-file.ts`). A new kind adds an
+ * adapter and nothing here. A sketch keeps its layer images beside its file,
+ * through {@link DocumentFileAssets}.
  *
  * NodeTool to file: the model calls {@link documentFileSync} after it saved
  * or deleted a row. A save writes the file and records its path and the hash
@@ -203,6 +205,50 @@ export interface DocumentFileAdapter<Row extends DocumentRow, Fields> {
   }): Promise<Row | null>;
   /** Record the file state without touching `updated_at`. */
   setFileState(id: string, state: DocumentFileState): Promise<void>;
+  /**
+   * For a kind whose file keeps binary parts beside it: how the parts leave
+   * the file text and come back into it. Absent for a kind whose file is
+   * the whole document.
+   */
+  assets?: DocumentFileAssets;
+}
+
+/** One binary part of a document, kept as a file of its own. */
+export interface DocumentAssetFile {
+  /** Relative to the project folder, inside {@link documentAssetFolder}. */
+  path: string;
+  data: Uint8Array;
+  contentType: string;
+}
+
+/**
+ * The binary parts of a document kind, kept in a folder beside its file:
+ * `Fox.sketch.json` keeps them in `Fox.sketch/`. Everything else in this
+ * module works on the inline text, the file with every part held in it. Its
+ * hash is the hash of the file and every part, so an edit of a part counts
+ * as an edit of the document.
+ */
+export interface DocumentFileAssets {
+  /**
+   * The inline text for `text`, the file at `path` as it is on disk. `read`
+   * returns the bytes of a part, or null when it is gone. A text that is not
+   * the kind's JSON is returned as it is.
+   */
+  inline(
+    text: string,
+    path: string,
+    read: (path: string) => Promise<Uint8Array | null>
+  ): Promise<string>;
+  /** The file text to write at `path` for the inline `text`, and its parts. */
+  split(
+    text: string,
+    path: string
+  ): { text: string; files: DocumentAssetFile[] };
+}
+
+/** The folder a document file at `path` keeps its binary parts in. */
+export function documentAssetFolder(path: string): string {
+  return path.replace(/\.json$/i, "");
 }
 
 /** What one reconcile of a project's document files changed. */
@@ -398,6 +444,87 @@ async function readText(
   }
 }
 
+/** A kind, as far as reading and writing its file text goes. */
+type FileKind = { format: string; assets?: DocumentFileAssets };
+
+/**
+ * The inline text of the document file at `path`: the file, with the binary
+ * parts of a kind that keeps them beside it read back into it.
+ */
+async function readDocumentText(
+  kind: FileKind,
+  workspace: Workspace,
+  path: string
+): Promise<string | null> {
+  const text = await readText(workspace, path);
+  if (text === null || !kind.assets) return text;
+  const nested = new NestedFolders(workspace);
+  return kind.assets.inline(text, path, async (part) => {
+    try {
+      if (await nested.holds(part)) return null;
+      return await workspace.read(part);
+    } catch (error) {
+      if (error instanceof WorkspacePathError) return null;
+      throw error;
+    }
+  });
+}
+
+/**
+ * Write the inline `text` as the document file at `path`. A kind that keeps
+ * binary parts beside its file has them written to its asset folder, and a
+ * part the text no longer names is deleted. With `onlyNew`, nothing is
+ * written and false is returned when a file is at `path`.
+ */
+async function writeDocumentText(
+  kind: FileKind,
+  workspace: Workspace,
+  path: string,
+  text: string,
+  onlyNew = false
+): Promise<boolean> {
+  const split = kind.assets?.split(text, path) ?? { text, files: [] };
+  if (onlyNew) {
+    if (!(await workspace.writeNew(path, split.text, "application/json"))) {
+      return false;
+    }
+  }
+  if (kind.assets) {
+    const folder = documentAssetFolder(path);
+    const kept = new Set<string>();
+    for (const file of split.files) {
+      const current = await workspace.read(file.path).catch(() => null);
+      if (!current || hashOf(current) !== hashOf(file.data)) {
+        await workspace.write(file.path, file.data, file.contentType);
+      }
+      kept.add(file.path);
+    }
+    let entries: Awaited<ReturnType<Workspace["list"]>> = [];
+    try {
+      entries = await workspace.list(folder);
+    } catch {
+      // No folder yet: nothing to prune.
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory && !kept.has(entry.path)) {
+        await workspace.delete(entry.path);
+      }
+    }
+  }
+  if (!onlyNew) await workspace.write(path, split.text, "application/json");
+  return true;
+}
+
+/** Delete the document file at `path` and the folder of its binary parts. */
+async function deleteDocumentText(
+  kind: FileKind,
+  workspace: Workspace,
+  path: string
+): Promise<void> {
+  await workspace.delete(path);
+  if (kind.assets) await workspace.deleteAll(documentAssetFolder(path));
+}
+
 /** The lower-cased names in `directory`. Empty when it does not exist. */
 async function namesIn(
   workspace: Workspace,
@@ -555,7 +682,7 @@ async function writeDocumentFile<Row extends DocumentRow, Fields>(
   // A path in the folder of another project is not this document's file. The
   // row forgets it and gets a file in this folder, as a new document does.
   if (path && (await new NestedFolders(workspace).holds(path))) path = null;
-  let current = path ? await readText(workspace, path) : null;
+  let current = path ? await readDocumentText(adapter, workspace, path) : null;
   if (path && current !== null) {
     const parsed = parseDocumentFile(adapter, current);
     // Another document's file is at the row's path. It is left alone.
@@ -598,10 +725,12 @@ async function writeDocumentFile<Row extends DocumentRow, Fields>(
         !taken.has(fileName.toLowerCase()) &&
         // A name a row records for a file that is gone stays that row's.
         !recorded.has(candidate.toLowerCase()) &&
-        (await workspace.writeNew(candidate, text, "application/json"))
+        (await writeDocumentText(adapter, workspace, candidate, text, true))
       ) {
         target = candidate;
-        if (path && current !== null) await workspace.delete(path);
+        if (path && current !== null) {
+          await deleteDocumentText(adapter, workspace, path);
+        }
         current = text;
       }
     }
@@ -610,7 +739,7 @@ async function writeDocumentFile<Row extends DocumentRow, Fields>(
     }
   }
   if (current !== text) {
-    await workspace.write(target, text, "application/json");
+    await writeDocumentText(adapter, workspace, target, text);
   }
   await recordFileState(adapter, row, projectId, {
     file_path: target,
@@ -652,7 +781,7 @@ async function keepUnseenEdit<Row extends DocumentRow, Fields>(
 
 /** Delete the file at `path` when it is the file of document `id`. */
 async function deleteDocumentFile(
-  adapter: { format: string },
+  adapter: FileKind,
   workspace: Workspace,
   path: string,
   id: string
@@ -662,7 +791,7 @@ async function deleteDocumentFile(
   const parsed = parseDocumentFile(adapter, text);
   // Another document's file took the path. It is not this document's to delete.
   if (parsed.ok && parsed.id !== null && parsed.id !== id) return;
-  await workspace.delete(path);
+  await deleteDocumentText(adapter, workspace, path);
 }
 
 /**
@@ -677,7 +806,7 @@ async function unseenEditAt<Row extends DocumentRow, Fields>(
   path: string,
   fileHash: string | null
 ): Promise<{ parsed: ParsedFile; text: string } | null> {
-  const current = await readText(workspace, path);
+  const current = await readDocumentText(adapter, workspace, path);
   if (current === null) return null;
   const parsed = parseDocumentFile(adapter, current);
   if (parsed.ok && parsed.id !== null && parsed.id !== row.id) return null;
@@ -929,10 +1058,11 @@ interface DocumentFile {
 }
 
 async function readDocumentFile(
+  kind: FileKind,
   workspace: Workspace,
   path: string
 ): Promise<DocumentFile | null> {
-  const text = await readText(workspace, path);
+  const text = await readDocumentText(kind, workspace, path);
   return text === null ? null : { path, text, hash: hashOf(text) };
 }
 
@@ -969,7 +1099,8 @@ async function documentFilesInScope(
   workspace: Workspace,
   suffixes: readonly string[],
   { paths, scanned }: DocumentReconcileOptions,
-  waiting: readonly string[]
+  waiting: readonly string[],
+  assetFolderSuffixes: readonly string[] = []
 ): Promise<{ files: string[]; places: ReadonlySet<string> | null }> {
   const isDocument = (path: string): boolean =>
     suffixes.some((suffix) => hasSuffix(path, suffix));
@@ -983,7 +1114,19 @@ async function documentFilesInScope(
     const all = await scanFolder(workspace);
     return { files: [...all.keys()].filter(isDocument), places: null };
   }
-  const changed = await scanChangedPaths(workspace, [...paths, ...waiting]);
+  // A changed binary part is a change of the document file it belongs to.
+  const owners: string[] = [];
+  for (const path of paths) {
+    const folder = directoryOf(path);
+    if (assetFolderSuffixes.some((suffix) => hasSuffix(folder, suffix))) {
+      owners.push(`${folder}.json`);
+    }
+  }
+  const changed = await scanChangedPaths(workspace, [
+    ...paths,
+    ...owners,
+    ...waiting
+  ]);
   return {
     files: [...changed.files.keys()].filter(isDocument),
     places: changed.places
@@ -1037,7 +1180,7 @@ async function importFile<Row extends DocumentRow, Fields>(
   }
   let hash = file.hash;
   if (options.rewrite && next !== file.text) {
-    await run.workspace.write(file.path, next, "application/json");
+    await writeDocumentText(adapter, run.workspace, file.path, next);
     hash = hashOf(next);
   }
   const state = { file_path: file.path, file_hash: hash, file_error: null };
@@ -1222,7 +1365,7 @@ async function reconcileKind<Row extends DocumentRow, Fields>(
         continue;
       }
       // The file may have been written after the folder was listed.
-      file = (await readDocumentFile(workspace, path)) ?? undefined;
+      file = (await readDocumentFile(adapter, workspace, path)) ?? undefined;
       if (!file) {
         missing.set(row.id, row);
         continue;
@@ -1342,7 +1485,7 @@ async function reconcileKind<Row extends DocumentRow, Fields>(
     let text = reassigned
       ? documentFileText(adapter, id, content.fields)
       : file.text;
-    if (reassigned) await workspace.write(file.path, text, "application/json");
+    if (reassigned) await writeDocumentText(adapter, workspace, file.path, text);
     let created = await adapter.create({
       id,
       userId,
@@ -1357,7 +1500,7 @@ async function reconcileKind<Row extends DocumentRow, Fields>(
       id = newDocumentId();
       reassigned = true;
       text = documentFileText(adapter, id, content.fields);
-      await workspace.write(file.path, text, "application/json");
+      await writeDocumentText(adapter, workspace, file.path, text);
       created = await adapter.create({
         id,
         userId,
@@ -1465,13 +1608,16 @@ export async function reconcileDocumentFiles(
         workspace,
         adapters.map((adapter) => adapter.suffix),
         options,
-        waiting
+        waiting,
+        adapters.flatMap((adapter) =>
+          adapter.assets ? [documentAssetFolder(adapter.suffix)] : []
+        )
       );
       for (const adapter of adapters) {
         const files = new Map<string, DocumentFile>();
         for (const path of scope.files) {
           if (!hasSuffix(path, adapter.suffix)) continue;
-          const file = await readDocumentFile(workspace, path);
+          const file = await readDocumentFile(adapter, workspace, path);
           if (file) files.set(path, file);
         }
         report.files += files.size;
