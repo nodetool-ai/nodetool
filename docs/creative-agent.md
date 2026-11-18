@@ -150,7 +150,6 @@ These nodes start from a document a person already approved and re-run it (a boa
 | `nodetool.entity.LoadEntity` | `entity`, or a name and kind | `entity`, `descriptor`, `name`, `kind`, `reference_image`, `voice_id` |
 | `nodetool.entity.ListEntities` | `kind`, `tags`, `name_contains`, `project` | `entities`, streams one `entity` per row |
 | `nodetool.entity.CreateEntity` | `image`, `kind`, `name`, `descriptor`, `key` | `entity`, `created` — upserts on `key`, so a re-run reuses the row |
-| `nodetool.storyboard.LoadStoryboard` | `storyboard` | `shots`, `entities`, `style`, `aspect_ratio`, `name`, both models, `shot_count` |
 | `nodetool.storyboard.StoryboardShots` | `storyboard` | streams `shot`, `index`, `slug`, `keyframe`, `clip` |
 | `nodetool.storyboard.CreateStoryboard` | `screenplay` (from `Director`), `name`, `cast`, both models, `reuse_existing` | a new writable `storyboard`, `shots`, `created` — a re-run returns the board it made |
 | `nodetool.storyboard.RecastStoryboard` | `storyboard`, `cast`, `replaces`, `reuse_existing` | the copy, `invalidated`, `kept` — keeps every frame whose prompt did not move |

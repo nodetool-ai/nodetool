@@ -1,0 +1,9 @@
+# Versions the Gemma 4 pipeline was verified with (CUDA 13, RTX 3060).
+unsloth==2026.11.5
+unsloth_zoo==2026.11.5
+torch==2.14.1
+transformers==5.17.0
+trl==1.15.0
+peft==0.21.3
+datasets==4.8.5
+bitsandbytes==0.50.2

@@ -23,6 +23,7 @@ import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getPortableDb } from "./db.js";
 import { workflowShares } from "./schema/workflow-sharing.js";
 import type { CollaboratorRole } from "./workflow-collaborator.js";
+import { changingAccess } from "./access-epoch.js";
 
 export type ShareRole = CollaboratorRole | "public";
 
@@ -150,23 +151,29 @@ export class WorkflowShare extends DBModel {
 
   /** Stop new redemptions. People who joined keep the link's options. */
   async revoke(): Promise<void> {
-    const at = new Date().toISOString();
-    this.disabled_at = at;
-    this.revoked_at = at;
-    await this.save();
+    return changingAccess([{ kind: "workflow", id: this.workflow_id }], async () => {
+      const at = new Date().toISOString();
+      this.disabled_at = at;
+      this.revoked_at = at;
+      await this.save();
+    });
   }
 
   /** Change the link's options. They apply to everyone who joined through it. */
   async setOptions(options: Partial<ShareOptions>): Promise<void> {
-    applyShareOptions(this, options);
-    await this.save();
+    return changingAccess([{ kind: "workflow", id: this.workflow_id }], async () => {
+      applyShareOptions(this, options);
+      await this.save();
+    });
   }
 
   /** Delete every share for a workflow (used when the workflow is deleted). */
   static async removeAllForWorkflow(workflowId: string): Promise<void> {
-    const db = getPortableDb();
-    await db
-      .delete(workflowShares)
-      .where(eq(workflowShares.workflow_id, workflowId));
+    return changingAccess([{ kind: "workflow", id: workflowId }], async () => {
+      const db = getPortableDb();
+      await db
+        .delete(workflowShares)
+        .where(eq(workflowShares.workflow_id, workflowId));
+    });
   }
 }

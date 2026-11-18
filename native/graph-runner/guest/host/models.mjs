@@ -9,7 +9,7 @@ import { migrateSqliteCore } from 'guest-real:@nodetool-ai/database-sqlite/migra
 import { appSettings } from 'guest-real:@nodetool-ai/models/schema/settings.js';
 import { messages } from 'guest-real:@nodetool-ai/models/schema/messages.js';
 import { threads } from 'guest-real:@nodetool-ai/models/schema/threads.js';
-import { applySqliteBaseline, migrateMessageBranches } from './models-baseline.cjs';
+import { applySqliteBaseline, migrateMessageBranches, migrateMessageTurnContext } from './models-baseline.cjs';
 import { getAssetFileName } from '@nodetool-ai/protocol';
 import { normalizeAssetContentType } from 'guest-real:@nodetool-ai/asset-services/asset-paths.js';
 import { scripts } from 'guest-real:@nodetool-ai/models/schema/scripts.js';
@@ -58,6 +58,7 @@ export function openModelRepository(databasePath, userId) {
     client.transaction(() => {
       // Tables outside the execution set: the models migrations below.
       migrateMessageBranches(client);
+      migrateMessageTurnContext(client);
       // The 20261110_000000 add_thread_kind migration in @nodetool-ai/models.
       if (!client.pragma('table_info("nodetool_threads")').some((column) => column.name === 'kind')) client.exec("ALTER TABLE nodetool_threads ADD COLUMN kind TEXT NOT NULL DEFAULT 'chat'");
       // The 20261116_000000 add_project_folder migration in @nodetool-ai/models.
@@ -72,8 +73,9 @@ export function openModelRepository(databasePath, userId) {
       // instance that wrote the stored revision, and its schema version.
       if (!timelineColumns.some((column) => column.name === 'last_writer_instance')) client.exec('ALTER TABLE timeline_sequences ADD COLUMN last_writer_instance TEXT');
       if (!timelineColumns.some((column) => column.name === 'schema_version')) client.exec('ALTER TABLE timeline_sequences ADD COLUMN schema_version INTEGER NOT NULL DEFAULT 1');
-      // The 20261129_000000 and 20261129_000001 add_*_file_columns migrations.
-      for (const table of ['storyboards', 'scripts']) {
+      // The 20261129_000000, 20261129_000001 and 20261129_000004
+      // add_*_file_columns migrations.
+      for (const table of ['storyboards', 'scripts', 'image_documents']) {
         const columns = client.pragma(`table_info("${table}")`);
         for (const name of ['file_path', 'file_hash', 'file_error']) {
           if (!columns.some((column) => column.name === name)) client.exec(`ALTER TABLE ${table} ADD COLUMN ${name} TEXT`);

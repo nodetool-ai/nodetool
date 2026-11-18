@@ -12869,6 +12869,14 @@
     "installOnThisComputer": "Installeer {{installLabel}} op deze computer",
     "install": "Installeren",
     "selectLanguageModel": "Selecteer taalmodel",
+    "agentFit": {
+      "noToolsLabel": "Geen tools",
+      "noToolsTooltip": "Volgens de provider kan dit model geen tools aanroepen. Agents hebben toolaanroepen nodig, dus gebruik het alleen voor gewone tekstgeneratie.",
+      "freeTierLabel": "Gratis niveau",
+      "freeTierTooltip": "OpenRouter beperkt gratis modellen per minuut en per dag. Een agentrun doet veel verzoeken, dus met een gratis model loopt die vaak vast of mislukt. De betaalde route van hetzelfde model valt niet onder deze limiet.",
+      "defaultLabel": "Standaard voor agents",
+      "defaultTooltip": "NodeTool gebruikt dit model standaard voor agentwerk. Het is nog niet per taak gerangschikt: er zijn geen testresultaten gepubliceerd voor tekst-, beeld- of videowerk."
+    },
     "searchLanguageModels": "Zoek taalmodellen",
     "installProviderToUseModel": "Installeer {{installLabel}} om dit model te gebruiken.",
     "modelNotReady": "Dit model is niet klaar voor gebruik.",
@@ -15793,7 +15801,9 @@
       "showDetails": "Details tonen",
       "collapseDetails": "Details samenvouwen",
       "input": "Invoer",
-      "output": "Uitvoer"
+      "output": "Uitvoer",
+      "basic": "Basis",
+      "basicNode": "Basis · node {{title}}"
     },
     "favorites": {
       "title": "Favorieten",
@@ -15823,6 +15833,7 @@
       "resizeHeight": "Wijzig de hoogte van het knooppuntmenu"
     },
     "quickActions": {
+      "basics": "Basis",
       "aiNodes": "AI-knooppunten",
       "providerModels": "Provider-modellen",
       "constants": "Constanten",
@@ -15860,7 +15871,13 @@
         "constant-list": "Lijst",
         "constant-model-3d": "3D-model",
         "constant-string": "Snaar",
-        "constant-video": "Video"
+        "constant-video": "Video",
+        "basic-text": "Tekst",
+        "basic-generate-text": "Tekst genereren",
+        "basic-generate-image": "Afbeelding genereren",
+        "basic-edit-image": "Afbeelding bewerken",
+        "basic-generate-video": "Video genereren",
+        "basic-edit-video": "Video bewerken"
       }
     },
     "recent": {
@@ -17959,7 +17976,9 @@
       "seek": "Zoek",
       "playbackSpeed": "Afspeelsnelheid",
       "exitFullscreen": "Volledig scherm afsluiten",
-      "enterFullscreen": "Voer volledig scherm in"
+      "enterFullscreen": "Voer volledig scherm in",
+      "mute": "Dempen",
+      "unmute": "Dempen opheffen"
     },
     "tagInput": {
       "placeholder": "Typ en druk op Enter om een tag toe te voegen...",
@@ -20222,6 +20241,19 @@
       "retry": "Opnieuw proberen",
       "donePath": "Je bestanden staan in {{path}}",
       "close": "Sluiten"
+    },
+    "preview": {
+      "clips": "clips",
+      "title": "Voorbeeld",
+      "tracks": "sporen",
+      "type": {
+        "app": "Mini-app",
+        "jsscript": "JS-script",
+        "script": "Script",
+        "storyboard": "Storyboard",
+        "timeline": "Tijdlijn",
+        "workflow": "Workflow"
+      }
     }
   },
   "assetPicker": {

@@ -20,25 +20,25 @@ export const recipePresentation = [
       provider:
         "GPT Image 2.5 Sunburst generated and revised the campaign through AtlasCloud in NodeTool.",
       hero: {
-        src: `${campaignRoot}/hero.png`,
+        src: `${campaignRoot}/hero-1280.webp`,
         alt: "Olive travel cup on a cobalt platform above mirrored water at an amber mountain sunrise.",
-        width: 2048,
-        height: 1152
+        width: 1280,
+        height: 720
       },
       card: {
-        src: `${campaignRoot}/social-square.png`,
+        src: `${campaignRoot}/social-square-800.webp`,
         alt: "Square campaign image of an olive travel cup against cobalt architecture and an amber sunrise.",
-        width: 2048,
-        height: 2048
+        width: 800,
+        height: 800
       },
       ogImage: `${campaignRoot}/hero.png`,
       proof: {
-        src: `${campaignRoot}/story.png`,
+        src: `${campaignRoot}/story-720.webp`,
         alt: "Vertical campaign image with an olive travel cup framed below a mountain sunrise.",
         caption:
           "The vertical format preserves the approved product, palette, platform, water, and sunrise.",
-        width: 1152,
-        height: 2048
+        width: 720,
+        height: 1280
       },
       video: null,
       supportedClaims: [
@@ -67,10 +67,10 @@ export const recipePresentation = [
       provider:
         "Finished UGC video supplied by the user. Transcript and media measurements verified locally.",
       hero: {
-        src: `${ugcRoot}/hero.jpg`,
+        src: `${ugcRoot}/hero-720.webp`,
         alt: "Creator speaking to camera in her kitchen while holding an olive travel cup.",
-        width: 1440,
-        height: 2560
+        width: 720,
+        height: 1280
       },
       card: {
         src: `${ugcRoot}/poster.jpg`,
@@ -120,23 +120,23 @@ export const recipePresentation = [
       provider:
         "Opening and exit supplied from Dreamina. Middle shot generated with Seedance 2.0 via Fal. Edited in NodeTool, then enhanced to 2K with AtlasCloud.",
       hero: {
-        src: `${commercialRoot}/card.jpg`,
+        src: `${commercialRoot}/card-1280.webp`,
         alt: "Woman holding an olive travel cup in a softly lit kitchen.",
-        width: 2400,
-        height: 1260
+        width: 1280,
+        height: 672
       },
       card: {
-        src: `${commercialRoot}/card.jpg`,
+        src: `${commercialRoot}/card-1280.webp`,
         alt: "Woman holding an olive travel cup in a softly lit kitchen.",
-        width: 2400,
-        height: 1260
+        width: 1280,
+        height: 672
       },
       ogImage: `${commercialRoot}/card.jpg`,
       proof: null,
       video: {
         mp4: `${commercialRoot}/commercial.mp4`,
         webm: null,
-        poster: `${commercialRoot}/poster.webp`,
+        poster: `${commercialRoot}/poster-1280.webp`,
         hasAudio: true,
         caption:
           "A moment before the day. A 13-second commercial for the fictional Olive Travel Cup, with location sound."
@@ -217,14 +217,14 @@ export const recipePresentation = [
         alt: "Olive Travel Cup shown as a cutout, studio product image, winter scene, and motion frame."
       },
       card: {
-        src: `${runRoot}/ecommerce-sku-visual-factory/source-to-set.webp`,
+        src: `${runRoot}/ecommerce-sku-visual-factory/source-to-set-1280.webp`,
         alt: "Accepted Olive Travel Cup reference beside its transparent cutout and catalogue treatments.",
         caption:
           "One accepted reference carried through a coordinated catalogue set."
       },
       ogImage: `${runRoot}/ecommerce-sku-visual-factory/recipe-card.jpg`,
       proof: {
-        src: `${runRoot}/ecommerce-sku-visual-factory/source-to-set.webp`,
+        src: `${runRoot}/ecommerce-sku-visual-factory/source-to-set-1280.webp`,
         alt: "Accepted Olive Travel Cup reference beside its transparent cutout and catalogue treatments.",
         caption:
           "The same accepted reference moves from source to cutout, studio treatment, seasonal treatment, and delivery assets."

@@ -1,6 +1,8 @@
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { agentModelFit } from "@nodetool-ai/protocol";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
+import type { ModelRowBadge } from "./ModelList";
 import type { LanguageModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes";
 import { useLanguageModelMenuStore } from "../../stores/ModelMenuStore";
 import { useLanguageModelsByProvider } from "../../hooks/useModelsByProvider";
@@ -42,6 +44,35 @@ function LanguageModelMenuDialog({
     allowedProviders,
     requireToolSupport
   });
+  // Says on each row whether an agent can use the model, so a model that
+  // cannot call tools or is rate limited is not found out by a failed run.
+  const rowBadge = useCallback(
+    (model: LanguageModel): ModelRowBadge | null => {
+      switch (agentModelFit(model)) {
+        case "no_tools":
+          return {
+            label: t("screen_modelMenu.agentFit.noToolsLabel"),
+            tooltip: t("screen_modelMenu.agentFit.noToolsTooltip"),
+            color: "default"
+          };
+        case "free_tier":
+          return {
+            label: t("screen_modelMenu.agentFit.freeTierLabel"),
+            tooltip: t("screen_modelMenu.agentFit.freeTierTooltip"),
+            color: "warning"
+          };
+        case "default":
+          return {
+            label: t("screen_modelMenu.agentFit.defaultLabel"),
+            tooltip: t("screen_modelMenu.agentFit.defaultTooltip"),
+            color: "success"
+          };
+        case "unknown":
+          return null;
+      }
+    },
+    [t]
+  );
   return (
     <ModelMenuDialogBase<LanguageModel>
       open={open}
@@ -58,6 +89,7 @@ function LanguageModelMenuDialog({
       modelPacks={modelPacks}
       selectedModel={selectedModel}
       promptForApiKey
+      rowBadge={rowBadge}
     />
   );
 }

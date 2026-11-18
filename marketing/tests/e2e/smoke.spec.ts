@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import type { Locator } from "@playwright/test";
 import { recipeEntries } from "../../src/data/recipes";
 
 // Static route/metadata/media coverage lives in static-seo.spec.ts and uses
@@ -10,6 +11,29 @@ const HYDRATION_ROUTES = [
   "/recipes/ugc-product-video",
   "/download"
 ];
+
+/**
+ * Recipe result videos use preload="none", so the page fetches nothing until
+ * the reader presses play. Load the metadata here to read the duration.
+ */
+async function loadDuration(video: Locator): Promise<number> {
+  await expect(video).toHaveAttribute("preload", "none");
+  return video.evaluate(
+    (element: HTMLVideoElement) =>
+      new Promise<number>((resolve, reject) => {
+        element.addEventListener(
+          "loadedmetadata",
+          () => resolve(element.duration),
+          { once: true }
+        );
+        element.addEventListener("error", () => reject(element.error), {
+          once: true
+        });
+        element.preload = "metadata";
+        element.load();
+      })
+  );
+}
 
 test.describe("marketing smoke", () => {
   for (const path of HYDRATION_ROUTES) {
@@ -145,9 +169,7 @@ test.describe("marketing smoke", () => {
       "/recipes/runs/2026-09-14-impossible-product-worlds-dreamina/final.mp4"
     );
     await expect(video).toHaveJSProperty("error", null);
-    expect(
-      await video.evaluate((element: HTMLVideoElement) => element.duration)
-    ).toBeCloseTo(15.072, 2);
+    expect(await loadDuration(video)).toBeCloseTo(15.072, 2);
     await expect(page.getByText("Still to review")).toHaveCount(0);
   });
 
@@ -200,9 +222,7 @@ test.describe("marketing smoke", () => {
       "/recipes/runs/2026-09-14-emotional-support-cup/final.mp4"
     );
     await expect(video).toHaveJSProperty("error", null);
-    const duration = await video.evaluate(
-      (element: HTMLVideoElement) => element.duration
-    );
+    const duration = await loadDuration(video);
     expect(duration).toBeGreaterThan(15);
     expect(duration).toBeLessThan(15.2);
   });

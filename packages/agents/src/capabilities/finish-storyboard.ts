@@ -6,6 +6,7 @@ import { budgetFromContext } from "@nodetool-ai/runtime";
 import type { CapabilityExport, CapabilityRun } from "./types.js";
 import type { StoryboardDecoration } from "./agentic-storyboard-finish.js";
 import { finishStoryboardSpec, layoutStoryboardSpec, previewStoryboardDesignSpec } from "./storyboards.specs.js";
+import { boardRevisionConflict } from "./revision-conflict.js";
 
 const isModelRef = (value: unknown): value is { provider: string; id: string } =>
   isRecord(value) && typeof value["provider"] === "string" && !!value["provider"].trim() && typeof value["id"] === "string" && !!value["id"].trim();
@@ -37,7 +38,9 @@ async function materializeAuthorizedStoryboard(run: CapabilityRun, params: Recor
     const board = await Storyboard.findById(boardRows[0]);
     if (!board) return { error: "Storyboard was not found." };
     if (run.projectId && run.projectId !== board.project_id) return { error: "Storyboard was not found in this project." };
-    if (board.revision !== params["expectedStoryboardRevision"]) return { error: "Storyboard revision conflict." };
+    if (board.revision !== params["expectedStoryboardRevision"]) {
+      return boardRevisionConflict("expectedStoryboardRevision", params["expectedStoryboardRevision"], board.revision);
+    }
     const doc = board.toDocument();
     let shots: Shot[] = structuredClone(doc.shots).map((shot) => ({ ...shot, production: resolveEffectiveProductionRequirement(undefined, shot.production) }));
     const assets = new Set<string>();
@@ -119,7 +122,12 @@ async function materializeAuthorizedStoryboard(run: CapabilityRun, params: Recor
       if (rows.length !== 1) return { error: rows.length ? "Timeline prefix is ambiguous." : "Timeline was not found in this project." };
       timeline = await TimelineSequence.findById(rows[0]) ?? undefined;
       if (!timeline) return { error: "Timeline was not found." };
-      if (timeline.revision !== params["expectedTimelineRevision"]) return { error: "Timeline revision conflict. Supply expectedTimelineRevision for an existing result." };
+      if (timeline.revision !== params["expectedTimelineRevision"]) {
+        return {
+          error: `Timeline revision conflict: the timeline is at revision ${timeline.revision}, and expectedTimelineRevision was ${JSON.stringify(params["expectedTimelineRevision"]) ?? "not sent"}. Nothing was applied. Resend with expectedTimelineRevision ${timeline.revision}.`,
+          timelineRevision: timeline.revision
+        };
+      }
     } else if (params["expectedTimelineRevision"] !== undefined) return { error: "expectedTimelineRevision requires an existing timeline." };
     let script: ScriptAssemblyInput | undefined;
     let linkedScriptFingerprint = "";

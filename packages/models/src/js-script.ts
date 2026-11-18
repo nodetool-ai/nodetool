@@ -25,6 +25,7 @@ import type {
   DocumentFileLocation,
   DocumentFileSync
 } from "./document-file-sync.js";
+import { changingAccess } from "./access-epoch.js";
 
 export interface JsScriptResponse {
   id: string;
@@ -179,14 +180,16 @@ export class JsScript extends DBModel {
    * Missing and not-yours are the same answer, so a caller cannot probe ids.
    */
   static async deleteOwned(userId: string, id: string): Promise<boolean> {
-    const row = await JsScript.findById(id);
-    if (!row || row.user_id !== userId) return false;
-    await row.delete();
-    await removeDocumentSharing("jsscript", row.id);
-    // Belt-and-braces with the FK cascade: version rows outliving their
-    // document would be unreachable garbage.
-    await JsScriptVersion.deleteForScript(row.id);
-    return true;
+    return changingAccess([{ kind: "jsscript", id }], async () => {
+      const row = await JsScript.findById(id);
+      if (!row || row.user_id !== userId) return false;
+      await row.delete();
+      await removeDocumentSharing("jsscript", row.id);
+      // Belt-and-braces with the FK cascade: version rows outliving their
+      // document would be unreachable garbage.
+      await JsScriptVersion.deleteForScript(row.id);
+      return true;
+    });
   }
 
   static async findById(id: string): Promise<JsScript | null> {

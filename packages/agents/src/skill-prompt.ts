@@ -45,44 +45,93 @@ export function findInvokedSkillNames(
   return found;
 }
 
+/** Longest catalog line; the full description is one `load_skill` away. */
+const CATALOG_LINE_MAX = 80;
+
+/** A clause break that ends the catalog line when enough precedes it. */
+const CLAUSE_BREAKS = [": ", " — ", " ("];
+const CLAUSE_MIN = 24;
+
+/**
+ * What a skill is for, in one short line: the description's first sentence,
+ * cut at its first clause break (the list after a colon, an aside in
+ * parentheses) and capped at a word boundary. The catalog only has to say
+ * when a skill applies; the detail arrives with the body.
+ */
+export function catalogLine(description: string): string {
+  const text = description.trim().replace(/\s+/g, " ");
+  const end = text.search(/[.!?](\s|$)/);
+  let line = end >= 0 ? text.slice(0, end) : text;
+  for (const separator of CLAUSE_BREAKS) {
+    const at = line.indexOf(separator);
+    if (at >= CLAUSE_MIN) {
+      line = line.slice(0, at);
+      break;
+    }
+  }
+  if (line.length <= CATALOG_LINE_MAX) return line;
+  const cut = line.slice(0, CATALOG_LINE_MAX - 1);
+  const space = cut.lastIndexOf(" ");
+  return `${(space > 0 ? cut.slice(0, space) : cut).replace(/[,;]$/, "")}…`;
+}
+
+/** Code-point order, so the catalog never depends on locale or row order. */
+function byName(a: SkillCatalogEntry, b: SkillCatalogEntry): number {
+  return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+}
+
 /**
  * The always-on catalog block: what exists, and how to read one in full.
  *
- * It lists the user's own skills and the featured shipped ones. Every shipped
- * description in every request cost more than the rest of the prompt, so the
- * others are named by count and found with `list_skills`.
+ * It lists the user's own skills and the featured shipped ones, sorted by
+ * name, so a given set of skills renders the same bytes whatever order the
+ * rows arrive in. It sits in the system message, which a local model's prefix
+ * cache reuses only when it is byte-identical, so it carries no counts. The
+ * other shipped skills are found with `list_skills`.
  */
 export function formatSkillCatalogForPrompt(
   skills: readonly SkillCatalogEntry[]
 ): string {
   if (skills.length === 0) return "";
-  const listed = skills.filter((skill) => !skill.system || skill.featured);
-  const unlisted = skills.length - listed.length;
+  const listed = skills
+    .filter((skill) => !skill.system || skill.featured)
+    .sort(byName);
   const lines = [
     "## Skills",
-    "",
-    "Skills are saved instructions for a kind of work. The description says",
-    "when a skill applies; call `load_skill` with its name to read the",
-    "instructions before you act on it. A message that names one with a",
-    "leading slash (`/name`) is asking for that skill.",
+    "Call `load_skill` with a skill's name before work of that kind. A",
+    "message that names one as `/name` asks for it.",
     ""
   ];
   for (const skill of listed) {
-    lines.push(`- \`/${skill.name}\` — ${skill.description}`);
+    lines.push(`- \`/${skill.name}\`: ${catalogLine(skill.description)}`);
   }
-  if (unlisted > 0) {
+  if (listed.length < skills.length) {
     lines.push(
       "",
-      `${unlisted} more shipped skill${unlisted === 1 ? " is" : "s are"} not listed: brief shapes`,
-      "for commercials, trailers, explainers and films, a guide for each image,",
-      "video and audio model line, one reference for each `nodetool.*`",
-      "namespace, motion craft references (timing, easing, composition,",
-      "colour, and the timeline op reference), and the native game field",
-      "reference. Find one with `list_skills({query})` before work of that",
-      "kind, then `load_skill`."
+      "Find the other shipped skills with `list_skills({query})`: brief shapes",
+      "for commercials, trailers, explainers and films, a prompting guide per",
+      "model line, an `api-*` reference per `nodetool.*` namespace, motion craft",
+      "references and the native game field reference."
     );
   }
   return lines.join("\n");
+}
+
+/**
+ * The user's own skills, for the turn context: one line each, sorted by name.
+ * The system message's catalog already says how to load a skill and what
+ * `/name` means, so this block carries no preamble. Empty when the user has
+ * none.
+ */
+export function formatUserSkillsForPrompt(
+  skills: readonly SkillCatalogEntry[]
+): string {
+  const own = skills.filter((skill) => !skill.system).sort(byName);
+  if (own.length === 0) return "";
+  return [
+    "## The user's skills",
+    ...own.map((skill) => `- \`/${skill.name}\`: ${catalogLine(skill.description)}`)
+  ].join("\n");
 }
 
 /** The bodies of the skills this turn named, already loaded. */

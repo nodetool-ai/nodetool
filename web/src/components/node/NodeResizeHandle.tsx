@@ -11,6 +11,7 @@ import { useUndoGroup } from "../../hooks/useUndoGroup";
 import MediaAspectResizeControl, {
   type ResizeCorner
 } from "./MediaAspectResizeControl";
+import MediaAutoFit from "./MediaAutoFit";
 
 /** Upper bound shared with the edge resizer so the corner handle agrees with it. */
 const MAX_NODE_WIDTH = 800;
@@ -92,6 +93,7 @@ const NodeResizeHandle: React.FC<NodeResizeHandleProps> = memo(function NodeResi
   if (contentAware && nodeId) {
     return (
       <>
+        <MediaAutoFit nodeId={nodeId} minHeight={minHeight} />
         {ASPECT_CORNERS.map((corner) => (
           <MediaAspectResizeControl
             key={corner}

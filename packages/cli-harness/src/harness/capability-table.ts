@@ -92,8 +92,8 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "136f6a0d501f",
     selfcheck: "capability-suites",
     suites: [
+      "packages/agents/tests/capabilities-workflow-short-ids.test.ts",
       "packages/agents/tests/capabilities-document-rename.test.ts",
-      "packages/agents/tests/capabilities-lifecycle.test.ts",
     ],
   },
   {
@@ -103,6 +103,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "4d0ce00d0c90",
     selfcheck: "capability-suites",
     suites: [
+      "packages/agents/tests/capabilities-workflow-short-ids.test.ts",
       "packages/agents/tests/capabilities-workflow-links.test.ts",
     ],
   },
@@ -113,6 +114,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "490c7dd1e6a6",
     selfcheck: "capability-suites",
     suites: [
+      "packages/agents/tests/capabilities-workflow-short-ids.test.ts",
       "packages/agents/tests/capabilities-workflow-links.test.ts",
     ],
   },
@@ -183,6 +185,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "66f81d2fb2c7",
     selfcheck: "capability-suites",
     suites: [
+      "packages/agents/tests/capabilities-workflow-short-ids.test.ts",
       "packages/agents/tests/capabilities-lifecycle.test.ts",
     ],
   },
@@ -3136,7 +3139,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "render_storyboard_stills",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "da01cbd62dfc",
+    contract: "4907665b8ce9",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
@@ -3153,7 +3156,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "render_storyboard_clips",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "568457bf299c",
+    contract: "cdaec61a300b",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
@@ -3268,6 +3271,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboard-one-take.test.ts",
+      "packages/agents/tests/capabilities-storyboard-revision-conflict.test.ts",
     ],
   },
   {

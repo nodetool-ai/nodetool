@@ -12869,6 +12869,14 @@
     "installOnThisComputer": "이 컴퓨터에 {{installLabel}}을 설치합니다.",
     "install": "설치",
     "selectLanguageModel": "언어 모델 선택",
+    "agentFit": {
+      "noToolsLabel": "도구 없음",
+      "noToolsTooltip": "제공자에 따르면 이 모델은 도구를 호출할 수 없습니다. 에이전트에는 도구 호출이 필요하므로 일반 텍스트 생성에만 사용하세요.",
+      "freeTierLabel": "무료 등급",
+      "freeTierTooltip": "OpenRouter는 무료 모델에 분당 및 일일 요청 한도를 둡니다. 에이전트 실행은 요청을 많이 보내므로 무료 모델에서는 자주 멈추거나 실패합니다. 같은 모델의 유료 경로에는 이 한도가 적용되지 않습니다.",
+      "defaultLabel": "에이전트 기본값",
+      "defaultTooltip": "NodeTool은 에이전트 작업에 이 모델을 기본으로 사용합니다. 아직 작업별 평가는 없습니다. 텍스트, 이미지, 동영상 작업에 대한 테스트 결과가 공개되지 않았습니다."
+    },
     "searchLanguageModels": "언어 모델 검색",
     "installProviderToUseModel": "이 모델을 사용하려면 {{installLabel}}을 설치하세요.",
     "modelNotReady": "이 모델은 아직 사용할 준비가 되지 않았습니다.",
@@ -15793,7 +15801,9 @@
       "showDetails": "세부정보 표시",
       "collapseDetails": "세부정보 접기",
       "input": "입력",
-      "output": "출력"
+      "output": "출력",
+      "basic": "기본",
+      "basicNode": "기본 · {{title}} 노드"
     },
     "favorites": {
       "title": "즐겨찾기",
@@ -15823,6 +15833,7 @@
       "resizeHeight": "노드 메뉴 높이 크기 조정"
     },
     "quickActions": {
+      "basics": "기본",
       "aiNodes": "AI 노드",
       "providerModels": "공급자 모델",
       "constants": "상수",
@@ -15860,7 +15871,13 @@
         "constant-list": "목록",
         "constant-model-3d": "3D 모델",
         "constant-string": "문자열",
-        "constant-video": "비디오"
+        "constant-video": "비디오",
+        "basic-text": "텍스트",
+        "basic-generate-text": "텍스트 생성",
+        "basic-generate-image": "이미지 생성",
+        "basic-edit-image": "이미지 편집",
+        "basic-generate-video": "동영상 생성",
+        "basic-edit-video": "동영상 편집"
       }
     },
     "recent": {
@@ -17959,7 +17976,9 @@
       "seek": "탐색",
       "playbackSpeed": "재생 속도",
       "exitFullscreen": "전체 화면 종료",
-      "enterFullscreen": "전체 화면으로 전환"
+      "enterFullscreen": "전체 화면으로 전환",
+      "mute": "음소거",
+      "unmute": "음소거 해제"
     },
     "tagInput": {
       "placeholder": "태그를 추가하려면 입력하고 Enter를 누르세요…",
@@ -20222,6 +20241,19 @@
       "retry": "다시 시도",
       "donePath": "파일은 {{path}}에 있습니다",
       "close": "닫기"
+    },
+    "preview": {
+      "clips": "클립",
+      "title": "미리 보기",
+      "tracks": "트랙",
+      "type": {
+        "app": "미니 앱",
+        "jsscript": "JS 스크립트",
+        "script": "스크립트",
+        "storyboard": "스토리보드",
+        "timeline": "타임라인",
+        "workflow": "워크플로"
+      }
     }
   },
   "assetPicker": {

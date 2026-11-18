@@ -681,7 +681,6 @@ describe("nodetool object model", () => {
     expect(section).toContain("nodetool.models");
     expect(section).toContain("nodetool.media");
     expect(section).toContain("nodetool.models.pick(\"text_to_image\")");
-    expect(section).toContain("nodetool.batch(");
     expect(section).not.toContain("nodetool.timelines");
     expect(section).not.toContain("nodetool.providers");
     // Graph authoring is a package, so the section names it only when the
@@ -705,8 +704,15 @@ describe("nodetool object model", () => {
   it("names each namespace's shipped skill when the belt can load skills", () => {
     const every = Object.values(NODETOOL_API_NAMESPACE_TOOLS).flat();
     const section = buildNodetoolApiPromptSection([...every, "load_skill"]);
+    // A line names its skill only when it is not `api-<namespace>`.
     const named = [...section.matchAll(/Skill: `([a-z0-9-]+)`/g)].map((m) => m[1]);
-    expect(named.length).toBeGreaterThan(15);
+    expect(named.length).toBeGreaterThan(5);
+    expect(section).toContain("`api-<namespace>` unless the line names another");
+    const defaults = [...section.matchAll(/^- `nodetool\.(\w+)`:(?!.*Skill: )/gm)].map(
+      (m) => `api-${m[1]}`
+    );
+    expect(defaults.length).toBeGreaterThan(10);
+    named.push(...defaults);
     // A pointer at a skill that does not ship is a load that fails mid-task.
     expect(named.filter((name) => findSystemSkill(name) === null)).toEqual([]);
     // Without load_skill on the belt the pointers would name a dead end.

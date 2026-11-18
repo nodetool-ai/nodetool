@@ -66,6 +66,19 @@ Add a key in **Settings → Models & Providers** and that provider's models appe
 
 Reasoning, tool calling, and vision input are exposed where the provider supports them. For local text generation, see [Supported Models](models.md#local-inference-engines) (Ollama, llama.cpp, MLX, Transformers.js).
 
+### Models for agents
+
+An agent calls NodeTool's tools on every step, so its model must support tool calling. The language model picker labels each model with what NodeTool knows about it:
+
+| Label | Meaning |
+|---|---|
+| No tools | The provider says the model can't call tools. Agents can't use it. For OpenRouter this comes from `supported_parameters` in its model list. |
+| Free tier | An OpenRouter `:free` route. OpenRouter [limits free models](https://openrouter.ai/docs/api-reference/limits) to 20 requests a minute, and to 50 a day on an account that has bought fewer than 10 credits. An agent run makes a request per step, so a long run often stalls or fails. The paid route of the same model is not under these limits. |
+| Agent default | A model NodeTool uses by default for agent work: Claude Sonnet 5, GPT-5.4 mini and GPT-5 mini. |
+| No label | NodeTool has no information either way. The model may work. |
+
+No per-task results are published yet. The labels do not say which model is best for text, image or video work. To measure a model on NodeTool's agent tasks, run the [agent evals](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/docs/evals.md) with `nodetool eval <suite> -p <provider> -m <model>`.
+
 ### Image generation models
 
 Generate and edit images through `nodetool.image.TextToImage` and `nodetool.image.ImageToImage`.

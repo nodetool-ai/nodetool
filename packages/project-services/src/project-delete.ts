@@ -26,7 +26,19 @@ import {
   Asset,
   Job,
   Thread,
-  Workspace
+  TimelineSequence,
+  Workflow,
+  Workspace,
+  documentRetentionDays,
+  endDeletedDocumentRestorePeriod,
+  listDeletedDocuments,
+  registerDeletedDocumentKind,
+  restoreDeletedDocument,
+  retainDeletedProject,
+  projectMembers,
+  leaveDeletedProject,
+  interruptedProjectRestores,
+  type DeletedDocumentMember
 } from "@nodetool-ai/models";
 import { RESERVED_WORKSPACE_DIR } from "@nodetool-ai/runtime";
 import { assetKeyCandidates } from "@nodetool-ai/storage";
@@ -83,10 +95,19 @@ export interface ProjectFolderDisposal {
   path: string | null;
 }
 
-/** The outcome of a project delete, with what happened to the folder. */
+/**
+ * The outcome of a project delete, with what happened to the folder.
+ * `restorableUntil` is set when the server keeps the project for a restore
+ * period. Its folder and asset files then stay until the purge, and `folder`
+ * is `none`.
+ */
 export type ProjectDeleteResult =
   | { outcome: "not_found" | "personal" }
-  | { outcome: "deleted"; folder: ProjectFolderDisposal };
+  | {
+      outcome: "deleted";
+      folder: ProjectFolderDisposal;
+      restorableUntil?: string;
+    };
 
 /** The live work in a project that is being deleted. */
 export interface ProjectLiveWork {
@@ -262,6 +283,24 @@ export async function deleteProjectForUser(
     threadIds: new Set(threads.map((thread) => thread.id)),
     assetIds: assets.map((asset) => asset.id)
   });
+  if (documentRetentionDays() !== null) {
+    const purgeAt = await keepProjectForRestore(userId, target);
+    return { outcome: "deleted", folder: { action: "none", path: null }, restorableUntil: purgeAt };
+  }
+  return removeProjectContent(userId, id, assets, folderRow);
+}
+
+/**
+ * Deletes the project's content: stored asset bytes, its folder and its
+ * rows. The immediate delete and the purge after a restore period both end
+ * here.
+ */
+async function removeProjectContent(
+  userId: string,
+  id: string,
+  assets: readonly Asset[],
+  folderRow: Workspace | null
+): Promise<ProjectDeleteResult> {
   // Keep the rows behind the tombstone until external cleanup succeeds.
   // A failed request can then be retried with every object identifier intact.
   await deleteProjectAssetObjects(assets);
@@ -269,3 +308,111 @@ export async function deleteProjectForUser(
   const deleted = await Project.deleteOwned(userId, id);
   return deleted ? { outcome: "deleted", folder } : { outcome: "not_found" };
 }
+
+/**
+ * Keeps a deleted project for its restore period (PRD D4, PG2). The
+ * tombstone already stops reads and delayed writes. Each workflow and
+ * timeline moves to the deleted documents, so no link or grant on it
+ * resolves. Assets, threads, the folder and the other rows stay behind the
+ * tombstone until the purge. Returns the purge time.
+ */
+async function keepProjectForRestore(userId: string, project: Project): Promise<string> {
+  const id = project.id;
+  // The project's record is kept first, and each document records the delete
+  // that moved it, so a delete that stops part way loses no member: a retry
+  // finds the project tombstoned and moves the rest (review F26). A restore
+  // of the project brings back these, and none that was deleted on its own
+  // before (F8).
+  const purgeAt = await retainDeletedProject({
+    kind: "project",
+    documentId: id,
+    userId,
+    projectId: id,
+    name: project.name,
+    payload: { row: project.toRow(), dependents: {}, members: [] }
+  });
+  for (const workflow of await Workflow.listForProjects(userId, [id])) {
+    await Workflow.deleteOwned(userId, workflow.id, { deletedWithProject: id });
+  }
+  // listByProject pages, so it is read until empty.
+  for (;;) {
+    const timelines = await TimelineSequence.listByProject(id, userId, 200);
+    if (timelines.length === 0) break;
+    for (const timeline of timelines) {
+      await TimelineSequence.deleteOwned(userId, timeline.id, { deletedWithProject: id });
+    }
+  }
+  return purgeAt ?? new Date().toISOString();
+}
+
+/**
+ * Brings back the documents a delete of the live project moved. Each member
+ * keeps its record until its own restore deletes it, so a restore that stops
+ * part way resumes here: from the project's restore, or from the purge job
+ * through {@link resumeProjectRestores}. A member that cannot come back
+ * leaves the project's delete and stays in the deleted list on its own.
+ */
+async function restoreProjectMembers(userId: string, projectId: string, legacy: readonly DeletedDocumentMember[]): Promise<void> {
+  const members = new Map<string, DeletedDocumentMember>();
+  for (const member of [...legacy, ...(await projectMembers(userId, projectId))]) {
+    members.set(`${member.kind}\u0000${member.documentId}`, member);
+  }
+  for (const member of members.values()) {
+    const outcome = await restoreDeletedDocument(userId, member.kind, member.documentId);
+    if (outcome.outcome === "failed") {
+      await leaveDeletedProject(userId, member.kind, member.documentId);
+      log.warn("A document of a restored project stayed deleted", {
+        projectId,
+        kind: member.kind,
+        documentId: member.documentId,
+        reason: outcome.reason
+      });
+    }
+  }
+}
+
+/**
+ * Finishes project restores that stopped before they brought back every
+ * member. The purge job calls it. Returns how many projects it resumed.
+ */
+export async function resumeProjectRestores(): Promise<number> {
+  const interrupted = await interruptedProjectRestores();
+  for (const { userId, projectId } of interrupted) {
+    await restoreProjectMembers(userId, projectId, []);
+  }
+  return interrupted.length;
+}
+
+registerDeletedDocumentKind("project", {
+  // The tombstone is cleared in the transaction that holds the kept row and
+  // deletes it, so a purge that claimed the row first makes the restore
+  // refuse, and a purge that comes later finds no row (F5).
+  *restore(tx, payload) {
+    yield* Project.untombstoneSteps(tx, String(payload.row["user_id"]), String(payload.row["id"]));
+  },
+
+  async restored(payload) {
+    // The project is live again, so the documents its delete moved restore
+    // too. Records from before review F26 list them in `members`.
+    await restoreProjectMembers(String(payload.row["user_id"]), String(payload.row["id"]), payload.members ?? []);
+  },
+
+  // Runs under the purge claim, which a restore cannot take. Every step is
+  // safe to repeat, so a purge that failed or crashed resumes at the next
+  // run and finishes the external cleanup.
+  async purge({ userId, documentId }) {
+    const project = await Project.findOwnedIncludingDeleted(userId, documentId);
+    // A live project was restored by another path and is never purged.
+    if (project && !project.deleted_at) return;
+    for (const entry of await listDeletedDocuments(userId, { projectId: documentId })) {
+      if (entry.kind === "project") continue;
+      await endDeletedDocumentRestorePeriod(userId, entry.kind, entry.documentId);
+    }
+    if (!project) return;
+    const [assets, folderRow] = await Promise.all([
+      Asset.listByProject(userId, documentId),
+      project.workspace_id ? Workspace.find(userId, project.workspace_id) : null
+    ]);
+    await removeProjectContent(userId, documentId, assets, folderRow);
+  }
+});

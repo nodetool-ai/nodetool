@@ -19,6 +19,10 @@ import {
   type ChatCodeActToolCall
 } from "../src/codeact/chat-codeact.js";
 import { hasGraphModelTools } from "../src/codeact/graph-model.js";
+import {
+  NODETOOL_API_NAMESPACE_TOOLS,
+  renderNodetoolNamespaceLine
+} from "../src/codeact/nodetool-api.js";
 import { createSandboxClock } from "../src/js-sandbox.js";
 import { createMockContext } from "./_helpers/mock-context.js";
 
@@ -197,6 +201,28 @@ describe("createChatCodeActSession", () => {
     expect(calls[0].id).toMatch(/^codeact_[0-9a-f-]{36}_1$/);
   });
 
+  it("names the import line when a later action reuses a name it did not import", async () => {
+    const { executeTool, calls } = createFakeRouter({ nodes: [], edges: [] });
+    const session = makeSession(GENERIC_TOOLS, executeTool);
+    const first = await runAction(
+      session,
+      `import { ui_add } from "@nodetool-ai/sandbox-nodetool/ui";\n` +
+        `return (await ui_add({ a: 1, b: 1 })).sum;`
+    );
+    expect(first.ok).toBe(true);
+    const second = await runAction(
+      session,
+      `return (await ui_add({ a: 2, b: 3 })).sum;`
+    );
+    expect(second).toMatchObject({ ok: false, toolCalls: 0 });
+    expect(second.error).toBe(
+      "`ui_add` is not defined in this action. Nothing carries over between " +
+        "actions; add " +
+        '`import { ui_add } from "@nodetool-ai/sandbox-nodetool/ui";`.'
+    );
+    expect(calls).toHaveLength(1);
+  });
+
   it("counts each action's tool calls on its own when actions overlap", async () => {
     // An MCP client can run two actions on one session at once. Starting the
     // second must not reset the first one's budget.
@@ -360,15 +386,18 @@ return { secret: secret === undefined ? null : secret, fetchError, workspaceErro
     );
   });
 
-  it("documents the chat contract and graph model in the prompt section", () => {
+  it("documents the chat contract, and leaves the graph model to the workflow guide", () => {
     const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
     const withGraph = makeSession(
       [...GENERIC_TOOLS, ...GRAPH_TOOLS],
       executeTool
     );
-    expect(withGraph.systemPromptSection).toContain("openWorkflow(");
-    expect(withGraph.systemPromptSection).toContain("normal assistant message");
+    expect(withGraph.systemPromptSection).toContain("plain assistant message and no tool call");
     expect(withGraph.systemPromptSection).not.toContain("# Output schema");
+    // The chat host sends the graph model with a workflow-focused turn
+    // (`WORKFLOW_GUIDANCE_SECTION`), so the system section, sent with every
+    // request, does not carry it.
+    expect(withGraph.systemPromptSection).not.toContain("## Graph object model");
 
     const withoutGraph = makeSession(GENERIC_TOOLS, executeTool);
     expect(withoutGraph.systemPromptSection).not.toContain("openWorkflow(");
@@ -1027,18 +1056,43 @@ describe("turn-scoped prompt in a chat session", () => {
     expect(sections[0]).not.toContain("@acme/game helpers.");
   });
 
-  it("documents the focused tools and the turn's packages in the turn section", () => {
+  it("names the focused tools and the turn's packages in the turn section", () => {
+    // These tools are not in the usage table, so they are named without a
+    // purpose, and no turn carries a description or a signature.
     const timeline = sessionFor("timeline").turnPromptSection;
     expect(timeline).toContain("ui_timeline_op3");
-    expect(timeline).toContain("timeline operation 3.");
+    expect(timeline).not.toContain("timeline operation 3.");
+    expect(timeline).not.toContain("ui_timeline_op3(");
+    expect(timeline).toContain('nodetool.searchTools("select:<name>,<name>")');
     expect(timeline).not.toContain("ui_sketch_op3");
     expect(timeline).not.toContain("@acme/game");
 
     const sketch = sessionFor("sketch").turnPromptSection;
-    expect(sketch).toContain("sketch operation 3.");
+    expect(sketch).toContain("ui_sketch_op3");
     expect(sketch).toContain("@acme/game helpers.");
 
     expect(sessionFor(null).turnPromptSection).toBe("");
+  });
+
+  it("puts the focused namespace's line in the turn section, the same bytes each turn", () => {
+    const belt = [...NODETOOL_API_NAMESPACE_TOOLS.sketches, "list_workflows"].map(
+      (name) => ({ name, description: `${name}.`, inputSchema: objectSchema({}) })
+    );
+    const turn = (turnNamespace?: string) =>
+      createChatCodeActSession({
+        tools: belt,
+        executeTool: async () => ({}),
+        sandboxModuleCatalog: null,
+        turnNamespace
+      });
+    const focused = turn("sketches");
+    const names = belt.map((t) => t.name);
+    const line = renderNodetoolNamespaceLine("sketches", names);
+    expect(line).toMatch(/^- `nodetool\.sketches`: /);
+    expect(focused.turnPromptSection).toContain(line);
+    expect(turn("sketches").turnPromptSection).toBe(focused.turnPromptSection);
+    expect(turn("sketches").systemPromptSection).toBe(turn().systemPromptSection);
+    expect(turn().turnPromptSection).toBe("");
   });
 
   it("allows the turn's packages on the session's allowlist", async () => {

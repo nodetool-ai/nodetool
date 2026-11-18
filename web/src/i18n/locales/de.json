@@ -12869,6 +12869,14 @@
     "installOnThisComputer": "{{installLabel}} auf diesem Computer installieren",
     "install": "Installieren",
     "selectLanguageModel": "Sprachmodell auswählen",
+    "agentFit": {
+      "noToolsLabel": "Keine Tools",
+      "noToolsTooltip": "Laut Anbieter kann dieses Modell keine Tools aufrufen. Agenten brauchen Tool-Aufrufe, nutze es also nur für reine Textgenerierung.",
+      "freeTierLabel": "Gratis-Stufe",
+      "freeTierTooltip": "OpenRouter begrenzt kostenlose Modelle pro Minute und pro Tag. Agentenläufe stellen viele Anfragen und bleiben mit einem kostenlosen Modell oft hängen oder schlagen fehl. Die kostenpflichtige Route desselben Modells unterliegt dieser Grenze nicht.",
+      "defaultLabel": "Agenten-Standard",
+      "defaultTooltip": "NodeTool nutzt dieses Modell standardmäßig für Agentenarbeit. Es ist noch nicht nach Aufgaben bewertet: Für Text-, Bild- oder Videoarbeit sind keine Testergebnisse veröffentlicht."
+    },
     "searchLanguageModels": "Sprachmodelle suchen",
     "installProviderToUseModel": "Installiere {{installLabel}}, um dieses Modell zu verwenden.",
     "modelNotReady": "Dieses Modell ist noch nicht einsatzbereit.",
@@ -15793,7 +15801,9 @@
       "showDetails": "Details anzeigen",
       "collapseDetails": "Details einklappen",
       "input": "Eingabe",
-      "output": "Ausgabe"
+      "output": "Ausgabe",
+      "basic": "Grundlage",
+      "basicNode": "Grundlage · Knoten {{title}}"
     },
     "favorites": {
       "title": "Favoriten",
@@ -15823,6 +15833,7 @@
       "resizeHeight": "Höhe des Knotenmenüs ändern"
     },
     "quickActions": {
+      "basics": "Grundlagen",
       "aiNodes": "KI-Knoten",
       "providerModels": "Anbietermodelle",
       "constants": "Konstanten",
@@ -15860,7 +15871,13 @@
         "constant-list": "Liste",
         "constant-model-3d": "3D-Modell",
         "constant-string": "Zeichenfolge",
-        "constant-video": "Video"
+        "constant-video": "Video",
+        "basic-text": "Text",
+        "basic-generate-text": "Text generieren",
+        "basic-generate-image": "Bild generieren",
+        "basic-edit-image": "Bild bearbeiten",
+        "basic-generate-video": "Video generieren",
+        "basic-edit-video": "Video bearbeiten"
       }
     },
     "recent": {
@@ -17959,7 +17976,9 @@
       "seek": "Springen",
       "playbackSpeed": "Wiedergabegeschwindigkeit",
       "exitFullscreen": "Vollbild beenden",
-      "enterFullscreen": "Vollbild öffnen"
+      "enterFullscreen": "Vollbild öffnen",
+      "mute": "Stummschalten",
+      "unmute": "Ton an"
     },
     "tagInput": {
       "placeholder": "Tippe einen Tag ein und drücke die Eingabetaste, um ihn hinzuzufügen …",
@@ -20222,6 +20241,19 @@
       "retry": "Erneut versuchen",
       "donePath": "Ihre Dateien befinden sich in {{path}}",
       "close": "Schließen"
+    },
+    "preview": {
+      "clips": "Clips",
+      "title": "Vorschau",
+      "tracks": "Spuren",
+      "type": {
+        "app": "Mini-App",
+        "jsscript": "JS-Skript",
+        "script": "Skript",
+        "storyboard": "Storyboard",
+        "timeline": "Timeline",
+        "workflow": "Workflow"
+      }
     }
   },
   "assetPicker": {

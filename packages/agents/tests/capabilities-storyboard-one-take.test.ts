@@ -536,7 +536,7 @@ describe("update_storyboard_one_take", () => {
       expected_revision: board.revision + 1,
       prompt: "x"
     });
-    expect(result.error).toContain("revision conflict");
+    expect(result.error).toContain("Revision conflict");
     expect((await reread(board.id)).one_take).toBeUndefined();
   });
 });

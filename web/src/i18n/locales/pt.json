@@ -13068,6 +13068,14 @@
     "installOnThisComputer": "Instale {{installLabel}} neste computador",
     "install": "Instalar",
     "selectLanguageModel": "Selecione o modelo de idioma",
+    "agentFit": {
+      "noToolsLabel": "Sem ferramentas",
+      "noToolsTooltip": "Segundo o provedor, este modelo não consegue chamar ferramentas. Agentes precisam de chamadas de ferramentas, então use-o apenas para gerar texto.",
+      "freeTierLabel": "Plano gratuito",
+      "freeTierTooltip": "O OpenRouter limita modelos gratuitos por minuto e por dia. Uma execução de agente faz muitas requisições, então com um modelo gratuito ela costuma travar ou falhar. A rota paga do mesmo modelo não está sujeita a esse limite.",
+      "defaultLabel": "Padrão para agentes",
+      "defaultTooltip": "O NodeTool usa este modelo por padrão para trabalho de agentes. Ele ainda não foi classificado por tarefa: não há resultados de testes publicados para texto, imagem ou vídeo."
+    },
     "searchLanguageModels": "Modelos de linguagem de pesquisa",
     "installProviderToUseModel": "Instale {{installLabel}} para usar este modelo.",
     "modelNotReady": "Este modelo não está pronto para uso.",
@@ -16068,7 +16076,9 @@
       "showDetails": "Mostrar detalhes",
       "collapseDetails": "Recolher detalhes",
       "input": "Entrada",
-      "output": "Saída"
+      "output": "Saída",
+      "basic": "Básico",
+      "basicNode": "Básico · nó {{title}}"
     },
     "favorites": {
       "title": "Favoritos",
@@ -16098,6 +16108,7 @@
       "resizeHeight": "Redimensionar a altura do menu do nó"
     },
     "quickActions": {
+      "basics": "Básicos",
       "aiNodes": "Nós de IA",
       "providerModels": "Modelos de provedor",
       "constants": "Constantes",
@@ -16135,7 +16146,13 @@
         "constant-list": "Lista",
         "constant-model-3d": "Modelo 3D",
         "constant-string": "Corda",
-        "constant-video": "Vídeo"
+        "constant-video": "Vídeo",
+        "basic-text": "Texto",
+        "basic-generate-text": "Gerar texto",
+        "basic-generate-image": "Gerar imagem",
+        "basic-edit-image": "Editar imagem",
+        "basic-generate-video": "Gerar vídeo",
+        "basic-edit-video": "Editar vídeo"
       }
     },
     "recent": {
@@ -18261,7 +18278,9 @@
       "seek": "Procure",
       "playbackSpeed": "Velocidade de reprodução",
       "exitFullscreen": "Sair da tela cheia",
-      "enterFullscreen": "Entrar em tela cheia"
+      "enterFullscreen": "Entrar em tela cheia",
+      "mute": "Silenciar",
+      "unmute": "Ativar som"
     },
     "tagInput": {
       "placeholder": "Digite e pressione Enter para adicionar uma tag…",
@@ -20533,6 +20552,19 @@
       "retry": "Tentar novamente",
       "donePath": "Seus arquivos estão em {{path}}",
       "close": "Fechar"
+    },
+    "preview": {
+      "clips": "clipes",
+      "title": "Pré-visualização",
+      "tracks": "faixas",
+      "type": {
+        "app": "Miniapp",
+        "jsscript": "Script JS",
+        "script": "Roteiro",
+        "storyboard": "Storyboard",
+        "timeline": "Linha do tempo",
+        "workflow": "Fluxo de trabalho"
+      }
     }
   },
   "assetPicker": {

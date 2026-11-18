@@ -341,6 +341,62 @@ private slots:
         QVERIFY(server->requests.join(' ').contains("/trpc/assets.get"));
     }
 
+    // A media card takes the media's aspect ratio from its asset metadata before
+    // the media loads: 9:16 and 4:3 at the card's width. A hand-set height holds
+    // for that media, and new media of another ratio fits the card again.
+    void mediaAreaTakesTheMetadataAspect() {
+        const auto sized = [](const QString &kind, const QString &uri, int width, int height) {
+            auto media = ref(kind, uri);
+            media["metadata"] = QJsonObject{{"width", width}, {"height", height}};
+            return media;
+        };
+        Host host({});
+        const auto hold = host.server.url().toString() + "/hold/";
+        QVERIFY(host.window.document()->load(QJsonObject{{"id", "media-cards"}, {"name", "Media cards"}, {"graph", QJsonObject{{"nodes", QJsonArray{
+            node("portrait", "constant.Image", 0, 0, value(sized("image", hold + "portrait.png", 1080, 1920))),
+            node("classic", "constant.Image", 1, 0, value(sized("image", hold + "classic.png", 1024, 768))),
+            node("clip", "constant.Video", 2, 0, value(sized("video", hold + "clip.mp4", 1080, 1920))),
+            node("extreme", "constant.Image", 3, 0, value(sized("image", hold + "extreme.png", 100, 2000))),
+        }}, {"edges", QJsonArray{}}}}}).ok);
+        settle();
+        const auto ratioOf = [&](const QString &resource) {
+            const auto *zone = host.zone(resource);
+            return zone && !zone->media.isEmpty() ? zone->media.first().rect.width() / zone->media.first().rect.height() : 0.0;
+        };
+        QVERIFY2(std::abs(ratioOf("portrait") - 9.0 / 16.0) < 0.01, qPrintable(QString::number(ratioOf("portrait"))));
+        QVERIFY2(std::abs(ratioOf("classic") - 4.0 / 3.0) < 0.01, qPrintable(QString::number(ratioOf("classic"))));
+        QVERIFY2(std::abs(ratioOf("clip") - 9.0 / 16.0) < 0.01, qPrintable(QString::number(ratioOf("clip"))));
+        // An extreme ratio is clamped to 1:3.
+        QVERIFY2(std::abs(ratioOf("extreme") - 1.0 / 3.0) < 0.01, qPrintable(QString::number(ratioOf("extreme"))));
+        // The card keeps its width.
+        QCOMPARE(host.model().layout(host.id("portrait")).size.width(), host.model().layout(host.id("classic")).size.width());
+
+        // A hand-set height holds for media of the ratio it was set for.
+        auto &model = host.model();
+        const auto id = host.id("classic");
+        const auto width = model.layout(id).size.width();
+        const auto fitted = model.layout(id).size.height();
+        // The resize gesture commits the size with the ratio it was set for.
+        auto ui = host.window.document()->node("classic")["ui_properties"].toObject();
+        ui["width"] = width;
+        ui["height"] = fitted + 150;
+        model.markHandSized(id, ui);
+        QVERIFY(host.window.document()->applyCommand({{"op", "setNodeField"}, {"id", "classic"}, {"field", "ui_properties"}, {"value", ui}}).ok);
+        settle();
+        QTRY_COMPARE(model.layout(id).size.height(), fitted + 150);
+        // Other media of the same ratio keeps it.
+        QVERIFY(host.window.document()->applyCommand({{"op", "setProperty"}, {"id", "classic"}, {"name", "value"},
+                                                      {"value", sized("image", hold + "classic2.png", 2048, 1536)}}).ok);
+        settle();
+        QCOMPARE(model.layout(id).size.height(), fitted + 150);
+        // New media of another ratio fits the card again.
+        QVERIFY(host.window.document()->applyCommand({{"op", "setProperty"}, {"id", "classic"}, {"name", "value"},
+                                                      {"value", sized("image", hold + "tall.png", 1080, 1920)}}).ok);
+        settle();
+        QTRY_VERIFY2(std::abs(ratioOf("classic") - 9.0 / 16.0) < 0.01, qPrintable(QString::number(ratioOf("classic"))));
+        QCOMPARE(model.layout(id).size.height(), model.layout(host.id("portrait")).size.height());
+    }
+
     // Empty values keep the "Click or drop" zone. A failed load reads "Image
     // could not be loaded" and a load in progress draws an empty outlined zone.
     void imageStatesFollowTheWeb() {

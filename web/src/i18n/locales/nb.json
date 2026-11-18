@@ -12869,6 +12869,14 @@
     "installOnThisComputer": "Installer {{installLabel}} på denne datamaskinen",
     "install": "Installer",
     "selectLanguageModel": "Velg språkmodell",
+    "agentFit": {
+      "noToolsLabel": "Ingen verktøy",
+      "noToolsTooltip": "Ifølge leverandøren kan denne modellen ikke kalle verktøy. Agenter trenger verktøykall, så bruk den bare til ren tekstgenerering.",
+      "freeTierLabel": "Gratisnivå",
+      "freeTierTooltip": "OpenRouter begrenser gratismodeller per minutt og per dag. En agentkjøring gjør mange forespørsler, så med en gratismodell stopper den ofte opp eller feiler. Den betalte ruten til samme modell er ikke underlagt grensen.",
+      "defaultLabel": "Agentstandard",
+      "defaultTooltip": "NodeTool bruker denne modellen som standard for agentarbeid. Den er ikke rangert per oppgave ennå: ingen testresultater for tekst-, bilde- eller videoarbeid er publisert."
+    },
     "searchLanguageModels": "Søk etter språkmodeller",
     "installProviderToUseModel": "Installer {{installLabel}} for å bruke denne modellen.",
     "modelNotReady": "Denne modellen er ikke klar til bruk.",
@@ -15793,7 +15801,9 @@
       "showDetails": "Vis detaljer",
       "collapseDetails": "Skjul detaljer",
       "input": "Inndata",
-      "output": "Utgang"
+      "output": "Utgang",
+      "basic": "Grunnleggende",
+      "basicNode": "Grunnleggende · {{title}}-node"
     },
     "favorites": {
       "title": "Favoritter",
@@ -15823,6 +15833,7 @@
       "resizeHeight": "Endre størrelse på nodemenyhøyde"
     },
     "quickActions": {
+      "basics": "Grunnleggende",
       "aiNodes": "AI-noder",
       "providerModels": "Leverandørmodeller",
       "constants": "Konstanter",
@@ -15860,7 +15871,13 @@
         "constant-list": "Liste",
         "constant-model-3d": "3D-modell",
         "constant-string": "String",
-        "constant-video": "Video"
+        "constant-video": "Video",
+        "basic-text": "Tekst",
+        "basic-generate-text": "Generer tekst",
+        "basic-generate-image": "Generer bilde",
+        "basic-edit-image": "Rediger bilde",
+        "basic-generate-video": "Generer video",
+        "basic-edit-video": "Rediger video"
       }
     },
     "recent": {
@@ -17959,7 +17976,9 @@
       "seek": "Søk",
       "playbackSpeed": "Avspillingshastighet",
       "exitFullscreen": "Avslutt fullskjerm",
-      "enterFullscreen": "Gå inn i fullskjerm"
+      "enterFullscreen": "Gå inn i fullskjerm",
+      "mute": "Demp",
+      "unmute": "Slå på lyd"
     },
     "tagInput": {
       "placeholder": "Skriv inn og trykk på Enter for å legge til en kode...",
@@ -20222,6 +20241,19 @@
       "retry": "Prøv igjen",
       "donePath": "Filene dine ligger i {{path}}",
       "close": "Lukk"
+    },
+    "preview": {
+      "clips": "klipp",
+      "title": "Forhåndsvisning",
+      "tracks": "spor",
+      "type": {
+        "app": "Miniapp",
+        "jsscript": "JS-skript",
+        "script": "Manus",
+        "storyboard": "Storyboard",
+        "timeline": "Tidslinje",
+        "workflow": "Arbeidsflyt"
+      }
     }
   },
   "assetPicker": {

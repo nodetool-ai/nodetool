@@ -9,6 +9,20 @@
 #include <QJsonArray>
 #include <cmath>
 #include <utility>
+namespace {
+// The media of a review clip that plays a file on this machine in place.
+nt::Clip localMedia(const QString& path, const QJsonObject& raw) {
+    nt::Clip media;
+    media.raw = raw;
+    const auto type = raw.value("mediaType").toString();
+    media.mediaType = type == "image" ? nt::MediaType::Image
+        : type == "audio" ? nt::MediaType::Audio : nt::MediaType::Video;
+    const auto file = path.toStdString();
+    if (media.mediaType != nt::MediaType::Audio) { media.mediaPath = file; media.originalMediaPath = file; }
+    if (media.mediaType != nt::MediaType::Image) { media.audioPath = file; }
+    return media;
+}
+}
 CandidatePreview::CandidatePreview(QObject* parent) : QObject(parent), m_preview(new TimelineModel(this)),
     m_clock(new PlaybackClock(this)), m_protection(std::make_shared<nt::assets::MediaProtection>()) {}
 CandidatePreview::~CandidatePreview() {
@@ -50,14 +64,24 @@ void CandidatePreview::togglePlay() {
     m_clock->play();
 }
 bool CandidatePreview::preview(const QString& assetId, const QString& mediaType, double durationMs) {
-    const auto target = nt::server::serverSaveTarget();
-    if (!m_timeline || !target || assetId.isEmpty() ||
+    if (assetId.isEmpty()) { return false; }
+    return start(PendingPreview{assetId, {}, mediaType, durationMs});
+}
+bool CandidatePreview::previewFile(const QString& localPath, const QString& mediaType, double durationMs) {
+    if (localPath.isEmpty() || !QFileInfo(localPath).isFile()) { return false; }
+    return start(PendingPreview{{}, QFileInfo(localPath).absoluteFilePath(), mediaType, durationMs});
+}
+bool CandidatePreview::start(const PendingPreview& request) {
+    const auto& [assetId, localPath, mediaType, durationMs] = request;
+    // A local file needs no server.
+    const auto target = localPath.isEmpty() ? nt::server::serverSaveTarget() : decltype(nt::server::serverSaveTarget()){};
+    if (!m_timeline || (localPath.isEmpty() && !target) ||
         (mediaType != "image" && mediaType != "video" && mediaType != "audio") ||
         !std::isfinite(durationMs) || durationMs < 0) { return false; }
     close();
     m_loading = true;
     if (m_worker) {
-        m_pending = PendingPreview{assetId, mediaType, durationMs};
+        m_pending = request;
         emit changed();
         return true;
     }
@@ -67,10 +91,14 @@ bool CandidatePreview::preview(const QString& assetId, const QString& mediaType,
     const QPointer<CandidatePreview> self(this);
     const auto protection = m_protection;
     const auto protectionGeneration = protection->generation();
-    auto* worker = QThread::create([self, model, generation, serial, target, protection, protectionGeneration, assetId, mediaType, durationMs]() {
-        nt::server::ServerClient client(target->server, target->token, 10000);
-        client.setExpectedInstance(target->expectedInstance);
-        const auto result = client.getAsset(assetId);
+    auto* worker = QThread::create([self, model, generation, serial, target, protection, protectionGeneration, assetId, localPath, mediaType, durationMs]() {
+        const bool local = !localPath.isEmpty();
+        std::optional<nt::server::ServerClient> client;
+        if (!local) {
+            client.emplace(target->server, target->token, 10000);
+            client->setExpectedInstance(target->expectedInstance);
+        }
+        const auto result = local ? nt::server::QueryResult{} : client->getAsset(assetId);
         QJsonObject asset = result.data.toObject();
         QJsonObject raw{{"id", "review"}, {"name", "Candidate review"}, {"fps", 30}, {"width", asset.value("width").toInt(1920)},
             {"height", asset.value("height").toInt(1080)}, {"durationMs", durationMs},
@@ -79,9 +107,11 @@ bool CandidatePreview::preview(const QString& assetId, const QString& mediaType,
             {"sourceType", "imported"}, {"startMs", 0}, {"durationMs", durationMs}, {"currentAssetId", assetId}, {"status", "generated"}, {"muted", false}};
         raw.insert("clips", QJsonArray{clip});
         nt::Clip media;
-        if (result.ok() && !QThread::currentThread()->isInterruptionRequested()) {
+        if (local) {
+            media = localMedia(localPath, clip);
+        } else if (result.ok() && !QThread::currentThread()->isInterruptionRequested()) {
             const auto cacheRoot = QDir::cleanPath(QDir(target->backupDir).absoluteFilePath("../../.."));
-            media = nt::assets::resolveDroppedMedia(client, cacheRoot, asset, clip, *protection, protectionGeneration);
+            media = nt::assets::resolveDroppedMedia(*client, cacheRoot, asset, clip, *protection, protectionGeneration);
         }
         const auto path = mediaType == "audio" ? media.audioPath : media.mediaPath;
         if (QThread::currentThread()->isInterruptionRequested()) { return; }
@@ -94,10 +124,10 @@ bool CandidatePreview::preview(const QString& assetId, const QString& mediaType,
         clip.insert("durationMs", resolvedDuration);
         raw.insert("clips", QJsonArray{clip});
         if (!self || QThread::currentThread()->isInterruptionRequested()) { return; }
-        QMetaObject::invokeMethod(self, [self, model, generation, serial, raw, media, result, mediaType, resolvedDuration, readable = facts.readable]() {
+        QMetaObject::invokeMethod(self, [self, model, generation, serial, raw, media, result, local, mediaType, resolvedDuration, readable = facts.readable]() {
             if (!self || self->m_serial != serial || self->m_timeline != model || !model || model->documentGeneration() != generation) { return; }
             const auto path = mediaType == "audio" ? media.audioPath : media.mediaPath;
-            if (!readable || resolvedDuration <= 0 || !result.ok() || path.empty() || !QFileInfo::exists(QString::fromStdString(path))) { self->m_error = "Media could not be loaded. Retry the preview."; emit self->changed(); return; }
+            if (!readable || resolvedDuration <= 0 || (!local && !result.ok()) || path.empty() || !QFileInfo::exists(QString::fromStdString(path))) { self->m_error = "Media could not be loaded. Retry the preview."; emit self->changed(); return; }
             const auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
             if (!parsed.timeline) { self->m_error = parsed.error; emit self->changed(); return; }
             self->m_preview->setTimeline(*parsed.timeline);
@@ -113,7 +143,7 @@ bool CandidatePreview::preview(const QString& assetId, const QString& mediaType,
         m_worker = nullptr;
         const auto pending = std::exchange(m_pending, std::nullopt);
         if (pending) {
-            if (!preview(pending->assetId, pending->mediaType, pending->durationMs)) {
+            if (!start(*pending)) {
                 m_loading = false;
                 emit changed();
             }

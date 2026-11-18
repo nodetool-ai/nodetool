@@ -32,6 +32,9 @@ public:
     void setAudioMode(const QString& mode);
     Q_INVOKABLE void togglePlay();
     Q_INVOKABLE bool preview(const QString& assetId, const QString& mediaType, double durationMs);
+    // Plays a file on this machine, such as a project folder file, with no
+    // server read. A durationMs of 0 takes the file's own duration.
+    Q_INVOKABLE bool previewFile(const QString& localPath, const QString& mediaType, double durationMs = 0);
     Q_INVOKABLE void close();
 signals:
     void changed();
@@ -42,7 +45,9 @@ private:
     // native-rules #1: std::shared_ptr MediaProtection, no comment on why unique ownership is impossible
     std::shared_ptr<nt::assets::MediaProtection> m_protection;
     QThread* m_worker = nullptr;
-    struct PendingPreview { QString assetId; QString mediaType; double durationMs; };
+    // An asset id, or a local path when assetId is empty.
+    struct PendingPreview { QString assetId; QString localPath; QString mediaType; double durationMs; };
+    bool start(const PendingPreview& request);
     std::optional<PendingPreview> m_pending;
     bool m_loading = false;
     QString m_error;

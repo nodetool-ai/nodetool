@@ -27,6 +27,11 @@ import {
   VstOpenEditorRequest,
   VstRenderRequest,
   SystemNotificationRequest,
+  CloudRequestInput,
+  CloudResponse,
+  CloudSocketOpenResult,
+  CloudTransferInput,
+  TransferResult,
 } from "./types.d";
 import { isString } from "./typePredicates";
 
@@ -680,6 +685,33 @@ const api = {
     signOut: () => ipcRenderer.invoke(IpcChannels.CLOUD_ACCOUNT_SIGN_OUT),
     /** Every change of the state, including one made by another app. */
     onChange: createEventSubscription(IpcChannels.CLOUD_ACCOUNT_EVENT),
+  },
+
+  // ============================================================================
+  // cloud: requests to the signed-in cloud server, without the credential
+  // ============================================================================
+  cloud: {
+    /**
+     * A request to a route of the signed-in server. The account helper adds
+     * the token. A 3xx comes back as it is.
+     */
+    request: (request: CloudRequestInput): Promise<CloudResponse> =>
+      ipcRenderer.invoke(IpcChannels.CLOUD_REQUEST, request),
+    /** A call of the local server's transfer router for Publish to Cloud and Synchronize. */
+    transfer: (request: CloudTransferInput): Promise<TransferResult> =>
+      ipcRenderer.invoke(IpcChannels.CLOUD_TRANSFER, request),
+    /**
+     * The workflow socket of a cloud document: always `/ws` on the signed-in
+     * server, opened by the main process with the account's token.
+     */
+    socket: {
+      open: (): Promise<CloudSocketOpenResult> => ipcRenderer.invoke(IpcChannels.CLOUD_SOCKET_OPEN),
+      send: (id: number, data: Uint8Array | string): Promise<boolean> =>
+        ipcRenderer.invoke(IpcChannels.CLOUD_SOCKET_SEND, { id, data }),
+      close: (id: number): Promise<void> => ipcRenderer.invoke(IpcChannels.CLOUD_SOCKET_CLOSE, { id }),
+      /** Frames, the open and the close of every socket this window opened. */
+      onEvent: createEventSubscription(IpcChannels.CLOUD_SOCKET_EVENT),
+    },
   },
 
   // ============================================================================

@@ -560,6 +560,8 @@ export async function copyProjectDocument(args: {
       await (await Application.findById(id))?.syncFile();
     } else if (type === "jsscript") {
       await (await JsScript.findById(id))?.syncFile();
+    } else if (type === "sketch") {
+      await (await ImageDocument.findById(id))?.syncFile();
     }
   }
 

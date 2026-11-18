@@ -12869,6 +12869,14 @@
     "installOnThisComputer": "在此电脑上安装{{installLabel}}",
     "install": "安装",
     "selectLanguageModel": "选择语言模型",
+    "agentFit": {
+      "noToolsLabel": "不支持工具",
+      "noToolsTooltip": "提供方表示此模型无法调用工具。智能体需要工具调用，因此只能将它用于纯文本生成。",
+      "freeTierLabel": "免费档",
+      "freeTierTooltip": "OpenRouter 对免费模型有每分钟和每天的请求限制。智能体运行会发出大量请求，因此使用免费模型时常会卡住或失败。同一模型的付费线路不受此限制。",
+      "defaultLabel": "智能体默认",
+      "defaultTooltip": "NodeTool 默认使用此模型进行智能体工作。它尚未按任务评级：文本、图像或视频工作的测试结果均未发布。"
+    },
     "searchLanguageModels": "搜索语言模型",
     "installProviderToUseModel": "安装{{installLabel}}以使用此模型。",
     "modelNotReady": "此模型尚未准备就绪。",
@@ -15793,7 +15801,9 @@
       "showDetails": "显示详情",
       "collapseDetails": "收起详情",
       "input": "输入",
-      "output": "输出"
+      "output": "输出",
+      "basic": "基础",
+      "basicNode": "基础 · {{title}} 节点"
     },
     "favorites": {
       "title": "收藏夹",
@@ -15823,6 +15833,7 @@
       "resizeHeight": "调整节点菜单高度"
     },
     "quickActions": {
+      "basics": "基础",
       "aiNodes": "AI 节点",
       "providerModels": "提供商模型",
       "constants": "常量",
@@ -15860,7 +15871,13 @@
         "constant-list": "列表",
         "constant-model-3d": "3D 模型",
         "constant-string": "字符串",
-        "constant-video": "视频"
+        "constant-video": "视频",
+        "basic-text": "文本",
+        "basic-generate-text": "生成文本",
+        "basic-generate-image": "生成图像",
+        "basic-edit-image": "编辑图像",
+        "basic-generate-video": "生成视频",
+        "basic-edit-video": "编辑视频"
       }
     },
     "recent": {
@@ -17959,7 +17976,9 @@
       "seek": "定位",
       "playbackSpeed": "播放速度",
       "exitFullscreen": "退出全屏",
-      "enterFullscreen": "进入全屏"
+      "enterFullscreen": "进入全屏",
+      "mute": "静音",
+      "unmute": "取消静音"
     },
     "tagInput": {
       "placeholder": "输入并按 Enter 添加标签…",
@@ -20222,6 +20241,19 @@
       "retry": "重试",
       "donePath": "你的文件位于 {{path}}",
       "close": "关闭"
+    },
+    "preview": {
+      "clips": "个片段",
+      "title": "预览",
+      "tracks": "条轨道",
+      "type": {
+        "app": "迷你应用",
+        "jsscript": "JS 脚本",
+        "script": "脚本",
+        "storyboard": "故事板",
+        "timeline": "时间线",
+        "workflow": "工作流"
+      }
     }
   },
   "assetPicker": {

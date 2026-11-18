@@ -13267,6 +13267,14 @@
     "installOnThisComputer": "Zainstaluj {{installLabel}} na tym komputerze",
     "install": "Zainstaluj",
     "selectLanguageModel": "Wybierz model języka",
+    "agentFit": {
+      "noToolsLabel": "Brak narzędzi",
+      "noToolsTooltip": "Według dostawcy ten model nie potrafi wywoływać narzędzi. Agenci potrzebują wywołań narzędzi, więc używaj go tylko do zwykłego generowania tekstu.",
+      "freeTierLabel": "Darmowy plan",
+      "freeTierTooltip": "OpenRouter ogranicza darmowe modele na minutę i na dzień. Agent wysyła wiele żądań, więc na darmowym modelu często się zawiesza lub kończy błędem. Płatna trasa tego samego modelu nie podlega temu limitowi.",
+      "defaultLabel": "Domyślny dla agentów",
+      "defaultTooltip": "NodeTool domyślnie używa tego modelu do pracy agentów. Nie ma jeszcze ocen dla poszczególnych zadań: nie opublikowano wyników testów dla tekstu, obrazu ani wideo."
+    },
     "searchLanguageModels": "Wyszukaj modele językowe",
     "installProviderToUseModel": "Aby korzystać z tego modelu, zainstaluj {{installLabel}}.",
     "modelNotReady": "Ten model nie jest gotowy do użycia.",
@@ -16343,7 +16351,9 @@
       "showDetails": "Pokaż szczegóły",
       "collapseDetails": "Zwiń szczegóły",
       "input": "Wejście",
-      "output": "Wyjście"
+      "output": "Wyjście",
+      "basic": "Podstawowy",
+      "basicNode": "Podstawowy · węzeł {{title}}"
     },
     "favorites": {
       "title": "Ulubione",
@@ -16373,6 +16383,7 @@
       "resizeHeight": "Zmień wysokość menu węzła"
     },
     "quickActions": {
+      "basics": "Podstawy",
       "aiNodes": "Węzły AI",
       "providerModels": "Modele dostawców",
       "constants": "Stałe",
@@ -16410,7 +16421,13 @@
         "constant-list": "Lista",
         "constant-model-3d": "Model 3D",
         "constant-string": "Sznurek",
-        "constant-video": "Wideo"
+        "constant-video": "Wideo",
+        "basic-text": "Tekst",
+        "basic-generate-text": "Generuj tekst",
+        "basic-generate-image": "Generuj obraz",
+        "basic-edit-image": "Edytuj obraz",
+        "basic-generate-video": "Generuj wideo",
+        "basic-edit-video": "Edytuj wideo"
       }
     },
     "recent": {
@@ -18563,7 +18580,9 @@
       "seek": "Szukaj",
       "playbackSpeed": "Szybkość odtwarzania",
       "exitFullscreen": "Wyjdź z pełnego ekranu",
-      "enterFullscreen": "Wejdź na pełny ekran"
+      "enterFullscreen": "Wejdź na pełny ekran",
+      "mute": "Wycisz",
+      "unmute": "Wyłącz wyciszenie"
     },
     "tagInput": {
       "placeholder": "Wpisz i naciśnij Enter, aby dodać tag…",
@@ -20844,6 +20863,19 @@
       "retry": "Spróbuj ponownie",
       "donePath": "Twoje pliki są w {{path}}",
       "close": "Zamknij"
+    },
+    "preview": {
+      "clips": "klipy",
+      "title": "Podgląd",
+      "tracks": "ścieżki",
+      "type": {
+        "app": "Miniaplikacja",
+        "jsscript": "Skrypt JS",
+        "script": "Scenariusz",
+        "storyboard": "Storyboard",
+        "timeline": "Oś czasu",
+        "workflow": "Przepływ pracy"
+      }
     }
   },
   "assetPicker": {

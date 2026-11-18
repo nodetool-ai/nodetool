@@ -15,6 +15,7 @@
 #include <QFile>
 #include <QGraphicsView>
 #include <QJsonDocument>
+#include <QMenu>
 #include <QMessageBox>
 #include <QQuickWidget>
 #include <QQuickItem>
@@ -308,6 +309,129 @@ private slots:
     QVERIFY(restored.openFile(a));
     restored.openWorkflow("server-workflow"); QCOMPARE(restored.workflowTabs().size(), count + 1);
   }
+  // A cloud tab is saved as a cloud entry, never as a local workflow. When
+  // no account is signed in to its server, the restored tab says so and
+  // keeps the entry until another document takes the tab.
+  void restoreKeepsACloudTab() {
+    QTemporaryDir files; QVERIFY(files.isValid());
+    const auto path = files.filePath("local.json");
+    QSettings().setValue("workflowTabs/documents",
+                         QJsonDocument(QJsonArray{QJsonObject{{"cloud", "cloud-workflow-id"},
+                                                              {"cloudServer", "https://cloud.invalid"},
+                                                              {"role", "editor"},
+                                                              {"origin", ""},
+                                                              {"project", ""}}})
+                             .toJson(QJsonDocument::Compact));
+    QSettings().setValue("workflowTabs/active", 0);
+    {
+      EditorWindow restored;
+      restored.restoreTabs();
+      QCOMPARE(restored.workflowTabs().size(), 1);
+      QVERIFY(restored.message().contains("cloud.invalid"));
+      restored.persistTabs();
+      const auto saved = QJsonDocument::fromJson(QSettings().value("workflowTabs/documents").toByteArray()).array();
+      QCOMPARE(saved.size(), 1);
+      QCOMPARE(saved[0].toObject()["cloud"].toString(), QString("cloud-workflow-id"));
+      QCOMPARE(saved[0].toObject()["cloudServer"].toString(), QString("https://cloud.invalid"));
+      QCOMPARE(saved[0].toObject()["role"].toString(), QString("editor"));
+      QVERIFY(!saved[0].toObject().contains("workflow"));
+      QVERIFY(restored.document()->load(workflow("Local")));
+      QVERIFY(restored.saveFile(path));
+      QVERIFY(restored.openFile(path));
+      restored.persistTabs();
+    }
+    const auto saved = QJsonDocument::fromJson(QSettings().value("workflowTabs/documents").toByteArray()).array();
+    QCOMPARE(saved.size(), 1);
+    QVERIFY(!saved[0].toObject().contains("cloud"));
+    QCOMPARE(saved[0].toObject()["file"].toString(), path);
+    QSettings().remove("workflowTabs/documents");
+  }
+  // The bundled server listens on a new port at every launch. A tab saved on
+  // it reconnects to this launch's port, a cloud tab included, and a saved
+  // bundled tab does not stop the editor from starting that server (review F3).
+  void restoreReconnectsBundledTabsToTheNewPort() {
+    const QUrl before("http://127.0.0.1:51001"), after("http://127.0.0.1:52002");
+    {
+      EditorWindow window;
+      window.setBundledServer(before);
+      window.session()->connectToServer(before, QString());
+      window.persistTabs();
+    }
+    auto saved = QJsonDocument::fromJson(QSettings().value("workflowTabs/documents").toByteArray()).array();
+    QCOMPARE(saved.size(), 1);
+    QVERIFY(saved[0].toObject()["bundled"].toBool());
+    QVERIFY(!EditorWindow::savedTabServers().own);
+    QVERIFY(EditorWindow::savedTabServers().bundled);
+    auto workflowTab = saved[0].toObject();
+    workflowTab["workflow"] = "w1";
+    saved[0] = workflowTab;
+    saved.append(QJsonObject{{"cloud", "cloud-workflow-id"},
+                             {"cloudServer", "https://cloud.invalid"},
+                             {"role", "editor"},
+                             {"origin", before.toString()},
+                             {"bundled", true},
+                             {"project", ""}});
+    QSettings().setValue("workflowTabs/documents", QJsonDocument(saved).toJson(QJsonDocument::Compact));
+    QSettings().setValue("workflowTabs/active", 1);
+    {
+      EditorWindow restored;
+      restored.setBundledServer(after);
+      restored.restoreTabs();
+      QCOMPARE(restored.workflowTabs().size(), 2);
+      QCOMPARE(restored.session()->serverUrl(), after);
+      restored.activateTab(0);
+      QCOMPARE(restored.session()->serverUrl(), after);
+    }
+    // A tab of a server the user chose stays on it, and keeps the editor
+    // from starting the bundled server.
+    QSettings().setValue("workflowTabs/documents",
+                         QJsonDocument(QJsonArray{QJsonObject{{"file", ""},
+                                                              {"workflow", "w1"},
+                                                              {"origin", "http://localhost:7777"},
+                                                              {"project", ""}}})
+                             .toJson(QJsonDocument::Compact));
+    QVERIFY(EditorWindow::savedTabServers().own);
+    QVERIFY(!EditorWindow::savedTabServers().bundled);
+    QSettings().remove("workflowTabs/documents");
+    QSettings().remove("workflowTabs/active");
+  }
+  // A session with a tab of a server the user chose and a tab of the bundled
+  // server still starts the bundled server, and a bundled tab reconnects to
+  // this launch's port (review F24). A record saved before the "bundled"
+  // key existed has no provenance, so it keeps the URL it names, whatever
+  // its port (review F54). Tabs share one connection, so the last restored
+  // tab's server is the one every tab ends on.
+  void mixedRestoreStartsTheBundledServer() {
+    const QUrl chosen("http://localhost:7777"), before("http://127.0.0.1:51001"), after("http://127.0.0.1:52002");
+    const QJsonObject chosenTab{{"file", ""}, {"workflow", "w1"}, {"origin", chosen.toString()}, {"bundled", false}, {"project", ""}};
+    const QJsonObject bundledTab{{"file", ""}, {"workflow", "w2"}, {"origin", before.toString()}, {"bundled", true}, {"project", ""}};
+    const QJsonObject legacyLoopbackTab{{"file", ""}, {"workflow", "w3"}, {"origin", before.toString()}, {"project", ""}};
+    const QJsonObject legacyOwnTab{{"file", ""}, {"workflow", "w4"}, {"origin", "http://127.0.0.1:7777"}, {"project", ""}};
+    struct Case {
+      QJsonArray entries;
+      bool own;
+      bool bundled;
+      QUrl restored;
+    };
+    const QList<Case> cases{{{chosenTab, bundledTab}, true, true, after},
+                            {{bundledTab, chosenTab}, true, true, chosen},
+                            {{chosenTab, bundledTab, legacyLoopbackTab}, true, true, before},
+                            {{legacyLoopbackTab}, true, false, before},
+                            {{legacyOwnTab}, true, false, QUrl("http://127.0.0.1:7777")}};
+    for (const auto &item : cases) {
+      QSettings().setValue("workflowTabs/documents", QJsonDocument(item.entries).toJson(QJsonDocument::Compact));
+      QSettings().setValue("workflowTabs/active", 0);
+      QCOMPARE(EditorWindow::savedTabServers().own, item.own);
+      QCOMPARE(EditorWindow::savedTabServers().bundled, item.bundled);
+      EditorWindow restored;
+      restored.setBundledServer(after);
+      restored.restoreTabs();
+      QCOMPARE(restored.workflowTabs().size(), item.entries.size());
+      QCOMPARE(restored.session()->serverUrl(), item.restored);
+    }
+    QSettings().remove("workflowTabs/documents");
+    QSettings().remove("workflowTabs/active");
+  }
   // Each tab's socket names the tab's project, so the server watches its
   // folder: on open, after opening a workflow of a project, and for a tab
   // created in another project.
@@ -330,6 +454,39 @@ private slots:
     QTRY_COMPARE(server.openProjects.size(), 3);
     QCOMPARE(server.openProjects.last(), QString("p2"));
     QCOMPARE(window.session()->openProject(), QString("p2"));
+  }
+  // File > Publish to Cloud and Synchronize open the review sheet for a
+  // project on this launch's bundled server, and stay off for another server.
+  void transferEntriesFollowTheBundledServer() {
+    FakeRunServer server;
+    const QString project("fedcba9876543210fedcba9876543210");
+    server.workflow = QJsonObject{{"id", "0123456789abcdef0123456789abcdef"}, {"name", "Poster"}, {"updated_at", "r1"},
+                                  {"project_id", project}, {"graph", workflow("Poster")["graph"]}};
+    EditorWindow window;
+    window.resize(1200, 800);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    window.setBundledServer(server.url());
+    window.session()->connectToServer(server.url(), {});
+    QTRY_VERIFY(window.session()->connected());
+    window.openWorkflow(server.workflow["id"].toString());
+    QTRY_VERIFY(window.session()->serverBound());
+    auto *file = window.findChild<QMenu *>("application-menu-file");
+    QVERIFY(file);
+    const auto enabled = [file](const QString &label) {
+      emit file->aboutToShow();
+      bool result = false;
+      for (auto *item : file->actions()) {
+        if (item->text() == label) { result = item->isEnabled(); }
+      }
+      emit file->aboutToHide();
+      return result;
+    };
+    QVERIFY(enabled("Publish to Cloud…"));
+    QVERIFY(enabled("Synchronize…"));
+    window.setBundledServer(QUrl("http://127.0.0.1:1"));
+    QVERIFY(!enabled("Publish to Cloud…"));
+    QVERIFY(!enabled("Synchronize…"));
   }
   // A workflow file in a project folder (packages/project-services/src/
   // workflow-file.ts) has format, version and id beside the body, and no name:

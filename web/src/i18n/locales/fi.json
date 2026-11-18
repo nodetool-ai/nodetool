@@ -12869,6 +12869,14 @@
     "installOnThisComputer": "Asenna {{installLabel}} tälle tietokoneelle",
     "install": "Asenna",
     "selectLanguageModel": "Valitse kielimalli",
+    "agentFit": {
+      "noToolsLabel": "Ei työkaluja",
+      "noToolsTooltip": "Palveluntarjoajan mukaan tämä malli ei voi kutsua työkaluja. Agentit tarvitsevat työkalukutsuja, joten käytä sitä vain pelkkään tekstin tuottamiseen.",
+      "freeTierLabel": "Ilmaistaso",
+      "freeTierTooltip": "OpenRouter rajoittaa ilmaisia malleja minuutti- ja päiväkohtaisesti. Agenttiajot tekevät paljon pyyntöjä, joten ne jumittuvat tai epäonnistuvat usein ilmaisella mallilla. Saman mallin maksullinen reitti ei kuulu tämän rajan piiriin.",
+      "defaultLabel": "Agenttien oletus",
+      "defaultTooltip": "NodeTool käyttää tätä mallia oletuksena agenttityöhön. Sitä ei ole vielä arvioitu tehtäväkohtaisesti: teksti-, kuva- tai videotyön testituloksia ei ole julkaistu."
+    },
     "searchLanguageModels": "Hae kielimalleja",
     "installProviderToUseModel": "Asenna {{installLabel}}, jotta voit käyttää tätä mallia.",
     "modelNotReady": "Tämä malli ei ole vielä käyttövalmis.",
@@ -15793,7 +15801,9 @@
       "showDetails": "Näytä tiedot",
       "collapseDetails": "Piilota tiedot",
       "input": "Syöte",
-      "output": "Tuloste"
+      "output": "Tuloste",
+      "basic": "Perus",
+      "basicNode": "Perus · {{title}}-solmu"
     },
     "favorites": {
       "title": "Suosikit",
@@ -15823,6 +15833,7 @@
       "resizeHeight": "Muuta solmuvalikon korkeutta"
     },
     "quickActions": {
+      "basics": "Perusteet",
       "aiNodes": "Tekoälysolmut",
       "providerModels": "Palveluntarjoajien mallit",
       "constants": "Vakiot",
@@ -15860,7 +15871,13 @@
         "constant-list": "Lista",
         "constant-model-3d": "3D-malli",
         "constant-string": "Merkkijono",
-        "constant-video": "Video"
+        "constant-video": "Video",
+        "basic-text": "Teksti",
+        "basic-generate-text": "Luo tekstiä",
+        "basic-generate-image": "Luo kuva",
+        "basic-edit-image": "Muokkaa kuvaa",
+        "basic-generate-video": "Luo video",
+        "basic-edit-video": "Muokkaa videota"
       }
     },
     "recent": {
@@ -17959,7 +17976,9 @@
       "seek": "Siirry",
       "playbackSpeed": "Toistonopeus",
       "exitFullscreen": "Poistu koko näytöstä",
-      "enterFullscreen": "Koko näyttö"
+      "enterFullscreen": "Koko näyttö",
+      "mute": "Mykistä",
+      "unmute": "Poista mykistys"
     },
     "tagInput": {
       "placeholder": "Kirjoita ja lisää tunniste painamalla Enter…",
@@ -20222,6 +20241,19 @@
       "retry": "Yritä uudelleen",
       "donePath": "Tiedostosi ovat kansiossa {{path}}",
       "close": "Sulje"
+    },
+    "preview": {
+      "clips": "leikettä",
+      "title": "Esikatselu",
+      "tracks": "raitaa",
+      "type": {
+        "app": "Miniapp",
+        "jsscript": "JS-skripti",
+        "script": "Käsikirjoitus",
+        "storyboard": "Kuvakäsikirjoitus",
+        "timeline": "Aikajana",
+        "workflow": "Työnkulku"
+      }
     }
   },
   "assetPicker": {

@@ -28,6 +28,7 @@ import {
   documentShares
 } from "./schema/document-sharing.js";
 import type { CollaboratorRole } from "./workflow-collaborator.js";
+import { changingAccess } from "./access-epoch.js";
 
 /** Document kinds shared through these tables. Workflows have their own. */
 export const SHARED_DOCUMENT_TYPES = [
@@ -206,22 +207,24 @@ export class DocumentCollaborator extends DBModel {
     invitedBy: string;
     options?: Partial<ShareOptions>;
   }): Promise<DocumentCollaborator> {
-    const grant =
-      (await DocumentCollaborator.findInvitation(
-        opts.documentType,
-        opts.documentId,
-        opts.userId
-      )) ??
-      new DocumentCollaborator({
-        document_type: opts.documentType,
-        document_id: opts.documentId,
-        user_id: opts.userId,
-        invited_by: opts.invitedBy
-      });
-    grant.role = opts.role;
-    applyShareOptions(grant, opts.options);
-    await grant.save();
-    return grant;
+    return changingAccess([{ kind: opts.documentType, id: opts.documentId }], async () => {
+      const grant =
+        (await DocumentCollaborator.findInvitation(
+          opts.documentType,
+          opts.documentId,
+          opts.userId
+        )) ??
+        new DocumentCollaborator({
+          document_type: opts.documentType,
+          document_id: opts.documentId,
+          user_id: opts.userId,
+          invited_by: opts.invitedBy
+        });
+      grant.role = opts.role;
+      applyShareOptions(grant, opts.options);
+      await grant.save();
+      return grant;
+    });
   }
 
   /**
@@ -256,18 +259,20 @@ export class DocumentCollaborator extends DBModel {
     userId: string,
     role: CollaboratorRole
   ): Promise<DocumentCollaborator[]> {
-    const grants = await DocumentCollaborator.listFor(
-      documentType,
-      documentId,
-      userId
-    );
-    for (const grant of grants) {
-      if (grant.role !== role) {
-        grant.role = role;
-        await grant.save();
+    return changingAccess([{ kind: documentType, id: documentId }], async () => {
+      const grants = await DocumentCollaborator.listFor(
+        documentType,
+        documentId,
+        userId
+      );
+      for (const grant of grants) {
+        if (grant.role !== role) {
+          grant.role = role;
+          await grant.save();
+        }
       }
-    }
-    return grants;
+      return grants;
+    });
   }
 
   /** Remove every grant a user holds. Returns true if a row was deleted. */
@@ -276,13 +281,15 @@ export class DocumentCollaborator extends DBModel {
     documentId: string,
     userId: string
   ): Promise<boolean> {
-    const grants = await DocumentCollaborator.listFor(
-      documentType,
-      documentId,
-      userId
-    );
-    for (const grant of grants) await grant.delete();
-    return grants.length > 0;
+    return changingAccess([{ kind: documentType, id: documentId }], async () => {
+      const grants = await DocumentCollaborator.listFor(
+        documentType,
+        documentId,
+        userId
+      );
+      for (const grant of grants) await grant.delete();
+      return grants.length > 0;
+    });
   }
 }
 
@@ -385,16 +392,20 @@ export class DocumentShare extends DBModel {
 
   /** Stop new redemptions. People who joined keep the link's options. */
   async revoke(): Promise<void> {
-    const at = new Date().toISOString();
-    this.disabled_at = at;
-    this.revoked_at = at;
-    await this.save();
+    return changingAccess([{ kind: this.document_type, id: this.document_id }], async () => {
+      const at = new Date().toISOString();
+      this.disabled_at = at;
+      this.revoked_at = at;
+      await this.save();
+    });
   }
 
   /** Change the link's options. They apply to everyone who joined through it. */
   async setOptions(options: Partial<ShareOptions>): Promise<void> {
-    applyShareOptions(this, options);
-    await this.save();
+    return changingAccess([{ kind: this.document_type, id: this.document_id }], async () => {
+      applyShareOptions(this, options);
+      await this.save();
+    });
   }
 }
 

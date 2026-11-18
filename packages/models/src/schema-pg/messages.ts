@@ -39,6 +39,9 @@ export const messages = pgTable(
     // The live message the archived version followed: where it forks off.
     // Empty when the version began the thread.
     branch_after: text("branch_after"),
+    // The turn-scoped blocks sent with a user message — mirrors the SQLite
+    // column.
+    turn_context: jsonText<Array<{ key: string; text: string }>>()("turn_context"),
     created_at: text("created_at").notNull()
   },
   (table) => [index("idx_messages_thread_id").on(table.thread_id)]

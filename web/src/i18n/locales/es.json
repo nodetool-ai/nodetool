@@ -13068,6 +13068,14 @@
     "installOnThisComputer": "Instale {{installLabel}} en esta computadora",
     "install": "Instalar",
     "selectLanguageModel": "Seleccionar modelo de idioma",
+    "agentFit": {
+      "noToolsLabel": "Sin herramientas",
+      "noToolsTooltip": "Según el proveedor, este modelo no puede llamar a herramientas. Los agentes necesitan llamadas a herramientas, así que úsalo solo para generar texto.",
+      "freeTierLabel": "Nivel gratuito",
+      "freeTierTooltip": "OpenRouter limita los modelos gratuitos por minuto y por día. Una ejecución de agente hace muchas solicitudes, así que con un modelo gratuito suele atascarse o fallar. La ruta de pago del mismo modelo no tiene este límite.",
+      "defaultLabel": "Predeterminado para agentes",
+      "defaultTooltip": "NodeTool usa este modelo de forma predeterminada para el trabajo de agentes. Aún no está clasificado por tarea: no hay resultados de pruebas publicados para texto, imagen o vídeo."
+    },
     "searchLanguageModels": "Buscar modelos de lenguaje",
     "installProviderToUseModel": "Instale {{installLabel}} para usar este modelo.",
     "modelNotReady": "Este modelo no está listo para usar.",
@@ -16068,7 +16076,9 @@
       "showDetails": "Mostrar detalles",
       "collapseDetails": "Contraer detalles",
       "input": "Entrada",
-      "output": "Salida"
+      "output": "Salida",
+      "basic": "Básico",
+      "basicNode": "Básico · nodo {{title}}"
     },
     "favorites": {
       "title": "Favoritos",
@@ -16098,6 +16108,7 @@
       "resizeHeight": "Cambiar el tamaño de la altura del menú del nodo"
     },
     "quickActions": {
+      "basics": "Básicos",
       "aiNodes": "Nodos de IA",
       "providerModels": "Modelos de proveedores",
       "constants": "Constantes",
@@ -16135,7 +16146,13 @@
         "constant-list": "Lista",
         "constant-model-3d": "modelo 3d",
         "constant-string": "cuerda",
-        "constant-video": "Vídeo"
+        "constant-video": "Vídeo",
+        "basic-text": "Texto",
+        "basic-generate-text": "Generar texto",
+        "basic-generate-image": "Generar imagen",
+        "basic-edit-image": "Editar imagen",
+        "basic-generate-video": "Generar vídeo",
+        "basic-edit-video": "Editar vídeo"
       }
     },
     "recent": {
@@ -18261,7 +18278,9 @@
       "seek": "buscar",
       "playbackSpeed": "Velocidad de reproducción",
       "exitFullscreen": "Salir de pantalla completa",
-      "enterFullscreen": "Entrar en pantalla completa"
+      "enterFullscreen": "Entrar en pantalla completa",
+      "mute": "Silenciar",
+      "unmute": "Activar sonido"
     },
     "tagInput": {
       "placeholder": "Escriba y presione Entrar para agregar una etiqueta...",
@@ -20533,6 +20552,19 @@
       "retry": "Reintentar",
       "donePath": "Tus archivos están en {{path}}",
       "close": "Cerrar"
+    },
+    "preview": {
+      "clips": "clips",
+      "title": "Vista previa",
+      "tracks": "pistas",
+      "type": {
+        "app": "Miniapp",
+        "jsscript": "Script JS",
+        "script": "Guion",
+        "storyboard": "Storyboard",
+        "timeline": "Línea de tiempo",
+        "workflow": "Flujo de trabajo"
+      }
     }
   },
   "assetPicker": {

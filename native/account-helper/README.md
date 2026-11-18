@@ -21,8 +21,12 @@ the same library in this helper instead of a second implementation.
   and it is retried later.
 - Every second it reads the generation file and `accounts.json`, so a sign-in
   or sign-out in another app shows within a second.
-- It never refreshes a token and never hands one out. Electron's renderer
-  receives the account state and nothing else.
+- It authorizes the desktop app's cloud requests and transfer calls
+  (protocol version 2). Before each one it applies the request rule of the
+  library, so a sign-out in another app stops the next request at once. On a
+  401 it renews the token once, under `account.lock`, and sends again.
+  Reading the state never renews a token. Electron's renderer receives the
+  account state and the answers, never a token.
 
 The data folder is `NodeTool/native` in the generic data location, as the
 native apps use: `$XDG_DATA_HOME` or `~/.local/share` on Linux,
@@ -42,16 +46,23 @@ Electron main to the helper:
 | `reload` | Reads the record again at once. |
 | `browserResult` | `opened` |
 | `httpResponse` | `id`, `status`, `body` |
+| `request` | `id`, `method`, `path`, `timeoutMs`. A cloud request of the renderer. |
+| `transfer` | `id`, `procedure`, `input`, `localOrigin`. A call of the local server's `cloudTransfer` router. |
+| `socketToken` | `id`. An access token for one WebSocket upgrade. |
+| `requestCancel` | `id`. Stops a `request`, `transfer` or `socketToken`. |
 
 The helper to Electron main:
 
 | Message | Fields |
 |---|---|
-| `ready` | `protocol` (1) |
+| `ready` | `protocol` (2) |
 | `state` | `state` (`signedOut`, `signingIn` or `signedIn`), `displayName`, `serverOrigin`, `serverEndPending`, `cloudAvailable`, `keychainAvailable`, `message` |
 | `openBrowser` | `url` |
-| `http` | `id`, `method`, `url`, `headers`, `body`, `timeoutMs`, `requiredOrigin` |
+| `http` | `id`, `method`, `url`, `headers`, `body`, `timeoutMs`, `requiredOrigin`, and `request` or `transfer` with the id it serves |
 | `httpCancel` | `id` |
+| `response` | `id`, `status`, `error` (empty, `SIGNED_OUT`, `OFFLINE`, `CANCELLED`, `INVALID` or `BUSY`) |
+| `transferResult` | `id`, `status` (`ok`, `signedOut`, `offline`, `refused`, `localUnavailable` or `cancelled`), `reason`, `data` |
+| `socketTokenResult` | `id`, `token` or `error` |
 | `fatal` | `message` |
 
 The helper has no network stack. Electron main sends each `http` request
@@ -59,6 +70,26 @@ with `net.fetch` and answers with `httpResponse`. Main sends a request only
 over HTTPS to the canonical server origin, never follows a redirect, and
 answers status 0 for a refused, failed or timed-out request. Main opens
 `openBrowser` only for `<origin>/oauth/authorize`.
+
+A `request` carries no body and no headers, and its `response` none either.
+The helper sends `http` messages for it with the `Authorization` header
+only and the `request` field set. Main sends each with the renderer's
+method, headers and body, keeps the response's headers and body, and answers
+the helper with the status alone. The helper accepts a path that starts with
+one `/`, has no dot segment, fragment, space or backslash, and is not under
+`/oauth/`. Main applies the list of routes. A 401 renews the token once and
+repeats the `http` message, so main keeps the request's body until the
+`response`.
+
+A `transfer` goes to `<localOrigin>/trpc/<procedure>`, a loopback `http`
+origin, for the procedures of the router only. The helper sets `origin`,
+`account_id` and, for the procedures that reach the cloud, `access_token` in
+the input, replacing any the renderer named. Its `http` messages carry the
+`transfer` field. Main sends them only to the local server it started, with
+its local client token. `data` is the procedure's result.
+
+Six threads run these messages, and at most 256 wait. An id that is still
+in flight answers `INVALID`.
 
 Command-line arguments: `--server <origin>` and `--data-dir <folder>`. When
 stdin closes, the helper cancels a waiting sign-in and exits.

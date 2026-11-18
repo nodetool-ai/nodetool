@@ -19,6 +19,14 @@ export const imageDocuments = sqliteTable(
      * concurrency for interactive editing widgets.
      */
     revision: integer("revision").notNull().default(0),
+    // Path of the sketch's file, relative to the folder of the project in
+    // `project_id`: `Sketches/<name>.sketch.ora`, an OpenRaster zip. Null
+    // until the file is first written.
+    file_path: text("file_path"),
+    // SHA-256 of the zip as NodeTool last wrote or imported it, in hex.
+    file_hash: text("file_hash"),
+    // What the last reconcile found wrong with the file, or null.
+    file_error: text("file_error"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

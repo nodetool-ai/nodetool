@@ -125,6 +125,10 @@ type LoadScriptNodeOutputs = {
 export class LoadScriptNode extends BaseNode {
   static readonly nodeType = "nodetool.script.LoadScript";
   static readonly title = "Load Script";
+  // Replaced by nodetool.constant.Script. Kept registered so saved graphs
+  // run, hidden because no other node yet reads a script's text and lines.
+  static readonly hidden = true;
+  static readonly replacedBy = "nodetool.constant.Script";
   static readonly description =
     "Read a persisted script's text and metadata.\n    script, text, voiceover, narration, load\n\n    Use cases:\n    - Feed a script's text into an LLM or text node\n    - Inspect line count and cast before voicing\n    - Branch a workflow on a script's contents";
   static readonly metadataOutputTypes = {

@@ -7,12 +7,14 @@
 
 import {
   getSandboxManifest,
-  type SandboxManifest
+  type SandboxManifest,
+  type SandboxMemberDoc
 } from "../code-gen/sandbox-manifest.js";
 import { extractApiReferences } from "../code-gen/sandbox-prompt.js";
 import { NODETOOL_PRODUCT_KNOWLEDGE } from "../prompts/product-knowledge.js";
 import { NODETOOL_API_SECTION_HEADER } from "./nodetool-api.js";
 import {
+  renderFocusedToolCatalog,
   renderToolCatalog,
   RESERVED_BINDINGS_SENTENCE,
   type ToolSignatureSource
@@ -25,102 +27,60 @@ import {
  * documented (it stays available). Without the object model, `parallelMap`
  * is the only one there is.
  */
-const BOUNDED_FANOUT_PARALLEL_MAP = `Use
-  \`await parallelMap(items, async (x) => …, 5)\` when the list is long enough
-  that unbounded fan-out would blow a rate limit or the per-action tool
-  budget; it preserves input order and keeps at most N in flight.`;
+const BOUNDED_FANOUT_PARALLEL_MAP = `For a long list,
+  \`await parallelMap(items, async (x) => …, 5)\` keeps at most N in flight
+  and preserves input order.`;
 
-const BOUNDED_FANOUT_NODETOOL_BATCH = `Use
-  \`await nodetool.batch(items, async (x) => …, {concurrency: 5})\` when the
-  list is long enough that unbounded fan-out would blow a rate limit or the
-  per-action tool budget; it keeps at most N in flight and settles each entry
-  as \`{ok, value | error}\` instead of rejecting.`;
+const BOUNDED_FANOUT_NODETOOL_BATCH = `For a long list,
+  \`await nodetool.batch(items, fn, {concurrency: 5})\` keeps N in flight and
+  settles each entry as \`{ok, value | error}\` without throwing.`;
 
 /**
- * The catalog renders each tool as the call an action writes. Read as a tool
- * list, an imported name becomes a tool name a model emits at the top level, and
- * the provider rejects the turn.
+ * The one statement of how a capability is called, next to the import lines
+ * it describes. Read as a tool list, an imported name becomes a tool name a
+ * model emits at the top level, and the provider rejects the turn. The eval
+ * traces also show the other three ways an import fails: a name used without
+ * its import, `import()`, and `nodetool` imported from a module.
  */
 export const TOOL_CATALOG_GUIDANCE =
-  "Each capability is an import. Write the `import` line at the top of the " +
-  "action and call the imported function — there is no `tools.<name>()` " +
-  "global. Each group below is headed by the exact import statement to copy. " +
-  "Nothing here is callable as a top-level tool call — a turn that names one " +
-  "fails.";
+  "Each capability is an import. Copy the `import` line that heads its group " +
+  "to the top of the action, then call the function. There is no " +
+  "`tools.<name>()` global, and none of these is a top-level tool call. " +
+  "Use static `import` lines only: a dynamic import and `require` fail. " +
+  "`nodetool` is a global and is never imported.";
 
 const actionContractBase = (
   boundedFanout: string
 ) => `# CodeAct Execution
 
-You act by writing JavaScript. Each turn, call the \`execute_code\` tool with a
-program; it runs in a sandbox and the observation (return value, console logs,
-error) comes back as the tool result. Repair and continue based on what you
-observe.
+You act by calling \`execute_code\` with a JavaScript program. Its return
+value, console logs and error come back as the tool result. Repair and
+continue from what you observe.
 
 Rules:
-- Every \`execute_code\` call carries a \`title\`: 3-8 words, user-facing,
-  naming what THIS action does ("Rendering product images from CSV") — it is
-  the only thing the user sees while your code runs.
-- Every \`execute_code\` call also carries a \`risk\`: \`"low"\` when the program
-  only reads, computes, or does work the user asked for and can undo;
-  \`"high"\` when it deletes or overwrites something, publishes or sends
-  anything outside this account, or spends real money. Say \`"high"\` when you
-  are unsure. It is what decides whether the action runs unattended or asks
-  the user first, so declaring \`"low"\` for a destructive program is how a
-  user loses work they never agreed to lose. Keep the destructive or costly
-  part in its own action: the routine work around it then still runs
-  unattended.
-- A \`"high"\` risk call also carries a \`description\`: one to three plain
-  sentences naming what the program will change, delete, send, or spend, and
-  on what. That is the text the approval dialog asks the user about — the code
-  sits behind a fold — so a description that restates the title, or describes
-  the code instead of its effect, is a user clicking Allow on something they
-  could not read. Write \`""\` for a \`"low"\` risk call; nobody is asked.
+- Each call carries a \`title\` (3-8 words telling the user what it does) and
+  a \`risk\`: \`"high"\` if it deletes, overwrites, publishes, sends outside
+  this account or spends money, or if unsure, else \`"low"\`. A high-risk call
+  adds a plain \`description\` of what changes, is sent or costs money. A
+  low-risk call sends \`""\`. Keep the risky part in its own action.
 - ${RESERVED_BINDINGS_SENTENCE}
-- Chain the WHOLE pipeline into one action: call several tools, loop over
-  items, branch on intermediate results, retry inside try/catch, and
-  post-process in the same program. Hold intermediates in local variables.
-  An action that makes one tool call and returns to look at it is JSON
-  tool-calling with extra steps — reach for a new action only when you
-  genuinely cannot decide the next call without seeing an observation first
-  (and then finish the rest in that next action).
-- Multi-round protocols (poll a job, answer run escalations, retry a flaky
-  call) are ONE action: write the loop, not one action per round.
-- Independent work runs CONCURRENTLY, and a sequential \`for\` loop over
-  \`await\` is the most common way an action wastes wall-clock. A call starts
-  its work when invoked, not when awaited, so
-  \`await Promise.all(items.map(x => nodetool.web.search(x)))\` fans out for real —
-  ten independent lookups take one round trip, not ten. ${boundedFanout}
-  \`Promise.allSettled\` when some are allowed to fail. Sequence only what
-  genuinely depends on a previous result.
-- Nothing carries over between actions except what a tool saved. Generation
-  calls already store their result as an asset and return its \`asset://\` uri.
-  Put any result a later action or turn needs into memory:
-  \`await nodetool.memory.save("clip: <asset_uri>", {title: "The clip"})\` — it
-  is shown back to you at the start of later turns.
-  Never re-run generate, speak, or fetch for
-  something an earlier action already produced; check memory, reuse the
-  recorded uri, and re-derive only what is genuinely missing instead of
-  throwing on it. Write a large literal into memory or a workspace file
-  in the action that builds it; if that action fails, update the saved copy
-  and retry — do not emit the literal a second time.
-  Local variables die with the action and \`return\` is the observation only;
-  saved results do not persist that way.
-- Keep observations small. \`return\` a compact summary (counts, ids, the few
-  fields you need); large payloads belong in saved assets or memory —
-  not in the transcript.
-- Extract fields you have verified exist. Coercing an unread object to a
-  string yields "[object Object]", and a plausible-looking wrong field passes
-  schema validation. Return shapes are NOT documented in the catalog, so the
-  first time a pipeline uses an unfamiliar tool's value,
-  \`console.log(JSON.stringify(x))\` it before extracting — the log rides
-  along in the same observation, costs nothing, and turns a wrong guess into
-  something you can fix inside the same program instead of a probe action.
-- A failed tool call throws; use try/catch when partial failure is acceptable.
-- Resource ids (\`id\`, \`workflow_id\`, \`asset://…\`) arrive as 12-character
-  prefixes of the stored id. Pass them back as they are: every capability
-  accepts the prefix or the full id.
-- Top-level \`await\` and \`return\` work.`;
+- Write plain JavaScript, not TypeScript. Top-level \`await\` and \`return\`
+  work.
+- Do the whole job in one action: several calls, loops, branches, retries and
+  polling. Start a new action only when the next call depends on an
+  observation you have not seen.
+- Run independent calls concurrently with \`await Promise.all(...)\`, or
+  \`Promise.allSettled\` when some may fail. ${boundedFanout}
+- Nothing carries over between actions. Local variables die with the action,
+  and \`return\` is the observation only. Generation results are already
+  saved as \`asset://\` uris. Put what a later action needs into memory:
+  \`await nodetool.memory.save("clip: <asset_uri>", {title: "The clip"})\`.
+  Never re-run generate, speak, or fetch for something already saved.
+- \`return\` a small summary: counts, ids, the fields you need.
+- Return shapes are not documented. \`console.log(JSON.stringify(x))\` an
+  unfamiliar result before you extract fields from it, in the same action.
+- A failed call throws. Use try/catch when partial failure is acceptable.
+- Resource ids arrive as 12-character prefixes. Pass them back unchanged.`;
 
 const actionContractStep = (
   boundedFanout: string
@@ -138,25 +98,21 @@ function actionContractChat(
   boundedFanout: string
 ): string {
   return `${actionContractBase(boundedFanout)}
-- Network, secrets, files, and assets are available only through imported
-  capabilities, so permission checks and approvals cannot be bypassed.
-  Unusable here:
-  ${unavailable.map((name) => `\`${name}\``).join(", ")} — a chat action runs
-  with no context and a zero-request fetch limit.
-- The \`nodetool\` object model covers what those bridges did, past the gate:
-  feed a generation result (or its \`asset_uri\`) straight into \`image.*\`,
-  then \`nodetool.media.toImage(handle)\` to save. The guest holds handles,
-  never encoded bytes. \`nodetool.assets.read\` / \`save\` for the library,
-  \`nodetool.web.fetch\` / \`browse\` for the network.
-- When you need the user's decision, stop writing code and ask in a plain
-  assistant message.`;
+- Network, secrets, files and assets go only through imported capabilities.
+  A chat action has no context and a zero-request fetch limit, so these are
+  unusable here: ${unavailable.map((name) => `\`${name}\``).join(", ")}.
+- \`nodetool.*\` replaces them: pass a generation result or its \`asset_uri\`
+  to \`image.*\` and save the handle with \`nodetool.media.toImage(handle)\`.
+  The guest holds handles, never encoded bytes. \`nodetool.assets.read\`/\`save\`
+  reach the library, \`nodetool.web.fetch\`/\`browse\` the network.
+- To get the user's decision, stop writing code and ask in a plain assistant
+  message.`;
 }
 
 const CHAT_COMPLETION = `# Answering the user
 
-This is a chat turn, not a step: there is no \`finish()\`. When the work is
-done, reply to the user with a normal assistant message containing no tool
-call — that message ends the turn.`;
+There is no \`finish()\` in a chat turn. When the work is done, reply with a
+plain assistant message and no tool call. That ends the turn.`;
 
 const FINISH_SCHEMA = `# Completing the step
 
@@ -241,7 +197,66 @@ function relevantNotes(
     });
 }
 
-/** Compact, manifest-derived sandbox reference: signatures only. */
+/**
+ * Globals every model already knows from the language; the prompt names only
+ * what the sandbox has beyond them, so a list the model cannot learn from
+ * stops costing a turn.
+ */
+const ECMASCRIPT_GLOBALS: ReadonlySet<string> = new Set([
+  "AggregateError", "Array", "ArrayBuffer", "BigInt", "BigInt64Array", "BigUint64Array",
+  "Boolean", "DataView", "Date", "Error", "EvalError", "FinalizationRegistry",
+  "Float32Array", "Float64Array", "Infinity", "Int16Array", "Int32Array", "Int8Array",
+  "JSON", "Map", "Math", "NaN", "Number", "Object", "Promise", "Proxy", "RangeError",
+  "ReferenceError", "Reflect", "RegExp", "Set", "SharedArrayBuffer", "String", "Symbol",
+  "SyntaxError", "TypeError", "URIError", "Uint16Array", "Uint32Array", "Uint8Array",
+  "Uint8ClampedArray", "WeakMap", "WeakRef", "WeakSet", "decodeURI", "decodeURIComponent",
+  "encodeURI", "encodeURIComponent", "escape", "globalThis", "isFinite", "isNaN",
+  "parseFloat", "parseInt", "undefined", "unescape"
+]);
+
+function nonStandardGlobals(globals: readonly string[]): string {
+  const extra = globals.filter((name) => !ECMASCRIPT_GLOBALS.has(name));
+  return extra.length > 0 ? `, plus ${extra.join(", ")}` : "";
+}
+
+/**
+ * Member names grouped by their object, in manifest order:
+ * `crypto.randomUUID/digest`, `sleep`.
+ */
+function groupMemberNames(members: readonly SandboxMemberDoc[]): string[] {
+  const groups = new Map<string, string[]>();
+  for (const member of members) {
+    const dot = member.name.indexOf(".");
+    const owner = dot < 0 ? member.name : member.name.slice(0, dot);
+    const names = groups.get(owner) ?? [];
+    if (dot >= 0) names.push(member.name.slice(dot + 1));
+    groups.set(owner, names);
+  }
+  return [...groups.entries()].map(([owner, names]) =>
+    names.length > 0 ? `\`${owner}.${names.join("/")}\`` : `\`${owner}\``
+  );
+}
+
+/**
+ * The chat variant's bridge list: names only, split by whether a call
+ * returns a promise. Nearly no chat action calls a bridge, so signatures
+ * cost every turn for a line the model rarely reads.
+ */
+function renderBridgeNames(members: readonly SandboxMemberDoc[]): string {
+  const iterated = members.filter((m) => m.signature.startsWith("for await"));
+  const awaited = members.filter((m) => m.async && !iterated.includes(m));
+  const sync = members.filter((m) => !m.async && !iterated.includes(m));
+  const parts = [
+    `Bridges, awaited: ${groupMemberNames(awaited).join(", ")}.`,
+    `Not awaited: ${groupMemberNames(sync).join(", ")}.`
+  ];
+  for (const member of iterated) {
+    parts.push(`Iterate \`${member.name}\` with \`for await\`.`);
+  }
+  return parts.join(" ");
+}
+
+/** Compact, manifest-derived sandbox reference. */
 function renderSandboxSummary(
   manifest: SandboxManifest,
   variant: "step" | "chat",
@@ -252,13 +267,11 @@ function renderSandboxSummary(
       ? chatUnavailableBridges(manifest)
       : stepUnavailableBridges()
   );
-  const lines: string[] = [];
+  const members: SandboxMemberDoc[] = [];
   for (const bridge of Object.values(manifest.bridges)) {
     if (bridge.internal || bridge.members.length === 0) continue;
     if (hidden.has(bridge.name)) continue;
-    for (const member of bridge.members) {
-      lines.push(`- ${member.signature}`);
-    }
+    members.push(...bridge.members);
   }
   for (const helper of Object.values(manifest.guestHelpers)) {
     // One fan-out primitive per prompt: with the `nodetool` object model
@@ -267,7 +280,7 @@ function renderSandboxSummary(
     if (nodetoolApiLoaded && helper.signature.includes("parallelMap")) {
       continue;
     }
-    lines.push(`- ${helper.signature}`);
+    members.push(helper);
   }
   const besides =
     variant === "chat"
@@ -276,12 +289,14 @@ function renderSandboxSummary(
   const notes = relevantNotes(manifest, hidden);
   return [
     `# Sandbox API (besides ${besides})`,
-    // Before the signatures: the notes point at "the bridges below".
+    // Before the bridges: the notes point at "the bridges below".
     notes.map((note) => `- ${note}`).join("\n"),
-    lines.join("\n"),
-    `Built-ins: ${manifest.nativeGlobals.join(", ")}.`,
+    variant === "chat"
+      ? renderBridgeNames(members)
+      : members.map((member) => `- ${member.signature}`).join("\n"),
+    `Built-ins: the standard ECMAScript globals${nonStandardGlobals(manifest.nativeGlobals)}.`,
     `Not available: ${manifest.blockedGlobals.join(", ")}.`,
-    `Each action runs under the sandbox limits (execution timeout, memory, fetch count/size). Only work that would actually exceed them gets split across actions (persist progress with \`nodetool.memory.save\` or a workspace file); everything else belongs in one action.`
+    `Split work across actions only when one action would exceed the sandbox's time, memory or fetch limits. Save progress with \`nodetool.memory.save\`.`
   ].join("\n\n");
 }
 
@@ -308,9 +323,10 @@ interface CodeActPromptOptions {
    */
   variant?: "step" | "chat";
   /**
-   * Tools offered as ordinary tool calls rather than through the sandbox —
-   * the file, search, fetch and delegation set. Listed by name so the model
-   * does not hunt for them among the imports, where they are absent.
+   * Tools the host also offers as ordinary provider tools beside
+   * `execute_code`. Which ones depends on the host: a chat turn offers only
+   * `todo_write`, the plan tool and the chat app's step card, a step executor
+   * its core set. Listed by name so the model calls them at the top level.
    */
   directToolNames?: string[];
   /** Extra sections appended after the tool catalog (e.g. the graph model). */
@@ -375,6 +391,48 @@ function renderPackageSection(
   ].join("\n\n");
 }
 
+/** A `ui_<surface>_` family this large is named by its prefix, not by member. */
+const DEFERRED_FAMILY_MIN = 4;
+
+/**
+ * The deferred names. Each editor's `ui_<surface>_*` family folds into one
+ * line, and the remaining `ui_*` client tools into one more: a family's
+ * members are documented in full on any turn that focuses its editor, and
+ * `nodetool.searchTools()` finds them on any other. Server tools stay exact,
+ * because a `select:` lookup needs the exact name. No line carries a member
+ * count, so the system prompt does not change when an editor registers one
+ * more tool.
+ */
+export function renderDeferredNames(names: readonly string[]): string {
+  const familyOf = (name: string): string | undefined =>
+    /^(ui_[a-z0-9]+_)/.exec(name)?.[1];
+  const families = new Map<string, number>();
+  for (const name of names) {
+    const family = familyOf(name);
+    if (family) families.set(family, (families.get(family) ?? 0) + 1);
+  }
+  const folded = [...families.entries()]
+    .filter(([, size]) => size >= DEFERRED_FAMILY_MIN)
+    .map(([prefix]) => prefix)
+    .sort();
+  const foldedSet = new Set(folded);
+  const server = names.filter((name) => !name.startsWith("ui_"));
+  const otherClient = names.some((name) => {
+    const family = familyOf(name);
+    return name.startsWith("ui_") && !(family && foldedSet.has(family));
+  });
+  const lines = folded.map((prefix) => `- \`${prefix}*\`: ${prefix.slice(3, -1)} editor`);
+  if (otherClient) lines.push("- other `ui_*` editor tools");
+  const search =
+    lines.length > 0
+      ? 'Find an editor\'s tools with `nodetool.searchTools("<editor> <what you need>")`:\n' +
+        lines.join("\n")
+      : "";
+  return [server.join(", "), search]
+    .filter((part) => part.length > 0)
+    .join("\n\n");
+}
+
 export function buildCodeActSystemPrompt(
   options: CodeActPromptOptions
 ): string {
@@ -413,27 +471,21 @@ export function buildCodeActSystemPrompt(
   if (deferred.length > 0) {
     sections.push(
       `# More tools (discover before calling)\n` +
-        `These are available too, but only their names are listed here. Call ` +
-        `\`await nodetool.searchTools("query")\` (or ` +
-        `\`nodetool.searchTools("select:name1,name2")\`) first — each match ` +
-        `comes back with its signature, its description and the \`import\` ` +
-        `line to write. Do not guess arguments, and do not guess the module ` +
-        `to import from.\n\n` +
-        deferred.map((t) => t.name).join(", ")
+        `Listed by name only. Call \`await nodetool.searchTools("query")\` ` +
+        `to find one: each hit gives its name, purpose and \`import\` line. ` +
+        `\`nodetool.searchTools("select:name1,name2")\` returns the full ` +
+        `signature and description. Do not guess arguments or modules.\n\n` +
+        renderDeferredNames(deferred.map((t) => t.name))
     );
   }
   const direct = options.directToolNames ?? [];
   if (direct.length > 0) {
     sections.push(
-      `# Direct tools (call them, do not write code for them)\n` +
-        `These are ordinary tool calls — the file set, the web set, ` +
-        `delegation, and discovery: which providers, models and node types ` +
-        `this install has. Call one directly when you need exactly what it ` +
-        `does; a code action whose only job is to forward one is a wasted ` +
-        `round trip. Write the action when you compose several calls, loop, ` +
-        `or transform the results — inside one they are imported like any ` +
-        `other capability, and reachable through \`nodetool.*\`.\n\n` +
-        direct.join(", ")
+      `# Direct tools\n` +
+        `These are ordinary tool calls beside \`execute_code\`. Call one ` +
+        `directly when that call is the whole step. Inside an action they are ` +
+        `imports like any other capability.\n\n` +
+        direct.map((name) => `\`${name}\``).join(", ")
     );
   }
   sections.push(
@@ -451,25 +503,37 @@ export function buildCodeActSystemPrompt(
 }
 
 /**
- * The part of a chat session's CodeAct prompt that belongs to one turn: full
- * signatures for the tools that turn puts in focus, and the packages only that
- * turn allows. The system section names the same tools among the deferred ones,
- * so this adds detail without changing the system prompt. Empty when the turn
- * adds nothing.
+ * The part of a chat session's CodeAct prompt that belongs to one turn: the
+ * focused document's `nodetool.*` namespace line, its tools by name (the used
+ * ones with a one-line purpose), and the packages only that turn allows. No
+ * signatures: `nodetool.searchTools("select:…")` returns those, and a call
+ * that fails validating its arguments answers with its signature. The text
+ * depends only on the tool set, so every turn of one focus gets the same
+ * block. Empty when the turn adds nothing.
  */
 export function buildCodeActTurnSection(options: {
   tools: ToolSignatureSource[];
   graftedSpecifiers?: ReadonlyMap<string, string>;
   packageLines?: readonly string[];
+  /**
+   * The focused document's `nodetool.*` namespace line
+   * (`renderNodetoolNamespaceLine`).
+   */
+  namespaceEntry?: string;
 }): string {
   const sections: string[] = [];
+  const entry = options.namespaceEntry?.trim() ?? "";
+  if (entry) {
+    sections.push(`# The focused document's \`nodetool\` namespace\n${entry}`);
+  }
   if (options.tools.length > 0) {
     sections.push(
-      `# Tools for the focused document
-` +
-        `These are documented in full for this turn, so call them without ` +
-        `\`nodetool.searchTools()\` first. ${TOOL_CATALOG_GUIDANCE}\n\n` +
-        renderToolCatalog(options.tools, options.graftedSpecifiers)
+      `# Tools for the focused document\n` +
+        `Before a tool's first call in this thread, print its signature, ` +
+        `description and import line: \`console.log(await ` +
+        `nodetool.searchTools("select:<name>,<name>"))\`, several names in ` +
+        `one call.\n\n` +
+        renderFocusedToolCatalog(options.tools, options.graftedSpecifiers)
     );
   }
   const lines = options.packageLines ?? [];

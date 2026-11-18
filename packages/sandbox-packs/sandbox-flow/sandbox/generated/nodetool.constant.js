@@ -45,6 +45,15 @@ function script(inputs) {
 function storyboard(inputs) {
   return callNode("nodetool.constant.Storyboard", inputs);
 }
+function workflow(inputs) {
+  return callNode("nodetool.constant.Workflow", inputs);
+}
+function application(inputs) {
+  return callNode("nodetool.constant.Application", inputs);
+}
+function jsScript(inputs) {
+  return callNode("nodetool.constant.JsScript", inputs);
+}
 function entity(inputs) {
   return callNode("nodetool.constant.Entity", inputs);
 }
@@ -97,6 +106,7 @@ function videoModelConstant(inputs) {
   return callNode("nodetool.constant.VideoModelConstant", inputs);
 }
 export {
+  application,
   asrModelConstant,
   audio,
   audioList,
@@ -114,6 +124,7 @@ export {
   imageModelConstant,
   imageSize,
   integer,
+  jsScript,
   json,
   languageModelConstant,
   list,
@@ -128,5 +139,6 @@ export {
   ttsModelConstant,
   video,
   videoList,
-  videoModelConstant
+  videoModelConstant,
+  workflow
 };

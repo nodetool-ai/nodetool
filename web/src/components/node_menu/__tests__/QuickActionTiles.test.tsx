@@ -10,15 +10,16 @@ import QuickActionTiles from "../QuickActionTiles";
 import { QUICK_ACTION_NODE_TYPES } from "../../../config/quickActionNodeTypes";
 import {
   AI_TASK_ACTIONS,
+  BASIC_ACTIONS,
   CONSTANT_NODES,
   PROVIDER_ACTIONS,
   QUICK_ACTION_BUTTONS
 } from "../QuickActionTiles.constants";
 
-const renderTiles = () =>
+const renderTiles = (group?: "all" | "basics" | "more") =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <QuickActionTiles />
+      <QuickActionTiles group={group} />
     </ThemeProvider>
   );
 
@@ -81,6 +82,45 @@ describe("QuickActionTiles", () => {
       AI_TASK_ACTIONS.length
     );
     expect(sectionNamed("Constants")).toBeInTheDocument();
+  });
+
+  it("leads with the basics under task names", () => {
+    renderTiles();
+
+    const firstSection = document.querySelector("section");
+    expect(firstSection).toBe(sectionNamed("Basics"));
+    const basics = within(sectionNamed("Basics"));
+    expect(
+      basics.getAllByRole("button").map((tile) => tile.getAttribute("aria-label"))
+    ).toEqual([
+      "Text",
+      "Generate text",
+      "Generate image",
+      "Edit image",
+      "Generate video",
+      "Edit video"
+    ]);
+    expect(
+      basics.getByRole("button", { name: "Text" }).dataset.nodeType
+    ).toBe("nodetool.constant.String");
+  });
+
+  it("keeps the basics' nodes out of the AI nodes section", () => {
+    const basicTypes = new Set(BASIC_ACTIONS.map((action) => action.nodeType));
+    expect(
+      AI_TASK_ACTIONS.filter((action) => basicTypes.has(action.nodeType))
+    ).toEqual([]);
+  });
+
+  it("shows only the requested group", () => {
+    const { unmount } = renderTiles("basics");
+    expect(screen.getByText("Basics")).toBeInTheDocument();
+    expect(screen.queryByText("AI nodes")).toBeNull();
+    unmount();
+
+    renderTiles("more");
+    expect(screen.queryByText("Basics")).toBeNull();
+    expect(screen.getByText("AI nodes")).toBeInTheDocument();
   });
 
   it("requests the node when a tile is clicked", async () => {

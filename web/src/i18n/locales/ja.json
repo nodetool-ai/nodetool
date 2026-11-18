@@ -12869,6 +12869,14 @@
     "installOnThisComputer": "このコンピュータに {{installLabel}} をインストールします",
     "install": "インストール",
     "selectLanguageModel": "言語モデルの選択",
+    "agentFit": {
+      "noToolsLabel": "ツールなし",
+      "noToolsTooltip": "プロバイダーによると、このモデルはツールを呼び出せません。エージェントにはツール呼び出しが必要なため、通常のテキスト生成にのみ使用してください。",
+      "freeTierLabel": "無料枠",
+      "freeTierTooltip": "OpenRouter は無料モデルに 1 分あたりと 1 日あたりの制限を設けています。エージェントの実行は多くのリクエストを送るため、無料モデルでは止まったり失敗したりしがちです。同じモデルの有料ルートにはこの制限はありません。",
+      "defaultLabel": "エージェントの既定",
+      "defaultTooltip": "NodeTool はエージェント作業にこのモデルを既定で使います。タスク別の評価はまだありません。テキスト、画像、動画の作業についてのテスト結果は公開されていません。"
+    },
     "searchLanguageModels": "言語モデルの検索",
     "installProviderToUseModel": "このモデルを使用するには、{{installLabel}} をインストールしてください。",
     "modelNotReady": "このモデルは使用する準備ができていません。",
@@ -15793,7 +15801,9 @@
       "showDetails": "詳細を表示",
       "collapseDetails": "詳細を折りたたむ",
       "input": "入力",
-      "output": "出力"
+      "output": "出力",
+      "basic": "基本",
+      "basicNode": "基本 · {{title}} ノード"
     },
     "favorites": {
       "title": "お気に入り",
@@ -15823,6 +15833,7 @@
       "resizeHeight": "ノードメニューの高さのサイズを変更する"
     },
     "quickActions": {
+      "basics": "基本",
       "aiNodes": "AIノード",
       "providerModels": "プロバイダーモデル",
       "constants": "定数",
@@ -15860,7 +15871,13 @@
         "constant-list": "リスト",
         "constant-model-3d": "3Dモデル",
         "constant-string": "文字列",
-        "constant-video": "ビデオ"
+        "constant-video": "ビデオ",
+        "basic-text": "テキスト",
+        "basic-generate-text": "テキストを生成",
+        "basic-generate-image": "画像を生成",
+        "basic-edit-image": "画像を編集",
+        "basic-generate-video": "動画を生成",
+        "basic-edit-video": "動画を編集"
       }
     },
     "recent": {
@@ -17959,7 +17976,9 @@
       "seek": "シーク",
       "playbackSpeed": "再生速度",
       "exitFullscreen": "全画面表示を終了する",
-      "enterFullscreen": "全画面表示に入る"
+      "enterFullscreen": "全画面表示に入る",
+      "mute": "ミュート",
+      "unmute": "ミュート解除"
     },
     "tagInput": {
       "placeholder": "タグを追加するには、入力して Enter キーを押します…",
@@ -20222,6 +20241,19 @@
       "retry": "再試行",
       "donePath": "ファイルは {{path}} にあります",
       "close": "閉じる"
+    },
+    "preview": {
+      "clips": "クリップ",
+      "title": "プレビュー",
+      "tracks": "トラック",
+      "type": {
+        "app": "ミニアプリ",
+        "jsscript": "JS スクリプト",
+        "script": "スクリプト",
+        "storyboard": "ストーリーボード",
+        "timeline": "タイムライン",
+        "workflow": "ワークフロー"
+      }
     }
   },
   "assetPicker": {

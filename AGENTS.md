@@ -157,6 +157,7 @@ document and nothing else in the directory reaches the product.
 | Remove unnecessary code or prose from a requested change | [unslop](.claude/skills/unslop/SKILL.md) |
 | Develop behavior test-first | [tdd](.claude/skills/tdd/SKILL.md) |
 | Write or repair web and workflow Playwright tests | [e2e-testing](.claude/skills/yts806379-everything-claude-code-e2e-testing/SKILL.md) |
+| Fine-tune a local chat model: sample, train on Runpod, evaluate, analyse | [finetune-chat-model](.claude/skills/finetune-chat-model/SKILL.md) |
 | Run blind first-time-user QA through the browser (typed only) | [agentic-qa](.claude/skills/agentic-qa/SKILL.md) |
 | Run a UX research study with blind agent participants and track its insights (typed only) | [ux-research](.claude/skills/ux-research/SKILL.md) |
 | Remove AI tells from prose | [humanizer](.claude/skills/humanizer/SKILL.md) |

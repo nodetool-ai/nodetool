@@ -494,6 +494,9 @@ function documentFileMigration(version: string, table: string): MigrationDef {
   };
 }
 
+const MESSAGE_TURN_CONTEXT_DDL =
+  "ALTER TABLE nodetool_messages ADD COLUMN turn_context TEXT";
+
 const USER_PERMISSIONS_DDL: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS nodetool_user_permissions (
     user_id TEXT PRIMARY KEY NOT NULL,
@@ -529,6 +532,309 @@ const NATIVE_OAUTH_SESSION_DDL: readonly string[] = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_oauth_pending_created
     ON oauth_pending_entries (created_at)`
+];
+
+/**
+ * Deleted documents kept for their restore period (WP2.2). Applied by the
+ * `add_deleted_documents` migration, and by `initTestDb` through
+ * {@link POST_BASELINE_TABLE_DDL}.
+ */
+const DELETED_DOCUMENTS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS nodetool_deleted_documents (
+    id TEXT PRIMARY KEY NOT NULL,
+    kind TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT,
+    name TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    deleted_at TEXT NOT NULL,
+    purge_at TEXT NOT NULL,
+    purging_since TEXT
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_deleted_documents_document
+    ON nodetool_deleted_documents (kind, document_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_deleted_documents_user
+    ON nodetool_deleted_documents (user_id, deleted_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_deleted_documents_purge
+    ON nodetool_deleted_documents (purge_at)`
+];
+
+/**
+ * Content-addressed files of cloud projects
+ * (docs/plans/native-cloud-sync/technical-design.md, "Blob store"). Applied by
+ * the `add_project_blobs` migration, and by `initTestDb` through
+ * {@link POST_BASELINE_TABLE_DDL}. `size` is a SQLite INTEGER, which holds 64
+ * bits; the migration writes BIGINT on PostgreSQL.
+ */
+const PROJECT_BLOBS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS project_blobs (
+    id TEXT PRIMARY KEY NOT NULL,
+    project_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    transfer_id TEXT NOT NULL,
+    committed_at TEXT,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_project_blobs_row
+    ON project_blobs (project_id, hash, transfer_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_project_blobs_owner_hash
+    ON project_blobs (user_id, hash)`,
+  `CREATE INDEX IF NOT EXISTS idx_project_blobs_hash
+    ON project_blobs (hash)`,
+  `CREATE INDEX IF NOT EXISTS idx_project_blobs_staged
+    ON project_blobs (committed_at, created_at)`
+];
+
+/**
+ * Counters that order access changes against the writes they authorize
+ * (docs/plans/native-cloud-sync/technical-design.md, "Order of access
+ * changes against writes"). Applied by the `add_access_epochs` migration.
+ */
+const ACCESS_EPOCHS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS access_epochs (
+    id TEXT PRIMARY KEY NOT NULL,
+    kind TEXT NOT NULL,
+    object_id TEXT NOT NULL,
+    epoch INTEGER NOT NULL DEFAULT 0
+  )`
+];
+
+/**
+ * Transfers into cloud projects and their commit attempts
+ * (docs/plans/native-cloud-sync/technical-design.md, "Sending: capture,
+ * stage, commit attempt"). Applied by the `add_cloud_transfers` migration.
+ */
+const CLOUD_TRANSFERS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS cloud_transfers (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    first_publication INTEGER NOT NULL,
+    state TEXT NOT NULL,
+    committed_attempt_id TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_cloud_transfers_user
+    ON cloud_transfers (user_id, created_at)`,
+  `CREATE TABLE IF NOT EXISTS cloud_transfer_attempts (
+    id TEXT PRIMARY KEY NOT NULL,
+    transfer_id TEXT NOT NULL,
+    attempt_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    digest TEXT NOT NULL,
+    outcome TEXT NOT NULL,
+    result TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_cloud_transfer_attempts_attempt
+    ON cloud_transfer_attempts (transfer_id, attempt_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_cloud_transfer_attempts_user
+    ON cloud_transfer_attempts (user_id)`
+];
+
+/**
+ * Files a committed transfer still has to place, and the content it replaced
+ * (docs/plans/native-cloud-sync/technical-design.md, "Blob store" and
+ * "Operations of a transfer"). Applied by the `add_transfer_files` migration,
+ * and by `initTestDb` through {@link POST_BASELINE_TABLE_DDL}. `size` is a
+ * SQLite INTEGER, which holds 64 bits; the migration writes BIGINT on
+ * PostgreSQL.
+ */
+const TRANSFER_FILES_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS transfer_placements (
+    id TEXT PRIMARY KEY NOT NULL,
+    project_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    transfer_id TEXT NOT NULL,
+    path TEXT NOT NULL,
+    hash TEXT,
+    asset_id TEXT,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_transfer_placements_project
+    ON transfer_placements (project_id, path)`,
+  `CREATE INDEX IF NOT EXISTS idx_transfer_placements_created
+    ON transfer_placements (created_at)`,
+  `CREATE TABLE IF NOT EXISTS recovery_copies (
+    id TEXT PRIMARY KEY NOT NULL,
+    project_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    document_kind TEXT,
+    document_id TEXT,
+    workspace_path TEXT,
+    asset_id TEXT,
+    blob_hash TEXT,
+    size INTEGER,
+    operation TEXT NOT NULL,
+    transfer_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    purge_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_recovery_copies_project
+    ON recovery_copies (project_id, created_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_recovery_copies_purge
+    ON recovery_copies (purge_at)`
+];
+
+/**
+ * The activity record of documents (rename and move rows from phase 2) and
+ * the conversations transfers added to cloud projects.
+ */
+const TRANSFER_ACTIVITY_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS document_activity (
+    id TEXT PRIMARY KEY NOT NULL,
+    document_kind TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    seq INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_document_activity_document
+    ON document_activity (document_kind, document_id, seq)`,
+  `CREATE INDEX IF NOT EXISTS idx_document_activity_user
+    ON document_activity (user_id)`,
+  `CREATE TABLE IF NOT EXISTS transferred_conversations (
+    id TEXT PRIMARY KEY NOT NULL,
+    project_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    source_thread_id TEXT NOT NULL,
+    thread_id TEXT NOT NULL,
+    transfer_id TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_transferred_conversations_source
+    ON transferred_conversations (project_id, user_id, source_thread_id)`
+];
+
+/**
+ * Revision sets of a receive (technical design, "Receiving: revision set,
+ * stage, check, apply", WP2.5). `size` is BIGINT on PostgreSQL. Applied by
+ * the `add_revision_sets` migration, and by `initTestDb` through
+ * {@link POST_BASELINE_TABLE_DDL}.
+ */
+const CLOUD_LINKS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS cloud_links (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    server_key TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    cloud_project_id TEXT NOT NULL,
+    state TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_cloud_links_project
+    ON cloud_links (user_id, project_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_cloud_links_account
+    ON cloud_links (user_id, server_key, account_id)`,
+  `CREATE TABLE IF NOT EXISTS cloud_link_documents (
+    id TEXT PRIMARY KEY NOT NULL,
+    link_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    local_id TEXT NOT NULL,
+    cloud_id TEXT NOT NULL,
+    base_content_hash TEXT NOT NULL,
+    base_cloud_revision TEXT,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_cloud_link_documents_local
+    ON cloud_link_documents (link_id, kind, local_id)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_cloud_link_documents_cloud
+    ON cloud_link_documents (link_id, kind, cloud_id)`,
+  `CREATE TABLE IF NOT EXISTS cloud_link_files (
+    id TEXT PRIMARY KEY NOT NULL,
+    link_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    asset_id TEXT NOT NULL,
+    cloud_asset_id TEXT NOT NULL,
+    base_hash TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_cloud_link_files_asset
+    ON cloud_link_files (link_id, asset_id)`,
+  `CREATE TABLE IF NOT EXISTS cloud_receives (
+    id TEXT PRIMARY KEY NOT NULL,
+    link_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    state TEXT NOT NULL,
+    plan TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_cloud_receives_user
+    ON cloud_receives (user_id, project_id)`
+];
+
+const CLOUD_SENDS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS cloud_sends (
+    id TEXT PRIMARY KEY NOT NULL,
+    link_id TEXT,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    server_key TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    cloud_project_id TEXT NOT NULL,
+    state TEXT NOT NULL,
+    attempt_id TEXT,
+    plan TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_cloud_sends_user
+    ON cloud_sends (user_id, project_id)`
+];
+
+const REVISION_SETS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS revision_sets (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_revision_sets_user
+    ON revision_sets (user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_revision_sets_expires
+    ON revision_sets (expires_at)`,
+  `CREATE TABLE IF NOT EXISTS revision_set_entries (
+    id TEXT PRIMARY KEY NOT NULL,
+    set_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    document_kind TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    revision_id TEXT NOT NULL,
+    fields TEXT NOT NULL,
+    content_hash TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_revision_set_entries_set
+    ON revision_set_entries (set_id, document_kind, document_id)`,
+  `CREATE TABLE IF NOT EXISTS revision_set_files (
+    id TEXT PRIMARY KEY NOT NULL,
+    set_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    document_kind TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    asset_id TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    size INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_revision_set_files_set
+    ON revision_set_files (set_id, hash)`,
+  `CREATE INDEX IF NOT EXISTS idx_revision_set_files_hash
+    ON revision_set_files (hash)`
 ];
 
 /**
@@ -607,7 +913,18 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...documentFileDdl("storyboards"),
   ...documentFileDdl("scripts"),
   ...documentFileDdl("applications"),
-  ...documentFileDdl("js_scripts")
+  ...documentFileDdl("js_scripts"),
+  ...documentFileDdl("image_documents"),
+  ...DELETED_DOCUMENTS_DDL,
+  ...PROJECT_BLOBS_DDL,
+  ...ACCESS_EPOCHS_DDL,
+  ...CLOUD_TRANSFERS_DDL,
+  ...TRANSFER_FILES_DDL,
+  ...TRANSFER_ACTIVITY_DDL,
+  ...REVISION_SETS_DDL,
+  ...CLOUD_LINKS_DDL,
+  ...CLOUD_SENDS_DDL,
+  MESSAGE_TURN_CONTEXT_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5071,7 +5388,162 @@ export const migrations: MigrationDef[] = [
   documentFileMigration("20261129_000002", "applications"),
 
   // A JS script is a JSON file in its project's folder.
-  documentFileMigration("20261129_000003", "js_scripts")
+  documentFileMigration("20261129_000003", "js_scripts"),
+  // A sketch is one OpenRaster file in its project's folder.
+  documentFileMigration("20261129_000004", "image_documents"),
+
+  // Deleted documents kept for 30 days, so their owner can restore them
+  // (docs/plans/native-cloud-sync/technical-design.md, WP2.2).
+  {
+    version: "20261130_000000",
+    name: "add_deleted_documents",
+    createsTables: ["nodetool_deleted_documents"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of DELETED_DOCUMENTS_DDL) {
+        await db.execute(statement);
+      }
+    },
+    // The table holds the only copy of each deleted document. A rollback
+    // leaves it: an older server never reads it.
+    async down() {}
+  },
+
+  // Content-addressed files of cloud projects
+  // (docs/plans/native-cloud-sync/technical-design.md, WP2.1).
+  {
+    version: "20261130_000001",
+    name: "add_project_blobs",
+    createsTables: ["project_blobs"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of PROJECT_BLOBS_DDL) {
+        await db.execute(
+          db.dbType === "sqlite" ? statement : statement.replace("size INTEGER", "size BIGINT")
+        );
+      }
+    },
+    // The rows name the only copies of committed files. A rollback leaves
+    // them: an older server never reads them.
+    async down() {}
+  },
+  {
+    version: "20261130_000002",
+    name: "add_access_epochs",
+    createsTables: ["access_epochs"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of ACCESS_EPOCHS_DDL) await db.execute(statement);
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS access_epochs");
+    }
+  },
+  {
+    version: "20261130_000003",
+    name: "add_cloud_transfers",
+    createsTables: ["cloud_transfers", "cloud_transfer_attempts"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of CLOUD_TRANSFERS_DDL) await db.execute(statement);
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS cloud_transfer_attempts");
+      await db.execute("DROP TABLE IF EXISTS cloud_transfers");
+    }
+  },
+  {
+    version: "20261130_000004",
+    name: "add_transfer_files",
+    createsTables: ["transfer_placements", "recovery_copies"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of TRANSFER_FILES_DDL) {
+        await db.execute(
+          db.dbType === "sqlite" ? statement : statement.replace("size INTEGER", "size BIGINT")
+        );
+      }
+    },
+    // A recovery copy names the only copy of replaced bytes. A rollback
+    // leaves the rows: an older server never reads them.
+    async down() {}
+  },
+  {
+    version: "20261130_000005",
+    name: "add_document_activity",
+    createsTables: ["document_activity", "transferred_conversations"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of TRANSFER_ACTIVITY_DDL) await db.execute(statement);
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS transferred_conversations");
+      await db.execute("DROP TABLE IF EXISTS document_activity");
+    }
+  },
+  {
+    version: "20261130_000006",
+    name: "add_revision_sets",
+    createsTables: ["revision_sets", "revision_set_entries", "revision_set_files"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of REVISION_SETS_DDL) {
+        await db.execute(
+          db.dbType === "sqlite" ? statement : statement.replace("size INTEGER", "size BIGINT")
+        );
+      }
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS revision_set_files");
+      await db.execute("DROP TABLE IF EXISTS revision_set_entries");
+      await db.execute("DROP TABLE IF EXISTS revision_sets");
+    }
+  },
+  {
+    version: "20261130_000007",
+    name: "add_cloud_links",
+    createsTables: ["cloud_links", "cloud_link_documents", "cloud_link_files", "cloud_receives"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of CLOUD_LINKS_DDL) await db.execute(statement);
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS cloud_receives");
+      await db.execute("DROP TABLE IF EXISTS cloud_link_files");
+      await db.execute("DROP TABLE IF EXISTS cloud_link_documents");
+      await db.execute("DROP TABLE IF EXISTS cloud_links");
+    }
+  },
+  {
+    version: "20261130_000008",
+    name: "add_cloud_sends",
+    createsTables: ["cloud_sends"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of CLOUD_SENDS_DDL) await db.execute(statement);
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS cloud_sends");
+    }
+  },
+
+  // The turn-scoped blocks a chat turn sends after a user message, kept on
+  // that message so later turns replay them unchanged.
+  {
+    version: "20261130_000009",
+    name: "add_message_turn_context",
+    createsTables: [],
+    modifiesTables: ["nodetool_messages"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_messages"))) return;
+      if (!(await db.columnExists("nodetool_messages", "turn_context"))) {
+        await db.execute(MESSAGE_TURN_CONTEXT_DDL);
+      }
+    },
+    async down() {
+      // The column stays: without it a thread's next turn resends every block.
+    }
+  }
 ];
 
 /**

@@ -83,6 +83,18 @@ const MODEL_LIST_TIMEOUT_MS = 5_000;
 /** Process-wide counter for tool-call ids, so ids never repeat across rounds. */
 let toolCallSeq = 0;
 
+/**
+ * `think` as Ollama takes it, from OLLAMA_THINK: a boolean for "true" or
+ * "false", a reasoning level for "low", "medium" or "high" (gpt-oss), and
+ * null for anything else, which leaves thinking to the model's default.
+ */
+function thinkSetting(value: string | undefined): boolean | string | null {
+  const v = value?.trim().toLowerCase();
+  if (v === "true") return true;
+  if (v === "false") return false;
+  return v === "low" || v === "medium" || v === "high" ? v : null;
+}
+
 function positiveInt(value: unknown): number | null {
   const n = typeof value === "string" ? Number(value.trim()) : value;
   return typeof n === "number" && Number.isInteger(n) && n > 0 ? n : null;
@@ -152,11 +164,19 @@ export class OllamaProvider extends BaseProvider {
   /** Explicit `num_ctx` from OLLAMA_CONTEXT_LENGTH, or null to derive it per model. */
   readonly contextLength: number | null;
 
+  /**
+   * `think` from OLLAMA_THINK, sent to models that can think; null leaves the
+   * model's default. The chat template renders a different prompt for each
+   * setting, so a fine-tuned model runs with the setting it was trained on.
+   */
+  readonly think: boolean | string | null;
+
   constructor(
     secrets: {
       OLLAMA_API_URL?: string;
       OLLAMA_CONTEXT_LENGTH?: string;
       OLLAMA_KEEP_ALIVE?: string;
+      OLLAMA_THINK?: string;
     },
     options: OllamaProviderOptions = {}
   ) {
@@ -173,6 +193,7 @@ export class OllamaProvider extends BaseProvider {
     this.contextLength = positiveInt(
       secrets.OLLAMA_CONTEXT_LENGTH || process.env.OLLAMA_CONTEXT_LENGTH
     );
+    this.think = thinkSetting(secrets.OLLAMA_THINK || process.env.OLLAMA_THINK);
     this._fetch = options.fetchFn ?? globalThis.fetch.bind(globalThis);
   }
 
@@ -236,6 +257,12 @@ export class OllamaProvider extends BaseProvider {
   /** The window this provider runs `model` at, so compaction fires before Ollama truncates. */
   override async getContextWindow(model: string): Promise<number | null> {
     return this.resolveNumCtx(model);
+  }
+
+  /** Whether `/api/show` lists `capability` for `model`; false when unknown. */
+  private async hasCapability(model: string, capability: string): Promise<boolean> {
+    const capabilities = (await this.getModelInfo(model))?.capabilities;
+    return Array.isArray(capabilities) && capabilities.includes(capability);
   }
 
   /**
@@ -379,12 +406,21 @@ export class OllamaProvider extends BaseProvider {
     throw new Error("Invalid image payload: expected uri or data");
   }
 
-  async convertMessage(message: Message): Promise<Record<string, unknown>> {
+  /**
+   * One message in Ollama's wire format. `toolNames` maps tool-call ids to
+   * tool names, so a tool result can carry the `tool_name` of the call it
+   * answers; chat templates render it.
+   */
+  async convertMessage(
+    message: Message,
+    toolNames: ReadonlyMap<string, string> = new Map()
+  ): Promise<Record<string, unknown>> {
     if (message.role === "tool") {
       const content = isString(message.content)
         ? message.content
         : JSON.stringify(message.content ?? null);
-      return { role: "tool", content };
+      const toolName = message.toolCallId ? toolNames.get(message.toolCallId) : undefined;
+      return toolName ? { role: "tool", content, tool_name: toolName } : { role: "tool", content };
     }
 
     if (message.role === "assistant") {
@@ -587,10 +623,14 @@ export class OllamaProvider extends BaseProvider {
       options.repeat_penalty = 1 + repeatPenaltySource;
     }
 
+    const toolNames = new Map<string, string>();
+    for (const m of args.messages) {
+      for (const call of m.toolCalls ?? []) toolNames.set(call.id, call.name);
+    }
     const request: Record<string, unknown> = {
       model: args.model,
       messages: await Promise.all(
-        args.messages.map((m) => this.convertMessage(m))
+        args.messages.map((m) => this.convertMessage(m, toolNames))
       ),
       keep_alive: this.keepAlive,
       options
@@ -601,6 +641,9 @@ export class OllamaProvider extends BaseProvider {
       (await this.hasToolSupport(args.model))
     ) {
       request.tools = this.formatTools(args.tools ?? []);
+    }
+    if (this.think !== null && (await this.hasCapability(args.model, "thinking"))) {
+      request.think = this.think;
     }
 
     return request;

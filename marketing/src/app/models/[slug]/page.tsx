@@ -229,9 +229,12 @@ function ModelPage({ model }: { model: ModelEntry }) {
               <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl border border-slate-800/70 bg-slate-900/50 ring-1 ring-white/5">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/preview.png"
+                  src="/preview.webp"
                   alt={`${model.name} in the NodeTool canvas`}
-                  className="w-full object-cover"
+                  width={1200}
+                  height={630}
+                  fetchPriority="high"
+                  className="h-auto w-full object-cover"
                 />
                 <p className="px-5 py-4 text-center text-sm text-slate-400">
                   Fresh {model.name} examples are on the way. Meanwhile, here&apos;s

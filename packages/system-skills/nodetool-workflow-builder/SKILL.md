@@ -114,6 +114,37 @@ For a brief rather than a graph, the planner builds one: `plan_workflow
 canvas the same flow is `ui_workflow_plan`, `ui_workflow_update_plan_step` and
 `ui_workflow_build_from_plan`.
 
+## From a chat action
+
+In chat with no editor open, author the graph in an `execute_code` action
+instead of the graph tools.
+
+- **DSL.** `@nodetool-ai/sandbox-dsl` is importable only when the session has
+  `create_workflow`, `validate_workflow` and `run_workflow` and the sandbox
+  catalog serves the pack. Without both, the import fails, so write the graph
+  as plain objects: nodes `{id, type, properties}` and edges `{source,
+  sourceHandle, target, targetHandle}`. With it, import `workflow` from the
+  package root and one function per node type from
+  `@nodetool-ai/sandbox-dsl/<namespace>`, such as `nodetool.text`. Wire
+  handles, then `workflow(...outputs)` returns `{nodes, edges}`. The DSL builds
+  a graph and runs nothing.
+- **`nodetool.workflows.*`.** `validate(graph)` is free and throws on a missing
+  property, a dangling edge or an unselected model. `create(name, graph,
+  {description})` saves it. `debug(id, params)` runs it and returns status,
+  outputs and errors. `run(id, params)` and `start(id, params)` execute, and
+  `start` returns a job receipt. `update(id, {graph, name, description, tags})`
+  also exists. `list()` returns `{workflows}`, an envelope. `open(id)` shows the
+  workflow in the editor when one is available.
+- **Edit and delete by tool name.** The object model has no `delete` method.
+  Import `update_workflow` and `delete_workflow` from
+  `@nodetool-ai/sandbox-nodetool/workflows`. `update_workflow({workflow_id,
+  graph, name, description, tags})` changes a saved workflow in place, and
+  `delete_workflow({workflow_id})` removes one. Import by tool name, never by
+  method name. `nodetool.searchTools("workflow")` prints the exact import line.
+
+Validate, then run once with `debug` before reporting the workflow done, and
+read the saved graph back.
+
 ## Node catalog
 
 Catalog entries are search leads. Confirm each type with `get_node_info` or

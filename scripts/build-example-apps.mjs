@@ -509,6 +509,27 @@ function buildControl(control, ctx) {
     };
   }
 
+  // Cards that each write a whole value into one variable, such as a ready
+  // prompt template. A card is highlighted while the variable holds its value.
+  if (control.choices !== undefined) {
+    const { binding, idParts } = variableTarget(control.choices.variable);
+    const values = control.options.map((option) => option.value);
+    if (values.some((value) => typeof value !== "string" || !value) || new Set(values).size !== values.length) {
+      fail(`${ctx.app.name}: choices for "${control.choices.variable}" need distinct, non-empty string values`);
+    }
+    return {
+      type: "ChoiceCards",
+      props: {
+        id: nextId([...idParts, "choices"]),
+        binding,
+        label: control.label,
+        columns: control.columns ?? 2,
+        options: control.options,
+        events: []
+      }
+    };
+  }
+
   if (control.color !== undefined) {
     const { operation, node } = opInput(control.op, control.color);
     ctx.seedInputValue(control.op, node);

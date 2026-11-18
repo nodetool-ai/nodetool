@@ -41,6 +41,22 @@ class ProjectFiles : public QAbstractListModel {
   Q_PROPERTY(int count READ rowCount NOTIFY countChanged)
   Q_PROPERTY(int selectedRow READ selectedRow NOTIFY selectionChanged)
   Q_PROPERTY(QString selectedPath READ selectedPath NOTIFY selectionChanged)
+  // The preview of the selected file (the web WorkspaceFilePreview.tsx).
+  // Kind: image, video, audio, model3d, timeline, workflow, or empty when
+  // the selection has nothing to preview.
+  Q_PROPERTY(QString previewKind READ previewKind NOTIFY previewChanged)
+  Q_PROPERTY(QString previewName READ previewName NOTIFY previewChanged)
+  Q_PROPERTY(QString previewIcon READ previewIcon NOTIFY previewChanged)
+  // "1.2 KB · image/png", or "1.2 KB · Timeline" for a document.
+  Q_PROPERTY(QString previewDetails READ previewDetails NOTIFY previewChanged)
+  // A timeline's "1:04 · 2 tracks · 5 clips" once its file is read, else empty.
+  Q_PROPERTY(QString previewSummary READ previewSummary NOTIFY previewChanged)
+  // The picture of an image file, else empty.
+  Q_PROPERTY(QUrl previewImageUrl READ previewImageUrl NOTIFY previewChanged)
+  // The file of a video, audio or 3D model selection, for a host's player:
+  // a file:// URL when the folder is on this machine, else the download URL,
+  // which needs the server's credentials. Empty for any other selection.
+  Q_PROPERTY(QUrl previewMediaUrl READ previewMediaUrl NOTIFY previewChanged)
 public:
   enum Role {
     PathRole = Qt::UserRole + 1,
@@ -59,12 +75,23 @@ public:
   explicit ProjectFiles(QObject *parent = nullptr);
   ~ProjectFiles() override;
 
+  // The in-app drag of a row, as the web WorkspaceTree.tsx sets it: the row's
+  // path under EntryMime, and for a media file a "project-file" drag under
+  // DragMime that a host's canvas turns into a constant node.
+  static constexpr auto EntryMime = "application/x-nodetool-project-entry";
+  static constexpr auto DragMime = "application/x-nodetool-drag";
+
   // Drops every listing and request. An empty origin stops listing.
   void configure(const QUrl &origin, const QString &token, const QString &userId);
   // The folder of the shown project: its workspace id, empty when it has no
   // folder, and its absolute path when it is on this machine. A new id lists
   // its root.
   void setFolder(const QString &workspaceId, const QString &localPath = {});
+
+  // The project that owns the folder. Moves, uploads and canvas drags name
+  // its files through the project's asset API, so they need it.
+  void setProject(const QString &projectId) { m_project = projectId; }
+  QString projectId() const { return m_project; }
 
   QString workspaceId() const { return m_workspace; }
   bool hasFolder() const { return !m_workspace.isEmpty(); }
@@ -76,6 +103,13 @@ public:
   bool empty() const;
   int selectedRow() const { return indexOfPath(m_selected); }
   QString selectedPath() const { return m_selected; }
+  QString previewKind() const { return m_preview.kind; }
+  QString previewName() const { return m_preview.name; }
+  QString previewIcon() const { return m_preview.icon; }
+  QString previewDetails() const { return m_preview.details; }
+  QString previewSummary() const { return m_preview.summary; }
+  QUrl previewImageUrl() const;
+  QUrl previewMediaUrl() const;
 
   int rowCount(const QModelIndex &parent = {}) const override;
   QVariant data(const QModelIndex &index, int role) const override;
@@ -101,6 +135,24 @@ public:
   // that holds a file. Only when revealable.
   Q_INVOKABLE void reveal(const QString &path);
 
+  // Drag and drop (the web WorkspaceTree.tsx).
+  // The mime data of a row's drag: { mime: text }. Empty for a placeholder.
+  Q_INVOKABLE QVariantMap dragData(int row) const;
+  // The directory a drop on a row lands in: a folder row is that folder, a
+  // file row is the folder it is in, and no row (-1) is the root ".".
+  Q_INVOKABLE QString dropDirectory(int row) const;
+  // Whether the entry at `source` may move into `directory`: not into the
+  // folder it is already in, and a folder not into itself or below it.
+  Q_INVOKABLE bool canMoveInto(const QString &source, const QString &directory) const;
+  // Moves a file or folder into `directory`. False when refused.
+  Q_INVOKABLE bool moveEntry(const QString &source, const QString &directory);
+  // Copies local files into `directory` of the project as assets. Returns how
+  // many uploads started. Folders and remote URLs are skipped.
+  Q_INVOKABLE int copyIn(const QList<QUrl> &urls, const QString &directory);
+  // dir:<project>:<path>, the asset id of a project directory
+  // (projectDirectoryId in @nodetool-ai/protocol). The root is "".
+  static QString projectDirectoryId(const QString &projectId, const QString &path);
+
   // A `workspacefile` push: files in that workspace changed. Refreshes when
   // it is this folder or the id is unknown.
   void workspaceFilesChanged(const QString &workspaceId);
@@ -109,30 +161,56 @@ public:
   static int naturalCompare(QStringView a, QStringView b);
   // Kind of a file by its name, as workspaceFileKind.ts.
   static QString kindOf(const QString &name);
+  // The preview kind of a file by its name, or empty: the media kinds that
+  // have a picture or a player, and the timeline and workflow documents.
+  static QString previewKindOf(const QString &name);
+  // "0 B", "512 B", "1.2 KB", "3.4 MB": the web formatFileSize.
+  static QString formatSize(qint64 bytes);
+  // "m:ss": the web projectStatus formatDuration.
+  static QString formatDuration(qint64 ms);
+  // "1:04 · 2 tracks · 5 clips" from a .timeline.json document.
+  static QString timelineSummary(const QJsonObject &timeline);
   // /api/workspaces/<id>/download/<path>, each segment encoded, on the origin.
   static QUrl downloadUrl(const QUrl &origin, const QString &workspaceId, const QString &path);
 
   // A listing for a request this object made through requestListing().
   // Unknown or stale tickets are ignored. Public so a test can answer.
   void receiveListing(quint64 ticket, const QJsonArray &entries, const QString &error);
+  // The content of a timeline file this object asked for through
+  // requestTimeline(). A stale ticket or an error leaves the summary empty.
+  void receiveTimeline(quint64 ticket, const QJsonObject &timeline, const QString &error);
 
 signals:
   void folderChanged();
   void stateChanged();
   void countChanged();
   void selectionChanged();
+  void previewChanged();
   // A file to open. The host decides how.
   void openFileRequested(const QString &path);
+  // A move or an upload failed. The host shows the message.
+  void changeFailed(const QString &message);
 
 protected:
   // Starts workspace.listFiles for a path ("." is the root). The answer must
   // arrive through receiveListing with the same ticket. A test overrides it.
   virtual void requestListing(quint64 ticket, const QString &path);
+  // Downloads a timeline file for its summary. The answer must arrive
+  // through receiveTimeline with the same ticket. A test overrides it.
+  virtual void requestTimeline(quint64 ticket, const QString &path);
+  // Sends a checked move to the server: assets.update with the new parent.
+  // A test overrides it.
+  virtual void requestMove(const QString &source, bool isDirectory, const QString &directory);
+  // Uploads one local file into a directory of the project. A test overrides it.
+  virtual void requestUpload(const QString &localFile, const QString &directory);
+  // A move or an upload finished. Refreshes, or reports the failure.
+  void changeFinished(const QString &workspaceId, const QString &error);
 
 private:
   struct Entry {
     QString name, path, kind, icon;
     bool isDir = false;
+    qint64 size = 0;
   };
   struct Listing {
     enum State { Loading, Loaded, Failed };
@@ -143,6 +221,12 @@ private:
     QString path, name, kind, icon;
     int depth = 0;
     bool isDir = false, placeholder = false;
+    qint64 size = 0;
+  };
+  struct Preview {
+    QString path, kind, name, icon, details, summary;
+    qint64 size = -1;
+    bool operator==(const Preview &) const = default;
   };
 
   QVector<Entry> entriesOf(const QJsonArray &entries, bool root) const;
@@ -156,9 +240,11 @@ private:
   void clearRequests();
   void emitRowChanged(int row, const QList<int> &roles);
   void setSelected(const QString &path);
+  void updatePreview();
 
   QNetworkAccessManager m_network;
   QUrl m_origin;
+  QString m_project;
   QString m_token, m_user, m_workspace, m_localPath, m_selected, m_rootError;
   QHash<QString, Listing> m_listings;
   QSet<QString> m_expanded;
@@ -171,5 +257,8 @@ private:
   QSet<quint64> m_refreshTickets;
   QHash<QString, Listing> m_staged;
   bool m_refreshAgain = false;
+  Preview m_preview;
+  // The timeline read in flight for the preview, or 0.
+  quint64 m_timelineTicket = 0;
 };
 }

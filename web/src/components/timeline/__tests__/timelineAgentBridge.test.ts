@@ -130,7 +130,7 @@ describe("timelineAgentBridge", () => {
         makeMockHandler()
       );
       expect(() => getTimelineAgentHandler("0123456789ab")).toThrow(
-        "matches more than one open sequence"
+        "Id prefix 0123456789ab matches 2 open documents"
       );
     });
 

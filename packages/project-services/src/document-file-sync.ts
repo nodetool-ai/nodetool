@@ -6,8 +6,10 @@
  * the two in step, in both directions, for every kind through one
  * {@link DocumentFileAdapter}. The kinds are workflows (`workflow-file.ts`),
  * timelines (`timeline-file.ts`), storyboards (`storyboard-file.ts`),
- * scripts (`script-file.ts`), mini apps (`app-file.ts`) and JS scripts
- * (`js-script-file.ts`). A new kind adds an adapter and nothing here.
+ * scripts (`script-file.ts`), mini apps (`app-file.ts`), JS scripts
+ * (`js-script-file.ts`) and sketches (`sketch-file.ts`). A new kind adds an
+ * adapter and nothing here. A sketch file is a zip, read and written through
+ * the adapter's {@link DocumentFileCodec}.
  *
  * NodeTool to file: the model calls {@link documentFileSync} after it saved
  * or deleted a row. A save writes the file and records its path and the hash
@@ -203,6 +205,29 @@ export interface DocumentFileAdapter<Row extends DocumentRow, Fields> {
   }): Promise<Row | null>;
   /** Record the file state without touching `updated_at`. */
   setFileState(id: string, state: DocumentFileState): Promise<void>;
+  /**
+   * For a kind whose file is not JSON text: how the file's bytes become the
+   * document text this module works on, and back. Absent for a JSON file.
+   */
+  codec?: DocumentFileCodec;
+}
+
+/**
+ * The bytes of a binary document file, such as the zip a sketch is. Every
+ * comparison in this module is on the document text: the JSON a text file
+ * would hold, which `decode` makes of the bytes. The hash a row records is
+ * the hash of the bytes on disk.
+ */
+export interface DocumentFileCodec {
+  /** MIME type of the file. */
+  contentType: string;
+  /** The file's bytes for the document text. Equal text gives equal bytes. */
+  encode(text: string): Promise<Uint8Array>;
+  /**
+   * The document text of the file's bytes. Throws when the bytes are no file
+   * of the kind. The message is recorded as the file's error.
+   */
+  decode(bytes: Uint8Array): Promise<string>;
 }
 
 /** What one reconcile of a project's document files changed. */
@@ -260,6 +285,12 @@ export function documentFileText<Row extends DocumentRow, Fields>(
   return `${JSON.stringify(file, null, 2)}\n`;
 }
 
+/**
+ * Starts the document text of a binary file that could not be decoded. The
+ * rest is the reason, which {@link parseDocumentFile} reports.
+ */
+const UNREADABLE = "\u0000";
+
 /** A file read as a document: its ID, when it has a usable one, and body. */
 type ParsedFile =
   | { ok: true; id: string | null; body: Record<string, unknown> }
@@ -269,6 +300,7 @@ function parseDocumentFile(
   adapter: { format: string },
   text: string
 ): ParsedFile {
+  if (text.startsWith(UNREADABLE)) return { ok: false, error: text.slice(1) };
   let value: unknown;
   try {
     value = JSON.parse(text);
@@ -398,6 +430,91 @@ async function readText(
   }
 }
 
+/** A kind, as far as reading and writing its file goes. */
+export type DocumentFileKind = { format: string; codec?: DocumentFileCodec };
+
+/** A document file as read: its path, document text and the hash on disk. */
+interface DocumentFile {
+  path: string;
+  text: string;
+  hash: string;
+}
+
+/**
+ * The document file at `path`, or null when there is none this module may
+ * read. A binary file is decoded into its document text.
+ */
+async function readDocumentFile(
+  kind: DocumentFileKind,
+  workspace: Workspace,
+  path: string
+): Promise<DocumentFile | null> {
+  if (!kind.codec) {
+    const text = await readText(workspace, path);
+    return text === null ? null : { path, text, hash: hashOf(text) };
+  }
+  let bytes: Uint8Array | null;
+  try {
+    if (await new NestedFolders(workspace).holds(path)) return null;
+    bytes = await workspace.read(path);
+  } catch (error) {
+    if (error instanceof WorkspacePathError) return null;
+    throw error;
+  }
+  if (bytes === null) return null;
+  let text: string;
+  try {
+    text = await kind.codec.decode(bytes);
+  } catch (error) {
+    text = `${UNREADABLE}${describe(error)}`;
+  }
+  return { path, text, hash: hashOf(bytes) };
+}
+
+/**
+ * Write the document `text` as the file at `path`, encoded for a binary
+ * kind. With `onlyNew`, nothing is written and null is returned when a file
+ * is at `path`. Returns the hash of what was written.
+ */
+async function writeDocumentFileText(
+  kind: DocumentFileKind,
+  workspace: Workspace,
+  path: string,
+  text: string,
+  onlyNew = false
+): Promise<string | null> {
+  const data = kind.codec ? await kind.codec.encode(text) : text;
+  const contentType = kind.codec?.contentType ?? "application/json";
+  if (onlyNew) {
+    if (!(await workspace.writeNew(path, data, contentType))) return null;
+  } else {
+    await workspace.write(path, data, contentType);
+  }
+  return hashOf(data);
+}
+
+/**
+ * The document text of the file at `path`, for code outside this module
+ * that reads document files, such as the restore of a copied folder.
+ */
+export async function readDocumentFileText(
+  kind: DocumentFileKind,
+  workspace: Workspace,
+  path: string
+): Promise<string | null> {
+  return (await readDocumentFile(kind, workspace, path))?.text ?? null;
+}
+
+/** Write the document `text` as the file at `path`. See {@link readDocumentFileText}. */
+export async function writeDocumentFileFromText(
+  kind: DocumentFileKind,
+  workspace: Workspace,
+  path: string,
+  text: string
+): Promise<void> {
+  await writeDocumentFileText(kind, workspace, path, text);
+}
+
 /** The lower-cased names in `directory`. Empty when it does not exist. */
 async function namesIn(
   workspace: Workspace,
@@ -492,6 +609,37 @@ async function recordFileState<Row extends DocumentRow, Fields>(
 const reconciling = new AsyncLocalStorage<true>();
 
 /**
+ * Runs `task` with the save hooks of every document kind turned off, so a
+ * row saved inside it writes no file. For a caller that saves rows inside a
+ * database transaction and writes their files afterwards with
+ * {@link writeDocumentFileUnderLock}.
+ */
+export function withoutDocumentFileWrites<T>(task: () => Promise<T>): Promise<T> {
+  return reconciling.run(true, task);
+}
+
+/**
+ * Writes the file of `row` in the folder of `projectId` as a save would,
+ * keeping an edit NodeTool has not seen as a version first. Call it under the
+ * folder lock. `editReplaced` tells whether the file held such an edit, which
+ * is now a version and no longer the file.
+ */
+export async function writeDocumentFileUnderLock<Row extends DocumentRow, Fields>(
+  adapter: DocumentFileAdapter<Row, Fields>,
+  workspace: Workspace,
+  projectId: string,
+  row: Row
+): Promise<{ outcome: "written" | "kept"; editReplaced: boolean }> {
+  const current = row.file_path ? await readText(workspace, row.file_path) : null;
+  const unseen =
+    current !== null &&
+    hashOf(current) !== row.file_hash &&
+    current !== documentFileText(adapter, row.id, adapter.fieldsOf(row));
+  const outcome = await writeDocumentFile(adapter, workspace, projectId, row);
+  return { outcome, editReplaced: unseen && outcome === "written" };
+}
+
+/**
  * Write the file of `row` and record its path and hash on the row. Call it
  * under the folder lock.
  *
@@ -524,14 +672,17 @@ async function writeDocumentFile<Row extends DocumentRow, Fields>(
   // A path in the folder of another project is not this document's file. The
   // row forgets it and gets a file in this folder, as a new document does.
   if (path && (await new NestedFolders(workspace).holds(path))) path = null;
-  let current = path ? await readText(workspace, path) : null;
+  const file = path ? await readDocumentFile(adapter, workspace, path) : null;
+  let current = file?.text ?? null;
+  /** The hash of the file at `target` once it holds `text`. */
+  let hash = file?.hash ?? null;
   if (path && current !== null) {
     const parsed = parseDocumentFile(adapter, current);
     // Another document's file is at the row's path. It is left alone.
     if (parsed.ok && parsed.id !== null && parsed.id !== row.id) {
       path = null;
       current = null;
-    } else if (current !== text && hashOf(current) !== row.file_hash) {
+    } else if (current !== text && hash !== row.file_hash) {
       // The file was edited since NodeTool last wrote or imported it.
       const refusal = await keepUnseenEdit(adapter, row, parsed, text);
       if (refusal !== null) {
@@ -567,7 +718,7 @@ async function writeDocumentFile<Row extends DocumentRow, Fields>(
         !taken.has(fileName.toLowerCase()) &&
         // A name a row records for a file that is gone stays that row's.
         !recorded.has(candidate.toLowerCase()) &&
-        (await workspace.writeNew(candidate, text, "application/json"))
+        (hash = await writeDocumentFileText(adapter, workspace, candidate, text, true)) !== null
       ) {
         target = candidate;
         if (path && current !== null) await workspace.delete(path);
@@ -578,12 +729,12 @@ async function writeDocumentFile<Row extends DocumentRow, Fields>(
       throw new Error(`No free file name for "${stem}${adapter.suffix}"`);
     }
   }
-  if (current !== text) {
-    await workspace.write(target, text, "application/json");
+  if (current !== text || hash === null) {
+    hash = await writeDocumentFileText(adapter, workspace, target, text);
   }
   await recordFileState(adapter, row, projectId, {
     file_path: target,
-    file_hash: hashOf(text),
+    file_hash: hash,
     file_error: null
   });
   return "written";
@@ -621,14 +772,14 @@ async function keepUnseenEdit<Row extends DocumentRow, Fields>(
 
 /** Delete the file at `path` when it is the file of document `id`. */
 async function deleteDocumentFile(
-  adapter: { format: string },
+  adapter: DocumentFileKind,
   workspace: Workspace,
   path: string,
   id: string
 ): Promise<void> {
-  const text = await readText(workspace, path);
-  if (text === null) return;
-  const parsed = parseDocumentFile(adapter, text);
+  const file = await readDocumentFile(adapter, workspace, path);
+  if (file === null) return;
+  const parsed = parseDocumentFile(adapter, file.text);
   // Another document's file took the path. It is not this document's to delete.
   if (parsed.ok && parsed.id !== null && parsed.id !== id) return;
   await workspace.delete(path);
@@ -646,12 +797,12 @@ async function unseenEditAt<Row extends DocumentRow, Fields>(
   path: string,
   fileHash: string | null
 ): Promise<{ parsed: ParsedFile; text: string } | null> {
-  const current = await readText(workspace, path);
-  if (current === null) return null;
-  const parsed = parseDocumentFile(adapter, current);
+  const file = await readDocumentFile(adapter, workspace, path);
+  if (file === null) return null;
+  const parsed = parseDocumentFile(adapter, file.text);
   if (parsed.ok && parsed.id !== null && parsed.id !== row.id) return null;
   const text = documentFileText(adapter, row.id, adapter.fieldsOf(row));
-  if (current === text || hashOf(current) === fileHash) return null;
+  if (file.text === text || file.hash === fileHash) return null;
   return { parsed, text };
 }
 
@@ -890,21 +1041,6 @@ export async function restoreDocumentFile<Row extends DocumentRow, Fields>(
 
 // ── File to NodeTool ────────────────────────────────────────────────────────
 
-/** One document file the scan found. */
-interface DocumentFile {
-  path: string;
-  text: string;
-  hash: string;
-}
-
-async function readDocumentFile(
-  workspace: Workspace,
-  path: string
-): Promise<DocumentFile | null> {
-  const text = await readText(workspace, path);
-  return text === null ? null : { path, text, hash: hashOf(text) };
-}
-
 /** Per project: when each waiting copy (`path`, NUL, hash) was first seen. */
 const waitingCopies = new Map<string, Map<string, number>>();
 
@@ -1006,8 +1142,8 @@ async function importFile<Row extends DocumentRow, Fields>(
   }
   let hash = file.hash;
   if (options.rewrite && next !== file.text) {
-    await run.workspace.write(file.path, next, "application/json");
-    hash = hashOf(next);
+    hash =
+      (await writeDocumentFileText(adapter, run.workspace, file.path, next)) ?? hash;
   }
   const state = { file_path: file.path, file_hash: hash, file_error: null };
   await recordFileState(adapter, row, run.projectId, state);
@@ -1191,7 +1327,7 @@ async function reconcileKind<Row extends DocumentRow, Fields>(
         continue;
       }
       // The file may have been written after the folder was listed.
-      file = (await readDocumentFile(workspace, path)) ?? undefined;
+      file = (await readDocumentFile(adapter, workspace, path)) ?? undefined;
       if (!file) {
         missing.set(row.id, row);
         continue;
@@ -1311,7 +1447,10 @@ async function reconcileKind<Row extends DocumentRow, Fields>(
     let text = reassigned
       ? documentFileText(adapter, id, content.fields)
       : file.text;
-    if (reassigned) await workspace.write(file.path, text, "application/json");
+    let hash = file.hash;
+    if (reassigned) {
+      hash = (await writeDocumentFileText(adapter, workspace, file.path, text)) ?? hash;
+    }
     let created = await adapter.create({
       id,
       userId,
@@ -1326,7 +1465,7 @@ async function reconcileKind<Row extends DocumentRow, Fields>(
       id = newDocumentId();
       reassigned = true;
       text = documentFileText(adapter, id, content.fields);
-      await workspace.write(file.path, text, "application/json");
+      hash = (await writeDocumentFileText(adapter, workspace, file.path, text)) ?? hash;
       created = await adapter.create({
         id,
         userId,
@@ -1339,7 +1478,7 @@ async function reconcileKind<Row extends DocumentRow, Fields>(
       report.rejected.push(file.path);
       continue;
     }
-    const state = { file_path: file.path, file_hash: hashOf(text), file_error: null };
+    const state = { file_path: file.path, file_hash: hash, file_error: null };
     await adapter.setFileState(created.id, state);
     Object.assign(created, state);
     owned.add(file.path);
@@ -1440,7 +1579,7 @@ export async function reconcileDocumentFiles(
         const files = new Map<string, DocumentFile>();
         for (const path of scope.files) {
           if (!hasSuffix(path, adapter.suffix)) continue;
-          const file = await readDocumentFile(workspace, path);
+          const file = await readDocumentFile(adapter, workspace, path);
           if (file) files.set(path, file);
         }
         report.files += files.size;
@@ -1458,7 +1597,8 @@ export async function reconcileDocumentFiles(
         );
       }
       return report;
-    })
+    }),
+    { under: options.under }
   );
 }
 

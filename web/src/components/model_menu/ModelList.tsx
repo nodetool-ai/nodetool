@@ -52,6 +52,13 @@ const DOWNLOAD_ROW_HEIGHT = 48;
 const SECTION_HEADER_HEIGHT = 36;
 const FULL_HEIGHT_STYLE: React.CSSProperties = { height: "100%" };
 
+/** A short note on one model row, with the reason in its tooltip. */
+export interface ModelRowBadge {
+  label: string;
+  tooltip: string;
+  color: "success" | "warning" | "default";
+}
+
 export type DownloadableModel = UnifiedModel & {
   downloaded: boolean;
   checking: boolean;
@@ -219,6 +226,8 @@ interface ModelListProps<TModel extends ModelSelectorModel> {
    * Without a provider, any provider's model of that id matches.
    */
   selectedModel?: { id: string; provider?: string };
+  /** A note to show on a model's row, or null for none. */
+  rowBadge?: (model: TModel) => ModelRowBadge | null;
 }
 
 function ModelList<TModel extends ModelSelectorModel>({
@@ -235,7 +244,8 @@ function ModelList<TModel extends ModelSelectorModel>({
   downloadTargetLabel,
   onClose,
   selectedModel,
-  pendingInstalls
+  pendingInstalls,
+  rowBadge
 }: ModelListProps<TModel>) {
   const { t } = useTranslation();
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
@@ -339,6 +349,7 @@ function ModelList<TModel extends ModelSelectorModel>({
       // A file inside a repository shows the file, then the model it belongs
       // to. Any other model shows its name, then its provider.
       const detail = m.path ? m.name : getProviderDisplayName(m.provider);
+      const badge = rowBadge?.(m) ?? null;
       return (
         <Tooltip disableInteractive title={tooltipTitle}>
           <ListItemButton
@@ -384,6 +395,19 @@ function ModelList<TModel extends ModelSelectorModel>({
                 <Caption className="model-detail" sx={DETAIL_SX}>
                   {detail}
                 </Caption>
+              )}
+              {badge && (
+                <Tooltip title={badge.tooltip} placement="top">
+                  <Chip
+                    className="model-row-badge"
+                    label={badge.label}
+                    compact
+                    color={badge.color}
+                    tabIndex={0}
+                    aria-label={`${badge.label}: ${badge.tooltip}`}
+                    sx={{ flexShrink: 0, alignSelf: "center" }}
+                  />
+                </Tooltip>
               )}
             </FlexRow>
             <FlexRow gap={0} align="center" sx={{ flexShrink: 0 }}>
@@ -441,7 +465,8 @@ function ModelList<TModel extends ModelSelectorModel>({
       onModelDownload,
       downloadTargetLabel,
       selectedModel,
-      pendingInstalls
+      pendingInstalls,
+      rowBadge
     ]
   );
 

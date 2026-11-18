@@ -13,6 +13,8 @@ export {
   migrateSqliteDb,
   initMigratedDb,
   getPortableDb,
+  inTransaction,
+  withTransaction,
   getDb,
   getDatabase,
   getDbType,
@@ -20,7 +22,8 @@ export {
   getRawDb,
   openSqliteFile,
   pingDb,
-  closeDb
+  closeDb,
+  setTestDatabaseConnection
 } from "./db.js";
 export type { DbDialect, DatabaseConnection } from "./db.js";
 
@@ -213,7 +216,9 @@ export {
   COMPACTION_EVENT_TYPE,
   compactionMessageContent,
   isCompactionMessage,
-  type MessageFork
+  turnContextText,
+  type MessageFork,
+  type TurnContextSection
 } from "./message.js";
 
 export { Thread, type ThreadKind } from "./thread.js";
@@ -303,7 +308,11 @@ export type {
 export { TimelineSequenceVersion } from "./timeline-sequence-version.js";
 export type { TimelineSequenceSaveType } from "./timeline-sequence-version.js";
 
-export { ImageDocument, ImageDocumentConflictError } from "./image-document.js";
+export {
+  ImageDocument,
+  ImageDocumentConflictError,
+  setImageDocumentFileSync
+} from "./image-document.js";
 export { ImageDocumentVersion } from "./image-document-version.js";
 export type { ImageDocumentSaveType } from "./image-document-version.js";
 export {
@@ -791,3 +800,142 @@ export type {
   CloudOpenStateRow
 } from "./cloud-local-store.js";
 export type { CloudDocumentOptions } from "./schema/cloud-local.js";
+export {
+  setDocumentRetentionDays,
+  documentRetentionDays,
+  listDeletedDocuments,
+  restoreDeletedDocument,
+  endDeletedDocumentRestorePeriod,
+  purgeDeletedDocuments,
+  deletedDocumentExists,
+  retainDeletedProject,
+  projectMembers,
+  leaveDeletedProject,
+  interruptedProjectRestores,
+  registerDeletedDocumentKind,
+  type TransactionStep,
+  type RetainedRows,
+  type DeletedDocumentEntry,
+  type DeletedDocumentMember,
+  type DeletedDocumentKind,
+  type DeletedDocumentPayload,
+  type DeletedDocumentRow,
+  type RestoreDeletedOutcome
+} from "./deleted-document.js";
+export {
+  BLOB_HASH_PATTERN,
+  BLOB_LOCK_TIMEOUT_MS,
+  STAGED_BLOB_LIFETIME_MS,
+  commitProjectBlobs,
+  committedHashesOfOwner,
+  committedSizeOfOwner,
+  deleteExpiredStagedBlobs,
+  deleteStagedBlobsOfTransfer,
+  isBlobHashNamed,
+  deleteUnnamedBlob,
+  readableProjectBlob,
+  stageProjectBlob,
+  type ProjectBlobRow
+} from "./project-blob.js";
+export {
+  STORAGE_WARNING_FRACTION,
+  exceedsStorageAllowance,
+  parseStorageAllowance,
+  setStorageAllowanceBytes,
+  storageAllowanceBytes,
+  storageFiles,
+  storageAllowanceStatus,
+  storageUse,
+  type StorageFile,
+  type StorageHolder,
+  type StorageAllowanceStatus,
+  type StorageUse
+} from "./storage-accounting.js";
+export {
+  bumpAccessEpochs,
+  changingAccess,
+  lockAccessEpochs,
+  projectAccessKey,
+  type AccessKey
+} from "./access-epoch.js";
+export {
+  findCloudTransferAttempt,
+  getCloudTransfer,
+  listCloudTransferAttempts,
+  lockCloudTransfer,
+  lockTransferDocumentRow,
+  openCloudTransfer,
+  recordCloudTransferAttempt,
+  setCloudTransferState,
+  type CloudTransferAttemptRow,
+  type CloudTransferRow,
+  type CloudTransferState
+} from "./cloud-transfer.js";
+export {
+  addTransferPlacements,
+  deleteTransferPlacement,
+  listRecoveryCopies,
+  listTransferPlacements,
+  lockProjectFiles,
+  pendingPlacementPaths,
+  projectsWithStalePlacements,
+  recordRecoveryCopy,
+  RECOVERY_COPY_LIFETIME_MS,
+  type NewRecoveryCopy,
+  type NewTransferPlacement,
+  type RecoveryCopyRow,
+  type TransferPlacementRow,
+  findTransferredConversation,
+  recordTransferredConversation
+} from "./transfer-files.js";
+export {
+  appendDocumentActivity,
+  listDocumentActivity,
+  type DocumentActivityEntry,
+  type DocumentActivityType
+} from "./document-activity.js";
+export {
+  addRevisionSetEntry,
+  createRevisionSet,
+  deleteExpiredRevisionSets,
+  deleteRevisionSet,
+  getLiveRevisionSet,
+  getRevisionSet,
+  getRevisionSetEntry,
+  isHashInLiveRevisionSet,
+  revisionSetFilesWithHash,
+  REVISION_SET_LIFETIME_MS,
+  type RevisionSetEntryInput,
+  type RevisionSetEntryRow,
+  type RevisionSetFileRow,
+  type RevisionSetRow
+} from "./revision-set.js";
+export {
+  createCloudLink,
+  createCloudReceive,
+  createCloudSend,
+  deleteCloudLinkDocument,
+  deleteCloudReceive,
+  deleteCloudSend,
+  getCloudLink,
+  getCloudLinkById,
+  getCloudLinkDocumentByCloudId,
+  getCloudLinkDocumentByLocalId,
+  getCloudLinkFile,
+  getCloudReceive,
+  getCloudSend,
+  listCloudLinkDocuments,
+  listCloudReceives,
+  listCloudSends,
+  setCloudLinkDocumentBase,
+  setCloudLinkFileBase,
+  updateCloudReceive,
+  updateCloudSend,
+  type CloudLinkDocumentRow,
+  type CloudLinkFileRow,
+  type CloudLinkRow,
+  type CloudReceiveRow,
+  type CloudReceiveState,
+  type CloudSendRow,
+  type CloudSendState
+} from "./cloud-link.js";

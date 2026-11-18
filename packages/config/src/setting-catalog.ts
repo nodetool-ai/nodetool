@@ -387,6 +387,12 @@ s(
   ["serpapi", "dataforseo", "brave", "apify", "openai", "gemini"]
 );
 s(
+  "MINIMAX_IMAGE_REGION",
+  "MiniMax",
+  "API region for MiniMax H3 image generation",
+  ["international", "china"]
+);
+s(
   "ZAI_REGION",
   "ZAI",
   "Z.ai API host: international (api.z.ai, the default) or china (open.bigmodel.cn). Keys are not shared between the two",

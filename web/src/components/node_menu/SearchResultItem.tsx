@@ -32,6 +32,7 @@ import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { FavoriteButton } from "../ui_primitives";
 import { NOTIFICATION_TIMEOUT_SHORT } from "../../config/constants";
+import { getBasicNode } from "../../config/basicNodes";
 
 const COMPACT_SVG_PROPS = { width: "14px", height: "14px" } as const;
 const EXPANDED_SVG_PROPS = { width: "16px", height: "16px" } as const;
@@ -175,6 +176,10 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         color: theme.vars.palette.text.secondary,
         letterSpacing: "0.3px"
       },
+      ".basic-tag": {
+        marginLeft: theme.spacing(1),
+        color: theme.vars.palette.primary.main
+      },
       ".provider-tag": {
         fontSize: "var(--fontSizeSmaller)",
         padding: `${theme.spacing(0.5)} ${theme.spacing(1.5)}`,
@@ -240,6 +245,20 @@ const SearchResultItem = memo(function SearchResultItem({
   const theme = useTheme();
   const outputType = node.outputs.length > 0 ? node.outputs[0].type.type : "";
   const providerKind = getProviderKindForNamespace(node.namespace);
+  const basic = node.searchInfo?.pinnedAsBasic
+    ? getBasicNode(node.node_type)
+    : undefined;
+  const basicLabel = basic
+    ? t(`i18n-next50-node-menu.quickActions.action.${basic.key}`, {
+        defaultValue: basic.label
+      })
+    : undefined;
+  const title = basicLabel ?? node.title;
+  // "Text" adds a node titled "String", so the tag names the node it adds.
+  const basicTag =
+    basicLabel && basicLabel !== node.title
+      ? t("i18n-next50-node-menu.search.basicNode", { title: node.title })
+      : t("i18n-next50-node-menu.search.basic");
   const searchTerm = useNodeMenuStore((state) => state.searchTerm);
   const isFavorite = useFavoriteNodesStore((state) =>
     state.isFavorite(node.node_type)
@@ -386,11 +405,16 @@ const SearchResultItem = memo(function SearchResultItem({
         />
         <Text className="result-title" component="div" sx={COMPACT_TITLE_SX}>
           <HighlightText
-            text={node.title}
+            text={title}
             query={searchTerm}
             matchStyle="primary"
           />
         </Text>
+        {basic && (
+          <span className="result-tag basic-tag">
+            {basicTag}
+          </span>
+        )}
         <span className="provider-tag" style={providerTagStyle}>
           {providerKind === "api" ? "API" : t("i18n-next50-node-menu.search.local")}
         </span>
@@ -427,11 +451,16 @@ const SearchResultItem = memo(function SearchResultItem({
             />
             <Text className="result-title" component="div">
               <HighlightText
-                text={node.title}
+                text={title}
                 query={searchTerm}
                 matchStyle="primary"
               />
             </Text>
+            {basic && (
+              <span className="result-tag basic-tag">
+                {basicTag}
+              </span>
+            )}
             {matchingTags.length > 0 && (
               <div className="matched-tags-inline">
                 {matchingTags.slice(0, 2).map((tag, idx) => (

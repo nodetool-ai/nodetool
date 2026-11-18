@@ -17,8 +17,18 @@ import { resolveExistingAssetKey } from "../../lib/asset-paths.js";
 import { getAssetAdapter } from "../../lib/storage.js";
 import {
   signUrlInput,
-  signUrlOutput
+  signUrlOutput,
+  storageAllowanceOutput,
+  storageFilesOutput,
+  type StorageHolder
 } from "@nodetool-ai/protocol/api-schemas/storage.js";
+import {
+  isSharedDocumentType,
+  storageAllowanceStatus,
+  storageFiles,
+  type StorageHolder as ModelStorageHolder
+} from "@nodetool-ai/models";
+import { loadAccessDocument } from "../../lib/document-access.js";
 import { ApiErrorCode } from "@nodetool-ai/protocol/api-schemas/api-error-code.js";
 
 // ── Key validation (mirrors storage-api.ts) ──────────────────────────────────
@@ -47,6 +57,39 @@ function getUrlBuilder(): (key: string) => Promise<string> {
     _urlBuilder = createAssetUrlBuilder(config);
   }
   return _urlBuilder;
+}
+
+// ── Storage view ─────────────────────────────────────────────────────────────
+
+/** Whether the document exists and the caller owns it. */
+async function ownsDocument(userId: string, documentType: string, documentId: string): Promise<boolean> {
+  if (documentType !== "workflow" && !isSharedDocumentType(documentType)) return false;
+  const document = await loadAccessDocument(documentType, documentId);
+  return document?.user_id === userId;
+}
+
+function holderResponse(holder: ModelStorageHolder): StorageHolder {
+  switch (holder.kind) {
+    case "current":
+      return { kind: "current", document_type: holder.documentType, document_id: holder.documentId };
+    case "version":
+      return {
+        kind: "version",
+        document_type: holder.documentType,
+        document_id: holder.documentId,
+        version_id: holder.versionId
+      };
+    case "deleted_document":
+      return {
+        kind: "deleted_document",
+        document_type: holder.documentType,
+        document_id: holder.documentId,
+        name: holder.name,
+        purge_at: holder.purgeAt
+      };
+    case "deleted_project":
+      return { kind: "deleted_project", project_id: holder.projectId, name: holder.name, purge_at: holder.purgeAt };
+  }
 }
 
 // ── Router ────────────────────────────────────────────────────────────────────
@@ -114,5 +157,35 @@ export const storageRouter = router({
       }
       const url = await getUrlBuilder()(key);
       return { url };
-    })
+    }),
+
+  /** The caller's storage use against the allowance (WP2.3). */
+  allowance: protectedProcedure.output(storageAllowanceOutput).query(async ({ ctx }) => {
+    const status = await storageAllowanceStatus(ctx.userId);
+    return {
+      used_bytes: status.usedBytes,
+      file_count: status.fileCount,
+      allowance_bytes: status.allowanceBytes,
+      over_allowance: status.overAllowance,
+      near_allowance: status.nearAllowance
+    };
+  }),
+
+  /**
+   * The storage view: every file the caller's use counts and what keeps it.
+   * A document of another person that refers to the caller's file is not
+   * named.
+   */
+  files: protectedProcedure.output(storageFilesOutput).query(async ({ ctx }) => {
+    const files = await storageFiles(ctx.userId, (type, id) => ownsDocument(ctx.userId, type, id));
+    return {
+      files: files.map((file) => ({
+        hash: file.hash,
+        size: file.size,
+        projects: file.projects,
+        asset_ids: file.assetIds,
+        holders: file.holders.map(holderResponse)
+      }))
+    };
+  })
 });

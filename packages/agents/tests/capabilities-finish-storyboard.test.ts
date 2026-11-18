@@ -131,7 +131,7 @@ describe("finish_storyboard", () => {
   });
   it("rejects stale board revisions and foreign ownership without writes", async () => {
     const { board } = await fixture();
-    expect(await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision + 1 })).toEqual({ error: "Storyboard revision conflict." });
+    expect(await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision + 1 })).toMatchObject({ error: expect.stringContaining("Revision conflict"), revision: board.revision });
     expect(await finishStoryboard.impl(run("foreign"), { storyboardId: board.id, expectedStoryboardRevision: board.revision })).toEqual({ error: "Storyboard was not found." });
     expect((await Storyboard.findById(board.id))!.timeline_id).toBeFalsy();
   });
@@ -158,7 +158,7 @@ describe("finish_storyboard", () => {
     await TimelineSequence.updateDocumentIfUnchanged(timeline.id, timeline.updated_at, document);
     const latest = (await TimelineSequence.findById(timeline.id))!;
     const stale = await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: savedBoard.revision, expectedTimelineRevision: timeline.revision });
-    expect(stale).toHaveProperty("error");
+    expect(stale).toMatchObject({ error: expect.stringContaining(`the timeline is at revision ${latest.revision}`), timelineRevision: latest.revision });
     expect((await Storyboard.findById(board.id))!.revision).toBe(savedBoard.revision);
     const result = await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: savedBoard.revision, expectedTimelineRevision: latest.revision });
     expect(result).toHaveProperty("validation", []);

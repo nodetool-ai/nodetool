@@ -3370,65 +3370,57 @@ private slots:
         QVERIFY(host.row("frame", NodeRowKind::Multiline)->value.contains(QStringLiteral("name (string)")));
     }
 
-    // DocumentPickerProperty.tsx: a label, then the document select with the
-    // open-in-editor button beside it.
-    void documentConstantsShowASelectAndAnOpenButton() {
-        const QList<std::tuple<QString, QString, QString>> cases{{"Script", "script", "document"}, {"Sketch", "sketch", "brush"},
-                                                                 {"Storyboard", "storyboard", "viewCarousel"}, {"Timeline", "timeline", "movie"}};
+    // DocumentConstantProperty.tsx: no picker. A drop zone names the linked
+    // document, or asks for a file while empty, and Edit opens the document.
+    void documentConstantsShowTheirDocumentAndEdit() {
+        const QList<std::tuple<QString, QString, QString, QString>> cases{
+            {"Script", "script", "document", "script"}, {"Sketch", "sketch", "brush", "sketch"},
+            {"Storyboard", "storyboard", "viewCarousel", "storyboard"}, {"Timeline", "timeline", "movie", "timeline"},
+            {"Workflow", "workflow", "accountTree", "workflow"}, {"Application", "application", "document", "app"},
+            {"JsScript", "jsscript", "document", "JS script"}};
         QJsonArray nodes;
         for (int i = 0; i < cases.size(); ++i) {
-            const auto &[name, kind, icon] = cases[i];
+            const auto &[name, kind, icon, label] = cases[i];
             nodes.append(constantNode(name, {}, QPointF(320 * i, 900)));
             nodes.append(partTwoNode(QStringLiteral("set%1").arg(name.toLower()), QStringLiteral("nodetool.constant.") + name, QPointF(320 * i, 1200),
-                                     {{"value", QJsonObject{{"type", kind}, {"id", "doc-1"}}}}));
+                                     {{"value", QJsonObject{{"type", kind}, {"id", "doc-1"}, {"name", "Launch"}}}}));
         }
         Host host(withNodes(nodes), constantsCatalog());
-        for (const auto &[name, kind, icon] : cases) {
+        for (const auto &[name, kind, icon, label] : cases) {
             const auto resource = name.toLower();
-            const NodeRow *caption = nullptr;
-            for (const auto &row : host.model().layout(host.id(resource)).rows) {
-                if (row.kind == NodeRowKind::Label && row.label == QStringLiteral("Value")) { caption = &row; }
-            }
-            QVERIFY2(caption, qPrintable(name));
-            const auto *select = host.row(resource, NodeRowKind::Field, "value");
-            QVERIFY(select);
-            QVERIFY(select->choice);
-            QVERIFY(select->bare);
-            QVERIFY(select->value.isEmpty());
-            QVERIFY(select->rect.top() >= caption->rect.bottom());
-            QCOMPARE(select->rect.height(), double(node_metrics::fieldHeight));
-            const auto *open = host.row(resource, NodeRowKind::Action, "openDocument");
-            QVERIFY(open);
-            QCOMPARE(open->icon, icon);
-            QCOMPARE(open->value, kind);
-            QVERIFY(open->rect.left() > select->rect.right());
-            QCOMPARE(open->rect.center().y(), select->rect.center().y());
-            QVERIFY(open->rect.right() <= host.model().layout(host.id(resource)).size.width());
-            // A chosen document reads as its name, or as untitled until the card knows it.
-            const auto *chosen = host.row(QStringLiteral("set") + resource, NodeRowKind::Field, "value");
-            QVERIFY(chosen);
-            QCOMPARE(chosen->value, kind == "timeline" ? QStringLiteral("Untitled video") : QStringLiteral("Untitled %1").arg(kind));
+            QVERIFY2(!host.row(resource, NodeRowKind::Field, "value"), qPrintable(name));
+            const auto *empty = host.row(resource, NodeRowKind::DropZone, "value");
+            QVERIFY2(empty, qPrintable(name));
+            QVERIFY(empty->placeholder);
+            QCOMPARE(empty->typeName, QStringLiteral("document:") + kind);
+            QCOMPARE(empty->value, QStringLiteral("Drop a %1 file here").arg(label));
+            QCOMPARE(empty->icon, icon);
+            QVERIFY(!host.row(resource, NodeRowKind::Action, "openDocument"));
+            const auto *linked = host.row(QStringLiteral("set") + resource, NodeRowKind::DropZone, "value");
+            QVERIFY(linked);
+            QVERIFY(!linked->placeholder);
+            QCOMPARE(linked->value, QStringLiteral("Launch"));
+            const auto *edit = host.row(QStringLiteral("set") + resource, NodeRowKind::Action, "openDocument");
+            QVERIFY(edit);
+            QCOMPARE(edit->label, QStringLiteral("Edit"));
+            QCOMPARE(edit->icon, QStringLiteral("edit"));
+            QCOMPARE(edit->value, kind);
+            QVERIFY(edit->rect.top() >= linked->rect.bottom());
         }
-        // The open button asks the window to open the chosen document.
+        // Edit asks the window to open the linked document.
         QSignalSpy opened(host.window.scene(), &EditorScene::documentOpenRequested);
         host.click("settimeline", host.row("settimeline", NodeRowKind::Action, "openDocument")->rect.center());
         QCOMPARE(opened.count(), 1);
         QCOMPARE(opened.first().at(0).toString(), QStringLiteral("timeline"));
         QCOMPARE(opened.first().at(1).toString(), QStringLiteral("doc-1"));
-        // An empty select has nothing to open.
-        host.click("timeline", host.row("timeline", NodeRowKind::Action, "openDocument")->rect.center());
-        QCOMPARE(opened.count(), 1);
     }
 
-    void documentConstantSelectOpensTheSharedPicker() {
+    // The value changes only by a drop, so a click on the zone opens nothing.
+    void documentConstantZoneTakesNoClick() {
         Host host(withNodes({constantNode("Timeline", {}, QPointF(0, 900))}), constantsCatalog());
         const auto undo = host.undoCount();
-        host.click("timeline", host.row("timeline", NodeRowKind::Field, "value")->rect.center());
-        auto *overlay = host.overlay();
-        QVERIFY(overlay);
-        QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("document-select")));
-        // The card's own button opens the document, so the overlay offers only the select.
-        QVERIFY(!find(overlay->rootObject(), QStringLiteral("document-open")));
+        host.click("timeline", host.row("timeline", NodeRowKind::DropZone, "value")->rect.center());
+        QVERIFY(!host.overlay() || !find(host.overlay()->rootObject(), QStringLiteral("document-select")));
         QCOMPARE(host.undoCount(), undo);
     }
 

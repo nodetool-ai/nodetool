@@ -21,6 +21,11 @@ jest.mock("../MediaAspectResizeControl", () => ({
   }
 }));
 
+jest.mock("../MediaAutoFit", () => ({
+  __esModule: true,
+  default: () => null
+}));
+
 jest.mock("@mui/material/styles", () => {
   const original = jest.requireActual("@mui/material/styles");
   return {

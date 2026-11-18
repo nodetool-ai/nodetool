@@ -26,11 +26,11 @@ import MoviePosterGraph from "../../../components/MoviePosterGraph";
 import SearchStarter from "../../../components/SearchStarter";
 
 const posters = [
-  { src: "/poster-singularity-1.png", caption: "“The end of time isn't the end.”" },
-  { src: "/poster-singularity-2.png", caption: "“The end of limits. The beginning of everything.”" },
-  { src: "/poster-singularity-3.png", caption: "“The future is not ours to control.”" },
-  { src: "/poster-singularity-4.png", caption: "“The end of man is only the beginning.”" },
-  { src: "/poster-singularity-5.png", caption: "“The future doesn't evolve. It accelerates.”" },
+  { src: "/poster-singularity-1-800.webp", caption: "“The end of time isn't the end.”" },
+  { src: "/poster-singularity-2-800.webp", caption: "“The end of limits. The beginning of everything.”" },
+  { src: "/poster-singularity-3-800.webp", caption: "“The future is not ours to control.”" },
+  { src: "/poster-singularity-4-800.webp", caption: "“The end of man is only the beginning.”" },
+  { src: "/poster-singularity-5-800.webp", caption: "“The future doesn't evolve. It accelerates.”" },
 ];
 
 /** Step text is shared with the page's HowTo schema — see data/useCaseEntries. */
@@ -163,8 +163,8 @@ export default function MoviePosterUseCase() {
                     <Image
                       src={p.src}
                       alt="AI-generated movie poster for the fictional film Singularity"
-                      width={1024}
-                      height={1536}
+                      width={800}
+                      height={1200}
                       className="aspect-[2/3] w-full object-cover"
                       priority
                     />
@@ -293,8 +293,8 @@ export default function MoviePosterUseCase() {
                   <Image
                     src={p.src}
                     alt={p.caption}
-                    width={1024}
-                    height={1536}
+                    width={800}
+                    height={1200}
                     className="aspect-[2/3] w-full object-cover"
                   />
                   <div className="border-t border-white/5 px-4 py-3 text-sm leading-relaxed text-slate-400">

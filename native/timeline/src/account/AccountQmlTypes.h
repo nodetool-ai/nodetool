@@ -7,6 +7,7 @@
 #include "nodetool/account/qt/CloudBrowser.h"
 #include "nodetool/account/qt/CloudDocument.h"
 #include "nodetool/account/qt/ShareController.h"
+#include "nodetool/account/qt/TransferController.h"
 
 #include <QtQml/qqmlregistration.h>
 
@@ -52,6 +53,13 @@ struct ShareControllerForeign {
     Q_GADGET
     QML_FOREIGN(nodetool::account::qt::ShareController)
     QML_NAMED_ELEMENT(ShareController)
+};
+
+// The review sheet of Publish to Cloud and Synchronize creates its own controller.
+struct TransferControllerForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::account::qt::TransferController)
+    QML_NAMED_ELEMENT(TransferController)
 };
 
 } // namespace nt::account

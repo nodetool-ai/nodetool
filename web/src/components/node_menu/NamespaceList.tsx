@@ -493,9 +493,10 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
               minSearchTermLength={minSearchTermLength}
             />
             <div className="quick-action-tiles-container">
+              <QuickActionTiles group="basics" />
               <FavoritesTiles />
               <RecentNodesTiles />
-              <QuickActionTiles />
+              <QuickActionTiles group="more" />
             </div>
           </>
         )}

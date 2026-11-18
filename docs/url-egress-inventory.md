@@ -220,6 +220,13 @@ hash and size.
 
 **Deliberately private hosts.** Reaching an internal address is the feature:
 
+- `packages/project-services/src/cloud-origin.ts` — the cloud server a native
+  app signed in to, which the app names when it hands its bundled local server
+  a short-lived access token for a transfer. A self-hosted server can sit on
+  the LAN. Plain http is allowed only to loopback. Every request must be on
+  that origin and no redirect is followed, so the token reaches no other host.
+  The `cloudTransfer` router that uses it answers only on a local server.
+
 - `packages/whisper-cpp/src/whisper-server-provider.ts` — the operator's
   `WHISPER_CPP_SERVER_URL`, normally localhost or the LAN. This local-only
   provider uses native fetch, following the llama.cpp server provider's policy.
@@ -252,6 +259,12 @@ hash and size.
   transfer ticket from the server must be a relative URL under `/wangp_api/`
   that resolves to the configured origin. The cloud profile excludes the
   `wangp` provider and the `lib.wan2gp` nodes.
+- `packages/websocket/src/finetune/ollama-capture.ts` and
+  `packages/websocket/src/finetune/openai-capture.ts` — fetch seams that the
+  offline `finetune-data` script injects into the Ollama, OpenRouter and
+  llama.cpp providers to record each exchange. The URL is the provider's own:
+  `OLLAMA_API_URL`, `FINETUNE_LLAMA_CPP_URL` or OpenRouter's fixed host, all
+  set by the operator. No caller or model supplies one.
 - `packages/runtime/src/providers/wan2gp-server.ts` — polls only the Wan2GP
   server it started on `127.0.0.1`, at a port it picked, until that server
   answers. The cloud profile excludes the `wangp` provider and the

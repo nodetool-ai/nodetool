@@ -15,14 +15,14 @@ qml_callers = ["native/chat/qml/ConversationView.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.TextArea, Ui.Text, Ui.Progress, Ui.EditorButton, Ui.ToolbarIconButton"
 
 [[file]]
-path = "native/chat/qml/ChatMediaPlayer.qml"
+path = "native/media-player/qml/MediaPlayer.qml"
 category = "chrome"
-controls = ["Ui.EditorButton", "Ui.Slider", "Ui.Text", "VideoOutput"]
+controls = ["QM.MediaPlayer", "QM.AudioOutput", "QM.VideoOutput", "RowLayout", "Ui.ToolbarIconButton", "Ui.EditorButton", "Ui.Slider", "Ui.Text"]
 signals = []
-test_host = "node native/chat/scripts/check.mjs"
+test_host = "native/media-player/tests/tst_media_player.cpp"
 test_scope = "build"
-qml_callers = []
-replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.Slider, Ui.Text"
+qml_callers = ["native/chat/qml/MessageDelegate.qml", "native/node-editor/qml/ProjectFilesDock.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.ToolbarIconButton, Ui.Slider, Ui.Text"
 
 [[file]]
 path = "native/chat/qml/ChatMetrics.qml"
@@ -2163,6 +2163,24 @@ qml_callers = ["native/storyboard/qml/StoryboardBoard.qml", "native/storyboard/q
 replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.ToolbarIconButton, Ui.EditorButton"
 
 [[file]]
+path = "native/storyboard/qml/StoryboardDocumentEditor.qml"
+category = "chrome"
+controls = ["Ui.Surface"]
+test_host = "node_editor_canvas_drop_tests"
+test_scope = "build/import"
+cpp_callers = ["native/node-editor/src/ui/EditorTabs.cpp"]
+replacement = "NodeTool.UiPrimitives: Ui.Surface"
+
+[[file]]
+path = "native/script/qml/ScriptDocumentEditor.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Ui.Text", "Ui.EditorButton", "Ui.TextArea", "Ui.ScrollBar", "ListView"]
+test_host = "node_editor_canvas_drop_tests"
+test_scope = "build/import"
+cpp_callers = ["native/node-editor/src/ui/EditorTabs.cpp"]
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text, Ui.EditorButton, Ui.TextArea, Ui.ScrollBar"
+
+[[file]]
 path = "native/storyboard/qml/LinkDocumentDialog.qml"
 category = "chrome"
 controls = ["Ui.Dialog", "Ui.Text", "Ui.TextField", "Ui.Surface", "Ui.ListRow", "Ui.Icon", "Ui.ToolbarIconButton", "Ui.EditorButton", "Ui.Separator", "Ui.ScrollBar", "Ui.BusyIndicator", "ListView"]
@@ -2931,6 +2949,26 @@ test_host = "native/node-editor/tests/ui/AccountControlComponentTest.cpp"
 test_scope = "interaction"
 qml_callers = ["native/account/qt/qml/ShareDialog.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.ScrollArea, Ui.PanelHeader, Ui.Text, Ui.TextField, Ui.EditorButton, Ui.Toggle, Ui.Select, Ui.Banner, Ui.BusyIndicator"
+
+[[file]]
+path = "native/account/qt/qml/TransferDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "TransferPanel"]
+signals = []
+test_host = "native/timeline/qml/menus/tst_menus.cpp"
+test_scope = "build"
+qml_callers = ["native/timeline/qml/DocumentBar.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog"
+
+[[file]]
+path = "native/account/qt/qml/TransferPanel.qml"
+category = "chrome"
+controls = ["TransferController", "ColumnLayout", "RowLayout", "ListView", "Item", "Ui.ScrollBar", "Ui.PanelHeader", "Ui.Text", "Ui.SegmentedControl", "Ui.CheckBox", "Ui.EditorButton", "Ui.Banner", "Ui.BusyIndicator", "Ui.EmptyState"]
+signals = ["closeRequested"]
+test_host = "native/node-editor/tests/ui/AccountControlComponentTest.cpp"
+test_scope = "interaction"
+qml_callers = ["native/account/qt/qml/TransferDialog.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ScrollBar, Ui.PanelHeader, Ui.Text, Ui.SegmentedControl, Ui.CheckBox, Ui.EditorButton, Ui.Banner, Ui.BusyIndicator, Ui.EmptyState"
 
 [[file]]
 path = "native/node-editor/qml/ActionPanel.qml"
@@ -4720,6 +4758,16 @@ test_host = "native/node-editor/tests/ui/WorkersPanelTest.cpp"
 test_scope = "interaction"
 qml_callers = []
 replacement = "NodeTool.UiPrimitives"
+
+[[file]]
+path = "native/node-editor/qml/ProjectFilesDock.qml"
+category = "chrome"
+controls = ["FilesPanel", "Component", "Item", "Connections", "MediaPlayer", "Ui.BusyIndicator", "Ui.Text"]
+signals = []
+test_host = "native/node-editor/tests/ui/ChromeParityTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.Files FilesPanel with the NodeTool.MediaPlayer player"
 
 [[file]]
 path = "native/node-editor/qml/WorkerProfilesDialog.qml"

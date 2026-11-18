@@ -12869,6 +12869,14 @@
     "installOnThisComputer": "Installera {{installLabel}} på den här datorn",
     "install": "Installera",
     "selectLanguageModel": "Välj språkmodell",
+    "agentFit": {
+      "noToolsLabel": "Inga verktyg",
+      "noToolsTooltip": "Enligt leverantören kan den här modellen inte anropa verktyg. Agenter behöver verktygsanrop, så använd den bara för ren textgenerering.",
+      "freeTierLabel": "Gratisnivå",
+      "freeTierTooltip": "OpenRouter begränsar gratismodeller per minut och per dag. En agentkörning gör många anrop, så med en gratismodell fastnar eller misslyckas den ofta. Den betalda vägen till samma modell omfattas inte av gränsen.",
+      "defaultLabel": "Agentstandard",
+      "defaultTooltip": "NodeTool använder den här modellen som standard för agentarbete. Den är inte rankad per uppgift än: inga testresultat för text-, bild- eller videoarbete är publicerade."
+    },
     "searchLanguageModels": "Sök efter språkmodeller",
     "installProviderToUseModel": "Installera {{installLabel}} för att använda denna modell.",
     "modelNotReady": "Denna modell är inte redo att användas.",
@@ -15793,7 +15801,9 @@
       "showDetails": "Visa detaljer",
       "collapseDetails": "Komprimera detaljer",
       "input": "Ingång",
-      "output": "Utgång"
+      "output": "Utgång",
+      "basic": "Grund",
+      "basicNode": "Grund · noden {{title}}"
     },
     "favorites": {
       "title": "Favoriter",
@@ -15823,6 +15833,7 @@
       "resizeHeight": "Ändra storlek på nodmenyns höjd"
     },
     "quickActions": {
+      "basics": "Grunder",
       "aiNodes": "AI-noder",
       "providerModels": "Leverantörsmodeller",
       "constants": "Konstanter",
@@ -15860,7 +15871,13 @@
         "constant-list": "Lista",
         "constant-model-3d": "3D-modell",
         "constant-string": "Sträng",
-        "constant-video": "Video"
+        "constant-video": "Video",
+        "basic-text": "Text",
+        "basic-generate-text": "Generera text",
+        "basic-generate-image": "Generera bild",
+        "basic-edit-image": "Redigera bild",
+        "basic-generate-video": "Generera video",
+        "basic-edit-video": "Redigera video"
       }
     },
     "recent": {
@@ -17959,7 +17976,9 @@
       "seek": "Sök",
       "playbackSpeed": "Uppspelningshastighet",
       "exitFullscreen": "Avsluta helskärm",
-      "enterFullscreen": "Ange helskärm"
+      "enterFullscreen": "Ange helskärm",
+      "mute": "Ljud av",
+      "unmute": "Ljud på"
     },
     "tagInput": {
       "placeholder": "Skriv och tryck på Enter för att lägga till en tagg...",
@@ -20222,6 +20241,19 @@
       "retry": "Försök igen",
       "donePath": "Dina filer finns i {{path}}",
       "close": "Stäng"
+    },
+    "preview": {
+      "clips": "klipp",
+      "title": "Förhandsvisning",
+      "tracks": "spår",
+      "type": {
+        "app": "Miniapp",
+        "jsscript": "JS-skript",
+        "script": "Manus",
+        "storyboard": "Storyboard",
+        "timeline": "Tidslinje",
+        "workflow": "Arbetsflöde"
+      }
     }
   },
   "assetPicker": {
