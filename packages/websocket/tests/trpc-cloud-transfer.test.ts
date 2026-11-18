@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createCloudLink, getCloudSend, initTestDb, updateCloudSend, Workflow } from "@nodetool-ai/models";
+import { Asset, createCloudLink, getCloudReceive, getCloudSend, initTestDb, updateCloudSend, Workflow } from "@nodetool-ai/models";
 import { createLocalWorkspace, setProjectFolderResolver, type ProjectFolderResolution } from "@nodetool-ai/runtime";
 import { CloudRequestError, CloudSignedOutError } from "@nodetool-ai/project-services/cloud-http-transport";
 import { appRouter } from "../src/trpc/router.js";
@@ -23,7 +23,9 @@ const cloud = {
   tokens: [] as Array<{ origin: string; token: string }>,
   fail: null as Error | null,
   commits: 0,
-  captures: 0
+  captures: 0,
+  lastCommit: null as { manifest: { operations: Array<Record<string, unknown>> }; missing_files: unknown[] } | null,
+  released: [] as string[]
 };
 
 vi.mock("../src/lib/cloud-transfer-transport.js", () => ({
@@ -43,6 +45,7 @@ vi.mock("../src/lib/cloud-transfer-transport.js", () => ({
       async commit(input: { manifest: { operations: Array<{ op: string; kind: string; document_id: string; captured_hash: string }> } }) {
         guard();
         cloud.commits += 1;
+        cloud.lastCommit = input as never;
         return {
           outcome: "committed" as const,
           project_id: PROJECT,
@@ -72,7 +75,9 @@ vi.mock("../src/lib/cloud-transfer-transport.js", () => ({
       async downloadFile() {
         throw new Error("not used");
       },
-      async release() {}
+      async release(input: { set_id: string }) {
+        cloud.released.push(input.set_id);
+      }
     };
   }
 }));
@@ -114,6 +119,8 @@ describe("cloudTransfer router", () => {
     cloud.fail = null;
     cloud.commits = 0;
     cloud.captures = 0;
+    cloud.lastCommit = null;
+    cloud.released = [];
     root = await mkdtemp(join(tmpdir(), "nodetool-cloud-transfer-"));
     const folder = createLocalWorkspace(join(root, PROJECT));
     await folder.mkdir("");
@@ -229,5 +236,83 @@ describe("cloudTransfer router", () => {
     expect(own.sends).toMatchObject([{ status: "committed", transfer_id: review.transfer_id }]);
     expect(cloud.commits).toBe(1);
     expect(await getCloudSend(review.transfer_id)).toBeNull();
+  });
+
+  it("sends without a missing file only once the app confirms it (review F36)", async () => {
+    const asset = await Asset.create<Asset>({
+      user_id: USER,
+      project_id: PROJECT,
+      parent_id: USER,
+      name: "gone.png",
+      content_type: "image/png",
+      workspace_path: "media/gone.png",
+      size: 4
+    });
+    await Workflow.create<Workflow>({
+      user_id: USER,
+      project_id: PROJECT,
+      name: "Uses a missing file",
+      access: "private",
+      graph: { nodes: [{ id: "n1", type: "nodetool.constant.Image", data: { value: { type: "image", asset_id: asset.id } } }], edges: [] }
+    });
+    const caller = createCaller(makeCtx(USER));
+    const review = await caller.cloudTransfer.send.capture({ ...ACCOUNT, project_id: PROJECT });
+    if (review.status !== "captured") throw new Error("expected a capture");
+    expect(review.missing_files).toMatchObject([{ asset_id: asset.id, reason: "missing_locally" }]);
+
+    expect(await caller.cloudTransfer.send.run({ ...SESSION, transfer_id: review.transfer_id })).toMatchObject({
+      status: "missing_files_unconfirmed",
+      missing_files: review.missing_files
+    });
+    expect(cloud.commits).toBe(0);
+    const confirmed = await caller.cloudTransfer.send.run({
+      ...SESSION,
+      transfer_id: review.transfer_id,
+      confirm_missing_files: review.missing_files
+    });
+    expect(confirmed.status).toBe("committed");
+    expect(cloud.lastCommit?.missing_files).toMatchObject([{ asset_id: asset.id }]);
+  });
+
+  it("deletes on the cloud with the cloud hash the review confirmed (review F40)", async () => {
+    const caller = createCaller(makeCtx(USER));
+    const first = await caller.cloudTransfer.send.capture({ ...ACCOUNT, project_id: PROJECT });
+    if (first.status !== "captured") throw new Error("expected a capture");
+    await caller.cloudTransfer.send.run({ ...SESSION, transfer_id: first.transfer_id });
+    const [workflow] = await Workflow.listForProjects(USER, [PROJECT]);
+    await Workflow.deleteOwned(USER, workflow!.id);
+
+    const review = await caller.cloudTransfer.send.capture({ ...ACCOUNT, project_id: PROJECT });
+    if (review.status !== "captured") throw new Error("expected a capture");
+    const [deleted] = review.deleted_locally;
+    const reviewed = "e".repeat(64);
+    const outcome = await caller.cloudTransfer.send.run({
+      ...SESSION,
+      transfer_id: review.transfer_id,
+      confirm_deletes: [{ kind: deleted!.kind, cloud_id: deleted!.cloud_id, cloud_hash: reviewed }]
+    });
+    expect(outcome.status).toBe("committed");
+    expect(cloud.lastCommit?.manifest.operations).toMatchObject([
+      { op: "delete_document", document_id: deleted!.cloud_id, base_hash: reviewed, confirmed: true }
+    ]);
+  });
+
+  it("cancels a send the cloud never opened without calling it, and releases a closed receive (review F41)", async () => {
+    const caller = createCaller(makeCtx(USER));
+    const review = await caller.cloudTransfer.send.capture({ ...ACCOUNT, project_id: PROJECT });
+    if (review.status !== "captured") throw new Error("expected a capture");
+    cloud.fail = new CloudRequestError(404, "NOT_FOUND", "Transfer not found");
+    expect(await caller.cloudTransfer.send.cancel({ ...SESSION, transfer_id: review.transfer_id })).toEqual({ state: "cancelled" });
+    expect(await getCloudSend(review.transfer_id)).toBeNull();
+    cloud.fail = null;
+
+    await createCloudLink({ userId: USER, projectId: PROJECT, serverKey: SERVER_KEY, accountId: "account-a", cloudProjectId: PROJECT });
+    const set = await caller.cloudTransfer.receive.capture({ ...SESSION, project_id: PROJECT });
+    expect(
+      await apiCodeOf(caller.cloudTransfer.receive.cancel({ ...SESSION, account_id: "account-b", set_id: set.set_id }))
+    ).toBe("NOT_FOUND");
+    expect(await caller.cloudTransfer.receive.cancel({ ...SESSION, set_id: set.set_id })).toEqual({ state: "cancelled" });
+    expect(cloud.released).toEqual([set.set_id]);
+    expect(await getCloudReceive(set.set_id)).toBeNull();
   });
 });
