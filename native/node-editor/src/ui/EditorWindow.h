@@ -184,9 +184,16 @@ public:
   // port at every launch, so a tab connected to it is saved as "bundled" and
   // restored to this launch's URL (review F3). Set before restoreTabs().
   void setBundledServer(const QUrl &url);
-  // True when the saved tabs name a server of their own, one that is not the
-  // bundled server. The editor then starts no bundled server.
-  static bool savedTabsNameAServer();
+  // What the saved tabs connect to. `own`: some tab names a server of its
+  // own, which it keeps. `bundled`: some tab was connected to the bundled
+  // server, so the editor starts it even when other tabs name their own
+  // server (review F24). A record from before the "bundled" key counts as
+  // bundled when its origin has the bundled server's form.
+  struct SavedTabServers {
+    bool own = false;
+    bool bundled = false;
+  };
+  static SavedTabServers savedTabServers();
   EditorWindow *activeEditor() const;
 
   node_editor::WorkflowDocument *document() { return activeEditor() == this ? &document_ : activeEditor()->document(); }
