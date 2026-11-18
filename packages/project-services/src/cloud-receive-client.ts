@@ -129,6 +129,12 @@ export interface PlannedDocument {
   decision: ReceiveDecision | null;
   files: RevisionSetDocument["files"];
   missingFiles: string[];
+  /**
+   * Files of the document whose cloud bytes the folder does not hold, so a
+   * receive has work for the document even when its own content is the same
+   * (review F33).
+   */
+  changedFiles: number;
 }
 
 /** A file the commit chose to place, with the hash its target may be replaced over. */
@@ -317,6 +323,10 @@ export async function captureReceive(
     const baseHash = linked?.base_content_hash ?? null;
     const localHash = await localHashOf(document.kind, localId, link.project_id);
     const status = statusOf(document.content_hash, baseHash, localHash);
+    let changedFiles = 0;
+    for (const file of document.files) {
+      if (!(await heldLocally(file))) changedFiles += 1;
+    }
     documents.push({
       kind: document.kind,
       cloudId: document.document_id,
@@ -329,7 +339,8 @@ export async function captureReceive(
       status,
       decision: defaultDecision(status),
       files: document.files,
-      missingFiles: document.missing_files
+      missingFiles: document.missing_files,
+      changedFiles
     });
   }
   const plan: ReceivePlan = {
@@ -354,10 +365,20 @@ function toWrite(plan: ReceivePlan): PlannedDocument[] {
   return plan.documents.filter((document) => document.decision === "receive" && document.status !== "same");
 }
 
-/** The files the documents a receive writes need, by hash. */
+/** The documents the person chose to receive, whether or not their own content changed. */
+function received(plan: ReceivePlan): PlannedDocument[] {
+  return plan.documents.filter((document) => document.decision === "receive");
+}
+
+/**
+ * The files of the received documents, by hash. A file changes on its own,
+ * in place under the same asset id, so the files of a document whose
+ * content is the same are received too (review F33). A file the folder
+ * already holds is not downloaded.
+ */
 function neededFiles(plan: ReceivePlan): Map<string, RevisionSetDocument["files"]> {
   const files = new Map<string, RevisionSetDocument["files"]>();
-  for (const document of toWrite(plan)) {
+  for (const document of received(plan)) {
     for (const file of document.files) {
       const list = files.get(file.hash) ?? [];
       if (!list.some((entry) => entry.asset_id === file.asset_id)) list.push(file);
@@ -496,7 +517,6 @@ async function commit(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePla
       }
       const result = emptyResult();
       const placements: PlannedPlacement[] = [];
-      const written: PlannedDocument[] = [];
       for (const document of plan.documents) {
         const entry = { kind: document.kind, id: document.localId, name: document.name };
         if (document.decision !== "receive") {
@@ -507,7 +527,6 @@ async function commit(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePla
         if (payload) {
           await writeDocument(link, document, payload);
           result.received.push(entry);
-          written.push(document);
         }
         await setCloudLinkDocumentBase(link, {
           kind: document.kind,
@@ -518,7 +537,7 @@ async function commit(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePla
         });
       }
       const seen = new Set<string>();
-      for (const document of written) {
+      for (const document of received(plan)) {
         result.missingFiles.push(...document.missingFiles);
         for (const file of document.files) {
           if (seen.has(file.asset_id)) continue;

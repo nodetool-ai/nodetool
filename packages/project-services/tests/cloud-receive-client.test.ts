@@ -404,6 +404,27 @@ describe("receiving a cloud project", { timeout: 30_000 }, () => {
     });
   });
 
+  it("receives a media file the cloud changed in place while its workflow stayed the same (review F33)", async () => {
+    const bytes = randomBytes(64);
+    const document = cloud.putWorkflow("Edit", { bytes, name: "still.png", path: "media/still.png" });
+    await runReceive(cloud, (await captureReceive(cloud, link)).setId);
+
+    // New bytes under the same asset id. The graph does not change.
+    const newer = randomBytes(64);
+    const file = document.files[0]!;
+    file.hash = sha(newer);
+    file.size = newer.byteLength;
+    cloud.blobs.set(file.hash, newer);
+
+    const review = await captureReceive(cloud, link);
+    expect(review.documents).toMatchObject([{ status: "same", decision: "receive", changedFiles: 1 }]);
+    const outcome = await runReceive(cloud, review.setId);
+    expect(outcome).toMatchObject({ status: "finished", result: { received: [], keptBeside: [] } });
+    expect(Buffer.from((await folder.read("media/still.png"))!).equals(newer)).toBe(true);
+    expect(await Asset.get<Asset>(file.asset_id)).toMatchObject({ workspace_path: "media/still.png", content_hash: file.hash });
+    expect(await getCloudLinkFile(link.id, file.asset_id)).toMatchObject({ base_hash: file.hash });
+  });
+
   it("keeps a local file another app saves while the received bytes replace it (review F18)", async () => {
     const bytes = randomBytes(64);
     const document = cloud.putWorkflow("Edit", { bytes, name: "still.png", path: "media/still.png" });
