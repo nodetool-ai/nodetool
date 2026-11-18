@@ -27,8 +27,10 @@ error anywhere.
 ## What the prompt carries
 
 Every turn carries a catalog of the user's own skills and of the shipped
-skills whose frontmatter says `featured: true`. The others are named by count
-and found with `list_skills({query})`, which matches a query word by word. The
+skills whose frontmatter says `featured: true`. The catalog prints no count.
+When other shipped skills exist, it ends with a fixed line that lists their
+kinds, and they are found with `list_skills({query})`, which matches a query
+word by word. The
 catalog is rendered by `formatSkillCatalogForPrompt` in
 `packages/agents/src/skill-prompt.ts`. Feature the entry point of each
 surface. Of the motion skills, only `motion-graphics`, `caption-titles` and

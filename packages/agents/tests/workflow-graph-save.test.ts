@@ -115,6 +115,27 @@ describe("create_workflow and update_workflow", () => {
     expect(stored?.graph.nodes).toEqual([]);
   });
 
+  it("store edge handles given in snake_case under their camelCase names", async () => {
+    // validate_workflow reads `source_handle` and `target_handle`, so a graph
+    // it accepts must not lose them on save: the stored edge once read
+    // sourceHandle "output" and had no targetHandle at all.
+    const node = UNKNOWN_GRAPH.nodes[0];
+    const created = (await run().invoke("create_workflow", {
+      name: "snake",
+      graph: {
+        nodes: [node, { ...node, id: "b" }],
+        edges: [{ id: "e1", source: node.id, source_handle: "text", target: "b", target_handle: "value" }]
+      }
+    })) as Record<string, unknown>;
+    expect(created["error"]).toBeUndefined();
+
+    const [stored] = (await Workflow.getManyByIds([String(created["id"])])).values();
+    const [edge] = stored?.graph.edges ?? [];
+    expect(edge).toMatchObject({ source: node.id, sourceHandle: "text", target: "b", targetHandle: "value" });
+    expect(edge).not.toHaveProperty("source_handle");
+    expect(edge).not.toHaveProperty("target_handle");
+  });
+
   it("store a graph whose node types the registry has", async () => {
     const created = (await run().invoke("create_workflow", {
       name: "wf",

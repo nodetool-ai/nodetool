@@ -46,6 +46,10 @@ export const messages = sqliteTable(
     // The live message the archived version followed: where it forks off.
     // Empty when the version began the thread.
     branch_after: text("branch_after"),
+    // On a user message: the turn-scoped blocks the chat turn appended to it
+    // for the model (focus, focused tools, memory). Replayed on later turns
+    // so the provider's cached prefix stays the same, and never shown.
+    turn_context: jsonText<Array<{ key: string; text: string }>>()("turn_context"),
     created_at: text("created_at").notNull()
   },
   (table) => [index("idx_messages_thread_id").on(table.thread_id)]

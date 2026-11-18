@@ -1570,7 +1570,11 @@ async function submitPrepared(
     return {
       ok: false,
       code: "target_revision_conflict",
-      error: "The target changed after preparation. Review and prepare the request again."
+      error:
+        `The target is at revision ${JSON.stringify(target.value.revision)}, but the ` +
+        `request was prepared against ${JSON.stringify(request.destination.target_revision)}. ` +
+        "Nothing was submitted. Prepare the request again.",
+      target_revision: target.value.revision
     };
   }
   const providerError = await providerPreflight(run, request);
@@ -1839,7 +1843,12 @@ export function validateVideoProductionAcceptance(
       expectedTargetRevision !== undefined &&
       candidate.preconditions.target_revision !== expectedTargetRevision
     ) {
-      return failure("target_revision_conflict", `Candidate ${id} targets another revision.`);
+      return failure(
+        "target_revision_conflict",
+        `Candidate ${id} targets revision ` +
+          `${JSON.stringify(candidate.preconditions.target_revision)}, not ` +
+          `${JSON.stringify(expectedTargetRevision)}. Nothing was accepted.`
+      );
     }
     selected.push(candidate);
   }
@@ -1924,7 +1933,10 @@ async function acceptanceManifest(
     if (state.value.revision !== target.expected_target_revision) {
       return failure(
         "target_revision_conflict",
-        `Destination ${target.destination_id} changed before acceptance.`
+        `Destination ${target.destination_id} is at revision ` +
+          `${JSON.stringify(state.value.revision)}, not ` +
+          `${JSON.stringify(target.expected_target_revision)}. Nothing was ` +
+          "accepted. Inspect the candidates again."
       );
     }
     const live: AcceptanceTargetInput & { accepted_candidate_id?: string } = { ...target };

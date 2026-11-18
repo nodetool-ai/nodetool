@@ -216,7 +216,9 @@ export {
   COMPACTION_EVENT_TYPE,
   compactionMessageContent,
   isCompactionMessage,
-  type MessageFork
+  turnContextText,
+  type MessageFork,
+  type TurnContextSection
 } from "./message.js";
 
 export { Thread, type ThreadKind } from "./thread.js";

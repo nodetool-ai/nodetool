@@ -105,7 +105,11 @@ import { UseapiProvider } from "./useapi-provider.js";
 import { VgenvProvider } from "./vgenv-provider.js";
 import { ToapisProvider } from "./toapis-provider.js";
 import { KlingProvider } from "./kling-provider.js";
-export { BaseProvider, estimatePromptTokens } from "./base-provider.js";
+export {
+  BaseProvider,
+  estimatePromptTokens,
+  splitToolResultImages
+} from "./base-provider.js";
 export {
   FAL_PROVIDER_ID,
   FAL_QUEUE_ORIGIN,

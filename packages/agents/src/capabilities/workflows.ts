@@ -289,9 +289,12 @@ const updateWorkflow: CapabilityExport = {
   spec: updateWorkflowSpec,
   impl: async (run, params) => {
     const { Workflow } = await import("@nodetool-ai/models");
-    const id = String(params["workflow_id"]);
-    const existing = await findOwnedWorkflow(run, id);
-    if (!existing) return notYours(id);
+    const requested = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, requested);
+    if (!existing) return notYours(requested);
+    // The row may have been found by its 12-character prefix: every write and
+    // version row below keys on the full id.
+    const id = existing.id;
 
     const fields: Record<string, unknown> = {};
     let unselected: Record<string, unknown> | null = null;
@@ -350,9 +353,12 @@ const addWorkflowLink: CapabilityExport = {
   spec: addWorkflowLinkSpec,
   impl: async (run, params) => {
     const { Workflow } = await import("@nodetool-ai/models");
-    const id = String(params["workflow_id"]);
-    const existing = await findOwnedWorkflow(run, id);
-    if (!existing) return notYours(id);
+    const requested = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, requested);
+    if (!existing) return notYours(requested);
+    // The row may have been found by its 12-character prefix: every write and
+    // version row below keys on the full id.
+    const id = existing.id;
     const graph = existing.graph;
     const added = addGraphLink(
       graphNodeIds(graph),
@@ -387,9 +393,12 @@ const removeWorkflowLink: CapabilityExport = {
   spec: removeWorkflowLinkSpec,
   impl: async (run, params) => {
     const { Workflow } = await import("@nodetool-ai/models");
-    const id = String(params["workflow_id"]);
-    const existing = await findOwnedWorkflow(run, id);
-    if (!existing) return notYours(id);
+    const requested = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, requested);
+    if (!existing) return notYours(requested);
+    // The row may have been found by its 12-character prefix: every write and
+    // version row below keys on the full id.
+    const id = existing.id;
     const graph = existing.graph;
     const linkId = String(params["link_id"]);
     const removed = removeGraphLink(graph.links ?? [], linkId);
@@ -454,9 +463,12 @@ function toVersionListItem(version: {
 const listWorkflowVersions: CapabilityExport = {
   spec: listWorkflowVersionsSpec,
   impl: async (run, params) => {
-    const id = String(params["workflow_id"]);
-    const existing = await findOwnedWorkflow(run, id);
-    if (!existing) return notYours(id);
+    const requested = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, requested);
+    if (!existing) return notYours(requested);
+    // The row may have been found by its 12-character prefix: every write and
+    // version row below keys on the full id.
+    const id = existing.id;
 
     const { WorkflowVersion } = await import("@nodetool-ai/models");
     const limit = Math.max(
@@ -478,9 +490,12 @@ const listWorkflowVersions: CapabilityExport = {
 const getWorkflowVersion: CapabilityExport = {
   spec: getWorkflowVersionSpec,
   impl: async (run, params) => {
-    const id = String(params["workflow_id"]);
-    const existing = await findOwnedWorkflow(run, id);
-    if (!existing) return notYours(id);
+    const requested = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, requested);
+    if (!existing) return notYours(requested);
+    // The row may have been found by its 12-character prefix: every write and
+    // version row below keys on the full id.
+    const id = existing.id;
 
     const number = versionNumber(params["version"]);
     if (typeof number !== "number") return number;
@@ -503,9 +518,12 @@ const getWorkflowVersion: CapabilityExport = {
 const createWorkflowVersion: CapabilityExport = {
   spec: createWorkflowVersionSpec,
   impl: async (run, params) => {
-    const id = String(params["workflow_id"]);
-    const existing = await findOwnedWorkflow(run, id);
-    if (!existing) return notYours(id);
+    const requested = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, requested);
+    if (!existing) return notYours(requested);
+    // The row may have been found by its 12-character prefix: every write and
+    // version row below keys on the full id.
+    const id = existing.id;
 
     const { WorkflowVersion } = await import("@nodetool-ai/models");
     const nextVer = await WorkflowVersion.nextVersion(id);
@@ -531,9 +549,12 @@ const createWorkflowVersion: CapabilityExport = {
 const restoreWorkflowVersion: CapabilityExport = {
   spec: restoreWorkflowVersionSpec,
   impl: async (run, params) => {
-    const id = String(params["workflow_id"]);
-    const existing = await findOwnedWorkflow(run, id);
-    if (!existing) return notYours(id);
+    const requested = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, requested);
+    if (!existing) return notYours(requested);
+    // The row may have been found by its 12-character prefix: every write and
+    // version row below keys on the full id.
+    const id = existing.id;
 
     const number = versionNumber(params["version"]);
     if (typeof number !== "number") return number;
@@ -583,9 +604,12 @@ const restoreWorkflowVersion: CapabilityExport = {
 const deleteWorkflowVersion: CapabilityExport = {
   spec: deleteWorkflowVersionSpec,
   impl: async (run, params) => {
-    const id = String(params["workflow_id"]);
-    const existing = await findOwnedWorkflow(run, id);
-    if (!existing) return notYours(id);
+    const requested = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, requested);
+    if (!existing) return notYours(requested);
+    // The row may have been found by its 12-character prefix: every write and
+    // version row below keys on the full id.
+    const id = existing.id;
 
     const number = versionNumber(params["version"]);
     if (typeof number !== "number") return number;
@@ -610,10 +634,13 @@ const setWorkflowAccess: CapabilityExport = {
   spec: setWorkflowAccessSpec,
   impl: async (run, params) => {
     const { Workflow } = await import("@nodetool-ai/models");
-    const id = String(params["workflow_id"]);
+    const requested = String(params["workflow_id"]);
     const access = params["access"] === "public" ? "public" : "private";
-    const existing = await findOwnedWorkflow(run, id);
-    if (!existing) return notYours(id);
+    const existing = await findOwnedWorkflow(run, requested);
+    if (!existing) return notYours(requested);
+    // The row may have been found by its 12-character prefix: every write and
+    // version row below keys on the full id.
+    const id = existing.id;
     const updated = await Workflow.updateFieldsIfUnchanged(
       id,
       existing.updated_at,

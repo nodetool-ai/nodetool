@@ -240,7 +240,7 @@ describe("renaming documents through their edit tools", () => {
       name: "Act two",
       expected_revision: board.revision
     })) as Result;
-    expect(stale.error).toMatch(/revision conflict/);
+    expect(stale.error).toMatch(/^Revision conflict: .*Nothing was applied/);
     expect((await Storyboard.findById(board.id))?.name).toBe("Act one");
   });
 });

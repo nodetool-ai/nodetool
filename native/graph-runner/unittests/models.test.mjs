@@ -35,6 +35,9 @@ schemaDb.close();
 const archived = r.put('messages', { id: 'archived-fixture', thread_id: 'branch-fixture', role: 'assistant',
   content: 'Earlier answer', branch_id: 'b'.repeat(32), branch_after: 'a'.repeat(32) });
 check(archived.branch_id === 'b'.repeat(32) && archived.branch_after === 'a'.repeat(32), 'message branch columns persist through the native repository');
+const asked = r.put('messages', { id: 'turn-context-fixture', thread_id: 'branch-fixture', role: 'user',
+  content: 'Question', turn_context: '{"focus":"workflow"}' });
+check(asked.turn_context === '{"focus":"workflow"}', 'message turn context persists through the native repository');
 const call = (name, args) => api[name]({ ...args, userId: 'alice' });
 const asset = await call('createAsset', { name: 'note.txt', contentType: 'text/plain', content: new Uint8Array([65, 66]), metadata: { nested: { n: 1 } } });
 check(/^[a-f0-9]{32}$/.test(asset.id), 'full resource ID');
@@ -127,6 +130,7 @@ const reopened = createGuestModels({ userId: 'alice', databasePath: `${root}/mod
 check((await reopened.interfaces.getAssetInfo({ userId: 'alice', assetId: asset.id })).name === 'changed.txt', 'persistent reopen');
 check((await reopened.resolveAssetBytes(asset.id))[0] === 67, 'persistent bytes reopen');
 check(reopened.repository.get('messages', archived.id).branch_after === archived.branch_after, 'message branch survives reopening');
+check(reopened.repository.get('messages', asked.id).turn_context === asked.turn_context, 'message turn context survives reopening');
 reopened.close();
 globalThis.__modelChecks = checks;
 
