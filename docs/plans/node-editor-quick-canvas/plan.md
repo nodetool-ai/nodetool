@@ -239,13 +239,15 @@ player, because the scene graph draws children with their parent.
 
 ### Card and edge rendering
 
-- `NodeItem::updatePaintNode` returns a `QSGImageNode` from
-  `QQuickWindow::createImageNode()`. Both the software and the RHI backend
-  draw this node type.
-- The card image is rasterized on the UI thread at `zoom × devicePixelRatio`,
-  rounded to steps of √2. During a zoom gesture the existing texture scales.
-  The canvas rasters again 100 ms after the gesture ends.
-- A card off screen holds no image and is not visible
+- On RHI, each card returns a `QSGImageNode`. In Q3, the software backend
+  composites visible card and wire images in one render node to limit dirty
+  region work.
+- The UI thread rasterizes at `zoom × devicePixelRatio` on the device pixel
+  grid. During a zoom gesture, existing images scale and new rasters use
+  steps of √2. The canvas starts restoring exact-scale rasters 100 ms after
+  the gesture ends.
+- The raster cache prefetches near the viewport and releases distant card
+  images. The software pass draws only visible items
   ([performance rule 21](../../../native/ui_primitives/PERFORMANCE.md#rendering)).
 - The running ring and the focus ring are separate child nodes, so their
   animation does not re-raster the card.
