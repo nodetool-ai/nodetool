@@ -25,6 +25,18 @@ async function requestHeaders(): Promise<Record<string, string>> {
   return { ...(await authHeader()), ...protocol };
 }
 
+/** Where the links send, and how. The cloud client passes its own. */
+export interface TrpcTransport {
+  url: string;
+  headers: () => Promise<Record<string, string>> | Record<string, string>;
+  fetch?: typeof fetch;
+}
+
+/** The sync protocol header alone, for a server that gets its credential elsewhere. */
+export function syncProtocolHeaders(): Record<string, string> {
+  return { [SYNC_PROTOCOL_HEADER]: String(SYNC_PROTOCOL_VERSION) };
+}
+
 /**
  * Shared React and vanilla tRPC transport policy.
  *
@@ -33,8 +45,13 @@ async function requestHeaders(): Promise<Record<string, string>> {
  * must not wait on its neighbours passes `context: { skipBatch: true }` and
  * goes out as its own request.
  */
-export function createTrpcLinks(): TRPCLink<AppRouter>[] {
-  const url = `${BASE_URL}/trpc`;
+export function createTrpcLinks(
+  transport: TrpcTransport = {
+    url: `${BASE_URL}/trpc`,
+    headers: requestHeaders
+  }
+): TRPCLink<AppRouter>[] {
+  const { url, headers, fetch } = transport;
   return [
     loggerLink({
       enabled: (options) =>
@@ -46,13 +63,15 @@ export function createTrpcLinks(): TRPCLink<AppRouter>[] {
       true: httpLink({
         url,
         methodOverride: "POST",
-        headers: requestHeaders
+        headers,
+        fetch
       }),
       false: httpBatchLink({
         url,
         maxItems: TRPC_MAX_BATCH_SIZE,
         methodOverride: "POST",
-        headers: requestHeaders
+        headers,
+        fetch
       })
     })
   ];
