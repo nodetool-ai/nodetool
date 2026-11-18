@@ -67,3 +67,4 @@ export { userAccounts } from "./user-accounts.js";
 export { userQuotas } from "./user-quotas.js";
 export { userPermissions } from "./user-permissions.js";
 export { cloudDrafts, cloudOpenState } from "./cloud-local.js";
+export { deletedDocuments } from "./deleted-documents.js";

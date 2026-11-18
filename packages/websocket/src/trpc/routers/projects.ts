@@ -689,7 +689,11 @@ export const projectsRouter = router({
         }
         throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
       }
-      return { ok: true as const, folder: result.folder };
+      return {
+        ok: true as const,
+        folder: result.folder,
+        restorable_until: result.restorableUntil
+      };
     }),
 
   /**

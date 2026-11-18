@@ -180,6 +180,13 @@ public:
   void showCompositorLayoutDialog(const QString &nodeId);
   void restoreTabs();
   void persistTabs() const;
+  // The server this launch started from the app package. It listens on a new
+  // port at every launch, so a tab connected to it is saved as "bundled" and
+  // restored to this launch's URL (review F3). Set before restoreTabs().
+  void setBundledServer(const QUrl &url);
+  // True when the saved tabs name a server of their own, one that is not the
+  // bundled server. The editor then starts no bundled server.
+  static bool savedTabsNameAServer();
   EditorWindow *activeEditor() const;
 
   node_editor::WorkflowDocument *document() { return activeEditor() == this ? &document_ : activeEditor()->document(); }
@@ -282,6 +289,12 @@ public:
     // Opens a cloud workflow of the current account in its own tab, or
     // switches to the tab that has it. `role` is owner, editor or viewer.
     void openCloudDocument(const QString &documentId, const QString &role);
+    // Reopens a cloud tab that persistTabs saved: connects the tab to the
+    // local server that keeps its drafts and opens the document with the
+    // account signed in to `cloudServer`. Without that account the tab
+    // keeps the document's id and says to sign in.
+    void restoreCloudDocument(const QUrl &localServer, const QString &cloudServer, const QString &documentId,
+                              const QString &role);
     // Opens the Report issue for a failed job in the queue history.
     void reportJob(const QString &jobId);
     // Opens a queue job output's get_url in the browser, resolved against the server.
@@ -762,6 +775,8 @@ private:
   // owner creates them and its tabs borrow them, so the owner's destructor
   // ends them after the tabs.
   std::unique_ptr<nodetool::account::qt::AccountServers> accountServers_;
+  // Owner only: the bundled server of this launch, empty without one.
+  QUrl bundledServer_;
   // The Cloud and Shared with me groups the tabs' workflow browsers show,
   // for the current server's account. Owner only, declared after the
   // servers so it ends first.
@@ -772,6 +787,8 @@ private:
   // writes the last edit to disk.
   std::unique_ptr<nodetool::account::qt::CloudDocument> cloud_;
   QString cloudId_;
+  // `owner`, `editor` or `viewer`, as the Cloud list gave it.
+  QString cloudRole_;
   // The server the cloud workflow was opened from.
   QString cloudOrigin_;
   // The canonical server and the account the cloud document is open under.

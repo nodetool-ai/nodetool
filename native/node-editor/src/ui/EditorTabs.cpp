@@ -535,17 +535,50 @@ void EditorWindow::persistTabs() const {
         if (tab == active) {
             activeEntry = entries.size();
         }
-        entries.append(QJsonObject{{"file", tab->file_},
-                                   {"workflow", tab->session_.serverBound()
-                                                    ? tab->session_.workflow()["id"].toString()
-                                                    : tab->requestedWorkflow_},
-                                   {"origin", tab->session_.serverUrl().toString()},
-                                   {"project", tab->projectKey()}});
+        // A cloud tab reopens from its server under the same account, never
+        // as a workflow of the local server. Its drafts stay on that server.
+        QJsonObject entry;
+        if (!tab->cloudId_.isEmpty()) {
+            entry = QJsonObject{{"cloud", tab->cloudId_},
+                                {"cloudServer", tab->cloudOrigin_},
+                                {"role", tab->cloudRole_},
+                                {"origin", tab->session_.serverUrl().toString()},
+                                {"project", tab->projectKey()}};
+        } else {
+            entry = QJsonObject{{"file", tab->file_},
+                                {"workflow", tab->session_.serverBound()
+                                                 ? tab->session_.workflow()["id"].toString()
+                                                 : tab->requestedWorkflow_},
+                                {"origin", tab->session_.serverUrl().toString()},
+                                {"project", tab->projectKey()}};
+        }
+        if (!bundledServer_.isEmpty() && tab->session_.serverUrl() == bundledServer_) {
+            entry["bundled"] = true;
+        }
+        entries.append(entry);
     }
     QSettings settings;
     settings.setValue("workflowTabs/documents",
                       QJsonDocument(entries).toJson(QJsonDocument::Compact));
     settings.setValue("workflowTabs/active", activeEntry);
+}
+void EditorWindow::setBundledServer(const QUrl &url) {
+    if (tabOwner_) {
+        tabOwner_->setBundledServer(url);
+        return;
+    }
+    bundledServer_ = url;
+}
+bool EditorWindow::savedTabsNameAServer() {
+    const auto entries =
+        QJsonDocument::fromJson(QSettings().value("workflowTabs/documents").toByteArray()).array();
+    for (const auto &value : entries) {
+        const auto entry = value.toObject();
+        if (!entry["bundled"].toBool() && !entry["origin"].toString().isEmpty()) {
+            return true;
+        }
+    }
+    return false;
 }
 void EditorWindow::restoreTabs() {
     if (tabOwner_) {
@@ -570,11 +603,18 @@ void EditorWindow::restoreTabs() {
         tab->syncOpenProject();
         const auto path = entry["file"].toString();
         const auto id = entry["workflow"].toString();
-        if (!path.isEmpty())
+        const auto cloudId = entry["cloud"].toString();
+        // A tab of the bundled server reconnects to this launch's port, not
+        // the port the last launch had.
+        const QUrl origin = entry["bundled"].toBool() && !bundledServer_.isEmpty()
+                                ? bundledServer_
+                                : QUrl(entry["origin"].toString());
+        if (!cloudId.isEmpty()) {
+            tab->restoreCloudDocument(origin, entry["cloudServer"].toString(), cloudId, entry["role"].toString());
+        } else if (!path.isEmpty())
             tab->openFile(path);
         else if (!id.isEmpty()) {
-            tab->session_.connectToServer(QUrl(entry["origin"].toString()),
-                                          qEnvironmentVariable("NODETOOL_TOKEN"));
+            tab->session_.connectToServer(origin, qEnvironmentVariable("NODETOOL_TOKEN"));
             tab->requestedWorkflow_ = id;
             tab->session_.openWorkflow(id);
         }
@@ -714,6 +754,11 @@ void EditorWindow::renameTab(int index, const QString &name) {
     const auto trimmed = name.trimmed();
     // A project folder's workflow file is named by its file name, which a rename would move.
     if (!target || target->childParent_ || target->projectWorkflowFile() || trimmed.isEmpty() || trimmed == target->workflowName()) {
+        return;
+    }
+    // A viewer's cloud workflow cannot be renamed. An editor's rename below
+    // changes the document, whose next draft carries the name to the cloud.
+    if (target->cloud_ && target->cloud_->readOnly()) {
         return;
     }
     if (target->session_.serverBound()) {

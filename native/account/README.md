@@ -170,8 +170,8 @@ revision as a version first.
 
 | Kind | Draft | Procedure | Sent with it |
 |---|---|---|---|
-| workflow | the graph, `{"nodes": [], "edges": []}` | `workflows.autosave` | `expected_updated_at`, `editing_instance`, `schema_version`, `force` |
-| timeline | the timeline document | `timeline.update` | `baseUpdatedAt`, `editingInstance`, `schemaVersion` |
+| workflow | `{"graph": {"nodes": [], "edges": []}, "name": "..."}`, or the graph alone in a draft kept before the name was | `workflows.autosave` | `expected_updated_at`, `editing_instance`, `schema_version`, `force`, and `name` when the draft has a non-empty one |
+| timeline | the timeline document, with `fps`, `width` and `height` | `timeline.update` | `baseUpdatedAt`, `editingInstance`, `schemaVersion`, and the three settings as the sequence's columns |
 
 A save the server refuses reports the server's API code, such as
 `ALREADY_EXISTS` for a stale base or `SCHEMA_DOWNGRADE`, or `HTTP_<status>`

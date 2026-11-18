@@ -12,7 +12,6 @@
 #include "server/ServerClient.h"
 #include "server/ServerSource.h"
 
-#include <QDir>
 #include <QJsonArray>
 #include <QUndoStack>
 #include <algorithm>
@@ -34,17 +33,17 @@ const QJsonObject* findClip(const nt::edit::ClipList& clips, const QString& id) 
 // A frame edge, so a cut made during playback lands where a frame starts.
 double frameEdge(double timeMs, double fps) { return nt::edit::frameStepMs(timeMs, 0, fps); }
 
-// Fetches a take's file through the server the editor is connected to.
+// Fetches a take's file through the server the timeline was read from, the
+// cloud server included.
 nt::Clip resolveFromServer(const QJsonObject& rawClip, const QString& assetId,
                            const std::shared_ptr<nt::assets::MediaProtection>& protection) {
-    const auto target = nt::server::serverSaveTarget();
-    if (!target) { return {}; }
-    nt::server::ServerClient client(target->server, target->token, 10000);
-    client.setExpectedInstance(target->expectedInstance);
-    const auto asset = client.getAsset(assetId);
+    const auto source = nt::server::mediaSource();
+    if (!source) { return {}; }
+    const auto client = source->client(10000);
+    const auto asset = client->getAsset(assetId);
     if (!asset.ok()) { return {}; }
-    const auto cacheRoot = QDir::cleanPath(QDir(target->backupDir).absoluteFilePath("../../.."));
-    return nt::assets::resolveDroppedMedia(client, cacheRoot, asset.data.toObject(), rawClip, *protection, protection->generation());
+    return nt::assets::resolveDroppedMedia(*client, source->cacheRoot, asset.data.toObject(), rawClip, *protection,
+                                           protection->generation());
 }
 }
 

@@ -28,7 +28,8 @@ import {
   createTimeOrderedUuid
 } from "./base-model.js";
 import { createLogger } from "@nodetool-ai/config";
-import { executeRaw, getPortableDb } from "./db.js";
+import { executeRaw, getPortableDb, type DbTransaction } from "./db.js";
+import { rowsOf, type RetainedRows, type TransactionStep } from "./deleted-document.js";
 import { projects } from "./schema/projects.js";
 import { jobs } from "./schema/jobs.js";
 import {
@@ -448,6 +449,27 @@ export class Project extends DBModel {
       .where(and(eq(projects.id, row.id), eq(projects.user_id, userId)))
       .returning();
     return updated ? new Project(updated) : null;
+  }
+
+  /**
+   * The statement that clears the tombstone of the owner's deleted project,
+   * for a restore inside its restore period. It runs in the restore's
+   * transaction and throws when the row is gone or not the owner's, which
+   * rolls the restore back.
+   */
+  static *untombstoneSteps(
+    tx: DbTransaction,
+    userId: string,
+    id: string
+  ): Generator<TransactionStep, void, RetainedRows> {
+    const updated = yield rowsOf(
+      tx
+        .update(projects)
+        .set({ deleted_at: null, updated_at: new Date().toISOString() })
+        .where(and(eq(projects.id, id), eq(projects.user_id, userId)))
+        .returning({ id: projects.id })
+    );
+    if (updated.length === 0) throw new Error("The project row is gone");
   }
 
   /** Resolve a caller-supplied project without permitting cross-user writes. */

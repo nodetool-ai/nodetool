@@ -708,6 +708,15 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "A reusable preset for provisioning a GPU worker: image, hardware spec, timeouts. Operator configuration shared by the whole install, with no column naming a person."
   },
   {
+    table: "nodetool_deleted_documents",
+    schemaExport: "deletedDocuments",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: true,
+    justification:
+      "Documents this person deleted, kept with their versions and sharing rows until the restore period ends. The content is the person's own work. Deleted with the account; exported because it is the only copy until the purge."
+  },
+  {
     table: "cloud_drafts",
     schemaExport: "cloudDrafts",
     disposition: "delete",
