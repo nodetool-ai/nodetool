@@ -870,7 +870,7 @@ async function reconcileAndScan(
 
     if (!options.paths) lastReconciled.set(projectKey, Date.now());
     return report;
-  });
+  }, { under: options.under });
 
   await notifyFileChanged(changed);
   return { report, scanned };
@@ -987,7 +987,9 @@ export async function reconcileInBackground(
       userId,
       {
         scanned,
-        // A copy of a document file waits to be told apart from a move.
+        under: options.under,
+        // A copy of a document file waits to be told apart from a move. The
+        // follow-up runs later, so it queues for the lock like any caller.
         onDeferred: () => scheduleFollowUp(report.projectId, userId)
       }
     );

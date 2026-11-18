@@ -10,12 +10,15 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { PauseGate } from "@nodetool-ai/config/testing/pause-harness";
+import { withProjectFolderLock } from "@nodetool-ai/asset-services/project-asset";
 import {
   Asset,
   getCloudLink,
   getCloudLinkDocumentByLocalId,
   getCloudLinkFile,
   getCloudSend,
+  DOCUMENT_FILE_MISSING,
   initTestDb,
   Workflow
 } from "@nodetool-ai/models";
@@ -65,14 +68,18 @@ class FakeCloud implements SendTransport {
   projectExists = false;
   dropCommitAnswer = false;
 
+  readonly opened = new Set<string>();
+
   async open(input: { transfer_id: string; project_id: string; first_publication: boolean; manifest: TransferManifest }) {
+    this.opened.add(input.transfer_id);
     expect(input.project_id).toBe(PROJECT);
     expect(input.first_publication).toBe(!this.projectExists);
     const staged = this.staged.get(input.transfer_id) ?? new Set<string>();
     this.staged.set(input.transfer_id, staged);
-    const needed = input.manifest.required_files
-      .map((file) => file.hash)
-      .filter((hash) => !this.blobs.has(hash) && !staged.has(hash));
+    const needed = [
+      ...input.manifest.required_files.map((file) => file.hash),
+      ...(input.manifest.file_operations ?? []).flatMap((op) => (op.op === "delete_workspace_file" ? [] : [op.hash]))
+    ].filter((hash) => !this.blobs.has(hash) && !staged.has(hash));
     return { needed_hashes: [...new Set(needed)].sort(), allowance_bytes: null, used_bytes: 0 };
   }
 
@@ -105,6 +112,10 @@ class FakeCloud implements SendTransport {
       if (operation.op === "create_document" || operation.op === "replace_document") {
         expect(payloads.get(operation.document_id)).toBe(operation.captured_hash);
       }
+      if (operation.op === "delete_document" && this.documents.get(operation.document_id) !== operation.base_hash) {
+        const stored = this.documents.get(operation.document_id);
+        failures.push({ code: "BASE_CHANGED", document_id: operation.document_id, stored_hash: stored, message: "changed" });
+      }
       if (operation.op === "replace_document") {
         const stored = this.documents.get(operation.document_id);
         const covered = input.decisions.some(
@@ -116,7 +127,8 @@ class FakeCloud implements SendTransport {
       }
     }
     const staged = this.staged.get(input.transfer_id) ?? new Set<string>();
-    for (const file of input.manifest.required_files) {
+    for (const file of [...input.manifest.required_files, ...(input.manifest.file_operations ?? [])]) {
+      if (!("hash" in file)) continue;
       if (!this.blobs.has(file.hash) && !staged.has(file.hash)) {
         failures.push({ code: "FILE_NOT_STAGED", hash: file.hash, message: "not staged" });
       }
@@ -145,6 +157,8 @@ class FakeCloud implements SendTransport {
   }
 
   async cancel(input: { transfer_id: string }) {
+    // The server knows no transfer it did not open.
+    if (!this.opened.has(input.transfer_id)) throw new Error("NOT_FOUND: Transfer not found");
     const committed = this.attempts.get(input.transfer_id)?.find((attempt) => attempt.result.outcome === "committed");
     return committed ? { state: "committed" as const, result: committed.result } : { state: "cancelled" as const };
   }
@@ -307,7 +321,9 @@ describe("sending a project to the cloud", { timeout: 30_000 }, () => {
     const review = await captureSend(TARGET);
     expect(review.deletedLocally).toMatchObject([{ localId: workflow.id }]);
     expect(review.operations).toEqual([]);
-    await runSend(cloud, review.transferId, { confirmDeletes: [workflow.id] });
+    await runSend(cloud, review.transferId, {
+      confirmDeletes: [{ kind: "workflow", cloudId: workflow.id, cloudHash: review.deletedLocally[0]!.baseHash }]
+    });
     expect(cloud.commits.at(-1)!.manifest.operations).toMatchObject([{ op: "delete_document", document_id: workflow.id }]);
     expect(cloud.documents.has(workflow.id)).toBe(false);
     const link = await getCloudLink(USER, PROJECT);
@@ -338,5 +354,134 @@ describe("sending a project to the cloud", { timeout: 30_000 }, () => {
     await expect(runSend(cloud, review.transferId)).rejects.toThrow();
     expect(await cancelSend(cloud, review.transferId)).toBe("committed");
     expect(await getCloudLink(USER, PROJECT)).not.toBeNull();
+  });
+
+  it("hashes a file without a hash after it releases the folder lock, and again when another app wrote it meanwhile (CF4, review F38)", async () => {
+    const first = randomBytes(64);
+    const { asset } = await workflowWithFile(first);
+    const gate = new PauseGate(["send.capture.file-read"]).install();
+    try {
+      const capturing = captureSend(TARGET);
+      await gate.waitFor("send.capture.file-read");
+      // The read holds no folder lock: another writer gets the lock meanwhile.
+      expect(await withProjectFolderLock(USER, PROJECT, async () => "free")).toBe("free");
+      const second = randomBytes(96);
+      await folder.write("media/still.png", second);
+      gate.release("send.capture.file-read");
+      // The changed fingerprint makes the capture run again and read the new bytes.
+      await gate.waitFor("send.capture.file-read", 2);
+      gate.release("send.capture.file-read");
+      const review = await capturing;
+      const sent = (await getCloudSend(review.transferId))!;
+      const manifest = (JSON.parse(sent.plan) as { manifest: TransferManifest }).manifest;
+      expect(manifest.required_files).toMatchObject([{ asset_id: asset!.id, hash: sha(second), size: 96 }]);
+      expect((await Asset.get<Asset>(asset!.id))?.content_hash).toBe(sha(second));
+    } finally {
+      gate.uninstall();
+    }
+  });
+
+  it("sends a document whose file is missing from its row and lists the file, and leaves out an invalid file (CF3, TC99, review F37)", async () => {
+    const { workflow: missing } = await workflowWithFile(null, "missing");
+    const { workflow: invalid } = await workflowWithFile(null, "invalid");
+    // The first capture's reconcile writes each document's file.
+    await captureSend(TARGET);
+    const missingFile = (await Workflow.get<Workflow>(missing.id))!.file_path!;
+    const invalidFile = (await Workflow.get<Workflow>(invalid.id))!.file_path!;
+    await folder.delete(missingFile);
+    await folder.write(invalidFile, new TextEncoder().encode("{ not json"));
+
+    const review = await captureSend(TARGET);
+    expect((await Workflow.get<Workflow>(missing.id))?.file_error).toBe(DOCUMENT_FILE_MISSING);
+    expect(review.operations).toMatchObject([{ op: "create_document", document_id: missing.id }]);
+    expect(review.missingDocumentFiles).toEqual([{ kind: "workflow", id: missing.id, name: missing.name }]);
+    expect(review.skipped).toMatchObject([{ id: invalid.id, reason: "invalid_file" }]);
+  });
+
+  it("sends a media file that changed in place while its workflow stayed the same (review F33)", async () => {
+    const { asset } = await workflowWithFile(randomBytes(64));
+    const first = await captureSend(TARGET);
+    await runSend(cloud, first.transferId);
+    const before = (await getCloudLinkFile((await getCloudLink(USER, PROJECT))!.id, asset!.id))!.base_hash;
+    const edited = randomBytes(80);
+    await folder.write("media/still.png", edited);
+
+    const review = await captureSend(TARGET);
+    expect(review.operations).toEqual([]);
+    expect(review.fileOperations).toMatchObject([
+      { op: "put_asset_file", asset_id: asset!.id, hash: sha(edited), base_hash: before }
+    ]);
+    expect(await runSend(cloud, review.transferId)).toMatchObject({ status: "committed" });
+    expect(cloud.blobs.has(sha(edited))).toBe(true);
+    const link = await getCloudLink(USER, PROJECT);
+    expect((await getCloudLinkFile(link!.id, asset!.id))?.base_hash).toBe(sha(edited));
+    expect((await captureSend(TARGET)).fileOperations).toEqual([]);
+  });
+
+  it("sends without a missing file only after the person confirms that exact file (X7, review F36)", async () => {
+    const { asset } = await workflowWithFile(randomBytes(16));
+    await folder.delete("media/still.png");
+    const review = await captureSend(TARGET);
+    expect(review.missingFiles).toHaveLength(1);
+    const listed = review.missingFiles[0]!;
+
+    expect(await runSend(cloud, review.transferId)).toMatchObject({ status: "missing_files_unconfirmed", missingFiles: [listed] });
+    expect(cloud.commits).toHaveLength(0);
+    // A confirmation of another file, or of the file for other documents, is not one of this list.
+    const wrong = [{ ...listed, asset_id: id() }];
+    expect((await runSend(cloud, review.transferId, { confirmMissingFiles: wrong })).status).toBe("missing_files_unconfirmed");
+    const fewer = [{ ...listed, documents: [] }];
+    expect((await runSend(cloud, review.transferId, { confirmMissingFiles: fewer })).status).toBe("missing_files_unconfirmed");
+    expect(cloud.commits).toHaveLength(0);
+
+    expect(await runSend(cloud, review.transferId, { confirmMissingFiles: [listed] })).toMatchObject({ status: "committed" });
+    expect(cloud.commits.at(-1)!.missing_files).toMatchObject([{ asset_id: asset!.id }]);
+  });
+
+  it("deletes a document the cloud edited after its local deletion once the person confirms that cloud revision (V4, review F40)", async () => {
+    const { workflow } = await workflowWithFile(null);
+    await runSend(cloud, (await captureSend(TARGET)).transferId);
+    await Workflow.deleteOwned(USER, workflow.id);
+    // A collaborator saved the cloud document after the local deletion.
+    const newer = "e".repeat(64);
+    cloud.documents.set(workflow.id, newer);
+
+    const review = await captureSend(TARGET);
+    const [deleted] = review.deletedLocally;
+    // Confirming against the last exchanged hash is refused with the newer one.
+    const refused = await runSend(cloud, review.transferId, {
+      confirmDeletes: [{ kind: "workflow", cloudId: workflow.id, cloudHash: deleted!.baseHash }]
+    });
+    expect(refused).toMatchObject({ status: "refused", failures: [{ code: "BASE_CHANGED", stored_hash: newer }] });
+    expect(cloud.documents.get(workflow.id)).toBe(newer);
+
+    // The sheet shows the newer revision and the person confirms it.
+    const confirmed = await runSend(cloud, review.transferId, {
+      confirmDeletes: [{ kind: "workflow", cloudId: workflow.id, cloudHash: newer }]
+    });
+    expect(confirmed.status).toBe("committed");
+    expect(cloud.commits.at(-1)!.manifest.operations).toMatchObject([
+      { op: "delete_document", document_id: workflow.id, base_hash: newer, confirmed: true }
+    ]);
+    expect(cloud.documents.has(workflow.id)).toBe(false);
+  });
+
+  it("cancels a send the cloud never opened here alone, and an opened one on the cloud too (review F41)", async () => {
+    await workflowWithFile(null);
+    const captured = await captureSend(TARGET);
+    expect(await cancelSend(cloud, captured.transferId)).toBe("cancelled");
+    expect(await getCloudSend(captured.transferId)).toBeNull();
+
+    const refused = await captureSend(TARGET);
+    const original = cloud.commit.bind(cloud);
+    cloud.commit = async (input) => {
+      cloud.commits.push(input);
+      return { outcome: "refused", failures: [{ code: "QUOTA", message: "full" }] };
+    };
+    expect((await runSend(cloud, refused.transferId)).status).toBe("refused");
+    cloud.commit = original;
+    expect(cloud.opened.has(refused.transferId)).toBe(true);
+    expect(await cancelSend(cloud, refused.transferId)).toBe("cancelled");
+    expect(await getCloudSend(refused.transferId)).toBeNull();
   });
 });
