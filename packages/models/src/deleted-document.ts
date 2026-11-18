@@ -234,8 +234,16 @@ export interface DocumentDelete {
   /** Finds the document's row by full id and owner. */
   where: SQL;
   dependents: DependentTable[];
+  /** The dependent that holds the document's grants, read for `sharedWith`. */
+  grants: string;
   /** The row's project and name, for the deleted list. */
   describe(row: Record<string, unknown>): { documentId: string; projectId: string | null; name: string };
+}
+
+/** What a delete removed: the row, and the users its grants named. */
+export interface DeletedDocumentRow {
+  row: Record<string, unknown>;
+  sharedWith: string[];
 }
 
 /**
@@ -243,22 +251,29 @@ export interface DocumentDelete {
  * retention is on keeps them first in the same transaction. The row is
  * locked as it is read, so a save of the document waits for the delete and
  * then finds no row: the copy kept is the last revision. Returns the deleted
- * row, or null when there was none: then nothing changed, so a repeated
- * delete keeps the copy the first one made.
+ * row and the users it was shared with, or null when there was none: then
+ * nothing changed, so a repeated delete keeps the copy the first one made.
+ * The grants go in the same transaction, so a change feed that tells the
+ * people a document was shared with cannot read them afterwards.
  */
 export async function deleteDocumentKeeping(
   spec: DocumentDelete,
   now: Date = new Date()
-): Promise<Record<string, unknown> | null> {
+): Promise<DeletedDocumentRow | null> {
   const days = retentionDays;
   return runDocumentTransaction(function* (tx) {
     const [row] = yield lockedRows(tx.select().from(spec.table).where(spec.where).limit(1));
     if (!row) return null;
-    if (days !== null) {
-      const dependents: Record<string, RetainedRows> = {};
-      for (const { name, table, where } of spec.dependents) {
+    const dependents: Record<string, RetainedRows> = {};
+    for (const { name, table, where } of spec.dependents) {
+      if (days !== null || name === spec.grants) {
         dependents[name] = yield rowsOf(tx.select().from(table).where(where));
       }
+    }
+    const sharedWith = [
+      ...new Set((dependents[spec.grants] ?? []).map((grant) => grant["user_id"]).filter((id): id is string => typeof id === "string"))
+    ];
+    if (days !== null) {
       const { documentId, projectId, name } = spec.describe(row);
       const entry = keptEntry({ kind: spec.kind, documentId, userId: spec.userId, projectId, name, payload: { row, dependents } }, days, now);
       // A kept copy of an earlier life of this id is replaced: the live row
@@ -274,7 +289,7 @@ export async function deleteDocumentKeeping(
       yield runOf(tx.delete(table).where(where));
     }
     yield runOf(tx.delete(spec.table).where(spec.where));
-    return row;
+    return { row, sharedWith };
   });
 }
 
