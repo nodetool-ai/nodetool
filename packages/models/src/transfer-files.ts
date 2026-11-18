@@ -14,6 +14,7 @@
 import { and, asc, eq, lt, sql } from "drizzle-orm";
 import { createTimeOrderedUuid } from "./base-model.js";
 import { getDatabase, getPortableDb, inTransaction } from "./db.js";
+import { withBlobLock } from "./project-blob.js";
 import { projectBlobs } from "./schema/project-blobs.js";
 import { recoveryCopies, transferPlacements, transferredConversations } from "./schema/transfer-files.js";
 
@@ -124,21 +125,25 @@ export interface NewRecoveryCopy {
  */
 export async function recordRecoveryCopy(copy: NewRecoveryCopy, now: Date = new Date()): Promise<void> {
   const db = getPortableDb();
-  await db
-    .insert(projectBlobs)
-    .values({
-      id: createTimeOrderedUuid(),
-      project_id: copy.projectId,
-      user_id: copy.userId,
-      hash: copy.blobHash,
-      size: copy.size,
-      transfer_id: copy.transferId,
-      committed_at: now.toISOString(),
-      created_at: now.toISOString()
-    })
-    .onConflictDoNothing({
-      target: [projectBlobs.project_id, projectBlobs.hash, projectBlobs.transfer_id]
-    });
+  // Under the hash's lock, so a blob cleanup that found the hash unnamed has
+  // finished deleting its object before this row names it (review F27).
+  await withBlobLock(copy.blobHash, (locked) =>
+    locked
+      .insert(projectBlobs)
+      .values({
+        id: createTimeOrderedUuid(),
+        project_id: copy.projectId,
+        user_id: copy.userId,
+        hash: copy.blobHash,
+        size: copy.size,
+        transfer_id: copy.transferId,
+        committed_at: now.toISOString(),
+        created_at: now.toISOString()
+      })
+      .onConflictDoNothing({
+        target: [projectBlobs.project_id, projectBlobs.hash, projectBlobs.transfer_id]
+      })
+  );
   await db.insert(recoveryCopies).values({
     id: createTimeOrderedUuid(),
     project_id: copy.projectId,
