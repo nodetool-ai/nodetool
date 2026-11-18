@@ -75,6 +75,30 @@ describe.each(DIALECTS)("withTransaction on %s", { timeout: 30_000 }, (name, ini
     expect(await names()).toEqual([]);
   });
 
+  it("does not hand a finished transaction to work the body started (review F21)", async () => {
+    await init();
+    let later: Promise<void> = Promise.resolve();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await withTransaction(async () => {
+      // Work started inside the body that runs after the commit.
+      later = gate.then(async () => {
+        expect(inTransaction()).toBe(false);
+        await expect(
+          withTransaction(async () => {
+            await makeWorkflow("after commit");
+            throw new Error("refused");
+          })
+        ).rejects.toThrow("refused");
+      });
+    });
+    release();
+    await later;
+    expect(await names()).toEqual([]);
+  });
+
   it("counts access changes and reads them under a share lock", async () => {
     await init();
     const doc = { kind: "workflow", id: "w1" };
