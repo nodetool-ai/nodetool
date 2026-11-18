@@ -30,6 +30,7 @@
 
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <vector>
 
 class QHttpMultiPart;
@@ -56,6 +57,16 @@ struct TrpcError {
     QString apiCode;   // error.data.apiCode, for example "ALREADY_EXISTS"
     int httpStatus = 0;
 };
+
+// The credential for one request to a server an account signed in to: the
+// access token, empty when signed out, and a check that turns true once the
+// account signs out, here or in another app.
+struct RequestAuthorization {
+    QString token;
+    std::function<bool()> signedOut;
+};
+// Called once per request, on the thread that sends it.
+using RequestAuthorizer = std::function<RequestAuthorization()>;
 
 struct QueryResult {
     QJsonValue data;
@@ -125,10 +136,19 @@ public:
     // Reads default to timeoutMs; writes retain their inactivity timeout unless
     // a deadline is supplied. Explicit 0 disables the elapsed bound.
     void setDeadlineMs(int ms) { m_deadlineMs = ms; }
+    // Authorizes each request through the account in place of the fixed
+    // token, so a sign-out stops the next request from carrying the
+    // credential and aborts the running ones (CANCELLED). The fixed token
+    // still names the cache folder (userKey).
+    void setAuthorizer(RequestAuthorizer authorizer) { m_authorizer = std::move(authorizer); }
 
     QueryResult getTimeline(const QString& id) { return query(QStringLiteral("timeline.get"), {{QStringLiteral("id"), id}}); }
     QueryResult listTimelines(const QString& projectId = QString());
     QueryResult getAsset(const QString& id) { return query(QStringLiteral("assets.get"), {{QStringLiteral("id"), id}}); }
+
+    // True when the thread is interrupted or the account signed out.
+    // Thread-safe: an AssetCache fetching for this client asks it.
+    bool cancelled() const;
 
 private:
     QueryResult write(const QString& operation, QNetworkRequest request, const QByteArray* json,
@@ -139,6 +159,11 @@ private:
     int m_timeoutMs;
     QByteArray m_expectedInstance;
     int m_deadlineMs = -1;
+    RequestAuthorizer m_authorizer;
+    // The sign-out check of the last authorization. `m_authMutex` guards it,
+    // because decorate() is also handed to AssetCache.
+    mutable std::mutex m_authMutex;
+    mutable std::function<bool()> m_signedOut;
     std::unique_ptr<QNetworkAccessManager> m_nam;
 };
 

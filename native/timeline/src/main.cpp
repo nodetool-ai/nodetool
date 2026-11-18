@@ -926,6 +926,7 @@ int main(int argc, char** argv) {
     const auto cloudSource = nt::server::cloudTimelineSource();
     std::shared_ptr<nodetool::account::AccountSession> cloudSession;
     QString cloudToken;
+    nt::server::RequestAuthorizer cloudAuthorizer;
     // The account of the cloud timeline's server, for the share dialog.
     // AccountServers owns it.
     nodetool::account::qt::AccountController* cloudAccount = nullptr;
@@ -946,7 +947,21 @@ int main(int argc, char** argv) {
             return 1;
         }
         cloudToken = QString::fromStdString(credential.accessToken);
-        nt::server::setCloudToken(cloudToken);
+        // Each cloud request asks the account for its credential, so a
+        // sign-out in either app reaches a load that is still running.
+        cloudAuthorizer = [session = cloudSession] {
+            const nodetool::account::Authorization authorization = session->authorizeRequest();
+            nt::server::RequestAuthorization out;
+            if (authorization.status == nodetool::account::CredentialStatus::Ready) {
+                out.token = QString::fromStdString(authorization.accessToken);
+            }
+            const bool signedOut = authorization.status == nodetool::account::CredentialStatus::SignedOut;
+            out.signedOut = [cancel = authorization.cancel, signedOut] {
+                return signedOut || (cancel && cancel->cancelled());
+            };
+            return out;
+        };
+        nt::server::setCloudToken(cloudToken, cloudAuthorizer);
     }
     const QString source = sources.first();
     const auto loaded = nt::server::loadTimelineSource(source);
@@ -1105,6 +1120,7 @@ int main(int argc, char** argv) {
         options.localToken = qEnvironmentVariable("NODETOOL_API_TOKEN");
         options.cacheRoot = cloudSource->cacheDir;
         options.accessToken = cloudToken;
+        options.authorizer = cloudAuthorizer;
         cloudSaver = std::make_unique<nt::account::CloudTimelineSaver>(model, cloudSession, std::move(options));
         QObject::connect(cloudSaver.get(), &nt::account::CloudTimelineSaver::errorChanged, &app,
                          [saver = cloudSaver.get()] { qWarning().noquote() << saver->error(); });
@@ -1240,6 +1256,11 @@ int main(int argc, char** argv) {
     view.rootContext()->setContextProperty(QStringLiteral("nativeCloudDocument"),
                                            cloudSaver ? cloudSaver->document() : nullptr);
     view.rootContext()->setContextProperty(QStringLiteral("nativeCloudAccount"), cloudSaver ? cloudAccount : nullptr);
+    view.rootContext()->setContextProperty(QStringLiteral("nativeCloudSaver"), cloudSaver.get());
+    if (cloudSaver) {
+        // The window stays open while its last edit is only in memory.
+        cloudSaver->guardClose(&view);
+    }
     view.rootContext()->setContextProperty(QStringLiteral("nativeInteractiveRun"),
                                            !background && QGuiApplication::platformName() != u"offscreen");
     view.loadFromModule("NodeTool.Timeline", "TimelineEditor");

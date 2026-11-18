@@ -13,7 +13,7 @@ double voicingDurationMs(nt::server::ServerClient& client, const QJsonObject& as
     const auto original = nt::server::originalFile(client, asset, &reason);
     QTemporaryDir staging;
     if (!original || !staging.isValid()) { return 0; }
-    nt::server::AssetCache cache(staging.path(), client.serverKey(), client.userKey(), [&client](QNetworkRequest& request) { client.decorate(request); });
+    nt::server::AssetCache cache(staging.path(), client.serverKey(), client.userKey(), [&client](QNetworkRequest& request) { client.decorate(request); }, [&client] { return client.cancelled(); });
     const auto fetched = cache.fetch(asset.value("id").toString(), "original", *original);
     if (!fetched.ok() || QThread::currentThread()->isInterruptionRequested()) { return 0; }
     const auto facts = nt::probeMedia(fetched.path.toStdString());

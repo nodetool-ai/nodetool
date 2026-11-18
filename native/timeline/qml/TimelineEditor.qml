@@ -20,6 +20,8 @@ Controls.Control {
     property CloudDocument cloudDocument: typeof nativeCloudDocument !== "undefined" ? nativeCloudDocument : null
     // The account of that timeline's server. The owner shares from it.
     property AccountController cloudAccount: typeof nativeCloudAccount !== "undefined" ? nativeCloudAccount : null
+    // Its saver asks before the window closes without the last edits.
+    property QtObject cloudSaver: typeof nativeCloudSaver !== "undefined" ? nativeCloudSaver : null
     property var chatSession: typeof nativeChatSession !== "undefined" ? nativeChatSession : null
     property var chatHost: typeof nativeChatHost !== "undefined" ? nativeChatHost : null
     readonly property bool chatInitiallyOpen: typeof nativeChatInitiallyOpen !== "undefined" && nativeChatInitiallyOpen
@@ -283,6 +285,50 @@ Controls.Control {
         when: root.chatHost !== null
     }
     PanelSlot { slot: "overlay"; anchors.fill: parent }
+    Connections {
+        target: root.cloudSaver
+        function onCloseBlockedChanged() {
+            if (root.cloudSaver.closeBlocked) unsavedCloseDialog.open()
+            else unsavedCloseDialog.close()
+        }
+    }
+    Ui.Dialog {
+        id: unsavedCloseDialog
+        objectName: "unsavedCloseDialog"
+        width: Math.min(440, (parent ? parent.width : 0) - 2 * Ui.Metrics.xl)
+        title: "Changes not saved on this computer"
+        // Escape keeps the window open, as Keep open does.
+        onClosed: if (root.cloudSaver && root.cloudSaver.closeBlocked) root.cloudSaver.cancelClose()
+        ColumnLayout {
+            width: unsavedCloseDialog.availableWidth
+            spacing: Ui.Metrics.md
+            Ui.Text {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                text: "The last changes to this timeline could not be written on this computer, so they are not sent to the cloud yet. Closing now loses them."
+            }
+            RowLayout {
+                Layout.alignment: Qt.AlignRight
+                spacing: Ui.Metrics.sm
+                Ui.EditorButton {
+                    objectName: "unsavedCloseDiscard"
+                    text: "Close without them"
+                    onClicked: root.cloudSaver.discardAndClose()
+                }
+                Ui.EditorButton {
+                    objectName: "unsavedCloseKeep"
+                    text: "Keep open"
+                    onClicked: root.cloudSaver.cancelClose()
+                }
+                Ui.EditorButton {
+                    objectName: "unsavedCloseRetry"
+                    variant: Ui.EditorButton.Primary
+                    text: "Try again"
+                    onClicked: root.cloudSaver.retryClose()
+                }
+            }
+        }
+    }
     ShortcutsSheet {
         id: shortcuts
         anchors.fill: parent

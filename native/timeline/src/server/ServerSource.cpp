@@ -32,6 +32,8 @@ struct Args {
     // account's access token, which main sets with setCloudToken.
     bool cloud = false;
     QString role;
+    // Set with the token by setCloudToken.
+    RequestAuthorizer authorizer;
     std::string label;  // the positional argument put into argv
 };
 
@@ -176,8 +178,10 @@ std::optional<CloudSource> cloudTimelineSource() {
     return CloudSource{QUrl(a.server), a.timeline, a.role, a.cacheDir};
 }
 
-void setCloudToken(const QString& token) {
-    if (args().cloud) args().token = token;
+void setCloudToken(const QString& token, RequestAuthorizer authorizer) {
+    if (!args().cloud) return;
+    args().token = token;
+    args().authorizer = std::move(authorizer);
 }
 
 std::optional<SaveTarget> serverSaveTarget() {
@@ -221,6 +225,7 @@ ParseResult loadTimelineSource(const QString& source) {
     options.timelineId = a.timeline;
     options.cacheRoot = a.cacheDir;
     options.token = a.token;
+    options.authorizer = a.authorizer;
     ServerOpenResult opened = openServerTimeline(options);
 
     QString reportPath = a.reportPath;

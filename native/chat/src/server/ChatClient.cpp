@@ -33,6 +33,11 @@ void attachServerToken(QNetworkRequest &request, const QUrl &server, const QStri
     return;
   }
   request.setRawHeader("Authorization", "Bearer " + token.toUtf8());
+  // Qt copies the headers to every redirect it follows, to any origin.
+  const QVariant policy = request.attribute(QNetworkRequest::RedirectPolicyAttribute);
+  if (!policy.isValid() || policy.toInt() != QNetworkRequest::ManualRedirectPolicy) {
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::SameOriginRedirectPolicy);
+  }
 }
 } // namespace
 

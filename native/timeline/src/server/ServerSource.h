@@ -62,8 +62,10 @@ struct CloudSource {
 };
 // The cloud timeline the command line names, or nullopt.
 std::optional<CloudSource> cloudTimelineSource();
-// The access token the cloud timeline and its media are read with.
-void setCloudToken(const QString& token);
+// The account's access token, which names the media cache folder, and the
+// authorizer each request of the cloud timeline and its media goes through,
+// so a sign-out in any app stops them.
+void setCloudToken(const QString& token, RequestAuthorizer authorizer);
 
 // Where a save of the server timeline goes, when the source is a server
 // (`--server ... --timeline ...` or a loaded positional server label).

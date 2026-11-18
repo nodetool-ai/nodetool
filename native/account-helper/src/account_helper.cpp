@@ -2,6 +2,7 @@
 
 #include "nodetool/account/accounts_index.h"
 #include "nodetool/account/origin.h"
+#include "nodetool/account/session_record.h"
 
 #include <deque>
 #include <utility>
@@ -44,6 +45,13 @@ struct AccountHelper::Core : std::enable_shared_from_this<Core> {
   std::mutex mutex;
   std::condition_variable wake;
   std::deque<std::function<void()>> tasks;
+  // Server ends, on their own thread, so a server that holds one never
+  // delays a sign-out or a state change on `tasks`.
+  std::condition_variable networkWake;
+  std::deque<std::function<void()>> networkTasks;
+  bool serverEndRunning = false;
+  // A sign-out came while a server end ran: the next one runs at once.
+  bool serverEndAgain = false;
   bool stopping = false;
   State state = State::SignedOut;
   std::string displayName;
@@ -86,6 +94,33 @@ struct AccountHelper::Core : std::enable_shared_from_this<Core> {
       tasks.push_back(std::move(task));
     }
     wake.notify_all();
+  }
+
+  void postNetwork(std::function<void()> task) {
+    {
+      const std::lock_guard lock(mutex);
+      if (stopping) {
+        return;
+      }
+      networkTasks.push_back(std::move(task));
+    }
+    networkWake.notify_all();
+  }
+
+  void runNetwork() {
+    for (;;) {
+      std::function<void()> task;
+      {
+        std::unique_lock lock(mutex);
+        networkWake.wait(lock, [this] { return stopping || !networkTasks.empty(); });
+        if (stopping) {
+          return;
+        }
+        task = std::move(networkTasks.front());
+        networkTasks.pop_front();
+      }
+      task();
+    }
   }
 
   void postRefresh() {
@@ -220,6 +255,14 @@ struct AccountHelper::Core : std::enable_shared_from_this<Core> {
       if (account::normalizeOrigin(entry.serverOrigin) != origin) {
         continue;
       }
+      // Without a keychain the helper's store is its own memory, which
+      // holds no other app's record. An account it can't read is left
+      // alone: its repair rule would take the missing record for a
+      // sign-out and end that app's session.
+      if (!options.keychainAvailable &&
+          !account::readSessionRecord(*options.store, account::keychainAccount(options.serverOrigin, entry.userId))) {
+        continue;
+      }
       std::shared_ptr<AccountSession> candidate =
           held && held->accountId() == entry.userId
               ? held
@@ -266,11 +309,8 @@ struct AccountHelper::Core : std::enable_shared_from_this<Core> {
     bool pending = false;
     if (current) {
       const bool allowed = policyAllows.load(std::memory_order_acquire);
-      // A session the policy holds back is not adopted: only its display
-      // and a pending server end are read from the record.
-      if (allowed) {
-        current->checkGenerationFile();
-      }
+      // The helper holds no credential, so it only reads the record and the
+      // generation file. It never refreshes (TC112).
       const AccountSession::Status status = current->status();
       next = allowed && status.state == SessionState::SignedIn ? State::SignedIn : State::SignedOut;
       name = status.displayName;
@@ -289,22 +329,38 @@ struct AccountHelper::Core : std::enable_shared_from_this<Core> {
       if (!pending) {
         serverEndAttempt = 0;
         nextServerEndMs.reset();
-      } else if (!nextServerEndMs || now() >= *nextServerEndMs) {
+      } else if (!serverEndRunning && (!nextServerEndMs || now() >= *nextServerEndMs)) {
         // The first time a pending end is seen, such as at the helper's
-        // start, it is tried at once. A sign-out already tried, and sets
-        // the next attempt itself.
+        // start or after a sign-out, it is tried at once.
         endNow = true;
+        serverEndRunning = true;
       }
       emitStateLocked(lock);
     }
     if (endNow && current) {
-      const bool stillPending = current->endPendingSessions() == account::ServerEnd::Pending;
-      {
-        const std::lock_guard lock(mutex);
-        serverEndAttempt = stillPending ? serverEndAttempt + 1 : 0;
-        nextServerEndMs = retryAt(serverEndAttempt);
-      }
-      postRefresh();
+      postNetwork([weak = weak_from_this(), current] {
+        const bool stillPending = current->endPendingSessions() == account::ServerEnd::Pending;
+        const auto core = weak.lock();
+        if (!core) {
+          return;
+        }
+        {
+          const std::lock_guard lock(core->mutex);
+          core->serverEndRunning = false;
+          if (core->serverEndAgain) {
+            core->serverEndAgain = false;
+            core->serverEndAttempt = 0;
+            core->nextServerEndMs.reset();
+          } else {
+            core->serverEndAttempt = stillPending ? core->serverEndAttempt + 1 : 0;
+            core->nextServerEndMs = core->retryAt(core->serverEndAttempt);
+          }
+        }
+        core->postRefresh();
+      });
+    } else if (endNow) {
+      const std::lock_guard lock(mutex);
+      serverEndRunning = false;
     }
   }
 
@@ -397,12 +453,15 @@ struct AccountHelper::Core : std::enable_shared_from_this<Core> {
     if (!current) {
       return;
     }
-    const account::ServerEnd end = current->signOut();
+    // The local steps only. The server end follows on the network thread,
+    // from refresh(), so this sign-out reaches the other apps at once.
+    const bool saved = current->signOutLocally();
     {
       std::unique_lock lock(mutex);
       serverEndAttempt = 0;
-      nextServerEndMs = retryAt(0);
-      if (end == account::ServerEnd::NotSaved) {
+      nextServerEndMs.reset();
+      serverEndAgain = serverEndRunning;
+      if (!saved) {
         message = "The sign-out could not be saved on this computer. This app no longer uses the sign-in. "
                   "Restart the other NodeTool apps so they stop using it too.";
       }
@@ -416,6 +475,7 @@ AccountHelper::AccountHelper(HelperOptions options, Emit emit)
     : core_(std::make_shared<Core>(std::move(options), std::move(emit))) {
   core_->readPolicy();
   taskThread_ = std::thread([core = core_] { core->runTasks(); });
+  networkThread_ = std::thread([core = core_] { core->runNetwork(); });
   tickerThread_ = std::thread([core = core_] { core->runTicker(); });
   core_->postRefresh();
 }
@@ -430,14 +490,17 @@ AccountHelper::~AccountHelper() {
     }
   }
   core_->wake.notify_all();
+  core_->networkWake.notify_all();
   if (signInThread_.joinable()) {
     signInThread_.join();
   }
   tickerThread_.join();
   taskThread_.join();
+  networkThread_.join();
   // Tasks that never started hold the Core. Dropping them ends the cycle.
   const std::lock_guard lock(core_->mutex);
   core_->tasks.clear();
+  core_->networkTasks.clear();
 }
 
 void AccountHelper::runOnTaskThread(const std::function<void()>& fn) {

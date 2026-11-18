@@ -28,3 +28,30 @@ test("keeps sources and the allowed CMake fixture", () => {
     assert.equal(isBuildOutput(path), false, path);
   }
 });
+
+test("flags any file in a native build folder, such as a library", () => {
+  for (const path of [
+    "native/account/build-qt/libnodetool_account.a",
+    "native/timeline/build/nodetool-timeline",
+    "native/node-editor/cmake-build-debug/node_editor.exe",
+    "native/graph-runner/build-release/gr.dll"
+  ]) {
+    assert.equal(isBuildOutput(path), true, path);
+  }
+});
+
+test("keeps a Wavefront model and folders that only look like build folders", () => {
+  for (const path of [
+    "examples/models/triangle.obj",
+    "native/game/assets/cube.obj",
+    "native/account/buildtools/README.md",
+    "native/account/src/build-info.cpp",
+    "packages/foo/build-x/file.ts"
+  ]) {
+    assert.equal(isBuildOutput(path), false, path);
+  }
+});
+
+test("still flags an MSVC object under CMakeFiles", () => {
+  assert.equal(isBuildOutput("native/account/out/CMakeFiles/a.dir/session.cpp.obj"), true);
+});

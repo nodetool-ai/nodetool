@@ -320,8 +320,8 @@ public:
         if (inlineChild_ && childParent_) {
             return childParent_->hasUnsavedChanges() || document_.graph() != syncedChildGraph_;
         }
-        // A cloud workflow keeps its edits in the local draft store, and
-        // closing the tab writes the last one.
+        // A cloud workflow keeps its edits in the local draft store.
+        // confirmTabClose writes the last one, and asks when it can't.
         if (cloud_) {
             return false;
         }
@@ -774,6 +774,9 @@ private:
   QString cloudId_;
   // The server the cloud workflow was opened from.
   QString cloudOrigin_;
+  // The canonical server and the account the cloud document is open under.
+  QString cloudServerKey_;
+  QString cloudAccountId_;
   // Set while the opened revision loads, so the load is not sent as an edit.
   bool cloudLoading_ = false;
   void startCloudDocument(std::shared_ptr<nodetool::account::AccountSession> session, const QString &documentId,
