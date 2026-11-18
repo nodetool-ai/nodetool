@@ -12869,6 +12869,14 @@
     "installOnThisComputer": "Installera {{installLabel}} på den här datorn",
     "install": "Installera",
     "selectLanguageModel": "Välj språkmodell",
+    "agentFit": {
+      "noToolsLabel": "Inga verktyg",
+      "noToolsTooltip": "Enligt leverantören kan den här modellen inte anropa verktyg. Agenter behöver verktygsanrop, så använd den bara för ren textgenerering.",
+      "freeTierLabel": "Gratisnivå",
+      "freeTierTooltip": "OpenRouter begränsar gratismodeller per minut och per dag. En agentkörning gör många anrop, så med en gratismodell fastnar eller misslyckas den ofta. Den betalda vägen till samma modell omfattas inte av gränsen.",
+      "defaultLabel": "Agentstandard",
+      "defaultTooltip": "NodeTool använder den här modellen som standard för agentarbete. Den är inte rankad per uppgift än: inga testresultat för text-, bild- eller videoarbete är publicerade."
+    },
     "searchLanguageModels": "Sök efter språkmodeller",
     "installProviderToUseModel": "Installera {{installLabel}} för att använda denna modell.",
     "modelNotReady": "Denna modell är inte redo att användas.",

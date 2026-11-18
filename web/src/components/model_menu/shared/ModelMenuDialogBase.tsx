@@ -41,7 +41,7 @@ import ModelFiltersBar from "../ModelFiltersBar";
 import ProviderList from "../ProviderList";
 import ModelMenuNavItem from "./ModelMenuNavItem";
 import ModelList from "../ModelList";
-import type { DownloadableModel } from "../ModelList";
+import type { DownloadableModel, ModelRowBadge } from "../ModelList";
 import { downloadMatchesProvider } from "./downloadMatchesProvider";
 import ModelPackCard from "../../hugging_face/ModelPackCard";
 import {
@@ -122,6 +122,8 @@ interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
    * usable model, so the route to a key is not only the footer link.
    */
   promptForApiKey?: boolean;
+  /** A note shown on a model's row, such as how well it suits agents. */
+  rowBadge?: (model: TModel) => ModelRowBadge | null;
   /**
    * The provider capabilities this picker serves. A local provider that
    * serves one of them is listed even before its package is installed, and
@@ -156,6 +158,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   setupStepCapabilities,
   selectedModel,
   promptForApiKey = false,
+  rowBadge,
   localCapabilities
 }: ModelMenuBaseProps<TModel>) {
   const { t } = useTranslation();
@@ -785,6 +788,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           onClose={onClose}
           selectedModel={selectedModel}
           pendingInstalls={pendingInstalls}
+          rowBadge={rowBadge}
         />
         )}
       </Box>

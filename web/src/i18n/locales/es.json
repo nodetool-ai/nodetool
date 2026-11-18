@@ -13068,6 +13068,14 @@
     "installOnThisComputer": "Instale {{installLabel}} en esta computadora",
     "install": "Instalar",
     "selectLanguageModel": "Seleccionar modelo de idioma",
+    "agentFit": {
+      "noToolsLabel": "Sin herramientas",
+      "noToolsTooltip": "Según el proveedor, este modelo no puede llamar a herramientas. Los agentes necesitan llamadas a herramientas, así que úsalo solo para generar texto.",
+      "freeTierLabel": "Nivel gratuito",
+      "freeTierTooltip": "OpenRouter limita los modelos gratuitos por minuto y por día. Una ejecución de agente hace muchas solicitudes, así que con un modelo gratuito suele atascarse o fallar. La ruta de pago del mismo modelo no tiene este límite.",
+      "defaultLabel": "Predeterminado para agentes",
+      "defaultTooltip": "NodeTool usa este modelo de forma predeterminada para el trabajo de agentes. Aún no está clasificado por tarea: no hay resultados de pruebas publicados para texto, imagen o vídeo."
+    },
     "searchLanguageModels": "Buscar modelos de lenguaje",
     "installProviderToUseModel": "Instale {{installLabel}} para usar este modelo.",
     "modelNotReady": "Este modelo no está listo para usar.",

@@ -124,6 +124,9 @@ function reportedCost(body: Record<string, unknown>): number | undefined {
 }
 
 export class OpenRouterProvider extends OpenAICompatProvider {
+  /** Whether each listed model accepts `tools`, from the last `/models` read. */
+  private toolSupport = new Map<string, boolean>();
+
   protected override declaredCapabilities(): readonly ProviderCapability[] {
     return [
       "text_to_image",
@@ -166,12 +169,18 @@ export class OpenRouterProvider extends OpenAICompatProvider {
     return { OPENROUTER_API_KEY: this.apiKey };
   }
 
+  /**
+   * OpenRouter's `/models` rows list `supported_parameters`, and a model that
+   * can call tools includes `"tools"` there. The model picker lists models
+   * before it asks, so the answer comes from that listing. A model this
+   * instance has not listed falls back to the o1/o3 rule, without a fetch,
+   * so a chat turn never waits on the catalog.
+   */
   override async hasToolSupport(model: string): Promise<boolean> {
+    const listed = this.toolSupport.get(model);
+    if (listed !== undefined) return listed;
     const lower = model.toLowerCase();
-    if (lower.includes("o1") || lower.includes("o3")) {
-      return false;
-    }
-    return true;
+    return !(lower.includes("o1") || lower.includes("o3"));
   }
 
   /**
@@ -420,7 +429,18 @@ export class OpenRouterProvider extends OpenAICompatProvider {
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    return this.listCompatModels();
+    const rows = await this.fetchCompatModelRows();
+    return rows.map((row) => {
+      const parameters = row.supported_parameters;
+      if (Array.isArray(parameters)) {
+        this.toolSupport.set(row.id, parameters.includes("tools"));
+      }
+      return {
+        id: row.id,
+        name: isString(row.name) && row.name.length > 0 ? row.name : row.id,
+        provider: this.provider
+      };
+    });
   }
 
   /** Speech models are `/models` rows whose output modality is `speech`. */

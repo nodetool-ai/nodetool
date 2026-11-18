@@ -12869,6 +12869,14 @@
     "installOnThisComputer": "Asenna {{installLabel}} tälle tietokoneelle",
     "install": "Asenna",
     "selectLanguageModel": "Valitse kielimalli",
+    "agentFit": {
+      "noToolsLabel": "Ei työkaluja",
+      "noToolsTooltip": "Palveluntarjoajan mukaan tämä malli ei voi kutsua työkaluja. Agentit tarvitsevat työkalukutsuja, joten käytä sitä vain pelkkään tekstin tuottamiseen.",
+      "freeTierLabel": "Ilmaistaso",
+      "freeTierTooltip": "OpenRouter rajoittaa ilmaisia malleja minuutti- ja päiväkohtaisesti. Agenttiajot tekevät paljon pyyntöjä, joten ne jumittuvat tai epäonnistuvat usein ilmaisella mallilla. Saman mallin maksullinen reitti ei kuulu tämän rajan piiriin.",
+      "defaultLabel": "Agenttien oletus",
+      "defaultTooltip": "NodeTool käyttää tätä mallia oletuksena agenttityöhön. Sitä ei ole vielä arvioitu tehtäväkohtaisesti: teksti-, kuva- tai videotyön testituloksia ei ole julkaistu."
+    },
     "searchLanguageModels": "Hae kielimalleja",
     "installProviderToUseModel": "Asenna {{installLabel}}, jotta voit käyttää tätä mallia.",
     "modelNotReady": "Tämä malli ei ole vielä käyttövalmis.",

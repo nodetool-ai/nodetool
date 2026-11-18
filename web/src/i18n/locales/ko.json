@@ -12869,6 +12869,14 @@
     "installOnThisComputer": "이 컴퓨터에 {{installLabel}}을 설치합니다.",
     "install": "설치",
     "selectLanguageModel": "언어 모델 선택",
+    "agentFit": {
+      "noToolsLabel": "도구 없음",
+      "noToolsTooltip": "제공자에 따르면 이 모델은 도구를 호출할 수 없습니다. 에이전트에는 도구 호출이 필요하므로 일반 텍스트 생성에만 사용하세요.",
+      "freeTierLabel": "무료 등급",
+      "freeTierTooltip": "OpenRouter는 무료 모델에 분당 및 일일 요청 한도를 둡니다. 에이전트 실행은 요청을 많이 보내므로 무료 모델에서는 자주 멈추거나 실패합니다. 같은 모델의 유료 경로에는 이 한도가 적용되지 않습니다.",
+      "defaultLabel": "에이전트 기본값",
+      "defaultTooltip": "NodeTool은 에이전트 작업에 이 모델을 기본으로 사용합니다. 아직 작업별 평가는 없습니다. 텍스트, 이미지, 동영상 작업에 대한 테스트 결과가 공개되지 않았습니다."
+    },
     "searchLanguageModels": "언어 모델 검색",
     "installProviderToUseModel": "이 모델을 사용하려면 {{installLabel}}을 설치하세요.",
     "modelNotReady": "이 모델은 아직 사용할 준비가 되지 않았습니다.",
