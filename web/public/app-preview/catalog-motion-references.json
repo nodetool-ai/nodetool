@@ -374,10 +374,37 @@
                   "gap": 24,
                   "left": [
                     {
+                      "type": "ChoiceCards",
+                      "props": {
+                        "id": "in-prompttemplate-choices",
+                        "binding": "var:promptTemplate",
+                        "label": "Start from a look",
+                        "columns": 2,
+                        "options": [
+                          {
+                            "value": "The product from {{product_image}}: {{title}} in {{color}}, {{description}}. Set it in the scene from {{background_image}} with the props from {{decoration_image}} around it. The camera makes one slow quarter orbit around the product while soft light from the scene falls across it. The product's shape, colour, material and markings stay exactly as in {{product_image}}. No text, no hands.",
+                            "title": "Product in your scene",
+                            "description": "The product stands in your background with your props, and the camera orbits it."
+                          },
+                          {
+                            "value": "The product from {{product_image}}: {{title}} in {{color}}, {{description}}. It stands on a tabletop in the setting from {{background_image}}, with the props from {{decoration_image}} arranged loosely behind it and slightly out of focus. The camera pushes in slowly until the product fills the centre of the frame. The product's shape, colour, material and markings stay exactly as in {{product_image}}. No text, no hands.",
+                            "title": "Styled tabletop",
+                            "description": "Props sit soft behind the product and the camera pushes in."
+                          },
+                          {
+                            "value": "The product from {{product_image}}: {{title}} in {{color}}, {{description}}. It stands alone at the centre of the scene from {{background_image}}. The camera stays locked while one band of warm light sweeps across the product from left to right, then the scene settles. The product's shape, colour, material and markings stay exactly as in {{product_image}}. No text, no hands.",
+                            "title": "Hero light sweep",
+                            "description": "The product alone in your scene, with one sweep of light across it."
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
                       "type": "Text",
                       "props": {
                         "id": "note-3",
-                        "text": "Read the catalog, then click a field below the prompt to insert its placeholder. You can also type {{column}}, for example {{title}} or {{color}}. Name the images with {{product_image}}, {{background_image}} and {{decoration_image}}. The model gets them in that order: image 1 is the product, then the background, then the decoration. A reference you leave out is skipped, and its placeholder is removed from the prompt."
+                        "text": "Read the catalog, then click a field below the prompt to insert its placeholder. You can also type {{column}}, for example {{title}} or {{color}}. Name the images with {{product_image}}, {{background_image}} and {{decoration_image}}. The model gets them in that order: image 1 is the product, then the background, then the decoration. A reference you leave out is skipped, and its placeholder is removed from the prompt. Pick a look to start, then edit it."
                       }
                     },
                     {
@@ -1241,7 +1268,7 @@
           "type": "str",
           "optional": true
         },
-        "default": "The product from {{product_image}}: {{title}} in {{color}}, {{description}}. Set it in the scene from {{background_image}} with the props from {{decoration_image}}. Slow three-quarter orbit around the product, soft key light, gentle reflections. The product stays centred, sharp and unchanged. No text, no hands.",
+        "default": "The product from {{product_image}}: {{title}} in {{color}}, {{description}}. Set it in the scene from {{background_image}} with the props from {{decoration_image}} around it. The camera makes one slow quarter orbit around the product while soft light from the scene falls across it. The product's shape, colour, material and markings stay exactly as in {{product_image}}. No text, no hands.",
         "scope": "user",
         "persist": true
       },
@@ -1252,7 +1279,7 @@
           "type": "str",
           "optional": true
         },
-        "default": "text, changing logos, warped product, extra objects, hands",
+        "default": "text, captions, changing logos, warped or melting product, morphing shape, flicker, extra objects, hands",
         "scope": "user",
         "persist": true
       },
@@ -1392,7 +1419,7 @@
             "type": "nodetool.input.StringInput",
             "data": {
               "name": "prompt_template",
-              "value": "{{title}} in {{color}}, {{description}}. Slow three-quarter orbit around the product on a seamless studio backdrop, soft key light, gentle reflections. The product stays centred, sharp and unchanged. No text, no hands.",
+              "value": "{{title}} in {{color}}, {{description}}. The camera makes one slow, steady quarter orbit around the product, which stays still at the centre of the frame on a seamless studio sweep. A soft key light from the upper left glides across its surface as the camera moves, and a faint reflection stays under it on the floor. The product's shape, colour, material and markings stay exactly as in the photo. No text, no hands, no other objects.",
               "description": "The video prompt. {{column}} inserts that product's value",
               "line_mode": "multi_line"
             },
@@ -1573,7 +1600,7 @@
             "type": "nodetool.input.StringInput",
             "data": {
               "name": "prompt_template",
-              "value": "The product from {{product_image}}: {{title}} in {{color}}, {{description}}. Set it in the scene from {{background_image}} with the props from {{decoration_image}}. Slow three-quarter orbit around the product, soft key light, gentle reflections. The product stays centred, sharp and unchanged. No text, no hands.",
+              "value": "The product from {{product_image}}: {{title}} in {{color}}, {{description}}. Set it in the scene from {{background_image}} with the props from {{decoration_image}} around it. The camera makes one slow quarter orbit around the product while soft light from the scene falls across it. The product's shape, colour, material and markings stay exactly as in {{product_image}}. No text, no hands.",
               "description": "The video prompt. {{column}} inserts that product's value",
               "line_mode": "multi_line"
             },
@@ -1792,7 +1819,7 @@
             "type": "nodetool.input.StringInput",
             "data": {
               "name": "negative_prompt",
-              "value": "text, changing logos, warped product, extra objects, hands",
+              "value": "text, captions, changing logos, warped or melting product, morphing shape, flicker, extra objects, hands",
               "description": "What every clip should avoid"
             },
             "ui_properties": {
@@ -1913,25 +1940,25 @@
       {
         "Row": 1,
         "Product": "Trail Tumbler",
-        "Prompt": "The product from {{product_image}}: Trail Tumbler in olive green, insulated tumbler with a flip lid that keeps coffee hot for six hours. Set it in the scene from {{background_image}} with the props from {{decoration_image}}. Slow three-quarter orbit around the product, soft key light, gentle reflections. The product stays centred, sharp and unchanged. No text, no hands.",
+        "Prompt": "The product from {{product_image}}: Trail Tumbler in olive green, insulated tumbler with a flip lid that keeps coffee hot for six hours. Set it in the scene from {{background_image}} with the props from {{decoration_image}} around it. The camera makes one slow quarter orbit around the product while soft light from the scene falls across it. The product's shape, colour, material and markings stay exactly as in {{product_image}}. No text, no hands.",
         "Image": "trail-tumbler.jpg"
       },
       {
         "Row": 2,
         "Product": "Meridian Watch",
-        "Prompt": "The product from {{product_image}}: Meridian Watch in steel and graphite, smartwatch with a 42 mm brushed case and a soft sport band. Set it in the scene from {{background_image}} with the props from {{decoration_image}}. Slow three-quarter orbit around the product, soft key light, gentle reflections. The product stays centred, sharp and unchanged. No text, no hands.",
+        "Prompt": "The product from {{product_image}}: Meridian Watch in steel and graphite, smartwatch with a 42 mm brushed case and a soft sport band. Set it in the scene from {{background_image}} with the props from {{decoration_image}} around it. The camera makes one slow quarter orbit around the product while soft light from the scene falls across it. The product's shape, colour, material and markings stay exactly as in {{product_image}}. No text, no hands.",
         "Image": "meridian-watch.jpg"
       },
       {
         "Row": 3,
         "Product": "Olive Travel Cup",
-        "Prompt": "The product from {{product_image}}: Olive Travel Cup in muted olive, matte travel cup with a charcoal lid for the morning commute. Set it in the scene from {{background_image}} with the props from {{decoration_image}}. Slow three-quarter orbit around the product, soft key light, gentle reflections. The product stays centred, sharp and unchanged. No text, no hands.",
+        "Prompt": "The product from {{product_image}}: Olive Travel Cup in muted olive, matte travel cup with a charcoal lid for the morning commute. Set it in the scene from {{background_image}} with the props from {{decoration_image}} around it. The camera makes one slow quarter orbit around the product while soft light from the scene falls across it. The product's shape, colour, material and markings stay exactly as in {{product_image}}. No text, no hands.",
         "Image": "olive-travel-cup.jpg"
       },
       {
         "Row": 4,
         "Product": "Message Bottle",
-        "Prompt": "The product from {{product_image}}: Message Bottle in clear, clear glass bottle with a cork stopper and a folded paper note inside. Set it in the scene from {{background_image}} with the props from {{decoration_image}}. Slow three-quarter orbit around the product, soft key light, gentle reflections. The product stays centred, sharp and unchanged. No text, no hands.",
+        "Prompt": "The product from {{product_image}}: Message Bottle in clear, clear glass bottle with a cork stopper and a folded paper note inside. Set it in the scene from {{background_image}} with the props from {{decoration_image}} around it. The camera makes one slow quarter orbit around the product while soft light from the scene falls across it. The product's shape, colour, material and markings stay exactly as in {{product_image}}. No text, no hands.",
         "Image": "message-bottle.jpg"
       }
     ],
@@ -1960,8 +1987,8 @@
     },
     "var:imageColumn": "",
     "var:nameColumn": "",
-    "var:promptTemplate": "The product from {{product_image}}: {{title}} in {{color}}, {{description}}. Set it in the scene from {{background_image}} with the props from {{decoration_image}}. Slow three-quarter orbit around the product, soft key light, gentle reflections. The product stays centred, sharp and unchanged. No text, no hands.",
-    "var:negativePrompt": "text, changing logos, warped product, extra objects, hands",
+    "var:promptTemplate": "The product from {{product_image}}: {{title}} in {{color}}, {{description}}. Set it in the scene from {{background_image}} with the props from {{decoration_image}} around it. The camera makes one slow quarter orbit around the product while soft light from the scene falls across it. The product's shape, colour, material and markings stay exactly as in {{product_image}}. No text, no hands.",
+    "var:negativePrompt": "text, captions, changing logos, warped or melting product, morphing shape, flicker, extra objects, hands",
     "var:aspectRatio": "1:1",
     "var:resolution": "720p",
     "var:duration": 5,
