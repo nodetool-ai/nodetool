@@ -91,7 +91,7 @@ private slots:
         QDirIterator files(cache.path(), {"*.mp4"}, QDir::Files, QDirIterator::Subdirectories);
         QVERIFY(files.hasNext());
         const QString path = files.next();
-        AssetCache::evictRoot(cache.path(), 1, {});
+        save.assetCache().evict(1, {});
         QVERIFY(QFile::exists(path));
         QVERIFY(model.replaceClips(base.value("clips").toArray()));
         QTRY_COMPARE_WITH_TIMEOUT(save.baseUpdatedAt(), QString("u1"), 5000);
@@ -394,14 +394,15 @@ private slots:
                 : server;
             return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", data}}}}).toJson();
         });
-        auto fetched = openProbedServerTimeline({http.base(), "seq", cache.path(), {}, true});
+        const AssetCacheRoot root(cache.path());
+        auto fetched = openProbedServerTimeline({http.base(), "seq", root, {}, true, {}, {}});
         QVERIFY2(fetched.timeline, qPrintable(fetched.error));
         const auto replacement = fetched.timeline->clips[0];
         QVERIFY(!replacement.mediaPath.empty());
         QVERIFY(!replacement.audioPath.empty());
         QVERIFY(QFile::exists(QString::fromStdString(replacement.mediaPath)));
         fetched.mediaLeases.clear();
-        AutosaveController save({http.base(), {}, "seq", cache.path(), {}}, model.undoStack(),
+        AutosaveController save(root, {http.base(), {}, "seq", cache.path(), {}}, model.undoStack(),
             [&] { return model.timeline().raw; }, "u0");
         save.setExternalSync(false);
         save.setAutosave(false);
@@ -412,7 +413,7 @@ private slots:
         QTRY_COMPARE(save.baseUpdatedAt(), QString("u1"));
         QCOMPARE(save.externalConflicts().size(), 1);
         QCOMPARE(model.timeline().clips[0].mediaPath, loaded.timeline->clips[0].mediaPath);
-        AssetCache::evictRoot(cache.path(), 1, {});
+        save.assetCache().evict(1, {});
         QVERIFY(QFile::exists(QString::fromStdString(replacement.mediaPath)));
         QVERIFY(save.acceptExternalConflict("a", &model));
         QCOMPARE(model.timeline().clips[0].raw["currentAssetId"], clip["currentAssetId"]);

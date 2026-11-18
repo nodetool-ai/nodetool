@@ -190,7 +190,7 @@ private slots:
         QCOMPARE(cloud->origin, QUrl("https://cloud.example"));
         QCOMPARE(cloud->timelineId, QString("t1"));
         QCOMPARE(cloud->role, QString("editor"));
-        QVERIFY(!cloud->cacheDir.isEmpty());
+        QVERIFY(!nt::server::timelineCacheDirectory().isEmpty());
         QVERIFY(!nt::server::serverSaveTarget().has_value());
 
         // The local server's token is never sent to the cloud, and the

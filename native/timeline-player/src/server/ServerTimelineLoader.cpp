@@ -92,11 +92,7 @@ void ServerTimelineLoader::cancel() {
 
 void ServerTimelineLoader::start(const Request& request) {
     m_discard = false;
-    ServerOpenOptions options;
-    options.server = m_origin;
-    options.timelineId = request.id;
-    options.cacheRoot = m_cache;
-    options.token = m_token;
+    ServerOpenOptions options{m_origin, request.id, m_cache, m_token, true, {}, {}};
     // The worker and the queued completion share this storage. Either can
     // outlive the other when the loader is destroyed.
     auto result = std::make_shared<WorkerResult>();

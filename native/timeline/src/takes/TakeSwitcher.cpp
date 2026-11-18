@@ -43,8 +43,8 @@ nt::Clip resolveFromServer(const QJsonObject& rawClip, const QString& assetId,
     client.setExpectedInstance(target->expectedInstance);
     const auto asset = client.getAsset(assetId);
     if (!asset.ok()) { return {}; }
-    const auto cacheRoot = QDir::cleanPath(QDir(target->backupDir).absoluteFilePath("../../.."));
-    return nt::assets::resolveDroppedMedia(client, cacheRoot, asset.data.toObject(), rawClip, *protection, protection->generation());
+
+    return nt::assets::resolveDroppedMedia(client, asset.data.toObject(), rawClip, *protection, protection->generation());
 }
 }
 
@@ -54,7 +54,7 @@ TakeSwitcher::TakeSwitcher(TimelineModel* model) : QObject(model), m_model(model
     m_messageTimer.setInterval(MESSAGE_MS);
     connect(&m_messageTimer, &QTimer::timeout, this, [this] { setMessage({}); });
     // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
-    auto protection = std::make_shared<nt::assets::MediaProtection>();
+    auto protection = std::make_shared<nt::assets::MediaProtection>(nt::server::timelineAssetCache());
     m_resolver = [protection](const QJsonObject& rawClip, const QString& assetId) {
         return resolveFromServer(rawClip, assetId, protection);
     };

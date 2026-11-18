@@ -62,6 +62,10 @@ def cmake_calls(text):
             cursor += 1
         if depth:
             raise ValueError('Unclosed CMake command')
+        while name == 'cmake_language' and arguments[:1] == ['CALL'] and len(arguments) >= 2:
+            if not re.fullmatch(r'[A-Za-z_]\w*', arguments[1]):
+                break
+            name, arguments = arguments[1].lower(), arguments[2:]
         yield name, arguments
         index = cursor
 
@@ -245,6 +249,8 @@ def cmake_link_errors(cmake_files, policy):
                  if platform_links and (match := variable_ref.fullmatch(arg))}
     assigned = set()
     link_properties = {'LINK_LIBRARIES', 'INTERFACE_LINK_LIBRARIES', 'INTERFACE_LINK_LIBRARIES_DIRECT'}
+    legacy_link_property = re.compile(r'(?:IMPORTED_)?LINK_INTERFACE_LIBRARIES(?:_.+)?')
+    standard_libraries = re.compile(r'CMAKE_CXX_STANDARD_LIBRARIES(?:_INIT)?')
     errors = []
     # The audit visits every branch. A removal cannot make an earlier link
     # safe, so collect every value that can be introduced into a link list.
@@ -259,7 +265,14 @@ def cmake_link_errors(cmake_files, policy):
                 properties = args[args.index('PROPERTY') + 1:][:1]
             elif command == 'set_target_properties' and 'PROPERTIES' in args:
                 properties = args[args.index('PROPERTIES') + 1::2]
-            if command == 'link_libraries' or any(name in link_properties or '$' in name for name in properties):
+            if command == 'cmake_language' and args[:1] == ['CALL']:
+                errors.append(f'{label}: unresolved cmake_language(CALL) command')
+            for arg in args:
+                if standard_libraries.fullmatch(arg):
+                    errors.append(f'{label}: use target_link_libraries() instead of {arg}')
+            if command == 'link_libraries' or any(
+                name in link_properties or legacy_link_property.fullmatch(name) or '$' in name for name in properties
+            ):
                 errors.append(f'{label}: use target_link_libraries() instead of {command}() to set link dependencies')
             if command in {'if', 'foreach', 'while', 'function', 'macro', 'block'}:
                 scope_depth += 1

@@ -18,10 +18,9 @@ public:
         const auto asset = client.getAsset(assetId);
         if (!asset.ok()) { out.error = asset.describe(); return out; }
         out.asset = asset.data.toObject();
-        // ServerSource places backups at <cacheRoot>/<serverKey>/<userKey>/timelines.
-        const auto cacheRoot = QDir::cleanPath(QDir(m_target.backupDir).absoluteFilePath("../../.."));
+
         const QJsonObject clip{{"mediaType", "audio"}, {"currentAssetId", assetId}};
-        out.media = nt::assets::resolveDroppedMedia(client, cacheRoot, out.asset, clip, protection, generation);
+        out.media = nt::assets::resolveDroppedMedia(client, out.asset, clip, protection, generation);
         if (out.media.audioPath.empty()) { out.error = QStringLiteral("The audio could not be downloaded."); }
         return out;
     }

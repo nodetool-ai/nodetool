@@ -392,23 +392,24 @@ Item {
         nt::server::ServerClient client(http.base());
         const QJsonObject withProxy{{"id", "video"}, {"get_url", "/original.mp4"}, {"size", bytes.size()},
             {"content_type", "video/mp4"}, {"proxy_status", "ready"}, {"proxy_url", "/proxy.mp4?v=p1"}};
-        const auto proxy = nt::assets::fetchScrubSource(client, cache.path(), withProxy);
+        const nt::server::AssetCacheRoot root(cache.path());
+        const auto proxy = nt::assets::fetchScrubSource(client, root, withProxy);
         QVERIFY(proxy.ok());
         QVERIFY(proxy.path.contains("/proxy/"));
         QVERIFY(QFileInfo::exists(proxy.path));
         QCOMPARE(http.countRequests("GET", "/original.mp4"), 0);
         // A second ask is a cache hit.
         http.clearRequests();
-        QCOMPARE(nt::assets::fetchScrubSource(client, cache.path(), withProxy).path, proxy.path);
+        QCOMPARE(nt::assets::fetchScrubSource(client, root, withProxy).path, proxy.path);
         QCOMPARE(http.countRequests("GET", "/proxy.mp4"), 0);
         // Without a proxy the original comes.
         const QJsonObject plain{{"id", "plain"}, {"get_url", "/original.mp4"}, {"size", bytes.size()}, {"content_type", "video/mp4"}};
-        const auto original = nt::assets::fetchScrubSource(client, cache.path(), plain);
+        const auto original = nt::assets::fetchScrubSource(client, root, plain);
         QVERIFY(original.ok());
         QVERIFY(original.path.contains("/original/"));
         // An asset with no file, and a stop request, fetch nothing.
-        QVERIFY(!nt::assets::fetchScrubSource(client, cache.path(), {{"id", "folder"}, {"content_type", "folder"}}).ok());
-        QVERIFY(!nt::assets::fetchScrubSource(client, cache.path(), plain, [] { return true; }).ok());
+        QVERIFY(!nt::assets::fetchScrubSource(client, root, {{"id", "folder"}, {"content_type", "folder"}}).ok());
+        QVERIFY(!nt::assets::fetchScrubSource(client, root, plain, [] { return true; }).ok());
     }
 };
 

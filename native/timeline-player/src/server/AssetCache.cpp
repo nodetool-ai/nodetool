@@ -1,6 +1,5 @@
 #include "server/AssetCache.h"
 
-#include <QCryptographicHash>
 #include <QDateTime>
 #include <QDir>
 #include <QDirIterator>
@@ -15,7 +14,6 @@
 #include <QRegularExpression>
 #include <QThread>
 #include <QTimer>
-#include <QUuid>
 
 #include <algorithm>
 #include <map>
@@ -33,15 +31,6 @@ QString pathKey(const QString& path) {
     if (!canonical.isEmpty()) return canonical;
     const QString parent = QFileInfo(info.absolutePath()).canonicalFilePath();
     return QDir(parent.isEmpty() ? info.absolutePath() : parent).filePath(info.fileName());
-}
-
-// Hidden lock files let independently opened roots and path-only consumers
-// cooperate without a process singleton. The directory guard serializes pin
-// creation with removal of a payload. QLockFile clears pins of dead processes.
-QString pinPrefix(const QString& path) {
-    const auto name = QFileInfo(path).fileName();
-    const auto hash = QCryptographicHash::hash(name.toUtf8(), QCryptographicHash::Sha256).toHex();
-    return QStringLiteral(".lease-") + QString::fromLatin1(hash) + u'-';
 }
 
 struct Attempt {
@@ -279,46 +268,26 @@ QString safePathPart(const QString& s) {
     return out.left(64);
 }
 
-// Thread-safe. The mutex guards pin counts, pin files and folder mutex lookup.
+// Thread-safe. The mutex guards lease counts and folder mutex lookup.
 struct AssetCacheRoot::Registry {
-    struct Pin {
-        size_t count = 0;
-        std::unique_ptr<QLockFile> file;
-    };
     std::mutex mutex;
-    std::map<QString, Pin> pins;
+    std::map<QString, size_t> leases;
     std::map<QString, std::weak_ptr<std::mutex>> folders;
 };
 
-// The path is immutable. Creating or releasing a lease mutates the registry
-// under its mutex, including when the last reader finishes on a worker.
+// Thread-safe. The immutable path identifies a count guarded by the registry mutex.
 struct AssetCacheRoot::LeaseHolder {
     LeaseHolder(std::shared_ptr<Registry> owner, QString value)
         : registry(std::move(owner)), path(std::move(value)) {
         const std::lock_guard lock(registry->mutex);
-        auto& pin = registry->pins[path];
-        if (++pin.count != 1) {
-            return;
-        }
-
-        const QDir folder(QFileInfo(path).absolutePath());
-        QLockFile guard(folder.filePath(QStringLiteral(".lease-guard")));
-        guard.setStaleLockTime(0);
-        if (guard.lock()) {
-            auto file = std::make_unique<QLockFile>(
-                folder.filePath(pinPrefix(path) + QUuid::createUuid().toString(QUuid::Id128)));
-            file->setStaleLockTime(0);
-            if (file->tryLock(0)) {
-                pin.file = std::move(file);
-            }
-        }
+        ++registry->leases[path];
     }
 
     ~LeaseHolder() {
         const std::lock_guard lock(registry->mutex);
-        auto it = registry->pins.find(path);
-        if (--it->second.count == 0) {
-            registry->pins.erase(it);
+        const auto it = registry->leases.find(path);
+        if (--it->second == 0) {
+            registry->leases.erase(it);
         }
     }
 
@@ -328,7 +297,20 @@ struct AssetCacheRoot::LeaseHolder {
 };
 
 AssetCacheRoot::AssetCacheRoot(QString path)
-    : m_path(std::move(path)), m_registry(std::make_shared<Registry>()) {}
+    : m_path(path.isEmpty() ? QString{} : QDir(path).absolutePath()),
+      m_canonicalPath(path.isEmpty() ? QString{} : QDir::cleanPath(pathKey(m_path))),
+      m_registry(std::make_shared<Registry>()) {}
+
+QString AssetCacheRoot::leaseKey(const QString& path) const {
+    const auto absolute = QDir::cleanPath(QFileInfo(path).absoluteFilePath());
+    // Cache paths can use the configured root or its canonical spelling.
+    // Paths outside those directories need only a lexical identity.
+    if ((!m_path.isEmpty() && absolute.startsWith(m_path + u'/')) ||
+        (!m_canonicalPath.isEmpty() && absolute.startsWith(m_canonicalPath + u'/'))) {
+        return pathKey(absolute);
+    }
+    return absolute;
+}
 
 std::shared_ptr<std::mutex> AssetCacheRoot::folderMutex(const QString& dir) const {
     const auto key = pathKey(dir);
@@ -364,47 +346,20 @@ void AssetCache::protect(const QString& path) {
     m_protected->paths.try_emplace(key, std::move(held));
 }
 
-AssetCache::Lease AssetCache::lease(const QString& path) {
-    return AssetCacheRoot(QFileInfo(path).absolutePath()).lease(path);
-}
-
 AssetCacheRoot::Lease AssetCacheRoot::lease(const QString& path) const {
     if (path.isEmpty()) return {};
-    auto holder = std::make_shared<LeaseHolder>(m_registry, pathKey(path));
+    auto holder = std::make_shared<LeaseHolder>(m_registry, leaseKey(path));
     return Lease(holder, &holder->path);
 }
 
 bool AssetCacheRoot::removeIfUnprotected(const QString& path) const {
+    const auto key = leaseKey(path);
     const std::lock_guard lock(m_registry->mutex);
-    const auto key = pathKey(path);
-    if (m_registry->pins.contains(key)) {
-        return false;
-    }
-
-    const QDir folder(QFileInfo(key).absolutePath());
-    QLockFile guard(folder.filePath(QStringLiteral(".lease-guard")));
-    guard.setStaleLockTime(0);
-    if (!guard.tryLock(0)) {
-        return false;
-    }
-    const auto pins = folder.entryList({pinPrefix(key) + u'*'}, QDir::Files | QDir::Hidden);
-    for (const auto& name : pins) {
-        QLockFile pin(folder.filePath(name));
-        pin.setStaleLockTime(0);
-        if (!pin.tryLock(0)) {
-            return false;
-        }
-    }
-    return QFile::remove(path);
+    return !m_registry->leases.contains(key) && QFile::remove(path);
 }
 
 void AssetCache::evict(const QString& justFetched) const {
     m_root.evict(m_budgetBytes, justFetched, {}, true);
-}
-
-void AssetCache::evictRoot(const QString& root, qint64 budget, const QString& justFetched,
-                           const std::function<void()>& afterScan) {
-    AssetCacheRoot(root).evict(budget, justFetched, afterScan);
 }
 
 void AssetCacheRoot::evict(qint64 budget, const QString& justFetched, const std::function<void()>& afterScan) const {
@@ -413,7 +368,7 @@ void AssetCacheRoot::evict(qint64 budget, const QString& justFetched, const std:
 
 void AssetCacheRoot::evict(qint64 budget, const QString& justFetched,
                           const std::function<void()>& afterScan, bool fetchedFolderLocked) const {
-    if (budget <= 0) return;
+    if (budget <= 0 || m_path.isEmpty()) return;
     struct Entry {
         QString path;
         QDateTime used;
@@ -601,7 +556,7 @@ FetchResult AssetCache::fetch(const QString& assetId, const QString& variant, co
         // The older versions of this asset and variant are stale now.
         for (const QString& name : QDir(dir).entryList(QDir::Files | QDir::Hidden)) {
             const QString path = QDir(dir).filePath(name);
-            if (path != finalPath && name != u".lock" && !name.startsWith(u".lease-")) {
+            if (path != finalPath && name != u".lock") {
                 m_root.removeIfUnprotected(path);
             }
         }

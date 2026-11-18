@@ -24,10 +24,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 if(PROJECT_IS_TOP_LEVEL)
     include(CTest)
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-        add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fexperimental-library>)
-        add_link_options(-fexperimental-library)
-    endif()
+endif()
+# Apple libc++ requires this flag for std::jthread, including in superprojects.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fexperimental-library>)
+    add_link_options(-fexperimental-library)
 endif()
 
 # GuiPrivate carries the include path of the semi-public QRhi API (<rhi/qrhi.h>),
@@ -321,9 +322,8 @@ target_link_libraries(nodetool_timeline_audio
     PUBLIC nodetool_timeline_scene PkgConfig::FFMPEG
     PRIVATE nodetool_kernels ${NT_PLAYER_AUDIO_PLATFORM_LIBS})
 target_compile_options(nodetool_timeline_audio PRIVATE ${NT_PLAYER_WARNINGS})
-# Apple libc++ requires this flag for std::jthread.
-if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" AND NOT PROJECT_IS_TOP_LEVEL)
-    target_compile_options(nodetool_timeline_audio PRIVATE -fexperimental-library)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    # A superproject also needs the library when it links the audio target.
     target_link_options(nodetool_timeline_audio INTERFACE -fexperimental-library)
 endif()
 set_source_files_properties(src/audio/miniaudio.cpp PROPERTIES COMPILE_OPTIONS "${NT_PLAYER_NO_WARNINGS}")
@@ -447,9 +447,6 @@ if(BUILD_TESTING)
     qt_add_executable(tst_audioeffects tests/tst_audioeffects.cpp)
     qt_add_executable(tst_ducking tests/tst_ducking.cpp)
     qt_add_executable(tst_liveloudness tests/tst_liveloudness.cpp)
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-        target_compile_options(tst_liveloudness PRIVATE -fexperimental-library)
-    endif()
     qt_add_executable(tst_loudness tests/tst_loudness.cpp)
     qt_add_executable(tst_loudnessengine tests/tst_loudnessengine.cpp)
     qt_add_executable(tst_shuttlestretch tests/tst_shuttlestretch.cpp)

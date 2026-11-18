@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
     if (!writeClicks(clicks, 24)) { return fail("could not write the click track"); }
     const auto source = backend->upload(clicks, "Click track", "");
     if (!source.ok()) { return fail("source upload: " + source.error); }
-    nt::assets::MediaProtection protection;
+    nt::assets::MediaProtection protection{nt::server::AssetCacheRoot(cache)};
     const auto resolved = backend->resolve(source.asset.value("id").toString(), protection, 0);
     if (!resolved.ok()) { return fail("source resolve: " + resolved.error); }
     const nt::remix::FileWindow window{resolved.media.audioPath, 0, 24000};

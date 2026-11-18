@@ -59,7 +59,7 @@ struct CloudTimelineOptions {
     QUrl localServer;
     QString localToken;
     // Where the cloud media is cached, as loadTimelineSource used it.
-    QString cacheRoot;
+    server::AssetCacheRoot cacheRoot;
     // The access token, which names the media cache folder.
     QString accessToken;
     // Authorizes each request for the media of a draft through the account.

@@ -44,6 +44,7 @@
 #include "server/SaveCli.h"
 #include "server/BundledServer.h"
 #include "server/ServerSource.h"
+#include "server/ServerTimelineLoader.h"
 
 #include "aiassist/AgentBridge.h"
 #include "aiassist/AssistantCommands.h"
@@ -753,6 +754,9 @@ int main(int argc, char** argv) {
     nt::render2d::loadTimelineFonts();
     app.setApplicationName(QStringLiteral("nodetool-timeline"));
     app.setApplicationVersion(QStringLiteral(NT_APP_VERSION));
+    const nt::server::AssetCacheRoot assetCache(nt::server::timelineCacheDirectory());
+    nt::server::setTimelineAssetCache(app, assetCache);
+    nt::server::ServerLoaderWorkers loaderWorkers;
 
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral("NodeTool timeline editor, native prototype"));
@@ -964,7 +968,7 @@ int main(int argc, char** argv) {
         nt::server::setCloudToken(cloudToken, cloudAuthorizer);
     }
     const QString source = sources.first();
-    const auto loaded = nt::server::loadTimelineSource(source);
+    const auto loaded = nt::server::loadTimelineSource(source, assetCache);
     const QStringList wh = parser.value(sizeOpt).split(QLatin1Char('x'));
     bool okW = false;
     bool okH = false;
@@ -1110,15 +1114,18 @@ int main(int argc, char** argv) {
     // Declared before the view, whose QML shows its document.
     std::unique_ptr<nt::account::CloudTimelineSaver> cloudSaver;
     if (cloudSource) {
-        nt::account::CloudTimelineOptions options;
-        options.origin = cloudSource->origin;
-        options.timelineId = cloudSource->timelineId;
-        options.role = cloudSource->role;
-        options.localServer = QUrl(qEnvironmentVariable("NODETOOL_SERVER_URL", QStringLiteral("http://127.0.0.1:7777")));
-        options.localToken = qEnvironmentVariable("NODETOOL_API_TOKEN");
-        options.cacheRoot = cloudSource->cacheDir;
-        options.accessToken = cloudToken;
-        options.authorizer = cloudAuthorizer;
+        nt::account::CloudTimelineOptions options{
+            .origin = cloudSource->origin,
+            .timelineId = cloudSource->timelineId,
+            .role = cloudSource->role,
+            .localServer = QUrl(qEnvironmentVariable("NODETOOL_SERVER_URL", QStringLiteral("http://127.0.0.1:7777"))),
+            .localToken = qEnvironmentVariable("NODETOOL_API_TOKEN"),
+            .cacheRoot = assetCache,
+            .accessToken = cloudToken,
+            .authorizer = cloudAuthorizer,
+            .draftStore = {},
+            .transport = {},
+        };
         cloudSaver = std::make_unique<nt::account::CloudTimelineSaver>(model, cloudSession, std::move(options));
         QObject::connect(cloudSaver.get(), &nt::account::CloudTimelineSaver::errorChanged, &app,
                          [saver = cloudSaver.get()] { qWarning().noquote() << saver->error(); });
@@ -1135,9 +1142,9 @@ int main(int argc, char** argv) {
     std::unique_ptr<nt::motion::MatteResolver> matteResolver;
     std::unique_ptr<nt::app::LocalDocumentSaver> localSaver;
     if (const auto target = nt::server::serverSaveTarget()) {
-        matteResolver = std::make_unique<nt::motion::MatteResolver>(model, *target);
+        matteResolver = std::make_unique<nt::motion::MatteResolver>(model, *target, assetCache);
         autosave = std::make_unique<nt::server::AutosaveController>(
-            *target, model.undoStack(), [&model]() { return model.timeline().raw; },
+            assetCache, *target, model.undoStack(), [&model]() { return model.timeline().raw; },
             loaded.timeline->raw.value(u"updatedAt").toString());
         QObject::connect(&model, &TimelineModel::commandSettled, autosave.get(),
                          &nt::server::AutosaveController::documentChanged);

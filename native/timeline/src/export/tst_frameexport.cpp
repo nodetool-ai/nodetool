@@ -146,11 +146,11 @@ private slots:
             return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", asset}}}}).toJson();
         });
         QTemporaryDir dir;
-        nt::assets::MediaProtection protection;
+        nt::assets::MediaProtection protection{nt::server::AssetCacheRoot(dir.path())};
         nt::server::FetchResult result;
         auto thread = std::unique_ptr<QThread>(QThread::create([&] {
             nt::server::ServerClient client(http.base());
-            result = nt::assets::resolveOriginalMedia(client, dir.path(), "asset", protection);
+            result = nt::assets::resolveOriginalMedia(client, "asset", protection);
         }));
         const auto join = qScopeGuard([&] { thread->requestInterruption(); thread->wait(); });
         thread->start();

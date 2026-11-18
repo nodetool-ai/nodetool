@@ -153,11 +153,12 @@ private slots:
         });
         QTemporaryDir cache;
         QVERIFY(cache.isValid());
-        const auto loaded = nt::server::openProbedServerTimeline({server.base(), "settings-test", cache.path(), {}, true});
+        const nt::server::AssetCacheRoot root(cache.path());
+        const auto loaded = nt::server::openProbedServerTimeline({server.base(), "settings-test", root, {}, true, {}, {}});
         QVERIFY2(loaded.timeline, qPrintable(loaded.error));
         TimelineModel model;
         model.setTimeline(*loaded.timeline);
-        nt::server::AutosaveController save({server.base(), {}, "settings-test", cache.path(), {}},
+        nt::server::AutosaveController save(root, {server.base(), {}, "settings-test", cache.path(), {}},
             model.undoStack(), [&model] { return model.timeline().raw; }, "u0");
         save.setExternalSync(false);
         save.setAutosave(false);

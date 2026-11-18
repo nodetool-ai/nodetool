@@ -133,7 +133,7 @@ bool activeRecoveryExists(const nt::server::SaveTarget& target) {
 }
 }
 
-GenerationController::GenerationController(QObject* parent) : QObject(parent), m_transport(this), m_poll(this), m_reconnect(this), m_previewTimeline(new TimelineModel(this)), m_previewClock(new PlaybackClock(this)), m_mediaProtection(std::make_shared<nt::assets::MediaProtection>()), m_workflow(new nt::ai::WorkflowGeneration(&m_transport, this)) {
+GenerationController::GenerationController(QObject* parent) : QObject(parent), m_transport(this), m_poll(this), m_reconnect(this), m_previewTimeline(new TimelineModel(this)), m_previewClock(new PlaybackClock(this)), m_mediaProtection(std::make_shared<nt::assets::MediaProtection>(nt::server::timelineAssetCache())), m_workflow(new nt::ai::WorkflowGeneration(&m_transport, this)) {
     if (QCoreApplication::instance()) {
         const auto configuredMode = QCoreApplication::instance()->property("timelineAudioMode").toString();
         if (!configuredMode.isEmpty()) m_previewAudioMode = configuredMode;
@@ -1171,8 +1171,8 @@ void GenerationController::resolve(const QString& clipId, const QString& takeId,
         }
         if (result.ok()) {
             result.data = nt::assets::withProbedVideoDuration(client, result.data.toObject());
-            const auto cacheRoot = QDir::cleanPath(QDir(target.backupDir).absoluteFilePath("../../.."));
-            media = nt::assets::resolveDroppedMedia(client, cacheRoot, result.data.toObject(), rawClip, *protection, mediaGeneration);
+
+            media = nt::assets::resolveDroppedMedia(client, result.data.toObject(), rawClip, *protection, mediaGeneration);
             if (rawClip.value("mediaType") == "audio" && !media.audioPath.empty() &&
                 result.data.toObject().value("duration").toDouble() <= 0) {
                 const auto facts = nt::probeMedia(media.audioPath);

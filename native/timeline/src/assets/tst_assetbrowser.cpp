@@ -159,10 +159,11 @@ private slots:
         nt::server::SaveTarget target;
         target.server = http.base();
         target.backupDir = dir.filePath("server/user/timelines");
-        nt::motion::MatteResolver resolver(model, target);
+        const nt::server::AssetCacheRoot root(dir.path());
+        nt::motion::MatteResolver resolver(model, target, root);
         std::vector<std::unique_ptr<AssetBrowser>> browsers;
         for (int i = 0; i < browserCount; ++i) {
-            auto browser = std::make_unique<AssetBrowser>();
+            auto browser = std::make_unique<AssetBrowser>(root);
             browser->m_target = target;
             browser->setTimeline(&model);
             browsers.push_back(std::move(browser));
@@ -217,7 +218,7 @@ private slots:
         gestures.setClock(&clock);
         nt::targeting::TrackTargeting::current().setTrackTargeted("v", true);
         nt::targeting::TrackTargeting::current().setTrackTargeted("a", true);
-        AssetBrowser browser;
+        AssetBrowser browser{nt::server::AssetCacheRoot(cache.path())};
         browser.setTimeline(&model);
         browser.m_target = nt::server::SaveTarget{http.base(), {}, "seq",
             cache.filePath("server/user/timelines"), {}};
@@ -273,10 +274,11 @@ private slots:
         second.timeline->clips.front().audioPath = QDir::current().relativeFilePath(paths[2]).toStdString();
         TimelineModel model;
         model.setTimeline(std::move(*first.timeline));
-        AssetBrowser browser;
+        const nt::server::AssetCacheRoot root(dir.path());
+        AssetBrowser browser(root);
         browser.setTimeline(&model);
         bool switched = false;
-        browser.m_mediaProtection->evict(dir.path(), 1024 * 1024, paths[3], [&] {
+        root.evict(1024 * 1024, paths[3], [&] {
             model.setTimeline(std::move(*second.timeline));
             switched = true;
         });
@@ -316,9 +318,9 @@ private slots:
         QLockFile held(dir.filePath("locked/.lock"));
         held.setStaleLockTime(0);
         QVERIFY(held.tryLock(0));
-        nt::assets::MediaProtection protection;
+        nt::assets::MediaProtection protection{nt::server::AssetCacheRoot(dir.path())};
         protection.protect(QDir::current().relativeFilePath(paths[0]));
-        protection.evict(dir.path(), budget, paths[4]);
+        protection.cache().evict(budget, paths[4]);
         QCOMPARE(QFileInfo::exists(paths[2]), !evicted);
         for (const auto& path : paths) {
             if (path != paths[2]) { QVERIFY2(QFileInfo::exists(path), qPrintable(path)); }
@@ -335,15 +337,16 @@ private slots:
             QCOMPARE(file.write(QByteArray(700000, 'b')), 700000);
             paths.append(path);
         }
-        nt::assets::MediaProtection document;
+        const nt::server::AssetCacheRoot cache(dir.path());
+        nt::assets::MediaProtection document(cache);
         document.reset({paths[0]});
-        auto exportLeases = nt::assets::MediaProtection::leasePaths({paths[1]});
-        document.evict(dir.path(), 700000, paths[2]);
+        auto exportLeases = nt::assets::MediaProtection::leasePaths(cache, {paths[1]});
+        cache.evict(700000, paths[2]);
         QVERIFY(QFileInfo::exists(paths[0]));
         QVERIFY(QFileInfo::exists(paths[1]));
         document.reset({});
         exportLeases.clear();
-        document.evict(dir.path(), 700000, paths[2]);
+        cache.evict(700000, paths[2]);
         QVERIFY(!QFileInfo::exists(paths[0]));
         QVERIFY(!QFileInfo::exists(paths[1]));
         QVERIFY(QFileInfo::exists(paths[2]));
@@ -356,11 +359,11 @@ private slots:
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
         nt::server::ServerClient client(http.base());
-        nt::assets::MediaProtection protection;
+        nt::assets::MediaProtection protection{nt::server::AssetCacheRoot(dir.path())};
         const QJsonObject asset{{"id", "video"}, {"get_url", "/original.mp4"},
             {"size", 700000}, {"content_type", "video/mp4"},
             {"proxy_status", "ready"}, {"proxy_url", "/proxy.mp4?v=proxy1"}};
-        const auto media = nt::assets::resolveDroppedMedia(client, dir.path(), asset,
+        const auto media = nt::assets::resolveDroppedMedia(client, asset,
             {{"id", "clip"}, {"mediaType", "video"}}, protection, protection.generation());
         const QString preview = QString::fromStdString(media.mediaPath);
         const QString original = QString::fromStdString(media.originalMediaPath);
@@ -595,7 +598,7 @@ private slots:
         second.timeline->clips.front().audioPath = paths[2].toStdString();
         TimelineModel model;
         model.setTimeline(std::move(*first.timeline));
-        AssetBrowser browser;
+        AssetBrowser browser{nt::server::AssetCacheRoot(dir.path())};
         browser.setTimeline(&model);
         nt::server::SaveTarget target;
         target.server = http.base();
@@ -696,7 +699,7 @@ private slots:
         }
         TimelineModel model;
         model.setTimeline(std::move(*parsed.timeline));
-        AssetBrowser browser;
+        AssetBrowser browser{nt::server::AssetCacheRoot(dir.path())};
         browser.setTimeline(&model);
         nt::server::SaveTarget target;
         target.server = http.base();

@@ -22,8 +22,9 @@ public:
     ServerLoaderWorkers();
     ~ServerLoaderWorkers() override;
 
-    // Stops admitting requests, interrupts outstanding network I/O and
-    // joins all workers. aboutToQuit and the destructor call this on the UI thread.
+    // Permanently stops admitting requests, interrupts network I/O and joins
+    // all workers. aboutToQuit and the destructor call this on the UI thread.
+    // Create a new owner before running the application event loop again.
     void shutdown();
 
 private:

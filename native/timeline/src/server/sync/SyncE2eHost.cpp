@@ -6,6 +6,7 @@
 #include "server/AssetCache.h"
 #include "server/AutosaveController.h"
 #include "server/ServerTimelineProbe.h"
+#include "server/ServerSource.h"
 
 #include <QCommandLineParser>
 #include <QDir>
@@ -66,9 +67,10 @@ int main(int argc, char** argv) {
         return 2;
     }
     const auto id = parser.value("timeline");
-    const auto cache = parser.value("cache-dir");
+    const nt::server::AssetCacheRoot cache(parser.value("cache-dir"));
+    nt::server::setTimelineAssetCache(app, cache);
     const auto token = parser.isSet("token") ? parser.value("token") : qEnvironmentVariable("NODETOOL_API_TOKEN");
-    auto opened = nt::server::openProbedServerTimeline({server, id, cache, token, true});
+    auto opened = nt::server::openProbedServerTimeline({server, id, cache, token, true, {}, {}});
     if (!opened.timeline) {
         std::fprintf(stderr, "open: %s\n", qPrintable(opened.error));
         return 1;
@@ -78,9 +80,9 @@ int main(int argc, char** argv) {
     model.setTimeline(std::move(*opened.timeline));
     PlaybackClock clock;
     const nt::server::ServerClient client(server, token);
-    const auto backup = QDir(cache).filePath(nt::server::safePathPart(client.serverKey()) + u'/' +
+    const auto backup = QDir(cache.path()).filePath(nt::server::safePathPart(client.serverKey()) + u'/' +
         nt::server::safePathPart(client.userKey()) + QStringLiteral("/timelines"));
-    nt::server::AutosaveController save({server, token, id, backup,
+    nt::server::AutosaveController save(cache, {server, token, id, backup,
         qEnvironmentVariable("NODETOOL_TIMELINE_EXPECT_INSTANCE")}, model.undoStack(),
         [&model] { return model.timeline().raw; }, base);
     if (parser.isSet("sync-url")) {

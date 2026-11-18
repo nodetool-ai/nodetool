@@ -15,7 +15,7 @@
 #include <utility>
 
 SourceMonitor::SourceMonitor(QObject* parent) : QObject(parent), m_model(new TimelineModel(this)),
-    m_clock(new PlaybackClock(this)), m_protection(std::make_shared<nt::assets::MediaProtection>()),
+    m_clock(new PlaybackClock(this)), m_protection(std::make_shared<nt::assets::MediaProtection>(nt::server::timelineAssetCache())),
     m_silent(std::make_shared<const nt::Timeline>()) {
     connect(m_clock, &PlaybackClock::playingChanged, this, [this] {
         if (m_clock->playing()) {
@@ -99,8 +99,8 @@ void SourceMonitor::startOpen(const Request& request) {
             if (result.ok() && !interrupted()) {
                 const auto fetched = result.data.toObject();
                 for (auto it = fetched.begin(); it != fetched.end(); ++it) { asset.insert(it.key(), it.value()); }
-                const auto cacheRoot = QDir::cleanPath(QDir(target->backupDir).absoluteFilePath("../../.."));
-                media = nt::assets::resolveDroppedMedia(client, cacheRoot, asset, clip, *protection, generation);
+
+                media = nt::assets::resolveDroppedMedia(client, asset, clip, *protection, generation);
             }
         }
         if (interrupted()) { return; }

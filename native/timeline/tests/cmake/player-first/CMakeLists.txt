@@ -28,11 +28,16 @@ endif()
 
 if(BUILD_TESTING AND (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR
                       CMAKE_PROJECT_NodeToolTimelinePlayer_INCLUDE STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}/AppleClangOptions.cmake"))
-    get_target_property(loudness_flags tst_liveloudness COMPILE_OPTIONS)
-    if(NOT "-fexperimental-library" IN_LIST loudness_flags)
-        message(SEND_ERROR "AppleClang tst_liveloudness compile options omit -fexperimental-library")
-    endif()
-    message(STATUS "Verified AppleClang tst_liveloudness compile options")
+    foreach(test_target IN ITEMS tst_liveloudness tst_cpuusage)
+        get_target_property(compile_flags ${test_target} COMPILE_OPTIONS)
+        get_target_property(link_flags ${test_target} LINK_OPTIONS)
+        if(NOT ("-fexperimental-library" IN_LIST compile_flags OR
+                "$<$<COMPILE_LANGUAGE:CXX>:-fexperimental-library>" IN_LIST compile_flags)
+           OR NOT "-fexperimental-library" IN_LIST link_flags)
+            message(SEND_ERROR "AppleClang ${test_target} omits -fexperimental-library from compile or link options")
+        endif()
+        message(STATUS "Checked AppleClang ${test_target} compile and link options")
+    endforeach()
 endif()
 
 message(STATUS "Verified player CMake minimum, QML imports and VAAPI test selection")

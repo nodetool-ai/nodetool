@@ -172,12 +172,8 @@ void CloudTimelineSaver::applyDraft(const QString& text) {
         return;
     }
     const QJsonObject raw = withDraft(current, draft);
-    server::ServerOpenOptions options;
-    options.server = m_options.origin;
-    options.timelineId = m_options.timelineId;
-    options.cacheRoot = m_options.cacheRoot;
-    options.token = m_options.accessToken;
-    options.authorizer = m_options.authorizer;
+    const server::ServerOpenOptions options{m_options.origin, m_options.timelineId, m_options.cacheRoot,
+        m_options.accessToken, true, {}, m_options.authorizer};
     // Shared with the worker thread, which writes it, and with the finished
     // handler on the UI thread, which reads it after the worker ended.
     auto result = std::make_shared<server::ServerOpenResult>();

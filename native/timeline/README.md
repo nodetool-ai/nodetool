@@ -1514,6 +1514,11 @@ reads the original. A partial download resumes with `Range` after a
 re-check of the version, and restarts from 0 on any mismatch. The raw
 document of the last load stays in `<server>/<user>/timelines/<id>.json`.
 
+The app owns one cache root for its lifetime. Downloads, document readers,
+frame capture and queued exports use that root's in-memory lease registry.
+Acquiring and releasing a lease never writes a file beside the media. The
+download folder lock still serializes fetches and eviction.
+
 The loader report (`--loader-report FILE`, else `<id>.report.json` next to
 the raw document) lists each field with a value the model does not apply, per
 sequence, track and clip, with its effect (`plan`, `pixels`, `audio`, or

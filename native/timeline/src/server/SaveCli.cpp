@@ -95,7 +95,8 @@ int saveCli(int argc, char** argv) {
         return code;
     };
 
-    const auto loaded = loadTimelineSource(parser.positionalArguments().first());
+    const auto assetCache = timelineAssetCache();
+    const auto loaded = loadTimelineSource(parser.positionalArguments().first(), assetCache);
     if (!loaded.timeline) {
         out.insert(QStringLiteral("error"), loaded.error);
         return finish(1);
@@ -103,7 +104,7 @@ int saveCli(int argc, char** argv) {
     const QString base = loaded.timeline->raw.value(u"updatedAt").toString();
     TimelineModel model;
     model.setTimeline(*loaded.timeline);
-    AutosaveController save(*target, model.undoStack(), [&model]() { return model.timeline().raw; }, base);
+    AutosaveController save(assetCache, *target, model.undoStack(), [&model]() { return model.timeline().raw; }, base);
     save.setAutosave(parser.isSet(autoOpt));
     out.insert(QStringLiteral("baseUpdatedAt"), base);
 

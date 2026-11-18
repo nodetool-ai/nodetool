@@ -7,6 +7,7 @@
 
 #include <QCoreApplication>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
 #include <QTemporaryDir>
@@ -17,6 +18,7 @@
 #include <atomic>
 
 using nt::server::AssetCache;
+using nt::server::AssetCacheRoot;
 using nt::server::FetchResult;
 using nt::server::RemoteFile;
 
@@ -41,9 +43,10 @@ class TestAssetCache : public QObject {
 private:
     // Under the build folder, never the user's cache or home folders.
     QTemporaryDir m_dir{QCoreApplication::applicationDirPath() + QStringLiteral("/test-cache-XXXXXX")};
+    const AssetCacheRoot m_cacheRoot{m_dir.path()};
     std::unique_ptr<TestHttpServer> m_http;
 
-    AssetCache cache() const { return AssetCache(m_dir.path(), QStringLiteral("http_127.0.0.1_1"), QStringLiteral("1")); }
+    AssetCache cache() const { return AssetCache(m_cacheRoot, QStringLiteral("http_127.0.0.1_1"), QStringLiteral("1")); }
     RemoteFile remote(const QByteArray& path, const QString& version, qint64 size) const {
         return RemoteFile{m_http->base().resolved(QUrl(QString::fromLatin1(path))), version, size, QStringLiteral("mp4")};
     }
@@ -93,7 +96,7 @@ private slots:
         slow.chunkDelayMs = 10;
         m_http->setFile("/slow.mp4", slow);
         FetchResult result;
-        const auto root = m_dir.path();
+        const auto root = m_cacheRoot;
         const auto file = remote("/slow.mp4", "v1", 5 * 1024 * 1024);
         auto worker = std::unique_ptr<QThread>(QThread::create([&result, root, file] {
             AssetCache cache(root, "server", "user", [](QNetworkRequest& request) {
@@ -294,7 +297,7 @@ private slots:
         slow.chunkDelayMs = 5;  // about 25 chunks: the fetches overlap
         m_http->setFile("/c.mp4", slow);
         const RemoteFile f = remote("/c.mp4", QStringLiteral("v1"), data.size());
-        const QString root = m_dir.path();
+        const auto root = m_cacheRoot;
         constexpr int kThreads = 4;
         std::vector<FetchResult> results(kThreads);
         // native-rules #1: raw QThread* in a vector owns the threads and deletes them by hand
@@ -403,12 +406,76 @@ private slots:
             root.evict(1, {});
             QVERIFY(QFile::exists(path));
         }
-        const nt::server::AssetCacheRoot independent(m_dir.path());
-        independent.evict(1, {});
-        QVERIFY(QFile::exists(path));
-        lease.reset();
-        independent.evict(1, {});
+        QVERIFY(lease);
+        QCOMPARE(*lease, QFileInfo(path).canonicalFilePath());
+        lease.reset(); // The last reader releases after the root handle is gone.
+        const AssetCacheRoot replacement(m_dir.path());
+        replacement.evict(1, {});
         QVERIFY(!QFile::exists(path));
+    }
+
+    void emptyGuardDoesNotBlockLease() {
+        const QString guardPath = m_dir.filePath(".lease-guard");
+        QFile guard(guardPath);
+        QVERIFY(guard.open(QIODevice::WriteOnly));
+        guard.close();
+        QCOMPARE(QFileInfo(guardPath).size(), 0);
+
+        const nt::server::AssetCacheRoot root(m_dir.path());
+        const auto path = m_dir.filePath("media.mp4");
+        auto worker = std::unique_ptr<QThread>(QThread::create([root, path] {
+            const auto lease = root.lease(path);
+        }));
+        worker->start();
+        const bool finished = worker->wait(500);
+        // Let the old implementation unwind after recording the timeout.
+        if (!finished) {
+            QFile::remove(guardPath);
+            worker->wait();
+        }
+        QVERIFY2(finished, "lease() exceeded 500 ms with a zero-length guard");
+        QVERIFY(QFileInfo::exists(guardPath));
+        QCOMPARE(QFileInfo(guardPath).size(), 0);
+    }
+
+    void leasingWritesNoFiles_data() {
+        QTest::addColumn<bool>("insideRoot");
+        QTest::newRow("inside") << true;
+        QTest::newRow("outside") << false;
+    }
+
+    void leasingWritesNoFiles() {
+        QFETCH(bool, insideRoot);
+        QTemporaryDir outside;
+        QVERIFY(outside.isValid());
+        const QDir folder(insideRoot ? m_dir.path() : outside.path());
+        const QString path = folder.filePath("media.mp4");
+        QFile media(path);
+        QVERIFY(media.open(QIODevice::WriteOnly));
+        media.close();
+        const auto entries = [&folder] {
+            return folder.entryList(QDir::AllEntries | QDir::Hidden | QDir::NoDotAndDotDot);
+        };
+        const auto before = entries();
+        const nt::server::AssetCacheRoot root(m_dir.path());
+        auto lease = root.lease(path);
+        QVERIFY(lease);
+        QCOMPARE(entries(), before);
+        lease.reset();
+        QCOMPARE(entries(), before);
+    }
+
+    void leaseAcquisitionAndReleaseStayFast() {
+        const nt::server::AssetCacheRoot root(m_dir.path());
+        const QString path = m_dir.filePath("media.mp4");
+        QElapsedTimer timer;
+        timer.start();
+        for (int i = 0; i < 200; ++i) {
+            const auto lease = root.lease(path);
+        }
+        const auto elapsed = timer.nsecsElapsed();
+        qInfo() << "200 lease acquisitions and releases:" << elapsed / 1e6 << "ms";
+        QVERIFY2(elapsed < 50'000'000, "200 lease acquisitions and releases exceeded 50 ms");
     }
 
     void releasedLeaseAllowsEviction() {
@@ -418,7 +485,7 @@ private slots:
         AssetCache c = cache();
         const auto held = c.fetch("held", "original", remote("/held.mp4", "v1", 100000));
         QVERIFY2(held.ok(), qPrintable(held.error));
-        auto lease = AssetCache::lease(held.path);
+        auto lease = m_cacheRoot.lease(held.path);
         c.setBudgetBytes(100000);
         QTest::qWait(20);
         const auto next = c.fetch("new", "original", remote("/new.mp4", "v1", 100000));
@@ -435,16 +502,17 @@ private slots:
 #ifdef Q_OS_UNIX
         m_http->setFile("/alias-held.mp4", ServedFile{pattern(100000, 25)});
         m_http->setFile("/alias-new.mp4", ServedFile{pattern(100000, 26)});
-        const auto held = cache().fetch("held", "original", remote("/alias-held.mp4", "v1", 100000));
-        QVERIFY2(held.ok(), qPrintable(held.error));
         QTemporaryDir aliasParent;
         QVERIFY(aliasParent.isValid());
         const QString aliasRoot = aliasParent.filePath("cache-alias");
         QVERIFY(QFile::link(m_dir.path(), aliasRoot));
-        const QString aliasPath = aliasRoot + held.path.mid(m_dir.path().size());
-        QVERIFY(QFileInfo::exists(aliasPath));
-        const auto lease = AssetCache::lease(aliasPath);
-        AssetCache other = cache();
+        const AssetCacheRoot root(aliasRoot);
+        AssetCache writer(root, "server", "user");
+        const auto held = writer.fetch("held", "original", remote("/alias-held.mp4", "v1", 100000));
+        QVERIFY2(held.ok(), qPrintable(held.error));
+        const auto canonicalPath = QFileInfo(held.path).canonicalFilePath();
+        const auto lease = root.lease(canonicalPath);
+        AssetCache other(root, "server", "user");
         other.setBudgetBytes(100000);
         const auto fetched = other.fetch("new", "original", remote("/alias-new.mp4", "v1", 100000));
         QVERIFY2(fetched.ok(), qPrintable(fetched.error));

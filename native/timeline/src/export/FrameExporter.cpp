@@ -98,16 +98,15 @@ void FrameExporter::captureSource(const QVariantMap& asset, const QString& previ
     }
     const auto target = nt::server::serverSaveTarget();
     if (target && !raw.value("id").toString().isEmpty()) {
-        const auto cacheRoot = QDir::cleanPath(QDir(target->backupDir).absoluteFilePath("../../.."));
         const auto serial = m_serial;
-        // native-rules #1: std::shared_ptr MediaProtection shared with a worker, no justification comment
-        auto protection = std::make_shared<nt::assets::MediaProtection>();
+        // The fetch worker and the capture completion retain the lease across the handoff.
+        auto protection = std::make_shared<nt::assets::MediaProtection>(nt::server::timelineAssetCache());
         // native-rules #1: std::shared_ptr result shared with a worker, no justification comment
         auto resolved = std::make_shared<nt::server::FetchResult>();
-        worker([target = *target, cacheRoot, id = raw.value("id").toString(), protection, resolved] {
+        worker([target = *target, id = raw.value("id").toString(), protection, resolved] {
             nt::server::ServerClient client(target.server, target.token);
             client.setExpectedInstance(target.expectedInstance);
-            *resolved = nt::assets::resolveOriginalMedia(client, cacheRoot, id, *protection);
+            *resolved = nt::assets::resolveOriginalMedia(client, id, *protection);
         }, [this, serial, sourceMs, type, protection, resolved] {
             if (!resolved->ok()) {
                 m_state = "failed"; m_error = "The original media could not be downloaded. Reconnect and try again.";

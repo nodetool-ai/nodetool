@@ -18,7 +18,7 @@ QJsonObject reviewInput(const QJsonObject& board, const QString& shotId, const Q
     return {{"board", board}, {"shotId", shotId}, {"kind", kind}, {"model", model}, {"entities", entities}, {"script", script}};
 }
 }
-ProductionReview::ProductionReview(QObject* parent) : QObject(parent), m_protection(std::make_shared<nt::assets::MediaProtection>()) {}
+ProductionReview::ProductionReview(QObject* parent) : QObject(parent), m_protection(std::make_shared<nt::assets::MediaProtection>(nt::server::timelineAssetCache())) {}
 ProductionReview::~ProductionReview() { if (m_worker) { m_worker->requestInterruption(); m_worker->wait(); } }
 void ProductionReview::setTimeline(TimelineModel* model) {
     if (model == m_timeline) { return; }
@@ -143,9 +143,9 @@ bool ProductionReview::placeShot(const QJsonObject& board, const QString& shotId
             const auto raw = value.toObject(); const auto assetId = raw.value("currentAssetId").toString();
             const auto response = call ? call("assets.get", {{"id", assetId}}) : server.getAsset(assetId);
             if (!response.ok()) { error = response.describe(); break; }
-            const auto root = target ? QDir::cleanPath(QDir(target->backupDir).absoluteFilePath("../../..")) : QString{};
-            auto resolved = resolver ? resolver(server, root, response.data.toObject(), raw, *protection, mediaGeneration)
-                : nt::assets::resolveDroppedMedia(server, root, response.data.toObject(), raw, *protection, mediaGeneration);
+
+            auto resolved = resolver ? resolver(server, protection->cache().path(), response.data.toObject(), raw, *protection, mediaGeneration)
+                : nt::assets::resolveDroppedMedia(server, response.data.toObject(), raw, *protection, mediaGeneration);
             const auto path = QString::fromStdString(raw.value("mediaType") == "audio" ? resolved.audioPath : resolved.mediaPath);
             if (path.isEmpty() || !QFileInfo::exists(path)) { error = "The shot's stored media could not be loaded."; break; }
             media.push_back(std::move(resolved));

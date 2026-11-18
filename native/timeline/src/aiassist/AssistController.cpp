@@ -26,7 +26,8 @@ QString clipMediaKey(const QJsonObject& raw) {
     return raw.value("mediaType").toString() + QChar(0x1f) + raw.value("mediaPath").toString() + QChar(0x1f) + raw.value("audioPath").toString() + QChar(0x1f) + raw.value("currentAssetId").toString();
 }
 }
-AssistController::AssistController(QObject* parent) : QObject(parent) {
+AssistController::AssistController(QObject* parent) : QObject(parent),
+    m_mediaProtection(std::make_shared<nt::assets::MediaProtection>(nt::server::timelineAssetCache())) {
 
 }
 AssistController::~AssistController() { if (m_cancelled) { m_cancelled->store(true); } }
@@ -264,8 +265,8 @@ bool AssistController::call(bool write, const QString& procedure, const QJsonObj
                 nt::server::ServerClient server(target->server, target->token);
                 const auto asset = server.getAsset(raw.value("currentAssetId").toString());
                 if (!asset.ok()) { return nt::Clip{}; }
-                const auto cacheRoot = QDir::cleanPath(QDir(target->backupDir).absoluteFilePath("../../.."));
-                return nt::assets::resolveDroppedMedia(server, cacheRoot, asset.data.toObject(), raw, *protection, mediaGeneration);
+
+                return nt::assets::resolveDroppedMedia(server, asset.data.toObject(), raw, *protection, mediaGeneration);
             };
         }
     }

@@ -35,6 +35,22 @@ class CMakeLinkAuditTest(unittest.TestCase):
             with self.subTest(command=command):
                 self.assertIn('use target_link_libraries()', self.audit(command)[0])
 
+    def test_cmake_language_call_audits_link_target(self):
+        self.assertIn('external link target forbidden_lib', ' '.join(self.audit(
+            'cmake_language(CALL TARGET_LINK_LIBRARIES x PRIVATE forbidden_lib)')))
+        self.assertEqual(self.audit('cmake_language(CALL target_link_libraries x PRIVATE Qt6::Core)'), [])
+
+    def test_legacy_link_properties(self):
+        for name in ('LINK_INTERFACE_LIBRARIES', 'LINK_INTERFACE_LIBRARIES_DEBUG',
+                     'IMPORTED_LINK_INTERFACE_LIBRARIES', 'IMPORTED_LINK_INTERFACE_LIBRARIES_RELEASE'):
+            with self.subTest(name=name):
+                self.assertIn('use target_link_libraries()', ' '.join(self.audit(
+                    f'set_target_properties(x PROPERTIES {name} forbidden_lib)')))
+
+    def test_standard_libraries_cannot_inject_link_dependencies(self):
+        self.assertIn('CMAKE_CXX_STANDARD_LIBRARIES', ' '.join(self.audit(
+            'set(CMAKE_CXX_STANDARD_LIBRARIES forbidden_lib)')))
+
 
 if __name__ == '__main__':
     unittest.main()

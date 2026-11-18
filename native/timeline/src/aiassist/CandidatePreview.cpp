@@ -10,7 +10,7 @@
 #include <cmath>
 #include <utility>
 CandidatePreview::CandidatePreview(QObject* parent) : QObject(parent), m_preview(new TimelineModel(this)),
-    m_clock(new PlaybackClock(this)), m_protection(std::make_shared<nt::assets::MediaProtection>()) {}
+    m_clock(new PlaybackClock(this)), m_protection(std::make_shared<nt::assets::MediaProtection>(nt::server::timelineAssetCache())) {}
 CandidatePreview::~CandidatePreview() {
     if (m_worker) { m_worker->requestInterruption(); m_worker->wait(); }
 }
@@ -80,8 +80,8 @@ bool CandidatePreview::preview(const QString& assetId, const QString& mediaType,
         raw.insert("clips", QJsonArray{clip});
         nt::Clip media;
         if (result.ok() && !QThread::currentThread()->isInterruptionRequested()) {
-            const auto cacheRoot = QDir::cleanPath(QDir(target->backupDir).absoluteFilePath("../../.."));
-            media = nt::assets::resolveDroppedMedia(client, cacheRoot, asset, clip, *protection, protectionGeneration);
+
+            media = nt::assets::resolveDroppedMedia(client, asset, clip, *protection, protectionGeneration);
         }
         const auto path = mediaType == "audio" ? media.audioPath : media.mediaPath;
         if (QThread::currentThread()->isInterruptionRequested()) { return; }

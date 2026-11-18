@@ -56,7 +56,7 @@ const bool registered = [] {
     return true;
 }();
 }
-ShotWorkflow::ShotWorkflow(QObject* parent) : QObject(parent), m_protection(std::make_shared<nt::assets::MediaProtection>()), m_transport(this), m_poll(this) {
+ShotWorkflow::ShotWorkflow(QObject* parent) : QObject(parent), m_protection(std::make_shared<nt::assets::MediaProtection>(nt::server::timelineAssetCache())), m_transport(this), m_poll(this) {
     m_poll.setInterval(3000);
     connect(&m_poll, &QTimer::timeout, this, &ShotWorkflow::lookup);
     connect(&m_transport, &nt::ai::GenerationTransport::response, this, &ShotWorkflow::receive);
@@ -308,9 +308,9 @@ void ShotWorkflow::persist(const QJsonObject& board, const QJsonObject& localEdi
             const auto raw = value.toObject(); const auto assetId = raw.value("currentAssetId").toString();
             const auto asset = call ? call(false, "assets.get", {{"id", assetId}}) : server.getAsset(assetId);
             if (!asset.ok()) { mediaError = asset; break; }
-            const auto root = QDir::cleanPath(QDir(target.backupDir).absoluteFilePath("../../.."));
-            auto media = resolver ? resolver(server, root, asset.data.toObject(), raw, *protection, mediaGeneration)
-                : nt::assets::resolveDroppedMedia(server, root, asset.data.toObject(), raw, *protection, mediaGeneration);
+
+            auto media = resolver ? resolver(server, protection->cache().path(), asset.data.toObject(), raw, *protection, mediaGeneration)
+                : nt::assets::resolveDroppedMedia(server, asset.data.toObject(), raw, *protection, mediaGeneration);
             const auto path = QString::fromStdString(raw.value("mediaType") == "audio" ? media.audioPath : media.mediaPath);
             if (path.isEmpty() || !QFileInfo::exists(path)) { mediaError.error = {"Selected shot media could not be resolved", "MEDIA_UNAVAILABLE", {}, 0}; break; }
             resolvedMedia.push_back(std::move(media));

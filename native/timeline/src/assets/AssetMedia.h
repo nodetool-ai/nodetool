@@ -10,11 +10,12 @@
 #include <vector>
 
 namespace nt::assets {
-// native-rules #9: used from worker threads and the UI thread, no affinity comment
+// Thread-safe. The mutex guards the current document and fetched leases.
 class MediaProtection {
 public:
     using Lease = nt::server::AssetCache::Lease;
-    MediaProtection() = default;
+    explicit MediaProtection(nt::server::AssetCacheRoot cache) : m_cache(std::move(cache)) {}
+    const nt::server::AssetCacheRoot& cache() const { return m_cache; }
     ~MediaProtection() = default;
     MediaProtection(const MediaProtection&) = delete;
     MediaProtection& operator=(const MediaProtection&) = delete;
@@ -22,19 +23,18 @@ public:
     void replaceCurrent(QSet<QString> paths);
     quint64 generation() const;
     void protect(const QString& path, std::optional<quint64> generation = std::nullopt);
-    static std::vector<Lease> leasePaths(const QSet<QString>& paths);
-    void evict(const QString& root, qint64 budget, const QString& justFetched,
-               const std::function<void()>& afterScan = {});
+    static std::vector<Lease> leasePaths(const nt::server::AssetCacheRoot& cache, const QSet<QString>& paths);
 private:
-    // native-rules #10: mutex does not say which members it guards
+    const nt::server::AssetCacheRoot m_cache;
+    // Guards the paths, fetched leases and generation.
     mutable std::mutex m_mutex;
     std::map<QString, Lease> m_paths;
     std::map<QString, Lease> m_fetched;
     quint64 m_generation = 0;
 };
-nt::server::FetchResult resolveOriginalMedia(nt::server::ServerClient& client, const QString& cacheRoot,
+nt::server::FetchResult resolveOriginalMedia(nt::server::ServerClient& client,
                                               const QString& assetId, MediaProtection& protection);
-nt::Clip resolveDroppedMedia(nt::server::ServerClient& client, const QString& cacheRoot,
+nt::Clip resolveDroppedMedia(nt::server::ServerClient& client,
                              const QJsonObject& asset, const QJsonObject& clip, MediaProtection& protection,
                              quint64 generation);
 }

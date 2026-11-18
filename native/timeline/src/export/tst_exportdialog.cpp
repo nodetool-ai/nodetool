@@ -15,6 +15,7 @@ extern "C" {
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
 #include "preview/SceneEval.h"
+#include "server/AssetCache.h"
 #include <QGuiApplication>
 #include <QElapsedTimer>
 #include <QFileInfo>
@@ -52,7 +53,7 @@ private slots:
         int serial = 0;
         const auto run = [&] {
             options.output = dir.filePath(QString::number(++serial));
-            return nt::exporting::exportTimeline(timeline, options);
+            return nt::exporting::exportTimeline(timeline, options, nt::server::AssetCacheRoot{});
         };
         auto result = run();
         QVERIFY2(result.ok(), qPrintable(result.error));
@@ -350,10 +351,10 @@ private slots:
         QVERIFY(old.open(QIODevice::WriteOnly));
         old.write("old export");
         old.close();
-        auto result = nt::exporting::exportTimeline(timeline, options);
+        auto result = nt::exporting::exportTimeline(timeline, options, nt::server::AssetCacheRoot{});
         QCOMPARE(result.error, QStringLiteral("Export destination already exists"));
         options.replace = true;
-        result = nt::exporting::exportTimeline(timeline, options);
+        result = nt::exporting::exportTimeline(timeline, options, nt::server::AssetCacheRoot{});
         QVERIFY2(result.error.isEmpty(), qPrintable(result.error));
         QVERIFY(old.open(QIODevice::ReadOnly));
         QVERIFY(old.read(4) == QByteArrayLiteral("RIFF"));
@@ -387,7 +388,7 @@ private slots:
         options.output = dir.filePath("cancelled.wav");
         options.format = "wav";
         std::jthread worker([&] {
-            result = nt::exporting::exportTimeline(timeline, options, stop.get_token());
+            result = nt::exporting::exportTimeline(timeline, options, nt::server::AssetCacheRoot{}, stop.get_token());
             done = true;
         });
         QTRY_VERIFY(server.hasPendingConnections());

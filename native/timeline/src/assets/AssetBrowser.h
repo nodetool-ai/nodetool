@@ -50,6 +50,7 @@ class AssetBrowser : public QObject {
     Q_PROPERTY(QString folderWorkspaceId READ folderWorkspaceId WRITE setFolderWorkspaceId NOTIFY autosaveChanged)
 public:
     explicit AssetBrowser(QObject* parent = nullptr);
+    AssetBrowser(nt::server::AssetCacheRoot cache, QObject* parent = nullptr);
     ~AssetBrowser() override;
     bool configured() const { return m_target.has_value(); }
     bool busy() const { return !m_thread.isNull(); }
@@ -173,8 +174,8 @@ private:
         QJsonObject capturedDocument;
     };
     QHash<QString, AudioSettlement> m_settlements;
-    // native-rules #1: std::shared_ptr MediaProtection, no comment on why unique ownership is impossible
-    std::shared_ptr<nt::assets::MediaProtection> m_mediaProtection = std::make_shared<nt::assets::MediaProtection>();
+    // A queued fetch can still hold its protection handle after the browser closes.
+    std::shared_ptr<nt::assets::MediaProtection> m_mediaProtection;
     bool m_reconciling = false;
     std::optional<nt::server::SaveTarget> m_target;
     QPointer<TimelineModel> m_timeline;

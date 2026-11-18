@@ -3,6 +3,7 @@
 #include "assets/AssetMedia.h"
 #include "export/ExportCapabilities.h"
 #include "preview/effects/Masks.h"
+#include "server/ServerSource.h"
 #include <QCoreApplication>
 #include <QFile>
 #include <QFileInfo>
@@ -125,7 +126,7 @@ void ExportController::start(const QString& output, const QString& format, bool 
     const auto unavailable = nt::exporting::unavailableOriginalMedia(m_timeline->timeline(), videoOutput);
     if (!unavailable.isEmpty()) { fail(unavailable); return; }
     startSnapshot(nt::exporting::exportSnapshot(*m_timeline), output, nt::exporting::Settings{format, alpha},
-        m_timeline->name(), nt::assets::MediaProtection::leasePaths(m_timeline->resolvedMediaPaths()));
+        m_timeline->name(), nt::assets::MediaProtection::leasePaths(nt::server::timelineAssetCache(), m_timeline->resolvedMediaPaths()));
 }
 bool ExportController::startSnapshot(const QJsonObject& raw, const QString& output, const nt::exporting::Settings& settings,
                                      const QString& label, std::vector<nt::server::AssetCache::Lease> leases) {

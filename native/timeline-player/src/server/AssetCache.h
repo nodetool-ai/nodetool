@@ -59,12 +59,12 @@ struct FetchResult {
 };
 
 // Cache handles and leases share a root's state. The registry mutex guards
-// its pin counts. The owner may go away while a worker still holds a lease.
+// its lease counts. The owner may go away while a worker still holds a lease.
 class AssetCacheRoot {
 public:
     using Lease = std::shared_ptr<const QString>;
 
-    AssetCacheRoot(QString path = {});
+    explicit AssetCacheRoot(QString path = {});
     const QString& path() const { return m_path; }
     [[nodiscard]] Lease lease(const QString& path) const;
     void evict(qint64 budget, const QString& justFetched,
@@ -76,10 +76,12 @@ private:
     struct LeaseHolder;
     void evict(qint64 budget, const QString& justFetched,
                const std::function<void()>& afterScan, bool fetchedFolderLocked) const;
+    QString leaseKey(const QString& path) const;
     bool removeIfUnprotected(const QString& path) const;
     std::shared_ptr<std::mutex> folderMutex(const QString& dir) const;
 
     QString m_path;
+    QString m_canonicalPath;
     // A cache and the decoders that use its files can finish independently.
     std::shared_ptr<Registry> m_registry;
 };
@@ -110,11 +112,6 @@ public:
     qint64 budgetBytes() const { return m_budgetBytes; }
     // Marks a file the current open uses; eviction keeps it.
     void protect(const QString& path);
-    // Compatibility for callers that only have a path. Prefer AssetCacheRoot::lease().
-    static Lease lease(const QString& path);
-    static void evictRoot(const QString& root, qint64 budget, const QString& justFetched,
-                          const std::function<void()>& afterScan = {});
-
     QString variantDir(const QString& assetId, const QString& variant) const;
     QString pathFor(const QString& assetId, const QString& variant, const RemoteFile& file) const;
 

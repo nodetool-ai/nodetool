@@ -131,14 +131,14 @@ private slots:
         for (const auto& name : {path, latest}) {
             QFile file(name); QVERIFY(file.open(QIODevice::WriteOnly)); QCOMPARE(file.write("12345678"), qint64(8));
         }
-        nt::assets::MediaProtection evictor;
+        const nt::server::AssetCacheRoot root(cache.path());
         {
-            nt::assets::MediaProtection preview;
+            nt::assets::MediaProtection preview(root);
             preview.protect(path);
-            evictor.evict(cache.path(), 1, latest);
+            root.evict(1, latest);
             QVERIFY(QFileInfo::exists(path));
             preview.reset({});
-            evictor.evict(cache.path(), 1, latest);
+            root.evict(1, latest);
             QVERIFY(!QFileInfo::exists(path));
         }
         QVERIFY(QFileInfo::exists(latest));

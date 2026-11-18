@@ -213,6 +213,7 @@ Create a host-owned `nt::server::ServerLoaderWorkers` on the UI thread after
 the application. Pass it to each `ServerTimelineLoader`. The owner drains
 workers at `QCoreApplication::aboutToQuit` and on destruction. Keep it alive
 until all loaders are gone and destroy it before the application.
+Shutdown is permanent. A host that runs `exec()` again needs a new owner.
 
 Destroying a loader requests interruption and returns immediately. The
 worker owner still holds its thread. Shutdown rejects new loads, interrupts
@@ -222,12 +223,12 @@ the process stops before Qt teardown.
 
 Call `load(id, request)` with a fresh `QUuid`. Both `loaded` and `failed`
 echo the ID and token on the UI thread. `loaded` delivers an immutable
-document and its media leases. Construct one `AssetCacheRoot` per cache
-directory and pass copies to loaders and anyone who evicts from that root.
-Every lease shares the registry and can outlive its loader and root handle.
-Transient lock files let independently constructed roots and existing
-path-only callers honor each other's leases. Keep the leases while playback
-uses the cached files. A lease returned by a custom loader must support release from the UI,
+document and its media leases. The host owns one `AssetCacheRoot` per cache
+directory. Pass copies to code that loads, leases, or evicts files in the
+directory. Every lease shares the in-memory registry and can outlive its
+loader and root handle. Acquisition and release never write files beside the
+media. Eviction honors leases from the same registry. Keep the leases while
+playback uses the cached files. A lease returned by a custom loader must support release from the UI,
 render or decode thread. `cancel()` discards the pending result and requests worker
 interruption. A new load supersedes the previous one.
 

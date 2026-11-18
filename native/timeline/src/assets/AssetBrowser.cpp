@@ -43,7 +43,11 @@ bool listsByDirectory(const QString& project) { return !project.isEmpty() && pro
 constexpr qint64 ProjectCheckIntervalMs = 60000;
 }
 
-AssetBrowser::AssetBrowser(QObject* parent) : QObject(parent), m_target(nt::server::serverSaveTarget()) {
+AssetBrowser::AssetBrowser(QObject* parent) : AssetBrowser(nt::server::timelineAssetCache(), parent) {}
+
+AssetBrowser::AssetBrowser(nt::server::AssetCacheRoot cache, QObject* parent) : QObject(parent),
+    m_mediaProtection(std::make_shared<nt::assets::MediaProtection>(std::move(cache))),
+    m_target(nt::server::serverSaveTarget()) {
     m_poll.setInterval(5000);
     connect(&m_poll, &QTimer::timeout, this, &AssetBrowser::pollProxies);
 }
@@ -685,15 +689,14 @@ void AssetBrowser::queueMedia(const QJsonObject& asset, const QJsonObject& clip,
     const auto type = clip.value("mediaType").toString();
     if (!m_target || (type != "video" && type != "image" && type != "audio") ||
         clip.value("currentAssetId").toString() != asset.value("id").toString()) { return; }
-    // ServerSource places backups at <cacheRoot>/<serverKey>/<userKey>/timelines.
-    const auto cacheRoot = QDir::cleanPath(QDir(m_target->backupDir).absoluteFilePath("../../.."));
+
     protectDocumentMedia();
     const auto mediaGeneration = m_mediaProtection->generation();
     const QPointer<AssetBrowser> self(this);
-    request([asset, clip, cacheRoot, protection = m_mediaProtection, mediaGeneration](nt::server::ServerClient& client) {
+    request([asset, clip, protection = m_mediaProtection, mediaGeneration](nt::server::ServerClient& client) {
         Result result;
         if (protection->generation() == mediaGeneration && !QThread::currentThread()->isInterruptionRequested()) {
-            result.media = nt::assets::resolveDroppedMedia(client, cacheRoot, asset, clip, *protection, mediaGeneration);
+            result.media = nt::assets::resolveDroppedMedia(client, asset, clip, *protection, mediaGeneration);
         }
         return result;
     }, [self, model, generation](const Result& result) {

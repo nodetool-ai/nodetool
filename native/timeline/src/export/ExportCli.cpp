@@ -115,7 +115,8 @@ int exportCli(int argc, char** argv) {
         !number("width", options.width) || !number("height", options.height) ||
         !number("fps", options.fps) || !number("video-bitrate", options.videoBitrateKbps)) return 2;
     options.scaleMode = parser.value("scale-mode");
-    const auto loaded = server::loadTimelineSource(parser.positionalArguments().first());
+    const server::AssetCacheRoot cache(server::timelineCacheDirectory());
+    const auto loaded = server::loadTimelineSource(parser.positionalArguments().first(), cache);
     if (!loaded.timeline) {
         std::fprintf(stderr, "error: %s\n", qPrintable(loaded.error));
         return 1;
@@ -163,7 +164,7 @@ int exportCli(int argc, char** argv) {
             }
         });
     }
-    const auto result = exportTimeline(*loaded.timeline, options, stop.get_token(), progress,
+    const auto result = exportTimeline(*loaded.timeline, options, cache, stop.get_token(), progress,
         [&] { return !cancelFile.isEmpty() && QFileInfo::exists(cancelFile); });
     if (watchdog.joinable()) {
         watchdog.request_stop();

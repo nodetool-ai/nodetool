@@ -4,6 +4,7 @@
 #include "server/ServerClient.h"
 #include "server/ServerTimelineProbe.h"
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -11,11 +12,14 @@
 #include <QJsonDocument>
 #include <QStandardPaths>
 #include <QUrlQuery>
+#include <QVariant>
 
 #include <cstdio>
 #include <cstring>
 #include <string>
 #include <utility>
+
+Q_DECLARE_METATYPE(nt::server::AssetCacheRoot)
 
 namespace nt::server {
 namespace {
@@ -175,7 +179,7 @@ int listTimelinesMain() {
 std::optional<CloudSource> cloudTimelineSource() {
     const Args& a = args();
     if (!a.active || !a.cloud) return std::nullopt;
-    return CloudSource{QUrl(a.server), a.timeline, a.role, a.cacheDir};
+    return CloudSource{QUrl(a.server), a.timeline, a.role};
 }
 
 void setCloudToken(const QString& token, RequestAuthorizer authorizer) {
@@ -200,7 +204,40 @@ std::optional<SaveTarget> serverSaveTarget() {
     return t;
 }
 
+QString timelineCacheDirectory() {
+    return args().active ? args().cacheDir : defaultCacheDir();
+}
+
+void setTimelineAssetCache(QCoreApplication& app, const AssetCacheRoot& cache) {
+    app.setProperty("timelineAssetCache", QVariant::fromValue(cache));
+}
+
+static std::optional<AssetCacheRoot> configuredTimelineAssetCache() {
+    if (const auto* app = QCoreApplication::instance()) {
+        const auto configured = app->property("timelineAssetCache");
+        if (configured.isValid()) {
+            return configured.value<AssetCacheRoot>();
+        }
+    }
+    return std::nullopt;
+}
+
+AssetCacheRoot timelineAssetCache() {
+    if (auto cache = configuredTimelineAssetCache()) {
+        return *cache;
+    }
+    return AssetCacheRoot(timelineCacheDirectory());
+}
+
 ParseResult loadTimelineSource(const QString& source) {
+    if (auto cache = configuredTimelineAssetCache()) {
+        return loadTimelineSource(source, *cache);
+    }
+    const auto directory = args().active && source.toStdString() == args().label ? args().cacheDir : defaultCacheDir();
+    return loadTimelineSource(source, AssetCacheRoot(directory));
+}
+
+ParseResult loadTimelineSource(const QString& source, const AssetCacheRoot& cache) {
     Args selected = args();
     if (!selected.active || source.toStdString() != selected.label) {
         QUrl url(source);
@@ -214,18 +251,16 @@ ParseResult loadTimelineSource(const QString& source) {
         selected.active = true;
         selected.server = url.toString();
         selected.timeline = fragment.front().second;
-        selected.cacheDir = defaultCacheDir();
         selected.token = qEnvironmentVariable("NODETOOL_API_TOKEN");
     }
+    selected.cacheDir = cache.path();
     loadedSource() = std::move(selected);
     const Args& a = *loadedSource();
 
-    ServerOpenOptions options;
-    options.server = QUrl(a.server);
-    options.timelineId = a.timeline;
-    options.cacheRoot = a.cacheDir;
-    options.token = a.token;
-    options.authorizer = a.authorizer;
+    const ServerOpenOptions options{
+        .server = QUrl(a.server), .timelineId = a.timeline, .cacheRoot = cache,
+        .token = a.token, .expectedInstance = {}, .authorizer = a.authorizer,
+    };
     ServerOpenResult opened = openProbedServerTimeline(options);
 
     QString reportPath = a.reportPath;

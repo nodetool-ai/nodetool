@@ -1,3 +1,4 @@
+#include "server/ServerSource.h"
 #include "remix/clip/RemixController.h"
 
 #include "model/TimelineJson.h"
@@ -20,7 +21,7 @@ double clampPercent(double v) { return std::isfinite(v) ? std::clamp(v, 0.0, 100
 }  // namespace
 
 RemixController::RemixController(QObject* parent)
-    : QObject(parent), m_protection(std::make_shared<nt::assets::MediaProtection>()),
+    : QObject(parent), m_protection(std::make_shared<nt::assets::MediaProtection>(nt::server::timelineAssetCache())),
       m_previewModel(new TimelineModel(this)), m_previewClock(new PlaybackClock(this)) {
     qRegisterMetaType<RemixRelay::Task>("RemixRelay::Task");
     // Workers hand their results to the GUI thread through a relay they own a share of. The relay outlives this

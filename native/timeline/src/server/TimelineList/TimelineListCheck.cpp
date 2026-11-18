@@ -42,7 +42,8 @@ int check(int argc, char** argv) {
         ok = !source.isEmpty();
         result.insert("source", source);
     } else if (ok && (action == "settings" || action == "inspect")) {
-        const auto loaded = nt::server::loadTimelineSource(list.openTimeline(parser.value("id")));
+        const auto cache = nt::server::timelineAssetCache();
+        const auto loaded = nt::server::loadTimelineSource(list.openTimeline(parser.value("id")), cache);
         ok = loaded.timeline.has_value();
         if (ok) {
             TimelineModel model;
@@ -51,7 +52,7 @@ int check(int argc, char** argv) {
                 const auto target = nt::server::serverSaveTarget();
                 ok = target.has_value();
                 if (target) {
-                    nt::server::AutosaveController save(*target, model.undoStack(),
+                    nt::server::AutosaveController save(cache, *target, model.undoStack(),
                         [&model] { return model.timeline().raw; }, model.timeline().raw.value("updatedAt").toString());
                     save.setExternalSync(false);
                     ok = model.applyEdit("setProjectSettings",

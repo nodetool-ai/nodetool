@@ -57,9 +57,12 @@ private:
     QJsonObject m_observedClip;
     QJsonObject m_candidate;
     std::optional<nt::Clip> m_candidateMedia;
-    MediaResolver m_mediaResolver = nt::assets::resolveDroppedMedia;
-    // native-rules #1: std::shared_ptr MediaProtection, no comment on why unique ownership is impossible
-    std::shared_ptr<nt::assets::MediaProtection> m_mediaProtection = std::make_shared<nt::assets::MediaProtection>();
+    MediaResolver m_mediaResolver = [](auto& client, const QString&, const auto& asset, const auto& clip,
+                              auto& protection, quint64 generation) {
+        return nt::assets::resolveDroppedMedia(client, asset, clip, protection, generation);
+    };
+    // The worker keeps its own protection handle while the controller can close.
+    std::shared_ptr<nt::assets::MediaProtection> m_mediaProtection;
     QString m_requestId;
     QString m_lineId;
     QString m_assetId;
