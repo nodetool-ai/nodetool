@@ -619,5 +619,45 @@ describe("receiving a cloud project", { timeout: 30_000 }, () => {
     expect(await Workflow.get<Workflow>(document.id)).toBeNull();
     expect(await cancelReceive(cloud, review.setId)).toBe("cancelled");
   });
+
+  it("applies nothing once a cancel claimed the receive, and keeps a receive that applied (review F45)", async () => {
+    const document = cloud.putWorkflow("Edit", { bytes: randomBytes(16), name: "still.png", path: "media/still.png" });
+    const review = await captureReceive(cloud, link);
+    let resume: () => void = () => {};
+    const paused = new Promise<void>((resolve) => {
+      resume = resolve;
+    });
+    let reached: () => void = () => {};
+    const atInstalled = new Promise<void>((resolve) => {
+      reached = resolve;
+    });
+    const run = runReceive(cloud, review.setId, undefined, {
+      afterStep: async (step) => {
+        if (step !== "installed") return;
+        reached();
+        await paused;
+      }
+    });
+    await atInstalled;
+    // The cancel wins: the run that continues must not write the document
+    // without the staged files the cancel removed.
+    expect(await cancelReceive(cloud, review.setId)).toBe("cancelled");
+    resume();
+    await expect(run).rejects.toThrow(/cancelled/);
+    expect(await Workflow.get<Workflow>(document.id)).toBeNull();
+    expect(await folder.read("media/still.png")).toBeNull();
+
+    // A receive that applied keeps its staged files for the placing.
+    const second = await captureReceive(cloud, link);
+    let cancelled: Promise<"cancelled" | "applied"> | null = null;
+    const done = await runReceive(cloud, second.setId, undefined, {
+      afterStep: (step) => {
+        if (step === "applied") cancelled = cancelReceive(cloud, second.setId);
+      }
+    });
+    expect(done.status).toBe("finished");
+    expect(await cancelled).toBe("applied");
+    expect(Buffer.from((await folder.read("media/still.png"))!).length).toBe(16);
+  });
 });
 

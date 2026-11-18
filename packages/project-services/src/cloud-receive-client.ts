@@ -497,6 +497,10 @@ async function commit(
   dir: string,
   hold: FolderLockHold
 ): Promise<boolean> {
+  // A cancel claims a receive under this folder lock by deleting its row and
+  // staged files, so a commit after it finds the row gone (review F45).
+  const live = await getCloudReceive(row.id);
+  if (!live || live.state !== "installed") throw new ReceiveCancelledError(row.id);
   await reconcileInBackground(link.project_id, link.user_id, { under: hold });
   const payloads = new Map<PlannedDocument, TransferPayloadContent>();
   for (const document of toWrite(plan)) {
@@ -609,6 +613,14 @@ async function commit(
       return true;
     })
   );
+}
+
+/** The person cancelled the receive before it applied. Nothing was written. */
+export class ReceiveCancelledError extends Error {
+  constructor(setId: string) {
+    super(`The receive ${setId} was cancelled`);
+    this.name = "ReceiveCancelledError";
+  }
 }
 
 /** A free path beside `path` for received bytes whose target holds other content. */
@@ -881,8 +893,21 @@ export async function cancelReceive(transport: ReceiveTransport, setId: string):
   if (row.state === "applied") return "applied";
   const link = await getCloudLinkById(row.link_id);
   const folder = link ? await requireProjectFolder(link.project_id, link.user_id).catch(() => null) : null;
-  if (folder) {
-    await finish(transport, row, stagingDir(folder.workspace, setId));
+  if (link && folder) {
+    // The commit and the placing run under the folder lock. Under it the
+    // cancel either finds the receive applied and leaves its staged files to
+    // the placing, or claims it by deleting the row, which a commit that
+    // runs later finds gone (review F45).
+    const claimed = await withProjectFolderLock(link.user_id, link.project_id, async () => {
+      const current = await getCloudReceive(setId);
+      if (!current) return "gone" as const;
+      if (current.state === "applied") return "applied" as const;
+      await deleteCloudReceive(setId);
+      await rm(stagingDir(folder.workspace, setId), { recursive: true, force: true });
+      return "claimed" as const;
+    });
+    if (claimed === "applied") return "applied";
+    if (claimed === "claimed") await transport.release({ set_id: setId }).catch(() => undefined);
   } else {
     await transport.release({ set_id: setId }).catch(() => undefined);
     await deleteCloudReceive(setId);
