@@ -381,32 +381,18 @@ async function openWorkflow(workflowId) {
 }
 `;
 
-/** Prompt section documenting the object model, for codeact system prompts. */
-export const GRAPH_MODEL_PROMPT_SECTION = `# Workflow graph editing (object model)
-
-Edit workflow graphs through the object model, not by calling the \`ui_*\` tools
-one mutation at a time:
-
-\`\`\`js
-const wf = await openWorkflow(workflowId);   // id from the UI context; omit for the focused workflow
-const input = wf.addNode("prompt_1", "nodetool.input.StringInput", { name: "prompt" });
-const llm = wf.addNode("llm_1", "nodetool.agents.Agent", {}, { x: 400, y: 120 });
-wf.connect("prompt_1", "output", "llm_1", "prompt");
-llm.setTitle("Draft the note").set({ system: "You draft short notes." });
-await wf.commit();                            // applies the queued ops, then reloads
-\`\`\`
-
-- \`wf.nodes\` / \`wf.edges\` are local mirrors; \`wf.node(id)\` returns a node
-  with \`.set(props)\`, \`.setTitle(t)\`, \`.moveTo(x, y)\`, \`.remove()\`.
-- Check \`wf.editable\` before editing. \`false\` means no editor is open for
-  that workflow (the snapshot came from the server), so writes are refused —
-  open the workflow with \`ui_open_document\` and reopen it first.
-- \`wf.removeNode(id)\` / \`wf.removeEdge(id)\` delete; removing a not-yet-
-  committed edge just cancels its queued op.
-- Mutators are synchronous and only queue work; nothing changes in the editor
-  until \`await wf.commit()\`. A failed commit names the failing operation,
-  keeps it and later ops queued, and can be retried after a fix.
-- Use \`ui_search_nodes(...)\` / \`search_nodes(...)\` (imported from
-  \`@nodetool-ai/sandbox-nodetool/ui\` and \`.../nodes\`) first when
-  unsure of a node type, and \`await wf.commit()\` before telling the user the
-  graph is ready.`;
+/**
+ * Prompt section documenting the object model. The chat carries it in the
+ * workflow guide of a turn with a workflow or mini app in focus; the workflow
+ * step executor carries it in its system prompt.
+ */
+export const GRAPH_MODEL_PROMPT_SECTION = `## Graph object model
+\`const wf = await openWorkflow(id?)\` loads a graph (the focused one without an
+id) into the local mirrors \`wf.nodes\` and \`wf.edges\`. \`wf.addNode(id, type,
+properties, position?)\`, \`wf.connect(sourceId, sourceHandle, targetId,
+targetHandle)\`, \`wf.removeEdge(id)\` and a node's \`.set(props)\`,
+\`.setTitle(t)\`, \`.moveTo(x, y)\` and \`.remove()\` only queue work.
+\`await wf.commit()\` applies the queue and reloads. A failed commit keeps the
+failing operation and the later ones queued: fix the cause and commit again.
+\`wf.editable\` is false when no editor has the workflow open. Open it with
+\`ui_open_document\`, then call \`openWorkflow\` again.`;

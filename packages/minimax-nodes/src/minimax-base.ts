@@ -12,7 +12,7 @@
  */
 
 import { isNonEmptyString, isRecord } from "@nodetool-ai/node-sdk";
-import { detectImageMime } from "@nodetool-ai/runtime";
+import { detectImageMime, minimaxImageData } from "@nodetool-ai/runtime";
 import type {
   EndpointCallRequest,
   EndpointCallResult,
@@ -36,7 +36,7 @@ export interface MinimaxReply {
   describe: () => string;
 }
 
-function parseReply(result: EndpointCallResult): MinimaxReply {
+function parseReply(result: EndpointCallResult, route: MinimaxRoute): MinimaxReply {
   const output = result.output;
   const data =
     isRecord(output) && isRecord(output.data) ? output.data : undefined;
@@ -45,12 +45,7 @@ function parseReply(result: EndpointCallResult): MinimaxReply {
   const downloadUrl = file?.download_url ?? file?.downloadURL;
   return {
     audio: isNonEmptyString(data?.audio) ? data.audio : null,
-    imageBase64: Array.isArray(data?.image_base64)
-      ? data.image_base64.filter(isNonEmptyString)
-      : [],
-    imageUrls: Array.isArray(data?.image_urls)
-      ? data.image_urls.filter(isNonEmptyString)
-      : [],
+    ...minimaxImageData(route === "image" && isRecord(output) ? output.data : data),
     downloadUrl: isNonEmptyString(downloadUrl) ? downloadUrl : null,
     describe: () => JSON.stringify(output)
   };
@@ -81,7 +76,7 @@ export async function callMinimax(
     ...args,
     signal: context.signal
   });
-  return parseReply(result);
+  return parseReply(result, args.route);
 }
 
 /** Decode MiniMax's hex-encoded audio payloads to raw bytes. */

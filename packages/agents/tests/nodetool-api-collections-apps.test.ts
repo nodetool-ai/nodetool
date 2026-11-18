@@ -204,7 +204,7 @@ describe("prompt section", () => {
     expect(section).toContain("nodetool.collections");
     expect(section).toContain("hybridSearch");
     expect(section).toContain("nodetool.apps");
-    expect(section).toContain("{run: false}");
+    expect(section).toContain("`{run: false}` is the free wiring check");
   });
 
   it("omits apps when no app tool is present", () => {

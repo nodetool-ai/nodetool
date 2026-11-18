@@ -66,9 +66,13 @@ import {
 import {
   CODEACT_PRELUDE,
   DEFAULT_MAX_TOOL_CALLS_PER_ACTION,
+  createSignatureDisclosure,
   extractErrorPayload,
+  isArgumentValidationFailure,
   toTransferable,
+  toolSearchDetail,
   toolSearchHit,
+  type SignatureDisclosure,
   type ToolSearchHit,
   type ToolSignatureSource
 } from "./tool-api.js";
@@ -84,7 +88,6 @@ import {
 } from "./execute-code-contract.js";
 import {
   GRAPH_MODEL_PRELUDE,
-  GRAPH_MODEL_PROMPT_SECTION,
   GRAPH_MODEL_TOOL_NAMES,
   hasGraphModelTools
 } from "./graph-model.js";
@@ -93,7 +96,8 @@ import {
   NODETOOL_API_PRELUDE_FULL,
   buildNodetoolApiPromptSection,
   hasNodetoolApiTools,
-  nodetoolApiCoveredToolNames
+  nodetoolApiCoveredToolNames,
+  renderNodetoolNamespaceLine
 } from "./nodetool-api.js";
 import {
   isFiniteNumber,
@@ -142,6 +146,12 @@ export interface ChatCodeActSessionOptions {
    * resumable session survive a change of focus.
    */
   turnToolNames?: Iterable<string>;
+  /**
+   * The `nodetool.*` namespace of the focused document, such as `sketches`.
+   * Its full entry goes in {@link ChatCodeActSession.turnPromptSection}. The
+   * system section keeps the one-line summary of every namespace.
+   */
+  turnNamespace?: string;
   /**
    * Tools the caller also offers as ordinary provider tools. They stay on the
    * belt — code composes them — but the prompt documents them as direct calls
@@ -376,10 +386,14 @@ export function createChatCodeActSession(
   const graphQueues: Record<string, unknown> = {};
   let totalCalls = 0;
 
-  // Each action counts its own calls. An MCP client can run two actions on
-  // one session at once, so a session-wide counter reset at each start let
-  // one action's start lift the other's budget.
-  const callToolFor = (action: { calls: number }): CallTool => async (
+  // Each action counts its own calls and discloses each tool's signature on
+  // its own. An MCP client can run two actions on one session at once, so a
+  // session-wide counter reset at each start let one action's start lift the
+  // other's budget.
+  const callToolFor = (action: {
+    calls: number;
+    disclosure: SignatureDisclosure;
+  }): CallTool => async (
     name,
     argsJson
   ) => {
@@ -441,11 +455,21 @@ export function createChatCodeActSession(
       const value = stripImagePayload(normalizeToolResult(raw));
       const errorPayload = extractErrorPayload(value);
       if (errorPayload !== null) {
-        return { ok: false, error: `tools.${name}: ${errorPayload}` };
+        const message = isArgumentValidationFailure(value)
+          ? action.disclosure.withSignature(byName.get(name), errorPayload)
+          : errorPayload;
+        return { ok: false, error: `tools.${name}: ${message}` };
       }
       return { ok: true, result: toTransferable(value) };
     } catch (e) {
-      return { ok: false, error: e instanceof Error ? e.message : String(e) };
+      const message = e instanceof Error ? e.message : String(e);
+      const tool = isString(name) ? byName.get(name) : undefined;
+      return {
+        ok: false,
+        error: isArgumentValidationFailure(e)
+          ? action.disclosure.withSignature(tool, message)
+          : message
+      };
     }
   };
 
@@ -470,12 +494,15 @@ export function createChatCodeActSession(
       const limit = isFiniteNumber(maxResults)
         ? Math.max(1, Math.min(25, Math.floor(maxResults)))
         : 5;
-      const hits = searchTools(searchCatalog, String(query ?? ""), limit).map(
+      const text = String(query ?? "");
+      const detail = toolSearchDetail(text);
+      const hits = searchTools(searchCatalog, text, limit).map(
         (entry): ToolSearchHit =>
           toolSearchHit(
             byName.get(entry.name) as ToolSignatureSource,
             capabilityModuleOf(entry.name) ??
-              graftedModuleFor(entry.name)
+              graftedModuleFor(entry.name),
+            detail
           )
       );
       return { ok: true, result: hits };
@@ -524,8 +551,10 @@ export function createChatCodeActSession(
         nativeFlow: withFlow
       })
     : "";
+  // The graph object model (`openWorkflow()`) is documented in the workflow
+  // guide a chat host sends with a workflow-focused turn, not here: most chat
+  // turns edit no graph, and the system section is sent with every request.
   const extraSections: string[] = [];
-  if (withGraphModel) extraSections.push(GRAPH_MODEL_PROMPT_SECTION);
   if (nodetoolApiSection) extraSections.push(nodetoolApiSection);
   if (withFabric) extraSections.push(FABRIC_PROMPT_SECTION);
 
@@ -547,7 +576,11 @@ export function createChatCodeActSession(
   const turnPromptSection = buildCodeActTurnSection({
     tools: turnTools,
     graftedSpecifiers,
-    packageLines: packagePromptLines(turnPackages, sandboxModuleCatalog)
+    packageLines: packagePromptLines(turnPackages, sandboxModuleCatalog),
+    namespaceEntry:
+      withNodetoolApi && options.turnNamespace
+        ? renderNodetoolNamespaceLine(options.turnNamespace, toolNames)
+        : ""
   });
 
   const preludeParts = [CODEACT_PRELUDE];
@@ -578,10 +611,12 @@ export function createChatCodeActSession(
         toolCalls: 0
       } satisfies ActionObservation);
     }
-    const action = { calls: 0 };
+    const action = { calls: 0, disclosure: createSignatureDisclosure() };
     const callTool = callToolFor(action);
     const sessionModules = sessionModulesFor(callTool);
-    const mountOptions: MountCapabilityModulesOptions = {};
+    const mountOptions: MountCapabilityModulesOptions = {
+      disclosure: action.disclosure
+    };
     if (options.signal !== undefined) mountOptions.signal = options.signal;
     if (sessionModules.length > 0) mountOptions.session = sessionModules;
     const platform = await mountCapabilityModules(
@@ -701,8 +736,8 @@ export function createChatCodeActSession(
     providerTool: {
       name: EXECUTE_CODE_TOOL_NAME,
       description:
-        "Execute a JavaScript action in the sandbox. The observation " +
-        "(return value, logs, error) is the tool result.",
+        "Run a JavaScript action in the sandbox. Its return value, logs and " +
+        "error are the result.",
       inputSchema: EXECUTE_CODE_INPUT_SCHEMA
     },
     systemPromptSection,

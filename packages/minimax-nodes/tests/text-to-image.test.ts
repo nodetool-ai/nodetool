@@ -42,6 +42,17 @@ describe("MinimaxTextToImageNode", () => {
     });
   });
 
+  it("sends H3 prompt enhancement and reads the matching image item", async () => {
+    const { provider, context } = scriptedMinimax({ output: { data: [{ b64_json: pngB64 }] } });
+    const model = "MiniMax-H3-Image-Highspeed";
+    const result = await makeNode({ model, prompt: "a fox", prompt_optimizer: false }).process(context);
+    expect(provider.endpointCalls[0].input).toEqual({
+      model, prompt: "a fox", aspect_ratio: "1:1", n: 1,
+      response_format: "b64_json", disable_prompt_enhanced: true
+    });
+    expect(result.output.data).toBe(pngB64);
+  });
+
   it("appends the negative prompt into the prompt text", async () => {
     const { provider, context } = scriptedMinimax(OK);
     await makeNode({ prompt: "a fox", negative_prompt: "blurry" }).process(

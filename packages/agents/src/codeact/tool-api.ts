@@ -32,6 +32,7 @@ import {
 } from "../tools/image-injection.js";
 import type { JsonValue } from "../utils/json-parser.js";
 import { compactResourceIds } from "./compact-ids.js";
+import { rankFocusedTools } from "./focused-tool-usage.js";
 import { GRAPH_MODEL_GLOBALS } from "./graph-model.js";
 import { NODETOOL_API_GLOBALS } from "./nodetool-api.js";
 import { TOOLS_PRELUDE } from "./tools-prelude.js";
@@ -71,7 +72,14 @@ export interface ToolResultRecord {
 }
 
 export interface ToolBridgeOptions {
-  tools: readonly { name: string; needsToolCallId?: boolean }[];
+  /**
+   * The belt. A tool that carries its schema has the full signature appended
+   * to its first argument-validation failure in an action.
+   */
+  tools: readonly (Partial<ToolSignatureSource> & {
+    name: string;
+    needsToolCallId?: boolean;
+  })[];
   invoke: (
     name: string,
     args: Record<string, unknown>,
@@ -104,6 +112,11 @@ export interface ToolBridge {
    * sibling step's.
    */
   generationIds: () => ReadonlySet<string>;
+  /**
+   * The action's disclosure state, shared with the capability modules the
+   * action mounts. {@link ToolBridge.resetActionBudget} resets it.
+   */
+  signatureDisclosure: SignatureDisclosure;
 }
 
 /** The `generation_id` a generation-producing capability answers with. */
@@ -202,13 +215,14 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
   let pendingImages: MessageImageContent[] = [];
   let droppedImages = 0;
   const generationIds = new Set<string>();
+  const disclosure = createSignatureDisclosure();
 
   const callTool = async (
     name: unknown,
     argsJson: unknown
   ): Promise<BridgeResult> => {
+    const tool = isString(name) ? byName.get(name) : undefined;
     try {
-      const tool = isString(name) ? byName.get(name) : undefined;
       if (!isString(name) || !tool) {
         return {
           ok: false,
@@ -277,7 +291,10 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
           result: errorPayload,
           isError: true
         });
-        return { ok: false, error: `tools.${name}: ${errorPayload}` };
+        const message = isArgumentValidationFailure(result)
+          ? disclosure.withSignature(signatureSource(tool), errorPayload)
+          : errorPayload;
+        return { ok: false, error: `tools.${name}: ${message}` };
       }
       const transferable = toTransferable(compactResourceIds(result));
       options.onToolResult?.({
@@ -288,9 +305,12 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
       });
       return { ok: true, result: transferable };
     } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
       return {
         ok: false,
-        error: e instanceof Error ? e.message : String(e)
+        error: isArgumentValidationFailure(e)
+          ? disclosure.withSignature(signatureSource(tool), message)
+          : message
       };
     }
   };
@@ -304,6 +324,7 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
     callCount: () => calls,
     resetActionBudget: () => {
       calls = 0;
+      disclosure.reset();
     },
     drainImages: () => {
       const images = pendingImages;
@@ -312,8 +333,38 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
       droppedImages = 0;
       return { images, dropped };
     },
-    generationIds: () => generationIds
+    generationIds: () => generationIds,
+    signatureDisclosure: disclosure
   };
+}
+
+/** A belt entry as a signature source, when it carries a schema. */
+function signatureSource(
+  tool: ToolBridgeOptions["tools"][number] | undefined
+): ToolSignatureSource | undefined {
+  return tool?.inputSchema === undefined
+    ? undefined
+    : { name: tool.name, description: tool.description, inputSchema: tool.inputSchema };
+}
+
+/**
+ * The tools a chat turn offers as provider tools besides `execute_code` and
+ * `view_image`. The rest of {@link DIRECT_TOOL_NAMES} stays on the belt: an
+ * action imports it (`toolImportLine`), and discovery, web and delegation are
+ * also `nodetool.models.*`, `nodetool.nodes.*`, `nodetool.web.*` and
+ * `nodetool.agents.run`. Models almost never call those top level, and their
+ * schemas were the largest part of every request.
+ *
+ * The set depends on the permission mode alone, never on focus, so the tool
+ * list stays the same across the turns of a thread. Plan mode is the one
+ * change: it offers `create_plan`, since the plan is that turn's deliverable,
+ * and every other mode offers `execute_plan` to run the plan the user approved.
+ */
+export function chatDirectToolNames(permissionMode: string): ReadonlySet<string> {
+  return new Set([
+    "todo_write",
+    permissionMode === "plan" ? "create_plan" : "execute_plan"
+  ]);
 }
 
 /**
@@ -428,11 +479,18 @@ export const CODEACT_INJECTED_GLOBALS = [
 export const RESERVED_ACTION_BINDINGS: readonly string[] =
   CODEACT_INJECTED_GLOBALS.filter((name) => !name.startsWith("__"));
 
-/** One sentence naming the reserved bindings, for the action contract. */
+/** The reserved bindings as prose: "`a`, `b` and `c`". */
+function reservedBindingList(): string {
+  const names = RESERVED_ACTION_BINDINGS.map((n) => `\`${n}\``);
+  return names.length > 1
+    ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`
+    : names.join("");
+}
+
+/** Two short sentences naming the reserved bindings, for the action contract. */
 export const RESERVED_BINDINGS_SENTENCE =
-  `The prelude already declares ${RESERVED_ACTION_BINDINGS.map((n) => `\`${n}\``).join(", ")}. ` +
-  "Declaring one of them again is a SyntaxError before your code runs, so " +
-  "name your own variables something else.";
+  `The prelude declares ${reservedBindingList()}. ` +
+  "Redeclaring one is a SyntaxError.";
 
 // ---------------------------------------------------------------------------
 // Signature rendering (JSON schema → compact TS-ish signature)
@@ -449,32 +507,95 @@ export interface ToolSignatureSource {
   inputSchema?: unknown;
 }
 
-function schemaTypeLabel(schema: unknown, depth = 0): string {
+interface TypeLabelOptions {
+  /** Object nesting spelled out before an object is written as `object`. */
+  maxDepth: number;
+  /**
+   * Longest an optional field's type may render. A longer one is written one
+   * level deep (`object`, `object[]`) instead. Required fields always render
+   * in full.
+   */
+  optionalFieldCap?: number;
+}
+
+/** What the system catalog and search hits show: two levels of objects. */
+const SIGNATURE_LABEL: TypeLabelOptions = { maxDepth: 2 };
+
+/**
+ * What a focused tool shows. The depth only stops a recursive schema. The cap
+ * keeps a tool such as `ui_timeline_set_clip_params`, whose optional style
+ * objects nest five levels of unions, from costing more than a whole surface.
+ */
+const FOCUSED_LABEL: TypeLabelOptions = { maxDepth: 8, optionalFieldCap: 400 };
+
+/** Parenthesize a top-level union so a `[]` suffix applies to all of it. */
+function arrayOf(label: string): string {
+  let nesting = 0;
+  let quoted = false;
+  for (let i = 0; i < label.length; i++) {
+    const char = label[i];
+    if (quoted) {
+      if (char === "\\") i++;
+      else if (char === '"') quoted = false;
+    } else if (char === '"') quoted = true;
+    else if (char === "{" || char === "[" || char === "(" || char === "<") nesting++;
+    else if (char === "}" || char === "]" || char === ")" || char === ">") nesting--;
+    else if (char === "|" && nesting === 0) return `(${label})[]`;
+  }
+  return `${label}[]`;
+}
+
+function schemaTypeLabel(
+  schema: unknown,
+  options: TypeLabelOptions = SIGNATURE_LABEL,
+  depth = 0
+): string {
   if (!isObjectLike(schema)) return "unknown";
   const s = schema as Record<string, unknown>;
+  const nested = (value: unknown) => schemaTypeLabel(value, options, depth + 1);
+  if ("const" in s) return JSON.stringify(s["const"]);
   if (Array.isArray(s["enum"])) {
-    return (s["enum"] as unknown[])
-      .slice(0, 6)
-      .map((v) => JSON.stringify(v))
-      .join(" | ");
+    return (s["enum"] as unknown[]).map((v) => JSON.stringify(v)).join(" | ");
+  }
+  const variants = s["anyOf"] ?? s["oneOf"];
+  if (Array.isArray(variants)) {
+    return [
+      ...new Set(variants.map((v) => schemaTypeLabel(v, options, depth)))
+    ].join(" | ");
   }
   const type = s["type"];
   if (type === "array") {
-    return `${schemaTypeLabel(s["items"], depth + 1)}[]`;
+    if (Array.isArray(s["prefixItems"])) {
+      return `[${(s["prefixItems"] as unknown[]).map(nested).join(", ")}]`;
+    }
+    return arrayOf(nested(s["items"]));
   }
   if (type === "object") {
     const props = s["properties"] as Record<string, unknown> | undefined;
-    if (!props || depth >= 2) return "object";
+    const extra = s["additionalProperties"];
+    if (depth >= options.maxDepth) return "object";
+    if (!props) {
+      if (!isObjectLike(extra) || Object.keys(extra).length === 0) return "object";
+      const keys = isObjectLike(s["propertyNames"])
+        ? nested(s["propertyNames"])
+        : "string";
+      return `Record<${keys}, ${nested(extra)}>`;
+    }
     const required = new Set(
       Array.isArray(s["required"]) ? (s["required"] as string[]) : []
     );
-    const fields = Object.entries(props)
-      .map(
-        ([key, value]) =>
-          `${key}${required.has(key) ? "" : "?"}: ${schemaTypeLabel(value, depth + 1)}`
-      )
-      .join(", ");
-    return `{${fields}}`;
+    const cap = options.optionalFieldCap;
+    const fields = Object.entries(props).map(([key, value]) => {
+      if (required.has(key)) return `${key}: ${nested(value)}`;
+      let label = nested(value);
+      if (cap !== undefined && label.length > cap) {
+        label = schemaTypeLabel(value, { maxDepth: depth + 1 }, depth + 1);
+      }
+      return `${key}?: ${label}`;
+    });
+    // A catch-all (`additionalProperties: {}` or a schema) takes other keys too.
+    if (isObjectLike(extra)) fields.push("...");
+    return `{${fields.join(", ")}}`;
   }
   if (type === "integer") return "number";
   if (isString(type)) return type;
@@ -482,10 +603,31 @@ function schemaTypeLabel(schema: unknown, depth = 0): string {
   return "unknown";
 }
 
-function firstSentence(text: string): string {
+/** Abbreviations whose period does not end a sentence. */
+const ABBREVIATION = /(?:\be\.g|\bi\.e|\betc|\bvs|\bcf)$/i;
+
+/**
+ * The description up to its first sentence end. A period inside parentheses
+ * or after an abbreviation such as "e.g." does not end the sentence.
+ */
+export function firstSentence(text: string): string {
   const trimmed = text.trim().replace(/\s+/g, " ");
-  const period = trimmed.indexOf(". ");
-  return period > 0 ? trimmed.slice(0, period + 1) : trimmed;
+  let parens = 0;
+  for (let i = 0; i < trimmed.length - 1; i++) {
+    const char = trimmed[i];
+    if (char === "(") parens++;
+    else if (char === ")") parens = Math.max(0, parens - 1);
+    else if (
+      char === "." &&
+      trimmed[i + 1] === " " &&
+      parens === 0 &&
+      i > 0 &&
+      !ABBREVIATION.test(trimmed.slice(0, i))
+    ) {
+      return trimmed.slice(0, i + 1);
+    }
+  }
+  return trimmed;
 }
 
 /** The bare call signature: `await web_search({query: string, ...})`. */
@@ -513,12 +655,93 @@ export function toolImportLine(name: string): string | undefined {
     : `import { ${name} } from ${JSON.stringify(specifier)};`;
 }
 
+/**
+ * The call signature with every shape spelled out: nested objects to any
+ * depth, every enum value, `const` literals, array items, and the types of
+ * optional fields. A `select:` lookup answers with it, and so does the first
+ * call in an action that fails validating its arguments.
+ */
+export function focusedToolSignature(tool: ToolSignatureSource): string {
+  const params = schemaTypeLabel(tool.inputSchema, FOCUSED_LABEL);
+  return `await ${tool.name}(${params === "{}" ? "" : params})`;
+}
+
 /** Signature bullet + first sentence of the description. */
 export function renderToolSignature(tool: ToolSignatureSource): string {
   const description = firstSentence(tool.description ?? "");
   return description
     ? `- ${toolSignature(tool)}\n  ${description}`
     : `- ${toolSignature(tool)}`;
+}
+
+/** Longest purpose line, about 14 tokens. */
+const PURPOSE_MAX = 60;
+
+/**
+ * A clause break that ends a purpose line when enough precedes it. A
+ * parenthesis is not one: "the pixel color at (x, y) on the canvas" would end
+ * on "at".
+ */
+const PURPOSE_CLAUSE_BREAKS = [": ", " — ", "; "];
+const PURPOSE_CLAUSE_MIN = 24;
+
+/**
+ * What a tool is for, in one short line: the description's first sentence
+ * without its period, cut at its first clause break and capped at a word
+ * boundary. The rest of the description is one `select:` lookup away.
+ */
+export function toolPurpose(description: string): string {
+  let line = firstSentence(description).replace(/\.$/, "");
+  for (const separator of PURPOSE_CLAUSE_BREAKS) {
+    const at = line.indexOf(separator);
+    if (at >= PURPOSE_CLAUSE_MIN) {
+      line = line.slice(0, at);
+      break;
+    }
+  }
+  if (line.length <= PURPOSE_MAX) return line;
+  const cut = line.slice(0, PURPOSE_MAX - 1);
+  const space = cut.lastIndexOf(" ");
+  return `${(space > 0 ? cut.slice(0, space) : cut).replace(/[,;:]$/, "")}…`;
+}
+
+/**
+ * A focused document's tools for the turn block, with no signatures: per
+ * import specifier the import pattern, then one line per tool in the usage
+ * table ({@link rankFocusedTools}) with its purpose, then the other names. The
+ * output depends only on the set of tools, never on the order they arrive in.
+ */
+export function renderFocusedToolCatalog(
+  tools: readonly ToolSignatureSource[],
+  grafted: ReadonlyMap<string, string> = new Map()
+): string {
+  const groups = new Map<string, ToolSignatureSource[]>();
+  for (const tool of tools) {
+    const specifier = toolSpecifier(tool.name) ?? grafted.get(tool.name) ?? "";
+    const group = groups.get(specifier);
+    if (group === undefined) groups.set(specifier, [tool]);
+    else group.push(tool);
+  }
+  return [...groups.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([specifier, group]) => {
+      const { described, named } = rankFocusedTools(group);
+      const lines = [
+        specifier === ""
+          ? "Called as ordinary tools, with no import:"
+          : `\`import { <name>, … } from ${JSON.stringify(specifier)};\``,
+        ...described.map(
+          (tool) => `- ${tool.name}: ${toolPurpose(tool.description ?? "")}`
+        )
+      ];
+      if (named.length > 0) {
+        lines.push(
+          `${described.length > 0 ? "Also" : "Tools"}: ${named.map((t) => t.name).join(", ")}`
+        );
+      }
+      return lines.join("\n");
+    })
+    .join("\n\n");
 }
 
 /**
@@ -575,32 +798,136 @@ export function renderToolCatalog(
 /** What `nodetool.searchTools()` returns to the guest, per matched tool. */
 export interface ToolSearchHit {
   name: string;
-  signature: string;
+  /** The whole description for a `select:` hit, its purpose line otherwise. */
   description: string;
+  /** The full signature ({@link focusedToolSignature}), `select:` hits only. */
+  signature?: string;
   /** The capability namespace, absent for a tool no module owns. */
   module?: string;
   /** The specifier to import it from, absent for the same reason. */
   specifier?: string;
   /** The exact import statement to write. */
   import?: string;
+  /** Keyword hits only: the `select:` lookup that returns the rest. */
+  details?: string;
 }
 
-/** One search hit, with everything needed to write the call. */
+/**
+ * How much a search hit carries: `full` for a `select:` lookup, which names
+ * tools the model is about to call, `compact` for a keyword search, which
+ * finds candidates.
+ */
+export type ToolSearchDetail = "full" | "compact";
+
+/** The detail a `nodetool.searchTools()` query asks for. */
+export function toolSearchDetail(query: string): ToolSearchDetail {
+  return query.trim().toLowerCase().startsWith("select:") ? "full" : "compact";
+}
+
+/** One search hit, with everything needed to write the call or look it up. */
 export function toolSearchHit(
   tool: ToolSignatureSource,
   /** The namespace a host grafted this name onto, if any. */
-  graftedModule?: string
+  graftedModule?: string,
+  detail: ToolSearchDetail = "full"
 ): ToolSearchHit {
-  const hit: ToolSearchHit = {
-    name: tool.name,
-    signature: toolSignature(tool),
-    description: tool.description ?? ""
-  };
+  const description = tool.description ?? "";
+  const hit: ToolSearchHit =
+    detail === "full"
+      ? { name: tool.name, description, signature: focusedToolSignature(tool) }
+      : { name: tool.name, description: toolPurpose(description) };
   const module = capabilityModuleOf(tool.name) ?? graftedModule;
   if (module !== undefined) {
     hit.module = module;
     hit.specifier = sandboxCapabilitySpecifier(module);
     hit.import = `import { ${tool.name} } from ${JSON.stringify(sandboxCapabilitySpecifier(module))};`;
   }
+  if (detail === "compact") {
+    hit.details = `nodetool.searchTools("select:${tool.name}") returns the signature and the full description.`;
+  }
   return hit;
+}
+
+// ---------------------------------------------------------------------------
+// Disclosure on error
+// ---------------------------------------------------------------------------
+
+/** Text that is a JSON list of Zod issues, the way `ZodError.message` reads. */
+function isZodIssueListText(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith("[")) return false;
+  try {
+    return isZodIssueList(JSON.parse(trimmed) as unknown);
+  } catch {
+    return false;
+  }
+}
+
+/** A non-empty list of `{code, path, message}` issues. */
+function isZodIssueList(value: unknown): boolean {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every(
+      (issue) =>
+        isRecord(issue) &&
+        isString(issue["code"]) &&
+        Array.isArray(issue["path"]) &&
+        isString(issue["message"])
+    )
+  );
+}
+
+/**
+ * Whether a failed call failed on its arguments: the
+ * `invalid_tool_arguments` result a capability or `Tool` answers with, a
+ * thrown `ZodError`, or the `{error}` a browser tool sends back, whose text is
+ * that error's issue list. Unknown keys count once a strict schema rejects
+ * them (`unrecognized_keys`). Anything else, such as a missing document, does
+ * not.
+ */
+export function isArgumentValidationFailure(failure: unknown): boolean {
+  if (isString(failure)) return isZodIssueListText(failure);
+  if (failure instanceof Error) {
+    return (
+      isZodIssueList((failure as { issues?: unknown }).issues) ||
+      isZodIssueListText(failure.message)
+    );
+  }
+  if (!isRecord(failure)) return false;
+  if (failure["error"] === "invalid_tool_arguments") return true;
+  return [failure["error"], failure["message"]].some(
+    (text) => isString(text) && isZodIssueListText(text)
+  );
+}
+
+/**
+ * Appends a tool's full signature to an argument-validation failure, once per
+ * tool per action, so a repeated mistake does not repeat the signature.
+ */
+export interface SignatureDisclosure {
+  /**
+   * `message`, followed by the tool's full signature the first time this
+   * action reports a validation failure of that tool. A tool with no schema
+   * gets `message` unchanged.
+   */
+  withSignature(tool: ToolSignatureSource | undefined, message: string): string;
+  /** Start a new action: every tool may disclose again. */
+  reset(): void;
+}
+
+export function createSignatureDisclosure(): SignatureDisclosure {
+  const disclosed = new Set<string>();
+  return {
+    withSignature(tool, message) {
+      if (tool?.inputSchema === undefined || disclosed.has(tool.name)) {
+        return message;
+      }
+      disclosed.add(tool.name);
+      return `${message}\nThe full signature: ${focusedToolSignature(tool)}`;
+    },
+    reset() {
+      disclosed.clear();
+    }
+  };
 }

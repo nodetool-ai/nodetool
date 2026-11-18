@@ -470,8 +470,9 @@ const nodetool = (() => {
     /**
      * Find a tool the prompt lists by name only, or does not list at all.
      * Takes the ToolSearch grammar ("select:a,b" for exact names, "+term" to
-     * require one) and returns each match's name, signature and description.
-     * Call it before calling a tool whose arguments you have not seen.
+     * require one) and returns each match's name, purpose and import line; "select:" hits add the
+     * full signature and description. Call "select:" before calling a tool
+     * whose arguments you have not seen.
      */
     async searchTools(query, maxResults) {
       if (typeof __searchTools !== "function") {
@@ -1780,13 +1781,20 @@ interface PromptEntry {
    * pays for a signature list rather than a reference manual.
    */
   skill: string;
-  /** Rendered doc lines for the prompt. */
+  /**
+   * The system prompt's one-line summary, after `- \`nodetool.<namespace>\`: `.
+   * It ends with the method list, so `extra.line` can extend it.
+   */
+  line: string;
+  /**
+   * The full entry: signatures and the rules for each method.
+   */
   doc: string;
   /**
    * Methods documented only when the belt carries one of `tools`: a wrapper
    * whose tool no production host binds stays out of the prompt there.
    */
-  extra?: { tools: readonly string[]; doc: string };
+  extra?: { tools: readonly string[]; line: string; doc: string };
   /**
    * Rendered whenever any namespace is: the namespace needs no belt tool
    * (`nodetool.secrets` reads through the sandbox's own bridge).
@@ -1798,6 +1806,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "workflows",
     skill: "api-workflows",
+    line: `saved graphs and their runs. Saving does not run one: list (→ \`{workflows}\`), get, create, update, rename, validate, run, start, debug, resolve, example, versions, restore, open`,
     doc: `- \`nodetool.workflows\` — saved graphs and their runs: \`list()\` (→
   \`{workflows}\`, an envelope), \`get(id)\`, \`create(name, graph)\`,
   \`update(id, {graph, name, description, tags})\`, \`rename(id, name)\`,
@@ -1810,6 +1819,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "settings",
     skill: "api-settings",
+    line: `list, get, set, secrets (names only), requestSecret (asks the user, code never sets a secret)`,
     doc: `- \`nodetool.settings\` — \`list({group})\`, \`get(key)\`, \`set(key, value)\`,
   \`secrets()\` (names only), \`requestSecret(key, {reason, help_url})\`. A secret
   is never set from code: \`requestSecret\` opens a dialog for the user.`
@@ -1817,6 +1827,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "secrets",
     skill: "api-settings",
+    line: `get, tryGet, list. A chat or agent action has no secret scope, so get throws`,
     withAnyNamespace: true,
     doc: `- \`nodetool.secrets\` — \`get(name)\` (throws naming a missing secret),
   \`tryGet(name)\`, \`list()\`. Values are readable only where the run has a
@@ -1826,12 +1837,14 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "nodes",
     skill: "api-workflows",
+    line: `the node registry. Never guess a node type, search then info: search, info, list`,
     doc: `- \`nodetool.nodes\` — \`search(query)\` (→ \`{total, results}\`, the type is on
   \`type\`), \`info(type)\`, \`list({namespace})\`. NEVER guess a node type:
   search, then \`info\`.`,
     // `run_node` is a chat-turn host capability: the MCP mount and the step
     // executors carry the catalog tools without it.
     extra: {
+      line: `, run`,
       tools: ["run_node"],
       doc: ` \`run(type, inputs)\` runs one node with no graph.`
     }
@@ -1839,6 +1852,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "agents",
     skill: "api-agents",
+    line: `sub-agents with your tools and a fresh context, so the prompt must stand alone: run, start, wait`,
     doc: `- \`nodetool.agents\` — \`run(prompt)\`, \`start(prompt)\` (→ \`{subtask_id}\`),
   \`wait({ids})\`. A sub-agent has your tools and a FRESH context, so the
   prompt must be self-contained.`
@@ -1846,6 +1860,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "models",
     skill: "api-models",
+    line: `never guess a model id: pick (→ one model), find, list, forProvider, providers, generate`,
     doc: `- \`nodetool.models\` — \`pick(capability, {query})\` (→ one model),
   \`find(capability)\` (→ \`{results}\`), \`list()\`, \`forProvider(provider)\`,
   \`providers()\` (→ capabilities per provider), \`generate(prompt, model)\`. Never guess a model id. A node's model property
@@ -1854,6 +1869,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "media",
     skill: "api-media",
+    line: `one generation with a picked model, saved as an asset: generateImage, editImage, generateVideo, animateImage, videoFromReferences, speak, generateMusic, transcribe, embed, critique, compare, scoreAdherence, understandVideo, probe, edit, downloadVideo, toImage/toAudio/toVideo`,
     doc: `- \`nodetool.media\` — one generation with a picked model, saved as an asset:
   \`generateImage(prompt, model)\`, \`editImage(inputFile, prompt, model)\`,
   \`generateVideo(prompt, model)\`, \`animateImage(inputFile, model)\`,
@@ -1870,6 +1886,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "documents",
     skill: "api-assets",
+    line: `workspace file conversion: convert, extractText, extractTables, markdownToPdf, pdfToMarkdown`,
     doc: `- \`nodetool.documents\` — workspace file conversion: \`convert(inputFile,
   outputFile)\`, \`extractText(pdfPath)\`, \`extractTables(pdfPath, outFile)\`,
   \`markdownToPdf(inputFile, outputFile)\`, \`pdfToMarkdown(inputFile, outputFile)\`.
@@ -1879,6 +1896,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "web",
     skill: "api-web",
+    line: `search, news, images, browse, fetch, download, screenshot`,
     doc: `- \`nodetool.web\` — \`search(query)\`, \`news(query)\`, \`images(query)\`,
   \`browse(url)\` (readable text), \`fetch(url, {method, headers, body})\`,
   \`download(url, outputFile)\`, \`screenshot(url, outputFile)\`.`
@@ -1886,6 +1904,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "memory",
     skill: "api-memory",
+    line: `durable notes across conversations: save, get, search, list, update, remove`,
     doc: `- \`nodetool.memory\` — durable notes across conversations: \`save(content,
   {title, kind, resources})\`, \`get(title or id)\`, \`search(query)\`, \`list()\`,
   \`update(id, fields)\`, \`remove(id)\`. Put what you produce in \`resources\`, and
@@ -1894,12 +1913,14 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "threads",
     skill: "api-memory",
+    line: `chat history, read-only: list, get, last, message`,
     doc: `- \`nodetool.threads\` — chat history, read-only: \`list()\`, \`get(threadId)\`,
   \`last(threadId)\`, \`message(messageId)\`.`
   },
   {
     namespace: "shared",
     skill: "api-memory",
+    line: `this run's scratchpad: list, read, publish`,
     doc: `- \`nodetool.shared\` — the scratchpad of THIS run: \`list()\` (metadata
   only), \`read(keys)\`, \`publish(key, value)\`. Earlier step and task results
   land here.`
@@ -1907,6 +1928,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "assets",
     skill: "api-assets",
+    line: `the library: list, search, images, get, read, save`,
     doc: `- \`nodetool.assets\` — the library: \`list()\`, \`search(query)\`,
   \`images()\` (handles for \`view_image\`), \`get(id)\`, \`read(nameOrUri)\`,
   \`save(name, {content | content_base64 | source})\`. Keep a file another tool
@@ -1915,6 +1937,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "jobs",
     skill: "api-workflows",
+    line: `list, get, logs, wait (at most 5 minutes a call), cancel`,
     doc: `- \`nodetool.jobs\` — \`list()\`, \`get(id)\`, \`logs(id)\`,
   \`wait(idOrReceipt, {timeoutMs})\` (polls until the job settles, at most 5
   minutes per call; a timeout throws, so wait again in the next action),
@@ -1923,6 +1946,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "runs",
     skill: "nodetool-troubleshooter",
+    line: `app, workflow and chat runs: list, get, trace, logs, wait`,
     doc: `- \`nodetool.runs\` — app, workflow and chat runs: \`list(opts)\`,
   \`get(id)\` (summary first), \`get(id, {include_content: true})\` (saved app inputs and outputs),
   \`trace(id, {focus_span_id, depth, include_content})\`,
@@ -1932,6 +1956,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "generations",
     skill: "api-media",
+    line: `status and cost of media generations: list, get, wait, cancel, reconcile, fromProvider, getFromProvider`,
     doc: `- \`nodetool.generations\` — status and cost of every media generation:
   \`list()\`, \`get(id)\`, \`wait(id)\` (for \`background: true\`), \`cancel(id)\`,
   \`reconcile(id)\`, \`fromProvider(provider)\`, \`getFromProvider(provider, requestId)\`.`
@@ -1939,9 +1964,11 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "collections",
     skill: "api-collections",
+    line: `vector search: list, query`,
     doc: `- \`nodetool.collections\` — vector search: \`list()\`, \`query(collection,
   text)\`.`,
     extra: {
+      line: `, and on this run's bound collection index, indexBatch, search, hybridSearch`,
       tools: [
         "vector_index",
         "vector_batch_index",
@@ -1955,6 +1982,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "apps",
     skill: "api-apps",
+    line: `mini apps: list, get, create, edit, debug (\`{run: false}\` is the free wiring check)`,
     doc: `- \`nodetool.apps\` — mini apps: \`list()\`, \`get(id)\`, \`create(name)\`,
   \`edit(id, steps)\` (\`edit(id, [])\` lists the App Builder tools),
   \`debug(id, {run: false})\` (the free wiring check).`
@@ -1962,6 +1990,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "games",
     skill: "api-games",
+    line: `built-in games: create, get, edit, setDocument, previewAuthoring, applyAuthoring, browseAssets, generateAsset, installAsset, playtest, autoplay, capture, publish, build, listExamples, getExample, installExample`,
     doc: `- \`nodetool.games\` — built-in games: \`create(name, {project_id})\`,
   \`get(id)\`, \`edit(id, ops)\`, \`setDocument(id, document)\`,
   \`previewAuthoring(id, {program})\`, \`applyAuthoring(id, candidate)\`,
@@ -1973,6 +2002,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "timelines",
     skill: "api-timelines",
+    line: `list, create, get, edit, rename, setDocument, validate, preview, compare, render (a job), bakeAudioAnimation, versions, examples, compositions`,
     doc: `- \`nodetool.timelines\` — \`list()\` (→ \`{timelines}\`), \`create(name, {fps,
   width, height})\`, \`get(id)\`, \`edit(id, ops)\`, \`rename(id, name)\`,
   \`setDocument(id, document)\`, \`validate(idOrDocument, {tier: "showcase"})\`, \`preview(idOrDocument,
@@ -1987,6 +2017,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "sketches",
     skill: "api-sketches",
+    line: `layered image documents: list, create, get, edit, rename, validate, render, delete, versions`,
     doc: `- \`nodetool.sketches\` — layered image documents: \`list()\`,
   \`create(name, {width, height})\`, \`get(id)\`, \`edit(id, ops)\`,
   \`rename(id, name)\`, \`validate(idOrDocument)\`, \`render(idOrDocument, {width, format})\` (a
@@ -1997,6 +2028,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "scripts",
     skill: "api-scripts",
+    line: `voice scripts: list, create, get, edit, rename, voice, assembleTimeline`,
     doc: `- \`nodetool.scripts\` — voice scripts: \`list()\`, \`create(name)\`,
   \`get(id)\`, \`edit(id, ops)\`, \`rename(id, name)\`, \`voice(id)\`,
   \`assembleTimeline(id)\`.`
@@ -2004,6 +2036,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "storyboards",
     skill: "api-storyboards",
+    line: `shot lists: list, create, get, edit, rename, renderStills, renderClips, reviseClip, assembleTimeline, previewDesign, finish`,
     doc: `- \`nodetool.storyboards\` — shot lists: \`list()\`, \`create(name, {brief,
   style, aspect_ratio})\`, \`get(id)\`, \`edit(id, ops)\`, \`rename(id, name)\`,
   \`renderStills(id)\`
@@ -2015,45 +2048,15 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   }
 ];
 
-const BATCH_EXAMPLE = `Batching turns one workflow into a dynamic pipeline — loops, joins, and
-per-item parameters live in your code:
-
-\`\`\`js
-const rows = JSON.parse(await workspace.read("products.json"));
-const runs = await nodetool.batch(rows, (row) =>
-  nodetool.workflows.run(wfId, { image_url: row.image_url, title: row.title }),
-  { concurrency: 3 });
-const failed = runs.filter((r) => !r.ok);
-if (failed.length) {
-  await nodetool.memory.save("failed rows: " + failed.map((r) => r.index).join(","), { title: "Batch failures" });
-}
-return { ok: runs.filter((r) => r.ok).length, failed: failed.length };
-\`\`\`
-
-\`nodetool.batch(items, fn, {concurrency, stopOnError})\` never throws — each
-entry settles as \`{ok, index, item, value | error}\`. A handful of items is one
-\`batch\` call in one action; only lists big enough to threaten the sandbox
-limits get chunked across actions, persisting partial progress with
-\`nodetool.memory.save\`.`;
-
-const MEDIA_EXAMPLE = `Pick a model, then generate — batching included. Every result
-is already a saved asset; return the uris and record the ones you will need
-after this action:
+const MEDIA_EXAMPLE = `Example:
 
 \`\`\`js
 const model = await nodetool.models.pick("text_to_image");
-const shots = ["a red fox in snow", "a fox by a river"];
-const images = await nodetool.batch(shots, (prompt) =>
-  nodetool.media.generateImage(prompt, model), { concurrency: 2 });
-const uris = images.map((r) => (r.ok ? r.value.asset_uri : null)).filter(Boolean);
-await nodetool.memory.save(uris.join("\\n"), { title: "Fox stills" });
-return uris;
+const image = await nodetool.media.generateImage("a red fox in snow", model);
+await nodetool.memory.save(image.asset_uri, { title: "Fox still" });
+return image.asset_uri;
 \`\`\``;
 
-/**
- * The `nodetool` API section for codeact system prompts, documenting only the
- * namespaces this belt can actually serve. Empty string when none can.
- */
 /** Client tool families that address a document open in the user's browser. */
 const DOCUMENT_UI_TOOL_PREFIXES = [
   "ui_timeline_",
@@ -2064,28 +2067,16 @@ const DOCUMENT_UI_TOOL_PREFIXES = [
 
 const DOCUMENT_SURFACE_GUIDANCE = `# Editing documents: server-side first
 
-A timeline, sketch, script, or storyboard that has an id is editable
-server-side through \`nodetool.<surface>.edit(id, ops)\`. Prefer it. The edit
-lands on the stored document under a compare-and-swap, works whether or not the
-user has that document open, and an open editor picks the change up live — so
-one path covers both cases.
-
-Reach for a \`ui_*\` tool only for what a server-side edit cannot do:
-
-- \`ui_sketch_get_layer_image\`, \`ui_sketch_render_to_asset\` — real pixels off
-  the canvas.
-- \`ui_timeline_get_clip_frames\` — rendered video frames.
-- \`ui_sketch_generate\`, \`ui_timeline_generate_clip\`,
-  \`ui_storyboard_generate_*\`, \`ui_script_voice_*\` — generation the browser
-  drives. Headlessly these are \`nodetool.storyboards.renderStills/renderClips\`,
-  \`nodetool.scripts.voice\`, \`nodetool.media.*\`, or a workflow run.
-- Moving the user's view: selection, playhead, active tool.
-- In the native timeline editor, every other editor command, from ripple delete
-  and trims to transitions and groups: \`ui_timeline_list_commands\` names them
-  and \`ui_timeline_run_command\` runs one as one undo step. Check the result with
-  \`ui_timeline_read_scopes\` and \`ui_timeline_capture_frame\`.
-
-If you do not know the document's id, find it with \`list()\` on the namespace.`;
+Edit a timeline, sketch, script or storyboard by id with
+\`nodetool.<namespace>.edit(id, ops)\`. It works whether or not the document is
+open, and an open editor shows the change live. Find a missing id with
+\`list()\`. Use a \`ui_*\` tool only for what that edit cannot do: pixels off the
+canvas (\`ui_sketch_get_layer_image\`, \`ui_sketch_render_to_asset\`), rendered
+clip frames (\`ui_timeline_get_clip_frames\`), generation the browser drives
+(headless: \`nodetool.storyboards.renderStills/renderClips\`,
+\`nodetool.scripts.voice\`, \`nodetool.media.*\`), moving the user's view, and
+native timeline editor commands (\`ui_timeline_list_commands\`,
+\`ui_timeline_run_command\`).`;
 
 /**
  * Heading of the prompt section {@link buildNodetoolApiPromptSection} renders.
@@ -2162,61 +2153,90 @@ Pick by what the user asked for, not by what the last turn used.
 ${bullets.join("\n")}${closer}`;
 }
 
+/** Whether the belt carries a tool that lights `entry`'s namespace. */
+function entryLit(entry: PromptEntry, names: ReadonlySet<string>): boolean {
+  return (NODETOOL_API_NAMESPACE_TOOLS[entry.namespace] ?? []).some((tool) =>
+    names.has(tool)
+  );
+}
+
+function extraLit(entry: PromptEntry, names: ReadonlySet<string>): boolean {
+  return entry.extra?.tools.some((tool) => names.has(tool)) ?? false;
+}
+
+/** ` Skill: \`<name>\`.` when the belt can load skills, else "". */
+function skillPointer(entry: PromptEntry, names: ReadonlySet<string>): string {
+  return names.has("load_skill") ? ` Skill: \`${entry.skill}\`.` : "";
+}
+
+/**
+ * The system prompt's line for one namespace. The section states the default
+ * skill name once, so a line names its skill only when it differs.
+ */
+function summaryLine(entry: PromptEntry, names: ReadonlySet<string>): string {
+  const extra = entry.extra && extraLit(entry, names) ? entry.extra.line : "";
+  const skill =
+    entry.skill === `api-${entry.namespace}` ? "" : skillPointer(entry, names);
+  return `- \`nodetool.${entry.namespace}\`: ${entry.line}${extra}.${skill}`;
+}
+
+/**
+ * Focus type → the namespace whose full entry a turn with that focus carries.
+ * Focus types without a `nodetool.*` namespace (svg, audio, model3d,
+ * jsscript) are absent.
+ */
+export const NODETOOL_FOCUS_NAMESPACES: Readonly<Record<string, string>> = {
+  workflow: "workflows",
+  app: "apps",
+  app_run: "apps",
+  timeline: "timelines",
+  sketch: "sketches",
+  script: "scripts",
+  storyboard: "storyboards"
+};
+
+/**
+ * One namespace's line, the same one the system prompt lists, for the turn
+ * block of a turn that focuses that namespace's document. Empty when the
+ * namespace is unknown or the belt carries none of its tools.
+ */
+export function renderNodetoolNamespaceLine(
+  namespace: string,
+  toolNames: Iterable<string>
+): string {
+  const names = new Set(toolNames);
+  const entry = NAMESPACE_DOCS.find((e) => e.namespace === namespace);
+  if (!entry || !(entry.withAnyNamespace || entryLit(entry, names))) {
+    return "";
+  }
+  return summaryLine(entry, names);
+}
+
+/**
+ * The `nodetool` object model for CodeAct system prompts: one line per
+ * namespace this belt can serve. It depends only on the belt, never on the
+ * turn's focus, so the system prompt stays byte-identical across turns.
+ * Empty when the belt serves no namespace.
+ */
 export function buildNodetoolApiPromptSection(
   toolNames: Iterable<string>,
   options: NodetoolApiPromptOptions = {}
 ): string {
   const names = new Set(toolNames);
-  const lit = (tools: readonly string[]): boolean =>
-    tools.some((tool) => names.has(tool));
-  if (
-    !NAMESPACE_DOCS.some(
-      (entry) =>
-        !entry.withAnyNamespace &&
-        lit(NODETOOL_API_NAMESPACE_TOOLS[entry.namespace])
-    )
-  ) {
+  if (!NAMESPACE_DOCS.some((e) => !e.withAnyNamespace && entryLit(e, names))) {
     return "";
   }
   const active = NAMESPACE_DOCS.filter(
-    (entry) =>
-      entry.withAnyNamespace ||
-      lit(NODETOOL_API_NAMESPACE_TOOLS[entry.namespace])
+    (entry) => entry.withAnyNamespace || entryLit(entry, names)
   );
-
+  const skills = names.has("load_skill")
+    ? " Each line names a namespace's methods. Its skill, `api-<namespace>` unless the line names another, has the arguments, return shapes and examples: `load_skill` it before the first call into the namespace."
+    : "";
   const sections: string[] = [
     NODETOOL_API_SECTION_HEADER,
-    `Platform objects — workflows, models, media, documents — are
-driven through \`nodetool.*\`, not through the raw imported calls. The backing
-tools are deliberately absent from the tool catalog above; this object model
-is their one documented surface. \`nodetool.capabilities()\` reports what is
-available. A method whose backing tool is missing throws and names the tool.`,
-    `The same capabilities are also importable, one module per namespace:
-\`import { list_workflows } from "@nodetool-ai/sandbox-nodetool/workflows"\`, or
-\`import workflows from "@nodetool-ai/sandbox-nodetool/workflows"\` for the whole
-namespace. Each export takes the one arguments object its tool takes. This is
-the same gated implementation \`nodetool.*\` calls — \`nodetool.*\` stays
-available, and the two cannot disagree. A module this session does not mount
-fails the action by name, before any code runs.`
+    `\`nodetool.<namespace>.<method>()\` drives the platform tools left out of the tool list above. They are also importable by tool name (\`import { list_workflows } from "@nodetool-ai/sandbox-nodetool/workflows"\`), never by method name. \`nodetool.capabilities()\` lists what is available.${skills}`,
+    active.map((entry) => summaryLine(entry, names)).join("\n")
   ];
-  // A skill is only worth naming when this belt can load it.
-  const skills = names.has("load_skill");
-  if (skills) {
-    sections.push(`Each line below is a summary. Its skill (\`load_skill\`) holds every
-option, return shape and example: load it before the first call into that
-namespace.`);
-  }
-  sections.push(
-    active
-      .map((entry) => {
-        const doc =
-          entry.extra && lit(entry.extra.tools)
-            ? entry.doc + entry.extra.doc
-            : entry.doc;
-        return skills ? `${doc} Skill: \`${entry.skill}\`.` : doc;
-      })
-      .join("\n")
-  );
   const choice = surfaceChoiceSection(options, names);
   if (choice) sections.push(choice);
   if (options.graphDsl) sections.push(GRAPH_DSL_PROMPT_SECTION);
@@ -2224,7 +2244,6 @@ namespace.`);
   if (names.has("find_model") && names.has("generate_image")) {
     sections.push(MEDIA_EXAMPLE);
   }
-  if (names.has("run_workflow")) sections.push(BATCH_EXAMPLE);
   if (
     [...names].some((name) =>
       DOCUMENT_UI_TOOL_PREFIXES.some((p) => name.startsWith(p))

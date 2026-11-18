@@ -188,7 +188,11 @@ export default defineConfig({
       // then compiles `<!do…` and aborts with "expected magic word". Excluded,
       // the module is served from its own directory and the URL resolves.
       "@jitl/quickjs-ng-wasmfile-release-sync",
-      "quickjs-emscripten-core"
+      "quickjs-emscripten-core",
+      // Node's HTTP client. The MiniMax provider imports it lazily for H3
+      // requests, which never run in the browser, and its `node:util/types`
+      // import has no stub, so pre-bundling it fails the whole optimizer.
+      "undici"
     ],
     // Nothing imports mediabunny statically — the `video.*` bridge behind the
     // Code node reaches it only once a test calls it. Vite would then discover

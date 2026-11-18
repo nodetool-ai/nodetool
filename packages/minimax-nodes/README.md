@@ -15,7 +15,7 @@ records each call as a generation.
 | MiniMax Voice | `minimax.Voice` | Pick a MiniMax system voice and output its voice ID. |
 | MiniMax Text to Speech | `minimax.TextToSpeech` | Synthesize speech with emotion, volume, pitch, speed, and language boost. |
 | MiniMax Music Generation | `minimax.MusicGeneration` | Generate a full song with vocals from a style prompt and lyrics. |
-| MiniMax Text to Image | `minimax.TextToImage` | Generate images with image-01 at a chosen aspect ratio. |
+| MiniMax Text to Image | `minimax.TextToImage` | Generate images with image-01 or H3 at a chosen aspect ratio. |
 | MiniMax Text to Video | `minimax.TextToVideo` | Generate video from text with Hailuo / Director models. |
 | MiniMax Image to Video | `minimax.ImageToVideo` | Animate a still image into a video. |
 
@@ -23,6 +23,10 @@ records each call as a generation.
 
 Set `MINIMAX_API_KEY` in NodeTool's secret store (Settings → API Keys) or as an
 environment variable. Node code never reads the key.
+
+For text-to-image, select `MiniMax-H3-Image` or `MiniMax-H3-Image-Highspeed` to
+use H3. Set `MINIMAX_IMAGE_REGION` to `china` for a China API key. The default
+is `international`.
 
 > MiniMax chat models and the generic Text to Image / Text to Video / Text to
 > Speech nodes also work through the built-in MiniMax provider; this pack adds

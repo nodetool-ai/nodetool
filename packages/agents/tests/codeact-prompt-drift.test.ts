@@ -217,7 +217,8 @@ describe("CodeAct prompt / sandbox drift", () => {
     expect(section).toContain(
       'import { list_workflows } from "@nodetool-ai/sandbox-nodetool/workflows"'
     );
-    expect(section).toContain("`nodetool.*` stays");
+    // Eval traces import method names (`list`) instead of tool names.
+    expect(section).toContain("never by method name");
     expect(section).toContain("`nodetool.capabilities()`");
   });
 

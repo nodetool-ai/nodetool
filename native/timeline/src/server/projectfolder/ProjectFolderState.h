@@ -57,6 +57,14 @@ class ProjectFolderState : public QObject {
     Q_PROPERTY(QString error READ error NOTIFY changed)
     Q_PROPERTY(QString locateError READ locateError NOTIFY changed)
     Q_PROPERTY(QString restoreError READ restoreError NOTIFY changed)
+    // The open timeline's server and its token, which run a transfer of the project.
+    Q_PROPERTY(QUrl serverUrl READ serverUrl NOTIFY changed)
+    Q_PROPERTY(QString serverToken READ serverToken NOTIFY changed)
+    // The server this launch of the app started or joined, or empty.
+    Q_PROPERTY(QUrl bundledServerUrl READ bundledServerUrl NOTIFY changed)
+    // The project is a folder on that bundled server, so File > Publish to
+    // Cloud and Synchronize can open the review sheet for it.
+    Q_PROPERTY(bool canTransfer READ canTransfer NOTIFY changed)
 public:
     explicit ProjectFolderState(QObject* parent = nullptr);
     ~ProjectFolderState() override;
@@ -81,6 +89,10 @@ public:
     QString error() const { return m_error; }
     QString locateError() const { return m_locateError; }
     QString restoreError() const { return m_restoreError; }
+    QUrl serverUrl() const { return m_target ? m_target->server : QUrl(); }
+    QString serverToken() const { return m_target ? m_target->token : QString(); }
+    static QUrl bundledServerUrl();
+    bool canTransfer() const;
 
     Q_INVOKABLE void refresh();
     // Opens the folder in the platform's file manager. False when it is not on this machine.

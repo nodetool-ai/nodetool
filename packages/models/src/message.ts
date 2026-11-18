@@ -51,6 +51,26 @@ export function compactionMessageContent(summary: string): string {
   return `[Conversation so far]\n${summary}`;
 }
 
+/**
+ * One turn-scoped block a chat turn sent with a user message, such as what the
+ * user is looking at or the thread's memory. `key` names the kind of block, so
+ * a later turn can tell whether that kind changed since it was last sent.
+ */
+export interface TurnContextSection {
+  key: string;
+  text: string;
+}
+
+/**
+ * The text a user message's turn context adds for the model: its blocks in
+ * order, separated by a blank line. Empty when there is none.
+ */
+export function turnContextText(
+  sections: readonly TurnContextSection[] | null | undefined
+): string {
+  return (sections ?? []).map((section) => section.text).join("\n\n");
+}
+
 export class Message extends DBModel {
   static override table = messages;
 
@@ -83,6 +103,11 @@ export class Message extends DBModel {
   declare branch_id: string | null;
   /** Live message an archived version forks after; "" for the thread start. */
   declare branch_after: string | null;
+  /**
+   * On a user message, the turn-scoped blocks the model was sent after it.
+   * Null when there were none. Never part of what the UI shows.
+   */
+  declare turn_context: TurnContextSection[] | null;
   declare created_at: string;
 
   override async delete(): Promise<void> {
@@ -118,6 +143,7 @@ export class Message extends DBModel {
     this.provider_session ??= null;
     this.branch_id ??= null;
     this.branch_after ??= null;
+    this.turn_context ??= null;
     this.created_at ??= now;
 
     // Drizzle handles JSON<->text via jsonText custom type, but handle

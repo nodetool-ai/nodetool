@@ -1,0 +1,526 @@
+[
+ {
+  "id": "sketch-layered-artwork",
+  "objective": "Draw me a simple landscape — sky, hills, and a sun. Keep each part on its own layer so I can adjust them separately afterwards, and name the layers for what they hold."
+ },
+ {
+  "id": "model3d-compose-scene",
+  "objective": "Block out a simple scene for me: a table with two objects sitting on top of it, and a light so the shot is not black. Name things for what they are."
+ },
+ {
+  "id": "timeline-tools/titles-with-motion",
+  "objective": "Add a text clip that says 'Hello' and give it a fade-in entrance animation."
+ },
+ {
+  "id": "timeline-tools/generate-and-arrange",
+  "objective": "Add a video track, generate a text-to-video clip on it, then move the clip to start at 2000ms on the timeline."
+ },
+ {
+  "id": "sketch-tools/compose-layers",
+  "objective": "The document has a single 'Background' layer. Add two new layers, name them, and set the top new layer to 50% opacity with 'multiply' blend mode."
+ },
+ {
+  "id": "sketch-tools/resize-and-select",
+  "objective": "Resize the canvas to 1024x768 pixels and select the whole canvas."
+ },
+ {
+  "id": "storyboard-tools/board-from-scratch",
+  "objective": "Build a short 3-shot sequence for a storyboard from scratch: add 3 shots describing the sequence, each with a camera framing, then select the first shot."
+ },
+ {
+  "id": "storyboard-tools/author-screenplay",
+  "objective": "The brief is 'A 20-second teaser for a lighthouse keeper's last night.' Write the screenplay yourself — do not ask for one and do not wait for a Director node. Then load it onto the storyboard with a single ui_storyboard_set_screenplay call. Give it a title, and give every shot a slug, an action, a camera framing and a duration in seconds. Use exactly 3 shots."
+ },
+ {
+  "id": "script-tools/voice-and-assemble",
+  "objective": "The script has a cast member with a bound voice and two draft lines assigned to them. Voice all the lines, then send the script to the timeline."
+ },
+ {
+  "id": "script-tools/write-dialogue",
+  "objective": "Add two cast members and write at least three lines of dialogue between them, each line assigned to one of the two cast members."
+ },
+ {
+  "id": "script-tools/derive-storyboard",
+  "objective": "The script is written. Turn it into a storyboard whose shots cover its lines."
+ },
+ {
+  "id": "js-script-tools/author-sum-script",
+  "objective": "Write a script that takes a list of numbers on an input called `numbers` and sets an output called `total` to their sum. Declare the ports, write the body, and run it once with [1, 2, 3] to confirm the total is 6."
+ },
+ {
+  "id": "js-script-tools/expose-as-custom-node",
+  "objective": "Save this script to my node menu under the category \"Text\" so I can drop it onto a graph, and give it a description that says what it does. Do not change its body or its ports."
+ },
+ {
+  "id": "js-script-tools/repair-failing-test",
+  "objective": "This script is supposed to set `doubled` to twice its `n` input, and it has a saved test case for that. Run the tests, find out why the case fails, fix the body, and get the tests green. Do not change the test case."
+ },
+ {
+  "id": "svg-tools/remove-label",
+  "objective": "Remove the text label from the SVG. I want to look at it before keeping it."
+ },
+ {
+  "id": "audio-tools/trim-leading-silence",
+  "objective": "This recording starts with dead air before anyone speaks. Remove the silence at the start and save the audio."
+ },
+ {
+  "id": "val/model3d-build/000",
+  "objective": "In the open 3D scene, build a sphere named 'Pedestal' at (2, 1, -1), a box named 'Ring' at (3, 0, -3), a box named 'Marble' at (3, 2, -1) colored #7b2cbf and a point light named 'Sun' at (0, 6, 3)."
+ },
+ {
+  "id": "val/model3d-build/001",
+  "objective": "Add to the 3D scene a box named 'Block' at (1, 0, 2) and a torus named 'Disc' at (2, 3, -2)."
+ },
+ {
+  "id": "val/model3d-build/002",
+  "objective": "Set up the 3D scene with a sphere named 'Anvil' at (1, 1, -3) colored #ff70a6, a cylinder named 'Ring' at (-2, 1, -1), a plane named 'Orb' at (1, 3, -1) colored #1d3557 and a directional light named 'Key Light' at (0, 4, 1)."
+ },
+ {
+  "id": "val/model3d-build/003",
+  "objective": "Add to the 3D scene a cylinder named 'Dome' at (0, 2, -2) colored #ffd166, a cylinder named 'Pillar' at (3, 3, 3) and a directional light named 'Lamp' at (0, 6, 2)."
+ },
+ {
+  "id": "val/model3d-build/004",
+  "objective": "Set up the 3D scene with a sphere named 'Wheel' at (1, 1, 0) colored #1d3557, a plane named 'Spire' at (2, 3, -2) colored #ffd166 and a directional light named 'Glow' at (0, 3, 0)."
+ },
+ {
+  "id": "val/model3d-edit/000",
+  "objective": "The open 3D scene has a cylinder named 'Ring', a plane named 'Spire', a sphere named 'Column' and a torus named 'Anvil'. Please move 'Ring' to (1, 3, 3) and hide 'Anvil' without deleting it. Leave everything else as it is."
+ },
+ {
+  "id": "val/model3d-edit/001",
+  "objective": "The open 3D scene has a box named 'Crate', a plane named 'Plinth' and a plane named 'Orb'. Please make 'Plinth' navy (#1d3557), rename 'Orb' to 'Anvil' and hide 'Crate' without deleting it. Leave everything else as it is."
+ },
+ {
+  "id": "val/model3d-edit/002",
+  "objective": "The open 3D scene has a plane named 'Pillar', a sphere named 'Crate', a torus named 'Wheel' and a sphere named 'Orb'. Please rename 'Pillar' to 'Beacon', scale 'Crate' to 0.5x on every axis and move 'Wheel' to (-1, 2, -3). Leave everything else as it is."
+ },
+ {
+  "id": "val/model3d-edit/003",
+  "objective": "The open 3D scene has a torus named 'Totem', a box named 'Disc', a cylinder named 'Spire', a sphere named 'Block' and a sphere named 'Pillar'. Please make 'Pillar' purple (#7b2cbf), move 'Totem' to (-3, 1, -4) and scale 'Block' to 2x on every axis. Leave everything else as it is."
+ },
+ {
+  "id": "val/model3d-edit/004",
+  "objective": "The open 3D scene has a sphere named 'Column', a box named 'Spire' and a torus named 'Pillar'. Please hide 'Spire' without deleting it, make 'Pillar' pink (#ff70a6) and scale 'Column' to 3x on every axis. Leave everything else as it is."
+ },
+ {
+  "id": "val/svg-edit/000",
+  "objective": "In this SVG, remove the element \"pill\". Don't save yet, I want to look first."
+ },
+ {
+  "id": "val/svg-edit/001",
+  "objective": "In this SVG, remove the element \"lens\" and add a circle with id \"button\" at (110, 95) with radius 10 and fill #e63946. Don't save yet, I want to look first."
+ },
+ {
+  "id": "val/svg-edit/002",
+  "objective": "In this SVG, change the fill of \"lens\" to #06d6a0. Don't save yet, I want to look first."
+ },
+ {
+  "id": "val/svg-edit/003",
+  "objective": "In this SVG, add a circle with id \"tile\" at (110, 95) with radius 13 and fill #1d3557, set the r of \"card\" to 28 and change the fill of \"halo\" to #f4a261. Don't save yet, I want to look first."
+ },
+ {
+  "id": "val/svg-edit/004",
+  "objective": "In this SVG, add a circle with id \"tile\" at (110, 95) with radius 6 and fill #7b2cbf. Don't save yet, I want to look first."
+ },
+ {
+  "id": "val/timeline-titles/000",
+  "objective": "Add a text title: \"Subscribe\" from 1000ms for 2000ms."
+ },
+ {
+  "id": "val/timeline-titles/001",
+  "objective": "Add a text title: \"Behind the Scenes\" from 1500ms for 2500ms with a typewriter entrance."
+ },
+ {
+  "id": "val/timeline-titles/002",
+  "objective": "Add these text titles: \"Chapter One\" from 0ms for 1000ms with a slide entrance, \"Subscribe\" from 1500ms for 1000ms with a slide entrance and \"Day 1\" from 3000ms for 1000ms with a slide entrance."
+ },
+ {
+  "id": "val/timeline-titles/003",
+  "objective": "Add these text titles: \"Part Two\" from 2000ms for 1000ms with a typewriter entrance, \"Meet the Team\" from 4000ms for 2000ms and \"Day 1\" from 7000ms for 3000ms."
+ },
+ {
+  "id": "val/timeline-titles/004",
+  "objective": "Add these text titles: \"Summer Sale\" from 1500ms for 1500ms with a typewriter entrance, \"Chapter One\" from 3000ms for 2000ms with a wipe entrance and \"Thank You\" from 6000ms for 1000ms with a slide entrance."
+ },
+ {
+  "id": "val/timeline-edit/000",
+  "objective": "The video track has \"Close-up\" (0–3500ms), \"Reaction\" (3500–7000ms), \"Cutaway\" (7000–12000ms) and \"Outro\" (12000–15500ms). Split \"Close-up\" at 1000ms and move \"Cutaway\" so it starts at 17500ms. Don't change the other clips."
+ },
+ {
+  "id": "val/timeline-edit/001",
+  "objective": "The video track has \"Cutaway\" (0–3000ms), \"Wide\" (3000–6000ms) and \"Close-up\" (6000–10500ms). Move \"Close-up\" so it starts at 12000ms, split \"Wide\" at 5500ms and shorten \"Cutaway\" to 1000ms, keeping its start. Don't change the other clips."
+ },
+ {
+  "id": "val/timeline-edit/002",
+  "objective": "The video track has \"Outro\" (0–2500ms), \"Reaction\" (2500–4500ms), \"B-roll\" (4500–9500ms) and \"Close-up\" (9500–12500ms). Delete \"Close-up\" and shorten \"Reaction\" to 1000ms, keeping its start. Don't change the other clips."
+ },
+ {
+  "id": "val/timeline-edit/003",
+  "objective": "The video track has \"Wide\" (0–4500ms), \"Close-up\" (4500–7000ms), \"Cutaway\" (7000–10000ms) and \"Reaction\" (10000–14500ms). Delete \"Wide\" and split \"Close-up\" at 5500ms. Don't change the other clips."
+ },
+ {
+  "id": "val/timeline-edit/004",
+  "objective": "The video track has \"Cutaway\" (0–2500ms), \"Detail\" (2500–5500ms) and \"Outro\" (5500–8000ms). Delete \"Cutaway\" and shorten \"Outro\" to 1000ms, keeping its start. Don't change the other clips."
+ },
+ {
+  "id": "val/sketch-compose/000",
+  "objective": "On the canvas, resize the canvas to 640×480, add a layer named 'Ground' with a filled yellow (#ffd166) rectangle whose top-left corner is at x 550, y 340, 60 px wide and 70 px tall, add a layer named 'Character' with a filled teal (#2a9d8f) ellipse whose top-left corner is at x 300, y 170, 110 px wide and 110 px tall and add a layer named 'Sun' with a filled pink (#ff70a6) rectangle whose top-left corner is at x 470, y 260, 60 px wide and 110 px tall. Keep each shape on its own layer, above the background."
+ },
+ {
+  "id": "val/sketch-compose/001",
+  "objective": "On the canvas, resize the canvas to 600×800, fill the background with green (#06d6a0) so it covers the whole canvas, add a layer named 'Ground' with a filled red (#e63946) rectangle whose top-left corner is at x 390, y 40, 120 px wide and 110 px tall and add a layer named 'Logo' with a filled red (#e63946) rectangle whose top-left corner is at x 130, y 170, 120 px wide and 100 px tall. Keep each shape on its own layer, above the background."
+ },
+ {
+  "id": "val/sketch-compose/002",
+  "objective": "On the canvas, resize the canvas to 600×800, add a layer named 'Glow' with a filled yellow (#ffd166) rectangle whose top-left corner is at x 170, y 140, 110 px wide and 120 px tall, add a layer named 'Hills' with a filled green (#06d6a0) ellipse whose top-left corner is at x 30, y 310, 120 px wide and 90 px tall and add a layer named 'Highlights' with a filled yellow (#ffd166) rectangle whose top-left corner is at x 300, y 230, 90 px wide and 90 px tall. Keep each shape on its own layer, above the background."
+ },
+ {
+  "id": "val/sketch-compose/003",
+  "objective": "On the canvas, fill the background with pink (#ff70a6) so it covers the whole canvas and add a layer named 'Frame' with a filled purple (#7b2cbf) rectangle whose top-left corner is at x 140, y 290, 80 px wide and 60 px tall."
+ },
+ {
+  "id": "val/sketch-compose/004",
+  "objective": "In this sketch, fill the background with purple (#7b2cbf) so it covers the whole canvas, add a layer named 'Water' with a filled yellow (#ffd166) ellipse whose top-left corner is at x 680, y 220, 90 px wide and 40 px tall, add a layer named 'Frame' with a filled navy (#1d3557) rectangle whose top-left corner is at x 450, y 380, 120 px wide and 90 px tall and add a layer named 'Glow' with a filled green (#06d6a0) ellipse whose top-left corner is at x 270, y 430, 40 px wide and 80 px tall. Keep each shape on its own layer, above the background."
+ },
+ {
+  "id": "val/sketch-layers/000",
+  "objective": "This sketch has the layers 'Shadows', 'Logo' and 'Clouds', top to bottom. Please hide 'Shadows' without deleting it, set the blend mode of 'Logo' to color-dodge and delete the 'Clouds' layer. Leave the other layers as they are."
+ },
+ {
+  "id": "val/sketch-layers/001",
+  "objective": "This sketch has the layers 'Title', 'Character', 'Sun', 'Sky' and 'Trees', top to bottom. Please set 'Title' to 75% opacity and duplicate 'Sun' and name the copy 'Water'. Leave the other layers as they are."
+ },
+ {
+  "id": "val/sketch-layers/002",
+  "objective": "This sketch has the layers 'Shadows', 'Character', 'Glow', 'Frame' and 'Water', top to bottom. Please delete the 'Frame' layer, duplicate 'Glow' and name the copy 'Highlights' and set 'Water' to 40% opacity. Leave the other layers as they are."
+ },
+ {
+  "id": "val/sketch-layers/003",
+  "objective": "This sketch has the layers 'Ground', 'Trees' and 'Title', top to bottom. Please hide 'Title' without deleting it and move 'Trees' to the top of the layer stack. Leave the other layers as they are."
+ },
+ {
+  "id": "val/sketch-layers/004",
+  "objective": "This sketch has the layers 'Hills', 'Shadows', 'Frame' and 'Sky', top to bottom. Please set 'Frame' to 40% opacity and hide 'Hills' without deleting it. Leave the other layers as they are."
+ },
+ {
+  "id": "val/audio-edit/000",
+  "objective": "In this recording, mute the cough at 12–12.5 s without changing the length. Save it when you're done."
+ },
+ {
+  "id": "val/audio-edit/001",
+  "objective": "Clean up this take: fade in the first 1 s and normalize the whole clip. Don't save yet."
+ },
+ {
+  "id": "val/audio-edit/002",
+  "objective": "Edit this audio: boost the first sentence (1–5 s) by 3 dB and then remove the 1 s of silence at the start. Don't save yet."
+ },
+ {
+  "id": "val/audio-edit/003",
+  "objective": "In this recording, normalize the whole clip, fade out the last 0.5 s and then cut out the pause at 5–7 s. Save it when you're done."
+ },
+ {
+  "id": "val/audio-edit/004",
+  "objective": "In this recording, boost the first sentence (0–4 s) by 6 dB and then remove the silence after 15 s at the end. Save it when you're done."
+ },
+ {
+  "id": "val/audio-effects/000",
+  "objective": "On this 8 s clip, apply the equalizer with the mid band (1 kHz) boosted by 3 dB. Leave every setting I didn't mention at its default. Save the result."
+ },
+ {
+  "id": "val/audio-effects/001",
+  "objective": "On this 4.5 s clip, apply a low cut at 80 Hz to remove the rumble only between 2 and 3 s. Leave every setting I didn't mention at its default. Save the result."
+ },
+ {
+  "id": "val/audio-effects/002",
+  "objective": "On this 4 s clip, apply the equalizer with the low band (80 Hz) cut by 3 dB only between 2 and 3 s. Leave every setting I didn't mention at its default. Save the result."
+ },
+ {
+  "id": "val/audio-effects/003",
+  "objective": "On this 4 s clip, apply a compressor with a -12 dB threshold and a 6:1 ratio and an echo with a 750 ms delay and 20% feedback. Leave every setting I didn't mention at its default. Save the result."
+ },
+ {
+  "id": "val/audio-effects/004",
+  "objective": "On this 4 s clip, apply a noise gate with the threshold at -50 dB. Leave every setting I didn't mention at its default. Don't save it yet."
+ },
+ {
+  "id": "val/storyboard-build/000",
+  "objective": "Build the storyboard from this shot list:\n1. \"Skate park\": a skater lands a trick on a skateboard at sunset, 3 seconds\n2. \"Harbor at dawn\": fishing boats leave a misty harbor at dawn, 6 seconds\nUse the quoted name as each shot's title. Load it as a screenplay titled \"Field Notes\"."
+ },
+ {
+  "id": "val/storyboard-build/001",
+  "objective": "Plan this storyboard, one shot per line, in order:\n1. \"Workshop\": a carpenter planes a board in a dusty workshop, 5 seconds\n2. \"Lab reveal\": a scientist lifts a cloth to reveal a glowing device in the lab, 3 seconds\n3. \"Rooftop chase\": a courier sprints across a rooftop at night, 4 seconds\nUse the quoted name as each shot's title."
+ },
+ {
+  "id": "val/storyboard-build/002",
+  "objective": "Plan this storyboard, one shot per line, in order:\n1. \"Kitchen close-up\": butter melts in a hot pan, close up, 4 seconds\n2. \"Forest trail\": two hikers climb a forest trail in light rain, 8 seconds\nUse the quoted name as each shot's title."
+ },
+ {
+  "id": "val/storyboard-build/003",
+  "objective": "Lay out these shots on the board, in this order:\n1. \"Snow cabin\": smoke rises from a snowed-in cabin chimney, 2 seconds\n2. \"Harbor at dawn\": fishing boats leave a misty harbor at dawn, 3 seconds\n3. \"Kitchen close-up\": butter melts in a hot pan, close up, 6 seconds\n4. \"Coffee pour\": coffee pours into a white cup on a wooden counter, 7 seconds\nUse the quoted name as each shot's title. Load it as a screenplay titled \"Open Road\"."
+ },
+ {
+  "id": "val/storyboard-build/004",
+  "objective": "Plan this storyboard, one shot per line, in order:\n1. \"Kitchen close-up\": butter melts in a hot pan, close up, 6 seconds\n2. \"Market rush\": a crowded street market with vendors calling out, 4 seconds\n3. \"Library aisle\": a student pulls an old book from a library shelf, 6 seconds\nUse the quoted name as each shot's title. Load it as a screenplay titled \"Field Notes\"."
+ },
+ {
+  "id": "val/storyboard-edit/000",
+  "objective": "The storyboard has \"Workshop\" (5s), \"Kitchen close-up\" (7s) and \"Snow cabin\" (3s). Please change what \"Kitchen close-up\" shows to: two hikers climb a forest trail in light rain (keep its title and length) and mark \"Snow cabin\" as approved. Don't generate anything and leave the other shots as they are."
+ },
+ {
+  "id": "val/storyboard-edit/001",
+  "objective": "The storyboard has \"Train window\" (3s), \"City timelapse\" (3s), \"Harbor at dawn\" (5s), \"Library aisle\" (5s) and \"Concert crowd\" (3s). Please change what \"Concert crowd\" shows to: two hikers climb a forest trail in light rain (keep its title and length). Don't generate anything and leave the other shots as they are."
+ },
+ {
+  "id": "val/storyboard-edit/002",
+  "objective": "The storyboard has \"Library aisle\" (5s), \"Desert road\" (4s), \"Skate park\" (5s) and \"Workshop\" (4s). Please make \"Skate park\" 4 seconds long. Don't generate anything and leave the other shots as they are."
+ },
+ {
+  "id": "val/storyboard-edit/003",
+  "objective": "The storyboard has \"City timelapse\" (4s), \"Snow cabin\" (3s), \"Kitchen close-up\" (6s) and \"Lab reveal\" (4s). Please make \"Snow cabin\" 4 seconds long. Don't generate anything and leave the other shots as they are."
+ },
+ {
+  "id": "val/storyboard-edit/004",
+  "objective": "The storyboard has \"Harbor at dawn\" (6s), \"Workshop\" (5s), \"Train window\" (5s) and \"Lab reveal\" (7s). Please select \"Lab reveal\" so I can look at it, rename the shot \"Harbor at dawn\" to \"New Desert road\" and mark \"Train window\" as approved. Don't generate anything and leave the other shots as they are."
+ },
+ {
+  "id": "val/script-build/000",
+  "objective": "Put these lines into the script, word for word. The cast is Nadia, Maya and Omar.\nNadia: I left the keys on the counter, I'm sure of it.\nMaya: Here's the trick most people miss.\nOmar: Can you hear that? Something is in the walls.\nMaya: First, measure twice and cut once.\nMaya: Nobody told me the bridge was closed.\nDon't voice anything yet."
+ },
+ {
+  "id": "val/script-build/001",
+  "objective": "Write this script exactly as given. The cast is Sam, Maya and Iris.\nSam: Welcome back to the channel, today we're building a bird house.\nMaya: Turn left at the old mill and keep going.\nIris: Every great product starts with a small annoyance.\nDon't voice anything yet."
+ },
+ {
+  "id": "val/script-build/002",
+  "objective": "Enter this script, one line each, in order. The only speaker is Lena.\nLena: Turn left at the old mill and keep going.\nLena: Let's take it from the top, one more time.\nLena: Thanks for watching, see you next week.\nLena: I think we finally found it.\nLena: Grab a cup of coffee and let's get started.\nLena: First, measure twice and cut once.\nDon't voice anything yet."
+ },
+ {
+  "id": "val/script-build/003",
+  "objective": "Enter this script, one line each, in order. The cast is Jonas and Felix.\nJonas: Our team shipped the update last night.\nFelix: Every great product starts with a small annoyance.\nJonas: The storm is moving faster than we thought.\nSet it up as a tutorial of 45 seconds at a slow pace.\nDon't voice anything yet."
+ },
+ {
+  "id": "val/script-build/004",
+  "objective": "Put these lines into the script, word for word. The cast is Iris, Felix and Lena.\nIris: Did anyone check the second camera?\nFelix: Turn left at the old mill and keep going.\nLena: Thanks for watching, see you next week.\nSet it up as a interview of 20 seconds at a slow pace.\nDon't voice anything yet."
+ },
+ {
+  "id": "val/script-edit/000",
+  "objective": "The open script reads:\nMaya: Turn left at the old mill and keep going.\nLena: First, measure twice and cut once.\nMaya: Nobody told me the bridge was closed.\nLena: Did anyone check the second camera?\nLena: We have ten minutes before the doors open.\nMaya: The storm is moving faster than we thought.\nPlease add Felix to the cast and give them the line \"Nobody told me the bridge was closed.\". Leave the other lines alone and don't voice anything."
+ },
+ {
+  "id": "val/script-edit/001",
+  "objective": "The open script reads:\nLena: Here's the trick most people miss.\nOmar: The storm is moving faster than we thought.\nLena: I think we finally found it.\nLena: Our team shipped the update last night.\nLena: We have ten minutes before the doors open.\nLena: I left the keys on the counter, I'm sure of it.\nPlease change the line \"We have ten minutes before the doors open.\" to \"First, measure twice and cut once.\". Leave the other lines alone and don't voice anything."
+ },
+ {
+  "id": "val/script-edit/002",
+  "objective": "The open script reads:\nLena: This is the part where everything changes.\nOmar: Thanks for watching, see you next week.\nSam: Did anyone check the second camera?\nOmar: I think we finally found it.\nLena: Every great product starts with a small annoyance.\nOmar: First, measure twice and cut once.\nPlease add a line for Sam right after \"Did anyone check the second camera?\": \"I left the keys on the counter, I'm sure of it.\". Leave the other lines alone and don't voice anything."
+ },
+ {
+  "id": "val/script-edit/003",
+  "objective": "The open script reads:\nIris: Welcome back to the channel, today we're building a bird house.\nLena: Nobody told me the bridge was closed.\nLena: I left the keys on the counter, I'm sure of it.\nLena: This is the part where everything changes.\nIris: You said you'd call when you landed.\nLena: Grab a cup of coffee and let's get started.\nPlease give the line \"You said you'd call when you landed.\" to Lena instead of Iris. Leave the other lines alone and don't voice anything."
+ },
+ {
+  "id": "val/script-edit/004",
+  "objective": "The open script reads:\nTheo: Grab a cup of coffee and let's get started.\nMaya: Let's take it from the top, one more time.\nMaya: Did anyone check the second camera?\nMaya: I left the keys on the counter, I'm sure of it.\nPlease add Lena to the cast and give them the line \"Did anyone check the second camera?\" and give the line \"I left the keys on the counter, I'm sure of it.\" to Theo instead of Maya. Leave the other lines alone and don't voice anything."
+ },
+ {
+  "id": "val/jsscript-write/000",
+  "objective": "Make a script that takes a list of numbers on an input called `readings` and sets an output called `sum` to the sum of the numbers in `readings`. Add it to my node menu under the category \"Math\"."
+ },
+ {
+  "id": "val/jsscript-write/001",
+  "objective": "Make a script that takes a list of numbers on an input called `numbers` and sets an output called `above` to how many numbers in `numbers` are greater than 10. Give it a description that says what it does."
+ },
+ {
+  "id": "val/jsscript-write/002",
+  "objective": "I need a JS script that takes a whole number on an input called `n` and sets an output called `label` to \"FooBar\" when `n` is divisible by both 3 and 5, \"Foo\" when only by 3, \"Bar\" when only by 5, and otherwise the number itself as text. Name it \"FooBar Label\". Give it a description that says what it does."
+ },
+ {
+  "id": "val/jsscript-write/003",
+  "objective": "Write a JS script that takes a string on an input called `sentence` and sets an output called `vowel_count` to the number of vowels (a, e, i, o, u, in either case) in `sentence`. Save 3 test cases and run them until they all pass. Give it a description that says what it does."
+ },
+ {
+  "id": "val/jsscript-write/004",
+  "objective": "I need a JS script that takes a string on an input called `text` and sets an output called `flipped` to the words of `text` in reverse order, joined by single spaces. Add it to my node menu under the category \"Utilities\"."
+ },
+ {
+  "id": "val/jsscript-fix/000",
+  "objective": "This script should set `vowel_count` to the number of vowels (a, e, i, o, u, in either case) in `words`, but its saved tests fail. Run the tests, fix the body, and get them passing. Don't change the tests or the ports."
+ },
+ {
+  "id": "val/jsscript-fix/001",
+  "objective": "Rename this script's input `scores` to `values` and update the body to match. It should still set `count` to the same value as before."
+ },
+ {
+  "id": "val/jsscript-fix/002",
+  "objective": "Rename this script's input `title` to `headline` and update the body to match. It should still set `slug` to the same value as before."
+ },
+ {
+  "id": "val/jsscript-fix/003",
+  "objective": "This script sets `vowel_count` to the number of vowels (a, e, i, o, u, in either case) in `sentence`. Add a second output called `length` set to the number of characters in `sentence`, and keep `vowel_count` working as it does now."
+ },
+ {
+  "id": "val/jsscript-fix/004",
+  "objective": "Rename this script's input `temp_c` to `celsius` and update the body to match. It should still set `temp_f` to the same value as before."
+ },
+ {
+  "id": "val/app-build/000",
+  "objective": "Build an app on the loaded workflow. Title it \"Idea Board\", add a heading that says \"Your studio\", add a text field for the caption input, a \"Create\" button that runs the workflow, and show the clip output as a video and the poster output as an image. Put the input fields and the button inside a Panel titled \"Options\"."
+ },
+ {
+  "id": "val/app-build/001",
+  "objective": "Build an app on the loaded workflow. Title it \"Ask the AI\", add a heading that says \"Try it out\", add an image upload for the photo input and a number field for the seed input, a \"Submit\" button that runs the workflow, and show the results output as a table and the summary output as text."
+ },
+ {
+  "id": "val/app-build/002",
+  "objective": "Build an app on the loaded workflow. Title it \"Quiz Builder\", add a heading that says \"Start here\", add a text field for the topic input, an on/off switch for the upscale input and a number field for the steps input, a \"Run\" button that runs the workflow, and show the story output as text. Put the input fields and the button inside a Panel titled \"Options\"."
+ },
+ {
+  "id": "val/app-build/003",
+  "objective": "Build an app on the loaded workflow. Title it \"Voice Lab\", add a number field for the duration input, an image upload for the source_image input and an on/off switch for the draft input, a \"Generate\" button that runs the workflow, and show the video output as a video and the thumbnail output as an image."
+ },
+ {
+  "id": "val/app-build/004",
+  "objective": "Build an app on the loaded workflow. Title it \"Data Peek\", add a number field for the count input, an on/off switch for the loop input and a text field for the question input, a \"Create\" button that runs the workflow, and show the artwork output as an image. Use two columns: the input fields and the button on the left, the results on the right."
+ },
+ {
+  "id": "val/app-edit/000",
+  "objective": "The open app \"Quiz Builder\" has a heading \"Welcome\", a \"Submit\" button, a Text widget saying \"Old note\", a Switch labeled \"Dark mode\" and an unbound text field labeled \"Subject\". Please rename the app to \"Idea Board\", bind the Dark mode switch to a new user-scoped variable with id \"night_theme\" that persists across sessions and change the heading to \"Try it out\". Leave everything else as it is."
+ },
+ {
+  "id": "val/app-edit/001",
+  "objective": "The open app \"Recipe Finder\" has a heading \"Make something new\", a \"Generate\" button, a Switch labeled \"Dark mode\", an empty Panel titled \"Inputs\" and a Text widget saying \"Old note\". Please add a Text widget saying \"Results show below\" inside the \"Inputs\" panel, relabel the \"Generate\" button to \"Create\" and change the heading to \"Your studio\". Leave everything else as it is."
+ },
+ {
+  "id": "val/app-edit/002",
+  "objective": "The open app \"Quiz Builder\" has a heading \"Welcome\", a \"Submit\" button, a Text widget saying \"Old note\", an unbound text field labeled \"Style\" and an empty Panel titled \"Settings\". Please bind the Style text field to the workflow's style input and add a Text widget saying \"Uses your credits\" inside the \"Settings\" panel. Leave everything else as it is."
+ },
+ {
+  "id": "val/app-edit/003",
+  "objective": "The open app \"Story Helper\" has a heading \"Try it out\", a \"Create\" button, a Switch labeled \"Dark mode\", an empty Panel titled \"Details\" and a Text widget saying \"Old note\". Please relabel the \"Create\" button to \"Make it\" and bind the Dark mode switch to a new user-scoped variable with id \"use_dark\" that persists across sessions. Leave everything else as it is."
+ },
+ {
+  "id": "val/app-edit/004",
+  "objective": "The open app \"Recipe Finder\" has a heading \"Make something new\", a \"Go\" button, an Image labeled \"Preview\", an empty Panel titled \"Settings\" and a Text widget saying \"Old note\". Please change the heading to \"Start here\" and relabel the \"Go\" button to \"Submit\". Leave everything else as it is."
+ },
+ {
+  "id": "val/workflow-build/000",
+  "objective": "Create a workflow named \"Voice Note\" that chains an image input named \"snapshot\" (nodetool.input.ImageInput), a resize to 512x512 (nodetool.image.Resize, \"image\" input) and a preview (nodetool.workflows.base_node.Preview, \"value\" input). Wire each step into the next one. Don't run it yet."
+ },
+ {
+  "id": "val/workflow-build/001",
+  "objective": "Create a workflow named \"Story Starter\" that chains a string input named \"prompt\" (nodetool.input.StringInput), a summarizer (nodetool.agents.Summarizer) reading its \"text\" input, with its result on the \"text\" output and an output named \"thumbnail\" (nodetool.output.Output, \"value\" input). Each step feeds the next. Just save it, don't run it."
+ },
+ {
+  "id": "val/workflow-build/002",
+  "objective": "I need a workflow named \"Voice Note\" with a string input named \"caption\" (nodetool.input.StringInput), a template \"A bold poster about {{caption}}\" (nodetool.text.Template) fed on its \"caption\" input, text to speech (nodetool.audio.TextToSpeech) on its \"text\" input, with the sound on its \"audio\" output and an output named \"narration\" (nodetool.output.Output, \"value\" input). Each step feeds the next. Just save it, don't run it."
+ },
+ {
+  "id": "val/workflow-build/003",
+  "objective": "I need a workflow named \"Social Teaser\" with a string input named \"caption\" (nodetool.input.StringInput), a template \"Write a short intro for {{caption}}\" (nodetool.text.Template) fed on its \"caption\" input, text to speech (nodetool.audio.TextToSpeech) on its \"text\" input, with the sound on its \"audio\" output and an output named \"final\" (nodetool.output.Output, \"value\" input). Each step feeds the next. Just save it, don't run it."
+ },
+ {
+  "id": "val/workflow-build/004",
+  "objective": "Save a workflow \"Moodboard\" made of a constant string \"a lighthouse at dusk\" (nodetool.constant.String), a template \"A bold poster about {{text}}\" (nodetool.text.Template) fed on its \"text\" input, an image generator (nodetool.image.TextToImage) taking it as its \"prompt\" and an output named \"thumbnail\" (nodetool.output.Output, \"value\" input). Wire each step into the next one. Don't run it yet."
+ },
+ {
+  "id": "val/workflow-edit/000",
+  "objective": "In my workflow \"Moodboard\", set its tags to \"approved\" and \"demo\", give it the description \"Used for client previews\" and rename the Output node \"result\" to \"summary\". Leave the rest of it as it is and don't run it."
+ },
+ {
+  "id": "val/workflow-edit/001",
+  "objective": "In my workflow \"Thumbnail Resizer\", rename it to \"Banner Builder\". Leave the rest of it as it is and don't run it."
+ },
+ {
+  "id": "val/workflow-edit/002",
+  "objective": "In my workflow \"Podcast Intro\", set its tags to \"team\", give it the description \"Makes the weekly social image\" and rename it to \"Poster Maker\". Leave the rest of it as it is and don't run it."
+ },
+ {
+  "id": "val/workflow-edit/003",
+  "objective": "In my workflow \"Podcast Intro\", give it the description \"Used for client previews\". Leave the rest of it as it is and don't run it."
+ },
+ {
+  "id": "val/workflow-edit/004",
+  "objective": "In my workflow \"Quick Summary\", give it the description \"Turns notes into a voice memo\" and rename it to \"Thumbnail Resizer\". Leave the rest of it as it is and don't run it."
+ },
+ {
+  "id": "val/workflow-organize/000",
+  "objective": "Tidy up my workflows: set the description of \"Podcast Intro\" to \"Only for the spring campaign\", tag \"Story Starter\" with \"final\" and \"demo\" instead of its current tags and delete \"Cover Art\". Leave the other workflows alone."
+ },
+ {
+  "id": "val/workflow-organize/001",
+  "objective": "Tidy up my workflows: set the description of \"Story Starter\" to \"Runs every Monday\" and rename \"Social Teaser\" to \"Quick Summary\". Leave the other workflows alone."
+ },
+ {
+  "id": "val/workflow-organize/002",
+  "objective": "Tidy up my workflows: delete \"Cover Art\", tag \"Quick Summary\" with \"final\" and \"demo\" instead of its current tags and set the description of \"Banner Builder\" to \"Ask Dana before changing\". Leave the other workflows alone."
+ },
+ {
+  "id": "val/workflow-organize/003",
+  "objective": "Tidy up my workflows: tag \"Daily Digest\" with \"archive\" and \"approved\" instead of its current tags and set the description of \"Moodboard\" to \"Ask Dana before changing\". Leave the other workflows alone."
+ },
+ {
+  "id": "val/workflow-organize/004",
+  "objective": "Tidy up my workflows: set the description of \"Podcast Intro\" to \"Ask Dana before changing\", rename \"Quick Summary\" to \"Banner Builder\" and delete \"Social Teaser\". Leave the other workflows alone."
+ },
+ {
+  "id": "val/memory-edit/000",
+  "objective": "My dog is called Juno now, not Biscuit, so update what you remember and forget what you know about my name."
+ },
+ {
+  "id": "val/memory-edit/001",
+  "objective": "Forget what you know about my aspect ratio."
+ },
+ {
+  "id": "val/memory-edit/002",
+  "objective": "I prefer answers in French now, not Japanese, so update what you remember and remember that I live in Lisbon."
+ },
+ {
+  "id": "val/memory-edit/003",
+  "objective": "Remember that I edit my videos in Premiere Pro and my dog is called Momo now, not Pepper, so update what you remember."
+ },
+ {
+  "id": "val/memory-edit/004",
+  "objective": "Remember that I want video exports as WebM."
+ },
+ {
+  "id": "val/skill-create/000",
+  "objective": "Save a new skill \"kestrel-thumbnails\", described as \"How we design video thumbnails\". Its instructions:\n- Credit the photographer at the end.\n- Use British spelling.\n- Put the product name in the first line."
+ },
+ {
+  "id": "val/skill-create/001",
+  "objective": "Make me a reusable skill called \"kestrel-podcast-notes\" (description: \"How we write podcast show notes\"). Its instructions:\n- Use #e63946 for highlights.\n- Never use emoji.\n- Put the product name in the first line.\n- Credit the photographer at the end."
+ },
+ {
+  "id": "val/skill-create/002",
+  "objective": "Save a new skill \"northwind-thumbnails\", described as \"How we design video thumbnails\". Its instructions:\n- Mention the price only in the last scene.\n- Write numbers as digits.\n- Avoid exclamation marks."
+ },
+ {
+  "id": "val/skill-create/003",
+  "objective": "Make me a reusable skill called \"orbit-shot-lists\" (description: \"How we plan shot lists\"). Its instructions:\n- Use sentence case for titles.\n- Use #e63946 for highlights.\n- Keep voiceover lines under 8 seconds."
+ },
+ {
+  "id": "val/skill-create/004",
+  "objective": "Save a new skill \"acme-voiceover\", described as \"How we script voiceovers\". Its instructions:\n- Never use emoji.\n- Keep every caption under 12 words.\n- Credit the photographer at the end.\n- Avoid exclamation marks."
+ },
+ {
+  "id": "val/skill-edit/000",
+  "objective": "In my skills, delete \"kestrel-voiceover\". Don't change the other skills."
+ },
+ {
+  "id": "val/skill-edit/001",
+  "objective": "In my skills, add the rule \"Use sentence case for titles.\" to \"acme-release-notes\", keeping its current rules and change the description of \"acme-subtitles\" to \"How we format subtitles for the launch campaign\". Don't change the other skills."
+ },
+ {
+  "id": "val/skill-edit/002",
+  "objective": "In my skills, change the description of \"acme-voiceover\" to \"How we script voiceovers for the holiday campaign\". Don't change the other skills."
+ },
+ {
+  "id": "val/skill-edit/003",
+  "objective": "In my skills, delete \"orbit-subtitles\" and rename \"orbit-voiceover\" to \"bluebird-voiceover\". Don't change the other skills."
+ },
+ {
+  "id": "val/skill-edit/004",
+  "objective": "In my skills, delete \"northwind-podcast-notes\". Don't change the other skills."
+ }
+]
