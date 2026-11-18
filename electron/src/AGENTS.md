@@ -137,6 +137,11 @@ are in [native/account-helper](../../native/account-helper/README.md).
   routes and sends a helper `http` message only when it matches a pending
   request. Media loads through the `nodetool-cloud:` scheme, which maps to
   `/api/assets/*` on the signed-in server only.
+- Run on a cloud document uses `window.api.cloud.socket.*` (IPC
+  `CLOUD_SOCKET_*`, D25). `cloudSocket.ts` opens `/ws` on the signed-in
+  server with a token from the helper and relays frames. A socket belongs to
+  the window that opened it and closes when that window goes away or the
+  account signs out.
 - Unlike the VST host, the helper is never loaded from the user data folder.
 
 ## Rules

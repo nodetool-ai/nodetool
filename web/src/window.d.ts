@@ -247,6 +247,22 @@ declare global {
           procedure: string;
           input: Record<string, unknown>;
         }) => Promise<CloudTransferResult>;
+        /** The workflow socket of a cloud document, opened by the desktop app. */
+        socket: {
+          open: () => Promise<
+            { ok: true; id: number } | { ok: false; error: "SIGNED_OUT" | "OFFLINE" | "BUSY" }
+          >;
+          send: (id: number, data: Uint8Array | string) => Promise<boolean>;
+          close: (id: number) => Promise<void>;
+          onEvent: (
+            callback: (
+              event:
+                | { id: number; kind: "open" }
+                | { id: number; kind: "message"; data: Uint8Array | string }
+                | { id: number; kind: "close"; code: number; reason: string }
+            ) => void
+          ) => () => void;
+        };
       };
       /** Native OS notifications. Desktop only. */
       notifications?: {
