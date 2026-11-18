@@ -20,6 +20,7 @@ import {
   getRevisionSet,
   getRevisionSetEntry,
   lockAccessEpochs,
+  lockTransferDocumentRow,
   Project,
   revisionSetFilesWithHash,
   TimelineSequence,
@@ -29,6 +30,7 @@ import {
   type RevisionSetRow
 } from "@nodetool-ai/models";
 import { blobKey } from "@nodetool-ai/asset-services/blob-store";
+import { pausePoint } from "@nodetool-ai/config/pause-points";
 import type {
   CaptureRevisionSetInput,
   CaptureRevisionSetOutput,
@@ -107,6 +109,10 @@ async function projectDocuments(project: Project): Promise<Array<{ kind: Transfe
   ];
 }
 
+function documentKey(target: { kind: TransferDocumentKind; id: string }): string {
+  return `${target.kind}:${target.id}`;
+}
+
 /** The project of a document, for a capture of that document alone. */
 async function projectOfDocument(kind: TransferDocumentKind, id: string): Promise<string | null> {
   if (kind === "workflow") return (await Workflow.get<Workflow>(id))?.project_id ?? null;
@@ -115,7 +121,8 @@ async function projectOfDocument(kind: TransferDocumentKind, id: string): Promis
 
 /**
  * Captures one document into the set when the caller may open it. Returns
- * the entry as the client sees it, or null without access.
+ * the entry as the client sees it, or null without access. Runs inside the
+ * capture's transaction, which holds the document's row and access epochs.
  */
 async function captureDocument(
   host: ReceiveHost,
@@ -125,42 +132,36 @@ async function captureDocument(
   id: string
 ): Promise<RevisionSetDocument | null> {
   const handler = TRANSFER_DOCUMENT_KINDS[kind];
-  const keys: AccessKey[] = [
-    { kind, id },
-    { kind: "project", id: set.project_id }
-  ];
-  return underAccessLock(keys, async () => {
-    if (!(await host.documentRole(userId, kind, id))) return null;
-    const held = await handler.holdRevision(id);
-    if (!held || held.projectId !== set.project_id) return null;
-    const files = await host.readableFiles(userId, kind, id, handler.content(held.payload));
-    const present = files.filter((file): file is ReceiveFileInfo & { hash: string } => file.hash !== null);
-    const contentHash = identityHash(held.payload);
-    await addRevisionSetEntry(set, {
-      kind,
-      documentId: id,
-      revisionId: held.revisionId,
-      fields: held.fields,
-      contentHash,
-      files: present.map((file) => ({ assetId: file.assetId, hash: file.hash, size: file.size }))
-    });
-    return {
-      kind,
-      document_id: id,
-      name: held.name,
-      revision_id: held.revisionId,
-      content_hash: contentHash,
-      files: present.map((file) => ({
-        asset_id: file.assetId,
-        hash: file.hash,
-        size: file.size,
-        name: file.name,
-        content_type: file.contentType,
-        path: file.path
-      })),
-      missing_files: files.filter((file) => file.hash === null).map((file) => file.assetId)
-    };
+  if (!(await host.documentRole(userId, kind, id))) return null;
+  const held = await handler.holdRevision(id);
+  if (!held || held.projectId !== set.project_id) return null;
+  const files = await host.readableFiles(userId, kind, id, handler.content(held.payload));
+  const present = files.filter((file): file is ReceiveFileInfo & { hash: string } => file.hash !== null);
+  const contentHash = identityHash(held.payload);
+  await addRevisionSetEntry(set, {
+    kind,
+    documentId: id,
+    revisionId: held.revisionId,
+    fields: held.fields,
+    contentHash,
+    files: present.map((file) => ({ assetId: file.assetId, hash: file.hash, size: file.size }))
   });
+  return {
+    kind,
+    document_id: id,
+    name: held.name,
+    revision_id: held.revisionId,
+    content_hash: contentHash,
+    files: present.map((file) => ({
+      asset_id: file.assetId,
+      hash: file.hash,
+      size: file.size,
+      name: file.name,
+      content_type: file.contentType,
+      path: file.path
+    })),
+    missing_files: files.filter((file) => file.hash === null).map((file) => file.assetId)
+  };
 }
 
 /**
@@ -180,11 +181,22 @@ export async function captureRevisionSet(
   const targets = "project_id" in input ? await projectDocuments(project) : [{ kind: input.kind, id: input.document_id }];
   const set = await createRevisionSet({ userId, projectId: project.id });
   try {
-    const documents: RevisionSetDocument[] = [];
-    for (const target of targets) {
-      const document = await captureDocument(host, userId, set, target.kind, target.id);
-      if (document) documents.push(document);
-    }
+    // Every document is held in one transaction, with the access epochs and
+    // the rows of all of them locked before the first is read, so a save or
+    // a transfer that changes several documents is captured whole or not at
+    // all (Y2, review F29). Rows are locked in one order, as a commit's are.
+    const ordered = [...targets].sort((a, b) => documentKey(a).localeCompare(documentKey(b)));
+    const keys: AccessKey[] = [{ kind: "project", id: project.id }, ...ordered.map((target) => ({ kind: target.kind, id: target.id }))];
+    const documents = await underAccessLock(keys, async () => {
+      for (const target of ordered) await lockTransferDocumentRow(target.kind, target.id);
+      const captured: RevisionSetDocument[] = [];
+      for (const target of targets) {
+        const document = await captureDocument(host, userId, set, target.kind, target.id);
+        if (document) captured.push(document);
+        await pausePoint("receive.capture.document-held");
+      }
+      return captured;
+    });
     const ownsProject = "project_id" in input && project.user_id === userId;
     if (documents.length === 0 && !ownsProject) throw new ReceiveRequestError("NOT_FOUND", "Not found");
     return { set_id: set.id, project_id: project.id, expires_at: set.expires_at, documents };

@@ -1489,7 +1489,8 @@ export async function reconcileDocumentFiles(
         );
       }
       return report;
-    })
+    }),
+    { under: options.under }
   );
 }
 

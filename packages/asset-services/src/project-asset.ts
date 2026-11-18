@@ -11,7 +11,6 @@
  * leaves a row pointing at nothing: a new file is written before the row
  * that names it, and an old file is removed only after the row has moved on.
  */
-import { AsyncLocalStorage } from "node:async_hooks";
 import { createLogger } from "@nodetool-ai/config";
 import { Asset, moveTargetOf, setAssetFileMover } from "@nodetool-ai/models";
 import {
@@ -174,8 +173,17 @@ export function projectAssetFileStem(name: string, contentType: string): string 
 
 const folderQueues = new Map<string, Promise<unknown>>();
 
-/** The folder locks the current task holds, by folder key. */
-const heldFolderLocks = new AsyncLocalStorage<ReadonlyMap<string, { held: boolean }>>();
+/**
+ * Proof that a task holds one folder's lock, handed to the task by
+ * {@link withProjectFolderLock}. It is valid only while that task runs. A
+ * call that passes it as `under` runs inside the lock at once. Work the task
+ * leaves running, such as a timer it set, gets no pass unless the task gave
+ * it the hold, and once the task ends the hold lets nothing in (review F35).
+ */
+export interface FolderLockHold {
+  readonly key: string;
+  readonly held: boolean;
+}
 
 /**
  * Run `task` after every earlier task for the same project folder. Choosing a
@@ -192,34 +200,31 @@ const heldFolderLocks = new AsyncLocalStorage<ReadonlyMap<string, { held: boolea
  * (`folder-lock-file.ts`). A wait for another process gives up with a
  * `FolderLockTimeoutError`.
  *
- * With `allowNested`, a call for the same folder made inside `task` runs at
- * once, inside the lock `task` already holds, so a receive can run the
- * reconcile and write document files without letting another writer in
- * between. Work that `task` starts and leaves running gets the same pass
- * while `task` runs, so a caller opts in only when it starts no such work.
- * Without it, a call inside `task` queues like any other.
+ * `task` receives its hold. A call for the same folder made inside `task`
+ * queues like any other, unless it passes that hold as `under`: it then runs
+ * at once, inside the lock, so a receive can run the reconcile and write
+ * document files without letting another writer in between. A hold that is
+ * no longer held, or that is for another folder, is refused.
  */
 export function withProjectFolderLock<T>(
   userId: string,
   projectId: string,
-  task: () => Promise<T>,
-  options: { allowNested?: boolean } = {}
+  task: (hold: FolderLockHold) => Promise<T>,
+  options: { under?: FolderLockHold } = {}
 ): Promise<T> {
   const key = `${userId}\u0000${projectId}`;
-  const holds = heldFolderLocks.getStore();
-  // The caller already holds this folder's lock: waiting for it would wait forever.
-  if (holds?.get(key)?.held) return task();
+  if (options.under) {
+    if (options.under.key !== key || !options.under.held) {
+      return Promise.reject(new Error("The folder lock this call runs under is not held"));
+    }
+    return task(options.under);
+  }
   const previous = folderQueues.get(key) ?? Promise.resolve();
   const locked = async () => {
-    if (!options.allowNested) return withFolderLockFile(userId, projectId, task);
-    const hold = { held: true };
-    const held = new Map(holds ?? []);
-    held.set(key, hold);
+    const hold = { key, held: true };
     try {
-      return await heldFolderLocks.run(held, () => withFolderLockFile(userId, projectId, task));
+      return await withFolderLockFile(userId, projectId, () => task(hold));
     } finally {
-      // Work the task started and left running keeps this context. Once the
-      // task is done it queues for the lock like any other caller.
       hold.held = false;
     }
   };

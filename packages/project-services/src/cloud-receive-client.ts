@@ -48,7 +48,7 @@ import {
   type CloudReceiveRow
 } from "@nodetool-ai/models";
 import type { Workspace } from "@nodetool-ai/runtime";
-import { withProjectFolderLock } from "@nodetool-ai/asset-services/project-asset";
+import { withProjectFolderLock, type FolderLockHold } from "@nodetool-ai/asset-services/project-asset";
 import {
   contentHashOfFile,
   partialContentHashOfFile,
@@ -129,6 +129,12 @@ export interface PlannedDocument {
   decision: ReceiveDecision | null;
   files: RevisionSetDocument["files"];
   missingFiles: string[];
+  /**
+   * Files of the document whose cloud bytes the folder does not hold, so a
+   * receive has work for the document even when its own content is the same
+   * (review F33).
+   */
+  changedFiles: number;
 }
 
 /** A file the commit chose to place, with the hash its target may be replaced over. */
@@ -138,6 +144,12 @@ interface PlannedPlacement {
   hash: string;
   /** The hash of the last exchange, which a target may still hold to be replaced. Null when none was exchanged. */
   replaceIfHash: string | null;
+  /**
+   * The asset existed locally before the receive. When its file cannot be
+   * replaced, it keeps its id, path and bytes, and the received bytes become
+   * a new asset beside it (V22).
+   */
+  existing?: boolean;
 }
 
 /** What a receive did, for the result sheet. */
@@ -171,8 +183,6 @@ interface ReceivePlan {
   documents: PlannedDocument[];
   /** True once the person's decisions are recorded and the receive may download. */
   decided: boolean;
-  /** Hashes whose bytes the cloud no longer holds. */
-  erased: string[];
   placements: PlannedPlacement[];
   result: ReceiveResult;
 }
@@ -181,7 +191,13 @@ interface ReceivePlan {
 export type ReceiveOutcome =
   | { status: "finished"; setId: string; result: ReceiveResult }
   | { status: "expired"; setId: string }
-  | { status: "waiting_for_review"; setId: string };
+  /**
+   * The receive waits for the person's decisions. `documents` is the sheet
+   * to show again when a local document changed after the review: nothing
+   * was applied, the staged files are kept, and the changed documents carry
+   * their new status (Y3).
+   */
+  | { status: "waiting_for_review"; setId: string; documents?: PlannedDocument[] };
 
 function emptyResult(): ReceiveResult {
   return { received: [], changedDuringReceive: [], notReceived: [], keptBeside: [], missingFiles: [], fileKept: [] };
@@ -307,6 +323,10 @@ export async function captureReceive(
     const baseHash = linked?.base_content_hash ?? null;
     const localHash = await localHashOf(document.kind, localId, link.project_id);
     const status = statusOf(document.content_hash, baseHash, localHash);
+    let changedFiles = 0;
+    for (const file of document.files) {
+      if (!(await heldLocally(file))) changedFiles += 1;
+    }
     documents.push({
       kind: document.kind,
       cloudId: document.document_id,
@@ -319,7 +339,8 @@ export async function captureReceive(
       status,
       decision: defaultDecision(status),
       files: document.files,
-      missingFiles: document.missing_files
+      missingFiles: document.missing_files,
+      changedFiles
     });
   }
   const plan: ReceivePlan = {
@@ -327,7 +348,6 @@ export async function captureReceive(
     set,
     documents,
     decided: false,
-    erased: [],
     placements: [],
     result: emptyResult()
   };
@@ -345,10 +365,20 @@ function toWrite(plan: ReceivePlan): PlannedDocument[] {
   return plan.documents.filter((document) => document.decision === "receive" && document.status !== "same");
 }
 
-/** The files the documents a receive writes need, by hash. */
+/** The documents the person chose to receive, whether or not their own content changed. */
+function received(plan: ReceivePlan): PlannedDocument[] {
+  return plan.documents.filter((document) => document.decision === "receive");
+}
+
+/**
+ * The files of the received documents, by hash. A file changes on its own,
+ * in place under the same asset id, so the files of a document whose
+ * content is the same are received too (review F33). A file the folder
+ * already holds is not downloaded.
+ */
 function neededFiles(plan: ReceivePlan): Map<string, RevisionSetDocument["files"]> {
   const files = new Map<string, RevisionSetDocument["files"]>();
-  for (const document of toWrite(plan)) {
+  for (const document of received(plan)) {
     for (const file of document.files) {
       const list = files.get(file.hash) ?? [];
       if (!list.some((entry) => entry.asset_id === file.asset_id)) list.push(file);
@@ -383,9 +413,7 @@ async function stage(transport: ReceiveTransport, row: CloudReceiveRow, plan: Re
     await flush(part);
     await rename(part, path);
   }
-  const erased = new Set(plan.erased);
   for (const [hash, files] of neededFiles(plan)) {
-    if (erased.has(hash)) continue;
     const path = stagedPath(dir, hash);
     if (await fileExists(path)) {
       // A crash can leave a staged file only after its rename, which follows its check.
@@ -396,11 +424,11 @@ async function stage(transport: ReceiveTransport, row: CloudReceiveRow, plan: Re
     if (held) continue;
     const part = `${path}.part`;
     const answer = await transport.downloadFile({ set_id: row.id, hash }, part);
+    // An owner erased the file after the capture. The set no longer is one
+    // moment, so it is treated as expired and captured again (Y7, review F32).
     if (answer === "ERASED") {
-      erased.add(hash);
-      plan.erased = [...erased];
-      await updateCloudReceive(row.id, { plan });
-      continue;
+      await rm(part, { force: true });
+      throw new ReceiveSetExpiredError("A file of the revision set was erased.");
     }
     await flush(part);
     if ((await contentHashOfFile(part)) !== hash) {
@@ -433,46 +461,78 @@ function targetPath(file: RevisionSetDocument["files"][number]): string {
 }
 
 /**
+ * The documents the person chose to receive whose local copy or link base
+ * changed since the sheet showed them.
+ */
+async function changedSinceReview(link: CloudLinkRow, plan: ReceivePlan): Promise<PlannedDocument[]> {
+  const changed: PlannedDocument[] = [];
+  for (const document of plan.documents) {
+    if (document.decision !== "receive") continue;
+    const localHash = await localHashOf(document.kind, document.localId, link.project_id);
+    const linked = await getCloudLinkDocumentByCloudId(link.id, document.kind, document.cloudId);
+    const baseHash = linked?.base_content_hash ?? null;
+    if (localHash === document.localHash && baseHash === document.baseHash) continue;
+    document.localHash = localHash;
+    document.baseHash = baseHash;
+    document.status = statusOf(document.contentHash, baseHash, localHash);
+    document.decision = defaultDecision(document.status);
+    changed.push(document);
+  }
+  return changed;
+}
+
+/**
  * Under the folder lock: compares the folder (CF1), then in one local
  * transaction checks every document against the hash the sheet showed and
  * writes the documents, asset rows, bases and placements, and sets state
- * `applied`.
+ * `applied`. When any document the person chose changed since the review,
+ * it writes nothing, keeps the staged files and returns the receive to the
+ * review with those documents' new status (Y3, review F31). Returns whether
+ * it applied.
  */
-async function commit(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePlan, dir: string): Promise<void> {
-  await reconcileInBackground(link.project_id, link.user_id);
+async function commit(
+  row: CloudReceiveRow,
+  link: CloudLinkRow,
+  plan: ReceivePlan,
+  dir: string,
+  hold: FolderLockHold
+): Promise<boolean> {
+  await reconcileInBackground(link.project_id, link.user_id, { under: hold });
   const payloads = new Map<PlannedDocument, TransferPayloadContent>();
   for (const document of toWrite(plan)) {
     const text = await readFile(stagedPath(dir, "documents", `${document.kind}-${document.cloudId}.json`), "utf8");
     payloads.set(document, JSON.parse(text) as TransferPayloadContent);
   }
-  const erased = new Set(plan.erased);
   // A transaction on SQLite may await nothing but the database, so the
   // staged files are looked at before it.
   const staged = new Set<string>();
   for (const hash of neededFiles(plan).keys()) {
     if (await fileExists(stagedPath(dir, hash))) staged.add(hash);
   }
-  await withoutDocumentFileWrites(() =>
+  return withoutDocumentFileWrites(() =>
     withTransaction(async () => {
+      const changed = await changedSinceReview(link, plan);
+      if (changed.length > 0) {
+        plan.decided = false;
+        plan.result = {
+          ...emptyResult(),
+          changedDuringReceive: changed.map((document) => ({ kind: document.kind, id: document.localId, name: document.name }))
+        };
+        await updateCloudReceive(row.id, { state: "staging", plan });
+        return false;
+      }
       const result = emptyResult();
       const placements: PlannedPlacement[] = [];
-      const written: PlannedDocument[] = [];
       for (const document of plan.documents) {
         const entry = { kind: document.kind, id: document.localId, name: document.name };
         if (document.decision !== "receive") {
           result.notReceived.push({ ...entry, status: document.status });
           continue;
         }
-        const localHash = await localHashOf(document.kind, document.localId, link.project_id);
-        if (localHash !== document.localHash) {
-          result.changedDuringReceive.push(entry);
-          continue;
-        }
         const payload = payloads.get(document);
         if (payload) {
           await writeDocument(link, document, payload);
           result.received.push(entry);
-          written.push(document);
         }
         await setCloudLinkDocumentBase(link, {
           kind: document.kind,
@@ -483,15 +543,11 @@ async function commit(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePla
         });
       }
       const seen = new Set<string>();
-      for (const document of written) {
+      for (const document of received(plan)) {
         result.missingFiles.push(...document.missingFiles);
         for (const file of document.files) {
           if (seen.has(file.asset_id)) continue;
           seen.add(file.asset_id);
-          if (erased.has(file.hash)) {
-            result.missingFiles.push(file.asset_id);
-            continue;
-          }
           const asset = await Asset.get<Asset>(file.asset_id);
           if (asset && asset.content_hash === file.hash && asset.project_id === link.project_id) {
             await setCloudLinkFileBase(link, { assetId: asset.id, cloudAssetId: file.asset_id, hash: file.hash });
@@ -509,8 +565,15 @@ async function commit(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePla
             // The file may be replaced only while it still has the bytes of the
             // last exchange. The row's own hash follows local edits.
             const base = await getCloudLinkFile(link.id, asset.id);
-            placements.push({ assetId: asset.id, path, hash: file.hash, replaceIfHash: base?.base_hash ?? null });
-            await asset.update({ workspace_path: path, content_hash: file.hash, size: file.size });
+            placements.push({
+              assetId: asset.id,
+              path,
+              hash: file.hash,
+              replaceIfHash: base?.base_hash ?? null,
+              existing: true
+            });
+            // The row keeps describing the local bytes until the received
+            // ones take its path, which the placing decides (review F34).
           } else {
             path = targetPath(file);
             placements.push({ assetId: file.asset_id, path, hash: file.hash, replaceIfHash: null });
@@ -543,6 +606,7 @@ async function commit(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePla
       plan.placements = placements;
       plan.result = result;
       await updateCloudReceive(row.id, { state: "applied", plan });
+      return true;
     })
   );
 }
@@ -666,20 +730,46 @@ async function place(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePlan
       if (!(await workspace.absorbNew(staged, target))) {
         throw new Error(`Could not place a received file beside ${placement.path}`);
       }
-      plan.result.keptBeside.push({ assetId: planned.assetId, path: placement.path, keptPath: target });
-      await updateCloudReceive(row.id, { plan });
     }
     const asset = await Asset.get<Asset>(planned.assetId);
     const fileStat = await workspace.stat(target);
-    if (asset && fileStat) {
-      await asset.update({
+    if (!fileStat) throw new Error(`The received file at ${target} is gone`);
+    const fingerprint = {
+      workspace_size: fileStat.size,
+      workspace_mtime: fileStat.modifiedAt,
+      workspace_hash: await partialContentHashOfFile(localPath(workspace, target))
+    };
+    if (!placed && planned.existing) {
+      // Both sides changed the file. The local asset keeps its id, path and
+      // bytes, so every document that uses it keeps the local media, and the
+      // received bytes become a new asset (V22, review F34).
+      const sibling = await Asset.create<Asset>({
+        id: createTimeOrderedUuid(),
+        user_id: link.user_id,
+        project_id: link.project_id,
+        parent_id: asset?.parent_id ?? link.user_id,
+        name: target.slice(target.lastIndexOf("/") + 1),
+        content_type: asset?.content_type ?? "application/octet-stream",
         workspace_path: target,
-        metadata: withWorkspaceFingerprint(asset.metadata, {
-          workspace_size: fileStat.size,
-          workspace_mtime: fileStat.modifiedAt,
-          workspace_hash: await partialContentHashOfFile(localPath(workspace, target))
-        })
+        size: fileStat.size,
+        content_hash: placement.hash,
+        metadata: withWorkspaceFingerprint(null, fingerprint)
       });
+      plan.result.keptBeside.push({ assetId: sibling.id, path: placement.path, keptPath: target });
+      await updateCloudReceive(row.id, { plan });
+    } else {
+      if (!placed) {
+        plan.result.keptBeside.push({ assetId: planned.assetId, path: placement.path, keptPath: target });
+        await updateCloudReceive(row.id, { plan });
+      }
+      if (asset) {
+        await asset.update({
+          workspace_path: target,
+          content_hash: placement.hash,
+          size: fileStat.size,
+          metadata: withWorkspaceFingerprint(asset.metadata, fingerprint)
+        });
+      }
     }
     await deleteTransferPlacement(placement.id);
   }
@@ -728,6 +818,78 @@ async function abandon(row: CloudReceiveRow, dir: string): Promise<ReceiveOutcom
   return { status: "expired", setId: row.id };
 }
 
+/** How many new sets one receive captures after its set expired before it gives up. */
+const RECAPTURE_LIMIT = 3;
+
+/**
+ * Replaces a receive whose set expired, or named a file an owner erased,
+ * with a receive of a new set (Y7, AC74, review F32). Staged files the new
+ * set also names move to its staging folder after their hash is checked
+ * again, so they are not downloaded twice. A document keeps the person's
+ * decision when the new set shows it with the same status. When any
+ * document's status differs, or the set has documents the person did not
+ * see, the new receive waits for review. Nothing local was written.
+ */
+async function recapture(
+  transport: ReceiveTransport,
+  row: CloudReceiveRow,
+  link: CloudLinkRow,
+  plan: ReceivePlan,
+  workspace: Workspace,
+  dir: string
+): Promise<{ setId: string; reviewed: boolean; documents: PlannedDocument[] }> {
+  const next = await captureReceive(transport, link);
+  const nextRow = await getCloudReceive(next.setId);
+  if (!nextRow) throw new Error(`The receive ${next.setId} was not recorded`);
+  const nextPlan = parsePlan(nextRow);
+  let reviewed = plan.decided && nextPlan.documents.length === plan.documents.length;
+  for (const document of nextPlan.documents) {
+    const before = plan.documents.find((entry) => entry.kind === document.kind && entry.cloudId === document.cloudId);
+    if (before && before.status === document.status) {
+      document.decision = before.decision;
+    } else {
+      reviewed = false;
+    }
+  }
+  nextPlan.decided = reviewed;
+  const nextDir = stagingDir(workspace, next.setId);
+  for (const document of nextPlan.documents) {
+    for (const file of document.files) {
+      const staged = stagedPath(dir, file.hash);
+      if (!(await fileExists(staged)) || (await contentHashOfFile(staged)) !== file.hash) continue;
+      await mkdir(nextDir, { recursive: true });
+      await rename(staged, stagedPath(nextDir, file.hash));
+    }
+  }
+  await updateCloudReceive(next.setId, { plan: nextPlan });
+  await transport.release({ set_id: row.id }).catch(() => undefined);
+  await rm(dir, { recursive: true, force: true });
+  await deleteCloudReceive(row.id);
+  return { setId: next.setId, reviewed, documents: nextPlan.documents };
+}
+
+/**
+ * Cancels a receive the person closed before it was applied: releases the
+ * set, deletes the staging folder and the receive's row (review F41). A
+ * receive that applied its commit already only has its files left to place,
+ * so it is left for {@link runReceive} or {@link resumeReceives}, and the
+ * answer is `applied`.
+ */
+export async function cancelReceive(transport: ReceiveTransport, setId: string): Promise<"cancelled" | "applied"> {
+  const row = await getCloudReceive(setId);
+  if (!row) return "cancelled";
+  if (row.state === "applied") return "applied";
+  const link = await getCloudLinkById(row.link_id);
+  const folder = link ? await requireProjectFolder(link.project_id, link.user_id).catch(() => null) : null;
+  if (folder) {
+    await finish(transport, row, stagingDir(folder.workspace, setId));
+  } else {
+    await transport.release({ set_id: setId }).catch(() => undefined);
+    await deleteCloudReceive(setId);
+  }
+  return "cancelled";
+}
+
 /** Options of {@link runReceive}. */
 export interface ReceiveRunOptions {
   /**
@@ -748,6 +910,16 @@ export async function runReceive(
   setId: string,
   decisions?: ReadonlyArray<{ kind: TransferDocumentKind; document_id: string; decision: ReceiveDecision }>,
   options: ReceiveRunOptions = {}
+): Promise<ReceiveOutcome> {
+  return runReceiveOf(transport, setId, decisions, options, 0);
+}
+
+async function runReceiveOf(
+  transport: ReceiveTransport,
+  setId: string,
+  decisions: ReadonlyArray<{ kind: TransferDocumentKind; document_id: string; decision: ReceiveDecision }> | undefined,
+  options: ReceiveRunOptions,
+  recaptures: number
 ): Promise<ReceiveOutcome> {
   const after = options.afterStep ?? (() => undefined);
   let row = await getCloudReceive(setId);
@@ -772,8 +944,11 @@ export async function runReceive(
     try {
       await stage(transport, row, plan, dir);
     } catch (error) {
-      if (error instanceof ReceiveSetExpiredError) return abandon(row, dir);
-      throw error;
+      if (!(error instanceof ReceiveSetExpiredError)) throw error;
+      if (recaptures >= RECAPTURE_LIMIT) return abandon(row, dir);
+      const next = await recapture(transport, row, link, plan, workspace, dir);
+      if (!next.reviewed) return { status: "waiting_for_review", setId: next.setId, documents: next.documents };
+      return runReceiveOf(transport, next.setId, undefined, options, recaptures + 1);
     }
     row = { ...row, state: "installed" };
     await after("installed");
@@ -781,18 +956,19 @@ export async function runReceive(
   const current = row;
   // The commit and the placing take the folder lock again for the reconcile
   // and the document files.
-  await withProjectFolderLock(
+  const applied = await withProjectFolderLock(
     link.user_id,
     link.project_id,
-    async () => {
+    async (hold) => {
       if (current.state === "installed") {
-        await commit(current, link, plan, dir);
+        if (!(await commit(current, link, plan, dir, hold))) return false;
         await after("applied");
       }
       await place(current, link, plan, workspace, dir);
-    },
-    { allowNested: true }
+      return true;
+    }
   );
+  if (!applied) return { status: "waiting_for_review", setId, documents: plan.documents };
   await after("placed");
   await finish(transport, current, dir);
   return { status: "finished", setId, result: plan.result };
