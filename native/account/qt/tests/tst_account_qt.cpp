@@ -1592,6 +1592,85 @@ private slots:
     QCOMPARE(server.calls().size(), before);
   }
 
+  // Closing a Synchronize sheet ends both captures: the send, and the
+  // receive set with its local row (review F41).
+  void closingASheetEndsTheSendAndTheReceive() {
+    Computer computer;
+    computer.server.addCode("code-e", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-e");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[)"
+                           R"({"op":"replace_document","kind":"workflow","document_id":"c1"}],)"
+                           R"("documents":[{"kind":"workflow","local_id":"l1","cloud_id":"c1","name":"Mine"}],)"
+                           R"("missing_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.receive.capture", trpcData(R"({"set_id":"s1","documents":[]})"));
+    server.answer("cloudTransfer.send.cancel", trpcData(R"({"state":"cancelled"})"));
+    server.answer("cloudTransfer.receive.cancel", trpcData(R"({"state":"cancelled"})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setLinked(true);
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    transfer.cancel();
+    QTRY_COMPARE(server.body("cloudTransfer.receive.cancel").empty(), false);
+    QCOMPARE(nlohmann::json::parse(server.body("cloudTransfer.receive.cancel"))["set_id"].get<std::string>(),
+             std::string("s1"));
+    QTRY_COMPARE(server.body("cloudTransfer.send.cancel").empty(), false);
+  }
+
+  // When the send a receive made stale cannot be ended, it is not captured
+  // again beside it: the sheet says so and nothing is sent (review F41).
+  void aSendThatCannotEndIsNotCapturedAgain() {
+    Computer computer;
+    computer.server.addCode("code-f", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-f");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[)"
+                           R"({"op":"replace_document","kind":"workflow","document_id":"c1"}],)"
+                           R"("documents":[{"kind":"workflow","local_id":"l1","cloud_id":"c1","name":"Mine"}],)"
+                           R"("missing_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.receive.capture",
+                  trpcData(R"({"set_id":"s1","documents":[)"
+                           R"({"kind":"workflow","cloud_id":"c2","local_id":"l2","name":"Theirs","content_hash":"h2",)"
+                           R"("status":"cloud_changed","decision":"receive","files":[],"missing_files":[]}]})"));
+    server.answer("cloudTransfer.receive.run",
+                  trpcData(R"({"status":"finished","set_id":"s1","result":{"received":[)"
+                           R"({"kind":"workflow","id":"l2","name":"Theirs"}],)"
+                           R"("changed_during_receive":[],"not_received":[],"kept_beside":[],"missing_files":[],)"
+                           R"("file_kept":[]}})"));
+    // send.cancel has no answer: the local router answers 404.
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setLinked(true);
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Failed);
+    QVERIFY(!transfer.message().isEmpty());
+    std::size_t captures = 0;
+    std::size_t runs = 0;
+    for (const auto& call : server.calls()) {
+      captures += call == "cloudTransfer.send.capture" ? 1 : 0;
+      runs += call == "cloudTransfer.send.run" ? 1 : 0;
+    }
+    QCOMPARE(captures, std::size_t(1));
+    QCOMPARE(runs, std::size_t(0));
+  }
+
   // After the cloud refuses a send for a newer cloud revision, Receive on
   // that row captures a set for the new revision and receives that document
   // alone. The stale replace is captured away and nothing else is sent

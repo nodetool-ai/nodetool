@@ -355,6 +355,17 @@ LocalTransferClient::Cancel LocalTransferClient::cancelSend(const std::string& t
   return out;
 }
 
+LocalTransferClient::ReceiveCancel LocalTransferClient::cancelReceive(const std::string& setId) {
+  const Answer answer = mutate("cloudTransfer.receive.cancel", json{{"set_id", setId}}.dump(), true);
+  ReceiveCancel out;
+  out.status = answer.status;
+  out.reason = answer.reason;
+  if (answer.status == TransferStatus::Ok) {
+    out.applied = str(json::parse(answer.data, nullptr, false), "state") == "applied";
+  }
+  return out;
+}
+
 ReceiveCapture LocalTransferClient::captureReceive(const std::string& projectId) {
   const Answer answer = mutate("cloudTransfer.receive.capture", json{{"project_id", projectId}}.dump(), true);
   ReceiveCapture out;

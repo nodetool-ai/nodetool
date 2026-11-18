@@ -151,6 +151,9 @@ private:
   std::string origin() const;
   // Ends a captured send that will not run, on the task thread.
   void endSend(const std::string& transferId);
+  // Ends a captured receive that will not run, on the task thread: the
+  // cloud set is released and the local receive row deleted (review F41).
+  void endReceive(const std::string& setId);
   void fail(const QString& message);
   void finishCapture(quint64 sequence, const Captured& captured);
   void finishApply(quint64 sequence, const Applied& applied);

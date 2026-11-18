@@ -594,6 +594,30 @@ void aRefusedDocumentKeepsOneRow(TestContext& t) {
   CHECK(receives.size() == 1 && receives[0].kind == "workflow" && receives[0].documentId == "c1");
 }
 
+// A receive closed before it applies ends on the local router, which
+// releases the cloud set and deletes its local row (review F41).
+void cancelsAReceive(TestContext& t) {
+  SignedInApp app;
+  FakeTransport transport([](const HttpRequest& request) {
+    if (request.url.ends_with("/trpc/cloudTransfer.receive.cancel")) {
+      const json body = json::parse(request.body);
+      return ok({{"state", body["set_id"] == "applied-set" ? "applied" : "cancelled"}});
+    }
+    return refusal(404, "NOT_FOUND");
+  });
+  LocalTransferClient client(transport, kLocal, {}, *app.session);
+  const auto cancelled = client.cancelReceive("s1");
+  CHECK(cancelled.status == TransferStatus::Ok && !cancelled.applied);
+  CHECK(client.cancelReceive("applied-set").applied);
+  const auto sent = transport.sent();
+  CHECK(sent.size() == 2);
+  if (!sent.empty()) {
+    const json body = json::parse(sent[0].body);
+    CHECK(body["set_id"] == "s1");
+    CHECK(body.value("access_token", std::string()).size() > 0);
+  }
+}
+
 int main() {
   return account_test::runTests({
       {"callsTheLocalRouterForTheAccount", callsTheLocalRouterForTheAccount},
@@ -611,5 +635,6 @@ int main() {
       {"missingFilesNeedAConfirmation", missingFilesNeedAConfirmation},
       {"aRefusedDeletionAsksAgain", aRefusedDeletionAsksAgain},
       {"aRefusedDocumentKeepsOneRow", aRefusedDocumentKeepsOneRow},
+      {"cancelsAReceive", cancelsAReceive},
   });
 }

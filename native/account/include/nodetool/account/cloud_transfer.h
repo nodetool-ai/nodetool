@@ -259,6 +259,15 @@ public:
 
   ReceiveCapture captureReceive(const std::string& projectId);
   ReceiveRun runReceive(const std::string& setId, const std::vector<ReceiveDecision>& decisions);
+  // Ends a receive before it applies: releases the cloud set and deletes
+  // the local receive row (review F41). `applied` is true when it had
+  // already applied.
+  struct ReceiveCancel {
+    TransferStatus status = TransferStatus::LocalUnavailable;
+    std::string reason;
+    bool applied = false;
+  };
+  ReceiveCancel cancelReceive(const std::string& setId);
 
   // Continues every send and receive of this account that a restart
   // interrupted.

@@ -155,6 +155,9 @@ struct TransferController::Applied {
   // Operations of the recapture the sheet did not show. Nothing was sent.
   std::vector<TransferOperation> unreviewed;
   std::vector<TransferFileOperation> unreviewedFiles;
+  // The end of the first captured send before the recapture. When it
+  // fails, the send is not captured again (review F41).
+  std::optional<LocalTransferClient::Cancel> endedSend;
   std::optional<SendRun> send;
 };
 
@@ -499,7 +502,11 @@ void TransferController::apply() {
       // The captured send may carry a document the receive just replaced:
       // capture it again, so it sends only what is still changed here.
       if (replaced && sendWork) {
-        client.cancelSend(transferId);
+        applied.endedSend = client.cancelSend(transferId);
+        if (applied.endedSend->status != TransferStatus::Ok) {
+          report();
+          return;
+        }
         applied.recaptured = client.captureSend(projectId, name);
         if (applied.recaptured->status != TransferStatus::Ok || applied.recaptured->collectFirst) {
           report();
@@ -587,6 +594,13 @@ void TransferController::finishApply(quint64 sequence, const Applied& applied) {
     };
     add(QStringLiteral("received"), run.received);
     add(QStringLiteral("changedDuringReceive"), run.changedDuringReceive);
+  }
+  if (applied.endedSend && applied.endedSend->status != TransferStatus::Ok) {
+    // The receive finished, but the send it made stale could not be ended.
+    // transferId_ still names it, so cancel() can end it later.
+    fail(tr("Received. The changes here could not be prepared again: %1 Synchronize again to send them.")
+             .arg(failure(applied.endedSend->status, applied.endedSend->reason)));
+    return;
   }
   if (applied.recaptured) {
     const SendCapture& again = *applied.recaptured;
@@ -685,12 +699,26 @@ void TransferController::endSend(const std::string& transferId) {
   });
 }
 
+void TransferController::endReceive(const std::string& setId) {
+  const std::shared_ptr<AccountSession> current = session();
+  if (setId.empty() || !current) {
+    return;
+  }
+  tasks_->post([state = shared_, cancel = std::shared_ptr<const RequestCancel>(cancel_), current, origin = origin(),
+                headers = headers(), setId] {
+    LocalTransferClient(*state->transport, origin, headers, *current, cancel).cancelReceive(setId);
+  });
+}
+
 void TransferController::cancel() {
   if (stage_ == Stage::Running) {
     return;
   }
   ++sequence_;
   endSend(transferId_);
+  if (!received_) {
+    endReceive(setId_);
+  }
   transferId_.clear();
   setId_.clear();
   review_ = {};
