@@ -10,6 +10,8 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { PauseGate } from "@nodetool-ai/config/testing/pause-harness";
+import { withProjectFolderLock } from "@nodetool-ai/asset-services/project-asset";
 import {
   Asset,
   getCloudLink,
@@ -338,5 +340,30 @@ describe("sending a project to the cloud", { timeout: 30_000 }, () => {
     await expect(runSend(cloud, review.transferId)).rejects.toThrow();
     expect(await cancelSend(cloud, review.transferId)).toBe("committed");
     expect(await getCloudLink(USER, PROJECT)).not.toBeNull();
+  });
+
+  it("hashes a file without a hash after it releases the folder lock, and again when another app wrote it meanwhile (CF4, review F38)", async () => {
+    const first = randomBytes(64);
+    const { asset } = await workflowWithFile(first);
+    const gate = new PauseGate(["send.capture.file-read"]).install();
+    try {
+      const capturing = captureSend(TARGET);
+      await gate.waitFor("send.capture.file-read");
+      // The read holds no folder lock: another writer gets the lock meanwhile.
+      expect(await withProjectFolderLock(USER, PROJECT, async () => "free")).toBe("free");
+      const second = randomBytes(96);
+      await folder.write("media/still.png", second);
+      gate.release("send.capture.file-read");
+      // The changed fingerprint makes the capture run again and read the new bytes.
+      await gate.waitFor("send.capture.file-read", 2);
+      gate.release("send.capture.file-read");
+      const review = await capturing;
+      const sent = (await getCloudSend(review.transferId))!;
+      const manifest = (JSON.parse(sent.plan) as { manifest: TransferManifest }).manifest;
+      expect(manifest.required_files).toMatchObject([{ asset_id: asset!.id, hash: sha(second), size: 96 }]);
+      expect((await Asset.get<Asset>(asset!.id))?.content_hash).toBe(sha(second));
+    } finally {
+      gate.uninstall();
+    }
   });
 });

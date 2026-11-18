@@ -20,6 +20,7 @@
 import { randomBytes } from "node:crypto";
 import { join } from "node:path";
 import { createLogger } from "@nodetool-ai/config";
+import { pausePoint } from "@nodetool-ai/config/pause-points";
 import {
   Asset,
   createCloudLink,
@@ -44,7 +45,8 @@ import {
 } from "@nodetool-ai/models";
 import type { Workspace } from "@nodetool-ai/runtime";
 import { withProjectFolderLock } from "@nodetool-ai/asset-services/project-asset";
-import { contentHashOfFile, requireProjectFolder } from "@nodetool-ai/asset-services/project-asset-file";
+import { contentHashOfWorkspaceFile, requireProjectFolder } from "@nodetool-ai/asset-services/project-asset-file";
+import { matchesRecordedFingerprint } from "./project-hash-job.js";
 import type {
   CancelTransferOutput,
   CommitTransferInput,
@@ -177,26 +179,53 @@ function localPath(workspace: Workspace, path: string): string {
   return join(workspace.localDir, workspace.key(path));
 }
 
+/** A required file whose hash capture reads after it releases the folder lock (CF4). */
+interface PendingHash {
+  asset: Asset;
+  path: string;
+  /** The row's metadata under the lock: the fingerprint the file must still have after the read. */
+  read: Record<string, unknown> | null;
+}
+
+type AssetContent = { hash: string; size: number } | { pending: PendingHash } | null;
+
 /**
- * The hash of an asset's file (CF4): the recorded `content_hash` while the
- * file still has the recorded size and modification time, and otherwise the
- * hash of the file read as a stream. Null when the file is gone.
+ * The content of an asset's file under the folder lock (CF4): the recorded
+ * `content_hash` while the file still has the recorded size and modification
+ * time, a file to hash after the lock is released otherwise, and null when
+ * the file is gone.
  */
-async function hashOfAsset(workspace: Workspace, asset: Asset): Promise<{ hash: string; size: number } | null> {
+async function contentOfAsset(workspace: Workspace, asset: Asset): Promise<AssetContent> {
   const path = asset.workspace_path;
   if (!path) return null;
   const stat = await workspace.stat(path);
   if (!stat) return null;
-  const metadata = asset.metadata ?? {};
-  if (
-    asset.content_hash &&
-    metadata["workspace_size"] === stat.size &&
-    metadata["workspace_mtime"] === stat.modifiedAt
-  ) {
+  if (asset.content_hash && (await matchesRecordedFingerprint(workspace, path, asset.metadata))) {
     return { hash: asset.content_hash, size: stat.size };
   }
-  return { hash: await contentHashOfFile(localPath(workspace, path)), size: stat.size };
+  return { pending: { asset, path, read: asset.metadata } };
 }
+
+/**
+ * Hashes a file the capture found without a valid hash, outside the folder
+ * lock. Null when the file no longer has the fingerprint its row recorded,
+ * before or after the read: another app wrote it, and the capture runs again
+ * after a reconcile records the new fingerprint. A hash read from an
+ * unchanged file is stored with the hash job's conditional write (RF7).
+ */
+async function hashPending(workspace: Workspace, pending: PendingHash): Promise<{ hash: string; size: number } | null> {
+  const size = pending.read?.["workspace_size"];
+  if (typeof size !== "number") return null;
+  if (!(await matchesRecordedFingerprint(workspace, pending.path, pending.read))) return null;
+  const hash = await contentHashOfWorkspaceFile(workspace, pending.path);
+  await pausePoint("send.capture.file-read");
+  if (!(await matchesRecordedFingerprint(workspace, pending.path, pending.read))) return null;
+  await pending.asset.recordContentHash(hash, pending.read);
+  return { hash, size };
+}
+
+/** How many times a capture runs again because a file changed while it was read. */
+const CAPTURE_ATTEMPTS = 3;
 
 interface LocalDocument {
   kind: TransferDocumentKind;
@@ -219,8 +248,10 @@ async function localDocuments(userId: string, projectId: string): Promise<LocalD
 /**
  * Captures the project for a send and records it in state `open`. Under the
  * folder lock it compares the folder with the rows first (CF1), then reads
- * every document and the files they need. A project that is not linked yet
- * is a first publication under its local ids.
+ * every document and the recorded hashes of the files they need. A file
+ * without a valid hash is read after the lock is released, and the capture
+ * runs again when the file changed meanwhile (CF4). A project that is not
+ * linked yet is a first publication under its local ids.
  */
 export async function captureSend(target: SendTarget): Promise<SendReview> {
   const link = await getCloudLink(target.userId, target.projectId);
@@ -228,10 +259,19 @@ export async function captureSend(target: SendTarget): Promise<SendReview> {
   const transferId = newId();
   // The reconcile runs under this hold of the folder lock. Work it leaves
   // running, such as its delayed follow-up, queues for the lock (review F35).
-  const plan = await withProjectFolderLock(target.userId, target.projectId, async (hold) => {
-    await reconcileInBackground(target.projectId, target.userId, { under: hold });
-    return capturePlan(target, link, workspace);
-  });
+  let plan: SendPlan | null = null;
+  for (let attempt = 0; attempt < CAPTURE_ATTEMPTS && !plan; attempt++) {
+    const captured = await withProjectFolderLock(target.userId, target.projectId, async (hold) => {
+      await reconcileInBackground(target.projectId, target.userId, { under: hold });
+      return captureDocuments(target, link, workspace);
+    });
+    // Files without a valid hash are read after the lock is released, so a
+    // long read holds up no other writer (CF4, review F38).
+    plan = await planFiles(target, link, workspace, captured);
+  }
+  if (!plan) {
+    throw new SendCaptureError("A file changed each time it was read. Synchronize again once it is saved.", []);
+  }
   await createCloudSend({
     transferId,
     link,
@@ -252,7 +292,18 @@ export async function captureSend(target: SendTarget): Promise<SendReview> {
   };
 }
 
-async function capturePlan(target: SendTarget, link: CloudLinkRow | null, workspace: Workspace): Promise<SendPlan> {
+/** What the capture read under the folder lock, before the files without a hash are read. */
+interface CapturedDocuments {
+  operations: TransferOperation[];
+  payloads: TransferPayload[];
+  documents: CapturedDocument[];
+  skipped: SkippedDocument[];
+  deletedLocally: DeletedLocally[];
+  files: Array<{ assetId: string; asset: Asset | null; content: AssetContent; referrers: Array<{ kind: TransferDocumentKind; document_id: string }> }>;
+  external: string[];
+}
+
+async function captureDocuments(target: SendTarget, link: CloudLinkRow | null, workspace: Workspace): Promise<CapturedDocuments> {
   const operations: TransferOperation[] = [];
   const payloads: TransferPayload[] = [];
   const documents: CapturedDocument[] = [];
@@ -305,10 +356,7 @@ async function capturePlan(target: SendTarget, link: CloudLinkRow | null, worksp
     }
   }
 
-  const requiredFiles: TransferRequiredFile[] = [];
-  const fileOperations: TransferFileOperation[] = [];
-  const files: CapturedFile[] = [];
-  const missingFiles: TransferMissingFile[] = [];
+  const referenced: CapturedDocuments["files"] = [];
   const external: string[] = [];
   for (const [assetId, referrers] of references) {
     const asset = await Asset.get<Asset>(assetId);
@@ -316,7 +364,42 @@ async function capturePlan(target: SendTarget, link: CloudLinkRow | null, worksp
       external.push(assetId);
       continue;
     }
-    const content = asset && asset.project_id === target.projectId ? await hashOfAsset(workspace, asset) : null;
+    const content = asset && asset.project_id === target.projectId ? await contentOfAsset(workspace, asset) : null;
+    referenced.push({ assetId, asset, content, referrers });
+  }
+  return { operations, payloads, documents, skipped, deletedLocally, files: referenced, external };
+}
+
+/**
+ * Completes a capture outside the folder lock: hashes the files that had no
+ * valid hash, and lists the required files and file operations. Null when a
+ * file changed while it was read.
+ */
+async function planFiles(
+  target: SendTarget,
+  link: CloudLinkRow | null,
+  workspace: Workspace,
+  captured: CapturedDocuments
+): Promise<SendPlan | null> {
+  const { operations, payloads, documents, skipped, deletedLocally, external } = captured;
+  if (external.length > 0) {
+    throw new SendCaptureError(
+      "Some files are linked from outside the project folder. Collect them into the folder before sending.",
+      external
+    );
+  }
+  const requiredFiles: TransferRequiredFile[] = [];
+  const fileOperations: TransferFileOperation[] = [];
+  const files: CapturedFile[] = [];
+  const missingFiles: TransferMissingFile[] = [];
+  for (const { assetId, asset, content: found, referrers } of captured.files) {
+    let content: { hash: string; size: number } | null = null;
+    if (found && "pending" in found) {
+      content = await hashPending(workspace, found.pending);
+      if (!content) return null;
+    } else {
+      content = found;
+    }
     if (!asset || !content || !asset.workspace_path) {
       missingFiles.push({ asset_id: assetId, reason: "missing_locally", documents: referrers });
       continue;
@@ -336,12 +419,6 @@ async function capturePlan(target: SendTarget, link: CloudLinkRow | null, worksp
         content_type: asset.content_type
       });
     }
-  }
-  if (external.length > 0) {
-    throw new SendCaptureError(
-      "Some files are linked from outside the project folder. Collect them into the folder before sending.",
-      external
-    );
   }
 
   const manifest: TransferManifest = {
