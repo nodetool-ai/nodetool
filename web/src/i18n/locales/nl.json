@@ -17976,7 +17976,9 @@
       "seek": "Zoek",
       "playbackSpeed": "Afspeelsnelheid",
       "exitFullscreen": "Volledig scherm afsluiten",
-      "enterFullscreen": "Voer volledig scherm in"
+      "enterFullscreen": "Voer volledig scherm in",
+      "mute": "Dempen",
+      "unmute": "Dempen opheffen"
     },
     "tagInput": {
       "placeholder": "Typ en druk op Enter om een tag toe te voegen...",
@@ -20239,6 +20241,19 @@
       "retry": "Opnieuw proberen",
       "donePath": "Je bestanden staan in {{path}}",
       "close": "Sluiten"
+    },
+    "preview": {
+      "clips": "clips",
+      "title": "Voorbeeld",
+      "tracks": "sporen",
+      "type": {
+        "app": "Mini-app",
+        "jsscript": "JS-script",
+        "script": "Script",
+        "storyboard": "Storyboard",
+        "timeline": "Tijdlijn",
+        "workflow": "Workflow"
+      }
     }
   },
   "assetPicker": {

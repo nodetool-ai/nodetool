@@ -17976,7 +17976,9 @@
       "seek": "Søk",
       "playbackSpeed": "Avspillingshastighet",
       "exitFullscreen": "Avslutt fullskjerm",
-      "enterFullscreen": "Gå inn i fullskjerm"
+      "enterFullscreen": "Gå inn i fullskjerm",
+      "mute": "Demp",
+      "unmute": "Slå på lyd"
     },
     "tagInput": {
       "placeholder": "Skriv inn og trykk på Enter for å legge til en kode...",
@@ -20239,6 +20241,19 @@
       "retry": "Prøv igjen",
       "donePath": "Filene dine ligger i {{path}}",
       "close": "Lukk"
+    },
+    "preview": {
+      "clips": "klipp",
+      "title": "Forhåndsvisning",
+      "tracks": "spor",
+      "type": {
+        "app": "Miniapp",
+        "jsscript": "JS-skript",
+        "script": "Manus",
+        "storyboard": "Storyboard",
+        "timeline": "Tidslinje",
+        "workflow": "Arbeidsflyt"
+      }
     }
   },
   "assetPicker": {
