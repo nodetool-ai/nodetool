@@ -16343,7 +16343,9 @@
       "showDetails": "Pokaż szczegóły",
       "collapseDetails": "Zwiń szczegóły",
       "input": "Wejście",
-      "output": "Wyjście"
+      "output": "Wyjście",
+      "basic": "Podstawowy",
+      "basicNode": "Podstawowy · węzeł {{title}}"
     },
     "favorites": {
       "title": "Ulubione",
@@ -16373,6 +16375,7 @@
       "resizeHeight": "Zmień wysokość menu węzła"
     },
     "quickActions": {
+      "basics": "Podstawy",
       "aiNodes": "Węzły AI",
       "providerModels": "Modele dostawców",
       "constants": "Stałe",
@@ -16410,7 +16413,13 @@
         "constant-list": "Lista",
         "constant-model-3d": "Model 3D",
         "constant-string": "Sznurek",
-        "constant-video": "Wideo"
+        "constant-video": "Wideo",
+        "basic-text": "Tekst",
+        "basic-generate-text": "Generuj tekst",
+        "basic-generate-image": "Generuj obraz",
+        "basic-edit-image": "Edytuj obraz",
+        "basic-generate-video": "Generuj wideo",
+        "basic-edit-video": "Edytuj wideo"
       }
     },
     "recent": {

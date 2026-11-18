@@ -15793,7 +15793,9 @@
       "showDetails": "세부정보 표시",
       "collapseDetails": "세부정보 접기",
       "input": "입력",
-      "output": "출력"
+      "output": "출력",
+      "basic": "기본",
+      "basicNode": "기본 · {{title}} 노드"
     },
     "favorites": {
       "title": "즐겨찾기",
@@ -15823,6 +15825,7 @@
       "resizeHeight": "노드 메뉴 높이 크기 조정"
     },
     "quickActions": {
+      "basics": "기본",
       "aiNodes": "AI 노드",
       "providerModels": "공급자 모델",
       "constants": "상수",
@@ -15860,7 +15863,13 @@
         "constant-list": "목록",
         "constant-model-3d": "3D 모델",
         "constant-string": "문자열",
-        "constant-video": "비디오"
+        "constant-video": "비디오",
+        "basic-text": "텍스트",
+        "basic-generate-text": "텍스트 생성",
+        "basic-generate-image": "이미지 생성",
+        "basic-edit-image": "이미지 편집",
+        "basic-generate-video": "동영상 생성",
+        "basic-edit-video": "동영상 편집"
       }
     },
     "recent": {

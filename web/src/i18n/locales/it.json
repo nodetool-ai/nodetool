@@ -16068,7 +16068,9 @@
       "showDetails": "Mostra dettagli",
       "collapseDetails": "Comprimi i dettagli",
       "input": "Ingresso",
-      "output": "Uscita"
+      "output": "Uscita",
+      "basic": "Essenziale",
+      "basicNode": "Essenziale · nodo {{title}}"
     },
     "favorites": {
       "title": "Preferiti",
@@ -16098,6 +16100,7 @@
       "resizeHeight": "Ridimensiona l'altezza del menu del nodo"
     },
     "quickActions": {
+      "basics": "Essenziali",
       "aiNodes": "Nodi IA",
       "providerModels": "Modelli di fornitori",
       "constants": "Costanti",
@@ -16135,7 +16138,13 @@
         "constant-list": "Elenco",
         "constant-model-3d": "Modello 3D",
         "constant-string": "Stringa",
-        "constant-video": "Video"
+        "constant-video": "Video",
+        "basic-text": "Testo",
+        "basic-generate-text": "Genera testo",
+        "basic-generate-image": "Genera immagine",
+        "basic-edit-image": "Modifica immagine",
+        "basic-generate-video": "Genera video",
+        "basic-edit-video": "Modifica video"
       }
     },
     "recent": {

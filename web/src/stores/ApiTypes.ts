@@ -262,6 +262,8 @@ export interface KieUnitPricing {
 export interface NodeMetadata extends BaseNodeMetadata {
   searchInfo?: {
     score?: number;
+    /** Search pinned this node above the rest as a basic operation. */
+    pinnedAsBasic?: boolean;
     matches?: Array<{
       key: string;
       value: string;

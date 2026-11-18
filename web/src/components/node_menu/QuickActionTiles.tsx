@@ -27,6 +27,7 @@ import { NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import { useNodeTileDrag } from "../../hooks/nodes/useNodeTileDrag";
 import {
   AI_TASK_ACTIONS,
+  BASIC_ACTIONS,
   PROVIDER_ACTIONS,
   CONSTANT_NODES,
   type QuickActionDefinition
@@ -193,7 +194,18 @@ const TileSection = memo(function TileSection({
   );
 });
 
-const QuickActionTiles = memo(function QuickActionTiles() {
+interface QuickActionTilesProps {
+  /**
+   * Which rows to show. The node menu puts "basics" above favorites and
+   * recent nodes so the fundamental operations keep one place, and "more"
+   * below them.
+   */
+  group?: "all" | "basics" | "more";
+}
+
+const QuickActionTiles = memo(function QuickActionTiles({
+  group = "all"
+}: QuickActionTilesProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const memoizedStyles = useMemo(() => tileStyles(theme), [theme]);
@@ -293,13 +305,20 @@ const QuickActionTiles = memo(function QuickActionTiles() {
 
   return (
     <div css={memoizedStyles}>
-      <TileSection title={t("i18n-next50-node-menu.quickActions.aiNodes")} actions={AI_TASK_ACTIONS} {...sectionProps} />
-      <TileSection
-        title={t("i18n-next50-node-menu.quickActions.providerModels")}
-        actions={PROVIDER_ACTIONS}
-        {...sectionProps}
-      />
-      <TileSection title={t("i18n-next50-node-menu.quickActions.constants")} actions={CONSTANT_NODES} {...sectionProps} />
+      {group !== "more" && (
+        <TileSection title={t("i18n-next50-node-menu.quickActions.basics")} actions={BASIC_ACTIONS} {...sectionProps} />
+      )}
+      {group !== "basics" && (
+        <>
+          <TileSection title={t("i18n-next50-node-menu.quickActions.aiNodes")} actions={AI_TASK_ACTIONS} {...sectionProps} />
+          <TileSection
+            title={t("i18n-next50-node-menu.quickActions.providerModels")}
+            actions={PROVIDER_ACTIONS}
+            {...sectionProps}
+          />
+          <TileSection title={t("i18n-next50-node-menu.quickActions.constants")} actions={CONSTANT_NODES} {...sectionProps} />
+        </>
+      )}
     </div>
   );
 });

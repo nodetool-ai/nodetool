@@ -15793,7 +15793,9 @@
       "showDetails": "Show details",
       "collapseDetails": "Collapse details",
       "input": "Input",
-      "output": "Output"
+      "output": "Output",
+      "basic": "Basic",
+      "basicNode": "Basic · {{title}} node"
     },
     "favorites": {
       "title": "Favorites",
@@ -15823,6 +15825,7 @@
       "resizeHeight": "Resize node menu height"
     },
     "quickActions": {
+      "basics": "Basics",
       "aiNodes": "AI nodes",
       "providerModels": "Provider models",
       "constants": "Constants",
@@ -15860,7 +15863,13 @@
         "constant-list": "List",
         "constant-model-3d": "3D Model",
         "constant-string": "String",
-        "constant-video": "Video"
+        "constant-video": "Video",
+        "basic-text": "Text",
+        "basic-generate-text": "Generate text",
+        "basic-generate-image": "Generate image",
+        "basic-edit-image": "Edit image",
+        "basic-generate-video": "Generate video",
+        "basic-edit-video": "Edit video"
       }
     },
     "recent": {

@@ -16343,7 +16343,9 @@
       "showDetails": "Показать подробности",
       "collapseDetails": "Свернуть подробности",
       "input": "Вход",
-      "output": "Выход"
+      "output": "Выход",
+      "basic": "Основное",
+      "basicNode": "Основное · узел {{title}}"
     },
     "favorites": {
       "title": "Избранное",
@@ -16373,6 +16375,7 @@
       "resizeHeight": "Изменить высоту меню узлов"
     },
     "quickActions": {
+      "basics": "Основное",
       "aiNodes": "ИИ-узлы",
       "providerModels": "Модели провайдеров",
       "constants": "Константы",
@@ -16410,7 +16413,13 @@
         "constant-list": "Список",
         "constant-model-3d": "3D-модель",
         "constant-string": "Строка",
-        "constant-video": "Видео"
+        "constant-video": "Видео",
+        "basic-text": "Текст",
+        "basic-generate-text": "Сгенерировать текст",
+        "basic-generate-image": "Сгенерировать изображение",
+        "basic-edit-image": "Изменить изображение",
+        "basic-generate-video": "Сгенерировать видео",
+        "basic-edit-video": "Изменить видео"
       }
     },
     "recent": {

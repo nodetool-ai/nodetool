@@ -16068,7 +16068,9 @@
       "showDetails": "Mostrar detalhes",
       "collapseDetails": "Recolher detalhes",
       "input": "Entrada",
-      "output": "Saída"
+      "output": "Saída",
+      "basic": "Básico",
+      "basicNode": "Básico · nó {{title}}"
     },
     "favorites": {
       "title": "Favoritos",
@@ -16098,6 +16100,7 @@
       "resizeHeight": "Redimensionar a altura do menu do nó"
     },
     "quickActions": {
+      "basics": "Básicos",
       "aiNodes": "Nós de IA",
       "providerModels": "Modelos de provedor",
       "constants": "Constantes",
@@ -16135,7 +16138,13 @@
         "constant-list": "Lista",
         "constant-model-3d": "Modelo 3D",
         "constant-string": "Corda",
-        "constant-video": "Vídeo"
+        "constant-video": "Vídeo",
+        "basic-text": "Texto",
+        "basic-generate-text": "Gerar texto",
+        "basic-generate-image": "Gerar imagem",
+        "basic-edit-image": "Editar imagem",
+        "basic-generate-video": "Gerar vídeo",
+        "basic-edit-video": "Editar vídeo"
       }
     },
     "recent": {

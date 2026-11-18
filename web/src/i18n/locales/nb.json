@@ -15793,7 +15793,9 @@
       "showDetails": "Vis detaljer",
       "collapseDetails": "Skjul detaljer",
       "input": "Inndata",
-      "output": "Utgang"
+      "output": "Utgang",
+      "basic": "Grunnleggende",
+      "basicNode": "Grunnleggende · {{title}}-node"
     },
     "favorites": {
       "title": "Favoritter",
@@ -15823,6 +15825,7 @@
       "resizeHeight": "Endre størrelse på nodemenyhøyde"
     },
     "quickActions": {
+      "basics": "Grunnleggende",
       "aiNodes": "AI-noder",
       "providerModels": "Leverandørmodeller",
       "constants": "Konstanter",
@@ -15860,7 +15863,13 @@
         "constant-list": "Liste",
         "constant-model-3d": "3D-modell",
         "constant-string": "String",
-        "constant-video": "Video"
+        "constant-video": "Video",
+        "basic-text": "Tekst",
+        "basic-generate-text": "Generer tekst",
+        "basic-generate-image": "Generer bilde",
+        "basic-edit-image": "Rediger bilde",
+        "basic-generate-video": "Generer video",
+        "basic-edit-video": "Rediger video"
       }
     },
     "recent": {

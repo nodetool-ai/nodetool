@@ -15793,7 +15793,9 @@
       "showDetails": "詳細を表示",
       "collapseDetails": "詳細を折りたたむ",
       "input": "入力",
-      "output": "出力"
+      "output": "出力",
+      "basic": "基本",
+      "basicNode": "基本 · {{title}} ノード"
     },
     "favorites": {
       "title": "お気に入り",
@@ -15823,6 +15825,7 @@
       "resizeHeight": "ノードメニューの高さのサイズを変更する"
     },
     "quickActions": {
+      "basics": "基本",
       "aiNodes": "AIノード",
       "providerModels": "プロバイダーモデル",
       "constants": "定数",
@@ -15860,7 +15863,13 @@
         "constant-list": "リスト",
         "constant-model-3d": "3Dモデル",
         "constant-string": "文字列",
-        "constant-video": "ビデオ"
+        "constant-video": "ビデオ",
+        "basic-text": "テキスト",
+        "basic-generate-text": "テキストを生成",
+        "basic-generate-image": "画像を生成",
+        "basic-edit-image": "画像を編集",
+        "basic-generate-video": "動画を生成",
+        "basic-edit-video": "動画を編集"
       }
     },
     "recent": {

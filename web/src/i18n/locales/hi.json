@@ -15793,7 +15793,9 @@
       "showDetails": "विवरण दिखाएं",
       "collapseDetails": "संक्षिप्त विवरण",
       "input": "इनपुट",
-      "output": "उत्पादन"
+      "output": "उत्पादन",
+      "basic": "बुनियादी",
+      "basicNode": "बुनियादी · {{title}} नोड"
     },
     "favorites": {
       "title": "पसंदीदा",
@@ -15823,6 +15825,7 @@
       "resizeHeight": "नोड मेनू ऊंचाई का आकार बदलें"
     },
     "quickActions": {
+      "basics": "बुनियादी",
       "aiNodes": "A-A-A-A-A-A-A-A-A-A-A-E-",
       "providerModels": "प्रदाता मॉडल",
       "constants": "स्थिर",
@@ -15860,7 +15863,13 @@
         "constant-list": "सूची",
         "constant-model-3d": "3D मॉडल",
         "constant-string": "स्ट्रिंग",
-        "constant-video": "वीडियो"
+        "constant-video": "वीडियो",
+        "basic-text": "टेक्स्ट",
+        "basic-generate-text": "टेक्स्ट बनाएँ",
+        "basic-generate-image": "इमेज बनाएँ",
+        "basic-edit-image": "इमेज संपादित करें",
+        "basic-generate-video": "वीडियो बनाएँ",
+        "basic-edit-video": "वीडियो संपादित करें"
       }
     },
     "recent": {
