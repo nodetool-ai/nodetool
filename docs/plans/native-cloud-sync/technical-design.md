@@ -552,6 +552,8 @@ A revocation therefore either commits first, and the write sees it and is refuse
 
 A revision set is rows, not copies: `revision_sets` and `revision_set_entries` with the document revision or the blob hash. A captured revision has to stay readable after later saves. For a kind with a version table, the capture writes the stored revision as a version row when no row holds it yet. For scripts and storyboards before phase 5 it writes a `recovery_copies` row. A file named by a live set is a retention root until the set is released or seven days old (Y1). Each call authorizes the reader again (Y6, SR29). An entry exists only for documents the reader could open at capture, and its file list is the reference set that the reader's role may read.
 
+As built (WP2.5): the service is `packages/project-services/src/cloud-receive.ts`, the tRPC router `receive`, and `GET /api/receive/:set_id/files/:hash` for the bytes. A file row is `revision_set_files`. An entry stores, besides the version id, the payload fields that the version table does not hold, such as a workflow's tags and run mode, so the captured payload hashes to the transfer hash the capture returned. A capture reuses the newest version when it holds the stored content and otherwise writes a manual version named "Kept for a download", which the autosave limit never prunes. A set that expired, was released or names a version the owner deleted answers `REVISION_SET_EXPIRED`. A file whose bytes are gone answers `ERASED`. A document deleted after capture is refused like a removed grant, because each call authorizes the reader again.
+
 The local apply follows the PRD's stages. The design adds where each fact is stored, so that the recovery table of Y5 can be tested.
 
 | Step | Storage effect |

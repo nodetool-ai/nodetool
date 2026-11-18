@@ -710,6 +710,54 @@ const TRANSFER_ACTIVITY_DDL: readonly string[] = [
 ];
 
 /**
+ * Revision sets of a receive (technical design, "Receiving: revision set,
+ * stage, check, apply", WP2.5). `size` is BIGINT on PostgreSQL. Applied by
+ * the `add_revision_sets` migration, and by `initTestDb` through
+ * {@link POST_BASELINE_TABLE_DDL}.
+ */
+const REVISION_SETS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS revision_sets (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_revision_sets_user
+    ON revision_sets (user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_revision_sets_expires
+    ON revision_sets (expires_at)`,
+  `CREATE TABLE IF NOT EXISTS revision_set_entries (
+    id TEXT PRIMARY KEY NOT NULL,
+    set_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    document_kind TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    revision_id TEXT NOT NULL,
+    fields TEXT NOT NULL,
+    content_hash TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_revision_set_entries_set
+    ON revision_set_entries (set_id, document_kind, document_id)`,
+  `CREATE TABLE IF NOT EXISTS revision_set_files (
+    id TEXT PRIMARY KEY NOT NULL,
+    set_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    document_kind TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    asset_id TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    size INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_revision_set_files_set
+    ON revision_set_files (set_id, hash)`,
+  `CREATE INDEX IF NOT EXISTS idx_revision_set_files_hash
+    ON revision_set_files (hash)`
+];
+
+/**
  * The local store of the native apps for cloud documents: unsent drafts and
  * the last known open state (docs/plans/native-cloud-sync/technical-design.md,
  * "Local data scoping and durable drafts"). Applied by the
@@ -791,7 +839,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...ACCESS_EPOCHS_DDL,
   ...CLOUD_TRANSFERS_DDL,
   ...TRANSFER_FILES_DDL,
-  ...TRANSFER_ACTIVITY_DDL
+  ...TRANSFER_ACTIVITY_DDL,
+  ...REVISION_SETS_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5344,6 +5393,24 @@ export const migrations: MigrationDef[] = [
     async down(db) {
       await db.execute("DROP TABLE IF EXISTS transferred_conversations");
       await db.execute("DROP TABLE IF EXISTS document_activity");
+    }
+  },
+  {
+    version: "20261130_000006",
+    name: "add_revision_sets",
+    createsTables: ["revision_sets", "revision_set_entries", "revision_set_files"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of REVISION_SETS_DDL) {
+        await db.execute(
+          db.dbType === "sqlite" ? statement : statement.replace("size INTEGER", "size BIGINT")
+        );
+      }
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS revision_set_files");
+      await db.execute("DROP TABLE IF EXISTS revision_set_entries");
+      await db.execute("DROP TABLE IF EXISTS revision_sets");
     }
   }
 ];

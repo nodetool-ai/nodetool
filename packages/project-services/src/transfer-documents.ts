@@ -64,6 +64,26 @@ export interface TransferDocumentKindHandler {
   findVersion(versionId: string): Promise<{ documentId: string; hash: string } | null>;
   /** Adds a saved version under its id, as the next version number of the document. */
   addVersion(document: { id: string; userId: string }, versionId: string, payload: TransferPayloadContent): Promise<void>;
+  /**
+   * Fixes the stored revision for a revision set: the saved version that
+   * holds its content, writing one when the newest version holds other
+   * content, and the payload fields the version does not hold. Null when the
+   * document is gone.
+   */
+  holdRevision(id: string): Promise<HeldRevision | null>;
+  /** The payload of a held revision, or null when its version is gone. */
+  readRevision(revisionId: string, fields: Record<string, unknown>): Promise<TransferPayloadContent | null>;
+}
+
+/** A revision a revision set fixed. */
+export interface HeldRevision {
+  revisionId: string;
+  fields: Record<string, unknown>;
+  /** The payload as {@link TransferDocumentKindHandler.readRevision} returns it. */
+  payload: TransferPayloadContent;
+  projectId: string;
+  ownerId: string;
+  name: string;
 }
 
 function isFullId(id: string): boolean {
@@ -71,6 +91,8 @@ function isFullId(id: string): boolean {
 }
 
 const REPLACED_VERSION_NAME = "Before a transfer replaced it";
+/** The name of a version a revision set wrote because no version held the stored content. */
+export const HELD_VERSION_NAME = "Kept for a download";
 
 function text(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
@@ -232,6 +254,41 @@ const workflowHandler: TransferDocumentKindHandler = {
       save_type: saveType(payload.save_type),
       version: await WorkflowVersion.nextVersion(document.id)
     });
+  },
+  async holdRevision(id) {
+    const workflow = await Workflow.get<Workflow>(id);
+    if (!workflow) return null;
+    const { graph, ...fields } = workflowPayload(workflow);
+    const [newest] = await WorkflowVersion.listForWorkflow(workflow.id, { limit: 1 });
+    // An autosave is pruned by the autosave limit, so it is reused only as
+    // the content of a new version that nothing prunes (review F30).
+    const revisionId =
+      newest && newest.save_type !== "autosave" && identityHash(newest.graph) === identityHash(graph)
+        ? newest.id
+        : // Manual, so the autosave limit never prunes it while the set lives.
+          (
+            await WorkflowVersion.create<WorkflowVersion>({
+              workflow_id: workflow.id,
+              user_id: workflow.user_id,
+              name: HELD_VERSION_NAME,
+              description: null,
+              graph: workflow.graph,
+              save_type: "manual",
+              version: await WorkflowVersion.nextVersion(workflow.id)
+            })
+          ).id;
+    return {
+      revisionId,
+      fields,
+      payload: { ...fields, graph },
+      projectId: workflow.project_id,
+      ownerId: workflow.user_id,
+      name: workflow.name
+    };
+  },
+  async readRevision(revisionId, fields) {
+    const version = await WorkflowVersion.get<WorkflowVersion>(revisionId);
+    return version ? { ...fields, graph: version.graph } : null;
   }
 };
 
@@ -363,6 +420,30 @@ const timelineHandler: TransferDocumentKindHandler = {
       document: fields.document,
       version: await TimelineSequenceVersion.nextVersion(document.id)
     });
+  },
+  async holdRevision(id) {
+    const timeline = await TimelineSequence.findById(id);
+    if (!timeline) return null;
+    const { document, ...fields } = timelinePayload(timeline);
+    const [newest] = await TimelineSequenceVersion.listForTimeline(timeline.id, { limit: 1 });
+    // An autosave is pruned by the autosave limit (review F30).
+    const revisionId =
+      newest && newest.save_type !== "autosave" && newest.document === timeline.document
+        ? newest.id
+        : // Manual, so the autosave limit never prunes it while the set lives.
+          (await TimelineSequenceVersion.snapshot(timeline, { saveType: "manual", name: HELD_VERSION_NAME })).id;
+    return {
+      revisionId,
+      fields,
+      payload: { ...fields, document },
+      projectId: timeline.project_id,
+      ownerId: timeline.user_id,
+      name: timeline.name
+    };
+  },
+  async readRevision(revisionId, fields) {
+    const version = await TimelineSequenceVersion.get<TimelineSequenceVersion>(revisionId);
+    return version ? { ...fields, document: parsedTimelineDocument(version.document) } : null;
   }
 };
 

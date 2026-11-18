@@ -714,7 +714,10 @@ export class Project extends DBModel {
         "project_blobs",
         "transfer_placements",
         "recovery_copies",
-        "transferred_conversations"
+        "transferred_conversations",
+        "revision_set_files",
+        "revision_set_entries",
+        "revision_sets"
       ]) {
         await executeRaw(
           `DELETE FROM ${table} WHERE user_id = '${owner}' AND project_id = '${project}' RETURNING id`

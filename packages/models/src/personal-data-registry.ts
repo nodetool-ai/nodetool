@@ -771,6 +771,33 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "The person's accepted renames and moves of documents, with the names and project ids before and after. The documents carry their current names. Deleted with the account."
   },
   {
+    table: "revision_sets",
+    schemaExport: "revisionSets",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "A download the person started from a cloud project: the project id and when it expires, seven days after it began. Short-lived operational state. Deleted with the account."
+  },
+  {
+    table: "revision_set_entries",
+    schemaExport: "revisionSetEntries",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "Which revision of each document a download fixed: a version id, a content hash and the document's name and settings, which the document itself holds. Short-lived operational state. Deleted with the account."
+  },
+  {
+    table: "revision_set_files",
+    schemaExport: "revisionSetFiles",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "Which file hashes a download needs, by asset id. The files are exported with the assets that name them. Short-lived operational state. Deleted with the account."
+  },
+  {
     table: "project_blobs",
     schemaExport: "projectBlobs",
     disposition: "delete",

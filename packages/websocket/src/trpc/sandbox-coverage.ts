@@ -1332,6 +1332,17 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "transfers.cancel": {
     withheld: "Transfer state belongs to the desktop app that opened the transfer."
   },
+  "receive.capture": {
+    withheld:
+      "A receive downloads a cloud project into a local project folder. " +
+      "Only the desktop app that holds that folder starts one."
+  },
+  "receive.document": {
+    withheld: "Revision sets belong to the desktop app that captured them."
+  },
+  "receive.release": {
+    withheld: "Revision sets belong to the desktop app that captured them."
+  },
   "deletedDocuments.list": {
     gap: "The app lists deleted documents for restore; the agent has no capability that reads them."
   },

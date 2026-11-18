@@ -8,6 +8,7 @@
 import { and, eq, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { createTimeOrderedUuid } from "./base-model.js";
 import { getDatabase, getPortableDb, portableDbOf } from "./db.js";
+import { isHashInLiveRevisionSet } from "./revision-set.js";
 import { projectBlobs } from "./schema/project-blobs.js";
 
 export type ProjectBlobRow = typeof projectBlobs.$inferSelect;
@@ -181,26 +182,35 @@ export async function withBlobLock<T>(hash: string, work: (db: PortableDb) => Pr
 }
 
 /**
- * Deletes the object of `hash` through `remove` when no row names the hash,
- * under the hash's lock. Returns what `remove` returned, or false when a row
- * names the hash.
+ * Deletes the object of `hash` through `remove` when no row and no live
+ * revision set names the hash, under the hash's lock. Returns what `remove`
+ * returned, or false when the hash is named.
  */
-export async function deleteUnnamedBlob(hash: string, remove: () => Promise<boolean>): Promise<boolean> {
+export async function deleteUnnamedBlob(
+  hash: string,
+  remove: () => Promise<boolean>,
+  now: Date = new Date()
+): Promise<boolean> {
   return withBlobLock(hash, async (db) => {
     const [row] = await db.select({ id: projectBlobs.id }).from(projectBlobs).where(eq(projectBlobs.hash, hash)).limit(1);
-    if (row !== undefined) return false;
+    // Through the locked transaction, so a pool of one connection does not
+    // wait on itself.
+    if (row !== undefined || (await isHashInLiveRevisionSet(hash, now, db))) return false;
     return remove();
   });
 }
 
-/** Whether any row, staged or committed, names the hash. */
-export async function isBlobHashNamed(hash: string): Promise<boolean> {
+/**
+ * Whether any row, staged or committed, names the hash, or a revision set
+ * that has not expired names it (Y1).
+ */
+export async function isBlobHashNamed(hash: string, now: Date = new Date()): Promise<boolean> {
   const [row] = await getPortableDb()
     .select({ id: projectBlobs.id })
     .from(projectBlobs)
     .where(eq(projectBlobs.hash, hash))
     .limit(1);
-  return row !== undefined;
+  return row !== undefined || (await isHashInLiveRevisionSet(hash, now));
 }
 
 /** Deletes staged rows older than the staged lifetime. Returns how many. */

@@ -888,3 +888,19 @@ export {
   type DocumentActivityEntry,
   type DocumentActivityType
 } from "./document-activity.js";
+export {
+  addRevisionSetEntry,
+  createRevisionSet,
+  deleteExpiredRevisionSets,
+  deleteRevisionSet,
+  getLiveRevisionSet,
+  getRevisionSet,
+  getRevisionSetEntry,
+  isHashInLiveRevisionSet,
+  revisionSetFilesWithHash,
+  REVISION_SET_LIFETIME_MS,
+  type RevisionSetEntryInput,
+  type RevisionSetEntryRow,
+  type RevisionSetFileRow,
+  type RevisionSetRow
+} from "./revision-set.js";

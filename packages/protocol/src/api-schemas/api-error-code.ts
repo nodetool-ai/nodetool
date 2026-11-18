@@ -47,7 +47,12 @@ export enum ApiErrorCode {
    * A transfer's commit attempt id was recorded with other content. A retry
    * must send what the first attempt sent, or take a new attempt id.
    */
-  ATTEMPT_CONTENT_MISMATCH = "ATTEMPT_CONTENT_MISMATCH"
+  ATTEMPT_CONTENT_MISMATCH = "ATTEMPT_CONTENT_MISMATCH",
+  /**
+   * A receive's revision set expired, was released, or holds a revision or
+   * file an owner's action freed. The client captures a new set (Y7).
+   */
+  REVISION_SET_EXPIRED = "REVISION_SET_EXPIRED"
 }
 
 export interface ApiErrorResponse {

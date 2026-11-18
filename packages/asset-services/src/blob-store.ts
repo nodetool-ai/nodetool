@@ -26,6 +26,7 @@ import {
   BLOB_HASH_PATTERN,
   committedHashesOfOwner,
   committedSizeOfOwner,
+  deleteExpiredRevisionSets,
   deleteExpiredStagedBlobs,
   deleteUnnamedBlob,
   isBlobHashNamed,
@@ -238,6 +239,8 @@ export async function cleanupBlobs(
   now: Date = new Date()
 ): Promise<BlobCleanupResult> {
   const stagedRowsDeleted = await deleteExpiredStagedBlobs(now);
+  // An expired revision set no longer holds its files.
+  await deleteExpiredRevisionSets(now);
   let objectsDeleted = 0;
   const { entries } = await adapter.list(BLOB_PREFIX);
   for (const entry of entries) {
@@ -249,9 +252,9 @@ export async function cleanupBlobs(
       continue;
     }
     if (!BLOB_HASH_PATTERN.test(name) || !old) continue;
-    if (await isBlobHashNamed(name)) continue;
+    if (await isBlobHashNamed(name, now)) continue;
     // Checked again under the hash's lock, which a stage takes to write its row.
-    if (await deleteUnnamedBlob(name, () => removeBlob(adapter, entry.uri))) objectsDeleted += 1;
+    if (await deleteUnnamedBlob(name, () => removeBlob(adapter, entry.uri), now)) objectsDeleted += 1;
   }
   return { stagedRowsDeleted, objectsDeleted };
 }
