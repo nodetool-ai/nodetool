@@ -282,6 +282,18 @@ public:
   };
   ReceiveCancel cancelReceive(const std::string& setId);
 
+  // Whether the project is linked to a cloud project of this server and
+  // account, so the app offers Synchronize, or not, so it offers Publish to
+  // Cloud. Reads the bundled server only and sends no token.
+  enum class Link { Unlinked, Linked, LinkedElsewhere };
+  struct LinkStatus {
+    TransferStatus status = TransferStatus::LocalUnavailable;
+    std::string reason;
+    Link link = Link::Unlinked;
+    std::string cloudProjectId;
+  };
+  LinkStatus linkStatus(const std::string& projectId);
+
   // Continues every send and receive of this account that a restart
   // interrupted.
   TransferResume resume();

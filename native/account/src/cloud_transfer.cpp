@@ -361,6 +361,31 @@ LocalTransferClient::Cancel LocalTransferClient::cancelSend(const std::string& t
   return out;
 }
 
+LocalTransferClient::LinkStatus LocalTransferClient::linkStatus(const std::string& projectId) {
+  // A query of the router: the server accepts it over POST (allowMethodOverride).
+  const Answer answer = mutate("cloudTransfer.link", json{{"project_id", projectId}}.dump(), false);
+  LinkStatus out;
+  out.status = answer.status;
+  out.reason = answer.reason;
+  if (answer.status != TransferStatus::Ok) {
+    return out;
+  }
+  const json data = json::parse(answer.data, nullptr, false);
+  const std::string state = str(data, "state");
+  if (state == "unlinked") {
+    out.link = Link::Unlinked;
+  } else if (state == "linked" && !str(data, "cloud_project_id").empty()) {
+    out.link = Link::Linked;
+    out.cloudProjectId = str(data, "cloud_project_id");
+  } else if (state == "linked_elsewhere") {
+    out.link = Link::LinkedElsewhere;
+  } else {
+    out.status = TransferStatus::Refused;
+    out.reason = "INVALID_RESPONSE";
+  }
+  return out;
+}
+
 LocalTransferClient::ReceiveCancel LocalTransferClient::cancelReceive(const std::string& setId) {
   const Answer answer = mutate("cloudTransfer.receive.cancel", json{{"set_id", setId}}.dump(), true);
   ReceiveCancel out;

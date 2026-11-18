@@ -522,6 +522,10 @@ private:
   void showServerSync();
   // The share dialog of the tab's cloud workflow, for its owner.
   void showShareDialog();
+  // The review sheet of Publish to Cloud and Synchronize for the active
+  // project (technical design WP2.8).
+  void showTransferDialog();
+  bool transferAvailable() const;
   void showRunTrace();
   void showGenerations();
   void showWorkers();

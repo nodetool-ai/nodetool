@@ -61,6 +61,11 @@ class TransferController : public QObject {
   // True for a project linked to a cloud project of this account: start()
   // synchronizes. False: start() publishes.
   Q_PROPERTY(bool linked READ linked WRITE setLinked NOTIFY projectChanged)
+  // True: start() first asks the app's server whether the project is
+  // linked to a cloud project of this account (cloudTransfer.link) and sets
+  // `linked` from the answer, so one menu entry publishes or synchronizes.
+  // A project linked to another server or account is not transferred.
+  Q_PROPERTY(bool readLink READ readLink WRITE setReadLink NOTIFY projectChanged)
   Q_PROPERTY(Stage stage READ stage NOTIFY stateChanged)
   // Each {index, section, kind, documentId, name, detail, text, choice,
   // confirmed, canKeepDeletion, canRestore, canSendWithout}, grouped by
@@ -113,6 +118,8 @@ public:
   void setProjectName(const QString& name);
   bool linked() const { return linked_; }
   void setLinked(bool linked);
+  bool readLink() const { return readLink_; }
+  void setReadLink(bool readLink);
   Stage stage() const { return stage_; }
   QVariantList rows() const;
   bool ready() const { return review_.ready(); }
@@ -183,6 +190,7 @@ private:
   QString projectId_;
   QString projectName_;
   bool linked_ = false;
+  bool readLink_ = false;
   quint64 sequence_ = 0;
   Stage stage_ = Stage::Idle;
   QString message_;

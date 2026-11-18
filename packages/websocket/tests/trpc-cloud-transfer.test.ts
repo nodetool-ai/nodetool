@@ -203,6 +203,26 @@ describe("cloudTransfer router", () => {
     expect(await apiCodeOf(caller.cloudTransfer.send.capture({ ...ACCOUNT, project_id: PROJECT }))).toBe("ALREADY_EXISTS");
   });
 
+  it("says whether a project is linked to this server and account", async () => {
+    const caller = createCaller(makeCtx(USER));
+    expect(await caller.cloudTransfer.link({ ...ACCOUNT, project_id: PROJECT })).toEqual({ state: "unlinked" });
+    const cloudProjectId = "d".repeat(32);
+    await createCloudLink({ userId: USER, projectId: PROJECT, serverKey: SERVER_KEY, accountId: "account-a", cloudProjectId });
+    expect(await caller.cloudTransfer.link({ ...ACCOUNT, project_id: PROJECT })).toEqual({
+      state: "linked",
+      cloud_project_id: cloudProjectId
+    });
+    expect(await caller.cloudTransfer.link({ ...ACCOUNT, account_id: "account-b", project_id: PROJECT })).toEqual({
+      state: "linked_elsewhere"
+    });
+    expect(await caller.cloudTransfer.link({ ...ACCOUNT, origin: "https://other.example", project_id: PROJECT })).toEqual({
+      state: "linked_elsewhere"
+    });
+    // Another local user's link is not this user's.
+    expect(await createCaller(makeCtx("2")).cloudTransfer.link({ ...ACCOUNT, project_id: PROJECT })).toEqual({ state: "unlinked" });
+    expect(cloud.tokens).toEqual([]);
+  });
+
   it("receives only into a project linked to this account", async () => {
     const caller = createCaller(makeCtx(USER));
     expect(await apiCodeOf(caller.cloudTransfer.receive.capture({ ...SESSION, project_id: PROJECT }))).toBe("NOT_FOUND");

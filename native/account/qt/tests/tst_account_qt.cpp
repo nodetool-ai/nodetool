@@ -1595,6 +1595,74 @@ private slots:
   // Publish: a send the cloud refuses for a document changed since the
   // sheet was read asks again. Cancel ends the captured send. Signed out,
   // nothing is sent.
+  // With readLink, the sheet asks the server whether the project is
+  // linked before it captures: a linked project synchronizes, an unlinked
+  // one publishes, and one linked to another account sends nothing.
+  void theSheetReadsTheLink() {
+    Computer computer;
+    computer.server.addCode("code-l", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-l");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    const auto captured = trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[)"
+                                   R"({"op":"replace_document","kind":"workflow","document_id":"c1"}],)"
+                                   R"("documents":[{"kind":"workflow","local_id":"l1","cloud_id":"c1","name":"Flow"}],)"
+                                   R"("missing_files":[],"skipped":[],"deleted_locally":[]})");
+    const auto run = [&](const std::string& link) {
+      auto server = std::make_unique<QueueServer>();
+      server->answer("cloudTransfer.link", trpcData(link));
+      server->answer("cloudTransfer.send.capture", captured);
+      server->answer("cloudTransfer.receive.capture", trpcData(R"({"set_id":"s1","documents":[]})"));
+      return server;
+    };
+
+    const auto linked = run(R"({"state":"linked","cloud_project_id":"c9"})");
+    {
+      TransferController transfer(std::make_unique<SharedTransport>(*linked));
+      transfer.setAccount(account.get());
+      transfer.setServerUrl(QUrl(kLocalServer));
+      transfer.setBundledServerUrl(QUrl(kLocalServer));
+      transfer.setProjectId(QString(32, 'p'));
+      transfer.setReadLink(true);
+      transfer.start();
+      QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+      QVERIFY(transfer.linked());
+      QCOMPARE(linked->calls(), (std::vector<std::string>{"cloudTransfer.link", "cloudTransfer.send.capture",
+                                                          "cloudTransfer.receive.capture"}));
+      QVERIFY(!nlohmann::json::parse(linked->body("cloudTransfer.link")).contains("access_token"));
+    }
+
+    const auto unlinked = run(R"({"state":"unlinked"})");
+    {
+      TransferController transfer(std::make_unique<SharedTransport>(*unlinked));
+      transfer.setAccount(account.get());
+      transfer.setServerUrl(QUrl(kLocalServer));
+      transfer.setBundledServerUrl(QUrl(kLocalServer));
+      transfer.setProjectId(QString(32, 'p'));
+      transfer.setLinked(true);
+      transfer.setReadLink(true);
+      transfer.start();
+      QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+      QVERIFY(!transfer.linked());
+      QCOMPARE(unlinked->calls(), (std::vector<std::string>{"cloudTransfer.link", "cloudTransfer.send.capture"}));
+    }
+
+    const auto elsewhere = run(R"({"state":"linked_elsewhere"})");
+    {
+      TransferController transfer(std::make_unique<SharedTransport>(*elsewhere));
+      transfer.setAccount(account.get());
+      transfer.setServerUrl(QUrl(kLocalServer));
+      transfer.setBundledServerUrl(QUrl(kLocalServer));
+      transfer.setProjectId(QString(32, 'p'));
+      transfer.setReadLink(true);
+      transfer.start();
+      QTRY_COMPARE(transfer.stage(), TransferController::Stage::Failed);
+      QVERIFY(transfer.message().contains("another cloud server or account"));
+      QCOMPARE(elsewhere->calls(), (std::vector<std::string>{"cloudTransfer.link"}));
+    }
+  }
+
   void publishAsksAgainAndCancels() {
     Computer computer;
     computer.server.addCode("code-p", "u1", "Ada");

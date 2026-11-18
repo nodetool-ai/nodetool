@@ -15,6 +15,7 @@
 #include <QFile>
 #include <QGraphicsView>
 #include <QJsonDocument>
+#include <QMenu>
 #include <QMessageBox>
 #include <QQuickWidget>
 #include <QQuickItem>
@@ -453,6 +454,39 @@ private slots:
     QTRY_COMPARE(server.openProjects.size(), 3);
     QCOMPARE(server.openProjects.last(), QString("p2"));
     QCOMPARE(window.session()->openProject(), QString("p2"));
+  }
+  // File > Publish to Cloud and Synchronize open the review sheet for a
+  // project on this launch's bundled server, and stay off for another server.
+  void transferEntriesFollowTheBundledServer() {
+    FakeRunServer server;
+    const QString project("fedcba9876543210fedcba9876543210");
+    server.workflow = QJsonObject{{"id", "0123456789abcdef0123456789abcdef"}, {"name", "Poster"}, {"updated_at", "r1"},
+                                  {"project_id", project}, {"graph", workflow("Poster")["graph"]}};
+    EditorWindow window;
+    window.resize(1200, 800);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    window.setBundledServer(server.url());
+    window.session()->connectToServer(server.url(), {});
+    QTRY_VERIFY(window.session()->connected());
+    window.openWorkflow(server.workflow["id"].toString());
+    QTRY_VERIFY(window.session()->serverBound());
+    auto *file = window.findChild<QMenu *>("application-menu-file");
+    QVERIFY(file);
+    const auto enabled = [file](const QString &label) {
+      emit file->aboutToShow();
+      bool result = false;
+      for (auto *item : file->actions()) {
+        if (item->text() == label) { result = item->isEnabled(); }
+      }
+      emit file->aboutToHide();
+      return result;
+    };
+    QVERIFY(enabled("Publish to Cloud…"));
+    QVERIFY(enabled("Synchronize…"));
+    window.setBundledServer(QUrl("http://127.0.0.1:1"));
+    QVERIFY(!enabled("Publish to Cloud…"));
+    QVERIFY(!enabled("Synchronize…"));
   }
   // A workflow file in a project folder (packages/project-services/src/
   // workflow-file.ts) has format, version and id beside the body, and no name:

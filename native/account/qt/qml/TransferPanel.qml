@@ -23,6 +23,9 @@ Rectangle {
     property string projectName: ""
     // A linked project synchronizes. Otherwise the sheet publishes it.
     property bool linked: false
+    // True: the sheet asks the server whether the project is linked when it
+    // starts, and publishes or synchronizes from the answer.
+    property bool readLink: false
     // The space inside the frame. A dialog that frames the panel sets 0.
     property real margin: Ui.Metrics.xl
     signal closeRequested()
@@ -42,6 +45,7 @@ Rectangle {
         projectId: root.projectId
         projectName: root.projectName
         linked: root.linked
+        readLink: root.readLink
     }
     readonly property int stage: root.controller.stage
     readonly property bool reviewing: stage === TransferController.Reviewing
@@ -87,7 +91,7 @@ Rectangle {
             Ui.BusyIndicator { running: parent.visible; Layout.alignment: Qt.AlignHCenter }
             Ui.Text {
                 text: root.stage === TransferController.Running
-                      ? (root.linked ? "Synchronizing. You can keep working." : "Publishing. You can keep working.")
+                      ? (root.controller.linked ? "Synchronizing. You can keep working." : "Publishing. You can keep working.")
                       : "Reading what changed."
                 tone: Ui.Text.Secondary
                 Layout.alignment: Qt.AlignHCenter
@@ -96,8 +100,8 @@ Rectangle {
         Ui.EmptyState {
             objectName: "transfer-up-to-date"
             visible: root.reviewing && root.controller.rows.length === 0
-            title: root.linked ? "Up to date" : "Nothing to publish"
-            message: root.linked ? "Nothing changed here or in the cloud since the last synchronization."
+            title: root.controller.linked ? "Up to date" : "Nothing to publish"
+            message: root.controller.linked ? "Nothing changed here or in the cloud since the last synchronization."
                                  : "This project has no documents to send yet."
             Layout.fillWidth: true
         }
@@ -213,7 +217,7 @@ Rectangle {
             Ui.EditorButton {
                 objectName: "transfer-apply"
                 visible: root.reviewing && root.controller.rows.length > 0
-                text: root.linked ? "Synchronize" : "Publish"
+                text: root.controller.linked ? "Synchronize" : "Publish"
                 variant: Ui.EditorButton.Primary
                 enabled: root.controller.ready
                 description: root.controller.ready ? "" : "Pick a version for each document changed on both sides, and confirm each missing file."
