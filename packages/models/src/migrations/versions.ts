@@ -586,6 +586,20 @@ const PROJECT_BLOBS_DDL: readonly string[] = [
 ];
 
 /**
+ * Counters that order access changes against the writes they authorize
+ * (docs/plans/native-cloud-sync/technical-design.md, "Order of access
+ * changes against writes"). Applied by the `add_access_epochs` migration.
+ */
+const ACCESS_EPOCHS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS access_epochs (
+    id TEXT PRIMARY KEY NOT NULL,
+    kind TEXT NOT NULL,
+    object_id TEXT NOT NULL,
+    epoch INTEGER NOT NULL DEFAULT 0
+  )`
+];
+
+/**
  * The local store of the native apps for cloud documents: unsent drafts and
  * the last known open state (docs/plans/native-cloud-sync/technical-design.md,
  * "Local data scoping and durable drafts"). Applied by the
@@ -663,7 +677,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...documentFileDdl("applications"),
   ...documentFileDdl("js_scripts"),
   ...DELETED_DOCUMENTS_DDL,
-  ...PROJECT_BLOBS_DDL
+  ...PROJECT_BLOBS_DDL,
+  ...ACCESS_EPOCHS_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5163,6 +5178,18 @@ export const migrations: MigrationDef[] = [
     // The rows name the only copies of committed files. A rollback leaves
     // them: an older server never reads them.
     async down() {}
+  },
+  {
+    version: "20261130_000002",
+    name: "add_access_epochs",
+    createsTables: ["access_epochs"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of ACCESS_EPOCHS_DDL) await db.execute(statement);
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS access_epochs");
+    }
   }
 ];
 

@@ -38,6 +38,7 @@ import {
   registerDeletedDocumentKind,
   type DependentTable
 } from "./deleted-document.js";
+import { changingAccess } from "./access-epoch.js";
 
 export type AccessLevel = "private" | "public";
 export type { WorkflowRunMode };
@@ -560,35 +561,37 @@ export class Workflow extends DBModel {
     id: string,
     options: { deletedWithProject?: string } = {}
   ): Promise<boolean> {
-    const wf = await Workflow.get<Workflow>(id);
-    if (!wf || wf.user_id !== userId) return false;
-    // `id` may be a 12-character prefix; the rows below key on the full id.
-    // The row, its versions, grants and references go in one transaction,
-    // with the copy kept for a restore (PRD D4).
-    await eraseRunTraceParentForModelDeletion({ kind: "workflow", id: wf.id });
-    const deleted = await deleteDocumentKeeping({
-      kind: "workflow",
-      userId,
-      table: workflows,
-      where: and(eq(workflows.id, wf.id), eq(workflows.user_id, userId)) as SQL,
-      dependents: workflowDependents(wf.id),
-      grants: "workflow_collaborators",
-      deletedWithProject: options.deletedWithProject,
-      describe: (row) => ({
-        documentId: String(row["id"]),
-        projectId: (row["project_id"] as string | null) ?? null,
-        name: String(row["name"])
-      })
+    return changingAccess([{ kind: "workflow", id }], async () => {
+      const wf = await Workflow.get<Workflow>(id);
+      if (!wf || wf.user_id !== userId) return false;
+      // `id` may be a 12-character prefix; the rows below key on the full id.
+      // The row, its versions, grants and references go in one transaction,
+      // with the copy kept for a restore (PRD D4).
+      await eraseRunTraceParentForModelDeletion({ kind: "workflow", id: wf.id });
+      const deleted = await deleteDocumentKeeping({
+        kind: "workflow",
+        userId,
+        table: workflows,
+        where: and(eq(workflows.id, wf.id), eq(workflows.user_id, userId)) as SQL,
+        dependents: workflowDependents(wf.id),
+        grants: "workflow_collaborators",
+        deletedWithProject: options.deletedWithProject,
+        describe: (row) => ({
+          documentId: String(row["id"]),
+          projectId: (row["project_id"] as string | null) ?? null,
+          name: String(row["name"])
+        })
+      });
+      if (!deleted) return false;
+      const gone = new Workflow(deleted.row);
+      ModelObserver.notify(gone, ModelChangeEvent.DELETED, { sharedWith: deleted.sharedWith });
+      await eraseRunTraceParentForModelDeletion({ kind: "workflow", id: gone.id });
+      await workflowFileSync?.deleted(gone);
+      // No foreign key ties registrations to the workflow, so a deleted
+      // workflow's webhook kept accepting events and its file watch kept firing.
+      await TriggerRegistration.deleteByWorkflow(wf.id);
+      return true;
     });
-    if (!deleted) return false;
-    const gone = new Workflow(deleted.row);
-    ModelObserver.notify(gone, ModelChangeEvent.DELETED, { sharedWith: deleted.sharedWith });
-    await eraseRunTraceParentForModelDeletion({ kind: "workflow", id: gone.id });
-    await workflowFileSync?.deleted(gone);
-    // No foreign key ties registrations to the workflow, so a deleted
-    // workflow's webhook kept accepting events and its file watch kept firing.
-    await TriggerRegistration.deleteByWorkflow(wf.id);
-    return true;
   }
 
   static async paginate(

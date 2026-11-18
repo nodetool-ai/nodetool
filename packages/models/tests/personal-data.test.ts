@@ -555,6 +555,7 @@ describe("exportPersonalData", () => {
     const dump = await exportPersonalData(SUBJECT);
     const excluded = dump.excluded.map((row) => row.table).sort();
     expect(excluded).toEqual([
+      "access_epochs",
       "mcp_oauth_clients",
       "mcp_oauth_tokens",
       "nodetool_analytics_daily",

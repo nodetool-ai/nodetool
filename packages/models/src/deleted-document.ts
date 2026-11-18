@@ -17,6 +17,7 @@
 import { and, asc, desc, eq, gt, isNull, like, lte, or, type SQL } from "drizzle-orm";
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import { createLogger } from "@nodetool-ai/config";
+import { changingAccess } from "./access-epoch.js";
 import { createTimeOrderedUuid } from "./base-model.js";
 import {
   allowLegacyProjectWritesForTests,
@@ -578,7 +579,9 @@ export async function restoreDeletedDocument(
   if (!handler || !found) return { outcome: "not_found" };
   let payload: DeletedDocumentPayload | null;
   try {
-    payload = await runDocumentTransaction(function* (tx) {
+    // A restore changes who can reach the document, so it orders itself
+    // against writes as every change of access does.
+    payload = await changingAccess([{ kind, id: documentId }], () => runDocumentTransaction(function* (tx) {
       const [row] = yield lockedRows(
         tx
           .select()
@@ -596,7 +599,7 @@ export async function restoreDeletedDocument(
       yield* handler.restore(tx, kept);
       yield runOf(tx.delete(deletedDocuments).where(eq(deletedDocuments.id, entry.id)));
       return kept;
-    });
+    }));
   } catch (error) {
     if (error instanceof RestoreRefused) return { outcome: "failed", reason: error.message };
     return { outcome: "failed", reason: `A ${kind} with this id exists, or its rows could not be written` };
