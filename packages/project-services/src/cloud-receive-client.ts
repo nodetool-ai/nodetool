@@ -497,6 +497,10 @@ async function commit(
   dir: string,
   hold: FolderLockHold
 ): Promise<boolean> {
+  // A cancel claims a receive under this folder lock by deleting its row and
+  // staged files, so a commit after it finds the row gone (review F45).
+  const live = await getCloudReceive(row.id);
+  if (!live || live.state !== "installed") throw new ReceiveCancelledError(row.id);
   await reconcileInBackground(link.project_id, link.user_id, { under: hold });
   const payloads = new Map<PlannedDocument, TransferPayloadContent>();
   for (const document of toWrite(plan)) {
@@ -609,6 +613,14 @@ async function commit(
       return true;
     })
   );
+}
+
+/** The person cancelled the receive before it applied. Nothing was written. */
+export class ReceiveCancelledError extends Error {
+  constructor(setId: string) {
+    super(`The receive ${setId} was cancelled`);
+    this.name = "ReceiveCancelledError";
+  }
 }
 
 /** A free path beside `path` for received bytes whose target holds other content. */
@@ -826,9 +838,10 @@ const RECAPTURE_LIMIT = 3;
  * with a receive of a new set (Y7, AC74, review F32). Staged files the new
  * set also names move to its staging folder after their hash is checked
  * again, so they are not downloaded twice. A document keeps the person's
- * decision when the new set shows it with the same status. When any
- * document's status differs, or the set has documents the person did not
- * see, the new receive waits for review. Nothing local was written.
+ * decision only when the new set shows the revisions the person reviewed:
+ * the same status, cloud hash, local hash and base (review F44). When any
+ * document differs, or the set has documents the person did not see, the
+ * new receive waits for review. Nothing local was written.
  */
 async function recapture(
   transport: ReceiveTransport,
@@ -845,7 +858,13 @@ async function recapture(
   let reviewed = plan.decided && nextPlan.documents.length === plan.documents.length;
   for (const document of nextPlan.documents) {
     const before = plan.documents.find((entry) => entry.kind === document.kind && entry.cloudId === document.cloudId);
-    if (before && before.status === document.status) {
+    if (
+      before &&
+      before.status === document.status &&
+      before.contentHash === document.contentHash &&
+      before.localHash === document.localHash &&
+      before.baseHash === document.baseHash
+    ) {
       document.decision = before.decision;
     } else {
       reviewed = false;
@@ -881,8 +900,21 @@ export async function cancelReceive(transport: ReceiveTransport, setId: string):
   if (row.state === "applied") return "applied";
   const link = await getCloudLinkById(row.link_id);
   const folder = link ? await requireProjectFolder(link.project_id, link.user_id).catch(() => null) : null;
-  if (folder) {
-    await finish(transport, row, stagingDir(folder.workspace, setId));
+  if (link && folder) {
+    // The commit and the placing run under the folder lock. Under it the
+    // cancel either finds the receive applied and leaves its staged files to
+    // the placing, or claims it by deleting the row, which a commit that
+    // runs later finds gone (review F45).
+    const claimed = await withProjectFolderLock(link.user_id, link.project_id, async () => {
+      const current = await getCloudReceive(setId);
+      if (!current) return "gone" as const;
+      if (current.state === "applied") return "applied" as const;
+      await deleteCloudReceive(setId);
+      await rm(stagingDir(folder.workspace, setId), { recursive: true, force: true });
+      return "claimed" as const;
+    });
+    if (claimed === "applied") return "applied";
+    if (claimed === "claimed") await transport.release({ set_id: setId }).catch(() => undefined);
   } else {
     await transport.release({ set_id: setId }).catch(() => undefined);
     await deleteCloudReceive(setId);
