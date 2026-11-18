@@ -469,6 +469,24 @@ void aRecaptureOnlyLeavesOutWhatWasReviewed(TestContext& t) {
   CHECK(!unreviewed.empty() && unreviewed[0].documentId == "n1");
 }
 
+// A file put over its earlier version is a send row of its own, and a
+// recapture's new or changed file puts are not what the sheet showed
+// (review F33).
+void fileOnlyChangesAreSendWork(TestContext& t) {
+  SendCapture send;
+  send.fileOperations = {{"put_asset_file", "a1", "media/still.png", "h2", "h1"},
+                         {"put_asset_file", "a2", "media/new.png", "h3", ""}};
+  TransferReview review(send, {});
+  CHECK(countOf(review, ReviewSection::Send) == 1);
+  if (!review.rows().empty()) {
+    CHECK(review.rows()[0].documentId == "a1");
+    CHECK(review.rows()[0].detail == "put_asset_file");
+  }
+  CHECK(unreviewedFileOperations(send.fileOperations, {send.fileOperations[0]}).empty());
+  const auto changed = unreviewedFileOperations(send.fileOperations, {{"put_asset_file", "a1", "media/still.png", "h4", "h1"}});
+  CHECK(changed.size() == 1);
+}
+
 int main() {
   return account_test::runTests({
       {"callsTheLocalRouterForTheAccount", callsTheLocalRouterForTheAccount},
@@ -482,5 +500,6 @@ int main() {
       {"sendRowsNameTheirDocument", sendRowsNameTheirDocument},
       {"sendsNothingToAServerOffThisComputer", sendsNothingToAServerOffThisComputer},
       {"aRecaptureOnlyLeavesOutWhatWasReviewed", aRecaptureOnlyLeavesOutWhatWasReviewed},
+      {"fileOnlyChangesAreSendWork", fileOnlyChangesAreSendWork},
   });
 }

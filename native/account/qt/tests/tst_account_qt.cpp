@@ -1592,6 +1592,47 @@ private slots:
     QCOMPARE(server.calls().size(), before);
   }
 
+  // A media file changed in place while its workflow stayed the same is
+  // work to send: the sheet shows it and Synchronize sends it (review F33).
+  void synchronizeSendsAFileOnlyChange() {
+    Computer computer;
+    computer.server.addCode("code-f", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-f");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    const std::string before(64, 'b');
+    const std::string after(64, 'a');
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[],)"
+                           R"("file_operations":[{"op":"put_asset_file","asset_id":"a1","path":"media/still.png",)"
+                           R"("hash":")" + after + R"(","size":4,"base_hash":")" + before +
+                           R"(","name":"still.png","content_type":"image/png"}],"documents":[],)"
+                           R"("missing_files":[],"missing_document_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.receive.capture", trpcData(R"({"set_id":"s1","documents":[]})"));
+    server.answer("cloudTransfer.receive.run",
+                  trpcData(R"({"status":"finished","set_id":"s1","result":{"received":[],)"
+                           R"("changed_during_receive":[],"not_received":[],"kept_beside":[],"missing_files":[],)"
+                           R"("file_kept":[]}})"));
+    server.answer("cloudTransfer.send.run", trpcData(R"({"status":"committed","transfer_id":"t1","result":{}})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setLinked(true);
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QCOMPARE(transfer.rows().size(), 1);
+    QCOMPARE(transfer.rows().at(0).toMap().value("section").toString(), QString("send"));
+    QCOMPARE(transfer.rows().at(0).toMap().value("name").toString(), QString("media/still.png"));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
+    QCOMPARE(server.calls().back(), std::string("cloudTransfer.send.run"));
+    QVERIFY(transfer.result().value("sent").toBool());
+  }
+
   // Closing the sheet while a long request runs returns at once: the
   // controller cancels the request before it joins its task thread, instead
   // of waiting out the request's deadline (review F42).

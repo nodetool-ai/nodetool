@@ -172,9 +172,11 @@ private:
   // The send operations the sheet shows. A send captured again after the
   // receive runs only when it holds nothing else.
   std::vector<TransferOperation> approved_;
+  std::vector<TransferFileOperation> approvedFiles_;
   std::string transferId_;
   std::string setId_;
-  // The send half has operations. A confirmed deletion also makes a send.
+  // The send half has document or file operations. A confirmed deletion
+  // also makes a send.
   bool sendWork_ = false;
   // The receive of this sheet ran, so a second apply after a refusal only
   // sends.

@@ -77,6 +77,9 @@ QString transferRowText(const ReviewRow& row) {
     if (d == "add_versions") {
       return TransferController::tr("Saved versions will be sent");
     }
+    if (d == "put_asset_file") {
+      return TransferController::tr("File changed here, will be sent");
+    }
     break;
   case ReviewSection::Receive:
     if (d == "new") {
@@ -145,6 +148,7 @@ struct TransferController::Applied {
   std::optional<SendCapture> recaptured;
   // Operations of the recapture the sheet did not show. Nothing was sent.
   std::vector<TransferOperation> unreviewed;
+  std::vector<TransferFileOperation> unreviewedFiles;
   std::optional<SendRun> send;
 };
 
@@ -353,9 +357,10 @@ void TransferController::finishCapture(quint64 sequence, const Captured& capture
     return;
   }
   setId_ = captured.receive.setId;
-  sendWork_ = !captured.send.operations.empty();
+  sendWork_ = !captured.send.operations.empty() || !captured.send.fileOperations.empty();
   review_ = TransferReview(captured.send, captured.receive);
   approved_ = captured.send.operations;
+  approvedFiles_ = captured.send.fileOperations;
   stage_ = Stage::Reviewing;
   message_.clear();
   emit rowsChanged();
@@ -409,7 +414,7 @@ void TransferController::apply() {
   tasks_->post([state = shared_, cancel = std::shared_ptr<const RequestCancel>(cancel_), current, origin = origin(), headers = headers(), review = review_, transferId = transferId_,
                 setId = received_ ? std::string() : setId_,
                 sendWork = sendWork_ || !linked_ || !review_.confirmedDeletes().empty(),
-                approved = approved_, projectId = projectId_.toStdString(), name = projectName_.toStdString(),
+                approved = approved_, approvedFiles = approvedFiles_, projectId = projectId_.toStdString(), name = projectName_.toStdString(),
                 sequence]() mutable {
     LocalTransferClient client(*state->transport, origin, headers, *current, cancel);
     Applied applied;
@@ -438,11 +443,13 @@ void TransferController::apply() {
         // created or edited here while it was open, or a base another
         // synchronization moved. That goes back to the person first.
         applied.unreviewed = unreviewedOperations(approved, applied.recaptured->operations);
-        if (!applied.unreviewed.empty()) {
+        applied.unreviewedFiles = unreviewedFileOperations(approvedFiles, applied.recaptured->fileOperations);
+        if (!applied.unreviewed.empty() || !applied.unreviewedFiles.empty()) {
           report();
           return;
         }
-        sendWork = !applied.recaptured->operations.empty() || !review.confirmedDeletes().empty();
+        sendWork = !applied.recaptured->operations.empty() || !applied.recaptured->fileOperations.empty() ||
+                   !review.confirmedDeletes().empty();
       }
     }
     if (sendWork) {
@@ -501,11 +508,12 @@ void TransferController::finishApply(quint64 sequence, const Applied& applied) {
       return;
     }
     transferId_ = again.transferId;
-    sendWork_ = !again.operations.empty();
-    if (!applied.unreviewed.empty()) {
+    sendWork_ = !again.operations.empty() || !again.fileOperations.empty();
+    if (!applied.unreviewed.empty() || !applied.unreviewedFiles.empty()) {
       // The receive is done. The send shows again with what changed here.
       review_ = TransferReview(again, ReceiveCapture{TransferStatus::Ok, {}, {}, {}});
       approved_ = again.operations;
+      approvedFiles_ = again.fileOperations;
       result_ = receivedResult_;
       stage_ = Stage::Reviewing;
       message_ = tr("This project changed while the sheet was open. Check what will be sent.");

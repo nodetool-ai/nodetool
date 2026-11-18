@@ -100,6 +100,21 @@ std::vector<TransferOperation> unreviewedOperations(const std::vector<TransferOp
   return out;
 }
 
+std::vector<TransferFileOperation> unreviewedFileOperations(const std::vector<TransferFileOperation>& approved,
+                                                            const std::vector<TransferFileOperation>& recaptured) {
+  const auto same = [](const TransferFileOperation& a, const TransferFileOperation& b) {
+    return a.op == b.op && a.assetId == b.assetId && a.path == b.path && a.hash == b.hash && a.baseHash == b.baseHash;
+  };
+  std::vector<TransferFileOperation> out;
+  for (const TransferFileOperation& op : recaptured) {
+    if (std::none_of(approved.begin(), approved.end(),
+                     [&](const TransferFileOperation& seen) { return same(seen, op); })) {
+      out.push_back(op);
+    }
+  }
+  return out;
+}
+
 std::string receiveStateName(ReceiveState state) {
   switch (state) {
   case ReceiveState::New:
@@ -245,6 +260,10 @@ SendCapture LocalTransferClient::captureSend(const std::string& projectId, const
   for (const json& op : data.value("operations", json::array())) {
     out.operations.push_back({str(op, "op"), str(op, "kind"), str(op, "document_id"), str(op, "name"),
                               str(op, "captured_hash"), str(op, "base_hash")});
+  }
+  for (const json& op : data.value("file_operations", json::array())) {
+    out.fileOperations.push_back(
+        {str(op, "op"), str(op, "asset_id"), str(op, "path"), str(op, "hash"), str(op, "base_hash")});
   }
   for (const json& item : data.value("documents", json::array())) {
     out.documents.push_back({str(item, "kind"), str(item, "local_id"), str(item, "cloud_id"), str(item, "name")});
@@ -466,6 +485,20 @@ TransferReview::TransferReview(const SendCapture& send, const ReceiveCapture& re
     if (!op.name.empty()) {
       row.name = op.name;
     }
+    row.detail = op.op;
+    rows_.push_back(std::move(row));
+  }
+  // A file sent over its earlier version gets a row, also when no document
+  // that uses it changed (review F33). A new file goes with its new document.
+  for (const TransferFileOperation& op : send.fileOperations) {
+    if (op.baseHash.empty()) {
+      continue;
+    }
+    ReviewRow row;
+    row.section = ReviewSection::Send;
+    row.kind = "file";
+    row.documentId = op.assetId;
+    row.name = op.path;
     row.detail = op.op;
     rows_.push_back(std::move(row));
   }

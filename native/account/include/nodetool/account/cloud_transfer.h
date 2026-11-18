@@ -57,6 +57,21 @@ struct TransferOperation {
 std::vector<TransferOperation> unreviewedOperations(const std::vector<TransferOperation>& approved,
                                                     const std::vector<TransferOperation>& recaptured);
 
+// A file the send puts, also for a document it leaves unchanged (review
+// F33).
+struct TransferFileOperation {
+  // `put_asset_file` or another file operation the server names.
+  std::string op;
+  std::string assetId;
+  std::string path;
+  std::string hash;
+  std::string baseHash;
+};
+
+// The file operations of `recaptured` that are not in `approved`.
+std::vector<TransferFileOperation> unreviewedFileOperations(const std::vector<TransferFileOperation>& approved,
+                                                            const std::vector<TransferFileOperation>& recaptured);
+
 // A document the send captured, so the sheet can name an operation's
 // document.
 struct TransferDocument {
@@ -102,6 +117,8 @@ struct SendCapture {
   std::string transferId;
   bool firstPublication = false;
   std::vector<TransferOperation> operations;
+  // Files the send puts. A send with only file operations still has work.
+  std::vector<TransferFileOperation> fileOperations;
   std::vector<TransferDocument> documents;
   std::vector<TransferMissingFile> missingFiles;
   std::vector<TransferSkipped> skipped;
