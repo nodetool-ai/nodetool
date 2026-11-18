@@ -14,35 +14,14 @@ import {
 
 // Self-hosted from @fontsource so `next build` makes no network request:
 // `next/font/google` fetched the CSS and font files from Google on every
-// build, and a failed fetch failed the build.
+// build, and a failed fetch failed the build. One variable file covers
+// weights 300 to 700. The five static files it replaced were all preloaded
+// (120 KB), which on a slow phone connection delayed the hero image that is
+// the LCP element on most pages.
 const inter = localFont({
-  src: [
-    {
-      path: "../../node_modules/@fontsource/inter/files/inter-latin-300-normal.woff2",
-      weight: "300",
-      style: "normal",
-    },
-    {
-      path: "../../node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2",
-      weight: "400",
-      style: "normal",
-    },
-    {
-      path: "../../node_modules/@fontsource/inter/files/inter-latin-500-normal.woff2",
-      weight: "500",
-      style: "normal",
-    },
-    {
-      path: "../../node_modules/@fontsource/inter/files/inter-latin-600-normal.woff2",
-      weight: "600",
-      style: "normal",
-    },
-    {
-      path: "../../node_modules/@fontsource/inter/files/inter-latin-700-normal.woff2",
-      weight: "700",
-      style: "normal",
-    },
-  ],
+  src: "../../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2",
+  weight: "300 700",
+  style: "normal",
   variable: "--font-inter",
 });
 const jetBrainsMono = localFont({
