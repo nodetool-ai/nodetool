@@ -24,6 +24,7 @@ import { TimelineSequence } from "./timeline-sequence.js";
 import { Storyboard } from "./storyboard.js";
 import { Application } from "./application.js";
 import { JsScript } from "./js-script.js";
+import { ImageDocument } from "./image-document.js";
 import { Script } from "./script.js";
 import type { ProjectDocumentType } from "./project-summary.js";
 import { changingAccess } from "./access-epoch.js";
@@ -235,7 +236,8 @@ export async function reassignProjectDocuments(
       [storyboards, Storyboard],
       [scripts, Script],
       [applications, Application],
-      [jsScripts, JsScript]
+      [jsScripts, JsScript],
+      [imageDocuments, ImageDocument]
     ] as const;
     for (const [table, model] of fileKinds) {
       const owned = await db
@@ -279,8 +281,6 @@ export async function moveDocumentToProject(
   projectId: string
 ): Promise<boolean> {
   return changingAccess([{ kind: type, id: documentId }], async () => {
-    const db = getPortableDb();
-    const fields = { project_id: projectId };
     switch (type) {
       case "entity": {
         // An entity is its asset. Only the assets carrying the marker are
@@ -305,17 +305,8 @@ export async function moveDocumentToProject(
         return TimelineSequence.moveToProject(userId, documentId, projectId);
       }
       case "sketch": {
-        const rows = await db
-          .update(imageDocuments)
-          .set(fields)
-          .where(
-            and(
-              eq(imageDocuments.id, documentId),
-              eq(imageDocuments.user_id, userId)
-            )
-          )
-          .returning({ id: imageDocuments.id });
-        return rows.length > 0;
+        // A sketch is a file in its project's folder, which moves with it.
+        return ImageDocument.moveToProject(userId, documentId, projectId);
       }
       case "application": {
         // An app is a file in its project's folder, which moves with it.

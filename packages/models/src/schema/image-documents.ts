@@ -19,6 +19,15 @@ export const imageDocuments = sqliteTable(
      * concurrency for interactive editing widgets.
      */
     revision: integer("revision").notNull().default(0),
+    // Path of the sketch's file, relative to the folder of the project in
+    // `project_id`: `Sketches/<name>.sketch.json`. Its layer images are in
+    // the sibling folder `<name>.sketch/`. Null until the file is first written.
+    file_path: text("file_path"),
+    // SHA-256 of the file and its layer images as NodeTool last wrote or
+    // imported them, in hex.
+    file_hash: text("file_hash"),
+    // What the last reconcile found wrong with the file, or null.
+    file_error: text("file_error"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },
