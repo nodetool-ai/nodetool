@@ -14,7 +14,9 @@ import {
   ModelChangeEvent,
   Workflow,
   WorkflowVersion,
-  WorkflowCollaborator
+  WorkflowCollaborator,
+  DocumentCollaborator,
+  TimelineSequence
 } from "@nodetool-ai/models";
 
 class MockWebSocket implements WebSocketConnection {
@@ -1109,6 +1111,35 @@ describe("shared workflow change delivery", () => {
         expect.objectContaining({ resource_type: "workflowversion" })
       )
     );
+  });
+
+  // The delete removes the grants in its transaction, so the change itself
+  // names the people the timeline was shared with.
+  it("delivers an owner's timeline delete to its collaborators with a cold cache", async () => {
+    const timeline = await TimelineSequence.create<TimelineSequence>({
+      user_id: "owner",
+      project_id: "default",
+      name: "Cut"
+    });
+    await DocumentCollaborator.upsert({
+      documentType: "timeline",
+      documentId: timeline.id,
+      userId: "editor",
+      role: "editor",
+      invitedBy: "owner"
+    });
+    const editor = await connect("editor");
+    expect(await TimelineSequence.deleteOwned("owner", timeline.id)).toBe(true);
+    await vi.waitFor(() =>
+      expect(decodeAll(editor)).toContainEqual(
+        expect.objectContaining({
+          resource_type: "timelinesequence",
+          event: "deleted",
+          resource: expect.objectContaining({ id: timeline.id })
+        })
+      )
+    );
+    expect(decodeAll(editor).some((m) => "shared_with" in m)).toBe(false);
   });
 
   it("delivers an owner's delete with a cold cache before grants are removed", async () => {

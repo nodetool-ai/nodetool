@@ -21,6 +21,7 @@ import type {
   DocumentFileLocation,
   DocumentFileSync
 } from "./document-file-sync.js";
+import { changingAccess } from "./access-epoch.js";
 
 /**
  * The persisted storyboard payload: everything the web board carries except
@@ -275,11 +276,13 @@ export class Storyboard extends DBModel {
    * Missing and not-yours are the same answer, so a caller cannot probe ids.
    */
   static async deleteOwned(userId: string, id: string): Promise<boolean> {
-    const row = await Storyboard.findById(id);
-    if (!row || row.user_id !== userId) return false;
-    await row.delete();
-    await removeDocumentSharing("storyboard", row.id);
-    return true;
+    return changingAccess([{ kind: "storyboard", id }], async () => {
+      const row = await Storyboard.findById(id);
+      if (!row || row.user_id !== userId) return false;
+      await row.delete();
+      await removeDocumentSharing("storyboard", row.id);
+      return true;
+    });
   }
 
   static async findById(id: string): Promise<Storyboard | null> {

@@ -41,7 +41,7 @@ import {
 } from "@nodetool-ai/asset-services/project-asset-file";
 import { ProjectAssetStorageAdapter } from "@nodetool-ai/asset-services/project-asset-storage";
 import { getAssetAdapter } from "@nodetool-ai/asset-services/storage";
-import { ProjectHashJob } from "../src/project-hash-job.js";
+import { ProjectHashJob, captureContentHash } from "../src/project-hash-job.js";
 import {
   ensureAssetForPath,
   flushProjectReconciles,
@@ -903,6 +903,45 @@ describe.each(["local", "storage"] as const)(
 
       expect((await reload(first)).content_hash).toBe(sha256(red));
       expect((await reload(second)).content_hash).toBe(sha256(blue));
+    });
+
+    it("capture uses a stored hash only while the file is unchanged (WP2.1)", async () => {
+      const asset = await saveImage("fox");
+      const workspace = folder(kind);
+
+      // No stored hash yet: the file is read and the hash recorded.
+      expect(await captureContentHash(workspace, asset)).toEqual({ hash: sha256(red), recorded: true });
+      const hashed = await reload(asset);
+      expect(hashed.content_hash).toBe(sha256(red));
+
+      // Changed in place under the same id: the stored hash is not used.
+      await workspace.write("Generated/fox.png", blue);
+      expect(await captureContentHash(workspace, hashed)).toEqual({ hash: sha256(blue), recorded: false });
+      expect((await reload(asset)).content_hash).toBe(sha256(red));
+
+      // After the reconcile records the file, capture stores the new hash.
+      await reconcileProjectIndex(PROJECT, USER);
+      expect(await captureContentHash(workspace, await reload(asset))).toEqual({
+        hash: sha256(blue),
+        recorded: true
+      });
+      expect((await reload(asset)).content_hash).toBe(sha256(blue));
+    });
+
+    it("capture with force reads the file even when a hash is stored", async () => {
+      const asset = await saveImage("fox");
+      const workspace = folder(kind);
+      await captureContentHash(workspace, asset);
+      const stale = await reload(asset);
+      // A wrong stored hash, as a HASH_MISMATCH from the server reveals.
+      await stale.recordContentHash("0".repeat(64), stale.metadata);
+      const wrong = await reload(asset);
+      expect((await captureContentHash(workspace, wrong)).hash).toBe("0".repeat(64));
+      expect(await captureContentHash(workspace, wrong, { force: true })).toEqual({
+        hash: sha256(red),
+        recorded: true
+      });
+      expect((await reload(asset)).content_hash).toBe(sha256(red));
     });
 
     it("storing a hash changes nothing else on the row and announces no change", async () => {

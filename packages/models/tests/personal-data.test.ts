@@ -555,6 +555,15 @@ describe("exportPersonalData", () => {
     const dump = await exportPersonalData(SUBJECT);
     const excluded = dump.excluded.map((row) => row.table).sort();
     expect(excluded).toEqual([
+      "access_epochs",
+      "cloud_link_documents",
+      "cloud_link_files",
+      "cloud_links",
+      "cloud_receives",
+      "cloud_sends",
+      "cloud_transfer_attempts",
+      "cloud_transfers",
+      "document_activity",
       "mcp_oauth_clients",
       "mcp_oauth_tokens",
       "nodetool_analytics_daily",
@@ -568,8 +577,15 @@ describe("exportPersonalData", () => {
       "nodetool_generation_webhook_deliveries",
       "nodetool_team_tasks",
       "oauth_pending_entries",
+      "project_blobs",
+      "recovery_copies",
       "resource_change_outbox",
+      "revision_set_entries",
+      "revision_set_files",
+      "revision_sets",
       "run_inbox_messages",
+      "transfer_placements",
+      "transferred_conversations",
       "worker_instances",
       "worker_profiles"
     ]);

@@ -21,6 +21,7 @@ import {
   type ShareOptions,
   type WorkflowShare
 } from "./workflow-share.js";
+import { changingAccess } from "./access-epoch.js";
 
 export type CollaboratorRole = "viewer" | "editor";
 
@@ -170,20 +171,22 @@ export class WorkflowCollaborator extends DBModel {
     invitedBy: string;
     options?: Partial<ShareOptions>;
   }): Promise<WorkflowCollaborator> {
-    const grant =
-      (await WorkflowCollaborator.findInvitation(
-        opts.workflowId,
-        opts.userId
-      )) ??
-      new WorkflowCollaborator({
-        workflow_id: opts.workflowId,
-        user_id: opts.userId,
-        invited_by: opts.invitedBy
-      });
-    grant.role = opts.role;
-    applyShareOptions(grant, opts.options);
-    await grant.save();
-    return grant;
+    return changingAccess([{ kind: "workflow", id: opts.workflowId }], async () => {
+      const grant =
+        (await WorkflowCollaborator.findInvitation(
+          opts.workflowId,
+          opts.userId
+        )) ??
+        new WorkflowCollaborator({
+          workflow_id: opts.workflowId,
+          user_id: opts.userId,
+          invited_by: opts.invitedBy
+        });
+      grant.role = opts.role;
+      applyShareOptions(grant, opts.options);
+      await grant.save();
+      return grant;
+    });
   }
 
   /**
@@ -215,29 +218,35 @@ export class WorkflowCollaborator extends DBModel {
     userId: string,
     role: CollaboratorRole
   ): Promise<WorkflowCollaborator[]> {
-    const grants = await WorkflowCollaborator.listFor(workflowId, userId);
-    for (const grant of grants) {
-      if (grant.role !== role) {
-        grant.role = role;
-        await grant.save();
+    return changingAccess([{ kind: "workflow", id: workflowId }], async () => {
+      const grants = await WorkflowCollaborator.listFor(workflowId, userId);
+      for (const grant of grants) {
+        if (grant.role !== role) {
+          grant.role = role;
+          await grant.save();
+        }
       }
-    }
-    return grants;
+      return grants;
+    });
   }
 
   /** Remove every grant a user holds. Returns true if a row was deleted. */
   static async remove(workflowId: string, userId: string): Promise<boolean> {
-    const grants = await WorkflowCollaborator.listFor(workflowId, userId);
-    for (const grant of grants) await grant.delete();
-    return grants.length > 0;
+    return changingAccess([{ kind: "workflow", id: workflowId }], async () => {
+      const grants = await WorkflowCollaborator.listFor(workflowId, userId);
+      for (const grant of grants) await grant.delete();
+      return grants.length > 0;
+    });
   }
 
   /** Delete every grant on a workflow (used when the workflow is deleted). */
   static async removeAllForWorkflow(workflowId: string): Promise<void> {
-    const db = getPortableDb();
-    await db
-      .delete(workflowCollaborators)
-      .where(eq(workflowCollaborators.workflow_id, workflowId));
+    return changingAccess([{ kind: "workflow", id: workflowId }], async () => {
+      const db = getPortableDb();
+      await db
+        .delete(workflowCollaborators)
+        .where(eq(workflowCollaborators.workflow_id, workflowId));
+    });
   }
 
   /** Filter `workflowIds` down to those the user has a grant on. */

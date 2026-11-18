@@ -86,6 +86,13 @@ import {
   oauthPendingEntries
 } from "./schema/mcp-oauth.js";
 import { cloudDrafts, cloudOpenState } from "./schema/cloud-local.js";
+import { deletedDocuments } from "./schema/deleted-documents.js";
+import { projectBlobs } from "./schema/project-blobs.js";
+import { recoveryCopies, transferPlacements, transferredConversations } from "./schema/transfer-files.js";
+import { documentActivity } from "./schema/document-activity.js";
+import { revisionSetEntries, revisionSetFiles, revisionSets } from "./schema/revision-sets.js";
+import { cloudLinkDocuments, cloudLinkFiles, cloudLinks, cloudReceives, cloudSends } from "./schema/cloud-links.js";
+import { cloudTransferAttempts, cloudTransfers } from "./schema/cloud-transfers.js";
 import { memories } from "./schema/memories.js";
 import { messages } from "./schema/messages.js";
 import { oauthCredentials } from "./schema/oauth-credentials.js";
@@ -541,6 +548,22 @@ export const ERASURE_STEPS: readonly ErasureStep[] = [
   directStep("nodetool_threads", threads, threads.user_id),
   directStep("nodetool_memories", memories, memories.user_id),
   directStep("cloud_drafts", cloudDrafts, cloudDrafts.user_id),
+  directStep("nodetool_deleted_documents", deletedDocuments, deletedDocuments.user_id),
+  directStep("transfer_placements", transferPlacements, transferPlacements.user_id),
+  directStep("recovery_copies", recoveryCopies, recoveryCopies.user_id),
+  directStep("transferred_conversations", transferredConversations, transferredConversations.user_id),
+  directStep("document_activity", documentActivity, documentActivity.user_id),
+  directStep("revision_set_files", revisionSetFiles, revisionSetFiles.user_id),
+  directStep("revision_set_entries", revisionSetEntries, revisionSetEntries.user_id),
+  directStep("revision_sets", revisionSets, revisionSets.user_id),
+  directStep("cloud_sends", cloudSends, cloudSends.user_id),
+  directStep("cloud_receives", cloudReceives, cloudReceives.user_id),
+  directStep("cloud_link_files", cloudLinkFiles, cloudLinkFiles.user_id),
+  directStep("cloud_link_documents", cloudLinkDocuments, cloudLinkDocuments.user_id),
+  directStep("cloud_links", cloudLinks, cloudLinks.user_id),
+  directStep("project_blobs", projectBlobs, projectBlobs.user_id),
+  directStep("cloud_transfer_attempts", cloudTransferAttempts, cloudTransferAttempts.user_id),
+  directStep("cloud_transfers", cloudTransfers, cloudTransfers.user_id),
   directStep("cloud_open_state", cloudOpenState, cloudOpenState.user_id),
   directStep("nodetool_error_traces", errorTraces, errorTraces.user_id),
   directStep("nodetool_bug_reports", bugReports, bugReports.user_id),
@@ -873,6 +896,7 @@ export const EXPORT_HANDLERS: Readonly<Record<string, ExportHandler>> = {
   nodetool_jobs: directExport(jobs, jobs.user_id),
   nodetool_memories: directExport(memories, memories.user_id),
   cloud_drafts: directExport(cloudDrafts, cloudDrafts.user_id),
+  nodetool_deleted_documents: directExport(deletedDocuments, deletedDocuments.user_id),
   cloud_open_state: directExport(cloudOpenState, cloudOpenState.user_id),
   nodetool_error_traces: directExport(errorTraces, errorTraces.user_id),
   nodetool_bug_reports: directExport(bugReports, bugReports.user_id),

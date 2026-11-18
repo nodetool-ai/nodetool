@@ -18,7 +18,10 @@ export const resourceChangePayloadSchema = z.object({
   event: z.enum(["created", "updated", "deleted"]),
   resource: z.record(z.string(), z.unknown()),
   ops: z.array(z.unknown()).optional(),
-  owner_user_id: z.string().nullable().optional()
+  owner_user_id: z.string().nullable().optional(),
+  // A delete only: the users the row was shared with (ModelChangeMeta.sharedWith).
+  // The fanout reads it to pick recipients and never sends it to a client.
+  shared_with: z.array(z.string()).optional()
 });
 export type ResourceChange = z.infer<typeof resourceChangePayloadSchema>;
 export type ResourceBusSignal = ResourceChange | { type: "resource_resync" };
@@ -64,6 +67,9 @@ export function serializeModelChange(
   };
   if (meta?.ops?.length) {
     payload.ops = structuredClone(meta.ops);
+  }
+  if (meta?.sharedWith?.length) {
+    payload.shared_with = [...meta.sharedWith];
   }
   return payload;
 }

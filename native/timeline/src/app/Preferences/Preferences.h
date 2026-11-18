@@ -79,6 +79,9 @@ public:
     QVariantList recentTimelines() const;
     void addRecentFile(const QString& label, const QString& path);
     void addRecentServer(const QString& label, const nt::server::SaveTarget& target);
+    // A cloud timeline, reopened with the role the Open list gave it. The
+    // server still checks the role on every save.
+    void addRecentCloud(const QString& label, const nt::server::CloudSource& cloud);
     Q_INVOKABLE void clearRecentTimelines();
     bool hasCacheFolder() const;
     bool hasCacheBudget() const;
@@ -98,7 +101,8 @@ void applyCachePreferences(const Preferences& preferences);
 QStringList recentTimelineArguments(const QVariantMap& entry);
 bool interactiveTimelineRun(const QStringList& arguments);
 bool recordOpenedTimeline(Preferences& preferences, const QStringList& arguments, bool active,
-                          const QString& label, const std::optional<nt::server::SaveTarget>& target = std::nullopt);
+                          const QString& label, const std::optional<nt::server::SaveTarget>& target = std::nullopt,
+                          const std::optional<nt::server::CloudSource>& cloud = std::nullopt);
 
 class ShellPreferences : public QObject {
     Q_OBJECT

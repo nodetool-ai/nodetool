@@ -135,7 +135,8 @@ const onResourceChange = (payload: ResourceBusSignal): void => {
   if (payload.resource_type === "documentcollaborator") {
     documentRecipients.clear();
   }
-  const { owner_user_id, ...change } = payload;
+  const { owner_user_id, shared_with, ...change } = payload;
+  const sharedWith = shared_with ?? [];
   const ownerId = owner_user_id || null;
   const targets = acceptingSubscribers(ownerId);
   const frame = Object.freeze({ type: "resource_change", ...change });
@@ -148,7 +149,8 @@ const onResourceChange = (payload: ResourceBusSignal): void => {
   if (isNonEmptyString(workflowId) && ownerId) {
     deliverWorkflowChange(
       workflowId, ownerId, targets, () => frame,
-      payload.resource_type === "workflow" && payload.event === "deleted"
+      payload.resource_type === "workflow" && payload.event === "deleted",
+      sharedWith
     ).catch((error) => {
       log.error("Shared workflow change delivery failed", { error: String(error) });
     });
@@ -158,7 +160,7 @@ const onResourceChange = (payload: ResourceBusSignal): void => {
   if (documentType && isNonEmptyString(documentId) && ownerId) {
     deliverDocumentChange(
       documentType, documentId, ownerId, targets, frame,
-      payload.event === "deleted"
+      payload.event === "deleted", sharedWith
     ).catch((error) => {
       log.error("Shared document change delivery failed", { error: String(error) });
     });
@@ -171,7 +173,8 @@ async function deliverDocumentChange(
   ownerId: string,
   delivered: readonly ResourceChangeSubscriber[],
   frame: ResourceChangeFrame,
-  deleted: boolean
+  deleted: boolean,
+  sharedWith: readonly string[]
 ): Promise<void> {
   const key = `${documentType}:${documentId}`;
   await deliverToRecipients(
@@ -182,7 +185,8 @@ async function deliverDocumentChange(
         documentType,
         documentId
       );
-      const users = new Set(grants.map((grant) => grant.user_id));
+      // A delete removed the grants in its transaction; the change names them.
+      const users = new Set([...grants.map((grant) => grant.user_id), ...sharedWith]);
       users.add(ownerId);
       return users;
     },
@@ -198,7 +202,8 @@ async function deliverWorkflowChange(
   ownerId: string,
   delivered: readonly ResourceChangeSubscriber[],
   getFrame: () => ResourceChangeFrame,
-  deleted: boolean
+  deleted: boolean,
+  sharedWith: readonly string[]
 ): Promise<void> {
   await deliverToRecipients(
     workflowRecipients,
@@ -208,7 +213,8 @@ async function deliverWorkflowChange(
         WorkflowCollaborator.listForWorkflow(workflowId),
         Workflow.get<Workflow>(workflowId)
       ]);
-      const users = new Set(grants.map((grant) => grant.user_id));
+      // A delete removed the grants in its transaction; the change names them.
+      const users = new Set([...grants.map((grant) => grant.user_id), ...sharedWith]);
       // A version's user_id identifies its author, who may be an editor.
       if (workflow) {
         users.add(workflow.user_id);

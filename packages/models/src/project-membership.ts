@@ -26,6 +26,7 @@ import { Application } from "./application.js";
 import { JsScript } from "./js-script.js";
 import { Script } from "./script.js";
 import type { ProjectDocumentType } from "./project-summary.js";
+import { changingAccess } from "./access-epoch.js";
 
 /**
  * What a project holds: its documents, plus entities — which are assets, not
@@ -205,63 +206,65 @@ export async function reassignProjectDocuments(
   fromProjectId: string,
   toProjectId: string
 ): Promise<number> {
-  if ((await Game.listByProject(userId, fromProjectId)).length > 0) {
-    throw new Error("Moving games requires moving their workspace source");
-  }
-  const db = getPortableDb();
-  let moved = 0;
-  // An asset that is a file in the project's folder takes its file along, one
-  // asset at a time. A column write would leave the file behind.
-  const fileAssets = await db
-    .select()
-    .from(assets)
-    .where(
-      and(
-        eq(assets.project_id, fromProjectId),
-        eq(assets.user_id, userId),
-        isNotNull(assets.workspace_path)
-      )
-    );
-  for (const row of fileAssets) {
-    await saveAssetInProject(new Asset(row), toProjectId);
-    moved += 1;
-  }
-  // A document that is a file in its project's folder takes the file along,
-  // one document at a time.
-  const fileKinds = [
-    [timelineSequences, TimelineSequence],
-    [storyboards, Storyboard],
-    [scripts, Script],
-    [applications, Application],
-    [jsScripts, JsScript]
-  ] as const;
-  for (const [table, model] of fileKinds) {
-    const owned = await db
-      .select({ id: table.id })
-      .from(table)
-      .where(
-        and(eq(table.project_id, fromProjectId), eq(table.user_id, userId))
-      );
-    for (const { id } of owned) {
-      if (await model.moveToProject(userId, id, toProjectId)) moved += 1;
+  return changingAccess([{ kind: "project", id: fromProjectId }, { kind: "project", id: toProjectId }], async () => {
+    if ((await Game.listByProject(userId, fromProjectId)).length > 0) {
+      throw new Error("Moving games requires moving their workspace source");
     }
-  }
-  for (const table of DOCUMENT_TABLES) {
-    if (fileKinds.some(([fileTable]) => fileTable === table)) continue;
-    const owned = and(
-      eq(table.project_id, fromProjectId),
-      eq(table.user_id, userId)
-    );
-    // Only the id comes back: a moved document would otherwise ship its whole
-    // stored text column across just to be counted.
-    const rows = await db
-      .update(table)
-      .set({ project_id: toProjectId })
-      .where(table === assets ? and(owned, isNull(assets.workspace_path)) : owned)
-      .returning({ id: table.id });
-    moved += rows.length;
-  }
-  return moved;
+    const db = getPortableDb();
+    let moved = 0;
+    // An asset that is a file in the project's folder takes its file along, one
+    // asset at a time. A column write would leave the file behind.
+    const fileAssets = await db
+      .select()
+      .from(assets)
+      .where(
+        and(
+          eq(assets.project_id, fromProjectId),
+          eq(assets.user_id, userId),
+          isNotNull(assets.workspace_path)
+        )
+      );
+    for (const row of fileAssets) {
+      await saveAssetInProject(new Asset(row), toProjectId);
+      moved += 1;
+    }
+    // A document that is a file in its project's folder takes the file along,
+    // one document at a time.
+    const fileKinds = [
+      [timelineSequences, TimelineSequence],
+      [storyboards, Storyboard],
+      [scripts, Script],
+      [applications, Application],
+      [jsScripts, JsScript]
+    ] as const;
+    for (const [table, model] of fileKinds) {
+      const owned = await db
+        .select({ id: table.id })
+        .from(table)
+        .where(
+          and(eq(table.project_id, fromProjectId), eq(table.user_id, userId))
+        );
+      for (const { id } of owned) {
+        if (await model.moveToProject(userId, id, toProjectId)) moved += 1;
+      }
+    }
+    for (const table of DOCUMENT_TABLES) {
+      if (fileKinds.some(([fileTable]) => fileTable === table)) continue;
+      const owned = and(
+        eq(table.project_id, fromProjectId),
+        eq(table.user_id, userId)
+      );
+      // Only the id comes back: a moved document would otherwise ship its whole
+      // stored text column across just to be counted.
+      const rows = await db
+        .update(table)
+        .set({ project_id: toProjectId })
+        .where(table === assets ? and(owned, isNull(assets.workspace_path)) : owned)
+        .returning({ id: table.id });
+      moved += rows.length;
+    }
+    return moved;
+  });
 }
 
 /**
@@ -275,58 +278,60 @@ export async function moveDocumentToProject(
   documentId: string,
   projectId: string
 ): Promise<boolean> {
-  const db = getPortableDb();
-  const fields = { project_id: projectId };
-  switch (type) {
-    case "entity": {
-      // An entity is its asset. Only the assets carrying the marker are
-      // entities, and an asset that carries none reads as a miss rather than
-      // being quietly filed into a project that would never show it. An asset
-      // that is a file in its project folder takes the file along.
-      const asset = await Asset.find(userId, documentId);
-      if (!asset || !readEntityMarker(asset.metadata)) return false;
-      await saveAssetInProject(asset, projectId);
-      return true;
-    }
-    case "storyboard": {
-      // A storyboard is a file in its project's folder, which moves with it.
-      return Storyboard.moveToProject(userId, documentId, projectId);
-    }
-    case "script": {
-      // A script is a file in its project's folder, which moves with it.
-      return Script.moveToProject(userId, documentId, projectId);
-    }
-    case "timeline": {
-      // A timeline is a file in its project's folder, which moves with it.
-      return TimelineSequence.moveToProject(userId, documentId, projectId);
-    }
-    case "sketch": {
-      const rows = await db
-        .update(imageDocuments)
-        .set(fields)
-        .where(
-          and(
-            eq(imageDocuments.id, documentId),
-            eq(imageDocuments.user_id, userId)
+  return changingAccess([{ kind: type, id: documentId }], async () => {
+    const db = getPortableDb();
+    const fields = { project_id: projectId };
+    switch (type) {
+      case "entity": {
+        // An entity is its asset. Only the assets carrying the marker are
+        // entities, and an asset that carries none reads as a miss rather than
+        // being quietly filed into a project that would never show it. An asset
+        // that is a file in its project folder takes the file along.
+        const asset = await Asset.find(userId, documentId);
+        if (!asset || !readEntityMarker(asset.metadata)) return false;
+        await saveAssetInProject(asset, projectId);
+        return true;
+      }
+      case "storyboard": {
+        // A storyboard is a file in its project's folder, which moves with it.
+        return Storyboard.moveToProject(userId, documentId, projectId);
+      }
+      case "script": {
+        // A script is a file in its project's folder, which moves with it.
+        return Script.moveToProject(userId, documentId, projectId);
+      }
+      case "timeline": {
+        // A timeline is a file in its project's folder, which moves with it.
+        return TimelineSequence.moveToProject(userId, documentId, projectId);
+      }
+      case "sketch": {
+        const rows = await db
+          .update(imageDocuments)
+          .set(fields)
+          .where(
+            and(
+              eq(imageDocuments.id, documentId),
+              eq(imageDocuments.user_id, userId)
+            )
           )
-        )
-        .returning({ id: imageDocuments.id });
-      return rows.length > 0;
+          .returning({ id: imageDocuments.id });
+        return rows.length > 0;
+      }
+      case "application": {
+        // An app is a file in its project's folder, which moves with it.
+        return Application.moveToProject(userId, documentId, projectId);
+      }
+      case "jsscript": {
+        // A JS script is a file in its project's folder, which moves with it.
+        return JsScript.moveToProject(userId, documentId, projectId);
+      }
+      case "game": {
+        return false;
+      }
+      default: {
+        const exhaustive: never = type;
+        return exhaustive;
+      }
     }
-    case "application": {
-      // An app is a file in its project's folder, which moves with it.
-      return Application.moveToProject(userId, documentId, projectId);
-    }
-    case "jsscript": {
-      // A JS script is a file in its project's folder, which moves with it.
-      return JsScript.moveToProject(userId, documentId, projectId);
-    }
-    case "game": {
-      return false;
-    }
-    default: {
-      const exhaustive: never = type;
-      return exhaustive;
-    }
-  }
+  });
 }
