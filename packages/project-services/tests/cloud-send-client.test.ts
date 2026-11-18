@@ -466,6 +466,50 @@ describe("sending a project to the cloud", { timeout: 30_000 }, () => {
     expect(cloud.documents.has(workflow.id)).toBe(false);
   });
 
+  it("drops a withdrawn deletion from the next attempt and keeps it only for crash recovery (review F43)", async () => {
+    const { workflow } = await workflowWithFile(null);
+    await runSend(cloud, (await captureSend(TARGET)).transferId);
+    await Workflow.deleteOwned(USER, workflow.id);
+    const review = await captureSend(TARGET);
+    const [deleted] = review.deletedLocally;
+    const confirm = [{ kind: "workflow" as const, cloudId: workflow.id, cloudHash: deleted!.baseHash }];
+
+    // The first attempt with the confirmed deletion is refused for another reason.
+    const original = cloud.commit.bind(cloud);
+    cloud.commit = async (input) => {
+      cloud.commits.push(input);
+      return { outcome: "refused", failures: [{ code: "QUOTA", message: "full" }] };
+    };
+    expect((await runSend(cloud, review.transferId, { confirmDeletes: confirm })).status).toBe("refused");
+    cloud.commit = original;
+
+    // The person unchecks the last deletion. The next attempt carries none,
+    // whether the list comes empty or not at all.
+    expect((await runSend(cloud, review.transferId, {})).status).toBe("committed");
+    expect(cloud.commits.at(-1)!.manifest.operations).not.toContainEqual(
+      expect.objectContaining({ op: "delete_document" })
+    );
+    expect(cloud.documents.has(workflow.id)).toBe(true);
+  });
+
+  it("keeps a confirmed deletion when a crash interrupts its attempt (review F43)", async () => {
+    const { workflow } = await workflowWithFile(null);
+    await runSend(cloud, (await captureSend(TARGET)).transferId);
+    await Workflow.deleteOwned(USER, workflow.id);
+    const review = await captureSend(TARGET);
+    const [deleted] = review.deletedLocally;
+    await expect(
+      runSend(cloud, review.transferId, {
+        confirmDeletes: [{ kind: "workflow", cloudId: workflow.id, cloudHash: deleted!.baseHash }],
+        afterStep: (step) => {
+          if (step === "committing") throw new Error("killed");
+        }
+      })
+    ).rejects.toThrow("killed");
+    expect(await resumeSends(() => cloud, USER)).toMatchObject([{ status: "committed" }]);
+    expect(cloud.documents.has(workflow.id)).toBe(false);
+  });
+
   it("cancels a send the cloud never opened here alone, and an opened one on the cloud too (review F41)", async () => {
     await workflowWithFile(null);
     const captured = await captureSend(TARGET);
