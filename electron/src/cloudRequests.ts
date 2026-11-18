@@ -117,7 +117,7 @@ function isMediaPath(pathname: string): boolean {
 }
 
 export function cloudRouteAllowed(method: string, path: string): boolean {
-  if (typeof path !== "string" || path.length === 0 || path.length > 8192) {
+  if (path.length === 0 || path.length > 8192) {
     return false;
   }
   if (!path.startsWith("/") || path.startsWith("//") || /[^\x21-\x7e]|[#\\]/.test(path)) {
@@ -162,7 +162,7 @@ export function cloudRequestHeaders(headers: Record<string, string>): [string, s
   const out: [string, string][] = [];
   for (const [name, value] of Object.entries(headers)) {
     const lower = name.toLowerCase();
-    if (typeof value !== "string" || value.length > 2048 || /[\r\n\0]/.test(value)) {
+    if (value.length > 2048 || /[\r\n\0]/.test(value)) {
       return null;
     }
     if (REQUEST_HEADERS.has(lower)) {
@@ -193,7 +193,7 @@ function byteLength(body: string | Uint8Array | undefined): number {
   if (body === undefined) {
     return 0;
   }
-  return typeof body === "string" ? Buffer.byteLength(body) : body.byteLength;
+  return body instanceof Uint8Array ? body.byteLength : Buffer.byteLength(body);
 }
 
 /** One `http` message of the helper that serves a request or a transfer. */
@@ -321,11 +321,11 @@ export class CloudRequests {
    * request nor a transfer, so the account's own forwarder sends it.
    */
   onHttp(message: TaggedHttp): boolean {
-    if (typeof message.request === "number") {
+    if (message.request !== undefined) {
       void this.forwardRequest(message, message.request);
       return true;
     }
-    if (typeof message.transfer === "number") {
+    if (message.transfer !== undefined) {
       void this.forwardTransfer(message, message.transfer);
       return true;
     }
@@ -383,7 +383,7 @@ export class CloudRequests {
       return;
     }
     const result: SocketTokenResult =
-      typeof message.token === "string" && message.token !== ""
+      message.token
         ? { ok: true, token: message.token }
         : { ok: false, error: message.error || "OFFLINE" };
     this.end(message.id, () => entry.finish(result));
