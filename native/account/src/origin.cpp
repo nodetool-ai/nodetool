@@ -119,4 +119,29 @@ std::optional<std::string> httpsOriginOfUrl(std::string_view url) {
   return std::move(parts->first);
 }
 
+bool isLoopbackHttpOrigin(std::string_view origin) {
+  constexpr std::string_view scheme = "http://";
+  if (origin.size() <= scheme.size() || lower(origin.substr(0, scheme.size())) != scheme) {
+    return false;
+  }
+  std::string_view authority = origin.substr(scheme.size());
+  if (authority.ends_with('/')) {
+    authority.remove_suffix(1);
+  }
+  const auto colon = authority.rfind(':');
+  if (colon == std::string_view::npos || colon + 1 == authority.size()) {
+    return false;
+  }
+  const std::string host = lower(authority.substr(0, colon));
+  const std::string_view port = authority.substr(colon + 1);
+  if (host != "127.0.0.1" && host != "localhost" && host != "[::1]") {
+    return false;
+  }
+  if (port.size() > 5 || !std::all_of(port.begin(), port.end(), [](char c) { return c >= '0' && c <= '9'; })) {
+    return false;
+  }
+  const int number = std::stoi(std::string(port));
+  return number >= 1 && number <= 65535;
+}
+
 } // namespace nodetool::account

@@ -186,6 +186,10 @@ struct TransferResume {
 // Ownership: borrows the transport and the session, which must outlive it.
 class LocalTransferClient {
 public:
+  // `localOrigin` is the app's bundled server on this computer
+  // (isLoopbackHttpOrigin). Any other origin refuses every call with
+  // NOT_LOCAL_SERVER before a credential is read, so the access token never
+  // reaches another server.
   LocalTransferClient(HttpTransport& transport, std::string localOrigin,
                       std::vector<std::pair<std::string, std::string>> headers, AccountSession& session);
 

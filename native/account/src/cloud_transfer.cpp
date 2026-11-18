@@ -1,4 +1,5 @@
 #include "nodetool/account/cloud_transfer.h"
+#include "nodetool/account/origin.h"
 
 #include <nlohmann/json.hpp>
 
@@ -146,6 +147,12 @@ LocalTransferClient::Answer LocalTransferClient::post(const std::string& procedu
 
 LocalTransferClient::Answer LocalTransferClient::mutate(const std::string& procedure, const std::string& inputJson,
                                                         bool withToken) {
+  // The router runs on the app's bundled server. A request to any other
+  // server would hand it the account's access token, so it is refused
+  // before a credential is read (PRD SR3).
+  if (!isLoopbackHttpOrigin(origin_)) {
+    return {TransferStatus::Refused, "NOT_LOCAL_SERVER", {}};
+  }
   json input = json::parse(inputJson, nullptr, false);
   input["origin"] = session_.serverOrigin();
   input["account_id"] = session_.accountId();

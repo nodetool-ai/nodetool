@@ -11,9 +11,9 @@
  * A recovery copy records content a transfer replaced, for 30 days, where no
  * version table keeps it.
  */
-import { and, asc, eq, lt } from "drizzle-orm";
+import { and, asc, eq, lt, sql } from "drizzle-orm";
 import { createTimeOrderedUuid } from "./base-model.js";
-import { getPortableDb } from "./db.js";
+import { getDatabase, getPortableDb, inTransaction } from "./db.js";
 import { projectBlobs } from "./schema/project-blobs.js";
 import { recoveryCopies, transferPlacements, transferredConversations } from "./schema/transfer-files.js";
 
@@ -31,6 +31,25 @@ export interface NewTransferPlacement {
   /** Null deletes the file at the path. */
   hash: string | null;
   assetId?: string | null;
+}
+
+/**
+ * Serializes the file operations of transfers into one project until the
+ * surrounding transaction ends. Two commits that read the same path or
+ * asset base would otherwise both plan a replacement, and the later one
+ * would overwrite the earlier one instead of keeping both. Call it inside
+ * `withTransaction`, before reading what the cloud holds at any path.
+ *
+ * PostgreSQL takes a transaction-scoped advisory lock. SQLite has one
+ * writer, so its commits are already serial.
+ */
+export async function lockProjectFiles(projectId: string): Promise<void> {
+  if (!inTransaction()) throw new Error("lockProjectFiles needs an open transaction");
+  const connection = getDatabase();
+  if (connection.dialect !== "postgres") return;
+  await connection.db.execute(
+    sql`SELECT pg_advisory_xact_lock(hashtextextended(${`transfer-files:${projectId}`}, 0))`
+  );
 }
 
 /** Records files a transfer commit will place. Runs inside the commit. */

@@ -18,18 +18,26 @@ import { createReadStream, createWriteStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import type {
-  CaptureRevisionSetOutput,
-  ReceiveDocumentOutput
+import type { z } from "zod";
+import {
+  captureRevisionSetOutput,
+  receiveDocumentOutput,
+  releaseRevisionSetOutput,
+  type CaptureRevisionSetOutput,
+  type ReceiveDocumentOutput
 } from "@nodetool-ai/protocol/api-schemas/receive.js";
-import type {
-  CancelTransferOutput,
-  CommitTransferInput,
-  OpenTransferOutput,
-  TransferAttemptResult,
-  TransferDocumentKind,
-  TransferManifest,
-  TransferStatusOutput
+import {
+  cancelTransferOutput,
+  openTransferOutput,
+  transferAttemptResult,
+  transferStatusOutput,
+  type CancelTransferOutput,
+  type CommitTransferInput,
+  type OpenTransferOutput,
+  type TransferAttemptResult,
+  type TransferDocumentKind,
+  type TransferManifest,
+  type TransferStatusOutput
 } from "@nodetool-ai/protocol/api-schemas/transfer.js";
 import { ReceiveSetExpiredError, type ReceiveTransport } from "./cloud-receive-client.js";
 import type { SendTransport } from "./cloud-send-client.js";
@@ -131,7 +139,12 @@ export class CloudHttpTransport implements ReceiveTransport, SendTransport {
     return response;
   }
 
-  private async procedure<T>(name: string, input: unknown, mutation: boolean): Promise<T> {
+  /**
+   * Calls a procedure and checks the answer against its output schema. A
+   * self-hosted cloud can answer anything, and ids, hashes and paths from
+   * the answer later name files on this computer.
+   */
+  private async procedure<T>(name: string, input: unknown, mutation: boolean, schema: z.ZodType<T>): Promise<T> {
     const response = mutation
       ? await this.send(`/trpc/${name}`, {
           method: "POST",
@@ -153,17 +166,21 @@ export class CloudHttpTransport implements ReceiveTransport, SendTransport {
     if (!body.result || typeof body.result !== "object") {
       throw new CloudRequestError(response.status, "INVALID_RESPONSE", "The cloud sent an answer without a result");
     }
-    return unwrap(body.result.data) as T;
+    const parsed = schema.safeParse(unwrap(body.result.data));
+    if (!parsed.success) {
+      throw new CloudRequestError(response.status, "INVALID_RESPONSE", `The cloud's answer to ${name} is not valid`);
+    }
+    return parsed.data;
   }
 
   // ── receive ───────────────────────────────────────────────────────
 
   capture(input: { project_id: string }): Promise<CaptureRevisionSetOutput> {
-    return this.procedure("receive.capture", input, true);
+    return this.procedure("receive.capture", input, true, captureRevisionSetOutput);
   }
 
   document(input: { set_id: string; kind: TransferDocumentKind; document_id: string }): Promise<ReceiveDocumentOutput> {
-    return this.procedure("receive.document", input, false);
+    return this.procedure("receive.document", input, false, receiveDocumentOutput);
   }
 
   async downloadFile(input: { set_id: string; hash: string }, destination: string): Promise<"ok" | "ERASED"> {
@@ -184,7 +201,7 @@ export class CloudHttpTransport implements ReceiveTransport, SendTransport {
   }
 
   async release(input: { set_id: string }): Promise<void> {
-    await this.procedure("receive.release", input, true);
+    await this.procedure("receive.release", input, true, releaseRevisionSetOutput);
   }
 
   // ── transfers ─────────────────────────────────────────────────────
@@ -195,7 +212,7 @@ export class CloudHttpTransport implements ReceiveTransport, SendTransport {
     first_publication: boolean;
     manifest: TransferManifest;
   }): Promise<OpenTransferOutput> {
-    return this.procedure("transfers.open", input, true);
+    return this.procedure("transfers.open", input, true, openTransferOutput);
   }
 
   async stageFile(input: { transfer_id: string; hash: string; size: number }, source: string): Promise<void> {
@@ -214,14 +231,14 @@ export class CloudHttpTransport implements ReceiveTransport, SendTransport {
   }
 
   commit(input: CommitTransferInput): Promise<TransferAttemptResult> {
-    return this.procedure("transfers.commit", input, true);
+    return this.procedure("transfers.commit", input, true, transferAttemptResult);
   }
 
   status(input: { transfer_id: string }): Promise<TransferStatusOutput> {
-    return this.procedure("transfers.status", input, false);
+    return this.procedure("transfers.status", input, false, transferStatusOutput);
   }
 
   cancel(input: { transfer_id: string }): Promise<CancelTransferOutput> {
-    return this.procedure("transfers.cancel", input, true);
+    return this.procedure("transfers.cancel", input, true, cancelTransferOutput);
   }
 }
