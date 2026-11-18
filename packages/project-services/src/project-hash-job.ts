@@ -38,7 +38,7 @@ interface HashTarget {
 }
 
 /** Whether the file still has the size and mtime the row recorded for it. */
-async function matchesRecordedFingerprint(
+export async function matchesRecordedFingerprint(
   workspace: Workspace,
   path: string,
   metadata: Record<string, unknown> | null

@@ -15,6 +15,8 @@ import { getCloudLink, getCloudLinkById, getCloudReceive, getCloudSend, getDbTyp
 import type { CloudLinkRow } from "@nodetool-ai/models";
 import { ApiErrorCode } from "@nodetool-ai/protocol/api-schemas/api-error-code.js";
 import {
+  cancelReceiveInput,
+  cancelReceiveOutput,
   cancelSendInput,
   cancelSendOutput,
   captureReceiveInput,
@@ -34,9 +36,11 @@ import {
 import { CloudRequestError, CloudSignedOutError } from "@nodetool-ai/project-services/cloud-http-transport";
 import { CloudOriginError, cloudServerKey } from "@nodetool-ai/project-services/cloud-origin";
 import {
+  cancelReceive,
   captureReceive,
   resumeReceives,
   runReceive,
+  type PlannedDocument,
   type ReceiveOutcome
 } from "@nodetool-ai/project-services/cloud-receive-client";
 import {
@@ -111,12 +115,35 @@ async function ownedReceive(userId: string, setId: string, serverKey: string, ac
 }
 
 function sendOutput(outcome: SendOutcome): RunSendOutput {
-  return outcome.status === "committed"
-    ? { status: "committed", transfer_id: outcome.transferId, result: outcome.result }
-    : { status: "refused", transfer_id: outcome.transferId, failures: outcome.failures };
+  switch (outcome.status) {
+    case "committed":
+      return { status: "committed", transfer_id: outcome.transferId, result: outcome.result };
+    case "refused":
+      return { status: "refused", transfer_id: outcome.transferId, failures: outcome.failures };
+    case "missing_files_unconfirmed":
+      return { status: "missing_files_unconfirmed", transfer_id: outcome.transferId, missing_files: outcome.missingFiles };
+  }
+}
+
+function reviewDocument(document: PlannedDocument) {
+  return {
+    kind: document.kind,
+    cloud_id: document.cloudId,
+    local_id: document.localId,
+    name: document.name,
+    status: document.status,
+    decision: document.decision,
+    files: document.files,
+    missing_files: document.missingFiles
+  };
 }
 
 function receiveOutput(outcome: ReceiveOutcome): RunReceiveOutput {
+  if (outcome.status === "waiting_for_review") {
+    return outcome.documents
+      ? { status: outcome.status, set_id: outcome.setId, documents: outcome.documents.map(reviewDocument) }
+      : { status: outcome.status, set_id: outcome.setId };
+  }
   if (outcome.status !== "finished") return { status: outcome.status, set_id: outcome.setId };
   const result = outcome.result;
   return {
@@ -164,7 +191,9 @@ export const cloudTransferRouter = router({
             transfer_id: review.transferId,
             first_publication: review.firstPublication,
             operations: review.operations,
+            file_operations: review.fileOperations,
             missing_files: review.missingFiles,
+            missing_document_files: review.missingDocumentFiles,
             skipped: review.skipped,
             deleted_locally: review.deletedLocally.map((entry) => ({
               kind: entry.kind,
@@ -191,7 +220,14 @@ export const cloudTransferRouter = router({
         const transport = cloudTransport(input.origin, input.access_token);
         const options: SendRunOptions = {};
         if (input.decisions) options.decisions = input.decisions;
-        if (input.confirm_deletes) options.confirmDeletes = input.confirm_deletes;
+        if (input.confirm_deletes) {
+          options.confirmDeletes = input.confirm_deletes.map((entry) => ({
+            kind: entry.kind,
+            cloudId: entry.cloud_id,
+            cloudHash: entry.cloud_hash
+          }));
+        }
+        if (input.confirm_missing_files) options.confirmMissingFiles = input.confirm_missing_files;
         const outcome = await reachingCloud(() => runSend(transport, input.transfer_id, options));
         return sendOutput(outcome);
       }),
@@ -222,16 +258,7 @@ export const cloudTransferRouter = router({
         const captured = await reachingCloud(() => captureReceive(transport, link));
         return {
           set_id: captured.setId,
-          documents: captured.documents.map((document) => ({
-            kind: document.kind,
-            cloud_id: document.cloudId,
-            local_id: document.localId,
-            name: document.name,
-            status: document.status,
-            decision: document.decision,
-            files: document.files,
-            missing_files: document.missingFiles
-          }))
+          documents: captured.documents.map(reviewDocument)
         };
       }),
 
@@ -244,6 +271,17 @@ export const cloudTransferRouter = router({
         await ownedReceive(ctx.userId, input.set_id, serverKey, input.account_id);
         const transport = cloudTransport(input.origin, input.access_token);
         return receiveOutput(await reachingCloud(() => runReceive(transport, input.set_id, input.decisions)));
+      }),
+
+    /** Closes a receive's review: releases the set and clears the local receive (review F41). */
+    cancel: protectedProcedure
+      .input(cancelReceiveInput)
+      .output(cancelReceiveOutput)
+      .mutation(async ({ ctx, input }) => {
+        const serverKey = serverKeyOf(input);
+        await ownedReceive(ctx.userId, input.set_id, serverKey, input.account_id);
+        const transport = cloudTransport(input.origin, input.access_token);
+        return { state: await reachingCloud(() => cancelReceive(transport, input.set_id)) };
       })
   }),
 

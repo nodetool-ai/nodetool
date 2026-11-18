@@ -5,6 +5,7 @@ import {
   transferDecision,
   transferDocumentKind,
   transferFailure,
+  transferFileOperation,
   transferMissingFile,
   transferOperation
 } from "./transfer.js";
@@ -45,7 +46,11 @@ export const capturedSend = z.object({
   transfer_id: z.string(),
   first_publication: z.boolean(),
   operations: z.array(transferOperation),
+  /** Files the send puts, also for documents it leaves unchanged (review F33). */
+  file_operations: z.array(transferFileOperation),
   missing_files: z.array(transferMissingFile),
+  /** Documents sent from their rows because their files are gone from the folder (CF3, review F37). */
+  missing_document_files: z.array(z.object({ kind: transferDocumentKind, id: z.string(), name: z.string() })),
   skipped: z.array(
     z.object({
       kind: transferDocumentKind,
@@ -74,8 +79,17 @@ export type CaptureSendOutput = z.infer<typeof captureSendOutput>;
 export const runSendInput = cloudTransferSession.extend({
   transfer_id: fullId,
   decisions: z.array(transferDecision).max(10_000).optional(),
-  /** Local ids of documents the deletion review confirmed for deletion on the cloud. */
-  confirm_deletes: z.array(fullId).max(10_000).optional()
+  /**
+   * Documents the deletion review confirmed for deletion on the cloud, each
+   * with the cloud hash the review showed. That hash is the delete's
+   * precondition (V4, review F40).
+   */
+  confirm_deletes: z
+    .array(z.object({ kind: transferDocumentKind, cloud_id: fullId, cloud_hash: z.string().regex(/^[0-9a-f]{64}$/) }))
+    .max(10_000)
+    .optional(),
+  /** The missing files the review confirmed, exactly as the capture listed them (X7, review F36). */
+  confirm_missing_files: z.array(transferMissingFile).max(100_000).optional()
 });
 
 export const runSendOutput = z.discriminatedUnion("status", [
@@ -84,7 +98,13 @@ export const runSendOutput = z.discriminatedUnion("status", [
     transfer_id: z.string(),
     result: transferAttemptResult
   }),
-  z.object({ status: z.literal("refused"), transfer_id: z.string(), failures: z.array(transferFailure) })
+  z.object({ status: z.literal("refused"), transfer_id: z.string(), failures: z.array(transferFailure) }),
+  /** The send lists missing files the review did not confirm. Nothing was sent (review F36). */
+  z.object({
+    status: z.literal("missing_files_unconfirmed"),
+    transfer_id: z.string(),
+    missing_files: z.array(transferMissingFile)
+  })
 ]);
 export type RunSendOutput = z.infer<typeof runSendOutput>;
 
@@ -105,21 +125,22 @@ export const receiveDecision = z.enum(["receive", "keep_local"]);
 
 export const captureReceiveInput = cloudTransferSession.extend({ project_id: fullId });
 
+/** A document of a receive's review. */
+export const receiveReviewDocument = z.object({
+  kind: transferDocumentKind,
+  cloud_id: z.string(),
+  local_id: z.string(),
+  name: z.string(),
+  status: receiveDocumentStatus,
+  /** The decision taken without the person, or null when the review sheet must ask. */
+  decision: receiveDecision.nullable(),
+  files: z.array(revisionSetFile),
+  missing_files: z.array(z.string())
+});
+
 export const captureReceiveOutput = z.object({
   set_id: z.string(),
-  documents: z.array(
-    z.object({
-      kind: transferDocumentKind,
-      cloud_id: z.string(),
-      local_id: z.string(),
-      name: z.string(),
-      status: receiveDocumentStatus,
-      /** The decision taken without the person, or null when the review sheet must ask. */
-      decision: receiveDecision.nullable(),
-      files: z.array(revisionSetFile),
-      missing_files: z.array(z.string())
-    })
-  )
+  documents: z.array(receiveReviewDocument)
 });
 export type CaptureReceiveOutput = z.infer<typeof captureReceiveOutput>;
 
@@ -146,9 +167,25 @@ export const receiveResult = z.object({
 export const runReceiveOutput = z.discriminatedUnion("status", [
   z.object({ status: z.literal("finished"), set_id: z.string(), result: receiveResult }),
   z.object({ status: z.literal("expired"), set_id: z.string() }),
-  z.object({ status: z.literal("waiting_for_review"), set_id: z.string() })
+  /**
+   * The review must be shown again: a document changed here after the review
+   * (Y3), or the cloud's set expired and a new one shows other content (Y7).
+   * `set_id` is the set to review, which may be a new one, and `documents`
+   * its review when the run produced it (reviews F31, F32).
+   */
+  z.object({
+    status: z.literal("waiting_for_review"),
+    set_id: z.string(),
+    documents: z.array(receiveReviewDocument).optional()
+  })
 ]);
 export type RunReceiveOutput = z.infer<typeof runReceiveOutput>;
+
+// ── receive.cancel ───────────────────────────────────────────────
+/** Closes a receive's review: releases the set and clears the local receive (review F41). */
+export const cancelReceiveInput = cloudTransferSession.extend({ set_id: fullId });
+/** `applied`: the receive committed already, and a resume finishes placing its files. */
+export const cancelReceiveOutput = z.object({ state: z.enum(["cancelled", "applied"]) });
 
 // ── resume ───────────────────────────────────────────────────────
 /** Continues every send and receive of this account that a restart interrupted. */

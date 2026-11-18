@@ -425,6 +425,7 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "cloudTransfer.send.cancel": { withheld: CLOUD_TRANSFER_WITHHELD },
   "cloudTransfer.receive.capture": { withheld: CLOUD_TRANSFER_WITHHELD },
   "cloudTransfer.receive.run": { withheld: CLOUD_TRANSFER_WITHHELD },
+  "cloudTransfer.receive.cancel": { withheld: CLOUD_TRANSFER_WITHHELD },
   "cloudTransfer.resume": { withheld: CLOUD_TRANSFER_WITHHELD },
   "codeGen.generate": {
     elsewhere:

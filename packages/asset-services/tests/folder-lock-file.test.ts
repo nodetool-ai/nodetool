@@ -19,7 +19,7 @@ import {
   projectFolderLockPath,
   setProjectFolderLockDirectory
 } from "../src/folder-lock-file.js";
-import { withProjectFolderLock } from "../src/project-asset.js";
+import { withProjectFolderLock, type FolderLockHold } from "../src/project-asset.js";
 
 const MODULE = fileURLToPath(new URL("../src/folder-lock-file.ts", import.meta.url));
 const HOLDER = fileURLToPath(new URL("./fixtures/folder-lock-holder.mjs", import.meta.url));
@@ -271,25 +271,25 @@ describe("withProjectFolderLock", () => {
     expect(outputAtStart).not.toContain("releasing");
   }, 30_000);
 
-  it("runs a task that takes the lock again inside it at once", async () => {
+  it("runs a call that passes the task's hold inside the lock at once", async () => {
     setProjectFolderLockDirectory(dir);
     const order: string[] = [];
-    await withProjectFolderLock(
-      "user",
-      "project",
-      async () => {
-        order.push("outer");
-        await withProjectFolderLock("user", "project", async () => {
+    await withProjectFolderLock("user", "project", async (hold) => {
+      order.push("outer");
+      await withProjectFolderLock(
+        "user",
+        "project",
+        async () => {
           order.push("inner");
-        });
-        order.push("outer done");
-      },
-      { allowNested: true }
-    );
+        },
+        { under: hold }
+      );
+      order.push("outer done");
+    });
     expect(order).toEqual(["outer", "inner", "outer done"]);
   }, 30_000);
 
-  it("queues a call made inside a task without allowNested until the task is done", async () => {
+  it("queues a call made inside a task without its hold until the task is done", async () => {
     setProjectFolderLockDirectory(dir);
     const order: string[] = [];
     let started: Promise<void> | undefined;
@@ -304,36 +304,28 @@ describe("withProjectFolderLock", () => {
     expect(order).toEqual(["task done", "started"]);
   }, 30_000);
 
-  it("queues work a task left running once the task is done", async () => {
+  it("queues work a task left running, such as a timer, while the task still runs (review F35)", async () => {
     setProjectFolderLockDirectory(dir);
     const order: string[] = [];
     let later: Promise<void> | undefined;
-    let releaseNext!: () => void;
-    const nextHolds = new Promise<void>((resolve) => {
-      releaseNext = resolve;
-    });
-    await withProjectFolderLock(
-      "user",
-      "project",
-      async () => {
-        later = (async () => {
-          await new Promise((resolve) => setTimeout(resolve, 20));
-          await withProjectFolderLock("user", "project", async () => {
+    let stale: FolderLockHold | undefined;
+    await withProjectFolderLock("user", "project", async (hold) => {
+      stale = hold;
+      later = new Promise<void>((resolve, reject) => {
+        setTimeout(() => {
+          withProjectFolderLock("user", "project", async () => {
             order.push("left running");
-          });
-        })();
-      },
-      { allowNested: true }
-    );
-    const next = withProjectFolderLock("user", "project", async () => {
-      order.push("next");
-      await nextHolds;
+          }).then(resolve, reject);
+        }, 0);
+      });
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      order.push("task done");
     });
-    await new Promise((resolve) => setTimeout(resolve, 60));
-    expect(order).toEqual(["next"]);
-    releaseNext();
-    await next;
     await later;
-    expect(order).toEqual(["next", "left running"]);
+    expect(order).toEqual(["task done", "left running"]);
+    // A hold whose task ended lets nothing in.
+    await expect(withProjectFolderLock("user", "project", async () => undefined, { under: stale })).rejects.toThrow(
+      /not held/
+    );
   }, 30_000);
 });
