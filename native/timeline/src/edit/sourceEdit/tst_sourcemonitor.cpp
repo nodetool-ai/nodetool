@@ -1,3 +1,4 @@
+#include "../../../tests/TestAssetCacheRoot.h"
 #include "SourceMonitor.h"
 #include "model/TimelineModel.h"
 #include "preview/layers/TestStill.h"
@@ -9,6 +10,7 @@
 
 class TestSourceMonitor : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
     QTemporaryDir preferences;
     QVariantMap video{{"id", "numbered"}, {"content_type", "video/mp4"}};
     QVariantMap sound{{"id", "sound"}, {"content_type", "audio/wav"}};
@@ -39,7 +41,7 @@ private slots:
     void imagesAndUnreadableMedia() {
         QTemporaryDir dir; QVERIFY(dir.isValid());
         const auto path = dir.filePath("image.png"); QImage picture(80, 40, QImage::Format_RGB32); picture.fill(Qt::red); QVERIFY(picture.save(path));
-        SourceMonitor monitor;
+        SourceMonitor monitor(m_testCache.root());
         monitor.openLocal({{"id", "image"}, {"content_type", "image/png"}}, path, {});
         QTRY_VERIFY(monitor.ready()); QCOMPARE(monitor.mediaType(), QString("image")); QCOMPARE(monitor.frameSize(), QSize(80, 40));
         QVERIFY(monitor.error().isEmpty()); QVERIFY(monitor.audioPath().isEmpty()); QCOMPARE(monitor.timeline()->clipCount(), 0);
@@ -48,7 +50,7 @@ private slots:
         QTRY_VERIFY(!monitor.busy()); QVERIFY(!monitor.ready()); QCOMPARE(monitor.error(), QString("This file could not be opened."));
     }
     void playsAndReadsBarcode() {
-        SourceMonitor monitor; monitor.openLocal(video, numbered, {}); QTRY_VERIFY_WITH_TIMEOUT(monitor.ready(), 10000);
+        SourceMonitor monitor(m_testCache.root()); monitor.openLocal(video, numbered, {}); QTRY_VERIFY_WITH_TIMEOUT(monitor.ready(), 10000);
         QVERIFY(!monitor.hasAudio()); QCOMPARE(monitor.frameRate(), 30.0);
         nt::test::Still still; QVERIFY(still.initialize(*monitor.timeline())); still.setClock(monitor.clock());
         monitor.seek(2000);
@@ -66,7 +68,7 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(barcode(still.capture()), pick, 10000);
     }
     void backwardAndStepping() {
-        SourceMonitor monitor; monitor.openLocal(video, numbered, {}); QTRY_VERIFY(monitor.ready());
+        SourceMonitor monitor(m_testCache.root()); monitor.openLocal(video, numbered, {}); QTRY_VERIFY(monitor.ready());
         monitor.seek(2000); monitor.shuttle(-1); QCOMPARE(monitor.clock()->rate(), -1.0);
         QTest::qWait(100); monitor.clock()->tick(); QVERIFY(monitor.clock()->time() < 2000);
         monitor.shuttleStop(); QVERIFY(!monitor.clock()->playing());
@@ -78,7 +80,7 @@ private slots:
         QVERIFY(std::abs(monitor.clock()->time() - 599000.0 / 30) < 1e-8);
     }
     void playAtTheLastFrameStartsOver() {
-        SourceMonitor monitor; monitor.openLocal(video, numbered, {}); QTRY_VERIFY(monitor.ready());
+        SourceMonitor monitor(m_testCache.root()); monitor.openLocal(video, numbered, {}); QTRY_VERIFY(monitor.ready());
         monitor.seek(monitor.durationMs()); monitor.togglePlay();
         QVERIFY(monitor.clock()->time() < 100); QVERIFY(monitor.clock()->playing()); monitor.pause();
         monitor.seek(monitor.durationMs()); monitor.shuttle(1);
@@ -86,7 +88,7 @@ private slots:
         monitor.seek(monitor.durationMs()); monitor.shuttle(-1); QVERIFY(monitor.clock()->time() > 19000); monitor.shuttleStop();
     }
     void startingEitherStopsTheOther() {
-        SourceMonitor monitor; QTemporaryDir dir; const auto path = tone(dir); QVERIFY(!path.isEmpty());
+        SourceMonitor monitor(m_testCache.root()); QTemporaryDir dir; const auto path = tone(dir); QVERIFY(!path.isEmpty());
         monitor.openLocal(sound, path, path); QTRY_VERIFY(monitor.ready());
         PlaybackClock program; TimelineModel model; model.setTimeline(*monitor.timeline()->snapshot());
         program.setDurationMs(6000); nt::audio::AppAudio audio; QString error;
@@ -110,7 +112,7 @@ private slots:
     }
     void onlyNormalSpeedHasSound() {
         QTemporaryDir dir; const auto path = tone(dir); QVERIFY(!path.isEmpty());
-        SourceMonitor monitor; monitor.setRecordSecondsForTest(3); monitor.openLocal(sound, path, path); QTRY_VERIFY(monitor.ready());
+        SourceMonitor monitor(m_testCache.root()); monitor.setRecordSecondsForTest(3); monitor.openLocal(sound, path, path); QTRY_VERIFY(monitor.ready());
         monitor.togglePlay(); QVERIFY(monitor.audible()); auto* engine = monitor.audioEngineForTest(); QVERIFY(engine);
         QTest::qWait(500); const auto boundary = engine->stats().framesRendered;
         monitor.shuttle(1); QCOMPARE(monitor.clock()->rate(), 2.0); QVERIFY(!monitor.audible());
@@ -128,7 +130,7 @@ private slots:
     }
     void aVideoPlaysItsOwnSound() {
         const auto path = QStringLiteral(NT_FIXTURES_DIR "/media/flash-beep-720p30.mov");
-        SourceMonitor monitor; monitor.openLocal(video, path, path); QTRY_VERIFY_WITH_TIMEOUT(monitor.ready(), 10000);
+        SourceMonitor monitor(m_testCache.root()); monitor.openLocal(video, path, path); QTRY_VERIFY_WITH_TIMEOUT(monitor.ready(), 10000);
         QVERIFY(monitor.hasAudio()); QVERIFY(monitor.hasVideo()); QCOMPARE(monitor.audioPath(), path);
         monitor.togglePlay(); QVERIFY(monitor.audible());
         auto* engine = monitor.audioEngineForTest(); QVERIFY(engine);
@@ -138,7 +140,7 @@ private slots:
         monitor.pause();
     }
     void playbackUpdatesNoModel() {
-        SourceMonitor monitor; monitor.openLocal(video, numbered, {}); QTRY_VERIFY(monitor.ready());
+        SourceMonitor monitor(m_testCache.root()); monitor.openLocal(video, numbered, {}); QTRY_VERIFY(monitor.ready());
         TimelineModel program;
         QSignalSpy timeline(monitor.timeline(), &TimelineModel::timelineChanged), clips(monitor.timeline(), &TimelineModel::clipsChanged), preview(monitor.timeline(), &TimelineModel::previewChanged);
         QSignalSpy pt(&program, &TimelineModel::timelineChanged), pc(&program, &TimelineModel::clipsChanged), pp(&program, &TimelineModel::previewChanged);
@@ -147,13 +149,13 @@ private slots:
         QCOMPARE(pt.count(), 0); QCOMPARE(pc.count(), 0); QCOMPARE(pp.count(), 0);
     }
     void replacingTheSourceStopsAndCancels() {
-        SourceMonitor monitor; auto second = video; second.insert("id", "second");
+        SourceMonitor monitor(m_testCache.root()); auto second = video; second.insert("id", "second");
         monitor.openLocal(video, numbered, {}); monitor.openLocal(second, numbered, {}, 4000);
         QTRY_VERIFY_WITH_TIMEOUT(monitor.ready() && !monitor.busy(), 10000);
         QCOMPARE(monitor.timeline()->clipsJson().first().toObject().value("currentAssetId").toString(), QString("second"));
         QCOMPARE(monitor.clock()->time(), 4000.0); monitor.togglePlay();
         monitor.openLocal(video, numbered, {}); QVERIFY(!monitor.clock()->playing()); monitor.close(); QTest::qWait(100); QVERIFY(!monitor.ready());
-        { SourceMonitor destroyed; destroyed.openLocal(video, numbered, {}); }
+        { SourceMonitor destroyed(m_testCache.root()); destroyed.openLocal(video, numbered, {}); }
         monitor.open(video); QVERIFY(!monitor.ready()); QCOMPARE(monitor.error(), QString("Connect to a server to preview this asset."));
     }
 };

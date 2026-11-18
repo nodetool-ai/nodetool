@@ -11,6 +11,7 @@
 #include "playback/PlaybackClock.h"
 #include "server/ServerClient.h"
 #include "server/ServerSource.h"
+#include "server/TimelineAssetCacheContext.h"
 
 #include <QDir>
 #include <QJsonArray>
@@ -48,13 +49,13 @@ nt::Clip resolveFromServer(const QJsonObject& rawClip, const QString& assetId,
 }
 }
 
-TakeSwitcher::TakeSwitcher(TimelineModel* model) : QObject(model), m_model(model) {
+TakeSwitcher::TakeSwitcher(TimelineModel* model, const nt::server::AssetCacheRoot& cache) : QObject(model), m_model(model) {
     setObjectName(QStringLiteral("takeSwitcher"));
     m_messageTimer.setSingleShot(true);
     m_messageTimer.setInterval(MESSAGE_MS);
     connect(&m_messageTimer, &QTimer::timeout, this, [this] { setMessage({}); });
-    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
-    auto protection = std::make_shared<nt::assets::MediaProtection>(nt::server::timelineAssetCache());
+    // The resolver and in-flight workers can outlive the switcher.
+    auto protection = std::make_shared<nt::assets::MediaProtection>(cache);
     m_resolver = [protection](const QJsonObject& rawClip, const QString& assetId) {
         return resolveFromServer(rawClip, assetId, protection);
     };
@@ -71,8 +72,15 @@ TakeSwitcher::~TakeSwitcher() {
 
 TakeSwitcher* TakeSwitcher::forTimeline(TimelineModel* model) {
     if (!model) { return nullptr; }
-    auto* existing = model->findChild<TakeSwitcher*>(QStringLiteral("takeSwitcher"), Qt::FindDirectChildrenOnly);
-    return existing ? existing : new TakeSwitcher(model);
+    return model->findChild<TakeSwitcher*>(QStringLiteral("takeSwitcher"), Qt::FindDirectChildrenOnly);
+}
+
+TakeSwitcher* TakeSwitcher::attach(TimelineModel& model, const nt::server::AssetCacheRoot& cache) {
+    if (auto* existing = forTimeline(&model)) {
+        return existing;
+    }
+    // The model owns its switcher.
+    return new TakeSwitcher(&model, cache);
 }
 
 void TakeSwitcher::setMessage(const QString& message) {
@@ -262,7 +270,14 @@ QString TakeSwitcher::mediaPath(const QString& assetId, bool audio) const {
     return {};
 }
 
-TakeSwitcher* TakeInfo::switcherFor(TimelineModel* timeline) const { return TakeSwitcher::forTimeline(timeline); }
+TakeInfo* TakeInfo::create(QQmlEngine* engine, QJSEngine*) {
+    // The QML engine owns the singleton.
+    return new TakeInfo(nt::server::TimelineAssetCacheContext::require(engine), engine);
+}
+
+TakeSwitcher* TakeInfo::switcherFor(TimelineModel* timeline) const {
+    return timeline ? TakeSwitcher::attach(*timeline, m_cache) : nullptr;
+}
 
 QString TakeInfo::badge(const QVariantMap& clip) const {
     if (clip.value(QStringLiteral("versions")).toList().size() < 2) { return {}; }

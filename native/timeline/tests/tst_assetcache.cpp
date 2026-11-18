@@ -115,6 +115,27 @@ private slots:
         QVERIFY(!result.error.isEmpty());
     }
 
+    void fetchRecoversAbandonedEmptyLock() {
+        const QByteArray data = pattern(1000, 27);
+        m_http->setFile("/abandoned-lock.mp4", ServedFile{data});
+        const auto file = remote("/abandoned-lock.mp4", "v1", data.size());
+        QElapsedTimer deadline;
+        AssetCache cache(m_cacheRoot, "server", "user", {}, [&deadline] {
+            return deadline.hasExpired(1000);
+        });
+        const QDir folder(QFileInfo(cache.pathFor("asset", "original", file)).absolutePath());
+        QVERIFY(QDir().mkpath(folder.path()));
+        QFile lock(folder.filePath(".lock"));
+        QVERIFY(lock.open(QIODevice::WriteOnly));
+        QVERIFY(lock.setFileTime(QDateTime::currentDateTimeUtc().addDays(-1), QFileDevice::FileModificationTime));
+        lock.close();
+
+        deadline.start();
+        const auto fetched = cache.fetch("asset", "original", file);
+        QVERIFY2(fetched.ok(), qPrintable(fetched.error));
+        QCOMPARE(readAll(fetched.path), data);
+    }
+
     void downloadsOnceThenHits() {
         const QByteArray data = pattern(200000, 1);
         m_http->setFile("/api/storage/1/a1.mp4", ServedFile{data});
@@ -498,20 +519,28 @@ private slots:
         QVERIFY2(!QFileInfo::exists(held.path), "released media remained pinned");
     }
 
+    void symlinkedCacheRootSharesProtectionIdentity_data() {
+        QTest::addColumn<QString>("suffix");
+        QTest::newRow("existing-root") << QString{};
+        QTest::newRow("created-on-fetch") << QString("/new/cache");
+    }
+
     void symlinkedCacheRootSharesProtectionIdentity() {
 #ifdef Q_OS_UNIX
+        QFETCH(QString, suffix);
         m_http->setFile("/alias-held.mp4", ServedFile{pattern(100000, 25)});
         m_http->setFile("/alias-new.mp4", ServedFile{pattern(100000, 26)});
         QTemporaryDir aliasParent;
         QVERIFY(aliasParent.isValid());
         const QString aliasRoot = aliasParent.filePath("cache-alias");
         QVERIFY(QFile::link(m_dir.path(), aliasRoot));
-        const AssetCacheRoot root(aliasRoot);
+        const AssetCacheRoot root(aliasRoot + suffix);
         AssetCache writer(root, "server", "user");
         const auto held = writer.fetch("held", "original", remote("/alias-held.mp4", "v1", 100000));
         QVERIFY2(held.ok(), qPrintable(held.error));
         const auto canonicalPath = QFileInfo(held.path).canonicalFilePath();
         const auto lease = root.lease(canonicalPath);
+        QCOMPARE(*lease, held.path);
         AssetCache other(root, "server", "user");
         other.setBudgetBytes(100000);
         const auto fetched = other.fetch("new", "original", remote("/alias-new.mp4", "v1", 100000));
@@ -519,6 +548,24 @@ private slots:
         QVERIFY2(QFileInfo::exists(held.path), "symlinked path failed to protect the same cache file");
 #else
         QSKIP("requires a Unix directory symlink");
+#endif
+    }
+
+    void leaseDoesNotResolveSymlinksInsideCacheRoot() {
+#ifdef Q_OS_UNIX
+        const QString payload = m_dir.filePath("payload.mp4");
+        QFile media(payload);
+        QVERIFY(media.open(QIODevice::WriteOnly));
+        QCOMPARE(media.write("media"), 5);
+        media.close();
+        const QString alias = m_dir.filePath("alias.mp4");
+        QVERIFY(QFile::link(payload, alias));
+        const auto lease = m_cacheRoot.lease(alias);
+        QCOMPARE(*lease, alias);
+        m_cacheRoot.evict(5, {});
+        QVERIFY(!QFileInfo::exists(payload));
+#else
+        QSKIP("requires a Unix file symlink");
 #endif
     }
 

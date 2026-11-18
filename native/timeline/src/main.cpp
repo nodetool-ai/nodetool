@@ -44,7 +44,8 @@
 #include "server/SaveCli.h"
 #include "server/BundledServer.h"
 #include "server/ServerSource.h"
-#include "server/ServerTimelineLoader.h"
+#include "server/TimelineAssetCacheContext.h"
+#include "takes/TakeSwitcher.h"
 
 #include "aiassist/AgentBridge.h"
 #include "aiassist/AssistantCommands.h"
@@ -312,7 +313,8 @@ int probeMediaReport(int argc, char** argv) {
         return 2;
     }
     const QString fixture = parser.positionalArguments().first();
-    const auto loaded = nt::server::loadTimelineSource(fixture);
+    const nt::server::AssetCacheRoot cache(nt::server::timelineCacheDirectory());
+    const auto loaded = nt::server::loadTimelineSource(fixture, cache);
     if (!loaded.timeline) {
         std::fprintf(stderr, "error: %s\n", qPrintable(loaded.error));
         return 1;
@@ -366,7 +368,8 @@ int dumpPlan(int argc, char** argv) {
         times.push_back(t);
     }
     const QString fixture = parser.positionalArguments().first();
-    const auto loaded = nt::server::loadTimelineSource(fixture);
+    const nt::server::AssetCacheRoot cache(nt::server::timelineCacheDirectory());
+    const auto loaded = nt::server::loadTimelineSource(fixture, cache);
     if (!loaded.timeline) {
         std::fprintf(stderr, "error: %s\n", qPrintable(loaded.error));
         return 1;
@@ -383,7 +386,8 @@ int dumpPlan(int argc, char** argv) {
 // (Metal on macOS) into an offscreen texture, driven frame by frame from a
 // timer. --stills reads the compositor canvas back at each frame once every
 // layer shows its exact frame. --screenshot reads the whole editor back.
-int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const QString& shotPath,
+int runOffscreen(TimelineModel& model, PlaybackClock& clock, const nt::server::AssetCacheRoot& cache,
+                 QSize size, const QString& shotPath,
                  const QString& stillsDir, const QString& playDir, const std::vector<long long>& frames,
                  const QString& scrubScript = {}, const QString& scrubOut = {}, const QString& fixture = {},
                  const QString& decodeName = {}, const QByteArray& monitorState = {}) {
@@ -397,6 +401,7 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
     // item directly: they then depend on no QML file, and on nothing in the
     // tracks UI that another milestone may be changing.
     QQmlEngine engine;
+    nt::server::TimelineAssetCacheContext::install(engine, cache);
     QQmlComponent component(&engine);
     std::unique_ptr<QObject> rootObject;
     PreviewCompositor* compositor = nullptr;
@@ -755,8 +760,6 @@ int main(int argc, char** argv) {
     app.setApplicationName(QStringLiteral("nodetool-timeline"));
     app.setApplicationVersion(QStringLiteral(NT_APP_VERSION));
     const nt::server::AssetCacheRoot assetCache(nt::server::timelineCacheDirectory());
-    nt::server::setTimelineAssetCache(app, assetCache);
-    nt::server::ServerLoaderWorkers loaderWorkers;
 
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral("NodeTool timeline editor, native prototype"));
@@ -1050,6 +1053,7 @@ int main(int argc, char** argv) {
 
     TimelineModel model;
     model.setTimeline(*loaded.timeline);
+    TakeSwitcher::attach(model, assetCache);
     PlaybackClock clock;
     clock.setDurationMs(model.durationMs());
     clock.seek(parser.value(seekOpt).toDouble());
@@ -1079,13 +1083,13 @@ int main(int argc, char** argv) {
         options.windowed = parser.isSet(uiWindowOpt);
         options.previewResolution = previewResolution;
         options.guiP95BudgetMs = parser.value(uiBudgetOpt).toDouble();
-        return nt::ui::runUiBench(model, clock, options);
+        return nt::ui::runUiBench(model, clock, assetCache, options);
     }
     if (parser.isSet(scrubOpt)) {
         const QString out = parser.isSet(scrubOutOpt)
                                 ? parser.value(scrubOutOpt)
                                 : QStringLiteral("build/scrub/%1").arg(QFileInfo(source).completeBaseName());
-        return runOffscreen(model, clock, QSize(winW, winH), {}, {}, {}, {}, parser.value(scrubOpt), out, source,
+        return runOffscreen(model, clock, assetCache, QSize(winW, winH), {}, {}, {}, {}, parser.value(scrubOpt), out, source,
                             selectedDecodeMode);
     }
     if (!captureChat && (parser.isSet(shotOpt) || parser.isSet(stillsOpt) || parser.isSet(playStillsOpt))) {
@@ -1106,7 +1110,7 @@ int main(int argc, char** argv) {
                 return 2;
             }
         }
-        return runOffscreen(model, clock, QSize(winW, winH), parser.value(shotOpt), parser.value(stillsOpt),
+        return runOffscreen(model, clock, assetCache, QSize(winW, winH), parser.value(shotOpt), parser.value(stillsOpt),
                             parser.value(playStillsOpt), frames, {}, {}, {}, {}, parser.value(monitorStateOpt).toUtf8());
     }
 
@@ -1131,6 +1135,7 @@ int main(int argc, char** argv) {
                          [saver = cloudSaver.get()] { qWarning().noquote() << saver->error(); });
     }
     QQuickView view;
+    nt::server::TimelineAssetCacheContext::install(*view.engine(), assetCache);
     nt::hw::prepareWindow(&view);
     view.setResizeMode(QQuickView::SizeRootObjectToView);
     view.setColor(QColor(18, 18, 20));

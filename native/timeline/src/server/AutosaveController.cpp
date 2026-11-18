@@ -69,13 +69,6 @@ QJsonObject documentForSave(const QJsonObject& raw) {
     return doc;
 }
 
-AutosaveController::AutosaveController(SaveTarget target, QUndoStack* undo, DocumentFn document,
-                                       QString baseUpdatedAt, QObject* parent)
-    : AutosaveController(
-          AssetCacheRoot(QFileInfo(target.backupDir).fileName() == u"timelines"
-              ? QDir::cleanPath(target.backupDir + QStringLiteral("/../../..")) : target.backupDir),
-          target, undo, std::move(document), std::move(baseUpdatedAt), parent) {}
-
 AutosaveController::AutosaveController(AssetCacheRoot cache, SaveTarget target, QUndoStack* undo,
                                        DocumentFn document, QString baseUpdatedAt, QObject* parent)
     : QObject(parent),

@@ -1,4 +1,5 @@
 #pragma once
+#include "server/TimelineAssetCacheContext.h"
 #include "model/TimelineModel.h"
 #include "export/ExportSettings.h"
 #include "server/AssetCache.h"
@@ -16,8 +17,9 @@ QJsonObject exportSnapshot(const TimelineModel& model);
 QString unavailableOriginalMedia(const nt::Timeline& timeline, bool videoOutput = true);
 }
 
-class ExportController : public QObject {
+class ExportController : public nt::server::TimelineCacheConsumer<QObject> {
     Q_OBJECT
+    Q_INTERFACES(QQmlParserStatus)
     QML_ELEMENT
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY timelineChanged)
     Q_PROPERTY(bool running READ running NOTIFY runningChanged)
@@ -29,6 +31,7 @@ class ExportController : public QObject {
     Q_PROPERTY(QString error READ error NOTIFY errorChanged)
 public:
     explicit ExportController(QObject* parent = nullptr);
+    explicit ExportController(const nt::server::AssetCacheRoot& cache, QObject* parent = nullptr);
     ~ExportController() override;
     TimelineModel* timeline() const { return m_timeline; }
     void setTimeline(TimelineModel* model);

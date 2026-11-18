@@ -1,3 +1,4 @@
+#include "../../tests/TestAssetCacheRoot.h"
 #include "export/ExportController.h"
 #include "export/ExportEngine.h"
 #include "preview/effects/Masks.h"
@@ -39,6 +40,7 @@ extern "C" {
 
 class ExportDialogTest : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
 private slots:
     void rangeResolution() {
         QTemporaryDir dir;
@@ -185,7 +187,7 @@ private slots:
         parsed.timeline->clips.front().mediaPath = proxyPath.toStdString();
         TimelineModel model;
         model.setTimeline(std::move(*parsed.timeline));
-        ExportController controller;
+        ExportController controller(m_testCache.root());
         controller.setTimeline(&model);
         QSignalSpy finished(&controller, &ExportController::finished);
         controller.start(dir.filePath("unsafe.zip"), "png_sequence");
@@ -208,7 +210,7 @@ private slots:
         QVERIFY(parsed.timeline);
         TimelineModel model;
         model.setTimeline(std::move(*parsed.timeline));
-        ExportController controller;
+        ExportController controller(m_testCache.root());
         controller.setTimeline(&model);
         controller.setExecutable(QStringLiteral(NT_EXPORT_BINARY));
         QSignalSpy finished(&controller, &ExportController::finished);
@@ -445,7 +447,7 @@ private slots:
         model.setTimeline(*parsed.timeline);
         QElapsedTimer elapsed;
         {
-            ExportController controller;
+            ExportController controller(m_testCache.root());
             controller.setExecutable(QCoreApplication::applicationFilePath());
             controller.setTimeline(&model);
             controller.start(dir.filePath("never.wav"), "wav");
@@ -506,6 +508,7 @@ private slots:
 
     void dialog() {
         QQmlEngine engine;
+        m_testCache.install(engine);
         QQmlComponent component(&engine);
         component.loadFromModule("NodeTool.Timeline", "ExportVideoDialog");
         std::unique_ptr<QObject> root(component.create());
@@ -557,6 +560,7 @@ private slots:
         model.setTimeline(std::move(*parsed.timeline));
         PlaybackClock clock;
         QQmlEngine engine;
+        m_testCache.install(engine);
         QQmlComponent component(&engine);
         component.loadFromModule("NodeTool.Timeline", "TimelineEditor");
         std::unique_ptr<QObject> editor(component.createWithInitialProperties({
@@ -586,7 +590,7 @@ private slots:
         TimelineModel model;
         model.setTimeline(std::move(*parsed.timeline));
         const QByteArray before = model.documentJson();
-        ExportController controller;
+        ExportController controller(m_testCache.root());
         controller.setExecutable(QStringLiteral(NT_EXPORT_BINARY));
         controller.setTimeline(&model);
         QSignalSpy opened(&controller, &ExportController::openRequested);
@@ -610,7 +614,7 @@ private slots:
         TimelineModel model;
         model.setTimeline(std::move(*parsed.timeline));
         bool sent = false;
-        ExportController controller;
+        ExportController controller(m_testCache.root());
         controller.setExecutable(QStringLiteral(NT_EXPORT_BINARY));
         controller.setTimeline(&model);
         QSignalSpy finished(&controller, &ExportController::finished);

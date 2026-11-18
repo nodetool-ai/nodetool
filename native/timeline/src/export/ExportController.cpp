@@ -61,7 +61,11 @@ QString nt::exporting::unavailableOriginalMedia(const nt::Timeline& timeline, bo
     return {};
 }
 
-ExportController::ExportController(QObject* parent) : QObject(parent) {
+ExportController::ExportController(const nt::server::AssetCacheRoot& cache, QObject* parent) : ExportController(parent) {
+    setCacheRoot(cache);
+}
+
+ExportController::ExportController(QObject* parent) : TimelineCacheConsumer(parent) {
     connect(&m_process, &QProcess::stateChanged, this, &ExportController::runningChanged);
     connect(&m_process, &QProcess::readyReadStandardError, this, &ExportController::readProgress);
     connect(&m_process, &QProcess::finished, this, [self = QPointer<ExportController>(this)](int code, QProcess::ExitStatus status) {
@@ -126,7 +130,7 @@ void ExportController::start(const QString& output, const QString& format, bool 
     const auto unavailable = nt::exporting::unavailableOriginalMedia(m_timeline->timeline(), videoOutput);
     if (!unavailable.isEmpty()) { fail(unavailable); return; }
     startSnapshot(nt::exporting::exportSnapshot(*m_timeline), output, nt::exporting::Settings{format, alpha},
-        m_timeline->name(), nt::assets::MediaProtection::leasePaths(nt::server::timelineAssetCache(), m_timeline->resolvedMediaPaths()));
+        m_timeline->name(), nt::assets::MediaProtection::leasePaths(cacheRoot(), m_timeline->resolvedMediaPaths()));
 }
 bool ExportController::startSnapshot(const QJsonObject& raw, const QString& output, const nt::exporting::Settings& settings,
                                      const QString& label, std::vector<nt::server::AssetCache::Lease> leases) {

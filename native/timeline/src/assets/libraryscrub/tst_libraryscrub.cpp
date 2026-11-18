@@ -1,4 +1,5 @@
 // The Library hover scrub (issue #7092), through real pointer and key events on a mounted tile.
+#include "../../../tests/TestAssetCacheRoot.h"
 #include "LibraryScrub.h"
 #include "LibraryScrubSource.h"
 #include "SourceViewerState.h"
@@ -84,6 +85,7 @@ class TestLibraryScrub : public QObject {
     Q_OBJECT
     QTemporaryDir preferences;
     QTemporaryDir thumbnailCache;
+    TestAssetCacheRoot m_testCache;
     QQmlEngine engine;
     std::unique_ptr<QQuickWindow> window;
     std::unique_ptr<QObject> object;
@@ -134,6 +136,7 @@ class TestLibraryScrub : public QObject {
     static int hueOf(const QImage& image, QPoint at) { return (QColor(image.pixel(at)).hsvHue() + 7) % 360 / 15; }
 private slots:
     void initTestCase() {
+        m_testCache.install(engine);
         QVERIFY(preferences.isValid() && thumbnailCache.isValid());
         qputenv("NODETOOL_TIMELINE_PREFERENCES", preferences.filePath("preferences.ini").toUtf8());
         nt::ui::MediaPreviewCache::instance().setThumbnailCacheDirectoryForTesting(thumbnailCache.path());

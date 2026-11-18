@@ -22,7 +22,11 @@ QString detail(const QString& state, const QString& phase, qint64 frame, qint64 
     return QStringLiteral("Preparing…");
 }
 }
-ExportQueue::ExportQueue(QObject* parent) : QAbstractListModel(parent) {
+ExportQueue::ExportQueue(const nt::server::AssetCacheRoot& cache, QObject* parent) : ExportQueue(parent) {
+    setCacheRoot(cache);
+}
+
+ExportQueue::ExportQueue(QObject* parent) : TimelineCacheConsumer(parent) {
     connect(&m_runner, &ExportController::progressChanged, this, &ExportQueue::updateProgress);
     connect(&m_runner, &ExportController::finished, this, &ExportQueue::finish);
 }
@@ -88,7 +92,7 @@ QString ExportQueue::enqueue(const QString& output, const QVariantMap& settings,
     job.presetName = presetName;
     job.settings = normal;
     job.snapshot = nt::exporting::exportSnapshot(*m_timeline);
-    job.leases = nt::assets::MediaProtection::leasePaths(nt::server::timelineAssetCache(), m_timeline->resolvedMediaPaths());
+    job.leases = nt::assets::MediaProtection::leasePaths(cacheRoot(), m_timeline->resolvedMediaPaths());
     const auto id = job.id;
     const int row = rowCount();
     beginInsertRows({}, row, row);

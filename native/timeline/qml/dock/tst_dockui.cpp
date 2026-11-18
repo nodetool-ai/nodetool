@@ -1,3 +1,4 @@
+#include "../../tests/TestAssetCacheRoot.h"
 #include "DockLayoutStore.h"
 #include "app/PanelRegistry.h"
 #include "app/Preferences/PreferencesSettings.h"
@@ -38,6 +39,7 @@ QQuickItem* named(QQuickItem* root, const QString& name) {
 struct PanelEditor {
     TimelineModel model;
     PlaybackClock clock;
+    TestAssetCacheRoot cache;
     QQmlEngine engine;
     QQuickWindow window;
     std::unique_ptr<QObject> editor;
@@ -53,6 +55,7 @@ struct PanelEditor {
         if (!parsed.timeline) { error = "Invalid test document"; return; }
         model.setTimeline(std::move(*parsed.timeline));
         window.resize(1800, 1100);
+        cache.install(engine);
         QQmlComponent component(&engine);
         component.loadFromModule("NodeTool.Timeline", "TimelineEditor");
         if (!component.isReady()) { error = component.errorString(); return; }
@@ -406,7 +409,9 @@ private slots:
         QVERIFY(parsed.timeline);
         model.setTimeline(std::move(*parsed.timeline));
         PlaybackClock clock;
+        TestAssetCacheRoot assetCache;
         QQmlEngine engine;
+        assetCache.install(engine);
         QQuickWindow window;
         window.resize(1500, 900);
         QQmlComponent component(&engine);
@@ -442,7 +447,9 @@ private slots:
         QVERIFY(parsed.timeline);
         model.setTimeline(std::move(*parsed.timeline));
         PlaybackClock clock;
+        TestAssetCacheRoot assetCache;
         QQmlEngine engine;
+        assetCache.install(engine);
         QQuickRenderControl control;
         QQuickWindow window(&control);
         window.resize(1500, 900);
@@ -546,7 +553,9 @@ private slots:
         model.setTimeline(std::move(*parsed.timeline));
         PlaybackClock clock;
         const auto document = model.documentJson();
+        TestAssetCacheRoot assetCache;
         QQmlEngine engine;
+        assetCache.install(engine);
         nt::chat::ChatSession chat;
         const QString threadId = QStringLiteral("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
         chat.upsertThread({{"id", threadId}, {"title", "Draft"}});

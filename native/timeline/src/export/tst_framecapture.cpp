@@ -1,3 +1,4 @@
+#include "../../tests/TestAssetCacheRoot.h"
 #include "export/FrameCapture.h"
 #include "color/ColorMatch.h"
 #include "preview/effects/ClipEffects.h"
@@ -124,6 +125,7 @@ QImage render(QQuickItem& root) {
 
 class FrameCaptureTest : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
     QTemporaryDir m_dir;
     int m_serial = 0;
     QString stills(const QJsonObject& raw, const QString& frames) {
@@ -268,7 +270,7 @@ private slots:
         QVERIFY(load(model, raw));
         const auto reference = stills(raw, "3,30,60");
         QVERIFY(!reference.isEmpty());
-        FrameCapture capture;
+        FrameCapture capture(m_testCache.root());
         configure(capture, &model);
         const auto before = model.documentJson();
         const int undo = model.undoStack()->index();
@@ -344,7 +346,7 @@ private slots:
         QCOMPARE(capture.pending(), 0);
     }
     void sourcePixelsAndErrors() {
-        FrameCapture capture;
+        FrameCapture capture(m_testCache.root());
         configure(capture);
         const QString path = media("seek-360p30.mp4");
         const auto facts = nt::probeMedia(path.toStdString());
@@ -411,7 +413,7 @@ private slots:
     void snapshotAfterEdit() {
         TimelineModel model;
         QVERIFY(load(model, fixture()));
-        FrameCapture capture;
+        FrameCapture capture(m_testCache.root());
         configure(capture, &model);
         FrameCaptureResult first, second;
         bool a = false, b = false;
@@ -440,7 +442,7 @@ private slots:
         raw.insert("clips", clips);
         TimelineModel model;
         QVERIFY(load(model, raw));
-        FrameCapture capture;
+        FrameCapture capture(m_testCache.root());
         configure(capture, &model);
         FrameCaptureResult result;
         bool done = false;
@@ -471,7 +473,7 @@ private slots:
     void lifecycle() {
         TimelineModel model;
         QVERIFY(load(model, fixture()));
-        FrameCapture capture;
+        FrameCapture capture(m_testCache.root());
         configure(capture, &model);
         std::map<int, int> results;
         const auto record = [&](const auto& r) {
@@ -505,14 +507,14 @@ private slots:
         for (int id : {before, during, next, killed, recovered, detached}) QCOMPARE(results[id], 1);
         bool called = false;
         {
-            FrameCapture doomed;
+            FrameCapture doomed(m_testCache.root());
             configure(doomed, &model);
             doomed.captureSequence(0, [&](const auto&) { called = true; });
         }
         QTest::qWait(50);
         QVERIFY(!called);
         {
-            FrameCapture doomed;
+            FrameCapture doomed(m_testCache.root());
             configure(doomed, &model);
             doomed.captureSequence(0, [&](const auto&) { called = true; });
             QTRY_VERIFY_WITH_TIMEOUT(doomed.processId() > 0, 10000);
@@ -528,7 +530,7 @@ private slots:
         QCOMPARE(capture.timeline(), nullptr);
     }
     void idleRestart() {
-        FrameCapture capture;
+        FrameCapture capture(m_testCache.root());
         configure(capture);
         capture.setIdleInterval(200);
         QSignalSpy ready(&capture, &FrameCapture::frameReady);
@@ -540,7 +542,7 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(ready.size(), 2, 65000);
     }
     void cancelledBeforeStartStillCloses() {
-        FrameCapture capture;
+        FrameCapture capture(m_testCache.root());
         configure(capture);
         capture.setIdleInterval(200);
         QSignalSpy cancelled(&capture, &FrameCapture::frameCancelled);
@@ -561,7 +563,7 @@ private slots:
         raw.insert("clips", clips);
         TimelineModel model;
         QVERIFY(load(model, raw));
-        FrameCapture capture;
+        FrameCapture capture(m_testCache.root());
         configure(capture, &model);
         QSignalSpy failures(&capture, &FrameCapture::frameFailed);
         QSignalSpy ready(&capture, &FrameCapture::frameReady);
@@ -587,7 +589,7 @@ private slots:
         raw.insert("clips", clips);
         TimelineModel model;
         QVERIFY(load(model, raw));
-        FrameCapture capture;
+        FrameCapture capture(m_testCache.root());
         configure(capture, &model);
         QSignalSpy ready(&capture, &FrameCapture::frameReady);
         QElapsedTimer call;
@@ -610,7 +612,7 @@ private slots:
         file.write("#!/bin/sh\nexec sleep 300\n");
         file.close();
         QVERIFY(file.setPermissions(file.permissions() | QFileDevice::ExeOwner));
-        FrameCapture capture;
+        FrameCapture capture(m_testCache.root());
         capture.setExecutable(script);
         capture.setWatchdogInterval(300);
         QSignalSpy failures(&capture, &FrameCapture::frameFailed);
@@ -649,7 +651,7 @@ private slots:
         QVERIFY(score >= 60);
     }
     void asynchronousErrors() {
-        FrameCapture capture;
+        FrameCapture capture(m_testCache.root());
         configure(capture);
         QSignalSpy failures(&capture, &FrameCapture::frameFailed);
         const int noTimeline = capture.captureSequence(0);
@@ -670,7 +672,7 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(ready.size(), 1, 65000);
     }
     void cancelBeforeQueuedErrorDelivery() {
-        FrameCapture capture;
+        FrameCapture capture(m_testCache.root());
         QSignalSpy failures(&capture, &FrameCapture::frameFailed);
         QSignalSpy cancelled(&capture, &FrameCapture::frameCancelled);
         const int id = capture.captureSource({}, 0);
@@ -683,6 +685,7 @@ private slots:
     }
     void mountedQml() {
         QQmlEngine engine;
+        m_testCache.install(engine);
         QQmlComponent component(&engine);
         component.setData(R"(import QtQuick
 import NodeTool.Timeline

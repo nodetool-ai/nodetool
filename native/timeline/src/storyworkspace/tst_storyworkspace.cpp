@@ -1,3 +1,4 @@
+#include "../../tests/TestAssetCacheRoot.h"
 #include <QFontInfo>
 #include "storyworkspace/StoryWorkspace.h"
 #include "aiassist/ScriptVoicing.h"
@@ -35,6 +36,7 @@ QString action(const StoryWorkspace& workspace) {
 }
 class StoryWorkspaceTest : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
 private slots:
     void mountedBrowseListsAndOpensResources_data() {
         QTest::addColumn<QString>("kind");
@@ -52,7 +54,7 @@ private slots:
         qmlRegisterType<CandidatePreview>("NodeTool.StoryWorkspaceTest", 1, 0, "CandidatePreview");
         qmlRegisterType<ShotWorkflow>("NodeTool.StoryWorkspaceTest", 1, 0, "ShotWorkflow");
         TimelineModel model; model.setTimeline(timeline());
-        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        AssistController controller(m_testCache.root()); controller.setModel(&model); controller.setProperty("documentOnly", true);
         StoryWorkspace workspace; workspace.setController(&controller);
         const QString resourceId = "123456789abc123456789abc12345678";
         QString called, openedId;
@@ -69,6 +71,7 @@ private slots:
                     QJsonObject{{"id", "line-two"}, {"speakerId", "narrator"}, {"text", "Dust rose against the evening sky."}}}}}}}}}}, {}};
         });
         QQmlEngine engine;
+        m_testCache.install(engine);
         QFile source(qEnvironmentVariable("NODETOOL_STORY_EDITOR_TEST", QStringLiteral(NT_STORY_SOURCE "/qml/storyworkspace/StoryWorkspaceEditor.qml")));
         QVERIFY(source.open(QIODevice::ReadOnly));
         auto qml = source.readAll(); qml.replace("import NodeTool.Timeline", "import NodeTool.StoryWorkspaceTest");
@@ -133,8 +136,8 @@ private slots:
         qmlRegisterType<CandidatePreview>("NodeTool.StoryWorkspaceTest", 1, 0, "CandidatePreview");
         qmlRegisterType<ShotWorkflow>("NodeTool.StoryWorkspaceTest", 1, 0, "ShotWorkflow");
         TimelineModel model; model.setTimeline(timeline());
-        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
-        AssistController picker; picker.setModel(&model); picker.setProperty("documentOnly", true);
+        AssistController controller(m_testCache.root()); controller.setModel(&model); controller.setProperty("documentOnly", true);
+        AssistController picker(m_testCache.root()); picker.setModel(&model); picker.setProperty("documentOnly", true);
         StoryWorkspace workspace; workspace.setController(&controller);
         const QString chosen = "aaaaaaaaaaaa1111111111111111aaaa", other = "bbbbbbbbbbbb2222222222222222bbbb";
         QString linkedId;
@@ -162,6 +165,7 @@ private slots:
         };
         controller.setCall(call); picker.setCall(call);
         QQmlEngine engine;
+        m_testCache.install(engine);
         QFile source(qEnvironmentVariable("NODETOOL_STORY_EDITOR_TEST", QStringLiteral(NT_STORY_SOURCE "/qml/storyworkspace/StoryWorkspaceEditor.qml")));
         QVERIFY(source.open(QIODevice::ReadOnly));
         auto qml = source.readAll(); qml.replace("import NodeTool.Timeline", "import NodeTool.StoryWorkspaceTest");
@@ -217,7 +221,7 @@ private slots:
         qmlRegisterType<CandidatePreview>("NodeTool.StoryWorkspaceTest", 1, 0, "CandidatePreview");
         qmlRegisterType<ShotWorkflow>("NodeTool.StoryWorkspaceTest", 1, 0, "ShotWorkflow");
         TimelineModel model; model.setTimeline(timeline());
-        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        AssistController controller(m_testCache.root()); controller.setModel(&model); controller.setProperty("documentOnly", true);
         StoryWorkspace workspace; workspace.setController(&controller);
         auto stored = board(); int writes = 0; QString called;
         auto document = stored.value("document").toObject(); document.insert("entityIds", QJsonArray{"character"}); stored.insert("document", document);
@@ -230,6 +234,7 @@ private slots:
         });
         QVERIFY(controller.openStoryboard("board")); QTRY_VERIFY(!controller.busy());
         QQmlEngine engine;
+        m_testCache.install(engine);
         QFile source(qEnvironmentVariable("NODETOOL_STORY_EDITOR_TEST", QStringLiteral(NT_STORY_SOURCE "/qml/storyworkspace/StoryWorkspaceEditor.qml")));
         QVERIFY(source.open(QIODevice::ReadOnly));
         // Isolate the theme import so this mounted panel does not load the full app module.
@@ -297,7 +302,7 @@ private slots:
         qmlRegisterType<CandidatePreview>("NodeTool.StoryWorkspaceTest", 1, 0, "CandidatePreview");
         qmlRegisterType<ShotWorkflow>("NodeTool.StoryWorkspaceTest", 1, 0, "ShotWorkflow");
         TimelineModel model; model.setTimeline(timeline());
-        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        AssistController controller(m_testCache.root()); controller.setModel(&model); controller.setProperty("documentOnly", true);
         StoryWorkspace workspace; workspace.setController(&controller);
         QJsonObject stored{{"id", "board"}, {"projectId", "project"}, {"updatedAt", "rev1"}, {"document", QJsonObject{{"style", "noir"}, {"entityIds", QJsonArray{}},
             {"shots", QJsonArray{QJsonObject{{"id", "one"}, {"index", 0}, {"scene_id", "s"}, {"action", "A door opens"}, {"camera", QJsonObject{{"framing", "wide"}}}},
@@ -309,6 +314,7 @@ private slots:
         });
         QVERIFY(controller.openStoryboard("board")); QTRY_VERIFY(!controller.busy());
         QQmlEngine engine;
+        m_testCache.install(engine);
         QFile source(QStringLiteral(NT_STORY_SOURCE "/qml/storyworkspace/StoryWorkspaceEditor.qml")); QVERIFY(source.open(QIODevice::ReadOnly));
         auto qml = source.readAll(); qml.replace("import NodeTool.Timeline", "import NodeTool.StoryWorkspaceTest");
         QQmlComponent component(&engine); component.setData(qml, QUrl::fromLocalFile(source.fileName()));
@@ -367,7 +373,7 @@ private slots:
         qmlRegisterType<CandidatePreview>("NodeTool.StoryWorkspaceTest", 1, 0, "CandidatePreview");
         qmlRegisterType<ShotWorkflow>("NodeTool.StoryWorkspaceTest", 1, 0, "ShotWorkflow");
         TimelineModel model; model.setTimeline(timeline());
-        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        AssistController controller(m_testCache.root()); controller.setModel(&model); controller.setProperty("documentOnly", true);
         StoryWorkspace workspace; workspace.setController(&controller);
         QJsonObject stored{{"id", "board"}, {"name", "Night run"}, {"projectId", "project"}, {"updatedAt", "rev1"}, {"document", QJsonObject{{"style", "noir"}, {"entityIds", QJsonArray{}},
             {"screenplay", QJsonObject{{"scenes", QJsonArray{QJsonObject{{"id", "s1"}, {"slugline", "EXT. STREET - NIGHT"}}, QJsonObject{{"id", "s2"}, {"slugline", "INT. CAR"}}}}}},
@@ -381,6 +387,7 @@ private slots:
         });
         QVERIFY(controller.openStoryboard("board")); QTRY_VERIFY(!controller.busy());
         QQmlEngine engine;
+        m_testCache.install(engine);
         QFile source(QStringLiteral(NT_STORY_SOURCE "/qml/storyworkspace/StoryWorkspaceEditor.qml")); QVERIFY(source.open(QIODevice::ReadOnly));
         auto qml = source.readAll(); qml.replace("import NodeTool.Timeline", "import NodeTool.StoryWorkspaceTest");
         QQmlComponent component(&engine); component.setData(qml, QUrl::fromLocalFile(source.fileName()));
@@ -422,7 +429,7 @@ private slots:
     void lineDraftsDoNotMakeAnotherResourceKindWithSameIdDirty() {
         const QString sharedId = "123456789abc123456789abc12345678";
         TimelineModel model; model.setTimeline(timeline());
-        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        AssistController controller(m_testCache.root()); controller.setModel(&model); controller.setProperty("documentOnly", true);
         const QJsonObject script{{"id", sharedId}, {"document", QJsonObject{{"sections", QJsonArray{QJsonObject{
             {"id", "section"}, {"lines", QJsonArray{QJsonObject{{"id", "line"}, {"text", "Original"}}}}}}}}}};
         const QJsonObject entity{{"id", sharedId}, {"metadata", QJsonObject{{"nodetool_entity", QJsonObject{{"kind", "character"}, {"name", "Alice"}}}}}};
@@ -445,7 +452,7 @@ private slots:
     void lateBoardRefreshCannotReplaceAnotherResourceKindWithSameId() {
         const QString sharedId = "123456789abc123456789abc12345678";
         TimelineModel model; model.setTimeline(timeline());
-        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        AssistController controller(m_testCache.root()); controller.setModel(&model); controller.setProperty("documentOnly", true);
         const QJsonObject entity{{"id", sharedId}, {"metadata", QJsonObject{{"nodetool_entity", QJsonObject{{"kind", "character"}, {"name", "Alice"}}}}}};
         const QJsonObject script{{"id", sharedId}, {"document", QJsonObject{{"sections", QJsonArray{}}}}};
         controller.setCall([&](bool, const QString& procedure, const QJsonObject&) { return nt::server::QueryResult{procedure == "assets.get" ? entity : procedure == "scripts.get" ? script : board(sharedId), {}}; });
@@ -459,7 +466,7 @@ private slots:
     }
     void orphanLineDraftRequiresExplicitLocalDiscard() {
         TimelineModel model; model.setTimeline(timeline());
-        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        AssistController controller(m_testCache.root()); controller.setModel(&model); controller.setProperty("documentOnly", true);
         const QString scriptId = "123456789abc123456789abc12345678", lineId = "abcdef0123456789abcdef0123456789";
         auto document = QJsonObject{{"sections", QJsonArray{QJsonObject{{"id", "section"}, {"lines", QJsonArray{QJsonObject{{"id", lineId}, {"text", "Original"}}}}}}}};
         QJsonObject stored{{"id", scriptId}, {"timelineId", "timeline"}, {"updatedAt", "base"}, {"document", document}};
@@ -480,7 +487,7 @@ private slots:
     }
     void alreadyRemovedPendingDeletionCanBeDiscardedWithoutRows() {
         TimelineModel model; model.setTimeline(timeline());
-        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        AssistController controller(m_testCache.root()); controller.setModel(&model); controller.setProperty("documentOnly", true);
         const QString scriptId = "123456789abc123456789abc12345678", lineId = "abcdef0123456789abcdef0123456789";
         QJsonObject stored{{"id", scriptId}, {"updatedAt", "base"}, {"document", QJsonObject{{"sections", QJsonArray{QJsonObject{{"id", "section"}, {"lines", QJsonArray{QJsonObject{{"id", lineId}, {"text", ""}}}}}}}}}};
         int writes = 0;
@@ -499,7 +506,7 @@ private slots:
     }
     void unlinkedScriptCannotSilentlyApplyToAnotherCut() {
         TimelineModel model; model.setTimeline(timeline());
-        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        AssistController controller(m_testCache.root()); controller.setModel(&model); controller.setProperty("documentOnly", true);
         const QJsonObject script{{"id", "script"}, {"timelineId", "other-cut"}, {"updatedAt", "base"}, {"document", QJsonObject{{"sections", QJsonArray{}}}}};
         int calls = 0;
         controller.setCall([&](bool, const QString&, const QJsonObject&) { ++calls; return nt::server::QueryResult{script, {}}; });
@@ -516,7 +523,7 @@ private slots:
         const auto parsed = nt::parseTimelineJson(QJsonDocument(source.raw).toJson());
         QVERIFY2(parsed.timeline.has_value(), qPrintable(parsed.error));
         TimelineModel model; model.setTimeline(*parsed.timeline); const auto before = model.timeline().raw;
-        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        AssistController controller(m_testCache.root()); controller.setModel(&model); controller.setProperty("documentOnly", true);
         StoryWorkspace workspace; workspace.setController(&controller);
         QJsonObject stored{{"id", "script"}, {"timelineId", "timeline"}, {"updatedAt", "rev1"}, {"document", QJsonObject{
             {"cast", QJsonArray{QJsonObject{{"id", "speaker"}, {"name", "Alice"}}}}, {"sections", QJsonArray{}}}}};
@@ -535,7 +542,7 @@ private slots:
     }
     void explicitSaveUsesSharedControllerCasAndKeepsCut() {
         TimelineModel model; model.setTimeline(timeline());
-        AssistController controller; controller.setModel(&model);
+        AssistController controller(m_testCache.root()); controller.setModel(&model);
         QVERIFY(controller.setProperty("documentOnly", true));
         StoryWorkspace workspace; workspace.setController(&controller);
         auto stored = board(); QJsonObject submitted; QString procedure;
@@ -557,7 +564,7 @@ private slots:
     void draftsSurviveResourceAndTimelineSwitches() {
         TimelineModel first; first.setTimeline(timeline());
         TimelineModel second; second.setTimeline(timeline("other-timeline"));
-        AssistController controller; controller.setModel(&first); controller.setProperty("documentOnly", true);
+        AssistController controller(m_testCache.root()); controller.setModel(&first); controller.setProperty("documentOnly", true);
         StoryWorkspace workspace; workspace.setController(&controller);
         controller.setCall([](bool, const QString&, const QJsonObject& input) { return nt::server::QueryResult{board(input.value("id").toString()), {}}; });
         QVERIFY(controller.openStoryboard("board")); QTRY_VERIFY(!controller.busy());
@@ -573,7 +580,7 @@ private slots:
     }
     void failureRetainsDraftAndRetryConfirmsIt() {
         TimelineModel model; model.setTimeline(timeline());
-        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        AssistController controller(m_testCache.root()); controller.setModel(&model); controller.setProperty("documentOnly", true);
         StoryWorkspace workspace; workspace.setController(&controller);
         bool fail = true; auto stored = board();
         controller.setCall([&](bool write, const QString&, const QJsonObject& input) {
@@ -589,7 +596,7 @@ private slots:
     }
     void remoteChangeDoesNotOverwriteRetainedDraft() {
         TimelineModel model; model.setTimeline(timeline());
-        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        AssistController controller(m_testCache.root()); controller.setModel(&model); controller.setProperty("documentOnly", true);
         StoryWorkspace workspace; workspace.setController(&controller);
         auto stored = board(); int writes = 0;
         controller.setCall([&](bool write, const QString&, const QJsonObject&) { if (write) { ++writes; } return nt::server::QueryResult{stored, {}}; });
@@ -603,7 +610,7 @@ private slots:
     }
     void entitySaveUsesOriginalMetadataAsCompareAndSwap() {
         TimelineModel model; model.setTimeline(timeline());
-        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        AssistController controller(m_testCache.root()); controller.setModel(&model); controller.setProperty("documentOnly", true);
         StoryWorkspace workspace; workspace.setController(&controller);
         const QJsonObject metadata{{"unrelated", "keep"}, {"nodetool_entity", QJsonObject{{"kind", "character"}, {"name", "Alice"}, {"descriptor", "Original"}}}};
         const QString entityId = "fedcba9876543210fedcba9876543210";
@@ -621,7 +628,7 @@ private slots:
         QCOMPARE(model.undoStack()->count(), 0);
     }
     void jsonEditsRejectInvalidReferencesBeforeAnyWrite() {
-        TimelineModel model; model.setTimeline(timeline()); AssistController controller; controller.setModel(&model);
+        TimelineModel model; model.setTimeline(timeline()); AssistController controller(m_testCache.root()); controller.setModel(&model);
         StoryWorkspace workspace; workspace.setController(&controller);
         controller.setCall([](bool, const QString&, const QJsonObject&) { return nt::server::QueryResult{board(), {}}; });
         QVERIFY(controller.openStoryboard("board")); QTRY_VERIFY(!controller.busy());
@@ -632,7 +639,7 @@ private slots:
     void sameResourceIdKeepsScriptAndStoryboardDraftsSeparate() {
         const QString sharedId = "123456789abc123456789abc12345678";
         TimelineModel model; model.setTimeline(timeline());
-        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        AssistController controller(m_testCache.root()); controller.setModel(&model); controller.setProperty("documentOnly", true);
         StoryWorkspace workspace; workspace.setController(&controller);
         const QJsonObject script{{"id", sharedId}, {"updatedAt", "script-rev"}, {"document", QJsonObject{
             {"cast", QJsonArray{QJsonObject{{"id", "speaker"}, {"name", "Alice"}}}}, {"sections", QJsonArray{}}}}};
@@ -660,7 +667,7 @@ private slots:
         const QString timelineId = "123456789abc123456789abc12345678";
         auto source = timeline(timelineId); source.raw.insert("projectId", projectId);
         TimelineModel model; model.setTimeline(source);
-        AssistController controller; controller.setModel(&model);
+        AssistController controller(m_testCache.root()); controller.setModel(&model);
         QString called; QJsonObject payload;
         controller.setCall([&](bool, const QString& procedure, const QJsonObject& input) {
             called = procedure; payload = input; return nt::server::QueryResult{QJsonArray{}, {}};
@@ -678,7 +685,7 @@ private slots:
         QVERIFY(controller.error().contains("project timeline"));
     }
     void invalidRawReferenceDraftSurvivesSwitchAndBlocksSave() {
-        TimelineModel model; model.setTimeline(timeline()); AssistController controller; controller.setModel(&model);
+        TimelineModel model; model.setTimeline(timeline()); AssistController controller(m_testCache.root()); controller.setModel(&model);
         StoryWorkspace workspace; workspace.setController(&controller);
         int writes = 0;
         controller.setCall([&](bool write, const QString&, const QJsonObject& input) {

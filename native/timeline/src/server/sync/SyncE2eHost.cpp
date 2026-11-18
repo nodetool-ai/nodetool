@@ -1,3 +1,4 @@
+#include "server/TimelineAssetCacheContext.h"
 // Headless driver for the real model, sync registration and editor QML.
 // stdin/stdout are JSON lines. Diagnostics belong on stderr.
 #include "model/TimelineModel.h"
@@ -68,7 +69,6 @@ int main(int argc, char** argv) {
     }
     const auto id = parser.value("timeline");
     const nt::server::AssetCacheRoot cache(parser.value("cache-dir"));
-    nt::server::setTimelineAssetCache(app, cache);
     const auto token = parser.isSet("token") ? parser.value("token") : qEnvironmentVariable("NODETOOL_API_TOKEN");
     auto opened = nt::server::openProbedServerTimeline({server, id, cache, token, true, {}, {}});
     if (!opened.timeline) {
@@ -89,6 +89,7 @@ int main(int argc, char** argv) {
         save.setExternalSyncUrl(QUrl(parser.value("sync-url")));
     }
     QQuickView view;
+    nt::server::TimelineAssetCacheContext::install(*view.engine(), cache);
     nt::hw::prepareWindow(&view);
     view.setResizeMode(QQuickView::SizeRootObjectToView);
     view.setInitialProperties({{"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)}});

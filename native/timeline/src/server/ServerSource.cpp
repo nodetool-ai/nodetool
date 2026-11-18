@@ -4,7 +4,6 @@
 #include "server/ServerClient.h"
 #include "server/ServerTimelineProbe.h"
 
-#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -19,7 +18,6 @@
 #include <string>
 #include <utility>
 
-Q_DECLARE_METATYPE(nt::server::AssetCacheRoot)
 
 namespace nt::server {
 namespace {
@@ -206,35 +204,6 @@ std::optional<SaveTarget> serverSaveTarget() {
 
 QString timelineCacheDirectory() {
     return args().active ? args().cacheDir : defaultCacheDir();
-}
-
-void setTimelineAssetCache(QCoreApplication& app, const AssetCacheRoot& cache) {
-    app.setProperty("timelineAssetCache", QVariant::fromValue(cache));
-}
-
-static std::optional<AssetCacheRoot> configuredTimelineAssetCache() {
-    if (const auto* app = QCoreApplication::instance()) {
-        const auto configured = app->property("timelineAssetCache");
-        if (configured.isValid()) {
-            return configured.value<AssetCacheRoot>();
-        }
-    }
-    return std::nullopt;
-}
-
-AssetCacheRoot timelineAssetCache() {
-    if (auto cache = configuredTimelineAssetCache()) {
-        return *cache;
-    }
-    return AssetCacheRoot(timelineCacheDirectory());
-}
-
-ParseResult loadTimelineSource(const QString& source) {
-    if (auto cache = configuredTimelineAssetCache()) {
-        return loadTimelineSource(source, *cache);
-    }
-    const auto directory = args().active && source.toStdString() == args().label ? args().cacheDir : defaultCacheDir();
-    return loadTimelineSource(source, AssetCacheRoot(directory));
 }
 
 ParseResult loadTimelineSource(const QString& source, const AssetCacheRoot& cache) {

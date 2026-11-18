@@ -1,3 +1,4 @@
+#include "server/TimelineAssetCacheContext.h"
 #include "LibraryScrub.h"
 #include "LibraryScrubSource.h"
 #include "SourceViewerState.h"
@@ -34,7 +35,12 @@ bool insideSource(const QQuickItem* item) {
 }
 }  // namespace
 
-LibraryScrub::LibraryScrub(QObject* parent) : QObject(parent) {
+LibraryScrub* LibraryScrub::create(QQmlEngine* engine, QJSEngine*) {
+    // The QML engine owns the singleton.
+    return new LibraryScrub(nt::server::TimelineAssetCacheContext::require(engine), engine);
+}
+
+LibraryScrub::LibraryScrub(const nt::server::AssetCacheRoot& cache, QObject* parent) : QObject(parent), m_cache(cache) {
     m_enabled = nt::app::openTimelinePreferences()->value(kPreference, true).toBool();
     m_dwell.setSingleShot(true);
     m_dwell.setInterval(kDwellMs);
@@ -185,7 +191,7 @@ void LibraryScrub::startFetch() {
         return;
     }
     const auto target = nt::server::serverSaveTarget();
-    const auto cacheRoot = nt::server::timelineAssetCache();
+    const auto cacheRoot = m_cache;
     if (!target) { return; }
     ++m_fetches;
     const QPointer<LibraryScrub> self(this);

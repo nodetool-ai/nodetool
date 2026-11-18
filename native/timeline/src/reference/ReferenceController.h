@@ -1,5 +1,6 @@
 // Behaviour ported from FilmCraft (MIT), see licenses/FilmCraft-MIT.txt.
 #pragma once
+#include "assets/TimelineMediaConsumer.h"
 #include "export/FrameCapture.h"
 #include "model/TimelineTypes.h"
 #include "playback/PlaybackClock.h"
@@ -25,8 +26,9 @@ namespace nt::assets { class MediaProtection; }
 //
 // Everything here is view state. It writes neither the document nor undo.
 // native-rules #9: used across threads (QThread worker) and declares no thread affinity at its top
-class ReferenceController : public QObject {
+class ReferenceController : public nt::assets::TimelineMediaConsumer {
     Q_OBJECT
+    Q_INTERFACES(QQmlParserStatus)
     QML_ELEMENT
     Q_PROPERTY(FrameCapture* capture READ capture WRITE setCapture NOTIFY inputsChanged)
     Q_PROPERTY(PlaybackClock* clock READ clock WRITE setClock NOTIFY inputsChanged)
@@ -53,6 +55,7 @@ public:
     // Fetches a take's media on a worker thread. A failure returns a clip with no picture path.
     using TakeMediaResolver = std::function<nt::Clip(const QString& assetId, const QJsonObject& clip)>;
     explicit ReferenceController(QObject* parent = nullptr);
+    explicit ReferenceController(const nt::server::AssetCacheRoot& cache, QObject* parent = nullptr);
     ~ReferenceController() override;
     static ReferenceController* forOwner(const QObject* owner);
     FrameCapture* capture() const { return m_capture; }
@@ -133,7 +136,6 @@ private:
     QTimer m_timer;
     std::optional<Target> m_target;
     // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
-    std::shared_ptr<nt::assets::MediaProtection> m_protection;
     TakeMediaResolver m_resolver;
     QImage m_image;
     double m_imageTimeMs = -1;

@@ -42,8 +42,12 @@ ReferenceController::TakeMediaResolver serverResolver(const std::shared_ptr<nt::
 }
 }
 
+ReferenceController::ReferenceController(const nt::server::AssetCacheRoot& cache, QObject* parent) : ReferenceController(parent) {
+    setCacheRoot(cache);
+}
+
 ReferenceController::ReferenceController(QObject* parent)
-    : QObject(parent), m_protection(std::make_shared<nt::assets::MediaProtection>(nt::server::timelineAssetCache())) {
+    : TimelineMediaConsumer(parent) {
     liveInstances().push_back(this);
     m_timer.setSingleShot(true);
     connect(&m_timer, &QTimer::timeout, this, &ReferenceController::followPlayhead);
@@ -385,7 +389,7 @@ void ReferenceController::startTake(const Target& target) {
         failed(projection.error, target);
         return;
     }
-    auto resolver = m_resolver ? m_resolver : serverResolver(m_protection);
+    auto resolver = m_resolver ? m_resolver : serverResolver(mediaProtection());
     if (!resolver) {
         failed(tr("Open a timeline from the server to compare takes."), target);
         return;

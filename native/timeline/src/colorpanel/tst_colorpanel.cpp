@@ -1,3 +1,4 @@
+#include "../../tests/TestAssetCacheRoot.h"
 #include "color/ColorMatch.h"
 #include "colorpanel/ColorMatchController.h"
 #include "colorpanel/ScopesController.h"
@@ -88,6 +89,7 @@ double meanOf(const QJsonObject& numbers, const char* channel) {
 struct Editor {
     TimelineModel model;
     PlaybackClock clock;
+    TestAssetCacheRoot cache;
     QQmlEngine engine;
     QQuickWindow window;
     std::unique_ptr<QObject> object;
@@ -97,6 +99,7 @@ struct Editor {
         if (!parsed.timeline) { error = "Invalid test document"; return; }
         model.setTimeline(std::move(*parsed.timeline));
         clock.setFps(30);
+        cache.install(engine);
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/TimelineEditor.qml"));
         object.reset(component.createWithInitialProperties({{"timeline", QVariant::fromValue(&model)},
             {"clock", QVariant::fromValue(&clock)}, {"width", 1500}, {"height", 950}}));
@@ -162,6 +165,7 @@ struct Editor {
 
 class TestColorPanel : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
     QTemporaryDir directory;
     QString image(const QString& name, const QImage& picture) {
         const auto path = directory.filePath(name + ".png");
@@ -509,7 +513,7 @@ private slots:
         PlaybackClock clock;
         clock.setFps(30);
         clock.setDurationMs(4000);
-        FrameCapture capture;
+        FrameCapture capture(m_testCache.root());
         capture.setExecutable(QStringLiteral(NT_TIMELINE_BINARY));
         capture.setTimeline(&model);
         ScopesController scopes;
@@ -576,7 +580,7 @@ private slots:
         auto parsed = nt::parseTimeline(documentOf({a}));
         QVERIFY(parsed.timeline);
         model.setTimeline(std::move(*parsed.timeline));
-        FrameCapture capture;
+        FrameCapture capture(m_testCache.root());
         capture.setExecutable(QStringLiteral(NT_TIMELINE_BINARY));
         capture.setTimeline(&model);
         ScopesController scopes;
@@ -614,7 +618,7 @@ private slots:
         auto parsed = nt::parseTimeline(documentOf({a}));
         QVERIFY(parsed.timeline);
         model.setTimeline(std::move(*parsed.timeline));
-        FrameCapture capture;
+        FrameCapture capture(m_testCache.root());
         capture.setExecutable(QStringLiteral(NT_TIMELINE_BINARY));
         capture.setTimeline(&model);
         QImage plain, graded;
@@ -751,7 +755,7 @@ private slots:
         model.setTimeline(std::move(*parsed.timeline));
         PlaybackClock clock;
         clock.setFps(30);
-        FrameCapture capture;
+        FrameCapture capture(m_testCache.root());
         capture.setExecutable(QStringLiteral(NT_TIMELINE_BINARY));
         capture.setTimeline(&model);
         ColorMatchController matcher;
@@ -811,7 +815,7 @@ private slots:
         model.setTimeline(std::move(*parsed.timeline));
         PlaybackClock clock;
         clock.setFps(30);
-        FrameCapture capture;
+        FrameCapture capture(m_testCache.root());
         capture.setExecutable(QStringLiteral(NT_TIMELINE_BINARY));
         capture.setTimeline(&model);
         ColorMatchController matcher;
@@ -844,7 +848,7 @@ private slots:
         auto parsed = nt::parseTimeline(documentOf({clipJson("a", 0, 1000, current), clipJson("r", 1000, 1000, reference), absent}));
         QVERIFY2(parsed.timeline, qPrintable(parsed.error));
         model.setTimeline(std::move(*parsed.timeline));
-        FrameCapture capture;
+        FrameCapture capture(m_testCache.root());
         capture.setExecutable(QStringLiteral(NT_TIMELINE_BINARY));
         capture.setTimeline(&model);
         ColorMatchController matcher;
@@ -870,7 +874,7 @@ private slots:
         auto parsed = nt::parseTimeline(documentOf({a, clipJson("r", 1000, 1000, reference)}));
         QVERIFY2(parsed.timeline, qPrintable(parsed.error));
         model.setTimeline(std::move(*parsed.timeline));
-        FrameCapture capture;
+        FrameCapture capture(m_testCache.root());
         capture.setExecutable(QStringLiteral(NT_TIMELINE_BINARY));
         capture.setTimeline(&model);
         ColorMatchController matcher;

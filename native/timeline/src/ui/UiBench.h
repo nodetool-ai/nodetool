@@ -1,5 +1,7 @@
 #pragma once
 
+namespace nt::server { class AssetCacheRoot; }
+
 // `--ui-bench` (PLAN.md M2 exit 1): plays the preview and drives the tracks
 // region through a scripted zoom and pan (trackpad pinch steps, horizontal
 // and vertical swipes, Ctrl-wheel steps), then prints one JSON line with the
@@ -37,6 +39,6 @@ struct UiBenchOptions {
     double guiP95BudgetMs = 0.0;
 };
 
-int runUiBench(TimelineModel& model, PlaybackClock& clock, const UiBenchOptions& options);
+int runUiBench(TimelineModel& model, PlaybackClock& clock, const server::AssetCacheRoot& cache, const UiBenchOptions& options);
 
 }  // namespace nt::ui

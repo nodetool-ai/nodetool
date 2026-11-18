@@ -1,4 +1,5 @@
 #pragma once
+#include "assets/TimelineMediaConsumer.h"
 #include "model/TimelineModel.h"
 #include "server/ServerClient.h"
 #include "assets/AssetMedia.h"
@@ -6,8 +7,9 @@
 #include <functional>
 #include <atomic>
 #include <QtQmlIntegration/qqmlintegration.h>
-class AssistController : public QObject {
+class AssistController : public nt::assets::TimelineMediaConsumer {
     Q_OBJECT
+    Q_INTERFACES(QQmlParserStatus)
     QML_ELEMENT
     Q_PROPERTY(TimelineModel* timeline READ model WRITE setModel NOTIFY changed)
     Q_PROPERTY(QVariantList words READ words NOTIFY changed)
@@ -28,6 +30,7 @@ public:
     void setMediaResolver(MediaResolver resolver) { m_mediaResolver = std::move(resolver); }
     using Call = std::function<nt::server::QueryResult(bool, const QString&, const QJsonObject&)>;
     explicit AssistController(QObject* parent = nullptr);
+    explicit AssistController(const nt::server::AssetCacheRoot& cache, QObject* parent = nullptr);
     ~AssistController() override;
     TimelineModel* model() const { return m_model; }
     void setModel(TimelineModel* model);
@@ -90,7 +93,6 @@ private:
     Call m_call;
     MediaResolver m_mediaResolver;
     // The worker keeps its own protection handle while the controller can close.
-    std::shared_ptr<nt::assets::MediaProtection> m_mediaProtection;
     bool m_busy = false;
     bool m_offline = false;
     bool m_documentOnly = false;

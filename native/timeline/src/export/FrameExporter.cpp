@@ -33,11 +33,21 @@ QString writeImage(const QImage& image, const QString& path, const QString& form
 }
 bool validFormat(const QString& format) { return format == "png" || format == "jpeg"; }
 }
-FrameExporter::FrameExporter(QObject* parent) : QObject(parent) {}
+FrameExporter::FrameExporter(const nt::server::AssetCacheRoot& cache, QObject* parent) : FrameExporter(parent) {
+    setCacheRoot(cache);
+    m_capture = std::make_unique<FrameCapture>(cache);
+}
+
+FrameExporter::FrameExporter(QObject* parent) : TimelineCacheConsumer(parent) {}
+void FrameExporter::classBegin() {
+    TimelineCacheConsumer::classBegin();
+    m_capture = std::make_unique<FrameCapture>(cacheRoot());
+}
+
 FrameExporter::~FrameExporter() { cancel(); }
 void FrameExporter::cancel() {
     ++m_serial;
-    if (m_request) { m_capture.cancel(m_request); m_request = 0; }
+    if (m_request) { m_capture->cancel(m_request); m_request = 0; }
     // The worker captures no pointer to this object. It may be waiting on another download's
     // cache lock, which does not see an interruption, so the GUI thread leaves it to finish alone.
     if (auto* thread = std::exchange(m_worker, nullptr)) {
@@ -63,7 +73,7 @@ void FrameExporter::worker(std::function<void()> work, std::function<void()> fin
 void FrameExporter::setTimeline(TimelineModel* model) {
     if (model == timeline()) { return; }
     reset();
-    m_capture.setTimeline(model);
+    m_capture->setTimeline(model);
     emit timelineChanged();
 }
 bool FrameExporter::libraryAvailable() const { return nt::server::serverSaveTarget().has_value(); }
@@ -84,7 +94,7 @@ void FrameExporter::captured(const FrameCaptureResult& result, quint64 serial) {
 void FrameExporter::captureProgram(double timeMs) {
     beginCapture(timeMs);
     const auto serial = m_serial;
-    m_request = m_capture.captureSequence(timeMs, [self = QPointer<FrameExporter>(this), serial](const auto& result) {
+    m_request = m_capture->captureSequence(timeMs, [self = QPointer<FrameExporter>(this), serial](const auto& result) {
         if (self) { self->captured(result, serial); }
     });
     emit changed();
@@ -100,7 +110,7 @@ void FrameExporter::captureSource(const QVariantMap& asset, const QString& previ
     if (target && !raw.value("id").toString().isEmpty()) {
         const auto serial = m_serial;
         // The fetch worker and the capture completion retain the lease across the handoff.
-        auto protection = std::make_shared<nt::assets::MediaProtection>(nt::server::timelineAssetCache());
+        auto protection = std::make_shared<nt::assets::MediaProtection>(cacheRoot());
         // native-rules #1: std::shared_ptr result shared with a worker, no justification comment
         auto resolved = std::make_shared<nt::server::FetchResult>();
         worker([target = *target, id = raw.value("id").toString(), protection, resolved] {
@@ -112,7 +122,7 @@ void FrameExporter::captureSource(const QVariantMap& asset, const QString& previ
                 m_state = "failed"; m_error = "The original media could not be downloaded. Reconnect and try again.";
                 emit changed(); return;
             }
-            m_request = m_capture.captureSource(resolved->path, type == "image" ? 0 : sourceMs,
+            m_request = m_capture->captureSource(resolved->path, type == "image" ? 0 : sourceMs,
                 [self = QPointer<FrameExporter>(this), serial, protection](const auto& result) {
                     if (self) { self->captured(result, serial); }
                 });
@@ -120,7 +130,7 @@ void FrameExporter::captureSource(const QVariantMap& asset, const QString& previ
         emit changed(); return;
     }
     const auto serial = m_serial;
-    m_request = m_capture.captureSource(previewPath, type == "image" ? 0 : sourceMs,
+    m_request = m_capture->captureSource(previewPath, type == "image" ? 0 : sourceMs,
         [self = QPointer<FrameExporter>(this), serial](const auto& result) {
             if (self) { self->captured(result, serial); }
         });

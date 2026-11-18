@@ -227,10 +227,13 @@ document and its media leases. The host owns one `AssetCacheRoot` per cache
 directory. Pass copies to code that loads, leases, or evicts files in the
 directory. Every lease shares the in-memory registry and can outlive its
 loader and root handle. Acquisition and release never write files beside the
-media. Eviction honors leases from the same registry. Keep the leases while
-playback uses the cached files. A lease returned by a custom loader must support release from the UI,
-render or decode thread. `cancel()` discards the pending result and requests worker
-interruption. A new load supersedes the previous one.
+media. Lease keys are lexical. Cache paths must use the root's configured
+or canonical spelling. Other symlink aliases, including symlinks below the
+root, have separate lease keys. Eviction honors leases from the same registry.
+Keep the leases while playback uses the cached files. A lease returned by a
+custom loader must support release from the UI, render or decode thread.
+`cancel()` discards the pending result and requests worker interruption. A
+new load supersedes the previous one.
 
 ## Build
 

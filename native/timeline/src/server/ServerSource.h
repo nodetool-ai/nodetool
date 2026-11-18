@@ -31,8 +31,6 @@
 
 #include <optional>
 
-class QCoreApplication;
-
 namespace nt::server {
 
 // A cloud timeline opens with the account signed in to that server:
@@ -54,12 +52,7 @@ int listTimelinesMain();
 
 // Path selected by the command line or the default cache location.
 QString timelineCacheDirectory();
-// UI thread. The host installs its cache handle before creating QML objects.
-// Workers receive copies through their inputs.
-void setTimelineAssetCache(QCoreApplication& app, const AssetCacheRoot& cache);
-AssetCacheRoot timelineAssetCache();
 ParseResult loadTimelineSource(const QString& source, const AssetCacheRoot& cache);
-ParseResult loadTimelineSource(const QString& source);
 
 struct CloudSource {
     QUrl origin;

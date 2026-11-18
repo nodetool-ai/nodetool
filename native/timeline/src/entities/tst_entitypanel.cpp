@@ -1,3 +1,4 @@
+#include "../../tests/TestAssetCacheRoot.h"
 #include "entities/EntityAssist.h"
 #include "entities/EntityLibrary.h"
 #include "../../tests/TestHttpServer.h"
@@ -199,6 +200,7 @@ class TestEntityPanel : public QObject {
     std::unique_ptr<Fake> fake;
     std::unique_ptr<Socket> socket;
     EntityAssist* assist = nullptr;
+    TestAssetCacheRoot m_testCache;
     std::unique_ptr<QQmlEngine> engine;
     std::unique_ptr<QQuickWindow> window;
     std::unique_ptr<QObject> backdrop, object;
@@ -225,6 +227,7 @@ class TestEntityPanel : public QObject {
     }
     void mount(QSize windowSize, QSize panelSize, bool configure = true, int appearance = 2, bool visible = true, bool withLibrary = false) {
         engine = std::make_unique<QQmlEngine>();
+        m_testCache.install(*engine);
         theme = engine->singletonInstance<QObject*>("NodeTool.UiPrimitives", "Theme");
         QVERIFY(theme);
         theme->setProperty("preference", appearance);
@@ -1845,7 +1848,8 @@ private slots:
         QTemporaryDir cache;
         QVERIFY(cache.isValid());
         qputenv("NODETOOL_TIMELINE_CACHE_DIR", cache.path().toUtf8());
-        nt::server::loadTimelineSource(fake->server.base().toString() + "#timeline=t1");
+        nt::server::loadTimelineSource(fake->server.base().toString() + "#timeline=t1",
+                                       nt::server::AssetCacheRoot(cache.path()));
         mount({1280, 720}, {640, 720}, false, 2, true, true);
         QTRY_VERIFY_WITH_TIMEOUT(card(1) != nullptr, 10000);
         auto* tile = find("libraryAsset_" + id(12));
@@ -1903,7 +1907,8 @@ private slots:
         QTemporaryDir cache;
         QVERIFY(cache.isValid());
         qputenv("NODETOOL_TIMELINE_CACHE_DIR", cache.path().toUtf8());
-        nt::server::loadTimelineSource(fake->server.base().toString() + "#timeline=t1");
+        nt::server::loadTimelineSource(fake->server.base().toString() + "#timeline=t1",
+                                       nt::server::AssetCacheRoot(cache.path()));
         auto searches = [&] { return fake->server.countRequests("GET", "/trpc/assets.search"); };
         mount({1280, 720}, {320, 720}, false, 2, false);
         QVERIFY(library->configured());
@@ -1923,7 +1928,8 @@ private slots:
         // A panel that is visible when it is created loads once without being asked.
         fake = std::make_unique<Fake>();
         fake->populate();
-        nt::server::loadTimelineSource(fake->server.base().toString() + "#timeline=t1");
+        nt::server::loadTimelineSource(fake->server.base().toString() + "#timeline=t1",
+                                       nt::server::AssetCacheRoot(cache.path()));
         mount({1280, 720}, {320, 720}, false);
         QTRY_VERIFY_WITH_TIMEOUT(card(1) != nullptr, 10000);
         QCOMPARE(fake->server.countRequests("GET", "/trpc/assets.search"), 1);

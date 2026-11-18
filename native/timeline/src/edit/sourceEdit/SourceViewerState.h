@@ -1,4 +1,8 @@
 #pragma once
+#include "server/AssetCache.h"
+
+class QQmlEngine;
+class QJSEngine;
 #include "edit/ClipGestureController.h"
 #include "assets/AssetBrowser.h"
 #include "SourceMonitor.h"
@@ -27,7 +31,8 @@ class SourceViewerState : public QObject {
     // Where Match Frame parked the asset, or 0.
     Q_PROPERTY(double cueMs READ cueMs NOTIFY cued)
 public:
-    explicit SourceViewerState(QObject* parent = nullptr);
+    explicit SourceViewerState(const nt::server::AssetCacheRoot& cache, QObject* parent = nullptr);
+    static SourceViewerState* create(QQmlEngine* engine, QJSEngine*);
     SourceMonitor* monitor() const { return m_monitor; }
     QString patchedVideoTrackId() const { return m_videoPatch; }
     QString patchedAudioTrackId() const { return m_audioPatch; }

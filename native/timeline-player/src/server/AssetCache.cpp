@@ -24,6 +24,7 @@ namespace nt::server {
 namespace {
 
 constexpr int kMaxAttempts = 4;
+constexpr int kEmptyFetchLockStaleMs = 30'000;
 
 QString pathKey(const QString& path) {
     const QFileInfo info(path);
@@ -31,6 +32,22 @@ QString pathKey(const QString& path) {
     if (!canonical.isEmpty()) return canonical;
     const QString parent = QFileInfo(info.absolutePath()).canonicalFilePath();
     return QDir(parent.isEmpty() ? info.absolutePath() : parent).filePath(info.fileName());
+}
+
+QString canonicalCacheRoot(const QString& root) {
+    // The configured directory may not exist until the first fetch. Resolve
+    // the nearest existing ancestor once and retain the missing suffix.
+    QString path = root;
+    QString suffix;
+    for (;;) {
+        const QFileInfo info(path);
+        const QString canonical = info.canonicalFilePath();
+        if (!canonical.isEmpty()) return QDir::cleanPath(canonical + suffix);
+        const QString parent = info.absolutePath();
+        if (parent == path) return root;
+        suffix.prepend(u'/' + info.fileName());
+        path = parent;
+    }
 }
 
 struct Attempt {
@@ -298,16 +315,17 @@ struct AssetCacheRoot::LeaseHolder {
 
 AssetCacheRoot::AssetCacheRoot(QString path)
     : m_path(path.isEmpty() ? QString{} : QDir(path).absolutePath()),
-      m_canonicalPath(path.isEmpty() ? QString{} : QDir::cleanPath(pathKey(m_path))),
+      m_canonicalPath(m_path.isEmpty() ? QString{} : canonicalCacheRoot(m_path)),
       m_registry(std::make_shared<Registry>()) {}
 
 QString AssetCacheRoot::leaseKey(const QString& path) const {
     const auto absolute = QDir::cleanPath(QFileInfo(path).absoluteFilePath());
-    // Cache paths can use the configured root or its canonical spelling.
-    // Paths outside those directories need only a lexical identity.
-    if ((!m_path.isEmpty() && absolute.startsWith(m_path + u'/')) ||
-        (!m_canonicalPath.isEmpty() && absolute.startsWith(m_canonicalPath + u'/'))) {
-        return pathKey(absolute);
+    if (m_path.isEmpty() || m_path == m_canonicalPath) return absolute;
+    const QString configuredPrefix = m_path.endsWith(u'/') ? m_path : m_path + u'/';
+    if (absolute.startsWith(configuredPrefix)) return absolute;
+    const QString canonicalPrefix = m_canonicalPath.endsWith(u'/') ? m_canonicalPath : m_canonicalPath + u'/';
+    if (absolute.startsWith(canonicalPrefix)) {
+        return configuredPrefix + absolute.mid(canonicalPrefix.size());
     }
     return absolute;
 }
@@ -441,9 +459,13 @@ FetchResult AssetCache::fetch(const QString& assetId, const QString& variant, co
         result.error = QStringLiteral("cannot create %1").arg(dir);
         return result;
     }
-    QLockFile processLock(QDir(dir).filePath(QStringLiteral(".lock")));
-    processLock.setStaleLockTime(0);  // stale only when the holder process is gone
-    while (!processLock.tryLock(25)) {
+    const QString lockPath = QDir(dir).filePath(QStringLiteral(".lock"));
+    QLockFile processLock(lockPath);
+    for (;;) {
+        // Recover files left empty by a crash during lock creation. A populated
+        // lock can belong to a live fetch of any duration.
+        processLock.setStaleLockTime(QFileInfo(lockPath).size() == 0 ? kEmptyFetchLockStaleMs : 0);
+        if (processLock.tryLock(25)) break;
         if (stopRequested()) {
             result.error = QStringLiteral("asset download cancelled");
             return result;

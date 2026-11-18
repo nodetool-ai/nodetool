@@ -14,8 +14,8 @@
 #include <cmath>
 #include <utility>
 
-SourceMonitor::SourceMonitor(QObject* parent) : QObject(parent), m_model(new TimelineModel(this)),
-    m_clock(new PlaybackClock(this)), m_protection(std::make_shared<nt::assets::MediaProtection>(nt::server::timelineAssetCache())),
+SourceMonitor::SourceMonitor(const nt::server::AssetCacheRoot& cache, QObject* parent) : QObject(parent), m_model(new TimelineModel(this)),
+    m_clock(new PlaybackClock(this)), m_protection(std::make_shared<nt::assets::MediaProtection>(cache)),
     m_silent(std::make_shared<const nt::Timeline>()) {
     connect(m_clock, &PlaybackClock::playingChanged, this, [this] {
         if (m_clock->playing()) {

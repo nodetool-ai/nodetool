@@ -1516,6 +1516,9 @@ document of the last load stays in `<server>/<user>/timelines/<id>.json`.
 
 The app owns one cache root for its lifetime. Downloads, document readers,
 frame capture and queued exports use that root's in-memory lease registry.
+The host installs it on each QML engine through
+`TimelineAssetCacheContext::install` before loading editor components.
+C++ consumers receive the cache in their constructors or function calls.
 Acquiring and releasing a lease never writes a file beside the media. The
 download folder lock still serializes fetches and eviction.
 

@@ -133,7 +133,11 @@ bool activeRecoveryExists(const nt::server::SaveTarget& target) {
 }
 }
 
-GenerationController::GenerationController(QObject* parent) : QObject(parent), m_transport(this), m_poll(this), m_reconnect(this), m_previewTimeline(new TimelineModel(this)), m_previewClock(new PlaybackClock(this)), m_mediaProtection(std::make_shared<nt::assets::MediaProtection>(nt::server::timelineAssetCache())), m_workflow(new nt::ai::WorkflowGeneration(&m_transport, this)) {
+GenerationController::GenerationController(const nt::server::AssetCacheRoot& cache, QObject* parent) : GenerationController(parent) {
+    setCacheRoot(cache);
+}
+
+GenerationController::GenerationController(QObject* parent) : TimelineMediaConsumer(parent), m_transport(this), m_poll(this), m_reconnect(this), m_previewTimeline(new TimelineModel(this)), m_previewClock(new PlaybackClock(this)), m_workflow(new nt::ai::WorkflowGeneration(&m_transport, this)) {
     if (QCoreApplication::instance()) {
         const auto configuredMode = QCoreApplication::instance()->property("timelineAudioMode").toString();
         if (!configuredMode.isEmpty()) m_previewAudioMode = configuredMode;
@@ -190,7 +194,7 @@ void GenerationController::resetMediaProtection() {
             if (!clip.audioPath.empty()) paths.insert(QString::fromStdString(clip.audioPath));
         }
     }
-    m_mediaProtection->reset(paths);
+    mediaProtection()->reset(paths);
     m_loadedPreviewKey.clear(); m_previewKey.clear();
     stopPreview();
 }
@@ -1154,7 +1158,7 @@ void GenerationController::resolve(const QString& clipId, const QString& takeId,
     rawClip.insert("currentAssetId", assetId);
     m_resolving = true; emit changed();
     const QPointer<GenerationController> self(this);
-    const auto protection = m_mediaProtection;
+    const auto protection = mediaProtection();
     const auto mediaGeneration = protection->generation();
     auto* thread = QThread::create([self, model, generation, target, take, sourceClip, rawClip, clipId, takeId, assetId, applyResult, generatedCandidate, protection, mediaGeneration, timing] {
         nt::server::ServerClient client(target.server, target.token);

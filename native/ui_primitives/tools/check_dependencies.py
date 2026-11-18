@@ -250,7 +250,7 @@ def cmake_link_errors(cmake_files, policy):
     assigned = set()
     link_properties = {'LINK_LIBRARIES', 'INTERFACE_LINK_LIBRARIES', 'INTERFACE_LINK_LIBRARIES_DIRECT'}
     legacy_link_property = re.compile(r'(?:IMPORTED_)?LINK_INTERFACE_LIBRARIES(?:_.+)?')
-    standard_libraries = re.compile(r'CMAKE_CXX_STANDARD_LIBRARIES(?:_INIT)?')
+    standard_libraries = re.compile(r'CMAKE_(?:C|CXX)_STANDARD_LIBRARIES(?:_INIT)?')
     errors = []
     # The audit visits every branch. A removal cannot make an earlier link
     # safe, so collect every value that can be introduced into a link list.
@@ -267,6 +267,8 @@ def cmake_link_errors(cmake_files, policy):
                 properties = args[args.index('PROPERTIES') + 1::2]
             if command == 'cmake_language' and args[:1] == ['CALL']:
                 errors.append(f'{label}: unresolved cmake_language(CALL) command')
+            if command == 'cmake_language' and args[:1] == ['EVAL']:
+                errors.append(f'{label}: cmake_language(EVAL CODE) bypasses static dependency checking')
             for arg in args:
                 if standard_libraries.fullmatch(arg):
                     errors.append(f'{label}: use target_link_libraries() instead of {arg}')

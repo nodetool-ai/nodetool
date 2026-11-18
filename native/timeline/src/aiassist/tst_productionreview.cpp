@@ -1,3 +1,4 @@
+#include "../../tests/TestAssetCacheRoot.h"
 #include "aiassist/ProductionReview.h"
 #include "aiassist/ShotPlacement.h"
 #include "model/TimelineJson.h"
@@ -7,6 +8,7 @@
 #include <atomic>
 class ProductionReviewTest : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
     static QJsonObject board(bool linked = false) {
         QJsonObject shot{{"id", "123456789abc123456789abc12345678"}, {"type", "shot"}, {"index", 0}, {"slug", "  Runner  "}, {"action", "A runner"}, {"render_mode", "direct"},
             {"duration_seconds", 4}, {"clip", QJsonObject{{"type", "video"}, {"asset_id", "footage"}, {"duration", 2}}}};
@@ -39,7 +41,7 @@ private slots:
         QVERIFY(!refused.error.isEmpty()); QCOMPARE(refused.document, locked);
     }
     void readOnlyReviewShowsUnknownPriceAndExactCommitment() {
-        TimelineModel model; model.setTimeline(timeline()); ProductionReview review; review.setTimeline(&model);
+        TimelineModel model; model.setTimeline(timeline()); ProductionReview review(m_testCache.root()); review.setTimeline(&model);
         std::atomic<int> reads{0};
         review.setReadCall([&reads](const QString& procedure, const QJsonObject& input) {
             ++reads;
@@ -78,7 +80,7 @@ private slots:
     }
     void reviewApprovesEveryCompiledTake() {
         QFETCH(int, takeCount);
-        TimelineModel model; model.setTimeline(timeline()); ProductionReview review; review.setTimeline(&model);
+        TimelineModel model; model.setTimeline(timeline()); ProductionReview review(m_testCache.root()); review.setTimeline(&model);
         auto source = board(); auto document = source.value("document").toObject(); auto shots = document.value("shots").toArray(); auto shot = shots.at(0).toObject();
         shot.insert("production", QJsonObject{{"schema_version", 1}, {"speech_mode", "none"}, {"requested_take_count", takeCount}, {"duration_ms", 5500}});
         shots[0] = shot; document.insert("shots", shots); source.insert("document", document);
@@ -105,7 +107,7 @@ private slots:
     }
     void mediaPlacementIsOneUndoAndRegistersResolvedPaths() {
         QTemporaryDir folder; QFile file(folder.filePath("media.bin")); QVERIFY(file.open(QIODevice::WriteOnly)); file.write("fixture"); file.close();
-        TimelineModel model; model.setTimeline(timeline()); ProductionReview review; review.setTimeline(&model);
+        TimelineModel model; model.setTimeline(timeline()); ProductionReview review(m_testCache.root()); review.setTimeline(&model);
         review.setReadCall([](const QString& procedure, const QJsonObject& input) {
             if (procedure == "assets.get") { return nt::server::QueryResult{QJsonObject{{"id", input.value("id")}}, {}}; }
             return nt::server::QueryResult{{}, {"Unexpected read", "BAD_REQUEST", {}, 400}};

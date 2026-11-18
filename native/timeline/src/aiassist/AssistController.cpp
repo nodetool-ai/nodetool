@@ -26,8 +26,11 @@ QString clipMediaKey(const QJsonObject& raw) {
     return raw.value("mediaType").toString() + QChar(0x1f) + raw.value("mediaPath").toString() + QChar(0x1f) + raw.value("audioPath").toString() + QChar(0x1f) + raw.value("currentAssetId").toString();
 }
 }
-AssistController::AssistController(QObject* parent) : QObject(parent),
-    m_mediaProtection(std::make_shared<nt::assets::MediaProtection>(nt::server::timelineAssetCache())) {
+AssistController::AssistController(const nt::server::AssetCacheRoot& cache, QObject* parent) : AssistController(parent) {
+    setCacheRoot(cache);
+}
+
+AssistController::AssistController(QObject* parent) : TimelineMediaConsumer(parent) {
 
 }
 AssistController::~AssistController() { if (m_cancelled) { m_cancelled->store(true); } }
@@ -256,10 +259,10 @@ bool AssistController::call(bool write, const QString& procedure, const QJsonObj
         if (!clip.mediaPath.empty()) { protectedPaths.insert(QString::fromStdString(clip.mediaPath)); }
         if (!clip.audioPath.empty()) { protectedPaths.insert(QString::fromStdString(clip.audioPath)); }
     }
-    m_mediaProtection->reset(protectedPaths);
+    mediaProtection()->reset(protectedPaths);
     if (!mediaResolver) {
         if (const auto target = nt::server::serverSaveTarget()) {
-            const auto protection = m_mediaProtection;
+            const auto protection = mediaProtection();
             const auto mediaGeneration = protection->generation();
             mediaResolver = [target, protection, mediaGeneration](const QJsonObject& raw) {
                 nt::server::ServerClient server(target->server, target->token);

@@ -1,3 +1,4 @@
+#include "../../tests/TestAssetCacheRoot.h"
 #include "aiassist/ShotWorkflow.h"
 #include "aiassist/ShotPlan.h"
 #include "model/TimelineJson.h"
@@ -14,6 +15,7 @@
 #include <atomic>
 class ShotWorkflowTest : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
     static QJsonObject board() {
         return {{"id", "board"}, {"updatedAt", "v1"}, {"document", QJsonObject{{"aspectRatio", "16:9"}, {"shots", QJsonArray{QJsonObject{{"type", "shot"}, {"id", "shot"}, {"index", 0}, {"action", "A runner"}, {"render_mode", "direct"},
             {"clip", QJsonObject{{"type", "video"}, {"asset_id", "original"}, {"duration", 3}}}}}}}}};
@@ -31,7 +33,7 @@ private slots:
     void checkpointUsesPortableFilename() {
         QTemporaryDir folder;
         QVERIFY(folder.isValid());
-        ShotWorkflow workflow;
+        ShotWorkflow workflow(m_testCache.root());
         workflow.m_target = nt::server::SaveTarget{QUrl("http://127.0.0.1:1"), {}, "sequence", folder.path(), {}};
         workflow.m_requestId = "request:candidate:variation:batch:storyboard_shot:shot:1";
         QVERIFY(workflow.checkpoint());
@@ -47,7 +49,7 @@ private slots:
         QWebSocketServer server("shot test", QWebSocketServer::NonSecureMode);
         QVERIFY(server.listen(QHostAddress::LocalHost, 0));
         TimelineModel model; model.setTimeline(timeline());
-        ShotWorkflow workflow; workflow.setTimeline(&model);
+        ShotWorkflow workflow(m_testCache.root()); workflow.setTimeline(&model);
         workflow.m_target = nt::server::SaveTarget{QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())), {}, "sequence", folder.path(), {}};
         std::atomic<int> writes{0}; bool journalBeforeSend = false;
         workflow.setCall([&writes](bool write, const QString& name, const QJsonObject& input) {
@@ -120,7 +122,7 @@ private slots:
         QTemporaryDir folder; QVERIFY(folder.isValid());
         QWebSocketServer server("journal test", QWebSocketServer::NonSecureMode); QVERIFY(server.listen(QHostAddress::LocalHost, 0));
         TimelineModel model; model.setTimeline(timeline()); TimelineModel other; other.setTimeline(timeline());
-        ShotWorkflow workflow; workflow.setTimeline(&model);
+        ShotWorkflow workflow(m_testCache.root()); workflow.setTimeline(&model);
         workflow.m_target = nt::server::SaveTarget{QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())), {}, "sequence", folder.path(), {}};
         auto snapshot = board(); auto document = snapshot.value("document").toObject(); auto shotA = document.value("shots").toArray().first().toObject();
         shotA.insert("id", "shot-A"); auto shotB = shotA; shotB.insert("id", "shot-B"); document.insert("shots", QJsonArray{shotA, shotB}); snapshot.insert("document", document);
@@ -168,7 +170,7 @@ private slots:
     void recoveryResolvesShotIds() {
         QFETCH(QString, input); QFETCH(bool, ambiguous); QFETCH(bool, valid);
         QTemporaryDir folder; QVERIFY(folder.isValid()); TimelineModel model; model.setTimeline(timeline());
-        ShotWorkflow workflow; workflow.setTimeline(&model); workflow.m_target = nt::server::SaveTarget{QUrl("http://127.0.0.1:1"), {}, "sequence", folder.path(), {}};
+        ShotWorkflow workflow(m_testCache.root()); workflow.setTimeline(&model); workflow.m_target = nt::server::SaveTarget{QUrl("http://127.0.0.1:1"), {}, "sequence", folder.path(), {}};
         workflow.setCall([](bool, const QString&, const QJsonObject&) { return nt::server::QueryResult{}; });
         auto snapshot = board(); auto document = snapshot.value("document").toObject(); auto shot = document.value("shots").toArray().first().toObject();
         const auto fullId = input == "named-shot" ? input : QString("0123456789abcdef0123456789abcdef"); shot.insert("id", fullId); QJsonArray shots{shot};
@@ -211,7 +213,7 @@ private slots:
             return nt::server::QueryResult{{}, {"Unexpected request", "BAD_REQUEST", {}, 400}};
         };
         const nt::server::SaveTarget target{QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())), {}, "sequence", folder.path(), {}};
-        auto workflow = std::make_unique<ShotWorkflow>(); workflow->setTimeline(&timelineModel); workflow->m_target = target; workflow->setCall(call);
+        auto workflow = std::make_unique<ShotWorkflow>(m_testCache.root()); workflow->setTimeline(&timelineModel); workflow->m_target = target; workflow->setCall(call);
         const auto connectWorkflow = [&] {
             connect(workflow.get(), &ShotWorkflow::saved, workflow.get(), [&] { if (scenario == 2 && writes.load() == 1) { workflow->cancel(); } });
         };
@@ -270,7 +272,7 @@ private slots:
         } else if (scenario == 3) {
             QTRY_COMPARE_WITH_TIMEOUT(submissions, 2, 10000); QTRY_VERIFY(workflow->m_worker == nullptr);
             const auto secondId = ids.at(1); workflow.reset(); recovering = true;
-            workflow = std::make_unique<ShotWorkflow>(); workflow->setTimeline(&timelineModel); workflow->m_target = target; workflow->setCall(call); connectWorkflow();
+            workflow = std::make_unique<ShotWorkflow>(m_testCache.root()); workflow->setTimeline(&timelineModel); workflow->m_target = target; workflow->setCall(call); connectWorkflow();
             workflow->recover(stored, "shot", "video");
             QTRY_COMPARE_WITH_TIMEOUT(workflow->state(), QString("completed"), 10000);
             QCOMPARE(ids.count(secondId), 1); QVERIFY(lookups >= 1);
@@ -304,7 +306,7 @@ private slots:
         QWebSocketServer server("review test", QWebSocketServer::NonSecureMode);
         QVERIFY(server.listen(QHostAddress::LocalHost, 0));
         TimelineModel timelineModel; timelineModel.setTimeline(timeline());
-        ShotWorkflow workflow; workflow.setTimeline(&timelineModel);
+        ShotWorkflow workflow(m_testCache.root()); workflow.setTimeline(&timelineModel);
         workflow.m_target = nt::server::SaveTarget{QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())), {}, "sequence", folder.path(), {}};
         auto snapshot = board(); auto document = snapshot.value("document").toObject();
         auto shot = document.value("shots").toArray().first().toObject();
@@ -372,7 +374,7 @@ private slots:
         QTemporaryDir folder; QVERIFY(folder.isValid());
         QFile media(folder.filePath("candidate.bin")); QVERIFY(media.open(QIODevice::WriteOnly)); media.write("fixture"); media.close();
         TimelineModel model; model.setTimeline(timeline());
-        ShotWorkflow workflow; workflow.setTimeline(&model);
+        ShotWorkflow workflow(m_testCache.root()); workflow.setTimeline(&model);
         workflow.m_target = nt::server::SaveTarget{QUrl("http://127.0.0.1:1"), {}, "sequence", folder.path(), {}};
         const auto releaseOnExit = qScopeGuard([gate] { gate->proceed.release(); });
         workflow.setCall([gate, delayCas](bool write, const QString& name, const QJsonObject& input) {
@@ -414,7 +416,7 @@ private slots:
     }
     void staleResultAndExtractionFailureDoNotCommit() {
         QTemporaryDir folder; TimelineModel model; auto source = timeline(); source.clips.at(0).mediaPath = "/no/such/shot-source-video.mp4"; model.setTimeline(source);
-        ShotWorkflow workflow; workflow.setTimeline(&model);
+        ShotWorkflow workflow(m_testCache.root()); workflow.setTimeline(&model);
         workflow.m_target = nt::server::SaveTarget{QUrl("http://127.0.0.1:1"), {}, "sequence", folder.path(), {}};
         std::atomic<int> writes{0}; workflow.setCall([&writes](bool write, const QString&, const QJsonObject&) { if (write) { ++writes; } return nt::server::QueryResult{}; });
         workflow.m_generation = model.documentGeneration(); workflow.m_state = "rendering"; workflow.m_requestId = "old";

@@ -1,4 +1,5 @@
 #pragma once
+#include "assets/TimelineMediaConsumer.h"
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
 #include "assets/AssetMedia.h"
@@ -8,8 +9,9 @@
 #include <QtQmlIntegration/qqmlintegration.h>
 class QThread;
 // The review owns an isolated document and a silent clock. It never edits the cut.
-class CandidatePreview : public QObject {
+class CandidatePreview : public nt::assets::TimelineMediaConsumer {
     Q_OBJECT
+    Q_INTERFACES(QQmlParserStatus)
     QML_ELEMENT
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY changed)
     Q_PROPERTY(TimelineModel* previewTimeline READ previewTimeline CONSTANT)
@@ -20,6 +22,7 @@ class CandidatePreview : public QObject {
     Q_PROPERTY(QString audioMode READ audioMode WRITE setAudioMode NOTIFY changed)
 public:
     explicit CandidatePreview(QObject* parent = nullptr);
+    explicit CandidatePreview(const nt::server::AssetCacheRoot& cache, QObject* parent = nullptr);
     ~CandidatePreview() override;
     TimelineModel* timeline() const { return m_timeline; }
     void setTimeline(TimelineModel* model);
@@ -40,7 +43,6 @@ private:
     TimelineModel* m_preview;
     PlaybackClock* m_clock;
     // native-rules #1: std::shared_ptr MediaProtection, no comment on why unique ownership is impossible
-    std::shared_ptr<nt::assets::MediaProtection> m_protection;
     QThread* m_worker = nullptr;
     struct PendingPreview { QString assetId; QString mediaType; double durationMs; };
     std::optional<PendingPreview> m_pending;

@@ -1,3 +1,4 @@
+#include "../../../tests/TestAssetCacheRoot.h"
 #include "assets/librarypreview/PreviewDuration.h"
 #include "aiassist/CandidatePreview.h"
 #include "model/TimelineJson.h"
@@ -16,6 +17,7 @@
 
 class TestLibraryPreview : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
 private slots:
     void durationReadsAudioWithoutADevice() {
         QTemporaryDir directory;
@@ -71,7 +73,7 @@ private slots:
         const auto before = cut.snapshot();
         const auto generation = cut.documentGeneration();
         const auto undoCount = cut.undoStack()->count();
-        CandidatePreview preview;
+        CandidatePreview preview(m_testCache.root());
         preview.setTimeline(&cut);
         QVERIFY(preview.previewTimeline() != &cut);
         QCOMPARE(preview.audioMode(), QString("none"));
@@ -122,7 +124,7 @@ private slots:
         QCOMPARE(nt::server::takeServerArgs(count, arguments), 0);
         TimelineModel cut;
         const auto before = cut.snapshot();
-        CandidatePreview preview;
+        CandidatePreview preview(m_testCache.root());
         preview.setTimeline(&cut);
         QVERIFY(preview.preview(assetId, "image", 5000));
         QTRY_VERIFY(!preview.busy());
@@ -170,7 +172,7 @@ private slots:
         int count = 7;
         QCOMPARE(nt::server::takeServerArgs(count, arguments), 0);
         TimelineModel cut;
-        CandidatePreview preview;
+        CandidatePreview preview(m_testCache.root());
         preview.setTimeline(&cut);
         QVERIFY(preview.preview("first", "image", 0));
         QTRY_COMPARE(requested.size(), 1);

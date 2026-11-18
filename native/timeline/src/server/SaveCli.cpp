@@ -95,7 +95,7 @@ int saveCli(int argc, char** argv) {
         return code;
     };
 
-    const auto assetCache = timelineAssetCache();
+    const AssetCacheRoot assetCache(timelineCacheDirectory());
     const auto loaded = loadTimelineSource(parser.positionalArguments().first(), assetCache);
     if (!loaded.timeline) {
         out.insert(QStringLiteral("error"), loaded.error);

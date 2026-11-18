@@ -137,8 +137,6 @@ public:
 
     AutosaveController(AssetCacheRoot cache, SaveTarget target, QUndoStack* undo, DocumentFn document,
                        QString baseUpdatedAt, QObject* parent = nullptr);
-    AutosaveController(SaveTarget target, QUndoStack* undo, DocumentFn document, QString baseUpdatedAt,
-                       QObject* parent = nullptr);
     ~AutosaveController() override;
     const AssetCacheRoot& assetCache() const { return m_cache; }
 

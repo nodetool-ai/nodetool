@@ -43,10 +43,11 @@ bool listsByDirectory(const QString& project) { return !project.isEmpty() && pro
 constexpr qint64 ProjectCheckIntervalMs = 60000;
 }
 
-AssetBrowser::AssetBrowser(QObject* parent) : AssetBrowser(nt::server::timelineAssetCache(), parent) {}
+AssetBrowser::AssetBrowser(const nt::server::AssetCacheRoot& cache, QObject* parent) : AssetBrowser(parent) {
+    setCacheRoot(cache);
+}
 
-AssetBrowser::AssetBrowser(nt::server::AssetCacheRoot cache, QObject* parent) : QObject(parent),
-    m_mediaProtection(std::make_shared<nt::assets::MediaProtection>(std::move(cache))),
+AssetBrowser::AssetBrowser(QObject* parent) : TimelineMediaConsumer(parent),
     m_target(nt::server::serverSaveTarget()) {
     m_poll.setInterval(5000);
     connect(&m_poll, &QTimer::timeout, this, &AssetBrowser::pollProxies);
@@ -145,7 +146,7 @@ void AssetBrowser::resetDocumentState() {
         if (m_hasQueried) { refresh(); }
     }
     emit libraryScopeChanged();
-    m_mediaProtection->reset(m_timeline ? m_timeline->resolvedMediaPaths() : QSet<QString>{});
+    mediaProtection()->reset(m_timeline ? m_timeline->resolvedMediaPaths() : QSet<QString>{});
 }
 
 void AssetBrowser::scheduleProtectDocumentMedia() {
@@ -160,7 +161,7 @@ void AssetBrowser::scheduleProtectDocumentMedia() {
 
 void AssetBrowser::protectDocumentMedia() {
     if (!m_timeline) { return; }
-    m_mediaProtection->replaceCurrent(m_timeline->resolvedMediaPaths());
+    mediaProtection()->replaceCurrent(m_timeline->resolvedMediaPaths());
 }
 
 void AssetBrowser::reconcileLinkedAudio() {
@@ -691,9 +692,9 @@ void AssetBrowser::queueMedia(const QJsonObject& asset, const QJsonObject& clip,
         clip.value("currentAssetId").toString() != asset.value("id").toString()) { return; }
 
     protectDocumentMedia();
-    const auto mediaGeneration = m_mediaProtection->generation();
+    const auto mediaGeneration = mediaProtection()->generation();
     const QPointer<AssetBrowser> self(this);
-    request([asset, clip, protection = m_mediaProtection, mediaGeneration](nt::server::ServerClient& client) {
+    request([asset, clip, protection = mediaProtection(), mediaGeneration](nt::server::ServerClient& client) {
         Result result;
         if (protection->generation() == mediaGeneration && !QThread::currentThread()->isInterruptionRequested()) {
             result.media = nt::assets::resolveDroppedMedia(client, asset, clip, *protection, mediaGeneration);

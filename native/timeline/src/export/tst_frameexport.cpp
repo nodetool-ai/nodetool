@@ -1,10 +1,12 @@
 // Behaviour ported from FilmCraft (https://github.com/storytold/filmcraft), MIT OR Apache-2.0.
+#include "../../tests/TestAssetCacheRoot.h"
 #include "export/FrameExporter.h"
 #include "assets/AssetMedia.h"
 #include "../../tests/TestHttpServer.h"
 #include <QScopeGuard>
 #include "model/TimelineJson.h"
 #include <QFile>
+#include <QProcess>
 #include <QDir>
 #include <memory>
 #include <QJsonArray>
@@ -23,9 +25,33 @@
 
 class TestFrameExport : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
     QTemporaryDir m_dir;
     QString dirPath() const { return m_dir.path(); }
 private slots:
+    void qmlExporterRequiresHostCache() {
+        constexpr auto childFlag = "NODETOOL_TEST_MISSING_FRAME_EXPORTER_CACHE";
+        if (qEnvironmentVariableIsSet(childFlag)) {
+            qmlRegisterType<FrameExporter>("FrameExportTest", 1, 0, "FrameExporter");
+            QQmlEngine engine;
+            QQmlComponent component(&engine);
+            component.setData("import FrameExportTest 1.0; FrameExporter {}", QUrl());
+            const std::unique_ptr<QObject> mounted(component.create());
+            QVERIFY2(mounted, qPrintable(component.errorString()));
+            return;
+        }
+
+        QProcess child;
+        auto environment = QProcessEnvironment::systemEnvironment();
+        environment.insert(childFlag, "1");
+        child.setProcessEnvironment(environment);
+        child.start(QCoreApplication::applicationFilePath(), {"qmlExporterRequiresHostCache"});
+        QVERIFY(child.waitForFinished());
+        QCOMPARE(child.exitStatus(), QProcess::CrashExit);
+        QVERIFY(child.readAllStandardOutput().contains("Missing timeline asset cache") ||
+                child.readAllStandardError().contains("Missing timeline asset cache"));
+    }
+
     void captureAndSave_data() {
         QTest::addColumn<QString>("mode");
         for (const auto& mode : {"png", "jpeg", "unwritable", "second", "delete capture", "delete save"}) {
@@ -51,6 +77,7 @@ private slots:
         const int undo = model.undoStack()->count();
         qmlRegisterType<FrameExporter>("FrameExportTest", 1, 0, "FrameExporter");
         QQmlEngine engine;
+        m_testCache.install(engine);
         QQmlComponent component(&engine);
         component.setData("import FrameExportTest 1.0; FrameExporter {}", QUrl());
         std::unique_ptr<QObject> mounted(component.create());
@@ -85,7 +112,7 @@ private slots:
             QCOMPARE(saved.size(), 1);
             QCOMPARE(exporter->savedPath(), output.toLocalFile());
             QCOMPARE(exporter->lastFolder(), dir.path());
-            FrameExporter other;
+            FrameExporter other(m_testCache.root());
             QCOMPARE(other.lastFolder(), dir.path());
             // Release the reader before replacing the file on Windows.
             {
@@ -101,7 +128,7 @@ private slots:
         QCOMPARE(model.undoStack()->count(), undo);
     }
     void sourceAndRefusals() {
-        FrameExporter exporter;
+        FrameExporter exporter(m_testCache.root());
         exporter.captureForTest()->setExecutable(QStringLiteral(NT_EXPORT_BINARY));
         const auto still = QDir(dirPath()).filePath("frameexport-source.png");
         QImage picture(23, 17, QImage::Format_RGB32); picture.fill(Qt::red);
@@ -170,7 +197,7 @@ private slots:
         auto gate = std::make_shared<QSemaphore>();
         auto finished = std::make_shared<std::atomic_bool>(false);
         {
-            FrameExporter exporter;
+            FrameExporter exporter(m_testCache.root());
             exporter.startWorkerForTest([gate, finished] { gate->acquire(); finished->store(true); });
             QElapsedTimer timer;
             timer.start();
@@ -183,7 +210,7 @@ private slots:
     }
     void namesAndFileExists() {
         QTemporaryDir dir;
-        FrameExporter exporter;
+        FrameExporter exporter(m_testCache.root());
         const auto file = exporter.fileUrl(dir.path(), " a/b\\c:*?\"<>| ", "jpeg");
         QCOMPARE(file.toLocalFile(), dir.filePath("a_b_c_______.jpg"));
         QVERIFY(!exporter.fileExists(file));

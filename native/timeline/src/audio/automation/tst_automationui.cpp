@@ -1,3 +1,4 @@
+#include "../../../tests/TestAssetCacheRoot.h"
 #include "audio/automation/Automation.h"
 #include "model/TimelineModel.h"
 #include "model/TimelineJson.h"
@@ -15,6 +16,7 @@
 
 class TestAutomationUi : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
     TimelineModel model;
     PlaybackClock clock;
     std::unique_ptr<QQmlEngine> engine;
@@ -39,6 +41,7 @@ class TestAutomationUi : public QObject {
     }
     bool open(const QByteArray& body, QVariantMap properties = {}) {
         engine=std::make_unique<QQmlEngine>();
+        m_testCache.install(*engine);
         QQmlComponent component(engine.get());
         component.setData("import QtQuick\nimport NodeTool.Timeline\nimport NodeTool.TimelinePlayer\n"+body,QUrl());
         properties.insert("timeline",QVariant::fromValue(&model));

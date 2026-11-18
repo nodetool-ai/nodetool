@@ -83,7 +83,7 @@ private slots:
         QUndoStack undo;
         auto draft = raw;
         nt::server::SaveTarget target{http.base(), QString(), "seq", dir.path(), QString()};
-        nt::server::AutosaveController save(target, &undo, [&draft] { return draft; }, "u0");
+        nt::server::AutosaveController save(nt::server::AssetCacheRoot(target.backupDir), target, &undo, [&draft] { return draft; }, "u0");
         save.setExternalSync(false);
         save.setAutosave(true);
         draft.insert("markers", QJsonArray{QJsonObject{{"id", "edit"}, {"timeMs", 0}}});

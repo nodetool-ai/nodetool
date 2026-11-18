@@ -1,3 +1,4 @@
+#include "../../../tests/TestAssetCacheRoot.h"
 #include "app/PanelRegistry.h"
 #include "server/ServerTimelineProbe.h"
 #include "app/EditRegistry.h"
@@ -74,7 +75,7 @@ private slots:
         QVERIFY(parsed.timeline);
         TimelineModel model;
         model.setTimeline(std::move(*parsed.timeline));
-        AutosaveController save({http.base(), {}, "seq", cache.path(), {}}, model.undoStack(),
+        AutosaveController save(nt::server::AssetCacheRoot(cache.path()), {http.base(), {}, "seq", cache.path(), {}}, model.undoStack(),
             [&] { return model.timeline().raw; }, "u0");
         save.setExternalSync(false);
         save.setAutosave(false);
@@ -121,7 +122,7 @@ private slots:
         auto parsed = nt::parseTimelineJson(QJsonDocument(initial).toJson());
         QVERIFY(parsed.timeline);
         model.setTimeline(std::move(*parsed.timeline));
-        AutosaveController save({http.base(), {}, "seq", cache.path(), {}}, model.undoStack(),
+        AutosaveController save(nt::server::AssetCacheRoot(cache.path()), {http.base(), {}, "seq", cache.path(), {}}, model.undoStack(),
             [&] { return model.timeline().raw; }, "u0");
         save.setExternalSync(false);
         save.setAutosave(false);
@@ -199,7 +200,7 @@ private slots:
         QVERIFY(parsed.timeline);
         TimelineModel model;
         model.setTimeline(std::move(*parsed.timeline));
-        AutosaveController save({http.base(), {}, "seq", cache.path(), {}}, model.undoStack(),
+        AutosaveController save(nt::server::AssetCacheRoot(cache.path()), {http.base(), {}, "seq", cache.path(), {}}, model.undoStack(),
             [&] { return model.timeline().raw; }, "u0");
         save.setExternalSync(false);
         save.setAutosave(false);
@@ -250,13 +251,15 @@ private slots:
             return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", server}}}}).toJson();
         });
         http.setPost([](const QByteArray&, const QByteArray&) { return QByteArray(R"({"result":{"data":{"updatedAt":"u2"}}})"); });
-        AutosaveController save({http.base(), {}, "seq", cache.path(), {}}, model.undoStack(), [&] { return model.timeline().raw; }, "u0");
+        AutosaveController save(nt::server::AssetCacheRoot(cache.path()), {http.base(), {}, "seq", cache.path(), {}}, model.undoStack(), [&] { return model.timeline().raw; }, "u0");
         save.setExternalSync(false);
         save.setAutosave(false);
         save.setQuitFallbackDirs({});
         PlaybackClock clock;
         clock.setFps(12);
+        TestAssetCacheRoot assetCache;
         QQmlEngine engine;
+        assetCache.install(engine);
         engine.rootContext()->setContextProperty("autosave", &save);
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/TimelineEditor.qml"));
         const auto object = std::unique_ptr<QObject>(component.createWithInitialProperties({{"timeline", QVariant::fromValue(&model)},

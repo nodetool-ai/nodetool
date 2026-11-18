@@ -1,3 +1,4 @@
+#include "../../../tests/TestAssetCacheRoot.h"
 #include "GizmoMath.h"
 #include "TransformGizmoController.h"
 #include "app/PanelRegistry.h"
@@ -228,7 +229,9 @@ TransformGizmoController { width: 200; height: 100; selection: ["picture"] })", 
         PlaybackClock clock;
         clock.setDurationMs(3000);
         clock.seek(1100);
+        TestAssetCacheRoot assetCache;
         QQmlEngine engine;
+        assetCache.install(engine);
         QQmlComponent component(&engine);
         component.loadFromModule("NodeTool.Timeline", "TimelineEditor");
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));

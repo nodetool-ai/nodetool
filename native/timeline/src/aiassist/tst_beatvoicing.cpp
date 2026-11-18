@@ -1,3 +1,4 @@
+#include "../../tests/TestAssetCacheRoot.h"
 #include "aiassist/BeatVoicing.h"
 #include "aiassist/TranscriptBeats.h"
 #include "app/EditRegistry.h"
@@ -14,6 +15,7 @@
 #include <QtTest>
 class BeatVoicingStateTest : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
 private:
     static nt::ParseResult fixture() {
         return nt::parseTimelineJson(R"({"id":"timeline","tracks":[{"id":"audio","type":"audio","index":0}],"clips":[{"id":"beat","trackId":"audio","name":"Hello","startMs":0,"durationMs":3000,"mediaType":"audio","sourceType":"generated","bindingKind":"text-to-audio","prompt":"Hello","status":"draft","locked":false,"versions":[]},{"id":"music","trackId":"audio","name":"Music","startMs":10000,"durationMs":1000,"mediaType":"audio","sourceType":"imported","status":"generated"}],"markers":[]})");
@@ -46,7 +48,7 @@ private slots:
             return QJsonDocument(response).toJson();
         });
         std::atomic<int> resolutions{0};
-        BeatVoicing controller;
+        BeatVoicing controller(m_testCache.root());
         controller.setTimeline(&model);
         controller.m_target = nt::server::SaveTarget{server.base(), {}, "timeline", folder.filePath("server/user/timelines")};
         controller.m_generation = model.documentGeneration();
@@ -84,7 +86,7 @@ private slots:
     void candidateKeepsUnrelatedEditsAndOneUndo() {
         const auto parsed = fixture(); QVERIFY2(parsed.timeline.has_value(), qPrintable(parsed.error));
         TimelineModel model; model.setTimeline(*parsed.timeline);
-        BeatVoicing controller; stage(controller, model);
+        BeatVoicing controller(m_testCache.root()); stage(controller, model);
         QVERIFY(controller.hasCandidate());
         QVERIFY(model.moveClip("music", 20000));
         const auto before = model.timeline().raw;
@@ -103,7 +105,7 @@ private slots:
     void changedTargetAndReplacementRefuseCandidate() {
         const auto parsed = fixture(); QVERIFY(parsed.timeline.has_value());
         TimelineModel model; model.setTimeline(*parsed.timeline);
-        BeatVoicing controller; stage(controller, model);
+        BeatVoicing controller(m_testCache.root()); stage(controller, model);
         QVERIFY(model.moveClip("beat", 500));
         const auto changed = model.timeline().raw;
         QVERIFY(!controller.apply());
@@ -129,14 +131,14 @@ private slots:
             peer->setParent(&server);
             connect(peer, &QWebSocket::textMessageReceived, &server, [&frames](const QString& frame) { frames.append(frame); });
         });
-        BeatVoicing initial; stage(initial, model);
+        BeatVoicing initial(m_testCache.root()); stage(initial, model);
         initial.m_target = nt::server::SaveTarget{base, {}, "timeline", folder.path()};
         initial.m_generationRequestId = "original-beat-request";
         initial.m_plan.scriptId = "timeline";
         initial.m_plan.line = {{"id", "beat"}, {"text", "Hello"}};
         initial.m_assetId.clear();
         QVERIFY(initial.checkpoint());
-        BeatVoicing reopened; reopened.setTimeline(&model); reopened.m_target = initial.m_target;
+        BeatVoicing reopened(m_testCache.root()); reopened.setTimeline(&model); reopened.m_target = initial.m_target;
         reopened.recover("beat");
         QTRY_COMPARE(connections.size(), 1);
         QVERIFY(peer);

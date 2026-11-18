@@ -40,6 +40,10 @@ class CMakeLinkAuditTest(unittest.TestCase):
             'cmake_language(CALL TARGET_LINK_LIBRARIES x PRIVATE forbidden_lib)')))
         self.assertEqual(self.audit('cmake_language(CALL target_link_libraries x PRIVATE Qt6::Core)'), [])
 
+    def test_cmake_language_eval_cannot_inject_link_dependencies(self):
+        self.assertIn('cmake_language(EVAL CODE)', ' '.join(self.audit(
+            'cmake_language(EVAL CODE "target_link_libraries(x PRIVATE forbidden_lib)")')))
+
     def test_legacy_link_properties(self):
         for name in ('LINK_INTERFACE_LIBRARIES', 'LINK_INTERFACE_LIBRARIES_DEBUG',
                      'IMPORTED_LINK_INTERFACE_LIBRARIES', 'IMPORTED_LINK_INTERFACE_LIBRARIES_RELEASE'):
@@ -48,8 +52,11 @@ class CMakeLinkAuditTest(unittest.TestCase):
                     f'set_target_properties(x PROPERTIES {name} forbidden_lib)')))
 
     def test_standard_libraries_cannot_inject_link_dependencies(self):
-        self.assertIn('CMAKE_CXX_STANDARD_LIBRARIES', ' '.join(self.audit(
-            'set(CMAKE_CXX_STANDARD_LIBRARIES forbidden_lib)')))
+        for language in ('C', 'CXX'):
+            for suffix in ('', '_INIT'):
+                variable = f'CMAKE_{language}_STANDARD_LIBRARIES{suffix}'
+                with self.subTest(variable=variable):
+                    self.assertIn(variable, ' '.join(self.audit(f'set({variable} forbidden_lib)')))
 
 
 if __name__ == '__main__':

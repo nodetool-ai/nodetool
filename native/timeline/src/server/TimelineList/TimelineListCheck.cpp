@@ -42,7 +42,7 @@ int check(int argc, char** argv) {
         ok = !source.isEmpty();
         result.insert("source", source);
     } else if (ok && (action == "settings" || action == "inspect")) {
-        const auto cache = nt::server::timelineAssetCache();
+        const nt::server::AssetCacheRoot cache(nt::server::timelineCacheDirectory());
         const auto loaded = nt::server::loadTimelineSource(list.openTimeline(parser.value("id")), cache);
         ok = loaded.timeline.has_value();
         if (ok) {
