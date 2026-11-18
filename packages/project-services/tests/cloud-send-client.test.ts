@@ -406,4 +406,24 @@ describe("sending a project to the cloud", { timeout: 30_000 }, () => {
     expect((await getCloudLinkFile(link!.id, asset!.id))?.base_hash).toBe(sha(edited));
     expect((await captureSend(TARGET)).fileOperations).toEqual([]);
   });
+
+  it("sends without a missing file only after the person confirms that exact file (X7, review F36)", async () => {
+    const { asset } = await workflowWithFile(randomBytes(16));
+    await folder.delete("media/still.png");
+    const review = await captureSend(TARGET);
+    expect(review.missingFiles).toHaveLength(1);
+    const listed = review.missingFiles[0]!;
+
+    expect(await runSend(cloud, review.transferId)).toMatchObject({ status: "missing_files_unconfirmed", missingFiles: [listed] });
+    expect(cloud.commits).toHaveLength(0);
+    // A confirmation of another file, or of the file for other documents, is not one of this list.
+    const wrong = [{ ...listed, asset_id: id() }];
+    expect((await runSend(cloud, review.transferId, { confirmMissingFiles: wrong })).status).toBe("missing_files_unconfirmed");
+    const fewer = [{ ...listed, documents: [] }];
+    expect((await runSend(cloud, review.transferId, { confirmMissingFiles: fewer })).status).toBe("missing_files_unconfirmed");
+    expect(cloud.commits).toHaveLength(0);
+
+    expect(await runSend(cloud, review.transferId, { confirmMissingFiles: [listed] })).toMatchObject({ status: "committed" });
+    expect(cloud.commits.at(-1)!.missing_files).toMatchObject([{ asset_id: asset!.id }]);
+  });
 });

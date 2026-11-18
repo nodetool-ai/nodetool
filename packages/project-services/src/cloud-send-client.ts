@@ -148,6 +148,8 @@ interface SendPlan {
   missingDocumentFiles: MissingDocumentFile[];
   deletedLocally: DeletedLocally[];
   decisions: TransferDecision[];
+  /** The person confirmed `missingFiles` exactly as listed, so an attempt may send without them. */
+  missingConfirmed?: boolean;
 }
 
 /** What {@link captureSend} found, for the review sheet. */
@@ -168,7 +170,12 @@ export interface SendReview {
 /** What {@link runSend} ended with. */
 export type SendOutcome =
   | { status: "committed"; transferId: string; result: Extract<TransferAttemptResult, { outcome: "committed" }> }
-  | { status: "refused"; transferId: string; failures: TransferFailure[] };
+  | { status: "refused"; transferId: string; failures: TransferFailure[] }
+  /**
+   * The capture lists files missing here, and the person has not confirmed
+   * this exact list. Nothing was sent (X7, review F36).
+   */
+  | { status: "missing_files_unconfirmed"; transferId: string; missingFiles: TransferMissingFile[] };
 
 /** The capture cannot start, for a reason the person has to fix first. */
 export class SendCaptureError extends Error {
@@ -534,10 +541,28 @@ async function finishCommitted(
   });
 }
 
+function missingFileKey(file: TransferMissingFile): string {
+  const documents = file.documents.map((document) => `${document.kind}:${document.document_id}`).sort();
+  return JSON.stringify([file.asset_id, file.reason, file.hash ?? null, file.size ?? null, documents]);
+}
+
+/** Whether `confirmed` names exactly the files of `listed`. */
+function sameMissingFiles(listed: TransferMissingFile[], confirmed: TransferMissingFile[]): boolean {
+  const want = new Set(listed.map(missingFileKey));
+  const got = new Set(confirmed.map(missingFileKey));
+  return want.size === got.size && [...want].every((key) => got.has(key));
+}
+
 /** Options of {@link runSend}. */
 export interface SendRunOptions {
   /** Keep local over cloud revisions the person reviewed (BASE_CHANGED). */
   decisions?: TransferDecision[];
+  /**
+   * The missing files the person confirmed in the review. A send with missing
+   * files commits only when this names each of them, with its reason, hash,
+   * size and documents, exactly as the capture listed them (X7).
+   */
+  confirmMissingFiles?: TransferMissingFile[];
   /** Local ids of documents the deletion review confirmed for deletion on the cloud. */
   confirmDeletes?: string[];
   /**
@@ -571,6 +596,12 @@ export async function runSend(transport: SendTransport, transferId: string, opti
     }
   }
 
+  if (options.confirmMissingFiles) {
+    plan.missingConfirmed = sameMissingFiles(plan.missingFiles, options.confirmMissingFiles);
+  }
+  if (plan.missingFiles.length > 0 && !plan.missingConfirmed) {
+    return { status: "missing_files_unconfirmed", transferId, missingFiles: plan.missingFiles };
+  }
   if (options.decisions) plan.decisions = options.decisions;
   if (options.confirmDeletes) {
     const confirmed = new Set(options.confirmDeletes);
