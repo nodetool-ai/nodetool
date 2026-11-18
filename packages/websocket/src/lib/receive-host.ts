@@ -23,7 +23,14 @@ export function receiveHost(): ReceiveHost {
       const out = [];
       for (const assetId of files) {
         const asset = await Asset.get<Asset>(assetId);
-        out.push({ assetId, hash: asset?.content_hash ?? null, size: Number(asset?.size ?? 0) });
+        out.push({
+          assetId,
+          hash: asset?.content_hash ?? null,
+          size: Number(asset?.size ?? 0),
+          name: asset?.name ?? assetId,
+          contentType: asset?.content_type ?? "application/octet-stream",
+          path: asset?.workspace_path ?? null
+        });
       }
       return out;
     }

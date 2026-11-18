@@ -91,6 +91,7 @@ import { projectBlobs } from "./schema/project-blobs.js";
 import { recoveryCopies, transferPlacements, transferredConversations } from "./schema/transfer-files.js";
 import { documentActivity } from "./schema/document-activity.js";
 import { revisionSetEntries, revisionSetFiles, revisionSets } from "./schema/revision-sets.js";
+import { cloudLinkDocuments, cloudLinkFiles, cloudLinks, cloudReceives } from "./schema/cloud-links.js";
 import { cloudTransferAttempts, cloudTransfers } from "./schema/cloud-transfers.js";
 import { memories } from "./schema/memories.js";
 import { messages } from "./schema/messages.js";
@@ -555,6 +556,10 @@ export const ERASURE_STEPS: readonly ErasureStep[] = [
   directStep("revision_set_files", revisionSetFiles, revisionSetFiles.user_id),
   directStep("revision_set_entries", revisionSetEntries, revisionSetEntries.user_id),
   directStep("revision_sets", revisionSets, revisionSets.user_id),
+  directStep("cloud_receives", cloudReceives, cloudReceives.user_id),
+  directStep("cloud_link_files", cloudLinkFiles, cloudLinkFiles.user_id),
+  directStep("cloud_link_documents", cloudLinkDocuments, cloudLinkDocuments.user_id),
+  directStep("cloud_links", cloudLinks, cloudLinks.user_id),
   directStep("project_blobs", projectBlobs, projectBlobs.user_id),
   directStep("cloud_transfer_attempts", cloudTransferAttempts, cloudTransferAttempts.user_id),
   directStep("cloud_transfers", cloudTransfers, cloudTransfers.user_id),

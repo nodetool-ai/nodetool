@@ -834,6 +834,42 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "The role, options and last contact the native app recorded for each cloud document the person opened. Deleted with the account; exported because it lists which documents the person worked on."
   },
   {
+    table: "cloud_links",
+    schemaExport: "cloudLinks",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "Which local project the native app linked to which cloud project, on which server and account. Bookkeeping the app needs to synchronize, and the cloud project lists the same link from its side. Deleted with the account."
+  },
+  {
+    table: "cloud_link_documents",
+    schemaExport: "cloudLinkDocuments",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "The pair of local and cloud ids of each linked document and the content hash and revision of its last exchange. The documents themselves are exported. Deleted with the account."
+  },
+  {
+    table: "cloud_link_files",
+    schemaExport: "cloudLinkFiles",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "The hash of the bytes the last exchange gave each asset of a linked project. The files are exported with their assets. Deleted with the account."
+  },
+  {
+    table: "cloud_receives",
+    schemaExport: "cloudReceives",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "A download from a cloud project that has not finished: the captured document list and the person's choices on the review sheet. Short-lived operational state that ends with the download. Deleted with the account."
+  },
+  {
     table: "worker_instances",
     schemaExport: "workerInstances",
     disposition: "not-personal",

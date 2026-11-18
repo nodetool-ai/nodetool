@@ -904,3 +904,23 @@ export {
   type RevisionSetFileRow,
   type RevisionSetRow
 } from "./revision-set.js";
+export {
+  createCloudLink,
+  createCloudReceive,
+  deleteCloudReceive,
+  getCloudLink,
+  getCloudLinkById,
+  getCloudLinkDocumentByCloudId,
+  getCloudLinkFile,
+  getCloudReceive,
+  listCloudLinkDocuments,
+  listCloudReceives,
+  setCloudLinkDocumentBase,
+  setCloudLinkFileBase,
+  updateCloudReceive,
+  type CloudLinkDocumentRow,
+  type CloudLinkFileRow,
+  type CloudLinkRow,
+  type CloudReceiveRow,
+  type CloudReceiveState
+} from "./cloud-link.js";
