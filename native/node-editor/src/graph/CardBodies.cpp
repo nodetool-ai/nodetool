@@ -385,12 +385,9 @@ void layoutFit(NodeLayout &layout, const CardBodyInput &input) {
     layout.size.setHeight(int(std::ceil(bottom + nm::padding + nm::padding + nm::borderWidth)));
 }
 
-// A web preview-area is flex 1 1 auto, so a card taller than its natural size
-// grows the preview and keeps every control below it at the bottom.
-void growPreview(NodeLayout &layout, const CardBodyInput &input, int fallbackHeight = 0) {
-    const auto authored = input.node["ui_properties"].toObject()["height"].toDouble();
-    const auto target = authored > 0 ? int(authored) : fallbackHeight;
-    const auto extra = std::max(0, target - layout.size.height());
+} // namespace
+
+void resizeResultArea(NodeLayout &layout, int extra) {
     if (extra == 0 || layout.resultRect.isEmpty()) {
         return;
     }
@@ -417,8 +414,21 @@ void growPreview(NodeLayout &layout, const CardBodyInput &input, int fallbackHei
         }
     }
     layout.resultRect.setHeight(layout.resultRect.height() + extra);
-    layout.flexHeight = extra;
     layout.size.setHeight(layout.size.height() + extra);
+}
+
+namespace {
+// A web preview-area is flex 1 1 auto, so a card taller than its natural size
+// grows the preview and keeps every control below it at the bottom.
+void growPreview(NodeLayout &layout, const CardBodyInput &input, int fallbackHeight = 0) {
+    const auto authored = input.node["ui_properties"].toObject()["height"].toDouble();
+    const auto target = authored > 0 ? int(authored) : fallbackHeight;
+    const auto extra = std::max(0, target - layout.size.height());
+    if (extra == 0 || layout.resultRect.isEmpty()) {
+        return;
+    }
+    resizeResultArea(layout, extra);
+    layout.flexHeight = extra;
 }
 
 // humanize in AdjustmentBody.tsx and GeneratorBody.tsx: underscores become
