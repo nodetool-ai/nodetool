@@ -570,6 +570,7 @@ export class Workflow extends DBModel {
         table: workflows,
         where: and(eq(workflows.id, wf.id), eq(workflows.user_id, userId)) as SQL,
         dependents: workflowDependents(wf.id),
+        grants: "workflow_collaborators",
         describe: (row) => ({
           documentId: String(row["id"]),
           projectId: (row["project_id"] as string | null) ?? null,
@@ -577,8 +578,8 @@ export class Workflow extends DBModel {
         })
       });
       if (!deleted) return false;
-      const gone = new Workflow(deleted);
-      ModelObserver.notify(gone, ModelChangeEvent.DELETED);
+      const gone = new Workflow(deleted.row);
+      ModelObserver.notify(gone, ModelChangeEvent.DELETED, { sharedWith: deleted.sharedWith });
       await eraseRunTraceParentForModelDeletion({ kind: "workflow", id: gone.id });
       await workflowFileSync?.deleted(gone);
       // No foreign key ties registrations to the workflow, so a deleted
