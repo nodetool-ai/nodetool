@@ -274,14 +274,34 @@ describe("withProjectFolderLock", () => {
   it("runs a task that takes the lock again inside it at once", async () => {
     setProjectFolderLockDirectory(dir);
     const order: string[] = [];
-    await withProjectFolderLock("user", "project", async () => {
-      order.push("outer");
-      await withProjectFolderLock("user", "project", async () => {
-        order.push("inner");
-      });
-      order.push("outer done");
-    });
+    await withProjectFolderLock(
+      "user",
+      "project",
+      async () => {
+        order.push("outer");
+        await withProjectFolderLock("user", "project", async () => {
+          order.push("inner");
+        });
+        order.push("outer done");
+      },
+      { allowNested: true }
+    );
     expect(order).toEqual(["outer", "inner", "outer done"]);
+  }, 30_000);
+
+  it("queues a call made inside a task without allowNested until the task is done", async () => {
+    setProjectFolderLockDirectory(dir);
+    const order: string[] = [];
+    let started: Promise<void> | undefined;
+    await withProjectFolderLock("user", "project", async () => {
+      started = withProjectFolderLock("user", "project", async () => {
+        order.push("started");
+      });
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      order.push("task done");
+    });
+    await started;
+    expect(order).toEqual(["task done", "started"]);
   }, 30_000);
 
   it("queues work a task left running once the task is done", async () => {
@@ -292,14 +312,19 @@ describe("withProjectFolderLock", () => {
     const nextHolds = new Promise<void>((resolve) => {
       releaseNext = resolve;
     });
-    await withProjectFolderLock("user", "project", async () => {
-      later = (async () => {
-        await new Promise((resolve) => setTimeout(resolve, 20));
-        await withProjectFolderLock("user", "project", async () => {
-          order.push("left running");
-        });
-      })();
-    });
+    await withProjectFolderLock(
+      "user",
+      "project",
+      async () => {
+        later = (async () => {
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          await withProjectFolderLock("user", "project", async () => {
+            order.push("left running");
+          });
+        })();
+      },
+      { allowNested: true }
+    );
     const next = withProjectFolderLock("user", "project", async () => {
       order.push("next");
       await nextHolds;
