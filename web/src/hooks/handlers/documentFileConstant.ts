@@ -8,7 +8,8 @@ export interface DocumentConstant {
 
 /**
  * The constant node and its ref value for a document file of `type` whose
- * row is `id`. A storyboard ref carries `data: null`, as the picker writes it.
+ * row is `id`. A storyboard and a sketch ref carry `data: null`, as the
+ * picker writes it.
  */
 export const documentFileConstant = (
   type: FileDocumentType,
@@ -30,5 +31,10 @@ export const documentFileConstant = (
       return { nodeType: "nodetool.constant.Application", value: { type, id } };
     case "jsscript":
       return { nodeType: "nodetool.constant.JsScript", value: { type, id } };
+    case "sketch":
+      return {
+        nodeType: "nodetool.constant.Sketch",
+        value: { type, id, data: null }
+      };
   }
 };

@@ -15,7 +15,12 @@ describe("documentFileConstant", () => {
       "nodetool.constant.Application",
       { type: "application", id: "d1" }
     ],
-    ["jsscript", "nodetool.constant.JsScript", { type: "jsscript", id: "d1" }]
+    ["jsscript", "nodetool.constant.JsScript", { type: "jsscript", id: "d1" }],
+    [
+      "sketch",
+      "nodetool.constant.Sketch",
+      { type: "sketch", id: "d1", data: null }
+    ]
   ] as const)("maps a %s file to %s", (type, nodeType, value) => {
     expect(documentFileConstant(type, "d1")).toEqual({ nodeType, value });
   });

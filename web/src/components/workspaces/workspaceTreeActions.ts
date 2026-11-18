@@ -19,7 +19,8 @@ const DOCUMENT_FILE_SUFFIXES = [
   ".storyboard.json",
   ".script.json",
   ".app.json",
-  ".jsscript.json"
+  ".jsscript.json",
+  ".sketch.json"
 ] as const;
 
 export const isDocumentFile = (path: string): boolean => {

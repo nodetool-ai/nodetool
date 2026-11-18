@@ -11,7 +11,7 @@ import type { Message } from "../../stores/ApiTypes";
 const NO_MESSAGES: Message[] = [];
 
 /** The tab types whose document is a file in the project folder. */
-const FILE_DOCUMENT_TYPES = ["workflow", "timeline", "storyboard", "script", "application", "jsscript"] as const;
+const FILE_DOCUMENT_TYPES = ["workflow", "timeline", "storyboard", "script", "application", "jsscript", "sketch"] as const;
 
 const isFileDocumentTab = (
   type: WorkspaceTab["type"]

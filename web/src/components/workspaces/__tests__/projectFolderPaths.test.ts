@@ -1,8 +1,23 @@
 import {
   folderEntryPath,
   isReservedProjectEntry,
+  isSketchAssetFolder,
   revealLabelKey
 } from "../projectFolderPaths";
+
+describe("isSketchAssetFolder", () => {
+  const sketch = { name: "Fox.sketch.json", is_dir: false };
+  const folder = { name: "Fox.sketch", is_dir: true };
+
+  it("hides the image folder of a sketch file beside it", () => {
+    expect(isSketchAssetFolder(folder, [sketch, folder])).toBe(true);
+  });
+
+  it("keeps a .sketch folder with no sketch file, and every file", () => {
+    expect(isSketchAssetFolder(folder, [folder])).toBe(false);
+    expect(isSketchAssetFolder(sketch, [sketch, folder])).toBe(false);
+  });
+});
 
 describe("isReservedProjectEntry", () => {
   it("reserves .nodetool at the folder root only", () => {
