@@ -30,7 +30,7 @@ export function createAgentHandlerRegistry<T>(): AgentHandlerRegistry<T> {
     );
     if (matches.length > 1) {
       throw new Error(
-        `Id prefix ${id} matches ${matches.length} open documents. Pass the full id.`
+        `Id prefix ${id} matches ${matches.length} open documents (${matches.join(", ")}). Pass the full id.`
       );
     }
     return matches[0] ?? id;
