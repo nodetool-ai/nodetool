@@ -1,4 +1,4 @@
-#include "audio/automation/Automation.h"
+#include "preview/PlaybackHooks.h"
 #include "preview/layers/SceneHooks.h"
 #include <algorithm>
 
@@ -44,8 +44,14 @@ std::optional<QJsonObject> clipAutomationAnimation(const Track& track, const Cli
         {"custom", QJsonObject{{"curves", curves}}}};
 }
 }
-void registerPictureAutomation() {
-    static const auto token = registerClipAnimationProvider(clipAutomationAnimation);
-    (void)token;
+SceneHookToken registerPictureAutomation() {
+    return registerClipAnimationProvider(clipAutomationAnimation);
+}
+
+bool hasPictureAutomation() {
+    return std::ranges::any_of(sceneHooks().clipAnimations, [](const ClipAnimationProvider& provider) {
+        const auto callback = provider.target<decltype(&clipAutomationAnimation)>();
+        return callback && *callback == &clipAutomationAnimation;
+    });
 }
 }

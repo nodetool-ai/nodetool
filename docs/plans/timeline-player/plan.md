@@ -265,7 +265,9 @@ Medium: about 35 files and 4.5k lines.
 
 - Move the engine, mixer, sources, `ShuttleStretch`, effects, hooks, loudness
   and miniaudio.
-- `AudioCli` and `automation/` stay in the timeline app.
+- `AudioCli`, automation editing and mixer meter taps stay in the timeline app.
+  Mixer and picture automation, time-remap voice expansion and dynamic
+  reframe are registered by the shared player.
 - Gate: `tst_fadecurves`, `tst_mixer`, `tst_audioclock`, `tst_audioengine`,
   `tst_shuttlestretch`, `tst_shuttleaudio`, `tst_appaudio`,
   `tst_liveaudioedit`, and the ThreadSanitizer preset.

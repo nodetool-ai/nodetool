@@ -1,4 +1,4 @@
-#include "Reframe.h"
+#include "ReframeEditing.h"
 #include "app/EditRegistry.h"
 namespace {
 const bool registered = [] {

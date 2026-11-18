@@ -9,6 +9,22 @@
 using namespace nt;
 using namespace nt::audio;
 
+// UI thread. The source outlives the audio owner and can close it while
+// answering a snapshot request, as a host can during a document switch.
+class ClosingSource : public TimelineSource {
+public:
+    std::shared_ptr<const nt::Timeline> snapshot() const override {
+        if (closeOnRead) {
+            audio.reset();
+        }
+        return {};
+    }
+    quint64 documentGeneration() const override { return 0; }
+
+    mutable std::unique_ptr<AppAudio> audio = std::make_unique<AppAudio>();
+    bool closeOnRead = false;
+};
+
 class TstAppAudio : public QObject {
     Q_OBJECT
 private slots:
@@ -25,6 +41,16 @@ private slots:
         QTest::qWait(50);
         QCOMPARE(audio.engine()->stats().planBuilds, before + 1);
     }
+    void snapshotCanCloseAudio() {
+        PlaybackClock clock;
+        ClosingSource source;
+        QString error;
+        QVERIFY2(source.audio->start(QStringLiteral("null"), 0, source, clock, &error), qPrintable(error));
+        source.closeOnRead = true;
+        emit source.sourceChanged();
+        QTRY_VERIFY(!source.audio);
+    }
+
     void idleWorkerDoesNotPoll() {
         TimelineModel model;
         PlaybackClock clock;

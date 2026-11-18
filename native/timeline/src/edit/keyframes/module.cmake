@@ -18,7 +18,7 @@ function(nt_keyframe_ui_tests)
     # The edits and sections Effect Controls hosts, so its groups work as they do in the app.
     qt_add_executable(tst_keyframesui src/edit/keyframes/tst_keyframesui.cpp
         src/preview/crop/ReframePanels.cpp src/preview/crop/ReframeRegistrations.cpp
-        src/edit/speed/SpeedRegistrations.cpp src/edit/speed/SpeedMixRegistration.cpp)
+        src/edit/speed/SpeedRegistrations.cpp)
     set_target_properties(tst_keyframesui PROPERTIES MACOSX_BUNDLE FALSE)
     target_compile_options(tst_keyframesui PRIVATE ${NT_WARNINGS})
     target_link_libraries(tst_keyframesui PRIVATE timeline_core timeline_decode timeline_server
@@ -31,14 +31,13 @@ nt_tests(nt_keyframe_ui_tests)
 function(nt_keyed_render_tests)
     qt_add_executable(tst_keyedrender src/edit/keyframes/tst_keyedrender.cpp
         src/edit/keyframes/KeyframeEdits.cpp
-        src/preview/crop/CropDecorator.cpp
         ${NT_EFFECTS_REGISTRAR}
         src/model/TimelineModel.h src/model/TimelineModel.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp
         src/export/OffscreenFrames.h src/export/OffscreenFrames.cpp)
     set_target_properties(tst_keyedrender PROPERTIES MACOSX_BUNDLE FALSE)
     target_compile_options(tst_keyedrender PRIVATE ${NT_WARNINGS})
-    target_link_libraries(tst_keyedrender PRIVATE nodetool_timeline_player timeline_core timeline_decode
+    target_link_libraries(tst_keyedrender PRIVATE nodetool_timeline_playback_registrar nodetool_timeline_player timeline_core timeline_decode
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test ${NT_APP_PLATFORM_LIBS})
     add_test(NAME tst_keyedrender COMMAND tst_keyedrender)
     set_tests_properties(tst_keyedrender PROPERTIES LABELS render)

@@ -12,7 +12,7 @@ function(nt_registry_targeting_sources)
         endif()
     endforeach()
 endfunction()
-cmake_language(DEFER DIRECTORY ${CMAKE_SOURCE_DIR} CALL nt_registry_targeting_sources)
+cmake_language(DEFER CALL nt_registry_targeting_sources)
 
 function(nt_registry_tests)
     # These are the app's edit registrars, including the QML source contribution.

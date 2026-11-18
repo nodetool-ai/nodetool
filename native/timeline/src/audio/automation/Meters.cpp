@@ -52,10 +52,18 @@ std::shared_ptr<audio::BlockProcessor> tap(const std::string& id, double gain, d
 namespace { thread_local bool suppressed = false; }
 ScopedNoMeters::ScopedNoMeters() : previous_(suppressed) { suppressed = true; }
 ScopedNoMeters::~ScopedNoMeters() { suppressed = previous_; }
-void attachMeters(audio::MixPlan& plan) {
+namespace {
+void attachMeters(const Timeline&, audio::MixPlan& plan) {
     if (suppressed) { return; }
     beginMeterPlan();
     for (auto& track : plan.tracks) { track.processors.push_back(tap(track.trackId,track.gain,track.pan,track.gainSource,track.panSource)); }
     plan.processors.push_back(tap("master",plan.masterGain,0,plan.gainSource,{}));
+}
+} // namespace
+
+void registerMeterStage() {
+    // Tap the bus after mixer automation has attached its gain and pan envelopes.
+    static const auto token = audio::registerMixPlanStage("automationMeters", attachMeters, 101);
+    (void)token;
 }
 }

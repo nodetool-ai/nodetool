@@ -68,7 +68,7 @@ and a full editor screenshot. It does not call a model provider.
 ## Build and test
 
 Requires Qt 6.12 (the build rejects other minor versions, because QRhi is a
-private API), Ninja, CMake 3.24 or newer, and FFmpeg with pkg-config files. On
+private API), Ninja, CMake 3.28 or newer, and FFmpeg with pkg-config files. On
 macOS:
 
 ```bash

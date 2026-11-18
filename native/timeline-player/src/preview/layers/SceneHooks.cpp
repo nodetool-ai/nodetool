@@ -1,4 +1,5 @@
 #include "preview/layers/SceneHooks.h"
+#include "preview/StandardHooks.h"
 #include <algorithm>
 #include <mutex>
 
@@ -13,9 +14,12 @@ struct Hook {
     ClipAnimationProvider clipAnimation;
 };
 struct Registry {
+    // Guards hooks and token allocation.
     std::mutex mutex;
     std::vector<Hook> hooks;
     SceneHookToken next = 1;
+    // Read and written only on the UI thread.
+    std::weak_ptr<HookRegistrations> standardHooks;
 };
 // native-rules #14: static process-wide mutable registry
 Registry& registry() { static Registry value; return value; }
@@ -27,6 +31,20 @@ SceneHookToken add(Hook hook) {
     return r.hooks.back().token;
 }
 }
+std::shared_ptr<HookRegistrations> detail::shareStandardHooks(HookRegistrations (*install)()) {
+    auto& current = registry().standardHooks;
+    if (auto owner = current.lock()) {
+        return owner;
+    }
+    auto registrations = install();
+    if (registrations.empty()) {
+        return {};
+    }
+    auto owner = std::make_shared<HookRegistrations>(std::move(registrations));
+    current = owner;
+    return owner;
+}
+
 SceneHookToken registerLayerDecorator(LayerDecorator decorator) {
     Hook hook; hook.layer = std::move(decorator); return add(std::move(hook));
 }

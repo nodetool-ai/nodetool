@@ -138,6 +138,7 @@ using MixPlanStage = std::function<void(const Timeline&, MixPlan&)>;
 using MixPlanStageToken = std::uint64_t;
 MixPlanStageToken registerMixPlanStage(std::string name, MixPlanStage stage, int priority = 100);
 void unregisterMixPlanStage(MixPlanStageToken token);
+bool hasMixPlanStage(std::string_view name);
 
 // The PCM a voice reads: a ring in the device callback, or a whole decoded
 // span in the offline render. Missing frames are silence.

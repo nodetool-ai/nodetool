@@ -1,6 +1,6 @@
-#include "audio/automation/Automation.h"
+#include "audio/automation/AutomationCurves.h"
+#include "preview/PlaybackHooks.h"
 #include "audio/Mixer.h"
-#include "Meters.h"
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -8,6 +8,7 @@
 namespace nt::automation {
 namespace {
 struct Breakpoint { double time; float value; };
+// Built on the control thread and read immutably by the audio renderer.
 class Ramp final : public audio::ParameterSource {
 public:
     Ramp(const QJsonArray& points,bool gain,bool subdivide,bool pan=false) {
@@ -39,6 +40,7 @@ struct Parameter {
     Ramp ramp;
     bool gain;
 };
+// Built on the control thread and used by the thread rendering the mix plan.
 class AutomatedInsert final : public audio::BlockProcessor {
 public:
     AutomatedInsert(std::shared_ptr<audio::BlockProcessor> inner,std::vector<Parameter> parameters,bool quantum)
@@ -70,7 +72,8 @@ private:
             inner_->setParameter(p.name,p.gain?20*std::log10(std::max(value,1e-300)):value);
         }
     }
-    // native-rules #1: std::shared_ptr BlockProcessor, no comment on why unique ownership is impossible
+    // The original insert is shared during plan construction while its bus
+    // slot is replaced with this wrapper.
     std::shared_ptr<audio::BlockProcessor> inner_;
     std::vector<Parameter> parameters_;
     bool quantum_;
@@ -110,11 +113,10 @@ void attach(const nt::Timeline& tl,audio::MixPlan& plan) {
             if (!parameters.empty()) { processor=std::make_shared<AutomatedInsert>(processor,std::move(parameters),type=="compressor"); }
         }
     }
-    attachMeters(plan);
 }
 }
-void ensureRegistered() {
-    static const auto token=audio::registerMixPlanStage("automation",attach,100);
-    (void)token;
+
+audio::MixPlanStageToken registerMixerAutomation() {
+    return audio::registerMixPlanStage("automation", attach, 100);
 }
 }

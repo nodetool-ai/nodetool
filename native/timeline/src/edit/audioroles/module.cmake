@@ -8,7 +8,7 @@ nt_sources(audio src/audio/loudness/AppReadout.h src/audio/loudness/AppReadout.c
 function(nt_audioroles_tests)
     qt_add_executable(tst_audioroles src/edit/audioroles/tst_audioroles.cpp)
     set_target_properties(tst_audioroles PROPERTIES MACOSX_BUNDLE FALSE)
-    target_link_libraries(tst_audioroles PRIVATE timeline_core timeline_decode timeline_audio timeline_server
+    target_link_libraries(tst_audioroles PRIVATE nodetool_timeline_playback_registrar timeline_core timeline_decode timeline_audio timeline_server
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
     nt_add_timeline_qml(tst_audioroles OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_audioroles_qml/NodeTool/Timeline)
     add_test(NAME tst_audioroles COMMAND tst_audioroles)

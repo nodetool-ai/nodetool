@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.28)
 
 # The timeline player shared by native/timeline and the node editor:
 # nodetool_timeline_scene (the timeline document, its JSON parser and scene
@@ -17,9 +17,12 @@ if(APPLE)
     enable_language(OBJCXX)
 endif()
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# CMake 3.28 enables module scanning by default on supported compilers.
+# These targets use no C++ modules and do not need clang-scan-deps.
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 if(PROJECT_IS_TOP_LEVEL)
-    set(CMAKE_CXX_STANDARD 20)
-    set(CMAKE_CXX_STANDARD_REQUIRED ON)
     include(CTest)
 endif()
 
@@ -58,6 +61,14 @@ endif()
 # layout of native/timeline/src, so includes such as "scene/ClipScene.h"
 # resolve through the PUBLIC include directory in both projects.
 add_library(nodetool_timeline_scene STATIC
+    src/preview/StandardHooks.h
+    src/preview/HookRegistrations.cpp
+    src/audio/automation/AutomationCurves.h
+    src/audio/automation/AutomationCurves.cpp
+    src/audio/automation/PictureAutomation.cpp
+    src/preview/crop/CropDecorator.cpp
+    src/preview/crop/Reframe.h
+    src/preview/crop/Reframe.cpp
     src/model/TimelineSource.h
     src/model/StaticTimelineSource.h
     src/model/StaticTimelineSource.cpp
@@ -126,7 +137,6 @@ option(NT_PORTABLE "macOS: build the non-Apple code paths (no VideoToolbox, port
 set(NT_PLAYER_DECODE_PLATFORM_SOURCES src/preview/hw/HwInterop.h src/preview/hw/HwInterop.cpp)
 set(NT_PLAYER_DECODE_PLATFORM_LIBS "")
 set(NT_PLAYER_DECODE_DEFINES "")
-set(NT_PLAYER_HAVE_VAAPI_VULKAN OFF)
 if(NT_PORTABLE)
     list(APPEND NT_PLAYER_DECODE_DEFINES NT_HW_NONE)
 endif()
@@ -141,13 +151,12 @@ elseif(WIN32)
     list(APPEND NT_PLAYER_DECODE_PLATFORM_SOURCES src/preview/hw/D3D11Interop.h src/preview/hw/D3D11Interop.cpp)
     set(NT_PLAYER_DECODE_PLATFORM_LIBS d3d11 dxgi)
 elseif(UNIX)
-    find_package(Vulkan)
+    find_package(Vulkan GLOBAL)
     pkg_check_modules(LIBVA IMPORTED_TARGET GLOBAL libva libva-drm)
     if(Vulkan_FOUND AND LIBVA_FOUND)
         list(APPEND NT_PLAYER_DECODE_PLATFORM_SOURCES src/preview/hw/VulkanInterop.h src/preview/hw/VulkanInterop.cpp)
         list(APPEND NT_PLAYER_DECODE_DEFINES NT_HAVE_VAAPI_VULKAN)
         set(NT_PLAYER_DECODE_PLATFORM_LIBS Vulkan::Vulkan PkgConfig::LIBVA)
-        set(NT_PLAYER_HAVE_VAAPI_VULKAN ON)
     else()
         message(STATUS "timeline player: no libva or Vulkan, software decode only")
     endif()
@@ -166,7 +175,7 @@ if(NOT TARGET harfbuzz::harfbuzz)
         IMPORTED_LOCATION "${NT_HARFBUZZ_LIBRARY}"
         INTERFACE_INCLUDE_DIRECTORIES "${NT_HARFBUZZ_INCLUDE_DIR}")
 endif()
-find_package(Freetype REQUIRED)
+find_package(Freetype REQUIRED GLOBAL)
 
 # The fonts render2d loads when no NODETOOL_TIMELINE_FONTS_DIR, fonts folder
 # next to the executable or app bundle Resources/fonts exists. The host sets
@@ -195,8 +204,6 @@ add_library(nodetool_timeline_decode STATIC
     src/preview/StillImageSource.h
     src/preview/StillImageSource.cpp
     src/preview/RetireQueue.h
-    src/preview/StandardHooks.h
-    src/preview/StandardHooks.cpp
     src/preview/layers/LayerRegistry.h
     src/preview/layers/LayerRegistry.cpp
     src/preview/compose/BackdropStage.h
@@ -254,18 +261,9 @@ target_link_libraries(nodetool_timeline_effects_registrar PUBLIC nodetool_timeli
 add_library(nodetool_timeline_render2d_registrar OBJECT src/render2d/Render2dStartup.cpp)
 target_link_libraries(nodetool_timeline_render2d_registrar PUBLIC nodetool_timeline_decode)
 
-if(NOT PROJECT_IS_TOP_LEVEL)
-    # The host links the same platform libraries into code that includes the
-    # hardware interop headers.
-    set(NT_PLAYER_DECODE_PLATFORM_LIBS ${NT_PLAYER_DECODE_PLATFORM_LIBS} PARENT_SCOPE)
-    set(NT_PLAYER_HAVE_VAAPI_VULKAN ${NT_PLAYER_HAVE_VAAPI_VULKAN} PARENT_SCOPE)
-endif()
-
 # The mixer uses the same Web Audio filter kernels as the audio nodes.
 if(NOT TARGET nodetool_kernels)
     add_subdirectory(../kernels ${CMAKE_CURRENT_BINARY_DIR}/kernels)
-    # The kernels use no C++ modules. Avoid requiring clang-scan-deps.
-    set_target_properties(nodetool_kernels PROPERTIES CXX_SCAN_FOR_MODULES OFF)
 endif()
 
 if(APPLE)
@@ -300,6 +298,10 @@ add_library(nodetool_timeline_audio STATIC
     src/audio/effects/Oversampler.cpp
     src/audio/hooks/MixerHooks.h
     src/audio/hooks/MixerHooks.cpp
+    src/audio/hooks/SpeedMixRegistration.cpp
+    src/audio/automation/AutomationStage.cpp
+    src/preview/PlaybackHooks.h
+    src/preview/PlaybackHooks.cpp
     src/audio/hooks/OutputDevice.h
     src/audio/hooks/OutputDevice.cpp
     src/audio/loudness/Ducking.h
@@ -320,6 +322,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
     target_link_options(nodetool_timeline_audio INTERFACE -fexperimental-library)
 endif()
 set_source_files_properties(src/audio/miniaudio.cpp PROPERTIES COMPILE_OPTIONS "${NT_PLAYER_NO_WARNINGS}")
+add_library(nodetool_timeline_playback_registrar OBJECT src/preview/PlaybackStartup.cpp)
+target_link_libraries(nodetool_timeline_playback_registrar PUBLIC nodetool_timeline_audio)
 
 # The QML module NodeTool.TimelinePlayer: PlaybackClock, PreviewCompositor
 # (a QQuickRhiItem), TimelineSource, TimelineDocumentLoader,
@@ -346,6 +350,7 @@ qt_add_qml_module(nodetool_timeline_player
         src/player/PlaybackArbiter.h
         src/player/TimelinePlayerController.h
         src/player/TimelinePlayerController.cpp
+        src/preview/StandardHooks.cpp
         src/preview/PreviewCompositor.h
         src/preview/PreviewCompositor.cpp
         src/preview/hw/HwWindow.h
@@ -388,10 +393,10 @@ if(BUILD_TESTING)
     # registerStandardHooks() (src/preview/StandardHooks.h).
     qt_add_executable(tst_standardhooks tests/tst_standardhooks.cpp)
     target_compile_definitions(tst_standardhooks PRIVATE NT_STARTUP_REGISTRARS)
-    target_link_libraries(tst_standardhooks PRIVATE nodetool_timeline_decode
-        nodetool_timeline_effects_registrar nodetool_timeline_render2d_registrar Qt6::Test)
+    target_link_libraries(tst_standardhooks PRIVATE nodetool_timeline_player
+        nodetool_timeline_effects_registrar nodetool_timeline_render2d_registrar nodetool_timeline_playback_registrar Qt6::Test)
     qt_add_executable(tst_standardhooks_explicit tests/tst_standardhooks.cpp)
-    target_link_libraries(tst_standardhooks_explicit PRIVATE nodetool_timeline_decode Qt6::Test)
+    target_link_libraries(tst_standardhooks_explicit PRIVATE nodetool_timeline_player Qt6::Test)
     foreach(test_name tst_standardhooks tst_standardhooks_explicit)
         set_target_properties(${test_name} PROPERTIES MACOSX_BUNDLE FALSE AUTOMOC ON)
         target_compile_options(${test_name} PRIVATE ${NT_PLAYER_WARNINGS})
@@ -417,9 +422,20 @@ if(BUILD_TESTING)
     set_tests_properties(tst_timelineplayer_render PROPERTIES LABELS render
         ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
 
+    qt_add_executable(tst_playbackhooks_render tests/tst_playbackhooks_render.cpp)
+    set_target_properties(tst_playbackhooks_render PROPERTIES MACOSX_BUNDLE FALSE AUTOMOC ON)
+    target_compile_options(tst_playbackhooks_render PRIVATE ${NT_PLAYER_WARNINGS})
+    target_link_libraries(tst_playbackhooks_render PRIVATE nodetool_timeline_player Qt6::Test)
+    add_test(NAME tst_playbackhooks_render COMMAND tst_playbackhooks_render)
+    set_tests_properties(tst_playbackhooks_render PROPERTIES LABELS render
+        ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
+
     qt_add_executable(tst_audioeffects tests/tst_audioeffects.cpp)
     qt_add_executable(tst_ducking tests/tst_ducking.cpp)
     qt_add_executable(tst_liveloudness tests/tst_liveloudness.cpp)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+        target_compile_options(tst_liveloudness PRIVATE -fexperimental-library)
+    endif()
     qt_add_executable(tst_loudness tests/tst_loudness.cpp)
     qt_add_executable(tst_loudnessengine tests/tst_loudnessengine.cpp)
     qt_add_executable(tst_shuttlestretch tests/tst_shuttlestretch.cpp)

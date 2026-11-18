@@ -1,5 +1,5 @@
 #include "ReframeController.h"
-#include "Reframe.h"
+#include "ReframeEditing.h"
 #include "app/EditRegistry.h"
 #include "preview/SceneEval.h"
 #include <QJsonArray>

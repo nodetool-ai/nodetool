@@ -8,10 +8,10 @@ the native node editor. The
 
 | Target | Dependencies | Contents |
 |---|---|---|
-| `nodetool_timeline_scene` | Qt Core, Yoga | The document types (`model/TimelineTypes.h`), `TimelineJson`, `TimelineSource`, `StaticTimelineSource`, `TimelineDocumentLoader`, `scene/`, the motion headers, `SceneEval`, `SceneHooks`, `TransitionResolver`, `CaptionCues`, `CpuUsage` and `AudioClockFeed` |
+| `nodetool_timeline_scene` | Qt Core, Yoga | The document types (`model/TimelineTypes.h`), `TimelineJson`, `TimelineSource`, `StaticTimelineSource`, `TimelineDocumentLoader`, `scene/`, the motion headers, `SceneEval`, `SceneHooks`, crop and reframe evaluation, picture automation, `TransitionResolver`, `CaptionCues`, `CpuUsage` and `AudioClockFeed` |
 | `nodetool_timeline_decode` | `nodetool_timeline_scene`, Qt Gui and GuiPrivate (QRhi), FFmpeg, HarfBuzz, FreeType, the platform's hardware decode libraries | The media sources and their pools (`FfmpegSource`, `SourcePool`, `FrameCache`, `SurfacePool`, `RetireQueue`), the hardware interop (`preview/hw/`), the layer and compose hook registries, the effects, render2d and the effect shaders (`shaders/effects/`) |
-| `nodetool_timeline_effects_registrar`, `nodetool_timeline_render2d_registrar` | `nodetool_timeline_decode` | Object libraries that register the [standard hooks](#standard-hooks) at application startup |
-| `nodetool_timeline_audio` | `nodetool_timeline_scene`, FFmpeg, `nodetool_kernels`, miniaudio, platform audio libraries | The playback engine, mixer, audio sources, shuttle stretch, effects, mix and output-device hooks, and loudness processing |
+| `nodetool_timeline_effects_registrar`, `nodetool_timeline_render2d_registrar`, `nodetool_timeline_playback_registrar` | `nodetool_timeline_decode` or `nodetool_timeline_audio` | Object libraries that register the [standard hooks](#standard-hooks) for the process lifetime |
+| `nodetool_timeline_audio` | `nodetool_timeline_scene`, FFmpeg, `nodetool_kernels`, miniaudio, platform audio libraries | The playback engine, mixer, audio sources, shuttle stretch, effects, mix and output-device hooks, time-remapped audio, mixer automation, and loudness processing |
 | `nodetool_timeline_player`, `nodetool_timeline_playerplugin` | `nodetool_timeline_decode`, `nodetool_timeline_audio`, `nodetool_ui_primitives`, Qt Qml and Quick | The [QML module](#qml-module) `NodeTool.TimelinePlayer`: `PlaybackClock`, `PreviewCompositor`, `HwWindow`, the composite shaders (`shaders/`), `TimelinePlayerController` and `TimelinePlayer.qml` |
 | `nodetool_timeline_player_server` | Qt Network, `nodetool_timeline_scene` | `ServerTimelineLoader`, tRPC, media resolution and cache leases |
 | `yogacore` | none | [Yoga 3.2.1](third_party/yoga/README.md), the flex layout engine, unchanged |
@@ -50,9 +50,8 @@ that name exists, so a host that also adds it adds it first.
 derive from it, such as the timeline's `TimelineModel`, lists
 `DEPENDENCIES NodeTool.TimelinePlayer` and does not register it again. Its
 `.qmltypes` then names `TimelineSource` as the prototype, and QML can assign
-the host's object to `PreviewCompositor.timeline`. Give the host module this
-directory's build folder as an `IMPORT_PATH`, so `qmlcachegen` and `qmllint`
-find the module.
+the host's object to `PreviewCompositor.timeline`. Read `BINARY_DIR` from the `nodetool_timeline_player` target and pass it
+as the host module's `IMPORT_PATH` so `qmlcachegen` and `qmllint` find it.
 
 The compositor loads its shaders from `:/shaders/`, which the library carries
 as resources. `nt::hw::selectGraphicsApi()` and `nt::hw::prepareWindow()`
@@ -123,8 +122,9 @@ target_link_libraries(host PRIVATE nodetool_timeline_player nodetool_timeline_pl
     nodetool_timeline_player_server)
 nodetool_use_ui_primitives(host)
 # A host QML module that names these types:
+get_target_property(player_import_path nodetool_timeline_player BINARY_DIR)
 #   qt_add_qml_module(host_qml ... DEPENDENCIES NodeTool.TimelinePlayer
-#       IMPORT_PATH ${CMAKE_CURRENT_BINARY_DIR}/timeline-player)
+#       IMPORT_PATH ${player_import_path})
 ```
 
 ```cpp
@@ -152,8 +152,7 @@ VideoToolbox on macOS, D3D11VA on Windows, and VAAPI with DMA-BUF import into
 Vulkan on Linux when libva and Vulkan are found. Without them the player
 decodes in software. `NT_HAVE_VAAPI_VULKAN` and, with `NT_PORTABLE`,
 `NT_HW_NONE` are PUBLIC compile definitions of `nodetool_timeline_decode`.
-A host that adds this directory gets `NT_PLAYER_DECODE_PLATFORM_LIBS` and
-`NT_PLAYER_HAVE_VAAPI_VULKAN` back in its own scope.
+The same target propagates the platform link dependencies.
 
 ## Fonts
 
@@ -166,32 +165,29 @@ repository's `packages/timeline/fonts`.
 
 ## Standard hooks
 
-The layer, compose and scene hooks are process-wide registries. The timeline's
-documents need these registrations:
+The scene, compositor and mixer use process-wide hook registries.
+Timeline documents use these registrations:
 
-- `effects::registerEffectHooks()`: the clip, track, group and adjustment
-  decorators, the adjustment backdrop stage, the matte and denoise second
-  sources, the effect and mask stages, the image matte stage and a handler
-  for every blend mode.
-- `render2d::registerRender2dHooks()`: the text measurer, the text, shape and
-  caption layer style and their raster sources.
+- `effects::registerEffectHooks()` installs effects, masks, mattes, adjustment
+  stages and blend modes.
+- `render2d::registerRender2dHooks()` installs the text measurer and the text,
+  shape and caption raster sources and styles.
+- `registerPlaybackHooks()` installs crop and dynamic reframe, picture and
+  mixer automation, and the voice expander for time-remapped audio.
 
-Without them, effects, blends, text, shapes and captions render wrongly and
-nothing reports an error. A host gets them in one of two ways:
+Link the three registrar object libraries for process-lifetime registration,
+as the timeline app does. Effects and render2d install at QGuiApplication
+startup. Playback hooks also work for headless mix and scene evaluation.
 
-- Link `nodetool_timeline_effects_registrar` and
-  `nodetool_timeline_render2d_registrar`. Their objects link into the
-  executable and register at `QCoreApplication` startup for the process
-  lifetime. The timeline app and its tests do this through
-  `NT_EFFECTS_REGISTRAR` and `NT_RENDER2D_REGISTRAR`.
-- Call `nt::registerStandardHooks()` (`preview/StandardHooks.h`) on the UI
-  thread after creating the `QGuiApplication`. It returns a
-  `HookRegistrations` that unregisters the hooks when destroyed, and it skips
-  a group that is already complete.
+A host can instead call `nt::registerStandardHooks()` on the UI thread.
+Keep the returned `HookRegistrations` while rendering. Explicit callers
+share the same registrations until the last handle is destroyed. Complete
+groups installed by startup registrars keep their process lifetime.
 
-`nt::missingStandardHooks()` names the registrations that are absent.
-`tst_standardhooks` and `tst_standardhooks_explicit` fail when either way
-leaves a hook out.
+`nt::missingStandardHooks()` names absent hooks.
+`tst_standardhooks` and `tst_standardhooks_explicit` cover both entry points
+with a remapped mix, track automation and a dynamic crop.
+`tst_playbackhooks_render` verifies crop and opacity in captured frames.
 
 ## Audio
 
@@ -202,8 +198,8 @@ callback reads them. The engine uninitializes the device and joins its worker
 before freeing the rings and callback state.
 
 The timeline app's `AppAudio` feeds the engine from a `TimelineSource` and
-connects it to the app's `PlaybackClock`. Automation and its startup
-registration also live in the app. The shared mixer supplies the hooks.
+connects it to the app's `PlaybackClock`. The app also owns automation
+editing and the meter taps that supply its mixer UI.
 Miniaudio's license is at the end of
 [`third_party/miniaudio.h`](third_party/miniaudio.h).
 
@@ -234,8 +230,8 @@ The timeline build adds this directory with `add_subdirectory`. It links
 `nodetool_timeline_scene` into `timeline_core`, `nodetool_timeline_decode`
 into `timeline_decode`, `nodetool_timeline_audio` into `timeline_audio`, and
 `nodetool_timeline_player` into its QML module `timeline_qml`.
-The module adds `native/kernels` if `nodetool_kernels` is missing, including
-in standalone builds. Build and test from the timeline build:
+The module requires CMake 3.28 and adds `native/kernels` if
+`nodetool_kernels` is missing, including in standalone builds. Build and test from the timeline build:
 
 ```bash
 cmake --build native/timeline/build --target nodetool_timeline_decode tst_cpuusage tst_standardhooks tst_standardhooks_explicit tst_shuttlestretch

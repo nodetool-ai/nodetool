@@ -40,7 +40,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
 endif()
 
 # Platforms (M6). The hardware decode path and its libraries are chosen in
-# native/timeline-player (NT_PLAYER_DECODE_PLATFORM_LIBS).
+# native/timeline-player and propagate through nodetool_timeline_decode.
 # NT_PORTABLE builds the code of the other platforms on macOS: no
 # VideoToolbox and the portable platform code, so it compiles and its tests
 # run on the development machine.
@@ -68,10 +68,13 @@ endif()
 if(NOT TARGET nodetool_timeline_scene)
     add_subdirectory(../timeline-player ${CMAKE_CURRENT_BINARY_DIR}/timeline-player)
 endif()
+get_target_property(NT_PLAYER_IMPORT_PATH nodetool_timeline_player BINARY_DIR)
+get_target_property(NT_PLAYER_DECODE_DEFINITIONS nodetool_timeline_decode INTERFACE_COMPILE_DEFINITIONS)
 # The startup registrars of the standard preview hooks: each executable that
-# renders effects or text compiles them in (timeline-player README).
+# renders with those hooks compiles them in (timeline-player README).
 set(NT_EFFECTS_REGISTRAR $<TARGET_OBJECTS:nodetool_timeline_effects_registrar>)
 set(NT_RENDER2D_REGISTRAR $<TARGET_OBJECTS:nodetool_timeline_render2d_registrar>)
+set(NT_PLAYBACK_REGISTRAR $<TARGET_OBJECTS:nodetool_timeline_playback_registrar>)
 
 if(NT_APPLE_CODE)
     set(NT_APP_PLATFORM_SOURCES src/platform/ProcessActivity.h src/platform/ProcessActivity.mm
@@ -82,7 +85,6 @@ if(NT_APPLE_CODE)
 else()
     set(NT_APP_PLATFORM_SOURCES src/platform/ProcessActivity.h src/platform/SchedulingDiagnostics.h
         src/platform/PlatformStubs.cpp)
-    set(NT_APP_PLATFORM_LIBS ${NT_PLAYER_DECODE_PLATFORM_LIBS})
 endif()
 add_compile_definitions(${NT_PLATFORM_DEFINES})
 
@@ -210,7 +212,7 @@ qt_add_qml_module(timeline_qml
     # TimelineModel. The QML files import it.
     DEPENDENCIES NodeTool.TimelinePlayer
     # Where qmlcachegen and qmllint find that module's qmldir and types.
-    IMPORT_PATH ${CMAKE_CURRENT_BINARY_DIR}/timeline-player
+    IMPORT_PATH ${NT_PLAYER_IMPORT_PATH}
     QML_FILES ${NT_qml_files}
     RESOURCES ${NT_qml_resources}
     SOURCES ${NT_qml})

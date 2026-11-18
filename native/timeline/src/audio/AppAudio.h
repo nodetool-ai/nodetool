@@ -13,9 +13,8 @@
 
 #include "audio/AudioEngine.h"
 
-#include <QMetaObject>
+#include <QPointer>
 #include <QString>
-#include <QTimer>
 
 #include <memory>
 
@@ -24,9 +23,10 @@ class TimelineSource;
 
 namespace nt::audio {
 
+// UI thread only. AppAudio owns the update timer and stops the engine before it dies.
 class AppAudio {
 public:
-    AppAudio() = default;
+    AppAudio();
     ~AppAudio();
     AppAudio(const AppAudio&) = delete;
     AppAudio& operator=(const AppAudio&) = delete;
@@ -39,18 +39,16 @@ public:
     // start(). Only the engine of the open timeline should, not a preview of a candidate.
     void setPublishLoudness(bool publish) { m_publishLoudness = publish; }
     void setRecordSeconds(double seconds) { m_recordSeconds = seconds; }
-    AudioEngine* engine() { return m_engine.get(); }
+    AudioEngine* engine();
 
 private:
-    std::unique_ptr<AudioEngine> m_engine;
-    PlaybackClock* m_clock = nullptr;
+    class UpdateTimer;
+    std::unique_ptr<UpdateTimer> m_update;
+    QPointer<PlaybackClock> m_clock;
     double m_recordSeconds = 0;
     QString m_mode;
     QString m_reportPath;
     bool m_publishLoudness = false;
-    QMetaObject::Connection m_connection;
-    std::unique_ptr<QTimer> m_timer;
-    std::uint64_t m_appliedRevision = 0;
 };
 
 }  // namespace nt::audio

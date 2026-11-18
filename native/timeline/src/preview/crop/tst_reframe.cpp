@@ -1,4 +1,4 @@
-#include "Reframe.h"
+#include "ReframeEditing.h"
 #include "ReframeController.h"
 #include "preview/SceneEval.h"
 #include "app/PanelRegistry.h"

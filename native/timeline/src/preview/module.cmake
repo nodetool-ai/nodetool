@@ -63,7 +63,7 @@ function(nt_preview_tests)
         set_tests_properties(tst_d3d11window PROPERTIES LABELS render)
     endif()
     # Linux: the VAAPI interop's frame completion marks on a Vulkan QRhi.
-    if(NT_PLAYER_HAVE_VAAPI_VULKAN)
+    if("NT_HAVE_VAAPI_VULKAN" IN_LIST NT_PLAYER_DECODE_DEFINITIONS)
         qt_add_executable(tst_vulkaninterop tests/tst_vulkaninterop.cpp)
         target_compile_options(tst_vulkaninterop PRIVATE ${NT_WARNINGS})
         target_compile_definitions(tst_vulkaninterop PRIVATE NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")

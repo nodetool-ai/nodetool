@@ -115,6 +115,7 @@ def module_policy(module):
                 'nodetool_timeline_player', 'nodetool_timeline_playerplugin', 'nodetool_timeline_player_server',
                 'nodetool_ui_primitives', 'nodetool_ui_primitivesplugin', 'nodetool_kernels',
                 'nodetool_timeline_effects_registrar', 'nodetool_timeline_render2d_registrar',
+                'nodetool_timeline_playback_registrar',
                 'PkgConfig::FFMPEG', 'harfbuzz::harfbuzz', 'Freetype::Freetype',
             },
             # Values the hardware decode and audio link variables may hold.
@@ -231,6 +232,63 @@ def cmake_path_errors(text, path, module, allowed_subdirs=()):
     return errors
 
 
+def cmake_link_errors(cmake_files, policy):
+    variable_ref = re.compile(r'\$\{(\w+)\}')
+    links = [(label, arg) for label, calls in cmake_files for command, args in calls
+             if command == 'target_link_libraries' for argument in args[1:]
+             for arg in argument.split(';') if arg not in {'PUBLIC', 'PRIVATE', 'INTERFACE'}]
+    platform_links = policy.get('platform_links', set())
+    variables = {match.group(1) for _, arg in links
+                 if platform_links and (match := variable_ref.fullmatch(arg))}
+    assigned = set()
+    errors = []
+    # The audit visits every branch. A removal cannot make an earlier link
+    # safe, so collect every value that can be introduced into a link list.
+    for label, calls in cmake_files:
+        for command, args in calls:
+            # An indirect destination can name any of the tracked variables.
+            destination = args[:1] if command in {'set', 'unset'} else args[1:2]
+            mutates_destination = command in {'set', 'unset', 'list'} or (
+                command == 'string' and args[:1] in (['APPEND'], ['PREPEND']))
+            if variables and mutates_destination and any('$' in name for name in destination):
+                errors.append(f'{label}: unresolved {command}() variable name {destination[0]}')
+                continue
+            written = variables.intersection(args)
+            if not written or command in {'if', 'elseif'}:
+                continue
+            if command == 'set' and args[0] in written:
+                name, *values = args
+                assigned.add(name)
+                if values[-1:] == ['PARENT_SCOPE']:
+                    values.pop()
+            elif command == 'list' and len(args) >= 2 and args[1] in written:
+                action, name, *values = args
+                if action in {'REMOVE_ITEM', 'REMOVE_AT', 'REMOVE_DUPLICATES', 'REVERSE', 'SORT'}:
+                    continue
+                if action not in {'APPEND', 'PREPEND', 'INSERT'}:
+                    errors.append(f'{label}: unresolved list({action}) for link variable {name}')
+                    continue
+                assigned.add(name)
+                if action == 'INSERT':
+                    values = values[1:]
+            else:
+                for name in sorted(written):
+                    errors.append(f'{label}: unresolved {command}() for link variable {name}')
+                continue
+            for value in (item for value in values for item in value.split(';') if item):
+                if value not in platform_links | policy['targets']:
+                    errors.append(f'{label}: external link target {value} in ${{{name}}}')
+    qt_modules = ALLOWED_QT | policy.get('qt', set())
+    for label, target in links:
+        if target in policy['targets'] or (target.startswith('Qt6::') and target[5:] in qt_modules):
+            continue
+        match = variable_ref.fullmatch(target)
+        if match and match.group(1) in assigned:
+            continue
+        errors.append(f'{label}: external link target {target}')
+    return errors
+
+
 def source_files(module):
     result = []
     for path in module.rglob('*'):
@@ -249,6 +307,7 @@ def audit_module(module):
     policy = module_policy(module)
     files = source_files(module)
     errors = []
+    cmake_files = []
     if not files:
         errors.append('No native module source files inspected')
     for path in module.rglob('*'):
@@ -303,27 +362,8 @@ def audit_module(module):
             for command in re.findall(r'\b(?:execute_process|add_custom_command|add_custom_target)\s*\(([^)]*)\)', text, re.DOTALL):
                 if re.search(r'\b(?:node|npm|npx|yarn|pnpm)\b', command):
                     errors.append('{}: JavaScript build command'.format(label))
-            link_variables = {}
-            for command, args in cmake_calls(text):
-                if command == 'set' and args:
-                    # A forward to the parent scope repeats the value.
-                    values = set(args[1:]) - {'PARENT_SCOPE', '${' + args[0] + '}'}
-                    link_variables.setdefault(args[0], set()).update(values)
-            for links in re.findall(r'\btarget_link_libraries\s*\(([^)]*)\)', text, re.DOTALL):
-                for target in links.split()[1:]:
-                    if target in {'PUBLIC', 'PRIVATE', 'INTERFACE'}:
-                        continue
-                    if target in policy['targets']:
-                        continue
-                    variable = re.fullmatch(r'\$\{(\w+)\}', target)
-                    if variable and variable.group(1) in link_variables and policy.get('platform_links'):
-                        values = link_variables[variable.group(1)] - {''}
-                        for value in sorted(values - policy['platform_links'] - policy['targets']):
-                            errors.append('{}: external link target {} in {}'.format(label, value, target))
-                        continue
-                    if target.startswith('Qt6::') and target[5:] in ALLOWED_QT | policy.get('qt', set()):
-                        continue
-                    errors.append('{}: external link target {}'.format(label, target))
+            cmake_files.append((label, list(cmake_calls(text))))
+    errors.extend(cmake_link_errors(cmake_files, policy))
     return files, errors
 
 

@@ -1,14 +1,14 @@
 nt_sources(core src/edit/speed/SpeedOperations.h src/edit/speed/SpeedOperations.cpp)
 nt_sources(ops src/edit/speed/SpeedSourceRegistration.cpp)
 # Registrars compile into executables so static-library linking cannot drop them.
-nt_sources(app src/edit/speed/SpeedRegistrations.cpp src/edit/speed/SpeedMixRegistration.cpp)
+nt_sources(app src/edit/speed/SpeedRegistrations.cpp)
 nt_qml_sources(src/edit/speed/SpeedInspectorRegistration.cpp)
 nt_qml_sources(src/edit/speed/SpeedController.h src/edit/speed/SpeedController.cpp)
 function(nt_speed_tests)
     qt_add_executable(tst_speed src/edit/speed/tst_speed.cpp)
-    target_sources(tst_speed PRIVATE src/edit/speed/SpeedRegistrations.cpp src/edit/speed/SpeedMixRegistration.cpp)
+    target_sources(tst_speed PRIVATE src/edit/speed/SpeedRegistrations.cpp)
     set_target_properties(tst_speed PROPERTIES MACOSX_BUNDLE FALSE)
-    target_link_libraries(tst_speed PRIVATE timeline_core timeline_decode timeline_audio timeline_server
+    target_link_libraries(tst_speed PRIVATE nodetool_timeline_playback_registrar timeline_core timeline_decode timeline_audio timeline_server
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
     nt_add_timeline_qml(tst_speed OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_speed_qml/NodeTool/Timeline)
     add_test(NAME tst_speed COMMAND tst_speed)

@@ -39,7 +39,7 @@ struct Stage {
     int priority;
 };
 struct StageRegistry {
-    // native-rules #10: mutex does not say that it guards stages and next
+    // Guards stages and token allocation.
     std::mutex mutex;
     std::vector<Stage> stages;
     MixPlanStageToken next = 1;
@@ -176,6 +176,12 @@ MixPlanStageToken registerMixPlanStage(std::string name, MixPlanStage stage, int
     const auto token = r.next++;
     r.stages.push_back({token, std::move(name), std::move(stage), priority});
     return token;
+}
+
+bool hasMixPlanStage(std::string_view name) {
+    auto& r = registry();
+    const std::scoped_lock lock(r.mutex);
+    return std::ranges::any_of(r.stages, [name](const Stage& stage) { return stage.name == name; });
 }
 
 void unregisterMixPlanStage(MixPlanStageToken token) {

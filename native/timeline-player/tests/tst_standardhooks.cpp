@@ -3,6 +3,7 @@
 // tst_standardhooks_explicit links none and calls registerStandardHooks(), as
 // another host may. A missing effect, blend mode, matte, text source or
 // decorator fails one of them.
+#include "audio/Mixer.h"
 #include "model/TimelineJson.h"
 #include "preview/SceneEval.h"
 #include "preview/StandardHooks.h"
@@ -11,6 +12,7 @@
 #include <QJsonArray>
 #include <QtTest>
 #include <algorithm>
+#include <array>
 #include <string>
 
 using namespace Qt::StringLiterals;
@@ -27,6 +29,22 @@ nt::Timeline probeDocument() {
         {"id":"a","trackId":"v","parentId":"g","mediaType":"video","status":"generated",
          "currentAssetId":"fixture","startMs":0,"durationMs":1000,"width":64,"height":32,
          "caption":{"words":[{"text":"hello","startMs":0,"endMs":1000}]}}]})")
+                .timeline;
+}
+
+// Synthetic audio PCM and a square output with a two-to-one source.
+nt::Timeline playbackDocument() {
+    return *nt::parseTimelineJson(R"({"fps":30,"width":64,"height":64,"durationMs":1000,
+      "tracks":[{"id":"v","type":"video","automation":[{"target":{"kind":"clip","property":"opacity"},
+        "points":[{"timeMs":0,"value":1},{"timeMs":1000,"value":0}]}]},
+        {"id":"a","type":"audio","automation":[{"target":{"kind":"mixer","param":"volumeDb"},
+        "points":[{"timeMs":0,"value":0},{"timeMs":500,"value":-20}]}]}],
+      "clips":[{"id":"v1","trackId":"v","mediaType":"video","status":"generated","currentAssetId":"video",
+        "startMs":0,"durationMs":1000,"width":128,"height":64,
+        "reframe":{"mode":"center","keyframes":[{"sourceMs":0,"x":0.25,"y":0.5},
+                                                {"sourceMs":1000,"x":0.75,"y":0.5}]}},
+        {"id":"a1","trackId":"a","mediaType":"audio","status":"generated","audioPath":"synthetic",
+         "startMs":0,"durationMs":1000,"timeRemap":{"keyframes":[{"t":0,"sourceMs":0},{"t":1,"sourceMs":2000}]}}]})")
                 .timeline;
 }
 
@@ -57,6 +75,40 @@ QStringList allMissing() { return nt::missingStandardHooks() + missingDecorators
 class TestStandardHooks : public QObject {
     Q_OBJECT
 private slots:
+    void timeRemapAndMixerAutomation() {
+        const auto hooks = nt::registerStandardHooks();
+        const auto plan = nt::audio::buildMixPlan(playbackDocument());
+        QCOMPARE(plan.voices.size(), std::size_t{1});
+        QCOMPARE(plan.voices[0].sourceRate, 2.0);
+        // At 500 ms the remap reads source frame 48,000. The track gain
+        // is -20 dB, so the impulse arrives at a tenth of its PCM value.
+        std::array<float, 2> input{1, -1}, output{};
+        nt::audio::VoicePcm pcm{.linear = input.data(), .linearFirst = 48000, .linearCount = 1};
+        nt::audio::MixStats stats;
+        nt::audio::mixBlock(plan, &pcm, 48000, 500, 1000.0 / 48000, 1, output.data(), stats);
+        QCOMPARE(output[0], 0.1f);
+        QCOMPARE(output[1], -0.1f);
+    }
+
+    void pictureAutomation() {
+        const auto hooks = nt::registerStandardHooks();
+        const auto frame = nt::evaluateScene(playbackDocument(), 500);
+        QCOMPARE(frame.layers.size(), std::size_t{1});
+        QCOMPARE(frame.layers[0].opacity, 0.5);
+    }
+
+    void dynamicReframe() {
+        const auto hooks = nt::registerStandardHooks();
+        const auto document = playbackDocument();
+        const auto first = nt::evaluateScene(document, 0);
+        const auto middle = nt::evaluateScene(document, 500);
+        QCOMPARE(first.layers.size(), std::size_t{1});
+        QCOMPARE(middle.layers.size(), std::size_t{1});
+        const std::array<float, 4> firstCrop{0, 0, 0.5f, 1};
+        const std::array<float, 4> middleCrop{0.25f, 0, 0.5f, 1};
+        QCOMPARE(first.layers[0].sourceRect, firstCrop);
+        QCOMPARE(middle.layers[0].sourceRect, middleCrop);
+    }
 #ifdef NT_STARTUP_REGISTRARS
     void registrarsRegisterEveryHook() {
         const auto missing = allMissing();
@@ -86,12 +138,29 @@ private slots:
             QVERIFY(!registrations.empty());
             const auto missing = allMissing();
             QVERIFY2(missing.isEmpty(), qPrintable(u"missing: "_s + missing.join(u", ")));
-            // A second call while the first holds the hooks adds nothing.
-            QVERIFY(nt::registerStandardHooks().empty());
         }
         // Destroying the registrations removes every hook again.
         QCOMPARE(allMissing(), missingBefore);
         QCOMPARE(nt::sceneHooks().layers.size(), layersBefore);
+    }
+    void twoOwnersKeepHooksAlive() {
+        const auto missingBefore = allMissing();
+        auto first = nt::registerStandardHooks();
+        const auto layers = nt::sceneHooks().layers.size();
+        auto second = nt::registerStandardHooks();
+        QCOMPARE(nt::sceneHooks().layers.size(), layers);
+        first = {};
+        const auto missing = allMissing();
+        QVERIFY2(missing.isEmpty(), qPrintable(missing.join(u", ")));
+        second = {};
+        QCOMPARE(allMissing(), missingBefore);
+    }
+
+    void assignmentKeepsHooksAlive() {
+        auto hooks = nt::registerStandardHooks();
+        hooks = nt::registerStandardHooks();
+        const auto missing = allMissing();
+        QVERIFY2(missing.isEmpty(), qPrintable(missing.join(u", ")));
     }
 #endif
 };

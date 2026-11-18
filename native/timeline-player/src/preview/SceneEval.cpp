@@ -43,6 +43,17 @@ struct ContextGroupHook {
 SceneHookToken registerContextLayerDecorator(ContextLayerDecorator decorator) {
     return registerLayerDecorator(ContextLayerHook{std::move(decorator)});
 }
+bool hasContextLayerDecorator(void (*decorate)(ActiveLayer&, const Clip&, const SceneDecorationContext&)) {
+    return std::ranges::any_of(sceneHooks().layers, [decorate](const LayerDecorator& layer) {
+        const auto hook = layer.target<ContextLayerHook>();
+        if (!hook) {
+            return false;
+        }
+        const auto callback = hook->decorate.target<decltype(decorate)>();
+        return callback && *callback == decorate;
+    });
+}
+
 SceneHookToken registerContextGroupDecorator(ContextGroupDecorator decorator) {
     return registerGroupDecorator(ContextGroupHook{std::move(decorator)});
 }

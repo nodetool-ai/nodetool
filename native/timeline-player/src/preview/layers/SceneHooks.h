@@ -25,6 +25,7 @@ using ClipAnimationProvider = std::function<std::optional<QJsonObject>(const Tra
 SceneHookToken registerLayerDecorator(LayerDecorator decorator);
 SceneHookToken registerGroupDecorator(GroupDecorator decorator);
 SceneHookToken registerContextLayerDecorator(ContextLayerDecorator decorator);
+bool hasContextLayerDecorator(void (*decorate)(ActiveLayer&, const Clip&, const SceneDecorationContext&));
 SceneHookToken registerContextGroupDecorator(ContextGroupDecorator decorator);
 SceneHookToken registerContextAdjustmentDecorator(ContextAdjustmentDecorator decorator);
 SceneHookToken registerSceneTextMeasurer(scene::MeasureText measure);
