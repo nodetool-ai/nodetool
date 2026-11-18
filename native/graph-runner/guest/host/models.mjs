@@ -9,7 +9,7 @@ import { migrateSqliteCore } from 'guest-real:@nodetool-ai/database-sqlite/migra
 import { appSettings } from 'guest-real:@nodetool-ai/models/schema/settings.js';
 import { messages } from 'guest-real:@nodetool-ai/models/schema/messages.js';
 import { threads } from 'guest-real:@nodetool-ai/models/schema/threads.js';
-import { applySqliteBaseline, migrateMessageBranches } from './models-baseline.cjs';
+import { applySqliteBaseline, migrateMessageBranches, migrateMessageTurnContext } from './models-baseline.cjs';
 import { getAssetFileName } from '@nodetool-ai/protocol';
 import { normalizeAssetContentType } from 'guest-real:@nodetool-ai/asset-services/asset-paths.js';
 import { scripts } from 'guest-real:@nodetool-ai/models/schema/scripts.js';
@@ -58,6 +58,7 @@ export function openModelRepository(databasePath, userId) {
     client.transaction(() => {
       // Tables outside the execution set: the models migrations below.
       migrateMessageBranches(client);
+      migrateMessageTurnContext(client);
       // The 20261110_000000 add_thread_kind migration in @nodetool-ai/models.
       if (!client.pragma('table_info("nodetool_threads")').some((column) => column.name === 'kind')) client.exec("ALTER TABLE nodetool_threads ADD COLUMN kind TEXT NOT NULL DEFAULT 'chat'");
       // The 20261116_000000 add_project_folder migration in @nodetool-ai/models.
