@@ -206,6 +206,19 @@ export const cancelReceiveInput = cloudTransferSession.extend({ set_id: fullId }
 /** `applied`: the receive committed already, and a resume finishes placing its files. */
 export const cancelReceiveOutput = z.object({ state: z.enum(["cancelled", "applied"]) });
 
+// ── link ─────────────────────────────────────────────────────────
+/** Whether a local project is linked, so the app offers Publish to Cloud or Synchronize. */
+export const linkStatusInput = cloudTransferAccount.extend({ project_id: fullId });
+export const linkStatusOutput = z.discriminatedUnion("state", [
+  /** Not linked: the app offers Publish to Cloud. */
+  z.object({ state: z.literal("unlinked") }),
+  /** Linked to a cloud project of this server and account: the app offers Synchronize. */
+  z.object({ state: z.literal("linked"), cloud_project_id: z.string() }),
+  /** Linked to another cloud server or account: the app offers neither. */
+  z.object({ state: z.literal("linked_elsewhere") })
+]);
+export type LinkStatusOutput = z.infer<typeof linkStatusOutput>;
+
 // ── resume ───────────────────────────────────────────────────────
 /** Continues every send and receive of this account that a restart interrupted. */
 export const resumeTransfersInput = cloudTransferSession;

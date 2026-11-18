@@ -23,6 +23,8 @@ import {
   captureReceiveOutput,
   captureSendInput,
   captureSendOutput,
+  linkStatusInput,
+  linkStatusOutput,
   resumeTransfersInput,
   resumeTransfersOutput,
   runReceiveInput,
@@ -293,6 +295,18 @@ export const cloudTransferRouter = router({
         return { state: await reachingCloud(() => cancelReceive(transport, input.set_id)) };
       })
   }),
+
+  /** Whether the project is linked to a cloud project of this server and account. Reads nothing from the cloud. */
+  link: protectedProcedure
+    .input(linkStatusInput)
+    .output(linkStatusOutput)
+    .query(async ({ ctx, input }) => {
+      const serverKey = serverKeyOf(input);
+      const link = await getCloudLink(ctx.userId, input.project_id);
+      if (!link) return { state: "unlinked" as const };
+      if (!linkMatches(link, serverKey, input.account_id)) return { state: "linked_elsewhere" as const };
+      return { state: "linked" as const, cloud_project_id: link.cloud_project_id };
+    }),
 
   /** Continues every send and receive of this account a restart interrupted. */
   resume: protectedProcedure
