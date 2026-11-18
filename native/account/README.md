@@ -307,6 +307,13 @@ needs Qt Core and Network.
   task thread, and gives QML the viewer and editor links with their
   statements, the people, the linked documents with whether each has a link
   of its own, and the secret warnings. QML creates it.
+- `TransferController` runs Publish to Cloud and Synchronize through the
+  app's own server on its task thread. It captures the send, and for a
+  linked project the receive, and gives QML the review rows. Synchronize
+  receives first with the person's choices, captures the send again when
+  the receive replaced a document, and answers the one refusal of each
+  document kept local with the cloud revision the sheet showed. QML
+  creates it.
 - `ServerToken.h` is the one place the apps attach their own server's
   token, local or self-hosted, to a request. `attachServerToken()` sets
   `Authorization: Bearer` only when the token is not empty and the request
@@ -325,7 +332,9 @@ needs Qt Core and Network.
 `qt/qml/` holds the QML both apps compile: `AccountControl.qml`, with the
 server menu and the Sign in to another server dialog, `CloudDocumentsPanel.qml`,
 `CloudSyncStatus.qml`, `SharePanel.qml` and `ShareDialog.qml`, which shows
-the panel in a dialog. The node editor shows the panel in its own overlay
+the panel in a dialog, and `TransferPanel.qml`, the review sheet of Publish
+and Synchronize. The node editor compiles the transfer panel. Neither app
+opens it from a menu yet. The node editor shows the panel in its own overlay
 window from Workflow > Share or the header's Share button, and the timeline
 shows the dialog from Share in the document bar. Both show Share only on a
 cloud document the account owns.

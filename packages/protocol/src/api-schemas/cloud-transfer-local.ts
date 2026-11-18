@@ -45,6 +45,8 @@ export const capturedSend = z.object({
   transfer_id: z.string(),
   first_publication: z.boolean(),
   operations: z.array(transferOperation),
+  /** The captured documents, so the sheet names the document of each operation. */
+  documents: z.array(z.object({ kind: transferDocumentKind, local_id: z.string(), cloud_id: z.string(), name: z.string() })),
   missing_files: z.array(transferMissingFile),
   skipped: z.array(
     z.object({
@@ -113,6 +115,11 @@ export const captureReceiveOutput = z.object({
       cloud_id: z.string(),
       local_id: z.string(),
       name: z.string(),
+      /**
+       * The content hash of the cloud revision the sheet shows. A send that
+       * the cloud refuses with this stored hash was reviewed already.
+       */
+      content_hash: z.string(),
       status: receiveDocumentStatus,
       /** The decision taken without the person, or null when the review sheet must ask. */
       decision: receiveDecision.nullable(),

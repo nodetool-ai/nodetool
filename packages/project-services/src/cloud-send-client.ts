@@ -144,6 +144,8 @@ export interface SendReview {
   transferId: string;
   firstPublication: boolean;
   operations: TransferOperation[];
+  /** Each captured document's ids and name, so the sheet can name an operation's document. */
+  documents: Array<{ kind: TransferDocumentKind; localId: string; cloudId: string; name: string }>;
   missingFiles: TransferMissingFile[];
   skipped: SkippedDocument[];
   /** Documents gone here that the deletion review must confirm before a send deletes them. */
@@ -250,6 +252,7 @@ export async function captureSend(target: SendTarget): Promise<SendReview> {
     transferId,
     firstPublication: plan.firstPublication,
     operations: plan.manifest.operations,
+    documents: plan.documents.map(({ kind, localId, cloudId, name }) => ({ kind, localId, cloudId, name })),
     missingFiles: plan.missingFiles,
     skipped: plan.skipped,
     deletedLocally: plan.deletedLocally

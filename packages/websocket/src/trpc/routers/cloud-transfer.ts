@@ -164,6 +164,12 @@ export const cloudTransferRouter = router({
             transfer_id: review.transferId,
             first_publication: review.firstPublication,
             operations: review.operations,
+            documents: review.documents.map((document) => ({
+              kind: document.kind,
+              local_id: document.localId,
+              cloud_id: document.cloudId,
+              name: document.name
+            })),
             missing_files: review.missingFiles,
             skipped: review.skipped,
             deleted_locally: review.deletedLocally.map((entry) => ({
@@ -227,6 +233,7 @@ export const cloudTransferRouter = router({
             cloud_id: document.cloudId,
             local_id: document.localId,
             name: document.name,
+            content_hash: document.contentHash,
             status: document.status,
             decision: document.decision,
             files: document.files,

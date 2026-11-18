@@ -23,7 +23,9 @@ const cloud = {
   tokens: [] as Array<{ origin: string; token: string }>,
   fail: null as Error | null,
   commits: 0,
-  captures: 0
+  captures: 0,
+  /** The documents the next revision set lists. */
+  documents: [] as unknown[]
 };
 
 vi.mock("../src/lib/cloud-transfer-transport.js", () => ({
@@ -64,7 +66,12 @@ vi.mock("../src/lib/cloud-transfer-transport.js", () => ({
       async capture() {
         guard();
         cloud.captures += 1;
-        return { set_id: randomBytes(16).toString("hex"), project_id: PROJECT, documents: [], expires_at: new Date().toISOString() };
+        return {
+          set_id: randomBytes(16).toString("hex"),
+          project_id: PROJECT,
+          documents: cloud.documents,
+          expires_at: new Date().toISOString()
+        };
       },
       async document() {
         throw new Error("not used");
@@ -114,6 +121,7 @@ describe("cloudTransfer router", () => {
     cloud.fail = null;
     cloud.commits = 0;
     cloud.captures = 0;
+    cloud.documents = [];
     root = await mkdtemp(join(tmpdir(), "nodetool-cloud-transfer-"));
     const folder = createLocalWorkspace(join(root, PROJECT));
     await folder.mkdir("");
@@ -140,6 +148,10 @@ describe("cloudTransfer router", () => {
     if (review.status !== "captured") throw new Error("expected a capture");
     expect(review.first_publication).toBe(true);
     expect(review.operations).toHaveLength(1);
+    // The sheet names the document each operation sends.
+    expect(review.documents).toEqual([
+      expect.objectContaining({ kind: "workflow", local_id: review.operations[0]?.document_id })
+    ]);
     // The capture is local: nothing reached the cloud.
     expect(cloud.tokens).toEqual([]);
     expect((await getCloudSend(review.transfer_id))?.server_key).toBe(SERVER_KEY);
@@ -194,6 +206,26 @@ describe("cloudTransfer router", () => {
     expect(await apiCodeOf(caller.cloudTransfer.receive.run({ ...SESSION, account_id: "account-b", set_id: set.set_id }))).toBe(
       "NOT_FOUND"
     );
+  });
+
+  it("names the cloud revision each received document shows", async () => {
+    await createCloudLink({ userId: USER, projectId: PROJECT, serverKey: SERVER_KEY, accountId: "account-a", cloudProjectId: PROJECT });
+    const hash = "a".repeat(64);
+    cloud.documents = [
+      {
+        kind: "workflow",
+        document_id: "d".repeat(32),
+        name: "Flow",
+        revision_id: "e".repeat(32),
+        content_hash: hash,
+        files: [],
+        missing_files: []
+      }
+    ];
+    const set = await createCaller(makeCtx(USER)).cloudTransfer.receive.capture({ ...SESSION, project_id: PROJECT });
+    expect(set.documents).toEqual([
+      expect.objectContaining({ cloud_id: "d".repeat(32), content_hash: hash, status: "new", decision: "receive" })
+    ]);
   });
 
   it("reports a stale token as signed out and a cloud failure as retryable or not", async () => {

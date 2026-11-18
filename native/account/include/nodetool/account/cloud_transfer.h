@@ -45,6 +45,15 @@ struct TransferOperation {
   std::string name;
 };
 
+// A document the send captured, so the sheet can name an operation's
+// document.
+struct TransferDocument {
+  std::string kind;
+  std::string localId;
+  std::string cloudId;
+  std::string name;
+};
+
 // A required file that cannot be sent (X7).
 struct TransferMissingFile {
   std::string assetId;
@@ -81,6 +90,7 @@ struct SendCapture {
   std::string transferId;
   bool firstPublication = false;
   std::vector<TransferOperation> operations;
+  std::vector<TransferDocument> documents;
   std::vector<TransferMissingFile> missingFiles;
   std::vector<TransferSkipped> skipped;
   std::vector<TransferDeleted> deletedLocally;
@@ -130,6 +140,8 @@ struct ReceiveDocument {
   std::string cloudId;
   std::string localId;
   std::string name;
+  // The content hash of the cloud revision the review shows.
+  std::string contentHash;
   ReceiveState state = ReceiveState::Same;
   // The choice taken without the person, or empty when the review asks.
   std::optional<ReceiveChoice> decision;
@@ -231,7 +243,11 @@ enum class ReviewSection {
 struct ReviewRow {
   ReviewSection section = ReviewSection::Send;
   std::string kind;
+  // The local id, or the cloud id of a document this computer never had.
   std::string documentId;
+  // The cloud id, which receive decisions name. Empty for a document the
+  // cloud does not hold yet.
+  std::string cloudId;
   std::string name;
   // What the row says about the document, such as `create_document` or
   // `cloud_changed`.
@@ -249,6 +265,9 @@ struct ReviewRow {
   bool receiveListed = false;
   // For a Choice row raised by a refused send: the hash Keep local names.
   std::string cloudHash;
+  // For a Choice row from the receive half: the hash of the cloud revision
+  // the person saw.
+  std::string seenHash;
 };
 
 // The review sheet of Publish and Synchronize (PRD "Link a local project"
@@ -265,6 +284,10 @@ public:
   // The cloud refused the send because these documents changed since their
   // base: each becomes a Choice row that names the stored hash.
   void addRefusal(const std::vector<TransferFailure>& failures);
+  // The refusals the person answered already: a BASE_CHANGED refusal of a
+  // document they chose Keep local for, whose stored hash is the cloud
+  // revision they saw. Any other refusal is left for addRefusal.
+  std::vector<KeepLocalDecision> answeredRefusals(const std::vector<TransferFailure>& failures) const;
 
   const std::vector<ReviewRow>& rows() const { return rows_; }
   // Sets the choice of Choice row `index`. Returns false for another row.

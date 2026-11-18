@@ -219,6 +219,9 @@ SendCapture LocalTransferClient::captureSend(const std::string& projectId, const
   for (const json& op : data.value("operations", json::array())) {
     out.operations.push_back({str(op, "op"), str(op, "kind"), str(op, "document_id"), str(op, "name")});
   }
+  for (const json& item : data.value("documents", json::array())) {
+    out.documents.push_back({str(item, "kind"), str(item, "local_id"), str(item, "cloud_id"), str(item, "name")});
+  }
   for (const json& file : data.value("missing_files", json::array())) {
     TransferMissingFile missing{str(file, "asset_id"), str(file, "reason"), {}};
     for (const json& ref : file.value("documents", json::array())) {
@@ -312,6 +315,7 @@ ReceiveCapture LocalTransferClient::captureReceive(const std::string& projectId)
     document.cloudId = str(item, "cloud_id");
     document.localId = str(item, "local_id");
     document.name = str(item, "name");
+    document.contentHash = str(item, "content_hash");
     document.state = *state;
     const std::string decision = str(item, "decision");
     if (decision == "receive") {
@@ -394,6 +398,7 @@ TransferReview::TransferReview(const SendCapture& send, const ReceiveCapture& re
     const std::string id = document.localId.empty() ? document.cloudId : document.localId;
     if (document.state == ReceiveState::LocalDeleted) {
       ReviewRow& row = deletionRow(document.kind, id);
+      row.cloudId = document.cloudId;
       row.name = document.name;
       row.receiveListed = true;
       continue;
@@ -401,6 +406,8 @@ TransferReview::TransferReview(const SendCapture& send, const ReceiveCapture& re
     ReviewRow row;
     row.kind = document.kind;
     row.documentId = id;
+    row.cloudId = document.cloudId;
+    row.seenHash = document.contentHash;
     row.name = document.name;
     row.detail = receiveStateName(document.state);
     if (!document.decision) {
@@ -418,12 +425,27 @@ TransferReview::TransferReview(const SendCapture& send, const ReceiveCapture& re
     row.section = ReviewSection::Send;
     row.kind = op.kind;
     row.documentId = op.documentId;
-    row.name = op.name;
+    // An operation names the cloud id, which is the local id until the
+    // document was linked under another one.
+    for (const TransferDocument& document : send.documents) {
+      if (document.kind == op.kind && (document.cloudId == op.documentId || document.localId == op.documentId)) {
+        row.documentId = document.localId;
+        row.cloudId = document.cloudId;
+        row.name = document.name;
+        break;
+      }
+    }
+    // A rename shows the new name.
+    if (!op.name.empty()) {
+      row.name = op.name;
+    }
     row.detail = op.op;
     rows_.push_back(std::move(row));
   }
   for (const TransferDeleted& deleted : send.deletedLocally) {
-    deletionRow(deleted.kind, deleted.localId).sendListed = true;
+    ReviewRow& row = deletionRow(deleted.kind, deleted.localId);
+    row.cloudId = deleted.cloudId;
+    row.sendListed = true;
   }
   for (const TransferSkipped& skipped : send.skipped) {
     ReviewRow row;
@@ -453,7 +475,9 @@ void TransferReview::addRefusal(const std::vector<TransferFailure>& failures) {
     }
     bool found = false;
     for (ReviewRow& row : rows_) {
-      if (row.kind == failure.kind && row.documentId == failure.documentId &&
+      // A refusal names the cloud id, as the manifest does.
+      const bool same = row.cloudId.empty() ? row.documentId == failure.documentId : row.cloudId == failure.documentId;
+      if (row.kind == failure.kind && same &&
           (row.section == ReviewSection::Send || row.section == ReviewSection::Choice)) {
         row.section = ReviewSection::Choice;
         row.detail = "both_changed";
@@ -467,11 +491,30 @@ void TransferReview::addRefusal(const std::vector<TransferFailure>& failures) {
       row.section = ReviewSection::Choice;
       row.kind = failure.kind;
       row.documentId = failure.documentId;
+      row.cloudId = failure.documentId;
       row.detail = "both_changed";
       row.cloudHash = failure.storedHash;
       rows_.push_back(std::move(row));
     }
   }
+}
+
+std::vector<KeepLocalDecision> TransferReview::answeredRefusals(const std::vector<TransferFailure>& failures) const {
+  std::vector<KeepLocalDecision> out;
+  for (const TransferFailure& failure : failures) {
+    if (failure.code != "BASE_CHANGED" || failure.storedHash.empty()) {
+      continue;
+    }
+    for (const ReviewRow& row : rows_) {
+      // A refusal names the cloud id, as the manifest does.
+      if (row.section == ReviewSection::Choice && row.kind == failure.kind && row.cloudId == failure.documentId &&
+          row.cloudHash.empty() && row.choice == ReceiveChoice::KeepLocal && row.seenHash == failure.storedHash) {
+        out.push_back({failure.kind, failure.documentId, failure.storedHash});
+        break;
+      }
+    }
+  }
+  return out;
 }
 
 bool TransferReview::choose(std::size_t index, std::optional<ReceiveChoice> choice) {
@@ -502,11 +545,12 @@ bool TransferReview::ready() const {
 std::vector<ReceiveDecision> TransferReview::receiveDecisions() const {
   std::vector<ReceiveDecision> out;
   for (const ReviewRow& row : rows_) {
+    // The receive names each document by its cloud id.
     if (row.section == ReviewSection::Choice && row.cloudHash.empty() && row.choice) {
-      out.push_back({row.kind, row.documentId, *row.choice});
+      out.push_back({row.kind, row.cloudId, *row.choice});
     } else if (row.section == ReviewSection::Deletion && row.receiveListed) {
       // Restore from cloud unless the person kept the deletion.
-      out.push_back({row.kind, row.documentId, row.confirmed ? ReceiveChoice::KeepLocal : ReceiveChoice::Receive});
+      out.push_back({row.kind, row.cloudId, row.confirmed ? ReceiveChoice::KeepLocal : ReceiveChoice::Receive});
     }
   }
   return out;
@@ -516,7 +560,7 @@ std::vector<KeepLocalDecision> TransferReview::keepLocalDecisions() const {
   std::vector<KeepLocalDecision> out;
   for (const ReviewRow& row : rows_) {
     if (row.section == ReviewSection::Choice && !row.cloudHash.empty() && row.choice == ReceiveChoice::KeepLocal) {
-      out.push_back({row.kind, row.documentId, row.cloudHash});
+      out.push_back({row.kind, row.cloudId.empty() ? row.documentId : row.cloudId, row.cloudHash});
     }
   }
   return out;

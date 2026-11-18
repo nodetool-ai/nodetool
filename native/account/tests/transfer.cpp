@@ -99,6 +99,10 @@ void callsTheLocalRouterForTheAccount(TestContext& t) {
                                               {"kind", "workflow"},
                                               {"document_id", kProject},
                                               {"captured_hash", "h"}}})},
+                 {"documents", json::array({{{"kind", "workflow"},
+                                             {"local_id", kProject},
+                                             {"cloud_id", kProject},
+                                             {"name", "Flow"}}})},
                  {"missing_files", json::array({{{"asset_id", "a1"},
                                                  {"reason", "missing_locally"},
                                                  {"documents", json::array({{{"kind", "timeline"},
@@ -120,6 +124,7 @@ void callsTheLocalRouterForTheAccount(TestContext& t) {
   CHECK(capture.transferId == kTransfer);
   CHECK(capture.firstPublication);
   CHECK(capture.operations.size() == 1 && capture.operations[0].op == "create_document");
+  CHECK(capture.documents.size() == 1 && capture.documents[0].name == "Flow");
   CHECK(capture.missingFiles.size() == 1 && capture.missingFiles[0].documents.size() == 1);
 
   const SendRun run = client.runSend(kTransfer, {{"workflow", kProject, "stored"}}, {"d1"});
@@ -243,6 +248,7 @@ void readsTheReceiveCapture(TestContext& t) {
                                              {"cloud_id", "c1"},
                                              {"local_id", "l1"},
                                              {"name", "Cut"},
+                                             {"content_hash", "hc"},
                                              {"status", state},
                                              {"decision", nullptr},
                                              {"files", json::array()},
@@ -267,6 +273,7 @@ void readsTheReceiveCapture(TestContext& t) {
     CHECK(capture.documents[0].state == ReceiveState::BothChanged);
     CHECK(!capture.documents[0].decision);
     CHECK(capture.documents[0].missingFiles == 2);
+    CHECK(capture.documents[0].contentHash == "hc");
   }
   const ReceiveRun run = client.runReceive("set1", {{"timeline", "l1", ReceiveChoice::KeepLocal}});
   CHECK(run.status == TransferStatus::Ok);
@@ -308,10 +315,10 @@ void reviewListsEachDocumentOnce(TestContext& t) {
   send.missingFiles = {{"a1", "too_large", {{"timeline", "t1"}}}};
   ReceiveCapture receive;
   receive.documents = {
-      {"timeline", "c2", "t2", "Same", ReceiveState::Same, ReceiveChoice::Receive, 0},
-      {"timeline", "c3", "t3", "Theirs", ReceiveState::CloudChanged, ReceiveChoice::Receive, 0},
-      {"workflow", "c4", "w4", "Both", ReceiveState::BothChanged, std::nullopt, 0},
-      {"workflow", "cloud-gone", "gone", "Deleted here", ReceiveState::LocalDeleted, std::nullopt, 0},
+      {"timeline", "c2", "t2", "Same", "h2", ReceiveState::Same, ReceiveChoice::Receive, 0},
+      {"timeline", "c3", "t3", "Theirs", "h3", ReceiveState::CloudChanged, ReceiveChoice::Receive, 0},
+      {"workflow", "c4", "w4", "Both", "h4", ReceiveState::BothChanged, std::nullopt, 0},
+      {"workflow", "cloud-gone", "gone", "Deleted here", "h5", ReceiveState::LocalDeleted, std::nullopt, 0},
   };
   TransferReview review(send, receive);
   CHECK(countOf(review, ReviewSection::Send) == 2);
@@ -331,13 +338,17 @@ void reviewListsEachDocumentOnce(TestContext& t) {
   // Deletions are off by default: nothing is deleted on the cloud and the
   // cloud version comes back (PRD V4 and V5).
   CHECK(review.confirmedDeletes().empty());
+  // The receive names each document by its cloud id, not the local one.
   auto decisions = review.receiveDecisions();
   CHECK(decisions.size() == 2);
   bool restores = false;
+  bool keepsBoth = false;
   for (const ReceiveDecision& d : decisions) {
-    restores = restores || (d.documentId == "gone" && d.choice == ReceiveChoice::Receive);
+    restores = restores || (d.documentId == "cloud-gone" && d.choice == ReceiveChoice::Receive);
+    keepsBoth = keepsBoth || (d.documentId == "c4" && d.choice == ReceiveChoice::KeepLocal);
   }
   CHECK(restores);
+  CHECK(keepsBoth);
 
   const std::size_t deletion = indexOf(review, ReviewSection::Deletion);
   CHECK(!review.choose(deletion, ReceiveChoice::Receive));
@@ -345,7 +356,7 @@ void reviewListsEachDocumentOnce(TestContext& t) {
   CHECK(review.confirmedDeletes() == std::vector<std::string>{"gone"});
   bool keeps = false;
   for (const ReceiveDecision& d : review.receiveDecisions()) {
-    keeps = keeps || (d.documentId == "gone" && d.choice == ReceiveChoice::KeepLocal);
+    keeps = keeps || (d.documentId == "cloud-gone" && d.choice == ReceiveChoice::KeepLocal);
   }
   CHECK(keeps);
   // A problem row takes no choice.
@@ -373,6 +384,54 @@ void aRefusedSendAsksAgain(TestContext& t) {
   CHECK(review.receiveDecisions().empty());
 }
 
+// A send row names its document, and a document linked under another
+// cloud id is matched by that id when the cloud refuses it.
+void sendRowsNameTheirDocument(TestContext& t) {
+  SendCapture send;
+  send.operations = {{"replace_document", "workflow", "c1", ""}, {"rename_document", "timeline", "t2", "New"}};
+  send.documents = {{"workflow", "l1", "c1", "Flow"}, {"timeline", "t2", "t2", "Old"}};
+  TransferReview review(send, {});
+  CHECK(review.rows().size() == 2);
+  if (review.rows().size() == 2) {
+    CHECK(review.rows()[0].name == "Flow");
+    CHECK(review.rows()[0].documentId == "l1");
+    CHECK(review.rows()[0].cloudId == "c1");
+    CHECK(review.rows()[1].name == "New");
+  }
+  review.addRefusal({{"BASE_CHANGED", "workflow", "c1", "stored-1", "changed"}});
+  CHECK(countOf(review, ReviewSection::Choice) == 1);
+  CHECK(countOf(review, ReviewSection::Send) == 1);
+  review.choose(indexOf(review, ReviewSection::Choice), ReceiveChoice::KeepLocal);
+  const auto keep = review.keepLocalDecisions();
+  CHECK(keep.size() == 1 && keep[0].documentId == "c1");
+}
+
+// A send after a receive that kept local copies is refused for them. The
+// person answered already when the stored hash is the revision they saw;
+// a newer cloud revision asks again.
+void aKeptDocumentIsNotAskedTwice(TestContext& t) {
+  ReceiveCapture receive;
+  receive.documents = {
+      {"workflow", "c1", "w1", "Mine", "seen-1", ReceiveState::BothChanged, std::nullopt, 0},
+      {"workflow", "c2", "w2", "Also mine", "seen-2", ReceiveState::BothChanged, std::nullopt, 0},
+      {"workflow", "c3", "w3", "Theirs", "seen-3", ReceiveState::BothChanged, std::nullopt, 0},
+  };
+  TransferReview review({}, receive);
+  for (std::size_t i = 0; i < review.rows().size(); ++i) {
+    review.choose(i, review.rows()[i].cloudId == "c3" ? ReceiveChoice::Receive : ReceiveChoice::KeepLocal);
+  }
+  const std::vector<TransferFailure> failures{{"BASE_CHANGED", "workflow", "c1", "seen-1", "changed"},
+                                              {"BASE_CHANGED", "workflow", "c2", "newer-2", "changed"},
+                                              {"BASE_CHANGED", "workflow", "c3", "seen-3", "changed"},
+                                              {"MISSING_FILE", "workflow", "c1", "", "missing"}};
+  const auto answered = review.answeredRefusals(failures);
+  CHECK(answered.size() == 1);
+  if (answered.size() == 1) {
+    CHECK(answered[0].documentId == "c1");
+    CHECK(answered[0].cloudHash == "seen-1");
+  }
+}
+
 } // namespace
 
 int main() {
@@ -384,5 +443,7 @@ int main() {
       {"readsTheReceiveCapture", readsTheReceiveCapture},
       {"reviewListsEachDocumentOnce", reviewListsEachDocumentOnce},
       {"aRefusedSendAsksAgain", aRefusedSendAsksAgain},
+      {"aKeptDocumentIsNotAskedTwice", aKeptDocumentIsNotAskedTwice},
+      {"sendRowsNameTheirDocument", sendRowsNameTheirDocument},
   });
 }

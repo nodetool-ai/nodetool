@@ -32,6 +32,7 @@
 #include "nodetool/account/qt/CloudBrowser.h"
 #include "nodetool/account/qt/CloudDocument.h"
 #include "nodetool/account/qt/ShareController.h"
+#include "nodetool/account/qt/TransferController.h"
 
 // The C++ interface types that NodeTool.NodeEditor components take as required
 // properties. They live in node_editor_interfaces, outside the QML module, so a
@@ -79,6 +80,13 @@ struct ShareControllerForeign {
     Q_GADGET
     QML_FOREIGN(nodetool::account::qt::ShareController)
     QML_NAMED_ELEMENT(ShareController)
+};
+
+// The transfer panel creates its own controller.
+struct TransferControllerForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::account::qt::TransferController)
+    QML_NAMED_ELEMENT(TransferController)
 };
 
 struct NodeCatalogForeign {
