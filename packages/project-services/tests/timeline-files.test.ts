@@ -37,6 +37,7 @@ import {
   type ProjectFolderResolution,
   type Workspace
 } from "@nodetool-ai/runtime";
+import { withProjectFolderLock } from "@nodetool-ai/asset-services";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import {
   DOCUMENT_FILE_MISSING,
@@ -510,6 +511,26 @@ describe.each(["local", "storage"] as const)("timeline files (%s folder)", (kind
       expect(await fileNames(kind)).toEqual([]);
       expect(await reconcile()).toMatchObject({ files: 0, created: [] });
       expect(await rows()).toHaveLength(0);
+    });
+
+    it("brings no deleted timeline back through a reconcile that holds the folder", async () => {
+      const timeline = await makeTimeline("Fox");
+
+      // The reconcile has the folder lock before the delete starts. A delete
+      // that removed the row outside the lock would leave the file for the
+      // reconcile to import as a new document with the same ID.
+      let deleting: Promise<boolean> | undefined;
+      await withProjectFolderLock(USER, PROJECT, async (hold) => {
+        deleting = TimelineSequence.deleteOwned(USER, timeline.id);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        await reconcileDocumentFiles([timelineFileAdapter], PROJECT, USER, {
+          under: hold
+        });
+      });
+
+      expect(await deleting).toBe(true);
+      expect(await rows()).toHaveLength(0);
+      expect(await fileNames(kind)).toEqual([]);
     });
 
     it("gives a name another file has a numeric suffix", async () => {

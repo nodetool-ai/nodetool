@@ -423,22 +423,26 @@ export class Application extends DBModel {
       tx.delete(applications).where(eq(applications.id, id))
     ];
 
-    if (getDbType() === "sqlite") {
-      // better-sqlite3 transactions must be fully synchronous; an async
-      // callback returns a Promise the driver rejects.
-      db.transaction((tx: DbTransaction): void => {
-        for (const statement of statements(tx)) {
-          (statement as { run: () => void }).run();
-        }
-      });
-    } else {
-      await db.transaction(async (tx: DbTransaction): Promise<void> => {
-        for (const statement of statements(tx)) await statement;
-      });
-    }
+    // The file goes under the same folder lock as the rows, so a reconcile
+    // cannot find the file without its row and import it again.
+    await applicationFiles.deleting(this, async () => {
+      if (getDbType() === "sqlite") {
+        // better-sqlite3 transactions must be fully synchronous; an async
+        // callback returns a Promise the driver rejects.
+        db.transaction((tx: DbTransaction): void => {
+          for (const statement of statements(tx)) {
+            (statement as { run: () => void }).run();
+          }
+        });
+      } else {
+        await db.transaction(async (tx: DbTransaction): Promise<void> => {
+          for (const statement of statements(tx)) await statement;
+        });
+      }
+      return this;
+    });
 
     ModelObserver.notify(this, ModelChangeEvent.DELETED);
-    await applicationFiles.deleted(this);
     await eraseRunTraceParentForModelDeletion({ kind: "app", id: this.id });
   }
 

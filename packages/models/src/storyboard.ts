@@ -170,8 +170,10 @@ export class Storyboard extends DBModel {
   }
 
   override async delete(): Promise<void> {
-    await super.delete();
-    await storyboardFiles.deleted(this);
+    await storyboardFiles.deleting(this, async () => {
+      await super.delete();
+      return this;
+    });
   }
 
   /**

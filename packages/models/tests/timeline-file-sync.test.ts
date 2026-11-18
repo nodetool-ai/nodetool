@@ -51,6 +51,11 @@ function recordingSync(): void {
     async deleted(row) {
       calls.push({ kind: "deleted", id: row.id, name: row.name });
     },
+    async deleting(row, remove) {
+      const gone = await remove();
+      if (gone) calls.push({ kind: "deleted", id: gone.id, name: gone.name });
+      return gone;
+    },
     async leaving(row) {
       asked.push(`${row.name} in ${row.project_id}, fps ${row.fps}`);
       return refusal;

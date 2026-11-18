@@ -111,6 +111,11 @@ export class DocumentFileBinding<R extends Row> {
     await this.sync?.deleted(row);
   }
 
+  /** Delete the row with `remove` and its file in one hold of the folder lock. */
+  async deleting(row: R, remove: () => Promise<R | null>): Promise<R | null> {
+    return this.sync ? this.sync.deleting(row, remove) : remove();
+  }
+
   private async stored(id: string): Promise<R | null> {
     const [row] = await getPortableDb()
       .select()

@@ -72,6 +72,11 @@ export function describeDocumentFileHook<Row extends HookRow>(
         async deleted(row) {
           calls.push({ kind: "deleted", id: row.id, name: row.name });
         },
+        async deleting(row, remove) {
+          const gone = await remove();
+          if (gone) calls.push({ kind: "deleted", id: gone.id, name: gone.name });
+          return gone;
+        },
         leaving: async () => null
       });
     });

@@ -27,6 +27,7 @@ import { timelineSequenceVersions } from "./schema/timeline-sequence-versions.js
 import { saveKeepingRevision, type KeepRevision } from "./kept-revision.js";
 import {
   assertDocumentFileMayLeave,
+  deleteWithFile,
   type DocumentFileLocation,
   type DocumentFileSync
 } from "./document-file-sync.js";
@@ -235,8 +236,10 @@ export class TimelineSequence extends DBModel {
   }
 
   override async delete(): Promise<void> {
-    await super.delete();
-    await timelineFileSync?.deleted(this);
+    await deleteWithFile(timelineFileSync, this, async () => {
+      await super.delete();
+      return this;
+    });
   }
 
   /** The file this row had in another project, when a save moved the row. */
@@ -553,24 +556,30 @@ export class TimelineSequence extends DBModel {
       // The row, its versions, grants and references go in one transaction,
       // with the copy kept for a restore (PRD D4). The row lock makes a save
       // that races the delete wait, then find no row.
-      const deleted = await deleteDocumentKeeping({
-        kind: "timeline",
-        userId,
-        table: timelineSequences,
-        where: and(eq(timelineSequences.id, row.id), eq(timelineSequences.user_id, userId)) as SQL,
-        dependents: timelineDependents(row.id),
-        grants: "document_collaborators",
-        deletedWithProject: options.deletedWithProject,
-        describe: (kept) => ({
-          documentId: String(kept["id"]),
-          projectId: (kept["project_id"] as string | null) ?? null,
-          name: String(kept["name"])
-        })
+      // The file goes under the same folder lock as the row, so a reconcile
+      // cannot find the file without its row and import it again.
+      let sharedWith: string[] | undefined;
+      const gone = await deleteWithFile(timelineFileSync, row, async () => {
+        const deleted = await deleteDocumentKeeping({
+          kind: "timeline",
+          userId,
+          table: timelineSequences,
+          where: and(eq(timelineSequences.id, row.id), eq(timelineSequences.user_id, userId)) as SQL,
+          dependents: timelineDependents(row.id),
+          grants: "document_collaborators",
+          deletedWithProject: options.deletedWithProject,
+          describe: (kept) => ({
+            documentId: String(kept["id"]),
+            projectId: (kept["project_id"] as string | null) ?? null,
+            name: String(kept["name"])
+          })
+        });
+        if (!deleted) return null;
+        sharedWith = deleted.sharedWith;
+        return new TimelineSequence(deleted.row);
       });
-      if (!deleted) return false;
-      const gone = new TimelineSequence(deleted.row);
-      ModelObserver.notify(gone, ModelChangeEvent.DELETED, { sharedWith: deleted.sharedWith });
-      await timelineFileSync?.deleted(gone);
+      if (!gone) return false;
+      ModelObserver.notify(gone, ModelChangeEvent.DELETED, { sharedWith });
       return true;
     });
   }
