@@ -6,6 +6,10 @@ checks grade the world it left behind, and only runs that pass become training
 records. Training is QLoRA with [Unsloth](https://unsloth.ai/docs/models/gemma-4/train).
 The result is a GGUF that Ollama serves.
 
+The operations around this code (sampling lanes, Runpod training, GGUF
+export, local evaluation, the paired comparison and the trace analysis) are the
+[finetune-chat-model](../../.agents/skills/finetune-chat-model/SKILL.md) skill.
+
 The default profile, `qwen35`, trains `Qwen/Qwen3.5-9B` for Ollama's
 `qwen3.5:9b`. The `gemma4` profile trains
 `unsloth/gemma-4-12B-it-qat-q4_0-unquantized`, the bf16 weights behind
