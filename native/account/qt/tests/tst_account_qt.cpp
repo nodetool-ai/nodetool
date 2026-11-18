@@ -1848,6 +1848,56 @@ private slots:
     QVERIFY(!transfer.ready());
   }
 
+  // A receive the router returns for review again goes on with the set it
+  // names: the sheet shows that set's documents, and the next Apply runs
+  // it instead of telling the person to start over (review F50).
+  void aReceiveWaitingForReviewContinuesWithItsSet() {
+    Computer computer;
+    computer.server.addCode("code-v", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-v");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[],)"
+                           R"("documents":[],"missing_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.receive.capture",
+                  trpcData(R"({"set_id":"s1","documents":[)"
+                           R"({"kind":"workflow","cloud_id":"c1","local_id":"l1","name":"Mine","content_hash":"h1",)"
+                           R"("local_hash":"l-1","status":"both_changed","decision":null,"files":[],"missing_files":[]}]})"));
+    server.answer("cloudTransfer.receive.run",
+                  trpcData(R"({"status":"waiting_for_review","set_id":"s2","documents":[)"
+                           R"({"kind":"workflow","cloud_id":"c1","local_id":"l1","name":"Mine","content_hash":"h2",)"
+                           R"("local_hash":"l-2","status":"both_changed","decision":null,"files":[],"missing_files":[]}]})"));
+    server.answer("cloudTransfer.receive.run",
+                  trpcData(R"({"status":"finished","set_id":"s2","result":{"received":[)"
+                           R"({"kind":"workflow","id":"l1","name":"Mine"}],)"
+                           R"("changed_during_receive":[],"not_received":[],"kept_beside":[],"missing_files":[],)"
+                           R"("file_kept":[]}})"));
+    server.answer("cloudTransfer.send.cancel", trpcData(R"({"state":"cancelled"})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setLinked(true);
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QVERIFY(transfer.choose(0, "receive"));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QVERIFY(!transfer.message().isEmpty());
+    QCOMPARE(transfer.rows().size(), 1);
+    QVERIFY(transfer.rows().at(0).toMap().value("choice").toString().isEmpty());
+    QVERIFY(transfer.choose(0, "receive"));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
+    QCOMPARE(nlohmann::json::parse(server.body("cloudTransfer.receive.run", 1))["set_id"].get<std::string>(),
+             std::string("s2"));
+  }
+
   // After a refused attempt, withdrawing the last deletion confirmation
   // sends an empty list, which the router takes as no deletion (review F43).
   void aWithdrawnDeletionIsNotSent() {

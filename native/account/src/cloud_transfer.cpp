@@ -372,24 +372,15 @@ LocalTransferClient::ReceiveCancel LocalTransferClient::cancelReceive(const std:
   return out;
 }
 
-ReceiveCapture LocalTransferClient::captureReceive(const std::string& projectId) {
-  const Answer answer = mutate("cloudTransfer.receive.capture", json{{"project_id", projectId}}.dump(), true);
-  ReceiveCapture out;
-  out.status = answer.status;
-  out.reason = answer.reason;
-  if (answer.status != TransferStatus::Ok) {
-    return out;
-  }
-  const json data = json::parse(answer.data, nullptr, false);
-  out.setId = str(data, "set_id");
-  for (const json& item : data.value("documents", json::array())) {
+// Reads the review documents of a receive set. False for a state this
+// client does not know, which is never received without review.
+static bool readReceiveDocuments(const json& list, std::vector<ReceiveDocument>& out) {
+  out.clear();
+  for (const json& item : list) {
     const auto state = stateFrom(str(item, "status"));
     if (!state) {
-      // A state this client does not know is never received without review.
-      out.status = TransferStatus::Refused;
-      out.reason = "INVALID_RESPONSE";
-      out.documents.clear();
-      return out;
+      out.clear();
+      return false;
     }
     ReceiveDocument document;
     document.kind = str(item, "kind");
@@ -406,7 +397,24 @@ ReceiveCapture LocalTransferClient::captureReceive(const std::string& projectId)
       document.decision = ReceiveChoice::KeepLocal;
     }
     document.missingFiles = item.value("missing_files", json::array()).size();
-    out.documents.push_back(std::move(document));
+    out.push_back(std::move(document));
+  }
+  return true;
+}
+
+ReceiveCapture LocalTransferClient::captureReceive(const std::string& projectId) {
+  const Answer answer = mutate("cloudTransfer.receive.capture", json{{"project_id", projectId}}.dump(), true);
+  ReceiveCapture out;
+  out.status = answer.status;
+  out.reason = answer.reason;
+  if (answer.status != TransferStatus::Ok) {
+    return out;
+  }
+  const json data = json::parse(answer.data, nullptr, false);
+  out.setId = str(data, "set_id");
+  if (!readReceiveDocuments(data.value("documents", json::array()), out.documents)) {
+    out.status = TransferStatus::Refused;
+    out.reason = "INVALID_RESPONSE";
   }
   return out;
 }
@@ -436,7 +444,15 @@ ReceiveRun LocalTransferClient::runReceive(const std::string& setId, const std::
     out.changedDuringReceive = namesOf(result.value("changed_during_receive", json::array()));
     out.notReceived = namesOf(result.value("not_received", json::array()));
     out.missingFiles = result.value("missing_files", json::array()).size();
-  } else if (out.outcome != "expired" && out.outcome != "waiting_for_review") {
+  } else if (out.outcome == "waiting_for_review") {
+    // The set to review, which may be a new one, and its documents (F50).
+    out.setId = str(data, "set_id");
+    out.reviewProvided = data.contains("documents");
+    if (!readReceiveDocuments(data.value("documents", json::array()), out.documents)) {
+      out.status = TransferStatus::Refused;
+      out.reason = "INVALID_RESPONSE";
+    }
+  } else if (out.outcome != "expired") {
     out.status = TransferStatus::Refused;
     out.reason = "INVALID_RESPONSE";
   }

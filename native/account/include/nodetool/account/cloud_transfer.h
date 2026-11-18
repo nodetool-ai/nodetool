@@ -221,6 +221,11 @@ struct ReceiveRun {
   std::vector<std::string> changedDuringReceive;
   std::vector<std::string> notReceived;
   std::size_t missingFiles = 0;
+  // For `waiting_for_review`: the set to review, which may replace the one
+  // run, and its documents when the router sent them (review F50).
+  std::string setId;
+  bool reviewProvided = false;
+  std::vector<ReceiveDocument> documents;
 };
 
 struct TransferResume {

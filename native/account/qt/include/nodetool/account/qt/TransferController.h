@@ -176,6 +176,9 @@ private:
   QPointer<AccountController> account_;
   QUrl serverUrl_;
   QUrl bundledServerUrl_;
+  // The send the sheet shows, kept to rebuild the sheet when the receive
+  // returns its set for review again (review F50).
+  SendCapture sendCapture_;
   QString serverToken_;
   QString projectId_;
   QString projectName_;

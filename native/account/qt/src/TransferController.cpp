@@ -402,6 +402,7 @@ void TransferController::finishCapture(quint64 sequence, const Captured& capture
   setId_ = captured.receive.setId;
   sendWork_ = !captured.send.operations.empty() || !captured.send.fileOperations.empty();
   review_ = TransferReview(captured.send, captured.receive);
+  sendCapture_ = captured.send;
   approved_ = captured.send.operations;
   approvedFiles_ = captured.send.fileOperations;
   stage_ = Stage::Reviewing;
@@ -620,6 +621,19 @@ void TransferController::finishApply(quint64 sequence, const Applied& applied) {
       emit stateChanged();
       return;
     }
+    if (run.outcome == "waiting_for_review" && run.reviewProvided && !run.setId.empty()) {
+      // A document changed here after the review, or the set expired and
+      // its replacement shows other revisions. The same receive goes on
+      // with the set the router named and its staged files, once the
+      // person checks the sheet again (review F50).
+      setId_ = run.setId;
+      review_ = TransferReview(sendCapture_, ReceiveCapture{TransferStatus::Ok, {}, run.setId, run.documents});
+      stage_ = Stage::Reviewing;
+      message_ = tr("Something changed while this sheet was open. Check the choices again.");
+      emit rowsChanged();
+      emit stateChanged();
+      return;
+    }
     if (run.outcome != "finished") {
       // The revision set expired while the sheet was open.
       endSend(transferId_);
@@ -652,6 +666,11 @@ void TransferController::finishApply(quint64 sequence, const Applied& applied) {
       message_ = failure(run.status, run.reason);
       emit stateChanged();
       return;
+    }
+    if (run.outcome == "waiting_for_review" && !run.setId.empty()) {
+      // The set captured for the refused documents is not received: release
+      // it, so it is not left behind (review F50).
+      endReceive(run.setId);
     }
     if (run.outcome != "finished") {
       stage_ = Stage::Reviewing;
