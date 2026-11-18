@@ -48,7 +48,7 @@ import {
   type CloudReceiveRow
 } from "@nodetool-ai/models";
 import type { Workspace } from "@nodetool-ai/runtime";
-import { withProjectFolderLock } from "@nodetool-ai/asset-services/project-asset";
+import { withProjectFolderLock, type FolderLockHold } from "@nodetool-ai/asset-services/project-asset";
 import {
   contentHashOfFile,
   partialContentHashOfFile,
@@ -490,8 +490,14 @@ async function changedSinceReview(link: CloudLinkRow, plan: ReceivePlan): Promis
  * review with those documents' new status (Y3, review F31). Returns whether
  * it applied.
  */
-async function commit(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePlan, dir: string): Promise<boolean> {
-  await reconcileInBackground(link.project_id, link.user_id);
+async function commit(
+  row: CloudReceiveRow,
+  link: CloudLinkRow,
+  plan: ReceivePlan,
+  dir: string,
+  hold: FolderLockHold
+): Promise<boolean> {
+  await reconcileInBackground(link.project_id, link.user_id, { under: hold });
   const payloads = new Map<PlannedDocument, TransferPayloadContent>();
   for (const document of toWrite(plan)) {
     const text = await readFile(stagedPath(dir, "documents", `${document.kind}-${document.cloudId}.json`), "utf8");
@@ -931,15 +937,14 @@ async function runReceiveOf(
   const applied = await withProjectFolderLock(
     link.user_id,
     link.project_id,
-    async () => {
+    async (hold) => {
       if (current.state === "installed") {
-        if (!(await commit(current, link, plan, dir))) return false;
+        if (!(await commit(current, link, plan, dir, hold))) return false;
         await after("applied");
       }
       await place(current, link, plan, workspace, dir);
       return true;
-    },
-    { allowNested: true }
+    }
   );
   if (!applied) return { status: "waiting_for_review", setId, documents: plan.documents };
   await after("placed");
