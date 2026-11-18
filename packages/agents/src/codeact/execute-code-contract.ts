@@ -61,39 +61,34 @@ export const ACTION_RISK_VALUES = ["low", "high"] as const;
  * so the model states in plain sentences what the program will do.
  * Required: a strict schema (additionalProperties: false) must list every
  * property under `required` for OpenAI structured outputs.
+ *
+ * The field descriptions are short on purpose: the schema is sent with every
+ * request, and the action contract in the CodeAct prompt states the same
+ * rules in full.
  */
 export const EXECUTE_CODE_INPUT_SCHEMA = {
   type: "object",
   properties: {
     title: {
       type: "string",
-      description:
-        "3-8 word user-facing summary of what this action does, shown in " +
-        'the UI while it runs (e.g. "Rendering product images from CSV").'
+      description: "3-8 words shown to the user while the action runs."
     },
     risk: {
       type: "string",
       enum: ACTION_RISK_VALUES,
       description:
-        '"low" when the program only reads, computes, or does work the user ' +
-        'asked for and can undo; "high" when it deletes or overwrites ' +
-        "something, publishes or sends anything outside this account, or " +
-        "spends real money. In auto mode a low-risk action runs unattended " +
-        "and a high-risk one asks the user once. Say high when unsure."
+        '"high" if it deletes, overwrites, publishes, sends outside this ' +
+        'account or spends money, or if unsure. Otherwise "low".'
     },
     description: {
       type: "string",
       description:
-        "Plain-language account of what this action will do, shown in the " +
-        "approval dialog when it asks the user. One to three sentences, no " +
-        "code: name what it changes, deletes, sends, or spends, and on what " +
-        '(e.g. "Deletes the 3 archived workflows listed above. They cannot ' +
-        'be restored."). Required when risk is "high" — that is the only ' +
-        'text the user decides on. Write "" for a low-risk action.'
+        'For "high": what it changes, sends or spends, in plain sentences ' +
+        'for the approval dialog. "" for "low".'
     },
     code: {
       type: "string",
-      description: "The JavaScript program to run."
+      description: "The JavaScript program."
     }
   },
   required: ["title", "risk", "description", "code"],

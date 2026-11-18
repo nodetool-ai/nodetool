@@ -23,9 +23,11 @@ import {
   SANDBOX_CAPABILITY_PACK
 } from "@nodetool-ai/protocol";
 import {
+  freeIdentifiers,
   parseCodeBody,
   staticImportBindings,
-  staticImportSpecifiers
+  staticImportSpecifiers,
+  typeofGuardedNames
 } from "@nodetool-ai/node-sdk";
 import type { CodeBodyStatement } from "@nodetool-ai/node-sdk";
 
@@ -33,7 +35,10 @@ import {
   capabilityModuleSpecs,
   createCapabilityDispatcher
 } from "../capabilities/dispatcher.js";
-import { listCapabilityModules } from "../capabilities/registry.js";
+import {
+  capabilityModuleOf,
+  listCapabilityModules
+} from "../capabilities/registry.js";
 import type { CapabilityRun } from "../capabilities/types.js";
 import {
   extractInjectableImages,
@@ -42,6 +47,7 @@ import {
 } from "../tools/image-injection.js";
 import { isRecord, isString } from "../utils/type-guards.js";
 import type { SandboxCapabilityMount } from "../js-sandbox.js";
+import type { SignatureDisclosure } from "./tool-api.js";
 
 /**
  * What a capability answering with pixels is told inside an action.
@@ -124,6 +130,11 @@ export interface MountCapabilityModulesOptions {
   signal?: AbortSignal;
   /** Session tools grafted onto a namespace. Empty by default. */
   session?: readonly SessionCapabilityModule[];
+  /**
+   * The action's disclosure state, so a registry capability's validation
+   * failure carries its signature once per action, like a belt tool's.
+   */
+  disclosure?: SignatureDisclosure;
 }
 
 /**
@@ -147,12 +158,6 @@ export async function mountCapabilityModules(
   // syntax error itself, where the position still points at the model's code.
   if ("error" in parsed) return { ok: true };
 
-  const imported = [...new Set(staticImportSpecifiers(parsed.statements))];
-  const wanted = imported.filter((specifier) =>
-    specifier.startsWith(SANDBOX_CAPABILITY_PACK)
-  );
-  if (wanted.length === 0) return { ok: true };
-
   const sessionByModule = new Map(session.map((entry) => [entry.module, entry]));
   // A run serves the registry's modules; without one only the grafted
   // namespaces resolve, so the refusal names what this session actually has.
@@ -160,19 +165,34 @@ export async function mountCapabilityModules(
     run === undefined ? sessionByModule.keys() : listCapabilityModules()
   );
   for (const name of sessionByModule.keys()) registered.add(name);
+  const ownerOf = capabilityOwner(run !== undefined, session);
+
+  // Checked before the imports, because the action this catches usually
+  // imports nothing: the model reused a name an earlier action imported.
+  const notDefined = undefinedCapabilityNames(parsed.statements, ownerOf);
+  const refuse = (error: string | undefined): CapabilityModuleMount => ({
+    ok: false,
+    error: [error, notDefined].filter((part) => part !== undefined).join(" ")
+  });
+
+  const imported = [...new Set(staticImportSpecifiers(parsed.statements))];
+  const wanted = imported.filter((specifier) =>
+    specifier.startsWith(SANDBOX_CAPABILITY_PACK)
+  );
+  if (wanted.length === 0) {
+    return notDefined === undefined ? { ok: true } : refuse(undefined);
+  }
 
   const modules: string[] = [];
   for (const specifier of wanted) {
     const name = sandboxCapabilityModuleName(specifier);
     if (name === undefined || !registered.has(name)) {
-      return {
-        ok: false,
-        error:
-          `The action imports "${specifier}", which is not a NodeTool ` +
+      return refuse(
+        `The action imports "${specifier}", which is not a NodeTool ` +
           `capability module. Available modules: ${[...registered]
             .map((module) => `"${SANDBOX_CAPABILITY_PACK}/${module}"`)
             .join(", ")}.`
-      };
+      );
     }
     modules.push(name);
   }
@@ -202,8 +222,12 @@ export async function mountCapabilityModules(
     sessionNames.set(name, new Set(added));
   }
 
-  const unknown = unknownImportedExports(parsed.statements, exportsByModule);
-  if (unknown !== undefined) return { ok: false, error: unknown };
+  const unknown = unknownImportedExports(
+    parsed.statements,
+    exportsByModule,
+    ownerOf
+  );
+  if (unknown !== undefined || notDefined !== undefined) return refuse(unknown);
 
   const facades = new Map(
     unique.map((name) => [
@@ -214,13 +238,22 @@ export async function mountCapabilityModules(
       )
     ])
   );
+  const dispatcherOptions: NonNullable<
+    Parameters<typeof createCapabilityDispatcher>[2]
+  > = {};
+  if (options.signal !== undefined) {
+    dispatcherOptions.signal = options.signal;
+  }
+  if (options.disclosure !== undefined) {
+    dispatcherOptions.disclosure = options.disclosure;
+  }
   const dispatcher =
     run === undefined
       ? undefined
       : createCapabilityDispatcher(
           run,
           listCapabilityModules(),
-          options.signal === undefined ? {} : { signal: options.signal }
+          dispatcherOptions
         );
   const call = async (
     moduleKey: string,
@@ -320,7 +353,8 @@ function searchTypeHintSentence(module: string, missingName: string): string {
  */
 function unknownImportedExports(
   statements: readonly CodeBodyStatement[],
-  exportsByModule: ReadonlyMap<string, readonly string[]>
+  exportsByModule: ReadonlyMap<string, readonly string[]>,
+  ownerOf: CapabilityOwner
 ): string | undefined {
   for (const binding of staticImportBindings(statements)) {
     const module = sandboxCapabilityModuleName(binding.specifier);
@@ -333,6 +367,7 @@ function unknownImportedExports(
     const suggestions = missing
       .map(
         (name) =>
+          elsewhereSentence(name, ownerOf) ||
           synonymHintSentence(module ?? "", name, available) ||
           nearMatchSentence(name, available) ||
           searchTypeHintSentence(module ?? "", name)
@@ -347,6 +382,95 @@ function unknownImportedExports(
     );
   }
   return undefined;
+}
+
+/** The module this session serves a capability name from, if any. */
+type CapabilityOwner = (name: string) => string | undefined;
+
+/**
+ * Where a bare capability name resolves in this session: the registry module
+ * that declares it when a run serves the registry, else the grafted namespace
+ * that exports it. The registry wins, the way it does when a graft is mounted.
+ */
+function capabilityOwner(
+  hasRun: boolean,
+  session: readonly SessionCapabilityModule[]
+): CapabilityOwner {
+  return (name) => {
+    if (hasRun) {
+      const module = capabilityModuleOf(name);
+      if (module !== undefined) return module;
+    }
+    return session.find((graft) => graft.exports.includes(name))?.module;
+  };
+}
+
+/**
+ * Methods of the guest's `nodetool` global that a model imports as if a
+ * module exported them, with the call to write instead.
+ */
+const NODETOOL_METHOD_CALLS: Readonly<Record<string, string>> = {
+  searchTools: 'await nodetool.searchTools("query")',
+  search_tools: 'await nodetool.searchTools("query")'
+};
+
+/**
+ * Where a name imported from the wrong module actually lives: the capability
+ * module that exports it, or the `nodetool` method it really is.
+ */
+function elsewhereSentence(name: string, ownerOf: CapabilityOwner): string {
+  const call = NODETOOL_METHOD_CALLS[name];
+  if (call !== undefined) {
+    return (
+      `\`${name}\` is not a module export. It is a method of the ` +
+      `\`nodetool\` global: call \`${call}\` without importing it. `
+    );
+  }
+  const owner = ownerOf(name);
+  if (owner === undefined) return "";
+  return `\`${name}\` is exported by \`${sandboxCapabilitySpecifier(owner)}\`. `;
+}
+
+/**
+ * Capability names the body calls without importing or declaring them.
+ *
+ * Every action is a fresh guest, so a name imported in an earlier action is
+ * not defined in this one. QuickJS reports that as "ReferenceError: <name> is
+ * not defined", which says neither that an import is missing nor where the
+ * name lives, and a model read it as a missing capability. Refusing here names
+ * the import line instead. The check refuses rather than adding the import
+ * itself, so the action the model sees in its trace is the one that ran and
+ * the next one carries the import.
+ *
+ * A `typeof` guard marks the name as optional, so it is left alone.
+ */
+function undefinedCapabilityNames(
+  statements: readonly CodeBodyStatement[],
+  ownerOf: CapabilityOwner
+): string | undefined {
+  const guarded = typeofGuardedNames(statements);
+  const byModule = new Map<string, string[]>();
+  for (const name of freeIdentifiers(statements)) {
+    if (guarded.has(name)) continue;
+    const module = ownerOf(name);
+    if (module === undefined) continue;
+    byModule.set(module, [...(byModule.get(module) ?? []), name]);
+  }
+  if (byModule.size === 0) return undefined;
+  const names = [...byModule.values()].flat();
+  const lines = [...byModule].map(
+    ([module, moduleNames]) =>
+      `\`import { ${moduleNames.join(", ")} } from ` +
+      `"${sandboxCapabilitySpecifier(module)}";\``
+  );
+  const subject =
+    names.length === 1
+      ? `\`${names[0]}\` is`
+      : `${names.map((name) => `\`${name}\``).join(", ")} are`;
+  return (
+    `${subject} not defined in this action. Nothing carries over between ` +
+    `actions; add ${lines.join(" and ")}.`
+  );
 }
 
 /**

@@ -494,6 +494,9 @@ function documentFileMigration(version: string, table: string): MigrationDef {
   };
 }
 
+const MESSAGE_TURN_CONTEXT_DDL =
+  "ALTER TABLE nodetool_messages ADD COLUMN turn_context TEXT";
+
 const USER_PERMISSIONS_DDL: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS nodetool_user_permissions (
     user_id TEXT PRIMARY KEY NOT NULL,
@@ -607,7 +610,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...documentFileDdl("storyboards"),
   ...documentFileDdl("scripts"),
   ...documentFileDdl("applications"),
-  ...documentFileDdl("js_scripts")
+  ...documentFileDdl("js_scripts"),
+  MESSAGE_TURN_CONTEXT_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5071,7 +5075,25 @@ export const migrations: MigrationDef[] = [
   documentFileMigration("20261129_000002", "applications"),
 
   // A JS script is a JSON file in its project's folder.
-  documentFileMigration("20261129_000003", "js_scripts")
+  documentFileMigration("20261129_000003", "js_scripts"),
+
+  // The turn-scoped blocks a chat turn sends after a user message, kept on
+  // that message so later turns replay them unchanged.
+  {
+    version: "20261130_000000",
+    name: "add_message_turn_context",
+    createsTables: [],
+    modifiesTables: ["nodetool_messages"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_messages"))) return;
+      if (!(await db.columnExists("nodetool_messages", "turn_context"))) {
+        await db.execute(MESSAGE_TURN_CONTEXT_DDL);
+      }
+    },
+    async down() {
+      // The column stays: without it a thread's next turn resends every block.
+    }
+  }
 ];
 
 /**

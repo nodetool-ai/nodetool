@@ -4,10 +4,12 @@
  * Providers cache the longest stable prefix on their own, and Anthropic and
  * the OpenAI Responses API hoist *every* system-role message into one system
  * string ahead of the conversation. So the placement rule this file pins is:
- * stable context (the skill catalog) belongs in the system message, volatile
- * context (an invoked skill's body, thread memory, RAG hits) belongs at the
- * tail, folded into the last user message. A volatile system message would
- * rewrite that hoisted string every turn and invalidate the whole prefix.
+ * stable context (the shipped skills' catalog) belongs in the system message,
+ * volatile context (the user's own skills, an invoked skill's body, thread
+ * memory, RAG hits) belongs at the tail, folded into the last user message. A
+ * volatile system message would rewrite that hoisted string every turn and
+ * invalidate the whole prefix. `chat-cache-invariants.test.ts` pins the
+ * byte-level invariants.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
@@ -171,7 +173,7 @@ describe("chat prompt placement", () => {
     }
   });
 
-  it("puts the skill catalog in the system message and nothing else there", async () => {
+  it("puts the shipped skill catalog in the system message and the user's skills in the tail", async () => {
     await makeSkill(
       "release-notes",
       "Use when writing release notes.",
@@ -183,12 +185,14 @@ describe("chat prompt placement", () => {
     const systemMessages = messages.filter((m) => m.role === "system");
     expect(systemMessages).toHaveLength(1);
     expect(messages[0].role).toBe("system");
-    expect(textOf(messages[0])).toContain(
-      "`/release-notes` — Use when writing release notes."
-    );
+    expect(textOf(messages[0])).toContain("## Skills");
+    // A skill the user writes mid-thread must not change the system message.
+    expect(textOf(messages[0])).not.toContain("release-notes");
+    const tail = textOf(lastUser(messages));
+    expect(tail).toContain("`/release-notes`: Use when writing release notes");
     // The catalog is the description, not the body — the body costs a
     // `load_skill` call or a `/name`.
-    expect(textOf(messages[0])).not.toContain("Lead with what changed.");
+    expect(tail).not.toContain("Lead with what changed.");
   });
 
   it("puts an invoked skill's body in the last user message, never in a system message", async () => {
@@ -333,11 +337,13 @@ describe("chat prompt placement", () => {
     const timeline = await turn("timeline");
 
     expect(textOf(timeline[0])).toBe(textOf(sketch[0]));
-    expect(textOf(sketch[0])).not.toContain("Run sketch operation 3.");
+    expect(textOf(sketch[0])).not.toContain("ui_sketch_op3");
 
-    expect(textOf(lastUser(sketch))).toContain("Run sketch operation 3.");
-    expect(textOf(lastUser(sketch))).not.toContain("Run timeline operation 3.");
-    expect(textOf(lastUser(timeline))).toContain("Run timeline operation 3.");
+    // Twelve tools with no recorded usage exceed the turn block's cap, so the
+    // focused document's tools are listed by name (`rankFocusedTools`).
+    expect(textOf(lastUser(sketch))).toContain("ui_sketch_op3");
+    expect(textOf(lastUser(sketch))).not.toContain("ui_timeline_op3");
+    expect(textOf(lastUser(timeline))).toContain("ui_timeline_op3");
   });
 
   it("keeps the system message byte-identical when the turn compacts", async () => {

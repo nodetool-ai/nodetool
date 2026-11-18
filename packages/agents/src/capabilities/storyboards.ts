@@ -93,6 +93,7 @@ import {
   getStoryboardOneTakeSpec,
   updateStoryboardOneTakeSpec
 } from "./storyboards.specs.js";
+import { boardRevisionConflict } from "./revision-conflict.js";
 import { measureStoryboardSources } from "./storyboard-measured-sources.js";
 import { clampConcurrency } from "./concurrency.js";
 import {
@@ -2615,11 +2616,19 @@ const editStoryboard: CapabilityExport = {
       rename: async (next) => {
         const board = await loadBoard(run, params["storyboard_id"]);
         if (isError(board)) return board;
+        // With ops, the op script already checked expected_revision and bumped
+        // the revision, so checking again here would refuse the call's own edit.
+        const opsRan = params["ops"] !== undefined && params["ops"] !== null;
         if (
+          !opsRan &&
           params["expected_revision"] !== undefined &&
           params["expected_revision"] !== board.row.revision
         ) {
-          return { error: "Storyboard revision conflict. Refresh the board before editing." };
+          return boardRevisionConflict(
+            "expected_revision",
+            params["expected_revision"],
+            board.row.revision
+          );
         }
         const { Storyboard } = await import("@nodetool-ai/models");
         return renameOwned(Storyboard, {
@@ -2648,7 +2657,7 @@ async function applyStoryboardEdit(
     if (isError(board)) return board;
     const { row, doc } = board;
     if (params["expected_revision"] !== undefined && params["expected_revision"] !== row.revision) {
-      return { error: "Storyboard revision conflict. Refresh the board before editing." };
+      return boardRevisionConflict("expected_revision", params["expected_revision"], row.revision);
     }
 
     // A failing op is recorded and the script continues: stopping at the
@@ -3592,9 +3601,11 @@ const updateStoryboardOneTake: CapabilityExport = {
         params["expected_revision"] !== undefined &&
         params["expected_revision"] !== row.revision
       ) {
-        return {
-          error: "Storyboard revision conflict. Refresh the board before editing."
-        };
+        return boardRevisionConflict(
+          "expected_revision",
+          params["expected_revision"],
+          row.revision
+        );
       }
 
       const ops: { tool: string; input: Record<string, unknown> }[] = [];

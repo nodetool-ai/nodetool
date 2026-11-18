@@ -10,7 +10,9 @@ import {
   createChatCodeActSession,
   type ChatCodeActToolCall
 } from "../src/codeact/chat-codeact.js";
-import { buildNodetoolApiPromptSection } from "../src/codeact/nodetool-api.js";
+import {
+  buildNodetoolApiPromptSection,
+} from "../src/codeact/nodetool-api.js";
 import { createMockContext } from "./_helpers/mock-context.js";
 
 const toolDef = (name: string) => ({
@@ -398,27 +400,17 @@ describe("nodetool.documents", () => {
     ]);
     expect(section).toContain("nodetool.media");
     expect(section).toContain("nodetool.documents");
-    expect(section).toContain("scoreAdherence(");
-    expect(section).toContain("understandVideo(");
-    expect(section).toContain("pdfToMarkdown(");
+    expect(section).toContain("scoreAdherence, understandVideo");
+    expect(section).toContain("pdfToMarkdown.");
     expect(buildNodetoolApiPromptSection(["web_search"])).not.toContain(
       "nodetool.documents"
     );
   });
 
   it("tells the action to record generation results via thread memory", () => {
-    const section = buildNodetoolApiPromptSection([
-      "find_model",
-      "generate_image"
-    ]);
-    expect(section).toContain("Hold each result in a local variable");
-    expect(section).toContain(
-      "never re-run generation for something already saved"
-    );
-    expect(section).toContain(
-      "record the uris a later action or turn will need"
-    );
-    expect(section).toContain("await nodetool.memory.save(uris.join(");
+    const belt = ["find_model", "generate_image"];
+    const section = buildNodetoolApiPromptSection(belt);
+    expect(section).toContain("await nodetool.memory.save(image.asset_uri");
     expect(section).not.toContain("`state`");
   });
 });

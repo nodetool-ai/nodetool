@@ -54,7 +54,8 @@ import {
   Thread,
   Memory,
   Workflow,
-  type MemoryResource
+  type MemoryResource,
+  type TurnContextSection
 } from "@nodetool-ai/models";
 import { WORKFLOW_DOCUMENT_TOOL_NAMES } from "@nodetool-ai/node-sdk";
 import type {
@@ -75,7 +76,6 @@ import type {
 } from "@nodetool-ai/runtime";
 import {
   ACTIVE_MODEL_CONTEXT_KEY,
-  DIRECT_TOOL_NAMES,
   RUN_BUDGET_CONTEXT_KEY,
   createRunBudget,
   detectImageMime,
@@ -92,6 +92,7 @@ import {
   mediaResolverFor,
   providerFailureDetail,
   resolveContextWindow,
+  splitToolResultImages,
   type ActiveModelSelection,
   type ContextWindow,
   type RunBudget
@@ -116,11 +117,12 @@ import {
   whenBackgroundGenerationsSettle
 } from "@nodetool-ai/agents";
 import {
+  chatDirectToolNames,
   createChatCodeActSession,
   createSandboxClock,
+  NODETOOL_FOCUS_NAMESPACES,
   sandboxPackagesForChat,
   surfaceServerTools,
-  CODEACT_RESIDENT_TOOL_NAMES,
   EXECUTE_CODE_TOOL_NAME,
   type ChatCodeActSession,
   type ChatCodeActToolCall
@@ -157,15 +159,19 @@ import { mcpToolHostDeps } from "../mcp-tool-deps.js";
 import { externalMcpToolsFor } from "../external-mcp.js";
 import {
   formatSkillCatalogForPrompt,
+  formatUserSkillsForPrompt,
   mergeSystemSkills,
   formatMemoriesForPrompt
 } from "@nodetool-ai/agents";
 import { RunNodeTool } from "../agent/run-node-tool.js";
 import { extractEmbeddedImage } from "./asset-autosave.js";
 import {
-  buildChatAgentSystemPrompt,
+  CHAT_AGENT_SYSTEM_PROMPT,
   buildUiContextSection,
+  buildUiGuidanceSection,
   focusedUiToolNames,
+  permissionModeSection,
+  workflowGuidanceForTurn,
   normalizeToolCallName,
   RESIDENT_TOOL_NAMES,
   unroutableToolMessage
@@ -173,14 +179,20 @@ import {
 import { createRuntimeContext } from "./model-interfaces.js";
 import { getSetting } from "../settings-registry.js";
 import {
-  appendContextToLastUser,
+  appendTurnContext,
   createWorkflowResponseContent,
   dbMessageToProviderMessage,
   extractTextContent,
   historySinceCompaction,
   invokedSkillsSection,
+  lastSentTurnContext,
+  storableViewedImage,
   toolResultDisplayText,
-  type SkillEntry
+  viewedImageMessage,
+  turnContextDelta,
+  turnContextText,
+  type SkillEntry,
+  type TurnContextCandidate
 } from "./chat-history.js";
 import {
   chooseCompactionCut,
@@ -224,6 +236,23 @@ function seedStoredToolProvenance(messages: readonly Message[]): void {
 }
 
 const log = createLogger("nodetool.websocket.runner");
+
+/**
+ * The chat app tool whose call the client renders as the step's card. See the
+ * direct tool set in `handlePersistedChatTurn`.
+ */
+const APP_RUN_SHOW_STEP_TOOL = "ui_app_run_show_step";
+
+/**
+ * The `nodetool.*` namespace of the focused document, whose full entry the
+ * turn context carries. Undefined for a focus type with none.
+ */
+function focusNamespace(uiContext: UiContext | null | undefined): string | undefined {
+  const type = uiContext?.focused?.type;
+  return type !== undefined && Object.hasOwn(NODETOOL_FOCUS_NAMESPACES, type)
+    ? NODETOOL_FOCUS_NAMESPACES[type]
+    : undefined;
+}
 
 /** Providers whose credential is an account sign-in, not an API key. */
 const SIGN_IN_PROVIDER_LABELS: Record<string, string> = {
@@ -1910,8 +1939,8 @@ export class ChatTurnHandler {
         ? data.reasoning_effort
         : undefined;
 
-    // A surface can send a context-specific system-prompt addendum (e.g. the
-    // App Builder's build-an-app-UI guidance), layered after the base prompt.
+    // A surface can send its own guidance (e.g. the App Builder's
+    // build-an-app-UI guidance). It rides in the turn context, see below.
     const extraSystemPrompt = isString(data.system_prompt)
       ? data.system_prompt
       : null;
@@ -1936,15 +1965,23 @@ export class ChatTurnHandler {
     // here because the resume `loadFullHistory` thunk and the prepend both run
     // after tool resolution.
     let codeactPromptSection = "";
-    // The user's skills, read once. The catalog goes into the system prompt
-    // below because it is stable — it changes only when the skills table does,
-    // so a provider's prefix cache keeps it across turns. The body of an
-    // invoked skill is volatile and rides at the tail instead.
+    // The user's skills, read once. The shipped skills' catalog goes into the
+    // system prompt: it changes only with the install. The user's own skills
+    // change when a turn creates or edits one, so their list rides in the
+    // turn context and is resent only when it changed. The body of an invoked
+    // skill rides there too.
     const userSkills = await this.loadUserSkills(userId);
-    const skillCatalogSection = formatSkillCatalogForPrompt(userSkills);
+    const skillCatalogSection = formatSkillCatalogForPrompt(
+      mergeSystemSkills([])
+    );
+    const userSkillCatalogSection = formatUserSkillsForPrompt(
+      userSkills.filter((skill) => !("system" in skill && skill.system))
+    );
+    // The system message is the same for every surface, every turn and every
+    // permission mode (I1): a surface's own guidance (`system_prompt`) and the
+    // mode's rules are turn context as well.
     const buildSystemContent = (): string => {
-      const base = buildChatAgentSystemPrompt(permissionMode, extraSystemPrompt);
-      const sections = [base];
+      const sections = [CHAT_AGENT_SYSTEM_PROMPT];
       if (codeactPromptSection) sections.push(codeactPromptSection);
       if (skillCatalogSection) sections.push(skillCatalogSection);
       return sections.join("\n\n");
@@ -1957,22 +1994,56 @@ export class ChatTurnHandler {
       threadId: null
     });
     const copiedMessageIds = new Set<string>();
+    // The turn context each converted user message carries, appended after
+    // media resolution (see `withTurnContext`). Keyed by the message object,
+    // because resolution builds new ones in the same order.
+    const turnContextOf = new WeakMap<ProviderMessage, string>();
+    // The stored row each converted message came from.
+    const rowIdOf = new WeakMap<ProviderMessage, string>();
     const convertDbMessages = (rows: Message[]): ProviderMessage[] => {
       const out: ProviderMessage[] = [];
+      // The provider loop sends a round's `view_image` pixels in user
+      // messages after all of that round's tool results, so a stored image
+      // message is replayed after the last tool row of its run.
+      let viewed: ProviderMessage[] = [];
       for (const m of rows) {
         copiedMessageIds.add(m.id);
         seedStoredToolProvenance([m]);
         const pm = dbMessageToProviderMessage(m, this.session.userId);
-        if (pm) out.push(pm);
+        if (!pm) continue;
+        if (pm.role !== "tool" && viewed.length > 0) {
+          out.push(...viewed);
+          viewed = [];
+        }
+        const image = viewedImageMessage(m);
+        if (image) viewed.push(image);
+        const stored =
+          m.id === turnMessage.id
+            ? currentTurnContext
+            : turnContextText(m.turn_context);
+        if (stored) turnContextOf.set(pm, stored);
+        rowIdOf.set(pm, m.id);
+        out.push(pm);
       }
+      out.push(...viewed);
       // A thread that took an interleave before this was fixed still holds a
       // tool call with no result. Anthropic 400s on one, so loading such a
       // thread under a different provider or model would fail every turn from
       // here on. Patch the history we send; the stored rows are left alone.
       return repairOrphanedToolCalls(out);
     };
+    /** Each message with the turn context it carries appended, unresolved. */
+    const withStoredTurnContext = (
+      messages: ProviderMessage[]
+    ): ProviderMessage[] =>
+      messages.map((m) => appendTurnContext(m, turnContextOf.get(m) ?? ""));
 
     let chatHistory: ProviderMessage[];
+    // The rows `chatHistory` replays, for deciding which turn-context blocks
+    // the thread already sent. On the resume path it is the probe window.
+    let contextRows: Message[] = [];
+    // The text this turn appends to its own message; set once computed.
+    let currentTurnContext = "";
     let priorSession: ProviderSession | null = null;
     // The provider calls this only on a priming fallback; null on the full path.
     let loadFullHistory: (() => Promise<ProviderMessage[]>) | null = null;
@@ -2017,15 +2088,14 @@ export class ChatTurnHandler {
         // COMPACTED path: the summary row plus everything after it, already in
         // hand from the probe. No session resumes across a compaction, so
         // `priorSession` stays null and the provider rebuilds from these rows.
-        chatHistory = convertDbMessages([
-          probeCompaction,
-          ...sinceMarkerNewestFirst.reverse()
-        ]);
+        contextRows = [probeCompaction, ...sinceMarkerNewestFirst.reverse()];
+        chatHistory = convertDbMessages(contextRows);
       } else if (probeSession) {
         // RESUME fast path: the SDK already holds the prior turns, so send only
         // the messages since the session — no full-thread load.
         const newTurns = convertDbMessages(sinceMarkerNewestFirst.reverse());
         chatHistory = newTurns;
+        contextRows = historySinceCompaction([...recent].reverse());
         // The single system message prepended below sits at index 0, so the new
         // turns begin at index 1 (the provider's relative resume checkpoint).
         priorSession = {
@@ -2042,7 +2112,9 @@ export class ChatTurnHandler {
           probeSession.checkpoint + 1 + newTurns.length;
         loadFullHistory = async () => {
           const rows = await loadRecentThreadRows(threadId);
-          const full = convertDbMessages(historySinceCompaction(rows));
+          const full = withStoredTurnContext(
+            convertDbMessages(historySinceCompaction(rows))
+          );
           full.unshift(systemChatMessage());
           const scope = getRunTraceScope();
           if (scope) { await registerRunTraceParents(userId, scope.runId, [...copiedMessageIds].map((id) => ({ kind: "message" as const, id }))); }
@@ -2051,6 +2123,7 @@ export class ChatTurnHandler {
       } else if (probeHasWholeThread) {
         // The whole thread fit in the probe window — reuse it, no second query.
         const rows = historySinceCompaction([...recent].reverse());
+        contextRows = rows;
         chatHistory = convertDbMessages(rows);
         priorSession = lastMatchingProviderSession(rows, providerId, model);
       } else {
@@ -2060,6 +2133,7 @@ export class ChatTurnHandler {
         // compacted slice is what keeps the newest marker winning here too.
         const rows = await loadRecentThreadRows(threadId);
         const kept = historySinceCompaction(rows);
+        contextRows = kept;
         chatHistory = convertDbMessages(kept);
         priorSession = lastMatchingProviderSession(kept, providerId, model);
       }
@@ -2348,7 +2422,7 @@ export class ChatTurnHandler {
     const useCodeAct = allSchemas.length > 0;
 
     // The tool list handed to the provider: `execute_code`, the direct tools
-    // (DIRECT_TOOL_NAMES) and `view_image`, pushed once the session exists.
+    // (`chatDirectToolNames`) and `view_image`, pushed once the session exists.
     const providerToolSchemas: ProviderTool[] = [];
     log.info("Provider tool schemas", {
       permissionMode,
@@ -2436,27 +2510,21 @@ export class ChatTurnHandler {
       | null = null;
     let codeactSession: ChatCodeActSession | null = null;
     if (useCodeAct) {
-      // The core set (file, search, fetch, todo, delegation) and discovery
-      // (which providers, models and node types this install has) are also
-      // plain tool calls: one question with one answer, which routing through
-      // a sandbox action only delays. They stay on the belt so code can still
-      // compose them; the prompt documents the direct call.
-      // `create_plan` joins them in plan mode: the plan is that turn's whole
-      // deliverable, and a deliverable reached only by writing a sandbox action
-      // to import it is one the model routinely does not reach for.
-      // `execute_plan` is direct for the same reason, in every other mode:
-      // running the plan the user just approved is that turn's whole point.
-      const directNames = new Set<string>(DIRECT_TOOL_NAMES);
-      if (permissionMode === "plan") directNames.add("create_plan");
-      else directNames.add("execute_plan");
-      // A chat app's agent drives the app with its `ui_app_run_*` tools on
-      // every turn. Direct calls keep each one a call of its own in the
-      // thread, which the client renders as the step card it shows.
-      if (uiContext?.focused?.type === "app_run") {
-        for (const name of focusedUiToolNames(uiContext, allSchemas.map((s) => s.name))) {
-          directNames.add(name);
-        }
-      }
+      // Besides `execute_code` and `view_image`, a chat turn offers only
+      // `todo_write` and the plan tool as provider tools (`create_plan` in plan
+      // mode, `execute_plan` in every other). Everything else, the file, web,
+      // delegation and discovery tools included, is an import inside an
+      // action: their schemas were most of every request, and models almost
+      // never called them top level. The set depends on the mode alone, never
+      // on the focus, so the tool list stays the same across a thread (I1).
+      const directNames = new Set<string>(chatDirectToolNames(permissionMode));
+      // The client renders a chat app's step as a card in place of a
+      // top-level `ui_app_run_show_step` call, so that one tool stays direct.
+      // It is direct on every turn the client registered it, whatever the
+      // focus: a tool list that changed with the focus would invalidate the
+      // provider's cached prefix (I1). The other `ui_app_run_*` tools are
+      // imports, listed in the turn context while a chat app has focus.
+      directNames.add(APP_RUN_SHOW_STEP_TOOL);
       const directSchemas = allSchemas.filter(
         (s) => s.name !== "view_image" && directNames.has(s.name)
       );
@@ -2470,14 +2538,11 @@ export class ChatTurnHandler {
             description: s.description,
             inputSchema: s.inputSchema
           })),
-        // The surface's packages hold for the thread. The focused
-        // document's are the turn's, so a change of focus does not change
-        // the system prompt and invalidate the prompt cache.
-        sandboxPackages: sandboxPackagesForChat({
-          source: uiContext?.source,
-          catalog: getProcessSandboxModuleCatalog()
-        }),
+        // The packages a surface or the focused document grants are the
+        // turn's, documented in the turn context, so neither changes the
+        // system prompt and invalidates the prompt cache.
         turnSandboxPackages: sandboxPackagesForChat({
+          source: uiContext?.source,
           focusedType: uiContext?.focused?.type,
           catalog: getProcessSandboxModuleCatalog()
         }),
@@ -2492,16 +2557,18 @@ export class ChatTurnHandler {
             args: call.args
           });
         },
-        residentToolNames: [
-          ...CODEACT_RESIDENT_TOOL_NAMES,
-          ...RESIDENT_TOOL_NAMES
-        ],
-        // Same reason: the focused document's tools are documented with the
-        // turn's message rather than in the system prompt.
+        // Only the chat's own resident set. The step executor's
+        // (`CODEACT_RESIDENT_TOOL_NAMES`) documents the workspace file tools
+        // in full, which a chat turn rarely calls: they are listed by name.
+        residentToolNames: RESIDENT_TOOL_NAMES,
+        // Same reason: the focused document's tools and its `nodetool.*`
+        // namespace are documented with the turn's message rather than in the
+        // system prompt.
         turnToolNames: focusedUiToolNames(
           uiContext,
           allSchemas.map((schema) => schema.name)
         ),
+        turnNamespace: focusNamespace(uiContext),
         context: ctx,
         signal,
         clock: codeactClock,
@@ -2570,36 +2637,93 @@ export class ChatTurnHandler {
     // rounds and message assembly from here.
     let messagesToSend = [...chatHistory];
 
-    // Everything turn-scoped, gathered in one place and appended once, after
-    // media resolution, to the last user message. None of it is persisted, so
-    // whatever is injected here is absent from the history a later turn sends
-    // — which is exactly why it must sit behind every byte a later turn will
-    // reuse. See `appendContextToLastUser`.
-    const volatileContext: string[] = [];
-    // What the user is looking at (focus, open tabs, selection) changes from
-    // turn to turn, so it rides here rather than in the system prompt.
-    const uiContextSection = buildUiContextSection(uiContext, workflowId);
-    if (uiContextSection) volatileContext.push(uiContextSection);
-    // The focused document's tool signatures and packages, for the same
-    // reason.
-    if (codeactSession?.turnPromptSection) {
-      volatileContext.push(codeactSession.turnPromptSection);
-    }
+    // Everything turn-scoped, gathered in one place: each kind of block this
+    // turn would send. Only the blocks that changed since the thread last sent
+    // them go out (I3), appended after media resolution to this turn's own
+    // message, and they are stored on that message so every later turn
+    // replays the same bytes (I2). See `appendTurnContext`.
+    const turnCandidates: TurnContextCandidate[] = [];
+    // A surface's own guidance (the App Builder's, a chat app's), which the
+    // system message no longer carries.
+    const surfaceGuidance = extraSystemPrompt?.trim() ?? "";
+    // The permission mode's rules. A mode switch changes this block, not the
+    // system message.
+    turnCandidates.push({
+      key: "permission",
+      text: permissionModeSection(permissionMode)
+    });
+    turnCandidates.push({
+      key: "surface",
+      text: surfaceGuidance
+        ? `## Instructions for this surface\n\n${surfaceGuidance}`
+        : ""
+    });
+    // What the user is looking at (focus, open tabs, selection). It changes
+    // with every selection, so the fixed guidance for the open surfaces is a
+    // block of its own and is not resent with it.
+    turnCandidates.push({
+      key: "ui",
+      text: buildUiContextSection(uiContext, workflowId),
+      cleared: "## What the user is looking at\n\nNo document is open."
+    });
+    turnCandidates.push({
+      key: "ui_guidance",
+      text: buildUiGuidanceSection(uiContext)
+    });
+    // The focused document's tool signatures and packages.
+    turnCandidates.push({
+      key: "tools",
+      text: codeactSession?.turnPromptSection ?? ""
+    });
+    // The workflow-building guide, only on turns that can build a workflow.
+    turnCandidates.push({
+      key: "guide",
+      text: workflowGuidanceForTurn(uiContext) ?? ""
+    });
+    // The skills the user wrote. The shipped ones are in the system message.
+    turnCandidates.push({ key: "skills", text: userSkillCatalogSection });
     // Durable memories (memory_* tools), so the agent starts each turn aware
     // of what it recorded — project facts, decisions, and the assets it
     // generated for reuse. This thread's in full, the rest as a count it can
-    // search. Deterministic and always-on.
+    // search.
     if (threadId) {
-      const memoryBlock = await this.buildMemoryBlock(userId, threadId);
-      if (memoryBlock) volatileContext.push(memoryBlock);
-      const generationBlock = await this.buildGenerationBlock(userId, threadId);
-      if (generationBlock) volatileContext.push(generationBlock);
+      turnCandidates.push({
+        key: "memory",
+        text: await this.buildMemoryBlock(userId, threadId)
+      });
+      turnCandidates.push({
+        key: "generations",
+        text: await this.buildGenerationBlock(userId, threadId)
+      });
     }
+    // The bodies of any skills the message invoked with `/<name>`.
+    turnCandidates.push({
+      key: "invoked_skills",
+      text: invokedSkillsSection(userSkills, userContent)
+    });
 
-    // The bodies of any skills the message invoked with `/<name>`. The catalog
-    // half is stable and already sits in the system prompt.
-    const invokedSkills = invokedSkillsSection(userSkills, userContent);
-    if (invokedSkills) volatileContext.push(invokedSkills);
+    /**
+     * Decide this turn's blocks against `rows`, the history the provider is
+     * sent, and store them on this turn's message.
+     */
+    const recordTurnContext = async (rows: readonly Message[]): Promise<void> => {
+      const sections: TurnContextSection[] = turnContextDelta(
+        turnCandidates,
+        lastSentTurnContext(rows.filter((row) => row.id !== turnMessage.id))
+      );
+      currentTurnContext = turnContextText(sections);
+      // This turn's message is in the history it loaded. Should a load path
+      // ever miss it, the context goes on the last user message, where it
+      // always went. A history rebuilt by compaction converts the row again
+      // and reads `currentTurnContext` there.
+      const target =
+        chatHistory.find((m) => rowIdOf.get(m) === turnMessage.id) ??
+        [...chatHistory].reverse().find((m) => m.role === "user");
+      if (target) turnContextOf.set(target, currentTurnContext);
+      turnMessage.turn_context = sections.length > 0 ? sections : null;
+      await turnMessage.save();
+    };
+    await recordTurnContext(contextRows);
 
     // Expand any `asset://<id>.<ext>` references the composer or a prior turn
     // attached and dereference the URIs to data the provider can consume.
@@ -2610,17 +2734,17 @@ export class ChatTurnHandler {
     // decoded contents. Without this step the provider would see literal
     // `asset://…` text and never look at the referenced media.
     //
-    // The volatile block is appended after resolution, so a memory's
-    // `asset://` reference stays a reference instead of being inlined as a
-    // data URI. Both steps are one closure because compaction rebuilds the
-    // wire messages from a shortened history and must reproduce them exactly.
+    // Each user message's turn context is appended after resolution, so a
+    // memory's `asset://` reference stays a reference instead of being
+    // inlined as a data URI. Both steps are one closure because compaction
+    // rebuilds the wire messages from a shortened history and must reproduce
+    // them exactly. Resolution keeps the order and count of the messages.
     const withTurnContext = async (
       base: ProviderMessage[]
     ): Promise<ProviderMessage[]> => {
+      const contexts = base.map((m) => turnContextOf.get(m) ?? "");
       const resolved = await ctx.resolveMessageMediaUris(base);
-      return volatileContext.length > 0
-        ? appendContextToLastUser(resolved, volatileContext.join("\n\n"))
-        : resolved;
+      return resolved.map((m, i) => appendTurnContext(m, contexts[i] ?? ""));
     };
     messagesToSend = await withTurnContext(messagesToSend);
 
@@ -2629,6 +2753,9 @@ export class ChatTurnHandler {
     // ToolBridge), and asset materialization; the provider's loop orchestrates.
     // Image results (e.g. ui_3d_capture_view) return MessageContent blocks so
     // vision providers can see them; everything else returns result text.
+    // `view_image` results by tool call id: the image message the loop sends
+    // after that call's round, stored on the call's tool row.
+    const viewedImages = new Map<string, MessageContent[]>();
     const executeTool = async (
       toolCall: ProviderToolCall
     ): Promise<string | MessageContent[]> => {
@@ -2706,7 +2833,18 @@ export class ChatTurnHandler {
       if (toolCall.name === "view_image") {
         const injected = extractInjectableImages(toolResult);
         if (injected) {
-          return [{ type: "text", text: injected.text }, ...injected.images];
+          const result: MessageContent[] = [
+            { type: "text", text: injected.text },
+            ...injected.images
+          ];
+          // The loop sends the pixels in a user message after the round's
+          // tool results. Keep that message's content, so the tool row can
+          // store it and a later turn replays the same request prefix (I2).
+          const { imageMessage } = splitToolResultImages(result);
+          if (imageMessage && Array.isArray(imageMessage.content)) {
+            viewedImages.set(toolCall.id, imageMessage.content);
+          }
+          return result;
         }
       }
 
@@ -2857,7 +2995,16 @@ export class ChatTurnHandler {
         provider: providerId,
         model
       } satisfies Record<string, unknown>;
-      await this.saveMessageToDb(toolMsgData);
+      // A `view_image` row also stores the image message the provider was
+      // sent after it, as uris, never bytes. A later turn replays it after
+      // the row (`viewedImageMessage`), so the history it sends is the request
+      // this turn sent. The client is not sent it.
+      const viewed = isString(m.toolCallId)
+        ? storableViewedImage(viewedImages.get(m.toolCallId))
+        : null;
+      await this.saveMessageToDb(
+        viewed ? { ...toolMsgData, output_files: viewed } : toolMsgData
+      );
       if (echo) await this.session.send(toolMsgData);
     };
 
@@ -2935,9 +3082,15 @@ export class ChatTurnHandler {
             COMPACTION_SUMMARY_MAX_TOKENS -
             estimatePromptTokens([systemChatMessage()]) -
             estimatePromptTokens([
-              { role: "user", content: volatileContext.join("\n\n") }
+              {
+                role: "user",
+                content: turnContextText(
+                  turnContextDelta(turnCandidates, new Map())
+                )
+              }
             ]),
-          countTokens: (row) => estimatePromptTokens(convertDbMessages([row]))
+          countTokens: (row) =>
+            estimatePromptTokens(withStoredTurnContext(convertDbMessages([row])))
         }
       );
       if (!cut) return false;
@@ -2989,6 +3142,9 @@ export class ChatTurnHandler {
           ? new Date(boundary - 1).toISOString()
           : cut.keep[0].created_at
       });
+      // The cut dropped the turns that sent the earlier blocks, so this turn
+      // decides its blocks again against what survives (I4).
+      await recordTurnContext([record, ...cut.keep]);
       messagesToSend = await withTurnContext([
         systemChatMessage(),
         ...convertDbMessages([record, ...cut.keep])

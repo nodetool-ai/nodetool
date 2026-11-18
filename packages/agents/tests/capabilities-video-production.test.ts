@@ -1,4 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { ModelObserver, Storyboard, initTestDb } from "@nodetool-ai/models";
+import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 
 import {
   prepareVideoProduction,
@@ -187,5 +190,111 @@ describe("AI-video production capability contract", () => {
     await expect(
       acceptVideoProductionCandidates.impl({} as never, {})
     ).resolves.toMatchObject({ ok: false, code: "acceptance_request_invalid" });
+  });
+});
+
+/**
+ * A revision conflict names the revision the target is at and the one the
+ * caller held, and says nothing was written, so the caller can re-read instead
+ * of repeating the same stale call.
+ */
+describe("video production revision conflicts", () => {
+  beforeEach(() => initTestDb());
+  afterEach(() => ModelObserver.clear());
+
+  const run = () =>
+    createCapabilityRun({
+      context: { userId: "owner-1" } as unknown as ProcessingContext,
+      gate: UNGATED
+    });
+
+  /** A storyboard row the destination resolves, at revision 1. */
+  async function destinationBoard() {
+    return Storyboard.create<Storyboard>({
+      id: "storyboard-1",
+      user_id: "owner-1",
+      project_id: "project-1",
+      name: "Board",
+      document: JSON.stringify({
+        screenplay: null,
+        entityIds: [],
+        aspectRatio: "9:16",
+        shots: [
+          {
+            type: "shot",
+            id: "shot-1",
+            index: 0,
+            action: "beat",
+            status: "planned",
+            duration_seconds: 5
+          }
+        ]
+      })
+    });
+  }
+
+  it("names both revisions when a selected candidate targets another one", () => {
+    const candidates = readyCandidates();
+    const result = validateVideoProductionAcceptance(
+      candidates,
+      [candidates[0]?.candidateId ?? ""],
+      "revision-2"
+    );
+    expect(result).toMatchObject({
+      ok: false,
+      error: {
+        code: "target_revision_conflict",
+        message: expect.stringContaining('targets revision "revision-1", not "revision-2"')
+      }
+    });
+  });
+
+  it("submit names the target's revision and the prepared one", async () => {
+    const board = await destinationBoard();
+    const prepared = prepareVideoProduction(REQUEST);
+    if ("code" in prepared) throw new Error(prepared.message);
+    const result = await submitVideoProduction.impl(run(), { prepared });
+    expect(result).toMatchObject({
+      ok: false,
+      code: "target_revision_conflict",
+      target_revision: String(board.revision),
+      error:
+        `The target is at revision "${board.revision}", but the request was ` +
+        `prepared against "revision-1". Nothing was submitted. Prepare the ` +
+        `request again.`
+    });
+  });
+
+  it("accept names the destination's revision and the expected one", async () => {
+    const board = await destinationBoard();
+    const candidates = readyCandidates().map((candidate) => ({
+      ...candidate,
+      result: {
+        sourceDurationMs: 5_000,
+        playableWindow: { startMs: 0, endMs: 5_000 }
+      }
+    }));
+    const result = await acceptVideoProductionCandidates.impl(run(), {
+      action: "use_take",
+      batch_id: "batch-1",
+      document_id: "storyboard-1",
+      project_id: "project-1",
+      candidates,
+      selection: { "shot-1": candidates[0]?.candidateId },
+      targets: [
+        {
+          destination_id: "shot-1",
+          destination_kind: "storyboard_shot",
+          expected_target_revision: "revision-1"
+        }
+      ]
+    });
+    expect(result).toMatchObject({
+      ok: false,
+      code: "target_revision_conflict",
+      error:
+        `Destination shot-1 is at revision "${board.revision}", not ` +
+        `"revision-1". Nothing was accepted. Inspect the candidates again.`
+    });
   });
 });

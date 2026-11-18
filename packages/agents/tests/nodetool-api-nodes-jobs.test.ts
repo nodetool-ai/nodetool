@@ -8,7 +8,9 @@ import {
   createChatCodeActSession,
   type ChatCodeActToolCall
 } from "../src/codeact/chat-codeact.js";
-import { buildNodetoolApiPromptSection } from "../src/codeact/nodetool-api.js";
+import {
+  buildNodetoolApiPromptSection,
+} from "../src/codeact/nodetool-api.js";
 import { createMockContext } from "./_helpers/mock-context.js";
 
 const toolDef = (name: string) => ({
@@ -142,7 +144,7 @@ describe("nodetool.nodes", () => {
   it("documents the namespace only when the belt carries a catalog tool", () => {
     const withNodes = buildNodetoolApiPromptSection(["search_nodes"]);
     expect(withNodes).toContain("nodetool.nodes");
-    expect(withNodes).toContain("NEVER guess a node");
+    expect(withNodes).toContain("Never guess a node type");
     expect(buildNodetoolApiPromptSection(["get_job"])).not.toContain(
       "nodetool.nodes"
     );
@@ -152,16 +154,12 @@ describe("nodetool.nodes", () => {
   // chat turn supplies. An agent read `run(type, inputs)` off the section and
   // the call threw "tool run_node is not in this toolbelt".
   it("documents run(type, inputs) only when the belt carries run_node", () => {
-    const catalogOnly = buildNodetoolApiPromptSection([
-      "search_nodes",
-      "get_node_info",
-      "list_nodes"
-    ]);
-    expect(catalogOnly).toContain("nodetool.nodes");
-    expect(catalogOnly).not.toContain("run(type, inputs)");
-    expect(
-      buildNodetoolApiPromptSection(["search_nodes", "run_node"])
-    ).toContain("run(type, inputs)");
+    const catalog = ["search_nodes", "get_node_info", "list_nodes"];
+    const catalogOnly = buildNodetoolApiPromptSection(catalog);
+    expect(catalogOnly).toContain("search, info, list.");
+    expect(catalogOnly).not.toContain("list, run");
+    const withRun = [...catalog, "run_node"];
+    expect(buildNodetoolApiPromptSection(withRun)).toContain("search, info, list, run.");
   });
 });
 

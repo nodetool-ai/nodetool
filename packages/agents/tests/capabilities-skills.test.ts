@@ -5,7 +5,8 @@ import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import {
   findInvokedSkillNames,
   formatInvokedSkillsForPrompt,
-  formatSkillCatalogForPrompt
+  formatSkillCatalogForPrompt,
+  formatUserSkillsForPrompt
 } from "../src/skill-prompt.js";
 import { clearSystemSkillCache } from "../src/system-skills.js";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
@@ -172,9 +173,23 @@ describe("skill prompt blocks", () => {
 
   it("renders one catalog line per skill", () => {
     const block = formatSkillCatalogForPrompt(skills);
-    expect(block).toContain("`/release-notes` — Writing release notes.");
-    expect(block).toContain("`/bug-triage` — Triaging incoming bugs.");
+    expect(block).toContain("`/release-notes`: Writing release notes");
+    expect(block).toContain("`/bug-triage`: Triaging incoming bugs");
     expect(formatSkillCatalogForPrompt([])).toBe("");
+  });
+
+  it("lists the user's own skills without the catalog's preamble", () => {
+    const block = formatUserSkillsForPrompt([
+      ...skills,
+      { name: "shipped", description: "Shipped.", system: true, featured: true }
+    ]);
+    expect(block).toBe(
+      "## The user's skills\n" +
+        "- `/bug-triage`: Triaging incoming bugs\n" +
+        "- `/release-notes`: Writing release notes"
+    );
+    expect(block).not.toContain("load_skill");
+    expect(formatUserSkillsForPrompt([])).toBe("");
   });
 
   it("lists user and featured shipped skills, and points at list_skills for the rest", () => {
@@ -193,11 +208,43 @@ describe("skill prompt blocks", () => {
         featured: false
       }
     ]);
-    expect(block).toContain("`/mine` — My own skill.");
-    expect(block).toContain("`/motion-graphics` — Timeline motion.");
+    expect(block).toContain("`/mine`: My own skill");
+    expect(block).toContain("`/motion-graphics`: Timeline motion");
     expect(block).not.toContain("veo-3-prompting");
-    expect(block).toContain("1 more shipped skill");
     expect(block).toContain("list_skills");
+  });
+
+  it("renders the same bytes for a set of skills, whatever the row order", () => {
+    // The catalog sits in the system message, and a local model reuses its
+    // cache only for an identical prefix. Rows arrive in table order.
+    const set = [
+      { name: "zeta", description: "Last." },
+      { name: "alpha", description: "First." },
+      { name: "shipped", description: "Shipped.", system: true, featured: true },
+      { name: "Mixed", description: "Upper case sorts by code point." }
+    ];
+    const block = formatSkillCatalogForPrompt(set);
+    expect(formatSkillCatalogForPrompt([...set].reverse())).toBe(block);
+    expect(block.indexOf("`/Mixed`")).toBeLessThan(block.indexOf("`/alpha`"));
+    expect(block.indexOf("`/alpha`")).toBeLessThan(block.indexOf("`/shipped`"));
+    expect(block.indexOf("`/shipped`")).toBeLessThan(block.indexOf("`/zeta`"));
+  });
+
+  it("names no count of the unlisted skills", () => {
+    const hidden = (name: string) => ({
+      name,
+      description: "Hidden.",
+      system: true,
+      featured: false
+    });
+    const one = formatSkillCatalogForPrompt([{ name: "mine", description: "Mine." }, hidden("a")]);
+    const two = formatSkillCatalogForPrompt([
+      { name: "mine", description: "Mine." },
+      hidden("a"),
+      hidden("b")
+    ]);
+    expect(two).toBe(one);
+    expect(one).not.toMatch(/\d/);
   });
 
   it("finds only known names invoked at a word boundary", () => {

@@ -431,8 +431,11 @@ describe("CodeAct progressive tool disclosure", () => {
       const prompt = buildCodeActSystemPrompt({ tools: bigBelt(), variant });
       expect(prompt, variant).toContain("Promise.all");
       expect(prompt, variant).toContain("parallelMap");
-      // The helper's signature rides along from the manifest.
-      expect(prompt, variant).toContain("await parallelMap(items, fn");
+      // The step prompt carries the helper's signature from the manifest.
+      // The chat prompt names bridges without signatures.
+      expect(prompt, variant).toContain(
+        variant === "step" ? "await parallelMap(items, fn" : "`parallelMap`"
+      );
       // And the timers it replaces are still declared absent.
       expect(prompt, variant).toContain("setTimeout");
     }

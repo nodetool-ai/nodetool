@@ -233,18 +233,15 @@ describe("collections methods no production host serves", () => {
 describe("prompt lines", () => {
   it("documents nodetool.secrets with its skill whenever a namespace is active", () => {
     const section = buildNodetoolApiPromptSection(["list_workflows", "load_skill"]);
-    expect(section).toMatch(/nodetool\.secrets[^\n]*\n[\s\S]*?Skill: `api-settings`/);
+    expect(section).toMatch(/`nodetool\.secrets`[^\n]*Skill: `api-settings`/);
     expect(buildNodetoolApiPromptSection(["load_skill"])).toBe("");
   });
 
   it("lists storyboards.finish and previewDesign, and no script finish", () => {
-    const section = buildNodetoolApiPromptSection(["list_storyboards", "list_scripts"]);
-    expect(section).toContain("previewDesign({storyboardId, expectedStoryboardRevision})");
-    expect(section).toContain("finish({storyboardId");
+    const belt = ["list_storyboards", "list_scripts"];
+    const section = buildNodetoolApiPromptSection(belt);
+    expect(section).toContain("assembleTimeline, previewDesign, finish.");
     const scriptsLine = section.split("\n").find((l) => l.includes("`nodetool.scripts`"));
-    expect(scriptsLine).toBeDefined();
-    expect(section).toContain(
-      "`get(id)`, `edit(id, ops)`, `rename(id, name)`, `voice(id)`,\n  `assembleTimeline(id)`."
-    );
+    expect(scriptsLine).toContain("voice, assembleTimeline.");
   });
 });
