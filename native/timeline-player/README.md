@@ -8,12 +8,12 @@ the native node editor. The
 
 | Target | Dependencies | Contents |
 |---|---|---|
-| `nodetool_timeline_scene` | Qt Core, Yoga | The document types (`model/TimelineTypes.h`), `TimelineJson`, `TimelineSource`, `scene/`, the motion headers, `SceneEval`, `SceneHooks`, `TransitionResolver`, `CaptionCues`, `CpuUsage` and `AudioClockFeed` |
+| `nodetool_timeline_scene` | Qt Core, Yoga | The document types (`model/TimelineTypes.h`), `TimelineJson`, `TimelineSource`, `StaticTimelineSource`, `TimelineDocumentLoader`, `scene/`, the motion headers, `SceneEval`, `SceneHooks`, `TransitionResolver`, `CaptionCues`, `CpuUsage` and `AudioClockFeed` |
 | `nodetool_timeline_decode` | `nodetool_timeline_scene`, Qt Gui and GuiPrivate (QRhi), FFmpeg, HarfBuzz, FreeType, the platform's hardware decode libraries | The media sources and their pools (`FfmpegSource`, `SourcePool`, `FrameCache`, `SurfacePool`, `RetireQueue`), the hardware interop (`preview/hw/`), the layer and compose hook registries, the effects, render2d and the effect shaders (`shaders/effects/`) |
 | `nodetool_timeline_effects_registrar`, `nodetool_timeline_render2d_registrar` | `nodetool_timeline_decode` | Object libraries that register the [standard hooks](#standard-hooks) at application startup |
 | `nodetool_timeline_audio` | `nodetool_timeline_scene`, FFmpeg, `nodetool_kernels`, miniaudio, platform audio libraries | The playback engine, mixer, audio sources, shuttle stretch, effects, mix and output-device hooks, and loudness processing |
-| `nodetool_timeline_player`, `nodetool_timeline_playerplugin` | `nodetool_timeline_decode`, `nodetool_timeline_audio`, Qt Qml and Quick | The [QML module](#qml-module) `NodeTool.TimelinePlayer`: `PlaybackClock`, `PreviewCompositor`, `HwWindow` and the composite shaders (`shaders/`) |
-| `nodetool_timeline_player_server` | Qt Network, `nodetool_timeline_scene` | `TimelineDocumentLoader`, `ServerTimelineLoader`, tRPC, media resolution and cache leases |
+| `nodetool_timeline_player`, `nodetool_timeline_playerplugin` | `nodetool_timeline_decode`, `nodetool_timeline_audio`, `nodetool_ui_primitives`, Qt Qml and Quick | The [QML module](#qml-module) `NodeTool.TimelinePlayer`: `PlaybackClock`, `PreviewCompositor`, `HwWindow`, the composite shaders (`shaders/`), `TimelinePlayerController` and `TimelinePlayer.qml` |
+| `nodetool_timeline_player_server` | Qt Network, `nodetool_timeline_scene` | `ServerTimelineLoader`, tRPC, media resolution and cache leases |
 | `yogacore` | none | [Yoga 3.2.1](third_party/yoga/README.md), the flex layout engine, unchanged |
 
 `src/` keeps the folder layout of `native/timeline/src`. Both projects put
@@ -32,10 +32,19 @@ executable that links it can load `:/effects/*.qsb`.
 A host links it and `nodetool_timeline_playerplugin`, and its QML files
 `import NodeTool.TimelinePlayer`. The module registers:
 
-- `PlaybackClock`, which QML cannot create. The host owns it.
+- `PlaybackClock`, which QML cannot create. The host or a
+  `TimelinePlayerController` owns it.
 - `PreviewCompositor`, a `QQuickRhiItem` that draws the timeline at the clock's
-  time. Its `timeline` property takes a `TimelineSource`.
-- `TimelineSource`, without a QML name (`src/model/TimelineSourceQml.h`).
+  time. Its `timeline` property takes a `TimelineSource`. It holds the source
+  and the clock by `QPointer`, so either may go first.
+- `TimelinePlayerController` and the `TimelinePlayer` item. See
+  [Player](#player).
+- `TimelineSource` and `nt::TimelineDocumentLoader`, without QML names
+  (`src/model/TimelineSourceQml.h`).
+
+`TimelinePlayer.qml` imports `NodeTool.UiPrimitives`. The module links
+`nodetool_ui_primitives` and adds `native/ui_primitives` when no target of
+that name exists, so a host that also adds it adds it first.
 
 `TimelineSource` is registered only here. A host QML module whose C++ types
 derive from it, such as the timeline's `TimelineModel`, lists
@@ -49,6 +58,84 @@ The compositor loads its shaders from `:/shaders/`, which the library carries
 as resources. `nt::hw::selectGraphicsApi()` and `nt::hw::prepareWindow()`
 (`src/preview/hw/HwWindow.h`) prepare the host's `QQuickWindow` for hardware
 decode.
+
+## Player
+
+`TimelinePlayer` plays one timeline by its ID in any Qt Quick host. It draws
+the picture with `PreviewCompositor` and shows transport controls from
+`NodeTool.UiPrimitives`.
+
+```qml
+import NodeTool.TimelinePlayer
+
+TimelinePlayer {
+    timelineId: "…"
+    loader: hostLoader                        // a TimelineDocumentLoader
+    audioMode: TimelinePlayerController.Device // Off (default), Null or Device
+    controls: true                            // the transport row
+    compact: false                            // true: Play and the position slider only, for a node card
+}
+```
+
+Its `controller` property is the `TimelinePlayerController`
+(`src/player/TimelinePlayerController.h`), which a C++ host can also own
+directly:
+
+| Member | Meaning |
+|---|---|
+| `timelineId`, `loader` | Inputs. A change cancels the outstanding load and asks the loader for the new ID. |
+| `window` | The `QQuickWindow` the picture draws in. `TimelinePlayer` binds it. |
+| `audioMode` | `Off` runs the clock on the monotonic source. `Null` and `Device` open an `AudioEngine` on the first play, on miniaudio's null backend or the default output device, and make it the clock's master. |
+| `status`, `error` | `Idle` (no ID), `Loading`, `Ready`, `Error` with `error`, or `Unavailable` when `window` renders with the software scene graph. Nothing loads or draws while unavailable. |
+| `playing`, `positionMs`, `durationMs`, `fps`, `frame` | The transport. `durationMs` is the end of the last clip or the document's duration, whichever is later. `frame` is the frame shown at `positionMs`. |
+| `audioEnabled` | True while the audio engine runs. |
+| `source`, `clock` | The `StaticTimelineSource` and the `PlaybackClock` it owns, for a host's own `PreviewCompositor`. |
+| `play()`, `pause()`, `toggle()`, `seek(ms)`, `stepFrames(n)` | `play()`, `seek()` and `stepFrames()` act only while `Ready`. `seek()` clamps to the timeline. `stepFrames()` pauses first. |
+
+Behaviour a host can rely on:
+
+- One controller plays at a time in a QML engine. `play()` pauses the one that
+  played before and closes its audio. A controller with no QML engine
+  (`qmlEngine()` null) takes no part.
+- A load result for another ID than the current one is dropped, and so is a
+  result that arrives after the controller is destroyed. Give each controller
+  its own loader, because a new `load()` supersedes the previous one.
+- The controller keeps the media leases of the last load until the next load
+  or its destruction. Its destructor stops the audio device callback and the
+  decode worker before it releases the leases, the source and the clock.
+- `StaticTimelineSource::setTimeline(nt::Timeline)` gives the document a new
+  revision and clip index and raises the generation. `clear()` leaves a null
+  snapshot, which `PreviewCompositor` draws as nothing.
+
+A minimal host with the default server loader:
+
+```cmake
+set(NT_PLAYER_FONTS_DIR "${fonts}")             # render2d's fallback fonts
+add_subdirectory(../ui_primitives ${CMAKE_CURRENT_BINARY_DIR}/ui_primitives)
+add_subdirectory(../timeline-player ${CMAKE_CURRENT_BINARY_DIR}/timeline-player)
+target_link_libraries(host PRIVATE nodetool_timeline_player nodetool_timeline_playerplugin
+    nodetool_timeline_player_server)
+nodetool_use_ui_primitives(host)
+# A host QML module that names these types:
+#   qt_add_qml_module(host_qml ... DEPENDENCIES NodeTool.TimelinePlayer
+#       IMPORT_PATH ${CMAKE_CURRENT_BINARY_DIR}/timeline-player)
+```
+
+```cpp
+QGuiApplication app(argc, argv);
+nt::hw::selectGraphicsApi(false);
+const nt::HookRegistrations hooks = nt::registerStandardHooks();
+nt::server::ServerTimelineLoader loader(origin, token, cacheDir);
+QQuickView view;
+nt::hw::prepareWindow(&view);
+view.setInitialProperties({{"loader", QVariant::fromValue<QObject*>(&loader)},
+                           {"timelineId", timelineId}});
+view.loadFromModule("NodeTool.TimelinePlayer", "TimelinePlayer");
+view.show();
+```
+
+Keep `hooks` alive while players render. A loader destroyed first leaves its
+players in `Error`.
 
 ## Hardware decode
 
@@ -132,6 +219,17 @@ in standalone builds. Build and test from the timeline build:
 ```bash
 cmake --build native/timeline/build --target nodetool_timeline_decode tst_cpuusage tst_standardhooks tst_standardhooks_explicit tst_shuttlestretch
 ctest --test-dir native/timeline/build -R '^(tst_cpuusage|tst_standardhooks|tst_standardhooks_explicit|tst_shuttlestretch)$'
+```
+
+`tst_timelineplayer` covers the controller and `TimelinePlayer.qml` offscreen
+on the software scene graph with a fake loader. `tst_timelineplayer_render`
+(label `render`) shows a frame through `TimelinePlayer.qml` on the platform
+QRhi and needs a display, such as xcb under Xvfb with Vulkan on lavapipe:
+
+```bash
+cmake --build native/timeline/build --target tst_timelineplayer tst_timelineplayer_render
+ctest --test-dir native/timeline/build -R '^tst_timelineplayer$'
+QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=vulkan xvfb-run -a ctest --test-dir native/timeline/build -R '^tst_timelineplayer_render$'
 ```
 
 A timeline build with `NT_SANITIZE` applies its sanitizer failure patterns to

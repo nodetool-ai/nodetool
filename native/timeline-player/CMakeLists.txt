@@ -59,6 +59,9 @@ endif()
 # resolve through the PUBLIC include directory in both projects.
 add_library(nodetool_timeline_scene STATIC
     src/model/TimelineSource.h
+    src/model/StaticTimelineSource.h
+    src/model/StaticTimelineSource.cpp
+    src/model/TimelineDocumentLoader.h
     src/model/TimelineTypes.h
     src/model/TimelineJson.h
     src/model/TimelineJson.cpp
@@ -319,19 +322,30 @@ endif()
 set_source_files_properties(src/audio/miniaudio.cpp PROPERTIES COMPILE_OPTIONS "${NT_PLAYER_NO_WARNINGS}")
 
 # The QML module NodeTool.TimelinePlayer: PlaybackClock, PreviewCompositor
-# (a QQuickRhiItem) and TimelineSource, with the compositor's shaders as
-# resources. HwWindow prepares the QQuickWindow for the hardware decode path.
-# A host links nodetool_timeline_player and nodetool_timeline_playerplugin.
+# (a QQuickRhiItem), TimelineSource, TimelineDocumentLoader,
+# TimelinePlayerController and the TimelinePlayer item, with the compositor's
+# shaders as resources. HwWindow prepares the QQuickWindow for the hardware
+# decode path. A host links nodetool_timeline_player and
+# nodetool_timeline_playerplugin, and NodeTool.UiPrimitives
+# (nodetool_use_ui_primitives) for TimelinePlayer's controls.
+if(NOT TARGET nodetool_ui_primitives)
+    add_subdirectory(../ui_primitives ${CMAKE_CURRENT_BINARY_DIR}/ui_primitives)
+endif()
 qt_add_library(nodetool_timeline_player STATIC)
 set_target_properties(nodetool_timeline_player PROPERTIES AUTOMOC ON)
+set_source_files_properties(qml/TimelinePlayer.qml PROPERTIES QT_RESOURCE_ALIAS TimelinePlayer.qml)
 qt_add_qml_module(nodetool_timeline_player
     URI NodeTool.TimelinePlayer
     RESOURCE_PREFIX /qt/qml
     OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/NodeTool/TimelinePlayer
+    QML_FILES qml/TimelinePlayer.qml
     SOURCES
         src/model/TimelineSourceQml.h
         src/playback/PlaybackClock.h
         src/playback/PlaybackClock.cpp
+        src/player/PlaybackArbiter.h
+        src/player/TimelinePlayerController.h
+        src/player/TimelinePlayerController.cpp
         src/preview/PreviewCompositor.h
         src/preview/PreviewCompositor.cpp
         src/preview/hw/HwWindow.h
@@ -340,14 +354,13 @@ qt_add_shaders(nodetool_timeline_player nodetool_timeline_player_shaders
     PREFIX "/shaders" BASE shaders
     FILES shaders/composite.vert shaders/composite.frag shaders/monitorview.frag)
 target_link_libraries(nodetool_timeline_player
-    PUBLIC nodetool_timeline_decode Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick
+    PUBLIC nodetool_timeline_decode nodetool_ui_primitives Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick
     PRIVATE nodetool_timeline_audio)
 target_compile_options(nodetool_timeline_player PRIVATE ${NT_PLAYER_WARNINGS})
 # The generated type registration includes each header by its file name.
-target_include_directories(nodetool_timeline_player PRIVATE src/model src/playback src/preview)
+target_include_directories(nodetool_timeline_player PRIVATE src/model src/playback src/player src/preview)
 
 add_library(nodetool_timeline_player_server STATIC
-    src/model/TimelineDocumentLoader.h
     src/server/AssetCache.h
     src/server/AssetCache.cpp
     src/server/FieldAudit.h
@@ -385,6 +398,24 @@ if(BUILD_TESTING)
         add_test(NAME ${test_name} COMMAND ${test_name})
         set_tests_properties(${test_name} PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     endforeach()
+
+    # TimelinePlayerController and TimelinePlayer.qml with a fake loader:
+    # offscreen on the software scene graph, and (label render) on the
+    # platform QRhi, which needs a display: xcb under Xvfb in CI.
+    qt_add_executable(tst_timelineplayer tests/tst_timelineplayer.cpp tests/FakeTimelineLoader.h)
+    qt_add_executable(tst_timelineplayer_render tests/tst_timelineplayer_render.cpp tests/FakeTimelineLoader.h)
+    foreach(test_name tst_timelineplayer tst_timelineplayer_render)
+        set_target_properties(${test_name} PROPERTIES MACOSX_BUNDLE FALSE AUTOMOC ON)
+        target_compile_options(${test_name} PRIVATE ${NT_PLAYER_WARNINGS})
+        target_link_libraries(${test_name} PRIVATE nodetool_timeline_player nodetool_timeline_playerplugin
+            Qt6::Quick Qt6::Test)
+        nodetool_use_ui_primitives(${test_name})
+        add_test(NAME ${test_name} COMMAND ${test_name})
+    endforeach()
+    set_tests_properties(tst_timelineplayer PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    set_tests_properties(tst_timelineplayer_render PROPERTIES LABELS render
+        ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
 
     qt_add_executable(tst_audioeffects tests/tst_audioeffects.cpp)
     qt_add_executable(tst_ducking tests/tst_ducking.cpp)

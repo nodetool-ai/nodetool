@@ -28,7 +28,7 @@
 class PlaybackClock : public QObject {
     Q_OBJECT
     QML_ELEMENT
-    QML_UNCREATABLE("Created by main")
+    QML_UNCREATABLE("Owned by the host or by TimelinePlayerController")
     Q_PROPERTY(double time READ time NOTIFY timeChanged)
     Q_PROPERTY(bool playing READ playing NOTIFY playingChanged)
     Q_PROPERTY(double durationMs READ durationMs WRITE setDurationMs NOTIFY durationMsChanged)

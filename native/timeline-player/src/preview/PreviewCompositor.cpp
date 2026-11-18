@@ -567,7 +567,9 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
     m_evaluatedClips.clear();
     m_precomposites.clear();
     m_playing = false;
-    if (!item->m_timeline) {
+    // A source without a document, such as a StaticTimelineSource before its
+    // load, draws nothing.
+    if (!item->m_timeline || !item->m_timeline->snapshot()) {
         m_timeline.reset();
         m_tapTimes.clear();
         m_blurFrameTime = -1;

@@ -1,5 +1,6 @@
 #pragma once
 #include "model/TimelineSource.h"
+#include "playback/PlaybackClock.h"
 #include "preview/WorkingFormat.h"
 #include "preview/compose/BackdropStage.h"
 
@@ -16,8 +17,6 @@
 #include <cstdint>
 
 namespace nt { struct Timeline; }
-
-class PlaybackClock;
 
 // One composited frame, measured on the render thread.
 struct FrameStat {
@@ -187,7 +186,10 @@ private:
     std::uint64_t m_visualRevision = 0;
     std::uint64_t m_visualGeneration = 0;
     int m_visualEdits = 0;
-    PlaybackClock* m_clock = nullptr;
+    // A host may destroy the clock first, as TimelinePlayer.qml can: the
+    // compositor then shows time 0. The render thread reads it only in
+    // synchronize(), while the UI thread is blocked.
+    QPointer<PlaybackClock> m_clock;
     bool m_collectStats = false;
     std::vector<FrameStat> m_stats;  // written in synchronize(), GUI thread blocked
     long long m_framesRendered = 0;  // written in synchronize(), GUI thread blocked

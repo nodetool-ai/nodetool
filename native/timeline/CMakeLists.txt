@@ -61,6 +61,10 @@ endif()
 # node editor also builds. render2d
 # falls back to the repository's fonts in a build tree.
 set(NT_PLAYER_FONTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../packages/timeline/fonts")
+# The player's TimelinePlayer.qml uses NodeTool.UiPrimitives, so add it first.
+if(NOT TARGET nodetool_ui_primitives)
+    add_subdirectory(../ui_primitives ${CMAKE_CURRENT_BINARY_DIR}/ui_primitives)
+endif()
 if(NOT TARGET nodetool_timeline_scene)
     add_subdirectory(../timeline-player ${CMAKE_CURRENT_BINARY_DIR}/timeline-player)
 endif()
@@ -136,9 +140,6 @@ endforeach()
 
 include(src/app/QmlDiscovery.cmake)
 
-if(NOT TARGET nodetool_ui_primitives)
-    add_subdirectory(../ui_primitives ${CMAKE_CURRENT_BINARY_DIR}/ui_primitives)
-endif()
 if(NOT TARGET nodetool_model_picker)
     add_subdirectory(../model-picker ${CMAKE_CURRENT_BINARY_DIR}/model-picker)
 endif()

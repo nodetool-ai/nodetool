@@ -17,8 +17,9 @@ class TimelineSource : public QObject {
 public:
     using QObject::QObject;
 
-    // The current snapshot. A new document or edit makes a new snapshot; an
-    // old one stays valid while held.
+    // The current snapshot, or null while the source holds no document. A
+    // new document or edit makes a new snapshot; an old one stays valid
+    // while held.
     virtual std::shared_ptr<const nt::Timeline> snapshot() const = 0;
     // Counts document replacements. It goes up when a different document
     // replaces the current one, not on an edit.

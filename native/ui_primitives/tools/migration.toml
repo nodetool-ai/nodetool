@@ -135,6 +135,16 @@ qml_callers = ["native/model-picker/qml/ModelPicker.qml"]
 replacement = "Named picker geometry scaled by Ui.Theme.uiScale"
 
 [[file]]
+path = "native/timeline-player/qml/TimelinePlayer.qml"
+category = "chrome"
+controls = ["Rectangle", "Loader", "PreviewCompositor", "Ui.BusyIndicator", "Ui.Text", "Ui.ToolbarIconButton", "Ui.Slider", "TimelinePlayerController"]
+signals = []
+test_host = "tst_timelineplayer"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.BusyIndicator, Ui.Text, Ui.ToolbarIconButton, Ui.Slider; PreviewCompositor draws the picture"
+
+[[file]]
 path = "native/timeline/qml/DocumentBar.qml"
 category = "chrome"
 controls = ["Rectangle", "Ui.Text", "ToolButton", "Loader", "AccountControl", "ShareDialog"]
