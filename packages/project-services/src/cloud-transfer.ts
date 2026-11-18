@@ -38,7 +38,6 @@ import {
 } from "@nodetool-ai/models";
 import { pausePoint } from "@nodetool-ai/config/pause-points";
 import type { StorageAdapter } from "@nodetool-ai/storage";
-import { pausePoint } from "@nodetool-ai/config/pause-points";
 import { hashesToSend, stageBlob, stageKnownBlob } from "@nodetool-ai/asset-services/blob-store";
 import { requireProjectFolder } from "@nodetool-ai/asset-services/project-asset-file";
 import type {
