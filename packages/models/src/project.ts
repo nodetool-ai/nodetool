@@ -720,6 +720,7 @@ export class Project extends DBModel {
         "revision_sets",
         // A local project's link to a cloud project goes with it.
         "cloud_receives",
+        "cloud_sends",
         "cloud_link_files",
         "cloud_link_documents",
         "cloud_links"

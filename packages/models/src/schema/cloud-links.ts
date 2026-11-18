@@ -93,3 +93,29 @@ export const cloudReceives = sqliteTable(
   },
   (table) => [index("idx_cloud_receives_user").on(table.user_id, table.project_id)]
 );
+
+/**
+ * A send to a cloud project that has not finished, keyed by its transfer id.
+ * `plan` holds the captured manifest and payloads, so a retry sends the same
+ * content. `attempt_id` is recorded before a commit is sent, so a restart
+ * asks the cloud for that attempt's result instead of guessing.
+ */
+export const cloudSends = sqliteTable(
+  "cloud_sends",
+  {
+    id: text("id").primaryKey(),
+    /** Null for a first publication, which creates the link when it commits. */
+    link_id: text("link_id"),
+    user_id: text("user_id").notNull(),
+    project_id: text("project_id").notNull(),
+    server_key: text("server_key").notNull(),
+    account_id: text("account_id").notNull(),
+    cloud_project_id: text("cloud_project_id").notNull(),
+    state: text("state", { enum: ["open", "committing"] }).notNull(),
+    attempt_id: text("attempt_id"),
+    plan: text("plan").notNull(),
+    created_at: text("created_at").notNull(),
+    updated_at: text("updated_at").notNull()
+  },
+  (table) => [index("idx_cloud_sends_user").on(table.user_id, table.project_id)]
+);
