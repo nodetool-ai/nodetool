@@ -14,7 +14,7 @@
  * {@link setDocumentRetentionDays}. A server for many accounts turns it on;
  * a desktop server leaves it off and deletes at once, as before.
  */
-import { and, asc, desc, eq, gt, isNull, lte, or, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gt, isNull, like, lte, or, type SQL } from "drizzle-orm";
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import { createLogger } from "@nodetool-ai/config";
 import { createTimeOrderedUuid } from "./base-model.js";
@@ -49,6 +49,14 @@ export interface DeletedDocumentPayload {
    * that was deleted before it.
    */
   members?: DeletedDocumentMember[];
+  /**
+   * A document that a delete of its project moved: that project's id. It is
+   * written with the document, so a delete that stops after some documents
+   * still has every one it moved, and it stays until the document is
+   * restored or its restore with the project failed. A restore that stops
+   * part way resumes from it (review F26).
+   */
+  deletedWithProject?: string;
 }
 
 /** One document a project delete moved to the deleted documents. */
@@ -238,6 +246,8 @@ export interface DocumentDelete {
   grants: string;
   /** The row's project and name, for the deleted list. */
   describe(row: Record<string, unknown>): { documentId: string; projectId: string | null; name: string };
+  /** Set when a delete of this project moves the document. */
+  deletedWithProject?: string;
 }
 
 /** What a delete removed: the row, and the users its grants named. */
@@ -275,7 +285,9 @@ export async function deleteDocumentKeeping(
     ];
     if (days !== null) {
       const { documentId, projectId, name } = spec.describe(row);
-      const entry = keptEntry({ kind: spec.kind, documentId, userId: spec.userId, projectId, name, payload: { row, dependents } }, days, now);
+      const payload: DeletedDocumentPayload = { row, dependents };
+      if (spec.deletedWithProject !== undefined) payload.deletedWithProject = spec.deletedWithProject;
+      const entry = keptEntry({ kind: spec.kind, documentId, userId: spec.userId, projectId, name, payload }, days, now);
       // A kept copy of an earlier life of this id is replaced: the live row
       // is newer, and only a restore or a recreation brought it back.
       yield runOf(
@@ -401,6 +413,83 @@ export async function retainDeletedProject(input: KeptInput, now: Date = new Dat
     );
     return kept.purge_at;
   });
+}
+
+/**
+ * The documents a delete of the owner's project moved and that are still
+ * kept: the members its restore brings back.
+ */
+export async function projectMembers(userId: string, projectId: string): Promise<DeletedDocumentMember[]> {
+  const rows = await getPortableDb()
+    .select({ kind: deletedDocuments.kind, document_id: deletedDocuments.document_id, payload: deletedDocuments.payload })
+    .from(deletedDocuments)
+    .where(
+      and(
+        eq(deletedDocuments.user_id, userId),
+        eq(deletedDocuments.project_id, projectId),
+        isNull(deletedDocuments.purging_since)
+      )
+    );
+  return rows
+    .filter((row) => (JSON.parse(row.payload) as DeletedDocumentPayload).deletedWithProject === projectId)
+    .map((row) => ({ kind: row.kind, documentId: row.document_id }));
+}
+
+/**
+ * Ends a document's membership in its project's delete, so it stays in the
+ * deleted list on its own. A restore of the project calls it for a member
+ * that could not come back.
+ */
+export async function leaveDeletedProject(userId: string, kind: string, documentId: string): Promise<void> {
+  await runDocumentTransaction(function* (tx) {
+    const [row] = yield lockedRows(
+      tx
+        .select()
+        .from(deletedDocuments)
+        .where(
+          and(
+            eq(deletedDocuments.user_id, userId),
+            eq(deletedDocuments.kind, kind),
+            eq(deletedDocuments.document_id, documentId)
+          )
+        )
+        .limit(1)
+    );
+    if (!row) return;
+    const entry = row as typeof deletedDocuments.$inferSelect;
+    const payload = JSON.parse(entry.payload) as DeletedDocumentPayload;
+    if (payload.deletedWithProject === undefined) return;
+    delete payload.deletedWithProject;
+    yield runOf(tx.update(deletedDocuments).set({ payload: JSON.stringify(payload) }).where(eq(deletedDocuments.id, entry.id)));
+  });
+}
+
+/**
+ * The owners and live projects of members whose project restore stopped
+ * before it brought them back. The purge job resumes each with the
+ * project kind's `restored`.
+ */
+export async function interruptedProjectRestores(): Promise<{ userId: string; projectId: string }[]> {
+  const rows = await getPortableDb()
+    .select({ user_id: deletedDocuments.user_id, project_id: deletedDocuments.project_id, payload: deletedDocuments.payload })
+    .from(deletedDocuments)
+    .where(and(like(deletedDocuments.payload, '%"deletedWithProject":%'), isNull(deletedDocuments.purging_since)));
+  const found = new Map<string, { userId: string; projectId: string }>();
+  for (const row of rows) {
+    const projectId = (JSON.parse(row.payload) as DeletedDocumentPayload).deletedWithProject;
+    if (projectId === undefined || row.project_id !== projectId) continue;
+    found.set(`${row.user_id}\u0000${projectId}`, { userId: row.user_id, projectId });
+  }
+  const live: { userId: string; projectId: string }[] = [];
+  for (const candidate of found.values()) {
+    const [project] = await getPortableDb()
+      .select({ deleted_at: projects.deleted_at })
+      .from(projects)
+      .where(and(eq(projects.id, candidate.projectId), eq(projects.user_id, candidate.userId)))
+      .limit(1);
+    if (project && project.deleted_at === null) live.push(candidate);
+  }
+  return live;
 }
 
 /** The owner's deleted documents that can still be restored, newest first. */
