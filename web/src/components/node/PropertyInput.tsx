@@ -46,6 +46,7 @@ import { normalizeDynamicSlot, slotType } from "../../utils/dynamicSlots";
 import { isSchemaDrivenDynamicNode } from "../../utils/dynamicSlotTypes";
 import { isString } from "../../utils/typePredicates";
 import { runAsOneUndoEntry } from "../../utils/runAsOneUndoEntry";
+import { isDocumentConstantNode } from "../properties/DocumentConstantProperty";
 
 export type { PropertyProps } from "./PropertyInput.types";
 
@@ -556,7 +557,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     componentType === DataframeProperty;
 
   const canvasResetButton =
-    !isInspector && hasResetDefault ? (
+    !isInspector && hasResetDefault && !isDocumentConstantNode(nodeType) ? (
       <Tooltip
         title={t("i18n-next39.nodeEditor.propertyInput.resetToDefault")}
         placement="top"

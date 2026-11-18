@@ -150,7 +150,7 @@ inline QString propertyKind(const QJsonObject& p) {
         return editableEntries.contains(entry) ? type : QStringLiteral("unsupported");
     }
     if (type == "json" || type == "record_type" || type == "dataframe") { return type; }
-    if (type == "sketch" || type == "timeline" || type == "script" || type == "storyboard") { return "document_ref"; }
+    if (type == "sketch" || type == "timeline" || type == "script" || type == "storyboard" || type == "application" || type == "jsscript") { return "document_ref"; }
     if (QSet<QString>{"font", "folder", "entity", "file", "document", "file_path", "folder_path"}.contains(type)) {
         return type;
     }

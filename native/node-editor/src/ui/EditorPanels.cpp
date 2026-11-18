@@ -81,6 +81,9 @@ void EditorWindow::initializePanels() {
     connect(canvasDrops_, &CanvasDropController::errorOccurred, this, [this](const QString &message) {
       notify(QStringLiteral("error"), message);
     });
+    connect(canvasDrops_, &CanvasDropController::warningOccurred, this, [this](const QString &message) {
+      notify(QStringLiteral("warning"), message);
+    });
   }
   connect(&session_, &node_editor::WorkflowSession::runEvent, this, [this](const QString &id, const QJsonObject &event) {
     const auto status = event["status"].toString();

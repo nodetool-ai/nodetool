@@ -45,6 +45,15 @@ function script(inputs, options) {
 function storyboard(inputs, options) {
   return createNode("nodetool.constant.Storyboard", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "storyboard" }, defaultOutput: "output" });
 }
+function workflow(inputs, options) {
+  return createNode("nodetool.constant.Workflow", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "workflow" }, defaultOutput: "output" });
+}
+function application(inputs, options) {
+  return createNode("nodetool.constant.Application", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "application" }, defaultOutput: "output" });
+}
+function jsScript(inputs, options) {
+  return createNode("nodetool.constant.JsScript", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "jsscript" }, defaultOutput: "output" });
+}
 function entity(inputs, options) {
   return createNode("nodetool.constant.Entity", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "entity" }, defaultOutput: "output" });
 }
@@ -97,6 +106,7 @@ function videoModelConstant(inputs, options) {
   return createNode("nodetool.constant.VideoModelConstant", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "video_model" }, defaultOutput: "output" });
 }
 export {
+  application,
   asrModelConstant,
   audio,
   audioList,
@@ -114,6 +124,7 @@ export {
   imageModelConstant,
   imageSize,
   integer,
+  jsScript,
   json,
   languageModelConstant,
   list,
@@ -128,5 +139,6 @@ export {
   ttsModelConstant,
   video,
   videoList,
-  videoModelConstant
+  videoModelConstant,
+  workflow
 };

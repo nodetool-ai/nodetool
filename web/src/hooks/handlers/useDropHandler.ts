@@ -31,7 +31,11 @@ import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode"
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
 import { sanitizeGraph } from "../../core/workflow/graphMapping";
 import { insertGraphFragment } from "./insertGraphFragment";
-import { assetOfFile } from "../../components/workspaces/workspaceTreeActions";
+import {
+  assetOfFile,
+  isDocumentFile
+} from "../../components/workspaces/workspaceTreeActions";
+import { documentFileConstant } from "./documentFileConstant";
 
 /** Horizontal spacing between nodes when dropping multiple assets */
 const MULTI_NODE_HORIZONTAL_SPACING = 250;
@@ -374,9 +378,40 @@ export const useDropHandler = (): UseDropHandlerResult => {
             return;
           }
         } else if (dragData.type === "project-file") {
-          // A Files panel row: the file is an asset, found by its path.
+          // A Files panel row: a document file enters as the constant that
+          // references its document, any other file as its asset's node.
           const { projectId, path } = dragData.payload;
           try {
+            if (isDocumentFile(path)) {
+              const document = await trpcClient.projects.documentByFile.query({
+                id: projectId,
+                path
+              });
+              if (!document) {
+                addNotification({
+                  type: "warning",
+                  content: `${path} has no document and cannot become a node.`,
+                  alert: true
+                });
+                return;
+              }
+              const constant = documentFileConstant(document.type, document.ref);
+              const metadata = getMetadata(constant.nodeType);
+              if (!metadata) {
+                addNotification({
+                  type: "error",
+                  content: `Could not create a node for ${path}: metadata for ${constant.nodeType} is missing.`,
+                  alert: true
+                });
+                return;
+              }
+              const newNode = createNode(metadata, position);
+              newNode.data.properties.value = constant.value;
+              newNode.data.title = document.name;
+              addNode(newNode);
+              addRecentNode(constant.nodeType);
+              return;
+            }
             const listed = await assetOfFile(projectId, path);
             if (!listed) {
               addNotification({

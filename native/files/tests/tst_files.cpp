@@ -122,7 +122,10 @@ private slots:
     const auto folder = files.dragData(rowOf(files, "footage"));
     QCOMPARE(folder.value(ProjectFiles::EntryMime).toString(), QStringLiteral("footage"));
     QVERIFY(!folder.contains(ProjectFiles::DragMime));
-    QVERIFY(!files.dragData(rowOf(files, "cut.timeline.json")).contains(ProjectFiles::DragMime));
+    // A document file drags too: the canvas resolves it to its constant node.
+    const auto document = QJsonDocument::fromJson(files.dragData(rowOf(files, "cut.timeline.json")).value(ProjectFiles::DragMime).toString().toUtf8()).object();
+    QCOMPARE(document["type"].toString(), QStringLiteral("project-file"));
+    QCOMPARE(document["payload"].toObject()["path"].toString(), QStringLiteral("cut.timeline.json"));
 
     const auto image = files.dragData(rowOf(files, "footage/shot.png"));
     QCOMPARE(image.value(ProjectFiles::EntryMime).toString(), QStringLiteral("footage/shot.png"));

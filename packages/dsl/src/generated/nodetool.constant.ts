@@ -206,6 +206,45 @@ export function storyboard(inputs: StoryboardInputs, options?: NodeOptions): Nod
   return createNode("nodetool.constant.Storyboard", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"storyboard"}, defaultOutput: "output" });
 }
 
+// Workflow — nodetool.constant.Workflow
+export type WorkflowInputs = {
+  value?: Connectable<unknown>;
+};
+
+export interface WorkflowOutputs {
+  output: unknown;
+}
+
+export function workflow(inputs: WorkflowInputs, options?: NodeOptions): NodeWithOutputs<WorkflowOutputs, "output"> {
+  return createNode("nodetool.constant.Workflow", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"workflow"}, defaultOutput: "output" });
+}
+
+// Application — nodetool.constant.Application
+export type ApplicationInputs = {
+  value?: Connectable<unknown>;
+};
+
+export interface ApplicationOutputs {
+  output: unknown;
+}
+
+export function application(inputs: ApplicationInputs, options?: NodeOptions): NodeWithOutputs<ApplicationOutputs, "output"> {
+  return createNode("nodetool.constant.Application", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"application"}, defaultOutput: "output" });
+}
+
+// JS Script — nodetool.constant.JsScript
+export type JsScriptInputs = {
+  value?: Connectable<unknown>;
+};
+
+export interface JsScriptOutputs {
+  output: unknown;
+}
+
+export function jsScript(inputs: JsScriptInputs, options?: NodeOptions): NodeWithOutputs<JsScriptOutputs, "output"> {
+  return createNode("nodetool.constant.JsScript", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"jsscript"}, defaultOutput: "output" });
+}
+
 // Entity — nodetool.constant.Entity
 export type EntityInputs = {
   value?: Connectable<Entity>;

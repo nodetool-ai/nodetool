@@ -1,38 +1,42 @@
-#include "storyworkspace/StoryWorkspace.h"
+#include "StoryWorkspace.h"
 #include "StoryDrafts.h"
-#include "server/ServerSource.h"
 #include <QCryptographicHash>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QSet>
 #include <QUuid>
 
-void StoryWorkspace::setController(AssistController* controller) {
+namespace {
+template <typename Result, typename... Arguments>
+Result invoke(QObject* target, const char* method, Result fallback, Arguments... arguments) {
+    Result result = fallback;
+    if (target && !QMetaObject::invokeMethod(target, method, Qt::DirectConnection, qReturnArg(result), arguments...)) { return fallback; }
+    return result;
+}
+}
+void StoryWorkspace::setController(QObject* controller) {
     if (m_controller == controller) { return; }
     if (m_controller) { disconnect(m_controller, nullptr, this, nullptr); }
     m_controller = controller;
-    if (controller) { connect(controller, &AssistController::changed, this, &StoryWorkspace::observe); }
+    if (controller) { connect(controller, SIGNAL(changed()), this, SLOT(observe())); }
     emit resourceChanged(); emit changed();
 }
+bool StoryWorkspace::busy() const { return m_controller && m_controller->property("busy").toBool(); }
+QString StoryWorkspace::controllerError() const { return m_controller ? m_controller->property("error").toString() : QString{}; }
 QString StoryWorkspace::key() const {
-    if (!m_controller || !m_controller->model()) { return {}; }
-    QByteArray scope;
-    if (const auto target = nt::server::serverSaveTarget()) {
-        scope = target->server.toEncoded() + '\0' + target->token.toUtf8() + '\0' + target->expectedInstance.toUtf8();
-    }
-    const auto timeline = m_controller->model()->timeline().raw;
-    scope += '\0' + timeline.value("projectId").toString().toUtf8() + '\0' + timeline.value("id").toString().toUtf8();
+    if (!m_controller) { return {}; }
+    QByteArray scope = invoke(m_controller.data(), "draftScope", QString{}).toUtf8();
     const auto loaded = current();
     const auto document = loaded.value("document").toObject();
     const QString kind = document.contains("shots") ? "storyboard" : document.contains("sections") ? "script" : "entity";
     return QString::fromLatin1(QCryptographicHash::hash(scope, QCryptographicHash::Sha256).toHex()) + ':' + kind + ':' + loaded.value("id").toString();
 }
-QJsonObject StoryWorkspace::current() const { return m_controller ? QJsonObject::fromVariantMap(m_controller->result().toMap()) : QJsonObject{}; }
+QJsonObject StoryWorkspace::current() const { return m_controller ? QJsonObject::fromVariantMap(m_controller->property("result").toMap()) : QJsonObject{}; }
 QVariantMap StoryWorkspace::resource() const { return m_drafts.contains(key()) ? m_drafts.value(key()).edited.toVariantMap() : current().toVariantMap(); }
 bool StoryWorkspace::dirty() const { return m_drafts.contains(key()) || !m_jsonDrafts.value(key()).isEmpty(); }
 bool StoryWorkspace::retain(const QJsonObject& edited, const QString& error) {
     m_error = error;
-    if (!error.isEmpty() || current().value("id").toString().isEmpty() || !m_controller || m_controller->busy()) { emit changed(); return false; }
+    if (!error.isEmpty() || current().value("id").toString().isEmpty() || !m_controller || busy()) { emit changed(); return false; }
     const auto draftKey = key();
     if (!m_drafts.contains(draftKey)) { m_drafts.insert(draftKey, {current(), edited}); }
     else { m_drafts[draftKey].edited = edited; }
@@ -89,8 +93,12 @@ bool StoryWorkspace::patchBoard(const QString& field, const QJsonValue& value) {
     const auto result = nt::storyworkspace::patchBoard(QJsonObject::fromVariantMap(resource()), field, value);
     return retain(result.resource, result.error);
 }
+bool StoryWorkspace::replaceResource(const QJsonObject& edited) {
+    const bool same = !edited.value("id").toString().isEmpty() && edited.value("id") == current().value("id");
+    return retain(edited, same ? QString{} : QStringLiteral("The edit belongs to another document."));
+}
 bool StoryWorkspace::save() {
-    if (!m_controller || m_controller->busy() || !dirty()) { return false; }
+    if (!m_controller || busy() || !dirty()) { return false; }
     for (const auto& raw : m_jsonDrafts.value(key())) {
         if (!raw.error.isEmpty()) { m_error = raw.error; emit changed(); return false; }
     }
@@ -99,18 +107,18 @@ bool StoryWorkspace::save() {
     if (draft.base != current()) { m_error = "The document changed remotely. Copy your draft before discarding it and reopening the document."; emit changed(); return false; }
     m_submitting = key(); m_submitted = draft.edited; m_error.clear();
     const auto document = draft.edited.value("document").toObject();
-    const bool started = document.contains("shots") ? m_controller->saveStoryboard(draft.edited) :
-        document.contains("sections") ? m_controller->saveScript(draft.edited) :
-        m_controller->saveEntity(draft.edited, draft.base.value("metadata"));
+    const bool started = document.contains("shots") ? invoke(m_controller.data(), "saveStoryboard", false, Q_ARG(QJsonObject, draft.edited)) :
+        document.contains("sections") ? invoke(m_controller.data(), "saveScript", false, Q_ARG(QJsonObject, draft.edited)) :
+        invoke(m_controller.data(), "saveEntity", false, Q_ARG(QJsonObject, draft.edited), Q_ARG(QJsonValue, draft.base.value("metadata")));
     if (!started) { m_submitting.clear(); m_error = "Save could not start. Your draft is retained."; emit changed(); }
     return started;
 }
 void StoryWorkspace::observe() {
-    if (!m_submitting.isEmpty() && m_controller && !m_controller->busy()) {
+    if (!m_submitting.isEmpty() && m_controller && !busy()) {
         const auto saved = current();
         const bool entity = m_submitted.value("metadata").isObject();
         const auto field = entity ? QStringLiteral("metadata") : QStringLiteral("document");
-        if (m_controller->error().isEmpty() && key() == m_submitting && saved.value("id") == m_submitted.value("id") && saved.value(field) == m_submitted.value(field) && (entity || saved.value("name") == m_submitted.value("name"))) {
+        if (controllerError().isEmpty() && key() == m_submitting && saved.value("id") == m_submitted.value("id") && saved.value(field) == m_submitted.value(field) && (entity || saved.value("name") == m_submitted.value("name"))) {
             m_drafts.remove(m_submitting); m_jsonDrafts.remove(m_submitting);
         } else { m_error = "Save was not confirmed. Your draft is retained. Retry after reconnecting, or reopen to check for conflicts."; }
         m_submitting.clear(); m_submitted = {};
@@ -122,7 +130,7 @@ void StoryWorkspace::observe() {
     }
     emit resourceChanged(); emit changed();
 }
-void StoryWorkspace::discard() { if (!m_controller || m_controller->busy()) { return; } m_drafts.remove(key()); m_jsonDrafts.remove(key()); m_error.clear(); emit resourceChanged(); emit changed(); }
+void StoryWorkspace::discard() { if (!m_controller || busy()) { return; } m_drafts.remove(key()); m_jsonDrafts.remove(key()); m_error.clear(); emit resourceChanged(); emit changed(); }
 QStringList StoryWorkspace::entityIds() const {
     const auto document = QJsonObject::fromVariantMap(resource()).value("document").toObject();
     QStringList ids; QSet<QString> seen;
@@ -158,19 +166,4 @@ void StoryWorkspace::setJsonDraft(const QString& shotId, const QString& field, c
     emit changed();
 }
 
-QVariantList StoryWorkspace::linkedResources() const {
-    QVariantList result;
-    if (!m_controller || !m_controller->model()) { return result; }
-    QSet<QString> seen;
-    for (const auto& value : m_controller->model()->timeline().raw.value("clips").toArray()) {
-        const auto clip = value.toObject();
-        for (const auto& field : {QStringLiteral("scriptId"), QStringLiteral("storyboardBoardId")}) {
-            const auto id = clip.value(field).toString();
-            const QString kind = field == "scriptId" ? "scripts" : "storyboards";
-            if (id.isEmpty() || seen.contains(kind + ':' + id)) { continue; }
-            seen.insert(kind + ':' + id);
-            result.append(QVariantMap{{"id", id}, {"kind", kind}});
-        }
-    }
-    return result;
-}
+QVariantList StoryWorkspace::linkedResources() const { return invoke(m_controller.data(), "linkedResources", QVariantList{}); }

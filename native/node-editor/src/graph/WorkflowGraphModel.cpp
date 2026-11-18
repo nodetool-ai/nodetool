@@ -57,6 +57,27 @@ bool inlineStructured(const QVariantMap &field) {
     const auto args = field["dataType"].toMap()["type_args"].toList();
     return args.size() == 1 && args.first().toMap()["type"].toString() == "str";
 }
+// The document a constant node links, as the web DocumentConstantProperty:
+// its `value` is a drop zone that names the document, never a picker.
+QString documentConstantKind(const QString &nodeType, const QString &property) {
+    static const QHash<QString, QString> kinds{{"nodetool.constant.Workflow", "workflow"}, {"nodetool.constant.Timeline", "timeline"},
+        {"nodetool.constant.Script", "script"}, {"nodetool.constant.Storyboard", "storyboard"},
+        {"nodetool.constant.Application", "application"}, {"nodetool.constant.JsScript", "jsscript"},
+        {"nodetool.constant.Sketch", "sketch"}};
+    return property == QLatin1String("value") ? kinds.value(nodeType) : QString{};
+}
+QString documentKindLabel(const QString &kind) {
+    if (kind == "application") { return QObject::tr("app"); }
+    if (kind == "jsscript") { return QObject::tr("JS script"); }
+    return kind;
+}
+QString documentKindIcon(const QString &kind) {
+    if (kind == "timeline") { return QStringLiteral("movie"); }
+    if (kind == "sketch") { return QStringLiteral("brush"); }
+    if (kind == "storyboard") { return QStringLiteral("viewCarousel"); }
+    if (kind == "workflow") { return QStringLiteral("accountTree"); }
+    return QStringLiteral("document");
+}
 // WorkflowProperty, WorkflowListProperty and CollectionProperty are selects on the card.
 bool inlineResource(const QString &kind) { return kind == "workflow" || kind == "workflow_list" || kind == "collection"; }
 QString compactJson(const QJsonValue &value) {
@@ -1159,7 +1180,9 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
     // A content card shows its choice field without a label row.
     // DataframeProperty.tsx has no label row either.
     const bool documentDropZone = kind == "document" && (type == QStringLiteral("nodetool.constant.Document") || type == QStringLiteral("nodetool.input.DocumentInput"));
-    const bool bareField = (contentCard && kind == "choice" && !connected) || (kind == "dataframe" && !connected) || (documentDropZone && !connected);
+    const auto linkedKind = documentConstantKind(type, name);
+    const bool bareField = (contentCard && kind == "choice" && !connected) || (kind == "dataframe" && !connected) || (documentDropZone && !connected)
+        || (!linkedKind.isEmpty() && !connected);
     // A constant Image, Video or Audio card hides its value label (special_nodes.css).
     const bool bareMedia = !connected && kind == "media" && cardMediaBare(type);
     row.bare = bareField || bareMedia;
@@ -1167,7 +1190,41 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
     if (!row.bare) { y += nm::rowHeight; }
     const auto hasValue = value.isValid() && !value.isNull();
     const auto picker = childPicker(type);
-    if (!connected && !picker.property.isEmpty() && name == picker.property) {
+    if (!connected && !linkedKind.isEmpty()) {
+      // DocumentConstantProperty.tsx: the linked document's name in a drop
+      // zone, or a hint while empty, then Edit. Only a drop changes the value.
+      const auto reference = value.toMap();
+      const auto documentId = reference.value("id").toString();
+      row.kind = NodeRowKind::DropZone;
+      row.typeName = QStringLiteral("document:") + linkedKind;
+      row.label.clear();
+      row.placeholder = documentId.isEmpty();
+      row.icon = documentKindIcon(linkedKind);
+      row.value = row.placeholder ? tr("Drop a %1 file here").arg(documentKindLabel(linkedKind))
+          : !reference.value("name").toString().isEmpty() ? reference.value("name").toString()
+          : linkedKind == QStringLiteral("timeline") ? tr("Untitled video") : tr("Untitled %1").arg(documentKindLabel(linkedKind));
+      row.options = QStringList{row.placeholder ? tr("From the Files panel") : documentKindLabel(linkedKind)};
+      row.rect = QRectF(inset, y + nm::dropZoneGap, cardWidth - 2 * inset, nm::dropZoneHeight);
+      row.fieldY = row.rect.y();
+      row.height = row.rect.height();
+      y = row.rect.bottom();
+      if (!row.placeholder) {
+        result.rows.append(row);
+        row = NodeRow{};
+        row.kind = NodeRowKind::Action;
+        row.action = QStringLiteral("openDocument");
+        row.propertyName = name;
+        row.value = linkedKind;
+        row.bare = true;
+        row.icon = QStringLiteral("edit");
+        row.label = tr("Edit");
+        row.rect = QRectF(inset, y + nm::chipGap, cardWidth - 2 * inset, nm::fieldHeight);
+        row.y = row.rect.y();
+        row.height = row.rect.height();
+        y = row.rect.bottom();
+      }
+      y += nm::inlineRowGap;
+    } else if (!connected && !picker.property.isEmpty() && name == picker.property) {
       // WorkflowLoader and AppLoader: a select labeled "Select workflow" or
       // "Select app" that shows the picked source's name.
       const auto reference = childPickerReference(picker, node["data"].toObject());
@@ -1731,6 +1788,7 @@ QVariantMap WorkflowGraphModel::inlineDescriptor(NodeId id, const QString &name)
       color["minimumWidth"] = node_metrics::colorEditorWidth;
       return color;
     }
+    if (!documentConstantKind(nodes_.value(id)["type"].toString(), name).isEmpty()) { return {}; }
     if (kind == "text" || kind == "multiline" || kind == "number" || kind == "integer" || kind == "choice" || kind == "boolean" || kind == "model"
         || kind == "image_size" || kind == "document_ref" || inlineResource(kind) || inlineStructured(field)) { return field; }
   }

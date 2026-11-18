@@ -134,13 +134,9 @@ function(nt_shotworkflow_tests)
     add_test(NAME shot_plan_oracle COMMAND node --import tsx ${CMAKE_CURRENT_SOURCE_DIR}/src/aiassist/shot-plan.test.mjs $<TARGET_FILE:nt_shotplan_oracle>)
 endfunction()
 nt_tests(nt_shotworkflow_tests)
-nt_sources(core src/aiassist/ScriptAuthoring.h src/aiassist/ScriptAuthoring.cpp)
 nt_sources(core src/aiassist/ShotPlacement.h src/aiassist/ShotPlacement.cpp)
 nt_qml_sources(src/aiassist/ProductionReview.h src/aiassist/ProductionReview.cpp)
 function(nt_scriptpanel_tests)
-    qt_add_executable(tst_scriptauthoring src/aiassist/tst_scriptauthoring.cpp)
-    target_link_libraries(tst_scriptauthoring PRIVATE timeline_core Qt6::Test)
-    add_test(NAME tst_scriptauthoring COMMAND tst_scriptauthoring)
     qt_add_executable(tst_productionreview src/aiassist/tst_productionreview.cpp
         src/aiassist/ProductionReview.h src/aiassist/ProductionReview.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp

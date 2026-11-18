@@ -37,9 +37,14 @@ graph that repeats the work.
 | Document | Into a graph | What reads it | What writes it |
 |---|---|---|---|
 | **Sketch** | `nodetool.constant.Sketch` | `RenderSketch` (image + mask), `SketchLayers` | `CreateSketch` |
-| **Script** | `nodetool.constant.Script` | `LoadScript`, `VoiceScript`, `ScriptToTimeline`, `ScriptToSubtitles`, `FillScript` | `WriteScript`, `FillScript`, `VoiceScript` (saves takes) |
+| **Script** | `nodetool.constant.Script` | `VoiceScript`, `ScriptToTimeline`, `ScriptToSubtitles`, `FillScript` | `WriteScript`, `FillScript`, `VoiceScript` (saves takes) |
 | **Timeline** | `nodetool.constant.Timeline` | `Transcript`, `RenderTimeline`, `RetargetTimeline`, `FillTimelineText` | `AddClips`, `ScriptToTimeline`, `RetargetTimeline`, `FillTimelineText` |
-| **Storyboard** | `nodetool.constant.Storyboard` | `LoadStoryboard`, `StoryboardShots`, `RenderStills`, `RenderClips`, `AssembleTimeline`, `RecastStoryboard` | `RecastStoryboard`, `RenderStills`, `RenderClips` |
+| **Storyboard** | `nodetool.constant.Storyboard` | `StoryboardShots`, `RenderStills`, `RenderClips`, `AssembleTimeline`, `RecastStoryboard` | `RecastStoryboard`, `RenderStills`, `RenderClips` |
+
+Workflows, mini apps and JS scripts enter a graph the same way, through
+`nodetool.constant.Workflow`, `nodetool.constant.Application` and
+`nodetool.constant.JsScript`. Drag a document file from the Files panel onto
+the canvas to add its constant node.
 
 `nodetool.creative.Director` writes the same screenplay shape as a board, so a
 graph can start from a brief instead of from a board you already approved.

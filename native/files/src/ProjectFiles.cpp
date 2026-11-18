@@ -52,15 +52,6 @@ const QSet<QString> &textBasenames() {
                                    "notice", "copying", "makefile", "dockerfile", "procfile"};
   return names;
 }
-// Documents that open in their own editor and enter no canvas as a node
-// (DOCUMENT_FILE_SUFFIXES in the web workspaceTreeActions.ts).
-bool isDocumentFile(const QString &path) {
-  const auto lower = path.toLower();
-  for (const auto *suffix : {".workflow.json", ".timeline.json", ".storyboard.json", ".script.json", ".app.json", ".jsscript.json"}) {
-    if (lower.endsWith(QLatin1String(suffix))) { return true; }
-  }
-  return false;
-}
 QString parentOf(const QString &path) {
   const auto slash = path.lastIndexOf('/');
   return slash > 0 ? path.left(slash) : QString();
@@ -697,7 +688,7 @@ QVariantMap ProjectFiles::dragData(int row) const {
   if (row < 0 || row >= m_rows.size() || m_rows.at(row).placeholder) { return {}; }
   const auto &entry = m_rows.at(row);
   QVariantMap data{{EntryMime, entry.path}};
-  if (!entry.isDir && !isDocumentFile(entry.path) && !m_project.isEmpty()) {
+  if (!entry.isDir && !m_project.isEmpty()) {
     const QJsonObject payload{{"projectId", m_project},
                               {"path", entry.path},
                               {"directoryId", projectDirectoryId(m_project, parentOf(entry.path))}};

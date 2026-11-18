@@ -689,9 +689,10 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
     }
     e.dataTransfer.setData(ENTRY_DRAG_TYPE, itemId);
     e.dataTransfer.effectAllowed = "move";
-    // A media file also drops onto the canvas as a constant node.
+    // A file also drops onto the canvas: a media file as its asset's node, a
+    // document file as the constant that references the document.
     const isFolder = isFolderItem(findItemInTree(filesRef.current, itemId));
-    if (!isFolder && !isDocumentFile(itemId)) {
+    if (!isFolder) {
       serializeDragData(
         { type: "project-file", payload: { projectId, path: itemId } },
         e.dataTransfer

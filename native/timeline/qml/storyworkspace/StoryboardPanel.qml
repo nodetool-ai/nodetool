@@ -1,6 +1,7 @@
 // nt-panel: slot=left id=storyboard order=36 title="Storyboards"
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.Storyboard
 import NodeTool.UiPrimitives as Ui
 import "../assets/AssetContext.js" as Context
 

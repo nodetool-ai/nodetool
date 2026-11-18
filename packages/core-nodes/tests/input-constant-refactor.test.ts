@@ -12,7 +12,10 @@ import {
   ConstantDateTimeNode,
   ConstantEntityNode,
   ConstantImageNode,
-  ConstantStoryboardNode
+  ConstantStoryboardNode,
+  ConstantWorkflowNode,
+  ConstantApplicationNode,
+  ConstantJsScriptNode
 } from "../src/nodes/constant.js";
 
 describe("FloatInputNode / IntegerInputNode clamping", () => {
@@ -148,6 +151,28 @@ describe("Storyboard and Entity constants", () => {
     expect(a.value).toEqual({ type: "storyboard", id: null, data: null });
     a.value.id = "mutated";
     expect(b.value.id).toBeNull();
+  });
+});
+
+describe("Workflow, Application and JS Script constants", () => {
+  it.each([
+    [ConstantWorkflowNode, "nodetool.constant.Workflow", "workflow"],
+    [ConstantApplicationNode, "nodetool.constant.Application", "application"],
+    [ConstantJsScriptNode, "nodetool.constant.JsScript", "jsscript"]
+  ] as const)("%o emits its ref on `output`", async (Node, nodeType, type) => {
+    expect(Node.nodeType).toBe(nodeType);
+    expect(Node.metadataOutputTypes).toEqual({ output: type });
+    expect(CONSTANT_NODES).toContain(Node);
+
+    const fresh = new Node();
+    expect(fresh.value).toEqual({ type, id: null });
+
+    const node = new Node();
+    node.assign({ value: { type, id: "doc_1" } });
+    await expect(node.process()).resolves.toEqual({
+      output: { type, id: "doc_1" }
+    });
+    expect(fresh.value.id).toBeNull();
   });
 });
 

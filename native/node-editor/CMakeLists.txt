@@ -15,6 +15,12 @@ add_subdirectory(../ui_primitives ui_primitives)
 add_subdirectory(../model-picker model-picker)
 add_subdirectory(../media media)
 add_subdirectory(../files files)
+if(NOT TARGET nodetool_storyboard)
+    add_subdirectory(../storyboard storyboard)
+endif()
+if(NOT TARGET nodetool_script)
+    add_subdirectory(../script script)
+endif()
 add_subdirectory(../chat chat)
 # The account service with its Qt half, for the Account control (native cloud
 # sign-in, WP1.11).
@@ -164,6 +170,7 @@ include(cmake/QtNodes.cmake)
 include(cmake/GraphRunner.cmake)
 add_library(node_editor_core STATIC
  src/server/AccountJobs.cpp src/server/AccountJobs.h
+ src/server/StoryDocumentSource.cpp src/server/StoryDocumentSource.h
  src/server/SetupController.cpp src/server/SetupController.h
  src/layout/AutoLayout.cpp src/layout/AutoLayout.h
  src/layout/SelectionLayout.cpp src/layout/SelectionLayout.h
@@ -217,7 +224,7 @@ add_library(node_editor_core STATIC
  src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/ChildSourceLoader.cpp src/ui/EditorComfy.cpp src/ui/CompositorLayoutDialog.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp src/ui/EditorPriceChip.cpp)
 target_include_directories(node_editor_core PUBLIC src)
 target_link_libraries(node_editor_core PRIVATE nodetool_graph_runner)
-target_link_libraries(node_editor_core PUBLIC nodetool_model_picker nodetool_model_pickerplugin nodetool_chat nodetool_chatplugin nodetool_media nodetool_mediaplugin nodetool_files nodetool_filesplugin nodetool_media_player nodetool_media_playerplugin QtNodes Qt6::Widgets Qt6::QuickWidgets Qt6::Svg Qt6::Network Qt6::WebSockets Qt6::Multimedia)
+target_link_libraries(node_editor_core PUBLIC nodetool_model_picker nodetool_model_pickerplugin nodetool_chat nodetool_chatplugin nodetool_media nodetool_mediaplugin nodetool_files nodetool_filesplugin nodetool_storyboard nodetool_storyboardplugin nodetool_script nodetool_scriptplugin nodetool_media_player nodetool_media_playerplugin QtNodes Qt6::Widgets Qt6::QuickWidgets Qt6::Svg Qt6::Network Qt6::WebSockets Qt6::Multimedia)
 qt_add_executable(nodetool-node-editor src/main.cpp)
 option(NT_MACOS_BUNDLE "macOS: build nodetool-node-editor as an .app bundle" OFF)
 set_target_properties(nodetool-node-editor PROPERTIES MACOSX_BUNDLE ${NT_MACOS_BUNDLE}

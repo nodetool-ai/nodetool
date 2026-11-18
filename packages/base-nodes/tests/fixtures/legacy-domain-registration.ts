@@ -5312,6 +5312,240 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     replaced_by: undefined
   },
   {
+    title: 'Workflow',
+    description: 'References a saved workflow in the workflow.\n' +
+      '    workflow, graph, pipeline, subgraph, reference\n' +
+      '\n' +
+      '    Use cases:\n' +
+      '    - Pass a workflow between nodes that run or inspect it\n' +
+      '    - Bring a workflow file from the project into a graph\n' +
+      '    - Provide a fixed workflow input for downstream nodes',
+    namespace: 'nodetool.constant',
+    node_type: 'nodetool.constant.Workflow',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'value',
+        type: {
+          type: 'workflow',
+          type_args: []
+        },
+        required: false,
+        title: 'Value',
+        description: undefined,
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'workflow',
+          id: null
+        }
+      }
+    ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'workflow',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [
+      'value'
+    ],
+    input_fields: [],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: true,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node',
+      'workers',
+      'edge',
+      'browser'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Application',
+    description: 'References a mini app in the workflow.\n' +
+      '    application, app, mini app, screen, reference\n' +
+      '\n' +
+      '    Use cases:\n' +
+      '    - Pass a mini app between nodes\n' +
+      '    - Open and edit the referenced app in the app builder\n' +
+      '    - Bring an app file from the project into a graph',
+    namespace: 'nodetool.constant',
+    node_type: 'nodetool.constant.Application',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'value',
+        type: {
+          type: 'application',
+          type_args: []
+        },
+        required: false,
+        title: 'Value',
+        description: undefined,
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'application',
+          id: null
+        }
+      }
+    ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'application',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [
+      'value'
+    ],
+    input_fields: [],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: true,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node',
+      'workers',
+      'edge',
+      'browser'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'JS Script',
+    description: 'References a JavaScript script document in the workflow.\n' +
+      '    javascript, js, script, code, reference\n' +
+      '\n' +
+      '    Use cases:\n' +
+      '    - Pass a JS script between nodes\n' +
+      '    - Open and edit the referenced script in the code editor\n' +
+      '    - Bring a JS script file from the project into a graph',
+    namespace: 'nodetool.constant',
+    node_type: 'nodetool.constant.JsScript',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'value',
+        type: {
+          type: 'jsscript',
+          type_args: []
+        },
+        required: false,
+        title: 'Value',
+        description: undefined,
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'jsscript',
+          id: null
+        }
+      }
+    ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'jsscript',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [
+      'value'
+    ],
+    input_fields: [],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: true,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node',
+      'workers',
+      'edge',
+      'browser'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
     title: 'Entity',
     description: 'References a library entity in the workflow.\n' +
       '    entity, character, location, style, prop, cast\n' +
@@ -28695,8 +28929,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'node'
     ],
     deprecated: undefined,
-    hidden: undefined,
-    replaced_by: undefined
+    hidden: true,
+    replaced_by: 'nodetool.constant.Script'
   },
   {
     title: 'Voice Script',
@@ -29531,8 +29765,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'edge'
     ],
     deprecated: undefined,
-    hidden: undefined,
-    replaced_by: undefined
+    hidden: true,
+    replaced_by: 'nodetool.constant.Storyboard'
   },
   {
     title: 'Storyboard Shots',

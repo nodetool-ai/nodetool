@@ -8,6 +8,10 @@ import isEqual from "../../utils/isEqual";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
 import { NodeSelect, NodeMenuItem } from "../editor_ui";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import DocumentConstantProperty, {
+  isDocumentConstantNode
+} from "./DocumentConstantProperty";
 import type { SelectChangeEvent } from "../ui_primitives";
 
 export interface WorkflowValue {
@@ -15,7 +19,7 @@ export interface WorkflowValue {
   id: string;
 }
 
-const WorkflowProperty = (props: PropertyProps<WorkflowValue | null>) => {
+const WorkflowPicker = (props: PropertyProps<WorkflowValue | null>) => {
   const { t } = useTranslation();
   const { property, value, onChange } = props;
   const id = `workflow-${property.name}-${props.propertyIndex}`;
@@ -62,5 +66,22 @@ const WorkflowProperty = (props: PropertyProps<WorkflowValue | null>) => {
     </>
   );
 };
+
+const workflowRoute = (id: string): string => `/editor/${id}`;
+
+/** A Workflow constant shows its linked workflow; other nodes pick one. */
+const WorkflowProperty = (props: PropertyProps<WorkflowValue | null>) =>
+  isDocumentConstantNode(props.nodeType) ? (
+    <DocumentConstantProperty
+      {...props}
+      documentType="workflow"
+      untitledLabel="Untitled workflow"
+      openEditorLabel="Open in workflow editor"
+      icon={<AccountTreeOutlinedIcon fontSize="inherit" />}
+      standaloneRoute={workflowRoute}
+    />
+  ) : (
+    <WorkflowPicker {...props} />
+  );
 
 export default memo(WorkflowProperty, isEqual);

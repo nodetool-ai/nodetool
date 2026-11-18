@@ -288,6 +288,36 @@ export interface StoryboardRef {
   writable?: boolean;
 }
 
+/**
+ * Reference to a persisted workflow, picked on the canvas and passable
+ * between workflow nodes. Mirrors ScriptRef / TimelineRef.
+ */
+export interface WorkflowDocumentRef {
+  type: "workflow";
+  /** Id of the persisted workflow. */
+  id?: string | null;
+}
+
+/**
+ * Reference to a persisted mini app, editable in the app builder and
+ * passable between workflow nodes. Mirrors ScriptRef / TimelineRef.
+ */
+export interface ApplicationRef {
+  type: "application";
+  /** Id of the persisted application. */
+  id?: string | null;
+}
+
+/**
+ * Reference to a persisted JS script document, editable in the script
+ * editor and passable between workflow nodes. Mirrors ScriptRef / TimelineRef.
+ */
+export interface JsScriptRef {
+  type: "jsscript";
+  /** Id of the persisted JS script. */
+  id?: string | null;
+}
+
 export interface WorkflowRef {
   type: "workflow_ref";
   id: string;

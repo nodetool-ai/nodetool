@@ -2163,6 +2163,24 @@ qml_callers = ["native/storyboard/qml/StoryboardBoard.qml", "native/storyboard/q
 replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.ToolbarIconButton, Ui.EditorButton"
 
 [[file]]
+path = "native/storyboard/qml/StoryboardDocumentEditor.qml"
+category = "chrome"
+controls = ["Ui.Surface"]
+test_host = "node_editor_canvas_drop_tests"
+test_scope = "build/import"
+cpp_callers = ["native/node-editor/src/ui/EditorTabs.cpp"]
+replacement = "NodeTool.UiPrimitives: Ui.Surface"
+
+[[file]]
+path = "native/script/qml/ScriptDocumentEditor.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Ui.Text", "Ui.EditorButton", "Ui.TextArea", "Ui.ScrollBar", "ListView"]
+test_host = "node_editor_canvas_drop_tests"
+test_scope = "build/import"
+cpp_callers = ["native/node-editor/src/ui/EditorTabs.cpp"]
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text, Ui.EditorButton, Ui.TextArea, Ui.ScrollBar"
+
+[[file]]
 path = "native/storyboard/qml/LinkDocumentDialog.qml"
 category = "chrome"
 controls = ["Ui.Dialog", "Ui.Text", "Ui.TextField", "Ui.Surface", "Ui.ListRow", "Ui.Icon", "Ui.ToolbarIconButton", "Ui.EditorButton", "Ui.Separator", "Ui.ScrollBar", "Ui.BusyIndicator", "ListView"]
