@@ -1730,7 +1730,11 @@ private slots:
                            R"({"kind":"workflow","cloud_id":"c1","local_id":"l1","name":"Mine","content_hash":"n1","local_hash":"lh1",)"
                            R"("status":"both_changed","decision":null,"files":[],"missing_files":[]},)"
                            R"({"kind":"workflow","cloud_id":"c9","local_id":"l9","name":"Unseen","content_hash":"n9",)"
-                           R"("status":"cloud_changed","decision":"receive","files":[],"missing_files":[]}]})"));
+                           R"("status":"cloud_changed","decision":"receive","files":[],"missing_files":[]},)"
+                           // Only a file of this one changed in the cloud (review F51).
+                           R"({"kind":"workflow","cloud_id":"c8","local_id":"l8","name":"Media","content_hash":"n8",)"
+                           R"("local_hash":"n8","status":"same","decision":"receive","changed_files":1,)"
+                           R"("files":[],"missing_files":[]}]})"));
     server.answer("cloudTransfer.receive.run",
                   trpcData(R"({"status":"finished","set_id":"s1","result":{"received":[],)"
                            R"("changed_during_receive":[],"not_received":[],"kept_beside":[],"missing_files":[],)"
@@ -1765,7 +1769,7 @@ private slots:
     QCOMPARE(received["set_id"].get<std::string>(), std::string("s2"));
     // The refused document is received. The document the sheet never
     // showed stays as it is here.
-    QCOMPARE(received["decisions"].size(), std::size_t(2));
+    QCOMPARE(received["decisions"].size(), std::size_t(3));
     for (const auto& decision : received["decisions"]) {
       const std::string id = decision["document_id"].get<std::string>();
       QCOMPARE(decision["decision"].get<std::string>(), std::string(id == "c1" ? "receive" : "keep_local"));

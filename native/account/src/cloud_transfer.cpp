@@ -389,6 +389,7 @@ static bool readReceiveDocuments(const json& list, std::vector<ReceiveDocument>&
     document.name = str(item, "name");
     document.contentHash = str(item, "content_hash");
     document.localHash = str(item, "local_hash");
+    document.changedFiles = item.value("changed_files", std::size_t{0});
     document.state = *state;
     const std::string decision = str(item, "decision");
     if (decision == "receive") {
@@ -490,7 +491,7 @@ TransferReview::TransferReview(const SendCapture& send, const ReceiveCapture& re
     return rows_.back();
   };
   for (const ReceiveDocument& document : receive.documents) {
-    if (document.state == ReceiveState::Same) {
+    if (document.state == ReceiveState::Same && document.changedFiles == 0) {
       continue;
     }
     const std::string id = document.localId.empty() ? document.cloudId : document.localId;
@@ -511,6 +512,10 @@ TransferReview::TransferReview(const SendCapture& send, const ReceiveCapture& re
     row.seenHash = document.contentHash;
     row.name = document.name;
     row.detail = receiveStateName(document.state);
+    if (document.state == ReceiveState::Same) {
+      // Only its files changed in the cloud: the sheet shows them (F51).
+      row.detail = "cloud_file_changed";
+    }
     if (!document.decision) {
       row.section = ReviewSection::Choice;
     } else if (*document.decision == ReceiveChoice::Receive) {

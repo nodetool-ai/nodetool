@@ -197,6 +197,9 @@ struct ReceiveDocument {
   std::size_t missingFiles = 0;
   // The hash of this computer's copy at the capture, empty when it has none.
   std::string localHash;
+  // Files whose cloud bytes this folder does not hold. A Same document with
+  // changed files still receives them (reviews F33, F51).
+  std::size_t changedFiles = 0;
 };
 
 struct ReceiveCapture {

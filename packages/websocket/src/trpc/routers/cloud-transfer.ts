@@ -134,6 +134,7 @@ function reviewDocument(document: PlannedDocument) {
     content_hash: document.contentHash,
     local_hash: document.localHash,
     status: document.status,
+    changed_files: document.changedFiles,
     decision: document.decision,
     files: document.files,
     missing_files: document.missingFiles

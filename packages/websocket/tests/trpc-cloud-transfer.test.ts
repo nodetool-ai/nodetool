@@ -237,6 +237,8 @@ describe("cloudTransfer router", () => {
         // This computer has no copy yet (review F46).
         local_hash: null,
         status: "new",
+        // A new document's files are all new here (review F51).
+        changed_files: 0,
         decision: "receive"
       })
     ]);

@@ -100,6 +100,9 @@ static QString transferRowDetail(const ReviewRow& row) {
     if (d == "cloud_changed") {
       return TransferController::tr("Changed in the cloud");
     }
+    if (d == "cloud_file_changed") {
+      return TransferController::tr("A file it uses changed in the cloud");
+    }
     break;
   case ReviewSection::Choice:
     return TransferController::tr("Changed here and in the cloud");
@@ -515,10 +518,10 @@ void TransferController::apply() {
       }
       std::vector<ReceiveDecision> decisions;
       bool wanted = false;
+      // Every other document of the set gets an explicit Keep local, also a
+      // Same one whose files changed, so nothing the sheet did not show is
+      // placed (review F51).
       for (const ReceiveDocument& document : fresh.documents) {
-        if (document.state == ReceiveState::Same) {
-          continue;
-        }
         const TransferReview::RefusalReceive* refusal = nullptr;
         for (const TransferReview::RefusalReceive& candidate : refusals) {
           if (candidate.kind == document.kind && candidate.cloudId == document.cloudId) {

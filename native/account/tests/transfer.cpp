@@ -531,6 +531,45 @@ void aMissingDocumentFileIsShown(TestContext& t) {
   CHECK(review.ready());
 }
 
+// A document whose content is the same but whose file changed in the cloud
+// is work the sheet shows (review F51).
+void aCloudFileChangeIsShown(TestContext& t) {
+  SignedInApp app;
+  FakeTransport transport([](const HttpRequest&) {
+    return ok({{"set_id", "s1"},
+               {"documents", json::array({{{"kind", "workflow"},
+                                           {"cloud_id", "c1"},
+                                           {"local_id", "w1"},
+                                           {"name", "Flow"},
+                                           {"content_hash", "h"},
+                                           {"local_hash", "h"},
+                                           {"status", "same"},
+                                           {"decision", "receive"},
+                                           {"changed_files", 2},
+                                           {"files", json::array()},
+                                           {"missing_files", json::array()}},
+                                          {{"kind", "workflow"},
+                                           {"cloud_id", "c2"},
+                                           {"local_id", "w2"},
+                                           {"name", "Still"},
+                                           {"content_hash", "g"},
+                                           {"local_hash", "g"},
+                                           {"status", "same"},
+                                           {"decision", "receive"},
+                                           {"changed_files", 0},
+                                           {"files", json::array()},
+                                           {"missing_files", json::array()}}})}});
+  });
+  LocalTransferClient client(transport, kLocal, {}, *app.session);
+  const ReceiveCapture receive = client.captureReceive(kProject);
+  CHECK(receive.documents.size() == 2 && receive.documents[0].changedFiles == 2);
+  TransferReview review({}, receive);
+  CHECK(countOf(review, ReviewSection::Receive) == 1);
+  const std::size_t row = indexOf(review, ReviewSection::Receive);
+  CHECK(row < review.rows().size() && review.rows()[row].detail == "cloud_file_changed" &&
+        review.rows()[row].cloudId == "c1");
+}
+
 // A send attempt names every deletion it carries, [] when there is none,
 // so a withdrawn confirmation never survives from an earlier attempt
 // (review F43).
@@ -679,6 +718,7 @@ int main() {
       {"missingFilesNeedAConfirmation", missingFilesNeedAConfirmation},
       {"everySendNamesItsDeletions", everySendNamesItsDeletions},
       {"aMissingDocumentFileIsShown", aMissingDocumentFileIsShown},
+      {"aCloudFileChangeIsShown", aCloudFileChangeIsShown},
       {"aRefusedDeletionAsksAgain", aRefusedDeletionAsksAgain},
       {"aRefusedDocumentKeepsOneRow", aRefusedDocumentKeepsOneRow},
       {"cancelsAReceive", cancelsAReceive},

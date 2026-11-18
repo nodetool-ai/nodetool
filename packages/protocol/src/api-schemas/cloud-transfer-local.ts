@@ -145,6 +145,12 @@ export const receiveReviewDocument = z.object({
    */
   local_hash: z.string().nullable(),
   status: receiveDocumentStatus,
+  /**
+   * Files of the document whose cloud bytes this folder does not hold. A
+   * document whose own content is the same still has work when this is
+   * above 0 (reviews F33, F51).
+   */
+  changed_files: z.number().int().nonnegative(),
   /** The decision taken without the person, or null when the review sheet must ask. */
   decision: receiveDecision.nullable(),
   files: z.array(revisionSetFile),
