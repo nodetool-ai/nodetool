@@ -563,11 +563,14 @@ the view moved and zoomed, and sets no time limit.
 
 `NODETOOL_NODE_EDITOR_CANVAS=quick` replaces the `QGraphicsView` with
 [QuickCanvas](src/ui/QuickCanvas.h): one `QQuickWidget` that hosts a
-[GraphCanvas](src/canvas/GraphCanvas.h). Each card and wire is a C++ item
-that shows a texture the card and wire painters fill. A grid index answers
-hit tests and culling. The canvas clips wire and lineage rasters to the
-viewport neighbourhood and retains up to 64 MiB of item rasters. Polish
-prioritizes visible items and spreads raster work over frames. The app stays
+[GraphCanvas](src/canvas/GraphCanvas.h). The card and wire painters fill raster images. The software scene graph
+composites visible images in one pass, and the RHI path uses one texture per
+item. A grid index answers hit tests and culling. The canvas clips wire and
+lineage images to its raster coverage and sizes those images and the foreground
+for the viewport's pixel density. Settled images use the exact device scale
+and land on whole device pixels. The 64 MiB budget limits prefetch and
+offscreen retention. Polish gives visible work priority and keeps queued edits
+in order across frames. The app stays
 on the software backend, and the widget overlays stay children of the canvas
 widget. QtNodes stays the default
 ([plan, Q3](../../docs/plans/node-editor-quick-canvas/plan.md#q3-quick-canvas-behind-a-switch)).
@@ -580,19 +583,21 @@ scene graph sync and render, and the widget blit. It excludes the wait for
 the frame timer. Run it serially with
 `ctest --test-dir <build> -R '^node_editor_large_graph_quick$' -V -j 1`.
 
-| Measure | Quick canvas, software | Gate |
-|---|---|---|
-| Card drag, 72 cards, per move | 2.37 ms | Under 4 ms |
-| Add a card, window shown, 2,000 cards | 571 µs | Compare with the QtNodes baseline |
-| Event loop after adding 2,000 cards | 126 ms | Compare with the QtNodes baseline |
-| Warm pan at zoom 1 | 1.9126 ms | Under 2 ms, zero card and wire rasters |
-| Cold pan at fit zoom | 1.22 ms input and polish, 9.69 ms sync and render | Under 2 ms for input and polish |
-| Warm pan at fit zoom | 0.14 ms input and polish, 34.68 ms sync and render | Under 2 ms for input and polish, zero card and wire rasters |
-| Zoom settle, slowest raster pass | 2.88 ms | At most 4 ms a frame |
+| Measure | Quick canvas software gate |
+|---|---|
+| Card drag, 72 cards, per move | Under 4 ms |
+| Warm pan at zoom 1 | Under 2 ms, zero card and wire rasters |
+| Cold pan at fit zoom | Under 2 ms for input and polish |
+| Warm pan at fit zoom | Under 16 ms per step and under 2 ms for input and polish, zero card and wire rasters |
+| Zoom settle, slowest raster pass | At most 4 ms a frame |
 
-The cold pan starts after the test evicts the route's images. The warm pan
-primes the same route. The full fit-pan frame target is measured on RHI in
-[Q10](../../docs/plans/node-editor-quick-canvas/plan.md#q10-rhi).
+The cold pan jumps to an evicted view. The warm pan lets background polish
+prefetch the route before timing it.
+
+AddressSanitizer CTest runs use the Qt and driver leak suppressions in
+[`cmake/sanitizers/lsan.supp`](cmake/sanitizers/lsan.supp). Screenshot and
+multimedia tests request full allocation stacks for the Qt pixmap reader and
+the FFmpeg plugin caller.
 
 ### Composition
 

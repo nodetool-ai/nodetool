@@ -10,6 +10,8 @@
 #include <QPainter>
 #include <QQuickWindow>
 #include <QSignalBlocker>
+#include <QSGRendererInterface>
+#include <QSGRenderNode>
 #include <QStyleHints>
 #include <algorithm>
 #include <cmath>
@@ -17,14 +19,8 @@
 namespace nodetool::canvas {
 using namespace QtNodes;
 namespace {
-// Leave time for input on a cold pan and for the last raster on a settle pass.
-constexpr qint64 kFrameBudgetNs = 1'400'000;
-constexpr int kMaxRasterSide = 1536;
 // A zoom gesture scales textures; they are painted again after this pause.
 constexpr int kSettleMs = 100;
-// The largest raster scale, so that a card at zoom 4 on a high-density screen
-// keeps a bounded texture (plan R4).
-constexpr double kMaxRasterScale = 4;
 
 // UI thread only. The selection of the Quick scene, kept on its items. The
 // canvas owns it and destroys it before the scene.
@@ -59,6 +55,44 @@ private:
   CanvasScene &scene_;
 };
 
+// Render thread only. The scene graph owns this node and its frame of
+// implicitly shared QImages. Sync copies the handles while the GUI is blocked.
+class SoftwareCanvasNode final : public QSGRenderNode {
+public:
+  explicit SoftwareCanvasNode(QQuickWindow &window) : window_(window) {}
+  struct Image {
+    QRectF rect;
+    QImage pixels;
+    qreal opacity;
+  };
+  void sync(QSize size) {
+    bounds_ = QRectF(QPointF(), size);
+    images.clear();
+    markDirty(DirtyGeometry | DirtyMaterial);
+  }
+  QRectF rect() const override { return bounds_; }
+  RenderingFlags flags() const override { return BoundedRectRendering; }
+  void render(const RenderState *state) override {
+    auto *painter = static_cast<QPainter *>(
+        window_.rendererInterface()->getResource(&window_, QSGRendererInterface::PainterResource));
+    if (!painter) { return; }
+    painter->save();
+    if (const auto *clip = state->clipRegion()) { painter->setClipRegion(*clip, Qt::ReplaceClip); }
+    painter->setTransform(matrix()->toTransform());
+    painter->setRenderHint(QPainter::SmoothPixmapTransform);
+    for (const auto &image : images) {
+      painter->setOpacity(inheritedOpacity() * image.opacity);
+      painter->drawImage(image.rect, image.pixels);
+    }
+    painter->restore();
+  }
+  QList<Image> images;
+
+private:
+  QQuickWindow &window_;
+  QRectF bounds_;
+};
+
 bool zoomedOut(double zoom) { return zoom <= zoomedOutThreshold; }
 } // namespace
 
@@ -68,6 +102,7 @@ GraphCanvas::GraphCanvas(WorkflowGraphModel &model, QQuickItem *parent)
   content_.setParentItem(this);
   overlay_.setParentItem(this);
   setFlag(ItemIsFocusScope, true);
+  setFlag(ItemHasContents, true);
   setActiveFocusOnTab(true);
   setAcceptedMouseButtons(Qt::AllButtons);
   setAcceptHoverEvents(true);
@@ -78,7 +113,13 @@ GraphCanvas::GraphCanvas(WorkflowGraphModel &model, QQuickItem *parent)
   foreground_.setZ(2e6);
   settle_.setSingleShot(true);
   settle_.setInterval(kSettleMs);
-  connect(&settle_, &QTimer::timeout, this, &GraphCanvas::scheduleRaster);
+  connect(&settle_, &QTimer::timeout, this, [this] {
+    const auto visible = viewport_.visibleSceneRect();
+    if (rasterCoverage_.width() > 2 * visible.width() || rasterCoverage_.height() > 2 * visible.height()) {
+      rasterCoverage_ = {};
+    }
+    scheduleRaster();
+  });
   connect(scene_.get(), &CanvasScene::rasterRequested, this, &GraphCanvas::invalidateRasterWork);
   connect(scene_.get(), &EditorCanvasScene::foregroundChanged, this, [this] {
     foreground_.invalidate();
@@ -107,8 +148,8 @@ GraphCanvas::~GraphCanvas() {
 
 double GraphCanvas::rasterScale() const {
   const double dpr = window() ? window()->effectiveDevicePixelRatio() : 1.0;
-  const double scale = std::clamp(viewport_.zoom() * dpr, 1.0 / 64, kMaxRasterScale * dpr);
-  return std::pow(2.0, std::round(std::log2(scale) * 2) / 2);
+  const double scale = viewport_.zoom() * dpr;
+  return settle_.isActive() ? std::pow(2.0, std::round(std::log2(scale) * 2) / 2) : scale;
 }
 
 void GraphCanvas::setView(double zoom, QPointF center) {
@@ -122,9 +163,7 @@ void GraphCanvas::scaleBy(double factor, bool underPointer, QPointF pointer) {
   viewChanged(true);
 }
 
-void GraphCanvas::renderScene(QPainter &painter, const QRectF &area, double zoom) const {
-  painter.save();
-  scene_->paintBackground(painter, area, zoom);
+QList<CanvasItem *> GraphCanvas::orderedItems(const QRectF &area) const {
   auto items = scene_->itemsIn(area);
   std::sort(items.begin(), items.end(), [](const CanvasItem *a, const CanvasItem *b) {
     const auto left = a->stackKey(), right = b->stackKey();
@@ -132,11 +171,44 @@ void GraphCanvas::renderScene(QPainter &painter, const QRectF &area, double zoom
     if (left.second != right.second) { return left.second < right.second; }
     return a->indexKey() < b->indexKey();
   });
+  return items;
+}
+
+double GraphCanvas::itemOpacity(const CanvasItem &item) const {
+  double opacity = 1;
+  for (const QQuickItem *step = &item; step && step != &content_; step = step->parentItem()) { opacity *= step->opacity(); }
+  return opacity;
+}
+
+QSGNode *GraphCanvas::updatePaintNode(QSGNode *old, UpdatePaintNodeData *) {
+  auto *view = window();
+  if (!view || view->rendererInterface()->graphicsApi() != QSGRendererInterface::Software) {
+    std::unique_ptr<QSGNode> previous(old);
+    return nullptr;
+  }
+  // The software renderer tracks a dirty region per image node. Compositing
+  // visible images together avoids those overlapping regions at fit zoom.
+  auto node = std::unique_ptr<SoftwareCanvasNode>(static_cast<SoftwareCanvasNode *>(old));
+  if (!node) { node = std::make_unique<SoftwareCanvasNode>(*view); }
+  node->sync(viewport_.size());
+  const auto transform = viewport_.viewportTransform();
+  const auto dpr = view->effectiveDevicePixelRatio();
+  const auto items = orderedItems(viewport_.visibleSceneRect());
+  node->images.reserve(items.size());
   for (const auto *item : items) {
+    if (!item->hasImage() || !item->isVisible()) { continue; }
+    const auto rect = transform.mapRect(item->imageRect().translated(item->scenePosition()));
+    node->images.append({item->alignedImageRect(rect, dpr), item->image(), itemOpacity(*item)});
+  }
+  return node.release();
+}
+
+void GraphCanvas::renderScene(QPainter &painter, const QRectF &area, double zoom) const {
+  painter.save();
+  scene_->paintBackground(painter, area, zoom);
+  for (const auto *item : orderedItems(area)) {
     painter.save();
-    double opacity = 1;
-    for (const QQuickItem *step = item; step && step != &content_; step = step->parentItem()) { opacity *= step->opacity(); }
-    painter.setOpacity(opacity);
+    painter.setOpacity(itemOpacity(*item));
     painter.translate(item->scenePosition());
     item->paintRaster(painter, zoom);
     painter.restore();
@@ -189,14 +261,21 @@ void GraphCanvas::updatePointerCursor() {
 
 void GraphCanvas::viewChanged(bool zoomed) {
   content_.setScale(viewport_.zoom());
-  content_.setPosition(-QPointF(viewport_.scroll()));
+  const auto dpr = window() ? window()->effectiveDevicePixelRatio() : 1.0;
+  content_.setPosition(-QPointF((QPointF(viewport_.scroll()) * dpr).toPoint()) / dpr);
   scene_->setZoom(viewport_.zoom());
   grid_.sync();
-  if (zoomed) {
-    settle_.start();
-    rasterCoverage_ = {};
-  }
+  update();
+  if (zoomed) { settle_.start(); }
   const auto visible = viewport_.visibleSceneRect();
+  if (cachedRasterBytes_ > rasterCacheBudget_) { invalidateRasterWork(); }
+  // A prefetch that could not fit becomes mandatory once it enters the view.
+  for (const auto key : std::as_const(rasterDeferred_)) {
+    if (scene_->itemBounds(key).intersects(visible)) {
+      invalidateRasterWork();
+      break;
+    }
+  }
   if (!viewportCovered(visible) || foreground_.needsRaster(visible, rasterScale(), viewport_.zoom(), !settle_.isActive())) {
     scheduleRaster();
   }
@@ -272,8 +351,13 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
   rasterWorkDirty_ = false;
   rasterWorkSettled_ = settled;
   rasterWorkScale_ = scale;
+  // Keep the age of pending work when continuous edits replan the queue.
+  QHash<quint64, qsizetype> age;
+  for (auto i = nextRasterJob_; i < rasterJobs_.size(); ++i) { age.insert(rasterJobs_[i].key, i); }
+  const auto newJob = rasterJobs_.size();
   nextRasterJob_ = 0;
   rasterJobs_.clear();
+  rasterDeferred_.clear();
   QList<RasterJob> visibleUpdates, prefetch;
   std::optional<RasterJob> draftJob;
   offscreenImages_.clear();
@@ -286,9 +370,10 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
     const auto bounds = scene_->itemBounds(key);
     if (!item || bounds.isEmpty()) { continue; }
     const bool visibleNow = item == draft || bounds.intersects(visible);
-    const bool clipped = item->kind() == CanvasItem::Kind::Connection || item->kind() == CanvasItem::Kind::Lineage;
-    const auto origin = clipped ? item->scenePosition() : QPointF();
-    const auto needed = clipped ? bounds.intersected(rasterCoverage_).translated(-origin) : QRectF();
+    const auto raster = item->rasterBounds();
+    const bool clipped = item->kind() == CanvasItem::Kind::Connection || item->kind() == CanvasItem::Kind::Lineage ||
+                         raster.width() > rasterCoverage_.width() || raster.height() > rasterCoverage_.height();
+    const auto needed = clipped ? bounds.intersected(rasterCoverage_).translated(-item->scenePosition()) : QRectF();
     cachedRasterBytes_ += item->image().sizeInBytes();
     if (!visibleNow && item->hasImage()) { offscreenImages_.append(key); }
     const auto *node = static_cast<const NodeItem *>(item->kind() == CanvasItem::Kind::Node ? item : nullptr);
@@ -297,7 +382,7 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
     const bool missesView = !needed.isEmpty() && !item->imageRect().contains(needed);
     if (item->hasImage() && !item->contentDirty() && !stale && !missesView) { continue; }
     if (!bounds.intersects(prefetchArea_) && item != draft) { continue; }
-    auto rect = clipped ? bounds.intersected(prefetchArea_).translated(-origin) : item->rasterBounds();
+    const auto rect = clipped ? needed : raster;
     if (rect.isEmpty()) { continue; }
     const RasterJob job{key, rect, visibleNow};
     if (item == draft) {
@@ -309,6 +394,15 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
     }
   }
 
+  const auto oldestFirst = [&](QList<RasterJob> &jobs) {
+    if (age.isEmpty()) { return; }
+    std::stable_sort(jobs.begin(), jobs.end(), [&](const RasterJob &left, const RasterJob &right) {
+      return age.value(left.key, newJob) < age.value(right.key, newJob);
+    });
+  };
+  oldestFirst(rasterJobs_);
+  oldestFirst(visibleUpdates);
+  oldestFirst(prefetch);
   if (draftJob) { rasterJobs_.prepend(*draftJob); }
   rasterJobs_.append(visibleUpdates);
   rasterJobs_.append(prefetch);
@@ -323,35 +417,50 @@ void GraphCanvas::rasterPass(bool flush) {
   const auto visible = viewport_.visibleSceneRect();
   const bool refresh = flush || !viewportCovered(visible);
   if (refresh) { updateRasterCoverage(visible); }
-  if (refresh || rasterWorkDirty_ || rasterWorkSettled_ != settled || rasterWorkScale_ != scale) {
+  if (refresh || rasterWorkDirty_ || rasterWorkSettled_ != settled || (settled && rasterWorkScale_ != scale)) {
     rebuildRasterWork(visible, scale, zoom, settled);
   }
 
+  // The foreground covers at most twice the viewport on either axis. Match
+  // its pixel budget and the clipped wires to the window's current density.
+  const int viewportRasterSide = int(std::ceil(2 * std::max(visible.width(), visible.height()) * scale)) + 2;
   bool pending = false;
   qint64 longest = 0;
   // Permit one raster even after a cold cull so that each pass makes progress.
-  const auto canPaint = [&] { return flush || !longest || clock.nsecsElapsed() + longest < kFrameBudgetNs; };
-  const auto paint = [&](const RasterJob &job) {
-    const auto before = clock.nsecsElapsed();
-    auto *item = scene_->item(job.key);
-    if (!item) { return; }
-    auto result = CanvasImageItem::rasterize(job.rect, scale, [&](QPainter &painter) {
-      item->paintRaster(painter, zoom);
-    }, kMaxRasterSide);
-    longest = std::max(longest, clock.nsecsElapsed() - before);
-    const auto delta = result.image.sizeInBytes() - item->image().sizeInBytes();
-    while (job.visible && cachedRasterBytes_ + delta > rasterCacheBudget && !offscreenImages_.isEmpty()) {
+  const auto canPaint = [&] { return flush || !longest || clock.nsecsElapsed() + longest < rasterTimeBudgetNs_; };
+  const auto evictOffscreen = [&](qsizetype additionalBytes) {
+    while (cachedRasterBytes_ + additionalBytes > rasterCacheBudget_ && !offscreenImages_.isEmpty()) {
       auto *victim = scene_->item(offscreenImages_.takeLast());
       if (victim && !scene_->itemBounds(victim->indexKey()).intersects(visible)) {
         cachedRasterBytes_ -= victim->image().sizeInBytes();
         victim->clearImage();
+        rasterDeferred_.insert(victim->indexKey());
       }
     }
-    if (cachedRasterBytes_ + delta > rasterCacheBudget) { return; }
-    item->setImage(std::move(result.image), result.rect, scale, zoom);
-    cachedRasterBytes_ += delta;
+  };
+  evictOffscreen(0);
+  const auto paint = [&](const RasterJob &job) {
+    const auto before = clock.nsecsElapsed();
+    auto *item = scene_->item(job.key);
+    if (!item) { return; }
+    const auto geometry = CanvasImageItem::rasterGeometry(job.rect, item->scenePosition(), scale, viewportRasterSide);
+    const auto oldBytes = item->image().sizeInBytes();
+    const auto bytes = geometry.bytes();
+    const bool visibleNow = item == scene_->draftConnection() || scene_->itemBounds(job.key).intersects(visible);
+    if (!visibleNow && cachedRasterBytes_ - oldBytes + bytes > rasterCacheBudget_) {
+      rasterDeferred_.insert(job.key);
+      return;
+    }
+    if (visibleNow) { evictOffscreen(bytes - oldBytes); }
     if (item->kind() == CanvasItem::Kind::Node) { ++stats_.cards; }
     if (item->kind() == CanvasItem::Kind::Connection) { ++stats_.wires; }
+    auto image = CanvasImageItem::rasterize(geometry, [&](QPainter &painter) { item->paintRaster(painter, zoom); });
+    longest = std::max(longest, clock.nsecsElapsed() - before);
+    if (image.isNull()) { return; }
+    if (!visibleNow && !oldBytes) { offscreenImages_.append(job.key); }
+    cachedRasterBytes_ += image.sizeInBytes() - oldBytes;
+    rasterDeferred_.remove(job.key);
+    item->setImage(std::move(image), geometry.localRect(), geometry.scale, zoom);
   };
   // Give visible work a slot before the foreground. Repeated foreground
   // invalidation during an edit can otherwise starve new items.
@@ -361,7 +470,7 @@ void GraphCanvas::rasterPass(bool flush) {
   if (foreground_.needsRaster(visible, scale, zoom, settled)) {
     if (canPaint()) {
       const auto before = clock.nsecsElapsed();
-      if (foreground_.raster(*scene_, visible, scale, zoom)) { ++stats_.foreground; }
+      if (foreground_.raster(*scene_, visible, scale, zoom, viewportRasterSide)) { ++stats_.foreground; }
       longest = std::max(longest, clock.nsecsElapsed() - before);
     } else {
       pending = true;
@@ -375,6 +484,7 @@ void GraphCanvas::rasterPass(bool flush) {
   stats_.nanoseconds += elapsed;
   stats_.slowestPass = std::max(stats_.slowestPass, elapsed);
   ++stats_.passes;
+  update();
   if (pending) { QTimer::singleShot(0, this, &GraphCanvas::scheduleRaster); }
 }
 
@@ -607,7 +717,7 @@ void GraphCanvas::keyReleaseEvent(QKeyEvent *event) {
 }
 
 void GraphCanvas::focusOutEvent(QFocusEvent *event) {
-  cancelPointerGrab();
+  if (!overlayHasFocus_ || !overlayHasFocus_()) { cancelPointerGrab(); }
   scene_->focusOut();
   QQuickItem::focusOutEvent(event);
 }

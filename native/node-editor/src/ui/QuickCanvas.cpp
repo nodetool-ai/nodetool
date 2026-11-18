@@ -7,6 +7,7 @@
 #include "graph/NodeLayout.h"
 #include "graph/WorkflowGraphModel.h"
 #include <QAbstractTextDocumentLayout>
+#include <QApplication>
 #include <QContextMenuEvent>
 #include <QCursor>
 #include <QHelpEvent>
@@ -153,6 +154,10 @@ QuickCanvas::QuickCanvas(WorkflowGraphModel &model, QWidget &parent) : model_(mo
   host_ = widget;
   widget_ = widget;
   canvas_ = std::make_unique<canvas::GraphCanvas>(model);
+  canvas_->setOverlayFocusCheck([host = QPointer<QQuickWidget>(widget)] {
+    const auto *focus = QApplication::focusWidget();
+    return host && focus && host->isAncestorOf(focus);
+  });
   canvas_->setParentItem(widget->quickWindow()->contentItem());
   canvas_->setSize(widget->size());
   widget->installEventFilter(this);

@@ -4,6 +4,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 include(CTest)
+include(cmake/sanitizers/Tests.cmake)
 find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Widgets QuickWidgets Qml Quick QuickControls2 Svg Network WebSockets Multimedia Test)
 qt_standard_project_setup(REQUIRES 6.12)
 # Configures only the QML components, their interfaces, the chat module and the
@@ -981,6 +982,7 @@ if(BUILD_TESTING)
         --dump ${CMAKE_CURRENT_BINARY_DIR}/empty-quick.json)
     set_tests_properties(node_editor_smoke_quick PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;NODETOOL_NODE_EDITOR_CANVAS=quick")
+    nodetool_node_editor_test_sanitizers()
     # Each test binary writes its settings to a private temporary directory.
     get_property(node_editor_test_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
     foreach(test_target IN LISTS node_editor_test_targets)

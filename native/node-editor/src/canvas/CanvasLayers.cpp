@@ -127,7 +127,7 @@ bool ForegroundItem::needsRaster(const QRectF &visible, double scale, double zoo
   return contentDirty() || (settled && (scale_ != scale || zoom_ != zoom)) || !area_.contains(visible);
 }
 
-bool ForegroundItem::raster(const EditorCanvasScene &scene, const QRectF &visible, double scale, double zoom) {
+bool ForegroundItem::raster(const EditorCanvasScene &scene, const QRectF &visible, double scale, double zoom, int maxSide) {
   area_ = visible.adjusted(-visible.width() / 2, -visible.height() / 2, visible.width() / 2, visible.height() / 2);
   scale_ = scale;
   zoom_ = zoom;
@@ -137,8 +137,9 @@ bool ForegroundItem::raster(const EditorCanvasScene &scene, const QRectF &visibl
     setContentDirty(false);
     return false;
   }
-  auto result = rasterize(bounds, scale, [&](QPainter &painter) { scene.paintForeground(painter, bounds, zoom); }, 1536);
-  setImage(std::move(result.image), result.rect, scale, zoom);
+  const auto geometry = rasterGeometry(bounds, {}, scale, maxSide);
+  auto image = rasterize(geometry, [&](QPainter &painter) { scene.paintForeground(painter, bounds, zoom); });
+  setImage(std::move(image), geometry.localRect(), geometry.scale, zoom);
   return true;
 }
 

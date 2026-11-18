@@ -82,7 +82,10 @@ void NodeItem::syncPosition() {
     setPosition(position);
     reindex();
     for (auto *child : childItems()) {
-      if (auto *decoration = dynamic_cast<CanvasItem *>(child)) { decoration->reindex(); }
+      if (auto *decoration = dynamic_cast<CanvasItem *>(child)) {
+        decoration->reindex();
+        decoration->update();
+      }
     }
     scene->notifyChanged();
   }

@@ -1,0 +1,18 @@
+# Driver and D-Bus allocations retained at shutdown.
+leak:libcuda.so
+leak:libvulkan.so
+leak:libdbus-1.so
+
+# Qt 6.12 destroys its private cache before clearing focus on a dying
+# QGraphicsItem. The focus-out repaint recreates the cache during teardown.
+# Reproduced with the focused QtNodes reroute in ReroutePresentationTest.
+leak:QGraphicsItemPrivate::extraItemCache
+
+# Qt's asynchronous SVG and Quick pixmap loaders retain decode results at exit.
+leak:libqsvg.so
+leak:QQuickTextureFactory::textureFactoryForImage
+leak:QQuickPixmap::load
+
+# Qt Multimedia's FFmpeg worker delivers a frame as the QML receiver shuts
+# down. Match the plugin frame so app-owned sink calls stay visible.
+leak:libffmpegmediaplugin.so

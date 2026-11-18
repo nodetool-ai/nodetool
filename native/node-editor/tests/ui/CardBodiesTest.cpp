@@ -35,6 +35,7 @@
 #include <QtNodes/internal/ConnectionGraphicsObject.hpp>
 #include <QtTest>
 #include <cmath>
+#include <utility>
 
 using namespace nodetool;
 using QtNodes::NodeId;
@@ -48,7 +49,7 @@ QJsonObject fixture() {
     return QJsonDocument::fromJson(file.readAll()).object();
 }
 
-// Answers the model catalog and asset upload procedures the card bodies call.
+// UI thread only. Answers the model catalog and asset upload procedures the card bodies call.
 class Server final : public QTcpServer {
 public:
     QHash<QString, QJsonObject> assets;
@@ -61,6 +62,7 @@ public:
     QByteArray comfyRequest;
     // The request heads of /api/workflows/<id>, to check the headers sent.
     QList<QByteArray> workflowRequests;
+    std::function<void()> beforeWorkflowListReply;
 
     Server() {
         listen(QHostAddress::LocalHost);
@@ -130,6 +132,7 @@ private:
             const auto input = QJsonDocument::fromJson(QUrlQuery(url).queryItemValue("input").toUtf8()).object();
             data = applications.value(input["id"].toString());
         } else if (target.startsWith("/trpc/workflows.list")) {
+            if (beforeWorkflowListReply) { std::exchange(beforeWorkflowListReply, {})(); }
             QJsonArray rows;
             for (const auto &workflow : workflows) { rows.append(QJsonObject{{"id", workflow["id"]}, {"name", workflow["name"]}}); }
             data = QJsonObject{{"workflows", rows}, {"next", QJsonValue::Null}};
@@ -2922,14 +2925,20 @@ private slots:
         const auto *row = host.row("workflow", NodeRowKind::Field, "workflow_id");
         QVERIFY(row);
         QVERIFY(row->placeholder);
-        host.click("workflow", host.model().inlineFieldRect(host.id("workflow"), "workflow_id").center());
+        QSignalSpy projection(&host.model(), &WorkflowGraphModel::projectionChanged);
         QPointer<QQuickItem> chooser;
-        // Loading the options can replace the chooser while QTRY processes events.
-        QTRY_VERIFY([&] {
-            const auto *overlay = host.overlay();
-            chooser = overlay ? find(overlay->rootObject(), QStringLiteral("inline-resource-select")) : nullptr;
-            return chooser && chooser->property("options").toList().size() == 2;
-        }());
+        // Project an unrelated card while the chooser's network request is open.
+        server.beforeWorkflowListReply = [&] {
+            if (auto *overlay = host.overlay()) {
+                chooser = find(overlay->rootObject(), QStringLiteral("inline-resource-select"));
+            }
+            QVERIFY(host.window.document()->applyCommand({{"op", "addNode"},
+                {"node", partTwoNode("unrelated", "nodetool.workflows.workflow_node.Workflow", QPointF(900, 900))}}));
+        };
+        host.click("workflow", host.model().inlineFieldRect(host.id("workflow"), "workflow_id").center());
+        QTRY_VERIFY(!projection.isEmpty());
+        QVERIFY(chooser);
+        QTRY_VERIFY(chooser && chooser->property("options").toList().size() == 2);
         const auto undo = host.undoCount();
         QMetaObject::invokeMethod(chooser, "valueCommitted", Q_ARG(QVariant, QStringLiteral("wf1")));
         QTRY_COMPARE(host.data("workflow")["workflow_id"].toString(), QStringLiteral("wf1"));
@@ -2968,7 +2977,7 @@ private slots:
         QVERIFY(row);
         host.click("app", host.model().inlineFieldRect(host.id("app"), "app_id").center());
         QPointer<QQuickItem> chooser;
-        // Loading the options can replace the chooser while QTRY processes events.
+        // Resolve the current chooser while waiting for its server reply.
         QTRY_VERIFY([&] {
             const auto *overlay = host.overlay();
             chooser = overlay ? find(overlay->rootObject(), QStringLiteral("inline-resource-select")) : nullptr;

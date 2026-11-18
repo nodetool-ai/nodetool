@@ -7,7 +7,10 @@
 #include <QQuickItem>
 #include <QSet>
 #include <QTimer>
+#include <functional>
 #include <memory>
+
+class QuickCanvasTest;
 
 namespace nodetool {
 class CanvasSelection;
@@ -25,7 +28,8 @@ namespace nodetool::canvas {
 // CanvasInteraction. It borrows the model, which outlives it.
 //
 // Card and wire textures exist only near the viewport. The raster pass runs in
-// updatePolish, prioritizing visible items within a time and byte budget.
+// updatePolish, prioritizing visible items within a time budget. Visible images stay resident
+// even above the byte budget, which limits prefetch and offscreen retention.
 // A zoom gesture scales the existing textures; the pass paints them at
 // the new scale 100 ms after the last zoom step.
 class GraphCanvas final : public QQuickItem {
@@ -59,9 +63,13 @@ public:
   // The host widget was shown or hidden. A show centers on the last center.
   void setViewShown(bool shown);
   void cancelPointerGrab();
+  // The widget shell can host focused overlays outside this Quick window.
+  void setOverlayFocusCheck(std::function<bool()> check) { overlayHasFocus_ = std::move(check); }
 
   // Paints everything near the view now, without a budget.
   void flushRaster();
+  // Whether polish still has queued raster work.
+  bool rasterPending() const { return rasterQueued_ || nextRasterJob_ < rasterJobs_.size(); }
   // QGraphicsScene::render of a scene area at a zoom: background, items and
   // foreground painted directly, without textures.
   void renderScene(QPainter &painter, const QRectF &sceneArea, double zoom) const;
@@ -78,7 +86,7 @@ public:
   qsizetype cachedRasterBytes() const { return cachedRasterBytes_; }
   static constexpr qsizetype rasterCacheBudget = 64 * 1024 * 1024;
   int gridRasters() const { return grid_.rasterCount(); }
-  // The raster scale for a zoom: zoom times the device pixel ratio in steps of √2.
+  // Exact device scale after settling, or a √2 bucket during a zoom gesture.
   double rasterScale() const;
 
 signals:
@@ -89,6 +97,7 @@ signals:
 protected:
   void geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) override;
   void updatePolish() override;
+  QSGNode *updatePaintNode(QSGNode *old, UpdatePaintNodeData *) override;
   void itemChange(ItemChange change, const ItemChangeData &value) override;
   void mousePressEvent(QMouseEvent *event) override;
   void mouseUngrabEvent() override;
@@ -103,12 +112,15 @@ protected:
   void wheelEvent(QWheelEvent *event) override;
 
 private:
+  friend class ::QuickCanvasTest;
   CanvasPointerEvent pointerEvent(QPointF position, QPointF global, Qt::MouseButton button, Qt::MouseButtons buttons,
                                   Qt::KeyboardModifiers modifiers) const;
   void pointerMove(QPointF position, QPointF global, Qt::MouseButtons buttons, Qt::KeyboardModifiers modifiers);
   void updateRubberBand(QPoint position, Qt::MouseButtons buttons);
   void endRubberBand();
   void updatePointerCursor();
+  QList<CanvasItem *> orderedItems(const QRectF &area) const;
+  double itemOpacity(const CanvasItem &item) const;
   bool viewportCovered(const QRectF &visible) const;
   void updateRasterCoverage(const QRectF &visible);
   void viewChanged(bool zoomed);
@@ -137,6 +149,7 @@ private:
   QList<RasterJob> rasterJobs_;
   qsizetype nextRasterJob_ = 0;
   QList<quint64> offscreenImages_;
+  QSet<quint64> rasterDeferred_;
   bool rasterWorkDirty_ = true;
   bool rasterWorkSettled_ = false;
   double rasterWorkScale_ = 0;
@@ -144,6 +157,10 @@ private:
   QRectF prefetchArea_;
   quint64 indexedRevision_ = 0;
   qsizetype cachedRasterBytes_ = 0;
+  qsizetype rasterCacheBudget_ = rasterCacheBudget;
+  // Leave a share of the frame for input and scene graph sync.
+  qint64 rasterTimeBudgetNs_ = 1'400'000;
+  std::function<bool()> overlayHasFocus_;
   std::optional<QPointF> cursorPoint_;
   std::optional<Qt::CursorShape> interactionCursor_;
   Qt::CursorShape pointerCursor_ = Qt::ArrowCursor;

@@ -667,19 +667,27 @@ private slots:
     EditorWindow window;
     loadDropFixture(window, false);
     auto *view = &window.canvas();
+    // Capture the area before starting the drag. Rendering the baseline during
+    // the drag can cross the hint timer when the instrumented build is slow.
+    const QRectF above(105, -85, 90, 46);
+    const nodetool::test::CanvasProbe probe(window);
+    const auto grabHintArea = [&] {
+      const auto area = view->mapFromScene(above);
+      if (auto *quick = probe.quickCanvas()) {
+        quick->graphCanvas().flushRaster();
+        return quick->quickWidget().grabFramebuffer().copy(area);
+      }
+      return probe.grabViewport().copy(area);
+    };
+    const auto before = grabHintArea();
     const auto start = pointOn(window, "card");
     QTest::mousePress(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, start);
     const auto target = view->mapFromScene(QPointF(260, 150));
     for (int step = 1; step <= 8; ++step) { QTest::mouseMove(&view->viewportWidget(), start + (target - start) * step / 8, 15); }
     QCOMPARE(window.scene()->dropGroup(), itemFor(window, "frame")->nodeId());
     QVERIFY(!window.scene()->dropHintVisible());
-    // The box sits above the frame: the canvas there changes once the hint shows.
-    const auto above = view->mapFromScene(QPointF(150, -60));
-    const nodetool::test::CanvasProbe probe(window);
-    const auto before = probe.grabHost().pixelColor(above);
     QTRY_VERIFY_WITH_TIMEOUT(window.scene()->dropHintVisible(), 2000);
-    view->viewportWidget().repaint();
-    QVERIFY(probe.grabHost().pixelColor(above) != before);
+    QTRY_VERIFY(grabHintArea() != before);
     QTest::mouseRelease(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, target);
     QVERIFY(!window.scene()->dropHintVisible());
   }

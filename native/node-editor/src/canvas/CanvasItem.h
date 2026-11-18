@@ -21,8 +21,7 @@ class CanvasImageItem : public QQuickItem {
 public:
   explicit CanvasImageItem(QQuickItem *parent = nullptr);
 
-  // Shows image over rect, in item coordinates. Scale and zoom are the
-  // requested raster bucket and logical zoom, even if allocation was capped.
+  // Shows image over rect, in item coordinates, at the raster scale and zoom.
   void setImage(QImage image, const QRectF &rect, double scale, double zoom);
   void clearImage();
   bool hasImage() const { return !image_.isNull(); }
@@ -34,17 +33,23 @@ public:
   bool contentDirty() const { return contentDirty_; }
   void setContentDirty(bool dirty) { contentDirty_ = dirty; }
 
-  // Paints rect (item coordinates) at scale into a new image, capped so that
-  // neither side exceeds maxSide pixels. Returns the image and its covered rectangle.
-  struct Raster {
-    QImage image;
-    QRectF rect;
+  struct RasterGeometry {
+    QRect device;
+    QPointF phase;
+    double scale;
+    qsizetype bytes() const { return qsizetype(device.width()) * device.height() * 4; }
+    QRectF localRect() const;
   };
-  static Raster rasterize(const QRectF &rect, double scale, const std::function<void(QPainter &)> &paint,
-                          int maxSide);
+  // Align the paint to the scene's device grid. The side limit bounds
+  // transient rasters while a zoom gesture still uses the old coverage.
+  static RasterGeometry rasterGeometry(const QRectF &rect, QPointF sceneOrigin, double scale, int maxSide);
+  static QImage rasterize(const RasterGeometry &geometry, const std::function<void(QPainter &)> &paint);
+  // Snap an image already at display scale to whole device pixels.
+  QRectF alignedImageRect(const QRectF &windowRect, double dpr) const;
 
 protected:
   QSGNode *updatePaintNode(QSGNode *old, UpdatePaintNodeData *) override;
+  void geometryChange(const QRectF &geometry, const QRectF &previous) override;
   void releaseResources() override;
   void itemChange(ItemChange change, const ItemChangeData &value) override;
 
@@ -130,6 +135,7 @@ public:
   void markDirty();
 
 protected:
+  QSGNode *updatePaintNode(QSGNode *old, UpdatePaintNodeData *data) override;
   void itemChange(ItemChange change, const ItemChangeData &value) override;
 
 private:

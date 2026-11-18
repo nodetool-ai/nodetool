@@ -80,6 +80,7 @@ private:
   QVariant pendingValue_;
   // An applied change re-projects the document. The editor survives it.
   bool holding_ = false;
+  bool projectingResource_ = false;
   bool applyQueued_ = false;
   QVariant pendingApply_;
   double contentHeight_ = 0;

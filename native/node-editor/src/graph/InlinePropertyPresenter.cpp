@@ -16,6 +16,7 @@
 #include <QTimer>
 #include <algorithm>
 #include <cmath>
+#include <utility>
 namespace nodetool {
 namespace {
 // Unhandled Quick keys must not bubble into the graph's editing shortcuts.
@@ -35,7 +36,20 @@ InlinePropertyPresenter::InlinePropertyPresenter(WorkflowGraphModel &model,
     EditorSceneApi &scene, CanvasSurface &canvas, QQmlEngine *engine, node_editor::PropertyHost &host, QObject *parent)
     : QObject(parent), model_(model), canvas_(canvas), engine_(engine), host_(host) {
   connect(&scene.interaction(), &canvas::CanvasInteraction::inlineEditRequested, this, &InlinePropertyPresenter::activate);
-  connect(&model_, &WorkflowGraphModel::projectionAboutToChange, this, [this] { if (!holding_) { cancel(); } });
+  connect(&model_, &WorkflowGraphModel::projectionAboutToChange, this, [this] {
+    if (holding_) { return; }
+    const auto kind = descriptor_.value("kind").toString();
+    // An unrelated incremental projection must not cancel a resource request
+    // or close its popup. Revalidate the field after the projection finishes.
+    projectingResource_ = kind == "workflow" || kind == "workflow_list" || kind == "app" || kind == "collection";
+    if (!projectingResource_) { cancel(); }
+  });
+  connect(&model_, &WorkflowGraphModel::modelReset, this, [this] {
+    if (projectingResource_) { cancel(); }
+  });
+  connect(&model_, &WorkflowGraphModel::projectionChanged, this, [this] {
+    if (std::exchange(projectingResource_, false)) { reposition(); }
+  });
   connect(&model_, &WorkflowGraphModel::nodeUpdated, this, [this](QtNodes::NodeId) { reposition(); });
   connect(&model_, &WorkflowGraphModel::nodePositionUpdated, this, [this](QtNodes::NodeId) { reposition(); });
   connect(&canvas_.selection(), &CanvasSelection::selectionChanged, this, [this] { if (!holding_ && active() && !current()) { cancel(); } });
@@ -103,6 +117,7 @@ void InlinePropertyPresenter::activate(QtNodes::NodeId id, const QString &name) 
   });
 }
 void InlinePropertyPresenter::cancel() {
+  projectingResource_ = false;
   ++generation_;
   committing_ = false;
   pendingValue_.clear();
@@ -215,7 +230,7 @@ void InlinePropertyPresenter::updateMask() {
   widget_->setMask(region.intersected(QRegion(canvas_.viewportWidget().rect())));
 }
 void InlinePropertyPresenter::reposition() {
-  if (holding_) { return; }
+  if (holding_ || projectingResource_) { return; }
   if (!widget_ || !current()) { if (active()) { cancel(); } return; }
   auto local = model_.inlineFieldRect(node_, name_);
   if (contentHeight_ > 0 && name_ != "code") { local.setHeight(std::max(local.height(), contentHeight_)); }

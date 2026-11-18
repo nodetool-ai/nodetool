@@ -138,6 +138,25 @@ QJsonObject framed() {
                    node("outside", kTarget, 600, 300)});
 }
 
+double glyphError(const QImage &reference, const QImage &rendered, int background) {
+  double best = 1;
+  for (int dy = -1; dy <= 1; ++dy) {
+    for (int dx = -1; dx <= 1; ++dx) {
+      double difference = 0, total = 0;
+      for (int y = 1; y < reference.height() - 1; ++y) {
+        for (int x = 1; x < reference.width() - 1; ++x) {
+          const auto a = std::max(0, qGray(reference.pixel(x, y)) - background);
+          const auto b = std::max(0, qGray(rendered.pixel(x + dx, y + dy)) - background);
+          difference += std::abs(a - b);
+          total += std::max(a, b);
+        }
+      }
+      if (total > 0) { best = std::min(best, difference / total); }
+    }
+  }
+  return best;
+}
+
 QJsonObject pair(const QJsonArray &edges = {}) {
   return snapshot({node("source", kSource, 0, 0), node("target", kTarget, 500, 0), node("target2", kTarget, 500, 300)},
                   edges);
@@ -418,6 +437,167 @@ private slots:
     QTRY_VERIFY(!lineage.hasImage());
   }
 
+  void nativeResolutionForWideForegroundAndLongWire() {
+    // Keep the wire endpoints offscreen and place foreground labels near
+    // opposite viewport edges, as on a wide canvas at normal zoom.
+    const auto graph = snapshot({
+        sized(node("left", kGroup, 90, 140), 240, 140),
+        sized(node("right", kGroup, 1610, 940), 240, 140),
+        node("source", kSource, -850, 220),
+        node("target", kTarget, 2380, 715),
+    }, {edge("long", "source", "target")});
+    Fixture quick(graph, {1920, 1080});
+    WorkflowGraphModel model;
+    EditorScene legacyScene(model);
+    model.project(graph, catalog());
+    QWidget host;
+    auto &view = QtNodesCanvas::createView(legacyScene, host);
+    host.resize(quick.window.size());
+    view.resize(host.size());
+    QtNodesCanvas legacy(legacyScene, view);
+    host.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&host));
+    const auto theme = test::darkCanvasTheme();
+    legacy.scene().setTheme(theme);
+    legacy.setView(1, QPointF(960, 540));
+    for (const auto &id : {QString("left"), QString("right")}) {
+      quick.canvas->selection().setNode(quick.id(id), true);
+      for (const auto nodeId : model.allNodeIds()) {
+        if (model.resourceId(nodeId) == id) { legacy.selection().setNode(nodeId, true); }
+      }
+    }
+    quick.canvas->flushRaster();
+    const auto quickFrame = quick.window.grabWindow();
+    const auto legacyFrame = view.viewport()->grab().toImage();
+    QVERIFY(!quickFrame.isNull());
+    const auto inkError = [&](QPointF origin, QSize extent) {
+      const auto reference = legacyFrame.copy(QRect(legacy.mapFromScene(origin), extent));
+      const auto rendered = quickFrame.copy(QRect(quick.view(origin), extent));
+      return glyphError(reference, rendered, qGray(theme.canvas.rgb()));
+    };
+    const auto left = inkError({90, 108}, {120, 26});
+    const auto right = inkError({1610, 908}, {120, 26});
+    const auto *wire = quick.canvas->scene().connectionItems().first();
+    const QPointF from = wire->endPoint(PortType::Out);
+    const auto [c1, c2] = wire->pointsC1C2();
+    QPainterPath path(from);
+    path.cubicTo(c1, c2, wire->endPoint(PortType::In));
+    const auto stroke = inkError(path.pointAtPercent(.5) - QPointF(80, 35), {160, 70});
+    qInfo() << "Foreground errors" << left << right << "wire error" << stroke;
+    QVERIFY(left < .24);
+    QVERIFY(right < .24);
+    QVERIFY(stroke < .24);
+  }
+
+  void settledCardTextMatchesDevicePixels_data() {
+    QTest::addColumn<double>("zoom");
+    QTest::newRow("fit") << .53;
+    QTest::newRow("normal") << 1.0;
+  }
+
+  void settledCardTextMatchesDevicePixels() {
+    QFETCH(double, zoom);
+    const QPointF origin(73.25, 77.4), center(400, 300);
+    const auto graph = snapshot({node("source", kSource, origin.x(), origin.y())});
+    Fixture quick(graph);
+    WorkflowGraphModel model;
+    EditorScene legacyScene(model);
+    model.project(graph, catalog());
+    QWidget host;
+    auto &view = QtNodesCanvas::createView(legacyScene, host);
+    host.resize(quick.window.size());
+    view.resize(host.size());
+    QtNodesCanvas legacy(legacyScene, view);
+    host.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&host));
+    const auto theme = test::darkCanvasTheme();
+    legacy.scene().setTheme(theme);
+    quick.canvas->setView(zoom, center);
+    legacy.setView(zoom, center);
+    QTRY_VERIFY(!quick.canvas->settle_.isActive() && !quick.canvas->rasterPending());
+
+    // Compare the title at the same scene location in each canvas.
+    const auto textOrigin = origin + QPointF(8, 4);
+    const QSize extent(qRound(133 * zoom), qRound(27 * zoom));
+    const auto dpr = quick.window.effectiveDevicePixelRatio();
+    QCOMPARE(view.devicePixelRatioF(), dpr);
+    const auto sample = [&](const QImage &frame, QPoint origin) {
+      return frame.copy(QRect((QPointF(origin) * dpr).toPoint(), (QSizeF(extent) * dpr).toSize()));
+    };
+    const auto reference = sample(view.viewport()->grab().toImage(), legacy.mapFromScene(textOrigin));
+    const auto rendered = sample(quick.window.grabWindow(), quick.view(textOrigin));
+    QCOMPARE(reference.size(), rendered.size());
+    const auto error = glyphError(reference, rendered, qGray(theme.node.rgb()));
+    const auto *card = quick.item("source");
+    const auto toDevice = [&](const QRectF &local) {
+      const auto rect = quick.canvas->viewport().viewportTransform().mapRect(local.translated(card->scenePosition()));
+      return QRectF(rect.topLeft() * dpr, rect.size() * dpr);
+    };
+    qInfo() << "Settled title error" << error << "pixels" << card->image().size()
+            << "expected" << toDevice(card->rasterBounds()).toAlignedRect().size();
+    QCOMPARE(card->imageScale(), zoom * dpr);
+    const auto painted = toDevice(card->imageRect());
+    QVERIFY(QLineF(painted.topLeft(), QPointF(painted.topLeft().toPoint())).length() < 1e-6);
+    QCOMPARE(card->image().size(), toDevice(card->rasterBounds()).toAlignedRect().size());
+    QVERIFY(error < .28);
+  }
+
+  void visibleItemsSurviveCachePressure() {
+    Fixture f(snapshot({
+        node("source", kSource, 0, 0),
+        node("target", kTarget, 500, 0),
+        node("target2", kTarget, 500, 300),
+        node("prefetch", kTarget, 910, 0),
+    }, {edge("e", "source", "target")}));
+    f.canvas->rasterCacheBudget_ = 32 * 1024;
+    f.canvas->setView(1, QPointF(4000, 4000));
+    f.canvas->flushRaster();
+    f.canvas->setView(1, QPointF(400, 300));
+    f.canvas->resetRasterStats();
+    f.canvas->flushRaster();
+    const auto first = f.canvas->rasterStats();
+    for (int update = 0; update < 5; ++update) {
+      f.item("source")->markDirty();
+      f.canvas->flushRaster();
+    }
+    QVERIFY(f.item("source")->hasImage());
+    QVERIFY(f.item("target")->hasImage());
+    QVERIFY(f.item("target2")->hasImage());
+    QVERIFY(f.canvas->scene().connectionItems().first()->hasImage());
+    QCOMPARE(first.cards, 3);
+    QCOMPARE(first.wires, 1);
+    QCOMPARE(f.canvas->rasterStats().cards - first.cards, 5);
+    QCOMPARE(f.canvas->rasterStats().wires, first.wires);
+    QVERIFY(!f.item("prefetch")->hasImage());
+    // This pan stays inside the same coverage. The deferred card must paint
+    // as soon as the view reaches it even though the cache is still full.
+    f.canvas->centerOn(QPointF(620, 300));
+    QTRY_VERIFY(f.item("prefetch")->hasImage());
+  }
+
+  void animatedRastersDoNotStarveVisibleEdits() {
+    Fixture f(pair());
+    f.canvas->flushRaster();
+    f.canvas->rasterTimeBudgetNs_ = 0; // Deterministically paint one visible item per pass.
+    const auto cards = f.canvas->scene().nodeItems();
+    QSet<NodeItem *> repainted;
+    int ticks = 0;
+    QTimer timer;
+    connect(&timer, &QTimer::timeout, this, [&] {
+      for (auto *card : cards) { card->markDirty(); }
+      f.canvas->updatePolish();
+      for (auto *card : cards) {
+        if (!card->contentDirty()) { repainted.insert(card); }
+      }
+      if (++ticks == cards.size()) { timer.stop(); }
+    });
+    // Drive one invalidation per pass without interleaved window frames.
+    f.window.hide();
+    timer.start(0);
+    QTRY_COMPARE(ticks, cards.size());
+    QCOMPARE(repainted.size(), cards.size());
+  }
+
   void retainedDecorationHandles_data() {
     QTest::addColumn<QString>("order");
     QTest::newRow("handles-first") << QString("handles");
@@ -504,6 +684,74 @@ private slots:
       QVERIFY(scene.mouseGrabber());
     }
     f.release(start);
+  }
+
+  void widgetUngrabCancelsCardDrag() {
+    QWidget host;
+    host.resize(800, 600);
+    WorkflowGraphModel model;
+    model.project(pair(), catalog());
+    QuickCanvas surface(model, host);
+    auto &view = surface.viewportWidget();
+    view.resize(host.size());
+    host.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&host));
+    surface.setView(1, QPointF(400, 300));
+    auto &scene = surface.graphCanvas().scene();
+    const auto *card = scene.nodeAt(QPointF(80, 20));
+    QVERIFY(card);
+    const auto origin = card->scenePosition();
+    const auto press = surface.mapFromScene(origin + QPointF(80, 20));
+    const auto end = press + QPoint(80, 60);
+    QTest::mousePress(&view, Qt::LeftButton, {}, press);
+    QTest::mouseMove(&view, end);
+    QVERIFY(scene.nodeDragActive());
+    QVERIFY(card->scenePosition() != origin);
+    QEvent ungrab(QEvent::UngrabMouse);
+    QApplication::sendEvent(&view, &ungrab);
+    QVERIFY(!scene.nodeDragActive());
+    QVERIFY(!scene.mouseGrabber());
+    QCOMPARE(card->scenePosition(), origin);
+    QTest::mouseRelease(&view, Qt::LeftButton, {}, end);
+    QTest::mousePress(&view, Qt::LeftButton, {}, press);
+    QVERIFY(scene.mouseGrabber());
+    QTest::mouseRelease(&view, Qt::LeftButton, {}, press);
+  }
+
+  void inlineOverlayFocusPreservesPress() {
+    QWidget host;
+    host.resize(800, 600);
+    WorkflowGraphModel model;
+    const QJsonArray metadata{QJsonObject{{"node_type", kTarget}, {"inline_fields", QJsonArray{"in"}},
+        {"properties", QJsonArray{QJsonObject{{"name", "in"}, {"type", QJsonObject{{"type", "str"}}}}}}}};
+    model.project(snapshot({node("target", kTarget, 500, 0)}), metadata);
+    QuickCanvas surface(model, host);
+    auto &view = surface.viewportWidget();
+    // The editor is a child of the canvas widget and takes focus in the press.
+    QWidget overlay(&view);
+    overlay.resize(20, 20);
+    overlay.move(600, 400);
+    overlay.setFocusPolicy(Qt::StrongFocus);
+    view.resize(host.size());
+    host.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&host));
+    surface.setView(1, QPointF(400, 300));
+    auto &scene = surface.graphCanvas().scene();
+    auto *target = scene.nodeAt(QPointF(540, 20));
+    QVERIFY(target);
+    const auto field = model.inlineFieldRect(target->nodeId(), "in");
+    QVERIFY(!field.isEmpty());
+    const auto press = surface.mapFromScene(target->scenePosition() + field.center());
+    connect(&scene.interaction(), &CanvasInteraction::inlineEditRequested, &overlay,
+            [&overlay] { overlay.setFocus(Qt::MouseFocusReason); });
+    view.setFocus(Qt::OtherFocusReason);
+    QTest::mouseMove(&view, press);
+    QVERIFY(target->nodeState().hovered());
+    QTest::mousePress(&view, Qt::LeftButton, {}, press);
+    QVERIFY(overlay.hasFocus());
+    const bool hoveredAfterFocusTransfer = target->nodeState().hovered();
+    QTest::mouseRelease(&view, Qt::LeftButton, {}, press);
+    QVERIFY(hoveredAfterFocusTransfer);
   }
 
   void stackedLineageToolTip() {
@@ -608,22 +856,7 @@ private slots:
     // Compare the distribution of glyph ink, allowing a pixel of offset from
     // the view mapping and different subpixel coverage from the raster bucket.
     const auto background = qGray(theme.canvas.rgb());
-    double best = 1;
-    for (int dy = -1; dy <= 1; ++dy) {
-      for (int dx = -1; dx <= 1; ++dx) {
-        double difference = 0;
-        double total = 0;
-        for (int y = 1; y < reference.height() - 1; ++y) {
-          for (int x = 1; x < reference.width() - 1; ++x) {
-            const auto a = std::max(0, qGray(reference.pixel(x, y)) - background);
-            const auto b = std::max(0, qGray(rendered.pixel(x + dx, y + dy)) - background);
-            difference += std::abs(a - b);
-            total += std::max(a, b);
-          }
-        }
-        if (total > 0) { best = std::min(best, difference / total); }
-      }
-    }
+    const auto best = glyphError(reference, rendered, background);
     qInfo() << "Normalized glyph error" << best;
     QVERIFY2(best < .28, qPrintable(QString("Normalized glyph error: %1").arg(best)));
   }

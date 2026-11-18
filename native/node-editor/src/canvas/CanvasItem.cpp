@@ -4,11 +4,11 @@
 #include <QPainter>
 #include <QQuickWindow>
 #include <QSGImageNode>
+#include <QSGRendererInterface>
 #include <algorithm>
 #include <cmath>
 
 namespace nodetool::canvas {
-
 CanvasImageItem::CanvasImageItem(QQuickItem *parent) {
   // The owning handle, scene, or canvas member controls the lifetime.
   setParentItem(parent);
@@ -35,23 +35,38 @@ void CanvasImageItem::clearImage() {
   update();
 }
 
-CanvasImageItem::Raster CanvasImageItem::rasterize(const QRectF &rect, double scale,
-                                                   const std::function<void(QPainter &)> &paint, int maxSide) {
-  if (rect.isEmpty() || !(scale > 0)) { return {}; }
-  // A texture side never exceeds maxSide pixels (plan R4).
+QRectF CanvasImageItem::RasterGeometry::localRect() const {
+  return QRectF((QPointF(device.topLeft()) - phase) / scale, QSizeF(device.size()) / scale);
+}
+
+CanvasImageItem::RasterGeometry CanvasImageItem::rasterGeometry(const QRectF &rect, QPointF sceneOrigin,
+                                                                double scale, int maxSide) {
+  if (rect.isEmpty() || !(scale > 0)) { return {{}, {}, 1}; }
   scale = std::min({scale, (maxSide - 1) / rect.width(), (maxSide - 1) / rect.height()});
-  const auto device = QRectF(rect.topLeft() * scale, rect.size() * scale).toAlignedRect();
-  if (device.isEmpty()) { return {}; }
-  QImage image(device.size(), QImage::Format_ARGB32_Premultiplied);
+  const auto origin = sceneOrigin * scale;
+  const auto phase = origin - QPointF(origin.toPoint());
+  const auto device = QRectF(rect.topLeft() * scale + phase, rect.size() * scale).toAlignedRect();
+  return {device, phase, scale};
+}
+
+QImage CanvasImageItem::rasterize(const RasterGeometry &geometry, const std::function<void(QPainter &)> &paint) {
+  if (geometry.device.isEmpty()) { return {}; }
+  QImage image(geometry.device.size(), QImage::Format_ARGB32_Premultiplied);
   if (image.isNull()) { return {}; }
   image.fill(Qt::transparent);
   {
     QPainter painter(&image);
-    painter.translate(-device.topLeft());
-    painter.scale(scale, scale);
+    painter.translate(geometry.phase - QPointF(geometry.device.topLeft()));
+    painter.scale(geometry.scale, geometry.scale);
     paint(painter);
   }
-  return {std::move(image), QRectF(QPointF(device.topLeft()) / scale, QSizeF(device.size()) / scale)};
+  return image;
+}
+
+QRectF CanvasImageItem::alignedImageRect(const QRectF &windowRect, double dpr) const {
+  const auto pixels = windowRect.size() * dpr;
+  if (!qFuzzyCompare(pixels, QSizeF(image_.size()))) { return windowRect; }
+  return {QPointF((windowRect.topLeft() * dpr).toPoint()) / dpr, QSizeF(image_.size()) / dpr};
 }
 
 QSGNode *CanvasImageItem::updatePaintNode(QSGNode *old, UpdatePaintNodeData *) {
@@ -71,8 +86,14 @@ QSGNode *CanvasImageItem::updatePaintNode(QSGNode *old, UpdatePaintNodeData *) {
     node->setSourceRect(QRectF(QPointF(), node->texture()->textureSize()));
     upload_ = false;
   }
-  node->setRect(imageRect_);
+  const auto rect = mapRectToScene(imageRect_);
+  node->setRect(mapRectFromScene(alignedImageRect(rect, window()->effectiveDevicePixelRatio())));
   return node;
+}
+
+void CanvasImageItem::geometryChange(const QRectF &geometry, const QRectF &previous) {
+  QQuickItem::geometryChange(geometry, previous);
+  if (hasImage() && geometry.topLeft() != previous.topLeft()) { update(); }
 }
 
 void CanvasImageItem::releaseResources() {
@@ -151,6 +172,15 @@ void CanvasItem::markDirty() {
     scene_->requestRaster();
     scene_->notifyChanged();
   }
+}
+
+QSGNode *CanvasItem::updatePaintNode(QSGNode *old, UpdatePaintNodeData *data) {
+  // GraphCanvas composites these images in one pass on the software backend.
+  if (window() && window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software) {
+    std::unique_ptr<QSGNode> previous(old);
+    return nullptr;
+  }
+  return CanvasImageItem::updatePaintNode(old, data);
 }
 
 void CanvasItem::itemChange(ItemChange change, const ItemChangeData &value) {

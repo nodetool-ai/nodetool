@@ -2,6 +2,7 @@
 #include "../../../graph-runner/unittests/sanitizer_build.h"
 #include "ui/CanvasSurface.h"
 #include "graph/EditorScene.h"
+#include "graph/WorkflowGraphModel.h"
 #include "ui/EditorWindow.h"
 #include "canvas/GraphCanvas.h"
 #include "ui/QuickCanvas.h"
@@ -227,16 +228,17 @@ private slots:
         QTRY_VERIFY(!window.findChild<QObject *>(QStringLiteral("viewport-animation")));
         auto *view = &window.canvas();
         QVERIFY(view);
-        auto &model = window.scene()->graphModel();
+        auto &model = static_cast<nodetool::WorkflowGraphModel &>(window.scene()->graphModel());
         QtNodes::NodeId target = QtNodes::InvalidNodeId;
         for (const auto id : model.allNodeIds()) {
-            const auto rect = view->mapFromScene(window.canvas().nodeBounds(id));
-            if (view->viewportWidget().rect().contains(rect.center())) { target = id; break; }
+            if (model.resourceId(id) == "resize-2") { target = id; break; }
         }
         QVERIFY(target != QtNodes::InvalidNodeId);
-        const auto rect = view->mapFromScene(window.canvas().nodeBounds(target));
-        const QPoint start(rect.center().x(), rect.top() + 12);
+        const auto original = view->nodeOrigin(target);
+        const auto start = view->mapFromScene(original + QPointF(view->nodeRect(target).width() / 2, 12));
         auto *viewport = &view->viewportWidget();
+        QVERIFY(viewport->rect().contains(start));
+        QCOMPARE(view->nodeAt(start), target);
         StepClock clock(window);
         QTest::mousePress(viewport, Qt::LeftButton, Qt::NoModifier, start);
         constexpr int moves = 400;
@@ -262,7 +264,7 @@ private slots:
         if (clock.quick()) { QVERIFY2(perMove < 4000 * kTimingScale, "Quick canvas drag exceeded its timing budget"); }
         // Scanning the catalog for every handle on every bounds query took over 5 s a move.
         QVERIFY2(perMove < 100000 * kTimingScale, "Drag exceeded its timing budget");
-        QVERIFY(window.canvas().nodeOrigin(target) != QPointF());
+        QTRY_VERIFY(view->nodeOrigin(target) != original);
     }
     // Pan and zoom over 2,000 cards: the parity fixture repeated into a grid.
     // Each step sends the input event, then paints the viewport, as drag()
@@ -395,30 +397,29 @@ private slots:
         window.fit();
         QTest::qWait(800);
         cards = visible();
+        const auto fitCenter = canvas.center();
+        const QPoint coldJump(0, viewport->height() * 4);
+        canvas.panBy(-coldJump);
+        QTest::qWait(150);
+        const auto cold = panRun(coldJump);
+        report("pan_fit_cold", cold, cards);
         if (clock.quick()) {
-            const auto fitCenter = canvas.center();
-            const QPoint coldJump(0, viewport->height() * 4);
-            canvas.panBy(-coldJump);
-            QTest::qWait(150);
-            const auto cold = panRun(coldJump);
-            report("pan_fit_cold", cold, cards);
             QVERIFY(cold.cards > 0);
             QVERIFY2(cold.input + cold.polish < 2000 * kTimingScale, "Cold fit pan input and polish exceeded its timing budget");
-            // Prime the same route before measuring a warm pan. The route
-            // stays inside the retention margin, even after returning.
+            // Let the normal polish queue prefetch before taking the measured
+            // route, including after the jump back to the start.
             auto &graph = static_cast<nodetool::QuickCanvas &>(canvas).graphCanvas();
             for (const int distance : {0, 360, 720, 0}) {
                 canvas.centerOn(fitCenter - QPointF(0, distance / canvas.zoom()));
-                graph.flushRaster();
+                QTRY_VERIFY_WITH_TIMEOUT(!graph.rasterPending(), int(4000 * kTimingScale));
             }
+        } else {
+            canvas.centerOn(fitCenter);
         }
         const auto panFit = panRun();
         report("pan_fit_warm", panFit, cards);
         if (clock.quick()) {
-            // Plan targets: a pan rasters nothing and costs under 2 ms a frame.
-            // At the fit zoom the software renderer redraws 534 cards and their
-            // wires on every step, which takes longer (plan risk R3); the
-            // number is reported, and the limit is for the RHI backend (Q10).
+            QVERIFY2(panFit.meanUs < 16000 * kTimingScale, "Warm fit pan exceeded its software frame budget");
             QCOMPARE(pan100.cards + panFit.cards, 0);
             QCOMPARE(pan100.wires + panFit.wires, 0);
             QVERIFY2(panFit.input + panFit.polish < 2000 * kTimingScale, "Warm fit pan input and polish exceeded its timing budget");
