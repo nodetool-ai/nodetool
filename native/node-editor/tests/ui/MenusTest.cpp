@@ -788,7 +788,12 @@ private slots:
         auto *file = window.findChild<QMenu *>("application-menu-file");
         auto *edit = window.findChild<QMenu *>("application-menu-edit");
         QVERIFY(file && edit);
-        QCOMPARE(labels(file), (QStringList{"New Workflow", "New Comfy Workflow", "Open…", "Open Example", "Save", "Save As…", "Settings…", "Close Tab", "Quit"}));
+        QCOMPARE(labels(file), (QStringList{"New Workflow", "New Comfy Workflow", "Open…", "Open Example", "Save", "Save As…", "Publish to Cloud…", "Synchronize…", "Settings…", "Close Tab", "Quit"}));
+        // A workflow outside a cloud-ready project on the bundled server cannot publish or synchronize.
+        emit file->aboutToShow();
+        QVERIFY(!entry(file, "Publish to Cloud…")->isEnabled());
+        QVERIFY(!entry(file, "Synchronize…")->isEnabled());
+        emit file->aboutToHide();
         QCOMPARE(labels(edit), (QStringList{"Undo", "Redo", "Cut", "Copy", "Paste", "Select All", "Duplicate", "Duplicate Vertical", "Group", "Align", "Align with Spacing"}));
         QCOMPARE(entry(file, "Save")->shortcut(), QKeySequence("Ctrl+S"));
 

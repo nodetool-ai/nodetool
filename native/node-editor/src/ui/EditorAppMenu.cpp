@@ -113,6 +113,11 @@ void EditorWindow::installApplicationMenu() {
     command(file, tr("Save"), QStringLiteral("Save"), {QKeySequence(QStringLiteral("Ctrl+S"))});
     command(file, tr("Save As…"), QStringLiteral("Save local copy as"), {QKeySequence(QStringLiteral("Ctrl+Shift+S"))});
     file->addSeparator();
+    // Both open the review sheet of the active project, which asks the
+    // server whether the project is linked and publishes or synchronizes.
+    command(file, tr("Publish to Cloud…"), QStringLiteral("Publish to cloud"));
+    command(file, tr("Synchronize…"), QStringLiteral("Synchronize"));
+    file->addSeparator();
     auto *settings = entry(file, tr("Settings…"), [this] { openSettings(); }, {QKeySequence(QStringLiteral("Ctrl+,"))});
     settings->setMenuRole(QAction::PreferencesRole);
     file->addSeparator();

@@ -508,6 +508,8 @@ bool EditorWindow::menuActionEnabled(const QString &name) const {
  if (name == "Focus node") { return count == 1; }
  // Only the owner shares a cloud workflow, and the dialog needs its account.
  if (name == "Share") { return cloud_ && cloud_->role() == "owner" && (tabOwner_ ? tabOwner_ : this)->accountServers_; }
+ // A project folder on this app's own server, with an account to send it with.
+ if (name == "Publish to cloud" || name == "Synchronize") { return transferAvailable(); }
  if (name == "Node info") { return count > 0; }
  if (name == "Open child") { return count == 1 && node_editor::isChildNode(document_.node(selectedIds().first())); }
  if (name == "Link selected") { return !readOnly() && count == 2; }
@@ -1017,7 +1019,7 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
    keys[name].append(QKeySequence(QString::fromLatin1(entry.keys)).toString(QKeySequence::NativeText));
    combos[name].append(webKeys(QString::fromLatin1(entry.keys)));
   }
-  if (kind == "command") { names += QStringList{"Add comment", "Run selected", "Disable selected", "Enable selected", "Auto layout", "Zoom in", "Zoom out", "Reset zoom", "Stop", "Open file", "Examples", "Layout selection", "Remove from group", "Ungroup", "Rename group", "Edit note", "Rename node", "Edit comment", "Output", "Toggle nodes", "Toggle mini-map", "Fit selection", "Focus node", "Zoom presets", "Connect", "Server Open", "Server Save", "Reconnect", "Server sync", "Share", "Run trace", "Version history", "Workflow metadata", "Canvas uploads", "Link selected", "Group into subgraph", "Open child", "Linked workflows"}; }
+  if (kind == "command") { names += QStringList{"Add comment", "Run selected", "Disable selected", "Enable selected", "Auto layout", "Zoom in", "Zoom out", "Reset zoom", "Stop", "Open file", "Examples", "Layout selection", "Remove from group", "Ungroup", "Rename group", "Edit note", "Rename node", "Edit comment", "Output", "Toggle nodes", "Toggle mini-map", "Fit selection", "Focus node", "Zoom presets", "Connect", "Server Open", "Server Save", "Reconnect", "Server sync", "Share", "Publish to cloud", "Synchronize", "Run trace", "Version history", "Workflow metadata", "Canvas uploads", "Link selected", "Group into subgraph", "Open child", "Linked workflows"}; }
   names.removeDuplicates();
   const auto group = [](const QString &name) {
    if (name.startsWith("Align") || name.startsWith("Distribute") || name == "Stack selection" || name == "Arrange grid") { return QString("Layout & Alignment"); }

@@ -1446,6 +1446,37 @@ void EditorWindow::showShareDialog() {
   connect(this, &EditorWindow::documentEpochChanged, dialog, &QDialog::close);
   showOverlayDialog(dialog, content, this, {640, 720});
 }
+bool EditorWindow::transferAvailable() const {
+  const auto owner = tabOwner_ ? tabOwner_ : this;
+  static const QRegularExpression fullId(QStringLiteral("^[0-9a-f]{32}$"));
+  const auto url = QUrl(session_.serverUrl());
+  return !cloud_ && owner->accountServers_ && owner->bundledServer_.isValid()
+         && url.adjusted(QUrl::StripTrailingSlash) == owner->bundledServer_.adjusted(QUrl::StripTrailingSlash)
+         && fullId.match(owner->activeProject()).hasMatch();
+}
+void EditorWindow::showTransferDialog() {
+  if (!tabOwner_) { activeEditor_->showTransferDialog(); return; }
+  if (!transferAvailable()) { return; }
+  auto *account = tabOwner_->accountServers_->current();
+  for (auto *existing : findChildren<QDialog *>("transfer-dialog")) { existing->close(); }
+  auto *dialog = new QDialog(this);
+  dialog->setObjectName("transfer-dialog");
+  dialog->setWindowTitle(tr("Publish or synchronize %1").arg(projectName()));
+  auto *content = createOverlayDialog(dialog, engine_,
+                                      {{"account", QVariant::fromValue(account)},
+                                       {"serverUrl", QUrl(session_.serverUrl())},
+                                       {"bundledServerUrl", tabOwner_->bundledServer_},
+                                       {"serverToken", session_.token()},
+                                       {"projectId", tabOwner_->activeProject()},
+                                       {"projectName", projectName()},
+                                       {"readLink", true}},
+                                      QUrl("qrc:/qt/qml/NodeTool/NodeEditor/TransferPanel.qml"));
+  if (const auto root = content->rootObject()) {
+    connect(root, SIGNAL(closeRequested()), dialog, SLOT(close()));
+    QMetaObject::invokeMethod(root, "start");
+  }
+  showOverlayDialog(dialog, content, this, {640, 720});
+}
 void EditorWindow::showCanvasDrops() {
   if (canvasDropDialog_) { canvasDropDialog_->show(); canvasDropDialog_->raise(); return; }
   auto *dialog = new QDialog(this);
@@ -3622,6 +3653,7 @@ void EditorWindow::action(const QString &name) {
   if (name == "Linked workflows") { showLinkedWorkflows(); return; }
   if (name == "Server sync") { showServerSync(); return; }
   if (name == "Share") { showShareDialog(); return; }
+  if (name == "Publish to cloud" || name == "Synchronize") { showTransferDialog(); return; }
   if (name == "Run trace") { showRunTrace(); return; }
   if (name == "Canvas uploads") { showCanvasDrops(); return; }
   if (name == "Save local copy as") { saveLocalCopyAs(); return; }
