@@ -678,6 +678,38 @@ const TRANSFER_FILES_DDL: readonly string[] = [
 ];
 
 /**
+ * The activity record of documents (rename and move rows from phase 2) and
+ * the conversations transfers added to cloud projects.
+ */
+const TRANSFER_ACTIVITY_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS document_activity (
+    id TEXT PRIMARY KEY NOT NULL,
+    document_kind TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    seq INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_document_activity_document
+    ON document_activity (document_kind, document_id, seq)`,
+  `CREATE INDEX IF NOT EXISTS idx_document_activity_user
+    ON document_activity (user_id)`,
+  `CREATE TABLE IF NOT EXISTS transferred_conversations (
+    id TEXT PRIMARY KEY NOT NULL,
+    project_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    source_thread_id TEXT NOT NULL,
+    thread_id TEXT NOT NULL,
+    transfer_id TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_transferred_conversations_source
+    ON transferred_conversations (project_id, user_id, source_thread_id)`
+];
+
+/**
  * The local store of the native apps for cloud documents: unsent drafts and
  * the last known open state (docs/plans/native-cloud-sync/technical-design.md,
  * "Local data scoping and durable drafts"). Applied by the
@@ -758,7 +790,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...PROJECT_BLOBS_DDL,
   ...ACCESS_EPOCHS_DDL,
   ...CLOUD_TRANSFERS_DDL,
-  ...TRANSFER_FILES_DDL
+  ...TRANSFER_FILES_DDL,
+  ...TRANSFER_ACTIVITY_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5299,6 +5332,19 @@ export const migrations: MigrationDef[] = [
     // A recovery copy names the only copy of replaced bytes. A rollback
     // leaves the rows: an older server never reads them.
     async down() {}
+  },
+  {
+    version: "20261130_000005",
+    name: "add_document_activity",
+    createsTables: ["document_activity", "transferred_conversations"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of TRANSFER_ACTIVITY_DDL) await db.execute(statement);
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS transferred_conversations");
+      await db.execute("DROP TABLE IF EXISTS document_activity");
+    }
   }
 ];
 

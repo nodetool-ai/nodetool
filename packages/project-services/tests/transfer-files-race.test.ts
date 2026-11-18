@@ -1,22 +1,32 @@
 /**
- * Two transfers into one project that put the same path on the same base
- * (review F19). On a real PostgreSQL server, since PGlite runs one
- * transaction at a time and cannot show the race. The first commit is held
- * after it planned its files, while the second one starts.
+ * Races between two transfer commits, on a real PostgreSQL server, since
+ * PGlite runs one transaction at a time and cannot show them. A pause point
+ * holds the first commit inside its transaction while the second one runs.
+ *
+ * - Two transfers into one project that put the same path on the same base
+ *   (review F19).
+ * - Two first publications that carry the same conversation (review F20).
  */
 import { createHash, randomBytes } from "node:crypto";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import postgres from "postgres";
-import { closeDb, initPostgresDb, MigrationRunner, PostgresJsMigrationAdapter } from "@nodetool-ai/models";
+import { closeDb, initPostgresDb, Message, MigrationRunner, PostgresJsMigrationAdapter, Thread } from "@nodetool-ai/models";
 import { createWorkspace, setProjectFolderResolver, type Workspace } from "@nodetool-ai/runtime";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import { PauseGate } from "@nodetool-ai/config/testing/pause-harness";
-import type { CommitTransferInput, TransferAttemptResult, TransferFileOperation } from "@nodetool-ai/protocol/api-schemas/transfer.js";
+import type {
+  CommitTransferInput,
+  TransferAttemptResult,
+  TransferConversationPayload,
+  TransferFileOperation
+} from "@nodetool-ai/protocol/api-schemas/transfer.js";
 import { commitTransfer, openTransfer, stageTransferFile, type TransferHost } from "../src/cloud-transfer.js";
+import { conversationHash } from "../src/transfer-conversations.js";
 import { startPostgresServer, type PostgresServer } from "../../models/tests/helpers/postgres-server.js";
 
 const OWNER = "user-owner";
 const PLANNED = "transfer.commit.files-planned";
+const CONVERSATIONS = "transfer.commit.conversations-added";
 const encoder = new TextEncoder();
 
 function id(): string {
@@ -79,7 +89,8 @@ describe("concurrent file transfers on PostgreSQL", { timeout: 120_000 }, () => 
     projectId: string,
     firstPublication: boolean,
     operations: TransferFileOperation[],
-    files: Uint8Array[]
+    files: Uint8Array[],
+    conversations: TransferConversationPayload[] = []
   ): Promise<TransferAttemptResult> {
     const transferId = id();
     const manifest: CommitTransferInput["manifest"] = {
@@ -87,7 +98,10 @@ describe("concurrent file transfers on PostgreSQL", { timeout: 120_000 }, () => 
       operations: [],
       required_files: [],
       file_operations: operations,
-      device_name: "Studio Mac"
+      device_name: "Studio Mac",
+      ...(conversations.length > 0
+        ? { conversations: conversations.map((c) => ({ thread_id: c.thread_id, captured_hash: conversationHash(c) })) }
+        : {})
     };
     const opened = await openTransfer(server, OWNER, {
       transfer_id: transferId,
@@ -105,7 +119,8 @@ describe("concurrent file transfers on PostgreSQL", { timeout: 120_000 }, () => 
       manifest,
       decisions: [],
       missing_files: [],
-      payloads: []
+      payloads: [],
+      ...(conversations.length > 0 ? { conversations } : {})
     });
   }
 
@@ -136,5 +151,38 @@ describe("concurrent file transfers on PostgreSQL", { timeout: 120_000 }, () => 
     expect(kept[0]).toEqual([]);
     expect(kept[1]).toHaveLength(1);
     expect(kept[1]?.[0]?.path).toBe("notes.txt");
+  });
+
+  it("gives a second first publication of one conversation its own thread (review F20)", async () => {
+    const threadId = id();
+    const messageId = id();
+    const conversation: TransferConversationPayload = {
+      thread_id: threadId,
+      title: "Ideas",
+      kind: "chat",
+      messages: [{ id: messageId, role: "user", content: "hello", created_at: "2026-11-17T10:00:00.000Z" }]
+    };
+    const projectA = id();
+    const projectB = id();
+    gate = new PauseGate([CONVERSATIONS]).install();
+    const one = send(projectA, true, [], [], [conversation]);
+    await gate.waitFor(CONVERSATIONS, 1);
+    const two = send(projectB, true, [], [], [conversation]);
+    // The second commit writes its thread while the first one is still open.
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    gate.release(CONVERSATIONS);
+    await gate.waitFor(CONVERSATIONS, 2);
+    gate.release(CONVERSATIONS);
+    const [a, b] = await Promise.all([one, two]);
+    if (a.outcome !== "committed" || b.outcome !== "committed") throw new Error("expected two commits");
+
+    expect(a.conversations).toEqual([{ source_thread_id: threadId, thread_id: threadId }]);
+    const copied = b.conversations?.[0]?.thread_id ?? "";
+    expect(copied).not.toBe(threadId);
+    expect((await Thread.get<Thread>(threadId))?.project_id).toBe(projectA);
+    expect((await Thread.get<Thread>(copied))?.project_id).toBe(projectB);
+    expect((await Message.get<Message>(messageId))?.thread_id).toBe(threadId);
+    const [copiedMessages] = await Message.paginate(copied, { limit: 10 });
+    expect(copiedMessages.map((message) => message.content)).toEqual(["hello"]);
   });
 });

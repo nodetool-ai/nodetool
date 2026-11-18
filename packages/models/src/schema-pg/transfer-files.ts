@@ -42,3 +42,19 @@ export const recoveryCopies = pgTable(
     index("idx_recovery_copies_purge").on(table.purge_at)
   ]
 );
+
+export const transferredConversations = pgTable(
+  "transferred_conversations",
+  {
+    id: text("id").primaryKey(),
+    project_id: text("project_id").notNull(),
+    user_id: text("user_id").notNull(),
+    source_thread_id: text("source_thread_id").notNull(),
+    thread_id: text("thread_id").notNull(),
+    transfer_id: text("transfer_id").notNull(),
+    created_at: text("created_at").notNull()
+  },
+  (table) => [
+    index("idx_transferred_conversations_source").on(table.project_id, table.user_id, table.source_thread_id)
+  ]
+);

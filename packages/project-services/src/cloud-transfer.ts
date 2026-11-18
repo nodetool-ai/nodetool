@@ -14,6 +14,7 @@
  * on, so a server on SQLite refuses to commit.
  */
 import {
+  appendDocumentActivity,
   commitProjectBlobs,
   committedHashesOfOwner,
   deletedDocumentExists,
@@ -57,6 +58,7 @@ import {
   type TransferPayloadContent
 } from "./transfer-documents.js";
 import { applyFileOperations, planFileOperations, runTransferPlacements } from "./transfer-files.js";
+import { applyConversations, conversationHash, verifyConversations } from "./transfer-conversations.js";
 
 export type TransferRole = "owner" | "editor" | "viewer";
 
@@ -241,6 +243,10 @@ export function attemptDigest(input: CommitTransferInput): string {
       document_id: version.document_id,
       version_id: version.version_id,
       hash: identityHash(version.version)
+    })),
+    conversations: (input.conversations ?? []).map((conversation) => ({
+      thread_id: conversation.thread_id,
+      hash: conversationHash(conversation)
     }))
   });
 }
@@ -429,6 +435,7 @@ export async function commitTransfer(
       }
       listedFiles(op, payload, { document_id: target.id });
     }
+    const conversations = verifyConversations(input.manifest, input.conversations, failures);
     if (failures.length > 0) return refuse(failures);
 
     // Step 4: lock the access epochs, then check the sender's role on the project.
@@ -712,7 +719,14 @@ export async function commitTransfer(
           willPublish(op.kind, op.document_id);
           break;
         case "rename_document":
-          if (document) await handler.rename(document, op.name);
+          // V6: the later rename wins, and both names go to the activity record.
+          if (document && document.name !== op.name) {
+            await handler.rename(document, op.name);
+            await appendDocumentActivity(
+              { kind: op.kind, documentId: document.id, type: "rename", userId, payload: { from: document.name, to: op.name } },
+              now
+            );
+          }
           willPublish(op.kind, op.document_id);
           break;
         case "add_versions": {
@@ -727,6 +741,17 @@ export async function commitTransfer(
         case "move_document":
           if (document && document.projectId !== op.target_project_id) {
             await handler.move(document, op.target_project_id);
+            // V8: the later move wins and is recorded.
+            await appendDocumentActivity(
+              {
+                kind: op.kind,
+                documentId: document.id,
+                type: "move",
+                userId,
+                payload: { from: document.projectId, to: op.target_project_id }
+              },
+              now
+            );
           }
           willPublish(op.kind, op.document_id);
           break;
@@ -745,6 +770,13 @@ export async function commitTransfer(
     await commitProjectBlobs(projectId, transfer.id);
     const keptBeside = await applyFileOperations(filePlan, { projectId, userId, transferId: transfer.id, now });
     placing = filePlan.placements.length > 0;
+    const addedConversations = await applyConversations(input.manifest, conversations, {
+      projectId,
+      userId,
+      transferId: transfer.id,
+      now
+    });
+    await pausePoint("transfer.commit.conversations-added");
 
     // Step 11: record the attempt and the transfer as committed.
     const documents: { kind: TransferDocumentKind; document_id: string; hash: string }[] = [];
@@ -758,6 +790,7 @@ export async function commitTransfer(
       documents
     };
     if (keptBeside.length > 0) committed.kept_beside = keptBeside;
+    if (addedConversations.length > 0) committed.conversations = addedConversations;
     await recordCloudTransferAttempt({
       transferId: transfer.id,
       attemptId: input.attempt_id,

@@ -11,12 +11,12 @@
  * A recovery copy records content a transfer replaced, for 30 days, where no
  * version table keeps it.
  */
-import { asc, eq, lt, sql } from "drizzle-orm";
+import { and, asc, eq, lt, sql } from "drizzle-orm";
 import { createTimeOrderedUuid } from "./base-model.js";
 import { getDatabase, getPortableDb, inTransaction } from "./db.js";
 import { withBlobLock } from "./project-blob.js";
 import { projectBlobs } from "./schema/project-blobs.js";
-import { recoveryCopies, transferPlacements } from "./schema/transfer-files.js";
+import { recoveryCopies, transferPlacements, transferredConversations } from "./schema/transfer-files.js";
 
 export type TransferPlacementRow = typeof transferPlacements.$inferSelect;
 export type RecoveryCopyRow = typeof recoveryCopies.$inferSelect;
@@ -169,4 +169,43 @@ export async function listRecoveryCopies(projectId: string): Promise<RecoveryCop
     .where(eq(recoveryCopies.project_id, projectId))
     .orderBy(asc(recoveryCopies.created_at), asc(recoveryCopies.id));
   return rows.reverse();
+}
+
+/**
+ * The cloud thread a transfer made from `sourceThreadId` in this project,
+ * or null when none did.
+ */
+export async function findTransferredConversation(
+  projectId: string,
+  userId: string,
+  sourceThreadId: string
+): Promise<string | null> {
+  const [row] = await getPortableDb()
+    .select({ thread_id: transferredConversations.thread_id })
+    .from(transferredConversations)
+    .where(
+      and(
+        eq(transferredConversations.project_id, projectId),
+        eq(transferredConversations.user_id, userId),
+        eq(transferredConversations.source_thread_id, sourceThreadId)
+      )
+    )
+    .limit(1);
+  return row?.thread_id ?? null;
+}
+
+/** Records the cloud thread a transfer made from a conversation of the sending device. */
+export async function recordTransferredConversation(
+  entry: { projectId: string; userId: string; sourceThreadId: string; threadId: string; transferId: string },
+  now: Date = new Date()
+): Promise<void> {
+  await getPortableDb().insert(transferredConversations).values({
+    id: createTimeOrderedUuid(),
+    project_id: entry.projectId,
+    user_id: entry.userId,
+    source_thread_id: entry.sourceThreadId,
+    thread_id: entry.threadId,
+    transfer_id: entry.transferId,
+    created_at: now.toISOString()
+  });
 }
