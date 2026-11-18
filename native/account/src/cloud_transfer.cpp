@@ -299,7 +299,10 @@ SendRun LocalTransferClient::runSend(const std::string& transferId, const std::v
     }
     input["decisions"] = std::move(list);
   }
-  if (!confirmDeletes.empty()) {
+  {
+    // Always the complete list, [] when the person withdrew every
+    // confirmation, so the router never reuses the deletions of an earlier
+    // attempt (review F43).
     json list = json::array();
     for (const DeleteConfirmation& confirmation : confirmDeletes) {
       list.push_back(

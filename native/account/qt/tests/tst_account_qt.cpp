@@ -1746,6 +1746,43 @@ private slots:
     QCOMPARE(transfer.result().value("received").toStringList(), QStringList{"Mine"});
   }
 
+  // After a refused attempt, withdrawing the last deletion confirmation
+  // sends an empty list, which the router takes as no deletion (review F43).
+  void aWithdrawnDeletionIsNotSent() {
+    Computer computer;
+    computer.server.addCode("code-w", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-w");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[],)"
+                           R"("documents":[],"missing_files":[],"skipped":[],"deleted_locally":[)"
+                           R"({"kind":"workflow","local_id":"w1","cloud_id":"cw1","base_hash":"b1"}]})"));
+    server.answer("cloudTransfer.send.run",
+                  trpcData(R"({"status":"refused","transfer_id":"t1","failures":[{"code":"QUOTA",)"
+                           R"("kind":"workflow","document_id":"cw1","message":"full"}]})"));
+    server.answer("cloudTransfer.send.run",
+                  trpcData(R"({"status":"committed","transfer_id":"t1","result":{"project_id":"p1"}})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QVERIFY(transfer.confirmDeletion(0, true));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QVERIFY(transfer.confirmDeletion(0, false));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
+    const auto again = nlohmann::json::parse(server.body("cloudTransfer.send.run", 1));
+    QVERIFY(again.contains("confirm_deletes"));
+    QCOMPARE(again["confirm_deletes"], nlohmann::json::array());
+  }
+
   // A confirmed deletion names the cloud revision the sheet showed. When the
   // cloud refuses it because the document changed there since, the sheet
   // withdraws the confirmation and asks again for the newer revision

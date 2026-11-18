@@ -502,6 +502,20 @@ void fileOnlyChangesAreSendWork(TestContext& t) {
 
 // A send goes without a missing file only once the person confirms it, and
 // the confirmation is the capture's entry as listed (X7, review F36).
+// A send attempt names every deletion it carries, [] when there is none,
+// so a withdrawn confirmation never survives from an earlier attempt
+// (review F43).
+void everySendNamesItsDeletions(TestContext& t) {
+  SignedInApp app;
+  FakeTransport transport([](const HttpRequest&) {
+    return ok({{"status", "committed"}, {"transfer_id", kTransfer}, {"result", json::object()}});
+  });
+  LocalTransferClient client(transport, kLocal, {}, *app.session);
+  CHECK(client.runSend(kTransfer, {}, {}).committed);
+  const json body = json::parse(transport.sent().back().body);
+  CHECK(body.contains("confirm_deletes") && body["confirm_deletes"] == json::array());
+}
+
 void missingFilesNeedAConfirmation(TestContext& t) {
   SignedInApp app;
   const json listed{{"asset_id", "a1"},
@@ -633,6 +647,7 @@ int main() {
       {"aRecaptureOnlyLeavesOutWhatWasReviewed", aRecaptureOnlyLeavesOutWhatWasReviewed},
       {"fileOnlyChangesAreSendWork", fileOnlyChangesAreSendWork},
       {"missingFilesNeedAConfirmation", missingFilesNeedAConfirmation},
+      {"everySendNamesItsDeletions", everySendNamesItsDeletions},
       {"aRefusedDeletionAsksAgain", aRefusedDeletionAsksAgain},
       {"aRefusedDocumentKeepsOneRow", aRefusedDocumentKeepsOneRow},
       {"cancelsAReceive", cancelsAReceive},
