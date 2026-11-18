@@ -169,7 +169,9 @@ Rectangle {
                     objectName: "transfer-choice-" + row.modelData.index
                     optionNamePrefix: "transfer-choice-" + row.modelData.index + "-"
                     accessibleName: "Version of " + row.modelData.name
-                    options: [{ label: "Receive", value: "receive" }, { label: "Keep local", value: "keepLocal" }]
+                    options: row.modelData.canReceive
+                             ? [{ label: "Receive", value: "receive" }, { label: "Keep local", value: "keepLocal" }]
+                             : [{ label: "Keep local", value: "keepLocal" }]
                     value: row.modelData.choice
                     onValueCommitted: value => root.controller.choose(row.modelData.index, value)
                 }

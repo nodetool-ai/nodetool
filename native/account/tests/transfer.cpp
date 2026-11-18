@@ -567,6 +567,33 @@ void aRefusedDeletionAsksAgain(TestContext& t) {
   CHECK(deletes.size() == 1 && deletes[0].cloudId == "cloud-gone" && deletes[0].cloudHash == "stored-2");
 }
 
+// A refused document has one decision row, whichever rows named it, and a
+// Receive pick on that row is a receive of the new cloud revision, never a
+// decision on the old set (review F39).
+void aRefusedDocumentKeepsOneRow(TestContext& t) {
+  SendCapture send;
+  send.operations = {{"replace_document", "workflow", "c1", ""}};
+  send.documents = {{"workflow", "w1", "c1", "Flow"}};
+  ReceiveCapture receive;
+  receive.documents = {{"workflow", "c1", "w1", "Flow", "h1", ReceiveState::BothChanged, std::nullopt, 0}};
+  TransferReview review(send, receive);
+  // The sheet holds a Send row and a Choice row that both name c1.
+  review.addRefusal({{"BASE_CHANGED", "workflow", "c1", "s1", "changed"}});
+  review.addRefusal({{"BASE_CHANGED", "workflow", "c1", "s2", "changed"}});
+  std::size_t named = 0;
+  for (const ReviewRow& row : review.rows()) {
+    named += row.kind == "workflow" && row.cloudId == "c1" ? 1 : 0;
+  }
+  CHECK(named == 1);
+  const std::size_t choice = indexOf(review, ReviewSection::Choice);
+  CHECK(review.rows()[choice].cloudHash == "s2");
+  CHECK(review.choose(choice, ReceiveChoice::Receive));
+  CHECK(review.receiveDecisions().empty());
+  CHECK(review.keepLocalDecisions().empty());
+  const auto receives = review.refusalsToReceive();
+  CHECK(receives.size() == 1 && receives[0].kind == "workflow" && receives[0].documentId == "c1");
+}
+
 int main() {
   return account_test::runTests({
       {"callsTheLocalRouterForTheAccount", callsTheLocalRouterForTheAccount},
@@ -583,5 +610,6 @@ int main() {
       {"fileOnlyChangesAreSendWork", fileOnlyChangesAreSendWork},
       {"missingFilesNeedAConfirmation", missingFilesNeedAConfirmation},
       {"aRefusedDeletionAsksAgain", aRefusedDeletionAsksAgain},
+      {"aRefusedDocumentKeepsOneRow", aRefusedDocumentKeepsOneRow},
   });
 }

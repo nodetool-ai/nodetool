@@ -342,9 +342,14 @@ public:
   TransferReview(const SendCapture& send, const ReceiveCapture& receive);
 
   // The cloud refused the send because these documents changed since their
-  // base: each becomes a Choice row that names the stored hash. A refused
-  // deletion asks for the confirmation again, of the stored revision.
+  // base: each becomes a Choice row that names the stored hash, one row per
+  // kind and cloud id. A refused deletion asks for the confirmation again,
+  // of the stored revision.
   void addRefusal(const std::vector<TransferFailure>& failures);
+  // The refused documents the person chose to receive. Their new cloud
+  // revision is not in the receive set the sheet was read with, so the
+  // controller captures and receives it before the send (review F39).
+  std::vector<ReceiveDecision> refusalsToReceive() const;
   // The refusals the person answered already: a BASE_CHANGED refusal of a
   // document they chose Keep local for, whose stored hash is the cloud
   // revision they saw. Any other refusal is left for addRefusal.

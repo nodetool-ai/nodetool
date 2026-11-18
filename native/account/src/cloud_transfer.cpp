@@ -568,7 +568,11 @@ void TransferReview::addRefusal(const std::vector<TransferFailure>& failures) {
       continue;
     }
     bool found = false;
-    for (ReviewRow& row : rows_) {
+    // One row per kind and cloud id: a second row that names the refused
+    // document is dropped (review F39).
+    std::vector<std::size_t> duplicates;
+    for (std::size_t i = 0; i < rows_.size(); ++i) {
+      ReviewRow& row = rows_[i];
       // A deletion refused for a newer cloud revision asks again, for that
       // revision (V4, review F40).
       if (row.section == ReviewSection::Deletion && row.kind == failure.kind && row.cloudId == failure.documentId) {
@@ -582,12 +586,19 @@ void TransferReview::addRefusal(const std::vector<TransferFailure>& failures) {
       const bool same = row.cloudId.empty() ? row.documentId == failure.documentId : row.cloudId == failure.documentId;
       if (row.kind == failure.kind && same &&
           (row.section == ReviewSection::Send || row.section == ReviewSection::Choice)) {
+        if (found) {
+          duplicates.push_back(i);
+          continue;
+        }
         row.section = ReviewSection::Choice;
         row.detail = "both_changed";
         row.cloudHash = failure.storedHash;
         row.choice.reset();
         found = true;
       }
+    }
+    for (auto it = duplicates.rbegin(); it != duplicates.rend(); ++it) {
+      rows_.erase(rows_.begin() + static_cast<std::ptrdiff_t>(*it));
     }
     if (!found) {
       ReviewRow row;
@@ -600,6 +611,16 @@ void TransferReview::addRefusal(const std::vector<TransferFailure>& failures) {
       rows_.push_back(std::move(row));
     }
   }
+}
+
+std::vector<ReceiveDecision> TransferReview::refusalsToReceive() const {
+  std::vector<ReceiveDecision> out;
+  for (const ReviewRow& row : rows_) {
+    if (row.section == ReviewSection::Choice && !row.cloudHash.empty() && row.choice == ReceiveChoice::Receive) {
+      out.push_back({row.kind, row.cloudId.empty() ? row.documentId : row.cloudId, ReceiveChoice::Receive});
+    }
+  }
+  return out;
 }
 
 std::vector<KeepLocalDecision> TransferReview::answeredRefusals(const std::vector<TransferFailure>& failures) const {

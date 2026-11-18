@@ -147,6 +147,9 @@ struct TransferController::Captured {
 
 struct TransferController::Applied {
   std::optional<ReceiveRun> receive;
+  // The receive of the refused documents the person chose to receive, from
+  // a set captured for them (review F39).
+  std::optional<ReceiveRun> refusalReceive;
   // Set when the send was captured again after the receive.
   std::optional<SendCapture> recaptured;
   // Operations of the recapture the sheet did not show. Nothing was sent.
@@ -275,7 +278,8 @@ QVariantList TransferController::rows() const {
                              {QStringLiteral("confirmed"), row.confirmed},
                              {QStringLiteral("canKeepDeletion"), row.sendListed},
                              {QStringLiteral("canRestore"), row.receiveListed},
-                             {QStringLiteral("canSendWithout"), !row.assetId.empty()}});
+                             {QStringLiteral("canSendWithout"), !row.assetId.empty()},
+                             {QStringLiteral("canReceive"), linked_ || row.cloudHash.empty()}});
     }
   }
   return out;
@@ -383,6 +387,12 @@ bool TransferController::choose(int index, const QString& choice) {
   } else if (!choice.isEmpty()) {
     return false;
   }
+  // An unlinked project has no cloud revision to receive (review F39).
+  const std::vector<ReviewRow>& rows = review_.rows();
+  if (picked == ReceiveChoice::Receive && !linked_ && static_cast<std::size_t>(index) < rows.size() &&
+      !rows[static_cast<std::size_t>(index)].cloudHash.empty()) {
+    return false;
+  }
   if (!review_.choose(static_cast<std::size_t>(index), picked)) {
     return false;
   }
@@ -428,6 +438,7 @@ void TransferController::apply() {
   emit stateChanged();
   tasks_->post([state = shared_, cancel = std::shared_ptr<const RequestCancel>(cancel_), current, origin = origin(), headers = headers(), review = review_, transferId = transferId_,
                 setId = received_ ? std::string() : setId_,
+                refusals = linked_ ? review_.refusalsToReceive() : std::vector<ReceiveDecision>{},
                 sendWork = sendWork_ || !linked_ || !review_.confirmedDeletes().empty(),
                 approved = approved_, approvedFiles = approvedFiles_, projectId = projectId_.toStdString(), name = projectName_.toStdString(),
                 sequence]() mutable {
@@ -438,15 +449,56 @@ void TransferController::apply() {
         self.finishApply(sequence, applied);
       });
     };
+    bool replaced = false;
     if (!setId.empty()) {
       applied.receive = client.runReceive(setId, review.receiveDecisions());
       if (applied.receive->status != TransferStatus::Ok || applied.receive->outcome != "finished") {
         report();
         return;
       }
+      replaced = !applied.receive->received.empty();
+    }
+    if (!refusals.empty()) {
+      // A refused document the person chose to receive has a cloud revision
+      // newer than any set the sheet read. Capture a set for it and receive
+      // only those documents. Everything else in the set stays as it is
+      // here, since the sheet never showed it (review F39).
+      const ReceiveCapture fresh = client.captureReceive(projectId);
+      if (fresh.status != TransferStatus::Ok) {
+        ReceiveRun refused;
+        refused.status = fresh.status;
+        refused.reason = fresh.reason;
+        applied.refusalReceive = std::move(refused);
+        report();
+        return;
+      }
+      std::vector<ReceiveDecision> decisions;
+      bool wanted = false;
+      for (const ReceiveDocument& document : fresh.documents) {
+        if (document.state == ReceiveState::Same) {
+          continue;
+        }
+        bool receive = false;
+        for (const ReceiveDecision& refusal : refusals) {
+          receive = receive || (refusal.kind == document.kind && refusal.documentId == document.cloudId);
+        }
+        wanted = wanted || receive;
+        decisions.push_back(
+            {document.kind, document.cloudId, receive ? ReceiveChoice::Receive : ReceiveChoice::KeepLocal});
+      }
+      if (wanted) {
+        applied.refusalReceive = client.runReceive(fresh.setId, decisions);
+        if (applied.refusalReceive->status != TransferStatus::Ok || applied.refusalReceive->outcome != "finished") {
+          report();
+          return;
+        }
+        replaced = replaced || !applied.refusalReceive->received.empty();
+      }
+    }
+    {
       // The captured send may carry a document the receive just replaced:
       // capture it again, so it sends only what is still changed here.
-      if (!applied.receive->received.empty() && sendWork) {
+      if (replaced && sendWork) {
         client.cancelSend(transferId);
         applied.recaptured = client.captureSend(projectId, name);
         if (applied.recaptured->status != TransferStatus::Ok || applied.recaptured->collectFirst) {
@@ -513,6 +565,28 @@ void TransferController::finishApply(quint64 sequence, const Applied& applied) {
                        {QStringLiteral("notReceived"), listOf(run.notReceived)},
                        {QStringLiteral("changedDuringReceive"), listOf(run.changedDuringReceive)},
                        {QStringLiteral("missingFiles"), static_cast<int>(run.missingFiles)}};
+  }
+  if (applied.refusalReceive) {
+    const ReceiveRun& run = *applied.refusalReceive;
+    if (run.status != TransferStatus::Ok) {
+      stage_ = Stage::Reviewing;
+      message_ = failure(run.status, run.reason);
+      emit stateChanged();
+      return;
+    }
+    if (run.outcome != "finished") {
+      stage_ = Stage::Reviewing;
+      message_ = tr("The cloud project changed again while receiving. Choose again.");
+      emit stateChanged();
+      return;
+    }
+    const auto add = [this](const QString& key, const std::vector<std::string>& names) {
+      QStringList list = receivedResult_.value(key).toStringList();
+      list.append(listOf(names));
+      receivedResult_.insert(key, list);
+    };
+    add(QStringLiteral("received"), run.received);
+    add(QStringLiteral("changedDuringReceive"), run.changedDuringReceive);
   }
   if (applied.recaptured) {
     const SendCapture& again = *applied.recaptured;
