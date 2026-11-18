@@ -12,7 +12,7 @@ run. The items that the study could not confirm are in
 ## Decisions before work starts
 
 - **D1. The node editor's software scene graph.**
-  [`native/node-editor/src/main.cpp`](../../native/node-editor/src/main.cpp)
+  `native/node-editor/src/main.cpp`
   calls `QQuickWindow::setGraphicsApi(QSGRendererInterface::Software)` at line
   24. Check first whether the node editor can use the RHI backend. If it can,
   S5 shrinks to the controller and the QML item, and the offscreen compositor
