@@ -1,3 +1,4 @@
+#include "../support/WidgetCanvasFixture.h"
 #include "graph/EditorScene.h"
 #include "ui/EditorWindow.h"
 #include <QApplication>
@@ -6,7 +7,6 @@
 #include <QFile>
 #include <QFont>
 #include <QFontInfo>
-#include <QGraphicsView>
 #include <QJsonDocument>
 #include <QLocale>
 #include <QPainter>
@@ -104,7 +104,6 @@ int main(int argc, char **argv) {
     }
     require(editor.document()->load(QJsonObject{{"graph", QJsonObject{{"nodes", nodes}, {"edges", QJsonArray{QJsonObject{{"id", "edge"}, {"source", "0"}, {"target", "1"}, {"sourceHandle", "output"}, {"targetHandle", "Prompt"}}}}}}}).ok, "Fixture document rejected");
     QTest::qWait(50);
-    auto view = editor.findChild<QGraphicsView *>();
     auto scene = editor.scene();
     auto model = editor.findChild<nodetool::WorkflowGraphModel *>();
     require(model && model->allNodeIds().size() == 2, "Missing graph fixture");
@@ -190,7 +189,7 @@ int main(int argc, char **argv) {
         scene->render(&painter, QRectF(QPointF(0, 0), rect.size()), rect, Qt::IgnoreAspectRatio);
         return image;
       };
-      auto node = scene->nodeGraphicsObject(first);
+      auto node = nodetool::test::graphicsNode(*scene, first);
       require(node, "Missing node graphics object");
       namespace nm = nodetool::node_metrics;
       QCoreApplication::processEvents();

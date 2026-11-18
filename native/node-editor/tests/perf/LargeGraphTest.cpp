@@ -1,10 +1,11 @@
+#include "../support/CanvasProbe.h"
+#include "ui/CanvasSurface.h"
 #include "graph/EditorScene.h"
 #include "ui/EditorWindow.h"
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QApplication>
 #include <QElapsedTimer>
 #include <QFile>
-#include <QGraphicsView>
 #include <QJsonDocument>
 #include <QScrollBar>
 #include <QSet>
@@ -137,18 +138,18 @@ private slots:
         QTest::qWait(50);
         window.fit();
         QTest::qWait(50);
-        auto *view = window.findChild<QGraphicsView *>();
+        auto *view = &window.canvas();
         QVERIFY(view);
         auto &model = window.scene()->graphModel();
         QtNodes::NodeId target = QtNodes::InvalidNodeId;
         for (const auto id : model.allNodeIds()) {
-            const auto rect = view->mapFromScene(window.scene()->nodeGraphicsObject(id)->sceneBoundingRect()).boundingRect();
-            if (view->viewport()->rect().contains(rect.center())) { target = id; break; }
+            const auto rect = view->mapFromScene(window.canvas().nodeBounds(id));
+            if (view->viewportWidget().rect().contains(rect.center())) { target = id; break; }
         }
         QVERIFY(target != QtNodes::InvalidNodeId);
-        const auto rect = view->mapFromScene(window.scene()->nodeGraphicsObject(target)->sceneBoundingRect()).boundingRect();
+        const auto rect = view->mapFromScene(window.canvas().nodeBounds(target));
         const QPoint start(rect.center().x(), rect.top() + 12);
-        auto *viewport = view->viewport();
+        auto *viewport = &view->viewportWidget();
         QTest::mousePress(viewport, Qt::LeftButton, Qt::NoModifier, start);
         constexpr int moves = 400;
         QElapsedTimer timer;
@@ -165,7 +166,7 @@ private slots:
         qInfo().nospace() << "drag nodes=" << nodes.size() << " per_move_us=" << perMove;
         // Scanning the catalog for every handle on every bounds query took over 5 s a move.
         QVERIFY2(perMove < 100000, "A drag move took over 100 ms");
-        QVERIFY(window.scene()->nodeGraphicsObject(target)->pos() != QPointF());
+        QVERIFY(window.canvas().nodeOrigin(target) != QPointF());
     }
     // Pan and zoom over 2,000 cards: the parity fixture repeated into a grid.
     // Each step sends the input event, then paints the viewport, as drag()
@@ -214,14 +215,14 @@ private slots:
         window.setCatalog(fixture["metadata"].toArray());
         QVERIFY(window.document()->load(workflow).ok);
         QCOMPARE(window.document()->nodes().size(), total);
-        auto *view = window.findChild<QGraphicsView *>();
-        QVERIFY(view);
-        auto *viewport = view->viewport();
+        const nodetool::test::CanvasProbe probe(window);
+        auto &canvas = probe.surface();
+        auto *viewport = probe.viewport();
         const auto visible = [&] {
-            const auto area = view->mapToScene(viewport->rect()).boundingRect();
+            const auto area = canvas.visibleSceneRect();
             int count = 0;
             for (const auto id : window.scene()->graphModel().allNodeIds()) {
-                if (area.intersects(window.scene()->nodeGraphicsObject(id)->sceneBoundingRect())) { ++count; }
+                if (area.intersects(canvas.nodeBounds(id))) { ++count; }
             }
             return count;
         };
@@ -254,9 +255,9 @@ private slots:
         };
         const auto panRun = [&] {
             pointer = center;
-            QTest::mousePress(viewport, Qt::MiddleButton, Qt::NoModifier, center);
+            probe.press(center, Qt::MiddleButton);
             const auto steps = run(120, pan);
-            QTest::mouseRelease(viewport, Qt::MiddleButton, Qt::NoModifier, center);
+            probe.release(center, Qt::MiddleButton);
             return steps;
         };
         // A physical wheel zooms under the cursor by 1.15 a notch.
@@ -267,28 +268,28 @@ private slots:
             QApplication::sendEvent(viewport, &wheel);
         };
         const auto report = [&](const char *name, const Steps &steps, int cards) {
-            qInfo().nospace() << name << " nodes=" << total << " visible=" << cards << " zoom=" << view->transform().m11()
+            qInfo().nospace() << name << " nodes=" << total << " visible=" << cards << " zoom=" << canvas.zoom()
                 << " per_step_us=" << steps.meanUs << " max_step_us=" << steps.maxUs;
         };
         window.action("Reset zoom");
         QTest::qWait(800);
-        QCOMPARE(view->transform().m11(), 1.0);
-        const int scroll = view->verticalScrollBar()->value();
+        QCOMPARE(canvas.zoom(), 1.0);
+        const auto scroll = canvas.visibleSceneRect().top();
         int cards = visible();
         report("pan_100", panRun(), cards);
-        QCOMPARE(view->verticalScrollBar()->value(), scroll);
+        QCOMPARE(canvas.visibleSceneRect().top(), scroll);
         // The fit view is the minimum zoom, 0.12, with the most cards on screen.
         window.fit();
         QTest::qWait(800);
         cards = visible();
         report("pan_fit", panRun(), cards);
-        const double fitZoom = view->transform().m11();
+        const double fitZoom = canvas.zoom();
         // Ten notches in, ten out: zoom 0.12 to about 0.49 and back.
         double deepest = fitZoom;
-        const auto zoomSteps = run(20, [&](int i) { zoom(i); deepest = std::max(deepest, view->transform().m11()); });
+        const auto zoomSteps = run(20, [&](int i) { zoom(i); deepest = std::max(deepest, canvas.zoom()); });
         report("zoom_fit", zoomSteps, cards);
         QVERIFY(deepest > fitZoom * 3);
-        QVERIFY(view->transform().m11() < fitZoom * 1.2);
+        QVERIFY(canvas.zoom() < fitZoom * 1.2);
         // The canvas paints at once, so a zoom gesture leaves no raster work behind.
         QElapsedTimer settle;
         settle.start();

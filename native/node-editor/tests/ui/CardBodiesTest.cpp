@@ -1,3 +1,5 @@
+#include "../support/CanvasProbe.h"
+#include "ui/CanvasSurface.h"
 #include "graph/CanvasDropController.h"
 #include "graph/CardBodies.h"
 #include "graph/CompositorGeometry.h"
@@ -15,7 +17,6 @@
 #include <QDir>
 #include <QDropEvent>
 #include <QFile>
-#include <QGraphicsView>
 #include <QImage>
 #include <QJsonDocument>
 #include <QMimeData>
@@ -425,7 +426,7 @@ class CardBodiesTest final : public QObject {
 
     struct Host {
         EditorWindow window;
-        QGraphicsView *view = nullptr;
+        nodetool::CanvasSurface *view = nullptr;
 
         explicit Host(const QJsonObject &workflow = fixture()["workflow"].toObject(), const QJsonArray &catalog = fixture()["metadata"].toArray()) {
             window.setDarkTheme(true);
@@ -446,7 +447,7 @@ class CardBodiesTest final : public QObject {
                 window.action(QStringLiteral("Toggle nodes"));
             }
             settle();
-            view = window.findChild<QGraphicsView *>();
+            view = &window.canvas();
             Q_ASSERT(view);
         }
 
@@ -472,12 +473,11 @@ class CardBodiesTest final : public QObject {
 
         // A card-local point in viewport coordinates.
         QPoint point(const QString &resource, const QPointF &local) {
-            auto *item = window.scene()->nodeGraphicsObject(id(resource));
-            return view->mapFromScene(item->mapToScene(local));
+            return test::CanvasProbe(window).cardPoint(id(resource), local);
         }
 
         void click(const QString &resource, const QPointF &local) {
-            QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, point(resource, local));
+            test::CanvasProbe(window).click(point(resource, local));
             settle();
         }
 
@@ -494,17 +494,7 @@ class CardBodiesTest final : public QObject {
         }
 
         QImage render(const QString &resource) {
-            const auto size = model().layout(id(resource)).size;
-            QImage card(size, QImage::Format_ARGB32_Premultiplied);
-            card.fill(Qt::transparent);
-            QPainter painter(&card);
-            auto *item = window.scene()->nodeGraphicsObject(id(resource));
-            // The device cache can key a new image to an old one at the same address.
-            const auto cache = item->cacheMode();
-            item->setCacheMode(QGraphicsItem::NoCache);
-            window.scene()->render(&painter, QRectF(QPointF(), QSizeF(size)), QRectF(item->scenePos(), QSizeF(size)));
-            item->setCacheMode(cache);
-            return card;
+            return test::CanvasProbe(window).renderCard(id(resource));
         }
 
         // Removes a fixture connection through the canonical command, including hidden wires.
@@ -615,12 +605,12 @@ private slots:
                     QVERIFY(wire->shape().isEmpty());
                     QVERIFY(!wire->isVisible());
                     QCOMPARE(geometry.checkPortHit(node, QtNodes::PortType::In, endpoint), QtNodes::InvalidPortIndex);
-                    const auto from = host.window.scene()->nodeGraphicsObject(edge.outNodeId)->mapToScene(
+                    const auto from = host.window.canvas().mapFromNode(edge.outNodeId,
                         geometry.portPosition(edge.outNodeId, QtNodes::PortType::Out, edge.outPortIndex));
-                    const auto to = host.window.scene()->nodeGraphicsObject(node)->mapToScene(endpoint);
+                    const auto to = host.window.canvas().mapFromNode(node, endpoint);
                     const auto middle = wireCurve(from, to).pointAtPercent(0.5);
                     host.window.scene()->clearSelection();
-                    QTest::mouseClick(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, host.view->mapFromScene(middle));
+                    QTest::mouseClick(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, host.view->mapFromScene(middle));
                     QVERIFY(!wire->isSelected());
                 } else {
                     ++visible;
@@ -899,7 +889,7 @@ private slots:
         QTest::keyClick(overlay->quickWindow(), Qt::Key_A, Qt::ControlModifier);
         type(overlay, QStringLiteral("Paint {{ subject }} at noon"));
         // A click on empty canvas commits the draft.
-        QTest::mouseClick(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(20, host.view->viewport()->height() - 20));
+        QTest::mouseClick(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, QPoint(20, host.view->viewportWidget().height() - 20));
         settle();
         QTRY_COMPARE(host.data("prompt")["prompt"].toString(), QStringLiteral("Paint {{ subject }} at noon"));
         QCOMPARE(host.undoCount(), before + 1);
@@ -971,12 +961,12 @@ private slots:
         const auto track = sliderTrack(*slider);
         const auto start = host.point("blur", QPointF(track.left() + track.width() * 0.2, track.center().y()));
         const auto end = host.point("blur", QPointF(track.left() + track.width() * 0.5, track.center().y()));
-        QTest::mousePress(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
-        QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewport()->mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(host.view->viewport(), &move);
+        QTest::mousePress(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, start);
+        QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewportWidget().mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(&host.view->viewportWidget(), &move);
         QCOMPARE(host.window.scene()->sliderDraftProperty(), QStringLiteral("size"));
         QCOMPARE(host.undoCount(), undo + 1);
-        QTest::mouseRelease(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+        QTest::mouseRelease(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, end);
         settle();
         QVERIFY2(std::abs(host.data("blur")["size"].toDouble() - 50) <= 1, qPrintable(QString::number(host.data("blur")["size"].toDouble())));
         QCOMPARE(host.undoCount(), undo + 2);
@@ -1059,7 +1049,7 @@ private slots:
         QTRY_VERIFY((field = find(overlay->rootObject(), QStringLiteral("inline-multiline"))) != nullptr);
         field->setProperty("cursorPosition", 6);
         host.click("prompt", host.row("prompt", NodeRowKind::Action, "insertVariable")->rect.center());
-        QTest::mouseClick(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(20, host.view->viewport()->height() - 20));
+        QTest::mouseClick(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, QPoint(20, host.view->viewportWidget().height() - 20));
         QTRY_COMPARE(host.data("prompt")["prompt"].toString(), QString(before).insert(6, QStringLiteral("{{ subject }}")));
         QCOMPARE(host.undoCount(), undo + 1);
         host.window.document()->undo();
@@ -1203,12 +1193,12 @@ private slots:
         mime.setUrls({QUrl::fromLocalFile(path)});
         const QPointF position(host.point("reference", zone->rect.center()));
         QDragEnterEvent enter(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(host.view->viewport(), &enter);
+        QApplication::sendEvent(&host.view->viewportWidget(), &enter);
         QVERIFY(enter.isAccepted());
         QDragMoveEvent move(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(host.view->viewport(), &move);
+        QApplication::sendEvent(&host.view->viewportWidget(), &move);
         QDropEvent drop(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(host.view->viewport(), &drop);
+        QApplication::sendEvent(&host.view->viewportWidget(), &drop);
         QVERIFY(drop.isAccepted());
         QTRY_VERIFY_WITH_TIMEOUT(!host.data("reference")["value"].toObject()["asset_id"].toString().isEmpty(), 10000);
         const auto value = host.data("reference")["value"].toObject();
@@ -1704,7 +1694,7 @@ private slots:
         QCOMPARE(host.model().inlineFieldRect(host.id("text"), QStringLiteral("value")), area->rect);
         type(overlay, QStringLiteral("hello"));
         // A click on empty canvas commits the draft.
-        QTest::mouseClick(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(20, host.view->viewport()->height() - 20));
+        QTest::mouseClick(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, QPoint(20, host.view->viewportWidget().height() - 20));
         QTRY_COMPARE(host.data("text")["value"].toString(), QStringLiteral("hello"));
         QCOMPARE(host.undoCount(), ++undo);
         QCOMPARE(host.window.document()->node("text")["future_field"].toInt(), 7);
@@ -2017,10 +2007,10 @@ private slots:
         const auto drag = [&host](const QPointF &from, const QPointF &to) {
             const auto start = host.point("paint", from);
             const auto end = host.point("paint", to);
-            QTest::mousePress(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
-            QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewport()->mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
-            QApplication::sendEvent(host.view->viewport(), &move);
-            QTest::mouseRelease(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+            QTest::mousePress(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, start);
+            QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewportWidget().mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+            QApplication::sendEvent(&host.view->viewportWidget(), &move);
+            QTest::mouseRelease(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, end);
             settle();
         };
         const auto rect = canvas->rect;
@@ -2207,10 +2197,10 @@ private slots:
         const auto undo = host.undoCount();
         const auto start = host.point("compare", rect.center());
         const auto end = host.point("compare", QPointF(rect.left() + rect.width() * 0.8, middle));
-        QTest::mousePress(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
-        QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewport()->mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(host.view->viewport(), &move);
-        QTest::mouseRelease(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+        QTest::mousePress(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, start);
+        QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewportWidget().mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(&host.view->viewportWidget(), &move);
+        QTest::mouseRelease(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, end);
         settle();
         QVERIFY(std::abs(host.row("compare", NodeRowKind::Compare)->number - 0.8) < 0.02);
         QCOMPARE(pixel(QPointF(rect.left() + rect.width() * 0.75, middle)), QColor(Qt::red));
@@ -2237,9 +2227,9 @@ private slots:
         const auto canvas = host.row("paint", NodeRowKind::Paint)->rect;
         const auto hover = [&host](const QPointF &local) {
             const auto point = host.point("paint", local);
-            QMouseEvent move(QEvent::MouseMove, QPointF(point), QPointF(host.view->viewport()->mapToGlobal(point)), Qt::NoButton, Qt::NoButton,
+            QMouseEvent move(QEvent::MouseMove, QPointF(point), QPointF(host.view->viewportWidget().mapToGlobal(point)), Qt::NoButton, Qt::NoButton,
                              Qt::NoModifier);
-            QApplication::sendEvent(host.view->viewport(), &move);
+            QApplication::sendEvent(&host.view->viewportWidget(), &move);
             settle();
         };
         const auto before = host.render(QStringLiteral("paint"));
@@ -2269,11 +2259,11 @@ private slots:
         mime.setUrls({QUrl::fromLocalFile(path)});
         const QPointF position(host.point("paint", host.row("paint", NodeRowKind::Paint)->rect.center()));
         QDragEnterEvent enter(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(host.view->viewport(), &enter);
+        QApplication::sendEvent(&host.view->viewportWidget(), &enter);
         QDragMoveEvent move(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(host.view->viewport(), &move);
+        QApplication::sendEvent(&host.view->viewportWidget(), &move);
         QDropEvent drop(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(host.view->viewport(), &drop);
+        QApplication::sendEvent(&host.view->viewportWidget(), &drop);
         QVERIFY(drop.isAccepted());
         QTRY_VERIFY_WITH_TIMEOUT(!host.data("paint")["image"].toObject()["asset_id"].toString().isEmpty(), 10000);
         QCOMPARE(host.data("paint")["image"].toObject()["type"].toString(), QStringLiteral("image"));
@@ -2571,10 +2561,10 @@ private slots:
         const auto drag = [&host](const QPointF &from, const QPointF &to) {
             const auto start = host.point("crop", from);
             const auto end = host.point("crop", to);
-            QTest::mousePress(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
-            QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewport()->mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
-            QApplication::sendEvent(host.view->viewport(), &move);
-            QTest::mouseRelease(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+            QTest::mousePress(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, start);
+            QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewportWidget().mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+            QApplication::sendEvent(&host.view->viewportWidget(), &move);
+            QTest::mouseRelease(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, end);
             settle();
         };
         if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
@@ -3359,9 +3349,9 @@ private slots:
         mime.setUrls({QUrl::fromLocalFile(path)});
         const QPointF position(host.point("frame", zone->rect.center()));
         QDragEnterEvent enter(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(host.view->viewport(), &enter);
+        QApplication::sendEvent(&host.view->viewportWidget(), &enter);
         QDropEvent drop(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(host.view->viewport(), &drop);
+        QApplication::sendEvent(&host.view->viewportWidget(), &drop);
         QVERIFY(drop.isAccepted());
         QTRY_VERIFY_WITH_TIMEOUT(host.data("frame")["value"].toObject()["columns"].toArray().size() == 2, 10000);
         const auto value = host.data("frame")["value"].toObject();
@@ -3647,11 +3637,11 @@ private slots:
             mime.setUrls({QUrl::fromLocalFile(path)});
             const QPointF position(host.point("tray", host.row("tray", NodeRowKind::DropZone, "items")->rect.center()));
             QDragEnterEvent enter(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-            QApplication::sendEvent(host.view->viewport(), &enter);
+            QApplication::sendEvent(&host.view->viewportWidget(), &enter);
             QDragMoveEvent move(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-            QApplication::sendEvent(host.view->viewport(), &move);
+            QApplication::sendEvent(&host.view->viewportWidget(), &move);
             QDropEvent dropped(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-            QApplication::sendEvent(host.view->viewport(), &dropped);
+            QApplication::sendEvent(&host.view->viewportWidget(), &dropped);
             QVERIFY(dropped.isAccepted());
         };
         drop(QStringLiteral("first.png"), true);
@@ -3771,11 +3761,11 @@ private slots:
         const auto drag = [&](double up, Qt::KeyboardModifiers modifiers) {
             const auto start = host.point("osc", face.center());
             const auto end = host.point("osc", face.center() - QPointF(0, up));
-            QTest::mousePress(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
-            QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewport()->mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, modifiers);
-            QApplication::sendEvent(host.view->viewport(), &move);
+            QTest::mousePress(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, start);
+            QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewportWidget().mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, modifiers);
+            QApplication::sendEvent(&host.view->viewportWidget(), &move);
             QCOMPARE(host.window.scene()->sliderDraftProperty(), QStringLiteral("amplitude"));
-            QTest::mouseRelease(host.view->viewport(), Qt::LeftButton, modifiers, end);
+            QTest::mouseRelease(&host.view->viewportWidget(), Qt::LeftButton, modifiers, end);
             settle();
         };
         auto undo = host.undoCount();
@@ -3789,7 +3779,7 @@ private slots:
         const auto fine = host.data("osc")["amplitude"].toDouble();
         QVERIFY2(fine > value && fine - value < 0.02, qPrintable(QString::number(fine)));
         QCOMPARE(host.undoCount(), ++undo);
-        QTest::mouseDClick(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, host.point("osc", face.center()));
+        QTest::mouseDClick(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, host.point("osc", face.center()));
         settle();
         QTRY_COMPARE(host.data("osc")["amplitude"].toDouble(), 0.8);
         host.window.document()->undo();

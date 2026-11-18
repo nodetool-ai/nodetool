@@ -1,10 +1,10 @@
+#include "ui/CanvasSurface.h"
 #include "EntryMenuSupport.h"
 #include "FakeRunServer.h"
 #include "server/MsgPack.h"
 #include "ui/EditorWindow.h"
 #include <QDesktopServices>
 #include <QDockWidget>
-#include <QGraphicsView>
 #include <QFile>
 #include <QJsonDocument>
 #include <QQuickItem>
@@ -692,16 +692,16 @@ private slots:
         QTest::qWait(150);
         window.fit();
         QTest::qWait(150);
-        auto *view = window.activeEditor()->findChild<QGraphicsView *>();
+        auto *view = &window.activeEditor()->canvas();
         QVERIFY(view);
-        const auto canvasWidth = view->width();
+        const auto canvasWidth = view->hostWidget().width();
         const auto zoom = window.zoomPercent();
-        const auto transform = view->transform();
+        const auto transform = view->zoom();
         openCatalog(window);
         QTest::qWait(300);
-        QCOMPARE(view->width(), canvasWidth);
+        QCOMPARE(view->hostWidget().width(), canvasWidth);
         QCOMPARE(window.zoomPercent(), zoom);
-        QCOMPARE(view->transform(), transform);
+        QCOMPARE(view->zoom(), transform);
         auto *catalog = panel(window, QStringLiteral("Catalog"));
         auto *header = panel(window, QStringLiteral("HeaderRow"));
         const auto catalogRect = QRect(catalog->mapTo(&window, QPoint()), catalog->size());
@@ -709,7 +709,7 @@ private slots:
         QCOMPARE(catalogRect.left(), headerRect.left());
         QCOMPARE(catalogRect.top(), headerRect.top());
         QCOMPARE(catalog->width(), 310);
-        QVERIFY(catalogRect.bottom() >= QRect(view->mapTo(&window, QPoint()), view->size()).bottom());
+        QVERIFY(catalogRect.bottom() >= QRect(view->hostWidget().mapTo(&window, QPoint()), view->hostWidget().size()).bottom());
     }
 
     // W17: NodeLibrary.tsx focuses the search when the library opens.
@@ -956,8 +956,8 @@ private slots:
         QTRY_VERIFY(output->isVisible());
         QCOMPARE(top(status) + status->height(), window.height());
         QVERIFY(top(output) + output->height() <= top(status));
-        auto *view = window.activeEditor()->findChild<QGraphicsView *>();
-        QVERIFY(top(view) + view->height() <= top(output));
+        auto *view = &window.activeEditor()->canvas();
+        QVERIFY(top(&view->hostWidget()) + view->hostWidget().height() <= top(output));
         click(status, find(status->rootObject(), QStringLiteral("status-logs")));
         QTRY_VERIFY(!window.outputVisible());
         QCOMPARE(top(status) + status->height(), window.height());

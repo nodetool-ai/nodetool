@@ -1,3 +1,4 @@
+#include "../support/CanvasProbe.h"
 // node_editor_composition: the editor must look the same in a scene capture
 // (what the process composes) and a screen capture (what the window system
 // received). Each case puts a surface over a playing media preview, or shows
@@ -17,7 +18,6 @@
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QDir>
 #include <QFile>
-#include <QGraphicsView>
 #include <QMediaPlayer>
 #include <QQuickItem>
 #include <QQuickWidget>
@@ -63,12 +63,7 @@ QtNodes::NodeId nodeId(EditorWindow &window, const QString &resource) {
 }
 // The card body of a node, in window coordinates.
 QRect cardRect(EditorWindow &window, const QString &resource) {
-  auto *view = window.findChild<QGraphicsView *>();
-  const auto id = nodeId(window, resource);
-  auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
-  const QRectF scene(window.scene()->nodeGraphicsObject(id)->scenePos(), model.layout(id).size);
-  const QRect viewport = view->mapFromScene(scene).boundingRect();
-  return {view->viewport()->mapTo(&window, viewport.topLeft()), viewport.size()};
+  return test::CanvasProbe(window).nodeRectInWindow(nodeId(window, resource));
 }
 QString backendOf(QQuickWidget &widget) {
   const auto *renderer = widget.quickWindow()->rendererInterface();
@@ -121,8 +116,8 @@ class CompositionTest final : public QObject {
   void compare(const QString &name, QRect region) {
     QVERIFY2(!region.isEmpty(), "The case has no covered region");
     QTest::qWait(300);
-    const QImage scene = canvas_capture::capture(*window_, canvas_capture::Mode::Scene);
-    const QImage screen = canvas_capture::capture(*window_, canvas_capture::Mode::Screen);
+    const QImage scene = window_->canvas().capture(canvas_capture::Mode::Scene);
+    const QImage screen = window_->canvas().capture(canvas_capture::Mode::Screen);
     QVERIFY(!scene.isNull());
     QVERIFY2(!screen.isNull(), "The platform cannot read the window back");
     if (const auto dir = qEnvironmentVariable("NODETOOL_COMPOSITION_CAPTURE_DIR"); !dir.isEmpty()) {
@@ -175,9 +170,9 @@ private slots:
     QQuickWidget *chat = nullptr;
     QTRY_VERIFY((chat = overlay(*window_, "editor-chat-overlay")));
     // Pan until the chat window covers the right half of the preview.
-    auto *bar = window_->findChild<QGraphicsView *>()->horizontalScrollBar();
+    auto &canvas = window_->canvas();
     const auto shift = inWindow(*window_, *media_).left() - (inWindow(*window_, *chat).left() - media_->width() / 2);
-    bar->setValue(bar->value() + shift);
+    canvas.setHorizontalOffset(canvas.horizontalOffset() + shift);
     QTRY_VERIFY((media_ = overlay(*window_, "canvas-media-" + VideoNode)) &&
                 inWindow(*window_, *chat).intersected(inWindow(*window_, *media_)).width() >= media_->width() / 4);
     compare("media-under-chat", inWindow(*window_, *chat).intersected(inWindow(*window_, *media_)));

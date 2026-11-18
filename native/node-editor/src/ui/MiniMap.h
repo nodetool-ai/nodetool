@@ -1,11 +1,9 @@
 #pragma once
 #include "graph/EditorScene.h"
 #include "graph/WorkflowGraphModel.h"
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
-#include <QGraphicsView>
+#include "ui/CanvasSurface.h"
 #include <QMouseEvent>
 #include <QPainter>
-#include <QScrollBar>
 #include <QTimer>
 #include <QWidget>
 #include <QHash>
@@ -43,16 +41,16 @@ inline QColor miniMapCategoryColor(const QString &category, bool dark) {
 }
 // Scene notifications coalesce geometry collection. Navigation changes only the
 // view scroll bars, never the graph model or document history.
+// UI thread only. The canvas host widget owns the mini-map.
 class MiniMap final : public QWidget {
 public:
-  MiniMap(WorkflowGraphModel &model, EditorScene &scene, QGraphicsView &view)
-      : QWidget(&view), model_(model), scene_(scene), view_(view) {
+  MiniMap(WorkflowGraphModel &model, EditorScene &scene, CanvasSurface &canvas)
+      : QWidget(&canvas.hostWidget()), model_(model), scene_(scene), canvas_(canvas) {
     setObjectName("mini-map");
     setAccessibleName(tr("Mini-map navigator"));
     setFixedSize(200, 150); // React Flow MiniMap defaults.
-    connect(&scene, &QGraphicsScene::changed, this, [this] { schedule(); });
-    connect(view.horizontalScrollBar(), &QScrollBar::valueChanged, this, [this] { update(); });
-    connect(view.verticalScrollBar(), &QScrollBar::valueChanged, this, [this] { update(); });
+    connect(&canvas, &CanvasSurface::sceneChanged, this, [this] { schedule(); });
+    connect(&canvas, &CanvasSurface::viewportMoved, this, [this] { update(); });
     schedule();
   }
   // True while the web "Color by type" mode is on (createMinimapNodeColorFn useTypeColors).
@@ -66,9 +64,9 @@ public:
       pending_ = false;
       rects_.clear(); bounds_ = {};
       for (auto id : model_.allNodeIds()) {
-        if (auto item = scene_.nodeGraphicsObject(id)) {
-          const auto rect = item->mapRectToScene(QRectF(QPointF(), model_.layout(id).size));
-          rects_.push_back({rect, item->isSelected(), model_.isGroup(id), model_.isComment(id), model_.nodeSnapshot(id)["type"].toString()}); bounds_ |= rect;
+        if (canvas_.hasNode(id)) {
+          const auto rect = canvas_.nodeRect(id);
+          rects_.push_back({rect, canvas_.selection().contains(id), model_.isGroup(id), model_.isComment(id), model_.nodeSnapshot(id)["type"].toString()}); bounds_ |= rect;
         }
       }
       setProperty("nodeCount", rects_.size());
@@ -84,7 +82,7 @@ protected:
     const QColor border = dark ? QColor(255,255,255,51) : QColor(0,0,0,26);
     painter.setPen(border); painter.setBrush(paper);
     painter.drawRoundedRect(QRectF(rect()).adjusted(.5,.5,-.5,-.5),8,8);
-    const auto viewport = view_.mapToScene(view_.viewport()->rect()).boundingRect();
+    const auto viewport = canvas_.visibleSceneRect();
     world_ = bounds_.united(viewport);
     world_.adjust(-world_.width() * .05, -world_.height() * .05, world_.width() * .05, world_.height() * .05);
     scale_ = std::min(width() / std::max(1., world_.width()), height() / std::max(1., world_.height()));
@@ -106,11 +104,10 @@ protected:
     painter.setPen(theme.primary); painter.setBrush(Qt::NoBrush); painter.drawRect(mapped(viewport));
   }
   void wheelEvent(QWheelEvent *event) override {
-    const double current = view_.transform().m11();
+    const double current = canvas_.zoom();
     const double zoom = std::clamp(current * std::pow(1.2, event->angleDelta().y()/120.), .1, 5.);
     if (navigated) { navigated(); }
-    view_.setTransformationAnchor(QGraphicsView::AnchorViewCenter);
-    view_.scale(zoom/current,zoom/current);
+    canvas_.scaleBy(zoom / current, CanvasSurface::ZoomAnchor::Center);
     if (zoomed) { zoomed(); }
     update(); event->accept();
   }
@@ -121,11 +118,11 @@ protected:
     if (event->buttons() & Qt::LeftButton) { navigate(event->position()); event->accept(); }
   }
 private:
-  void navigate(QPointF point) { if (scale_ > 0) { if (navigated) { navigated(); } view_.centerOn((point-offset_)/scale_); } }
+  void navigate(QPointF point) { if (scale_ > 0) { if (navigated) { navigated(); } canvas_.centerOn((point-offset_)/scale_); } }
   struct NodeRect { QRectF rect; bool selected; bool group; bool comment; QString type; };
   WorkflowGraphModel &model_;
   EditorScene &scene_;
-  QGraphicsView &view_;
+  CanvasSurface &canvas_;
   QVector<NodeRect> rects_;
   QRectF bounds_, world_;
   QPointF offset_;

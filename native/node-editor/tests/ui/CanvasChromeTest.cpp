@@ -1,10 +1,10 @@
+#include "../support/WidgetCanvasFixture.h"
 #include "../support/DarkCanvasTheme.h"
 #include "graph/EditorScene.h"
 #include "graph/NodeLayout.h"
 #include "graph/WorkflowGraphModel.h"
 #include "run/NodeRuntimeModel.h"
 #include <QDir>
-#include <QGraphicsView>
 #include <QPainter>
 #include <QtNodes/internal/ConnectionGraphicsObject.hpp>
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
@@ -78,7 +78,7 @@ private:
             }
             return QtNodes::InvalidNodeId;
         }
-        QtNodes::NodeGraphicsObject *item(const QString &resource) const { return scene.nodeGraphicsObject(id(resource)); }
+        QtNodes::NodeGraphicsObject *item(const QString &resource) const { return nodetool::test::graphicsNode(scene, id(resource)); }
         QtNodes::ConnectionGraphicsObject *wire(const QString &from, const QString &to) const {
             for (auto item : scene.items()) {
                 auto wire = qgraphicsitem_cast<QtNodes::ConnectionGraphicsObject *>(item);
@@ -364,7 +364,7 @@ private slots:
     // .is-connecting .react-flow__handle { cursor: none }.
     void handlesShowTheCellCursorAndHideItWhileConnecting() {
         Scene scene({card("a", "t", 0, 0), card("b", "t", 600, 0)});
-        QGraphicsView view(&scene.scene);
+        nodetool::test::WidgetView view(&scene.scene);
         view.resize(1000, 400);
         view.show();
         QVERIFY(QTest::qWaitForWindowExposed(&view));

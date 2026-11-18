@@ -1,8 +1,8 @@
+#include "../support/WidgetCanvasFixture.h"
 #include "ui/EditorWindow.h"
 #include "graph/EditorScene.h"
 #include "graph/CompatibleNodePicker.h"
 #include "../graph/BodyConnectionFixture.h"
-#include <QGraphicsView>
 #include <QMouseEvent>
 #include <QQuickWidget>
 #include <QQuickItem>
@@ -20,7 +20,7 @@ QJsonObject workflow(const QString &type,const QJsonArray &edges={},const QJsonA
   for (const auto &value:extra) { nodes.append(value); }
   return {{"graph",QJsonObject{{"nodes",nodes},{"edges",edges}}}};
 }
-void drag(QGraphicsView &view,const QPoint &start,const QPoint &drop) {
+void drag(nodetool::test::WidgetView &view,const QPoint &start,const QPoint &drop) {
   QTest::mousePress(view.viewport(),Qt::LeftButton,Qt::NoModifier,start);
   QMouseEvent move(QEvent::MouseMove,QPointF(drop),QPointF(view.viewport()->mapToGlobal(drop)),Qt::NoButton,Qt::LeftButton,Qt::NoModifier);
   QApplication::sendEvent(view.viewport(),&move);
@@ -28,21 +28,21 @@ void drag(QGraphicsView &view,const QPoint &start,const QPoint &drop) {
 }
 struct Host {
   EditorWindow window;
-  QGraphicsView *view=nullptr;
+  nodetool::test::WidgetView *view=nullptr;
   WorkflowGraphModel *model=nullptr;
   CompatibleNodePicker *picker=nullptr;
   explicit Host(const QJsonObject &snapshot) {
     window.setCatalog(body_fixture::catalog()); const auto loaded=window.document()->load(snapshot); Q_ASSERT(loaded.ok);
     window.show(); window.selectNode("origin"); window.action("Reset zoom"); QTest::qWait(80);
-    view=window.findChild<QGraphicsView *>(); model=&static_cast<WorkflowGraphModel &>(window.scene()->graphModel()); picker=window.findChild<CompatibleNodePicker *>();
+    view=nodetool::test::widgetView(window); model=&static_cast<WorkflowGraphModel &>(window.scene()->graphModel()); picker=window.findChild<CompatibleNodePicker *>();
     view->fitInView(window.scene()->itemsBoundingRect().adjusted(-48,-48,48,48),Qt::KeepAspectRatio);
   }
   QPoint port(const QString &resource,PortType side) const {
     const auto id=picker_fixture::id(*model,resource);
-    return view->mapFromScene(window.scene()->nodeGraphicsObject(id)->scenePos()+window.scene()->nodeGeometry().portPosition(id,side,0));
+    return view->mapFromScene(window.canvas().nodeOrigin(id)+window.scene()->nodeGeometry().portPosition(id,side,0));
   }
   QPoint body(const QString &resource) const {
-    return view->mapFromScene(window.scene()->nodeGraphicsObject(picker_fixture::id(*model,resource))->sceneBoundingRect().center());
+    return view->mapFromScene(window.canvas().nodeBounds(picker_fixture::id(*model,resource)).center());
   }
 };
 }
@@ -153,7 +153,7 @@ private slots:
     QMouseEvent event(QEvent::MouseMove,QPointF(move),QPointF(h.view->viewport()->mapToGlobal(move)),Qt::NoButton,Qt::LeftButton,Qt::NoModifier);
     QApplication::sendEvent(h.view->viewport(),&event);
     for (const auto id:h.model->allNodeIds()) {
-      QVERIFY(draft->zValue()>h.window.scene()->nodeGraphicsObject(id)->zValue());
+      QVERIFY(draft->zValue()>nodetool::test::graphicsNode(*h.window.scene(), id)->zValue());
     }
     QTest::mouseRelease(h.view->viewport(),Qt::LeftButton,Qt::NoModifier,move); QApplication::processEvents();
   }
@@ -189,7 +189,7 @@ private slots:
     const QJsonObject prior{{"id","old"},{"source","origin"},{"target","target"},{"sourceHandle","out"},{"targetHandle","message"}};
     Host h(workflow("Sink",QJsonArray{prior})); const auto before=h.window.document()->snapshot();
     QVERIFY(h.window.selectNode("target")); const auto id=picker_fixture::id(*h.model,"target");
-    const auto bounds=h.window.scene()->nodeGraphicsObject(id)->sceneBoundingRect();
+    const auto bounds=h.window.canvas().nodeBounds(id);
     const auto drop=h.view->mapFromScene(QPointF(bounds.center().x(),bounds.bottom()+80));
     QSignalSpy body(h.window.scene(),&EditorScene::wireBodyDropped),pane(h.window.scene(),&EditorScene::looseWireDropped);
     drag(*h.view,h.port("target",PortType::In),drop); QApplication::processEvents();
@@ -219,9 +219,9 @@ private slots:
     const auto before=h.window.document()->snapshot();
     const auto source=picker_fixture::id(*h.model,"origin");
     auto wire=h.window.scene()->connectionGraphicsObject(*h.model->allConnectionIds(source).begin()); QVERIFY(wire);
-    const auto out=h.window.scene()->nodeGraphicsObject(source)->scenePos()+h.window.scene()->nodeGeometry().portPosition(source,PortType::Out,0);
+    const auto out=h.window.canvas().nodeOrigin(source)+h.window.scene()->nodeGeometry().portPosition(source,PortType::Out,0);
     const auto target=picker_fixture::id(*h.model,"target");
-    const auto in=h.window.scene()->nodeGraphicsObject(target)->scenePos()+h.window.scene()->nodeGeometry().portPosition(target,PortType::In,0);
+    const auto in=h.window.canvas().nodeOrigin(target)+h.window.scene()->nodeGeometry().portPosition(target,PortType::In,0);
     QTest::mouseClick(h.view->viewport(),Qt::LeftButton,Qt::NoModifier,h.view->mapFromScene(wireCurve(out,in).pointAtPercent(.5)));
     QVERIFY(wire->isSelected());
     drag(*h.view,h.port("origin",PortType::Out),h.port("next",PortType::Out));
@@ -305,8 +305,8 @@ private slots:
     const auto midpoint=[&] {
       const auto source=picker_fixture::id(*h.model,"origin");
       const auto target=picker_fixture::id(*h.model,"target");
-      const auto out=h.window.scene()->nodeGraphicsObject(source)->scenePos()+h.window.scene()->nodeGeometry().portPosition(source,PortType::Out,0);
-      const auto in=h.window.scene()->nodeGraphicsObject(target)->scenePos()+h.window.scene()->nodeGeometry().portPosition(target,PortType::In,0);
+      const auto out=h.window.canvas().nodeOrigin(source)+h.window.scene()->nodeGeometry().portPosition(source,PortType::Out,0);
+      const auto in=h.window.canvas().nodeOrigin(target)+h.window.scene()->nodeGeometry().portPosition(target,PortType::In,0);
       return h.view->mapFromScene(wireCurve(out,in).pointAtPercent(.5));
     };
     auto point=midpoint();

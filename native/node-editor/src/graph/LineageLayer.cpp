@@ -1,4 +1,5 @@
 #include "LineageLayer.h"
+#include <memory>
 #include <QCursor>
 #include <QFontMetricsF>
 #include <QGraphicsObject>
@@ -54,11 +55,11 @@ QPainterPath lineageCurve(const QRectF &source, const QRectF &target) {
   return path;
 }
 namespace {
+// UI thread only. The scene owns the item while it is attached.
 class LineageItem final : public QGraphicsObject {
 public:
   LineageItem(QString id, LineageLayer &layer)
       : id_(std::move(id)), layer_(layer) {
-    QObject::setParent(&layer);
     setFlag(ItemIsFocusable);
     setAcceptedMouseButtons(Qt::LeftButton | Qt::MiddleButton |
                             Qt::RightButton);
@@ -190,16 +191,17 @@ bool validRect(const QRectF &rect) {
 }
 } // namespace
 LineageLayer::LineageLayer(QGraphicsScene &scene, QObject *parent)
-    : QObject(parent ? parent : &scene), scene_(&scene) {}
+    : QObject(parent), scene_(&scene) {}
 LineageLayer::~LineageLayer() {
-  // Scene clear() may already have destroyed an item. QPointer covers either
-  // Qt owner deleting first and lets a surviving layer rebuild on update.
-  for (const auto &item : items_) {
-    if (item) {
-      // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
-      delete item.data();
-    }
-  }
+  for (const auto &item : items_) { removeItem(item); }
+}
+void LineageLayer::removeItem(QGraphicsObject *item) {
+  if (!item) { return; }
+  scene_->removeItem(item);
+  const std::unique_ptr<QGraphicsObject> detached(item);
+}
+bool LineageLayer::isLinkItem(const QGraphicsItem *item) {
+  return dynamic_cast<const LineageItem *>(item) != nullptr;
 }
 QString LineageLayer::update(const QJsonObject &graph,
                              const QHash<QString, QRectF> &geometry) {
@@ -246,9 +248,9 @@ QString LineageLayer::update(const QJsonObject &graph,
     visible.insert(id);
     auto *item = static_cast<LineageItem *>(items_.value(id).data());
     if (!item) {
-      // native-rules #3: item has a QObject parent (layer), a scene owner and a manual delete in ~LineageLayer
-      item = new LineageItem(id, *this);
-      scene_->addItem(item);
+      auto created = std::make_unique<LineageItem>(id, *this);
+      item = created.get();
+      scene_->addItem(created.release());
       items_.insert(id, item);
     }
     item->updateGeometry(lineageCurve(*source, *target),
@@ -257,10 +259,7 @@ QString LineageLayer::update(const QJsonObject &graph,
   }
   for (auto it = items_.begin(); it != items_.end();) {
     if (!visible.contains(it.key())) {
-      if (it.value()) {
-        // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
-        delete it.value().data();
-      }
+      removeItem(it.value());
       it = items_.erase(it);
     } else {
       ++it;

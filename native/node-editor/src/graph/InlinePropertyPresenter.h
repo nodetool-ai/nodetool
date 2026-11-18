@@ -7,10 +7,10 @@
 #include <QVector>
 #include <QtNodes/Definitions>
 #include <functional>
-class QGraphicsView;
 class QQmlEngine;
 class QQuickWidget;
 namespace nodetool {
+class CanvasSurface;
 namespace node_editor { class PropertyHost; }
 class WorkflowGraphModel;
 class EditorScene;
@@ -27,7 +27,7 @@ class InlinePropertyPresenter final : public QObject {
   Q_PROPERTY(bool expanded READ expanded NOTIFY changed)
 public:
   InlinePropertyPresenter(WorkflowGraphModel &model, EditorScene &scene,
-                          QGraphicsView &view, QQmlEngine *engine,
+                          CanvasSurface &canvas, QQmlEngine *engine,
                           node_editor::PropertyHost &host, QObject *parent = nullptr);
   ~InlinePropertyPresenter() override;
   QVariantMap descriptor() const { return descriptor_; }
@@ -64,8 +64,7 @@ protected:
   bool eventFilter(QObject *object, QEvent *event) override;
 private:
   WorkflowGraphModel &model_;
-  EditorScene &scene_;
-  QGraphicsView &view_;
+  CanvasSurface &canvas_;
   QPointer<QQmlEngine> engine_;
   node_editor::PropertyHost &host_;
   QPointer<QQuickWidget> widget_;

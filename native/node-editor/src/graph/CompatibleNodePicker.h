@@ -10,13 +10,14 @@
 #include <QtNodes/Definitions>
 #include "CatalogSearch.h"
 #include <functional>
-class QGraphicsView;
 class QQmlEngine;
 class QQuickWidget;
 namespace nodetool {
+class CanvasSurface;
 class WorkflowGraphModel;
 class EditorScene;
 // A loose-wire choice produces one canonical add-node/add-edge document batch.
+// UI thread only.
 class CompatibleNodePicker final : public QObject {
   Q_OBJECT
   Q_PROPERTY(QVariantList rows READ rows NOTIFY changed)
@@ -33,7 +34,7 @@ class CompatibleNodePicker final : public QObject {
   Q_PROPERTY(bool keyboard READ keyboard NOTIFY changed)
 public:
   CompatibleNodePicker(WorkflowGraphModel &model, EditorScene &scene,
-                       QGraphicsView &view, QQmlEngine *engine,
+                       CanvasSurface &canvas, QQmlEngine *engine,
                        QObject *parent = nullptr);
   ~CompatibleNodePicker() override;
   void setCatalog(const QJsonArray &catalog);
@@ -80,7 +81,7 @@ protected:
 private:
   WorkflowGraphModel &model_;
   EditorScene &scene_;
-  QGraphicsView &view_;
+  CanvasSurface &canvas_;
   QPointer<QQmlEngine> engine_;
   QPointer<QQuickWidget> widget_;
   QJsonArray catalog_;

@@ -64,9 +64,9 @@ class QQmlEngine;
 class QQuickWidget;
 class QDockWidget;
 class QBoxLayout;
-class QGraphicsView;
 class QStackedWidget;
 namespace nodetool {
+class CanvasSurface;
 struct EntryMenuRequest;
 namespace node_editor { class LineageLayer; }
 class EditorScene;
@@ -76,6 +76,7 @@ class CanvasMediaPresenter;
 class CardMediaLoader;
 class CanvasDropController;
 class CompatibleNodePicker;
+// UI thread only.
 class EditorWindow final : public QMainWindow {
   Q_OBJECT
   Q_PROPERTY(bool emptyCanvas READ emptyCanvas NOTIFY panelChanged)
@@ -315,12 +316,13 @@ public:
     void toggleStatusView(const QString &view);
   QVariantMap selectionInfo() const;
   int zoomPercent() const;
+    CanvasSurface &canvas() const;
     EditorScene *scene() const {
         if (activeEditor() != this) {
             return activeEditor()->scene();
         }
         ensureProjected();
-        return scene_;
+        return scene_.get();
     }
   void authoredAction(const QString &id, const QString &command, quint64 epoch, quint64 credentials);
   Q_INVOKABLE void showToolTip(const QString &text);
@@ -901,10 +903,10 @@ private:
   // Parented to this window. It fires when a queue change has held.
   QTimer *shownQueueTimer_ = nullptr;
   QQuickWidget *selectionOverlay_ = nullptr;
-  // The node info panel, a child of view_ deleted by ~EditorWindow before
+  // The node info panel, a child of the canvas host deleted by ~EditorWindow before
   // nodeInfo_. nodeInfoId_ is the node it shows, empty while it is hidden.
   QQuickWidget *nodeInfoOverlay_ = nullptr;
-  // The price chip, a child of view_ deleted by ~EditorWindow before priceChip_.
+  // The price chip, a child of the canvas host deleted by ~EditorWindow before priceChip_.
   QQuickWidget *priceChipOverlay_ = nullptr;
   QString nodeInfoId_;
   // True while the selection toolbar floats over its card instead of the canvas top.
@@ -953,8 +955,8 @@ private:
     node_editor::DocumentPickerController documentPicker_;
   QDockWidget *outputDock_ = nullptr;
   WorkflowGraphModel model_;
-  EditorScene *scene_ = nullptr;
-  QGraphicsView *view_ = nullptr;
+  std::unique_ptr<EditorScene> scene_;
+  std::unique_ptr<CanvasSurface> canvas_;
   QJsonArray metadata_;
   // Code snippets keyed by their menu node type, read from the generated
   // resource on the first catalog (scripts/generate-code-snippets.mjs).

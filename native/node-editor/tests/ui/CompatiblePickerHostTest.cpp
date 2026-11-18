@@ -1,9 +1,9 @@
+#include "../support/WidgetCanvasFixture.h"
 #include "ui/EditorWindow.h"
 #include "graph/EditorScene.h"
 #include "graph/CompatibleNodePicker.h"
 #include "graph/CompatibleNodePlacement.h"
 #include "../graph/CompatiblePickerFixture.h"
-#include <QGraphicsView>
 #include <QMouseEvent>
 #include <QContextMenuEvent>
 #include <QQuickWidget>
@@ -22,19 +22,19 @@ QQuickItem *findItem(QQuickItem *root,const QString &name) {
   for (auto child:root->childItems()) { if (auto found=findItem(child,name)) { return found; } }
   return nullptr;
 }
-QPoint emptyDrop(QGraphicsView &view,EditorScene &scene,NodeId id) {
-  const auto bounds=scene.nodeGraphicsObject(id)->sceneBoundingRect();
+QPoint emptyDrop(nodetool::CanvasSurface &view,EditorScene &scene,NodeId id) {
+  const auto bounds=nodetool::test::graphicsNode(scene, id)->sceneBoundingRect();
   return view.mapFromScene(QPointF(bounds.center().x(),bounds.bottom()+64));
 }
 bool emptyAt(EditorScene &scene,const QPointF &point) {
   for (auto item:scene.items(point)) { if (qgraphicsitem_cast<NodeGraphicsObject *>(item)) { return false; } }
   return true;
 }
-void drag(QGraphicsView &view,const QPoint &start,const QPoint &drop) {
-  QTest::mousePress(view.viewport(),Qt::LeftButton,Qt::NoModifier,start);
-  QMouseEvent move(QEvent::MouseMove,QPointF(drop),QPointF(view.viewport()->mapToGlobal(drop)),Qt::NoButton,Qt::LeftButton,Qt::NoModifier);
-  QApplication::sendEvent(view.viewport(),&move);
-  QTest::mouseRelease(view.viewport(),Qt::LeftButton,Qt::NoModifier,drop);
+void drag(nodetool::CanvasSurface &view,const QPoint &start,const QPoint &drop) {
+  QTest::mousePress(&view.viewportWidget(),Qt::LeftButton,Qt::NoModifier,start);
+  QMouseEvent move(QEvent::MouseMove,QPointF(drop),QPointF(view.viewportWidget().mapToGlobal(drop)),Qt::NoButton,Qt::LeftButton,Qt::NoModifier);
+  QApplication::sendEvent(&view.viewportWidget(),&move);
+  QTest::mouseRelease(&view.viewportWidget(),Qt::LeftButton,Qt::NoModifier,drop);
 }
 }
 class CompatiblePickerHostTest final : public QObject {
@@ -44,11 +44,11 @@ private slots:
     EditorWindow window; window.setCatalog(picker_fixture::catalog());
     QVERIFY(window.document()->load(picker_fixture::workflow()));
     window.show(); QVERIFY(window.selectNode("origin")); window.action("Reset zoom"); QTest::qWait(80);
-    auto view=window.findChild<QGraphicsView *>(); auto picker=window.findChild<CompatibleNodePicker *>();
+    auto view=&window.canvas(); auto picker=window.findChild<CompatibleNodePicker *>();
     QVERIFY(view); QVERIFY(picker); QVERIFY(window.windowHandle());
     auto &model=static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     const auto id=picker_fixture::id(model,"origin");
-    const auto start=view->mapFromScene(window.scene()->nodeGraphicsObject(id)->scenePos()+window.scene()->nodeGeometry().portPosition(id,PortType::Out,0));
+    const auto start=view->mapFromScene(window.canvas().nodeOrigin(id)+window.scene()->nodeGeometry().portPosition(id,PortType::Out,0));
     const auto drop=emptyDrop(*view,*window.scene(),id);
     QVERIFY(emptyAt(*window.scene(),view->mapToScene(drop)));
     QSignalSpy loose(window.scene(),&EditorScene::looseWireDropped);
@@ -56,7 +56,7 @@ private slots:
     auto popup=picker->widget(); QVERIFY(popup);
     QTRY_VERIFY(popup->rootObject()->findChild<QQuickItem *>("compatible-search")->hasActiveFocus());
     const auto baseline=window.document()->snapshot();
-    const auto transform=view->transform();
+    const auto zoom = view->zoom();
     const auto selection=window.selection();
     const auto paddingGlobal=popup->mapToGlobal(QPoint(5,popup->height()-5));
     const auto paddingWindow=window.windowHandle()->mapFromGlobal(paddingGlobal);
@@ -64,7 +64,7 @@ private slots:
     QVERIFY(picker->active()); QCOMPARE(window.document()->snapshot(),baseline); QCOMPARE(window.selection(),selection);
     QWheelEvent wheel(QPointF(paddingWindow),QPointF(paddingGlobal),QPoint(),QPoint(0,-120),Qt::NoButton,Qt::NoModifier,Qt::NoScrollPhase,false);
     QApplication::sendEvent(window.windowHandle(),&wheel);
-    QVERIFY(picker->active()); QCOMPARE(view->transform(),transform); QCOMPARE(window.document()->snapshot(),baseline); QCOMPARE(window.selection(),selection);
+    QVERIFY(picker->active()); QCOMPARE(view->zoom(), zoom); QCOMPARE(window.document()->snapshot(),baseline); QCOMPARE(window.selection(),selection);
     popup->setFocus();
     auto search=popup->rootObject()->findChild<QQuickItem *>("compatible-search"); search->forceActiveFocus();
     QTest::keyClicks(popup,"Receiver prompt"); QTRY_COMPARE(picker->rows().size(),2);
@@ -85,11 +85,11 @@ private slots:
       {"properties",QJsonArray{picker_fixture::slot("input",picker_fixture::type("str"))}},{"outputs",QJsonArray{}}});
     window.setCatalog(catalog); QVERIFY(window.document()->load(picker_fixture::workflow()));
     window.show(); QVERIFY(window.selectNode("origin")); window.action("Reset zoom"); QTest::qWait(80);
-    auto view=window.findChild<QGraphicsView *>(); auto picker=window.findChild<CompatibleNodePicker *>();
+    auto view=&window.canvas(); auto picker=window.findChild<CompatibleNodePicker *>();
     QVERIFY(view); QVERIFY(picker);
     auto &model=static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     const auto id=picker_fixture::id(model,"origin");
-    const auto start=view->mapFromScene(window.scene()->nodeGraphicsObject(id)->scenePos()+window.scene()->nodeGeometry().portPosition(id,PortType::Out,0));
+    const auto start=view->mapFromScene(window.canvas().nodeOrigin(id)+window.scene()->nodeGeometry().portPosition(id,PortType::Out,0));
     QQuickWidget *toolbar=nullptr;
     for (auto candidate:window.findChildren<QQuickWidget *>()) {
       if (candidate->isVisible() && candidate->source().path().endsWith("/Toolbar.qml")) { toolbar=candidate; break; }
@@ -97,7 +97,7 @@ private slots:
     QVERIFY(toolbar);
     // Drop at the toolbar's left edge, so the popup opens across the centered toolbar.
     auto drop=emptyDrop(*view,*window.scene(),id);
-    drop.setX(view->viewport()->mapFromGlobal(toolbar->mapToGlobal(QPoint())).x());
+    drop.setX(view->viewportWidget().mapFromGlobal(toolbar->mapToGlobal(QPoint())).x());
     QVERIFY(emptyAt(*window.scene(),view->mapToScene(drop)));
     drag(*view,start,drop); QTRY_VERIFY(picker->active());
     auto popup=picker->widget(); QVERIFY(popup);
@@ -120,14 +120,14 @@ private slots:
       QVERIFY(window.document()->load(picker_fixture::workflow()));
       window.show(); QVERIFY(window.selectNode("origin")); window.action("Reset zoom");
       QTest::qWait(80); window.action("Zoom out"); QTest::qWait(30);
-      auto view=window.findChild<QGraphicsView *>(); auto picker=window.findChild<CompatibleNodePicker *>();
+      auto view=&window.canvas(); auto picker=window.findChild<CompatibleNodePicker *>();
       QVERIFY(view); QVERIFY(picker);
       auto &model=static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
       const auto id=picker_fixture::id(model,"origin"); QVERIFY(id!=InvalidNodeId);
-      const auto start=view->mapFromScene(window.scene()->nodeGraphicsObject(id)->scenePos()+window.scene()->nodeGeometry().portPosition(id,direction,0));
+      const auto start=view->mapFromScene(window.canvas().nodeOrigin(id)+window.scene()->nodeGeometry().portPosition(id,direction,0));
       const auto drop=emptyDrop(*view,*window.scene(),id);
       QVERIFY(emptyAt(*window.scene(),view->mapToScene(drop)));
-      QVERIFY(view->viewport()->rect().contains(start)); QVERIFY(view->viewport()->rect().contains(drop));
+      QVERIFY(view->viewportWidget().rect().contains(start)); QVERIFY(view->viewportWidget().rect().contains(drop));
       const auto expected=view->mapToScene(drop);
       const auto baseline=window.document()->snapshot();
       QSignalSpy loose(window.scene(),&EditorScene::looseWireDropped);
@@ -140,9 +140,9 @@ private slots:
       QTRY_VERIFY(search->hasActiveFocus());
       const auto capture=qEnvironmentVariable("NODETOOL_COMPATIBLE_CAPTURE");
       if (!capture.isEmpty() && direction==PortType::Out) {
-        view->centerOn(window.scene()->nodeGraphicsObject(id)->sceneBoundingRect().center()+QPointF(100,100));
-        view->invalidateScene(QRectF(),QGraphicsScene::AllLayers);
-        view->viewport()->repaint();
+        view->centerOn(window.canvas().nodeBounds(id).center()+QPointF(100,100));
+        view->requestRepaint();
+        view->viewportWidget().repaint();
         QTest::qWait(50); QVERIFY(window.grab().save(capture+"-dark.png"));
         window.setDarkTheme(false); QTest::qWait(50);
         QVERIFY(window.grab().save(capture+"-light.png"));
@@ -179,17 +179,17 @@ private slots:
     graph["nodes"]=nodes; workflow["graph"]=graph;
     QVERIFY(window.document()->load(workflow)); window.show(); QVERIFY(window.selectNode("origin"));
     window.action("Reset zoom"); QTest::qWait(80);
-    auto view=window.findChild<QGraphicsView *>(); auto picker=window.findChild<CompatibleNodePicker *>();
-    QVERIFY(view); QVERIFY(picker); view->centerOn(400,300); QTest::qWait(30);
+    auto view=&window.canvas(); auto picker=window.findChild<CompatibleNodePicker *>();
+    QVERIFY(view); QVERIFY(picker); view->centerOn(QPointF(400, 300)); QTest::qWait(30);
     auto &model=static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     const auto baseline=window.document()->snapshot();
     for (const bool ownHandle:{true,false}) {
       const auto id=picker_fixture::id(model,"origin");
-      const auto start=view->mapFromScene(window.scene()->nodeGraphicsObject(id)->scenePos()+window.scene()->nodeGeometry().portPosition(id,PortType::Out,0));
+      const auto start=view->mapFromScene(window.canvas().nodeOrigin(id)+window.scene()->nodeGeometry().portPosition(id,PortType::Out,0));
       const auto drop=ownHandle ? start:view->mapFromScene(QPointF(400,450));
-      QVERIFY(view->viewport()->rect().contains(start)); QVERIFY(view->viewport()->rect().contains(drop));
+      QVERIFY(view->viewportWidget().rect().contains(start)); QVERIFY(view->viewportWidget().rect().contains(drop));
       QSignalSpy loose(window.scene(),&EditorScene::looseWireDropped);
-      if (ownHandle) { QTest::mouseClick(view->viewport(),Qt::LeftButton,Qt::NoModifier,start); }
+      if (ownHandle) { QTest::mouseClick(&view->viewportWidget(),Qt::LeftButton,Qt::NoModifier,start); }
       else { drag(*view,start,drop); }
       QCOMPARE(loose.count(),1); QTRY_VERIFY(picker->active());
       QCOMPARE(window.document()->snapshot(),baseline);
@@ -202,19 +202,19 @@ private slots:
       QVERIFY(!node.contains("parent_id"));
       QCOMPARE(window.document()->undoStack()->count(),1);
       window.action("Undo"); QCOMPARE(window.document()->snapshot(),baseline);
-      QVERIFY(window.selectNode("origin")); view->centerOn(400,300); QTest::qWait(20);
+      QVERIFY(window.selectNode("origin")); view->centerOn(QPointF(400, 300)); QTest::qWait(20);
     }
   }
   void actualEscapeAndStaleAccountDocumentCallbacks() {
     EditorWindow window; window.setCatalog(picker_fixture::catalog());
     QVERIFY(window.document()->load(picker_fixture::workflow()));
     window.show(); QVERIFY(window.selectNode("origin")); window.action("Reset zoom"); QTest::qWait(80);
-    auto view=window.findChild<QGraphicsView *>(); auto picker=window.findChild<CompatibleNodePicker *>();
+    auto view=&window.canvas(); auto picker=window.findChild<CompatibleNodePicker *>();
     QVERIFY(view); QVERIFY(picker);
     auto &model=static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     auto open=[&] {
       const auto id=picker_fixture::id(model,"origin");
-      const auto start=view->mapFromScene(window.scene()->nodeGraphicsObject(id)->scenePos()+window.scene()->nodeGeometry().portPosition(id,PortType::Out,0));
+      const auto start=view->mapFromScene(window.canvas().nodeOrigin(id)+window.scene()->nodeGeometry().portPosition(id,PortType::Out,0));
       const auto drop=emptyDrop(*view,*window.scene(),id);
       QVERIFY(emptyAt(*window.scene(),view->mapToScene(drop)));
       drag(*view,start,drop);
@@ -265,7 +265,7 @@ private slots:
     QVERIFY(window.selectNode("origin"));
     window.action("Reset zoom");
     QTest::qWait(80);
-    auto view=window.findChild<QGraphicsView *>();
+    auto view=&window.canvas();
     auto picker=window.findChild<CompatibleNodePicker *>();
     QVERIFY(view);
     QVERIFY(picker);
@@ -275,13 +275,13 @@ private slots:
     const auto baseline=window.document()->snapshot();
     const auto handle=[&](const QString &resource) {
       const auto id=picker_fixture::id(model,resource);
-      return view->mapFromScene(window.scene()->nodeGraphicsObject(id)->scenePos()+window.scene()->nodeGeometry().portPosition(id,PortType::Out,0));
+      return view->mapFromScene(window.canvas().nodeOrigin(id)+window.scene()->nodeGeometry().portPosition(id,PortType::Out,0));
     };
     QSignalSpy requested(window.scene(),&EditorScene::handleContextMenuRequested);
     const auto rightClick=[&](const QPoint &point) {
-      QTest::mouseMove(view->viewport(),point);
-      QContextMenuEvent menu(QContextMenuEvent::Mouse,point,view->viewport()->mapToGlobal(point));
-      QApplication::sendEvent(view->viewport(),&menu);
+      QTest::mouseMove(&view->viewportWidget(),point);
+      QContextMenuEvent menu(QContextMenuEvent::Mouse,point,view->viewportWidget().mapToGlobal(point));
+      QApplication::sendEvent(&view->viewportWidget(),&menu);
     };
     // A static output offers compatible nodes and no delete action.
     rightClick(handle("origin"));

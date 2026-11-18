@@ -1,10 +1,10 @@
+#include "ui/QtNodesCanvasView.h"
 #include "graph/LineageLayer.h"
 #include "document/WorkflowDocument.h"
 #include <QApplication>
 #include <QContextMenuEvent>
 #include <QGraphicsObject>
 #include <QGraphicsScene>
-#include <QGraphicsView>
 #include <QImage>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -70,7 +70,7 @@ private slots:
     QCOMPARE(layer.linkItem("lineage")->zValue(), -100000.0);
     QVERIFY(layer.linkItem("lineage")->shape().contains(QPointF(250, 31)));
     QVERIFY(!layer.linkItem("lineage")->shape().contains(QPointF(250, 40)));
-    QGraphicsView view(&scene);
+    nodetool::QtNodesCanvasView view(&scene);
     view.setSceneRect(-20, -50, 560, 170);
     view.resize(700, 300);
     view.show();
@@ -170,10 +170,8 @@ private slots:
     QVERIFY(layer.update(empty, geometry()).isEmpty());
     QVERIFY(layer.selectedLinkIds().isEmpty());
     QVERIFY(!layer.linkItem("lineage"));
-    QObject owner;
     auto disposable = std::make_unique<QGraphicsScene>();
-    // native-rules #3: object has both a QObject parent (&owner) and a std::unique_ptr
-    auto surviving = std::make_unique<LineageLayer>(*disposable, &owner);
+    auto surviving = std::make_unique<LineageLayer>(*disposable);
     QVERIFY(surviving->update(original, geometry()).isEmpty());
     disposable.reset();
     QVERIFY(!surviving->update(original, geometry()).isEmpty());
@@ -199,7 +197,7 @@ private slots:
               observedAfterDeletion = true;
             });
     QSignalSpy observer(&layer, &LineageLayer::deleteRequested);
-    QGraphicsView view(&scene);
+    nodetool::QtNodesCanvasView view(&scene);
     view.setSceneRect(-20, -50, 560, 170);
     view.resize(700, 300);
     view.show();

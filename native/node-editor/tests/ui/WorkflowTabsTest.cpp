@@ -1,3 +1,4 @@
+#include "../support/WidgetCanvasFixture.h"
 #include "ui/EditorWindow.h"
 #include "EntryMenuSupport.h"
 #include "graph/EditorScene.h"
@@ -13,7 +14,6 @@
 #include <QTcpSocket>
 #include <QDir>
 #include <QFile>
-#include <QGraphicsView>
 #include <QJsonDocument>
 #include <QMenu>
 #include <QMessageBox>
@@ -67,13 +67,13 @@ class WorkflowTabsTest final : public QObject {
   static void moveNode(EditorWindow &window) {
     window.fit(); QTest::qWait(100);
     auto scene = window.scene();
-    auto view = scene->views().first();
-    auto node = scene->nodeGraphicsObject(*scene->graphModel().allNodeIds().begin());
+    auto view = &window.canvas();
+    auto node = nodetool::test::graphicsNode(*scene, *scene->graphModel().allNodeIds().begin());
     QVERIFY(node);
     const auto start = view->mapFromScene(node->sceneBoundingRect().topLeft() + QPointF(40, 18));
-    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
-    QTest::mouseMove(view->viewport(), start + QPoint(55, 40), 30);
-    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, start + QPoint(55, 40));
+    QTest::mousePress(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, start);
+    QTest::mouseMove(&view->viewportWidget(), start + QPoint(55, 40), 30);
+    QTest::mouseRelease(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, start + QPoint(55, 40));
     QCoreApplication::processEvents();
   }
   static void answerClose(QMessageBox::StandardButton choice) {
@@ -178,13 +178,13 @@ private slots:
     QTemporaryDir files; QVERIFY(files.isValid()); const auto path = files.filePath("upload.png");
     QImage image(16, 16, QImage::Format_RGB32); image.fill(Qt::blue); QVERIFY(image.save(path));
     QPointer<CanvasDropController> controller = window.activeEditor()->findChild<CanvasDropController *>(); QVERIFY(controller);
-    auto view = window.scene()->views().first();
+    auto view = &window.canvas();
     QMimeData mime; mime.setUrls({QUrl::fromLocalFile(path)});
-    const auto point = view->viewport()->rect().center();
+    const auto point = view->viewportWidget().rect().center();
     QDragEnterEvent enter(QPointF(point), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-    QApplication::sendEvent(view->viewport(), &enter); QVERIFY(enter.isAccepted());
+    QApplication::sendEvent(&view->viewportWidget(), &enter); QVERIFY(enter.isAccepted());
     QDropEvent drop(point, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-    QApplication::sendEvent(view->viewport(), &drop); QVERIFY(drop.isAccepted());
+    QApplication::sendEvent(&view->viewportWidget(), &drop); QVERIFY(drop.isAccepted());
     QTRY_VERIFY(pending);
     QVERIFY(click(window, "new-workflow-tab"));
     const auto before = window.document()->snapshot();
@@ -206,15 +206,15 @@ private slots:
     QSignalSpy changed(document, &node_editor::WorkflowDocument::changed);
     QSignalSpy reset(&scene->graphModel(), SIGNAL(modelReset())); QVERIFY(reset.isValid());
     QVERIFY(window.selectNode("note0")); window.action("Zoom in"); QTest::qWait(40);
-    auto view = scene->views().first();
-    const auto transform = view->transform(); const auto center = view->mapToScene(view->viewport()->rect().center());
+    auto view = &window.canvas();
+    const auto transform = view->zoom(); const auto center = view->mapToScene(view->viewportWidget().rect().center());
     const auto items = scene->items(); const auto snapshot = document->snapshot();
     QVERIFY(click(window, "new-workflow-tab"));
     QVERIFY(window.document()->load(workflow("Small workflow")));
     for (int i = 0; i < 6; ++i) {
       QVERIFY(click(window, "activate-tab-0")); QCOMPARE(window.scene(), scene);
-      QCOMPARE(window.selection(), QString("note0")); QCOMPARE(view->transform(), transform);
-      QVERIFY(QLineF(view->mapToScene(view->viewport()->rect().center()), center).length() < 2);
+      QCOMPARE(window.selection(), QString("note0")); QCOMPARE(view->zoom(), transform);
+      QVERIFY(QLineF(view->mapToScene(view->viewportWidget().rect().center()), center).length() < 2);
       QVERIFY(click(window, "activate-tab-1"));
     }
     QCOMPARE(changed.count(), 0); QCOMPARE(reset.count(), 0); QCOMPARE(scene->items(), items); QCOMPARE(document->snapshot(), snapshot); QCOMPARE(document->undoStack()->index(), 0);

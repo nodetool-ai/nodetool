@@ -1,8 +1,8 @@
+#include "ui/CanvasSurface.h"
 #include "ui/EditorWindow.h"
 #include "server/MsgPack.h"
 #include "server/AccountJobs.h"
 #include <QApplication>
-#include <QGraphicsView>
 #include <QJsonDocument>
 #include "EntryMenuSupport.h"
 #include <QQuickItem>
@@ -320,17 +320,17 @@ private slots:
         QCOMPARE(server.commands.last()["command"].toString(), QString("update_node_properties"));
         QCOMPARE(server.commands.last()["data"].toObject()["job_id"], data["job_id"]);
         QCOMPARE(server.commands.last()["data"].toObject()["properties"].toObject(), (QJsonObject{{"value", "busy"}}));
-        auto view = window.findChild<QGraphicsView *>();
+        auto view = &window.canvas();
         QVERIFY(view);
         view->setFocus();
         // Like the web toolbar, Escape cancels this client's run over the socket.
-        QTest::keyClick(view->viewport(), Qt::Key_Escape);
+        QTest::keyClick(&view->viewportWidget(), Qt::Key_Escape);
         QTRY_COMPARE(server.commands.size(), 3);
         QCOMPARE(server.commands.last()["command"].toString(), QString("cancel_job"));
         QCOMPARE(server.commands.last()["data"].toObject()["job_id"], data["job_id"]);
         QVERIFY(server.cancelled.isEmpty());
         server.update(data["job_id"].toString(), "cancelled");
-        QTest::keyClick(view->viewport(), Qt::Key_Return, Qt::ControlModifier);
+        QTest::keyClick(&view->viewportWidget(), Qt::Key_Return, Qt::ControlModifier);
         QTRY_COMPARE(server.commands.size(), 4);
     }
     void toolbarLabels() {

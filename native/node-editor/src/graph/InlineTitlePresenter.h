@@ -1,4 +1,6 @@
 #pragma once
+#include <map>
+#include <memory>
 #include <QObject>
 #include <QHash>
 #include <QPointer>
@@ -6,14 +8,15 @@
 #include <QVector>
 #include <QtNodes/Definitions>
 #include <functional>
-class QGraphicsView;
-class QGraphicsObject;
 class QQmlEngine;
 class QQuickWidget;
 namespace nodetool {
+class CanvasSurface;
+class CanvasNote;
 namespace node_editor { class WorkflowDocument; }
 class WorkflowGraphModel;
 class EditorScene;
+// UI thread only.
 class InlineTitlePresenter final : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString text READ text NOTIFY changed)
@@ -26,7 +29,7 @@ class InlineTitlePresenter final : public QObject {
   Q_PROPERTY(double zoom READ zoom NOTIFY geometryChanged)
   Q_PROPERTY(int generation READ generation NOTIFY changed)
 public:
-  InlineTitlePresenter(WorkflowGraphModel &, EditorScene &, QGraphicsView &, QQmlEngine *, QObject *parent = nullptr);
+  InlineTitlePresenter(WorkflowGraphModel &, EditorScene &, CanvasSurface &, QQmlEngine *, QObject *parent = nullptr);
   ~InlineTitlePresenter() override;
   QString text() const { return text_; }
   bool group() const { return group_; }
@@ -60,11 +63,11 @@ protected:
 private:
   WorkflowGraphModel &model_;
   EditorScene &scene_;
-  QGraphicsView &view_;
+  CanvasSurface &canvas_;
   QPointer<QQmlEngine> engine_;
   QPointer<QQuickWidget> widget_;
   QVector<QPointer<QQuickWidget>> retired_;
-  QHash<QtNodes::NodeId, QPointer<QGraphicsObject>> notes_;
+  std::map<QtNodes::NodeId, std::unique_ptr<CanvasNote>> notes_;
   QHash<QtNodes::NodeId, QPointer<QQuickWidget>> controls_;
   void repositionControls();
   QtNodes::NodeId node_ = QtNodes::InvalidNodeId;
@@ -75,7 +78,6 @@ private:
   double zoom_ = 1, requestedHeight_ = 100;
   int generation_ = 0;
   bool current() const;
-  void clearNotes();
   void flush();
 };
 }

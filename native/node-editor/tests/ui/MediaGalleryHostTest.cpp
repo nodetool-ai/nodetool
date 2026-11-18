@@ -1,8 +1,8 @@
+#include "../support/WidgetCanvasFixture.h"
 #include "ui/EditorWindow.h"
 #include "media/VideoFrameView.h"
 #include "graph/EditorScene.h"
 #include "graph/WorkflowGraphModel.h"
-#include <QGraphicsView>
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QApplication>
 #include <QBuffer>
@@ -187,7 +187,7 @@ private slots:
     window.fit();
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     const auto id = *model.allNodeIds().begin();
-    auto *node = window.scene()->nodeGraphicsObject(id); QVERIFY(node);
+    auto *node = nodetool::test::graphicsNode(*window.scene(), id); QVERIFY(node);
     node->setSelected(true);
     auto hostFor = [&](const QString &name) -> QQuickWidget * {
       for (auto *widget : window.findChildren<QQuickWidget *>()) {
@@ -240,7 +240,7 @@ private slots:
     window.fit();
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     const auto id = *model.allNodeIds().begin();
-    auto *node = window.scene()->nodeGraphicsObject(id); QVERIFY(node);
+    auto *node = nodetool::test::graphicsNode(*window.scene(), id); QVERIFY(node);
     QTRY_VERIFY(!model.canvasResultRect(id).isEmpty());
     node->setSelected(true);
     auto hostFor = [&](const QString &name) -> QQuickWidget * {
@@ -291,16 +291,16 @@ private slots:
     window.runOutput()->beginRun("raster-image");
     output(window, "raster-image", media("image", imageUri(Qt::blue)));
     window.fit();
-    auto view = window.findChild<QGraphicsView *>(); QVERIFY(view);
+    auto view = &window.canvas(); QVERIFY(view);
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     const auto id = *model.allNodeIds().begin();
-    auto node = window.scene()->nodeGraphicsObject(id); QVERIFY(node);
+    auto node = nodetool::test::graphicsNode(*window.scene(), id); QVERIFY(node);
     QTRY_VERIFY(!model.canvasResultRect(id).isEmpty());
     QVERIFY(!canvas(window));
     const auto point = view->mapFromScene(node->mapToScene(model.canvasResultRect(id).center()));
     const auto snapshot = window.document()->snapshot();
     const auto undo = window.document()->undoStack()->count();
-    QTest::mouseDClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, point);
+    QTest::mouseDClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, point);
     QTRY_VERIFY(imageViewer());
     QCOMPARE(imageViewer()->transientParent(), window.windowHandle());
     QVERIFY(!canvas(window));
@@ -321,10 +321,10 @@ private slots:
     QCoreApplication::sendEvent(&unrelatedWindow, &unrelatedShortcut);
     QCOMPARE(unrelatedProbe.deliveries, 1);
     ShortcutProbe hostProbe;
-    view->viewport()->installEventFilter(&hostProbe);
+    view->viewportWidget().installEventFilter(&hostProbe);
     QKeyEvent hostShortcut(QEvent::ShortcutOverride, Qt::Key_Delete, Qt::NoModifier);
     hostShortcut.ignore();
-    QCoreApplication::sendEvent(view->viewport(), &hostShortcut);
+    QCoreApplication::sendEvent(&view->viewportWidget(), &hostShortcut);
     QCOMPARE(hostProbe.deliveries, 0);
     QVERIFY(hostShortcut.isAccepted());
     unrelatedWindow.hide();
@@ -342,7 +342,7 @@ private slots:
     QTRY_VERIFY(!imageViewer());
     output(window, "new-image-scope", media("image", imageUri(Qt::blue)));
     window.fit();
-    QTest::mouseDClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(node->mapToScene(model.canvasResultRect(id).center())));
+    QTest::mouseDClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(node->mapToScene(model.canvasResultRect(id).center())));
     QTRY_VERIFY(imageViewer());
     window.session()->disconnectFromServer();
     QTRY_VERIFY(!imageViewer());
@@ -359,20 +359,20 @@ private slots:
     window.runOutput()->beginRun("occluded");
     output(window, "occluded", media("image", imageUri(Qt::blue)));
     window.fit();
-    auto view = window.findChild<QGraphicsView *>(); QVERIFY(view);
+    auto view = &window.canvas(); QVERIFY(view);
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     QtNodes::NodeId imageId = 0, coveringId = 0;
     for (const auto id : model.allNodeIds()) { if (model.resourceId(id) == NodeId) { imageId = id; } else { coveringId = id; } }
-    auto imageNode = window.scene()->nodeGraphicsObject(imageId); QVERIFY(imageNode);
-    auto coveringNode = window.scene()->nodeGraphicsObject(coveringId); QVERIFY(coveringNode);
+    auto imageNode = nodetool::test::graphicsNode(*window.scene(), imageId); QVERIFY(imageNode);
+    auto coveringNode = nodetool::test::graphicsNode(*window.scene(), coveringId); QVERIFY(coveringNode);
     const auto scenePoint = imageNode->mapToScene(model.canvasResultRect(imageId).center());
     coveringNode->setPos(scenePoint - coveringNode->boundingRect().center());
     coveringNode->setZValue(imageNode->zValue() + 1);
     QVERIFY(coveringNode->sceneBoundingRect().contains(scenePoint));
-    QTest::mouseDClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(scenePoint));
+    QTest::mouseDClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(scenePoint));
     QVERIFY(!imageViewer());
     coveringNode->setVisible(false);
-    QTest::mouseDClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(scenePoint));
+    QTest::mouseDClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(scenePoint));
     QTRY_VERIFY(imageViewer());
     auto ui = window.document()->node(NodeId)["ui_properties"].toObject(); ui["collapsed"] = true;
     QVERIFY(window.document()->applyCommand({{"op", "setNodeField"}, {"id", NodeId}, {"field", "ui_properties"}, {"value", ui}}));
@@ -386,14 +386,14 @@ private slots:
     window.runOutput()->beginRun("bypassed-image");
     output(window, "bypassed-image", media("image", imageUri(Qt::blue)));
     window.fit();
-    auto view = window.findChild<QGraphicsView *>(); QVERIFY(view);
+    auto view = &window.canvas(); QVERIFY(view);
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     const auto id = *model.allNodeIds().begin();
-    auto node = window.scene()->nodeGraphicsObject(id); QVERIFY(node);
+    auto node = nodetool::test::graphicsNode(*window.scene(), id); QVERIFY(node);
     QVERIFY(model.bypassed(id)); QTRY_VERIFY(!model.canvasResultRect(id).isEmpty());
     const auto snapshot = window.document()->snapshot();
     const auto undo = window.document()->undoStack()->count();
-    QTest::mouseDClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(node->mapToScene(model.canvasResultRect(id).center())));
+    QTest::mouseDClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(node->mapToScene(model.canvasResultRect(id).center())));
     QTRY_VERIFY(imageViewer());
     QCOMPARE(window.document()->snapshot(), snapshot);
     QCOMPARE(window.document()->undoStack()->count(), undo);

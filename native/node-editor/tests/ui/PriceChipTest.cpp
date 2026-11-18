@@ -1,9 +1,9 @@
+#include "ui/CanvasSurface.h"
 #include "graph/EditorScene.h"
 #include "graph/ProviderPricing.h"
 #include "interfaces/PriceChip.h"
 #include "ui/EditorWindow.h"
 #include <QDir>
-#include <QGraphicsView>
 #include <QJsonDocument>
 #include <QQuickItem>
 #include <QQuickWidget>
@@ -168,10 +168,9 @@ private slots:
         for (const auto id : model.allNodeIds()) {
             if (model.resourceId(id) == "fal") { falId = id; }
         }
-        auto *view = window.activeEditor()->findChild<QGraphicsView *>();
+        auto *view = &window.activeEditor()->canvas();
         const auto card = [&] {
-            const auto *item = window.activeEditor()->scene()->nodeGraphicsObject(falId);
-            return view->mapFromScene(QRectF(item->scenePos(), model.layout(falId).size)).boundingRect().translated(view->viewport()->pos());
+            return view->mapFromScene(window.activeEditor()->canvas().nodeRect(falId)).translated(view->viewportWidget().pos());
         };
         QTRY_COMPARE(overlay->geometry().top(), card().y() + card().height() + 5);
         QTRY_COMPARE(overlay->geometry().x() + overlay->width(), card().x() + card().width() - 4);

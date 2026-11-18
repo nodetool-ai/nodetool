@@ -5,6 +5,10 @@ A standalone C++20 Qt Widgets host uses QtNodes for the graph and
 `WorkflowDocument` owns edits and undo history. Workflow files contain canonical
 NodeTool JSON, never QtNodes scene JSON.
 
+[CanvasSurface](src/ui/CanvasSurface.h) supplies coordinate mapping, selection,
+viewport navigation, hit testing and capture. [QtNodesCanvas](src/ui/QtNodesCanvas.h)
+adapts the widget renderer to that interface.
+
 ## Presentation
 
 The editor follows the web workflow editor's layout, colors, and geometry. A

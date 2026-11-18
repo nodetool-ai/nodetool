@@ -1,3 +1,4 @@
+#include "../support/WidgetCanvasFixture.h"
 #include "graph/InlinePropertyPresenter.h"
 #include "graph/EditorScene.h"
 #include "graph/WorkflowGraphModel.h"
@@ -8,7 +9,6 @@
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QApplication>
-#include <QGraphicsView>
 #include <QQuickWidget>
 #include <QQuickItem>
 #include <QQmlEngine>
@@ -45,10 +45,11 @@ struct Fixture {
   node_editor::WorkflowDocument document;
   WorkflowGraphModel model;
   EditorScene scene{model};
-  QGraphicsView view{&scene};
+  nodetool::test::WidgetView view{&scene};
+  QtNodesCanvas canvas{scene, view};
   QQmlEngine engine;
   node_editor::PropertyHost host;
-  InlinePropertyPresenter presenter{model,scene,view,&engine,host};
+  InlinePropertyPresenter presenter{model,scene, canvas,&engine,host};
   NodeId id = InvalidNodeId;
   explicit Fixture(const QJsonArray &metadata = catalog(), const QJsonObject &workflow = snapshot()) : cat(metadata) {
     document.setNodeMetadata(cat);
@@ -60,7 +61,7 @@ struct Fixture {
     view.setSceneRect(0,0,1000,900);
     view.show();
     view.centerOn(300,300);
-    scene.nodeGraphicsObject(id)->setSelected(true);
+    nodetool::test::graphicsNode(scene, id)->setSelected(true);
     presenter.commitProperty = [this](const QString &node,const QString &name,const QVariant &value) {
       const auto result = document.applyCommand({{"op","setProperty"},{"id",node},{"name",name},{"value",QJsonValue::fromVariant(value)}});
       if (result) { model.project(document.snapshot(),cat); }
@@ -75,7 +76,7 @@ struct Fixture {
     // A click on the field selects only its node.
     id = node(resource);
     scene.clearSelection();
-    scene.nodeGraphicsObject(id)->setSelected(true);
+    nodetool::test::graphicsNode(scene, id)->setSelected(true);
     presenter.activate(id,name);
     QApplication::processEvents();
   }
@@ -176,7 +177,7 @@ private slots:
     QTRY_VERIFY(widget->rootObject()->findChild<QQuickItem *>("inline-text")->hasActiveFocus());
     QTest::keyClick(widget,Qt::Key_A,Qt::ControlModifier);
     QTest::keyClicks(widget,"saved before switch");
-    const auto otherPoint=f.view.mapFromScene(f.scene.nodeGraphicsObject(otherId)->sceneBoundingRect().center());
+    const auto otherPoint=f.view.mapFromScene(nodetool::test::graphicsNode(f.scene, otherId)->sceneBoundingRect().center());
     QVERIFY(f.view.viewport()->rect().contains(otherPoint));
     QTest::mouseClick(f.view.viewport(),Qt::LeftButton,Qt::NoModifier,otherPoint);
     QTRY_COMPARE(f.value("text").toString(),QString("saved before switch"));
@@ -197,7 +198,7 @@ private slots:
   void nativeFieldClickAndIdle() {
     Fixture f;
     QTest::qWait(20);
-    const auto field=f.model.inlineFieldRect(f.id,"text").translated(f.scene.nodeGraphicsObject(f.id)->scenePos());
+    const auto field=f.model.inlineFieldRect(f.id,"text").translated(nodetool::test::graphicsNode(f.scene, f.id)->scenePos());
     const auto point=f.view.mapFromScene(field.center());
     QVERIFY(f.view.viewport()->rect().contains(point));
     QTest::mouseClick(f.view.viewport(),Qt::LeftButton,Qt::NoModifier,point);

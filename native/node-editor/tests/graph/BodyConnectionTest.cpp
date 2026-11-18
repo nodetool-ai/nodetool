@@ -1,9 +1,9 @@
+#include "../support/WidgetCanvasFixture.h"
 #include "BodyConnectionFixture.h"
 #include "graph/CompatibleNodePicker.h"
 #include "graph/EditorScene.h"
 #include "graph/BodyConnectionRules.h"
 #include "document/WorkflowDocument.h"
-#include <QGraphicsView>
 #include <QQmlEngine>
 #include <QQuickWidget>
 #include <QQuickItem>
@@ -15,8 +15,8 @@ using namespace nodetool::body_fixture;
 struct Fixture {
   node_editor::WorkflowDocument document;
   WorkflowGraphModel model;
-  EditorScene scene{model}; QGraphicsView view{&scene}; QQmlEngine engine;
-  CompatibleNodePicker picker{model,scene,view,&engine};
+  EditorScene scene{model}; nodetool::test::WidgetView view{&scene}; QtNodesCanvas canvas{scene, view}; QQmlEngine engine;
+  CompatibleNodePicker picker{model,scene, canvas,&engine};
   QString error;
   explicit Fixture(const QString &targetType,const QJsonObject &extra={},const QJsonArray &edges={},const QJsonArray &additional={},const QString &originType="Fixed") {
     auto target=node("target",targetType,500);

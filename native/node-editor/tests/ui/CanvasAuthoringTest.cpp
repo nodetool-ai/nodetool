@@ -1,3 +1,4 @@
+#include "ui/CanvasSurface.h"
 #include "ui/EditorWindow.h"
 #include "graph/EditorScene.h"
 #include "PropertyFixture.h"
@@ -7,7 +8,6 @@
 #include <QApplication>
 #include <QDir>
 #include <QDragEnterEvent>
-#include <QGraphicsView>
 #include <QMenu>
 #include <QMimeData>
 #include <QQuickItem>
@@ -92,7 +92,7 @@ private slots:
   // Several cards wait for the active run. A lone card is Run node, an independent job that the web never blocks
   // (useRunFromHere.ts returns isWorkflowRunning: false), which NodeActionsTest covers.
   auto authoringModel = window.findChild<WorkflowGraphModel *>(); QVERIFY(authoringModel);
-  for (const auto id : authoringModel->allNodeIds()) { if (authoringModel->resourceId(id) == "n0") { window.scene()->nodeGraphicsObject(id)->setSelected(true); } }
+  for (const auto id : authoringModel->allNodeIds()) { if (authoringModel->resourceId(id) == "n0") { window.canvas().selection().setNode(id, true); } }
   QCOMPARE(window.selectedCount(), 2);
   window.action("Run selected"); QTest::qWait(20); QCOMPARE(commands.size(), 1);
   QVERIFY(window.selectNode("n1"));
@@ -133,7 +133,7 @@ private slots:
   const auto original = window.document()->snapshot();
   QVERIFY(window.selectNode("n1"));
   auto model = window.findChild<WorkflowGraphModel *>(); QVERIFY(model);
-  for (const auto id : model->allNodeIds()) { if (model->resourceId(id) == "n2") { window.scene()->nodeGraphicsObject(id)->setSelected(true); } }
+  for (const auto id : model->allNodeIds()) { if (model->resourceId(id) == "n2") { window.canvas().selection().setNode(id, true); } }
   QCOMPARE(window.selectedCount(), 2); QVERIFY(!window.selectionDisabled());
   QQuickWidget *toolbar = nullptr;
   for (auto panel : window.findChildren<QQuickWidget *>()) { if (panel->source().fileName() == "SelectionToolbar.qml") { toolbar = panel; } }
@@ -186,8 +186,8 @@ private slots:
   auto model = window.findChild<WorkflowGraphModel *>(); QVERIFY(model);
   const auto ids = model->allNodeIds();
   for (const auto a : ids) {
-    const auto rectA = window.scene()->nodeGraphicsObject(a)->sceneBoundingRect();
-    for (const auto b : ids) { if (a != b) { QVERIFY(!rectA.intersects(window.scene()->nodeGraphicsObject(b)->sceneBoundingRect())); } }
+    const auto rectA = window.canvas().nodeBounds(a);
+    for (const auto b : ids) { if (a != b) { QVERIFY(!rectA.intersects(window.canvas().nodeBounds(b))); } }
   }
   QCOMPARE(window.document()->graph()["edges"], original["graph"].toObject()["edges"]);
   window.action("Undo"); QCOMPARE(window.document()->snapshot(), original);
@@ -195,7 +195,7 @@ private slots:
   QTest::qWait(60);
   const auto arranged = window.document()->snapshot();
   QVERIFY(window.selectNode("n1"));
-  for (const auto id : model->allNodeIds()) { if (model->resourceId(id) == "n5") { window.scene()->nodeGraphicsObject(id)->setSelected(true); } }
+  for (const auto id : model->allNodeIds()) { if (model->resourceId(id) == "n5") { window.canvas().selection().setNode(id, true); } }
   const auto beforeCount = window.document()->undoStack()->count();
   window.action("Layout selection");
   QCOMPARE(window.document()->undoStack()->count(), beforeCount + 1);
@@ -216,16 +216,16 @@ private slots:
  }
  void dropCoordinatesDefaultsAndUndo() {
   EditorWindow window; window.setCatalog(property_fixture::catalog()); window.show(); QTest::qWait(80);
-  auto view = window.findChild<QGraphicsView *>(); QVERIFY(view);
-  view->scale(0.63, 0.63); view->centerOn(721, -213);
+  auto view = &window.canvas(); QVERIFY(view);
+  view->scaleBy(0.63, CanvasSurface::ZoomAnchor::Center); view->centerOn(QPointF(721, -213));
   const QPoint point(173, 219); const auto expected = view->mapToScene(point);
   QMimeData mime; mime.setData("application/x-nodetool-node-type", "fixture.Properties");
   QDragEnterEvent enter(QPointF(point), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-  QApplication::sendEvent(view->viewport(), &enter); QVERIFY(enter.isAccepted());
+  QApplication::sendEvent(&view->viewportWidget(), &enter); QVERIFY(enter.isAccepted());
   QDragMoveEvent move(QPointF(point), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-  QApplication::sendEvent(view->viewport(), &move); QVERIFY(move.isAccepted());
+  QApplication::sendEvent(&view->viewportWidget(), &move); QVERIFY(move.isAccepted());
   QDropEvent drop(point, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-  QApplication::sendEvent(view->viewport(), &drop); QVERIFY(drop.isAccepted());
+  QApplication::sendEvent(&view->viewportWidget(), &drop); QVERIFY(drop.isAccepted());
   QCOMPARE(window.document()->nodes().size(), 1); QCOMPARE(window.document()->undoStack()->count(), 1);
   const auto added = window.document()->nodes().first().toObject();
   QCOMPARE(position(added), expected); QCOMPARE(added["data"].toObject()["Count"].toInt(), 2);
@@ -234,14 +234,14 @@ private slots:
  }
  void invalidDropAndReadOnly() {
   EditorWindow window; window.setCatalog(property_fixture::catalog()); window.show(); QTest::qWait(60);
-  auto view = window.findChild<QGraphicsView *>(); QVERIFY(view);
+  auto view = &window.canvas(); QVERIFY(view);
   const auto initial = window.document()->snapshot();
   for (const auto bytes : {QByteArray("unknown.Type"), QByteArray("fixture.Properties\0suffix", 25), QByteArray(5000, 'x'), QByteArray("{\"type\":\"fixture.Properties\"}")}) {
     QMimeData mime; mime.setData("application/x-nodetool-node-type", bytes);
     QDragEnterEvent enter(QPointF(30,30), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-    QApplication::sendEvent(view->viewport(), &enter); QVERIFY(!enter.isAccepted());
+    QApplication::sendEvent(&view->viewportWidget(), &enter); QVERIFY(!enter.isAccepted());
     QDropEvent drop(QPointF(30,30), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-    QApplication::sendEvent(view->viewport(), &drop); QVERIFY(!drop.isAccepted());
+    QApplication::sendEvent(&view->viewportWidget(), &drop); QVERIFY(!drop.isAccepted());
     QCOMPARE(window.document()->snapshot(), initial);
   }
   auto locked = workflow(); auto graph = locked["graph"].toObject(); graph["links"] = QJsonArray{QJsonObject{{"future", true}}}; locked["graph"] = graph;
@@ -251,7 +251,7 @@ private slots:
   window.addNode("fixture.Properties");
   QMimeData mime; mime.setData("application/x-nodetool-node-type", "fixture.Properties");
   QDragEnterEvent enter(QPointF(30,30), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-  QApplication::sendEvent(view->viewport(), &enter); QVERIFY(!enter.isAccepted());
+  QApplication::sendEvent(&view->viewportWidget(), &enter); QVERIFY(!enter.isAccepted());
   QCOMPARE(window.document()->snapshot(), locked); QCOMPARE(window.document()->undoStack()->count(), 0);
  }
  void catalogDragGestureDoesNotClick() {

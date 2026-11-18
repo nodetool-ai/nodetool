@@ -12,6 +12,12 @@
 
 class QGraphicsObject;
 class QGraphicsScene;
+class QGraphicsItem;
+
+namespace nodetool {
+class CanvasSurface;
+class WorkflowGraphModel;
+}
 namespace nodetool::node_editor {
 enum class LineageSide { Left, Right, Top, Bottom };
 struct LineageAnchors {
@@ -32,6 +38,7 @@ struct LineageTheme {
 // model access. Refresh absolute geometry after node/group motion; view
 // transforms supply zoom. Nodes and normal wires remain above the link hit
 // targets.
+// UI thread only. The attached scene owns link items.
 class LineageLayer final : public QObject {
   Q_OBJECT
 public:
@@ -41,6 +48,9 @@ public:
   // update.
   [[nodiscard]] QString update(const QJsonObject &graph,
                                const QHash<QString, QRectF> &absoluteGeometry);
+  [[nodiscard]] QString update(const QJsonObject &graph, const WorkflowGraphModel &model,
+                               const CanvasSurface &canvas);
+  static bool isLinkItem(const QGraphicsItem *item);
   void setTheme(const LineageTheme &theme);
   void setSelectedLinkIds(const QStringList &ids);
   [[nodiscard]] QStringList selectedLinkIds() const;
@@ -54,6 +64,7 @@ signals:
   void contextMenuRequested(const QString &id, const QPoint &screenPosition);
 
 private:
+  void removeItem(QGraphicsObject *item);
   QPointer<QGraphicsScene> scene_;
   QHash<QString, QPointer<QGraphicsObject>> items_;
   QSet<QString> known_, selected_;
