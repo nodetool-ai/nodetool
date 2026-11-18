@@ -1716,8 +1716,7 @@ can write back the fields the model does not own.
 | `src/ui/` | Tracks UI: `TimelineWheel` and `TimelineFormat` (pure math and labels), `TimelineViewState`, `TimelineGestureArea`, `RulerCanvas`, `UiBench` |
 | `src/playback/PlaybackClock` | Play, pause, seek, rate. The time comes from the audio device when one runs, else from a monotonic clock |
 | `src/playback/AudioClockFeed` | The seqlocked state between the clock and the device callback, and the callback half of the clock (`CallbackClockDriver`) |
-| `src/audio/` | `AudioEngine` (miniaudio device, decode worker, PCM rings), `Mixer` (the mix rules and `mixBlock`), `FadeCurves`, `AudioSource` (FFmpeg and libswresample), `OutputLatency` (CoreAudio), `LoopbackCapture`, the audio CLI modes |
-| `third_party/miniaudio.h` | miniaudio 0.11.22, one header (MIT No Attribution or public domain) |
+| `src/audio/` | `AppAudio`, the audio CLI modes, and mixer automation. The engine, mixer, loudness processing and miniaudio live in the [shared player](../timeline-player/README.md#audio) |
 | `third_party/yoga/` | Yoga 3.2.1, the flex layout engine (MIT, `LICENSE`), unchanged |
 | `licenses/FilmCraft-MIT.txt` | FilmCraft (MIT), the source of the ported algorithms. The macOS package copies it by name |
 | `src/scene/FlexLayout`, `TextBlock`, `TextAnimation`, `SvgPath` | Flex layout, the text block box, animated text styles and SVG path bounds, ported from `@nodetool-ai/timeline` |
@@ -1739,8 +1738,7 @@ can write back the fields the model does not own.
 | `qml/` | `TimelineEditor`, `preview/PreviewArea`, `Tracks/*`, named after the React components in `web/src/components/timeline/` |
 | `src/edit/keys/`, `src/edit/KeymapOverlay.h` | Key action handlers and the native preset changes |
 | `src/edit/sourceEdit/`, `src/edit/trim/`, `src/edit/framehold/`, `src/edit/audioroles/` | Source monitor and placement, trim mode, frame holds, audio roles |
-| `src/audio/loudness/` | BS.1770-4 meter, ducking algorithms and the lock-free live readout |
-| `src/audio/ShuttleStretch` | WSOLA stretcher for pitch-kept shuttle |
+| `src/audio/loudness/` | The app's loudness readout for the active timeline |
 | `src/assets/libraryscrub/` | Library hover scrub |
 | `src/color/`, `src/colorpanel/` | Scope maths and Match, and their controllers |
 | `src/markers/`, `src/takes/`, `src/transcript/`, `src/reference/`, `src/remix/`, `src/scenedetect/` | Markers, take switching, the Text panel, the Reference panel, Remix, Scene Edit Detection |

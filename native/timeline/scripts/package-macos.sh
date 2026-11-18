@@ -83,7 +83,7 @@ ffsrc=$(ls -d build-ffmpeg-lgpl/src/ffmpeg-* | head -1)
 cp licenses/LGPL-3.0.txt "$lic/Qt-LGPL-3.0.txt"
 cp licenses/GPL-3.0.txt "$lic/Qt-GPL-3.0.txt"  # the LGPL v3 adds its terms to the GPL v3
 cp "$ffsrc/COPYING.LGPLv2.1" "$lic/FFmpeg-LGPL-2.1.txt"
-awk '/^This software is available as a choice/{f=1} f' third_party/miniaudio.h > "$lic/miniaudio.txt"
+awk '/^This software is available as a choice/{f=1} f' ../timeline-player/third_party/miniaudio.h > "$lic/miniaudio.txt"
 cp ../ui_primitives/resources/licenses/LICENSE-Inter.txt "$lic/Inter-OFL-1.1.txt"
 cp ../ui_primitives/resources/licenses/LICENSE-JetBrainsMono.txt "$lic/JetBrainsMono-OFL-1.1.txt"
 cp ../ui_primitives/resources/licenses/LICENSE-MUI.txt "$lic/MUI-MIT.txt"

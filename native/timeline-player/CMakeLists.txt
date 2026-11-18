@@ -3,10 +3,11 @@ cmake_minimum_required(VERSION 3.24)
 # The timeline player shared by native/timeline and the node editor:
 # nodetool_timeline_scene (the timeline document, its JSON parser and scene
 # evaluation, with Qt Core and Yoga only) and nodetool_timeline_decode (the
-# media sources, the GPU effects, the hook registries and render2d), and
+# media sources, the GPU effects, the hook registries and render2d),
+# nodetool_timeline_audio (the audio engine and mixer), and
 # nodetool_timeline_player_server (the server loader, Qt Network).
 # native/timeline adds this directory with add_subdirectory and links the
-# libraries into timeline_core and timeline_decode.
+# libraries into timeline_core, timeline_decode and timeline_audio.
 project(NodeToolTimelinePlayer LANGUAGES CXX)
 if(APPLE)
     # VideoToolboxInterop.mm
@@ -254,6 +255,66 @@ if(NOT PROJECT_IS_TOP_LEVEL)
     set(NT_PLAYER_HAVE_VAAPI_VULKAN ${NT_PLAYER_HAVE_VAAPI_VULKAN} PARENT_SCOPE)
 endif()
 
+# The mixer uses the same Web Audio filter kernels as the audio nodes.
+if(NOT TARGET nodetool_kernels)
+    add_subdirectory(../kernels ${CMAKE_CURRENT_BINARY_DIR}/kernels)
+    # The kernels use no C++ modules. Avoid requiring clang-scan-deps.
+    set_target_properties(nodetool_kernels PROPERTIES CXX_SCAN_FOR_MODULES OFF)
+endif()
+
+if(APPLE)
+    set(NT_PLAYER_AUDIO_PLATFORM_LIBS "-framework CoreAudio" "-framework AudioToolbox" "-framework CoreFoundation")
+elseif(UNIX)
+    # miniaudio loads ALSA and PulseAudio at runtime.
+    find_package(Threads REQUIRED)
+    set(NT_PLAYER_AUDIO_PLATFORM_LIBS ${CMAKE_DL_LIBS} Threads::Threads m)
+else()
+    set(NT_PLAYER_AUDIO_PLATFORM_LIBS "")
+endif()
+
+add_library(nodetool_timeline_audio STATIC
+    src/audio/AudioEngine.h
+    src/audio/AudioEngine.cpp
+    src/audio/AudioSource.h
+    src/audio/AudioSource.cpp
+    src/audio/FadeCurves.h
+    src/audio/FadeCurves.cpp
+    src/audio/LoopbackCapture.h
+    src/audio/LoopbackCapture.cpp
+    src/audio/Mixer.h
+    src/audio/Mixer.cpp
+    src/audio/OutputLatency.h
+    src/audio/OutputLatency.cpp
+    src/audio/PcmRing.h
+    src/audio/ShuttleStretch.h
+    src/audio/ShuttleStretch.cpp
+    src/audio/effects/Effects.h
+    src/audio/effects/Effects.cpp
+    src/audio/effects/Oversampler.h
+    src/audio/effects/Oversampler.cpp
+    src/audio/hooks/MixerHooks.h
+    src/audio/hooks/MixerHooks.cpp
+    src/audio/hooks/OutputDevice.h
+    src/audio/hooks/OutputDevice.cpp
+    src/audio/loudness/Ducking.h
+    src/audio/loudness/Ducking.cpp
+    src/audio/loudness/LiveLoudness.h
+    src/audio/loudness/LiveLoudness.cpp
+    src/audio/loudness/Loudness.h
+    src/audio/loudness/Loudness.cpp
+    src/audio/miniaudio.cpp)
+target_include_directories(nodetool_timeline_audio PRIVATE third_party)
+target_link_libraries(nodetool_timeline_audio
+    PUBLIC nodetool_timeline_scene PkgConfig::FFMPEG
+    PRIVATE nodetool_kernels ${NT_PLAYER_AUDIO_PLATFORM_LIBS})
+target_compile_options(nodetool_timeline_audio PRIVATE ${NT_PLAYER_WARNINGS})
+# Apple libc++ requires this flag for std::jthread.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    target_compile_options(nodetool_timeline_audio PRIVATE -fexperimental-library)
+    target_link_options(nodetool_timeline_audio INTERFACE -fexperimental-library)
+endif()
+set_source_files_properties(src/audio/miniaudio.cpp PROPERTIES COMPILE_OPTIONS "${NT_PLAYER_NO_WARNINGS}")
+
 add_library(nodetool_timeline_player_server STATIC
     src/model/TimelineDocumentLoader.h
     src/server/AssetCache.h
@@ -290,6 +351,20 @@ if(BUILD_TESTING)
     foreach(test_name tst_standardhooks tst_standardhooks_explicit)
         set_target_properties(${test_name} PROPERTIES MACOSX_BUNDLE FALSE AUTOMOC ON)
         target_compile_options(${test_name} PRIVATE ${NT_PLAYER_WARNINGS})
+        add_test(NAME ${test_name} COMMAND ${test_name})
+        set_tests_properties(${test_name} PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    endforeach()
+
+    qt_add_executable(tst_audioeffects tests/tst_audioeffects.cpp)
+    qt_add_executable(tst_ducking tests/tst_ducking.cpp)
+    qt_add_executable(tst_liveloudness tests/tst_liveloudness.cpp)
+    qt_add_executable(tst_loudness tests/tst_loudness.cpp)
+    qt_add_executable(tst_loudnessengine tests/tst_loudnessengine.cpp)
+    qt_add_executable(tst_shuttlestretch tests/tst_shuttlestretch.cpp)
+    foreach(test_name tst_audioeffects tst_ducking tst_liveloudness tst_loudness tst_loudnessengine tst_shuttlestretch)
+        set_target_properties(${test_name} PROPERTIES MACOSX_BUNDLE FALSE AUTOMOC ON)
+        target_compile_options(${test_name} PRIVATE ${NT_PLAYER_WARNINGS})
+        target_link_libraries(${test_name} PRIVATE nodetool_timeline_audio Qt6::Test)
         add_test(NAME ${test_name} COMMAND ${test_name})
         set_tests_properties(${test_name} PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     endforeach()

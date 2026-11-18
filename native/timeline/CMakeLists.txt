@@ -29,10 +29,8 @@ pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET libavformat libavcodec libavut
 
 if(MSVC)
     set(NT_WARNINGS /W4 /permissive-)
-    set(NT_NO_WARNINGS /w)
 else()
     set(NT_WARNINGS -Wall -Wextra)
-    set(NT_NO_WARNINGS -w)
 endif()
 
 # Apple's libc++ keeps std::jthread and std::stop_token behind this flag.
@@ -69,15 +67,6 @@ endif()
 set(NT_EFFECTS_REGISTRAR $<TARGET_OBJECTS:nodetool_timeline_effects_registrar>)
 set(NT_RENDER2D_REGISTRAR $<TARGET_OBJECTS:nodetool_timeline_render2d_registrar>)
 
-if(APPLE)
-    set(NT_AUDIO_PLATFORM_LIBS "-framework CoreAudio" "-framework AudioToolbox" "-framework CoreFoundation")
-elseif(UNIX)
-    # miniaudio loads ALSA and PulseAudio at run time.
-    find_package(Threads REQUIRED)
-    set(NT_AUDIO_PLATFORM_LIBS ${CMAKE_DL_LIBS} Threads::Threads m)
-else()
-    set(NT_AUDIO_PLATFORM_LIBS "")
-endif()
 if(NT_APPLE_CODE)
     set(NT_APP_PLATFORM_SOURCES src/platform/ProcessActivity.h src/platform/ProcessActivity.mm
         src/platform/SchedulingDiagnostics.h src/platform/SchedulingDiagnostics.mm)
@@ -163,16 +152,6 @@ endif()
 if(NOT TARGET nodetool_storyboard)
     add_subdirectory(../storyboard ${CMAKE_CURRENT_BINARY_DIR}/storyboard)
 endif()
-# The buffer kernels of native/kernels: the mixer's filters share the
-# Web Audio biquad design with the lib.audio nodes.
-if(NOT TARGET nodetool_kernels)
-    add_subdirectory(../kernels ${CMAKE_CURRENT_BINARY_DIR}/kernels)
-    # native/kernels requires CMake 3.28, whose policy CMP0155 scans C++20
-    # sources for modules. The kernels use none, and the scan needs
-    # clang-scan-deps, which the CI image does not install.
-    set_target_properties(nodetool_kernels PROPERTIES CXX_SCAN_FOR_MODULES OFF)
-endif()
-
 # The timeline's Core-only code, shared by the app, timeline-ops and the tests.
 add_library(timeline_core STATIC ${NT_core})
 target_include_directories(timeline_core PUBLIC src)
@@ -185,19 +164,15 @@ add_library(timeline_decode STATIC ${NT_decode})
 target_link_libraries(timeline_decode PUBLIC timeline_core nodetool_timeline_decode Qt6::Gui Qt6::GuiPrivate PkgConfig::FFMPEG)
 target_compile_options(timeline_decode PRIVATE ${NT_WARNINGS})
 
-# Audio (M3): miniaudio device, PCM rings, the mixer, fade curves.
+# The app's audio controller and editing features use the shared engine.
 add_library(timeline_audio STATIC ${NT_audio})
-target_include_directories(timeline_audio PRIVATE third_party)
-target_link_libraries(timeline_audio PUBLIC timeline_core PkgConfig::FFMPEG ${NT_AUDIO_PLATFORM_LIBS})
-target_link_libraries(timeline_audio PRIVATE nodetool_kernels)
+target_link_libraries(timeline_audio PUBLIC timeline_core nodetool_timeline_audio PRIVATE Qt6::Gui)
 target_compile_options(timeline_audio PRIVATE ${NT_WARNINGS})
 # Clang on arm64 contracts by default, which changes a remix's features and plan from every other platform's.
 if(NOT MSVC)
     set_source_files_properties(src/remix/RemixDsp.cpp
         TARGET_DIRECTORY timeline_audio PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
 endif()
-# Third-party code: its own warnings are not ours to fix.
-set_source_files_properties(src/audio/miniaudio.cpp PROPERTIES COMPILE_OPTIONS "${NT_NO_WARNINGS}")
 
 qt_add_executable(nodetool-timeline src/main.cpp ${NT_app})
 target_compile_definitions(nodetool-timeline PRIVATE NT_APP_VERSION="${PROJECT_VERSION}")

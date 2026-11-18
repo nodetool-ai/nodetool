@@ -2,7 +2,7 @@
 
 // The mix (DESIGN.md D25, D26). `buildMixPlan` copies the web rules for
 // which clips sound and at what gain: `isPlayableAudioClip` and the solo
-// group in web/src/components/timeline/render/renderAudio.ts,
+// group in the timeline editor's renderAudio.ts,
 // `videoClipsWithOwnAudio` in packages/timeline/src/clipAudio.ts, and the
 // gain chain of preview/AudioGraph.ts: clip volumeDb and fades, then the
 // track fader and pan (audio and midi tracks only; a video track's chain

@@ -117,14 +117,17 @@ def module_policy(module):
                 'nodetool_timeline_effects_registrar', 'nodetool_timeline_render2d_registrar',
                 'PkgConfig::FFMPEG', 'harfbuzz::harfbuzz', 'Freetype::Freetype',
             },
-            # Values a link variable such as ${NT_PLAYER_DECODE_PLATFORM_LIBS}
-            # may hold: the hardware decode libraries of each platform.
+            # Values the hardware decode and audio link variables may hold.
             'platform_links': {
                 '-framework CoreVideo', '-framework IOSurface', '-framework Metal', '-framework Foundation',
                 'd3d11', 'dxgi', 'Vulkan::Vulkan', 'PkgConfig::LIBVA',
+                '-framework CoreAudio', '-framework AudioToolbox', '-framework CoreFoundation',
+                '${CMAKE_DL_LIBS}', 'Threads::Threads', 'm',
             },
             'qt': {'GuiPrivate', 'Network', 'ShaderTools'},
             'forbidden': FORBIDDEN_TIMELINE_PLAYER,
+            # Upstream documentation URLs contain /web/ path segments.
+            'vendored_sources': {'third_party/miniaudio.h'},
             # Yoga's upstream build file, vendored unchanged and never added.
             'unbuilt_cmake': {'third_party/yoga/yoga/CMakeLists.txt'},
         }
@@ -261,7 +264,10 @@ def audit_module(module):
             continue
         text = path.read_text(encoding='utf-8')
         label = str(path.relative_to(module))
-        for match in policy['forbidden'].finditer(text):
+        dependency_text = text
+        if label in policy.get('vendored_sources', set()):
+            dependency_text = re.sub(r'https?://[^\s"\'<>]+', '', text)
+        for match in policy['forbidden'].finditer(dependency_text):
             errors.append('{}: forbidden dependency {}'.format(label, match.group().strip()))
         if path.suffix == '.qml':
             for imported in re.findall(r'^\s*import\s+([^\s;]+)', text, re.MULTILINE):

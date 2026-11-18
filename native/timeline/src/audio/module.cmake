@@ -1,26 +1,9 @@
 nt_sources(audio
-    src/audio/FadeCurves.h
-    src/audio/FadeCurves.cpp
-    src/audio/ShuttleStretch.h
-    src/audio/ShuttleStretch.cpp
-    src/audio/PcmRing.h
-    src/audio/Mixer.h
-    src/audio/Mixer.cpp
-    src/audio/AudioSource.h
-    src/audio/AudioSource.cpp
-    src/audio/OutputLatency.h
-    src/audio/OutputLatency.cpp
-    src/audio/AudioEngine.h
-    src/audio/AudioEngine.cpp
-    src/audio/LoopbackCapture.h
-    src/audio/LoopbackCapture.cpp
     src/audio/AppAudio.h
     src/audio/AppAudio.cpp
     src/audio/AudioMode.h
     src/audio/AudioMode.cpp
-    src/audio/miniaudio.cpp
 )
-cmake_language(DEFER CALL target_link_libraries timeline_audio PRIVATE Qt6::Gui)
 nt_sources(app
     src/audio/AvSyncInterpolation.h
     src/audio/AudioCli.h
@@ -30,7 +13,7 @@ nt_sources(app
 function(nt_audio_tests)
     # Audio tests (M3): fade curves against the TypeScript vectors, the mixer,
     # the PCM ring, the audio source, and the clock with a fake device.
-    foreach(test_name tst_fadecurves tst_mixer tst_audioclock tst_audioengine tst_shuttlestretch tst_shuttleaudio)
+    foreach(test_name tst_fadecurves tst_mixer tst_audioclock tst_audioengine tst_shuttleaudio)
         nt_qt_test(${test_name} LIBS timeline_core timeline_audio Qt6::Test
             DEFINES NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures" NT_BUILD_DIR="${CMAKE_CURRENT_BINARY_DIR}"
             INCLUDES src/playback)

@@ -11,6 +11,7 @@ the native node editor. The
 | `nodetool_timeline_scene` | Qt Core, Yoga | The document types (`model/TimelineTypes.h`), `TimelineJson`, `TimelineSource`, `scene/`, the motion headers, `SceneEval`, `SceneHooks`, `TransitionResolver`, `CaptionCues`, `CpuUsage` and `AudioClockFeed` |
 | `nodetool_timeline_decode` | `nodetool_timeline_scene`, Qt Gui and GuiPrivate (QRhi), FFmpeg, HarfBuzz, FreeType, the platform's hardware decode libraries | The media sources and their pools (`FfmpegSource`, `SourcePool`, `FrameCache`, `SurfacePool`, `RetireQueue`), the hardware interop (`preview/hw/`), the layer and compose hook registries, the effects, render2d and the effect shaders (`shaders/effects/`) |
 | `nodetool_timeline_effects_registrar`, `nodetool_timeline_render2d_registrar` | `nodetool_timeline_decode` | Object libraries that register the [standard hooks](#standard-hooks) at application startup |
+| `nodetool_timeline_audio` | `nodetool_timeline_scene`, FFmpeg, `nodetool_kernels`, miniaudio, platform audio libraries | The playback engine, mixer, audio sources, shuttle stretch, effects, mix and output-device hooks, and loudness processing |
 | `nodetool_timeline_player_server` | Qt Network, `nodetool_timeline_scene` | `TimelineDocumentLoader`, `ServerTimelineLoader`, tRPC, media resolution and cache leases |
 | `yogacore` | none | [Yoga 3.2.1](third_party/yoga/README.md), the flex layout engine, unchanged |
 
@@ -72,6 +73,20 @@ nothing reports an error. A host gets them in one of two ways:
 `tst_standardhooks` and `tst_standardhooks_explicit` fail when either way
 leaves a hook out.
 
+## Audio
+
+`AudioEngine` owns the device handle, the decode worker, and the playback
+buffers. Miniaudio manages the device callback thread and lends the engine an
+output buffer for each callback. The worker writes the PCM rings and the
+callback reads them. The engine uninitializes the device and joins its worker
+before freeing the rings and callback state.
+
+The timeline app's `AppAudio` feeds the engine from a `TimelineSource` and
+connects it to the app's `PlaybackClock`. Automation and its startup
+registration also live in the app. The shared mixer supplies the hooks.
+Miniaudio's license is at the end of
+[`third_party/miniaudio.h`](third_party/miniaudio.h).
+
 ## Server loader
 
 Construct `nt::server::ServerTimelineLoader(origin, token, cacheDir)` on the
@@ -82,13 +97,15 @@ requests worker interruption. A new load supersedes the previous one.
 
 ## Build
 
-The timeline build adds this directory with `add_subdirectory`, links
-`nodetool_timeline_scene` into `timeline_core` and `nodetool_timeline_decode`
-into `timeline_decode`. Build and test it from there:
+The timeline build adds this directory with `add_subdirectory`. It links
+`nodetool_timeline_scene` into `timeline_core`, `nodetool_timeline_decode`
+into `timeline_decode`, and `nodetool_timeline_audio` into `timeline_audio`.
+The module adds `native/kernels` if `nodetool_kernels` is missing, including
+in standalone builds. Build and test from the timeline build:
 
 ```bash
-cmake --build native/timeline/build --target nodetool_timeline_decode tst_cpuusage tst_standardhooks tst_standardhooks_explicit
-ctest --test-dir native/timeline/build -R '^(tst_cpuusage|tst_standardhooks|tst_standardhooks_explicit)$'
+cmake --build native/timeline/build --target nodetool_timeline_decode tst_cpuusage tst_standardhooks tst_standardhooks_explicit tst_shuttlestretch
+ctest --test-dir native/timeline/build -R '^(tst_cpuusage|tst_standardhooks|tst_standardhooks_explicit|tst_shuttlestretch)$'
 ```
 
 A timeline build with `NT_SANITIZE` applies its sanitizer failure patterns to
@@ -96,7 +113,7 @@ these tests too. `native/timeline/tools/sanitizers/clang-tidy-baseline.mjs`
 checks this module's `src/` and `tests/`.
 
 Tests that read the timeline's fixtures, such as `tst_sceneeval`,
-`tst_timelinejson`, `tst_ffmpegsource` and `tst_effectsblend`, stay in
+`tst_timelinejson`, `tst_ffmpegsource`, `tst_effectsblend` and `tst_audioengine`, stay in
 `native/timeline` and link these libraries.
 
 ## Dependency check
