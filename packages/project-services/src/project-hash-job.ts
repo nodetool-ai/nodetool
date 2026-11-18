@@ -38,7 +38,7 @@ interface HashTarget {
 }
 
 /** Whether the file still has the size and mtime the row recorded for it. */
-async function matchesRecordedFingerprint(
+export async function matchesRecordedFingerprint(
   workspace: Workspace,
   path: string,
   metadata: Record<string, unknown> | null
@@ -58,6 +58,36 @@ async function matchesRecordedFingerprint(
     // A path the folder refuses is a file whose hash cannot be taken.
     return false;
   }
+}
+
+/**
+ * The content hash of an asset's file at capture
+ * (docs/plans/native-cloud-sync/technical-design.md, "Blob store", WP2.1).
+ *
+ * A stored hash is used only while the file still has the fingerprint the
+ * row recorded. Otherwise the file is read again, because an asset id does
+ * not fix its bytes (RF18). With `force` the file is always read, which is
+ * the client's answer to `HASH_MISMATCH`. A new hash is stored on the row
+ * only while the file and the row still agree, as the background job does.
+ * `recorded` says whether the row now holds the returned hash.
+ */
+export async function captureContentHash(
+  workspace: Workspace,
+  asset: Asset,
+  options: { force?: boolean; signal?: AbortSignal } = {}
+): Promise<{ hash: string; recorded: boolean }> {
+  const path = asset.workspace_path;
+  if (!path) throw new Error(`Asset ${asset.id} has no file in its project folder`);
+  const read = asset.metadata;
+  const unchanged = await matchesRecordedFingerprint(workspace, path, read);
+  if (!options.force && unchanged && asset.content_hash !== null) {
+    return { hash: asset.content_hash, recorded: true };
+  }
+  const hash = await contentHashOfWorkspaceFile(workspace, path, options.signal);
+  if (hash === asset.content_hash) return { hash, recorded: true };
+  const stillUnchanged = unchanged && (await matchesRecordedFingerprint(workspace, path, read));
+  const recorded = stillUnchanged && (await asset.recordContentHash(hash, read));
+  return { hash, recorded };
 }
 
 export class ProjectHashJob {

@@ -200,6 +200,24 @@ std::optional<SaveTarget> serverSaveTarget() {
     return t;
 }
 
+std::unique_ptr<ServerClient> MediaSource::client(int timeoutMs) const {
+    auto result = std::make_unique<ServerClient>(server, token, timeoutMs);
+    result->setExpectedInstance(expectedInstance);
+    if (authorizer) result->setAuthorizer(authorizer);
+    return result;
+}
+
+std::optional<MediaSource> mediaSource() {
+    if (args().active && args().cloud) {
+        const Args& a = args();
+        return MediaSource{QUrl(a.server), a.token, a.authorizer, QString(), a.cacheDir};
+    }
+    const auto target = serverSaveTarget();
+    if (!target) return std::nullopt;
+    const Args& a = loadedSource() ? *loadedSource() : args();
+    return MediaSource{target->server, target->token, {}, target->expectedInstance, a.cacheDir};
+}
+
 ParseResult loadTimelineSource(const QString& source) {
     Args selected = args();
     if (!selected.active || source.toStdString() != selected.label) {

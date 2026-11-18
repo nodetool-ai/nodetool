@@ -48,7 +48,8 @@ export type ProjectFolder = z.infer<typeof projectFolder>;
  * carry the folder's new place: the OS trash, or `<projects dir>/.trash` when
  * the server cannot reach the OS trash. `kept` and `trash_failed` carry the
  * folder's unchanged place. `path` is null for a cloud folder and on a
- * production server.
+ * production server. `none` also answers a delete that keeps the project for
+ * its restore period, whose folder is handled by the purge.
  */
 export const projectFolderDisposal = z.object({
   action: z.enum([
@@ -65,7 +66,13 @@ export type ProjectFolderDisposal = z.infer<typeof projectFolderDisposal>;
 
 export const deleteProjectOutput = z.object({
   ok: z.literal(true),
-  folder: projectFolderDisposal
+  folder: projectFolderDisposal,
+  /**
+   * Set when the server keeps the project for a restore period. The folder
+   * is then `none` until the purge, and the project can be restored until
+   * this time through `deletedDocuments.restore`.
+   */
+  restorable_until: z.string().nullish()
 });
 export type DeleteProjectOutput = z.infer<typeof deleteProjectOutput>;
 

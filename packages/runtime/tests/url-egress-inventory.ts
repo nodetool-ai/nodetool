@@ -683,6 +683,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     guardedBy: [],
     note: "Fetch seam the offline finetune-data script injects into OpenRouterProvider or LlamaProvider. The URL is OpenRouter's fixed host or FINETUNE_LLAMA_CPP_URL, set by the operator. No caller or model supplies one."
   },
+  { 
+    file: "packages/project-services/src/cloud-origin.ts",
+    owner: "transfer client toward the signed-in cloud server",
+    inputSource: "operator",
+    schemes: ["https", "http"],
+    authScope: "The short-lived access token the native app hands for one transfer, sent only to the origin it signed in to.",
+    redirects: "manual-none",
+    dnsRebinding: "n/a",
+    policy: "private-integration",
+    guardedBy: [],
+    note: "The native app names the cloud origin the person signed in to, which can be a self-hosted server on the LAN. Plain http only to loopback. Every request must be on that origin, and a redirect comes back as a refusal. The router answers only on a local SQLite server."
+  },
   {
     file: "packages/whisper-cpp/src/whisper-server-provider.ts",
     owner: "whisper.cpp server provider",
