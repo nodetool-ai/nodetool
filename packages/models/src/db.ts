@@ -258,7 +258,15 @@ export function getDatabase(): DatabaseConnection {
  * contract. Use getDatabase() and narrow its dialect for those operations.
  */
 export function getPortableDb(): BetterSQLite3Database<typeof schema> {
-  return getDatabase().db as BetterSQLite3Database<typeof schema>;
+  return portableDbOf(getDatabase().db);
+}
+
+/**
+ * The portable surface over `db`, a connection or a PostgreSQL transaction
+ * on it, under the contract {@link getPortableDb} describes.
+ */
+export function portableDbOf(db: NodetoolDatabase): BetterSQLite3Database<typeof schema> {
+  return db as BetterSQLite3Database<typeof schema>;
 }
 
 /** @deprecated Use getPortableDb(). Retained for one release for public API compatibility. */
