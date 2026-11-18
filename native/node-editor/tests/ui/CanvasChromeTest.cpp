@@ -1,6 +1,8 @@
 #include "../support/WidgetCanvasFixture.h"
 #include "../support/DarkCanvasTheme.h"
 #include "graph/EditorScene.h"
+#include "ui/QuickCanvas.h"
+#include "ui/QtNodesCanvas.h"
 #include "graph/NodeLayout.h"
 #include "graph/WorkflowGraphModel.h"
 #include "run/NodeRuntimeModel.h"
@@ -363,31 +365,58 @@ private slots:
     // handle_edge_tooltip.css .react-flow__handle:hover { cursor: cell }, and
     // .is-connecting .react-flow__handle { cursor: none }.
     void handlesShowTheCellCursorAndHideItWhileConnecting() {
-      NODETOOL_REQUIRE_QTNODES();
         Scene scene({card("a", "t", 0, 0), card("b", "t", 600, 0)});
-        nodetool::test::WidgetView view(&scene.scene);
-        view.resize(1000, 400);
-        view.show();
-        QVERIFY(QTest::qWaitForWindowExposed(&view));
-        view.resetTransform();
-        view.centerOn(300, 60);
-        const auto at = [&](const QPointF &scenePoint) { return view.mapFromScene(scenePoint); };
-        QTest::mouseMove(view.viewport(), at(QPointF(300, 200)));
-        QTest::qWait(30);
-        QCOMPARE(view.viewport()->cursor().shape(), Qt::ArrowCursor);
-        QTest::mouseMove(view.viewport(), at(scene.outputHandle("a")));
-        QTest::qWait(50);
-        QTRY_COMPARE(view.viewport()->cursor().shape(), Qt::CrossCursor);
-        QTest::mouseMove(view.viewport(), at(QPointF(300, 200)));
-        QTRY_COMPARE(view.viewport()->cursor().shape(), Qt::ArrowCursor);
-        // Dragging a wire hides the cursor over a handle.
-        QTest::mousePress(view.viewport(), Qt::LeftButton, Qt::NoModifier, at(scene.outputHandle("a")));
-        QTest::mouseMove(view.viewport(), at(scene.outputHandle("a")) + QPoint(40, 20));
-        QTest::mouseMove(view.viewport(), at(scene.inputHandle("b")));
-        QTRY_COMPARE(view.viewport()->cursor().shape(), Qt::BlankCursor);
-        QTest::mouseMove(view.viewport(), at(QPointF(300, 200)));
-        QTest::mouseRelease(view.viewport(), Qt::LeftButton, Qt::NoModifier, at(QPointF(300, 200)));
-        QTRY_COMPARE(view.viewport()->cursor().shape(), Qt::ArrowCursor);
+        QWidget host;
+        host.resize(1000, 400);
+        auto surface = QuickCanvas::selected()
+            ? std::unique_ptr<CanvasSurface>(std::make_unique<QuickCanvas>(scene.model, host))
+            : std::unique_ptr<CanvasSurface>(std::make_unique<QtNodesCanvas>(scene.scene, QtNodesCanvas::createView(scene.scene, host)));
+        surface->hostWidget().resize(host.size());
+        surface->scene().setTheme(scene.scene.theme());
+        host.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&host));
+        surface->setView(1, QPointF(300, 60));
+        auto *viewport = &surface->viewportWidget();
+        const auto cursor = [&] {
+            return viewport->cursor().shape();
+        };
+        const auto empty = surface->mapFromScene(QPointF(300, 200));
+        const auto output = surface->mapFromScene(scene.outputHandle("a"));
+        const auto input = surface->mapFromScene(scene.inputHandle("b"));
+        QTest::mouseMove(viewport, empty);
+        QTRY_COMPARE(cursor(), Qt::ArrowCursor);
+        QTest::mouseMove(viewport, output);
+        QTRY_COMPARE(cursor(), Qt::CrossCursor);
+        QTest::mouseMove(viewport, empty);
+        QTRY_COMPARE(cursor(), Qt::ArrowCursor);
+        QTest::mousePress(viewport, Qt::LeftButton, Qt::NoModifier, output);
+        QTest::mouseMove(viewport, output + QPoint(40, 20));
+        QTest::mouseMove(viewport, input);
+        QTRY_COMPARE(cursor(), Qt::BlankCursor);
+        // Release at a different location without an intermediate move.
+        QTest::mouseRelease(viewport, Qt::LeftButton, Qt::NoModifier, empty);
+        QTRY_COMPARE(surface->scene().interaction().hoveredHandle().node, QtNodes::InvalidNodeId);
+        QTRY_COMPARE(cursor(), Qt::ArrowCursor);
+    }
+
+    void finalReleaseRefreshesHandleHover() {
+        Scene scene({card("a", "t", 0, 0), card("b", "t", 600, 0)});
+        QWidget host;
+        host.resize(1000, 400);
+        auto surface = QuickCanvas::selected()
+            ? std::unique_ptr<CanvasSurface>(std::make_unique<QuickCanvas>(scene.model, host))
+            : std::unique_ptr<CanvasSurface>(std::make_unique<QtNodesCanvas>(scene.scene, QtNodesCanvas::createView(scene.scene, host)));
+        surface->hostWidget().resize(host.size());
+        host.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&host));
+        surface->setView(1, QPointF(300, 60));
+        auto *viewport = &surface->viewportWidget();
+        const auto empty = surface->mapFromScene(QPointF(300, 200));
+        const auto input = surface->mapFromScene(scene.inputHandle("b"));
+        QTest::mouseMove(viewport, empty);
+        QTest::mousePress(viewport, Qt::LeftButton, Qt::NoModifier, empty);
+        QTest::mouseRelease(viewport, Qt::LeftButton, Qt::NoModifier, input);
+        QCOMPARE(surface->scene().interaction().hoveredHandle().node, scene.id("b"));
     }
 
     // nodes.zoomed.css, at zoom 0.35 and below: handles are hidden and edges are

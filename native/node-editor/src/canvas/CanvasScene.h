@@ -107,7 +107,9 @@ public:
   void deliverMove(CanvasMouseEvent &event);
   void deliverRelease(CanvasMouseEvent &event);
   bool deliverKey(QKeyEvent &event);
+  void deliverHover(const CanvasMouseEvent &event);
   void clearHover();
+  void cancelMouseGrab();
   CanvasItem *mouseGrabber() const { return grabber_; }
   void grabMouse(CanvasItem &item);
   void ungrabMouse(CanvasItem &item);
@@ -125,6 +127,8 @@ public:
   // Coalesces QGraphicsScene::changed for the mini-map and other listeners.
   void notifyChanged();
   quint64 nextKey() { return ++keys_; }
+  quint64 indexRevision() const { return indexRevision_; }
+  QRectF itemBounds(quint64 key) const { return index_.bounds(key); }
   CanvasItem *item(quint64 key) const { return items_.value(key); }
 
 signals:
@@ -162,6 +166,7 @@ private:
   void traverseGraphAndPopulateGraphicsObjects();
   void updateAttachedNodes(const QtNodes::ConnectionId &id, QtNodes::PortType side);
   void selectionTouched();
+  void emitChanged();
   void setHoverItem(CanvasItem *item, CanvasItem *child, const CanvasMouseEvent &event);
 
   QtNodes::AbstractGraphModel &model_;
@@ -187,6 +192,7 @@ private:
   bool destroying_ = false;
   double zoom_ = 1;
   quint64 keys_ = 0;
+  quint64 indexRevision_ = 0;
 };
 
 } // namespace nodetool::canvas

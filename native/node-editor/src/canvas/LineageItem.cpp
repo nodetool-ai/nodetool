@@ -33,7 +33,7 @@ private:
 LineageItem::LineageItem(CanvasScene &scene, QString id)
     : CanvasItem(scene, Kind::Lineage, &scene.layer()), id_(std::move(id)) {
   setCanvasButtons(Qt::LeftButton | Qt::MiddleButton | Qt::RightButton);
-  setCursor(Qt::PointingHandCursor);
+  setPointerCursor(Qt::PointingHandCursor);
   // Group frames are background panels at -1e6. Links sit above those
   // panels, while ordinary nodes and data wires stay above links.
   setZ(-100000);
@@ -59,37 +59,32 @@ void LineageItem::updateGeometry(QPainterPath path, QString label, const node_ed
   setPosition(bounds_.topLeft());
   setSize(bounds_.size());
   reindex();
-  repaint();
+  markDirty();
 }
 
 void LineageItem::setLinkSelected(bool selected) {
   selected_ = selected;
-  repaint();
+  markDirty();
 }
 
 bool LineageItem::hitTest(const QPointF &scenePoint) const { return shape_.contains(scenePoint); }
 
-void LineageItem::repaint() {
-  // Links are few, so each paints when it changes, at a fixed two pixels per unit.
-  const auto origin = bounds_.topLeft();
-  auto result = rasterize(QRectF(QPointF(), bounds_.size()), 2, [&](QPainter &painter) {
-    painter.translate(-origin);
-    painter.setRenderHint(QPainter::Antialiasing);
-    const auto color = selected_ ? theme_.selected : theme_.stroke;
-    const double width = selected_ ? 3 : 2;
-    QPen pen(color, width, Qt::CustomDashLine, Qt::RoundCap);
-    pen.setDashPattern({1 / width, 6 / width});
-    painter.setOpacity(selected_ ? 1 : .8);
-    painter.setPen(pen);
-    painter.setBrush(Qt::NoBrush);
-    painter.drawPath(path_);
-    if (!label_.isEmpty()) {
-      painter.setPen(color);
-      painter.setFont(theme_.labelFont);
-      painter.drawText(labelRect_, Qt::AlignCenter, label_);
-    }
-  });
-  setImage(std::move(result.image), result.rect, 2, 0);
+void LineageItem::paintRaster(QPainter &painter, double) const {
+  painter.translate(-bounds_.topLeft());
+  painter.setRenderHint(QPainter::Antialiasing);
+  const auto color = selected_ ? theme_.selected : theme_.stroke;
+  const double width = selected_ ? 3 : 2;
+  QPen pen(color, width, Qt::CustomDashLine, Qt::RoundCap);
+  pen.setDashPattern({1 / width, 6 / width});
+  painter.setOpacity(painter.opacity() * (selected_ ? 1 : .8));
+  painter.setPen(pen);
+  painter.setBrush(Qt::NoBrush);
+  painter.drawPath(path_);
+  if (!label_.isEmpty()) {
+    painter.setPen(color);
+    painter.setFont(theme_.labelFont);
+    painter.drawText(labelRect_, Qt::AlignCenter, label_);
+  }
 }
 
 void LineageItem::mousePress(CanvasMouseEvent &event) {

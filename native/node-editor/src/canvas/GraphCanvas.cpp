@@ -17,9 +17,9 @@
 namespace nodetool::canvas {
 using namespace QtNodes;
 namespace {
-// Raster work spread over frames stays under 4 ms a frame (plan, Large
-// graphs). Half a millisecond is kept for the foreground and the cull.
-constexpr qint64 kFrameBudgetNs = 3'500'000;
+// Leave time for input on a cold pan and for the last raster on a settle pass.
+constexpr qint64 kFrameBudgetNs = 1'400'000;
+constexpr int kMaxRasterSide = 1536;
 // A zoom gesture scales textures; they are painted again after this pause.
 constexpr int kSettleMs = 100;
 // The largest raster scale, so that a card at zoom 4 on a high-density screen
@@ -63,9 +63,10 @@ bool zoomedOut(double zoom) { return zoom <= zoomedOutThreshold; }
 } // namespace
 
 GraphCanvas::GraphCanvas(WorkflowGraphModel &model, QQuickItem *parent)
-    : QQuickItem(parent), model_(model), grid_(viewport_, this), content_(this), foreground_(&content_), overlay_(this),
-      band_(&overlay_), scene_(std::make_unique<EditorCanvasScene>(model, content_)),
-      selection_(std::make_unique<SceneSelection>(*scene_)) {
+    : model_(model), grid_(viewport_, this), foreground_(&content_), band_(&overlay_),
+      scene_(std::make_unique<EditorCanvasScene>(model, content_)), selection_(std::make_unique<SceneSelection>(*scene_)) {
+  content_.setParentItem(this);
+  overlay_.setParentItem(this);
   setFlag(ItemIsFocusScope, true);
   setActiveFocusOnTab(true);
   setAcceptedMouseButtons(Qt::AllButtons);
@@ -77,22 +78,23 @@ GraphCanvas::GraphCanvas(WorkflowGraphModel &model, QQuickItem *parent)
   foreground_.setZ(2e6);
   settle_.setSingleShot(true);
   settle_.setInterval(kSettleMs);
-  connect(&settle_, &QTimer::timeout, this, [this] { scheduleRaster(); });
-  connect(scene_.get(), &CanvasScene::rasterRequested, this, &GraphCanvas::scheduleRaster);
+  connect(&settle_, &QTimer::timeout, this, &GraphCanvas::scheduleRaster);
+  connect(scene_.get(), &CanvasScene::rasterRequested, this, &GraphCanvas::invalidateRasterWork);
   connect(scene_.get(), &EditorCanvasScene::foregroundChanged, this, [this] {
     foreground_.invalidate();
     scheduleRaster();
   });
-  connect(scene_.get(), &CanvasScene::selectionChanged, this, [this] { foreground_.invalidate(); });
+  connect(scene_.get(), &CanvasScene::selectionChanged, this, [this] {
+    foreground_.invalidate();
+    scheduleRaster();
+  });
   connect(scene_.get(), &EditorCanvasScene::themeChanged, this, [this] { grid_.setTheme(scene_->theme()); });
   scene_->viewCursor = [this](std::optional<Qt::CursorShape> cursor) {
-    if (cursor) {
-      setCursor(*cursor);
-    } else {
-      unsetCursor();
-    }
+    interactionCursor_ = cursor;
+    updatePointerCursor();
   };
   viewChanged(true);
+  setParentItem(parent);
 }
 
 GraphCanvas::~GraphCanvas() {
@@ -135,15 +137,8 @@ void GraphCanvas::renderScene(QPainter &painter, const QRectF &area, double zoom
     double opacity = 1;
     for (const QQuickItem *step = item; step && step != &content_; step = step->parentItem()) { opacity *= step->opacity(); }
     painter.setOpacity(opacity);
-    if (const auto *node = dynamic_cast<const NodeItem *>(item)) {
-      painter.translate(node->scenePosition());
-      scene_->paintNode(painter, *node, zoom);
-    } else if (const auto *wire = dynamic_cast<const ConnectionItem *>(item)) {
-      scene_->paintConnection(painter, *wire, zoom);
-    } else if (item->hasImage()) {
-      painter.setRenderHint(QPainter::SmoothPixmapTransform);
-      painter.drawImage(item->imageRect().translated(item->scenePosition()), item->image());
-    }
+    painter.translate(item->scenePosition());
+    item->paintRaster(painter, zoom);
     painter.restore();
   }
   scene_->paintForeground(painter, area, zoom);
@@ -172,12 +167,24 @@ void GraphCanvas::setHandDrag(bool handDrag) {
   if (handDrag_ == handDrag) { return; }
   handDrag_ = handDrag;
   scene_->setHandDrag(handDrag);
-  // QGraphicsView sets the open hand on the viewport in ScrollHandDrag mode.
-  if (handDrag) {
-    setCursor(Qt::OpenHandCursor);
-  } else {
-    unsetCursor();
-  }
+  updatePointerCursor();
+}
+
+void GraphCanvas::updatePointerCursor() {
+  const auto shape = [&] {
+    if (interactionCursor_) { return *interactionCursor_; }
+    if (handScrolling_) { return Qt::ClosedHandCursor; }
+    if (cursorPoint_) {
+      for (const auto *item : scene_->itemsAt(*cursorPoint_)) {
+        if (const auto cursor = item->pointerCursor()) { return *cursor; }
+      }
+    }
+    return handDrag_ ? Qt::OpenHandCursor : Qt::ArrowCursor;
+  }();
+  if (pointerCursor_ == shape) { return; }
+  pointerCursor_ = shape;
+  setCursor(shape);
+  emit pointerCursorChanged(QCursor(shape));
 }
 
 void GraphCanvas::viewChanged(bool zoomed) {
@@ -185,8 +192,14 @@ void GraphCanvas::viewChanged(bool zoomed) {
   content_.setPosition(-QPointF(viewport_.scroll()));
   scene_->setZoom(viewport_.zoom());
   grid_.sync();
-  if (zoomed) { settle_.start(); }
-  scheduleRaster();
+  if (zoomed) {
+    settle_.start();
+    rasterCoverage_ = {};
+  }
+  const auto visible = viewport_.visibleSceneRect();
+  if (!viewportCovered(visible) || foreground_.needsRaster(visible, rasterScale(), viewport_.zoom(), !settle_.isActive())) {
+    scheduleRaster();
+  }
   emit viewportMoved();
 }
 
@@ -216,6 +229,91 @@ void GraphCanvas::flushRaster() {
   rasterPass(true);
 }
 
+bool GraphCanvas::viewportCovered(const QRectF &visible) const {
+  return indexedRevision_ == scene_->indexRevision() && rasterCoverage_.contains(visible);
+}
+
+void GraphCanvas::updateRasterCoverage(const QRectF &visible) {
+  indexedRevision_ = scene_->indexRevision();
+  const auto w = visible.width(), h = visible.height();
+  rasterCoverage_ = visible.adjusted(-w / 3, -h / 3, w / 3, h / 3);
+  prefetchArea_ = visible.adjusted(-w / 2, -h / 2, w / 2, h / 2);
+  const auto keep = visible.adjusted(-w * 1.5, -h * 1.5, w * 1.5, h * 1.5);
+  for (auto it = near_.begin(); it != near_.end();) {
+    auto *item = scene_->item(*it);
+    if (item && item->effectivelyShown() && scene_->itemBounds(*it).intersects(keep)) {
+      ++it;
+      continue;
+    }
+    if (item) {
+      item->clearImage();
+      item->setVisible(false);
+    }
+    it = near_.erase(it);
+  }
+  for (auto *item : scene_->itemsIn(prefetchArea_)) {
+    if (!near_.contains(item->indexKey())) {
+      near_.insert(item->indexKey());
+      item->setVisible(true);
+    }
+  }
+  if (auto *draft = scene_->draftConnection()) {
+    near_.insert(draft->indexKey());
+    draft->setVisible(true);
+  }
+}
+
+void GraphCanvas::invalidateRasterWork() {
+  rasterWorkDirty_ = true;
+  scheduleRaster();
+}
+
+void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double zoom, bool settled) {
+  rasterWorkDirty_ = false;
+  rasterWorkSettled_ = settled;
+  rasterWorkScale_ = scale;
+  nextRasterJob_ = 0;
+  rasterJobs_.clear();
+  QList<RasterJob> visibleUpdates, prefetch;
+  std::optional<RasterJob> draftJob;
+  offscreenImages_.clear();
+  cachedRasterBytes_ = 0;
+  const auto *draft = scene_->draftConnection();
+  // Keep work keyed by ID between frames. An edit can remove an item or
+  // replace its bounds while the remainder waits for a later polish.
+  for (const auto key : std::as_const(near_)) {
+    auto *item = scene_->item(key);
+    const auto bounds = scene_->itemBounds(key);
+    if (!item || bounds.isEmpty()) { continue; }
+    const bool visibleNow = item == draft || bounds.intersects(visible);
+    const bool clipped = item->kind() == CanvasItem::Kind::Connection || item->kind() == CanvasItem::Kind::Lineage;
+    const auto origin = clipped ? item->scenePosition() : QPointF();
+    const auto needed = clipped ? bounds.intersected(rasterCoverage_).translated(-origin) : QRectF();
+    cachedRasterBytes_ += item->image().sizeInBytes();
+    if (!visibleNow && item->hasImage()) { offscreenImages_.append(key); }
+    const auto *node = static_cast<const NodeItem *>(item->kind() == CanvasItem::Kind::Node ? item : nullptr);
+    const bool stale = settled && (item->imageScale() != scale || zoomedOut(item->imageZoom()) != zoomedOut(zoom) ||
+                       (node && item->imageZoom() != zoom && model_.isGroup(node->nodeId())));
+    const bool missesView = !needed.isEmpty() && !item->imageRect().contains(needed);
+    if (item->hasImage() && !item->contentDirty() && !stale && !missesView) { continue; }
+    if (!bounds.intersects(prefetchArea_) && item != draft) { continue; }
+    auto rect = clipped ? bounds.intersected(prefetchArea_).translated(-origin) : item->rasterBounds();
+    if (rect.isEmpty()) { continue; }
+    const RasterJob job{key, rect, visibleNow};
+    if (item == draft) {
+      draftJob = job;
+    } else if (visibleNow && !item->hasImage()) {
+      rasterJobs_.append(job);
+    } else {
+      (visibleNow ? visibleUpdates : prefetch).append(job);
+    }
+  }
+
+  if (draftJob) { rasterJobs_.prepend(*draftJob); }
+  rasterJobs_.append(visibleUpdates);
+  rasterJobs_.append(prefetch);
+}
+
 void GraphCanvas::rasterPass(bool flush) {
   QElapsedTimer clock;
   clock.start();
@@ -223,80 +321,69 @@ void GraphCanvas::rasterPass(bool flush) {
   const auto scale = rasterScale();
   const bool settled = flush || !settle_.isActive();
   const auto visible = viewport_.visibleSceneRect();
-  const auto nearRect = visible.adjusted(-visible.width() / 2, -visible.height() / 2, visible.width() / 2, visible.height() / 2);
-  const auto keepRect = visible.adjusted(-visible.width() * 1.5, -visible.height() * 1.5, visible.width() * 1.5, visible.height() * 1.5);
-  // Cull: cards and wires far from the view hold no image and are not visible.
-  for (auto it = near_.begin(); it != near_.end();) {
-    auto *item = scene_->item(*it);
-    if (item && item->effectivelyShown() && item->sceneBoundingRect().intersects(keepRect)) {
-      ++it;
-      continue;
-    }
-    if (item) {
-      item->clearImage();
-      if (item->parentItem() == &content_) { item->setVisible(false); }
-    }
-    it = near_.erase(it);
+  const bool refresh = flush || !viewportCovered(visible);
+  if (refresh) { updateRasterCoverage(visible); }
+  if (refresh || rasterWorkDirty_ || rasterWorkSettled_ != settled || rasterWorkScale_ != scale) {
+    rebuildRasterWork(visible, scale, zoom, settled);
   }
-  QList<CanvasItem *> onScreen, prefetch;
-  for (auto *item : scene_->itemsIn(nearRect)) {
-    // Links and notes paint themselves when they change.
-    if (item->kind() != CanvasItem::Kind::Node && item->kind() != CanvasItem::Kind::Connection) { continue; }
-    if (!near_.contains(item->indexKey())) {
-      near_.insert(item->indexKey());
-      item->setVisible(true);
-    }
-    (item->sceneBoundingRect().intersects(visible) ? onScreen : prefetch).append(item);
-  }
-  // The draft follows the pointer, so it is always painted.
-  if (auto *draft = scene_->draftConnection()) {
-    if (!onScreen.contains(draft)) { onScreen.append(draft); }
-    draft->setVisible(true);
-  }
-  const auto stale = [&](const CanvasItem &item) {
-    if (!item.hasImage() || item.contentDirty()) { return true; }
-    if (!settled) { return false; }
-    if (item.imageScale() != scale || zoomedOut(item.imageZoom()) != zoomedOut(zoom)) { return true; }
-    const auto *node = dynamic_cast<const NodeItem *>(&item);
-    return node && model_.isGroup(node->nodeId()) && item.imageZoom() != zoom;
-  };
-  const auto paint = [&](CanvasItem &item) {
-    if (auto *node = dynamic_cast<NodeItem *>(&item)) {
-      node->raster(scale, zoom);
-      ++stats_.cards;
-    } else if (auto *wire = dynamic_cast<ConnectionItem *>(&item)) {
-      wire->raster(scale, zoom);
-      ++stats_.wires;
-    }
-  };
+
   bool pending = false;
-  // On screen: a card with no image or with changed content paints now.
-  for (auto *item : std::as_const(onScreen)) {
-    if (!item->hasImage() || item->contentDirty()) { paint(*item); }
-  }
-  // Then stale scales on screen and prefetch near it, within the frame budget.
-  // A raster that would likely cross the budget waits for the next frame.
   qint64 longest = 0;
-  for (const auto *list : {&onScreen, &prefetch}) {
-    for (auto *item : *list) {
-      if (!stale(*item)) { continue; }
-      const auto before = clock.nsecsElapsed();
-      if (!flush && before + longest > kFrameBudgetNs) {
-        pending = true;
-        break;
+  // Permit one raster even after a cold cull so that each pass makes progress.
+  const auto canPaint = [&] { return flush || !longest || clock.nsecsElapsed() + longest < kFrameBudgetNs; };
+  const auto paint = [&](const RasterJob &job) {
+    const auto before = clock.nsecsElapsed();
+    auto *item = scene_->item(job.key);
+    if (!item) { return; }
+    auto result = CanvasImageItem::rasterize(job.rect, scale, [&](QPainter &painter) {
+      item->paintRaster(painter, zoom);
+    }, kMaxRasterSide);
+    longest = std::max(longest, clock.nsecsElapsed() - before);
+    const auto delta = result.image.sizeInBytes() - item->image().sizeInBytes();
+    while (job.visible && cachedRasterBytes_ + delta > rasterCacheBudget && !offscreenImages_.isEmpty()) {
+      auto *victim = scene_->item(offscreenImages_.takeLast());
+      if (victim && !scene_->itemBounds(victim->indexKey()).intersects(visible)) {
+        cachedRasterBytes_ -= victim->image().sizeInBytes();
+        victim->clearImage();
       }
-      paint(*item);
+    }
+    if (cachedRasterBytes_ + delta > rasterCacheBudget) { return; }
+    item->setImage(std::move(result.image), result.rect, scale, zoom);
+    cachedRasterBytes_ += delta;
+    if (item->kind() == CanvasItem::Kind::Node) { ++stats_.cards; }
+    if (item->kind() == CanvasItem::Kind::Connection) { ++stats_.wires; }
+  };
+  // Give visible work a slot before the foreground. Repeated foreground
+  // invalidation during an edit can otherwise starve new items.
+  if (nextRasterJob_ < rasterJobs_.size() && rasterJobs_[nextRasterJob_].visible) {
+    paint(rasterJobs_[nextRasterJob_++]);
+  }
+  if (foreground_.needsRaster(visible, scale, zoom, settled)) {
+    if (canPaint()) {
+      const auto before = clock.nsecsElapsed();
+      if (foreground_.raster(*scene_, visible, scale, zoom)) { ++stats_.foreground; }
       longest = std::max(longest, clock.nsecsElapsed() - before);
+    } else {
+      pending = true;
     }
   }
-  if (foreground_.raster(*scene_, visible, scale, zoom, settled)) { ++stats_.other; }
+  while (nextRasterJob_ < rasterJobs_.size() && canPaint()) {
+    paint(rasterJobs_[nextRasterJob_++]);
+  }
+  pending = pending || nextRasterJob_ < rasterJobs_.size();
   const auto elapsed = clock.nsecsElapsed();
   stats_.nanoseconds += elapsed;
   stats_.slowestPass = std::max(stats_.slowestPass, elapsed);
   ++stats_.passes;
-  if (pending) {
-    // Continue in the next frame.
-    QTimer::singleShot(0, this, [this] { scheduleRaster(); });
+  if (pending) { QTimer::singleShot(0, this, &GraphCanvas::scheduleRaster); }
+}
+
+void GraphCanvas::itemChange(ItemChange change, const ItemChangeData &value) {
+  QQuickItem::itemChange(change, value);
+  if (change == ItemSceneChange && value.window) {
+    // A queued polish belonged to the previous window.
+    rasterQueued_ = false;
+    invalidateRasterWork();
   }
 }
 
@@ -337,7 +424,7 @@ void GraphCanvas::mousePressEvent(QMouseEvent *event) {
     // ScrollHandDrag: a left press on the pane scrolls the view.
     handScrolling_ = true;
     handMotions_ = 0;
-    setCursor(Qt::ClosedHandCursor);
+    updatePointerCursor();
   }
 }
 
@@ -355,7 +442,11 @@ void GraphCanvas::hoverMoveEvent(QHoverEvent *event) {
 }
 
 void GraphCanvas::hoverLeaveEvent(QHoverEvent *) {
+  if (buttonsDown_) { return; }
+  cursorPoint_.reset();
   scene_->clearHover();
+  scene_->interaction().leavePointer();
+  updatePointerCursor();
 }
 
 void GraphCanvas::pointerMove(QPointF position, QPointF global, Qt::MouseButtons buttons, Qt::KeyboardModifiers modifiers) {
@@ -371,7 +462,9 @@ void GraphCanvas::pointerMove(QPointF position, QPointF global, Qt::MouseButtons
   const auto scenePoint = viewport_.mapToScene(point);
   CanvasMouseEvent mouse{scenePoint, lastMoveScene_, pressScene_, global.toPoint(), Qt::NoButton, buttons, modifiers, false};
   lastMoveScene_ = scenePoint;
+  cursorPoint_ = scenePoint;
   scene_->pointer(PointerAction::Move, pointerEvent(position, global, Qt::NoButton, buttons, modifiers), mouse);
+  updatePointerCursor();
 }
 
 void GraphCanvas::updateRubberBand(QPoint position, Qt::MouseButtons buttons) {
@@ -418,7 +511,6 @@ void GraphCanvas::mouseReleaseEvent(QMouseEvent *event) {
       endRubberBand();
     }
   } else if (handDrag_ && event->button() == Qt::LeftButton) {
-    setCursor(Qt::OpenHandCursor);
     handScrolling_ = false;
     // Very little motion and no item took the press: a click on the pane resets the selection.
     if (!pressAccepted_ && handMotions_ <= 6) { scene_->clearSelection(); }
@@ -427,10 +519,19 @@ void GraphCanvas::mouseReleaseEvent(QMouseEvent *event) {
   const auto scenePoint = viewport_.mapToScene(position);
   CanvasMouseEvent mouse{scenePoint, lastMoveScene_, pressScene_, event->globalPosition().toPoint(), event->button(),
                          event->buttons(), event->modifiers(), false};
+  cursorPoint_ = scenePoint;
   scene_->pointer(PointerAction::Release,
                   pointerEvent(event->position(), event->globalPosition(), event->button(), event->buttons(),
                                event->modifiers()),
                   mouse);
+  if (!buttonsDown_) {
+    if (contains(event->position())) {
+      scene_->deliverHover(mouse);
+    } else {
+      hoverLeaveEvent(nullptr);
+    }
+  }
+  updatePointerCursor();
 }
 
 void GraphCanvas::mouseDoubleClickEvent(QMouseEvent *event) {
@@ -455,7 +556,23 @@ void GraphCanvas::setViewShown(bool shown) {
   if (shown) {
     viewport_.show();
     viewChanged(false);
+  } else {
+    cancelPointerGrab();
   }
+}
+
+void GraphCanvas::mouseUngrabEvent() { cancelPointerGrab(); }
+
+void GraphCanvas::cancelPointerGrab() {
+  if (!buttonsDown_ && !scene_->interaction().viewportPanning()) { return; }
+  buttonsDown_ = Qt::NoButton;
+  skipPress_ = pressAccepted_ = handScrolling_ = rubberBanding_ = false;
+  bandOperation_ = Qt::ReplaceSelection;
+  cursorPoint_.reset();
+  scene_->interaction().cancelPointerGesture();
+  scene_->cancelMouseGrab();
+  endRubberBand();
+  updatePointerCursor();
 }
 
 void GraphCanvas::contextMenu(QPoint position, QPoint screenPosition, Qt::KeyboardModifiers modifiers) {
@@ -490,6 +607,7 @@ void GraphCanvas::keyReleaseEvent(QKeyEvent *event) {
 }
 
 void GraphCanvas::focusOutEvent(QFocusEvent *event) {
+  cancelPointerGrab();
   scene_->focusOut();
   QQuickItem::focusOutEvent(event);
 }

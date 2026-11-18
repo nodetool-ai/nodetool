@@ -33,18 +33,7 @@ EditorCanvasScene::EditorCanvasScene(WorkflowGraphModel &model, QQuickItem &laye
     : CanvasScene(model, layer, parent), model_(model), interaction_(model, *this, theme_) {
   animation_.setInterval(16);
   clock_.start();
-  connect(&animation_, &QTimer::timeout, this, [this] {
-    phase_ = std::fmod(clock_.elapsed() / 1000.0, 1.0);
-    for (auto id : model_.allNodeIds()) {
-      bool activeEdge = false;
-      for (const auto &edge : model_.allConnectionIds(id)) { activeEdge = activeEdge || model_.runtimeWireFlowing(edge); }
-      if (!model_.runningShown(id) && !activeEdge) { continue; }
-      if (auto *node = nodeItem(id)) { node->markDirty(); }
-      for (const auto &edge : model_.allConnectionIds(id)) {
-        if (auto *wire = connectionItem(edge)) { wire->markDirty(); }
-      }
-    }
-  });
+  connect(&animation_, &QTimer::timeout, this, &EditorCanvasScene::animate);
   connect(&model_, &WorkflowGraphModel::runtimeChanged, this, &EditorCanvasScene::refreshRuntime);
   connect(&model_, &WorkflowGraphModel::runtimeNodeChanged, this, &EditorCanvasScene::refreshRuntimeNode);
   connect(&model_, &WorkflowGraphModel::runtimeEdgeChanged, this, &EditorCanvasScene::refreshRuntimeEdge);
@@ -60,22 +49,14 @@ EditorCanvasScene::EditorCanvasScene(WorkflowGraphModel &model, QQuickItem &laye
   });
   connect(this, &CanvasScene::selectionChanged, this, &EditorCanvasScene::updateBranchDimming);
   connect(this, &CanvasScene::selectionChanged, &interaction_, &CanvasInteraction::selectionChanged);
-  const auto scheduleDimming = [this] {
-    if (branchDimmingPending_) { return; }
-    branchDimmingPending_ = true;
-    QTimer::singleShot(0, this, [this] {
-      branchDimmingPending_ = false;
-      updateBranchDimming();
-    });
-  };
-  connect(&model_, &WorkflowGraphModel::projectionChanged, this, scheduleDimming);
-  connect(&model_, &WorkflowGraphModel::runtimeChanged, this, scheduleDimming);
+  connect(&model_, &WorkflowGraphModel::projectionChanged, this, &EditorCanvasScene::scheduleDimming);
+  connect(&model_, &WorkflowGraphModel::runtimeChanged, this, &EditorCanvasScene::scheduleDimming);
   // The untaken branch of an If or Switch follows edge reports, not node states.
-  connect(&model_, &WorkflowGraphModel::runtimeEdgeChanged, this, scheduleDimming);
-  connect(&model_, &AbstractGraphModel::connectionCreated, this, scheduleDimming);
-  connect(&model_, &AbstractGraphModel::connectionDeleted, this, scheduleDimming);
-  connect(&model_, &AbstractGraphModel::nodeCreated, this, scheduleDimming);
-  connect(&model_, &AbstractGraphModel::modelReset, this, scheduleDimming);
+  connect(&model_, &WorkflowGraphModel::runtimeEdgeChanged, this, &EditorCanvasScene::scheduleDimming);
+  connect(&model_, &AbstractGraphModel::connectionCreated, this, &EditorCanvasScene::scheduleDimming);
+  connect(&model_, &AbstractGraphModel::connectionDeleted, this, &EditorCanvasScene::scheduleDimming);
+  connect(&model_, &AbstractGraphModel::nodeCreated, this, &EditorCanvasScene::scheduleDimming);
+  connect(&model_, &AbstractGraphModel::modelReset, this, &EditorCanvasScene::scheduleDimming);
   // The foreground names ports and draws group labels, which follow the cards.
   connect(&model_, &AbstractGraphModel::nodePositionUpdated, this, [this] { emit foregroundChanged(); });
   connect(&model_, &AbstractGraphModel::nodeUpdated, this, [this] { emit foregroundChanged(); });
@@ -85,6 +66,30 @@ EditorCanvasScene::EditorCanvasScene(WorkflowGraphModel &model, QQuickItem &laye
 EditorCanvasScene::~EditorCanvasScene() {
   disconnect(this, nullptr, this, nullptr);
   disconnect(&model_, nullptr, this, nullptr);
+}
+
+void EditorCanvasScene::animate() {
+  phase_ = std::fmod(clock_.elapsed() / 1000.0, 1.0);
+  for (auto id : model_.allNodeIds()) {
+    bool activeEdge = false;
+    for (const auto &edge : model_.allConnectionIds(id)) { activeEdge = activeEdge || model_.runtimeWireFlowing(edge); }
+    if (!model_.runningShown(id) && !activeEdge) { continue; }
+    if (auto *node = nodeItem(id)) { node->markDirty(); }
+    for (const auto &edge : model_.allConnectionIds(id)) {
+      if (auto *wire = connectionItem(edge)) { wire->markDirty(); }
+    }
+  }
+}
+
+void EditorCanvasScene::scheduleDimming() {
+  if (branchDimmingPending_) { return; }
+  branchDimmingPending_ = true;
+  QTimer::singleShot(0, this, &EditorCanvasScene::flushDimming);
+}
+
+void EditorCanvasScene::flushDimming() {
+  branchDimmingPending_ = false;
+  updateBranchDimming();
 }
 
 void EditorCanvasScene::projectionChanged() {
@@ -314,13 +319,7 @@ void EditorCanvasScene::draftFeedbackChanged() {
 }
 
 void EditorCanvasScene::setNodeCursor(NodeId id, std::optional<Qt::CursorShape> cursor) {
-  if (auto *card = nodeItem(id)) {
-    if (cursor) {
-      card->setCursor(*cursor);
-    } else {
-      card->unsetCursor();
-    }
-  }
+  if (auto *card = nodeItem(id)) { card->setPointerCursor(cursor); }
 }
 
 void EditorCanvasScene::setViewportCursor(std::optional<Qt::CursorShape> cursor, bool) {

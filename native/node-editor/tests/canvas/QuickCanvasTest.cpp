@@ -6,19 +6,26 @@
 #include "canvas/ConnectionItem.h"
 #include "canvas/GraphCanvas.h"
 #include "canvas/GridIndex.h"
+#include "canvas/LineageItem.h"
 #include "canvas/MiniMapItem.h"
 #include "canvas/NodeItem.h"
+#include "graph/EditorScene.h"
 #include "graph/WorkflowGraphModel.h"
 #include "ui/CanvasSurface.h"
 #include "ui/QuickCanvas.h"
+#include "ui/QtNodesCanvas.h"
 #include <QtNodes/internal/AbstractNodeGeometry.hpp>
 #include <QGraphicsScene>
+#include <QHelpEvent>
 #include <QGraphicsView>
 #include <QScrollBar>
 #include <QPainter>
+#include <QQuickWidget>
 #include <QQuickWindow>
 #include <QSignalSpy>
+#include <QToolTip>
 #include <QtTest>
+#include <limits>
 #include <memory>
 
 using namespace nodetool;
@@ -157,6 +164,9 @@ private slots:
     index.remove(3);
     QVERIFY(index.query(QPointF(50, 50)).isEmpty());
     QCOMPARE(index.size(), 2);
+    QVERIFY(index.query(QRectF(2008, 2005, -2, 0)).isEmpty());
+    QVERIFY(index.query(QRectF(2005, 2008, 0, -2)).isEmpty());
+    QVERIFY(index.query(QRectF(std::numeric_limits<double>::quiet_NaN(), 0, 0, 10)).isEmpty());
   }
 
   // CanvasViewport reproduces QGraphicsView's mapping, so both canvases put a
@@ -365,7 +375,21 @@ private slots:
   void cullingKeepsTexturesNearTheView() {
     QJsonArray nodes;
     for (int i = 0; i < 40; ++i) { nodes.append(node(QString("n%1").arg(i), kTarget, i * 1000, 0)); }
-    Fixture f(snapshot(nodes), {800, 600});
+    nodes.append(node("far", kTarget, 20000, 20000));
+    Fixture f(snapshot(nodes, {edge("long", "n0", "far")}), {800, 600});
+    LineageItem lineage(f.canvas->scene(), "offscreen");
+    QPainterPath path(QPointF(20000, 300));
+    path.lineTo(20100, 350);
+    lineage.updateGeometry(path, "Reference", {}, false);
+    f.canvas->setView(.12, QPointF(3200, 2400));
+    f.canvas->flushRaster();
+    const auto *wire = f.canvas->scene().connectionItems().first();
+    QVERIFY(wire->hasImage());
+    QVERIFY2(wire->image().sizeInBytes() < 8 * 1024 * 1024, qPrintable(QString::number(wire->image().sizeInBytes())));
+    QVERIFY(!lineage.hasImage());
+    qInfo() << "Long wire bytes" << wire->image().sizeInBytes();
+    QVERIFY(f.canvas->cachedRasterBytes() <= GraphCanvas::rasterCacheBudget);
+    f.canvas->resetRasterStats();
     f.canvas->setView(1, QPointF(400, 300));
     f.canvas->flushRaster();
     QVERIFY(f.item("n0")->hasImage());
@@ -379,6 +403,7 @@ private slots:
     f.canvas->flushRaster();
     QVERIFY(f.item("n20")->hasImage());
     QVERIFY(f.item("n20")->isVisible());
+    QVERIFY(lineage.hasImage());
     QVERIFY(!f.item("n0")->hasImage());
     QVERIFY(!f.item("n0")->isVisible());
     // A pan inside the prefetched margin paints nothing new.
@@ -390,6 +415,217 @@ private slots:
     f.canvas->centerOn(QPointF(30150, 300));
     QTRY_VERIFY(f.item("n30")->hasImage());
     QTRY_VERIFY(!f.item("n20")->hasImage());
+    QTRY_VERIFY(!lineage.hasImage());
+  }
+
+  void retainedDecorationHandles_data() {
+    QTest::addColumn<QString>("order");
+    QTest::newRow("handles-first") << QString("handles");
+    QTest::newRow("card-first") << QString("card");
+    QTest::newRow("canvas-first") << QString("canvas");
+  }
+
+  void retainedDecorationHandles() {
+    QFETCH(QString, order);
+    QWidget host;
+    WorkflowGraphModel model;
+    model.project(pair(), catalog());
+    auto surface = std::make_unique<QuickCanvas>(model, host);
+    auto layer = std::make_unique<node_editor::LineageLayer>(surface->canvasScene());
+    auto graph = pair()["graph"].toObject();
+    graph["links"] = QJsonArray{QJsonObject{
+        {"id", "ref"}, {"source", "source"}, {"target", "target"}, {"label", "Reference"}}};
+    QVERIFY(layer->update(graph, model, *surface).isEmpty());
+    QVERIFY(layer->linkItem("ref"));
+    auto note = surface->addNote(surface->canvasScene().nodeAt(QPointF(80, 20))->nodeId(), "Title", "note", {}, {});
+    QVERIFY(note);
+    if (order == "card") {
+      model.project(snapshot({node("target", kTarget, 500, 0)}), catalog());
+      note->updateCardGeometry({200, 100});
+    } else if (order == "canvas") {
+      surface.reset();
+      layer->setSelectedLinkIds({"ref"});
+      note->setVisible(false);
+    }
+    note.reset();
+    layer.reset();
+    surface.reset();
+  }
+
+  void interruptedGesture_data() {
+    QTest::addColumn<bool>("reconnect");
+    QTest::addColumn<bool>("hide");
+    QTest::newRow("ungrab-card") << false << false;
+    QTest::newRow("ungrab-reconnect") << true << false;
+    QTest::newRow("hide-card") << false << true;
+    QTest::newRow("hide-band") << true << true;
+  }
+
+  void interruptedGesture() {
+    QFETCH(bool, reconnect);
+    QFETCH(bool, hide);
+    Fixture f(pair({edge("e", "source", "target")}));
+    auto &scene = f.canvas->scene();
+    const auto initial = f.item("source")->scenePosition();
+    const auto start = hide && reconnect ? QPointF(320, 260)
+                       : reconnect ? f.port("target", PortType::In) : initial + QPointF(80, 20);
+    const auto end = start + QPointF(70, 90);
+    f.press(start);
+    f.drag(start, end);
+    if (!reconnect) {
+      QVERIFY(scene.nodeDragActive());
+      QVERIFY(f.item("source")->scenePosition() != initial);
+    } else if (hide) {
+      QVERIFY(f.canvas->rubberBandActive());
+    } else {
+      QVERIFY(scene.draftConnection());
+      QVERIFY(!scene.connectionItems().first()->shown());
+    }
+
+    if (hide) {
+      f.canvas->setViewShown(false);
+      f.canvas->setViewShown(true);
+    } else {
+      f.canvas->ungrabMouse();
+    }
+    QVERIFY(!scene.mouseGrabber());
+    QVERIFY(!scene.nodeDragActive());
+    QVERIFY(!scene.draftConnection());
+    QVERIFY(!f.canvas->rubberBandActive());
+    QCOMPARE(f.item("source")->scenePosition(), initial);
+    QVERIFY(scene.connectionItems().first()->shown());
+
+    f.release(end);
+    f.press(start);
+    if (hide && reconnect) {
+      f.drag(start, end);
+      QVERIFY(f.canvas->rubberBandActive());
+    } else {
+      QVERIFY(scene.mouseGrabber());
+    }
+    f.release(start);
+  }
+
+  void stackedLineageToolTip() {
+    QWidget host;
+    host.resize(800, 600);
+    WorkflowGraphModel model;
+    model.project(pair({edge("e", "source", "target")}), catalog());
+    QuickCanvas surface(model, host);
+    surface.hostWidget().resize(host.size());
+    host.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&host));
+    surface.setView(1, QPointF(400, 300));
+    auto *wire = surface.canvasScene().connectionItems().first();
+    const auto out = wire->endPoint(PortType::Out);
+    const auto in = wire->endPoint(PortType::In);
+    const auto [c1, c2] = wire->pointsC1C2();
+    QPainterPath path(out);
+    path.cubicTo(c1, c2, in);
+    LineageItem lineage(surface.canvasScene(), "ref");
+    lineage.updateGeometry(path, "Reference under a wire", {}, false);
+    const auto point = path.pointAtPercent(.5);
+    QCOMPARE(surface.canvasScene().itemsAt(point).first()->kind(), CanvasItem::Kind::Connection);
+    auto &viewport = surface.viewportWidget();
+    const auto pixel = surface.mapFromScene(point);
+    QHelpEvent event(QEvent::ToolTip, pixel, viewport.mapToGlobal(pixel));
+    QApplication::sendEvent(&viewport, &event);
+    QCOMPARE(QToolTip::text(), QString("Reference under a wire"));
+    QToolTip::hideText();
+  }
+
+  void reattachRestoresRasters() {
+    QWidget host;
+    host.resize(800, 600);
+    WorkflowGraphModel model;
+    model.project(pair({edge("e", "source", "target")}), catalog());
+    QuickCanvas surface(model, host);
+    surface.hostWidget().resize(host.size());
+    host.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&host));
+    surface.setView(1, QPointF(400, 300));
+    auto &graph = surface.graphCanvas();
+    auto *card = graph.scene().nodeAt(QPointF(80, 20));
+    auto note = surface.addNote(card->nodeId(), "2 Title", "note", {}, {});
+    auto *chip = static_cast<CanvasItem *>(card->childItems().first());
+    LineageItem lineage(graph.scene(), "ref");
+    QPainterPath path(QPointF(320, 240));
+    path.lineTo(500, 280);
+    lineage.updateGeometry(path, "Reference", {}, false);
+    graph.flushRaster();
+    surface.quickWidget().grabFramebuffer();
+    QVERIFY(card->hasImage());
+    QVERIFY(chip->hasImage());
+    QVERIFY(lineage.hasImage());
+
+    auto *parent = graph.parentItem();
+    graph.setParentItem(nullptr);
+    QVERIFY(!card->hasImage());
+    graph.setParentItem(parent);
+    QTRY_VERIFY(card->hasImage());
+    QTRY_VERIFY(chip->hasImage());
+    QTRY_VERIFY(lineage.hasImage());
+  }
+
+  void noteChipAtFitZoom() {
+    QWidget host;
+    host.resize(640, 400);
+    WorkflowGraphModel quickModel, legacyModel;
+    EditorScene legacyScene(legacyModel);
+    for (auto *model : {&quickModel, &legacyModel}) { model->project(pair(), catalog()); }
+    QuickCanvas quick(quickModel, host);
+    quick.hostWidget().resize(host.size());
+    host.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&host));
+    QWidget legacyHost;
+    auto &view = QtNodesCanvas::createView(legacyScene, legacyHost);
+    view.resize(host.size());
+    legacyHost.resize(host.size());
+    QtNodesCanvas legacy(legacyScene, view);
+    legacyHost.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&legacyHost));
+    const auto theme = test::darkCanvasTheme();
+    quick.scene().setTheme(theme);
+    legacy.scene().setTheme(theme);
+    const QPointF center(400, 200);
+    const auto id = quick.canvasScene().nodeAt(QPointF(80, 20))->nodeId();
+    const auto legacyId = legacy.nodeAt(legacy.mapFromScene(QPointF(80, 20)));
+    const auto quickNote = quick.addNote(id, "2 Title", "note", {}, {});
+    const auto legacyNote = legacy.addNote(legacyId, "2 Title", "note", {}, {});
+    QVERIFY(quickNote);
+    QVERIFY(legacyNote);
+    quick.setView(.53, center);
+    legacy.setView(.53, center);
+    quick.graphCanvas().flushRaster();
+    const auto quickFrame = quick.quickWidget().grabFramebuffer();
+    const auto legacyFrame = view.viewport()->grab().toImage();
+    const auto ink = [&](const CanvasSurface &canvas, const QImage &frame, NodeId card) {
+      const QPointF textOrigin = canvas.nodeRect(card).bottomLeft() + QPointF(20, 18);
+      return frame.copy(QRect(canvas.mapFromScene(textOrigin) - QPoint(1, 1), QSize(27, 9)));
+    };
+    const auto reference = ink(legacy, legacyFrame, legacyId);
+    const auto rendered = ink(quick, quickFrame, id);
+    // Compare the distribution of glyph ink, allowing a pixel of offset from
+    // the view mapping and different subpixel coverage from the raster bucket.
+    const auto background = qGray(theme.canvas.rgb());
+    double best = 1;
+    for (int dy = -1; dy <= 1; ++dy) {
+      for (int dx = -1; dx <= 1; ++dx) {
+        double difference = 0;
+        double total = 0;
+        for (int y = 1; y < reference.height() - 1; ++y) {
+          for (int x = 1; x < reference.width() - 1; ++x) {
+            const auto a = std::max(0, qGray(reference.pixel(x, y)) - background);
+            const auto b = std::max(0, qGray(rendered.pixel(x + dx, y + dy)) - background);
+            difference += std::abs(a - b);
+            total += std::max(a, b);
+          }
+        }
+        if (total > 0) { best = std::min(best, difference / total); }
+      }
+    }
+    qInfo() << "Normalized glyph error" << best;
+    QVERIFY2(best < .28, qPrintable(QString("Normalized glyph error: %1").arg(best)));
   }
 
   // Destroying the canvas, or resetting the model, while a card or a wire is

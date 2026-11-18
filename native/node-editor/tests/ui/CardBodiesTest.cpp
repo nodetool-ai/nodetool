@@ -2923,11 +2923,13 @@ private slots:
         QVERIFY(row);
         QVERIFY(row->placeholder);
         host.click("workflow", host.model().inlineFieldRect(host.id("workflow"), "workflow_id").center());
-        auto *overlay = host.overlay();
-        QVERIFY(overlay);
-        QQuickItem *chooser = nullptr;
-        QTRY_VERIFY((chooser = find(overlay->rootObject(), QStringLiteral("inline-resource-select"))) != nullptr);
-        QTRY_COMPARE(chooser->property("options").toList().size(), 2);
+        QPointer<QQuickItem> chooser;
+        // Loading the options can replace the chooser while QTRY processes events.
+        QTRY_VERIFY([&] {
+            const auto *overlay = host.overlay();
+            chooser = overlay ? find(overlay->rootObject(), QStringLiteral("inline-resource-select")) : nullptr;
+            return chooser && chooser->property("options").toList().size() == 2;
+        }());
         const auto undo = host.undoCount();
         QMetaObject::invokeMethod(chooser, "valueCommitted", Q_ARG(QVariant, QStringLiteral("wf1")));
         QTRY_COMPARE(host.data("workflow")["workflow_id"].toString(), QStringLiteral("wf1"));
@@ -2965,11 +2967,13 @@ private slots:
         const auto *row = host.row("app", NodeRowKind::Field, "app_id");
         QVERIFY(row);
         host.click("app", host.model().inlineFieldRect(host.id("app"), "app_id").center());
-        auto *overlay = host.overlay();
-        QVERIFY(overlay);
-        QQuickItem *chooser = nullptr;
-        QTRY_VERIFY((chooser = find(overlay->rootObject(), QStringLiteral("inline-resource-select"))) != nullptr);
-        QTRY_COMPARE(chooser->property("options").toList().size(), 1);
+        QPointer<QQuickItem> chooser;
+        // Loading the options can replace the chooser while QTRY processes events.
+        QTRY_VERIFY([&] {
+            const auto *overlay = host.overlay();
+            chooser = overlay ? find(overlay->rootObject(), QStringLiteral("inline-resource-select")) : nullptr;
+            return chooser && chooser->property("options").toList().size() == 1;
+        }());
         QCOMPARE(chooser->property("options").toList().first().toMap()["label"].toString(), QStringLiteral("Poster maker"));
         const auto undo = host.undoCount();
         QMetaObject::invokeMethod(chooser, "valueCommitted", Q_ARG(QVariant, QStringLiteral("app1")));

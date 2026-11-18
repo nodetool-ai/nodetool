@@ -564,8 +564,10 @@ the view moved and zoomed, and sets no time limit.
 `NODETOOL_NODE_EDITOR_CANVAS=quick` replaces the `QGraphicsView` with
 [QuickCanvas](src/ui/QuickCanvas.h): one `QQuickWidget` that hosts a
 [GraphCanvas](src/canvas/GraphCanvas.h). Each card and wire is a C++ item
-that shows a texture the card and wire painters fill. Textures exist only
-near the view, and a grid index answers hit tests and culling. The app stays
+that shows a texture the card and wire painters fill. A grid index answers
+hit tests and culling. The canvas clips wire and lineage rasters to the
+viewport neighbourhood and retains up to 64 MiB of item rasters. Polish
+prioritizes visible items and spreads raster work over frames. The app stays
 on the software backend, and the widget overlays stay children of the canvas
 widget. QtNodes stays the default
 ([plan, Q3](../../docs/plans/node-editor-quick-canvas/plan.md#q3-quick-canvas-behind-a-switch)).
@@ -573,23 +575,24 @@ widget. QtNodes stays the default
 The canvas group of the plan runs a second time as `<name>_quick` entries,
 except the tests that build an `EditorScene` without a window.
 
-`node_editor_large_graph_quick` times each step's UI thread work: the input
-handling, the raster pass, the software renderer's sync and render, and the
-widget's paint, without the wait for the frame timer. Three runs of each
-canvas on the same machine, one after the other:
+`node_editor_large_graph_quick` times input handling, canvas polish, software
+scene graph sync and render, and the widget blit. It excludes the wait for
+the frame timer. Run it serially with
+`ctest --test-dir <build> -R '^node_editor_large_graph_quick$' -V -j 1`.
 
-| Measure | QtNodes | Quick canvas | Plan target |
-|---|---|---|---|
-| Card drag, 72 cards, per move | 5.0 to 5.2 ms | 1.4 to 2.0 ms | Under 4 ms |
-| Add a card, window shown, 2,000 cards | 487 to 500 µs | 484 to 491 µs | No slower |
-| Event loop after the batch of 2,000 | 120 ms | 85 ms | No slower |
-| Pan at zoom 1, 5 cards on screen | 5.4 to 6.0 ms | 0.65 to 0.69 ms, no raster | Under 2 ms, no raster |
-| Pan at the fit zoom, 534 cards on screen | 25.5 to 25.7 ms | 25.1 to 25.7 ms, no raster | Under 2 ms, no raster |
-| Zoom settle, raster per frame | Paints at once | 28 frames, at most 4.0 ms each | At most 4 ms a frame |
+| Measure | Quick canvas, software | Gate |
+|---|---|---|
+| Card drag, 72 cards, per move | 2.37 ms | Under 4 ms |
+| Add a card, window shown, 2,000 cards | 571 µs | Compare with the QtNodes baseline |
+| Event loop after adding 2,000 cards | 126 ms | Compare with the QtNodes baseline |
+| Warm pan at zoom 1 | 1.9126 ms | Under 2 ms, zero card and wire rasters |
+| Cold pan at fit zoom | 1.22 ms input and polish, 9.69 ms sync and render | Under 2 ms for input and polish |
+| Warm pan at fit zoom | 0.14 ms input and polish, 34.68 ms sync and render | Under 2 ms for input and polish, zero card and wire rasters |
+| Zoom settle, slowest raster pass | 2.88 ms | At most 4 ms a frame |
 
-At the fit zoom the software renderer draws every card and wire texture on
-each pan step, which costs about 21 ms of the step (plan risk R3). The test
-asserts the other targets and reports this number for the RHI backend of Q10.
+The cold pan starts after the test evicts the route's images. The warm pan
+primes the same route. The full fit-pan frame target is measured on RHI in
+[Q10](../../docs/plans/node-editor-quick-canvas/plan.md#q10-rhi).
 
 ### Composition
 

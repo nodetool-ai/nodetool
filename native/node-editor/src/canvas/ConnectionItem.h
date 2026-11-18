@@ -36,7 +36,7 @@ public:
   void move();
   std::pair<QPointF, QPointF> pointsC1C2() const;
   bool isSelected() const;
-  void raster(double scale, double zoom);
+  void paintRaster(QPainter &painter, double zoom) const override;
   void setStackZ(double z);
 
   void mousePress(CanvasMouseEvent &event) override;

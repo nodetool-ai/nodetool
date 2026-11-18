@@ -25,9 +25,8 @@ namespace nodetool::canvas {
 // CanvasInteraction. It borrows the model, which outlives it.
 //
 // Card and wire textures exist only near the viewport. The raster pass runs in
-// updatePolish: cards on screen that have no image or changed are painted at
-// once, and stale or prefetched ones within a budget of a few milliseconds a
-// frame. A zoom gesture scales the existing textures; the pass paints them at
+// updatePolish, prioritizing visible items within a time and byte budget.
+// A zoom gesture scales the existing textures; the pass paints them at
 // the new scale 100 ms after the last zoom step.
 class GraphCanvas final : public QQuickItem {
   Q_OBJECT
@@ -59,6 +58,7 @@ public:
   void contextMenu(QPoint viewportPosition, QPoint screenPosition, Qt::KeyboardModifiers modifiers);
   // The host widget was shown or hidden. A show centers on the last center.
   void setViewShown(bool shown);
+  void cancelPointerGrab();
 
   // Paints everything near the view now, without a budget.
   void flushRaster();
@@ -68,13 +68,15 @@ public:
   struct RasterStats {
     int cards = 0;
     int wires = 0;
-    int other = 0;
+    int foreground = 0;
     int passes = 0;
     qint64 nanoseconds = 0;
     qint64 slowestPass = 0;
   };
   RasterStats rasterStats() const { return stats_; }
   void resetRasterStats() { stats_ = {}; }
+  qsizetype cachedRasterBytes() const { return cachedRasterBytes_; }
+  static constexpr qsizetype rasterCacheBudget = 64 * 1024 * 1024;
   int gridRasters() const { return grid_.rasterCount(); }
   // The raster scale for a zoom: zoom times the device pixel ratio in steps of √2.
   double rasterScale() const;
@@ -82,11 +84,14 @@ public:
 signals:
   void viewportMoved();
   void rubberBandChanged(bool active);
+  void pointerCursorChanged(const QCursor &cursor);
 
 protected:
   void geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) override;
   void updatePolish() override;
+  void itemChange(ItemChange change, const ItemChangeData &value) override;
   void mousePressEvent(QMouseEvent *event) override;
+  void mouseUngrabEvent() override;
   void mouseMoveEvent(QMouseEvent *event) override;
   void mouseReleaseEvent(QMouseEvent *event) override;
   void mouseDoubleClickEvent(QMouseEvent *event) override;
@@ -103,9 +108,14 @@ private:
   void pointerMove(QPointF position, QPointF global, Qt::MouseButtons buttons, Qt::KeyboardModifiers modifiers);
   void updateRubberBand(QPoint position, Qt::MouseButtons buttons);
   void endRubberBand();
+  void updatePointerCursor();
+  bool viewportCovered(const QRectF &visible) const;
+  void updateRasterCoverage(const QRectF &visible);
   void viewChanged(bool zoomed);
   void rasterPass(bool flush);
   void scheduleRaster();
+  void invalidateRasterWork();
+  void rebuildRasterWork(const QRectF &visible, double scale, double zoom, bool settled);
 
   WorkflowGraphModel &model_;
   CanvasViewport viewport_;
@@ -118,7 +128,25 @@ private:
   // Declared last, so it is destroyed first: its items' visual parent is content_.
   std::unique_ptr<EditorCanvasScene> scene_;
   std::unique_ptr<CanvasSelection> selection_;
+  struct RasterJob {
+    quint64 key;
+    QRectF rect;
+    bool visible;
+  };
   QSet<quint64> near_;
+  QList<RasterJob> rasterJobs_;
+  qsizetype nextRasterJob_ = 0;
+  QList<quint64> offscreenImages_;
+  bool rasterWorkDirty_ = true;
+  bool rasterWorkSettled_ = false;
+  double rasterWorkScale_ = 0;
+  QRectF rasterCoverage_;
+  QRectF prefetchArea_;
+  quint64 indexedRevision_ = 0;
+  qsizetype cachedRasterBytes_ = 0;
+  std::optional<QPointF> cursorPoint_;
+  std::optional<Qt::CursorShape> interactionCursor_;
+  Qt::CursorShape pointerCursor_ = Qt::ArrowCursor;
   QPoint pressPosition_;
   QPointF pressScene_;
   QPointF lastMoveScene_;

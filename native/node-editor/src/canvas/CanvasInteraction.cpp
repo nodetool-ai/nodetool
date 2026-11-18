@@ -34,8 +34,14 @@ bool CanvasInteraction::pointerEvent(PointerAction action, const CanvasPointerEv
     return press(event);
   case PointerAction::Move:
     return move(event);
-  case PointerAction::Release:
-    return release(event);
+  case PointerAction::Release: {
+    const bool accepted = release(event);
+    if (!event.buttons) {
+      updatePointerHover(event.scenePosition);
+      refreshHandleCursor(draftEnd().node != InvalidNodeId);
+    }
+    return accepted;
+  }
   case PointerAction::DoubleClick:
     return doubleClick(event);
   }
@@ -1220,28 +1226,11 @@ bool CanvasInteraction::move(const CanvasPointerEvent &event) {
     moveCompare(event.scenePosition);
     return true;
   }
-  updateHandleHover(event.scenePosition);
-  updateBrushCursor(event.scenePosition);
-  host_.setButtonHover(footerHover_, false, false, {});
-  footerHover_ = InvalidNodeId;
-  for (const auto &hit : host_.hitsAt(event.scenePosition)) {
-    const auto node = host_.node(hit.node);
-    if (!node) { continue; }
-    const auto &layout = model_.layout(node->id);
-    const bool hovered = layout.subgraph && layout.footerRect().contains((event.scenePosition - node->origin));
-    const bool actionHovered = !layout.headerAction.isEmpty() && !layout.collapsed && !model_.readOnly() &&
-                               layout.headerActionRect().contains((event.scenePosition - node->origin));
-    footerHover_ = hovered || actionHovered ? node->id : InvalidNodeId;
-    host_.setButtonHover(node->id, hovered, actionHovered,
-                         hovered
-                             ? QCoreApplication::translate("nodetool::EditorScene", "Open the subgraph in its own tab")
-                         : actionHovered ? QCoreApplication::translate("nodetool::EditorScene", "Load workflow")
-                                         : QString{});
-    break;
-  }
+  updatePointerHover(event.scenePosition);
   if (footerPress_ != InvalidNodeId) { return true; }
   QHash<NodeId, QPointF> before;
   for (const auto id : model_.allNodeIds()) { before[id] = model_.nodeData(id, NodeRole::Position).toPointF(); }
+  if (dragNode_ != InvalidNodeId && !viewportGesture_ && dragPositions_.isEmpty()) { dragPositions_ = before; }
   if (gesture_ == Gesture::Label) {
     const auto delta = event.scenePosition - gestureOrigin_;
     for (const auto id : gestureSelected_) {
@@ -1283,8 +1272,29 @@ bool CanvasInteraction::move(const CanvasPointerEvent &event) {
   return drafting || gesture_ != Gesture::None;
 }
 
+void CanvasInteraction::updatePointerHover(QPointF scenePosition) {
+  updateHandleHover(scenePosition);
+  updateBrushCursor(scenePosition);
+  host_.setButtonHover(footerHover_, false, false, {});
+  footerHover_ = InvalidNodeId;
+  for (const auto &hit : host_.hitsAt(scenePosition)) {
+    const auto node = host_.node(hit.node);
+    if (!node) { continue; }
+    const auto &layout = model_.layout(node->id);
+    const bool hovered = layout.subgraph && layout.footerRect().contains((scenePosition - node->origin));
+    const bool actionHovered = !layout.headerAction.isEmpty() && !layout.collapsed && !model_.readOnly() &&
+                               layout.headerActionRect().contains((scenePosition - node->origin));
+    footerHover_ = hovered || actionHovered ? node->id : InvalidNodeId;
+    host_.setButtonHover(node->id, hovered, actionHovered,
+                         hovered
+                             ? QCoreApplication::translate("nodetool::EditorScene", "Open the subgraph in its own tab")
+                         : actionHovered ? QCoreApplication::translate("nodetool::EditorScene", "Load workflow")
+                                         : QString{});
+    break;
+  }
+}
+
 bool CanvasInteraction::release(const CanvasPointerEvent &event) {
-  refreshHandleCursor(false);
   // The paint after this release runs without the draft, so the cards return to normal.
   if (draftFeedback_) {
     draftFeedback_ = false;
@@ -1475,6 +1485,7 @@ bool CanvasInteraction::release(const CanvasPointerEvent &event) {
 
 void CanvasInteraction::beginNodeDrag(const CanvasPointerEvent &event) {
   dragNode_ = InvalidNodeId;
+  dragPositions_.clear();
   dragMoved_ = false;
   dragDetach_ = false;
   outcome_ = {};
@@ -1538,6 +1549,7 @@ void CanvasInteraction::endNodeDrag() {
   }
   const auto group = dropGroup_;
   dragNode_ = InvalidNodeId;
+  dragPositions_.clear();
   dropGroup_ = InvalidNodeId;
   dropClock_.invalidate();
   dropHintTimer_.stop();
@@ -1589,6 +1601,46 @@ bool CanvasInteraction::keyPress(int key) {
 void CanvasInteraction::keyRelease(int key) {
   if (key == Qt::Key_Alt) { setAltHeld(false); }
 }
+void CanvasInteraction::leavePointer() {
+  const auto oldHandle = std::exchange(handleHover_, {});
+  if (oldHandle.node != InvalidNodeId) {
+    host_.invalidateForeground();
+    host_.repaintNode(oldHandle.node);
+  }
+  refreshHandleCursor(false);
+  host_.setButtonHover(std::exchange(footerHover_, InvalidNodeId), false, false, {});
+  host_.repaintNode(std::exchange(brushNode_, InvalidNodeId));
+}
+
+void CanvasInteraction::cancelPointerGesture() {
+  focusOut();
+  for (const auto id : model_.allNodeIds()) {
+    const auto position = viewportPositions_.constFind(model_.resourceId(id));
+    if (position != viewportPositions_.cend()) {
+      if (model_.nodeData(id, NodeRole::Position).toPointF() != *position) {
+        model_.setNodeData(id, NodeRole::Position, *position);
+      }
+    } else if (const auto drag = dragPositions_.constFind(id); drag != dragPositions_.cend() &&
+               model_.nodeData(id, NodeRole::Position).toPointF() != *drag) {
+      model_.setNodeData(id, NodeRole::Position, *drag);
+    }
+  }
+  invalidateViewportGesture();
+  panning_ = false;
+  middleEdge_.clear();
+  resetDraftConnection();
+  if (sliderNode_ != InvalidNodeId) { finishSlider(false); }
+  if (cropNode_ != InvalidNodeId) { finishCrop(false); }
+  if (paintNode_ != InvalidNodeId) { finishPaint(false); }
+  host_.repaintNode(std::exchange(compareNode_, InvalidNodeId));
+  inlinePress_ = outputFormPress_ = headerActionPress_ = false;
+  footerPress_ = InvalidNodeId;
+  endNodeDrag();
+  outcome_ = {};
+  leavePointer();
+  host_.restoreGroupOrder();
+}
+
 void CanvasInteraction::focusOut() {
   setAltHeld(false);
   if (gesture_ != Gesture::None) { cancelGesture(); }

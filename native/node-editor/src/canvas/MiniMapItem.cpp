@@ -24,19 +24,21 @@ MiniMapItem::MiniMapItem(WorkflowGraphModel &model, EditorSceneApi &scene, Canva
 void MiniMapItem::schedule() {
   if (pending_) { return; }
   pending_ = true;
-  QTimer::singleShot(0, this, [this] {
-    pending_ = false;
-    nodes_.clear();
-    bounds_ = {};
-    for (const auto id : model_.allNodeIds()) {
-      if (!canvas_.hasNode(id)) { continue; }
-      const auto rect = canvas_.nodeRect(id);
-      nodes_.push_back({rect, canvas_.selection().contains(id), model_.isGroup(id), model_.isComment(id),
-                        model_.nodeSnapshot(id)["type"].toString()});
-      bounds_ |= rect;
-    }
-    update();
-  });
+  QTimer::singleShot(0, this, &MiniMapItem::rebuild);
+}
+
+void MiniMapItem::rebuild() {
+  pending_ = false;
+  nodes_.clear();
+  bounds_ = {};
+  for (const auto id : model_.allNodeIds()) {
+    if (!canvas_.hasNode(id)) { continue; }
+    const auto rect = canvas_.nodeRect(id);
+    nodes_.push_back({rect, canvas_.selection().contains(id), model_.isGroup(id), model_.isComment(id),
+                      model_.nodeSnapshot(id)["type"].toString()});
+    bounds_ |= rect;
+  }
+  update();
 }
 
 void MiniMapItem::paint(QPainter *painter) {

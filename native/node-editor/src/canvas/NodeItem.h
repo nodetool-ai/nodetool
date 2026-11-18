@@ -40,7 +40,8 @@ public:
   // Follows the model position.
   void syncPosition();
   // Paints the card into a new texture at scale, for the logical zoom.
-  void raster(double scale, double zoom);
+  QRectF rasterBounds() const override { return boundingRect(); }
+  void paintRaster(QPainter &painter, double zoom) const override;
   // The QtNodes z: 0, or 1 while hovered. Groups sit below every card.
   void setStackZ(double z);
   double stackZ() const { return stackZ_; }

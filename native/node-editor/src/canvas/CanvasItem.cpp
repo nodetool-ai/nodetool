@@ -9,7 +9,11 @@
 
 namespace nodetool::canvas {
 
-CanvasImageItem::CanvasImageItem(QQuickItem *parent) : QQuickItem(parent) { setFlag(ItemHasContents, true); }
+CanvasImageItem::CanvasImageItem(QQuickItem *parent) {
+  // The owning handle, scene, or canvas member controls the lifetime.
+  setParentItem(parent);
+  setFlag(ItemHasContents, true);
+}
 
 void CanvasImageItem::setImage(QImage image, const QRectF &rect, double scale, double zoom) {
   image_ = std::move(image);
@@ -35,10 +39,11 @@ CanvasImageItem::Raster CanvasImageItem::rasterize(const QRectF &rect, double sc
                                                    const std::function<void(QPainter &)> &paint, int maxSide) {
   if (rect.isEmpty() || !(scale > 0)) { return {}; }
   // A texture side never exceeds maxSide pixels (plan R4).
-  scale = std::min({scale, maxSide / rect.width(), maxSide / rect.height()});
+  scale = std::min({scale, (maxSide - 1) / rect.width(), (maxSide - 1) / rect.height()});
   const auto device = QRectF(rect.topLeft() * scale, rect.size() * scale).toAlignedRect();
   if (device.isEmpty()) { return {}; }
   QImage image(device.size(), QImage::Format_ARGB32_Premultiplied);
+  if (image.isNull()) { return {}; }
   image.fill(Qt::transparent);
   {
     QPainter painter(&image);
@@ -46,7 +51,7 @@ CanvasImageItem::Raster CanvasImageItem::rasterize(const QRectF &rect, double sc
     painter.scale(scale, scale);
     paint(painter);
   }
-  return {std::move(image), QRectF(QPointF(device.topLeft()) / scale, QSizeF(device.size()) / scale), scale};
+  return {std::move(image), QRectF(QPointF(device.topLeft()) / scale, QSizeF(device.size()) / scale)};
 }
 
 QSGNode *CanvasImageItem::updatePaintNode(QSGNode *old, UpdatePaintNodeData *) {
@@ -150,7 +155,9 @@ void CanvasItem::markDirty() {
 
 void CanvasItem::itemChange(ItemChange change, const ItemChangeData &value) {
   CanvasImageItem::itemChange(change, value);
-  if (change == ItemParentHasChanged && scene_) { scene_->updateIndex(*this); }
+  if (!scene_) { return; }
+  if (change == ItemParentHasChanged) { reindex(); }
+  if (change == ItemSceneChange && value.window) { scene_->requestRaster(); }
 }
 
 } // namespace nodetool::canvas

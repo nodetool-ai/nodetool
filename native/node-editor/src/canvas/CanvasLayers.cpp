@@ -14,7 +14,8 @@
 namespace nodetool::canvas {
 namespace nm = node_metrics;
 
-GridItem::GridItem(const CanvasViewport &viewport, QQuickItem *parent) : QQuickItem(parent), viewport_(viewport) {
+GridItem::GridItem(const CanvasViewport &viewport, QQuickItem *parent) : viewport_(viewport) {
+  setParentItem(parent);
   setFlag(ItemHasContents, true);
 }
 
@@ -122,10 +123,12 @@ void GridItem::releaseResources() { upload_ = true; }
 
 ForegroundItem::ForegroundItem(QQuickItem *parent) : CanvasImageItem(parent) {}
 
-bool ForegroundItem::raster(const EditorCanvasScene &scene, const QRectF &visible, double scale, double zoom, bool settled) {
-  const bool stale = settled && (scale_ != scale || zoom_ != zoom);
-  if (!contentDirty() && !stale && area_.contains(visible)) { return false; }
-  area_ = visible.adjusted(-visible.width() / 4, -visible.height() / 4, visible.width() / 4, visible.height() / 4);
+bool ForegroundItem::needsRaster(const QRectF &visible, double scale, double zoom, bool settled) const {
+  return contentDirty() || (settled && (scale_ != scale || zoom_ != zoom)) || !area_.contains(visible);
+}
+
+bool ForegroundItem::raster(const EditorCanvasScene &scene, const QRectF &visible, double scale, double zoom) {
+  area_ = visible.adjusted(-visible.width() / 2, -visible.height() / 2, visible.width() / 2, visible.height() / 2);
   scale_ = scale;
   zoom_ = zoom;
   const auto bounds = scene.foregroundBounds(area_, zoom);
@@ -134,12 +137,15 @@ bool ForegroundItem::raster(const EditorCanvasScene &scene, const QRectF &visibl
     setContentDirty(false);
     return false;
   }
-  auto result = rasterize(bounds, scale, [&](QPainter &painter) { scene.paintForeground(painter, bounds, zoom); });
+  auto result = rasterize(bounds, scale, [&](QPainter &painter) { scene.paintForeground(painter, bounds, zoom); }, 1536);
   setImage(std::move(result.image), result.rect, scale, zoom);
   return true;
 }
 
-RubberBandItem::RubberBandItem(QQuickItem *parent) : QQuickItem(parent) { setFlag(ItemHasContents, true); }
+RubberBandItem::RubberBandItem(QQuickItem *parent) {
+  setParentItem(parent);
+  setFlag(ItemHasContents, true);
+}
 
 void RubberBandItem::setBand(const QRect &rect) {
   if (band_ == rect) { return; }

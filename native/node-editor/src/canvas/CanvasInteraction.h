@@ -144,6 +144,9 @@ public:
   bool keyPress(int key);
   void keyRelease(int key);
   void focusOut();
+  void cancelPointerGesture();
+  void leavePointer();
+  bool viewportPanning() const { return panning_; }
   void projectionChanged();
   void selectionChanged();
   bool draftFeedback() const { return draftFeedback_; }
@@ -308,6 +311,7 @@ private:
   std::optional<QtNodes::ConnectionId> reconnectWire_;
   HandleHover handleHover_;
   bool draftFeedback_ = false;
+  void updatePointerHover(QPointF scenePosition);
   void updateHandleHover(const QPointF &scenePosition);
   void refreshHandleCursor(bool drafting);
   QtNodes::NodeId cursorNode_ = QtNodes::InvalidNodeId;
@@ -332,6 +336,7 @@ private:
   bool labelAdditive_ = false;
   QElapsedTimer dropClock_;
   QTimer dropHintTimer_;
+  QHash<QtNodes::NodeId, QPointF> dragPositions_;
   QtNodes::NodeId dragNode_ = QtNodes::InvalidNodeId;
   QtNodes::NodeId dropGroup_ = QtNodes::InvalidNodeId;
   QPointF dragStart_;

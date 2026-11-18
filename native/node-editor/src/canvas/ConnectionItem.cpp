@@ -129,11 +129,8 @@ bool ConnectionItem::isSelected() const {
   return scene && scene->isSelected(*this);
 }
 
-void ConnectionItem::raster(double scale, double zoom) {
-  auto *scene = canvasScene();
-  if (!scene) { return; }
-  auto result = rasterize(boundingRect(), scale, [&](QPainter &painter) { scene->paintConnection(painter, *this, zoom); });
-  setImage(std::move(result.image), result.rect, scale, zoom);
+void ConnectionItem::paintRaster(QPainter &painter, double zoom) const {
+  if (auto *scene = canvasScene()) { scene->paintConnection(painter, *this, zoom); }
 }
 
 void ConnectionItem::setStackZ(double z) { setZ(z + indexKey() * 1e-9); }

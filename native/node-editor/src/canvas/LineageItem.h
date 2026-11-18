@@ -21,6 +21,7 @@ public:
   QString label() const { return label_; }
   QString toolTip() const { return label_.isEmpty() ? QStringLiteral("Lineage link") : label_; }
   QRectF sceneBoundingRect() const override { return bounds_; }
+  void paintRaster(QPainter &painter, double zoom) const override;
   bool hitTest(const QPointF &scenePoint) const override;
 
   std::function<void(const QString &id, bool additive)> selectionRequested;
@@ -32,7 +33,6 @@ public:
   bool keyPress(QKeyEvent &event) override;
 
 private:
-  void repaint();
   QString id_;
   QString label_;
   QPainterPath path_;

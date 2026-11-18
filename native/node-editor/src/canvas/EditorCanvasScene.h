@@ -112,6 +112,9 @@ private:
   // Card z from the hierarchy and the document order, and wire visibility.
   void applyStacking();
   void updateBranchDimming();
+  void scheduleDimming();
+  void flushDimming();
+  void animate();
   void repaintCards();
   void refreshRuntime();
   void refreshRuntimeNode(QtNodes::NodeId id);

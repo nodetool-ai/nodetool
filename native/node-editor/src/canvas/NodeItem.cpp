@@ -90,11 +90,8 @@ void NodeItem::syncPosition() {
   moveConnections();
 }
 
-void NodeItem::raster(double scale, double zoom) {
-  auto *scene = canvasScene();
-  if (!scene) { return; }
-  auto result = rasterize(boundingRect(), scale, [&](QPainter &painter) { scene->paintNode(painter, *this, zoom); });
-  setImage(std::move(result.image), result.rect, scale, zoom);
+void NodeItem::paintRaster(QPainter &painter, double zoom) const {
+  if (auto *scene = canvasScene()) { scene->paintNode(painter, *this, zoom); }
 }
 
 void NodeItem::setStackZ(double z) {

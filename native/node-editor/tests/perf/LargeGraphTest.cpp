@@ -1,9 +1,11 @@
 #include "../support/CanvasProbe.h"
+#include "../../../graph-runner/unittests/sanitizer_build.h"
 #include "ui/CanvasSurface.h"
 #include "graph/EditorScene.h"
 #include "ui/EditorWindow.h"
 #include "canvas/GraphCanvas.h"
 #include "ui/QuickCanvas.h"
+#include <QPointer>
 #include <QQuickWidget>
 #include <QQuickWindow>
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
@@ -17,65 +19,86 @@
 #include <QTemporaryDir>
 #include <QtTest>
 #include <algorithm>
+#include <array>
 #include <functional>
 #include <memory>
 
 using nodetool::node_editor::WorkflowDocument;
 
 namespace {
+// Enforce the production frame limits in Release. Instrumented runs still
+// exercise every input and frame, with the native test suite's timing scale.
+constexpr auto kTimingScale = gr::test::kSanitizerTimeScale;
+
 // UI thread only. The UI thread work of one input step on either canvas. The
 // QtNodes view paints in repaint(). QQuickWidget renders on a 5 ms timer, so
 // a Quick step waits for its frame and adds the raster pass (polish), the
 // sync and render of the software renderer, and the widget's blit, without
 // the idle wait. The clock borrows the window, which outlives it.
-class StepClock {
+class StepClock final : public QObject {
 public:
   explicit StepClock(nodetool::EditorWindow &window)
       : quick_(dynamic_cast<nodetool::QuickCanvas *>(&window.canvas())), viewport_(&window.canvas().viewportWidget()) {
     if (!quick_) { return; }
     auto *scene = quick_->quickWidget().quickWindow();
-    QObject::connect(scene, &QQuickWindow::beforeSynchronizing, scene, [this] { render_.restart(); }, Qt::DirectConnection);
-    QObject::connect(scene, &QQuickWindow::afterRendering, scene, [this] {
-      renderNs_ += render_.nsecsElapsed();
-      ++frames_;
-    }, Qt::DirectConnection);
+    // QQuickWidget uses the GUI thread for sync and render. Disconnect before
+    // the clock's members go away, even though the window remains alive.
+    const QPointer<StepClock> clock(this);
+    connections_ = {
+        connect(scene, &QQuickWindow::beforeSynchronizing, this, [clock] { if (clock) { clock->phase_.restart(); } }),
+        connect(scene, &QQuickWindow::afterSynchronizing, this, [clock] { if (clock) { clock->syncNs_ += clock->phase_.nsecsElapsed(); } }),
+        connect(scene, &QQuickWindow::beforeRendering, this, [clock] { if (clock) { clock->phase_.restart(); } }),
+        connect(scene, &QQuickWindow::afterRendering, this, [clock] {
+          if (!clock) { return; }
+          clock->renderNs_ += clock->phase_.nsecsElapsed();
+          ++clock->frames_;
+        }),
+    };
+  }
+  ~StepClock() override {
+    for (const auto &connection : connections_) { disconnect(connection); }
   }
   bool quick() const { return quick_ != nullptr; }
-  // Sends one step and returns its UI thread work in microseconds.
+  // Sends one step and returns measured work in microseconds, excluding the
+  // QQuickWidget timer wait.
   double step(const std::function<void()> &send) {
+    const auto frames = frames_;
+    const auto sync = syncNs_, render = renderNs_;
+    const auto polish = stats().nanoseconds;
     QElapsedTimer timer;
     timer.start();
     send();
+    const auto input = timer.nsecsElapsed();
+    inputNs += input;
     QCoreApplication::processEvents();
-    qint64 work = timer.nsecsElapsed();
-    handleNs += work;
     if (quick_) {
-      const auto frames = frames_;
-      const auto render = renderNs_;
-      const auto raster = quick_->graphCanvas().rasterStats().nanoseconds;
       QElapsedTimer wait;
       wait.start();
       while (frames_ == frames && wait.elapsed() < 200) { QCoreApplication::processEvents(QEventLoop::AllEvents, 2); }
-      renderPartNs += renderNs_ - render;
-      rasterPartNs += quick_->graphCanvas().rasterStats().nanoseconds - raster;
-      work += renderNs_ - render + quick_->graphCanvas().rasterStats().nanoseconds - raster;
     }
     timer.restart();
     viewport_->repaint();
-    blitNs += timer.nsecsElapsed();
-    work += timer.nsecsElapsed();
-    return work / 1000.0;
+    const auto blit = timer.nsecsElapsed();
+    blitNs += blit;
+    const auto polished = stats().nanoseconds - polish;
+    const auto synced = syncNs_ - sync;
+    const auto rendered = renderNs_ - render;
+    rasterPartNs += polished;
+    syncPartNs += synced;
+    renderPartNs += rendered;
+    return (input + polished + synced + rendered + blit) / 1000.0;
   }
-  // The parts of the work so far: input handling, raster pass, sync and render, widget blit.
-  qint64 handleNs = 0, rasterPartNs = 0, renderPartNs = 0, blitNs = 0;
-  int cardRasters() const { return quick_ ? quick_->graphCanvas().rasterStats().cards : 0; }
-  int wireRasters() const { return quick_ ? quick_->graphCanvas().rasterStats().wires : 0; }
+  qint64 inputNs = 0, rasterPartNs = 0, syncPartNs = 0, renderPartNs = 0, blitNs = 0;
+  nodetool::canvas::GraphCanvas::RasterStats stats() const {
+    return quick_ ? quick_->graphCanvas().rasterStats() : nodetool::canvas::GraphCanvas::RasterStats{};
+  }
 
 private:
   nodetool::QuickCanvas *quick_;
   QWidget *viewport_;
-  QElapsedTimer render_;
-  qint64 renderNs_ = 0;
+  std::array<QMetaObject::Connection, 4> connections_;
+  QElapsedTimer phase_;
+  qint64 syncNs_ = 0, renderNs_ = 0;
   int frames_ = 0;
 };
 } // namespace
@@ -230,14 +253,15 @@ private slots:
         const double perMove = total / moves;
         QTest::mouseRelease(viewport, Qt::LeftButton, Qt::NoModifier, start + QPoint(moves * 3, moves * 2));
         qInfo().nospace() << "drag nodes=" << nodes.size() << " per_move_us=" << perMove << " max_move_us=" << slowest
-                          << " canvas=" << (clock.quick() ? "quick" : "qtnodes") << " handle_us=" << clock.handleNs / 1000.0 / moves
-                          << " raster_us=" << clock.rasterPartNs / 1000.0 / moves << " render_us=" << clock.renderPartNs / 1000.0 / moves
-                          << " blit_us=" << clock.blitNs / 1000.0 / moves << " card_rasters=" << clock.cardRasters()
-                          << " wire_rasters=" << clock.wireRasters();
+                          << " canvas=" << (clock.quick() ? "quick" : "qtnodes") << " input_us=" << clock.inputNs / 1000.0 / moves
+                          << " polish_us=" << clock.rasterPartNs / 1000.0 / moves << " sync_us=" << clock.syncPartNs / 1000.0 / moves
+                          << " render_us=" << clock.renderPartNs / 1000.0 / moves
+                          << " blit_us=" << clock.blitNs / 1000.0 / moves << " card_rasters=" << clock.stats().cards
+                          << " wire_rasters=" << clock.stats().wires;
         // The Quick canvas moves the card's texture; plan target: under 4 ms a move.
-        if (clock.quick()) { QVERIFY2(perMove < 4000, "A Quick canvas drag move took over 4 ms"); }
+        if (clock.quick()) { QVERIFY2(perMove < 4000 * kTimingScale, "Quick canvas drag exceeded its timing budget"); }
         // Scanning the catalog for every handle on every bounds query took over 5 s a move.
-        QVERIFY2(perMove < 100000, "A drag move took over 100 ms");
+        QVERIFY2(perMove < 100000 * kTimingScale, "Drag exceeded its timing budget");
         QVERIFY(window.canvas().nodeOrigin(target) != QPointF());
     }
     // Pan and zoom over 2,000 cards: the parity fixture repeated into a grid.
@@ -298,13 +322,14 @@ private slots:
             }
             return count;
         };
-        struct Steps { double meanUs = 0; double maxUs = 0; int cards = 0; int wires = 0; double handle = 0; double render = 0; double blit = 0; };
+        struct Steps { double meanUs = 0; double maxUs = 0; int cards = 0; int wires = 0; int foreground = 0; double input = 0; double polish = 0; double sync = 0; double render = 0; double blit = 0; };
         StepClock clock(window);
         const auto run = [&](int steps, const std::function<void(int)> &send) {
             clock.step([] {});
             Steps result;
-            const auto cards = clock.cardRasters(), wires = clock.wireRasters();
-            const auto render = clock.renderPartNs, handle = clock.handleNs, blit = clock.blitNs;
+            const auto before = clock.stats();
+            const auto polish = clock.rasterPartNs, sync = clock.syncPartNs;
+            const auto render = clock.renderPartNs, input = clock.inputNs, blit = clock.blitNs;
             double total = 0;
             for (int i = 0; i < steps; ++i) {
                 const auto step = clock.step([&] { send(i); });
@@ -312,11 +337,14 @@ private slots:
                 result.maxUs = std::max(result.maxUs, step);
             }
             result.meanUs = total / steps;
-            result.cards = clock.cardRasters() - cards;
+            result.cards = clock.stats().cards - before.cards;
+            result.foreground = clock.stats().foreground - before.foreground;
+            result.polish = (clock.rasterPartNs - polish) / 1000.0 / steps;
+            result.sync = (clock.syncPartNs - sync) / 1000.0 / steps;
             result.render = (clock.renderPartNs - render) / 1000.0 / steps;
-            result.handle = (clock.handleNs - handle) / 1000.0 / steps;
+            result.input = (clock.inputNs - input) / 1000.0 / steps;
             result.blit = (clock.blitNs - blit) / 1000.0 / steps;
-            result.wires = clock.wireRasters() - wires;
+            result.wires = clock.stats().wires - before.wires;
             return result;
         };
         const QPoint center = viewport->rect().center();
@@ -328,10 +356,13 @@ private slots:
                              Qt::MiddleButton, Qt::NoModifier);
             QApplication::sendEvent(viewport, &move);
         };
-        const auto panRun = [&] {
+        const auto panRun = [&](QPoint coldJump = {}) {
             pointer = center;
             probe.press(center, Qt::MiddleButton);
-            const auto steps = run(120, pan);
+            const auto steps = run(120, [&](int i) {
+                if (i == 0 && !coldJump.isNull()) { canvas.panBy(coldJump); }
+                pan(i);
+            });
             probe.release(center, Qt::MiddleButton);
             return steps;
         };
@@ -345,7 +376,8 @@ private slots:
         const auto report = [&](const char *name, const Steps &steps, int cards) {
             qInfo().nospace() << name << " nodes=" << total << " visible=" << cards << " zoom=" << canvas.zoom()
                 << " per_step_us=" << steps.meanUs << " max_step_us=" << steps.maxUs
-                << " card_rasters=" << steps.cards << " wire_rasters=" << steps.wires << " handle_us=" << steps.handle
+                << " card_rasters=" << steps.cards << " wire_rasters=" << steps.wires << " input_us=" << steps.input
+                << " foreground_rasters=" << steps.foreground << " polish_us=" << steps.polish << " sync_us=" << steps.sync
                 << " render_us=" << steps.render << " blit_us=" << steps.blit;
         };
         window.action("Reset zoom");
@@ -363,9 +395,25 @@ private slots:
         window.fit();
         QTest::qWait(800);
         cards = visible();
-        if (clock.quick()) { panRun(); }
+        if (clock.quick()) {
+            const auto fitCenter = canvas.center();
+            const QPoint coldJump(0, viewport->height() * 4);
+            canvas.panBy(-coldJump);
+            QTest::qWait(150);
+            const auto cold = panRun(coldJump);
+            report("pan_fit_cold", cold, cards);
+            QVERIFY(cold.cards > 0);
+            QVERIFY2(cold.input + cold.polish < 2000 * kTimingScale, "Cold fit pan input and polish exceeded its timing budget");
+            // Prime the same route before measuring a warm pan. The route
+            // stays inside the retention margin, even after returning.
+            auto &graph = static_cast<nodetool::QuickCanvas &>(canvas).graphCanvas();
+            for (const int distance : {0, 360, 720, 0}) {
+                canvas.centerOn(fitCenter - QPointF(0, distance / canvas.zoom()));
+                graph.flushRaster();
+            }
+        }
         const auto panFit = panRun();
-        report("pan_fit", panFit, cards);
+        report("pan_fit_warm", panFit, cards);
         if (clock.quick()) {
             // Plan targets: a pan rasters nothing and costs under 2 ms a frame.
             // At the fit zoom the software renderer redraws 534 cards and their
@@ -373,7 +421,8 @@ private slots:
             // number is reported, and the limit is for the RHI backend (Q10).
             QCOMPARE(pan100.cards + panFit.cards, 0);
             QCOMPARE(pan100.wires + panFit.wires, 0);
-            QVERIFY2(pan100.meanUs < 2000, "A Quick canvas pan step at zoom 1 took over 2 ms");
+            QVERIFY2(panFit.input + panFit.polish < 2000 * kTimingScale, "Warm fit pan input and polish exceeded its timing budget");
+            QVERIFY2(pan100.meanUs < 2000 * kTimingScale, "Quick canvas pan at zoom 1 exceeded its timing budget");
         }
         const double fitZoom = canvas.zoom();
         // Ten notches in, ten out: zoom 0.12 to about 0.49 and back.
@@ -394,9 +443,7 @@ private slots:
             const auto stats = graph.rasterStats();
             qInfo().nospace() << "zoom_settle cards=" << stats.cards << " wires=" << stats.wires << " passes=" << stats.passes
                               << " raster_us=" << stats.nanoseconds / 1000.0 << " slowest_pass_us=" << stats.slowestPass / 1000.0;
-            // The budget is 4 ms; a pass can still pass it by the paints that
-            // must happen at once, so the check leaves room for one card.
-            QVERIFY2(stats.slowestPass < 6'000'000, "A raster pass after the zoom took over 6 ms");
+            QVERIFY2(stats.slowestPass <= 4'000'000 * kTimingScale, "Zoom settle exceeded its timing budget");
         }
         qInfo().nospace() << "zoom_settle_us=" << settle.nsecsElapsed() / 1000.0;
     }

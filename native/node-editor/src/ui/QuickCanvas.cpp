@@ -31,7 +31,7 @@ public:
       : CanvasItem(*card.canvasScene(), Kind::Decoration, &card), theme_(theme), reroute_(reroute) {
     setCanvasButtons(Qt::LeftButton);
     setAcceptsCanvasHover(true);
-    setCursor(reroute_ ? Qt::ArrowCursor : Qt::IBeamCursor);
+    setPointerCursor(reroute_ ? Qt::ArrowCursor : Qt::IBeamCursor);
     QFont font(theme.sansFamily);
     font.setPixelSize(node_metrics::fontValue);
     document_.setDefaultFont(font);
@@ -60,7 +60,7 @@ public:
     setPosition(QPointF(reroute_ ? (size.width() - width_) / 2 : 8, size.height() + (reroute_ ? 6 : 10)));
     setSize(QSizeF(width_, height_));
     reindex();
-    repaint();
+    markDirty();
   }
   QRectF sceneBoundingRect() const override { return QRectF(0, -4, width_, height_ + 4).translated(scenePosition()); }
 
@@ -80,46 +80,44 @@ public:
   }
   void hoverEnter(const canvas::CanvasMouseEvent &) override {
     hovered_ = true;
-    repaint();
+    markDirty();
   }
   void hoverLeave(const canvas::CanvasMouseEvent &) override {
     hovered_ = false;
-    repaint();
+    markDirty();
+  }
+
+  void paintRaster(QPainter &painter, double) const override {
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(QPen(theme_.divider, node_metrics::borderWidth));
+    auto background = reroute_ ? theme_.node : theme_.field;
+    if (reroute_) { background.setAlphaF(0.85); }
+    painter.setBrush(background);
+    const auto radius = reroute_ ? node_metrics::micro : node_metrics::radius;
+    painter.drawRoundedRect(QRectF(0, 0, width_, height_), radius, radius);
+    if (!reroute_) {
+      QPainterPath tail;
+      tail.moveTo(16, 0);
+      tail.lineTo(20, -4);
+      tail.lineTo(24, 0);
+      painter.drawPath(tail);
+    }
+    QAbstractTextDocumentLayout::PaintContext context;
+    context.palette.setColor(QPalette::Text, theme_.textSecondary);
+    painter.save();
+    painter.translate(reroute_ ? 8 : 12, reroute_ ? 2 : 8);
+    document_.documentLayout()->draw(&painter, context);
+    painter.restore();
+    if (hovered_ && !reroute_) {
+      painter.setPen(QPen(theme_.textSecondary, node_metrics::borderWidth));
+      const auto center = removeRect().center();
+      painter.drawLine(center + QPointF(-3, -3), center + QPointF(3, 3));
+      painter.drawLine(center + QPointF(-3, 3), center + QPointF(3, -3));
+    }
   }
 
 private:
   QRectF removeRect() const { return {width_ - 26, 6, 18, 18}; }
-  void repaint() {
-    auto result = rasterize(QRectF(0, -4, width_, height_ + 4), 2, [this](QPainter &painter) {
-      painter.setRenderHint(QPainter::Antialiasing);
-      painter.setPen(QPen(theme_.divider, node_metrics::borderWidth));
-      auto background = reroute_ ? theme_.node : theme_.field;
-      if (reroute_) { background.setAlphaF(0.85); }
-      painter.setBrush(background);
-      const auto radius = reroute_ ? node_metrics::micro : node_metrics::radius;
-      painter.drawRoundedRect(QRectF(0, 0, width_, height_), radius, radius);
-      if (!reroute_) {
-        QPainterPath tail;
-        tail.moveTo(16, 0);
-        tail.lineTo(20, -4);
-        tail.lineTo(24, 0);
-        painter.drawPath(tail);
-      }
-      QAbstractTextDocumentLayout::PaintContext context;
-      context.palette.setColor(QPalette::Text, theme_.textSecondary);
-      painter.save();
-      painter.translate(reroute_ ? 8 : 12, reroute_ ? 2 : 8);
-      document_.documentLayout()->draw(&painter, context);
-      painter.restore();
-      if (hovered_ && !reroute_) {
-        painter.setPen(QPen(theme_.textSecondary, node_metrics::borderWidth));
-        const auto center = removeRect().center();
-        painter.drawLine(center + QPointF(-3, -3), center + QPointF(3, 3));
-        painter.drawLine(center + QPointF(-3, 3), center + QPointF(3, -3));
-      }
-    });
-    setImage(std::move(result.image), result.rect, 2, 0);
-  }
   // A copy: the note can outlive the scene whose theme it was given.
   CanvasTheme theme_;
   QTextDocument document_;
@@ -160,6 +158,7 @@ QuickCanvas::QuickCanvas(WorkflowGraphModel &model, QWidget &parent) : model_(mo
   widget->installEventFilter(this);
   auto &graph = *canvas_;
   auto &scene = graph.scene();
+  connect(&graph, &canvas::GraphCanvas::pointerCursorChanged, widget_, &QWidget::setCursor);
   connect(&scene, &canvas::CanvasScene::changed, this, &CanvasSurface::sceneChanged);
   connect(&graph, &canvas::GraphCanvas::viewportMoved, this, &CanvasSurface::viewportMoved);
   connect(&graph, &canvas::GraphCanvas::rubberBandChanged, this, &CanvasSurface::rubberBandChanged);
@@ -294,7 +293,7 @@ void QuickCanvas::requestRepaint() {
   // QGraphicsView repaints its cached items and the foreground.
   emit canvas_->scene().foregroundChanged();
 }
-void QuickCanvas::setCursor(const QCursor &cursor) { canvas_->setCursor(cursor); }
+void QuickCanvas::setCursor(const QCursor &cursor) { widget_->setCursor(cursor); }
 void QuickCanvas::setFocus(Qt::FocusReason reason) {
   widget_->setFocus(reason);
   canvas_->forceActiveFocus(reason);
@@ -348,6 +347,9 @@ bool QuickCanvas::eventFilter(QObject *object, QEvent *event) {
   case QEvent::Hide:
     canvas_->setViewShown(false);
     break;
+  case QEvent::UngrabMouse:
+    canvas_->cancelPointerGrab();
+    break;
   case QEvent::MouseButtonDblClick:
     canvas_->expectDoubleClick();
     break;
@@ -361,12 +363,13 @@ bool QuickCanvas::eventFilter(QObject *object, QEvent *event) {
     const auto &help = *static_cast<QHelpEvent *>(event);
     QString text;
     const auto items = canvas_->scene().itemsAt(mapToScene(help.pos()));
-    if (!items.isEmpty()) {
-      if (const auto *node = dynamic_cast<const canvas::NodeItem *>(items.first())) {
+    for (const auto *item : items) {
+      if (const auto *node = dynamic_cast<const canvas::NodeItem *>(item)) {
         text = canvas_->scene().toolTip(node->nodeId());
-      } else if (const auto *link = dynamic_cast<const canvas::LineageItem *>(items.first())) {
+      } else if (const auto *link = dynamic_cast<const canvas::LineageItem *>(item)) {
         text = link->toolTip();
       }
+      if (!text.isEmpty()) { break; }
     }
     if (text.isEmpty()) {
       QToolTip::hideText();

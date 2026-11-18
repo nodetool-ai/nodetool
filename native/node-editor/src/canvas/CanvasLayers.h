@@ -54,7 +54,8 @@ public:
   void invalidate() { setContentDirty(true); }
   // Paints again when dirty or when visible is not inside the covered area.
   // Returns whether it rastered.
-  bool raster(const EditorCanvasScene &scene, const QRectF &visible, double scale, double zoom, bool settled);
+  bool needsRaster(const QRectF &visible, double scale, double zoom, bool settled) const;
+  bool raster(const EditorCanvasScene &scene, const QRectF &visible, double scale, double zoom);
 
 private:
   QRectF area_;

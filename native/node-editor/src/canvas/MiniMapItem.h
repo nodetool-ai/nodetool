@@ -21,6 +21,7 @@ public:
   void paint(QPainter *painter) override;
   // Collects the card rectangles again, once per event loop turn.
   void schedule();
+  void rebuild();
   qsizetype nodeCount() const { return nodes_.size(); }
   // True while the web "Color by type" mode is on.
   std::function<bool()> colorByType;

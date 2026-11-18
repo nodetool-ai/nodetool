@@ -357,6 +357,10 @@ void CanvasScene::deliverMove(CanvasMouseEvent &event) {
     grabber_->mouseMove(event);
     return;
   }
+  deliverHover(event);
+}
+
+void CanvasScene::deliverHover(const CanvasMouseEvent &event) {
   // Hover goes to the topmost item that accepts hover. A decoration keeps
   // its card hovered too, as QGraphicsScene hovers the common ancestors.
   CanvasItem *target = nullptr;
@@ -390,6 +394,13 @@ void CanvasScene::deliverRelease(CanvasMouseEvent &event) {
 
 bool CanvasScene::deliverKey(QKeyEvent &event) { return focus_ && focus_->keyPress(event); }
 
+void CanvasScene::cancelMouseGrab() {
+  if (auto *node = dynamic_cast<NodeItem *>(grabber_)) { node->nodeState().setResizing(false); }
+  grabber_ = lastGrabber_ = nullptr;
+  nodeDrag_ = false;
+  clearHover();
+}
+
 void CanvasScene::clearHover() { setHoverItem(nullptr, nullptr, {}); }
 
 void CanvasScene::setHoverItem(CanvasItem *item, CanvasItem *child, const CanvasMouseEvent &event) {
@@ -412,6 +423,7 @@ void CanvasScene::unregisterItem(CanvasItem &item) {
   const auto key = item.indexKey();
   if (!items_.remove(key)) { return; }
   index_.remove(key);
+  ++indexRevision_;
   if (grabber_ == &item) { grabber_ = nullptr; }
   if (hover_ == &item) { hover_ = nullptr; }
   if (focus_ == &item) { focus_ = nullptr; }
@@ -424,12 +436,17 @@ void CanvasScene::unregisterItem(CanvasItem &item) {
 }
 
 void CanvasScene::updateIndex(CanvasItem &item) {
-  if (!items_.contains(item.indexKey())) { return; }
+  const auto key = item.indexKey();
+  if (!items_.contains(key)) { return; }
   if (item.effectivelyShown()) {
-    index_.insert(item.indexKey(), item.sceneBoundingRect());
+    const auto bounds = item.sceneBoundingRect();
+    if (index_.contains(key) && index_.bounds(key) == bounds) { return; }
+    index_.insert(key, bounds);
   } else {
-    index_.remove(item.indexKey());
+    if (!index_.contains(key)) { return; }
+    index_.remove(key);
   }
+  ++indexRevision_;
 }
 
 void CanvasScene::forgetItem(CanvasItem &item) { unregisterItem(item); }
@@ -439,10 +456,12 @@ void CanvasScene::requestRaster() { emit rasterRequested(); }
 void CanvasScene::notifyChanged() {
   if (changedPending_) { return; }
   changedPending_ = true;
-  QTimer::singleShot(0, this, [this] {
-    changedPending_ = false;
-    emit changed();
-  });
+  QTimer::singleShot(0, this, &CanvasScene::emitChanged);
+}
+
+void CanvasScene::emitChanged() {
+  changedPending_ = false;
+  emit changed();
 }
 
 } // namespace nodetool::canvas

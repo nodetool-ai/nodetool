@@ -64,7 +64,7 @@ public:
   // Keys whose bounds intersect area. The order is unspecified.
   QList<Key> query(const QRectF &area) const {
     QList<Key> result;
-    if (!valid(area) && area.width() != 0 && area.height() != 0) { return result; }
+    if (!valid(area)) { return result; }
     QSet<Key> seen;
     const auto range = cells(area);
     const auto consider = [&](const Key &key) {

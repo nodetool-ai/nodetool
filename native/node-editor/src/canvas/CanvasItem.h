@@ -4,6 +4,7 @@
 #include <QPointer>
 #include <QQuickItem>
 #include <functional>
+#include <optional>
 #include <utility>
 
 class QKeyEvent;
@@ -20,9 +21,8 @@ class CanvasImageItem : public QQuickItem {
 public:
   explicit CanvasImageItem(QQuickItem *parent = nullptr);
 
-  // Shows image over rect, in item coordinates. scale is the image's pixels
-  // per item unit and zoom the logical zoom it was painted for, kept so the
-  // raster pass can tell a stale image.
+  // Shows image over rect, in item coordinates. Scale and zoom are the
+  // requested raster bucket and logical zoom, even if allocation was capped.
   void setImage(QImage image, const QRectF &rect, double scale, double zoom);
   void clearImage();
   bool hasImage() const { return !image_.isNull(); }
@@ -35,15 +35,13 @@ public:
   void setContentDirty(bool dirty) { contentDirty_ = dirty; }
 
   // Paints rect (item coordinates) at scale into a new image, capped so that
-  // neither side exceeds maxSide pixels. Returns the image, the covered
-  // rectangle and the scale used.
+  // neither side exceeds maxSide pixels. Returns the image and its covered rectangle.
   struct Raster {
     QImage image;
     QRectF rect;
-    double scale = 0;
   };
   static Raster rasterize(const QRectF &rect, double scale, const std::function<void(QPainter &)> &paint,
-                          int maxSide = 4096);
+                          int maxSide);
 
 protected:
   QSGNode *updatePaintNode(QSGNode *old, UpdatePaintNodeData *) override;
@@ -92,6 +90,10 @@ public:
   // The item's hit area in scene coordinates, which the grid index stores.
   virtual QRectF sceneBoundingRect() const = 0;
   // The shape test of QGraphicsItem::shape(). The default is the bounds.
+  virtual QRectF rasterBounds() const { return sceneBoundingRect().translated(-scenePosition()); }
+  virtual void paintRaster(QPainter &painter, double zoom) const = 0;
+  std::optional<Qt::CursorShape> pointerCursor() const { return cursor_; }
+  void setPointerCursor(std::optional<Qt::CursorShape> cursor) { cursor_ = cursor; }
   virtual bool hitTest(const QPointF &scenePoint) const;
   // The card-local or scene origin of the item: the sum of the positions
   // from the content layer down to the item.
@@ -137,6 +139,7 @@ private:
   Qt::MouseButtons buttons_ = Qt::AllButtons;
   bool hover_ = false;
   bool shown_ = true;
+  std::optional<Qt::CursorShape> cursor_;
 };
 
 } // namespace nodetool::canvas
