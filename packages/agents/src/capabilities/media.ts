@@ -93,6 +93,7 @@ import {
   extractJSONAllowingTruncation
 } from "../utils/json-parser.js";
 import { isYtDlpEnabled } from "../yt-dlp-gate.js";
+import { modelFromRecord, type ModelArgs } from "./model-args.js";
 import {
   isFunction,
   isNonBlankString,
@@ -137,10 +138,6 @@ const MAX_INLINE_TEXT_PREVIEW = 500;
 const MAX_ADHERENCE_QUESTIONS = 12;
 const JUDGE_MAX_TOKENS = 1500;
 
-interface MediaModelArgs {
-  provider: string;
-  model: string;
-}
 
 const generateText: CapabilityExport = {
   spec: generateTextSpec,
@@ -202,29 +199,6 @@ function readModelId(value: unknown): string | undefined {
 }
 
 /**
- * Read a provider+model from the shapes find_model actually returns: a hit
- * (`provider` + `model_id` + `ref`), its `.ref` (`provider` + `id`), or the
- * documented `{provider, model}` pair. Nested `model` objects win over the
- * top-level pair so `generate_video({prompt, model: hit.ref})` works.
- */
-function modelFromRecord(value: unknown): MediaModelArgs | null {
-  if (!isRecord(value)) return null;
-  if (isRecord(value.ref)) {
-    const fromRef = modelFromRecord(value.ref);
-    if (fromRef !== null) return fromRef;
-  }
-  const provider = readModelId(value.provider);
-  const id =
-    readModelId(value.model_id) ??
-    (isNonEmptyString(value.model) ? value.model : undefined) ??
-    readModelId(value.id);
-  if (provider !== undefined && id !== undefined) {
-    return { provider, model: id };
-  }
-  return null;
-}
-
-/**
  * A provider rejection, with the model that was called in it.
  *
  * "text_to_video failed: Unprocessable Entity" told a live session nothing:
@@ -235,7 +209,7 @@ function modelFromRecord(value: unknown): MediaModelArgs | null {
  */
 function predictionError(
   capability: string,
-  m: MediaModelArgs,
+  m: ModelArgs,
   e: unknown
 ): { error: string } {
   const detail = e instanceof Error ? e.message : String(e);
@@ -249,7 +223,7 @@ function predictionError(
 
 function parseModelArgs(
   params: Record<string, unknown>
-): MediaModelArgs | { error: string } {
+): ModelArgs | { error: string } {
   const fromModel = modelFromRecord(params.model);
   if (fromModel !== null) return fromModel;
   if (isRecord(params.model) && isNonEmptyString(params.provider)) {
@@ -317,7 +291,7 @@ async function readWorkspaceOrAssetFile(
  */
 function outputError(
   capability: string,
-  m: MediaModelArgs,
+  m: ModelArgs,
   missing: string
 ): { error: string } {
   return {
@@ -353,7 +327,7 @@ function outputFileOf(params: Record<string, unknown>): string | undefined {
 /** What a capability asks the seam for, beyond the provider parameters. */
 interface MediaGeneration {
   capability: GenerationRequest["capability"];
-  m: MediaModelArgs;
+  m: ModelArgs;
   params: Record<string, unknown>;
   namePrefix: string;
   type: "image" | "video" | "audio";
@@ -1094,7 +1068,7 @@ interface EncodedSpeechParams {
  */
 async function encodedSpeech(
   context: ProcessingContext,
-  m: MediaModelArgs,
+  m: ModelArgs,
   params: EncodedSpeechParams,
   generation?: Pick<GenerationRequest, "id" | "origin" | "persist">
 ): Promise<{ data?: Uint8Array; mimeType?: string } | null> {
@@ -1140,7 +1114,7 @@ interface GeneratedAudio {
 async function speechAudio(
   context: ProcessingContext,
   provider: BaseProvider | null,
-  m: MediaModelArgs,
+  m: ModelArgs,
   params: EncodedSpeechParams,
   signal: AbortSignal,
   outputFile?: string

@@ -83,6 +83,33 @@ describe("storyboardAgentBridge", () => {
       expect(getStoryboardAgentHandler("board-1")).toBe(handler);
     });
 
+    it("resolves the 12-character id that get_storyboard returns", () => {
+      const handler = makeMockHandler();
+      setStoryboardAgentHandler("0e65dc5610e94b5e8f1a2b3c4d5e6f70", handler);
+      expect(hasStoryboardAgentHandler("0e65dc5610e9")).toBe(true);
+      expect(getStoryboardAgentHandler("0e65dc5610e9")).toBe(handler);
+    });
+
+    it("lists open boards by their 12-character id", () => {
+      setStoryboardAgentHandler("0e65dc5610e94b5e8f1a2b3c4d5e6f70", makeMockHandler());
+      expect(() => getStoryboardAgentHandler("aaaaaaaaaaaa")).toThrow(
+        "Open storyboards: 0e65dc5610e9."
+      );
+    });
+
+    it("refuses a prefix that matches two open boards", () => {
+      setStoryboardAgentHandler("0e65dc5610e94b5e8f1a2b3c4d5e6f70", makeMockHandler());
+      setStoryboardAgentHandler("0e65dc5610e9ffffffffffffffffffff", makeMockHandler());
+      expect(() => getStoryboardAgentHandler("0e65dc5610e9")).toThrow(
+        "Id prefix 0e65dc5610e9 matches 2 open documents"
+      );
+    });
+
+    it("does not resolve a prefix shorter than 12 characters", () => {
+      setStoryboardAgentHandler("0e65dc5610e94b5e8f1a2b3c4d5e6f70", makeMockHandler());
+      expect(hasStoryboardAgentHandler("0e65dc5610e")).toBe(false);
+    });
+
     it("keeps unfocused boards addressable alongside each other", () => {
       const first = makeMockHandler();
       const second = makeMockHandler();

@@ -17,7 +17,6 @@ import type { TimelineOp, TimelineOpResult } from "@nodetool-ai/timeline/ops";
  * Zustand store handles directly.
  */
 
-import { isShortResourceId } from "@nodetool-ai/protocol";
 import type {
   ClipModel3DStylePatch,
   ClipShapeStyle,
@@ -738,35 +737,14 @@ export function setTimelineAgentHandler(
   else handlers.set(sequenceId, null);
 }
 
-/**
- * The open sequence id a caller meant: an exact id, or an exact unique
- * 12-character prefix of one (the form CodeAct shortens ids to). An ambiguous
- * prefix throws; an unknown value comes back unchanged for the caller's own
- * not-open error.
- */
-function resolveOpenSequenceId(sequenceId: string): string {
-  if (handlers.has(sequenceId) || !isShortResourceId(sequenceId)) {
-    return sequenceId;
-  }
-  const matches = [...handlers.keys()].filter((id) =>
-    id.startsWith(sequenceId) // key-boundary-ok: deliberate exact 12-hex prefix, with a unique open-handler match.
-  );
-  if (matches.length > 1) {
-    throw new Error(
-      `Short timeline id "${sequenceId}" matches more than one open sequence. Use the full id. Open sequences: ${matches.join(", ")}.`
-    );
-  }
-  return matches[0] ?? sequenceId;
-}
-
 export function hasTimelineAgentHandler(sequenceId: string): boolean {
-  return handlers.has(resolveOpenSequenceId(sequenceId));
+  return handlers.has(sequenceId);
 }
 
 export function getTimelineAgentHandler(
   sequenceId: string
 ): TimelineAgentHandler {
-  const handler = handlers.get(resolveOpenSequenceId(sequenceId));
+  const handler = handlers.get(sequenceId);
   if (!handler) {
     const open = listOpenTimelineSequenceIds();
     throw new Error(
