@@ -14277,6 +14277,8 @@
       "loadFailureTitle": "Impossible de charger les documents",
       "loadFailureSummary": "Les documents du projet n'ont pas pu être chargés",
       "tryAgainLater": "Réessayez plus tard.",
+      "cloudLoadFailure": "Impossible de lister les documents du cloud : {{error}}",
+      "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
       "noMatching": "Aucun document correspondant",
       "noMatchingDescription": "Cela recherche uniquement les documents. Les conversations se font dans les discussions et les téléchargements se font dans la bibliothèque.",
       "noDocuments": "Aucun document pour l'instant",
@@ -14295,7 +14297,9 @@
         "text": "Fichiers texte",
         "agents": "Agents et codes",
         "entities": "Entités",
-        "shared": "Partagé avec moi"
+        "shared": "Partagé avec moi",
+        "cloud": "Cloud",
+        "cloudShared": "Partagé avec moi"
       },
       "type": {
         "workflow": "Flux de travail",

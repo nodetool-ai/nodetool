@@ -14035,6 +14035,8 @@
       "loadFailureTitle": "Dokumenttien lataaminen epäonnistui",
       "loadFailureSummary": "Projektin dokumenttien lataaminen epäonnistui",
       "tryAgainLater": "Yritä myöhemmin uudelleen.",
+      "cloudLoadFailure": "Pilvidokumentteja ei voitu luetella: {{error}}",
+      "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
       "noMatching": "Ei vastaavia dokumentteja",
       "noMatchingDescription": "Tämä hakee vain dokumentteja. Keskustelut ovat Keskusteluissa ja lähetetyt tiedostot Kirjastossa.",
       "noDocuments": "Ei vielä dokumentteja",
@@ -14053,7 +14055,9 @@
         "text": "Tekstitiedostot",
         "agents": "Agentit ja koodi",
         "entities": "Entiteetit",
-        "shared": "Jaettu minulle"
+        "shared": "Jaettu minulle",
+        "cloud": "Pilvi",
+        "cloudShared": "Jaettu minulle"
       },
       "type": {
         "workflow": "Työnkulku",

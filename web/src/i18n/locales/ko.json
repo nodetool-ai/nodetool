@@ -14035,6 +14035,8 @@
       "loadFailureTitle": "문서를 로드할 수 없습니다.",
       "loadFailureSummary": "프로젝트 문서를 로드하지 못했습니다.",
       "tryAgainLater": "나중에 다시 시도하세요.",
+      "cloudLoadFailure": "클라우드 문서 목록을 불러올 수 없습니다: {{error}}",
+      "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
       "noMatching": "일치하는 문서가 없습니다.",
       "noMatchingDescription": "문서만 검색합니다. 대화는 채팅에 있고 업로드는 라이브러리에 있습니다.",
       "noDocuments": "아직 문서가 없습니다.",
@@ -14053,7 +14055,9 @@
         "text": "텍스트 파일",
         "agents": "에이전트 및 코드",
         "entities": "엔터티",
-        "shared": "나와 공유됨"
+        "shared": "나와 공유됨",
+        "cloud": "클라우드",
+        "cloudShared": "나와 공유됨"
       },
       "type": {
         "workflow": "작업 흐름",

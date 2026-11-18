@@ -6,6 +6,7 @@ import type { SvgIconComponent } from "@mui/icons-material";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import BrushOutlinedIcon from "@mui/icons-material/BrushOutlined";
+import CloudOutlinedIcon from "@mui/icons-material/CloudOutlined";
 import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomizeOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import DataObjectOutlinedIcon from "@mui/icons-material/DataObjectOutlined";
@@ -27,6 +28,7 @@ import {
   type DocumentTreeLeaf,
   type DocumentTreeLeafType
 } from "../../hooks/useDocumentTreeData";
+import { useCloudDocumentGroups } from "../../hooks/useCloudDocumentGroups";
 import { useSharedDocumentGroup } from "../../hooks/useSharedDocumentGroup";
 import { useDeleteDocument } from "../../serverState/useDeleteDocument";
 import { isSharedDocumentType } from "../../serverState/useDocumentSharing";
@@ -36,6 +38,7 @@ import { useRenameDocument } from "../../hooks/useRenameDocument";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { usePanelStore } from "../../stores/PanelStore";
 import type { BugReportContext } from "../../utils/bugReportBundle";
+import { openCloudDocument } from "../../lib/cloud/openCloudDocument";
 import { openSharedDocument } from "../../lib/openSharedDocument";
 import {
   useWorkspaceTabsStore,
@@ -45,6 +48,7 @@ import { EntityEditorDialog } from "../entities/EntityEditorDialog";
 import ShareDocumentDialog, {
   type ShareTarget
 } from "../sharing/ShareDocumentDialog";
+import ErrorBanner from "../support/ErrorBanner";
 import ReportBugButton from "../support/ReportBugButton";
 import { TYPE_COLOR } from "../workspace/tabTypeIdentity";
 import { tabCanRename } from "../workspace/tabRename";
@@ -118,7 +122,9 @@ const GROUP_ICONS: Record<DocumentTreeGroup["id"], SvgIconComponent> = {
   text: ArticleOutlinedIcon,
   agents: AutoAwesomeIcon,
   entities: PersonOutlineOutlinedIcon,
-  shared: PeopleOutlineIcon
+  shared: PeopleOutlineIcon,
+  cloud: CloudOutlinedIcon,
+  cloudShared: PeopleOutlineIcon
 };
 
 const LEAF_ICONS: Record<DocumentTreeLeafType, SvgIconComponent> = {
@@ -474,8 +480,17 @@ const DocumentTreeGroupRow = ({
       {expanded && (
         <FlexColumn role="group" gap={SPACING.micro}>
           {group.children.map((document) =>
-            // Someone else's document: open it, nothing else from here.
-            document.sharedRole ? (
+            // A cloud document opens and nothing else from here: the
+            // actions on this row reach the local server. Someone else's
+            // document likewise.
+            document.origin?.kind === "cloud" ? (
+              <DocumentTreeRow
+                key={`${group.id}:${document.type}:${document.id}`}
+                leaf={document}
+                active={false}
+                onOpen={onOpen}
+              />
+            ) : document.sharedRole ? (
               <DocumentTreeRow
                 key={`shared:${document.type}:${document.id}`}
                 leaf={document}
@@ -514,9 +529,18 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
   const { groups: projectGroups, isLoading, isError, error } =
     useDocumentTreeData(projectId);
   const sharedGroup = useSharedDocumentGroup();
+  const { groups: cloudGroups, error: cloudError } = useCloudDocumentGroups();
   const groups = useMemo(
-    () => (sharedGroup ? [...projectGroups, sharedGroup] : projectGroups),
-    [projectGroups, sharedGroup]
+    () => [...projectGroups, ...(sharedGroup ? [sharedGroup] : []), ...cloudGroups],
+    [projectGroups, sharedGroup, cloudGroups]
+  );
+  const cloudErrorContext = useMemo<BugReportContext>(
+    () => ({
+      source: "panel-crash",
+      summary: t("i18n-next31.documents.cloudLoadFailureSummary"),
+      errorText: cloudError?.message
+    }),
+    [cloudError, t]
   );
   const [shareTarget, setShareTarget] = useState<ShareTarget | null>(null);
   const [query, setQuery] = useState("");
@@ -561,6 +585,21 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
 
   const handleOpen = useCallback(
     (document: DocumentTreeLeaf) => {
+      if (document.origin?.kind === "cloud") {
+        const type = leafTabType(document.type);
+        if (type === null) {
+          return;
+        }
+        openCloudDocument({
+          origin: document.origin,
+          type,
+          id: document.id,
+          name: document.name,
+          role: document.sharedRole ?? "owner"
+        });
+        setVisibility(false);
+        return;
+      }
       if (document.sharedRole) {
         const type = leafTabType(document.type);
         if (type === null) {
@@ -706,6 +745,11 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
           fullWidth
         />
       </FlexColumn>
+      {cloudError && (
+        <ErrorBanner report={cloudErrorContext}>
+          {t("i18n-next31.documents.cloudLoadFailure", { error: cloudError.message })}
+        </ErrorBanner>
+      )}
       {isLoading ? (
         <FlexColumn fullHeight align="center" justify="center">
           <LoadingSpinner text={t("i18n-next31.documents.loading")} />
