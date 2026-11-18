@@ -3950,7 +3950,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "image",
-    "total": 1059,
+    "total": 1061,
     "providers": [
       {
         "provider": "fal_ai",
@@ -7353,6 +7353,21 @@ export const modelDirectory: ModelDirectoryGroup[] = [
         ]
       },
       {
+        "provider": "minimax",
+        "models": [
+          {
+            "id": "MiniMax-H3-Image"
+          },
+          {
+            "id": "MiniMax-H3-Image-Highspeed"
+          },
+          {
+            "id": "image-01",
+            "name": "MiniMax Image-01"
+          }
+        ]
+      },
+      {
         "provider": "meta",
         "models": [
           {
@@ -7406,15 +7421,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "chatgpt-image",
             "name": "ChatGPT Images"
-          }
-        ]
-      },
-      {
-        "provider": "minimax",
-        "models": [
-          {
-            "id": "image-01",
-            "name": "MiniMax Image-01"
           }
         ]
       },

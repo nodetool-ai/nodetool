@@ -684,9 +684,7 @@ registerBuiltinProvider(PROVIDER_IDS.MOONSHOT, MoonshotProvider, {
 registerBuiltinProvider(PROVIDER_IDS.SARVAM, SarvamProvider, {
   SARVAM_API_KEY: ""
 });
-registerBuiltinProvider(PROVIDER_IDS.MINIMAX, MinimaxProvider, {
-  MINIMAX_API_KEY: ""
-});
+registerBuiltinProvider(PROVIDER_IDS.MINIMAX, MinimaxProvider, { MINIMAX_API_KEY: "" }, { MINIMAX_IMAGE_REGION: "" });
 // Z.ai GLM: ZAI_REGION picks the international (api.z.ai) or China
 // (open.bigmodel.cn) host.
 registerBuiltinProvider(
