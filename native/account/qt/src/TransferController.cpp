@@ -92,6 +92,9 @@ QString transferRowText(const ReviewRow& row) {
   case ReviewSection::Choice:
     return TransferController::tr("Changed here and in the cloud");
   case ReviewSection::Deletion:
+    if (d == "cloud_changed") {
+      return TransferController::tr("Deleted on this computer, and changed in the cloud since");
+    }
     return TransferController::tr("Deleted on this computer");
   case ReviewSection::Problem: {
     // A missing file reads "file <asset>: <reason>".
@@ -466,7 +469,7 @@ void TransferController::apply() {
     }
     if (sendWork) {
       std::vector<KeepLocalDecision> keep = review.keepLocalDecisions();
-      const std::vector<std::string> deletes = review.confirmedDeletes();
+      const std::vector<DeleteConfirmation> deletes = review.confirmedDeletes();
       const std::vector<TransferMissingFile> missing = review.confirmedMissingFiles();
       SendRun run = client.runSend(transferId, keep, deletes, missing);
       if (run.status == TransferStatus::Ok && !run.committed) {

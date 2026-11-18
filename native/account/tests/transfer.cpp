@@ -109,7 +109,10 @@ void callsTheLocalRouterForTheAccount(TestContext& t) {
                                                  {"documents", json::array({{{"kind", "timeline"},
                                                                              {"document_id", "t1"}}})}}})},
                  {"skipped", json::array()},
-                 {"deleted_locally", json::array()}});
+                 {"deleted_locally", json::array({{{"kind", "workflow"},
+                                                  {"local_id", "d1"},
+                                                  {"cloud_id", "cd1"},
+                                                  {"base_hash", "base-d1"}}})}});
     }
     if (request.url.ends_with("/trpc/cloudTransfer.send.run")) {
       return ok({{"status", "committed"},
@@ -127,8 +130,9 @@ void callsTheLocalRouterForTheAccount(TestContext& t) {
   CHECK(capture.operations.size() == 1 && capture.operations[0].op == "create_document");
   CHECK(capture.documents.size() == 1 && capture.documents[0].name == "Flow");
   CHECK(capture.missingFiles.size() == 1 && capture.missingFiles[0].documents.size() == 1);
+  CHECK(capture.deletedLocally.size() == 1 && capture.deletedLocally[0].baseHash == "base-d1");
 
-  const SendRun run = client.runSend(kTransfer, {{"workflow", kProject, "stored"}}, {"d1"});
+  const SendRun run = client.runSend(kTransfer, {{"workflow", kProject, "stored"}}, {{"workflow", "cd1", "base-d1"}});
   CHECK(run.status == TransferStatus::Ok);
   CHECK(run.committed);
   CHECK(run.cloudProjectId == "cp1");
@@ -148,7 +152,8 @@ void callsTheLocalRouterForTheAccount(TestContext& t) {
     CHECK(ran.value("access_token", std::string()).size() > 0);
     CHECK(ran["decisions"][0]["choice"] == "keep_local");
     CHECK(ran["decisions"][0]["cloud_hash"] == "stored");
-    CHECK(ran["confirm_deletes"][0] == "d1");
+    // A confirmed deletion names the cloud revision it deletes (V4).
+    CHECK(ran["confirm_deletes"][0] == json({{"kind", "workflow"}, {"cloud_id", "cd1"}, {"cloud_hash", "base-d1"}}));
     // A run carries files, so it gets far more time than a capture.
     CHECK(sent[1].timeout > sent[0].timeout);
   }
@@ -311,7 +316,7 @@ std::size_t indexOf(const TransferReview& review, ReviewSection section) {
 void reviewListsEachDocumentOnce(TestContext& t) {
   SendCapture send;
   send.operations = {{"replace_document", "workflow", "w1", ""}, {"rename_document", "timeline", "t1", "New name"}};
-  send.deletedLocally = {{"workflow", "gone", "cloud-gone"}};
+  send.deletedLocally = {{"workflow", "gone", "cloud-gone", "base-5"}};
   send.skipped = {{"workflow", "bad", "Broken", "invalid JSON"}};
   send.missingFiles = {{"a1", "too_large", {{"timeline", "t1"}}}};
   ReceiveCapture receive;
@@ -358,7 +363,11 @@ void reviewListsEachDocumentOnce(TestContext& t) {
   const std::size_t deletion = indexOf(review, ReviewSection::Deletion);
   CHECK(!review.choose(deletion, ReceiveChoice::Receive));
   CHECK(review.confirmDeletion(deletion, true));
-  CHECK(review.confirmedDeletes() == std::vector<std::string>{"gone"});
+  // The confirmation names the cloud revision the sheet showed, which an
+  // edit in the cloud made newer than the base (V4, review F40).
+  const auto deletes = review.confirmedDeletes();
+  CHECK(deletes.size() == 1 && deletes[0].kind == "workflow" && deletes[0].cloudId == "cloud-gone" &&
+        deletes[0].cloudHash == "h5");
   bool keeps = false;
   for (const ReceiveDecision& d : review.receiveDecisions()) {
     keeps = keeps || (d.documentId == "cloud-gone" && d.choice == ReceiveChoice::KeepLocal);
@@ -536,6 +545,28 @@ void missingFilesNeedAConfirmation(TestContext& t) {
   CHECK(!review.confirmMissingFile(review.rows().size(), true));
 }
 
+// The cloud refuses a confirmed deletion when the document changed there
+// after the sheet showed it. The sheet asks again for the newer revision,
+// and a second confirmation names that revision (V4, review F40).
+void aRefusedDeletionAsksAgain(TestContext& t) {
+  SendCapture send;
+  send.deletedLocally = {{"workflow", "gone", "cloud-gone", "base-1"}};
+  TransferReview review(send, {});
+  const std::size_t deletion = indexOf(review, ReviewSection::Deletion);
+  CHECK(review.confirmDeletion(deletion, true));
+  auto deletes = review.confirmedDeletes();
+  CHECK(deletes.size() == 1 && deletes[0].cloudHash == "base-1");
+
+  review.addRefusal({{"BASE_CHANGED", "workflow", "cloud-gone", "stored-2", "changed"}});
+  CHECK(countOf(review, ReviewSection::Deletion) == 1);
+  CHECK(countOf(review, ReviewSection::Choice) == 0);
+  CHECK(review.confirmedDeletes().empty());
+  CHECK(review.rows()[deletion].detail == "cloud_changed");
+  CHECK(review.confirmDeletion(deletion, true));
+  deletes = review.confirmedDeletes();
+  CHECK(deletes.size() == 1 && deletes[0].cloudId == "cloud-gone" && deletes[0].cloudHash == "stored-2");
+}
+
 int main() {
   return account_test::runTests({
       {"callsTheLocalRouterForTheAccount", callsTheLocalRouterForTheAccount},
@@ -551,5 +582,6 @@ int main() {
       {"aRecaptureOnlyLeavesOutWhatWasReviewed", aRecaptureOnlyLeavesOutWhatWasReviewed},
       {"fileOnlyChangesAreSendWork", fileOnlyChangesAreSendWork},
       {"missingFilesNeedAConfirmation", missingFilesNeedAConfirmation},
+      {"aRefusedDeletionAsksAgain", aRefusedDeletionAsksAgain},
   });
 }

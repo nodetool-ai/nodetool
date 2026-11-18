@@ -107,6 +107,16 @@ struct TransferDeleted {
   std::string kind;
   std::string localId;
   std::string cloudId;
+  // The cloud hash of the last exchange.
+  std::string baseHash;
+};
+
+// A deletion the person confirmed, bound to the cloud revision the sheet
+// showed. That hash is the delete's precondition (V4, review F40).
+struct DeleteConfirmation {
+  std::string kind;
+  std::string cloudId;
+  std::string cloudHash;
 };
 
 struct SendCapture {
@@ -236,7 +246,7 @@ public:
   // `confirmMissing` is the capture's list of missing files once the person
   // confirmed each one, or empty.
   SendRun runSend(const std::string& transferId, const std::vector<KeepLocalDecision>& decisions,
-                  const std::vector<std::string>& confirmDeletes,
+                  const std::vector<DeleteConfirmation>& confirmDeletes,
                   const std::vector<TransferMissingFile>& confirmMissing = {});
   // Ends a send before it commits. `committed` is true when it had already
   // committed.
@@ -312,7 +322,8 @@ struct ReviewRow {
   // For a Choice row raised by a refused send: the hash Keep local names.
   std::string cloudHash;
   // For a Choice row from the receive half: the hash of the cloud revision
-  // the person saw.
+  // the person saw. For a Deletion row: the cloud revision a confirmed
+  // deletion deletes, the newest one the sheet showed (review F40).
   std::string seenHash;
   // For a Problem row of a missing file: the file. `confirmed` is the
   // person's confirmation that the send goes without it (X7).
@@ -331,7 +342,8 @@ public:
   TransferReview(const SendCapture& send, const ReceiveCapture& receive);
 
   // The cloud refused the send because these documents changed since their
-  // base: each becomes a Choice row that names the stored hash.
+  // base: each becomes a Choice row that names the stored hash. A refused
+  // deletion asks for the confirmation again, of the stored revision.
   void addRefusal(const std::vector<TransferFailure>& failures);
   // The refusals the person answered already: a BASE_CHANGED refusal of a
   // document they chose Keep local for, whose stored hash is the cloud
@@ -355,9 +367,9 @@ public:
 
   std::vector<ReceiveDecision> receiveDecisions() const;
   std::vector<KeepLocalDecision> keepLocalDecisions() const;
-  // Local ids of the documents the person confirmed for deletion on the
-  // cloud.
-  std::vector<std::string> confirmedDeletes() const;
+  // The deletions the person confirmed, each with the cloud revision the
+  // sheet showed.
+  std::vector<DeleteConfirmation> confirmedDeletes() const;
   // The capture's missing files once each one is confirmed, or empty.
   std::vector<TransferMissingFile> confirmedMissingFiles() const;
 

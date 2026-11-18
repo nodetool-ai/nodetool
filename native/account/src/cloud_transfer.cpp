@@ -279,13 +279,14 @@ SendCapture LocalTransferClient::captureSend(const std::string& projectId, const
     out.skipped.push_back({str(item, "kind"), str(item, "id"), str(item, "name"), str(item, "detail")});
   }
   for (const json& item : data.value("deleted_locally", json::array())) {
-    out.deletedLocally.push_back({str(item, "kind"), str(item, "local_id"), str(item, "cloud_id")});
+    out.deletedLocally.push_back(
+        {str(item, "kind"), str(item, "local_id"), str(item, "cloud_id"), str(item, "base_hash")});
   }
   return out;
 }
 
 SendRun LocalTransferClient::runSend(const std::string& transferId, const std::vector<KeepLocalDecision>& decisions,
-                                     const std::vector<std::string>& confirmDeletes,
+                                     const std::vector<DeleteConfirmation>& confirmDeletes,
                                      const std::vector<TransferMissingFile>& confirmMissing) {
   json input{{"transfer_id", transferId}};
   if (!decisions.empty()) {
@@ -299,7 +300,12 @@ SendRun LocalTransferClient::runSend(const std::string& transferId, const std::v
     input["decisions"] = std::move(list);
   }
   if (!confirmDeletes.empty()) {
-    input["confirm_deletes"] = confirmDeletes;
+    json list = json::array();
+    for (const DeleteConfirmation& confirmation : confirmDeletes) {
+      list.push_back(
+          {{"kind", confirmation.kind}, {"cloud_id", confirmation.cloudId}, {"cloud_hash", confirmation.cloudHash}});
+    }
+    input["confirm_deletes"] = std::move(list);
   }
   if (!confirmMissing.empty()) {
     json list = json::array();
@@ -459,6 +465,9 @@ TransferReview::TransferReview(const SendCapture& send, const ReceiveCapture& re
       row.cloudId = document.cloudId;
       row.name = document.name;
       row.receiveListed = true;
+      // The cloud revision as it is now, which a cloud edit since the last
+      // exchange made newer than the base (V4).
+      row.seenHash = document.contentHash;
       continue;
     }
     ReviewRow row;
@@ -518,6 +527,9 @@ TransferReview::TransferReview(const SendCapture& send, const ReceiveCapture& re
     ReviewRow& row = deletionRow(deleted.kind, deleted.localId);
     row.cloudId = deleted.cloudId;
     row.sendListed = true;
+    if (row.seenHash.empty()) {
+      row.seenHash = deleted.baseHash;
+    }
   }
   for (const TransferSkipped& skipped : send.skipped) {
     ReviewRow row;
@@ -557,6 +569,15 @@ void TransferReview::addRefusal(const std::vector<TransferFailure>& failures) {
     }
     bool found = false;
     for (ReviewRow& row : rows_) {
+      // A deletion refused for a newer cloud revision asks again, for that
+      // revision (V4, review F40).
+      if (row.section == ReviewSection::Deletion && row.kind == failure.kind && row.cloudId == failure.documentId) {
+        row.seenHash = failure.storedHash;
+        row.confirmed = false;
+        row.detail = "cloud_changed";
+        found = true;
+        continue;
+      }
       // A refusal names the cloud id, as the manifest does.
       const bool same = row.cloudId.empty() ? row.documentId == failure.documentId : row.cloudId == failure.documentId;
       if (row.kind == failure.kind && same &&
@@ -673,11 +694,11 @@ std::vector<KeepLocalDecision> TransferReview::keepLocalDecisions() const {
   return out;
 }
 
-std::vector<std::string> TransferReview::confirmedDeletes() const {
-  std::vector<std::string> out;
+std::vector<DeleteConfirmation> TransferReview::confirmedDeletes() const {
+  std::vector<DeleteConfirmation> out;
   for (const ReviewRow& row : rows_) {
     if (row.section == ReviewSection::Deletion && row.sendListed && row.confirmed) {
-      out.push_back(row.documentId);
+      out.push_back({row.kind, row.cloudId, row.seenHash});
     }
   }
   return out;

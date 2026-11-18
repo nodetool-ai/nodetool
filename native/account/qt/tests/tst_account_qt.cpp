@@ -1592,6 +1592,52 @@ private slots:
     QCOMPARE(server.calls().size(), before);
   }
 
+  // A confirmed deletion names the cloud revision the sheet showed. When the
+  // cloud refuses it because the document changed there since, the sheet
+  // withdraws the confirmation and asks again for the newer revision
+  // (V4, review F40).
+  void aRefusedDeletionIsConfirmedAgain() {
+    Computer computer;
+    computer.server.addCode("code-x", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-x");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[],)"
+                           R"("documents":[],"missing_files":[],"skipped":[],"deleted_locally":[)"
+                           R"({"kind":"workflow","local_id":"w1","cloud_id":"cw1","base_hash":"b1"}]})"));
+    server.answer("cloudTransfer.send.run",
+                  trpcData(R"({"status":"refused","transfer_id":"t1","failures":[{"code":"BASE_CHANGED",)"
+                           R"("kind":"workflow","document_id":"cw1","stored_hash":"s2","message":"changed"}]})"));
+    server.answer("cloudTransfer.send.run",
+                  trpcData(R"({"status":"committed","transfer_id":"t1","result":{"project_id":"p1"}})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QCOMPARE(transfer.rows().size(), 1);
+    QVERIFY(transfer.confirmDeletion(0, true));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    const QVariantMap row = transfer.rows().at(0).toMap();
+    QCOMPARE(row.value("section").toString(), QString("deletion"));
+    QVERIFY(!row.value("confirmed").toBool());
+    const auto first = nlohmann::json::parse(server.body("cloudTransfer.send.run", 0));
+    QCOMPARE(first["confirm_deletes"][0]["cloud_hash"].get<std::string>(), std::string("b1"));
+
+    QVERIFY(transfer.confirmDeletion(0, true));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
+    const auto again = nlohmann::json::parse(server.body("cloudTransfer.send.run", 1));
+    QCOMPARE(again["confirm_deletes"][0]["cloud_id"].get<std::string>(), std::string("cw1"));
+    QCOMPARE(again["confirm_deletes"][0]["cloud_hash"].get<std::string>(), std::string("s2"));
+  }
+
   // A media file changed in place while its workflow stayed the same is
   // work to send: the sheet shows it and Synchronize sends it (review F33).
   void synchronizeSendsAFileOnlyChange() {
