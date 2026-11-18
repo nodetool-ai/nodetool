@@ -48,6 +48,8 @@ interface TestHost extends ReceiveHost {
   grants: Map<string, TransferRole>;
   /** What the server holds of each asset. */
   files: Map<string, { hash: string | null; size: number }>;
+  /** Assets that only an editor or the owner may read, as an editor-only reference set gives. */
+  editorOnly: Set<string>;
 }
 
 function testHost(): TestHost {
@@ -55,6 +57,7 @@ function testHost(): TestHost {
     storage: new InMemoryStorageAdapter(),
     grants: new Map(),
     files: new Map(),
+    editorOnly: new Set(),
     async documentRole(userId, kind, documentId) {
       const row =
         kind === "workflow" ? await Workflow.get<Workflow>(documentId) : await TimelineSequence.findById(documentId);
@@ -62,10 +65,12 @@ function testHost(): TestHost {
       if (row.user_id === userId) return "owner";
       return host.grants.get(`${userId}:${kind}:${documentId}`) ?? null;
     },
-    async readableFiles(_userId, kind, _documentId, content): Promise<ReceiveFileInfo[]> {
+    async readableFiles(userId, kind, documentId, content): Promise<ReceiveFileInfo[]> {
+      const role = await host.documentRole(userId, kind, documentId);
       return refsOf(kind, content).flatMap((assetId) => {
         const file = host.files.get(assetId);
-        return file ? [{ assetId, hash: file.hash, size: file.size }] : [];
+        if (!file || (host.editorOnly.has(assetId) && role === "viewer")) return [];
+        return [{ assetId, hash: file.hash, size: file.size }];
       });
     }
   };
@@ -259,6 +264,23 @@ function receiveSuite(name: string, init: () => Promise<void>): void {
       const input = { set_id: set.set_id, kind: "workflow" as const, document_id: workflow.id };
       expect(await refusal(receiveDocument(host, READER, input))).toBe("NOT_FOUND");
       expect(await refusal(receiveFile(host, READER, { set_id: set.set_id, hash }))).toBe("NOT_FOUND");
+    });
+
+    it("refuses a file an editor-only reference gave once the reader is a viewer (review F23)", async () => {
+      const projectId = await cloudProject();
+      const assetId = id();
+      const hash = await storeBlob(host, assetId, new Uint8Array(randomBytes(16)));
+      host.editorOnly.add(assetId);
+      const workflow = await workflowIn(projectId, assetId);
+      host.grants.set(`${READER}:workflow:${workflow.id}`, "editor");
+
+      const set = await captureRevisionSet(host, READER, { project_id: projectId });
+      expect(set.documents[0]?.files.map((file) => file.hash)).toEqual([hash]);
+
+      host.grants.set(`${READER}:workflow:${workflow.id}`, "viewer");
+      expect(await refusal(receiveFile(host, READER, { set_id: set.set_id, hash }))).toBe("NOT_FOUND");
+      host.grants.set(`${READER}:workflow:${workflow.id}`, "editor");
+      expect(await receiveFile(host, READER, { set_id: set.set_id, hash })).toBeInstanceOf(Uint8Array);
     });
 
     it("refuses a project the caller may open nothing of, and another reader's set", async () => {
