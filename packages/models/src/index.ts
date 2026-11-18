@@ -810,6 +810,7 @@ export {
   type DeletedDocumentMember,
   type DeletedDocumentKind,
   type DeletedDocumentPayload,
+  type DeletedDocumentRow,
   type RestoreDeletedOutcome
 } from "./deleted-document.js";
 export {
