@@ -151,6 +151,13 @@
               "duration_seconds": {
                 "type": "number"
               },
+              "look_preset_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 3
+              },
               "camera": {
                 "type": "object",
                 "additionalProperties": false,
@@ -166,6 +173,13 @@
                   },
                   "movement": {
                     "type": "string"
+                  },
+                  "preset_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 3
                   },
                   "equipment": {
                     "type": "string"

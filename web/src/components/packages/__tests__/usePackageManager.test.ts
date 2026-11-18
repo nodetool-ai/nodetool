@@ -198,13 +198,13 @@ describe("usePackageManager", () => {
       available: true,
       statuses: [
         {
-          id: "tensorflow-js",
-          name: "TensorFlow.js Models",
+          id: "transformers-js",
+          name: "Transformers.js",
           description: "Models",
           installed: true,
           installing: false,
-          installedVersion: "4.20.0",
-          latestVersion: "4.22.0",
+          installedVersion: "3.7.0",
+          latestVersion: "3.8.1",
           updateAvailable: true
         },
         {
@@ -220,12 +220,12 @@ describe("usePackageManager", () => {
     const { result } = renderHook(() =>
       usePackageManager({ cat: "runtimes", q: "", filter: "all" })
     );
-    const tfjs = result.current.rows.find((r) => r.key === "tensorflow-js");
-    expect(tfjs?.badge).toBe("update");
-    expect(tfjs?.version).toBe("v4.20.0  →  v4.22.0");
-    expect(tfjs?.buttons?.update).toBe(true);
-    tfjs?.buttons?.onUpdate();
-    expect(update).toHaveBeenCalledWith("tensorflow-js");
+    const transformersJs = result.current.rows.find((r) => r.key === "transformers-js");
+    expect(transformersJs?.badge).toBe("update");
+    expect(transformersJs?.version).toBe("v3.7.0  →  v3.8.1");
+    expect(transformersJs?.buttons?.update).toBe(true);
+    transformersJs?.buttons?.onUpdate();
+    expect(update).toHaveBeenCalledWith("transformers-js");
 
     const ytDlp = result.current.rows.find((r) => r.key === "yt-dlp");
     expect(ytDlp?.badge).toBe("installed");

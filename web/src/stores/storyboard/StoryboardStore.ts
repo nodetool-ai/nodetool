@@ -142,6 +142,15 @@ export interface StoryboardSetupPatch {
   importSource?: StoryboardImportSource | null;
 }
 
+/**
+ * The parts of a board its Markdown text writes. Everything else on the board
+ * (models, setup state, one-take direction) stays as it is.
+ */
+export type StoryboardTextEdit = Pick<
+  StoryboardBoard,
+  "screenplay" | "shots" | "brief" | "style" | "entityIds" | "aspectRatio" | "genre" | "look_preset_ids"
+>;
+
 /** The scene fields the surface edits; a scene carries no order of its own. */
 export type ScenePatch = Partial<Pick<Scene, "slugline" | "lighting">>;
 
@@ -189,6 +198,11 @@ interface StoryboardStoreState {
   /** Load a screenplay, keeping generated media for shots with existing ids. */
   setScreenplay: (boardId: string, screenplay: Screenplay) => void;
 
+  /**
+   * Apply an edit of the board's Markdown text. Typing coalesces into one undo
+   * step, like typing in the brief.
+   */
+  applyTextEdit: (boardId: string, edit: StoryboardTextEdit) => void;
   setBrief: (boardId: string, brief: string) => void;
   setStyle: (boardId: string, style: string) => void;
   setLookPresetIds: (boardId: string, ids: string[]) => void;
@@ -273,7 +287,16 @@ interface StoryboardStoreState {
     shotId: string,
     commit: ShotDraftCommit
   ) => void;
-  setShotStatus: (boardId: string, shotId: string, status: ShotStatus) => void;
+  /**
+   * Set a shot's generation status. `failureReason` is saved on the shot with a
+   * `"failed"` status so the card can explain it after a reload.
+   */
+  setShotStatus: (
+    boardId: string,
+    shotId: string,
+    status: ShotStatus,
+    failureReason?: string
+  ) => void;
   setShotKeyframe: (
     boardId: string,
     shotId: string,
@@ -686,14 +709,27 @@ const patchShot = (
   if (!target) {
     return board;
   }
+  // A failure reason describes the failed status only; any other status
+  // retires it.
+  const clearsFailure =
+    patch.status !== undefined &&
+    patch.status !== "failed" &&
+    target.failure_reason !== undefined;
   const keys = Object.keys(patch) as Array<keyof Shot>;
   const unchanged = keys.every((k) => Object.is(target[k], patch[k]));
-  if (unchanged) {
+  if (unchanged && !clearsFailure) {
     return board;
   }
+  const patched = (s: Shot): Shot => {
+    const next = { ...s, ...patch };
+    if (clearsFailure) {
+      delete next.failure_reason;
+    }
+    return next;
+  };
   return {
     ...board,
-    shots: board.shots.map((s) => (s.id === shotId ? { ...s, ...patch } : s))
+    shots: board.shots.map((s) => (s.id === shotId ? patched(s) : s))
   };
 };
 
@@ -935,6 +971,13 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
       }
       return patch;
     }),
+
+  applyTextEdit: (boardId, edit) =>
+    set((state) =>
+      withBoard(state, boardId, (b) => ({ ...b, ...edit }), {
+        coalesceKey: "text"
+      })
+    ),
 
   setBrief: (boardId, brief) =>
     set((state) =>
@@ -1316,11 +1359,16 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
       })
     ),
 
-  setShotStatus: (boardId, shotId, status) =>
-    set((state) =>
+  setShotStatus: (boardId, shotId, status, failureReason) =>
+    set((state) => {
+      const reason = failureReason?.trim();
+      const patch: Partial<Shot> =
+        status === "failed" && reason
+          ? { status, failure_reason: reason }
+          : { status };
       // Generation lifecycle, not an authoring edit — keep it out of undo.
-      withBoard(state, boardId, (b) => patchShot(b, shotId, { status }), false)
-    ),
+      return withBoard(state, boardId, (b) => patchShot(b, shotId, patch), false);
+    }),
 
   setShotKeyframe: (boardId, shotId, keyframe) =>
     set((state) =>

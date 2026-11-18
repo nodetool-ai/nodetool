@@ -1,6 +1,9 @@
 #include "properties/CodeInference.h"
 #include "WorkflowGraphModel.h"
+#include <utility>
 #include "CardBodies.h"
+#include <QColor>
+#include <QBuffer>
 #include "CardMedia.h"
 #include "CatalogCategories.h"
 #include "document/ChildPorts.h"
@@ -252,6 +255,17 @@ void WorkflowGraphModel::project(const QJsonObject &snapshot,
       updated.append(it.key());
     }
   }
+  // A body showing its source follows a change of the node that feeds it.
+  for (const auto id : QVector<NodeId>(updated)) {
+    for (const auto &value : incident.value(nodes.value(id)["id"].toString())) {
+      const auto edge = value.toObject();
+      const auto target = ids_.value(edge["target"].toString(), InvalidNodeId);
+      if (edge["target"] != edge["source"] && nodes.contains(target) && !updated.contains(target)
+          && readsBodySources(cardBodyFor(nodes.value(target)["type"].toString(), {}))) {
+        updated.append(target);
+      }
+    }
+  }
   for (const auto id : removed) { invalidateNode(id); }
   for (const auto id : created) { invalidateNode(id); }
   for (const auto id : updated) { invalidateNode(id); }
@@ -352,11 +366,20 @@ void WorkflowGraphModel::setRuntimeModel(node_editor::NodeRuntimeModel *runtime)
   if (runtime_) { disconnect(runtime_, nullptr, this, nullptr); }
   runtime_ = runtime;
   previews_.clear();
+  histograms_.clear();
   runningShown_.clear();
   runningSince_.clear();
   runningTimer_.stop();
   if (runtime_) {
-    connect(runtime_, &node_editor::NodeRuntimeModel::nodeChanged, this, [this](const QString &id) { refreshRuntimeNode(id); emit runtimeChanged(); });
+    connect(runtime_, &node_editor::NodeRuntimeModel::nodeChanged, this, [this](const QString &id) {
+      refreshRuntimeNode(id);
+      if (const auto found = ids_.constFind(id); found != ids_.cend() && nodes_.contains(*found)) { emit runtimeNodeChanged(*found); }
+    });
+    connect(runtime_, &node_editor::NodeRuntimeModel::edgeChanged, this, [this](const QString &edgeId) {
+      for (const auto &[connection, edge] : edgeByConnection_) {
+        if (edge["id"].toString() == edgeId) { emit runtimeEdgeChanged(connection); }
+      }
+    });
     // Previews stay across a run change. EditorWindow::syncRuntimePreviews
     // replaces or removes each one, so a card keeps its image until the next loads.
     connect(runtime_, &node_editor::NodeRuntimeModel::projectionChanged, this, [this] {
@@ -372,6 +395,7 @@ void WorkflowGraphModel::refreshRuntimeNode(const QString &id) {
   if (found == ids_.cend()) { return; }
   layouts_.remove(*found);
   emit nodeUpdated(*found);
+  refreshSourceReaders(id);
 }
 void WorkflowGraphModel::trackRunning(const QString &id) {
   const auto found = ids_.constFind(id);
@@ -410,6 +434,11 @@ void WorkflowGraphModel::setRuntimePreview(const QString &nodeId, const QImage &
   if (!ids_.contains(nodeId)) { return; }
   if (image.isNull()) { previews_.remove(nodeId); }
   else { previews_[nodeId] = image.scaled(512, 512, Qt::KeepAspectRatio, Qt::SmoothTransformation); }
+  // LevelsBody draws the result's histogram, counted once per result.
+  histograms_.remove(nodeId);
+  if (!image.isNull() && cardBodyFor(nodes_.value(ids_.value(nodeId))["type"].toString(), metadata(ids_.value(nodeId))) == CardBody::Levels) {
+    histograms_.insert(nodeId, imageHistogram(previews_.value(nodeId)));
+  }
   refreshRuntimeNode(nodeId);
   emit runtimeChanged();
 }
@@ -422,12 +451,41 @@ bool WorkflowGraphModel::hasRuntimeOutput(NodeId id) const {
         return false;
     }
     const auto state = runtimeState(id);
+    // The List Generator lists its own items and a Collection shows its tiles. Only an error still shows below them.
+    if (body == CardBody::ListGenerator || body == CardBody::Collection) {
+        return !state["error"].toString().isEmpty();
+    }
     for (const auto *key : {"error", "text"}) {
         if (!state[key].toString().isEmpty()) {
             return true;
         }
     }
     return state["result"].isObject() || previews_.contains(resourceId(id));
+}
+QJsonValue WorkflowGraphModel::upstreamImage(const QString &node, const QString &handle) const {
+  const auto id = ids_.value(node, InvalidNodeId);
+  if (!nodes_.contains(id)) { return {}; }
+  const auto state = runtimeState(id);
+  for (const auto *key : {"result", "outputs"}) {
+    QJsonValue value = state[key].toObject().value(handle);
+    if (value.isArray() && !value.toArray().isEmpty()) { value = value.toArray().last(); }
+    if (value.isObject()) { return value; }
+  }
+  const auto type = nodes_.value(id)["type"].toString();
+  if (type == QStringLiteral("nodetool.constant.Image") || type == QStringLiteral("nodetool.input.ImageInput")) {
+    return nodes_.value(id)["data"].toObject()["value"];
+  }
+  return {};
+}
+void WorkflowGraphModel::refreshSourceReaders(const QString &node) {
+  for (const auto &value : incident_.value(node)) {
+    const auto edge = value.toObject();
+    if (edge["source"].toString() != node) { continue; }
+    const auto target = ids_.value(edge["target"].toString(), InvalidNodeId);
+    if (!nodes_.contains(target) || !readsBodySources(cardBodyFor(nodes_.value(target)["type"].toString(), metadata(target)))) { continue; }
+    layouts_.remove(target);
+    emit nodeUpdated(target);
+  }
 }
 void WorkflowGraphModel::setCardMedia(const QString &nodeId, const QString &property, int index, const CardMediaItem &item) {
   if (!ids_.contains(nodeId)) { return; }
@@ -437,6 +495,53 @@ void WorkflowGraphModel::setCardMedia(const QString &nodeId, const QString &prop
 void WorkflowGraphModel::clearCardMedia() {
   cardMedia_.clear();
   for (auto it = ids_.cbegin(); it != ids_.cend(); ++it) { layouts_.remove(*it); emit nodeUpdated(*it); }
+}
+void WorkflowGraphModel::setFocusedNode(const QString &resourceId) {
+  if (resourceId == focusedNode_) { return; }
+  const auto previous = std::exchange(focusedNode_, resourceId);
+  focusedHandle_ = {};
+  if (!resourceId.isEmpty()) {
+    focusHistory_.append(resourceId);
+    while (focusHistory_.size() > 20) { focusHistory_.removeFirst(); }
+  }
+  // The badge sits above the card, so its bounds change with the focus.
+  for (auto it = ids_.cbegin(); it != ids_.cend(); ++it) {
+    if (it.key() == previous || it.key() == resourceId) {
+      layouts_.remove(*it);
+      emit nodeUpdated(*it);
+    }
+  }
+}
+void WorkflowGraphModel::setFocusedHandle(QtNodes::PortType side, const QString &name) {
+  if (focusedHandle_.side == side && focusedHandle_.name == name) { return; }
+  focusedHandle_ = name.isEmpty() ? FocusedHandle{} : FocusedHandle{side, name};
+  if (const auto node = ids_.value(focusedNode_, QtNodes::InvalidNodeId); node != QtNodes::InvalidNodeId) { emit nodeUpdated(node); }
+}
+bool WorkflowGraphModel::focusNextHandle(bool backwards) {
+  const auto node = ids_.value(focusedNode_, QtNodes::InvalidNodeId);
+  if (node == QtNodes::InvalidNodeId) { setFocusedHandle(QtNodes::PortType::None, {}); return false; }
+  QVector<FocusedHandle> handles;
+  for (const auto side : {QtNodes::PortType::In, QtNodes::PortType::Out}) {
+    const auto list = ports(node, side);
+    for (qsizetype i = 0; i < list.size(); ++i) {
+      if (portVisible(node, side, QtNodes::PortIndex(i))) { handles.append({side, list[i].toObject()["name"].toString()}); }
+    }
+  }
+  qsizetype index = -1;
+  for (qsizetype i = 0; i < handles.size(); ++i) {
+    if (handles[i].side == focusedHandle_.side && handles[i].name == focusedHandle_.name) { index = i; }
+  }
+  const auto next = index < 0 ? (backwards ? handles.size() - 1 : 0) : index + (backwards ? -1 : 1);
+  if (next < 0 || next >= handles.size()) { setFocusedHandle(QtNodes::PortType::None, {}); return false; }
+  setFocusedHandle(handles[next].side, handles[next].name);
+  return true;
+}
+bool WorkflowGraphModel::focusBack() {
+  if (focusHistory_.size() < 2) { return false; }
+  focusHistory_.removeLast();
+  const auto target = focusHistory_.takeLast();
+  setFocusedNode(target);
+  return true;
 }
 void WorkflowGraphModel::setConfiguredSecrets(const QStringList &keys, bool known, const QStringList &secretKeys) {
   const QSet<QString> configured(keys.cbegin(), keys.cend());
@@ -462,10 +567,19 @@ void WorkflowGraphModel::setCanvasMediaNodes(const QSet<QString> &nodes) {
 }
 QRectF WorkflowGraphModel::canvasPlaybackRect(NodeId id) const {
   if (!canvasMediaNodes_.contains(resourceId(id)) || collapsed(id)) { return {}; }
-  const auto size = layout(id).size;
+  const auto &card = layout(id);
+  // A card that lays out a result area plays its media there, at full size.
+  if (!card.resultRect.isEmpty()) {
+    return card.resultRect;
+  }
+  const auto size = card.size;
   constexpr auto inset = node_metrics::padding + node_metrics::borderWidth;
-  return QRectF(inset, size.height() - node_metrics::playbackHeight - node_metrics::rowHeight,
-                size.width() - 2 * inset, node_metrics::playbackHeight);
+  // The player fills the card from the end of its content to the footer row,
+  // so a taller card gives the player the extra height.
+  const auto bottom = double(size.height() - node_metrics::rowHeight);
+  const auto top = std::min(card.mediaTop > 0 ? card.mediaTop : bottom - node_metrics::playbackHeight,
+                            bottom - node_metrics::playbackHeight);
+  return QRectF(inset, top, size.width() - 2 * inset, bottom - top);
 }
 QRectF WorkflowGraphModel::canvasResultRect(NodeId id) const {
   if (!nodeExists(id) || collapsed(id) || isGroup(id) || isComment(id) || isReroute(id)) { return {}; }
@@ -473,6 +587,7 @@ QRectF WorkflowGraphModel::canvasResultRect(NodeId id) const {
   if (!playback.isEmpty()) { return playback; }
   const auto &card = layout(id);
   constexpr auto inset = node_metrics::padding + node_metrics::borderWidth;
+  if (card.sourceTab) { return {}; }
   if (!card.resultRect.isEmpty()) {
     return card.resultRect.adjusted(node_metrics::padding, node_metrics::padding,
                                    -node_metrics::padding, -node_metrics::padding);
@@ -507,6 +622,28 @@ namespace {
 // collapsed.css: a collapsed card is a 40 px strip as wide as its header, at
 // least 140 px and never wider than the expanded card. Sockets sit on the
 // strip's midline and nothing else draws.
+// A Code card the user made taller gives the extra height to its code field.
+// Rows and handles below the field move down by the same amount.
+void stretchCodeField(NodeLayout &layout, double extra) {
+  if (extra <= 0) { return; }
+  const auto field = std::find_if(layout.rows.begin(), layout.rows.end(), [](const NodeRow &row) { return row.code; });
+  if (field == layout.rows.end()) { return; }
+  const auto bottom = field->rect.bottom();
+  field->rect.setHeight(field->rect.height() + extra);
+  field->height = field->rect.height();
+  const auto shift = [&](QRectF &rect) { if (!rect.isEmpty() && rect.top() >= bottom) { rect.translate(0, extra); } };
+  for (auto &row : layout.rows) {
+    if (row.code || row.y < bottom) { continue; }
+    row.y += extra;
+    row.fieldY += extra;
+    shift(row.rect);
+    shift(row.listZone);
+    for (auto &part : row.parts) { shift(part); }
+    for (auto &item : row.media) { shift(item.rect); }
+  }
+  for (auto &y : layout.inputY) { if (y >= bottom) { y += extra; } }
+  for (auto &y : layout.outputY) { if (y >= bottom) { y += extra; } }
+}
 NodeLayout collapsedLayout(NodeLayout layout, const QJsonObject &ui) {
   namespace nm = node_metrics;
   QFont font(QStringLiteral("Inter"));
@@ -557,8 +694,10 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
     const auto minimumWidth = isGroup(id) ? 200 : 30;
     const auto minimumHeight = isGroup(id) ? 200 : 40;
     result.minimumSize = QSize(minimumWidth, minimumHeight);
-    result.size = QSize(std::max(minimumWidth, ui["width"].toInt(isGroup(id) ? 400 : 300)),
-                        std::max(minimumHeight, ui["height"].toInt(isGroup(id) ? 300 : 160)));
+    // React Flow stores fractional sizes after a resize. toInt() would read
+    // those as missing and fall back to the default size.
+    result.size = QSize(std::max(minimumWidth, qRound(ui["width"].toDouble(isGroup(id) ? 400 : 300))),
+                        std::max(minimumHeight, qRound(ui["height"].toDouble(isGroup(id) ? 300 : 160))));
     return *layouts_.insert(id, result);
   }
   const auto type = node["type"].toString();
@@ -592,6 +731,15 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
       result.edge = provider.accent;
       result.edge.setAlpha(0x40);
   }
+  // DynamicComfySchemaNode: the ComfyUI color edges the card at 25 percent,
+  // selects it at full strength, and the header carries the workflow loader.
+  const bool comfy = comfySchemaNode(type);
+  if (comfy) {
+      result.accent = comfyAccent();
+      result.edge = comfyAccent();
+      result.edge.setAlpha(0x40);
+      result.headerAction = QStringLiteral("loadComfyWorkflow");
+  }
     result.subgraph = type == "nodetool.workflows.subgraph.Subgraph";
     if (result.subgraph) {
         result.icon = "accountTree";
@@ -624,11 +772,25 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
           handleOnly.insert(port.toObject()["name"].toString());
       }
   }
+  // WorkflowNodeContent and AppNodeContent pass editableDynamicInputs={false}:
+  // the inputs a source derives are handles without fields.
+  const bool sourcePorts = !childPicker(type).property.isEmpty();
+  if (sourcePorts) {
+      QSet<QString> declared;
+      for (const auto &port : meta["properties"].toArray()) { declared.insert(port.toObject()["name"].toString()); }
+      // The ports include those derived from the stored copy's graph.
+      for (const auto &port : ports(id, PortType::In)) {
+          const auto name = port.toObject()["name"].toString();
+          if (!declared.contains(name) && name != QStringLiteral("__control__")) { handleOnly.insert(name); }
+      }
+  }
   const auto inputs = ports(id, PortType::In);
   result.inputY.resize(inputs.size());
   const auto width = ui["width"].toDouble();
   const auto addRenameControls = [&] {
       if (!meta["supports_dynamic_inputs"].toBool()) { return; }
+      // DynamicComfySchemaContent hides the action icons of its derived inputs.
+      if (comfy) { return; }
       const auto values = node["dynamic_properties"].toObject();
       const auto declarations = node["dynamic_inputs"].toObject();
       QSet<QString> staticInputs;
@@ -650,7 +812,8 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
       const auto data = node["data"].toObject();
       const bool schemaDriven = nodeType.startsWith("fal.") || nodeType.startsWith("kie.") || nodeType.startsWith("replicate.")
           || nodeType.startsWith("comfy.") || nodeType == "nodetool.workflows.workflow_node.Workflow"
-          || nodeType == "nodetool.workflows.subgraph.Subgraph" || data.contains("endpoint_id") || data.contains("model_id");
+          || nodeType == "nodetool.workflows.subgraph.Subgraph" || data.contains("endpoint_id") || data.contains("model_id")
+          || comfySchemaNode(nodeType);
       for (auto &row : result.rows) {
           if (row.port < 0 || row.port >= inputs.size() || row.bare || !portVisible(id, PortType::In, row.port)) { continue; }
           const auto name = inputs[row.port].toObject()["name"].toString();
@@ -689,9 +852,47 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
           position = nm::contentTop + nm::rowHeight / 2.0;
       }
       result.size.setWidth(width > 0 ? int(width) : nm::defaultWidth);
+      if (readsBodySources(result.body)) {
+          // useUpstreamValue: a wired handle shows its source's value, an unwired one the node's own.
+          QVector<std::pair<QString, QJsonValue>> handles;
+          for (const auto &value : meta["properties"].toArray()) {
+              const auto property = value.toObject();
+              const auto name = property["name"].toString();
+              if (typeOf(property) != QStringLiteral("image") || !bespokeHandle(result.body, meta, name)) { continue; }
+              handles.append({name, node["data"].toObject().value(name)});
+          }
+          // The Compositor's layers are its image_N dynamic inputs.
+          if (result.body == CardBody::Compositor) {
+              for (const auto &name : compositorLayerKeys(node)) {
+                  handles.append({name, node["dynamic_properties"].toObject().value(name)});
+              }
+          }
+          for (const auto &[name, own] : handles) {
+              QJsonValue image = own;
+              for (const auto &entry : edges_) {
+                  const auto edge = entry.toObject();
+                  if (edge["target"] == node["id"] && edge["targetHandle"] == name) {
+                      image = upstreamImage(edge["source"].toString(), edge["sourceHandle"].toString());
+                      break;
+                  }
+              }
+              const auto locator = image.toObject().toVariantMap();
+              const auto identity = cardMediaIdentity(locator);
+              if (identity.isEmpty()) { continue; }
+              auto item = cardMedia_.item(resourceId(id), bodySourceKey(name), 0, identity);
+              item.locator = locator;
+              item.identity = identity;
+              result.sources.insert(name, item);
+          }
+      }
       layoutBespokeBody(result, {node, meta, inputs, int(outputs.size()), fields, dimensionLinks_.contains(resourceId(id)),
-                                 graphVariables_, previewTabs_.value(resourceId(id))});
+                                 graphVariables_, previewTabs_.value(resourceId(id)), result.sources,
+                                 histograms_.contains(resourceId(id)) ? std::optional(histograms_.value(resourceId(id))) : std::nullopt,
+                                 painters_.value(resourceId(id)),
+                                 result.body == CardBody::Painter ? paintMask(resourceId(id), node["data"].toObject()) : QImage{},
+                                 runtimeState(id), expandedListItems_.value(resourceId(id)), &cardMedia_});
       if (canvasMediaNodes_.contains(resourceId(id))) {
+          result.mediaTop = result.size.height();
           result.size.rheight() += nm::playbackHeight + nm::rowHeight;
       } else if (result.resultRect.isEmpty() && hasRuntimeOutput(id)) {
           result.size.rheight() += nm::previewHeight + nm::rowHeight;
@@ -704,7 +905,7 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
       // A body such as Compare Images sets a wider minimum than the 150 px corner limit.
       result.minimumSize = QSize(std::max(150, result.minimumSize.width()),
                                  result.body == CardBody::Preview ? nm::outputPlaceholderHeight : result.size.height() - result.flexHeight);
-      result.size.setHeight(std::max(result.size.height(), ui["height"].toInt()));
+      result.size.setHeight(std::max(result.size.height(), qRound(ui["height"].toDouble())));
       addRenameControls();
       if (ui["collapsed"].toBool()) { result = collapsedLayout(result, ui); }
       return *layouts_.insert(id, result);
@@ -788,12 +989,16 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
   // A provider node without a schema explains how to load one. The web reads
   // dynamic_inputs, which its loader refetches; native has no loader, so a
   // stored dynamic property also counts as a loaded schema.
-  if (!provider.label.isEmpty() && node["dynamic_inputs"].toObject().isEmpty() && node["dynamic_properties"].toObject().isEmpty()) {
+  // DynamicComfySchemaContent shows its hint until the workflow gives the node slots.
+  const bool comfyHint = comfy && node["dynamic_inputs"].toObject().isEmpty() && node["dynamic_outputs"].toObject().isEmpty();
+  const auto hintDescription = comfy ? tr("Run a ComfyUI workflow on any ComfyUI server.") : provider.description;
+  const auto hintInstructions = comfy ? tr("Click the upload icon to load a workflow (paste API JSON or drop a .json/.png).") : provider.instructions;
+  if (comfyHint || (!provider.label.isEmpty() && node["dynamic_inputs"].toObject().isEmpty() && node["dynamic_properties"].toObject().isEmpty())) {
       const auto left = double(nm::borderWidth + nm::schemaHintPaddingX);
       const auto textWidth = (width > 0 ? width : double(nm::defaultWidth)) - 2 * left;
       y += nm::schemaHintPaddingY;
-      for (const auto &[text, pixels, lineHeight] : {std::tuple{provider.description, nm::fontLabel, 1.45},
-                                                      std::tuple{provider.instructions, nm::fontValue, 1.4}}) {
+      for (const auto &[text, pixels, lineHeight] : {std::tuple{hintDescription, nm::fontLabel, 1.45},
+                                                      std::tuple{hintInstructions, nm::fontValue, 1.4}}) {
           NodeRow hint;
           hint.kind = NodeRowKind::Label;
           hint.label = text;
@@ -937,6 +1142,7 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
     if (handleOnly.contains(name)) { continue; }
     // The control handle sits at the top center of the card and has no row.
     if (name == "__control__") { continue; }
+    if (compositeHiddenProperty(type, name) || (comfy && !portVisible(id, PortType::In, i))) { continue; }
     if (!first) { y += nm::inlineRowGap; }
     first = false;
     const auto field = fields.value(name);
@@ -960,7 +1166,28 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
     result.inputY[i] = y + (bareField ? nm::fieldHeight : nm::rowHeight) / 2.0;
     if (!row.bare) { y += nm::rowHeight; }
     const auto hasValue = value.isValid() && !value.isNull();
-    if (!connected && (kind == "text" || kind == "multiline" || kind == "choice")) {
+    const auto picker = childPicker(type);
+    if (!connected && !picker.property.isEmpty() && name == picker.property) {
+      // WorkflowLoader and AppLoader: a select labeled "Select workflow" or
+      // "Select app" that shows the picked source's name.
+      const auto reference = childPickerReference(picker, node["data"].toObject());
+      row.kind = NodeRowKind::Field;
+      row.choice = true;
+      row.label = picker.label;
+      row.placeholder = reference.isEmpty();
+      row.value = reference.isEmpty() ? tr("Select\u2026") : reference["name"].toString();
+      row.fieldY = y;
+      row.height = nm::fieldHeight;
+      y += row.height;
+    } else if (!connected && name == "code" && (kind == "text" || kind == "multiline")) {
+      row.kind = NodeRowKind::Multiline;
+      row.code = true;
+      row.value = hasValue ? value.toString() : QString();
+      row.fieldY = y;
+      row.height = nm::codeMinimumHeight;
+      row.rect = QRectF(inset, y, cardWidth - 2 * inset, row.height);
+      y += row.height;
+    } else if (!connected && (kind == "text" || kind == "multiline" || kind == "choice")) {
       row.kind = kind == "multiline" ? NodeRowKind::Multiline : NodeRowKind::Field;
       row.choice = kind == "choice";
       // SelectProperty.tsx reads an unset or empty value as its "Select…" placeholder.
@@ -1186,10 +1413,14 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
       end = y + nm::micro + nm::borderWidth;
   };
   // A provider node's inputs follow its schema, so the shell offers no add buttons.
-  if (!result.unknown && meta["supports_dynamic_inputs"].toBool() && !result.subgraph && provider.label.isEmpty()) {
+  // AppNodeContent and DynamicComfySchemaContent have no NodePropertyForm either.
+  const bool propertyForm = provider.label.isEmpty() && !comfy && type != QStringLiteral("nodetool.workflows.app_node.App");
+  // The Compositor body adds its own image_N inputs with Add another layer.
+  if (!result.unknown && meta["supports_dynamic_inputs"].toBool() && !result.subgraph && propertyForm
+      && result.body != CardBody::Compositor) {
       addAction(contentCard ? QStringLiteral("addContentInput") : QStringLiteral("addInput"), contentCard ? contentInputLabel(meta) : tr("Add input"), false);
   }
-  if (!result.unknown && meta["supports_dynamic_outputs"].toBool() && !result.subgraph && provider.label.isEmpty()) {
+  if (!result.unknown && meta["supports_dynamic_outputs"].toBool() && !result.subgraph && propertyForm) {
       addAction(QStringLiteral("addOutput"), tr("Add output"), true);
   }
   // The provider footer: a rule and the caption 2 px below the inputs, at the
@@ -1221,7 +1452,10 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
   const auto minimum = nm::contentTop + nm::rowHeight + nm::padding + nm::borderWidth;
   result.size = QSize(width > 0 ? int(width) : nm::defaultWidth,
                       int(std::ceil(std::max<double>(end, minimum) + nm::padding)));
-  if (canvasMediaNodes_.contains(resourceId(id))) { result.size.rheight() += nm::playbackHeight + nm::rowHeight; }
+  if (canvasMediaNodes_.contains(resourceId(id))) {
+    result.mediaTop = result.size.height();
+    result.size.rheight() += nm::playbackHeight + nm::rowHeight;
+  }
   else if (hasRuntimeOutput(id)) { result.size.rheight() += nm::previewHeight + nm::rowHeight; }
     result.runningProgress = result.subgraph && runtimeState(id)["status"] == "running" && runtimeState(id)["total"].toDouble() > 0;
     if (result.runningProgress) { result.size.rheight() += nm::handleRowStep; }
@@ -1233,7 +1467,9 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
     if (result.addOutput) { result.size.rheight() += nm::handleRowStep; }
     if (result.subgraph) { result.size.rheight() += nm::handleRowStep; }
   result.minimumSize = QSize(150, result.size.height());
-  result.size.setHeight(std::max(result.size.height(), ui["height"].toInt()));
+  const auto natural = result.size.height();
+  result.size.setHeight(std::max(result.size.height(), qRound(ui["height"].toDouble())));
+  stretchCodeField(result, result.size.height() - natural);
   stretchCardMedia(result, type);
   addRenameControls();
   if (ui["collapsed"].toBool()) { result = collapsedLayout(result, ui); }
@@ -1267,7 +1503,7 @@ QJsonArray WorkflowGraphModel::ports(NodeId id, PortType type) const {
   if (const auto metadata = catalogEntry(n["type"]); !metadata.isEmpty()) {
     QSet<QString> connectedInputs;
     if (type == PortType::In) {
-      for (const auto &value : edges_) {
+      for (const auto &value : incident_.value(n["id"].toString())) {
         const auto edge = value.toObject();
         if (edge["target"] == n["id"]) { connectedInputs.insert(edge["targetHandle"].toString()); }
       }
@@ -1316,7 +1552,7 @@ QJsonArray WorkflowGraphModel::ports(NodeId id, PortType type) const {
     }
   }
   // Unknown incident names remain available without changing the document.
-  for (const auto &value : edges_) {
+  for (const auto &value : incident_.value(resourceId(id))) {
     const auto edge = value.toObject();
     const auto key = type == PortType::In ? "target" : "source";
     const auto handle = type == PortType::In ? "targetHandle" : "sourceHandle";
@@ -1434,6 +1670,38 @@ bool WorkflowGraphModel::isComment(NodeId id) const {
 }
 QVariantMap WorkflowGraphModel::inlineDescriptor(NodeId id, const QString &name) const {
   if (readOnly_ || !nodeExists(id) || inlineFieldRect(id, name).isEmpty()) { return {}; }
+  if (name == QLatin1String(painterColorControl)) {
+    // The Painter's color is a card value. The color editor needs room for its presets.
+    return {{"name", name}, {"label", QObject::tr("Brush color")}, {"kind", QStringLiteral("color")},
+            {"value", QVariantMap{{"type", QStringLiteral("color")}, {"value", painterView(id).color}}}, {"hasValue", true},
+            {"editable", true}, {"connected", false}, {"minimumWidth", node_metrics::colorEditorWidth}};
+  }
+  if (isCropControl(name)) {
+    // The Crop body's aspect select and size boxes edit card values, not properties.
+    for (const auto &row : layout(id).rows) {
+      if (row.propertyName != name) { continue; }
+      const bool aspect = name == QLatin1String(cropAspectControl);
+      QVariantList options;
+      for (int i = 0; aspect && i < row.optionValues.size(); ++i) { options.append(QVariantMap{{"label", row.options.value(i)}, {"value", row.optionValues[i]}}); }
+      const auto edges = cropEdges(row);
+      const auto value = aspect ? QVariant(row.optionValues.value(int(row.options.indexOf(row.value)))) 
+                                : QVariant(name == QLatin1String(cropWidthControl) ? edges.width() : edges.height());
+      return {{"name", name}, {"label", aspect ? QObject::tr("Aspect ratio") : name == QLatin1String(cropWidthControl) ? QObject::tr("Crop width") : QObject::tr("Crop height")},
+              {"kind", aspect ? QStringLiteral("choice") : QStringLiteral("integer")}, {"value", value}, {"hasValue", true}, {"editable", true},
+              {"connected", false}, {"options", options}, {"min", aspect ? QVariant{} : QVariant(1.0)},
+              {"max", aspect ? QVariant{} : QVariant(name == QLatin1String(cropWidthControl) ? row.minimum : row.maximum)}, {"step", 1.0}};
+    }
+    return {};
+  }
+  if (name.startsWith(QStringLiteral("@compositor:blend:"))) {
+    // LayerRow's blend select edits one entry of the layers property.
+    const auto index = name.section(':', 2).toInt();
+    QVariantList options;
+    for (const auto &[mode, label] : compositorBlendModes()) { options.append(QVariantMap{{"label", label}, {"value", mode}}); }
+    return {{"name", name}, {"label", QObject::tr("Layer %1 blend mode").arg(index + 1)}, {"kind", QStringLiteral("choice")},
+            {"value", compositorLayers(nodes_.value(id)).value(index).blend}, {"hasValue", true}, {"editable", true},
+            {"connected", false}, {"options", options}};
+  }
   for (const auto &value : node_editor::propertyFields(nodes_.value(id), metadata(id), edges_)) {
     const auto field = value.toMap();
     if (field["name"].toString() != name || !field["editable"].toBool() || field["connected"].toBool()) { continue; }
@@ -1447,7 +1715,22 @@ QVariantMap WorkflowGraphModel::inlineDescriptor(NodeId id, const QString &name)
       choice["options"] = options;
       return choice;
     }
+    // A Workflow or App node picks its source from the server's list.
+    const auto picker = childPicker(nodes_.value(id)["type"].toString());
+    if (!picker.property.isEmpty() && name == picker.property) {
+      auto select = field;
+      select["kind"] = picker.kind;
+      select["label"] = picker.label;
+      select["value"] = childPickerReference(picker, nodes_.value(id)["data"].toObject());
+      return select;
+    }
     const auto kind = field["kind"].toString();
+    // A color swatch on a card opens the ColorPicker popover, which needs room for its presets.
+    if (kind == "color") {
+      auto color = field;
+      color["minimumWidth"] = node_metrics::colorEditorWidth;
+      return color;
+    }
     if (kind == "text" || kind == "multiline" || kind == "number" || kind == "integer" || kind == "choice" || kind == "boolean" || kind == "model"
         || kind == "image_size" || kind == "document_ref" || inlineResource(kind) || inlineStructured(field)) { return field; }
   }
@@ -1459,6 +1742,17 @@ void WorkflowGraphModel::setPreviewTab(NodeId id, const QString &tab) {
         return;
     }
     previewTabs_.insert(resource, tab);
+    refreshRuntimeNode(resource);
+}
+void WorkflowGraphModel::toggleListItem(NodeId id, int index) {
+    const auto resource = resourceId(id);
+    if (resource.isEmpty() || index < 0) {
+        return;
+    }
+    auto &expanded = expandedListItems_[resource];
+    if (!expanded.remove(index)) {
+        expanded.insert(index);
+    }
     refreshRuntimeNode(resource);
 }
 void WorkflowGraphModel::setDimensionsLinked(NodeId id, bool linked) {
@@ -1505,6 +1799,138 @@ QJsonObject WorkflowGraphModel::propertyCommand(NodeId id, const QString &name, 
         QJsonObject{{"op", "setProperty"}, {"id", resource}, {"name", name}, {"value", entered}},
         QJsonObject{{"op", "setProperty"}, {"id", resource}, {"name", otherName}, {"value", other}}}}};
 }
+QJsonObject WorkflowGraphModel::cropControlCommand(NodeId id, const QString &name, const QVariant &value) const {
+    for (const auto &row : layout(id).rows) {
+        if (row.propertyName != QLatin1String(cropWidthControl)) { continue; }
+        const auto crop = cropEdges(row);
+        const auto next = cropControlled(name, value, crop, QSizeF(row.minimum, row.maximum), row.step);
+        if (next == crop) { return {}; }
+        const auto resource = resourceId(id);
+        QJsonArray commands;
+        for (const auto &[edge, number] : {std::pair{"left", next.left()}, std::pair{"top", next.top()},
+                                           std::pair{"right", next.right()}, std::pair{"bottom", next.bottom()}}) {
+            commands.append(QJsonObject{{"op", "setProperty"}, {"id", resource}, {"name", QLatin1String(edge)}, {"value", number}});
+        }
+        return {{"op", "batch"}, {"commands", commands}};
+    }
+    return {};
+}
+QImage WorkflowGraphModel::paintMask(const QString &resource, const QJsonObject &data) const {
+    const auto mask = data.value(QStringLiteral("mask_data")).toString();
+    const auto cached = paintMasks_.constFind(resource);
+    if (cached != paintMasks_.cend() && cached->first == mask) { return cached->second; }
+    QImage image;
+    if (!mask.isEmpty()) { image.loadFromData(QByteArray::fromBase64(mask.toLatin1()), "PNG"); }
+    paintMasks_.insert(resource, {mask, image});
+    return image;
+}
+PainterView WorkflowGraphModel::painterView(NodeId id) const { return painters_.value(resourceId(id)); }
+void WorkflowGraphModel::writePaintMask(NodeId id, const QString &mask, const QImage &image) {
+    const auto resource = resourceId(id);
+    paintMasks_.insert(resource, {mask, image});
+    if (commit) { commit(propertyCommand(id, QStringLiteral("mask_data"), mask)); }
+}
+void WorkflowGraphModel::painterAction(NodeId id, const QString &action, const QString &value) {
+    if (readOnly_ || !nodeExists(id)) { return; }
+    const auto resource = resourceId(id);
+    auto &view = painters_[resource];
+    const auto current = nodes_.value(id)["data"].toObject().value(QStringLiteral("mask_data")).toString();
+    const auto push = [](QStringList &stack, const QString &mask) {
+        stack.append(mask);
+        while (stack.size() > painterHistory) { stack.removeFirst(); }
+    };
+    if (action == QStringLiteral("painterTool")) {
+        view.eraser = value == QStringLiteral("eraser");
+        refreshRuntimeNode(resource);
+    } else if (action == QStringLiteral("painterUndo") || action == QStringLiteral("painterRedo")) {
+        const bool undo = action == QStringLiteral("painterUndo");
+        auto &from = undo ? view.undo : view.redo;
+        if (from.isEmpty()) { return; }
+        const auto previous = from.takeLast();
+        push(undo ? view.redo : view.undo, current);
+        QImage image;
+        if (!previous.isEmpty()) { image.loadFromData(QByteArray::fromBase64(previous.toLatin1()), "PNG"); }
+        writePaintMask(id, previous, image);
+    } else if (action == QStringLiteral("painterClear")) {
+        push(view.undo, current);
+        view.redo.clear();
+        writePaintMask(id, {}, {});
+    }
+}
+void WorkflowGraphModel::compositorAction(NodeId id, const QString &action, int index) {
+    if (readOnly_ || !nodeExists(id) || !commit) { return; }
+    const auto node = nodes_.value(id);
+    const auto resource = resourceId(id);
+    const auto keys = compositorLayerKeys(node);
+    auto layers = compositorLayers(node);
+    if (action == QStringLiteral("compositorAdd")) {
+        // nextImageIndex: one past the highest image_N.
+        int next = 0;
+        for (const auto &key : keys) { next = std::max(next, key.section('_', 1).toInt() + 1); }
+        layers.append(CompositorLayer{});
+        commit({{"op", "batch"}, {"commands", QJsonArray{
+            QJsonObject{{"op", "addDynamicInput"}, {"id", resource}, {"name", QStringLiteral("image_%1").arg(next)}},
+            propertyCommand(id, QStringLiteral("layers"), compositorLayersJson(layers))}}});
+        return;
+    }
+    if (index < 0 || index >= keys.size()) { return; }
+    if (action == QStringLiteral("compositorVisible")) {
+        layers[index].visible = !layers[index].visible;
+        commit(propertyCommand(id, QStringLiteral("layers"), compositorLayersJson(layers)));
+    } else if (action == QStringLiteral("compositorDelete")) {
+        // The remaining states stay aligned to the remaining sorted inputs.
+        layers.remove(index);
+        commit({{"op", "batch"}, {"commands", QJsonArray{
+            propertyCommand(id, QStringLiteral("layers"), compositorLayersJson(layers)),
+            QJsonObject{{"op", "removeDynamicInput"}, {"id", resource}, {"name", keys[index]}}}}});
+    }
+}
+void WorkflowGraphModel::finishPaintStroke(NodeId id, const QImage &stroke) {
+    if (readOnly_ || !nodeExists(id) || stroke.isNull()) { return; }
+    const auto resource = resourceId(id);
+    auto &view = painters_[resource];
+    const auto data = nodes_.value(id)["data"].toObject();
+    const auto current = data.value(QStringLiteral("mask_data")).toString();
+    const auto image = paintedMask(paintMask(resource, data), stroke, stroke.size(), view.opacity, view.eraser);
+    QByteArray bytes;
+    QBuffer buffer(&bytes);
+    buffer.open(QIODevice::WriteOnly);
+    image.save(&buffer, "PNG");
+    view.undo.append(current);
+    while (view.undo.size() > painterHistory) { view.undo.removeFirst(); }
+    view.redo.clear();
+    writePaintMask(id, QString::fromLatin1(bytes.toBase64()), image);
+}
+void WorkflowGraphModel::setCardControl(NodeId id, const QString &name, const QVariant &value) {
+    if (readOnly_ || !nodeExists(id)) { return; }
+    if (isPainterControl(name)) {
+        auto &view = painters_[resourceId(id)];
+        if (name == QLatin1String(painterSizeControl)) { view.size = std::clamp(std::round(value.toDouble()), 1.0, 256.0); }
+        else if (name == QLatin1String(painterOpacityControl)) { view.opacity = std::clamp(value.toDouble(), 0.0, 1.0); }
+        else if (name == QLatin1String(painterFadeControl)) { view.fade = std::clamp(value.toDouble(), 0.0, 1.0); }
+        else {
+            // ColorPropertyEditor commits a {type: "color", value} object.
+            const auto color = value.typeId() == QMetaType::QVariantMap ? value.toMap().value(QStringLiteral("value")).toString() : value.toString();
+            if (QColor::isValidColorName(color)) { view.color = color; }
+        }
+        refreshRuntimeNode(resourceId(id));
+        return;
+    }
+    if (isCompositorControl(name)) {
+        auto layers = compositorLayers(nodes_.value(id));
+        const auto index = name.section(':', 2).toInt();
+        if (index < 0 || index >= layers.size()) { return; }
+        if (name.startsWith(QStringLiteral("@compositor:opacity:"))) { layers[index].opacity = std::clamp(value.toDouble(), 0.0, 1.0); }
+        else { layers[index].blend = value.toString(); }
+        if (commit) { commit(propertyCommand(id, QStringLiteral("layers"), compositorLayersJson(layers))); }
+        return;
+    }
+    if (!isCropControl(name)) { return; }
+    // handleAspectChange sets the aspect, then fits the crop to it.
+    const auto command = cropControlCommand(id, name, value);
+    if (name == QLatin1String(cropAspectControl)) { setPreviewTab(id, value.toString()); }
+    if (!command.isEmpty() && commit) { commit(command); }
+}
 QJsonObject WorkflowGraphModel::addDataframeColumnCommand(NodeId id, const QString &name) const {
     const auto data = nodes_.value(id)["data"].toObject();
     QJsonObject frame = data.contains(name) ? data.value(name).toObject() : QJsonObject{};
@@ -1529,8 +1955,9 @@ int WorkflowGraphModel::dropZoneAt(NodeId id, const QPointF &point) const {
     }
     const auto &rows = layout(id).rows;
     for (int i = 0; i < rows.size(); ++i) {
-        // A list's zone appends files, which the canvas does not do yet.
-        if (rows[i].kind == NodeRowKind::DropZone && !rows[i].mediaList && rows[i].rect.contains(point)) {
+        // A list's zone appends files, which the canvas does not do yet. A Collection's zone does.
+        if (rows[i].kind == NodeRowKind::DropZone && (!rows[i].mediaList || layout(id).body == CardBody::Collection)
+            && rows[i].rect.contains(point)) {
             return i;
         }
     }
@@ -1558,6 +1985,14 @@ bool WorkflowGraphModel::portVisible(NodeId id, PortType side, PortIndex index) 
         || meta["input_fields"].toArray().contains(name) || ui["exposed_inputs"].toArray().contains(name)
         || node["dynamic_inputs"].toObject().contains(name) || node["dynamic_properties"].toObject().contains(name);
   }
+  const auto type = node["type"].toString();
+  if (compositeHiddenProperty(type, name)) { return false; }
+  // AppLoader replaces the app_id field, which has no handle.
+  if (type == QStringLiteral("nodetool.workflows.app_node.App") && name == QStringLiteral("app_id")) { return false; }
+  // DynamicComfySchemaContent shows only the inputs the workflow derives.
+  if (comfySchemaNode(type)) {
+    return node["dynamic_inputs"].toObject().contains(name) || node["dynamic_properties"].toObject().contains(name);
+  }
   return true;
 }
 
@@ -1573,7 +2008,8 @@ QRectF WorkflowGraphModel::inlineFieldRect(NodeId id, const QString &name) const
     // An action button names its property but is not that property's editor.
     if (row.propertyName != name || name.isEmpty() || row.kind == NodeRowKind::Action) { continue; }
     // Bespoke controls carry their bounds. Sliders, mode switches and drop zones take pointer input on the canvas.
-    if (row.kind == NodeRowKind::Slider || row.kind == NodeRowKind::Segmented || row.kind == NodeRowKind::DropZone) { return {}; }
+    if (row.kind == NodeRowKind::Slider || row.kind == NodeRowKind::Segmented || row.kind == NodeRowKind::DropZone
+        || row.kind == NodeRowKind::Knob || row.kind == NodeRowKind::Waveform) { return {}; }
     if (!row.rect.isEmpty()) { return row.rect; }
     if (row.kind == NodeRowKind::Field || row.kind == NodeRowKind::Multiline) { return QRectF(inset, row.fieldY, card.size.width() - 2 * inset, row.height); }
     if (row.kind == NodeRowKind::Number) { return QRectF(card.size.width() / 2.0, row.y, card.size.width() / 2.0 - inset, node_metrics::rowHeight); }

@@ -4,7 +4,7 @@ title: "Deployment Guide"
 description: "Self-host the NodeTool server with Docker, and rent GPU workers (RunPod, Vast, Verda) for graphs that need a GPU."
 ---
 
-A **server** is long-lived infrastructure that people and the UI connect into, deployed as one Docker container with `nodetool deploy`. A **worker** is an ephemeral GPU box that one NodeTool instance connects out to, runs Python nodes on, and tears down, managed with `nodetool worker`.
+A **server** is a Docker container deployed with `nodetool deploy` ([Self-Hosted Deployment](self-hosted-deployment.md)). A **worker** is a GPU box managed with `nodetool worker` ([Worker Deployment](worker-deployment.md)).
 
 |  | **Server** | **Worker** |
 |---|---|---|
@@ -13,7 +13,6 @@ A **server** is long-lived infrastructure that people and the UI connect into, d
 | Identity | a URL handed to people | a `{wsUrl, token}` an instance adopts |
 | Cost | flat | **bills while it exists, so teardown matters** |
 | How | `nodetool deploy …` (Docker) | `nodetool worker …` (RunPod, Vast, Verda) |
-| Guide | [Self-Hosted Deployment](self-hosted-deployment.md) | [Worker Deployment](worker-deployment.md) |
 
 For a walkthrough across desktop, public, private, and Docker/Podman self-hosting, see the [End-to-End Deployment Guide](deployment-e2e-guide.md).
 
@@ -160,11 +159,7 @@ nodetool deploy apply <name>
 nodetool deploy status <name>
 ```
 
-`apply` stops and removes the existing container, then starts a new one from the
-image the host holds. It never pulls. For a remote host, pull on that host or
-change `image.tag`, because an image already on the remote is not replaced.
-Workflows, assets, and settings are preserved because `/workspace` is a host
-directory.
+`apply` replaces the container with one started from the image the host holds. For a remote host, pull on that host or change `image.tag`, because an image already on the remote is not replaced. Workflows, assets, and settings are preserved because `/workspace` is a host directory.
 
 ---
 

@@ -2,7 +2,11 @@
  * Registry and executor resolution shared by the graph DSL and native flow API.
  */
 import { createMissingPackError, registerAvailablePacks } from "@nodetool-ai/node-catalog";
-import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import {
+  NodeRegistry,
+  applyBuiltinNodePolicy,
+  builtinNodePolicyFromEnv
+} from "@nodetool-ai/node-sdk";
 import {
   resolvePythonNodeExecutor,
   type NodeExecutor,
@@ -24,6 +28,10 @@ async function loadBuiltinRegistry(): Promise<NodeRegistry> {
     includeOptionalPacks: true,
     excludedPackIds: ["fal", "kie", "topaz", "atlascloud", "higgsfield", "together", "replicate"]
   });
+  // Node calls from sandboxed code resolve through this registry, so it drops
+  // the same types the server's own registry drops in production and on the
+  // cloud profile. Without this a guest could run a node the host removed.
+  applyBuiltinNodePolicy(builtinRegistry, builtinNodePolicyFromEnv());
   return builtinRegistry;
 }
 

@@ -1,6 +1,11 @@
 import { setWorkspaceFactory } from "./context.js";
 import { StorageWorkspace, createLocalWorkspace } from "@nodetool-ai/runtime-core";
-export { StorageWorkspace, createWorkspace, createLocalWorkspace } from "@nodetool-ai/runtime-core";
+export {
+  StorageWorkspace,
+  assertLocalPathIsOwn,
+  createWorkspace,
+  createLocalWorkspace
+} from "@nodetool-ai/runtime-core";
 
 setWorkspaceFactory((opts) => {
   if (opts.workspace) return opts.workspace;

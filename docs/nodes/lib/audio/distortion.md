@@ -23,8 +23,8 @@ Applies a distortion effect to an audio file.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| audio | `audio` | The audio file to process. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 | drive_db | `float` | Amount of distortion to apply in decibels. | `25` |
+| audio | `audio` | The audio file to process. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 
 ## Outputs
 

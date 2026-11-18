@@ -98,6 +98,14 @@ interface UseDirectScreenplayResult {
   acceptFallback: () => void;
 }
 
+/**
+ * Whether a setup stage is waiting for its screenplay: the idea step's
+ * "Write shots" and the genre step both run the Director and move on to
+ * review when it lands.
+ */
+const isAwaitingScreenplay = (stage: string | undefined): boolean =>
+  stage === "idea" || stage === "genre";
+
 const preserveNonDirectorIntent = (
   previous: Screenplay | null | undefined,
   next: Screenplay
@@ -254,7 +262,7 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
             kind: "fdx",
             correctedShotIds: verified.correctedShotIds
           });
-          if (store.getBoard(boardId)?.setupStage === "genre") {
+          if (isAwaitingScreenplay(store.getBoard(boardId)?.setupStage)) {
             store.setSetup(boardId, { stage: "review" });
           }
           return true;
@@ -317,7 +325,7 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
         // Only a run that was waiting for its screenplay moves the stage on.
         // The same hook drives the board's own Direct button, where the board
         // is finished (`done`) and must not be thrown back into setup.
-        if (store.getBoard(boardId)?.setupStage === "genre") {
+        if (isAwaitingScreenplay(store.getBoard(boardId)?.setupStage)) {
           store.setSetup(boardId, { stage: "review" });
         }
         return true;

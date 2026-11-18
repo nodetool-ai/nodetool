@@ -33,12 +33,15 @@ import type { Shot } from "@nodetool-ai/protocol";
 
 import {
   AlertBanner,
+  Box,
   Caption,
   EditorButton,
   FlexColumn,
   FlexRow,
   GAP,
-  Text
+  SPACING,
+  Text,
+  TextInput
 } from "../../ui_primitives";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { useImportNotice } from "../../../hooks/storyboard/useImportNotice";
@@ -46,7 +49,11 @@ import { useImportSource } from "../../../hooks/storyboard/useImportSource";
 import { sceneOrder } from "../../../lib/storyboard/sceneOrder";
 import { PlanReview } from "../PlanReview";
 import ErrorBanner from "../../support/ErrorBanner";
-import { REVIEW_WIDE_WIDTH } from "../reviewStyles";
+import {
+  REVIEW_CONTENT_WIDTH,
+  REVIEW_ESTIMATE_WIDTH,
+  REVIEW_WIDE_WIDTH
+} from "../reviewStyles";
 import {
   productionFields,
   productionPatch,
@@ -96,6 +103,22 @@ const NO_SHOTS: readonly Shot[] = [];
 
 /** How many shots the import notice names before it counts the rest. */
 const NAMED_SHOT_LIMIT = 8;
+
+/** How much of a line of dialogue the collapsed "More options" line quotes. */
+const QUOTED_LINE_LIMIT = 48;
+
+/** A line of dialogue as the collapsed options line shows it. */
+const quoteLine = (text: string): string => {
+  const line = text.trim().replace(/\s+/g, " ");
+  if (!line) {
+    return "";
+  }
+  const cut =
+    line.length > QUOTED_LINE_LIMIT
+      ? `${line.slice(0, QUOTED_LINE_LIMIT).trimEnd()}…`
+      : line;
+  return `“${cut}”`;
+};
 
 const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   boardId,
@@ -384,31 +407,16 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
 
   const sections = useMemo((): PlanReviewSection[] => {
     const groups = sceneOrder(shots, scenes);
-    const screenplaySection: PlanReviewSection = {
-      id: "screenplay",
-      header: t("pass3_11.storyboard.review.fields.title"),
-      rows: [
-        {
-          id: "title",
-          label: t("pass3_11.storyboard.review.fields.title"),
-          hideLabel: true,
-          value: title,
-          onChange: (value: string) => setTitle(boardId, value)
-        }
-      ]
-    };
     const all = [
-      screenplaySection,
       ...groups.map((group, index): PlanReviewSection => {
         const sceneId = group.sceneId;
         const sceneRows: PlanReviewField[] =
           sceneId === null
             ? []
             : [
-                // The scene's own two lines sit between its header and its
-                // first shot, so they carry no labels of their own: the
-                // placeholders say what each one is, and four labelled blocks
-                // per scene buried the shots.
+                // The scene's own two lines sit in the rail beside its shots,
+                // so their labels cost the shots nothing and say what each
+                // box holds before it is read.
                 //
                 // Both wrap rather than scroll: the rail is narrower than a
                 // slugline, and a scene whose name reads `INT. BLACK PRODUCT
@@ -416,7 +424,6 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
                 {
                   id: `${sceneId}:slugline`,
                   label: t("pass3_11.storyboard.review.fields.slugline"),
-                  hideLabel: true,
                   multiline: true,
                   value: group.scene?.slugline ?? "",
                   placeholder: t(
@@ -428,7 +435,6 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
                 {
                   id: `${sceneId}:lighting`,
                   label: t("pass3_11.storyboard.review.fields.lighting"),
-                  hideLabel: true,
                   multiline: true,
                   value: group.scene?.lighting ?? "",
                   placeholder: t(
@@ -447,13 +453,20 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
             header: t("pass3_11.storyboard.review.fields.shotHeader", {
               count: position + 1
             }),
-            // What the shot is, beside its number: its slug and how long it
-            // runs. Both are optional on the document, so a shot with neither
-            // shows a bare heading.
+            // What the shot is, beside its number: its slug, and at the end
+            // of the line how long it runs. Both are optional on the
+            // document, so a shot with neither shows a bare heading. The
+            // length stays in the heading because the field that sets it is
+            // behind "More options".
             meta:
               shot.slug && shot.slug !== group.scene?.slugline
                 ? shot.slug
                 : undefined,
+            aside: shot.duration_seconds
+              ? t("pass3_11.storyboard.review.fields.shotLength", {
+                  seconds: shot.duration_seconds
+                })
+              : undefined,
             rows: [
               {
                 id: `${shot.id}:action`,
@@ -470,28 +483,28 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
               },
               {
                 id: `${shot.id}:dialogue`,
-                label: t("pass3_11.storyboard.review.fields.shotDialogue", {
-                  count: position + 1
-                }),
+                label: t("pass3_11.storyboard.review.fields.dialogue"),
                 readOnly:
                   !!shot.script_line_ids?.length ||
                   !!productionRequirementsFrom(shot)?.speech_binding
                     ?.script_line_id ||
                   !!productionRequirementsFrom(shot)?.speech_binding
                     ?.audio_asset_id,
-                // Existing dialogue stays readable. Empty dialogue opens on request.
-                hideLabel: true,
-                // Dialogue sets in from action, as it does on the page.
-                indent: true,
+                // The shot opens on its action. Dialogue, its length and the
+                // production settings are behind "More options", and the
+                // collapsed line quotes the dialogue so a spoken shot still
+                // reads as one.
+                advanced: true,
+                summary: quoteLine(
+                  shot.dialogue ??
+                    productionRequirementsFrom(shot)?.speech_binding?.text ??
+                    ""
+                ),
                 value:
                   shot.dialogue ??
                   productionRequirementsFrom(shot)?.speech_binding?.text ??
                   "",
                 multiline: true,
-                placeholder: t(
-                  "pass3_11.storyboard.review.fields.dialoguePlaceholder"
-                ),
-                addLabel: t("pass3_11.storyboard.review.fields.addDialogue"),
                 onChange: (value: string) => {
                   const current = productionRequirementsFrom(shot);
                   const production =
@@ -522,6 +535,9 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
                 // column while its neighbours took one.
                 label: t("pass3_11.storyboard.review.fields.seconds"),
                 compact: true,
+                advanced: true,
+                // The heading already shows the length.
+                summary: "",
                 value:
                   lengths[shot.id] ??
                   (shot.duration_seconds ? String(shot.duration_seconds) : ""),
@@ -634,10 +650,8 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
     productionOptionLabel,
     readOnly,
     scenes,
-    setTitle,
     shots,
     t,
-    title,
     updateScene,
     updateShot
   ]);
@@ -647,14 +661,94 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
       gap={GAP.comfortable}
       sx={{ width: "100%", maxWidth: REVIEW_WIDE_WIDTH }}
     >
-      <FlexColumn gap={GAP.tight}>
-        <Text size="big" component="h2">
-          {t("pass3_11.storyboard.review.title")}
-        </Text>
-        <Text size="normal" color="secondary">
-          {t("pass3_11.storyboard.review.description")}
-        </Text>
-      </FlexColumn>
+      {/* The heading and its size on the left, the step's one paid action on
+          the right: the layout the script flow's review uses. */}
+      <FlexRow
+        gap={GAP.spacious}
+        align="flex-start"
+        justify="space-between"
+        wrap
+      >
+        <FlexColumn gap={GAP.tight} sx={{ flex: "1 1 320px", minWidth: 0 }}>
+          <Text size="big" component="h2">
+            {t("pass3_11.storyboard.review.title")}
+          </Text>
+          <Text size="normal" color="secondary">
+            {t("pass3_11.storyboard.review.description")}
+          </Text>
+          <Caption component="p" color="muted">
+            {summary}
+          </Caption>
+          {/* The title is the board's name, not a section of the screenplay,
+              so it sits with the heading as one labelled field. */}
+          <Box sx={{ maxWidth: REVIEW_CONTENT_WIDTH, pt: SPACING.md }}>
+            <TextInput
+              label={t("pass3_11.storyboard.review.fields.title")}
+              value={title}
+              onChange={(event) => setTitle(boardId, event.target.value)}
+              slotProps={{ input: { readOnly } }}
+            />
+          </Box>
+        </FlexColumn>
+        <FlexColumn
+          gap={GAP.tight}
+          align="flex-end"
+          sx={{ flex: "0 1 auto", maxWidth: REVIEW_ESTIMATE_WIDTH }}
+        >
+          <EditorButton
+            variant="outlined"
+            disabled={readOnly || rewriting}
+            onClick={onRewrite}
+          >
+            {keptAsWritten
+              ? rewriting
+                ? t("pass3_11.storyboard.review.actions.directingScript")
+                : t("pass3_11.storyboard.review.actions.directAgain")
+              : rewriting
+                ? t("pass3_11.storyboard.review.actions.rewriting")
+                : t("pass3_11.storyboard.review.actions.rewriteFromBrief")}
+          </EditorButton>
+          {/* A rewrite is a model call, so it says what it will cost before
+              it is pressed (F23). */}
+          <Suspense
+            fallback={
+              <Caption color="secondary">
+                {t("pass3_11.storyboard.review.loadingEstimate")}
+              </Caption>
+            }
+          >
+            <GenerationSummary
+              result={
+                keptAsWritten
+                  ? t("pass3_11.storyboard.review.estimate.directScript")
+                  : t("pass3_11.storyboard.review.estimate.rewriteBrief")
+              }
+              next={
+                keptAsWritten
+                  ? t("pass3_11.storyboard.review.estimate.scriptNext")
+                  : t("pass3_11.storyboard.review.estimate.briefNext")
+              }
+              model={model}
+              brief={brief}
+              maxOutputTokens={maxOutputTokens}
+              compact
+            />
+          </Suspense>
+        </FlexColumn>
+      </FlexRow>
+      {/* A failed rewrite is read where it was pressed, not below a
+          screenplay that can run to dozens of shots. */}
+      {error ? (
+        <ErrorBanner
+          report={{
+            source: "provider-call",
+            summary: t("pass3_11.storyboard.review.error.reportSummary"),
+            errorText: error
+          }}
+        >
+          {error}
+        </ErrorBanner>
+      ) : null}
       {importNotice ? (
         <AlertBanner
           severity={importNotice.severity}
@@ -727,66 +821,8 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           </FlexRow>
         </AlertBanner>
       ) : null}
-      {/* Keep the rewrite action and its spend details together at the same
-          reading width as the screenplay. */}
-      <FlexColumn gap={GAP.normal} sx={{ maxWidth: REVIEW_WIDE_WIDTH }}>
-        <FlexRow gap={GAP.normal} align="center" justify="space-between" wrap>
-          <Caption component="p" color="muted">
-            {summary}
-          </Caption>
-          <EditorButton
-            variant="outlined"
-            size="small"
-            disabled={readOnly || rewriting}
-            onClick={onRewrite}
-          >
-            {keptAsWritten
-              ? rewriting
-                ? t("pass3_11.storyboard.review.actions.directingScript")
-                : t("pass3_11.storyboard.review.actions.directAgain")
-              : rewriting
-                ? t("pass3_11.storyboard.review.actions.rewriting")
-                : t("pass3_11.storyboard.review.actions.rewriteFromBrief")}
-          </EditorButton>
-        </FlexRow>
-        {/* A failed rewrite is read where it was pressed, not below a
-            screenplay that can run to dozens of shots. */}
-        {error ? (
-          <ErrorBanner
-            report={{
-              source: "provider-call",
-              summary: t("pass3_11.storyboard.review.error.reportSummary"),
-              errorText: error
-            }}
-          >
-            {error}
-          </ErrorBanner>
-        ) : null}
-        <Suspense
-          fallback={
-            <Caption color="secondary">
-              {t("pass3_11.storyboard.review.loadingEstimate")}
-            </Caption>
-          }
-        >
-          <GenerationSummary
-            result={
-              keptAsWritten
-                ? t("pass3_11.storyboard.review.estimate.directScript")
-                : t("pass3_11.storyboard.review.estimate.rewriteBrief")
-            }
-            next={
-              keptAsWritten
-                ? t("pass3_11.storyboard.review.estimate.scriptNext")
-                : t("pass3_11.storyboard.review.estimate.briefNext")
-            }
-            model={model}
-            brief={brief}
-            maxOutputTokens={maxOutputTokens}
-            compact
-          />
-        </Suspense>
-      </FlexColumn>
+      {/* The title is the board's name, not a section of the screenplay, so
+          it sits above the scenes as one labelled field. */}
       {validationReason ? (
         <Caption role="alert" color="warning">
           {validationReason}

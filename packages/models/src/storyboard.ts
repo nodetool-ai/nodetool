@@ -12,6 +12,15 @@ import {
 import { getPortableDb, getDbType } from "./db.js";
 import { storyboards } from "./schema/storyboards.js";
 import { removeDocumentSharing } from "./document-sharing.js";
+import {
+  DocumentFileBinding,
+  etagWithoutFileState,
+  type DocumentFileFields
+} from "./document-file-binding.js";
+import type {
+  DocumentFileLocation,
+  DocumentFileSync
+} from "./document-file-sync.js";
 
 /**
  * The persisted storyboard payload: everything the web board carries except
@@ -118,6 +127,15 @@ export class Storyboard extends DBModel {
   declare timeline_id: string | null;
   declare created_at: string;
   declare revision: number;
+  /** The storyboard's file, relative to its project's folder. */
+  declare file_path: string | null;
+  /**
+   * SHA-256 of the file as NodeTool last wrote or imported it. A file with
+   * another hash holds an edit NodeTool has not seen.
+   */
+  declare file_hash: string | null;
+  /** What the last reconcile found wrong with the file, or null. */
+  declare file_error: string | null;
   declare updated_at: string;
 
   constructor(data: Record<string, unknown>) {
@@ -130,7 +148,86 @@ export class Storyboard extends DBModel {
     this.timeline_id ??= null;
     this.created_at ??= now;
     this.revision ??= 0;
+    this.file_path ??= null;
+    this.file_hash ??= null;
+    this.file_error ??= null;
     this.updated_at ??= now;
+    storyboardFiles.remember(this);
+  }
+
+  /** The etag of the storyboard, without the state of its file. */
+  override getEtag(): string {
+    return etagWithoutFileState(this.toRow());
+  }
+
+  /** Every create and save of a storyboard row writes its file afterwards. */
+  protected override async persist(event: ModelChangeEvent): Promise<this> {
+    const previous = await storyboardFiles.beforePersist(this);
+    await super.persist(event);
+    await this.syncFile(previous);
+    return this;
+  }
+
+  override async delete(): Promise<void> {
+    await super.delete();
+    await storyboardFiles.deleted(this);
+  }
+
+  /**
+   * Write the file of this row, which a caller just wrote without `save()`.
+   * `previous` is the file the row had in the project it left, if it moved.
+   */
+  async syncFile(previous: DocumentFileLocation | null = null): Promise<void> {
+    await storyboardFiles.saved(this, previous);
+  }
+
+  /** Record the file state without touching `updated_at` or `revision`. */
+  static setFileState(id: string, state: DocumentFileFields): Promise<void> {
+    return storyboardFiles.setFileState(id, state);
+  }
+
+  /** Whether a storyboard of any user has exactly this ID. */
+  static existsExactly(id: string): Promise<boolean> {
+    return storyboardFiles.existsExactly(id);
+  }
+
+  /** The storyboards whose files belong in the folder of `projectIds`. */
+  static listForProjects(
+    userId: string,
+    projectIds: readonly string[]
+  ): Promise<Storyboard[]> {
+    return storyboardFiles.listForProjects(userId, projectIds);
+  }
+
+  /** The projects that hold a storyboard whose file was never written. */
+  static projectsWithUnwrittenFiles(
+    userId?: string
+  ): Promise<Array<{ user_id: string; project_id: string; count: number }>> {
+    return storyboardFiles.projectsWithUnwrittenFiles(userId);
+  }
+
+  /**
+   * Insert a storyboard only when no row has its ID. Returns null when a row
+   * with that ID exists, which is left exactly as it is, whoever owns it.
+   */
+  static async insertNew(
+    data: Record<string, unknown>
+  ): Promise<Storyboard | null> {
+    const board = new Storyboard(data);
+    board.beforeSave();
+    return storyboardFiles.insertNew(board);
+  }
+
+  /**
+   * Point a storyboard the caller owns at `projectId` and take its file
+   * along. Returns false when the caller owns no such storyboard.
+   */
+  static moveToProject(
+    userId: string,
+    id: string,
+    projectId: string
+  ): Promise<boolean> {
+    return storyboardFiles.moveToProject(userId, id, projectId);
   }
 
   override beforeSave(): void {
@@ -350,7 +447,24 @@ export class Storyboard extends DBModel {
     if (!row) return null;
 
     const updated = new Storyboard(row);
+    await updated.syncFile();
     ModelObserver.notify(updated, ModelChangeEvent.UPDATED, meta);
     return updated;
   }
+}
+
+const storyboardFiles = new DocumentFileBinding<Storyboard>(
+  storyboards,
+  (row) => new Storyboard(row)
+);
+
+/**
+ * Install what writes a storyboard's file in its project folder after the
+ * row is saved, and deletes it after the row is deleted. See
+ * {@link DocumentFileSync}.
+ */
+export function setStoryboardFileSync(
+  sync: DocumentFileSync<Storyboard> | null
+): void {
+  storyboardFiles.sync = sync;
 }

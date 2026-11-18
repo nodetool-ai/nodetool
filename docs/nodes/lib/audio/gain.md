@@ -23,8 +23,8 @@ Applies a gain (volume adjustment) to an audio file.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| audio | `audio` | The audio file to process. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 | gain_db | `float` | Gain to apply in decibels. Positive values increase volume, negative values decrease it. | `0` |
+| audio | `audio` | The audio file to process. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 
 ## Outputs
 

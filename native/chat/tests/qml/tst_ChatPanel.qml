@@ -66,7 +66,8 @@ TestCase {
         verify(card !== null)
         tryVerify(() => findText(card, "Code") !== null)
         compare(findText(card, "Code · "), null)
-        verify(findText(card, "Done") !== null)
+        // ToolCallRow names no status for a finished call, only its timing.
+        compare(findText(card, "Done"), null)
         for (const pair of [["running", "Running"], ["completed", "Done"], ["failed", "Failed"], ["waiting", "Waiting"]])
             compare(card.statusLabel(pair[0]), pair[1])
     }
@@ -98,7 +99,7 @@ TestCase {
         compare(failures.join("\n"), "")
         if (["tool-presentation", "thinking", "tool-approval", "sub-agents"].indexOf(data.fixture) >= 0) {
             for (let i = 0; i < 12; ++i) {
-                const button = findText(panel, "Show details")
+                const button = findText(panel, "Show details") || findToolRow(panel, false)
                 if (!button) break
                 button.clicked()
                 wait(30)
@@ -174,6 +175,48 @@ TestCase {
         }
         return null
     }
+    function findValueStarting(item, prefix) {
+        if (!item.visible) return null
+        if (item.linkColour !== undefined && typeof item.value === "string" && item.value.startsWith(prefix)) return item
+        for (let i = 0; i < item.children.length; ++i) {
+            const found = findValueStarting(item.children[i], prefix)
+            if (found) return found
+        }
+        return null
+    }
+    // Screenshots the newest messages, which replays add below the fold.
+    function saveAtEnd(path) {
+        const list = findChild(panel, "chatMessages")
+        list.contentY = list.originY + list.contentHeight - list.height
+        wait(100)
+        grabImage(panel).save(path)
+    }
+    // Clicks a control once the message list has stopped moving it, so the
+    // press lands on the control and not where it was a frame earlier.
+    function clickSettled(name) {
+        let last = -1
+        tryVerify(() => {
+            const control = findVisible(panel, name)
+            if (!control) return false
+            const y = control.mapToItem(panel, 0, 0).y
+            const settled = y === last
+            last = y
+            wait(50)
+            return settled
+        })
+        mouseClick(findVisible(panel, name))
+    }
+    // MessageView.tsx ToolCallRow: the whole header row folds a call open.
+    function findToolRow(item, open) {
+        if (!item.visible) return null
+        if (typeof item.objectName === "string" && item.objectName.startsWith("toolDetails_") && item.open !== undefined
+                && item.enabled && (open === undefined || item.open === open)) return item
+        for (let i = 0; i < item.children.length; ++i) {
+            const found = findToolRow(item.children[i], open)
+            if (found) return found
+        }
+        return null
+    }
     function findText(item, text) {
         if (!item.visible) return null
         if (item.visible && item.text !== undefined && item.text === text) return item
@@ -189,8 +232,16 @@ TestCase {
         property var responses: []
         function markdownPages(text) { return testSession.markdownPages(text) }
         function styleMarkdownLinks(document, colour) { testSession.styleMarkdownLinks(document, colour) }
+        function styleReadingRhythm(document, blockGap, itemGap, headingGap) { testSession.styleReadingRhythm(document, blockGap, itemGap, headingGap) }
+        function copyText(text) { responses = responses.concat([{copy: text}]) }
         function respondToAction(id, allow, feedback) { responses = responses.concat([{id: id, allow: allow, feedback: feedback}]) }
         function openProviderSettings() { responses = responses.concat([{settings: true}]) }
+        function saveSecret(id, value) { responses = responses.concat([{id: id, secret: value}]) }
+        function allowActionAlways(id) { responses = responses.concat([{id: id, always: true}]) }
+        property var resolvedMedia: ({})
+        property bool embeddedMedia: false
+        function resolveImage(source) {}
+        function mediaKey(locator) { return "" }
     }
     Component { id: actionCard; MessageDelegate {} }
     function test_approvalButtonsUseServerId() {
@@ -228,10 +279,21 @@ TestCase {
         verify(findText(card, "Run this plan") === null)
         mouseClick(findText(card, "Open settings"))
         verify(actionSession.responses[0].settings)
-        mouseClick(findText(card, "Decline"))
+        mouseClick(findText(card, "Not now"))
         compare(actionSession.responses[1].id, "cccccccccccccccccccccccccccccccc")
         compare(actionSession.responses[1].allow, false)
         verify(actionSession.responses[1].feedback === undefined)
+        const value = findVisible(card, "secretValue")
+        verify(value !== null)
+        compare(value.echoMode, TextInput.Password)
+        verify(!findVisible(card, "saveSecret").enabled)
+        value.forceActiveFocus()
+        keyClick(Qt.Key_S); keyClick(Qt.Key_K)
+        verify(findVisible(card, "saveSecret").enabled)
+        mouseClick(findVisible(card, "saveSecret"))
+        compare(actionSession.responses[2].id, "cccccccccccccccccccccccccccccccc")
+        compare(actionSession.responses[2].secret, "sk")
+        compare(value.text, "")
         const directory = testDriver.screenshotDirectory()
         if (directory) grabImage(card).save(directory + "/secret-request.png")
     }
@@ -246,10 +308,11 @@ TestCase {
         wait(30)
         testDriver.resetSession()
         testDriver.replay("plans-approvals", 1, 1)
-        tryVerify(() => findText(panel, "Show details") !== null)
-        verify(findText(panel, "Arguments") === null)
-        mouseClick(findText(panel, "Show details"))
-        tryVerify(() => findText(panel, "Arguments") !== null)
+        tryVerify(() => findVisible(panel, "approvalFold_arguments") !== null)
+        verify(findText(panel, "Always allow") !== null)
+        verify(findText(panel, "Hide arguments") === null)
+        mouseClick(findVisible(panel, "approvalFold_arguments"))
+        tryVerify(() => findText(panel, "Hide arguments") !== null)
         if (directory) grabImage(panel).save(directory + "/tool-approval.png")
     }
     function test_compactionCard() {
@@ -315,7 +378,8 @@ TestCase {
     }
     function test_executionTree() {
         testDriver.replay("execution-tree")
-        tryVerify(() => findText(panel, "Agent execution") !== null)
+        tryVerify(() => findText(panel, "Execution plan · 0/1 tasks") !== null)
+        verify(findText(panel, "1 running") !== null)
         tryVerify(() => findText(panel, "Audit configuration") !== null)
         tryVerify(() => findText(panel, "Read config files") !== null)
         const directory = testDriver.screenshotDirectory()
@@ -458,6 +522,76 @@ TestCase {
         first = findVisible(panel, "message_0")
         verify(findVisible(first, "toolDetails_0").Accessible.expanded)
     }
+    // ChatMarkdown.tsx, SearchResults.tsx, GenerationBatchProgress.tsx and
+    // MediaOutputGroup.tsx content kinds.
+    function test_richMessageContent() {
+        testDriver.replay("rich-content", 1)
+        tryVerify(() => findText(panel, "asset · aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa") !== null)
+        const prose = findValueStarting(panel, " and <b>bold</b>")
+        verify(prose !== null)
+        verify(prose.value.indexOf("alert") < 0)
+        verify(prose.text.indexOf("<b>") < 0)
+        compare(prose.textFormat, TextEdit.MarkdownText)
+        tryVerify(() => findVisible(panel, "markdownMath") !== null)
+        compare(findVisible(panel, "markdownMath").text, "1/2")
+        tryVerify(() => findVisible(panel, "markdownImage") !== null && findVisible(panel, "markdownImage").status === Image.Ready, 5000)
+        verify(findText(panel, "Chart") !== null)
+        verify(findValueStarting(panel, "def area(r):") !== null)
+        const directory = testDriver.screenshotDirectory()
+        if (directory) grabImage(panel).save(directory + "/rich-markdown.png")
+
+        testDriver.resetSession()
+        testDriver.replay("rich-content", 2, 1)
+        tryVerify(() => findVisible(panel, "toolDetails_dddddddddddddddddddddddddddddddd") !== null)
+        clickSettled("toolDetails_dddddddddddddddddddddddddddddddd")
+        tryVerify(() => findVisible(panel, "searchResult_1") !== null)
+        tryVerify(() => findText(findVisible(panel, "searchResult_0"), "NodeTool") !== null)
+        tryVerify(() => findText(findVisible(panel, "searchResult_0"), "nodetool.ai") !== null)
+        verify(findText(findVisible(panel, "searchResult_1"), "Getting started") !== null)
+        verify(findVisible(panel, "toolResult_dddddddddddddddddddddddddddddddd") === null)
+        if (directory) saveAtEnd(directory + "/search-results.png")
+
+        testDriver.resetSession()
+        testDriver.replay("rich-content", 2, 3)
+        tryVerify(() => findVisible(panel, "batchToggle") !== null)
+        const batch = findVisible(panel, "batchToggle")
+        compare(batch.text, "1 of 2 done · About 20s left")
+        clickSettled("batchToggle")
+        tryVerify(() => findText(panel, "Fox · Done · Took 6s") !== null)
+        verify(findText(panel, "fal:flux") !== null)
+        verify(findText(panel, "Owl · Queued · Expected 20s") !== null)
+        verify(findText(panel, "An owl at night") !== null)
+        // ToolCallTimeline.tsx: two tool rows get a footer that folds them.
+        verify(findText(panel, "Working · 1/2") !== null)
+        clickSettled("toolTimelineToggle")
+        tryVerify(() => findVisible(panel, "batchToggle") === null)
+        verify(findText(panel, "2 steps") !== null)
+        clickSettled("toolTimelineToggle")
+        tryVerify(() => findVisible(panel, "batchToggle") !== null)
+        if (directory) saveAtEnd(directory + "/generation-batch.png")
+
+        testDriver.resetSession()
+        testDriver.replay("rich-content", 1, 5)
+        tryVerify(() => findVisible(panel, "mediaGrid") !== null)
+        const grid = findVisible(panel, "mediaGrid")
+        const tiles = () => {
+            const ready = []
+            for (let i = 0; i < grid.children.length; ++i) {
+                const image = findChild(grid.children[i], "mediaTileImage")
+                if (image && image.status === Image.Ready) ready.push(image)
+            }
+            return ready.length
+        }
+        tryVerify(() => tiles() === 2, 5000)
+        verify(findText(panel, "2 items") !== null)
+        if (directory) saveAtEnd(directory + "/media-grid.png")
+
+        testDriver.resetSession()
+        testDriver.replay("media-resources")
+        // The player needs Qt Multimedia, which the build may leave out.
+        tryVerify(() => findText(panel, "Open media") !== null)
+        compare(findVisible(panel, "loadMediaPlayer") !== null, testSession.embeddedMedia)
+    }
     function test_persistedToolsAndScreenshot() {
         testDriver.persistedTools()
         const list = findChild(panel, "chatMessages")
@@ -485,9 +619,13 @@ TestCase {
             list.forceLayout()
             // visible does not imply that a ListView descendant is inside its viewport.
             const point = button.mapToItem(list, 0, 0)
-            list.contentY = Math.max(list.originY, Math.min(list.originY + list.contentHeight - list.height,
+            const target = Math.max(list.originY, Math.min(list.originY + list.contentHeight - list.height,
                 list.contentY + point.y - (list.height - button.height) / 2))
-            verify(waitForRendering(button))
+            // An unchanged view renders no new frame, so only a scroll is waited on.
+            if (Math.abs(target - list.contentY) >= 1) {
+                list.contentY = target
+                verify(waitForRendering(button))
+            }
             const position = button.mapToItem(list, 0, 0)
             verify(position.y >= 0 && position.y + button.height <= list.height)
             mouseClick(button, button.width / 2, button.height / 2, Qt.LeftButton, Qt.NoModifier, 0)
@@ -520,7 +658,7 @@ TestCase {
         const list = findChild(panel, "chatMessages")
         tryCompare(list, "count", 1)
         tryVerify(function() { return findText(panel, "Ran 3 searches") !== null })
-        mouseClick(findText(panel, "Show details"))
+        mouseClick(findToolRow(panel, false))
         const toggle = findVisible(panel, "groupCall_00000000000000000000000000000002")
         verify(toggle !== null)
         wait(80)
@@ -550,7 +688,7 @@ TestCase {
         wait(80)
         const first = findVisible(panel, "message_0")
         verify(first !== null)
-        mouseClick(findText(first, "Show details"))
+        mouseClick(findToolRow(first, false))
         tryVerify(function() { return findText(first, "Arguments") !== null })
         list.positionViewAtEnd()
         wait(80)
@@ -563,7 +701,7 @@ TestCase {
         const restored = findVisible(panel, "message_0")
         verify(restored !== null)
         verify(findText(restored, "Arguments") !== null)
-        mouseClick(findText(restored, "Hide details"))
+        mouseClick(findToolRow(restored, true))
         tryVerify(function() { return findText(restored, "Arguments") === null })
     }
     function test_collapsedFailureAndScreenshots() {
@@ -587,16 +725,15 @@ TestCase {
         tryVerify(function() { return findText(panel, "Read notes.txt") !== null })
         compare(findText(panel, "Arguments"), null)
         compare(findText(panel, "Result"), null)
-        mouseClick(findText(panel, "Show details"))
+        mouseClick(findText(panel, "Read notes.txt"))
         tryVerify(function() { return findText(panel, "Arguments") !== null })
         verify(findText(panel, "Result") !== null)
-        verify(findText(panel, "Done") !== null)
     }
     function test_executionCodeAndCopy() {
         testDriver.replay("code-execution")
-        tryVerify(function() { return findText(panel, "Show details") !== null })
+        tryVerify(function() { return findToolRow(panel, false) !== null })
         compare(findText(panel, "Code · javascript"), null)
-        mouseClick(findText(panel, "Show details"))
+        mouseClick(findToolRow(panel, false))
         tryVerify(function() { return findText(panel, "Code · javascript") !== null })
         wait(80)
         const copy = findText(panel, "Copy code")
@@ -613,7 +750,7 @@ TestCase {
         verify(input !== null)
         input.forceActiveFocus()
         typeLetters("first")
-        keyClick(Qt.Key_Return)
+        keyClick(Qt.Key_Return, Qt.ShiftModifier)
         typeLetters("second")
         compare(testSession.draft, "first\nsecond")
         testSession.selectThread("b")
@@ -621,6 +758,58 @@ TestCase {
         typeLetters("other")
         testSession.selectThread("a")
         tryCompare(input, "text", "first\nsecond")
+    }
+    // MediaChatComposer.tsx: Enter sends, and usePromptHistory.ts recalls sent
+    // prompts with Up from the start of the field and Down from its end.
+    function test_composerEnterSendsAndRecallsHistory() {
+        const composer = findChild(panel, "chatComposer")
+        const input = findChild(panel, "chatInput")
+        verify(composer !== null)
+        verify(input !== null)
+        testSession.draft = ""
+        composer.promptHistory = []
+        input.forceActiveFocus()
+        typeLetters("one")
+        keyClick(Qt.Key_Return)
+        // The test session has no server, so the send is refused and the draft kept.
+        compare(composer.promptHistory, ["one"])
+        verify(testSession.error.indexOf("Connect") === 0)
+        compare(testSession.draft, "one")
+        testSession.draft = ""
+        tryCompare(input, "text", "")
+        typeLetters("draft")
+        keyClick(Qt.Key_Home)
+        keyClick(Qt.Key_Up)
+        tryCompare(input, "text", "one")
+        keyClick(Qt.Key_End)
+        keyClick(Qt.Key_Down)
+        tryCompare(input, "text", "draft")
+        compare(composer.historyIndex, -1)
+        // Up away from the start of the field moves the caret instead.
+        keyClick(Qt.Key_Up)
+        compare(input.text, "draft")
+        testSession.draft = ""
+    }
+    // MediaChatComposer.tsx isCompact and PermissionSelector.tsx.
+    Component { id: sizedComposer; ChatComposer { session: testSession } }
+    function test_composerNarrowChipsAndPermission() {
+        const wide = createTemporaryObject(sizedComposer, test, {width: 600})
+        const narrow = createTemporaryObject(sizedComposer, test, {width: 400})
+        verify(wide !== null && narrow !== null)
+        compare(wide.compact, false)
+        compare(narrow.compact, true)
+        compare(findChild(wide, "mediaModeChip"), null)
+        const permission = findChild(wide, "permissionChip")
+        verify(permission !== null)
+        compare(permission.display, AbstractButton.TextBesideIcon)
+        compare(permission.text, "Default")
+        compare(permission.accessibleName, "Permission mode: Default")
+        compare(findChild(narrow, "permissionChip").display, AbstractButton.IconOnly)
+        testSession.permissionMode = "plan"
+        compare(permission.text, "Plan")
+        testSession.permissionMode = "unknown"
+        compare(testSession.permissionMode, "plan")
+        testSession.permissionMode = "default"
     }
     function test_accessibleComposerAndSendState() {
         const input = findChild(panel, "chatInput")
@@ -682,7 +871,7 @@ TestCase {
     function test_structuredPartsRenderThroughCppModel() {
         testDriver.approval("a")
         tryVerify(function() { return findText(panel, "Allow this action?") !== null }, 5000)
-        tryVerify(function() { return findText(panel, "Allow") !== null }, 5000)
+        tryVerify(function() { return findText(panel, "Allow once") !== null }, 5000)
         tryVerify(function() { return findText(panel, "Deny") !== null }, 5000)
     }
     function test_scrollAnchorSurvivesThreadSwitch() {
@@ -778,6 +967,319 @@ TestCase {
         compare(testSession.model, "")
         tryCompare(chooser, "activeFocus", true)
         compare(chooser.Accessible.expanded, false)
+    }
+    QtObject {
+        id: resendSession
+        property string connectionStatus: "connected"
+        property string turnStatus: "idle"
+        property bool historyLoading: false
+        property var versions: ({u2: {index: 2, count: 3}})
+        property var calls: []
+        property var resolvedMedia: ({})
+        property bool embeddedMedia: false
+        function markdownPages(text) { return testSession.markdownPages(text) }
+        function styleMarkdownLinks(document, colour) { testSession.styleMarkdownLinks(document, colour) }
+        function styleReadingRhythm(document, blockGap, itemGap, headingGap) { testSession.styleReadingRhythm(document, blockGap, itemGap, headingGap) }
+        function copyText(text) { calls = calls.concat([["copy", text]]) }
+        function resendFrom(id, text) { calls = calls.concat([["resend", id, text]]) }
+        function retryLatest() { calls = calls.concat([["retry"]]) }
+        function selectVersion(id, index) { calls = calls.concat([["version", id, index]]) }
+        function resolveImage(source) {}
+    }
+    function resendCard(properties) {
+        resendSession.calls = []
+        resendSession.turnStatus = "idle"
+        const card = createTemporaryObject(actionCard, test, Object.assign({
+            width: 700, text: "", status: "", parts: [], session: resendSession
+        }, properties))
+        verify(card !== null)
+        return card
+    }
+    function test_editSendsTheChangedPrompt() {
+        const card = resendCard({messageId: "u1", role: "user", text: "Draft a title"})
+        const edit = findChild(card, "editMessageButton")
+        verify(edit.visible)
+        verify(edit.enabled)
+        compare(findChild(card, "retryReplyButton").visible, false)
+        mouseClick(edit)
+        const field = findChild(card, "promptEditorField")
+        tryCompare(field, "visible", true)
+        compare(field.text, "Draft a title")
+        field.text = "Draft a shorter title"
+        mouseClick(findChild(card, "sendEditButton"))
+        compare(JSON.stringify(resendSession.calls), JSON.stringify([["resend", "u1", "Draft a shorter title"]]))
+        tryCompare(field, "visible", false)
+        // Escape leaves the prompt as it was.
+        mouseClick(edit)
+        tryCompare(field, "activeFocus", true)
+        keyClick(Qt.Key_Escape)
+        tryCompare(findChild(card, "promptEditor"), "visible", false)
+        compare(resendSession.calls.length, 1)
+    }
+    function test_copyAndRetryUnderTheLatestReply() {
+        const card = resendCard({messageId: "a1", role: "assistant", text: "A Quiet Harbour", latest: true})
+        const actions = findChild(card, "messageActions")
+        compare(actions.opacity, 1)
+        compare(findChild(card, "editMessageButton").visible, false)
+        mouseClick(findChild(card, "copyMessageButton"))
+        mouseClick(findChild(card, "retryReplyButton"))
+        compare(JSON.stringify(resendSession.calls), JSON.stringify([["copy", "A Quiet Harbour"], ["retry"]]))
+        resendSession.turnStatus = "streaming"
+        compare(findChild(card, "retryReplyButton").enabled, false)
+        mouseMove(test, test.width - 1, test.height - 1)
+        const earlier = resendCard({messageId: "a0", role: "assistant", text: "Earlier reply", latest: false})
+        compare(findChild(earlier, "retryReplyButton").visible, false)
+        tryCompare(findChild(earlier, "messageActions"), "opacity", 0)
+    }
+    function test_versionSwitcherMovesBetweenVersions() {
+        const card = resendCard({messageId: "u2", role: "user", text: "Second take"})
+        const switcher = findChild(card, "versionSwitcher")
+        verify(switcher.visible)
+        compare(findChild(card, "messageActions").opacity, 1)
+        compare(findChild(card, "versionLabel").text, "2/3")
+        compare(switcher.Accessible.name, "Version 2 of 3")
+        mouseClick(findChild(card, "previousVersionButton"))
+        mouseClick(findChild(card, "nextVersionButton"))
+        compare(JSON.stringify(resendSession.calls), JSON.stringify([["version", "u2", 1], ["version", "u2", 3]]))
+        const single = resendCard({messageId: "u9", role: "user", text: "Only take"})
+        compare(findChild(single, "versionSwitcher").visible, false)
+    }
+    function test_respondingPulseWhileAReplyStreams() {
+        testDriver.resetSession()
+        testDriver.stream("a", "Thinking about it")
+        tryCompare(testSession, "turnStatus", "streaming")
+        const pulse = findChild(panel, "chatRespondingPulse")
+        verify(pulse !== null)
+        tryCompare(pulse, "visible", true)
+        testDriver.stream("a", " done.", true)
+        tryCompare(testSession, "turnStatus", "idle")
+        tryCompare(pulse, "visible", false)
+    }
+    // MediaChatComposer.tsx: the chat model sits beside Send, as in Claude.
+    function test_modelChooserSitsBesideSend() {
+        const composer = createTemporaryObject(sizedComposer, test, {width: 600})
+        const chooser = findChild(composer, "chooseChatModel")
+        const send = findChild(composer, "sendMessage")
+        verify(chooser !== null && send !== null)
+        // Attach, permission, model and Send share one row.
+        const permission = findChild(composer, "permissionChip")
+        const permissionCentre = permission.mapToItem(composer, 0, permission.height / 2).y
+        const chooserCentre = chooser.mapToItem(composer, 0, chooser.height / 2).y
+        const sendCentre = send.mapToItem(composer, 0, send.height / 2).y
+        verify(Math.abs(chooserCentre - sendCentre) < 2, chooserCentre + " vs " + sendCentre)
+        verify(Math.abs(permissionCentre - sendCentre) < 2, permissionCentre + " vs " + sendCentre)
+        verify(chooser.mapToItem(composer, chooser.width, 0).x <= send.mapToItem(composer, 0, 0).x)
+    }
+    // ChatView.tsx centerEmptyState: a new chat greets by the time of day
+    // and holds the composer in the middle of the panel.
+    function test_newChatGreetsWithCentredComposer() {
+        test.width = 1100
+        testSession.selectThread("b")
+        const conversation = findChild(panel, "chatConversation")
+        tryCompare(conversation, "emptyCentered", true)
+        const prompt = findChild(conversation, "chatHistoryEmptyPrompt")
+        verify(["Good morning", "Good afternoon", "Good evening"].indexOf(prompt.text) >= 0, prompt.text)
+        compare(conversation.greeting(8), "Good morning")
+        compare(conversation.greeting(13), "Good afternoon")
+        compare(conversation.greeting(22), "Good evening")
+        const composer = findChild(conversation, "chatComposer")
+        const top = composer.mapToItem(conversation, 0, 0).y
+        verify(top > conversation.height * 0.25 && top + composer.height < conversation.height * 0.85,
+               "composer at " + top + " of " + conversation.height)
+        verify(prompt.mapToItem(conversation, 0, 0).y < top)
+        testSession.selectThread("a")
+    }
+    function test_titleMenuRenamesAndDeletes() {
+        test.width = 1100
+        testSession.selectThread("a")
+        testDriver.history("a", 3)
+        const conversation = findChild(panel, "chatConversation")
+        tryCompare(conversation, "titleMenuShown", true)
+        const button = findChild(conversation, "chatTitleMenu")
+        verify(button.visible)
+        compare(button.text, "First conversation")
+        conversation.startTitleRename()
+        const field = findChild(conversation, "chatTitleRename")
+        verify(field.visible)
+        verify(!button.visible)
+        compare(field.text, "First conversation")
+        keyClick(Qt.Key_Escape)
+        tryCompare(conversation, "renamingTitle", false)
+        verify(button.visible)
+        const dialog = findChild(conversation, "chatTitleDeleteDialog")
+        findChild(conversation, "chatTitleDeleteItem").triggered()
+        tryCompare(dialog, "visible", true)
+        compare(dialog.threadId, "a")
+        compare(dialog.label, "First conversation")
+        dialog.close()
+        testSession.selectThread("b")
+        tryCompare(conversation, "titleMenuShown", false)
+        testSession.selectThread("a")
+    }
+    // useChatScrollAnchor.ts: a sent prompt is held near the top of the view
+    // while the reply grows below it, and the jump button stays hidden.
+    function test_sentPromptIsHeldNearTheTop() {
+        test.width = 1100
+        testSession.selectThread("a")
+        testDriver.history("a", 30)
+        const conversation = findChild(panel, "chatConversation")
+        const view = findChild(panel, "chatMessages")
+        tryCompare(view, "count", 30)
+        conversation.followBottom = true
+        view.positionViewAtEnd()
+        wait(30)
+        testDriver.userTurn("a", "anchored-prompt", "Where is my prompt?")
+        tryCompare(conversation, "anchoringTurn", true)
+        verify(conversation.tailHeight > 0)
+        tryVerify(function() {
+            const row = view.itemAtIndex(view.count - 1)
+            if (!row) return false
+            const top = row.mapToItem(view, 0, 0).y
+            return top >= 0 && top < view.height * 0.25
+        }, 2000)
+        compare(findChild(conversation, "chatScrollToLatest").visible, false)
+        testDriver.stream("a", "A short reply.", true)
+        wait(50)
+        const row = view.itemAtIndex(view.count - 2)
+        verify(row !== null)
+        verify(row.mapToItem(view, 0, 0).y < view.height * 0.25)
+        conversation.releaseTurnAnchor()
+        conversation.followBottom = true
+        view.positionViewAtEnd()
+    }
+    // ScrollToBottomButton.tsx: scrolled up, a round arrow jumps to the end.
+    function test_jumpToLatestFloatsOverTheMessages() {
+        test.width = 1100
+        testSession.selectThread("a")
+        testDriver.history("a", 30)
+        const conversation = findChild(panel, "chatConversation")
+        const view = findChild(panel, "chatMessages")
+        tryCompare(view, "count", 30)
+        const composer = findChild(conversation, "chatComposer")
+        const composerTop = composer.mapToItem(conversation, 0, 0).y
+        view.positionViewAtBeginning()
+        conversation.followBottom = false
+        const jump = findChild(conversation, "chatScrollToLatest")
+        tryCompare(jump, "visible", true)
+        compare(composer.mapToItem(conversation, 0, 0).y, composerTop)
+        mouseClick(jump)
+        tryCompare(view, "atYEnd", true)
+        compare(conversation.followBottom, true)
+        compare(jump.visible, false)
+    }
+    // MessageView.tsx ToolCallRow: a glyph on the rail, the verb in sans,
+    // the thing it acted on in mono, and the whole row folds details open.
+    function test_toolCallsReadAsATimeline() {
+        testDriver.replay("tool-calls")
+        tryVerify(function() { return findText(panel, "Read notes.txt") !== null })
+        const row = findText(panel, "Read notes.txt")
+        compare(findChild(row, "toolRowLabel").text, "Read")
+        const detail = findChild(row, "toolRowDetail")
+        compare(detail.text, "notes.txt")
+        compare(detail.role, Ui.Typography.MonoCaption)
+        verify(findVisible(panel, "toolGlyph") !== null)
+        compare(findText(panel, "Show details"), null)
+        compare(row.open, false)
+        compare(row.Accessible.expanded, false)
+        mouseClick(row)
+        tryCompare(row, "open", true)
+        verify(findText(panel, "Arguments") !== null)
+        const directory = testDriver.screenshotDirectory()
+        if (directory) grabImage(panel).save(directory + "/tool-timeline.png")
+    }
+    // useChatScrollAnchor.ts free-scrolling: a reader who scrolled up keeps
+    // their place while the reply streams, until they jump back.
+    function test_streamingLeavesAScrolledUpReaderInPlace() {
+        test.width = 1100
+        testSession.selectThread("a")
+        testDriver.history("a", 30)
+        const conversation = findChild(panel, "chatConversation")
+        const view = findChild(panel, "chatMessages")
+        tryCompare(view, "count", 30)
+        conversation.followBottom = true
+        view.positionViewAtEnd()
+        wait(30)
+        // Wheel scrolling is movement too. A drag over the rows would select
+        // their text instead.
+        for (let i = 0; i < 10; ++i) {
+            mouseWheel(view, view.width / 2, view.height / 2, 0, 120)
+            wait(20)
+        }
+        tryCompare(view, "moving", false)
+        compare(conversation.followBottom, false)
+        const jump = findChild(conversation, "chatScrollToLatest")
+        tryCompare(jump, "visible", true)
+        const before = view.contentY
+        for (let i = 0; i < 20; ++i) {
+            testDriver.stream("a", "More streamed text that grows the reply. ", false)
+            wait(10)
+        }
+        wait(50)
+        verify(Math.abs(view.contentY - before) < 1, "moved from " + before + " to " + view.contentY)
+        compare(conversation.followBottom, false)
+        testDriver.stream("a", "", true)
+        mouseClick(jump)
+        tryCompare(view, "atYEnd", true)
+        compare(conversation.followBottom, true)
+    }
+    // A position set in code, such as a jump to a row, is the reader's
+    // position too, so the next reflow keeps it.
+    function test_codePositionSurvivesReflow() {
+        test.width = 1100
+        testSession.selectThread("a")
+        testDriver.history("a", 30)
+        const conversation = findChild(panel, "chatConversation")
+        const view = findChild(panel, "chatMessages")
+        tryCompare(view, "count", 30)
+        conversation.followBottom = true
+        view.positionViewAtEnd()
+        wait(30)
+        // The reader stops a little above the end, close enough that the
+        // streaming reply stays instantiated.
+        conversation.enterFreeScrolling()
+        view.contentY = conversation.contentEnd - view.height - 400
+        conversation.settleScroll()
+        compare(conversation.followBottom, false)
+        view.contentY -= view.height / 2
+        const placed = view.contentY
+        const heightBefore = view.contentHeight
+        for (let i = 0; i < 20; ++i) {
+            testDriver.stream("a", "More streamed text that grows the reply. ", false)
+            wait(10)
+        }
+        verify(view.contentHeight > heightBefore, "the reply grew the content")
+        wait(50)
+        verify(Math.abs(view.contentY - placed) < 1, "moved from " + placed + " to " + view.contentY)
+        testDriver.stream("a", "", true)
+    }
+    // Dragging the scroll bar hands the position to the reader too, and
+    // letting go near the end follows new content again.
+    function test_scrollBarDragStopsFollowing() {
+        test.width = 1100
+        testSession.selectThread("a")
+        testDriver.history("a", 30)
+        const conversation = findChild(panel, "chatConversation")
+        const view = findChild(panel, "chatMessages")
+        tryCompare(view, "count", 30)
+        conversation.followBottom = true
+        view.positionViewAtEnd()
+        wait(30)
+        const bar = findChild(conversation, "chatMessagesScrollBar")
+        verify(bar !== null)
+        mousePress(bar, bar.width / 2, bar.height - Ui.Metrics.xl)
+        tryCompare(bar, "pressed", true)
+        compare(conversation.followBottom, false)
+        mouseRelease(bar, bar.width / 2, bar.height - Ui.Metrics.xl)
+        tryCompare(bar, "pressed", false)
+        // Released at the end: within the follow threshold again.
+        view.positionViewAtEnd()
+        conversation.settleScroll()
+        compare(conversation.followBottom, true)
+        view.positionViewAtBeginning()
+        conversation.settleScroll()
+        compare(conversation.followBottom, false)
+        conversation.followBottom = true
+        view.positionViewAtEnd()
     }
     function test_messagesHaveNoCopyButtons() {
         testDriver.codeHistory("a", "int value = 0;\n")

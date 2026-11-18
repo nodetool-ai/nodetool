@@ -134,7 +134,7 @@ describe("realtime audio node streaming flags", () => {
   });
 
   it("every synthesis node is streaming-input (generators included)", () => {
-    expect(SYNTHESIS_NODES.length).toBe(9);
+    expect(SYNTHESIS_NODES.length).toBe(11);
     for (const cls of SYNTHESIS_NODES as Array<
       NodeClassLike & { isStreamingInput?: boolean }
     >) {

@@ -1,9 +1,11 @@
 // nt-panel: slot=right id=ai order=91 title="AI"
-// Generate and regenerate for the selected clip. The Assistant next to it is the chat surface.
+// Generate and regenerate for the selected clip, plus the tracking tools
+// (Follow object, Smart reframe). The Assistant next to it is the chat surface.
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import NodeTool.Timeline
+import "../../src/edit/inspectorsections" as Sections
 import NodeTool.UiPrimitives as Ui
 
 Rectangle {
@@ -46,10 +48,14 @@ Rectangle {
         clock: root.editor && root.visible ? root.editor.clock : null
         clipId: root.selection.length === 1 ? root.selection[0] : ""
     }
+    readonly property string mediaType: inspector.clip.mediaType || ""
+    // Follow object and Smart reframe apply to any clip with a picture.
+    readonly property bool hasPicture: !!inspector.clip.id && mediaType !== "audio" && mediaType !== "midi"
+    readonly property bool hasTools: section.eligible || hasPicture
     Ui.EmptyState {
         objectName: "aiPanelEmpty"
         anchors.centerIn: parent
-        visible: !section.eligible
+        visible: !root.hasTools
         maxTextWidth: Math.min(root.width - Ui.Metrics.xxl, Ui.Metrics.dialogCompactWidth)
         title: root.selection.length > 1 ? "Several clips selected" : inspector.clip.id ? "No AI tools for this clip" : "No clip selected"
         message: root.selection.length > 1 ? "Select one clip to generate from it."
@@ -62,7 +68,7 @@ Rectangle {
         anchors.leftMargin: Ui.Metrics.lg
         anchors.rightMargin: Ui.Metrics.lg
         anchors.topMargin: Ui.Metrics.md
-        visible: section.eligible
+        visible: root.hasTools
         contentWidth: width
         contentHeight: content.height + Ui.Metrics.xl
         clip: true
@@ -75,6 +81,13 @@ Rectangle {
                 id: section
                 width: parent.width
                 embedded: true
+                timelineModel: inspector.timeline
+                gestures: root.gestures
+                controller: inspector
+            }
+            Sections.RegisteredInspectorSections {
+                width: parent.width
+                panel: "ai"
                 timelineModel: inspector.timeline
                 gestures: root.gestures
                 controller: inspector

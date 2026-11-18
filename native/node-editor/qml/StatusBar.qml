@@ -8,6 +8,11 @@ Rectangle {
     id: root
     required property StatusModel status
     required property PanelLayout panels
+    // The servers and accounts the Account control shows. A host without
+    // cloud sign-in leaves both null, and the control is hidden. With
+    // accountServers set, the control shows its current account.
+    property AccountServers accountServers: null
+    property AccountController account: accountServers ? accountServers.current : null
     EditorRoles { id: roles }
     color: roles.chrome
     implicitHeight: roles.statusHeight
@@ -24,59 +29,6 @@ Rectangle {
         }
         return Math.round(stats.memory_percent) + "%"
     }
-    // One status bar tab. A view with no native panel stays visible and disabled, and its tooltip says why.
-    component StatusTab: Item {
-        id: tab
-        property string glyph: ""
-        property string label: ""
-        property int count: 0
-        property bool active: false
-        property string unavailable: ""
-        signal activated()
-        Layout.fillHeight: true
-        implicitWidth: content.implicitWidth + Ui.Metrics.lg * 2
-        PanelRow {
-            id: button
-            anchors.fill: parent
-            anchors.topMargin: Ui.Metrics.micro
-            anchors.bottomMargin: Ui.Metrics.micro
-            text: tab.label
-            active: tab.active
-            enabled: tab.unavailable === ""
-            onClicked: tab.activated()
-        }
-        RowLayout {
-            id: content
-            anchors.centerIn: parent
-            spacing: Ui.Metrics.sm
-            Ui.Icon {
-                name: tab.glyph
-                size: Ui.Metrics.iconSm
-                tone: tab.active ? Ui.Text.Primary : Ui.Text.Disabled
-                domainColor: tab.active ? Ui.Theme.accentPrimary : undefined
-            }
-            Ui.Text {
-                text: tab.label
-                role: Ui.Typography.SansLabel
-                font.weight: Font.Normal
-                tone: button.enabled ? Ui.Text.Secondary : Ui.Text.Disabled
-                lineHeight: 1
-            }
-            Ui.Text {
-                objectName: tab.objectName + "-count"
-                visible: tab.count > 0
-                text: tab.count
-                role: Ui.Typography.SansCaption
-                tone: Ui.Text.Secondary
-                lineHeight: 1
-            }
-        }
-        HoverHandler {
-            onHoveredChanged: {
-                root.status.showToolTip(hovered ? tab.unavailable : "")
-            }
-        }
-    }
     // A readout pair: a lowercase key and its value. The graph counts put the value first and the system readout puts the key first.
     component Readout: RowLayout {
         id: pair
@@ -85,8 +37,8 @@ Rectangle {
         property bool keyFirst: false
         spacing: Ui.Metrics.sm
         layoutDirection: keyFirst ? Qt.LeftToRight : Qt.RightToLeft
-        Ui.Text { objectName: pair.objectName + "-key"; text: pair.key; role: Ui.Typography.SansLabel; tone: Ui.Text.Disabled; font.weight: Font.Normal; lineHeight: 1 }
-        Ui.Text { objectName: pair.objectName + "-value"; text: pair.value; role: Ui.Typography.SansLabel; tone: Ui.Text.Secondary; font.weight: Font.Normal; lineHeight: 1 }
+        Ui.Text { objectName: pair.objectName + "-key"; text: pair.key; role: Ui.Typography.SansLabel; tone: Ui.Text.Disabled; weight: Font.Normal; tight: true }
+        Ui.Text { objectName: pair.objectName + "-value"; text: pair.value; role: Ui.Typography.SansLabel; tone: Ui.Text.Secondary; weight: Font.Normal; tight: true }
     }
     RowLayout {
         anchors.fill: parent
@@ -96,14 +48,14 @@ Rectangle {
         RowLayout {
             Layout.rightMargin: Ui.Metrics.xl
             spacing: Ui.Metrics.md
-            Rectangle { width: Ui.Metrics.sm; height: width; radius: width / 2; color: root.connected ? Ui.Theme.statusSuccess : Ui.Theme.textDisabled }
+            Rectangle { width: Ui.Metrics.sm; height: width; radius: Ui.Metrics.radiusPill; color: root.connected ? Ui.Theme.statusSuccess : Ui.Theme.textDisabled }
             Ui.Text {
                 objectName: "status-connection"
                 text: root.connection.charAt(0).toUpperCase() + root.connection.slice(1)
                 role: Ui.Typography.SansLabel
                 tone: Ui.Text.Secondary
-                font.weight: Font.Normal
-                lineHeight: 1
+                weight: Font.Normal
+                tight: true
             }
             Ui.Text {
                 objectName: "status-connection-detail"
@@ -111,14 +63,14 @@ Rectangle {
                 text: root.status.connectionDetail
                 role: Ui.Typography.SansCaption
                 tone: Ui.Text.Disabled
-                lineHeight: 1
+                tight: true
             }
             // A server that was chosen retries by itself. The button retries now, like the web's retryNow.
-            NodeButton {
+            Ui.EditorButton {
                 objectName: "status-reconnect"
                 visible: !root.connected
                 text: root.connection === "offline" ? "Reconnect" : "Connect"
-                variant: NodeButton.Flat
+                variant: Ui.EditorButton.Outlined; flat: true
                 implicitHeight: Ui.Metrics.small
                 onClicked: {
                     if (root.connection === "offline") {
@@ -129,46 +81,26 @@ Rectangle {
                 }
             }
         }
-        StatusTab {
-            objectName: "status-logs"
-            label: "Logs"
-            glyph: "article"
-            active: root.panels.outputVisible
-            onActivated: root.panels.toggleStatusView("logs")
-        }
-        StatusTab {
-            objectName: "status-queue"
-            label: "Queue"
-            glyph: "playlistPlay"
-            count: root.status.queuedCount
-            unavailable: root.status.queueAvailable ? "" : qsTr("The queue opens while jobs are queued or running.")
-            onActivated: root.status.openQueue()
-        }
-        StatusTab {
-            objectName: "status-generations"
-            label: "Generations"
-            glyph: "autoAwesomeOutlined"
-            unavailable: qsTr("Generations across workflows have no native panel. Select a node and open History in the inspector.")
-        }
-        StatusTab {
-            objectName: "status-workers"
-            label: "Workers"
-            glyph: "memory"
-            unavailable: qsTr("Workers has no native panel yet.")
-        }
-        StatusTab {
-            objectName: "status-versions"
-            label: "Versions"
-            glyph: "history"
-            active: root.panels.versionsVisible
-            onActivated: root.panels.toggleStatusView("versions")
-        }
-        StatusTab {
-            objectName: "status-trace"
-            label: "Trace"
-            glyph: "timeline"
-            active: root.panels.traceVisible
-            onActivated: root.panels.toggleStatusView("trace")
+        // A view with no native panel stays visible and disabled, and its tooltip says why.
+        Ui.TabBar {
+            Layout.fillHeight: true
+            appearance: Ui.TabBar.Filled
+            accessibleName: "Panels"
+            tabs: [
+                { objectName: "status-logs", value: "logs", label: "Logs", iconName: "article", active: root.panels.outputVisible },
+                { objectName: "status-queue", value: "queue", label: "Queue", iconName: "playlistPlay", active: root.panels.queueVisible, count: root.status.queuedCount },
+                { objectName: "status-generations", value: "generations", label: "Generations", iconName: "autoAwesomeOutlined", active: root.panels.generationsVisible, count: root.status.generatingCount },
+                { objectName: "status-workers", value: "workers", label: "Workers", iconName: "memory", active: root.panels.workersVisible },
+                { objectName: "status-versions", value: "versions", label: "Versions", iconName: "history", active: root.panels.versionsVisible },
+                { objectName: "status-trace", value: "trace", label: "Trace", iconName: "timeline", active: root.panels.traceVisible }
+            ]
+            onValueCommitted: value => {
+                if (value === "queue") {
+                    root.status.openQueue()
+                } else {
+                    root.panels.toggleStatusView(value)
+                }
+            }
         }
         // The web bar carries no run message. Messages reach the inspector and the
         // tab bar notifications.
@@ -182,7 +114,7 @@ Rectangle {
                 value: root.status.nodeCount
                 key: value === "1" ? "node" : "nodes"
             }
-            Ui.Text { text: "·"; role: Ui.Typography.SansLabel; tone: Ui.Text.Disabled; font.weight: Font.Normal; lineHeight: 1 }
+            Ui.Text { text: "·"; role: Ui.Typography.SansLabel; tone: Ui.Text.Disabled; weight: Font.Normal; tight: true }
             Readout {
                 objectName: "status-edges"
                 value: root.status.edgeCount
@@ -202,6 +134,13 @@ Rectangle {
                 key: "mem"
                 value: visible ? root.memoryText() : ""
             }
+        }
+        Loader {
+            objectName: "status-account"
+            active: root.account !== null
+            visible: active
+            Layout.leftMargin: Ui.Metrics.lg
+            sourceComponent: AccountControl { account: root.account; servers: root.accountServers }
         }
     }
 }

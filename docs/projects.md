@@ -5,11 +5,15 @@ permalink: /projects
 description: "Group the documents for one job under a project, start a project from a skill, and file, copy, export, import, archive, or delete them."
 ---
 
-A project groups the documents for one job (storyboard, script, cut, key art, mini app) and owns no content itself. A document belongs to a project by carrying its id, and the project card reads status, stills, and spend from those documents. A [workspace](workspaces.md) is different: a folder of files a run reads and writes.
+A project groups the documents for one job (storyboard, script, cut, key art, mini app) and owns no content itself. A document belongs to a project by carrying its id, and the project card reads status, stills, and spend from those documents. Each project also has a [project folder](workspaces.md), the folder of files its runs read and write.
 
 ## The Personal project
 
 Every account has a **Personal** project. It is where documents land when you have not switched to a named project. You cannot archive or delete it, and it does not appear as a card in the project list.
+
+## Projects from before project folders
+
+A project made before project folders gets its folder the first time the server starts. Its assets then move into the folder in the background. While they move, the project card and the left panel show **Moving files into the project folder** with a count. Every asset keeps its ID and stays usable throughout. See [existing assets move into the folder](workspaces.md#existing-assets-move-into-the-folder).
 
 ## The project list
 
@@ -68,7 +72,8 @@ On a document card, **Copy** opens a dialog with a **Destination project** field
 **Export** on a project card downloads the whole project as one
 `.nodetool-project` file. The file holds the project's documents, workflows,
 mini apps, games, and JavaScript scripts with their version history, its
-conversations, its assets with their media, and every file in its workspaces.
+conversations, its assets with their media, and every file in its project
+folder. The folder's `.nodetool/` directory is not included.
 Jobs, run history, and spend records are not included.
 
 **Import project** at the top of the project list reads such a file and
@@ -78,15 +83,60 @@ references between them are rewritten to point at the new copies, so the
 same file can be imported twice. Imported workflows are private, and a
 project exported from Personal arrives as an ordinary named project.
 
+The imported project gets a new folder, and no existing folder is written to.
+An asset that was a file in the exported project folder is the same file, at
+the same path, in the new folder. An asset from before project folders arrives
+in the asset store and moves into the new folder when the project is opened.
+
+A project can have workspaces besides its folder, such as a game's. The file
+names which one was the project folder, and that one becomes the new
+project's folder. A file exported before NodeTool recorded this has no such
+name. Its folder is then taken to be the default workspace for a Personal
+project and the oldest workspace for any other project.
+
+A project that links media from outside its folder (see
+[Link or copy media](#link-or-copy-media)) is not exported as it stands. The
+export dialog names the linked files. **Collect and export** copies them into
+the folder and then exports. **Cancel** keeps the links and exports nothing.
+
 The same files move through the command line with `nodetool projects export`
 and `nodetool projects import`. See the [CLI reference](cli.md#nodetool-projects).
 
+## Link or copy media
+
+On the desktop app, importing files into the asset browser asks **Copy into
+the project folder** or **Link in place**. Copy writes the file into the
+folder's `Imported/` directory. Link copies nothing: the asset reads the file
+where it is, which suits large footage. A file at or above the link
+threshold (`NODETOOL_EXTERNAL_ASSET_THRESHOLD_BYTES`, default 1 GiB) starts
+on Link. In a browser, and on a server with `NODETOOL_ENV=production`,
+import always copies.
+
+**Collect files** on a project card copies every linked file into
+`Imported/` and points its asset at the copy. Asset ids stay the same, so
+every document that uses them keeps working, and the original files are left
+where they were. Each copy is checked against the original before the link
+is dropped. A linked file that is missing or changed is skipped. When it
+finishes, a notice reports how many files were copied, skipped, and failed.
+Running it again after an interruption finishes the rest without copying a
+file twice.
+
 ## Archive, restore, and delete
 
-Each card carries **Export**, **Archive**, and **Delete** buttons. They are absent for Personal.
+Each card carries **Export**, **Collect files**, **Archive**, and **Delete** buttons. They are absent for Personal.
 
-- **Archive** hides the project from the selector and deletes nothing. Archived projects are listed under **Archived projects** at the end of the list, where **Restore** brings one back.
-- **Delete** asks for confirmation in a dialog titled "Delete *name*?". It removes the project and all of its documents, conversations, generated outputs, assets, jobs, and project files. This cannot be undone.
+- **Archive** hides the project from the selector and deletes nothing. The project folder stays in place. Archived projects are listed under **Archived projects** at the end of the list, where **Restore** brings one back.
+- **Delete** asks for confirmation in a dialog titled "Delete *name*?". It removes the project and all of its documents, conversations, jobs, and assets stored outside the project folder. This cannot be undone. The dialog shows the folder's path and states what happens to the folder.
+
+What delete does to the project folder depends on who made it:
+
+| Folder | On delete |
+|---|---|
+| NodeTool created it on this machine | The folder moves to the OS trash. When the server cannot reach the OS trash, the folder moves to `.trash/<name>-<timestamp>` inside the projects folder, and a notice names the new place. On Windows the folder always goes to `.trash`. |
+| NodeTool created it in cloud storage | The folder and every file in it are deleted. |
+| You brought it | Every file stays where it is. NodeTool removes only the `.nodetool` folder inside it. |
+
+NodeTool writes a record, `.nodetool/created.json`, into each folder it creates. A folder without that record counts as one you brought. That includes a folder you added by hand before projects had folders and a project folder created before this record existed.
 
 There is no rename control in the project list. Ask the agent to rename a project, as described next.
 
@@ -98,7 +148,9 @@ A project's conversations are chats filed under it, and the server can also hold
 |---|---|
 | `list_projects` | Lists your projects, newest first. Pass `archived` to list archived ones. |
 | `search_projects` | Finds projects by name or kind. Every word must match. |
+| `create_project` | Creates a project and its folder. |
 | `update_project` | Renames a project, changes its kind, or archives and restores it. |
-| `delete_project` | Permanently deletes a project. It refuses the Personal project and the project the conversation belongs to. |
+| `move_to_project` | Moves one asset, entity, storyboard, script, timeline, sketch, app or JS script into another project. A file in the project folder moves too. Workflows and games do not move this way. |
+| `delete_project` | Permanently deletes a project and reports what happened to its folder, as described above. It refuses the Personal project and the project the conversation belongs to. |
 
 The agent is told to confirm with you before deleting and to prefer archiving.

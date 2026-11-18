@@ -40,6 +40,11 @@ export type SandboxApiVerdict =
   | { readonly withheld: string; readonly capability?: never; readonly elsewhere?: never; readonly gap?: never }
   | { readonly gap: string; readonly capability?: never; readonly elsewhere?: never; readonly withheld?: never };
 
+const CLOUD_LOCAL_WITHHELD =
+  "The local store of a native app's unsent cloud edits. A run that wrote or " +
+  "accepted a draft would change what the app sends to the person's cloud " +
+  "account, or drop edits that exist nowhere else.";
+
 /**
  * Every tRPC procedure path, and what sandboxed code can do about it.
  *
@@ -170,6 +175,16 @@ export const SANDBOX_API_COVERAGE: Readonly<
     withheld:
       "Revoking a connected client's grant is denial of service against the " +
       "user's own tooling, same rule as revokeToken."
+  },
+  "agentAccess.listDeviceSessions": {
+    withheld:
+      "Enumerates which computers hold a signed-in desktop session — " +
+      "credential reconnaissance, same rule as listOauthGrants."
+  },
+  "agentAccess.endDeviceSession": {
+    withheld:
+      "Ending a device session signs the user out of their desktop apps, " +
+      "denial of service against the user's own tooling."
   },
   "antigravity.install": {
     withheld:
@@ -327,6 +342,19 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "starts billing them against its budget. A run that could cut a " +
       "release could spend money in someone else's name."
   },
+  "assets.collect": {
+    gap:
+      "Copies a project's linked files into its folder. A creator runs it " +
+      "from the project menu or before an export. A run cannot create " +
+      "linked assets, and their bytes are already readable through " +
+      "read_asset, so nothing is withheld. Nothing headless calls it yet."
+  },
+  "assets.copyToProject": {
+    elsewhere:
+      "Agent document writes copy an asset of another project into the " +
+      "run's project themselves (localizeDocumentAssets), so sandboxed " +
+      "code never needs to ask for the copy."
+  },
   "assets.createUpload": {
     elsewhere:
       "save_asset writes an asset from bytes, a workspace file or a " +
@@ -379,6 +407,14 @@ export const SANDBOX_API_COVERAGE: Readonly<
   },
   "assets.search": { capability: "asset_search" },
   "assets.update": { capability: "update_asset" },
+  "cloudLocal.drafts.accept": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudLocal.drafts.discard": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudLocal.drafts.get": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudLocal.drafts.list": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudLocal.drafts.markUnsent": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudLocal.drafts.put": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudLocal.openState.get": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudLocal.openState.record": { withheld: CLOUD_LOCAL_WITHHELD },
   "codeGen.generate": {
     elsewhere:
       "Sandboxed code authors node bodies with validate_code / " +
@@ -484,6 +520,29 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Sharing grants named people and link holders access to a " +
       "document. Handing access to a *particular* account is the " +
       "user's decision, as it is for `workflows.sharing`."
+  },
+  "documentSharing.access": {
+    withheld:
+      "Reports the caller's own role and options on a shared " +
+      "document, with the grants they come from. A run acts on the " +
+      "documents its own user owns, so there is nothing to ask."
+  },
+  "documentSharing.setLinkOptions": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "document. Handing access to a *particular* account is the " +
+      "user's decision, as it is for `workflows.sharing`."
+  },
+  "documentSharing.setInvitationOptions": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "document. Handing access to a *particular* account is the " +
+      "user's decision, as it is for `workflows.sharing`."
+  },
+  "documentSharing.dismissNotice": {
+    withheld:
+      "Dismisses a notice shown to the owner in the share dialog. " +
+      "It is the owner's acknowledgement, not a run's."
   },
   "documentSharing.sharedWithMe": {
     withheld:
@@ -637,6 +696,17 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "could erase the evidence of its own behaviour, so the threads " +
       "module is read-only by design — see capabilities/threads.ts."
   },
+  "messages.switchVersion": {
+    withheld:
+      "Switching versions rewrites which history a conversation holds. " +
+      "The threads module is read-only by design — see " +
+      "capabilities/threads.ts."
+  },
+  "messages.versions": {
+    elsewhere:
+      "get_thread returns the conversation as it stands; earlier versions " +
+      "are a view for the person in the chat."
+  },
   "models.all": { capability: "list_models" },
   "models.asr": {
     elsewhere:
@@ -716,6 +786,16 @@ export const SANDBOX_API_COVERAGE: Readonly<
     elsewhere:
       "find_model resolves a model by capability; list_models and " +
       "list_provider_models enumerate the catalogs."
+  },
+  "models.model3d": {
+    gap:
+      "find_model and list_provider_models do not list 3D generation " +
+      "models yet. Not a security limit: the catalog is public provider data."
+  },
+  "models.model3dByProvider": {
+    gap:
+      "find_model and list_provider_models do not list 3D generation " +
+      "models yet. Not a security limit: the catalog is public provider data."
   },
   "models.music": {
     elsewhere:
@@ -903,12 +983,7 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Looking people up in the user directory serves inviting them, " +
       "which stays with the user."
   },
-  "projects.assignDocument": {
-    gap:
-      "Same grouping surface as `projects.create`. Moves one document " +
-      "between projects; both the document and the project are the " +
-      "caller's own rows."
-  },
+  "projects.assignDocument": { capability: "move_to_project" },
   "projects.archive": {
     elsewhere: "`update_project` with `archived: true` archives a project."
   },
@@ -921,20 +996,18 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "project. The caller owns both sides, but no sandbox capability " +
       "yet exposes the operation-wide reference remapping contract."
   },
-  "projects.create": {
-    gap:
-      "A project groups documents that already carry its id, and a run " +
-      "reaches every one of those documents by its own capability. What " +
-      "is missing is the grouping itself — creating one, and reading the " +
-      "status and spend rollup `projects.get` derives. Work, not a " +
-      "boundary: nothing here is a credential, another tenant, or host " +
-      "control."
-  },
+  "projects.create": { capability: "create_project" },
   "projects.delete": { capability: "delete_project" },
   "projects.documentPage": {
     gap:
       "Same grouping surface as `projects.get`. One page of its document " +
       "cards, for the start page."
+  },
+  "projects.documentByFile": {
+    elsewhere:
+      "A workflow or timeline file carries its document's `id`. A run reads " +
+      "the file through its workspace and opens the document with " +
+      "`get_workflow` or `get_timeline`."
   },
   "projects.documents": {
     gap:
@@ -953,8 +1026,63 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Same grouping surface as `projects.create`. The whole list of " +
       "rollups `projects.get` returns one at a time."
   },
+  "projects.migration.confirm": {
+    withheld:
+      "Starts moving the user's project files into a new folder layout. " +
+      "The user confirms that move in the app, and a run must not start " +
+      "it for them."
+  },
+  "projects.migration.dismiss": {
+    withheld:
+      "Closes the user's migration prompt without moving files. That " +
+      "choice belongs to the user in the app, not to a run."
+  },
+  "projects.migration.pause": {
+    withheld:
+      "Stops a migration that is moving the user's project files. Pausing " +
+      "and resuming it are the user's choices in the app, not a run's."
+  },
+  "projects.migration.plan": {
+    withheld:
+      "Computes and records the migration plan the user reviews before " +
+      "confirming. It steps the app-level migration state machine, which " +
+      "a run has no part in."
+  },
+  "projects.migration.resume": {
+    withheld:
+      "Restarts a paused migration of the user's project files. Pausing " +
+      "and resuming it are the user's choices in the app, not a run's."
+  },
+  "projects.migration.retry": {
+    withheld:
+      "Restarts a failed migration of the user's project files. Retrying " +
+      "it is the user's choice in the app, not a run's."
+  },
+  "projects.migration.status": {
+    withheld:
+      "Reports where the install's folder migration stands, which only " +
+      "drives the migration banner in the app. A run has no reason to " +
+      "know it, so it stays denied."
+  },
+  "projects.openFolder": {
+    withheld:
+      "Takes an absolute host path and makes that folder a project, which " +
+      "a run could then list and write through its workspace. That is " +
+      "host-path read and write, the risk `workspace.create` is withheld for."
+  },
+  "projects.relocate": {
+    withheld:
+      "Points a project at an absolute host path, which a run could then " +
+      "list and write through its workspace. That is host-path read and " +
+      "write, the risk `workspace.update` is withheld for."
+  },
   "projects.restore": {
     elsewhere: "`update_project` with `archived: false` restores a project."
+  },
+  "projects.restoreDocumentFile": {
+    elsewhere:
+      "Saving the document writes its file again: `update_workflow` for a " +
+      "workflow, `set_timeline_document` for a timeline."
   },
   "projects.restoreTabs": {
     elsewhere:
@@ -1021,6 +1149,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
     elsewhere:
       "list_secrets exposes credential names and configured status; " +
       "list_models and list_provider_models expose provider discovery."
+  },
+  "settings.providerCredits": {
+    elsewhere:
+      "list_providers reports each provider's remaining credit, read with " +
+      "the run's own provider instances."
   },
   "settings.history.get": {
     withheld:
@@ -1112,6 +1245,18 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "write a credential value. request_secret asks the user for one " +
       "by name and never sees what they type; nodetool.secrets.get " +
       "reads only names the run declared."
+  },
+  "settings.toolPermissions.list": {
+    withheld:
+      "Tool permission rules decide which tools run without asking the " +
+      "user. Sandboxed code must not read or change the rules that gate " +
+      "its own actions."
+  },
+  "settings.toolPermissions.set": {
+    withheld:
+      "Tool permission rules decide which tools run without asking the " +
+      "user. Sandboxed code must not read or change the rules that gate " +
+      "its own actions."
   },
   "settings.update": { capability: "set_setting" },
   "skills.create": { capability: "create_skill" },
@@ -1242,6 +1387,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "here, or seeding from list_entities, would close it."
   },
   "storyboards.update": { capability: "edit_storyboard" },
+  "sync.capabilities": {
+    withheld:
+      "Protocol and schema versions steer a client that keeps its own copy " +
+      "of a document. A run writes through capabilities that follow the " +
+      "server's own versions."
+  },
   "memories.delete": { capability: "memory_delete" },
   "errorTraces.list": { capability: "list_error_traces" },
   "errorTraces.summary": { capability: "list_error_traces" },
@@ -1524,6 +1675,29 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "handing access to a *particular* account is a step further and " +
       "stays with the user."
   },
+  "workflows.sharing.access": {
+    withheld:
+      "Reports the caller's own role and options on a shared " +
+      "workflow, with the grants they come from. A run acts on the " +
+      "workflows its own user owns, so there is nothing to ask."
+  },
+  "workflows.sharing.setLinkOptions": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "workflow. Handing access to a *particular* account is the " +
+      "user's decision."
+  },
+  "workflows.sharing.setInvitationOptions": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "workflow. Handing access to a *particular* account is the " +
+      "user's decision."
+  },
+  "workflows.sharing.dismissNotice": {
+    withheld:
+      "Dismisses a notice shown to the owner in the share dialog. " +
+      "It is the owner's acknowledgement, not a run's."
+  },
   "workflows.sharing.sharedWithMe": {
     withheld:
       "Sharing grants named people and link holders access to a " +
@@ -1541,20 +1715,6 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "workflows.versions.delete": { capability: "delete_workflow_version" },
   "workflows.versions.list": { capability: "list_workflow_versions" },
   "workflows.versions.restore": { capability: "restore_workflow_version" },
-  "workspace.create": {
-    withheld:
-      "A workspace names an absolute path on the host filesystem, so " +
-      "creating one and listing it is arbitrary host-path read. The " +
-      "sandbox has its own workspace API, contained to the run's " +
-      "directory, which is the point of it."
-  },
-  "workspace.delete": {
-    withheld:
-      "A workspace names an absolute path on the host filesystem, so " +
-      "creating one and listing it is arbitrary host-path read. The " +
-      "sandbox has its own workspace API, contained to the run's " +
-      "directory, which is the point of it."
-  },
   "workspace.list": {
     withheld:
       "A workspace names an absolute path on the host filesystem, so " +
@@ -1583,10 +1743,4 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "own workspace API, contained to the run's directory, which is the " +
       "point of it."
   },
-  "workspace.update": {
-    withheld:
-      "A workspace names an absolute path on the host filesystem, so " +
-      "creating one and listing it is arbitrary host-path read. The " +
-      "sandbox has its own workspace API, contained to the run's " +
-      "directory, which is the point of it."
-  },};
+};

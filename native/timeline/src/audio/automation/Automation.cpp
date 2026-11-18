@@ -85,10 +85,13 @@ QJsonArray automationBreakpoints(const QJsonArray& points,double from,const QJso
             const double segStart=i>0?std::min(previous["timeMs"].toDouble(),start):start;
             const double segValue=i>0&&previous["timeMs"].toDouble()<=from?previous["value"].toDouble():value;
             const double segSpan=end-segStart;
-            const int steps=static_cast<int>(std::min(512.,std::ceil(span/step)));
+            // The cuts sit on the whole segment's grid, so every play start
+            // ramps through the same breakpoints (automation.ts).
+            const int steps=static_cast<int>(std::min(512.,std::ceil(segSpan/step)));
             for (int s=1;s<steps;++s) {
-                const double time=start+span*s/steps;
-                const double f=segSpan>0?scene::ease(easing.toStdString(),(time-segStart)/segSpan):1;
+                const double time=segStart+segSpan*s/steps;
+                if (time<=start) { continue; }
+                const double f=scene::ease(easing.toStdString(),(time-segStart)/segSpan);
                 out.append(QJsonObject{{"timeMs",time},{"value",segValue+(target-segValue)*f}});
             }
         }

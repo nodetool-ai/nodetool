@@ -6,23 +6,13 @@ import NodeTool.UiPrimitives as Ui
 import QtQuick.Dialogs
 import NodeTool.ModelPicker
 
-// Follows web MediaChatComposer.tsx: attach, mode, model, reasoning and media
-// setting chips, the @ asset picker and Send or Generate.
+// Follows web MediaChatComposer.tsx: attach, permission, model and reasoning
+// chips, the @ asset picker and Send.
 Ui.Surface {
     id: root
     required property var session
     property string previousThread: ""
     readonly property bool running: session && ["loading", "running", "streaming", "sending", "stopping"].indexOf(session.turnStatus) >= 0
-    readonly property bool mediaMode: !!session && !!session.mediaMode && session.mediaMode !== "chat"
-    readonly property var activeMode: {
-        const modes = root.session && root.session.mediaModes ? root.session.mediaModes : []
-        for (let i = 0; i < modes.length; ++i) {
-            if (modes[i].id === (root.session ? root.session.mediaMode : "chat")) {
-                return modes[i]
-            }
-        }
-        return {id: "chat", chipLabel: qsTr("Chat"), iconName: "forumOutlined"}
-    }
     readonly property bool hasAttachments: !!session && !!session.attachments && session.attachments.length > 0
     // The @ mention being typed, as {start, end, query}, or null.
     property var mention: null
@@ -30,6 +20,22 @@ Ui.Surface {
     property string mentionTab: "recent"
     property int mentionIndex: 0
     readonly property var mentionAssets: !mention || !session ? [] : (mentionTab === "recent" ? session.recentAssets : session.assetResults) || []
+    // MediaChatComposer.tsx isCompact: icon-first chips below the narrow card width.
+    readonly property bool compact: width > 0 && width < ChatMetrics.narrowComposer
+    // usePromptHistory.ts: sent prompts for this composer, the entry being
+    // shown (-1 for the live draft) and the draft kept while navigating.
+    property var promptHistory: []
+    property int historyIndex: -1
+    property string historyStash: ""
+    readonly property var activePermission: {
+        const modes = root.session && root.session.permissionModes ? root.session.permissionModes : []
+        for (let i = 0; i < modes.length; ++i) {
+            if (modes[i].value === root.session.permissionMode) {
+                return modes[i]
+            }
+        }
+        return {value: "default", label: qsTr("Default"), description: ""}
+    }
     variant: Ui.Surface.Panel
     implicitHeight: composerContent.implicitHeight + Ui.Metrics.md * 2
     objectName: "chatComposer"
@@ -102,7 +108,63 @@ Ui.Surface {
         if (editor.text.trim().length === 0 && !root.hasAttachments) {
             return
         }
+        root.recordPrompt(editor.text)
         root.session.send()
+    }
+    // usePromptHistory.ts record: skips blanks and consecutive duplicates.
+    function recordPrompt(prompt) {
+        root.historyIndex = -1
+        root.historyStash = ""
+        if (prompt.trim().length === 0 || root.promptHistory[root.promptHistory.length - 1] === prompt) {
+            return
+        }
+        const history = root.promptHistory.slice()
+        history.push(prompt)
+        while (history.length > ChatMetrics.promptHistory) {
+            history.shift()
+        }
+        root.promptHistory = history
+    }
+    function showHistory(prompt) {
+        editor.text = prompt
+        root.session.draft = prompt
+        editor.cursorPosition = prompt.length
+    }
+    // usePromptHistory.ts handleKeyDown: Up from the start of the field steps
+    // back, Down from its end steps forward and past the newest entry restores
+    // the draft. Returns true when it took the key.
+    function navigateHistory(up) {
+        const history = root.promptHistory
+        if (history.length === 0) {
+            return false
+        }
+        if (up) {
+            if (root.historyIndex === -1) {
+                if (editor.selectionStart !== 0 || editor.selectionEnd !== 0) {
+                    return false
+                }
+                root.historyStash = editor.text
+                root.historyIndex = history.length - 1
+                root.showHistory(history[root.historyIndex])
+                return true
+            }
+            if (root.historyIndex > 0) {
+                root.historyIndex -= 1
+                root.showHistory(history[root.historyIndex])
+            }
+            return true
+        }
+        if (root.historyIndex === -1 || editor.selectionStart !== editor.text.length || editor.selectionEnd !== editor.text.length) {
+            return false
+        }
+        if (root.historyIndex < history.length - 1) {
+            root.historyIndex += 1
+            root.showHistory(history[root.historyIndex])
+            return true
+        }
+        root.historyIndex = -1
+        root.showHistory(root.historyStash)
+        return true
     }
     ColumnLayout {
         id: composerContent
@@ -212,22 +274,7 @@ Ui.Surface {
                 id: editor
                 objectName: "chatInput"
                 value: root.session ? root.session.draft : ""
-                // MediaChatComposer.tsx placeholder for each mode, from en.json.
-                placeholderText: {
-                    const mode = root.session ? root.session.mediaMode : "chat"
-                    const placeholders = {
-                        image: qsTr("Describe the image you want to generate…"),
-                        image_edit: qsTr("Describe the edits to apply to the dropped image…"),
-                        video: qsTr("Describe your video… like a man drinking a cup of coffee…"),
-                        image_to_video: qsTr("Describe how the dropped image should animate…"),
-                        reference_to_video: qsTr("Describe the shot — the attached images and videos are the references…"),
-                        retake: qsTr("Describe what to change in the attached video…"),
-                        extend: qsTr("Describe what happens in the added footage…"),
-                        audio: qsTr("Type the text you want spoken…"),
-                        music: qsTr("Describe the music you want to generate…")
-                    }
-                    return placeholders[mode] || qsTr("Ask anything, or type @ to add an asset…")
-                }
+                placeholderText: qsTr("Ask anything, or type @ to add an asset…")
                 wrapMode: TextEdit.Wrap
                 selectByMouse: true
                 accessibleName: qsTr("Message prompt")
@@ -238,9 +285,14 @@ Ui.Surface {
                 }
                 onTextChanged: root.syncMention()
                 onCursorPositionChanged: root.syncMention()
-                // The mention picker takes navigation keys first. Enter inserts a
-                // line. Ctrl/Cmd+Enter submits only after IME composition.
+                // MediaChatComposer.tsx handleKeyDown: an IME composition keeps its
+                // keys, the mention picker takes navigation keys next, then Escape
+                // stops a reply in flight, then prompt history, then Enter sends
+                // and Shift+Enter inserts a line.
                 Keys.onPressed: event => {
+                    if (inputMethodComposing) {
+                        return
+                    }
                     if (root.mention !== null && !inputMethodComposing) {
                         if (event.key === Qt.Key_Escape) {
                             root.dismissedMention = root.mention.start
@@ -265,7 +317,19 @@ Ui.Surface {
                             return
                         }
                     }
-                    if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && (event.modifiers & (Qt.ControlModifier | Qt.MetaModifier)) && !inputMethodComposing) {
+                    if (event.key === Qt.Key_Escape && root.running && root.session.turnStatus !== "stopping") {
+                        root.session.stop()
+                        event.accepted = true
+                        return
+                    }
+                    const plain = (event.modifiers & (Qt.ShiftModifier | Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) === 0
+                    if (plain && (event.key === Qt.Key_Up || event.key === Qt.Key_Down) && root.navigateHistory(event.key === Qt.Key_Up)) {
+                        event.accepted = true
+                        return
+                    }
+                    // The web sends on Enter and Ctrl+Enter and leaves Shift, Alt and
+                    // Cmd (Meta on the web) to the text field.
+                    if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && !(event.modifiers & (Qt.ShiftModifier | Qt.AltModifier))) {
                         root.submit()
                         event.accepted = true
                     }
@@ -298,7 +362,9 @@ Ui.Surface {
                 }
             }
         }
-        Flow {
+        // One row, as in MediaChatComposer.tsx: attach and permission on the
+        // left, the chat model, reasoning and Send on the right.
+        RowLayout {
             id: chipRow
             objectName: "composerChips"
             Layout.fillWidth: true
@@ -310,41 +376,47 @@ Ui.Surface {
                 enabled: !!root.session && !root.running
                 onClicked: fileDialog.open()
             }
+            // PermissionSelector.tsx: the thread's permission mode, dot only when narrow.
             Ui.MenuButton {
-                id: modeChip
-                objectName: "mediaModeChip"
-                text: root.activeMode.chipLabel
-                iconName: root.activeMode.iconName
-                accessibleName: qsTr("Generation mode: ") + root.activeMode.chipLabel
+                id: permissionChip
+                objectName: "permissionChip"
+                visible: !!root.session && !!root.session.permissionModes
+                text: root.activePermission.label
+                iconName: "statusDot"
+                description: qsTr("Permission: ") + root.activePermission.label + " — " + root.activePermission.description
+                accessibleName: qsTr("Permission mode: ") + root.activePermission.label
+                display: root.compact ? AbstractButton.IconOnly : AbstractButton.TextBesideIcon
                 circular: true
                 variant: Ui.EditorButton.Flat
-                menu: modeMenu
+                menu: permissionMenu
                 Ui.ContextMenu {
-                    id: modeMenu
+                    id: permissionMenu
                     Instantiator {
-                        model: root.session && root.session.mediaModes ? root.session.mediaModes : []
+                        model: root.session && root.session.permissionModes ? root.session.permissionModes : []
                         delegate: Ui.MenuItem {
                             required property var modelData
-                            objectName: "mediaMode-" + modelData.id
+                            objectName: "permission-" + modelData.value
                             text: modelData.label
-                            iconName: modelData.iconName
-                            accessibleName: modelData.label + (modelData.description ? ", " + modelData.description : "")
-                            reasonText: modelData.description
+                            iconName: "statusDot"
+                            accessibleName: modelData.label + ", " + modelData.description
                             checkable: true
-                            checked: !!root.session && root.session.mediaMode === modelData.id
-                            enabled: modelData.enabled
-                            onTriggered: root.session.mediaMode = modelData.id
+                            checked: !!root.session && root.session.permissionMode === modelData.value
+                            onTriggered: root.session.permissionMode = modelData.value
                         }
-                        onObjectAdded: (index, object) => modeMenu.insertItem(index, object)
-                        onObjectRemoved: (index, object) => modeMenu.removeItem(object)
+                        onObjectAdded: (index, object) => permissionMenu.insertItem(index, object)
+                        onObjectRemoved: (index, object) => permissionMenu.removeItem(object)
                     }
                 }
             }
+            Item {
+                Layout.fillWidth: true
+            }
+            // As in Claude, the chat model and its reasoning level sit beside
+            // Send, the button that uses them (MediaChatComposer.tsx).
             Ui.EditorButton {
                 id: modelChooser
                 objectName: "chooseChatModel"
-                visible: !root.mediaMode
-                width: Math.min(implicitWidth, Math.max(Ui.Metrics.comfortable, root.width - Ui.Metrics.comfortable * 3))
+                Layout.maximumWidth: Math.max(Ui.Metrics.comfortable, root.width - Ui.Metrics.comfortable * 4)
                 variant: Ui.EditorButton.Flat
                 circular: true
                 text: root.session && root.session.model
@@ -361,7 +433,7 @@ Ui.Surface {
             Ui.MenuButton {
                 id: reasoningChip
                 objectName: "reasoningChip"
-                visible: !root.mediaMode && !!root.session && !!root.session.reasoningSupported
+                visible: !!root.session && !!root.session.reasoningSupported
                 readonly property var level: {
                     const levels = root.session && root.session.reasoningLevels ? root.session.reasoningLevels : []
                     for (let i = 0; i < levels.length; ++i) {
@@ -375,6 +447,7 @@ Ui.Surface {
                 iconName: "memory"
                 description: qsTr("Reasoning: ") + level.label
                 accessibleName: qsTr("Reasoning level: ") + level.label
+                display: root.compact ? AbstractButton.IconOnly : AbstractButton.TextBesideIcon
                 circular: true
                 variant: Ui.EditorButton.Flat
                 menu: reasoningMenu
@@ -396,55 +469,8 @@ Ui.Surface {
                     }
                 }
             }
-            Ui.EditorButton {
-                id: mediaModelChooser
-                objectName: "chooseMediaModel"
-                visible: root.mediaMode
-                width: Math.min(implicitWidth, Math.max(Ui.Metrics.comfortable, root.width - Ui.Metrics.comfortable * 3))
-                variant: Ui.EditorButton.Flat
-                circular: true
-                iconName: root.activeMode.iconName
-                text: root.session && root.session.mediaModelName ? root.session.mediaModelName : root.session && root.session.mediaModelPlaceholder ? root.session.mediaModelPlaceholder : ""
-                accessibleName: qsTr("Choose generation model")
-                trailingIconName: "arrowDropDown"
-                menuButton: true
-                menuExpanded: mediaPickerLoader.item ? mediaPickerLoader.item.visible : false
-                enabled: !!mediaPickerLoader.item
-                onClicked: mediaPickerLoader.item.openAt(mediaModelChooser)
-            }
-            Repeater {
-                model: root.mediaMode && root.session && root.session.mediaChips ? root.session.mediaChips : []
-                delegate: Ui.ChipMenu {
-                    id: settingChip
-                    required property var modelData
-                    objectName: "mediaSetting-" + modelData.key
-                    options: modelData.options
-                    value: modelData.value
-                    text: modelData.label
-                    iconName: modelData.iconName
-                    description: modelData.header
-                    accessibleName: modelData.header + ": " + modelData.label
-                    onValueCommitted: value => root.session.setMediaSetting(settingChip.modelData.key, value)
-                }
-            }
-        }
-        RowLayout {
-            Layout.fillWidth: true
-            Ui.Text {
-                objectName: "composerModelBanner"
-                Layout.fillWidth: true
-                visible: text.length > 0
-                role: Ui.Typography.SansCaption
-                tone: Ui.Text.Secondary
-                wrapMode: Text.WordWrap
-                text: root.mediaMode && root.session && !root.session.mediaModelName ? root.session.mediaModelHint : ""
-            }
-            Item {
-                Layout.fillWidth: true
-            }
             Ui.ToolbarIconButton {
                 objectName: "sendMessage"
-                visible: root.running || !root.mediaMode
                 text: root.running ? qsTr("Stop") : qsTr("Send")
                 iconName: root.running ? "stop" : "send"
                 variant: Ui.EditorButton.Primary
@@ -458,15 +484,6 @@ Ui.Surface {
                         root.submit()
                     }
                 }
-            }
-            Ui.EditorButton {
-                objectName: "generateMedia"
-                visible: !root.running && root.mediaMode
-                text: qsTr("Generate")
-                variant: Ui.EditorButton.Primary
-                circular: true
-                enabled: !!root.session && (editor.text.trim().length > 0 || root.hasAttachments)
-                onClicked: root.submit()
             }
         }
     }
@@ -485,8 +502,16 @@ Ui.Surface {
             }
         }
         function onModelPickerRequested() {
-            if (root.mediaMode && mediaPickerLoader.item) {
-                mediaPickerLoader.item.openAt(mediaModelChooser)
+            if (modelPickerLoader.item) {
+                modelPickerLoader.item.openAt(modelChooser)
+            }
+        }
+        function onProviderSetupRequested() {
+            const dialog = root.nativeProviderSettings()
+            if (dialog) {
+                dialog.open()
+            } else if (modelPickerLoader.item) {
+                modelPickerLoader.item.openAt(modelChooser)
             }
         }
     }
@@ -509,21 +534,9 @@ Ui.Surface {
                     root.session.openProviderSettings()
                 }
             }
-        }
-    }
-    Loader {
-        id: mediaPickerLoader
-        active: !!root.session && !!root.session.mediaCatalog
-        sourceComponent: ModelPicker {
-            catalog: root.session.mediaCatalog
-            onAddProvidersRequested: {
+            onConnectProviderRequested: provider => {
                 const dialog = root.nativeProviderSettings()
-                close()
-                if (dialog) {
-                    dialog.open()
-                } else {
-                    root.session.openProviderSettings()
-                }
+                if (dialog && dialog.preselect) dialog.preselect(provider)
             }
         }
     }

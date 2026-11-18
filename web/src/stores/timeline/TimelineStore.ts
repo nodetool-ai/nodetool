@@ -160,6 +160,7 @@ import {
 } from "./merge";
 import { reportDocumentConflicts } from "../documentConflictReporter";
 import { normalizeClipAssetRefs } from "./clipAssetRefs";
+import { editingInstanceFor } from "../../lib/editingInstance";
 import type { DocumentOp } from "@nodetool-ai/protocol";
 
 // ── Snap threshold ─────────────────────────────────────────────────────────
@@ -274,6 +275,8 @@ export interface TimelineMarkerInput {
   label?: string;
   color?: string;
   note?: string;
+  /** Length of a range marker. Absent or 0 places a point marker. */
+  durationMs?: number;
 }
 
 export interface TimelineStoreState {
@@ -2092,6 +2095,7 @@ async function persistOpenDocument(
   const saved = await trpcClient.timeline.update.mutate({
     id: sequenceId,
     baseUpdatedAt: beforeSave.baseUpdatedAt ?? undefined,
+    editingInstance: editingInstanceFor("timeline", sequenceId),
     document: buildTimelineDocumentPayload(beforeSave)
   });
   const sent = syncedSnapshotOf(beforeSave);
@@ -2949,6 +2953,10 @@ export const createTimelineStore = (
             const clip = state.clips.find((c) => c.id === clipId);
             if (
               !clip ||
+              (toTrackId !== undefined &&
+                state.tracks.some(
+                  (track) => track.id === toTrackId && track.locked
+                )) ||
               !editableUserTargets(
                 state.clips,
                 state.tracks,
@@ -5133,6 +5141,9 @@ export const createTimelineStore = (
           });
           if (input.color !== undefined) marker.color = input.color;
           if (input.note !== undefined) marker.note = input.note;
+          if (input.durationMs !== undefined && input.durationMs > 0) {
+            marker.durationMs = Math.round(input.durationMs);
+          }
           set((state) => ({ markers: [...state.markers, marker] }));
           return marker;
         },

@@ -33,6 +33,12 @@ export const messages = pgTable(
     // Provider-agnostic session continuation token (state after this turn) —
     // mirrors the SQLite column. See ProviderSession.
     provider_session: jsonText<ProviderSession>()("provider_session"),
+    // Null on the conversation as it stands. An earlier version of its tail,
+    // kept when Edit or Retry replaced it, carries the id of that version.
+    branch_id: text("branch_id"),
+    // The live message the archived version followed: where it forks off.
+    // Empty when the version began the thread.
+    branch_after: text("branch_after"),
     created_at: text("created_at").notNull()
   },
   (table) => [index("idx_messages_thread_id").on(table.thread_id)]

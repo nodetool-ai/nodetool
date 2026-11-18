@@ -31,6 +31,7 @@ import { readGameSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { rpcRequest } from "../../lib/websocket/rpcRequest";
 import { useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
 import { useGameSetupWriter } from "./useGameSetup";
+import { recordFirstResult } from "../../lib/analytics";
 
 /** One designer call's output allowance, as `design_game` asks for. */
 export const GAME_DESIGNER_MAX_OUTPUT_TOKENS = 4096;
@@ -165,6 +166,7 @@ export const useDesignGame = (workflowId: string): UseDesignGameResult => {
           design_source: designSourceOf(template.id, brief),
           stage: GAME_DESIGN_STAGE
         });
+        recordFirstResult("game");
         return null;
       } catch (cause) {
         if (!isCurrent()) {

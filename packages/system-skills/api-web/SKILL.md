@@ -1,11 +1,9 @@
 ---
 name: api-web
-description: "Call nodetool.web or nodetool.email from a code action: search the web, news or images, read a page's text, make an HTTP request, download a file into the workspace, screenshot a page, or search, archive and label Gmail messages. Load before the first call into these namespaces."
+description: "Call nodetool.web from a code action: search the web, news or images, read a page's text, make an HTTP request, download a file into the workspace, or screenshot a page. Load before the first call into this namespace."
 ---
 
-# nodetool.web and nodetool.email
-
-## nodetool.web
+# nodetool.web
 
 | Call | Does | Answers |
 | :--- | :--- | :--- |
@@ -42,16 +40,3 @@ Rules:
 ```js
 const hits = await Promise.all(topics.map((t) => nodetool.web.search(t)));
 ```
-
-## nodetool.email
-
-Gmail, when the account is connected.
-
-| Call | Does |
-| :--- | :--- |
-| `search({subject, text, since_hours_ago, max_results})` | Finds messages. `since_hours_ago` defaults to 6 and `max_results` to 50. Each result has `message_id`, `subject`, `sender` and `body`. |
-| `archive(messageIds)` | Archives one id or an array of ids. |
-| `label(messageId, label)` | Adds a label to one message. |
-
-Archiving and labelling change the user's mailbox. Declare the action as
-high risk unless the user asked for exactly that change.

@@ -1,4 +1,5 @@
 import { validateGraph } from "@nodetool-ai/node-sdk";
+import type { GenerationAdmission } from "../generation-lifecycle.js";
 import { findMissingPacks } from "../missing-packs.js";
 import type { MissingPackDetails } from "@nodetool-ai/protocol";
 import { registerWorkflowRunTrace } from "./run-trace-lifecycle.js";
@@ -31,7 +32,6 @@ import type {
   NodeExecutor,
   ProcessingContext,
   StorageAdapter,
-  Workspace,
   PythonJobLifecycle
 } from "@nodetool-ai/runtime";
 import { ExecutionSession } from "../session.js";
@@ -70,7 +70,8 @@ import {
 } from "./debug-sessions.js";
 import {
   buildWorkspaceExecutionContext,
-  resolveWorkflowWorkspace
+  resolveProjectWorkspace,
+  type ProjectWorkspaceResolution
 } from "./workflow-workspace.js";
 import {
   isFunctionValue,
@@ -170,14 +171,24 @@ export interface WorkflowRunEnvironment {
    * job. Without it a saved-workflow run leaves no generations behind.
    */
   persistGeneration?: (generation: RunGeneration) => Promise<void>;
+  /**
+   * Checked before each provider call the run makes. A host whose entrance
+   * admitted nothing up front (an MCP session) passes its credit and quota
+   * check here.
+   */
+  admitGeneration?: GenerationAdmission;
 }
 
 /** One committed result of an auto-saving node in a saved-workflow run. */
 export interface RunGeneration {
   userId: string;
   workflowId: string;
+  /** The run's project. A saved output becomes a file in its folder. */
+  projectId: string | null;
   jobId: string;
   nodeId: string;
+  /** The node's title, or its type when it has none. */
+  nodeName: string;
   nodeType: string;
   /** k-th generation of this node in this run. */
   index: number;
@@ -248,12 +259,12 @@ export interface RunWorkflowOptions {
   decisionTimeoutMs?: number;
   /**
    * Injected so a host that mocks workspace resolution (the websocket tests
-   * do) keeps controlling it. Defaults to the workspace stored on the workflow.
+   * do) keeps controlling it. Defaults to the folder of the run's project.
    */
   resolveWorkspace?: (
-    workflowId: string | null,
+    projectId: string | null,
     userId: string
-  ) => Promise<Workspace | null>;
+  ) => Promise<ProjectWorkspaceResolution>;
   catalogs?: RunModelCatalogs;
   /**
    * The project this run belongs to, when the caller knows one. Neither a
@@ -646,6 +657,16 @@ function copyRecords(value: unknown): unknown {
   );
 }
 
+/**
+ * The title the editor gave a graph node (`ui_properties.title`), or
+ * undefined when it has none. A saved output is named after it.
+ */
+export function graphNodeTitle(node: unknown): string | undefined {
+  if (!isRecord(node) || !isRecord(node["ui_properties"])) return undefined;
+  const title = node["ui_properties"]["title"];
+  return isString(title) && title.trim() ? title.trim() : undefined;
+}
+
 interface GenerationSaves {
   /** Resolves once every save started so far has finished. */
   settle: () => Promise<void>;
@@ -660,7 +681,13 @@ function saveGenerations(
   context: ProcessingContext,
   registry: NodeRegistry,
   persist: (generation: RunGeneration) => Promise<void>,
-  run: { userId: string; workflowId: string; jobId: string }
+  run: {
+    userId: string;
+    workflowId: string;
+    projectId: string | null;
+    jobId: string;
+  },
+  titles: ReadonlyMap<string, string>
 ): GenerationSaves {
   const pending: Promise<void>[] = [];
   const indexByNode = new Map<string, number>();
@@ -673,6 +700,7 @@ function saveGenerations(
       persist({
         ...run,
         nodeId: msg.node_id,
+        nodeName: titles.get(msg.node_id) ?? msg.node_name,
         nodeType: msg.node_type,
         index,
         outputs: Object.fromEntries(
@@ -858,6 +886,19 @@ export async function runWorkflow(
     await environment.ensurePythonBridge();
   }
 
+  // The run's folder is read once, here, and kept for the whole run: a run
+  // started in one project keeps writing there whatever happens to the
+  // workflow afterwards. An unreachable folder refuses the run before its job
+  // row exists, and no other folder stands in for it.
+  const folder = await (options.resolveWorkspace ?? resolveProjectWorkspace)(
+    workflowProjectId,
+    userId
+  );
+  if (!folder.ok) {
+    return { kind: "error", status: 409, detail: folder.reason };
+  }
+  const workspace = folder.workspace;
+
   const job = (await Job.create({
     workflow_id: workflowId,
     user_id: userId,
@@ -868,17 +909,14 @@ export async function runWorkflow(
     project_id: workflowProjectId ?? "default"
   })) as Job;
 
-  // Everything after the row exists must finalize it. Workspace resolution,
-  // node-flag hydration and the run itself can all throw (fs, registry) — a
-  // bare throw here stranded the row at "running" forever.
+  // Everything after the row exists must finalize it. Node-flag hydration and
+  // the run itself can both throw (fs, registry) — a bare throw here stranded
+  // the row at "running" forever.
   let execution: ExecutionSession;
   let interactiveHandle: InteractiveEscalationHandle | null = null;
   let supervisorHandle: BoundedHandle | null = null;
   let generationSaves: GenerationSaves | null = null;
   try {
-    const workspace = await (
-      options.resolveWorkspace ?? resolveWorkflowWorkspace
-    )(workflowId || null, userId);
     if (interactive) {
       // `BoundedHandle` keeps the same guarantees an LLM supervisor gets —
       // decision/retry caps, a per-decision timeout that fails closed, sticky
@@ -922,7 +960,8 @@ export async function runWorkflow(
       workspace,
       storage: environment.storage ?? null,
       assetStorage: environment.assetStorage ?? null,
-      durableFalGenerations: true
+      durableFalGenerations: true,
+      admitGeneration: environment.admitGeneration
     });
     environment.configureContext?.(executionContext);
     if (environment.persistGeneration && !options.graph && workflowId) {
@@ -930,7 +969,18 @@ export async function runWorkflow(
         executionContext,
         registry,
         environment.persistGeneration,
-        { userId, workflowId, jobId: job.id }
+        {
+          userId,
+          workflowId,
+          projectId: executionContext.projectId,
+          jobId: job.id
+        },
+        new Map(
+          runnableGraph.nodes.flatMap((node): Array<[string, string]> => {
+            const title = graphNodeTitle(node);
+            return title ? [[node.id, title]] : [];
+          })
+        )
       );
     }
     await registerWorkflowRunTrace(executionContext, { jobId: job.id, workflowId: workflowId || null, inlineGraph: Boolean(options.graph) });

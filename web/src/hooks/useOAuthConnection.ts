@@ -29,7 +29,7 @@ export type OAuthManualInput = "address" | "code";
 
 const PROVIDER_CONFIG = {
   openai: {
-    label: "OpenAI",
+    label: "ChatGPT",
     canDisconnect: true,
     canCompleteManually: true,
     manualInput: "address"
@@ -400,7 +400,7 @@ export const useOAuthConnection = (
       if (!response.ok) {
         throw new Error("Could not check sign-in status");
       }
-      return (await response.json()) as { status: string };
+      return (await response.json()) as { status: string; detail?: string };
     },
     enabled: provider === "openai" && isConnecting && !!loginState,
     refetchInterval: 2000,
@@ -416,7 +416,8 @@ export const useOAuthConnection = (
       cancelled: "This sign-in was cancelled. Please start again.",
       expired: "Sign-in expired. Please start again."
     };
-    const message = messages[loginStatus.status];
+    const fallback = messages[loginStatus.status];
+    const message = fallback ? (loginStatus.detail ?? fallback) : undefined;
     if (message) {
       cancelManual();
       addNotification({ content: message, type: "error", alert: true });

@@ -550,13 +550,13 @@ private:
     static QJsonObject listOf(const char* entry) {
         return {{"type", "list"}, {"type_args", QJsonArray{QJsonObject{{"type", entry}}}}};
     }
-    static void structuredSetup(EditorWindow& window, const QJsonObject& type, const QJsonValue& value) {
+    static void structuredSetup(EditorWindow& window, const QJsonObject& type, const QJsonValue& value, const QString& editor = "structured-editor") {
         window.setCatalog({QJsonObject{{"node_type", "Fixture"}, {"properties", QJsonArray{QJsonObject{{"name", "value"}, {"type", type}, {"required", false}}}}}});
         QVERIFY(window.document()->load({{"graph", QJsonObject{{"nodes", QJsonArray{QJsonObject{{"id", "n"}, {"type", "Fixture"}, {"data", QJsonObject{{"value", value}}}}}}, {"edges", QJsonArray{}}}}}));
         window.resize(1300, 1000);
         window.show();
         QVERIFY(window.selectNode("n"));
-        QTRY_VERIFY(item(window, "structured-editor"));
+        QTRY_VERIFY(item(window, editor));
     }
     static QJsonValue stored(EditorWindow& window) {
         return window.document()->node("n")["data"].toObject()["value"];
@@ -666,8 +666,9 @@ private slots:
     void recordColumnsKeepRowsAndUnknownFields() {
         EditorWindow window;
         const QJsonObject original{{"type", "record_type"}, {"columns", QJsonArray{QJsonObject{{"name", "Column 1"}, {"data_type", "string"}, {"description", ""}, {"future", 8}}}}, {"data", QJsonArray{QJsonArray{"x"}}}, {"future", 9}};
-        structuredSetup(window, QJsonObject{{"type", "record_type"}}, original);
-        click(window, item(window, "structured-add"));
+        // RecordTypeProperty.tsx: Add column over the columns manager.
+        structuredSetup(window, QJsonObject{{"type", "record_type"}}, original, "record-type-editor");
+        click(window, item(window, "record-add-column"));
         QTRY_COMPARE(stored(window).toObject()["columns"].toArray().size(), 2);
         const auto result = stored(window).toObject();
         QCOMPARE(result["columns"].toArray().at(1).toObject()["name"].toString(), QString("Column 2"));

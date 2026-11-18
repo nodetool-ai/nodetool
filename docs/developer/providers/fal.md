@@ -15,7 +15,7 @@ A codegen pipeline fetches each endpoint's OpenAPI schema from `fal.ai`, convert
 2. Run `npm run generate:fal` from the repo root. To fetch only endpoints the manifest lacks, run `npx tsx scripts/append-new-endpoints.ts` from `packages/fal-codegen/`.
 3. Run `npm run build:packages` (fal-nodes loads from `dist/`).
 4. Run `npm run lint --workspace=packages/fal-codegen`, `npm run test --workspace=packages/fal-nodes`, and `npm run generate:fal:check`.
-5. Never commit manual edits to `fal-manifest.json`.
+5. Never commit manual edits to `fal-manifest.json`. The next `npm run generate:fal` overwrites them.
 
 
 ## Where things live
@@ -56,14 +56,12 @@ fal-factory.ts              creates runtime node classes from manifest at startu
 
 The root `generate:fal` script runs in strict mode by default: if any configured endpoint cannot be fetched or parsed, generation fails. Remove stale endpoints from the config or fix them before regenerating.
 
-**Never edit `fal-manifest.json` directly.** Changes are overwritten on the next `npm run generate:fal`.
-
 
 ## Add a new FAL endpoint
 
 ### 1. Find the right config file
 
-Pick the file in `packages/fal-codegen/src/configs/` that matches the endpoint's modality:
+Pick the file in `packages/fal-codegen/src/configs/` for the endpoint's modality:
 
 | Endpoint type | Config file |
 |---|---|
@@ -178,7 +176,7 @@ Run these in order after any config change:
 # 1. Regenerate the manifest
 npm run generate:fal
 
-# 2. Check for TypeScript errors in codegen
+# 2. Lint codegen
 npm run lint --workspace=packages/fal-codegen
 
 # 3. Run codegen tests and the fixture drift gate
@@ -191,7 +189,7 @@ npm run build:packages
 # 5. Run fal-nodes tests (exercises the generated node classes)
 npm run test --workspace=packages/fal-nodes
 
-# 6. Smoke-test one generated node (replace type and props as appropriate)
+# 6. Smoke-test one generated node
 npm run dev:nodetool -- node run fal.text_to_image.FluxDev \
   --props '{"prompt": "a red apple on a white table"}' \
   --no-secrets
@@ -205,11 +203,7 @@ Before committing, inspect the manifest diff:
 git diff packages/fal-nodes/src/fal-manifest.json | head -80
 ```
 
-Confirm the new entry appears with the expected `className`, `inputFields`, and `outputType`.
-
-
-Parser and codegen bugs go in `packages/fal-codegen/`. Runtime bugs go in `packages/fal-nodes/`. Never patch `fal-manifest.json`.
-
+Confirm the new entry has the expected `className`, `inputFields`, and `outputType`.
 
 ## Fixing a wrong input or output on a generated node
 

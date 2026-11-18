@@ -7,6 +7,10 @@
  * | Slot     | Content                                              |
  * |----------|------------------------------------------------------|
  * | Identity | Title (renames inline), then `SaveStatus`            |
+ *
+ * A host that already shows the name, such as a workspace tab, passes
+ * `showTitle={false}`: the Identity slot keeps only the status and the
+ * name stays in the bar's accessible label.
  * | History  | Undo, Redo                                           |
  * | Mode     | One `ModeSwitch`                                     |
  * | View     | Layout menu, panel toggles                           |
@@ -58,6 +62,11 @@ const WRAPPING_BAR_WIDTH = 480;
 export interface DocumentBarProps {
   /** The document name. */
   title: string;
+  /**
+   * Whether the bar draws the title. Off where the host already shows the
+   * name, such as the workspace tab of the document. Defaults to true.
+   */
+  showTitle?: boolean;
   /** Renames the document. Omit for a name that cannot change. */
   onRename?: (name: string) => void;
   /** Usually a `SaveStatus`. */
@@ -88,6 +97,7 @@ export type DocumentBarRender = (slots: DocumentBarSlots) => React.ReactNode;
 
 const DocumentBarInternal: React.FC<DocumentBarProps> = ({
   title,
+  showTitle = true,
   onRename,
   status,
   history,
@@ -99,6 +109,7 @@ const DocumentBarInternal: React.FC<DocumentBarProps> = ({
   const { t } = useTranslation();
   const [renaming, setRenaming] = useState(false);
   const tools = [history, mode, view].filter(Boolean);
+  const hasIdentity = showTitle || Boolean(status);
 
   return (
     <Toolbar
@@ -132,40 +143,48 @@ const DocumentBarInternal: React.FC<DocumentBarProps> = ({
         }
       }}
     >
-      <Box
-        className="document-bar-identity"
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: SPACING.md,
-          minWidth: 0,
-          flex: "0 1 auto"
-        }}
-      >
-        <InlineEditableText
-          value={title}
-          editing={renaming}
-          onEditingChange={(next) => setRenaming(next && Boolean(onRename))}
-          onCommit={(next) => onRename?.(next)}
-          ariaLabel={t("i18n-next103.documentBar.rename")}
-          title={onRename ? t("i18n-next103.documentBar.renameHint") : undefined}
-          displayClassName="document-bar-title"
-          displaySx={{
-            ...TYPOGRAPHY.sans.body,
-            fontWeight: 500,
-            color: "text.primary",
+      {hasIdentity && (
+        <Box
+          className="document-bar-identity"
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: SPACING.md,
             minWidth: 0,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap"
+            flex: "0 1 auto"
           }}
-          sx={{ ...TYPOGRAPHY.sans.body, fontWeight: 500, width: "100%" }}
-        />
-        {status && <Box className="document-bar-status">{status}</Box>}
-      </Box>
+        >
+          {showTitle && (
+            <InlineEditableText
+              value={title}
+              editing={renaming}
+              onEditingChange={(next) => setRenaming(next && Boolean(onRename))}
+              onCommit={(next) => onRename?.(next)}
+              ariaLabel={t("i18n-next103.documentBar.rename")}
+              title={
+                onRename ? t("i18n-next103.documentBar.renameHint") : undefined
+              }
+              displayClassName="document-bar-title"
+              displaySx={{
+                ...TYPOGRAPHY.sans.body,
+                fontWeight: 500,
+                color: "text.primary",
+                minWidth: 0,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap"
+              }}
+              sx={{ ...TYPOGRAPHY.sans.body, fontWeight: 500, width: "100%" }}
+            />
+          )}
+          {status && <Box className="document-bar-status">{status}</Box>}
+        </Box>
+      )}
       {tools.map((slot, index) => (
         <React.Fragment key={index}>
-          <ToolbarDivider className="document-bar-divider" />
+          {(hasIdentity || index > 0) && (
+            <ToolbarDivider className="document-bar-divider" />
+          )}
           <ToolbarGroup sx={{ flexShrink: 0 }}>{slot}</ToolbarGroup>
         </React.Fragment>
       ))}

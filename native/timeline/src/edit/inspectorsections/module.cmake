@@ -5,6 +5,7 @@ nt_qml_sources(src/edit/inspectorsections/InspectorSectionRegistry.h
     src/edit/inspectorsections/SectionRegistrations.cpp)
 nt_sources(qml_resources src/edit/inspectorsections/RegisteredInspectorSections.qml
     src/edit/inspectorsections/MediaSection.qml src/edit/inspectorsections/TimingSection.qml
+    src/edit/inspectorsections/AudioSection.qml
     src/edit/inspectorsections/ClipGroupPanel.qml src/edit/inspectorsections/InspectorCaption.qml
     src/edit/inspectorsections/InspectorActionButton.qml)
 

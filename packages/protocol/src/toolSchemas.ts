@@ -123,12 +123,91 @@ export const uiOpenWorkflowParams = {
   workflow_id: z.string().describe("Id of the workflow to open.")
 };
 
+/** A single-edit shape without the target fields, which the patch carries once. */
+const withoutTarget = <T extends z.ZodRawShape>(shape: T) => {
+  const { workflow_id: _workflowId, based_on_revision: _revision, ...entry } = shape;
+  return z.object(entry);
+};
+
+export const uiApplyGraphPatchParams = {
+  delete_edge_ids: z.array(z.string()).optional().describe("Edge ids to delete. Applied first."),
+  delete_node_ids: z
+    .array(z.string())
+    .optional()
+    .describe("Node ids to delete, with their edges. Applied second."),
+  add_nodes: z
+    .array(withoutTarget(uiAddNodeParams))
+    .optional()
+    .describe("Nodes to add, each as ui_add_node takes it."),
+  update_nodes: z
+    .array(withoutTarget(uiUpdateNodeDataParams))
+    .optional()
+    .describe("Node data overlays, each as ui_update_node_data takes it. A Code node's body goes here before its edges."),
+  move_nodes: z
+    .array(withoutTarget(uiMoveNodeParams))
+    .optional()
+    .describe("Node moves, each as ui_move_node takes it."),
+  add_edges: z
+    .array(withoutTarget(uiConnectNodesParams))
+    .optional()
+    .describe("Connections, each as ui_connect_nodes takes it. Applied last, so they can use nodes added above."),
+  workflow_id: optionalWorkflowIdSchema,
+  based_on_revision: basedOnWorkflowRevisionSchema
+};
+
+export const uiFocusNodesParams = {
+  node_ids: z
+    .array(z.string())
+    .min(1)
+    .describe("Ids of the nodes to select and frame on the canvas."),
+  workflow_id: optionalWorkflowIdSchema
+};
+
+export const uiUndoParams = {
+  based_on_revision: z
+    .string()
+    .regex(/^graph:[a-f0-9]{64}$/)
+    .describe(
+      "The document_revision your last graph edit returned. If the graph changed after it, nothing is undone."
+    ),
+  steps: z
+    .number()
+    .int()
+    .min(1)
+    .max(20)
+    .optional()
+    .describe("How many of your own edits to undo, newest first (default 1). A ui_apply_graph_patch call is one edit."),
+  workflow_id: optionalWorkflowIdSchema
+};
+
+export const uiNewWorkflowParams = {
+  name: z
+    .string()
+    .optional()
+    .describe('Name of the new workflow (default "New Workflow").')
+};
+
 export const uiRunWorkflowParams = {
   workflow_id: z.string().describe("Id of the workflow to run."),
   params: z
     .record(z.string(), z.unknown())
     .optional()
-    .describe("Optional workflow input parameters keyed by input-node name.")
+    .describe("Optional workflow input parameters keyed by input-node name."),
+  wait: z
+    .boolean()
+    .optional()
+    .describe(
+      "Wait for the run to end and return its status, outputs keyed by output name, and node errors. Default false returns only the job_id."
+    ),
+  timeout_seconds: z
+    .number()
+    .int()
+    .min(1)
+    .max(1800)
+    .optional()
+    .describe(
+      "With wait, the most seconds to wait (default 300). A run still going at the limit returns status \"running\" and keeps going."
+    )
 };
 
 export const uiSwitchTabParams = {
@@ -211,7 +290,7 @@ export const uiToolSchemas: Record<string, UiToolSchema> = {
   },
   ui_get_graph: {
     description:
-      "Get the workflow graph, source (editor or server), and document_revision. Pass this revision as based_on_revision on the next graph mutation to reject stale edits. No required arguments.",
+      "Get the workflow graph, source (editor or server), and document_revision. Pass this revision as based_on_revision on the next graph mutation to reject stale edits. In the editor, each node carries `last_run` (status, error, output) from the run the canvas shows. No required arguments.",
     parameters: uiGetGraphParams
   },
   ui_update_node_data: {
@@ -241,9 +320,29 @@ export const uiToolSchemas: Record<string, UiToolSchema> = {
       "Open a workflow tab and switch to it. Required: `workflow_id`.",
     parameters: uiOpenWorkflowParams
   },
+  ui_apply_graph_patch: {
+    description:
+      "Apply several graph edits as one undo step, in this order: delete_edge_ids, delete_node_ids, add_nodes, update_nodes, move_nodes, add_edges. Each entry takes the arguments of the matching single-edit tool. If one entry fails, no edit is applied and the error names the entry.",
+    parameters: uiApplyGraphPatchParams
+  },
+  ui_focus_nodes: {
+    description:
+      "Select nodes and frame them on the canvas, so the user sees what you changed. Required: `node_ids`.",
+    parameters: uiFocusNodesParams
+  },
+  ui_undo: {
+    description:
+      "Undo your own last graph edits in the editor. Required: `based_on_revision`, the document_revision your last edit returned. Refuses when the user edited the graph after that. Optional: `steps`.",
+    parameters: uiUndoParams
+  },
+  ui_new_workflow: {
+    description:
+      "Create an empty workflow, open it in a new editor tab, and switch to it. Returns its `workflow_id` for the graph tools. Optional: `name`.",
+    parameters: uiNewWorkflowParams
+  },
   ui_run_workflow: {
     description:
-      "Run a workflow. Required: `workflow_id`. Optional: `params` (input values).",
+      "Run a workflow in the editor, where the user sees each node run. Required: `workflow_id`. Optional: `params` (input values), `wait` (return status, outputs and node errors when the run ends), `timeout_seconds`.",
     parameters: uiRunWorkflowParams
   },
   ui_switch_tab: {

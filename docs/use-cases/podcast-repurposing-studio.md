@@ -12,20 +12,12 @@ canonical_url: "https://nodetool.ai/templates/podcast-repurposing-studio"
 
 <p class="usecase-eyebrow">Use case · Creators</p>
 
-Drop in one episode and ship the whole content pack: titles and show notes, a
-newsletter edition, five social posts, and quote cards rendered as square
-images. This is the work podcasters rent per-seat repurposing tools for, or
-skip entirely — here it's one canvas that already knows your show's voice.
-
-An episode's value doesn't stop at the RSS feed: the episode page, the email
-list, and the social feeds each need their own version of it, every week. That
-recurring rewrite is exactly what this graph automates — transcribe once, fan
-out to every format.
+One episode in, a content pack out: titles and show notes, a newsletter
+edition, five social posts, and quote cards rendered as square images.
 
 ## How it works
 
-One transcription, four writer branches. Everything downstream of the
-transcript runs in parallel.
+One transcription feeds four writer branches that run in parallel.
 
 {% mermaid %}
 graph LR
@@ -59,8 +51,8 @@ graph LR
 3. **Write the episode page.** An agent drafts three title options, a summary,
    chapter-style show notes, a resource list, and the closing CTA.
 4. **Draft the newsletter.** A second agent writes the email edition in the
-   host's voice — subject-line options and a body that teases instead of
-   summarizes.
+   host's voice: subject-line options and a body that teases instead of
+   summarizing.
 5. **Generate the posts.** A list generator writes five standalone social
    posts in mixed formats: a bold take, a question, a mini-story, a stat, a
    lesson.
@@ -70,27 +62,24 @@ graph LR
 
 ## One recording, a week of content
 
-Everything reads from the same transcript, so the pack is consistent: the
-newsletter teases what the show notes explain, and the quote cards say it in
-the host's own words. Run it as the last step of every edit session and
-publishing day becomes an upload, not a writing shift.
+Every branch reads the same transcript, so the newsletter teases what the show
+notes explain and the quote cards quote the host verbatim.
 
 ## Make it yours
 
-- **Tune each voice separately.** Show notes, newsletter, and posts each have
-  their own prompt and system prompt — make the newsletter personal and the
-  posts punchy without compromise.
-- **Swap the transcription model.** Whisper variants, local or hosted — the
-  branch prompts don't change.
-- **Restyle the cards.** The quote-card prompt controls typography, palette,
-  and format. Match your cover art, or go 9:16 for stories.
-- **Add branches.** A YouTube description, a LinkedIn essay, a blog post —
-  each is one more Prompt → Agent pair reading the same transcript.
+- Show notes, newsletter, and posts each have their own prompt and system
+  prompt, so the newsletter can be personal and the posts punchy.
+- Swap the transcription model for another Whisper variant, local or hosted.
+  The branch prompts don't change.
+- The quote-card prompt controls typography, palette, and format. Match your
+  cover art, or use 9:16 for stories.
+- A YouTube description, a LinkedIn essay, or a blog post is one more
+  Prompt → Agent pair reading the same transcript.
 
 ## Models in this workflow
 
-Called with your own keys. The bill comes from the provider. The template
-ships with the defaults below and each is one dropdown.
+Calls use your own keys, so the provider bills you. The template ships with the
+defaults below, each a dropdown.
 
 | Role | Node | Shipped default | Also works with |
 | --- | --- | --- | --- |
@@ -104,6 +93,6 @@ See [Models &amp; Providers]({{ '/models-and-providers' | relative_url }}) to se
 ## Next steps
 
 - Open the template: **Examples** in the sidebar, **Workflows** tab, *Podcast Repurposing Studio*
-- [Ad Creative Factory]({{ '/use-cases/ad-creative-factory' | relative_url }}) — the same fan-out, pointed at paid social
-- [Transcribe Audio]({{ '/workflows/transcribe-audio' | relative_url }}) — the transcription building block on its own
+- [Ad Creative Factory]({{ '/use-cases/ad-creative-factory' | relative_url }}): the same fan-out, pointed at paid social
+- [Transcribe Audio]({{ '/workflows/transcribe-audio' | relative_url }}): the transcription building block on its own
 - [All use cases]({{ '/use-cases' | relative_url }})

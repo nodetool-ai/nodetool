@@ -27,8 +27,8 @@ WebAssembly build, which the tests use.
   process RGB and copy alpha.
 - Audio methods take interleaved float32 samples and return a new buffer.
 - A streaming method takes a `state` array that the caller owns and passes
-  again with the next chunk. `createBiquadState`, `createOscillatorState` and
-  `STATE_LEN` give its size.
+  again with the next chunk. `createBiquadState`, `createOscillatorState`,
+  `createSamplerState` and `STATE_LEN` give its size.
 - A method checks that each buffer holds the elements the kernel reads, and
   throws a `RangeError` before the call when it does not.
 

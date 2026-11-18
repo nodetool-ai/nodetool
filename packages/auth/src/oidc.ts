@@ -614,7 +614,10 @@ export class OidcClient {
     const { allowedDomains, allowedGroups, groupsClaim } = this.config;
     if (allowedDomains.length > 0) {
       const email = readString(claims, "email");
-      if (!email || claims["email_verified"] === false) {
+      // Only an explicit `email_verified: true` counts. A provider that omits
+      // the claim may hand out addresses nobody confirmed, which would let a
+      // self-registered account claim an allowed domain.
+      if (!email || claims["email_verified"] !== true) {
         throw new OidcSignInError(
           "not_allowed",
           "The identity provider sent no verified email address, which OIDC_ALLOWED_DOMAINS requires"

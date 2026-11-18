@@ -14,7 +14,8 @@ import {
 } from "@nodetool-ai/models";
 import { SUPERSEDED_TOOL_RESULT } from "../src/chat-tool-call-repair.js";
 import { decidePermission, gateFromContext } from "@nodetool-ai/agents";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { createWorkspace, type ProcessingContext } from "@nodetool-ai/runtime";
+import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import { BaseNode, NodeRegistry } from "@nodetool-ai/node-sdk";
 import { importPack, readCatalogIndex, readCatalogNodes, MissingPackError, setPackLoaderContext } from "@nodetool-ai/node-catalog";
 import { findMissingPacks } from "@nodetool-ai/execution";
@@ -44,6 +45,15 @@ function autoApprove(harness: ChatTurnHarness): () => void {
     }
   }, 5);
   return () => clearInterval(timer);
+}
+
+/** Every turn gets a fresh in-memory project folder. */
+async function memoryFolder(projectId: string | null) {
+  return {
+    ok: true as const,
+    projectId: projectId ?? "",
+    workspace: createWorkspace(new InMemoryStorageAdapter())
+  };
 }
 
 const echoExecutor = (node: {
@@ -411,9 +421,9 @@ describe("thread bootstrap", () => {
               yield { type: "chunk", content: "ok", done: true };
             }
           }),
-        // Present so the turn resolves its workspace through the thread
-        // binding rather than skipping the lookup.
-        workspaceResolver: async () => null
+        // Present so the turn resolves its project folder rather than
+        // skipping the lookup.
+        workspaceResolver: memoryFolder
       }
     });
     await harness.handler.handleChatMessage({
@@ -439,7 +449,7 @@ describe("thread bootstrap", () => {
               yield { type: "chunk", content: "ok", done: true };
             }
           }),
-        workspaceResolver: async () => null
+        workspaceResolver: memoryFolder
       }
     });
     await harness.handler.handleChatMessage(chatTurn("t-reuse"));

@@ -26,6 +26,9 @@ vi.mock("@nodetool-ai/asset-services", () => ({
   createAssetModelInterface,
   updateAssetBytesModelInterface
 }));
+// Asset persistence loads the folder service, which the wholesale `models`
+// mock below cannot back.
+vi.mock("@nodetool-ai/execution/service", () => ({}));
 vi.mock("@nodetool-ai/models", () => ({
   getSecret: vi.fn(async (key: string) =>
     key === "FAL_API_KEY" ? "fal-secret" : null

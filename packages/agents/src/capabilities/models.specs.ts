@@ -48,7 +48,7 @@ export const FIND_MODEL_INPUT_SCHEMA: JsonSchema = {
     provider_hint: {
       type: "string" as const,
       description:
-        "Optional preferred provider id (e.g. 'openai'). Boosts matching providers."
+        "Optional preferred provider id (e.g. 'openai'). Boosts matching providers. When no result comes from it, the answer has provider_hint_matched: false and a note saying why."
     },
     model_hint: {
       type: "array" as const,
@@ -199,8 +199,10 @@ export const listProvidersSpec: CapabilitySpec = {
     "Each provider carries its `capabilities` (the provider interface " +
     "operations it implements, such as text_to_image or text_to_speech), " +
     "`tools` (capability → the tool that runs it, e.g. text_to_image → " +
-    "generate_image), whether it runs locally, and, when it cannot serve " +
-    "calls here, `unavailable_reason`. Call this first to learn what this " +
+    "generate_image), whether it runs locally, `credit` (remaining balance, " +
+    "when the provider reports one or refused a call for lack of credit; " +
+    "absent means unknown) and, when it cannot serve calls here, " +
+    "`unavailable_reason`. Providers out of credit are not available. Call this first to learn what this " +
     "install can generate; then list a provider's models with `list_models` " +
     "or pick one with `find_model`.",
   inputSchema: LIST_PROVIDERS_SCHEMA,

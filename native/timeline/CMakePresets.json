@@ -91,7 +91,8 @@
       "environment": {
         "ASAN_OPTIONS": "detect_leaks=1:protect_shadow_gap=0:halt_on_error=1:abort_on_error=0:suppressions=${sourceDir}/tools/sanitizers/asan.supp",
         "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1:suppressions=${sourceDir}/tools/sanitizers/ubsan.supp",
-        "LSAN_OPTIONS": "suppressions=${sourceDir}/tools/sanitizers/lsan.supp"
+        "LSAN_OPTIONS": "suppressions=${sourceDir}/tools/sanitizers/lsan.supp",
+        "QV4_GC_TIMELIMIT": "0"
       },
       "output": {
         "outputOnFailure": true

@@ -33,7 +33,8 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true
         spacing: Ui.Metrics.md
-        NodeButton {
+        Ui.EditorButton {
+            variant: Ui.EditorButton.Outlined
             objectName: "path-browse-" + root.descriptor.name
             text: "Browse…"
             enabled: root.writable

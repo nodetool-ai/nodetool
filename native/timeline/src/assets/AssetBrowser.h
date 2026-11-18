@@ -7,6 +7,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QPointer>
+#include <QElapsedTimer>
 #include <QThread>
 #include <QTimer>
 #include <QUrl>
@@ -40,6 +41,13 @@ class AssetBrowser : public QObject {
     Q_PROPERTY(QVariantList breadcrumbs READ breadcrumbs NOTIFY folderChanged)
     Q_PROPERTY(QVariantList transfers READ transfers NOTIFY transfersChanged)
     Q_PROPERTY(QString folderId READ folderId WRITE setFolderId NOTIFY folderChanged)
+    // The open server timeline's AutosaveController. Its `workspacefile` push
+    // for the project folder refreshes the rows: an outside rename changes an
+    // asset's name, an outside delete makes it offline.
+    Q_PROPERTY(QObject* autosave READ autosave WRITE setAutosave NOTIFY autosaveChanged)
+    // The workspace of the project's folder (ProjectFolderState). Empty while
+    // unknown: then every `workspacefile` push refreshes.
+    Q_PROPERTY(QString folderWorkspaceId READ folderWorkspaceId WRITE setFolderWorkspaceId NOTIFY autosaveChanged)
 public:
     explicit AssetBrowser(QObject* parent = nullptr);
     ~AssetBrowser() override;
@@ -89,7 +97,16 @@ public:
     Q_INVOKABLE bool placeSource(const QJsonObject& payload);
     Q_INVOKABLE void resolveClipMedia(const QVariantMap& asset, const QString& clipId);
     Q_INVOKABLE QUrl mediaUrl(const QString& path) const;
+    QObject* autosave() const { return m_autosave; }
+    void setAutosave(QObject* autosave);
+    QString folderWorkspaceId() const { return m_folderWorkspaceId; }
+    void setFolderWorkspaceId(const QString& id);
+    // Files in workspace `workspaceId` changed outside this view.
+    void workspaceFilesChanged(const QString& workspaceId);
+    // Points an offline asset at the file's new place (assets.relinkExternal).
+    Q_INVOKABLE void relinkAsset(const QString& id, const QUrl& file);
 signals:
+    void autosaveChanged();
     void thumbnailsChanged();
     void filtersChanged();
     void libraryScopeChanged();
@@ -120,6 +137,8 @@ private:
         std::optional<nt::Clip> media = {};
         std::optional<quint64> queryGeneration = {};
         bool display = true;
+        // The project the server files the timeline under, when the work asked.
+        std::optional<QString> project = {};
     };
     void request(std::function<Result(nt::server::ServerClient&)> work,
                  std::function<void(const Result&)> done = {},
@@ -127,6 +146,9 @@ private:
                  std::shared_ptr<std::atomic_bool> queryCancel = {});
     void updateAsset(const QJsonObject& fields);
     QString projectId() const;
+    QString timelineId() const;
+    // True at most once a minute: whether the next request asks the server for the timeline's project.
+    bool projectCheckDue();
     void transferState(const QString& id, const QString& status, const QString& error = {});
     void importNext();
     QueuedImport takeNextImport();
@@ -156,6 +178,9 @@ private:
     bool m_reconciling = false;
     std::optional<nt::server::SaveTarget> m_target;
     QPointer<TimelineModel> m_timeline;
+    QPointer<nt::server::AutosaveController> m_autosave;
+    QString m_folderWorkspaceId;
+    QElapsedTimer m_projectCheck;
     QPointer<QThread> m_thread;
     QJsonArray m_assets;
     QVariantList m_assetList;

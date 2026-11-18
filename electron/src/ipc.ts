@@ -44,6 +44,7 @@ import { applyVaultSwitch } from "./vaultSwitch";
 import { setMenuSnapToGrid } from "./menu";
 import { installMcpBundle } from "./mcpBundle";
 import { getVstHost } from "./vstHost";
+import { getCloudAccount } from "./cloudAccount";
 import { showSystemNotification } from "./systemNotifications";
 import { IpcRequest } from "./types.d";
 import {
@@ -1015,6 +1016,19 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(IpcChannels.VST_CLOSE_EDITOR, async (_event, instance) =>
     getVstHost().closeEditor(instance),
   );
+
+  // The shared cloud account (cloudAccount.ts). The requests carry no data,
+  // and the state holds no token.
+  createIpcMainHandler(IpcChannels.CLOUD_ACCOUNT_STATE, async () => getCloudAccount().state());
+  createIpcMainHandler(IpcChannels.CLOUD_ACCOUNT_SIGN_IN, async () => {
+    getCloudAccount().signIn();
+  });
+  createIpcMainHandler(IpcChannels.CLOUD_ACCOUNT_CANCEL_SIGN_IN, async () => {
+    getCloudAccount().cancelSignIn();
+  });
+  createIpcMainHandler(IpcChannels.CLOUD_ACCOUNT_SIGN_OUT, async () => {
+    getCloudAccount().signOut();
+  });
 
   createIpcMainHandler(IpcChannels.SHELL_BEEP, async () => {
     shell.beep();

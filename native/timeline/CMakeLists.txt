@@ -175,6 +175,9 @@ endif()
 if(NOT TARGET nodetool_media)
     add_subdirectory(../media ${CMAKE_CURRENT_BINARY_DIR}/media)
 endif()
+if(NOT TARGET nodetool_files)
+    add_subdirectory(../files ${CMAKE_CURRENT_BINARY_DIR}/files)
+endif()
 if(NOT TARGET nodetool_entities)
     add_subdirectory(../entities ${CMAKE_CURRENT_BINARY_DIR}/entities)
 endif()
@@ -267,7 +270,7 @@ qt_add_shaders(timeline_qml timeline_compositor_shaders
 list(REMOVE_DUPLICATES NT_qml_includes)
 target_include_directories(timeline_qml PUBLIC src/model src/playback src/preview src/ui src/edit ${NT_qml_includes})
 target_link_libraries(timeline_qml PUBLIC timeline_core timeline_decode timeline_audio
-    nodetool_model_picker nodetool_media nodetool_entities nodetool_storyboard nodetool_chat Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
+    nodetool_model_picker nodetool_media nodetool_files nodetool_entities nodetool_storyboard nodetool_chat nodetool_account_qt Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
 
 function(nt_add_timeline_qml target)
     # OUTPUT_DIRECTORY belonged to the former per-executable module. Keep the
@@ -283,7 +286,7 @@ function(nt_add_timeline_qml target)
     set_property(TARGET ${target} PROPERTY SOURCES "${host_sources}")
     nodetool_use_ui_primitives(${target})
     target_link_libraries(${target} PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,timeline_qml>"
-        nodetool_model_pickerplugin nodetool_mediaplugin nodetool_entitiesplugin nodetool_storyboardplugin nodetool_chatplugin)
+        nodetool_model_pickerplugin nodetool_mediaplugin nodetool_filesplugin nodetool_entitiesplugin nodetool_storyboardplugin nodetool_chatplugin)
 endfunction()
 nt_add_timeline_qml(nodetool-timeline)
 # Compile-only check of the Linux hardware path on macOS: with a
@@ -304,7 +307,7 @@ target_link_libraries(nodetool-timeline PRIVATE timeline_audio)
 
 find_package(Qt6 6.12 REQUIRED COMPONENTS Network WebSockets)
 add_library(timeline_server STATIC ${NT_server})
-target_link_libraries(timeline_server PUBLIC timeline_core timeline_decode Qt6::Network Qt6::WebSockets)
+target_link_libraries(timeline_server PUBLIC timeline_core timeline_decode nodetool_account_server_token Qt6::Network Qt6::WebSockets)
 target_compile_options(timeline_server PRIVATE ${NT_WARNINGS})
 # QML controllers include server headers, including their WebSocket types.
 target_link_libraries(timeline_qml PUBLIC timeline_server)
@@ -321,6 +324,19 @@ target_link_libraries(bench_scene PRIVATE timeline_core)
 get_property(NT_TEST_CALLBACKS GLOBAL PROPERTY NT_test_callbacks)
 foreach(callback IN LISTS NT_TEST_CALLBACKS)
     cmake_language(CALL ${callback})
+endforeach()
+
+# What scripts/op-conformance.mjs and scripts/plan-conformance.mjs run: the
+# app, timeline-ops and the oracle each suite in scripts/conformance/suites/
+# names next to timeline-ops.
+add_custom_target(conformance-helpers)
+foreach(helper nodetool-timeline timeline-ops nt_assets_oracle nt_assist_oracle structure-ops targeting-ops
+        timeline-gizmo-oracle track-ops tst_clipaudio tst_inspectorprimitives tst_keyframes tst_reframe tst_speed
+        tst_sync tst_tempo tst_transitions)
+    if(NOT TARGET ${helper})
+        message(FATAL_ERROR "conformance-helpers: no target ${helper}")
+    endif()
+    add_dependencies(conformance-helpers ${helper})
 endforeach()
 
 if(NT_FUZZ)

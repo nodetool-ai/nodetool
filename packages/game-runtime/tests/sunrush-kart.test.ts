@@ -54,7 +54,7 @@ describe("Sunrush Kart racing", () => {
         expect(racer).toMatchObject({ phase: "countdown", lap: 0, finished: false, speed: 0, item: "" });
       }
     } finally { session.dispose(); }
-  }, 120_000);
+  }, process.platform === "win32" ? 240_000 : 120_000);
 
   it("holds on the grid, freezes the race when paused, and reverses without awarding a lap", async () => {
     const session = await createGameSession3D(await document(), 1);
@@ -145,6 +145,6 @@ describe("Sunrush Kart racing", () => {
       expect(replay.inspect({ entityId: "racer-0" }).entities[0].props?.race).toMatchObject({ phase: "finished", position: 2 });
       expect(racerState(replay.snapshot()).results).toEqual(expect.arrayContaining(["1. REEF   1.00s"]));
     } finally { replay.dispose(); }
-  }, 120_000);
+  }, process.platform === "win32" ? 240_000 : 120_000);
 
 });

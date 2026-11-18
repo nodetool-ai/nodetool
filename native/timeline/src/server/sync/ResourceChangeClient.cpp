@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <utility>
+#include "nodetool/account/qt/ServerToken.h"
 
 namespace nt::server::sync {
 Q_LOGGING_CATEGORY(resourceChangeLog, "nodetool.timeline.sync.transport", QtInfoMsg)
@@ -62,6 +63,7 @@ ResourceChangeClient::ResourceChangeClient(const QUrl& base, const QString& id,
     connect(&m_socket, &QWebSocket::connected, this, [this] {
         m_backoff = m_backoffBase;
         m_socket.sendTextMessage(R"({"command":"set_mode","data":{"mode":"text"}})");
+        sendOpenProject();
         m_modeAcknowledged = false;
         m_reconnectRefresh = m_everConnected;
         m_everConnected = true;
@@ -101,10 +103,17 @@ ResourceChangeClient::ResourceChangeClient(const QUrl& base, const QString& id,
             return;
         }
         const auto resource = message["resource"].toObject();
-        if (message["type"] == "resource_change" && message["resource_type"] == m_resourceType
-            && resource["id"] == m_id) {
+        if (message["type"] != "resource_change") {
+            return;
+        }
+        const auto type = message["resource_type"].toString();
+        if (type == m_resourceType && resource["id"] == m_id) {
             emit changed(message["event"].toString(), resource["updated_at"].toString(),
                          message["ops"].toArray(), message["ops"].isArray());
+        } else if (type == u"workspacefile") {
+            emit workspaceFilesChanged(resource["id"].toString());
+        } else if (type == u"documentfile") {
+            emit documentFileChanged(resource);
         }
     });
     m_socket.setProxy(QNetworkProxy::NoProxy);
@@ -151,6 +160,33 @@ void ResourceChangeClient::scheduleRefresh()
         ? (m_refreshDelay ? m_refreshDelay() : static_cast<int>(m_random() * 3000)) : 0);
 }
 
+QString ResourceChangeClient::openProjectCommandId(const QString& projectId)
+{
+    return projectId.isEmpty() || projectId.startsWith(u"personal:") ? QStringLiteral("default") : projectId;
+}
+
+void ResourceChangeClient::setOpenProject(const QString& projectId)
+{
+    const auto id = openProjectCommandId(projectId);
+    if (m_openProject == id) {
+        return;
+    }
+    m_openProject = id;
+    if (connected()) {
+        sendOpenProject();
+    }
+}
+
+void ResourceChangeClient::sendOpenProject()
+{
+    if (!m_openProject) {
+        return;
+    }
+    const QJsonObject command{{"command", "set_open_project"},
+                              {"data", QJsonObject{{"project_id", *m_openProject}}}};
+    m_socket.sendTextMessage(QString::fromUtf8(QJsonDocument(command).toJson(QJsonDocument::Compact)));
+}
+
 void ResourceChangeClient::setRandomSource(std::function<double()> source) { m_random = std::move(source); }
 void ResourceChangeClient::setReconnectRefreshDelay(std::function<int()> source) { m_refreshDelay = std::move(source); }
 void ResourceChangeClient::setBackoffBase(int ms)
@@ -192,9 +228,7 @@ void ResourceChangeClient::open()
     url.setFragment({});
     QNetworkRequest request(url);
     request.setRawHeader("X-Nodetool-Client", kClientHeader);
-    if (!m_token.isEmpty()) {
-        request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
-    }
+    nodetool::account::qt::attachServerToken(request, m_base, m_token);
     setState(State::Connecting);
     if (m_running) {
         m_socket.open(request);

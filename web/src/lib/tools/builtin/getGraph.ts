@@ -4,6 +4,8 @@ import type { Node as GraphNode, Edge as GraphEdge } from "../../../stores/ApiTy
 import { fetchWorkflowById } from "../../../serverState/useWorkflow";
 import { FrontendToolRegistry } from "../frontendTools";
 import { resolveWorkflowId } from "./workflow";
+import { nodeRunState, type NodeRunState } from "./runReport";
+import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
 import { COMMENT_NODE_TYPE, GROUP_NODE_TYPE } from "../../../constants/nodeTypes";
 import { parsesAsCodeBody } from "../../../utils/codeOutputInference";
 import { isObjectLike, isRecord, isString } from "../../../utils/typePredicates";
@@ -153,6 +155,7 @@ interface ReadNode {
   position: { x: number; y: number };
   parentId?: string | null;
   data: Record<string, unknown>;
+  last_run?: NodeRunState;
 }
 
 interface ReadEdge {
@@ -221,7 +224,8 @@ FrontendToolRegistry.register({
     "Read a workflow graph (nodes and edges). Reads the open editor when the " +
     "workflow has one, otherwise the saved workflow from the server — so a " +
     "workflow created over the API is readable without opening it. " +
-    "`source` says which one answered.",
+    "`source` says which one answered. In the editor, each node carries " +
+    "`last_run` (status, error, output) from the run the canvas shows.",
   parameters: z.object(uiGetGraphParams),
   async execute({ workflow_id }, ctx) {
     const state = ctx.getState();
@@ -284,7 +288,19 @@ FrontendToolRegistry.register({
       // Validation is best-effort; don't fail the response
     }
 
-    return {
+    // The canvas shows one run at a time; report that run on each node.
+    const shownJob =
+      source === "editor"
+        ? useWorkflowRunsStore.getState().getFocusedJob(workflowId)
+        : undefined;
+    if (shownJob) {
+      nodes = nodes.map((node) => {
+        const lastRun = nodeRunState(workflowId, shownJob, node.id);
+        return Object.keys(lastRun).length > 0 ? { ...node, last_run: lastRun } : node;
+      });
+    }
+
+    const result: Record<string, unknown> = {
       ok: true,
       workflow_id: workflowId,
       source,
@@ -293,5 +309,9 @@ FrontendToolRegistry.register({
       edges,
       validation
     };
+    if (shownJob) {
+      result.last_run_job_id = shownJob;
+    }
+    return result;
   }
 });

@@ -1,5 +1,7 @@
 #pragma once
+#include <QImage>
 #include <QColor>
+#include <QVariantMap>
 #include <QPainterPath>
 #include <QString>
 #include <QTimer>
@@ -16,45 +18,55 @@
 namespace nodetool {
 class WorkflowGraphModel;
 
+// web AxisMarker.tsx: the origin lines run this many screen pixels, in
+// c_editor_axis_color from paletteDark.ts or paletteLight.ts.
+inline constexpr double axisMarkerLength = 80000;
+inline QColor axisMarkerColor(bool dark) { return dark ? QColor("#17181B") : QColor("#E4E4E7"); }
+
 // Colors and font families the canvas receives from Qt Quick. The web's node
 // background, canvas grid, and translucent controls are native-editor roles.
 struct CanvasTheme {
-  QColor canvas{"#08090a"};
-  QColor grid{"#1f2126"};
-  QColor node{"#0d0e10"};
-  QColor reroutePaper{"#101113"};
-  QColor rerouteBorder{"#808590"};
-  QColor divider{0xff, 0xff, 0xff, 0x14};
-  QColor field{0xff, 0xff, 0xff, 0x08};
-  QColor textPrimary{"#f7f8f8"};
-  QColor textSecondary{"#8a8f98"};
-  QColor checker{0xff, 0xff, 0xff, 0x06};
-    QColor subgraphAccent{"#7C3AED"};
-  QColor primary{"#3d68a8"};
+  // Every color is invalid until fromRoles fills it. Ui.Theme in native/ui_primitives is the only source of values.
+  QColor canvas;
+  QColor grid;
+  QColor node;
+  QColor reroutePaper;
+  QColor rerouteBorder;
+  QColor divider;
+  QColor field;
+  QColor textPrimary;
+  QColor textSecondary;
+  QColor checker;
+  QColor subgraphAccent;
+  QColor primary;
   // web palette secondary.main, the node progress bar.
-  QColor progress{"#e879f9"};
+  QColor progress;
   // web palette success.main and warning.main, the prompt variable chips.
-  QColor success{"#50fa7b"};
-  QColor warning{"#ffb86c"};
+  QColor success;
+  QColor warning;
+  // Ui.Theme.statusInfo, the keyword color of painted code.
+  QColor info;
   // ControlEdge.tsx CONTROL_EDGE_COLOR, a fixed amber in both themes.
-  QColor controlWire{"#f59e0b"};
+  QColor controlWire;
   // A card inside a group: the edge, and the fill that replaces the card color.
-  QColor groupHeader{"#2a2d33"};
-  QColor groupFill{0x22, 0x22, 0x22, 0x8c};
+  QColor groupHeader;
+  QColor groupFill;
   // The card title while zoomed out.
-  QColor zoomedTitle{"#b4b7bd"};
+  QColor zoomedTitle;
   // The selected edge of a Preview and of an Output card.
-  QColor previewSelected{"#d4d6db"};
-  QColor outputSelected{"#4adbf1"};
-  QColor selectionShadow{0, 0, 0, 77};
+  QColor previewSelected;
+  QColor outputSelected;
+  QColor selectionShadow;
   // Media on cards: the web's c_scrim behind badges and asset actions with its
   // grey 100 ink, and the alpha surface behind an image.
-  QColor mediaScrim{0, 0, 0, 153};
-  QColor mediaScrimInk{"#d4d6db"};
-  QColor alphaBase{"#1e1e1e"};
-  QColor alphaChecker{"#2a2a2a"};
+  QColor mediaScrim;
+  QColor mediaScrimInk;
+  QColor alphaBase;
+  QColor alphaChecker;
   QString sansFamily{"Inter"};
   QString monoFamily{"JetBrains Mono"};
+  // Reads every member from the presentation map that EditorCommands::present receives.
+  static CanvasTheme fromRoles(const QVariantMap &roles);
 };
 
 // The curve of a wire. Painting, hit testing, and the bounds margin all use it.
@@ -70,7 +82,7 @@ inline constexpr double disabledChipMargin = 6;
 QRectF disabledChipRect(const QRectF &header, double textWidth);
 // The web's branch-dimmed opacity for a node or wire off the selected branch,
 // styles/nodes.zoomed.css. Related items keep full opacity.
-inline constexpr double branchDimmedOpacity = 0.2;
+inline constexpr double branchDimmedOpacity = 0.6;
 // web config/constants.ts ZOOMED_OUT: at or below this zoom the web hides handles and
 // property rows, thickens wires and rings a selected card (nodes.zoomed.css).
 inline constexpr double zoomedOutThreshold = 0.35;
@@ -147,6 +159,15 @@ public:
   QtNodes::NodeId sliderDraftNode() const { return sliderNode_; }
   QString sliderDraftProperty() const { return sliderProperty_; }
   double sliderDraftValue() const { return sliderValue_; }
+  // The crop under a drag on a Crop card, in image pixels, painted before it is committed.
+  QtNodes::NodeId cropDraftNode() const { return cropNode_; }
+  // The Painter card under the pointer and the card-local brush cursor center.
+  QtNodes::NodeId brushCursorNode() const { return brushNode_; }
+  QPointF brushCursor() const { return brushPoint_; }
+  QRectF cropDraft() const { return cropValue_; }
+  // The stroke under a drag on a Painter card, at full alpha in canvas pixels.
+  QtNodes::NodeId paintDraftNode() const { return paintNode_; }
+  const QImage &paintDraft() const { return paintStroke_; }
   // True while a node or wire is faded because a selection is active and the
   // item is not on the selected branch.
   bool branchDimmed(QtNodes::NodeId id) const;
@@ -174,6 +195,22 @@ public:
     bool detach = false;
   };
   DragOutcome takeDragOutcome();
+  // GroupNode.tsx: a group's body lets the pointer through to the canvas and
+  // the cards inside, so a press there starts a box selection. Only the label,
+  // the resize edges and the corner handle take it. While Alt is held, a group
+  // that holds a selected card takes the pointer on its body too.
+  bool groupTakesPointer(QtNodes::NodeId id) const;
+  // The opacity GroupNode.tsx gives the whole group, label included: 0.5 while
+  // it takes the pointer, 0.8 while a dragged card is over it, otherwise 1.
+  double groupOpacity(QtNodes::NodeId id) const;
+  // useSelectionEvents.ts selectGroupsWithinSelection: a box selects a group
+  // only when it encloses the group's frame, while it selects cards it touches.
+  void keepEnclosedGroups(const QRectF &sceneArea);
+  // The "Remove nodes from group" hint GroupNode.tsx shows above the group a
+  // dragged card is over, once the card has stayed there for a second.
+  bool dropHintVisible() const;
+  static constexpr int dropHintDelayMs = 1000;
+  void setAltHeld(bool held);
 
 signals:
     void nodeDragChanged(bool active);
@@ -188,6 +225,8 @@ signals:
     // The card's slot type chip asks for the type menu below sceneAnchor.
     void dynamicTypeMenuRequested(const QString &id, const QString &name, const QRectF &sceneAnchor);
     void childOpenRequested(const QString &id);
+    // A card's header button, such as the ComfyUI runner's workflow loader.
+    void headerActionRequested(const QString &id, const QString &action);
   void canvasContextMenuRequested(const QString &nodeId, const QPoint &screenPosition);
   void paneDoubleClicked(const QPointF &scenePosition);
   void dataEdgeContextMenuRequested(const QString &edgeId, const QPointF &scenePosition, const QPoint &screenPosition);
@@ -201,6 +240,8 @@ signals:
   void providerConnectRequested(const QString &secretKey);
   // Report on a failed card, naming the node's resource id.
   void errorReportRequested(const QString &nodeId);
+  // A card's Run button asks to run that node alone. The node is selected first.
+  void nodeRunRequested(const QString &nodeId);
   // Opens the property's inline editor expanded, as Constant String's Open editor.
   void inlineExpandRequested(QtNodes::NodeId id, const QString &name);
   // A card slider drag moved to a value it has not committed yet.
@@ -222,6 +263,7 @@ protected:
   void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
   void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) override;
   void keyPressEvent(QKeyEvent *event) override;
+  void keyReleaseEvent(QKeyEvent *event) override;
   void focusOutEvent(QFocusEvent *event) override;
   void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
   void drawBackground(QPainter *painter, const QRectF &rect) override;
@@ -235,6 +277,7 @@ private:
   double phase_ = 0;
   bool reducedMotion_ = false;
     bool outputFormPress_ = false;
+    bool headerActionPress_ = false;
     QtNodes::NodeId footerPress_ = QtNodes::InvalidNodeId;
     QtNodes::NodeId footerHover_ = QtNodes::InvalidNodeId;
   bool inlinePress_ = false;
@@ -242,9 +285,36 @@ private:
   QString sliderProperty_;
   double sliderValue_ = 0;
   double sliderOrigin_ = 0;
+  // A drag of CropBody's rectangle or one of its handles.
+  QtNodes::NodeId cropNode_ = QtNodes::InvalidNodeId;
+  QString cropHandle_;
+  QRectF cropStart_;
+  QRectF cropValue_;
+  QPointF cropPointer_;
+  void moveCrop(const QPointF &scenePosition);
+  void finishCrop(bool commit);
+  // A brush or eraser stroke on PainterBody's canvas.
+  QtNodes::NodeId paintNode_ = QtNodes::InvalidNodeId;
+  QImage paintStroke_;
+  QPointF paintLast_;
+  void movePaint(const QPointF &scenePosition);
+  // A drag of ImageComparer's divider. The position is view state, so no undo step.
+  QtNodes::NodeId compareNode_ = QtNodes::InvalidNodeId;
+  void moveCompare(const QPointF &scenePosition);
+  // PainterBody's .brush-cursor: shown while the pointer is over a paint canvas.
+  QtNodes::NodeId brushNode_ = QtNodes::InvalidNodeId;
+  QPointF brushPoint_;
+  void updateBrushCursor(const QPointF &scenePosition);
+  void finishPaint(bool commit);
+  // A synth knob drag: vertical, from the press's card-local y, a tenth as fast with Shift.
+  bool knobDrag_ = false;
+  double knobStartY_ = 0;
+  bool knobFine_ = false;
   // Mode switches, the dimension lock, add buttons and sliders on a card body.
   bool pressCardControl(QtNodes::NodeId id, const QPointF &local);
   void moveSlider(const QPointF &scenePosition);
+  // Resets the synth knob under a double-click. Returns false when there is none.
+  bool resetKnob(const QPointF &scenePosition);
   void finishSlider(bool commit);
   bool wireReconnect_ = false;
   QJsonObject reconnectEdge_;
@@ -262,6 +332,12 @@ private:
   QSet<QtNodes::NodeId> dimmedNodes_;
   bool beginReconnect(QtNodes::ConnectionId connection, QtNodes::PortType side);
   void refreshRuntime();
+  // A single node's or wire's run message repaints only that card and its wires,
+  // so the other cards keep their cached pixmaps.
+  void refreshRuntimeNode(QtNodes::NodeId id);
+  void refreshRuntimeEdge(QtNodes::ConnectionId id);
+  bool runtimeActive() const;
+  void updateAnimation(bool changedItemActive);
   void restoreGroupOrder();
   void cancelGesture();
   enum class Gesture { None, Label, Resize };
@@ -275,6 +351,16 @@ private:
   Qt::Edges resizeEdges_;
   QSize minimumSize_;
   double eventZoom(const QGraphicsSceneMouseEvent *event) const;
+  // True when scenePosition is on the body of a group that lets the pointer through.
+  bool passesThroughGroup(QtNodes::NodeId id, const QPointF &scenePosition);
+  // Groups that let the pointer through accept no mouse button, so the scene
+  // leaves a press on their body unaccepted and the view starts a box selection.
+  void refreshGroupPointer();
+  void paintDropHint(QPainter *painter, const QRectF &frame) const;
+  bool altHeld_ = false;
+  bool labelAdditive_ = false;
+  QElapsedTimer dropClock_;
+  QTimer dropHintTimer_;
   QtNodes::NodeId dragNode_ = QtNodes::InvalidNodeId;
   QtNodes::NodeId dropGroup_ = QtNodes::InvalidNodeId;
   QPointF dragStart_;

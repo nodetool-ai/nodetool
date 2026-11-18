@@ -1,15 +1,21 @@
 name: Native timeline release
 
+# Called by release.yaml for every NodeTool release (v* tags and nightlies).
+# Its assets join that release: release.yaml's publish job downloads every
+# workflow artifact of the run, including timeline-<platform>. It builds the
+# commit of the calling run. A ref input would let the restored caches of
+# setup-native-timeline meet a checkout chosen by a caller (CodeQL cache
+# poisoning), so release.yaml skips it when the release builds another commit.
 on:
-  push:
-    tags: ['timeline-v*']
+  workflow_call:
+    inputs:
+      version:
+        description: NodeTool release version without the leading v. It names the downloads.
+        required: true
+        type: string
 
 permissions:
   contents: read
-
-concurrency:
-  group: timeline-release-${{ github.ref_name }}
-  cancel-in-progress: false
 
 env:
   QT_VERSION: '6.12.0'
@@ -19,7 +25,6 @@ jobs:
   version:
     runs-on: ubuntu-24.04
     outputs:
-      tag: ${{ steps.version.outputs.tag }}
       version: ${{ steps.version.outputs.version }}
       app_version: ${{ steps.version.outputs.app_version }}
     steps:
@@ -28,12 +33,8 @@ jobs:
           persist-credentials: false
       - id: version
         env:
-          TAG: ${{ github.ref_name }}
-        run: |
-          set -euo pipefail
-          [[ "$TAG" =~ ^timeline-v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
-          python3 native/timeline/scripts/release-version.py "$TAG" >> "$GITHUB_OUTPUT"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: python3 native/timeline/scripts/release-version.py "$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
 
   package:
     needs: version
@@ -81,8 +82,7 @@ jobs:
           cmake -S native/timeline -B native/timeline/build-ci -G Ninja \
             -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$QT_PREFIX"
           bash .github/scripts/disk-usage.sh cmake --build native/timeline/build-ci --target nodetool-timeline --parallel 3
-      - name: Install backend dependencies (macOS)
-        if: runner.os == 'macOS'
+      - name: Install backend dependencies
         # The package with server bundles the backend, which needs the
         # workspace packages and their native modules.
         run: npm ci
@@ -120,87 +120,56 @@ jobs:
           native/timeline/scripts/make-fixtures.sh
           # Use the same built app for the existing parity check: no second build.
           # The check refuses an identity signature, so it runs before signing.
+          # It audits the app without the backend, whose native Node modules
+          # are outside its licence audit.
           DEV_BIN='build-package/nodetool-timeline.app/Contents/MacOS/nodetool-timeline' native/timeline/scripts/check-package-macos.sh
-          for name in 'NodeTool Timeline' 'NodeTool Timeline (with server)'; do
-            native/timeline/scripts/sign-macos.sh "native/timeline/build-package/$name.app"
-          done
-          package() {
-            local name=$1 asset=$2
-            ditto -c -k --sequesterRsrc --keepParent "native/timeline/build-package/$name.app" "release-assets/$asset"
-            mkdir "$RUNNER_TEMP/$asset"
-            ditto -x -k "release-assets/$asset" "$RUNNER_TEMP/$asset"
-            spctl --assess --type execute --verbose=2 "$RUNNER_TEMP/$asset/$name.app"
-            python3 native/timeline/scripts/smoke-package.py "$RUNNER_TEMP/$asset/$name.app/Contents/MacOS/nodetool-timeline" \
-              --package "$RUNNER_TEMP/$asset" --version "$APP_VERSION"
-          }
-          package 'NodeTool Timeline' "nodetool-timeline-$VERSION-$RELEASE_PLATFORM.zip"
-          package 'NodeTool Timeline (with server)' "nodetool-timeline-with-server-$VERSION-$RELEASE_PLATFORM.zip"
+          # Only the app with the server ships, under the plain name.
+          build=native/timeline/build-package
+          rm -rf "$build/NodeTool Timeline.app"
+          mv "$build/NodeTool Timeline (with server).app" "$build/NodeTool Timeline.app"
+          native/timeline/scripts/sign-macos.sh "$build/NodeTool Timeline.app"
+          asset="nodetool-timeline-$VERSION-$RELEASE_PLATFORM.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$build/NodeTool Timeline.app" "release-assets/$asset"
+          mkdir "$RUNNER_TEMP/release-extracted"
+          ditto -x -k "release-assets/$asset" "$RUNNER_TEMP/release-extracted"
+          app="$RUNNER_TEMP/release-extracted/NodeTool Timeline.app"
+          spctl --assess --type execute --verbose=2 "$app"
+          python3 native/timeline/scripts/smoke-package.py "$app/Contents/MacOS/nodetool-timeline" \
+            --package "$RUNNER_TEMP/release-extracted" --version "$APP_VERSION"
+          node scripts/smoke-backend-bundle.mjs "$app/Contents/Resources/backend"
       - name: Package and verify Windows
         if: runner.os == 'Windows'
         run: |
           bash native/timeline/scripts/package-windows.sh
+          bash native/timeline/scripts/package-windows-with-server.sh
           # Future Windows signing belongs here, before archiving.
-          7z a "release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.zip" ./native/timeline/build-ci/package-windows/*
-          7z x -o"$RUNNER_TEMP/release-extracted" "release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.zip"
+          asset="nodetool-timeline-$VERSION-$RELEASE_PLATFORM.zip"
+          7z a "release-assets/$asset" ./native/timeline/build-ci/package-windows-with-server/*
+          7z x -o"$RUNNER_TEMP/release-extracted" "release-assets/$asset"
           python native/timeline/scripts/smoke-package.py "$RUNNER_TEMP/release-extracted/nodetool-timeline.exe" \
             --package "$RUNNER_TEMP/release-extracted" --version "$APP_VERSION"
+          node scripts/smoke-backend-bundle.mjs "$RUNNER_TEMP/release-extracted/backend"
       - name: Package and verify Linux
         if: runner.os == 'Linux'
         run: |
+          # package-linux.sh deploys the AppDir that the server package copies.
           bash native/timeline/scripts/package-linux.sh
+          rm -f ./*.AppImage
+          bash native/timeline/scripts/package-linux-with-server.sh
           # Future Linux package signing belongs here.
-          images=(./*.AppImage)
-          [[ ${#images[@]} == 1 ]]
-          mv "${images[0]}" "release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.AppImage"
           image="$GITHUB_WORKSPACE/release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.AppImage"
+          mv nodetool-timeline-with-server-linux-x64.AppImage "$image"
           chmod +x "$image"
           mkdir "$RUNNER_TEMP/release-extracted"
           (cd "$RUNNER_TEMP/release-extracted" && "$image" --appimage-extract)
-          xvfb-run -a python3 native/timeline/scripts/smoke-package.py "$RUNNER_TEMP/release-extracted/squashfs-root/AppRun" \
-            --package "$RUNNER_TEMP/release-extracted/squashfs-root" --version "$APP_VERSION"
+          root="$RUNNER_TEMP/release-extracted/squashfs-root"
+          xvfb-run -a python3 native/timeline/scripts/smoke-package.py "$root/AppRun" \
+            --package "$root" --version "$APP_VERSION"
+          node scripts/smoke-backend-bundle.mjs "$root/usr/share/nodetool-timeline/backend"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: timeline-${{ matrix.platform }}
+          retention-days: 7
           path: release-assets/*
           if-no-files-found: error
 
-  publish:
-    needs: [version, package]
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          pattern: timeline-*
-          merge-multiple: true
-          path: release-assets
-      - name: Check assets and write checksums
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
-        run: |
-          set -euo pipefail
-          cd release-assets
-          files=("nodetool-timeline-$VERSION-macos-arm64.zip" "nodetool-timeline-with-server-$VERSION-macos-arm64.zip" "nodetool-timeline-$VERSION-windows-x64.zip" "nodetool-timeline-$VERSION-linux-x64.AppImage")
-          for file in "${files[@]}"; do test -s "$file"; done
-          sha256sum "${files[@]}" > SHA256SUMS.txt
-      - name: Create draft prerelease
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          TAG: ${{ needs.version.outputs.tag }}
-        run: |
-          set -euo pipefail
-          # Fail if a release already exists. Never modify a published release.
-          gh release create "$TAG" --verify-tag --draft --prerelease \
-            --title "NodeTool Timeline $TAG" \
-            --notes 'The macOS builds are signed with a Developer ID and notarized. The Windows and Linux builds are unsigned. A person must review and publish this draft.
-
-          macOS: extract the ZIP and open NodeTool Timeline.app. The "with server" ZIP holds a NodeTool server that the app starts when it opens without a file, so it needs no other NodeTool install.
-
-          Windows: extract the ZIP and run nodetool-timeline.exe. In SmartScreen choose More info, then Run anyway.
-
-          Linux: run chmod +x nodetool-timeline-*-linux-x64.AppImage, then launch the AppImage. A FUSE installation may be needed, or use --appimage-extract-and-run.
-
-          Verify the download against SHA256SUMS.txt before opening it.' \
-            release-assets/*

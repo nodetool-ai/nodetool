@@ -288,6 +288,8 @@ exclude:
   - image-editor-prd.md
   - creation-flows/
   - timeline-editor-prd.md
+  # Cites repository source and excluded docs, which no built page can resolve.
+  - project-folders/
   - correlation-design.md
   - app-runs-design.md
   - workflow-loops.md
@@ -304,8 +306,10 @@ exclude:
   - plans/open-source-higgsfield-implementation.md
   - plans/provider-webhooks.md
   - plans/color-precision/
+  - plans/native-cloud-sync/
   # Native runner and editor plans. They cite native/ and web/ source, which
   # no built page can resolve, and only each other link to them.
+  - plans/audio-signal-nodes.md
   - plans/graph-runner-*
   - plans/native-node-editor.md
   - native-node-editor-visual-comparison.md

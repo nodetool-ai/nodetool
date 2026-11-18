@@ -31,7 +31,9 @@ vi.mock("node:readline", () => ({
 }));
 
 vi.mock("@nodetool-ai/models", () => ({
-  getSecret: vi.fn(async () => null)
+  getSecret: vi.fn(async () => null),
+  // Asset services install their file mover here when they load.
+  setAssetFileMover: vi.fn()
 }));
 
 vi.mock("@nodetool-ai/runtime", () => ({
@@ -185,6 +187,10 @@ vi.mock("@nodetool-ai/execution", () => ({
     );
   }
 }));
+
+// The chat context's asset persistence loads the folder service, which this
+// file's wholesale `models` and `runtime` mocks cannot back.
+vi.mock("@nodetool-ai/execution/service", () => ({}));
 
 vi.mock("../src/agent-toolbelt.js", async () => {
   const agents = await import("@nodetool-ai/agents");

@@ -33,7 +33,7 @@ import { useSketchStore } from "../state/useSketchStore";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { useSketchCanvasRefStore } from "../../../stores/sketch/SketchCanvasRefStore";
 import { getSelectionBounds } from "../selection";
-import { displayCombo } from "../shortcuts";
+import { displayCombo } from "../shortcuts/normalize";
 import { colorToHex6 } from "../types";
 
 /** Same step as the keyboard shortcuts and the wheel. */

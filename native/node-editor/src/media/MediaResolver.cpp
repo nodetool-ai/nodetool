@@ -18,14 +18,11 @@
 #include <QUrlQuery>
 #include <QUuid>
 #include <memory>
+#include "nodetool/account/qt/ServerToken.h"
 namespace nodetool::node_editor {
 namespace {
 constexpr qint64 ItemLimit = 32 * 1024 * 1024;
 constexpr qint64 CacheLimit = 128 * 1024 * 1024;
-bool sameOrigin(const QUrl &a, const QUrl &b) {
-  return a.scheme() == b.scheme() && a.host() == b.host() &&
-         a.port(a.scheme() == "https" ? 443 : 80) == b.port(b.scheme() == "https" ? 443 : 80);
-}
 bool httpUrl(const QUrl &url) {
   return url.isValid() && (url.scheme() == "http" || url.scheme() == "https") &&
          !url.host().isEmpty() && url.userInfo().isEmpty();
@@ -159,6 +156,11 @@ void MediaResolver::resolve(const QString &key, const QVariant &source) {
   }
   if (id.isEmpty() && LocalMediaStore::isLocalMedia(uri)) {
     if (useCached(key, serial, uri)) { return; }
+    const auto clip = LocalMediaStore::instance().clip(uri);
+    if (!clip.isNull()) {
+      store(key, serial, clip.bytes, {}, clip.contentType);
+      return;
+    }
     const auto image = localImage(uri);
     if (image.isNull()) { emit failed(key, "This run's image is no longer kept"); return; }
     // The cache file only feeds the preview, so it is written for speed: BMP
@@ -234,7 +236,7 @@ void MediaResolver::fetch(const QString &key, quint64 serial, const QUrl &url, b
   request.setAttribute(QNetworkRequest::CookieLoadControlAttribute, QNetworkRequest::Manual);
   request.setAttribute(QNetworkRequest::CookieSaveControlAttribute, QNetworkRequest::Manual);
   request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-  if (sameOrigin(server_, url) && !token_.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); }
+  nodetool::account::qt::attachServerToken(request, server_, token_);
   auto *reply = network_.get(request);
   replies_[key] = reply;
   connect(reply, &QNetworkReply::finished, this, [this] { QTimer::singleShot(0, this, [this] { drainFetches(); }); });
@@ -248,7 +250,7 @@ void MediaResolver::fetch(const QString &key, quint64 serial, const QUrl &url, b
     const auto status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     if (status >= 300 && status < 400) {
       auto target = url.resolved(reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toUrl());
-      if (redirects >= 5 || !httpUrl(target) || (url.scheme() == "https" && target.scheme() != "https") || (lookup && !sameOrigin(server_, target))) {
+      if (redirects >= 5 || !httpUrl(target) || (url.scheme() == "https" && target.scheme() != "https") || (lookup && !nodetool::account::qt::sameServerOrigin(server_, target))) {
         emit failed(key, "Media redirect was refused"); return;
       }
       fetch(key, serial, target, lookup, redirects + 1);
@@ -291,7 +293,7 @@ QString MediaResolver::suggestedFilename(const QString &key, const QString &requ
       {"audio/aac", "aac"}, {"audio/aacp", "aac"}, {"audio/mp4", "m4a"}, {"audio/x-m4a", "m4a"},
       {"audio/aiff", "aiff"}, {"audio/x-aiff", "aiff"}, {"audio/basic", "au"}, {"audio/x-ms-wma", "wma"}
     };
-    extension = LocalMediaStore::isLocalMedia(identity) ? QStringLiteral("png") : audioExtensions.value(mime);
+    extension = LocalMediaStore::isLocalMedia(identity) && entry->contentType.startsWith("image/") ? QStringLiteral("png") : audioExtensions.value(mime);
     if (extension.isEmpty() && mime.startsWith("audio/")) {
       extension = mime.mid(6);
       if (extension.startsWith("x-")) { extension.remove(0, 2); }
@@ -325,7 +327,7 @@ bool MediaResolver::saveResolved(const QString &key, const QUrl &destination) {
     emit saveFailed(key, "The media preview is no longer available"); return false;
   }
   QSaveFile output(destination.toLocalFile());
-  if (LocalMediaStore::isLocalMedia(identity)) {
+  if (LocalMediaStore::isLocalMedia(identity) && entry->contentType.startsWith("image/")) {
     const auto png = savedLocalImage(identity);
     if (png.isEmpty() || !output.open(QIODevice::WriteOnly) || output.write(png) != png.size() || !output.commit()) {
       emit saveFailed(key, "Could not save media to the selected file"); return false;
@@ -368,7 +370,7 @@ bool MediaResolver::saveToAssets(const QString &key, const QString &requested, c
   auto multipart = std::make_unique<QHttpMultiPart>(QHttpMultiPart::FormDataType);
   QIODevice *file = nullptr;
   auto mime = entry->contentType.section(';', 0, 0).trimmed();
-  if (LocalMediaStore::isLocalMedia(identity)) {
+  if (LocalMediaStore::isLocalMedia(identity) && entry->contentType.startsWith("image/")) {
     auto *buffer = new QBuffer(multipart.get());
     buffer->setData(savedLocalImage(identity));
     file = buffer;
@@ -419,7 +421,7 @@ bool MediaResolver::postAsset(const QString &key, std::unique_ptr<QHttpMultiPart
   request.setAttribute(QNetworkRequest::CookieLoadControlAttribute, QNetworkRequest::Manual);
   request.setAttribute(QNetworkRequest::CookieSaveControlAttribute, QNetworkRequest::Manual);
   request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-  if (!token_.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); }
+  nodetool::account::qt::attachServerToken(request, server_, token_);
   auto *reply = network_.post(request, multipart.get());
   multipart.release()->setParent(reply);
   uploads_[key] = reply;
@@ -442,7 +444,7 @@ void MediaResolver::store(const QString &key, quint64 serial, const QByteArray &
   const auto knownIdentity = identities_.value(key);
   if (entries_.contains(knownIdentity) && useCached(key, serial, knownIdentity)) { return; }
   if (bytes.isEmpty()) { emit failed(key, "Media response was empty"); return; }
-  if (bytes.size() > ItemLimit || !cache_.isValid() || !makeRoom(bytes.size())) {
+  if ((bytes.size() > ItemLimit && LocalMediaStore::instance().clip(knownIdentity).isNull()) || !cache_.isValid() || !makeRoom(bytes.size())) {
     emit failed(key, "Preview cache limit reached. Close the workflow to release previews"); return;
   }
   const QRegularExpression plainSuffix("^[a-zA-Z0-9]{1,8}$");

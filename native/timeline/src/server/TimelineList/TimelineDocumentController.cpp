@@ -2,6 +2,7 @@
 #include "TimelineLaunch.h"
 #include "app/Menus/ShellMenus.h"
 #include "app/Preferences/Preferences.h"
+#include "server/BundledServer.h"
 #include "server/ServerSource.h"
 #include <QCoreApplication>
 #include <QJsonArray>
@@ -23,6 +24,37 @@ TimelineDocumentController::TimelineDocumentController(QObject* parent)
     : QObject(parent), m_list(listTarget().server, listTarget().token, listTarget().expectedInstance, this) {
     connect(&m_list, &TimelineListController::openRequested, this, &TimelineDocumentController::switchTo);
 }
+TimelineDocumentController::~TimelineDocumentController() = default;
+QObject* TimelineDocumentController::accountServers() const { return m_servers; }
+QObject* TimelineDocumentController::cloudBrowser() const { return m_cloud.get(); }
+void TimelineDocumentController::setAccountServers(QObject* object) {
+    namespace account = nodetool::account::qt;
+    auto* servers = qobject_cast<account::AccountServers*>(object);
+    if (m_servers == servers) {
+        return;
+    }
+    if (m_servers) {
+        disconnect(m_servers, nullptr, this, nullptr);
+    }
+    m_servers = servers;
+    m_cloud.reset();
+    if (servers) {
+        m_cloud = std::make_unique<account::CloudBrowser>("timeline");
+        m_cloud->setAccount(servers->current());
+        connect(servers, &account::AccountServers::currentChanged, this, [this] {
+            if (m_cloud && m_servers) {
+                m_cloud->setAccount(m_servers->current());
+            }
+        });
+        connect(m_cloud.get(), &account::CloudBrowser::openRequested, this,
+                [this](const QString& kind, const QString& id, const QString&, const QString& role) {
+                    if (kind == u"timeline") {
+                        openCloud(id, role);
+                    }
+                });
+    }
+    emit cloudChanged();
+}
 void TimelineDocumentController::setAnchor(QQuickItem* anchor) {
     if (m_anchor == anchor) {
         return;
@@ -37,10 +69,44 @@ void TimelineDocumentController::setAnchor(QQuickItem* anchor) {
     QTimer::singleShot(0, this, &TimelineDocumentController::bind);
     emit anchorChanged();
 }
+void TimelineDocumentController::setListShown(bool shown) {
+    if (m_listShown == shown) {
+        return;
+    }
+    m_listShown = shown;
+    emit listShownChanged();
+}
+void TimelineDocumentController::watch(AutosaveController* autosave) {
+    if (m_autosave == autosave) {
+        return;
+    }
+    if (m_autosave) {
+        disconnect(m_autosave, nullptr, this, nullptr);
+    }
+    m_autosave = autosave;
+    if (autosave) {
+        // A timeline file became invalid, went missing or is fine again. The
+        // list has no socket of its own, so it hears of it here.
+        connect(autosave, &AutosaveController::documentFileChanged, this, [this] {
+            if (m_listShown && !m_switching && !m_list.busy() && !m_list.projects().isEmpty()) {
+                m_list.refresh();
+            }
+        });
+    }
+}
+AutosaveController* TimelineDocumentController::findAutosave() const {
+    for (auto* item = m_anchor.data(); item; item = item->parentItem()) {
+        if (auto* save = qobject_cast<AutosaveController*>(item->property("autosave").value<QObject*>())) {
+            return save;
+        }
+    }
+    return nullptr;
+}
 void TimelineDocumentController::bind() {
     if (!m_anchor || !m_anchor->window()) {
         return;
     }
+    watch(findAutosave());
     QQuickItem* root = m_anchor;
     while (root->parentItem()) {
         root = root->parentItem();
@@ -111,30 +177,52 @@ void TimelineDocumentController::createMusicAndOpen(const QVariantMap& settings)
     }
     m_list.openTimeline(created.value("id").toString());
 }
+bool TimelineDocumentController::leaveCurrent() {
+    bind();
+    if (!m_menus || !m_menus->preferences()) {
+        fail(QStringLiteral("Could not access timeline preferences. Try opening the timeline again."));
+        return false;
+    }
+    if (auto* save = findAutosave(); save && !save->flushBeforeQuit(5000)) {
+        fail(QStringLiteral("Could not save the current timeline. %1").arg(save->lastError()));
+        return false;
+    }
+    return true;
+}
+void TimelineDocumentController::openCloud(const QString& id, const QString& role) {
+    if (m_switching || !m_anchor || !m_anchor->window() || !m_servers || !m_servers->current()) {
+        return;
+    }
+    const QScopedValueRollback switching(m_switching, true);
+    if (m_servers->current()->state() != nodetool::account::qt::AccountController::State::SignedIn) {
+        fail(QStringLiteral("Sign in to open a cloud timeline."));
+        return;
+    }
+    if (!leaveCurrent()) {
+        return;
+    }
+    QStringList arguments{QStringLiteral("--cloud-server"), m_servers->currentServer(), QStringLiteral("--cloud-timeline"),
+                          id, QStringLiteral("--cloud-role"), role.isEmpty() ? QStringLiteral("owner") : role};
+    // The new window keeps its drafts on this window's local server.
+    auto environment = timelineLaunchEnvironment(listTarget());
+    if (!listTarget().server.isEmpty()) {
+        environment.insert(QStringLiteral("NODETOOL_SERVER_URL"), listTarget().server.toString());
+    }
+    launch(std::move(arguments), environment);
+}
 void TimelineDocumentController::switchTo(const QString& source) {
     if (m_switching || !m_anchor || !m_anchor->window()) {
         return;
     }
     const QScopedValueRollback switching(m_switching, true);
-    bind();
-    if (!m_menus || !m_menus->preferences()) {
-        fail(QStringLiteral("Could not access timeline preferences. Try opening the timeline again."));
+    if (!leaveCurrent()) {
         return;
-    }
-    for (auto* item = m_anchor.data(); item; item = item->parentItem()) {
-        if (auto* save = qobject_cast<AutosaveController*>(item->property("autosave").value<QObject*>())) {
-            if (!save->flushBeforeQuit(5000)) {
-                fail(QStringLiteral("Could not save the current timeline. %1").arg(save->lastError()));
-                return;
-            }
-            break;
-        }
     }
     const QUrl url(source);
     const auto id = url.fragment().sliced(QStringLiteral("timeline=").size());
     const auto server = url.adjusted(QUrl::RemoveFragment);
     const QVariantMap entry{{"kind", "server"}, {"server", server.toString()}, {"timelineId", id}};
-    const auto arguments = nt::app::recentTimelineArguments(entry);
+    auto arguments = nt::app::recentTimelineArguments(entry);
     QString label = QStringLiteral("Untitled video");
     for (const auto& value : m_list.documents()) {
         const auto row = value.toMap();
@@ -144,6 +232,21 @@ void TimelineDocumentController::switchTo(const QString& source) {
         }
     }
     m_menus->preferences()->addRecentServer(label, {server, {}, id, {}, {}});
+    launch(std::move(arguments), timelineLaunchEnvironment(listTarget()));
+}
+void TimelineDocumentController::launch(QStringList arguments, const QProcessEnvironment& environment) {
+    // The new window keeps this one's audio output and decoder, so a run
+    // started with --audio null (no sound device) does not die at launch.
+    const auto own = QCoreApplication::arguments();
+    for (qsizetype i = 1; i < own.size(); ++i) {
+        for (const auto& option : {QStringLiteral("audio"), QStringLiteral("decode")}) {
+            if (own[i] == "--" + option && i + 1 < own.size()) {
+                arguments << own[i] << own[i + 1];
+            } else if (own[i].startsWith("--" + option + "=")) {
+                arguments << own[i];
+            }
+        }
+    }
     bool started = false;
     const auto capture = qEnvironmentVariable("NT_TIMELINE_SWITCH_CAPTURE");
     if (!capture.isEmpty() && qEnvironmentVariableIsSet("NT_TIMELINE_DOCUMENT_CHECK")) {
@@ -152,10 +255,12 @@ void TimelineDocumentController::switchTo(const QString& source) {
         const auto bytes = QJsonDocument(QJsonArray::fromStringList(arguments)).toJson(QJsonDocument::Compact);
         started = file.open(QIODevice::WriteOnly) && file.write(bytes) == bytes.size() && file.commit();
     } else {
+        // This process quits next, so the server must wait for the new window.
+        nt::server::noteBundledServerHandoff();
         QProcess child;
-        child.setProgram(QCoreApplication::applicationFilePath());
+        child.setProgram(nt::server::appRelaunchProgram());
         child.setArguments(arguments);
-        child.setProcessEnvironment(timelineLaunchEnvironment(listTarget()));
+        child.setProcessEnvironment(environment);
         started = child.startDetached();
     }
     if (!started) {

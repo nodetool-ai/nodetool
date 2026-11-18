@@ -3,8 +3,14 @@
 #include <QtQml/qqmlregistration.h>
 
 #include "interfaces/DocumentTabs.h"
+#include "interfaces/ExampleGallery.h"
+#include "interfaces/GenerationActivity.h"
+#include "interfaces/WorkerFleet.h"
+#include "interfaces/GenerationRowsModel.h"
 #include "interfaces/GenerationReplay.h"
 #include "interfaces/NodeCatalog.h"
+#include "interfaces/NodeInfo.h"
+#include "interfaces/PriceChip.h"
 #include "interfaces/NodeInspector.h"
 #include "interfaces/PanelLayout.h"
 #include "interfaces/StatusModel.h"
@@ -16,16 +22,64 @@
 #include "interfaces/ChatWindow.h"
 #include "server/WorkflowBrowser.h"
 #include "library/LibraryBrowser.h"
+#include "server/ProjectFolder.h"
 #include "interfaces/WorkflowHeader.h"
 #include "interfaces/Notifications.h"
 #include "interfaces/PropertyHost.h"
 #include "server/PackSetup.h"
+#include "nodetool/account/qt/AccountController.h"
+#include "nodetool/account/qt/AccountServers.h"
+#include "nodetool/account/qt/CloudBrowser.h"
+#include "nodetool/account/qt/CloudDocument.h"
+#include "nodetool/account/qt/ShareController.h"
 
 // The C++ interface types that NodeTool.NodeEditor components take as required
 // properties. They live in node_editor_interfaces, outside the QML module, so a
 // host or a test can link them without the editor. The owner creates each one,
 // so QML cannot.
 namespace nodetool::node_editor::qml {
+
+struct AccountControllerForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::account::qt::AccountController)
+    QML_NAMED_ELEMENT(AccountController)
+    QML_UNCREATABLE("An AccountController comes from its owner.")
+};
+
+struct AccountServersForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::account::qt::AccountServers)
+    QML_NAMED_ELEMENT(AccountServers)
+    QML_UNCREATABLE("AccountServers comes from its owner.")
+};
+
+struct CloudBrowserForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::account::qt::CloudBrowser)
+    QML_NAMED_ELEMENT(CloudBrowser)
+    QML_UNCREATABLE("A CloudBrowser comes from its owner.")
+};
+
+struct CloudDocumentListForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::account::qt::CloudDocumentList)
+    QML_NAMED_ELEMENT(CloudDocumentList)
+    QML_UNCREATABLE("A CloudDocumentList comes from its CloudBrowser.")
+};
+
+struct CloudDocumentForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::account::qt::CloudDocument)
+    QML_NAMED_ELEMENT(CloudDocument)
+    QML_UNCREATABLE("A CloudDocument comes from its owner.")
+};
+
+// The share dialog creates its own controller.
+struct ShareControllerForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::account::qt::ShareController)
+    QML_NAMED_ELEMENT(ShareController)
+};
 
 struct NodeCatalogForeign {
     Q_GADGET
@@ -48,11 +102,52 @@ struct NodeInspectorForeign {
     QML_UNCREATABLE("A NodeInspector comes from its owner.")
 };
 
+struct NodeInfoForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::NodeInfo)
+    QML_NAMED_ELEMENT(NodeInfo)
+    QML_UNCREATABLE("A NodeInfo comes from its owner.")
+};
+
+struct PriceChipForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::PriceChip)
+    QML_NAMED_ELEMENT(PriceChip)
+    QML_UNCREATABLE("A PriceChip comes from its owner.")
+};
+
 struct PropertyHostForeign {
     Q_GADGET
     QML_FOREIGN(nodetool::node_editor::PropertyHost)
     QML_NAMED_ELEMENT(PropertyHost)
     QML_UNCREATABLE("A PropertyHost comes from its owner.")
+};
+
+struct ExampleGalleryForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::ExampleGallery)
+    QML_NAMED_ELEMENT(ExampleGallery)
+    QML_UNCREATABLE("An ExampleGallery comes from its owner.")
+};
+
+struct GenerationActivityForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::GenerationActivity)
+    QML_NAMED_ELEMENT(GenerationActivity)
+    QML_UNCREATABLE("A GenerationActivity comes from its owner.")
+};
+
+struct WorkerFleetForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::WorkerFleet)
+    QML_NAMED_ELEMENT(WorkerFleet)
+    QML_UNCREATABLE("A WorkerFleet comes from its owner.")
+};
+
+struct GenerationRowsModelForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::GenerationRowsModel)
+    QML_NAMED_ELEMENT(GenerationRowsModel)
 };
 
 struct GenerationReplayForeign {
@@ -152,6 +247,13 @@ struct LibraryBrowserForeign {
     QML_FOREIGN(nodetool::node_editor::LibraryBrowser)
     QML_NAMED_ELEMENT(LibraryBrowser)
     QML_UNCREATABLE("A LibraryBrowser comes from its owner.")
+};
+
+struct ProjectFolderForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::ProjectFolder)
+    QML_NAMED_ELEMENT(ProjectFolder)
+    QML_UNCREATABLE("A ProjectFolder comes from its owner.")
 };
 
 }  // namespace nodetool::node_editor::qml

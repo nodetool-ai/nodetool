@@ -1,0 +1,347 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-11-12T00:00:00.000Z",
+  "updated_at": "2026-11-12T00:00:00.000Z",
+  "name": "Three Ways to Fix a Flat Image",
+  "tool_name": null,
+  "description": "Draws a dull, low-contrast title card and compares auto contrast, histogram equalization and adaptive contrast side by side. Runs locally with no file, model or key.",
+  "tags": [
+    "image",
+    "enhance",
+    "example",
+    "local"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Three Ways to Fix a Flat Image\n\nDraws a dull, low-contrast title card and fixes it three ways, side by side. Every step runs in the editor process, with no file, model or key.\n\n**How it works:** \"1 Gradient\", \"2 Title\" and \"3 Grain\" draw the flat image, and \"4 Flat image\" adds the grain. \"Auto contrast\" stretches the levels so 1% of the pixels clip at each end. \"Equalize\" flattens the histogram. \"Adaptive\" equalizes each tile of an 8 by 8 grid, with a clip limit against noise.\n\n**Try this:** Set Clip Limit on \"Adaptive\" to 4 for a stronger local effect, or connect your own image to \"4 Flat image\"."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 640,
+          "selectable": true,
+          "height": 300
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "grad",
+        "type": "lib.image.draw.LinearGradient",
+        "data": {
+          "width": 768,
+          "height": 512,
+          "color_a": {
+            "type": "color",
+            "value": "#4f5561"
+          },
+          "color_b": {
+            "type": "color",
+            "value": "#7d7668"
+          },
+          "angle": 30,
+          "midpoint": 0.5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Gradient"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "text",
+        "type": "lib.image.draw.RenderText",
+        "data": {
+          "text": "NodeTool",
+          "x": 384,
+          "y": 190,
+          "size": 120,
+          "color": {
+            "type": "color",
+            "value": "#8a8e96"
+          },
+          "align": "center"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Title"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "noise",
+        "type": "lib.image.draw.GaussianNoise",
+        "data": {
+          "mean": 0,
+          "stddev": 1,
+          "width": 768,
+          "height": 512,
+          "seed": 5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 640
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Grain"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "add",
+        "type": "lib.image.effects.Add",
+        "data": {
+          "gain": 0.05
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Flat image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "auto",
+        "type": "lib.image.enhance.AutoContrast",
+        "data": {
+          "cutoff": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 220
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Auto contrast"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "eq",
+        "type": "lib.image.enhance.Equalize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 520
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Equalize"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ada",
+        "type": "lib.image.enhance.AdaptiveContrast",
+        "data": {
+          "clip_limit": 2,
+          "grid_size": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 820
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Adaptive"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "p-flat",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "flat"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 640
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Flat"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "p-auto",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "auto_contrast"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1320,
+            "y": 220
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Auto contrast result"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "p-eq",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "equalized"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1320,
+            "y": 520
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Equalize result"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "p-ada",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "adaptive"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1320,
+            "y": 820
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Adaptive result"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "s1",
+        "source": "grad",
+        "sourceHandle": "output",
+        "target": "text",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s2",
+        "source": "text",
+        "sourceHandle": "output",
+        "target": "add",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s3",
+        "source": "noise",
+        "sourceHandle": "output",
+        "target": "add",
+        "targetHandle": "over"
+      },
+      {
+        "id": "e1",
+        "source": "add",
+        "sourceHandle": "output",
+        "target": "auto",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e2",
+        "source": "add",
+        "sourceHandle": "output",
+        "target": "eq",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e3",
+        "source": "add",
+        "sourceHandle": "output",
+        "target": "ada",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e4",
+        "source": "add",
+        "sourceHandle": "output",
+        "target": "p-flat",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e5",
+        "source": "auto",
+        "sourceHandle": "output",
+        "target": "p-auto",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e6",
+        "source": "eq",
+        "sourceHandle": "output",
+        "target": "p-eq",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e7",
+        "source": "ada",
+        "sourceHandle": "output",
+        "target": "p-ada",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "run_mode": null
+}

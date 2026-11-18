@@ -1,5 +1,10 @@
 import type { FastifyPluginAsync } from "fastify";
-import { resolveWebhook, rejectWebhook } from "@nodetool-ai/runtime";
+import {
+  isValidKieWebhookToken,
+  rejectWebhook,
+  resolveWebhook
+} from "@nodetool-ai/runtime";
+import { parseJsonBodies } from "../lib/json-body.js";
 import {
   isNonEmptyString,
   isObjectLike,
@@ -48,8 +53,19 @@ const FAILURE_STATES = new Set([
 ]);
 
 const kieWebhookRoute: FastifyPluginAsync = async (app) => {
-  // KIE calls POST /api/kie/webhook with taskId in the body.
+  // The server-wide parser hands handlers a raw Buffer; this route reads an
+  // object, so it parses JSON itself.
+  parseJsonBodies(app);
+  // KIE calls POST /api/kie/webhook?token=… with taskId in the body. KIE signs
+  // nothing, so the token in the callBackUrl this server submitted is the only
+  // proof the call came from KIE. Without it anyone who learns a task id could
+  // fail or resolve a user's paid task.
   app.post("/api/kie/webhook", async (req, reply) => {
+    const query = (req.query ?? {}) as Record<string, unknown>;
+    if (!isValidKieWebhookToken(query["token"])) {
+      reply.status(401).send({ error: "Invalid webhook token" });
+      return;
+    }
     const taskId = extractTaskId(req.body);
     if (!taskId) {
       reply.status(400).send({ error: "No taskId in request body" });

@@ -8,7 +8,6 @@ import { trpcClient } from "../trpc/client";
 import { Asset, AssetList, AssetSearchResult } from "./ApiTypes";
 import { QueryClient, QueryKey } from "@tanstack/react-query";
 import { assetIdFromRef } from "@nodetool-ai/protocol";
-import type { AssetGridStoreApi } from "./AssetGridStore";
 import { AppError, createErrorMessage } from "../utils/errorHandling";
 import {
   prepareUploadFile,
@@ -21,6 +20,7 @@ import {
 } from "../utils/normalizeAsset";
 import { isFunction, isNumber, isObjectLike } from "../utils/typePredicates";
 import { getLocalFilePath } from "../utils/localFile";
+import { creationProjectId } from "./WorkspaceTabsStore";
 
 type AssetCreatePayload = {
   workflow_id?: string;
@@ -28,6 +28,12 @@ type AssetCreatePayload = {
   parent_id?: string | null;
   content_type?: string | null;
   name?: string;
+  /**
+   * Directory in the project folder the file was dropped on, relative to the
+   * folder (`.` is the folder itself). Omitted, the server saves the upload
+   * in `Imported/`.
+   */
+  directory?: string;
 };
 
 type UploadProgressEvent = {
@@ -109,31 +115,50 @@ const uploadAssetDirect = async (
   }
 
   emitUploadProgress(onUploadProgress, file.size, file.size);
+  const finalizeInput: Parameters<
+    typeof trpcClient.assets.finalizeUpload.mutate
+  >[0] = { asset_id: created.asset_id };
+  if (payload.directory !== undefined) {
+    finalizeInput.directory = payload.directory;
+  }
   return normalizeAssetUrls(
-    (await trpcClient.assets.finalizeUpload.mutate({
-      asset_id: created.asset_id
-    })) as Asset
+    (await trpcClient.assets.finalizeUpload.mutate(finalizeInput)) as Asset
   );
 };
 
 /**
- * Reference a large local file in place instead of uploading it (desktop app
+ * How an import treats a file on the desktop app: `copy` writes it into the
+ * project folder, `link` references it where it is. A plain browser always
+ * copies, because a file picked there has no disk path.
+ */
+export type ImportMode = "copy" | "link";
+
+/**
+ * Reference a local file in place instead of uploading it (desktop app
  * only). `diskPathSource` is the file as the user dropped or picked it: only
- * that `File` carries a disk path in Electron. Returns null when the file has
- * no disk path (every plain browser), when the server does not offer external
- * references, or when the file is below the server's threshold, which is the
- * signal to upload.
+ * that `File` carries a disk path in Electron. With no `importMode`, a file
+ * at or above the server's size threshold is linked. Returns null when the
+ * file is to be uploaded: `copy` was chosen, the file has no disk path
+ * (every plain browser), the server does not offer external references, or
+ * no mode was chosen and the file is below the threshold.
  */
 const createExternalAsset = async (
   payload: AssetCreatePayload,
-  diskPathSource: File
+  diskPathSource: File,
+  importMode?: ImportMode
 ): Promise<Asset | null> => {
+  if (importMode === "copy") {
+    return null;
+  }
   const diskPath = getLocalFilePath(diskPathSource);
   if (!diskPath) {
     return null;
   }
   const config = await trpcClient.assets.externalImportConfig.query();
-  if (!config.enabled || diskPathSource.size < config.threshold_bytes) {
+  if (!config.enabled) {
+    return null;
+  }
+  if (importMode === undefined && diskPathSource.size < config.threshold_bytes) {
     return null;
   }
   const input: Parameters<typeof trpcClient.assets.createExternal.mutate>[0] =
@@ -257,7 +282,6 @@ export interface AssetStore {
   add: (asset: Asset) => void;
   invalidateQueries: (queryKey: QueryKey) => void;
   get: (id: string, project_id?: string) => Promise<Asset>;
-  getAllAssetsInFolder: (folderId: string, project_id?: string) => Promise<Asset[]>;
   createFolder: (
     parent_id: string | null,
     name: string,
@@ -269,11 +293,12 @@ export interface AssetStore {
     parent_id?: string,
     onUploadProgress?: (progressEvent: UploadProgressEvent) => void,
     source?: UploadSource,
-    project_id?: string
+    project_id?: string,
+    directory?: string,
+    importMode?: ImportMode
   ) => Promise<Asset>;
   load: (query: AssetQuery) => Promise<AssetList>;
   loadFolderTree: (sortBy?: string, project_id?: string) => Promise<FolderTree>;
-  loadCurrentFolder: (gridStore: AssetGridStoreApi, project_id?: string) => Promise<AssetList>;
   search: (
     query: AssetSearchQuery,
     signal?: AbortSignal
@@ -281,11 +306,6 @@ export interface AssetStore {
   update: (asset: AssetUpdate) => Promise<Asset>;
   delete: (id: string) => Promise<string[]>;
   download: (ids: string[]) => Promise<boolean>;
-  getAssetsRecursive: (
-    folderId: string,
-    project_id?: string,
-    signal?: AbortSignal
-  ) => Promise<AssetTreeNode[]>;
 }
 
 export type FolderTree = Record<string, AssetTreeNode>;
@@ -344,9 +364,6 @@ export interface AssetTreeNode extends Asset {
 
 export const useAssetStore = create<AssetStore>((set, get) => ({
   queryClient: null,
-  currentFolderId: null,
-  currentFolder: null,
-  parentFolder: null,
 
   setQueryClient: (queryClient: QueryClient) => {
     set({ queryClient });
@@ -429,44 +446,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     );
   },
 
-  /**
-   * Load the current folder and its parent folder.
-   */
-  loadCurrentFolder: async (
-    gridStore: AssetGridStoreApi,
-    project_id?: string
-  ) => {
-    const currentFolderId = gridStore.getState().currentFolderId;
-    const setCurrentFolder = gridStore.getState().setCurrentFolder;
-    const setParentFolder = gridStore.getState().setParentFolder;
-    // Capture id at call time so a folder switch mid-flight doesn't write
-    // stale header/breadcrumb data into the new folder's view.
-    const requestedFolderId = currentFolderId;
-    const isStillActive = () =>
-      gridStore.getState().currentFolderId === requestedFolderId;
-
-    if (requestedFolderId) {
-      const asset = await get().get(requestedFolderId, project_id);
-      if (!isStillActive()) {
-        const empty: AssetList = { next: "", assets: [] };
-        return empty;
-      }
-      setCurrentFolder(asset);
-      if (asset?.parent_id) {
-        get()
-          .get(asset.parent_id, project_id)
-          .then((parent) => {
-            if (isStillActive()) {
-              setParentFolder(parent);
-            }
-          });
-      }
-    }
-    const assetQuery: AssetQuery = { parent_id: requestedFolderId };
-    if (project_id !== undefined) assetQuery.project_id = project_id;
-    return get().load(assetQuery);
-  },
-
   search: async (
     query: AssetSearchQuery,
     signal?: AbortSignal
@@ -499,9 +478,10 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
 
   /**
    * Create a folder on the server.
-   * Folders are assets with content_type "folder".
-   * The root folder has parent_id = "0" and the
-   * same ID as the owning user.
+   * Outside a project, folders are assets with content_type "folder". Inside
+   * a project the server makes a directory of the project folder and answers
+   * with its folder entry, whose id names the directory.
+   * The root folder has the same ID as the owning user.
    *
    * @param parent_id The ID of the parent asset.
    * @param name The name of the folder.
@@ -534,28 +514,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     } catch (error) {
       throw normalizeAssetError(error, "Failed to create folder");
     }
-  },
-  getAllAssetsInFolder: async (
-    folderId: string,
-    project_id?: string
-  ): Promise<Asset[]> => {
-    const tree = await get().getAssetsRecursive(folderId, project_id);
-
-    const flatten = (nodes: AssetTreeNode[]): Asset[] => {
-      let result: Asset[] = [];
-      for (const node of nodes) {
-        // Create a copy without children to return as a flat asset
-
-        const { children, ...asset } = node;
-        result.push(asset);
-        if (node.children && node.children.length > 0) {
-          result = result.concat(flatten(node.children));
-        }
-      }
-      return result;
-    };
-
-    return flatten(tree);
   },
   delete: async (id: string): Promise<string[]> => {
     // Capture parent before delete so we can invalidate the listing the
@@ -681,6 +639,13 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     const data = await trpcClient.assets.update.mutate(updateInput);
     const normalized = normalizeAssetUrls(data);
     get().add(normalized);
+    if (normalized.id !== req.id) {
+      // A renamed or moved directory of a project folder has a new id, and
+      // so does every folder below it. Every listing that showed one is stale.
+      get().queryClient?.removeQueries({ queryKey: ["asset", req.id] });
+      get().invalidateQueries(["assets"]);
+      get().invalidateQueries(["folderTree"]);
+    }
     get().invalidateQueries(["assets", { parent_id: prev.parent_id }]);
     if (req.parent_id !== undefined && req.parent_id !== prev.parent_id) {
       get().invalidateQueries(["assets", { parent_id: req.parent_id }]);
@@ -694,7 +659,9 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     parent_id?: string,
     onUploadProgress?: (progressEvent: UploadProgressEvent) => void,
     source: UploadSource = "file",
-    project_id?: string
+    project_id?: string,
+    directory?: string,
+    importMode?: ImportMode
   ) => {
     try {
       const preparedFile = await prepareUploadFile(file, source);
@@ -716,41 +683,25 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       if (parent_id) {
         payload.parent_id = parent_id;
       }
-      if (project_id) {
-        payload.project_id = project_id;
+      // Every upload names its project: the server writes the file into that
+      // project's folder and refuses a project the user does not own.
+      payload.project_id = project_id || creationProjectId();
+      if (directory !== undefined) {
+        payload.directory = directory;
       }
-      const external = await createExternalAsset(payload, file);
+      const external = await createExternalAsset(payload, file, importMode);
       if (external) {
         emitUploadProgress(onUploadProgress, file.size, file.size);
       }
       const asset =
         external ??
         (await uploadAsset(payload, preparedFile.file, onUploadProgress));
-      get().invalidateQueries(["assets", { parent_id: asset.parent_id }]);
+      // The flat library lists every directory, so refresh every listing.
+      get().invalidateQueries(["assets"]);
       get().add(asset);
       return asset;
     } catch (error) {
       throw normalizeAssetError(error, "Failed to create asset");
     }
-  },
-
-  getAssetsRecursive: async (
-    folderId: string,
-    project_id?: string,
-    signal?: AbortSignal
-  ): Promise<AssetTreeNode[]> => {
-    const recursiveInput: Parameters<
-      typeof trpcClient.assets.recursive.query
-    >[0] = { id: folderId };
-    if (project_id !== undefined) {
-      recursiveInput.project_id = project_id;
-    }
-    const data = await trpcClient.assets.recursive.query(
-      recursiveInput,
-      signal ? { signal } : {}
-    );
-    // The tRPC `recursive` procedure returns a flat array — convert it to the
-    // tree shape expected by downstream code.
-    return normalizeAssetList((data.assets ?? []) as AssetTreeNode[]);
   }
 }));

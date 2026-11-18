@@ -31,6 +31,13 @@
       "web": [
         "web/src/components/timeline"
       ]
+    },
+    "web-share-pages": {
+      "reason": "Browser routes opened from a link: the public workflow page (/public/:id) and the share invitation landing page (/share/:token). They are web pages outside the editor, so the native app has nothing to port. Proposed in the workflow list parity work, 2026-11-13, pending Matthias's confirmation.",
+      "web": [
+        "web/src/components/workflows/PublicWorkflowPage.tsx",
+        "web/src/components/workflows/AcceptSharePage.tsx"
+      ]
     }
   },
   "shortcuts": {
@@ -74,7 +81,7 @@
       "native": "Delete"
     },
     "resetDefault": {
-      "missing": "No native binding"
+      "native": "removeValue()"
     },
     "groupSelected": {
       "native": "Group selection"
@@ -149,7 +156,7 @@
       "native": "Delete"
     },
     "nodeInfo": {
-      "missing": "No native binding"
+      "native": "Node info"
     },
     "openNodeMenu": {
       "native": "Add node"
@@ -164,16 +171,19 @@
       "native": "Toggle inspector"
     },
     "toggleWorkflowSettings": {
-      "missing": "No native binding"
+      "native": "Workflow metadata",
+      "note": "Opens the workflow metadata dialog. The web toggles a side panel with the same fields."
     },
     "toggleOperator": {
       "missing": "No native binding"
     },
     "newChat": {
-      "missing": "No native binding"
+      "native": "newChatConversation()",
+      "note": "Tools menu New Conversation. It opens the chat when it is closed. On the web, ChatView handles the key and the canvas chat window has no binding."
     },
     "focusChatComposer": {
-      "missing": "No native binding"
+      "native": "focusChatComposer()",
+      "note": "Tools menu Focus Chat Composer. It opens the chat when it is closed and, as ChatView.tsx, never takes a keystroke from a text field."
     },
     "runWorkflow": {
       "native": "Run"
@@ -185,7 +195,7 @@
       "native": "newTab()"
     },
     "closeWorkflow": {
-      "native": "closeTab(activeTab()"
+      "native": "closeTab(activeTab())"
     },
     "prevTab": {
       "native": "selectAdjacentTab(-1)"
@@ -242,7 +252,7 @@
       "native": "Keyboard shortcuts"
     },
     "openSettings": {
-      "missing": "No native binding"
+      "native": "Settings"
     },
     "findInWorkflow": {
       "native": "Find node"
@@ -266,28 +276,28 @@
       "native": "Zoom to 200%"
     },
     "navigateNextNode": {
-      "missing": "No native binding"
+      "native": "Focus next node"
     },
     "navigatePrevNode": {
-      "missing": "No native binding"
+      "native": "Focus previous node"
     },
     "selectFocusedNode": {
-      "missing": "No native binding"
+      "native": "Select focused node"
     },
     "focusNodeUp": {
-      "missing": "No native binding"
+      "native": "Focus node above"
     },
     "focusNodeDown": {
-      "missing": "No native binding"
+      "native": "Focus node below"
     },
     "focusNodeLeft": {
-      "missing": "No native binding"
+      "native": "Focus node left"
     },
     "focusNodeRight": {
-      "missing": "No native binding"
+      "native": "Focus node right"
     },
     "goBack": {
-      "missing": "No native binding"
+      "native": "Focus back"
     },
     "exitFullscreen": {
       "native": "Cancel gesture"
@@ -296,7 +306,7 @@
       "native": "Cancel gesture"
     },
     "stopChatGeneration": {
-      "missing": "The native chat composer does not stop a reply on Escape"
+      "native": "session.stop()"
     },
     "assetViewerPrev": {
       "missing": "No native asset viewer"
@@ -305,7 +315,7 @@
       "missing": "No native asset viewer"
     },
     "exitNavigationMode": {
-      "missing": "No native keyboard navigation mode"
+      "accepted": "The web never enters navigation mode (nothing calls enterNavigationMode), so this Escape binding never fires. Native keeps Escape for Cancel gesture."
     }
   },
   "propertyTypes": {
@@ -391,12 +401,15 @@
         "native/node-editor/qml/CompatibleNodePicker.qml",
         "native/node-editor/src/graph/CompatibleNodePicker.cpp"
       ],
-      "status": "partial",
-      "note": "Picker works. The pinned Preview, Reroute, Save, Constant, Input, Prompt and AI shortcuts are missing.",
+      "note": "The AI rows create the seeded Code node and open the chat with a draft that names it. The Code assistant dialog is missing natively.",
       "inventory": "F03"
     },
     "web/src/components/context_menus/ConnectionMatchMenu.tsx": {
-      "missing": "Handle-to-handle match menu shown when a dropped wire fits several handles. No native counterpart found.",
+      "native": [
+        "native/node-editor/src/graph/CompatibleNodePicker.cpp",
+        "native/node-editor/qml/CompatibleNodePicker.qml"
+      ],
+      "note": "A wire dropped on a card body that fits several ports lists those ports in the picker (CompatibleNodePicker::openBody), with search and arrow keys. One fitting port connects at once.",
       "inventory": "F03"
     },
     "web/src/components/context_menus/ContextMenuItem.tsx": {
@@ -421,10 +434,10 @@
     },
     "web/src/components/context_menus/InputContextMenu.tsx": {
       "native": [
-        "native/node-editor/qml/CompatibleNodePicker.qml"
+        "native/node-editor/qml/CompatibleNodePicker.qml",
+        "native/node-editor/src/graph/CompatibleNodePicker.cpp"
       ],
-      "status": "partial",
-      "note": "Opens the compatible-node picker. Same shortcut gaps as ConnectableNodes.",
+      "note": "Constant, Input, Prompt and Create value with AI rows. The AI row opens the chat instead of the Code assistant dialog.",
       "inventory": "F03"
     },
     "web/src/components/context_menus/NodeContextMenu.tsx": {
@@ -435,10 +448,10 @@
     },
     "web/src/components/context_menus/OutputContextMenu.tsx": {
       "native": [
-        "native/node-editor/qml/CompatibleNodePicker.qml"
+        "native/node-editor/qml/CompatibleNodePicker.qml",
+        "native/node-editor/src/graph/CompatibleNodePicker.cpp"
       ],
-      "status": "partial",
-      "note": "Opens the compatible-node picker and deletes dynamic outputs. Same shortcut gaps as ConnectableNodes.",
+      "note": "Preview, Output, Reroute, Save, Transform this output and the quick actions, and deletes dynamic outputs. The AI row opens the chat instead of the Code assistant dialog.",
       "inventory": "F03"
     },
     "web/src/components/context_menus/PaneContextMenu.tsx": {
@@ -470,8 +483,8 @@
       "native": [
         "native/node-editor/qml/WorkflowBrowser.qml"
       ],
-      "status": "partial",
-      "note": "Browser offers rename and delete. The web menu's other entries are not in the native browser.",
+      "status": "match",
+      "note": "Favorite, Edit, Duplicate and Delete open on right-click, the Menu key or the row's more button. Native adds Rename. The web's Open as app entry needs a caller that WorkflowList does not pass.",
       "inventory": "F34"
     },
     "web/src/components/node_editor/Alert.tsx": {
@@ -484,7 +497,10 @@
       "inventory": "W16"
     },
     "web/src/components/node_editor/AxisMarker.tsx": {
-      "missing": "Origin axis lines that follow the viewport. Not drawn natively."
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "note": "EditorScene::drawBackground draws the 1px origin lines in c_editor_axis_color."
     },
     "web/src/components/node_editor/ConnectionLine.tsx": {
       "native": [
@@ -536,7 +552,10 @@
       "inventory": "F42"
     },
     "web/src/components/node_editor/NodeInfoPanel.tsx": {
-      "missing": "No native counterpart. Its Focus button lives in the inspector Help tab.",
+      "native": [
+        "native/node-editor/qml/NodeInfoPanel.qml",
+        "native/node-editor/src/interfaces/NodeInfo.cpp"
+      ],
       "inventory": "F40"
     },
     "web/src/components/node_editor/RuntimeInstallDialog.tsx": {
@@ -673,7 +692,7 @@
         "native/node-editor/qml/Rail.qml"
       ],
       "status": "partial",
-      "note": "Projects, Library, Entities, Examples and More are disabled natively (C1 to C5).",
+      "note": "Projects is disabled natively (C1). Entities and More are left out of the native rail (C3 and C5).",
       "inventory": "W25"
     },
     "web/src/components/node_menu/QuickActionTiles.constants.tsx": {
@@ -781,7 +800,11 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/CanvasResizeBody.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "note": "Mode toggle, Fixed size boxes, Scale slider, padding unit and edge boxes match. The preview shows the incoming image before a run, with the dashed placement rectangle and the canvas size badge.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/ChannelsBody.tsx": {
@@ -799,20 +822,34 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/CollectionBody.tsx": {
-      "missing": "Bespoke body drawn with the generic card body natively.",
-      "inventory": "W4"
-    },
-    "web/src/components/node_types/editing/ColorOverlayBody.tsx": {
       "native": [
         "native/node-editor/src/graph/CardBodies.cpp",
         "native/node-editor/src/graph/CardBodyPainter.cpp"
       ],
       "status": "partial",
-      "note": "The inline color popover is missing.",
+      "note": "Drop and pick files or assets, one locked type, image thumbnails, index badges, remove and clear. Video and audio tiles show an icon instead of a frame, and the output handle keeps its declared any type.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/ColorOverlayBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp",
+        "native/node-editor/qml/InlinePropertyEditor.qml"
+      ],
+      "status": "match",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/CompositorBody.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp",
+        "native/node-editor/src/properties/CompositorLayoutEditor.cpp",
+        "native/node-editor/src/ui/CompositorLayoutDialog.cpp",
+        "native/node-editor/qml/CompositorLayoutPanel.qml"
+      ],
+      "status": "partial",
+      "note": "Layer handles, live composite, layer rows, Add another layer and the Edit layout dialog (move, scale and rotate gizmo, transform fields, canvas size, layer stack) are native. The dialog's layer rows show each layer's image as a thumbnail, as LayerRow.tsx does.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/ConstantSketchBody.tsx": {
@@ -824,11 +861,24 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/CropBody.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/graph/InlinePropertyPresenter.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
+      ],
+      "status": "match",
+      "note": "The incoming image with the darkened outside, thirds grid, crop rectangle, eight handles, move and resize drags, size badge, aspect select with its drag lock, width and height boxes and Reset match.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/CurvesBody.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "status": "partial",
+      "note": "Tonal and RGB Midtones sliders and Reset match. The Red, Green and Blue labels are not tinted, because the canvas theme has no error or info color.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/DropShadowBody.tsx": {
@@ -839,7 +889,12 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/ExtractVideoFrameBody.tsx": {
-      "missing": "Bespoke body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "status": "partial",
+      "note": "Video handle, previous and next frame, the time box and the frame and timecode readouts at 30 fps. No in-card player, scrubber, play, mute or frame download: the preview shows the extracted frame after a run.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/FitBody.tsx": {
@@ -878,15 +933,29 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/LayerRow.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
+      ],
+      "status": "match",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/LevelsBody.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "status": "match",
+      "note": "Histogram with its R, G, B and L view toggle, channel toggle, Black, Gamma and White sliders and Reset match. The histogram counts the 512 px result preview rather than the full-size image.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/ListGeneratorBody.tsx": {
-      "missing": "Bespoke body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "status": "partial",
+      "note": "Numbered rows of the settled list that open to their full text, Copy and the model chip. Items appear when the list output arrives, not one by one while streaming, and an open item shows plain text instead of rendered markdown.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/MaskBody.tsx": {
@@ -894,12 +963,16 @@
         "native/node-editor/src/graph/CardBodies.cpp",
         "native/node-editor/src/graph/CardBodyPainter.cpp"
       ],
-      "status": "partial",
-      "note": "Upstream images in the Before and Mask preview tabs are missing.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/MasksExtractorBody.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "status": "partial",
+      "note": "Image and Mask tabs, the incoming image and Recalculate mask match. The running button shows a darker fill without the web's spinner.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/OffsetBody.tsx": {
@@ -924,7 +997,15 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/PainterBody.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp",
+        "native/node-editor/qml/InlinePropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Canvas over the incoming image, brush and eraser strokes into mask_data, color, Undo, Redo, Clear, size, opacity, canvas size and background opacity match. The brush cursor circle follows the pointer, but the system cursor still shows over the canvas. An image file dropped on the canvas uploads and becomes the image property, which sizes the canvas through the incoming image instead of writing canvas_width and canvas_height.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/PasteBody.tsx": {
@@ -933,7 +1014,7 @@
         "native/node-editor/src/graph/CardBodyPainter.cpp"
       ],
       "status": "partial",
-      "note": "Overlay rectangle and dimension badges need upstream image sizes the canvas does not read.",
+      "note": "The preview shows the base image before a run, with the dashed rectangle where the pasted image lands. The result size badge is missing because run results carry no size natively.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/promptComposer/AssetDropPlugin.tsx": {
@@ -1040,23 +1121,43 @@
       "missing": "Code node Save to My Nodes. Not found in native sources."
     },
     "web/src/components/node_types/synth/AdsrPreview.tsx": {
-      "missing": "Synth module body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/SynthModules.cpp"
+      ],
       "inventory": "W4"
     },
     "web/src/components/node_types/synth/AudioOutBody.tsx": {
-      "missing": "Synth module body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/SynthModules.cpp"
+      ],
+      "status": "partial",
+      "note": "Label strip, chunk jack and idle hint match. The live player is the shared canvas audio playback, not the web transport and visualizer on the faceplate.",
       "inventory": "W4"
     },
     "web/src/components/node_types/synth/SynthKnob.tsx": {
-      "missing": "Synth module body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/SynthModules.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "status": "partial",
+      "note": "Drag, Shift fine drag and double-click reset match. Knobs take no keyboard focus, so arrow, Home and End keys do nothing.",
       "inventory": "W4"
     },
     "web/src/components/node_types/synth/SynthModuleBody.tsx": {
-      "missing": "Synth module body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/SynthModules.cpp",
+        "native/node-editor/resources/synth/modules.json"
+      ],
+      "status": "partial",
+      "note": "Faceplate, jacks, toggles and knobs match. A knob drag schedules the instant rerun instead of pushing values into the running job.",
       "inventory": "W4"
     },
     "web/src/components/node_types/synth/WaveformSelector.tsx": {
-      "missing": "Synth module body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/SynthModules.cpp"
+      ],
+      "status": "partial",
+      "note": "Glyphs and selection match. The buttons show no hover fill or tooltip.",
       "inventory": "W4"
     },
     "web/src/components/node/AddDynamicOutputButton.tsx": {
@@ -1083,22 +1184,29 @@
     },
     "web/src/components/node/AppNode/AppLoader.tsx": {
       "native": [
-        "native/node-editor/src/document/ChildPorts.cpp"
+        "native/node-editor/src/ui/ChildSourceLoader.cpp",
+        "native/node-editor/src/document/ChildSources.cpp",
+        "native/node-editor/qml/InlinePropertyEditor.qml"
       ],
       "status": "partial",
-      "note": "Derived ports and child tabs exist. F09 remains partial.",
+      "note": "Lists the apps, loads the picked app's operation and workflow, and stores the id and copy in one undo step. An app with several operations runs the stored or first one: there is no Operation select. Errors are notifications.",
       "inventory": "F09"
     },
     "web/src/components/node/AppNode/AppNode.tsx": {
       "native": [
-        "native/node-editor/src/document/ChildPorts.cpp"
+        "native/node-editor/src/document/ChildPorts.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
       ],
       "status": "partial",
-      "note": "Native draws the generic card body.",
+      "note": "The card leads with the app select. F09 remains partial.",
       "inventory": "F09"
     },
     "web/src/components/node/AppNode/AppNodeContent.tsx": {
-      "missing": "Native draws the generic card body.",
+      "native": [
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp",
+        "native/node-editor/src/graph/CardBodies.cpp"
+      ],
+      "note": "The app select without a handle, the derived inputs as handles without fields, and the outputs. The app_json copy has no row or handle.",
       "inventory": "W4"
     },
     "web/src/components/node/ArrayView.tsx": {
@@ -1121,8 +1229,10 @@
     },
     "web/src/components/node/BypassGroupButton.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/qml/AuthoredControls.qml",
+        "native/node-editor/src/ui/EditorWindow.cpp"
       ],
+      "note": "Disable all and Enable all act on the group's direct children.",
       "inventory": "F07"
     },
     "web/src/components/node/CalendarEventView.tsx": {
@@ -1141,16 +1251,14 @@
     },
     "web/src/components/node/Column.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml"
+        "native/node-editor/qml/ColumnsEditor.qml"
       ],
       "inventory": "F17"
     },
     "web/src/components/node/ColumnsManager.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml"
+        "native/node-editor/qml/ColumnsEditor.qml"
       ],
-      "status": "partial",
-      "note": "Record columns edit through the shared row editor, which differs in layout.",
       "inventory": "F17"
     },
     "web/src/components/node/CommentNode.tsx": {
@@ -1164,10 +1272,12 @@
     },
     "web/src/components/node/CompareImagesNode/CompareImagesNode.tsx": {
       "native": [
-        "native/node-editor/src/graph/CardBodies.cpp"
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp"
       ],
       "status": "partial",
-      "note": "The comparer slider is not on the card.",
+      "note": "The comparer is on the card with labels, sizes and the mode toggle. The divider follows a drag where the web follows hover, and the card compares the incoming images where the web waits for the run's comparison.",
       "inventory": "W4"
     },
     "web/src/components/node/ConstantStringNode.tsx": {
@@ -1180,54 +1290,69 @@
     },
     "web/src/components/node/DataTable/DataTable.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml",
-        "native/node-editor/qml/InlinePropertyEditor.qml"
+        "native/node-editor/qml/DataTableEditor.qml",
+        "native/node-editor/qml/DataTable.js"
       ],
       "status": "partial",
-      "note": "Constant List and Dict tables edit through the shared row editor, which differs in layout from the web tables.",
+      "note": "Columns do not resize, and rows move with Alt+Up and Alt+Down instead of dragging. A dataframe card shows a summary, and its cells edit in the inspector.",
       "inventory": "F17"
     },
     "web/src/components/node/DataTable/DataTableEditors.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml"
+        "native/node-editor/qml/DataTableEditor.qml"
       ],
       "status": "partial",
-      "note": "See DataTable.",
+      "note": "Integer, float and date cells are text fields that validate on commit. Dates have no picker.",
       "inventory": "F17"
     },
     "web/src/components/node/DataTable/DictTable.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml"
+        "native/node-editor/qml/DataTableEditor.qml",
+        "native/node-editor/qml/DataTable.js"
       ],
-      "status": "partial",
-      "note": "See DataTable.",
       "inventory": "F17"
     },
     "web/src/components/node/DataTable/ListTable.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml"
+        "native/node-editor/qml/DataTableEditor.qml",
+        "native/node-editor/qml/DataTable.js"
       ],
       "status": "partial",
-      "note": "See DataTable.",
+      "note": "Rows move with Alt+Up and Alt+Down instead of dragging.",
       "inventory": "F17"
     },
     "web/src/components/node/DataTable/TableActions.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml"
+        "native/node-editor/qml/DataTableEditor.qml",
+        "native/node-editor/qml/DataTable.js"
       ],
       "status": "partial",
-      "note": "The value type select and the JSON copy and expand buttons are missing.",
+      "note": "Export copies the CSV to the clipboard instead of downloading a file. The table has no undo and redo buttons of its own.",
       "inventory": "F17"
     },
     "web/src/components/node/DynamicComfySchemaNode/ComfyWorkflowLoader.tsx": {
-      "missing": "No native schema loader."
+      "native": [
+        "native/node-editor/qml/ComfyWorkflowDialog.qml",
+        "native/node-editor/src/properties/ComfyWorkflowLoader.cpp",
+        "native/node-editor/src/document/ChildSources.cpp"
+      ],
+      "status": "partial",
+      "note": "Paste, choose or drop a .json or .png, the summary, the parameters to expose, and Apply in one undo step that drops edges on removed slots. A workflow set without the loader, such as over the API, gets no slots until it is loaded here."
     },
     "web/src/components/node/DynamicComfySchemaNode/DynamicComfySchemaContent.tsx": {
-      "missing": "Comfy nodes use the generic card body.",
+      "native": [
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp",
+        "native/node-editor/src/graph/CardBodies.cpp"
+      ],
+      "note": "The hint until the workflow gives the node slots, and only the derived inputs, without rename, remove or add controls. The runner's own properties stay in the inspector.",
       "inventory": "W4"
     },
     "web/src/components/node/DynamicComfySchemaNode/DynamicComfySchemaNode.tsx": {
-      "missing": "Comfy nodes use the generic card body.",
+      "native": [
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "note": "The ComfyUI accent on the edge and selection, and the Load workflow button at the right of the header.",
       "inventory": "W4"
     },
     "web/src/components/node/DynamicFalSchemaNode/DynamicFalSchemaContent.tsx": {
@@ -1241,7 +1366,7 @@
         "native/node-editor/src/graph/CardBodies.cpp"
       ],
       "status": "partial",
-      "note": "Shell matches. No pricing footer.",
+      "note": "Shell matches. The pricing chip is ProviderPriceChip.qml.",
       "inventory": "W4"
     },
     "web/src/components/node/DynamicFalSchemaNode/FalSchemaLoader.tsx": {
@@ -1258,7 +1383,7 @@
         "native/node-editor/src/graph/CardBodies.cpp"
       ],
       "status": "partial",
-      "note": "Shell matches. No credits footer.",
+      "note": "Shell matches. The credits chip is ProviderPriceChip.qml.",
       "inventory": "W4"
     },
     "web/src/components/node/DynamicKieSchemaNode/KieSchemaLoader.tsx": {
@@ -1307,7 +1432,13 @@
       "inventory": "F05"
     },
     "web/src/components/node/FalPricingFooter.tsx": {
-      "missing": "FAL price chip and popover on selected FAL nodes. Not found natively."
+      "native": [
+        "native/node-editor/qml/ProviderPriceChip.qml",
+        "native/node-editor/src/graph/ProviderPricing.cpp",
+        "native/node-editor/src/ui/EditorPriceChip.cpp"
+      ],
+      "status": "partial",
+      "note": "The chip under the selected card, from the metadata or the bundled list price, and its popover with the pricing lines, the per-run estimate, the account credits, the API keys link and View on fal.ai. Native shows it for a single selected card only, does not fetch live prices, has no inspector variant, and draws the chip in the tone's text color instead of a filled tone."
     },
     "web/src/components/node/GhostNode.tsx": {
       "native": [
@@ -1322,7 +1453,7 @@
         "native/node-editor/src/graph/EditorScene.cpp"
       ],
       "status": "partial",
-      "note": "Open: exact icon ink, custom colors, group-body pointer pass-through, Ctrl-held group selection.",
+      "note": "Open: exact icon ink.",
       "inventory": "F07"
     },
     "web/src/components/node/HandleColumn.tsx": {
@@ -1371,14 +1502,25 @@
       "inventory": "W1"
     },
     "web/src/components/node/KeyboardConnectionPicker.tsx": {
-      "missing": "Keyboard path to connect a handle (from the handle tooltip). Not found natively.",
+      "native": [
+        "native/node-editor/src/graph/CompatibleNodePicker.cpp",
+        "native/node-editor/src/ui/EditorWindow.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
+      ],
+      "note": "With a node focused (Ctrl+Alt+N), Tab and Shift+Tab walk its handles and Enter or Space opens the picker: compatible ports on existing nodes first, then the catalog, and Disconnect when the handle has wires. It opens beside the handle rather than as a dialog.",
       "inventory": "F42"
     },
     "web/src/components/node/KeyframeTimingStrip.tsx": {
       "missing": "Time axis under keyframe model nodes. Native marks keyframe lists unsupported."
     },
     "web/src/components/node/KieCreditsFooter.tsx": {
-      "missing": "KIE credits chip and popover. Not found natively."
+      "native": [
+        "native/node-editor/qml/ProviderPriceChip.qml",
+        "native/node-editor/src/graph/ProviderPricing.cpp",
+        "native/node-editor/src/ui/EditorPriceChip.cpp"
+      ],
+      "status": "partial",
+      "note": "The chip on every selected KIE card, \"KIE credits\" without a bundled price, and its popover with the pricing lines or the no-price note, the account credits, the API keys link, View pricing and Top up. The Last run cost row is missing, and the FAL footer's differences apply."
     },
     "web/src/components/node/MediaAspectResizeControl.tsx": {
       "missing": "Media aspect resize is open.",
@@ -1531,14 +1673,18 @@
     },
     "web/src/components/node/output/Actions.tsx": {
       "native": [
+        "native/node-editor/qml/RichOutput.qml",
         "native/node-editor/qml/MediaPreview.qml"
       ],
-      "status": "partial",
-      "note": "See OutputQuickActionButtons.",
+      "note": "Copy on hover over text, JSON and value outputs. Preview cards keep their own Copy.",
       "inventory": "F30"
     },
     "web/src/components/node/output/AgentStatusRenderer.tsx": {
-      "missing": "Agent status output. Not found natively."
+      "native": [
+        "native/node-editor/qml/RichOutput.qml",
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "note": "Accent bar, icon, kind label and message, colored by kind and severity."
     },
     "web/src/components/node/output/ArrayRenderer.tsx": {
       "native": [
@@ -1550,8 +1696,7 @@
       "native": [
         "native/node-editor/qml/MediaGallery.qml"
       ],
-      "status": "partial",
-      "note": "Grid hover actions, multi-select and batch download are open.",
+      "note": "Hover Copy, Download and Open, Select mode with Compare and Clear. Native adds Download of the selection into a folder.",
       "inventory": "F30"
     },
     "web/src/components/node/output/BooleanRenderer.tsx": {
@@ -1592,10 +1737,11 @@
     },
     "web/src/components/node/output/JSONRenderer.tsx": {
       "native": [
-        "native/node-editor/qml/ObjectOutput.qml"
+        "native/node-editor/qml/RichOutput.qml",
+        "native/node-editor/qml/CodeSyntax.qml"
       ],
       "status": "partial",
-      "note": "Structured fields render. Copy and expand actions not compared.",
+      "note": "Copy and token colors. Keys and string values share one color, where Prism colors them apart.",
       "inventory": "F31"
     },
     "web/src/components/node/output/markdown.tsx": {
@@ -1611,20 +1757,10 @@
       "inventory": "F31"
     },
     "web/src/components/node/output/PlotlyChart.tsx": {
-      "native": [
-        "native/node-editor/qml/RichOutput.qml"
-      ],
-      "status": "partial",
-      "note": "Native shows a configuration and data fallback, not a chart.",
-      "inventory": "F31"
+      "accepted": "Plotly charts are deprecated (Matthias, 2026-11-13). Native keeps the configuration and data fallback."
     },
     "web/src/components/node/output/PlotlyRenderer.tsx": {
-      "native": [
-        "native/node-editor/qml/RichOutput.qml"
-      ],
-      "status": "partial",
-      "note": "Native shows a configuration and data fallback, not a chart.",
-      "inventory": "F31"
+      "accepted": "Plotly charts are deprecated (Matthias, 2026-11-13). Native keeps the configuration and data fallback."
     },
     "web/src/components/node/output/RealtimeAudioOutput.tsx": {
       "native": [
@@ -1716,7 +1852,7 @@
         "native/node-editor/src/properties/PropertyFields.h"
       ],
       "status": "partial",
-      "note": "See the propertyTypes inventory. 3D generation model fields (model_3d_model) are unsupported.",
+      "note": "See the propertyTypes inventory.",
       "inventory": "F15"
     },
     "web/src/components/node/PropertyInput.tsx": {
@@ -1754,10 +1890,10 @@
     },
     "web/src/components/node/RunGroupButton.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/qml/AuthoredControls.qml",
+        "native/node-editor/src/ui/EditorWindow.cpp"
       ],
-      "status": "partial",
-      "note": "A group Run acts on every descendant where the web acts on direct children.",
+      "note": "Runs the group's direct children, as the web does.",
       "inventory": "F25"
     },
     "web/src/components/node/SaveDestinationHint.tsx": {
@@ -1781,10 +1917,10 @@
     },
     "web/src/components/node/SubgraphNode/SubgraphNodeContent.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
       ],
-      "status": "partial",
-      "note": "Card footer exists. Specialized subgraph overlays are open.",
+      "note": "Open subgraph footer with the inner node count, editable dynamic inputs and Add output. The graph property has no row or handle.",
       "inventory": "F09"
     },
     "web/src/components/node/SubgraphNode/SubgraphSync.tsx": {
@@ -1819,21 +1955,30 @@
     },
     "web/src/components/node/WorkflowNode/WorkflowLoader.tsx": {
       "native": [
-        "native/node-editor/src/document/ChildPorts.cpp"
+        "native/node-editor/src/ui/ChildSourceLoader.cpp",
+        "native/node-editor/src/document/ChildSources.cpp",
+        "native/node-editor/qml/InlinePropertyEditor.qml"
       ],
       "status": "partial",
+      "note": "Selects one of the first 200 workflows, stores its id and graph in one undo step and refuses a workflow that runs the host. The select has no clear button and does not leave out the host workflow, and a load error is a notification instead of a caption under the select.",
       "inventory": "F09"
     },
     "web/src/components/node/WorkflowNode/WorkflowNode.tsx": {
       "native": [
-        "native/node-editor/src/document/ChildPorts.cpp"
+        "native/node-editor/src/document/ChildPorts.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
       ],
       "status": "partial",
-      "note": "Native draws the generic card body.",
+      "note": "The card leads with the workflow select. F09 remains partial.",
       "inventory": "F09"
     },
     "web/src/components/node/WorkflowNode/WorkflowNodeContent.tsx": {
-      "missing": "Native draws the generic card body.",
+      "native": [
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp",
+        "native/node-editor/src/graph/CardBodies.cpp"
+      ],
+      "status": "partial",
+      "note": "The workflow select, the derived inputs as handles without fields, Add input and Add output, and the outputs. The derived handles sit above the select, the web's workflow_id text field under the select is replaced by the select, and the empty caption strip under the outputs is not drawn.",
       "inventory": "W4"
     },
     "web/src/components/panels/AppPagesList.tsx": {
@@ -1858,7 +2003,13 @@
       "inventory": "F36"
     },
     "web/src/components/panels/ComfyTargetSelector.tsx": {
-      "missing": "Where Comfy workflows run. Not found natively."
+      "native": [
+        "native/node-editor/qml/Toolbar.qml",
+        "native/node-editor/src/ui/EditorComfy.cpp",
+        "native/node-editor/src/server/ComfyBackend.cpp"
+      ],
+      "status": "partial",
+      "note": "The toolbar control in a Comfy workflow opens Comfy Cloud, the running workers and the ComfyUI server, and a change reloads the target's nodes. The menu also shows the saved server's status. The server URL is typed in a dialog instead of a field inside the menu."
     },
     "web/src/components/panels/DocumentsTree.tsx": {
       "missing": "Native rail Documents opens the workflow browser, which lists workflows only.",
@@ -1877,15 +2028,29 @@
       "inventory": "F36"
     },
     "web/src/components/panels/generations/GenerationsPanel.tsx": {
-      "missing": "Status Generations is disabled natively.",
+      "native": [
+        "native/node-editor/qml/GenerationsPanel.qml",
+        "native/node-editor/src/interfaces/GenerationActivity.cpp"
+      ],
+      "status": "partial",
+      "note": "Lists workflow-run predictions and the generations.list history, not chat media turns or generate_media requests, which the native editor does not send.",
       "inventory": "C8"
     },
     "web/src/components/panels/generations/GenerationTile.tsx": {
-      "missing": "Status Generations is disabled natively.",
+      "native": [
+        "native/node-editor/qml/GenerationsPanel.qml"
+      ],
+      "status": "partial",
+      "note": "Video and audio tiles show their kind icon, not a frame or waveform. Stop is absent, as it is on the web for a workflow prediction.",
       "inventory": "C8"
     },
     "web/src/components/panels/generations/OpenAsWorkflowAction.tsx": {
-      "missing": "Status Generations is disabled natively.",
+      "native": [
+        "native/node-editor/src/run/GenerationWorkflow.cpp",
+        "native/node-editor/src/interfaces/GenerationActivity.cpp"
+      ],
+      "status": "partial",
+      "note": "Only the recorded-request path. A generation with presets and no recorded request needs the web preset catalog. History records carry no preset ids, so only live generations offer the action.",
       "inventory": "C8"
     },
     "web/src/components/panels/HidePanelOnAssetOpen.tsx": {
@@ -1897,15 +2062,16 @@
         "native/node-editor/src/server/AccountJobs.cpp"
       ],
       "status": "partial",
-      "note": "Error jobs have no Report control.",
+      "note": "History rows show the status tile, short job id, duration, output count and output thumbnails, open their workflow on click and offer Report on failure. Thumbnails open the output in the browser, as the web opens a new tab.",
       "inventory": "F24"
     },
     "web/src/components/panels/jobs/QueuePanel.tsx": {
       "native": [
+        "native/node-editor/qml/QueuePanel.qml",
         "native/node-editor/qml/QueueOverlay.qml"
       ],
       "status": "partial",
-      "note": "Opens only while jobs exist.",
+      "note": "The status bar Queue tab opens the panel in the bottom dock at any time, with the Active and History sections, filters, day groups and the Could not load jobs state. It shows no loading spinner before the first jobs page.",
       "inventory": "C11"
     },
     "web/src/components/panels/LogPanel.tsx": {
@@ -1944,10 +2110,11 @@
     "web/src/components/panels/PanelLeft.tsx": {
       "native": [
         "native/node-editor/qml/LibraryPanel.qml",
-        "native/node-editor/qml/Rail.qml"
+        "native/node-editor/qml/Rail.qml",
+        "native/node-editor/qml/ExamplesPanel.qml"
       ],
       "status": "partial",
-      "note": "Library, Entities, Examples and More views are missing.",
+      "note": "Entities and More views are missing.",
       "inventory": "W25"
     },
     "web/src/components/panels/PanelRight.tsx": {
@@ -1962,7 +2129,7 @@
         "native/node-editor/qml/QueueOverlay.qml"
       ],
       "status": "partial",
-      "note": "Pinned focus and acceptance are open.",
+      "note": "The drag, the grip's keys, the canvas clamp and the stored position match. Pinned focus and acceptance are open.",
       "inventory": "F24"
     },
     "web/src/components/panels/RailAppMenu.tsx": {
@@ -2075,20 +2242,25 @@
       "inventory": "F20"
     },
     "web/src/components/properties/DataframeEditorModal.tsx": {
-      "missing": "The dataframe editor is outside the native structured slice.",
+      "native": [
+        "native/node-editor/qml/DataTableEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Expand adds the dialog's search, duplicate, paste and CSV actions in place. It opens no separate resizable window.",
       "inventory": "F17"
     },
     "web/src/components/properties/DataframeProperty.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml"
+        "native/node-editor/qml/DataTableEditor.qml",
+        "native/node-editor/qml/ColumnsEditor.qml"
       ],
       "status": "partial",
-      "note": "Dataframe editing is outside the native structured slice. Cards show Add column and a drop zone.",
+      "note": "The inspector edits columns and cells. The card keeps Add column, the drop zone and a summary of the table.",
       "inventory": "F17"
     },
     "web/src/components/properties/DictProperty.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml"
+        "native/node-editor/qml/DataTableEditor.qml"
       ],
       "inventory": "F17"
     },
@@ -2234,10 +2406,8 @@
     },
     "web/src/components/properties/ListProperty.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml"
+        "native/node-editor/qml/DataTableEditor.qml"
       ],
-      "status": "partial",
-      "note": "The value type select is missing.",
       "inventory": "F17"
     },
     "web/src/components/properties/LlamaModelSelect.tsx": {
@@ -2255,7 +2425,12 @@
       "inventory": "F23"
     },
     "web/src/components/properties/Model3DModelSelect.tsx": {
-      "missing": "model_3d_model fields are unsupported natively (ImageTo3D, TextTo3D). The web picker fetches /api/models/3d, which the TypeScript server does not serve, so there is no list to port.",
+      "native": [
+        "native/model-picker/src/CatalogRules.h",
+        "native/node-editor/qml/ModelPropertyEditor.qml"
+      ],
+      "status": "match",
+      "note": "Both list models.model3d / models.model3dByProvider from providers with text_to_3d or image_to_3d and store id, provider and name.",
       "inventory": "F20"
     },
     "web/src/components/properties/Model3DProperty.tsx": {
@@ -2309,7 +2484,8 @@
     },
     "web/src/components/properties/RecordTypeProperty.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml"
+        "native/node-editor/qml/RecordTypeEditor.qml",
+        "native/node-editor/qml/ColumnsEditor.qml"
       ],
       "inventory": "F17"
     },
@@ -2499,6 +2675,505 @@
         "native/node-editor/qml/VersionGraphPreview.qml"
       ],
       "inventory": "F37"
+    },
+    "web/src/components/examples/ExamplesPanel.tsx": {
+      "native": [
+        "native/node-editor/qml/ExamplesPanel.qml",
+        "native/node-editor/src/interfaces/ExampleGallery.cpp"
+      ],
+      "status": "partial",
+      "note": "Workflow and ComfyUI examples, plus the native bundled examples. Apps, storyboard, timeline, sketch, 3D model and game examples are left out, since only workflow examples belong in the node editor. Dragging a card onto the canvas pastes a copy of its graph with the first node at the drop point."
+    },
+    "web/src/components/workspaces/WorkspaceTree.tsx": {
+      "native": [
+        "native/files/qml/FilesPanel.qml",
+        "native/files/src/ProjectFiles.cpp"
+      ],
+      "status": "partial",
+      "note": "The rail's Files dock: lazy folders, natural sort, refresh on workspace file pushes, keyboard navigation and Reveal for a local folder. Native has no file viewer, so opening a file only emits openFileRequested. Drop upload, the breadcrumb and Open externally are missing."
+    },
+    "web/src/components/workspaces/useFolderPicker.tsx": {
+      "native": [
+        "native/node-editor/qml/ProjectFolderNotice.qml"
+      ],
+      "status": "partial",
+      "note": "Native locates a missing folder with a platform FolderDialog. The web server-side folder browser for a remote server has no native counterpart."
+    },
+    "web/src/components/chat/ChatListPanel.tsx": {
+      "native": [
+        "native/chat/qml/ThreadList.qml",
+        "native/chat/qml/Main.qml"
+      ],
+      "status": "partial",
+      "note": "Thread sidebar of the chat workspace. The standalone native chat app lists threads. The editor chat lists them in EditorChat.qml."
+    },
+    "web/src/components/chat/assistant/AssistantChatPanel.tsx": {
+      "native": [
+        "native/chat/qml/ChatPanel.qml"
+      ],
+      "status": "partial",
+      "note": "Agent panel embedded in other editors. The native timeline embeds ChatPanel. In the node editor only the Code assistant uses it, and that dialog is missing natively."
+    },
+    "web/src/components/chat/assistant/ResizableSideDock.tsx": {
+      "missing": "Side dock that holds an assistant chat beside the text editor modal and the Code assistant. The native text editor has no assistant dock."
+    },
+    "web/src/components/chat/composer/ComposerAttachDialog.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml"
+      ],
+      "status": "partial",
+      "note": "The plus button opens a file dialog. The web dialog also picks library assets, workflows and other references in tabs. Typing @ picks assets in both."
+    },
+    "web/src/components/chat/composer/FilePreview.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml"
+      ],
+      "status": "partial",
+      "note": "Attachments show name, upload progress and remove as a text row, without thumbnails."
+    },
+    "web/src/components/chat/composer/MediaAspectRatioMenu.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml",
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ],
+      "status": "partial",
+      "note": "Aspect ratios are a chip menu of labels, without the ratio shapes."
+    },
+    "web/src/components/chat/composer/MediaChatComposer.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml",
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ],
+      "status": "partial",
+      "note": "Enter sends, Shift+Enter adds a line, Escape stops, Up and Down recall prompts, and chips go icon-first below 520 px. Slash commands and skills, dictation, the cost estimate and the provider setup banner are missing. Scenario chat-composer.keys matches every intent and state check. Its screenshot differs because the web composer is one row with the send button beside the chips, and the Qt composer puts the send button on its own row."
+    },
+    "web/src/components/chat/composer/MediaControlChip.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml"
+      ],
+      "status": "partial",
+      "note": "Chips are Ui.MenuButton and Ui.ChipMenu. Menu rows show no secondary descriptions."
+    },
+    "web/src/components/chat/composer/MediaCostEstimate.tsx": {
+      "missing": "The list price next to Generate. Native does not query generation prices."
+    },
+    "web/src/components/chat/composer/MediaModeMenu.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml",
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ],
+      "status": "partial",
+      "note": "Same modes and disabled Soon rows. Rows have no secondary descriptions, which needs a Ui.MenuItem change."
+    },
+    "web/src/components/chat/composer/MediaOptionMenu.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml",
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ]
+    },
+    "web/src/components/chat/composer/MediaSettingChips.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml",
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ]
+    },
+    "web/src/components/chat/composer/MentionedEntities.tsx": {
+      "missing": "Entity mentions in the prompt. The native @ picker lists assets only."
+    },
+    "web/src/components/chat/composer/ModeChips.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml",
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ],
+      "status": "partial",
+      "note": "Same chips in web order with the web defaults. Presets are missing."
+    },
+    "web/src/components/chat/composer/ModeProviderSetupBanner.tsx": {
+      "missing": "The banner that offers provider setup when the selected mode has no configured provider."
+    },
+    "web/src/components/chat/composer/ModeSelectChip.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml"
+      ]
+    },
+    "web/src/components/chat/composer/ModelChip.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml",
+        "native/model-picker/qml/ModelPicker.qml"
+      ]
+    },
+    "web/src/components/chat/composer/OptionChip.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml"
+      ]
+    },
+    "web/src/components/chat/composer/PermissionSelector.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml",
+        "native/chat/src/runtime/ChatSession.cpp"
+      ],
+      "status": "partial",
+      "note": "Plan, Default and Auto per thread, kept across sessions, sent with set_permission_mode, and Auto allows pending tool approvals. The menu has no subheader or secondary descriptions and the dot has one tone."
+    },
+    "web/src/components/chat/composer/ReasoningSelector.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml",
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ]
+    },
+    "web/src/components/chat/composer/SelectModelBanner.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml"
+      ],
+      "status": "partial",
+      "note": "A caption names the missing model and a refused send opens the picker. The web banner carries the picker inline."
+    },
+    "web/src/components/chat/composer/StopGenerationButton.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml"
+      ]
+    },
+    "web/src/components/chat/composer/TaskDock.tsx": {
+      "missing": "The agent task list docked above the composer of the chat workspace (ChatView). The canvas chat has none on the web either."
+    },
+    "web/src/components/chat/composer/imageModelOptions.tsx": {
+      "native": [
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ]
+    },
+    "web/src/components/chat/composer/mediaModes.tsx": {
+      "native": [
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ]
+    },
+    "web/src/components/chat/composer/useTextareaAssetMention.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml",
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ],
+      "status": "partial",
+      "note": "Recent and Saved assets with keys as on the web, without thumbnails, entities or rename."
+    },
+    "web/src/components/chat/composer/useTextareaSkillMention.tsx": {
+      "missing": "The / menu of commands (/model, /mode) and skills."
+    },
+    "web/src/components/chat/composer/videoModelOptions.tsx": {
+      "native": [
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ]
+    },
+    "web/src/components/chat/composer/voice/RecordingWaveform.tsx": {
+      "missing": "Dictation. Native has no voice input."
+    },
+    "web/src/components/chat/composer/voice/VoiceInputControl.tsx": {
+      "missing": "Dictation. Native has no voice input."
+    },
+    "web/src/components/chat/composer/voice/VoiceRecordingBar.tsx": {
+      "missing": "Dictation. Native has no voice input."
+    },
+    "web/src/components/chat/containers/ChatErrorBanner.tsx": {
+      "native": [
+        "native/chat/qml/ChatPanel.qml",
+        "native/chat/qml/ConversationView.qml"
+      ],
+      "status": "partial",
+      "note": "Turn errors and Retry show in the conversation. The thread list shows session errors."
+    },
+    "web/src/components/chat/containers/ChatInputSection.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml"
+      ]
+    },
+    "web/src/components/chat/containers/ChatPanelHeader.tsx": {
+      "native": [
+        "native/node-editor/qml/EditorChat.qml"
+      ],
+      "status": "partial",
+      "note": "The editor chat header has title, threads, new conversation and close. Expand is hidden because native has no chat workspace tab."
+    },
+    "web/src/components/chat/containers/ChatView.tsx": {
+      "native": [
+        "native/chat/qml/ChatPanel.qml",
+        "native/chat/qml/Main.qml"
+      ],
+      "status": "partial",
+      "note": "The chat workspace. The standalone native chat app is its counterpart. The task dock and slash commands are missing."
+    },
+    "web/src/components/chat/containers/WelcomePlaceholder.tsx": {
+      "native": [
+        "native/chat/qml/ConversationView.qml"
+      ],
+      "status": "partial",
+      "note": "The empty conversation uses the web strings without suggestions."
+    },
+    "web/src/components/chat/controls/ScrollToBottomButton.tsx": {
+      "native": [
+        "native/chat/qml/ConversationView.qml"
+      ]
+    },
+    "web/src/components/chat/feedback/MediaPredictionStatus.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml"
+      ],
+      "status": "partial",
+      "note": "Progress, cost and errors as rows, without shimmer. See native/chat/docs/WEB_PARITY.md."
+    },
+    "web/src/components/chat/feedback/Progress.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml"
+      ]
+    },
+    "web/src/components/chat/message/AgentExecutionView.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/MessageModel.cpp"
+      ],
+      "status": "partial",
+      "note": "Tasks, steps, durations, the plan summary and the planning log, without the task inspector. See native/chat/docs/WEB_PARITY.md."
+    },
+    "web/src/components/chat/message/ChatMarkdown.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/Markdown.cpp",
+        "native/chat/src/model/RichContent.cpp"
+      ],
+      "status": "partial",
+      "note": "Sanitized HTML, images, highlighting and math, with math rendered as Unicode text instead of KaTeX. See native/chat/docs/WEB_PARITY.md."
+    },
+    "web/src/components/chat/message/CompactionCard.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml"
+      ]
+    },
+    "web/src/components/chat/message/GenerationBatchProgress.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/MessageModel.cpp",
+        "native/chat/src/model/RichContent.cpp"
+      ]
+    },
+    "web/src/components/chat/message/InlineResourcePreview.tsx": {
+      "accepted": "Previews sketch, timeline, 3D and game documents, whose editors are out of native scope (outOfScope). Native shows the resource chip."
+    },
+    "web/src/components/chat/message/MediaOutputGroup.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/qml/ChatMediaPlayer.qml"
+      ],
+      "status": "partial",
+      "note": "Image grid and embedded playback. No canvas insertion or drag. See native/chat/docs/WEB_PARITY.md."
+    },
+    "web/src/components/chat/message/MessageContentRenderer.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/MessageModel.cpp"
+      ]
+    },
+    "web/src/components/chat/message/MessageView.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/MessageModel.cpp"
+      ],
+      "status": "partial",
+      "note": "Rewind, regeneration and sent-message editing are deferred. See native/chat/docs/WEB_PARITY.md."
+    },
+    "web/src/components/chat/message/PlanApprovalCard.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml"
+      ],
+      "status": "partial",
+      "note": "Run, revise and reject work, with single-line feedback. See native/chat/docs/WEB_PARITY.md."
+    },
+    "web/src/components/chat/message/PlanDocument.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/PlanDocument.cpp"
+      ]
+    },
+    "web/src/components/chat/message/ResourceChip.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/Markdown.cpp"
+      ],
+      "status": "partial",
+      "note": "Markdown-link, bare and backticked resource URIs are chips. Legacy mentions are not. See native/chat/docs/WEB_PARITY.md."
+    },
+    "web/src/components/chat/message/SecretRequestCard.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/runtime/ChatSession.cpp"
+      ]
+    },
+    "web/src/components/chat/message/ToolApprovalCard.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/MessageModel.cpp"
+      ]
+    },
+    "web/src/components/chat/message/markdown_elements/CodeBlock.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/Markdown.cpp",
+        "native/chat/src/runtime/CodeHighlighter.cpp"
+      ]
+    },
+    "web/src/components/chat/message/markdown_elements/PreRenderer.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/Markdown.cpp"
+      ]
+    },
+    "web/src/components/chat/message/thought/ThoughtSection.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml"
+      ]
+    },
+    "web/src/components/chat/message/toolCallIcon.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml"
+      ],
+      "status": "partial",
+      "note": "Tool rows use buttons and surfaces instead of the web rail icons."
+    },
+    "web/src/components/chat/message/toolResults/SearchResults.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/MessageModel.cpp",
+        "native/chat/src/model/RichContent.cpp"
+      ]
+    },
+    "web/src/components/chat/message/toolResults/ToolResult.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/MessageModel.cpp"
+      ]
+    },
+    "web/src/components/chat/message/toolResults/ToolResultJson.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml"
+      ]
+    },
+    "web/src/components/chat/thread/ChatThreadView.tsx": {
+      "native": [
+        "native/chat/qml/ConversationView.qml",
+        "native/chat/qml/MessageDelegate.qml"
+      ]
+    },
+    "web/src/components/chat/thread/EmptyThreadList.tsx": {
+      "native": [
+        "native/node-editor/qml/EditorChat.qml",
+        "native/chat/qml/ThreadList.qml"
+      ]
+    },
+    "web/src/components/chat/thread/ThreadItem.tsx": {
+      "native": [
+        "native/node-editor/qml/EditorChat.qml"
+      ],
+      "status": "partial",
+      "note": "Select and delete with the web confirmation and exit motion. Rename is missing."
+    },
+    "web/src/components/chat/thread/ThreadList.tsx": {
+      "native": [
+        "native/node-editor/qml/EditorChat.qml",
+        "native/chat/src/runtime/ChatSession.cpp"
+      ],
+      "status": "partial",
+      "note": "Search, date groups and delete. Thread headings follow the web eyebrow style."
+    },
+    "web/src/components/workflows/CreateWorkflowButton.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowBrowser.qml"
+      ],
+      "status": "partial",
+      "note": "The browser's name field and Create button make an empty workflow in the list's project and open it. The web button creates an untitled workflow in one click.",
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/SendToWorkflowMenu.tsx": {
+      "missing": "The native library has no Send to workflow entry. Its storyboard, script and timeline callers are out of scope.",
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/ShareWorkflowDialog.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowDetails.qml"
+      ],
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/WorkflowDeleteDialog.tsx": {
+      "native": [
+        "native/node-editor/src/ui/EditorWindow.cpp",
+        "native/node-editor/src/server/WorkflowBrowser.cpp"
+      ],
+      "status": "partial",
+      "note": "A confirmation for one workflow or the selection. Every delete runs and the failures are counted in the browser's error. The web also moves the editor off a deleted open workflow.",
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/WorkflowForm.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowBrowser.qml"
+      ],
+      "status": "partial",
+      "note": "Name, description, tags, run mode, workspace and tool name, each saved when its field commits. Tags are a comma-separated field without the web's suggestions, and the workspace is an ID field instead of a picker.",
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/WorkflowFormModal.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowBrowser.qml"
+      ],
+      "status": "partial",
+      "note": "The settings form opens inside the browser above the list instead of in a dialog.",
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/WorkflowList.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowBrowser.qml",
+        "native/node-editor/src/server/WorkflowBrowser.cpp"
+      ],
+      "status": "match",
+      "note": "Name search, project filter, favorites only, tag filters that need every tag, the empty states, Retry, duplicate as Name (n), rename and bulk delete. Native loads pages of 100 with Load more where the web loads 1000 at once, and keeps a create field in the panel.",
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/WorkflowListItem.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowBrowser.qml",
+        "native/node-editor/src/server/WorkflowBrowser.cpp"
+      ],
+      "status": "partial",
+      "note": "Click opens after the double-click interval, double-click renames in place, the checkbox in selection mode, the favorite star, the relative date in name order and the current-workflow highlight. The hover tooltip shows the name, description and tags as text, without the web's tag chips and mini graph.",
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/WorkflowListView.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowBrowser.qml",
+        "native/node-editor/src/server/WorkflowBrowser.cpp"
+      ],
+      "status": "match",
+      "note": "Newest first with Today, Yesterday, N days ago and relative week, month and year headers, or by name without headers, and the graph preview mode.",
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/WorkflowShareDialogHost.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowDetails.qml"
+      ],
+      "status": "partial",
+      "note": "The Share workflow command opens sharing for the open workflow. Nothing opens it for another workflow.",
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/WorkflowToolbar.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowBrowser.qml"
+      ],
+      "status": "match",
+      "note": "Tag filter menu, delete selected, selection checkboxes, favorites only, graph preview and the sort menu, then the active tag chips with Clear all. Sort, preview, tags and favorites persist in QSettings.",
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/WorkflowTriggerIndicator.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowBrowser.qml",
+        "native/node-editor/src/server/WorkflowBrowser.cpp"
+      ],
+      "status": "match",
+      "note": "The badge and its label from jobs.triggersRunning, in the error tone when a trigger failed or was disarmed.",
+      "inventory": "F34"
     }
   }
 }

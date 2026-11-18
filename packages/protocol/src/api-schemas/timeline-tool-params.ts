@@ -1933,6 +1933,11 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   "ui_timeline_add_track",
   "ui_timeline_move_track",
   "ui_timeline_delete_track",
+  // A track's own settings, and the edits that keep a cut gap-free.
+  "ui_timeline_set_track",
+  "ui_timeline_ripple_delete",
+  "ui_timeline_close_gap",
+  "ui_timeline_cut_transcript",
   "ui_timeline_add_media_clip",
   "ui_timeline_add_text_clip",
   "ui_timeline_add_shape_clip",

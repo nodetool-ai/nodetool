@@ -1,0 +1,26 @@
+# ThreadSanitizer suppressions for account_qt_tests, in the form the
+# timeline's tools/sanitizers/tsan.supp uses. Qt is uninstrumented, so TSan
+# cannot see its own locks. Each line suppresses only reports whose top
+# frame is inside the Qt library, never a report on a project access.
+
+# QtCore is uninstrumented. Suppress only accesses whose top frame is inside it.
+# native-rules #15: race suppression for an uninstrumented library
+race_top:libQt6Core.so
+# QtNetwork is uninstrumented. Suppress only accesses whose top frame is inside it.
+# native-rules #15: race suppression for an uninstrumented library
+race_top:libQt6Network.so
+# Allocations and copies that QtCore and QtNetwork make through the C
+# library, which TSan reports at the interceptor rather than in Qt.
+# native-rules #15: race suppression for an uninstrumented library
+called_from_lib:libQt6Core.so
+# native-rules #15: race suppression for an uninstrumented library
+called_from_lib:libQt6Network.so
+# GLib's event loop wake-up, used by Qt's event dispatcher on Linux.
+# native-rules #15: race suppression for an uninstrumented library
+called_from_lib:libglib-2.0.so
+# OpenSSL, which QtNetwork loads, tearing down its tables at exit.
+# native-rules #15: race suppression for an uninstrumented library
+called_from_lib:libcrypto.so
+# QtTest's watchdog thread against the test logger at exit.
+# native-rules #15: race suppression for an uninstrumented library
+called_from_lib:libQt6Test.so

@@ -60,7 +60,8 @@ private slots:
   connect(&server, &QWebSocketServer::newConnection, this, [&] {
     peer = server.nextPendingConnection(); peer->setParent(&server);
     connect(peer, &QWebSocket::binaryMessageReceived, this, [&](const QByteArray &bytes) {
-      const auto value = node_editor::decodeMsgPack(bytes); QVERIFY(value); commands.append(value->toObject());
+      // The open-project signal goes with every socket open. WorkflowSessionTests checks it.
+      const auto value = node_editor::decodeMsgPack(bytes); QVERIFY(value); if (value->toObject()["command"] != "set_open_project") { commands.append(value->toObject()); }
     });
   });
   EditorWindow window; window.setCatalog(property_fixture::catalog());
@@ -171,12 +172,13 @@ private slots:
   window.setCatalog(compactCatalog());
   const auto original = workflow();
   QVERIFY(window.document()->load(original)); window.show(); QTest::qWait(100);
-  window.action("More");
-  auto menu = window.findChild<QMenu *>(); QVERIFY(menu);
+  auto menu = window.findChild<QMenu *>("application-menu-node"); QVERIFY(menu);
   QAction *layout = nullptr;
-  for (auto action : menu->actions()) { if (action->text() == "Auto layout") { layout = action; } }
+  for (auto action : menu->actions()) { if (action->text() == "Auto Layout") { layout = action; } }
   QVERIFY(layout);
-  QTest::mouseClick(menu, Qt::LeftButton, Qt::NoModifier, menu->actionGeometry(layout).center());
+  emit menu->aboutToShow();
+  QVERIFY(layout->isEnabled());
+  layout->trigger();
   QTRY_COMPARE(window.document()->undoStack()->count(), 1);
   QTRY_VERIFY(position(window.document()->node("n0")) != QPointF(450, 400));
     // Document commands precede the coalesced canvas projection.

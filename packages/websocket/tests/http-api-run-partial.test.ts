@@ -20,9 +20,15 @@ vi.mock("../src/lib/workflow-workspace.js", async () => {
   const actual = await vi.importActual<
     typeof import("../src/lib/workflow-workspace.js")
   >("../src/lib/workflow-workspace.js");
+  const { createWorkspace } = await import("@nodetool-ai/runtime");
+  const { InMemoryStorageAdapter } = await import("@nodetool-ai/storage");
   return {
     ...actual,
-    resolveWorkflowWorkspace: async () => os.tmpdir()
+    resolveProjectWorkspace: async (projectId: string | null) => ({
+      ok: true,
+      projectId: projectId ?? "",
+      workspace: createWorkspace(new InMemoryStorageAdapter())
+    })
   };
 });
 

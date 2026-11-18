@@ -365,6 +365,17 @@ private slots:
     QCOMPARE(w.document()->node("b")["data"].toObject()["Text"], QJsonValue("baseline"));
     QCOMPARE(w.document()->undoStack()->count(), 0);
   }
+  void propertyEscapeDiscardsDraft() {
+    EditorWindow w;
+    prepare(w);
+    auto field = control(w, "Text");
+    QVERIFY(field);
+    type(w, field, "discarded", Qt::Key_Escape);
+    select(w, "b");
+    QCoreApplication::processEvents();
+    QCOMPARE(w.document()->node("a")["data"].toObject()["Text"], QJsonValue("baseline"));
+    QCOMPARE(w.document()->undoStack()->count(), 0);
+  }
   void propertyDynamicUsesSeparateMap() {
     EditorWindow w;
     prepare(w);
@@ -637,6 +648,29 @@ private slots:
     QCOMPARE(window.selection(), QString("a"));
     QCOMPARE(synced.count(), 1);
   }
+  // The field loses focus before the canvas press selects the other card, so
+  // the typed value still lands on the card it was typed for.
+  void inspectorEditSurvivesCanvasClick() {
+    EditorWindow window;
+    loadPanelFixture(window);
+    QVERIFY(window.selectNode("a"));
+    QTest::qWait(150);
+    QQuickItem *field = nullptr;
+    QTRY_VERIFY((field = control(window, "Text")));
+    type(window, field, "typed before the click", 0);
+    auto *view = window.activeEditor()->findChild<QGraphicsView *>();
+    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+    QtNodes::NodeId target = QtNodes::InvalidNodeId;
+    for (const auto id : model.allNodeIds()) { if (model.resourceId(id) == "b") { target = id; } }
+    auto *item = window.scene()->nodeGraphicsObject(target);
+    QVERIFY(item);
+    const auto header = item->sceneBoundingRect().topLeft() + QPointF(item->sceneBoundingRect().width() / 2, 12);
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(header));
+    QTRY_COMPARE(window.selection(), QString("b"));
+    QTRY_COMPARE(window.document()->node("a")["data"].toObject()["Text"], QJsonValue("typed before the click"));
+    QCOMPARE(window.document()->node("b")["data"].toObject()["Text"], QJsonValue("baseline"));
+    QCOMPARE(window.document()->undoStack()->count(), 1);
+  }
   // GenerationHistory copies the full document. A selection change reuses the copy.
   void selectionKeepsHistoryWorkflow() {
     EditorWindow window;
@@ -658,8 +692,9 @@ private slots:
     QTest::qWait(50);
     auto panels = w.findChildren<QQuickWidget *>();
     // Rail, tabs, document header, status, catalog, node menu, browser, inspector, output, both toolbars,
-    // viewport readout, mini-map controls, first-workflow guide, queue overlay, subgraph canvas strip, chat overlay, library.
-    QCOMPARE(panels.size(), 18);
+    // viewport readout, mini-map controls, first-workflow guide, queue overlay, subgraph canvas strip, chat overlay, library,
+    // node info overlay, examples panel, price chip, document file banner.
+    QCOMPARE(panels.size(), 22);
     for (auto p : panels) {
       QCOMPARE(p->status(), QQuickWidget::Ready);
     }
@@ -1142,6 +1177,14 @@ private slots:
     QFile local(path);
     QVERIFY(local.open(QIODevice::ReadOnly));
     QVERIFY(!QJsonDocument::fromJson(local.readAll()).object().contains("id"));
+    // UX study 21: Save on a server workflow with no file saves to the server, as
+    // Ctrl+S does on the web, instead of asking for a file.
+    w.addNode("N");
+    const auto before = requests.size();
+    w.action("Save");
+    QTRY_VERIFY(requests.size() > before);
+    QVERIFY(requests.last().startsWith("PUT /api/workflows/other "));
+    QVERIFY(w.localFilePath().isEmpty());
   }
   void reconnectActionRetainsRun() {
     QWebSocketServer server("test", QWebSocketServer::NonSecureMode);
@@ -1152,7 +1195,9 @@ private slots:
       peer = server.nextPendingConnection();
       peer->setParent(&server);
       connect(peer, &QWebSocket::binaryMessageReceived, this, [&](QByteArray bytes) {
-        commands.append(node_editor::decodeMsgPack(bytes)->toObject());
+        // The open-project signal goes with every socket open. WorkflowSessionTests checks it.
+        const auto command = node_editor::decodeMsgPack(bytes)->toObject();
+        if (command["command"] != "set_open_project") { commands.append(command); }
       });
     });
     EditorWindow w;

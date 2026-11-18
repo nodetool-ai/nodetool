@@ -23,6 +23,29 @@ ColumnLayout {
         }
     }
     readonly property bool userMessage: role === "user"
+    // The last row of the conversation: its reply keeps the action row
+    // showing and offers Retry, as Claude does.
+    property bool latest: false
+    // ChatView.tsx canResend: Edit, Retry and the version switcher wait for
+    // a running turn and need the server.
+    readonly property bool canResend: !!session && session.connectionStatus === "connected" && !session.historyLoading
+        && ["loading", "streaming", "stopping"].indexOf(session.turnStatus) < 0
+    readonly property var versionNav: session && session.versions ? (session.versions[messageId] || null) : null
+    property bool editingPrompt: false
+    function startEdit() {
+        promptEditor.text = root.text
+        root.editingPrompt = true
+        promptEditor.forceActiveFocus()
+        promptEditor.cursorPosition = promptEditor.length
+    }
+    function sendEdit() {
+        const edited = promptEditor.text.trim()
+        if (!edited || !root.canResend) { return; }
+        root.editingPrompt = false
+        root.session.resendFrom(root.messageId, edited)
+    }
+    onMessageIdChanged: editingPrompt = false
+    HoverHandler { id: rowHover }
     spacing: Ui.Metrics.md
     objectName: "message_" + messageId
     Ui.Dialog {
@@ -52,6 +75,114 @@ ColumnLayout {
         text: root.userMessage ? root.text.slice(0, 4096) : ""
         font: userFont.font
     }
+    // MessageView.tsx ToolCallRow header: what the call did, the thing it did
+    // it to in mono, its timing, and a chevron that shows on approach. The
+    // whole row folds the details open, as on the web.
+    component ToolRowHeader: Ui.ListRow {
+        id: header
+        property string label: ""
+        property string detail: ""
+        property string note: ""
+        property string timing: ""
+        property bool open: false
+        property bool running: false
+        property bool failed: false
+        property bool emphasis: false
+        property bool quiet: false
+        property bool chevron: true
+        flat: true
+        Layout.fillWidth: true
+        // The hover background reaches past the text, as tool-row-header does.
+        Layout.leftMargin: -Ui.Metrics.sm
+        implicitHeight: ChatMetrics.toolRow
+        // The content item draws the row. The text names it for assistive
+        // technology and for searches by text.
+        text: detail ? label + " " + detail : label
+        Accessible.expandable: enabled
+        Accessible.expanded: open
+        // RowLayout never shrinks an item that does not fill, so the row
+        // shares its width out here. The timing and the chevron keep theirs,
+        // the preview gives way first, and then the argument gives way before
+        // the verb does, down to 60% for the verb.
+        readonly property real fixedWidth: (headerTiming.visible ? headerTiming.implicitWidth + Ui.Metrics.xs : Ui.Metrics.none)
+            + (headerChevron.visible ? headerChevron.width + Ui.Metrics.xs : Ui.Metrics.none)
+        readonly property real noteWidth: headerNote.visible ? Math.max(Ui.Metrics.none, Math.min(headerNote.implicitWidth,
+            width - Ui.Metrics.sm * 2 - fixedWidth - headerLabel.implicitWidth - (detail ? headerDetail.implicitWidth + Ui.Metrics.xs : Ui.Metrics.none)
+            - Ui.Metrics.md - Ui.Metrics.xs * 2)) : Ui.Metrics.none
+        readonly property real textWidth: Math.max(Ui.Metrics.none, width - Ui.Metrics.sm * 2 - fixedWidth
+            - (headerNote.visible ? noteWidth + Ui.Metrics.xs : Ui.Metrics.none) - Ui.Metrics.md - Ui.Metrics.xs)
+        readonly property real labelWidth: detail
+            ? Math.min(headerLabel.implicitWidth, Math.max(textWidth * 0.6, textWidth - headerDetail.implicitWidth - Ui.Metrics.xs))
+            : Math.min(headerLabel.implicitWidth, textWidth)
+        readonly property real detailWidth: detail ? Math.max(Ui.Metrics.none, Math.min(headerDetail.implicitWidth, textWidth - labelWidth - Ui.Metrics.xs)) : Ui.Metrics.none
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: Ui.Metrics.sm
+            anchors.rightMargin: Ui.Metrics.sm
+            spacing: Ui.Metrics.xs
+            Ui.Text {
+                id: headerLabel
+                objectName: "toolRowLabel"
+                role: Ui.Typography.SansLabel
+                weight: Font.Normal
+                tight: true
+                text: header.label
+                tone: header.quiet ? Ui.Text.Disabled : header.running || header.emphasis ? Ui.Text.Primary : Ui.Text.Secondary
+                elide: Text.ElideRight
+                Layout.preferredWidth: header.labelWidth
+                readonly property bool shimmering: header.running && !Ui.Theme.reducedMotion
+                onShimmeringChanged: if (!shimmering) opacity = 1
+                SequentialAnimation on opacity {
+                    running: headerLabel.shimmering && headerLabel.visible
+                    loops: Animation.Infinite
+                    NumberAnimation { to: 0.45; duration: Ui.Metrics.motionSpin; easing.type: Easing.InOutSine }
+                    NumberAnimation { to: 1; duration: Ui.Metrics.motionSpin; easing.type: Easing.InOutSine }
+                }
+            }
+            Ui.Text {
+                id: headerDetail
+                objectName: "toolRowDetail"
+                visible: !!header.detail
+                role: Ui.Typography.MonoCaption
+                tight: true
+                text: header.detail
+                tone: Ui.Text.Disabled
+                elide: Text.ElideRight
+                Layout.preferredWidth: header.detailWidth
+            }
+            Item { Layout.fillWidth: true; Layout.minimumWidth: Ui.Metrics.md }
+            Ui.Text {
+                id: headerNote
+                visible: !!header.note
+                role: Ui.Typography.MonoCaption
+                tight: true
+                text: header.note
+                tone: Ui.Text.Disabled
+                elide: Text.ElideRight
+                Layout.preferredWidth: header.noteWidth
+            }
+            // A failed call says so in words, not only in colour.
+            Ui.Text {
+                id: headerTiming
+                objectName: "toolRowTiming"
+                visible: header.failed || !!header.timing
+                role: Ui.Typography.MonoCaption
+                tight: true
+                text: header.failed ? qsTr("Failed") : header.timing
+                tone: header.failed ? Ui.Text.Error : Ui.Text.Disabled
+            }
+            Ui.Icon {
+                id: headerChevron
+                visible: header.chevron && header.enabled
+                name: "expandMore"
+                size: Ui.Metrics.iconSm
+                tone: Ui.Text.Disabled
+                rotation: header.open ? 180 : 0
+                opacity: header.open || header.hovered || header.visualFocus ? 1 : 0
+                Behavior on opacity { enabled: !Ui.Theme.reducedMotion; NumberAnimation { duration: Ui.Metrics.motionQuick } }
+            }
+        }
+    }
     component PagedText: ColumnLayout {
         id: paged
         property string sourceText: ""
@@ -59,6 +190,8 @@ ColumnLayout {
         property bool monospaced: false
         property string copyLabel: ""
         property bool userBubble: false
+        // A fence language for monospaced text, which colours it as code.
+        property string codeLanguage: ""
         property var chatSession
         property int page: 0
         readonly property int pageSize: 4096
@@ -105,21 +238,81 @@ ColumnLayout {
                         }
                     }
                 }
+                ColumnLayout {
+                    id: inlineImage
+                    // ChatMarkdown.tsx renders Markdown and HTML images in
+                    // the reply. Native loads them through the session.
+                    readonly property string source: section.modelData.image || ""
+                    readonly property var resolved: source && paged.chatSession ? (paged.chatSession.resolvedMedia[source] || null) : null
+                    visible: source.length > 0
+                    Layout.fillWidth: true
+                    function request() { if (source && paged.chatSession && !resolved) paged.chatSession.resolveImage(source) }
+                    Component.onCompleted: request()
+                    onResolvedChanged: Qt.callLater(request)
+                    Image {
+                        id: inlinePicture
+                        objectName: "markdownImage"
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: status === Image.Ready ? Math.min(implicitHeight * width / Math.max(1, implicitWidth), Ui.Metrics.comfortable * 8) : 0
+                        visible: status === Image.Ready
+                        source: inlineImage.resolved && inlineImage.resolved.url ? inlineImage.resolved.url : ""
+                        sourceSize.width: 800
+                        sourceSize.height: 800
+                        fillMode: Image.PreserveAspectFit
+                        horizontalAlignment: Image.AlignLeft
+                        asynchronous: true
+                        cache: false
+                        Accessible.name: section.modelData.text || qsTr("Image")
+                    }
+                    Ui.Text {
+                        visible: inlineImage.visible && (!!section.modelData.text || (!!inlineImage.resolved && !!inlineImage.resolved.error))
+                        text: inlineImage.resolved && inlineImage.resolved.error ? (section.modelData.text ? section.modelData.text + " · " : "") + inlineImage.resolved.error : section.modelData.text || ""
+                        role: Ui.Typography.SansCaption
+                        tone: inlineImage.resolved && inlineImage.resolved.error ? Ui.Text.Error : Ui.Text.Secondary
+                        Layout.fillWidth: true
+                        wrapMode: Text.Wrap
+                    }
+                    Ui.EditorButton {
+                        visible: inlineImage.visible && !!inlineImage.resolved && !!inlineImage.resolved.error && (inlineImage.source.startsWith("https:") || inlineImage.source.startsWith("http:"))
+                        text: qsTr("Open image link")
+                        onClicked: if (paged.chatSession) paged.chatSession.openExternal(inlineImage.source)
+                    }
+                }
                 Ui.TextArea {
-                    visible: !section.modelData.resourceUri
+                    objectName: "markdownMath"
+                    // mathMarkdown.ts renders display equations with KaTeX.
+                    // Native shows them as Unicode on their own line.
+                    visible: !!section.modelData.math
+                    Layout.fillWidth: true
+                    value: section.modelData.math ? section.modelData.text : ""
+                    textFormat: TextEdit.PlainText
+                    readOnly: true
+                    selectByMouse: true
+                    wrapMode: TextEdit.Wrap
+                    horizontalAlignment: TextEdit.AlignHCenter
+                    role: Ui.Typography.SansBody
+                    variant: Ui.TextArea.Plain
+                    accessibleName: section.modelData.source || ""
+                }
+                Ui.TextArea {
+                    visible: !section.modelData.resourceUri && !section.modelData.image && !section.modelData.math
                     Layout.fillWidth: true
                     id: markdownText
                     readonly property color linkColour: Ui.Theme.statusInfo
                     function updateLinkColour() {
-                        if (paged.chatSession && textFormat === TextEdit.MarkdownText) {
+                        // Qt.callLater can run after the delegate is released.
+                        if (paged && paged.chatSession && textFormat === TextEdit.MarkdownText) {
                             paged.chatSession.styleMarkdownLinks(textDocument, linkColour)
+                            if (!paged.userBubble) {
+                                paged.chatSession.styleReadingRhythm(textDocument, Ui.Metrics.lg, Ui.Metrics.xs, Ui.Metrics.xl)
+                            }
                         }
                     }
                     onLinkColourChanged: Qt.callLater(updateLinkColour)
                     onTextChanged: Qt.callLater(updateLinkColour)
                     Component.onCompleted: updateLinkColour()
                     value: section.modelData.text
-                    textFormat: !section.modelData.code && paged.markdown && !/!\[|<\/?[A-Za-z]|\$\$|\\[([]/.test(section.modelData.text) ? TextEdit.MarkdownText : TextEdit.PlainText
+                    textFormat: !section.modelData.code && paged.markdown ? TextEdit.MarkdownText : TextEdit.PlainText
                     readOnly: true
                     selectByMouse: true
                     wrapMode: TextEdit.Wrap
@@ -127,7 +320,16 @@ ColumnLayout {
                     variant: paged.monospaced ? Ui.TextArea.Code : paged.userBubble ? Ui.TextArea.Bubble : section.modelData.code ? Ui.TextArea.Code : Ui.TextArea.Plain
                     accessibleName: section.modelData.text
                     onLinkActivated: link => {
-                        if (paged.chatSession) { paged.chatSession.openExternal(link); }
+                        if (!paged.chatSession) { return; }
+                        const scheme = String(link).split(":")[0]
+                        if ((paged.chatSession.resourceKinds || []).indexOf(scheme) >= 0) { paged.chatSession.openResource(link); }
+                        else { paged.chatSession.openExternal(link); }
+                    }
+                    ChatCodeHighlighter {
+                        // CodeBlock.tsx highlights fences with Prism.
+                        source: section.modelData.code || paged.codeLanguage ? markdownText.textDocument : null
+                        language: section.modelData.code ? (section.modelData.language || "") : paged.codeLanguage
+                        dark: Ui.Theme.dark
                     }
                 }
             }
@@ -166,7 +368,7 @@ ColumnLayout {
     }
     Item {
         id: proseContainer
-        visible: root.text.length > 0
+        visible: root.text.length > 0 && !root.editingPrompt
         Layout.fillWidth: !root.userMessage
         Layout.maximumWidth: root.userMessage ? root.width * (root.width < ChatMetrics.narrow ? 0.88 : 0.75) : root.width
         Layout.alignment: root.userMessage ? Qt.AlignRight : Qt.AlignLeft
@@ -184,31 +386,170 @@ ColumnLayout {
             chatSession: root.session
         }
     }
+    ColumnLayout {
+        objectName: "promptEditor"
+        visible: root.editingPrompt
+        Layout.fillWidth: true
+        spacing: Ui.Metrics.sm
+        Ui.TextArea {
+            id: promptEditor
+            objectName: "promptEditorField"
+            Layout.fillWidth: true
+            accessibleName: qsTr("Edit message")
+            Keys.onPressed: event => {
+                if (event.key === Qt.Key_Escape) {
+                    root.editingPrompt = false
+                    event.accepted = true
+                } else if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && !(event.modifiers & Qt.ShiftModifier) && !inputMethodComposing) {
+                    root.sendEdit()
+                    event.accepted = true
+                }
+            }
+        }
+        Ui.Text {
+            role: Ui.Typography.SansCaption
+            tone: Ui.Text.Secondary
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+            text: qsTr("Sending starts a new version. The current one stays available.")
+        }
+        RowLayout {
+            Layout.alignment: Qt.AlignRight
+            spacing: Ui.Metrics.sm
+            Ui.EditorButton {
+                objectName: "cancelEditButton"
+                text: qsTr("Cancel")
+                onClicked: root.editingPrompt = false
+            }
+            Ui.EditorButton {
+                objectName: "sendEditButton"
+                text: qsTr("Send")
+                variant: Ui.EditorButton.Primary
+                enabled: root.canResend && promptEditor.text.trim().length > 0
+                onClicked: root.sendEdit()
+            }
+        }
+    }
     Repeater {
         model: root.parts || []
-        delegate: Ui.Surface {
+        delegate: Item {
             id: partFrame
             required property var modelData
             required property int index
             readonly property var part: modelData
             readonly property string kind: part.type || "unknown"
             readonly property bool detailsOpen: !!part.expanded
+            // MessageView.tsx ToolCallTimeline: tool calls read as a sequence
+            // of rows on a rail, not as a stack of cards.
+            readonly property bool toolRow: !!part.tool
+            readonly property bool railed: toolRow || kind === "tool_timeline"
+            readonly property bool toolExpandable: toolRow && (!!part.grouped
+                || (part.subAgent ? (!!part.objective || !!part.argumentsText || !!part.resultText || !!part.childModel)
+                    : (!!part.argumentsText || !!part.resultText || !!part.code || !!part.searchResults || !!part.childModel)))
+            visible: !part.gridMember && !part.timelineHidden
             Layout.fillWidth: true
-            implicitHeight: partContent.implicitHeight + Ui.Metrics.md * 2
+            // A row after another tool row sits close under it, and a run
+            // listed call by call sits flush.
+            Layout.topMargin: railed && part.afterTool ? (part.tight ? -root.spacing : Ui.Metrics.xs - root.spacing) : Ui.Metrics.none
+            implicitHeight: partContent.implicitHeight + (railed ? Ui.Metrics.none : Ui.Metrics.md * 2)
+            Ui.Surface {
+                anchors.fill: parent
+                visible: !partFrame.railed
+            }
+            // ToolRowRail: the category glyph and the hairline to the next row.
+            Item {
+                objectName: "toolRail"
+                visible: partFrame.railed
+                width: ChatMetrics.toolRail
+                height: parent.height
+                Ui.Icon {
+                    objectName: "toolGlyph"
+                    x: (parent.width - width) / 2
+                    y: (ChatMetrics.toolRow - height) / 2
+                    name: partFrame.kind === "tool_timeline" ? "dragIndicator" : (partFrame.part.icon || "wrench")
+                    size: Ui.Metrics.iconXs
+                    tone: Ui.Text.Disabled
+                }
+                Rectangle {
+                    objectName: "toolConnector"
+                    visible: !!partFrame.part.connected
+                    x: (parent.width - width) / 2
+                    y: ChatMetrics.toolRow
+                    width: Ui.Metrics.border
+                    // Reaches the next row's glyph across the gap between rows.
+                    height: Math.max(Ui.Metrics.none, parent.height - ChatMetrics.toolRow + Ui.Metrics.xs)
+                    color: Ui.Theme.borderSubtle
+                }
+            }
+            Rectangle {
+                // ThoughtSection.tsx sets the reasoning against a rail.
+                objectName: "thoughtRail"
+                visible: partFrame.kind === "thought" && partBody.visible
+                x: partContent.x + Ui.Metrics.xs
+                y: partContent.y + partBody.y
+                width: Ui.Metrics.micro
+                height: partBody.height
+                color: Ui.Theme.borderControl
+            }
             ColumnLayout {
                 id: partContent
                 anchors.fill: parent
-                anchors.margins: Ui.Metrics.md
-                spacing: Ui.Metrics.md
+                anchors.margins: partFrame.railed ? Ui.Metrics.none : Ui.Metrics.md
+                anchors.leftMargin: partFrame.railed ? ChatMetrics.toolRail + Ui.Metrics.lg : Ui.Metrics.md
+                spacing: partFrame.railed ? Ui.Metrics.xs : Ui.Metrics.md
+                ToolRowHeader {
+                    objectName: "toolDetails_" + (partFrame.part.tool_call_id || partFrame.index)
+                    visible: partFrame.toolRow
+                    enabled: partFrame.toolExpandable
+                    label: partFrame.part.detail ? (partFrame.part.verb || "") : (partFrame.part.label || partFrame.part.name || "")
+                    detail: partFrame.part.detail || ""
+                    // Folded, a counted row previews what it touched and a
+                    // sub-agent names how much it said.
+                    note: [partFrame.detailsOpen ? "" : (partFrame.part.preview || ""),
+                        partFrame.detailsOpen || !(partFrame.part.transcriptCount > 0) ? "" : (partFrame.part.transcriptCount === 1 ? qsTr("1 message") : qsTr("%1 messages").arg(partFrame.part.transcriptCount)),
+                        partFrame.part.progress || ""].filter(value => !!value).join(" · ")
+                    timing: partFrame.part.displayStatus === "Running" ? "" : (partFrame.part.duration || "")
+                    open: partFrame.detailsOpen
+                    running: partFrame.part.displayStatus === "Running"
+                    failed: partFrame.part.displayStatus === "Failed"
+                    emphasis: !!partFrame.part.subAgent || partFrame.part.name === "create_plan"
+                    onClicked: root.parts.toggleExpanded(partFrame.index)
+                }
+                // ToolCallTimeline footer: how long the sequence took, and the
+                // control that folds its rows away.
+                ToolRowHeader {
+                    objectName: "toolTimelineToggle"
+                    visible: partFrame.kind === "tool_timeline"
+                    label: partFrame.part.label || ""
+                    note: partFrame.detailsOpen ? "" : (partFrame.part.steps || "")
+                    accessibleName: partFrame.detailsOpen ? qsTr("Hide steps") : qsTr("Show steps")
+                    open: partFrame.detailsOpen
+                    running: !!partFrame.part.running
+                    quiet: true
+                    chevron: false
+                    onClicked: root.parts.toggleExpanded(partFrame.index)
+                }
                 ColumnLayout {
-                    visible: partFrame.kind !== "prose"
+                    visible: partFrame.kind !== "prose" && !partFrame.railed
                     Layout.fillWidth: true
                     Ui.Text {
+                        id: partHeading
+                        objectName: partFrame.kind === "thought" ? "thoughtHeading" : ""
                         role: Ui.Typography.SansLabel
                         Layout.fillWidth: true
                         text: partFrame.part.label || partFrame.part.tool_name || partFrame.part.name || partFrame.part.title || partFrame.kind
                         tone: Ui.Text.Secondary
                         wrapMode: Text.Wrap
+                        // ThoughtSection.tsx shimmers the heading while the
+                        // model is thinking.
+                        readonly property bool shimmering: (partFrame.kind === "thought" || partFrame.kind === "tool_timeline") && !!partFrame.part.running && !Ui.Theme.reducedMotion
+                        onShimmeringChanged: if (!shimmering) opacity = 1
+                        SequentialAnimation on opacity {
+                            running: partHeading.shimmering && partHeading.visible
+                            loops: Animation.Infinite
+                            NumberAnimation { to: 0.45; duration: Ui.Metrics.motionSpin; easing.type: Easing.InOutSine }
+                            NumberAnimation { to: 1; duration: Ui.Metrics.motionSpin; easing.type: Easing.InOutSine }
+                        }
                     }
                     Flow {
                         Layout.fillWidth: true
@@ -224,6 +565,22 @@ ColumnLayout {
                             text: partFrame.part.duration || ""
                             role: Ui.Typography.SansCaption
                             tone: Ui.Text.Secondary
+                        }
+                        // ToolCallTimeline.tsx: the footer folds the
+                        // message's tool rows and names the step count.
+                        Ui.Text {
+                            visible: partFrame.kind === "tool_timeline" && !partFrame.detailsOpen
+                            text: partFrame.part.steps || ""
+                            role: Ui.Typography.SansCaption
+                            tone: Ui.Text.Secondary
+                        }
+                        Ui.EditorButton {
+                            visible: partFrame.kind === "tool_timeline"
+                            objectName: "toolTimelineToggle"
+                            text: partFrame.detailsOpen ? qsTr("Hide steps") : qsTr("Show steps")
+                            Accessible.expandable: true
+                            Accessible.expanded: partFrame.detailsOpen
+                            onClicked: root.parts.toggleExpanded(partFrame.index)
                         }
                         Ui.EditorButton {
                             visible: (!!partFrame.part.tool && (!partFrame.part.subAgent || !!partFrame.part.objective || !!partFrame.part.argumentsText || !!partFrame.part.resultText || !!partFrame.part.childModel)) || !!partFrame.part.tree || !!partFrame.part.collapsible || partFrame.kind === "thought"
@@ -241,8 +598,36 @@ ColumnLayout {
                     sourceText: partFrame.kind === "tool_approval_request" ? (partFrame.part.text || "") : ""
                     chatSession: root.session
                 }
+                // ToolApprovalCard.tsx folds the code and the arguments
+                // separately, both closed.
+                Repeater {
+                    model: partFrame.part.folds ? [
+                        {fold: "code", label: partFrame.part.codeOpen ? qsTr("Hide code") : qsTr("Show code"), open: !!partFrame.part.codeOpen, text: partFrame.part.code || "", language: "javascript"},
+                        {fold: "arguments", label: partFrame.part.argumentsOpen ? qsTr("Hide arguments") : qsTr("Show arguments"), open: !!partFrame.part.argumentsOpen, text: partFrame.part.argumentsText || "", language: "json"}
+                    ].filter(fold => fold.text.length > 0) : []
+                    delegate: ColumnLayout {
+                        id: approvalFold
+                        required property var modelData
+                        Layout.fillWidth: true
+                        Ui.EditorButton {
+                            objectName: "approvalFold_" + approvalFold.modelData.fold
+                            text: approvalFold.modelData.label
+                            Accessible.expandable: true
+                            Accessible.expanded: approvalFold.modelData.open
+                            onClicked: root.parts.toggleFold(partFrame.index, approvalFold.modelData.fold)
+                        }
+                        PagedText {
+                            Layout.fillWidth: true
+                            visible: approvalFold.modelData.open
+                            sourceText: approvalFold.modelData.open ? approvalFold.modelData.text : ""
+                            monospaced: true
+                            codeLanguage: approvalFold.modelData.language
+                            chatSession: root.session
+                        }
+                    }
+                }
                 Ui.Text {
-                    visible: (partFrame.part.transcriptCount || 0) > 0
+                    visible: (partFrame.part.transcriptCount || 0) > 0 && !partFrame.railed
                     text: qsTr("%1 messages").arg(partFrame.part.transcriptCount || 0)
                     role: Ui.Typography.SansCaption
                 }
@@ -291,7 +676,7 @@ ColumnLayout {
                     }
                 }
                 Ui.Text {
-                    visible: !!partFrame.part.preview
+                    visible: !!partFrame.part.preview && !partFrame.railed
                     text: partFrame.part.preview || ""
                     role: Ui.Typography.MonoCaption
                     tone: Ui.Text.Secondary
@@ -299,9 +684,76 @@ ColumnLayout {
                     elide: Text.ElideRight
                 }
                 Ui.Text {
-                    visible: !!partFrame.part.progress
+                    visible: !!partFrame.part.progress && !partFrame.railed
                     text: partFrame.part.progress || ""
                     role: Ui.Typography.SansCaption
+                }
+                Ui.Progress {
+                    // ExecutionTree.tsx: the plan header's completed-task bar.
+                    visible: partFrame.part.progressValue !== undefined
+                    Layout.fillWidth: true
+                    value: partFrame.part.progressValue || 0
+                    accessibleName: qsTr("Completed tasks")
+                }
+                ColumnLayout {
+                    id: batchView
+                    // GenerationBatchProgress.tsx, ticking once a second.
+                    property double now: Date.now()
+                    readonly property var progress: visible && root.session && root.session.batchProgress ? root.session.batchProgress(partFrame.part.batch, now) : null
+                    readonly property bool active: !!progress && progress.remainingSeconds !== null && progress.remainingSeconds !== undefined
+                    visible: !!partFrame.part.batch
+                    Layout.fillWidth: true
+                    spacing: Ui.Metrics.xs
+                    Timer { interval: 1000; repeat: true; running: batchView.active; onTriggered: batchView.now = Date.now() }
+                    Ui.EditorButton {
+                        objectName: "batchToggle"
+                        variant: Ui.EditorButton.Flat
+                        contentAlignment: Qt.AlignLeft
+                        Layout.fillWidth: true
+                        readonly property var p: batchView.progress || {}
+                        text: [qsTr("%1 of %2 done").arg(p.done || 0).arg(p.total || 0)]
+                            .concat(p.failed > 0 ? [qsTr("Failed: %1").arg(p.failed)] : [])
+                            .concat(batchView.active ? [p.remainingSeconds <= 1 ? qsTr("Finishing") : qsTr("About %1 left").arg(p.remainingSeconds < 60 ? p.remainingSeconds + "s" : Math.floor(p.remainingSeconds / 60) + "m " + (p.remainingSeconds % 60) + "s")] : [])
+                            .join(" · ")
+                        accessibleName: partFrame.part.batchOpen ? qsTr("Hide requests") : qsTr("Show requests")
+                        Accessible.expandable: true
+                        Accessible.expanded: !!partFrame.part.batchOpen
+                        onClicked: root.parts.toggleFold(partFrame.index, "batch")
+                    }
+                    Ui.Progress {
+                        Layout.fillWidth: true
+                        value: batchView.progress ? batchView.progress.percent / 100 : 0
+                        accessibleName: qsTr("Generation progress")
+                    }
+                    Repeater {
+                        model: partFrame.part.batchOpen && batchView.progress ? batchView.progress.items : []
+                        delegate: ColumnLayout {
+                            id: batchItem
+                            required property var modelData
+                            Layout.fillWidth: true
+                            spacing: 0
+                            readonly property var statusNames: ({queued: qsTr("Queued"), running: qsTr("Running"), completed: qsTr("Done"), failed: qsTr("Failed")})
+                            Ui.Text {
+                                Layout.fillWidth: true
+                                text: batchItem.modelData.label + " · " + (batchItem.statusNames[batchItem.modelData.status] || batchItem.modelData.status) + " · " + batchItem.modelData.timing
+                                role: Ui.Typography.SansLabel
+                                tone: batchItem.modelData.status === "failed" ? Ui.Text.Error : Ui.Text.Primary
+                                wrapMode: Text.Wrap
+                            }
+                            Repeater {
+                                model: [batchItem.modelData.model, batchItem.modelData.prompt, batchItem.modelData.error].filter(line => !!line)
+                                delegate: Ui.Text {
+                                    required property string modelData
+                                    required property int index
+                                    Layout.fillWidth: true
+                                    text: modelData
+                                    role: Ui.Typography.SansCaption
+                                    tone: modelData === batchItem.modelData.error ? Ui.Text.Error : Ui.Text.Secondary
+                                    wrapMode: Text.Wrap
+                                }
+                            }
+                        }
+                    }
                 }
                 Repeater {
                     model: partFrame.detailsOpen ? (partFrame.part.calls || []) : []
@@ -309,21 +761,17 @@ ColumnLayout {
                         id: groupedCall
                         required property var modelData
                         Layout.fillWidth: true
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            Ui.Text {
-                                text: groupedCall.modelData.label + " · " + root.statusLabel(groupedCall.modelData.displayStatus) + (groupedCall.modelData.duration ? " · " + groupedCall.modelData.duration : "")
-                                role: Ui.Typography.SansLabel
-                                Layout.fillWidth: true
-                                wrapMode: Text.Wrap
-                            }
-                            Ui.EditorButton {
-                                objectName: "groupCall_" + groupedCall.modelData.tool_call_id
-                                text: groupedCall.modelData.expanded ? qsTr("Hide details") : qsTr("Show details")
-                                Accessible.expandable: true
-                                Accessible.expanded: !!groupedCall.modelData.expanded
-                                onClicked: root.parts.toggleCall(partFrame.index, groupedCall.modelData.tool_call_id)
-                            }
+                        spacing: Ui.Metrics.xs
+                        // ToolCallCountRow unfolds to a tight row per call.
+                        ToolRowHeader {
+                            objectName: "groupCall_" + groupedCall.modelData.tool_call_id
+                            label: groupedCall.modelData.detail ? (groupedCall.modelData.verb || "") : (groupedCall.modelData.label || "")
+                            detail: groupedCall.modelData.detail || ""
+                            timing: groupedCall.modelData.displayStatus === "Running" ? "" : (groupedCall.modelData.duration || "")
+                            open: !!groupedCall.modelData.expanded
+                            running: groupedCall.modelData.displayStatus === "Running"
+                            failed: groupedCall.modelData.displayStatus === "Failed"
+                            onClicked: root.parts.toggleCall(partFrame.index, groupedCall.modelData.tool_call_id)
                         }
                         PagedText {
                             Layout.fillWidth: true
@@ -345,7 +793,9 @@ ColumnLayout {
                 Ui.Text {
                     visible: partFrame.detailsOpen && !!partFrame.part.code
                     text: partFrame.part.language ? qsTr("Code · %1").arg(partFrame.part.language) : qsTr("Code")
-                    role: Ui.Typography.SansLabel
+                    // tool-section-title: a quiet caption over each section.
+                    role: Ui.Typography.SansCaption
+                    tone: Ui.Text.Disabled
                 }
                 PagedText {
                     Layout.fillWidth: true
@@ -353,13 +803,16 @@ ColumnLayout {
                     visible: partFrame.detailsOpen && !!partFrame.part.code
                     sourceText: partFrame.detailsOpen ? (partFrame.part.code || "") : ""
                     monospaced: true
+                    codeLanguage: partFrame.part.language || "javascript"
                     copyLabel: qsTr("Copy code")
                     chatSession: root.session
                 }
                 Ui.Text {
                     visible: partFrame.detailsOpen && !!partFrame.part.argumentsText
                     text: qsTr("Arguments")
-                    role: Ui.Typography.SansLabel
+                    // tool-section-title: a quiet caption over each section.
+                    role: Ui.Typography.SansCaption
+                    tone: Ui.Text.Disabled
                 }
                 PagedText {
                     Layout.fillWidth: true
@@ -371,12 +824,72 @@ ColumnLayout {
                 Ui.Text {
                     visible: !!partFrame.part.resultText && partFrame.detailsOpen
                     text: qsTr("Result")
-                    role: Ui.Typography.SansLabel
+                    // tool-section-title: a quiet caption over each section.
+                    role: Ui.Typography.SansCaption
+                    tone: Ui.Text.Disabled
+                }
+                // SearchResults.tsx: a numbered list of title, source and
+                // snippet in place of the raw result.
+                Repeater {
+                    model: partFrame.detailsOpen ? (partFrame.part.searchResults || []) : []
+                    delegate: RowLayout {
+                        id: searchResult
+                        required property var modelData
+                        required property int index
+                        objectName: "searchResult_" + index
+                        Layout.fillWidth: true
+                        spacing: Ui.Metrics.sm
+                        Ui.Text {
+                            Layout.alignment: Qt.AlignTop
+                            text: String(searchResult.index + 1).padStart(2, "0")
+                            role: Ui.Typography.MonoCaption
+                            tone: Ui.Text.Disabled
+                        }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: Ui.Metrics.xs
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Ui.EditorButton {
+                                    visible: !!searchResult.modelData.url
+                                    Layout.fillWidth: true
+                                    variant: Ui.EditorButton.Flat
+                                    contentAlignment: Qt.AlignLeft
+                                    text: searchResult.modelData.title
+                                    accessibleName: qsTr("Open %1").arg(searchResult.modelData.title)
+                                    onClicked: if (root.session) root.session.openExternal(searchResult.modelData.url)
+                                }
+                                Ui.Text {
+                                    visible: !searchResult.modelData.url
+                                    Layout.fillWidth: true
+                                    text: searchResult.modelData.title
+                                    role: Ui.Typography.SansLabel
+                                    elide: Text.ElideRight
+                                }
+                                Ui.Text {
+                                    visible: !!searchResult.modelData.source
+                                    Layout.maximumWidth: partContent.width * 0.4
+                                    text: searchResult.modelData.source || ""
+                                    role: Ui.Typography.SansCaption
+                                    tone: Ui.Text.Disabled
+                                    elide: Text.ElideRight
+                                }
+                            }
+                            Ui.Text {
+                                visible: !!searchResult.modelData.snippet
+                                Layout.fillWidth: true
+                                text: searchResult.modelData.snippet || ""
+                                role: Ui.Typography.SansCaption
+                                tone: Ui.Text.Secondary
+                                wrapMode: Text.Wrap
+                            }
+                        }
+                    }
                 }
                 PagedText {
                     Layout.fillWidth: true
                     objectName: "toolResult_" + (partFrame.part.tool_call_id || partFrame.index)
-                    visible: !!partFrame.part.resultText && partFrame.detailsOpen
+                    visible: !!partFrame.part.resultText && partFrame.detailsOpen && !partFrame.part.searchResults
                     sourceText: partFrame.detailsOpen ? (partFrame.part.resultText || "") : ""
                     monospaced: true
                     copyLabel: qsTr("Copy result")
@@ -389,11 +902,69 @@ ColumnLayout {
                     chatSession: root.session
                 }
                 PagedText {
+                    id: partBody
                     Layout.fillWidth: true
-                    visible: !partFrame.part.resourceKind && partFrame.kind !== "tool_approval_request" && !partFrame.part.planText && !partFrame.part.tool && (partFrame.kind !== "compaction" || partFrame.detailsOpen) && (!partFrame.part.tree || (partFrame.detailsOpen && !!partFrame.part.text)) && (partFrame.kind !== "thought" || partFrame.detailsOpen) && (!partFrame.part.media || !partFrame.part.mediaUrl)
+                    Layout.leftMargin: partFrame.kind === "thought" ? Ui.Metrics.lg : 0
+                    visible: !partFrame.part.resourceKind && partFrame.kind !== "tool_approval_request" && !partFrame.part.planText && !partFrame.part.tool && (partFrame.kind !== "compaction" || partFrame.detailsOpen) && (!partFrame.part.tree || (partFrame.detailsOpen && !!partFrame.part.text)) && (partFrame.kind !== "thought" || partFrame.detailsOpen) && (!partFrame.part.media || !partFrame.part.mediaUrl) && !partFrame.part.grid && partFrame.kind !== "tool_timeline"
                     markdown: partFrame.kind === "thought" || partFrame.kind === "prose"
                     sourceText: (partFrame.kind === "thought" || partFrame.kind === "compaction" || partFrame.part.tree) && !partFrame.detailsOpen ? "" : partFrame.part.text || partFrame.part.content || (typeof partFrame.part.result === "string" ? partFrame.part.result : "") || qsTr("This content is preserved by the server. Open the web app to use this content type.")
                     chatSession: root.session
+                }
+                Flow {
+                    objectName: "mediaGrid"
+                    visible: !!partFrame.part.grid
+                    Layout.fillWidth: true
+                    spacing: Ui.Metrics.sm
+                    Repeater {
+                        model: partFrame.part.grid || []
+                        delegate: Item {
+                            id: tile
+                            required property var modelData
+                            readonly property bool ready: String(modelData.mediaUrl || "").indexOf("data:image/") === 0
+                            width: ChatMetrics.mediaTile
+                            height: ChatMetrics.mediaTile
+                            function enlarge() { if (tileImage.status === Image.Ready) { imagePreview.returnFocusTo = tile; imagePreview.mediaUrl = tileImage.source; imagePreview.open() } }
+                            activeFocusOnTab: tileImage.status === Image.Ready
+                            Accessible.role: Accessible.Button
+                            Accessible.name: qsTr("Open large image %1").arg(modelData.label || "")
+                            Accessible.onPressAction: enlarge()
+                            Keys.onSpacePressed: enlarge()
+                            Keys.onReturnPressed: enlarge()
+                            Image {
+                                id: tileImage
+                                objectName: "mediaTileImage"
+                                anchors.fill: parent
+                                source: tile.ready ? tile.modelData.mediaUrl : ""
+                                sourceSize.width: ChatMetrics.mediaTile * 2
+                                sourceSize.height: ChatMetrics.mediaTile * 2
+                                fillMode: Image.PreserveAspectCrop
+                                asynchronous: true
+                                cache: false
+                                Accessible.name: tile.modelData.label || qsTr("Image result")
+                            }
+                            Ui.Text {
+                                anchors.centerIn: parent
+                                width: parent.width - Ui.Metrics.sm * 2
+                                visible: tileImage.status !== Image.Ready
+                                text: tile.modelData.mediaError || tile.modelData.text || ""
+                                role: Ui.Typography.SansCaption
+                                tone: tile.modelData.mediaError ? Ui.Text.Error : Ui.Text.Secondary
+                                wrapMode: Text.Wrap
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+                            Rectangle {
+                                anchors.fill: parent
+                                visible: tile.activeFocus
+                                color: "transparent"
+                                border.width: Ui.Metrics.focus
+                                border.color: Ui.Theme.borderFocus
+                            }
+                            TapHandler {
+                                enabled: tileImage.status === Image.Ready
+                                onTapped: tile.enlarge()
+                            }
+                        }
+                    }
                 }
                 Image {
                     id: mediaImage
@@ -401,7 +972,7 @@ ColumnLayout {
                     sourceSize.height: 800
                     Layout.fillWidth: true
                     Layout.preferredHeight: Math.min(implicitHeight, Ui.Metrics.comfortable * 8)
-                    visible: !!partFrame.part.media && String(partFrame.part.mediaUrl || "").indexOf("data:image/") === 0
+                    visible: !partFrame.part.grid && !!partFrame.part.media && String(partFrame.part.mediaUrl || "").indexOf("data:image/") === 0
                     source: visible ? partFrame.part.mediaUrl : ""
                     fillMode: Image.PreserveAspectFit
                     asynchronous: true
@@ -418,10 +989,40 @@ ColumnLayout {
                     text: qsTr("Open large image")
                     onClicked: { imagePreview.returnFocusTo = this; imagePreview.mediaUrl = mediaImage.source; imagePreview.open() }
                 }
-                Ui.EditorButton {
+                Loader {
+                    id: playerLoader
+                    // MediaOutputGroup.tsx plays audio and video inline.
+                    readonly property bool playable: (partFrame.kind === "audio" || partFrame.kind === "video") && !!root.session && root.session.embeddedMedia
+                    readonly property var loaded: playable ? (root.session.resolvedMedia[root.session.mediaKey(partFrame.part.locator || {})] || null) : null
+                    Layout.fillWidth: true
+                    active: !!loaded && !!loaded.url
+                    visible: active
+                    onLoaded: item.source = Qt.binding(() => playerLoader.loaded && playerLoader.loaded.url ? playerLoader.loaded.url : "")
+                    Component.onCompleted: setSource("ChatMediaPlayer.qml", {source: "", video: partFrame.kind === "video", label: partFrame.part.label || ""})
+                }
+                Ui.Text {
+                    visible: !!playerLoader.loaded && !!playerLoader.loaded.error
+                    text: playerLoader.loaded && playerLoader.loaded.error ? playerLoader.loaded.error : ""
+                    tone: Ui.Text.Error
+                    Layout.fillWidth: true
+                    wrapMode: Text.Wrap
+                }
+                Flow {
                     visible: partFrame.kind === "audio" || partFrame.kind === "video"
-                    text: qsTr("Open media")
-                    onClicked: if (root.session) root.session.openMedia(partFrame.part.locator)
+                    Layout.fillWidth: true
+                    spacing: Ui.Metrics.sm
+                    Ui.EditorButton {
+                        objectName: "loadMediaPlayer"
+                        visible: playerLoader.playable && !playerLoader.active
+                        iconName: "playArrow"
+                        text: playerLoader.loaded && playerLoader.loaded.loading ? qsTr("Loading…") : qsTr("Play here")
+                        enabled: !(playerLoader.loaded && playerLoader.loaded.loading)
+                        onClicked: root.session.loadMedia(partFrame.part.locator || {})
+                    }
+                    Ui.EditorButton {
+                        text: qsTr("Open media")
+                        onClicked: if (root.session) root.session.openMedia(partFrame.part.locator)
+                    }
                 }
                 Ui.EditorButton {
                     visible: !!partFrame.part.resourceKind && !!root.session && (root.session.resourceKinds || []).indexOf(partFrame.part.resourceKind) >= 0
@@ -456,7 +1057,7 @@ ColumnLayout {
                     }
                     Ui.EditorButton {
                         visible: partFrame.kind !== "secret_request"
-                        text: partFrame.kind === "plan_approval_request" ? qsTr("Run this plan") : qsTr("Allow")
+                        text: partFrame.kind === "plan_approval_request" ? qsTr("Run this plan") : qsTr("Allow once")
                         enabled: !!root && !!root.session && root.session.connectionStatus === "connected"
                         onClicked: {
                             root.session.respondToAction(partFrame.part.actionId, true);
@@ -468,13 +1069,40 @@ ColumnLayout {
                         enabled: !!response && response.text.trim().length > 0 && !!root && !!root.session && root.session.connectionStatus === "connected"
                         onClicked: root.session.respondToAction(partFrame.part.actionId, false, response.text)
                     }
+                    // SecretRequestCard.tsx: the key goes to the secret store
+                    // and nowhere else.
+                    Ui.TextField {
+                        id: secretValue
+                        objectName: "secretValue"
+                        width: parent.width
+                        visible: partFrame.kind === "secret_request"
+                        echoMode: TextInput.Password
+                        placeholderText: qsTr("Paste your key")
+                        accessibleName: qsTr("Value for %1").arg(partFrame.part.key || "")
+                        onAccepted: if (text.trim().length > 0) root.session.saveSecret(partFrame.part.actionId, text)
+                    }
+                    Ui.EditorButton {
+                        objectName: "saveSecret"
+                        visible: partFrame.kind === "secret_request"
+                        variant: Ui.EditorButton.Primary
+                        text: qsTr("Save key")
+                        enabled: secretValue.text.trim().length > 0 && !!root.session && root.session.connectionStatus === "connected"
+                        onClicked: { root.session.saveSecret(partFrame.part.actionId, secretValue.text); secretValue.text = "" }
+                    }
+                    Ui.EditorButton {
+                        objectName: "allowAlways"
+                        visible: partFrame.kind === "tool_approval_request"
+                        text: qsTr("Always allow")
+                        enabled: !!root && !!root.session && root.session.connectionStatus === "connected"
+                        onClicked: root.session.allowActionAlways(partFrame.part.actionId)
+                    }
                     Ui.EditorButton {
                         visible: partFrame.kind === "secret_request"
                         text: qsTr("Open settings")
                         onClicked: if (root.session) root.session.openProviderSettings()
                     }
                     Ui.EditorButton {
-                        text: partFrame.kind === "plan_approval_request" ? qsTr("Don’t run") : partFrame.kind === "tool_approval_request" ? qsTr("Deny") : qsTr("Decline")
+                        text: partFrame.kind === "plan_approval_request" ? qsTr("Don’t run") : partFrame.kind === "tool_approval_request" ? qsTr("Deny") : qsTr("Not now")
                         enabled: !!root && !!root.session && root.session.connectionStatus === "connected"
                         onClicked: {
                             root.session.respondToAction(partFrame.part.actionId, false);
@@ -482,6 +1110,75 @@ ColumnLayout {
                     }
                 }
             }
+        }
+    }
+    // MessageView.tsx: Edit and Copy under a prompt, Copy and Retry under a
+    // reply, icon only, shown on hover. The latest reply and a message with
+    // versions keep the row showing.
+    RowLayout {
+        id: messageActions
+        objectName: "messageActions"
+        readonly property bool shown: rowHover.hovered || root.versionNav !== null || (root.latest && !root.userMessage)
+        visible: !root.editingPrompt && (root.text.length > 0 || root.versionNav !== null) && (root.userMessage || root.role === "assistant")
+        opacity: shown ? 1 : 0
+        Layout.alignment: root.userMessage ? Qt.AlignRight : Qt.AlignLeft
+        Layout.leftMargin: root.userMessage ? 0 : Ui.Metrics.md
+        spacing: Ui.Metrics.micro
+        Behavior on opacity {
+            enabled: !Ui.Theme.reducedMotion
+            NumberAnimation { duration: Ui.Metrics.motionQuick }
+        }
+        RowLayout {
+            objectName: "versionSwitcher"
+            visible: root.versionNav !== null
+            spacing: Ui.Metrics.none
+            Accessible.role: Accessible.Grouping
+            Accessible.name: root.versionNav ? qsTr("Version %1 of %2").arg(root.versionNav.index).arg(root.versionNav.count) : ""
+            Ui.ToolbarIconButton {
+                objectName: "previousVersionButton"
+                iconName: "chevronLeft"
+                text: qsTr("Previous version")
+                enabled: root.canResend && !!root.versionNav && root.versionNav.index > 1
+                onClicked: root.session.selectVersion(root.messageId, root.versionNav.index - 1)
+            }
+            Ui.Text {
+                objectName: "versionLabel"
+                role: Ui.Typography.SansCaption
+                tone: Ui.Text.Secondary
+                text: root.versionNav ? root.versionNav.index + "/" + root.versionNav.count : ""
+            }
+            Ui.ToolbarIconButton {
+                objectName: "nextVersionButton"
+                iconName: "chevronRight"
+                text: qsTr("Next version")
+                enabled: root.canResend && !!root.versionNav && root.versionNav.index < root.versionNav.count
+                onClicked: root.session.selectVersion(root.messageId, root.versionNav.index + 1)
+            }
+        }
+        Ui.ToolbarIconButton {
+            objectName: "editMessageButton"
+            visible: root.userMessage && root.text.length > 0
+            iconName: "editOutlined"
+            text: qsTr("Edit")
+            enabled: root.canResend
+            disabledReason: qsTr("Wait for the reply to finish")
+            onClicked: root.startEdit()
+        }
+        Ui.ToolbarIconButton {
+            objectName: "copyMessageButton"
+            visible: root.text.length > 0
+            iconName: "copy"
+            text: qsTr("Copy")
+            onClicked: root.session.copyText(root.text)
+        }
+        Ui.ToolbarIconButton {
+            objectName: "retryReplyButton"
+            visible: !root.userMessage && root.latest
+            iconName: "refresh"
+            text: qsTr("Retry")
+            enabled: root.canResend
+            disabledReason: qsTr("Wait for the reply to finish")
+            onClicked: root.session.retryLatest()
         }
     }
     Ui.Text {

@@ -54,6 +54,26 @@
         </div>
       </div>
 
+      <details class="translate-menu">
+        <summary class="translate-toggle" aria-label="Translate this page" title="Translate this page">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+        </summary>
+        <div class="translate-panel">
+          <p class="translate-panel-title">Translate with Google</p>
+          <ul class="translate-list" data-source-url="{{ page.url | absolute_url }}">
+            <li><a class="translate-link translate-original" href="{{ page.url | absolute_url }}" lang="en" data-lang="en">English <span>original</span></a></li>
+            {%- for lang in site.data.translate_languages %}
+            <li><a class="translate-link" href="https://translate.google.com/translate?sl=en&amp;tl={{ lang.code }}&amp;u={{ page.url | absolute_url | url_encode }}" lang="{{ lang.code }}" data-lang="{{ lang.code }}" rel="noopener nofollow">{{ lang.name }}</a></li>
+            {%- endfor %}
+          </ul>
+          <p class="translate-panel-note">Machine translation. The English page is the reference.</p>
+        </div>
+      </details>
+
       <div class="social-links">
         <a href="https://github.com/nodetool-ai/nodetool" target="_blank" rel="noopener" class="social-link" aria-label="GitHub">
           <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">

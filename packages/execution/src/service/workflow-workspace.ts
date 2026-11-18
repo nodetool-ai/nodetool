@@ -1,12 +1,15 @@
+import { isAbsolute, join, relative, sep } from "node:path";
 import { createLogger, workspaceStorageKind } from "@nodetool-ai/config";
 import {
-  Workflow,
+  LOOSE_PROJECT_ID,
+  Project,
   Workspace as WorkspaceRow,
   getSecret
 } from "@nodetool-ai/models";
 import {
   PERMISSION_GATE_CONTEXT_KEY,
   ProcessingContext,
+  RESERVED_WORKSPACE_DIR,
   createLocalWorkspace,
   createWorkspace,
   headlessGate,
@@ -15,7 +18,11 @@ import {
   type Workspace,
   type WorkspaceChange
 } from "@nodetool-ai/runtime";
-import { createFalGenerationLifecycleHooks } from "../generation-lifecycle.js";
+import {
+  createFalGenerationLifecycleHooks,
+  withGenerationAdmission,
+  type GenerationAdmission
+} from "../generation-lifecycle.js";
 
 const log = createLogger("nodetool.execution.workspace");
 
@@ -64,12 +71,46 @@ export function setWorkspaceChangeNotifier(
   changeNotifier = notify;
 }
 
+/**
+ * Where the folder at `path` lies inside the folder at `outer`, as a
+ * workspace key. Null when it is not inside it. A local folder and one in
+ * object storage are never inside each other.
+ */
+export function folderKeyInside(outer: string, path: string): string | null {
+  if (isAbsolute(outer) !== isAbsolute(path)) return null;
+  if (!isAbsolute(outer)) {
+    return path.startsWith(`${outer}/`) ? path.slice(outer.length + 1) : null;
+  }
+  const inside = relative(outer, path);
+  if (!inside || isAbsolute(inside)) return null;
+  const segments = inside.split(sep);
+  return segments[0] === ".." ? null : segments.join("/");
+}
+
+/**
+ * The folders of other projects and of games that lie inside the folder of
+ * `row`, as keys of its workspace. Personal's managed folder holds
+ * `projects/<segment>`, where cloud projects, imported projects and games
+ * keep theirs. A game's workspace has no `.nodetool/` directory to tell it
+ * by, so the rows name it.
+ */
+async function foldersInside(row: WorkspaceRow): Promise<string[]> {
+  const keys: string[] = [];
+  for (const path of await WorkspaceRow.listFolderPaths(row.user_id)) {
+    const key = folderKeyInside(row.path, path);
+    if (key !== null) keys.push(key);
+  }
+  return keys;
+}
+
 /** Build the {@link Workspace} a workspace row describes. */
 export function workspaceFromRow(row: WorkspaceRow): Workspace | null {
+  // Read from the database only when a scan of the folder first asks.
+  const nestedFolders = (): Promise<string[]> => foldersInside(row);
   const workspace = !row.isVirtual()
-    ? createLocalWorkspace(row.path)
+    ? createLocalWorkspace(row.path, { nestedFolders })
     : cloudStorage
-      ? createWorkspace(cloudStorage, { prefix: row.path })
+      ? createWorkspace(cloudStorage, { prefix: row.path, nestedFolders })
       : null;
   if (!workspace) {
     log.warn(
@@ -86,59 +127,145 @@ export function workspaceFromRow(row: WorkspaceRow): Workspace | null {
 }
 
 /**
- * Resolve the workspace a run reads and writes in.
+ * The workspace NodeTool writes its own files through: the folder's reserved
+ * `.nodetool/` directory, as a workspace rooted there.
  *
- * Selection is stored on the workflow (`workflow.workspace_id`); this maps it
- * to a {@link Workspace}, gated on ownership and the workspace still being
- * usable. When the workflow names none — or there is no workflow at all, which
- * is every chat turn — the run falls back to the user's default workspace,
- * created on first use.
- *
- * What comes back is an interface, not a directory: a local install gets one
- * over a real folder and a cloud deployment one over its object storage, and
- * nothing downstream can tell which. It answers null only when the database or
- * the storage refused, and a caller that gets null must report that rather than
- * writing somewhere else.
+ * A run's {@link Workspace} refuses every path in that directory, which is
+ * what keeps agent tools, Code nodes and save nodes out of it. This is the
+ * one way in, and it needs a workspace row, which run code never holds. The
+ * project manifest writer uses it.
  */
-export async function resolveWorkflowWorkspace(
-  workflowId: string | null,
-  userId: string
-): Promise<Workspace | null> {
-  try {
-    if (workflowId) {
-      const workflow = await Workflow.find(userId, workflowId);
-      if (workflow?.workspace_id) {
-        const row = await WorkspaceRow.find(userId, workflow.workspace_id);
-        if (row?.isAccessible() && row.project_id === workflow.project_id) {
-          const workspace = workspaceFromRow(row);
-          if (workspace) return workspace;
-        }
-      }
-    }
-    const fallback = await WorkspaceRow.ensureDefault(userId);
-    return fallback.isAccessible() ? workspaceFromRow(fallback) : null;
-  } catch (err) {
-    log.warn("Failed to resolve run workspace", {
-      workflowId,
-      userId,
-      error: err instanceof Error ? err.message : String(err)
-    });
-    return null;
+export function nodetoolDirFromRow(row: WorkspaceRow): Workspace | null {
+  if (!row.isVirtual()) {
+    return createLocalWorkspace(join(row.path, RESERVED_WORKSPACE_DIR));
   }
+  return cloudStorage
+    ? createWorkspace(cloudStorage, {
+        prefix: `${row.path}/${RESERVED_WORKSPACE_DIR}`
+      })
+    : null;
+}
+
+/** Gives a project that has no folder its folder, and records it on the row. */
+type MissingFolderProvider = (project: Project) => Promise<unknown>;
+
+let missingFolderProvider: MissingFolderProvider | null = null;
+
+/**
+ * Install what {@link resolveProjectWorkspace} calls for a project that has
+ * no folder yet. `project-folder.ts` installs `ensureProjectFolder`, which
+ * sits above this module.
+ */
+export function setMissingFolderProvider(provider: MissingFolderProvider | null): void {
+  missingFolderProvider = provider;
+}
+
+/** The start of every reason a run reports when its folder is unreachable. */
+export const PROJECT_FOLDER_NOT_FOUND = "Project folder not found";
+
+/** A run's project folder, or why the run cannot have it. */
+export type ProjectWorkspaceResolution =
+  | {
+      ok: true;
+      projectId: string;
+      workspace: Workspace;
+      /** The folder's reserved directory, see {@link nodetoolDirFromRow}. */
+      nodetoolDir?: Workspace | null;
+    }
+  | { ok: false; projectId: string | null; reason: string };
+
+function unresolved(
+  projectId: string | null,
+  reason: string
+): ProjectWorkspaceResolution {
+  return { ok: false, projectId, reason };
 }
 
 /**
- * The directory a run's workspace lives in, or null when it is virtual.
+ * Resolve the folder a run reads and writes in: the workspace named by the
+ * project's `workspace_id`.
  *
- * Only for the few callers that still need a real path (host binaries). Prefer
- * {@link resolveWorkflowWorkspace} and the {@link Workspace} interface, which
- * work on both deployments.
+ * A run with no project of its own (a loose record, a file the CLI runs) uses
+ * the Personal project, which is where loose records belong.
+ *
+ * Call it once when the run starts and keep the result for the whole run, so a
+ * run started in one project never writes into another.
+ *
+ * It never substitutes a folder. A project from before project folders that
+ * was never given one gets its own here, through the provider installed with
+ * {@link setMissingFolderProvider}: the first step of the migration, for this
+ * project alone, so a run or chat turn works before the user confirms the
+ * migration of every project (docs/project-folders/migration-ux.md).
+ * `options.createMissing: false` skips that, for the asset and document
+ * services, which must not make folders on their own. When the project still
+ * has no folder, or its folder is unreachable, the answer carries a reason
+ * that names the folder, and the caller must refuse to start the run with it.
  */
-export async function resolveWorkflowWorkspaceDir(
-  workflowId: string | null,
-  userId: string
-): Promise<string | null> {
-  return (await resolveWorkflowWorkspace(workflowId, userId))?.localDir ?? null;
+export async function resolveProjectWorkspace(
+  projectId: string | null | undefined,
+  userId: string,
+  options: { createMissing?: boolean } = {}
+): Promise<ProjectWorkspaceResolution> {
+  try {
+    const project =
+      !projectId ||
+      projectId === LOOSE_PROJECT_ID ||
+      projectId === `personal:${userId}`
+        ? await Project.ensurePersonal(userId)
+        : await Project.findOwned(userId, projectId);
+    if (!project) {
+      return unresolved(projectId ?? null, `Project not found: ${projectId}`);
+    }
+    if (
+      !project.workspace_id &&
+      missingFolderProvider &&
+      options.createMissing !== false
+    ) {
+      await missingFolderProvider(project);
+    }
+    const row = project.workspace_id
+      ? await WorkspaceRow.find(userId, project.workspace_id)
+      : null;
+    if (!row) {
+      return unresolved(
+        project.id,
+        `${PROJECT_FOLDER_NOT_FOUND}: project "${project.name}" has no folder`
+      );
+    }
+    if (!row.isAccessible()) {
+      // A production server names no host path to its callers, the rule
+      // `isLocalDeployment` in project-folder.ts applies to the project API.
+      const folder =
+        row.isVirtual() || process.env["NODETOOL_ENV"] === "production"
+          ? `the folder of project "${project.name}"`
+          : row.path;
+      return unresolved(project.id, `${PROJECT_FOLDER_NOT_FOUND}: ${folder}`);
+    }
+    const workspace = workspaceFromRow(row);
+    if (!workspace) {
+      return unresolved(
+        project.id,
+        `${PROJECT_FOLDER_NOT_FOUND}: cloud folder storage is not configured`
+      );
+    }
+    return {
+      ok: true,
+      projectId: project.id,
+      workspace,
+      nodetoolDir: nodetoolDirFromRow(row)
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.warn("Failed to resolve the project folder", {
+      projectId,
+      userId,
+      error: message
+    });
+    return unresolved(
+      projectId ?? null,
+      `${PROJECT_FOLDER_NOT_FOUND}: ${message}`
+    );
+  }
 }
 
 /** True when this deployment keeps workspaces in object storage. */
@@ -191,8 +318,10 @@ export function buildWorkspaceExecutionContext(opts: {
   assetStorage?: StorageAdapter | null;
   /** Enable the execution-owned FAL durable lifecycle for this host. */
   durableFalGenerations?: boolean;
+  /** Checked before each provider call the run makes. */
+  admitGeneration?: GenerationAdmission;
 }): ProcessingContext {
-  const generationLifecycle = opts.durableFalGenerations
+  const durable = opts.durableFalGenerations
     ? createFalGenerationLifecycleHooks({
         userId: opts.userId,
         jobId: opts.jobId,
@@ -200,6 +329,9 @@ export function buildWorkspaceExecutionContext(opts: {
         publicUrl: process.env["NODETOOL_PUBLIC_URL"] ?? null
       })
     : undefined;
+  const generationLifecycle = opts.admitGeneration
+    ? withGenerationAdmission(durable ?? {}, opts.admitGeneration)
+    : durable;
   const context = new ProcessingContext({
     jobId: opts.jobId,
     workflowId: opts.workflowId ?? null,

@@ -70,10 +70,9 @@ private slots:
         panels.setPanels({.inspector = true});
         QSignalSpy undo(&header, &WorkflowHeader::undoRequested);
         QSignalSpy redo(&header, &WorkflowHeader::redoRequested);
-        QSignalSpy renamed(&header, &WorkflowHeader::renameRequested);
         QSignalSpy saved(&header, &WorkflowHeader::saveToServerRequested);
         QSignalSpy synced(&header, &WorkflowHeader::serverSyncRequested);
-        QSignalSpy more(&header, &WorkflowHeader::moreRequested);
+        QSignalSpy commands(&header, &WorkflowHeader::actionRequested);
         QSignalSpy chat(&panels, &PanelLayout::toggleChatRequested);
         QSignalSpy miniMap(&panels, &PanelLayout::miniMapRequested);
         QSignalSpy inspector(&panels, &PanelLayout::toggleInspectorRequested);
@@ -83,7 +82,7 @@ private slots:
              "HeaderRow.qml", {1100, 44});
         auto *root = view.rootObject();
 
-        QCOMPARE(named(root, "header-title")->property("text").toString(), QString("Poster"));
+        QVERIFY(!named(root, "header-title"));
         QCOMPARE(named(root, "header-save-label")->property("text").toString(), QString("Unsaved changes"));
         QVERIFY(!named(root, "header-save-action")->isVisible());
         QVERIFY(named(root, "header-undo")->isEnabled());
@@ -103,8 +102,23 @@ private slots:
         QCOMPARE(miniMap.first().first().toBool(), true);
         click(view, named(root, "header-inspector"));
         QTRY_COMPARE(inspector.size(), 1);
-        click(view, named(root, "header-more"));
-        QTRY_COMPARE(more.size(), 1);
+        QVERIFY(!named(root, "header-more"));
+        // A disabled command sends nothing. An enabled one sends its menu name.
+        // Save and Version history are in the application menu, not the toolbar.
+        QVERIFY(!named(root, "header-save"));
+        QVERIFY(!named(root, "header-versions"));
+        click(view, named(root, "header-metadata"));
+        QTest::qWait(20);
+        QCOMPARE(commands.size(), 0);
+        header.setActions({"Workflow metadata", "Instant Update: On"}, true, false);
+        QTRY_VERIFY(named(root, "header-metadata")->isEnabled());
+        click(view, named(root, "header-metadata"));
+        QTRY_COMPARE(commands.size(), 1);
+        QCOMPARE(commands.first().first().toString(), QString("Workflow metadata"));
+        QVERIFY(named(root, "header-instant-update")->property("active").toBool());
+        click(view, named(root, "header-instant-update"));
+        QTRY_COMPARE(commands.size(), 2);
+        QCOMPARE(commands.last().first().toString(), QString("Instant Update: On"));
 
         // A failed save offers Retry, which saves again; a conflict offers Review.
         header.setSaveStatus("error");
@@ -117,26 +131,6 @@ private slots:
         QTRY_COMPARE(synced.size(), 1);
         QCOMPARE(saved.size(), 1);
 
-        // A double-click on the name edits it, and the typed name goes up. The
-        // wait keeps the last click from pairing with this one.
-        QTest::qWait(QGuiApplication::styleHints()->mouseDoubleClickInterval() + 50);
-        QTest::mouseDClick(&view, Qt::LeftButton, Qt::NoModifier, centre(named(root, "header-title")));
-        auto *field = named(root, "header-rename");
-        QTRY_VERIFY(field->isVisible());
-        QTest::keyClick(&view, Qt::Key_A, Qt::ControlModifier);
-        for (const char key : QByteArray("Flyer")) {
-            QTest::keyClick(&view, key);
-        }
-        QTest::keyClick(&view, Qt::Key_Return);
-        QTRY_COMPARE(renamed.size(), 1);
-        QCOMPARE(renamed.first().first().toString(), QString("Flyer"));
-        QTRY_VERIFY(!field->isVisible());
-
-        // A document that cannot be renamed ignores the double-click.
-        header.setRenamable(false);
-        QTest::mouseDClick(&view, Qt::LeftButton, Qt::NoModifier, centre(named(root, "header-title")));
-        QTest::qWait(20);
-        QVERIFY(!field->isVisible());
     }
 
     void railRequestsGoUp() {
@@ -144,10 +138,11 @@ private slots:
         panels.setPanels({.library = true});
         QSignalSpy browser(&panels, &PanelLayout::toggleBrowserRequested);
         QSignalSpy chat(&panels, &PanelLayout::toggleChatRequested);
+        QSignalSpy files(&panels, &PanelLayout::toggleFilesRequested);
         QSignalSpy library(&panels, &PanelLayout::toggleLibraryRequested);
+        QSignalSpy examples(&panels, &PanelLayout::toggleExamplesRequested);
         QSignalSpy catalog(&panels, &PanelLayout::toggleCatalogRequested);
         QSignalSpy panel(&panels, &PanelLayout::togglePanelRequested);
-        QSignalSpy hints(&panels, &PanelLayout::toolTipRequested);
 
         QQuickView view;
         show(view, {{"panels", QVariant::fromValue(&panels)}}, "Rail.qml", {56, 700});
@@ -160,26 +155,29 @@ private slots:
         QTRY_COMPARE(browser.size(), 1);
         click(view, button("rail-chats"));
         QTRY_COMPARE(chat.size(), 1);
+        click(view, button("rail-files"));
+        QTRY_COMPARE(files.size(), 1);
         click(view, button("rail-library"));
         QTRY_COMPARE(library.size(), 1);
+        click(view, button("rail-examples"));
+        QTRY_COMPARE(examples.size(), 1);
         click(view, button("rail-nodes"));
         QTRY_COMPARE(catalog.size(), 1);
         click(view, button("rail-panel"));
         QTRY_COMPARE(panel.size(), 1);
 
-        // A view with no native panel stays disabled, and its hover says why.
-        QVERIFY(!button("rail-examples")->isEnabled());
-        QTest::mouseMove(&view, centre(named(root, "rail-examples")));
-        const auto hinted = [&hints](const QString &text) {
-            for (const auto &call : hints) {
-                if (call.first().toString() == text) {
-                    return true;
-                }
-            }
-            return false;
-        };
-        QTRY_VERIFY(hinted("Examples has no native panel yet."));
+        // Projects opens the project menu. Its tooltip text is the button's
+        // accessible name (ChromeParityTest checks it shown on hover).
+        QCOMPARE(button("rail-projects")->property("accessibleName").toString(), QString("Switch or create a project"));
+        QSignalSpy projects(&panels, &PanelLayout::projectsRequested);
+        QVERIFY(button("rail-projects")->isEnabled());
+        click(view, button("rail-projects"));
+        QTRY_COMPARE(projects.size(), 1);
 
+        panels.setPanels({.files = true});
+        QTRY_VERIFY(button("rail-files")->property("active").toBool());
+        panels.setPanels({.examples = true});
+        QTRY_VERIFY(button("rail-examples")->property("active").toBool());
         panels.setPanels({.catalog = true});
         QTRY_VERIFY(button("rail-nodes")->property("active").toBool());
         QVERIFY(!button("rail-library")->property("active").toBool());
@@ -192,7 +190,7 @@ private slots:
                           .nodeCount = 1,
                           .edgeCount = 3,
                           .queuedCount = 2,
-                          .queueAvailable = true,
+                          .generatingCount = 3,
                           .systemStats = {{"cpu_percent", 41.6}, {"memory_used_gb", 7.25}}});
         PanelLayout panels;
         panels.setPanels({.trace = true});
@@ -214,6 +212,7 @@ private slots:
         QCOMPARE(named(root, "status-edges-key")->property("text").toString(), QString("edges"));
         QCOMPARE(named(root, "status-cpu-value")->property("text").toString(), QString("42%"));
         QCOMPARE(named(root, "status-queue-count")->property("text").toString(), QString("2"));
+        QCOMPARE(named(root, "status-generations-count")->property("text").toString(), QString("3"));
         QVERIFY(named(root, "status-trace")->property("active").toBool());
         QVERIFY(!named(root, "status-logs")->property("active").toBool());
 
@@ -222,23 +221,27 @@ private slots:
         QCOMPARE(connected.size(), 0);
         click(view, named(root, "status-queue"));
         QTRY_COMPARE(queue.size(), 1);
-        for (const auto *tab : {"status-logs", "status-versions", "status-trace"}) {
+        for (const auto *tab : {"status-logs", "status-generations", "status-versions", "status-trace"}) {
             click(view, named(root, tab));
         }
-        QTRY_COMPARE(views.size(), 3);
+        QTRY_COMPARE(views.size(), 4);
         QCOMPARE(views.at(0).first().toString(), QString("logs"));
-        QCOMPARE(views.at(1).first().toString(), QString("versions"));
-        QCOMPARE(views.at(2).first().toString(), QString("trace"));
+        QCOMPARE(views.at(1).first().toString(), QString("generations"));
+        QCOMPARE(views.at(2).first().toString(), QString("versions"));
+        QCOMPARE(views.at(3).first().toString(), QString("trace"));
 
-        // An idle connection offers Connect, and an empty queue cannot open.
+        // An idle connection offers Connect, and an empty queue still opens, as on the web.
         auto next = StatusModel::Status{.connectionStatus = "idle"};
         status.setStatus(next);
         QTRY_COMPARE(named(root, "status-reconnect")->property("text").toString(), QString("Connect"));
         click(view, named(root, "status-reconnect"));
         QTRY_COMPARE(connected.size(), 1);
         click(view, named(root, "status-queue"));
-        QTest::qWait(20);
-        QCOMPARE(queue.size(), 1);
+        QTRY_COMPARE(queue.size(), 2);
+        // The open views show on their tabs.
+        panels.setPanels({.queue = true, .generations = true});
+        QTRY_VERIFY(named(root, "status-queue")->property("active").toBool());
+        QVERIFY(named(root, "status-generations")->property("active").toBool());
     }
 };
 

@@ -441,8 +441,9 @@ export async function renderShots(
               const versions =
                 current.keyframe_versions ??
                 (current.keyframe ? [current.keyframe] : []);
+              const { failure_reason: _cleared, ...rest } = current;
               return {
-                ...current,
+                ...rest,
                 keyframe,
                 keyframe_versions: [...versions, keyframe],
                 status: "keyframe_ready"
@@ -463,8 +464,9 @@ export async function renderShots(
             }
             const versions =
               current.clip_versions ?? (current.clip ? [current.clip] : []);
+            const { failure_reason: _cleared, ...rest } = current;
             return {
-              ...current,
+              ...rest,
               clip,
               clip_versions: [...versions, clip],
               status: "rendered"
@@ -483,11 +485,14 @@ export async function renderShots(
       }
       return outcome;
     } catch (e) {
+      const reason = e instanceof Error ? e.message : String(e);
       await writeShot(plan.shotId, (current) => ({
         ...current,
-        status: "failed"
+        status: "failed",
+        // Saved on the shot so the board can say why after the call returns.
+        failure_reason: reason
       }));
-      return { ...base, error: `${capability} failed: ${e instanceof Error ? e.message : String(e)}` };
+      return { ...base, error: `${capability} failed: ${reason}` };
     }
   });
 }

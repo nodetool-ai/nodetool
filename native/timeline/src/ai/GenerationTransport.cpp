@@ -4,6 +4,7 @@
 #include <QJsonDocument>
 #include <QNetworkProxy>
 #include <QNetworkRequest>
+#include "nodetool/account/qt/ServerToken.h"
 
 namespace nt::ai {
 namespace {
@@ -67,7 +68,7 @@ void GenerationTransport::open() {
     url.setFragment(QString());
     QNetworkRequest request(url);
     request.setRawHeader("X-Nodetool-Client", nt::server::kClientHeader);
-    if (!m_token.isEmpty()) request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
+    nodetool::account::qt::attachServerToken(request, m_server, m_token);
     m_socket.open(request);
 }
 

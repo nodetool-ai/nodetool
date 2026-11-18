@@ -1,0 +1,205 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-11-12T00:00:00.000Z",
+  "updated_at": "2026-11-12T00:00:00.000Z",
+  "name": "A Lo-Fi Drum Loop",
+  "tool_name": null,
+  "description": "Synthesizes a two-bar drum loop and gives it a lo-fi sound with a bitcrusher, a low-pass filter, distortion and a limiter. Runs locally with no file, model or key.",
+  "tags": [
+    "audio",
+    "dsp",
+    "music",
+    "example",
+    "local"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# A Lo-Fi Drum Loop\n\nSynthesizes a two-bar drum loop and gives it a worn, lo-fi sound. Every step runs in the editor process, with no file, model or key.\n\n**How it works:** \"1 Drums\" is a Code node that writes a kick, a snare and a hi-hat at 90 BPM. \"2 Bitcrush\" lowers the bit depth and the sample rate. \"3 Low-pass\" removes the hard top end. \"4 Drive\" saturates the loop, and \"5 Limit\" keeps the peaks under -1 dB.\n\n**Try this:** Set Bit Depth on \"2 Bitcrush\" to 4 for a harsher sound, or change `pattern` in \"1 Drums\"."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 640,
+          "selectable": true,
+          "height": 300
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "src",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "// Two bars at 90 BPM. Each step is a sixteenth note: k = kick, s = snare, h = hi-hat.\nconst rate = 44100, bpm = 90;\nconst pattern = [\"kh\", \"h\", \"h\", \"h\", \"sh\", \"h\", \"kh\", \"h\", \"h\", \"kh\", \"h\", \"h\", \"sh\", \"h\", \"h\", \"h\"];\nconst step = 60 / bpm / 4;\nconst bars = 2;\nconst samples = new Float32Array(Math.round(rate * step * pattern.length * bars));\nlet seed = 7;\nconst noise = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 2147483648 - 1; };\nfor (let n = 0; n < pattern.length * bars; n++) {\n  const hits = pattern[n % pattern.length];\n  const start = Math.round(n * step * rate);\n  for (let i = 0; i < rate * 0.5 && start + i < samples.length; i++) {\n    const t = i / rate;\n    let s = 0;\n    if (hits.includes(\"k\")) s += Math.sin(2 * Math.PI * (50 * t + 60 * (1 - Math.exp(-30 * t)) / 30)) * Math.exp(-8 * t);\n    if (hits.includes(\"s\")) s += 0.5 * noise() * Math.exp(-18 * t) + 0.3 * Math.sin(2 * Math.PI * 190 * t) * Math.exp(-20 * t);\n    if (hits.includes(\"h\") && t < 0.05) s += 0.15 * noise() * Math.exp(-90 * t);\n    samples[start + i] += 0.6 * s;\n  }\n}\n\n// 16-bit PCM WAV bytes from interleaved samples in [-1, 1].\nfunction wav(samples, rate, channels) {\n  const bytes = new Uint8Array(44 + samples.length * 2);\n  const view = new DataView(bytes.buffer);\n  const tag = (at, text) => { for (let i = 0; i < 4; i++) bytes[at + i] = text.charCodeAt(i); };\n  tag(0, \"RIFF\"); view.setUint32(4, 36 + samples.length * 2, true); tag(8, \"WAVE\");\n  tag(12, \"fmt \"); view.setUint32(16, 16, true); view.setUint16(20, 1, true);\n  view.setUint16(22, channels, true); view.setUint32(24, rate, true);\n  view.setUint32(28, rate * channels * 2, true); view.setUint16(32, channels * 2, true);\n  view.setUint16(34, 16, true); tag(36, \"data\"); view.setUint32(40, samples.length * 2, true);\n  samples.forEach((s, i) => view.setInt16(44 + i * 2, Math.round(Math.max(-1, Math.min(1, s)) * 32767), true));\n  return bytes;\n}\n\nawait output(\"audio\", await media.toAudio(wav(samples, rate, 1), { mimeType: \"audio/wav\", filename: \"drums.wav\" }));\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Drums"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {
+          "audio": {
+            "type": "audio",
+            "type_args": [],
+            "optional": false
+          }
+        }
+      },
+      {
+        "id": "crush",
+        "type": "lib.audio.Bitcrush",
+        "data": {
+          "bit_depth": 6,
+          "sample_rate_reduction": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Bitcrush"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "lp",
+        "type": "lib.audio.LowPassFilter",
+        "data": {
+          "cutoff_frequency_hz": 3500
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Low-pass"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "drive",
+        "type": "lib.audio.Distortion",
+        "data": {
+          "drive_db": 12
+        },
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Drive"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "lim",
+        "type": "lib.audio.Limiter",
+        "data": {
+          "threshold_db": -1,
+          "release_ms": 100,
+          "auto_gain": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1320,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "5  Limit"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "loop"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1650,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Loop"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "src",
+        "sourceHandle": "audio",
+        "target": "crush",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e2",
+        "source": "crush",
+        "sourceHandle": "output",
+        "target": "lp",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e3",
+        "source": "lp",
+        "sourceHandle": "output",
+        "target": "drive",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e4",
+        "source": "drive",
+        "sourceHandle": "output",
+        "target": "lim",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e-out",
+        "source": "lim",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "run_mode": null
+}

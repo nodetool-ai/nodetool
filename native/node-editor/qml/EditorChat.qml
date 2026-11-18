@@ -8,6 +8,8 @@ Ui.Surface {
     required property var session
     required property ChatWindow frame
     signal closeRequested()
+    // Report on an error opens a prefilled bug report: the source label and the error text.
+    signal reportRequested(string source, string text)
     variant: Ui.Surface.Panel
     color: Ui.Theme.dark ? Ui.Theme.surfaceCanvas : Ui.Theme.surfacePanel
     clip: true
@@ -130,15 +132,27 @@ Ui.Surface {
                             onClicked: root.threadsOpen = false
                         }
                     }
-                    Ui.Text {
+                    Ui.Banner {
+                        objectName: "editorThreadError"
                         Layout.fillWidth: true
-                        role: Ui.Typography.SansLabel
-                        tone: Ui.Text.Error
-                        text: root.session.error
-                        visible: text.length > 0
-                        wrapMode: Text.WordWrap
+                        status: Ui.Status.Error
+                        message: root.session.error
+                        visible: message.length > 0
+                        reportable: true
+                        onReportRequested: root.reportRequested(qsTr("Chat error"), message)
+                    }
+                    // EmptyThreadList.tsx: no threads, or none matching the search.
+                    Ui.EmptyState {
+                        objectName: "editorThreadListEmpty"
+                        Layout.fillWidth: true
+                        Layout.topMargin: Ui.Metrics.lg
+                        visible: threadList.count === 0
+                        maxTextWidth: width
+                        title: root.query.length > 0 ? qsTr("No matching conversations") : qsTr("No conversations yet")
+                        message: root.query.length > 0 ? qsTr("Try a different search term.") : qsTr("Start a conversation to explore AI workflows with natural language.")
                     }
                     ListView {
+                        id: threadList
                         objectName: "editorThreadList"
                         Layout.fillWidth: true
                         Layout.fillHeight: true
@@ -163,6 +177,7 @@ Ui.Surface {
                                     role: Ui.Typography.SansCaption
                                     tone: Ui.Text.Secondary
                                     text: (row.modelData.header || "").toUpperCase()
+                                    font.letterSpacing: font.pixelSize * ChatMetrics.eyebrowTracking
                                 }
                                 Ui.Text {
                                     Layout.rightMargin: Ui.Metrics.md

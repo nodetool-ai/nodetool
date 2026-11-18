@@ -33,7 +33,8 @@ function selectLegs(plan, { skipTests = false } = {}) {
     const lines = readFileSync(output, "utf8").split("\n");
     const legs = (key) =>
       new Map(JSON.parse(lines.find((l) => l.startsWith(`${key}=`)).slice(key.length + 1)).include.map((leg) => [leg.check, leg]));
-    return { static: legs("static"), built: legs("built"), step };
+    const builtLegs = JSON.parse(lines.find((l) => l.startsWith("built=")).slice("built=".length)).include;
+    return { static: legs("static"), built: legs("built"), builtLegs, step };
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -41,7 +42,8 @@ function selectLegs(plan, { skipTests = false } = {}) {
 
 const FULL_PLAN = {
   full: true, web: "full", electron: true, mobile: true, packages_websocket: true, packages_agents: true,
-  packages_nodes: true, packages_core: true, packages_game: true, integration: true, workflow_runner_e2e: true,
+  packages_nodes: true, packages_core: true, packages_cli: true, packages_engine: true, packages_game: true,
+  integration: true, workflow_runner_e2e: true,
   tsc6: true, docker: true, blender: true, node_catalog: true, turbo_affected: false
 };
 
@@ -54,7 +56,7 @@ function cancelsInProgress(source, eventName) {
   return terms.some((term) => term[1] === eventName);
 }
 
-describe("Test workflow runner demand", () => {
+describe("Test workflow runner demand", { timeout: 30_000 }, () => {
   it("cancels a superseded pull request run but lets a running main run finish", () => {
     const source = read(".github/workflows/test.yml");
     expect(source).toContain(
@@ -64,6 +66,86 @@ describe("Test workflow runner demand", () => {
     for (const event of ["push", "merge_group", "schedule", "workflow_dispatch"]) {
       expect(cancelsInProgress(source, event), event).toBe(false);
     }
+  });
+
+  it("lets a cancel reach the gate's legs, and still runs the gate when `changes` fails", () => {
+    // GitHub evaluates a running job's `if` again on a cancel and keeps the
+    // job while it is true. `always()` is true in a cancelled run, so with it
+    // every leg of the called workflow outlived the cancel and the next run
+    // waited for the last of them.
+    const workflow = yaml.load(read(".github/workflows/test.yml"));
+    expect(workflow.jobs.quality.uses).toBe("./.github/workflows/quality-checks.yml");
+    expect(workflow.jobs.quality.if).toBe("${{ !cancelled() }}");
+    // The aggregate job must report after a failed leg, so it stays `always()`.
+    // It needs no runner time of its own to speak of.
+    expect(yaml.load(read(".github/workflows/quality-checks.yml")).jobs.quality.if).toBe("always()");
+  });
+
+  it("runs the gate for every pull request, whatever its base branch", () => {
+    const workflow = yaml.load(read(".github/workflows/test.yml"));
+    const triggers = workflow.on ?? workflow.true;
+    // No `branches`: a stacked pull request gets the same gate. No `paths`:
+    // the required check reports on every pull request. No `types`: the
+    // defaults leave out `edited`, so a title edit or a retarget starts no
+    // run that could replace the gate's result on the head commit.
+    expect(triggers.pull_request).toBeNull();
+    expect(triggers.push.branches).toEqual(["main"]);
+  });
+
+  it("gives every leg a timeout of its own, at most an hour", () => {
+    const { static: staticLegs, builtLegs } = selectLegs(FULL_PLAN);
+    const legs = [...staticLegs.values(), ...builtLegs];
+    expect(legs.length).toBeGreaterThan(10);
+    for (const leg of legs) {
+      expect(Number.isInteger(leg.timeout), leg.check).toBe(true);
+      expect(leg.timeout, leg.check).toBeGreaterThanOrEqual(20);
+      expect(leg.timeout, leg.check).toBeLessThanOrEqual(leg.check === "harness-gate" ? 60 : 35);
+    }
+    const workflow = yaml.load(read(".github/workflows/quality-checks.yml"));
+    expect(workflow.jobs.static["timeout-minutes"]).toBe("${{ matrix.timeout }}");
+    expect(workflow.jobs.built["timeout-minutes"]).toBe("${{ matrix.timeout }}");
+    for (const job of ["build", "docker", "integration", "node-catalog"]) {
+      expect(workflow.jobs[job]["timeout-minutes"], job).toBeLessThanOrEqual(25);
+    }
+  });
+
+  it("runs the former core shard on three runners with its settings unchanged", () => {
+    const { built } = selectLegs(FULL_PLAN);
+    for (const check of ["test-packages-core", "test-packages-cli", "test-packages-engine"]) {
+      expect(built.get(check).command, check).toContain("--concurrency=2 $TURBO_AFFECTED");
+    }
+    expect(built.get("test-packages-core").command.startsWith("npm run test:oxlint-rules && npm run test:scripts && ")).toBe(true);
+    const source = read(".github/workflows/quality-checks.yml");
+    const workers = source.match(/NODETOOL_TEST_WORKERS: \$\{\{ \((.+)\) && '1' \|\| '' \}\}/);
+    expect(workers).not.toBeNull();
+    for (const check of ["test-packages-core", "test-packages-cli", "test-packages-engine"]) {
+      expect(workers[1], check).toContain(`matrix.check == '${check}'`);
+      expect(source.split(`matrix.check == '${check}'`).length - 1, check).toBe(3);
+    }
+    const only = (plan) => [...selectLegs(plan).built.keys()].filter((check) => /^test-packages-(core|cli|engine)$/.test(check));
+    expect(only({ ...FULL_PLAN, packages_cli: false, packages_engine: false })).toEqual(["test-packages-core"]);
+    expect(only({ ...FULL_PLAN, packages_core: false, packages_engine: false })).toEqual(["test-packages-cli"]);
+    expect(only({ ...FULL_PLAN, packages_core: false, packages_cli: false })).toEqual(["test-packages-engine"]);
+  });
+
+  it("runs at most one node package per runner core", () => {
+    expect(selectLegs(FULL_PLAN).built.get("test-packages-nodes").command).toContain("--concurrency=4 $TURBO_AFFECTED");
+  });
+
+  it("splits the related web tests across three runners", () => {
+    const related = selectLegs({ ...FULL_PLAN, web: "related" }).builtLegs.filter((leg) => leg.check.startsWith("test-web"));
+    expect(related.map((leg) => [leg.check, leg.shard, leg.shards, leg["jest-cache"]])).toEqual([
+      ["test-web", "1", "3", "web-1"],
+      ["test-web", "2", "3", "web-2"],
+      ["test-web", "3", "3", "web-3"]
+    ]);
+    expect(related.map((leg) => leg.command)).toEqual(
+      [1, 2, 3].map(
+        (i) => `node scripts/ci-plan.mjs run web --base "$CI_BASE_SHA" -- --shard=${i}/3 --cacheDirectory="$GITHUB_WORKSPACE/.jest-cache"`
+      )
+    );
+    const full = selectLegs(FULL_PLAN).builtLegs.filter((leg) => leg.check.startsWith("test-web"));
+    expect(full.map((leg) => leg.check)).toEqual(["test-web-1", "test-web-2", "test-web-3"]);
   });
 
   it("runs the Linux node catalog check once, in the typecheck leg", () => {
@@ -138,6 +220,25 @@ describe("Test workflow runner demand", () => {
     expect(appTests({ ...FULL_PLAN, electron: false, mobile: true })).toBe(true);
     expect(appTests(FULL_PLAN, { skipTests: true })).toBe(false);
     expect(selectLegs(FULL_PLAN).step.env.SKIP_TESTS).toBe("${{ inputs.skip-tests }}");
+  });
+
+  it("splits the serial agents suite across three runners with vitest shards", () => {
+    const agents = selectLegs(FULL_PLAN).builtLegs.filter((leg) => leg.check === "test-packages-agents");
+    expect(agents.map((leg) => [leg.shard, leg.shards])).toEqual([["1", "3"], ["2", "3"], ["3", "3"]]);
+    expect(agents.map((leg) => leg.command)).toEqual([
+      "npx turbo run test --filter=@nodetool-ai/agents $TURBO_AFFECTED -- --shard=1/3",
+      "npx turbo run test --filter=@nodetool-ai/agents $TURBO_AFFECTED -- --shard=2/3",
+      "npx turbo run test --filter=@nodetool-ai/agents $TURBO_AFFECTED -- --shard=3/3"
+    ]);
+    // The shards are balanced by recorded duration, not by file count.
+    expect(read("packages/agents/vitest.config.ts")).toContain("sequence: { sequencer: WeightedShardSequencer }");
+    expect(selectLegs({ ...FULL_PLAN, packages_agents: false }).builtLegs.some((leg) => leg.check === "test-packages-agents")).toBe(false);
+    // Each shard names its job and keeps its own test-results cache.
+    const job = read(".github/workflows/quality-checks.yml");
+    expect(job).toContain(
+      "name: ${{ matrix.shard && format('{0} ({1}/{2})', matrix.check, matrix.shard, matrix.shards) || matrix.check }}"
+    );
+    expect(job.match(/test-results-v3-\$\{\{ matrix\.check \}\}\$\{\{ matrix\.shard && format\('-\{0\}', matrix\.shard\) \|\| '' \}\}-/g)).toHaveLength(3);
   });
 
   it("runs the shipped-workflow integration tests and the workflow-runner browser E2E on one runner", () => {

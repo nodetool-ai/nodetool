@@ -340,6 +340,23 @@ export function getManagedWorkspaceDir(userId: string): string {
   return join(getManagedWorkspacesDir(), sanitizeUserSegment(userId));
 }
 
+/** Where new project folders go when nothing else is configured. */
+export const DEFAULT_PROJECTS_DIR = "~/NodeTool";
+
+/**
+ * Absolute path of the directory new project folders are created in.
+ *
+ * `configured` is the `PROJECTS_DIR` setting when the caller has read it from
+ * Settings. Unset, the `PROJECTS_DIR` environment variable applies, then
+ * `~/NodeTool`. A leading `~` expands to the home directory.
+ */
+export function getProjectsDir(configured?: string | null): string {
+  if (!IS_NODE) return notOnNode("getProjectsDir");
+  const value =
+    configured?.trim() || envValue("PROJECTS_DIR") || DEFAULT_PROJECTS_DIR;
+  return expandHome(value);
+}
+
 function sanitizeUserSegment(userId: string): string {
   const safe = userId.replace(/[^A-Za-z0-9._-]/g, "_").replace(/^\.+/, "_");
   return safe || "default";

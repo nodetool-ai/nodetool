@@ -80,7 +80,7 @@ does not use is empty and takes no width.
 
 | Slot | Content | Rule |
 |---|---|---|
-| Identity | Title, then `SaveStatus` | The title renames inline, as the tab does |
+| Identity | Title, then `SaveStatus` | The title renames inline. In the workspace on desktop the tab shows and renames the name, so the bar shows only `SaveStatus` |
 | History | Undo, Redo | Always here when the editor has history |
 | Mode | One `ModeSwitch` | At most one segmented control per bar |
 | View | Layout menu, panel toggles | Icon buttons with tooltips |

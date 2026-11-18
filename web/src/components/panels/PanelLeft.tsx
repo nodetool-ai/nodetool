@@ -70,6 +70,8 @@ import ProjectsRailButton from "../projects/ProjectsRailButton";
 import MorePanel from "./MorePanel";
 import DocumentsTree from "./DocumentsTree";
 import WorkspaceTree from "../workspaces/WorkspaceTree";
+import ProjectPanelHeader from "./ProjectPanelHeader";
+import { ProjectFolderNoticeById } from "../projects/ProjectFolderNotice";
 
 import {
   LeftPanelView,
@@ -304,7 +306,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   );
 });
 
-const PanelContent = memo(function PanelContent({
+const PanelViewContent = memo(function PanelViewContent({
   activeView,
   activeNodeCategory,
   setActiveNodeCategory,
@@ -462,15 +464,16 @@ const PanelContent = memo(function PanelContent({
           </AssetGridStoreProvider>
         </FlexColumn>
       )}
-      {activeView === "workspace-files" && (
+      {activeView === "files" && (
         <FlexColumn
-          className="workspace-files-container"
+          className="project-files-container"
           fullWidth
           fullHeight
           sx={{
             overflow: "hidden"
           }}
         >
+          <ProjectFolderNoticeById projectId={projectId} />
           <WorkspaceTree projectId={projectId} />
         </FlexColumn>
       )}
@@ -735,6 +738,29 @@ const PanelContent = memo(function PanelContent({
   );
 });
 
+/**
+ * Chats, Documents and Files are the three sections of the selected project.
+ * Each one sits under the project's name, and every other view stays as it was.
+ */
+const isProjectSection = (view: LeftPanelView): boolean =>
+  view === "chats" || view === "files" || isDocumentPanelView(view);
+
+type PanelContentProps = React.ComponentProps<typeof PanelViewContent>;
+
+const PanelContent = memo(function PanelContent(props: PanelContentProps) {
+  if (!isProjectSection(props.activeView)) {
+    return <PanelViewContent {...props} />;
+  }
+  return (
+    <FlexColumn fullWidth fullHeight sx={{ overflow: "hidden" }}>
+      <ProjectPanelHeader projectId={props.projectId} />
+      <FlexColumn fullWidth sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+        <PanelViewContent {...props} />
+      </FlexColumn>
+    </FlexColumn>
+  );
+});
+
 // ---------------------------------------------------------------------------
 // Mobile variant
 // ---------------------------------------------------------------------------
@@ -839,7 +865,7 @@ const CATEGORY_TRANSLATION_KEYS: Partial<Record<LeftPanelView, string>> = {
   documents: "documents", nodes: "nodes", favorites: "favoriteNodes", history: "recentNodes", settings: "workflowSettings",
   workflows: "workflows", apps: "apps", chats: "chats", sketches: "sketches", scripts: "scripts", storyboards: "storyboards",
   entities: "entities", examples: "examples", timelines: "timelines", jsscripts: "jsScripts", skills: "skills", assets: "assets",
-  "workspace-files": "workspace", library: "library", more: "more"
+  files: "files", library: "library", more: "more"
 };
 
 const categoryLabel = (id: LeftPanelView, fallback: string, t: ReturnType<typeof useTranslation>["t"]): string => {
@@ -1079,7 +1105,7 @@ const PanelLeft: React.FC = () => {
     activeView === "assets"
       ? "library"
       : isDocumentPanelView(activeView)
-        ? "documents"
+        ? "files"
       : isWorkflowEditOnlyView(activeView) && !isWorkflowEditActive
         ? "workflows"
         : activeView;
@@ -1113,8 +1139,8 @@ const PanelLeft: React.FC = () => {
   useEffect(() => {
     if (activeView === "assets") {
       setActiveView("library");
-    } else if (isDocumentPanelView(activeView) && activeView !== "documents") {
-      setActiveView("documents");
+    } else if (isDocumentPanelView(activeView)) {
+      setActiveView("files");
     } else if (!isWorkflowEditActive && isWorkflowEditOnlyView(activeView)) {
       setActiveView("workflows");
     }

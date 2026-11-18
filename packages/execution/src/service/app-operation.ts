@@ -30,7 +30,11 @@ import { jsScriptRunMessages, scriptAppIO, scriptOperationInvocation, type JsScr
 import type { AppServerRunInput, AppServerRunOutcome } from "../app-debug/simulate.js";
 import { isRecord } from "../predicates.js";
 import { attachRunCostLedger } from "../cost-ledger.js";
-import { createFalGenerationLifecycleHooks } from "../generation-lifecycle.js";
+import {
+  createFalGenerationLifecycleHooks,
+  withGenerationAdmission,
+  type GenerationAdmission
+} from "../generation-lifecycle.js";
 import { createAppServerRunner } from "./app-run-server.js";
 
 export interface ExecuteAppOperationOptions {
@@ -52,6 +56,11 @@ export interface ExecuteAppOperationOptions {
   /** Effective workflow property bindings alongside its operation parameters. */
   readonly inputSnapshot?: Record<string, unknown>;
   readonly onReserved?: (run: AppRunRecord) => void;
+  /**
+   * Checked before each provider call the run makes. For hosts whose entrance
+   * has no run-level credit and quota admission (an MCP session).
+   */
+  readonly admitGeneration?: GenerationAdmission;
   readonly resourceRef?: (id: string) => ResourceRef | undefined;
   readonly scriptRunner?: (
     context: ProcessingContext,
@@ -69,6 +78,13 @@ export interface AppOperationOutcome {
   readonly variables: Readonly<Record<string, unknown>>;
   readonly messages: ReadonlyArray<Record<string, unknown>>;
   readonly reused: boolean;
+}
+
+function admitted(
+  hooks: ReturnType<typeof createFalGenerationLifecycleHooks>,
+  admit: GenerationAdmission | undefined
+): ReturnType<typeof createFalGenerationLifecycleHooks> {
+  return admit ? withGenerationAdmission(hooks, admit) : hooks;
 }
 
 /** Reserve before resolving bindings, secrets, or executable targets. */
@@ -121,12 +137,15 @@ export async function executeAppOperation(
   const context = options.context.copy({
     jobId: run.id,
     appRunContext: identity,
-    generationLifecycle: createFalGenerationLifecycleHooks({
-      userId: options.userId,
-      jobId: run.id,
-      appRunContext: identity,
-      publicUrl: process.env["NODETOOL_PUBLIC_URL"] ?? null
-    })
+    generationLifecycle: admitted(
+      createFalGenerationLifecycleHooks({
+        userId: options.userId,
+        jobId: run.id,
+        appRunContext: identity,
+        publicUrl: process.env["NODETOOL_PUBLIC_URL"] ?? null
+      }),
+      options.admitGeneration
+    )
   });
   try {
     await registerAppRunTrace(context, run);

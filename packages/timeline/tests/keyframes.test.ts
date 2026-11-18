@@ -54,6 +54,15 @@ describe("keyframes", () => {
     expect(keyframeValueAt(c, "opacity", 500)).toBe(0.4);
   });
 
+  it("keeps a key one frame from its neighbour on a long clip", () => {
+    // Ten minutes: 1e-4 of the clip was 60 ms, so the second key replaced the first.
+    let c = clip({ durationMs: 600_000 });
+    c = { ...c, animations: setKeyframe(c, "opacity", 1000, 0.2) };
+    c = { ...c, animations: setKeyframe(c, "opacity", 1033, 0.8) };
+    expect(keyframeTimesMs(c).map(Math.round)).toEqual([1000, 1033]);
+    expect(hasKeyframeAt(c, "opacity", 1033.4)).toBe(true);
+  });
+
   it("keeps one animation for every property and spans the clip", () => {
     let c = clip();
     c = { ...c, animations: setKeyframe(c, "opacity", 0, 1) };
@@ -121,14 +130,39 @@ describe("keyframes across split and trim", () => {
     );
   });
 
-  it("stretches keyframes over an extended clip in the render and the inspector", () => {
-    const extended = trimClip(ramp(), "end", 2000);
+  it("keeps keyframes at their instants when the tail is extended", () => {
+    const shortened = trimClip(ramp(), "end", -2000);
+    const extended = trimClip(shortened, "end", 2000);
 
-    expect(rendered(extended, 3000)).toBeCloseTo(200);
-    expect(keyframeValueAt(extended, "offsetX", 3000)).toBeCloseTo(200);
-    expect(rendered(extended, 5000)).toBeCloseTo(
-      keyframeValueAt(extended, "offsetX", 5000)
-    );
+    expect(rendered(extended, 3000)).toBeCloseTo(300);
+    expect(keyframeValueAt(extended, "offsetX", 3000)).toBeCloseTo(300);
+    expect(keyframeTimesMs(extended)).toEqual([0, 4000]);
+  });
+
+  it("hides keyframes a trim cut off and still eases toward them", () => {
+    const trimmed = trimClip(ramp(), "end", -3000);
+
+    expect(trimmed.durationMs).toBe(1000);
+    expect(keyframeTimesMs(trimmed)).toEqual([0]);
+    expect(rendered(trimmed, 500)).toBeCloseTo(50);
+    expect(rendered(trimmed, 1000)).toBeCloseTo(100);
+    expect(keyframeValueAt(trimmed, "offsetX", 1000)).toBeCloseTo(100);
+    expect(hasKeyframeAt(trimmed, "offsetX", 1000)).toBe(false);
+  });
+
+  it("keeps keyframes at their timeline instants through a head trim", () => {
+    const trimmed = trimClip(ramp(), "start", -1000);
+
+    expect(trimmed.startMs).toBe(1000);
+    expect(keyframeTimesMs(trimmed)).toEqual([3000]);
+    // Timeline 2000 ms was 200 before the trim, and is clip time 1000 now.
+    expect(rendered(trimmed, 1000)).toBeCloseTo(200);
+    expect(rendered(trimmed, 0)).toBeCloseTo(100);
+
+    const restored = trimClip(trimmed, "start", 1000);
+    expect(keyframeTimesMs(restored)).toEqual([0, 4000]);
+    expect(findKeyframeAnimation(restored)?.durationMs).toBe(4000);
+    expect(rendered(restored, 2000)).toBeCloseTo(200);
   });
 });
 

@@ -482,6 +482,26 @@ export const FIXTURES: Fixture[] = [
     op: { op: "delete_track", target: "track_a", deleteClips: true }
   },
   {
+    tool: "set_track",
+    args: { track: "Music", muted: true, volumeDb: -6 },
+    op: { op: "set_track", track: "Music", muted: true, volumeDb: -6 }
+  },
+  {
+    tool: "ripple_delete",
+    args: { targets: ["clip_a"] },
+    op: { op: "ripple_delete", targets: ["clip_a"] }
+  },
+  {
+    tool: "close_gap",
+    args: { track: "Music", atMs: 500 },
+    op: { op: "close_gap", track: "Music", atMs: 500 }
+  },
+  {
+    tool: "cut_transcript",
+    args: { startMs: 3000, endMs: 4000 },
+    op: { op: "cut_transcript", startMs: 3000, endMs: 4000 }
+  },
+  {
     tool: "add_text_clip",
     args: { text: "New title", fontSizePx: 48 },
     op: {

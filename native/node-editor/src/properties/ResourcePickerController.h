@@ -18,6 +18,8 @@ public:
     Q_INVOKABLE void mediaConstraints(const QString& key, bool video, const QString& provider, const QString& id);
     Q_INVOKABLE void remaining(const QString& key, const QString& kind, const QString& projectId = "default");
  Q_INVOKABLE void collections(const QString& key);
+ // The apps an App node can run, as AppLoader's applications.list. Emits listed() with no cursor.
+ Q_INVOKABLE void applications(const QString& key);
  Q_INVOKABLE void verifyWorkflow(const QString& key, const QString& id);
  Q_INVOKABLE void cancel(const QString& key);
 signals:

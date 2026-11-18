@@ -228,8 +228,10 @@ export async function createWorkflowRuntimeEnvironment(
       autoSaveAssets(generation.outputs, {
         userId: generation.userId,
         workflowId: generation.workflowId,
+        projectId: generation.projectId,
         jobId: generation.jobId,
         nodeId: generation.nodeId,
+        nodeName: generation.nodeName,
         textOutputName: primaryTextOutputName(
           registry.getMetadata(generation.nodeType)
         ),

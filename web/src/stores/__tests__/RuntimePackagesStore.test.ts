@@ -111,13 +111,13 @@ describe("RuntimePackagesStore", () => {
 
   it("keeps the installed and pinned versions a refresh reports", async () => {
     const outdated = {
-      id: "tensorflow-js",
-      name: "TensorFlow.js Models",
+      id: "transformers-js",
+      name: "Transformers.js",
       description: "Models",
       installed: true,
       installing: false,
-      installedVersion: "4.20.0",
-      latestVersion: "4.22.0",
+      installedVersion: "3.7.0",
+      latestVersion: "3.8.1",
       updateAvailable: true
     };
     api.getRuntimeStatuses.mockResolvedValueOnce([outdated]);
@@ -128,9 +128,9 @@ describe("RuntimePackagesStore", () => {
   it("update calls IPC, refreshes, and restarts the backend", async () => {
     const ok = await useRuntimePackagesStore
       .getState()
-      .update("tensorflow-js");
+      .update("transformers-js");
     expect(ok).toBe(true);
-    expect(api.updateRuntime).toHaveBeenCalledWith("tensorflow-js");
+    expect(api.updateRuntime).toHaveBeenCalledWith("transformers-js");
     expect(api.getRuntimeStatuses).toHaveBeenCalled();
     // The backend imported the old version; only a restart loads the new one.
     expect(serverRestart()).toHaveBeenCalledTimes(1);
@@ -140,7 +140,7 @@ describe("RuntimePackagesStore", () => {
     api.updateRuntime.mockResolvedValueOnce({ success: false, message: "npm" });
     const ok = await useRuntimePackagesStore
       .getState()
-      .update("tensorflow-js");
+      .update("transformers-js");
     expect(ok).toBe(false);
     expect(useRuntimePackagesStore.getState().error).toBe("npm");
     expect(serverRestart()).not.toHaveBeenCalled();

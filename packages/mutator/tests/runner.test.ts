@@ -34,7 +34,7 @@ describe("ShellRunner", () => {
     expect(result.output).toContain("finished");
   }, 5000);
 
-  it.skipIf(process.platform === "win32")("terminates children in the command process group", async () => {
+  it("terminates children in the command process tree", async () => {
     const dir = mkdtempSync(join(tmpdir(), "mutator-runner-"));
     const marker = join(dir, "survived");
     const child = `setTimeout(() => require('node:fs').writeFileSync(${JSON.stringify(marker)}, 'alive'), 1000)`;

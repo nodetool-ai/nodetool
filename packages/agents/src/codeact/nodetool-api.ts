@@ -96,7 +96,6 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   ],
   shared: ["list_shared", "read_shared", "share_result"],
   threads: ["list_threads", "get_thread", "get_message"],
-  email: ["search_email", "archive_email", "add_label_to_email"],
   settings: [
     "list_settings",
     "get_setting",
@@ -938,6 +937,11 @@ const nodetool = (() => {
               '") to see what is configured.'
           );
         }
+        // The same for a provider the caller named: another provider's model
+        // is not what was asked for.
+        if (found && found.provider_hint_matched === false) {
+          throw new Error("nodetool.models.pick: " + found.note);
+        }
         return results[0];
       },
       list: (opts) => __need("list_models")(__merge(opts)),
@@ -1183,16 +1187,6 @@ const nodetool = (() => {
       /** Publish under \`shared:<key>\` for the rest of this run to find. */
       publish: (key, value, opts) =>
         __need("share_result")(__merge(opts, { key: key, value: value }))
-    },
-
-    email: {
-      search: (opts) => __need("search_email")(__merge(opts)),
-      archive: (messageIds) =>
-        __need("archive_email")({
-          message_ids: Array.isArray(messageIds) ? messageIds : [messageIds]
-        }),
-      label: (messageId, label) =>
-        __need("add_label_to_email")({ message_id: messageId, label: label })
     },
 
     assets: {
@@ -1878,7 +1872,9 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     skill: "api-assets",
     doc: `- \`nodetool.documents\` — workspace file conversion: \`convert(inputFile,
   outputFile)\`, \`extractText(pdfPath)\`, \`extractTables(pdfPath, outFile)\`,
-  \`markdownToPdf(inputFile, outputFile)\`, \`pdfToMarkdown(inputFile, outputFile)\`.`
+  \`markdownToPdf(inputFile, outputFile)\`, \`pdfToMarkdown(inputFile, outputFile)\`.
+  A PDF path may be the \`asset://\` uri of an attached PDF. Omit
+  \`outputFile\` on \`pdfToMarkdown\`/\`extractTables\` to get \`markdown\`/\`tables\` back inline.`
   },
   {
     namespace: "web",
@@ -1907,12 +1903,6 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     doc: `- \`nodetool.shared\` — the scratchpad of THIS run: \`list()\` (metadata
   only), \`read(keys)\`, \`publish(key, value)\`. Earlier step and task results
   land here.`
-  },
-  {
-    namespace: "email",
-    skill: "api-web",
-    doc: `- \`nodetool.email\` — \`search({subject, text, since_hours_ago})\`,
-  \`archive(messageIds)\`, \`label(messageId, label)\`.`
   },
   {
     namespace: "assets",

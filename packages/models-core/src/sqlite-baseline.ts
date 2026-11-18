@@ -99,3 +99,32 @@ export const SQLITE_CORE_BASELINE_SQL = `
 
 export const JOB_TRACE_MARKER_DDL = "ALTER TABLE nodetool_jobs ADD COLUMN has_run_trace INTEGER NOT NULL DEFAULT 0";
 export const ASSET_FAVORITE_DDL = "ALTER TABLE nodetool_assets ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0";
+/**
+ * An asset is a file in its project's folder, and the row records the file's
+ * path relative to that folder. Added by a versioned migration in every
+ * schema owner, because the baseline above is frozen.
+ */
+export const ASSET_WORKSPACE_PATH_DDL = "ALTER TABLE nodetool_assets ADD COLUMN workspace_path TEXT";
+/**
+ * The SHA-256 of the whole file an asset keeps in its project folder. A
+ * background job fills it in. Added by a versioned migration in every schema
+ * owner, as the column above is.
+ */
+export const ASSET_CONTENT_HASH_DDL = "ALTER TABLE nodetool_assets ADD COLUMN content_hash TEXT";
+/**
+ * A project workflow is a JSON file in its project's folder, and the row
+ * records the file's path relative to that folder. Added by a versioned
+ * migration in every schema owner, as the asset columns above are.
+ */
+export const WORKFLOW_FILE_PATH_DDL = "ALTER TABLE nodetool_workflows ADD COLUMN file_path TEXT";
+/** The SHA-256 of the workflow file content last synced with the row. */
+export const WORKFLOW_FILE_HASH_DDL = "ALTER TABLE nodetool_workflows ADD COLUMN file_hash TEXT";
+/** What the last reconcile found wrong with a workflow's file, if anything. */
+export const WORKFLOW_FILE_ERROR_DDL = "ALTER TABLE nodetool_workflows ADD COLUMN file_error TEXT";
+/**
+ * The editing instance that wrote the stored revision. A save from another
+ * instance first keeps the stored revision as a version.
+ */
+export const WORKFLOW_LAST_WRITER_DDL = "ALTER TABLE nodetool_workflows ADD COLUMN last_writer_instance TEXT";
+/** The document schema version the stored graph was written in. */
+export const WORKFLOW_SCHEMA_VERSION_DDL = "ALTER TABLE nodetool_workflows ADD COLUMN schema_version INTEGER NOT NULL DEFAULT 1";

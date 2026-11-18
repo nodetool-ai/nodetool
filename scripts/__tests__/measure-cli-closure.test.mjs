@@ -25,14 +25,14 @@ function fixture() {
 }
 afterEach(() => { for (const root of fixtures.splice(0)) { rmSync(root, { recursive: true, force: true }); } });
 
-describe("CLI dependency closure", () => {
+describe("CLI dependency closure", { timeout: 60_000 }, () => {
   it("measures real package directories once, excludes sources and nested modules, and resolves nested versions", () => {
     const { root, pkg, counted } = fixture();
     const cli = pkg("packages/cli", { name: "@nodetool-ai/cli", dependencies: { shared: "1", parent: "1", alias: "1" } }, "cli", true);
     const shared = pkg("node_modules/shared", { name: "shared", version: "1" }, "root shared");
     pkg("node_modules/parent", { name: "parent", dependencies: { shared: "2" } }, "parent");
     pkg("node_modules/parent/node_modules/shared", { name: "shared", version: "2" }, "nested shared");
-    symlinkSync(shared, join(root, "node_modules/alias"), "dir");
+    symlinkSync(shared, join(root, "node_modules/alias"), process.platform === "win32" ? "junction" : "dir");
     writeFileSync(join(cli, "unpublished-source.ts"), "excluded source");
     mkdirSync(join(shared, "node_modules/unreachable"), { recursive: true });
     writeFileSync(join(shared, "node_modules/unreachable/ignored"), "excluded nested module");
@@ -77,8 +77,8 @@ describe("CLI dependency closure", () => {
     }, "", true);
     const fal = pkg("packages/fal-nodes", { name: "@nodetool-ai/fal-nodes", dependencies: { heavy: "1" } }, "", true);
     mkdirSync(join(root, "node_modules/@nodetool-ai"), { recursive: true });
-    symlinkSync(fal, join(root, "node_modules/@nodetool-ai/fal-nodes"), "dir");
-    symlinkSync(cli, join(root, "node_modules/@nodetool-ai/cli"), "dir");
+    symlinkSync(fal, join(root, "node_modules/@nodetool-ai/fal-nodes"), process.platform === "win32" ? "junction" : "dir");
+    symlinkSync(cli, join(root, "node_modules/@nodetool-ai/cli"), process.platform === "win32" ? "junction" : "dir");
     pkg("node_modules/sharp", { name: "sharp" }, "retained through external edge");
     pkg("node_modules/outside", { name: "outside", dependencies: { sharp: "1" } });
     pkg("node_modules/heavy", { name: "heavy" });

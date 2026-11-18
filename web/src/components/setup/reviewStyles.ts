@@ -29,6 +29,13 @@ export const REVIEW_CONTENT_WIDTH = 720;
  */
 export const REVIEW_WIDE_WIDTH = 1180;
 
+/**
+ * The column beside a review's heading that holds its rewrite action and the
+ * estimate under it. The estimate wraps here rather than running the width of
+ * the page above the plan.
+ */
+export const REVIEW_ESTIMATE_WIDTH = 420;
+
 /** The scene rail: wide enough for a slugline, narrow enough to stay a rail. */
 export const REVIEW_RAIL_WIDTH = 300;
 
@@ -99,8 +106,18 @@ export const REVIEW_SCENE_RAIL = {
     md: `0 0 ${REVIEW_RAIL_WIDTH}px`
   },
   minWidth: 0,
-  padding: SPACING.lg,
   borderBottom: { xs: "1px solid", md: "none" },
   borderRight: { xs: "none", md: "1px solid" },
   borderColor: { xs: "divider", md: "divider" }
+} as const;
+
+/**
+ * The rail's fields. They hold their place at the top of the viewport while
+ * the scene's shots scroll, and fall back to the normal flow once the rail
+ * stacks above the shots on a narrow viewport.
+ */
+export const REVIEW_SCENE_RAIL_CONTENT = {
+  padding: SPACING.lg,
+  position: { xs: "static", md: "sticky" },
+  top: 0
 } as const;

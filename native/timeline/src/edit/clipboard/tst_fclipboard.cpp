@@ -1,3 +1,4 @@
+#include "edit/speed/SpeedOperations.h"
 #include "edit/clipboard/ClipboardOps.h"
 #include "app/EditRegistry.h"
 #include "model/TimelineJson.h"
@@ -323,6 +324,32 @@ class TestFClipboard : public QObject {
         QVERIFY(opacity->property("checked").toBool());
         QCOMPARE(opacity->property("accessibleName").toString(), QString("Opacity and blend mode"));
     }
+    void duplicateDropsInTheDropMode_data() {
+        QTest::addColumn<QString>("mode");
+        QTest::addColumn<double>("nextStartMs");
+        QTest::addColumn<double>("nextDurationMs");
+        QTest::newRow("overwrite") << QString("overwrite") << 2000.0 << 500.0;
+        QTest::newRow("insert") << QString("insert") << 2500.0 << 1000.0;
+        QTest::newRow("default") << QString() << 2000.0 << 500.0;
+    }
+    void duplicateDropsInTheDropMode() {
+        QFETCH(QString, mode);
+        QFETCH(double, nextStartMs);
+        QFETCH(double, nextDurationMs);
+        auto parsed = nt::parseTimelineJson(
+            R"({"name":"D","width":640,"height":360,"fps":30,"durationMs":10000,"tracks":[{"id":"v","type":"video","index":0}],"clips":[{"id":"a","name":"A","mediaType":"image","trackId":"v","startMs":0,"durationMs":1000},{"id":"b","name":"B","mediaType":"image","trackId":"v","startMs":1500,"durationMs":1000}]})");
+        QVERIFY(parsed.timeline);
+        TimelineModel model;
+        model.setTimeline(std::move(*parsed.timeline));
+        QJsonObject payload{{"selectedIds", QJsonArray{"a"}}};
+        if (!mode.isEmpty()) { payload.insert("mode", mode); }
+        QVERIFY(model.applyEdit("duplicateSelected", payload));
+        // The copy lands at 1000-2000, over the head of b: it never stacks on b.
+        const auto* next = model.findClip("b");
+        QVERIFY(next);
+        QCOMPARE(next->startMs, nextStartMs);
+        QCOMPARE(next->durationMs, nextDurationMs);
+    }
     void undo_data() {
         QTest::addColumn<QString>("action");
         for (const auto &action :
@@ -331,6 +358,22 @@ class TestFClipboard : public QObject {
                          "moveSelectedClips", "trimClipStart", "trimClipEnd", "deleteSelected"}) {
             QTest::newRow(qPrintable(action)) << action;
         }
+    }
+    void pasteAttributesRetimesSpeed() {
+        // B20: Speed from a 2x source retimes the target, as the web does. The
+        // app registers the speed edit from an executable-only registrar.
+        nt::app::overrideEdit("setClipSpeed", nt::speed::setClipSpeed);
+        auto parsed = nt::parseTimelineJson(
+            R"({"name":"F","width":640,"height":360,"fps":30,"durationMs":10000,"tracks":[{"id":"v","type":"video","index":0}],"clips":[{"id":"t","name":"Target","mediaType":"video","trackId":"v","startMs":0,"durationMs":2000}]})");
+        QVERIFY(parsed.timeline);
+        TimelineModel model;
+        model.setTimeline(std::move(*parsed.timeline));
+        QVERIFY(model.applyEdit("pasteAttributes", {{"selectedIds", QJsonArray{"t"}}, {"groups", QJsonArray{"speed"}},
+            {"source", QJsonObject{{"id", "s"}, {"mediaType", "video"}, {"speedMultiplier", 2.0}}}}));
+        QCOMPARE(model.undoStack()->count(), 1);
+        const auto clip = model.timeline().clips.front().raw;
+        QCOMPARE(clip.value("durationMs").toDouble(), 1000.0);
+        QCOMPARE(clip.value("speedMultiplier").toDouble(), 2.0);
     }
     void undo() {
         QFETCH(QString, action);

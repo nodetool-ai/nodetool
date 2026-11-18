@@ -4,13 +4,11 @@ title: "Security Hardening"
 description: "Deployment checklists for locking down NodeTool in dev, staging, and production."
 ---
 
-Checklist for exposing NodeTool beyond your laptop. Jump to the [Quick Security Audit](#quick-security-audit) for the pre-launch list.
+Checklists for exposing NodeTool beyond your laptop. The [Quick Security Audit](#quick-security-audit) is the pre-launch list.
 
 ---
 
 ## Universal Checklist
-
-These apply to every deployment.
 
 ### Network Security
 
@@ -83,7 +81,7 @@ Set `mem_limit` and `cpus` on containers and use read-only mounts where possible
 | Gate access | Use a VPN or IP allowlists |
 | Separate credentials | Use distinct Supabase projects and tokens from production |
 | Rotate on personnel changes | Rotate Supabase service-role keys when team members leave |
-| Enable end-to-end TLS | Including internal hops if traversing untrusted networks |
+| Enable end-to-end TLS | Include internal hops that cross untrusted networks |
 | Regular backups | Back up workspace volumes and databases on a schedule and restrict who can read backups |
 | Audit logging | Enable request logging at the proxy layer to track access patterns |
 
@@ -93,17 +91,15 @@ Set `mem_limit` and `cpus` on containers and use read-only mounts where possible
 
 ### Authentication & Authorization
 
-- Enable SSO or Supabase mode for any multi-user or network-accessible deployment so every request is authenticated.
-- Keep `NODETOOL_TRUST_LOCALHOST` off and restrict `NODETOOL_TRUSTED_PROXIES` to your real proxy addresses.
-- Unset `NODETOOL_TRUST_LOCAL_NETWORKS`. Never carry a `0.0.0.0/0` trust rule into production.
+- Apply the [Universal authentication rules](#authentication) and unset `NODETOOL_TRUST_LOCAL_NETWORKS`.
 - Use a dedicated service account per deployment and distribute tokens through your secrets manager, not files in the image or repository.
 - Public app links exist only with `NODETOOL_ENV=production`. An owner can deploy a published mini app to `/a/<token>`, where anyone with the link runs it without logging in, on the owner's provider keys, against the app's spend budget. Set a budget on every deployed app (**Governance › Spend budget**). The link is the credential. Withdrawing it is the only way to invalidate it, and outstanding run sessions expire after one hour rather than immediately.
 
 ### Infrastructure and data
 
-- Cap per-container resources on multi-tenant hosts, use separate networks for proxy, API server, and workers, and pin image versions (no `latest`).
+- Use separate networks for proxy, API server, and workers, and pin image versions (no `latest`). Cap per-container resources on multi-tenant hosts.
 - Rebuild images regularly and scan base images for CVEs.
-- Use encrypted volumes for workspace and database storage, and TLS on internal hops that cross untrusted networks.
+- Use encrypted volumes for workspace and database storage.
 - Clear temporary assets on a schedule. `TEMP_BUCKET` is separate from `ASSET_BUCKET`, so it can have its own retention policy.
 - Forward container logs to your logging platform and alert on auth failures, `429` responses, and container restarts.
 - Run scheduled backups with tested restores, and restrict who can read them.

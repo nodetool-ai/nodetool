@@ -33,6 +33,9 @@ accessibility tree, console output, network data, storage, or full-page captures
 ## The participant runner
 
 The runner starts one Claude Agent SDK session and one fresh Chromium context.
+The session half lives in `participantLoop.ts`, which the desktop runner for
+native apps (`runNativeParticipant.ts`, described in the ux-research skill's
+[native-apps.md](../../ux-research/references/native-apps.md)) shares.
 
 | Boundary | How the runner enforces it |
 |---|---|
@@ -67,7 +70,8 @@ callable tool. On a shared login it fails with `LEAK: email address`. Set a
 token first. Report the probe result in the run contract.
 
 `npm run test:agentic-qa` (from `web/`) checks the origin guard offline,
-including a link that opens another origin in a new tab.
+including a link that opens another origin in a new tab, and the native
+runner's desktop when its X11 tools are installed.
 
 ### Packet
 
@@ -148,8 +152,10 @@ overhead, not human think time.
 ```bash
 cd web
 npx tsx tests/agentic-qa/serveApp.ts [--state empty|failing-run|other-provider|working-run|unwired-run|seeded-demo] \
-  [--backend-port 7790] [--web-port 3010]
+  [--backend-port 7790] [--web-port 3010] [--no-web]
 ```
+
+`--no-web` starts only the backend, for a native app that connects to it.
 
 Run `npm run build:packages` first. In a sandbox that blocks
 `cdn.sheetjs.com`, `npm install` stops with `E403` on `xlsx`. Point the

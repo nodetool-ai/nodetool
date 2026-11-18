@@ -5,6 +5,9 @@
  *
  * The clip context menu unmounts the moment an item is clicked, so its caller
  * mounts this dialog only once the action has asked for it.
+ *
+ * In a named project it also offers Personal. An asset picked there is copied
+ * into the project and the clip gets the copy.
  */
 
 import React, { memo, useCallback, useState } from "react";
@@ -14,16 +17,23 @@ import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { findClipById } from "../../../stores/timeline/clipLookup";
 import { MentionAssetTile } from "../../node_types/editing/promptComposer/MentionAssetTile";
 import { useAssetMentionSearch } from "../../node_types/editing/promptComposer/useAssetMentionSearch";
+import { AssetPickSourceTabs } from "../../assets/AssetPickSourceTabs";
+import ErrorBanner from "../../support/ErrorBanner";
 import {
   Caption,
   Dialog,
   EmptyState,
   FlexColumn,
   FlexRow,
+  LoadingSpinner,
   ScrollArea,
   SearchInput,
   SPACING
 } from "../../ui_primitives";
+import {
+  useProjectAssetPick,
+  type AssetPickSource
+} from "../../../hooks/assets/useProjectAssetPick";
 
 /** Fixed so the dialog does not resize while results load. */
 const PANEL_HEIGHT = 360;
@@ -73,9 +83,24 @@ export const ReplaceClipAssetDialog: React.FC<ReplaceClipAssetDialogProps> =
     const contentType = replacementContentType(mediaType);
     const kindLabel = t(`i18n-next59.replace.kind.${contentType ?? "assets"}`, { defaultValue: contentType ? KIND_LABEL[contentType] : "assets" });
 
+    const pick = useProjectAssetPick();
+    const [source, setSource] = useState<AssetPickSource>("project");
+    const [copying, setCopying] = useState(false);
+    const [copyError, setCopyError] = useState<string | null>(null);
+    const fromPersonal =
+      source === "personal" && pick.personalProjectId !== null;
+
     const [query, setQuery] = useState("");
     const { displayedAssets, hasMoreSaved, loadMoreSaved, handleRename } =
-      useAssetMentionSearch(query, "saved", contentType);
+      useAssetMentionSearch(
+        query,
+        "saved",
+        contentType,
+        true,
+        fromPersonal && pick.personalProjectId
+          ? pick.personalProjectId
+          : pick.projectId
+      );
 
     const handleScroll = useCallback(
       (e: React.UIEvent<HTMLDivElement>) => {
@@ -91,13 +116,26 @@ export const ReplaceClipAssetDialog: React.FC<ReplaceClipAssetDialogProps> =
     );
 
     const handlePick = useCallback(
-      (assetId: string) => {
-        if (assetId !== currentAssetId) {
-          replaceClipOutput(clipId, assetId);
+      async (assetId: string) => {
+        setCopyError(null);
+        setCopying(true);
+        let usedId: string;
+        try {
+          usedId = await pick.idForProject(
+            assetId,
+            fromPersonal ? "personal" : "project"
+          );
+        } catch (error) {
+          setCopyError(error instanceof Error ? error.message : String(error));
+          setCopying(false);
+          return;
+        }
+        if (usedId !== currentAssetId) {
+          replaceClipOutput(clipId, usedId);
         }
         onClose();
       },
-      [clipId, currentAssetId, onClose, replaceClipOutput]
+      [clipId, currentAssetId, fromPersonal, onClose, pick, replaceClipOutput]
     );
 
     return (
@@ -112,6 +150,21 @@ export const ReplaceClipAssetDialog: React.FC<ReplaceClipAssetDialogProps> =
           <Caption color="secondary">
             {t("i18n-next59.replace.description", { kind: kindLabel })}
           </Caption>
+          {pick.personalProjectId !== null && (
+            <AssetPickSourceTabs value={source} onChange={setSource} />
+          )}
+          {copyError !== null && (
+            <ErrorBanner
+              report={{
+                source: "operation-failure",
+                summary: "Could not copy a Personal asset into the project",
+                errorText: copyError
+              }}
+              onDismiss={() => setCopyError(null)}
+            >
+              {t("assetPicker.copyFailed")}
+            </ErrorBanner>
+          )}
           <SearchInput
             value={query}
             onChange={setQuery}
@@ -121,7 +174,11 @@ export const ReplaceClipAssetDialog: React.FC<ReplaceClipAssetDialogProps> =
             autoFocus
             fullWidth
           />
-          {displayedAssets.length === 0 ? (
+          {copying ? (
+            <FlexRow align="center" justify="center" sx={{ height: PANEL_HEIGHT }}>
+              <LoadingSpinner text={t("assetPicker.copying")} />
+            </FlexRow>
+          ) : displayedAssets.length === 0 ? (
             <EmptyState
               variant={query ? "no-results" : "empty"}
               title={query ? t("i18n-next59.replace.noMatch", { kind: kindLabel }) : t("i18n-next59.replace.noneYet", { kind: kindLabel })}
@@ -145,7 +202,7 @@ export const ReplaceClipAssetDialog: React.FC<ReplaceClipAssetDialogProps> =
                     key={asset.id}
                     asset={asset}
                     selected={asset.id === currentAssetId}
-                    onSelect={() => handlePick(asset.id)}
+                    onSelect={() => void handlePick(asset.id)}
                     onRename={handleRename}
                     focusable
                   />

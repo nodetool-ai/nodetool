@@ -1,6 +1,7 @@
 // Tests for the gr::GraphRunner library API against a real guest bundle:
 // loading, the support check, runs of an editor-shaped graph, the job
-// summary, cancellation, context reuse, and teardown with work in flight.
+// summary, cancellation, context reuse, live property changes, and teardown
+// with work in flight.
 //
 //   gr_library_tests <guest.js|guest.bin>
 #include "nodetool/graph_runner.h"
@@ -320,6 +321,88 @@ void cancelsAndReusesTheContext() {
   CHECK(!runner.cancel("next"));
 }
 
+// A Trigger node into an Audio Out node, which sends one output_update for
+// each block of the gate stream, paced by the wall clock, until the run is
+// cancelled.
+std::string triggerGraph() {
+  Json graph = {
+      {"nodes",
+       {{{"id", "trig"}, {"type", "nodetool.audio.synth.Trigger"}, {"data", {{"length", 0.02}}}},
+        {{"id", "out"}, {"type", "nodetool.audio.realtime.AudioOutput"}, {"data", Json::object()}}}},
+      {"edges",
+       {{{"id", "e1"}, {"source", "trig"}, {"sourceHandle", "gate"}, {"target", "out"},
+         {"targetHandle", "chunk"}}}}};
+  return graph.dump();
+}
+
+// Whether the chunk of an output_update holds a sample that is not zero.
+// The samples cross as {"__bytes__": "<base64>"}, and zero bytes encode as 'A'.
+bool soundingChunk(const Json& message) {
+  if (!message.contains("value") || !message["value"].is_object()) return false;
+  const Json& value = message["value"];
+  if (!value.contains("content") || !value["content"].is_object()) return false;
+  const std::string bytes = value["content"].value("__bytes__", std::string());
+  return bytes.find_first_not_of("A=") != std::string::npos;
+}
+
+// A live property change reaches the node of the running job, and only that
+// job takes one.
+void appliesLivePropertyChanges() {
+  gr::GraphRunner runner(bundlePath);
+  CHECK(runner.waitUntilLoaded(60000));
+  // No job runs yet.
+  CHECK(!runner.updateNodeProperties("live", "trig", R"({"trigger":true})"));
+  CHECK(runner.unsupportedReason(triggerGraph()).empty());
+  Collector c;
+  runner.submit("live", "wf", triggerGraph(), "", c.handler());
+  auto blocks = [&] {
+    size_t count = 0;
+    for (const auto& m : c.messages) {
+      if (m.value("type", std::string()) == "output_update" && m.value("node_id", std::string()) == "out") ++count;
+    }
+    return count;
+  };
+  auto sounding = [&] {
+    return std::any_of(c.messages.begin(), c.messages.end(), soundingChunk);
+  };
+  // The gate is low until the switch changes.
+  CHECK(c.waitFor([&] { return blocks() >= 3; }));
+  {
+    std::lock_guard lock(c.mutex);
+    CHECK(!sounding());
+  }
+  // Refused: another job, no node, and values that are not an object.
+  CHECK(!runner.updateNodeProperties("other", "trig", R"({"trigger":true})"));
+  CHECK(!runner.updateNodeProperties("live", "", R"({"trigger":true})"));
+  CHECK(!runner.updateNodeProperties("live", "trig", "[true]"));
+  CHECK(!runner.updateNodeProperties("live", "trig", "not json"));
+  {
+    std::lock_guard lock(c.mutex);
+    CHECK(!sounding());
+  }
+  // A node the graph does not have drops the change, and the run goes on.
+  CHECK(runner.updateNodeProperties("live", "missing", R"({"trigger":true})"));
+  size_t before = 0;
+  {
+    std::lock_guard lock(c.mutex);
+    before = blocks();
+  }
+  CHECK(c.waitFor([&] { return blocks() >= before + 2; }));
+  {
+    std::lock_guard lock(c.mutex);
+    CHECK(!sounding());
+  }
+  // The change fires the pulse at the node's next block.
+  CHECK(runner.updateNodeProperties("live", "trig", R"({"trigger":true})"));
+  CHECK(c.waitFor(sounding));
+  CHECK(runner.cancel("live"));
+  CHECK(c.waitTerminal() == "cancelled");
+  // A cancelled or finished job takes none.
+  CHECK(!runner.updateNodeProperties("live", "trig", R"({"trigger":false})"));
+  // The run unwound cleanly, so the context stays.
+  CHECK(runner.contextLoads() == 1);
+}
+
 void cancelsQueuedJobs() {
   gr::GraphRunner runner(bundlePath);
   Collector first;
@@ -428,6 +511,7 @@ int main(int argc, char** argv) {
       {"sendsJobSummaryWhenCancelled", sendsJobSummaryWhenCancelled},
       {"runsGraphWithEditorOnlyNodes", runsGraphWithEditorOnlyNodes},
       {"cancelsAndReusesTheContext", cancelsAndReusesTheContext},
+      {"appliesLivePropertyChanges", appliesLivePropertyChanges},
       {"cancelsQueuedJobs", cancelsQueuedJobs},
       {"teardownEndsRunningJobs", teardownEndsRunningJobs},
       {"teardownDuringLoad", teardownDuringLoad},

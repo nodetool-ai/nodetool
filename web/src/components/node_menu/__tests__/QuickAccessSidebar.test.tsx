@@ -22,15 +22,15 @@ const renderSidebar = (
   );
 
 describe("QuickAccessSidebar", () => {
-  it("shows Documents, Chats, Library, Entities, Examples, Nodes, and More", () => {
+  it("shows Chats, Files, Library, Entities, Examples, Nodes, and More", () => {
     renderSidebar();
     expect(
       screen
         .getAllByRole("button")
         .map((button) => button.getAttribute("aria-label"))
     ).toEqual([
-      "Documents",
       "Chats",
+      "Files",
       "Library",
       "Entities",
       "Examples",
@@ -50,7 +50,7 @@ describe("QuickAccessSidebar", () => {
       "aria-pressed",
       "true"
     );
-    expect(screen.getByRole("button", { name: "Documents" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Files" })).toHaveAttribute(
       "aria-pressed",
       "false"
     );
@@ -60,7 +60,7 @@ describe("QuickAccessSidebar", () => {
     renderSidebar(jest.fn(), "workflows", ["nodes"]);
 
     expect(screen.queryByRole("button", { name: "Nodes" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Documents" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Files" })).toBeVisible();
   });
 
   it("selects a view from any group", async () => {
@@ -68,10 +68,10 @@ describe("QuickAccessSidebar", () => {
     const onCategoryClick = jest.fn();
     renderSidebar(onCategoryClick);
 
-    await user.click(screen.getByRole("button", { name: "Documents" }));
     await user.click(screen.getByRole("button", { name: "Chats" }));
+    await user.click(screen.getByRole("button", { name: "Files" }));
 
-    expect(onCategoryClick).toHaveBeenNthCalledWith(1, "documents");
-    expect(onCategoryClick).toHaveBeenNthCalledWith(2, "chats");
+    expect(onCategoryClick).toHaveBeenNthCalledWith(1, "chats");
+    expect(onCategoryClick).toHaveBeenNthCalledWith(2, "files");
   });
 });

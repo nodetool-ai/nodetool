@@ -63,13 +63,28 @@ import {
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
-import { throwApiError } from "../error-formatter.js";
+import { throwApiError, withApiRefusal } from "../error-formatter.js";
+import * as sync from "@nodetool-ai/protocol/api-schemas/sync.js";
+import {
+  acceptedSchemaVersion,
+  isDocumentSaveRefusal,
+  keepBeforeRestore,
+  revisionToKeep,
+  writerOf
+} from "../../lib/document-save-rules.js";
 import { isString } from "../../lib/wire-values.js";
 import { installExampleTimeline, listExampleTimelines } from "../../lib/example-timelines.js";
 import {
+  effectiveAccess,
   hasDocumentRole,
+  mayReadHistory,
   type DocumentRole
 } from "../../lib/document-access.js";
+import {
+  checkAttach,
+  publishSave,
+  ensureVersionSets
+} from "../../lib/document-refs.js";
 
 const log = createLogger("nodetool.websocket.trpc.timeline");
 
@@ -243,6 +258,10 @@ const updateInput = z.preprocess(
     z.object({
       id: z.string(),
       baseUpdatedAt: z.string().optional(),
+      /** See `editingInstanceId` in the protocol's sync.ts. */
+      editingInstance: sync.editingInstanceId.optional(),
+      /** The document schema version of `document`, see sync.ts. */
+      schemaVersion: sync.documentSchemaVersion.optional(),
       rawDocument: z.unknown().optional()
     })
   )
@@ -260,6 +279,17 @@ function strippedDocumentPaths(raw: unknown, parsed: unknown): string[] {
   const found = new Set<string>();
   collectStrippedPaths(raw, parsed, "", found);
   return [...found].sort();
+}
+
+/**
+ * A client that saves back the sequence it read sends the row's
+ * `schemaVersion` inside the document. It is a row field, so it is not
+ * reported as a document field the schema dropped.
+ */
+function withoutRowSchemaVersion(raw: unknown): unknown {
+  if (!isRecord(raw)) return raw;
+  const { schemaVersion: _rowField, ...document } = raw;
+  return document;
 }
 
 const okOutput = z.object({ ok: z.literal(true) });
@@ -351,6 +381,23 @@ async function loadOwned(
     !seq ||
     !(await hasDocumentRole("timeline", seq, ctxUserId, minimum))
   ) {
+    throwApiError(ApiErrorCode.NOT_FOUND, "Timeline sequence not found");
+  }
+  return seq;
+}
+
+/**
+ * Load a timeline whose versions the caller may read: the owner, an editor,
+ * or a viewer with the history option (RF11, AC26). Anyone else gets the
+ * NOT_FOUND a missing timeline gets.
+ */
+async function loadWithHistory(
+  ctxUserId: string | null,
+  id: string
+): Promise<TimelineSequence> {
+  const seq = await loadOwned(ctxUserId, id, "viewer");
+  if (seq.user_id === ctxUserId) return seq;
+  if (!mayReadHistory(await effectiveAccess(ctxUserId ?? "", "timeline", seq.id))) {
     throwApiError(ApiErrorCode.NOT_FOUND, "Timeline sequence not found");
   }
   return seq;
@@ -568,8 +615,22 @@ export const timelineRouter = router({
           source: current.source
         };
         fields.document = JSON.stringify(merged);
+        fields.schema_version = withApiRefusal(
+          () =>
+            acceptedSchemaVersion(
+              "timeline",
+              seq.schema_version,
+              input.schemaVersion,
+              ctx.clientProtocol == null
+            ),
+          isDocumentSaveRefusal
+        );
+        fields.last_writer_instance = writerOf(ctx.userId, input.editingInstance);
 
-        stripped = strippedDocumentPaths(input.rawDocument, input.document);
+        stripped = strippedDocumentPaths(
+          withoutRowSchemaVersion(input.rawDocument),
+          input.document
+        );
         if (stripped.length > 0) {
           log.warn("Timeline document fields dropped by the schema on save", {
             timelineId: input.id,
@@ -578,10 +639,29 @@ export const timelineRouter = router({
         }
       }
 
+      // The attach rule: refuse a file the writer may not read, before
+      // anything is written. Admissions wait for the stored save.
+      let toAdmit: string[] = [];
+      if (fields.document !== undefined) {
+        toAdmit = await checkAttach(
+          "timeline",
+          { id: seq.id, user_id: seq.user_id, before: seq.document },
+          ctx.userId,
+          fields.document
+        );
+      }
+
       const updated = await TimelineSequence.updateFieldsIfUnchanged(
         seq.id,
         expectedUpdatedAt,
-        fields
+        fields,
+        undefined,
+        input.document === undefined
+          ? undefined
+          : revisionToKeep("timeline", seq, {
+              writer: writerOf(ctx.userId, input.editingInstance),
+              base: input.baseUpdatedAt
+            })
       );
       if (!updated) {
         // The row changed between load and write (or was deleted). Report a
@@ -590,6 +670,9 @@ export const timelineRouter = router({
           ApiErrorCode.ALREADY_EXISTS,
           "Timeline has been modified since last load"
         );
+      }
+      if (fields.document !== undefined) {
+        await publishSave("timeline", updated, toAdmit);
       }
 
       if (input.document !== undefined) {
@@ -642,7 +725,7 @@ export const timelineRouter = router({
       .input(listTimelineVersionsInput)
       .output(z.array(timelineVersionListItem))
       .query(async ({ ctx, input }) => {
-        const seq = await loadOwned(ctx.userId, input.id, "viewer");
+        const seq = await loadWithHistory(ctx.userId, input.id);
         const versions = await TimelineSequenceVersion.listForTimeline(
           seq.id,
           { limit: input.limit, saveType: input.saveType }
@@ -654,7 +737,7 @@ export const timelineRouter = router({
       .input(getTimelineVersionInput)
       .output(timelineVersionResponse)
       .query(async ({ ctx, input }) => {
-        const seq = await loadOwned(ctx.userId, input.id, "viewer");
+        const seq = await loadWithHistory(ctx.userId, input.id);
         const version = await TimelineSequenceVersion.findByVersion(
           seq.id,
           input.version
@@ -693,14 +776,14 @@ export const timelineRouter = router({
           throwApiError(ApiErrorCode.NOT_FOUND, "Timeline version not found");
         }
 
-        // Snapshot what is about to be overwritten first, so a restore is
-        // itself undoable.
-        await TimelineSequenceVersion.snapshot(seq, {
-          saveType: "restore",
-          name: `Before restore to v${input.version}`
-        });
-
         const document = parseVersionDocument(version.document);
+        await ensureVersionSets("timeline", seq);
+        const toAdmit = await checkAttach(
+          "timeline",
+          { id: seq.id, user_id: seq.user_id, before: seq.document },
+          ctx.userId,
+          document
+        );
         const updated = await TimelineSequence.updateFieldsIfUnchanged(
           seq.id,
           seq.updated_at,
@@ -709,8 +792,25 @@ export const timelineRouter = router({
             fps: version.fps,
             width: version.width,
             height: version.height,
-            duration_ms: version.duration_ms
-          }
+            duration_ms: version.duration_ms,
+            // The server writes the restored revision, so it is in the
+            // schema this server writes, and its writer is the restorer.
+            schema_version: withApiRefusal(
+              () =>
+                acceptedSchemaVersion(
+                  "timeline",
+                  seq.schema_version,
+                  undefined,
+                  false
+                ),
+              isDocumentSaveRefusal
+            ),
+            last_writer_instance: writerOf(ctx.userId, input.editingInstance)
+          },
+          undefined,
+          // What is about to be overwritten becomes a version in the same
+          // transaction, so a restore is itself undoable.
+          keepBeforeRestore("timeline", input.version)
         );
         if (!updated) {
           throwApiError(
@@ -718,6 +818,7 @@ export const timelineRouter = router({
             "Timeline has been modified since last load"
           );
         }
+        await publishSave("timeline", updated, toAdmit);
         return updated.toTimelineSequence();
       }),
 

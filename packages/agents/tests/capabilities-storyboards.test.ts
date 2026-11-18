@@ -486,6 +486,24 @@ describe("storyboards capability behaviour", () => {
     );
   });
 
+  it("keeps a camera sent as one sentence as structured direction", async () => {
+    // Boards holding a string camera failed storyboards.get with a ZodError.
+    const board = await makeBoard([shot({ id: "s1", index: 0 })]);
+
+    expect(
+      await run(ctx()).invoke("edit_storyboard", {
+        storyboard_id: board.id,
+        ops: [
+          { op: "update_shot", target: "s1", camera: "Close-up pushing in rapidly" }
+        ]
+      })
+    ).toMatchObject({ applied: 1, failed: 0 });
+
+    expect(
+      (await Storyboard.findById(board.id))?.toDocument().shots[0].camera
+    ).toEqual({ movement: "Close-up pushing in rapidly" });
+  });
+
   it("stores full owned source IDs from add/update graphics, production and board cast edits", async () => {
     const id = "a".repeat(32);
     await new Asset({id, user_id: "u1", name: "Product", content_type: "image/png"}).save();

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { cameraPresetIdsSchema } from "../creative.js";
+import { cameraPresetIdsSchema, normalizeCameraDirection } from "../creative.js";
 import type { Screenplay, Shot } from "../creative.js";
 import { SCENE_CLIP_MAX_SHOTS, SCENE_CLIP_MIN_SHOTS } from "../one-take.js";
 import {
@@ -164,20 +164,30 @@ export const storyboardShot = z
     action: z.string(),
     look_preset_ids: cameraPresetIdsSchema.optional(),
     status: z.string(),
+    /** Why the last render failed, while `status` is "failed". */
+    failure_reason: z.string().optional(),
     slug: z.string().optional(),
     motion: z.string().optional(),
     /** The picture the shot ends on; a one-take step's "End:". */
     end_state: z.string().optional(),
     /** What is heard in the shot; a one-take audio cue. */
     sound: z.string().optional(),
-    camera: z.object({
-      framing: z.string().optional(),
-      lens: z.string().optional(),
-      angle: z.string().optional(),
-      movement: z.string().optional(),
-      equipment: z.string().optional(),
-      preset_ids: cameraPresetIdsSchema.optional()
-    }).passthrough().optional(),
+    // A one-sentence camera string (written by agents and older imports) is
+    // read as the structured direction instead of failing the whole board.
+    camera: z.preprocess(
+      (value) =>
+        z.string().safeParse(value).success
+          ? normalizeCameraDirection(value)
+          : value,
+      z.object({
+        framing: z.string().optional(),
+        lens: z.string().optional(),
+        angle: z.string().optional(),
+        movement: z.string().optional(),
+        equipment: z.string().optional(),
+        preset_ids: cameraPresetIdsSchema.optional()
+      }).passthrough().optional()
+    ),
     graphics: storyboardShotGraphics.optional(),
     duration_seconds: z.number().optional(),
     keyframe: mediaRef.nullable().optional(),
@@ -207,10 +217,23 @@ export const storyboardScene = z
     id: z.string(),
     /** "INT. SOPHIA'S FLAT - HALLWAY - EARLY MORNING". */
     slugline: z.string(),
-    lighting: z.string().optional()
+    lighting: z.string().optional(),
+    /** The act this scene belongs to. Absent on a board without acts. */
+    act_id: z.string().optional()
   })
   .passthrough();
 export type StoryboardScene = z.infer<typeof storyboardScene>;
+
+export const storyboardAct = z
+  .object({
+    type: z.literal("act"),
+    id: z.string(),
+    /** "Act I (Exposition)". */
+    title: z.string(),
+    objective: z.string().optional()
+  })
+  .passthrough();
+export type StoryboardActSchema = z.infer<typeof storyboardAct>;
 
 export const storyboardScreenplay = z
   .object({
@@ -225,7 +248,9 @@ export const storyboardScreenplay = z
     /** Whole-board motion-design direction, including cross-shot intent. */
     motion_design: storyboardMotionDesign.optional(),
     /** The authoritative scene list. Order is derived from `shot.index`. */
-    scenes: z.array(storyboardScene).optional()
+    scenes: z.array(storyboardScene).optional(),
+    /** The acts. Order is derived from each act's first scene. */
+    acts: z.array(storyboardAct).optional()
   })
   .passthrough()
   .superRefine((screenplay, context) => {
@@ -233,6 +258,15 @@ export const storyboardScreenplay = z
     screenplay.motion_design?.transitions?.forEach((transition, index) => {
       if (!shotIds.has(transition.from_shot_id) || !shotIds.has(transition.to_shot_id)) {
         context.addIssue({ code: "custom", path: ["motion_design", "transitions", index], message: "Transition references a shot that is not in this screenplay." });
+      }
+    });
+    const actIds = new Set(screenplay.acts?.map((act) => act.id) ?? []);
+    if (actIds.size !== (screenplay.acts?.length ?? 0)) {
+      context.addIssue({ code: "custom", path: ["acts"], message: "Act ids must be unique." });
+    }
+    screenplay.scenes?.forEach((scene, index) => {
+      if (scene.act_id !== undefined && !actIds.has(scene.act_id)) {
+        context.addIssue({ code: "custom", path: ["scenes", index, "act_id"], message: "Scene references an act that is not in this screenplay." });
       }
     });
     screenplay.motion_design?.continuities?.forEach((continuity, index) => {
@@ -267,8 +301,10 @@ const SHOT_KEY_ALIASES: Readonly<Record<string, string>> = {
   endState: "end_state"
 };
 
-// A scene has no multi-word key, so there is no scene alias table: `slugline`
-// and `lighting` are spelled the same on both surfaces.
+/** Tool-surface scene key → wire key. */
+const SCENE_KEY_ALIASES: Readonly<Record<string, string>> = {
+  actId: "act_id"
+};
 
 /** Tool-surface screenplay key → wire key. `style` is the Director's alias. */
 const SCREENPLAY_KEY_ALIASES: Readonly<Record<string, string>> = {
@@ -366,15 +402,41 @@ export function normalizeStoryboardScene(
   if (!isRecord(input)) {
     throw new Error(`Scene at position ${index} must be an object.`);
   }
+  const scene = applyAliases(input, SCENE_KEY_ALIASES);
   const slugline =
-    isString(input.slugline) && input.slugline.trim() !== ""
-      ? input.slugline
+    isString(scene.slugline) && scene.slugline.trim() !== ""
+      ? scene.slugline
       : `Scene ${index + 1}`;
   return {
-    ...input,
+    ...scene,
     type: "scene",
-    id: isNonEmptyString(input.id) ? input.id : newId(),
+    id: isNonEmptyString(scene.id) ? scene.id : newId(),
     slugline
+  };
+}
+
+/**
+ * Normalize one agent-supplied act into the wire shape: `type` and `id` are
+ * filled in, and a missing title reads as `Act N`.
+ */
+export function normalizeStoryboardAct(
+  input: unknown,
+  index: number,
+  options: StoryboardNormalizeOptions = {}
+): StoryboardActSchema {
+  const newId = options.generateId ?? fallbackId;
+  if (!isRecord(input)) {
+    throw new Error(`Act at position ${index} must be an object.`);
+  }
+  const title =
+    isString(input.title) && input.title.trim() !== ""
+      ? input.title
+      : `Act ${index + 1}`;
+  return {
+    ...input,
+    type: "act",
+    id: isNonEmptyString(input.id) ? input.id : newId(),
+    title
   };
 }
 
@@ -415,6 +477,11 @@ export function normalizeStoryboardScreenplay(
   if (Array.isArray(play.scenes)) {
     candidate.scenes = (play.scenes as unknown[]).map((scene, index) =>
       normalizeStoryboardScene(scene, index, options)
+    );
+  }
+  if (Array.isArray(play.acts)) {
+    candidate.acts = (play.acts as unknown[]).map((act, index) =>
+      normalizeStoryboardAct(act, index, options)
     );
   }
   const parsed = storyboardScreenplay.safeParse(candidate);

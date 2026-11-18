@@ -501,6 +501,24 @@ describe("renderShots", () => {
 
     expect(outcomes[0].error).toBe("text_to_image failed: provider is down");
     expect(state.document.shots[0].status).toBe("failed");
+    expect(state.document.shots[0].failure_reason).toBe("provider is down");
+  });
+
+  it("clears the saved failure reason when a later render succeeds", async () => {
+    const doc = board([
+      {
+        ...shot({ id: "s1", index: 0 }),
+        status: "failed",
+        failure_reason: "provider is down"
+      }
+    ]);
+    const { host, state } = fakeHost(doc);
+    const plans = planShotRenders(doc, NO_ENTITIES, "keyframe");
+
+    await renderShots(host, { id: "b1" }, plans);
+
+    expect(state.document.shots[0].status).toBe("keyframe_ready");
+    expect(state.document.shots[0]).not.toHaveProperty("failure_reason");
   });
 
   it("reports a host with no asset storage rather than attaching nothing", async () => {

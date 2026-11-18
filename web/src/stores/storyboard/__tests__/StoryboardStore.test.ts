@@ -55,6 +55,31 @@ afterEach(() => {
   useStoryboardStore.getState().removeBoard(BOARD);
 });
 
+describe("setShotStatus failure reason", () => {
+  it("saves the reason with a failed status", () => {
+    seed();
+    useStoryboardStore
+      .getState()
+      .setShotStatus(BOARD, SHOT, "failed", " Out of credits ");
+
+    expect(getShot()).toMatchObject({
+      status: "failed",
+      failure_reason: "Out of credits"
+    });
+  });
+
+  it("drops the reason once the shot leaves the failed status", () => {
+    seed();
+    const store = useStoryboardStore.getState();
+    store.setShotStatus(BOARD, SHOT, "failed", "Out of credits");
+
+    store.setShotStatus(BOARD, SHOT, "keyframe_generating");
+
+    expect(getShot()?.status).toBe("keyframe_generating");
+    expect(getShot()).not.toHaveProperty("failure_reason");
+  });
+});
+
 describe("setShotKeyframe", () => {
   it("selects a sole legacy candidate when loading a finished board", () => {
     seed();
@@ -737,6 +762,40 @@ describe("setScreenplay", () => {
     expect(useStoryboardStore.getState().boards[BOARD]?.brief).toBe(
       "My own brief"
     );
+  });
+});
+
+describe("applyTextEdit", () => {
+  const edit = (action: string) => ({
+    screenplay: null,
+    shots: [{ type: "shot" as const, id: SHOT, index: 0, action, status: "planned" as const }],
+    brief: "A brief",
+    style: "",
+    entityIds: [],
+    aspectRatio: "16:9",
+    genre: "",
+    look_preset_ids: []
+  });
+
+  it("writes the parts the text owns and keeps the rest of the board", () => {
+    seed();
+    const store = useStoryboardStore.getState();
+    store.setTitle(BOARD, "Kept title");
+    store.applyTextEdit(BOARD, edit("Typed in the text"));
+    const board = useStoryboardStore.getState().boards[BOARD];
+    expect(board?.shots[0].action).toBe("Typed in the text");
+    expect(board?.brief).toBe("A brief");
+    expect(board?.title).toBe("Kept title");
+  });
+
+  it("folds consecutive text edits into one undo step", () => {
+    seed();
+    const store = useStoryboardStore.getState();
+    store.applyTextEdit(BOARD, edit("T"));
+    store.applyTextEdit(BOARD, edit("Ty"));
+    store.applyTextEdit(BOARD, edit("Typed"));
+    store.undo(BOARD);
+    expect(getShot()?.action).toBe("test shot");
   });
 });
 

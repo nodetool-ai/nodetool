@@ -201,7 +201,9 @@ jobs:
         with:
           ref: ${{ github.sha }}
           path: .release-tools
-          sparse-checkout: scripts/smoke-backend-bundle.mjs
+          sparse-checkout: |
+            scripts/smoke-backend-bundle.mjs
+            .github/scripts/with-window-manager.sh
           sparse-checkout-cone-mode: false
 
       - name: Print selected version
@@ -324,11 +326,31 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libasound2-dev libx11-dev libxext-dev libxinerama-dev \
-            libxrandr-dev libxcursor-dev libfreetype6-dev libfontconfig1-dev
+            libxrandr-dev libxcursor-dev libfreetype6-dev libfontconfig1-dev \
+            xvfb xauth dbus-x11 xfwm4 x11-utils
 
       - name: Build VST host
         shell: bash
-        run: node electron/scripts/build-vst-host.mjs --test
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            # The editor test needs a display and window-manager atoms, even headlessly.
+            # The wrapper comes from the workflow commit, so source_tag recovery of
+            # an older tag gets it too.
+            bash .release-tools/.github/scripts/with-window-manager.sh node electron/scripts/build-vst-host.mjs --test
+          else
+            node electron/scripts/build-vst-host.mjs --test
+          fi
+
+      # The cloud account helper (native/account-helper). electron-builder packs
+      # electron/account-helper/ as resources/account-helper/. On Linux it links
+      # libsecret for the keychain, as keytar does.
+      - name: Install account helper build libraries (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get install -y libsecret-1-dev
+
+      - name: Build account helper
+        shell: bash
+        run: node electron/scripts/build-account-helper.mjs --test
 
       - name: Create Web Build Archive
         if: matrix.os == 'ubuntu-latest'
@@ -935,6 +957,18 @@ jobs:
             electron/dist/*.blockmap
             electron/dist/*.yml
 
+  # The native timeline app with the NodeTool server inside, for macOS,
+  # Windows and Linux. Its assets join this release. It builds the
+  # run's own commit, so a desktop recovery from source_tag skips it.
+  native-timeline:
+    name: Native timeline
+    needs: [preflight]
+    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.preflight.outputs.ref == github.sha }}
+    uses: ./.github/workflows/native-timeline-release.yml
+    with:
+      version: ${{ needs.preflight.outputs.version }}
+    secrets: inherit
+
   nightly-docker-tag:
     name: Retag GHCR image for nightly
     # Waits for the desktop build so :nightly only moves when it succeeded.
@@ -996,8 +1030,8 @@ jobs:
 
   publish-release:
     name: Publish GitHub Release
-    needs: [preflight, release-build]
-    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.release-build.result == 'success' && (github.event_name != 'workflow_dispatch' || github.event.inputs.channel == 'nightly' || github.event.inputs.version != '') }}
+    needs: [preflight, release-build, native-timeline]
+    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.release-build.result == 'success' && (needs.native-timeline.result == 'success' || (needs.native-timeline.result == 'skipped' && needs.preflight.outputs.ref != github.sha)) && (github.event_name != 'workflow_dispatch' || github.event.inputs.channel == 'nightly' || github.event.inputs.version != '') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -1018,7 +1052,7 @@ jobs:
         run: node scripts/merge-mac-update-manifests.mjs release-assets
 
       - name: Validate release assets
-        run: node scripts/validate-release-assets.mjs release-assets "${{ needs.preflight.outputs.release_channel }}"
+        run: node scripts/validate-release-assets.mjs release-assets "${{ needs.preflight.outputs.release_channel }}" ${{ needs.native-timeline.result == 'success' && '--with-timeline' || '' }}
 
       - name: Smoke-test updater manifests
         run: node scripts/smoke-release-updater-assets.mjs release-assets "${{ needs.preflight.outputs.version }}" "${{ needs.preflight.outputs.release_channel }}"
@@ -1044,7 +1078,7 @@ jobs:
           echo "Removed ${removed} debug-only file(s)."
 
       - name: Publish release
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           tag_name: ${{ needs.preflight.outputs.tag }}
           target_commitish: ${{ needs.preflight.outputs.ref }}

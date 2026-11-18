@@ -13,9 +13,7 @@
 namespace {
 nt::app::StartupResult showTimelines(QCoreApplication&, QCommandLineParser&) {
     QString serverError;
-    if (const QUrl bundled = nt::server::startBundledServer(&serverError); !bundled.isEmpty()) {
-        qputenv("NODETOOL_SERVER_URL", bundled.toString().toUtf8());
-    } else if (!serverError.isEmpty()) {
+    if (nt::server::startBundledServer(&serverError).isEmpty() && !serverError.isEmpty()) {
         std::fprintf(stderr, "error: %s\n", qPrintable(serverError));
     }
     nt::server::TimelineListController controller;

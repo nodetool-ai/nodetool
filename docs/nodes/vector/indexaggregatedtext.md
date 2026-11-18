@@ -11,7 +11,7 @@ namespace: "vector"
 
 ## Description
 
-Index multiple text chunks at once with aggregated embeddings from Ollama.
+Index multiple text chunks at once with aggregated embeddings from Ollama. Outputs the collection once indexing finishes, so a query can wait for it.
     vector, embedding, collection, RAG, index, text, chunk, batch, ollama
 
 ## Properties
@@ -27,7 +27,9 @@ Index multiple text chunks at once with aggregated embeddings from Ollama.
 
 ## Outputs
 
-_(none)_
+| Output | Type | Description |
+|--------|------|-------------|
+| output | `collection` |  |
 
 ## Related Nodes
 

@@ -288,3 +288,30 @@ describe("extractDynamicIO", () => {
     expect(result.dynamic_inputs.audio_in.type.type).toBe("audio");
   });
 });
+
+describe("extractDynamicIO on a stored Comfy workflow", () => {
+  // The Comfy importer saves ComfyUI nodes only. The server derives the same
+  // ports when a Workflow node runs it (exposeComfyInterface).
+  it("derives the prompt, Load and Save ports", () => {
+    const result = extractDynamicIO({
+      graph: {
+        nodes: [
+          { id: "1", type: "comfy.CLIPTextEncode", data: { text: "a fox" } },
+          { id: "2", type: "comfy.KSampler", data: {} },
+          { id: "3", type: "comfy.LoadImage", data: { image: "x.png" } },
+          { id: "4", type: "comfy.SaveImage", data: {} },
+          { id: "5", type: "comfy.SaveImage", data: {} }
+        ],
+        edges: [
+          { source: "1", sourceHandle: "CONDITIONING", target: "2", targetHandle: "positive" }
+        ]
+      }
+    });
+
+    expect(Object.keys(result.dynamic_inputs).sort()).toEqual(["image", "prompt"]);
+    expect(result.dynamic_inputs.prompt.type.type).toBe("str");
+    expect(result.dynamic_inputs.image.type.type).toBe("image");
+    expect(result.dynamic_properties.prompt).toBe("a fox");
+    expect(Object.keys(result.dynamic_outputs).sort()).toEqual(["output", "output_2"]);
+  });
+});

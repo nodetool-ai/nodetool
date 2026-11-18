@@ -701,6 +701,39 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
         QCOMPARE(preferences.recentTimelines().size(), 1);
         QCOMPARE(recentTimelineArguments(preferences.recentTimelines().first().toMap()), QStringList({file}));
     }
+    void recentBundledServer() {
+        // A timeline on the bundled server: the server takes a new port at every launch.
+        Preferences preferences;
+        preferences.clearRecentTimelines();
+        QTemporaryDir users;
+        QVERIFY(users.isValid());
+        qputenv("NT_BUNDLED_SERVER_USERS", QFile::encodeName(users.path()));
+        qputenv("NT_BUNDLED_SERVER_URL", "http://127.0.0.1:41001");
+        nt::server::SaveTarget target;
+        target.server = QUrl("http://127.0.0.1:41001");
+        target.timelineId = "0123456789abcdef0123456789abcdef";
+        preferences.addRecentServer("Bundled", target);
+        QVERIFY(preferences.recentTimelines().first().toMap().value("bundled").toBool());
+        // The next launch: the same timeline opens on the server that runs now.
+        qputenv("NT_BUNDLED_SERVER_URL", "http://127.0.0.1:52002");
+        const auto reopened = Preferences().recentTimelines();
+        QCOMPARE(recentTimelineArguments(reopened.first().toMap()),
+                 QStringList({"--server", "http://127.0.0.1:52002", "--timeline", target.timelineId}));
+        // Opening it again from the new port keeps one entry.
+        target.server = QUrl("http://127.0.0.1:52002");
+        preferences.addRecentServer("Bundled", target);
+        QCOMPARE(preferences.recentTimelines().size(), 1);
+        // Another server on this machine is not the bundled one.
+        target.server = QUrl("http://localhost:7777");
+        preferences.addRecentServer("Dev server", target);
+        QVERIFY(!preferences.recentTimelines().first().toMap().contains("bundled"));
+        qunsetenv("NT_BUNDLED_SERVER_USERS");
+        qunsetenv("NT_BUNDLED_SERVER_URL");
+        // Without a bundled server the entry keeps the address it was saved with.
+        QCOMPARE(recentTimelineArguments(preferences.recentTimelines()[1].toMap()),
+                 QStringList({"--server", "http://127.0.0.1:52002", "--timeline", "0123456789abcdef0123456789abcdef"}));
+        preferences.clearRecentTimelines();
+    }
     void dispatch() {
         QFile file(QStringLiteral(NT_FIXTURES_DIR "/av-sync.json"));
         QVERIFY(file.open(QIODevice::ReadOnly));

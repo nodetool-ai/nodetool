@@ -151,15 +151,6 @@ export const RUNTIME_PACKAGES = {
     versionRange: "3.x",
   }),
 
-  "tensorflow-js": new NpmRuntimePackage({
-    id: "tensorflow-js",
-    name: "TensorFlow.js Models",
-    description:
-      "Optional TensorFlow.js model packages for image classification, object detection, and Q&A nodes.",
-    category: "library",
-    ...npmSpecs("tensorflow-js"),
-    versionRange: "4.x",
-  }),
 
   "node-llama-cpp": new NpmRuntimePackage({
     id: "node-llama-cpp",
@@ -208,13 +199,13 @@ export const RUNTIME_PACKAGES = {
   }),
   "office-documents": new NpmRuntimePackage({
     id: "office-documents",
-    name: "Office Documents",
+    name: "Word Documents",
     description:
-      "Reads and writes Excel, Word, PowerPoint and EPUB files in Code nodes, agent tools and DOCX script imports.",
+      "Reads Word documents for DOCX script imports and document conversion.",
     category: "library",
     ...npmSpecs("office-documents"),
     versionRange: "*",
-    approxSizeMB: 160,
+    approxSizeMB: 10,
   }),
   "tesseract-ocr": new NpmRuntimePackage({
     id: "tesseract-ocr",
@@ -235,16 +226,6 @@ export const RUNTIME_PACKAGES = {
     ...npmSpecs("fabric"),
     versionRange: "7.x",
     approxSizeMB: 45,
-  }),
-  "email-imap": new NpmRuntimePackage({
-    id: "email-imap",
-    name: "Email (IMAP)",
-    description:
-      "Searches, archives and labels Gmail messages over IMAP for the email agent tools.",
-    category: "library",
-    ...npmSpecs("email-imap"),
-    versionRange: "1.x",
-    approxSizeMB: 5,
   }),
   tokenizer: new NpmRuntimePackage({
     id: "tokenizer",

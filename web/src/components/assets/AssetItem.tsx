@@ -14,7 +14,6 @@ import { Asset } from "../../stores/ApiTypes";
 import {
   DeleteButton,
   FavoriteButton,
-  StatusPill,
   Text,
   MOTION,
   BORDER_RADIUS,
@@ -31,6 +30,7 @@ import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { formatFileSize } from "../../utils/formatUtils";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useAssetActions } from "./useAssetActions";
+import AssetFileStatus from "./AssetFileStatus";
 import { useSetAssetFavorite } from "../../serverState/useAssetFavorite";
 import { useActivateOnKey } from "../../hooks/useActivateOnKey";
 import { useVideoThumbnail } from "../../hooks/useVideoThumbnail";
@@ -270,6 +270,13 @@ const styles = (theme: Theme) =>
       borderRadius: "0 !important",
       backgroundColor: "transparent"
     },
+    ".asset-file-status": {
+      position: "absolute",
+      top: getSpacingPx(SPACING.xs),
+      left: getSpacingPx(SPACING.xs),
+      maxWidth: `calc(100% - ${getSpacingPx(SPACING.xs)} * 2)`,
+      zIndex: Z_INDEX.raised
+    },
     ".asset-favorite": {
       position: "absolute",
       bottom: getSpacingPx(SPACING.micro),
@@ -327,17 +334,6 @@ const styles = (theme: Theme) =>
       bottom: 0,
       zIndex: Z_INDEX.overlay
     },
-    // FOLDER UP BUTTON
-    ".folder-up-button.enabled": {
-      color: theme.vars.palette.primary.main
-    },
-    ".folder-up-button.disabled": {
-      color: theme.vars.palette.text.disabled
-    },
-    // DRAG HOVER
-    "&.drag-hover": {
-      opacity: 0.7
-    },
     // ASSET MISSING
     ".asset-missing": {
       position: "absolute",
@@ -359,7 +355,6 @@ const styles = (theme: Theme) =>
 export type AssetItemProps = {
   asset: Asset;
   draggable?: boolean;
-  isParent?: boolean;
   isSelected?: boolean;
   showDeleteButton?: boolean;
   enableContextMenu?: boolean;
@@ -371,7 +366,6 @@ export type AssetItemProps = {
   /** Star toggle on the thumbnail. Defaults to `enableContextMenu`. */
   showFavoriteButton?: boolean;
   onSelect?: () => void;
-  onClickParent?: (id: string) => void;
   onDragStart?: (assetId: string) => string[];
   onSetCurrentAudioAsset?: (asset: Asset) => void;
   onDoubleClick?: (asset: Asset) => void;
@@ -393,7 +387,6 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
   const {
     asset,
     draggable = true,
-    isParent,
     isSelected,
     showDeleteButton = true,
     enableContextMenu = true,
@@ -405,7 +398,6 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     showFavoriteButton = enableContextMenu,
     onSelect,
     onDoubleClick,
-    onClickParent,
     onSetCurrentAudioAsset
   } = props;
 
@@ -417,14 +409,8 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
   );
 
   const {
-    isDragHovered,
-    handleClick,
     handleDrag,
     handleDragEnd,
-    handleDragOver,
-    handleDragEnter,
-    handleDragLeave,
-    handleDrop,
     handleContextMenu,
     handleDelete
   } = useAssetActions(asset);
@@ -494,12 +480,12 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
 
   // Memoize click handler to prevent unnecessary re-renders
   const handleItemClick = useCallback(() => {
-    handleClick(onSelect, onClickParent, isParent);
+    onSelect?.();
     // Touch has no reliable dblclick, so a tap has to both select and open.
-    if (!isParent && isCoarsePointer()) {
+    if (isCoarsePointer()) {
       onDoubleClick?.(asset);
     }
-  }, [handleClick, onSelect, onClickParent, isParent, onDoubleClick, asset]);
+  }, [onSelect, onDoubleClick, asset]);
 
   const handleItemKeyDown = useActivateOnKey(handleItemClick);
 
@@ -519,10 +505,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
   const result = (
     <div
       css={assetStyles}
-      className={`asset-item ${assetType}${isSvg ? " svg" : ""} ${isSelected ? "selected" : ""} ${isDragHovered ? "drag-hover" : ""
-        } ${isParent ? "parent" : ""}`}
-      onDragEnter={handleDragEnter}
-      onDragLeave={handleDragLeave}
+      className={`asset-item ${assetType}${isSvg ? " svg" : ""} ${isSelected ? "selected" : ""}`}
       onContextMenu={(e) => handleContextMenu(e, enableContextMenu)}
       key={asset.id}
       draggable={draggable}
@@ -534,8 +517,6 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
       tabIndex={0}
       aria-label={asset.name}
       onKeyDown={handleItemKeyDown}
-      onDrop={handleDrop}
-      onDragOver={handleDragOver}
     >
       {showDeleteButton && (
         <div className="asset-delete-overlay" css={deleteButtonOverlayStyle}>
@@ -652,7 +633,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               titleAccess={asset.content_type || t("fileTypes.unknown")}
             />
           )}
-        {showFavoriteButton && !isParent && (
+        {showFavoriteButton && (
           <FavoriteButton
             className={`asset-favorite${asset.favorite ? " is-favorite" : ""}`}
             isFavorite={asset.favorite === true}
@@ -669,20 +650,11 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             {metaLine && <Text className="meta">{metaLine}</Text>}
           </div>
         )}
-        {asset.offline === true && (
-          <StatusPill
-            tone="failed"
-            data-testid="asset-media-offline"
-            sx={{
-              position: "absolute",
-              top: getSpacingPx(SPACING.xs),
-              left: getSpacingPx(SPACING.xs),
-              zIndex: Z_INDEX.raised
-            }}
-          >
-            {t("fileTypes.offline")}
-          </StatusPill>
-        )}
+        <AssetFileStatus
+          asset={asset}
+          showActions={assetItemSize > 1}
+          className="asset-file-status"
+        />
       </div>
       {showInfo && (
         <>
@@ -728,6 +700,7 @@ export default memo(AssetItem, (prevProps, nextProps) => {
   const assetChanged =
     prevProps.asset.id !== nextProps.asset.id ||
     prevProps.asset.offline !== nextProps.asset.offline ||
+    prevProps.asset.linked !== nextProps.asset.linked ||
     prevProps.asset.favorite !== nextProps.asset.favorite;
   const functionsChanged =
     prevProps.onSelect !== nextProps.onSelect ||

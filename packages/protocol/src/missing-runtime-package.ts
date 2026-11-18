@@ -19,7 +19,6 @@ export type RuntimePackageId =
   | "acestep"
   | "wan2gp"
   | "transformers-js"
-  | "tensorflow-js"
   | "node-llama-cpp"
   | "whisper-cpp"
   | "playwright"
@@ -27,7 +26,6 @@ export type RuntimePackageId =
   | "office-documents"
   | "tesseract-ocr"
   | "fabric"
-  | "email-imap"
   | "tokenizer"
   | "imaging"
   | "typescript"
@@ -48,15 +46,13 @@ export const RUNTIME_PACKAGE_NAMES: Readonly<Record<RuntimePackageId, string>> =
   acestep: "ACE-Step (ace-server)",
   wan2gp: "Wan2GP",
   "transformers-js": "Transformers.js",
-  "tensorflow-js": "TensorFlow.js Models",
   "node-llama-cpp": "llama.cpp (in-process)",
   "whisper-cpp": "whisper.cpp",
   playwright: "Playwright",
   "pdf-js": "PDF Libraries",
-  "office-documents": "Office Documents",
+  "office-documents": "Word Documents",
   "tesseract-ocr": "Tesseract OCR",
   fabric: "Fabric.js",
-  "email-imap": "Email (IMAP)",
   tokenizer: "Token Counting (js-tiktoken)",
   imaging: "Image & Canvas Libraries",
   typescript: "TypeScript",

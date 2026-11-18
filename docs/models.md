@@ -4,12 +4,10 @@ title: "Supported Models"
 description: "Local inference engines (Ollama, llama.cpp, Transformers.js, MLX, Transformers, Wan2GP), supported model types, and cloud video, image, and audio models."
 ---
 
-Local inference engines and the model types NodeTool loads, with the cloud video, image, and audio models alongside. Provider setup is in [Providers](providers.md), the download panel is in [Models Manager](models-manager.md), and the local-versus-cloud overview is in [Models & Providers](models-and-providers.md).
+Provider setup is in [Providers](providers.md), the download panel is in [Models Manager](models-manager.md), and the local-versus-cloud overview is in [Models & Providers](models-and-providers.md).
 
 > **Runs:** local engines need no key. Cloud models need the provider key listed in [Providers](providers.md). **Hardware:** per engine, see the comparison matrix below.
 {: .callout-note}
-
-Generic nodes (TextToImage, Agent, and others) route to the provider that owns the selected model, so swapping a model leaves the graph unchanged.
 
 ## Local inference engines
 
@@ -17,7 +15,7 @@ The engines below run on your machine. The Model Manager's **Get Started** tab l
 
 ### Ollama
 
-**Ollama** pulls and runs GGUF chat and embedding models by name. It is a separate program: download it from [ollama.com](https://ollama.com) and keep it running. NodeTool does not ship or start it. NodeTool connects to `http://127.0.0.1:11434`, or to the `OLLAMA_API_URL` setting. Models you pull appear in NodeTool automatically, and the Model Manager lists them under the `llama_model` type.
+**Ollama** pulls and runs GGUF chat and embedding models by name. It is a separate program: download it from [ollama.com](https://ollama.com) and keep it running. NodeTool does not ship or start it. NodeTool connects to `http://127.0.0.1:11434`, or to the `OLLAMA_API_URL` setting. Pulled models appear in NodeTool, and the Model Manager lists them under the `llama_model` type.
 
 ### llama.cpp & GGUF Format
 
@@ -29,7 +27,7 @@ The engines below run on your machine. The Model Manager's **Get Started** tab l
 
 ### MLX Framework (Apple Silicon)
 
-**MLX** is Apple's open-source machine learning framework, optimized for Apple Silicon's unified memory. It runs through the Python worker and needs the optional MLX pack: in the desktop app, install **MLX** from **Tools → Package Manager → Python nodes**, which sets up Python first if it is missing. The Package Manager offers the pack only on Apple Silicon Macs, and it needs macOS 14 or newer.
+**MLX** is Apple's machine learning framework for Apple Silicon. It runs through the Python worker and needs the optional MLX pack: in the desktop app, install **MLX** from **Tools → Package Manager → Python nodes**, which sets up Python first if it is missing. The Package Manager offers the pack only on Apple Silicon Macs, and it needs macOS 14 or newer.
 
 **Capabilities**:
 
@@ -151,29 +149,29 @@ Cloud models run through provider integrations and need that provider's key.
 
 | Model | Provider | Key Features | Resolution | Max Duration |
 | :--- | :--- | :--- | :--- | :--- |
-| **Sora 2 Pro** | OpenAI | Realistic motion, refined physics, native audio | 1080p | 15s |
-| **Veo 3.1** | Google | Realistic motion, multi-image refs, synced audio | 1080p | Extended |
-| **Seedance 2.0** | ByteDance | High-quality cinematic video, stable characters | 1080p | Variable |
-| **Runway Gen-3 Alpha** | Runway | Precise motion control, professional fidelity | 1080p | Variable |
+| **Sora 2 Pro** | OpenAI | Native audio | 1080p | 15s |
+| **Veo 3.1** | Google | Multi-image refs, synced audio | 1080p | Extended |
+| **Seedance 2.0** | ByteDance | Stable characters | 1080p | Variable |
+| **Runway Gen-3 Alpha** | Runway | Motion control | 1080p | Variable |
 | **Runway Aleph** | Runway | | 1080p | Variable |
-| **Luma** | Luma AI | AI-powered video modification and editing | 1080p | Variable |
-| **Grok Imagine** | xAI | Multimodal T2V/I2V with coherent motion | 1080p | Short clips |
-| **Wan 2.6** | Alibaba | Multi-shot, stable characters, affordable | 1080p | Variable |
-| **Hailuo 2.3** | MiniMax | Expressive characters, complex lighting | 1080p+ | Variable |
-| **Kling 3.0** | Kling | Synced speech & effects, audio-visual coherence | 1080p | Variable |
+| **Luma** | Luma AI | Video editing | 1080p | Variable |
+| **Grok Imagine** | xAI | T2V/I2V | 1080p | Short clips |
+| **Wan 2.6** | Alibaba | Multi-shot, stable characters | 1080p | Variable |
+| **Hailuo 2.3** | MiniMax | Expressive characters | 1080p+ | Variable |
+| **Kling 3.0** | Kling | Synced speech and effects | 1080p | Variable |
 
 **Access via**: `nodetool.video.TextToVideo`, `nodetool.video.ImageToVideo` nodes
 
 ### Image Generation (Cloud)
 
-| Model | Provider | Key Features | Output Quality |
-| :--- | :--- | :--- | :--- |
-| **FLUX.2 Pro** | Black Forest Labs | Photoreal, multi-reference consistency, accurate text | High |
-| **Nano Banana 2.0** | Google | 2K native, 4K scaling, enhanced text & characters | Very High |
-| **GPT Image 2** | OpenAI | Photorealistic generation and instruction-based editing | High |
-| **Ideogram V3** | Ideogram | Exceptional typography, artistic style control | High |
-| **Z-Image Turbo** | Z-AI | Fast generation with strong prompt adherence | High |
-| **Seedream 4.5** | ByteDance | High-fidelity generation and instruction-based editing | High |
+| Model | Provider | Key Features |
+| :--- | :--- | :--- |
+| **FLUX.2 Pro** | Black Forest Labs | Multi-reference consistency, accurate text |
+| **Nano Banana 2.0** | Google | 2K native, 4K scaling |
+| **GPT Image 2** | OpenAI | Generation and instruction-based editing |
+| **Ideogram V3** | Ideogram | Typography, style control |
+| **Z-Image Turbo** | Z-AI | Fast generation |
+| **Seedream 4.5** | ByteDance | Generation and instruction-based editing |
 
 **Access via**: `nodetool.image.TextToImage` node
 
@@ -181,19 +179,19 @@ Cloud models run through provider integrations and need that provider's key.
 
 | Model | Provider | Key Features |
 | :--- | :--- | :--- |
-| **Suno** | Suno | Full song creation from text, extend/cover/remix, instrumental support |
-| **ElevenLabs V3 Dialogue** | ElevenLabs | Multi-speaker dialogue with emotional control |
-| **ElevenLabs TTS Turbo 2.5** | ElevenLabs | Ultra-fast, natural text-to-speech |
-| **ElevenLabs Sound Effect** | ElevenLabs | Generate sound effects and ambient audio from text |
+| **Suno** | Suno | Songs from text, extend/cover/remix, instrumental |
+| **ElevenLabs V3 Dialogue** | ElevenLabs | Multi-speaker dialogue |
+| **ElevenLabs TTS Turbo 2.5** | ElevenLabs | Text-to-speech |
+| **ElevenLabs Sound Effect** | ElevenLabs | Sound effects and ambient audio from text |
 
 **Access via**: `nodetool.audio.TextToSpeech` for speech. ElevenLabs has its own provider and `elevenlabs.*` nodes. Suno runs through the kie.ai nodes.
 
 ### Cloud limits
 
-Cloud models bill per generation at the provider's price, need internet, process content on the provider's servers, and are subject to the provider's rate limits. A 429 surfaces as failure kind `rate_limit`. See [If it fails](models-and-providers.md#if-it-fails).
+Cloud models bill per generation at the provider's price, need internet, process content on the provider's servers, and are subject to the provider's rate limits. A 429 surfaces as failure kind `rate_limit`. See [If it fails](providers.md#if-it-fails).
 
 ### Where the cloud models come from
 
-Most models above are offered by more than one provider, and the set changes as providers add models. The generic nodes list what your configured providers serve, so open the node's model dropdown to see your options. The aggregators ([kie.ai](https://kie.ai/), FAL, Replicate, AtlasCloud, Evolink, OpenRouter) carry many of these families under one key. Prices differ between an aggregator and the upstream provider, so compare them before committing to a large run.
+Most models above are offered by more than one provider. The generic nodes list what your configured providers serve, so open the node's model dropdown to see your options. The aggregators ([kie.ai](https://kie.ai/), FAL, Replicate, AtlasCloud, Evolink, OpenRouter) carry many of these families under one key, at prices that differ from the upstream provider.
 
 For provider configuration and the capability matrix, see the [Providers Guide](providers.md).

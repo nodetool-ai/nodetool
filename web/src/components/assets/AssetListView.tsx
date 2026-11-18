@@ -16,10 +16,10 @@ import {
   getAssetGroup
 } from "./assetGridUtils";
 import { AssetGroupIcon } from "./assetGroupIcons";
+import AssetFileStatus from "./AssetFileStatus";
 import { colorForType } from "../../config/data_types";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import FolderIcon from "@mui/icons-material/FolderOutlined";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -206,8 +206,9 @@ const styles = (theme: Theme) =>
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     },
-    ".asset-item-name.folder": {
-      color: theme.vars.palette.primary.main
+    ".asset-item-status": {
+      flex: "0 0 auto",
+      marginInline: getSpacingPx(SPACING.sm)
     },
     ".asset-item-size": {
       flex: "0 0 80px",
@@ -302,18 +303,13 @@ const AssetListView: React.FC<AssetListViewProps> = ({
     selectedAssetIdsRef.current = selectedAssetIds;
   }, [selectedAssetIds]);
 
-  // Folders lead, then the type groups in the type filter's order.
+  // The type groups in the type filter's order.
   const assetsByType = useMemo(() => {
-    const grouped = new Map<string, Asset[]>([
-      ["folder", []],
-      ...ASSET_GROUP_KEYS.map((key): [string, Asset[]] => [key, []])
-    ]);
+    const grouped = new Map<string, Asset[]>(
+      ASSET_GROUP_KEYS.map((key): [string, Asset[]] => [key, []])
+    );
     assets.forEach((asset) => {
-      const type =
-        asset.content_type === "folder"
-          ? "folder"
-          : getAssetGroup(asset.content_type);
-      grouped.get(type)?.push(asset);
+      grouped.get(getAssetGroup(asset.content_type))?.push(asset);
     });
     return [...grouped.entries()].filter(([, group]) => group.length > 0);
   }, [assets]);
@@ -446,14 +442,10 @@ const AssetListView: React.FC<AssetListViewProps> = ({
               transition: MOTION.transform
             }}
           />
-          {type === "folder" ? (
-            <FolderIcon sx={{ fontSize: ICON_SIZE.sm, color: "text.secondary" }} />
-          ) : (
-            <AssetGroupIcon
-              group={type}
-              sx={{ fontSize: ICON_SIZE.sm, color: colorForType(type) }}
-            />
-          )}
+          <AssetGroupIcon
+            group={type}
+            sx={{ fontSize: ICON_SIZE.sm, color: colorForType(type) }}
+          />
           <Text component="span" className="asset-content-type-title">
             {t(`types.${type}`, { defaultValue: assetTypeLabel(type) })}
           </Text>
@@ -467,7 +459,6 @@ const AssetListView: React.FC<AssetListViewProps> = ({
     const { asset } = item.data;
     // Use ref to avoid recreating renderRow when selection changes
     const isSelected = selectedAssetIdsRef.current.includes(asset.id);
-    const isFolder = asset.content_type === "folder";
     const assetSize = asset.size;
     const isSvg =
       asset.content_type === "image/svg+xml" ||
@@ -516,26 +507,15 @@ const AssetListView: React.FC<AssetListViewProps> = ({
           <AssetRowThumbnail asset={asset} isSvg={isSvg} previewUrl={previewUrl} />
         ) : (
           <div className="asset-item-icon">
-            {isFolder ? (
-              <FolderIcon
-                style={{
-                  color: "var(--palette-grey-200)",
-                  fontSize: ICON_SIZE.md
-                }}
-              />
-            ) : (
-              <IconForType
-                iconName={getAssetCategory(asset.content_type)}
-                showTooltip={false}
-                containerStyle={ROW_ICON_STYLE}
-              />
-            )}
+            <IconForType
+              iconName={getAssetCategory(asset.content_type)}
+              showTooltip={false}
+              containerStyle={ROW_ICON_STYLE}
+            />
           </div>
         )}
 
-        <div
-          className={`asset-item-name ${isFolder ? "folder" : ""}`}
-        >
+        <div className="asset-item-name">
           {asset.name}
           {asset.duration && (
             <span className="asset-item-duration">
@@ -544,9 +524,11 @@ const AssetListView: React.FC<AssetListViewProps> = ({
           )}
         </div>
 
+        <AssetFileStatus asset={asset} className="asset-item-status" />
+
         {showSize && (
           <div className="asset-item-size">
-            {!isFolder && assetSize && assetSize > 0
+            {assetSize && assetSize > 0
               ? formatFileSize(assetSize)
               : "--"}
           </div>
@@ -554,9 +536,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
 
         {showType && (
           <div className="asset-item-type">
-            {isFolder
-              ? t("fileTypes.folder")
-              : asset.content_type?.split("/")[1] || t("fileTypes.unknown")}
+            {asset.content_type?.split("/")[1] || t("fileTypes.unknown")}
           </div>
         )}
 

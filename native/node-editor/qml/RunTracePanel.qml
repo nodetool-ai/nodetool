@@ -1,6 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
 
@@ -10,6 +9,8 @@ Rectangle {
     readonly property bool hasDetails: controller.view === "trace" ? !!controller.focusedSpanId : !!controller.selectedLog.id
     signal closeRequested()
     signal askAgentRequested(string runId, string spanId)
+    // Report on an error opens a prefilled bug report: the source label and the error text.
+    signal reportRequested(string source, string text)
     color: Ui.Theme.surfacePanel
     implicitWidth: Ui.Metrics.dialogWidth
     implicitHeight: Ui.Metrics.comfortable * 14
@@ -22,62 +23,78 @@ Rectangle {
             Layout.fillWidth: true
             Ui.Text { text: qsTr("Run inspection"); role: Ui.Typography.SansLabel }
             Item { Layout.fillWidth: true }
-            Ui.EditorButton { objectName: "trace-refresh"; text: qsTr("Refresh"); enabled: !root.controller.runsLoading; onClicked: root.controller.refresh() }
-            Ui.EditorButton { objectName: "trace-close"; text: qsTr("Close"); onClicked: root.closeRequested() }
+            Ui.EditorButton { objectName: "trace-refresh"; density: Ui.EditorButton.Compact; text: qsTr("Refresh"); enabled: !root.controller.runsLoading; onClicked: root.controller.refresh() }
+            Ui.EditorButton { objectName: "trace-close"; density: Ui.EditorButton.Compact; text: qsTr("Close"); onClicked: root.closeRequested() }
         }
         RowLayout {
             Layout.fillWidth: true
             Ui.Select {
                 objectName: "trace-run"
                 Layout.fillWidth: true
+                Layout.maximumWidth: Ui.Metrics.dialogWidth
+                density: Ui.EditorButton.Compact
                 accessibleName: qsTr("Stored run")
                 value: root.controller.selectedRunId
                 options: root.controller.runs.map(run => ({label: run.label, value: run.id}))
                 onValueCommitted: value => root.controller.selectRun(value)
             }
-            Ui.EditorButton { text: qsTr("More runs"); visible: root.controller.hasMoreRuns; enabled: !root.controller.runsLoading; onClicked: root.controller.loadMoreRuns() }
-            Ui.EditorButton { objectName: "trace-view"; text: qsTr("Trace"); onClicked: root.controller.view = "trace" }
-            Ui.EditorButton { objectName: "trace-logs"; text: qsTr("Logs"); onClicked: root.controller.view = "logs" }
+            Ui.EditorButton { density: Ui.EditorButton.Compact; text: qsTr("More runs"); visible: root.controller.hasMoreRuns; enabled: !root.controller.runsLoading; onClicked: root.controller.loadMoreRuns() }
+            Ui.Text {
+                objectName: "trace-state"
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                visible: root.controller.error === ""
+                textFormat: Text.PlainText
+                role: Ui.Typography.SansCaption
+                tone: Ui.Text.Secondary
+                elide: Text.ElideRight
+                // The run select already names the run status, so the line carries only what the select does not.
+                text: !root.controller.configured ? qsTr("Connect to a server to inspect stored runs.") : root.controller.runsLoading ? qsTr("Loading runs…") : !root.controller.selectedRunId ? qsTr("No stored runs for this workflow.") : root.plain(root.controller.summary.line)
+            }
+            Ui.EditorButton { objectName: "trace-ask-run"; density: Ui.EditorButton.Compact; text: qsTr("Ask agent"); visible: !!root.controller.selectedRunId; onClicked: root.askAgentRequested(root.controller.selectedRunId, "") }
+            Ui.EditorButton { objectName: "trace-view"; density: Ui.EditorButton.Compact; active: root.controller.view === "trace"; text: qsTr("Trace"); onClicked: root.controller.view = "trace" }
+            Ui.EditorButton { objectName: "trace-logs"; density: Ui.EditorButton.Compact; active: root.controller.view === "logs"; text: qsTr("Logs"); onClicked: root.controller.view = "logs" }
         }
-        Ui.Text {
-            objectName: "trace-state"
+        Ui.Banner {
+            objectName: "trace-error"
             Layout.fillWidth: true
-            textFormat: Text.PlainText
-            wrapMode: Text.Wrap
-            text: root.controller.error || (!root.controller.configured ? qsTr("Connect to a server to inspect stored runs.") : root.controller.runsLoading ? qsTr("Loading runs…") : !root.controller.selectedRunId ? qsTr("No stored runs for this workflow.") : root.plain(root.controller.summary.statusLabel) + " · " + root.plain(root.controller.summary.line))
+            visible: root.controller.error !== ""
+            status: Ui.Status.Error
+            message: root.controller.error
+            retryable: true
+            reportable: true
+            onRetryRequested: root.controller.refresh()
+            onReportRequested: root.reportRequested(qsTr("Run trace error"), root.controller.error)
         }
-        Ui.Text {
+        Ui.Banner {
+            objectName: "trace-run-failure"
             Layout.fillWidth: true
             visible: root.controller.summary.failureVisible === true
-            textFormat: Text.PlainText; wrapMode: Text.Wrap
-            tone: Ui.Text.Error
-            text: root.plain(root.controller.summary.failureTitle) + "\n" + root.plain(root.controller.summary.failureMessage)
+            status: Ui.Status.Error
+            message: root.plain(root.controller.summary.failureTitle) + "\n" + root.plain(root.controller.summary.failureMessage)
+            reportable: true
+            onReportRequested: root.reportRequested(qsTr("Job failure"), message)
         }
-        RowLayout {
-            Layout.fillWidth: true
-            Ui.EditorButton { objectName: "trace-failure"; text: qsTr("Show failing span"); visible: !!root.controller.summary.failedSpanId; onClicked: root.controller.showFailingSpan() }
-            Ui.EditorButton { objectName: "trace-ask-run"; text: qsTr("Ask agent"); visible: !!root.controller.selectedRunId; onClicked: root.askAgentRequested(root.controller.selectedRunId, "") }
-        }
+        Ui.EditorButton { objectName: "trace-failure"; density: Ui.EditorButton.Compact; text: qsTr("Show failing span"); visible: !!root.controller.summary.failedSpanId; onClicked: root.controller.showFailingSpan() }
         RowLayout {
             Layout.fillWidth: true
             visible: root.controller.view === "trace" && !!root.controller.selectedRunId
             Ui.CheckBox { objectName: "trace-errors"; text: qsTr("Errors only"); checked: root.controller.errorsOnly; onCheckedChangedByUser: checked => root.controller.errorsOnly = checked }
-            Ui.TextField { objectName: "trace-name"; Layout.fillWidth: true; accessibleName: qsTr("Filter span name"); placeholderText: qsTr("Span name"); value: root.controller.nameFilter; onValueCommitted: value => root.controller.nameFilter = value }
-            Ui.Select { accessibleName: qsTr("Trace depth"); value: root.controller.depth; options: [{label: "4", value: 4}, {label: "16", value: 16}, {label: "64", value: 64}]; onValueCommitted: value => root.controller.depth = value }
-            Ui.EditorButton { text: qsTr("Clear filters"); enabled: root.controller.filtered; onClicked: root.controller.clearFilters() }
+            Ui.TextField { objectName: "trace-name"; Layout.fillWidth: true; Layout.maximumWidth: Ui.Metrics.dialogWidth; density: Ui.EditorButton.Compact; accessibleName: qsTr("Filter span name"); placeholderText: qsTr("Span name"); value: root.controller.nameFilter; onValueCommitted: value => root.controller.nameFilter = value }
+            Ui.Select { density: Ui.EditorButton.Compact; accessibleName: qsTr("Trace depth"); value: root.controller.depth; options: [{label: "4", value: 4}, {label: "16", value: 16}, {label: "64", value: 64}]; onValueCommitted: value => root.controller.depth = value }
+            Ui.EditorButton { density: Ui.EditorButton.Compact; text: qsTr("Clear filters"); enabled: root.controller.filtered; onClicked: root.controller.clearFilters() }
         }
-        GridLayout {
+        RowLayout {
             Layout.fillWidth: true
             visible: root.controller.view === "logs" && !!root.controller.selectedRunId
-            columns: width >= Ui.Metrics.dialogWidth ? 3 : 1
-            columnSpacing: Ui.Metrics.sm
-            rowSpacing: Ui.Metrics.sm
-            Ui.Select { objectName: "trace-level"; Layout.fillWidth: true; Layout.minimumWidth: 0; accessibleName: qsTr("Log level"); value: root.controller.logLevel; options: [{label: qsTr("All levels"), value: ""}, {label: "Debug", value: "debug"}, {label: "Info", value: "info"}, {label: "Warning", value: "warn"}, {label: "Error", value: "error"}]; onValueCommitted: value => root.controller.logLevel = value }
-            Ui.Select { objectName: "trace-source"; Layout.fillWidth: true; Layout.minimumWidth: 0; accessibleName: qsTr("Log source"); value: root.controller.logSource; options: [{label: qsTr("All sources"), value: ""}].concat(root.controller.logSources.map(source => ({label: source, value: source}))); onValueCommitted: value => root.controller.logSource = value }
-            TraceSpanPicker { Layout.fillWidth: true; Layout.minimumWidth: 0; controller: root.controller }
+            spacing: Ui.Metrics.sm
+            Ui.Select { objectName: "trace-level"; density: Ui.EditorButton.Compact; Layout.preferredWidth: Ui.Metrics.xxxl * 4; Layout.minimumWidth: 0; accessibleName: qsTr("Log level"); value: root.controller.logLevel; options: [{label: qsTr("All levels"), value: ""}, {label: "Debug", value: "debug"}, {label: "Info", value: "info"}, {label: "Warning", value: "warn"}, {label: "Error", value: "error"}]; onValueCommitted: value => root.controller.logLevel = value }
+            Ui.Select { objectName: "trace-source"; density: Ui.EditorButton.Compact; Layout.preferredWidth: Ui.Metrics.xxxl * 6; Layout.minimumWidth: 0; accessibleName: qsTr("Log source"); value: root.controller.logSource; options: [{label: qsTr("All sources"), value: ""}].concat(root.controller.logSources.map(source => ({label: source, value: source}))); onValueCommitted: value => root.controller.logSource = value }
+            TraceSpanPicker { density: Ui.EditorButton.Compact; Layout.preferredWidth: Ui.Metrics.xxxl * 8; Layout.minimumWidth: 0; controller: root.controller }
+            Item { Layout.fillWidth: true }
         }
-        Ui.Text { Layout.fillWidth: true; textFormat: Text.PlainText; wrapMode: Text.Wrap; text: (root.controller.view === "logs" ? root.controller.logNotices : root.controller.notices).join("\n"); visible: text.length > 0 }
-        Ui.Text { text: root.controller.view === "logs" ? qsTr("Loading logs…") : qsTr("Loading trace…"); visible: root.controller.view === "logs" ? root.controller.logsLoading : root.controller.traceLoading }
+        Ui.Text { Layout.fillWidth: true; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary; textFormat: Text.PlainText; wrapMode: Text.Wrap; text: (root.controller.view === "logs" ? root.controller.logNotices : root.controller.notices).join("\n"); visible: text.length > 0 }
+        Ui.Text { role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary; text: root.controller.view === "logs" ? qsTr("Loading logs…") : qsTr("Loading trace…"); visible: root.controller.view === "logs" ? root.controller.logsLoading : root.controller.traceLoading }
         GridLayout {
             id: inspection
             Layout.fillWidth: true
@@ -85,7 +102,7 @@ Rectangle {
             columns: width >= Ui.Metrics.dialogWidth * 1.5 && root.hasDetails ? 2 : 1
             rowSpacing: Ui.Metrics.md
             columnSpacing: Ui.Metrics.xl
-        Basic.ScrollView {
+        Ui.ScrollArea {
             id: viewport
             objectName: root.controller.view === "trace" ? "trace-list-scroll" : "trace-span-list-scroll"
             visible: root.controller.view === "trace"
@@ -99,14 +116,14 @@ Rectangle {
                 (root.controller.serverSpans.length ? Ui.Metrics.compact + Math.min(root.controller.serverSpans.length, 3) * Ui.Metrics.standard + Ui.Metrics.xs : 0)
                 + (root.controller.browserSpans.length ? Ui.Metrics.compact + Math.min(root.controller.browserSpans.length, 3) * Ui.Metrics.standard + Ui.Metrics.xs : 0)
                 + Ui.Metrics.md) : inspection.height / 2
-            clip: true
-            contentWidth: availableWidth
             ColumnLayout {
                 width: viewport.availableWidth
                 spacing: Ui.Metrics.sm
                 Ui.Text {
                     objectName: "trace-empty"
                     Layout.fillWidth: true
+                    role: Ui.Typography.SansCaption
+                    tone: Ui.Text.Secondary
                     text: root.controller.view === "logs" ? qsTr("No logs match these filters.") : qsTr("No spans match these filters.")
                     visible: !!root.controller.selectedRunId && !root.controller.traceLoading && !root.controller.logsLoading && (root.controller.view === "logs" ? root.controller.logs.length === 0 : root.controller.serverSpans.length + root.controller.browserSpans.length === 0)
                 }
@@ -148,6 +165,8 @@ Rectangle {
             Ui.Text {
                 Layout.fillWidth: true
                 visible: !!root.controller.selectedRunId && !root.controller.logsLoading && root.controller.logs.length === 0
+                role: Ui.Typography.SansCaption
+                tone: Ui.Text.Secondary
                 text: qsTr("No logs match these filters.")
                 textFormat: Text.PlainText
                 wrapMode: Text.Wrap
@@ -161,7 +180,7 @@ Rectangle {
                 onLogSelected: logId => root.controller.selectLog(logId)
                 onSpanFocused: spanId => root.controller.focusSpan(spanId)
             }
-            Ui.EditorButton { objectName: "trace-more-logs"; text: qsTr("More logs"); visible: root.controller.hasMoreLogs; enabled: !root.controller.logsLoading; onClicked: root.controller.loadMoreLogs() }
+            Ui.EditorButton { objectName: "trace-more-logs"; density: Ui.EditorButton.Compact; text: qsTr("More logs"); visible: root.controller.hasMoreLogs; enabled: !root.controller.logsLoading; onClicked: root.controller.loadMoreLogs() }
         }
         TraceSpanDetails {
             id: details
@@ -173,6 +192,7 @@ Rectangle {
             visible: root.controller.view === "trace" && !!root.controller.focusedSpanId
             controller: root.controller
             onAskAgentRequested: (runId, spanId) => root.askAgentRequested(runId, spanId)
+            onReportRequested: (source, text) => root.reportRequested(source, text)
         }
         TraceLogDetails {
             id: logDetails

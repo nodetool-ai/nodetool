@@ -147,7 +147,7 @@ const OpenverseDialog: React.FC<OpenverseDialogProps> = ({ open, onClose }) => {
   const [category, setCategory] = useState<string>(ANY);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
-  const { currentFolderId, projectId, refetchAssetsAndFolders } = useAssets();
+  const { projectId, refetchAssets } = useAssets();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -170,7 +170,7 @@ const OpenverseDialog: React.FC<OpenverseDialogProps> = ({ open, onClose }) => {
 
   const importMutation = trpc.openverse.import.useMutation({
     onSuccess: ({ assets, failed }) => {
-      refetchAssetsAndFolders();
+      refetchAssets();
       setSelected(new Set());
       if (assets.length > 0) {
         addNotification({
@@ -221,10 +221,9 @@ const OpenverseDialog: React.FC<OpenverseDialogProps> = ({ open, onClose }) => {
     importMutation.mutate({
       media_type: mediaType,
       ids: [...selected],
-      parent_id: currentFolderId ?? undefined,
       project_id: projectId ?? undefined
     });
-  }, [importMutation, mediaType, selected, currentFolderId, projectId]);
+  }, [importMutation, mediaType, selected, projectId]);
 
   const pageCount = search.data?.page_count ?? 0;
   const busy = importMutation.isPending;

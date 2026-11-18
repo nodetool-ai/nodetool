@@ -242,7 +242,6 @@ lazy implementation table disagree.
 | `apify` | `search_apify_actors`, `get_apify_actor`, `get_apify_actor_schema`, `run_apify_actor`, `get_apify_run`, `abort_apify_run`, `get_apify_dataset_items`, `get_apify_key_value_record` |
 | `collections` | `list_collections`, `query_collection`, `vector_text_search`, `vector_index`, `vector_hybrid_search`, `vector_recursive_split_and_index`, `vector_markdown_split_and_index`, `vector_batch_index`, `create_collection`, `delete_collection` |
 | `documents` | `extract_pdf_text`, `extract_pdf_tables`, `convert_pdf_to_markdown`, `convert_markdown_to_pdf`, `convert_document` |
-| `email` | `search_email`, `archive_email`, `add_label_to_email` |
 | `assets` | `list_assets`, `get_asset`, `save_asset`, `read_asset`, `asset_search`, `asset_list`, `list_images`, `view_image`, `update_asset` |
 | `jobs` | `list_jobs`, `get_job`, `get_job_logs`, `cancel_job` |
 | `costs` | `get_cost_summary` |
@@ -263,7 +262,7 @@ lazy implementation table disagree.
 | `entities` | `list_entities`, `get_entity`, `apply_entities`, `create_entity`, `update_entity`, `delete_entity` |
 | `memory` | `memory_save`, `memory_get`, `memory_list`, `memory_search`, `memory_update`, `memory_delete` — durable notes scoped to the **user**, not the thread. A memory saved in one conversation is readable from every later one; `memory_search` is a keyword match over title and content — every word must appear. The turn's prompt block carries this thread's memories in full plus a count of the ones held elsewhere. |
 | `threads` | `list_threads`, `get_thread`, `get_message` |
-| `projects` | `list_projects`, `search_projects`, `update_project`, `delete_project` — `delete_project` runs the server's full delete, injected as `deleteProject` through `getAllMcpTools`, and refuses the Personal project and the run's own project |
+| `projects` | `list_projects`, `search_projects`, `create_project`, `update_project`, `move_to_project`, `delete_project` — `delete_project` runs the server's full delete, injected as `deleteProject` through `getAllMcpTools`, and refuses the Personal project and the run's own project |
 | `shared` | `list_shared`, `read_shared`, `share_result` |
 | `agents` | `run_subtask`, `run_search`, `start_subtask`, `wait_subtasks`, `create_plan`, `execute_plan` |
 | `google` | `google_drive_*`, `gmail_*`, `google_docs_*`, `google_sheets_*`, `google_calendar_*` |
@@ -316,7 +315,11 @@ observation envelope, and the direct set: `DIRECT_TOOL_NAMES` minus every key of
 `SDK_NATIVE_TOOL_REPLACEMENTS`, because an MCP client is the host agent that
 table describes and its own `read_file` must not sit beside NodeTool's. What
 survives is discovery, the server-side reach behind NodeTool's SSRF guard and
-secrets, and `run_subtask`. Everything else on that belt is
+secrets, and `run_subtask`. A local session (stdio, or a loopback request from
+the local user `1` to a non-production Local-mode server, see
+`isLocalMcpSession` in `packages/websocket/src/lib/mcp-mount.ts`) also gets `inspect_packs` and `manage_packs`
+(`packages/websocket/src/mcp-pack-tools.ts`). They run the `nodetool packs` CLI
+in a child process, because MCP and server processes refuse pack installs. Everything else on that belt is
 reachable inside an action by import, through the `nodetool.*` object
 model, or found with `await nodetool.searchTools("query")`. MCP has no system
 prompt, so the guest contract leads the `execute_code` description and is also
@@ -354,6 +357,10 @@ from inside an agent:
   `debug`. `create_workflow` and `POST /api/workflows/:id/run|debug` apply the
   provider/model half of this check themselves, so a hallucinated model id is
   refused at save and at run rather than surfacing mid-execution.
+  `create_workflow` and `update_workflow` also refuse a node type the registry
+  does not have. A workflow file edited in a project folder passes the same
+  checks before it is stored
+  ([Workflows are files in the folder](workspaces.md#workflows-are-files-in-the-folder)).
 - **`debug_workflow`** — run a workflow and return status, outputs, errors, job
   logs, and a graph overview in one call.
 - **`debug_app`** — validate a mini app's bindings, simulate it, and return each

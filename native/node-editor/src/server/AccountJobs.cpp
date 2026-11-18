@@ -5,6 +5,7 @@
 #include <QNetworkReply>
 #include <QUrlQuery>
 #include <utility>
+#include "nodetool/account/qt/ServerToken.h"
 
 namespace nodetool::node_editor {
 QSharedPointer<AccountJobs> AccountJobs::acquire(const QUrl &base, const QString &token, const QString &user) {
@@ -40,7 +41,7 @@ void AccountJobs::request(const QString &procedure, const QJsonObject &input, bo
     QNetworkRequest request(url);
     request.setTransferTimeout(30000);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-    request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
+    nodetool::account::qt::attachServerToken(request, m_base, m_token);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     auto reply = mutation ? m_network.post(request, bytes) : m_network.get(request);
     connect(reply, &QNetworkReply::finished, this, [reply, callback = std::move(callback)] {
@@ -69,26 +70,44 @@ void AccountJobs::refresh(bool staleOnly) {
     m_loading = true;
     request("jobs.list", {{"limit", 20}}, false, [this](QJsonObject data, QString error) {
         m_loading = false;
+        if (!error.isEmpty() && error != m_error) {
+            m_error = error;
+            emit changed();
+        }
         if (error.isEmpty()) {
             m_rows = data["jobs"].toArray();
-            m_updated = QDateTime::currentMSecsSinceEpoch();
-            emit changed();
+            // A refresh replaces the rows, so names fetched before fill in again
+            // and only workflows not asked about yet are fetched.
             QSet<QString> workflows;
-            for (const auto &entry : m_rows) {
-                const auto row = entry.toObject();
-                if (row["name"].toString().isEmpty()) {
-                    workflows.insert(row["workflow_id"].toString());
+            for (qsizetype i = 0; i < m_rows.size(); ++i) {
+                auto row = m_rows[i].toObject();
+                if (!row["name"].toString().isEmpty()) { continue; }
+                const auto id = row["workflow_id"].toString();
+                if (m_workflowNames.contains(id)) {
+                    row["name"] = m_workflowNames.value(id);
+                    m_rows[i] = row;
+                } else if (!id.isEmpty() && !m_namesRequested.contains(id)) {
+                    workflows.insert(id);
                 }
             }
+            m_error.clear();
+            m_updated = QDateTime::currentMSecsSinceEpoch();
+            emit changed();
+            loadOutputs();
             for (const auto &id : workflows) {
+                m_namesRequested.insert(id);
                 request("workflows.get", {{"id", id}}, false, [this, id](QJsonObject workflow, QString error) {
                     if (!error.isEmpty()) {
+                        // A later refresh asks again.
+                        m_namesRequested.remove(id);
                         return;
                     }
+                    const auto name = workflow["name"].toString("Untitled");
+                    m_workflowNames.insert(id, name);
                     for (qsizetype i = 0; i < m_rows.size(); ++i) {
                         auto row = m_rows[i].toObject();
                         if (row["workflow_id"] == id && row["name"].toString().isEmpty()) {
-                            row["name"] = workflow["name"].toString("Untitled");
+                            row["name"] = name;
                             m_rows[i] = row;
                         }
                     }
@@ -100,6 +119,37 @@ void AccountJobs::refresh(bool staleOnly) {
             refresh();
         }
     });
+}
+void AccountJobs::loadOutputs() {
+    for (const auto &entry : std::as_const(m_rows)) {
+        const auto row = entry.toObject();
+        const auto id = row["id"].toString();
+        if (id.isEmpty() || row["status"].toString() != "completed" || m_outputsRequested.contains(id)) {
+            continue;
+        }
+        m_outputsRequested.insert(id);
+        request("assets.list", {{"job_id", id}}, false, [this, id](QJsonObject data, QString error) {
+            if (!error.isEmpty()) {
+                // A later refresh asks again.
+                m_outputsRequested.remove(id);
+                return;
+            }
+            QJsonArray outputs;
+            for (const auto &value : data["assets"].toArray()) {
+                const auto asset = value.toObject();
+                if (asset["content_type"].toString() == "folder") {
+                    continue;
+                }
+                outputs.append(QJsonObject{{"id", asset["id"]}, {"name", asset["name"]},
+                                           {"content_type", asset["content_type"]}, {"get_url", asset["get_url"]},
+                                           {"thumb_url", asset["thumb_url"]}});
+            }
+            m_outputs.insert(id, outputs);
+            if (!outputs.isEmpty()) {
+                emit changed();
+            }
+        });
+    }
 }
 void AccountJobs::cancel(const QString &id) {
     if (m_stopping.contains(id)) {

@@ -76,6 +76,30 @@ private slots:
         locked.insert("clips", values);
         QCOMPARE(nt::aiassist::removeFillers(locked, {}), locked);
     }
+    void rippleTranscriptAroundGroupsAndHeldTracks() {
+        const auto word = QJsonObject{{"word", "um"}, {"startMs", 300}, {"endMs", 600}};
+        QJsonObject doc{{"id", "sequence"}, {"clips", QJsonArray{
+            QJsonObject{{"id", "outer"}, {"trackId", "top"}, {"mediaType", "group"}, {"startMs", 0}, {"durationMs", 2000}},
+            QJsonObject{{"id", "inner"}, {"trackId", "mid"}, {"mediaType", "group"}, {"startMs", 400}, {"durationMs", 200}, {"parentId", "outer"}},
+            QJsonObject{{"id", "voice"}, {"trackId", "audio"}, {"mediaType", "audio"}, {"startMs", 0}, {"durationMs", 1000}, {"inPointMs", 0}, {"parentId", "outer"},
+                        {"caption", QJsonObject{{"words", QJsonArray{word}}}}},
+            QJsonObject{{"id", "kept"}, {"trackId", "other"}, {"mediaType", "video"}, {"startMs", 1000}, {"durationMs", 500}, {"parentId", "inner"}},
+            QJsonObject{{"id", "remapped"}, {"trackId", "music"}, {"mediaType", "audio"}, {"startMs", 0}, {"durationMs", 1000},
+                        {"timeRemap", QJsonObject{{"keyframes", QJsonArray{}}}}},
+            QJsonObject{{"id", "after"}, {"trackId", "music"}, {"mediaType", "audio"}, {"startMs", 1000}, {"durationMs", 500}},
+        }}};
+        // A group over a filler used to throw out of splitClip and end the process.
+        const auto changed = nt::aiassist::removeFillers(doc, {});
+        QHash<QString, QJsonObject> byId;
+        for (const auto& value : changed.value("clips").toArray()) { byId.insert(value.toObject().value("id").toString(), value.toObject()); }
+        QCOMPARE(byId.value("outer").value("durationMs").toDouble(), 1700.0);
+        QVERIFY(!byId.contains("inner"));
+        QCOMPARE(byId.value("kept").value("startMs").toDouble(), 700.0);
+        QCOMPARE(byId.value("kept").value("parentId").toString(), QStringLiteral("outer"));
+        // The music track holds: its remapped clip cannot be cut, so the clip after it stays too.
+        QCOMPARE(byId.value("remapped").value("durationMs").toDouble(), 1000.0);
+        QCOMPARE(byId.value("after").value("startMs").toDouble(), 1000.0);
+    }
     void correctionPreservesTiming() {
         QJsonObject doc{{"id", "sequence"}, {"clips", QJsonArray{QJsonObject{{"id", "clip"}, {"caption", QJsonObject{{"words", QJsonArray{QJsonObject{{"word", "helo"}, {"startMs", 50}, {"endMs", 100}}}}}}}}}};
         const auto updated = nt::aiassist::correctTranscript(doc, {{"clipId", "clip"}, {"wordIndex", 0}, {"text", "hello"}});

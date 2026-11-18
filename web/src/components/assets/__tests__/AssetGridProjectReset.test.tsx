@@ -8,11 +8,8 @@ import { useAssetGridStore } from "../../../stores/AssetGridStore";
 
 const assetStoreState = {
   load: jest.fn().mockResolvedValue({ assets: [], next: null }),
-  loadCurrentFolder: jest.fn().mockResolvedValue({ assets: [], next: null }),
-  loadFolderTree: jest.fn().mockResolvedValue({}),
   update: jest.fn(),
   delete: jest.fn(),
-  createFolder: jest.fn(),
   get: jest
     .fn()
     .mockResolvedValue({
@@ -72,15 +69,7 @@ jest.mock("../AssetViewer", () => ({
   __esModule: true,
   default: () => null
 }));
-jest.mock("../AssetCreateFolderConfirmation", () => ({
-  __esModule: true,
-  default: () => null
-}));
 jest.mock("../AssetDeleteConfirmation", () => ({
-  __esModule: true,
-  default: () => null
-}));
-jest.mock("../AssetMoveToFolderConfirmation", () => ({
   __esModule: true,
   default: () => null
 }));
@@ -97,10 +86,6 @@ jest.mock("../ImageCompareDialog", () => ({
   default: () => null
 }));
 jest.mock("../panels/AssetFilesPanel", () => ({
-  __esModule: true,
-  default: () => null
-}));
-jest.mock("../panels/AssetFoldersPanel", () => ({
   __esModule: true,
   default: () => null
 }));
@@ -147,9 +132,7 @@ describe("AssetGrid project initialization", () => {
   it("retains the active workflow filter when the asset explorer mounts", async () => {
     useAssetGridStore.setState({
       scopeProjectId: null,
-      workflowFilter: null,
-      selectedFolderId: "user-1",
-      currentFolderId: "user-1"
+      workflowFilter: null
     });
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } }

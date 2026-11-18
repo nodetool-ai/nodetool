@@ -1,3 +1,4 @@
+#include "media/LocalMediaStore.h"
 #include "graph/WorkflowGraphModel.h"
 #include <QClipboard>
 #include "ui/EditorWindow.h"
@@ -24,15 +25,15 @@ using namespace nodetool;
 namespace {
 const QString VideoNode = QStringLiteral("11111111111111111111111111111111");
 const QString AudioNode = QStringLiteral("22222222222222222222222222222222");
-QByteArray audioBytes() {
+QByteArray audioBytes(int seconds = 3, int rate = 8000) {
   QByteArray bytes;
   QDataStream stream(&bytes, QIODevice::WriteOnly);
   stream.setByteOrder(QDataStream::LittleEndian);
-  stream.writeRawData("RIFF", 4); stream << quint32(48036);
+  stream.writeRawData("RIFF", 4); stream << quint32(seconds * rate * 2 + 36);
   stream.writeRawData("WAVEfmt ", 8);
-  stream << quint32(16) << quint16(1) << quint16(1) << quint32(8000) << quint32(16000) << quint16(2) << quint16(16);
-  stream.writeRawData("data", 4); stream << quint32(48000);
-  for (int i = 0; i < 24000; ++i) { stream << qint16(i % 16 < 8 ? 12000 : -12000); }
+  stream << quint32(16) << quint16(1) << quint16(1) << quint32(rate) << quint32(rate * 2) << quint16(2) << quint16(16);
+  stream.writeRawData("data", 4); stream << quint32(seconds * rate * 2);
+  for (int i = 0; i < seconds * rate; ++i) { stream << qint16(i % 16 < 8 ? 12000 : -12000); }
   return bytes;
 }
 QJsonArray catalog() {
@@ -292,6 +293,78 @@ private slots:
     QTRY_VERIFY(previous.isNull());
     inject(AudioNode, "Old workflow result");
     QVERIFY(!overlay(window, AudioNode));
+  }
+  // A local run sends audio as inline base64. A node inside a chain reports it
+  // only in node_update, and a named Preview reports it under its name.
+  void storedMinuteOfAudioLoadsOnCard() {
+    node_editor::WorkflowSession::setGuestBundlePath(QStringLiteral(GUEST_BUNDLE));
+    qputenv("NODETOOL_LOCAL_RUNNER", "1");
+    QTemporaryDir workspaces, assets;
+    QVERIFY(workspaces.isValid());
+    QVERIFY(assets.isValid());
+    qputenv("NODETOOL_WORKSPACES_DIR", QFile::encodeName(workspaces.path()));
+    qputenv("ASSET_FOLDER", QFile::encodeName(assets.path()));
+    EditorWindow window;
+    window.resize(1400, 900);
+    auto metadata = catalog();
+    metadata.append(QJsonObject{{"node_type", "nodetool.audio.synth.Oscillator"}, {"title", "Oscillator"},
+      {"outputs", QJsonArray{QJsonObject{{"name", "chunk"}, {"type", QJsonObject{{"type", "chunk"}}}}}}});
+    metadata.append(QJsonObject{{"node_type", "nodetool.audio.realtime.ChunksToAudio"}, {"title", "Recorder"}, {"primary_output", "audio"},
+      {"outputs", QJsonArray{QJsonObject{{"name", "audio"}, {"type", QJsonObject{{"type", "audio"}}}}}}});
+    window.setCatalog(metadata);
+    const QJsonObject graph{{"nodes", QJsonArray{
+      QJsonObject{{"id", "osc"}, {"type", "nodetool.audio.synth.Oscillator"}, {"data", QJsonObject{}}},
+      QJsonObject{{"id", AudioNode}, {"type", "nodetool.audio.realtime.ChunksToAudio"}, {"data", QJsonObject{{"duration", 60}}}}
+    }}, {"edges", QJsonArray{QJsonObject{{"id", "capture"}, {"source", "osc"}, {"sourceHandle", "chunk"}, {"target", AudioNode}, {"targetHandle", "chunk"}}}}};
+    const QJsonObject document{{"id", ""}, {"name", "Minute render"}, {"graph", graph}};
+    QVERIFY(window.document()->load(document));
+    window.show();
+    window.fit();
+    QTRY_VERIFY_WITH_TIMEOUT(window.session()->localRunnerReady(), 60000);
+    QString storedUri;
+    connect(window.session(), &node_editor::WorkflowSession::runEvent, &window,
+      [&storedUri](const QString &, const QJsonObject &event) {
+        if (event["type"] == "output_update" && event["node_id"] == AudioNode) {
+          const auto ref = event["value"].toObject();
+          if (node_editor::LocalMediaStore::isLocalMedia(ref["uri"].toString())) { storedUri = ref["uri"].toString(); }
+        }
+      });
+    const auto run = window.session()->run(document);
+    QVERIFY(window.session()->runsInProcess(run));
+    QTRY_VERIFY_WITH_TIMEOUT(!storedUri.isEmpty(), 30000);
+    QVERIFY(node_editor::LocalMediaStore::instance().contains(storedUri));
+    QTRY_VERIFY_WITH_TIMEOUT(player(window, AudioNode) && player(window, AudioNode)->duration() >= 59900, 15000);
+    node_editor::LocalMediaStore::instance().releaseRun(run);
+  }
+  void inlineAudioOnChainNodesAndNamedPreviews() {
+    const auto data = QString::fromLatin1(audioBytes().toBase64());
+    const QString preview = QStringLiteral("33333333333333333333333333333333");
+    auto nodes = catalog();
+    nodes.append(QJsonObject{{"node_type", "nodetool.workflows.base_node.Preview"}, {"title", "Preview"},
+      {"outputs", QJsonArray{QJsonObject{{"name", "output"}, {"type", QJsonObject{{"type", "any"}}}}}}});
+    EditorWindow window;
+    window.resize(1400, 900);
+    window.setCatalog(nodes);
+    QVERIFY(window.document()->load({{"name", "Inline audio"}, {"graph", QJsonObject{{"nodes", QJsonArray{
+      QJsonObject{{"id", VideoNode}, {"type", "Fixture.Video"}, {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", 0}, {"y", 0}}}}}},
+      QJsonObject{{"id", AudioNode}, {"type", "Fixture.Audio"}, {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", 330}, {"y", 0}}}}}},
+      QJsonObject{{"id", preview}, {"type", "nodetool.workflows.base_node.Preview"}, {"data", QJsonObject{{"name", "loop"}}},
+        {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", 660}, {"y", 0}}}}}}}},
+      {"edges", QJsonArray{QJsonObject{{"id", "e1"}, {"source", AudioNode}, {"sourceHandle", "value"}, {"target", preview}, {"targetHandle", "value"}}}}}}}));
+    window.show();
+    window.fit();
+    const QJsonObject audio{{"type", "audio"}, {"uri", ""}, {"data", data}};
+    window.runOutput()->beginRun("local");
+    window.runOutput()->ingest("local", {{"type", "node_update"}, {"job_id", "local"}, {"node_id", AudioNode}, {"status", "completed"},
+      {"result", QJsonObject{{"value", audio}}}});
+    // A secondary output is not the card's result.
+    window.runOutput()->ingest("local", {{"type", "node_update"}, {"job_id", "local"}, {"node_id", VideoNode}, {"status", "completed"},
+      {"result", QJsonObject{{"secondary", audio}}}});
+    window.runOutput()->ingest("local", {{"type", "output_update"}, {"job_id", "local"}, {"node_id", preview}, {"output_name", "loop"}, {"value", audio}});
+    window.fit();
+    QTRY_VERIFY_WITH_TIMEOUT(player(window, AudioNode) && player(window, AudioNode)->duration() > 1000, 15000);
+    QTRY_VERIFY_WITH_TIMEOUT(player(window, preview) && player(window, preview)->duration() > 1000, 15000);
+    QVERIFY(!overlay(window, VideoNode));
   }
   void outputToNativeCardsAndBoundaryCleanup() {
     QFile video(QStringLiteral(MEDIA_VIDEO_FIXTURE));

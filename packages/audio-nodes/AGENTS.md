@@ -45,3 +45,11 @@
   `{ output }`); `LoadAudioFolder` yields `path` (not `name`) and must implement
   its own `extensions`/`include_subdirectories` props rather than delegating to a
   loader that ignores them.
+
+## Signal processors
+
+Use the shared [effect drivers](src/lib/signal-effect.ts) for clip and signal
+variants. Reset state when rate, channels or structural parameters change.
+Read controls each block and allocate a fresh output buffer because fan-out
+shares input arrays. Emit the effect tail before the end marker. Sources use
+the [run transport](src/lib/transport.ts) for pacing and render bounds.

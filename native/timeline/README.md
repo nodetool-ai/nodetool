@@ -107,9 +107,12 @@ Tested on Arch Linux with GCC 16, CMake 4, Qt 6.12.0 from `aqtinstall`
 (`linux_gcc_64` with `qtshadertools`), the distribution's FFmpeg 9.0
 (`libavcodec` 63) with its headers, libva 2.24, the Vulkan loader and
 headers, and an NVIDIA RTX 3060 with `nvidia-vaapi-driver` 0.0.18 (direct
-backend) for VAAPI. The system FFmpeg builds as is; the LGPL build of
-`scripts/build-ffmpeg-lgpl.sh` is the packaging and CI choice, not a
-requirement. Run from `native/timeline/`:
+backend) for VAAPI. A system FFmpeg of 7.1 or later builds as is (the export
+code calls `avcodec_get_supported_config`, which 7.1 added, so Ubuntu 24.04's
+6.1 does not). The LGPL build of `scripts/build-ffmpeg-lgpl.sh` is the
+packaging and CI choice and works on any distribution: point `PKG_CONFIG_PATH`
+and `LD_LIBRARY_PATH` at `build-ffmpeg-lgpl/install/lib` before configuring.
+Run from `native/timeline/`:
 
 ```bash
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=$HOME/qt/6.12.0/gcc_64
@@ -340,8 +343,9 @@ is run only by `scripts/window-checks.sh`.
   names a recovery copy only through the controller's `keptCopy` and
   `recoveryError`.
 
-Not here yet: the web's per-change conflict merge in the banner (Accept and
-Discard, D34), and Retry on a failed save (the controller has no invokable
+A merge that refuses some of the server's changes lists each one with Accept
+and Discard in `ExternalConflictsBanner` (D34), as the web's ConflictBanner
+does. Not here yet: Retry on a failed save (the controller has no invokable
 save).
 
 ## Editing (M4)
@@ -386,10 +390,16 @@ targets (a ripple still moves a group with its children), and a split or drop
 that would split or remove a clip owning a media track.
 
 ```bash
-node native/timeline/scripts/op-conformance.mjs   # needs build-m2/timeline-ops
+cmake --build build --target conformance-helpers  # timeline-ops and every suite's oracle
+node native/timeline/scripts/op-conformance.mjs   # defaults to build/timeline-ops
 ./build/tst_tracksui                               # gestures, keys, undo (offscreen)
 ./build/tst_editpreview                            # the preview draws an edit on the next frame
 ```
+
+The full build makes every helper the run needs. After a partial build,
+`conformance-helpers` builds just the app, `timeline-ops` and the oracle each
+suite in `scripts/conformance/suites/` calls. A missing helper stops the run
+before vitest starts and names the binary.
 
 `op-conformance.mjs` checks the native code against the TypeScript in four
 ways, through `timeline-ops` (one call per process, JSON in and out):
@@ -448,9 +458,11 @@ Tests: `tst_menus`, `tst_appshell_menus`, `menu_parity_report`.
 
 ### Keyboard presets
 
-`src/edit/KeymapOverlay.h` holds the Premiere keys. The preset uses Ctrl+K to split,
-Ctrl+Shift+L for loop, Shift+1 to Shift+9 for panels and Shift+= and Shift+- to
-expand and minimize tracks. A key the preset binds means that action alone, even
+The Premiere keys come from the web table, which binds Ctrl+Shift+L for loop,
+Shift+2 to Shift+0 for panels and Shift+= and Shift+- to expand and minimize
+tracks. `src/edit/KeymapOverlay.h` holds the keys only the native editor binds:
+Ctrl+K to split, Ctrl+Shift+E to export a frame, Alt+M to clear a marker, and
+Shift+1, Shift+6 and Shift+7 for the Library, Mixer and Effects panels. A key the preset binds means that action alone, even
 when it refuses, and a registered default key gives way to the preset.
 
 The first interactive launch shows a keyboard layout prompt, which does not block
@@ -568,9 +580,9 @@ Timing. Text shows for a text clip, Shape for a shape and Caption for a caption.
 when a transition is selected, which means its clip's start edit point: click the hatched wedge of an
 incoming transition, or the clip's start edge to set one up. Any other click on the clip clears it.
 
-The Motion panel owns how a clip moves over time: Animate, Advanced motion, Follow object and Smart
-reframe. The AI panel owns generation for the selected clip, and it is the tab next to the Assistant,
-which stays a chat surface. Open them from Window > Motion and Window > AI. No Premiere key applies.
+The Motion panel owns how a clip moves over time: Animate and Advanced motion. The AI panel owns
+generation for the selected clip and the tools that run a tracking model, Follow object and Smart
+reframe, as on the web. It is the tab next to the Assistant, which stays a chat surface. Open them from Window > Motion and Window > AI. No Premiere key applies.
 Export Frame's Use as start frame opens the AI panel on image to video. A group clip's Inspector shows
 the Group section and Timing, and its animation is in the Motion panel.
 
@@ -1256,40 +1268,52 @@ scripts/check-portable.sh         # the non-Apple code, as far as macOS can buil
 scripts/build-ffmpeg-lgpl.sh      # FFmpeg 8.0 as LGPL shared libraries
 ```
 
-### Standalone releases
+### Releases
 
-The [release workflow](../../.github/workflows/native-timeline-release.yml)
-creates a draft prerelease, separate from Electron. Set `PROJECT_VERSION` in
-`CMakeLists.txt`, commit the workflow and app changes, then push an existing
-commit as `timeline-vX.Y.Z` (or `timeline-vX.Y.Z-test.1`). The numeric tag
-version must match CMake. `--version` reports that numeric version. The full
-tag version, including its suffix, names the downloads. Manual dispatch takes
-an existing tag and builds that tagged commit.
+Every NodeTool release ships the native timeline. The
+[NodeTool release workflow](../../.github/workflows/release.yaml), on a `v*`
+tag or a nightly, calls the
+[timeline release workflow](../../.github/workflows/native-timeline-release.yml),
+and its downloads join that GitHub release. The release publishes only when
+the timeline packages build and pass their smoke checks. A desktop recovery
+run with `source_tag` builds another commit than its own and skips the
+timeline. The NodeTool release
+version names the downloads. `--version` reports `PROJECT_VERSION` from
+`CMakeLists.txt`.
 
-Downloads are `nodetool-timeline-<version>-macos-arm64.zip`,
-`nodetool-timeline-with-server-<version>-macos-arm64.zip`,
-`nodetool-timeline-<version>-windows-x64.zip`, and
-`nodetool-timeline-<version>-linux-x64.AppImage`, plus `SHA256SUMS.txt`.
+Each platform has one download, `nodetool-timeline-<version>-<platform>`,
+with its own NodeTool server inside. The platforms are `macos-arm64` and
+`windows-x64` (ZIP) and `linux-x64` (AppImage). With `NODETOOL_SERVER_URL`
+set, the app uses that server and does not start its own.
 
-The macOS builds are signed and notarized by
+The macOS build is signed and notarized by
 [scripts/sign-macos.sh](scripts/sign-macos.sh), with the Developer ID
 certificate and notarization login of the Electron release. The Windows and
-Linux builds are unsigned. The draft notes explain SmartScreen and Linux
-executable permissions.
+Linux builds are unsigned.
 
-The "with server" build comes from
-[scripts/package-macos-with-server.sh](scripts/package-macos-with-server.sh).
-It holds the bundled backend and Node runtime in `Contents/Resources/backend`.
+The release packages come from
+[scripts/package-macos-with-server.sh](scripts/package-macos-with-server.sh),
+[scripts/package-windows-with-server.sh](scripts/package-windows-with-server.sh)
+and [scripts/package-linux-with-server.sh](scripts/package-linux-with-server.sh).
+Each runs [scripts/stage-server.sh](scripts/stage-server.sh), which stages
+the backend bundle (`scripts/bundle-backend.mjs --profile timeline`) and the
+Node runtime that Electron ships. The backend sits in
+`Contents/Resources/backend` on macOS, in `backend` next to
+`nodetool-timeline.exe` on Windows, and in
+`usr/share/nodetool-timeline/backend` in the AppImage. The release boots
+each extracted backend with
+[scripts/smoke-backend-bundle.mjs](../../scripts/smoke-backend-bundle.mjs).
 Opened without a file, the app starts that server on a free loopback port and
 lists its timelines ([src/server/BundledServer.h](src/server/BundledServer.h)).
-The server stops when the app quits and logs to `server.log` in the app's
-data folder. Review the package smoke logs and checksums before
-publishing the draft manually.
+Windows opened from that window, through Open timeline, Recent or a Premiere
+import, use the same server. The server stops after the last of these windows
+quits, and logs to `server.log` in the app's data folder.
 
 The workflow builds only the app, checks the extracted packages with
 [scripts/smoke-package.py](scripts/smoke-package.py), and retains the existing
-macOS bundle audit. Windows and Linux release packaging still need a tagged
-CI run to establish platform verification.
+macOS bundle audit on the app before the backend is added. Windows and Linux
+release packaging still need a release run to establish platform
+verification.
 
 Hardware decode sits behind one compile-time seam,
 `src/preview/hw/HwInterop.h`: VideoToolbox on macOS, D3D11VA on Windows
@@ -1531,6 +1555,73 @@ own `HOME`, `XDG_*`, `DB_PATH`, `ASSET_FOLDER`, `STORAGE_PATH` and
 fixtures, and one timeline with a ready, pending (held encode), failed and
 absent proxy. A second server whose `ffmpeg` hides libx264 makes a VP9 proxy
 (`scripts/fake-ffmpeg.sh`). The script writes only to these servers.
+
+## Cloud timelines
+
+```bash
+./build-m5/nodetool-timeline --cloud-server https://api.nodetool.ai --cloud-timeline <id> [--cloud-role editor]
+```
+
+The Open timeline list shows the Cloud and Shared with me groups of the
+account signed in to the current server. A chosen timeline opens in a new
+window with these options. The window reads the timeline and its media from
+the cloud server with the account's access token, which it reads at start
+(`AccountController::readSession`). It refuses an address that is not HTTPS
+and a `--token`, so the local server's token never goes to the cloud.
+
+A cloud timeline has no server save target. `CloudTimelineSaver`
+(`src/account/`) hands each committed edit to `CloudDocument`, which writes it
+to the local drafts of the window's local server (`NODETOOL_SERVER_URL`) and
+then sends it with `timeline.update`. The document bar shows the cloud
+status in place of the save status. A draft this account left on this
+computer is applied as one `restoreDocument` edit after its media is
+resolved, unless the person edited first.
+
+The owner of a cloud timeline sees Share in the document bar. It opens the
+share dialog of the account library (`ShareDialog.qml`) with the account the
+window was opened with (`nativeCloudAccount`). The dialog lists the scripts
+and storyboards the clips link to, because a link to the timeline does not
+open them.
+
+Frame rate and size edits of a cloud timeline are not sent yet. The media
+resolvers and take switching need a server save target, so they do not run
+for a cloud timeline, and the recent list does not record cloud timelines. A
+viewer's window still accepts edits, which `CloudDocument` does not keep.
+
+## Project folders
+
+Every project has a folder ([PRD](../../docs/project-folders/prd.md)). The
+socket of an open server timeline (`src/server/sync/ResourceChangeClient`)
+sends `set_open_project` after `set_mode` on every connection, and again when
+the timeline moves to another project. Personal and a loose timeline send
+`"default"`. The server then watches that folder and pushes two events:
+
+- `workspacefile`: files in the folder changed. The Library lists its rows
+  again, so an outside rename shows the new name and an outside delete shows
+  the asset as offline. A push for another folder is ignored once the
+  project's `folder.workspace_id` is known.
+- `documentfile`: a timeline's file became invalid, went missing or is fine
+  again. The file banner asks `projects.documents` again for the open
+  timeline, and the timeline list refreshes while it is shown. The startup
+  timeline list has no socket, so it hears of no push.
+
+`ProjectFolderState` (`src/server/projectfolder/`) reads the folder from
+`projects.list` and the timeline's file from `projects.documents`:
+
+- The Library header shows the folder's path, with Show in file manager when
+  the folder exists on this machine. A folder the server cannot reach shows
+  Folder not found with Locate, which sends the picked folder to
+  `projects.relocate` and shows the server's error when it refuses.
+- Under the save banners, an `invalid` file shows the server's error, and a
+  `missing` file offers Restore (`projects.restoreDocumentFile`).
+- The selected Library asset shows Missing (`offline`) with Relink, which
+  sends the picked file to `assets.relinkExternal`, or Linked (`linked`).
+
+A local `Timelines/<name>.timeline.json` opens as a timeline document. The
+loader reads the sequence settings and `document` of the envelope, and takes
+the name from the file name. Saving keeps `format`, `version` and `id`,
+writes the settings and `document` back, and writes no `name`. A file of
+another version does not open.
 
 ## Fixtures
 

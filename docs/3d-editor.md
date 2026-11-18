@@ -15,12 +15,12 @@ The 3D Editor edits glTF scenes made of boxes, spheres, planes, cylinders, cones
 
 ## What a 3D model is
 
-A 3D model in NodeTool is a glTF asset. The editor reads and writes `.glb` and `.gltf` files only. A new model is a `.glb`, and **Save** always writes binary glTF back over the same asset. The asset id does not change, so anything that points at it keeps working.
+A 3D model in NodeTool is a glTF asset. The editor reads and writes `.glb` and `.gltf` files only. A new model is a `.glb`, and **Save** always writes binary glTF back over the same asset. The asset id does not change.
 
 | File | Opens in the editor | Notes |
 |---|---|---|
 | `.glb`, `.gltf` | Yes | Editable and saveable |
-| `.obj`, `.fbx`, `.stl`, `.ply`, `.usdz` | No | The tab opens, but the viewer reports that the format is not supported. Supported formats are `.glb` and `.gltf` |
+| `.obj`, `.fbx`, `.stl`, `.ply`, `.usdz` | No | The tab opens, but the viewer reports that the format is not supported. |
 
 When a model is not editable, or the tab is in view mode, you get the viewer instead. See [Asset Management](asset-management.md#asset-viewers).
 
@@ -39,7 +39,7 @@ When a model is not editable, or the tab is in view mode, you get the viewer ins
 
 Toolbar on top, **Scene** outliner on the left, viewport in the middle, **Inspector** on the right, and an optional resizable **Assistant** chat panel on the far right. The status bar names the selection, shows what the mouse does in the current mode, and counts objects, lights, vertices, and triangles.
 
-The viewport frames the whole model, draws a ground grid with a red X axis and a blue Z axis, and lights the scene with a built-in studio environment. That lighting is for editing only. It is not saved and works offline.
+The ground grid has a red X axis and a blue Z axis. The built-in studio lighting is for editing only. It is not saved and works offline.
 
 ### Toolbar
 
@@ -154,13 +154,11 @@ When the model has animations, a playback bar sits at the bottom of the viewport
 
 ## Transforms and the gizmo
 
-Drag the gizmo handles to move, rotate, or scale. For exact values use **Transform** in the Inspector. Rotation is in degrees. Drag an X, Y, or Z label to scrub its value, with `Shift` for fine steps or `Ctrl` for coarse ones. The reset button sets position and rotation to zero and scale to one. Transforms are relative to the parent, so children follow it.
+For exact values use **Transform** in the Inspector. Rotation is in degrees. Drag an X, Y, or Z label to scrub its value, with `Shift` for fine steps or `Ctrl` for coarse ones. The reset button sets position and rotation to zero and scale to one. Transforms are relative to the parent, so children follow it.
 
 ---
 
 ## Inspector
-
-Collapsible sections that depend on the selection.
 
 ### Light
 
@@ -272,7 +270,7 @@ If you prefer a graph, the Blender nodes (`nodetool.blender.RenderImage`, `Rende
 
 ## Exporting
 
-**Save** serializes the scene to a `.glb` and updates the asset, then shows "Saved" with the asset name. Animations that came with an imported model are kept, also after you rename the animated object. Hidden objects are saved too, marked with a `nodetool_hidden` value in the node's `extras`, and come back hidden when the model is reopened. Other glTF tools ignore that value and show them. Names keep their spaces and punctuation. If saving fails, a banner over the viewport shows the error with a button to report it. Open the asset in the Asset Explorer to download or reuse the file like any other asset. See [Asset Management](asset-management.md).
+**Save** serializes the scene to a `.glb` and updates the asset, then shows "Saved" with the asset name. Animations that came with an imported model are kept, also after you rename the animated object. Hidden objects are saved too, marked with a `nodetool_hidden` value in the node's `extras`, and come back hidden when the model is reopened. Other glTF tools ignore that value and show them. Names keep their spaces and punctuation. If saving fails, a banner over the viewport shows the error with a button to report it.
 
 **Export** downloads a file for another tool and leaves the asset alone. Pick **Scene as** a format to export everything, or **Selection as** a format to export the selected object and its children, placed where it sits in the scene. The Cmd+K menu lists the scene exports too. Hidden objects are left out. Unsaved edits are included. If an animation preview is playing, it stops first, so the file holds the rest pose.
 
@@ -301,10 +299,8 @@ The editor has no direct link to the storyboard surface. Use a rendered image as
 
 ## Limits
 
-- Only `.glb` and `.gltf` assets open in the editor. Other formats import into an open model.
-- No cameras from **Add**, and no new materials or textures. Existing material values are editable.
+- No new materials or textures. Existing material values are editable.
 - The viewport camera is not saved.
-- The agent works on the live scene only while the editor is the visible tab.
 
 ---
 

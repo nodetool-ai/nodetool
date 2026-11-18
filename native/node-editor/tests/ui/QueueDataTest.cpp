@@ -1,9 +1,10 @@
 #include "ui/EditorWindow.h"
 #include "server/MsgPack.h"
+#include "server/AccountJobs.h"
 #include <QApplication>
 #include <QGraphicsView>
 #include <QJsonDocument>
-#include <QMenu>
+#include "EntryMenuSupport.h"
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QTcpServer>
@@ -24,7 +25,13 @@ public:
     QList<QPointer<QTcpSocket>> held;
     bool hold = false;
     bool rejectCancel = false;
+    // jobs.list answers with an error while set.
+    bool failList = false;
+    // assets.list's answer for any job, and how often it was asked.
+    QJsonArray assets;
+    int assetLists = 0;
     int lists = 0;
+    int workflowGets = 0;
     QStringList cancelled;
     JobsServer() {
         http.listen(QHostAddress::LocalHost);
@@ -33,7 +40,9 @@ public:
             peer->setParent(this);
             peers.append(peer);
             connect(peer, &QWebSocket::binaryMessageReceived, this, [this](QByteArray bytes) {
-                commands.append(decodeMsgPack(bytes)->toObject());
+                // The open-project signal goes with every socket open. WorkflowSessionTests checks it.
+                const auto command = decodeMsgPack(bytes)->toObject();
+                if (command["command"] != "set_open_project") { commands.append(command); }
             });
         });
         connect(&http, &QTcpServer::newConnection, this, [this] {
@@ -63,7 +72,9 @@ public:
                 socket->disconnect(this);
                 if (header.contains("/trpc/jobs.list?")) {
                     ++lists;
-                    if (hold) {
+                    if (failList) {
+                        respond(socket, {}, true);
+                    } else if (hold) {
                         held.append(socket);
                     } else {
                         respond(socket, {{"jobs", jobs}, {"next_start_key", QJsonValue::Null}});
@@ -85,7 +96,11 @@ public:
                         }
                         respond(socket, {{"job_id", id}, {"workflow_id", workflow}, {"status", "cancelled"}, {"created_at", QJsonValue::Null}, {"is_running", false}, {"is_completed", true}});
                     }
+                } else if (header.contains("/trpc/assets.list?")) {
+                    ++assetLists;
+                    respond(socket, {{"assets", assets}, {"next", QJsonValue::Null}});
                 } else if (header.contains("workflows.get")) {
+                    ++workflowGets;
                     respond(socket, {{"name", "Fallback workflow"}});
                 } else {
                     respond(socket, {});
@@ -281,16 +296,9 @@ private slots:
         QVERIFY(server.commands.isEmpty());
         auto toolbar = panel(window, "Toolbar.qml");
         click(toolbar, "toolbar-more");
-        auto menu = qobject_cast<QMenu *>(QApplication::activePopupWidget());
-        QVERIFY(menu);
-        QAction *toggle = nullptr;
-        for (auto action : menu->actions()) {
-            if (action->text() == "Instant Update: Off") {
-                toggle = action;
-            }
-        }
-        QVERIFY(toggle);
-        QTest::mouseClick(menu, Qt::LeftButton, Qt::NoModifier, menu->actionGeometry(toggle).center());
+        QQuickWidget *menu = nullptr;
+        QTRY_VERIFY((menu = entry_menu::host(window, "more")));
+        QVERIFY(entry_menu::click(menu, "Instant Update: Off"));
         QVERIFY(window.commitProperty("a", "value", "first"));
         QVERIFY(window.commitProperty("a", "value", "latest"));
         QTest::qWait(100);
@@ -304,21 +312,26 @@ private slots:
         QVERIFY(executed.contains("a"));
         QVERIFY(executed.contains("b"));
         QVERIFY(!executed.contains("unrelated"));
+        // An edit during the run goes to that run as a live property update, not as a new run.
         QVERIFY(window.commitProperty("a", "value", "busy"));
+        QTRY_COMPARE(server.commands.size(), 2);
         QTest::qWait(350);
-        QCOMPARE(server.commands.size(), 1);
+        QCOMPARE(server.commands.size(), 2);
+        QCOMPARE(server.commands.last()["command"].toString(), QString("update_node_properties"));
+        QCOMPARE(server.commands.last()["data"].toObject()["job_id"], data["job_id"]);
+        QCOMPARE(server.commands.last()["data"].toObject()["properties"].toObject(), (QJsonObject{{"value", "busy"}}));
         auto view = window.findChild<QGraphicsView *>();
         QVERIFY(view);
         view->setFocus();
         // Like the web toolbar, Escape cancels this client's run over the socket.
         QTest::keyClick(view->viewport(), Qt::Key_Escape);
-        QTRY_COMPARE(server.commands.size(), 2);
+        QTRY_COMPARE(server.commands.size(), 3);
         QCOMPARE(server.commands.last()["command"].toString(), QString("cancel_job"));
         QCOMPARE(server.commands.last()["data"].toObject()["job_id"], data["job_id"]);
         QVERIFY(server.cancelled.isEmpty());
         server.update(data["job_id"].toString(), "cancelled");
         QTest::keyClick(view->viewport(), Qt::Key_Return, Qt::ControlModifier);
-        QTRY_COMPARE(server.commands.size(), 3);
+        QTRY_COMPARE(server.commands.size(), 4);
     }
     void toolbarLabels() {
         JobsServer server;
@@ -362,6 +375,56 @@ private slots:
             server.update(id, status);
             QTRY_COMPARE(root->property("runLabel").toString(), QString("Run entire workflow"));
         }
+    }
+    // useJobAssets in JobItem.tsx lists a completed job's outputs once, and
+    // QueuePanel.tsx shows when the jobs list fails to load.
+    // A job without a name shows its workflow's name. A refresh keeps the name
+    // it fetched and asks the server only once per workflow.
+    void unnamedJobsKeepTheirWorkflowName() {
+        JobsServer server;
+        auto unnamed = JobsServer::job("done", "completed", "wf-unnamed");
+        unnamed["name"] = "";
+        server.jobs = {unnamed};
+        AccountJobs jobs(server.url(), {});
+        jobs.refresh();
+        QTRY_COMPARE(jobs.rows().isEmpty() ? QString() : jobs.rows().at(0).toObject()["name"].toString(), QString("Fallback workflow"));
+        QCOMPARE(server.workflowGets, 1);
+        QSignalSpy changed(&jobs, &AccountJobs::changed);
+        jobs.refresh();
+        QTRY_VERIFY(!changed.isEmpty());
+        QCOMPARE(jobs.rows().at(0).toObject()["name"].toString(), QString("Fallback workflow"));
+        QTest::qWait(50);
+        QCOMPARE(server.workflowGets, 1);
+    }
+    void completedJobOutputsAndListErrors() {
+        JobsServer server;
+        server.failList = true;
+        server.jobs = {JobsServer::job("done", "completed"), JobsServer::job("live", "running")};
+        server.assets = {QJsonObject{{"id", "a1"}, {"name", "fox.png"}, {"content_type", "image/png"}, {"get_url", "/api/storage/a1.png"}, {"thumb_url", QJsonValue::Null}},
+                         QJsonObject{{"id", "f1"}, {"name", "Folder"}, {"content_type", "folder"}}};
+        WorkflowSession first;
+        first.connectToServer(server.url(), {});
+        QTRY_VERIFY(!first.jobsError().isEmpty());
+        QCOMPARE(first.queue().size(), 0);
+        QCOMPARE(server.assetLists, 0);
+        // A failed list leaves the cache stale, so the next tab asks again.
+        server.failList = false;
+        WorkflowSession second;
+        second.connectToServer(server.url(), {});
+        QTRY_COMPARE(first.queue().size(), 2);
+        QVERIFY(first.jobsError().isEmpty());
+        QTRY_COMPARE(first.queue()[0].toMap()["outputAssets"].toList().size(), 1);
+        const auto output = first.queue()[0].toMap()["outputAssets"].toList().first().toMap();
+        QCOMPARE(output["id"].toString(), QString("a1"));
+        QCOMPARE(output["content_type"].toString(), QString("image/png"));
+        QCOMPARE(output["get_url"].toString(), QString("/api/storage/a1.png"));
+        QVERIFY(!first.queue()[1].toMap().contains("outputAssets"));
+        QCOMPARE(server.assetLists, 1);
+        // Outputs of a completed job do not change, so a refresh does not list them again.
+        first.cancelJob("live");
+        QTRY_VERIFY(server.lists >= 3);
+        QTest::qWait(100);
+        QCOMPARE(server.assetLists, 1);
     }
 };
 QTEST_MAIN(QueueDataTest)

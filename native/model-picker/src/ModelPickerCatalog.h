@@ -70,6 +70,10 @@ public:
     void setFilter(const QStringList& allowedProviders, const QStringList& tasks);
     // The hf.* or tjs.* type a repository catalog lists.
     void setRepositoryType(const QString& type) { m_repositoryType = type; }
+    // With no stored or default selection, a load selects the first usable
+    // model, a connected cloud provider's before a local one, as
+    // useSeedDefaultModels in the web app does. Off by default.
+    void setSelectFirstAvailable(bool enabled) { m_selectFirstAvailable = enabled; }
     void setMutation(Mutation mutation);
     void setDownloadHandler(DownloadHandler handler);
     // The procedure that lists recommended downloads, read on the next reload.
@@ -100,6 +104,8 @@ public:
     bool loaded() const { return m_loaded; }
     bool needsProviderSetup() const;
     Q_INVOKABLE bool hasAvailable(const QString& id, const QString& provider) const;
+    // Whether any listed model can be picked now.
+    Q_INVOKABLE bool hasAnyAvailable() const;
     // An empty provider matches the first model with the id.
     Q_INVOKABLE QVariantMap modelDetails(const QString& id, const QString& provider) const;
     Q_INVOKABLE bool providerKeyMissing(const QString& provider) const;
@@ -164,6 +170,7 @@ private:
     bool m_loading = false;
     bool m_loaded = false;
     bool m_serverDefault = false;
+    bool m_selectFirstAvailable = false;
     quint64 m_revision = 0;
     int m_pending = 0;
     int m_totalProviders = 0;

@@ -7,9 +7,7 @@ import { Divider, ContextMenu, ListSubheader } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
-import DriveFileMoveIcon from "@mui/icons-material/DriveFileMove";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CompareIcon from "@mui/icons-material/Compare";
 import TabIcon from "@mui/icons-material/Tab";
@@ -45,22 +43,18 @@ const AssetItemContextMenu = () => {
 
   const {
     setRenameDialogOpen,
-    setMoveToFolderDialogOpen,
     setDeleteDialogOpen,
     selectedAssetIds,
     selectedAssets,
     openCompareView,
-    setCreateFolderDialogOpen,
     openTransformDialog
   } = useAssetGridStore(
     useShallow((state) => ({
       setRenameDialogOpen: state.setRenameDialogOpen,
-      setMoveToFolderDialogOpen: state.setMoveToFolderDialogOpen,
       setDeleteDialogOpen: state.setDeleteDialogOpen,
       selectedAssetIds: state.selectedAssetIds,
       selectedAssets: state.selectedAssets,
       openCompareView: state.openCompareView,
-      setCreateFolderDialogOpen: state.setCreateFolderDialogOpen,
       openTransformDialog: state.openTransformDialog
     }))
   );
@@ -71,10 +65,6 @@ const AssetItemContextMenu = () => {
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const navigate = useNavigate();
   const editVideoAsset = useEditVideoAsset();
-
-  const isFolder = selectedAssets.some(
-    (asset) => asset.content_type === "folder"
-  );
 
   // A single video opens in the timeline editor: its source timeline when one
   // exists, otherwise a fresh timeline wrapping the video.
@@ -94,14 +84,14 @@ const AssetItemContextMenu = () => {
     selectedAssets.every((asset) => asset.content_type?.startsWith("image/"));
 
   // Resolve the workspace tab type for a single selected asset ("Open as tab").
-  // Null when nothing is openable as a tab (multi-select, folder, or a content
+  // Null when nothing is openable as a tab (multi-select, or a content
   // type with no document surface, e.g. video).
   const openableTabType =
     selectedAssets.length === 1 && selectedAssets[0]
       ? assetTabType(selectedAssets[0])
       : null;
 
-  const hasSelectedAssets = selectedAssets.length > 0 && !isFolder;
+  const hasSelectedAssets = selectedAssets.length > 0;
   // Starring a mixed selection stars all of it; unstar only when every
   // selected asset already carries the star.
   const allFavorite =
@@ -191,10 +181,6 @@ const AssetItemContextMenu = () => {
     };
 
   const openRenameDialog = withMenuClose(() => setRenameDialogOpen(true));
-  const openMoveDialog = withMenuClose(() => setMoveToFolderDialogOpen(true));
-  const openCreateFolderDialog = withMenuClose(() =>
-    setCreateFolderDialogOpen(true)
-  );
   const openDeleteDialog = withMenuClose(() => setDeleteDialogOpen(true));
   const downloadSelected = withMenuClose(async () => {
     await handleDownloadAssets(selectedAssetIds);
@@ -285,9 +271,7 @@ const AssetItemContextMenu = () => {
         paperSx={singleAsset ? { display: "flex", overflow: "visible" } : undefined}
       >
         <ListSubheader className="title">
-          {isFolder
-            ? t("screen_editor.folder")
-            : t("screen_editor.selectedItems", { count: selectedAssetIds.length })}
+          {t("screen_editor.selectedItems", { count: selectedAssetIds.length })}
         </ListSubheader>
         {hasSelectedAssets && (
           <ContextMenuItem
@@ -354,23 +338,6 @@ const AssetItemContextMenu = () => {
             }
           />
         )}
-        <Divider />
-        <ContextMenuItem
-          onClick={openMoveDialog}
-          label={t("screen_editor.moveToExistingFolder")}
-          IconComponent={<DriveFileMoveIcon />}
-          tooltip={t("screen_editor.moveSelectedAssetsTooltip")}
-        />
-        <ContextMenuItem
-          onClick={openCreateFolderDialog}
-          label={hasSelectedAssets ? t("screen_editor.moveToNewFolder") : t("screen_editor.createFolder")}
-          IconComponent={<CreateNewFolderIcon />}
-          tooltip={
-            hasSelectedAssets
-              ? t("screen_editor.createFolderAndMoveTooltip")
-              : t("screen_editor.createFolderHereTooltip")
-          }
-        />
         <Divider />
         <ContextMenuItem
           onClick={downloadSelected}

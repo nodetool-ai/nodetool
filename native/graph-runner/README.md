@@ -158,6 +158,16 @@ suspended coroutines behind, or was interrupted leaves the context in an
 unknown state. The worker then destroys the run's coroutine frames, discards
 the engine, and loads a fresh one. The process keeps running in every case.
 
+`updateNodeProperties(jobId, nodeId, propertiesJson)` hands a live property
+change to the running job, as the server's `update_node_properties` command
+does. Any thread may call it. The call queues the change, and the worker
+applies it as a macrotask of the run, between two steps. The node instance
+takes the values through `applyProperties`, so a `run()` that reads its
+properties for each block uses them from its next block. A buffered node
+takes its saved properties again at each `process()` call, as on the server.
+The call returns false for a job that is not running. A node that is unknown
+or takes no live change drops it.
+
 Before a run, `src/kernel/normalize.cpp` prepares the graph as the server
 does: saved `data` becomes `properties`, `dynamic_properties` merge in,
 edges get `edge_type`, and each node is hydrated from the guest's registry

@@ -36,8 +36,12 @@ function interpreter(env: string): string {
 }
 function launchProbe() {
   const original = cp.spawn;
+  // Avoid an intermediary that Windows termination cannot notify to reap its child.
+  const fixtureArgs = process.platform === "win32"
+    ? ["--import", "tsx", resolve(import.meta.dirname, "fixtures/fake-python-stdio-worker.ts")]
+    : [resolve(import.meta.dirname, "fixtures/fake-python-interpreter.mjs")];
   const spy = vi.spyOn(cp, "spawn").mockImplementation((_command, _args, options) =>
-    original(process.execPath, [resolve(import.meta.dirname, "fixtures/fake-python-interpreter.mjs")], options)
+    original(process.execPath, fixtureArgs, options)
   );
   const bridge = new PythonStdioBridge({ startupTimeoutMs: 20000, statusTimeoutMs: 20000 });
   bridges.push(bridge);

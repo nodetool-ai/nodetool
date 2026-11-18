@@ -15,15 +15,39 @@
 #include <QNetworkCookieJar>
 #include <QNetworkReply>
 #include <QPointer>
+#include <QRegularExpression>
 #include <QSet>
 #include <QTimer>
+#include <QUrlQuery>
 #include <algorithm>
 #include <mutex>
 #include <utility>
 #include <QUuid>
+#include "nodetool/account/qt/ServerToken.h"
 namespace nodetool::node_editor {
 namespace {
-// A local-media:// image the store no longer holds, because its run was dropped.
+// UI thread only. Store encoded clip bytes before bounded output previews see them.
+QJsonValue storeLocalClips(const QJsonValue &value, const QString &run) {
+  if (value.isArray()) {
+    QJsonArray items;
+    for (const auto &item : value.toArray()) { items.append(storeLocalClips(item, run)); }
+    return items;
+  }
+  if (!value.isObject()) { return value; }
+  auto object = value.toObject();
+  if (object.value("type") == "audio" && object.value("data").isString()) {
+    const auto bytes = QByteArray::fromBase64(object.value("data").toString().toLatin1(), QByteArray::AbortOnBase64DecodingErrors);
+    if (!bytes.isEmpty()) {
+      object["uri"] = LocalMediaStore::instance().addClip(run, bytes, object.value("content_type").toString(object.value("mime_type").toString()));
+      object.remove("data");
+      object.remove("asset_id");
+      return object;
+    }
+  }
+  for (auto it = object.begin(); it != object.end(); ++it) { it.value() = storeLocalClips(it.value(), run); }
+  return object;
+}
+// A local-media:// entry the store no longer holds because its run was dropped.
 bool holdsReleasedLocalMedia(const QJsonValue &value) {
   if (value.isArray()) {
     for (const auto &item : value.toArray()) { if (holdsReleasedLocalMedia(item)) { return true; } }
@@ -32,12 +56,12 @@ bool holdsReleasedLocalMedia(const QJsonValue &value) {
   if (!value.isObject()) { return false; }
   const auto object = value.toObject();
   const auto uri = object["uri"].toString();
-  if (LocalMediaStore::isLocalMedia(uri)) { return LocalMediaStore::instance().image(uri).isNull(); }
+  if (LocalMediaStore::isLocalMedia(uri)) { return !LocalMediaStore::instance().contains(uri); }
   for (const auto &item : object) { if (holdsReleasedLocalMedia(item)) { return true; } }
   return false;
 }
-// The runner cannot read local-media:// images, so a cached one goes into the
-// run graph as PNG data, the form the runner emits without an image store.
+// The runner reads inline bytes rather than process-local locators. Images
+// encode as PNG. Clips keep their original encoded bytes.
 QJsonValue inlineLocalMedia(const QJsonValue &value) {
   if (value.isArray()) {
     QJsonArray items;
@@ -48,6 +72,13 @@ QJsonValue inlineLocalMedia(const QJsonValue &value) {
   auto object = value.toObject();
   const auto uri = object.value("uri").toString();
   if (LocalMediaStore::isLocalMedia(uri)) {
+    const auto clip = LocalMediaStore::instance().clip(uri);
+    if (!clip.isNull()) {
+      object.remove("uri");
+      object["data"] = QString::fromLatin1(clip.bytes.toBase64());
+      object["content_type"] = clip.contentType;
+      return object;
+    }
     const auto image = LocalMediaStore::instance().image(uri);
     if (image.isNull()) { return value; }
     const QImage pixels(image.rgba->data(), int(image.width), int(image.height), int(image.width) * 4, QImage::Format_RGBA8888);
@@ -134,9 +165,8 @@ std::shared_ptr<gr::GraphRunner> sharedLocalRunner() {
   options.gpu.enabled = true;
   // Image outputs stay in this process as pixels. Run messages carry a
   // local-media:// URI, so nothing encodes, copies or bounds them as data.
-  options.gpu.outputImages = [](gr::OutputImage output) {
-    return LocalMediaStore::instance()
-        .add(QString::fromStdString(output.run), output.width, output.height, std::move(output.rgba))
+  options.gpu.outputImages = [store = LocalMediaStore::shared()](gr::OutputImage output) {
+    return store->add(QString::fromStdString(output.run), output.width, output.height, std::move(output.rgba))
         .toStdString();
   };
   options.allowMedia = true;
@@ -162,8 +192,15 @@ size_t WorkflowSession::finishLocalRunJobs(std::chrono::steady_clock::time_point
   return lanes.status == gr::HostShutdownStatus::TimedOut ? lanes.supervisor->liveThreads() : 0;
 }
 bool WorkflowSession::localRunnerReady() const { return m_localRunner && m_localRunner->ready(); }
+bool WorkflowSession::isPersonalProject(const QString &projectId) {
+  return projectId.isEmpty() || projectId == QLatin1String("default") || projectId.startsWith(QLatin1String("personal:"));
+}
+QString WorkflowSession::runProject(const QJsonObject &snapshot) const {
+  const auto id = snapshot.value("project_id").toString();
+  return id.isEmpty() ? m_openProject : id;
+}
 bool WorkflowSession::runsLocally(const QJsonObject &node) const {
-  if (!localRunnerReady()) { return false; }
+  if (!localRunnerReady() || !isPersonalProject(runProject(workflow()))) { return false; }
   const QJsonObject graph{{"nodes", QJsonArray{node}}, {"edges", QJsonArray{}}};
   return m_localRunner->canRun(QJsonDocument(graph).toJson(QJsonDocument::Compact).toStdString());
 }
@@ -196,6 +233,7 @@ WorkflowSession::WorkflowSession(QObject *parent)
   connect(&m_socket, &QWebSocket::connected, this, [this] {
     m_connected = true;
     m_opened = true;
+    sendOpenProject();
     m_reconnectTimer.stop();
     m_reconnectAttempt = 0;
     m_gaveUp = false;
@@ -300,7 +338,7 @@ void WorkflowSession::openSocket() {
   url.setScheme(m_base.scheme() == "https" ? "wss" : "ws");
   url.setPath("/ws");
   QNetworkRequest request(url);
-  request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
+  nodetool::account::qt::attachServerToken(request, m_base, m_token);
   m_opened = false;
   m_socket.open(request);
   emit stateChanged();
@@ -337,14 +375,20 @@ void WorkflowSession::flushDocumentNotification() {
     emit workflowChanged();
     emit stateChanged();
 }
+QString WorkflowSession::jobsError() const {
+    return m_accountJobs ? m_accountJobs->error() : QString();
+}
 QVariantList WorkflowSession::queue() const {
     QVariantList result;
     QSet<QString> seen;
     auto append = [&](const QString &id, QJsonObject row) {
         row["jobId"] = id;
         row["editedSinceError"] = row.contains("edit") && row["edit"].toDouble() != static_cast<double>(m_edit);
-        row["terminal"] = QStringList{"cancelled", "completed", "failed"}.contains(row["status"].toString());
+        row["terminal"] = QStringList{"cancelled", "completed", "failed", "timed_out"}.contains(row["status"].toString());
         row["stopping"] = m_accountJobs && m_accountJobs->stopping(id);
+        if (m_accountJobs && row["status"] == "completed") {
+            row["outputAssets"] = m_accountJobs->outputs(id);
+        }
         row["local"] = m_runs.contains(id);
         if (row["name"].toString().isEmpty()) {
             const auto current = workflow();
@@ -503,7 +547,7 @@ void WorkflowSession::request(const QByteArray &method, const QString &path,
   req.setTransferTimeout(30000);
   req.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                    QNetworkRequest::ManualRedirectPolicy);
-  req.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
+  nodetool::account::qt::attachServerToken(req, m_base, m_token);
   req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
   auto *reply = m_network.sendCustomRequest(
       req, method,
@@ -543,6 +587,22 @@ void WorkflowSession::request(const QByteArray &method, const QString &path,
            status, {});
       });
 }
+void WorkflowSession::listGenerations(std::function<void(QJsonArray, QString)> done) {
+  if (m_base.isEmpty()) {
+    done({}, QStringLiteral("Connect to a server to load generations."));
+    return;
+  }
+  // GENERATION_HISTORY_LIMIT finished generations plus room for running ones.
+  QUrlQuery query;
+  query.addQueryItem("input", QString::fromUtf8(QJsonDocument(QJsonObject{{"limit", 100}}).toJson(QJsonDocument::Compact)));
+  request("GET", "/trpc/generations.list?" + query.toString(QUrl::FullyEncoded), {},
+          [done = std::move(done)](QJsonObject response, int, QString error) {
+            auto data = response["result"].toObject()["data"].toObject();
+            if (data["json"].isObject()) { data = data["json"].toObject(); }
+            if (error.isEmpty() && !data["generations"].isArray()) { error = QStringLiteral("Invalid generations response"); }
+            done(data["generations"].toArray(), error);
+          });
+}
 void WorkflowSession::preflightCost(std::function<void(QJsonObject, QString)> done) {
   if (!serverBound()) {
     done({}, QStringLiteral("Save the workflow to the server first"));
@@ -555,6 +615,17 @@ void WorkflowSession::preflightCost(std::function<void(QJsonObject, QString)> do
           [done = std::move(done)](QJsonObject summary, int, QString error) {
             done(summary["cost"].toObject(), error);
           });
+}
+void WorkflowSession::providerCredits(const QString &provider, std::function<void(QJsonObject, QString)> done) {
+  request("GET", "/api/" + provider + "/credits", {}, [done = std::move(done)](QJsonObject response, int status, QString error) {
+    done(response, status == 204 ? QStringLiteral("No API key") : error);
+  });
+}
+void WorkflowSession::falPricingEstimate(const QString &endpointId, std::function<void(QJsonObject, QString)> done) {
+  const QJsonObject body{{"endpoint_id", endpointId}, {"estimate_type", "historical_api_price"}, {"call_quantity", 1}};
+  request("POST", "/api/fal/pricing/estimate", body, [done = std::move(done)](QJsonObject response, int status, QString error) {
+    done(response, status == 204 ? QStringLiteral("No estimate") : error);
+  });
 }
 void WorkflowSession::loadCatalog() {
   request("GET", "/api/nodes/metadata?fields=full", {},
@@ -583,7 +654,13 @@ void WorkflowSession::openWorkflow(const QString &id) {
           emit errorOccurred(error);
           return;
         }
-        if (o["id"].toString() != id || o["updated_at"].toString().isEmpty() ||
+        // The server resolves an exact 12-character id prefix to the full id.
+        const auto full = o["id"].toString();
+        const bool prefix =
+            QRegularExpression("^[0-9a-f]{12}$").match(id).hasMatch() &&
+            QRegularExpression("^[0-9a-f]{32}$").match(full).hasMatch() &&
+            full.startsWith(id);
+        if ((full != id && !prefix) || o["updated_at"].toString().isEmpty() ||
             !o["graph"].isObject()) {
           emit errorOccurred("Invalid workflow response");
           return;
@@ -593,7 +670,7 @@ void WorkflowSession::openWorkflow(const QString &id) {
         clearConflict();
         m_autosaveState = "saved";
         m_saving = false;
-        m_id = id;
+        m_id = full;
         m_workflow = o;
         m_persistedWorkflow = o;
         m_revision = o["updated_at"].toString();
@@ -1072,6 +1149,17 @@ bool WorkflowSession::mergeRemoteWorkflow(const QJsonObject &remote, const QJson
   emit workflowChanged();
   return true;
 }
+void WorkflowSession::setOpenProject(const QString &projectKey) {
+  if (projectKey == m_openProject) { return; }
+  m_openProject = projectKey;
+  if (m_connected) { sendOpenProject(); }
+}
+// web/src/lib/websocket/openProjectSignal.ts. The server replaces the
+// connection's open project with each command and drops it when the socket closes.
+void WorkflowSession::sendOpenProject() {
+  const QString id = isPersonalProject(m_openProject) ? QStringLiteral("default") : m_openProject;
+  send("set_open_project", {{"project_id", id}});
+}
 bool WorkflowSession::send(const QString &cmd, const QJsonObject &data) {
   if (!m_connected) {
     emit errorOccurred("Connect before sending a run command");
@@ -1156,10 +1244,16 @@ QString WorkflowSession::submitRun(const QJsonObject &snapshot, const QJsonObjec
   }
   const QJsonObject runGraph{{"nodes", nodes}, {"edges", edges}};
   const auto graphJson = QJsonDocument(runGraph).toJson(QJsonDocument::Compact).toStdString();
-  const bool inProcess = localRunnerReady() && m_localRunner->canRun(graphJson);
+  // The runner writes into Personal's folder. A workflow of another project
+  // runs on the server, whose project resolver gives the run that project's folder.
+  const auto project = runProject(fullSnapshot);
+  const bool personal = isPersonalProject(project);
+  const bool runnable = localRunnerReady() && m_localRunner->canRun(graphJson);
+  const bool inProcess = personal && runnable;
   if (localOnly && !inProcess) { return {}; }
   if (!inProcess && !m_connected) {
-    emit errorOccurred("Connect before running");
+    emit errorOccurred(runnable ? tr("Connect to the server to run workflows of a project. Local runs write only to Personal's folder.")
+                                : tr("Connect before running"));
     return {};
   }
   const auto retained = queue();
@@ -1191,6 +1285,9 @@ QString WorkflowSession::submitRun(const QJsonObject &snapshot, const QJsonObjec
                    {"concurrent", true},
                    {"settings", snapshot["settings"].toObject()},
                    {"graph", runGraph}};
+  // A request with a graph names its project itself, because the server
+  // reads the workflow row only for a request without one.
+  if (!personal) { data.insert("project_id", project); }
   m_runs.insert(id, {{"workflow_id", snapshot["id"]}, {"last_seq", 0}, {"status", "starting"}, {"name", snapshot["name"]}, {"edit", static_cast<double>(m_edit)}, {"started_at", QJsonValue::Null}, {"order", static_cast<double>(++m_queueOrder)}});
   m_generations.submitted(id, fullSnapshot, metadata, executed);
   if (inProcess) {
@@ -1228,6 +1325,19 @@ void WorkflowSession::stop(const QString &id) {
         return;
     }
     send("cancel_job", {{"job_id", id}, {"workflow_id", m_runs[id]["workflow_id"]}});
+}
+bool WorkflowSession::updateNodeProperties(const QString &id, const QString &nodeId, const QJsonObject &properties) {
+    if (nodeId.isEmpty() || properties.isEmpty() || !m_runs.contains(id) || m_runs[id]["terminal"].toBool()) {
+        return false;
+    }
+    if (m_inProcessRuns.contains(id)) {
+        return m_localRunner->updateNodeProperties(id.toStdString(), nodeId.toStdString(),
+                                                   QJsonDocument(properties).toJson(QJsonDocument::Compact).toStdString());
+    }
+    // A change that cannot reach the server stays in the document for the next run.
+    if (!m_connected) { return false; }
+    return send("update_node_properties", {{"job_id", id}, {"workflow_id", m_runs[id]["workflow_id"]},
+                                           {"node_id", nodeId}, {"properties", properties}});
 }
 void WorkflowSession::cancelJob(const QString &id) {
     if (!m_accountJobs || id.isEmpty()) {
@@ -1277,12 +1387,26 @@ void WorkflowSession::receive(const QByteArray &bytes) {
     m_socket.sendBinaryMessage(encodeMsgPack(QJsonObject{{"type", "pong"}}));
     return;
   }
+  if (event["type"] == "prediction") {
+    emit predictionReceived(event);
+    return;
+  }
   if (event["type"] == "system_stats") {
     m_systemStats = event["stats"].toObject().toVariantMap();
     emit systemStatsChanged();
     return;
   }
   if (event["type"] == "resource_change") {
+    const auto resourceType = event.value("resource_type").toString();
+    const auto resource = event.value("resource").toObject();
+    if (resourceType == QLatin1String("workspacefile")) {
+      emit workspaceFilesChanged(resource.value("id").toString());
+      return;
+    }
+    if (resourceType == QLatin1String("documentfile")) {
+      emit documentFileChanged(resource);
+      return;
+    }
     if (m_accountJobs && event["resource_type"] == "job") {
         m_accountJobs->refresh();
     }
@@ -1297,7 +1421,7 @@ void WorkflowSession::receiveLocal(const QString &jobId, const QString &workflow
   // stream carries them only on job and edge updates.
   if (!event.contains("job_id")) { event["job_id"] = jobId; }
   if (!event.contains("workflow_id")) { event["workflow_id"] = workflowId; }
-  ingestRunEvent(event);
+  ingestRunEvent(storeLocalClips(event, jobId).toObject());
 }
 void WorkflowSession::ingestRunEvent(QJsonObject event) {
   if (event.value("type") == "error" && event.value("node_id").toString().isEmpty() && !event.value("job_id").toString().isEmpty()) {
@@ -1324,7 +1448,7 @@ void WorkflowSession::ingestRunEvent(QJsonObject event) {
   }
   const bool lifecycle = type == "job_update" || type == "job_resumed";
   const auto reported = message.value("status").toString();
-  const bool settles = QStringList{"completed", "failed", "cancelled", "finished", "error"}.contains(reported);
+  const bool settles = QStringList{"completed", "failed", "cancelled", "finished", "error", "timed_out"}.contains(reported);
   // A late lifecycle frame never reopens a finished run.
   if (lifecycle && run.value("terminal").toBool() && !settles) {
     return;
@@ -1361,7 +1485,7 @@ void WorkflowSession::ingestRunEvent(QJsonObject event) {
   } else if (lifecycle) {
     auto status = message["status"].toString();
     if (status == "finished") status = "completed";
-    if (status == "error") status = "failed";
+    if (status == "error" || status == "timed_out") status = "failed";
     if (message["started_at"].isString()) {
         run.insert("started_at", message["started_at"]);
     }

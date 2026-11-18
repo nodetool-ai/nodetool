@@ -10,6 +10,7 @@
 //                      (default: ~/.cache/graph-runner-parity/snapshot/nodetool-graph-runner)
 //   --bundle <path>    prebuilt parity guest (guest.js or guest.bin); default: build one
 //   --only <text>      only nodes whose type contains <text> (repeatable)
+//   --modules <list>   comma-separated guest modules for a focused qualification
 //   --jobs <n>         native runs in parallel (default 4)
 //   --ref-jobs <n>     reference processes (default 2)
 //   --timeout <ms>     per-case timeout on each side (default 20000)
@@ -52,6 +53,7 @@ function parseArgs(argv) {
     if (arg === "--runner") opts.runner = resolve(value());
     else if (arg === "--bundle") opts.bundle = resolve(value());
     else if (arg === "--only") opts.only.push(value());
+    else if (arg === "--modules") opts.modules = value();
     else if (arg === "--jobs") opts.jobs = Number(value());
     else if (arg === "--ref-jobs") opts.refJobs = Number(value());
     else if (arg === "--timeout") opts.timeout = Number(value());
@@ -197,11 +199,11 @@ function comparable(messages, workspace) {
 
 // ------------------------------------------------------------------ guest
 
-async function buildGuest(box, work) {
+async function buildGuest(box, work, modules) {
   const js = join(work, "guest-parity.js");
   const bin = join(work, "guest-parity.bin");
   const build = await collect(
-    box.spawn(process.execPath, [join(ROOT, "guest", "build.mjs"), js, "--profile", "parity"], { cwd: ROOT }),
+    box.spawn(process.execPath, [join(ROOT, "guest", "build.mjs"), js, "--profile", "parity", ...(modules ? ["--modules", modules] : [])], { cwd: ROOT }),
     300_000
   );
   if (build.status !== 0) throw new Error(`parity guest build failed:\n${build.stderr}`);
@@ -565,7 +567,7 @@ async function classifyAll(opts) {
   let bundle = opts.bundle;
   if (!bundle) {
     log("building the parity guest");
-    const { js, bin } = await buildGuest(box, work);
+    const { js, bin } = await buildGuest(box, work, opts.modules);
     bundle = await compileGuest(box, opts, js, bin);
   }
   log(`guest: ${bundle}`);

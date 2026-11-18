@@ -75,7 +75,6 @@ public:
     Q_INVOKABLE void focusNode() { emit focusNodeRequested(); }
     Q_INVOKABLE void runSelectedNodes(int runs) { emit runSelectedRequested(runs); }
     // Empty text hides the tool tip.
-    Q_INVOKABLE void showToolTip(const QString &text) { emit toolTipRequested(text); }
 
 signals:
     void selectionChanged();
@@ -89,7 +88,6 @@ signals:
     void clearSelectionRequested();
     void focusNodeRequested();
     void runSelectedRequested(int runs);
-    void toolTipRequested(const QString &text);
 
 private:
     PropertyHost fields_;

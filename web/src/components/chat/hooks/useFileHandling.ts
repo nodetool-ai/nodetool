@@ -66,7 +66,8 @@ export const useFileHandling = () => {
         type: "document",
         document: {
           type: "document",
-          uri
+          uri,
+          title: file.name
         }
       };
     } else {

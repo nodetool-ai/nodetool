@@ -1,3 +1,4 @@
+#include <QScopeGuard>
 // The keyboard presets, checked in the mounted editor with real key events.
 // A key press uses what the platform reports: Shift+1 is Qt::Key_Exclam and
 // Shift+= is Qt::Key_Plus on a US keyboard, not the digit or Qt::Key_Equal.
@@ -336,6 +337,13 @@ private slots:
         QCOMPARE(playhead(), 6000.0);
         press(Qt::Key_Home);
         QCOMPARE(playhead(), 0.0);
+        // Final Cut binds neither key, so the registered defaults take them.
+        gestures()->setKeyboardPreset("fcp");
+        press(Qt::Key_End);
+        QCOMPARE(playhead(), 6000.0);
+        press(Qt::Key_Home);
+        QCOMPARE(playhead(), 0.0);
+        gestures()->setKeyboardPreset("premiere");
         // Up and Down follow the targeted tracks, Shift+Up and Shift+Down do not.
         auto& targets = nt::targeting::TrackTargeting::current();
         targets.setTrackTargeted("v", false);
@@ -458,6 +466,47 @@ private slots:
             QCOMPARE(clip("y").value("durationMs").toDouble(), 1500.0);
         });
     }
+    void rangeAndTargetedSplitActions() {
+        // B26, B27, B28: split with nothing selected, lift and extract follow the targeted tracks.
+        loadDocument(R"({"name":"Fixture","fps":30,"width":640,"height":360,"durationMs":10000,
+          "tracks":[{"id":"v","name":"V1","type":"video","index":0},{"id":"w","name":"V2","type":"video","index":1}],
+          "clips":[{"id":"x","trackId":"v","name":"X","mediaType":"image","startMs":0,"durationMs":4000},
+                   {"id":"y","trackId":"w","name":"Y","mediaType":"image","startMs":0,"durationMs":4000},
+                   {"id":"z","trackId":"v","name":"Z","mediaType":"image","startMs":5000,"durationMs":1000}]})");
+        auto& targets = nt::targeting::TrackTargeting::current();
+        targets.setTrackTargeted("w", false);
+        const auto restore = qScopeGuard([&] { targets.setTrackTargeted("w", true); });
+        clock.seek(2000);
+        const auto clipsOn = [this](const QString& trackId) {
+            int count = 0;
+            for (const auto& c : model.clipsJson()) { count += c.toObject().value("trackId") == trackId; }
+            return count;
+        };
+        QVERIFY(gestures()->runAction("splitAtPlayhead"));
+        QCOMPARE(clipsOn("v"), 3);
+        QCOMPARE(clip("y").value("durationMs").toDouble(), 4000.0);
+        history()->undo();
+        gestures()->viewState()->setRangeIn(1000);
+        gestures()->viewState()->setRangeOut(2000);
+        QVERIFY(gestures()->runAction("extractRange"));
+        // The span leaves V1 and the gap closes: Z moves back by one second.
+        QCOMPARE(clip("z").value("startMs").toDouble(), 4000.0);
+        QCOMPARE(clip("y").value("durationMs").toDouble(), 4000.0);
+        history()->undo();
+        gestures()->viewState()->setRangeIn(1000);
+        gestures()->viewState()->setRangeOut(2000);
+        QVERIFY(gestures()->runAction("liftRange"));
+        QCOMPARE(clip("z").value("startMs").toDouble(), 5000.0);
+        history()->undo();
+        // A clip copied from the untargeted V2 pastes onto the targeted V1.
+        gestures()->setSelection({"y"});
+        QVERIFY(gestures()->runAction("copy"));
+        gestures()->setSelection({});
+        clock.seek(7000);
+        QVERIFY(gestures()->runAction("paste"));
+        QCOMPARE(clipsOn("v"), 3);
+        QCOMPARE(clipsOn("w"), 1);
+    }
     void selectedEditKeys() {
         gestures()->viewState()->zoomTo(10, 0);
         selectEdge("c", "end");
@@ -469,7 +518,7 @@ private slots:
             QVERIFY(std::abs(clip("c").value("durationMs").toDouble() - (2000 - frame)) <= 1);
         });
         editKey(Qt::Key_Right, Qt::ControlModifier | Qt::AltModifier | Qt::ShiftModifier, [&] {
-            QVERIFY(std::abs(clip("c").value("durationMs").toDouble() - (2000 + 10 * frame)) <= 1);
+            QVERIFY(std::abs(clip("c").value("durationMs").toDouble() - (2000 + 5 * frame)) <= 1);
         });
         // A held key is one undo entry.
         const int held = history()->index();

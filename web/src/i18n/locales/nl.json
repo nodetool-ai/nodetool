@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "code#staat",
       "signInWindowClosed": "Inlogvenster gesloten?",
       "openAgain": "Open het opnieuw",
-      "linkExpiry": ". De link vervalt na 10 minuten."
+      "linkExpiry": ". De link vervalt na 10 minuten.",
+      "nativeSubtitle": "wil inloggen op je NodeTool-account.",
+      "app": "App",
+      "device": "Apparaat",
+      "nativeNote": "Keur alleen goed als je deze aanmelding zelf in een NodeTool-desktopapp op deze computer hebt gestart. De app kan daarna je clouddocumenten openen, bewerken en opslaan tot je uitlogt of de sessie in Instellingen beëindigt."
     },
     "integrations": {
       "loadingAccounts": "Verbonden accounts laden",
@@ -295,6 +299,8 @@
     "addWorkflowTooltip": "Voeg een werkstroomknooppunt toe",
     "addSubgraph": "Subgrafiek toevoegen",
     "addSubgraphTooltip": "Voeg een inline subgraafknooppunt toe",
+    "addComfySubgraph": "Comfy-subgraaf toevoegen",
+    "addComfySubgraphTooltip": "Voeg een subgraaf van ComfyUI-nodes toe die als één Comfy-taak draait",
     "addApp": "App toevoegen",
     "addAppTooltip": "Voer een mini-app uit als knooppunt",
     "property": "Eigendom",
@@ -694,61 +700,15 @@
   },
   "batch2_1": {
     "common": {
-      "workspace": "Werkruimte",
       "loading": "Laden…",
       "refresh": "Vernieuwen",
       "remove": "Verwijderen",
       "cancel": "Annuleer"
     },
-    "page": {
-      "title": "Werkruimtes",
-      "subtitle": "Sandboxmappen waarin agenten en workflows bestanden kunnen lezen, schrijven en ordenen."
-    },
-    "folderPicker": {
-      "title": "Selecteer de werkruimtemap"
-    },
-    "notifications": {
-      "added": "Werkruimte toegevoegd",
-      "removed": "Werkruimte verwijderd"
-    },
-    "errors": {
-      "loadTitle": "Kan werkruimten niet laden",
-      "loadSummary": "Werkruimten kunnen niet worden geladen",
-      "loadDescription": "Controleer uw verbinding en probeer het opnieuw.",
-      "operation": "Werkruimtebewerking mislukt: {{error}}"
-    },
-    "manager": {
-      "inaccessible": "Ontoegankelijk",
-      "defaultWorkspace": "Standaard werkruimte",
-      "setDefault": "Als standaard instellen",
-      "emptyTitle": "Geen werkruimten geconfigureerd",
-      "emptyCanManage": "Voeg een werkruimte toe zodat agenten toegang hebben tot lokale mappen",
-      "emptyManaged": "Deze implementatie beheert uw werkruimte voor u",
-      "adding": "Toevoegen…",
-      "addWorkspace": "Werkruimte toevoegen",
-      "removeTitle": "Deze werkruimte verwijderen?",
-      "removeDescription": "De werkruimte wordt verwijderd uit NodeTool. De map zelf wordt niet verwijderd."
-    },
-    "select": {
-      "defaultWithPath": "Standaard ({{path}})",
-      "description": "Agenten lezen en schrijven hier bestanden tijdens de uitvoering, inclusief opgeslagen afbeeldingen, tekst, gegevens en andere uitvoer. Blader door de resultaten in het deelvenster Werkruimte. Agenten hebben alleen toegang tot bestanden in deze map. Een workflow die op Standaard blijft staan, gebruikt uw standaardwerkruimte.",
-      "createNew": "Creëer een nieuwe werkruimte",
-      "addWorkspace": "Werkruimte toevoegen…"
-    },
     "tree": {
       "loading": "Laden…",
       "accessDenied": "⚠️Toegang geweigerd",
-      "title": "Verkenner van de werkruimte",
-      "manage": "Beheer werkruimtes",
-      "goToRoot": "Ga naar de hoofdmap van de werkruimte",
-      "openInFolder": "Openen in map",
-      "openExternally": "Extern openen",
-      "noneSelected": "Geen werkruimte geselecteerd",
-      "selectOrCreate": "Selecteer hierboven een werkruimte of maak er een aan.",
-      "createWorkspace": "Creëer werkruimte",
-      "fileBrowser": "Bestandsbrowser in de werkruimte",
-      "emptyTitle": "Werkruimte is leeg",
-      "emptyDescription": "Voeg bestanden toe aan uw werkruimtemap om ze hier te bekijken."
+      "openExternally": "Extern openen"
     }
   },
   "batch2_10": {
@@ -1617,7 +1577,11 @@
       "assistant": "Assistent",
       "history": "Geschiedenis",
       "code": "Codeer",
-      "storyboard": "Storyboard"
+      "storyboard": "Storyboard",
+      "effectControls": "Effectinstellingen",
+      "motion": "Beweging",
+      "color": "Kleur",
+      "ai": "AI"
     },
     "unavailable": {
       "tracks": "De DAW-modus heeft een eigen trackweergave. Schakel het uit (Alt+M) om het tijdlijnpaneel te openen.",
@@ -1754,7 +1718,6 @@
       "packageManager": "Pakketbeheerder",
       "assets": "Activa",
       "collections": "Collecties",
-      "workspaces": "Werkruimtes",
       "memory": "Geheugen",
       "settings": "Instellingen",
       "help": "Hulp",
@@ -2281,7 +2244,8 @@
       "cloudAlphaNotice": "Cloud bevindt zich in alfa. Gebruik voor productiewerk",
       "ssoTitle": "Aanmelden bij NodeTool",
       "ssoSignIn": "Aanmelden met {{provider}}",
-      "ssoFailed": "Aanmelden mislukt ({{reason}}). Probeer het opnieuw of vraag je beheerder om toegang."
+      "ssoFailed": "Aanmelden mislukt ({{reason}}). Probeer het opnieuw of vraag je beheerder om toegang.",
+      "marketingOptIn": "Stuur me e-mails over nieuwe lanceringen en gratis aanbiedingen. Je kunt je altijd afmelden."
     },
     "inspector": {
       "params": "Params",
@@ -2578,6 +2542,10 @@
       "connected": "Verbonden",
       "connectedProviders": "Verbonden aanbieders",
       "connectedViaOAuth": "Verbonden met inloggen",
+      "creditLeft": "Resterend tegoed: {{amount}}",
+      "creditLeftOf": "Resterend tegoed: {{amount}} van {{limit}}",
+      "creditExhausted": "Geen tegoed meer. Waardeer op bij {{provider}} om het te gebruiken.",
+      "creditRefused": "{{provider}} weigerde een aanroep wegens onvoldoende tegoed. Waardeer op en klik daarna op Testen.",
       "connecting": "Verbinden…",
       "delete": "Verwijderen",
       "deleteApiKeyConfirmation": "De API-sleutel {{provider}} wordt verwijderd en de bijbehorende modellen werken niet meer totdat u opnieuw een sleutel toevoegt.",
@@ -3668,6 +3636,7 @@
         "shotCount_other": "{{count}} opnamen",
         "modelLabel": "Model",
         "modelPlaceholder": "Scenariomodel",
+        "noModels": "Er is geen taalmodel beschikbaar. Voeg een providersleutel toe in Instellingen, onder Modellen en providers.",
         "shotsLabel": "Schoten",
         "title": "Kies je genre",
         "description": "Toon, tempo en kadrering volgen uw keuze. Je kunt het later wijzigen.",
@@ -3821,10 +3790,9 @@
           "lightingPlaceholder": "Hoe de scène wordt verlicht",
           "shotHeader": "Schot {{count}}",
           "shotAction": "Schot {{count}} · Actie",
-          "shotDialogue": "Schot {{count}} · Dialoog",
-          "dialoguePlaceholder": "Dialoog",
-          "addDialogue": "Dialoog toevoegen",
+          "dialogue": "Dialoog",
           "seconds": "Seconden",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Scène {{count}}"
         },
         "fallback": {
@@ -6172,7 +6140,23 @@
         "title": "Nieuw project",
         "confirm": "Project aanmaken",
         "nameLabel": "Projectnaam",
-        "createError": "Kon het project niet aanmaken: {{error}}"
+        "locationLabel": "Locatie",
+        "locationDefault": "Projectenmap",
+        "locationChoose": "Kiezen…",
+        "locationReset": "Projectenmap gebruiken",
+        "createError": "Kon het project niet aanmaken: {{error}}",
+        "openFolder": "Map openen…",
+        "openFolderHint": "Heb je al een map? Open die als project. Er worden geen bestanden verplaatst.",
+        "openFolderTravels": "Een map van een andere computer opent met zijn workflows, tijdlijnen en assets. Chats, storyboards, scripts, schetsen, apps en JS-scripts gaan niet mee met de map.",
+        "openFolderError": "Kan de map niet openen: {{error}}"
+      },
+      "folder": {
+        "notFound": "Map niet gevonden",
+        "notFoundDetail": "De map van {{name}} is verplaatst, hernoemd of staat op een station dat niet is aangesloten. Runs starten pas als je de map zoekt.",
+        "locate": "Zoeken",
+        "locateError": "Kan de map niet vinden: {{error}}",
+        "moving": "Bestanden worden naar de projectmap verplaatst",
+        "movingDetail": "{{done}} van {{total}} bestanden verplaatst. Je assets blijven ondertussen beschikbaar."
       },
       "home": {
         "homeTab": "Thuis",
@@ -6396,6 +6380,16 @@
           "image": "Afbeelding",
           "video": "Video",
           "audio": "Audio"
+        },
+        "attachedFileActions": {
+          "label": "Begin met je bestanden",
+          "hint": "Bestanden bijgevoegd. Beschrijf wat je wilt maken, of begin ermee:",
+          "animate": "Animeren tot video",
+          "image": "Nieuwe afbeeldingen maken",
+          "retake": "Video bewerken",
+          "script": "Omzetten naar script",
+          "ask": "Vragen erover stellen",
+          "askPrompt": "Bekijk de bijgevoegde bestanden en stel voor wat ik ermee kan maken."
         }
       }
     }
@@ -6441,16 +6435,42 @@
           "export": "Exporteren",
           "archive": "Archief",
           "restore": "Herstellen",
-          "delete": "Verwijderen"
+          "delete": "Verwijderen",
+          "collect": "Bestanden verzamelen"
         },
         "projectActions": "Projectacties",
         "actionsForProject": "Acties voor {{projectName}}",
         "exporting": "Exporteren…",
         "deleteProject": "Project verwijderen",
         "confirmDeleteTitle": "{{projectName}} verwijderen?",
-        "confirmDeleteBody": "Verwijder {{projectName}} en al zijn documenten, gesprekken, gegenereerde resultaten, activa, taken en projectbestanden.",
+        "confirmDeleteBody": "Verwijder {{projectName}} en al zijn documenten, gesprekken, taken en assets die buiten de projectmap zijn opgeslagen.",
         "deleteIrreversible": "Dit kan niet ongedaan worden gemaakt.",
-        "error": "Kon {{action}} {{projectName}} niet: {{error}}"
+        "deleteFolderTrash": "De projectmap wordt naar de prullenbak verplaatst.",
+        "deleteFolderRemove": "De projectmap en alle bestanden erin worden uit de cloudopslag verwijderd.",
+        "deleteFolderKeep": "De projectmap blijft met alle bestanden op zijn plek. NodeTool verwijdert alleen de map .nodetool erin.",
+        "deleteFolderMissing": "De projectmap is niet bereikbaar, dus NodeTool laat hem ongemoeid.",
+        "folderMovedAsideTo": "De prullenbak was niet bereikbaar. De projectmap is verplaatst naar {{path}}.",
+        "folderMovedAside": "De prullenbak was niet bereikbaar. De projectmap is verplaatst naar de map .trash in de projectenmap.",
+        "folderTrashFailedAt": "De projectmap kon niet naar de prullenbak worden verplaatst. Hij staat nog op {{path}}.",
+        "folderTrashFailed": "De projectmap kon niet naar de prullenbak worden verplaatst. Hij blijft op zijn plek.",
+        "error": "Kon {{action}} {{projectName}} niet: {{error}}",
+        "collecting": "Bestanden verzamelen…",
+        "collectResult": "Bestanden verzameld in {{projectName}}: {{copied}} gekopieerd, {{skipped}} overgeslagen, {{failed}} mislukt.",
+        "linkedTitle": "{{projectName}} koppelt bestanden buiten de eigen map",
+        "linkedBody": "Een export bevat de projectmap. Deze bestanden zijn van elders gekoppeld en staan er niet in:",
+        "linkedChoice": "Verzamelen en exporteren kopieert ze naar de map Imported en exporteert daarna. Annuleren behoudt de koppelingen en exporteert niets.",
+        "collectAndExport": "Verzamelen en exporteren"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Kopiëren of koppelen?",
+        "confirm": "Importeren",
+        "copy": "Naar de projectmap kopiëren",
+        "copyHint": "Het project houdt een eigen kopie. Wijzigingen in het origineel komen daar niet in.",
+        "link": "Ter plaatse koppelen",
+        "linkHint": "Er wordt niets gekopieerd. Het project leest het bestand waar het staat. Bestanden verzamelen kopieert het later.",
+        "threshold": "Bestanden van {{size}} of meer worden standaard gekoppeld."
       }
     }
   },
@@ -6510,7 +6530,16 @@
         "couldNotLoadDocuments": "Kan documenten niet laden",
         "noDocuments": "Nog geen documenten",
         "noMatchingDocuments": "Geen overeenkomende documenten",
-        "searchProjectsAndDocuments": "Zoek projecten en documenten"
+        "searchProjectsDocumentsAndChats": "Zoek projecten, documenten en chats",
+        "documentsAndChats": "Documenten en chats",
+        "chats": "Chats",
+        "loadingChats": "Chats laden…",
+        "couldNotLoadChats": "Chats konden niet worden geladen",
+        "noChats": "Nog geen chats",
+        "noMatchingChats": "Geen overeenkomende chats",
+        "allChats": "Alle chats",
+        "untitledChat": "Naamloze chat",
+        "searchShort": "Zoeken"
       },
       "rail": {
         "projects": "Projecten"
@@ -6616,8 +6645,6 @@
       "runModeTool": "Gereedschap",
       "runModeDescription": "Hoe deze workflow verloopt en kan worden geactiveerd",
       "advanced": "Geavanceerd",
-      "workspace": "Werkruimte",
-      "workspaceDescription": "Koppel een werkruimtemap aan deze workflow voor agenttoegang",
       "toolName": "Naam van het gereedschap",
       "toolNameDescription": "Identificatie voor API-/toolgebruik. Alleen letters, cijfers en onderstrepingstekens.",
       "toolNamePlaceholder": "mijn_workflow_tool",
@@ -8944,6 +8971,7 @@
         "Welk soort app heeft de gebeurtenis verzonden (cloud, desktop, lokaal internet), de app-versie en de besturingssysteemfamilie.",
         "Dat de app is gestart, een workflow is gemaakt of een workflow is uitgevoerd.",
         "Voor een run: lokaal of in de cloud, telt het knooppunt als een bereik (zoals 6-20), de duur als een bereik en voor een fout een categorie zoals provider of time-out.",
+        "Voor een eerste sessie: dat de startkeuzes zijn getoond, welke is gekozen, het soort eerste resultaat (zoals chat of storyboard) met de tijd ernaartoe als bereik, en de schermklasse (telefoon, tablet of desktop).",
         "Een willekeurige ID die in deze browser wordt bewaard en die elke 30 dagen verandert, en een willekeurige ID voor deze sessie."
       ],
       "never": "Nooit",
@@ -9083,10 +9111,6 @@
         "REPLICATE_API_TOKEN": {
           "button": "Ontvang een repliceer-API-token",
           "tooltip": "Ga naar de pagina API-tokens repliceren"
-        },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Wachtwoord voor de Google-app verkrijgen",
-          "tooltip": "Ga naar de pagina met wachtwoorden voor de Google-accountapp"
         },
         "ELEVENLABS_API_KEY": {
           "button": "Ontvang de ElevenLabs API-sleutel",
@@ -10639,9 +10663,9 @@
         "jsScripts": "JS-scripts",
         "skills": "Vaardigheden",
         "assets": "Activa",
-        "workspace": "Werkruimte",
         "library": "Bibliotheek",
-        "more": "Meer"
+        "more": "Meer",
+        "files": "Bestanden"
       },
       "categoryDescriptions": {
         "documents": "Blader door elk document in het huidige project.",
@@ -10661,9 +10685,9 @@
         "jsScripts": "Creëer en beheer herbruikbare JavaScript-code.",
         "skills": "Vaardigheden van agenten: afprijsinstructies afgestemd op het doel.",
         "assets": "Blader door middelen die beschikbaar zijn in de huidige context.",
-        "workspace": "Blader door de bestanden in de geselecteerde werkruimtemap.",
         "library": "Blader door activa in het huidige project.",
-        "more": "Open extra workflow-, editor-, ontwikkelaar- en werkruimtepanelen."
+        "more": "Open meer werkstroom-, editor- en ontwikkelaarspanelen.",
+        "files": "Blader door de bestanden in de projectmap."
       }
     },
     "queue": {
@@ -10682,6 +10706,8 @@
       "queuedCount_one": "{{count}} staat in de wachtrij",
       "queuedCount_other": "{{count}} staat in de wachtrij",
       "collapseQueue": "Wachtrij samenvouwen",
+      "moveQueue": "Wachtrij verplaatsen",
+      "moveQueueHint": "Sleep om te verplaatsen. Pijltoetsen verplaatsen, Home zet terug.",
       "enqueued": "In de wachtrij"
     },
     "toolbar": {
@@ -10763,6 +10789,7 @@
       "levels_one": "{{count}} niveau",
       "levels_other": "{{count}} niveaus",
       "allLevels": "Alle niveaus",
+      "anyDepth": "Elke diepte",
       "spanName": "Spannaam",
       "focusSpan": "Focusbereik",
       "wholeRun": "Hele run",
@@ -10820,7 +10847,6 @@
       "noRecentRuns": "Geen recente runs",
       "noMatchingSpans": "Geen overeenkomende overspanningen",
       "spanId": "Bereik {{id}}",
-      "olderRuns": "Oudere runs",
       "noRecordedRuns": "Geen geregistreerde runs",
       "noRunsDescription": "Start een app-bewerking, workflow of chatbeurt om de tracering en logboeken ervan te inspecteren.",
       "runStatus": {
@@ -13185,8 +13211,9 @@
         },
         "showCode": "Toon code",
         "showArguments": "Toon argumenten",
-        "allow": "Toestaan",
-        "allowForChat": "Sta deze chat toe",
+        "allowOnce": "Eén keer toestaan",
+        "allowAlways": "Altijd toestaan",
+        "allowAlwaysHint": "{{tool}} voortaan uitvoeren zonder te vragen. Je kunt dit wijzigen in Instellingen › Machtigingen.",
         "deny": "Ontkennen"
       }
     }
@@ -13423,7 +13450,8 @@
         "sendMessage": "Kon het bericht niet verzenden: {{error}}",
         "compact": "Kan het gesprek niet comprimeren: {{error}}",
         "copyConversation": "Kan het gesprek niet kopiëren.",
-        "rewindConversation": "Kan het gesprek niet terugspoelen: {{error}}"
+        "rewindConversation": "Kan het gesprek niet terugspoelen: {{error}}",
+        "switchVersion": "Kan niet van versie wisselen: {{error}}"
       },
       "notifications": {
         "copiedMessages_one": "Gekopieerd {{count}} bericht als Markdown.",
@@ -13445,8 +13473,14 @@
         },
         "connectProviderTitle": "Sluit een AI-provider aan om aan de slag te gaan",
         "connectProviderButton": "Sluit een aanbieder aan",
-        "title": "Hoe kan ik je vandaag helpen?",
-        "subtitle": "Vraag alles, lever bestanden in of begin met een van deze:"
+        "greeting": {
+          "morning": "Goedemorgen",
+          "afternoon": "Goedemiddag",
+          "evening": "Goedenavond",
+          "morningName": "Goedemorgen, {{name}}",
+          "afternoonName": "Goedemiddag, {{name}}",
+          "eveningName": "Goedenavond, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Taken",
@@ -13964,8 +13998,7 @@
       "search": "Doorzoek alle panelen",
       "group": {
         "workflow-tools": "Workflow-hulpmiddelen",
-        "agent-tools": "Hulpmiddelen voor agenten",
-        "workspace": "Werkruimte"
+        "agent-tools": "Hulpmiddelen voor agenten"
       },
       "category": {
         "favorites": {
@@ -13983,10 +14016,6 @@
         "skills": {
           "label": "Vaardigheden",
           "description": "Vaardigheden van agenten: afprijsinstructies afgestemd op het doel."
-        },
-        "workspace-files": {
-          "label": "Werkruimte",
-          "description": "Blader door de bestanden in de geselecteerde werkruimtemap."
         }
       }
     },
@@ -14642,9 +14671,6 @@
       "runGroup": {
         "groupRunning": "Groep loopt",
         "runGroup": "Groep uitvoeren"
-      },
-      "saveDestinationHint": {
-        "workspace": "Werkruimte"
       }
     }
   },
@@ -15087,7 +15113,6 @@
       "csv": "CSV-bestand",
       "unknown": "Onbekend bestandstype",
       "unknownContentType": "Onbekend inhoudstype",
-      "offline": "Offline media",
       "thumbnail": "Miniatuur",
       "folder": "Map"
     },
@@ -15863,9 +15888,9 @@
       "jsscripts": "JS-scripts",
       "skills": "Vaardigheden",
       "assets": "Activa",
-      "workspace-files": "Werkruimte",
       "library": "Bibliotheek",
-      "more": "Meer"
+      "more": "Meer",
+      "files": "Bestanden"
     }
   },
   "i18n-next55": {
@@ -15992,7 +16017,6 @@
         "models": "Modelmanager",
         "packages": "Pakketbeheerder",
         "collections": "Collecties",
-        "workspaces": "Werkruimtes",
         "entities": "Entiteiten",
         "memory": "Geheugen",
         "settings": "Instellingen",
@@ -16734,8 +16758,8 @@
         "extendEdit": "Verleng het bewerkingspunt naar de afspeelkop",
         "trimEditLeft": "Trim het bewerkingspunt één frame terug",
         "trimEditRight": "Trimbewerkingspunt één frame op",
-        "trimEditLeftLarge": "Trim het bewerkingspunt tien frames terug",
-        "trimEditRightLarge": "Trimbewerkingspunt tien frames ingeschakeld",
+        "trimEditLeftLarge": "Trim het bewerkingspunt vijf frames terug",
+        "trimEditRightLarge": "Trimbewerkingspunt vijf frames ingeschakeld",
         "duplicate": "Dupliceer na de selectie",
         "duplicateWithGap": "Dupliceer met een tussenruimte van 1 seconde",
         "applyDefaultTransition": "Cross-fade naar geselecteerde clips",
@@ -16816,7 +16840,49 @@
         "exitExpandedPreview": "Sluit het uitgebreide voorbeeld",
         "moveOnePixel": "Verplaats het fragment één pixel",
         "moveTenPixels": "Verplaats de clip tien pixels",
-        "resetTransform": "Reset de transformatie"
+        "resetTransform": "Reset de transformatie",
+        "extendPrevEdit": "Vorige bewerking uitbreiden tot de afspeelkop",
+        "extendNextEdit": "Volgende bewerking uitbreiden tot de afspeelkop",
+        "selectPrevClip": "Vorige clip selecteren",
+        "selectNextClip": "Volgende clip selecteren",
+        "clipVolumeUp": "Clipvolume 1 dB verhogen",
+        "clipVolumeDown": "Clipvolume 1 dB verlagen",
+        "clipVolumeUpMore": "Clipvolume 6 dB verhogen",
+        "clipVolumeDownMore": "Clipvolume 6 dB verlagen",
+        "slideLeft": "Geselecteerde clips één frame terug schuiven",
+        "slideRight": "Geselecteerde clips één frame vooruit schuiven",
+        "slowShuttleBack": "Langzaam achteruit shuttelen (nogmaals: sneller)",
+        "slowShuttleForward": "Langzaam vooruit shuttelen (nogmaals: sneller)",
+        "goToSequenceStart": "Naar het begin van de sequentie",
+        "goToSequenceEnd": "Naar het einde van de sequentie",
+        "goToSelectedStart": "Naar het begin van de selectie",
+        "goToSelectedEnd": "Naar het laatste frame van de selectie",
+        "markSelection": "Selectie markeren (in en uit eromheen)",
+        "clearIn": "In wissen",
+        "clearOut": "Uit wissen",
+        "prevCutAnyTrack": "Vorige snede op een willekeurig spoor",
+        "nextCutAnyTrack": "Volgende snede op een willekeurig spoor",
+        "prevGap": "Naar het vorige gat in de sequentie",
+        "nextGap": "Naar het volgende gat in de sequentie",
+        "addRangeMarker": "Bereikmarkering van één seconde toevoegen bij de afspeelkop",
+        "addMarkerInOut": "Markering van in tot uit toevoegen",
+        "clearAllMarkers": "Alle markeringen wissen",
+        "playAround": "Rond de afspeelkop afspelen",
+        "playInToOutWithRoll": "Van in tot uit afspelen met pre-roll en post-roll",
+        "playToOut": "Van de afspeelkop tot uit afspelen",
+        "expandAllTracks": "Alle sporen uitvouwen (nogmaals: herstellen)",
+        "minimizeAllTracks": "Alle sporen minimaliseren (nogmaals: herstellen)",
+        "audioTracksTaller": "Audiosporen hoger maken",
+        "audioTracksShorter": "Audiosporen lager maken",
+        "panelSource": "Naar Bron",
+        "panelTimeline": "Naar de tijdlijn",
+        "panelProgram": "Naar Programma",
+        "panelEffectControls": "Naar Effectinstellingen",
+        "panelInspector": "Naar de inspector",
+        "panelScript": "Naar het script",
+        "panelStoryboard": "Naar het storyboard",
+        "nextPanel": "Naar het volgende paneel",
+        "prevPanel": "Naar het vorige paneel"
       }
     },
     "vst": {
@@ -18295,9 +18361,12 @@
       "result": "Resultaat",
       "copyResult": "Kopieer resultaat",
       "editMessage": "Bericht bewerken",
-      "editWarning": "Verzenden vervangt alles na dit bericht.",
+      "editWarning": "Verzenden start een nieuwe versie. De huidige blijft beschikbaar.",
       "editAndResend": "Bewerken en opnieuw verzenden",
       "regenerate": "Regenereer",
+      "previousVersion": "Vorige versie",
+      "nextVersion": "Volgende versie",
+      "versionOf": "Versie {{index}} van {{count}}",
       "copyMessage": "Kopieer bericht",
       "enterCredential": "Voer een referentie in",
       "credentialSubtitle": "Opgeslagen in je geheime winkel. De agent ziet nooit de waarde ervan.",
@@ -18535,7 +18604,7 @@
   },
   "i18n-next110": {
     "workspaceFile": {
-      "invalidReference": "Ongeldige verwijzing naar werkruimtebestand"
+      "invalidReference": "Ongeldige bestandsverwijzing"
     }
   },
   "i18n-next109": {
@@ -19026,6 +19095,26 @@
       "typeMore": "Typ minstens 2 tekens",
       "noMatches": "Niemand gevonden",
       "failed": "Kon geen toegang geven."
+    },
+    "options": {
+      "history": "Geschiedenis",
+      "historyDescription": "Kijkers kunnen opgeslagen versies openen.",
+      "download": "Downloaden",
+      "downloadDescription": "Kijkers kunnen de originele bestanden downloaden.",
+      "duplicate": "Dupliceren",
+      "duplicateDescription": "Kijkers kunnen het met de bestanden naar hun eigen bibliotheek kopiëren.",
+      "turnedOff": "Wat al gedownload of gedupliceerd is, houden mensen.",
+      "historyOffNotice": "Kijkers van deze link zien geen opgeslagen versies meer. Zet geschiedenis aan om ze terug te geven.",
+      "turnOnHistory": "Geschiedenis aanzetten",
+      "dismiss": "Sluiten",
+      "failed": "De opties konden niet worden gewijzigd."
+    },
+    "people": {
+      "from": "Toegang via {{sources}}",
+      "sourceInvitation": "uitnodiging",
+      "sourceViewLink": "bekijklink",
+      "sourceEditLink": "bewerklink",
+      "sourceDisabled": "{{source}} (uitgeschakeld)"
     }
   },
   "timelineAutomation": {
@@ -19991,5 +20080,263 @@
     "missingKeysDetail": "Deze workflow heeft {{keys}} nodig. Voeg die toe in Instellingen voordat je hem uitvoert.",
     "costPerRun": "≈ {{cost}} per run",
     "costUnknown": "Kosten onbekend"
+  },
+  "marketingEmails": {
+    "title": "Product-e-mails",
+    "label": "Stuur me e-mails over lanceringen en gratis aanbiedingen",
+    "description": "Hoor als eerste over nieuwe functies, modellen en gratis aanbiedingen. Elke e-mail bevat een afmeldlink, en je kunt dit hier altijd uitzetten.",
+    "saveFailed": "Je e-mailvoorkeur is niet opgeslagen. Probeer het opnieuw."
+  },
+  "firstRun": {
+    "ariaLabel": "Begin met een resultaat",
+    "heading": "Maak iets in minder dan een minuut",
+    "subline": "Alles is al ingevuld. Probeer er een en pas hem daarna aan je eigen idee aan.",
+    "firstTask": {
+      "label": "Je eerste prompt",
+      "prompt": "Geef me drie ideeën voor een video van 30 seconden over een vos in de eerste sneeuw, elk in één regel.",
+      "hint": "Antwoordt binnen seconden met het gratis standaardmodel.",
+      "action": "Versturen"
+    },
+    "game": {
+      "title": "Maak een klein spel",
+      "description": "Een vos zoekt de laatste eikel. Opent bij het ontwerp, één klik schrijft het."
+    },
+    "storyboard": {
+      "title": "Maak een storyboard voor een korte film",
+      "description": "Een vuurtorenwachter en een gestrande robot. Opent bij het script, één klik schrijft het.",
+      "brief": "Een vuurtorenwachter vindt na een storm een kleine aangespoelde robot en leert hem het licht brandend te houden."
+    },
+    "template": {
+      "title": "Voer een sjabloon uit",
+      "description": "Advertentietekst in drie tonen, met het product al ingevuld. Druk op Uitvoeren."
+    },
+    "opening": "Openen…",
+    "startFailed": "Kan de starter niet openen: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "Geen clip geselecteerd",
+    "severalClips": "Meerdere clips geselecteerd",
+    "effectControls": {
+      "empty": "Selecteer een clip op de tijdlijn om transformatie, dekking, effecten en maskers aan te passen.",
+      "several": "Selecteer één clip om hem aan te passen."
+    },
+    "motion": {
+      "empty": "Selecteer een clip op de tijdlijn om hem te animeren.",
+      "several": "Selecteer één clip om hem te animeren.",
+      "unsupportedTitle": "Niets te animeren",
+      "unsupported": "Selecteer een video-, afbeeldings-, tekst- of vormclip om hem te animeren."
+    },
+    "color": {
+      "empty": "Selecteer een clip op de tijdlijn om de kleuren te corrigeren.",
+      "several": "Selecteer één clip om de kleuren te corrigeren.",
+      "unsupportedTitle": "Deze clip heeft geen beeld",
+      "unsupported": "Selecteer een video-, afbeeldings-, tekst- of vormclip om de kleuren te corrigeren."
+    },
+    "ai": {
+      "empty": "Selecteer een clip op de tijdlijn om ermee te genereren of hem met AI te bewerken.",
+      "several": "Selecteer één clip om ermee te genereren.",
+      "unsupportedTitle": "Geen AI-tools voor deze clip",
+      "unsupported": "Selecteer een video- of afbeeldingsclip, of een gegenereerde clip."
+    }
+  },
+  "toolPermissions": {
+    "tab": "Machtigingen",
+    "title": "Toolmachtigingen",
+    "sidebarCategory": "Tools",
+    "intro": "Kies welke tools de assistent zonder te vragen mag gebruiken. Een tool op Vragen toont eerst een vraag in de chat.",
+    "modes": "In de standaardmodus vraagt elke tool op Vragen eerst om toestemming. In de automatische modus draaien tools zonder te vragen, behalve een codeactie die verwijdert, publiceert of geld uitgeeft. Zet Execute code op Altijd toestaan om ook die vraag uit te zetten. De planmodus blokkeert elke wijziging, ongeacht de regel.",
+    "alwaysAllow": "Altijd toestaan",
+    "ask": "Vragen",
+    "saveFailed": "Deze machtiging kon niet worden opgeslagen.",
+    "loadFailed": "De lijst met tools kon niet worden geladen.",
+    "noMatches": "Geen tools komen overeen met je zoekopdracht."
+  },
+  "projectFolder": {
+    "name": "Projectmap",
+    "picker": {
+      "title": "Selecteer een map"
+    },
+    "tree": {
+      "title": "Bestanden",
+      "goToRoot": "Ga naar de hoofdmap van de projectmap",
+      "fileBrowser": "Projectbestanden",
+      "emptyTitle": "De projectmap is leeg",
+      "emptyDescription": "Voeg bestanden toe aan de projectmap om ze hier te zien.",
+      "noFolderTitle": "Geen projectmap",
+      "noFolderDescription": "Dit project heeft nog geen map.",
+      "revealInFinder": "Toon in Finder",
+      "revealInExplorer": "Toon in Verkenner",
+      "revealInFileManager": "Toon in bestandsbeheer",
+      "moveIntoItself": "Een map kan niet naar zichzelf of een van de submappen worden verplaatst.",
+      "notAnAsset": "Dit bestand hoort niet bij de assets van het project en kan hier niet worden gewijzigd.",
+      "actionFailed": "De wijziging is niet opgeslagen: {{error}}"
+    },
+    "documentFile": {
+      "invalidTitle": "Dit bestand bevat een fout",
+      "invalidBody": "{{path}} is niet geladen: {{error}}. De laatste geldige versie blijft open en kan nog steeds worden uitgevoerd.",
+      "openFile": "Bestand openen",
+      "missingTitle": "Bestand ontbreekt",
+      "missingBody": "{{path}} staat niet meer in de projectmap. Herstellen schrijft het opnieuw vanuit dit document.",
+      "restore": "Herstellen",
+      "delete": "Verwijderen",
+      "cancel": "Annuleren",
+      "deleteTitle": "{{name}} verwijderen?",
+      "deleteDescription": "‘{{name}}’ en de versiegeschiedenis worden definitief verwijderd.",
+      "restoreFailed": "Het bestand is niet hersteld: {{error}}",
+      "deleteFailed": "Het document is niet verwijderd: {{error}}"
+    },
+    "migration": {
+      "title": "Verplaats je projecten naar mappen",
+      "intro": "NodeTool bewaart nu elk project in een eigen map op deze computer. Je bestanden, workflows en tijdlijnen worden daarheen verplaatst en je kunt ze in andere apps openen.",
+      "planProjects": "Projecten die een map krijgen",
+      "planFiles": "Te verplaatsen bestanden",
+      "planWorkflows": "Workflows die als bestanden worden opgeslagen",
+      "planTimelines": "Tijdlijnen die als bestanden worden opgeslagen",
+      "extraTitle": "Projecten met meer dan één map",
+      "extraBody": "Elk van deze projecten behoudt één map. NodeTool toont de andere niet meer en hun bestanden blijven waar ze staan.",
+      "extraKeeps": "{{project}} behoudt {{folder}}",
+      "extraHidden": "Niet meer zichtbaar: {{folder}}",
+      "location": "Locatie",
+      "changeLocation": "Locatie wijzigen",
+      "locationError": "Deze locatie kan niet worden gebruikt: {{error}}",
+      "permissionWarning": "macOS vraagt of NodeTool deze map mag gebruiken. Kies Sta toe, of kies een map buiten Documenten, Bureaublad, Downloads, iCloud Drive en externe schijven.",
+      "safety": "Er gaat niets verloren. Elk bestand wordt gekopieerd en gecontroleerd voordat de oude kopie wordt verwijderd. Je kunt doorwerken terwijl de bestanden worden verplaatst.",
+      "later": "Niet nu",
+      "confirm": "Bestanden verplaatsen",
+      "planError": "Het plan kon niet worden geladen: {{error}}",
+      "confirmError": "Het verplaatsen is niet gestart: {{error}}",
+      "actionError": "Het verplaatsen kon niet worden gewijzigd: {{error}}",
+      "progressRegion": "Bestanden worden naar projectmappen verplaatst",
+      "progressTitle": "Bestanden worden naar projectmappen verplaatst",
+      "pausedTitle": "Het verplaatsen van bestanden is gepauzeerd",
+      "doneTitle": "Bestanden verplaatst",
+      "progressCount": "{{done}} van {{total}} bestanden verplaatst",
+      "phaseFolders": "Projectmappen worden gemaakt",
+      "phaseFiles": "Workflows en tijdlijnen worden als bestanden opgeslagen",
+      "currentProject": "De bestanden van {{project}} worden verplaatst",
+      "pause": "Pauzeren",
+      "resume": "Hervatten",
+      "failuresTitle": "Kon niet worden verplaatst ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "Meer niet getoond: {{count}}",
+      "retry": "Opnieuw proberen",
+      "donePath": "Je bestanden staan in {{path}}",
+      "close": "Sluiten"
+    }
+  },
+  "assetPicker": {
+    "sourceTabs": "Bron van het asset",
+    "projectTab": "Dit project",
+    "personalTab": "Persoonlijk",
+    "personalHint": "Kiezen uit Persoonlijk kopieert het bestand naar dit project.",
+    "copying": "Kopiëren naar dit project…",
+    "copyFailed": "Het asset kon niet naar dit project worden gekopieerd."
+  },
+  "assetFileStatus": {
+    "missing": "Ontbreekt",
+    "missingTooltip": "Het bestand staat niet waar dit item het verwacht. Koppel het opnieuw aan de nieuwe locatie van het bestand of verwijder het item.",
+    "linked": "Gekoppeld",
+    "linkedTooltip": "Dit item gebruikt een bestand buiten de projectmap op de plek waar het staat.",
+    "relink": "Opnieuw koppelen",
+    "relinkTooltip": "Kies de nieuwe locatie van het bestand",
+    "relinkNoPath": "De locatie van dat bestand kon niet worden gelezen. Kies een bestand op deze computer.",
+    "relinkFailed": "Opnieuw koppelen mislukt: {{error}}",
+    "remove": "Verwijderen",
+    "removeTooltip": "Dit item uit NodeTool verwijderen",
+    "removeTitle": "\"{{name}}\" verwijderen?",
+    "removeBody": "Het item wordt uit NodeTool verwijderd. Documenten die het gebruiken, kunnen het niet meer tonen.",
+    "cancel": "Annuleren"
+  },
+  "deviceSessions": {
+    "title": "Aangemelde apparaten",
+    "description": "Computers waarop je bent aangemeld bij de NodeTool-desktopapps. De apps op één computer delen één sessie. Een sessie beëindigen meldt die computer af.",
+    "empty": "Er is geen computer aangemeld.",
+    "unnamed": "Naamloze computer",
+    "signedInFrom": "Aangemeld via {{app}} op {{date}}",
+    "lastUsed": "Laatst gebruikt {{date}}",
+    "neverUsed": "Niet gebruikt sinds aanmelding",
+    "end": "Sessie beëindigen",
+    "confirmTitle": "Deze sessie beëindigen?",
+    "confirmBody": "De NodeTool-desktopapps op {{device}} worden binnen een minuut afgemeld.",
+    "cancel": "Annuleren",
+    "ended": "Sessie beëindigd.",
+    "endError": "Kon de sessie niet beëindigen: {{error}}",
+    "loadError": "Kon aangemelde apparaten niet laden.",
+    "apps": {
+      "nodeEditor": "Node-editor",
+      "timeline": "Tijdlijn",
+      "desktop": "Desktop-app"
+    }
+  },
+  "storyboardText": {
+    "mode": "Tekst",
+    "editorLabel": "Storyboard als Markdown-tekst",
+    "hint": "Typ # voor een akte, ## voor een scène, ### voor een shot en - **Motion:** voor een veld. Typ @ om een entiteit of afbeelding te noemen.",
+    "issues": "Regels die aandacht nodig hebben: {{lines}}",
+    "loading": "Tekst laden…",
+    "warnings": {
+      "media_outside_shot": "Een afbeelding hoort bij een shot. Zet hem onder een ###-shotkop.",
+      "second_media": "Een shot heeft één geselecteerde still en één geselecteerde clip. Deze wordt niet gebruikt.",
+      "unknown_shot_field": "‘{{label}}’ is geen storyboardveld. Het wordt opgeslagen in de notities van het shot.",
+      "unknown_field": "‘{{label}}’ is hier geen veld. Het wordt niet opgeslagen.",
+      "text_in_scene": "Een scène heeft alleen een kopregel en belichting. Zet deze tekst onder een shot of begin hem met ‘Lighting:’.",
+      "bad_duration": "Shot {{shot}}: ‘{{value}}’ is geen aantal seconden.",
+      "bad_render": "Shot {{shot}}: render is keyframe, direct of reference.",
+      "no_next_shot": "Shot {{shot}}: een overgang leidt naar het volgende shot, en dat is er niet.",
+      "missing_action": "Shot {{shot}} heeft nog geen actie. Schrijf het beeld dat gerenderd wordt onder de kop."
+    },
+    "outline": "Overzicht",
+    "outlineEmpty": "Typ ### en een titel om een shot te beginnen.",
+    "untitledShot": "Shot zonder titel",
+    "untitledAct": "Akte zonder titel",
+    "untitledScene": "Scène zonder titel",
+    "issuesTitle": "Vraagt aandacht",
+    "stillOf": "Still van shot {{shot}}",
+    "assist": {
+      "lines": "{{lines}} regels geselecteerd",
+      "proposal": "Voorgestelde vervanging",
+      "note": "Notitie van de agent",
+      "discard": "Verwerpen",
+      "close": "Sluiten",
+      "replace": "Selectie vervangen",
+      "stale": "De passage is veranderd sinds je haar selecteerde. Selecteer haar opnieuw.",
+      "thinking": "Bezig met nadenken…",
+      "stop": "Stoppen",
+      "placeholder": "Zeg wat de agent met deze passage moet doen",
+      "refinePlaceholder": "Resultaat verfijnen",
+      "instruction": "Verzoek aan de agent",
+      "send": "Naar de agent sturen",
+      "failed": "Het verzoek aan het model is mislukt.",
+      "context": "Meegestuurd met het verzoek: het hele storyboard, {{shots}} shots en {{entities}} entiteiten uit de bibliotheek.",
+      "quick": {
+        "tighten": "Inkorten",
+        "visual": "Beeldender",
+        "camera": "Camera voorstellen",
+        "continuity": "Continuïteit controleren",
+        "summarize": "Samenvatten",
+        "inconsistencies": "Tegenstrijdigheden zoeken"
+      },
+      "errors": {
+        "no_model": "Kies een regiemodel voor dit storyboard, of een chatmodel, om de agent te gebruiken.",
+        "empty": "Het model gaf geen antwoord. Stuur het verzoek opnieuw.",
+        "failed": "Het verzoek is mislukt. Stuur het opnieuw."
+      }
+    }
+  },
+  "cloudAccount": {
+    "title": "NodeTool Cloud-account",
+    "description": "Eén aanmelding voor deze app, de node-editor en de tijdlijn op deze computer. Aan- of afmelden hier geldt voor alle drie.",
+    "signedInAs": "Aangemeld als {{name}}",
+    "server": "Server: {{server}}",
+    "signedOut": "Niet aangemeld",
+    "signingIn": "Rond het aanmelden af in je browser",
+    "serverEndPending": "Afgemeld, sessie nog niet beëindigd op de server",
+    "cloudOff": "Cloudfuncties zijn uitgeschakeld op deze computer",
+    "noKeychain": "Deze computer heeft geen opslag voor inloggegevens, dus de aanmelding duurt tot NodeTool wordt afgesloten.",
+    "signIn": "Aanmelden",
+    "cancel": "Annuleren",
+    "signOut": "Afmelden",
+    "signOutNote": "Wijzigingen die wachten in de node-editor of de tijdlijn blijven op deze computer en worden verzonden nadat je je opnieuw aanmeldt.",
+    "unavailable": "Aanmelden bij de cloud is niet beschikbaar in deze build."
   }
 }

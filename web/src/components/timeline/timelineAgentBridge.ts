@@ -164,6 +164,7 @@ export interface TimelineMarkerNode {
   label: string;
   color?: string;
   note?: string;
+  durationMs?: number;
 }
 
 export interface TimelineMediaTrackNode {
@@ -180,6 +181,7 @@ export interface TimelineAddMarkerOptions {
   label?: string;
   color?: string;
   note?: string;
+  durationMs?: number;
 }
 
 /** Full snapshot of the open sequence the agent reads to plan edits. */
@@ -434,6 +436,12 @@ type ClipAnimationMode = "add" | "replace";
 export interface TimelineAgentHandler {
   applyOp: (op: TimelineOp) => Promise<TimelineOpResult>;
   getSnapshot: () => TimelineSnapshot;
+  /** Step the editor's undo history back (or forward with `redo`). */
+  undo: (options: { steps: number; redo: boolean }) => Promise<{
+    applied: number;
+    undoAvailable: number;
+    redoAvailable: number;
+  }>;
   /** Create another sequence in a target format, leaving this one untouched. */
   retargetFormat: (options: {
     aspectRatio: string;

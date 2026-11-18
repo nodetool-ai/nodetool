@@ -22,6 +22,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync, readdirSyn
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { packageManagerInvocation } from "./package-manager.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -52,15 +53,16 @@ function listFiles(dir, base = dir) {
   for (const name of entries) {
     const full = join(dir, name);
     if (statSync(full).isDirectory()) out.push(...listFiles(full, base));
-    else out.push(relative(base, full));
+    else out.push(relative(base, full).replaceAll("\\", "/"));
   }
   return out;
 }
 
 function generate(packageDir, outDir) {
+  const invocation = packageManagerInvocation("npx", ["tsx", "src/fixture-generate.ts", "--out", outDir]);
   const result = spawnSync(
-    "npx",
-    ["tsx", "src/fixture-generate.ts", "--out", outDir],
+    invocation.command,
+    invocation.args,
     { cwd: join(ROOT, packageDir), encoding: "utf8" }
   );
   if (result.status !== 0) {

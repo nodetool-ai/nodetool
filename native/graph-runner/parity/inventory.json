@@ -7843,6 +7843,794 @@
   ]
  },
  {
+  "type": "nodetool.audio.realtime.StreamingBitcrush",
+  "class": "REALTIME_AUDIO_NODES[0]",
+  "package": "@nodetool-ai/audio-nodes",
+  "module": "@nodetool-ai/audio-nodes/nodes/realtime-audio",
+  "title": "Streaming Bitcrush",
+  "platforms": [
+   "node",
+   "browser"
+  ],
+  "input_mode": null,
+  "is_streaming_input": true,
+  "is_streaming_output": false,
+  "has_run": true,
+  "is_trigger": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "supports_dynamic_outputs": false,
+  "required_settings": [],
+  "required_runtimes": [],
+  "requires_gpu": false,
+  "effect": "external",
+  "properties": [
+   {
+    "name": "bit_depth",
+    "type": "int",
+    "default": 8,
+    "required": false,
+    "min": 1,
+    "max": 16
+   },
+   {
+    "name": "sample_rate_reduction",
+    "type": "int",
+    "default": 1,
+    "required": false,
+    "min": 1,
+    "max": 100
+   },
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "default": {
+     "type": "chunk",
+     "node_id": null,
+     "thread_id": null,
+     "workflow_id": null,
+     "content_type": "audio",
+     "content": "",
+     "content_metadata": {},
+     "done": false,
+     "thinking": false
+    },
+    "required": false
+   }
+  ],
+  "outputs": [
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "stream": false
+   }
+  ]
+ },
+ {
+  "type": "nodetool.audio.realtime.StreamingCompress",
+  "class": "REALTIME_AUDIO_NODES[1]",
+  "package": "@nodetool-ai/audio-nodes",
+  "module": "@nodetool-ai/audio-nodes/nodes/realtime-audio",
+  "title": "Streaming Compress",
+  "platforms": [
+   "node",
+   "browser"
+  ],
+  "input_mode": null,
+  "is_streaming_input": true,
+  "is_streaming_output": false,
+  "has_run": true,
+  "is_trigger": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "supports_dynamic_outputs": false,
+  "required_settings": [],
+  "required_runtimes": [],
+  "requires_gpu": false,
+  "effect": "external",
+  "properties": [
+   {
+    "name": "threshold",
+    "type": "float",
+    "default": -20,
+    "required": false,
+    "min": -60,
+    "max": 0
+   },
+   {
+    "name": "ratio",
+    "type": "float",
+    "default": 4,
+    "required": false,
+    "min": 1,
+    "max": 20
+   },
+   {
+    "name": "attack",
+    "type": "float",
+    "default": 5,
+    "required": false,
+    "min": 0.1,
+    "max": 100
+   },
+   {
+    "name": "release",
+    "type": "float",
+    "default": 50,
+    "required": false,
+    "min": 5,
+    "max": 1000
+   },
+   {
+    "name": "auto_gain",
+    "type": "bool",
+    "default": true,
+    "required": false
+   },
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "default": {
+     "type": "chunk",
+     "node_id": null,
+     "thread_id": null,
+     "workflow_id": null,
+     "content_type": "audio",
+     "content": "",
+     "content_metadata": {},
+     "done": false,
+     "thinking": false
+    },
+    "required": false
+   }
+  ],
+  "outputs": [
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "stream": false
+   }
+  ]
+ },
+ {
+  "type": "nodetool.audio.realtime.StreamingDistortion",
+  "class": "REALTIME_AUDIO_NODES[2]",
+  "package": "@nodetool-ai/audio-nodes",
+  "module": "@nodetool-ai/audio-nodes/nodes/realtime-audio",
+  "title": "Streaming Distortion",
+  "platforms": [
+   "node",
+   "browser"
+  ],
+  "input_mode": null,
+  "is_streaming_input": true,
+  "is_streaming_output": false,
+  "has_run": true,
+  "is_trigger": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "supports_dynamic_outputs": false,
+  "required_settings": [],
+  "required_runtimes": [],
+  "requires_gpu": false,
+  "effect": "external",
+  "properties": [
+   {
+    "name": "drive_db",
+    "type": "float",
+    "default": 25,
+    "required": false,
+    "min": 0,
+    "max": 100
+   },
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "default": {
+     "type": "chunk",
+     "node_id": null,
+     "thread_id": null,
+     "workflow_id": null,
+     "content_type": "audio",
+     "content": "",
+     "content_metadata": {},
+     "done": false,
+     "thinking": false
+    },
+    "required": false
+   }
+  ],
+  "outputs": [
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "stream": false
+   }
+  ]
+ },
+ {
+  "type": "nodetool.audio.realtime.StreamingLimiter",
+  "class": "REALTIME_AUDIO_NODES[3]",
+  "package": "@nodetool-ai/audio-nodes",
+  "module": "@nodetool-ai/audio-nodes/nodes/realtime-audio",
+  "title": "Streaming Limiter",
+  "platforms": [
+   "node",
+   "browser"
+  ],
+  "input_mode": null,
+  "is_streaming_input": true,
+  "is_streaming_output": false,
+  "has_run": true,
+  "is_trigger": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "supports_dynamic_outputs": false,
+  "required_settings": [],
+  "required_runtimes": [],
+  "requires_gpu": false,
+  "effect": "external",
+  "properties": [
+   {
+    "name": "threshold_db",
+    "type": "float",
+    "default": -2,
+    "required": false,
+    "min": -60,
+    "max": 0
+   },
+   {
+    "name": "release_ms",
+    "type": "float",
+    "default": 250,
+    "required": false,
+    "min": 1,
+    "max": 1000
+   },
+   {
+    "name": "auto_gain",
+    "type": "bool",
+    "default": true,
+    "required": false
+   },
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "default": {
+     "type": "chunk",
+     "node_id": null,
+     "thread_id": null,
+     "workflow_id": null,
+     "content_type": "audio",
+     "content": "",
+     "content_metadata": {},
+     "done": false,
+     "thinking": false
+    },
+    "required": false
+   }
+  ],
+  "outputs": [
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "stream": false
+   }
+  ]
+ },
+ {
+  "type": "nodetool.audio.realtime.StreamingReverb",
+  "class": "REALTIME_AUDIO_NODES[4]",
+  "package": "@nodetool-ai/audio-nodes",
+  "module": "@nodetool-ai/audio-nodes/nodes/realtime-audio",
+  "title": "Streaming Reverb",
+  "platforms": [
+   "node",
+   "browser"
+  ],
+  "input_mode": null,
+  "is_streaming_input": true,
+  "is_streaming_output": false,
+  "has_run": true,
+  "is_trigger": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "supports_dynamic_outputs": false,
+  "required_settings": [],
+  "required_runtimes": [],
+  "requires_gpu": false,
+  "effect": "external",
+  "properties": [
+   {
+    "name": "room_scale",
+    "type": "float",
+    "default": 0.5,
+    "required": false,
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "damping",
+    "type": "float",
+    "default": 0.5,
+    "required": false,
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "wet_level",
+    "type": "float",
+    "default": 0.15,
+    "required": false,
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "dry_level",
+    "type": "float",
+    "default": 0.5,
+    "required": false,
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "default": {
+     "type": "chunk",
+     "node_id": null,
+     "thread_id": null,
+     "workflow_id": null,
+     "content_type": "audio",
+     "content": "",
+     "content_metadata": {},
+     "done": false,
+     "thinking": false
+    },
+    "required": false
+   }
+  ],
+  "outputs": [
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "stream": false
+   }
+  ]
+ },
+ {
+  "type": "nodetool.audio.realtime.StreamingNoiseGate",
+  "class": "REALTIME_AUDIO_NODES[5]",
+  "package": "@nodetool-ai/audio-nodes",
+  "module": "@nodetool-ai/audio-nodes/nodes/realtime-audio",
+  "title": "Streaming Noise Gate",
+  "platforms": [
+   "node",
+   "browser"
+  ],
+  "input_mode": null,
+  "is_streaming_input": true,
+  "is_streaming_output": false,
+  "has_run": true,
+  "is_trigger": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "supports_dynamic_outputs": false,
+  "required_settings": [],
+  "required_runtimes": [],
+  "requires_gpu": false,
+  "effect": "external",
+  "properties": [
+   {
+    "name": "threshold_db",
+    "type": "float",
+    "default": -50,
+    "required": false,
+    "min": -90,
+    "max": 0
+   },
+   {
+    "name": "attack_ms",
+    "type": "float",
+    "default": 1,
+    "required": false,
+    "min": 0.1,
+    "max": 100
+   },
+   {
+    "name": "release_ms",
+    "type": "float",
+    "default": 100,
+    "required": false,
+    "min": 5,
+    "max": 1000
+   },
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "default": {
+     "type": "chunk",
+     "node_id": null,
+     "thread_id": null,
+     "workflow_id": null,
+     "content_type": "audio",
+     "content": "",
+     "content_metadata": {},
+     "done": false,
+     "thinking": false
+    },
+    "required": false
+   }
+  ],
+  "outputs": [
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "stream": false
+   }
+  ]
+ },
+ {
+  "type": "nodetool.audio.realtime.StreamingPhaser",
+  "class": "REALTIME_AUDIO_NODES[6]",
+  "package": "@nodetool-ai/audio-nodes",
+  "module": "@nodetool-ai/audio-nodes/nodes/realtime-audio",
+  "title": "Streaming Phaser",
+  "platforms": [
+   "node",
+   "browser"
+  ],
+  "input_mode": null,
+  "is_streaming_input": true,
+  "is_streaming_output": false,
+  "has_run": true,
+  "is_trigger": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "supports_dynamic_outputs": false,
+  "required_settings": [],
+  "required_runtimes": [],
+  "requires_gpu": false,
+  "effect": "external",
+  "properties": [
+   {
+    "name": "rate_hz",
+    "type": "float",
+    "default": 1,
+    "required": false,
+    "min": 0.1,
+    "max": 10
+   },
+   {
+    "name": "depth",
+    "type": "float",
+    "default": 0.5,
+    "required": false,
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "centre_frequency_hz",
+    "type": "float",
+    "default": 1300,
+    "required": false,
+    "min": 100,
+    "max": 5000
+   },
+   {
+    "name": "feedback",
+    "type": "float",
+    "default": 0,
+    "required": false,
+    "min": -1,
+    "max": 1
+   },
+   {
+    "name": "mix",
+    "type": "float",
+    "default": 0.5,
+    "required": false,
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "default": {
+     "type": "chunk",
+     "node_id": null,
+     "thread_id": null,
+     "workflow_id": null,
+     "content_type": "audio",
+     "content": "",
+     "content_metadata": {},
+     "done": false,
+     "thinking": false
+    },
+    "required": false
+   }
+  ],
+  "outputs": [
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "stream": false
+   }
+  ]
+ },
+ {
+  "type": "nodetool.audio.realtime.StreamingDelay",
+  "class": "REALTIME_AUDIO_NODES[7]",
+  "package": "@nodetool-ai/audio-nodes",
+  "module": "@nodetool-ai/audio-nodes/nodes/realtime-audio",
+  "title": "Streaming Delay",
+  "platforms": [
+   "node",
+   "browser"
+  ],
+  "input_mode": null,
+  "is_streaming_input": true,
+  "is_streaming_output": false,
+  "has_run": true,
+  "is_trigger": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "supports_dynamic_outputs": false,
+  "required_settings": [],
+  "required_runtimes": [],
+  "requires_gpu": false,
+  "effect": "external",
+  "properties": [
+   {
+    "name": "delay_seconds",
+    "type": "float",
+    "default": 0.5,
+    "required": false,
+    "min": 0.01,
+    "max": 2
+   },
+   {
+    "name": "feedback",
+    "type": "float",
+    "default": 0.3,
+    "required": false,
+    "min": 0,
+    "max": 0.99
+   },
+   {
+    "name": "mix",
+    "type": "float",
+    "default": 0.5,
+    "required": false,
+    "min": 0,
+    "max": 1
+   },
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "default": {
+     "type": "chunk",
+     "node_id": null,
+     "thread_id": null,
+     "workflow_id": null,
+     "content_type": "audio",
+     "content": "",
+     "content_metadata": {},
+     "done": false,
+     "thinking": false
+    },
+    "required": false
+   }
+  ],
+  "outputs": [
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "stream": false
+   }
+  ]
+ },
+ {
+  "type": "nodetool.audio.realtime.StreamingHighShelf",
+  "class": "REALTIME_AUDIO_NODES[8]",
+  "package": "@nodetool-ai/audio-nodes",
+  "module": "@nodetool-ai/audio-nodes/nodes/realtime-audio",
+  "title": "Streaming High Shelf",
+  "platforms": [
+   "node",
+   "browser"
+  ],
+  "input_mode": null,
+  "is_streaming_input": true,
+  "is_streaming_output": false,
+  "has_run": true,
+  "is_trigger": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "supports_dynamic_outputs": false,
+  "required_settings": [],
+  "required_runtimes": [],
+  "requires_gpu": false,
+  "effect": "external",
+  "properties": [
+   {
+    "name": "cutoff_frequency_hz",
+    "type": "float",
+    "default": 5000,
+    "required": false,
+    "min": 1000,
+    "max": 20000
+   },
+   {
+    "name": "gain_db",
+    "type": "float",
+    "default": 0,
+    "required": false,
+    "min": -24,
+    "max": 24
+   },
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "default": {
+     "type": "chunk",
+     "node_id": null,
+     "thread_id": null,
+     "workflow_id": null,
+     "content_type": "audio",
+     "content": "",
+     "content_metadata": {},
+     "done": false,
+     "thinking": false
+    },
+    "required": false
+   }
+  ],
+  "outputs": [
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "stream": false
+   }
+  ]
+ },
+ {
+  "type": "nodetool.audio.realtime.StreamingLowShelf",
+  "class": "REALTIME_AUDIO_NODES[9]",
+  "package": "@nodetool-ai/audio-nodes",
+  "module": "@nodetool-ai/audio-nodes/nodes/realtime-audio",
+  "title": "Streaming Low Shelf",
+  "platforms": [
+   "node",
+   "browser"
+  ],
+  "input_mode": null,
+  "is_streaming_input": true,
+  "is_streaming_output": false,
+  "has_run": true,
+  "is_trigger": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "supports_dynamic_outputs": false,
+  "required_settings": [],
+  "required_runtimes": [],
+  "requires_gpu": false,
+  "effect": "external",
+  "properties": [
+   {
+    "name": "cutoff_frequency_hz",
+    "type": "float",
+    "default": 200,
+    "required": false,
+    "min": 20,
+    "max": 1000
+   },
+   {
+    "name": "gain_db",
+    "type": "float",
+    "default": 0,
+    "required": false,
+    "min": -24,
+    "max": 24
+   },
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "default": {
+     "type": "chunk",
+     "node_id": null,
+     "thread_id": null,
+     "workflow_id": null,
+     "content_type": "audio",
+     "content": "",
+     "content_metadata": {},
+     "done": false,
+     "thinking": false
+    },
+    "required": false
+   }
+  ],
+  "outputs": [
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "stream": false
+   }
+  ]
+ },
+ {
+  "type": "nodetool.audio.realtime.StreamingPeak",
+  "class": "REALTIME_AUDIO_NODES[10]",
+  "package": "@nodetool-ai/audio-nodes",
+  "module": "@nodetool-ai/audio-nodes/nodes/realtime-audio",
+  "title": "Streaming Peak",
+  "platforms": [
+   "node",
+   "browser"
+  ],
+  "input_mode": null,
+  "is_streaming_input": true,
+  "is_streaming_output": false,
+  "has_run": true,
+  "is_trigger": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "supports_dynamic_outputs": false,
+  "required_settings": [],
+  "required_runtimes": [],
+  "requires_gpu": false,
+  "effect": "external",
+  "properties": [
+   {
+    "name": "cutoff_frequency_hz",
+    "type": "float",
+    "default": 1000,
+    "required": false,
+    "min": 20,
+    "max": 20000
+   },
+   {
+    "name": "q_factor",
+    "type": "float",
+    "default": 1,
+    "required": false,
+    "min": 0.1,
+    "max": 10
+   },
+   {
+    "name": "gain_db",
+    "type": "float",
+    "default": 0,
+    "required": false,
+    "min": -24,
+    "max": 24
+   },
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "default": {
+     "type": "chunk",
+     "node_id": null,
+     "thread_id": null,
+     "workflow_id": null,
+     "content_type": "audio",
+     "content": "",
+     "content_metadata": {},
+     "done": false,
+     "thinking": false
+    },
+    "required": false
+   }
+  ],
+  "outputs": [
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "stream": false
+   }
+  ]
+ },
+ {
   "type": "nodetool.audio.realtime.AudioToChunks",
   "class": "AudioToChunksNode",
   "package": "@nodetool-ai/audio-nodes",
@@ -7884,6 +8672,12 @@
     "required": false,
     "min": 0.01,
     "max": 10
+   },
+   {
+    "name": "loop",
+    "type": "bool",
+    "default": false,
+    "required": false
    }
   ],
   "outputs": [
@@ -7966,6 +8760,14 @@
   "effect": "external",
   "properties": [
    {
+    "name": "duration",
+    "type": "float",
+    "default": 0,
+    "required": false,
+    "min": 0,
+    "max": 600
+   },
+   {
     "name": "chunk",
     "type": "chunk",
     "default": {
@@ -8014,6 +8816,14 @@
   "effect": "external",
   "properties": [
    {
+    "name": "gain_db",
+    "type": "float",
+    "default": 0,
+    "required": false,
+    "min": -60,
+    "max": 24
+   },
+   {
     "name": "chunk",
     "type": "chunk",
     "default": {
@@ -8028,14 +8838,6 @@
      "thinking": false
     },
     "required": false
-   },
-   {
-    "name": "gain_db",
-    "type": "float",
-    "default": 0,
-    "required": false,
-    "min": -60,
-    "max": 24
    }
   ],
   "outputs": [
@@ -8070,6 +8872,14 @@
   "effect": "external",
   "properties": [
    {
+    "name": "cutoff_frequency_hz",
+    "type": "float",
+    "default": 5000,
+    "required": false,
+    "min": 500,
+    "max": 20000
+   },
+   {
     "name": "chunk",
     "type": "chunk",
     "default": {
@@ -8084,14 +8894,6 @@
      "thinking": false
     },
     "required": false
-   },
-   {
-    "name": "cutoff_frequency_hz",
-    "type": "float",
-    "default": 5000,
-    "required": false,
-    "min": 500,
-    "max": 20000
    },
    {
     "name": "q",
@@ -8134,6 +8936,14 @@
   "effect": "external",
   "properties": [
    {
+    "name": "cutoff_frequency_hz",
+    "type": "float",
+    "default": 80,
+    "required": false,
+    "min": 20,
+    "max": 5000
+   },
+   {
     "name": "chunk",
     "type": "chunk",
     "default": {
@@ -8148,14 +8958,6 @@
      "thinking": false
     },
     "required": false
-   },
-   {
-    "name": "cutoff_frequency_hz",
-    "type": "float",
-    "default": 80,
-    "required": false,
-    "min": 20,
-    "max": 5000
    },
    {
     "name": "q",
@@ -8273,14 +9075,6 @@
     "required": false,
     "min": 0,
     "max": 10
-   },
-   {
-    "name": "sample_rate",
-    "type": "int",
-    "default": 24000,
-    "required": false,
-    "min": 8000,
-    "max": 96000
    }
   ],
   "outputs": [
@@ -8365,14 +9159,6 @@
     "required": false,
     "min": -10,
     "max": 10
-   },
-   {
-    "name": "sample_rate",
-    "type": "int",
-    "default": 24000,
-    "required": false,
-    "min": 8000,
-    "max": 96000
    }
   ],
   "outputs": [
@@ -8509,19 +9295,70 @@
     "required": false,
     "min": 0,
     "max": 10
-   },
-   {
-    "name": "sample_rate",
-    "type": "int",
-    "default": 24000,
-    "required": false,
-    "min": 8000,
-    "max": 96000
    }
   ],
   "outputs": [
    {
     "name": "cv",
+    "type": "cv",
+    "stream": false
+   }
+  ]
+ },
+ {
+  "type": "nodetool.audio.synth.Trigger",
+  "class": "TriggerNode",
+  "package": "@nodetool-ai/audio-nodes",
+  "module": "@nodetool-ai/audio-nodes/nodes/synthesis",
+  "title": "Trigger",
+  "platforms": [
+   "node",
+   "browser"
+  ],
+  "input_mode": null,
+  "is_streaming_input": true,
+  "is_streaming_output": false,
+  "has_run": true,
+  "is_trigger": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "supports_dynamic_outputs": false,
+  "required_settings": [],
+  "required_runtimes": [],
+  "requires_gpu": false,
+  "effect": "external",
+  "properties": [
+   {
+    "name": "trigger",
+    "type": "bool",
+    "default": false,
+    "required": false
+   },
+   {
+    "name": "note",
+    "type": "float",
+    "default": 0,
+    "required": false,
+    "min": -48,
+    "max": 48
+   },
+   {
+    "name": "length",
+    "type": "float",
+    "default": 0.1,
+    "required": false,
+    "min": 0.001,
+    "max": 60
+   }
+  ],
+  "outputs": [
+   {
+    "name": "gate",
+    "type": "cv",
+    "stream": false
+   },
+   {
+    "name": "pitch",
     "type": "cv",
     "stream": false
    }
@@ -8943,6 +9780,149 @@
     "required": false,
     "min": 0,
     "max": 2
+   }
+  ],
+  "outputs": [
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "stream": false
+   }
+  ]
+ },
+ {
+  "type": "nodetool.audio.synth.Sampler",
+  "class": "SYNTHESIS_NODES[10]",
+  "package": "@nodetool-ai/audio-nodes",
+  "module": "@nodetool-ai/audio-nodes/nodes/synthesis",
+  "title": "Sampler",
+  "platforms": [
+   "node",
+   "browser"
+  ],
+  "input_mode": null,
+  "is_streaming_input": true,
+  "is_streaming_output": false,
+  "has_run": true,
+  "is_trigger": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "supports_dynamic_outputs": false,
+  "required_settings": [],
+  "required_runtimes": [],
+  "requires_gpu": false,
+  "effect": "external",
+  "properties": [
+   {
+    "name": "audio",
+    "type": "audio",
+    "default": {
+     "type": "audio",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null
+    },
+    "required": false
+   },
+   {
+    "name": "gate",
+    "type": "cv",
+    "default": {
+     "type": "chunk",
+     "node_id": null,
+     "thread_id": null,
+     "workflow_id": null,
+     "content_type": "audio",
+     "content": "",
+     "content_metadata": {},
+     "done": false,
+     "thinking": false
+    },
+    "required": false
+   },
+   {
+    "name": "pitch_cv",
+    "type": "cv",
+    "default": {
+     "type": "chunk",
+     "node_id": null,
+     "thread_id": null,
+     "workflow_id": null,
+     "content_type": "audio",
+     "content": "",
+     "content_metadata": {},
+     "done": false,
+     "thinking": false
+    },
+    "required": false
+   },
+   {
+    "name": "mode",
+    "type": "enum",
+    "default": "one_shot",
+    "required": false,
+    "values": [
+     "one_shot",
+     "gated",
+     "loop"
+    ]
+   },
+   {
+    "name": "voices",
+    "type": "int",
+    "default": 8,
+    "required": false,
+    "min": 1,
+    "max": 32
+   },
+   {
+    "name": "tune",
+    "type": "float",
+    "default": 0,
+    "required": false,
+    "min": -48,
+    "max": 48
+   },
+   {
+    "name": "start",
+    "type": "float",
+    "default": 0,
+    "required": false,
+    "min": 0,
+    "max": 600
+   },
+   {
+    "name": "length",
+    "type": "float",
+    "default": 0,
+    "required": false,
+    "min": 0,
+    "max": 30
+   },
+   {
+    "name": "attack",
+    "type": "float",
+    "default": 0,
+    "required": false,
+    "min": 0,
+    "max": 10
+   },
+   {
+    "name": "release",
+    "type": "float",
+    "default": 0.05,
+    "required": false,
+    "min": 0,
+    "max": 10
+   },
+   {
+    "name": "gain",
+    "type": "float",
+    "default": 1,
+    "required": false,
+    "min": 0,
+    "max": 4
    }
   ],
   "outputs": [
@@ -15518,7 +16498,7 @@
    {
     "name": "system_prompt",
     "type": "str",
-    "default": "\nYou are a precise classifier.\n\nGoal\n- Select exactly one category from the list provided by the user.\n\nOutput format (MANDATORY)\n- Return ONLY a single JSON object with this exact schema and nothing else:\n  {\"category\": \"<one-of-the-allowed-categories>\"}\n- No prose, no Markdown, no code fences, no explanations, no extra keys.\n\nSelection criteria\n- Choose the single best category that captures the main intent of the text.\n- If multiple categories seem plausible, pick the most probable one; do not return multiple.\n- If none fit perfectly, choose the closest allowed category. If the list includes \"Other\" or \"Unknown\", prefer it when appropriate.\n- Be robust to casing, punctuation, emojis, and minor typos. Handle negation correctly (e.g., \"not spam\" ≠ spam).\n- Never invent categories that are not in the provided list.\n\nBehavior\n- Be deterministic for the same input.\n- Do not ask clarifying questions; make the best choice with what's given.\n",
+    "default": "\nYou are a precise classifier.\n\nGoal\n- Select exactly one category from the list provided by the user.\n\nOutput format (MANDATORY)\n- Return ONLY a single JSON object with this exact schema and nothing else:\n  {\"category\": \"<one-of-the-allowed-categories>\"}\n- No prose, no Markdown, no code fences, no explanations, no extra keys.\n\nSelection criteria\n- Choose the single best category that captures the main intent of the text.\n- If multiple categories seem plausible, pick the most probable one; do not return multiple.\n- If none fit perfectly, choose the closest allowed category. If the list includes \"Other\" or \"Unknown\", prefer it when appropriate.\n- Be robust to casing, punctuation, emojis, and minor typos. Handle negation correctly (e.g., \"not spam\" \u2260 spam).\n- Never invent categories that are not in the provided list.\n\nBehavior\n- Be deterministic for the same input.\n- Do not ask clarifying questions; make the best choice with what's given.\n",
     "required": false
    },
    {
@@ -22064,6 +23044,14 @@
   "effect": "external",
   "properties": [
    {
+    "name": "gain_db",
+    "type": "float",
+    "default": 0,
+    "required": false,
+    "min": -60,
+    "max": 24
+   },
+   {
     "name": "audio",
     "type": "audio",
     "default": {
@@ -22074,14 +23062,6 @@
      "metadata": null
     },
     "required": false
-   },
-   {
-    "name": "gain_db",
-    "type": "float",
-    "default": 0,
-    "required": false,
-    "min": -60,
-    "max": 24
    }
   ],
   "outputs": [
@@ -22117,18 +23097,6 @@
   "effect": "external",
   "properties": [
    {
-    "name": "audio",
-    "type": "audio",
-    "default": {
-     "type": "audio",
-     "uri": "",
-     "asset_id": null,
-     "data": null,
-     "metadata": null
-    },
-    "required": false
-   },
-   {
     "name": "delay_seconds",
     "type": "float",
     "default": 0.5,
@@ -22151,6 +23119,18 @@
     "required": false,
     "min": 0,
     "max": 1
+   },
+   {
+    "name": "audio",
+    "type": "audio",
+    "default": {
+     "type": "audio",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null
+    },
+    "required": false
    }
   ],
   "outputs": [
@@ -22186,6 +23166,14 @@
   "effect": "external",
   "properties": [
    {
+    "name": "cutoff_frequency_hz",
+    "type": "float",
+    "default": 80,
+    "required": false,
+    "min": 20,
+    "max": 5000
+   },
+   {
     "name": "audio",
     "type": "audio",
     "default": {
@@ -22196,14 +23184,6 @@
      "metadata": null
     },
     "required": false
-   },
-   {
-    "name": "cutoff_frequency_hz",
-    "type": "float",
-    "default": 80,
-    "required": false,
-    "min": 20,
-    "max": 5000
    }
   ],
   "outputs": [
@@ -22239,6 +23219,14 @@
   "effect": "external",
   "properties": [
    {
+    "name": "cutoff_frequency_hz",
+    "type": "float",
+    "default": 5000,
+    "required": false,
+    "min": 500,
+    "max": 20000
+   },
+   {
     "name": "audio",
     "type": "audio",
     "default": {
@@ -22249,14 +23237,6 @@
      "metadata": null
     },
     "required": false
-   },
-   {
-    "name": "cutoff_frequency_hz",
-    "type": "float",
-    "default": 5000,
-    "required": false,
-    "min": 500,
-    "max": 20000
    }
   ],
   "outputs": [
@@ -22292,18 +23272,6 @@
   "effect": "external",
   "properties": [
    {
-    "name": "audio",
-    "type": "audio",
-    "default": {
-     "type": "audio",
-     "uri": "",
-     "asset_id": null,
-     "data": null,
-     "metadata": null
-    },
-    "required": false
-   },
-   {
     "name": "cutoff_frequency_hz",
     "type": "float",
     "default": 5000,
@@ -22318,6 +23286,18 @@
     "required": false,
     "min": -24,
     "max": 24
+   },
+   {
+    "name": "audio",
+    "type": "audio",
+    "default": {
+     "type": "audio",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null
+    },
+    "required": false
    }
   ],
   "outputs": [
@@ -22353,18 +23333,6 @@
   "effect": "external",
   "properties": [
    {
-    "name": "audio",
-    "type": "audio",
-    "default": {
-     "type": "audio",
-     "uri": "",
-     "asset_id": null,
-     "data": null,
-     "metadata": null
-    },
-    "required": false
-   },
-   {
     "name": "cutoff_frequency_hz",
     "type": "float",
     "default": 200,
@@ -22379,6 +23347,18 @@
     "required": false,
     "min": -24,
     "max": 24
+   },
+   {
+    "name": "audio",
+    "type": "audio",
+    "default": {
+     "type": "audio",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null
+    },
+    "required": false
    }
   ],
   "outputs": [
@@ -22414,18 +23394,6 @@
   "effect": "external",
   "properties": [
    {
-    "name": "audio",
-    "type": "audio",
-    "default": {
-     "type": "audio",
-     "uri": "",
-     "asset_id": null,
-     "data": null,
-     "metadata": null
-    },
-    "required": false
-   },
-   {
     "name": "cutoff_frequency_hz",
     "type": "float",
     "default": 1000,
@@ -22448,6 +23416,18 @@
     "required": false,
     "min": -24,
     "max": 24
+   },
+   {
+    "name": "audio",
+    "type": "audio",
+    "default": {
+     "type": "audio",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null
+    },
+    "required": false
    }
   ],
   "outputs": [
@@ -22686,18 +23666,6 @@
   "effect": "external",
   "properties": [
    {
-    "name": "audio",
-    "type": "audio",
-    "default": {
-     "type": "audio",
-     "uri": "",
-     "asset_id": null,
-     "data": null,
-     "metadata": null
-    },
-    "required": false
-   },
-   {
     "name": "bit_depth",
     "type": "int",
     "default": 8,
@@ -22712,6 +23680,18 @@
     "required": false,
     "min": 1,
     "max": 100
+   },
+   {
+    "name": "audio",
+    "type": "audio",
+    "default": {
+     "type": "audio",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null
+    },
+    "required": false
    }
   ],
   "outputs": [
@@ -22746,18 +23726,6 @@
   "requires_gpu": false,
   "effect": "external",
   "properties": [
-   {
-    "name": "audio",
-    "type": "audio",
-    "default": {
-     "type": "audio",
-     "uri": "",
-     "asset_id": null,
-     "data": null,
-     "metadata": null
-    },
-    "required": false
-   },
    {
     "name": "threshold",
     "type": "float",
@@ -22795,6 +23763,18 @@
     "type": "bool",
     "default": true,
     "required": false
+   },
+   {
+    "name": "audio",
+    "type": "audio",
+    "default": {
+     "type": "audio",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null
+    },
+    "required": false
    }
   ],
   "outputs": [
@@ -22830,6 +23810,14 @@
   "effect": "external",
   "properties": [
    {
+    "name": "drive_db",
+    "type": "float",
+    "default": 25,
+    "required": false,
+    "min": 0,
+    "max": 100
+   },
+   {
     "name": "audio",
     "type": "audio",
     "default": {
@@ -22840,14 +23828,6 @@
      "metadata": null
     },
     "required": false
-   },
-   {
-    "name": "drive_db",
-    "type": "float",
-    "default": 25,
-    "required": false,
-    "min": 0,
-    "max": 100
    }
   ],
   "outputs": [
@@ -22883,18 +23863,6 @@
   "effect": "external",
   "properties": [
    {
-    "name": "audio",
-    "type": "audio",
-    "default": {
-     "type": "audio",
-     "uri": "",
-     "asset_id": null,
-     "data": null,
-     "metadata": null
-    },
-    "required": false
-   },
-   {
     "name": "threshold_db",
     "type": "float",
     "default": -2,
@@ -22914,6 +23882,18 @@
     "name": "auto_gain",
     "type": "bool",
     "default": true,
+    "required": false
+   },
+   {
+    "name": "audio",
+    "type": "audio",
+    "default": {
+     "type": "audio",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null
+    },
     "required": false
    }
   ],
@@ -22950,18 +23930,6 @@
   "effect": "external",
   "properties": [
    {
-    "name": "audio",
-    "type": "audio",
-    "default": {
-     "type": "audio",
-     "uri": "",
-     "asset_id": null,
-     "data": null,
-     "metadata": null
-    },
-    "required": false
-   },
-   {
     "name": "room_scale",
     "type": "float",
     "default": 0.5,
@@ -22992,6 +23960,18 @@
     "required": false,
     "min": 0,
     "max": 1
+   },
+   {
+    "name": "audio",
+    "type": "audio",
+    "default": {
+     "type": "audio",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null
+    },
+    "required": false
    }
   ],
   "outputs": [
@@ -23027,18 +24007,6 @@
   "effect": "external",
   "properties": [
    {
-    "name": "audio",
-    "type": "audio",
-    "default": {
-     "type": "audio",
-     "uri": "",
-     "asset_id": null,
-     "data": null,
-     "metadata": null
-    },
-    "required": false
-   },
-   {
     "name": "threshold_db",
     "type": "float",
     "default": -50,
@@ -23061,6 +24029,18 @@
     "required": false,
     "min": 5,
     "max": 1000
+   },
+   {
+    "name": "audio",
+    "type": "audio",
+    "default": {
+     "type": "audio",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null
+    },
+    "required": false
    }
   ],
   "outputs": [
@@ -23095,18 +24075,6 @@
   "requires_gpu": false,
   "effect": "external",
   "properties": [
-   {
-    "name": "audio",
-    "type": "audio",
-    "default": {
-     "type": "audio",
-     "uri": "",
-     "asset_id": null,
-     "data": null,
-     "metadata": null
-    },
-    "required": false
-   },
    {
     "name": "rate_hz",
     "type": "float",
@@ -23146,6 +24114,18 @@
     "required": false,
     "min": 0,
     "max": 1
+   },
+   {
+    "name": "audio",
+    "type": "audio",
+    "default": {
+     "type": "audio",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null
+    },
+    "required": false
    }
   ],
   "outputs": [
@@ -25806,7 +26786,7 @@
   "class": "COMFY_NODES[3]",
   "package": "@nodetool-ai/integration-nodes",
   "module": "@nodetool-ai/integration-nodes/nodes/comfy",
-  "title": "Run Comfy Workflow (Comfy Cloud)",
+  "title": "Run Comfy Workflow",
   "platforms": [
    "node",
    "workers",
@@ -25818,11 +26798,9 @@
   "has_run": false,
   "is_trigger": false,
   "is_controlled": false,
-  "supports_dynamic_inputs": false,
+  "supports_dynamic_inputs": true,
   "supports_dynamic_outputs": true,
-  "required_settings": [
-   "COMFY_API_KEY"
-  ],
+  "required_settings": [],
   "required_runtimes": [],
   "requires_gpu": false,
   "effect": "external",
@@ -25836,6 +26814,12 @@
    {
     "name": "edges",
     "type": "list[dict[str, any]]",
+    "default": [],
+    "required": false
+   },
+   {
+    "name": "output_slots",
+    "type": "list[str]",
     "default": [],
     "required": false
    },

@@ -12,6 +12,9 @@ function adsr(inputs, options) {
 function gate(inputs, options) {
   return createNode("nodetool.audio.synth.Gate", inputs, { id: options?.id, outputNames: ["cv"], outputTypes: { "cv": "cv" }, defaultOutput: "cv", streamingInput: true });
 }
+function trigger(inputs, options) {
+  return createNode("nodetool.audio.synth.Trigger", inputs, { id: options?.id, outputNames: ["gate", "pitch"], outputTypes: { "gate": "cv", "pitch": "cv" }, streamingInput: true });
+}
 function vca(inputs, options) {
   return createNode("nodetool.audio.synth.VCA", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: { "chunk": "chunk" }, defaultOutput: "chunk", streamingInput: true });
 }
@@ -27,6 +30,9 @@ function sampleHold(inputs, options) {
 function mixer(inputs, options) {
   return createNode("nodetool.audio.synth.Mixer", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: { "chunk": "chunk" }, defaultOutput: "chunk", streamingInput: true });
 }
+function sampler(inputs, options) {
+  return createNode("nodetool.audio.synth.Sampler", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: { "chunk": "chunk" }, defaultOutput: "chunk", streamingInput: true });
+}
 export {
   adsr,
   attenuverter,
@@ -35,6 +41,8 @@ export {
   mixer,
   oscillator,
   sampleHold,
+  sampler,
+  trigger,
   vca,
   vcf
 };

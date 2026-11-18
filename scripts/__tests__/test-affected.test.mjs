@@ -142,7 +142,7 @@ describe("buildPlan", () => {
     expect(steps[0].label).toBe("web: tests related to 1 changed file(s)");
     expect(steps[0].args).toContain("--findRelatedTests");
     expect(steps[0].args).toContain("--passWithNoTests");
-    expect(steps[0].args.at(-2)).toMatch(/web\/src\/utils\/ColorUtils\.ts$/);
+    expect(steps[0].args.at(-2).replaceAll("\\", "/")).toMatch(/web\/src\/utils\/ColorUtils\.ts$/);
   });
 
   it("runs an app's whole suite when a package it depends on changed", () => {
@@ -226,6 +226,16 @@ describe("buildPlan", () => {
     ]);
   });
 
+  it.each(["native/account/src/account_session.cpp", "native/account-helper/src/main.cpp"])(
+    "builds and tests the account helper when %s changes",
+    (file) => {
+      const steps = plan([file]).steps;
+      expect(steps.map((s) => [s.command, ...s.args])).toEqual([
+        ["node", "electron/scripts/build-account-helper.mjs", "--test"]
+      ]);
+    }
+  );
+
   it.each([
     "native/parity/census.mjs",
     "native/parity/registry.json",
@@ -251,6 +261,8 @@ describe("buildPlan", () => {
   });
 
   it.each([
+    "native/kernels/src/audio.cpp",
+    "native/kernels/include/nodetool/kernels.h",
     "native/graph-runner/src/kernel/task.cpp",
     "native/graph-runner/CMakeLists.txt",
     "native/graph-runner/guest/host/provider-jobs.mjs",
@@ -258,6 +270,9 @@ describe("buildPlan", () => {
     "native/gpu-preview/src/GpuPreviewItem.cpp",
     "native/node-editor/src/main.cpp",
     "native/model-picker/CMakeLists.txt",
+    "native/realtime/spike/buffered-audio/driver.cpp",
+    "native/realtime/spike/sync/analyze.mjs",
+    "native/storyboard/src/StoryboardMarkdown.cpp",
     "native/timeline/src/main.cpp"
   ])("selects the affected native ctest tests for %s", (file) => {
     expect(plan([file]).globalFiles).toEqual([]);
@@ -292,6 +307,18 @@ describe("buildPlan", () => {
       { label: "native UI: dependency boundaries", command: "python3", args: ["native/ui_primitives/tools/check_dependencies.py"] }
     ]);
   });
+
+  it.each(["native/files/qml/FilesPanel.qml", "native/files/src/ProjectFiles.cpp"])(
+    "selects the native UI checks and the affected ctest tests for %s",
+    (file) => {
+      expect(plan([file]).globalFiles).toEqual([]);
+      expect(labels([file])).toEqual([
+        "native UI: design contracts",
+        "native UI: dependency boundaries",
+        "native ctest: affected tests"
+      ]);
+    }
+  );
 
   it("runs each check once and still runs the owning workspaces", () => {
     expect(

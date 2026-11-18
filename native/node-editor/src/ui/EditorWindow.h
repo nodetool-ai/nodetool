@@ -3,9 +3,17 @@
 #include <QHash>
 #include <QSet>
 #include <QTimer>
+#include <functional>
 #include <optional>
 #include "interfaces/DocumentTabs.h"
+#include "ui/DockedOverlay.h"
+#include "interfaces/ExampleGallery.h"
+#include "interfaces/GenerationActivity.h"
+#include "interfaces/WorkerFleet.h"
 #include "interfaces/NodeCatalog.h"
+#include "interfaces/NodeInfo.h"
+#include "interfaces/PriceChip.h"
+#include "graph/ProviderPricing.h"
 #include "interfaces/NodeInspector.h"
 #include "interfaces/Notifications.h"
 #include "interfaces/PanelLayout.h"
@@ -18,7 +26,12 @@
 #include "interfaces/ChatWindow.h"
 #include "interfaces/WorkflowHeader.h"
 #include "server/SetupController.h"
+#include "nodetool/account/qt/AccountController.h"
+#include "nodetool/account/qt/AccountServers.h"
+#include "nodetool/account/qt/CloudBrowser.h"
+#include "nodetool/account/qt/CloudDocument.h"
 #include "server/PackSetup.h"
+#include "server/ComfyBackend.h"
 #include "document/WorkflowDocument.h"
 #include "graph/WorkflowGraphModel.h"
 #include "server/WorkflowSession.h"
@@ -34,6 +47,8 @@
 #include "properties/DocumentPickerController.h"
 #include "server/WorkflowBrowser.h"
 #include "library/LibraryBrowser.h"
+#include "server/ProjectFolder.h"
+#include "ProjectFiles.h"
 #include "server/WorkflowVersions.h"
 #include "runtime/ChatSession.h"
 #include <QDateTime>
@@ -42,8 +57,8 @@
 #include <QMainWindow>
 #include <QPointer>
 class QTimer;
-class QMenu;
 class QDialog;
+class QMenu;
 class QQmlEngine;
 class QQuickWidget;
 class QDockWidget;
@@ -51,6 +66,7 @@ class QBoxLayout;
 class QGraphicsView;
 class QStackedWidget;
 namespace nodetool {
+struct EntryMenuRequest;
 namespace node_editor { class LineageLayer; }
 class EditorScene;
 class InlinePropertyPresenter;
@@ -77,7 +93,13 @@ public:
     nt::chat::ChatSession *chatSession();
     Q_INVOKABLE void askAgent(const QString &message);
     Q_SLOT void askRunAgent(const QString &runId, const QString &spanId = {});
+    // A failure banner's Report: opens a prefilled bug report. `source` names the surface.
+    Q_SLOT void reportError(const QString &source, const QString &text);
     Q_SLOT void toggleChat();
+    // web/src/config/shortcuts.ts newChat and focusChatComposer, handled by
+    // ChatView.tsx. Both open the chat when it is closed.
+    void newChatConversation();
+    void focusChatComposer();
     void beginChatGeometry();
     void resetChatPosition();
     void changeChatGeometry(int dx, int dy, int edges, bool finished);
@@ -89,6 +111,19 @@ public:
   bool emptyCanvas() const { return document_.nodes().isEmpty(); }
   node_editor::SetupController *setup() { return &setup_; }
     node_editor::PackSetup *packSetup() { return tabOwner_ ? &tabOwner_->packSetup_ : &packSetup_; }
+    // Where Comfy workflows run, shared by every tab and held by the root window.
+    node_editor::ComfyBackend *comfyBackend() { return tabOwner_ ? &tabOwner_->comfy_ : &comfy_; }
+    // useStartComfyWorkflow: a new Comfy workflow on the server, opened in a tab.
+    void newComfyWorkflow();
+    // PaneContextMenu "Add Comfy subgraph": a Subgraph node holding the Comfy
+    // starter graph, with its derived ports, in one undo step.
+    void addComfySubgraphAt(const QPointF &position);
+    bool comfyWorkflowOpen() const { return comfyWorkflow_; }
+    // The cost confirmation before renting a ComfyUI worker. A test answers it
+    // instead of the dialog.
+    void setComfyRentConfirm(std::function<bool(const QVariantMap &)> confirm) { comfyRentConfirm_ = std::move(confirm); }
+    // The Generations panel's list, shared by every tab and held by the root window.
+    node_editor::GenerationActivity *generationActivity() { return tabOwner_ ? &tabOwner_->generations_ : &generations_; }
     // The root window has no panels of its own, so it returns the active tab's.
     node_editor::NodeCatalog *nodeCatalog() { return activeEditor() == this ? &nodeCatalog_ : activeEditor()->nodeCatalog(); }
     node_editor::DocumentTabs *documentTabs() { return activeEditor() == this ? &documentTabs_ : activeEditor()->documentTabs(); }
@@ -109,6 +144,10 @@ public:
     void activateSurface(int index);
     bool closeSurface(int index);
     void flushChild();
+    bool hasPendingChildWrite() const;
+    // Rebuilds this inline surface and the surfaces between it and the
+    // workflow from the graphs their parent nodes now store.
+    void reloadChildChain();
     void closeChildSurfaces();
   void newTab();
   void activateTab(int index);
@@ -119,6 +158,7 @@ public:
     void dropTab(int source, int target, bool after);
     void showTabMenu(int index, const QPointF &global);
     void showProjectMenu(const QPointF &global);
+    void showNewTabMenu(const QPointF &global);
     Q_INVOKABLE void closeOtherTabs(int index);
     Q_INVOKABLE void closeAllTabs();
     void renameTab(int index, const QString &name);
@@ -131,6 +171,13 @@ public:
   void showLinkedWorkflows();
   void syncChild();
   void refreshChildReferences();
+  // WorkflowLoader and AppLoader: loads the picked workflow or app and stores
+  // its id and a copy of its graph on the node in one undo step.
+  void loadChildSource(const QString &nodeId, const QString &kind, const QString &sourceId);
+  // ComfyWorkflowLoader.tsx: the Run ComfyUI Workflow node's load dialog.
+  void showComfyWorkflowDialog(const QString &nodeId);
+  // CompositorEditorModal.tsx: the Compositor node's layout editor.
+  void showCompositorLayoutDialog(const QString &nodeId);
   void restoreTabs();
   void persistTabs() const;
   EditorWindow *activeEditor() const;
@@ -149,8 +196,12 @@ public:
   node_editor::DynamicPortsController *dynamicPorts() { return activeEditor() == this ? &dynamicPorts_ : activeEditor()->dynamicPorts(); }
   node_editor::WorkflowBrowser *workflowBrowser() { return activeEditor() == this ? &browser_ : activeEditor()->workflowBrowser(); }
   bool browserVisible() const;
+  bool filesVisible() const;
   bool libraryVisible() const;
+  bool examplesVisible() const;
   void openWorkflow(const QString &id);
+  void deleteWorkflows(const QStringList &ids);
+  std::optional<QString> editOpenWorkflow(const QString &id, const QVariantMap &patch);
   void deleteWorkflow(const QString &id, const QString &name);
   QVariantList outputMedia() const { return activeEditor() == this ? outputMedia_ : activeEditor()->outputMedia(); }
   bool runActive() const;
@@ -186,8 +237,12 @@ public:
   int edgeCount() const;
   int queuedCount() const;
   bool queueAvailable() const;
+    // The document bar's history. On an inline subgraph surface it is the
+    // workflow's history, as WorkflowDocumentBar.tsx reads the workflow's
+    // NodeStore, while Ctrl+Z keeps undoing the canvas on screen.
     bool canUndo() const;
     bool canRedo() const;
+    void documentHistory(bool redo);
     // The document bar's save readout, as web/src/components/ui_primitives/SaveStatus.tsx
     // names it: saved, saving, dirty, error or readOnly, plus the server's
     // conflict and deleted states.
@@ -216,6 +271,21 @@ public:
     QVariantMap runProgress() const;
     bool traceVisible() const;
     bool versionsVisible() const;
+    // The queue overlay lists its jobs: opened from the status bar or expanded.
+    bool queueVisible() const;
+    bool generationsVisible() const;
+    bool workersVisible() const;
+    // Loads the account's generations.list page into the Generations panel.
+    void refreshGenerations();
+    // Opens a workflow document ({name, graph}) in a new unsaved tab.
+    void openWorkflowDocument(const QJsonObject &workflow);
+    // Opens a cloud workflow of the current account in its own tab, or
+    // switches to the tab that has it. `role` is owner, editor or viewer.
+    void openCloudDocument(const QString &documentId, const QString &role);
+    // Opens the Report issue for a failed job in the queue history.
+    void reportJob(const QString &jobId);
+    // Opens a queue job output's get_url in the browser, resolved against the server.
+    void openJobOutput(const QString &url);
     // A status bar tab: opens its panel, or closes it when it is the open one (PanelBottom.tsx).
     void toggleStatusView(const QString &view);
   QVariantMap selectionInfo() const;
@@ -250,6 +320,11 @@ public:
         if (inlineChild_ && childParent_) {
             return childParent_->hasUnsavedChanges() || document_.graph() != syncedChildGraph_;
         }
+        // A cloud workflow keeps its edits in the local draft store, and
+        // closing the tab writes the last one.
+        if (cloud_) {
+            return false;
+        }
         return !document_.undoStack()->isClean() || session_.conflictPending()
             || (session_.serverBound() && session_.dirty());
     }
@@ -259,6 +334,9 @@ public:
   bool openFile(const QString &path);
   // Opens a workflow file in its own tab, or switches to the tab that has it.
   void openFileInTab(const QString &path);
+  // Opens a bundled example (a file under :/editor/examples) in its own tab, as an
+  // unsaved workflow, so Save asks for a path.
+  void openExample(const QString &resource);
   bool saveFile(const QString &path);
   void addNode(const QString &type);
   void dragNode(const QString &type);
@@ -279,6 +357,9 @@ public:
   void clearCatalogRecent();
   Q_INVOKABLE void setProperty(const QString &name, const QVariant &value);
   bool commitProperty(const QString &nodeId, const QString &name, const QVariant &value);
+  // commitProperty without the selection check, for an inspector edit that
+  // finished as the press that ended it selected another node.
+  bool commitFinishedEdit(const QString &nodeId, const QString &name, const QVariant &value);
   bool removeProperty(const QString &nodeId, const QString &name);
   Q_INVOKABLE void action(const QString &name);
   // An action that the user started from a button, menu or key. Zoom, fit and Focus
@@ -319,7 +400,13 @@ protected:
   void resizeEvent(QResizeEvent *) override;
 
 private slots:
+  // Opens or closes the Files panel, which shares the left side with the
+  // workflow browser, the asset library and the examples. FilesPanel.qml's
+  // close button calls it by name.
+  void toggleFiles();
   void saveLocalCopyAs();
+  // Documents/<workflow name>.json: where a file dialog for this tab starts.
+  QString defaultSavePath() const;
 private:
   // An edit to rerun: the node, an uncommitted value of one of its properties
   // ({"name", "value"}, empty for a committed edit), and whether only an
@@ -337,6 +424,15 @@ private:
   // live slider bodies do (web hooks/nodes/useLiveSliderWriter.ts).
   void scheduleInstantRerun(const QString &node, const QJsonObject &draft, bool cardBody, bool immediate);
   void previewCardEdit(const QJsonArray &commands);
+  // Live property changes: a property edit made while a run is in progress
+  // goes to that run, so a node that reads its properties while it runs,
+  // such as a synthesis node, follows the edit at once.
+  // Starts to track run `id` with the document's saved properties.
+  void trackLiveRun(const QString &id);
+  // Sends the saved properties that differ from what the tracked run has.
+  void sendLiveEdits();
+  // Sends one value that is not in the document yet, such as a slider draft.
+  void sendLiveDraft(const QString &node, const QString &name, const QJsonValue &value);
   void setScrubbing(bool scrubbing);
   void showDynamicPortDialog(const QString &id, bool output, const QString &name, const QRectF &sceneAnchor);
   void clearDynamicPortDialogs();
@@ -356,6 +452,15 @@ private:
   QPointer<EditorWindow> childParent_;
   QString childNode_;
     bool inlineChild_ = false;
+    // The workflow surface an inline subgraph surface belongs to, or this window.
+    // From a subgraph tab the web document bar, run toolbar, run output and
+    // status counts all use that workflow (WorkflowEditorSurface.tsx).
+    EditorWindow *workflowHost();
+    const EditorWindow *workflowHost() const;
+    // Shows the workflow host's run output in this subgraph surface's run interfaces.
+    void followHostRuns();
+    // The run output this surface's run interfaces show: its own, or its workflow host's.
+    node_editor::RunOutputModel *shownRunOutput_ = nullptr;
     QPointer<EditorWindow> shownSurface_;
     QTimer *childWriteTimer_ = nullptr;
   QJsonObject syncedChildGraph_;
@@ -367,17 +472,25 @@ private:
   void notifyTabs();
     QList<EditorWindow *> visibleTabs() const;
     QString projectKey() const;
+    // Gives the session, the folder notice and the file banner the tab's
+    // project and open workflow.
+    void syncOpenProject();
+    // Whether the document came from a project folder's workflow file
+    // (packages/project-services/src/workflow-file.ts). That file names
+    // itself by its file name and holds no name field.
+    bool projectWorkflowFile() const;
     QString activeProject() const;
     void closeTabs(const QList<EditorWindow *> &targets, EditorWindow *keep);
     void installTabShortcuts();
     void harvestProjects(const QJsonArray &projects);
     void populateProjectMenu();
+    QVariantList projectEntries() const;
     QQuickWidget *tabBarWidget() const;
     QString assignedProject_;
     QJsonArray projects_;
     QString projectsAccount_;
     QHash<QString, QPointer<EditorWindow>> projectActive_;
-    QPointer<QMenu> projectMenu_;
+    QPointer<QQuickWidget> projectMenu_;
     QVariantList tabSignature_;
     qreal tabStripOffset_ = 0;
     bool discardApproved_ = false;
@@ -387,7 +500,15 @@ private:
   quint64 credentialsEpoch_ = 0;
   void showWorkflowDetails(const QString &kind);
   void showServerSync();
+  // The share dialog of the tab's cloud workflow, for its owner.
+  void showShareDialog();
   void showRunTrace();
+  void showGenerations();
+  void showWorkers();
+  void showQueue();
+  // Loads a workflow document into this tab, with `file` as its file or none.
+  bool openDocument(const QByteArray &json, const QString &file);
+  void toggleQueue();
   void showCanvasDrops();
   QPointer<QDialog> canvasDropDialog_;
   bool canvasDropsPending_ = false;
@@ -416,6 +537,18 @@ private:
   void refresh();
   void showBrowser(bool visible);
   void loadBrowser();
+  // Opens or closes the Examples panel, which shares the left side with the
+  // workflow browser and the asset library.
+  void toggleExamples();
+  // The bundled examples: resource, name, description and tags of each file
+  // under :/editor/examples.
+  static QVariantList bundledExamples();
+  // Adds an entry per bundled example to the menu, grouped by first tag. An entry opens
+  // its example on this window, which passes it to the active tab.
+  void addExampleActions(QMenu *menu);
+  // The menu bar of the window that owns the tabs (EditorAppMenu.cpp).
+  void installApplicationMenu();
+  void showSystemInformation();
   void syncRuntimePreviews();
   void syncSourcePreviews();
   QStringList selectedIds() const;
@@ -432,13 +565,25 @@ private:
   // Copies the zoom and the mini-map color mode into the viewport interface.
   void syncViewport();
   Q_SLOT void layoutOverlays();
+  // The queue overlay's drag from its header grip (QueueOverlay.qml). A move
+  // follows the pointer inside the canvas, and the drop docks it to the nearer
+  // edges and keeps that position for every tab in QSettings.
+  Q_SLOT void moveQueue(double dx, double dy);
+  Q_SLOT void finishQueueMove();
+  // Arrow keys on the grip move it by these pixels. Home resets it to the canvas's top-left.
+  Q_SLOT void nudgeQueue(double dx, double dy);
+  Q_SLOT void resetQueuePosition();
+  // The canvas rectangle in central widget coordinates, and the overlay size inside it.
+  QRect queueArea() const;
+  QSize queueSize(const QRect &area) const;
+  void setQueuePosition(std::optional<node_editor::docked_overlay::Position> position);
   void syncInspector();
   // Applies a node click or a programmatic selection to the inspector. It does
   // nothing when the selection change already synced the inspector.
   void inspectNode(const QString &resourceId);
   // Each panelChanged() makes QML evaluate every panel binding again. All
   // changes in one event-loop pass share one deferred emit.
-  void schedulePanelChanged();
+  Q_SLOT void schedulePanelChanged();
   void flushPanelChanged();
   bool panelChangePending_ = false;
   // GenerationHistory copies the full document. Selection changes reuse it.
@@ -450,6 +595,12 @@ private:
   static bool mouseNavigation();
   void applyFit();
   void revealSelection();
+  // Moves the view the least distance that shows the card whole.
+  void revealNode(const QString &resourceId);
+  // Opens the keyboard connection picker on the focused node's Tab-focused handle.
+  void openFocusedHandlePicker();
+  // Pastes the example's graph with its first top-level node at `at`, as one step.
+  bool pasteExample(const QString &key, const QPointF &at);
   // The view that fits every node, as the zoom and the scene point at the viewport center.
   struct ViewTarget { double zoom = 1; QPointF center; };
   ViewTarget fitTarget() const;
@@ -497,13 +648,28 @@ private:
   QElapsedTimer toolbarClock_;
   QTimer toolbarDelay_;
   QJsonArray dragGroupCommands(const QJsonObject &positions, QtNodes::NodeId group, bool detach);
+  QJsonArray expandParentCommands(const QJsonObject &positions, const QStringList &dragged, const QStringList &detached);
   void showActionMenu(const QString &kind, const QPoint &position);
   bool menuActionEnabled(const QString &name) const;
   // Context menus are Quick popups on a transparent overlay (EditorMenus.cpp).
   friend class ContextMenuBuilder;
+  QQuickWidget *showEntryMenu(const EntryMenuRequest &request);
   void showContextMenu(const QString &kind, const QPoint &globalPosition, const QString &nodeId = {}, const QString &edgeId = {}, const QPointF &scenePosition = {});
   void showFindPanel();
   void revealFound(const QString &resourceId);
+  // NodeInfoPanel.tsx: Ctrl+I shows the first selected node's info beside it.
+  void toggleNodeInfo();
+  void closeNodeInfo();
+  void syncNodeInfo();
+  void positionNodeInfo();
+  // The FAL or KIE price chip under the one selected card (FalPricingFooter.tsx,
+  // KieCreditsFooter.tsx), and its popover's account requests.
+  void syncPriceChip();
+  Q_SLOT void positionPriceChip();
+  void togglePricePopover();
+  // Opens the node menu at a namespace path, with a search term.
+  void openNodeMenuAt(const QStringList &path, const QString &term);
+  void focusNode(const QString &resourceId);
   bool contextAction(const QString &name);
   bool selectConnected(const QString &direction);
   void selectSameType(const QString &nodeId);
@@ -513,6 +679,30 @@ private:
   QPointer<QObject> viewAnimation_;
 
     node_editor::PackSetup packSetup_;
+    // The root window's Comfy target. Owned by value, UI thread. Tabs reach it
+    // through comfyBackend() and never in their destructors.
+    node_editor::ComfyBackend comfy_;
+    // This tab's catalog before the Comfy records join it, and the records of
+    // the Comfy targets it has loaded (see nextComfyRecords).
+    QJsonArray baseCatalog_, comfyRecords_;
+    quint64 comfyCatalogEpoch_ = 0;
+    bool comfyWorkflow_ = false, comfyCatalogLoaded_ = false, comfyCatalogLoading_ = false;
+    void installComfy();
+    void syncComfyWorkflow();
+    void reloadComfyCatalog();
+    void syncComfyTarget();
+    void showComfyTargetMenu();
+    void addComfyRentActions(QMenu &menu);
+    bool confirmComfyRent(const QVariantMap &preset);
+    std::function<bool(const QVariantMap &)> comfyRentConfirm_;
+    // The root window's generations, which every tab's Generations panel reads
+    // through generationActivity(). Owned by value, UI thread, destroyed with
+    // the root window after its tabs and their panels.
+    node_editor::GenerationActivity generations_;
+    // The root window's GPU workers, which every tab's Workers panel reads.
+    // Owned by value, UI thread, destroyed with the root window after its
+    // tabs and their panels.
+    node_editor::WorkerFleet workers_;
     // What this tab's Catalog and NodeMenu panels read and do. Owned by value,
     // UI thread, destroyed with the tab after its panels (~EditorWindow deletes
     // them first).
@@ -521,6 +711,17 @@ private:
     // read and do. Owned by value, UI thread, destroyed with the tab after its
     // panels.
     node_editor::NodeInspector nodeInspector_;
+    // What this tab's node info overlay (NodeInfoPanel.qml) reads and does.
+    // Owned by value, UI thread, destroyed with the tab after its panels.
+    node_editor::NodeInfo nodeInfo_;
+    // What this tab's price chip overlay (ProviderPriceChip.qml) reads and does.
+    // Owned by value, UI thread, destroyed with the tab after its panels.
+    node_editor::PriceChip priceChip_;
+    // The bundled list prices, loaded on the first priced node. Owned by value, UI thread.
+    node_editor::PricingBundle pricingBundle_;
+    QString priceEstimateEndpoint_;
+    // Answers to an earlier popover opening are dropped.
+    quint64 priceRequest_ = 0;
     // What this tab's TabBar and CanvasTabStrip panels read and do, and what
     // its TabBar and notification list read about notifications. The tab
     // state lives in the root window; each tab copies it into its own objects.
@@ -553,7 +754,30 @@ private:
   QPointer<QDialog> setupDialog_;
   bool guideStarted_ = false, guideDismissed_ = false;
   QQuickWidget *setupGuide_ = nullptr;
+  // The window owner creates the one engine its tabs share, so the compiled QML
+  // types and the Theme singleton exist once. It outlives the tabs, which the
+  // owner deletes in its destructor body.
   QQmlEngine *engine_ = nullptr;
+  // The cloud servers and their accounts the status bar shows. The window
+  // owner creates them and its tabs borrow them, so the owner's destructor
+  // ends them after the tabs.
+  std::unique_ptr<nodetool::account::qt::AccountServers> accountServers_;
+  // The Cloud and Shared with me groups the tabs' workflow browsers show,
+  // for the current server's account. Owner only, declared after the
+  // servers so it ends first.
+  std::unique_ptr<nodetool::account::qt::CloudBrowser> cloudBrowser_;
+  // A tab's open cloud workflow (PRD "Open and edit a cloud document"). It
+  // keeps every edit in the local server's draft store and sends it. Null
+  // for a file, server or new workflow. Destroyed with the tab, which
+  // writes the last edit to disk.
+  std::unique_ptr<nodetool::account::qt::CloudDocument> cloud_;
+  QString cloudId_;
+  // The server the cloud workflow was opened from.
+  QString cloudOrigin_;
+  // Set while the opened revision loads, so the load is not sent as an edit.
+  bool cloudLoading_ = false;
+  void startCloudDocument(std::shared_ptr<nodetool::account::AccountSession> session, const QString &documentId,
+                          const QString &role);
   QMainWindow *dockHost_ = nullptr;
   // The node library overlays the canvas column, as the fixed web left panel does.
   QPointer<QQuickWidget> catalogPanel_;
@@ -565,7 +789,8 @@ private:
   // The status bar is the bottom panel's tab strip while the Output panel is open (PanelBottom.tsx).
   QQuickWidget *statusBar_ = nullptr;
   QBoxLayout *statusColumn_ = nullptr;
-  void placeStatusBar();
+  // Opens the run output (Logs) panel at the height of the other status bar views.
+  void showOutput();
   QVariantList notifications_;
   QDateTime notificationsSeen_;
   QPointer<QQuickWidget> notificationPopup_;
@@ -598,12 +823,24 @@ private:
     QSize chatSize_{420, 2000};
   QQuickWidget *toolbarOverlay_ = nullptr;
   QQuickWidget *queueOverlay_ = nullptr;
+  // The dropped queue position, or nothing for the canvas's top-left corner.
+  std::optional<node_editor::docked_overlay::Position> queuePosition_;
+  // The queue overlay's top-left while the user drags it.
+  std::optional<QPoint> queueDragPoint_;
   quint64 instantUpdateGeneration_ = 0;
   bool canvasReducedMotion_ = false;
   bool instantUpdate_ = false;
   // The latest edit made while an in-process run was active. It reruns when
   // that run settles, so the result follows the last edit.
   std::optional<InstantEdit> instantPending_;
+  // The run that takes live property changes, or empty.
+  QString liveRun_;
+  // The saved properties of each node as liveRun_ has them: the document's
+  // values when the run was submitted, then each value sent to it. A node
+  // added after the submit is absent, because the run does not have it.
+  QHash<QString, QJsonObject> liveProperties_;
+  // Whether liveRun_ plays live audio until it is stopped.
+  bool liveRunPlays_ = false;
   // True from a card slider preview until its last rerun settles. Running
   // animations stay still meanwhile, as the web's live-scrubbing class does.
   bool scrubbing_ = false;
@@ -621,6 +858,12 @@ private:
   // Parented to this window. It fires when a queue change has held.
   QTimer *shownQueueTimer_ = nullptr;
   QQuickWidget *selectionOverlay_ = nullptr;
+  // The node info panel, a child of view_ deleted by ~EditorWindow before
+  // nodeInfo_. nodeInfoId_ is the node it shows, empty while it is hidden.
+  QQuickWidget *nodeInfoOverlay_ = nullptr;
+  // The price chip, a child of view_ deleted by ~EditorWindow before priceChip_.
+  QQuickWidget *priceChipOverlay_ = nullptr;
+  QString nodeInfoId_;
   // True while the selection toolbar floats over its card instead of the canvas top.
   bool selectionToolbarFloating_ = false;
   InlinePropertyPresenter *inlinePresenter_ = nullptr;
@@ -640,8 +883,14 @@ private:
   node_editor::DynamicPortsController dynamicPorts_;
   node_editor::WorkflowBrowser browser_;
   node_editor::LibraryBrowser library_;
+  node_editor::ProjectFolder projectFolder_;
+  // The rail's Files view of the same folder (NodeTool.Files).
+  files::ProjectFiles projectFiles_;
+  node_editor::ExampleGallery exampleGallery_;
   QDockWidget *browserDock_ = nullptr;
+  QDockWidget *filesDock_ = nullptr;
   QDockWidget *libraryDock_ = nullptr;
+  QDockWidget *examplesDock_ = nullptr;
   bool browserRestoreCatalog_ = false;
   bool browserLoadingProjects_ = false;
   quint64 browserEpoch_ = 0;

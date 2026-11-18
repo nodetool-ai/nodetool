@@ -23,6 +23,7 @@ Accumulates a stream of PCM16 audio chunks into a single audio file.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
+| duration | `float` | Seconds to record. Zero records until the stream ends. | `0` |
 | chunk | `chunk` | Stream of PCM16LE audio chunks to accumulate. | - |
 
 ## Outputs

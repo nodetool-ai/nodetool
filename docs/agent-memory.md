@@ -50,7 +50,7 @@ The store lives for one run. It is cleared when the run ends and is not shown on
    read_shared / share_result tools)         TaskExecutor)
 ```
 
-Every step has `list_shared`, `read_shared`, and `share_result` attached automatically. The step prompt does not include memory contents. The agent lists metadata, then reads only the keys it needs. The step's user message names the keys the planner declared through `task.dependsOn` or `step.dependsOn`, without their values.
+Every step has `list_shared`, `read_shared`, and `share_result` attached automatically. The step prompt does not include memory contents, only the keys declared through `task.dependsOn` or `step.dependsOn`.
 
 ---
 
@@ -63,14 +63,7 @@ Every step has `list_shared`, `read_shared`, and `share_result` attached automat
 | `input:<key>` | `memoryKeys.input(key)` | `TaskExecutor`, `ParallelTaskExecutor` | Caller-supplied inputs |
 | `shared:<key>` | `memoryKeys.shared(key)` | `share_result` tool | Cross-agent communication, scratch space |
 
-Build keys with the `memoryKeys` helpers.
-
-```ts
-import { memoryKeys } from "@nodetool-ai/runtime";
-
-context.memory.has(memoryKeys.task("research_phase"));
-context.memory.getValue(memoryKeys.step("step_1"));
-```
+Build keys with the `memoryKeys` helpers from `@nodetool-ai/runtime`, for example `context.memory.has(memoryKeys.task("research_phase"))`.
 
 ---
 
@@ -94,8 +87,6 @@ export interface MemoryEntry {
   createdAt: number;
 }
 ```
-
-`title` and `description` appear in `list_shared` output.
 
 ---
 
@@ -328,19 +319,11 @@ Steps finish through `finish_step`.
 
 ### The calling loop (`execute_plan`'s caller)
 
-There is no synthesis stage that reads memory on the run's behalf. When
-`execute_plan` returns, each task's value is in `context.memory` under
-`task:<id>` and in the call's own `results` object; the CodeAct session that
-made the call writes the answer on its next turn, calling `read_shared` for
-anything the return did not carry. That is what `execute_plan`'s description
-tells the model to do, and it is why the planner is told not to plan an
-assembly task.
+There is no synthesis stage. After `execute_plan` returns, the calling session writes the answer on its next turn and calls `read_shared` for anything the return did not carry. `execute_plan`'s description tells the model to do this, which is why the planner is told not to plan an assembly task.
 
 ---
 
 ## Propagation Flow
-
-This is the canonical end-to-end flow for a multi-task plan:
 
 ```
 1. Caller: execute_plan(plan)
@@ -365,12 +348,9 @@ This is the canonical end-to-end flow for a multi-task plan:
                └─ yield step_result
 3. ParallelTaskExecutor: ensure task: entry exists (idempotent)
 4. Mark task.completed = true → unblocks downstream tasks
-5. Next iteration: downstream tasks now executable. Their step user
-   messages name the upstream task keys; agents call nodetool.shared.read when
-   they actually need the values.
-6. execute_plan returns the task results; the calling session's next turn
-   reads task:<id> via read_shared for anything it still needs and writes
-   the answer.
+5. Downstream tasks become executable. Their step user messages name the
+   upstream task keys.
+6. execute_plan returns the task results.
 ```
 
 ---
@@ -379,7 +359,7 @@ This is the canonical end-to-end flow for a multi-task plan:
 
 ### What the LLM sees (StepExecutor system prompt extract)
 
-The `StepExecutor` default execution system prompt includes the block below. A CodeAct step is taught the same three operations as `nodetool.shared.list`, `read`, and `publish`.
+The `StepExecutor` default execution system prompt includes this block. A CodeAct step is taught the same operations as `nodetool.shared.list`, `read`, and `publish`.
 
 ```markdown
 ## Memory Tools (progressive disclosure)
@@ -395,17 +375,6 @@ The `StepExecutor` default execution system prompt includes the block below. A C
      agents can find it via `list_shared`.
 - Pull only what you need — don't fetch every entry by reflex.
 ```
-
-And the `StepExecutor` user message for a step that depends on `task:research_phase` looks like:
-
-```markdown
-Write a report from the upstream findings.
-
-# Required upstream memory (call `read_shared` with these keys):
-- task:research_phase — Research findings
-```
-
-The model then chooses whether to read the key or proceed.
 
 ### Pre-populate memory before running
 
@@ -443,11 +412,7 @@ Subsequent agents will see this via `list_shared` and can fetch it via `read_sha
 
 ## Design notes
 
-- Progressive disclosure: a step needs one or two upstream values, so listing metadata first keeps prompts small.
-- Declared dependencies are named in the step's user message, so the agent can go straight to `read_shared`.
-- `share_result` writes only `shared:` so step, task, and input results stay executor-owned.
 - `context.copy()` does not share memory unless called with `shareMemory: true`, as `TaskExecutor` does. A sub-run that should inherit memory gets entries `set` from the parent first.
-- A caller-supplied `systemPrompt` is layered before the default execution prompt, so the memory tools and completion protocol stay in force.
 
 ---
 
@@ -462,9 +427,6 @@ Subsequent agents will see this via `list_shared` and can fetch it via `read_sha
 
 **Symptom:** Tests pass but memory entries seem stale across test runs.
 - A new `AgentMemory` instance is constructed for every `ProcessingContext`. If you reuse a context across tests, call `context.memory.clear()` between them.
-
-**Symptom:** Agent calls `list_shared` and gets `truncated: true`.
-- The list response is capped at the first 200 entries in insertion order. Narrow the filter (`kind`, `key_prefix`, or `sources`) to reach later ones.
 
 ---
 

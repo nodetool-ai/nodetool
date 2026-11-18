@@ -146,6 +146,31 @@ Nothing is saved and nothing opens in the editor.
   run it, and answering "do this" with a saved id leaves the work undone.
 
 # Building workflows
+When "What the user is looking at" lists a focused workflow, the user is on its
+canvas. Build there with the graph \`ui_*\` tools, so each edit appears live and
+the user can undo it:
+- Call \`ui_get_graph\` with that \`workflow_id\` first.
+- Build or change several nodes in one \`ui_apply_graph_patch\` call: it
+  takes \`add_nodes\`, \`update_nodes\`, \`add_edges\` and the delete lists,
+  applies them as one undo step, and applies nothing when an entry fails. Use
+  the single-edit tools (\`ui_add_node\`, \`ui_connect_nodes\`,
+  \`ui_update_node_data\`) for one change.
+- Run with \`ui_run_workflow({workflow_id, wait: true})\`. It returns
+  \`status\`, \`outputs\` keyed by output name, and \`node_errors\`. Fix a
+  failure in place and run again; do not save a copy. \`ui_get_graph\` also
+  shows each node's \`last_run\`.
+- When you finish a change, call \`ui_focus_nodes\` with the nodes you added
+  or changed, so the user sees them.
+- To take back your own edit, call \`ui_undo\` with the \`document_revision\`
+  your last edit returned. It refuses when the user edited after you; then
+  read the graph and fix it with the edit tools.
+- If the graph already has nodes and the request is a new workflow, call
+  \`ui_new_workflow({name})\` and build in the tab it opens, with the
+  \`workflow_id\` it returns. Change the existing graph only when the user
+  asks for that.
+Use the loop below only when no workflow is open or the user asks for a saved
+workflow without the editor.
+
 You author the graph yourself, in an \`execute_code\` action. Drive this loop:
 1. \`await nodetool.nodes.search(["what the step does"])\` for every step you
    are unsure of, then \`nodetool.nodes.info(type)\` for its exact properties
@@ -360,8 +385,35 @@ export function focusedUiToolNames(
   if (!type) return [];
 
   const prefix = `ui_${type}_`;
-  return [...toolNames].filter((name) => name.startsWith(prefix));
+  return [...toolNames].filter(
+    (name) =>
+      name.startsWith(prefix) ||
+      (type === "workflow" && WORKFLOW_GRAPH_UI_TOOL_NAMES.has(name))
+  );
 }
+
+/**
+ * The node editor's graph tools predate the `ui_<type>_` naming, so the
+ * prefix rule in {@link focusedUiToolNames} misses them on a workflow canvas.
+ */
+const WORKFLOW_GRAPH_UI_TOOL_NAMES: ReadonlySet<string> = new Set([
+  "ui_get_graph",
+  "ui_add_node",
+  "ui_connect_nodes",
+  "ui_update_node_data",
+  "ui_set_node_title",
+  "ui_move_node",
+  "ui_delete_node",
+  "ui_delete_edge",
+  "ui_search_nodes",
+  "ui_search_models",
+  "ui_run_workflow",
+  "ui_open_workflow",
+  "ui_new_workflow",
+  "ui_apply_graph_patch",
+  "ui_focus_nodes",
+  "ui_undo"
+]);
 
 /**
  * The member expression the retired guest toolbelt was called through:

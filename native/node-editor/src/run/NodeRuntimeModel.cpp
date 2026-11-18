@@ -1,14 +1,16 @@
 #include "NodeRuntimeModel.h"
+#include <QDateTime>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <cmath>
 #include <algorithm>
 
 namespace nodetool::node_editor {
-namespace {
-bool terminal(const QString &status) {
+bool isTerminalRunStatus(const QString &status) {
   return status == "completed" || status == "finished" || status == "failed" || status == "cancelled" || status == "timed_out" || status == "error";
 }
+namespace {
+bool terminal(const QString &status) { return isTerminalRunStatus(status); }
 constexpr qsizetype TextLimit = 65536;
 constexpr qsizetype ValueBudget = 131072;
 constexpr qsizetype CollectionLimit = 128;
@@ -99,6 +101,10 @@ QString text(const QJsonValue &value) {
 }
 }
 NodeRuntimeModel::NodeRuntimeModel(QObject *parent) : QObject(parent) {}
+QJsonObject NodeRuntimeModel::runNodeState(const QString &jobId, const QString &nodeId) const {
+  const auto run = runs_.constFind(jobId);
+  return run == runs_.cend() ? QJsonObject{} : run->nodes.value(nodeId);
+}
 QJsonObject NodeRuntimeModel::nodeState(const QString &nodeId) const {
   const auto run = runs_.constFind(selected_);
   if (run == runs_.cend()) { return {}; }
@@ -182,7 +188,7 @@ void NodeRuntimeModel::ingest(QString jobId, const QJsonObject event) {
     run.terminal = true;
     run.terminalStatus.clear();
     for (auto it = run.nodes.begin(); it != run.nodes.end(); ++it) {
-      for (const auto *key : {"status", "progress", "total"}) { it.value().remove(QLatin1String(key)); }
+      for (const auto *key : {"status", "progress", "total", "progressStarted"}) { it.value().remove(QLatin1String(key)); }
     }
     run.edges.clear();
     if (selected_ == jobId) { emit projectionChanged(); }
@@ -219,7 +225,7 @@ void NodeRuntimeModel::ingest(QString jobId, const QJsonObject event) {
       run.truncated = true;
     }
     run.edges[id] = state;
-    if (selected_ == jobId) { emit projectionChanged(); }
+    if (selected_ == jobId) { emit edgeChanged(id); }
     return;
   }
   // Late node frames of a cancelled run are dropped, as handleNodeUpdate does on the web.
@@ -251,6 +257,10 @@ void NodeRuntimeModel::ingest(QString jobId, const QJsonObject event) {
     if (stopped) { return; }
     const auto progress = event["progress"].toDouble(-1), total = event["total"].toDouble(-1);
     if (!std::isfinite(progress) || !std::isfinite(total) || progress < 0 || total < 0) { return; }
+    // NodeProgress.tsx estimates the remaining time from when progress first showed.
+    if (!state.contains("progressStarted") || progress < state["progress"].toDouble()) {
+      state["progressStarted"] = double(QDateTime::currentMSecsSinceEpoch());
+    }
     state["progress"] = progress;
     state["total"] = total;
     if (state["status"].toString().isEmpty()) { state["status"] = "running"; }

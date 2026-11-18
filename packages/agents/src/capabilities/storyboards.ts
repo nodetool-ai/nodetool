@@ -1,4 +1,7 @@
-import { cameraPresetIdsSchema } from "@nodetool-ai/protocol";
+import {
+  cameraPresetIdsSchema,
+  normalizeCameraDirection
+} from "@nodetool-ai/protocol";
 import { compileMediaPresets, mediaPresetSettings } from "@nodetool-ai/presets";
 import { presetCatalog } from "./presets.js";
 import { finishStoryboard, layoutStoryboard, previewStoryboardDesign } from "./finish-storyboard.js";
@@ -99,6 +102,7 @@ import {
 } from "../utils/type-guards.js";
 
 import { resolveProjectId } from "./project-scope.js";
+import { localizeProjectAssets, withCopiedAssets } from "./project-asset-copies.js";
 import { editWithRename, parseRename, renameOwned } from "./rename.js";
 /** Shots one call may render, so a stray `targets: "all"` cannot bankrupt a run. */
 const MAX_SHOTS_PER_CALL = 24;
@@ -1861,7 +1865,11 @@ function applyShotFields(
     next.look_preset_ids = cameraPresetIdsSchema.parse(args["look_preset_ids"]);
   }
   if (args["camera"] !== undefined) {
-    next.camera = args["camera"] as Shot["camera"];
+    // A model often sends the camera as one sentence; keep it as structured
+    // direction so the saved board stays loadable.
+    const camera = normalizeCameraDirection(args["camera"]);
+    if (camera) next.camera = camera;
+    else delete next.camera;
   }
   if (next.camera?.preset_ids !== undefined) {
     cameraPresetIdsSchema.parse(next.camera.preset_ids);
@@ -2652,26 +2660,35 @@ async function applyStoryboardEdit(
     if (doc.screenplay) {
       doc.screenplay.shots = doc.shots;
     }
+    // An asset of another project is stored as its copy in this one, in the
+    // document and in the ops an open editor merges, and the op records
+    // report the copy's id.
+    const local = await localizeProjectAssets(run, row.project_id, {
+      doc,
+      ops: resolvedOps,
+      records
+    });
+    if (isError(local)) return local;
     const saved = await Storyboard.updateFieldsIfUnchanged(
       row.id,
       row.updated_at,
       {
-        document: JSON.stringify(doc)
+        document: JSON.stringify(local.value.doc)
       },
       // The ops ride on the write so an open editor can merge this change
       // per shot instead of treating the board as replaced.
-      { ops: resolvedOps }
+      { ops: local.value.ops }
     );
     if (!saved) continue;
 
     const failed = records.filter((record) => !record.ok);
-    return {
+    return withCopiedAssets({
       storyboard_id: row.id,
       updated_at: saved.updated_at,
       revision: saved.revision,
       applied: records.length - failed.length,
       failed: failed.length,
-      ops: records,
+      ops: local.value.records,
       shots: [...doc.shots]
         .sort((a, b) => a.index - b.index)
         .map((shot) => ({
@@ -2681,7 +2698,7 @@ async function applyStoryboardEdit(
           action: shot.action,
           status: shot.status
         }))
-    };
+    }, local.copies);
   }
 
   return {

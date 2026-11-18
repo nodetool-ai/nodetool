@@ -2,6 +2,7 @@
 import { css, keyframes } from "@emotion/react";
 import { useTranslation } from "react-i18next";
 import { useTheme, type Theme } from "@mui/material/styles";
+import { useMediaQuery } from "@mui/material";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
@@ -17,12 +18,12 @@ import {
   BORDER_RADIUS,
   StatusDot,
   SPACING,
-  getSpacingPx,
   ICON_SIZE,
-  CloseButton
+  CloseButton,
+  Tooltip
 } from "../ui_primitives";
 import type { SxProps } from "@mui/material/styles";
-import LayersIcon from "@mui/icons-material/Layers";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import RemoveIcon from "@mui/icons-material/Remove";
@@ -35,6 +36,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Job } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
+import { useQueueOverlayPosition } from "../../stores/QueueOverlayPositionStore";
+import { useCanvasSideInsets } from "../../hooks/useCanvasSideInsets";
+import { useDockedPanelPlacement } from "../../hooks/useDockedPanelPlacement";
 import { notifyMutationError } from "../../utils/notifyMutationError";
 
 const RUNNING = new Set(["running"]);
@@ -258,6 +262,8 @@ const CancelledCard = memo(function CancelledCard({ job }: { job: Job }) {
   );
 });
 
+const NO_INSETS = { left: 0, right: 0 };
+
 const SectionLabel = ({ children }: { children: string }) => (
   <SectionHeader
     title={children}
@@ -281,26 +287,14 @@ const HeaderCount = ({
   </FlexRow>
 );
 
-// The 92px left inset clears the desktop rail, but 92 + 304 is wider than a
-// phone viewport, so the overlay used to hang off the right edge with its
-// expand and cancel controls out of reach. On mobile the rail is a floating
-// hamburger at left 8, so the overlay starts past it and runs to the margin.
-const mobileOverlayStyles = (theme: Theme) =>
-  css({
-    [theme.breakpoints.down("sm")]: {
-      left: "56px",
-      right: getSpacingPx(SPACING.md),
-      width: "auto"
-    }
-  });
+const OVERLAY_WIDTH = 304;
 
+// Left, top, width and maximum height come from useDockedPanelPlacement, which
+// keeps the overlay inside the canvas below the document bar and clear of the
+// open side panels.
 const overlayStyles = (theme: Theme) =>
   css({
     position: "fixed",
-    top: "56px",
-    left: "92px",
-    width: "304px",
-    maxHeight: "calc(100vh - 112px)",
     display: "flex",
     flexDirection: "column",
     zIndex: theme.zIndex.drawer,
@@ -310,6 +304,9 @@ const overlayStyles = (theme: Theme) =>
     boxShadow: `0 8px 24px ${theme.vars.palette.c_scrim}, 0 0 0 1px ${theme.vars.palette.c_overlay_subtle}`,
     overflow: "hidden",
     transformOrigin: "top left",
+    "&[data-dragging='true']": {
+      userSelect: "none"
+    },
     '&[data-state="open"]': {
       animation: `${panelEnter} ${MOTION.normal} both`
     },
@@ -323,18 +320,71 @@ const overlayStyles = (theme: Theme) =>
     })
   });
 
+/** The move handle: drag it, or focus it and use the arrow keys. */
+const MoveGrip = ({
+  onKeyDown
+}: {
+  onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => void;
+}) => {
+  const { t } = useTranslation();
+  const theme = useTheme();
+  return (
+    <Tooltip title={t("i18n-cont-panels-12.queue.moveQueueHint")}>
+      <Box
+        component="span"
+        role="button"
+        tabIndex={0}
+        data-drag-handle="true"
+        aria-label={t("i18n-cont-panels-12.queue.moveQueue")}
+        onKeyDown={onKeyDown}
+        sx={{
+          display: "inline-flex",
+          flex: "0 0 auto",
+          color: "text.secondary",
+          cursor: "inherit",
+          borderRadius: BORDER_RADIUS.sm,
+          outline: "none",
+          "&:focus-visible": {
+            outline: `2px solid ${theme.vars.palette.primary.main}`
+          }
+        }}
+      >
+        <DragIndicatorIcon sx={{ fontSize: ICON_SIZE.sm }} />
+      </Box>
+    </Tooltip>
+  );
+};
+
 const SingleName = memo(function SingleName({ job }: { job: Job }) {
   return <>{useJobName(job)}</>;
 });
 
+export interface QueueOverlayProps {
+  /** The canvas host the overlay floats over. The window when omitted. */
+  canvas?: HTMLElement | null;
+}
+
 /**
  * Floating queue overlay for the node editor. Shows running and enqueued jobs
  * across all workflows; collapses to a compact summary bar. Hidden when nothing
- * is running or queued so it never clutters an idle canvas.
+ * is running or queued so it never clutters an idle canvas. It starts in the
+ * canvas's top-left corner. The user can drag it by its header, and the
+ * position is kept per user.
  */
-const QueueOverlay = memo(function QueueOverlay() {
+const QueueOverlay = memo(function QueueOverlay({ canvas = null }: QueueOverlayProps) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const sideInsets = useCanvasSideInsets();
+  const { position, setPosition } = useQueueOverlayPosition();
+  // Mobile has no rail, and its side panels are full-screen drawers.
+  const placement = useDockedPanelPlacement({
+    canvas,
+    insets: isMobile ? NO_INSETS : sideInsets,
+    width: OVERLAY_WIDTH,
+    position,
+    onPositionChange: setPosition
+  });
   const queryClient = useQueryClient();
   const { data: jobs } = useRunningJobs();
   const [expanded, setExpanded] = useState(false);
@@ -430,12 +480,25 @@ const QueueOverlay = memo(function QueueOverlay() {
     return null;
   }
 
+  const rootProps = {
+    ref: placement.panelRef,
+    css: overlayStyles(theme),
+    style: placement.style,
+    "data-state": hasJobs ? "open" : "closed",
+    "data-dragging": placement.dragging ? "true" : "false"
+  };
+  const handleSx = {
+    cursor: placement.dragging ? "grabbing" : "grab",
+    touchAction: "none"
+  };
+
   if (!expanded) {
     const single = running.length === 1 ? running[0] : null;
     return (
-      <Box css={[overlayStyles(theme), mobileOverlayStyles(theme)]} data-state={hasJobs ? "open" : "closed"}>
-        <FlexColumn gap={1} sx={{ p: 1.5 }}>
+      <Box {...rootProps}>
+        <FlexColumn gap={1} sx={{ p: 1.5, ...handleSx }} {...placement.handleProps}>
           <FlexRow align="center" gap={1} sx={{ minWidth: 0 }}>
+            <MoveGrip onKeyDown={placement.onHandleKeyDown} />
             <StatusDot tone={running.length ? "primary" : "neutral"} size="medium" />
             <Text
               size="small"
@@ -475,10 +538,11 @@ const QueueOverlay = memo(function QueueOverlay() {
   }
 
   return (
-    <Box css={[overlayStyles(theme), mobileOverlayStyles(theme)]} data-state={hasJobs ? "open" : "closed"}>
+    <Box {...rootProps}>
+      <Box sx={handleSx} {...placement.handleProps}>
       <PanelHeader
         title={t("i18n-cont-panels-12.queue.title")}
-        icon={<LayersIcon />}
+        icon={<MoveGrip onKeyDown={placement.onHandleKeyDown} />}
         actions={
           <ToolbarIconButton
             icon={<RemoveIcon />}
@@ -499,6 +563,7 @@ const QueueOverlay = memo(function QueueOverlay() {
           />
         </FlexRow>
       </PanelHeader>
+      </Box>
 
       <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", px: 2, pb: 2 }}>
         {running.length > 0 && (

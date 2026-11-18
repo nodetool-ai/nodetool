@@ -23,8 +23,8 @@ Applies a gain (volume adjustment) to each chunk of a realtime audio stream.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| chunk | `chunk` | Stream of PCM16LE audio chunks to process. | - |
 | gain_db | `float` | Gain to apply in decibels. Positive values increase volume, negative values decrease it. | `0` |
+| chunk | `chunk` | Stream of PCM16LE audio chunks to process. | - |
 
 ## Outputs
 

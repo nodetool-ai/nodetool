@@ -12,6 +12,7 @@
 #include <QSet>
 #include <algorithm>
 #include <limits>
+#include "nodetool/account/qt/ServerToken.h"
 
 namespace nodetool::node_editor {
 namespace {
@@ -421,9 +422,7 @@ void RunTraceController::request(Kind kind, const QString &procedure, const QJso
     QNetworkRequest request(m_origin.resolved(QUrl(path)));
     request.setTransferTimeout(30000);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-    if (!m_token.isEmpty()) {
-        request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
-    }
+    nodetool::account::qt::attachServerToken(request, m_origin, m_token);
     request.setRawHeader("x-user-id", m_user.toUtf8());
     const auto scope = m_scope;
     const auto sequence = ++m_sequence[kind];
@@ -583,7 +582,7 @@ void RunTraceController::loadSummary()
         for (auto it = costs.begin(); it != costs.end(); ++it) {
             cost += it.value().toDouble();
         }
-        const auto started = QDateTime::fromString(run["started_at"].toString(), Qt::ISODateWithMs);
+        // The run select already shows when the run started, so the summary line leaves it out.
         QStringList line;
         if (!runDuration(run).isEmpty()) {
             line.append(runDuration(run));
@@ -594,9 +593,6 @@ void RunTraceController::loadSummary()
         line.append(events == 1 ? QStringLiteral("1 event") : QStringLiteral("%1 events").arg(events));
         if (cost > 0) {
             line.append(usdText(cost));
-        }
-        if (started.isValid()) {
-            line.append(QStringLiteral("started ") + QLocale().toString(started.toLocalTime(), QLocale::ShortFormat));
         }
         QVariantMap map{{"status", status}, {"statusLabel", statusWord(status)}, {"line", line.join(QStringLiteral(" · "))},
                         {"failureVisible", false}, {"notices", flagNotices(summary.isEmpty() ? QJsonObject{} : QJsonObject{{"content_expired", summary["content_expired"]}, {"content_state", summary["content_state"]}, {"truncated", summary["truncated"]}, {"incomplete", summary["incomplete"]}}, false)}};

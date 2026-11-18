@@ -2,7 +2,9 @@
 #include "../graph/BodyConnectionFixture.h"
 #include "graph/EditorScene.h"
 #include <QGraphicsView>
+#include "EntryMenuSupport.h"
 #include <QMenu>
+#include <QMenuBar>
 #include <QtTest>
 #include <QContextMenuEvent>
 #include <QClipboard>
@@ -10,6 +12,9 @@
 #include <QLineEdit>
 #include <QPainter>
 #include <QDialog>
+#include <QDockWidget>
+#include <QMimeData>
+#include <QDragEnterEvent>
 #include <QQuickWidget>
 #include <QQuickItem>
 #include <QFile>
@@ -181,8 +186,8 @@ private slots:
         QApplication::clipboard()->clear();
         auto *menu = contextAt(window, QPoint(30, 100));
         QVERIFY(menu);
-        QCOMPARE(layout(menu), (QStringList{"paste", "fit", "-", "add-constant", "add-input", "-", "add-comment", "add-group", "add-workflow", "add-subgraph", "add-app"}));
-        QCOMPARE(labels(menu), (QStringList{"Paste", "Fit screen", "Add constant node", "Add input node", "Add comment", "Add group", "Add workflow", "Add subgraph", "Add app"}));
+        QCOMPARE(layout(menu), (QStringList{"paste", "fit", "-", "add-constant", "add-input", "-", "add-comment", "add-group", "add-workflow", "add-subgraph", "add-comfy-subgraph", "add-app"}));
+        QCOMPARE(labels(menu), (QStringList{"Paste", "Fit screen", "Add constant node", "Add input node", "Add comment", "Add group", "Add workflow", "Add subgraph", "Add Comfy subgraph", "Add app"}));
         QVERIFY(!enabled(menu, "paste"));
         QVERIFY(entry(menu, "paste")->property("reasonText").toString().contains("No valid node data"));
         QVERIFY(enabled(menu, "fit"));
@@ -293,6 +298,124 @@ private slots:
     }
 
     // NodeContextMenu.tsx
+    // useNodeFocus.ts: Ctrl+Alt+N/P cycle, Alt+arrows move by position,
+    // Ctrl+Alt+B steps back, Enter selects. Focus never changes the selection.
+    void keyboardNodeNavigation() {
+        EditorWindow window;
+        window.setCatalog(catalog());
+        QVERIFY(window.document()->load(QJsonObject{{"id", "navigation"}, {"graph", QJsonObject{{"nodes", QJsonArray{
+            node("a", "Fixed", 0, 0), node("b", "Fixed", 500, 0), node("c", "Fixed", 500, 400)}}, {"edges", QJsonArray{}}}}}));
+        window.resize(1400, 1000);
+        window.show();
+        window.action("Reset zoom");
+        QTest::qWait(60);
+        auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+        auto *canvas = view(window)->viewport();
+        view(window)->setFocus();
+        // Enter does nothing before a node has focus.
+        QTest::keyClick(canvas, Qt::Key_Return);
+        QCOMPARE(window.selectedCount(), 0);
+        QTest::keyClick(canvas, Qt::Key_N, Qt::ControlModifier | Qt::AltModifier);
+        QTRY_COMPARE(model.focusedNode(), QString("a"));
+        QCOMPARE(window.selectedCount(), 0);
+        // The badge above the focused card is inside its item bounds.
+        QVERIFY(window.scene()->nodeGraphicsObject(nodeId(window, "a"))->boundingRect().top() <= -20);
+        QTest::keyClick(canvas, Qt::Key_Right, Qt::AltModifier);
+        QCOMPARE(model.focusedNode(), QString("b"));
+        QVERIFY(window.scene()->nodeGraphicsObject(nodeId(window, "a"))->boundingRect().top() > -20);
+        QTest::keyClick(canvas, Qt::Key_Down, Qt::AltModifier);
+        QCOMPARE(model.focusedNode(), QString("c"));
+        // Nothing lies below c, so the focus stays.
+        QTest::keyClick(canvas, Qt::Key_Down, Qt::AltModifier);
+        QCOMPARE(model.focusedNode(), QString("c"));
+        QTest::keyClick(canvas, Qt::Key_P, Qt::ControlModifier | Qt::AltModifier);
+        QCOMPARE(model.focusedNode(), QString("b"));
+        QTest::keyClick(canvas, Qt::Key_N, Qt::ControlModifier | Qt::AltModifier);
+        QTest::keyClick(canvas, Qt::Key_N, Qt::ControlModifier | Qt::AltModifier);
+        QCOMPARE(model.focusedNode(), QString("a"));
+        QTest::keyClick(canvas, Qt::Key_B, Qt::ControlModifier | Qt::AltModifier);
+        QCOMPARE(model.focusedNode(), QString("c"));
+        QTest::keyClick(canvas, Qt::Key_Return);
+        QTRY_COMPARE(window.selectedCount(), 1);
+        QVERIFY(window.scene()->nodeGraphicsObject(nodeId(window, "c"))->isSelected());
+    }
+    // HandleTooltip.tsx: with a node focused, Tab walks its handles and Enter
+    // opens KeyboardConnectionPicker, which wires the handle to an existing port.
+    void keyboardHandleFocusOpensConnectionPicker() {
+        EditorWindow window;
+        window.setCatalog(catalog());
+        QVERIFY(window.document()->load(QJsonObject{{"id", "handles"}, {"graph", QJsonObject{{"nodes", QJsonArray{
+            node("a", "Fixed", 0, 0), node("b", "Fixed", 500, 0)}}, {"edges", QJsonArray{}}}}}));
+        window.resize(1400, 1000);
+        window.show();
+        window.action("Reset zoom");
+        QTest::qWait(60);
+        auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+        auto *canvas = view(window)->viewport();
+        view(window)->setFocus();
+        // Tab belongs to the window until a node has focus.
+        QTest::keyClick(canvas, Qt::Key_Tab);
+        QCOMPARE(model.focusedHandle().side, QtNodes::PortType::None);
+        QTest::keyClick(canvas, Qt::Key_N, Qt::ControlModifier | Qt::AltModifier);
+        QTRY_COMPARE(model.focusedNode(), QString("a"));
+        QTest::keyClick(canvas, Qt::Key_Tab);
+        QCOMPARE(model.focusedHandle().side, QtNodes::PortType::In);
+        QCOMPARE(model.focusedHandle().name, QString("in"));
+        QTest::keyClick(canvas, Qt::Key_Tab);
+        QCOMPARE(model.focusedHandle().side, QtNodes::PortType::Out);
+        QCOMPARE(model.focusedHandle().name, QString("out"));
+        // Past the last handle the focus leaves the handles.
+        QTest::keyClick(canvas, Qt::Key_Tab);
+        QCOMPARE(model.focusedHandle().side, QtNodes::PortType::None);
+        QTest::keyClick(canvas, Qt::Key_Backtab, Qt::ShiftModifier);
+        QCOMPARE(model.focusedHandle().name, QString("out"));
+        // Moving the node focus drops the handle focus.
+        QTest::keyClick(canvas, Qt::Key_Right, Qt::AltModifier);
+        QCOMPARE(model.focusedNode(), QString("b"));
+        QCOMPARE(model.focusedHandle().side, QtNodes::PortType::None);
+        QTest::keyClick(canvas, Qt::Key_Left, Qt::AltModifier);
+        QTest::keyClick(canvas, Qt::Key_Backtab, Qt::ShiftModifier);
+        QCOMPARE(model.focusedHandle().name, QString("out"));
+        // Enter opens the picker instead of selecting the focused node.
+        QTest::keyClick(canvas, Qt::Key_Return);
+        QCOMPARE(window.selectedCount(), 0);
+        auto *picker = window.findChild<QQuickWidget *>("compatible-node-picker");
+        QVERIFY(picker);
+        QTRY_VERIFY(picker->isVisible());
+        QCOMPARE(picker->rootObject()->property("picker").value<QObject *>()->property("title").toString(), QString("Connect Out"));
+        // The first row is b's input. Enter in the search field picks it.
+        auto *search = picker->rootObject()->findChild<QQuickItem *>("compatible-search");
+        QVERIFY(search);
+        QTRY_VERIFY(search->hasActiveFocus());
+        QTest::keyClick(picker->quickWindow(), Qt::Key_Return);
+        QTRY_VERIFY(!picker->isVisible());
+        QCOMPARE(window.document()->edges().size(), 1);
+        const auto edge = window.document()->edges().first().toObject();
+        QCOMPARE(edge["source"].toString(), QString("a"));
+        QCOMPARE(edge["target"].toString(), QString("b"));
+        QCOMPARE(edge["targetHandle"].toString(), QString("in"));
+        // Escape clears the handle focus and keeps the node focus.
+        QTest::keyClick(canvas, Qt::Key_Escape);
+        QCOMPARE(model.focusedHandle().side, QtNodes::PortType::None);
+        QCOMPARE(model.focusedNode(), QString("a"));
+    }
+    // shortcuts.ts: Ctrl+, opens settings and W opens the workflow settings.
+    void settingsShortcuts() {
+        EditorWindow window;
+        window.setCatalog(catalog());
+        QVERIFY(window.document()->load(QJsonObject{{"id", "settings"}, {"graph", QJsonObject{{"nodes", QJsonArray{}}, {"edges", QJsonArray{}}}}}));
+        window.resize(1000, 700);
+        window.show();
+        auto *canvas = view(window)->viewport();
+        view(window)->setFocus();
+        // No server is connected, so settings explain what is missing.
+        QTest::keyClick(canvas, Qt::Key_Comma, Qt::ControlModifier);
+        QCOMPARE(window.message(), QString("Connect to a server to open settings."));
+        QTest::keyClick(canvas, Qt::Key_W);
+        QTRY_VERIFY(window.findChild<QDialog *>("workflow-details-dialog"));
+        window.findChild<QDialog *>("workflow-details-dialog")->close();
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    }
     void nodeMenuEntriesAndActions() {
         EditorWindow window;
         window.setCatalog(catalog());
@@ -510,14 +633,227 @@ private slots:
     void moreOpensDropdownWithDocumentedActions() {
         EditorWindow window; window.show(); QTest::qWait(50);
         window.action("More");
-        QTRY_VERIFY(window.findChild<QMenu *>("more-menu"));
+        QTRY_VERIFY(entry_menu::host(window, "more"));
         QVERIFY(!window.findChild<QDialog *>("command-panel"));
-        QStringList labels;
-        for (auto *item : window.findChild<QMenu *>("more-menu")->actions()) { labels << item->text(); }
-        for (const auto *expected : {"Auto layout", "Arrange selection", "Link selected", "Find node", "Group selection", "Ungroup", "Remove from group", "Run selected", "Disable selected", "Rename node", "Add comment", "Edit comment", "Server sync", "Canvas uploads"}) {
-            QVERIFY2(labels.contains(expected), expected);
+        auto labels = entry_menu::labels(entry_menu::host(window, "more"));
+        // The More menu holds the document's own settings and views. The Node and
+        // Workflow menus of the application menu hold the other commands.
+        // Platforms other than macOS add the canvas navigation choice.
+        labels.removeIf([](const QString &label) { return label.startsWith("Canvas navigation: "); });
+        QCOMPARE(labels, (QStringList{"Instant Update: Off", "Workflow metadata", "Server sync", "Canvas uploads", "Command menu"}));
+        closeMenu(window);
+    }
+
+    // File > Open Example lists the bundled workflows by their first tag. Each entry
+    // opens its example in a tab of its own, with no file, so Save asks for a path.
+    void examplesMenuOpensEachBundledExample() {
+        EditorWindow window; window.show(); QTest::qWait(50);
+        const auto resources = QDir(":/editor/examples").entryList({"*.json"}, QDir::Files);
+        QVERIFY(resources.size() >= 2);
+        const auto openMenu = [&window] { return window.findChild<QMenu *>("application-menu-examples"); };
+        auto *menu = openMenu();
+        QVERIFY(menu);
+        QStringList sections, names;
+        for (auto *item : menu->actions()) { (item->isSeparator() ? sections : names) << item->text(); }
+        QCOMPARE(sections, (QStringList{"Audio", "Image"}));
+        QCOMPARE(names.size(), resources.size());
+        QVERIFY(names.contains("A Lo-Fi Drum Loop"));
+        QVERIFY(names.contains("Live Synth in a Room"));
+        QVERIFY(names.contains("Render a Synth Clip"));
+        QVERIFY(names.contains("Play a Clip through a Phaser"));
+        QVERIFY(names.contains("Remove Grain with a Median Filter"));
+        menu->close();
+        const auto tabs = window.workflowTabs().size();
+        for (const auto &name : names) {
+            menu = openMenu();
+            QVERIFY(menu);
+            QAction *entry = nullptr;
+            for (auto *item : menu->actions()) { if (item->text() == name) { entry = item; } }
+            QVERIFY2(entry, qPrintable(name));
+            QVERIFY(!entry->toolTip().isEmpty());
+            entry->trigger();
+            QTRY_COMPARE(window.document()->snapshot()["name"].toString(), name);
+            QVERIFY(window.localFilePath().isEmpty());
+            QVERIFY(window.document()->nodes().size() > 1);
         }
-        window.findChild<QMenu *>("more-menu")->close();
+        // The empty first tab takes the first example, and each other example gets a new tab.
+        QCOMPARE(window.workflowTabs().size(), tabs + names.size() - 1);
+    }
+
+    // The Examples panel lists the bundled examples under Built in. Opening one
+    // closes the panel and opens the example in a tab, as the menu does.
+    void examplesPanelOpensABundledExampleInATab() {
+        EditorWindow window; window.show(); QTest::qWait(50);
+        QVERIFY(!window.examplesVisible());
+        window.action("Examples");
+        QTRY_VERIFY(window.examplesVisible());
+        QVERIFY(!window.catalogVisible());
+        auto *dock = window.findChild<QDockWidget *>("examples-dock");
+        QVERIFY(dock && !dock->isHidden());
+        auto *panel = qobject_cast<QQuickWidget *>(dock->widget());
+        QVERIFY(panel && panel->rootObject());
+        auto *gallery = panel->rootObject()->property("gallery").value<QObject *>();
+        QVERIFY(gallery);
+        const auto rows = gallery->property("rows").toList();
+        QCOMPARE(rows.size(), QDir(":/editor/examples").entryList({"*.json"}, QDir::Files).size());
+        QString key;
+        for (const auto &row : rows) {
+            if (row.toMap()["name"].toString() == "A Lo-Fi Drum Loop") { key = row.toMap()["key"].toString(); }
+        }
+        QVERIFY(!key.isEmpty());
+        QVERIFY(QMetaObject::invokeMethod(gallery, "open", Q_ARG(QString, key)));
+        QTRY_COMPARE(window.document()->snapshot()["name"].toString(), QString("A Lo-Fi Drum Loop"));
+        QVERIFY(window.localFilePath().isEmpty());
+        QVERIFY(!dock->isVisible());
+        // The panel toggle closes an open Examples panel.
+        window.action("Examples");
+        QTRY_VERIFY(window.examplesVisible());
+        window.action("Toggle panel");
+        QTRY_VERIFY(!window.examplesVisible());
+    }
+
+    // ExamplesPanel.tsx: dragging an example card onto the canvas pastes a copy
+    // of its graph with the first node at the drop point, as one undo step.
+    void examplesPanelDragPastesTheExampleGraph() {
+        EditorWindow window;
+        window.setCatalog(catalog());
+        QVERIFY(window.document()->load(QJsonObject{{"id", "target"}, {"graph", QJsonObject{{"nodes", QJsonArray{node("kept", "Fixed", 0, 0)}}, {"edges", QJsonArray{}}}}}));
+        window.resize(1200, 800);
+        window.show();
+        QTest::qWait(50);
+        window.action("Examples");
+        QTRY_VERIFY(window.examplesVisible());
+        auto *panel = qobject_cast<QQuickWidget *>(window.findChild<QDockWidget *>("examples-dock")->widget());
+        QVERIFY(panel && panel->rootObject());
+        auto *gallery = qobject_cast<node_editor::ExampleGallery *>(panel->rootObject()->property("gallery").value<QObject *>());
+        QVERIFY(gallery);
+        gallery->setServerExamples(QJsonArray{QJsonObject{{"id", "pair"}, {"name", "Pair"}, {"graph", QJsonObject{
+            {"nodes", QJsonArray{node("first", "Fixed", 100, 100), node("second", "Fixed", 500, 160)}},
+            {"edges", QJsonArray{QJsonObject{{"id", "e"}, {"source", "first"}, {"sourceHandle", "out"}, {"target", "second"}, {"targetHandle", "in"}}}}}}}});
+        QVERIFY(gallery->rows().first().toMap()["key"] == "server:pair");
+        auto *view = window.findChild<QGraphicsView *>();
+        const QPoint point(400, 300);
+        const auto expected = view->mapToScene(point);
+        QMimeData mime;
+        mime.setData(node_editor::ExampleGallery::DragMime, "server:pair");
+        QDragEnterEvent enter(QPointF(point), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(view->viewport(), &enter);
+        QVERIFY(enter.isAccepted());
+        QDropEvent drop(point, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(view->viewport(), &drop);
+        QVERIFY(drop.isAccepted());
+        QCOMPARE(window.document()->nodes().size(), 3);
+        QCOMPARE(window.document()->edges().size(), 1);
+        QCOMPARE(window.document()->undoStack()->count(), 1);
+        QPointF first, second;
+        for (const auto &value : window.document()->nodes()) {
+            const auto added = value.toObject();
+            if (added["id"] == "kept") { continue; }
+            QVERIFY(added["id"] != "first" && added["id"] != "second");
+            const auto position = added["ui_properties"].toObject()["position"].toObject();
+            const QPointF at(position["x"].toDouble(), position["y"].toDouble());
+            if (first.isNull()) { first = at; } else { second = at; }
+        }
+        QCOMPARE(first, expected);
+        QCOMPARE(second - first, QPointF(400, 60));
+        // An unknown example is refused.
+        QMimeData unknown;
+        unknown.setData(node_editor::ExampleGallery::DragMime, "server:missing");
+        QDropEvent refused(point, Qt::CopyAction, &unknown, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(view->viewport(), &refused);
+        QVERIFY(!refused.isAccepted());
+        window.action("Undo");
+        QCOMPARE(window.document()->nodes().size(), 1);
+    }
+
+    // electron/src/menu.ts: the desktop app's menu, with the native entry for each item.
+    void applicationMenuFollowsTheDesktopMenu() {
+        EditorWindow window; window.show();
+        window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowActive(&window));
+        const auto bar = window.findChild<QMenuBar *>("application-menu");
+        QVERIFY(bar);
+        QStringList titles;
+        for (auto *item : bar->actions()) { titles << item->text(); }
+        QCOMPARE(titles, (QStringList{"File", "Edit", "View", "Node", "Workflow", "Tools", "Window", "Help"}));
+        const auto labels = [](QMenu *menu) {
+            QStringList result;
+            for (auto *item : menu->actions()) { if (!item->isSeparator()) { result << item->text(); } }
+            return result;
+        };
+        const auto entry = [](QMenu *menu, const QString &label) -> QAction * {
+            for (auto *item : menu->actions()) { if (item->text() == label) { return item; } }
+            return nullptr;
+        };
+        auto *file = window.findChild<QMenu *>("application-menu-file");
+        auto *edit = window.findChild<QMenu *>("application-menu-edit");
+        QVERIFY(file && edit);
+        QCOMPARE(labels(file), (QStringList{"New Workflow", "New Comfy Workflow", "Open…", "Open Example", "Save", "Save As…", "Settings…", "Close Tab", "Quit"}));
+        QCOMPARE(labels(edit), (QStringList{"Undo", "Redo", "Cut", "Copy", "Paste", "Select All", "Duplicate", "Duplicate Vertical", "Group", "Align", "Align with Spacing"}));
+        QCOMPARE(entry(file, "Save")->shortcut(), QKeySequence("Ctrl+S"));
+
+        // Open Example lists every bundled example and opens it in the active tab.
+        auto *examples = window.findChild<QMenu *>("application-menu-examples");
+        QVERIFY(examples);
+        QCOMPARE(labels(examples).size(), QDir(":/editor/examples").entryList({"*.json"}).size());
+        entry(examples, "A Lo-Fi Drum Loop")->trigger();
+        QTRY_COMPARE(window.document()->snapshot()["name"].toString(), QString("A Lo-Fi Drum Loop"));
+        QVERIFY(window.localFilePath().isEmpty());
+
+        // A command entry runs on the active tab.
+        QCOMPARE(window.selectedCount(), 0);
+        entry(edit, "Select All")->trigger();
+        QTRY_VERIFY(window.selectedCount() > 1);
+
+        // The Node and Workflow menus hold the commands that left the More menu.
+        auto *node = window.findChild<QMenu *>("application-menu-node");
+        auto *workflow = window.findChild<QMenu *>("application-menu-workflow");
+        QVERIFY(node && workflow);
+        QCOMPARE(labels(workflow), (QStringList{"Run", "Run Selected", "Stop", "Open from Server…", "Save to Server", "Sync with Server…", "Reconnect",
+            "Linked Workflows…", "Metadata…", "Canvas Uploads…"}));
+        emit node->aboutToShow();
+        QVERIFY(entry(node, "Layout Selection")->isEnabled());
+        QVERIFY(!entry(node, "Rename Node…")->isEnabled());
+        emit node->aboutToHide();
+        const auto before = window.document()->undoStack()->count();
+        entry(node, "Layout Selection")->trigger();
+        QTRY_COMPARE(window.document()->undoStack()->count(), before + 1);
+        window.document()->undoStack()->undo();
+
+        // With focus in a Qt Quick panel, a canvas key goes to the panel and the canvas
+        // keeps its selection. On the canvas, the key reaches the menu entry.
+        window.action("Clear selection");
+        QTRY_COMPARE(window.selectedCount(), 0);
+        QQuickWidget *panel = nullptr;
+        for (auto *candidate : window.findChildren<QQuickWidget *>()) {
+            if (candidate->isVisible() && candidate->quickWindow()) { panel = candidate; break; }
+        }
+        QVERIFY(panel);
+        panel->setFocus();
+        QTest::keyClick(panel->quickWindow(), Qt::Key_A, Qt::ControlModifier);
+        QCoreApplication::processEvents();
+        QCOMPARE(window.selectedCount(), 0);
+        auto *canvas = window.activeEditor()->findChild<QGraphicsView *>();
+        QVERIFY(canvas);
+        canvas->setFocus();
+        QTest::keyClick(canvas->viewport(), Qt::Key_A, Qt::ControlModifier);
+        QTRY_VERIFY(window.selectedCount() > 1);
+
+        // An open menu shows the tab's state. A closed menu leaves the shortcut on.
+        auto *undo = entry(edit, "Undo");
+        QVERIFY(!window.document()->undoStack()->canUndo());
+        emit edit->aboutToShow();
+        QVERIFY(!undo->isEnabled());
+        QVERIFY(entry(edit, "Copy")->isEnabled());
+        emit edit->aboutToHide();
+        QVERIFY(undo->isEnabled());
+
+        // The menu owns the tab keys, so each press acts once.
+        const auto tabs = window.workflowTabs().size();
+        QTest::keyClick(&window, Qt::Key_T, Qt::ControlModifier);
+        QTRY_COMPARE(window.workflowTabs().size(), tabs + 1);
+        QTest::keyClick(&window, Qt::Key_W, Qt::ControlModifier);
+        QTRY_COMPARE(window.workflowTabs().size(), tabs);
     }
 
     // KeyboardShortcutsView.tsx and ShortcutsSearchableList.tsx
@@ -611,6 +947,76 @@ private slots:
         QCOMPARE(root->property("helpRows").toList().first().toMap()["label"].toString(), QString("Fit"));
         QTest::keyClick(quick, Qt::Key_Escape);
         QTRY_VERIFY(!panel->isVisible());
+    }
+
+    // NodeInfoPanel.tsx: Ctrl+I toggles the panel beside the first selected node.
+    void nodeInfoTogglesBesideTheSelectedNode() {
+        auto types = catalog();
+        types.append(QJsonObject{{"node_type", "test.info.Described"}, {"title", "Described"}, {"namespace", "test.info"},
+                                 {"description", "Does a thing.\nalpha, beta\nUse cases:\n- First"},
+                                 {"properties", QJsonArray{}}, {"outputs", QJsonArray{picker_fixture::slot("output", picker_fixture::type("str"))}}});
+        EditorWindow window;
+        window.setCatalog(types);
+        QVERIFY(window.document()->load(QJsonObject{{"id", "info"}, {"graph", QJsonObject{{"nodes", QJsonArray{
+            node("described", "test.info.Described", 0, 0), node("sink", "Sink", 900, 0)}}, {"edges", QJsonArray{}}}}}));
+        window.resize(1400, 1000);
+        window.show();
+        window.action("Reset zoom");
+        QTest::qWait(60);
+        auto *overlay = window.findChild<QQuickWidget *>("node-info-overlay");
+        QVERIFY(overlay && overlay->rootObject());
+        QVERIFY(!overlay->isVisible());
+        auto *info = qvariant_cast<QObject *>(overlay->rootObject()->property("info"));
+        QVERIFY(info);
+        const auto toggle = [&] {
+            view(window)->setFocus();
+            QTest::keyClick(view(window)->viewport(), Qt::Key_I, Qt::ControlModifier);
+        };
+        // Nothing selected: nothing to show.
+        toggle();
+        QVERIFY(!overlay->isVisible());
+        window.selectNode("described");
+        toggle();
+        QTRY_VERIFY(overlay->isVisible());
+        QCOMPARE(info->property("nodeId").toString(), QString("described"));
+        QCOMPARE(info->property("title").toString(), QString("Described"));
+        QCOMPARE(info->property("nodeNamespace").toString(), QString("test.info"));
+        QCOMPARE(info->property("description").toString(), QString("Does a thing."));
+        QCOMPARE(info->property("tags").toStringList(), (QStringList{"alpha", "beta"}));
+        // The panel sits beside the card, 16 px from it, right of it when the
+        // canvas has room there and left of it otherwise.
+        auto *item = window.scene()->nodeGraphicsObject(nodeId(window, "described"));
+        auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+        const auto size = model.layout(nodeId(window, "described")).size;
+        const auto card = view(window)->mapFromScene(QRectF(item->scenePos(), size)).boundingRect().translated(view(window)->viewport()->pos());
+        const bool right = card.right() + 16 + overlay->width() + 16 <= view(window)->width();
+        QVERIFY2(right ? std::abs(overlay->x() - card.right() - 16) <= 2 : std::abs(overlay->geometry().right() + 1 + 16 - card.left()) <= 2,
+                 qPrintable(QString("panel %1-%2, card %3-%4").arg(overlay->x()).arg(overlay->geometry().right()).arg(card.left()).arg(card.right())));
+        QVERIFY(std::abs(overlay->y() - std::max(16, card.top())) <= 2);
+        // Another selected node moves the panel there. The same node hides it.
+        window.selectNode("sink");
+        toggle();
+        QTRY_COMPARE(info->property("nodeId").toString(), QString("sink"));
+        toggle();
+        QTRY_VERIFY(!overlay->isVisible());
+        // A tag opens the node menu searching for it.
+        window.selectNode("described");
+        toggle();
+        QTRY_VERIFY(overlay->isVisible());
+        QMetaObject::invokeMethod(info, "searchTag", Q_ARG(QString, "beta"));
+        auto *menu = window.findChild<QQuickWidget *>("node-menu");
+        QVERIFY(menu);
+        QTRY_VERIFY(menu->isVisible());
+        QCOMPARE(menu->rootObject()->property("query").toString(), QString("beta"));
+        QMetaObject::invokeMethod(info, "showNamespace");
+        QTRY_COMPARE(menu->rootObject()->property("selectedPathString").toString(), QString("test.info"));
+        QCOMPARE(menu->rootObject()->property("query").toString(), QString());
+        window.closeNodeMenu();
+        // Deleting the node closes the panel.
+        window.selectNode("described");
+        window.action("Delete");
+        QTRY_VERIFY(!overlay->isVisible());
+        QVERIFY(info->property("nodeId").toString().isEmpty());
     }
 
     // FindInWorkflowDialog.tsx and useFindInWorkflow.ts

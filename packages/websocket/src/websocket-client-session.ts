@@ -31,9 +31,10 @@ import {
   activeModelLoads,
   fetchExternalMedia,
   subscribeModelLoads,
-  type ModelLoadUpdate,
-  type Workspace
+  type ModelLoadUpdate
 } from "@nodetool-ai/runtime";
+import type { ProjectWorkspaceResolution } from "@nodetool-ai/execution/service";
+import { projectFolderWatchers } from "@nodetool-ai/project-services/project-watch";
 import type { NodeDescriptor } from "@nodetool-ai/protocol";
 import type {
   UnifiedCommandType,
@@ -342,14 +343,14 @@ export interface WebSocketClientSessionOptions {
    */
   systemStatsEnabled?: boolean;
   /**
-   * Resolve the workspace directory for a run. `workflowId` is null for a chat
-   * turn, which resolves to the user's default workspace — chat writes files
-   * too, and they belong somewhere the user can find them.
+   * Resolve the folder of the project a run belongs to. Called once when a
+   * job or a chat turn starts. A run whose folder is unreachable is refused
+   * with the reason this returns.
    */
   workspaceResolver?: (
-    workflowId: string | null,
+    projectId: string | null,
     userId: string
-  ) => Promise<Workspace | null>;
+  ) => Promise<ProjectWorkspaceResolution>;
   /** Called before a workflow job starts — used to lazily connect the Python bridge. */
   beforeRunJob?: (graph: {
     nodes: ReadonlyArray<NodeDescriptor>;
@@ -387,6 +388,8 @@ export interface WebSocketClientSessionOptions {
 
 export class WebSocketClientSession implements ClientSession {
   websocket: WebSocketConnection | null = null;
+  /** This connection's identity to the watchers of open project folders. */
+  private readonly projectClient = Symbol("project-client");
   mode: WebSocketMode = "binary";
   userId: string | null;
   authToken: string | null;
@@ -620,6 +623,12 @@ export class WebSocketClientSession implements ClientSession {
           this.mode = mode;
         },
         clearModels: () => this.clearModels(),
+        setOpenProject: (projectId) =>
+          projectFolderWatchers.setOpenProject(
+            this.projectClient,
+            this.requireUserId(),
+            projectId
+          ),
         cancelRpcCalls: () => this.cancelRpcCalls(),
         cancelToolScope: (scope) => {
           this.toolBridge.cancelScope(scope);
@@ -770,6 +779,9 @@ export class WebSocketClientSession implements ClientSession {
       this.frontendRendererId = null;
     }
     this.rendererToolBridge.cancelAll();
+    // The connection no longer has a project open, so its folder is watched
+    // only while another connection has it open.
+    projectFolderWatchers.release(this.projectClient);
     // An RPC has no session to detach into and no client left to answer, so
     // it is always cancelled — unlike a resilient chat turn below.
     this.cancelRpcCalls();

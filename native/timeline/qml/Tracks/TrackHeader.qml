@@ -305,7 +305,7 @@ Rectangle {
             if (event.key !== Qt.Key_Up && event.key !== Qt.Key_Down) { return }
             const step = event.modifiers & Qt.ShiftModifier ? 32 : 8
             const authored = header.rowHeight / (header.viewState ? header.viewState.verticalZoom : 1)
-            const next = Math.max(48, Math.min(300, authored + (event.key === Qt.Key_Down ? step : -step)))
+            const next = Math.max(24, Math.min(300, authored + (event.key === Qt.Key_Down ? step : -step)))
             event.accepted = true
             header.resizeStepRequested(next)
         }

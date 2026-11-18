@@ -29,8 +29,15 @@ on:
       - ".github/workflows/quality-checks.yml"
       - ".github/actions/setup-build/**"
   pull_request:
-    branches:
-      - main
+    # No `branches` filter: a stacked pull request, whose base is another
+    # branch, runs the same gate with the same job names as one into `main`,
+    # planned from its diff against that base. Without it a stack had no gate
+    # until GitHub retargeted it. A push starts one run per pull request the
+    # branch heads, and a push to a base branch starts none for the pull
+    # requests stacked on it. The default activity types leave out `edited`,
+    # so retargeting starts no run either: the gate that ran against the old
+    # base stays on the head commit until the next push.
+    #
     # No `paths` filter here: this workflow's "Quality Gate" job is a REQUIRED
     # status check. A path-filtered required check is left Pending (never runs)
     # when a PR push/merge touches no matching path — e.g. a clean "merge main"
@@ -58,6 +65,10 @@ on:
 # `changes` job), so a replaced pending run leaves nothing untested. Merge
 # queue, scheduled and manual runs get a group of their own and are never
 # cancelled.
+#
+# The cancel only reaches a job whose `if` is false once the run is cancelled.
+# GitHub evaluates the `if` of each running job again, and one that is still
+# true keeps running: see the `quality` job below.
 concurrency:
   group: ${{ github.workflow }}-${{ (github.event_name == 'pull_request' || github.event_name == 'push') && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -158,7 +169,7 @@ jobs:
           [[ "$DEFER_TO_QUEUE" == true ]] && DEFER="--defer-to-queue"
           if ! node scripts/ci-plan.mjs plan ${BASE:+--base "$BASE"} $DEFER; then
             echo "::warning::ci-plan failed; running every leg."
-            echo 'plan={"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"packages_game":true,"integration":true,"workflow_runner_e2e":true,"tsc6":true,"docker":true,"blender":true}' >> "$GITHUB_OUTPUT"
+            echo 'plan={"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"packages_cli":true,"packages_engine":true,"packages_game":true,"integration":true,"workflow_runner_e2e":true,"tsc6":true,"docker":true,"blender":true,"node_catalog":true}' >> "$GITHUB_OUTPUT"
           fi
 
       - name: Detect non-documentation changes
@@ -175,11 +186,18 @@ jobs:
   quality:
     name: Quality Gate (npm run check)
     needs: changes
-    # `always()` plus the explicit `== 'false'` test below so a `changes` job
-    # that never reported (infrastructure failure, not a filter result) runs the
-    # full gate. Only an explicit "this diff is prose" skips work — a required
-    # check must never go green because the job that decides was broken.
-    if: always()
+    # `!cancelled()` plus the explicit `== 'false'` test below so a `changes`
+    # job that failed or never reported (infrastructure failure, not a filter
+    # result) runs the full gate. Only an explicit "this diff is prose" skips
+    # work — a required check must never go green because the job that decides
+    # was broken.
+    #
+    # Not `always()`. On a cancel GitHub evaluates this `if` again and leaves
+    # the job running while it is true, and `always()` is true in a cancelled
+    # run. Every leg of the called workflow then ran to completion after a
+    # newer push had cancelled the run, and the new run waited in the
+    # concurrency group until the last one finished.
+    if: ${{ !cancelled() }}
     uses: ./.github/workflows/quality-checks.yml
     # A called workflow's permissions are capped by the caller's. The gate's
     # `ci-image` job publishes the CI image when docker/ci/ changed, and the

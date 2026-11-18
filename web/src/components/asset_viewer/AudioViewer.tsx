@@ -1,18 +1,8 @@
 import React, { MouseEventHandler, memo } from "react";
-import AudiotrackOutlinedIcon from "@mui/icons-material/AudiotrackOutlined";
 
 import { Asset } from "../../stores/ApiTypes";
 import AudioPlayer from "../audio/AudioPlayer";
-import {
-  BORDER_RADIUS,
-  Box,
-  Caption,
-  FlexColumn,
-  FlexRow,
-  SPACING,
-  TruncatedText,
-  TYPOGRAPHY
-} from "../ui_primitives";
+import { BORDER_RADIUS, FlexColumn, SPACING } from "../ui_primitives";
 
 interface AudioViewerProps {
   asset?: Asset;
@@ -32,7 +22,6 @@ const AudioViewer: React.FC<AudioViewerProps> = memo(function AudioViewer({
   asset,
   url
 }) {
-  const title = asset?.name || url?.split("/").pop() || "Audio";
   return (
     <FlexColumn
       className="audio-viewer"
@@ -55,34 +44,6 @@ const AudioViewer: React.FC<AudioViewerProps> = memo(function AudioViewer({
           borderRadius: BORDER_RADIUS.lg
         }}
       >
-        <FlexRow align="center" gap={SPACING.md} sx={{ minWidth: 0 }}>
-          <FlexRow
-            align="center"
-            justify="center"
-            sx={{
-              flexShrink: 0,
-              width: 36,
-              height: 36,
-              borderRadius: BORDER_RADIUS.md,
-              bgcolor: "action.hover",
-              color: "text.secondary"
-            }}
-          >
-            <AudiotrackOutlinedIcon fontSize="small" />
-          </FlexRow>
-          <Box sx={{ minWidth: 0 }}>
-            <TruncatedText
-              showTooltip
-              color="text.primary"
-              sx={TYPOGRAPHY.sans.label}
-            >
-              {title}
-            </TruncatedText>
-            {asset?.content_type && (
-              <Caption color="secondary">{asset.content_type}</Caption>
-            )}
-          </Box>
-        </FlexRow>
         <AudioPlayer
           alwaysShowControls={true}
           source={asset?.get_url || url || ""}

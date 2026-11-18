@@ -8,6 +8,7 @@ Item {
     property string message: ""
     // Wraps a long message over several lines instead of eliding it.
     property bool wrap: false
+    property int textFormat: Text.AutoText
     implicitWidth: glyph.width + Metrics.sm + label.implicitWidth
     implicitHeight: Math.max(glyph.height, label.implicitHeight)
     onStatusChanged: if (status < 0 || status > 3) { console.warn("Invalid status"); status = Ui.Status.Info }
@@ -30,5 +31,6 @@ Item {
         role: Typography.SansBody
         elide: Text.ElideRight
         wrapMode: root.wrap ? Text.Wrap : Text.NoWrap
+        textFormat: root.textFormat
     }
 }

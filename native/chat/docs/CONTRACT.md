@@ -43,6 +43,12 @@ envelopes. A command carries `command` and `data`. Streamed events carry `type`
 and usually `thread_id`. Authentication must be resolved for the configured
 server and must not be copied into logs or exported fixtures.
 
+After the mode acknowledgement on every connect, the client sends
+`set_open_project` with the selected thread's `project_id`, or `default`
+(Personal) when no thread is selected or the thread has none. It sends the
+command again whenever the selection moves to a thread of another project.
+The server watches that project's folder for the connection.
+
 A `chunk` appends its string content verbatim to the owning thread's trailing
 assistant message. Equal consecutive chunks are meaningful. `done` settles that
 thread. A final assistant `message` replaces the temporary streamed message
@@ -51,8 +57,8 @@ continues the agent turn. Tool results, planning, task, workflow, and media
 events retain their original payloads.
 
 `tool_approval_request` and `plan_approval_request` carry authoritative
-`approval_id` values. Replies use `tool_approval_response` with `allow` or
-`deny`, or `plan_approval_response` with `approve` or `reject` and optional
+`approval_id` values. Replies use `tool_approval_response` with `allow`
+(once), `allow_always` (saved for the user) or `deny`, or `plan_approval_response` with `approve` or `reject` and optional
 `feedback`. Secret values never travel in a secret-request response. A
 `secret_request_response` reports only `saved` or `declined` after a separate
 settings write.

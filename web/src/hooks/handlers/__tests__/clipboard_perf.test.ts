@@ -4,7 +4,6 @@ import { useClipboardContentPaste } from "../useClipboardContentPaste";
 import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../../../contexts/NodeContext";
 import { useAssetUpload } from "../../../serverState/useAssetUpload";
-import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import useAuth from "../../../stores/useAuth";
 import useMetadataStore from "../../../stores/MetadataStore";
 
@@ -14,7 +13,6 @@ jest.mock("@xyflow/react", () => ({
 }));
 jest.mock("../../../contexts/NodeContext");
 jest.mock("../../../serverState/useAssetUpload");
-jest.mock("../../../stores/AssetGridStore");
 jest.mock("../../../stores/useAuth");
 jest.mock("../../../stores/MetadataStore");
 jest.mock("../../../utils/MousePosition", () => ({
@@ -37,7 +35,6 @@ describe("useClipboardContentPaste Performance", () => {
     (useReactFlow as jest.Mock).mockReturnValue({ screenToFlowPosition: mockScreenToFlowPosition });
     asMock(useNodes).mockReturnValue({ createNode: mockCreateNode, addNode: mockAddNode, workflow: { id: "1" } });
     asMock(useAssetUpload).mockReturnValue({ uploadAsset: mockUploadAsset });
-    asMock(useAssetGridStore).mockReturnValue({ currentFolderId: "1" });
     asMock(useAuth).mockReturnValue({ user: { id: "1" } });
     asMock(useMetadataStore).mockReturnValue({ getMetadata: mockGetMetadata });
   });

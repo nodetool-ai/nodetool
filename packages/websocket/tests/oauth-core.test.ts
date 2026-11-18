@@ -12,6 +12,7 @@ import {
   validateScope
 } from "../src/oauth/validate.js";
 import { verifyS256 } from "../src/oauth/pkce.js";
+import { initTestDb } from "@nodetool-ai/models";
 import { pendingStore, PendingStore } from "../src/oauth/pending-store.js";
 import { isClientIdUrl, fetchClientMetadata } from "../src/oauth/cimd.js";
 
@@ -248,60 +249,61 @@ describe("PendingStore", () => {
   let store: PendingStore;
 
   beforeEach(() => {
+    initTestDb();
     store = new PendingStore();
   });
 
-  it("round-trips a request through putRequest/takeRequestForApproval", () => {
-    const id = store.putRequest(baseRequest());
-    const read1 = store.takeRequestForApproval(id);
-    const read2 = store.takeRequestForApproval(id);
+  it("round-trips a request through putRequest/takeRequestForApproval", async () => {
+    const id = await store.putRequest(baseRequest());
+    const read1 = await store.takeRequestForApproval(id);
+    const read2 = await store.takeRequestForApproval(id);
     expect(read1?.clientName).toBe("Test Client");
     // takeRequestForApproval does not consume — readable twice.
     expect(read2?.clientName).toBe("Test Client");
   });
 
-  it("consumeRequest consumes — a second call returns null", () => {
-    const id = store.putRequest(baseRequest());
-    const first = store.consumeRequest(id);
-    const second = store.consumeRequest(id);
+  it("consumeRequest consumes — a second call returns null", async () => {
+    const id = await store.putRequest(baseRequest());
+    const first = await store.consumeRequest(id);
+    const second = await store.consumeRequest(id);
     expect(first?.clientName).toBe("Test Client");
     expect(second).toBeNull();
   });
 
-  it("expires a pending request after its TTL", () => {
-    vi.useFakeTimers();
+  it("expires a pending request after its TTL", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
     try {
-      const id = store.putRequest(baseRequest());
-      vi.advanceTimersByTime(600_001);
-      expect(store.takeRequestForApproval(id)).toBeNull();
+      const id = await store.putRequest(baseRequest());
+      vi.setSystemTime(Date.now() + 600_001);
+      expect(await store.takeRequestForApproval(id)).toBeNull();
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it("putCode/consumeCode round-trips and reports single consumption", () => {
+  it("putCode/consumeCode round-trips and reports single consumption", async () => {
     const request = { ...baseRequest(), id: "req-1", createdAt: Date.now() };
-    const code = store.putCode({ request, userId: "user-1", grantId: "grant-1" });
-    const result = store.consumeCode(code);
+    const code = await store.putCode({ request, userId: "user-1", grantId: "grant-1" });
+    const result = await store.consumeCode(code);
     expect(result?.consumedBefore).toBe(false);
     expect(result?.userId).toBe("user-1");
   });
 
-  it("reports consumedBefore=true on a second consumption of the same code", () => {
+  it("reports consumedBefore=true on a second consumption of the same code", async () => {
     const request = { ...baseRequest(), id: "req-1", createdAt: Date.now() };
-    const code = store.putCode({ request, userId: "user-1", grantId: "grant-1" });
-    store.consumeCode(code);
-    const replay = store.consumeCode(code);
+    const code = await store.putCode({ request, userId: "user-1", grantId: "grant-1" });
+    await store.consumeCode(code);
+    const replay = await store.consumeCode(code);
     expect(replay?.consumedBefore).toBe(true);
   });
 
-  it("expires a code after its TTL", () => {
-    vi.useFakeTimers();
+  it("expires a code after its TTL", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
     try {
       const request = { ...baseRequest(), id: "req-1", createdAt: Date.now() };
-      const code = store.putCode({ request, userId: "user-1", grantId: "grant-1" });
-      vi.advanceTimersByTime(600_001);
-      expect(store.consumeCode(code)).toBeNull();
+      const code = await store.putCode({ request, userId: "user-1", grantId: "grant-1" });
+      vi.setSystemTime(Date.now() + 600_001);
+      expect(await store.consumeCode(code)).toBeNull();
     } finally {
       vi.useRealTimers();
     }

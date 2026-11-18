@@ -1,3 +1,4 @@
+import { AUDIO_RUN_KEY, resolveAudioRun } from "@nodetool-ai/protocol";
 /**
  * WorkflowRunner – DAG orchestration.
  *
@@ -689,6 +690,7 @@ export class WorkflowRunner {
       // (by type compatibility); outgoing edges with no compatible
       // upstream are dropped, as is the bypassed node itself.
       const effectiveGraph = rewriteBypassedNodes(graphData);
+      this._options.executionContext?.set?.(AUDIO_RUN_KEY, resolveAudioRun(effectiveGraph.nodes));
       this._graph = new Graph(effectiveGraph);
 
       // Python parity: _filter_invalid_edges — silently remove edges

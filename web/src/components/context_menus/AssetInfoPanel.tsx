@@ -17,7 +17,10 @@ import {
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { readAssetGenerationMetadata } from "@nodetool-ai/protocol";
+import {
+  parseProjectDirectoryId,
+  readAssetGenerationMetadata
+} from "@nodetool-ai/protocol";
 import type { Asset } from "../../stores/ApiTypes";
 import {
   formatContentType
@@ -27,7 +30,6 @@ import {
   openverseLicenseLabel,
   readOpenverseCredit
 } from "../../utils/openverseLicense";
-import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useOpenAssetWorkflow } from "../../hooks/useOpenAssetWorkflow";
 import { useJobSnapshot } from "../../serverState/useJobSnapshot";
@@ -133,7 +135,6 @@ const AssetInfoPanel: React.FC<AssetInfoPanelProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
-  const currentFolder = useAssetGridStore((state) => state.currentFolder);
   const getWorkflow = useWorkflowManager((state) => state.getWorkflow);
   const { openWorkflow, openSnapshot } = useOpenAssetWorkflow();
   // Older and headless runs may have no job row or no stored graph; the
@@ -158,11 +159,9 @@ const AssetInfoPanel: React.FC<AssetInfoPanelProps> = ({
     if (!asset.parent_id) {
       return null;
     }
-    if (currentFolder && currentFolder.id === asset.parent_id) {
-      return currentFolder.name;
-    }
-    return asset.parent_id;
-  }, [asset.parent_id, currentFolder]);
+    // Inside a project the parent is a directory id that carries its path.
+    return parseProjectDirectoryId(asset.parent_id)?.path ?? asset.parent_id;
+  }, [asset.parent_id]);
 
   const workflowName = useMemo(() => {
     if (!asset.workflow_id) {

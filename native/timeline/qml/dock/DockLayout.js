@@ -5,7 +5,7 @@ var workspaces = ["Editing", "Script", "Assistant", "Review"];
 // Presets only this editor has, so they stay out of the port below. The web list
 // above must match TIMELINE_WORKSPACES, which dock-conformance.mjs checks.
 var nativeWorkspaces = ["Color", "Audio", "Music"];
-var sidePanels = ["inspector", "shot", "instruments", "assistant", "history", "code"];
+var sidePanels = ["inspector", "effectControls", "motion", "color", "shot", "instruments", "assistant", "ai", "history", "code"];
 var requiredPanels = ["program", "tracks"];
 // Panels only this editor has, which a ported preset would otherwise show. Review leaves the
 // right side empty for the picture, and the port above keeps its own list of what it hides.
@@ -35,12 +35,12 @@ function webWorkspaceNames() { return workspaces; }
 // them part of the preset, so they can be hidden. "color", "scopes" and "audio"
 // are the ids of the panels the two workspaces are for.
 function applyNativePreset(layout, name) {
-    var leftPanels = ["transcript", "storyboard", "script", "entities", "markers", "assets", "effects"];
+    var leftPanels = ["transcript", "storyboard", "script", "entities", "markers", "files", "assets", "effects"];
     var workArea = name === "Color" ? "scopes" : "mixer";
     var controls = name === "Color" ? "color" : "audio";
     layout.regions.left[0].panels = leftPanels;
     layout.regions.left[0].activePanelId = leftPanels[0];
-    layout.regions.right[0].panels = [controls].concat(sidePanels);
+    layout.regions.right[0].panels = [controls].concat(sidePanels.filter(function(id) { return id !== controls; }));
     layout.regions.right[0].activePanelId = controls;
     layout.regions.viewport[1].panels = ["source", workArea];
     layout.regions.viewport[1].activePanelId = workArea;
@@ -51,7 +51,7 @@ function applyNativePreset(layout, name) {
 // below. The program monitor sits above the music panel; the editor leaves it out while the
 // sequence has no video track (DockCanvas.suppressedIds), since a layout must place it.
 function applyMusicPreset(layout) {
-    var leftPanels = ["transcript", "storyboard", "script", "entities", "markers", "assets", "effects"];
+    var leftPanels = ["transcript", "storyboard", "script", "entities", "markers", "files", "assets", "effects"];
     layout.regions.left[0].panels = leftPanels;
     layout.regions.left[0].activePanelId = leftPanels[0];
     layout.regions.right = [

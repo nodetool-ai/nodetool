@@ -21,7 +21,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🧩 Workflow As A Tool\n\nShows how one agent can call other agents as tools inside a single graph. Use this shape when a manager should decide whether and in what order specialists run, instead of a fixed pipeline.\n\n**How it works:** \"Topic\" fills \"Objective\", which asks for a 250 to 350 word explainer and tells the orchestrator to research, draft, then edit. \"Orchestrator\" receives it as its prompt. Control edges from its __control__ port into \"Tool: Research\" and \"Tool: Copy Editor\" turn those agents into tools it calls by name with a task string. The research agent returns a bulleted fact brief. The copy editor returns a tightened draft. The orchestrator's text goes to \"Final article\". Each agent uses your default language model, or the one you pick on the node.\n\n**Try this:** Change \"Topic\", or edit the orchestrator's system prompt to call only research_specialist and compare the unedited result."
+          "comment": "# Workflow As A Tool\n\nShows how one agent can call other agents as tools inside a single graph. Use this shape when a manager should decide whether and in what order specialists run, instead of a fixed pipeline.\n\n**How it works:** \"Topic\" fills \"Objective\", which asks for a 250 to 350 word explainer and tells the orchestrator to research, draft, then edit. \"Orchestrator\" receives it as its prompt. Control edges from its __control__ port into \"Tool: Research\" and \"Tool: Copy Editor\" turn those agents into tools it calls by name with a task string. The research agent returns a bulleted fact brief. The copy editor returns a tightened draft. The orchestrator's text goes to \"Final article\". Each agent uses your default language model, or the one you pick on the node.\n\n**Try this:** Change \"Topic\", or edit the orchestrator's system prompt to call only research_specialist and compare the unedited result."
         },
         "ui_properties": {
           "selected": false,
@@ -48,7 +48,7 @@
         },
         "ui_properties": {
           "selected": false,
-          "title": "1️⃣ Topic",
+          "title": "1 Topic",
           "position": {
             "x": 0,
             "y": 782
@@ -69,7 +69,7 @@
         },
         "ui_properties": {
           "selected": false,
-          "title": "2️⃣ Objective",
+          "title": "2 Objective",
           "position": {
             "x": 380,
             "y": 590
@@ -103,7 +103,7 @@
         },
         "ui_properties": {
           "selected": false,
-          "title": "3️⃣ Orchestrator",
+          "title": "3 Orchestrator",
           "position": {
             "x": 760,
             "y": 762
@@ -135,7 +135,7 @@
         },
         "ui_properties": {
           "selected": false,
-          "title": "🔧 Tool: Research",
+          "title": "Tool: Research",
           "position": {
             "x": 1160,
             "y": 510
@@ -167,7 +167,7 @@
         },
         "ui_properties": {
           "selected": false,
-          "title": "🔧 Tool: Copy Editor",
+          "title": "Tool: Copy Editor",
           "position": {
             "x": 1160,
             "y": 773
@@ -188,7 +188,7 @@
         },
         "ui_properties": {
           "selected": false,
-          "title": "4️⃣ Final article",
+          "title": "4 Final article",
           "position": {
             "x": 1160,
             "y": 1036

@@ -3,6 +3,7 @@ import { authHeader } from "../../lib/auth";
 import { restFetch } from "../../lib/rest-fetch";
 import { Asset, AssetList, AssetSearchResult } from "../ApiTypes";
 import { useAssetStore } from "../AssetStore";
+import { useWorkspaceTabsStore } from "../WorkspaceTabsStore";
 
 jest.mock("../../lib/rest-fetch", () => ({
   restFetch: jest.fn()
@@ -324,6 +325,36 @@ describe("AssetStore", () => {
         expect(mockRestFetch).toHaveBeenCalled();
       });
 
+      it("links a file below the threshold when Link was chosen", async () => {
+        configQuery.mockResolvedValue({ enabled: true, threshold_bytes: 1000 });
+        const file = new File(["test content"], "clip.mp4", {
+          type: "video/mp4"
+        });
+        const result = await useAssetStore
+          .getState()
+          .createAsset(file, undefined, undefined, undefined, "file", "project-a", undefined, "link");
+        expect(createExternalMutate).toHaveBeenCalledWith(
+          expect.objectContaining({ path: "/media/clip.mp4", project_id: "project-a" })
+        );
+        expect(mockRestFetch).not.toHaveBeenCalled();
+        expect(result.id).toBe("external-id");
+      });
+
+      it("copies a file at or above the threshold when Copy was chosen", async () => {
+        mockRestFetch.mockResolvedValue({
+          ok: true,
+          json: jest.fn().mockResolvedValue(external)
+        });
+        const file = new File(["test content"], "clip.mp4", {
+          type: "video/mp4"
+        });
+        await useAssetStore
+          .getState()
+          .createAsset(file, undefined, undefined, undefined, "file", "project-a", undefined, "copy");
+        expect(createExternalMutate).not.toHaveBeenCalled();
+        expect(mockRestFetch).toHaveBeenCalled();
+      });
+
       it("uploads when the server does not offer external references", async () => {
         configQuery.mockResolvedValue({ enabled: false, threshold_bytes: 10 });
         mockRestFetch.mockResolvedValue({
@@ -429,6 +460,56 @@ describe("AssetStore", () => {
           useAssetStore.getState().createAsset(file)
         ).rejects.toThrow();
         expect(finalizeMutate).not.toHaveBeenCalled();
+      });
+
+      it("hands finalize the directory the file was dropped on", async () => {
+        const file = new File(["test content"], "test.jpg", {
+          type: "image/jpeg"
+        });
+        await useAssetStore
+          .getState()
+          .createAsset(file, undefined, undefined, undefined, "drop", "project-a", "footage");
+        expect(finalizeMutate).toHaveBeenCalledWith({
+          asset_id: "direct-id",
+          directory: "footage"
+        });
+      });
+    });
+
+    describe("the project and directory a multipart upload names", () => {
+      const sentJson = (): Record<string, unknown> => {
+        const body = mockRestFetch.mock.calls[0][1].body as FormData;
+        return JSON.parse(String(body.get("json")));
+      };
+
+      beforeEach(() => {
+        mockRestFetch.mockResolvedValue({
+          ok: true,
+          json: jest.fn().mockResolvedValue({ id: "a1", parent_id: "" })
+        });
+      });
+
+      afterEach(() => {
+        useWorkspaceTabsStore.setState({ activeProjectId: null });
+      });
+
+      it("names the open project when the caller passes none", async () => {
+        useWorkspaceTabsStore.setState({ activeProjectId: "project-open" });
+        const file = new File(["x"], "a.txt", { type: "text/plain" });
+        await useAssetStore.getState().createAsset(file);
+        expect(sentJson()).toMatchObject({ project_id: "project-open" });
+        expect(sentJson()).not.toHaveProperty("directory");
+      });
+
+      it("sends the directory a file was dropped on", async () => {
+        const file = new File(["x"], "a.txt", { type: "text/plain" });
+        await useAssetStore
+          .getState()
+          .createAsset(file, undefined, undefined, undefined, "drop", "project-a", "footage");
+        expect(sentJson()).toMatchObject({
+          project_id: "project-a",
+          directory: "footage"
+        });
       });
     });
 
@@ -853,53 +934,6 @@ describe("AssetStore", () => {
 
       expect(listQuery).toHaveBeenCalledWith({ content_type: "folder" });
       expect(result).toBeTruthy();
-    });
-  });
-
-  describe("getAllAssetsInFolder", () => {
-    it("should fetch flat list via recursive tRPC procedure and flatten it", async () => {
-      const mockResponse = {
-        assets: [
-          {
-            id: "folder1",
-            name: "Folder 1",
-            content_type: "folder"
-          },
-          {
-            id: "file1",
-            name: "file1.txt",
-            content_type: "text/plain"
-          },
-          {
-            id: "file2",
-            name: "file2.txt",
-            content_type: "text/plain"
-          }
-        ]
-      };
-
-      recursiveQuery.mockResolvedValueOnce(mockResponse);
-
-      const { getAllAssetsInFolder } = useAssetStore.getState();
-      const result = await getAllAssetsInFolder("root-folder");
-
-      expect(recursiveQuery).toHaveBeenCalledWith(
-        { id: "root-folder" },
-        {}
-      );
-      // Flat list → three items, no nesting.
-      expect(result).toHaveLength(3);
-      const ids = result.map((a) => a.id).sort();
-      expect(ids).toEqual(["file1", "file2", "folder1"]);
-    });
-
-    it("should handle API errors", async () => {
-      recursiveQuery.mockRejectedValueOnce(new Error("Failed to fetch"));
-
-      const { getAllAssetsInFolder } = useAssetStore.getState();
-      await expect(getAllAssetsInFolder("root-folder")).rejects.toThrow(
-        /Failed to fetch/
-      );
     });
   });
 

@@ -38,6 +38,7 @@ function bytesToB64(bytes: Uint8Array): string {
 /** Minimal StreamingInputs fake: yields the given items on every handle. */
 function inputsFrom(items: unknown[]): StreamingInputs {
   return {
+    signal: new AbortController().signal,
     async *stream(_name: string) {
       for (const item of items) yield item;
     },

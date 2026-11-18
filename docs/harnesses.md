@@ -56,8 +56,9 @@ node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/pin-
 ```
 
 The
-`release-pins` job in `packed-core-cli.yml` verifies actual Linux measurement
-and packing without publishing.
+`packed-install` job in `packed-core-cli.yml` verifies actual Linux measurement
+and packing without publishing, then smoke-tests the packed CLI from those
+tarballs.
 
 ## CLI
 
@@ -2059,10 +2060,9 @@ headless run (a workflow on the kernel, the CLI, an eval) carries no
 `CapabilityRun.secretPrompt` and the call is refused by name rather than
 quietly writing something nobody approved.
 
-The last three replaced nodes rather than bridges. `lib.browser.WebFetch`,
+These replaced nodes rather than bridges. `lib.browser.WebFetch`,
 `DownloadFile`, `Browser` and `SpiderCrawl` are the `fetch` capability plus
-`-html`; `lib.excel.*` is `-xlsx`; `lib.ocr.*` is `-ocr`; and
-`lib.tensorflow.*` is `-tfjs`. Each was a chain of
+`-html`, and `lib.ocr.*` is `-ocr`. Each was a chain of
 near-identical nodes that one script now expresses; only `lib.browser.Screenshot`
 (a real page over CDP) and `lib.sqlite.GetDatabasePath` stayed nodes.
 
@@ -2763,6 +2763,9 @@ python3 native/ui_primitives/tools/check_dependencies.py
 python3 native/ui_primitives/tools/check_isolated_build.py --qt-prefix /path/to/Qt
 ```
 
+On Windows, use `py -3` in place of `python3`. The harness gate selects the
+Windows Python launcher automatically.
+
 The design check audits the native migration inventory and presentation rules.
 The dependency check rejects feature, backend, and web dependencies in the
 primitive module. The isolation check copies the module into a temporary tree,
@@ -3040,3 +3043,19 @@ the first build. Set `NODETOOL_GRAPH_RUNNER_BUILD_DIR` to reuse a populated
 CMake build directory. The default is `native/graph-runner/build`. The wrapper
 always rebuilds sources and guest artifacts before testing, including when
 reusing a build. Missing prerequisites and failed commands return nonzero.
+
+### Native graph runner guest contract
+
+```bash
+node native/graph-runner/guest/build.mjs native/graph-runner/build/contract-check/guest.js
+```
+
+The default gate runs this check for changes to the guest and to the
+packages whose sources the guest bundle contains, such as `packages/agents`
+and `packages/runtime`. It bundles the guest with esbuild and fails when
+bundled code imports a host package export that
+`native/graph-runner/guest/module-contract.mjs` does not classify, or when the
+contract classifies an export its provider lacks. It needs Node and
+`npm run build:packages`, but no native libraries. The
+`native-graph-runner.yml` workflow runs the same build, but it does not
+trigger on most of these packages.

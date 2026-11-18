@@ -6,6 +6,12 @@ using namespace nodetool::node_editor;
 class NodeRuntimeModelTests : public QObject {
  Q_OBJECT
 private slots:
+ // The editor window clears its live run on these, as the session and the
+ // web's SETTLED_JOB_STATUSES do, including timed_out and error.
+ void terminalStatusesMatchTheSession() {
+  for (const auto *status : {"completed", "finished", "failed", "cancelled", "timed_out", "error"}) { QVERIFY2(isTerminalRunStatus(status), status); }
+  for (const auto *status : {"queued", "running", "starting", "scheduled", ""}) { QVERIFY2(!isTerminalRunStatus(status), status); }
+ }
  void isolatesAndReplays() {
   NodeRuntimeModel model;
   QSignalSpy changed(&model, &NodeRuntimeModel::nodeChanged);
@@ -107,6 +113,18 @@ private slots:
   event["job_id"]="b"; event["progress"]=2; model.ingest("a",event);
   QCOMPARE(model.nodeState("n")["progress"].toDouble(),1.0);
  }
+ // NodeProgress.tsx times the remaining work from the first progress report.
+ void progressRecordsWhenItStarted() {
+  NodeRuntimeModel model; model.beginRun("a");
+  model.ingest("a",{{"type","node_progress"},{"job_id","a"},{"node_id","n"},{"progress",1},{"total",4}});
+  const auto started = model.nodeState("n")["progressStarted"].toDouble();
+  QVERIFY(started > 0);
+  QTest::qWait(5);
+  model.ingest("a",{{"type","node_progress"},{"job_id","a"},{"node_id","n"},{"progress",2},{"total",4}});
+  QCOMPARE(model.nodeState("n")["progressStarted"].toDouble(), started);
+  model.ingest("a",{{"type","node_progress"},{"job_id","a"},{"node_id","n"},{"progress",0},{"total",4}});
+  QVERIFY(model.nodeState("n")["progressStarted"].toDouble() > started);
+ }
  // The canvas keeps marking the untaken branch after the run ends, so edge reports outlive the job.
  void edgeReportsOutliveTheFinishedRun() {
   NodeRuntimeModel model; model.beginRun("a");
@@ -128,6 +146,7 @@ private slots:
   model.ingest("a",{{"type","job_resumed"},{"job_id","a"},{"status","unknown"},{"last_seq",3},{"replay_count",0}});
   QVERIFY(!model.nodeState("n").contains("status"));
   QVERIFY(!model.nodeState("n").contains("progress"));
+  QVERIFY(!model.nodeState("n").contains("progressStarted"));
   QVERIFY(model.edgeState("e").isEmpty());
   QVERIFY(projection.size() > 0);
   model.ingest("a",{{"type","node_update"},{"job_id","a"},{"job_seq",4},{"node_id","n"},{"status","running"}});

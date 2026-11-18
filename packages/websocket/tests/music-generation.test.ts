@@ -34,11 +34,21 @@ import { encodeFloatWav, readFloatWav } from "../src/lib/float-wav.js";
 /** Bytes per asset id: what the handler stored, and what a test seeded. */
 const STORED = vi.hoisted(() => new Map<string, Uint8Array>());
 
-vi.mock("@nodetool-ai/asset-services/thumbnail", async (orig) => ({
-  ...(await orig<typeof import("@nodetool-ai/asset-services/thumbnail")>()),
-  storeAssetWithThumbnail: vi.fn(
-    async (_userId: string, assetId: string, _key: string, bytes: Uint8Array) => {
-      STORED.set(assetId, bytes);
+// A take is saved through the project folder in production. Here it is a row
+// with its bytes kept in memory, so the test needs no project folder.
+vi.mock("@nodetool-ai/asset-services/project-asset", async (orig) => ({
+  ...(await orig<typeof import("@nodetool-ai/asset-services/project-asset")>()),
+  saveProjectAsset: vi.fn(
+    async (args: { userId: string; name: string; contentType: string; bytes: Uint8Array; parentId?: string }) => {
+      const { Asset: AssetModel } = await import("@nodetool-ai/models");
+      const asset = (await AssetModel.create({
+        user_id: args.userId,
+        name: args.name,
+        content_type: args.contentType,
+        parent_id: args.parentId ?? args.userId
+      })) as InstanceType<typeof AssetModel>;
+      STORED.set(asset.id, args.bytes);
+      return asset;
     }
   )
 }));

@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "コード#状態",
       "signInWindowClosed": "サインインウィンドウは閉じていますか?",
       "openAgain": "もう一度開いてください",
-      "linkExpiry": "。リンクは 10 分後に期限切れになります。"
+      "linkExpiry": "。リンクは 10 分後に期限切れになります。",
+      "nativeSubtitle": "があなたの NodeTool アカウントへのサインインを求めています。",
+      "app": "アプリ",
+      "device": "デバイス",
+      "nativeNote": "このコンピューターの NodeTool デスクトップアプリから自分でサインインを始めた場合にのみ承認してください。承認すると、サインアウトするか設定でセッションを終了するまで、アプリはクラウド上のドキュメントを開いて編集し保存できます。"
     },
     "integrations": {
       "loadingAccounts": "接続されているアカウントをロードしています",
@@ -295,6 +299,8 @@
     "addWorkflowTooltip": "ワークフローノードを追加する",
     "addSubgraph": "サブグラフの追加",
     "addSubgraphTooltip": "インラインサブグラフノードを追加する",
+    "addComfySubgraph": "Comfy サブグラフを追加",
+    "addComfySubgraphTooltip": "1 つの Comfy ジョブとして実行される ComfyUI ノードのサブグラフを追加",
     "addApp": "アプリを追加",
     "addAppTooltip": "ミニアプリをノードとして実行する",
     "property": "プロパティ",
@@ -694,61 +700,15 @@
   },
   "batch2_1": {
     "common": {
-      "workspace": "ワークスペース",
       "loading": "読み込み中…",
       "refresh": "リフレッシュ",
       "remove": "削除",
       "cancel": "キャンセル"
     },
-    "page": {
-      "title": "ワークスペース",
-      "subtitle": "エージェントとワークフローがファイルの読み取り、書き込み、整理を行うことができるサンドボックス フォルダー。"
-    },
-    "folderPicker": {
-      "title": "ワークスペースフォルダーを選択"
-    },
-    "notifications": {
-      "added": "ワークスペースが追加されました",
-      "removed": "ワークスペースが削除されました"
-    },
-    "errors": {
-      "loadTitle": "ワークスペースを読み込めませんでした",
-      "loadSummary": "ワークスペースの読み込みに失敗しました",
-      "loadDescription": "接続を確認して、もう一度試してください。",
-      "operation": "ワークスペース操作が失敗しました: {{error}}"
-    },
-    "manager": {
-      "inaccessible": "アクセス不可",
-      "defaultWorkspace": "デフォルトのワークスペース",
-      "setDefault": "デフォルトとして設定",
-      "emptyTitle": "ワークスペースが構成されていません",
-      "emptyCanManage": "エージェントがローカル フォルダーにアクセスできるようにワークスペースを追加する",
-      "emptyManaged": "この展開では、ワークスペースを管理します。",
-      "adding": "追加中…",
-      "addWorkspace": "ワークスペースの追加",
-      "removeTitle": "このワークスペースを削除しますか?",
-      "removeDescription": "ワークスペースは NodeTool から削除されます。フォルダー自体は削除されません。"
-    },
-    "select": {
-      "defaultWithPath": "デフォルト ({{path}})",
-      "description": "エージェントは実行中に、保存された画像、テキスト、データ、その他の出力を含むファイルの読み取りと書き込みを行います。 [ワークスペース] パネルで結果を参照します。エージェントは、このフォルダー内のファイルにのみアクセスできます。 「デフォルト」のままにしたワークフローでは、デフォルトのワークスペースが使用されます。",
-      "createNew": "新しいワークスペースを作成する",
-      "addWorkspace": "ワークスペースを追加…"
-    },
     "tree": {
       "loading": "読み込み中…",
       "accessDenied": "⚠️ アクセスが拒否されました",
-      "title": "ワークスペースエクスプローラー",
-      "manage": "ワークスペースの管理",
-      "goToRoot": "ワークスペースのルートに移動します",
-      "openInFolder": "フォルダ内で開く",
-      "openExternally": "外部に開く",
-      "noneSelected": "ワークスペースが選択されていません",
-      "selectOrCreate": "上でワークスペースを選択するか、ワークスペースを作成します。",
-      "createWorkspace": "ワークスペースの作成",
-      "fileBrowser": "ワークスペース ファイル ブラウザ",
-      "emptyTitle": "ワークスペースが空です",
-      "emptyDescription": "ファイルをワークスペース フォルダーに追加すると、ここに表示されます。"
+      "openExternally": "外部に開く"
     }
   },
   "batch2_10": {
@@ -1617,7 +1577,11 @@
       "assistant": "アシスタント",
       "history": "歴史",
       "code": "コード",
-      "storyboard": "絵コンテ"
+      "storyboard": "絵コンテ",
+      "effectControls": "エフェクトコントロール",
+      "motion": "モーション",
+      "color": "カラー",
+      "ai": "AI"
     },
     "unavailable": {
       "tracks": "DAWモードには独自のトラックビューがあります。オフにすると (Alt+M)、タイムライン パネルが開きます。",
@@ -1754,7 +1718,6 @@
       "packageManager": "パッケージマネージャー",
       "assets": "資産",
       "collections": "コレクション",
-      "workspaces": "ワークスペース",
       "memory": "記憶",
       "settings": "設定",
       "help": "ヘルプ",
@@ -2281,7 +2244,8 @@
       "cloudAlphaNotice": "クラウドはアルファ版です。制作作業の場合は、",
       "ssoTitle": "NodeTool にサインイン",
       "ssoSignIn": "{{provider}} でサインイン",
-      "ssoFailed": "サインインに失敗しました ({{reason}})。もう一度試すか、管理者にアクセスを依頼してください。"
+      "ssoFailed": "サインインに失敗しました ({{reason}})。もう一度試すか、管理者にアクセスを依頼してください。",
+      "marketingOptIn": "新しいリリースや無料オファーのお知らせをメールで受け取る。いつでも配信停止できます。"
     },
     "inspector": {
       "params": "パラメータ",
@@ -2578,6 +2542,10 @@
       "connected": "接続済み",
       "connectedProviders": "接続されたプロバイダー",
       "connectedViaOAuth": "サインインで接続しました",
+      "creditLeft": "残りクレジット: {{amount}}",
+      "creditLeftOf": "残りクレジット: {{amount}} / {{limit}}",
+      "creditExhausted": "クレジットがありません。使用するには {{provider}} でチャージしてください。",
+      "creditRefused": "{{provider}} がクレジット不足で呼び出しを拒否しました。チャージしてから「テスト」を押してください。",
       "connecting": "接続中…",
       "delete": "削除",
       "deleteApiKeyConfirmation": "{{provider}} API キーは削除され、キーを再度追加するまでそのモデルは動作を停止します。",
@@ -3668,6 +3636,7 @@
         "shotCount_other": "{{count}} ショット",
         "modelLabel": "モデル",
         "modelPlaceholder": "脚本モデル",
+        "noModels": "利用できる言語モデルがありません。設定の「モデルとプロバイダー」でプロバイダーキーを追加してください。",
         "shotsLabel": "ショット",
         "title": "ジャンルを選択してください",
         "description": "トーン、ペース、フレーミングはあなたの選択に従います。後で変更できます。",
@@ -3821,10 +3790,9 @@
           "lightingPlaceholder": "現場の照明の様子",
           "shotHeader": "ショット {{count}}",
           "shotAction": "ショット {{count}} · アクション",
-          "shotDialogue": "ショット {{count}} · ダイアログ",
-          "dialoguePlaceholder": "対話",
-          "addDialogue": "ダイアログを追加",
+          "dialogue": "対話",
           "seconds": "秒",
+          "shotLength": "{{seconds}}秒",
           "sceneHeader": "シーン {{count}}"
         },
         "fallback": {
@@ -6172,7 +6140,23 @@
         "title": "新しいプロジェクト",
         "confirm": "プロジェクトの作成",
         "nameLabel": "プロジェクト名",
-        "createError": "プロジェクトを作成できませんでした: {{error}}"
+        "locationLabel": "場所",
+        "locationDefault": "プロジェクトフォルダー",
+        "locationChoose": "選択…",
+        "locationReset": "プロジェクトフォルダーを使用",
+        "createError": "プロジェクトを作成できませんでした: {{error}}",
+        "openFolder": "フォルダを開く…",
+        "openFolderHint": "既存のフォルダがありますか？プロジェクトとして開けます。ファイルは移動しません。",
+        "openFolderTravels": "別のマシンからコピーしたフォルダは、ワークフロー、タイムライン、アセットとともに開きます。チャット、ストーリーボード、スクリプト、スケッチ、アプリ、JS スクリプトはフォルダと一緒には移動しません。",
+        "openFolderError": "フォルダを開けませんでした: {{error}}"
+      },
+      "folder": {
+        "notFound": "フォルダが見つかりません",
+        "notFoundDetail": "{{name}} のフォルダが移動されたか、名前が変更されたか、接続されていないドライブにあります。場所を指定するまで実行は開始できません。",
+        "locate": "場所を指定",
+        "locateError": "フォルダの場所を指定できませんでした: {{error}}",
+        "moving": "ファイルをプロジェクトフォルダに移動しています",
+        "movingDetail": "{{total}} 件中 {{done}} 件を移動しました。移動中もアセットは利用できます。"
       },
       "home": {
         "homeTab": "ホーム",
@@ -6396,6 +6380,16 @@
           "image": "画像",
           "video": "動画",
           "audio": "音声"
+        },
+        "attachedFileActions": {
+          "label": "ファイルから始める",
+          "hint": "ファイルを添付しました。作りたいものを入力するか、ファイルから始めましょう：",
+          "animate": "動画にアニメーション化",
+          "image": "新しい画像を作成",
+          "retake": "動画を編集",
+          "script": "台本にする",
+          "ask": "ファイルについて質問",
+          "askPrompt": "添付したファイルを見て、何が作れるか提案して。"
         }
       }
     }
@@ -6441,16 +6435,42 @@
           "export": "エクスポート",
           "archive": "アーカイブ",
           "restore": "復元",
-          "delete": "削除"
+          "delete": "削除",
+          "collect": "ファイルを収集"
         },
         "projectActions": "プロジェクトのアクション",
         "actionsForProject": "{{projectName}} のアクション",
         "exporting": "エクスポート中…",
         "deleteProject": "プロジェクトの削除",
         "confirmDeleteTitle": "{{projectName}} を削除しますか?",
-        "confirmDeleteBody": "{{projectName}} とそのすべてのドキュメント、会話、生成された出力、アセット、ジョブ、プロジェクト ファイルを削除します。",
+        "confirmDeleteBody": "{{projectName}} とそのすべてのドキュメント、会話、ジョブ、プロジェクト フォルダーの外に保存されているアセットを削除します。",
         "deleteIrreversible": "これを元に戻すことはできません。",
-        "error": "{{action}} {{projectName}} できませんでした: {{error}}"
+        "deleteFolderTrash": "プロジェクト フォルダーはゴミ箱に移動します。",
+        "deleteFolderRemove": "プロジェクト フォルダーとその中のすべてのファイルがクラウド ストレージから削除されます。",
+        "deleteFolderKeep": "プロジェクト フォルダーはすべてのファイルとともに元の場所に残ります。NodeTool はその中の .nodetool フォルダーだけを削除します。",
+        "deleteFolderMissing": "プロジェクト フォルダーにアクセスできないため、NodeTool はそのままにします。",
+        "folderMovedAsideTo": "ゴミ箱にアクセスできませんでした。プロジェクト フォルダーは {{path}} に移動しました。",
+        "folderMovedAside": "ゴミ箱にアクセスできませんでした。プロジェクト フォルダーはプロジェクト用フォルダー内の .trash フォルダーに移動しました。",
+        "folderTrashFailedAt": "プロジェクト フォルダーをゴミ箱に移動できませんでした。{{path}} に残っています。",
+        "folderTrashFailed": "プロジェクト フォルダーをゴミ箱に移動できませんでした。元の場所に残っています。",
+        "error": "{{action}} {{projectName}} できませんでした: {{error}}",
+        "collecting": "ファイルを収集しています…",
+        "collectResult": "{{projectName}} にファイルを収集しました: コピー {{copied}} 件、スキップ {{skipped}} 件、失敗 {{failed}} 件。",
+        "linkedTitle": "{{projectName}} はフォルダー外のファイルをリンクしています",
+        "linkedBody": "エクスポートにはプロジェクトフォルダーが含まれます。次のファイルは別の場所からリンクされており、フォルダー内にありません:",
+        "linkedChoice": "「収集してエクスポート」はファイルをフォルダーの Imported ディレクトリにコピーしてからエクスポートします。「キャンセル」はリンクを残し、何もエクスポートしません。",
+        "collectAndExport": "収集してエクスポート"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "コピーしますか、リンクしますか?",
+        "confirm": "インポート",
+        "copy": "プロジェクトフォルダーにコピー",
+        "copyHint": "プロジェクトは独自のコピーを保持します。元のファイルの変更は反映されません。",
+        "link": "その場所でリンク",
+        "linkHint": "何もコピーしません。プロジェクトはファイルを現在の場所から読み込みます。「ファイルを収集」で後からコピーできます。",
+        "threshold": "{{size}} 以上のファイルは既定でリンクされます。"
       }
     }
   },
@@ -6510,7 +6530,16 @@
         "couldNotLoadDocuments": "ドキュメントをロードできませんでした",
         "noDocuments": "まだ書類がありません",
         "noMatchingDocuments": "一致する文書がありません",
-        "searchProjectsAndDocuments": "プロジェクトとドキュメントを検索する"
+        "searchProjectsDocumentsAndChats": "プロジェクト、ドキュメント、チャットを検索",
+        "documentsAndChats": "ドキュメントとチャット",
+        "chats": "チャット",
+        "loadingChats": "チャットを読み込み中…",
+        "couldNotLoadChats": "チャットを読み込めませんでした",
+        "noChats": "チャットはまだありません",
+        "noMatchingChats": "一致するチャットはありません",
+        "allChats": "すべてのチャット",
+        "untitledChat": "無題のチャット",
+        "searchShort": "検索"
       },
       "rail": {
         "projects": "プロジェクト"
@@ -6616,8 +6645,6 @@
       "runModeTool": "ツール",
       "runModeDescription": "このワークフローの実行方法とトリガー方法",
       "advanced": "上級者向け",
-      "workspace": "ワークスペース",
-      "workspaceDescription": "エージェント アクセスのためにワークスペース フォルダーをこのワークフローに関連付けます",
       "toolName": "ツール名",
       "toolNameDescription": "API/ツールの使用のための識別子。文字、数字、アンダースコアのみ。",
       "toolNamePlaceholder": "my_workflow_tool",
@@ -8944,6 +8971,7 @@
         "イベントを送信したアプリの種類 (クラウド、デスクトップ、ローカル Web)、アプリのバージョン、およびオペレーティング システム ファミリ。",
         "アプリが開始されたこと、ワークフローが作成されたこと、またはワークフローが実行されたこと。",
         "実行の場合: ローカルまたはクラウド、範囲としてのノード数 (6 ～ 20 など)、範囲としての期間、および失敗の場合はプロバイダーやタイムアウトなどのカテゴリ。",
+        "最初のセッションについて：スターターが表示されたこと、どれが選ばれたか、最初の結果の種類（チャットや絵コンテなど）とそこまでの時間の範囲、画面の区分（スマートフォン、タブレット、デスクトップ）。",
         "このブラウザに保持されるランダム ID (30 日ごとに変更)、およびこのセッションのランダム ID。"
       ],
       "never": "決してしない",
@@ -9083,10 +9111,6 @@
         "REPLICATE_API_TOKEN": {
           "button": "レプリケートAPIトークンを取得する",
           "tooltip": "APIトークンのレプリケートページに移動します"
-        },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Googleアプリのパスワードを取得する",
-          "tooltip": "Googleアカウントのアプリパスワードページに移動します"
         },
         "ELEVENLABS_API_KEY": {
           "button": "イレブンラボ API キーを取得する",
@@ -10639,9 +10663,9 @@
         "jsScripts": "JSスクリプト",
         "skills": "スキル",
         "assets": "資産",
-        "workspace": "ワークスペース",
         "library": "図書館",
-        "more": "もっと見る"
+        "more": "もっと見る",
+        "files": "ファイル"
       },
       "categoryDescriptions": {
         "documents": "現在のプロジェクト内のすべてのドキュメントを参照します。",
@@ -10661,9 +10685,9 @@
         "jsScripts": "再利用可能な JavaScript コードを作成および管理します。",
         "skills": "エージェントのスキル — 目的に合わせたマークダウンの指示。",
         "assets": "現在のコンテキストで利用可能なアセットを参照します。",
-        "workspace": "選択したワークスペース フォルダー内のファイルを参照します。",
         "library": "現在のプロジェクト内のアセットを参照します。",
-        "more": "追加のワークフロー、エディター、開発者、およびワークスペースのパネルを開きます。"
+        "more": "ワークフロー、エディタ、開発者向けのパネルをさらに開きます。",
+        "files": "プロジェクトフォルダ内のファイルを参照します。"
       }
     },
     "queue": {
@@ -10682,6 +10706,8 @@
       "queuedCount_one": "{{count}} がキューに入れられました",
       "queuedCount_other": "{{count}} がキューに入れられました",
       "collapseQueue": "キューを折りたたむ",
+      "moveQueue": "キューを移動",
+      "moveQueueHint": "ドラッグで移動。矢印キーで移動、Home でリセット。",
       "enqueued": "キューに入れられました"
     },
     "toolbar": {
@@ -10763,6 +10789,7 @@
       "levels_one": "{{count}} レベル",
       "levels_other": "{{count}} レベル",
       "allLevels": "すべてのレベル",
+      "anyDepth": "すべての深さ",
       "spanName": "スパン名",
       "focusSpan": "フォーカススパン",
       "wholeRun": "実行全体",
@@ -10820,7 +10847,6 @@
       "noRecentRuns": "最近の実行はありません",
       "noMatchingSpans": "一致するスパンがありません",
       "spanId": "スパン {{id}}",
-      "olderRuns": "古い実行",
       "noRecordedRuns": "記録された実行はありません",
       "noRunsDescription": "アプリの操作、ワークフロー、またはチャット ターンを開始して、そのトレースとログを検査します。",
       "runStatus": {
@@ -13185,8 +13211,9 @@
         },
         "showCode": "コードを表示",
         "showArguments": "引数を表示",
-        "allow": "許可する",
-        "allowForChat": "このチャットを許可する",
+        "allowOnce": "今回のみ許可",
+        "allowAlways": "常に許可",
+        "allowAlwaysHint": "今後は確認せずに {{tool}} を実行します。設定 › 権限 で変更できます。",
         "deny": "拒否する"
       }
     }
@@ -13423,7 +13450,8 @@
         "sendMessage": "メッセージを送信できませんでした: {{error}}",
         "compact": "会話を圧縮できませんでした: {{error}}",
         "copyConversation": "会話をコピーできませんでした。",
-        "rewindConversation": "会話を巻き戻すことができませんでした: {{error}}"
+        "rewindConversation": "会話を巻き戻すことができませんでした: {{error}}",
+        "switchVersion": "バージョンを切り替えられませんでした: {{error}}"
       },
       "notifications": {
         "copiedMessages_one": "{{count}} メッセージをマークダウンとしてコピーしました。",
@@ -13445,8 +13473,14 @@
         },
         "connectProviderTitle": "AI プロバイダーに接続して始めましょう",
         "connectProviderButton": "プロバイダーに接続する",
-        "title": "今日はどのようにお手伝いできますか?",
-        "subtitle": "何か質問するか、ファイルをドロップするか、次のいずれかから始めてください。"
+        "greeting": {
+          "morning": "おはようございます",
+          "afternoon": "こんにちは",
+          "evening": "こんばんは",
+          "morningName": "{{name}}さん、おはようございます",
+          "afternoonName": "{{name}}さん、こんにちは",
+          "eveningName": "{{name}}さん、こんばんは"
+        }
       },
       "taskDock": {
         "label": "タスク",
@@ -13964,8 +13998,7 @@
       "search": "すべてのパネルを検索",
       "group": {
         "workflow-tools": "ワークフローツール",
-        "agent-tools": "エージェントツール",
-        "workspace": "ワークスペース"
+        "agent-tools": "エージェントツール"
       },
       "category": {
         "favorites": {
@@ -13983,10 +14016,6 @@
         "skills": {
           "label": "スキル",
           "description": "エージェントのスキル — 目的に合わせたマークダウンの指示。"
-        },
-        "workspace-files": {
-          "label": "ワークスペース",
-          "description": "選択したワークスペース フォルダー内のファイルを参照します。"
         }
       }
     },
@@ -14642,9 +14671,6 @@
       "runGroup": {
         "groupRunning": "グループが実行中です",
         "runGroup": "実行グループ"
-      },
-      "saveDestinationHint": {
-        "workspace": "ワークスペース"
       }
     }
   },
@@ -15087,7 +15113,6 @@
       "csv": "CSVファイル",
       "unknown": "不明なファイルタイプ",
       "unknownContentType": "不明なコンテンツ タイプ",
-      "offline": "オフラインのメディア",
       "thumbnail": "サムネイル",
       "folder": "フォルダー"
     },
@@ -15863,9 +15888,9 @@
       "jsscripts": "JSスクリプト",
       "skills": "スキル",
       "assets": "資産",
-      "workspace-files": "ワークスペース",
       "library": "図書館",
-      "more": "もっと見る"
+      "more": "もっと見る",
+      "files": "ファイル"
     }
   },
   "i18n-next55": {
@@ -15992,7 +16017,6 @@
         "models": "モデルマネージャー",
         "packages": "パッケージマネージャー",
         "collections": "コレクション",
-        "workspaces": "ワークスペース",
         "entities": "エンティティ",
         "memory": "記憶",
         "settings": "設定",
@@ -16734,8 +16758,8 @@
         "extendEdit": "編集ポイントを再生ヘッドまで拡張します",
         "trimEditLeft": "編集点を 1 フレーム前にトリム",
         "trimEditRight": "編集点を 1 フレーム上でトリム",
-        "trimEditLeftLarge": "編集ポイントを 10 フレーム後ろにトリム",
-        "trimEditRightLarge": "編集点を 10 フレームでトリム",
+        "trimEditLeftLarge": "編集ポイントを 5 フレーム後ろにトリム",
+        "trimEditRightLarge": "編集点を 5 フレームでトリム",
         "duplicate": "選択後に複製",
         "duplicateWithGap": "1秒間隔で複製",
         "applyDefaultTransition": "選択したクリップにクロスフェードします",
@@ -16816,7 +16840,49 @@
         "exitExpandedPreview": "展開されたプレビューを終了する",
         "moveOnePixel": "クリップを 1 ピクセル移動します",
         "moveTenPixels": "クリップを 10 ピクセル移動します",
-        "resetTransform": "変換をリセットする"
+        "resetTransform": "変換をリセットする",
+        "extendPrevEdit": "前の編集点を再生ヘッドまで延長",
+        "extendNextEdit": "次の編集点を再生ヘッドまで延長",
+        "selectPrevClip": "前のクリップを選択",
+        "selectNextClip": "次のクリップを選択",
+        "clipVolumeUp": "クリップの音量を 1 dB 上げる",
+        "clipVolumeDown": "クリップの音量を 1 dB 下げる",
+        "clipVolumeUpMore": "クリップの音量を 6 dB 上げる",
+        "clipVolumeDownMore": "クリップの音量を 6 dB 下げる",
+        "slideLeft": "選択したクリップを 1 フレーム前へスライド",
+        "slideRight": "選択したクリップを 1 フレーム後へスライド",
+        "slowShuttleBack": "ゆっくり逆方向にシャトル（再度押すと速く）",
+        "slowShuttleForward": "ゆっくり順方向にシャトル（再度押すと速く）",
+        "goToSequenceStart": "シーケンスの先頭へ移動",
+        "goToSequenceEnd": "シーケンスの末尾へ移動",
+        "goToSelectedStart": "選択範囲の先頭へ移動",
+        "goToSelectedEnd": "選択範囲の最終フレームへ移動",
+        "markSelection": "選択範囲をマーク（その前後にインとアウト）",
+        "clearIn": "インをクリア",
+        "clearOut": "アウトをクリア",
+        "prevCutAnyTrack": "いずれかのトラックの前のカット",
+        "nextCutAnyTrack": "いずれかのトラックの次のカット",
+        "prevGap": "シーケンスの前のギャップへ移動",
+        "nextGap": "シーケンスの次のギャップへ移動",
+        "addRangeMarker": "再生ヘッドに 1 秒の範囲マーカーを追加",
+        "addMarkerInOut": "インからアウトまでのマーカーを追加",
+        "clearAllMarkers": "すべてのマーカーをクリア",
+        "playAround": "再生ヘッドの前後を再生",
+        "playInToOutWithRoll": "プリロールとポストロール付きでインからアウトまで再生",
+        "playToOut": "再生ヘッドからアウトまで再生",
+        "expandAllTracks": "すべてのトラックを展開（再度押すと元に戻す）",
+        "minimizeAllTracks": "すべてのトラックを最小化（再度押すと元に戻す）",
+        "audioTracksTaller": "オーディオトラックを高くする",
+        "audioTracksShorter": "オーディオトラックを低くする",
+        "panelSource": "ソースへ移動",
+        "panelTimeline": "タイムラインへ移動",
+        "panelProgram": "プログラムへ移動",
+        "panelEffectControls": "エフェクトコントロールへ移動",
+        "panelInspector": "インスペクターへ移動",
+        "panelScript": "スクリプトへ移動",
+        "panelStoryboard": "ストーリーボードへ移動",
+        "nextPanel": "次のパネルへ移動",
+        "prevPanel": "前のパネルへ移動"
       }
     },
     "vst": {
@@ -18295,9 +18361,12 @@
       "result": "結果",
       "copyResult": "コピー結果",
       "editMessage": "メッセージを編集する",
-      "editWarning": "送信すると、このメッセージ以降のすべてが置き換えられます。",
+      "editWarning": "送信すると新しいバージョンが作成されます。現在のバージョンも残ります。",
       "editAndResend": "編集して再送信します",
       "regenerate": "再生する",
+      "previousVersion": "前のバージョン",
+      "nextVersion": "次のバージョン",
+      "versionOf": "バージョン {{index}}/{{count}}",
       "copyMessage": "メッセージをコピーする",
       "enterCredential": "資格情報を入力してください",
       "credentialSubtitle": "秘密のストアに保存されました。エージェントがその値を確認することはありません。",
@@ -18535,7 +18604,7 @@
   },
   "i18n-next110": {
     "workspaceFile": {
-      "invalidReference": "無効なワークスペース ファイル参照"
+      "invalidReference": "無効なファイル参照です"
     }
   },
   "i18n-next109": {
@@ -19026,6 +19095,26 @@
       "typeMore": "2文字以上入力してください",
       "noMatches": "一致するユーザーがいません",
       "failed": "アクセスを付与できませんでした。"
+    },
+    "options": {
+      "history": "履歴",
+      "historyDescription": "閲覧者は保存済みのバージョンを開けます。",
+      "download": "ダウンロード",
+      "downloadDescription": "閲覧者は元のファイルをダウンロードできます。",
+      "duplicate": "複製",
+      "duplicateDescription": "閲覧者はファイルごと自分のライブラリにコピーできます。",
+      "turnedOff": "すでにダウンロードまたは複製されたものは相手の手元に残ります。",
+      "historyOffNotice": "このリンクの閲覧者は保存済みのバージョンを表示できなくなりました。履歴をオンにすると元に戻ります。",
+      "turnOnHistory": "履歴をオンにする",
+      "dismiss": "閉じる",
+      "failed": "オプションを変更できませんでした。"
+    },
+    "people": {
+      "from": "アクセス元: {{sources}}",
+      "sourceInvitation": "招待",
+      "sourceViewLink": "閲覧リンク",
+      "sourceEditLink": "編集リンク",
+      "sourceDisabled": "{{source}}（無効）"
     }
   },
   "timelineAutomation": {
@@ -19991,5 +20080,263 @@
     "missingKeysDetail": "このワークフローには {{keys}} が必要です。実行する前に設定で追加してください。",
     "costPerRun": "1 回あたり約 {{cost}}",
     "costUnknown": "コスト不明"
+  },
+  "marketingEmails": {
+    "title": "製品メール",
+    "label": "リリースや無料オファーのお知らせをメールで受け取る",
+    "description": "新機能、モデル、無料オファーのお知らせを受け取れます。すべてのメールに配信停止リンクがあり、ここでいつでもオフにできます。",
+    "saveFailed": "メールの設定を保存できませんでした。もう一度お試しください。"
+  },
+  "firstRun": {
+    "ariaLabel": "結果から始める",
+    "heading": "1分以内に何かを作る",
+    "subline": "どれも入力済みです。試してから、自分のアイデアに変えてください。",
+    "firstTask": {
+      "label": "最初のプロンプト",
+      "prompt": "初雪の中のキツネを題材にした30秒動画のアイデアを3つ、それぞれ1行で教えて。",
+      "hint": "無料のデフォルトモデルで数秒で返答します。",
+      "action": "送信"
+    },
+    "game": {
+      "title": "小さなゲームを作る",
+      "description": "最後のどんぐりを探すキツネ。デザイン画面で開き、ワンクリックで書き上げます。"
+    },
+    "storyboard": {
+      "title": "短編映画の絵コンテを作る",
+      "description": "灯台守と漂着したロボット。脚本画面で開き、ワンクリックで書き上げます。",
+      "brief": "嵐のあと、灯台守は浜に打ち上げられた小さなロボットを見つけ、灯りを絶やさない方法を教える。"
+    },
+    "template": {
+      "title": "テンプレートを実行する",
+      "description": "3つのトーンの広告コピー。商品はすでに入力済みです。実行を押してください。"
+    },
+    "opening": "開いています…",
+    "startFailed": "スターターを開けませんでした: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "クリップが選択されていません",
+    "severalClips": "複数のクリップが選択されています",
+    "effectControls": {
+      "empty": "タイムラインでクリップを選択すると、トランスフォーム、不透明度、エフェクト、マスクを調整できます。",
+      "several": "調整するクリップを 1 つ選択してください。"
+    },
+    "motion": {
+      "empty": "タイムラインでクリップを選択するとアニメーションを付けられます。",
+      "several": "アニメーションを付けるクリップを 1 つ選択してください。",
+      "unsupportedTitle": "アニメーションできるものがありません",
+      "unsupported": "ビデオ、画像、テキスト、シェイプのクリップを選択してください。"
+    },
+    "color": {
+      "empty": "タイムラインでクリップを選択するとカラーグレーディングできます。",
+      "several": "グレーディングするクリップを 1 つ選択してください。",
+      "unsupportedTitle": "このクリップには映像がありません",
+      "unsupported": "ビデオ、画像、テキスト、シェイプのクリップを選択してください。"
+    },
+    "ai": {
+      "empty": "タイムラインでクリップを選択すると、そこから生成したり AI で編集したりできます。",
+      "several": "生成元のクリップを 1 つ選択してください。",
+      "unsupportedTitle": "このクリップに使える AI ツールはありません",
+      "unsupported": "ビデオまたは画像のクリップ、または生成されたクリップを選択してください。"
+    }
+  },
+  "toolPermissions": {
+    "tab": "権限",
+    "title": "ツールの権限",
+    "sidebarCategory": "ツール",
+    "intro": "アシスタントが確認なしで使えるツールを選びます。「確認する」に設定したツールは、実行前にチャットで確認を求めます。",
+    "modes": "デフォルトモードでは、「確認する」に設定したツールはすべて先に確認します。自動モードでは、削除・公開・支出を伴うコードアクションを除き、ツールは確認なしで実行されます。Execute code を「常に許可」にすると、その確認も表示されなくなります。プランモードでは、ルールに関係なくすべての変更がブロックされます。",
+    "alwaysAllow": "常に許可",
+    "ask": "確認する",
+    "saveFailed": "この権限を保存できませんでした。",
+    "loadFailed": "ツール一覧を読み込めませんでした。",
+    "noMatches": "検索に一致するツールはありません。"
+  },
+  "projectFolder": {
+    "name": "プロジェクトフォルダ",
+    "picker": {
+      "title": "フォルダを選択"
+    },
+    "tree": {
+      "title": "ファイル",
+      "goToRoot": "プロジェクトフォルダのルートへ移動",
+      "fileBrowser": "プロジェクトのファイル",
+      "emptyTitle": "プロジェクトフォルダは空です",
+      "emptyDescription": "プロジェクトフォルダにファイルを追加すると、ここに表示されます。",
+      "noFolderTitle": "プロジェクトフォルダがありません",
+      "noFolderDescription": "このプロジェクトにはまだフォルダがありません。",
+      "revealInFinder": "Finderで表示",
+      "revealInExplorer": "エクスプローラーで表示",
+      "revealInFileManager": "ファイルマネージャーで表示",
+      "moveIntoItself": "フォルダーをそれ自身やそのサブフォルダーに移動することはできません。",
+      "notAnAsset": "このファイルはプロジェクトのアセットに含まれていないため、ここでは変更できません。",
+      "actionFailed": "変更は保存されませんでした: {{error}}"
+    },
+    "documentFile": {
+      "invalidTitle": "このファイルにはエラーがあります",
+      "invalidBody": "{{path}} を読み込めませんでした: {{error}}。最後の有効なバージョンが開いたままで、引き続き実行できます。",
+      "openFile": "ファイルを開く",
+      "missingTitle": "ファイルがありません",
+      "missingBody": "{{path}} はプロジェクトフォルダーにありません。復元すると、このドキュメントからファイルを書き直します。",
+      "restore": "復元",
+      "delete": "削除",
+      "cancel": "キャンセル",
+      "deleteTitle": "{{name}} を削除しますか?",
+      "deleteDescription": "「{{name}}」とそのバージョン履歴は完全に削除されます。",
+      "restoreFailed": "ファイルを復元できませんでした: {{error}}",
+      "deleteFailed": "ドキュメントを削除できませんでした: {{error}}"
+    },
+    "migration": {
+      "title": "プロジェクトをフォルダに移動",
+      "intro": "NodeTool は、このコンピュータ上で各プロジェクトを専用のフォルダに保存するようになりました。ファイル、ワークフロー、タイムラインはそこに移動され、ほかのアプリでも開けます。",
+      "planProjects": "フォルダが作成されるプロジェクト",
+      "planFiles": "移動するファイル",
+      "planWorkflows": "ファイルとして保存されるワークフロー",
+      "planTimelines": "ファイルとして保存されるタイムライン",
+      "extraTitle": "複数のフォルダを持つプロジェクト",
+      "extraBody": "これらのプロジェクトは、それぞれ 1 つのフォルダだけを保持します。NodeTool はそれ以外のフォルダを表示しなくなりますが、ファイルはそのまま残ります。",
+      "extraKeeps": "{{project}} は {{folder}} を保持します",
+      "extraHidden": "表示されなくなります: {{folder}}",
+      "location": "場所",
+      "changeLocation": "場所を変更",
+      "locationError": "この場所は使用できません: {{error}}",
+      "permissionWarning": "macOS が、NodeTool にこのフォルダの使用を許可するかどうかを尋ねます。「許可」を選ぶか、書類、デスクトップ、ダウンロード、iCloud Drive、外部ドライブ以外のフォルダを選んでください。",
+      "safety": "失われるものはありません。各ファイルは、古いコピーを削除する前にコピーして確認されます。ファイルの移動中も作業を続けられます。",
+      "later": "今はしない",
+      "confirm": "ファイルを移動",
+      "planError": "計画を読み込めませんでした: {{error}}",
+      "confirmError": "移動を開始できませんでした: {{error}}",
+      "actionError": "移動を変更できませんでした: {{error}}",
+      "progressRegion": "ファイルをプロジェクトフォルダに移動しています",
+      "progressTitle": "ファイルをプロジェクトフォルダに移動しています",
+      "pausedTitle": "ファイルの移動は一時停止中です",
+      "doneTitle": "ファイルを移動しました",
+      "progressCount": "{{total}} 件中 {{done}} 件のファイルを移動しました",
+      "phaseFolders": "プロジェクトフォルダを作成しています",
+      "phaseFiles": "ワークフローとタイムラインをファイルとして保存しています",
+      "currentProject": "{{project}} のファイルを移動しています",
+      "pause": "一時停止",
+      "resume": "再開",
+      "failuresTitle": "移動できませんでした ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "ほかにも表示されていないものがあります: {{count}}",
+      "retry": "再試行",
+      "donePath": "ファイルは {{path}} にあります",
+      "close": "閉じる"
+    }
+  },
+  "assetPicker": {
+    "sourceTabs": "アセットの参照元",
+    "projectTab": "このプロジェクト",
+    "personalTab": "個人",
+    "personalHint": "個人から選ぶと、ファイルがこのプロジェクトにコピーされます。",
+    "copying": "このプロジェクトにコピーしています…",
+    "copyFailed": "アセットをこのプロジェクトにコピーできませんでした。"
+  },
+  "assetFileStatus": {
+    "missing": "見つかりません",
+    "missingTooltip": "このアセットが参照する場所にファイルがありません。ファイルの新しい場所に再リンクするか、アセットを削除してください。",
+    "linked": "リンク",
+    "linkedTooltip": "このアセットはプロジェクトフォルダー外のファイルをその場所のまま使用しています。",
+    "relink": "再リンク",
+    "relinkTooltip": "ファイルの新しい場所を選択",
+    "relinkNoPath": "そのファイルの場所を読み取れませんでした。このコンピューター上のファイルを選択してください。",
+    "relinkFailed": "再リンクに失敗しました: {{error}}",
+    "remove": "削除",
+    "removeTooltip": "このアセットを NodeTool から削除",
+    "removeTitle": "「{{name}}」を削除しますか？",
+    "removeBody": "アセットは NodeTool から削除されます。これを使用しているドキュメントでは表示できなくなります。",
+    "cancel": "キャンセル"
+  },
+  "deviceSessions": {
+    "title": "サインイン中のデバイス",
+    "description": "NodeTool デスクトップアプリにサインインしたコンピューターです。同じコンピューターのアプリは 1 つのセッションを共有します。セッションを終了すると、そのコンピューターはサインアウトします。",
+    "empty": "サインイン中のコンピューターはありません。",
+    "unnamed": "名前のないコンピューター",
+    "signedInFrom": "{{date}} に {{app}} からサインイン",
+    "lastUsed": "最終使用: {{date}}",
+    "neverUsed": "サインイン後は未使用",
+    "end": "セッションを終了",
+    "confirmTitle": "このセッションを終了しますか？",
+    "confirmBody": "{{device}} の NodeTool デスクトップアプリは 1 分以内にサインアウトされます。",
+    "cancel": "キャンセル",
+    "ended": "セッションを終了しました。",
+    "endError": "セッションを終了できませんでした: {{error}}",
+    "loadError": "サインイン中のデバイスを読み込めませんでした。",
+    "apps": {
+      "nodeEditor": "ノードエディター",
+      "timeline": "タイムライン",
+      "desktop": "デスクトップアプリ"
+    }
+  },
+  "storyboardText": {
+    "mode": "テキスト",
+    "editorLabel": "Markdown テキストとしてのストーリーボード",
+    "hint": "幕は #、シーンは ##、ショットは ###、フィールドは - **Motion:** と入力します。エンティティや画像に言及するには @ と入力します。",
+    "issues": "確認が必要な行: {{lines}}",
+    "loading": "テキストを読み込み中…",
+    "warnings": {
+      "media_outside_shot": "画像はショットに属します。### のショット見出しの下に置いてください。",
+      "second_media": "ショットで選択できる静止画とクリップは 1 つずつです。これは使用されません。",
+      "unknown_shot_field": "「{{label}}」はストーリーボードのフィールドではありません。ショットのメモに保存されます。",
+      "unknown_field": "「{{label}}」はここではフィールドではありません。保存されません。",
+      "text_in_scene": "シーンにはスラグラインと照明しかありません。このテキストをショットの下に置くか、「Lighting:」で始めてください。",
+      "bad_duration": "ショット {{shot}}: 「{{value}}」は秒数ではありません。",
+      "bad_render": "ショット {{shot}}: render は keyframe、direct、reference のいずれかです。",
+      "no_next_shot": "ショット {{shot}}: トランジションは次のショットにつながりますが、次のショットがありません。",
+      "missing_action": "ショット {{shot}} にはまだアクションがありません。見出しの下に生成する映像を書いてください。"
+    },
+    "outline": "アウトライン",
+    "outlineEmpty": "### とタイトルを入力するとショットが始まります。",
+    "untitledShot": "無題のショット",
+    "untitledAct": "無題の幕",
+    "untitledScene": "無題のシーン",
+    "issuesTitle": "確認が必要",
+    "stillOf": "ショット {{shot}} の静止画",
+    "assist": {
+      "lines": "{{lines}} 行を選択中",
+      "proposal": "置き換え案",
+      "note": "エージェントからのメモ",
+      "discard": "破棄",
+      "close": "閉じる",
+      "replace": "選択範囲を置き換え",
+      "stale": "選択後に箇所が変更されました。もう一度選択してください。",
+      "thinking": "考え中…",
+      "stop": "停止",
+      "placeholder": "この箇所をどうするかエージェントに伝えてください",
+      "refinePlaceholder": "結果を調整",
+      "instruction": "エージェントへの依頼",
+      "send": "エージェントに送信",
+      "failed": "モデルへのリクエストに失敗しました。",
+      "context": "リクエストと一緒に送信: ストーリーボード全体、{{shots}} ショット、ライブラリの {{entities}} エンティティ。",
+      "quick": {
+        "tighten": "引き締める",
+        "visual": "より視覚的に",
+        "camera": "カメラを提案",
+        "continuity": "連続性を確認",
+        "summarize": "要約",
+        "inconsistencies": "矛盾を探す"
+      },
+      "errors": {
+        "no_model": "エージェントを使うには、このストーリーボードの演出モデルかチャットモデルを選んでください。",
+        "empty": "モデルから回答がありませんでした。もう一度送信してください。",
+        "failed": "リクエストに失敗しました。もう一度送信してください。"
+      }
+    }
+  },
+  "cloudAccount": {
+    "title": "NodeTool Cloud アカウント",
+    "description": "このコンピューターでは、このアプリ、ノードエディター、タイムラインが 1 つのサインインを共有します。ここでのサインインとサインアウトは 3 つすべてに適用されます。",
+    "signedInAs": "{{name}} としてサインイン中",
+    "server": "サーバー: {{server}}",
+    "signedOut": "サインインしていません",
+    "signingIn": "ブラウザーでサインインを完了してください",
+    "serverEndPending": "サインアウト済み、サーバー上のセッションはまだ終了していません",
+    "cloudOff": "このコンピューターではクラウド機能がオフになっています",
+    "noKeychain": "このコンピューターには資格情報ストアがないため、サインインは NodeTool を終了するまで有効です。",
+    "signIn": "サインイン",
+    "cancel": "キャンセル",
+    "signOut": "サインアウト",
+    "signOutNote": "ノードエディターやタイムラインで送信待ちの変更はこのコンピューターに残り、再度サインインした後に送信されます。",
+    "unavailable": "このビルドではクラウドへのサインインを利用できません。"
   }
 }

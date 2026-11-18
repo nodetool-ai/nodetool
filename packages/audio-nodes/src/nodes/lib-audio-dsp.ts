@@ -1,12 +1,13 @@
-import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { GainProperties, DelayProperties, HighPassFilterProperties, LowPassFilterProperties, HighShelfFilterProperties, LowShelfFilterProperties, PeakFilterProperties } from "../lib/effect-properties.js";
+import { GainEffect, DelayEffect, HighPassFilterEffect, LowPassFilterEffect, HighShelfFilterEffect, LowShelfFilterEffect, PeakFilterEffect } from "../lib/effect-descriptors.js";
+import { applyToClip } from "../lib/signal-effect.js";
+import { prop } from "@nodetool-ai/node-sdk";
 import type { AudioRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import { loadKernels, type BiquadType } from "@nodetool-ai/kernels";
 import {
-  requireAudioBytes,
   audioRefFromWav,
-  decodeAudioToWav,
   encodeWav,
   type WavData
 } from "../lib/audio-wav.js";
@@ -52,12 +53,8 @@ export async function applyFilter(
   return audioRefFromWav(encodeWav(filtered, wav.sampleRate, wav.numChannels));
 }
 
-/** Output handles GainNode_.process() emits. */
-type GainNode_Outputs = {
-  output: AudioRef;
-};
 
-export class GainNode_ extends BaseNode {
+export class GainNode_ extends GainProperties {
   static readonly nodeType = "lib.audio.Gain";
   static readonly title = "Gain";
   static readonly description =
@@ -82,41 +79,14 @@ export class GainNode_ extends BaseNode {
   })
   declare audio: Record<string, unknown>;
 
-  @prop({
-    type: "float",
-    default: 0,
-    title: "Gain Db",
-    description:
-      "Gain to apply in decibels. Positive values increase volume, negative values decrease it.",
-    min: -60,
-    max: 24
-  })
-  declare gain_db: number;
 
-  async process(context?: ProcessingContext): Promise<GainNode_Outputs> {
-    const audio = this.audio;
-    const gainDb = this.gain_db;
-
-    const bytes = await requireAudioBytes(audio, context);
-
-    const wav = await decodeAudioToWav(bytes);
-    const kernels = await loadKernels();
-    const outSamples = kernels.scaleOffset(wav.samples, Math.pow(10, gainDb / 20));
-
-    return {
-      output: audioRefFromWav(
-        encodeWav(outSamples, wav.sampleRate, wav.numChannels)
-      )
-    };
+  async process(context?: ProcessingContext): Promise<{ output: AudioRef }> {
+    return { output: await applyToClip(GainEffect, this, this.audio, context) };
   }
 }
 
-/** Output handles DelayNode_.process() emits. */
-type DelayNode_Outputs = {
-  output: AudioRef;
-};
 
-export class DelayNode_ extends BaseNode {
+export class DelayNode_ extends DelayProperties {
   static readonly nodeType = "lib.audio.Delay";
   static readonly title = "Delay";
   static readonly description =
@@ -141,67 +111,16 @@ export class DelayNode_ extends BaseNode {
   })
   declare audio: Record<string, unknown>;
 
-  @prop({
-    type: "float",
-    default: 0.5,
-    title: "Delay Seconds",
-    description: "Delay time in seconds.",
-    min: 0.01,
-    max: 5
-  })
-  declare delay_seconds: number;
 
-  @prop({
-    type: "float",
-    default: 0.3,
-    title: "Feedback",
-    description: "Amount of delayed signal fed back into the effect.",
-    min: 0,
-    max: 0.99
-  })
-  declare feedback: number;
 
-  @prop({
-    type: "float",
-    default: 0.5,
-    title: "Mix",
-    description: "Mix between the dry (original) and wet (delayed) signals.",
-    min: 0,
-    max: 1
-  })
-  declare mix: number;
 
-  async process(context?: ProcessingContext): Promise<DelayNode_Outputs> {
-    const audio = this.audio;
-    const delaySec = this.delay_seconds;
-    const feedback = this.feedback;
-    const mix = this.mix;
-
-    const bytes = await requireAudioBytes(audio, context);
-
-    const wav = await decodeAudioToWav(bytes);
-    // The output holds the input and four echoes of the delay.
-    const kernels = await loadKernels();
-    const outSamples = kernels.delay(wav.samples, wav.numChannels, wav.sampleRate, {
-      delaySeconds: delaySec,
-      feedback,
-      mix
-    });
-
-    return {
-      output: audioRefFromWav(
-        encodeWav(outSamples, wav.sampleRate, wav.numChannels)
-      )
-    };
+  async process(context?: ProcessingContext): Promise<{ output: AudioRef }> {
+    return { output: await applyToClip(DelayEffect, this, this.audio, context) };
   }
 }
 
-/** Output handles HighPassFilterNode.process() emits. */
-type HighPassFilterNodeOutputs = {
-  output: AudioRef;
-};
 
-export class HighPassFilterNode extends BaseNode {
+export class HighPassFilterNode extends HighPassFilterProperties {
   static readonly nodeType = "lib.audio.HighPassFilter";
   static readonly title = "High Pass Filter";
   static readonly description =
@@ -226,37 +145,14 @@ export class HighPassFilterNode extends BaseNode {
   })
   declare audio: Record<string, unknown>;
 
-  @prop({
-    type: "float",
-    default: 80,
-    title: "Cutoff Frequency Hz",
-    description: "The cutoff frequency of the high-pass filter in Hz.",
-    min: 20,
-    max: 5000
-  })
-  declare cutoff_frequency_hz: number;
 
-  async process(context?: ProcessingContext): Promise<HighPassFilterNodeOutputs> {
-    const audio = this.audio;
-    const cutoff = this.cutoff_frequency_hz;
-
-    const bytes = await requireAudioBytes(audio, context);
-
-    const output = await applyFilter(await decodeAudioToWav(bytes), {
-      type: "highpass",
-      frequency: cutoff
-    });
-
-    return { output };
+  async process(context?: ProcessingContext): Promise<{ output: AudioRef }> {
+    return { output: await applyToClip(HighPassFilterEffect, this, this.audio, context) };
   }
 }
 
-/** Output handles LowPassFilterNode.process() emits. */
-type LowPassFilterNodeOutputs = {
-  output: AudioRef;
-};
 
-export class LowPassFilterNode extends BaseNode {
+export class LowPassFilterNode extends LowPassFilterProperties {
   static readonly nodeType = "lib.audio.LowPassFilter";
   static readonly title = "Low Pass Filter";
   static readonly description =
@@ -281,37 +177,14 @@ export class LowPassFilterNode extends BaseNode {
   })
   declare audio: Record<string, unknown>;
 
-  @prop({
-    type: "float",
-    default: 5000,
-    title: "Cutoff Frequency Hz",
-    description: "The cutoff frequency of the low-pass filter in Hz.",
-    min: 500,
-    max: 20000
-  })
-  declare cutoff_frequency_hz: number;
 
-  async process(context?: ProcessingContext): Promise<LowPassFilterNodeOutputs> {
-    const audio = this.audio;
-    const cutoff = this.cutoff_frequency_hz;
-
-    const bytes = await requireAudioBytes(audio, context);
-
-    const output = await applyFilter(await decodeAudioToWav(bytes), {
-      type: "lowpass",
-      frequency: cutoff
-    });
-
-    return { output };
+  async process(context?: ProcessingContext): Promise<{ output: AudioRef }> {
+    return { output: await applyToClip(LowPassFilterEffect, this, this.audio, context) };
   }
 }
 
-/** Output handles HighShelfFilterNode.process() emits. */
-type HighShelfFilterNodeOutputs = {
-  output: AudioRef;
-};
 
-export class HighShelfFilterNode extends BaseNode {
+export class HighShelfFilterNode extends HighShelfFilterProperties {
   static readonly nodeType = "lib.audio.HighShelfFilter";
   static readonly title = "High Shelf Filter";
   static readonly description =
@@ -336,50 +209,15 @@ export class HighShelfFilterNode extends BaseNode {
   })
   declare audio: Record<string, unknown>;
 
-  @prop({
-    type: "float",
-    default: 5000,
-    title: "Cutoff Frequency Hz",
-    description: "The cutoff frequency of the shelf filter in Hz.",
-    min: 1000,
-    max: 20000
-  })
-  declare cutoff_frequency_hz: number;
 
-  @prop({
-    type: "float",
-    default: 0,
-    title: "Gain Db",
-    description:
-      "The gain to apply to the frequencies above the cutoff, in dB.",
-    min: -24,
-    max: 24
-  })
-  declare gain_db: number;
 
-  async process(context?: ProcessingContext): Promise<HighShelfFilterNodeOutputs> {
-    const audio = this.audio;
-    const cutoff = this.cutoff_frequency_hz;
-    const gainDb = this.gain_db;
-
-    const bytes = await requireAudioBytes(audio, context);
-
-    const output = await applyFilter(await decodeAudioToWav(bytes), {
-      type: "highshelf",
-      frequency: cutoff,
-      gainDb
-    });
-
-    return { output };
+  async process(context?: ProcessingContext): Promise<{ output: AudioRef }> {
+    return { output: await applyToClip(HighShelfFilterEffect, this, this.audio, context) };
   }
 }
 
-/** Output handles LowShelfFilterNode.process() emits. */
-type LowShelfFilterNodeOutputs = {
-  output: AudioRef;
-};
 
-export class LowShelfFilterNode extends BaseNode {
+export class LowShelfFilterNode extends LowShelfFilterProperties {
   static readonly nodeType = "lib.audio.LowShelfFilter";
   static readonly title = "Low Shelf Filter";
   static readonly description =
@@ -404,50 +242,15 @@ export class LowShelfFilterNode extends BaseNode {
   })
   declare audio: Record<string, unknown>;
 
-  @prop({
-    type: "float",
-    default: 200,
-    title: "Cutoff Frequency Hz",
-    description: "The cutoff frequency of the shelf filter in Hz.",
-    min: 20,
-    max: 1000
-  })
-  declare cutoff_frequency_hz: number;
 
-  @prop({
-    type: "float",
-    default: 0,
-    title: "Gain Db",
-    description:
-      "The gain to apply to the frequencies below the cutoff, in dB.",
-    min: -24,
-    max: 24
-  })
-  declare gain_db: number;
 
-  async process(context?: ProcessingContext): Promise<LowShelfFilterNodeOutputs> {
-    const audio = this.audio;
-    const cutoff = this.cutoff_frequency_hz;
-    const gainDb = this.gain_db;
-
-    const bytes = await requireAudioBytes(audio, context);
-
-    const output = await applyFilter(await decodeAudioToWav(bytes), {
-      type: "lowshelf",
-      frequency: cutoff,
-      gainDb
-    });
-
-    return { output };
+  async process(context?: ProcessingContext): Promise<{ output: AudioRef }> {
+    return { output: await applyToClip(LowShelfFilterEffect, this, this.audio, context) };
   }
 }
 
-/** Output handles PeakFilterNode.process() emits. */
-type PeakFilterNodeOutputs = {
-  output: AudioRef;
-};
 
-export class PeakFilterNode extends BaseNode {
+export class PeakFilterNode extends PeakFilterProperties {
   static readonly nodeType = "lib.audio.PeakFilter";
   static readonly title = "Peak Filter";
   static readonly description =
@@ -472,54 +275,11 @@ export class PeakFilterNode extends BaseNode {
   })
   declare audio: Record<string, unknown>;
 
-  @prop({
-    type: "float",
-    default: 1000,
-    title: "Cutoff Frequency Hz",
-    description: "The cutoff frequency of the band-pass filter in Hz.",
-    min: 20,
-    max: 20000
-  })
-  declare cutoff_frequency_hz: number;
 
-  @prop({
-    type: "float",
-    default: 1,
-    title: "Q Factor",
-    description:
-      "The Q factor, determining the width of the band. Higher values create narrower bands.",
-    min: 0.1,
-    max: 10
-  })
-  declare q_factor: number;
 
-  @prop({
-    type: "float",
-    default: 0,
-    title: "Gain Db",
-    description:
-      "The gain to apply at the centre frequency, in dB. Positive values boost, negative values cut.",
-    min: -24,
-    max: 24
-  })
-  declare gain_db: number;
 
-  async process(context?: ProcessingContext): Promise<PeakFilterNodeOutputs> {
-    const audio = this.audio;
-    const cutoff = this.cutoff_frequency_hz;
-    const q = this.q_factor;
-    const gainDb = this.gain_db;
-
-    const bytes = await requireAudioBytes(audio, context);
-
-    const output = await applyFilter(await decodeAudioToWav(bytes), {
-      type: "peaking",
-      frequency: cutoff,
-      q,
-      gainDb
-    });
-
-    return { output };
+  async process(context?: ProcessingContext): Promise<{ output: AudioRef }> {
+    return { output: await applyToClip(PeakFilterEffect, this, this.audio, context) };
   }
 }
 

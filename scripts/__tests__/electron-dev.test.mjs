@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { copyFileSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { afterEach, expect, it } from "vitest";
 
 const temporaryDirectories = [];
@@ -31,7 +32,7 @@ childProcess.spawnSync = (command, args, options) => {
 childProcess.execFileSync = () => { throw new Error("nothing listens"); };
 syncBuiltinESMExports();
 `);
-  const result = spawnSync(process.execPath, ["--import", preload, "scripts/electron-dev.mjs"], {
+  const result = spawnSync(process.execPath, ["--import", pathToFileURL(preload).href, "scripts/electron-dev.mjs"], {
     cwd: dir, encoding: "utf8", env: {...process.env, NODETOOL_NODE: "/stale/node"}
   });
   return {result, capture};

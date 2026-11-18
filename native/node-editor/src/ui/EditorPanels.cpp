@@ -3,11 +3,17 @@
 // SettingsHeaderButton.tsx, inspector/RunSelectedNodesSection.tsx,
 // costs/WorkflowCostEstimatePanel.tsx and panels/PanelBottom.tsx.
 #include "EditorWindow.h"
+#include "nodetool/account/qt/QtHttpTransport.h"
+#include <QtMath>
+#include <QSettings>
 #include "graph/CanvasDropController.h"
 #include <QClipboard>
 #include <QDesktopServices>
 #include <QGuiApplication>
+#include <QDateTime>
 #include <QDockWidget>
+#include <QGraphicsView>
+#include <QJsonDocument>
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QQuickWidget>
@@ -98,6 +104,21 @@ void EditorWindow::initializePanels() {
     }
     schedulePanelChanged();
   });
+  // The server watches the folder of the tab's project for this socket and
+  // pushes what changes in it.
+  connect(&session_, &node_editor::WorkflowSession::stateChanged, this, &EditorWindow::syncOpenProject);
+  connect(&session_, &node_editor::WorkflowSession::workflowChanged, this, &EditorWindow::syncOpenProject);
+  connect(&session_, &node_editor::WorkflowSession::workspaceFilesChanged, &library_, &node_editor::LibraryBrowser::workspaceFilesChanged);
+  connect(&session_, &node_editor::WorkflowSession::documentFileChanged, &browser_, &node_editor::WorkflowBrowser::documentFileChanged);
+  connect(&session_, &node_editor::WorkflowSession::documentFileChanged, &projectFolder_, &node_editor::ProjectFolder::documentFileChanged);
+  connect(&session_, &node_editor::WorkflowSession::workspaceFilesChanged, &projectFiles_, &files::ProjectFiles::workspaceFilesChanged);
+  connect(&projectFolder_, &node_editor::ProjectFolder::changed, this, [this] {
+    library_.setProject(projectFolder_.projectId());
+    library_.setProjectWorkspace(projectFolder_.workspaceId());
+    // Reveal needs the folder on this machine, as ProjectFolder::revealable says.
+    projectFiles_.setFolder(projectFolder_.workspaceId(), projectFolder_.revealable() ? projectFolder_.folderPath() : QString());
+  });
+  syncOpenProject();
   connect(this, &EditorWindow::documentEpochChanged, this, [this] {
     runsTotal_ = runsCurrent_ = 0;
     runsJob_.clear();
@@ -186,6 +207,10 @@ void EditorWindow::reportBug(node_editor::BugReportContext context) {
   QDesktopServices::openUrl(node_editor::bugReportUrl(context, system));
 }
 
+void EditorWindow::reportError(const QString &source, const QString &text) {
+  reportBug({.source = source, .errorText = text});
+}
+
 QVariantMap EditorWindow::costEstimate() const {
   if (!tabOwner_) { return activeEditor_->costEstimate(); }
   return costEstimate_;
@@ -235,10 +260,292 @@ bool EditorWindow::versionsVisible() const {
   return dock && !dock->isHidden();
 }
 
+bool EditorWindow::queueVisible() const {
+  if (!tabOwner_) { return activeEditor_->queueVisible(); }
+  const auto *dock = findChild<QDockWidget *>(QStringLiteral("queue-dock"));
+  return dock && !dock->isHidden();
+}
+
+QRect EditorWindow::queueArea() const {
+  return {view_->mapTo(centralWidget(), QPoint(0, 0)), view_->size()};
+}
+
+QSize EditorWindow::queueSize(const QRect &area) const {
+  using node_editor::docked_overlay::margin;
+  constexpr int width = 304;
+  const auto *root = queueOverlay_ ? queueOverlay_->rootObject() : nullptr;
+  const int desired = root ? qCeil(root->property("contentHeight").toReal()) : 0;
+  return {std::clamp(area.width() - 2 * margin, 0, width), std::clamp(area.height() - 2 * margin, 0, desired)};
+}
+
+void EditorWindow::moveQueue(double dx, double dy) {
+  if (!queueOverlay_) { return; }
+  using namespace node_editor::docked_overlay;
+  const auto area = queueArea();
+  const auto size = queueSize(area);
+  const auto from = queueDragPoint_.value_or(queueOverlay_->pos());
+  const QPoint to = from + QPoint(qRound(dx), qRound(dy));
+  // Clamped at each step, so a pointer that went past an edge moves the
+  // overlay again as soon as it comes back toward it.
+  queueDragPoint_ = place({false, false, to.x() - area.left(), to.y() - area.top()}, area, size);
+  queueOverlay_->move(*queueDragPoint_);
+}
+
+void EditorWindow::finishQueueMove() {
+  if (!queueDragPoint_) { return; }
+  const auto area = queueArea();
+  const auto position = node_editor::docked_overlay::dockAt(*queueDragPoint_, area, queueSize(area));
+  queueDragPoint_.reset();
+  setQueuePosition(position);
+}
+
+void EditorWindow::nudgeQueue(double dx, double dy) {
+  if (!queueOverlay_) { return; }
+  const auto area = queueArea();
+  setQueuePosition(node_editor::docked_overlay::dockAt(queueOverlay_->pos() + QPoint(qRound(dx), qRound(dy)), area, queueSize(area)));
+}
+
+void EditorWindow::resetQueuePosition() { setQueuePosition(std::nullopt); }
+
+void EditorWindow::setQueuePosition(std::optional<node_editor::docked_overlay::Position> position) {
+  QSettings settings;
+  if (position) {
+    settings.setValue("queueOverlay/position", node_editor::docked_overlay::toVariant(*position));
+  } else {
+    settings.remove("queueOverlay/position");
+  }
+  // The position holds for every workflow tab, as the web keeps one per user.
+  const auto tabs = tabOwner_ ? tabOwner_->tabs_ : QList<EditorWindow *>{this};
+  for (auto *tab : tabs) {
+    tab->queuePosition_ = position;
+    tab->layoutOverlays();
+  }
+  if (!tabs.contains(this)) {
+    queuePosition_ = position;
+    layoutOverlays();
+  }
+}
+
+void EditorWindow::toggleQueue() {
+  if (!tabOwner_) { activeEditor_->toggleQueue(); return; }
+  // The web Queue tab opens QueuePanel in the bottom panel at any time and closes
+  // it when it is the open view. The canvas QueueOverlay still shows while jobs run.
+  if (auto *dock = findChild<QDockWidget *>(QStringLiteral("queue-dock")); dock && !dock->isHidden()) {
+    dock->close();
+  } else {
+    showQueue();
+  }
+  schedulePanelChanged();
+}
+
+void EditorWindow::showQueue() {
+  for (auto *existing : findChildren<QDockWidget *>(QStringLiteral("queue-dock"))) { existing->close(); }
+  // Parented to the dock host and deleted when it closes.
+  auto *dock = new QDockWidget(tr("Queue"), dockHost_);
+  dock->setObjectName(QStringLiteral("queue-dock"));
+  dock->setAttribute(Qt::WA_DeleteOnClose);
+  dock->setTitleBarWidget(new QWidget(dock));
+  dock->setAllowedAreas(Qt::BottomDockWidgetArea);
+  outputDock_->hide();
+  auto *content = new QQuickWidget(engine_, dock);
+  content->setResizeMode(QQuickWidget::SizeRootObjectToView);
+  content->setInitialProperties({{"runs", QVariant::fromValue(&runState_)},
+                                 {"resolver", QVariant::fromValue<QObject *>(&mediaResolver_)}});
+  content->setSource(QUrl(QStringLiteral("qrc:/qt/qml/NodeTool/NodeEditor/QueuePanel.qml")));
+  dock->setWidget(content);
+  if (content->rootObject()) { connect(content->rootObject(), SIGNAL(closeRequested()), dock, SLOT(close())); }
+  // The status bar Queue tab shows whether the panel is open.
+  connect(dock, &QDockWidget::visibilityChanged, this, &EditorWindow::schedulePanelChanged);
+  connect(dock, &QObject::destroyed, this, &EditorWindow::schedulePanelChanged);
+  dockHost_->addDockWidget(Qt::BottomDockWidgetArea, dock);
+  dockHost_->resizeDocks({dock}, {height() / 2}, Qt::Vertical);
+  dock->show();
+}
+
+bool EditorWindow::generationsVisible() const {
+  if (!tabOwner_) { return activeEditor_->generationsVisible(); }
+  const auto *dock = findChild<QDockWidget *>(QStringLiteral("generations-dock"));
+  return dock && !dock->isHidden();
+}
+
+void EditorWindow::showGenerations() {
+  for (auto *existing : findChildren<QDockWidget *>(QStringLiteral("generations-dock"))) { existing->close(); }
+  // Parented to the dock host and deleted when it closes.
+  auto *dock = new QDockWidget(tr("Generations"), dockHost_);
+  dock->setObjectName(QStringLiteral("generations-dock"));
+  dock->setAttribute(Qt::WA_DeleteOnClose);
+  dock->setTitleBarWidget(new QWidget(dock));
+  dock->setAllowedAreas(Qt::BottomDockWidgetArea);
+  outputDock_->hide();
+  auto *content = new QQuickWidget(engine_, dock);
+  content->setResizeMode(QQuickWidget::SizeRootObjectToView);
+  content->setInitialProperties({{"activity", QVariant::fromValue(generationActivity())},
+                                 {"resolver", QVariant::fromValue<QObject *>(&mediaResolver_)}});
+  content->setSource(QUrl(QStringLiteral("qrc:/qt/qml/NodeTool/NodeEditor/GenerationsPanel.qml")));
+  dock->setWidget(content);
+  if (content->rootObject()) { connect(content->rootObject(), SIGNAL(closeRequested()), dock, SLOT(close())); }
+  connect(this, &EditorWindow::credentialsEpochChanged, dock, &QDockWidget::close);
+  // The status bar Generations tab shows whether the panel is open.
+  connect(dock, &QDockWidget::visibilityChanged, this, &EditorWindow::schedulePanelChanged);
+  connect(dock, &QObject::destroyed, this, &EditorWindow::schedulePanelChanged);
+  dockHost_->addDockWidget(Qt::BottomDockWidgetArea, dock);
+  dockHost_->resizeDocks({dock}, {height() / 2}, Qt::Vertical);
+  dock->show();
+}
+
+bool EditorWindow::workersVisible() const {
+  if (!tabOwner_) { return activeEditor_->workersVisible(); }
+  const auto *dock = findChild<QDockWidget *>(QStringLiteral("workers-dock"));
+  return dock && !dock->isHidden();
+}
+
+void EditorWindow::showWorkers() {
+  for (auto *existing : findChildren<QDockWidget *>(QStringLiteral("workers-dock"))) { existing->close(); }
+  auto *fleet = &tabOwner_->workers_;
+  // The tab's server and credentials. A tab with no server shows the empty state.
+  fleet->setServer(session_.serverUrl(), session_.token());
+  // Parented to the dock host and deleted when it closes.
+  auto *dock = new QDockWidget(tr("Workers"), dockHost_);
+  dock->setObjectName(QStringLiteral("workers-dock"));
+  dock->setAttribute(Qt::WA_DeleteOnClose);
+  dock->setTitleBarWidget(new QWidget(dock));
+  dock->setAllowedAreas(Qt::BottomDockWidgetArea);
+  outputDock_->hide();
+  auto *content = new QQuickWidget(engine_, dock);
+  content->setResizeMode(QQuickWidget::SizeRootObjectToView);
+  content->setInitialProperties({{"fleet", QVariant::fromValue(fleet)}});
+  content->setSource(QUrl(QStringLiteral("qrc:/qt/qml/NodeTool/NodeEditor/WorkersPanel.qml")));
+  dock->setWidget(content);
+  if (content->rootObject()) { connect(content->rootObject(), SIGNAL(closeRequested()), dock, SLOT(close())); }
+  connect(this, &EditorWindow::credentialsEpochChanged, dock, &QDockWidget::close);
+  // The status bar Workers tab shows whether the panel is open.
+  connect(dock, &QDockWidget::visibilityChanged, this, &EditorWindow::schedulePanelChanged);
+  connect(dock, &QObject::destroyed, this, &EditorWindow::schedulePanelChanged);
+  dockHost_->addDockWidget(Qt::BottomDockWidgetArea, dock);
+  dockHost_->resizeDocks({dock}, {height() / 2}, Qt::Vertical);
+  dock->show();
+}
+
+void EditorWindow::refreshGenerations() {
+  if (!tabOwner_) { activeEditor_->refreshGenerations(); return; }
+  auto *activity = generationActivity();
+  // Open tabs name their workflows on the tiles.
+  QHash<QString, QString> names;
+  for (const auto *tab : tabOwner_->tabs_) {
+    const auto workflow = tab->session_.workflow();
+    if (!workflow["id"].toString().isEmpty()) { names.insert(workflow["id"].toString(), workflow["name"].toString(QStringLiteral("Untitled"))); }
+  }
+  activity->setWorkflowNames(names);
+  activity->setLoading(true);
+  const QPointer<node_editor::GenerationActivity> target(activity);
+  session_.listGenerations([target](const QJsonArray &records, const QString &error) {
+    if (!target) { return; }
+    target->setLoading(false, error);
+    if (error.isEmpty()) { target->replaceHistory(records, QDateTime::currentMSecsSinceEpoch()); }
+  });
+}
+
+void EditorWindow::openWorkflowDocument(const QJsonObject &workflow) {
+  if (!tabOwner_) { activeEditor_->openWorkflowDocument(workflow); return; }
+  auto *owner = tabOwner_;
+  if (!file_.isEmpty() || !document_.nodes().isEmpty() || hasUnsavedChanges() || session_.serverBound()) { owner->newTab(); }
+  // An unsaved tab: Save asks for a file, as for an opened example.
+  owner->activeEditor_->openDocument(QJsonDocument(workflow).toJson(QJsonDocument::Compact), {});
+}
+
+void EditorWindow::openCloudDocument(const QString &documentId, const QString &role) {
+  if (!tabOwner_) { activeEditor_->openCloudDocument(documentId, role); return; }
+  auto *owner = tabOwner_;
+  for (int i = 0; i < owner->tabs_.size(); ++i) {
+    if (owner->tabs_[i]->cloudId_ == documentId) { owner->activateSurface(i); return; }
+  }
+  auto *account = owner->accountServers_->current();
+  const auto session = account && account->state() == nodetool::account::qt::AccountController::State::SignedIn
+                           ? account->session()
+                           : nullptr;
+  if (!session) {
+    notify("error", tr("Sign in to open cloud workflows."));
+    return;
+  }
+  // The drafts live in the local server's store, so a tab without it cannot keep the edits.
+  if (session_.serverUrl().isEmpty()) {
+    notify("error", tr("Connect to the local server to open cloud workflows. It keeps their edits on this computer."));
+    return;
+  }
+  if (!file_.isEmpty() || !document_.nodes().isEmpty() || hasUnsavedChanges() || session_.serverBound() || cloud_) { owner->newTab(); }
+  owner->activeEditor_->startCloudDocument(session, documentId, role);
+}
+
+void EditorWindow::startCloudDocument(std::shared_ptr<nodetool::account::AccountSession> session,
+                                      const QString &documentId, const QString &role) {
+  namespace account = nodetool::account;
+  std::vector<std::pair<std::string, std::string>> headers;
+  if (!session_.token().isEmpty()) { headers.emplace_back("Authorization", ("Bearer " + session_.token()).toStdString()); }
+  const auto local = session_.serverUrl().adjusted(QUrl::RemovePath | QUrl::RemoveQuery | QUrl::RemoveFragment);
+  cloudOrigin_ = QString::fromStdString(session->serverOrigin());
+  account::qt::CloudDocumentServices services;
+  services.session = std::move(session);
+  services.store = account::makeLocalServerDraftStore(std::make_unique<account::qt::QtHttpTransport>(),
+                                                      local.toString(QUrl::StripTrailingSlash).toStdString(),
+                                                      std::move(headers));
+  services.kind = "workflow";
+  services.documentId = documentId.toStdString();
+  services.role = role.toStdString();
+  cloud_ = std::make_unique<account::qt::CloudDocument>(std::move(services));
+  cloudId_ = documentId;
+  connect(cloud_.get(), &account::qt::CloudDocument::stateChanged, this, &EditorWindow::schedulePanelChanged);
+  connect(cloud_.get(), &account::qt::CloudDocument::opened, this, [this](const QString &revision, const QString &draft) {
+    auto workflow = QJsonDocument::fromJson(revision.toUtf8()).object();
+    // A draft this account left on this computer opens over the revision.
+    const auto graph = QJsonDocument::fromJson(draft.toUtf8()).object();
+    if (!graph.isEmpty()) { workflow["graph"] = graph; }
+    cloudLoading_ = true;
+    openDocument(QJsonDocument(workflow).toJson(QJsonDocument::Compact), {});
+    cloudLoading_ = false;
+    schedulePanelChanged();
+  });
+  connect(cloud_.get(), &account::qt::CloudDocument::openFailed, this, [this](const QString &reason) {
+    message_ = tr("Cloud workflow not opened: %1").arg(reason);
+    schedulePanelChanged();
+  });
+  cloud_->open();
+}
+
+void EditorWindow::reportJob(const QString &jobId) {
+  for (const auto &value : session_.queue()) {
+    const auto job = value.toMap();
+    if (job["jobId"].toString() != jobId) { continue; }
+    // ReportBugButton on a failed JobItem.tsx.
+    const auto name = job["name"].toString().isEmpty() ? QStringLiteral("Untitled") : job["name"].toString();
+    const auto error = job["error"].toString();
+    reportBug({.source = QStringLiteral("Job failure"),
+               .summary = QStringLiteral("Job failed: %1").arg(name),
+               .errorText = error.isEmpty() ? QStringLiteral("Job failed") : error,
+               .workflowId = job["workflow_id"].toString(),
+               .jobId = jobId});
+    return;
+  }
+}
+
+void EditorWindow::openJobOutput(const QString &url) {
+  // AssetThumb in JobItem.tsx opens the asset's get_url in a new browser tab.
+  const auto target = session_.serverUrl().resolved(QUrl(url));
+  if (url.isEmpty() || (target.scheme() != QLatin1String("http") && target.scheme() != QLatin1String("https"))) { return; }
+  QDesktopServices::openUrl(target);
+}
+
 void EditorWindow::toggleStatusView(const QString &view) {
   if (!tabOwner_) { activeEditor_->toggleStatusView(view); return; }
   if (view == "logs") {
     action(QStringLiteral("Output"));
+  } else if (view == "queue") {
+    toggleQueue();
+  } else if (view == "generations") {
+    if (auto *dock = findChild<QDockWidget *>(QStringLiteral("generations-dock")); dock && !dock->isHidden()) { dock->close(); }
+    else { showGenerations(); }
+  } else if (view == "workers") {
+    if (auto *dock = findChild<QDockWidget *>(QStringLiteral("workers-dock")); dock && !dock->isHidden()) { dock->close(); }
+    else { showWorkers(); }
   } else if (view == "trace") {
     if (auto *dock = findChild<QDockWidget *>(QStringLiteral("run-trace-dock")); dock && !dock->isHidden()) { dock->close(); }
     else { action(QStringLiteral("Run trace")); }

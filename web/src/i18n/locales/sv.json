@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "kod#tillstånd",
       "signInWindowClosed": "Inloggningsfönstret stängt?",
       "openAgain": "Öppna den igen",
-      "linkExpiry": ". Länken upphör att gälla efter 10 minuter."
+      "linkExpiry": ". Länken upphör att gälla efter 10 minuter.",
+      "nativeSubtitle": "vill logga in på ditt NodeTool-konto.",
+      "app": "App",
+      "device": "Enhet",
+      "nativeNote": "Godkänn bara om du själv startade inloggningen i en NodeTool-skrivbordsapp på den här datorn. Appen kan sedan öppna, redigera och spara dina molndokument tills du loggar ut eller avslutar sessionen i Inställningar."
     },
     "integrations": {
       "loadingAccounts": "Laddar anslutna konton",
@@ -295,6 +299,8 @@
     "addWorkflowTooltip": "Lägg till en arbetsflödesnod",
     "addSubgraph": "Lägg till subgraf",
     "addSubgraphTooltip": "Lägg till en inline subgrafnod",
+    "addComfySubgraph": "Lägg till Comfy-undergraf",
+    "addComfySubgraphTooltip": "Lägg till en undergraf av ComfyUI-noder som körs som ett Comfy-jobb",
     "addApp": "Lägg till app",
     "addAppTooltip": "Kör en miniapp som en nod",
     "property": "Egendom",
@@ -694,61 +700,15 @@
   },
   "batch2_1": {
     "common": {
-      "workspace": "Arbetsyta",
       "loading": "Laddar...",
       "refresh": "Uppdatera",
       "remove": "Ta bort",
       "cancel": "Avbryt"
     },
-    "page": {
-      "title": "Arbetsytor",
-      "subtitle": "Sandlådemappar som agenter och arbetsflöden kan läsa, skriva och organisera filer i."
-    },
-    "folderPicker": {
-      "title": "Välj arbetsytamapp"
-    },
-    "notifications": {
-      "added": "Arbetsyta har lagts till",
-      "removed": "Arbetsytan har tagits bort"
-    },
-    "errors": {
-      "loadTitle": "Det gick inte att läsa in arbetsytor",
-      "loadSummary": "Det gick inte att läsa in arbetsytor",
-      "loadDescription": "Kontrollera din anslutning och försök igen.",
-      "operation": "Arbetsytan misslyckades: {{error}}"
-    },
-    "manager": {
-      "inaccessible": "Otillgänglig",
-      "defaultWorkspace": "Standardarbetsyta",
-      "setDefault": "Ställ in som standard",
-      "emptyTitle": "Inga arbetsytor har konfigurerats",
-      "emptyCanManage": "Lägg till en arbetsyta för att ge agenter åtkomst till lokala mappar",
-      "emptyManaged": "Den här distributionen hanterar din arbetsyta åt dig",
-      "adding": "Lägger till...",
-      "addWorkspace": "Lägg till arbetsyta",
-      "removeTitle": "Vill du ta bort den här arbetsytan?",
-      "removeDescription": "Arbetsytan kommer att tas bort från NodeTool. Själva mappen kommer inte att raderas."
-    },
-    "select": {
-      "defaultWithPath": "Standard ({{path}})",
-      "description": "Agenter läser och skriver filer här under körning, inklusive sparade bilder, text, data och andra utdata. Bläddra bland resultat i panelen Arbetsyta. Agenter kan bara komma åt filer i den här mappen. Ett arbetsflöde kvar på Standard använder din standardarbetsyta.",
-      "createNew": "Skapa ny arbetsyta",
-      "addWorkspace": "Lägg till arbetsyta..."
-    },
     "tree": {
       "loading": "Laddar...",
       "accessDenied": "⚠️ Åtkomst nekad",
-      "title": "Workspace explorer",
-      "manage": "Hantera arbetsytor",
-      "goToRoot": "Gå till root för arbetsytan",
-      "openInFolder": "Öppna i mapp",
-      "openExternally": "Öppna externt",
-      "noneSelected": "Ingen arbetsyta har valts",
-      "selectOrCreate": "Välj en arbetsyta ovan eller skapa en.",
-      "createWorkspace": "Skapa arbetsyta",
-      "fileBrowser": "Arbetsyta filläsare",
-      "emptyTitle": "Arbetsytan är tom",
-      "emptyDescription": "Lägg till filer i din arbetsytamapp för att se dem här."
+      "openExternally": "Öppna externt"
     }
   },
   "batch2_10": {
@@ -1617,7 +1577,11 @@
       "assistant": "Assistent",
       "history": "Historia",
       "code": "Kod",
-      "storyboard": "Storyboard"
+      "storyboard": "Storyboard",
+      "effectControls": "Effektkontroller",
+      "motion": "Rörelse",
+      "color": "Färg",
+      "ai": "AI"
     },
     "unavailable": {
       "tracks": "DAW-läget har sin egen spårvy. Stäng av den (Alt+M) för att öppna panelen Tidslinje.",
@@ -1754,7 +1718,6 @@
       "packageManager": "Pakethanterare",
       "assets": "Tillgångar",
       "collections": "Samlingar",
-      "workspaces": "Arbetsytor",
       "memory": "Minne",
       "settings": "Inställningar",
       "help": "Hjälp",
@@ -2281,7 +2244,8 @@
       "cloudAlphaNotice": "Moln är i alfa. För produktionsarbete, använd",
       "ssoTitle": "Logga in på NodeTool",
       "ssoSignIn": "Logga in med {{provider}}",
-      "ssoFailed": "Inloggningen misslyckades ({{reason}}). Försök igen eller be administratören om åtkomst."
+      "ssoFailed": "Inloggningen misslyckades ({{reason}}). Försök igen eller be administratören om åtkomst.",
+      "marketingOptIn": "Skicka mejl till mig om nya lanseringar och gratiserbjudanden. Avsluta prenumerationen när som helst."
     },
     "inspector": {
       "params": "Params",
@@ -2578,6 +2542,10 @@
       "connected": "Ansluten",
       "connectedProviders": "Anslutna leverantörer",
       "connectedViaOAuth": "Ansluten med inloggning",
+      "creditLeft": "Kvarvarande saldo: {{amount}}",
+      "creditLeftOf": "Kvarvarande saldo: {{amount}} av {{limit}}",
+      "creditExhausted": "Inget saldo kvar. Fyll på hos {{provider}} för att använda det.",
+      "creditRefused": "{{provider}} nekade ett anrop på grund av otillräckligt saldo. Fyll på och tryck sedan på Testa.",
       "connecting": "Ansluter...",
       "delete": "Ta bort",
       "deleteApiKeyConfirmation": "{{provider}} API-nyckeln kommer att tas bort och dess modeller slutar fungera tills du lägger till en nyckel igen.",
@@ -3668,6 +3636,7 @@
         "shotCount_other": "{{count}} skott",
         "modelLabel": "Modell",
         "modelPlaceholder": "Manusmodell",
+        "noModels": "Ingen språkmodell är tillgänglig. Lägg till en leverantörsnyckel i Inställningar, under Modeller och leverantörer.",
         "shotsLabel": "Skott",
         "title": "Välj din genre",
         "description": "Ton, pacing och inramning följer ditt val. Du kan ändra det senare.",
@@ -3821,10 +3790,9 @@
           "lightingPlaceholder": "Hur scenen är upplyst",
           "shotHeader": "Skott {{count}}",
           "shotAction": "Skott {{count}} · Action",
-          "shotDialogue": "Skott {{count}} · Dialog",
-          "dialoguePlaceholder": "Dialog",
-          "addDialogue": "Lägg till dialog",
+          "dialogue": "Dialog",
           "seconds": "Sekunder",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Scen {{count}}"
         },
         "fallback": {
@@ -6172,7 +6140,23 @@
         "title": "Nytt projekt",
         "confirm": "Skapa projekt",
         "nameLabel": "Projektnamn",
-        "createError": "Kunde inte skapa projektet: {{error}}"
+        "locationLabel": "Plats",
+        "locationDefault": "Projektmapp",
+        "locationChoose": "Välj…",
+        "locationReset": "Använd projektmappen",
+        "createError": "Kunde inte skapa projektet: {{error}}",
+        "openFolder": "Öppna mapp…",
+        "openFolderHint": "Har du redan en mapp? Öppna den som ett projekt. Inga filer flyttas.",
+        "openFolderTravels": "En mapp som kopierats från en annan dator öppnas med sina arbetsflöden, tidslinjer och resurser. Chattar, storyboards, manus, skisser, appar och JS-skript följer inte med mappen.",
+        "openFolderError": "Det gick inte att öppna mappen: {{error}}"
+      },
+      "folder": {
+        "notFound": "Mappen hittades inte",
+        "notFoundDetail": "Mappen för {{name}} har flyttats, bytt namn eller finns på en enhet som inte är ansluten. Körningar startar inte förrän du letar upp den.",
+        "locate": "Leta upp",
+        "locateError": "Det gick inte att leta upp mappen: {{error}}",
+        "moving": "Flyttar filer till projektmappen",
+        "movingDetail": "{{done}} av {{total}} filer flyttade. Dina resurser är tillgängliga under tiden."
       },
       "home": {
         "homeTab": "Hem",
@@ -6396,6 +6380,16 @@
           "image": "Bild",
           "video": "Video",
           "audio": "Ljud"
+        },
+        "attachedFileActions": {
+          "label": "Börja med dina filer",
+          "hint": "Filer bifogade. Beskriv vad du vill skapa, eller utgå från dem:",
+          "animate": "Animera till en video",
+          "image": "Skapa nya bilder",
+          "retake": "Redigera videon",
+          "script": "Gör om till manus",
+          "ask": "Fråga om dem",
+          "askPrompt": "Titta på de bifogade filerna och föreslå vad jag kan göra av dem."
         }
       }
     }
@@ -6441,16 +6435,42 @@
           "export": "Exportera",
           "archive": "Arkiv",
           "restore": "Återställ",
-          "delete": "Ta bort"
+          "delete": "Ta bort",
+          "collect": "Samla filer"
         },
         "projectActions": "Projektåtgärder",
         "actionsForProject": "Åtgärder för {{projectName}}",
         "exporting": "Exporterar...",
         "deleteProject": "Ta bort projekt",
         "confirmDeleteTitle": "Ta bort {{projectName}}?",
-        "confirmDeleteBody": "Ta bort {{projectName}} och alla dess dokument, konversationer, genererade utdata, tillgångar, jobb och projektfiler.",
+        "confirmDeleteBody": "Ta bort {{projectName}} och alla dess dokument, konversationer, jobb och tillgångar som lagras utanför projektmappen.",
         "deleteIrreversible": "Detta kan inte ångras.",
-        "error": "Kunde inte {{action}} {{projectName}}: {{error}}"
+        "deleteFolderTrash": "Projektmappen flyttas till papperskorgen.",
+        "deleteFolderRemove": "Projektmappen och alla filer i den tas bort från molnlagringen.",
+        "deleteFolderKeep": "Projektmappen ligger kvar där den är med alla filer. NodeTool tar bara bort mappen .nodetool i den.",
+        "deleteFolderMissing": "Projektmappen går inte att nå, så NodeTool lämnar den som den är.",
+        "folderMovedAsideTo": "Papperskorgen gick inte att nå. Projektmappen flyttades till {{path}}.",
+        "folderMovedAside": "Papperskorgen gick inte att nå. Projektmappen flyttades till mappen .trash i projektmappen för alla projekt.",
+        "folderTrashFailedAt": "Projektmappen kunde inte flyttas till papperskorgen. Den ligger kvar i {{path}}.",
+        "folderTrashFailed": "Projektmappen kunde inte flyttas till papperskorgen. Den ligger kvar där den är.",
+        "error": "Kunde inte {{action}} {{projectName}}: {{error}}",
+        "collecting": "Samlar filer…",
+        "collectResult": "Filer samlade i {{projectName}}: {{copied}} kopierade, {{skipped}} hoppades över, {{failed}} misslyckades.",
+        "linkedTitle": "{{projectName}} länkar filer utanför sin mapp",
+        "linkedBody": "En export innehåller projektmappen. De här filerna är länkade från en annan plats och finns inte i den:",
+        "linkedChoice": "Samla och exportera kopierar dem till mappen Imported och exporterar sedan. Avbryt behåller länkarna och exporterar ingenting.",
+        "collectAndExport": "Samla och exportera"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Kopiera eller länka?",
+        "confirm": "Importera",
+        "copy": "Kopiera till projektmappen",
+        "copyHint": "Projektet behåller en egen kopia. Ändringar i originalet når inte fram till den.",
+        "link": "Länka på plats",
+        "linkHint": "Inget kopieras. Projektet läser filen där den ligger. Samla filer kopierar in den senare.",
+        "threshold": "Filer på {{size}} eller mer länkas som standard."
       }
     }
   },
@@ -6510,7 +6530,16 @@
         "couldNotLoadDocuments": "Det gick inte att ladda dokument",
         "noDocuments": "Inga dokument ännu",
         "noMatchingDocuments": "Inga matchande dokument",
-        "searchProjectsAndDocuments": "Sök efter projekt och dokument"
+        "searchProjectsDocumentsAndChats": "Sök efter projekt, dokument och chattar",
+        "documentsAndChats": "Dokument och chattar",
+        "chats": "Chattar",
+        "loadingChats": "Läser in chattar…",
+        "couldNotLoadChats": "Det gick inte att läsa in chattar",
+        "noChats": "Inga chattar än",
+        "noMatchingChats": "Inga matchande chattar",
+        "allChats": "Alla chattar",
+        "untitledChat": "Namnlös chatt",
+        "searchShort": "Sök"
       },
       "rail": {
         "projects": "Projekt"
@@ -6616,8 +6645,6 @@
       "runModeTool": "Verktyg",
       "runModeDescription": "Hur detta arbetsflöde körs och kan utlösas",
       "advanced": "Avancerat",
-      "workspace": "Arbetsyta",
-      "workspaceDescription": "Koppla en arbetsytamapp till detta arbetsflöde för agentåtkomst",
       "toolName": "Verktygets namn",
       "toolNameDescription": "Identifierare för API/verktygsanvändning. Endast bokstäver, siffror, understreck.",
       "toolNamePlaceholder": "mitt_arbetsflödesverktyg",
@@ -8944,6 +8971,7 @@
         "Vilken typ av app skickade händelsen (moln, skrivbord, lokal webb), appversionen och operativsystemfamiljen.",
         "Att appen startade, ett arbetsflöde skapades eller ett arbetsflöde kördes.",
         "För en körning: lokal eller moln, noden räknas som ett intervall (som 6–20), varaktigheten som ett intervall och för ett misslyckande en kategori som leverantör eller timeout.",
+        "För en första session: att startvalen visades, vilket som valdes, typen av det första resultatet (som chatt eller storyboard) med tiden dit som ett intervall och skärmklassen (telefon, surfplatta eller dator).",
         "Ett slumpmässigt ID sparat i den här webbläsaren som ändras var 30:e dag, och ett slumpmässigt ID för denna session."
       ],
       "never": "Aldrig",
@@ -9083,10 +9111,6 @@
         "REPLICATE_API_TOKEN": {
           "button": "Hämta Replicate API-token",
           "tooltip": "Gå till sidan Replikera API-tokens"
-        },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Skaffa lösenord för Google-appen",
-          "tooltip": "Gå till sidan med lösenord för Google-kontoappen"
         },
         "ELEVENLABS_API_KEY": {
           "button": "Hämta ElevenLabs API-nyckel",
@@ -10639,9 +10663,9 @@
         "jsScripts": "JS-skript",
         "skills": "Färdigheter",
         "assets": "Tillgångar",
-        "workspace": "Arbetsyta",
         "library": "Bibliotek",
-        "more": "Mer"
+        "more": "Mer",
+        "files": "Filer"
       },
       "categoryDescriptions": {
         "documents": "Bläddra i alla dokument i det aktuella projektet.",
@@ -10661,9 +10685,9 @@
         "jsScripts": "Skapa och hantera återanvändbar JavaScript-kod.",
         "skills": "Agentfärdigheter — nedskrivningsinstruktioner som matchar målet.",
         "assets": "Bläddra bland tillgångar som är tillgängliga i det aktuella sammanhanget.",
-        "workspace": "Bläddra bland filerna i den valda arbetsytans mapp.",
         "library": "Bläddra bland tillgångar i det aktuella projektet.",
-        "more": "Öppna ytterligare paneler för arbetsflöde, redigerare, utvecklare och arbetsytor."
+        "more": "Öppna fler paneler för arbetsflöden, redigerare och utveckling.",
+        "files": "Bläddra bland filerna i projektmappen."
       }
     },
     "queue": {
@@ -10682,6 +10706,8 @@
       "queuedCount_one": "{{count}} i kö",
       "queuedCount_other": "{{count}} i kö",
       "collapseQueue": "Komprimera kön",
+      "moveQueue": "Flytta kön",
+      "moveQueueHint": "Dra för att flytta. Piltangenterna flyttar den, Home återställer den.",
       "enqueued": "I kö"
     },
     "toolbar": {
@@ -10763,6 +10789,7 @@
       "levels_one": "{{count}} nivå",
       "levels_other": "{{count}} nivåer",
       "allLevels": "Alla nivåer",
+      "anyDepth": "Valfritt djup",
       "spanName": "Spännnamn",
       "focusSpan": "Fokusspann",
       "wholeRun": "Hela löpningen",
@@ -10820,7 +10847,6 @@
       "noRecentRuns": "Inga senaste körningar",
       "noMatchingSpans": "Inga matchande spann",
       "spanId": "Spännvidd {{id}}",
-      "olderRuns": "Äldre körningar",
       "noRecordedRuns": "Inga inspelade körningar",
       "noRunsDescription": "Starta en appoperation, arbetsflöde eller chattsväng för att inspektera dess spårning och loggar.",
       "runStatus": {
@@ -13185,8 +13211,9 @@
         },
         "showCode": "Visa kod",
         "showArguments": "Visa argument",
-        "allow": "Tillåt",
-        "allowForChat": "Tillåt den här chatten",
+        "allowOnce": "Tillåt en gång",
+        "allowAlways": "Tillåt alltid",
+        "allowAlwaysHint": "Kör {{tool}} utan att fråga från och med nu. Du kan ändra det under Inställningar › Behörigheter.",
         "deny": "Förneka"
       }
     }
@@ -13423,7 +13450,8 @@
         "sendMessage": "Kunde inte skicka meddelandet: {{error}}",
         "compact": "Kunde inte komprimera konversationen: {{error}}",
         "copyConversation": "Det gick inte att kopiera konversationen.",
-        "rewindConversation": "Kunde inte spola tillbaka konversationen: {{error}}"
+        "rewindConversation": "Kunde inte spola tillbaka konversationen: {{error}}",
+        "switchVersion": "Det gick inte att byta version: {{error}}"
       },
       "notifications": {
         "copiedMessages_one": "Kopierade {{count}} meddelande som Markdown.",
@@ -13445,8 +13473,14 @@
         },
         "connectProviderTitle": "Anslut en AI-leverantör för att komma igång",
         "connectProviderButton": "Anslut en leverantör",
-        "title": "Hur kan jag hjälpa dig idag?",
-        "subtitle": "Fråga vad som helst, släpp in filer eller börja med något av följande:"
+        "greeting": {
+          "morning": "God morgon",
+          "afternoon": "God eftermiddag",
+          "evening": "God kväll",
+          "morningName": "God morgon, {{name}}",
+          "afternoonName": "God eftermiddag, {{name}}",
+          "eveningName": "God kväll, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Uppgifter",
@@ -13964,8 +13998,7 @@
       "search": "Sök igenom alla paneler",
       "group": {
         "workflow-tools": "Arbetsflödesverktyg",
-        "agent-tools": "Agentverktyg",
-        "workspace": "Arbetsyta"
+        "agent-tools": "Agentverktyg"
       },
       "category": {
         "favorites": {
@@ -13983,10 +14016,6 @@
         "skills": {
           "label": "Färdigheter",
           "description": "Agentfärdigheter — nedskrivningsinstruktioner som matchar målet."
-        },
-        "workspace-files": {
-          "label": "Arbetsyta",
-          "description": "Bläddra bland filerna i den valda arbetsytans mapp."
         }
       }
     },
@@ -14642,9 +14671,6 @@
       "runGroup": {
         "groupRunning": "Gruppen är igång",
         "runGroup": "Kör grupp"
-      },
-      "saveDestinationHint": {
-        "workspace": "Arbetsyta"
       }
     }
   },
@@ -15087,7 +15113,6 @@
       "csv": "CSV-fil",
       "unknown": "Okänd filtyp",
       "unknownContentType": "Okänd innehållstyp",
-      "offline": "Media offline",
       "thumbnail": "Miniatyrbild",
       "folder": "Mapp"
     },
@@ -15863,9 +15888,9 @@
       "jsscripts": "JS-skript",
       "skills": "Färdigheter",
       "assets": "Tillgångar",
-      "workspace-files": "Arbetsyta",
       "library": "Bibliotek",
-      "more": "Mer"
+      "more": "Mer",
+      "files": "Filer"
     }
   },
   "i18n-next55": {
@@ -15992,7 +16017,6 @@
         "models": "Modellchef",
         "packages": "Pakethanterare",
         "collections": "Samlingar",
-        "workspaces": "Arbetsytor",
         "entities": "Entiteter",
         "memory": "Minne",
         "settings": "Inställningar",
@@ -16734,8 +16758,8 @@
         "extendEdit": "Utöka redigeringspunkten till spelhuvudet",
         "trimEditLeft": "Trimma redigeringspunkten en ram bakåt",
         "trimEditRight": "Trimma redigeringspunkt en ram på",
-        "trimEditLeftLarge": "Trimma redigeringspunkten tio bildrutor bakåt",
-        "trimEditRightLarge": "Trimma redigeringspunkt tio ramar på",
+        "trimEditLeftLarge": "Trimma redigeringspunkten fem bildrutor bakåt",
+        "trimEditRightLarge": "Trimma redigeringspunkt fem ramar på",
         "duplicate": "Duplicera efter valet",
         "duplicateWithGap": "Duplicera med 1 s mellanrum",
         "applyDefaultTransition": "Cross-fade in i valda klipp",
@@ -16816,7 +16840,49 @@
         "exitExpandedPreview": "Avsluta den utökade förhandsvisningen",
         "moveOnePixel": "Flytta klippet en pixel",
         "moveTenPixels": "Flytta klippet tio pixlar",
-        "resetTransform": "Återställ transformationen"
+        "resetTransform": "Återställ transformationen",
+        "extendPrevEdit": "Förläng föregående redigering till spelhuvudet",
+        "extendNextEdit": "Förläng nästa redigering till spelhuvudet",
+        "selectPrevClip": "Markera föregående klipp",
+        "selectNextClip": "Markera nästa klipp",
+        "clipVolumeUp": "Höj klippvolymen med 1 dB",
+        "clipVolumeDown": "Sänk klippvolymen med 1 dB",
+        "clipVolumeUpMore": "Höj klippvolymen med 6 dB",
+        "clipVolumeDownMore": "Sänk klippvolymen med 6 dB",
+        "slideLeft": "Skjut markerade klipp en bildruta bakåt",
+        "slideRight": "Skjut markerade klipp en bildruta framåt",
+        "slowShuttleBack": "Spola sakta bakåt (igen: snabbare)",
+        "slowShuttleForward": "Spola sakta framåt (igen: snabbare)",
+        "goToSequenceStart": "Gå till sekvensens början",
+        "goToSequenceEnd": "Gå till sekvensens slut",
+        "goToSelectedStart": "Gå till markeringens början",
+        "goToSelectedEnd": "Gå till markeringens sista bildruta",
+        "markSelection": "Markera urvalet (in och ut runt det)",
+        "clearIn": "Rensa in",
+        "clearOut": "Rensa ut",
+        "prevCutAnyTrack": "Föregående klipp på valfritt spår",
+        "nextCutAnyTrack": "Nästa klipp på valfritt spår",
+        "prevGap": "Gå till föregående lucka i sekvensen",
+        "nextGap": "Gå till nästa lucka i sekvensen",
+        "addRangeMarker": "Lägg till en intervallmarkör på en sekund vid spelhuvudet",
+        "addMarkerInOut": "Lägg till en markör från in till ut",
+        "clearAllMarkers": "Rensa alla markörer",
+        "playAround": "Spela runt spelhuvudet",
+        "playInToOutWithRoll": "Spela från in till ut med förrull och efterrull",
+        "playToOut": "Spela från spelhuvudet till ut",
+        "expandAllTracks": "Expandera alla spår (igen: återställ)",
+        "minimizeAllTracks": "Minimera alla spår (igen: återställ)",
+        "audioTracksTaller": "Gör ljudspåren högre",
+        "audioTracksShorter": "Gör ljudspåren lägre",
+        "panelSource": "Gå till Källa",
+        "panelTimeline": "Gå till tidslinjen",
+        "panelProgram": "Gå till Program",
+        "panelEffectControls": "Gå till Effektkontroller",
+        "panelInspector": "Gå till inspektören",
+        "panelScript": "Gå till manuset",
+        "panelStoryboard": "Gå till storyboarden",
+        "nextPanel": "Gå till nästa panel",
+        "prevPanel": "Gå till föregående panel"
       }
     },
     "vst": {
@@ -18295,9 +18361,12 @@
       "result": "Resultat",
       "copyResult": "Kopiera resultatet",
       "editMessage": "Redigera meddelande",
-      "editWarning": "Att skicka ersätter allt efter detta meddelande.",
+      "editWarning": "Att skicka skapar en ny version. Den nuvarande finns kvar.",
       "editAndResend": "Redigera och skicka om",
       "regenerate": "Återskapa",
+      "previousVersion": "Föregående version",
+      "nextVersion": "Nästa version",
+      "versionOf": "Version {{index}} av {{count}}",
       "copyMessage": "Kopiera meddelande",
       "enterCredential": "Ange autentiseringsuppgifter",
       "credentialSubtitle": "Sparad i din hemliga butik. Agenten ser aldrig värdet.",
@@ -18535,7 +18604,7 @@
   },
   "i18n-next110": {
     "workspaceFile": {
-      "invalidReference": "Ogiltig arbetsytefilreferens"
+      "invalidReference": "Ogiltig filreferens"
     }
   },
   "i18n-next109": {
@@ -19026,6 +19095,26 @@
       "typeMore": "Skriv minst 2 tecken",
       "noMatches": "Ingen träff",
       "failed": "Kunde inte ge åtkomst."
+    },
+    "options": {
+      "history": "Historik",
+      "historyDescription": "Läsare kan öppna sparade versioner.",
+      "download": "Nedladdning",
+      "downloadDescription": "Läsare kan ladda ner originalfilerna.",
+      "duplicate": "Duplicering",
+      "duplicateDescription": "Läsare kan kopiera det med filerna till sitt eget bibliotek.",
+      "turnedOff": "Det som redan har laddats ner eller duplicerats behåller folk.",
+      "historyOffNotice": "Läsare av den här länken ser inte längre sparade versioner. Slå på historik för att ge tillbaka dem.",
+      "turnOnHistory": "Slå på historik",
+      "dismiss": "Stäng",
+      "failed": "Det gick inte att ändra alternativen."
+    },
+    "people": {
+      "from": "Åtkomst via {{sources}}",
+      "sourceInvitation": "inbjudan",
+      "sourceViewLink": "visningslänk",
+      "sourceEditLink": "redigeringslänk",
+      "sourceDisabled": "{{source}} (inaktiverad)"
     }
   },
   "timelineAutomation": {
@@ -19991,5 +20080,263 @@
     "missingKeysDetail": "Det här arbetsflödet behöver {{keys}}. Lägg till den i Inställningar innan du kör det.",
     "costPerRun": "≈ {{cost}} per körning",
     "costUnknown": "Okänd kostnad"
+  },
+  "marketingEmails": {
+    "title": "Produktmejl",
+    "label": "Skicka mejl om lanseringar och gratiserbjudanden",
+    "description": "Få veta om nya funktioner, modeller och gratiserbjudanden. Varje mejl har en avregistreringslänk, och du kan stänga av detta här när som helst.",
+    "saveFailed": "Mejlinställningen sparades inte. Försök igen."
+  },
+  "firstRun": {
+    "ariaLabel": "Börja med ett resultat",
+    "heading": "Skapa något på under en minut",
+    "subline": "Allt är redan ifyllt. Prova ett och ändra det sedan till din egen idé.",
+    "firstTask": {
+      "label": "Din första prompt",
+      "prompt": "Ge mig tre idéer till en 30-sekunders video om en räv i den första snön, en rad var.",
+      "hint": "Svarar på sekunder med den kostnadsfria standardmodellen.",
+      "action": "Skicka"
+    },
+    "game": {
+      "title": "Gör ett litet spel",
+      "description": "En räv letar efter det sista ekollonet. Öppnas på designen, ett klick skriver den."
+    },
+    "storyboard": {
+      "title": "Gör storyboard till en kortfilm",
+      "description": "En fyrvaktare och en strandsatt robot. Öppnas på manuset, ett klick skriver det.",
+      "brief": "Efter en storm hittar en fyrvaktare en liten robot som spolats i land och lär den att hålla ljuset brinnande."
+    },
+    "template": {
+      "title": "Kör en mall",
+      "description": "Reklamtext i tre tonlägen, med produkten redan ifylld. Tryck på Kör."
+    },
+    "opening": "Öppnar…",
+    "startFailed": "Det gick inte att öppna startern: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "Inget klipp markerat",
+    "severalClips": "Flera klipp markerade",
+    "effectControls": {
+      "empty": "Markera ett klipp på tidslinjen för att justera transformering, opacitet, effekter och masker.",
+      "several": "Markera ett enda klipp för att justera det."
+    },
+    "motion": {
+      "empty": "Markera ett klipp på tidslinjen för att animera det.",
+      "several": "Markera ett enda klipp för att animera det.",
+      "unsupportedTitle": "Inget att animera",
+      "unsupported": "Markera ett video-, bild-, text- eller formklipp för att animera det."
+    },
+    "color": {
+      "empty": "Markera ett klipp på tidslinjen för att färgkorrigera det.",
+      "several": "Markera ett enda klipp för att färgkorrigera det.",
+      "unsupportedTitle": "Klippet har ingen bild",
+      "unsupported": "Markera ett video-, bild-, text- eller formklipp för att färgkorrigera det."
+    },
+    "ai": {
+      "empty": "Markera ett klipp på tidslinjen för att generera från det eller redigera det med AI.",
+      "several": "Markera ett enda klipp för att generera från det.",
+      "unsupportedTitle": "Inga AI-verktyg för det här klippet",
+      "unsupported": "Markera ett video- eller bildklipp, eller ett genererat klipp."
+    }
+  },
+  "toolPermissions": {
+    "tab": "Behörigheter",
+    "title": "Verktygsbehörigheter",
+    "sidebarCategory": "Verktyg",
+    "intro": "Välj vilka verktyg assistenten får använda utan att fråga. Ett verktyg inställt på Fråga visar en fråga i chatten innan det körs.",
+    "modes": "I standardläget frågar varje verktyg inställt på Fråga först. I autoläget körs verktyg utan att fråga, utom en kodåtgärd som raderar, publicerar eller spenderar pengar. Ställ Execute code på Tillåt alltid för att stänga av även den frågan. Planläget blockerar alla ändringar, oavsett regel.",
+    "alwaysAllow": "Tillåt alltid",
+    "ask": "Fråga",
+    "saveFailed": "Det gick inte att spara behörigheten.",
+    "loadFailed": "Det gick inte att läsa in verktygslistan.",
+    "noMatches": "Inga verktyg matchar din sökning."
+  },
+  "projectFolder": {
+    "name": "Projektmapp",
+    "picker": {
+      "title": "Välj en mapp"
+    },
+    "tree": {
+      "title": "Filer",
+      "goToRoot": "Gå till projektmappens rot",
+      "fileBrowser": "Projektfiler",
+      "emptyTitle": "Projektmappen är tom",
+      "emptyDescription": "Lägg till filer i projektmappen för att se dem här.",
+      "noFolderTitle": "Ingen projektmapp",
+      "noFolderDescription": "Det här projektet har ingen mapp än.",
+      "revealInFinder": "Visa i Finder",
+      "revealInExplorer": "Visa i Utforskaren",
+      "revealInFileManager": "Visa i filhanteraren",
+      "moveIntoItself": "En mapp kan inte flyttas in i sig själv eller en av dess undermappar.",
+      "notAnAsset": "Den här filen finns inte bland projektets tillgångar och kan inte ändras här.",
+      "actionFailed": "Ändringen sparades inte: {{error}}"
+    },
+    "documentFile": {
+      "invalidTitle": "Den här filen har ett fel",
+      "invalidBody": "{{path}} lästes inte in: {{error}}. Den senaste giltiga versionen förblir öppen och kan fortfarande köras.",
+      "openFile": "Öppna fil",
+      "missingTitle": "Filen saknas",
+      "missingBody": "{{path}} finns inte längre i projektmappen. Återställ skriver den igen från det här dokumentet.",
+      "restore": "Återställ",
+      "delete": "Ta bort",
+      "cancel": "Avbryt",
+      "deleteTitle": "Ta bort {{name}}?",
+      "deleteDescription": "”{{name}}” och dess versionshistorik tas bort permanent.",
+      "restoreFailed": "Filen återställdes inte: {{error}}",
+      "deleteFailed": "Dokumentet togs inte bort: {{error}}"
+    },
+    "migration": {
+      "title": "Flytta dina projekt till mappar",
+      "intro": "NodeTool sparar nu varje projekt i en egen mapp på den här datorn. Dina filer, arbetsflöden och tidslinjer flyttas dit, och du kan öppna dem i andra appar.",
+      "planProjects": "Projekt som får en mapp",
+      "planFiles": "Filer som ska flyttas",
+      "planWorkflows": "Arbetsflöden som sparas som filer",
+      "planTimelines": "Tidslinjer som sparas som filer",
+      "extraTitle": "Projekt med mer än en mapp",
+      "extraBody": "Vart och ett av de här projekten behåller en mapp. NodeTool slutar visa de andra, och deras filer ligger kvar där de är.",
+      "extraKeeps": "{{project}} behåller {{folder}}",
+      "extraHidden": "Visas inte längre: {{folder}}",
+      "location": "Plats",
+      "changeLocation": "Ändra plats",
+      "locationError": "Den här platsen kan inte användas: {{error}}",
+      "permissionWarning": "macOS frågar om NodeTool får använda den här mappen. Välj Tillåt, eller välj en mapp utanför Dokument, Skrivbord, Hämtade filer, iCloud Drive och externa enheter.",
+      "safety": "Inget går förlorat. Varje fil kopieras och kontrolleras innan den gamla kopian tas bort. Du kan fortsätta arbeta medan filerna flyttas.",
+      "later": "Inte nu",
+      "confirm": "Flytta filer",
+      "planError": "Planen kunde inte läsas in: {{error}}",
+      "confirmError": "Flyttningen startade inte: {{error}}",
+      "actionError": "Flyttningen kunde inte ändras: {{error}}",
+      "progressRegion": "Flyttar filer till projektmappar",
+      "progressTitle": "Flyttar filer till projektmappar",
+      "pausedTitle": "Flyttningen av filer är pausad",
+      "doneTitle": "Filer flyttade",
+      "progressCount": "{{done}} av {{total}} filer flyttade",
+      "phaseFolders": "Skapar projektmappar",
+      "phaseFiles": "Sparar arbetsflöden och tidslinjer som filer",
+      "currentProject": "Flyttar filerna för {{project}}",
+      "pause": "Pausa",
+      "resume": "Återuppta",
+      "failuresTitle": "Kunde inte flyttas ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "Fler visas inte: {{count}}",
+      "retry": "Försök igen",
+      "donePath": "Dina filer finns i {{path}}",
+      "close": "Stäng"
+    }
+  },
+  "assetPicker": {
+    "sourceTabs": "Resurskälla",
+    "projectTab": "Det här projektet",
+    "personalTab": "Personligt",
+    "personalHint": "När du väljer från Personligt kopieras filen till det här projektet.",
+    "copying": "Kopierar till det här projektet…",
+    "copyFailed": "Det gick inte att kopiera resursen till det här projektet."
+  },
+  "assetFileStatus": {
+    "missing": "Saknas",
+    "missingTooltip": "Filen finns inte där den här resursen förväntar sig. Länka om den till filens nya plats eller ta bort resursen.",
+    "linked": "Länkad",
+    "linkedTooltip": "Den här resursen använder en fil utanför projektmappen där den ligger.",
+    "relink": "Länka om",
+    "relinkTooltip": "Välj filens nya plats",
+    "relinkNoPath": "Det gick inte att läsa filens plats. Välj en fil på den här datorn.",
+    "relinkFailed": "Det gick inte att länka om: {{error}}",
+    "remove": "Ta bort",
+    "removeTooltip": "Ta bort den här resursen från NodeTool",
+    "removeTitle": "Ta bort ”{{name}}”?",
+    "removeBody": "Resursen tas bort från NodeTool. Dokument som använder den kan inte längre visa den.",
+    "cancel": "Avbryt"
+  },
+  "deviceSessions": {
+    "title": "Inloggade enheter",
+    "description": "Datorer där du har loggat in i NodeTools skrivbordsappar. Apparna på en dator delar en session. Att avsluta en session loggar ut den datorn.",
+    "empty": "Ingen dator är inloggad.",
+    "unnamed": "Namnlös dator",
+    "signedInFrom": "Inloggad från {{app}} {{date}}",
+    "lastUsed": "Senast använd {{date}}",
+    "neverUsed": "Inte använd sedan inloggningen",
+    "end": "Avsluta session",
+    "confirmTitle": "Avsluta den här sessionen?",
+    "confirmBody": "NodeTools skrivbordsappar på {{device}} loggas ut inom en minut.",
+    "cancel": "Avbryt",
+    "ended": "Sessionen avslutades.",
+    "endError": "Det gick inte att avsluta sessionen: {{error}}",
+    "loadError": "Det gick inte att läsa in inloggade enheter.",
+    "apps": {
+      "nodeEditor": "Nodredigerare",
+      "timeline": "Tidslinje",
+      "desktop": "Skrivbordsapp"
+    }
+  },
+  "storyboardText": {
+    "mode": "Text",
+    "editorLabel": "Storyboard som Markdown-text",
+    "hint": "Skriv # för en akt, ## för en scen, ### för en tagning och - **Motion:** för ett fält. Skriv @ för att nämna en entitet eller en bild.",
+    "issues": "Rader som behöver åtgärdas: {{lines}}",
+    "loading": "Läser in texten…",
+    "warnings": {
+      "media_outside_shot": "En bild hör till en tagning. Lägg den under en ###-rubrik.",
+      "second_media": "En tagning har en vald stillbild och ett valt klipp. Den här används inte.",
+      "unknown_shot_field": "”{{label}}” är inget storyboardfält. Det sparas i tagningens anteckningar.",
+      "unknown_field": "”{{label}}” är inget fält här. Det sparas inte.",
+      "text_in_scene": "En scen har bara scenrubrik och ljus. Flytta texten under en tagning eller börja den med ”Lighting:”.",
+      "bad_duration": "Tagning {{shot}}: ”{{value}}” är inte ett antal sekunder.",
+      "bad_render": "Tagning {{shot}}: render är keyframe, direct eller reference.",
+      "no_next_shot": "Tagning {{shot}}: en övergång leder till nästa tagning, och det finns ingen.",
+      "missing_action": "Tagning {{shot}} har ingen handling än. Skriv bilden som ska genereras under rubriken."
+    },
+    "outline": "Disposition",
+    "outlineEmpty": "Skriv ### och en titel för att börja en tagning.",
+    "untitledShot": "Namnlös tagning",
+    "untitledAct": "Namnlös akt",
+    "untitledScene": "Namnlös scen",
+    "issuesTitle": "Behöver åtgärdas",
+    "stillOf": "Stillbild för tagning {{shot}}",
+    "assist": {
+      "lines": "{{lines}} rader markerade",
+      "proposal": "Föreslagen ersättning",
+      "note": "Anteckning från agenten",
+      "discard": "Kasta",
+      "close": "Stäng",
+      "replace": "Ersätt markeringen",
+      "stale": "Stycket ändrades efter att du markerade det. Markera det igen.",
+      "thinking": "Tänker…",
+      "stop": "Stoppa",
+      "placeholder": "Berätta för agenten vad den ska göra med stycket",
+      "refinePlaceholder": "Förfina resultatet",
+      "instruction": "Begäran till agenten",
+      "send": "Skicka till agenten",
+      "failed": "Begäran till modellen misslyckades.",
+      "context": "Skickat med begäran: hela storyboardet, {{shots}} tagningar och {{entities}} entiteter från biblioteket.",
+      "quick": {
+        "tighten": "Strama åt",
+        "visual": "Mer visuellt",
+        "camera": "Föreslå kamera",
+        "continuity": "Kontrollera kontinuitet",
+        "summarize": "Sammanfatta",
+        "inconsistencies": "Hitta motsägelser"
+      },
+      "errors": {
+        "no_model": "Välj en regimodell för det här storyboardet, eller en chattmodell, för att använda agenten.",
+        "empty": "Modellen gav inget svar. Skicka begäran igen.",
+        "failed": "Begäran misslyckades. Skicka den igen."
+      }
+    }
+  },
+  "cloudAccount": {
+    "title": "NodeTool Cloud-konto",
+    "description": "En inloggning för den här appen, nodredigeraren och tidslinjen på den här datorn. Att logga in eller ut här gäller alla tre.",
+    "signedInAs": "Inloggad som {{name}}",
+    "server": "Server: {{server}}",
+    "signedOut": "Inte inloggad",
+    "signingIn": "Slutför inloggningen i webbläsaren",
+    "serverEndPending": "Utloggad, sessionen är ännu inte avslutad på servern",
+    "cloudOff": "Molnfunktioner är avstängda på den här datorn",
+    "noKeychain": "Den här datorn har ingen lagring för inloggningsuppgifter, så inloggningen varar tills NodeTool avslutas.",
+    "signIn": "Logga in",
+    "cancel": "Avbryt",
+    "signOut": "Logga ut",
+    "signOutNote": "Ändringar som väntar i nodredigeraren eller tidslinjen stannar på den här datorn och skickas när du loggar in igen.",
+    "unavailable": "Molninloggning är inte tillgänglig i den här versionen."
   }
 }

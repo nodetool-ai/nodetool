@@ -136,7 +136,7 @@ describe("Model3DViewer", () => {
     expect(screen.getByTestId("r3f-canvas")).toBeInTheDocument();
   });
 
-  test("shows asset name in non-compact mode", () => {
+  test("leaves the asset name to the document bar", () => {
     const asset = {
       id: "test-id",
       name: "test-model.glb",
@@ -144,7 +144,7 @@ describe("Model3DViewer", () => {
     } as any;
 
     render(<Model3DViewer asset={asset} compact={false} />, { wrapper });
-    expect(screen.getByText("test-model.glb")).toBeInTheDocument();
+    expect(screen.queryByText("test-model.glb")).not.toBeInTheDocument();
   });
 
   test("renders control buttons in non-compact mode", () => {

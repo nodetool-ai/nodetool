@@ -43,6 +43,18 @@ jest.mock("../../../contexts/WorkflowManagerContext", () => ({
   useWorkflowManager: () => null
 }));
 
+let mockActiveProject = "project-a";
+
+jest.mock("../../../hooks/useProjectFolder", () => ({
+  useProjectFolder: (projectId: string) => ({
+    folder: null,
+    projectName: { "project-a": "Project A", "project-b": "Project B" }[
+      projectId
+    ] ?? null,
+    isLoading: false
+  })
+}));
+
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   useWorkspaceTabsStore: <T,>(
     selector: (state: {
@@ -56,7 +68,7 @@ jest.mock("../../../stores/WorkspaceTabsStore", () => ({
     selector({
       tabs: [],
       activeTabId: null,
-      activeProjectId: "project-a",
+      activeProjectId: mockActiveProject,
       personalProjectId: "personal-project",
       openTab: jest.fn()
     }),
@@ -172,6 +184,13 @@ jest.mock("../../workspaces/WorkspaceTree", () => ({
     <div data-testid="workspace-tree" data-project-id={props.projectId} />
   )
 }));
+jest.mock("../../projects/ProjectFolderNotice", () => ({
+  __esModule: true,
+  default: () => null,
+  ProjectFolderNoticeById: (props: { projectId?: string }) => (
+    <div data-testid="project-folder-notice" data-project-id={props.projectId} />
+  )
+}));
 jest.mock("../DocumentsTree", () => ({
   __esModule: true,
   default: (props: { projectId?: string }) => (
@@ -189,6 +208,7 @@ const renderPanel = () =>
   );
 
 beforeEach(() => {
+  mockActiveProject = "project-a";
   usePanelStore.getState().setVisibility(true);
   usePanelStore.getState().setActiveView("workflows");
 });
@@ -218,7 +238,15 @@ it("keeps the consolidated document tree and utility views in the mobile tab row
       )
     )
   ).toEqual([
-    ["Projects", "Documents", "Chats", "Library", "Entities", "Examples", "More"]
+    [
+      "Projects",
+      "Chats",
+      "Files",
+      "Library",
+      "Entities",
+      "Examples",
+      "More"
+    ]
   ]);
   expect(screen.queryByLabelText("Workflows")).not.toBeInTheDocument();
   expect(screen.queryByLabelText("Apps")).not.toBeInTheDocument();
@@ -236,11 +264,11 @@ it("offers Projects in the workspace shell", async () => {
   await user.click(projects);
 });
 
-it("reaches documents directly and utility pages through More", async () => {
+it("reaches files directly and utility pages through More", async () => {
   const user = userEvent.setup();
   renderPanel();
 
-  expect(screen.getByLabelText("Documents")).toHaveAttribute(
+  expect(screen.getByLabelText("Files")).toHaveAttribute(
     "aria-pressed",
     "true"
   );
@@ -249,14 +277,12 @@ it("reaches documents directly and utility pages through More", async () => {
   // The destinations the desktop logo menu carries.
   expect(screen.getByText("Settings")).toBeInTheDocument();
   expect(screen.getByText("Downloads")).toBeInTheDocument();
-  expect(
-    screen.getByRole("button", { name: /^Workspace Browse/ })
-  ).toBeInTheDocument();
+  expect(screen.queryByText(/workspace/i)).not.toBeInTheDocument();
   expect(screen.queryByTestId("workflow-list")).not.toBeInTheDocument();
   expect(screen.queryByTestId("create-workflow")).not.toBeInTheDocument();
 
-  await user.click(screen.getByLabelText("Documents"));
-  expect(screen.getByTestId("documents-tree")).toBeInTheDocument();
+  await user.click(screen.getByLabelText("Files"));
+  expect(screen.getByTestId("workspace-tree")).toBeInTheDocument();
   expect(screen.queryByText("Downloads")).not.toBeInTheDocument();
 });
 
@@ -279,10 +305,6 @@ it("switches the sheet to the view whose tab was tapped", async () => {
   const user = userEvent.setup();
   renderPanel();
 
-  await user.click(screen.getByLabelText("Documents"));
-  expect(usePanelStore.getState().panel.activeView).toBe("documents");
-  expect(screen.getByTestId("documents-tree")).toBeInTheDocument();
-
   await user.click(screen.getByLabelText("Chats"));
   expect(usePanelStore.getState().panel.activeView).toBe("chats");
   expect(screen.getByTestId("chat-list")).toHaveAttribute(
@@ -291,11 +313,8 @@ it("switches the sheet to the view whose tab was tapped", async () => {
   );
   expect(screen.queryByTestId("create-chat")).not.toBeInTheDocument();
 
-  await user.click(screen.getByLabelText("More"));
-  await user.click(
-    screen.getByRole("button", { name: /^Workspace Browse/ })
-  );
-  expect(usePanelStore.getState().panel.activeView).toBe("workspace-files");
+  await user.click(screen.getByLabelText("Files"));
+  expect(usePanelStore.getState().panel.activeView).toBe("files");
   expect(screen.getByTestId("workspace-tree")).toBeInTheDocument();
 });
 
@@ -310,23 +329,74 @@ it("opens global skills from More without a create control", async () => {
   expect(screen.queryByTestId("create-skill")).not.toBeInTheDocument();
 });
 
-it("scopes the document tree and workspace tree to the active project", async () => {
+it("scopes the workspace tree to the active project", async () => {
   const user = userEvent.setup();
   renderPanel();
 
-  await user.click(screen.getByLabelText("Documents"));
-  expect(screen.getByTestId("documents-tree")).toHaveAttribute(
-    "data-project-id",
-    "project-a"
-  );
-  await user.click(screen.getByLabelText("More"));
-  await user.click(
-    screen.getByRole("button", { name: /^Workspace Browse/ })
-  );
+  await user.click(screen.getByLabelText("Files"));
   expect(screen.getByTestId("workspace-tree")).toHaveAttribute(
     "data-project-id",
     "project-a"
   );
+});
+
+describe("project sections", () => {
+  const sections = [
+    { tab: "Chats", testId: "chat-list" },
+    { tab: "Files", testId: "workspace-tree" }
+  ];
+
+  it.each(sections)(
+    "shows the project name above $tab",
+    async ({ tab, testId }) => {
+      const user = userEvent.setup();
+      renderPanel();
+
+      await user.click(screen.getByLabelText(tab));
+
+      expect(
+        screen.getByRole("heading", { name: "Project A" })
+      ).toBeInTheDocument();
+      expect(screen.getByTestId(testId)).toHaveAttribute(
+        "data-project-id",
+        "project-a"
+      );
+    }
+  );
+
+  it("switches both sections to the other project", async () => {
+    const user = userEvent.setup();
+    const view = renderPanel();
+
+    mockActiveProject = "project-b";
+    view.rerender(
+      <ThemeProvider theme={mockTheme}>
+        <PanelLeft key="b" />
+      </ThemeProvider>
+    );
+
+    for (const { tab, testId } of sections) {
+      await user.click(screen.getByLabelText(tab));
+      expect(
+        screen.getByRole("heading", { name: "Project B" })
+      ).toBeInTheDocument();
+      expect(screen.getByTestId(testId)).toHaveAttribute(
+        "data-project-id",
+        "project-b"
+      );
+    }
+  });
+
+  it("leaves views outside the project sections without the name", async () => {
+    const user = userEvent.setup();
+    renderPanel();
+
+    await user.click(screen.getByLabelText("Library"));
+
+    expect(
+      screen.queryByRole("heading", { name: "Project A" })
+    ).not.toBeInTheDocument();
+  });
 });
 
 it("lists the active project's entities from the rail", async () => {
@@ -341,10 +411,10 @@ it("lists the active project's entities from the rail", async () => {
   expect(screen.queryByTestId("documents-tree")).not.toBeInTheDocument();
 });
 
-it("maps a legacy document view to the document tree", () => {
+it("maps a legacy document view to the files tree", () => {
   usePanelStore.getState().setActiveView("storyboards");
   renderPanel();
 
-  expect(screen.getByTestId("documents-tree")).toBeInTheDocument();
+  expect(screen.getByTestId("workspace-tree")).toBeInTheDocument();
   expect(screen.queryByTestId("storyboard-list")).not.toBeInTheDocument();
 });

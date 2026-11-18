@@ -2,7 +2,10 @@
 #include <QClipboard>
 #include <QGuiApplication>
 #include "ChatSession.h"
+#include "model/RichContent.h"
+#include <QPointer>
 #include "ComposerRules.h"
+#include "ModelLabels.h"
 #include <QClipboard>
 #include <QDateTime>
 #include <QDesktopServices>
@@ -18,11 +21,18 @@ QVariantList ChatSession::markdownPages(const QString &text) const { return nt::
 void ChatSession::styleMarkdownLinks(QQuickTextDocument *document, const QColor &colour) {
   if (document && document->textDocument()) { nt::chat::styleMarkdownLinks(*document->textDocument(), colour); }
 }
+void ChatSession::styleReadingRhythm(QQuickTextDocument *document, qreal blockGap, qreal itemGap, qreal headingGap) {
+  if (document && document->textDocument()) { nt::chat::styleReadingRhythm(*document->textDocument(), blockGap, itemGap, headingGap); }
+}
 void ChatSession::copyText(const QString &text) { QGuiApplication::clipboard()->setText(text); }
 
 ChatSession::ChatSession(QObject *parent)
     : QObject(parent), m_threads(this), m_empty(this), m_client(this), m_catalog(this), m_mediaCatalog(this) {
   m_catalog.setMode("chat");
+  // The server answers a turn with no model with "No model selected", so the
+  // composer starts on the first usable model, as the web composer does.
+  m_catalog.setSelectFirstAvailable(true);
+  m_mediaCatalog.setSelectFirstAvailable(true);
     // native-rules #12: async callback captures raw this, not a QPointer
     m_mediaCatalog.setQuery([this](const QString &procedure, QJsonObject input,
                                    nt::modelpicker::Catalog::Completion done) {
@@ -35,6 +45,7 @@ ChatSession::ChatSession(QObject *parent)
         if (composer::isMediaMode(m_mediaMode)) {
             m_mediaSettings[m_mediaMode] =
                 composer::clampSettings(m_mediaMode, mediaSettings(), m_mediaCatalog.constraints());
+            savePreferenceEntry("mediaSettings", m_mediaMode, m_mediaSettings[m_mediaMode]);
         }
         emit stateChanged();
     });
@@ -72,6 +83,9 @@ ChatSession::ChatSession(QObject *parent)
           m_client.send({{"type", "client_tools_manifest"},
                          {"tools", QJsonArray::fromVariantList(m_hostTools)}});
           refresh();
+          if (m_model.isEmpty() && !m_catalog.loaded() && !m_catalog.loading()) {
+            m_catalog.reload();
+          }
           for (auto &[id, s] : m_states) {
             if (s.reloadHistory) {
               s.reloadHistory = false;
@@ -212,9 +226,13 @@ void ChatSession::disconnectFromServer() {
   m_serverUrl = QUrl{};
   m_serverToken.clear();
   m_previewBytes = 0;
+  m_resolvedMedia.clear();
+  m_resolvedBytes = 0;
+  emit resolvedMediaChanged();
   m_states.clear();
   m_threads.clear();
   m_selected.clear();
+  syncOpenProject();
   m_actions.clear();
   m_answeredActions.clear();
   m_hostCalls.clear();
@@ -241,12 +259,23 @@ void ChatSession::upsertThread(const QJsonObject &thread) {
   if (!thread["id"].toString().isEmpty()) {
     state(thread["id"].toString());
   }
+  if (thread["id"].toString() == m_selected) {
+    syncOpenProject();
+  }
+}
+void ChatSession::syncOpenProject() {
+  const auto project = m_selected.isEmpty()
+                           ? QString{}
+                           : m_threads.get(m_selected)["project_id"].toString();
+  m_client.setOpenProject(project.isEmpty() ? QStringLiteral("default")
+                                            : project);
 }
 void ChatSession::selectThread(const QString &id) {
   if (m_threads.get(id).isEmpty()) {
     return;
   }
   m_selected = id;
+  syncOpenProject();
   m_workflowThreads[m_workflow] = id;
   m_historyOrder.removeAll(id);
   m_historyOrder.append(id);
@@ -259,6 +288,7 @@ void ChatSession::selectThread(const QString &id) {
     loadHistory(id, false);
   }
   emit stateChanged();
+  emit versionsChanged();
 }
 void ChatSession::unloadThread(const QString &id) {
   const auto found = m_states.find(id);
@@ -325,7 +355,12 @@ void ChatSession::setWorkflow(const QString &id) {
     m_workflow = id;
     m_selected.clear();
     const auto previous = m_workflowThreads.value(id);
-    if (!previous.isEmpty()) {
+    if (m_freshThread && !id.isEmpty()) {
+        // refresh() creates the thread once the socket connects.
+        if (m_client.ready() && !m_creatingWorkflows.contains(id)) {
+            createThread();
+        }
+    } else if (!previous.isEmpty()) {
         selectThread(previous);
     } else {
         const auto rows = workflowThreads();
@@ -335,6 +370,7 @@ void ChatSession::setWorkflow(const QString &id) {
             createThread();
         }
     }
+    syncOpenProject();
     emit stateChanged();
 }
 void ChatSession::deleteThread(const QString &id) {
@@ -350,9 +386,91 @@ void ChatSession::deleteThread(const QString &id) {
             m_threadWorkflows.remove(id);
             if (m_selected == id) {
                 m_selected.clear();
+                syncOpenProject();
             }
             emit stateChanged();
         });
+}
+void ChatSession::renameThread(const QString &id, const QString &title) {
+  const auto trimmed = title.trimmed();
+  auto row = m_threads.get(id);
+  if (trimmed.isEmpty() || row.isEmpty() || row["title"].toString() == trimmed) {
+    return;
+  }
+  QPointer<ChatSession> self(this);
+  m_client.call("threads.update", {{"id", id}, {"title", trimmed}}, true,
+                [self, id, trimmed](const QJsonValue &, const QString &error) {
+                  if (!self) { return; }
+                  if (!error.isEmpty()) {
+                    self->fail("Could not rename the conversation. Please try again.");
+                    return;
+                  }
+                  auto updated = self->m_threads.get(id);
+                  if (updated.isEmpty()) { return; }
+                  updated["title"] = trimmed;
+                  self->m_threads.upsert(updated);
+                  emit self->stateChanged();
+                });
+}
+void ChatSession::loadProviderKeys() {
+  if (!m_client.ready()) { return; }
+  QPointer<ChatSession> self(this);
+  m_client.call("settings.providerCatalog", {}, false,
+                [self](const QJsonValue &value, const QString &error) {
+                  if (!self) { return; }
+                  if (!error.isEmpty()) {
+                    self->m_providerKeyStatus = "Could not load providers: " + error;
+                    emit self->providerKeysChanged();
+                    return;
+                  }
+                  QVariantList rows;
+                  for (const auto &entry : value.toArray()) {
+                    const auto provider = entry.toObject();
+                    QString key;
+                    for (const auto &name : provider["keys"].toArray()) {
+                      const auto candidate = name.toString();
+                      if (candidate.endsWith("_API_KEY") || candidate.endsWith("_TOKEN") || candidate.endsWith("_KEY")) {
+                        key = candidate;
+                        break;
+                      }
+                    }
+                    const auto id = provider["provider"].toString();
+                    // A local model server takes an address, not an account key.
+                    if (key.isEmpty() || nt::modelpicker::isLocalProvider(id)) { continue; }
+                    rows.append(QVariantMap{{"provider", id},
+                                            {"name", nt::modelpicker::providerDisplayName(id)},
+                                            {"key", key},
+                                            {"configured", provider["configured"].toBool()}});
+                  }
+                  self->m_providerKeys = rows;
+                  emit self->providerKeysChanged();
+                });
+}
+void ChatSession::saveProviderKey(const QString &key, const QString &value) {
+  if (key.isEmpty() || value.trimmed().isEmpty() || !m_client.ready()) { return; }
+  QString provider;
+  for (const auto &row : std::as_const(m_providerKeys)) {
+    if (row.toMap()["key"] == key) { provider = row.toMap()["name"].toString(); }
+  }
+  m_providerKeyStatus.clear();
+  emit providerKeysChanged();
+  QPointer<ChatSession> self(this);
+  m_client.call("settings.secrets.upsert", {{"key", key}, {"value", value.trimmed()}}, true,
+                [self, provider](const QJsonValue &, const QString &error) {
+                  if (!self) { return; }
+                  if (!error.isEmpty()) {
+                    self->m_providerKeyStatus = "Could not save the key: " + error;
+                    emit self->providerKeysChanged();
+                    return;
+                  }
+                  self->m_providerKeyStatus = QString("%1 is connected.").arg(provider);
+                  self->loadProviderKeys();
+                  // The new provider's models become pickable, and with no
+                  // model chosen yet the composer starts on one of them.
+                  self->m_catalog.reload();
+                  self->m_mediaCatalog.reload();
+                  emit self->providerKeySaved(provider);
+                });
 }
 bool ChatSession::hasActiveTurns() const {
     for (const auto &[id, state] : m_states) {
@@ -372,6 +490,9 @@ void ChatSession::retry() {
 }
 void ChatSession::createThread(const QString &draft) {
     const auto workflow = m_workflow;
+    if (!workflow.isEmpty()) {
+        m_freshThread = false;
+    }
     m_creatingWorkflows.insert(workflow);
     QJsonObject input{{"project_id", "default"}};
     if (!workflow.isEmpty()) {
@@ -387,6 +508,9 @@ void ChatSession::createThread(const QString &draft) {
             }
             const auto id = result.toObject()["id"].toString();
             m_threadWorkflows[id] = workflow;
+            // GlobalChatStore.ts createNewThread pins the last picked mode on the new thread.
+            m_permissionModes[id] = m_lastPermissionMode;
+            savePreferenceEntry("permissionModes", id, m_lastPermissionMode);
             upsertThread(result.toObject());
             state(id).draft = draft;
             if (workflow == m_workflow) {
@@ -410,7 +534,11 @@ void ChatSession::refresh() {
           upsertThread(thread.toObject());
         }
         const auto rows = workflowThreads();
-        if (m_selected.isEmpty() && !rows.isEmpty()) {
+        if (m_selected.isEmpty() && m_freshThread && !m_workflow.isEmpty()) {
+            if (!m_creatingWorkflows.contains(m_workflow)) {
+                createThread();
+            }
+        } else if (m_selected.isEmpty() && !rows.isEmpty()) {
             selectThread(rows.first().toMap()["id"].toString());
         } else if (m_selected.isEmpty() && !m_workflow.isEmpty() && !m_creatingWorkflows.contains(m_workflow)) {
             createThread();
@@ -425,10 +553,11 @@ void ChatSession::loadHistory(const QString &id, bool prepend) {
   }
   QJsonObject input{{"thread_id", id}, {"limit", 100}, {"reverse", true}};
   if (prepend) {
-    if (s.cursor.isEmpty()) {
+    if (s.cursor.isEmpty() || s.loadingEarlier) {
       return;
     }
     input["cursor"] = s.cursor;
+    s.loadingEarlier = true;
   }
   if (!prepend) {
     s.reconciling = true;
@@ -437,6 +566,9 @@ void ChatSession::loadHistory(const QString &id, bool prepend) {
   m_client.call("messages.list", input, false,
                 // native-rules #12: async callback captures raw this, not a QPointer
                 [this, id, prepend](QJsonValue result, QString error) {
+                  if (prepend) {
+                    state(id).loadingEarlier = false;
+                  }
                   if (!error.isEmpty()) {
                     state(id).reconciling = false;
                     state(id).bufferedEvents = {};
@@ -459,6 +591,7 @@ void ChatSession::loadHistory(const QString &id, bool prepend) {
                     for (const auto &event : events) {
                       applyEvent(event.toObject());
                     }
+                    loadVersions(id);
                   }
                   emit stateChanged();
                 });
@@ -544,6 +677,33 @@ void ChatSession::resolveMedia(const QString &id, const QJsonObject &message,
     } else { receive({}, "Image source unavailable"); }
   }
 }
+bool ChatSession::modelReady(bool media) {
+  if (!media && !m_model.isEmpty() && m_catalog.selectedModelId() == m_model &&
+      m_catalog.selectedProvider() == m_provider && m_catalog.loaded() &&
+      !m_catalog.selectionAvailable()) {
+    fail("The selected model is unavailable. Choose another model or use the server default.");
+    return false;
+  }
+    // The server refuses a chat turn with no model and keeps nothing, so the
+    // question stays in the composer and the way to a model opens instead.
+    if (!media && m_model.isEmpty() && m_catalog.loaded() && !m_catalog.loading()) {
+        if (m_catalog.hasAnyAvailable()) {
+            fail("Pick a model for the answer. Your question is kept.");
+            emit modelPickerRequested();
+        } else {
+            fail("Add an API key for an AI provider to get answers. Your question is kept.");
+            emit providerSetupRequested();
+        }
+        return false;
+    }
+    // MediaChatComposer.tsx refuses a media send with no model and opens the picker.
+    if (media && m_mediaCatalog.selectedModelId().isEmpty()) {
+        fail(composer::pickModelMessage(m_mediaMode));
+        emit modelPickerRequested();
+        return false;
+    }
+  return true;
+}
 void ChatSession::send() {
   const bool media = composer::isMediaMode(m_mediaMode);
   if (!media && !m_model.isEmpty() && m_catalog.selectedModelId() == m_model &&
@@ -566,29 +726,13 @@ void ChatSession::send() {
       s.status == "stopping") {
     return;
   }
-    // MediaChatComposer.tsx refuses a media send with no model and opens the picker.
-    if (media && m_mediaCatalog.selectedModelId().isEmpty()) {
-        fail(composer::pickModelMessage(m_mediaMode));
-        emit modelPickerRequested();
-        return;
-    }
+  if (!modelReady(media)) {
+    return;
+  }
   if (!m_client.ready()) {
     fail("Connect before sending. Your draft has been kept.");
     return;
   }
-  const auto id = QUuid::createUuid().toString(QUuid::Id128);
-  QJsonObject message{
-      {"id", id},
-      {"type", "message"},
-      {"role", "user"},
-      {"thread_id", m_selected},
-      {"content", s.draft},
-      {"name", ""},
-      {"ui_context", QJsonValue::Null},
-      {"media_generation", QJsonValue::Null},
-      {"project_id",
-       m_threads.get(m_selected)["project_id"].toString("default")},
-      {"permission_mode", "default"}};
   // MediaChatComposer.tsx submitPrompt sends a text part only for a non-blank prompt.
   QJsonArray content;
     if (!s.draft.trimmed().isEmpty()) {
@@ -606,7 +750,31 @@ void ChatSession::send() {
                                                                           : item["contentType"].toString();
         content.append(composer::assetContent(item["assetId"].toString(), item["name"].toString(), contentType));
   }
-  message["content"] = content;
+  if (!dispatch(content)) {
+    return;
+  }
+    s.lastPrompt = s.draft;
+    s.lastAttachments = s.attachments;
+  s.draft.clear();
+  s.attachments.clear();
+  emit stateChanged();
+}
+bool ChatSession::dispatch(const QJsonArray &content) {
+  const bool media = composer::isMediaMode(m_mediaMode);
+  auto &s = state(m_selected);
+  const auto id = QUuid::createUuid().toString(QUuid::Id128);
+  QJsonObject message{
+      {"id", id},
+      {"type", "message"},
+      {"role", "user"},
+      {"thread_id", m_selected},
+      {"content", content},
+      {"name", ""},
+      {"ui_context", QJsonValue::Null},
+      {"media_generation", QJsonValue::Null},
+      {"project_id",
+       m_threads.get(m_selected)["project_id"].toString("default")},
+      {"permission_mode", permissionModeFor(m_selected)}};
     // CanvasMediaComposer.tsx and GlobalChatStore.ts trySendMessage: a media turn
     // runs on the mode's model and carries no reasoning level.
     const auto provider = media ? m_mediaCatalog.selectedProvider() : m_provider;
@@ -631,18 +799,173 @@ void ChatSession::send() {
     if (!prompt.isEmpty()) message["system_prompt"] = prompt;
   }
   if (!m_client.send({{"command", "chat_message"}, {"data", message}})) {
-    return;
+    return false;
   }
   s.messages->upsert(message);
-    s.lastPrompt = s.draft;
-    s.lastAttachments = s.attachments;
-  s.draft.clear();
-  s.attachments.clear();
   s.status = "loading";
   m_error.clear();
   s.error.clear();
   m_threads.setStatus(m_selected, s.status);
   emit stateChanged();
+  emit promptSent(m_selected);
+  return true;
+}
+void ChatSession::resendFrom(const QString &messageId, const QString &text) {
+  if (m_selected.isEmpty() || messageId.isEmpty()) {
+    return;
+  }
+  const auto threadId = m_selected;
+  auto &s = state(threadId);
+  if (s.reconciling || s.status == "loading" || s.status == "streaming" ||
+      s.status == "stopping") {
+    return;
+  }
+  QJsonObject prompt;
+  for (const auto &value : s.messages->snapshot()) {
+    const auto row = value.toObject();
+    if (row["id"].toString() == messageId) {
+      prompt = row;
+      break;
+    }
+  }
+  if (prompt["role"] != "user") {
+    return;
+  }
+  // ChatView.tsx handleResendFrom: an edit replaces the text and keeps the
+  // attachments; Retry sends the blocks as they were.
+  QJsonArray content;
+  if (prompt["content"].isString()) {
+    content.append(QJsonObject{{"type", "text"}, {"text", text.isNull() ? prompt["content"].toString() : text}});
+  } else {
+    if (!text.isNull()) {
+      content.append(QJsonObject{{"type", "text"}, {"text", text}});
+    }
+    for (const auto &block : prompt["content"].toArray()) {
+      if (!text.isNull() && block.toObject()["type"] == "text") {
+        continue;
+      }
+      content.append(block);
+    }
+  }
+  if (content.isEmpty() || !modelReady(composer::isMediaMode(m_mediaMode))) {
+    return;
+  }
+  if (!m_client.ready()) {
+    fail("Connect before sending.");
+    return;
+  }
+  s.status = "loading";
+  m_threads.setStatus(threadId, s.status);
+  emit stateChanged();
+  m_client.call(
+      "messages.rewind", {{"thread_id", threadId}, {"message_id", messageId}}, true,
+      // native-rules #12: async callback captures raw this, not a QPointer
+      [this, threadId, content](QJsonValue result, QString error) {
+        auto &thread = state(threadId);
+        thread.status = "idle";
+        m_threads.setStatus(threadId, thread.status);
+        if (!error.isEmpty()) {
+          fail("Could not rewind the conversation: " + error);
+          return;
+        }
+        // The rewound turns leave the view; the server keeps them as a version.
+        QSet<QString> removed;
+        for (const auto &id : result.toObject()["deleted_ids"].toArray()) {
+          removed.insert(id.toString());
+        }
+        QJsonArray kept;
+        for (const auto &value : thread.messages->snapshot()) {
+          const auto id = value.toObject()["id"].toString();
+          if (id.isEmpty() || !removed.contains(id)) {
+            kept.append(value);
+          }
+        }
+        importHistory(threadId, kept);
+        if (threadId != m_selected) {
+          emit stateChanged();
+          return;
+        }
+        dispatch(content);
+      });
+}
+void ChatSession::retryLatest() {
+  const auto *s = current();
+  if (!s) {
+    return;
+  }
+  const auto rows = s->messages->snapshot();
+  for (auto i = rows.size() - 1; i >= 0; --i) {
+    const auto row = rows[i].toObject();
+    if (row["role"] == "user") {
+      resendFrom(row["id"].toString());
+      return;
+    }
+  }
+}
+QVariantMap ChatSession::versions() const {
+  QVariantMap out;
+  const auto *s = current();
+  if (!s) {
+    return out;
+  }
+  for (const auto &value : s->forks) {
+    const auto fork = value.toObject();
+    const auto first = fork["first_message_id"].toString();
+    const auto active = fork["active"].toInt(-1);
+    const auto count = fork["versions"].toArray().size();
+    if (first.isEmpty() || active < 0 || count < 2) {
+      continue;
+    }
+    out[first] = QVariantMap{{"index", active + 1}, {"count", count}};
+  }
+  return out;
+}
+void ChatSession::loadVersions(const QString &id) {
+  if (id.isEmpty()) {
+    return;
+  }
+  m_client.call("messages.versions", {{"thread_id", id}}, false,
+                // native-rules #12: async callback captures raw this, not a QPointer
+                [this, id](QJsonValue result, QString error) {
+                  // A server without versions answers with an error: no
+                  // switcher is the right projection of that.
+                  state(id).forks = error.isEmpty() ? result.toObject()["forks"].toArray() : QJsonArray{};
+                  emit versionsChanged();
+                });
+}
+void ChatSession::selectVersion(const QString &messageId, int index) {
+  if (m_selected.isEmpty()) {
+    return;
+  }
+  const auto threadId = m_selected;
+  auto &s = state(threadId);
+  if (s.reconciling || s.status == "loading" || s.status == "streaming" ||
+      s.status == "stopping") {
+    return;
+  }
+  for (const auto &value : s.forks) {
+    const auto fork = value.toObject();
+    if (fork["first_message_id"].toString() != messageId) {
+      continue;
+    }
+    const auto versions = fork["versions"].toArray();
+    if (index < 1 || index > versions.size() || versions[index - 1].isNull()) {
+      return;
+    }
+    m_client.call(
+        "messages.switchVersion",
+        {{"thread_id", threadId}, {"after", fork["after"].toString()}, {"branch_id", versions[index - 1].toString()}},
+        true,
+        // native-rules #12: async callback captures raw this, not a QPointer
+        [this, threadId](QJsonValue, QString error) {
+          if (!error.isEmpty()) {
+            fail("Could not switch versions: " + error);
+            return;
+          }
+          loadHistory(threadId, false);
+        });
+    return;
+  }
 }
 void ChatSession::stop() {
   if (m_selected.isEmpty()) {
@@ -732,7 +1055,11 @@ void ChatSession::respondToAction(const QString &id, bool approved,
   } else {
     return;
   }
-  if (!m_client.send(response)) {
+  answerAction(id, response, kind != "secret_request" && approved ? "approved" : "declined");
+}
+void ChatSession::answerAction(const QString &id, const QJsonObject &response, const QString &status) {
+  const auto action = m_actions.value(id);
+  if (action.isEmpty() || !m_client.send(response)) {
     return;
   }
   m_actions.remove(id);
@@ -740,9 +1067,94 @@ void ChatSession::respondToAction(const QString &id, bool approved,
   auto part = action;
   part["actionId"] = id;
   part["pending"] = false;
-  part["status"] = kind != "secret_request" && approved ? "approved" : "declined";
+  part["status"] = status;
   state(action["thread_id"].toString()).messages->addPart(part);
   emit stateChanged();
+}
+void ChatSession::allowActionAlways(const QString &id) {
+  const auto action = m_actions.value(id);
+  if (action["type"] != "tool_approval_request" || !m_client.ready()) { return; }
+  answerAction(id, {{"type", "tool_approval_response"}, {"approval_id", id}, {"decision", "allow_always"}},
+               "always allowed");
+}
+void ChatSession::saveSecret(const QString &id, const QString &value) {
+  const auto action = m_actions.value(id);
+  const auto key = action["key"].toString();
+  if (action["type"] != "secret_request" || key.isEmpty() || value.trimmed().isEmpty() || !m_client.ready()) { return; }
+  QPointer<ChatSession> self(this);
+  m_client.call("settings.secrets.upsert", {{"key", key}, {"value", value.trimmed()}}, true,
+                [self, id](const QJsonValue &, const QString &error) {
+                  if (!self) { return; }
+                  if (!error.isEmpty()) { self->fail("Could not save the key: " + error); return; }
+                  self->answerAction(id, {{"type", "secret_request_response"}, {"approval_id", id}, {"status", "saved"}}, "saved");
+                });
+}
+bool ChatSession::embeddedMedia() const {
+#ifdef NODETOOL_CHAT_MEDIA
+  return true;
+#else
+  return false;
+#endif
+}
+void ChatSession::storeMedia(const QString &key, const QString &url, const QString &error, qint64 bytes) {
+  if (error.isEmpty() && m_resolvedBytes + bytes > 64 * 1024 * 1024) {
+    m_resolvedMedia[key] = QVariantMap{{"error", "Preview memory limit reached"}};
+  } else {
+    m_resolvedMedia[key] = error.isEmpty() ? QVariantMap{{"url", url}} : QVariantMap{{"error", error}};
+    if (error.isEmpty()) { m_resolvedBytes += bytes; }
+  }
+  emit resolvedMediaChanged();
+}
+void ChatSession::resolveImage(const QString &source) {
+  if (source.isEmpty() || m_resolvedMedia.contains(source)) { return; }
+  m_resolvedMedia[source] = QVariantMap{{"loading", true}};
+  emit resolvedMediaChanged();
+  QPointer<ChatSession> self(this);
+  const auto epoch = m_client.epoch();
+  auto receive = [self, source, epoch](const QJsonValue &data, const QString &error) {
+    if (!self || epoch != self->m_client.epoch()) { return; }
+    self->storeMedia(source, data.toString(), error.isEmpty() && data.toString().isEmpty() ? QStringLiteral("Image unavailable") : error,
+                     data.toString().size() * 2);
+  };
+  const QUrl url(source);
+  if (url.scheme() == "asset") {
+    m_client.call("assets.get", {{"id", url.host()}}, false, [self, receive](const QJsonValue &value, const QString &error) {
+      if (!self) { return; }
+      const auto get = value.toObject()["get_url"].toString();
+      if (!error.isEmpty() || get.isEmpty()) { receive({}, "Image unavailable"); return; }
+      self->m_client.fetchMedia(QUrl(get), receive);
+    });
+    return;
+  }
+  m_client.fetchMedia(url, receive);
+}
+QVariantMap ChatSession::batchProgress(const QVariantMap &batch, double nowMs) const {
+  return generationBatchProgress(QJsonObject::fromVariantMap(batch), nowMs).toVariantMap();
+}
+QString ChatSession::mediaKey(const QVariantMap &locator) const {
+  const auto asset = locator.value("asset_id").toString();
+  return asset.isEmpty() ? locator.value("uri").toString() : "asset://" + asset;
+}
+void ChatSession::loadMedia(const QVariantMap &locator) {
+  const auto key = mediaKey(locator);
+  if (key.isEmpty() || (m_resolvedMedia.contains(key) && !m_resolvedMedia[key].toMap().contains("error"))) { return; }
+  m_resolvedMedia[key] = QVariantMap{{"loading", true}};
+  emit resolvedMediaChanged();
+  QPointer<ChatSession> self(this);
+  auto receive = [self, key](const QJsonValue &file, const QString &error) {
+    if (!self) { return; }
+    self->storeMedia(key, file.toString(), error, 0);
+  };
+  if (key.startsWith("asset://")) {
+    m_client.call("assets.get", {{"id", key.mid(8)}}, false, [self, receive](const QJsonValue &value, const QString &error) {
+      if (!self) { return; }
+      const auto get = value.toObject()["get_url"].toString();
+      if (!error.isEmpty() || get.isEmpty()) { receive({}, "Media unavailable"); return; }
+      self->m_client.downloadMedia(QUrl(get), receive);
+    });
+    return;
+  }
+  m_client.downloadMedia(QUrl(key), receive);
 }
 void ChatSession::addAttachment(const QUrl &local) {
   if (m_selected.isEmpty() || !m_client.ready()) {
@@ -849,7 +1261,24 @@ void ChatSession::openExternal(const QUrl &url) {
     fail("This link scheme is not supported");
   }
 }
+namespace {
+bool turnRunning(const QString &status) {
+  return status == "loading" || status == "streaming" || status == "stopping";
+}
+} // namespace
 void ChatSession::applyEvent(const QJsonObject &event) {
+  const auto id = event["thread_id"].toString();
+  const auto before = m_states.find(id);
+  const bool wasRunning = before != m_states.end() && turnRunning(before->second.status);
+  reduceEvent(event);
+  // A finished turn may have started a version: Edit and Retry fork there.
+  const auto after = m_states.find(id);
+  if (wasRunning && after != m_states.end() && !turnRunning(after->second.status) &&
+      !after->second.reconciling) {
+    loadVersions(id);
+  }
+}
+void ChatSession::reduceEvent(const QJsonObject &event) {
   const auto id = event["thread_id"].toString();
   const auto type = event["type"].toString();
   if (type == "rpc_response" &&
@@ -897,12 +1326,21 @@ void ChatSession::applyEvent(const QJsonObject &event) {
     }
     s.sequence = seq;
   }
+  // A command acknowledgement ("Chat message processing started") has no
+  // type. It advances the sequence and is not part of the conversation.
+  if (type.isEmpty()) {
+    return;
+  }
   if (s.status == "stopping" && type != "generation_stopped" &&
       type != "error" && type != "job_update") {
     return;
   }
   if (!s.uncertainReplay && s.messages->reduceNested(event)) {
     emit stateChanged();
+    return;
+  }
+  if (type == "generation_batch_update") {
+    s.messages->setBatch(event);
     return;
   }
   if (type == "chunk") {
@@ -1077,7 +1515,102 @@ void ChatSession::setReasoningEffort(const QString &effort) {
         return;
     }
     m_reasoningEffort = effort;
+    savePreference("reasoningEffort", m_reasoningEffort);
     emit stateChanged();
+}
+QString ChatSession::permissionModeFor(const QString &threadId) const {
+    const auto mode = threadId.isEmpty() ? QString() : m_permissionModes.value(threadId);
+    return mode.isEmpty() ? m_lastPermissionMode : mode;
+}
+QVariantList ChatSession::permissionModes() const {
+    return composer::permissionModes();
+}
+// GlobalChatStore.ts setPermissionMode: Auto allows the thread's pending tool
+// approvals, and the server hears the change through set_permission_mode.
+void ChatSession::setPermissionMode(const QString &mode) {
+    if (!composer::isPermissionMode(mode)) {
+        return;
+    }
+    m_lastPermissionMode = mode;
+    savePreference("lastPermissionMode", m_lastPermissionMode);
+    if (!m_selected.isEmpty()) {
+        m_permissionModes[m_selected] = mode;
+        savePreferenceEntry("permissionModes", m_selected, mode);
+    }
+    if (!m_selected.isEmpty()) {
+        if (mode == "auto") {
+            const auto ids = m_actions.keys();
+            for (const auto &id : ids) {
+                const auto action = m_actions.value(id);
+                if (action["thread_id"].toString() == m_selected && action["type"].toString() == "tool_approval_request") {
+                    respondToAction(id, true);
+                }
+            }
+        }
+        m_client.send({{"command", "set_permission_mode"},
+                       {"data", QJsonObject{{"thread_id", m_selected}, {"permission_mode", mode}}}});
+    }
+    emit stateChanged();
+}
+void ChatSession::usePreferences(std::unique_ptr<QSettings> preferences) {
+    m_preferences = std::move(preferences);
+    if (!m_preferences) {
+        return;
+    }
+    m_preferences->beginGroup("chat-composer");
+    const auto effort = m_preferences->value("reasoningEffort").toString();
+    if (effort.isEmpty() || effort == "low" || effort == "medium" || effort == "high") {
+        m_reasoningEffort = effort;
+    }
+    const auto last = m_preferences->value("lastPermissionMode").toString();
+    if (composer::isPermissionMode(last)) {
+        m_lastPermissionMode = last;
+    }
+    const auto modes = m_preferences->value("permissionModes").toMap();
+    for (auto it = modes.cbegin(); it != modes.cend(); ++it) {
+        if (composer::isPermissionMode(it.value().toString())) {
+            m_permissionModes[it.key()] = it.value().toString();
+        }
+    }
+    // MediaGenerationStore keeps each mode's parameters, not the mode itself.
+    const auto media = m_preferences->value("mediaSettings").toMap();
+    for (const auto &entry : composer::mediaModes()) {
+        const auto mode = entry.toMap()["id"].toString();
+        if (!composer::isMediaMode(mode) || !media.contains(mode)) {
+            continue;
+        }
+        auto settings = composer::defaultSettings(mode);
+        const auto saved = media[mode].toMap();
+        for (auto it = saved.cbegin(); it != saved.cend(); ++it) {
+            if (settings.contains(it.key())) {
+                settings[it.key()] = it.value();
+            }
+        }
+        m_mediaSettings[mode] = settings;
+    }
+    m_preferences->endGroup();
+    emit stateChanged();
+}
+// Every editor tab holds its own session and settings handle. A save writes
+// only what changed, and merges the per-thread and per-mode maps with the
+// stored ones, so it keeps what another tab saved.
+void ChatSession::savePreference(const QString &key, const QVariant &value) {
+    if (!m_preferences) {
+        return;
+    }
+    m_preferences->beginGroup("chat-composer");
+    m_preferences->setValue(key, value);
+    m_preferences->endGroup();
+}
+void ChatSession::savePreferenceEntry(const QString &key, const QString &entry, const QVariant &value) {
+    if (!m_preferences) {
+        return;
+    }
+    m_preferences->beginGroup("chat-composer");
+    auto stored = m_preferences->value(key).toMap();
+    stored[entry] = value;
+    m_preferences->setValue(key, stored);
+    m_preferences->endGroup();
 }
 bool ChatSession::reasoningSupported() const {
     return composer::supportsReasoningEffort(m_provider, m_model);
@@ -1102,6 +1635,7 @@ void ChatSession::setMediaSetting(const QString &key, const QVariant &value) {
     }
     settings[key] = value;
     m_mediaSettings[m_mediaMode] = settings;
+    savePreferenceEntry("mediaSettings", m_mediaMode, settings);
     emit stateChanged();
 }
 QVariantList ChatSession::mediaOptions(const QString &key) const {

@@ -22,8 +22,9 @@ more than 1024 logical pixels therefore bends less than React Flow's.
 
 [`node_metrics`](src/graph/NodeLayout.h) and
 [`EditorRoles`](qml/EditorRoles.qml) hold the web values scoped to this editor.
-`NodeButton` and `PanelRow` are editor controls for the web's button and row
-styles. Other native apps keep the [native design](../ui_primitives/DESIGN.md).
+`Ui.EditorButton.Outlined` is the web's button style, and `Ui.ListRow` with `flat: true`
+is the web's row style. Other native apps keep
+the [native design](../ui_primitives/DESIGN.md).
 
 The panels form the `NodeTool.NodeEditor` QML module. No panel reads the editor
 window. The panels take small interface objects as required properties, such
@@ -133,6 +134,64 @@ The adapter uses its `AbstractGraphModel`, `BasicGraphicsScene`,
 `-DFETCHCONTENT_SOURCE_DIR_QTNODES=/path/to/nodeeditor` for offline builds.
 QtNodes supports Qt 5/6. This host requires Qt 6.12 to match the primitives.
 
+## Application menu
+
+[`EditorAppMenu.cpp`](src/ui/EditorAppMenu.cpp) builds the menu bar of the
+desktop app ([`electron/src/menu.ts`](../../electron/src/menu.ts)): File,
+Edit, View, Tools, Window and Help. It adds a Node menu for the node, layout
+and group commands, and a Workflow menu for the run and server commands.
+These two menus bind no keys, so the canvas keeps Ctrl+F and Ctrl+Return. On macOS it is the global menu bar, and
+Qt moves About, Settings and Quit into the application menu. On other
+platforms it draws above the tab strip in the theme colors. An entry that
+names an editor command runs on the active tab. An
+open menu disables the commands the active tab cannot run. A closed menu
+leaves them enabled, so each shortcut reaches its command, which checks its
+own state.
+
+The menu owns the shortcuts with a modifier: Save, Open, New Workflow, Close
+Tab, the edit commands, zoom and the tab switch keys. A second binding of one
+of these keys makes both ambiguous, and Qt then runs neither. Ctrl+1 to
+Ctrl+9 stay window shortcuts, and keys without a modifier stay canvas keys.
+The Tools menu has the native panels only. The desktop app's Performance
+Monitor, Model Manager, Downloads and Vaults have no native surface yet.
+
+## Examples
+
+The audio signal examples cover [live synthesis](examples/live-synth.json),
+[offline rendering](examples/render-synth.json) and
+[a clip through a live phaser](examples/live-clip-phaser.json). The Sampler
+examples cover [a live drum kit](examples/sampler-drum-kit.json),
+[a live arpeggio from one note](examples/sampler-arpeggio.json),
+[a rendered pad from a looped region](examples/sampler-pad.json) and
+[notes that a switch plays by hand](examples/sampler-trigger.json).
+
+A property edit during a run goes to that run as a live property change, in
+process and on the server. A node that reads its properties while it runs,
+such as a synthesis node, uses the value from its next block. Inspector
+edits, card edits, slider drags, undo and redo all go to the run.
+
+The File menu's Open Example lists the workflows in [`examples/`](examples). The files are canonical
+NodeTool JSON, compiled into the editor as Qt resources. The menu groups them
+by their first tag. An example opens in a tab of its own with no file, so Save
+asks for a path.
+
+The Examples entry of the rail and the command menu open the Examples panel
+(`qml/ExamplesPanel.qml`). It lists the same bundled examples under Built in,
+and, with a server connected, the server's workflow and ComfyUI examples. A
+server example opens as the account's own copy in a workflow tab.
+
+Each example runs in process with no server, file, model or key. Its sources
+are draw nodes or Code nodes that synthesize WAV bytes, and its results go to
+Preview nodes. A Code node's audio stays in the run's temporary store, so a
+dry preview takes it through a 0 dB Gain node first. The
+`runsEveryBundledExampleInProcess` case of `node_editor_local_run` runs every
+file and fails when a node of an example leaves the local runner's admission
+list. A new example needs an entry in the `editor_examples` resource list in
+`CMakeLists.txt`.
+
+Local clips use at most 128 MiB in the shared store. Adding a clip above the
+remaining capacity evicts the oldest runs until it fits.
+
 ## Local runs
 
 The editor links [`native/graph-runner`](../graph-runner/README.md) and loads
@@ -147,6 +206,17 @@ run, and the run status text ends with "(local)". The bundle comes from `--guest
 `NODETOOL_GUEST_BUNDLE`, then a `guest.bin` or `guest.js` next to the
 executable. Ship the `guest.assets/` directory next to the bundle: fonts,
 tokenizer ranks, encoding tables and the node type snapshot load from it. `NODETOOL_LOCAL_RUNNER=0` turns local runs off.
+
+A workflow of a project other than Personal always runs on the server. The
+local runner writes into Personal's folder, and the server gives the run its
+project's folder. The run request names the project as `project_id`, because
+the server reads the workflow row only for a request without a graph. The
+workflow's project is its `project_id`, otherwise the tab's project. Empty,
+`default` and `personal:<user>` name Personal. Without a server connection such
+a run fails with "Connect to the server to run workflows of a project. Local
+runs write only to Personal's folder." A card preview of such a workflow does
+not start, as for any graph the runner cannot run, and its cards show no local
+badge.
 
 Local runs use the local user's workspace, the folder the server keeps:
 `$NODETOOL_WORKSPACES_DIR/1`, otherwise `nodetool/workspaces/1` in
@@ -210,6 +280,45 @@ filters loaded pages. Choose a project or load more pages to extend the list.
 Create, rename, and delete act on the server. Delete requires confirmation.
 Opening a workflow prompts to save, discard, or keep unsaved work. More → Open
 file and Save operate on local files. Saving locally uses `QSaveFile`.
+
+## Project folders
+
+Every project has a folder ([project folders](../../docs/workspaces.md)). Each
+tab's socket sends `set_open_project` with the tab's project when it opens and
+whenever that project changes: another workflow opens, a save files the
+workflow under another project, or the tab joins a project. Personal is sent as
+`default`. The server watches that folder for the connection and pushes
+`resource_change` events:
+
+- `workspacefile` lists the Library's open folder again when the workspace is
+  the tab project's folder, or when either id is unknown.
+- `documentfile` reloads a loaded workflow list and the open workflow's file
+  state from `projects.documents`.
+
+The workflow list and the Library show the folder of the tab's project
+([`ProjectFolder`](src/server/ProjectFolder.h),
+[`ProjectFolderNotice`](qml/ProjectFolderNotice.qml)). With a path that exists
+on this machine they show it and "Show in file manager" ("Reveal in Finder" on
+macOS, "Show in File Explorer" on Windows). A folder the server cannot reach
+shows "Folder not found" with Locate, which picks a folder and calls
+`projects.relocate`. A server that refuses, such as a production server, shows
+"Could not locate the folder" with its reason. A project without a folder says
+so. A cloud folder has no path and shows nothing.
+
+Above the canvas, [`DocumentFileBanner`](qml/DocumentFileBanner.qml) shows the
+open workflow's file in its project folder: "This file has an error" with the
+error, or "File missing" with Restore, which calls
+`projects.restoreDocumentFile`. It takes no space while the file is fine.
+
+A selected Library asset whose file is missing (`offline`) shows "Missing" with
+Relink, which picks a file and calls `assets.relinkExternal` with its path. The
+tiles of the shared `NodeTool.Media` grid draw no badge for it yet.
+
+A project folder's workflow file, `Workflows/<name>.workflow.json`, keeps its
+`format`, `version` and `id` and its body when the editor saves it, and gets no
+`name` field. The tab shows the file name, and the tab and header offer no
+rename, because renaming it would move the file. Every other file keeps the
+editor's own format.
 
 ## Interaction
 
@@ -311,8 +420,9 @@ Mouse, the default, where the wheel zooms and a left drag pans, or Trackpad, whi
 the macOS scheme. A pinch, the corner readout, and a middle-button drag always work. Fit shows every
 node above the floating toolbar, up to 100%, and refits when panels open or close
 until you pan, zoom, or move a node. After that, selecting a node keeps the zoom
-and scrolls the node into the free canvas area. The toolbar's More menu holds server, clipboard, and fit
-actions. Below 1000 logical pixels, the inspector replaces the catalog until it
+and scrolls the node into the free canvas area. The More menu of the toolbar and the header holds the
+document's settings and views: Instant Update, Save, version history, sharing,
+metadata, server sync, canvas uploads and the command menu. Below 1000 logical pixels, the inspector replaces the catalog until it
 closes or the window widens. Canvas shortcuts
 include Ctrl/Cmd+C/V/Z, platform Redo, Delete, F, Space for Add node, Ctrl+D,
 and Ctrl/Cmd+O/S. These accelerators only intercept canvas events, leaving Quick

@@ -42,6 +42,7 @@ import {
   Collapse,
   ToolbarIconButton,
   TextInput,
+  Tooltip,
   EditorButton,
   SPACING
 } from "../../ui_primitives";
@@ -50,6 +51,8 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { getToolIcon } from "./toolCallIcon";
 
 import AgentExecutionView from "./AgentExecutionView";
@@ -74,6 +77,7 @@ import {
   type ToolCallRun
 } from "./groupToolCalls";
 import { toolCallPhrase, toolCallRunDisplay } from "./toolCallPhrase";
+import type { MessageVersionNav } from "../../../serverState/useThreadVersions";
 
 /**
  * PrettyJson - Memoized component for displaying formatted JSON.
@@ -841,7 +845,42 @@ interface MessageViewProps {
   hideActions?: boolean;
   /** What Copy copies when it is not the message's own text: the whole reply. */
   replyCopyText?: string;
+  /** Present where Edit or Retry left versions: the "‹ 1/2 ›" switcher. */
+  versionNav?: MessageVersionNav;
 }
+
+/** "‹ 2/3 ›" — steps through the versions Edit and Retry kept. */
+const VersionSwitcher: React.FC<{ nav: MessageVersionNav }> = ({ nav }) => {
+  const { t } = useTranslation();
+  const { index, count, select } = nav;
+  const handlePrevious = useCallback(() => select(index - 1), [select, index]);
+  const handleNext = useCallback(() => select(index + 1), [select, index]);
+  return (
+    <span
+      className="message-version-switcher"
+      role="group"
+      aria-label={t("i18n-next54.message.versionOf", { index, count })}
+    >
+      <ToolbarIconButton
+        icon={<ChevronLeftIcon fontSize="small" />}
+        tooltip={t("i18n-next54.message.previousVersion")}
+        ariaLabel={t("i18n-next54.message.previousVersion")}
+        onClick={handlePrevious}
+        disabled={index <= 1}
+      />
+      <span className="message-version-label" aria-hidden>
+        {index}/{count}
+      </span>
+      <ToolbarIconButton
+        icon={<ChevronRightIcon fontSize="small" />}
+        tooltip={t("i18n-next54.message.nextVersion")}
+        ariaLabel={t("i18n-next54.message.nextVersion")}
+        onClick={handleNext}
+        disabled={index >= count}
+      />
+    </span>
+  );
+};
 
 export const MessageView: React.FC<MessageViewProps> = React.memo(
   ({
@@ -857,7 +896,8 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
     onResend,
     editRemovesLaterTurns = false,
     hideActions = false,
-    replyCopyText
+    replyCopyText,
+    versionNav
   }) => {
     const { t } = useTranslation();
     const insertIntoEditor = useEditorInsertion();
@@ -1218,14 +1258,15 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
               })}
           </div>
           {hasNonEmptyContent && !hideActions && (
-            <div className="message-actions">
-              {formattedTime && (
+            // Claude's order: a reply leads with Copy and Retry, and its model
+            // trails as a muted label that names the time on hover. A prompt
+            // shows when it was sent, then Edit and Copy.
+            <div
+              className={`message-actions${versionNav ? " has-versions" : ""}`}
+            >
+              {versionNav && <VersionSwitcher nav={versionNav} />}
+              {message.role === "user" && formattedTime && (
                 <span className="message-timestamp">{formattedTime}</span>
-              )}
-              {message.role === "assistant" && message.model && (
-                <span className="message-model" title={message.model}>
-                  {message.model}
-                </span>
               )}
               {canEditAndResend && (
                 <ToolbarIconButton
@@ -1235,6 +1276,11 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
                   onClick={handleEditAndResend}
                 />
               )}
+              <CopyButton
+                value={replyCopyText ?? copyText}
+                buttonSize="small"
+                tooltip={t("i18n-next54.message.copyMessage")}
+              />
               {message.role === "assistant" && onRegenerate && (
                 <ToolbarIconButton
                   icon={<RefreshIcon fontSize="small" />}
@@ -1243,11 +1289,20 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
                   onClick={onRegenerate}
                 />
               )}
-              <CopyButton
-                value={replyCopyText ?? copyText}
-                buttonSize="small"
-                tooltip={t("i18n-next54.message.copyMessage")}
-              />
+              {message.role === "assistant" && message.model && (
+                <Tooltip
+                  title={
+                    formattedTime
+                      ? `${message.model} · ${formattedTime}`
+                      : message.model
+                  }
+                >
+                  <span className="message-model">{message.model}</span>
+                </Tooltip>
+              )}
+              {message.role === "assistant" && !message.model && formattedTime && (
+                <span className="message-timestamp">{formattedTime}</span>
+              )}
             </div>
           )}
         </div>

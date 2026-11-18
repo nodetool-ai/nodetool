@@ -74,7 +74,7 @@ afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) { rmSync(directory, { recursive: true, force: true }); }
 });
 
-describe("desktop release recovery", () => {
+describe("desktop release recovery", { timeout: 30_000 }, () => {
   it.each(["annotated", "lightweight"])("resolves an existing %s tag to a pinned source commit", tagType => {
     const repository = fixture(tagType);
     const result = preflight(repository);
@@ -152,9 +152,11 @@ describe("desktop release recovery", () => {
     expect(checkouts[1].with).toMatchObject({
       ref: "${{ github.sha }}",
       path: ".release-tools",
-      "sparse-checkout": "scripts/smoke-backend-bundle.mjs",
+      "sparse-checkout": "scripts/smoke-backend-bundle.mjs\n.github/scripts/with-window-manager.sh\n",
       "sparse-checkout-cone-mode": false
     });
+    expect(steps.find(step => step.name === "Build VST host").run)
+      .toContain("bash .release-tools/.github/scripts/with-window-manager.sh node electron/scripts/build-vst-host.mjs --test");
     const smokeSteps = steps.filter(step => step.name?.startsWith("Smoke-boot packaged backend"));
     expect(smokeSteps).toHaveLength(2);
     for (const step of smokeSteps) {

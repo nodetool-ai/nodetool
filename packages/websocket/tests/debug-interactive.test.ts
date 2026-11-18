@@ -7,7 +7,6 @@
  * sessions are invisible to other users.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import os from "node:os";
 import { initTestDb, Workflow } from "@nodetool-ai/models";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { Escalation } from "@nodetool-ai/protocol";
@@ -16,9 +15,15 @@ vi.mock("../src/lib/workflow-workspace.js", async () => {
   const actual = await vi.importActual<
     typeof import("../src/lib/workflow-workspace.js")
   >("../src/lib/workflow-workspace.js");
+  const { createWorkspace } = await import("@nodetool-ai/runtime");
+  const { InMemoryStorageAdapter } = await import("@nodetool-ai/storage");
   return {
     ...actual,
-    resolveWorkflowWorkspace: async () => os.tmpdir()
+    resolveProjectWorkspace: async (projectId: string | null) => ({
+      ok: true,
+      projectId: projectId ?? "",
+      workspace: createWorkspace(new InMemoryStorageAdapter())
+    })
   };
 });
 

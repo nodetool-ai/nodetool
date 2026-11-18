@@ -295,7 +295,9 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
         chatSource="workspace_chat"
         uiContext={inspectionUiContext}
         noMessagesPlaceholder={noMessagesPlaceholder}
+        centerEmptyState={!loadingThread}
         showNewChatButton
+        showTitleMenu
       />
     </FlexColumn>
   );

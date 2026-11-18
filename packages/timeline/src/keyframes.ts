@@ -5,8 +5,11 @@
  * whole clip: `preset: "custom"`, `role: "emphasis"`, no delay, duration equal
  * to the clip's, one curve per property. The sampler already knows how to
  * play such a curve (`animation/compile.ts`), so a keyframe set here renders
- * everywhere a preset does. Keyframe times are stored as `t` in 0..1 over the
- * clip, so trimming the clip stretches its keyframes with it.
+ * everywhere a preset does. Keyframe times are stored as `t` over the clip,
+ * 0..1 inside it. A trim keeps every keyframe at its instant
+ * ({@link retimeKeyframeCurves}), so a key the trim cut off sits outside 0..1:
+ * it is not shown, it still shapes the curve at the clip's edge, and trimming
+ * back out shows it again, as in Premiere.
  *
  * These are pure functions over one clip; the store wraps them.
  */
@@ -52,8 +55,16 @@ export function keyframeIdentity(property: AnimatedProperty): number {
 }
 
 export const KEYFRAME_ANIMATION_PRESET = "custom";
-/** Two keyframes closer than this (in `t`) are the same keyframe. */
-const T_EPSILON = 1e-4;
+/**
+ * Two keyframes less than half a millisecond apart are the same keyframe, as
+ * for param curves (sliceParamCurves) and adjacent-key stepping.
+ */
+const KEY_TOLERANCE_MS = 0.5;
+
+/** {@link KEY_TOLERANCE_MS} in `t` of a clip `durationMs` long. */
+function keyTimeTolerance(durationMs: number): number {
+  return durationMs > 0 ? KEY_TOLERANCE_MS / durationMs : 1e-4;
+}
 
 export function isKeyframeAnimation(animation: ClipAnimation): boolean {
   return (
@@ -86,11 +97,14 @@ export function keyframeTimesMs(
   const animation = findKeyframeAnimation(clip);
   if (!animation?.custom) return [];
   const times = new Set<number>();
+  const tolerance = keyTimeTolerance(clip.durationMs);
   for (const curve of animation.custom.curves) {
     if (properties && !(properties as readonly string[]).includes(curve.property)) {
       continue;
     }
     for (const kf of curve.keyframes) {
+      // A key a trim cut off is kept but not shown.
+      if (kf.t < -tolerance || kf.t > 1 + tolerance) continue;
       times.add(kf.t * clip.durationMs);
     }
   }
@@ -130,7 +144,8 @@ export function hasKeyframeAt(
   );
   if (!curve) return false;
   const t = toT(clip, atMs);
-  return curve.keyframes.some((kf) => Math.abs(kf.t - t) < T_EPSILON);
+  const tolerance = keyTimeTolerance(clip.durationMs);
+  return curve.keyframes.some((kf) => Math.abs(kf.t - t) < tolerance);
 }
 
 function withCurves(
@@ -172,11 +187,12 @@ export function setKeyframe(
   value: number
 ): ClipAnimation[] {
   const t = toT(clip, atMs);
+  const tolerance = keyTimeTolerance(clip.durationMs);
   return withCurves(clip, (curves) => {
     const others = curves.filter((c) => c.property !== property);
     const curve = curves.find((c) => c.property === property);
     const replaced = curve?.keyframes.find(
-      (kf) => Math.abs(kf.t - t) < T_EPSILON
+      (kf) => Math.abs(kf.t - t) < tolerance
     );
     const kept = (curve?.keyframes ?? []).filter((kf) => kf !== replaced);
     // Updating a keyframe keeps the easing chosen for its segment.
@@ -196,12 +212,13 @@ export function removeKeyframe(
   atMs: number
 ): ClipAnimation[] {
   const t = toT(clip, atMs);
+  const tolerance = keyTimeTolerance(clip.durationMs);
   return withCurves(clip, (curves) =>
     curves.map((c) =>
       c.property === property
         ? {
             ...c,
-            keyframes: c.keyframes.filter((kf) => Math.abs(kf.t - t) >= T_EPSILON)
+            keyframes: c.keyframes.filter((kf) => Math.abs(kf.t - t) >= tolerance)
           }
         : c
     )
@@ -251,8 +268,10 @@ export function sliceKeyframeAnimation(
   if (!animation.custom || span <= 0) {
     return { ...animation, durationMs };
   }
+  // `durationMs` is this half's length: the source clip is durationMs / span long.
+  const tolerance = keyTimeTolerance(durationMs / span);
   const curves = animation.custom.curves.map((curve) =>
-    sliceCurve(curve, fromT, toT, T_EPSILON)
+    sliceCurve(curve, fromT, toT, tolerance)
   );
   return {
     ...animation,
@@ -285,6 +304,56 @@ export function sliceCurve<Curve extends { keyframes: CurveKeyframe[] }>(
       t: Math.max(0, Math.min(1, (kf.t - fromT) / span))
     }))
   };
+}
+
+/**
+ * Curves normalized over a clip `fromDurationMs` long, renormalized over the
+ * clip a trim made of it: `headMs` is how much the trim added before the old
+ * start (negative when it cut the head). Every keyframe keeps its instant, and
+ * the ones now outside the clip are kept with `t` outside 0..1.
+ */
+export function retimeKeyframeCurves<Curve extends { keyframes: CurveKeyframe[] }>(
+  curves: readonly Curve[],
+  fromDurationMs: number,
+  toDurationMs: number,
+  headMs: number
+): Curve[] {
+  if (fromDurationMs <= 0 || toDurationMs <= 0) return [...curves];
+  if (fromDurationMs === toDurationMs && headMs === 0) return [...curves];
+  return curves.map((curve) => ({
+    ...curve,
+    keyframes: curve.keyframes.map((kf) => ({
+      ...kf,
+      t: (kf.t * fromDurationMs + headMs) / toDurationMs
+    }))
+  }));
+}
+
+/**
+ * `animations` after a trim from `fromDurationMs` to `toDurationMs` that added
+ * `headMs` before the old start: the hand-keyframe animation keeps every key
+ * at its instant and spans the new clip. Returns the same array when the clip
+ * has none.
+ */
+export function retimeKeyframeAnimations(
+  animations: ClipAnimation[],
+  fromDurationMs: number,
+  toDurationMs: number,
+  headMs: number
+): ClipAnimation[] {
+  if (!animations.some(isKeyframeAnimation)) return animations;
+  return animations.map((animation) =>
+    isKeyframeAnimation(animation) && animation.custom
+      ? {
+          ...animation,
+          durationMs: toDurationMs,
+          custom: {
+            ...animation.custom,
+            curves: retimeKeyframeCurves(animation.custom.curves, fromDurationMs, toDurationMs, headMs)
+          }
+        }
+      : animation
+  );
 }
 
 /** Whether `property` has at least one hand-set keyframe: its stopwatch is on. */
@@ -353,14 +422,15 @@ export function moveKeyframes(
 ): ClipAnimation[] {
   const fromT = toT(clip, fromMs);
   const targetT = toT(clip, toMs);
+  const tolerance = keyTimeTolerance(clip.durationMs);
   return withCurves(clip, (curves) =>
     curves.map((c) => {
       if (!(properties as readonly string[]).includes(c.property)) return c;
-      const moving = c.keyframes.find((kf) => Math.abs(kf.t - fromT) < T_EPSILON);
+      const moving = c.keyframes.find((kf) => Math.abs(kf.t - fromT) < tolerance);
       if (!moving) return c;
       const kept = c.keyframes.filter(
         (kf) =>
-          kf !== moving && Math.abs(kf.t - targetT) >= T_EPSILON
+          kf !== moving && Math.abs(kf.t - targetT) >= tolerance
       );
       const keyframes = [...kept, { ...moving, t: targetT }].sort(
         (a, b) => a.t - b.t
@@ -403,7 +473,9 @@ export function keyframeEasingAt(
   const animation = findKeyframeAnimation(clip);
   const curve = animation?.custom?.curves.find((c) => c.property === property);
   const t = toT(clip, atMs);
-  const kf = curve?.keyframes.find((k) => Math.abs(k.t - t) < T_EPSILON);
+  const kf = curve?.keyframes.find(
+    (k) => Math.abs(k.t - t) < keyTimeTolerance(clip.durationMs)
+  );
   if (!kf) return undefined;
   return animation?.easing ?? kf.easing ?? "linear";
 }
@@ -424,12 +496,13 @@ export function setKeyframeEasing(
   if (!existing?.custom) return clip.animations ?? [];
   const override = existing.easing;
   const t = toT(clip, atMs);
+  const tolerance = keyTimeTolerance(clip.durationMs);
   const curves = existing.custom.curves.map((c) => {
     const hit = (properties as readonly string[]).includes(c.property);
     return {
       ...c,
       keyframes: c.keyframes.map((kf) => {
-        if (hit && Math.abs(kf.t - t) < T_EPSILON) return { ...kf, easing };
+        if (hit && Math.abs(kf.t - t) < tolerance) return { ...kf, easing };
         return override === undefined ? kf : { ...kf, easing: override };
       })
     };

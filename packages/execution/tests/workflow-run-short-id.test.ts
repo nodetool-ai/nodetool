@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
+import { memoryFolder } from "./_helpers/memory-folder.js";
 import { BaseNode, NodeRegistry, type GraphInput } from "@nodetool-ai/node-sdk";
 import { type ProcessingContext } from "@nodetool-ai/runtime";
 
@@ -100,7 +101,7 @@ describe("runWorkflow with a short workflow id", () => {
   it("stores the full workflow id on the job and the payload", async () => {
     const registry = new NodeRegistry();
     registry.register(Constant);
-    const resolveWorkspace = vi.fn(async () => null);
+    const resolveWorkspace = vi.fn(memoryFolder);
     const outcome = await runWorkflow({
       workflowId: FULL_ID.slice(0, 12),
       userId: "user-7",
@@ -112,7 +113,8 @@ describe("runWorkflow with a short workflow id", () => {
     expect(jobCreate).toHaveBeenCalledWith(
       expect.objectContaining({ workflow_id: FULL_ID })
     );
-    expect(resolveWorkspace).toHaveBeenCalledWith(FULL_ID, "user-7");
+    // The run resolves the folder of the workflow's project.
+    expect(resolveWorkspace).toHaveBeenCalledWith("default", "user-7");
     if (outcome.kind === "payload") {
       expect(outcome.payload.workflow_id).toBe(FULL_ID);
     }

@@ -76,8 +76,11 @@ case "$format" in
   *) src='${audio}'; fid=140; ext=m4a ;;
 esac
 out=$(printf '%s' "$outtmpl" | sed "s/%(id)s/clip1/; s/%(format_id)s/$fid/; s/%(ext)s/$ext/")
-mkdir -p "$(dirname "$out")"
-/bin/cp "$src" "$out"
+case "$outtmpl" in
+  # yt-dlp skips a download whose file exists and still prints its path.
+  existing/*) out="projects/abc/clip.f$fid.$ext" ;;
+  *) mkdir -p "$(dirname "$out")"; /bin/cp "$src" "$out" ;;
+esac
 [ "$print_id" -eq 1 ] && echo "$fid"
 echo "$out"
 `;
@@ -137,6 +140,47 @@ describe("yt_dlp without ffmpeg", () => {
     expect(String(result["error"])).toMatch(
       /format "\[format_id="137"\]" \(clip\.f137\.mp4\) and format "\[format_id="140"\]" \(clip\.f140\.m4a\) could not be muxed: Cannot stream-copy h264 video with aac audio into webm/
     );
+  });
+
+  it("neither muxes nor removes a printed path in another project's folder", async () => {
+    const other = path.join(workspace, "projects/abc");
+    await mkdir(path.join(other, ".nodetool"), { recursive: true });
+    await writeFile(path.join(other, "clip.f137.mp4"), "theirs-video");
+    await writeFile(path.join(other, "clip.f140.m4a"), "theirs-audio");
+
+    const result = await runYtDlp({
+      url: "https://example.com/v",
+      format: "bv+ba",
+      output_file: "existing/clip.mp4"
+    });
+
+    expect(result["success"]).toBe(false);
+    expect(String(result["error"])).toMatch(/folder of another project/);
+    expect(await readFile(path.join(other, "clip.f137.mp4"), "utf8")).toBe("theirs-video");
+    expect(await readFile(path.join(other, "clip.f140.m4a"), "utf8")).toBe("theirs-audio");
+    expect((await readdir(other)).sort()).toEqual([".nodetool", "clip.f137.mp4", "clip.f140.m4a"]);
+  });
+
+  it("refuses a template that yt-dlp and the workspace read as different files", async () => {
+    // yt-dlp writes `workspace/dl/x.f137.mp4` literally under its cwd, while
+    // the workspace reads `workspace/dl/...` as `dl/...`. Without a refusal
+    // the mux and the cleanup would open and remove the creator's own file.
+    await mkdir(path.join(workspace, "dl"), { recursive: true });
+    await writeFile(path.join(workspace, "dl/x.f137.mp4"), "creators-own");
+    await writeFile(path.join(workspace, "dl/x.f140.m4a"), "creators-audio");
+
+    const result = await runYtDlp({
+      url: "https://example.com/v",
+      format: "bv+ba",
+      output_file: "workspace/dl/x.%(ext)s"
+    });
+
+    expect(result["success"]).not.toBe(true);
+    expect(String(result["error"])).toMatch(/does not name the same file|different file/);
+    expect(await readFile(path.join(workspace, "dl/x.f137.mp4"), "utf8")).toBe("creators-own");
+    expect(await readFile(path.join(workspace, "dl/x.f140.m4a"), "utf8")).toBe("creators-audio");
+    // yt-dlp was never started, so nothing was downloaded beside it.
+    await expect(stat(path.join(workspace, "workspace"))).rejects.toThrow();
   });
 
   it("refuses a merge inside parentheses before running yt-dlp", async () => {

@@ -28,9 +28,8 @@ jest.mock("../../../trpc/client", () => ({
 jest.mock("../../../serverState/useAssets", () => ({
   __esModule: true,
   default: () => ({
-    currentFolderId: "folder-1",
     projectId: "project-1",
-    refetchAssetsAndFolders: mockRefetch
+    refetchAssets: mockRefetch
   })
 }));
 
@@ -101,7 +100,7 @@ describe("OpenverseDialog", () => {
     expect(screen.getByText("Search openly licensed media")).toBeTruthy();
   });
 
-  it("shows results with their license and adds the selected ones to the current folder", async () => {
+  it("shows results with their license and adds the selected ones to the library", async () => {
     const user = userEvent.setup();
     renderDialog();
 
@@ -126,7 +125,6 @@ describe("OpenverseDialog", () => {
     expect(mockMutate).toHaveBeenCalledWith({
       media_type: "images",
       ids: ["b"],
-      parent_id: "folder-1",
       project_id: "project-1"
     });
   });

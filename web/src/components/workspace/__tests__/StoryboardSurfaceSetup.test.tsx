@@ -222,7 +222,7 @@ beforeEach(() => {
 
 describe("StoryboardSurface setup stages", () => {
   it.each([
-    ["idea", "Continue"],
+    ["idea", "Write shots"],
     ["genre", "Generate screenplay"],
     ["review", "Set up entities"],
     ["entities", "Choose the look"],
@@ -344,7 +344,7 @@ describe("StoryboardSurface setup stages", () => {
       screen.getByRole("heading", { name: "What's your story?" })
     ).toBeInTheDocument();
     expect(screen.getByText("View only")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Write shots" })).toBeNull();
     expect(screen.getByRole("textbox")).toHaveAttribute("readonly");
   });
 

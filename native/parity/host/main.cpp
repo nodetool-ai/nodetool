@@ -15,6 +15,8 @@
 #include <string>
 
 Q_IMPORT_QML_PLUGIN(NodeTool_NodeEditorPlugin)
+Q_IMPORT_QML_PLUGIN(NodeTool_ChatPlugin)
+Q_IMPORT_QML_PLUGIN(NodeTool_ModelPickerPlugin)
 
 namespace {
 

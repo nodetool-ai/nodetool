@@ -192,6 +192,20 @@ describe("GenreStep", () => {
     expect(board()?.directorModel?.id).toBe("catalog-model");
   });
 
+  it("says no model is available when the catalog is empty", () => {
+    const listed = catalog.models;
+    catalog.models = [];
+    try {
+      renderStep();
+      expect(board()?.directorModel).toBeFalsy();
+      expect(screen.getByTestId("no-screenplay-model")).toHaveTextContent(
+        "No language model is available. Add a provider key in Settings, under Models & Providers."
+      );
+    } finally {
+      catalog.models = listed;
+    }
+  });
+
   it("shows the board's screenplay model and writes a new pick", async () => {
     const user = userEvent.setup();
     useStoryboardStore.getState().setDirectorModel(BOARD, {

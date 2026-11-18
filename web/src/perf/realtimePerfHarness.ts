@@ -7,8 +7,8 @@
  * experience, without mounting the editor:
  *
  *  - chunk throughput per output node vs the expected realtime rate
- *    (24000 Hz / 512-frame chunks ≈ 46.9 chunks/s per voice) — the realtime
- *    health signal: a CPU-bound worker falls below it
+ *    (the run sample rate divided by its block size) — a CPU-bound worker
+ *    falls below the expected rate
  *  - main-thread event-loop lag and long tasks while the stream runs
  *  - JS heap samples (Chrome) for leak/GC-churn detection
  *
@@ -16,15 +16,13 @@
  * (tests/benchmarks/realtime-perf.spec.ts) via worker.evaluate and CDP, so
  * this module needs no instrumentation hooks in production worker code.
  */
+import { AUDIO_SAMPLE_RATE, AUDIO_BLOCK_FRAMES } from "@nodetool-ai/protocol";
 import {
   getBrowserWorkerReady,
   runBrowserGraphJobInWorker
 } from "../lib/workflow/browserWorkerClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import { buildMegaSynthPatch } from "./megaSynthPatch";
-
-const SYNTH_SAMPLE_RATE = 24000;
-const SYNTH_CHUNK_FRAMES = 512;
 
 interface PerfRunOptions {
   /** Number of synth voices. */
@@ -140,8 +138,7 @@ function buildPatch(voices: number) {
         properties: {
           waveform: "saw",
           frequency: 110 + 55 * i,
-          amplitude: 0.5,
-          sample_rate: SYNTH_SAMPLE_RATE
+          amplitude: 0.5
         }
       },
       {
@@ -413,7 +410,7 @@ async function startPerfRun(
     playbackNode.connect(playbackCtx.destination);
     playbackNode.port.postMessage({
       type: "config",
-      sampleRate: SYNTH_SAMPLE_RATE,
+      sampleRate: AUDIO_SAMPLE_RATE,
       channels: 1,
       live: true,
       primeSeconds: 0.04,
@@ -538,7 +535,7 @@ async function startPerfRun(
   const endHeap = heapBytes();
   if (endHeap !== null) heapSamples.push(endHeap);
 
-  const expectedChunksPerSecondPerVoice = SYNTH_SAMPLE_RATE / SYNTH_CHUNK_FRAMES;
+  const expectedChunksPerSecondPerVoice = AUDIO_SAMPLE_RATE / AUDIO_BLOCK_FRAMES;
   const expectedTotal =
     expectedChunksPerSecondPerVoice * outputStreams * (elapsedMs / 1000);
   lagSamples.sort((a, b) => a - b);

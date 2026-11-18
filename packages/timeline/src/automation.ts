@@ -224,13 +224,16 @@ export function automationBreakpoints(
     if (curved && span > step) {
       // The segment started at the previous point, which may lie before
       // `fromMs`: its easing runs over the whole segment, not the visible part.
+      // The cuts sit on that whole segment's grid, so playback started at any
+      // position ramps through the same breakpoints as one started at zero.
       const segStart = i > 0 ? Math.min(points[i - 1].timeMs, a.timeMs) : a.timeMs;
       const segValue = i > 0 && points[i - 1].timeMs <= fromMs ? points[i - 1].value : a.value;
       const segSpan = b.timeMs - segStart;
-      const steps = Math.min(MAX_STEPS_PER_SEGMENT, Math.ceil(span / step));
+      const steps = Math.min(MAX_STEPS_PER_SEGMENT, Math.ceil(segSpan / step));
       for (let s = 1; s < steps; s++) {
-        const t = a.timeMs + (span * s) / steps;
-        const f = segSpan > 0 ? ease(easing, (t - segStart) / segSpan) : 1;
+        const t = segStart + (segSpan * s) / steps;
+        if (t <= a.timeMs) continue;
+        const f = ease(easing, (t - segStart) / segSpan);
         out.push({ timeMs: t, value: segValue + (b.value - segValue) * f });
       }
     }

@@ -313,14 +313,15 @@ QJsonObject reorderTracks(QJsonObject doc, const QJsonObject& payload) {
     QSet<QString> ordered;
     QJsonArray result;
     const auto ids = payload.value("orderedIds").toArray();
-    for (qsizetype i = 0; i < ids.size(); ++i) {
-        const auto id = ids[i].toString();
+    for (const auto& value : ids) {
+        // Unknown and repeated ids are skipped, so each track appears once and
+        // the indices stay 0..n-1.
+        const auto id = value.toString();
+        if (!byId.contains(id) || ordered.contains(id)) { continue; }
         ordered.insert(id);
-        if (byId.contains(id)) {
-            auto track = byId.value(id);
-            track.insert("index", i);
-            result.append(track);
-        }
+        auto track = byId.value(id);
+        track.insert("index", result.size());
+        result.append(track);
     }
     for (const auto& value : tracks) {
         auto track = value.toObject();
@@ -345,6 +346,51 @@ QJsonObject patchTrack(QJsonObject doc, const QJsonObject& payload, const QStrin
         }
     }
     doc.insert("tracks", tracks);
+    return doc;
+}
+// A title at a time, on the top track, so it draws over every picture. The
+// top track takes it when it is an unlocked video or overlay track with room
+// for the clip there. Otherwise a new overlay track goes on top.
+QJsonObject addTextOnTop(QJsonObject doc, const QJsonObject& payload) {
+    const double at = payload.value("atMs").toDouble(-1);
+    const double duration = payload.value("durationMs").toDouble(3000);
+    const auto text = payload.value("text").toString(QStringLiteral("Text"));
+    if (!std::isfinite(at) || at < 0 || !std::isfinite(duration) || duration <= 0 || text.isEmpty()) { return doc; }
+    auto tracks = doc.value("tracks").toArray();
+    auto clips = doc.value("clips").toArray();
+    QString trackId;
+    if (!tracks.isEmpty()) {
+        // The top row has the lowest `index`, wherever it sits in the array.
+        qsizetype topAt = 0;
+        for (qsizetype i = 1; i < tracks.size(); ++i) {
+            if (tracks[i].toObject().value("index").toDouble(static_cast<double>(i)) <
+                tracks[topAt].toObject().value("index").toDouble(static_cast<double>(topAt))) { topAt = i; }
+        }
+        const auto top = tracks[topAt].toObject();
+        const auto type = top.value("type").toString();
+        bool free = !top.value("locked").toBool() && (type == "video" || type == "overlay");
+        for (qsizetype i = 0; free && i < clips.size(); ++i) {
+            const auto clip = clips[i].toObject();
+            if (clip.value("trackId") != top.value("id")) { continue; }
+            const double start = clip.value("startMs").toDouble();
+            free = start >= at + duration || start + clip.value("durationMs").toDouble() <= at;
+        }
+        if (free) { trackId = top.value("id").toString(); }
+    }
+    if (trackId.isEmpty()) {
+        doc = insertTrack(std::move(doc), {{"type", "overlay"}, {"name", "Titles"}, {"atIndex", 0}});
+        tracks = doc.value("tracks").toArray();
+        trackId = tracks.first().toObject().value("id").toString();
+    }
+    auto id = payload.value("clipId").toString();
+    for (const auto& clip : clips) {
+        if (!id.isEmpty() && clip.toObject().value("id").toString() == id) { id.clear(); }
+    }
+    clips.append(QJsonObject{{"id", id.isEmpty() ? freshId() : id}, {"trackId", trackId}, {"name", text}, {"startMs", at},
+        {"durationMs", duration}, {"mediaType", "text"}, {"sourceType", "imported"}, {"status", "generated"},
+        {"locked", false}, {"versions", QJsonArray{}},
+        {"textStyle", QJsonObject{{"text", text}, {"fontSizePx", 96}, {"color", "#FFFFFF"}}}});
+    doc.insert("clips", clips);
     return doc;
 }
 }

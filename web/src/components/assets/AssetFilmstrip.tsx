@@ -27,7 +27,6 @@ const Thumbnail = ({ asset }: { asset: Asset }) => (
   <AssetItem
     asset={asset}
     draggable={false}
-    isParent={false}
     showDeleteButton={false}
     enableContextMenu={false}
     showName={false}

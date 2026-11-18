@@ -1,7 +1,7 @@
 #include "EditorWindow.h"
 #include <QJsonDocument>
 #include "document/ChildPorts.h"
-#include <QMenu>
+#include "EntryMenu.h"
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QUrlQuery>
@@ -13,6 +13,7 @@
 #include <QTimer>
 #include <QToolTip>
 #include <functional>
+#include "nodetool/account/qt/ServerToken.h"
 
 namespace nodetool {
 EditorWindow *EditorWindow::activeEditor() const {
@@ -29,7 +30,7 @@ QVariantList EditorWindow::workflowTabs() const {
         result.append(QVariantMap{{"title", title},
                                   {"dirty", tab->hasUnsavedChanges()},
                                   {"running", tab->runActive() && !tab->instantUpdate_ && !tab->scrubbing_},
-                                  {"renamable", !tab->childParent_}});
+                                  {"renamable", !tab->childParent_ && !tab->projectWorkflowFile()}});
     }
     return result;
 }
@@ -57,6 +58,12 @@ QString EditorWindow::projectKey() const {
         return {};
     }
     return id;
+}
+void EditorWindow::syncOpenProject() {
+    const auto key = projectKey();
+    session_.setOpenProject(key);
+    projectFolder_.setProject(key);
+    projectFolder_.setDocument(session_.serverBound() ? document_.snapshot()["id"].toString() : QString());
 }
 QString EditorWindow::activeProject() const {
     const auto owner = tabOwner_ ? tabOwner_ : this;
@@ -133,6 +140,7 @@ void EditorWindow::newTab() {
   const auto project = activeProject();
   auto tab = new EditorWindow(tabStack_, this);
     tab->assignedProject_ = project;
+    tab->syncOpenProject();
     connect(&tab->browser_, &node_editor::WorkflowBrowser::changed, this, [this, tab] {
         harvestProjects(QJsonArray::fromVariantList(tab->browser_.projects()));
     });
@@ -148,6 +156,8 @@ void EditorWindow::newTab() {
   // Only a top-level window fills its background, and translucent dock dividers
   // would otherwise blend with the outer window.
   tab->setAutoFillBackground(true);
+  // A new tab starts its own conversation. Restored tabs clear this.
+  tab->chat_.setFreshThreadPending(true);
   tabs_.append(tab);
   tabStack_->addWidget(tab);
     // Cards warn about a missing provider key from the account's secrets.
@@ -228,6 +238,71 @@ void EditorWindow::flushChild() {
     if (inlineChild_ && childParent_) {
         childParent_->flushChild();
     }
+}
+bool EditorWindow::hasPendingChildWrite() const {
+    for (const auto *level = this; level; level = level->inlineChild_ ? level->childParent_.data() : nullptr) {
+        if (level->childWriteTimer_ && level->childWriteTimer_->isActive()) {
+            return true;
+        }
+    }
+    return false;
+}
+void EditorWindow::documentHistory(bool redo) {
+    if (!tabOwner_) {
+        activeEditor_->documentHistory(redo);
+        return;
+    }
+    const auto name = redo ? QStringLiteral("Redo") : QStringLiteral("Undo");
+    if (!inlineChild_ || !childParent_) {
+        action(name);
+        return;
+    }
+    flushChild();
+    workflowHost()->action(name);
+    reloadChildChain();
+}
+void EditorWindow::reloadChildChain() {
+    QList<EditorWindow *> chain;
+    for (auto *level = this; level->inlineChild_ && level->childParent_; level = level->childParent_) {
+        chain.prepend(level);
+    }
+    bool parentReloaded = false;
+    for (auto *level : chain) {
+        auto *parent = level->childParent_.data();
+        if (parentReloaded) {
+            // The parent's load started a new document epoch. Its open surfaces
+            // follow it and rebuild from the stored graph when shown.
+            for (auto *tab : tabOwner_->tabs_) {
+                if (tab->childParent_ == parent) {
+                    tab->childParentEpoch_ = parent->documentEpoch_;
+                }
+            }
+        }
+        if (level->childParentEpoch_ != parent->documentEpoch_) {
+            return;
+        }
+        const auto node = parent->document_.node(level->childNode_);
+        if (node.isEmpty()) {
+            // The history step removed the subgraph node, so its surface closes.
+            closeSurface(tabOwner_->tabs_.indexOf(this));
+            return;
+        }
+        const auto stored = node_editor::childGraph(node);
+        parentReloaded = stored != level->syncedChildGraph_;
+        if (!parentReloaded) {
+            continue;
+        }
+        if (level == this) {
+            closeChildSurfaces();
+        }
+        auto snapshot = level->document_.snapshot();
+        snapshot["graph"] = stored;
+        level->childSyncing_ = true;
+        (void)level->document_.load(snapshot);
+        level->childSyncing_ = false;
+        level->syncedChildGraph_ = stored;
+    }
+    schedulePanelChanged();
 }
 void EditorWindow::closeChildSurfaces() {
     if (!tabOwner_) {
@@ -462,9 +537,11 @@ void EditorWindow::restoreTabs() {
         if (i)
             newTab();
         auto tab = activeEditor_;
+        tab->chat_.setFreshThreadPending(false);
         restored.append(tab);
         const auto entry = entries[i].toObject();
         tab->assignedProject_ = entry["project"].toString();
+        tab->syncOpenProject();
         const auto path = entry["file"].toString();
         const auto id = entry["workflow"].toString();
         if (!path.isEmpty())
@@ -508,16 +585,11 @@ void EditorWindow::showTabMenu(int index, const QPointF &global) {
     if (!target) {
         return;
     }
-    auto menu = new QMenu(this);
-    menu->setObjectName("workflow-tab-menu");
-    menu->setAttribute(Qt::WA_DeleteOnClose);
     // The menu belongs to a tab that a choice may close, so choices run later.
-    const auto later = [owner](std::function<void()> work) {
-        return [owner, work] { QTimer::singleShot(0, owner, work); };
-    };
     // web/src/components/workspace/WorkspaceTabItem.tsx lists these entries.
+    MenuBuilder menu;
     if (!target->childParent_) {
-        menu->addAction(tr("Rename"), owner, later([owner, target] {
+        menu.item("rename", tr("Rename"), {}, [owner, target] {
             if (!target) {
                 return;
             }
@@ -528,20 +600,30 @@ void EditorWindow::showTabMenu(int index, const QPointF &global) {
                 bar->setFocus(Qt::OtherFocusReason);
             }
             surface->documentTabs_.beginRename(owner->visibleTabs().indexOf(target));
-        }));
+        });
     }
-    menu->addAction(tr("Close tab"), owner, later([owner, target] {
+    menu.item("close", tr("Close tab"), {}, [owner, target] {
         if (target) {
             owner->closeSurface(owner->tabs_.indexOf(target));
         }
-    }));
-    menu->addAction(tr("Close other tabs"), owner, later([owner, target] {
+    });
+    menu.item("close-others", tr("Close other tabs"), {}, [owner, target] {
         if (target) {
             owner->closeOtherTabs(owner->visibleTabs().indexOf(target));
         }
-    }));
-    menu->addAction(tr("Close all tabs"), owner, later([owner] { owner->closeAllTabs(); }));
-    menu->popup(global.toPoint());
+    });
+    menu.item("close-all", tr("Close all tabs"), {}, [owner] { owner->closeAllTabs(); });
+    EntryMenuRequest request;
+    request.kind = "workflow-tab-menu";
+    request.global = global.toPoint();
+    request.entries = menu.entries();
+    request.actions = menu.actions();
+    request.guardDocument = false;
+    request.deferChoice = true;
+    // The owner window only stacks tabs and has no engine or scene, so a tab hosts the menu.
+    if (auto host = tabOwner_ ? this : owner->activeEditor_) {
+        host->showEntryMenu(request);
+    }
 }
 void EditorWindow::closeOtherTabs(int index) {
     auto owner = tabOwner_ ? tabOwner_ : this;
@@ -604,7 +686,8 @@ void EditorWindow::renameTab(int index, const QString &name) {
     auto owner = tabOwner_ ? tabOwner_ : this;
     const auto target = owner->visibleTabs().value(index);
     const auto trimmed = name.trimmed();
-    if (!target || target->childParent_ || trimmed.isEmpty() || trimmed == target->workflowName()) {
+    // A project folder's workflow file is named by its file name, which a rename would move.
+    if (!target || target->childParent_ || target->projectWorkflowFile() || trimmed.isEmpty() || trimmed == target->workflowName()) {
         return;
     }
     if (target->session_.serverBound()) {
@@ -668,19 +751,12 @@ void EditorWindow::installTabShortcuts() {
         shortcut->setContext(Qt::WindowShortcut);
         connect(shortcut, &QShortcut::activated, this, work);
     };
-    // web/src/config/shortcuts.ts: prevTab, nextTab, switchToTab1-9,
-    // newWorkflow and closeWorkflow.
-    for (const auto &keys : {"Ctrl+PgUp", "Ctrl+Shift+[", "Ctrl+Alt+Left"}) {
-        bind(QString::fromLatin1(keys), [this] { selectAdjacentTab(-1); });
-    }
-    for (const auto &keys : {"Ctrl+PgDown", "Ctrl+Shift+]", "Ctrl+Alt+Right"}) {
-        bind(QString::fromLatin1(keys), [this] { selectAdjacentTab(1); });
-    }
+    // web/src/config/shortcuts.ts: switchToTab1-9. The application menu holds
+    // prevTab, nextTab, newWorkflow and closeWorkflow, because a second binding of
+    // the same keys would make both ambiguous.
     for (int n = 1; n <= 9; ++n) {
         bind(QString("Ctrl+%1").arg(n), [this, n] { activateTab(n - 1); });
     }
-    bind("Ctrl+T", [this] { newTab(); });
-    bind("Ctrl+W", [this] { closeTab(activeTab()); });
 }
 void EditorWindow::harvestProjects(const QJsonArray &projects) {
     QJsonArray named;
@@ -701,28 +777,56 @@ void EditorWindow::harvestProjects(const QJsonArray &projects) {
 }
 void EditorWindow::showProjectMenu(const QPointF &global) {
     auto owner = tabOwner_ ? tabOwner_ : this;
-    if (owner->projectMenu_) {
-        owner->projectMenu_->close();
+    EntryMenuRequest request;
+    request.kind = "project-menu";
+    request.global = global.toPoint();
+    request.entries = owner->projectEntries();
+    request.guardDocument = false;
+    request.deferChoice = true;
+    request.choose = [owner = QPointer<EditorWindow>(owner)](const QString &id) {
+        if (owner) {
+            owner->selectProject(id.mid(QString("project:").size()));
+        }
+    };
+    auto host = tabOwner_ ? this : owner->activeEditor_;
+    if (!host) {
+        return;
     }
-    auto menu = new QMenu(this);
-    menu->setObjectName("project-menu");
-    menu->setAttribute(Qt::WA_DeleteOnClose);
-    owner->projectMenu_ = menu;
-    owner->populateProjectMenu();
-    menu->popup(global.toPoint());
+    owner->projectMenu_ = host->showEntryMenu(request);
     auto active = owner->activeEditor_;
     if (active && !active->session_.serverUrl().isEmpty()) {
         active->browser_.loadProjects();
     }
 }
-void EditorWindow::populateProjectMenu() {
-    auto menu = projectMenu_.data();
-    if (!menu) {
+void EditorWindow::showNewTabMenu(const QPointF &global) {
+    auto owner = tabOwner_ ? tabOwner_ : this;
+    auto host = tabOwner_ ? this : owner->activeEditor_;
+    if (!host) {
         return;
     }
-    menu->clear();
-    // Personal comes first, then the named projects and any project with an
-    // open document, as in web/src/components/projects/ProjectSelector.tsx.
+    EntryMenuRequest request;
+    request.kind = "new-tab-menu";
+    request.global = global.toPoint();
+    request.entries = {QVariantMap{{"id", "new-workflow"}, {"label", tr("New Workflow")}},
+                       QVariantMap{{"id", "new-comfy-workflow"}, {"label", tr("New Comfy Workflow")},
+                                   {"enabled", owner->comfyBackend()->configured()}}};
+    request.guardDocument = false;
+    request.deferChoice = true;
+    request.choose = [owner = QPointer<EditorWindow>(owner)](const QString &id) {
+        if (!owner) {
+            return;
+        }
+        if (id == QLatin1String("new-comfy-workflow")) {
+            owner->newComfyWorkflow();
+        } else {
+            owner->newTab();
+        }
+    };
+    host->showEntryMenu(request);
+}
+// Personal comes first, then the named projects and any project with an
+// open document, as in web/src/components/projects/ProjectSelector.tsx.
+QVariantList EditorWindow::projectEntries() const {
     QStringList keys{QString()};
     QHash<QString, QString> names;
     for (const auto &value : projects_) {
@@ -739,14 +843,20 @@ void EditorWindow::populateProjectMenu() {
         names.insert(key, tab->workflowName());
     }
     const auto active = activeProject();
+    QVariantList entries;
     for (const auto &key : keys) {
-        auto action = menu->addAction(key.isEmpty() ? tr("Personal") : names.value(key));
-        action->setCheckable(true);
-        action->setChecked(key == active);
-        connect(action, &QAction::triggered, this, [this, key] {
-            QTimer::singleShot(0, this, [this, key] { selectProject(key); });
-        });
+        entries.append(QVariantMap{{"id", "project:" + key},
+                                   {"label", key.isEmpty() ? tr("Personal") : names.value(key)},
+                                   {"checked", key == active}});
     }
+    return entries;
+}
+void EditorWindow::populateProjectMenu() {
+    auto menu = projectMenu_.data();
+    if (!menu || !menu->isVisible() || !menu->rootObject()) {
+        return;
+    }
+    menu->rootObject()->setProperty("entries", projectEntries());
 }
 void EditorWindow::selectProject(const QString &project) {
     if (tabOwner_) {
@@ -774,6 +884,7 @@ void EditorWindow::selectProject(const QString &project) {
     // blank workflow.
     newTab();
     activeEditor_->assignedProject_ = project;
+    activeEditor_->syncOpenProject();
     notifyTabs();
     activeEditor_->schedulePanelChanged();
 }
@@ -822,8 +933,7 @@ void EditorWindow::openChild() {
     QNetworkRequest request(url);
     request.setTransferTimeout(30000);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-    request.setRawHeader("Authorization",
-                         "Bearer " + owner->tabsToken_.toUtf8());
+    nodetool::account::qt::attachServerToken(request, owner->tabsOrigin_, owner->tabsToken_);
     auto reply = network->get(request);
     message_ = tr("Loading app workflow…");
     schedulePanelChanged();
@@ -905,6 +1015,7 @@ void EditorWindow::openChild() {
     child->inlineChild_ = key == "graph";
     if (child->inlineChild_) {
         connect(this, &EditorWindow::panelChanged, child, &EditorWindow::schedulePanelChanged);
+        child->followHostRuns();
     }
   child->childNode_ = selected_;
   child->childParentEpoch_ = documentEpoch_;
@@ -916,6 +1027,11 @@ void EditorWindow::openChild() {
                                                : tr("Linked workflow")));
   workflow["graph"] =
       graph.isEmpty() ? QJsonObject{{"nodes", QJsonArray{}}, {"edges", QJsonArray{}}} : graph;
+  // A subgraph of ComfyUI nodes runs as one Comfy job, so its surface edits
+  // it as a Comfy workflow (buildSubgraphWorkflow in SubgraphTabsStore.ts).
+  if (key == "graph" && node_editor::isComfyGraph(graph)) {
+    workflow["run_mode"] = QStringLiteral("comfy");
+  }
   (void)child->document_.load(workflow);
   child->childSyncing_ = false;
     child->childWriteTimer_ = new QTimer(child);
@@ -974,30 +1090,32 @@ void EditorWindow::syncChild() {
     syncedChildGraph_ = graph;
 }
 void EditorWindow::showLinkedWorkflows() {
-  auto menu = new QMenu(this);
-  menu->setObjectName("linked-workflows-menu");
-  menu->setAttribute(Qt::WA_DeleteOnClose);
-  connect(this, &EditorWindow::documentEpochChanged, menu, &QMenu::close);
-  connect(this, &EditorWindow::credentialsEpochChanged, menu, &QMenu::close);
+  MenuBuilder menu;
   for (const auto &v : document_.nodes()) {
     const auto node = v.toObject();
     const auto key = node_editor::childGraphKey(node);
     if (key != "workflow_json" && key != "app_json") {
       continue;
     }
-    auto entry =
-        menu->addAction(node["ui_properties"].toObject()["title"].toString(
+    const auto title =
+        node["ui_properties"].toObject()["title"].toString(
             node["data"].toObject()[key].toObject()["name"].toString(
-                node["id"].toString())));
-    connect(entry, &QAction::triggered, this, [this, node] {
-      selectNode(node["id"].toString());
+                node["id"].toString()));
+    const auto id = node["id"].toString();
+    menu.item("linked:" + id, title, {}, [this, id] {
+      selectNode(id);
       openChild();
     });
   }
-  if (menu->actions().isEmpty()) {
-    menu->addAction(tr("No linked workflows"))->setEnabled(false);
+  if (menu.entries().isEmpty()) {
+    menu.item("none", tr("No linked workflows"), {}, [] {}, RowOptions{.enabled = false});
   }
-  menu->popup(mapToGlobal(rect().center()));
+  EntryMenuRequest request;
+  request.kind = "linked-workflows-menu";
+  request.global = mapToGlobal(rect().center());
+  request.entries = menu.entries();
+  request.actions = menu.actions();
+  showEntryMenu(request);
 }
 } // namespace nodetool
 
@@ -1010,6 +1128,7 @@ void nodetool::EditorWindow::syncPackSetup() {
     types.append(value.toObject()["type"].toString());
   }
   packSetup()->configure(packOrigin_, packToken_, packUser_);
+  comfyBackend()->configure(packOrigin_, packToken_, packUser_);
   packSetup()->setNodeTypes(types);
 }
 
@@ -1037,8 +1156,7 @@ void EditorWindow::refreshChildReferences() {
         "/api/workflows/" + QString::fromLatin1(QUrl::toPercentEncoding(id)))));
     request.setTransferTimeout(30000);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-    request.setRawHeader("Authorization",
-                         "Bearer " + tabOwner_->tabsToken_.toUtf8());
+    nodetool::account::qt::attachServerToken(request, tabOwner_->tabsOrigin_, tabOwner_->tabsToken_);
     auto reply = network->get(request);
     connect(
         reply, &QNetworkReply::finished, this,

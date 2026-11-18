@@ -59,6 +59,8 @@ const gate: CapabilityGate = {
 
 function makeContext(): ProcessingContext {
   return {
+    workspaceDir,
+    workspace: null,
     resolveWorkspacePath: (path: string) => resolve(join(workspaceDir, path))
   } as unknown as ProcessingContext;
 }

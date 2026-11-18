@@ -143,6 +143,28 @@ private slots:
   QTRY_VERIFY(presenter->active());
   auto popup=presenter->editorWidget(); QVERIFY(popup);
   auto inlineEditor=find(popup->rootObject()); QVERIFY(inlineEditor);
+  // The inline editor covers the card's code field exactly, with no Expand strip.
+  const auto fieldOnView=view->mapFromScene(window.scene()->nodeGraphicsObject(codeId)->scenePos()+model.inlineFieldRect(codeId,"code").topLeft());
+  QVERIFY(std::abs(presenter->editorRect().left()-fieldOnView.x())<=1 && std::abs(presenter->editorRect().top()-fieldOnView.y())<=1);
+  QVERIFY(std::abs(presenter->editorRect().height()-model.inlineFieldRect(codeId,"code").height()*view->transform().m11())<=1);
+  for(auto child:popup->rootObject()->findChildren<QQuickItem*>()) if(child->objectName()=="inline-expand") QVERIFY(!child->isVisible());
+  // Brackets pair, Return indents inside a block, and Cmd or Ctrl+/ comments the line.
+  inlineEditor->forceActiveFocus(); inlineEditor->setProperty("text",QString()); inlineEditor->setProperty("cursorPosition",0);
+  QTest::keyClicks(popup,"if (x) {");
+  QCOMPARE(inlineEditor->property("text").toString(),QString("if (x) {}"));
+  QTest::keyClick(popup,Qt::Key_Return);
+  QCOMPARE(inlineEditor->property("text").toString(),QString("if (x) {\n  \n}"));
+  QTest::keyClicks(popup,"go");
+  QTest::keyClick(popup,Qt::Key_Slash,Qt::ControlModifier);
+  QCOMPARE(inlineEditor->property("text").toString(),QString("if (x) {\n  // go\n}"));
+  QTest::keyClick(popup,Qt::Key_Slash,Qt::ControlModifier);
+  QCOMPARE(inlineEditor->property("text").toString(),QString("if (x) {\n  go\n}"));
+  QTest::keyClick(popup,Qt::Key_Escape); QTRY_VERIFY(!presenter->active());
+  QCOMPARE(window.document()->snapshot(),before);
+  QTest::mouseClick(view->viewport(),Qt::LeftButton,Qt::NoModifier,view->mapFromScene(codePoint));
+  QTRY_VERIFY(presenter->active());
+  popup=presenter->editorWidget(); QVERIFY(popup);
+  inlineEditor=find(popup->rootObject()); QVERIFY(inlineEditor);
   inlineEditor->forceActiveFocus(); QTest::keyClicks(popup,"cancel popup");
   QTest::keyClick(popup,Qt::Key_Escape); QTRY_VERIFY(!presenter->active());
   QCOMPARE(window.document()->snapshot(),before);
@@ -153,6 +175,17 @@ private slots:
    QVERIFY(window.grab().save(directory+"/code-dark.png"));
    window.setDarkTheme(false); QTest::qWait(80);
    QVERIFY(window.grab().save(directory+"/code-light.png"));
+   window.setDarkTheme(true);
+   QString sample="const PRESETS = {\n  \"dolly in\": {\n    id: \"camera.dolly-in\", // push\n    version: 1,\n  },\n};\nreturn {answer: PRESETS};";
+   QVERIFY(window.document()->applyCommand({{"op","setProperty"},{"id","code"},{"name","code"},{"value",sample}}).ok);
+   view->resetTransform(); view->scale(2,2); view->centerOn(window.scene()->nodeGraphicsObject(codeId)); QTest::qWait(80);
+   const auto field=model.inlineFieldRect(codeId,"code").translated(window.scene()->nodeGraphicsObject(codeId)->scenePos());
+   const auto area=view->mapFromScene(field.adjusted(-8,-8,8,8)).boundingRect();
+   QVERIFY(view->viewport()->grab(area).save(directory+"/code-card.png"));
+   QTest::mouseClick(view->viewport(),Qt::LeftButton,Qt::NoModifier,view->mapFromScene(field.center()));
+   QTRY_VERIFY(presenter->active()); QTest::qWait(120);
+   QVERIFY(view->viewport()->grab(area).save(directory+"/code-card-active.png"));
+   QVERIFY(window.grab().save(directory+"/code-window-active.png"));
   }
  }
 };

@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "kod#stan",
       "signInWindowClosed": "Okno logowania zamknięte?",
       "openAgain": "Otwórz ponownie",
-      "linkExpiry": ". Link wygasa po 10 minutach."
+      "linkExpiry": ". Link wygasa po 10 minutach.",
+      "nativeSubtitle": "chce zalogować się na Twoje konto NodeTool.",
+      "app": "Aplikacja",
+      "device": "Urządzenie",
+      "nativeNote": "Zatwierdź tylko wtedy, gdy to Ty rozpocząłeś to logowanie w aplikacji desktopowej NodeTool na tym komputerze. Aplikacja będzie mogła otwierać, edytować i zapisywać Twoje dokumenty w chmurze, dopóki się nie wylogujesz lub nie zakończysz sesji w Ustawieniach."
     },
     "integrations": {
       "loadingAccounts": "Ładowanie połączonych kont",
@@ -295,6 +299,8 @@
     "addWorkflowTooltip": "Dodaj węzeł przepływu pracy",
     "addSubgraph": "Dodaj podpunkt",
     "addSubgraphTooltip": "Dodaj wbudowany węzeł podgrafu",
+    "addComfySubgraph": "Dodaj podgraf Comfy",
+    "addComfySubgraphTooltip": "Dodaj podgraf węzłów ComfyUI uruchamiany jako jedno zadanie Comfy",
     "addApp": "Dodaj aplikację",
     "addAppTooltip": "Uruchom miniaplikację jako węzeł",
     "property": "Własność",
@@ -706,61 +712,15 @@
   },
   "batch2_1": {
     "common": {
-      "workspace": "Obszar roboczy",
       "loading": "Ładowanie…",
       "refresh": "Odśwież",
       "remove": "Usuń",
       "cancel": "Anuluj"
     },
-    "page": {
-      "title": "Obszary robocze",
-      "subtitle": "Foldery w trybie piaskownicy, w których agenci i przepływy pracy mogą czytać, zapisywać i porządkować pliki."
-    },
-    "folderPicker": {
-      "title": "Wybierz folder obszaru roboczego"
-    },
-    "notifications": {
-      "added": "Dodano obszar roboczy",
-      "removed": "Usunięto obszar roboczy"
-    },
-    "errors": {
-      "loadTitle": "Nie udało się wczytać obszarów roboczych",
-      "loadSummary": "Nie udało się wczytać obszarów roboczych",
-      "loadDescription": "Sprawdź połączenie i spróbuj ponownie.",
-      "operation": "Operacja obszaru roboczego nie powiodła się: {{error}}"
-    },
-    "manager": {
-      "inaccessible": "Niedostępny",
-      "defaultWorkspace": "Domyślny obszar roboczy",
-      "setDefault": "Ustaw jako domyślny",
-      "emptyTitle": "Nie skonfigurowano żadnych obszarów roboczych",
-      "emptyCanManage": "Dodaj obszar roboczy, aby umożliwić agentom dostęp do folderów lokalnych",
-      "emptyManaged": "To wdrożenie zarządza Twoim obszarem roboczym za Ciebie",
-      "adding": "Dodawanie…",
-      "addWorkspace": "Dodaj obszar roboczy",
-      "removeTitle": "Usunąć ten obszar roboczy?",
-      "removeDescription": "Obszar roboczy zostanie usunięty z NodeTool. Sam folder nie zostanie usunięty."
-    },
-    "select": {
-      "defaultWithPath": "Domyślny ({{path}})",
-      "description": "Agenci odczytują i zapisują tutaj pliki podczas wykonywania, w tym zapisane obrazy, tekst, dane i inne dane wyjściowe. Przeglądaj wyniki w panelu Obszar roboczy. Agenci mają dostęp tylko do plików znajdujących się w tym folderze. Przepływ pracy pozostawiony jako Domyślny korzysta z domyślnego obszaru roboczego.",
-      "createNew": "Utwórz nowy obszar roboczy",
-      "addWorkspace": "Dodaj obszar roboczy…"
-    },
     "tree": {
       "loading": "Ładowanie…",
       "accessDenied": "⚠️Odmowa dostępu",
-      "title": "Eksplorator przestrzeni roboczej",
-      "manage": "Zarządzaj obszarami roboczymi",
-      "goToRoot": "Przejdź do katalogu głównego obszaru roboczego",
-      "openInFolder": "Otwórz w folderze",
-      "openExternally": "Otwórz na zewnątrz",
-      "noneSelected": "Nie wybrano obszaru roboczego",
-      "selectOrCreate": "Wybierz obszar roboczy powyżej lub utwórz go.",
-      "createWorkspace": "Utwórz obszar roboczy",
-      "fileBrowser": "Przeglądarka plików obszaru roboczego",
-      "emptyTitle": "Obszar roboczy jest pusty",
-      "emptyDescription": "Dodaj pliki do folderu obszaru roboczego, aby zobaczyć je tutaj."
+      "openExternally": "Otwórz na zewnątrz"
     }
   },
   "batch2_10": {
@@ -1639,7 +1599,11 @@
       "assistant": "Asystent",
       "history": "Historia",
       "code": "Kod",
-      "storyboard": "Storyboard"
+      "storyboard": "Storyboard",
+      "effectControls": "Ustawienia efektów",
+      "motion": "Ruch",
+      "color": "Kolor",
+      "ai": "AI"
     },
     "unavailable": {
       "tracks": "Tryb DAW ma własny widok ścieżki. Wyłącz tę opcję (Alt+M), aby otworzyć panel Oś czasu.",
@@ -1778,7 +1742,6 @@
       "packageManager": "Menedżer pakietów",
       "assets": "Aktywa",
       "collections": "Kolekcje",
-      "workspaces": "Obszary robocze",
       "memory": "Pamięć",
       "settings": "Ustawienia",
       "help": "Pomoc",
@@ -2321,7 +2284,8 @@
       "cloudAlphaNotice": "Chmura jest w fazie alfa. Do prac produkcyjnych użyj",
       "ssoTitle": "Zaloguj się do NodeTool",
       "ssoSignIn": "Zaloguj się przez {{provider}}",
-      "ssoFailed": "Logowanie nie powiodło się ({{reason}}). Spróbuj ponownie lub poproś administratora o dostęp."
+      "ssoFailed": "Logowanie nie powiodło się ({{reason}}). Spróbuj ponownie lub poproś administratora o dostęp.",
+      "marketingOptIn": "Wysyłaj mi e-maile o nowych premierach i darmowych ofertach. Możesz zrezygnować w każdej chwili."
     },
     "inspector": {
       "params": "Parametry",
@@ -2622,6 +2586,10 @@
       "connected": "Połączono",
       "connectedProviders": "Połączeni dostawcy",
       "connectedViaOAuth": "Połączono z logowaniem",
+      "creditLeft": "Pozostałe środki: {{amount}}",
+      "creditLeftOf": "Pozostałe środki: {{amount}} z {{limit}}",
+      "creditExhausted": "Brak środków. Doładuj konto w {{provider}}, aby z niego korzystać.",
+      "creditRefused": "{{provider}} odrzucił wywołanie z powodu braku środków. Doładuj konto, a potem kliknij Testuj.",
       "connecting": "Łączę…",
       "delete": "Usuń",
       "deleteApiKeyConfirmation": "Klucz API {{provider}} zostanie usunięty, a jego modele przestaną działać, dopóki nie dodasz klucza ponownie.",
@@ -3730,6 +3698,7 @@
         "shotCount_other": "{{count}} strzału",
         "modelLabel": "Modelka",
         "modelPlaceholder": "Model scenariusza",
+        "noModels": "Brak dostępnego modelu językowego. Dodaj klucz dostawcy w Ustawieniach, w sekcji Modele i dostawcy.",
         "shotsLabel": "Strzały",
         "title": "Wybierz swój gatunek",
         "description": "Ton, tempo i kadrowanie zależą od Twojego wyboru. Możesz to zmienić później.",
@@ -3897,10 +3866,9 @@
           "lightingPlaceholder": "Jak oświetlona jest scena",
           "shotHeader": "Strzał {{count}}",
           "shotAction": "Strzał {{count}} · Akcja",
-          "shotDialogue": "Strzał {{count}} · Dialog",
-          "dialoguePlaceholder": "Dialog",
-          "addDialogue": "Dodaj dialog",
+          "dialogue": "Dialog",
           "seconds": "Sekundy",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Scena {{count}}"
         },
         "fallback": {
@@ -6330,7 +6298,23 @@
         "title": "Nowy projekt",
         "confirm": "Utwórz projekt",
         "nameLabel": "Nazwa projektu",
-        "createError": "Nie można utworzyć projektu: {{error}}"
+        "locationLabel": "Lokalizacja",
+        "locationDefault": "Folder projektów",
+        "locationChoose": "Wybierz…",
+        "locationReset": "Użyj folderu projektów",
+        "createError": "Nie można utworzyć projektu: {{error}}",
+        "openFolder": "Otwórz folder…",
+        "openFolderHint": "Masz już folder? Otwórz go jako projekt. Żadne pliki nie zostaną przeniesione.",
+        "openFolderTravels": "Folder skopiowany z innego komputera otwiera się ze swoimi przepływami pracy, osiami czasu i zasobami. Czaty, storyboardy, scenariusze, szkice, aplikacje i skrypty JS nie są przenoszone razem z folderem.",
+        "openFolderError": "Nie udało się otworzyć folderu: {{error}}"
+      },
+      "folder": {
+        "notFound": "Nie znaleziono folderu",
+        "notFoundDetail": "Folder projektu {{name}} został przeniesiony, zmienił nazwę lub jest na niepodłączonym dysku. Uruchomienia nie wystartują, dopóki go nie wskażesz.",
+        "locate": "Wskaż",
+        "locateError": "Nie udało się wskazać folderu: {{error}}",
+        "moving": "Przenoszenie plików do folderu projektu",
+        "movingDetail": "Przeniesiono {{done}} z {{total}} plików. Zasoby pozostają w tym czasie dostępne."
       },
       "home": {
         "homeTab": "Dom",
@@ -6568,6 +6552,16 @@
           "image": "Obraz",
           "video": "Wideo",
           "audio": "Dźwięk"
+        },
+        "attachedFileActions": {
+          "label": "Zacznij od swoich plików",
+          "hint": "Pliki dołączone. Opisz, co chcesz stworzyć, albo zacznij od nich:",
+          "animate": "Animuj jako wideo",
+          "image": "Utwórz nowe obrazy",
+          "retake": "Edytuj wideo",
+          "script": "Zamień w scenariusz",
+          "ask": "Zapytaj o nie",
+          "askPrompt": "Przejrzyj dołączone pliki i zaproponuj, co mogę z nich zrobić."
         }
       }
     }
@@ -6631,16 +6625,42 @@
           "export": "Eksportuj",
           "archive": "Archiwum",
           "restore": "Przywróć",
-          "delete": "Usuń"
+          "delete": "Usuń",
+          "collect": "Zbierz pliki"
         },
         "projectActions": "Działania projektowe",
         "actionsForProject": "Działania dla {{projectName}}",
         "exporting": "Eksportuję…",
         "deleteProject": "Usuń projekt",
         "confirmDeleteTitle": "Usunąć {{projectName}}?",
-        "confirmDeleteBody": "Usuń {{projectName}} i wszystkie jego dokumenty, rozmowy, wygenerowane wyniki, zasoby, zadania i pliki projektu.",
+        "confirmDeleteBody": "Usuń {{projectName}} i wszystkie jego dokumenty, rozmowy, zadania oraz zasoby przechowywane poza folderem projektu.",
         "deleteIrreversible": "Tego nie można cofnąć.",
-        "error": "Nie można {{action}} {{projectName}}: {{error}}"
+        "deleteFolderTrash": "Folder projektu zostanie przeniesiony do kosza.",
+        "deleteFolderRemove": "Folder projektu i wszystkie jego pliki zostaną usunięte z magazynu w chmurze.",
+        "deleteFolderKeep": "Folder projektu pozostanie na swoim miejscu ze wszystkimi plikami. NodeTool usunie tylko znajdujący się w nim folder .nodetool.",
+        "deleteFolderMissing": "Folder projektu jest niedostępny, więc NodeTool pozostawi go bez zmian.",
+        "folderMovedAsideTo": "Kosz był niedostępny. Folder projektu przeniesiono do {{path}}.",
+        "folderMovedAside": "Kosz był niedostępny. Folder projektu przeniesiono do folderu .trash w folderze projektów.",
+        "folderTrashFailedAt": "Nie udało się przenieść folderu projektu do kosza. Pozostaje w {{path}}.",
+        "folderTrashFailed": "Nie udało się przenieść folderu projektu do kosza. Pozostaje na swoim miejscu.",
+        "error": "Nie można {{action}} {{projectName}}: {{error}}",
+        "collecting": "Zbieranie plików…",
+        "collectResult": "Zebrano pliki w {{projectName}}: skopiowane {{copied}}, pominięte {{skipped}}, nieudane {{failed}}.",
+        "linkedTitle": "{{projectName}} łączy pliki spoza swojego folderu",
+        "linkedBody": "Eksport zawiera folder projektu. Te pliki są połączone z innego miejsca i nie ma ich w nim:",
+        "linkedChoice": "Zbierz i eksportuj kopiuje je do katalogu Imported w folderze, a potem eksportuje. Anuluj zachowuje połączenia i niczego nie eksportuje.",
+        "collectAndExport": "Zbierz i eksportuj"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Skopiować czy połączyć?",
+        "confirm": "Importuj",
+        "copy": "Skopiuj do folderu projektu",
+        "copyHint": "Projekt zachowuje własną kopię. Zmiany w oryginale do niej nie trafiają.",
+        "link": "Połącz w miejscu",
+        "linkHint": "Nic nie jest kopiowane. Projekt czyta plik tam, gdzie się znajduje. Zbierz pliki skopiuje go później.",
+        "threshold": "Pliki o rozmiarze {{size}} lub większym są domyślnie łączone."
       }
     }
   },
@@ -6702,7 +6722,16 @@
         "couldNotLoadDocuments": "Nie można załadować dokumentów",
         "noDocuments": "Nie ma jeszcze dokumentów",
         "noMatchingDocuments": "Brak pasujących dokumentów",
-        "searchProjectsAndDocuments": "Wyszukaj projekty i dokumenty"
+        "searchProjectsDocumentsAndChats": "Wyszukaj projekty, dokumenty i czaty",
+        "documentsAndChats": "Dokumenty i czaty",
+        "chats": "Czaty",
+        "loadingChats": "Ładowanie czatów…",
+        "couldNotLoadChats": "Nie udało się wczytać czatów",
+        "noChats": "Nie ma jeszcze czatów",
+        "noMatchingChats": "Brak pasujących czatów",
+        "allChats": "Wszystkie czaty",
+        "untitledChat": "Czat bez tytułu",
+        "searchShort": "Szukaj"
       },
       "rail": {
         "projects": "Projekty"
@@ -6810,8 +6839,6 @@
       "runModeTool": "Narzędzie",
       "runModeDescription": "Sposób działania tego przepływu pracy i jego uruchomienia",
       "advanced": "Zaawansowane",
-      "workspace": "Obszar roboczy",
-      "workspaceDescription": "Powiąż folder obszaru roboczego z tym przepływem pracy, aby uzyskać dostęp agenta",
       "toolName": "Nazwa narzędzia",
       "toolNameDescription": "Identyfikator użycia API/narzędzia. Tylko litery, cyfry i podkreślenia.",
       "toolNamePlaceholder": "moje_narzędzie_przepływu pracy",
@@ -9222,6 +9249,7 @@
         "Jaki rodzaj aplikacji wysłał zdarzenie (chmura, komputer stacjonarny, internet lokalny), wersja aplikacji i rodzina systemów operacyjnych.",
         "Czy aplikacja została uruchomiona, utworzono przepływ pracy lub uruchomiono przepływ pracy.",
         "W przypadku uruchomienia: lokalnego lub w chmurze, liczba węzłów jako zakres (np. 6–20), czas trwania jako zakres, a w przypadku awarii jako kategoria, np. dostawca lub limit czasu.",
+        "W pierwszej sesji: że pokazano propozycje na start, którą wybrano, rodzaj pierwszego wyniku (na przykład czat lub storyboard) z czasem do niego jako przedziałem oraz klasę ekranu (telefon, tablet lub komputer).",
         "Losowy identyfikator przechowywany w tej przeglądarce, który zmienia się co 30 dni, oraz losowy identyfikator dla tej sesji."
       ],
       "never": "Nigdy",
@@ -9371,10 +9399,6 @@
         "REPLICATE_API_TOKEN": {
           "button": "Uzyskaj token replikacji interfejsu API",
           "tooltip": "Przejdź do strony Replikuj tokeny API"
-        },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Uzyskaj hasło do aplikacji Google",
-          "tooltip": "Przejdź do strony haseł do aplikacji konta Google"
         },
         "ELEVENLABS_API_KEY": {
           "button": "Zdobądź klucz API ElevenLabs",
@@ -10965,9 +10989,9 @@
         "jsScripts": "Skrypty JS-a",
         "skills": "Umiejętności",
         "assets": "Aktywa",
-        "workspace": "Obszar roboczy",
         "library": "Biblioteka",
-        "more": "Więcej"
+        "more": "Więcej",
+        "files": "Pliki"
       },
       "categoryDescriptions": {
         "documents": "Przeglądaj każdy dokument w bieżącym projekcie.",
@@ -10987,9 +11011,9 @@
         "jsScripts": "Twórz i zarządzaj kodem JavaScript wielokrotnego użytku.",
         "skills": "Umiejętności agenta — instrukcje przecen dopasowane do celu.",
         "assets": "Przeglądaj zasoby dostępne w bieżącym kontekście.",
-        "workspace": "Przeglądaj pliki w wybranym folderze obszaru roboczego.",
         "library": "Przeglądaj zasoby w bieżącym projekcie.",
-        "more": "Otwórz dodatkowe panele przepływu pracy, edytora, programisty i obszaru roboczego."
+        "more": "Otwórz dodatkowe panele przepływów pracy, edytora i programisty.",
+        "files": "Przeglądaj pliki w folderze projektu."
       }
     },
     "queue": {
@@ -11008,6 +11032,8 @@
       "queuedCount_one": "{{count}} w kolejce",
       "queuedCount_other": "{{count}} w kolejce",
       "collapseQueue": "Zwiń kolejkę",
+      "moveQueue": "Przenieś kolejkę",
+      "moveQueueHint": "Przeciągnij, aby przenieść. Strzałki ją przesuwają, Home przywraca.",
       "enqueued": "Umieszczone w kolejce",
       "jobsRunning_few": "{{count}} zadania w toku",
       "jobsRunning_many": "{{count}} zadań w toku",
@@ -11095,6 +11121,7 @@
       "levels_one": "Poziom {{count}}",
       "levels_other": "{{count}} poziomu",
       "allLevels": "Wszystkie poziomy",
+      "anyDepth": "Dowolna głębokość",
       "spanName": "Nazwa zakresu",
       "focusSpan": "Rozpiętość ostrości",
       "wholeRun": "Cały bieg",
@@ -11152,7 +11179,6 @@
       "noRecentRuns": "Brak ostatnich uruchomień",
       "noMatchingSpans": "Brak pasujących zakresów",
       "spanId": "Rozpiętość {{id}}",
-      "olderRuns": "Starsze biegi",
       "noRecordedRuns": "Brak zarejestrowanych przebiegów",
       "noRunsDescription": "Rozpocznij działanie aplikacji, przepływ pracy lub turę na czacie, aby sprawdzić jego ślad i logi.",
       "runStatus": {
@@ -13609,8 +13635,9 @@
         },
         "showCode": "Pokaż kod",
         "showArguments": "Pokaż argumenty",
-        "allow": "Zezwól",
-        "allowForChat": "Zezwól na ten czat",
+        "allowOnce": "Zezwól raz",
+        "allowAlways": "Zawsze zezwalaj",
+        "allowAlwaysHint": "Uruchamiaj {{tool}} bez pytania od teraz. Możesz to zmienić w Ustawienia › Uprawnienia.",
         "deny": "Odmów"
       }
     }
@@ -13853,7 +13880,8 @@
         "sendMessage": "Nie można wysłać wiadomości: {{error}}",
         "compact": "Nie można zagęścić rozmowy: {{error}}",
         "copyConversation": "Nie udało się skopiować rozmowy.",
-        "rewindConversation": "Nie można przewinąć rozmowy: {{error}}"
+        "rewindConversation": "Nie można przewinąć rozmowy: {{error}}",
+        "switchVersion": "Nie udało się przełączyć wersji: {{error}}"
       },
       "notifications": {
         "copiedMessages_one": "Skopiowano wiadomość {{count}} jako Markdown.",
@@ -13877,8 +13905,14 @@
         },
         "connectProviderTitle": "Aby rozpocząć, połącz się z dostawcą AI",
         "connectProviderButton": "Połącz się z dostawcą",
-        "title": "Jak mogę Ci dzisiaj pomóc?",
-        "subtitle": "Zapytaj o cokolwiek, prześlij pliki lub zacznij od jednego z poniższych:"
+        "greeting": {
+          "morning": "Dzień dobry",
+          "afternoon": "Dzień dobry",
+          "evening": "Dobry wieczór",
+          "morningName": "Dzień dobry, {{name}}",
+          "afternoonName": "Dzień dobry, {{name}}",
+          "eveningName": "Dobry wieczór, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Zadania",
@@ -14448,8 +14482,7 @@
       "search": "Przeszukaj wszystkie panele",
       "group": {
         "workflow-tools": "Narzędzia przepływu pracy",
-        "agent-tools": "Narzędzia agenta",
-        "workspace": "Obszar roboczy"
+        "agent-tools": "Narzędzia agenta"
       },
       "category": {
         "favorites": {
@@ -14467,10 +14500,6 @@
         "skills": {
           "label": "Umiejętności",
           "description": "Umiejętności agenta — instrukcje przecen dopasowane do celu."
-        },
-        "workspace-files": {
-          "label": "Obszar roboczy",
-          "description": "Przeglądaj pliki w wybranym folderze obszaru roboczego."
         }
       }
     },
@@ -15152,9 +15181,6 @@
       "runGroup": {
         "groupRunning": "Grupa działa",
         "runGroup": "Uruchom grupę"
-      },
-      "saveDestinationHint": {
-        "workspace": "Obszar roboczy"
       }
     }
   },
@@ -15629,7 +15655,6 @@
       "csv": "plik CSV",
       "unknown": "Nieznany typ pliku",
       "unknownContentType": "Nieznany typ treści",
-      "offline": "Multimedia w trybie offline",
       "thumbnail": "Miniatura",
       "folder": "Folder"
     },
@@ -16413,9 +16438,9 @@
       "jsscripts": "Skrypty JS-a",
       "skills": "Umiejętności",
       "assets": "Aktywa",
-      "workspace-files": "Obszar roboczy",
       "library": "Biblioteka",
-      "more": "Więcej"
+      "more": "Więcej",
+      "files": "Pliki"
     }
   },
   "i18n-next55": {
@@ -16550,7 +16575,6 @@
         "models": "Menedżer modeli",
         "packages": "Menedżer pakietów",
         "collections": "Kolekcje",
-        "workspaces": "Obszary robocze",
         "entities": "Podmioty",
         "memory": "Pamięć",
         "settings": "Ustawienia",
@@ -17318,8 +17342,8 @@
         "extendEdit": "Rozszerz punkt edycji na głowicę odtwarzania",
         "trimEditLeft": "Przytnij punkt edycji o jedną klatkę do tyłu",
         "trimEditRight": "Przytnij punkt edycji o jedną klatkę",
-        "trimEditLeftLarge": "Przytnij punkt edycji dziesięć klatek do tyłu",
-        "trimEditRightLarge": "Przytnij edycję punktu dziesięciu klatek",
+        "trimEditLeftLarge": "Przytnij punkt edycji pięć klatek do tyłu",
+        "trimEditRightLarge": "Przytnij edycję punktu pięciu klatek",
         "duplicate": "Duplikuj po dokonaniu wyboru",
         "duplicateWithGap": "Duplikuj z przerwą 1 s",
         "applyDefaultTransition": "Przenikanie do wybranych klipów",
@@ -17400,7 +17424,49 @@
         "exitExpandedPreview": "Wyjdź z rozwiniętego podglądu",
         "moveOnePixel": "Przesuń klip o jeden piksel",
         "moveTenPixels": "Przesuń klip o dziesięć pikseli",
-        "resetTransform": "Zresetuj transformację"
+        "resetTransform": "Zresetuj transformację",
+        "extendPrevEdit": "Rozszerz poprzednią edycję do głowicy odtwarzania",
+        "extendNextEdit": "Rozszerz następną edycję do głowicy odtwarzania",
+        "selectPrevClip": "Zaznacz poprzedni klip",
+        "selectNextClip": "Zaznacz następny klip",
+        "clipVolumeUp": "Zwiększ głośność klipu o 1 dB",
+        "clipVolumeDown": "Zmniejsz głośność klipu o 1 dB",
+        "clipVolumeUpMore": "Zwiększ głośność klipu o 6 dB",
+        "clipVolumeDownMore": "Zmniejsz głośność klipu o 6 dB",
+        "slideLeft": "Przesuń zaznaczone klipy (slide) o jedną klatkę do tyłu",
+        "slideRight": "Przesuń zaznaczone klipy (slide) o jedną klatkę do przodu",
+        "slowShuttleBack": "Powolne przewijanie do tyłu (ponownie: szybciej)",
+        "slowShuttleForward": "Powolne przewijanie do przodu (ponownie: szybciej)",
+        "goToSequenceStart": "Przejdź do początku sekwencji",
+        "goToSequenceEnd": "Przejdź do końca sekwencji",
+        "goToSelectedStart": "Przejdź do początku zaznaczenia",
+        "goToSelectedEnd": "Przejdź do ostatniej klatki zaznaczenia",
+        "markSelection": "Oznacz zaznaczenie (punkty wejścia i wyjścia wokół niego)",
+        "clearIn": "Wyczyść punkt wejścia",
+        "clearOut": "Wyczyść punkt wyjścia",
+        "prevCutAnyTrack": "Poprzednie cięcie na dowolnej ścieżce",
+        "nextCutAnyTrack": "Następne cięcie na dowolnej ścieżce",
+        "prevGap": "Przejdź do poprzedniej przerwy w sekwencji",
+        "nextGap": "Przejdź do następnej przerwy w sekwencji",
+        "addRangeMarker": "Dodaj jednosekundowy znacznik zakresu na głowicy odtwarzania",
+        "addMarkerInOut": "Dodaj znacznik od punktu wejścia do wyjścia",
+        "clearAllMarkers": "Wyczyść wszystkie znaczniki",
+        "playAround": "Odtwórz wokół głowicy odtwarzania",
+        "playInToOutWithRoll": "Odtwórz od wejścia do wyjścia z prerollem i postrollem",
+        "playToOut": "Odtwórz od głowicy odtwarzania do wyjścia",
+        "expandAllTracks": "Rozwiń wszystkie ścieżki (ponownie: przywróć)",
+        "minimizeAllTracks": "Zminimalizuj wszystkie ścieżki (ponownie: przywróć)",
+        "audioTracksTaller": "Zwiększ wysokość ścieżek audio",
+        "audioTracksShorter": "Zmniejsz wysokość ścieżek audio",
+        "panelSource": "Przejdź do Źródła",
+        "panelTimeline": "Przejdź do osi czasu",
+        "panelProgram": "Przejdź do Programu",
+        "panelEffectControls": "Przejdź do Ustawień efektów",
+        "panelInspector": "Przejdź do Inspektora",
+        "panelScript": "Przejdź do Scenariusza",
+        "panelStoryboard": "Przejdź do Storyboardu",
+        "nextPanel": "Przejdź do następnego panelu",
+        "prevPanel": "Przejdź do poprzedniego panelu"
       }
     },
     "vst": {
@@ -18909,9 +18975,12 @@
       "result": "Wynik",
       "copyResult": "Skopiuj wynik",
       "editMessage": "Edytuj wiadomość",
-      "editWarning": "Wysłanie zastępuje wszystko po tej wiadomości.",
+      "editWarning": "Wysłanie tworzy nową wersję. Obecna pozostaje dostępna.",
       "editAndResend": "Edytuj i wyślij ponownie",
       "regenerate": "Zregeneruj się",
+      "previousVersion": "Poprzednia wersja",
+      "nextVersion": "Następna wersja",
+      "versionOf": "Wersja {{index}} z {{count}}",
       "copyMessage": "Skopiuj wiadomość",
       "enterCredential": "Wprowadź dane uwierzytelniające",
       "credentialSubtitle": "Zapisano w Twoim tajnym sklepie. Agent nigdy nie widzi wartości.",
@@ -19151,7 +19220,7 @@
   },
   "i18n-next110": {
     "workspaceFile": {
-      "invalidReference": "Nieprawidłowe odwołanie do pliku obszaru roboczego"
+      "invalidReference": "Nieprawidłowe odwołanie do pliku"
     }
   },
   "i18n-next109": {
@@ -19646,6 +19715,26 @@
       "typeMore": "Wpisz co najmniej 2 znaki",
       "noMatches": "Brak wyników",
       "failed": "Nie udało się nadać dostępu."
+    },
+    "options": {
+      "history": "Historia",
+      "historyDescription": "Przeglądający mogą otwierać zapisane wersje.",
+      "download": "Pobieranie",
+      "downloadDescription": "Przeglądający mogą pobierać oryginalne pliki.",
+      "duplicate": "Duplikowanie",
+      "duplicateDescription": "Przeglądający mogą skopiować go wraz z plikami do własnej biblioteki.",
+      "turnedOff": "To, co już pobrano lub zduplikowano, zostaje u tych osób.",
+      "historyOffNotice": "Przeglądający ten link nie widzą już zapisanych wersji. Włącz historię, aby je przywrócić.",
+      "turnOnHistory": "Włącz historię",
+      "dismiss": "Zamknij",
+      "failed": "Nie udało się zmienić opcji."
+    },
+    "people": {
+      "from": "Dostęp przez: {{sources}}",
+      "sourceInvitation": "zaproszenie",
+      "sourceViewLink": "link do podglądu",
+      "sourceEditLink": "link do edycji",
+      "sourceDisabled": "{{source}} (wyłączony)"
     }
   },
   "timelineAutomation": {
@@ -20613,5 +20702,263 @@
     "missingKeysDetail": "Ten workflow wymaga: {{keys}}. Dodaj go w Ustawieniach przed uruchomieniem.",
     "costPerRun": "≈ {{cost}} za uruchomienie",
     "costUnknown": "Koszt nieznany"
+  },
+  "marketingEmails": {
+    "title": "E-maile o produkcie",
+    "label": "Wysyłaj mi e-maile o premierach i darmowych ofertach",
+    "description": "Dowiaduj się o nowych funkcjach, modelach i darmowych ofertach. Każdy e-mail zawiera link do rezygnacji, a tutaj możesz to wyłączyć w każdej chwili.",
+    "saveFailed": "Nie zapisano ustawienia e-maili. Spróbuj ponownie."
+  },
+  "firstRun": {
+    "ariaLabel": "Zacznij od wyniku",
+    "heading": "Stwórz coś w niecałą minutę",
+    "subline": "Wszystko jest już wypełnione. Wypróbuj jeden, a potem zmień go na własny pomysł.",
+    "firstTask": {
+      "label": "Twój pierwszy prompt",
+      "prompt": "Podaj trzy pomysły na 30-sekundowy film o lisie w pierwszym śniegu, każdy w jednej linijce.",
+      "hint": "Odpowiada w kilka sekund na darmowym modelu domyślnym.",
+      "action": "Wyślij"
+    },
+    "game": {
+      "title": "Zrób małą grę",
+      "description": "Lis szuka ostatniego żołędzia. Otwiera się na projekcie, jedno kliknięcie go pisze."
+    },
+    "storyboard": {
+      "title": "Zrób storyboard krótkiego filmu",
+      "description": "Latarnik i wyrzucony na brzeg robot. Otwiera się na scenariuszu, jedno kliknięcie go pisze.",
+      "brief": "Po sztormie latarnik znajduje małego robota wyrzuconego na brzeg i uczy go, jak podtrzymywać światło."
+    },
+    "template": {
+      "title": "Uruchom szablon",
+      "description": "Tekst reklamowy w trzech tonach, z produktem już wpisanym. Naciśnij Uruchom."
+    },
+    "opening": "Otwieranie…",
+    "startFailed": "Nie udało się otworzyć startera: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "Nie wybrano klipu",
+    "severalClips": "Wybrano kilka klipów",
+    "effectControls": {
+      "empty": "Wybierz klip na osi czasu, aby dostosować jego transformację, krycie, efekty i maski.",
+      "several": "Wybierz jeden klip, aby go dostosować."
+    },
+    "motion": {
+      "empty": "Wybierz klip na osi czasu, aby go animować.",
+      "several": "Wybierz jeden klip, aby go animować.",
+      "unsupportedTitle": "Nie ma czego animować",
+      "unsupported": "Wybierz klip wideo, obrazu, tekstu lub kształtu, aby go animować."
+    },
+    "color": {
+      "empty": "Wybierz klip na osi czasu, aby skorygować jego kolory.",
+      "several": "Wybierz jeden klip, aby skorygować jego kolory.",
+      "unsupportedTitle": "Ten klip nie ma obrazu",
+      "unsupported": "Wybierz klip wideo, obrazu, tekstu lub kształtu, aby skorygować jego kolory."
+    },
+    "ai": {
+      "empty": "Wybierz klip na osi czasu, aby generować na jego podstawie lub edytować go za pomocą AI.",
+      "several": "Wybierz jeden klip, aby generować na jego podstawie.",
+      "unsupportedTitle": "Brak narzędzi AI dla tego klipu",
+      "unsupported": "Wybierz klip wideo lub obrazu albo wygenerowany klip."
+    }
+  },
+  "toolPermissions": {
+    "tab": "Uprawnienia",
+    "title": "Uprawnienia narzędzi",
+    "sidebarCategory": "Narzędzia",
+    "intro": "Wybierz, których narzędzi asystent może używać bez pytania. Narzędzie ustawione na Pytaj wyświetla prośbę w czacie przed uruchomieniem.",
+    "modes": "W trybie domyślnym każde narzędzie ustawione na Pytaj najpierw prosi o zgodę. W trybie automatycznym narzędzia działają bez pytania, z wyjątkiem akcji kodu, która usuwa, publikuje lub wydaje pieniądze. Ustaw Execute code na Zawsze zezwalaj, aby wyłączyć także tę prośbę. Tryb planu blokuje każdą zmianę, niezależnie od reguły.",
+    "alwaysAllow": "Zawsze zezwalaj",
+    "ask": "Pytaj",
+    "saveFailed": "Nie udało się zapisać tego uprawnienia.",
+    "loadFailed": "Nie udało się wczytać listy narzędzi.",
+    "noMatches": "Żadne narzędzie nie pasuje do wyszukiwania."
+  },
+  "projectFolder": {
+    "name": "Folder projektu",
+    "picker": {
+      "title": "Wybierz folder"
+    },
+    "tree": {
+      "title": "Pliki",
+      "goToRoot": "Przejdź do katalogu głównego folderu projektu",
+      "fileBrowser": "Pliki projektu",
+      "emptyTitle": "Folder projektu jest pusty",
+      "emptyDescription": "Dodaj pliki do folderu projektu, aby zobaczyć je tutaj.",
+      "noFolderTitle": "Brak folderu projektu",
+      "noFolderDescription": "Ten projekt nie ma jeszcze folderu.",
+      "revealInFinder": "Pokaż w Finderze",
+      "revealInExplorer": "Pokaż w Eksploratorze plików",
+      "revealInFileManager": "Pokaż w menedżerze plików",
+      "moveIntoItself": "Folderu nie można przenieść do niego samego ani do jego podfolderu.",
+      "notAnAsset": "Ten plik nie należy do zasobów projektu, więc nie można go tutaj zmienić.",
+      "actionFailed": "Zmiana nie została zapisana: {{error}}"
+    },
+    "documentFile": {
+      "invalidTitle": "Ten plik zawiera błąd",
+      "invalidBody": "Nie wczytano {{path}}: {{error}}. Ostatnia prawidłowa wersja pozostaje otwarta i nadal działa.",
+      "openFile": "Otwórz plik",
+      "missingTitle": "Brak pliku",
+      "missingBody": "{{path}} nie znajduje się już w folderze projektu. Przywróć zapisuje go ponownie z tego dokumentu.",
+      "restore": "Przywróć",
+      "delete": "Usuń",
+      "cancel": "Anuluj",
+      "deleteTitle": "Usunąć {{name}}?",
+      "deleteDescription": "„{{name}}” i jego historia wersji zostaną trwale usunięte.",
+      "restoreFailed": "Nie przywrócono pliku: {{error}}",
+      "deleteFailed": "Nie usunięto dokumentu: {{error}}"
+    },
+    "migration": {
+      "title": "Przenieś projekty do folderów",
+      "intro": "NodeTool przechowuje teraz każdy projekt we własnym folderze na tym komputerze. Twoje pliki, przepływy pracy i osie czasu zostaną tam przeniesione, a otworzysz je w innych aplikacjach.",
+      "planProjects": "Projekty, które dostaną folder",
+      "planFiles": "Pliki do przeniesienia",
+      "planWorkflows": "Przepływy pracy zapisane jako pliki",
+      "planTimelines": "Osie czasu zapisane jako pliki",
+      "extraTitle": "Projekty z więcej niż jednym folderem",
+      "extraBody": "Każdy z tych projektów zachowa jeden folder. NodeTool przestanie pokazywać pozostałe, a ich pliki zostaną na miejscu.",
+      "extraKeeps": "{{project}} zachowuje {{folder}}",
+      "extraHidden": "Nie jest już pokazywany: {{folder}}",
+      "location": "Lokalizacja",
+      "changeLocation": "Zmień lokalizację",
+      "locationError": "Tej lokalizacji nie można użyć: {{error}}",
+      "permissionWarning": "macOS zapyta, czy NodeTool może używać tego folderu. Wybierz Zezwól albo wskaż folder spoza Dokumentów, Biurka, Pobranych, iCloud Drive i dysków zewnętrznych.",
+      "safety": "Nic nie zostanie utracone. Każdy plik jest kopiowany i sprawdzany, zanim jego stara kopia zostanie usunięta. Podczas przenoszenia plików możesz dalej pracować.",
+      "later": "Nie teraz",
+      "confirm": "Przenieś pliki",
+      "planError": "Nie udało się wczytać planu: {{error}}",
+      "confirmError": "Przenoszenie nie rozpoczęło się: {{error}}",
+      "actionError": "Nie udało się zmienić przenoszenia: {{error}}",
+      "progressRegion": "Przenoszenie plików do folderów projektów",
+      "progressTitle": "Przenoszenie plików do folderów projektów",
+      "pausedTitle": "Przenoszenie plików jest wstrzymane",
+      "doneTitle": "Pliki przeniesione",
+      "progressCount": "Przeniesiono {{done}} z {{total}} plików",
+      "phaseFolders": "Tworzenie folderów projektów",
+      "phaseFiles": "Zapisywanie przepływów pracy i osi czasu jako plików",
+      "currentProject": "Przenoszenie plików projektu {{project}}",
+      "pause": "Wstrzymaj",
+      "resume": "Wznów",
+      "failuresTitle": "Nie udało się przenieść ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "Pozostałe, niepokazane: {{count}}",
+      "retry": "Spróbuj ponownie",
+      "donePath": "Twoje pliki są w {{path}}",
+      "close": "Zamknij"
+    }
+  },
+  "assetPicker": {
+    "sourceTabs": "Źródło zasobu",
+    "projectTab": "Ten projekt",
+    "personalTab": "Osobiste",
+    "personalHint": "Wybranie z Osobistych kopiuje plik do tego projektu.",
+    "copying": "Kopiowanie do tego projektu…",
+    "copyFailed": "Nie udało się skopiować zasobu do tego projektu."
+  },
+  "assetFileStatus": {
+    "missing": "Brak pliku",
+    "missingTooltip": "Plik nie znajduje się tam, gdzie oczekuje go ten zasób. Połącz go ponownie z nową lokalizacją pliku lub usuń zasób.",
+    "linked": "Połączony",
+    "linkedTooltip": "Ten zasób używa pliku spoza folderu projektu w jego miejscu.",
+    "relink": "Połącz ponownie",
+    "relinkTooltip": "Wybierz nową lokalizację pliku",
+    "relinkNoPath": "Nie udało się odczytać lokalizacji tego pliku. Wybierz plik na tym komputerze.",
+    "relinkFailed": "Ponowne połączenie nie powiodło się: {{error}}",
+    "remove": "Usuń",
+    "removeTooltip": "Usuń ten zasób z NodeTool",
+    "removeTitle": "Usunąć „{{name}}”?",
+    "removeBody": "Zasób zostanie usunięty z NodeTool. Dokumenty, które go używają, nie będą mogły go wyświetlić.",
+    "cancel": "Anuluj"
+  },
+  "deviceSessions": {
+    "title": "Zalogowane urządzenia",
+    "description": "Komputery, na których zalogowano się w aplikacjach desktopowych NodeTool. Aplikacje na jednym komputerze współdzielą jedną sesję. Zakończenie sesji wylogowuje ten komputer.",
+    "empty": "Żaden komputer nie jest zalogowany.",
+    "unnamed": "Komputer bez nazwy",
+    "signedInFrom": "Zalogowano z {{app}} {{date}}",
+    "lastUsed": "Ostatnio używane {{date}}",
+    "neverUsed": "Nieużywane od zalogowania",
+    "end": "Zakończ sesję",
+    "confirmTitle": "Zakończyć tę sesję?",
+    "confirmBody": "Aplikacje desktopowe NodeTool na {{device}} zostaną wylogowane w ciągu minuty.",
+    "cancel": "Anuluj",
+    "ended": "Sesja zakończona.",
+    "endError": "Nie udało się zakończyć sesji: {{error}}",
+    "loadError": "Nie udało się wczytać zalogowanych urządzeń.",
+    "apps": {
+      "nodeEditor": "Edytor węzłów",
+      "timeline": "Oś czasu",
+      "desktop": "Aplikacja desktopowa"
+    }
+  },
+  "storyboardText": {
+    "mode": "Tekst",
+    "editorLabel": "Storyboard jako tekst Markdown",
+    "hint": "Wpisz # dla aktu, ## dla sceny, ### dla ujęcia i - **Motion:** dla pola. Wpisz @, aby wspomnieć encję lub obraz.",
+    "issues": "Wiersze wymagające uwagi: {{lines}}",
+    "loading": "Wczytywanie tekstu…",
+    "warnings": {
+      "media_outside_shot": "Obraz należy do ujęcia. Umieść go pod nagłówkiem ujęcia ###.",
+      "second_media": "Ujęcie ma jeden wybrany kadr i jeden wybrany klip. Ten element nie jest używany.",
+      "unknown_shot_field": "„{{label}}” nie jest polem storyboardu. Zostaje zapisane w notatkach ujęcia.",
+      "unknown_field": "„{{label}}” nie jest tu polem. Nie zostaje zapisane.",
+      "text_in_scene": "Scena ma tylko nagłówek i oświetlenie. Przenieś ten tekst pod ujęcie lub zacznij go od „Lighting:”.",
+      "bad_duration": "Ujęcie {{shot}}: „{{value}}” nie jest liczbą sekund.",
+      "bad_render": "Ujęcie {{shot}}: render to keyframe, direct lub reference.",
+      "no_next_shot": "Ujęcie {{shot}}: przejście prowadzi do następnego ujęcia, a takiego nie ma.",
+      "missing_action": "Ujęcie {{shot}} nie ma jeszcze akcji. Opisz obraz do wygenerowania pod jego nagłówkiem."
+    },
+    "outline": "Konspekt",
+    "outlineEmpty": "Wpisz ### i tytuł, aby zacząć ujęcie.",
+    "untitledShot": "Ujęcie bez tytułu",
+    "untitledAct": "Akt bez tytułu",
+    "untitledScene": "Scena bez tytułu",
+    "issuesTitle": "Wymaga uwagi",
+    "stillOf": "Kadr ujęcia {{shot}}",
+    "assist": {
+      "lines": "Zaznaczone wiersze: {{lines}}",
+      "proposal": "Proponowana zamiana",
+      "note": "Uwaga agenta",
+      "discard": "Odrzuć",
+      "close": "Zamknij",
+      "replace": "Zamień zaznaczenie",
+      "stale": "Fragment zmienił się po zaznaczeniu. Zaznacz go ponownie.",
+      "thinking": "Myślę…",
+      "stop": "Zatrzymaj",
+      "placeholder": "Powiedz agentowi, co zrobić z tym fragmentem",
+      "refinePlaceholder": "Dopracuj wynik",
+      "instruction": "Prośba do agenta",
+      "send": "Wyślij do agenta",
+      "failed": "Żądanie do modelu nie powiodło się.",
+      "context": "Wysłano z prośbą: cały storyboard, ujęcia: {{shots}}, encje z biblioteki: {{entities}}.",
+      "quick": {
+        "tighten": "Skróć",
+        "visual": "Bardziej obrazowo",
+        "camera": "Zaproponuj kamerę",
+        "continuity": "Sprawdź ciągłość",
+        "summarize": "Podsumuj",
+        "inconsistencies": "Znajdź niespójności"
+      },
+      "errors": {
+        "no_model": "Wybierz model reżyserski dla tego storyboardu albo model czatu, aby użyć agenta.",
+        "empty": "Model nie zwrócił odpowiedzi. Wyślij prośbę ponownie.",
+        "failed": "Prośba się nie powiodła. Wyślij ją ponownie."
+      }
+    }
+  },
+  "cloudAccount": {
+    "title": "Konto NodeTool Cloud",
+    "description": "Jedno logowanie dla tej aplikacji, edytora węzłów i osi czasu na tym komputerze. Logowanie i wylogowanie tutaj dotyczy wszystkich trzech.",
+    "signedInAs": "Zalogowano jako {{name}}",
+    "server": "Serwer: {{server}}",
+    "signedOut": "Nie zalogowano",
+    "signingIn": "Dokończ logowanie w przeglądarce",
+    "serverEndPending": "Wylogowano, sesja na serwerze nie została jeszcze zakończona",
+    "cloudOff": "Funkcje chmury są wyłączone na tym komputerze",
+    "noKeychain": "Ten komputer nie ma magazynu poświadczeń, więc logowanie trwa do zamknięcia NodeTool.",
+    "signIn": "Zaloguj się",
+    "cancel": "Anuluj",
+    "signOut": "Wyloguj się",
+    "signOutNote": "Zmiany oczekujące w edytorze węzłów lub na osi czasu pozostają na tym komputerze i zostaną wysłane po ponownym zalogowaniu.",
+    "unavailable": "Logowanie do chmury nie jest dostępne w tej wersji."
   }
 }

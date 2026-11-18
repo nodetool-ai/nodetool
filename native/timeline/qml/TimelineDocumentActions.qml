@@ -17,6 +17,10 @@ Item {
     TimelineDocumentController {
         id: actions
         anchor: root
+        // main sets nativeAccountServers in the app. Without it the list
+        // shows only the timelines on this computer.
+        accountServers: typeof nativeAccountServers !== "undefined" ? nativeAccountServers : null
+        listShown: listPopup.visible
         onOpenRequested: root.showList()
         onErrorChanged: {
             if (error && musicDialog.opened) musicDialog.error = error
@@ -83,13 +87,34 @@ Item {
         contentItem: Column {
             Loader {
                 width: parent.width
-                height: parent.height - switchError.height
+                height: parent.height - switchError.height - cloudList.height
                 active: listPopup.visible
                 sourceComponent: TimelineListPanel {
                     controller: actions.controller
                     autoRefresh: false
                     dismissOnEscape: true
                     onDismissRequested: listPopup.close()
+                }
+            }
+            // The account's Cloud and Shared with me timelines below the ones
+            // on this computer, at most half the list's height.
+            Loader {
+                id: cloudList
+                objectName: "timelineListCloud"
+                width: parent.width
+                height: item ? Math.min(item.contentHeight, listPopup.height / 2) : 0
+                active: listPopup.visible && actions.cloudBrowser !== null
+                visible: active
+                sourceComponent: Flickable {
+                    contentHeight: cloudPanel.implicitHeight
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    CloudDocumentsPanel {
+                        id: cloudPanel
+                        width: parent.width
+                        browser: actions.cloudBrowser
+                        onOpenRequested: (kind, documentId, name, role) => actions.cloudBrowser.requestOpen(kind, documentId, name, role)
+                    }
                 }
             }
             Ui.Text {

@@ -1,0 +1,37 @@
+{
+  "nodes": [
+    {
+      "id": "lfo",
+      "type": "nodetool.audio.synth.LFO",
+      "properties": {}
+    },
+    {
+      "id": "osc",
+      "type": "nodetool.audio.synth.Oscillator",
+      "properties": {}
+    },
+    {
+      "id": "out",
+      "type": "nodetool.audio.realtime.ChunksToAudio",
+      "properties": {
+        "duration": 0.05
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "pitch",
+      "source": "lfo",
+      "sourceHandle": "cv",
+      "target": "osc",
+      "targetHandle": "pitch_cv"
+    },
+    {
+      "id": "record",
+      "source": "osc",
+      "sourceHandle": "chunk",
+      "target": "out",
+      "targetHandle": "chunk"
+    }
+  ]
+}

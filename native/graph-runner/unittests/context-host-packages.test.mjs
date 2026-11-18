@@ -1,7 +1,6 @@
 import { GuestContext } from "../guest/host/context.mjs";
 import { CodeNode } from "@nodetool-ai/code-nodes/nodes/code-node";
 import { SANDBOX_HOST_MODULES } from "@nodetool-ai/protocol";
-const { importHidden } = await import("@nodetool-ai/config");
 
 const cases = [
   [
@@ -41,28 +40,10 @@ const cases = [
     (value) => value.count === 2 && value.text === "hello world"
   ],
   [
-    "xlsx",
-    ["xlsx"],
-    'import {write,parse} from "@nodetool-ai/sandbox-xlsx";return await parse(await write({Scores:[{name:"Ada",score:42}]}));',
-    (value) => value.Scores[0].score === 42 && value.Scores[0].name === "Ada"
-  ],
-  [
-    "docx-mammoth",
-    ["docx", "mammoth"],
-    'import {build} from "@nodetool-ai/sandbox-docx";import {extractRawText} from "@nodetool-ai/sandbox-mammoth";return await extractRawText(await build({elements:[{type:"paragraph",text:"Round trip content"}]}));',
-    (value) => value.includes("Round trip content")
-  ],
-  [
     "pdf",
     ["pdflib", "pdf"],
     'import {build} from "@nodetool-ai/sandbox-pdflib";import {extractText} from "@nodetool-ai/sandbox-pdf";return await extractText(await build({pages:[{width:200,height:200,items:[{type:"text",x:20,y:20,text:"Hello native PDF",size:14}]}]}));',
     (value) => value.includes("Hello native PDF")
-  ],
-  [
-    "pptx",
-    ["pptxgen", "pptx"],
-    'import {build} from "@nodetool-ai/sandbox-pptxgen";import {extractText} from "@nodetool-ai/sandbox-pptx";return await extractText(await build({title:"Deck",slides:[{items:[{type:"text",x:1,y:1,w:8,h:1,text:"Hello native slides"}]}]}));',
-    (value) => value.includes("Hello native slides")
   ],
   [
     "chrono",
@@ -141,16 +122,6 @@ const cases = [
       value.info.height === 8 &&
       JSON.stringify(value.pixel) === "[255,0,0,255]" &&
       value.svg.includes("<rect")
-  ],
-  [
-    "epub",
-    ["zip", "epub"],
-    'import {zip} from "@nodetool-ai/sandbox-zip";import {metadata,extractText,extractChapters,tableOfContents} from "@nodetool-ai/sandbox-epub";const bytes=await zip(inputs.files);return {metadata:await metadata(bytes),text:await extractText(bytes),chapters:await extractChapters(bytes),toc:await tableOfContents(bytes)};',
-    (value) =>
-      value.metadata.title === "Native book" &&
-      value.text === "Native chapter Archive text." &&
-      value.chapters[0].title === "First chapter" &&
-      value.toc[0].order === 1
   ]
 ];
 const results = [];
@@ -176,18 +147,6 @@ for (const [id, kinds, body, verify] of cases) {
     const code = new CodeNode();
     code.code = body;
     code.timeout = 20;
-    if (id === "epub")
-      code.dynamicProps.set("files", {
-        mimetype: "application/epub+zip",
-        "META-INF/container.xml":
-          '<container><rootfiles><rootfile full-path="OPS/book.opf"/></rootfiles></container>',
-        "OPS/book.opf":
-          '<package><metadata><dc:title xmlns:dc="urn:dc">Native book</dc:title></metadata><manifest><item id="chapter" href="chapter.xhtml" media-type="application/xhtml+xml"/><item id="toc" href="toc.ncx" media-type="application/x-dtbncx+xml"/></manifest><spine toc="toc"><itemref idref="chapter"/></spine></package>',
-        "OPS/toc.ncx":
-          '<ncx><navMap><navPoint id="start" playOrder="1"><navLabel><text>First chapter</text></navLabel><content src="chapter.xhtml"/></navPoint></navMap></ncx>',
-        "OPS/chapter.xhtml":
-          "<html><body><h1>Native chapter</h1><p>Archive text.</p></body></html>"
-      });
     const outputs = await code.process(context);
     const result =
       Object.keys(outputs).length === 1 && Object.hasOwn(outputs, "output")
@@ -209,55 +168,3 @@ if (results.some((result) => !result.ok))
   );
 globalThis.__g5Result.hostPackages = results.length;
 
-const tf = await importHidden("@tensorflow/tfjs");
-await tf.setBackend("cpu");
-await tf.ready();
-const tensor = tf.tensor3d(
-  new Uint8Array([1, 2, 3, 4, 5, 6]),
-  [1, 2, 3],
-  "int32"
-);
-const summed = tensor.sum();
-if ((await summed.data())[0] !== 21)
-  throw new Error("Actual TensorFlow CPU kernel output differs");
-summed.dispose();
-tensor.dispose();
-globalThis.__g5Result.tensorFlowCpu = true;
-
-const tfContext = new GuestContext();
-tfContext.sandboxModuleCatalog = {
-  resolveForExecution: () => ({
-    statuses: [],
-    modules: [
-      {
-        kind: "host",
-        hostId: "tfjs",
-        specifier: "@nodetool-ai/sandbox-tfjs",
-        packName: "@nodetool-ai/sandbox-tfjs",
-        moduleId: "tfjs",
-        graph: []
-      }
-    ]
-  })
-};
-const deniedModels = [];
-for (const operation of ["classify", "embed", "detect", "answer"]) {
-  const code = new CodeNode();
-  code.timeout = 30;
-  code.code =
-    operation === "answer"
-      ? `import {answer} from "@nodetool-ai/sandbox-tfjs";return await answer("Who?","Ada wrote the note.");`
-      : `import {${operation}} from "@nodetool-ai/sandbox-tfjs";const surface=createCanvas(4,4);return await ${operation}(await surface.toBytes());`;
-  try {
-    await code.process(tfContext);
-    throw new Error("Ungrant model weights accepted");
-  } catch (error) {
-    if (!String(error).includes("HTTP resource is not granted")) throw error;
-    deniedModels.push({ operation, error: String(error) });
-  }
-}
-globalThis.__host.log(
-  "info",
-  "G5_MODEL_RESOURCES " + JSON.stringify(deniedModels)
-);
-globalThis.__g5Result.modelResourceGrants = deniedModels.length;

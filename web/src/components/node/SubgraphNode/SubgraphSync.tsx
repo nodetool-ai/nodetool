@@ -29,9 +29,12 @@ export const SubgraphSync = memo(({ nodeId, data }: SubgraphSyncProps) => {
 
   useEffect(() => {
     const nodes = Array.isArray(graph?.nodes) ? graph.nodes : [];
+    // Edges matter for a subgraph of ComfyUI nodes: its prompt input is the
+    // text field upstream of the sampler's `positive` socket.
+    const edges = Array.isArray(graph?.edges) ? (graph.edges as object[]) : [];
 
     const { dynamic_inputs, dynamic_outputs, dynamic_properties } =
-      extractDynamicIO({ graph: { nodes } });
+      extractDynamicIO({ graph: { nodes, edges } });
 
     const nextDynamicInputs =
       Object.keys(dynamic_inputs).length > 0 ? dynamic_inputs : undefined;

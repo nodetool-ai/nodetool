@@ -123,8 +123,11 @@ void EditorWindow::fitSelection() {
 void EditorWindow::focusSelectedNode() {
   const auto ids = selectedIds();
   if (ids.size() != 1) { return; }
+  focusNode(ids.first());
+}
+void EditorWindow::focusNode(const QString &resourceId) {
   for (auto id : model_.allNodeIds()) {
-    if (model_.resourceId(id) != ids.first()) { continue; }
+    if (model_.resourceId(id) != resourceId) { continue; }
     if (auto item = scene_->nodeGraphicsObject(id)) {
       fitActive_ = false;
       moveViewTo(focusZoom, centerOnArea(item->scenePos(), focusZoom), viewMs(focusDurationMs));

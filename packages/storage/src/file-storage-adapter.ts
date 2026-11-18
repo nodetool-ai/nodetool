@@ -14,10 +14,12 @@ import type {
   StorageAdapter,
   StorageEntry,
   StorageListResult,
-  StorageStat
+  StorageStat,
+  StoreIfAbsentOptions
 } from "./storage-adapter.js";
 import { compareStorageKeys, normalizeStorageKey } from "./storage-keys.js";
 import { getMaxLocalUploadBytes } from "./storage-limits.js";
+import { getDefaultAssetsPath } from "@nodetool-ai/config";
 
 export function isWithinRoot(root: string, target: string): boolean {
   const rel = relative(root, target);
@@ -36,6 +38,18 @@ function decodeKey(key: string): string {
   } catch {
     return key;
   }
+}
+
+/**
+ * True for the errors a missing path raises. A listing treats these as an
+ * empty directory and rethrows every other one: callers decide from a listing
+ * whether a directory holds another project's folder, and an unreadable
+ * directory is not an empty one.
+ */
+function isAbsentError(cause: unknown): boolean {
+  const code =
+    cause instanceof Error && "code" in cause ? String(cause.code) : undefined;
+  return code === "ENOENT" || code === "ENOTDIR";
 }
 
 /**
@@ -63,14 +77,52 @@ function stripUriSuffix(uri: string): string {
  */
 export type ExternalPathLookup = (key: string) => Promise<string | null>;
 
+let assetFolderLookup: ExternalPathLookup | null = null;
+
+/**
+ * Install the lookup that every adapter over the asset folder resolves a
+ * missed key through when it was built without one of its own.
+ *
+ * Many hosts build their own `FileStorageAdapter` over the asset folder: the
+ * CLI commands, the app and script runners. An asset whose bytes are a file
+ * in its project folder has no object under its key, so such an adapter
+ * could not read an asset the same run had just created. The host that
+ * installs asset persistence installs this with it.
+ *
+ * It applies only to an adapter rooted at the asset folder
+ * (`getDefaultAssetsPath()`). A workspace or a temp root never resolves a
+ * key through asset rows.
+ */
+export function setAssetFolderPathLookup(
+  lookup: ExternalPathLookup | null
+): void {
+  assetFolderLookup = lookup;
+}
+
+/** The real path of the asset folder, or its resolved path when it is absent. */
+function assetFolderRoot(): string {
+  const resolved = resolve(getDefaultAssetsPath());
+  try {
+    return realpathSync(resolved);
+  } catch {
+    return resolved;
+  }
+}
+
 export interface FileStorageAdapterOptions {
   /**
-   * Resolves keys of assets whose bytes stay outside the root (large local
-   * imports). Consulted only after the root misses, and only by reads:
+   * Resolves keys of assets whose bytes stay outside the root (a file in a
+   * project folder, a large local import). Consulted only after the root
+   * misses, and only by reads:
    * `retrieve`, `exists`, `stat`, and `localPath`. `store`, `storeFile`, and
    * `delete` never touch the external file.
+   *
+   * Left out, an adapter over the asset folder uses the lookup installed
+   * with {@link setAssetFolderPathLookup}. Pass `null` for an adapter that
+   * must answer a key only from the object stored under it, such as a
+   * caller that is about to delete that object.
    */
-  externalPathLookup?: ExternalPathLookup;
+  externalPathLookup?: ExternalPathLookup | null;
 }
 
 /**
@@ -87,9 +139,12 @@ export class FileStorageAdapter implements StorageAdapter {
   readonly rootDir: string;
   private readonly rootPromise: Promise<SafeRoot>;
   private readonly externalPathLookup: ExternalPathLookup | null;
+  /** False for an adapter built to answer from stored objects alone. */
+  private readonly usesAssetFolderLookup: boolean;
 
   constructor(rootDir: string, options: FileStorageAdapterOptions = {}) {
     this.externalPathLookup = options.externalPathLookup ?? null;
+    this.usesAssetFolderLookup = options.externalPathLookup !== null;
     const resolvedRoot = resolve(rootDir);
     mkdirSync(resolvedRoot, { recursive: true });
     this.rootDir = realpathSync(resolvedRoot);
@@ -133,11 +188,22 @@ export class FileStorageAdapter implements StorageAdapter {
     return null;
   }
 
+  /**
+   * The lookup this adapter resolves a missed key through: its own, else the
+   * one installed for the asset folder when this adapter is rooted there.
+   */
+  private pathLookup(): ExternalPathLookup | null {
+    if (this.externalPathLookup) return this.externalPathLookup;
+    if (!this.usesAssetFolderLookup || !assetFolderLookup) return null;
+    return this.rootDir === assetFolderRoot() ? assetFolderLookup : null;
+  }
+
   /** The in-place file behind `rel`, or null when the lookup has none. */
   private async externalPathFor(rel: string): Promise<string | null> {
-    if (!this.externalPathLookup) return null;
+    const lookup = this.pathLookup();
+    if (!lookup) return null;
     try {
-      return await this.externalPathLookup(rel);
+      return await lookup(rel);
     } catch {
       return null;
     }
@@ -176,6 +242,27 @@ export class FileStorageAdapter implements StorageAdapter {
     return this.uriForKey(rel);
   }
 
+  async storeIfAbsent(
+    key: string,
+    data: Uint8Array,
+    _contentType?: string,
+    options: StoreIfAbsentOptions = {}
+  ): Promise<string | null> {
+    const max = getMaxLocalUploadBytes();
+    if (data.byteLength > max) {
+      throw new Error(
+        `Upload for key "${key}" exceeds maximum size: ${data.byteLength} > ${max} bytes ` +
+          `(set NODETOOL_MAX_UPLOAD_BYTES to raise the limit)`
+      );
+    }
+    const r = await this.rootPromise;
+    const rel = normalizeStorageKey(key);
+    const created = await r.create(rel, data, {
+      stagingName: options.stagingName
+    });
+    return created ? this.uriForKey(rel) : null;
+  }
+
   async retrieve(uri: string): Promise<Uint8Array | null> {
     const key = this.keyFromUri(uri);
     if (!key) return null;
@@ -207,6 +294,20 @@ export class FileStorageAdapter implements StorageAdapter {
     const rel = normalizeStorageKey(key);
     await r.copyIn(rel, sourcePath, { maxBytes: getMaxLocalUploadBytes() });
     return this.uriForKey(rel);
+  }
+
+  /**
+   * Publish a local file under `key` only when nothing is there, using a
+   * bounded streaming copy. Null when the key was taken, and that file is
+   * left untouched.
+   */
+  async storeFileIfAbsent(key: string, sourcePath: string): Promise<string | null> {
+    const r = await this.rootPromise;
+    const rel = normalizeStorageKey(key);
+    const created = await r.copyInNew(rel, sourcePath, {
+      maxBytes: getMaxLocalUploadBytes()
+    });
+    return created ? this.uriForKey(rel) : null;
   }
 
   async exists(uri: string): Promise<boolean> {
@@ -260,8 +361,11 @@ export class FileStorageAdapter implements StorageAdapter {
       let children: Array<{ name: string; isDirectory: () => boolean; isFile: () => boolean }>;
       try {
         children = await readdir(dirAbs, { withFileTypes: true });
-      } catch {
-        return { entries: [], commonPrefixes: [] };
+      } catch (error) {
+        // Only a directory that is not there is empty. A failure to read one
+        // that is there must not read as empty (see `isAbsentError`).
+        if (isAbsentError(error)) return { entries: [], commonPrefixes: [] };
+        throw error;
       }
       for (const child of children) {
         const childKey = normalizedPrefix
@@ -281,8 +385,9 @@ export class FileStorageAdapter implements StorageAdapter {
             size: st.size,
             modifiedAt: st.mtimeMs
           });
-        } catch {
-          // skip unreadable
+        } catch (error) {
+          // Gone since the listing was read.
+          if (!isAbsentError(error)) throw error;
         }
       }
       return {
@@ -302,8 +407,9 @@ export class FileStorageAdapter implements StorageAdapter {
       let children: Array<{ name: string; isDirectory: () => boolean; isFile: () => boolean }>;
       try {
         children = await readdir(dir, { withFileTypes: true });
-      } catch {
-        continue;
+      } catch (error) {
+        if (isAbsentError(error)) continue;
+        throw error;
       }
       for (const child of children) {
         const childAbs = join(dir, child.name);
@@ -324,8 +430,9 @@ export class FileStorageAdapter implements StorageAdapter {
             size: st.size,
             modifiedAt: st.mtimeMs
           });
-        } catch {
-          // skip
+        } catch (error) {
+          // Gone since the listing was read.
+          if (!isAbsentError(error)) throw error;
         }
       }
     }
@@ -356,6 +463,35 @@ export class FileStorageAdapter implements StorageAdapter {
       // unlink was refused.
       return false;
     }
+  }
+
+  /**
+   * As {@link stat}, but a file the system cannot stat for a reason other
+   * than its absence throws. A key outside the root names no object.
+   */
+  async statStrict(uri: string): Promise<StorageStat | null> {
+    const key = this.keyFromUri(uri);
+    if (!key) return null;
+    let rel: string;
+    try {
+      rel = normalizeStorageKey(key);
+    } catch {
+      return null;
+    }
+    const abs = resolve(this.rootDir, rel);
+    if (!isWithinRoot(this.rootDir, abs)) return null;
+    try {
+      const st = await fsStat(abs);
+      if (st.isFile()) {
+        return { key: rel, size: st.size, modifiedAt: st.mtimeMs };
+      }
+    } catch (error) {
+      if (!isAbsentError(error)) throw error;
+    }
+    const external = await this.statExternal(rel);
+    return external
+      ? { key: rel, size: external.size, modifiedAt: external.modifiedAt }
+      : null;
   }
 
   async stat(uri: string): Promise<StorageStat | null> {

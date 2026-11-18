@@ -21,9 +21,6 @@ For headless browsing that needs no login, use the regular [Browser node](develo
 | **What you get** | Ask an agent about the current page; the same threads as the app | Workflows and agents drive your logged-in tab |
 | **Transport** | `/trpc` and the `/ws` chat socket, msgpack frames | Chrome native messaging to a local host, then a unix socket. No server involved |
 | **Scope** | One conversation at a time, any thread on the server | One tab at a time, attached explicitly — never automatic |
-| **What it is not** | Not the full app: no media generation, no workflow editor | Not an automation engine — it originates no commands, it only relays them |
-
-The chat panel talks to a NodeTool server. The backend and the CLI reach the CDP proxy directly.
 
 ---
 
@@ -50,7 +47,7 @@ The extension icon appears in your toolbar. Click it to open the popup: **Open c
 
 ### Downloading a prebuilt copy
 
-A server that already has the extension built will hand it to you zipped, which saves cloning the repo on the machine running Chrome — the desktop app's install helper uses this.
+A server with the extension built serves it zipped, so you do not need to clone the repo on the machine running Chrome. The desktop app's install helper uses this.
 
 ```bash
 curl "http://localhost:7777/api/extension/download" -o nodetool-chrome-extension.zip
@@ -85,11 +82,9 @@ Click the toolbar icon, then **Open chat**. The side panel opens and the extensi
 | **Transcript** | Streamed replies with the agent's tool calls listed as it works. An `execute_code` call renders its program as a titled code block rather than escaped JSON, and a call still running is marked at the tail of the turn. |
 | **Server settings** | The gear icon — see [Pointing the panel at a server](#pointing-the-panel-at-a-server). |
 
-The panel is chat only. Image, video, audio and the other media-generation modes live in the full app, as does the workflow editor.
+The panel is chat only. Media generation and the workflow editor live in the full app.
 
 ### Permission modes {#permission-modes}
-
-The picker sets how far the agent may act on its own, and the panel remembers your last choice:
 
 | Mode | Behavior |
 |---|---|
@@ -124,14 +119,12 @@ The gear icon holds the panel's own server setting, separate from the proxy's re
 
 ## Driving your logged-in browser
 
-The proxy is the half that lets a workflow or an agent act inside a tab you are signed in to.
-
-Sites such as Midjourney, Sora, Runway, and ElevenLabs often block headless Chrome or require a logged-in account with 2FA and session cookies. Attach the extension to a tab where you are already signed in, and a workflow's browser-automation node drives that tab through the same action loop (click, type, scroll, extract, screenshot) it uses against a headless browser, over a different transport.
+Sites such as Midjourney, Sora, Runway, and ElevenLabs often block headless Chrome or require a logged-in account with 2FA and session cookies. With the extension attached to a signed-in tab, a workflow's browser-automation node drives that tab through the same action loop (click, type, scroll, extract, screenshot) it uses against a headless browser.
 
 ### Recipe: generate an image on a logged-in site
 
-1. **Install** the extension (see [Installing](#installing) above) and pin it to your toolbar.
-2. **Sign in** to the target site (e.g. Midjourney) in a normal Chrome tab, as you would manually.
+1. **Install** the extension ([Installing](#installing)) and pin it to your toolbar.
+2. **Sign in** to the target site (e.g. Midjourney) in a normal Chrome tab.
 3. **Register the native host once**: click **Connect to Chrome** in the app (onboarding or **Settings → Integrations → Browser extension**), or run `nodetool extension install`. Then reload the extension in `chrome://extensions`. Check it with `nodetool extension status`. No server needs to run.
 4. **Open the extension popup** on the signed-in tab and click **Attach to this tab**. Chrome shows its standard "Nodetool is debugging this browser" banner while attached.
 5. **Ask the agent**, run a workflow, or call a provider such as `nodetool generate dreamina …`. The `browser_*` tools drive the attached tab — `browser_status` first to confirm the extension is connected, then `browser_restart` with `transport: "extension"` if the process is still on its headless Chrome (or set `NODETOOL_BROWSER_TRANSPORT=extension` before starting it — see [Transport selection](#transport-selection)).
@@ -190,7 +183,7 @@ Chrome Extension (service worker)
 
 #### Transport selection
 
-One browser session exists per server process, and it is driven by either transport: a headless Chrome the server launches, or your attached tab. The same action loop, element indexing, and screenshot logic runs against both — only the CDP client differs — so nothing built for headless browsing needs different logic to use the logged-in session.
+One browser session exists per server process, driven by either transport: a headless Chrome the server launches, or your attached tab. Only the CDP client differs, so nothing built for headless browsing needs changes to use the logged-in session.
 
 Set the default before the server starts:
 
@@ -202,7 +195,7 @@ NODETOOL_BROWSER_TRANSPORT=extension nodetool serve
 NODETOOL_BROWSER_BRIDGE_SOCKET=/path/to/host.sock nodetool serve
 ```
 
-Or switch a running server from the agent side, which is the same decision made later:
+Or switch a running server from the agent side:
 
 ```jsonc
 {"tool": "browser_restart", "arguments": {"transport": "extension"}}
@@ -214,7 +207,7 @@ When the extension transport is selected but no native host is running, the atta
 
 ### As an agent capability
 
-The `browser_*` capabilities are the extension's agent-facing surface. They are registered like any other NodeTool capability, so the same fourteen names reach the chat agent, an `AgentNode` in a workflow, MCP clients, CodeAct, a Code node, and a JS script — and every one of them drives the same page.
+The same fourteen `browser_*` capability names reach the chat agent, an `AgentNode` in a workflow, MCP clients, CodeAct, a Code node, and a JS script, and all of them drive the same page.
 
 | Capability | What it does |
 |---|---|
@@ -259,12 +252,10 @@ Permission-wise: reading the page (`browser_status`, `browser_view`, `browser_co
 
 - **Some pages cannot be attached.** `chrome.debugger` refuses `chrome://`, `chrome-untrusted://`, `devtools://`, `edge://` and `about:` pages, other extensions' pages, and the Chrome Web Store. **Open chat** attaches first, so on one of these pages it shows the error and does not open the panel. Switch to a normal page and retry.
 - **One tab at a time.** The extension proxies a single `chrome.debugger` session; attach a different tab and the previous one is implicitly detached.
-- **Not published to the Chrome Web Store.** Install as an unpacked extension from source.
-- **Mutually exclusive with DevTools.** You can't have Chrome DevTools open on a tab while the extension is attached to it (both use `chrome.debugger`).
+- **Mutually exclusive with DevTools.** Both use `chrome.debugger`, so DevTools cannot be open on an attached tab.
 - **Session-only.** Attaching does not persist across Chrome restarts — reattach after restarting your browser.
 - **Exclusive tab ownership.** The native host queues clients across server and CLI processes. Each browser provider holds the tab through submission, response polling, and downloads, then releases it. Update the extension alongside the native host so release acknowledgments can advance the queue. The popup cannot change tabs while a client owns the debugger.
-- **Chat only in the panel.** Media generation and the workflow editor are the full app's job. Tool, plan and secret approvals do render in the panel.
-- **Manual build.** The `chrome-extension/` package isn't part of `npm run build:packages` — build it on demand. A diff touching it does run the `live-browser` surface's selfcheck through `nodetool harness gate`, but that covers the capability seam, not the relay: the extension → `chrome.debugger` → page round trip runs only in `npm run test:integration --workspace=packages/browser`, which needs Chrome and port 7777. Keep the two protocol definitions (`chrome-extension/src/lib/protocol.ts` and `packages/browser/src/extension/protocol.ts`) in sync by hand if you change the wire format, and likewise `chrome-extension/src/lib/chat-socket.ts` with `packages/sdk/src/chat.ts` for the chat panel.
+- **Manual build.** A diff touching it does run the `live-browser` surface's selfcheck through `nodetool harness gate`, but that covers the capability seam, not the relay: the extension → `chrome.debugger` → page round trip runs only in `npm run test:integration --workspace=packages/browser`, which needs Chrome and port 7777. Keep the two protocol definitions (`chrome-extension/src/lib/protocol.ts` and `packages/browser/src/extension/protocol.ts`) in sync by hand if you change the wire format, and likewise `chrome-extension/src/lib/chat-socket.ts` with `packages/sdk/src/chat.ts` for the chat panel.
 
 ---
 
@@ -272,7 +263,7 @@ Permission-wise: reading the page (`browser_status`, `browser_view`, `browser_co
 
 ### The chat panel shows "Cannot reach …"
 
-See [Pointing the panel at a server](#pointing-the-panel-at-a-server). A non-`localhost`, non-HTTPS host needs the permission grant, and without it every HTTP request is blocked while the WebSocket still connects.
+Check the permission grant in [Pointing the panel at a server](#pointing-the-panel-at-a-server).
 
 ### Popup shows "disconnected"
 
@@ -286,7 +277,7 @@ See [Pointing the panel at a server](#pointing-the-panel-at-a-server). A non-`lo
 
 ### Chrome shows "Nodetool is debugging this browser" and I can't open DevTools
 
-- This is expected while attached — `chrome.debugger` sessions and DevTools are mutually exclusive on the same tab. Detach from the popup, or use a different tab for DevTools.
+- Expected while attached. Detach from the popup, or use a different tab for DevTools.
 
 ### Attach fails or the tab appears frozen
 

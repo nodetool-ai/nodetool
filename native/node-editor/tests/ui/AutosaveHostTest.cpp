@@ -1,5 +1,7 @@
 #include "ui/EditorWindow.h"
+#include <QApplication>
 #include <QFile>
+#include <QTimer>
 #include <QJsonDocument>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -11,7 +13,7 @@ using namespace nodetool;
 class AutosaveHttp final : public QObject {
 public:
   QTcpServer server;
-  int writes = 0;
+  int writes = 0, puts = 0;
   QJsonObject workflow{{"id", "same-id"}, {"name", "Server copy"}, {"updated_at", "r1"},
     {"graph", QJsonObject{{"nodes", QJsonArray{QJsonObject{{"id", "comment"},
       {"type", "nodetool.workflows.base_node.Comment"}, {"data", QJsonObject{{"comment", "Server"}}},
@@ -33,7 +35,12 @@ public:
           socket->setProperty("done", true);
           const auto target = bytes.split(' ').value(1);
           QJsonObject result;
-          if (target == "/api/workflows/same-id") result = workflow;
+          if (target == "/api/workflows/same-id" && bytes.startsWith("PUT")) {
+            ++puts;
+            const auto body = QJsonDocument::fromJson(bytes.mid(end + 4, length)).object();
+            workflow["graph"] = body["graph"]; workflow["updated_at"] = QString("p%1").arg(puts);
+            result = workflow;
+          } else if (target == "/api/workflows/same-id") result = workflow;
           else if (target == "/trpc/workflows.autosave") {
             ++writes;
             const auto body = QJsonDocument::fromJson(bytes.mid(end + 4, length)).object();
@@ -185,6 +192,25 @@ private slots:
     window.session()->flushAutosave();
     QTRY_COMPARE(http.writes, 1); QTRY_VERIFY(!window.session()->saving());
     QCOMPARE(http.workflow["graph"], graph);
+  }
+  // Save (Ctrl+S) on a server workflow saves to the server, not to a local file.
+  void saveOnServerWorkflowSavesToServer() {
+    AutosaveHttp http; EditorWindow window;
+    window.session()->setAutosaveDelay(60000);
+    window.session()->connectToServer(http.url(), {}); window.session()->openWorkflow("same-id");
+    QTRY_VERIFY(window.session()->serverBound());
+    QTRY_COMPARE(window.document()->snapshot()["id"].toString(), QString("same-id"));
+    QVERIFY(moveComment(window)); const QJsonValue graph = window.document()->snapshot()["graph"];
+    bool dialog = false;
+    QTimer watcher; watcher.setInterval(20);
+    connect(&watcher, &QTimer::timeout, &window, [&dialog] {
+      if (auto *modal = QApplication::activeModalWidget()) { dialog = true; modal->close(); }
+    });
+    watcher.start();
+    window.action("Save");
+    QTRY_COMPARE(http.puts, 1); QTRY_VERIFY(!window.session()->saving());
+    QVERIFY(!dialog); QVERIFY(window.localFilePath().isEmpty());
+    QCOMPARE(http.workflow["graph"], graph); QVERIFY(!window.session()->dirty());
   }
 };
 QTEST_MAIN(AutosaveHostTest)

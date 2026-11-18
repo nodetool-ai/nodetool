@@ -16,6 +16,15 @@ import { getPortableDb } from "./db.js";
 import { jsScripts } from "./schema/js-scripts.js";
 import { JsScriptVersion } from "./js-script-version.js";
 import { removeDocumentSharing } from "./document-sharing.js";
+import {
+  DocumentFileBinding,
+  etagWithoutFileState,
+  type DocumentFileFields
+} from "./document-file-binding.js";
+import type {
+  DocumentFileLocation,
+  DocumentFileSync
+} from "./document-file-sync.js";
 
 export interface JsScriptResponse {
   id: string;
@@ -41,6 +50,15 @@ export class JsScript extends DBModel {
   declare project_id: string;
   declare name: string;
   declare document: string;
+  /** The JS script's file, relative to its project's folder. */
+  declare file_path: string | null;
+  /**
+   * SHA-256 of the file as NodeTool last wrote or imported it. A file with
+   * another hash holds an edit NodeTool has not seen.
+   */
+  declare file_hash: string | null;
+  /** What the last reconcile found wrong with the file, or null. */
+  declare file_error: string | null;
   declare created_at: string;
   declare updated_at: string;
 
@@ -52,7 +70,84 @@ export class JsScript extends DBModel {
     this.name ??= "Untitled script";
     this.document ??= JSON.stringify(emptyJsScriptDocument());
     this.created_at ??= now;
+    this.file_path ??= null;
+    this.file_hash ??= null;
+    this.file_error ??= null;
     this.updated_at ??= now;
+    jsScriptFiles.remember(this);
+  }
+
+  override async delete(): Promise<void> {
+    await super.delete();
+    await jsScriptFiles.deleted(this);
+  }
+
+  /** The etag of the JS script, without the state of its file. */
+  override getEtag(): string {
+    return etagWithoutFileState(this.toRow());
+  }
+
+  /** Every create and save of a JS script row writes its file afterwards. */
+  protected override async persist(event: ModelChangeEvent): Promise<this> {
+    const previous = await jsScriptFiles.beforePersist(this);
+    await super.persist(event);
+    await this.syncFile(previous);
+    return this;
+  }
+
+  /**
+   * Write the file of this row, which a caller just wrote without `save()`.
+   * `previous` is the file the row had in the project it left, if it moved.
+   */
+  async syncFile(previous: DocumentFileLocation | null = null): Promise<void> {
+    await jsScriptFiles.saved(this, previous);
+  }
+
+  /** Record the file state without touching `updated_at`. */
+  static setFileState(id: string, state: DocumentFileFields): Promise<void> {
+    return jsScriptFiles.setFileState(id, state);
+  }
+
+  /** Whether a JS script of any user has exactly this ID. */
+  static existsExactly(id: string): Promise<boolean> {
+    return jsScriptFiles.existsExactly(id);
+  }
+
+  /** The JS scripts whose files belong in the folder of `projectIds`. */
+  static listForProjects(
+    userId: string,
+    projectIds: readonly string[]
+  ): Promise<JsScript[]> {
+    return jsScriptFiles.listForProjects(userId, projectIds);
+  }
+
+  /** The projects that hold a JS script whose file was never written. */
+  static projectsWithUnwrittenFiles(
+    userId?: string
+  ): Promise<Array<{ user_id: string; project_id: string; count: number }>> {
+    return jsScriptFiles.projectsWithUnwrittenFiles(userId);
+  }
+
+  /**
+   * Insert a JS script only when no row has its ID. Returns null when a row
+   * with that ID exists, which is left exactly as it is, whoever owns it.
+   */
+  static async insertNew(data: Record<string, unknown>): Promise<JsScript | null> {
+    const row = new JsScript(data);
+    row.beforeSave();
+    return jsScriptFiles.insertNew(row);
+  }
+
+  /**
+   * Point a JS script the caller owns at `projectId` and take its file along.
+   * Returns false when the caller owns no such JS script.
+   */
+  static moveToProject(
+    userId: string,
+    id: string,
+    projectId: string
+  ): Promise<boolean> {
+    return jsScriptFiles.moveToProject(userId, id, projectId);
   }
 
   override beforeSave(): void {
@@ -157,7 +252,24 @@ export class JsScript extends DBModel {
     if (!row) return null;
 
     const updated = new JsScript(row);
+    await updated.syncFile();
     ModelObserver.notify(updated, ModelChangeEvent.UPDATED, meta);
     return updated;
   }
+}
+
+const jsScriptFiles = new DocumentFileBinding<JsScript>(
+  jsScripts,
+  (row) => new JsScript(row)
+);
+
+/**
+ * Install what writes a JS script's file in its project folder after the row
+ * is saved, and deletes it after the row is deleted. See
+ * {@link DocumentFileSync}.
+ */
+export function setJsScriptFileSync(
+  sync: DocumentFileSync<JsScript> | null
+): void {
+  jsScriptFiles.sync = sync;
 }

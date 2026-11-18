@@ -24,10 +24,12 @@
   },
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "node ../../scripts/run-vitest.mjs run",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
     "@nodetool-ai/agents": "*",
+    "@nodetool-ai/app-runtime": "*",
     "@nodetool-ai/asset-services": "*",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/dsl": "*",

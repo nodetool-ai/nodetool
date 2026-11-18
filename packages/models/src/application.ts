@@ -47,6 +47,15 @@ import {
 import { Workflow, type WorkflowGraph } from "./workflow.js";
 import { WorkflowVersion } from "./workflow-version.js";
 import { JsScript } from "./js-script.js";
+import {
+  DocumentFileBinding,
+  etagWithoutFileState,
+  type DocumentFileFields
+} from "./document-file-binding.js";
+import type {
+  DocumentFileLocation,
+  DocumentFileSync
+} from "./document-file-sync.js";
 import { JsScriptVersion } from "./js-script-version.js";
 
 /**
@@ -148,6 +157,11 @@ export class InvalidApplicationIdError extends Error {
 const APPLICATION_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 
 /** Trim and validate a client-supplied id, or throw. */
+/** Whether `id` is an ID an application can have. */
+export function isApplicationId(id: string): boolean {
+  return APPLICATION_ID_RE.test(id);
+}
+
 export function normalizeApplicationId(raw: string): string {
   const id = raw.trim();
   if (!APPLICATION_ID_RE.test(id)) throw new InvalidApplicationIdError(raw);
@@ -209,6 +223,15 @@ export class Application extends DBModel {
   declare name: string;
   declare description: string;
   declare document: string;
+  /** The app's file, relative to its project's folder. */
+  declare file_path: string | null;
+  /**
+   * SHA-256 of the file as NodeTool last wrote or imported it. A file with
+   * another hash holds an edit NodeTool has not seen.
+   */
+  declare file_hash: string | null;
+  /** What the last reconcile found wrong with the file, or null. */
+  declare file_error: string | null;
   declare created_at: string;
   declare updated_at: string;
 
@@ -221,7 +244,79 @@ export class Application extends DBModel {
     this.description ??= "";
     this.document ??= JSON.stringify(createEmptyDocument());
     this.created_at ??= now;
+    this.file_path ??= null;
+    this.file_hash ??= null;
+    this.file_error ??= null;
     this.updated_at ??= now;
+    applicationFiles.remember(this);
+  }
+
+  /** The etag of the app, without the state of its file. */
+  override getEtag(): string {
+    return etagWithoutFileState(this.toRow());
+  }
+
+  /** Every create and save of a app row writes its file afterwards. */
+  protected override async persist(event: ModelChangeEvent): Promise<this> {
+    const previous = await applicationFiles.beforePersist(this);
+    await super.persist(event);
+    await this.syncFile(previous);
+    return this;
+  }
+
+  /**
+   * Write the file of this row, which a caller just wrote without `save()`.
+   * `previous` is the file the row had in the project it left, if it moved.
+   */
+  async syncFile(previous: DocumentFileLocation | null = null): Promise<void> {
+    await applicationFiles.saved(this, previous);
+  }
+
+  /** Record the file state without touching `updated_at`. */
+  static setFileState(id: string, state: DocumentFileFields): Promise<void> {
+    return applicationFiles.setFileState(id, state);
+  }
+
+  /** Whether a app of any user has exactly this ID. */
+  static existsExactly(id: string): Promise<boolean> {
+    return applicationFiles.existsExactly(id);
+  }
+
+  /** The apps whose files belong in the folder of `projectIds`. */
+  static listForProjects(
+    userId: string,
+    projectIds: readonly string[]
+  ): Promise<Application[]> {
+    return applicationFiles.listForProjects(userId, projectIds);
+  }
+
+  /** The projects that hold a app whose file was never written. */
+  static projectsWithUnwrittenFiles(
+    userId?: string
+  ): Promise<Array<{ user_id: string; project_id: string; count: number }>> {
+    return applicationFiles.projectsWithUnwrittenFiles(userId);
+  }
+
+  /**
+   * Insert a app only when no row has its ID. Returns null when a row
+   * with that ID exists, which is left exactly as it is, whoever owns it.
+   */
+  static async insertNew(data: Record<string, unknown>): Promise<Application | null> {
+    const row = new Application(data);
+    row.beforeSave();
+    return applicationFiles.insertNew(row);
+  }
+
+  /**
+   * Point a app the caller owns at `projectId` and take its file along.
+   * Returns false when the caller owns no such app.
+   */
+  static moveToProject(
+    userId: string,
+    id: string,
+    projectId: string
+  ): Promise<boolean> {
+    return applicationFiles.moveToProject(userId, id, projectId);
   }
 
   override beforeSave(): void {
@@ -274,6 +369,7 @@ export class Application extends DBModel {
       }
       throw error;
     }
+    await app.syncFile();
     ModelObserver.notify(app, ModelChangeEvent.CREATED);
     return app;
   }
@@ -342,6 +438,7 @@ export class Application extends DBModel {
     }
 
     ModelObserver.notify(this, ModelChangeEvent.DELETED);
+    await applicationFiles.deleted(this);
     await eraseRunTraceParentForModelDeletion({ kind: "app", id: this.id });
   }
 
@@ -405,9 +502,26 @@ export class Application extends DBModel {
     if (!row) return null;
 
     const updated = new Application(row);
+    await updated.syncFile();
     ModelObserver.notify(updated, ModelChangeEvent.UPDATED, meta);
     return updated;
   }
+}
+
+const applicationFiles = new DocumentFileBinding<Application>(
+  applications,
+  (row) => new Application(row)
+);
+
+/**
+ * Install what writes a app's file in its project folder after the row
+ * is saved, and deletes it after the row is deleted. See
+ * {@link DocumentFileSync}.
+ */
+export function setApplicationFileSync(
+  sync: DocumentFileSync<Application> | null
+): void {
+  applicationFiles.sync = sync;
 }
 
 const toVersionResponse = (

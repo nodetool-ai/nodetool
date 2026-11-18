@@ -151,6 +151,9 @@ public:
     void setExternalSyncUrl(const QUrl& url) { m_syncUrl = url; }
     Q_INVOKABLE void externalChanged(QString event, QString updatedAt, QJsonArray ops, bool hasOps);
     Q_INVOKABLE void refreshExternal();
+    // Tells the socket the project the document is in now (set_open_project).
+    // Cheap when the project did not change.
+    Q_INVOKABLE void syncOpenProject();
     bool dirty() const;
     bool saving() const { return m_saving; }
     bool conflict() const { return m_conflict; }
@@ -192,6 +195,11 @@ signals:
     void saved(const QString& updatedAt);
     void conflictDetected();
     void strippedWarning(const QStringList& paths);
+    // A save response filed the timeline under another project.
+    void projectChanged(const QString& projectId);
+    // Pushed by the server for the open project's folder (sync::ResourceChangeClient).
+    void workspaceFilesChanged(const QString& workspaceId);
+    void documentFileChanged(const QJsonObject& resource);
 
 private:
     void restartStoppedChain();

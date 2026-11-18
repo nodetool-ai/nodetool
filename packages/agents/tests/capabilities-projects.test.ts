@@ -10,7 +10,17 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { ModelObserver, Project, initTestDb } from "@nodetool-ai/models";
+import { mkdtemp, rm, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  Asset,
+  ModelObserver,
+  Project,
+  Setting,
+  Storyboard,
+  initTestDb
+} from "@nodetool-ai/models";
 import { module as projects } from "../src/capabilities/projects.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import {
@@ -23,9 +33,17 @@ import type { ProjectDeleter } from "../src/tools/mcp-tools.js";
 const NAMES = [
   "list_projects",
   "search_projects",
+  "create_project",
   "update_project",
+  "move_to_project",
   "delete_project"
 ] as const;
+
+/** A host delete that had no folder to dispose of. */
+const DELETED = {
+  outcome: "deleted",
+  folder: { action: "none", path: null }
+} as const;
 
 const run = (
   opts: { userId?: string; projectId?: string; deleteProject?: ProjectDeleter } = {}
@@ -168,17 +186,25 @@ describe("projects capability behaviour", () => {
     const calls: [string, string][] = [];
     const deleter: ProjectDeleter = async (userId, projectId) => {
       calls.push([userId, projectId]);
-      if (projectId === personal.id) return "personal";
+      if (projectId === personal.id) return { outcome: "personal" };
       // Another request deleted it between the lookup and the host's delete.
-      if (projectId === "p2") return "not_found";
-      return "deleted";
+      if (projectId === "p2") return { outcome: "not_found" };
+      return {
+        outcome: "deleted",
+        folder: { action: "trashed", path: "/trash/Mine" }
+      };
     };
 
     expect(
       await run({ deleteProject: deleter }).invoke("delete_project", {
         project_id: "p1"
       })
-    ).toEqual({ project_id: "p1", deleted: true });
+    ).toEqual({
+      project_id: "p1",
+      deleted: true,
+      // What the host did with the project folder reaches the model.
+      folder: { action: "trashed", path: "/trash/Mine" }
+    });
     expect(
       await run({ deleteProject: deleter }).invoke("delete_project", {
         project_id: personal.id
@@ -214,7 +240,7 @@ describe("projects capability behaviour", () => {
       projectId: "p1",
       deleteProject: async () => {
         called = true;
-        return "deleted";
+        return DELETED;
       }
     }).invoke("delete_project", { project_id: "p1" })) as { error?: string };
     expect(own.error).toMatch(/belongs to that project/);
@@ -254,10 +280,14 @@ describe("projects capability behaviour", () => {
       const result = await run({
         deleteProject: async (_userId, projectId) => {
           calls.push(projectId);
-          return "deleted";
+          return DELETED;
         }
       }).invoke("delete_project", { project_id: project.id.slice(0, 12) });
-      expect(result).toEqual({ project_id: project.id, deleted: true });
+      expect(result).toEqual({
+        project_id: project.id,
+        deleted: true,
+        folder: DELETED.folder
+      });
       expect(calls).toEqual([project.id]);
     });
 
@@ -268,7 +298,7 @@ describe("projects capability behaviour", () => {
         projectId: project.id,
         deleteProject: async () => {
           called = true;
-          return "deleted";
+          return DELETED;
         }
       }).invoke("delete_project", {
         project_id: project.id.slice(0, 12)
@@ -289,6 +319,121 @@ describe("projects capability behaviour", () => {
         project.id
       );
       expect(tombstone?.deleted_at).toBeTruthy();
+    });
+  });
+
+  describe("create and move", () => {
+    let root: string;
+
+    beforeEach(async () => {
+      root = await mkdtemp(join(tmpdir(), "projects-capability-"));
+      await Setting.upsert({ userId: "u1", key: "PROJECTS_DIR", value: root });
+    });
+
+    afterEach(async () => {
+      await rm(root, { recursive: true, force: true });
+    });
+
+    it("creates a project with its folder", async () => {
+      const result = (await run().invoke("create_project", {
+        name: "Woofly launch",
+        kind: "campaign"
+      })) as { project: { id: string; name: string; kind: string } };
+      expect(result.project.name).toBe("Woofly launch");
+      expect(result.project.kind).toBe("campaign");
+      expect((await stat(join(root, "Woofly launch"))).isDirectory()).toBe(true);
+      const row = await Project.findOwned("u1", result.project.id);
+      expect(row?.workspace_id).toBeTruthy();
+    });
+
+    it("refuses a blank name and the Personal kind", async () => {
+      expect(await run().invoke("create_project", { name: " " })).toEqual({
+        error: "name must be 1 to 200 characters."
+      });
+      const personal = (await run().invoke("create_project", {
+        name: "X",
+        kind: "personal"
+      })) as { error?: string };
+      expect(personal.error).toMatch(/reserved/);
+    });
+
+    it("moves an asset and a storyboard by short id", async () => {
+      await makeProject("dest-project", "Destination");
+      const asset = (await Asset.create({
+        user_id: "u1",
+        name: "dog.png",
+        content_type: "image/png",
+        project_id: "default"
+      })) as Asset;
+      const board = await Storyboard.create<Storyboard>({
+        user_id: "u1",
+        project_id: "default",
+        name: "Board",
+        document: JSON.stringify({ shots: [] })
+      });
+
+      expect(
+        await run().invoke("move_to_project", {
+          project_id: "dest-project",
+          type: "asset",
+          id: asset.id.slice(0, 12)
+        })
+      ).toEqual({
+        moved: true,
+        type: "asset",
+        id: asset.id,
+        project_id: "dest-project"
+      });
+      expect((await Asset.find("u1", asset.id))?.project_id).toBe(
+        "dest-project"
+      );
+
+      await run().invoke("move_to_project", {
+        project_id: "dest-project",
+        type: "storyboard",
+        id: board.id.slice(0, 12)
+      });
+      expect((await Storyboard.get<Storyboard>(board.id))?.project_id).toBe(
+        "dest-project"
+      );
+    });
+
+    it("reads another user's item or project as missing", async () => {
+      await makeProject("mine", "Mine");
+      await makeProject("theirs", "Theirs", { userId: "u2" });
+      const board = await Storyboard.create<Storyboard>({
+        user_id: "u2",
+        project_id: "theirs",
+        name: "Board",
+        document: JSON.stringify({ shots: [] })
+      });
+      expect(
+        await run().invoke("move_to_project", {
+          project_id: "theirs",
+          type: "storyboard",
+          id: board.id
+        })
+      ).toEqual({ error: "Project theirs was not found." });
+      expect(
+        await run().invoke("move_to_project", {
+          project_id: "mine",
+          type: "storyboard",
+          id: board.id
+        })
+      ).toEqual({ error: `storyboard ${board.id} was not found.` });
+      expect((await Storyboard.get<Storyboard>(board.id))?.project_id).toBe(
+        "theirs"
+      );
+    });
+
+    it("refuses an unknown type", async () => {
+      await makeProject("mine", "Mine");
+      const result = (await run().invoke("move_to_project", {
+        project_id: "mine",
+        type: "workflow",
+        id: "x"
+      })) as { error?: string };
+      expect(result.error).toBeTruthy();
     });
   });
 

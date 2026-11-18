@@ -6,6 +6,8 @@ import type { NodeData } from "../stores/NodeData";
 
 interface FitNodeRequest {
   nodeId: string;
+  /** Frame these nodes together instead of `nodeId` alone. */
+  nodeIds?: string[];
   workflowId?: string;
   node?: Node;
 }
@@ -84,7 +86,7 @@ export const useFitNodeEvent = (): void => {
 
       // Use fitView with nodeIds to avoid selecting the node
       requestAnimationFrame(() => {
-        fitView({ padding: 0.4, nodeIds: [nodeId] });
+        fitView({ padding: 0.4, nodeIds: event.detail.nodeIds ?? [nodeId] });
       });
     };
 

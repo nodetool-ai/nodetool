@@ -349,9 +349,12 @@ const saveEntityAsset = async (
     [ENTITY_METADATA_KEY]: marker
   };
   if (projectId !== null) {
-    asset.project_id = projectId;
+    // Takes the asset's file along when it is a file in its project folder.
+    const { saveAssetInProject } = await import("@nodetool-ai/models");
+    await saveAssetInProject(asset, projectId);
+  } else {
+    await asset.save();
   }
-  await asset.save();
   const entity = entityFromAsset(asset);
   // `entity_id` and `id` alongside the record: an entity IS its asset, so the
   // id was always the `asset_id` the caller passed in — but the result carried

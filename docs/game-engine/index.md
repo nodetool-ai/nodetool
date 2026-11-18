@@ -22,7 +22,7 @@ The required top-level fields of a 2D document. See [coverage](/game-engine/cove
 
 *Signal Forge rendered by the engine at tick 60. [Screenshot sources](/game-engine/screenshots).*
 
-Start with [your first game](/game-engine/quick-start). The [Game Editor guide](/game-editor) covers panels and shortcuts. This guide covers the engine features behind them, including features authored only through the agent or the document.
+Start with [your first game](/game-engine/quick-start). The [Game Editor guide](/game-editor) covers panels and shortcuts.
 
 ## Choose a dimension
 
@@ -53,10 +53,10 @@ Some document fields are preparation interfaces rather than complete rendering f
 
 Document menu screens, transitions, and generated settings controls are schema-only. They are not implemented by the shipped hosts.
 
-3D WebGPU rendering and built-in localization are not covered as available features. Use the [particle inspector and presets](/game-engine/particles) and authored HUD text. [3D graphics](/game-engine/graphics-3d) describes linear and height fog and the supported decal receivers.
+3D WebGPU rendering and built-in localization are not available. Use authored HUD text. See [3D graphics](/game-engine/graphics-3d) for fog and decal receivers.
 
 ## Build and verify
 
-Prepare assets before binding them. Validate the resulting document, run a complete route with recorded input, verify snapshot restoration, then inspect captured frames. [Agent authoring](/game-engine/agent-authoring), [asset preparation](/game-engine/assets), and [performance and debugging](/game-engine/debugging) describe this loop.
+Prepare assets, bind them, validate the document, run a route with recorded input, verify snapshot restoration, then inspect captured frames. See [agent authoring](/game-engine/agent-authoring), [asset preparation](/game-engine/assets), and [performance and debugging](/game-engine/debugging).
 
 The [coverage inventory](/game-engine/coverage) links the document components and their implementation areas. It also lists supported schema versions and known limits.

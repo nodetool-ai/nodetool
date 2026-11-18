@@ -95,6 +95,7 @@ function makeProvider(
     getAvailableEmbeddingModels: vi.fn().mockResolvedValue([]),
     getAvailableMusicModels: vi.fn().mockResolvedValue([]),
     getAvailableVideoModels: vi.fn().mockResolvedValue([]),
+    getAvailable3DModels: vi.fn().mockResolvedValue([]),
     hasToolSupport: vi.fn().mockResolvedValue(true),
     getCapabilities: vi.fn(() => ["generate_message"]),
     ...overrides
@@ -508,6 +509,38 @@ describe("models router — extra coverage", () => {
       const caller = createCaller(makeCtx());
       const result = await caller.models.video();
       expect(result[0].type).toBe("video_model");
+    });
+
+    it("model3d aggregates 3D models with their tasks", async () => {
+      listIds.mockReturnValue(["a", "b"]);
+      isConfigured.mockResolvedValue(true);
+      getProv.mockImplementation(async (id: string) =>
+        makeProvider({
+          getAvailable3DModels: vi.fn().mockResolvedValue([
+            { id: `${id}-3d`, name: id, provider: id, supportedTasks: ["text_to_3d"] }
+          ])
+        })
+      );
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.model3d();
+      expect(result.map((m) => m.id)).toEqual(["a-3d", "b-3d"]);
+      expect(result.every((m) => m.type === "model_3d_model")).toBe(true);
+      expect(result[0].supported_tasks).toEqual(["text_to_3d"]);
+    });
+
+    it("model3dByProvider maps one provider's 3D models", async () => {
+      isConfigured.mockResolvedValue(true);
+      getProv.mockResolvedValue(
+        makeProvider({
+          getAvailable3DModels: vi.fn().mockResolvedValue([
+            { id: "m", name: "Mesh", provider: "x", supportedTasks: ["image_to_3d"] }
+          ])
+        })
+      );
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.model3dByProvider({ provider: "x" });
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ id: "m", type: "model_3d_model", supported_tasks: ["image_to_3d"] });
     });
 
     it("aggregate returns empty when no providers configured", async () => {

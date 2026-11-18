@@ -257,9 +257,13 @@ describe("runHostBinary abort signal", () => {
       }
       controller.abort();
       await expect(pending).rejects.toThrow();
-      // SIGKILL lands five seconds after SIGTERM: settling any earlier
-      // means the promise gave up while the child still ran.
-      expect(settledAt - started).toBeGreaterThanOrEqual(4500);
+      if (process.platform === "win32") {
+        // Windows terminates the process even when it installs a SIGTERM handler.
+        expect(settledAt - started).toBeLessThan(15_000);
+      } else {
+        // POSIX escalates to SIGKILL after five seconds if SIGTERM is ignored.
+        expect(settledAt - started).toBeGreaterThanOrEqual(4500);
+      }
       const pid = Number(await readFile(path.join(cwd, "pid.txt"), "utf8"));
       expect(() => process.kill(pid, 0)).toThrow();
     } finally {

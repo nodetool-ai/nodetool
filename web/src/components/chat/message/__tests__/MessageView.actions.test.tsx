@@ -179,6 +179,35 @@ describe("MessageView action row", () => {
   });
 });
 
+describe("MessageView reply actions", () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("leads with Copy and Retry and names the model last, with no timestamp text", () => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-09-04T18:30:00"));
+    const { container } = renderView(
+      {
+        id: "m10",
+        role: "assistant",
+        thread_id: "thread-1",
+        content: "Here it is.",
+        model: "gpt-5.4",
+        created_at: "2026-09-04T14:05:00"
+      } as Message,
+      { onRegenerate: jest.fn() }
+    );
+
+    const row = container.querySelector(".message-actions");
+    const labels = Array.from(row?.children ?? []).map(
+      (el) => el.getAttribute("aria-label") ?? el.textContent
+    );
+    // The model label names the time on hover, through its tooltip.
+    expect(labels).toEqual(["Copy message", "Regenerate", "gpt-5.4 · 14:05"]);
+    expect(row?.lastElementChild).toHaveTextContent(/^gpt-5\.4$/);
+  });
+});
+
 describe("MessageView edit in place", () => {
   const sent = {
     id: "0123456789abcdef0123456789abcdef",
@@ -217,15 +246,57 @@ describe("MessageView edit in place", () => {
     expect(onResend).toHaveBeenCalledWith(sent, "make it blue now");
   });
 
-  it("warns when later turns will be replaced", async () => {
+  it("says a new version starts when later turns follow", async () => {
     const user = userEvent.setup();
     renderView(sent, { onResend: jest.fn(), editRemovesLaterTurns: true });
 
     await user.click(screen.getByRole("button", { name: "Edit and resend" }));
 
     expect(
-      screen.getByText("Sending replaces everything after this message.")
+      screen.getByText(
+        "Sending starts a new version. The current one stays available."
+      )
     ).toBeInTheDocument();
+  });
+});
+
+describe("MessageView version switcher", () => {
+  const prompt = {
+    id: "0123456789abcdef0123456789abcdef",
+    role: "user",
+    thread_id: "thread-1",
+    content: "make it blue"
+  } as Message;
+
+  it("shows which version is live and steps to its neighbours", async () => {
+    const user = userEvent.setup();
+    const select = jest.fn();
+    renderView(prompt, { versionNav: { index: 2, count: 3, select } });
+
+    expect(
+      screen.getByRole("group", { name: "Version 2 of 3" })
+    ).toHaveTextContent("2/3");
+
+    await user.click(screen.getByRole("button", { name: "Previous version" }));
+    await user.click(screen.getByRole("button", { name: "Next version" }));
+    expect(select.mock.calls).toEqual([[1], [3]]);
+  });
+
+  it("cannot step past the first or last version", () => {
+    renderView(prompt, {
+      versionNav: { index: 1, count: 2, select: jest.fn() }
+    });
+
+    expect(
+      screen.getByRole("button", { name: "Previous version" })
+    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next version" })).toBeEnabled();
+  });
+
+  it("is absent where there is only one version", () => {
+    renderView(prompt);
+
+    expect(screen.queryByRole("group")).not.toBeInTheDocument();
   });
 });
 

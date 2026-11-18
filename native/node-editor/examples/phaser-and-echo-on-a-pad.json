@@ -1,0 +1,156 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-11-12T00:00:00.000Z",
+  "updated_at": "2026-11-12T00:00:00.000Z",
+  "name": "Phaser and Echo on a Pad",
+  "tool_name": null,
+  "description": "Synthesizes a detuned pad chord and moves it with a phaser and a tempo delay. Runs locally with no file, model or key.",
+  "tags": [
+    "audio",
+    "dsp",
+    "music",
+    "example",
+    "local"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Phaser and Echo on a Pad\n\nSynthesizes a slow pad chord and gives it movement and space. Every step runs in the editor process, with no file, model or key.\n\n**How it works:** \"1 Pad\" is a Code node that writes four seconds of detuned sawtooth voices. \"2 Phaser\" sweeps notches through the spectrum. \"3 Echo\" repeats the signal every dotted eighth note at 120 BPM.\n\n**Try this:** Set Rate on \"2 Phaser\" to 2 for a fast sweep, or set Feedback on \"3 Echo\" to 0.7 for a longer trail."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 640,
+          "selectable": true,
+          "height": 300
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "src",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "// Four seconds of a minor chord, two slightly detuned sawtooth voices per note.\nconst rate = 44100, seconds = 4;\nconst notes = [130.81, 155.56, 196.0, 261.63];\nconst samples = new Float32Array(rate * seconds);\nfor (let i = 0; i < samples.length; i++) {\n  const t = i / rate;\n  const env = Math.min(1, t / 0.8) * Math.min(1, (seconds - t) / 0.8);\n  let s = 0;\n  for (const freq of notes) {\n    for (const detune of [0.996, 1.004]) {\n      const phase = (freq * detune * t) % 1;\n      s += 2 * phase - 1;\n    }\n  }\n  samples[i] = 0.15 * env * s;\n}\n\n// 16-bit PCM WAV bytes from interleaved samples in [-1, 1].\nfunction wav(samples, rate, channels) {\n  const bytes = new Uint8Array(44 + samples.length * 2);\n  const view = new DataView(bytes.buffer);\n  const tag = (at, text) => { for (let i = 0; i < 4; i++) bytes[at + i] = text.charCodeAt(i); };\n  tag(0, \"RIFF\"); view.setUint32(4, 36 + samples.length * 2, true); tag(8, \"WAVE\");\n  tag(12, \"fmt \"); view.setUint32(16, 16, true); view.setUint16(20, 1, true);\n  view.setUint16(22, channels, true); view.setUint32(24, rate, true);\n  view.setUint32(28, rate * channels * 2, true); view.setUint16(32, channels * 2, true);\n  view.setUint16(34, 16, true); tag(36, \"data\"); view.setUint32(40, samples.length * 2, true);\n  samples.forEach((s, i) => view.setInt16(44 + i * 2, Math.round(Math.max(-1, Math.min(1, s)) * 32767), true));\n  return bytes;\n}\n\nawait output(\"audio\", await media.toAudio(wav(samples, rate, 1), { mimeType: \"audio/wav\", filename: \"pad.wav\" }));\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Pad"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {
+          "audio": {
+            "type": "audio",
+            "type_args": [],
+            "optional": false
+          }
+        }
+      },
+      {
+        "id": "ph",
+        "type": "lib.audio.Phaser",
+        "data": {
+          "rate_hz": 0.4,
+          "depth": 0.8,
+          "centre_frequency_hz": 900,
+          "feedback": 0.5,
+          "mix": 0.5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Phaser"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "dl",
+        "type": "lib.audio.Delay",
+        "data": {
+          "delay_seconds": 0.375,
+          "feedback": 0.4,
+          "mix": 0.35
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Echo"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "pad"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Pad"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "src",
+        "sourceHandle": "audio",
+        "target": "ph",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e2",
+        "source": "ph",
+        "sourceHandle": "output",
+        "target": "dl",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e-out",
+        "source": "dl",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "run_mode": null
+}

@@ -10,6 +10,15 @@ import {
 import { getPortableDb } from "./db.js";
 import { scripts } from "./schema/scripts.js";
 import { removeDocumentSharing } from "./document-sharing.js";
+import {
+  DocumentFileBinding,
+  etagWithoutFileState,
+  type DocumentFileFields
+} from "./document-file-binding.js";
+import type {
+  DocumentFileLocation,
+  DocumentFileSync
+} from "./document-file-sync.js";
 
 /** One word of a take with clip-local timing (mirrors timeline CaptionWord). */
 export interface ScriptCaptionWord {
@@ -143,6 +152,15 @@ export class Script extends DBModel {
   declare document: string;
   declare timeline_id: string | null;
   declare storyboard_id: string | null;
+  /** The script's file, relative to its project's folder. */
+  declare file_path: string | null;
+  /**
+   * SHA-256 of the file as NodeTool last wrote or imported it. A file with
+   * another hash holds an edit NodeTool has not seen.
+   */
+  declare file_hash: string | null;
+  /** What the last reconcile found wrong with the file, or null. */
+  declare file_error: string | null;
   declare created_at: string;
   declare updated_at: string;
 
@@ -156,7 +174,84 @@ export class Script extends DBModel {
     this.timeline_id ??= null;
     this.storyboard_id ??= null;
     this.created_at ??= now;
+    this.file_path ??= null;
+    this.file_hash ??= null;
+    this.file_error ??= null;
     this.updated_at ??= now;
+    scriptFiles.remember(this);
+  }
+
+  override async delete(): Promise<void> {
+    await super.delete();
+    await scriptFiles.deleted(this);
+  }
+
+  /** The etag of the script, without the state of its file. */
+  override getEtag(): string {
+    return etagWithoutFileState(this.toRow());
+  }
+
+  /** Every create and save of a script row writes its file afterwards. */
+  protected override async persist(event: ModelChangeEvent): Promise<this> {
+    const previous = await scriptFiles.beforePersist(this);
+    await super.persist(event);
+    await this.syncFile(previous);
+    return this;
+  }
+
+  /**
+   * Write the file of this row, which a caller just wrote without `save()`.
+   * `previous` is the file the row had in the project it left, if it moved.
+   */
+  async syncFile(previous: DocumentFileLocation | null = null): Promise<void> {
+    await scriptFiles.saved(this, previous);
+  }
+
+  /** Record the file state without touching `updated_at`. */
+  static setFileState(id: string, state: DocumentFileFields): Promise<void> {
+    return scriptFiles.setFileState(id, state);
+  }
+
+  /** Whether a script of any user has exactly this ID. */
+  static existsExactly(id: string): Promise<boolean> {
+    return scriptFiles.existsExactly(id);
+  }
+
+  /** The scripts whose files belong in the folder of `projectIds`. */
+  static listForProjects(
+    userId: string,
+    projectIds: readonly string[]
+  ): Promise<Script[]> {
+    return scriptFiles.listForProjects(userId, projectIds);
+  }
+
+  /** The projects that hold a script whose file was never written. */
+  static projectsWithUnwrittenFiles(
+    userId?: string
+  ): Promise<Array<{ user_id: string; project_id: string; count: number }>> {
+    return scriptFiles.projectsWithUnwrittenFiles(userId);
+  }
+
+  /**
+   * Insert a script only when no row has its ID. Returns null when a row
+   * with that ID exists, which is left exactly as it is, whoever owns it.
+   */
+  static async insertNew(data: Record<string, unknown>): Promise<Script | null> {
+    const row = new Script(data);
+    row.beforeSave();
+    return scriptFiles.insertNew(row);
+  }
+
+  /**
+   * Point a script the caller owns at `projectId` and take its file along.
+   * Returns false when the caller owns no such script.
+   */
+  static moveToProject(
+    userId: string,
+    id: string,
+    projectId: string
+  ): Promise<boolean> {
+    return scriptFiles.moveToProject(userId, id, projectId);
   }
 
   override beforeSave(): void {
@@ -263,7 +358,24 @@ export class Script extends DBModel {
     if (!row) return null;
 
     const updated = new Script(row);
+    await updated.syncFile();
     ModelObserver.notify(updated, ModelChangeEvent.UPDATED, meta);
     return updated;
   }
+}
+
+const scriptFiles = new DocumentFileBinding<Script>(
+  scripts,
+  (row) => new Script(row)
+);
+
+/**
+ * Install what writes a script's file in its project folder after the row
+ * is saved, and deletes it after the row is deleted. See
+ * {@link DocumentFileSync}.
+ */
+export function setScriptFileSync(
+  sync: DocumentFileSync<Script> | null
+): void {
+  scriptFiles.sync = sync;
 }

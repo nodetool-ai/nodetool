@@ -35,7 +35,7 @@ InspectorSection {
     }
     function startPayload(raw) {
         const ms = Helpers.parseTimecode(raw, fps)
-        return !locked && ms !== null ? {clipId:clip.id, selectedIds:[clip.id], linked:!gestures || gestures.linkedSelection !== false, deltaMs:Math.max(0, ms) - clip.startMs} : null
+        return !locked && ms !== null ? {clipId:clip.id, selectedIds:[clip.id], linked:!gestures || gestures.linkedSelection !== false, deltaMs:Math.max(0, ms) - clip.startMs, mode:gestures && gestures.dropMode ? gestures.dropMode : "overwrite"} : null
     }
     function durationPayload(raw) {
         const ms = Helpers.parseSeconds(raw)
@@ -58,7 +58,7 @@ InspectorSection {
             minWidth: InspectorTokens.rowControlMinWidth
             ariaLabel: "Start timecode"
             disabled: root.locked
-            onCommit: raw => { const p = root.startPayload(raw); if (p) edits.apply(root.groupMode ? "moveClip" : "moveSelectedClips", p) }
+            onCommit: raw => { const p = root.startPayload(raw); if (p) edits.apply(root.groupMode ? "moveClip" : "moveSelectedClipsAndDrop", p) }
         }
     }
     InspectorRow {

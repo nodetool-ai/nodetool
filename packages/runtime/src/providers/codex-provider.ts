@@ -1,34 +1,31 @@
 /**
- * CodexProvider — OpenAI models reached through a ChatGPT/Codex OAuth login
- * instead of an API key.
+ * CodexProvider — OpenAI models on the user's ChatGPT plan, reached through
+ * Sign in with ChatGPT instead of an API key.
  *
- * The ChatGPT Codex backend (`chatgpt.com/backend-api/codex`) is NOT the
- * OpenAI API: it speaks the OpenAI **Responses API** (`POST /responses`),
- * behind a WAF that requires the request to look like the Codex CLI
- * (`originator`, `chatgpt-account-id`, a Codex `User-Agent`, an SSE `Accept`).
- * So this provider can't reuse {@link OpenAIProvider}'s chat-completions path —
- * it overrides the chat methods to drive the Responses API directly and parse
- * its SSE event stream.
+ * Follows OpenAI's guide
+ * (https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt): the
+ * OAuth access token calls the public Responses API at
+ * `https://api.openai.com/v1/responses` with `store: false` and
+ * `stream: true`, and `GET /v1/models` lists the models the signed-in account
+ * can use. ChatGPT's private `backend-api` routes are not used. The provider
+ * drives the Responses API directly and parses its SSE event stream.
  *
- * The bearer is the short-lived Codex OAuth access token, resolved (and
- * refreshed) by the host through `getSecret("CODEX_ACCESS_TOKEN")` and passed
- * in as a constructor kwarg — exactly how the registry wires every other
- * credentialed provider.
+ * The bearer is the short-lived OAuth access token, resolved (and refreshed)
+ * by the host through `getSecret("CODEX_ACCESS_TOKEN")` and passed in as a
+ * constructor kwarg — exactly how the registry wires every other credentialed
+ * provider.
  */
 
-import { createHash } from "node:crypto";
 import OpenAI from "openai";
 import { createLogger, type Logger } from "@nodetool-ai/config";
 import {
-  CODEX_BACKEND_BASE_URL,
-  CODEX_DEFAULT_ORIGINATOR,
-  CODEX_CLIENT_VERSION,
+  CHATGPT_API_BASE_URL,
+  CHATGPT_USAGE_SETTINGS_URL,
   PROVIDER_IDS,
   isString,
   type Chunk
 } from "@nodetool-ai/protocol";
 import { OpenAIProvider } from "./openai-provider.js";
-import { extractChatGptAccountId } from "./oauth/jwt-claims.js";
 import type {
   ImageModel,
   LanguageModel,
@@ -49,9 +46,8 @@ import type { ProviderCapability } from "./base-provider.js";
 const log = createLogger("nodetool.runtime.codex");
 
 /**
- * The models the Codex CLI lists in its picker, mirrored from its bundled
- * `models.json` (entries with `visibility: "list"`). Shown only when the live
- * `/models` listing is unavailable.
+ * Models ChatGPT plans list, shown only when the live `/v1/models` listing is
+ * unavailable.
  */
 export const CODEX_FALLBACK_MODELS: LanguageModel[] = [
   ["gpt-6.1-sol", "GPT-6.1-Sol"],
@@ -71,20 +67,104 @@ export function sanitizeCodexControlTokens(text: string): string {
   return text.replace(CODEX_CONTROL_TOKEN, " ");
 }
 
-function codexClientVersion(): string {
-  return (
-    (typeof process !== "undefined" && process.env?.CODEX_CLIENT_VERSION) ||
-    CODEX_CLIENT_VERSION
-  );
+/**
+ * Recovery text for the structured errors the plan route returns, from
+ * OpenAI's errors and recovery guide.
+ */
+const CHATGPT_ERROR_MESSAGES: Record<string, string> = {
+  subscription_sharing_usage_limit_exceeded: `You reached your ChatGPT plan's usage limit. Check your usage at ${CHATGPT_USAGE_SETTINGS_URL}.`,
+  subscription_sharing_usage_unavailable:
+    "ChatGPT could not check your plan usage right now. Try again shortly.",
+  subscription_sharing_user_not_eligible:
+    "Your ChatGPT plan, workspace or policy does not allow NodeTool to use it.",
+  subscription_sharing_user_unavailable:
+    "ChatGPT account information is temporarily unavailable. Try again shortly.",
+  subscription_sharing_invalid_user:
+    "Your ChatGPT sign-in is no longer valid. Sign in with ChatGPT again.",
+  subscription_sharing_route_not_supported:
+    "This request is not available on a ChatGPT plan.",
+  chatpass_v2_scope_not_authorized:
+    "NodeTool is not allowed to use your ChatGPT plan. Sign in with ChatGPT again and allow plan usage.",
+  chatpass_v2_invalid_authorization_context:
+    "NodeTool is not allowed to use your ChatGPT plan. Sign in with ChatGPT again and allow plan usage."
+};
+
+function errorObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const nested = record.error;
+  if (nested && typeof nested === "object") {
+    return nested as Record<string, unknown>;
+  }
+  return record;
 }
 
 /**
- * A failed Codex request. The status rides on the error so the provider layer
- * classifies a 401 as an expired sign-in, which its message alone does not
- * reveal: the status sits mid-sentence, where the parser does not look.
+ * A user-facing message for a failed ChatGPT plan request. `detail` is the
+ * parsed error body, a `response.failed` response, or an `error` event.
  */
-function codexHttpError(message: string, status: number): Error {
-  return Object.assign(new Error(message), { status });
+export function chatGptErrorMessage(
+  detail: unknown,
+  status: number | null,
+  fallback: string
+): string {
+  const error = errorObject(detail);
+  const code = error && isString(error.code) ? error.code : null;
+  if (code === "subscription_sharing_unsupported_capability") {
+    const param = isString(error?.param) ? error.param : null;
+    return param
+      ? `A ChatGPT plan does not support "${param}" in this request.`
+      : "A ChatGPT plan does not support part of this request.";
+  }
+  if (code && CHATGPT_ERROR_MESSAGES[code]) return CHATGPT_ERROR_MESSAGES[code];
+  if (status === 401) {
+    return "Your ChatGPT sign-in was not accepted. Sign in with ChatGPT again.";
+  }
+  if (status === 403) {
+    return "ChatGPT blocked this request by policy, for example the serving region.";
+  }
+  if (status === 503) {
+    return "ChatGPT plan usage is unavailable right now. Try again shortly.";
+  }
+  const message = error && isString(error.message) ? error.message : null;
+  return message ? `${fallback}: ${message}` : fallback;
+}
+
+/**
+ * A failed ChatGPT request. The status rides on the error so the provider
+ * layer classifies a 401 as an expired sign-in, which its message alone does
+ * not reveal.
+ */
+function chatGptHttpError(message: string, status: number | null): Error {
+  return status === null
+    ? new Error(message)
+    : Object.assign(new Error(message), { status });
+}
+
+/** Turn a non-OK response into a {@link chatGptHttpError}. */
+async function failedResponseError(res: Response, fallback: string): Promise<Error> {
+  const text = await res.text().catch(() => "");
+  let detail: unknown;
+  try {
+    detail = JSON.parse(text);
+  } catch {
+    detail = text ? { message: text.slice(0, 300) } : null;
+  }
+  return chatGptHttpError(
+    chatGptErrorMessage(detail, res.status, `${fallback} (${res.status})`),
+    res.status
+  );
+}
+
+/** Throw for a `response.failed` or `error` stream event. */
+function streamEventError(event: Record<string, unknown>, fallback: string): Error {
+  const detail =
+    event.type === "response.failed"
+      ? (event.response as Record<string, unknown> | undefined)
+      : event;
+  const error = errorObject(detail);
+  const status = typeof error?.status === "number" ? error.status : null;
+  return chatGptHttpError(chatGptErrorMessage(detail, status, fallback), status);
 }
 
 /** Parse a Responses SSE stream into its JSON events. */
@@ -119,48 +199,11 @@ async function* readSseEvents(
   }
 }
 
-/**
- * The id Codex groups one conversation's requests under. The Codex CLI sends
- * its conversation id as both the `session_id` header and `prompt_cache_key`,
- * and the backend routes requests that share it to where their prefix is
- * already cached. A thread keys by its id, so every turn and tool round of it
- * lands together; without a thread the instructions stand in, which groups the
- * calls of one agent or node. UUID-shaped like the CLI's own ids. Undefined
- * when there is nothing stable to key on.
- */
-export function codexConversationId(
-  threadId: string | null | undefined,
-  instructions: string
-): string | undefined {
-  const source = threadId
-    ? `thread:${threadId}`
-    : instructions
-      ? `system:${instructions}`
-      : "";
-  if (!source) return undefined;
-  const hex = createHash("sha256")
-    .update(`nodetool-codex:${source}`)
-    .digest("hex");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
-}
-
 /** A function call accumulated across Responses streaming events. */
 interface PendingCall {
   callId: string;
   name: string;
   args: string;
-}
-
-/** The default headers a Codex client sends, with the account id when there is one. */
-function codexDefaultHeaders(
-  originator: string,
-  accountId: string | null | undefined
-) {
-  const headers: Record<string, string> = { originator };
-  if (accountId) {
-    headers["chatgpt-account-id"] = accountId;
-  }
-  return headers;
 }
 
 export class CodexProvider extends OpenAIProvider {
@@ -177,8 +220,6 @@ export class CodexProvider extends OpenAIProvider {
   }
 
   private readonly accessToken: string;
-  private readonly accountId: string | null;
-  private readonly originator: string;
   private readonly codexLogger: Logger;
 
   constructor(secrets: { CODEX_ACCESS_TOKEN?: string }) {
@@ -186,26 +227,28 @@ export class CodexProvider extends OpenAIProvider {
     if (!token) {
       throw new Error("CODEX_ACCESS_TOKEN is required");
     }
-    const accountId = extractChatGptAccountId(token);
-    const originator =
-      (typeof process !== "undefined" && process.env?.CODEX_ORIGINATOR) ||
-      CODEX_DEFAULT_ORIGINATOR;
 
     super(
       { OPENAI_API_KEY: token },
       {
         providerId: PROVIDER_IDS.CODEX,
+        // The plan token belongs to a ChatGPT account, not a Platform
+        // organization or project, and plan usage errors must not be retried.
         clientFactory: (key) =>
           new OpenAI({
             apiKey: key,
-            baseURL: CODEX_BACKEND_BASE_URL,
-            defaultHeaders: codexDefaultHeaders(originator, accountId)
+            baseURL: CHATGPT_API_BASE_URL,
+            organization: null,
+            project: null,
+            maxRetries: 0,
+            defaultHeaders: {
+              "openai-organization": null,
+              "openai-project": null
+            }
           })
       }
     );
     this.accessToken = token;
-    this.accountId = accountId;
-    this.originator = originator;
     this.codexLogger = log;
   }
 
@@ -215,15 +258,16 @@ export class CodexProvider extends OpenAIProvider {
   }
 
   /**
-   * Return the account- and version-specific models served by Codex, minus
-   * the ones Codex itself hides from its picker. Use {@link CODEX_FALLBACK_MODELS}
-   * only when the live listing is unavailable or empty.
+   * Return the models the signed-in account can use, from `GET /v1/models`:
+   * entries with `visibility: "list"`, in the server's order, named by their
+   * `display_name`. Use {@link CODEX_FALLBACK_MODELS} only when the live
+   * listing is unavailable or empty.
    */
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
     try {
-      const url = `${CODEX_BACKEND_BASE_URL}/models?client_version=${encodeURIComponent(codexClientVersion())}`;
-      const res = await fetch(url, {
-        headers: this.buildHeaders("application/json")
+      const res = await fetch(`${CHATGPT_API_BASE_URL}/models`, {
+        headers: this.buildHeaders("application/json"),
+        redirect: "error"
       });
       if (!res.ok) return CODEX_FALLBACK_MODELS;
       const payload = (await res.json()) as {
@@ -238,11 +282,11 @@ export class CodexProvider extends OpenAIProvider {
           (m): m is { slug: string; display_name?: string } =>
             typeof m.slug === "string" &&
             m.slug.length > 0 &&
-            m.visibility !== "hide"
+            m.visibility === "list"
         )
         .map((m) => ({
           id: m.slug,
-          name: m.display_name ?? m.slug,
+          name: m.display_name?.trim() || m.slug,
           provider: PROVIDER_IDS.CODEX
         }));
       return models.length > 0 ? models : CODEX_FALLBACK_MODELS;
@@ -274,9 +318,9 @@ export class CodexProvider extends OpenAIProvider {
 
   /**
    * The chat model that calls a built-in tool (`image_generation`,
-   * `web_search`). The Codex backend has no images or search endpoint, and the
-   * models it serves change by account and over time, so use the first model
-   * of the live listing.
+   * `web_search`). A plan token reaches only the Responses API, and the models
+   * it can use change by account and over time, so use the first model of the
+   * live listing.
    */
   private resolveDefaultModel(): Promise<string> {
     this.defaultModel ??= this.getAvailableLanguageModels().then(
@@ -328,17 +372,14 @@ export class CodexProvider extends OpenAIProvider {
       stream: true
     };
 
-    const res = await fetch(`${CODEX_BACKEND_BASE_URL}/responses`, {
+    const res = await fetch(`${CHATGPT_API_BASE_URL}/responses`, {
       method: "POST",
       headers: this.buildHeaders(),
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      redirect: "error"
     });
     if (!res.ok || !res.body) {
-      const detail = await res.text().catch(() => "");
-      throw codexHttpError(
-        `Codex image request failed (${res.status}): ${detail.slice(0, 300)}`,
-        res.status
-      );
+      throw await failedResponseError(res, "ChatGPT image request failed");
     }
 
     let finalB64 = "";
@@ -373,6 +414,9 @@ export class CodexProvider extends OpenAIProvider {
           ) {
             lastPartial = event.partial_image_b64;
           }
+          if (event.type === "response.failed" || event.type === "error") {
+            throw streamEventError(event, "ChatGPT image generation failed");
+          }
           if (event.type === "response.output_item.done") {
             const item = event.item as Record<string, unknown> | undefined;
             if (
@@ -390,7 +434,7 @@ export class CodexProvider extends OpenAIProvider {
 
     const b64 = finalB64 || lastPartial;
     if (!b64) {
-      throw new Error("Codex image generation returned no image data.");
+      throw new Error("ChatGPT image generation returned no image data.");
     }
     return Uint8Array.from(Buffer.from(b64, "base64"));
   }
@@ -398,9 +442,8 @@ export class CodexProvider extends OpenAIProvider {
   // --- Web search (via the Responses web_search tool) --------------------
 
   /**
-   * Answer a query with the Responses built-in `web_search` tool. The Codex
-   * backend runs the search server-side, as it does for the Codex CLI.
-   * Returns the answer and the pages it cites.
+   * Answer a query with the Responses built-in `web_search` tool, which runs
+   * the search server-side. Returns the answer and the pages it cites.
    */
   async webSearch(args: {
     query: string;
@@ -427,18 +470,15 @@ export class CodexProvider extends OpenAIProvider {
       stream: true
     };
 
-    const res = await fetch(`${CODEX_BACKEND_BASE_URL}/responses`, {
+    const res = await fetch(`${CHATGPT_API_BASE_URL}/responses`, {
       method: "POST",
       headers: this.buildHeaders(),
       body: JSON.stringify(body),
-      signal: args.signal
+      signal: args.signal,
+      redirect: "error"
     });
     if (!res.ok || !res.body) {
-      const detail = await res.text().catch(() => "");
-      throw codexHttpError(
-        `Codex web search failed (${res.status}): ${detail.slice(0, 300)}`,
-        res.status
-      );
+      throw await failedResponseError(res, "ChatGPT web search failed");
     }
 
     let streamed = "";
@@ -463,37 +503,23 @@ export class CodexProvider extends OpenAIProvider {
           }
         }
       } else if (event.type === "response.failed" || event.type === "error") {
-        const response = event.response as Record<string, unknown> | undefined;
-        const error = (response?.error ?? event.error ?? event) as Record<string, unknown>;
-        throw new Error(
-          `Codex web search failed: ${isString(error.message) ? error.message : "unknown error"}`
-        );
+        throw streamEventError(event, "ChatGPT web search failed");
       }
     }
 
     const text = messages.length > 0 ? messages.join("\n") : streamed;
-    if (!text) throw new Error("Codex web search returned no answer.");
+    if (!text) throw new Error("ChatGPT web search returned no answer.");
     return { text, sources };
   }
 
   // --- Responses API transport -------------------------------------------
 
-  private buildHeaders(accept = "text/event-stream", sessionId?: string) {
-    const version = codexClientVersion();
-    const headers: Record<string, string> = {
+  private buildHeaders(accept = "text/event-stream"): Record<string, string> {
+    return {
       authorization: `Bearer ${this.accessToken}`,
       "content-type": "application/json",
-      accept,
-      originator: this.originator,
-      "openai-beta": "responses=experimental",
-      version,
-      "user-agent": `${this.originator}/${version} (NodeTool)`,
-      session_id: sessionId ?? globalThis.crypto.randomUUID()
+      accept
     };
-    if (this.accountId) {
-      headers["chatgpt-account-id"] = this.accountId;
-    }
-    return headers;
   }
 
   /** Translate the cross-provider message list into Responses API input. */
@@ -554,8 +580,6 @@ export class CodexProvider extends OpenAIProvider {
       store: false,
       stream: true
     };
-    const conversationId = codexConversationId(args.threadId, instructions);
-    if (conversationId) body.prompt_cache_key = conversationId;
 
     if (args.tools?.length) {
       body.tools = args.tools.map((t) => ({
@@ -596,29 +620,24 @@ export class CodexProvider extends OpenAIProvider {
     signal?: AbortSignal;
   }): AsyncGenerator<ProviderStreamItem> {
     const body = this.buildRequestBody(args);
-    this.codexLogger.debug("Codex responses request", { model: args.model });
+    this.codexLogger.debug("ChatGPT responses request", { model: args.model });
 
     this.recordRequestPayload(body);
-    const res = await fetch(`${CODEX_BACKEND_BASE_URL}/responses`, {
+    const res = await fetch(`${CHATGPT_API_BASE_URL}/responses`, {
       method: "POST",
-      headers: this.buildHeaders(
-        "text/event-stream",
-        isString(body.prompt_cache_key) ? body.prompt_cache_key : undefined
-      ),
+      headers: this.buildHeaders(),
       body: JSON.stringify(body),
-      signal: args.signal
+      signal: args.signal,
+      redirect: "error"
     });
 
     if (!res.ok || !res.body) {
-      const detail = await res.text().catch(() => "");
-      this.codexLogger.warn("Codex responses request failed", {
+      const error = await failedResponseError(res, "ChatGPT request failed");
+      this.codexLogger.warn("ChatGPT responses request failed", {
         status: res.status,
-        detail: detail.slice(0, 500)
+        error: error.message
       });
-      throw codexHttpError(
-        `Codex request failed (${res.status}): ${detail.slice(0, 300)}`,
-        res.status
-      );
+      throw error;
     }
 
     const pending = new Map<string, PendingCall>();
@@ -730,7 +749,8 @@ export class CodexProvider extends OpenAIProvider {
         }
         return;
       }
-      case "response.completed": {
+      case "response.completed":
+      case "response.incomplete": {
         const response = event.response as Record<string, unknown> | undefined;
         const usage = response?.usage as Record<string, unknown> | undefined;
         if (usage) {
@@ -747,17 +767,8 @@ export class CodexProvider extends OpenAIProvider {
         return;
       }
       case "response.failed":
-      case "error": {
-        const err =
-          (event.error as Record<string, unknown> | undefined) ??
-          ((event.response as Record<string, unknown> | undefined)?.error as
-            | Record<string, unknown>
-            | undefined);
-        const message =
-          (err && isString(err.message) && err.message) ||
-          "Codex response failed";
-        throw new Error(message);
-      }
+      case "error":
+        throw streamEventError(event, "ChatGPT response failed");
       default:
         return;
     }

@@ -2,6 +2,7 @@
 #include <QColor>
 #include "IconPaths.h"
 #include "TypeStyle.h"
+#include <QHash>
 #include <QImage>
 #include <QSize>
 #include <QRectF>
@@ -38,6 +39,13 @@ inline constexpr int handleRowStep = 28;
 inline constexpr int inlineRowGap = 6;
 inline constexpr int fieldHeight = 29;
 inline constexpr int multilineFieldHeight = 65;
+// The code field of a Code node card. CodePropertyEditor.qml uses the same
+// numbers, so the inline editor lands on the painted field without a shift.
+inline constexpr int codeFontSize = 12;
+inline constexpr int codePaddingY = 6;
+inline constexpr int codeGutterWidth = 32;
+inline constexpr int codeTextGap = 8;
+inline constexpr int codeMinimumHeight = 200;
 inline constexpr int previewHeight = 80;
 // ContentCardBody's top padding places its preview below the handle column.
 inline constexpr int contentPreviewTop = 47;
@@ -152,6 +160,18 @@ inline constexpr int schemaFooterPadding = 2;
 inline constexpr int dropZoneGap = 5;
 inline constexpr int dropZoneHeight = 46;
 inline constexpr int iconSize = 16;
+// RunModelButton: 4 px by 16 px padding, a 16 px icon and a 6 px gap in a 24 px button.
+inline constexpr int runButtonPadding = 16;
+inline constexpr int runButtonGap = 6;
+inline constexpr int runButtonHeight = 24;
+// LevelsBody's HIST_HEIGHT.
+inline constexpr int histogramHeight = 56;
+// The width the inline color editor takes over a small swatch.
+inline constexpr int colorEditorWidth = 240;
+// LayerRow: 40 px thumbnail, 96 px blend select and 28 px icon buttons.
+inline constexpr int layerThumbnail = 40;
+inline constexpr int layerBlendWidth = 96;
+inline constexpr int layerButton = 28;
 inline constexpr int fieldRadius = 6;
 inline constexpr double handleDiameter = 12;
 inline constexpr double handleRing = 2;
@@ -188,18 +208,61 @@ inline constexpr double gridCross = 3;
 inline constexpr int fontTitle = 13;
 inline constexpr int fontLabel = 13;
 inline constexpr int fontValue = 11;
+// Painted card controls (CardControls.h). Fades are alpha factors on a theme color.
+inline constexpr int fontCaption = fontValue - micro;
+inline constexpr double mutedOpacity = 0.7;
+inline constexpr double placeholderIconOpacity = 0.65;
+inline constexpr double chipFillOpacity = 0.18;
+inline constexpr double activeFillOpacity = 0.1;
+// A 1 px outline is stroked on pixel centers, 0.5 px inside its rect.
+inline constexpr double outlineInset = 0.5;
+inline constexpr int actionRadius = 1;
+// The checker cell of an empty state and the right padding a choice reserves for its chevron.
+inline constexpr int placeholderCell = 16;
+inline constexpr int choiceInset = 24;
+// The chevron: its center sits 12 px from the field's right edge, 6 px wide and 3 px tall.
+inline constexpr double chevronInset = 12;
+inline constexpr double chevronHalfWidth = 3;
+inline constexpr double chevronHalfHeight = 1.5;
+inline constexpr double chevronStroke = 1.2;
+// A drop zone's icon-hint text line.
+inline constexpr double dropZoneLine = 12;
 } // namespace node_metrics
 
 // Composer, Slider, Segmented, Lock, ModelChip, Action and DropZone rows belong
 // to the bespoke bodies. Their controls sit in NodeRow::rect.
 enum class NodeRowKind { Handle, Label, Field, Multiline, Number, Toggle, Preview,
-                         Composer, Slider, Segmented, Lock, ModelChip, Action, DropZone, Swatch, ImageSize };
+                         Composer, Slider, Segmented, Lock, ModelChip, Action, DropZone, Swatch, ImageSize,
+                         // A dashed placement rectangle over a preview (rect, may be empty)
+                         // and a size badge in the corner of parts[0] (value).
+                         Overlay,
+                         // CropBody's crop rectangle over the image in rect. minimum and
+                         // maximum hold the image size, optionValues the left, top,
+                         // right and bottom edges in image pixels, value the size badge.
+                         Crop,
+                         // LevelsBody's histogram: parts[0] the area, rect the bars,
+                         // optionValues 256 bar heights from 0 to 1, value the view
+                         // ("r", "g", "b" or "luminance") that picks the color.
+                         Histogram,
+                         // PainterBody's canvas: parts[0] the area, rect the canvas,
+                         // minimum and maximum its size in pixels, media[0] the mask and
+                         // media[1] the source, number the background opacity, step the
+                         // brush size, value the color, checked the eraser and
+                         // optionValues[0] the brush opacity.
+                         Paint,
+                         BodyCaption, ListItem, CollectionTile, Knob, Waveform, Envelope, Caption,
+                         // ImageComparer: media[0] image A over media[1] image B in rect,
+                         // number the divider from 0 to 1, checked vertical, options the
+                         // two labels.
+                         Compare };
+
 
 // The body a card draws, chosen by node type as the web's bespoke body registry does.
 enum class CardBody { Generic, Content, Prompt, Output, Preview, Blur, ResizeImage,
                       Adjustment, SimpleFilter, Scale, Offset, Pad, Outline, DropShadow, ColorOverlay,
                       ChromaKey, Channels, Mask, HslAdjust, Generator, GetVariable,
-                      CompareImages, ConstantString, RotateFlip, Resize, Fit, Paste };
+                      CompareImages, ConstantString, RotateFlip, Resize, Fit, Paste, CanvasResize, Curves, Levels, Crop,
+                      MasksExtractor, Painter, Compositor, ExtractVideoFrame, ListGenerator, Collection, SynthModule, AudioOut };
 
 // One media value on a card: an image, video or audio reference and, for an
 // image, the thumbnail CardMediaLoader decoded. rect is card-local.
@@ -234,6 +297,8 @@ struct NodeRow {
   bool checked = false;
   bool choice = false;
   bool bare = false;
+  // A Multiline row that holds source code: a monospace field with a line gutter.
+  bool code = false;
   double y = 0;
   double height = 0;
   double fieldY = 0;
@@ -261,6 +326,11 @@ struct NodeRow {
   int textSize = 0;
   // A bipolar slider fills from zero and signs positive values.
   bool bipolar = false;
+  // A synth knob sweeps its range on a log scale and formats its value in unit
+  // ("hz", "s", "ms", "db", "x" or none). accent names the module's palette key.
+  bool logScale = false;
+  QString unit;
+  QString accent;
   // A card warning band (ApiKeyValidation.tsx, InputNodeNameWarning.tsx): a
   // centered uppercase caption in warning ink on a faint warning fill. An
   // Action row with it draws the filled warning button.
@@ -270,7 +340,10 @@ struct NodeRow {
   bool tracksDefault = false;
   double defaultNumber = 0;
   // The command an Action row requests: "addVariable" or "addOutput". A
-  // Segmented row with "previewTab" switches the body's preview, not a property.
+  // Segmented row with "previewTab" switches the body's view state (its preview
+  // tab, or the Levels channel), not a property. A "resetSliders" row writes
+  // the defaults in optionValues to the properties in options, or else every
+  // default-tracking slider's default.
   QString action;
   // A media drop zone's value kind ("image", "video" or "audio") and items. A
   // list draws its items in a grid above listZone, its own drop zone.
@@ -282,6 +355,8 @@ struct NodeRow {
 
 struct NodeLayout {
   QSize size{node_metrics::defaultWidth, 72};
+  // The selected body tab shows an input's image, so the run result is hidden.
+  bool sourceTab = false;
   QSize minimumSize{150, 40};
   QString title;
   // A shared Material path name for the inspector and catalog.
@@ -291,6 +366,8 @@ struct NodeLayout {
   CardBody body = CardBody::Generic;
   // A bespoke body paints a run result here instead of growing the card.
   QRectF resultRect;
+  // Where a card with no result area starts its media player: the end of its content.
+  double mediaTop = 0;
   // How far a flexible preview grew to fill an authored or default card height.
   // The card's minimum height excludes it.
   int flexHeight = 0;
@@ -304,6 +381,15 @@ struct NodeLayout {
     // A header-only strip: every handle sits on its midline and no body draws.
     bool collapsed = false;
     bool subgraph = false;
+    // A header button at the right of the title, such as the ComfyUI runner's
+    // workflow loader. Empty for a card without one.
+    QString headerAction;
+    QRectF headerActionRect() const {
+        // A 16 px icon in 4 px padding, 4 px from the card's right edge, centered on the header.
+        const double side = node_metrics::iconSize + 8;
+        const double top = node_metrics::borderWidth + node_metrics::padding + (node_metrics::headerHeight - side) / 2.0;
+        return QRectF(size.width() - node_metrics::borderWidth - 4 - side, top, side, side);
+    }
     bool addOutput = false;
     bool runningProgress = false;
     // A running card other than a subgraph with a known total shows a progress band.
@@ -312,6 +398,9 @@ struct NodeLayout {
     QString childCount;
     QRectF footerRect() const { return QRectF(0, size.height() - node_metrics::handleRowStep, size.width(), node_metrics::handleRowStep); }
   QVector<NodeRow> rows;
+  // The image arriving at each image handle of a body that reads its source,
+  // by handle name. CardMediaLoader loads their thumbnails.
+  QHash<QString, CardMediaItem> sources;
   QVector<double> inputY;
   QVector<double> outputY;
   // The card and its visible handles. The view asks for it on every move and

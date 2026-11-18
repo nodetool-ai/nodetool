@@ -289,7 +289,8 @@ void installSandboxAvTracks(js::Engine &engine, const js::Value &object,
   for (const auto &root : host.readRoots) {
     paths.emplace_back(root, false);
   }
-  const auto roots = canonicalRoots(paths);
+  auto roots = canonicalRoots(paths);
+  reserveWorkspace(roots, host.workspaceDir);
   const auto staging = MediaStaging::of(engine);
   const auto binding = RunBinding::of(engine);
   // Shared with every remux job, which may outlive the engine.

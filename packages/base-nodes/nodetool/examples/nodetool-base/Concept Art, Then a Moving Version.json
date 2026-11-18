@@ -39,7 +39,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "concept",
-          "value": "",
+          "value": "A lighthouse on a basalt cliff at dusk, storm clouds rolling in, waves breaking white on the rocks below",
           "description": "The concept to visualise"
         },
         "ui_properties": {

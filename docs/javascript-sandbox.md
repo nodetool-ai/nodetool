@@ -168,16 +168,13 @@ NodeTool ships these packs (`packages/sandbox-packs/`, one directory each): `-da
 `-flow` (NodeTool's node callables), `-game` (NodeTool's game document
 builder) and `-timeline` (motion-graphics timelines as code) run
 inside the guest; `-csv` (papaparse), `-html` (cheerio + turndown), `-xml`
-(fast-xml-parser), `-xlsx` (exceljs), `-diff` (diff), `-zip` (fflate), `-ocr`
-(tesseract.js), `-tfjs` (TensorFlow.js and its model zoo), `-docx` (docx),
-`-mammoth` (mammoth), `-epub` (epub2), `-fabric` (Fabric.js — SVG and vector
-scenes), `-pdflib` (pdf-lib), `-pptxgen` (PptxGenJS), `-chrono` (chrono-node),
-`-exif` (exifr), `-expr` (expr-eval), `-ics` (ics), `-subtitle` (subtitle),
-`-tokens` (js-tiktoken), `-pptx` (office-text-extractor) and `-pdf`
-(pdf-parse) run on the host behind a
-generated facade, because they need Node builtins or a DOM, or carry a limit
-the guest could not enforce on itself (zip's 50 MB inflation cap), or hold
-state no run can keep alive (the tfjs weights). Four more carry
+(fast-xml-parser), `-diff` (diff), `-zip` (fflate), `-ocr` (tesseract.js),
+`-fabric` (Fabric.js — SVG and vector scenes), `-pdflib` (pdf-lib), `-chrono`
+(chrono-node), `-exif` (exifr), `-expr` (expr-eval), `-ics` (ics),
+`-subtitle` (subtitle), `-tokens` (js-tiktoken) and `-pdf` (pdf-parse) run on
+the host behind a generated facade, because they need Node builtins or a DOM,
+or carry a limit the guest could not enforce on itself (zip's 50 MB inflation
+cap). Four more carry
 NodeTool's own code rather than a library — `-aws` signs a request with SigV4,
 and `-notion`, `-supabase` and `-twilio` build an authenticated one —
 and none of them sends it:
@@ -351,6 +348,20 @@ one the host granted.
   the `@nodetool-ai/sandbox-nodetool/*` import and the belt bridge. A kernel
   workflow run sets no gate and runs `auto`, since pressing Run on the graph
   was the consent.
+- **Node calls follow the server's node policy.** `invoke_node` and
+  `open_node_stream` refuse a type the server drops in production or on the
+  cloud profile (`isBuiltinNodeAdmitted` in `@nodetool-ai/node-sdk`), so guest
+  code cannot reach a host-filesystem node the graph editor does not offer.
+- **Host modules load no external resources.** `sandbox-fabric` refuses image
+  sources that are not inline raster `data:` URIs and SVG that references
+  anything outside itself, because Fabric's Node build would otherwise read
+  `file://` paths and request internal hosts past the `fetch` guard. A source
+  that is not a string is refused too, since Fabric would stringify it. Fabric
+  renders and encodes on the host's main thread, so one rasterized output is
+  capped at 4096 x 4096 pixels, a scene at 2000 objects and a shadow blur at
+  100, and shadows plus image filters at 32 and, times the output size, at two
+  full 4096 x 4096 passes (`assertRenderBudget` in
+  `packages/agents/src/host-modules/fabric.ts`).
 - **Bridges are the boundary, not the hiding.** The host and WASM module
   dispatchers validate module identity, export name and argument list before any
   implementation loads, and their bindings are deleted before user code starts.

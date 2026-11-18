@@ -24,6 +24,12 @@ import {
 } from "@nodetool-ai/models";
 import type { ResourceKind } from "@nodetool-ai/app-runtime";
 import {
+  withLockedAssetRow,
+  renameProjectAssetFile,
+  type ProjectAssetFileChange
+} from "@nodetool-ai/asset-services/project-asset";
+import { requireProjectAssetFile } from "@nodetool-ai/asset-services/project-asset-file";
+import {
   createResourceInput,
   deleteResourceInput,
   listResourcesInput,
@@ -207,8 +213,20 @@ const assetProvider: ResourceProvider = {
   async update(userId, id, _revision, fields) {
     const asset = await Asset.find(userId, id);
     if (!asset) return null;
-    if (fields.name !== undefined) asset.name = fields.name;
-    await asset.save();
+    // An asset that is a file in its project folder has the file renamed
+    // with it. The old file goes only after the row is saved.
+    let renamed: ProjectAssetFileChange | null = null;
+    if (fields.name !== undefined) {
+      asset.name = fields.name;
+      renamed = await renameProjectAssetFile(asset, fields.name);
+    }
+    try {
+      await asset.save();
+    } catch (error) {
+      await renamed?.undo();
+      throw error;
+    }
+    await renamed?.commit();
     return {
       ref: { kind: "asset", id: asset.id },
       name: asset.name,
@@ -221,8 +239,18 @@ const assetProvider: ResourceProvider = {
   async delete(userId, id) {
     const asset = await Asset.find(userId, id);
     if (!asset) return false;
-    await asset.delete();
-    return true;
+    // The file in the project folder goes with its row, and goes first, so
+    // a failure never leaves a file without one. The row is read again under
+    // the folder lock: a move into the folder may have given it a file since.
+    return withLockedAssetRow(asset, async (current) => {
+      if (!current) return false;
+      // The lock is held, so the file is removed directly rather than through
+      // `deleteProjectAssetFile`, which takes the lock itself.
+      const file = await requireProjectAssetFile(current);
+      if (file) await file.workspace.delete(file.path);
+      await current.delete();
+      return true;
+    });
   }
 };
 

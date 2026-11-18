@@ -23,12 +23,12 @@ Applies dynamic range compression to an audio file.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| audio | `audio` | The audio file to process. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 | threshold | `float` | Threshold in dB above which compression is applied. | `-20` |
 | ratio | `float` | Compression ratio. Higher values result in more compression. | `4` |
 | attack | `float` | Attack time in milliseconds. | `5` |
 | release | `float` | Release time in milliseconds. | `50` |
 | auto_gain | `bool` | Apply automatic makeup gain to compensate for the level lost to compression, keeping the output roughly as loud as the input. | `true` |
+| audio | `audio` | The audio file to process. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 
 ## Outputs
 

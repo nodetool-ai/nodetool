@@ -172,6 +172,16 @@ async function act(
 }
 
 describe("MCP server surface", () => {
+  it("offers pack management only to a local session", () => {
+    const local = toolNames(createMcpServer({ agentToolsScope: { userId: "1", source: "stdio-local" } }));
+    const loopback = toolNames(createMcpServer({ agentToolsScope: { userId: "1", source: "local-dev-http" }, allowLocalFilePaths: true }));
+    const remote = toolNames(createMcpServer({ agentToolsScope: { userId: "1", source: "http-session" } }));
+    expect(local).toEqual(expect.arrayContaining(["inspect_packs", "manage_packs"]));
+    expect(loopback).toEqual(expect.arrayContaining(["inspect_packs", "manage_packs"]));
+    expect(remote).not.toContain("inspect_packs");
+    expect(remote).not.toContain("manage_packs");
+  });
+
   it("creates a stdio transport", () => {
     expect(createMcpStdioTransport()).toBeDefined();
   });
@@ -190,6 +200,8 @@ describe("MCP server surface", () => {
           "view_image",
           "upload_asset",
           "download_asset",
+          "inspect_packs",
+          "manage_packs",
           ...MINI_APP_TOOL_NAMES
         ].includes(name)
       )
@@ -312,6 +324,24 @@ describe("MCP server surface", () => {
     });
     expect(toFile.isError).toBeFalsy();
     expect(readFileSync(outputPath)).toEqual(bytes);
+
+    // Parallel downloads into a folder that does not exist yet.
+    const frames = join(dataDir, "frames", "nested");
+    const parallel = await Promise.all(
+      [0, 1, 2, 3, 4].map((i) =>
+        client.callTool({
+          name: "download_asset",
+          arguments: {
+            asset_id: saved.asset_id,
+            output_path: join(frames, `frame_${i}.bin`)
+          }
+        })
+      )
+    );
+    expect(parallel.map((result) => result.isError ?? false)).toEqual([
+      false, false, false, false, false
+    ]);
+    expect(readFileSync(join(frames, "frame_4.bin"))).toEqual(bytes);
     await client.close();
   });
 
@@ -1305,6 +1335,52 @@ describe("session scope", () => {
     );
     expect(revived!.status).toBe(200);
     expect(mcpHttpSessionCount()).toBe(MCP_MAX_SESSIONS_PER_USER);
+  });
+
+  it("refuses a user's new session when all of theirs have a call running", async () => {
+    // A request whose body never finishes keeps its session busy, as a long
+    // tool call does. Busy sessions are never evicted, so without a refusal
+    // one user could open sessions until the server-wide cap is full.
+    const pendingBody = (): ReadableStream<Uint8Array> =>
+      new ReadableStream<Uint8Array>({ start() {} });
+    const alice = {
+      agentToolsScope: { userId: "alice", source: "http-session" as const }
+    };
+    for (let i = 0; i < MCP_MAX_SESSIONS_PER_USER; i += 1) {
+      const sessionId = await openHttpSession("alice");
+      void handleMcpHttpRequest(
+        new Request("http://localhost/mcp", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            accept: "application/json, text/event-stream",
+            "mcp-session-id": sessionId
+          },
+          body: pendingBody(),
+          ...{ duplex: "half" }
+        } as RequestInit),
+        alice
+      );
+    }
+    await new Promise((resolve) => setImmediate(resolve));
+
+    const refused = await handleMcpHttpRequest(
+      new Request("http://localhost/mcp", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream"
+        },
+        body: initializeBody
+      }),
+      alice
+    );
+    expect(refused!.status).toBe(503);
+    expect(await refused!.text()).toContain("has a call running");
+    expect(mcpHttpSessionCount()).toBe(MCP_MAX_SESSIONS_PER_USER);
+
+    // Another user is unaffected.
+    await openHttpSession("bob");
   });
 
   it("does not evict another user's sessions when one user hits their cap", async () => {

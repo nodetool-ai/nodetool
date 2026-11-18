@@ -16,6 +16,11 @@ export const applications = pgTable(
     name: text("name").notNull(),
     description: text("description").notNull(),
     document: text("document").notNull(),
+    // File in the project folder and the hash last synced — see
+    // schema/applications.ts.
+    file_path: text("file_path"),
+    file_hash: text("file_hash"),
+    file_error: text("file_error"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

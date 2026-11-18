@@ -4,6 +4,7 @@
 #include "model/TimelineJson.h"
 #include "app/EditRegistry.h"
 
+#include <utility>
 #include <QHash>
 #include <QJsonDocument>
 #include <QUndoCommand>
@@ -12,6 +13,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <exception>
 #include <memory>
 
 namespace {
@@ -74,6 +76,10 @@ public:
         : QUndoCommand(text), m_model(model), m_before(std::move(before)), m_after(std::move(after)) {}
     void redo() override { m_model->replaceMarkers(m_after); }
     void undo() override { m_model->replaceMarkers(m_before); }
+    void rebase(const TimelineModel::HistoryRebase& rebase) {
+        m_before = rebase(QJsonObject{{"markers", m_before}}).value("markers").toArray();
+        m_after = rebase(QJsonObject{{"markers", m_after}}).value("markers").toArray();
+    }
 
 private:
     TimelineModel* m_model;
@@ -101,6 +107,10 @@ public:
     }
     quint64 token() const { return m_token; }
     void settle(const QJsonObject& document) { m_after = document; }
+    void rebase(const TimelineModel::HistoryRebase& rebase) {
+        m_before = rebase(m_before);
+        m_after = rebase(m_after);
+    }
 private:
     QJsonObject m_before;
     QJsonObject m_after;
@@ -141,6 +151,32 @@ void TimelineModel::setEffectMattePreview(const QString& clipId, const QString& 
 }
 
 void TimelineModel::setTimeline(nt::Timeline timeline) {
+    installTimeline(std::move(timeline), nullptr);
+}
+
+void TimelineModel::adoptExternalTimeline(nt::Timeline timeline, const HistoryRebase& rebase) {
+    installTimeline(std::move(timeline), &rebase);
+}
+
+bool TimelineModel::rebaseHistory(const HistoryRebase& rebase) {
+    QList<QUndoCommand*> commands;
+    for (int i = 0; i < m_undo->count(); ++i) {
+        // QUndoStack exposes commands as const, but owns the mutable command.
+        auto* command = const_cast<QUndoCommand*>(m_undo->command(i));
+        if (command->childCount() > 0
+            || (!dynamic_cast<DocumentCommand*>(command) && !dynamic_cast<MarkersCommand*>(command))) {
+            return false;
+        }
+        commands.append(command);
+    }
+    for (auto* command : commands) {
+        if (auto* document = dynamic_cast<DocumentCommand*>(command)) { document->rebase(rebase); }
+        else { static_cast<MarkersCommand*>(command)->rebase(rebase); }
+    }
+    return true;
+}
+
+void TimelineModel::installTimeline(nt::Timeline timeline, const HistoryRebase* rebase) {
     timeline.matteClipId.clear();
     timeline.matteEffectId.clear();
     m_media.clear();
@@ -157,7 +193,9 @@ void TimelineModel::setTimeline(nt::Timeline timeline) {
     ++m_generation;
     emit effectMatteChanged();
     emit documentReplaced();
-    m_undo->clear();
+    // An external change keeps undo when every checkpoint can take its delta
+    // (web useTimelineExternalSync rebases the zundo history the same way).
+    if (!rebase || !rebaseHistory(*rebase)) { m_undo->clear(); }
     m_tracks->reset(m_timeline.get());
     // A new document replaces the clips too: lane models that outlive the
     // reset must drop the old snapshot.
@@ -237,6 +275,30 @@ bool TimelineModel::previewTrackEffects(const QJsonArray& tracks) {
     m_timeline = std::make_shared<const nt::Timeline>(std::move(next));
     m_tracks->rebind(m_timeline.get());
     emit previewChanged();
+    return true;
+}
+
+bool TimelineModel::previewTrackHeight(const QString& trackId, double heightPx) {
+    auto next = *m_timeline;
+    auto tracks = next.raw.value("tracks").toArray();
+    bool found = false;
+    for (qsizetype i = 0; i < tracks.size(); ++i) {
+        auto track = tracks[i].toObject();
+        if (track.value("id").toString() != trackId) { continue; }
+        if (track.value("heightPx").toDouble(64) == heightPx) { return false; }
+        track.insert("heightPx", heightPx);
+        tracks[i] = track;
+        found = true;
+    }
+    if (!found) { return false; }
+    for (auto& track : next.tracks) {
+        if (QString::fromStdString(track.id) == trackId) { track.raw.insert("heightPx", heightPx); }
+    }
+    next.raw.insert("tracks", tracks);
+    next.revision = nt::nextTimelineRevision();
+    // The track rows point into the old snapshot until refresh compares them.
+    const auto previous = std::exchange(m_timeline, std::make_shared<const nt::Timeline>(std::move(next)));
+    if (!m_tracks->refresh(m_timeline.get())) { m_tracks->reset(m_timeline.get()); }
     return true;
 }
 
@@ -401,7 +463,7 @@ quint64 TimelineModel::commitEdit(const QString& text, const QJsonArray& before,
     afterDocument.insert("clips", commandAfter);
     const auto token = nextCommandToken();
     auto command = std::make_unique<DocumentCommand>(text, std::move(beforeDocument), std::move(afterDocument),
-        [this](const QJsonObject& raw) { replaceDocument(raw); }, token, mergeId, continuation);
+        [this](const QJsonObject& raw) { replaceFromHistory(raw); }, token, mergeId, continuation);
     m_undo->push(command.release());
     return token;
 }
@@ -518,21 +580,47 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
         }
         return true;
     };
+    // An edit that cannot apply to this document throws (ClipOps' OpError).
+    // That leaves the document as it was instead of ending the process.
+    const auto run = [&](const QJsonObject& raw) -> std::optional<QJsonObject> {
+        try {
+            return edit(raw, payload);
+        } catch (const std::exception& error) {
+            qWarning("edit %s failed: %s", qPrintable(name), error.what());
+            return std::nullopt;
+        }
+    };
     const auto snapshot = m_timeline;
     auto before = snapshot->raw;
-    auto after = edit(before, payload);
-    if (!valid(before, after)) { return false; }
+    auto after = run(before);
+    if (!after || !valid(before, *after)) { return false; }
     emit beforeCommand();
     if (m_timeline != snapshot && m_timeline->raw != before) {
         before = m_timeline->raw;
-        after = edit(before, payload);
-        if (!valid(before, after)) { return false; }
+        after = run(before);
+        if (!after || !valid(before, *after)) { return false; }
     }
     const auto token = nextCommandToken();
-    auto command = std::make_unique<DocumentCommand>(name, before, after,
-        [this](const QJsonObject& raw) { replaceDocument(raw); }, token);
+    auto command = std::make_unique<DocumentCommand>(name, before, *after,
+        [this](const QJsonObject& raw) { replaceFromHistory(raw); }, token);
     m_undo->push(command.release());
     return token;
+}
+
+bool TimelineModel::replaceFromHistory(QJsonObject raw) {
+    // No edit changes the project. The server can move the timeline to another
+    // project while it is open (setProjectId), and undo must not move it back.
+    const auto project = m_timeline->raw.value(QStringLiteral("projectId"));
+    if (project.isUndefined()) { raw.remove(QStringLiteral("projectId")); }
+    else { raw.insert(QStringLiteral("projectId"), project); }
+    return replaceDocument(raw);
+}
+
+bool TimelineModel::setProjectId(const QString& projectId) {
+    if (projectId.isEmpty() || m_timeline->raw.value(QStringLiteral("projectId")).toString() == projectId) { return false; }
+    auto raw = m_timeline->raw;
+    raw.insert(QStringLiteral("projectId"), projectId);
+    return replaceDocument(raw);
 }
 
 bool TimelineModel::replaceDocument(const QJsonObject& incoming) {

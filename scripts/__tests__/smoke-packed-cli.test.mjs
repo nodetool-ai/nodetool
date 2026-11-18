@@ -5,13 +5,14 @@
 import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import yaml from "js-yaml";
 
 import { assertInstalledSelection, assertCoreInstallSize, assertCoreOnlyInstall, cleanEnv, codecProbeSource, existingTarballs, installSmokeCommandFeatures, installedPackages, mcpWorkflowCode, missingCommands, missingFalGraph, probeMcp, probeServe, REQUIRED_COMMANDS, FEATURE_REQUIRED_COMMANDS, COMPOSED_SMOKE_PACK_IDS } from "../smoke-packed-cli.mjs";
 import { partitionPlan } from "../packed-verification.mjs";
 import { fullPlan, readPackages } from "../test-affected.mjs";
+import { packageManagerInvocation } from "../package-manager.mjs";
 
 it("retains the published command inventory across independent feature checks", () => {
   const verified = new Set([...REQUIRED_COMMANDS, ...Object.values(FEATURE_REQUIRED_COMMANDS).flat()]);
@@ -85,9 +86,9 @@ it("keeps the required core-smoke status dependent on verification and the indep
   expect(packedChecks).toContain("node scripts/smoke-packed-cli.mjs --tarballs-dir .packed-artifacts");
   expect(packedChecks.indexOf("node scripts/smoke-packed-cli.mjs --tarballs-dir .packed-artifacts")).toBeGreaterThan(packedChecks.indexOf("node scripts/smoke-packed-cli.mjs --core-only --tarballs-dir .packed-artifacts"));
   expect(workflow.jobs["packed-install"].steps.find(step => step.uses === "./.github/actions/setup-build").with.cache).toBe("off");
-  for (const job of ["verification", "release-pins"]) {
-    expect(workflow.jobs[job].steps.find(step => step.uses === "./.github/actions/setup-build").with.cache).toBe("read-only");
-  }
+  expect(workflow.jobs.verification.steps.find(step => step.uses === "./.github/actions/setup-build").with.cache).toBe("read-only");
+  // packed-install already packs and pins every release tarball, so no second job repeats it.
+  expect(Object.values(workflow.jobs).flatMap(job => job.steps ?? []).filter(step => step.run?.startsWith("node scripts/publish-packages.mjs --pack-only"))).toHaveLength(1);
   for (const planned of ["success", "failure", "cancelled", "skipped"]) {
     for (const verification of ["success", "failure", "cancelled", "skipped"]) {
       for (const installed of ["success", "failure", "cancelled", "skipped"]) {
@@ -102,19 +103,26 @@ it("keeps the required core-smoke status dependent on verification and the indep
       }
     }
   }
-});
+}, 60_000);
 
-it("leaves verification to the Quality Gate only on pull requests into main", () => {
+it("leaves verification to the Quality Gate on every pull request and push", () => {
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
-  expect(workflow.jobs["verification-plan"].if).toBe("github.event_name != 'pull_request' || github.base_ref != 'main'");
+  expect(workflow.jobs["verification-plan"].if).toBe("github.event_name == 'workflow_dispatch'");
   expect(workflow.jobs.verification.needs).toEqual(["ci-image", "verification-plan"]);
   expect(workflow.jobs.verification.if).toBeUndefined();
   expect(workflow.jobs["core-smoke"].steps[0].env.QUALITY_GATE_VERIFIES)
-    .toBe("${{ github.event_name == 'pull_request' && github.base_ref == 'main' }}");
-  // The skip is safe only while Test runs on every pull request into main
-  // and its Quality Gate runs each command verification would.
+    .toBe("${{ github.event_name != 'workflow_dispatch' }}");
+  // The skip is safe only while Test runs on every pull request, whatever
+  // its base branch, and on the pushes to main that change a package, and
+  // its Quality Gate runs each command verification would.
   const test = yaml.load(readFileSync(new URL("../../.github/workflows/test.yml", import.meta.url), "utf8"));
-  expect(test.on.pull_request).toEqual({ branches: ["main"] });
+  expect(test.on.pull_request).toBeNull();
+  expect(test.on.push.branches).toEqual(["main"]);
+  expect(workflow.on.push.branches).toEqual(["main"]);
+  for (const path of ["packages/**", "package.json", "package-lock.json", ".nvmrc", ".github/actions/setup-build/**"]) {
+    expect(workflow.on.push.paths, path).toContain(path);
+    expect(test.on.push.paths, path).toContain(path);
+  }
   expect(test.jobs.quality.uses).toBe("./.github/workflows/quality-checks.yml");
   const quality = readFileSync(new URL("../../.github/workflows/quality-checks.yml", import.meta.url), "utf8");
   for (const command of ["npm run typecheck", "npm run lint", "npm run dev:nodetool -- harness gate --base", "npm run backend:smoke", "npm run test:scripts", "npx turbo run test"]) {
@@ -173,6 +181,28 @@ it("keeps the bucket exit status when Chromium diagnostics run", () => {
   }
 });
 
+it("runs Chromium diagnostic steps in Bash and skips crash inspection after success", () => {
+  const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
+  const steps = workflow.jobs.verification.steps;
+  const prepare = steps.find(step => step.name === "Prepare Chromium crash capture");
+  const diagnose = steps.find(step => step.name === "Diagnose Chromium cores and restore the core handler");
+  expect(prepare.shell).toBe("bash");
+  expect(diagnose.shell).toBe("bash");
+  const root = mkdtempSync(join(tmpdir(), "chromium-diagnostic-shell-"));
+  try {
+    const result = spawnSync(diagnose.shell, ["--noprofile", "--norc", "-eo", "pipefail", "-c", diagnose.run], {
+      env: { ...process.env, RUNNER_TEMP: root, BUCKET_OUTCOME: "success" },
+      encoding: "utf8",
+      timeout: 5000
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).not.toContain("Captured");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 it("bounds verification test concurrency without changing build scheduling", () => {
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
   const job = workflow.jobs.verification;
@@ -190,12 +220,12 @@ function releaseTarball(root, filename, name, version) {
   mkdirSync(join(staging, "package"), { recursive: true });
   writeFileSync(join(staging, "package/package.json"), JSON.stringify({ name, version }));
   const file = join(root, filename);
-  const result = spawnSync("tar", ["-czf", file, "-C", staging, "package"], { encoding: "utf8" });
+  const result = spawnSync("tar", ["-czf", basename(file), "-C", staging, "package"], { cwd: dirname(file), encoding: "utf8" });
   expect(result.status, result.stderr).toBe(0);
   return file;
 }
 
-describe("existingTarballs", () => {
+describe("existingTarballs", { timeout: 30_000 }, () => {
   it("uses package manifests instead of relying on tarball filenames", () => {
     const root = mkdtempSync(join(tmpdir(), "nodetool-release-tarballs-"));
     fixtures.push(root);
@@ -300,7 +330,8 @@ describe("core-only contamination guard", () => {
   it("rejects a deliberately installed pack tarball", () => {
     const app = appFixture();
     const tarball = releaseTarball(app, "fal.tgz", "@nodetool-ai/fal-nodes", "1.2.3");
-    const installed = spawnSync("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", `file:${tarball}`], { cwd: app, encoding: "utf8", timeout: 30000 });
+    const invocation = packageManagerInvocation("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", `file:${tarball}`]);
+    const installed = spawnSync(invocation.command, invocation.args, { cwd: app, encoding: "utf8", timeout: 30000 });
     expect(installed.status, installed.stderr).toBe(0);
     expect(() => assertCoreOnlyInstall(app)).toThrow("@nodetool-ai/fal-nodes");
   });

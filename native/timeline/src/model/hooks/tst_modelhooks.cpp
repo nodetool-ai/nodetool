@@ -33,6 +33,30 @@ private slots:
         QCOMPARE(model.timeline().raw, settled);
         QCOMPARE(model.undoStack()->count(), 1);
     }
+    void throwingEditLeavesDocument() {
+        TimelineModel model;
+        model.setTimeline(document());
+        QVERIFY(nt::app::registerEdit("hooks.throws", [](QJsonObject, const QJsonObject&) -> QJsonObject {
+            throw std::runtime_error("cannot apply");
+        }));
+        const auto before = model.timeline().raw;
+        QCOMPARE(model.applyEdit("hooks.throws", {}), quint64{0});
+        QCOMPARE(model.undoStack()->count(), 0);
+        QCOMPARE(model.timeline().raw, before);
+    }
+    void projectSurvivesUndoRedo() {
+        TimelineModel model;
+        model.setTimeline(document());
+        QVERIFY(model.commitEdit("Drop", {}, QJsonArray{droppedClip()}));
+        QVERIFY(model.setProjectId("personal"));
+        QVERIFY(!model.setProjectId("personal"));
+        model.undoStack()->undo();
+        QCOMPARE(model.timeline().raw.value("projectId").toString(), QStringLiteral("personal"));
+        QCOMPARE(model.clipCount(), 0);
+        model.undoStack()->redo();
+        QCOMPARE(model.timeline().raw.value("projectId").toString(), QStringLiteral("personal"));
+        QCOMPARE(model.clipCount(), 1);
+    }
     void undoneSettlementDoesNotChangeCurrentDocument() {
         TimelineModel model;
         model.setTimeline(document());

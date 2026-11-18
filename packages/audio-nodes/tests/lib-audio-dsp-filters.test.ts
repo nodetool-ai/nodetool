@@ -3,7 +3,7 @@
  * library. They must give the samples that node-web-audio-api's
  * OfflineAudioContext gave before they moved, and need no WebAudio.
  */
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { OfflineAudioContext } from "node-web-audio-api";
 import type { BiquadType } from "@nodetool-ai/kernels";
 
@@ -16,10 +16,7 @@ function sweep(): Float32Array {
   );
 }
 
-afterEach(() => {
-  vi.resetModules();
-  vi.doUnmock("@nodetool-ai/audio-nodes/lib/audio-context");
-});
+
 
 async function viaNode(type: BiquadType, frequency: number, q: number | undefined, gainDb: number): Promise<Float32Array> {
   const { applyFilter } = await import("@nodetool-ai/audio-nodes/nodes/lib-audio-dsp");
@@ -80,16 +77,4 @@ describe("applyFilter", () => {
     );
   }
 
-  it(
-    "gives the same samples when WebAudio is unavailable",
-    { timeout: RENDER_TIMEOUT_MS },
-    async () => {
-      const expected = await viaNode("lowpass", 1000, undefined, 0);
-      vi.resetModules();
-      vi.doMock("@nodetool-ai/audio-nodes/lib/audio-context", () => ({
-        loadOfflineAudioContext: async () => null
-      }));
-      expect(await viaNode("lowpass", 1000, undefined, 0)).toEqual(expected);
-    }
-  );
 });

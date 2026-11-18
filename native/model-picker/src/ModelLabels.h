@@ -212,6 +212,7 @@ inline FieldLabel fieldLabel(const QString& modelType, const QVariant& value, co
         {"rerank_model", {"Select model", "Select rerank model", true, true}},
         {"asr_model", {"Select model", "Select ASR model", true, false}},
         {"video_model", {"Select model", "Select video model", false, false}},
+        {"model_3d_model", {"Select model", "Select 3D generation model", false, false}},
         {"tts_model", {"Select TTS model", "Select text-to-speech model", false, false}},
         {"music_model", {"Select music model", "Select text-to-music model", false, false}},
         {"audio_to_audio_model", {"Select audio-to-audio model", "Select audio-to-audio model", false, false}}};

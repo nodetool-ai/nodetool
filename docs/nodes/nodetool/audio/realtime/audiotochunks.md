@@ -23,8 +23,9 @@ Slices an audio file into a stream of fixed-duration PCM16 chunks.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| audio | `audio` | The audio file to slice into chunks (must be WAV). | `{"type":"audio","uri":"","asset_id":null,"data"...` |
+| audio | `audio` | The audio file to play as chunks. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 | chunk_duration | `float` | Duration of each emitted chunk in seconds. | `0.25` |
+| loop | `bool` | Play the clip repeatedly until the run ends. | `false` |
 
 ## Outputs
 

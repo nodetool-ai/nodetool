@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <utility>
+#include "nodetool/account/qt/ServerToken.h"
 
 namespace nt::server {
 
@@ -103,9 +104,7 @@ void ServerClient::decorate(QNetworkRequest& request) const {
     // to an external storage URL (signed S3 or Supabase).
     if (!isServerOrigin(request.url())) return;
     request.setRawHeader("X-Nodetool-Client", kClientHeader);
-    if (!m_token.isEmpty()) {
-        request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
-    }
+    nodetool::account::qt::attachServerToken(request, m_base, m_token);
 }
 
 std::vector<HttpResponse> ServerClient::sendAll(const std::vector<HttpRequest>& requests) {

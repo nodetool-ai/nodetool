@@ -196,10 +196,21 @@ target_link_libraries(nodetool_graph_runner PRIVATE gr_kernel gr_js Threads::Thr
 
 # The CLI and the tests build only when this is the top-level project.
 if(PROJECT_IS_TOP_LEVEL)
+  option(NODETOOL_GRAPH_RUNNER_REALTIME "Enable provisional offline realtime plan exports" OFF)
+  if(NODETOOL_GRAPH_RUNNER_REALTIME)
+    set(NT_REALTIME_OFFLINE_GPU ON)
+    set(NT_REALTIME_BUILD_SPIKES OFF)
+    add_subdirectory(../realtime realtime)
+  endif()
   add_executable(nodetool-graph-runner src/main.cpp)
   nodetool_stage_graph_runner_runtime(nodetool-graph-runner)
   target_link_libraries(nodetool-graph-runner PRIVATE nodetool_graph_runner
                         nlohmann_json::nlohmann_json)
+  if(NODETOOL_GRAPH_RUNNER_REALTIME)
+    target_link_libraries(nodetool-graph-runner PRIVATE nodetool_realtime_offline)
+    target_compile_definitions(nodetool-graph-runner PRIVATE NODETOOL_GRAPH_RUNNER_REALTIME=1)
+    add_dependencies(nodetool-graph-runner realtime-gpu-catalog)
+  endif()
 
   enable_testing()
   # The kernel library's own tests (native/kernels), so every runner build,
@@ -307,6 +318,10 @@ if(PROJECT_IS_TOP_LEVEL)
     COMMAND "${GR_NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/unittests/check-public-runtime.mjs"
       "$<TARGET_FILE:gr_public_run>" "${NODETOOL_GUEST_BUNDLE}")
   set_tests_properties(gr_public_runtime_tests PROPERTIES TIMEOUT 300)
+  add_test(NAME gr_audio_render_tests
+    COMMAND "${GR_NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/unittests/check-audio-render.mjs"
+      "$<TARGET_FILE:gr_public_run>" "${NODETOOL_GUEST_BUNDLE}")
+  set_tests_properties(gr_audio_render_tests PROPERTIES TIMEOUT 240)
   add_executable(gr_library_tests unittests/library.cpp)
   target_link_libraries(gr_library_tests PRIVATE nodetool_graph_runner
                         nlohmann_json::nlohmann_json)

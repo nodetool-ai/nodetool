@@ -17,6 +17,11 @@ import {
   type PermissionGateOptions
 } from "@nodetool-ai/runtime";
 import { startHeadlessJob } from "../src/headless-job-runner.js";
+import {
+  personalWithFolder,
+  useProjectFolders,
+  type ProjectFolderFixture
+} from "./project-folder-fixture.js";
 
 const USER_ID = "user-1";
 
@@ -179,8 +184,13 @@ async function waitFor<T>(
 }
 
 describe("startHeadlessJob", () => {
-  beforeEach(() => {
+  let folders: ProjectFolderFixture;
+
+  beforeEach(async () => {
     initTestDb();
+    // The workflows below are loose, so their runs use Personal's folder.
+    folders = await useProjectFolders([USER_ID]);
+    await personalWithFolder(USER_ID);
     capturedTriggerEvent = "never-ran";
     capturedGate = "never-ran";
     capturedContext = null;
@@ -188,7 +198,10 @@ describe("startHeadlessJob", () => {
       releaseGate = resolve;
     });
   });
-  afterEach(() => ModelObserver.clear());
+  afterEach(async () => {
+    ModelObserver.clear();
+    await folders.cleanup();
+  });
 
   it("persists image documents from headless workflow nodes", async () => {
     const wf = await makeWorkflow("test.headless.CreateSketchRecord");

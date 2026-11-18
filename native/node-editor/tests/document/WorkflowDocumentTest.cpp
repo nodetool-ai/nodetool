@@ -11,6 +11,13 @@ QJsonObject fixture() {
     return QJsonDocument::fromJson(R"({"id":"0123456789abcdef0123456789abcdef","future":{"a":[null,7]},"graph":{"futureGraph":true,"nodes":[{"id":"a","type":"unknown.Provider","data":{"prompt":"hello","future":[1,2]},"dynamic_properties":{"input":2},"dynamic_inputs":{"input":{"type":{"type":"int"}}},"dynamic_outputs":{"out":{"type":"int"}},"futureNode":42,"ui_properties":{"position":{"x":2,"y":3},"bypassed":true}},{"id":"b","type":"nodetool.text.Output","data":{}}],"edges":[{"id":"e","source":"a","sourceHandle":"out","target":"b","targetHandle":"value","futureEdge":42}],"links":[{"id":"l","source":"a","target":"b","kind":"lineage","futureLink":true}]}})").object();
 }
 }
+static QStringList edgesInto(const WorkflowDocument &document, const QString &handle) {
+    QStringList ids;
+    for (const auto &value : document.edges()) {
+        if (value.toObject()["targetHandle"] == handle) { ids.append(value.toObject()["id"].toString()); }
+    }
+    return ids;
+}
 class WorkflowDocumentTest final : public QObject {
     Q_OBJECT
 private slots:
@@ -233,6 +240,26 @@ private slots:
         QVERIFY(document.applyCommand({{"op","reconnectEdge"},{"id","moving"},{"connection",QJsonObject{{"source","a"},{"sourceHandle","out"},{"target","t"},{"targetHandle","any"}}}}));
         QCOMPARE(document.edges().size(),2);QCOMPARE(document.edges()[0].toObject()["targetHandle"].toString(),"any");QCOMPARE(document.edges()[1].toObject()["id"].toString(),"collect");
         document.undo();QCOMPARE(document.snapshot(),before);
+    }
+    // NodeStore.addEdge: a new wire replaces the one in a single-value input in
+    // the same undo step, and a list input of one concrete type collects both.
+    void addEdgeReplacesSingleInputAndCollectsLists() {
+        const QJsonObject integer{{"type","int"}};
+        const QJsonObject list{{"type","list"},{"type_args",QJsonArray{integer}}};
+        const QJsonObject anyList{{"type","list"},{"type_args",QJsonArray{QJsonObject{{"type","any"}}}}};
+        const QJsonArray metadata{QJsonObject{{"node_type","Node"},{"outputs",QJsonArray{QJsonObject{{"name","out"},{"type",integer}}}},{"properties",QJsonArray{QJsonObject{{"name","input"},{"type",integer}},QJsonObject{{"name","collect"},{"type",list}},QJsonObject{{"name","any"},{"type",anyList}}}}}};
+        WorkflowDocument document;document.setNodeMetadata(metadata);
+        QVERIFY(document.loadJson(R"({"graph":{"nodes":[{"id":"a","type":"Node"},{"id":"b","type":"Node"},{"id":"t","type":"Node"}],"edges":[{"id":"single","source":"a","sourceHandle":"out","target":"t","targetHandle":"input"},{"id":"collect","source":"a","sourceHandle":"out","target":"t","targetHandle":"collect"},{"id":"any","source":"a","sourceHandle":"out","target":"t","targetHandle":"any"}]}})"));
+        const auto before=document.snapshot();
+        QVERIFY(document.applyCommand({{"op","addEdge"},{"edge",QJsonObject{{"id","newer"},{"source","b"},{"sourceHandle","out"},{"target","t"},{"targetHandle","input"}}}}));
+        QCOMPARE(edgesInto(document,"input"),QStringList{"newer"});
+        QCOMPARE(document.undoStack()->count(),1);
+        document.undo();QCOMPARE(document.snapshot(),before);
+        QVERIFY(document.applyCommand({{"op","addEdge"},{"edge",QJsonObject{{"id","second"},{"source","b"},{"sourceHandle","out"},{"target","t"},{"targetHandle","collect"}}}}));
+        QCOMPARE(edgesInto(document,"collect"),(QStringList{"collect","second"}));
+        QVERIFY(document.applyCommand({{"op","batch"},{"commands",QJsonArray{QJsonObject{{"op","addEdge"},{"edge",QJsonObject{{"id","batched"},{"source","b"},{"sourceHandle","out"},{"target","t"},{"targetHandle","any"}}}}}}}));
+        QCOMPARE(edgesInto(document,"any"),QStringList{"batched"});
+        QVERIFY(!document.applyCommand({{"op","addEdge"},{"edge",QJsonObject{{"id","again"},{"source","b"},{"sourceHandle","out"},{"target","t"},{"targetHandle","any"}}}}));
     }
     void reconnectValidationExcludesRemovedEdgesAndIsAtomic() {
         const QJsonObject integer{{"type","int"}};

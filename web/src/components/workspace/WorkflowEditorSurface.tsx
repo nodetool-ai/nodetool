@@ -73,7 +73,7 @@ import WorkflowGraphPreview from "../version/WorkflowGraphPreview";
 import { WorkflowLandingChecklist } from "../setup/workflow/WorkflowLandingChecklist";
 import WorkflowDocumentBar from "./WorkflowDocumentBar";
 import { COMFY_RUN_MODE } from "@nodetool-ai/protocol";
-import { useComfyNodeMetadata } from "../../serverState/useComfyNodeMetadata";
+import { useComfyCatalogForCanvas } from "../../serverState/useComfyNodeMetadata";
 import { WithDocumentBar } from "./documentBarParts";
 
 // Floating editor status message: sits above the canvas and node overlays but
@@ -115,19 +115,7 @@ const WorkflowEditorSurface = ({
   );
   const workflow = useWorkflowManager((state) => state.getWorkflow(workflowId));
   // A Comfy workflow edits ComfyUI node classes; load Comfy Cloud's catalog.
-  const comfyCatalog = useComfyNodeMetadata(
-    workflow?.run_mode === COMFY_RUN_MODE
-  );
-  const comfyCatalogError =
-    comfyCatalog.status === "error" ? comfyCatalog.error : null;
-  useEffect(() => {
-    if (!comfyCatalogError) return;
-    useNotificationStore.getState().addNotification({
-      type: "error",
-      alert: true,
-      content: `Comfy nodes could not load: ${comfyCatalogError}`
-    });
-  }, [comfyCatalogError]);
+  useComfyCatalogForCanvas(workflow?.run_mode === COMFY_RUN_MODE);
   useBrowserPreviewsOnLoad(nodeStore, active && mode !== "view");
   const fetchWorkflow = useWorkflowManager((state) => state.fetchWorkflow);
   const createWorkflow = useWorkflowManager((state) => state.create);
@@ -152,6 +140,8 @@ const WorkflowEditorSurface = ({
   // Why the last load failed, or null while it has not.
   const [loadFailed, setLoadFailed] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
+  // The canvas host the queue overlay stays inside.
+  const [canvasHost, setCanvasHost] = useState<HTMLDivElement | null>(null);
   // A workflow flow still in setup (`settings.setup` not at `done`) is where
   // this tab lands after a refresh or a close — same rule as the game flow
   // above. A workflow saved before the flow existed has no `setup` key and
@@ -620,6 +610,7 @@ const WorkflowEditorSurface = ({
                 hostLabel="Workflow"
               />
               <div
+                ref={setCanvasHost}
                 style={{
                   flex: 1,
                   minHeight: 0,
@@ -682,7 +673,7 @@ const WorkflowEditorSurface = ({
                 )}
               </div>
               {active && <FloatingToolBar />}
-              {active && <QueueOverlay />}
+              {active && <QueueOverlay canvas={canvasHost} />}
               {active && !(activeSubgraph && !showChain) && (
                 <NodeCreateBridge />
               )}

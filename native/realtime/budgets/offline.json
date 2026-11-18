@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "commandTimeoutSeconds": 900,
+  "ctestTimeoutSeconds": 300,
+  "requiredTests": [
+    "realtime-plan-loader",
+    "realtime-control",
+    "realtime-audio-executor",
+    "realtime-dsp-c-abi",
+    "realtime-render-schedule",
+    "realtime-offline-clock",
+    "realtime-offline-driver",
+    "realtime-offline-gpu",
+    "realtime-offline-render-export"
+  ]
+}

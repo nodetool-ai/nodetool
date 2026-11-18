@@ -7,6 +7,7 @@ export { isContentFilterRefusal } from './content-filter.js';
 /** Context operations consumed by the actor kernel, independent of media/providers. */
 export interface ProcessingContext {
   signal?: AbortSignal;
+  set?(key: string, value: unknown): void;
   triggerEvent?: TriggerEvent | null;
   emit(message: ProcessingMessage): void;
   setSendControlEvent?(fn: (targetNodeId: string, properties: Record<string, unknown>) => Promise<Record<string, unknown>>): void;

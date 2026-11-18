@@ -32,61 +32,6 @@ double timeCoeff(double sampleRate, double ms) {
 
 double dbToGain(double db) { return std::pow(10, db / 20); }
 
-// Runs `effect(input, output)` once for each channel. `effect` receives the
-// channel's samples as Strided views and writes output frame i through
-// `write(i, value)`.
-template <typename Effect>
-void perChannel(const float* in, float* out, size_t frames, uint32_t channels,
-                Effect&& effect) {
-  for (uint32_t ch = 0; ch < channels; ch++) {
-    const Strided input{in + ch, channels};
-    float* channelOut = out + ch;
-    effect(input, [&](size_t i, double value) {
-      channelOut[i * channels] = f32(value);
-    }, frames);
-  }
-}
-
-// A Schroeder comb filter with a one-pole lowpass in its feedback path.
-// Thread affinity: one caller at a time; it holds only its own delay line.
-class CombFilter {
- public:
-  CombFilter(size_t delay, double feedback, double damp)
-      : buffer_(std::max<size_t>(1, delay)), feedback_(feedback), damp_(damp) {}
-  float tick(float input) {
-    const float delayed = buffer_[index_];
-    filterStore_ = delayed * (1 - damp_) + filterStore_ * damp_;
-    buffer_[index_] = f32(input + filterStore_ * feedback_);
-    index_ = (index_ + 1) % buffer_.size();
-    return delayed;
-  }
-
- private:
-  std::vector<float> buffer_;
-  size_t index_ = 0;
-  double filterStore_ = 0;
-  double feedback_;
-  double damp_;
-};
-
-// A Schroeder allpass. Thread affinity: as CombFilter.
-class AllpassFilter {
- public:
-  AllpassFilter(size_t delay, double feedback)
-      : buffer_(std::max<size_t>(1, delay)), feedback_(feedback) {}
-  float tick(float input) {
-    const float delayed = buffer_[index_];
-    buffer_[index_] = f32(input + delayed * feedback_);
-    index_ = (index_ + 1) % buffer_.size();
-    return f32(delayed - input * feedback_);
-  }
-
- private:
-  std::vector<float> buffer_;
-  size_t index_ = 0;
-  double feedback_;
-};
-
 // The delay line of nt_audio_delay in frames, or nullopt when it is longer
 // than NT_AUDIO_MAX_DELAY_SECONDS or the rate is invalid.
 std::optional<size_t> delayFrames(double sample_rate, double delay_seconds) {
@@ -99,6 +44,8 @@ std::optional<size_t> delayFrames(double sample_rate, double delay_seconds) {
 }  // namespace
 
 extern "C" {
+static int audioDelayBlock(double*, const float*, float*, size_t, uint32_t, double, double, double, double);
+
 
 void nt_signal_scale_offset(const float* in, float* out, size_t count,
                             double scale, double offset) {
@@ -118,23 +65,139 @@ int nt_signal_extract_channel(const float* in, float* out, size_t frames,
 
 int nt_audio_bitcrush(const float* in, float* out, size_t frames,
                       uint32_t channels, double bit_depth, uint32_t reduction) {
-  if (!validAudio(in, out, channels)) return NT_ERR_ARGS;
-  // At bit depth 1 the level count would be 1, and below it 0 (NaN samples).
-  const double levels = std::max(1.0, std::pow(2, bit_depth) - 1);
-  const size_t hold = std::max<uint32_t>(1, reduction);
-  perChannel(in, out, frames, channels, [&](Strided input, auto write, size_t n) {
-    for (size_t i = 0; i < n; i++) {
-      const size_t source = std::min((i / hold) * hold, n - 1);
-      write(i, jsRound(input[source] * levels) / levels);
-    }
-  });
-  return NT_OK;
+  const size_t length = nt_audio_bitcrush_state_len(channels, 44100, 0);
+  if (!length) return NT_ERR_ARGS;
+  std::vector<double> state(length);
+  nt_audio_bitcrush_init(state.data(), channels, 44100, 0);
+  return nt_audio_bitcrush_block(state.data(), in, out, frames, channels, bit_depth, reduction);
 }
 
 int nt_audio_compress(const float* in, float* out, size_t frames,
                       uint32_t channels, double sample_rate,
                       double threshold_db, double ratio, double attack_ms,
                       double release_ms, int auto_gain) {
+  const size_t length = nt_audio_compress_state_len(channels, sample_rate, 0);
+  if (!length) return NT_ERR_ARGS;
+  std::vector<double> state(length);
+  nt_audio_compress_init(state.data(), channels, sample_rate, 0);
+  return nt_audio_compress_block(state.data(), in, out, frames, channels, sample_rate, threshold_db, ratio, attack_ms, release_ms, auto_gain);
+}
+
+void nt_audio_distortion(const float* in, float* out, size_t count,
+                         double drive_db) {
+  const double drive = dbToGain(drive_db);
+  for (size_t i = 0; i < count; i++) {
+    out[i] = f32((2 / kPi) * std::atan(in[i] * drive));
+  }
+}
+
+int nt_audio_limiter(const float* in, float* out, size_t frames,
+                     uint32_t channels, double sample_rate, double threshold_db,
+                     double release_ms, int auto_gain) {
+  const size_t length = nt_audio_limiter_state_len(channels, sample_rate, 0);
+  if (!length) return NT_ERR_ARGS;
+  std::vector<double> state(length);
+  nt_audio_limiter_init(state.data(), channels, sample_rate, 0);
+  return nt_audio_limiter_block(state.data(), in, out, frames, channels, sample_rate, threshold_db, release_ms, auto_gain);
+}
+
+int nt_audio_reverb(const float* in, float* out, size_t frames,
+                    uint32_t channels, double sample_rate, double room_scale,
+                    double damping, double wet_level, double dry_level) {
+  const size_t length = nt_audio_reverb_state_len(channels, sample_rate, 0);
+  if (!length) return NT_ERR_ARGS;
+  std::vector<double> state(length);
+  nt_audio_reverb_init(state.data(), channels, sample_rate, 0);
+  return nt_audio_reverb_block(state.data(), in, out, frames, channels, sample_rate, room_scale, damping, wet_level, dry_level);
+}
+
+int nt_audio_noise_gate(const float* in, float* out, size_t frames,
+                        uint32_t channels, double sample_rate,
+                        double threshold_db, double attack_ms,
+                        double release_ms) {
+  const size_t length = nt_audio_noise_gate_state_len(channels, sample_rate, 0);
+  if (!length) return NT_ERR_ARGS;
+  std::vector<double> state(length);
+  nt_audio_noise_gate_init(state.data(), channels, sample_rate, 0);
+  return nt_audio_noise_gate_block(state.data(), in, out, frames, channels, sample_rate, threshold_db, attack_ms, release_ms);
+}
+
+int nt_audio_phaser(const float* in, float* out, size_t frames,
+                    uint32_t channels, double sample_rate, double rate_hz,
+                    double depth, double centre_frequency_hz, double feedback,
+                    double mix) {
+  const size_t length = nt_audio_phaser_state_len(channels, sample_rate, 0);
+  if (!length) return NT_ERR_ARGS;
+  std::vector<double> state(length);
+  nt_audio_phaser_init(state.data(), channels, sample_rate, 0);
+  return nt_audio_phaser_block(state.data(), in, out, frames, channels, sample_rate, rate_hz, depth, centre_frequency_hz, feedback, mix);
+}
+
+size_t nt_audio_delay_output_frames(size_t frames, double sample_rate,
+                                    double delay_seconds) {
+  const auto delay = delayFrames(sample_rate, delay_seconds);
+  return delay ? frames + *delay * 4 : 0;
+}
+
+int nt_audio_delay(const float* in, float* out, size_t frames,
+                   uint32_t channels, double sample_rate, double delay_seconds,
+                   double feedback, double mix) {
+  const auto delay = delayFrames(sample_rate, delay_seconds);
+  if (!validAudio(in, out, channels, sample_rate) || !delay) return NT_ERR_ARGS;
+  std::vector<double> state(channels * (1 + *delay * 2));
+  const size_t tailFrames = *delay * 4;
+  const int status = audioDelayBlock(state.data(), in, out, frames, channels, sample_rate, delay_seconds, feedback, mix);
+  if (status != NT_OK || !tailFrames) return status;
+  const std::vector<float> silence(tailFrames * channels);
+  return audioDelayBlock(state.data(), silence.data(), out + frames * channels, tailFrames, channels, sample_rate, delay_seconds, feedback, mix);
+}
+
+
+size_t nt_audio_bitcrush_state_len(uint32_t channels, double sample_rate, double delay_seconds) {
+  if (!channels || !nt::kernels::validSampleRate(sample_rate)) return 0;
+  return 2 > SIZE_MAX / channels ? 0 : size_t{channels} * 2;
+}
+int nt_audio_bitcrush_init(double* state, uint32_t channels, double sample_rate, double delay_seconds) {
+  const size_t n = nt_audio_bitcrush_state_len(channels, sample_rate, delay_seconds);
+  if (!state || !n) return NT_ERR_ARGS;
+  std::fill_n(state, n, 0.0);
+  return NT_OK;
+}
+int nt_audio_bitcrush_block(double* state, const float* in, float* out, size_t frames, uint32_t channels, double bit_depth, uint32_t reduction) {
+  if (!state) return NT_ERR_ARGS;
+
+  if (!validAudio(in, out, channels)) return NT_ERR_ARGS;
+  // At bit depth 1 the level count would be 1, and below it 0 (NaN samples).
+  const double levels = std::max(1.0, std::pow(2, bit_depth) - 1);
+  const size_t hold = std::max<uint32_t>(1, reduction);
+  for (uint32_t ch = 0; ch < channels; ch++) {
+    const Strided input{in + ch, channels};
+    const size_t n = frames;
+    const auto write = [&](size_t i, double value) { out[i * channels + ch] = f32(value); };
+    double& phase = state[ch * 2];
+    double& held = state[ch * 2 + 1];
+    for (size_t i = 0; i < n; i++) {
+      if (!(phase >= 0 && phase < hold)) phase = 0;
+      if (phase == 0) held = jsRound(input[i] * levels) / levels;
+      write(i, held);
+      phase = std::fmod(phase + 1, static_cast<double>(hold));
+    }
+  }
+  return NT_OK;
+}
+size_t nt_audio_compress_state_len(uint32_t channels, double sample_rate, double delay_seconds) {
+  if (!channels || !nt::kernels::validSampleRate(sample_rate)) return 0;
+  return channels;
+}
+int nt_audio_compress_init(double* state, uint32_t channels, double sample_rate, double delay_seconds) {
+  const size_t n = nt_audio_compress_state_len(channels, sample_rate, delay_seconds);
+  if (!state || !n) return NT_ERR_ARGS;
+  std::fill_n(state, n, 0.0);
+  return NT_OK;
+}
+int nt_audio_compress_block(double* state, const float* in, float* out, size_t frames, uint32_t channels, double sample_rate, double threshold_db, double ratio, double attack_ms, double release_ms, int auto_gain) {
+  if (!state) return NT_ERR_ARGS;
+
   if (!validAudio(in, out, channels, sample_rate) || ratio <= 0) return NT_ERR_ARGS;
   // Half of the reduction a 0 dBFS peak would receive: restores most of the
   // loudness without clipping under-compressed transients.
@@ -143,8 +206,11 @@ int nt_audio_compress(const float* in, float* out, size_t frames,
   const double attack = timeCoeff(sample_rate, attack_ms);
   const double release = timeCoeff(sample_rate, release_ms);
   const double threshold = dbToGain(threshold_db);
-  perChannel(in, out, frames, channels, [&](Strided input, auto write, size_t n) {
-    double envelope = 0;
+  for (uint32_t ch = 0; ch < channels; ch++) {
+    const Strided input{in + ch, channels};
+    const size_t n = frames;
+    const auto write = [&](size_t i, double value) { out[i * channels + ch] = f32(value); };
+    double& envelope = state[ch];
     for (size_t i = 0; i < n; i++) {
       const double sample = input[i];
       const double level = std::abs(sample);
@@ -159,28 +225,32 @@ int nt_audio_compress(const float* in, float* out, size_t frames,
         write(i, sample * makeup);
       }
     }
-  });
+  }
   return NT_OK;
 }
-
-void nt_audio_distortion(const float* in, float* out, size_t count,
-                         double drive_db) {
-  const double drive = dbToGain(drive_db);
-  for (size_t i = 0; i < count; i++) {
-    out[i] = f32((2 / kPi) * std::atan(in[i] * drive));
-  }
+size_t nt_audio_limiter_state_len(uint32_t channels, double sample_rate, double delay_seconds) {
+  if (!channels || !nt::kernels::validSampleRate(sample_rate)) return 0;
+  return channels;
 }
+int nt_audio_limiter_init(double* state, uint32_t channels, double sample_rate, double delay_seconds) {
+  const size_t n = nt_audio_limiter_state_len(channels, sample_rate, delay_seconds);
+  if (!state || !n) return NT_ERR_ARGS;
+  std::fill_n(state, n, 1.0);
+  return NT_OK;
+}
+int nt_audio_limiter_block(double* state, const float* in, float* out, size_t frames, uint32_t channels, double sample_rate, double threshold_db, double release_ms, int auto_gain) {
+  if (!state) return NT_ERR_ARGS;
 
-int nt_audio_limiter(const float* in, float* out, size_t frames,
-                     uint32_t channels, double sample_rate, double threshold_db,
-                     double release_ms, int auto_gain) {
   if (!validAudio(in, out, channels, sample_rate)) return NT_ERR_ARGS;
   const double threshold = dbToGain(threshold_db);
   // Limited peaks sit at the threshold, so 1 / threshold brings them to 0 dBFS.
   const double makeup = auto_gain ? 1 / threshold : 1;
   const double release = timeCoeff(sample_rate, release_ms);
-  perChannel(in, out, frames, channels, [&](Strided input, auto write, size_t n) {
-    double gain = 1;
+  for (uint32_t ch = 0; ch < channels; ch++) {
+    const Strided input{in + ch, channels};
+    const size_t n = frames;
+    const auto write = [&](size_t i, double value) { out[i * channels + ch] = f32(value); };
+    double& gain = state[ch];
     for (size_t i = 0; i < n; i++) {
       const double sample = input[i];
       const double level = std::abs(sample);
@@ -191,48 +261,32 @@ int nt_audio_limiter(const float* in, float* out, size_t frames,
       }
       write(i, sample * gain * makeup);
     }
-  });
+  }
   return NT_OK;
 }
-
-int nt_audio_reverb(const float* in, float* out, size_t frames,
-                    uint32_t channels, double sample_rate, double room_scale,
-                    double damping, double wet_level, double dry_level) {
-  if (!validAudio(in, out, channels, sample_rate)) return NT_ERR_ARGS;
-  constexpr std::array<double, 4> kCombDelays{1557, 1617, 1491, 1422};
-  constexpr std::array<double, 2> kAllpassDelays{225, 556};
-  const double scale = sample_rate / 44100;
-  const double feedback = room_scale * 0.28 + 0.7;
-  const auto delayOf = [&](double base) {
-    return static_cast<size_t>(jsRound(base * scale));
-  };
-  perChannel(in, out, frames, channels, [&](Strided input, auto write, size_t n) {
-    std::vector<CombFilter> combs;
-    for (double base : kCombDelays) combs.emplace_back(delayOf(base), feedback, damping);
-    std::vector<AllpassFilter> allpasses;
-    for (double base : kAllpassDelays) allpasses.emplace_back(delayOf(base), 0.5);
-    for (size_t i = 0; i < n; i++) {
-      const float dry = input[i];
-      float wet = 0;
-      for (auto& comb : combs) wet = f32(static_cast<double>(wet) + comb.tick(dry));
-      for (auto& allpass : allpasses) wet = allpass.tick(wet);
-      write(i, dry * dry_level + wet * wet_level);
-    }
-  });
+size_t nt_audio_noise_gate_state_len(uint32_t channels, double sample_rate, double delay_seconds) {
+  if (!channels || !nt::kernels::validSampleRate(sample_rate)) return 0;
+  return 2 > SIZE_MAX / channels ? 0 : size_t{channels} * 2;
+}
+int nt_audio_noise_gate_init(double* state, uint32_t channels, double sample_rate, double delay_seconds) {
+  const size_t n = nt_audio_noise_gate_state_len(channels, sample_rate, delay_seconds);
+  if (!state || !n) return NT_ERR_ARGS;
+  std::fill_n(state, n, 0.0);
   return NT_OK;
 }
+int nt_audio_noise_gate_block(double* state, const float* in, float* out, size_t frames, uint32_t channels, double sample_rate, double threshold_db, double attack_ms, double release_ms) {
+  if (!state) return NT_ERR_ARGS;
 
-int nt_audio_noise_gate(const float* in, float* out, size_t frames,
-                        uint32_t channels, double sample_rate,
-                        double threshold_db, double attack_ms,
-                        double release_ms) {
   if (!validAudio(in, out, channels, sample_rate)) return NT_ERR_ARGS;
   const double threshold = dbToGain(threshold_db);
   const double attack = timeCoeff(sample_rate, std::max(0.1, attack_ms));
   const double release = timeCoeff(sample_rate, std::max(1.0, release_ms));
-  perChannel(in, out, frames, channels, [&](Strided input, auto write, size_t n) {
-    double envelope = 0;
-    double gain = 0;
+  for (uint32_t ch = 0; ch < channels; ch++) {
+    const Strided input{in + ch, channels};
+    const size_t n = frames;
+    const auto write = [&](size_t i, double value) { out[i * channels + ch] = f32(value); };
+    double& envelope = state[ch * 2];
+    double& gain = state[ch * 2 + 1];
     for (size_t i = 0; i < n; i++) {
       const double sample = input[i];
       const double level = std::abs(sample);
@@ -244,24 +298,35 @@ int nt_audio_noise_gate(const float* in, float* out, size_t frames,
       gain = smooth * gain + (1 - smooth) * target;
       write(i, sample * gain);
     }
-  });
+  }
   return NT_OK;
 }
+size_t nt_audio_phaser_state_len(uint32_t channels, double sample_rate, double delay_seconds) {
+  if (!channels || !nt::kernels::validSampleRate(sample_rate)) return 0;
+  return 10 > SIZE_MAX / channels ? 0 : size_t{channels} * 10;
+}
+int nt_audio_phaser_init(double* state, uint32_t channels, double sample_rate, double delay_seconds) {
+  const size_t n = nt_audio_phaser_state_len(channels, sample_rate, delay_seconds);
+  if (!state || !n) return NT_ERR_ARGS;
+  std::fill_n(state, n, 0.0);
+  return NT_OK;
+}
+int nt_audio_phaser_block(double* state, const float* in, float* out, size_t frames, uint32_t channels, double sample_rate, double rate_hz, double depth, double centre_frequency_hz, double feedback, double mix) {
+  if (!state) return NT_ERR_ARGS;
 
-int nt_audio_phaser(const float* in, float* out, size_t frames,
-                    uint32_t channels, double sample_rate, double rate_hz,
-                    double depth, double centre_frequency_hz, double feedback,
-                    double mix) {
   if (!validAudio(in, out, channels, sample_rate)) return NT_ERR_ARGS;
   constexpr int kStages = 4;
   const double twoPi = 2 * kPi;
   const double lfoIncrement = (2 * kPi * rate_hz) / sample_rate;
-  perChannel(in, out, frames, channels, [&](Strided input, auto write, size_t n) {
+  for (uint32_t ch = 0; ch < channels; ch++) {
+    const Strided input{in + ch, channels};
+    const size_t n = frames;
+    const auto write = [&](size_t i, double value) { out[i * channels + ch] = f32(value); };
     // x[n-1] and y[n-1] of each stage, float32 as in the TypeScript loop.
-    std::array<float, kStages> xPrev{};
-    std::array<float, kStages> yPrev{};
-    double feedbackSample = 0;
-    double lfoPhase = 0;
+    double* xPrev = state + ch * 10;
+    double* yPrev = xPrev + 4;
+    double& feedbackSample = xPrev[8];
+    double& lfoPhase = xPrev[9];
     for (size_t i = 0; i < n; i++) {
       const double lfo = std::sin(lfoPhase) * depth;
       lfoPhase += lfoIncrement;
@@ -281,36 +346,137 @@ int nt_audio_phaser(const float* in, float* out, size_t frames,
       feedbackSample = stage;
       write(i, dry * (1 - mix) + stage * mix);
     }
-  });
+  }
+  return NT_OK;
+}
+size_t nt_audio_reverb_state_len(uint32_t channels, double sample_rate, double delay_seconds) {
+  if (!channels || !nt::kernels::validSampleRate(sample_rate)) return 0;
+  const double scale = sample_rate / 44100;
+  size_t n = 12;
+  for (double delay : {1557., 1617., 1491., 1422., 225., 556.}) n += std::max<size_t>(1, static_cast<size_t>(jsRound(delay * scale)));
+  return n > SIZE_MAX / channels ? 0 : channels * n;
+}
+int nt_audio_reverb_init(double* state, uint32_t channels, double sample_rate, double delay_seconds) {
+  const size_t n = nt_audio_reverb_state_len(channels, sample_rate, delay_seconds);
+  if (!state || !n) return NT_ERR_ARGS;
+  std::fill_n(state, n, 0.0);
+  return NT_OK;
+}
+int nt_audio_reverb_block(double* state, const float* in, float* out, size_t frames, uint32_t channels, double sample_rate, double room_scale, double damping, double wet_level, double dry_level) {
+  if (!state) return NT_ERR_ARGS;
+
+  if (!validAudio(in, out, channels, sample_rate)) return NT_ERR_ARGS;
+  const double scale = sample_rate / 44100;
+  constexpr std::array<double, 6> delays{1557, 1617, 1491, 1422, 225, 556};
+  const size_t stride = nt_audio_reverb_state_len(1, sample_rate, 0);
+  for (uint32_t ch = 0; ch < channels; ch++) {
+    for (size_t i = 0; i < frames; i++) {
+      const float dry = in[i * channels + ch];
+      float wet = 0;
+      double* ring = state + ch * stride;
+      for (size_t r = 0; r < delays.size(); r++) {
+        const size_t length = std::max<size_t>(1, static_cast<size_t>(jsRound(delays[r] * scale)));
+        const size_t index = nt::kernels::saturatingFrames(ring[0], length - 1);
+        const float delayed = f32(ring[2 + index]);
+        if (r < 4) {
+          ring[1] = delayed * (1 - damping) + ring[1] * damping;
+          ring[2 + index] = f32(dry + ring[1] * (room_scale * 0.28 + 0.7));
+          wet = f32(static_cast<double>(wet) + delayed);
+        } else {
+          ring[2 + index] = f32(wet + delayed * 0.5);
+          wet = f32(delayed - wet * 0.5);
+        }
+        ring[0] = (index + 1) % length;
+        ring += length + 2;
+      }
+      out[i * channels + ch] = f32(dry * dry_level + wet * wet_level);
+    }
+  }
+  return NT_OK;
+}
+size_t nt_audio_delay_state_len(uint32_t channels, double sample_rate, double delay_seconds) {
+  if (!channels || !nt::kernels::validSampleRate(sample_rate)) return 0;
+  if (!std::isfinite(delay_seconds) || delay_seconds > NT_AUDIO_MAX_STREAM_DELAY_SECONDS) return 0;
+  const size_t stride = 1 + 2 * static_cast<size_t>(std::floor(std::max(0.0, delay_seconds) * sample_rate));
+  return stride > SIZE_MAX / channels ? 0 : channels * stride;
+}
+int nt_audio_delay_init(double* state, uint32_t channels, double sample_rate, double delay_seconds) {
+  const size_t n = nt_audio_delay_state_len(channels, sample_rate, delay_seconds);
+  if (!state || !n) return NT_ERR_ARGS;
+  std::fill_n(state, n, 0.0);
+  return NT_OK;
+}
+static int audioDelayBlock(double* state, const float* in, float* out, size_t frames, uint32_t channels, double sample_rate, double delay_seconds, double feedback, double mix) {
+  if (!state) return NT_ERR_ARGS;
+
+  if (!validAudio(in, out, channels, sample_rate) ||
+      !std::isfinite(delay_seconds) || delay_seconds > NT_AUDIO_MAX_DELAY_SECONDS) return NT_ERR_ARGS;
+  const size_t delay = static_cast<size_t>(std::floor(std::max(0.0, delay_seconds) * sample_rate));
+  const size_t stride = 1 + delay * 2;
+  for (uint32_t ch = 0; ch < channels; ch++) {
+    double* ring = state + ch * stride;
+    for (size_t i = 0; i < frames; i++) {
+      const float dry = in[i * channels + ch];
+      float wet;
+      if (delay == 0) {
+        // Matches the legacy zero-delay recurrence: wet initially equals zero.
+        wet = f32(dry + 0.0 * feedback);
+      } else {
+        const size_t cursor = nt::kernels::saturatingFrames(ring[0], delay * 2 - 1);
+        const size_t index = cursor % delay;
+        wet = cursor < delay ? 0.0f : f32(ring[1 + index] + ring[1 + delay + index] * feedback);
+        ring[1 + index] = dry;
+        ring[1 + delay + index] = wet;
+        ring[0] = cursor + 1 < delay ? cursor + 1 : delay + (index + 1) % delay;
+      }
+      out[i * channels + ch] = f32(dry * (1 - mix) + wet * mix);
+    }
+  }
   return NT_OK;
 }
 
-size_t nt_audio_delay_output_frames(size_t frames, double sample_rate,
-                                    double delay_seconds) {
-  const auto delay = delayFrames(sample_rate, delay_seconds);
-  return delay ? frames + *delay * 4 : 0;
+int nt_audio_delay_block(double* state, const float* in, float* out, size_t frames, uint32_t channels, double sample_rate, double delay_seconds, double feedback, double mix) {
+  if (!(delay_seconds <= NT_AUDIO_MAX_STREAM_DELAY_SECONDS)) return NT_ERR_ARGS;
+  return audioDelayBlock(state, in, out, frames, channels, sample_rate, delay_seconds, feedback, mix);
 }
 
-int nt_audio_delay(const float* in, float* out, size_t frames,
-                   uint32_t channels, double sample_rate, double delay_seconds,
-                   double feedback, double mix) {
-  const auto delayLine = delayFrames(sample_rate, delay_seconds);
-  if (!validAudio(in, out, channels, sample_rate) || !delayLine) return NT_ERR_ARGS;
-  const size_t delay = *delayLine;
-  const size_t outFrames = nt_audio_delay_output_frames(frames, sample_rate, delay_seconds);
-  std::vector<float> wet(outFrames);
-  for (uint32_t ch = 0; ch < channels; ch++) {
-    const auto dryAt = [&](size_t i) -> float {
-      return i < frames ? in[i * channels + ch] : 0.0f;
-    };
-    std::fill(wet.begin(), wet.end(), 0.0f);
-    // Wet holds only the echoes: the delayed dry signal plus the feedback of
-    // the delay line, so `mix` blends dry against wet.
-    for (size_t i = delay; i < outFrames; i++) {
-      wet[i] = f32(dryAt(i - delay) + wet[i - delay] * feedback);
+
+size_t nt_resample_output_frames(size_t frames, double in_rate, double out_rate) {
+  if (!nt::kernels::validSampleRate(in_rate) || !nt::kernels::validSampleRate(out_rate)) return 0;
+  return static_cast<size_t>(nt::kernels::saturatingFrames(jsRound(frames * out_rate / in_rate)));
+}
+
+int nt_resample(const float* in, float* out, size_t frames, uint32_t channels, double in_rate, double out_rate) {
+  if (!channels || !nt::kernels::validSampleRate(in_rate) || !nt::kernels::validSampleRate(out_rate)) return NT_ERR_ARGS;
+  if (!frames) return NT_OK;
+  if (!in || !out) return NT_ERR_ARGS;
+  if (in_rate == out_rate) { std::copy_n(in, frames * channels, out); return NT_OK; }
+  const size_t count = nt_resample_output_frames(frames, in_rate, out_rate);
+  const double cutoff = std::min(1.0, out_rate / in_rate);
+  // 32 zero crossings per side, with a Hann window. Widen on downsampling
+  // to retain the same stopband rejection below the new Nyquist frequency.
+  const double radius = 32 / cutoff;
+  std::vector<double> weights;
+  for (size_t i = 0; i < count; i++) {
+    const double position = i * in_rate / out_rate;
+    const size_t begin = static_cast<size_t>(std::max(0.0, std::ceil(position - radius)));
+    const size_t end = static_cast<size_t>(std::min(static_cast<double>(frames), std::floor(position + radius) + 1));
+    weights.resize(end - begin);
+    double weight = 0;
+    for (size_t j = begin; j < end; j++) {
+      const double distance = position - j;
+      const double x = kPi * distance * cutoff;
+      const double sinc = x == 0 ? 1 : std::sin(x) / x;
+      const double w = sinc * (0.5 + 0.5 * std::cos(kPi * distance / radius));
+      weights[j - begin] = w;
+      weight += w;
     }
-    for (size_t i = 0; i < outFrames; i++) {
-      out[i * channels + ch] = f32(dryAt(i) * (1 - mix) + wet[i] * mix);
+    for (uint32_t ch = 0; ch < channels; ch++) {
+      double sum = 0;
+      for (size_t j = begin; j < end; j++) {
+        sum += in[j * channels + ch] * weights[j - begin];
+      }
+      out[i * channels + ch] = f32(weight == 0 ? 0 : sum / weight);
     }
   }
   return NT_OK;

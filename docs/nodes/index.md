@@ -5,7 +5,7 @@ title: "Node Reference"
 
 A node is one step in a NodeTool workflow. It takes inputs, does one job such as calling a model, resizing an image or branching on a condition, and passes the result to the next node. This reference is generated from the node registry. Each node page shows the node type, its properties with their types, descriptions and defaults, and its outputs.
 
-The reference covers 502 nodes in 73 namespaces, grouped below by what you work with.
+The reference covers 504 nodes in 73 namespaces, grouped below by what you work with.
 
 ## Text and LLMs
 
@@ -76,7 +76,7 @@ Generate, transform, mix and transcribe audio.
 | [lib.audio](lib/audio/) | Audio effects such as reverb, delay, compressor, EQ filters, pitch shift and time stretch. | 16 |
 | [nodetool.audio](nodetool/audio/) | Load, save, trim, mix, fade, normalize and convert audio, plus text to speech and text to music. | 24 |
 | [nodetool.audio.realtime](nodetool/audio/realtime/) | Process audio as a live stream of chunks, with streaming filters and audio output. | 6 |
-| [nodetool.audio.synth](nodetool/audio/synth/) | Modular synth parts such as oscillator, LFO, ADSR, gate and mixer. | 9 |
+| [nodetool.audio.synth](nodetool/audio/synth/) | Modular synth parts such as oscillator, LFO, ADSR, gate and mixer. | 11 |
 | [openai.audio](openai/audio/) | OpenAI text to speech, transcription and translation. | 3 |
 | [whisper_cpp](whisper_cpp/) | Live transcription with whisper.cpp. | 1 |
 

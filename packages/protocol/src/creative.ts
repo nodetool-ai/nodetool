@@ -333,6 +333,27 @@ export interface CameraDirection {
   equipment?: string;
 }
 
+/**
+ * Read a shot's `camera` as a {@link CameraDirection}.
+ *
+ * Agents and imports sometimes write the camera as one sentence ("Close-up
+ * pushing in rapidly") instead of the structured object. That sentence is
+ * kept as `movement`, the field a clip prompt reads as free text, rather than
+ * rejected: a rejected camera made the whole board fail to load. An empty
+ * string, an array or any other non-object reads as no camera.
+ */
+export function normalizeCameraDirection(
+  value: unknown
+): CameraDirection | undefined {
+  const sentence = z.string().safeParse(value);
+  if (sentence.success) {
+    const text = sentence.data.trim();
+    return text ? { movement: text } : undefined;
+  }
+  const direction = z.record(z.string(), z.unknown()).safeParse(value);
+  return direction.success ? (direction.data as CameraDirection) : undefined;
+}
+
 // ---------------------------------------------------------------------------
 // Render record
 // ---------------------------------------------------------------------------
@@ -582,6 +603,11 @@ export interface Shot {
   /** Model used for this shot's latest clip render. */
   clip_model?: ShotModelRef;
   status: ShotStatus;
+  /**
+   * Why the last render failed, kept while {@link status} is `"failed"` so the
+   * board can still say why after a reload. Cleared when the status moves on.
+   */
+  failure_reason?: string;
   /** Estimated cost to render this shot's clip, for the gate. */
   cost_estimate?: number | null;
   notes?: string;
@@ -712,6 +738,22 @@ export interface Scene {
   slugline: string;
   /** Lighting for every shot in the scene, pasted into still prompts. */
   lighting?: string;
+  /** The {@link StoryboardAct} this scene belongs to. Absent on a board without acts. */
+  act_id?: string;
+}
+
+/**
+ * An act: the scenes sharing its id. Like a scene, it needs no index: its
+ * position is the position of its first scene. Words for people, never part of
+ * a prompt.
+ */
+export interface StoryboardAct {
+  type: "act";
+  id: string;
+  /** "Act I (Exposition)". */
+  title: string;
+  /** What the act has to achieve for the film. */
+  objective?: string;
 }
 
 /**
@@ -746,6 +788,8 @@ export interface Screenplay {
    * carries no index of its own.
    */
   scenes?: Scene[];
+  /** The board's acts. Order is derived from each act's first scene, like scene order from shots. */
+  acts?: StoryboardAct[];
   /**
    * The script resource this board's words come from. The board references the
    * script, never the reverse: line↔shot membership lives in the shots'

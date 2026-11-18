@@ -23,17 +23,11 @@
  * See .agents/skills/agentic-qa/references/runtime.md for the packet format.
  */
 
-import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile, appendFile } from "node:fs/promises";
-import { dirname, join, relative, resolve } from "node:path";
+import { appendFile, readFile, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import {
-  createSdkMcpServer,
-  query,
-  tool,
-  type SDKMessage
-} from "@anthropic-ai/claude-agent-sdk";
+import { tool } from "@anthropic-ai/claude-agent-sdk";
 import {
   chromium,
   type Browser,
@@ -42,8 +36,16 @@ import {
   type Page
 } from "@playwright/test";
 import { z } from "zod";
-import { isolatedSessionOptions } from "./isolatedSession";
 import { installOriginGuard } from "./originGuard";
+import {
+  prepareOutDir,
+  receiptLogger,
+  runParticipantSession,
+  textResult,
+  toolResult,
+  type ParticipantSurface,
+  type Receipt
+} from "./participantLoop";
 
 const CURRENT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(CURRENT_DIR, "../../..");
@@ -56,8 +58,6 @@ const DEFAULT_VIEWPORT = { width: 1440, height: 900 } as const;
 const SERVER_NAME = "browser";
 const SETTLE_MS = 700;
 const MAX_WAIT_SECONDS = 10;
-/** Time after the soft limit for the participant to write its report. */
-const REPORT_GRACE_MS = 3 * 60_000;
 
 const PacketSchema = z.object({
   sessionId: z.string().regex(/^[a-z0-9-]+$/),
@@ -89,19 +89,6 @@ const PacketSchema = z.object({
     .default(DEFAULT_VIEWPORT)
 });
 type Packet = z.infer<typeof PacketSchema>;
-
-type Outcome =
-  | "FINISHED"
-  | "ACTION_LIMIT"
-  | "TIME_LIMIT"
-  | "BLOCKED_ENVIRONMENT"
-  | "RUNNER_ERROR";
-
-interface Receipt {
-  step: number;
-  screenshot: string;
-  text: string;
-}
 
 function renderPacket(packet: Packet): string {
   const assets =
@@ -184,24 +171,7 @@ function originOf(url: string): string | null {
   }
 }
 
-/** Redact inline image data so transcripts stay small and text-only. */
-function stripImages(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map(stripImages);
-  }
-  if (value && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    if (record.type === "image") {
-      return { type: "image", data: "<omitted>" };
-    }
-    return Object.fromEntries(
-      Object.entries(record).map(([k, v]) => [k, stripImages(v)])
-    );
-  }
-  return value;
-}
-
-class BrowserSession {
+class BrowserSession implements ParticipantSurface {
   private page!: Page;
   private context!: BrowserContext;
   private browser: Browser | undefined;
@@ -215,10 +185,16 @@ class BrowserSession {
 
   constructor(
     private readonly packet: Packet,
-    private readonly outDir: string
+    private readonly outDir: string,
+    private readonly headed: boolean
   ) {}
 
-  async start(headed: boolean): Promise<void> {
+  get surfaceMs(): number {
+    return this.browserMs;
+  }
+
+  async start(): Promise<void> {
+    const headed = this.headed;
     const browser = await chromium.launch({
       headless: !headed,
       ...(process.env.PLAYWRIGHT_CHROMIUM_PATH
@@ -405,19 +381,6 @@ class BrowserSession {
   }
 }
 
-function toolResult(receipt: Receipt, data: string) {
-  return {
-    content: [
-      { type: "text" as const, text: receipt.text },
-      { type: "image" as const, data, mimeType: "image/png" }
-    ]
-  };
-}
-
-function textResult(text: string) {
-  return { content: [{ type: "text" as const, text }] };
-}
-
 function buildTools(session: BrowserSession, packet: Packet, log: (r: Receipt) => Promise<void>) {
   const coord = {
     x: z.number().int().min(0).max(packet.viewport.width - 1),
@@ -553,166 +516,32 @@ async function main(): Promise<void> {
   const cli = parseCli();
   const packet = PacketSchema.parse(JSON.parse(await readFile(cli.packet, "utf8")));
   const outDir = resolve(cli.out);
-  await mkdir(join(outDir, "screenshots"), { recursive: true });
-  await mkdir(join(outDir, "private"), { recursive: true });
+  await prepareOutDir(outDir);
 
   const protocol = await readFile(cli.protocol, "utf8");
-  const systemPrompt = `${protocol.trim()}\n${toolGuide(packet.viewport)}`;
-  const prompt = renderPacket(packet);
-
-  const session = new BrowserSession(packet, outDir);
-  const stepsPath = join(outDir, "steps.jsonl");
-  const transcriptPath = join(outDir, "transcript.jsonl");
-  /** The participant's own step notes, verbatim and in order. */
-  const logPath = join(outDir, "participant-log.md");
-  const logReceipt = async (r: Receipt) =>
-    appendFile(stepsPath, `${JSON.stringify({ ...r, t: Date.now() - session.startedAt })}\n`);
-
-  const tools = buildTools(session, packet, logReceipt);
-  const toolNames = tools.map((t) => `mcp__${SERVER_NAME}__${t.name}`);
-  const abortController = new AbortController();
-  const { options, accountContext } = await isolatedSessionOptions({
-    systemPrompt,
+  const session = new BrowserSession(packet, outDir, cli.headed);
+  const tools = buildTools(session, packet, receiptLogger(outDir, () => session.startedAt));
+  await runParticipantSession({
+    outDir,
+    repoRoot: REPO_ROOT,
+    protocolPath: cli.protocol,
+    protocol,
+    systemPrompt: `${protocol.trim()}\n${toolGuide(packet.viewport)}`,
+    prompt: renderPacket(packet),
     model: cli.model,
-    maxTurns: packet.maxActions * 2 + 20,
-    allowedTools: toolNames,
-    mcpServers: {
-      [SERVER_NAME]: createSdkMcpServer({ name: SERVER_NAME, version: "1.0.0", tools })
+    serverName: SERVER_NAME,
+    tools,
+    surface: session,
+    maxActions: packet.maxActions,
+    maxMinutes: packet.maxMinutes,
+    contract: {
+      sessionId: packet.sessionId,
+      kind: packet.kind,
+      packet,
+      browser: { engine: "chromium", viewport: packet.viewport, deviceScaleFactor: 1, locale: "en-US", freshContext: true }
     },
-    abortController
+    summary: () => ({ browserMs: session.browserMs })
   });
-
-  const contract = {
-    sessionId: packet.sessionId,
-    kind: packet.kind,
-    packet,
-    renderedPrompt: prompt,
-    protocol: {
-      path: relative(REPO_ROOT, cli.protocol),
-      sha256: createHash("sha256").update(protocol).digest("hex")
-    },
-    systemPromptSha256: createHash("sha256").update(systemPrompt).digest("hex"),
-    browser: { engine: "chromium", viewport: packet.viewport, deviceScaleFactor: 1, locale: "en-US", freshContext: true },
-    model: cli.model,
-    toolAllowlist: toolNames,
-    accountContext,
-    sdkOptions: {
-      ...options,
-      systemPrompt: "<participant protocol + tool guide>",
-      mcpServers: Object.keys(options.mcpServers ?? {}),
-      env: "<process env minus nested-session vars>",
-      settings: options.settings,
-      abortController: undefined
-    },
-    startedAt: new Date().toISOString()
-  };
-  await writeFile(join(outDir, "contract.json"), JSON.stringify(contract, null, 2));
-
-  let outcome: Outcome = "FINISHED";
-  let finalText = "";
-  let costUsd: number | null = null;
-  let initAudit: object | null = null;
-
-  const softTimer = setTimeout(() => {
-    session.softLimitReached = true;
-  }, packet.maxMinutes * 60_000);
-  const hardTimer = setTimeout(() => {
-    outcome = "TIME_LIMIT";
-    abortController.abort();
-  }, packet.maxMinutes * 60_000 + REPORT_GRACE_MS);
-
-  try {
-    await session.start(cli.headed);
-    for await (const msg of query({ prompt, options }) as AsyncIterable<SDKMessage>) {
-      await appendFile(transcriptPath, `${JSON.stringify(stripImages(msg))}\n`);
-      if (msg.type === "system" && msg.subtype === "init") {
-        const extraTools = msg.tools.filter((t) => !toolNames.includes(t));
-        const extraServers = msg.mcp_servers.filter((s) => s.name !== SERVER_NAME);
-        initAudit = {
-          tools: msg.tools,
-          mcpServers: msg.mcp_servers,
-          skills: msg.skills,
-          plugins: msg.plugins,
-          agents: msg.agents ?? [],
-          model: msg.model,
-          cwd: msg.cwd,
-          claudeCodeVersion: msg.claude_code_version,
-          extraTools,
-          extraServers
-        };
-        // The init lists skills, plugins and agents the CLI discovered, not
-        // ones the model can reach: `skills: []` hides the listing and the
-        // Skill and Agent tools are absent. The tool set is the boundary.
-        const browserServer = msg.mcp_servers.find((s) => s.name === SERVER_NAME);
-        const missingTools = toolNames.filter((t) => !msg.tools.includes(t));
-        if (
-          extraTools.length > 0 ||
-          missingTools.length > 0 ||
-          extraServers.length > 0 ||
-          browserServer?.status !== "connected"
-        ) {
-          outcome = "BLOCKED_ENVIRONMENT";
-          abortController.abort();
-          break;
-        }
-      }
-      if (msg.type === "assistant") {
-        const notes = msg.message.content
-          .filter((block) => block.type === "text")
-          .map((block) => block.text)
-          .join("\n");
-        if (notes.trim()) {
-          await appendFile(logPath, `${notes.trim()}\n\n`);
-        }
-      }
-      if (msg.type === "result") {
-        costUsd = msg.total_cost_usd;
-        if (msg.subtype === "success") {
-          finalText = msg.result;
-        } else if (outcome === "FINISHED") {
-          outcome = "RUNNER_ERROR";
-        }
-      }
-    }
-  } catch (err) {
-    if (outcome === "FINISHED") {
-      outcome = "RUNNER_ERROR";
-    }
-    await writeFile(
-      join(outDir, "private", "runner-error.txt"),
-      err instanceof Error ? (err.stack ?? err.message) : String(err)
-    );
-  } finally {
-    clearTimeout(softTimer);
-    clearTimeout(hardTimer);
-    await session.close();
-  }
-
-  if (outcome === "FINISHED" && session.actions >= packet.maxActions) {
-    outcome = "ACTION_LIMIT";
-  }
-  if (outcome === "FINISHED" && session.softLimitReached) {
-    outcome = "TIME_LIMIT";
-  }
-  const elapsedMs = Date.now() - session.startedAt;
-  const summary = {
-    sessionId: packet.sessionId,
-    outcome,
-    validity: outcome === "BLOCKED_ENVIRONMENT" ? "unverified" : "boundary-audited",
-    accountContext,
-    actions: session.actions,
-    elapsedMs,
-    browserMs: session.browserMs,
-    overheadMs: elapsedMs - session.browserMs,
-    agentCostUsd: costUsd,
-    initAudit
-  };
-  await writeFile(join(outDir, "participant-report.md"), finalText || "(no final account)\n");
-  await writeFile(join(outDir, "summary.json"), JSON.stringify(summary, null, 2));
-  console.log(JSON.stringify(summary, null, 2));
-  if (outcome === "BLOCKED_ENVIRONMENT" || outcome === "RUNNER_ERROR") {
-    process.exitCode = 1;
-  }
 }
 
 await main();

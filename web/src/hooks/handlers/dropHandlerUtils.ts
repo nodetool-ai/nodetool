@@ -2,10 +2,6 @@ import { useCallback } from "react";
 import { isObjectLike } from "../../utils/typePredicates";
 import { XYPosition } from "@xyflow/react";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
-import {
-  useAssetGridStore,
-  useLibraryCurrentFolderId
-} from "../../stores/AssetGridStore";
 import { useCreateDataframe } from "./useCreateDataframe";
 import {
   constantForType,
@@ -41,15 +37,6 @@ export const isNodetoolWorkflowJson = (
 };
 
 export const useFileHandlers = () => {
-  // Uploads triggered from the canvas (drag/drop, paste) should land in
-  // whatever folder the Library sidebar is browsing, falling back to the
-  // fullscreen assets page's folder when the Library panel hasn't navigated
-  // anywhere (both surfaces are scoped stores independent of each other).
-  const libraryFolderId = useLibraryCurrentFolderId();
-  const singletonFolderId = useAssetGridStore(
-    (state) => state.currentFolderId
-  );
-  const currentFolderId = libraryFolderId || singletonFolderId;
   const { uploadAsset } = useAssetUpload();
   const createWorkflow = useWorkflowManager((state) => state.create);
   const { createNode, addNode, workflow } = useNodes((state) => ({
@@ -129,7 +116,7 @@ export const useFileHandlers = () => {
           uploadAsset({
             file,
             workflow_id: workflow.id,
-            parent_id: currentFolderId || user?.id,
+            parent_id: user?.id,
             onCompleted: resolve,
             onFailed: (error: string) => reject(new Error(error))
           });
@@ -179,7 +166,6 @@ export const useFileHandlers = () => {
       addLocalFileNode,
       uploadAsset,
       workflow.id,
-      currentFolderId,
       user?.id,
       getMetadata,
       createNode,

@@ -26,6 +26,12 @@ ASan and UBSan share one build. TSan requires its own build. UBSan cannot
 recover. The presets set runtime options with absolute suppression paths,
 so CTest's working directory does not affect them. Reports return non-zero.
 CTest also rejects sanitizer report text if a wrapper exits zero.
+The sanitize test preset sets `QV4_GC_TIMELIMIT=0`, so the QML garbage
+collector runs each cycle to completion. With incremental collection, a cycle
+can still be in progress when a QML test engine shuts down. LSan then reports
+the reference counts of QObject wrappers that were never swept, with no
+project frame. `tst_keyframesui` reported this after an unrelated
+`Tooltip.qml` change shifted the collector's timing.
 
 The TSan preset includes source pool, FFmpeg source, CPU usage, audio engine,
 easing, frame ring, retire queue, frame cache, transport, live audio edit and

@@ -2,12 +2,21 @@ import React, { memo, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { CREATE_REF, type WorkspaceTab } from "../../stores/WorkspaceTabsStore";
-import { LoadingSpinner } from "../ui_primitives";
+import { FlexColumn, LoadingSpinner } from "../ui_primitives";
 import { isPageTabKey } from "./pageTabs";
+import DocumentFileNotice from "./DocumentFileNotice";
 import { inferMediaCategory } from "../chat/generation/extractGenerationTurns";
 import type { Message } from "../../stores/ApiTypes";
 
 const NO_MESSAGES: Message[] = [];
+
+/** The tab types whose document is a file in the project folder. */
+const FILE_DOCUMENT_TYPES = ["workflow", "timeline", "storyboard", "script", "application", "jsscript"] as const;
+
+const isFileDocumentTab = (
+  type: WorkspaceTab["type"]
+): type is (typeof FILE_DOCUMENT_TYPES)[number] =>
+  (FILE_DOCUMENT_TYPES as readonly string[]).includes(type);
 
 // One surface per document type, each behind its own chunk. Imported eagerly
 // they landed in the workspace chunk together — opening the app downloaded the
@@ -207,7 +216,7 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
 const TabContent = ({ tab, active }: TabContentProps) => {
   const { t } = useTranslation();
 
-  return (
+  const surface = (
     <Suspense
       fallback={
         <LoadingSpinner text={t("i18n-next84.tabContent.loading")} />
@@ -215,6 +224,29 @@ const TabContent = ({ tab, active }: TabContentProps) => {
     >
       {surfaceFor(tab, active)}
     </Suspense>
+  );
+  // A document of these kinds is a file in the project folder. What is wrong
+  // with the file shows above the editor. The wrapper is always there, so a
+  // notice that comes and goes never remounts the editor.
+  if (!isFileDocumentTab(tab.type)) {
+    return surface;
+  }
+  return (
+    <FlexColumn fullWidth fullHeight sx={{ overflow: "hidden" }}>
+      <DocumentFileNotice
+        type={tab.type}
+        refId={tab.ref}
+        projectId={tab.projectId}
+      />
+      {/* A flex column, like the tab layer: surfaces fill it with `flex: 1`,
+          which a block box ignores, so a guided flow grew past the tab and
+          its action row was clipped off the bottom. */}
+      <FlexColumn
+        sx={{ flex: 1, minHeight: 0, minWidth: 0, position: "relative" }}
+      >
+        {surface}
+      </FlexColumn>
+    </FlexColumn>
   );
 };
 

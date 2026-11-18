@@ -621,6 +621,41 @@ describe("provider failure message branches", () => {
       );
     });
 
+    it.each([
+      [
+        "an insufficient_quota code",
+        Object.assign(new Error("429 quota"), {
+          status: 429,
+          body: { error: { message: "quota", code: "insufficient_quota" } }
+        })
+      ],
+      [
+        "OpenAI's no-credits wording without a status",
+        new Error(
+          "You have no credits remaining. Add credits to continue using the API."
+        )
+      ],
+      [
+        "Anthropic's low-balance wording",
+        Object.assign(new Error("400"), {
+          status: 400,
+          body: {
+            error: {
+              message:
+                "Your credit balance is too low to access the Anthropic API."
+            }
+          }
+        })
+      ]
+    ])("names the empty provider account for %s", async (_label, error) => {
+      const frame = await failureFor("t-no-credits", error, {
+        provider: "openai"
+      });
+      expect(frame.message).toBe(
+        "The openai account behind this model has no credits left. Add credits to that openai account, or choose a model from another provider."
+      );
+    });
+
     it("gives a plain 429 the rate-limit advice", async () => {
       const frame = await failureFor(
         "t-429-plain",

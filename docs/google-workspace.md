@@ -1,21 +1,14 @@
 ---
 layout: page
-title: "Google Workspace and Email"
+title: "Google Workspace"
 permalink: /google-workspace
-description: "Connect a Google account so agents and Code nodes can use Drive, Gmail, Docs, Sheets and Calendar, or read Gmail over IMAP with an app password."
+description: "Connect a Google account so agents and Code nodes can use Drive, Gmail, Docs, Sheets and Calendar."
 ---
 
-Two integrations reach Gmail. **Google Workspace** signs in with your Google account and gives agents 20 tools for Drive, Gmail, Docs, Sheets and Calendar. The **email tools** read a Gmail mailbox over IMAP with an app password and work on any install.
+Google Workspace signs in with your Google account and gives agents 20 tools (`google_*` and `gmail_*`) for Drive, Gmail, Docs, Sheets and Calendar.
 
-> **Runs:** cloud (Google's APIs). **Needs:** a Google account and an install with a login for Workspace, a Gmail address and app password for the email tools. A server running Workspace also needs `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+> **Runs:** cloud (Google's APIs). **Needs:** a Google account and an install with a login. A server running Workspace also needs `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
 {: .callout-note}
-
-| | Google Workspace | Email tools |
-|---|---|---|
-| Tools | 20 (`google_*` and `gmail_*`) | 3 (`search_email`, `archive_email`, `add_label_to_email`) |
-| Credential | Google sign-in with OAuth scopes | Gmail address and app password |
-| Available on | Installs with a login, or when forced on | Every install |
-| Set up in | Settings, Models & providers | Settings, Models & providers, Services & Advanced |
 
 ## Which installs have Google Workspace
 
@@ -87,26 +80,6 @@ Every tool belongs to the `external` permission category because each one acts o
 | `google_calendar_delete_event` | Delete an event by id |
 
 Calendar tools use your primary calendar unless you pass a `calendar_id`.
-
-## Email tools over IMAP
-
-The email tools do not use the Google sign-in. They log in to `imap.gmail.com` on port 993 with a Gmail address and an app password, so they work on a local install with no login.
-
-To set them up:
-
-1. Turn on 2-step verification for the Google account, then create an [app password](https://support.google.com/accounts/answer/185833).
-2. Open **Settings**, go to **Models & providers**, and open the **Google Mail** entry in the **Services & Advanced** section.
-3. Enter the address in **Email address** and the password in **App password**.
-
-You can also set `GOOGLE_MAIL_USER` and `GOOGLE_APP_PASSWORD` as environment variables. The stored value is read first. Both are required.
-
-| Tool | Parameters | What it does |
-|---|---|---|
-| `search_email` | `subject`, `text`, `since_hours_ago` (default 6), `max_results` (default 50) | Search the inbox, newest first. Returns `message_id`, `subject`, `sender` and `body` |
-| `archive_email` | `message_ids` | Move messages to `[Gmail]/All Mail`, which removes them from the inbox |
-| `add_label_to_email` | `message_id`, `label` | Add a label to a message |
-
-The `message_id` values these tools return are IMAP UIDs. They are not the message ids that `gmail_*` tools use, so do not pass one to the other.
 
 ## Disconnect
 

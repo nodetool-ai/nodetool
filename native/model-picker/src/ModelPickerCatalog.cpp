@@ -292,6 +292,13 @@ bool Catalog::hasAvailable(const QString& id, const QString& provider) const {
     }
     return false;
 }
+bool Catalog::hasAnyAvailable() const {
+    for (const auto& entry : m_models) {
+        const auto model = entry.toMap();
+        if (hasAvailable(model.value("id").toString(), model.value("provider").toString())) return true;
+    }
+    return false;
+}
 bool Catalog::selectionAvailable() const {
     return m_loaded && !m_loading && hasAvailable(selectedModelId(), selectedProvider());
 }
@@ -500,6 +507,21 @@ void Catalog::complete(quint64 revision) {
                 break;
             }
         }
+    }
+    if (m_selected.isEmpty() && !m_serverDefault && m_selectFirstAvailable) {
+        QVariantMap local;
+        for (const auto& item : m_models) {
+            const auto candidate = item.toMap();
+            const auto candidateProvider = candidate.value("provider").toString();
+            if (!hasAvailable(candidate.value("id").toString(), candidateProvider) || providerKeyMissing(candidateProvider)) continue;
+            if (!isLocalProvider(candidateProvider)) {
+                m_selected = candidate;
+                break;
+            }
+            if (local.isEmpty()) local = candidate;
+        }
+        if (m_selected.isEmpty()) m_selected = local;
+        if (!m_selected.isEmpty()) emit selectionCommitted(selectedModelId(), selectedProvider());
     }
     const auto id = selectedModelId();
     const auto provider = selectedProvider();

@@ -32,6 +32,14 @@ describe("Autocomplete", () => {
     expect(screen.getByLabelText("Choose option")).toBeInTheDocument();
   });
 
+  it("names the input with a hidden label", () => {
+    renderWithTheme(
+      <Autocomplete options={options} label="Choose option" hideLabel />
+    );
+    expect(screen.getByRole("combobox", { name: "Choose option" })).toBeInTheDocument();
+    expect(screen.queryByText("Choose option")).not.toBeInTheDocument();
+  });
+
   it("shows options on focus", async () => {
     const user = userEvent.setup();
     renderWithTheme(

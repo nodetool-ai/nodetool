@@ -20,6 +20,7 @@ import {
   LogUpdate
 } from "../../../stores/ApiTypes";
 import { Progress } from "../feedback/Progress";
+import type { MessageVersionNav } from "../../../serverState/useThreadVersions";
 import { MediaPredictionStatus } from "../feedback/MediaPredictionStatus";
 import { MessageView } from "../message/MessageView";
 import MediaOutputGroup from "../message/MediaOutputGroup";
@@ -69,6 +70,8 @@ interface ChatThreadViewProps {
    * while a turn runs or where the thread cannot be rewound.
    */
   onResendFrom?: (message: Message, text?: string) => void;
+  /** Version switchers, keyed by the message they sit on. */
+  versionNavByMessageId?: Record<string, MessageVersionNav>;
 }
 
 // StatusFooter re-renders once a second while a reply streams; a fresh `[]`
@@ -142,6 +145,8 @@ interface StatusFooterProps {
    *  the eventual output grid instead. */
   pendingMediaMessage: Message | null;
   activePredictions: ActiveMediaPrediction[];
+  /** The reply's own text is the newest thing on screen and still growing. */
+  replyIsWriting: boolean;
 }
 
 const StatusFooter = memo<StatusFooterProps>(
@@ -157,7 +162,8 @@ const StatusFooter = memo<StatusFooterProps>(
     currentLogUpdate,
     hasAgentExecutionMessages,
     pendingMediaMessage,
-    activePredictions
+    activePredictions,
+    replyIsWriting
   }) => {
     const { t } = useTranslation();
     const isBusy = status === "loading" || status === "streaming";
@@ -182,6 +188,17 @@ const StatusFooter = memo<StatusFooterProps>(
           !pendingMediaMessage &&
           !hasPredictions && (
           <div className="chat-message-list-item">
+            {replyIsWriting ? (
+              // While the text itself streams, the growing words are the
+              // progress. Claude shows only a quiet mark under them.
+              <div className="chat-status-row writing">
+                <span
+                  className="chat-status-pulse"
+                  role="status"
+                  aria-label={t("i18n-next54.thread.responding")}
+                />
+              </div>
+            ) : (
             <FlexRow className="chat-status-row" align="center" gap={2} fullWidth>
               <Text
                 component="span"
@@ -203,9 +220,10 @@ const StatusFooter = memo<StatusFooterProps>(
                 {formatElapsed(replayElapsedSeconds ?? elapsed)}
               </Caption>
             </FlexRow>
+            )}
           </div>
         )}
-        {progress > 0 && !hasAgentExecutionMessages && (
+        {progress > 0 && progress < total && !hasAgentExecutionMessages && (
           <div className="chat-message-list-item">
             <Progress progress={progress} total={total} />
           </div>
@@ -257,7 +275,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   showTaskUpdate = true,
   externalScroll = false,
   focusMessage,
-  onResendFrom
+  onResendFrom,
+  versionNavByMessageId
 }) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -459,6 +478,18 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     return -1;
   }, [isBusy, filteredMessages, lastUserMessageIndex]);
 
+  // The newest row is the reply's own prose and no tool is running: the text
+  // is what is moving, so the footer steps back to a pulse.
+  const replyIsWriting = useMemo(() => {
+    if (status !== "streaming" || runningToolCallId) return false;
+    const last = filteredMessages[filteredMessages.length - 1];
+    return (
+      filteredMessages.length - 1 > lastUserMessageIndex &&
+      last?.role === "assistant" &&
+      hasVisibleContent(last)
+    );
+  }, [status, runningToolCallId, filteredMessages, lastUserMessageIndex]);
+
   const replyEndText = useMemo(
     () => replyEnds(filteredMessages),
     [filteredMessages]
@@ -609,6 +640,9 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
                           : undefined
                       }
                       onResend={onResendFrom}
+                      versionNav={
+                        msg.id ? versionNavByMessageId?.[msg.id] : undefined
+                      }
                       editRemovesLaterTurns={
                         virtualRow.index < lastUserMessageIndex
                       }
@@ -687,6 +721,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
               hasAgentExecutionMessages={hasAgentExecutionMessages}
               pendingMediaMessage={pendingMediaMessage}
               activePredictions={activePredictions}
+              replyIsWriting={replyIsWriting}
             />
           </div>
 

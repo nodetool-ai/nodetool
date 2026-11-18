@@ -1,0 +1,189 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-11-12T00:00:00.000Z",
+  "updated_at": "2026-11-12T00:00:00.000Z",
+  "name": "Turn One Note into a Pad",
+  "tool_name": null,
+  "description": "A sampler repeats a short region of one note for as long as each gate is high, and the run renders six seconds to a clip. Runs locally with no file, model or key.",
+  "tags": [
+    "audio",
+    "dsp",
+    "music",
+    "example",
+    "local"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Turn One Note into a Pad\n\nA one-second note becomes long, soft chords in a six-second clip. The run renders the clip faster than real time. Every step runs in the editor process, with no file, model or key.\n\n**How it works:** \"1 Note\" is a Code node that writes a note with a plucked start and a steady body. \"4 Pad\" is a Sampler in the loop mode. Start and Length select ten periods of the steady body, and each voice repeats that region while its gate is high. Attack fades a voice in. When the gate falls, Release fades the voice out, so the end of one note sounds under the start of the next. \"3 Pitch\" gives each note its pitch: the root, the fourth, the minor seventh and the fourth. \"5 Record\" keeps six seconds and shows the clip. Its Duration is also the length of the render.\n\n**Try this:** Set Mode on \"4 Pad\" to one_shot to hear the region one time for each note. Set Release to 2 for chords that stay, or replace \"5 Record\" with an Audio Out node to play the pad live."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 640,
+          "selectable": true,
+          "height": 360
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "note",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "// One second of a note with a plucked start and a steady body.\n// At 220.5 Hz one period is exactly 200 frames, so a region of whole\n// periods repeats with no step.\nconst rate = 44100, seconds = 1, freq = 220.5;\nconst samples = new Float32Array(Math.round(rate * seconds));\nfor (let i = 0; i < samples.length; i++) {\n  const t = i / rate;\n  const tone = Math.sin(2 * Math.PI * freq * t) + 0.5 * Math.sin(4 * Math.PI * freq * t) + 0.25 * Math.sin(6 * Math.PI * freq * t);\n  // The pluck decays in the first 0.3 seconds. The body stays level.\n  samples[i] = 0.5 * tone * (0.5 + 0.5 * Math.exp(-12 * t)) * Math.min(1, t / 0.002, (samples.length - 1 - i) / 220);\n}\n\n// 16-bit PCM WAV bytes from interleaved samples in [-1, 1].\nfunction wav(samples, rate, channels) {\n  const bytes = new Uint8Array(44 + samples.length * 2);\n  const view = new DataView(bytes.buffer);\n  const tag = (at, text) => { for (let i = 0; i < 4; i++) bytes[at + i] = text.charCodeAt(i); };\n  tag(0, \"RIFF\"); view.setUint32(4, 36 + samples.length * 2, true); tag(8, \"WAVE\");\n  tag(12, \"fmt \"); view.setUint32(16, 16, true); view.setUint16(20, 1, true);\n  view.setUint16(22, channels, true); view.setUint32(24, rate, true);\n  view.setUint32(28, rate * channels * 2, true); view.setUint16(32, channels * 2, true);\n  view.setUint16(34, 16, true); tag(36, \"data\"); view.setUint32(40, samples.length * 2, true);\n  samples.forEach((s, i) => view.setInt16(44 + i * 2, Math.round(Math.max(-1, Math.min(1, s)) * 32767), true));\n  return bytes;\n}\n\nawait output(\"audio\", await media.toAudio(wav(samples, rate, 1), { mimeType: \"audio/wav\", filename: \"note.wav\" }));\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Note"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {
+          "audio": {
+            "type": "audio",
+            "type_args": [],
+            "optional": false
+          }
+        }
+      },
+      {
+        "id": "notes",
+        "type": "nodetool.audio.synth.Gate",
+        "data": {
+          "on_duration": 0.5,
+          "off_duration": 0.25
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 640
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Notes"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "pitch",
+        "type": "nodetool.audio.synth.LFO",
+        "data": {
+          "waveform": "triangle",
+          "rate_hz": 0.3333,
+          "depth": 0.4167,
+          "offset": 0.4167
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 880
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Pitch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "pad",
+        "type": "nodetool.audio.synth.Sampler",
+        "data": {
+          "mode": "loop",
+          "voices": 4,
+          "start": 0.5,
+          "length": 0.045351,
+          "attack": 0.05,
+          "release": 0.6
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Pad"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "record",
+        "type": "nodetool.audio.realtime.ChunksToAudio",
+        "data": {
+          "duration": 6
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "5  Record"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "note-pad",
+        "source": "note",
+        "sourceHandle": "audio",
+        "target": "pad",
+        "targetHandle": "audio",
+        "ui_properties": {}
+      },
+      {
+        "id": "notes-pad",
+        "source": "notes",
+        "sourceHandle": "cv",
+        "target": "pad",
+        "targetHandle": "gate",
+        "ui_properties": {}
+      },
+      {
+        "id": "pitch-pad",
+        "source": "pitch",
+        "sourceHandle": "cv",
+        "target": "pad",
+        "targetHandle": "pitch_cv",
+        "ui_properties": {}
+      },
+      {
+        "id": "pad-record",
+        "source": "pad",
+        "sourceHandle": "chunk",
+        "target": "record",
+        "targetHandle": "chunk",
+        "ui_properties": {}
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "run_mode": null
+}

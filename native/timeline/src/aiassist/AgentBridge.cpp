@@ -455,7 +455,7 @@ QJsonObject assistantDirectorRequest(const QJsonObject &raw, bool replan,
   }
   auto schema =
       QJsonDocument::fromJson(
-          R"nativejson({"type":"object","additionalProperties":false,"required":["title","scenes","shots"],"properties":{"title":{"type":"string"},"logline":{"type":"string"},"style_bible":{"type":"string"},"aspect_ratio":{"type":"string"},"narration":{"type":"string"},"music_prompt":{"type":"string"},"scenes":{"type":"array","minItems":1,"items":{"type":"object","additionalProperties":false,"required":["id","slugline"],"properties":{"id":{"type":"string"},"slugline":{"type":"string"},"lighting":{"type":"string"}}}},"shots":{"type":"array","minItems":1,"maxItems":1,"items":{"type":"object","additionalProperties":false,"required":["scene_id","action"],"properties":{"scene_id":{"type":"string"},"slug":{"type":"string"},"action":{"type":"string"},"motion":{"type":"string"},"dialogue":{"type":"string"},"narration":{"type":"string"},"duration_seconds":{"type":"number"},"camera":{"type":"object","additionalProperties":false,"properties":{"framing":{"type":"string"},"lens":{"type":"string"},"angle":{"type":"string"},"movement":{"type":"string"},"equipment":{"type":"string"}}}}}}}})nativejson")
+          R"nativejson({"type":"object","additionalProperties":false,"required":["title","scenes","shots"],"properties":{"title":{"type":"string"},"logline":{"type":"string"},"style_bible":{"type":"string"},"aspect_ratio":{"type":"string"},"narration":{"type":"string"},"music_prompt":{"type":"string"},"scenes":{"type":"array","minItems":1,"items":{"type":"object","additionalProperties":false,"required":["id","slugline"],"properties":{"id":{"type":"string"},"slugline":{"type":"string"},"lighting":{"type":"string"}}}},"shots":{"type":"array","minItems":1,"maxItems":1,"items":{"type":"object","additionalProperties":false,"required":["scene_id","action"],"properties":{"scene_id":{"type":"string"},"slug":{"type":"string"},"action":{"type":"string"},"motion":{"type":"string"},"dialogue":{"type":"string"},"narration":{"type":"string"},"duration_seconds":{"type":"number"},"look_preset_ids":{"type":"array","items":{"type":"string"},"maxItems":3},"camera":{"type":"object","additionalProperties":false,"properties":{"framing":{"type":"string"},"lens":{"type":"string"},"angle":{"type":"string"},"movement":{"type":"string"},"preset_ids":{"type":"array","items":{"type":"string"},"maxItems":3},"equipment":{"type":"string"}}}}}}}})nativejson")
           .object();
   auto properties = schema.value("properties").toObject();
   auto shots = properties.value("shots").toObject();
@@ -1741,6 +1741,19 @@ QJsonObject assistantEdit(const QString &name, QJsonObject raw,
         doc, id, std::max(0.0, target) - source->value("startMs").toDouble(),
         payload.value("trackId").toString(source->value("trackId").toString()),
         true);
+    // Drop the moved clips as a drag does in the default Overwrite mode, so
+    // a move never stacks two clips on one track.
+    nt::edit::IdSet moved;
+    for (size_t i = 0; i < clips.size() && i < doc.clips.size(); ++i) {
+      if (clips[i] != doc.clips[i]) {
+        moved.insert(clips[i].value("id").toString());
+      }
+    }
+    if (!moved.empty()) {
+      auto movedDoc = doc;
+      movedDoc.clips = clips;
+      clips = nt::edit::resolveDropAction(movedDoc, moved, "overwrite");
+    }
   } else if (name == "ui_timeline_delete_clip") {
     clips = nt::edit::deleteSelected(doc, {id});
   } else if (name == "ui_timeline_split_clip") {

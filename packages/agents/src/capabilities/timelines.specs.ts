@@ -125,7 +125,7 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         'Operations run in order. Each is {"op": <name>, ...arguments}, e.g. ' +
         '{"op": "add_track", "type": "audio", "name": "Music"} or ' +
         '{"op": "animate_clip", "target": "Title", "animations": [{"role": "in", "preset": "fade"}]}. ' +
-        "Ops: get_state, add_track, move_track, add_media_clip, add_text_clip, add_shape_clip, " +
+        "Ops: get_state, add_track, move_track, set_track, ripple_delete, close_gap, cut_transcript, add_media_clip, add_text_clip, add_shape_clip, " +
         "add_group, split_clip, trim_clip, move_clip, duplicate_clip, delete_clip, " +
         "set_clip_params, set_parent, set_clip_binding, set_transition, set_mask, " +
         "set_matte, set_generated_matte, set_time_remap, set_effects, animate_clip, stagger_animations, " +
@@ -219,6 +219,10 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "An empty list clears it. " +
         'add_marker takes {"timeMs", "label"?, "color"?, "note"?} and ' +
         'delete_marker {"target"} (marker id or label). ' +
+        'set_track takes {"track", "name"?, "muted"?, "solo"?, "locked"?, "visible"?, "volumeDb"?, "pan"?, "heightPx"?}. ' +
+        'ripple_delete takes {"targets": [clip, ...]} and closes the hole; ' +
+        'close_gap takes {"track", "atMs"}; cut_transcript takes ' +
+        '{"startMs", "endMs"} or {"fillers": true}. ' +
         "set_markers_from_beats and snap_to_beats both take a grid — " +
         '"onsets_ms" (detect_audio_events reports `onsets.times` in SECONDS, ' +
         'so multiply by 1000) or "bpm" with "offset_ms"?; ' +

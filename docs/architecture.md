@@ -4,7 +4,7 @@ title: "Architecture & Lifecycle"
 description: "Packages, the actor-based execution engine, run messages, providers, storage, and the Python worker bridge."
 ---
 
-A workflow run is a set of actors, one per node, that pass values to each other through inboxes and stream status messages to the client while they work. The same graph JSON runs in the desktop app, a headless server, RunPod, and Cloud Run.
+A workflow run is a set of actors, one per node, that pass values to each other through inboxes and stream status messages to the client while they work.
 
 One run, as the client sees it over the WebSocket (`run_job`, then the messages defined in `packages/protocol/src/messages.ts`):
 
@@ -68,13 +68,7 @@ See [Packages](packages.md) for how node packages are structured and registered.
 
 ### WorkflowRunner
 
-The `WorkflowRunner` is the DAG orchestrator that executes workflow graphs. It handles:
-
-- **Graph validation** -- Ensures all connections are valid and the graph is acyclic
-- **Node actor spawning** -- Creates a `NodeActor` for each node in the graph
-- **Input dispatch** -- Routes initial data to the correct input nodes
-- **Edge counting and EOS propagation** -- Tracks when nodes have received all inputs and propagates End-Of-Stream signals through the graph
-- **Concurrent execution** -- Runs independent nodes in parallel when their inputs are ready
+`WorkflowRunner` validates the graph, spawns a `NodeActor` per node, dispatches initial data to the input nodes, counts edges, and propagates End-Of-Stream (EOS) signals. Independent nodes run in parallel when their inputs are ready. The step order is in [Execution Strategies](execution-strategies.md).
 
 ### NodeActor
 
@@ -89,21 +83,12 @@ Each node in a workflow runs as a `NodeActor` with one of four execution modes. 
 
 ### Correlation-Aware Scheduling
 
-There is no `sync_mode` setting (the old `zip_all`/`on_any`/`sticky` modes were
-removed). Instead, the scheduler is **correlation-aware**: every value carries a
-correlation lineage describing which iteration/branch it came from, and the
+There is no `sync_mode` setting. Every value carries a correlation lineage, and the
 buffered actor path (`_runCorrelated` in `NodeActor`) fires a node once per
-*matched set* of correlated inputs.
-
-- Inputs that share a correlation token are matched and processed together —
-  this is what the old `zip_all` mode approximated, but it is now driven by the
-  actual lineage of each value rather than a static flag.
-- Outputs declare how they relate to their inputs via **`outputCorrelation`**
-  (`forward`, `iteration`, `chunk`, `aggregate`, `single`), which tells the
-  scheduler whether an output is a passthrough, a new per-item iteration, a
-  chunk of one logical item, a collapse of a stream, or a one-shot value. Join
-  nodes like `Zip` and `Cross` pair values from independent iteration sources
-  within their common parent scope.
+matched set of correlated inputs. Outputs declare how they relate to their
+inputs with **`outputCorrelation`** (`forward`, `iteration`, `chunk`,
+`aggregate`, `single`). Join nodes like `Zip` and `Cross` pair values from
+independent iteration sources within their common parent scope.
 
 See [correlation-design.md](https://github.com/nodetool-ai/nodetool/blob/main/docs/correlation-design.md) for the full model.
 
@@ -121,7 +106,7 @@ The `ProcessingContext` provides the runtime environment for node execution:
 
 ## Job Lifecycle (run, stream, reconnect, cancel)
 
-`WorkflowRunner` validates the graph, spawns one `NodeActor` per node, and routes values between actors over inboxes. The editor runs workflows over the WebSocket with `run_job`. `POST /api/workflows/{id}/run` is the HTTP route for agents and the CLI. Actors run in-process and stream their results out. There is no `JobExecutionManager` class and no threaded, subprocess, or docker execution strategy.
+`WorkflowRunner` validates the graph, spawns one `NodeActor` per node, and routes values between actors over inboxes. The editor runs workflows over the WebSocket with `run_job`. `POST /api/workflows/{id}/run` is the HTTP route for agents and the CLI. Actors run in-process and stream their results out.
 
 {% mermaid %}
 sequenceDiagram
@@ -165,7 +150,7 @@ The file also defines `planning_update`, `chunk`, `notification`, `error`, and m
 
 ## Agent System
 
-One loop drives every agent. A host (a chat turn, `nodetool agent run`, an MCP client) builds a **CodeAct session** over a gated toolbelt and hands it the user's message. The model acts by writing JavaScript that runs in the QuickJS [sandbox](javascript-sandbox.md). Decomposition is something the model can ask for, not a stage the host imposes.
+A host (a chat turn, `nodetool agent run`, an MCP client) builds a **CodeAct session** over a gated toolbelt. The model acts by writing JavaScript that runs in the QuickJS [sandbox](javascript-sandbox.md). Decomposition happens only when the model asks for it.
 
 ### Components
 
@@ -227,7 +212,6 @@ See [Python Bridge Protocol](python-bridge-protocol.md) for the full wire protoc
 
 - The server listens on `http://127.0.0.1:7777` by default.
 - The WebSocket uses MessagePack by default and can switch to JSON. See [Chat API](chat-api.md).
-- Execution strategies are in [Execution Strategies](execution-strategies.md).
 
 ## Related
 

@@ -16,4 +16,8 @@ void EditorCommands::setRunning(bool running) {
     if (assign(running_, running)) { emit runningChanged(); }
 }
 
+void EditorCommands::setComfyTarget(const QString &label) {
+    if (assign(comfyTarget_, label)) { emit comfyTargetChanged(); }
+}
+
 }  // namespace nodetool::node_editor

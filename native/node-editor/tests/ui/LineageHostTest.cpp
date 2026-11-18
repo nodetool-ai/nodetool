@@ -221,20 +221,19 @@ private slots:
                             .toPoint());
       QCOMPARE(clicked.size(), 1);
     } else {
-      window.action("More");
-      auto *menu = window.findChild<QMenu *>();
+      auto *menu = window.findChild<QMenu *>("application-menu-node");
       QVERIFY(menu);
       QAction *command = nullptr;
       for (auto *action : menu->actions()) {
-        if (action->text() == "Link selected") {
+        if (action->text() == "Link Selected") {
           command = action;
           break;
         }
       }
       QVERIFY(command);
+      emit menu->aboutToShow();
       QVERIFY(command->isEnabled());
-      QTest::mouseClick(menu, Qt::LeftButton, Qt::NoModifier,
-                        menu->actionGeometry(command).center());
+      command->trigger();
     }
     QTRY_COMPARE(window.document()->graph()["links"].toArray().size(), 1);
     const auto link =
@@ -291,7 +290,8 @@ private slots:
     QVERIFY(window.selectNode("outer"));
     auto *frame = item(window, "outer");
     QVERIFY(frame);
-    const auto start = view->mapFromScene(frame->scenePos() + QPointF(12, 12));
+    // A group drags by its label. Its body lets the pointer through (GroupNode.tsx).
+    const auto start = view->mapFromScene(window.scene()->groupLabelRect(frame->nodeId(), std::abs(view->transform().m11())).center());
     QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
     QTest::mouseMove(view->viewport(), start + QPoint(70, 45), 30);
     QTRY_VERIFY(layer->linkPath("ab") != path);

@@ -81,6 +81,51 @@ export const DELETE_PROJECT_SCHEMA: JsonSchema = {
   required: ["project_id"]
 };
 
+export const CREATE_PROJECT_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    name: { type: "string", description: "Project name, 1 to 200 characters." },
+    kind: {
+      type: "string",
+      description:
+        'Optional free-text kind, such as "spot", "trailer" or "report". ' +
+        "Max 64 characters."
+    }
+  },
+  required: ["name"]
+};
+
+/** Item types `move_to_project` accepts. */
+export const MOVABLE_PROJECT_ITEM_TYPES = [
+  "asset",
+  "entity",
+  "storyboard",
+  "script",
+  "timeline",
+  "sketch",
+  "application",
+  "jsscript"
+] as const;
+
+export const MOVE_TO_PROJECT_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    project_id: {
+      type: "string",
+      description: "Destination project id (use list_projects to find one)."
+    },
+    type: {
+      type: "string",
+      enum: [...MOVABLE_PROJECT_ITEM_TYPES],
+      description:
+        "What to move. asset is any library asset, entity is a character, " +
+        "location, style or prop asset, and the rest are document types."
+    },
+    id: { type: "string", description: "Id of the asset or document." }
+  },
+  required: ["project_id", "type", "id"]
+};
+
 export const listProjectsSpec: CapabilitySpec = {
   name: "list_projects",
   description:
@@ -120,19 +165,49 @@ export const deleteProjectSpec: CapabilitySpec = {
   name: "delete_project",
   description:
     "Permanently delete a project you own, with every document, " +
-    "conversation, asset, job and workspace file in it. This cannot be " +
-    "undone. Confirm with the user first, and prefer update_project with " +
-    "archived=true when they only want it out of sight. The Personal " +
-    "project and the project this conversation belongs to cannot be deleted.",
+    "conversation, asset record and job in it. This cannot be undone. The " +
+    "result's folder field says what happened to the project folder: a " +
+    "folder NodeTool created is trashed (moved to the OS trash), moved_aside " +
+    "(moved to .trash in the projects folder) or removed (cloud storage), " +
+    "and a folder the user brought is kept with every file except " +
+    ".nodetool/. Tell the user where the folder is. Confirm with the user " +
+    "first, and prefer update_project with archived=true when they only " +
+    "want it out of sight. The Personal project and the project this " +
+    "conversation belongs to cannot be deleted.",
   inputSchema: DELETE_PROJECT_SCHEMA,
   category: "write",
   userMessage: (params) => `Deleting project ${String(params["project_id"])}`
+};
+
+export const createProjectSpec: CapabilitySpec = {
+  name: "create_project",
+  description:
+    "Create a project you own, with its project folder. Returns the new " +
+    "project. Use move_to_project to put assets and documents in it.",
+  inputSchema: CREATE_PROJECT_SCHEMA,
+  category: "write",
+  userMessage: (params) => `Creating project "${String(params["name"])}"`
+};
+
+export const moveToProjectSpec: CapabilitySpec = {
+  name: "move_to_project",
+  description:
+    "Move one asset, entity or document into another project you own. A " +
+    "file in the old project folder moves to the new folder. A document " +
+    "or entity that other documents reference cannot move. Workflows and " +
+    "games cannot move with this tool.",
+  inputSchema: MOVE_TO_PROJECT_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Moving ${String(params["type"])} ${String(params["id"])} to project ${String(params["project_id"])}`
 };
 
 /** Every spec this module declares, in declaration order. */
 export const projectsSpecs: readonly CapabilitySpec[] = [
   listProjectsSpec,
   searchProjectsSpec,
+  createProjectSpec,
   updateProjectSpec,
+  moveToProjectSpec,
   deleteProjectSpec
 ];

@@ -70,8 +70,6 @@ public:
  Q_INVOKABLE void load(const QString &kind);
  Q_INVOKABLE void inspect(int index);
  Q_INVOKABLE void restore(bool confirmDirty);
- Q_INVOKABLE void sharingAction(const QString &procedure, const QVariantMap &input);
- Q_INVOKABLE void createLink(const QString &role);
  Q_INVOKABLE void saveMetadata(const QVariantMap &patch);
 signals:
  void changed();

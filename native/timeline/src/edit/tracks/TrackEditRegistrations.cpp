@@ -6,6 +6,7 @@ const bool add = nt::app::registerEdit("addTrack", nt::tracks::addTrack);
 const bool insert = nt::app::registerEdit("insertTrack", nt::tracks::insertTrack);
 const bool duplicate = nt::app::registerEdit("duplicateTrack", nt::tracks::duplicateTrack);
 const bool remove = nt::app::registerEdit("removeTrack", nt::tracks::removeTrack);
+const bool addText = nt::app::registerEdit("addTextOnTop", nt::tracks::addTextOnTop);
 const bool reorder = nt::app::registerEdit("reorderTracks", nt::tracks::reorderTracks);
 const bool patches = [] {
     for (const auto& field : {"name", "heightPx", "visible", "locked", "muted", "solo"}) {

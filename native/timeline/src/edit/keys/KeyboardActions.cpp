@@ -37,7 +37,7 @@ constexpr double DEFAULT_AUDIO_TRANSITION_MS = 500;
 // TracksRegion.tsx TRACK_HEIGHT_STEP, as a vertical zoom.
 constexpr double TRACK_ZOOM_STEP = 0.25;
 constexpr double AUDIO_TRACK_HEIGHT_STEP_PX = 12;
-constexpr double MIN_TRACK_HEIGHT_PX = 48;
+constexpr double MIN_TRACK_HEIGHT_PX = 24;
 constexpr double MAX_TRACK_HEIGHT_PX = 300;
 constexpr double DEFAULT_TRACK_HEIGHT_PX = 64;
 constexpr double LARGE_VOLUME_STEP_DB = 6;
@@ -392,6 +392,7 @@ struct Entry {
     const char* label;
     const char* group;
     Handler handler;
+    QList<QKeySequence> defaultKeys = {};  // keys for presets that do not bind the action
 };
 
 const bool registered = [] {
@@ -418,8 +419,8 @@ const bool registered = [] {
         }},
         {"trimEditLeft", "Trim edit point one frame back", "Editing", [](C g, V c) { return trimEditByFrames(g, -1, c); }},
         {"trimEditRight", "Trim edit point one frame on", "Editing", [](C g, V c) { return trimEditByFrames(g, 1, c); }},
-        {"trimEditLeftLarge", "Trim edit point ten frames back", "Editing", [](C g, V c) { return trimEditByFrames(g, -10, c); }},
-        {"trimEditRightLarge", "Trim edit point ten frames on", "Editing", [](C g, V c) { return trimEditByFrames(g, 10, c); }},
+        {"trimEditLeftLarge", "Trim edit point five frames back", "Editing", [](C g, V c) { return trimEditByFrames(g, -5, c); }},
+        {"trimEditRightLarge", "Trim edit point five frames on", "Editing", [](C g, V c) { return trimEditByFrames(g, 5, c); }},
         {"audioGain", "Audio gain of selected clips", "Editing", [](C g, V) {
             if (g.selection().isEmpty()) return false;
             auto* host = nt::wiring::w::windowItem(&g, "audioGainHost");
@@ -471,9 +472,10 @@ const bool registered = [] {
             g.viewState()->setVerticalZoom(g.viewState()->verticalZoom() - TRACK_ZOOM_STEP);
             return true;
         }},
-        // The keys only the Premiere preset has.
-        {"goToSequenceStart", "Go to the sequence start", "Playback", [](C g, V) { g.clock()->seek(0); return true; }},
-        {"goToSequenceEnd", "Go to the sequence end", "Playback", [](C g, V) { g.clock()->seek(sequenceEnd(g)); return true; }},
+        // The keys only the Premiere preset has. Home and End reach the
+        // sequence ends under every preset that leaves those keys free.
+        {"goToSequenceStart", "Go to the sequence start", "Playback", [](C g, V) { g.clock()->seek(0); return true; }, {QKeySequence(Qt::Key_Home)}},
+        {"goToSequenceEnd", "Go to the sequence end", "Playback", [](C g, V) { g.clock()->seek(sequenceEnd(g)); return true; }, {QKeySequence(Qt::Key_End)}},
         {"prevCutAnyTrack", "Previous cut on any track", "Playback", [](C g, V) {
             seekToNeighbour(g, editTimes(g.editDoc(), std::nullopt), false);
             return true;
@@ -564,7 +566,7 @@ const bool registered = [] {
         {"clipVolumeDownMore", "Lower clip volume by 6 dB", "Editing", [](C g, V c) { return changeVolume(g, -LARGE_VOLUME_STEP_DB, c); }},
     };
     for (const auto& entry : entries) {
-        nt::wiring::registerKeyAction({QString::fromLatin1(entry.name), QString::fromUtf8(entry.label), {}, entry.handler,
+        nt::wiring::registerKeyAction({QString::fromLatin1(entry.name), QString::fromUtf8(entry.label), entry.defaultKeys, entry.handler,
                                        QString::fromUtf8(entry.group)});
     }
     return true;

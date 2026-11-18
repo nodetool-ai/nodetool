@@ -7,6 +7,8 @@ const STABLE_CHANNEL = "stable";
 
 const dir = path.resolve(process.argv[2] ?? "release-assets");
 const inputChannel = process.argv[3] ?? STABLE_CHANNEL;
+// release.yaml passes --with-timeline when native-timeline-release.yml ran.
+const withTimeline = process.argv.includes("--with-timeline");
 const channel = inputChannel === NIGHTLY_CHANNEL ? NIGHTLY_CHANNEL : STABLE_CHANNEL;
 // Stable channel publishes latest* updater manifests.
 const manifestPrefix = channel === NIGHTLY_CHANNEL ? NIGHTLY_CHANNEL : "latest";
@@ -42,12 +44,18 @@ const checks = [
     "macOS zip",
     (f) => f.endsWith(".zip") && f.includes("Nodetool-") && !/win-unpacked/i.test(f),
   ],
-  ["Linux AppImage", (f) => f.endsWith(".AppImage")],
+  ["Linux AppImage", (f) => f.startsWith("Nodetool-") && f.endsWith(".AppImage")],
   ["Linux Flatpak", (f) => f.endsWith(".flatpak")],
   ["blockmap", (f) => f.endsWith(".blockmap")],
   ["web archive", (f) => /^nodetool-web-.+\.zip$/.test(f)],
   ["MCP bundle", (f) => f.endsWith(".mcpb")],
 ];
+// The native timeline with its server (native-timeline-release.yml).
+const timelinePlatforms = [["macos-arm64", "zip"], ["windows-x64", "zip"], ["linux-x64", "AppImage"]];
+for (const [platform, ext] of withTimeline ? timelinePlatforms : []) {
+  const pattern = new RegExp(`^nodetool-timeline-\\d.*-${platform}\\.${ext}$`);
+  checks.push([`native timeline ${platform}`, (f) => pattern.test(f)]);
+}
 const missingArtifacts = [];
 for (const [label, predicate] of checks) {
   if (!has(predicate)) {

@@ -22,6 +22,7 @@ import {
   markWorkspaceGrantPending,
   syncGoogleProviderToken
 } from "../lib/googleSession";
+import { applyPendingMarketingOptIn } from "../lib/marketingConsent";
 
 /**
  * `access_type=offline` is what yields a refresh token, and Google only
@@ -211,6 +212,9 @@ export const useAuth = create<LoginStore>((set, get) => ({
         session ? "Found" : "Not found"
       );
       void syncGoogleProviderToken(session);
+      // The OAuth redirect lands here with the session already parsed from
+      // the URL, so the sign-in opt-in is applied on this path too.
+      void applyPendingMarketingOptIn(session);
 
       // Subscribe to auth state changes and store the subscription for cleanup
       const {
@@ -232,6 +236,7 @@ export const useAuth = create<LoginStore>((set, get) => ({
         // provider token; forward it before it drops out of the session.
         if (event === "SIGNED_IN") {
           void syncGoogleProviderToken(session);
+          void applyPendingMarketingOptIn(session);
         }
       });
 

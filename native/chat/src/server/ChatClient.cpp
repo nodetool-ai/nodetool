@@ -13,6 +13,29 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 namespace nt::chat {
+namespace {
+// Sets `Authorization: Bearer <token>` only on a request to the connected
+// server's origin, with ws and wss counted as http and https. Chat builds
+// without the account service, so this mirrors its ServerToken.h
+// (native/account/qt) rather than including it.
+void attachServerToken(QNetworkRequest &request, const QUrl &server, const QString &token) {
+  const auto http = [](const QString &scheme) {
+    return scheme == u"wss" ? QStringLiteral("https") : scheme == u"ws" ? QStringLiteral("http") : scheme;
+  };
+  const QUrl &url = request.url();
+  const QString scheme = http(url.scheme());
+  if (token.isEmpty() || scheme != http(server.scheme()) || (scheme != u"http" && scheme != u"https") ||
+      url.host().isEmpty() || url.host().compare(server.host(), Qt::CaseInsensitive) != 0) {
+    return;
+  }
+  const int port = scheme == u"https" ? 443 : 80;
+  if (url.port(port) != server.port(port)) {
+    return;
+  }
+  request.setRawHeader("Authorization", "Bearer " + token.toUtf8());
+}
+} // namespace
+
 ChatClient::ChatClient(QObject *parent)
     : QObject(parent), m_network(this),
       m_socket(QString(), QWebSocketProtocol::VersionLatest, this) {
@@ -30,8 +53,7 @@ ChatClient::ChatClient(QObject *parent)
             const auto map = QByteArray::fromHex(
                 "de0001a76d657373616765b04d6f64652073657420746f2074657874");
             if (bytes == fix || bytes == map) {
-              m_ready = true;
-              emit statusChanged("connected");
+              acknowledgeMode();
             } else {
               emit errorOccurred(
                   "Unexpected binary chat frame after text-mode negotiation");
@@ -69,9 +91,7 @@ void ChatClient::connectToServer(const QUrl &base, const QString &token) {
   url.setFragment({});
   QNetworkRequest request(url);
   request.setRawHeader("X-Nodetool-Client", "native-chat");
-  if (!token.isEmpty()) {
-    request.setRawHeader("Authorization", "Bearer " + token.toUtf8());
-  }
+  attachServerToken(request, base, token);
   m_socket.open(request);
 }
 void ChatClient::disconnectFromServer() {
@@ -101,8 +121,7 @@ void ChatClient::receive(const QByteArray &bytes) {
   }
   const auto event = doc.object();
   if (event["message"] == "Mode set to text") {
-    m_ready = true;
-    emit statusChanged("connected");
+    acknowledgeMode();
     return;
   }
   if (event["type"] == "ping") {
@@ -110,6 +129,25 @@ void ChatClient::receive(const QByteArray &bytes) {
     return;
   }
   emit eventReceived(event);
+}
+void ChatClient::acknowledgeMode() {
+  m_ready = true;
+  sendOpenProject();
+  emit statusChanged("connected");
+}
+void ChatClient::setOpenProject(const QString &projectId) {
+  const auto id = projectId.isEmpty() ? QStringLiteral("default") : projectId;
+  if (id == m_openProject) {
+    return;
+  }
+  m_openProject = id;
+  if (m_ready) {
+    sendOpenProject();
+  }
+}
+void ChatClient::sendOpenProject() {
+  send({{"command", "set_open_project"},
+        {"data", QJsonObject{{"project_id", m_openProject}}}});
 }
 bool ChatClient::send(const QJsonObject &object) {
   if (!m_ready) {
@@ -157,9 +195,7 @@ void ChatClient::upload(const QString &id, const QUrl &local, Callback callback,
   request.setTransferTimeout(60000);
   request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                        QNetworkRequest::ManualRedirectPolicy);
-  if (!m_token.isEmpty()) {
-    request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
-  }
+  attachServerToken(request, m_base, m_token);
   auto *reply = m_network.post(request, multipart);
   reply->setProperty("uploadId", id);
   multipart->setParent(reply);
@@ -192,6 +228,13 @@ void ChatClient::upload(const QString &id, const QUrl &local, Callback callback,
           });
 }
 void ChatClient::openMedia(const QUrl &input, Callback callback) {
+  downloadMedia(input, [callback](const QJsonValue &file, const QString &error) {
+    if (!error.isEmpty()) { callback({}, error); return; }
+    if (!QDesktopServices::openUrl(QUrl(file.toString()))) { callback({}, "No system media viewer available"); }
+    else { callback({}, {}); }
+  });
+}
+void ChatClient::downloadMedia(const QUrl &input, Callback callback) {
   const auto url = m_base.resolved(input);
   if ((url.scheme() != "https" && url.scheme() != "http") ||
       url.host() != m_base.host() || url.port() != m_base.port() || url.scheme() != m_base.scheme()) {
@@ -202,7 +245,7 @@ void ChatClient::openMedia(const QUrl &input, Callback callback) {
   QNetworkRequest request(url);
   request.setTransferTimeout(30000);
   request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-  if (!m_token.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8()); }
+  attachServerToken(request, m_base, m_token);
   auto *reply = m_network.get(request);
   ++m_mediaRequests;
   const auto epoch = m_epoch;
@@ -224,11 +267,10 @@ void ChatClient::openMedia(const QUrl &input, Callback callback) {
     QFile file(path);
     const auto bytes = reply->readAll();
     if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size()) {
-      callback({}, "Could not save media for the system viewer"); return;
+      callback({}, "Could not save media"); return;
     }
     file.close();
-    if (!QDesktopServices::openUrl(QUrl::fromLocalFile(path))) { callback({}, "No system media viewer available"); }
-    else { callback({}, {}); }
+    callback(QUrl::fromLocalFile(path).toString(), {});
   });
 }
 void ChatClient::fetchMedia(const QUrl &input, Callback callback) {
@@ -268,10 +310,7 @@ void ChatClient::fetchMedia(const QUrl &input, Callback callback) {
   request.setTransferTimeout(30000);
   request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                        QNetworkRequest::ManualRedirectPolicy);
-  if (url.scheme() == m_base.scheme() && url.host() == m_base.host() &&
-      url.port() == m_base.port() && !m_token.isEmpty()) {
-    request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
-  }
+  attachServerToken(request, m_base, m_token);
   auto *reply = m_network.get(request);
   ++m_mediaRequests;
   const auto epoch = m_epoch;
@@ -327,9 +366,7 @@ void ChatClient::call(const QString &procedure, QJsonObject input,
                        QNetworkRequest::ManualRedirectPolicy);
   request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
   request.setRawHeader("X-Nodetool-Client", "native-chat");
-  if (!m_token.isEmpty()) {
-    request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
-  }
+  attachServerToken(request, m_base, m_token);
   auto *reply =
       mutation ? m_network.post(request, body) : m_network.get(request);
   connect(reply, &QNetworkReply::readyRead, this, [reply] {

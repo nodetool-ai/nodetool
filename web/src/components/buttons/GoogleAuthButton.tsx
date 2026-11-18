@@ -5,6 +5,12 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import useAuth from "../../stores/useAuth";
+import { markMarketingOptInPending } from "../../lib/marketingConsent";
+
+interface GoogleAuthButtonProps {
+  /** The sign-in card's email opt-in. Carried across the OAuth redirect. */
+  marketingOptIn?: boolean;
+}
 
 const styles = (_theme: Theme) => ({
   svg: {
@@ -12,14 +18,17 @@ const styles = (_theme: Theme) => ({
   }
 });
 
-const GoogleAuthButton = memo(function GoogleAuthButton() {
+const GoogleAuthButton = memo(function GoogleAuthButton({
+  marketingOptIn = false
+}: GoogleAuthButtonProps) {
   const { t } = useTranslation();
   const signInWithProvider = useAuth((state) => state.signInWithProvider);
   const state = useAuth((state) => state.state);
   const handleClick = useCallback(async () => {
     if (state === "loading" || state === "logged_in") {return;}
+    markMarketingOptInPending(marketingOptIn);
     await signInWithProvider("google");
-  }, [state, signInWithProvider]);
+  }, [state, signInWithProvider, marketingOptIn]);
   const theme = useTheme();
   return (
     <div css={styles(theme)}>

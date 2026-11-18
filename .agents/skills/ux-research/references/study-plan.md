@@ -87,6 +87,7 @@ field. None names the product or its features.
 | `comfy-video` | You make short AI video clips for your social channels with ComfyUI on your own PC, mostly Wan 2.2 image-to-video workflows you got from Discord and YouTube. You have not used this product before. |
 | `comfy-pro` | You are a freelance designer who uses ComfyUI every day for client product shots and portraits, with your own saved workflows for upscaling and inpainting. You want a simpler way to run those workflows. You have not used this product before. |
 | `comfy-beginner` | You installed ComfyUI Desktop a month ago and mostly use its built-in templates, because workflows you downloaded kept failing with missing nodes. You have not used this product before. |
+| `premiere-editor` | You edit wedding and event videos in Adobe Premiere Pro several times a week on a laptop. You have not used this program before. |
 
 A persona changes how the participant reads the screen, not what it knows
 about NodeTool. Never put product knowledge in a persona. The `comfy-*`

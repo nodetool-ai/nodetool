@@ -10,6 +10,7 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QDir>
+#include <QMenuBar>
 #include <QtTest>
 #include <QTimer>
 #include <QSettings>
@@ -32,8 +33,11 @@ public:
     bool holdUploads = false;
     bool failUploads = false;
     QPointer<QTcpSocket> uploadSocket;
-    // Model rows by tRPC procedure, as models.*ByProvider returns them.
-    QHash<QString, QJsonArray> models;
+    // Model rows by tRPC procedure, as models.*ByProvider returns them. The
+    // chat refuses a send without a usable model, so one language model is
+    // always offered.
+    QHash<QString, QJsonArray> models{
+        {"models.llmByProvider", QJsonArray{QJsonObject{{"id", "claude-opus-4-6"}, {"provider", "anthropic"}, {"name", "claude-opus-4-6"}}}}};
     QJsonArray assets;
     QJsonArray threads{QJsonObject{{"id", ThreadId}, {"title", "Server conversation"}, {"workflow_id", "workflow-chat"}, {"project_id", "default"}}};
     ChatServer() {
@@ -239,19 +243,6 @@ class EditorChatTest final : public QObject {
         const auto point = item->mapToScene(QPointF(item->width() / 2, item->height() / 2));
         QTest::mouseClick(widget->quickWindow(), Qt::LeftButton, Qt::NoModifier, point.toPoint());
     }
-    static void chooseOption(QQuickWidget *widget, nt::chat::ChatSession *chat, const QString &key, const QVariant &value) {
-        const auto options = chat->mediaOptions(key);
-        qsizetype index = -1;
-        for (qsizetype i = 0; i < options.size(); ++i) {
-            if (options[i].toMap()["value"] == value) {
-                index = i;
-            }
-        }
-        QVERIFY2(index >= 0, qPrintable(key + " " + value.toString()));
-        clickVisible(widget, "mediaSetting-" + key);
-        clickVisible(widget, "chip-option-" + QString::number(index));
-        QTRY_COMPARE(chat->mediaSettings()[key], value);
-    }
     static void pickModel(nt::modelpicker::Catalog *catalog, const QJsonObject &model) {
         if (!catalog->loaded()) {
             catalog->reload();
@@ -273,6 +264,9 @@ class EditorChatTest final : public QObject {
                 return;
             }
             seen.insert(procedure + model["id"].toString());
+            if (server.models.value(procedure).contains(model)) {
+                return;
+            }
             model.remove("type");
             if (procedure == "models.videoByProvider") {
                 model["supported_tasks"] = videoTasks;
@@ -313,6 +307,7 @@ private slots:
     }
     void init() {
         QSettings().remove("canvas-chat-dock");
+        QSettings().remove("chat-composer");
     }
     void geometryAndPersistence() {
         nodetool::EditorWindow window;
@@ -423,9 +418,15 @@ private slots:
             QTest::keyClick(surface(window)->quickWindow(), key);
         }
         QTRY_COMPARE(list->property("count").toInt(), 0);
+        // EmptyThreadList.tsx names an empty search result.
+        auto *empty = findItem(surface(window)->rootObject(), "editorThreadListEmpty");
+        QVERIFY(empty);
+        QTRY_VERIFY(empty->isVisible());
+        QCOMPARE(empty->property("title").toString(), QString("No matching conversations"));
         QTest::keyClick(surface(window)->quickWindow(), Qt::Key_A, Qt::ControlModifier);
         QTest::keyClick(surface(window)->quickWindow(), Qt::Key_Backspace);
         QTRY_COMPARE(list->property("count").toInt(), 1);
+        QVERIFY(!empty->isVisible());
         QTest::qWait(50);
         click(surface(window), QString("deleteThread") + ThreadId);
         QTest::qWait(100);
@@ -447,6 +448,9 @@ private slots:
         auto *chat = window.chatSession();
         chat->connectToServer(server.url());
         QTRY_COMPARE(chat->selectedThreadId(), QString(ThreadId));
+        // The Output panel takes most of an 800 px canvas. Where the menu bar draws in the
+        // window, it takes its height too, and the chat would no longer fit its controls.
+        if (!window.menuBar()->isNativeMenuBar()) { window.resize(1280, 800 + window.menuBar()->height()); }
         window.runOutput()->beginRun("run-fixture");
         window.action("Output");
         QTest::qWait(100);
@@ -505,6 +509,8 @@ private slots:
         QTRY_COMPARE(chat->selectedThreadId(), QString(ThreadId));
         QTRY_VERIFY(!chat->historyLoading());
         QVERIFY(window.selectNode("node-chat"));
+        // Wait for the first usable model, so it cannot replace the one set here.
+        QTRY_VERIFY(!chat->model().isEmpty());
         chat->setProvider("openai");
         chat->setModel("fixture-model");
         QTemporaryFile attachment;
@@ -542,7 +548,9 @@ private slots:
         QCOMPARE(sent, expected);
         server.emitEvent({{"type", "chunk"}, {"thread_id", ThreadId}, {"content", "Working on your graph"}});
         QTRY_COMPARE(chat->turnStatus(), QString("streaming"));
-        click(surface(window), "sendMessage");
+        // shortcuts.ts stopChatGeneration: Escape in the composer stops the reply.
+        type(surface(window), "");
+        QTest::keyClick(surface(window)->quickWindow(), Qt::Key_Escape);
         QTRY_COMPARE(server.count("command", "stop"), 1);
         server.emitEvent({{"type", "generation_stopped"}, {"thread_id", ThreadId}});
         QTRY_COMPARE(chat->turnStatus(), QString("idle"));
@@ -554,8 +562,14 @@ private slots:
         QCOMPARE(window.document()->node("node-chat")["future"].toInt(), 42);
         window.document()->undo();
         QCOMPARE(window.document()->snapshot(), before);
-        type(surface(window), "Try again");
-        click(surface(window), "sendMessage");
+        // MediaChatComposer.tsx sends on Enter. Shift+Enter inserts a line.
+        type(surface(window), "Try");
+        QTest::keyClick(surface(window)->quickWindow(), Qt::Key_Return, Qt::ShiftModifier);
+        for (const auto character : QByteArray("again")) {
+            QTest::keyClick(surface(window)->quickWindow(), character);
+        }
+        QCOMPARE(chat->draft(), QString("Try\nagain"));
+        QTest::keyClick(surface(window)->quickWindow(), Qt::Key_Return);
         QTRY_COMPARE(server.count("command", "chat_message"), 2);
         server.emitEvent({{"type", "error"}, {"thread_id", ThreadId}, {"message", "Fixture failure"}});
         QTRY_VERIFY(!chat->error().isEmpty());
@@ -623,13 +637,18 @@ private slots:
         QVERIFY(file.open(QIODevice::ReadOnly));
         const auto cases = QJsonDocument::fromJson(file.readAll()).object()["cases"].toArray();
         QVERIFY(cases.size() >= 15);
-        const QHash<QString, QString> settingsKeys{{"image", "image"}, {"image_edit", "imageEdit"}, {"video", "video"},
-            {"image_to_video", "imageToVideo"}, {"reference_to_video", "referenceToVideo"}, {"retake", "retake"},
-            {"extend", "extend"}, {"audio", "audio"}, {"music", "music"}};
+        // The composer sends chat only. The media cases cover the web store path.
+        int checked = 0;
         for (const auto &value : cases) {
             const auto spec = value.toObject();
             const auto name = spec["name"].toString();
             const auto mode = spec["mode"].toString();
+            if (mode != "chat") {
+                continue;
+            }
+            ++checked;
+            // Each web case starts from fresh stores, so no saved level carries over.
+            QSettings().remove("chat-composer");
             ChatServer server;
             QVERIFY(server.listen());
             serveModels(server, cases);
@@ -655,18 +674,6 @@ private slots:
                 pickModel(chat->modelCatalog(), spec["chatModel"].toObject());
                 QTRY_COMPARE(chat->model(), spec["chatModel"].toObject()["id"].toString());
             }
-            if (mode != "chat") {
-                clickVisible(widget, "mediaModeChip");
-                clickVisible(widget, "mediaMode-" + mode);
-                QTRY_COMPARE(chat->mediaMode(), mode);
-                const auto settings = spec["settings"].toObject()[settingsKeys[mode]].toObject();
-                pickModel(chat->mediaCatalog(), settings["model"].toObject());
-                for (auto it = settings.begin(); it != settings.end(); ++it) {
-                    if (it.key() != "model") {
-                        chooseOption(widget, chat, it.key(), it.value().toVariant());
-                    }
-                }
-            }
             for (const auto &asset : spec["attachments"].toArray()) {
                 chat->attachAsset(asset.toObject().toVariantMap());
             }
@@ -674,7 +681,7 @@ private slots:
                 type(widget, spec["prompt"].toString());
                 QTRY_COMPARE(chat->draft(), spec["prompt"].toString());
             }
-            clickVisible(widget, mode == "chat" ? "sendMessage" : "generateMedia");
+            clickVisible(widget, "sendMessage");
             QTRY_VERIFY2(server.count("command", "chat_message") == 1, qPrintable(name + " " + chat->error()));
             QJsonObject sent;
             for (const auto &frame : server.frames) {
@@ -687,32 +694,7 @@ private slots:
             QVERIFY2(sent == expected, qPrintable(name + "\nnative " + QString::fromUtf8(QJsonDocument(sent).toJson(QJsonDocument::Compact))
                 + "\nweb    " + QString::fromUtf8(QJsonDocument(expected).toJson(QJsonDocument::Compact))));
         }
-    }
-    void mediaModeRequiresModel() {
-        ChatServer server;
-        QVERIFY(server.listen());
-        nodetool::EditorWindow window;
-        setup(window);
-        auto *chat = window.chatSession();
-        auto *widget = surface(window);
-        chat->connectToServer(server.url());
-        QTRY_COMPARE(chat->selectedThreadId(), QString(ThreadId));
-        QTRY_VERIFY(!chat->historyLoading());
-        clickVisible(widget, "mediaModeChip");
-        // Disabled "Soon" modes cannot be chosen.
-        QTRY_VERIFY(visibleItem(widget, "mediaMode-audio_to_video"));
-        QVERIFY(!visibleItem(widget, "mediaMode-audio_to_video")->isEnabled());
-        clickVisible(widget, "mediaMode-video");
-        QTRY_COMPARE(chat->mediaMode(), QString("video"));
-        QVERIFY(visibleItem(widget, "mediaSetting-duration"));
-        QVERIFY(!visibleItem(widget, "chooseChatModel"));
-        QVERIFY(!visibleItem(widget, "reasoningChip"));
-        type(widget, "Waves");
-        clickVisible(widget, "generateMedia");
-        QTRY_COMPARE(chat->error(), QString("Pick the video model to generate with."));
-        QCOMPARE(server.count("command", "chat_message"), 0);
-        QCOMPARE(chat->draft(), QString("Waves"));
-        QVERIFY(chat->mediaRequest()["model"].isNull());
+        QCOMPARE(checked, 5);
     }
     void assetMentionPicker() {
         ChatServer server;
@@ -827,6 +809,60 @@ private slots:
         }));
         setReducedMotion(widget, false);
     }
+    // shortcuts.ts newChat and focusChatComposer, as ChatView.tsx handles them,
+    // and the permission mode PermissionSelector.tsx sends and keeps.
+    void shortcutsAndPermissionMode() {
+        ChatServer server;
+        QVERIFY(server.listen());
+        nodetool::EditorWindow window;
+        setup(window);
+        auto *chat = window.chatSession();
+        chat->connectToServer(server.url());
+        QTRY_COMPARE(chat->selectedThreadId(), QString(ThreadId));
+        QTRY_VERIFY(!chat->historyLoading());
+        auto *widget = surface(window);
+        auto *input = widget->rootObject()->findChild<QQuickItem *>("chatInput");
+        QVERIFY(input);
+        QVERIFY(!input->hasActiveFocus());
+        window.focusChatComposer();
+        QTRY_VERIFY(input->hasActiveFocus());
+        clickVisible(widget, "permissionChip");
+        clickVisible(widget, "permission-auto");
+        QTRY_COMPARE(chat->permissionMode(), QString("auto"));
+        QTRY_COMPARE(server.count("command", "set_permission_mode"), 1);
+        QCOMPARE(QSettings().value("chat-composer/lastPermissionMode").toString(), QString("auto"));
+        type(widget, "Plan it");
+        QTest::keyClick(widget->quickWindow(), Qt::Key_Return);
+        QTRY_COMPARE(server.count("command", "chat_message"), 1);
+        for (const auto &frame : server.frames) {
+            if (frame["command"] == "chat_message") {
+                QCOMPARE(frame["data"].toObject()["permission_mode"].toString(), QString("auto"));
+            }
+        }
+        const auto created = server.requests.size();
+        window.newChatConversation();
+        QTRY_VERIFY(std::any_of(server.requests.cbegin() + created, server.requests.cend(),
+            [](const QByteArray &request) { return request.contains("threads.create"); }));
+    }
+    // A new tab starts its own conversation instead of resuming the workflow's latest one.
+    void newTabBindsANewThread() {
+        ChatServer server;
+        QVERIFY(server.listen());
+        server.createdId = "dddddddddddddddddddddddddddddddd";
+        nodetool::EditorWindow window;
+        setup(window);
+        window.newTab();
+        QVERIFY(window.document()->load(workflow()));
+        if (!surface(window)->isVisible()) {
+            window.toggleChat();
+        }
+        auto *chat = window.chatSession();
+        chat->connectToServer(server.url());
+        QTRY_COMPARE(chat->selectedThreadId(), server.createdId);
+        QVERIFY(std::any_of(server.requests.cbegin(), server.requests.cend(), [](const auto &request) {
+            return request.contains("threads.create") && request.contains("\"workflow_id\":\"workflow-chat\"");
+        }));
+    }
     void captures() {
         for (const bool dark : {true, false}) {
             nodetool::EditorWindow window;
@@ -866,14 +902,6 @@ private slots:
             QTRY_VERIFY(visibleItem(widget, "assetMention-c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2"));
             capture(window, prefix + "mention-picker");
             QTest::keyClick(widget->quickWindow(), Qt::Key_Escape);
-            clickVisible(widget, "mediaModeChip");
-            QTRY_VERIFY(visibleItem(widget, "mediaMode-image"));
-            capture(window, prefix + "mode-menu");
-            clickVisible(widget, "mediaMode-image");
-            QTRY_VERIFY(visibleItem(widget, "mediaSetting-aspectRatio"));
-            capture(window, prefix + "media-chips");
-            clickVisible(widget, "mediaModeChip");
-            clickVisible(widget, "mediaMode-chat");
             window.toggleChat();
             capture(window, prefix + "closed");
             window.toggleChat();

@@ -165,7 +165,7 @@ describe("ReviewStep", () => {
       .updateShot(BOARD, "shot-0", { script_line_ids: ["line-1"] });
     renderStep();
     await openAllOptions();
-    expect(screen.getByLabelText("Shot 1 · Dialogue")).toHaveAttribute(
+    expect(screen.getAllByLabelText("Dialogue")[0]).toHaveAttribute(
       "readonly"
     );
     await userEvent.click(screen.getAllByLabelText("Speech mode")[0]);
@@ -184,6 +184,7 @@ describe("ReviewStep", () => {
 
   it("reports invalid duration instead of dropping it from the plan", async () => {
     renderStep();
+    await openAllOptions();
     await userEvent.type(screen.getAllByLabelText("Seconds")[0], "oops");
     await userEvent.tab();
     expect(screen.getByRole("alert")).toHaveTextContent("positive duration");
@@ -226,9 +227,9 @@ describe("ReviewStep", () => {
     expect(screen.getByLabelText("Shot 1 · Action")).toHaveValue(
       "The keeper climbs the stair"
     );
-    expect(screen.getByLabelText("Shot 1 · Dialogue")).toHaveValue(
-      "Not tonight."
-    );
+    // Dialogue is behind "More options", and the collapsed line quotes it.
+    expect(screen.queryByLabelText("Dialogue")).not.toBeInTheDocument();
+    expect(screen.getByText("“Not tonight.”")).toBeInTheDocument();
     expect(screen.getByLabelText("Shot 2 · Action")).toHaveValue(
       "Waves break on rock"
     );
@@ -273,11 +274,11 @@ describe("ReviewStep", () => {
     const user = userEvent.setup();
     renderStep();
 
-    expect(
-      screen.queryByLabelText("Shot 2 · Dialogue")
-    ).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Add dialogue" }));
-    await user.type(screen.getByLabelText("Shot 2 · Dialogue"), "Hold fast.");
+    expect(screen.queryByLabelText("Dialogue")).not.toBeInTheDocument();
+    await user.click(
+      screen.getAllByRole("button", { name: "More options" })[1]
+    );
+    await user.type(screen.getByLabelText("Dialogue"), "Hold fast.");
 
     expect(board()?.shots[1].dialogue).toBe("Hold fast.");
   });
@@ -351,6 +352,7 @@ describe("ReviewStep", () => {
   it("writes a duration edit through updateShot", async () => {
     const user = userEvent.setup();
     renderStep();
+    await openAllOptions();
 
     await user.type(screen.getAllByLabelText("Seconds")[1], "4");
     await user.tab();
@@ -362,6 +364,7 @@ describe("ReviewStep", () => {
   it("shows the length a rewrite gave a shot, not the one typed before it", async () => {
     const user = userEvent.setup();
     renderStep();
+    await openAllOptions();
 
     await user.type(screen.getAllByLabelText("Seconds")[1], "4");
     await user.tab();
@@ -544,14 +547,16 @@ describe("ReviewStep — an imported FDX", () => {
     return parse;
   };
 
-  it("shows every imported line verbatim and in order", () => {
+  it("shows every imported line verbatim and in order", async () => {
     seedImport();
     renderStep();
+    await openAllOptions();
 
-    // Each scene numbers its own shots, so the label repeats per scene.
-    expect(screen.getAllByLabelText("Shot 2 · Dialogue")[0]).toHaveValue(
-      "SOPHIA\n(under her breath)\nNot today. Not again."
-    );
+    expect(
+      screen
+        .getAllByLabelText("Dialogue")
+        .map((el) => (el as HTMLTextAreaElement).value)
+    ).toContain("SOPHIA\n(under her breath)\nNot today. Not again.");
     expect(
       screen
         .getAllByLabelText("Slugline")

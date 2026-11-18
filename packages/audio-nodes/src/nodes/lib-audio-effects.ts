@@ -1,9 +1,11 @@
+import { BitcrushProperties, CompressProperties, DistortionProperties, LimiterProperties, ReverbProperties, NoiseGateProperties, PhaserProperties } from "../lib/effect-properties.js";
+import { BitcrushEffect, CompressEffect, DistortionEffect, LimiterEffect, ReverbEffect, NoiseGateEffect, PhaserEffect } from "../lib/effect-descriptors.js";
+import { applyToClip } from "../lib/signal-effect.js";
 import type { AudioRef } from "@nodetool-ai/protocol";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import { importHidden } from "@nodetool-ai/config";
-import { loadKernels } from "@nodetool-ai/kernels";
 import {
   requireAudioBytes,
   audioRefFromWav,
@@ -13,12 +15,8 @@ import {
 
 // ── Bitcrush ──────────────────────────────────────────────────────
 
-/** Output handles BitcrushNode.process() emits. */
-type BitcrushNodeOutputs = {
-  output: AudioRef;
-};
 
-export class BitcrushNode extends BaseNode {
+export class BitcrushNode extends BitcrushProperties {
   static readonly nodeType = "lib.audio.Bitcrush";
   static readonly title = "Bitcrush";
   static readonly description =
@@ -43,58 +41,17 @@ export class BitcrushNode extends BaseNode {
   })
   declare audio: Record<string, unknown>;
 
-  @prop({
-    type: "int",
-    default: 8,
-    title: "Bit Depth",
-    description:
-      "The bit depth to reduce the audio to. Lower values create more distortion.",
-    min: 1,
-    max: 16
-  })
-  declare bit_depth: number;
 
-  @prop({
-    type: "int",
-    default: 1,
-    title: "Sample Rate Reduction",
-    description:
-      "Factor by which to reduce the sample rate. Higher values create more aliasing.",
-    min: 1,
-    max: 100
-  })
-  declare sample_rate_reduction: number;
 
-  async process(context?: ProcessingContext): Promise<BitcrushNodeOutputs> {
-    const audio = this.audio;
-    const bitDepth = this.bit_depth;
-    const srrFactor = this.sample_rate_reduction;
-
-    const bytes = await requireAudioBytes(audio, context);
-
-    const wav = await decodeAudioToWav(bytes);
-    const kernels = await loadKernels();
-    const result = {
-      ...wav,
-      samples: kernels.bitcrush(wav.samples, wav.numChannels, bitDepth, srrFactor)
-    };
-
-    return {
-      output: audioRefFromWav(
-        encodeWav(result.samples, result.sampleRate, result.numChannels)
-      )
-    };
+  async process(context?: ProcessingContext): Promise<{ output: AudioRef }> {
+    return { output: await applyToClip(BitcrushEffect, this, this.audio, context) };
   }
 }
 
 // ── Compress ──────────────────────────────────────────────────────
 
-/** Output handles CompressNode.process() emits. */
-type CompressNodeOutputs = {
-  output: AudioRef;
-};
 
-export class CompressNode extends BaseNode {
+export class CompressNode extends CompressProperties {
   static readonly nodeType = "lib.audio.Compress";
   static readonly title = "Compress";
   static readonly description =
@@ -119,94 +76,20 @@ export class CompressNode extends BaseNode {
   })
   declare audio: Record<string, unknown>;
 
-  @prop({
-    type: "float",
-    default: -20,
-    title: "Threshold",
-    description: "Threshold in dB above which compression is applied.",
-    min: -60,
-    max: 0
-  })
-  declare threshold: number;
 
-  @prop({
-    type: "float",
-    default: 4,
-    title: "Ratio",
-    description: "Compression ratio. Higher values result in more compression.",
-    min: 1,
-    max: 20
-  })
-  declare ratio: number;
 
-  @prop({
-    type: "float",
-    default: 5,
-    title: "Attack",
-    description: "Attack time in milliseconds.",
-    min: 0.1,
-    max: 100
-  })
-  declare attack: number;
 
-  @prop({
-    type: "float",
-    default: 50,
-    title: "Release",
-    description: "Release time in milliseconds.",
-    min: 5,
-    max: 1000
-  })
-  declare release: number;
 
-  @prop({
-    type: "bool",
-    default: true,
-    title: "Auto Gain",
-    description:
-      "Apply automatic makeup gain to compensate for the level lost to compression, keeping the output roughly as loud as the input."
-  })
-  declare auto_gain: boolean;
 
-  async process(context?: ProcessingContext): Promise<CompressNodeOutputs> {
-    const audio = this.audio;
-    const thresholdDb = this.threshold;
-    const ratio = this.ratio;
-    const attackMs = this.attack;
-    const releaseMs = this.release;
-    const autoGain = this.auto_gain;
-
-    const bytes = await requireAudioBytes(audio, context);
-
-    const wav = await decodeAudioToWav(bytes);
-    const kernels = await loadKernels();
-    const result = {
-      ...wav,
-      samples: kernels.compress(wav.samples, wav.numChannels, wav.sampleRate, {
-        thresholdDb,
-        ratio,
-        attackMs,
-        releaseMs,
-        autoGain
-      })
-    };
-
-    return {
-      output: audioRefFromWav(
-        encodeWav(result.samples, result.sampleRate, result.numChannels)
-      )
-    };
+  async process(context?: ProcessingContext): Promise<{ output: AudioRef }> {
+    return { output: await applyToClip(CompressEffect, this, this.audio, context) };
   }
 }
 
 // ── Distortion ────────────────────────────────────────────────────
 
-/** Output handles DistortionNode.process() emits. */
-type DistortionNodeOutputs = {
-  output: AudioRef;
-};
 
-export class DistortionNode extends BaseNode {
+export class DistortionNode extends DistortionProperties {
   static readonly nodeType = "lib.audio.Distortion";
   static readonly title = "Distortion";
   static readonly description =
@@ -231,42 +114,16 @@ export class DistortionNode extends BaseNode {
   })
   declare audio: Record<string, unknown>;
 
-  @prop({
-    type: "float",
-    default: 25,
-    title: "Drive Db",
-    description: "Amount of distortion to apply in decibels.",
-    min: 0,
-    max: 100
-  })
-  declare drive_db: number;
 
-  async process(context?: ProcessingContext): Promise<DistortionNodeOutputs> {
-    const audio = this.audio;
-    const driveDb = this.drive_db;
-
-    const bytes = await requireAudioBytes(audio, context);
-
-    const wav = await decodeAudioToWav(bytes);
-    const kernels = await loadKernels();
-    const result = { ...wav, samples: kernels.distortion(wav.samples, driveDb) };
-
-    return {
-      output: audioRefFromWav(
-        encodeWav(result.samples, result.sampleRate, result.numChannels)
-      )
-    };
+  async process(context?: ProcessingContext): Promise<{ output: AudioRef }> {
+    return { output: await applyToClip(DistortionEffect, this, this.audio, context) };
   }
 }
 
 // ── Limiter ───────────────────────────────────────────────────────
 
-/** Output handles LimiterNode.process() emits. */
-type LimiterNodeOutputs = {
-  output: AudioRef;
-};
 
-export class LimiterNode extends BaseNode {
+export class LimiterNode extends LimiterProperties {
   static readonly nodeType = "lib.audio.Limiter";
   static readonly title = "Limiter";
   static readonly description =
@@ -291,70 +148,18 @@ export class LimiterNode extends BaseNode {
   })
   declare audio: Record<string, unknown>;
 
-  @prop({
-    type: "float",
-    default: -2,
-    title: "Threshold Db",
-    description: "Threshold in dB above which the limiter is applied.",
-    min: -60,
-    max: 0
-  })
-  declare threshold_db: number;
 
-  @prop({
-    type: "float",
-    default: 250,
-    title: "Release Ms",
-    description: "Release time in milliseconds.",
-    min: 1,
-    max: 1000
-  })
-  declare release_ms: number;
 
-  @prop({
-    type: "bool",
-    default: true,
-    title: "Auto Gain",
-    description:
-      "Apply automatic makeup gain so the limited peaks reach 0 dBFS, turning the headroom below the ceiling into added loudness (maximizer behaviour)."
-  })
-  declare auto_gain: boolean;
 
-  async process(context?: ProcessingContext): Promise<LimiterNodeOutputs> {
-    const audio = this.audio;
-    const thresholdDb = this.threshold_db;
-    const releaseMs = this.release_ms;
-    const autoGain = this.auto_gain;
-
-    const bytes = await requireAudioBytes(audio, context);
-
-    const wav = await decodeAudioToWav(bytes);
-    const kernels = await loadKernels();
-    const result = {
-      ...wav,
-      samples: kernels.limiter(wav.samples, wav.numChannels, wav.sampleRate, {
-        thresholdDb,
-        releaseMs,
-        autoGain
-      })
-    };
-
-    return {
-      output: audioRefFromWav(
-        encodeWav(result.samples, result.sampleRate, result.numChannels)
-      )
-    };
+  async process(context?: ProcessingContext): Promise<{ output: AudioRef }> {
+    return { output: await applyToClip(LimiterEffect, this, this.audio, context) };
   }
 }
 
 // ── Reverb (Schroeder) ───────────────────────────────────────────
 
-/** Output handles ReverbNode.process() emits. */
-type ReverbNodeOutputs = {
-  output: AudioRef;
-};
 
-export class ReverbNode extends BaseNode {
+export class ReverbNode extends ReverbProperties {
   static readonly nodeType = "lib.audio.Reverb";
   static readonly title = "Reverb";
   static readonly description =
@@ -379,74 +184,12 @@ export class ReverbNode extends BaseNode {
   })
   declare audio: Record<string, unknown>;
 
-  @prop({
-    type: "float",
-    default: 0.5,
-    title: "Room Scale",
-    description:
-      "Size of the simulated room. Higher values create larger spaces.",
-    min: 0,
-    max: 1
-  })
-  declare room_scale: number;
 
-  @prop({
-    type: "float",
-    default: 0.5,
-    title: "Damping",
-    description:
-      "Amount of high frequency absorption. Higher values create a duller sound.",
-    min: 0,
-    max: 1
-  })
-  declare damping: number;
 
-  @prop({
-    type: "float",
-    default: 0.15,
-    title: "Wet Level",
-    description: "Level of the reverb effect in the output.",
-    min: 0,
-    max: 1
-  })
-  declare wet_level: number;
 
-  @prop({
-    type: "float",
-    default: 0.5,
-    title: "Dry Level",
-    description: "Level of the original signal in the output.",
-    min: 0,
-    max: 1
-  })
-  declare dry_level: number;
 
-  async process(context?: ProcessingContext): Promise<ReverbNodeOutputs> {
-    const audio = this.audio;
-    const roomScale = this.room_scale;
-    const damping = this.damping;
-    const wetLevel = this.wet_level;
-    const dryLevel = this.dry_level;
-
-    const bytes = await requireAudioBytes(audio, context);
-
-    const wav = await decodeAudioToWav(bytes);
-    const kernels = await loadKernels();
-    const result = {
-      ...wav,
-      samples: kernels.reverb(wav.samples, wav.numChannels, wav.sampleRate, {
-        roomScale,
-        damping,
-        wetLevel,
-        dryLevel
-      })
-    };
-
-    return {
-      output: audioRefFromWav(
-        encodeWav(result.samples, result.sampleRate, result.numChannels)
-      )
-    };
+  async process(context?: ProcessingContext): Promise<{ output: AudioRef }> {
+    return { output: await applyToClip(ReverbEffect, this, this.audio, context) };
   }
 }
 
@@ -737,12 +480,8 @@ export class TimeStretchNode extends BaseNode {
 
 // ── NoiseGate ─────────────────────────────────────────────────────
 
-/** Output handles NoiseGateNode.process() emits. */
-type NoiseGateNodeOutputs = {
-  output: AudioRef;
-};
 
-export class NoiseGateNode extends BaseNode {
+export class NoiseGateNode extends NoiseGateProperties {
   static readonly nodeType = "lib.audio.NoiseGate";
   static readonly title = "Noise Gate";
   static readonly description =
@@ -767,71 +506,18 @@ export class NoiseGateNode extends BaseNode {
   })
   declare audio: Record<string, unknown>;
 
-  @prop({
-    type: "float",
-    default: -50,
-    title: "Threshold Db",
-    description: "Threshold in dB below which the gate is active.",
-    min: -90,
-    max: 0
-  })
-  declare threshold_db: number;
 
-  @prop({
-    type: "float",
-    default: 1,
-    title: "Attack Ms",
-    description: "Attack time in milliseconds.",
-    min: 0.1,
-    max: 100
-  })
-  declare attack_ms: number;
 
-  @prop({
-    type: "float",
-    default: 100,
-    title: "Release Ms",
-    description: "Release time in milliseconds.",
-    min: 5,
-    max: 1000
-  })
-  declare release_ms: number;
 
-  async process(context?: ProcessingContext): Promise<NoiseGateNodeOutputs> {
-    const audio = this.audio;
-    const thresholdDb = this.threshold_db;
-    const attackMs = Math.max(0.1, this.attack_ms);
-    const releaseMs = Math.max(1, this.release_ms);
-
-    const bytes = await requireAudioBytes(audio, context);
-
-    const wav = await decodeAudioToWav(bytes);
-    const kernels = await loadKernels();
-    const result = {
-      ...wav,
-      samples: kernels.noiseGate(wav.samples, wav.numChannels, wav.sampleRate, {
-        thresholdDb,
-        attackMs,
-        releaseMs
-      })
-    };
-
-    return {
-      output: audioRefFromWav(
-        encodeWav(result.samples, result.sampleRate, result.numChannels)
-      )
-    };
+  async process(context?: ProcessingContext): Promise<{ output: AudioRef }> {
+    return { output: await applyToClip(NoiseGateEffect, this, this.audio, context) };
   }
 }
 
 // ── Phaser ────────────────────────────────────────────────────────
 
-/** Output handles PhaserNode.process() emits. */
-type PhaserNodeOutputs = {
-  output: AudioRef;
-};
 
-export class PhaserNode extends BaseNode {
+export class PhaserNode extends PhaserProperties {
   static readonly nodeType = "lib.audio.Phaser";
   static readonly title = "Phaser";
   static readonly description =
@@ -856,85 +542,13 @@ export class PhaserNode extends BaseNode {
   })
   declare audio: Record<string, unknown>;
 
-  @prop({
-    type: "float",
-    default: 1,
-    title: "Rate Hz",
-    description: "Rate of the phaser effect in Hz.",
-    min: 0.1,
-    max: 10
-  })
-  declare rate_hz: number;
 
-  @prop({
-    type: "float",
-    default: 0.5,
-    title: "Depth",
-    description: "Depth of the phaser effect.",
-    min: 0,
-    max: 1
-  })
-  declare depth: number;
 
-  @prop({
-    type: "float",
-    default: 1300,
-    title: "Centre Frequency Hz",
-    description: "Centre frequency of the phaser in Hz.",
-    min: 100,
-    max: 5000
-  })
-  declare centre_frequency_hz: number;
 
-  @prop({
-    type: "float",
-    default: 0,
-    title: "Feedback",
-    description:
-      "Feedback of the phaser effect. Negative values invert the phase.",
-    min: -1,
-    max: 1
-  })
-  declare feedback: number;
 
-  @prop({
-    type: "float",
-    default: 0.5,
-    title: "Mix",
-    description: "Mix between the dry (original) and wet (effected) signals.",
-    min: 0,
-    max: 1
-  })
-  declare mix: number;
 
-  async process(context?: ProcessingContext): Promise<PhaserNodeOutputs> {
-    const audio = this.audio;
-    const rateHz = this.rate_hz;
-    const depth = this.depth;
-    const centreFreqHz = this.centre_frequency_hz;
-    const feedback = this.feedback;
-    const mix = this.mix;
-
-    const bytes = await requireAudioBytes(audio, context);
-
-    const wav = await decodeAudioToWav(bytes);
-    const kernels = await loadKernels();
-    const result = {
-      ...wav,
-      samples: kernels.phaser(wav.samples, wav.numChannels, wav.sampleRate, {
-        rateHz,
-        depth,
-        centreFrequencyHz: centreFreqHz,
-        feedback,
-        mix
-      })
-    };
-
-    return {
-      output: audioRefFromWav(
-        encodeWav(result.samples, result.sampleRate, result.numChannels)
-      )
-    };
+  async process(context?: ProcessingContext): Promise<{ output: AudioRef }> {
+    return { output: await applyToClip(PhaserEffect, this, this.audio, context) };
   }
 }
 

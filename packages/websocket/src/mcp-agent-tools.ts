@@ -22,6 +22,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
+import { registerPackMcpTools } from "./mcp-pack-tools.js";
 import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
 import {
   DIRECT_TOOL_NAMES,
@@ -62,7 +63,10 @@ import {
   PROVIDER_TOOL_NAMES
 } from "@nodetool-ai/agents";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
-import { attachRunCostLedger } from "@nodetool-ai/execution";
+import {
+  attachRunCostLedger,
+  withGenerationAdmission
+} from "@nodetool-ai/execution";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import { uiToolSchemas } from "@nodetool-ai/protocol";
 import { missingPackDetailsOf } from "@nodetool-ai/protocol";
@@ -85,7 +89,7 @@ import {
   isGoogleWorkspaceEnabled
 } from "@nodetool-ai/config";
 import { basename, dirname, isAbsolute, join } from "node:path";
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
@@ -93,6 +97,7 @@ import { fileURLToPath } from "node:url";
 import { loadSharpOrThrow } from "@nodetool-ai/runtime";
 import { getAssetAdapter } from "./lib/storage.js";
 import { createTempUrlResolver } from "./lib/temp-url-resolver.js";
+import { generationAdmissionFor } from "./lib/generation-admission.js";
 import { registerDslFlowBackend } from "./flow-backend.js";
 import { normalizeAssetContentType } from "./lib/asset-paths.js";
 import { toAssetResponse } from "./lib/asset-response.js";
@@ -100,6 +105,10 @@ import {
   createAssetModelInterface,
   updateAssetBytesModelInterface
 } from "./lib/asset-model-interface.js";
+import {
+  IMPORTED_DIRECTORY,
+  saveProjectAsset
+} from "@nodetool-ai/asset-services/project-asset";
 import type { McpServerOptions } from "./mcp-server.js";
 import type { FrontendRendererService } from "./frontend-renderer-registry.js";
 import { isRecord, isString } from "./lib/wire-values.js";
@@ -193,8 +202,18 @@ function buildAgentToolContext(userId: string): ProcessingContext {
     // renders. Without a resolver that URL was the raw `supabase://` or
     // `s3://` storage uri, which no MCP client can load. The resolver signs a
     // cloud object, as the chat runner's context does.
-    tempUrlResolver: createTempUrlResolver(storage, getDefaultAssetsPath())
+    tempUrlResolver: createTempUrlResolver(storage, getDefaultAssetsPath()),
+    // A chat turn and a workflow run are admitted against credits and quotas
+    // before they start. An MCP session has neither, so each generation is
+    // admitted on its own, before its provider is called.
+    generationLifecycle: withGenerationAdmission({}, (request, generationId) =>
+      admitGeneration(request, generationId)
+    )
   });
+  // The admission reserves each managed-provider estimate and releases it on
+  // the generation's terminal prediction message, which it observes on this
+  // context, so it is bound once the context exists.
+  const admitGeneration = generationAdmissionFor(userId, context);
   // The generation tracker. Every generation tool writes its record through
   // the prediction messages this context emits, and `get_generation`,
   // `await_generation` and `list_generations` read that record. Without a
@@ -393,6 +412,40 @@ async function signedAssetUrl(asset: Asset): Promise<string | null> {
   return url && /^https:\/\//i.test(url) ? url : null;
 }
 
+/**
+ * The tool response for a direct tool's result. A binary tool answers with
+ * the asset it saved as `asset://<id>.<ext>`, which only NodeTool's own chat
+ * resolves, and a remote MCP client renders only a public https URL. That URI
+ * is swapped for the signed URL the asset's listing carries, in `asset_url`
+ * and in the `display_markdown` that embeds it. A server with no signed URLs
+ * keeps the URI.
+ */
+async function toSignedAssetToolResponse(
+  result: unknown,
+  userId: string
+): Promise<CallToolResult> {
+  if (
+    !isRecord(result) ||
+    !isString(result["asset_id"]) ||
+    !isString(result["asset_url"]) ||
+    !result["asset_url"].startsWith("asset://")
+  ) {
+    return toToolResponse(result);
+  }
+  const asset = await Asset.find(userId, result["asset_id"]);
+  const url = asset ? await signedAssetUrl(asset) : null;
+  if (!url) return toToolResponse(result);
+  const assetUri = result["asset_url"];
+  const signed: Record<string, unknown> = { ...result, asset_url: url };
+  if (isString(result["display_markdown"])) {
+    signed["display_markdown"] = result["display_markdown"].replaceAll(
+      assetUri,
+      url
+    );
+  }
+  return toToolResponse(signed);
+}
+
 const STORAGE_ROUTE_PREFIX = "/api/storage/";
 
 /**
@@ -417,6 +470,10 @@ async function loadViewedImageBytes(
       key = decodeURIComponent(uri.slice(STORAGE_ROUTE_PREFIX.length));
     } catch {
       key = uri.slice(STORAGE_ROUTE_PREFIX.length);
+    }
+    // Decoding can turn `%2E%2E` into `..`, which some adapters resolve.
+    if (key.split(/[\\/]/).some((segment) => segment === "." || segment === "..")) {
+      return null;
     }
     const stored = await context.storage.retrieve(
       context.storage.uriForKey(key)
@@ -602,19 +659,22 @@ class ImportAssetTool extends Tool {
         : sourceName;
     let result: unknown;
     if (isString(path)) {
-      const bytes = await readFile(path);
-      const asset = await createAssetModelInterface({
+      // An imported file: copied once into `Imported/` of the project.
+      const asset = await saveProjectAsset({
+        projectId: context.projectId,
         userId: context.userId,
         name,
         contentType: isString(params["content_type"])
           ? params["content_type"]
           : "",
-        content: bytes
+        localPath: path,
+        directory: IMPORTED_DIRECTORY,
+        parentId: context.userId
       });
       result = {
         asset_id: asset.id,
         asset_uri: `asset://${asset.id}`,
-        size: bytes.length
+        size: asset.size
       };
     } else {
       const saveParams: Record<string, unknown> = {
@@ -814,12 +874,13 @@ class RenderDemoSurfaceTool extends Tool {
           maxBuffer: 2 * 1024 * 1024
         }
       );
-      const bytes = await readFile(output);
-      const asset = await createAssetModelInterface({
+      const asset = await saveProjectAsset({
+        projectId: context.projectId,
         userId: context.userId,
         name: `${surface}-surface.mp4`,
         contentType: "video/mp4",
-        content: bytes
+        localPath: output,
+        parentId: context.userId
       });
       return {
         asset_id: asset.id,
@@ -994,6 +1055,9 @@ function buildCapabilityCatalog(belt: CapabilitySpec[], directToolNames: string[
  * carries the same contract and catalog the chat runner puts in its system
  * prompt, because MCP has no system prompt to put it in.
  */
+/** How long one session keeps its loaded provider set before reloading it. */
+const PROVIDERS_TTL_MS = 60_000;
+
 export function registerAgentMcpTools(
   server: McpServer,
   options: McpServerOptions,
@@ -1018,14 +1082,26 @@ export function registerAgentMcpTools(
   // Populated lazily on first `find_model` call — provider probing hits the
   // secret store and network, so it's deferred out of server construction.
   const sharedProviders: Record<string, BaseProvider> = {};
+  // A failed load is not cached, and a successful one is reloaded after
+  // PROVIDERS_TTL_MS so a key the user adds mid-session shows up.
   let providersPromise: Promise<void> | null = null;
+  let providersLoadedAt = 0;
   const ensureProviders = (): Promise<void> => {
+    if (providersPromise && Date.now() - providersLoadedAt > PROVIDERS_TTL_MS) {
+      providersPromise = null;
+    }
     if (!providersPromise) {
-      providersPromise = loadConfiguredProviders(scope.userId).then(
-        (loaded) => {
-          Object.assign(sharedProviders, loaded);
+      providersLoadedAt = Date.now();
+      const pending = loadConfiguredProviders(scope.userId).then((loaded) => {
+        for (const key of Object.keys(sharedProviders)) {
+          if (!(key in loaded)) delete sharedProviders[key];
         }
-      );
+        Object.assign(sharedProviders, loaded);
+      });
+      pending.catch(() => {
+        if (providersPromise === pending) providersPromise = null;
+      });
+      providersPromise = pending;
     }
     return providersPromise;
   };
@@ -1051,9 +1127,10 @@ export function registerAgentMcpTools(
   // so the result is the open tool-result domain `Tool.process` declares.
   const runBridgedTool = async (
     tool: CapabilitySpec,
-    args: Record<string, unknown>
+    args: Record<string, unknown>,
+    signal?: AbortSignal
   ): Promise<unknown> => {
-    return capabilityRun.invoke(tool.name, args);
+    return runForCall(signal).invoke(tool.name, args);
   };
 
   const register = (tool: CapabilitySpec): void => {
@@ -1075,7 +1152,7 @@ export function registerAgentMcpTools(
       tool.name,
       isImageTool ? MCP_VIEW_IMAGE_DESCRIPTION : tool.description,
       schema,
-      async (args) => {
+      async (args, extra?: { signal?: AbortSignal }) => {
         try {
           const input: Record<string, unknown> = { ...args };
           if (isImageTool) {
@@ -1114,9 +1191,9 @@ export function registerAgentMcpTools(
               input["question"] = "Inline image:";
             }
           }
-          const result = await runBridgedTool(tool, input);
+          const result = await runBridgedTool(tool, input, extra?.signal);
           if (!isImageTool) {
-            return toToolResponse(result);
+            return toSignedAssetToolResponse(result, scope.userId);
           }
           if (isRecord(result) && imageId && !isErrorResult(result)) {
             result["image_id"] = imageId.startsWith("data:")
@@ -1144,7 +1221,13 @@ export function registerAgentMcpTools(
     metadataMaxDepth: options.metadataMaxDepth,
     examplesDir: options.examplesDir
   });
-  const workflowEnvironment = hostDeps.workflowEnvironment;
+  // Workflow and node runs build their own contexts, so they carry the same
+  // per-generation admission through their run environment.
+  const admitGeneration = generationAdmissionFor(scope.userId);
+  const baseWorkflowEnvironment = hostDeps.workflowEnvironment;
+  const workflowEnvironment = baseWorkflowEnvironment
+    ? async () => ({ ...(await baseWorkflowEnvironment()), admitGeneration })
+    : undefined;
   const legacyEntries = [
     new ImportAssetTool(localFilePathsAllowed, (args) =>
       capabilityRun.invoke("save_asset", args)
@@ -1159,7 +1242,7 @@ export function registerAgentMcpTools(
           workflowEnvironment
             ? workflowEnvironment()
             : options.registry
-              ? { registry: options.registry }
+              ? { registry: options.registry, admitGeneration }
               : null
       })
     ),
@@ -1245,16 +1328,35 @@ export function registerAgentMcpTools(
       }
     });
   }
-  const capabilityRun = createCapabilityRun({
+  const runOptions = {
     capabilities: hostCapabilities,
     context,
     gate,
     availableSecrets: contextSecretAvailability(context),
     nodeRegistry: options.registry,
     ...hostDeps,
+    workflowEnvironment,
     providers: sharedProviders,
     loaders: { timeline: loadTimelineForUser, sketch: loadSketchForUser }
-  });
+  };
+  const capabilityRun = createCapabilityRun(runOptions);
+  /**
+   * The run one direct tool call executes on: the session run with the SDK's
+   * per-request signal, which aborts on `notifications/cancelled` and when
+   * the client drops the HTTP request (`handleSessionRequest` in
+   * mcp-server.ts). `invoke` refuses to start a cancelled call, and
+   * `await_generation` stops waiting. The context stays the session's own,
+   * because its message queue, cost ledger and temporary media handles must
+   * outlive the call.
+   */
+  const runForCall = (signal: AbortSignal | undefined): CapabilityRun =>
+    signal
+      ? createCapabilityRun({
+          ...runOptions,
+          availableSecrets: runOptions.availableSecrets,
+          signal
+        })
+      : capabilityRun;
   const byName = new Map(belt.map((tool) => [tool.name, tool]));
 
   // `view_image` is the one channel that puts pixels into a caller's context,
@@ -1379,6 +1481,9 @@ export function registerAgentMcpTools(
   // The rest of the direct set, for parity with every other entrance.
   for (const tool of promotedDirect) register(tool);
 
+  // Pack installs change this machine, so only a local session gets them.
+  if (localFilePathsAllowed) registerPackMcpTools(server);
+
   server.tool(
     "upload_asset",
     "Upload bytes to this user's NodeTool asset library. Pass content_base64 " +
@@ -1429,14 +1534,18 @@ export function registerAgentMcpTools(
         const bytes = file_path
           ? await readFile(file_path)
           : Buffer.from(content_base64 ?? "", "base64");
-        const asset = await createAssetModelInterface({
+        // An upload: one file in `Imported/` of the user's Personal project.
+        const asset = await saveProjectAsset({
+          projectId: null,
           userId: scope.userId,
           name: assetName,
           contentType: normalizeAssetContentType(
             content_type ?? "",
             file_path ?? assetName
           ),
-          content: bytes
+          bytes,
+          directory: IMPORTED_DIRECTORY,
+          parentId: scope.userId
         });
         return toToolResponse({
           asset_id: asset.id,
@@ -1466,7 +1575,9 @@ export function registerAgentMcpTools(
       output_path: z
         .string()
         .optional()
-        .describe("Absolute server-local output path; local connections only.")
+        .describe(
+          "Absolute server-local output path; local connections only. Missing parent folders are created."
+        )
     },
     async ({ asset_id, output_path }) => {
       try {
@@ -1496,6 +1607,9 @@ export function registerAgentMcpTools(
         }
         const bytes = await loadMediaRefBytes({ asset_id: asset.id }, context);
         if (!bytes) throw new Error("Asset bytes not found.");
+        // Parallel downloads into a fresh folder all failed with ENOENT
+        // when the folder had to exist first.
+        await mkdir(dirname(output_path), { recursive: true });
         await writeFile(output_path, bytes);
         return toToolResponse({ ...described, size: bytes.length, output_path });
       } catch (err) {

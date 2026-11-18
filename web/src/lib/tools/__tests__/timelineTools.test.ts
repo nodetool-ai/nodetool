@@ -78,6 +78,7 @@ const snapshot = (): TimelineSnapshot => ({
 const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => {
   const handler: jest.Mocked<TimelineAgentHandler> = {
     applyOp: jest.fn(),
+    undo: jest.fn(),
     getSnapshot: jest.fn(),
     retargetFormat: jest.fn(),
     setReframeSubject: jest.fn(),

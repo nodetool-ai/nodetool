@@ -1,0 +1,178 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-11-12T00:00:00.000Z",
+  "updated_at": "2026-11-12T00:00:00.000Z",
+  "name": "Gate the Hiss Between Notes",
+  "tool_name": null,
+  "description": "Synthesizes notes over a constant hiss and closes a noise gate in the gaps between them. Runs locally with no file, model or key.",
+  "tags": [
+    "audio",
+    "dsp",
+    "cleanup",
+    "example",
+    "local"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Gate the Hiss Between Notes\n\nSynthesizes short notes over a constant hiss, then mutes the hiss in the gaps. Every step runs in the editor process, with no file, model or key.\n\n**How it works:** \"1 Notes\" is a Code node that writes a note every 750 ms over hiss at about -45 dB. \"2 Gate\" closes when the level falls under -35 dB. \"Dry level\" passes the notes to \"Before\" at 0 dB. Compare \"Before\" with \"After\".\n\n**Try this:** Set Threshold dB on \"2 Gate\" to -50 to keep the hiss, or set Release ms to 200 to hear the hiss fade out after each note."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 640,
+          "selectable": true,
+          "height": 300
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "src",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "// Six seconds: a 300 ms note every 750 ms, over hiss at about -45 dB.\nconst rate = 44100, seconds = 6, period = 0.75;\nconst notes = [261.63, 329.63, 392.0, 523.25];\nconst samples = new Float32Array(rate * seconds);\nlet seed = 3;\nconst noise = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 2147483648 - 1; };\nfor (let i = 0; i < samples.length; i++) {\n  const t = i / rate;\n  const n = Math.floor(t / period);\n  const u = t - n * period;\n  const tone = u < 0.3 ? Math.sin(2 * Math.PI * notes[n % notes.length] * t) * Math.sin(Math.PI * u / 0.3) : 0;\n  samples[i] = 0.5 * tone + 0.01 * noise();\n}\n\n// 16-bit PCM WAV bytes from interleaved samples in [-1, 1].\nfunction wav(samples, rate, channels) {\n  const bytes = new Uint8Array(44 + samples.length * 2);\n  const view = new DataView(bytes.buffer);\n  const tag = (at, text) => { for (let i = 0; i < 4; i++) bytes[at + i] = text.charCodeAt(i); };\n  tag(0, \"RIFF\"); view.setUint32(4, 36 + samples.length * 2, true); tag(8, \"WAVE\");\n  tag(12, \"fmt \"); view.setUint32(16, 16, true); view.setUint16(20, 1, true);\n  view.setUint16(22, channels, true); view.setUint32(24, rate, true);\n  view.setUint32(28, rate * channels * 2, true); view.setUint16(32, channels * 2, true);\n  view.setUint16(34, 16, true); tag(36, \"data\"); view.setUint32(40, samples.length * 2, true);\n  samples.forEach((s, i) => view.setInt16(44 + i * 2, Math.round(Math.max(-1, Math.min(1, s)) * 32767), true));\n  return bytes;\n}\n\nawait output(\"audio\", await media.toAudio(wav(samples, rate, 1), { mimeType: \"audio/wav\", filename: \"notes.wav\" }));\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Notes"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {
+          "audio": {
+            "type": "audio",
+            "type_args": [],
+            "optional": false
+          }
+        }
+      },
+      {
+        "id": "gate",
+        "type": "lib.audio.NoiseGate",
+        "data": {
+          "threshold_db": -35,
+          "attack_ms": 1,
+          "release_ms": 40
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Gate"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "dry-level",
+        "type": "lib.audio.Gain",
+        "data": {
+          "gain_db": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 640
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Dry level"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "before",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "before"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 640
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Before"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "after",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "after"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "After"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "src",
+        "sourceHandle": "audio",
+        "target": "gate",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e-after",
+        "source": "gate",
+        "sourceHandle": "output",
+        "target": "after",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e-dry1",
+        "source": "src",
+        "sourceHandle": "audio",
+        "target": "dry-level",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e-dry2",
+        "source": "dry-level",
+        "sourceHandle": "output",
+        "target": "before",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "run_mode": null
+}

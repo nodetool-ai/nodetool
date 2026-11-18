@@ -103,8 +103,8 @@ describe("applyOptionalNodeModules", () => {
 describe("nodetool runtime", () => {
   it("lists every catalog package with what the root holds", async () => {
     await fakeInstall("js-tiktoken", "1.0.21");
-    // Only one half of a two-package runtime package: not installed.
-    await fakeInstall("imapflow", "1.7.1");
+    // Only one of a three-package runtime package: not installed.
+    await fakeInstall("pdf-lib", "1.17.1");
 
     const listed = JSON.parse(await run(["runtime", "list", "--json"])) as {
       packages: Array<{ id: string; installed: boolean; version: string }>;
@@ -118,7 +118,7 @@ describe("nodetool runtime", () => {
     expect(managedRuntimeIds()).toEqual(expect.arrayContaining(["python", "yt-dlp", "manimgx"]));
     const byId = new Map(listed.packages.map((row) => [row.id, row]));
     expect(byId.get("tokenizer")).toMatchObject({ installed: true, version: "1.0.21" });
-    expect(byId.get("email-imap")).toMatchObject({ installed: false });
+    expect(byId.get("pdf-js")).toMatchObject({ installed: false });
     expect(byId.get("fabric")).toMatchObject({ installed: false });
     expect(byId.get("wan2gp")).toMatchObject({ installed: false });
     expect(byId.get("python")).toMatchObject({ installed: false });

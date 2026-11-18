@@ -10,9 +10,9 @@
  */
 
 import { Buffer } from "node:buffer";
-import { stat } from "node:fs/promises";
-import { basename, isAbsolute } from "node:path";
-import { Asset, Project } from "@nodetool-ai/models";
+import { realpath, stat } from "node:fs/promises";
+import { basename, isAbsolute, relative, sep } from "node:path";
+import { Asset, Project, moveTargetOf } from "@nodetool-ai/models";
 import type { Asset as AssetModel } from "@nodetool-ai/models";
 import { createLogger } from "@nodetool-ai/config";
 
@@ -21,7 +21,8 @@ import {
   assetKeyCandidates,
   FileStorageAdapter,
   getMaxLocalUploadBytes,
-  getMaxUploadBytes
+  getMaxUploadBytes,
+  UploadTooLargeError
 } from "@nodetool-ai/storage";
 import {
   getAssetFileName,
@@ -30,7 +31,10 @@ import {
   assetFileNameCandidates
 } from "../../lib/asset-paths.js";
 import { getAssetAdapter } from "../../lib/storage.js";
-import { toAssetResponse } from "../../lib/asset-response.js";
+import {
+  directoryFolderResponse,
+  toAssetResponse
+} from "../../lib/asset-response.js";
 import { probeAssetDurationSeconds } from "../../lib/asset-duration.js";
 import {
   externalAssetsAvailable,
@@ -38,12 +42,67 @@ import {
 } from "../../lib/external-assets.js";
 import { EXTERNAL_FINGERPRINT_KEYS } from "../../lib/external-asset-lookup.js";
 import {
+  ProjectDirectoryError,
+  listProjectDirectories,
+  listProjectDirectory,
+  listProjectDirectoryTree,
+  loadProjectDirectoryIndex,
+  moveProjectDirectory,
+  removeEmptyProjectDirectory,
+  type ProjectDirectoryIndex
+} from "@nodetool-ai/asset-services/project-asset-directories";
+import {
+  ProjectDirectoryResolver,
+  directoryFolderId,
+  directoryName,
+  directoryOfParentId,
+  folderNameAsDirectory,
+  isWithinDirectory,
+  joinDirectory,
+  listsByDirectory,
+  parentDirectory,
+  parseProjectDirectoryId,
+  type ProjectDirectoryRef
+} from "@nodetool-ai/protocol";
+import {
+  COLLECT_PATH_KEY,
+  collectLinkedAssets,
+  ProjectAssetRelinkError,
+  moveProjectAssetToDirectory,
+  relinkProjectAsset,
+  renameProjectAssetFile,
+  replaceProjectAssetBytes,
+  saveProjectAsset,
+  uploadDirectory,
+  withLockedAssetRow,
+  withProjectFolderLock,
+  type ProjectAssetFileChange,
+  type ProjectAssetRelinkSource
+} from "@nodetool-ai/asset-services/project-asset";
+import {
+  ProjectFolderUnavailableError,
+  WORKSPACE_MOVE_KEYS,
+  WORKSPACE_SERVER_KEYS,
+  keepFingerprint,
+  requireProjectAssetFile,
+  requireProjectFolder
+} from "@nodetool-ai/asset-services/project-asset-file";
+import {
+  AssetCopyError,
+  COPY_SOURCE_KEYS,
+  copyAssetToProject
+} from "@nodetool-ai/asset-services/copy-asset-to-project";
+import {
+  WorkspacePathError,
+  WorkspaceReservedPathError
+} from "@nodetool-ai/runtime";
+import {
   localPathDenialMessage,
   resolveLocalPath
 } from "../../lib/local-file-access.js";
 import {
   generateThumbnailForStoredAsset,
-  storeAssetWithThumbnail,
+  storeAssetThumbnail,
   thumbnailKey
 } from "../../lib/thumbnail.js";
 import {
@@ -70,6 +129,8 @@ import {
   createExternalOutput,
   relinkExternalInput,
   relinkExternalOutput,
+  collectInput,
+  collectOutput,
   externalImportConfigOutput,
   ensureProxyInput,
   ensureProxyOutput,
@@ -80,9 +141,13 @@ import {
   recursiveInput,
   recursiveOutput,
   searchInput,
-  searchOutput
+  searchOutput,
+  copyToProjectInput,
+  copyToProjectOutput,
+  type AssetResponse,
+  type UpdateInput
 } from "@nodetool-ai/protocol/api-schemas/assets.js";
-import { isAssetSharedWithUser } from "../../lib/document-access.js";
+import { isAssetSharedWithUser } from "../../lib/shared-assets.js";
 import { isFullResourceId } from "@nodetool-ai/protocol";
 
 /**
@@ -123,10 +188,45 @@ async function deleteAssetObjects(asset: AssetModel): Promise<void> {
   }
 }
 
-/** Delete an asset row together with the bytes it points at. */
+/**
+ * Delete an asset row together with the bytes it points at.
+ *
+ * An asset that is a file in its project folder loses that file first. When
+ * the folder cannot be reached this throws and the row stays, so the asset
+ * shows as missing instead of a file being left without its row.
+ *
+ * The row is read again under the project folder lock the move of legacy
+ * asset bytes takes. A row loaded earlier can predate the move, which then
+ * named a file on it and deleted the legacy object. That file would be left
+ * with no row, and the reconcile would make it a new asset.
+ */
 async function deleteAssetWithObjects(asset: AssetModel): Promise<void> {
-  await deleteAssetObjects(asset);
-  await asset.delete();
+  await withLockedAssetRow(asset, async (current) => {
+    if (!current) return;
+    const file = await requireProjectAssetFile(current);
+    if (file) await file.workspace.delete(file.path);
+    await deleteAssetObjects(current);
+    await current.delete();
+  });
+}
+
+/**
+ * Report an unreachable project folder, or a path the folder refuses because
+ * it is in `.nodetool/` or in the folder of another project, with its
+ * reason. Other errors pass.
+ */
+function rethrowFolderError(error: unknown): never {
+  if (error instanceof ProjectFolderUnavailableError) {
+    throwApiError(
+      ApiErrorCode.SERVICE_UNAVAILABLE,
+      error.message,
+      "PRECONDITION_FAILED"
+    );
+  }
+  if (error instanceof WorkspaceReservedPathError) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, error.message);
+  }
+  throw error;
 }
 
 /**
@@ -232,6 +332,18 @@ async function resolveValidParent(
  * capability so both write surfaces answer the same way; this wrapper only
  * turns it into an HTTP error.
  */
+const BYTES_PER_MB = 1024 * 1024;
+
+/** What the editor shows when storage refuses a file for its size. */
+export function uploadTooLargeMessage(error: UploadTooLargeError): string {
+  const size = (error.byteLength / BYTES_PER_MB).toFixed(1);
+  const limit =
+    error.maxBytes === null
+      ? "the storage limit"
+      : `the ${(error.maxBytes / BYTES_PER_MB).toFixed(0)} MB limit`;
+  return `This file is ${size} MB, which is over ${limit}, so it was not saved.`;
+}
+
 function assertWritable(asset: AssetModel): void {
   const problem = Asset.systemEntityRefusal(asset);
   if (problem) {
@@ -276,19 +388,100 @@ async function resolveExternalFile(
 }
 
 /**
+ * Metadata keys of a linked asset that only the server writes: the file
+ * fingerprint and the file a collect reserved (`collect_path`).
+ */
+const EXTERNAL_OWNED_KEYS: readonly string[] = [
+  ...EXTERNAL_FINGERPRINT_KEYS,
+  COLLECT_PATH_KEY
+];
+
+/**
+ * Refuse a replacement file of another media kind (audio for a video clip).
+ * The asset's URL takes its extension from the content type, which stays. A
+ * name with no known type is accepted.
+ */
+function assertSameMediaKind(asset: AssetModel, fileName: string): void {
+  const kind = (type: string) => type.split("/")[0];
+  const offered = normalizeAssetContentType("", fileName);
+  if (
+    offered !== "application/octet-stream" &&
+    kind(offered) !== kind(asset.content_type)
+  ) {
+    throwApiError(
+      ApiErrorCode.INVALID_INPUT,
+      `The new file is ${offered}, but this asset is ${asset.content_type}`
+    );
+  }
+}
+
+/**
+ * The file a relink of an asset in a project folder names. A relative path is
+ * a file in the folder. An absolute path is a file on this host, validated
+ * like any in-place reference (R5). When that file already lies in the
+ * folder it is used where it is, and otherwise it is copied in.
+ */
+async function projectRelinkSource(
+  asset: AssetModel,
+  path: string
+): Promise<ProjectAssetRelinkSource> {
+  if (!isAbsolute(path)) return { path };
+  const file = await resolveExternalFile(path);
+  const { workspace } = await requireProjectFolder(
+    asset.project_id,
+    asset.user_id
+  );
+  // The folder's directory is read only to spell a picked file's path
+  // relative to the folder. The file is then reached through the workspace.
+  const folderDir = workspace.localDir
+    ? await realpath(workspace.localDir).catch(() => null)
+    : null;
+  const inFolder = folderDir ? relative(folderDir, file.path) : "";
+  if (inFolder && !inFolder.startsWith("..") && !isAbsolute(inFolder)) {
+    return { path: inFolder.split(sep).join("/") };
+  }
+  return { localPath: file.path };
+}
+
+/** Point an asset in a project folder at another file. Keeps its id. */
+async function relinkProjectFile(
+  asset: AssetModel,
+  path: string
+): Promise<void> {
+  try {
+    const source = await projectRelinkSource(asset, path);
+    assertSameMediaKind(
+      asset,
+      basename("path" in source ? source.path : source.localPath)
+    );
+    await relinkProjectAsset(asset, source);
+  } catch (error) {
+    if (
+      error instanceof ProjectAssetRelinkError ||
+      error instanceof WorkspacePathError ||
+      error instanceof WorkspaceReservedPathError
+    ) {
+      throwApiError(ApiErrorCode.INVALID_INPUT, error.message);
+    }
+    rethrowFolderError(error);
+  }
+}
+
+/**
  * `next` with the external file fingerprint (`external_size`,
- * `external_mtime`) taken from `current`. Offline detection compares the file
- * against these, so only import and relink may write them.
+ * `external_mtime`) and a pending collect taken from `current`. Offline
+ * detection compares the file against the fingerprint, so only import and
+ * relink may write it, and collect alone writes `collect_path`.
  */
 function withExternalFingerprint(
   next: Record<string, unknown>,
   current: Record<string, unknown> | null
 ): Record<string, unknown> {
-  const owned = new Set<string>(EXTERNAL_FINGERPRINT_KEYS);
+  const owned = new Set<string>(EXTERNAL_OWNED_KEYS);
   const merged = Object.fromEntries(
     Object.entries(next).filter(([key]) => !owned.has(key))
   );
-  for (const key of EXTERNAL_FINGERPRINT_KEYS) {
+  for (const key of EXTERNAL_OWNED_KEYS) {
     if (current && key in current) {
       merged[key] = current[key];
     }
@@ -311,11 +504,453 @@ async function findSharedAsset(
   return (await isAssetSharedWithUser(userId, asset)) ? asset : null;
 }
 
+// ── Directories of a project folder ─────────────────────────────
+
+/** Whether the project a directory id names is the caller's. */
+async function isOwnProject(userId: string, projectId: string): Promise<boolean> {
+  if (projectId === `personal:${userId}`) return true;
+  return (await Project.findOwned(userId, projectId)) !== null;
+}
+
+/** The directory a directory id names, when its project is the caller's. */
+async function requireOwnDirectory(
+  userId: string,
+  ref: ProjectDirectoryRef
+): Promise<ProjectDirectoryRef> {
+  if (!(await isOwnProject(userId, ref.projectId))) {
+    throwApiError(ApiErrorCode.NOT_FOUND, "Folder not found");
+  }
+  return ref;
+}
+
+/**
+ * The directory a move names as the new parent, inside a project that lists
+ * by directory: the home folder is the root, a directory id names its path,
+ * and a legacy folder row names the path its chain spells. Null when the
+ * parent is none of those, so the move keeps its folder-row rules.
+ */
+async function directoryOfNewParent(
+  userId: string,
+  projectId: string,
+  parentId: string
+): Promise<string | null> {
+  if (parentId === userId) return "";
+  const ref = parseProjectDirectoryId(parentId);
+  if (ref) {
+    if (ref.projectId !== projectId) {
+      throwApiError(
+        ApiErrorCode.INVALID_INPUT,
+        "That folder belongs to another project"
+      );
+    }
+    return ref.path;
+  }
+  const folder = await Asset.find(userId, parentId);
+  if (!folder || folder.content_type !== "folder") return null;
+  const folders = await Asset.listFolders(userId);
+  return new ProjectDirectoryResolver(
+    projectId,
+    new Map(folders.map((row) => [row.id, row]))
+  ).pathOfFolder(folder);
+}
+
+/** Report a folder operation the project folder refuses, with its reason. */
+function rethrowDirectoryError(error: unknown): never {
+  if (
+    error instanceof ProjectDirectoryError ||
+    error instanceof WorkspacePathError ||
+    error instanceof WorkspaceReservedPathError
+  ) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, error.message);
+  }
+  rethrowFolderError(error);
+}
+
+/** The assets and subfolders of one directory, as `list` answers. */
+async function listDirectoryResponses(
+  userId: string,
+  index: ProjectDirectoryIndex,
+  path: string,
+  limit: number
+): Promise<AssetResponse[]> {
+  const contents = await listProjectDirectory(index, path);
+  const assets = [...contents.assets]
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .slice(0, limit);
+  return [
+    ...contents.directories.map((dir) =>
+      directoryFolderResponse(userId, index.projectId, dir)
+    ),
+    ...(await Promise.all(assets.map((a) => toAssetResponse(a))))
+  ];
+}
+
+/**
+ * Rename or move a directory of a project folder. A new `name` renames it
+ * in place and a new `parent_id` moves it, together with every asset under
+ * it, in one call.
+ */
+async function updateProjectDirectory(
+  userId: string,
+  ref: ProjectDirectoryRef,
+  input: { name?: string | undefined; parent_id?: string | undefined }
+): Promise<AssetResponse> {
+  await requireOwnDirectory(userId, ref);
+  const { projectId, path } = ref;
+  try {
+    const parent =
+      input.parent_id !== undefined
+        ? await directoryOfNewParent(userId, projectId, input.parent_id)
+        : parentDirectory(path);
+    if (parent === null) {
+      throwApiError(ApiErrorCode.INVALID_INPUT, "Parent folder not found");
+    }
+    const name =
+      input.name !== undefined
+        ? folderNameAsDirectory(input.name)
+        : directoryName(path);
+    const target = joinDirectory(parent, name);
+    const moved =
+      target === path
+        ? { to: path }
+        : await moveProjectDirectory(userId, projectId, path, target);
+    return directoryFolderResponse(userId, projectId, {
+      path: moved.to,
+      modifiedAt: null
+    });
+  } catch (error) {
+    rethrowDirectoryError(error);
+  }
+}
+
+/**
+ * Delete a directory of a project folder: every asset under it with its
+ * file, the legacy folder rows that spelled it, and the directory itself
+ * when nothing else is left in it.
+ */
+async function deleteProjectDirectory(
+  userId: string,
+  ref: ProjectDirectoryRef
+): Promise<string[]> {
+  const index = await loadProjectDirectoryIndex(userId, ref.projectId);
+  const { assets } = await listProjectDirectoryTree(index, ref.path);
+  for (const asset of assets) assertWritable(asset);
+  const deleted: string[] = [];
+  for (const asset of assets) {
+    await deleteAssetWithObjects(asset);
+    deleted.push(asset.id);
+  }
+  for (const { row, path } of index.folders) {
+    if (!isWithinDirectory(path, ref.path)) continue;
+    await row.delete();
+    deleted.push(row.id);
+  }
+  if (index.workspace) {
+    await removeEmptyProjectDirectory(userId, ref.projectId, ref.path);
+  }
+  return deleted;
+}
+
+
+/**
+ * Delete the row of a client-direct upload that is still pending, then run
+ * `afterDelete`. It runs under the project folder lock the asset move takes,
+ * and the delete is conditional on the row still being pending, so a row
+ * whose bytes the move took is kept. Returns that row, or null when the row
+ * was deleted or is gone.
+ */
+function removePendingUpload(
+  asset: AssetModel,
+  afterDelete?: () => Promise<void>
+): Promise<AssetModel | null> {
+  return withProjectFolderLock(asset.user_id, asset.project_id, async () => {
+    if (await asset.deleteIfPendingUpload()) {
+      await afterDelete?.();
+      return null;
+    }
+    return Asset.find(asset.user_id, asset.id);
+  });
+}
+
+/**
+ * Whether the move of legacy asset bytes can still write the row of `asset`:
+ * it has no file in a project folder yet, or the move that named one has not
+ * finished. The move never touches an external asset.
+ */
+function mayMoveIntoFolder(asset: AssetModel): boolean {
+  return (
+    !asset.external_path &&
+    (!asset.workspace_path || moveTargetOf(asset) !== null)
+  );
+}
+
+/** The bytes an update sends, or null when it sends none. */
+function updateBytes(input: UpdateInput): Uint8Array | null {
+  if (input.data == null) return null;
+  return new Uint8Array(
+    input.data_encoding === "base64"
+      ? Buffer.from(input.data, "base64")
+      : Buffer.from(input.data, "utf-8")
+  );
+}
+
+/**
+ * Apply the fields of `input` to `asset`, without writing anything. Returns
+ * the directory of the project folder the update moves the asset to, or null
+ * when it moves the asset to no directory.
+ */
+async function applyUpdateFields(
+  userId: string,
+  asset: AssetModel,
+  input: UpdateInput
+): Promise<string | null> {
+  const isExternal = Boolean(asset.external_path);
+  // The asset is a file in its project folder: a rename renames the
+  // file and new data is written to it.
+  const hasProjectFile = Boolean(asset.workspace_path);
+  if (isExternal && input.data != null) {
+    // New bytes would land under the storage root and shadow the
+    // referenced file, which the user still sees on disk.
+    throwApiError(
+      ApiErrorCode.INVALID_INPUT,
+      "This asset references a file in place. Relink it to another file instead of replacing its data"
+    );
+  }
+
+  if (input.name !== undefined) asset.name = input.name;
+  if (input.content_type !== undefined) {
+    // The stored file name (and get_url) is derived from content_type. If
+    // the new content_type maps to a different file extension and no new
+    // bytes accompany the change, get_url would point at a file that was
+    // never written while the real bytes are orphaned under the old name.
+    // Reject rather than silently break the asset link.
+    const changesExtension =
+      getAssetFileName(asset.id, input.content_type) !==
+      getAssetFileName(asset.id, asset.content_type);
+    if (changesExtension && input.data == null) {
+      throwApiError(
+        ApiErrorCode.INVALID_INPUT,
+        "Changing content_type to a different file type requires re-uploading the asset data"
+      );
+    }
+    asset.content_type = input.content_type;
+  }
+  // Inside a project, a move names a directory. An asset with a file
+  // there moves its file. Any other asset is filed under the directory
+  // until its bytes move into the folder.
+  let targetDirectory: string | null = null;
+  if (input.parent_id !== undefined) {
+    targetDirectory = listsByDirectory(asset.project_id)
+      ? await directoryOfNewParent(userId, asset.project_id, input.parent_id)
+      : null;
+    if (targetDirectory === null) {
+      asset.parent_id = await resolveValidParent(userId, asset, input.parent_id);
+    } else if (!hasProjectFile) {
+      asset.parent_id = directoryFolderId(
+        userId,
+        asset.project_id,
+        targetDirectory
+      );
+    } else {
+      // The file's directory places the asset. A legacy folder row stays
+      // its parent, so the view across every project still finds it.
+      asset.parent_id = parseProjectDirectoryId(input.parent_id)
+        ? userId
+        : await resolveValidParent(userId, asset, input.parent_id);
+    }
+  }
+  if (input.metadata !== undefined) {
+    // The server's own keys stay as the row has them. On an asset with no
+    // file they are what the move of its bytes recorded.
+    asset.metadata = isExternal
+      ? withExternalFingerprint(input.metadata, asset.metadata)
+      : hasProjectFile
+        ? keepFingerprint(input.metadata, asset.metadata, [
+            ...WORKSPACE_SERVER_KEYS,
+            ...COPY_SOURCE_KEYS
+          ])
+        : keepFingerprint(input.metadata, asset.metadata, WORKSPACE_SERVER_KEYS);
+  }
+  if (input.sketch_document_id !== undefined) {
+    asset.sketch_document_id = input.sketch_document_id;
+  }
+  if (input.timeline_id !== undefined) {
+    asset.timeline_id = input.timeline_id;
+  }
+  if (input.favorite !== undefined) asset.favorite = input.favorite;
+  // An external asset's size is its file's, recorded by import or relink.
+  // A project file's size is recorded when the file is written.
+  if (input.size !== undefined && !isExternal && !hasProjectFile) {
+    asset.size = input.size;
+  }
+  return targetDirectory;
+}
+
+/** Save `asset`, conditional on its metadata when the update asks for that. */
+async function saveUpdatedRow(
+  asset: AssetModel,
+  input: UpdateInput
+): Promise<void> {
+  if (input.expected_metadata === undefined) {
+    await asset.save();
+    return;
+  }
+  if (!(await asset.saveIfMetadataMatches(input.expected_metadata))) {
+    throwApiError(
+      ApiErrorCode.ALREADY_EXISTS,
+      "Asset metadata changed. Reload it and try again."
+    );
+  }
+}
+
+/**
+ * Update an asset that has no file in a project folder and no external
+ * file. The caller holds the project folder lock and read `asset` under it.
+ * New bytes are stored under the asset's storage key and the row is saved,
+ * both under the lock, so the move of the asset's bytes never deletes them
+ * and never has its row saved over. Returns the stored bytes, for the
+ * thumbnail the caller makes after the lock, or null when none were sent.
+ */
+async function updateAssetWithoutFile(
+  userId: string,
+  asset: AssetModel,
+  input: UpdateInput
+): Promise<Uint8Array | null> {
+  await applyUpdateFields(userId, asset, input);
+  const bytes = updateBytes(input);
+  if (bytes) {
+    log.info("asset upload (update)", {
+      assetId: asset.id,
+      fileName: getAssetFileName(asset.id, asset.content_type),
+      contentType: asset.content_type,
+      bytes: bytes.byteLength
+    });
+    asset.size = bytes.byteLength;
+    try {
+      await getAssetAdapter().store(
+        getAssetStorageKey(asset.user_id, asset.id, asset.content_type),
+        bytes,
+        asset.content_type
+      );
+    } catch (error) {
+      if (error instanceof UploadTooLargeError) {
+        throwApiError(
+          ApiErrorCode.ASSET_UPLOAD_FAILED,
+          uploadTooLargeMessage(error),
+          "PAYLOAD_TOO_LARGE"
+        );
+      }
+      throw error;
+    }
+  }
+  await saveUpdatedRow(asset, input);
+  return bytes;
+}
+
+/**
+ * Update an asset that is a file in its project folder, or an external
+ * asset. A rename renames the file, a move to a directory moves it, and new
+ * bytes are written to it.
+ *
+ * A row on which a move of legacy bytes is still recorded is saved under the
+ * project folder lock, with the move's record taken from the row as it is
+ * then, so a record the move removed meanwhile does not come back.
+ */
+async function updateFolderAsset(
+  userId: string,
+  asset: AssetModel,
+  input: UpdateInput
+): Promise<AssetModel> {
+  const targetDirectory = await applyUpdateFields(userId, asset, input);
+  // File changes wait for the row. Each is undone when the row is not
+  // saved, and what it replaced is removed only after the save.
+  const fileChanges: ProjectAssetFileChange[] = [];
+  try {
+    const bytes = updateBytes(input);
+    if (bytes) {
+      log.info("asset upload (update)", {
+        assetId: asset.id,
+        fileName: getAssetFileName(asset.id, asset.content_type),
+        contentType: asset.content_type,
+        bytes: bytes.byteLength
+      });
+      const replaced = await replaceProjectAssetBytes(asset, bytes);
+      if (!replaced) {
+        throw new Error(`Asset ${asset.id} has no file to write its bytes to`);
+      }
+      fileChanges.push(replaced);
+    }
+    if (targetDirectory !== null && asset.workspace_path) {
+      const moved = await moveProjectAssetToDirectory(asset, targetDirectory);
+      if (moved) fileChanges.push(moved);
+    }
+    if (input.name !== undefined) {
+      const renamed = await renameProjectAssetFile(asset, input.name);
+      if (renamed) fileChanges.push(renamed);
+    }
+
+    if (moveTargetOf(asset) === null) {
+      await saveUpdatedRow(asset, input);
+    } else {
+      await withLockedAssetRow(asset, async (current) => {
+        if (!current) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
+        }
+        asset.metadata = keepFingerprint(
+          asset.metadata ?? {},
+          current.metadata,
+          WORKSPACE_MOVE_KEYS
+        );
+        await saveUpdatedRow(asset, input);
+      });
+    }
+  } catch (error) {
+    for (const change of fileChanges.reverse()) await change.undo();
+    rethrowFolderError(error);
+  }
+  for (const change of fileChanges) await change.commit();
+  return asset;
+}
+
 export const assetsRouter = router({
   list: protectedProcedure
     .input(listInput)
     .output(listOutput)
     .query(async ({ ctx, input }) => {
+      // Inside a project the folders are the directories of its folder.
+      const crossFolder =
+        input.workflow_id ||
+        input.node_id ||
+        input.job_id ||
+        input.timeline_id ||
+        input.favorite ||
+        (input.content_type && input.content_type !== "folder");
+      if (listsByDirectory(input.project_id) && !crossFolder) {
+        const index = await loadProjectDirectoryIndex(
+          ctx.userId,
+          input.project_id
+        );
+        if (input.content_type === "folder") {
+          const directories = await listProjectDirectories(index);
+          return {
+            assets: directories.map((dir) =>
+              directoryFolderResponse(ctx.userId, index.projectId, dir)
+            ),
+            next: null
+          };
+        }
+        const path = index.resolver.directoryOfParent(input.parent_id);
+        return {
+          assets: await listDirectoryResponses(
+            ctx.userId,
+            index,
+            path,
+            input.page_size
+          ),
+          next: null
+        };
+      }
+
       // Default to the user's home folder when no filters at all are set.
       const effectiveParentId =
         input.parent_id === undefined &&
@@ -376,6 +1011,21 @@ export const assetsRouter = router({
           job_id: null,
           timeline_id: null
         };
+      }
+
+      const directory = parseProjectDirectoryId(input.id);
+      if (directory) {
+        if (
+          input.project_id !== undefined &&
+          input.project_id !== directory.projectId
+        ) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Folder not found");
+        }
+        await requireOwnDirectory(ctx.userId, directory);
+        return directoryFolderResponse(ctx.userId, directory.projectId, {
+          path: directory.path,
+          modifiedAt: null
+        });
       }
 
       const asset =
@@ -488,35 +1138,86 @@ export const assetsRouter = router({
         asset.id,
         asset.content_type
       );
+      // A row whose bytes are a file in its project folder by now was
+      // finalized before, or its bytes were moved there. It is not an empty
+      // upload and is not deleted.
+      if (asset.workspace_path) return toAssetResponse(asset);
       const stat = await adapter.stat(adapter.uriForKey(key));
       if (!stat || stat.size === 0) {
-        await asset.delete();
+        const kept = await removePendingUpload(asset);
+        if (kept) return toAssetResponse(kept);
         throwApiError(ApiErrorCode.INVALID_INPUT, "No uploaded object found");
       }
 
       const max = getMaxUploadBytes();
       if (stat.size > max) {
-        await adapter.delete(adapter.uriForKey(key));
-        await asset.delete();
+        const kept = await removePendingUpload(asset, async () => {
+          await adapter.delete(adapter.uriForKey(key));
+        });
+        if (kept) return toAssetResponse(kept);
         throwApiError(
           ApiErrorCode.INVALID_INPUT,
           `Upload exceeds maximum size: ${stat.size} > ${max} bytes`
         );
       }
 
-      asset.size = stat.size;
-      await asset.save();
+      // The asset move may have taken the row since it was read. The size is
+      // then not written, and the moved row is returned as it is.
+      if (!(await asset.saveUploadSizeIf(stat.size))) {
+        const current = await Asset.find(ctx.userId, asset.id);
+        if (!current) throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
+        return toAssetResponse(current);
+      }
 
-      // The bytes are already in the bucket, so a thumbnail costs one download
-      // back into this process. The generator skips objects above
-      // THUMBNAIL_SOURCE_MAX_BYTES, so a multi-gigabyte video goes without.
-      await generateThumbnailForStoredAsset(
-        asset.user_id,
-        asset.id,
-        asset.content_type
-      );
+      // The client wrote to the storage key, which is outside any project
+      // folder. The bytes move into the folder: the file is written and the
+      // row saved before the object under the key is removed, so a failure
+      // leaves the asset readable from the key as before.
+      const uri = adapter.uriForKey(key);
+      let finalized: AssetModel;
+      try {
+        const bytes = await adapter.retrieve(uri);
+        if (!bytes) throw new Error("The uploaded object is not readable");
+        // The row is read again under the folder lock. When the asset move
+        // gave it a file meanwhile, the bytes go to that file.
+        finalized = await saveProjectAsset({
+          asset,
+          projectId: asset.project_id,
+          userId: asset.user_id,
+          name: asset.name,
+          contentType: asset.content_type,
+          bytes,
+          directory: uploadDirectory(
+            input.directory ??
+              directoryOfParentId(asset.parent_id, asset.project_id)
+          ),
+          parentId: asset.parent_id
+        });
+      } catch (error) {
+        log.warn("upload kept under its storage key", {
+          assetId: asset.id,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        // The bytes are already in the bucket, so a thumbnail costs one
+        // download back into this process. The generator skips objects above
+        // THUMBNAIL_SOURCE_MAX_BYTES, so a multi-gigabyte video goes without.
+        await generateThumbnailForStoredAsset(
+          asset.user_id,
+          asset.id,
+          asset.content_type
+        );
+        return toAssetResponse(asset);
+      }
+      try {
+        await adapter.delete(uri);
+      } catch (error) {
+        log.warn("could not remove an upload moved into its project folder", {
+          assetId: asset.id,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
 
-      return toAssetResponse(asset);
+      return toAssetResponse(finalized);
     }),
 
   /**
@@ -610,10 +1311,38 @@ export const assetsRouter = router({
     }),
 
   /**
+   * Copy every linked file of a project into its `Imported/` directory and
+   * point each row at its copy (PRD T6). Asset ids stay and the linked files
+   * are left as they were. One asset at a time: a cancelled request stops
+   * before the next asset, and calling it again finishes the rest.
+   */
+  collect: protectedProcedure
+    .input(collectInput)
+    .output(collectOutput)
+    .mutation(async ({ ctx, input, signal }) => {
+      if (!(await Project.findOwned(ctx.userId, input.project_id))) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
+      }
+      const args: Parameters<typeof collectLinkedAssets>[0] = {
+        projectId: input.project_id,
+        userId: ctx.userId
+      };
+      if (signal) args.signal = signal;
+      try {
+        return await collectLinkedAssets(args);
+      } catch (error) {
+        rethrowFolderError(error);
+      }
+    }),
+
+  /**
    * Point an in-place asset at another file: a moved, renamed, or remounted
    * original, or the same path after the file changed. The id and `get_url`
    * stay the same (D5). The path is validated again (R5), and the new size,
    * mtime, and duration are recorded before the thumbnail is regenerated.
+   *
+   * An asset whose file is in its project folder is relinked the same way:
+   * to a file in the folder, or to a file outside it, which is copied in.
    */
   relinkExternal: protectedProcedure
     .input(relinkExternalInput)
@@ -624,44 +1353,37 @@ export const assetsRouter = router({
         throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
       }
       assertWritable(asset);
-      if (!asset.external_path) {
+      if (asset.workspace_path) {
+        await relinkProjectFile(asset, input.path);
+        log.info("project asset relinked", {
+          assetId: asset.id,
+          bytes: asset.size
+        });
+      } else if (!asset.external_path) {
         throwApiError(
           ApiErrorCode.INVALID_INPUT,
           "Only an asset that references a file in place can be relinked"
         );
-      }
-      const file = await resolveExternalFile(input.path);
+      } else {
+        const file = await resolveExternalFile(input.path);
+        assertSameMediaKind(asset, basename(file.path));
 
-      // The URL's extension comes from the content type, so it stays. A file
-      // of another media kind (audio for a video clip) is refused. A name
-      // with no known type is accepted.
-      const kind = (type: string) => type.split("/")[0];
-      const offered = normalizeAssetContentType("", basename(file.path));
-      if (
-        offered !== "application/octet-stream" &&
-        kind(offered) !== kind(asset.content_type)
-      ) {
-        throwApiError(
-          ApiErrorCode.INVALID_INPUT,
-          `The new file is ${offered}, but this asset is ${asset.content_type}`
-        );
+        asset.external_path = file.path;
+        asset.size = file.size;
+        asset.duration = await probeAssetDurationSeconds(asset.content_type, {
+          path: file.path
+        });
+        asset.metadata = {
+          ...asset.metadata,
+          external_size: file.size,
+          external_mtime: file.mtimeMs
+        };
+        await asset.save();
+        log.info("external asset relinked", {
+          assetId: asset.id,
+          bytes: file.size
+        });
       }
-
-      asset.external_path = file.path;
-      asset.size = file.size;
-      asset.duration = await probeAssetDurationSeconds(asset.content_type, {
-        path: file.path
-      });
-      asset.metadata = {
-        ...asset.metadata,
-        external_size: file.size,
-        external_mtime: file.mtimeMs
-      };
-      await asset.save();
-      log.info("external asset relinked", {
-        assetId: asset.id,
-        bytes: file.size
-      });
 
       // Drop the previous file's thumbnail first, so a new file that yields
       // none does not keep showing the old one.
@@ -730,107 +1452,105 @@ export const assetsRouter = router({
     .input(updateInput)
     .output(assetResponse)
     .mutation(async ({ ctx, input }) => {
-      const asset = await Asset.find(ctx.userId, input.id);
-      if (!asset) {
+      const directory = parseProjectDirectoryId(input.id);
+      if (directory) {
+        return updateProjectDirectory(ctx.userId, directory, input);
+      }
+      const loaded = await Asset.find(ctx.userId, input.id);
+      if (!loaded) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
       }
-      assertWritable(asset);
-      const isExternal = Boolean(asset.external_path);
-      if (isExternal && input.data != null) {
-        // New bytes would land under the storage root and shadow the
-        // referenced file, which the user still sees on disk.
-        throwApiError(
-          ApiErrorCode.INVALID_INPUT,
-          "This asset references a file in place. Relink it to another file instead of replacing its data"
-        );
-      }
-
-      if (input.name !== undefined) asset.name = input.name;
-      if (input.content_type !== undefined) {
-        // The stored file name (and get_url) is derived from content_type. If
-        // the new content_type maps to a different file extension and no new
-        // bytes accompany the change, get_url would point at a file that was
-        // never written while the real bytes are orphaned under the old name.
-        // Reject rather than silently break the asset link.
-        const changesExtension =
-          getAssetFileName(asset.id, input.content_type) !==
-          getAssetFileName(asset.id, asset.content_type);
-        if (changesExtension && input.data == null) {
-          throwApiError(
-            ApiErrorCode.INVALID_INPUT,
-            "Changing content_type to a different file type requires re-uploading the asset data"
-          );
-        }
-        asset.content_type = input.content_type;
-      }
-      if (input.parent_id !== undefined) {
-        asset.parent_id = await resolveValidParent(
-          ctx.userId,
-          asset,
-          input.parent_id
-        );
-      }
-      if (input.metadata !== undefined) {
-        asset.metadata = isExternal
-          ? withExternalFingerprint(input.metadata, asset.metadata)
-          : input.metadata;
-      }
-      if (input.sketch_document_id !== undefined) {
-        asset.sketch_document_id = input.sketch_document_id;
-      }
-      if (input.timeline_id !== undefined) {
-        asset.timeline_id = input.timeline_id;
-      }
-      if (input.favorite !== undefined) asset.favorite = input.favorite;
-      // An external asset's size is its file's, recorded by import or relink.
-      if (input.size !== undefined && !isExternal) asset.size = input.size;
-
+      assertWritable(loaded);
       if (input.expected_metadata !== undefined && input.data != null) {
         throwApiError(
           ApiErrorCode.INVALID_INPUT,
           "Conditional metadata updates cannot replace asset data"
         );
       }
+      if (!mayMoveIntoFolder(loaded)) {
+        return toAssetResponse(await updateFolderAsset(ctx.userId, loaded, input));
+      }
+      // The move of legacy asset bytes writes the row under the project
+      // folder lock. The row is read again under that lock, so this update
+      // never saves over what the move wrote.
+      const locked = await withLockedAssetRow(loaded, async (current) => {
+        if (!current) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
+        }
+        assertWritable(current);
+        if (!mayMoveIntoFolder(current) || current.workspace_path) {
+          return { asset: current, saved: false, stored: null };
+        }
+        return {
+          asset: current,
+          saved: true,
+          stored: await updateAssetWithoutFile(ctx.userId, current, input)
+        };
+      });
+      if (!locked.saved) {
+        // The move named a file on the row while this request waited. Its
+        // file changes take the folder lock themselves.
+        return toAssetResponse(
+          await updateFolderAsset(ctx.userId, locked.asset, input)
+        );
+      }
+      if (locked.stored) {
+        // Made after the lock, so a slow thumbnail holds up no other save.
+        await storeAssetThumbnail(
+          locked.asset.user_id,
+          locked.asset.id,
+          locked.asset.content_type,
+          { bytes: locked.stored }
+        );
+      }
+      return toAssetResponse(locked.asset);
+    }),
 
-      if (input.data != null) {
-        const buf =
-          input.data_encoding === "base64"
-            ? Buffer.from(input.data, "base64")
-            : Buffer.from(input.data, "utf-8");
-        asset.size = buf.byteLength;
-        const fileName = getAssetFileName(asset.id, asset.content_type);
-        log.info("asset upload (update)", {
-          assetId: asset.id,
-          fileName,
-          contentType: asset.content_type,
-          bytes: buf.byteLength
+  /**
+   * Use an asset in a project (PRD D10). An asset of another project, such
+   * as Personal, is copied into the project's `Imported/` directory and the
+   * copy is returned, so the document stores an asset of its own project.
+   */
+  copyToProject: protectedProcedure
+    .input(copyToProjectInput)
+    .output(copyToProjectOutput)
+    .mutation(async ({ ctx, input }) => {
+      if (input.project_id !== "default") {
+        try {
+          await Project.requireOwned(ctx.userId, input.project_id);
+        } catch {
+          throwApiError(ApiErrorCode.INVALID_INPUT, "Project not found");
+        }
+      }
+      try {
+        const { asset, copied } = await copyAssetToProject({
+          userId: ctx.userId,
+          assetId: input.asset_id,
+          projectId: input.project_id
         });
-        await storeAssetWithThumbnail(
-          asset.user_id,
-          asset.id,
-          fileName,
-          new Uint8Array(buf),
-          asset.content_type
-        );
+        return { asset: await toAssetResponse(asset), copied };
+      } catch (error) {
+        if (error instanceof AssetCopyError) {
+          throwApiError(ApiErrorCode.INVALID_INPUT, error.message);
+        }
+        rethrowFolderError(error);
       }
-
-      const saved =
-        input.expected_metadata !== undefined
-          ? await asset.saveIfMetadataMatches(input.expected_metadata)
-          : await asset.save();
-      if (saved === false) {
-        throwApiError(
-          ApiErrorCode.ALREADY_EXISTS,
-          "Asset metadata changed. Reload it and try again."
-        );
-      }
-      return toAssetResponse(asset);
     }),
 
   delete: protectedProcedure
     .input(deleteInput)
     .output(deleteOutput)
     .mutation(async ({ ctx, input }) => {
+      const directory = parseProjectDirectoryId(input.id);
+      if (directory) {
+        await requireOwnDirectory(ctx.userId, directory);
+        try {
+          const deleted = await deleteProjectDirectory(ctx.userId, directory);
+          return { deleted_asset_ids: [...deleted, input.id] };
+        } catch (error) {
+          rethrowFolderError(error);
+        }
+      }
       const asset = await Asset.find(ctx.userId, input.id);
       if (!asset) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
@@ -838,11 +1558,27 @@ export const assetsRouter = router({
       assertWritable(asset);
 
       let deletedAssetIds: string[];
-      if (asset.content_type === "folder") {
-        deletedAssetIds = await deleteFolderRecursive(ctx.userId, asset.id);
-      } else {
-        await deleteAssetWithObjects(asset);
-        deletedAssetIds = [asset.id];
+      try {
+        if (asset.content_type === "folder" && listsByDirectory(asset.project_id)) {
+          // Inside a project a legacy folder row stands for the directory its
+          // chain spells, which also holds the files moved into it.
+          const folders = await Asset.listFolders(ctx.userId);
+          const path = new ProjectDirectoryResolver(
+            asset.project_id,
+            new Map(folders.map((row) => [row.id, row]))
+          ).pathOfFolder(asset);
+          deletedAssetIds = await deleteProjectDirectory(ctx.userId, {
+            projectId: asset.project_id,
+            path
+          });
+        } else if (asset.content_type === "folder") {
+          deletedAssetIds = await deleteFolderRecursive(ctx.userId, asset.id);
+        } else {
+          await deleteAssetWithObjects(asset);
+          deletedAssetIds = [asset.id];
+        }
+      } catch (error) {
+        rethrowFolderError(error);
       }
       return { deleted_asset_ids: deletedAssetIds };
     }),
@@ -851,6 +1587,24 @@ export const assetsRouter = router({
     .input(recursiveInput)
     .output(recursiveOutput)
     .query(async ({ ctx, input }) => {
+      const directory = parseProjectDirectoryId(input.id);
+      const projectId = directory?.projectId ?? input.project_id;
+      if (listsByDirectory(projectId)) {
+        if (directory) await requireOwnDirectory(ctx.userId, directory);
+        const index = await loadProjectDirectoryIndex(ctx.userId, projectId);
+        const tree = await listProjectDirectoryTree(
+          index,
+          index.resolver.directoryOfParent(input.id)
+        );
+        return {
+          assets: [
+            ...tree.directories.map((dir) =>
+              directoryFolderResponse(ctx.userId, projectId, dir)
+            ),
+            ...(await Promise.all(tree.assets.map((a) => toAssetResponse(a))))
+          ]
+        };
+      }
       const assets = await getAllAssetsRecursive(
         ctx.userId,
         input.id,

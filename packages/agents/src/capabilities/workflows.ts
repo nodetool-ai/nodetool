@@ -30,11 +30,8 @@ import {
   RUNTIME_MODEL_CATALOGS,
   annotateEscalatedRun,
   jobRecord,
-  leftoverWiringHandleError,
   lightWorkflowList,
-  modelSelectionError,
   noRegistryError,
-  normalizeWorkflowGraph,
   outcomeResult,
   resolveRunEnvironment,
   summarizeWorkflowGraph,
@@ -44,9 +41,7 @@ import {
 } from "../tools/mcp-tool-support.js";
 import {
   addGraphLink,
-  pruneGraphLinks,
   removeGraphLink,
-  type GraphLink,
   PLAN_CORE_NODE_TYPES,
   checkWorkflowPlan,
   planInputSample,
@@ -89,6 +84,10 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { declareDynamicOutputsInGraph } from "../dynamic-slots.js";
+import {
+  graphNodeIds,
+  prepareWorkflowGraphForSave
+} from "../workflow-graph-save.js";
 import { findCapability } from "./registry.js";
 import { REQUEST_SECRET_TOOL_NAME } from "./settings.specs.js";
 import type {
@@ -233,20 +232,15 @@ const createWorkflow: CapabilityExport = {
     ) {
       return { error: "Project not found." };
     }
-    // Declare before normalizing, so the handle is on the node the editor,
-    // the validator and every later run read. Without a registry this is the
-    // identity function and the graph is stored exactly as it arrived.
-    const authored = run.nodeRegistry
-      ? declareDynamicOutputsInGraph(params["graph"], run.nodeRegistry)
-      : params["graph"];
-    const graph = normalizeWorkflowGraph(authored);
-    const badModels = await modelSelectionError(
-      graph,
-      run.modelCatalogs ?? RUNTIME_MODEL_CATALOGS
-    );
-    if (badModels) return badModels;
-    const leftoverHandles = leftoverWiringHandleError(graph);
-    if (leftoverHandles) return leftoverHandles;
+    // Dynamic outputs are declared before the graph is normalized, so the
+    // handle is on the node the editor, the validator and every later run
+    // read. Without a registry the graph is stored as it arrived.
+    const prepared = await prepareWorkflowGraphForSave(params["graph"], {
+      nodeRegistry: run.nodeRegistry,
+      modelCatalogs: run.modelCatalogs
+    });
+    if (!prepared.ok) return prepared.error;
+    const graph = prepared.graph;
     const unselected = run.nodeRegistry
       ? unsetModelSelectionWarning(graph, run.nodeRegistry)
       : null;
@@ -302,20 +296,17 @@ const updateWorkflow: CapabilityExport = {
     const fields: Record<string, unknown> = {};
     let unselected: Record<string, unknown> | null = null;
     if (params["graph"] !== undefined) {
-      // The same three passes create_workflow runs, in the same order: an
-      // update that skipped them could store a graph the create path would
-      // have refused.
-      const authored = run.nodeRegistry
-        ? declareDynamicOutputsInGraph(params["graph"], run.nodeRegistry)
-        : params["graph"];
-      const graph = withLinksKept(normalizeWorkflowGraph(authored), existing);
-      const badModels = await modelSelectionError(
-        graph,
-        run.modelCatalogs ?? RUNTIME_MODEL_CATALOGS
-      );
-      if (badModels) return badModels;
-      const leftoverHandles = leftoverWiringHandleError(graph);
-      if (leftoverHandles) return leftoverHandles;
+      // The same passes create_workflow runs, in the same order: an update
+      // that skipped them could store a graph the create path would have
+      // refused. A workflow file edited in the project folder is imported
+      // through them too.
+      const prepared = await prepareWorkflowGraphForSave(params["graph"], {
+        nodeRegistry: run.nodeRegistry,
+        modelCatalogs: run.modelCatalogs,
+        stored: existing.graph
+      });
+      if (!prepared.ok) return prepared.error;
+      const graph = prepared.graph;
       if (run.nodeRegistry) {
         unselected = unsetModelSelectionWarning(graph, run.nodeRegistry);
       }
@@ -355,43 +346,6 @@ const updateWorkflow: CapabilityExport = {
   }
 };
 
-function nodeIdsOf(graph: unknown): Set<string> {
-  const nodes = isObjectLike(graph)
-    ? (graph as { nodes?: unknown }).nodes
-    : undefined;
-  const ids = new Set<string>();
-  if (Array.isArray(nodes)) {
-    for (const node of nodes) {
-      const id = isObjectLike(node) ? (node as { id?: unknown }).id : undefined;
-      if (isString(id)) ids.add(id);
-    }
-  }
-  return ids;
-}
-
-function linksOf(graph: unknown): GraphLink[] {
-  const links = isObjectLike(graph)
-    ? (graph as { links?: unknown }).links
-    : undefined;
-  return Array.isArray(links) ? (links as GraphLink[]) : [];
-}
-
-/**
- * A replacement graph that names no `links` keeps the stored ones, so an agent
- * that rewrites nodes and edges does not silently erase lineage. Links to
- * nodes the new graph no longer has are dropped either way.
- */
-function withLinksKept(graph: unknown, existing: WorkflowRow): unknown {
-  if (!isObjectLike(graph)) return graph;
-  const record = graph as Record<string, unknown>;
-  const links = pruneGraphLinks(
-    nodeIdsOf(record),
-    "links" in record ? linksOf(record) : linksOf(existing.graph)
-  );
-  const { links: _dropped, ...rest } = record;
-  return links.length > 0 ? { ...rest, links } : rest;
-}
-
 const addWorkflowLink: CapabilityExport = {
   spec: addWorkflowLinkSpec,
   impl: async (run, params) => {
@@ -401,7 +355,7 @@ const addWorkflowLink: CapabilityExport = {
     if (!existing) return notYours(id);
     const graph = existing.graph;
     const added = addGraphLink(
-      nodeIdsOf(graph),
+      graphNodeIds(graph),
       graph.links ?? [],
       {
         source: String(params["source"]),

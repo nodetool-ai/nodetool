@@ -35,7 +35,7 @@ import {
   hasStreamingOutput,
   NodeRegistry
 } from "@nodetool-ai/node-sdk";
-import { supportsPlatform } from "@nodetool-ai/protocol";
+import { AUDIO_RUN_KEY, resolveAudioRun, supportsPlatform } from "@nodetool-ai/protocol";
 import { createContext } from "./host/context.mjs";
 import { outputValue } from "./host/output.mjs";
 import { fromJson, fromReply, fromWire, toJson, toWire, wireReply } from "./values.mjs";
@@ -108,6 +108,7 @@ function describe(cls, node) {
     is_trigger: cls.isTrigger,
     retry_safe: cls.retrySafe,
     always_emit_output_updates: cls.alwaysEmitOutputUpdates,
+    audio_sink: cls.audioSink,
     input_mode: cls.inputMode,
     output_correlation: cls.outputCorrelation,
     has_run: typeof cls.prototype.run === "function"
@@ -126,11 +127,12 @@ function envelopeOf(r) {
 }
 
 class HostInputs {
-  constructor(io) {
+  constructor(io, executionContext) {
     this._io = io;
+    this._context = executionContext;
   }
   get signal() {
-    return NEVER_ABORTED;
+    return this._context.signal ?? NEVER_ABORTED;
   }
   scopeFor(handle) {
     return JSON.parse(host().scopeFor(this._io, handle));
@@ -235,7 +237,15 @@ globalThis.__nodetool = {
       return { supported: true, outputs: outputs.collected() };
     })());
   },
-  prepareGraph(graphJson) { return toJson(rewriteBypassedNodes(fromJson(graphJson))); },
+  prepareGraph(graphJson) {
+    const graph = rewriteBypassedNodes(fromJson(graphJson));
+    // begin() creates this run's context before Runner::run prepares the graph.
+    if (!context.get(AUDIO_RUN_KEY)) context.set(AUDIO_RUN_KEY, resolveAudioRun(graph.nodes.map(node => ({
+      ...node,
+      audio_sink: lazyNodes?.snapshot.flags[node.type]?.audio_sink ?? classes.get(node.type)?.audioSink
+    }))));
+    return toJson(graph);
+  },
   /** Starts a run: sets the context identity and drops any leftover instances. */
   begin(jobId, workflowId) {
     resetProcessEnvironment();
@@ -371,6 +381,17 @@ globalThis.__nodetool = {
     );
   },
 
+  /**
+   * A live property change of a node instance: `executor.applyProperties`.
+   * False when the executor takes none.
+   */
+  apply(id, propertiesJson, blobs) {
+    const executor = executorOf(id);
+    if (!executor.applyProperties) return false;
+    executor.applyProperties(fromWire(propertiesJson, blobs));
+    return true;
+  },
+
   genStart(id, inputsJson, blobs) {
     const iterator = executorOf(id).genProcess(applyDynamicSlotTypes(instances.get(id).node, fromWire(inputsJson, blobs)), instances.get(id).context);
     const gid = nextId++;
@@ -411,7 +432,7 @@ globalThis.__nodetool = {
     const outputs = new HostOutputs(ioId);
     return settle(
       (async () => {
-        await executorOf(id).run(new HostInputs(ioId), outputs, instances.get(id).context);
+        await executorOf(id).run(new HostInputs(ioId, instances.get(id).context), outputs, instances.get(id).context);
         return outputs.collected();
       })()
     );

@@ -65,7 +65,10 @@ private:
             {"cost", "0.125 USD / generation"}, {"cancellable", cancellable}};
     }
 private slots:
-    void init() { QTest::failOnWarning(QRegularExpression(".*")); }
+    // Any warning fails, except the swapchain warnings a CI runner's
+    // graphics stack can print when the window is shown. Qt retries with a
+    // software rasterizer after them.
+    void init() { QTest::failOnWarning(QRegularExpression("^(?!.*swapchain).*")); }
     void initTestCase() {
         const auto fontId = QFontDatabase::addApplicationFont(QStringLiteral(":/qt/qml/NodeTool/UiPrimitives/fonts/inter-latin-400-normal.ttf"));
         QVERIFY(fontId >= 0);

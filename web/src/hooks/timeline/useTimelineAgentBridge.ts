@@ -80,7 +80,10 @@ import {
   type ModelKind
 } from "../../stores/lastModelStore";
 import { useTimelinePlaybackStoreApi } from "../../stores/timeline/TimelinePlaybackStore";
-import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
+import {
+  timelineTemporalOf,
+  useTimelineStoreApi
+} from "../../stores/timeline/TimelineStore";
 import { useTimelineUIStoreApi } from "../../stores/timeline/TimelineUIStore";
 import { trpcClient } from "../../trpc/client";
 import { getAssetUrl } from "../../utils/assetHelpers";
@@ -238,6 +241,9 @@ function toMarkerNode(marker: TimelineMarker): TimelineMarkerNode {
   }
   if (marker.note !== undefined) {
     node.note = marker.note;
+  }
+  if (marker.durationMs !== undefined) {
+    node.durationMs = marker.durationMs;
   }
   return node;
 }
@@ -623,6 +629,28 @@ export const useTimelineAgentBridge = (
 
     const handlerImpl: TimelineAgentHandler = {
       applyOp: editOp,
+      async undo({ steps, redo }) {
+        // Wait for queued agent edits, so an undo never lands between them.
+        await pending.catch(() => undefined);
+        const before = timelineTemporalOf(doc);
+        const available = redo
+          ? before.futureStates.length
+          : before.pastStates.length;
+        const applied = Math.min(steps, available);
+        if (applied > 0) {
+          if (redo) {
+            before.redo(applied);
+          } else {
+            before.undo(applied);
+          }
+        }
+        const after = timelineTemporalOf(doc);
+        return {
+          applied,
+          undoAvailable: after.pastStates.length,
+          redoAvailable: after.futureStates.length
+        };
+      },
       getSnapshot(): TimelineSnapshot {
         const state = doc.getState();
         const tracks = state.tracks;

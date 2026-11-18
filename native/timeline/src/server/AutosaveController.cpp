@@ -62,7 +62,7 @@ QJsonObject documentForSave(const QJsonObject& raw) {
     // The sequence row, not the document (`timelineSequenceResponse` minus
     // `timelineDocument`). Editable size and rate are sent beside the document.
     for (const char* key : {"id", "projectId", "workflowId", "name", "fps", "width", "height", "durationMs",
-                            "createdAt", "updatedAt"}) {
+                            "createdAt", "updatedAt", "schemaVersion"}) {
         doc.remove(QLatin1String(key));
     }
     return doc;
@@ -159,6 +159,10 @@ void AutosaveController::startExternalSync() {
         m_target.timelineId, m_target.token);
     connect(m_changes.get(), &sync::ResourceChangeClient::changed, this, &AutosaveController::externalChanged);
     connect(m_changes.get(), &sync::ResourceChangeClient::refreshNeeded, this, &AutosaveController::refreshExternal);
+    connect(m_changes.get(), &sync::ResourceChangeClient::workspaceFilesChanged, this,
+            &AutosaveController::workspaceFilesChanged);
+    connect(m_changes.get(), &sync::ResourceChangeClient::documentFileChanged, this,
+            &AutosaveController::documentFileChanged);
     connect(m_changes.get(), &sync::ResourceChangeClient::stateChanged, this, [this] {
         if (m_changes->state() == sync::ResourceChangeClient::State::Connected) {
             qCInfo(syncLog, "sync: listening for %s", qPrintable(m_target.timelineId));
@@ -168,7 +172,14 @@ void AutosaveController::startExternalSync() {
         }
         emit stateChanged();
     });
+    syncOpenProject();
     m_changes->start();
+}
+
+void AutosaveController::syncOpenProject() {
+    if (m_changes) {
+        m_changes->setOpenProject(m_document().value(u"projectId").toString());
+    }
 }
 
 void AutosaveController::externalChanged(QString event, QString updatedAt, QJsonArray ops, bool hasOps) {
@@ -896,6 +907,12 @@ SaveResult AutosaveController::save(ServerClient& client) {
         const QJsonObject data = r.data.toObject();
         result.ok = true;
         result.updatedAt = data.value(u"updatedAt").toString();
+        // The server can file a loose timeline under another project while it is open.
+        const QString project = data.value(u"projectId").toString();
+        if (!project.isEmpty() && project != raw.value(u"projectId").toString()) {
+            emit projectChanged(project);
+            if (m_changes) { m_changes->setOpenProject(project); }
+        }
         for (const QJsonValue& p : data.value(u"stripped").toArray()) result.stripped << p.toString();
         m_base = result.updatedAt;
         m_mergeBase = sync::mergeDocumentOf(raw);

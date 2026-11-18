@@ -7,8 +7,8 @@ import type { AudioRef } from "../../types.js";
 
 // Gain — lib.audio.Gain
 export type GainInputs = {
-  audio?: AudioRef;
   gain_db?: number;
+  audio?: AudioRef;
 };
 
 export interface GainOutputs {
@@ -21,10 +21,10 @@ export function gain(inputs: GainInputs): Promise<GainOutputs> {
 
 // Delay — lib.audio.Delay
 export type DelayInputs = {
-  audio?: AudioRef;
   delay_seconds?: number;
   feedback?: number;
   mix?: number;
+  audio?: AudioRef;
 };
 
 export interface DelayOutputs {
@@ -37,8 +37,8 @@ export function delay(inputs: DelayInputs): Promise<DelayOutputs> {
 
 // High Pass Filter — lib.audio.HighPassFilter
 export type HighPassFilterInputs = {
-  audio?: AudioRef;
   cutoff_frequency_hz?: number;
+  audio?: AudioRef;
 };
 
 export interface HighPassFilterOutputs {
@@ -51,8 +51,8 @@ export function highPassFilter(inputs: HighPassFilterInputs): Promise<HighPassFi
 
 // Low Pass Filter — lib.audio.LowPassFilter
 export type LowPassFilterInputs = {
-  audio?: AudioRef;
   cutoff_frequency_hz?: number;
+  audio?: AudioRef;
 };
 
 export interface LowPassFilterOutputs {
@@ -65,9 +65,9 @@ export function lowPassFilter(inputs: LowPassFilterInputs): Promise<LowPassFilte
 
 // High Shelf Filter — lib.audio.HighShelfFilter
 export type HighShelfFilterInputs = {
-  audio?: AudioRef;
   cutoff_frequency_hz?: number;
   gain_db?: number;
+  audio?: AudioRef;
 };
 
 export interface HighShelfFilterOutputs {
@@ -80,9 +80,9 @@ export function highShelfFilter(inputs: HighShelfFilterInputs): Promise<HighShel
 
 // Low Shelf Filter — lib.audio.LowShelfFilter
 export type LowShelfFilterInputs = {
-  audio?: AudioRef;
   cutoff_frequency_hz?: number;
   gain_db?: number;
+  audio?: AudioRef;
 };
 
 export interface LowShelfFilterOutputs {
@@ -95,10 +95,10 @@ export function lowShelfFilter(inputs: LowShelfFilterInputs): Promise<LowShelfFi
 
 // Peak Filter — lib.audio.PeakFilter
 export type PeakFilterInputs = {
-  audio?: AudioRef;
   cutoff_frequency_hz?: number;
   q_factor?: number;
   gain_db?: number;
+  audio?: AudioRef;
 };
 
 export interface PeakFilterOutputs {
@@ -111,9 +111,9 @@ export function peakFilter(inputs: PeakFilterInputs): Promise<PeakFilterOutputs>
 
 // Bitcrush — lib.audio.Bitcrush
 export type BitcrushInputs = {
-  audio?: AudioRef;
   bit_depth?: number;
   sample_rate_reduction?: number;
+  audio?: AudioRef;
 };
 
 export interface BitcrushOutputs {
@@ -126,12 +126,12 @@ export function bitcrush(inputs: BitcrushInputs): Promise<BitcrushOutputs> {
 
 // Compress — lib.audio.Compress
 export type CompressInputs = {
-  audio?: AudioRef;
   threshold?: number;
   ratio?: number;
   attack?: number;
   release?: number;
   auto_gain?: boolean;
+  audio?: AudioRef;
 };
 
 export interface CompressOutputs {
@@ -144,8 +144,8 @@ export function compress(inputs: CompressInputs): Promise<CompressOutputs> {
 
 // Distortion — lib.audio.Distortion
 export type DistortionInputs = {
-  audio?: AudioRef;
   drive_db?: number;
+  audio?: AudioRef;
 };
 
 export interface DistortionOutputs {
@@ -158,10 +158,10 @@ export function distortion(inputs: DistortionInputs): Promise<DistortionOutputs>
 
 // Limiter — lib.audio.Limiter
 export type LimiterInputs = {
-  audio?: AudioRef;
   threshold_db?: number;
   release_ms?: number;
   auto_gain?: boolean;
+  audio?: AudioRef;
 };
 
 export interface LimiterOutputs {
@@ -174,11 +174,11 @@ export function limiter(inputs: LimiterInputs): Promise<LimiterOutputs> {
 
 // Reverb — lib.audio.Reverb
 export type ReverbInputs = {
-  audio?: AudioRef;
   room_scale?: number;
   damping?: number;
   wet_level?: number;
   dry_level?: number;
+  audio?: AudioRef;
 };
 
 export interface ReverbOutputs {
@@ -191,10 +191,10 @@ export function reverb(inputs: ReverbInputs): Promise<ReverbOutputs> {
 
 // Noise Gate — lib.audio.NoiseGate
 export type NoiseGateInputs = {
-  audio?: AudioRef;
   threshold_db?: number;
   attack_ms?: number;
   release_ms?: number;
+  audio?: AudioRef;
 };
 
 export interface NoiseGateOutputs {
@@ -207,12 +207,12 @@ export function noiseGate(inputs: NoiseGateInputs): Promise<NoiseGateOutputs> {
 
 // Phaser — lib.audio.Phaser
 export type PhaserInputs = {
-  audio?: AudioRef;
   rate_hz?: number;
   depth?: number;
   centre_frequency_hz?: number;
   feedback?: number;
   mix?: number;
+  audio?: AudioRef;
 };
 
 export interface PhaserOutputs {

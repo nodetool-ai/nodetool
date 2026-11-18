@@ -39,6 +39,7 @@ jest.mock("../../../../trpc/client", () => {
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { TimelineInspector } from "../TimelineInspector";
+import { TimelineEffectControlsPanel, TimelineMotionPanel } from "../TimelineClipPanels";
 import { TimelineProvider } from "../../../../stores/timeline/TimelineInstance";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
@@ -56,7 +57,11 @@ const renderInspector = () =>
       <ThemeProvider theme={mockTheme}>
         <MemoryRouter>
           <TimelineProvider>
-            <TimelineInspector />
+            <>
+              <TimelineInspector />
+              <TimelineEffectControlsPanel />
+              <TimelineMotionPanel />
+            </>
           </TimelineProvider>
         </MemoryRouter>
       </ThemeProvider>
@@ -415,19 +420,23 @@ describe("Inspector control finder", () => {
     const user = userEvent.setup();
     renderInspector();
     seedVideoClip();
-    expect(screen.queryByRole("textbox", { name: /^opacity$/i })).toBeNull();
+    expect(
+      screen.queryByRole("textbox", { name: /playback speed/i })
+    ).toBeNull();
     await user.type(
       screen.getByRole("textbox", { name: /search inspector sections/i }),
-      "opacity"
+      "speed"
     );
     const results = screen.getByRole("region", {
       name: /matching inspector sections/i
     });
     expect(
-      within(results).getByRole("button", { name: /^render/i })
+      within(results).getByRole("button", { name: /^timing/i })
     ).toBeVisible();
     await user.keyboard("{Enter}");
-    expect(screen.getByRole("textbox", { name: /^opacity$/i })).toBeVisible();
+    expect(
+      screen.getByRole("textbox", { name: /playback speed/i })
+    ).toBeVisible();
     expect(
       screen.queryByRole("region", { name: /matching inspector sections/i })
     ).toBeNull();

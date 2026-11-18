@@ -94,13 +94,13 @@ function websocketTest(name) {
  */
 export const PATH_CHECKS = [
   {
-    path: /^native\/ui_primitives\//,
+    path: /^native\/(?:ui_primitives|files)\//,
     steps: [
       { label: "native UI: design contracts", command: "python3", args: ["native/ui_primitives/tools/check_design.py", "--strict"] },
       { label: "native UI: dependency boundaries", command: "python3", args: ["native/ui_primitives/tools/check_dependencies.py"] }
     ]
   },
-  { path: /^native\/(?:gpu-preview|graph-runner|jobs|model-picker|node-editor|timeline)\//, steps: [NATIVE_CTEST] },
+  { path: /^native\/(?:files|gpu-preview|graph-runner|jobs|kernels|model-picker|node-editor|realtime|storyboard|timeline)\//, steps: [NATIVE_CTEST] },
   {
     path: /^native\/parity\//,
     steps: [
@@ -186,6 +186,12 @@ export const PATH_CHECKS = [
     // build on macOS and Windows.
     path: /^native\/vst-host\//,
     steps: [{ label: "vst-host: build and vst_host_test", command: "node", args: ["electron/scripts/build-vst-host.mjs", "--test"] }]
+  },
+  {
+    // The account library and the desktop app's helper build with CMake. The
+    // account helper workflow runs the same build on macOS and Windows.
+    path: /^native\/(?:account|account-helper)\//,
+    steps: [{ label: "account helper: build and tests", command: "node", args: ["electron/scripts/build-account-helper.mjs", "--test"] }]
   },
   {
     // The rankings sync, its matcher and the naming helper the GenSpend sync

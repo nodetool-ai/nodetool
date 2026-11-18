@@ -607,4 +607,56 @@ describe("advanced fields", () => {
     ).toHaveAttribute("aria-expanded", "true");
     expect(screen.queryByText("Requested takes: 3")).toBeNull();
   });
+
+  it("summarizes a field by its own words, or leaves it out", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <PlanReview
+          sections={[
+            {
+              id: "scene-1",
+              header: "Scene 1",
+              rows: [],
+              groups: [
+                {
+                  id: "shot-1",
+                  header: "Shot 1",
+                  aside: "4s",
+                  rows: [
+                    {
+                      id: "action",
+                      label: "Action",
+                      value: "She turns",
+                      onChange: jest.fn()
+                    },
+                    {
+                      id: "dialogue",
+                      label: "Dialogue",
+                      value: "Not tonight.",
+                      advanced: true,
+                      summary: "“Not tonight.”",
+                      onChange: jest.fn()
+                    },
+                    {
+                      id: "seconds",
+                      label: "Seconds",
+                      value: "4",
+                      compact: true,
+                      advanced: true,
+                      summary: "",
+                      onChange: jest.fn()
+                    }
+                  ]
+                }
+              ]
+            }
+          ]}
+        />
+      </ThemeProvider>
+    );
+    expect(screen.getByText("4s")).toBeInTheDocument();
+    expect(screen.getByText("“Not tonight.”")).toBeInTheDocument();
+    expect(screen.queryByText(/Seconds/)).toBeNull();
+    expect(screen.queryByLabelText("Dialogue")).toBeNull();
+  });
 });

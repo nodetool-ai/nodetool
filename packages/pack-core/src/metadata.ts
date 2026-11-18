@@ -28,6 +28,7 @@ export interface OutputSlotMetadata {
 }
 
 export interface NodeMetadata {
+  audio_sink?: "live" | "render";
   title: string;
   description: string;
   namespace: string;

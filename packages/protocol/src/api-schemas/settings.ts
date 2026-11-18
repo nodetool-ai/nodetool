@@ -28,6 +28,11 @@ export const secretResponse = z.object({
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
   is_configured: z.boolean(),
+  /**
+   * Whose value is configured: one the user saved (`user`), or the server's
+   * environment variable that `getSecret` falls back to (`server`).
+   */
+  source: z.enum(["user", "server"]).optional(),
   is_unreadable: z.boolean().optional(),
   value: z.string().optional()
 });
@@ -114,6 +119,46 @@ export const secretValidateOutput = z.object({
     .optional()
 });
 export type SecretValidateOutput = z.infer<typeof secretValidateOutput>;
+
+// ── providerCredits ──────────────────────────────────────────────
+// Remaining credit per configured provider, read from the provider's balance
+// endpoint where one exists and cached on the server.
+export const providerCreditsInput = z
+  .object({
+    /** Ask the providers again instead of answering from the cache. */
+    refresh: z.boolean().optional(),
+    /** Limit the answer, and a refresh, to one provider id. */
+    provider: z.string().min(1).optional()
+  })
+  .optional();
+export type ProviderCreditsInput = z.infer<typeof providerCreditsInput>;
+
+export const providerCreditSchema = z.object({
+  /** `available`, `low` (under a tenth of the limit or one currency unit) or `exhausted`. */
+  state: z.enum(["available", "low", "exhausted"]),
+  remaining: z.number().optional(),
+  limit: z.number().optional(),
+  unit: z.enum(["currency", "credits", "characters"]).optional(),
+  /** ISO 4217 code for `unit: "currency"`. */
+  currency: z.string().optional(),
+  /** `balance_endpoint`: read from the provider. `call_failure`: a call was refused for payment. */
+  source: z.enum(["balance_endpoint", "call_failure"]),
+  summary: z.string(),
+  /** Milliseconds since the epoch. */
+  checkedAt: z.number()
+});
+export type ProviderCreditResponse = z.infer<typeof providerCreditSchema>;
+
+export const providerCreditsOutput = z.array(
+  z.object({
+    provider: z.string(),
+    /** Whether NodeTool can read this provider's balance. */
+    supported: z.boolean(),
+    /** Null when nothing is known. */
+    credit: providerCreditSchema.nullable()
+  })
+);
+export type ProviderCreditsOutput = z.infer<typeof providerCreditsOutput>;
 
 // ── Local history retention and database maintenance ────────────────
 
@@ -224,3 +269,34 @@ export const onePasswordFieldOption = z.object({
   reference: z.string()
 });
 export type OnePasswordFieldOption = z.infer<typeof onePasswordFieldOption>;
+
+// ── Tool permissions (Settings › Permissions, chat "Always allow") ──
+
+/** A saved rule for one tool: run without asking, or ask first. */
+export const toolPermissionRule = z.enum(["always_allow", "ask"]);
+export type ToolPermissionRule = z.infer<typeof toolPermissionRule>;
+
+export const toolPermissionEntry = z.object({
+  /** Rule key: a tool name, or `tool:target` for a narrowed approval. */
+  name: z.string(),
+  description: z.string(),
+  category: z.enum(["write", "execute", "external"]),
+  rule: toolPermissionRule
+});
+export type ToolPermissionEntry = z.infer<typeof toolPermissionEntry>;
+
+export const toolPermissionGroup = z.object({
+  id: z.string(),
+  title: z.string(),
+  tools: z.array(toolPermissionEntry)
+});
+export type ToolPermissionGroup = z.infer<typeof toolPermissionGroup>;
+
+export const toolPermissionsListOutput = z.object({
+  groups: z.array(toolPermissionGroup)
+});
+
+export const toolPermissionsSetInput = z.object({
+  name: z.string().min(1).max(256),
+  rule: toolPermissionRule
+});

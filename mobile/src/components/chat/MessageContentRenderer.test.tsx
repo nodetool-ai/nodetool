@@ -2,8 +2,8 @@
  * Tests for MessageContentRenderer component
  */
 
-import { Dimensions, StyleSheet } from 'react-native';
-import { render, screen, act } from '@testing-library/react-native';
+import { Dimensions, Linking, StyleSheet } from 'react-native';
+import { render, screen, act, fireEvent } from '@testing-library/react-native';
 import { useAudioPlayer } from 'expo-audio';
 import { useVideoPlayer } from 'expo-video';
 import { MessageContentRenderer } from './MessageContentRenderer';
@@ -282,24 +282,44 @@ describe('MessageContentRenderer', () => {
   });
 
   describe('Document content', () => {
-    it('renders document placeholder', () => {
-      const documentContent: MessageContent = {
-        type: 'document',
-        document: {
-          type: 'document',
-          uri: 'https://example.com/doc.pdf',
-        },
-      };
-
+    const renderDocument = (document: Extract<MessageContent, { type: 'document' }>['document']) =>
       render(
         <MessageContentRenderer
-          content={documentContent}
+          content={{ type: 'document', document }}
           renderTextContent={mockRenderTextContent}
           index={0}
         />
       );
 
-      expect(screen.getByText('📄 Document attached')).toBeTruthy();
+    it('shows the file name, type and size of an inline file', () => {
+      // "hello world": 11 bytes.
+      renderDocument({
+        type: 'document',
+        uri: 'data:application/pdf;base64,aGVsbG8gd29ybGQ=',
+        title: 'Q3 report.pdf',
+      });
+
+      expect(screen.getByText('Q3 report.pdf')).toBeTruthy();
+      expect(screen.getByText('PDF · 11 B')).toBeTruthy();
+      // No URL another app can open, so the card is not a button.
+      expect(screen.queryByRole('button')).toBeNull();
+    });
+
+    it('opens a file with a web URL', () => {
+      const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+      renderDocument({ type: 'document', uri: 'https://example.com/files/doc.pdf' });
+
+      expect(screen.getByText('doc.pdf')).toBeTruthy();
+      fireEvent.press(screen.getByRole('button', { name: 'doc.pdf, PDF' }));
+      expect(openURL).toHaveBeenCalledWith('https://example.com/files/doc.pdf');
+      openURL.mockRestore();
+    });
+
+    it('labels a file with no recorded name', () => {
+      renderDocument({ type: 'document', uri: 'data:application/msword;base64,AAAA' });
+
+      expect(screen.getByText('Document')).toBeTruthy();
+      expect(screen.getByText('DOC · 3 B')).toBeTruthy();
     });
   });
 

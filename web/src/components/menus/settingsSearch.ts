@@ -7,6 +7,7 @@ export const SETTINGS_TAB_ITEMS: ReadonlyArray<{
 }> = [
   { value: "general", label: "General" },
   { value: "providers", label: "Models & providers" },
+  { value: "permissions", label: "Permissions" },
   { value: "integrations", label: "Integrations" },
   { value: "privacy", label: "Privacy" },
   { value: "about", label: "About" }
@@ -15,6 +16,7 @@ export const SETTINGS_TAB_ITEMS: ReadonlyArray<{
 const TAB_LABEL: Record<SettingsSection, string> = {
   general: "General",
   providers: "Models & providers",
+  permissions: "Permissions",
   integrations: "Integrations",
   privacy: "Privacy",
   about: "About"
@@ -62,7 +64,7 @@ const GENERAL_KEYWORDS = [
 ];
 
 const INTEGRATION_KEYWORDS = [
-  "folders assets workspace directory storage",
+  "folders assets project folder directory storage",
   "connected accounts telegram discord messaging",
   "mcp servers claude desktop",
   "browser extension chrome",
@@ -72,6 +74,10 @@ const INTEGRATION_KEYWORDS = [
   "observability traceloop",
   "data storage supabase",
   "nodetool api token"
+];
+
+const PERMISSIONS_KEYWORDS = [
+  "permissions tools tool approval allow always ask prompt auto mode plan mode chat agent"
 ];
 
 const PRIVACY_KEYWORDS = [
@@ -107,6 +113,8 @@ export function tabHasMatches(tab: SettingsSection, search: string): boolean {
       );
     case "integrations":
       return INTEGRATION_KEYWORDS.some((keywords) => keywords.includes(query));
+    case "permissions":
+      return PERMISSIONS_KEYWORDS.some((keywords) => keywords.includes(query));
     case "privacy":
       return PRIVACY_KEYWORDS.some((keywords) => keywords.includes(query));
     case "about":

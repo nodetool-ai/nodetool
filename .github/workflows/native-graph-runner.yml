@@ -7,29 +7,55 @@
 # The image adapter pins libvips 8.18.7 and libwebp 1.6.0 exactly, and OCR
 # needs Tesseract 5.5.3 or newer. Ubuntu ships older versions, so the deps step
 # builds these three from SHA-256-pinned sources into a cached prefix.
+#
+# The paths include the packages that own the SQLite schema the runner's model
+# repository opens (guest/host/models.mjs), so a schema change runs its tests.
+#
+# Pull requests and pushes to main run only the tests their changed files
+# affect. The nightly run tests everything once a day when main changed its
+# paths in the last 25 hours (the `changes` job).
 name: Native graph runner
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "50 3 * * *"
   pull_request:
     paths:
       - "native/graph-runner/**"
       - "native/jobs/**"
       - "native/kernels/**"
+      - "native/node-editor/**"
+      - "packages/audio-nodes/**"
+      - "packages/kernels/**"
+      - "packages/models/**"
+      - "packages/models-core/**"
+      - "packages/database-sqlite/**"
+      - "native/realtime/**"
       - ".github/workflows/native-graph-runner.yml"
+      - "docker/ci-native/**"
   push:
     branches: [main]
     paths:
       - "native/graph-runner/**"
       - "native/jobs/**"
       - "native/kernels/**"
+      - "native/node-editor/**"
+      - "packages/audio-nodes/**"
+      - "packages/kernels/**"
+      - "packages/models/**"
+      - "packages/models-core/**"
+      - "packages/database-sqlite/**"
+      - "native/realtime/**"
       - ".github/workflows/native-graph-runner.yml"
 
 permissions:
   contents: read
 
 concurrency:
-  group: native-graph-runner-${{ github.ref }}
+  # The event is part of the group so a queued push run and the nightly run
+  # never replace each other: a group keeps only one pending run.
+  group: native-graph-runner-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -40,15 +66,84 @@ env:
   TESSERACT_VERSION: "5.5.3"
   TESSERACT_SHA256: 9218e62793116d42a9f6d14cd9348518b27f382096eea3d0f2d1a24616bb5884
   DEPS_PREFIX: /opt/nt-graph-runner-deps
-  CCACHE_BASEDIR: ${{ github.workspace }}
   CCACHE_COMPILERCHECK: content
   CCACHE_MAXSIZE: 2G
 
 jobs:
+  # Decides whether a scheduled run has anything new to test. Every other
+  # event already passed its paths filter, so it always runs.
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          REF: ${{ github.ref_name }}
+          # The push paths filter above, as one path per word.
+          WATCHED_PATHS: >-
+            native/graph-runner native/jobs native/kernels native/node-editor
+            packages/audio-nodes packages/kernels packages/models packages/models-core packages/database-sqlite
+            native/realtime .github/workflows/native-graph-runner.yml
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT" != "schedule" ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          since=$(date -u -d '25 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+          for path in $WATCHED_PATHS; do
+            count=$(gh api -X GET "repos/$REPO/commits" -f sha="$REF" -f path="$path" -f since="$since" -f per_page=1 --jq length)
+            if [[ "$count" != "0" ]]; then
+              echo "$path changed since $since"
+              echo "run=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo "No watched path changed since $since"
+          echo "run=false" >> "$GITHUB_OUTPUT"
+
+  # The legs run in the native CI image (docker/ci-native/) instead of
+  # installing their system packages with apt.
+  ci-image:
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    uses: ./.github/workflows/ci-image.yml
+    with:
+      image: ci-native
+    permissions:
+      contents: read
+      packages: write
+
   build:
     name: ${{ matrix.name }}
+    needs: [changes, ci-image]
+    if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 120
+    permissions:
+      contents: read
+      packages: read
+    # --privileged lets the parity check lift the runner's AppArmor limit on
+    # user namespaces and start `unshare -rn`, and lets TSan and LeakSanitizer
+    # make the calls Docker's default seccomp profile refuses.
+    container:
+      image: ${{ needs.ci-image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --init --user 1001 --privileged
+      volumes:
+        - /usr/share/dotnet:/reclaim/dotnet
+        - /usr/local/lib/android:/reclaim/android
+        - /opt/ghc:/reclaim/ghc
+        - /usr/local/.ghcup:/reclaim/ghcup
     strategy:
       fail-fast: false
       matrix:
@@ -67,56 +162,51 @@ jobs:
     env:
       ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
       UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
-      LSAN_OPTIONS: suppressions=${{ github.workspace }}/native/graph-runner/tools/lsan.supp
       # Hosted runners are about twice as slow as the machine the tests' wall-clock
       # budgets were measured on (unittests/sanitizer_build.h).
       GR_TEST_TIME_SCALE: "2"
-      TSAN_OPTIONS: halt_on_error=1:second_deadlock_stack=1:suppressions=${{ github.workspace }}/native/graph-runner/tools/tsan.supp
     defaults:
       run:
         shell: bash
     steps:
-      # Depth 2 keeps the merge commit's first parent, the base the test
-      # selection diffs against.
+      # Depth 2 keeps the merge commit's first parent, the base a pull
+      # request's test selection diffs against.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 2
 
-      # Native C++ jobs install their system packages with apt on the runner
-      # (docker/ci/README.md).
-      - name: Install system packages
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libsecret-1-0 \
-            build-essential cmake ninja-build meson pkg-config ccache \
-            libicu-dev libcurl4-openssl-dev \
-            libavformat-dev libavcodec-dev libavutil-dev libavfilter-dev \
-            libswscale-dev libswresample-dev \
-            libcairo2-dev libpango1.0-dev libfontconfig-dev \
-            libglib2.0-dev libexpat1-dev libjpeg-turbo8-dev libpng-dev \
-            libtiff-dev librsvg2-dev libgif-dev liblcms2-dev libexif-dev \
-            libarchive-dev libleptonica-dev tesseract-ocr-eng \
-            mesa-vulkan-drivers
+      # In a container job `github.workspace` names the runner's path, not
+      # the container's, so the paths come from GITHUB_WORKSPACE instead.
+      - name: Point ccache and the sanitizers at the workspace
+        run: | # zizmor: ignore[github-env]
+          echo "CCACHE_BASEDIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+          echo "LSAN_OPTIONS=suppressions=$GITHUB_WORKSPACE/native/graph-runner/tools/lsan.supp" >> "$GITHUB_ENV"
+          echo "TSAN_OPTIONS=halt_on_error=1:second_deadlock_stack=1:suppressions=$GITHUB_WORKSPACE/native/graph-runner/tools/tsan.supp" >> "$GITHUB_ENV"
 
       # The guest bundle reads the node packages' dist/ output.
       - name: Set up and build backend packages
         uses: ./.github/actions/setup-build
         with:
           package-media: "false"
+          free-disk: background
+
+      # The job runs as the runner's user, so the cache restore below cannot
+      # create a directory under /opt by itself.
+      - name: Create the pinned dependency prefix
+        run: sudo mkdir -p "$DEPS_PREFIX" && sudo chown "$(id -u):$(id -g)" "$DEPS_PREFIX"
 
       - name: Restore pinned native dependencies
         id: deps-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.DEPS_PREFIX }}
-          key: graph-runner-deps-${{ runner.os }}-vips${{ env.VIPS_VERSION }}-webp${{ env.WEBP_VERSION }}-tess${{ env.TESSERACT_VERSION }}
+          key: graph-runner-deps-ci-native-vips${{ env.VIPS_VERSION }}-webp${{ env.WEBP_VERSION }}-tess${{ env.TESSERACT_VERSION }}
 
       - name: Build pinned native dependencies
         if: steps.deps-cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
-          sudo mkdir -p "$DEPS_PREFIX" && sudo chown "$USER" "$DEPS_PREFIX"
           src="$RUNNER_TEMP/deps-src" && mkdir -p "$src" && cd "$src"
           fetch() { curl -sfL -o "$2" "$1" && echo "$3  $2" | sha256sum -c -; }
           export PKG_CONFIG_PATH="$DEPS_PREFIX/lib/pkgconfig:$DEPS_PREFIX/lib/x86_64-linux-gnu/pkgconfig"
@@ -171,9 +261,11 @@ jobs:
             -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DCMAKE_C_FLAGS="$SAN_FLAGS" -DCMAKE_CXX_FLAGS="$SAN_FLAGS" \
             -DCMAKE_EXE_LINKER_FLAGS="$SAN_FLAGS" -DCMAKE_SHARED_LINKER_FLAGS="$SAN_FLAGS" \
-            -DGR_TEST_TESSDATA=/usr/share/tesseract-ocr/5/tessdata
+            -DGR_TEST_TESSDATA=/usr/share/tesseract-ocr/5/tessdata \
+            -DNODETOOL_GRAPH_RUNNER_REALTIME=ON
 
       - name: Build
+        id: native_build
         working-directory: native/graph-runner
         env:
           CCACHE_DIR: ${{ runner.temp }}/ccache
@@ -186,18 +278,83 @@ jobs:
           node guest/host/gpu-catalog.mjs build/gpu-catalog.json
           ./build/nodetool-graph-runner compile --bundle build/guest.js --out build/guest.bin
 
-      # A pull request runs only the tests that depend on its changed files:
-      # the selection of `npm run test:affected:native`, read from this
-      # build's target model and compiler depfiles. Changes to CI or to the
-      # selection scripts run every test, as manual runs do. If the selection
-      # fails, every test runs.
+      - name: Select software Vulkan adapter
+        run: |
+          set -euo pipefail
+          driver=$(find /usr/share/vulkan/icd.d -name 'lvp_icd*.json' -print -quit)
+          test -n "$driver"
+          echo "VK_ICD_FILENAMES=$driver" >> "$GITHUB_ENV"
+          echo "VK_DRIVER_FILES=$driver" >> "$GITHUB_ENV"
+
+      - name: Check Linux signal-effect parity
+        if: matrix.name == 'Release'
+        working-directory: native/graph-runner
+        run: |
+          # Match the ephemeral-runner setup in .github/actions/chromium-sandbox.
+          # parity/run.mjs still proves that its network namespace is offline.
+          if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          node parity/run.mjs --runner build/nodetool-graph-runner \
+            --modules @nodetool-ai/core-nodes/nodes/constant,@nodetool-ai/audio-nodes/nodes/realtime-audio \
+            --only nodetool.audio.realtime.Streaming --check 2>&1 | tee build/audio-parity.log
+
+      - name: Save Linux signal-effect parity results
+        if: ${{ !cancelled() && matrix.name == 'Release' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: audio-signal-parity
+          path: |
+            native/graph-runner/build/parity/result.json
+            native/graph-runner/build/audio-parity.log
+          if-no-files-found: error
+
+      # Catch private-driver tracking regressions before the long host suite.
+      - name: Check private realtime GPU mutex tracking
+        if: matrix.name == 'TSan'
+        run: |
+          env -u DISPLAY ctest --test-dir native/graph-runner/build \
+            -R '^realtime-offline-(gpu|render-export)$' --no-tests=error --output-on-failure
+
+      - name: Check provider job-state ordering
+        if: matrix.name == 'Release'
+        run: |
+          ctest --test-dir native/graph-runner/build -R '^gr_provider_job_state_tests$' \
+            --repeat until-fail:20 --no-tests=error --output-on-failure
+
+      - name: Verify realtime command dispatch
+        # Match the unfiltered private CTests, including their serial TSan driver.
+        env:
+          RT_SANITIZER: ${{ matrix.name }}
+        run: |
+          if [[ "$RT_SANITIZER" == 'TSan' ]]; then
+            export LP_NUM_THREADS=0 MESA_SHADER_CACHE_DISABLE=true
+          fi
+          TSAN_OPTIONS=halt_on_error=1:second_deadlock_stack=1 \
+            node native/realtime/scripts/cli-check.mjs native/graph-runner/build/nodetool-graph-runner
+
+      # A pull request or a push to main runs only the tests that depend on
+      # its changed files: the selection of `npm run test:affected:native`,
+      # read from this build's target model and compiler depfiles. A pull
+      # request diffs against its merge commit's first parent, a push against
+      # the commit main pointed to before it. Changes to CI or to the
+      # selection scripts run every test, as scheduled and manual runs do. If
+      # the selection fails, for example because the push's base commit cannot
+      # be fetched, every test runs.
       - name: Select affected tests
         id: select
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
         continue-on-error: true
+        env:
+          PUSH_BEFORE: ${{ github.event.before }}
         run: |
+          base=HEAD^1
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            base="$PUSH_BEFORE"
+            git fetch --no-tags --depth=1 origin "$base"
+          fi
           node scripts/native-ci-test-selection.mjs --project graph-runner --build native/graph-runner/build \
-            --base HEAD^1 \
+            --base "$base" \
             --force .github/workflows/native-graph-runner.yml --force scripts/test-affected-native.mjs \
             --force scripts/test-affected.mjs --force scripts/native-ci-test-selection.mjs
 
@@ -213,4 +370,32 @@ jobs:
         run: |
           sel=()
           if [[ -n "$NT_TEST_FILTER" ]]; then sel=(-R "$NT_TEST_FILTER"); fi
-          ctest --test-dir build --output-on-failure --timeout 900 "${sel[@]}"
+          env -u DISPLAY ctest --test-dir build --output-on-failure --timeout 900 "${sel[@]}"
+
+      - name: Install Qt for the node editor
+        id: editor_qt
+        if: ${{ !cancelled() && matrix.name == 'Release' && steps.native_build.outcome == 'success' }}
+        run: | # zizmor: ignore[github-env]
+          pipx run aqtinstall install-qt linux desktop 6.12.0 linux_gcc_64 \
+            -m qtmultimedia qtwebsockets qtshadertools -O "$RUNNER_TEMP/qt"
+          echo "CMAKE_PREFIX_PATH=$RUNNER_TEMP/qt/6.12.0/gcc_64" >> "$GITHUB_ENV"
+
+      - name: Build and test the audio examples in the editor
+        if: ${{ !cancelled() && matrix.name == 'Release' && steps.editor_qt.outcome == 'success' }}
+        env:
+          CCACHE_DIR: ${{ runner.temp }}/ccache
+        run: |
+          # The editor compiles the runner as a subproject, so it needs the
+          # runner's compiler (see Configure above).
+          cmake -S native/node-editor -B native/node-editor/build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=clang-18 -DCMAKE_CXX_COMPILER=clang++-18 \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          cmake --build native/node-editor/build --parallel 2 --target nodetool-node-editor \
+            node_editor_menus_tests node_editor_canvas_media_host_tests node_editor_media_ui_tests node_editor_local_run_tests
+          QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
+            native/node-editor/build/node_editor_menus_tests examplesMenuOpensEachBundledExample
+          QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
+            native/node-editor/build/node_editor_canvas_media_host_tests storedMinuteOfAudioLoadsOnCard
+          QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
+            native/node-editor/build/node_editor_media_ui_tests longWaveformStaysBounded
+          ctest --test-dir native/node-editor/build -R '^node_editor_local_run$' --output-on-failure

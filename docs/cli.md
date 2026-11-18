@@ -266,7 +266,7 @@ Executes a workflow by ID (from the local database), JSON file, or TypeScript DS
 - `--params <json>` — JSON string of workflow parameters.
 - `--json` — output result as JSON.
 - `--asset-output-mode <mode>` — how media outputs are materialized: `native` (default), `raw`, `data_uri`, `workspace`, `storage_url`, or `temp_url`.
-- `--workspace <dir>` — workspace directory for `workspace` mode output (default `./nodetool-output`).
+- `--workspace <dir>` — directory the run reads and writes files in. Without it the run uses its project folder: a stored workflow's project, or Personal for a file with no stored record. A run whose project folder is unreachable does not start.
 - `--trigger-event <json>` — wake a trigger node the way the scheduler or webhook adapter would, for example `'{"node_id":"watch","payload":{"path":"/tmp/a.csv","event":"created"}}'`. Without it a webhook, file-watch or manual trigger has no event to emit and the run stalls until its timeout.
 - `--supervise` and its bounds — see [Supervised runs](#supervised-runs).
 
@@ -1500,24 +1500,37 @@ record logical audio events and state without producing audio samples.
 
 ### `nodetool projects`
 
-List projects and move whole projects between installs as `.nodetool-project`
-files. Runs against the local database, asset store, and workspaces. The
+List projects, move whole projects between installs as `.nodetool-project`
+files, and run the migration into project folders. Runs against the local
+database, asset store, and workspaces. The
 server serves the same format at `GET /api/projects/:id/export` and
 `POST /api/projects/import`, so a file from either side imports on the other.
 
 **Subcommands:**
 
 - `list [--archived] [--json]` — projects, newest first.
-- `export <project_id> [-o <file>] [--json]` — write the project to a file.
-  The default name is `<project name>.nodetool-project`.
+- `export <project_id> [-o <file>] [--collect] [--json]` — write the project
+  to a file. The default name is `<project name>.nodetool-project`. A project
+  that links files from outside its folder is refused with their names.
+  `--collect` copies them into the folder's `Imported/` directory first.
 - `import <file> [--name <name>] [--json]` — create a new project from a file
   and print its id.
+- `migrate [--yes] [--location <dir>] [--json]` — print the plan for the
+  [upgrade from before project folders](workspaces.md#upgrading-from-before-project-folders)
+  and its state. With `--yes` it confirms and runs the migration to the end in
+  this process, and continues one that the desktop app or a server confirmed.
+  It refuses a migration paused in the app. `--location` names an existing,
+  writable directory for new project folders and stores it as `PROJECTS_DIR`.
+  It exits with status 1 when something could not move. No other command runs
+  the migration. `NODETOOL_PROJECT_MIGRATION=auto` makes a server confirm at
+  startup instead.
 
 A project file holds every row filed under the project: workflows and their
 versions, storyboards, scripts, timelines, sketches, mini apps, JavaScript
 scripts, and games, each with its version history. It also holds chats with
-their messages, assets with their stored bytes, and every file in the
-project's workspaces. Jobs, run traces, and spend records stay behind.
+their messages, assets with their stored bytes, and every file in the project
+folder and the project's other workspaces. Jobs, run traces, and spend records
+stay behind.
 
 Import never overwrites. It creates a new project and gives every row a new
 id, then rewrites each reference to an exported id: id columns, document JSON,
@@ -1526,12 +1539,19 @@ Imported workflows are private. Workspaces become managed folders, because the
 exporting machine's paths mean nothing on another one. The Personal project
 imports as an ordinary named project.
 
+The file carries an asset that is a file in the project folder twice: its
+bytes under `assets/` and the file under `workspaces/`. Import takes it once,
+as the file in the new project folder. An asset with no file in the folder is
+imported from `assets/` into the asset store.
+
 **Examples:**
 
 ```bash
 nodetool projects list
 nodetool projects export 6f1c2e... -o launch-spot.nodetool-project
 nodetool projects import launch-spot.nodetool-project --name "Launch spot (copy)"
+nodetool projects migrate
+nodetool projects migrate --yes --location /data/NodeTool
 ```
 
 ## Job Management

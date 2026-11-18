@@ -15,7 +15,7 @@ InspectorSection {
     readonly property var style: styleEdits.style
     readonly property bool locked: styleEdits.locked
     title: "Text"
-    defaultOpen: false
+    defaultOpen: true
     visible: clip.mediaType === "text" && !!clip.textStyle && clip.sourceType !== "generated"
     TextStyleEdits {
         id: styleEdits

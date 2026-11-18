@@ -1,0 +1,264 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-11-12T00:00:00.000Z",
+  "updated_at": "2026-11-12T00:00:00.000Z",
+  "name": "Remove Grain with a Median Filter",
+  "tool_name": null,
+  "description": "Draws a checkerboard under heavy grain and removes the grain with 3 by 3 and 5 by 5 median filters, which keep the edges sharp. Runs locally with no file, model or key.",
+  "tags": [
+    "image",
+    "enhance",
+    "denoise",
+    "example",
+    "local"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Remove Grain with a Median Filter\n\nDraws a checkerboard under heavy grain and removes the grain while the edges stay sharp. Every step runs in the editor process, with no file, model or key.\n\n**How it works:** \"1 Board\" and \"2 Grain\" make the noisy image in \"3 Noisy\". A rank filter sorts the pixels around each pixel and keeps one of them. Rank 4 of a 3 by 3 window and rank 12 of a 5 by 5 window are the medians. A blur would soften the edges, and a median does not.\n\n**Try this:** Set Rank on \"Median 3x3\" to 0 for a minimum filter (darker) or 8 for a maximum filter (lighter)."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 640,
+          "selectable": true,
+          "height": 300
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "board",
+        "type": "lib.image.draw.Checkerboard",
+        "data": {
+          "width": 768,
+          "height": 512,
+          "color_a": {
+            "type": "color",
+            "value": "#b3aa96"
+          },
+          "color_b": {
+            "type": "color",
+            "value": "#1f2a38"
+          },
+          "cell_size": 64
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Board"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "noise",
+        "type": "lib.image.draw.GaussianNoise",
+        "data": {
+          "mean": 0,
+          "stddev": 1,
+          "width": 768,
+          "height": 512,
+          "seed": 9
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 640
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Grain"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "add",
+        "type": "lib.image.effects.Add",
+        "data": {
+          "gain": 0.5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Noisy"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "m3",
+        "type": "lib.image.enhance.RankFilter",
+        "data": {
+          "size": 3,
+          "rank": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 220
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Median 3x3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "m5",
+        "type": "lib.image.enhance.RankFilter",
+        "data": {
+          "size": 5,
+          "rank": 12
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 520
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Median 5x5"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "p-noisy",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "noisy"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 640
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Noisy"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "p-m3",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "median_3x3"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 220
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Median 3x3 result"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "p-m5",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "median_5x5"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 520
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Median 5x5 result"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "s1",
+        "source": "board",
+        "sourceHandle": "output",
+        "target": "add",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s2",
+        "source": "noise",
+        "sourceHandle": "output",
+        "target": "add",
+        "targetHandle": "over"
+      },
+      {
+        "id": "e1",
+        "source": "add",
+        "sourceHandle": "output",
+        "target": "m3",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e2",
+        "source": "add",
+        "sourceHandle": "output",
+        "target": "m5",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e3",
+        "source": "add",
+        "sourceHandle": "output",
+        "target": "p-noisy",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e4",
+        "source": "m3",
+        "sourceHandle": "output",
+        "target": "p-m3",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e5",
+        "source": "m5",
+        "sourceHandle": "output",
+        "target": "p-m5",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "run_mode": null
+}

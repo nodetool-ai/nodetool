@@ -21,19 +21,21 @@ ApplicationWindow {
         Ui.ToolbarIconButton {
             id: appearanceButton
             objectName: "chatAppearanceButton"
-            text: qsTr("Appearance")
+            text: qsTr("Settings")
             accessibleName: text
             iconName: "settings"
             onClicked: appearanceDialog.open()
         }
     }
     ChatPanel { anchors.fill: parent; session: chatSession }
+    ProviderKeyDialog { id: providerKeyDialog; session: chatSession; returnFocusTo: appearanceButton }
     Ui.Dialog {
         id: appearanceDialog
         objectName: "chatAppearanceDialog"
-        title: qsTr("Appearance")
+        title: qsTr("Settings")
         width: Math.min(400 * Ui.Theme.uiScale, window.width - Ui.Metrics.xl * 2)
         returnFocusTo: appearanceButton
+        onAboutToShow: chatSession.loadProviderKeys()
         Flickable {
             id: appearanceScroll
             objectName: "chatAppearanceScroll"
@@ -64,6 +66,31 @@ ApplicationWindow {
                 id: appearanceContent
                 width: parent.width
                 spacing: Ui.Metrics.md
+            Ui.Text { text: qsTr("AI providers"); role: Ui.Typography.SansTitle }
+            Ui.Text {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                tone: Ui.Text.Secondary
+                text: qsTr("Connect OpenAI, Anthropic, Gemini or another provider with your API key.")
+            }
+            Ui.Text {
+                objectName: "chatConnectedProviders"
+                readonly property var connected: chatSession.providerKeys.filter(row => row.configured).map(row => row.name)
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                visible: connected.length > 0
+                text: qsTr("Connected: %1").arg(connected.join(", "))
+            }
+            Ui.EditorButton {
+                objectName: "chatAddApiKey"
+                text: qsTr("Add an API key")
+                iconName: "add"
+                onClicked: {
+                    appearanceDialog.close()
+                    providerKeyDialog.open()
+                }
+            }
+            Ui.Text { text: qsTr("Appearance"); role: Ui.Typography.SansTitle }
             Ui.Text { text: qsTr("Theme"); role: Ui.Typography.SansLabel }
             Ui.Select {
                 objectName: "chatAppearanceTheme"

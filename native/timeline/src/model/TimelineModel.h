@@ -9,6 +9,7 @@
 #include <QSet>
 #include <QUndoStack>
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -40,6 +41,11 @@ public:
     explicit TimelineModel(QObject* parent = nullptr);
 
     void setTimeline(nt::Timeline timeline);
+    // Rewrites one undo checkpoint (a raw sequence) for an adopted external change.
+    using HistoryRebase = std::function<QJsonObject(const QJsonObject&)>;
+    // Replace the document with an adopted external change and rebase the
+    // undo history instead of clearing it.
+    void adoptExternalTimeline(nt::Timeline timeline, const HistoryRebase& rebase);
     // Replaces the document with an empty one: every clip leaves the preview,
     // so its decoders close.
     void close();
@@ -88,6 +94,9 @@ public:
     bool previewClips(const QJsonArray& changed);
     // Updates only track effects in the render/audio snapshot, retaining the UI rows.
     bool previewTrackEffects(const QJsonArray& tracks);
+    // Shows a track at a height during a resize drag, with no undo entry. Put the
+    // starting height back before the edit that records the change.
+    bool previewTrackHeight(const QString& trackId, double heightPx);
     void settleTransient();
     // O(1) through the snapshot's id index. Null: no such clip.
     const nt::Clip* findClip(const QString& clipId) const;
@@ -115,6 +124,9 @@ public:
     bool settleCommand(quint64 token, const QJsonObject& document);
     // Reconcile asynchronous resources without adding a user undo command.
     bool settleDocument(const QJsonObject& document);
+    // The project the server now files the timeline under, with no undo
+    // entry. Undo and redo keep it. Returns false when nothing changed.
+    bool setProjectId(const QString& projectId);
 
     // Moves one clip to a new start on its track, as one undoable edit.
     Q_INVOKABLE bool moveClip(const QString& clipId, double startMs);
@@ -143,6 +155,10 @@ signals:
 
 private:
     bool replaceDocument(const QJsonObject& raw);
+    // An undo or redo step: the document, keeping the current project.
+    bool replaceFromHistory(QJsonObject raw);
+    void installTimeline(nt::Timeline timeline, const HistoryRebase* rebase);
+    bool rebaseHistory(const HistoryRebase& rebase);
     bool applyClips(const QJsonArray& clips, const std::vector<int>& reuse, bool sameIds, bool transient = false);
     bool patch(const QJsonArray& changed, bool transient);
     // The clips and tracks the transient snapshots changed since the last full notification.

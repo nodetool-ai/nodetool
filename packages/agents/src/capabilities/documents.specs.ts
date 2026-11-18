@@ -12,13 +12,14 @@ import type { CapabilitySpec } from "./types.js";
 
 export const extractPdfTextSpec: CapabilitySpec = {
   name: "extract_pdf_text",
-  description: "Extract plain text from a PDF document",
+  description:
+    "Extract plain text from a PDF document in the workspace or the asset library",
   inputSchema: {
     type: "object",
     properties: {
       path: {
         type: "string",
-        description: "Path to the PDF file"
+        description: "Workspace path of the PDF, or its asset:// URI (a PDF attached in chat)"
       },
       start_page: {
         type: "integer",
@@ -43,17 +44,19 @@ export const extractPdfTextSpec: CapabilitySpec = {
 
 export const extractPdfTablesSpec: CapabilitySpec = {
   name: "extract_pdf_tables",
-  description: "Extract tables from a PDF document to a JSON file",
+  description:
+    "Extract tables from a PDF document to a JSON file, or return them inline when output_file is omitted",
   inputSchema: {
     type: "object",
     properties: {
       path: {
         type: "string",
-        description: "Path to the PDF file"
+        description: "Workspace path of the PDF, or its asset:// URI (a PDF attached in chat)"
       },
       output_file: {
         type: "string",
-        description: "Path to the output JSON file"
+        description:
+          "Workspace path of the output JSON file. Omit it to get the tables back as `tables`."
       },
       start_page: {
         type: "integer",
@@ -66,7 +69,7 @@ export const extractPdfTablesSpec: CapabilitySpec = {
         default: -1
       }
     },
-    required: ["path", "output_file"]
+    required: ["path"]
   },
   // Writes output_file, so it is gated like write_file, not like a read.
   category: "write",
@@ -82,17 +85,19 @@ export const extractPdfTablesSpec: CapabilitySpec = {
 
 export const convertPdfToMarkdownSpec: CapabilitySpec = {
   name: "convert_pdf_to_markdown",
-  description: "Convert PDF to Markdown format",
+  description:
+    "Convert a PDF to Markdown, written to output_file or returned inline as `markdown` when output_file is omitted",
   inputSchema: {
     type: "object",
     properties: {
       input_file: {
         type: "string",
-        description: "Path to the input PDF file"
+        description: "Workspace path of the PDF, or its asset:// URI (a PDF attached in chat)"
       },
       output_file: {
         type: "string",
-        description: "Path to the output Markdown file"
+        description:
+          "Workspace path of the output Markdown file. Omit it to get the text back as `markdown`."
       },
       start_page: {
         type: "integer",
@@ -105,7 +110,7 @@ export const convertPdfToMarkdownSpec: CapabilitySpec = {
         default: -1
       }
     },
-    required: ["input_file", "output_file"]
+    required: ["input_file"]
   },
   // Writes output_file, so it is gated like write_file, not like a read.
   category: "write",
@@ -152,9 +157,9 @@ export const convertDocumentSpec: CapabilitySpec = {
   name: "convert_document",
   description:
     "Convert a document file in process. Supported conversions (from → to): " +
-    "markdown → html, markdown → docx, markdown → pdf, markdown → text, " +
-    "html → markdown, html → docx, html → pdf, docx → markdown, docx → html, " +
-    "docx → text, text → markdown, text → text. Any other pair returns an " +
+    "markdown → html, markdown → pdf, markdown → text, html → markdown, " +
+    "html → pdf, docx → markdown, docx → html, docx → text, " +
+    "text → markdown, text → text. Any other pair returns an " +
     "error listing these. PDF output is printed by headless Chromium with " +
     "network access blocked.",
   inputSchema: {
@@ -177,7 +182,7 @@ export const convertDocumentSpec: CapabilitySpec = {
       to_format: {
         type: "string",
         description:
-          "Output format: markdown, html, docx, pdf or text",
+          "Output format: markdown, html, pdf or text",
         default: "pdf"
       }
     },

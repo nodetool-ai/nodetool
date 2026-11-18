@@ -1,0 +1,118 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-11-12T00:00:00.000Z",
+  "updated_at": "2026-11-12T00:00:00.000Z",
+  "name": "Play a Clip through a Phaser",
+  "tool_name": null,
+  "description": "Plays a generated chord through a signal phaser at the clip\u2019s own speed. Replace the source with your audio clip.",
+  "tags": [
+    "audio",
+    "dsp",
+    "example",
+    "local"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "clip",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "// Three seconds of a four-note plucked chord, one note every 120 ms.\nconst rate = 44100, seconds = 3;\nconst notes = [196.0, 246.94, 293.66, 392.0];\nconst samples = new Float32Array(rate * seconds);\nfor (let i = 0; i < samples.length; i++) {\n  const t = i / rate;\n  let s = 0;\n  notes.forEach((freq, k) => {\n    const u = t - k * 0.12;\n    if (u < 0) return;\n    const env = Math.exp(-2.5 * u);\n    s += env * (Math.sin(2 * Math.PI * freq * u) + 0.3 * Math.sin(4 * Math.PI * freq * u));\n  });\n  samples[i] = 0.25 * s;\n}\n\n// 16-bit PCM WAV bytes from interleaved samples in [-1, 1].\nfunction wav(samples, rate, channels) {\n  const bytes = new Uint8Array(44 + samples.length * 2);\n  const view = new DataView(bytes.buffer);\n  const tag = (at, text) => { for (let i = 0; i < 4; i++) bytes[at + i] = text.charCodeAt(i); };\n  tag(0, \"RIFF\"); view.setUint32(4, 36 + samples.length * 2, true); tag(8, \"WAVE\");\n  tag(12, \"fmt \"); view.setUint32(16, 16, true); view.setUint16(20, 1, true);\n  view.setUint16(22, channels, true); view.setUint32(24, rate, true);\n  view.setUint32(28, rate * channels * 2, true); view.setUint16(32, channels * 2, true);\n  view.setUint16(34, 16, true); tag(36, \"data\"); view.setUint32(40, samples.length * 2, true);\n  samples.forEach((s, i) => view.setInt16(44 + i * 2, Math.round(Math.max(-1, Math.min(1, s)) * 32767), true));\n  return bytes;\n}\n\nawait output(\"audio\", await media.toAudio(wav(samples, rate, 1), { mimeType: \"audio/wav\", filename: \"chord.wav\" }));\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Chord"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {
+          "audio": {
+            "type": "audio",
+            "type_args": [],
+            "optional": false
+          }
+        }
+      },
+      {
+        "id": "player",
+        "type": "nodetool.audio.realtime.AudioToChunks",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 0
+          },
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "phaser",
+        "type": "nodetool.audio.realtime.StreamingPhaser",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 600,
+            "y": 0
+          },
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.audio.realtime.AudioOutput",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 880,
+            "y": 0
+          },
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "clip-player",
+        "source": "clip",
+        "sourceHandle": "audio",
+        "target": "player",
+        "targetHandle": "audio",
+        "ui_properties": {}
+      },
+      {
+        "id": "player-phaser",
+        "source": "player",
+        "sourceHandle": "chunk",
+        "target": "phaser",
+        "targetHandle": "chunk",
+        "ui_properties": {}
+      },
+      {
+        "id": "phaser-out",
+        "source": "phaser",
+        "sourceHandle": "chunk",
+        "target": "out",
+        "targetHandle": "chunk",
+        "ui_properties": {}
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "run_mode": null
+}

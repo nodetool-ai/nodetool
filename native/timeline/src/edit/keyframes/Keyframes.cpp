@@ -15,7 +15,6 @@
 
 namespace nt::keyframes {
 namespace {
-constexpr double epsilon = 1e-4;
 const QStringList allProperties{"opacity",       "scale",           "offsetX",    "offsetY",  "rotation",
                                 "cameraAzimuth", "cameraElevation", "cameraZoom", "cameraFov"};
 QJsonObject merged(QJsonObject base, const QJsonObject& patch) {
@@ -84,6 +83,9 @@ double toT(const QJsonObject& clip, double ms) {
     const double duration = clip["durationMs"].toDouble();
     return duration <= 0 ? 0 : std::clamp(ms / duration, 0.0, 1.0);
 }
+// Keys less than half a millisecond apart are one key (keyframes.ts keyTimeTolerance).
+double tolerance(double durationMs) { return durationMs > 0 ? 0.5 / durationMs : 1e-4; }
+double tolerance(const QJsonObject& clip) { return tolerance(clip["durationMs"].toDouble()); }
 bool multiply(const QString& p) {
     return QStringList{"scale", "scaleX", "scaleY", "opacity", "saturation", "contrast", "cameraZoom"}.contains(p);
 }
@@ -106,7 +108,7 @@ QJsonValue inverse(const QString& p, double base, double composed) {
 bool has(const QJsonObject& clip, const QString& p, double ms) {
     const double t = toT(clip, ms);
     for (const auto& value : keys(clip, p)) {
-        if (std::abs(value.toObject()["t"].toDouble() - t) < epsilon) {
+        if (std::abs(value.toObject()["t"].toDouble() - t) < tolerance(clip)) {
             return true;
         }
     }
@@ -210,7 +212,8 @@ bool paramKeyFits(const QJsonObject& clip, const QString& p, double t) {
         if (kfs.size() < nt::scene::kMaxParamCurveKeys) {
             return true;
         }
-        return std::any_of(kfs.begin(), kfs.end(), [t](const QJsonValueConstRef k) { return std::abs(k.toObject()["t"].toDouble() - t) < epsilon; });
+        const double near = tolerance(clip);
+        return std::any_of(kfs.begin(), kfs.end(), [t, near](const QJsonValueConstRef k) { return std::abs(k.toObject()["t"].toDouble() - t) < near; });
     }
     return list.size() < nt::scene::kMaxParamCurves;
 }
@@ -236,7 +239,7 @@ QJsonObject set(const QJsonObject& clip, const QString& p, double ms, double val
     bool replaced = false;
     for (const auto& item : existing) {
         const auto k = item.toObject();
-        if (!replaced && std::abs(k["t"].toDouble() - t) < epsilon) {
+        if (!replaced && std::abs(k["t"].toDouble() - t) < tolerance(clip)) {
             if (k.contains("easing")) {
                 replacement.insert("easing", k["easing"]);
             }
@@ -276,18 +279,18 @@ QJsonObject update(const QJsonObject& clip, const QStringList& ps, const QString
         const auto kfs = curve["keyframes"].toArray();
         int moving = -1;
         for (qsizetype i = 0; i < kfs.size(); ++i) {
-            if (std::abs(kfs[i].toObject()["t"].toDouble() - t) < epsilon) {
+            if (std::abs(kfs[i].toObject()["t"].toDouble() - t) < tolerance(clip)) {
                 moving = static_cast<int>(i);
                 break;
             }
         }
         for (qsizetype i = 0; i < kfs.size(); ++i) {
             auto k = kfs[i].toObject();
-            const bool hit = std::abs(k["t"].toDouble() - t) < epsilon;
+            const bool hit = std::abs(k["t"].toDouble() - t) < tolerance(clip);
             if (action == "remove" && hit) {
                 continue;
             }
-            if (action == "move" && moving >= 0 && (i == moving || std::abs(k["t"].toDouble() - target) < epsilon)) {
+            if (action == "move" && moving >= 0 && (i == moving || std::abs(k["t"].toDouble() - target) < tolerance(clip))) {
                 continue;
             }
             if (action == "easing" && hit) {
@@ -335,7 +338,7 @@ QJsonObject setEasing(const QJsonObject& clip, const QStringList& ps, double ms,
         QJsonArray kfs;
         for (const auto& item : c["keyframes"].toArray()) {
             auto k = item.toObject();
-            if (ps.contains(c["property"].toString()) && std::abs(k["t"].toDouble() - toT(clip, ms)) < epsilon) {
+            if (ps.contains(c["property"].toString()) && std::abs(k["t"].toDouble() - toT(clip, ms)) < tolerance(clip)) {
                 k.insert("easing", easing);
             } else if (!override.isUndefined()) {
                 k.insert("easing", override);
@@ -649,14 +652,10 @@ QJsonValue toggle(const QJsonObject& clip, const QString& row, const QJsonValue&
         }
         return setMany(clip, entries, ms);
     }
-    bool remaining = false;
-    for (const auto& t : times(clip, ps)) {
-        if (std::abs(t.toDouble() - ms) > 0.5) {
-            remaining = true;
-        }
-    }
-    return remaining ? QJsonValue(update(clip, ps, "remove", ms))
-                     : stopwatch(clip, row, at);
+    // Deleting the last key turns the stopwatch off and keeps the value, as
+    // the web's toggleRowKeyframeAt decides it: on what is left after removal.
+    const auto removed = update(clip, ps, "remove", ms);
+    return rowKeyed(merged(clip, removed), row) ? QJsonValue(removed) : stopwatch(clip, row, at);
 }
 QJsonValue commit(const QJsonObject& clip, const QString& row, int index, double value, const QJsonValue& at) {
     const auto specs = inputs(row);
@@ -776,14 +775,14 @@ std::optional<KeySet> keySet(const QJsonObject& clip, const QJsonValue& value) {
     }
     return result;
 }
-const KeyRequest* findRequest(const std::vector<KeyRequest>& requests, double t) {
-    const auto hit = std::lower_bound(requests.begin(), requests.end(), t - epsilon,
+const KeyRequest* findRequest(const std::vector<KeyRequest>& requests, double t, double near) {
+    const auto hit = std::lower_bound(requests.begin(), requests.end(), t - near,
                                       [](const KeyRequest& a, double b) { return a.t <= b; });
-    return hit != requests.end() && std::abs(hit->t - t) < epsilon ? &*hit : nullptr;
+    return hit != requests.end() && std::abs(hit->t - t) < near ? &*hit : nullptr;
 }
-bool nearSorted(const std::vector<double>& sortedTimes, double t) {
-    const auto hit = std::upper_bound(sortedTimes.begin(), sortedTimes.end(), t - epsilon);
-    return hit != sortedTimes.end() && std::abs(*hit - t) < epsilon;
+bool nearSorted(const std::vector<double>& sortedTimes, double t, double near) {
+    const auto hit = std::upper_bound(sortedTimes.begin(), sortedTimes.end(), t - near);
+    return hit != sortedTimes.end() && std::abs(*hit - t) < near;
 }
 // Moves a selection by one delta, clamped so that every key stays on the clip. Ported
 // from FilmCraft crates/engine/src/keyframe_move.rs (licenses/FilmCraft-MIT.txt): all the
@@ -825,7 +824,7 @@ QJsonValue moveMany(const QJsonObject& clip, const QJsonObject& payload) {
         std::vector<bool> leaving(static_cast<size_t>(kfs.size()), false);
         for (qsizetype i = 0; i < kfs.size(); ++i) {
             auto k = kfs[i].toObject();
-            const auto* request = findRequest(*requests, k["t"].toDouble());
+            const auto* request = findRequest(*requests, k["t"].toDouble(), tolerance(clip));
             if (!request || used.contains(request)) {
                 continue;
             }
@@ -840,7 +839,7 @@ QJsonValue moveMany(const QJsonObject& clip, const QJsonObject& payload) {
         QJsonArray kept;
         for (qsizetype i = 0; i < kfs.size(); ++i) {
             const auto k = kfs[i].toObject();
-            if (!leaving[static_cast<size_t>(i)] && !nearSorted(targets, k["t"].toDouble())) {
+            if (!leaving[static_cast<size_t>(i)] && !nearSorted(targets, k["t"].toDouble(), tolerance(clip))) {
                 kept.append(k);
             }
         }
@@ -867,7 +866,7 @@ QJsonValue easingMany(const QJsonObject& clip, const QJsonObject& payload) {
         QJsonArray kfs;
         for (const auto& item : c["keyframes"].toArray()) {
             auto k = item.toObject();
-            if (requests != selection->constEnd() && findRequest(*requests, k["t"].toDouble())) {
+            if (requests != selection->constEnd() && findRequest(*requests, k["t"].toDouble(), tolerance(clip))) {
                 k.insert("easing", easing);
             } else if (!override.isUndefined()) {
                 k.insert("easing", override);
@@ -913,7 +912,7 @@ QJsonValue deleteMany(const QJsonObject& clip, const QJsonObject& payload) {
                     const auto& requests = selection->find(property).value();
                     QJsonArray kept;
                     for (const auto& k : curve["keyframes"].toArray()) {
-                        if (!findRequest(requests, k.toObject()["t"].toDouble())) {
+                        if (!findRequest(requests, k.toObject()["t"].toDouble(), tolerance(working))) {
                             kept.append(k);
                         }
                     }
@@ -1329,7 +1328,13 @@ QJsonArray times(const QJsonObject& clip, const QStringList& ps) {
             continue;
         }
         for (const auto& k : c["keyframes"].toArray()) {
-            found.insert(std::floor(k.toObject()["t"].toDouble() * clip["durationMs"].toDouble() + 0.5));
+            const double t = k.toObject()["t"].toDouble();
+            // A key a trim cut off is kept but not shown.
+            if (t < -tolerance(clip) || t > 1 + tolerance(clip)) {
+                continue;
+            }
+            // Unrounded, as keyframes.ts keyframeTimesMs returns them.
+            found.insert(t * clip["durationMs"].toDouble());
         }
     }
     auto values = found.values();
@@ -1441,7 +1446,7 @@ QJsonValue helper(const QString& name, const QJsonArray& a) {
         const auto override = easingOverride(c, p);
         for (const auto& k : keys(c, p)) {
             const auto kf = k.toObject();
-            if (std::abs(kf["t"].toDouble() - toT(c, ms)) < epsilon) {
+            if (std::abs(kf["t"].toDouble() - toT(c, ms)) < tolerance(c)) {
                 return override.isUndefined() ? QJsonValue(kf["easing"].toString("linear")) : override;
             }
         }

@@ -10,8 +10,6 @@ The desktop app is an Electron build of the web editor for Windows, macOS, and L
 > **Runs:** locally on Windows (x64), macOS (Apple Silicon and Intel), and Linux (AppImage). **Needs:** one model source, local or a cloud API key (see [Installation](installation.md)). Python is optional and installs on demand.
 {: .callout-note}
 
-Install and provider setup are in [Installation](installation.md). The windows, tray, and menus are in [Desktop App Views](electron-views.md).
-
 ---
 
 ## Platforms and downloads
@@ -24,7 +22,7 @@ Download the installer from [nodetool.ai](https://nodetool.ai). The release buil
 | Windows | NSIS installer (`.exe`) | x64 |
 | Linux | AppImage (unsigned Flatpak builds come from CI only) | See [Installation](installation.md#linux) |
 
-Step-by-step install instructions for each OS are in [Installation](installation.md#macos).
+Install steps per OS: [Installation](installation.md#macos).
 
 ---
 
@@ -86,7 +84,7 @@ A vault is a separate data store with its own database, assets, and RAG collecti
 
 ## Package Manager
 
-Open **Tools → Package Manager** to install system runtimes (such as Python and the model runners) and to enable, disable, install, or update node packs. See [Desktop App Views](electron-views.md#package-manager) for the screen and [Node Packs](node-packs.md) for where packs come from.
+**Tools → Package Manager** installs system runtimes (Python and the model runners) and manages node packs. See [Desktop App Views](electron-views.md#package-manager) and [Node Packs](node-packs.md).
 
 ![Package Manager on the Built-in nodes tab](assets/screenshots/packages-manager.png)
 
@@ -94,7 +92,7 @@ Open **Tools → Package Manager** to install system runtimes (such as Python an
 
 ## Tray and menus
 
-NodeTool keeps a tray icon while it runs. From it you can start or stop the service, show the window, open chat, mini apps, the Log Viewer, and Settings, and quit. The full item lists for the tray and the menu bar are in [Desktop App Views](electron-views.md#system-tray).
+Item lists for the tray and the menu bar are in [Desktop App Views](electron-views.md#system-tray).
 
 ---
 
@@ -106,7 +104,7 @@ Use **Tools → Log Viewer** to read the server log in the app, or **Open Log Fi
 
 ## Uninstalling
 
-Uninstalling removes the application files only. Your data, settings, logs, and Python environment stay on disk, and the Windows uninstaller keeps them on purpose. Steps for each OS are in [Uninstalling](installation.md#uninstalling). To remove everything, also delete the folders in [Where your data lives](#where-your-data-lives).
+Uninstalling removes the application files only. Your data, settings, logs, and Python environment stay on disk, and the Windows uninstaller keeps them on purpose. See [Uninstalling](installation.md#uninstalling). To remove everything, also delete the folders in [Where your data lives](#where-your-data-lives).
 
 ---
 

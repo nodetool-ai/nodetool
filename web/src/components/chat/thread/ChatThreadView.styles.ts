@@ -1,4 +1,4 @@
-import { css } from "@emotion/react";
+import { css, keyframes } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import {
   MOTION,
@@ -8,9 +8,13 @@ import {
   SPACING_PX,
   FONT_SIZE_SANS,
   FONT_WEIGHT,
-  Z_INDEX
+  Z_INDEX,
+  reducedMotion
 } from "../../ui_primitives";
-import { CHAT_COLUMN_MAX_WIDTH } from "../types/chat.types";
+import {
+  CHAT_COLUMN_MAX_WIDTH,
+  CHAT_READING_LINE_HEIGHT
+} from "../types/chat.types";
 
 /** Glyph column width and single-line row height for the tool-call timeline. */
 const TOOL_RAIL_WIDTH = 20;
@@ -20,9 +24,17 @@ const TOOL_ROW_HEIGHT = 22;
 const LOG_RAIL_WIDTH = 2;
 const LOG_DOT_SIZE = 10;
 
+/** Breathing scale of the mark shown while a reply's text streams. */
+const writingPulse = keyframes({
+  "0%, 100%": { opacity: 0.35, transform: "scale(0.8)" },
+  "50%": { opacity: 1, transform: "scale(1)" }
+});
+
 export const createStyles = (theme: Theme) => ({
   chatThreadViewRoot: css({
-    backgroundColor: theme.vars.palette.background.default,
+    // One surface with the panel around it, as on claude.ai: a darker column
+    // read as a box drawn around the conversation.
+    backgroundColor: "transparent",
     flexGrow: 1,
     position: "relative",
     display: "flex",
@@ -46,7 +58,10 @@ export const createStyles = (theme: Theme) => ({
     // dumps) scrolls inside its own box.
     overflowX: "hidden",
     overflowAnchor: "none",
-    padding: theme.spacing(2, 0),
+    padding: theme.spacing(SPACING.md, SPACING.none, SPACING.xl),
+    // Text fades out as it scrolls under the composer instead of ending at a
+    // hard edge. The bottom padding keeps the last line clear of the fade.
+    maskImage: `linear-gradient(to bottom, ${theme.vars.palette.background.default} calc(100% - ${SPACING_PX.xl}px), transparent)`,
     marginTop: 0,
     position: "relative",
 
@@ -99,7 +114,13 @@ export const createStyles = (theme: Theme) => ({
     },
     ".chat-message.assistant": {
       padding: theme.spacing(3, 4),
-      borderRadius: BORDER_RADIUS.xl
+      borderRadius: BORDER_RADIUS.xl,
+      // The reply sits on the bare surface, so on a phone this inset is only
+      // empty width on top of the view's gutter.
+      [theme.breakpoints.down("sm")]: {
+        paddingLeft: theme.spacing(SPACING.md),
+        paddingRight: theme.spacing(SPACING.md)
+      }
     },
     // User message container (transparent, just for layout)
     ".user": {
@@ -158,6 +179,41 @@ export const createStyles = (theme: Theme) => ({
       borderRadius: BORDER_RADIUS.lg
     },
 
+    // Reading rhythm of a reply, after claude.ai: open leading, a clear gap
+    // between blocks, and a little air between list items. The GitHub sheet's
+    // 1.5 leading and 16px block gap read as a dense document.
+    ".chat-message.assistant .markdown-body": {
+      lineHeight: CHAT_READING_LINE_HEIGHT
+    },
+    ".chat-message.assistant .markdown-body :is(p, ul, ol, blockquote, table, details)":
+      {
+        marginTop: 0,
+        marginBottom: theme.spacing(SPACING.lg)
+      },
+    ".chat-message.assistant .markdown-body li + li, .chat-message.assistant .markdown-body li > :is(ul, ol)":
+      {
+        marginTop: theme.spacing(SPACING.xs)
+      },
+    // Round bullets, as on claude.ai. The editor's global `ul li` rule draws
+    // squares, which read as a checklist in prose.
+    ".chat-message.assistant .markdown-body ul > li": {
+      listStyleType: "disc"
+    },
+    ".chat-message.assistant .markdown-body ul ul > li": {
+      listStyleType: "circle"
+    },
+    ".chat-message.assistant .markdown-body :is(h1, h2, h3, h4)": {
+      marginTop: theme.spacing(SPACING.xl),
+      marginBottom: theme.spacing(SPACING.md),
+      lineHeight: 1.3
+    },
+    ".chat-message.assistant .markdown-body > :first-child": {
+      marginTop: 0
+    },
+    ".chat-message.assistant .markdown-body > :last-child": {
+      marginBottom: 0
+    },
+
     // Keep user->assistant transitions compact.
     ".chat-message.user + .chat-message.assistant": {
       marginTop: theme.spacing(SPACING.none),
@@ -210,6 +266,23 @@ export const createStyles = (theme: Theme) => ({
         opacity: 1,
         pointerEvents: "auto"
       },
+    // A message where versions part keeps its switcher in view, as Claude's
+    // "‹ 1/2 ›" does, so the earlier answer is never hidden behind a hover.
+    ".message-actions.has-versions": {
+      opacity: 1,
+      pointerEvents: "auto"
+    },
+    ".message-version-switcher": {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: theme.spacing(SPACING.micro)
+    },
+    ".message-version-label": {
+      ...TYPOGRAPHY.sans.caption,
+      color: theme.vars.palette.text.secondary,
+      fontVariantNumeric: "tabular-nums",
+      whiteSpace: "nowrap"
+    },
     "@media (hover: none)": {
       ".message-actions": {
         opacity: 1,
@@ -308,7 +381,27 @@ export const createStyles = (theme: Theme) => ({
     // thread chrome. Only prose runs at the 15px body size.
     ".chat-status-row": {
       padding: theme.spacing(1, 4),
-      minHeight: theme.spacing(6)
+      minHeight: theme.spacing(6),
+      // Keeps the status on the reply's text edge, which moves in on phones.
+      [theme.breakpoints.down("sm")]: {
+        paddingLeft: theme.spacing(SPACING.md),
+        paddingRight: theme.spacing(SPACING.md)
+      }
+    },
+
+    ".chat-status-row.writing": {
+      minHeight: theme.spacing(SPACING.xxl)
+    },
+
+    // A soft breathing dot on the reply's text edge while the words stream.
+    ".chat-status-pulse": {
+      display: "block",
+      width: SPACING_PX.md,
+      height: SPACING_PX.md,
+      borderRadius: BORDER_RADIUS.circle,
+      backgroundColor: theme.vars.palette.text.secondary,
+      animation: `${writingPulse} ${MOTION.pulse} infinite`,
+      ...reducedMotion({ animation: "none", opacity: 0.6 })
     },
 
     ".chat-status-label": {
@@ -612,24 +705,6 @@ export const createStyles = (theme: Theme) => ({
     ".chat-message.has-tool-calls .markdown": {
       marginTop: theme.spacing(SPACING.micro)
     },
-
-    ".chat-message.has-tool-calls .markdown-body p": {
-      margin: theme.spacing(SPACING.xs, SPACING.none)
-    },
-
-    ".chat-message.has-tool-calls .markdown-body p:first-of-type": {
-      marginTop: theme.spacing(SPACING.none)
-    },
-
-    ".chat-message.has-tool-calls .markdown-body p:last-child": {
-      marginBottom: 0
-    },
-
-    ".chat-message.has-tool-calls .markdown-body ul, .chat-message.has-tool-calls .markdown-body ol":
-      {
-        marginTop: theme.spacing(SPACING.xs),
-        marginBottom: theme.spacing(SPACING.xs)
-      },
 
     ".tool-section-header": {
       minHeight: theme.spacing(SPACING.xxl)

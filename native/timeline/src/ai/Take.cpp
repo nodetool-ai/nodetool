@@ -3,8 +3,32 @@
 #include <QJsonArray>
 #include <algorithm>
 #include <cmath>
+#include <limits>
+#include <optional>
 
 namespace nt::ai {
+namespace {
+double mappingRate(const QJsonObject& mapping) {
+    return mapping.value("speedBaked").toBool() ? 1.0 : std::max(0.0001, mapping.value("speedMultiplier").toDouble(1.0));
+}
+// Timeline ms from the start of the playing take's recorded window to the clip's
+// window. The playing take is the one whose asset is current, as activeTakeIdOf on the web.
+std::optional<double> playingOffsetMs(const QJsonObject& clip) {
+    const auto versions = clip.value("versions").toArray();
+    QJsonObject playing;
+    for (const auto& value : versions) {
+        if (value.toObject().value("assetId") == clip.value("currentAssetId")) { playing = value.toObject(); break; }
+    }
+    if (playing.isEmpty()) {
+        for (const auto& value : versions) {
+            if (value.toObject().value("id") == clip.value("activeTakeId")) { playing = value.toObject(); break; }
+        }
+    }
+    const auto mapping = playing.value("sourceMapping").toObject();
+    if (!mapping.value("inPointMs").isDouble() || !clip.value("inPointMs").isDouble()) { return std::nullopt; }
+    return (clip.value("inPointMs").toDouble() - mapping.value("inPointMs").toDouble()) / mappingRate(mapping);
+}
+}
 TakeResult applyTake(const QJsonObject& clip, const QString& takeId) {
     if (clip.value("mediaType").toString() == "model3d") {
         return {clip, QStringLiteral("Take application is not available for 3D clips.")};
@@ -42,11 +66,25 @@ TakeResult applyTake(const QJsonObject& clip, const QString& takeId) {
         const auto in = mapping.value("inPointMs");
         const auto out = mapping.value("outPointMs");
         const double speed = mapping.value("speedBaked").toBool() ? 1.0 : std::max(0.0001, mapping.value("speedMultiplier").toDouble(1.0));
-        if (!in.isDouble() || !out.isDouble() || std::abs(out.toDouble() - in.toDouble() - duration * speed) < 1.0) {
-            mappingApplied = in.isDouble() && out.isDouble();
+        const auto copyMapping = [&] {
             for (const auto* field : {"inPointMs", "outPointMs", "speedMultiplier", "speedBaked"}) {
                 if (mapping.contains(field)) result.insert(field, mapping.value(field));
                 else result.remove(field);
+            }
+        };
+        if (!in.isDouble() || !out.isDouble() || std::abs(out.toDouble() - in.toDouble() - duration * speed) < 1.0) {
+            mappingApplied = in.isDouble() && out.isDouble();
+            copyMapping();
+        } else if (const auto offset = playingOffsetMs(clip); offset && *offset >= -0.5) {
+            // The clip keeps its length and its offset into the take it plays now, so a
+            // remix take of another length starts at its own start (F11).
+            const double start = in.toDouble() + *offset * speed;
+            const double limit = takeDuration.isDouble() ? takeDuration.toDouble() : std::numeric_limits<double>::infinity();
+            if (start + duration * speed <= limit + 0.5) {
+                mappingApplied = true;
+                copyMapping();
+                result.insert("inPointMs", start);
+                result.insert("outPointMs", start + duration * speed);
             }
         }
     }

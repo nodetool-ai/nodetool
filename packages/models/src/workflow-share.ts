@@ -7,6 +7,11 @@
  * Revoking a share stops new redemptions; it does not remove collaborators
  * who already joined.
  *
+ * A link carries three options, all off by default: history, download and
+ * duplicate. A grant redeemed from the link reads them from the link at
+ * every request, so a change applies to everyone who joined through it, also
+ * after the link is disabled.
+ *
  * A `public` token is never redeemed into a grant. Anyone holding it, signed
  * in or not, can read the workflow, and a signed-in user can copy it into
  * their own workflows. Revoking it stops both.
@@ -21,6 +26,29 @@ import type { CollaboratorRole } from "./workflow-collaborator.js";
 
 export type ShareRole = CollaboratorRole | "public";
 
+/** What a viewer may do beyond opening a document. Editors may do all three. */
+export interface ShareOptions {
+  allow_history: boolean;
+  allow_download: boolean;
+  allow_duplicate: boolean;
+}
+
+/** Copy the options that are set onto a grant or a link. */
+export function applyShareOptions(
+  target: ShareOptions,
+  options: Partial<ShareOptions> | undefined
+): void {
+  if (options?.allow_history !== undefined) {
+    target.allow_history = options.allow_history;
+  }
+  if (options?.allow_download !== undefined) {
+    target.allow_download = options.allow_download;
+  }
+  if (options?.allow_duplicate !== undefined) {
+    target.allow_duplicate = options.allow_duplicate;
+  }
+}
+
 export class WorkflowShare extends DBModel {
   static override table = workflowShares;
 
@@ -31,6 +59,11 @@ export class WorkflowShare extends DBModel {
   declare created_by: string;
   declare created_at: string;
   declare revoked_at: string | null;
+  declare disabled_at: string | null;
+  declare allow_history: boolean;
+  declare allow_download: boolean;
+  declare allow_duplicate: boolean;
+  declare owner_notice: string | null;
 
   constructor(data: Record<string, unknown>) {
     super(data);
@@ -39,6 +72,11 @@ export class WorkflowShare extends DBModel {
     this.role ??= "viewer";
     this.created_at ??= new Date().toISOString();
     this.revoked_at ??= null;
+    this.disabled_at ??= this.revoked_at;
+    this.allow_history ??= false;
+    this.allow_download ??= false;
+    this.allow_duplicate ??= false;
+    this.owner_notice ??= null;
   }
 
   /** URL-safe, unguessable share token. */
@@ -46,8 +84,9 @@ export class WorkflowShare extends DBModel {
     return randomBytes(24).toString("base64url");
   }
 
+  /** A disabled link admits nobody new. */
   get isRevoked(): boolean {
-    return this.revoked_at != null;
+    return this.disabled_at != null;
   }
 
   /** Look up a share by its token (revoked or not). */
@@ -74,7 +113,7 @@ export class WorkflowShare extends DBModel {
         and(
           eq(workflowShares.workflow_id, workflowId),
           eq(workflowShares.role, role),
-          isNull(workflowShares.revoked_at)
+          isNull(workflowShares.disabled_at)
         )
       )
       .limit(1);
@@ -109,8 +148,17 @@ export class WorkflowShare extends DBModel {
     }));
   }
 
+  /** Stop new redemptions. People who joined keep the link's options. */
   async revoke(): Promise<void> {
-    this.revoked_at = new Date().toISOString();
+    const at = new Date().toISOString();
+    this.disabled_at = at;
+    this.revoked_at = at;
+    await this.save();
+  }
+
+  /** Change the link's options. They apply to everyone who joined through it. */
+  async setOptions(options: Partial<ShareOptions>): Promise<void> {
+    applyShareOptions(this, options);
     await this.save();
   }
 

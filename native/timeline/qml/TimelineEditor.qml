@@ -12,12 +12,27 @@ Controls.Control {
     required property TimelineModel timeline
     required property PlaybackClock clock
     property QtObject saver: typeof autosave !== "undefined" ? autosave : null
+    // main sets nativeAccountServers for the app. Tests without it show no
+    // Account control.
+    property AccountServers accountServers: typeof nativeAccountServers !== "undefined" ? nativeAccountServers : null
+    // main sets nativeCloudDocument for a cloud timeline: its status takes
+    // the place of the save status.
+    property CloudDocument cloudDocument: typeof nativeCloudDocument !== "undefined" ? nativeCloudDocument : null
+    // The account of that timeline's server. The owner shares from it.
+    property AccountController cloudAccount: typeof nativeCloudAccount !== "undefined" ? nativeCloudAccount : null
     property var chatSession: typeof nativeChatSession !== "undefined" ? nativeChatSession : null
     property var chatHost: typeof nativeChatHost !== "undefined" ? nativeChatHost : null
     readonly property bool chatInitiallyOpen: typeof nativeChatInitiallyOpen !== "undefined" && nativeChatInitiallyOpen
     readonly property bool chatOpen: chatSession !== null && dockCanvas.visiblePanels.indexOf("assistant") >= 0
     readonly property alias dockStore: layoutStore
     readonly property alias dockCanvas: dockCanvas
+    // The folder of the open server timeline's project and the timeline's
+    // file in it. The file banner and the Library's folder notice read it.
+    readonly property ProjectFolderState projectFolder: ProjectFolderState {
+        timeline: root.timeline
+        autosave: root.saver
+        Component.onCompleted: if (configured) refresh()
+    }
     // One per editor, because each runs a helper process while in use.
     readonly property FrameCapture frameCapture: FrameCapture { timeline: root.timeline }
     // The frame the Reference panel and the comparison view share.
@@ -81,6 +96,8 @@ Controls.Control {
     }
     Keys.forwardTo: tracksHost.item ? [tracksHost.item] : []
     Binding { target: root.clock; property: "durationMs"; value: root.timeline.contentEndMs }
+    // Restart-at-end detection measures one frame of the document's rate (B15).
+    Binding { target: root.clock; property: "fps"; value: root.timeline.fps }
     DockLayoutStore { id: layoutStore; objectName: "dockLayoutStore" }
     function toggleChat() {
         layoutStore.dispatch({type: chatOpen ? "hide" : "reveal", panelId: "assistant"})
@@ -199,6 +216,9 @@ Controls.Control {
                 Layout.fillWidth: true
                 timeline: root.timeline
                 autosave: root.saver
+                cloudDocument: root.cloudDocument
+                cloudAccount: root.cloudAccount
+                accountServers: root.accountServers
                 DockLayoutMenu {
                     anchors.verticalCenter: parent.verticalCenter
                     store: layoutStore
@@ -219,6 +239,7 @@ Controls.Control {
             }
         }
         SaveBanners { Layout.fillWidth: true; autosave: root.saver }
+        DocumentFileBanner { Layout.fillWidth: true; folder: root.projectFolder }
         DockCanvas {
             id: dockCanvas
             Layout.fillWidth: true

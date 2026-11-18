@@ -12,7 +12,7 @@ namespace nodetool::node_editor {
 // output (RunOutput.qml) read and do about runs: the shown queue, whether the
 // server is connected, the open workflow's id, the run output's runs, selected
 // run and models, and the authored command, ask-the-agent, cancel, select and
-// clear requests.
+// clear requests, and the queue history's report request.
 //
 // The owner fills the state with the setters and handles the *Requested
 // signals. A test can use a plain instance and a QSignalSpy. QML gets a
@@ -22,9 +22,12 @@ namespace nodetool::node_editor {
 class RunState : public QObject {
     Q_OBJECT
     // The debounced queue: one map per job with workflow_id, status, order,
-    // queue_position, stopping, terminal and editedSinceError.
+    // queue_position, stopping, terminal, editedSinceError and, for a
+    // completed job, outputAssets: the assets it saved.
     Q_PROPERTY(QVariantList queue READ queue NOTIFY queueChanged)
     Q_PROPERTY(bool connected READ connected NOTIFY connectionChanged)
+    // Why the account's jobs list failed to load, or empty.
+    Q_PROPERTY(QString jobsError READ jobsError NOTIFY jobsErrorChanged)
     // The open workflow, which picks its own jobs out of the queue.
     Q_PROPERTY(QString workflowId READ workflowId NOTIFY workflowIdChanged)
     // The run output's runs, one map per run with jobId and status, and the
@@ -41,6 +44,7 @@ public:
 
     QVariantList queue() const { return queue_; }
     bool connected() const { return connected_; }
+    QString jobsError() const { return jobsError_; }
     QString workflowId() const { return workflowId_; }
     QVariantList outputRuns() const { return outputRuns_; }
     QString selectedRunId() const { return selectedRunId_; }
@@ -49,6 +53,7 @@ public:
 
     void setQueue(const QVariantList &queue);
     void setConnected(bool connected);
+    void setJobsError(const QString &error);
     void setWorkflowId(const QString &id);
     void setOutput(const QVariantList &runs, const QString &selectedRunId);
     // Non-owning: the pointers clear themselves when a model is destroyed.
@@ -67,6 +72,12 @@ public:
     Q_INVOKABLE void selectRun(const QString &runId) { emit selectRunRequested(runId); }
     // Clears the run output.
     Q_INVOKABLE void clearOutput() { emit clearOutputRequested(); }
+    // Opens a bug report for a failed job in the queue history.
+    Q_INVOKABLE void reportJob(const QString &jobId) { emit reportJobRequested(jobId); }
+    // Opens the workflow a queue job ran, as a web JobItem click does.
+    Q_INVOKABLE void openJobWorkflow(const QString &workflowId) { emit openJobWorkflowRequested(workflowId); }
+    // Opens a job output's get_url, as a web JobItem thumbnail does.
+    Q_INVOKABLE void openJobOutput(const QString &url) { emit openJobOutputRequested(url); }
 
 signals:
     void queueChanged();
@@ -79,10 +90,15 @@ signals:
     void cancelRequested(const QString &jobId);
     void selectRunRequested(const QString &runId);
     void clearOutputRequested();
+    void reportJobRequested(const QString &jobId);
+    void openJobWorkflowRequested(const QString &workflowId);
+    void openJobOutputRequested(const QString &url);
+    void jobsErrorChanged();
 
 private:
     QVariantList queue_;
     bool connected_ = false;
+    QString jobsError_;
     QString workflowId_;
     QVariantList outputRuns_;
     QString selectedRunId_;

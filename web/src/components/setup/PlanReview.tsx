@@ -40,6 +40,7 @@ import {
   REVIEW_FLEX_MIN_WIDTH,
   REVIEW_SCENE,
   REVIEW_SCENE_RAIL,
+  REVIEW_SCENE_RAIL_CONTENT,
   REVIEW_SELECT_WIDTH,
   REVIEW_WIDE_WIDTH
 } from "./reviewStyles";
@@ -109,6 +110,12 @@ export interface PlanReviewField {
    * length rather than on a wall of selects.
    */
   advanced?: boolean;
+  /**
+   * What the collapsed "More options" line says about this field, in place of
+   * its label: a length reads as `4 s`, a line of dialogue as its first words.
+   * An empty string leaves the field out of the line.
+   */
+  summary?: string;
 }
 
 /**
@@ -122,6 +129,11 @@ export interface PlanReviewGroup {
   header: string;
   /** Beside the header, in the same quiet tone — a shot size, a duration. */
   meta?: string;
+  /**
+   * At the end of the header's line, e.g. the shot's length. It stays in view
+   * when the field that sets it sits behind "More options".
+   */
+  aside?: string;
   rows: readonly PlanReviewField[];
 }
 
@@ -305,6 +317,9 @@ const PlanReviewControl: React.FC<{ row: PlanReviewField }> = ({ row }) => {
   ) : (
     <TextInput
       {...textProps}
+      // A single-line field shares its line with selects, so it takes their
+      // height rather than the tighter one the body text areas use.
+      compact={false}
       onChange={(event) => row.onChange(event.target.value)}
     />
   );
@@ -351,6 +366,9 @@ const fieldSx = (row: PlanReviewField, packed: boolean): SxProps<Theme> => {
 export const advancedSummary = (rows: readonly PlanReviewField[]): string =>
   rows
     .flatMap((row) => {
+      if (row.summary !== undefined) {
+        return row.summary ? [row.summary] : [];
+      }
       if (row.options) {
         if (row.value === (row.options[0]?.value ?? "")) {
           return [];
@@ -434,11 +452,20 @@ const PlanReviewLines: React.FC<{ rows: readonly PlanReviewField[] }> = ({
 /** One bounded, compact shot inside its scene. */
 const PlanReviewBlock: React.FC<{ group: PlanReviewGroup }> = ({ group }) => (
   <FlexColumn gap={GAP.normal} sx={REVIEW_BLOCK}>
-    <FlexRow gap={GAP.normal} align="baseline" wrap>
-      <Text size="small" component="h4">
+    <FlexRow gap={GAP.normal} align="baseline">
+      <Text size="small" component="h4" sx={{ flexShrink: 0 }}>
         {group.header}
       </Text>
-      {group.meta ? <Caption color="muted">{group.meta}</Caption> : null}
+      {group.meta ? (
+        <Caption color="muted" sx={{ minWidth: 0 }}>
+          {group.meta}
+        </Caption>
+      ) : null}
+      {group.aside ? (
+        <Caption color="secondary" sx={{ ml: "auto", flexShrink: 0 }}>
+          {group.aside}
+        </Caption>
+      ) : null}
     </FlexRow>
     <PlanReviewLines rows={group.rows} />
   </FlexColumn>
@@ -553,20 +580,25 @@ const PlanReviewSceneSection: React.FC<{
 }> = ({ section, remove }) => (
   <Box component="section" sx={REVIEW_SCENE}>
     <FlexRow align="stretch" sx={{ flexWrap: { xs: "wrap", md: "nowrap" } }}>
-      <FlexColumn gap={GAP.comfortable} sx={REVIEW_SCENE_RAIL}>
-        <FlexRow gap={GAP.normal} align="flex-start">
-          <FlexColumn gap={GAP.tight} sx={{ minWidth: 0 }}>
-            <PlanReviewHeader
-              header={section.header}
-              subheader={section.subheader}
-            />
-          </FlexColumn>
-          {remove}
-        </FlexRow>
-        {section.rows.length > 0 ? (
-          <PlanReviewLines rows={section.rows} />
-        ) : null}
-      </FlexColumn>
+      <Box sx={REVIEW_SCENE_RAIL}>
+        {/* The scene's name and setting stay beside its shots while a long
+            scene scrolls past, so the shot being read is never cut off from
+            where it is set. */}
+        <FlexColumn gap={GAP.comfortable} sx={REVIEW_SCENE_RAIL_CONTENT}>
+          <FlexRow gap={GAP.normal} align="baseline">
+            <FlexRow gap={GAP.normal} align="baseline" wrap sx={{ minWidth: 0 }}>
+              <PlanReviewHeader
+                header={section.header}
+                subheader={section.subheader}
+              />
+            </FlexRow>
+            {remove}
+          </FlexRow>
+          {section.rows.length > 0 ? (
+            <PlanReviewLines rows={section.rows} />
+          ) : null}
+        </FlexColumn>
+      </Box>
       <FlexColumn
         gap={GAP.comfortable}
         sx={{ flex: 1, minWidth: 0, padding: SPACING.lg }}

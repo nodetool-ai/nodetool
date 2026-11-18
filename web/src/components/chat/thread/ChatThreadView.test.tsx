@@ -616,6 +616,43 @@ describe("ChatThreadView", () => {
     expect(status.closest(".chat-status-row")).not.toBeNull();
   });
 
+  it("shows a quiet pulse instead of the status label while reply text streams", () => {
+    renderWithTheme(
+      <ChatThreadView
+        {...defaultProps}
+        status="streaming"
+        messages={mockMessages}
+      />
+    );
+    const status = screen.getByRole("status", { name: "Responding…" });
+    expect(status).toHaveClass("chat-status-pulse");
+    expect(screen.queryByText("Responding…")).toBeNull();
+  });
+
+  it("keeps the status label while streaming before any reply text", () => {
+    renderWithTheme(
+      <ChatThreadView
+        {...defaultProps}
+        status="streaming"
+        messages={[mockMessages[0]]}
+      />
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Responding…");
+  });
+
+  it("hides the progress bar once progress reaches its total", () => {
+    const { rerender } = renderWithTheme(
+      <ChatThreadView {...defaultProps} status="loading" progress={40} />
+    );
+    expect(screen.getByTestId("progress")).toBeInTheDocument();
+    rerender(
+      <ThemeProvider theme={mockTheme}>
+        <ChatThreadView {...defaultProps} status="loading" progress={100} />
+      </ThemeProvider>
+    );
+    expect(screen.queryByTestId("progress")).toBeNull();
+  });
+
   it("shows provider, model, and a timer while a media prediction is running", () => {
     act(() =>
       useGlobalChatStore.setState({

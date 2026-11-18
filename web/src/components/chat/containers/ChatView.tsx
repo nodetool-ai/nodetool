@@ -30,11 +30,13 @@ import {
 import ChatThreadView from "../thread/ChatThreadView";
 import { isCompactionMessage } from "../message/CompactionCard";
 import ChatInputSection from "./ChatInputSection";
+import ChatTitleMenu from "./ChatTitleMenu";
 import ChatErrorBanner from "./ChatErrorBanner";
 import { TaskDock } from "../composer/TaskDock";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import { getThreadRuntime } from "../../../core/chat/threadRuntime";
 import { useNotificationStore } from "../../../stores/NotificationStore";
+import { useThreadVersions } from "../../../serverState/useThreadVersions";
 import { useCombo } from "../../../stores/KeyPressedStore";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
 import { canTakeFocus, isTextInputActive } from "../../../utils/browser";
@@ -104,6 +106,15 @@ const styles = (theme: Theme) =>
       zIndex: Z_INDEX.dropdown,
       "& svg": { fontSize: "var(--fontSizeNormal)" }
     },
+    ".chat-overlay-title": {
+      position: "absolute",
+      top: getSpacingPx(SPACING.md),
+      left: getSpacingPx(SPACING.lg),
+      zIndex: Z_INDEX.dropdown,
+      maxWidth: "50%",
+      minWidth: 0,
+      "& .chat-title-button": { maxWidth: "100%", minWidth: 0 }
+    },
     "&::before": {
       content: '""',
       position: "absolute",
@@ -120,6 +131,30 @@ const styles = (theme: Theme) =>
       width: "100%",
       maxWidth: `${CHAT_COLUMN_MAX_WIDTH}px`,
       alignSelf: "center"
+    },
+    // The conversation scrolls across the whole panel, so the wheel works over
+    // the margins and the scrollbar sits at the panel edge. The message list
+    // keeps itself to the reading column.
+    ".chat-thread-container.has-thread": {
+      maxWidth: "none"
+    },
+    // The new chat: greeting and composer as one block in the middle, a
+    // little above centre so the composer sits at eye height.
+    ".chat-main.empty-centered": {
+      justifyContent: "center",
+      paddingBottom: "12vh"
+    },
+    ".chat-main.empty-centered .chat-thread-container": {
+      flex: "0 1 auto",
+      paddingBottom: theme.spacing(SPACING.xl)
+    },
+    ".chat-main.empty-centered .chat-welcome": {
+      flex: "0 1 auto",
+      paddingTop: 0,
+      paddingBottom: 0
+    },
+    ".chat-main.empty-centered .chat-input-section": {
+      marginTop: 0
     },
     ".chat-controls": {
       padding: "0",
@@ -175,6 +210,11 @@ type ChatViewProps = {
    * Optional React node to display when there are no messages yet.
    */
   noMessagesPlaceholder?: React.ReactNode;
+  /**
+   * Before the first message, sit the placeholder and the composer together
+   * in the middle of the panel, as Claude's new chat does.
+   */
+  centerEmptyState?: boolean;
   onInsertCode?: (text: string, language?: string) => void;
   allowedProviders?: string[];
   /** Hide non-tool-capable models in the composer's language model picker. */
@@ -190,6 +230,12 @@ type ChatViewProps = {
    * with its own new-chat button leave it off. Defaults to off.
    */
   showNewChatButton?: boolean;
+  /**
+   * Show the thread title with a menu (rename, copy, delete) at the top of a
+   * conversation, as claude.ai does. Surfaces whose own header names the
+   * thread leave it off.
+   */
+  showTitleMenu?: boolean;
   /**
    * Bind thread-scoped store reads (todos) to this thread instead of the
    * store's current one. Pass it when the surface renders a specific thread
@@ -253,6 +299,7 @@ const ChatView = ({
   currentLogUpdate,
   externalScroll = false,
   noMessagesPlaceholder,
+  centerEmptyState = false,
   graph,
   onInsertCode,
   runningToolCallId,
@@ -262,6 +309,7 @@ const ChatView = ({
   composerPlaceholder,
   hideModelPicker,
   showNewChatButton = false,
+  showTitleMenu = false,
   threadId,
   focusMessage
 }: ChatViewProps) => {
@@ -389,6 +437,11 @@ const ChatView = ({
     }
   }, [messages, writeClipboard, addNotification, t]);
 
+  const titleMenuThreadId =
+    showTitleMenu && messages.length > 0 ? effectiveThreadId : null;
+  const showCopyButton =
+    !isMobile && messages.length > 0 && !titleMenuThreadId;
+
   const lastUserMessage = useMemo(() => {
     for (let index = messages.length - 1; index >= 0; index--) {
       if (messages[index].role === "user") {
@@ -465,6 +518,31 @@ const ChatView = ({
   // A demo replay owns its messages, and a running turn would keep writing
   // into the history a rewind cuts.
   const canResend = !isBusy && !externalScroll && Boolean(effectiveThreadId);
+
+  // Edit and Retry keep the turns they replace as an earlier version, which
+  // the message where the versions part shows as "‹ 1/2 ›". A message the
+  // server never stored (a local placeholder) cannot be a fork yet.
+  const versionsSignature = useMemo(
+    () => messages.map((message) => message.id ?? "").join(","),
+    [messages]
+  );
+  const handleSwitchError = useCallback(
+    (error: unknown) => {
+      addNotification({
+        type: "error",
+        content: t("i18n-next23.chat.errors.switchVersion", {
+          error: error instanceof Error ? error.message : String(error)
+        })
+      });
+    },
+    [addNotification, t]
+  );
+  const { navByMessageId: versionNavByMessageId } = useThreadVersions(
+    effectiveThreadId,
+    versionsSignature,
+    canResend,
+    handleSwitchError
+  );
 
   // `/rewind` takes back the last prompt. A compaction record is stored as a
   // user message, but it is not a prompt the user can take back.
@@ -577,11 +655,22 @@ const ChatView = ({
       css={cssStyles}
       ref={rootRef}
     >
-      <div className="chat-main">
-        {((!isMobile && messages.length > 0) ||
-          (showNewChatButton && onNewChat)) && (
+      <div
+        className={`chat-main${
+          centerEmptyState && messages.length === 0 ? " empty-centered" : ""
+        }`}
+      >
+        {titleMenuThreadId && (
+          <div className="chat-overlay-title">
+            <ChatTitleMenu
+              threadId={titleMenuThreadId}
+              onCopyConversation={handleCopyConversation}
+            />
+          </div>
+        )}
+        {(showCopyButton || (showNewChatButton && onNewChat)) && (
           <FlexRow className="chat-overlay-actions" align="center" gap={SPACING.md}>
-            {!isMobile && messages.length > 0 && (
+            {showCopyButton && (
               <ToolbarIconButton
                 onClick={handleCopyConversation}
                 tooltip={t("i18n-next23.chat.actions.copyMarkdown")}
@@ -597,7 +686,9 @@ const ChatView = ({
             )}
           </FlexRow>
         )}
-        <div className="chat-thread-container">
+        <div
+          className={`chat-thread-container${messages.length > 0 ? " has-thread" : ""}`}
+        >
           {messages.length > 0 ? (
             <ChatThreadView
               threadId={effectiveThreadId}
@@ -616,6 +707,9 @@ const ChatView = ({
               showTaskUpdate={false}
               externalScroll={externalScroll}
               onResendFrom={canResend ? handleResendFrom : undefined}
+              versionNavByMessageId={
+                canResend ? versionNavByMessageId : undefined
+              }
             />
           ) : (
             noMessagesPlaceholder ?? <div style={{ flex: 1 }} />

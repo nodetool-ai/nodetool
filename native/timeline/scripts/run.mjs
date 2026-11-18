@@ -7,7 +7,7 @@
 //
 // The app connects to http://127.0.0.1:7777. When nothing answers there, the
 // script starts the development server (scripts/dev-server.mjs) and stops it
-// when the app quits. NODETOOL_SERVER_URL points the app at that server, so
+// when the app and every window it opened have quit. NODETOOL_SERVER_URL points the app at that server, so
 // the app does not start a bundled one. --no-server and an app --server
 // option skip this.
 //
@@ -20,7 +20,7 @@ import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { runApp, serverUrl, startServer, stopServer } from "../../../scripts/dev-server-session.mjs";
+import { createUsersDir, runApp, serverUrl, startServer, stopServer, waitForUsers } from "../../../scripts/dev-server-session.mjs";
 
 const timelineSource = fileURLToPath(new URL("..", import.meta.url));
 const root = resolve(timelineSource, "../..");
@@ -91,9 +91,16 @@ async function main() {
     throw new Error(`No nodetool-timeline binary in ${build}`);
   }
   const server = wantServer ? await startServer(join(build, "server.log")) : undefined;
-  const env = wantServer ? { ...process.env, NODETOOL_SERVER_URL: serverUrl } : process.env;
+  // Only a server this script started has users to wait for.
+  const users = server ? createUsersDir(join(build, "server-users")) : undefined;
+  const env = wantServer
+    ? { ...process.env, NODETOOL_SERVER_URL: serverUrl, ...(users ? { NT_BUNDLED_SERVER_USERS: users } : {}) }
+    : process.env;
   try {
     process.exitCode = await runApp(binary, appArgs, server, { env });
+    if (users) {
+      await waitForUsers(users);
+    }
   } finally {
     await stopServer(server);
   }

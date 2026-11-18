@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { SupabaseStorageAdapter } from "../src/supabase-storage-adapter.js";
+import { UploadTooLargeError } from "../src/storage-limits.js";
 import type {
   SupabaseBucketApi,
   SupabaseObjectEntry,
@@ -77,6 +78,29 @@ describe("SupabaseStorageAdapter store", () => {
       adapter.store("k.txt", new Uint8Array([1]))
     ).rejects.toThrow('Supabase upload failed for "k.txt": Bucket full');
   });
+
+  it("raises UploadTooLargeError when the project size limit rejects it", async () => {
+    const { adapter } = makeAdapter({
+      upload: vi.fn(async () => ({
+        error: {
+          message: "The object exceeded the maximum allowed size",
+          status: 413
+        }
+      }))
+    });
+    const failure = adapter.store("m.glb", new Uint8Array(3));
+    await expect(failure).rejects.toBeInstanceOf(UploadTooLargeError);
+    await expect(failure).rejects.toMatchObject({ byteLength: 3, maxBytes: null });
+  });
+
+  it("keeps other upload failures as plain errors", async () => {
+    const { adapter } = makeAdapter({
+      upload: vi.fn(async () => ({ error: { message: "Bucket full", status: 400 } }))
+    });
+    await expect(
+      adapter.store("k.txt", new Uint8Array([1]))
+    ).rejects.not.toBeInstanceOf(UploadTooLargeError);
+  });
 });
 
 describe("SupabaseStorageAdapter uriForKey", () => {
@@ -112,6 +136,16 @@ describe("SupabaseStorageAdapter retrieve", () => {
     const { adapter } = makeAdapter();
     expect(await adapter.retrieve("supabase://uploads/")).toBeNull();
     expect(await adapter.retrieve("supabase:///key")).toBeNull();
+  });
+
+  it("returns null for a key with a dot segment and never downloads", async () => {
+    const download = vi.fn(async () => ({ data: null, error: null }));
+    const { adapter } = makeAdapter({ download });
+    expect(
+      await adapter.retrieve("supabase://uploads/projects/p/../../victim/a.png")
+    ).toBeNull();
+    expect(await adapter.retrieve("supabase://uploads/./a.png")).toBeNull();
+    expect(download).not.toHaveBeenCalled();
   });
 
   it("returns null when download reports an error", async () => {
@@ -226,7 +260,7 @@ describe("SupabaseStorageAdapter list", () => {
       list: vi.fn(async () => ({ data: entries, error: null }))
     });
     const result = await adapter.list("dir");
-    expect(bucket.list).toHaveBeenCalledWith("dir", { limit: 1000 });
+    expect(bucket.list).toHaveBeenCalledWith("dir", { limit: 1000, offset: 0 });
     expect(result.entries.map((e) => e.key)).toEqual(["dir/a.txt", "dir/z.txt"]);
     expect(result.entries[0]).toMatchObject({
       key: "dir/a.txt",
@@ -243,8 +277,13 @@ describe("SupabaseStorageAdapter list", () => {
       { name: "sub", id: null },
       { name: "file.txt", id: "1", metadata: { size: 3 } }
     ];
+    // Only `root` has children, so the flat listing's walk into `root/sub`
+    // finds it empty.
     const { adapter } = makeAdapter({
-      list: vi.fn(async () => ({ data: entries, error: null }))
+      list: vi.fn(async (dir: string) => ({
+        data: dir === "root" ? entries : [],
+        error: null
+      }))
     });
     const withDelim = await adapter.list("root", { delimiter: "/" });
     expect(withDelim.commonPrefixes).toEqual(["root/sub/"]);
@@ -252,6 +291,52 @@ describe("SupabaseStorageAdapter list", () => {
 
     const noDelim = await adapter.list("root");
     expect(noDelim.commonPrefixes).toEqual([]);
+  });
+
+  it("lists files in nested directories when no delimiter is given", async () => {
+    // Supabase lists one level: a directory is an entry with no id.
+    const tree: Record<string, SupabaseObjectEntry[]> = {
+      "projects/a": [
+        { name: ".nodetool", id: null },
+        { name: "Generated", id: null },
+        { name: "top.txt", id: "1", metadata: { size: 1 } }
+      ],
+      "projects/a/.nodetool": [
+        { name: "project.json", id: "2", metadata: { size: 2 } }
+      ],
+      "projects/a/Generated": [
+        { name: "clip.png", id: "3", metadata: { size: 3 } },
+        { name: "Shots", id: null }
+      ],
+      "projects/a/Generated/Shots": [
+        { name: "s1.png", id: "4", metadata: { size: 4 } }
+      ]
+    };
+    const { adapter } = makeAdapter({
+      list: vi.fn(async (dir: string) => ({ data: tree[dir] ?? [], error: null }))
+    });
+    const result = await adapter.list("projects/a/");
+    expect(result.entries.map((e) => [e.key, e.size])).toEqual([
+      ["projects/a/.nodetool/project.json", 2],
+      ["projects/a/Generated/Shots/s1.png", 4],
+      ["projects/a/Generated/clip.png", 3],
+      ["projects/a/top.txt", 1]
+    ]);
+    expect(result.entries[1].uri).toBe(
+      "supabase://uploads/projects/a/Generated/Shots/s1.png"
+    );
+    expect(result.commonPrefixes).toEqual([]);
+  });
+
+  it("throws when a nested directory cannot be listed (flat)", async () => {
+    const { adapter } = makeAdapter({
+      list: vi.fn(async (dir: string) =>
+        dir === "p"
+          ? { data: [{ name: "sub", id: null }], error: null }
+          : { data: null, error: { message: "sub failed" } }
+      )
+    });
+    await expect(adapter.list("p")).rejects.toThrow(/sub failed/);
   });
 
   it("defaults size to 0 and omits contentType when metadata absent", async () => {
@@ -273,14 +358,14 @@ describe("SupabaseStorageAdapter list", () => {
     const { adapter, bucket } = makeAdapter();
     await adapter.list("");
     await adapter.list("/");
-    expect(bucket.list).toHaveBeenNthCalledWith(1, "", { limit: 1000 });
-    expect(bucket.list).toHaveBeenNthCalledWith(2, "", { limit: 1000 });
+    expect(bucket.list).toHaveBeenNthCalledWith(1, "", { limit: 1000, offset: 0 });
+    expect(bucket.list).toHaveBeenNthCalledWith(2, "", { limit: 1000, offset: 0 });
   });
 
   it("strips a trailing slash left by normalization", async () => {
     const { adapter, bucket } = makeAdapter();
     await adapter.list("foo/");
-    expect(bucket.list).toHaveBeenCalledWith("foo", { limit: 1000 });
+    expect(bucket.list).toHaveBeenCalledWith("foo", { limit: 1000, offset: 0 });
   });
 
   it("returns empty result for path-traversal prefixes", async () => {
@@ -290,11 +375,11 @@ describe("SupabaseStorageAdapter list", () => {
     expect(bucket.list).not.toHaveBeenCalled();
   });
 
-  it("returns empty result when list errors", async () => {
+  it("throws when list errors, so a failed listing is never read as empty", async () => {
     const { adapter } = makeAdapter({
       list: vi.fn(async () => ({ data: null, error: { message: "boom" } }))
     });
-    expect(await adapter.list("dir")).toEqual({ entries: [], commonPrefixes: [] });
+    await expect(adapter.list("dir")).rejects.toThrow(/boom/);
   });
 });
 

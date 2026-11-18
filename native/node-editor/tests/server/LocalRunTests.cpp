@@ -3,11 +3,15 @@
 #include "../../src/server/WorkflowSession.h"
 #include "../../src/media/LocalMediaStore.h"
 #include "../../src/media/MediaResolver.h"
+#include "../../src/server/MsgPack.h"
 #include <QDir>
 #include <QFileInfo>
 #include <QImage>
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QTemporaryDir>
+#include <QWebSocket>
+#include <QWebSocketServer>
 #include <QtTest>
 #include <memory>
 using namespace nodetool::node_editor;
@@ -69,6 +73,179 @@ private slots:
     qputenv("ASSET_FOLDER", QFile::encodeName(m_assets.path()));
     qputenv("NODETOOL_LOCAL_RUNNER", "1");
     WorkflowSession::setGuestBundlePath(GUEST_BUNDLE);
+  }
+  void evictsOldestRunWhenClipBytesReachTheCap() {
+    LocalMediaStore store(16);
+    const auto oldest = store.addClip("first", QByteArray(8, 'a'), "audio/wav");
+    const auto newer = store.addClip("second", QByteArray(8, 'b'), "audio/wav");
+    QCOMPARE(store.addClip("second", QByteArray(8, 'b'), "audio/wav"), newer);
+    const auto newest = store.addClip("third", QByteArray(8, 'c'), "audio/wav");
+    QVERIFY(!store.contains(oldest));
+    QVERIFY(store.contains(newer));
+    QVERIFY(store.contains(newest));
+    QVERIFY(store.addClip("oversize", QByteArray(17, 'd'), "audio/wav").isEmpty());
+    store.releaseRun("second");
+    QVERIFY(!store.contains(newer));
+    QVERIFY(store.contains(newest));
+    QVERIFY(!store.addClip("fourth", QByteArray(8, 'e'), "audio/wav").isEmpty());
+    QVERIFY(store.contains(newest));
+  }
+  void liveClipPhaserDeliversAndCancels() {
+    WorkflowSession session;
+    QTRY_VERIFY_WITH_TIMEOUT(session.localRunnerReady(), 60000);
+    QFile file(QStringLiteral(EXAMPLES_DIR "/live-clip-phaser.json"));
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    bool received = false;
+    connect(&session, &WorkflowSession::runEvent, this, [&received](const QString &, const QJsonObject &event) {
+      const auto value = event["value"].toObject();
+      if (event["node_id"] == "out" && value["content_type"] == "audio" && !value["done"].toBool()) { received = true; }
+    });
+    const auto id = session.run(QJsonDocument::fromJson(file.readAll()).object());
+    QVERIFY(session.runsInProcess(id));
+    QTRY_VERIFY_WITH_TIMEOUT(received, 10000);
+    session.stop(id);
+    QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("cancelled"), 30000);
+  }
+  void rendersSynthToStoredClip_data() {
+    QTest::addColumn<int>("seconds");
+    QTest::newRow("example") << 4;
+    QTest::newRow("minute") << 60;
+  }
+  void rendersSynthToStoredClip() {
+    QFETCH(int, seconds);
+    QJsonObject result;
+    WorkflowSession session;
+    QTRY_VERIFY_WITH_TIMEOUT(session.localRunnerReady(), 60000);
+    QFile example(QStringLiteral(EXAMPLES_DIR "/render-synth.json"));
+    QVERIFY(example.open(QIODevice::ReadOnly));
+    auto doc = QJsonDocument::fromJson(example.readAll()).object();
+    auto graph = doc["graph"].toObject();
+    auto nodes = graph["nodes"].toArray();
+    bool configured = false;
+    for (qsizetype i = 0; i < nodes.size(); ++i) {
+      auto current = nodes[i].toObject();
+      if (current["id"] != "out") { continue; }
+      auto data = current["data"].toObject();
+      data["duration"] = seconds;
+      current["data"] = data;
+      nodes[i] = current;
+      configured = true;
+    }
+    QVERIFY(configured);
+    graph["nodes"] = nodes;
+    doc["graph"] = graph;
+    connect(&session, &WorkflowSession::runEvent, this, [&result](const QString &, const QJsonObject &event) {
+      if (event["type"] == "output_update" && event["node_id"] == "out") { result = event["value"].toObject(); }
+    });
+    const auto id = session.run(doc);
+    QVERIFY(session.runsInProcess(id));
+    QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("completed"), 30000);
+    const auto uri = result["uri"].toString();
+    QVERIFY(LocalMediaStore::isLocalMedia(uri));
+    const auto clip = LocalMediaStore::instance().clip(uri);
+    // PCM16 WAV: the requested duration, one channel, 44-byte header.
+    QCOMPARE(clip.bytes.size(), 44 + seconds * 44100 * 2);
+    QVERIFY(!result.contains("data"));
+    MediaResolver resolver;
+    QSignalSpy resolved(&resolver, &MediaResolver::resolved);
+    resolver.resolve("clip", result.toVariantMap());
+    QTRY_COMPARE(resolved.size(), 1);
+    LocalMediaStore::instance().releaseRun(id);
+    QTemporaryDir saves;
+    const auto destination = QUrl::fromLocalFile(saves.filePath("render.wav"));
+    QVERIFY(resolver.suggestedFilename("clip", {}, "audio").endsWith(".wav"));
+    QVERIFY(resolver.saveResolved("clip", destination));
+    QFile saved(destination.toLocalFile());
+    QVERIFY(saved.open(QIODevice::ReadOnly));
+    QCOMPARE(saved.readAll(), clip.bytes);
+  }
+  void cancelsLongOfflineRender() {
+    WorkflowSession session;
+    QTRY_VERIFY_WITH_TIMEOUT(session.localRunnerReady(), 60000);
+    QFile example(QStringLiteral(EXAMPLES_DIR "/render-synth.json"));
+    QVERIFY(example.open(QIODevice::ReadOnly));
+    auto doc = QJsonDocument::fromJson(example.readAll()).object();
+    auto graph = doc["graph"].toObject();
+    auto nodes = graph["nodes"].toArray();
+    for (qsizetype i = 0; i < nodes.size(); ++i) {
+      auto current = nodes[i].toObject();
+      if (current["id"] != "out") { continue; }
+      current["data"] = QJsonObject{{"duration", 600}};
+      nodes[i] = current;
+    }
+    graph["nodes"] = nodes;
+    doc["graph"] = graph;
+    const auto id = session.run(doc);
+    QVERIFY(session.runsInProcess(id));
+    QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("running"), 1000);
+    session.stop(id);
+    QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("cancelled"), 3000);
+  }
+  void liveSynthDeliversPcmAndCancels() {
+    int chunks = 0;
+    bool recorded = false;
+    WorkflowSession session;
+    QTRY_VERIFY_WITH_TIMEOUT(session.localRunnerReady(), 60000);
+    QFile example(QStringLiteral(EXAMPLES_DIR "/live-synth.json"));
+    QVERIFY(example.open(QIODevice::ReadOnly));
+    auto doc = QJsonDocument::fromJson(example.readAll()).object();
+    auto graph = doc["graph"].toObject();
+    auto nodes = graph["nodes"].toArray();
+    nodes.append(node("capture", "nodetool.audio.realtime.ChunksToAudio", {{"duration", 0.05}}));
+    auto edges = graph["edges"].toArray();
+    edges.append(edge("capture-edge", "room", "chunk", "capture", "chunk"));
+    graph["nodes"] = nodes;
+    graph["edges"] = edges;
+    doc["graph"] = graph;
+    connect(&session, &WorkflowSession::runEvent, this, [&chunks, &recorded](const QString &, const QJsonObject &event) {
+      if (event["type"] != "output_update") { return; }
+      const auto value = event["value"].toObject();
+      if (event["node_id"] == "out" && value["content_type"] == "audio" && !value["done"].toBool()) { ++chunks; }
+      if (event["node_id"] == "capture" && value["type"] == "audio") { recorded = true; }
+    });
+    const auto id = session.run(doc);
+    QVERIFY(session.runsInProcess(id));
+    QTRY_VERIFY_WITH_TIMEOUT(chunks > 0 && recorded, 1000);
+    const auto afterCapture = chunks;
+    QTRY_VERIFY_WITH_TIMEOUT(chunks > afterCapture, 1000);
+    QCOMPARE(statusOf(session, id), QString("running"));
+    session.stop(id);
+    QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("cancelled"), 30000);
+  }
+  // A live property change reaches the node of a run in progress: the gate
+  // of a Trigger rises after its switch changes.
+  void livePropertyChangeReachesTheRun() {
+    WorkflowSession session;
+    QTRY_VERIFY_WITH_TIMEOUT(session.localRunnerReady(), 60000);
+    const QJsonObject doc{{"id", "wf-live-trigger"}, {"name", "Live trigger"}, {"graph", QJsonObject{
+        {"nodes", QJsonArray{node("trig", "nodetool.audio.synth.Trigger", {{"length", 0.02}}),
+                             node("out", "nodetool.audio.realtime.AudioOutput", {})}},
+        {"edges", QJsonArray{edge("e1", "trig", "gate", "out", "chunk")}}}}};
+    int blocks = 0;
+    int high = 0;
+    connect(&session, &WorkflowSession::runEvent, this, [&blocks, &high](const QString &, const QJsonObject &event) {
+      if (event["type"] != "output_update" || event["node_id"] != "out") { return; }
+      const auto value = event["value"].toObject();
+      if (value["done"].toBool()) { return; }
+      ++blocks;
+      // The samples arrive as base64 text, or as tagged bytes.
+      const auto content = value["content"];
+      const auto text = content.isObject() ? content.toObject()["__bytes__"].toString() : content.toString();
+      const auto bytes = QByteArray::fromBase64(text.toLatin1());
+      if (bytes.count('\0') != bytes.size()) { ++high; }
+    });
+    QVERIFY(!session.updateNodeProperties("unknown", "trig", {{"trigger", true}}));
+    const auto id = session.run(doc);
+    QVERIFY(session.runsInProcess(id));
+    QTRY_VERIFY_WITH_TIMEOUT(blocks >= 3, 30000);
+    QCOMPARE(high, 0);
+    QVERIFY(!session.updateNodeProperties(id, "", {{"trigger", true}}));
+    QVERIFY(!session.updateNodeProperties(id, "trig", {}));
+    QVERIFY(session.updateNodeProperties(id, "trig", {{"trigger", true}}));
+    QTRY_VERIFY_WITH_TIMEOUT(high > 0, 30000);
+    session.stop(id);
+    QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("cancelled"), 30000);
+    QVERIFY(!session.updateNodeProperties(id, "trig", {{"trigger", false}}));
   }
   void runsWithoutServer() {
     WorkflowSession session;
@@ -261,13 +438,59 @@ private slots:
     QTRY_COMPARE_WITH_TIMEOUT(updates.size(), 2, 30000);
     QVERIFY(!updates[0].contains("result"));
     // Final outputs are keyed by the Output node's name, as in the TypeScript runner.
-    const QJsonObject outputs{{"items", QJsonArray{QJsonArray{0, 1, 2}}}};
+    // Appended, because compilers disagree on whether QJsonArray{QJsonArray{…}}
+    // nests the inner array or copies it.
+    QJsonArray items;
+    items.append(QJsonArray{0, 1, 2});
+    const QJsonObject outputs{{"items", items}};
     QCOMPARE(updates[1]["result"].toObject(), (QJsonObject{{"outputs", outputs}}));
     QCOMPARE(statusOf(session, id), QString("completed"));
     QCOMPARE(output.selectedRunId(), id);
     const auto job = jobEntry(output);
     QCOMPARE(job["status"].toString(), QString("completed"));
     QCOMPARE(job["text"].toString(), QString(R"({"outputs":{"items":[[0,1,2]]}})"));
+  }
+  // The Examples menu promises that each bundled example runs in this process,
+  // with no server, file or key, and every preview or audio sink gets a value.
+  void runsEveryBundledExampleInProcess() {
+    const auto files = QDir(EXAMPLES_DIR).entryInfoList({"*.json"}, QDir::Files, QDir::Name);
+    QVERIFY(!files.isEmpty());
+    WorkflowSession session;
+    QTRY_VERIFY_WITH_TIMEOUT(session.localRunnerReady(), 60000);
+    for (const auto &info : files) {
+      QFile file(info.filePath());
+      QVERIFY(file.open(QIODevice::ReadOnly));
+      auto workflow = QJsonDocument::fromJson(file.readAll()).object();
+      workflow["id"] = "wf-" + info.baseName();
+      NodeRuntimeModel runtime;
+      observe(session, runtime);
+      QSignalSpy errors(&session, &WorkflowSession::errorOccurred);
+      const auto id = session.run(workflow);
+      QVERIFY2(!id.isEmpty() && session.runsInProcess(id), qPrintable(info.fileName()));
+      // These examples play until the run stops.
+      const QStringList endless{"live-synth", "sampler-arpeggio", "sampler-drum-kit", "sampler-trigger"};
+      if (endless.contains(info.baseName())) {
+        QTRY_VERIFY_WITH_TIMEOUT(!runtime.nodeState("out")["outputs"].toObject().isEmpty(), 1000);
+        session.stop(id);
+        QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("cancelled"), 30000);
+        QObject::disconnect(&session, nullptr, &runtime, nullptr);
+        continue;
+      }
+      QTRY_VERIFY2_WITH_TIMEOUT(statusOf(session, id) == "completed" || statusOf(session, id) == "failed",
+                                qPrintable(info.fileName()), 60000);
+      QVERIFY2(statusOf(session, id) == "completed", qPrintable(info.fileName()));
+      QVERIFY2(errors.isEmpty(), qPrintable(info.fileName()));
+      int previews = 0;
+      for (const auto &value : workflow["graph"].toObject()["nodes"].toArray()) {
+        const auto node = value.toObject();
+        if (node["type"] != "nodetool.workflows.base_node.Preview" && node["type"] != "nodetool.audio.realtime.AudioOutput" && node["type"] != "nodetool.audio.realtime.ChunksToAudio") { continue; }
+        ++previews;
+        QVERIFY2(!runtime.nodeState(node["id"].toString())["outputs"].toObject().isEmpty(),
+                 qPrintable(info.fileName() + ": " + node["id"].toString()));
+      }
+      QVERIFY2(previews > 0, qPrintable(info.fileName()));
+      QObject::disconnect(&session, nullptr, &runtime, nullptr);
+    }
   }
   void unsupportedGraphUsesServer() {
     WorkflowSession session;
@@ -277,6 +500,75 @@ private slots:
     QCOMPARE(errors.count(), 1);
     QCOMPARE(errors.first().first().toString(), QString("Connect before running"));
     QVERIFY(session.queue().isEmpty());
+  }
+  // The runner writes into Personal's folder, so a workflow of another project
+  // goes to the server, whose project resolver gives the run that folder.
+  void projectWorkflowsRunOnTheServer() {
+    WorkflowSession session;
+    QTRY_VERIFY_WITH_TIMEOUT(session.localRunnerReady(), 60000);
+    QSignalSpy errors(&session, &WorkflowSession::errorOccurred);
+    const QList<QJsonValue> personal{QJsonValue(QJsonValue::Undefined), QJsonValue("default"), QJsonValue("personal:1")};
+    for (const auto &project : personal) {
+      auto workflow = snapshot(3);
+      if (!project.isUndefined()) { workflow["project_id"] = project; }
+      const auto id = session.run(workflow);
+      QVERIFY2(!id.isEmpty(), qPrintable(project.toString("missing")));
+      QVERIFY(session.runsInProcess(id));
+      QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("completed"), 30000);
+    }
+    QCOMPARE(errors.count(), 0);
+    auto project = snapshot(3);
+    project["project_id"] = "p1";
+    QVERIFY(session.run(project).isEmpty());
+    QCOMPARE(errors.count(), 1);
+    QCOMPARE(errors.first().first().toString(),
+             QString("Connect to the server to run workflows of a project. Local runs write only to Personal's folder."));
+    // A localOnly preview of it returns nothing and says nothing, like a graph
+    // the runner cannot run. The same preview of a Personal workflow runs.
+    const auto preview = session.runPreview(snapshot(3), {"out"}, {}, true);
+    QVERIFY(!preview.isEmpty());
+    QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, preview), QString("completed"), 30000);
+    QVERIFY(session.runPreview(project, {"out"}, {}, true).isEmpty());
+    QCOMPARE(errors.count(), 1);
+    // The card badges follow the open workflow's project, and the tab's
+    // project decides for a workflow that names none.
+    const auto count = snapshot(3)["graph"].toObject()["nodes"].toArray().first().toObject();
+    session.setSnapshot(snapshot(3));
+    QVERIFY(session.runsLocally(count));
+    session.setSnapshot(project);
+    QVERIFY(!session.runsLocally(count));
+    session.setSnapshot(snapshot(3));
+    session.setOpenProject("p1");
+    QVERIFY(!session.runsLocally(count));
+    QVERIFY(session.run(snapshot(3)).isEmpty());
+    QCOMPARE(errors.count(), 2);
+    session.setOpenProject({});
+    QVERIFY(session.runsLocally(count));
+
+    QWebSocketServer server("project run", QWebSocketServer::NonSecureMode);
+    QVERIFY(server.listen(QHostAddress::LocalHost));
+    QList<QJsonObject> runs;
+    connect(&server, &QWebSocketServer::newConnection, this, [&] {
+      auto *peer = server.nextPendingConnection();
+      peer->setParent(&server);
+      connect(peer, &QWebSocket::binaryMessageReceived, this, [&](const QByteArray &bytes) {
+        const auto message = decodeMsgPack(bytes);
+        if (message && message->toObject()["command"] == "run_job") { runs.append(message->toObject()["data"].toObject()); }
+      });
+    });
+    session.connectToServer(QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())), {});
+    QTRY_VERIFY(session.connected());
+    const auto remote = session.run(project);
+    QVERIFY(!remote.isEmpty());
+    QVERIFY(!session.runsInProcess(remote));
+    QTRY_COMPARE(runs.size(), 1);
+    QCOMPARE(runs.first()["job_id"].toString(), remote);
+    QCOMPARE(runs.first()["project_id"].toString(), QString("p1"));
+    // A Personal workflow still runs in process while connected.
+    const auto local = session.run(snapshot(3));
+    QVERIFY(session.runsInProcess(local));
+    QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, local), QString("completed"), 30000);
+    QCOMPARE(runs.size(), 1);
   }
   void environmentDisablesLocalRuns() {
     WorkflowSession loaded;

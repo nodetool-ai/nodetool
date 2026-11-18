@@ -519,6 +519,8 @@ private slots:
             connect(peer, &QWebSocket::binaryMessageReceived, this, [&](const QByteArray &bytes) {
                 const auto message = node_editor::decodeMsgPack(bytes);
                 QVERIFY(message);
+                // The open-project signal goes with every socket open. WorkflowSessionTests checks it.
+                if (message->toObject()["command"] == "set_open_project") { return; }
                 requests.append(message->toObject());
             });
         });

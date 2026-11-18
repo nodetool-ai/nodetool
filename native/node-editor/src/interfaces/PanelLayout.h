@@ -1,5 +1,6 @@
 #pragma once
 #include <QObject>
+#include <QPointF>
 #include <QString>
 
 namespace nodetool::node_editor {
@@ -18,13 +19,20 @@ class PanelLayout : public QObject {
     // The workflow browser, the documents view of the rail.
     Q_PROPERTY(bool browserVisible READ browserVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool chatVisible READ chatVisible NOTIFY panelsChanged)
+    // The project folder tree (NodeTool.Files).
+    Q_PROPERTY(bool filesVisible READ filesVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool libraryVisible READ libraryVisible NOTIFY panelsChanged)
+    Q_PROPERTY(bool examplesVisible READ examplesVisible NOTIFY panelsChanged)
     // The node library.
     Q_PROPERTY(bool catalogVisible READ catalogVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool inspectorVisible READ inspectorVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool miniMapVisible READ miniMapVisible NOTIFY panelsChanged)
-    // The status bar's views: the run output (logs), run trace and versions.
+    // The status bar's views: the run output (logs), queue, generations,
+    // workers, run trace and versions.
     Q_PROPERTY(bool outputVisible READ outputVisible NOTIFY panelsChanged)
+    Q_PROPERTY(bool queueVisible READ queueVisible NOTIFY panelsChanged)
+    Q_PROPERTY(bool generationsVisible READ generationsVisible NOTIFY panelsChanged)
+    Q_PROPERTY(bool workersVisible READ workersVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool traceVisible READ traceVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool versionsVisible READ versionsVisible NOTIFY panelsChanged)
 public:
@@ -32,11 +40,16 @@ public:
     struct Panels {
         bool browser = false;
         bool chat = false;
+        bool files = false;
         bool library = false;
+        bool examples = false;
         bool catalog = false;
         bool inspector = false;
         bool miniMap = false;
         bool output = false;
+        bool queue = false;
+        bool generations = false;
+        bool workers = false;
         bool trace = false;
         bool versions = false;
         bool operator==(const Panels &) const = default;
@@ -47,40 +60,50 @@ public:
 
     bool browserVisible() const { return panels_.browser; }
     bool chatVisible() const { return panels_.chat; }
+    bool filesVisible() const { return panels_.files; }
     bool libraryVisible() const { return panels_.library; }
+    bool examplesVisible() const { return panels_.examples; }
     bool catalogVisible() const { return panels_.catalog; }
     bool inspectorVisible() const { return panels_.inspector; }
     bool miniMapVisible() const { return panels_.miniMap; }
     bool outputVisible() const { return panels_.output; }
+    bool queueVisible() const { return panels_.queue; }
+    bool generationsVisible() const { return panels_.generations; }
+    bool workersVisible() const { return panels_.workers; }
     bool traceVisible() const { return panels_.trace; }
     bool versionsVisible() const { return panels_.versions; }
 
     void setPanels(const Panels &panels);
 
+    // The rail's Projects button opens the project menu at a global point.
+    Q_INVOKABLE void showProjects(const QPointF &global) { emit projectsRequested(global); }
     Q_INVOKABLE void toggleBrowser() { emit toggleBrowserRequested(); }
     Q_INVOKABLE void toggleChat() { emit toggleChatRequested(); }
+    Q_INVOKABLE void toggleFiles() { emit toggleFilesRequested(); }
     Q_INVOKABLE void toggleLibrary() { emit toggleLibraryRequested(); }
+    Q_INVOKABLE void toggleExamples() { emit toggleExamplesRequested(); }
     Q_INVOKABLE void toggleCatalog() { emit toggleCatalogRequested(); }
     Q_INVOKABLE void toggleInspector() { emit toggleInspectorRequested(); }
     // The rail's last button: the left panel, as the web PanelLeft toggle.
     Q_INVOKABLE void togglePanel() { emit togglePanelRequested(); }
     Q_INVOKABLE void setMiniMapVisible(bool visible) { emit miniMapRequested(visible); }
-    // Opens or closes a status bar view: logs, trace or versions.
+    // Opens or closes a status bar view: logs, queue, generations, trace or versions.
     Q_INVOKABLE void toggleStatusView(const QString &view) { emit statusViewRequested(view); }
     // Empty text hides the tool tip.
-    Q_INVOKABLE void showToolTip(const QString &text) { emit toolTipRequested(text); }
 
 signals:
     void panelsChanged();
+    void projectsRequested(const QPointF &global);
     void toggleBrowserRequested();
     void toggleChatRequested();
+    void toggleFilesRequested();
     void toggleLibraryRequested();
+    void toggleExamplesRequested();
     void toggleCatalogRequested();
     void toggleInspectorRequested();
     void togglePanelRequested();
     void miniMapRequested(bool visible);
     void statusViewRequested(const QString &view);
-    void toolTipRequested(const QString &text);
 
 private:
     Panels panels_;

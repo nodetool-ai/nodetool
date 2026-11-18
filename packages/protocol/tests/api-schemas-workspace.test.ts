@@ -5,10 +5,6 @@ import {
   listOutput,
   getDefaultOutput,
   getInput,
-  createInput,
-  updateInput,
-  deleteInput,
-  deleteOutput,
   fileEntry,
   listFilesInput,
   listFilesOutput
@@ -81,48 +77,9 @@ describe("workspace.getDefaultOutput", () => {
   });
 });
 
-describe("workspace.getInput / deleteInput", () => {
-  it("reject empty id", () => {
-    expect(getInput.safeParse({ id: "" }).success).toBe(false);
-    expect(deleteInput.safeParse({ id: "" }).success).toBe(false);
-  });
-});
-
-describe("workspace.createInput", () => {
-  it("defaults is_default to false", () => {
-    expect(createInput.parse({ name: "n", path: "/p" }).is_default).toBe(false);
-  });
-
-  it("accepts an optional project id", () => {
-    expect(
-      createInput.parse({ name: "n", path: "/p", project_id: "project-1" })
-        .project_id
-    ).toBe("project-1");
-  });
-
-  it("rejects empty name", () => {
-    expect(createInput.safeParse({ name: "", path: "/p" }).success).toBe(false);
-  });
-
-  it("rejects empty path", () => {
-    expect(createInput.safeParse({ name: "n", path: "" }).success).toBe(false);
-  });
-});
-
-describe("workspace.updateInput", () => {
-  it("requires id but allows all other fields optional", () => {
-    expect(updateInput.safeParse({ id: "w1" }).success).toBe(true);
-  });
-
+describe("workspace.getInput", () => {
   it("rejects empty id", () => {
-    expect(updateInput.safeParse({ id: "" }).success).toBe(false);
-  });
-});
-
-describe("workspace.deleteOutput", () => {
-  it("requires a message string", () => {
-    expect(deleteOutput.safeParse({ message: "ok" }).success).toBe(true);
-    expect(deleteOutput.safeParse({}).success).toBe(false);
+    expect(getInput.safeParse({ id: "" }).success).toBe(false);
   });
 });
 

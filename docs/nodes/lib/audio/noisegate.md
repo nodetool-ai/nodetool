@@ -23,10 +23,10 @@ Applies a noise gate effect to an audio file.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| audio | `audio` | The audio file to process. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 | threshold_db | `float` | Threshold in dB below which the gate is active. | `-50` |
 | attack_ms | `float` | Attack time in milliseconds. | `1` |
 | release_ms | `float` | Release time in milliseconds. | `100` |
+| audio | `audio` | The audio file to process. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 
 ## Outputs
 

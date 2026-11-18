@@ -220,10 +220,10 @@ const LEFT_PANEL_CATEGORY_BY_ID: Readonly<
     docsTopic: "assets",
     icon: <PermMediaOutlinedIcon />
   },
-  "workspace-files": {
-    id: "workspace-files",
-    label: "Workspace",
-    description: "Browse the files in the selected workspace folder.",
+  files: {
+    id: "files",
+    label: "Files",
+    description: "Browse the files in the project folder.",
     docsTopic: "workspaces",
     icon: <FolderOutlinedIcon />
   },
@@ -238,15 +238,15 @@ const LEFT_PANEL_CATEGORY_BY_ID: Readonly<
     id: "more",
     label: "More",
     description:
-      "Open additional workflow, editor, developer, and workspace panels.",
+      "Open additional workflow, editor, and developer panels.",
     docsTopic: "workflows",
     icon: <MoreHorizIcon />
   }
 };
 
 export const LEFT_PANEL_DIRECT: readonly LeftPanelTopLevelCategory[] = [
-  LEFT_PANEL_CATEGORY_BY_ID.documents,
   LEFT_PANEL_CATEGORY_BY_ID.chats,
+  LEFT_PANEL_CATEGORY_BY_ID.files,
   LEFT_PANEL_CATEGORY_BY_ID.library,
   LEFT_PANEL_CATEGORY_BY_ID.entities,
   LEFT_PANEL_CATEGORY_BY_ID.examples,
@@ -267,11 +267,6 @@ export const LEFT_PANEL_MORE_GROUPS: readonly LeftPanelSection[] = [
     id: "agent-tools",
     label: "Agent tools",
     categories: [LEFT_PANEL_CATEGORY_BY_ID.skills]
-  },
-  {
-    id: "workspace",
-    label: "Workspace",
-    categories: [LEFT_PANEL_CATEGORY_BY_ID["workspace-files"]]
   }
 ];
 

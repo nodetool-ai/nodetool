@@ -195,7 +195,9 @@ describe("extractSceneCode", () => {
     const hostile = "```" + "```py".repeat(50000);
     const started = Date.now();
     extractSceneCode(hostile);
-    expect(Date.now() - started).toBeLessThan(500);
+    // The line scan takes about 1 ms and a backtracking fence regex about 5 s.
+    // The bound sits between them, clear of scheduler stalls on a busy runner.
+    expect(Date.now() - started).toBeLessThan(2000);
   });
 
   it("accepts bare code and rejects prose", () => {

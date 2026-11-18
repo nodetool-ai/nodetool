@@ -60,7 +60,7 @@ export function ChatDemoPlayer({
     <MemoryRouter>
       <TRPCProvider>
         <ThemeRoot theme={ThemeNodetool}>
-          {/* The composer's WorkspaceChip reads the workflow manager. */}
+          {/* The composer reads the workflow manager. */}
           <WorkflowManagerProvider queryClient={queryClient}>
             <div
               ref={rootRef}

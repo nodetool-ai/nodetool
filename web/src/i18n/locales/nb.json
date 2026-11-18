@@ -90,7 +90,11 @@
       "codeStatePlaceholder": "kode#stat",
       "signInWindowClosed": "Påloggingsvinduet er lukket?",
       "openAgain": "Åpne den igjen",
-      "linkExpiry": ". Linken utløper etter 10 minutter."
+      "linkExpiry": ". Linken utløper etter 10 minutter.",
+      "nativeSubtitle": "vil logge på NodeTool-kontoen din.",
+      "app": "App",
+      "device": "Enhet",
+      "nativeNote": "Godkjenn bare hvis du selv startet påloggingen i en NodeTool-skrivebordsapp på denne datamaskinen. Appen kan da åpne, redigere og lagre skydokumentene dine til du logger av eller avslutter økten i Innstillinger."
     },
     "integrations": {
       "loadingAccounts": "Laster tilkoblede kontoer",
@@ -295,6 +299,8 @@
     "addWorkflowTooltip": "Legg til en arbeidsflytnode",
     "addSubgraph": "Legg til subgraf",
     "addSubgraphTooltip": "Legg til en innebygd subgrafnode",
+    "addComfySubgraph": "Legg til Comfy-undergraf",
+    "addComfySubgraphTooltip": "Legg til en undergraf av ComfyUI-noder som kjøres som én Comfy-jobb",
     "addApp": "Legg til app",
     "addAppTooltip": "Kjør en mini-app som en node",
     "property": "Eiendom",
@@ -694,61 +700,15 @@
   },
   "batch2_1": {
     "common": {
-      "workspace": "Arbeidsområde",
       "loading": "Laster inn …",
       "refresh": "Oppdater",
       "remove": "Fjern",
       "cancel": "Avbryt"
     },
-    "page": {
-      "title": "Arbeidsområder",
-      "subtitle": "Sandkassemapper som agenter og arbeidsflyter kan lese, skrive og organisere filer i."
-    },
-    "folderPicker": {
-      "title": "Velg arbeidsområdemappe"
-    },
-    "notifications": {
-      "added": "Arbeidsområde lagt til",
-      "removed": "Arbeidsområdet er fjernet"
-    },
-    "errors": {
-      "loadTitle": "Kunne ikke laste inn arbeidsområder",
-      "loadSummary": "Arbeidsområder kunne ikke lastes inn",
-      "loadDescription": "Sjekk tilkoblingen og prøv igjen.",
-      "operation": "Arbeidsområdeoperasjon mislyktes: {{error}}"
-    },
-    "manager": {
-      "inaccessible": "Utilgjengelig",
-      "defaultWorkspace": "Standard arbeidsområde",
-      "setDefault": "Sett som standard",
-      "emptyTitle": "Ingen arbeidsområder er konfigurert",
-      "emptyCanManage": "Legg til et arbeidsområde for å gi agenter tilgang til lokale mapper",
-      "emptyManaged": "Denne distribusjonen administrerer arbeidsområdet ditt for deg",
-      "adding": "Legger til …",
-      "addWorkspace": "Legg til arbeidsområde",
-      "removeTitle": "Vil du fjerne dette arbeidsområdet?",
-      "removeDescription": "Arbeidsområdet vil bli fjernet fra NodeTool. Selve mappen vil ikke bli slettet."
-    },
-    "select": {
-      "defaultWithPath": "Standard ({{path}})",
-      "description": "Agenter leser og skriver filer her under kjøring, inkludert lagrede bilder, tekst, data og andre utdata. Bla gjennom resultatene i Workspace-panelet. Agenter har bare tilgang til filer i denne mappen. En arbeidsflyt igjen på Standard bruker standardarbeidsområdet ditt.",
-      "createNew": "Opprett nytt arbeidsområde",
-      "addWorkspace": "Legg til arbeidsområde …"
-    },
     "tree": {
       "loading": "Laster inn …",
       "accessDenied": "⚠️ Tilgang nektet",
-      "title": "Arbeidsområdeutforsker",
-      "manage": "Administrer arbeidsområder",
-      "goToRoot": "Gå til arbeidsområderoten",
-      "openInFolder": "Åpne i mappe",
-      "openExternally": "Åpne eksternt",
-      "noneSelected": "Ingen arbeidsområde er valgt",
-      "selectOrCreate": "Velg et arbeidsområde ovenfor eller lag et.",
-      "createWorkspace": "Lag arbeidsområde",
-      "fileBrowser": "Workspace filleser",
-      "emptyTitle": "Arbeidsområdet er tomt",
-      "emptyDescription": "Legg til filer i arbeidsområdemappen for å se dem her."
+      "openExternally": "Åpne eksternt"
     }
   },
   "batch2_10": {
@@ -1617,7 +1577,11 @@
       "assistant": "Assistent",
       "history": "Historie",
       "code": "Kode",
-      "storyboard": "Storyboard"
+      "storyboard": "Storyboard",
+      "effectControls": "Effektkontroller",
+      "motion": "Bevegelse",
+      "color": "Farge",
+      "ai": "KI"
     },
     "unavailable": {
       "tracks": "DAW-modus har sin egen sporvisning. Slå den av (Alt+M) for å åpne tidslinjepanelet.",
@@ -1754,7 +1718,6 @@
       "packageManager": "Pakkeansvarlig",
       "assets": "Eiendeler",
       "collections": "Samlinger",
-      "workspaces": "Arbeidsområder",
       "memory": "Minne",
       "settings": "Innstillinger",
       "help": "Hjelp",
@@ -2281,7 +2244,8 @@
       "cloudAlphaNotice": "Cloud er i alfa. For produksjonsarbeid, bruk",
       "ssoTitle": "Logg inn på NodeTool",
       "ssoSignIn": "Logg inn med {{provider}}",
-      "ssoFailed": "Innlogging mislyktes ({{reason}}). Prøv igjen, eller be administratoren om tilgang."
+      "ssoFailed": "Innlogging mislyktes ({{reason}}). Prøv igjen, eller be administratoren om tilgang.",
+      "marketingOptIn": "Send meg e-post om nye lanseringer og gratistilbud. Du kan melde deg av når som helst."
     },
     "inspector": {
       "params": "Params",
@@ -2578,6 +2542,10 @@
       "connected": "Tilkoblet",
       "connectedProviders": "Tilkoblede tilbydere",
       "connectedViaOAuth": "Tilkoblet med pålogging",
+      "creditLeft": "Gjenværende saldo: {{amount}}",
+      "creditLeftOf": "Gjenværende saldo: {{amount}} av {{limit}}",
+      "creditExhausted": "Ingen saldo igjen. Fyll på hos {{provider}} for å bruke det.",
+      "creditRefused": "{{provider}} avviste et kall på grunn av manglende saldo. Fyll på, og trykk deretter Test.",
       "connecting": "Kobler til …",
       "delete": "Slett",
       "deleteApiKeyConfirmation": "{{provider}} API-nøkkelen vil bli fjernet, og modellene slutter å fungere til du legger til en nøkkel igjen.",
@@ -3668,6 +3636,7 @@
         "shotCount_other": "{{count}} skudd",
         "modelLabel": "Modell",
         "modelPlaceholder": "Manusmodell",
+        "noModels": "Ingen språkmodell er tilgjengelig. Legg til en leverandørnøkkel i Innstillinger, under Modeller og leverandører.",
         "shotsLabel": "Skudd",
         "title": "Velg sjangeren din",
         "description": "Tone, pacing og innramming følger ditt valg. Du kan endre det senere.",
@@ -3821,10 +3790,9 @@
           "lightingPlaceholder": "Hvordan scenen er opplyst",
           "shotHeader": "Skudd {{count}}",
           "shotAction": "Skudd {{count}} · Action",
-          "shotDialogue": "Skudd {{count}} · Dialog",
-          "dialoguePlaceholder": "Dialog",
-          "addDialogue": "Legg til dialog",
+          "dialogue": "Dialog",
           "seconds": "Sekunder",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Scene {{count}}"
         },
         "fallback": {
@@ -6172,7 +6140,23 @@
         "title": "Nytt prosjekt",
         "confirm": "Lag prosjekt",
         "nameLabel": "Prosjektnavn",
-        "createError": "Kunne ikke opprette prosjektet: {{error}}"
+        "locationLabel": "Plassering",
+        "locationDefault": "Prosjektmappe",
+        "locationChoose": "Velg…",
+        "locationReset": "Bruk prosjektmappen",
+        "createError": "Kunne ikke opprette prosjektet: {{error}}",
+        "openFolder": "Åpne mappe…",
+        "openFolderHint": "Har du allerede en mappe? Åpne den som et prosjekt. Ingen filer flyttes.",
+        "openFolderTravels": "En mappe kopiert fra en annen maskin åpnes med arbeidsflytene, tidslinjene og ressursene sine. Chatter, storyboards, manus, skisser, apper og JS-skript følger ikke med mappen.",
+        "openFolderError": "Kunne ikke åpne mappen: {{error}}"
+      },
+      "folder": {
+        "notFound": "Fant ikke mappen",
+        "notFoundDetail": "Mappen til {{name}} er flyttet, har fått nytt navn eller ligger på en stasjon som ikke er tilkoblet. Kjøringer starter ikke før du finner den.",
+        "locate": "Finn",
+        "locateError": "Kunne ikke finne mappen: {{error}}",
+        "moving": "Flytter filer til prosjektmappen",
+        "movingDetail": "{{done}} av {{total}} filer flyttet. Ressursene dine er tilgjengelige mens dette pågår."
       },
       "home": {
         "homeTab": "Hjem",
@@ -6396,6 +6380,16 @@
           "image": "Bilde",
           "video": "Video",
           "audio": "Lyd"
+        },
+        "attachedFileActions": {
+          "label": "Start med filene dine",
+          "hint": "Filer lagt ved. Beskriv hva du vil lage, eller start fra dem:",
+          "animate": "Animer til en video",
+          "image": "Lag nye bilder",
+          "retake": "Rediger videoen",
+          "script": "Gjør om til manus",
+          "ask": "Spør om dem",
+          "askPrompt": "Se på de vedlagte filene og foreslå hva jeg kan lage av dem."
         }
       }
     }
@@ -6441,16 +6435,42 @@
           "export": "Eksporter",
           "archive": "Arkiv",
           "restore": "Gjenopprett",
-          "delete": "Slett"
+          "delete": "Slett",
+          "collect": "Samle filer"
         },
         "projectActions": "Prosjekthandlinger",
         "actionsForProject": "Handlinger for {{projectName}}",
         "exporting": "Eksporterer …",
         "deleteProject": "Slett prosjekt",
         "confirmDeleteTitle": "Vil du slette {{projectName}}?",
-        "confirmDeleteBody": "Slett {{projectName}} og alle dens dokumenter, samtaler, genererte utdata, eiendeler, jobber og prosjektfiler.",
+        "confirmDeleteBody": "Slett {{projectName}} og alle dens dokumenter, samtaler, jobber og ressurser som er lagret utenfor prosjektmappen.",
         "deleteIrreversible": "Dette kan ikke angres.",
-        "error": "Kunne ikke {{action}} {{projectName}}: {{error}}"
+        "deleteFolderTrash": "Prosjektmappen flyttes til papirkurven.",
+        "deleteFolderRemove": "Prosjektmappen og alle filene i den slettes fra skylagringen.",
+        "deleteFolderKeep": "Prosjektmappen blir liggende der den er med alle filene. NodeTool fjerner bare .nodetool-mappen i den.",
+        "deleteFolderMissing": "Prosjektmappen kan ikke nås, så NodeTool lar den være som den er.",
+        "folderMovedAsideTo": "Papirkurven kunne ikke nås. Prosjektmappen ble flyttet til {{path}}.",
+        "folderMovedAside": "Papirkurven kunne ikke nås. Prosjektmappen ble flyttet til .trash-mappen i prosjektmappen for alle prosjekter.",
+        "folderTrashFailedAt": "Prosjektmappen kunne ikke flyttes til papirkurven. Den ligger fortsatt i {{path}}.",
+        "folderTrashFailed": "Prosjektmappen kunne ikke flyttes til papirkurven. Den blir liggende der den er.",
+        "error": "Kunne ikke {{action}} {{projectName}}: {{error}}",
+        "collecting": "Samler filer…",
+        "collectResult": "Filer samlet i {{projectName}}: {{copied}} kopiert, {{skipped}} hoppet over, {{failed}} mislyktes.",
+        "linkedTitle": "{{projectName}} lenker til filer utenfor mappen sin",
+        "linkedBody": "En eksport inneholder prosjektmappen. Disse filene er lenket fra et annet sted og ligger ikke i den:",
+        "linkedChoice": "Samle og eksporter kopierer dem til mappen Imported og eksporterer deretter. Avbryt beholder lenkene og eksporterer ingenting.",
+        "collectAndExport": "Samle og eksporter"
+      }
+    },
+    "assets": {
+      "importMode": {
+        "title": "Kopiere eller lenke?",
+        "confirm": "Importer",
+        "copy": "Kopier til prosjektmappen",
+        "copyHint": "Prosjektet beholder sin egen kopi. Endringer i originalen når ikke frem til den.",
+        "link": "Lenk på stedet",
+        "linkHint": "Ingenting kopieres. Prosjektet leser filen der den ligger. Samle filer kopierer den inn senere.",
+        "threshold": "Filer på {{size}} eller mer lenkes som standard."
       }
     }
   },
@@ -6510,7 +6530,16 @@
         "couldNotLoadDocuments": "Kunne ikke laste inn dokumenter",
         "noDocuments": "Ingen dokumenter ennå",
         "noMatchingDocuments": "Ingen samsvarende dokumenter",
-        "searchProjectsAndDocuments": "Søk i prosjekter og dokumenter"
+        "searchProjectsDocumentsAndChats": "Søk i prosjekter, dokumenter og chatter",
+        "documentsAndChats": "Dokumenter og chatter",
+        "chats": "Chatter",
+        "loadingChats": "Laster inn chatter…",
+        "couldNotLoadChats": "Kunne ikke laste inn chatter",
+        "noChats": "Ingen chatter ennå",
+        "noMatchingChats": "Ingen samsvarende chatter",
+        "allChats": "Alle chatter",
+        "untitledChat": "Chat uten tittel",
+        "searchShort": "Søk"
       },
       "rail": {
         "projects": "Prosjekter"
@@ -6616,8 +6645,6 @@
       "runModeTool": "Verktøy",
       "runModeDescription": "Hvordan denne arbeidsflyten kjører og kan utløses",
       "advanced": "Avansert",
-      "workspace": "Arbeidsområde",
-      "workspaceDescription": "Knytt en arbeidsområdemappe til denne arbeidsflyten for agenttilgang",
       "toolName": "Verktøynavn",
       "toolNameDescription": "Identifikator for API/verktøybruk. Kun bokstaver, tall, understreker.",
       "toolNamePlaceholder": "mitt_arbeidsflytverktøy",
@@ -8944,6 +8971,7 @@
         "Hvilken type app som sendte hendelsen (Cloud, desktop, lokal web), appversjonen og operativsystemfamilien.",
         "At appen startet, en arbeidsflyt ble opprettet eller en arbeidsflyt kjørte.",
         "For en kjøring: lokal eller sky, teller noden som en rekkevidde (for eksempel 6–20), varigheten som en rekkevidde, og for en feil en kategori som leverandør eller tidsavbrudd.",
+        "For en første økt: at startvalgene ble vist, hvilket som ble valgt, typen av det første resultatet (som chat eller storyboard) med tiden dit som et intervall, og skjermklassen (telefon, nettbrett eller datamaskin).",
         "En tilfeldig ID lagret i denne nettleseren som endres hver 30. dag, og en tilfeldig ID for denne økten."
       ],
       "never": "Aldri",
@@ -9083,10 +9111,6 @@
         "REPLICATE_API_TOKEN": {
           "button": "Få repliker API-token",
           "tooltip": "Gå til siden Repliker API-tokens"
-        },
-        "GOOGLE_APP_PASSWORD": {
-          "button": "Få passord for Google-appen",
-          "tooltip": "Gå til siden for Google-kontoapppassord"
         },
         "ELEVENLABS_API_KEY": {
           "button": "Få ElevenLabs API-nøkkel",
@@ -10639,9 +10663,9 @@
         "jsScripts": "JS-skript",
         "skills": "Ferdigheter",
         "assets": "Eiendeler",
-        "workspace": "Arbeidsområde",
         "library": "Bibliotek",
-        "more": "Mer"
+        "more": "Mer",
+        "files": "Filer"
       },
       "categoryDescriptions": {
         "documents": "Bla gjennom hvert dokument i det gjeldende prosjektet.",
@@ -10661,9 +10685,9 @@
         "jsScripts": "Opprett og administrer gjenbrukbar JavaScript-kode.",
         "skills": "Agentferdigheter – instruksjoner for nedvurdering samsvarer med målet.",
         "assets": "Bla gjennom ressurser som er tilgjengelige i gjeldende kontekst.",
-        "workspace": "Bla gjennom filene i den valgte arbeidsområdemappen.",
         "library": "Bla gjennom eiendeler i det gjeldende prosjektet.",
-        "more": "Åpne flere paneler for arbeidsflyt, redigering, utvikler og arbeidsområde."
+        "more": "Åpne flere paneler for arbeidsflyt, redigering og utvikling.",
+        "files": "Bla gjennom filene i prosjektmappen."
       }
     },
     "queue": {
@@ -10682,6 +10706,8 @@
       "queuedCount_one": "{{count}} i kø",
       "queuedCount_other": "{{count}} i kø",
       "collapseQueue": "Skjul køen",
+      "moveQueue": "Flytt køen",
+      "moveQueueHint": "Dra for å flytte. Piltastene flytter den, Home tilbakestiller den.",
       "enqueued": "I kø"
     },
     "toolbar": {
@@ -10763,6 +10789,7 @@
       "levels_one": "{{count}} nivå",
       "levels_other": "{{count}} nivåer",
       "allLevels": "Alle nivåer",
+      "anyDepth": "Vilken som helst dybde",
       "spanName": "Span navn",
       "focusSpan": "Fokusspenn",
       "wholeRun": "Hele løpeturen",
@@ -10820,7 +10847,6 @@
       "noRecentRuns": "Ingen nylige kjøringer",
       "noMatchingSpans": "Ingen samsvarende spenn",
       "spanId": "Spenn {{id}}",
-      "olderRuns": "Eldre løp",
       "noRecordedRuns": "Ingen registrerte løp",
       "noRunsDescription": "Start en appoperasjon, arbeidsflyt eller chattur for å inspisere sporingen og loggene.",
       "runStatus": {
@@ -13185,8 +13211,9 @@
         },
         "showCode": "Vis kode",
         "showArguments": "Vis argumenter",
-        "allow": "Tillat",
-        "allowForChat": "Tillat denne chatten",
+        "allowOnce": "Tillat én gang",
+        "allowAlways": "Tillat alltid",
+        "allowAlwaysHint": "Kjør {{tool}} uten å spørre fra nå av. Du kan endre dette under Innstillinger › Tillatelser.",
         "deny": "Nekter"
       }
     }
@@ -13423,7 +13450,8 @@
         "sendMessage": "Kunne ikke sende meldingen: {{error}}",
         "compact": "Kunne ikke komprimere samtalen: {{error}}",
         "copyConversation": "Kunne ikke kopiere samtalen.",
-        "rewindConversation": "Kunne ikke spole tilbake samtalen: {{error}}"
+        "rewindConversation": "Kunne ikke spole tilbake samtalen: {{error}}",
+        "switchVersion": "Kunne ikke bytte versjon: {{error}}"
       },
       "notifications": {
         "copiedMessages_one": "Kopierte {{count}} melding som Markdown.",
@@ -13445,8 +13473,14 @@
         },
         "connectProviderTitle": "Koble til en AI-leverandør for å komme i gang",
         "connectProviderButton": "Koble til en leverandør",
-        "title": "Hvordan kan jeg hjelpe deg i dag?",
-        "subtitle": "Spør hva som helst, legg inn filer eller start med en av disse:"
+        "greeting": {
+          "morning": "God morgen",
+          "afternoon": "God ettermiddag",
+          "evening": "God kveld",
+          "morningName": "God morgen, {{name}}",
+          "afternoonName": "God ettermiddag, {{name}}",
+          "eveningName": "God kveld, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Oppgaver",
@@ -13964,8 +13998,7 @@
       "search": "Søk i alle paneler",
       "group": {
         "workflow-tools": "Arbeidsflytverktøy",
-        "agent-tools": "Agentverktøy",
-        "workspace": "Arbeidsområde"
+        "agent-tools": "Agentverktøy"
       },
       "category": {
         "favorites": {
@@ -13983,10 +14016,6 @@
         "skills": {
           "label": "Ferdigheter",
           "description": "Agentferdigheter – instruksjoner for nedvurdering samsvarer med målet."
-        },
-        "workspace-files": {
-          "label": "Arbeidsområde",
-          "description": "Bla gjennom filene i den valgte arbeidsområdemappen."
         }
       }
     },
@@ -14642,9 +14671,6 @@
       "runGroup": {
         "groupRunning": "Gruppen kjører",
         "runGroup": "Kjør gruppe"
-      },
-      "saveDestinationHint": {
-        "workspace": "Arbeidsområde"
       }
     }
   },
@@ -15087,7 +15113,6 @@
       "csv": "CSV-fil",
       "unknown": "Ukjent filtype",
       "unknownContentType": "Ukjent innholdstype",
-      "offline": "Media offline",
       "thumbnail": "Miniatyrbilde",
       "folder": "Mappe"
     },
@@ -15863,9 +15888,9 @@
       "jsscripts": "JS-skript",
       "skills": "Ferdigheter",
       "assets": "Eiendeler",
-      "workspace-files": "Arbeidsområde",
       "library": "Bibliotek",
-      "more": "Mer"
+      "more": "Mer",
+      "files": "Filer"
     }
   },
   "i18n-next55": {
@@ -15992,7 +16017,6 @@
         "models": "Modellsjef",
         "packages": "Pakkeansvarlig",
         "collections": "Samlinger",
-        "workspaces": "Arbeidsområder",
         "entities": "Enheter",
         "memory": "Minne",
         "settings": "Innstillinger",
@@ -16734,8 +16758,8 @@
         "extendEdit": "Utvid redigeringspunktet til spillehodet",
         "trimEditLeft": "Trim redigeringspunktet én ramme tilbake",
         "trimEditRight": "Trim redigeringspunkt én ramme på",
-        "trimEditLeftLarge": "Trim redigeringspunktet ti rammer tilbake",
-        "trimEditRightLarge": "Trim redigeringspunkt ti rammer på",
+        "trimEditLeftLarge": "Trim redigeringspunktet fem rammer tilbake",
+        "trimEditRightLarge": "Trim redigeringspunkt fem rammer på",
         "duplicate": "Dupliser etter valget",
         "duplicateWithGap": "Dupliser med 1 s mellomrom",
         "applyDefaultTransition": "Kryss-fade inn i utvalgte klipp",
@@ -16816,7 +16840,49 @@
         "exitExpandedPreview": "Avslutt den utvidede forhåndsvisningen",
         "moveOnePixel": "Flytt klippet én piksel",
         "moveTenPixels": "Flytt klippet ti piksler",
-        "resetTransform": "Tilbakestill transformasjonen"
+        "resetTransform": "Tilbakestill transformasjonen",
+        "extendPrevEdit": "Forleng forrige redigering til spillehodet",
+        "extendNextEdit": "Forleng neste redigering til spillehodet",
+        "selectPrevClip": "Velg forrige klipp",
+        "selectNextClip": "Velg neste klipp",
+        "clipVolumeUp": "Øk klippvolumet med 1 dB",
+        "clipVolumeDown": "Senk klippvolumet med 1 dB",
+        "clipVolumeUpMore": "Øk klippvolumet med 6 dB",
+        "clipVolumeDownMore": "Senk klippvolumet med 6 dB",
+        "slideLeft": "Skyv valgte klipp ett bilde tilbake",
+        "slideRight": "Skyv valgte klipp ett bilde fram",
+        "slowShuttleBack": "Spol sakte bakover (igjen: raskere)",
+        "slowShuttleForward": "Spol sakte forover (igjen: raskere)",
+        "goToSequenceStart": "Gå til starten av sekvensen",
+        "goToSequenceEnd": "Gå til slutten av sekvensen",
+        "goToSelectedStart": "Gå til starten av utvalget",
+        "goToSelectedEnd": "Gå til siste bilde i utvalget",
+        "markSelection": "Merk utvalget (inn og ut rundt det)",
+        "clearIn": "Fjern inn",
+        "clearOut": "Fjern ut",
+        "prevCutAnyTrack": "Forrige kutt på et hvilket som helst spor",
+        "nextCutAnyTrack": "Neste kutt på et hvilket som helst spor",
+        "prevGap": "Gå til forrige mellomrom i sekvensen",
+        "nextGap": "Gå til neste mellomrom i sekvensen",
+        "addRangeMarker": "Legg til en områdemarkør på ett sekund ved spillehodet",
+        "addMarkerInOut": "Legg til en markør fra inn til ut",
+        "clearAllMarkers": "Fjern alle markører",
+        "playAround": "Spill rundt spillehodet",
+        "playInToOutWithRoll": "Spill fra inn til ut med forrull og etterrull",
+        "playToOut": "Spill fra spillehodet til ut",
+        "expandAllTracks": "Utvid alle spor (igjen: gjenopprett)",
+        "minimizeAllTracks": "Minimer alle spor (igjen: gjenopprett)",
+        "audioTracksTaller": "Gjør lydspor høyere",
+        "audioTracksShorter": "Gjør lydspor lavere",
+        "panelSource": "Gå til Kilde",
+        "panelTimeline": "Gå til tidslinjen",
+        "panelProgram": "Gå til Program",
+        "panelEffectControls": "Gå til Effektkontroller",
+        "panelInspector": "Gå til inspektøren",
+        "panelScript": "Gå til manuset",
+        "panelStoryboard": "Gå til storyboardet",
+        "nextPanel": "Gå til neste panel",
+        "prevPanel": "Gå til forrige panel"
       }
     },
     "vst": {
@@ -18295,9 +18361,12 @@
       "result": "Resultat",
       "copyResult": "Kopier resultatet",
       "editMessage": "Rediger melding",
-      "editWarning": "Sending erstatter alt etter denne meldingen.",
+      "editWarning": "Sending starter en ny versjon. Den nåværende er fortsatt tilgjengelig.",
       "editAndResend": "Rediger og send på nytt",
       "regenerate": "Regenerer",
+      "previousVersion": "Forrige versjon",
+      "nextVersion": "Neste versjon",
+      "versionOf": "Versjon {{index}} av {{count}}",
       "copyMessage": "Kopier melding",
       "enterCredential": "Skriv inn en legitimasjon",
       "credentialSubtitle": "Lagret i din hemmelige butikk. Agenten ser aldri verdien.",
@@ -18535,7 +18604,7 @@
   },
   "i18n-next110": {
     "workspaceFile": {
-      "invalidReference": "Ugyldig arbeidsområdefilreferanse"
+      "invalidReference": "Ugyldig filreferanse"
     }
   },
   "i18n-next109": {
@@ -19026,6 +19095,26 @@
       "typeMore": "Skriv minst 2 tegn",
       "noMatches": "Ingen treff",
       "failed": "Kunne ikke gi tilgang."
+    },
+    "options": {
+      "history": "Historikk",
+      "historyDescription": "Lesere kan åpne lagrede versjoner.",
+      "download": "Nedlasting",
+      "downloadDescription": "Lesere kan laste ned originalfilene.",
+      "duplicate": "Duplisering",
+      "duplicateDescription": "Lesere kan kopiere det med filene til sitt eget bibliotek.",
+      "turnedOff": "Det som allerede er lastet ned eller duplisert, beholder folk.",
+      "historyOffNotice": "Lesere av denne lenken ser ikke lenger lagrede versjoner. Slå på historikk for å gi dem tilbake.",
+      "turnOnHistory": "Slå på historikk",
+      "dismiss": "Lukk",
+      "failed": "Kunne ikke endre alternativene."
+    },
+    "people": {
+      "from": "Tilgang via {{sources}}",
+      "sourceInvitation": "invitasjon",
+      "sourceViewLink": "visningslenke",
+      "sourceEditLink": "redigeringslenke",
+      "sourceDisabled": "{{source}} (deaktivert)"
     }
   },
   "timelineAutomation": {
@@ -19991,5 +20080,263 @@
     "missingKeysDetail": "Denne arbeidsflyten trenger {{keys}}. Legg den til i Innstillinger før du kjører den.",
     "costPerRun": "≈ {{cost}} per kjøring",
     "costUnknown": "Ukjent kostnad"
+  },
+  "marketingEmails": {
+    "title": "Produkt-e-post",
+    "label": "Send meg e-post om lanseringer og gratistilbud",
+    "description": "Få høre om nye funksjoner, modeller og gratistilbud. Hver e-post har en avmeldingslenke, og du kan slå dette av her når som helst.",
+    "saveFailed": "E-postinnstillingen ble ikke lagret. Prøv igjen."
+  },
+  "firstRun": {
+    "ariaLabel": "Start med et resultat",
+    "heading": "Lag noe på under ett minutt",
+    "subline": "Alt er fylt ut på forhånd. Prøv ett, og endre det så til din egen idé.",
+    "firstTask": {
+      "label": "Din første prompt",
+      "prompt": "Gi meg tre ideer til en 30-sekunders video om en rev i den første snøen, én linje hver.",
+      "hint": "Svarer på sekunder med den gratis standardmodellen.",
+      "action": "Send"
+    },
+    "game": {
+      "title": "Lag et lite spill",
+      "description": "En rev som leter etter det siste eikenøttet. Åpner på designet, ett klikk skriver det."
+    },
+    "storyboard": {
+      "title": "Lag storyboard til en kortfilm",
+      "description": "En fyrvokter og en strandet robot. Åpner på manuset, ett klikk skriver det.",
+      "brief": "En fyrvokter finner en liten robot som har drevet i land etter en storm, og lærer den å holde lyset tent."
+    },
+    "template": {
+      "title": "Kjør en mal",
+      "description": "Reklametekst i tre tonefall, med produktet allerede fylt ut. Trykk Kjør."
+    },
+    "opening": "Åpner…",
+    "startFailed": "Kunne ikke åpne starteren: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "Ingen klipp valgt",
+    "severalClips": "Flere klipp valgt",
+    "effectControls": {
+      "empty": "Velg et klipp på tidslinjen for å justere transformasjon, dekkevne, effekter og masker.",
+      "several": "Velg ett klipp for å justere det."
+    },
+    "motion": {
+      "empty": "Velg et klipp på tidslinjen for å animere det.",
+      "several": "Velg ett klipp for å animere det.",
+      "unsupportedTitle": "Ingenting å animere",
+      "unsupported": "Velg et video-, bilde-, tekst- eller formklipp for å animere det."
+    },
+    "color": {
+      "empty": "Velg et klipp på tidslinjen for å fargekorrigere det.",
+      "several": "Velg ett klipp for å fargekorrigere det.",
+      "unsupportedTitle": "Dette klippet har ikke bilde",
+      "unsupported": "Velg et video-, bilde-, tekst- eller formklipp for å fargekorrigere det."
+    },
+    "ai": {
+      "empty": "Velg et klipp på tidslinjen for å generere fra det eller redigere det med KI.",
+      "several": "Velg ett klipp for å generere fra det.",
+      "unsupportedTitle": "Ingen KI-verktøy for dette klippet",
+      "unsupported": "Velg et video- eller bildeklipp, eller et generert klipp."
+    }
+  },
+  "toolPermissions": {
+    "tab": "Tillatelser",
+    "title": "Verktøytillatelser",
+    "sidebarCategory": "Verktøy",
+    "intro": "Velg hvilke verktøy assistenten kan bruke uten å spørre. Et verktøy satt til Spør viser et spørsmål i chatten før det kjøres.",
+    "modes": "I standardmodus spør hvert verktøy satt til Spør først. I automodus kjøres verktøy uten å spørre, unntatt en kodehandling som sletter, publiserer eller bruker penger. Sett Execute code til Tillat alltid for å slå av også det spørsmålet. Planmodus blokkerer alle endringer, uansett regel.",
+    "alwaysAllow": "Tillat alltid",
+    "ask": "Spør",
+    "saveFailed": "Kunne ikke lagre tillatelsen.",
+    "loadFailed": "Kunne ikke laste inn verktøylisten.",
+    "noMatches": "Ingen verktøy samsvarer med søket ditt."
+  },
+  "projectFolder": {
+    "name": "Prosjektmappe",
+    "picker": {
+      "title": "Velg en mappe"
+    },
+    "tree": {
+      "title": "Filer",
+      "goToRoot": "Gå til roten av prosjektmappen",
+      "fileBrowser": "Prosjektfiler",
+      "emptyTitle": "Prosjektmappen er tom",
+      "emptyDescription": "Legg filer i prosjektmappen for å se dem her.",
+      "noFolderTitle": "Ingen prosjektmappe",
+      "noFolderDescription": "Dette prosjektet har ingen mappe ennå.",
+      "revealInFinder": "Vis i Finder",
+      "revealInExplorer": "Vis i Filutforsker",
+      "revealInFileManager": "Vis i filbehandleren",
+      "moveIntoItself": "En mappe kan ikke flyttes inn i seg selv eller en av undermappene sine.",
+      "notAnAsset": "Denne filen er ikke blant prosjektets ressurser, så den kan ikke endres her.",
+      "actionFailed": "Endringen ble ikke lagret: {{error}}"
+    },
+    "documentFile": {
+      "invalidTitle": "Denne filen har en feil",
+      "invalidBody": "{{path}} ble ikke lastet inn: {{error}}. Den siste gyldige versjonen forblir åpen og kan fortsatt kjøres.",
+      "openFile": "Åpne fil",
+      "missingTitle": "Filen mangler",
+      "missingBody": "{{path}} ligger ikke lenger i prosjektmappen. Gjenopprett skriver den på nytt fra dette dokumentet.",
+      "restore": "Gjenopprett",
+      "delete": "Slett",
+      "cancel": "Avbryt",
+      "deleteTitle": "Slette {{name}}?",
+      "deleteDescription": "«{{name}}» og versjonshistorikken slettes permanent.",
+      "restoreFailed": "Filen ble ikke gjenopprettet: {{error}}",
+      "deleteFailed": "Dokumentet ble ikke slettet: {{error}}"
+    },
+    "migration": {
+      "title": "Flytt prosjektene dine til mapper",
+      "intro": "NodeTool lagrer nå hvert prosjekt i sin egen mappe på denne datamaskinen. Filene, arbeidsflytene og tidslinjene dine flyttes dit, og du kan åpne dem i andre apper.",
+      "planProjects": "Prosjekter som får en mappe",
+      "planFiles": "Filer som skal flyttes",
+      "planWorkflows": "Arbeidsflyter som lagres som filer",
+      "planTimelines": "Tidslinjer som lagres som filer",
+      "extraTitle": "Prosjekter med mer enn én mappe",
+      "extraBody": "Hvert av disse prosjektene beholder én mappe. NodeTool slutter å vise de andre, og filene deres blir liggende der de er.",
+      "extraKeeps": "{{project}} beholder {{folder}}",
+      "extraHidden": "Vises ikke lenger: {{folder}}",
+      "location": "Plassering",
+      "changeLocation": "Endre plassering",
+      "locationError": "Denne plasseringen kan ikke brukes: {{error}}",
+      "permissionWarning": "macOS spør om NodeTool kan bruke denne mappen. Velg Tillat, eller velg en mappe utenfor Dokumenter, Skrivebord, Nedlastinger, iCloud Drive og eksterne stasjoner.",
+      "safety": "Ingenting går tapt. Hver fil kopieres og kontrolleres før den gamle kopien fjernes. Du kan fortsette å jobbe mens filene flyttes.",
+      "later": "Ikke nå",
+      "confirm": "Flytt filer",
+      "planError": "Planen kunne ikke lastes: {{error}}",
+      "confirmError": "Flyttingen startet ikke: {{error}}",
+      "actionError": "Flyttingen kunne ikke endres: {{error}}",
+      "progressRegion": "Flytter filer til prosjektmapper",
+      "progressTitle": "Flytter filer til prosjektmapper",
+      "pausedTitle": "Flyttingen av filer er satt på pause",
+      "doneTitle": "Filer flyttet",
+      "progressCount": "{{done}} av {{total}} filer flyttet",
+      "phaseFolders": "Oppretter prosjektmapper",
+      "phaseFiles": "Lagrer arbeidsflyter og tidslinjer som filer",
+      "currentProject": "Flytter filene til {{project}}",
+      "pause": "Pause",
+      "resume": "Fortsett",
+      "failuresTitle": "Kunne ikke flyttes ({{count}})",
+      "failureItem": "{{name}}: {{reason}}",
+      "failuresMore": "Flere vises ikke: {{count}}",
+      "retry": "Prøv igjen",
+      "donePath": "Filene dine ligger i {{path}}",
+      "close": "Lukk"
+    }
+  },
+  "assetPicker": {
+    "sourceTabs": "Ressurskilde",
+    "projectTab": "Dette prosjektet",
+    "personalTab": "Personlig",
+    "personalHint": "Når du velger fra Personlig, kopieres filen til dette prosjektet.",
+    "copying": "Kopierer til dette prosjektet…",
+    "copyFailed": "Kunne ikke kopiere ressursen til dette prosjektet."
+  },
+  "assetFileStatus": {
+    "missing": "Mangler",
+    "missingTooltip": "Filen er ikke der denne ressursen forventer den. Koble den på nytt til filens nye plassering, eller fjern ressursen.",
+    "linked": "Koblet",
+    "linkedTooltip": "Denne ressursen bruker en fil utenfor prosjektmappen der den ligger.",
+    "relink": "Koble på nytt",
+    "relinkTooltip": "Velg filens nye plassering",
+    "relinkNoPath": "Kunne ikke lese plasseringen til filen. Velg en fil på denne datamaskinen.",
+    "relinkFailed": "Kobling på nytt mislyktes: {{error}}",
+    "remove": "Fjern",
+    "removeTooltip": "Fjern denne ressursen fra NodeTool",
+    "removeTitle": "Fjerne «{{name}}»?",
+    "removeBody": "Ressursen fjernes fra NodeTool. Dokumenter som bruker den, kan ikke lenger vise den.",
+    "cancel": "Avbryt"
+  },
+  "deviceSessions": {
+    "title": "Påloggede enheter",
+    "description": "Datamaskiner der du har logget på NodeTools skrivebordsapper. Appene på én datamaskin deler én økt. Å avslutte en økt logger ut den datamaskinen.",
+    "empty": "Ingen datamaskin er pålogget.",
+    "unnamed": "Navnløs datamaskin",
+    "signedInFrom": "Logget på fra {{app}} {{date}}",
+    "lastUsed": "Sist brukt {{date}}",
+    "neverUsed": "Ikke brukt siden pålogging",
+    "end": "Avslutt økt",
+    "confirmTitle": "Avslutte denne økten?",
+    "confirmBody": "NodeTools skrivebordsapper på {{device}} logges av innen ett minutt.",
+    "cancel": "Avbryt",
+    "ended": "Økten ble avsluttet.",
+    "endError": "Kunne ikke avslutte økten: {{error}}",
+    "loadError": "Kunne ikke laste inn påloggede enheter.",
+    "apps": {
+      "nodeEditor": "Noderedigering",
+      "timeline": "Tidslinje",
+      "desktop": "Skrivebordsapp"
+    }
+  },
+  "storyboardText": {
+    "mode": "Tekst",
+    "editorLabel": "Storyboard som Markdown-tekst",
+    "hint": "Skriv # for en akt, ## for en scene, ### for et bilde og - **Motion:** for et felt. Skriv @ for å nevne en entitet eller et bilde.",
+    "issues": "Linjer som trenger oppmerksomhet: {{lines}}",
+    "loading": "Laster teksten…",
+    "warnings": {
+      "media_outside_shot": "Et bilde hører til et opptak. Plasser det under en ###-overskrift.",
+      "second_media": "Et opptak har ett valgt stillbilde og ett valgt klipp. Dette brukes ikke.",
+      "unknown_shot_field": "«{{label}}» er ikke et storyboardfelt. Det lagres i opptakets notater.",
+      "unknown_field": "«{{label}}» er ikke et felt her. Det lagres ikke.",
+      "text_in_scene": "En scene har bare sceneoverskrift og lys. Flytt teksten under et opptak, eller start den med «Lighting:».",
+      "bad_duration": "Opptak {{shot}}: «{{value}}» er ikke et antall sekunder.",
+      "bad_render": "Opptak {{shot}}: render er keyframe, direct eller reference.",
+      "no_next_shot": "Opptak {{shot}}: en overgang fører til neste opptak, og det finnes ikke noe.",
+      "missing_action": "Opptak {{shot}} har ingen handling ennå. Skriv bildet som skal genereres, under overskriften."
+    },
+    "outline": "Disposisjon",
+    "outlineEmpty": "Skriv ### og en tittel for å starte et opptak.",
+    "untitledShot": "Opptak uten tittel",
+    "untitledAct": "Akt uten tittel",
+    "untitledScene": "Scene uten tittel",
+    "issuesTitle": "Trenger oppmerksomhet",
+    "stillOf": "Stillbilde for opptak {{shot}}",
+    "assist": {
+      "lines": "{{lines}} linjer valgt",
+      "proposal": "Foreslått erstatning",
+      "note": "Merknad fra agenten",
+      "discard": "Forkast",
+      "close": "Lukk",
+      "replace": "Erstatt utvalget",
+      "stale": "Passasjen ble endret etter at du valgte den. Velg den på nytt.",
+      "thinking": "Tenker…",
+      "stop": "Stopp",
+      "placeholder": "Si hva agenten skal gjøre med denne passasjen",
+      "refinePlaceholder": "Finjuster resultatet",
+      "instruction": "Forespørsel til agenten",
+      "send": "Send til agenten",
+      "failed": "Forespørselen til modellen mislyktes.",
+      "context": "Sendt med forespørselen: hele storyboardet, {{shots}} opptak og {{entities}} entiteter fra biblioteket.",
+      "quick": {
+        "tighten": "Stram inn",
+        "visual": "Mer visuelt",
+        "camera": "Foreslå kamera",
+        "continuity": "Sjekk kontinuitet",
+        "summarize": "Oppsummer",
+        "inconsistencies": "Finn motsetninger"
+      },
+      "errors": {
+        "no_model": "Velg en regimodell for dette storyboardet, eller en chatmodell, for å bruke agenten.",
+        "empty": "Modellen ga ikke noe svar. Send forespørselen på nytt.",
+        "failed": "Forespørselen mislyktes. Send den på nytt."
+      }
+    }
+  },
+  "cloudAccount": {
+    "title": "NodeTool Cloud-konto",
+    "description": "Én pålogging for denne appen, noderedigeringen og tidslinjen på denne datamaskinen. Pålogging eller avlogging her gjelder alle tre.",
+    "signedInAs": "Logget på som {{name}}",
+    "server": "Server: {{server}}",
+    "signedOut": "Ikke logget på",
+    "signingIn": "Fullfør påloggingen i nettleseren",
+    "serverEndPending": "Logget ut, økten er ennå ikke avsluttet på serveren",
+    "cloudOff": "Skyfunksjoner er slått av på denne datamaskinen",
+    "noKeychain": "Denne datamaskinen har ingen lagring for påloggingsinformasjon, så påloggingen varer til NodeTool avsluttes.",
+    "signIn": "Logg på",
+    "cancel": "Avbryt",
+    "signOut": "Logg ut",
+    "signOutNote": "Endringer som venter i noderedigeringen eller tidslinjen blir på denne datamaskinen og sendes når du logger på igjen.",
+    "unavailable": "Skypålogging er ikke tilgjengelig i denne versjonen."
   }
 }

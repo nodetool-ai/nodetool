@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   configuredMcpUrl,
+  isLocalMcpSession,
   isMcpHttpEnabled,
   MCP_ENABLE_FLAG
 } from "../src/lib/mcp-mount.js";
@@ -57,5 +58,34 @@ describe("configuredMcpUrl", () => {
     expect(
       configuredMcpUrl({ NODETOOL_PUBLIC_URL: "https://n.example///" })
     ).toBe("https://n.example/mcp");
+  });
+});
+
+describe("isLocalMcpSession", () => {
+  const owner = {
+    isProduction: false,
+    enforceAuth: false,
+    userId: "1",
+    fromLoopback: true
+  };
+
+  it("gives the local single user on loopback the local-session tools", () => {
+    expect(isLocalMcpSession(owner)).toBe(true);
+  });
+
+  it("refuses a signed-in account that reaches /mcp through a same-host proxy", () => {
+    expect(
+      isLocalMcpSession({ ...owner, enforceAuth: true, userId: "a1b2c3d4e5f60718293a4b5c6d7e8f90" })
+    ).toBe(false);
+  });
+
+  it("refuses an API user of a Local-mode server", () => {
+    expect(isLocalMcpSession({ ...owner, userId: "api-user-7" })).toBe(false);
+  });
+
+  it("refuses production, a remote peer, and an unauthenticated request", () => {
+    expect(isLocalMcpSession({ ...owner, isProduction: true })).toBe(false);
+    expect(isLocalMcpSession({ ...owner, fromLoopback: false })).toBe(false);
+    expect(isLocalMcpSession({ ...owner, userId: null })).toBe(false);
   });
 });
