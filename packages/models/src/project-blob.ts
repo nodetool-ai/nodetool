@@ -5,11 +5,11 @@
  * records that a project holds a hash. A staged row belongs to the transfer
  * that staged it until the commit sets `committed_at`.
  */
-import { and, eq, gte, inArray, isNotNull, isNull, lt } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { createTimeOrderedUuid } from "./base-model.js";
-import { getPortableDb } from "./db.js";
+import { getDatabase, getPortableDb } from "./db.js";
 import { isHashInLiveRevisionSet } from "./revision-set.js";
-import { blobDeletions, projectBlobs } from "./schema/project-blobs.js";
+import { projectBlobs } from "./schema/project-blobs.js";
 
 export type ProjectBlobRow = typeof projectBlobs.$inferSelect;
 
@@ -31,7 +31,10 @@ export async function stageProjectBlob(input: {
   transferId: string;
   now?: Date;
 }): Promise<void> {
-  await getPortableDb()
+  // Under the hash's lock, so a cleanup that found the hash unnamed has
+  // finished deleting its object before the row exists (review F27).
+  await withBlobLock(input.hash, (db) =>
+    db
     .insert(projectBlobs)
     .values({
       id: createTimeOrderedUuid(),
@@ -45,7 +48,8 @@ export async function stageProjectBlob(input: {
     })
     .onConflictDoNothing({
       target: [projectBlobs.project_id, projectBlobs.hash, projectBlobs.transfer_id]
-    });
+    })
+  );
 }
 
 /**
@@ -132,45 +136,66 @@ export async function committedSizeOfOwner(userId: string, hash: string): Promis
   return row ? Number(row.size) : null;
 }
 
-/** How long a deletion claim holds before another cleanup may take it over. */
-export const BLOB_DELETION_CLAIM_MS = 5 * 60 * 1000;
+/** How long a stage on PostgreSQL waits for a deletion of its hash. */
+export const BLOB_LOCK_TIMEOUT_MS = 30 * 1000;
+
+// Process-local queues, one per hash with work waiting. SQLite serves one
+// process, so these alone serialize its stages and deletions; PostgreSQL
+// adds a lock across servers. Guarded by the event loop.
+const localLocks = new Map<string, Promise<void>>();
+
+type PortableDb = ReturnType<typeof getPortableDb>;
 
 /**
- * Claims the deletion of the object of `hash` for one cleanup. False when
- * another cleanup holds a claim younger than {@link BLOB_DELETION_CLAIM_MS}.
- * The claim is an insert into a table keyed by hash, so across servers one
- * cleanup wins.
+ * Runs `work` while no other stage or deletion of `hash` runs, on any
+ * server (review F27). A stage writes its row under the lock, and the
+ * cleanup checks for rows and deletes the object under it, so a deletion
+ * never removes an object a stage has named, however long either pauses.
+ * PostgreSQL holds a transaction-scoped advisory lock, and `work` queries
+ * through that transaction, so a pool of one connection does not wait on
+ * itself. A server that stops releases the lock with its connection. A
+ * caller that waits longer than {@link BLOB_LOCK_TIMEOUT_MS} there fails,
+ * and the client tries again.
  */
-export async function claimBlobDeletion(hash: string, now: Date = new Date()): Promise<boolean> {
-  const db = getPortableDb();
-  // A claim a stopped cleanup left is removed first, then raced for.
-  const staleBefore = new Date(now.getTime() - BLOB_DELETION_CLAIM_MS).toISOString();
-  await db.delete(blobDeletions).where(and(eq(blobDeletions.hash, hash), lt(blobDeletions.claimed_at, staleBefore)));
-  const claimed = await db
-    .insert(blobDeletions)
-    .values({ hash, claimed_at: now.toISOString() })
-    .onConflictDoNothing()
-    .returning({ hash: blobDeletions.hash });
-  return claimed.length > 0;
-}
-
-/** Ends the cleanup's claim on `hash`, after it deleted the object or skipped it. */
-export async function releaseBlobDeletion(hash: string): Promise<void> {
-  await getPortableDb().delete(blobDeletions).where(eq(blobDeletions.hash, hash));
+export async function withBlobLock<T>(hash: string, work: (db: PortableDb) => Promise<T>): Promise<T> {
+  const previous = localLocks.get(hash) ?? Promise.resolve();
+  let release: () => void = () => {};
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const tail = previous.then(() => held);
+  localLocks.set(hash, tail);
+  await previous;
+  try {
+    const connection = getDatabase();
+    if (connection.dialect !== "postgres") return await work(getPortableDb());
+    return await connection.db.transaction(async (tx) => {
+      await tx.execute(sql.raw(`SET LOCAL lock_timeout = ${BLOB_LOCK_TIMEOUT_MS}`));
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`blob:${hash}`}, 0))`);
+      // The portable surface over the transaction, as getPortableDb() is over the pool.
+      return work(tx as unknown as PortableDb);
+    });
+  } finally {
+    release();
+    if (localLocks.get(hash) === tail) localLocks.delete(hash);
+  }
 }
 
 /**
- * Whether a cleanup may be deleting the object of `hash` now: a claim
- * younger than {@link BLOB_DELETION_CLAIM_MS} exists.
+ * Deletes the object of `hash` through `remove` when no row and no live
+ * revision set names the hash, under the hash's lock. Returns what `remove`
+ * returned, or false when the hash is named.
  */
-export async function isBlobDeletionClaimed(hash: string, now: Date = new Date()): Promise<boolean> {
-  const staleBefore = new Date(now.getTime() - BLOB_DELETION_CLAIM_MS).toISOString();
-  const [row] = await getPortableDb()
-    .select({ hash: blobDeletions.hash })
-    .from(blobDeletions)
-    .where(and(eq(blobDeletions.hash, hash), gte(blobDeletions.claimed_at, staleBefore)))
-    .limit(1);
-  return row !== undefined;
+export async function deleteUnnamedBlob(
+  hash: string,
+  remove: () => Promise<boolean>,
+  now: Date = new Date()
+): Promise<boolean> {
+  return withBlobLock(hash, async (db) => {
+    const [row] = await db.select({ id: projectBlobs.id }).from(projectBlobs).where(eq(projectBlobs.hash, hash)).limit(1);
+    if (row !== undefined || (await isHashInLiveRevisionSet(hash, now))) return false;
+    return remove();
+  });
 }
 
 /**

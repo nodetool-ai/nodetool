@@ -12,10 +12,10 @@
  *
  * The row is written before the object, so the cleanup, which deletes
  * objects that no row names, never removes an object a stage is writing.
- * Across servers the cleanup and a stage meet at a deletion claim per hash
- * (`blob_deletions`): the cleanup claims, then looks for rows, and a stage
- * writes its row, then looks for a claim, so one of them always sees the
- * other (F9).
+ * Across servers the cleanup and a stage meet at a lock per hash: the
+ * cleanup looks for rows and deletes the object under it, and a stage
+ * writes its row under it, so a deletion that found no row ends before the
+ * stage writes its bytes (F9, review F27).
  *
  * An object is written under a staging name and given its key in one step,
  * so a key never holds part of the bytes. An object a writer without that
@@ -24,18 +24,17 @@
 import { createHash } from "node:crypto";
 import {
   BLOB_HASH_PATTERN,
-  claimBlobDeletion,
   committedHashesOfOwner,
   committedSizeOfOwner,
   deleteExpiredRevisionSets,
   deleteExpiredStagedBlobs,
-  isBlobDeletionClaimed,
+  deleteUnnamedBlob,
   isBlobHashNamed,
   readableProjectBlob,
-  releaseBlobDeletion,
   stageProjectBlob
 } from "@nodetool-ai/models";
 import type { StorageAdapter } from "@nodetool-ai/storage";
+import { pausePoint } from "@nodetool-ai/config/pause-points";
 
 /** The storage key prefix of the blob store. */
 export const BLOB_PREFIX = "blobs/";
@@ -45,10 +44,6 @@ export const BLOB_PREFIX = "blobs/";
  * that wrote its row and object around a cleanup pass keeps its object.
  */
 export const BLOB_CLEANUP_GRACE_MS = 60 * 60 * 1000;
-
-/** How long a stage waits for a deletion of its hash that is under way. */
-export const BLOB_DELETION_WAIT_MS = 30 * 1000;
-const DELETION_POLL_MS = 50;
 
 /** A staging file a writer left beside its key: `<hash>.<transfer>.staging`. */
 const STAGING_NAME = /^[0-9a-f]{64}\.[A-Za-z0-9_-]+\.staging$/;
@@ -121,9 +116,9 @@ export async function stageBlob(
 
 /**
  * Writes `bytes` under their hash, which a `project_blobs` row the caller
- * wrote already names. Waits for a cleanup that was deleting the hash, then
- * writes through a staging name for `writerId`, and replaces an object that
- * is shorter than the bytes. `bytes` must have the hash.
+ * wrote already names under the hash's lock. Writes through a staging name
+ * for `writerId`, and replaces an object that is shorter than the bytes.
+ * `bytes` must have the hash.
  */
 export async function storeNamedBlob(
   adapter: StorageAdapter,
@@ -131,9 +126,8 @@ export async function storeNamedBlob(
   bytes: Uint8Array,
   writerId: string
 ): Promise<"stored" | "already_present"> {
-  // The row is written, so no cleanup starts on this hash. One that started
-  // before may still delete the object: the bytes are written after it ends.
-  await waitForDeletion(hash);
+  // The row is written under the hash's lock, so a deletion of the object
+  // that started before has ended, and none starts now.
   const key = blobKey(hash);
   const uri = adapter.uriForKey(key);
   if (adapter.storeIfAbsent) {
@@ -172,9 +166,8 @@ export async function stageKnownBlob(
     size,
     transferId: input.transferId
   });
-  // The row now keeps the object from any cleanup that starts. One that
-  // started before may have deleted it, which the check below finds.
-  await waitForDeletion(input.hash);
+  // The row now keeps the object from any cleanup. One that ran before may
+  // have deleted it, which the check below finds.
   return isWhole(adapter, adapter.uriForKey(blobKey(input.hash)), size);
 }
 
@@ -187,21 +180,6 @@ function stagingName(hash: string, transferId: string): string {
 async function isWhole(adapter: StorageAdapter, uri: string, size: number): Promise<boolean> {
   const stat = adapter.statStrict ? await adapter.statStrict(uri) : await adapter.stat(uri);
   return stat !== null && stat.size === size;
-}
-
-/**
- * Waits until no cleanup is deleting the object of `hash`. Throws when a
- * deletion holds longer than {@link BLOB_DELETION_WAIT_MS}: the caller's
- * request fails and the client tries again.
- */
-async function waitForDeletion(hash: string): Promise<void> {
-  const deadline = Date.now() + BLOB_DELETION_WAIT_MS;
-  while (await isBlobDeletionClaimed(hash)) {
-    if (Date.now() >= deadline) {
-      throw new Error("The blob store is removing this file. Try the transfer again.");
-    }
-    await new Promise((resolve) => setTimeout(resolve, DELETION_POLL_MS));
-  }
 }
 
 /**
@@ -240,6 +218,12 @@ export async function readBlob(
   return adapter.retrieve(adapter.uriForKey(blobKey(input.hash)));
 }
 
+/** Deletes one unnamed object. A test pauses here to race a stage (review F27). */
+async function removeBlob(adapter: StorageAdapter, uri: string): Promise<boolean> {
+  await pausePoint("blob.cleanup.deleting");
+  return adapter.delete(uri);
+}
+
 export interface BlobCleanupResult {
   stagedRowsDeleted: number;
   objectsDeleted: number;
@@ -269,15 +253,8 @@ export async function cleanupBlobs(
     }
     if (!BLOB_HASH_PATTERN.test(name) || !old) continue;
     if (await isBlobHashNamed(name, now)) continue;
-    if (!(await claimBlobDeletion(name, now))) continue;
-    try {
-      // A stage writes its row before it looks for the claim, so a row
-      // written since the check above is seen here.
-      if (await isBlobHashNamed(name, now)) continue;
-      if (await adapter.delete(entry.uri)) objectsDeleted += 1;
-    } finally {
-      await releaseBlobDeletion(name);
-    }
+    // Checked again under the hash's lock, which a stage takes to write its row.
+    if (await deleteUnnamedBlob(name, () => removeBlob(adapter, entry.uri), now)) objectsDeleted += 1;
   }
   return { stagedRowsDeleted, objectsDeleted };
 }
