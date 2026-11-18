@@ -42,6 +42,12 @@ export interface ModelChangeMeta {
    * change into its draft per merge unit.
    */
   ops?: unknown[];
+  /**
+   * A delete only: the users the row was shared with. The delete removes
+   * their grants in the same transaction, so a change feed that tells them
+   * cannot look the grants up afterwards.
+   */
+  sharedWith?: readonly string[];
 }
 
 export type ModelObserverCallback = (
