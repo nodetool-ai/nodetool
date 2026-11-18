@@ -1928,7 +1928,7 @@ It also generates tasks from seeded families, each with its own starting
 document, checks and reference solution. It records each model request and
 reply at the wire, and keeps only runs whose checks passed. The training side, its render
 and loss-mask rules, and the measurement loop are in
-[scripts/finetune/README.md](../scripts/finetune/README.md).
+[scripts/finetune/README.md](https://github.com/nodetool-ai/nodetool/blob/main/scripts/finetune/README.md).
 
 ### nodetool packs compile (Sandbox npm Modules)
 
