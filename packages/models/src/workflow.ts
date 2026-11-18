@@ -555,7 +555,11 @@ export class Workflow extends DBModel {
    * recreated under the same id; a grant left behind would then apply to a
    * workflow its holder was never given.
    */
-  static async deleteOwned(userId: string, id: string): Promise<boolean> {
+  static async deleteOwned(
+    userId: string,
+    id: string,
+    options: { deletedWithProject?: string } = {}
+  ): Promise<boolean> {
     const wf = await Workflow.get<Workflow>(id);
     if (!wf || wf.user_id !== userId) return false;
     // `id` may be a 12-character prefix; the rows below key on the full id.
@@ -569,6 +573,7 @@ export class Workflow extends DBModel {
       where: and(eq(workflows.id, wf.id), eq(workflows.user_id, userId)) as SQL,
       dependents: workflowDependents(wf.id),
       grants: "workflow_collaborators",
+      deletedWithProject: options.deletedWithProject,
       describe: (row) => ({
         documentId: String(row["id"]),
         projectId: (row["project_id"] as string | null) ?? null,
