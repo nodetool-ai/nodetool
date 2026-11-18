@@ -570,16 +570,12 @@ void EditorWindow::setBundledServer(const QUrl &url) {
     bundledServer_ = url;
 }
 namespace {
-// Whether a saved tab was connected to the bundled server. The bundled server
-// listens on http://127.0.0.1 at a free port (BundledServer.cpp), while the
-// local server a user starts listens on port 7777. A record saved before the
-// "bundled" key has only its origin to tell them apart.
+// Whether a saved tab was connected to the bundled server, as the record's
+// "bundled" key says. A record saved before the key existed names only an
+// origin, and a loopback port says nothing about who started the server
+// there, so it stays on the URL it names (review F54).
 bool usedBundledServer(const QJsonObject &entry) {
-    if (entry.contains("bundled")) {
-        return entry["bundled"].toBool();
-    }
-    const QUrl origin(entry["origin"].toString());
-    return origin.scheme() == u"http" && origin.host() == u"127.0.0.1" && origin.port() > 0 && origin.port() != 7777;
+    return entry["bundled"].toBool(false);
 }
 }  // namespace
 EditorWindow::SavedTabServers EditorWindow::savedTabServers() {

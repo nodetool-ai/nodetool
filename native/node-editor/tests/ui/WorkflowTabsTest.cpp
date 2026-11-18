@@ -396,15 +396,15 @@ private slots:
   }
   // A session with a tab of a server the user chose and a tab of the bundled
   // server still starts the bundled server, and a bundled tab reconnects to
-  // this launch's port. A record saved before the "bundled" key existed
-  // counts as bundled when its origin has the bundled server's form
-  // (review F24). Tabs share one connection, so the last restored tab's
-  // server is the one every tab ends on.
+  // this launch's port (review F24). A record saved before the "bundled"
+  // key existed has no provenance, so it keeps the URL it names, whatever
+  // its port (review F54). Tabs share one connection, so the last restored
+  // tab's server is the one every tab ends on.
   void mixedRestoreStartsTheBundledServer() {
     const QUrl chosen("http://localhost:7777"), before("http://127.0.0.1:51001"), after("http://127.0.0.1:52002");
     const QJsonObject chosenTab{{"file", ""}, {"workflow", "w1"}, {"origin", chosen.toString()}, {"bundled", false}, {"project", ""}};
     const QJsonObject bundledTab{{"file", ""}, {"workflow", "w2"}, {"origin", before.toString()}, {"bundled", true}, {"project", ""}};
-    const QJsonObject legacyBundledTab{{"file", ""}, {"workflow", "w3"}, {"origin", before.toString()}, {"project", ""}};
+    const QJsonObject legacyLoopbackTab{{"file", ""}, {"workflow", "w3"}, {"origin", before.toString()}, {"project", ""}};
     const QJsonObject legacyOwnTab{{"file", ""}, {"workflow", "w4"}, {"origin", "http://127.0.0.1:7777"}, {"project", ""}};
     struct Case {
       QJsonArray entries;
@@ -414,8 +414,8 @@ private slots:
     };
     const QList<Case> cases{{{chosenTab, bundledTab}, true, true, after},
                             {{bundledTab, chosenTab}, true, true, chosen},
-                            {{chosenTab, legacyBundledTab}, true, true, after},
-                            {{legacyBundledTab}, false, true, after},
+                            {{chosenTab, bundledTab, legacyLoopbackTab}, true, true, before},
+                            {{legacyLoopbackTab}, true, false, before},
                             {{legacyOwnTab}, true, false, QUrl("http://127.0.0.1:7777")}};
     for (const auto &item : cases) {
       QSettings().setValue("workflowTabs/documents", QJsonDocument(item.entries).toJson(QJsonDocument::Compact));
