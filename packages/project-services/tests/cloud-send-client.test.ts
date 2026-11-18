@@ -73,9 +73,10 @@ class FakeCloud implements SendTransport {
     expect(input.first_publication).toBe(!this.projectExists);
     const staged = this.staged.get(input.transfer_id) ?? new Set<string>();
     this.staged.set(input.transfer_id, staged);
-    const needed = input.manifest.required_files
-      .map((file) => file.hash)
-      .filter((hash) => !this.blobs.has(hash) && !staged.has(hash));
+    const needed = [
+      ...input.manifest.required_files.map((file) => file.hash),
+      ...(input.manifest.file_operations ?? []).flatMap((op) => (op.op === "delete_workspace_file" ? [] : [op.hash]))
+    ].filter((hash) => !this.blobs.has(hash) && !staged.has(hash));
     return { needed_hashes: [...new Set(needed)].sort(), allowance_bytes: null, used_bytes: 0 };
   }
 
@@ -119,7 +120,8 @@ class FakeCloud implements SendTransport {
       }
     }
     const staged = this.staged.get(input.transfer_id) ?? new Set<string>();
-    for (const file of input.manifest.required_files) {
+    for (const file of [...input.manifest.required_files, ...(input.manifest.file_operations ?? [])]) {
+      if (!("hash" in file)) continue;
       if (!this.blobs.has(file.hash) && !staged.has(file.hash)) {
         failures.push({ code: "FILE_NOT_STAGED", hash: file.hash, message: "not staged" });
       }
@@ -384,5 +386,24 @@ describe("sending a project to the cloud", { timeout: 30_000 }, () => {
     expect(review.missingDocumentFiles).toEqual([{ kind: "workflow", id: missing.id, name: missing.name }]);
     expect(review.skipped).toMatchObject([{ id: invalid.id, reason: "invalid_file" }]);
   });
-});
 
+  it("sends a media file that changed in place while its workflow stayed the same (review F33)", async () => {
+    const { asset } = await workflowWithFile(randomBytes(64));
+    const first = await captureSend(TARGET);
+    await runSend(cloud, first.transferId);
+    const before = (await getCloudLinkFile((await getCloudLink(USER, PROJECT))!.id, asset!.id))!.base_hash;
+    const edited = randomBytes(80);
+    await folder.write("media/still.png", edited);
+
+    const review = await captureSend(TARGET);
+    expect(review.operations).toEqual([]);
+    expect(review.fileOperations).toMatchObject([
+      { op: "put_asset_file", asset_id: asset!.id, hash: sha(edited), base_hash: before }
+    ]);
+    expect(await runSend(cloud, review.transferId)).toMatchObject({ status: "committed" });
+    expect(cloud.blobs.has(sha(edited))).toBe(true);
+    const link = await getCloudLink(USER, PROJECT);
+    expect((await getCloudLinkFile(link!.id, asset!.id))?.base_hash).toBe(sha(edited));
+    expect((await captureSend(TARGET)).fileOperations).toEqual([]);
+  });
+});

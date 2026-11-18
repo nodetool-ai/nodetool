@@ -155,6 +155,8 @@ export interface SendReview {
   transferId: string;
   firstPublication: boolean;
   operations: TransferOperation[];
+  /** Files the send puts, also for documents it leaves unchanged. A send with operations or file operations has work. */
+  fileOperations: TransferFileOperation[];
   missingFiles: TransferMissingFile[];
   skipped: SkippedDocument[];
   /** Documents sent from their rows because their files are missing (CF3). */
@@ -297,11 +299,19 @@ export async function captureSend(target: SendTarget): Promise<SendReview> {
     transferId,
     firstPublication: plan.firstPublication,
     operations: plan.manifest.operations,
+    fileOperations: plan.manifest.file_operations ?? [],
     missingFiles: plan.missingFiles,
     skipped: plan.skipped,
     missingDocumentFiles: plan.missingDocumentFiles,
     deletedLocally: plan.deletedLocally
   };
+}
+
+/** A document that refers to a file, and whether the send changes that document. */
+interface Referrer {
+  kind: TransferDocumentKind;
+  document_id: string;
+  changed: boolean;
 }
 
 /** What the capture read under the folder lock, before the files without a hash are read. */
@@ -312,7 +322,7 @@ interface CapturedDocuments {
   skipped: SkippedDocument[];
   deletedLocally: DeletedLocally[];
   missingDocumentFiles: MissingDocumentFile[];
-  files: Array<{ assetId: string; asset: Asset | null; content: AssetContent; referrers: Array<{ kind: TransferDocumentKind; document_id: string }> }>;
+  files: Array<{ assetId: string; asset: Asset | null; content: AssetContent; referrers: Referrer[] }>;
   external: string[];
 }
 
@@ -322,7 +332,7 @@ async function captureDocuments(target: SendTarget, link: CloudLinkRow | null, w
   const documents: CapturedDocument[] = [];
   const skipped: SkippedDocument[] = [];
   const missingDocumentFiles: MissingDocumentFile[] = [];
-  const references = new Map<string, Array<{ kind: TransferDocumentKind; document_id: string }>>();
+  const references = new Map<string, Referrer[]>();
   const locals = await localDocuments(target.userId, target.projectId);
 
   for (const local of locals) {
@@ -339,7 +349,15 @@ async function captureDocuments(target: SendTarget, link: CloudLinkRow | null, w
     const capturedHash = identityHash(payload);
     const linked = link ? await getCloudLinkDocumentByLocalId(link.id, local.kind, local.id) : null;
     const cloudId = linked?.cloud_id ?? local.id;
-    if (linked?.base_content_hash === capturedHash) continue;
+    // The files of an unchanged document are compared with their bases too:
+    // a file can change in place under the same asset id (review F33).
+    const changed = linked?.base_content_hash !== capturedHash;
+    for (const assetId of TRANSFER_DOCUMENT_KINDS[local.kind].files(payload)) {
+      const list = references.get(assetId) ?? [];
+      list.push({ kind: local.kind, document_id: cloudId, changed });
+      references.set(assetId, list);
+    }
+    if (!changed) continue;
     operations.push(
       linked
         ? {
@@ -353,11 +371,6 @@ async function captureDocuments(target: SendTarget, link: CloudLinkRow | null, w
     );
     payloads.push({ kind: local.kind, document_id: cloudId, document: payload });
     documents.push({ kind: local.kind, localId: local.id, cloudId, name: local.name, capturedHash });
-    for (const assetId of TRANSFER_DOCUMENT_KINDS[local.kind].files(payload)) {
-      const list = references.get(assetId) ?? [];
-      list.push({ kind: local.kind, document_id: cloudId });
-      references.set(assetId, list);
-    }
   }
 
   const deletedLocally: DeletedLocally[] = [];
@@ -378,8 +391,9 @@ async function captureDocuments(target: SendTarget, link: CloudLinkRow | null, w
   const external: string[] = [];
   for (const [assetId, referrers] of references) {
     const asset = await Asset.get<Asset>(assetId);
+    const required = referrers.some((referrer) => referrer.changed);
     if (asset?.external_path) {
-      external.push(assetId);
+      if (required) external.push(assetId);
       continue;
     }
     const content = asset && asset.project_id === target.projectId ? await contentOfAsset(workspace, asset) : null;
@@ -418,14 +432,24 @@ async function planFiles(
     } else {
       content = found;
     }
+    // A file that only unchanged documents use is sent when it changed, and
+    // left as the cloud has it when it is missing here.
+    const changedReferrers = referrers
+      .filter((referrer) => referrer.changed)
+      .map((referrer) => ({ kind: referrer.kind, document_id: referrer.document_id }));
+    const required = changedReferrers.length > 0;
     if (!asset || !content || !asset.workspace_path) {
-      missingFiles.push({ asset_id: assetId, reason: "missing_locally", documents: referrers });
+      if (required) missingFiles.push({ asset_id: assetId, reason: "missing_locally", documents: changedReferrers });
       continue;
     }
-    requiredFiles.push({ asset_id: assetId, hash: content.hash, size: content.size, documents: referrers });
-    files.push({ assetId, hash: content.hash, size: content.size, path: asset.workspace_path });
     const base = link ? await getCloudLinkFile(link.id, assetId) : null;
-    if (base?.base_hash !== content.hash) {
+    const put = base?.base_hash !== content.hash;
+    if (!required && !put) continue;
+    if (required) {
+      requiredFiles.push({ asset_id: assetId, hash: content.hash, size: content.size, documents: changedReferrers });
+    }
+    files.push({ assetId, hash: content.hash, size: content.size, path: asset.workspace_path });
+    if (put) {
       fileOperations.push({
         op: "put_asset_file",
         asset_id: assetId,
