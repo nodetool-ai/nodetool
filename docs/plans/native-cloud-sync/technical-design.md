@@ -345,6 +345,8 @@ Helper protocol, version 2. Version 1 messages are unchanged.
 | Helper to main | `response` | `id`, `status`, `headers`, `body`, `error` (`SIGNED_OUT`, `OFFLINE` or empty) |
 | Helper to main | `socketTokenResult` | `id`, `token` or `error` |
 
+As built (WP1.14, helper): the helper answers the four messages on six request threads. A `request` carries no body and no headers, in either direction: the main process keeps the renderer's headers and body and the response's, and the helper sees the status only, which is all the 401 rule needs. Media ranges and large tRPC answers therefore never cross the helper's pipe, whose lines stop at 1 MB. A transfer answers `transferResult` with the router's status, reason and unwrapped result rather than a raw response, because `LocalTransferClient::call` in `native/account` reads the router's answer for the native apps already. The helper refuses a path under `/oauth/` and paths of no route's shape itself, before the main process applies its list. When the record says signed out, the helper's one-second read makes the session adopt it, which cancels the requests it authorized that are still waiting (TC119). The main process half follows in WP1.14's second part.
+
 ### Local data scoping and durable drafts
 
 New tables in the local NodeTool database. Every row carries `server_key` (SHA-256 of the server origin, first 16 hex characters) and `account_id`. Every query filters on both, and the access layer takes them as required arguments.

@@ -737,10 +737,47 @@ void readsTheLinkStatus(TestContext& t) {
   }
 }
 
+// The account helper calls the router with the renderer's input. Only the
+// session names the server, the account and the token, and a procedure the
+// router does not have reaches nothing.
+void aRawCallSetsTheAccountAndTheToken(TestContext& t) {
+  SignedInApp app;
+  FakeTransport transport([](const HttpRequest&) { return ok({{"state", "unlinked"}}); });
+  LocalTransferClient client(transport, kLocal, {}, *app.session);
+  const json forged{{"transfer_id", kTransfer}, {"origin", "https://evil.example"}, {"account_id", "u2"},
+                    {"access_token", "forged"}};
+  const auto ran = client.call("cloudTransfer.send.cancel", forged.dump());
+  CHECK(ran.status == TransferStatus::Ok);
+  CHECK(json::parse(ran.data) == json({{"state", "unlinked"}}));
+  const auto linked = client.call("cloudTransfer.link", forged.dump());
+  CHECK(linked.status == TransferStatus::Ok);
+  const auto sent = transport.sent();
+  CHECK(sent.size() == 2);
+  if (sent.size() == 2) {
+    const json cancel = json::parse(sent[0].body);
+    CHECK(cancel["origin"] == app.session->serverOrigin());
+    CHECK(cancel["account_id"] == "u1");
+    CHECK(cancel["transfer_id"] == kTransfer);
+    CHECK(!cancel.value("access_token", std::string()).empty() && cancel["access_token"] != "forged");
+    // The link query carries no token, not even the one the input named.
+    CHECK(!json::parse(sent[1].body).contains("access_token"));
+    CHECK(sent[1].url == std::string(kLocal) + "/trpc/cloudTransfer.link");
+  }
+  const auto unknown = client.call("cloudTransfer.drop", json::object().dump());
+  CHECK(unknown.status == TransferStatus::Refused && unknown.reason == "UNKNOWN_PROCEDURE");
+  const auto list = client.call("cloudTransfer.link", "[1]");
+  CHECK(list.status == TransferStatus::Refused && list.reason == "INVALID_INPUT");
+  CHECK(transport.sent().size() == 2);
+  CHECK(LocalTransferClient::carriesToken("cloudTransfer.receive.run") == std::optional<bool>(true));
+  CHECK(LocalTransferClient::carriesToken("cloudTransfer.send.capture") == std::optional<bool>(false));
+  CHECK(!LocalTransferClient::carriesToken("cloudTransfer"));
+}
+
 int main() {
   return account_test::runTests({
       {"callsTheLocalRouterForTheAccount", callsTheLocalRouterForTheAccount},
       {"readsTheLinkStatus", readsTheLinkStatus},
+      {"aRawCallSetsTheAccountAndTheToken", aRawCallSetsTheAccountAndTheToken},
       {"renewsTheTokenOnceWhenTheCloudRefusesIt", renewsTheTokenOnceWhenTheCloudRefusesIt},
       {"sortsFailures", sortsFailures},
       {"readsCollectFirstAndRefusedSends", readsCollectFirstAndRefusedSends},

@@ -14,6 +14,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -298,12 +299,25 @@ public:
   // interrupted.
   TransferResume resume();
 
-private:
+  // One call of the local router for an app that reads the answer itself,
+  // such as the desktop app's account helper. `inputJson` is the
+  // procedure's input as a JSON object. The client sets `origin`,
+  // `account_id` and, for the procedures that carry it, `access_token`,
+  // replacing any value the input names. A procedure the router does not
+  // have is refused with UNKNOWN_PROCEDURE before a credential is read.
   struct Answer {
     TransferStatus status = TransferStatus::LocalUnavailable;
     std::string reason;
+    // The procedure's result as JSON, when `status` is Ok.
     std::string data;
   };
+  Answer call(const std::string& procedure, const std::string& inputJson);
+
+  // Whether a procedure of the router carries the access token. Empty for a
+  // procedure the router does not have.
+  static std::optional<bool> carriesToken(std::string_view procedure);
+
+private:
   // A mutation of the local router. With `withToken`, the session's access
   // token goes in the input, and a cloud refusal of it renews the token once
   // and repeats the call.
