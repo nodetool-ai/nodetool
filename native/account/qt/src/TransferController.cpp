@@ -143,6 +143,8 @@ struct TransferController::Applied {
   std::optional<ReceiveRun> receive;
   // Set when the send was captured again after the receive.
   std::optional<SendCapture> recaptured;
+  // Operations of the recapture the sheet did not show. Nothing was sent.
+  std::vector<TransferOperation> unreviewed;
   std::optional<SendRun> send;
 };
 
@@ -351,6 +353,7 @@ void TransferController::finishCapture(quint64 sequence, const Captured& capture
   setId_ = captured.receive.setId;
   sendWork_ = !captured.send.operations.empty();
   review_ = TransferReview(captured.send, captured.receive);
+  approved_ = captured.send.operations;
   stage_ = Stage::Reviewing;
   message_.clear();
   emit rowsChanged();
@@ -404,7 +407,8 @@ void TransferController::apply() {
   tasks_->post([state = shared_, current, origin = origin(), headers = headers(), review = review_, transferId = transferId_,
                 setId = received_ ? std::string() : setId_,
                 sendWork = sendWork_ || !linked_ || !review_.confirmedDeletes().empty(),
-                projectId = projectId_.toStdString(), name = projectName_.toStdString(), sequence]() mutable {
+                approved = approved_, projectId = projectId_.toStdString(), name = projectName_.toStdString(),
+                sequence]() mutable {
     LocalTransferClient client(*state->transport, origin, headers, *current);
     Applied applied;
     const auto report = [&] {
@@ -428,6 +432,14 @@ void TransferController::apply() {
           return;
         }
         transferId = applied.recaptured->transferId;
+        // The recapture may hold work the sheet never showed: a document
+        // created or edited here while it was open, or a base another
+        // synchronization moved. That goes back to the person first.
+        applied.unreviewed = unreviewedOperations(approved, applied.recaptured->operations);
+        if (!applied.unreviewed.empty()) {
+          report();
+          return;
+        }
         sendWork = !applied.recaptured->operations.empty() || !review.confirmedDeletes().empty();
       }
     }
@@ -488,6 +500,17 @@ void TransferController::finishApply(quint64 sequence, const Applied& applied) {
     }
     transferId_ = again.transferId;
     sendWork_ = !again.operations.empty();
+    if (!applied.unreviewed.empty()) {
+      // The receive is done. The send shows again with what changed here.
+      review_ = TransferReview(again, ReceiveCapture{TransferStatus::Ok, {}, {}, {}});
+      approved_ = again.operations;
+      result_ = receivedResult_;
+      stage_ = Stage::Reviewing;
+      message_ = tr("This project changed while the sheet was open. Check what will be sent.");
+      emit rowsChanged();
+      emit stateChanged();
+      return;
+    }
   }
   bool published = false;
   if (applied.send) {

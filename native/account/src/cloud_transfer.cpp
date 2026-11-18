@@ -3,6 +3,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
+
 #include <chrono>
 #include <utility>
 
@@ -82,6 +84,21 @@ std::vector<std::string> namesOf(const json& list) {
 }
 
 } // namespace
+
+std::vector<TransferOperation> unreviewedOperations(const std::vector<TransferOperation>& approved,
+                                                    const std::vector<TransferOperation>& recaptured) {
+  const auto same = [](const TransferOperation& a, const TransferOperation& b) {
+    return a.op == b.op && a.kind == b.kind && a.documentId == b.documentId && a.name == b.name &&
+           a.capturedHash == b.capturedHash && a.baseHash == b.baseHash;
+  };
+  std::vector<TransferOperation> out;
+  for (const TransferOperation& op : recaptured) {
+    if (std::none_of(approved.begin(), approved.end(), [&](const TransferOperation& seen) { return same(seen, op); })) {
+      out.push_back(op);
+    }
+  }
+  return out;
+}
 
 std::string receiveStateName(ReceiveState state) {
   switch (state) {
@@ -224,7 +241,8 @@ SendCapture LocalTransferClient::captureSend(const std::string& projectId, const
   out.transferId = str(data, "transfer_id");
   out.firstPublication = data.value("first_publication", false);
   for (const json& op : data.value("operations", json::array())) {
-    out.operations.push_back({str(op, "op"), str(op, "kind"), str(op, "document_id"), str(op, "name")});
+    out.operations.push_back({str(op, "op"), str(op, "kind"), str(op, "document_id"), str(op, "name"),
+                              str(op, "captured_hash"), str(op, "base_hash")});
   }
   for (const json& item : data.value("documents", json::array())) {
     out.documents.push_back({str(item, "kind"), str(item, "local_id"), str(item, "cloud_id"), str(item, "name")});

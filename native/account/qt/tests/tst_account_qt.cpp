@@ -1443,6 +1443,70 @@ private slots:
     QVERIFY(!transfer.result().value("published").toBool());
   }
 
+  // A workflow created here while the sheet was open shows up in the send
+  // captured again after the receive. Nothing is sent until the sheet shows
+  // it (review F22).
+  void sendsNothingTheSheetDidNotShow() {
+    Computer computer;
+    computer.server.addCode("code-n", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-n");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    const std::string h1(64, '1');
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[)"
+                           R"({"op":"replace_document","kind":"workflow","document_id":"c1","captured_hash":"a",)"
+                           R"("base_hash":"b"}],"documents":[{"kind":"workflow","local_id":"l1","cloud_id":"c1",)"
+                           R"("name":"Mine"}],"missing_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t2","first_publication":false,"operations":[)"
+                           R"({"op":"replace_document","kind":"workflow","document_id":"c1","captured_hash":"a",)"
+                           R"("base_hash":"b"},{"op":"create_document","kind":"workflow","document_id":"n1",)"
+                           R"("captured_hash":"n"}],"documents":[{"kind":"workflow","local_id":"l1","cloud_id":"c1",)"
+                           R"("name":"Mine"},{"kind":"workflow","local_id":"n1","cloud_id":"n1","name":"New"}],)"
+                           R"("missing_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.receive.capture",
+                  trpcData(R"({"set_id":"s1","documents":[{"kind":"timeline","cloud_id":"c3","local_id":"c3",)"
+                           R"("name":"Cut","content_hash":")" + h1 +
+                           R"(","status":"cloud_changed","decision":"receive","files":[],"missing_files":[]}]})"));
+    server.answer("cloudTransfer.receive.run",
+                  trpcData(R"({"status":"finished","set_id":"s1","result":{"received":[)"
+                           R"({"kind":"timeline","id":"c3","name":"Cut"}],"changed_during_receive":[],)"
+                           R"("not_received":[],"kept_beside":[],"missing_files":[],"file_kept":[]}})"));
+    server.answer("cloudTransfer.send.cancel", trpcData(R"({"state":"cancelled"})"));
+    server.answer("cloudTransfer.send.run", trpcData(R"({"status":"committed","transfer_id":"t2","result":{}})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setServerToken("local-token");
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setLinked(true);
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QVERIFY(!transfer.message().isEmpty());
+    const auto calls = server.calls();
+    QVERIFY(std::find(calls.begin(), calls.end(), "cloudTransfer.send.run") == calls.end());
+    QStringList names;
+    for (const QVariant& row : transfer.rows()) {
+      names.append(row.toMap().value("name").toString());
+    }
+    QVERIFY(names.contains("New"));
+
+    // Seen now, the second apply only sends.
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
+    QCOMPARE(server.calls().back(), std::string("cloudTransfer.send.run"));
+    QCOMPARE(nlohmann::json::parse(server.body("cloudTransfer.send.run"))["transfer_id"].get<std::string>(),
+             std::string("t2"));
+    const auto all = server.calls();
+    QCOMPARE(std::count(all.begin(), all.end(), std::string("cloudTransfer.receive.run")), std::ptrdiff_t(1));
+  }
+
   // A transfer runs only through the app's bundled server. A server off
   // this computer, such as an editor's remote server, gets no request and
   // so never sees the account's access token (review F16).

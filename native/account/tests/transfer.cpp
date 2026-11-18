@@ -454,6 +454,21 @@ void sendsNothingToAServerOffThisComputer(TestContext& t) {
   CHECK(!isLoopbackHttpOrigin("http://127.0.0.1:7777/trpc"));
 }
 
+void aRecaptureOnlyLeavesOutWhatWasReviewed(TestContext& t) {
+  const std::vector<TransferOperation> approved{{"replace_document", "workflow", "c1", "", "h1", "b1"},
+                                                {"replace_document", "workflow", "c2", "", "h2", "b2"}};
+  // Leaving out the received document is fine.
+  CHECK(unreviewedOperations(approved, {approved[0]}).empty());
+  // A document created here, an edit since the sheet, and a moved base are not.
+  const std::vector<TransferOperation> again{{"replace_document", "workflow", "c1", "", "h1", "b1"},
+                                             {"create_document", "workflow", "n1", "", "h9", ""},
+                                             {"replace_document", "workflow", "c2", "", "h3", "b2"},
+                                             {"replace_document", "workflow", "c2", "", "h2", "b4"}};
+  const auto unreviewed = unreviewedOperations(approved, again);
+  CHECK(unreviewed.size() == 3);
+  CHECK(!unreviewed.empty() && unreviewed[0].documentId == "n1");
+}
+
 int main() {
   return account_test::runTests({
       {"callsTheLocalRouterForTheAccount", callsTheLocalRouterForTheAccount},
@@ -466,5 +481,6 @@ int main() {
       {"aKeptDocumentIsNotAskedTwice", aKeptDocumentIsNotAskedTwice},
       {"sendRowsNameTheirDocument", sendRowsNameTheirDocument},
       {"sendsNothingToAServerOffThisComputer", sendsNothingToAServerOffThisComputer},
+      {"aRecaptureOnlyLeavesOutWhatWasReviewed", aRecaptureOnlyLeavesOutWhatWasReviewed},
   });
 }

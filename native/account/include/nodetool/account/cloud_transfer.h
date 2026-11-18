@@ -43,7 +43,18 @@ struct TransferOperation {
   std::string documentId;
   // The new name of a rename.
   std::string name;
+  // The hash of the captured payload, and the cloud revision it replaces,
+  // where the operation has them.
+  std::string capturedHash;
+  std::string baseHash;
 };
+
+// The operations of `recaptured` that the person did not review in
+// `approved`: another operation, document, name, payload or base. A
+// recapture that only leaves out operations, such as those of documents
+// the receive replaced, has none.
+std::vector<TransferOperation> unreviewedOperations(const std::vector<TransferOperation>& approved,
+                                                    const std::vector<TransferOperation>& recaptured);
 
 // A document the send captured, so the sheet can name an operation's
 // document.

@@ -5,7 +5,9 @@
 //
 // Synchronize receives first and sends after. A document the receive
 // brought in is captured again before the send, so a send never carries a
-// local copy the person chose to replace. A document kept local is refused
+// local copy the person chose to replace. When the new capture holds an
+// operation the sheet did not show, nothing is sent and the sheet shows the
+// send again. A document kept local is refused
 // by the cloud once, because its base is older than the cloud revision. When
 // the stored hash is the revision the sheet showed, the controller answers
 // with Keep local without asking again (TransferReview::answeredRefusals).
@@ -163,6 +165,9 @@ private:
   QStringList external_;
   QVariantMap result_;
   TransferReview review_;
+  // The send operations the sheet shows. A send captured again after the
+  // receive runs only when it holds nothing else.
+  std::vector<TransferOperation> approved_;
   std::string transferId_;
   std::string setId_;
   // The send half has operations. A confirmed deletion also makes a send.
