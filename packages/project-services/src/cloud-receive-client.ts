@@ -23,6 +23,7 @@
 import { mkdir, open, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createLogger } from "@nodetool-ai/config";
+import { pausePoint } from "@nodetool-ai/config/pause-points";
 import {
   addTransferPlacements,
   Asset,
@@ -156,6 +157,11 @@ export interface ReceiveResult {
   missingFiles: string[];
   /** Documents whose file held an edit that is not valid, so the file was left as it was. */
   fileKept: Array<{ kind: TransferDocumentKind; id: string }>;
+  /**
+   * Local files a crash left moved aside while the received bytes took
+   * their path, put back beside it.
+   */
+  localKept?: Array<{ path: string; keptPath: string }>;
 }
 
 interface ReceivePlan {
@@ -536,6 +542,76 @@ async function keptPath(workspace: Workspace, path: string, now: Date): Promise<
   }
 }
 
+/** Where a replacement keeps the bytes it moved off a path until they are checked. */
+function displacedPath(dir: string, placementId: string): string {
+  return join(dir, `displaced-${placementId}`);
+}
+
+/**
+ * Replaces the file at `target` with the staged bytes only while it still
+ * holds `baseHash`. Another app can save the file at any moment, and the
+ * folder lock does not stop it, so the file is first moved aside in one
+ * rename and the moved bytes are checked. Bytes that changed go back to the
+ * path, or beside it when the path was taken meanwhile. Returns false when
+ * the staged bytes were not placed at `target`.
+ */
+async function replaceUnchanged(
+  workspace: Workspace,
+  dir: string,
+  placementId: string,
+  target: string,
+  staged: string,
+  baseHash: string
+): Promise<boolean> {
+  const displaced = displacedPath(dir, placementId);
+  try {
+    await rename(localPath(workspace, target), displaced);
+  } catch {
+    // The file went away after it was checked. The next pass sees a free path.
+    return false;
+  }
+  if ((await contentHashOfFile(displaced)) !== baseHash) {
+    if (await workspace.absorbNew(displaced, target)) await rm(displaced, { force: true });
+    return false;
+  }
+  const placed = await workspace.absorbNew(staged, target);
+  if (placed) await rm(displaced, { force: true });
+  return placed;
+}
+
+/**
+ * After a crash during {@link replaceUnchanged}, puts bytes it moved aside
+ * back: at the path when it is free, beside it otherwise. Bytes that equal
+ * the base are the ones the receive replaces and are dropped.
+ */
+async function restoreDisplaced(
+  workspace: Workspace,
+  dir: string,
+  placementId: string,
+  path: string,
+  baseHash: string | null,
+  now: Date,
+  plan: ReceivePlan
+): Promise<void> {
+  const displaced = displacedPath(dir, placementId);
+  if (!(await fileExists(displaced))) return;
+  if (baseHash !== null && (await contentHashOfFile(displaced)) === baseHash) {
+    await rm(displaced, { force: true });
+    return;
+  }
+  if (await workspace.absorbNew(displaced, path)) {
+    await rm(displaced, { force: true });
+    return;
+  }
+  const beside = await keptPath(workspace, path, now);
+  if (!(await workspace.absorbNew(displaced, beside))) {
+    throw new Error(`Could not put back the local file of ${path}`);
+  }
+  (plan.result.localKept ??= []).push({ path, keptPath: beside });
+  await updateCloudReceive(plan.set.set_id, { plan });
+  await rm(displaced, { force: true });
+}
+
 /**
  * Still under the lock: copies each staged file to its path when the path is
  * free or still holds the recorded bytes, and beside it otherwise. Then the
@@ -554,6 +630,7 @@ async function place(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePlan
     }
     const staged = join(dir, placement.hash);
     let target = placement.path;
+    await restoreDisplaced(workspace, dir, placement.id, placement.path, planned.replaceIfHash, now, plan);
     const existing = (await workspace.exists(target)) ? await contentHashOfFile(localPath(workspace, target)) : null;
     let placed = false;
     if (existing === placement.hash) {
@@ -561,8 +638,8 @@ async function place(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePlan
     } else if (existing === null) {
       placed = await workspace.absorbNew(staged, target);
     } else if (existing === planned.replaceIfHash) {
-      await workspace.absorb(staged, target);
-      placed = true;
+      await pausePoint("receive.place.replacing");
+      placed = await replaceUnchanged(workspace, dir, placement.id, target, staged, planned.replaceIfHash);
     }
     if (!placed) {
       target = await keptPath(workspace, placement.path, now);

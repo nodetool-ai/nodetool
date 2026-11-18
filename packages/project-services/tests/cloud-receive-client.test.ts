@@ -12,6 +12,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { PauseGate } from "@nodetool-ai/config/testing/pause-harness";
 import {
   Asset,
   createCloudLink,
@@ -50,6 +51,7 @@ import { workflowFileAdapter } from "../src/workflow-file.js";
 const USER = "local-user";
 const PROJECT = "a".repeat(32);
 const CLOUD_PROJECT = "c".repeat(32);
+const REPLACING = "receive.place.replacing";
 
 function id(): string {
   return randomBytes(16).toString("hex");
@@ -345,6 +347,39 @@ describe("receiving a cloud project", { timeout: 30_000 }, () => {
     expect(Buffer.from((await folder.read("media/still.png"))!).equals(edited)).toBe(true);
     expect(Buffer.from((await folder.read(kept.keptPath))!).equals(newer)).toBe(true);
     expect((await Asset.get<Asset>(file.asset_id))?.workspace_path).toBe(kept.keptPath);
+  });
+
+  it("keeps a local file another app saves while the received bytes replace it (review F18)", async () => {
+    const bytes = randomBytes(64);
+    const document = cloud.putWorkflow("Edit", { bytes, name: "still.png", path: "media/still.png" });
+    await runReceive(cloud, (await captureReceive(cloud, link)).setId);
+
+    // The cloud gets new bytes for the asset. The local file is unchanged when the receive looks at it.
+    const newer = randomBytes(64);
+    const file = document.files[0]!;
+    file.hash = sha(newer);
+    file.size = newer.byteLength;
+    cloud.blobs.set(file.hash, newer);
+    document.payload = workflowPayload("Edit", file.asset_id, "two");
+
+    // Another app saves the file after the receive checked it and before it replaces it.
+    const edited = randomBytes(32);
+    const gate = new PauseGate([REPLACING]).install();
+    try {
+      const review = await captureReceive(cloud, link);
+      const running = runReceive(cloud, review.setId);
+      await gate.waitFor(REPLACING);
+      await folder.write("media/still.png", edited);
+      gate.release(REPLACING);
+      const outcome = await running;
+      if (outcome.status !== "finished") throw new Error("expected a finished receive");
+      expect(Buffer.from((await folder.read("media/still.png"))!).equals(edited)).toBe(true);
+      const kept = outcome.result.keptBeside[0];
+      expect(kept?.path).toBe("media/still.png");
+      expect(Buffer.from((await folder.read(kept!.keptPath))!).equals(newer)).toBe(true);
+    } finally {
+      gate.uninstall();
+    }
   });
 
   it("lists a file the cloud no longer holds as missing and still receives the document", async () => {
