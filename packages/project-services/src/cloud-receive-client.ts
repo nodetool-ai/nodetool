@@ -838,9 +838,10 @@ const RECAPTURE_LIMIT = 3;
  * with a receive of a new set (Y7, AC74, review F32). Staged files the new
  * set also names move to its staging folder after their hash is checked
  * again, so they are not downloaded twice. A document keeps the person's
- * decision when the new set shows it with the same status. When any
- * document's status differs, or the set has documents the person did not
- * see, the new receive waits for review. Nothing local was written.
+ * decision only when the new set shows the revisions the person reviewed:
+ * the same status, cloud hash, local hash and base (review F44). When any
+ * document differs, or the set has documents the person did not see, the
+ * new receive waits for review. Nothing local was written.
  */
 async function recapture(
   transport: ReceiveTransport,
@@ -857,7 +858,13 @@ async function recapture(
   let reviewed = plan.decided && nextPlan.documents.length === plan.documents.length;
   for (const document of nextPlan.documents) {
     const before = plan.documents.find((entry) => entry.kind === document.kind && entry.cloudId === document.cloudId);
-    if (before && before.status === document.status) {
+    if (
+      before &&
+      before.status === document.status &&
+      before.contentHash === document.contentHash &&
+      before.localHash === document.localHash &&
+      before.baseHash === document.baseHash
+    ) {
       document.decision = before.decision;
     } else {
       reviewed = false;

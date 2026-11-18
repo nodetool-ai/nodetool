@@ -506,6 +506,32 @@ describe("receiving a cloud project", { timeout: 30_000 }, () => {
     expect(await getCloudReceive(review.setId)).toBeNull();
   });
 
+  it("carries a choice into a new set only for the revisions the person reviewed (review F44)", async () => {
+    const document = cloud.putWorkflow("Edit", null);
+    await runReceive(cloud, (await captureReceive(cloud, link)).setId);
+    const editLocal = async (value: string) => {
+      const local = await Workflow.get<Workflow>(document.id);
+      local!.graph = { nodes: [{ id: "n0", type: "nodetool.constant.String", data: { value } }], edges: [] };
+      await local!.save();
+    };
+    document.payload = workflowPayload("Edit", null, "cloud edit");
+    await editLocal("local edit");
+    const review = await captureReceive(cloud, link);
+    expect(review.documents).toMatchObject([{ status: "both_changed", decision: null }]);
+
+    // After the person chose Receive, both copies change again and the set
+    // expires. The new set shows both_changed again, for other revisions.
+    document.payload = workflowPayload("Edit", null, "second cloud edit");
+    await editLocal("unseen local edit");
+    cloud.expiredSets.add(review.setId);
+    const outcome = await runReceive(cloud, review.setId, [
+      { kind: "workflow", document_id: document.id, decision: "receive" }
+    ]);
+    expect(outcome.status).toBe("waiting_for_review");
+    expect(outcome.setId).not.toBe(review.setId);
+    expect(JSON.stringify((await Workflow.get<Workflow>(document.id))?.graph)).toContain("unseen local edit");
+  });
+
   it("gives up and writes nothing when every new set expires too", async () => {
     const document = cloud.putWorkflow("Edit", null);
     const review = await captureReceive(cloud, link);
