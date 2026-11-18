@@ -23,9 +23,3 @@ export const projectBlobs = pgTable(
     index("idx_project_blobs_staged").on(table.committed_at, table.created_at)
   ]
 );
-
-/** PostgreSQL twin of `blobDeletions` in `src/schema/project-blobs.ts`. */
-export const blobDeletions = pgTable("blob_deletions", {
-  hash: text("hash").primaryKey(),
-  claimed_at: text("claimed_at").notNull()
-});

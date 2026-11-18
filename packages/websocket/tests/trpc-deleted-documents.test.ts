@@ -2,7 +2,7 @@
  * Deleted documents router and the project delete that keeps content for the
  * restore period (PRD D4, PG2, WP2.2).
  */
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   Asset,
   initTestDb,
@@ -15,6 +15,7 @@ import {
 } from "@nodetool-ai/models";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
+import { purgeDueDeletedDocuments } from "../src/lib/deleted-documents.js";
 import type { Context } from "../src/trpc/context.js";
 
 const createCaller = createCallerFactory(appRouter);
@@ -147,6 +148,43 @@ describe("deletedDocuments router", () => {
     expect(await Workflow.get<Workflow>(earlier.id)).toBeNull();
     const listed = (await owner.deletedDocuments.list({})).documents;
     expect(listed.map((d) => d.document_id)).toEqual([earlier.id]);
+  });
+
+  it("keeps every member when a project delete or its restore stops part way (review F26)", async () => {
+    const owner = createCaller(makeCtx(OWNER));
+    const project = await makeProject();
+    const first = await makeWorkflow(project.id, "first");
+    const second = await makeWorkflow(project.id, "second");
+    const timeline = await makeTimeline(project.id);
+
+    // The delete stops after it moved one workflow, and is tried again.
+    const deleteOwned = Workflow.deleteOwned.bind(Workflow);
+    let deletes = 0;
+    const stop = vi.spyOn(Workflow, "deleteOwned").mockImplementation(async (...args) => {
+      deletes += 1;
+      if (deletes === 2) throw new Error("server stopped");
+      return deleteOwned(...args);
+    });
+    await expect(owner.projects.delete({ id: project.id })).rejects.toThrow();
+    stop.mockRestore();
+    await owner.projects.delete({ id: project.id });
+    expect(await Workflow.get<Workflow>(first.id)).toBeNull();
+    expect(await Workflow.get<Workflow>(second.id)).toBeNull();
+
+    // The restore stops after it brought back one document.
+    const write = vi.spyOn(Workflow.prototype, "writeFile").mockRejectedValueOnce(new Error("server stopped"));
+    await expect(owner.deletedDocuments.restore({ kind: "project", document_id: project.id })).rejects.toThrow();
+    write.mockRestore();
+    expect((await Project.findOwned(OWNER, project.id))?.deleted_at).toBeNull();
+    const back = [await Workflow.get<Workflow>(first.id), await Workflow.get<Workflow>(second.id)];
+    expect(back.filter((wf) => wf !== null)).toHaveLength(1);
+
+    // The purge job finishes it.
+    await purgeDueDeletedDocuments();
+    expect((await Workflow.get<Workflow>(first.id))?.name).toBe("first");
+    expect((await Workflow.get<Workflow>(second.id))?.name).toBe("second");
+    expect((await TimelineSequence.findById(timeline.id))?.name).toBe("cut");
+    expect((await owner.deletedDocuments.list({})).documents).toEqual([]);
   });
 
   it("never purges a project a restore took first (F5)", async () => {
