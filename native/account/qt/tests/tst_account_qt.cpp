@@ -205,6 +205,14 @@ void completeInBrowser(const QUrl& authorize, const QString& code) {
 // document. Thread-safe: `mutex_` guards the answers and the log.
 class ProcedureServer final : public HttpTransport {
 public:
+  // The signed-in account owns every document unless a test answers the
+  // access procedures itself (review F25 opens a document read-only when
+  // its access read is refused).
+  ProcedureServer() {
+    const HttpResponse owner{200, R"({"result":{"data":{"access":{"role":"owner"}}}})"};
+    answers_["workflows.sharing.access"] = owner;
+    answers_["documentSharing.access"] = owner;
+  }
   void answer(const std::string& procedure, HttpResponse response) {
     const std::lock_guard lock(mutex_);
     answers_[procedure] = std::move(response);
@@ -1135,6 +1143,22 @@ private slots:
     QTRY_COMPARE(offlineOpened.count(), 1);
     QCOMPARE(offline->role(), QString("viewer"));
     QVERIFY(offline->readOnly());
+
+    // The server refuses the access read or answers something unreadable,
+    // and the document read still works: a kept editor role is not used
+    // (review F25).
+    for (const HttpResponse& answer : {HttpResponse{403, R"({"error":{"json":{"data":{"apiCode":"FORBIDDEN"}}}})"},
+                                       HttpResponse{200, R"({"result":{"data":{"nothing":1}}})"}}) {
+      server.answer("workflows.sharing.access", answer);
+      auto refused = openAs("editor");
+      QSignalSpy refusedOpened(refused.get(), &CloudDocument::opened);
+      refused->open();
+      QTRY_COMPARE(refusedOpened.count(), 1);
+      QVERIFY(refused->readOnly());
+      refused->edit(R"({"nodes":[{"id":"n2"}],"edges":[]})");
+      QTest::qWait(300);
+      QCOMPARE(server.count("workflows.autosave", "POST"), 0);
+    }
   }
 
   // A viewer's document opens read-only and sends nothing. A draft left in
@@ -1162,6 +1186,7 @@ private slots:
       return std::make_unique<CloudDocument>(std::move(services));
     };
 
+    server.answer("documentSharing.access", {200, R"({"result":{"data":{"access":{"role":"viewer"}}}})"});
     auto viewer = open("viewer");
     QSignalSpy viewerOpened(viewer.get(), &CloudDocument::opened);
     viewer->open();
@@ -1175,6 +1200,7 @@ private slots:
 
     const std::shared_ptr<AccountSession> session = account->session();
     drafts.put({serverKey(kServer), session->accountId(), "timeline", "t1"}, {"r1", "h1"}, R"({"tracks":[1]})");
+    server.answer("documentSharing.access", {200, R"({"result":{"data":{"access":{"role":"editor"}}}})"});
     auto editor = open("editor");
     QSignalSpy editorOpened(editor.get(), &CloudDocument::opened);
     editor->open();
