@@ -31,6 +31,7 @@ import { Workspace } from "../src/workspace.js";
 import { McpOauthGrant, McpOauthToken } from "../src/mcp-oauth.js";
 import { OauthPending } from "../src/oauth-pending.js";
 import { initPgliteTestDb } from "./helpers/pglite-test-db.js";
+import { deleteUnnamedBlob, stageProjectBlob } from "../src/project-blob.js";
 import {
   endDeletedDocumentRestorePeriod,
   listDeletedDocuments,
@@ -690,6 +691,24 @@ describe("model execution on SQLite and PostgreSQL", () => {
     } finally {
       setDocumentRetentionDays(null);
     }
+  }, DIALECT_TEST_TIMEOUT_MS);
+
+  it("deletes a blob object under its hash's lock only while no row names the hash (review F27)", async () => {
+    const result = await onBothDialects(async () => {
+      const hash = "a".repeat(64);
+      const removed: string[] = [];
+      const unnamed = await deleteUnnamedBlob(hash, async () => {
+        removed.push("unnamed");
+        return true;
+      });
+      await stageProjectBlob({ projectId: "p1", userId: OWNER, hash, size: 1, transferId: "t1" });
+      const named = await deleteUnnamedBlob(hash, async () => {
+        removed.push("named");
+        return true;
+      });
+      return { unnamed, named, removed };
+    });
+    expect(result).toEqual({ unnamed: true, named: false, removed: ["unnamed"] });
   }, DIALECT_TEST_TIMEOUT_MS);
 
   // A refresh that read the token rows before a revocation committed must not

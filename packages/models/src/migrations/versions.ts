@@ -558,6 +558,34 @@ const DELETED_DOCUMENTS_DDL: readonly string[] = [
 ];
 
 /**
+ * Content-addressed files of cloud projects
+ * (docs/plans/native-cloud-sync/technical-design.md, "Blob store"). Applied by
+ * the `add_project_blobs` migration, and by `initTestDb` through
+ * {@link POST_BASELINE_TABLE_DDL}. `size` is a SQLite INTEGER, which holds 64
+ * bits; the migration writes BIGINT on PostgreSQL.
+ */
+const PROJECT_BLOBS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS project_blobs (
+    id TEXT PRIMARY KEY NOT NULL,
+    project_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    transfer_id TEXT NOT NULL,
+    committed_at TEXT,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_project_blobs_row
+    ON project_blobs (project_id, hash, transfer_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_project_blobs_owner_hash
+    ON project_blobs (user_id, hash)`,
+  `CREATE INDEX IF NOT EXISTS idx_project_blobs_hash
+    ON project_blobs (hash)`,
+  `CREATE INDEX IF NOT EXISTS idx_project_blobs_staged
+    ON project_blobs (committed_at, created_at)`
+];
+
+/**
  * The local store of the native apps for cloud documents: unsent drafts and
  * the last known open state (docs/plans/native-cloud-sync/technical-design.md,
  * "Local data scoping and durable drafts"). Applied by the
@@ -634,7 +662,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...documentFileDdl("scripts"),
   ...documentFileDdl("applications"),
   ...documentFileDdl("js_scripts"),
-  ...DELETED_DOCUMENTS_DDL
+  ...DELETED_DOCUMENTS_DDL,
+  ...PROJECT_BLOBS_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5114,6 +5143,25 @@ export const migrations: MigrationDef[] = [
     },
     // The table holds the only copy of each deleted document. A rollback
     // leaves it: an older server never reads it.
+    async down() {}
+  },
+
+  // Content-addressed files of cloud projects
+  // (docs/plans/native-cloud-sync/technical-design.md, WP2.1).
+  {
+    version: "20261130_000001",
+    name: "add_project_blobs",
+    createsTables: ["project_blobs"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of PROJECT_BLOBS_DDL) {
+        await db.execute(
+          db.dbType === "sqlite" ? statement : statement.replace("size INTEGER", "size BIGINT")
+        );
+      }
+    },
+    // The rows name the only copies of committed files. A rollback leaves
+    // them: an older server never reads them.
     async down() {}
   }
 ];
