@@ -29,6 +29,14 @@ FORBIDDEN_FILES = re.compile(
     r'(?:^|[\s/"\'])web/|'
     r'(?:\.\./)+(?:timeline|chat|model-picker|node-editor|media|web|packages)(?:[/\s"\']|$)|'
     r'\b(?:npm|npx|yarn|pnpm)\s+(?:run|install|exec|build)\b', re.MULTILINE)
+# The timeline player decodes with FFmpeg and draws with QRhi, so those are
+# allowed. The timeline app, the node editor and the web stay outside it.
+FORBIDDEN_TIMELINE_PLAYER = re.compile(
+    r'NodeTool\.(?:Timeline|Chat|ModelPicker|NodeEditor)\b|'
+    r'\bnode_modules\b|'
+    r'(?:^|[\s/"\'])web/|'
+    r'(?:\.\./)+(?:timeline|chat|model-picker|node-editor|web|packages)(?:[/\s"\']|$)|'
+    r'\b(?:npm|npx|yarn|pnpm)\s+(?:run|install|exec|build)\b', re.MULTILINE)
 ARGUMENTS = re.compile(r'#[^\n]*|"(?:\\.|[^"\\])*"|[()]|[^\s()"]+')
 
 
@@ -96,6 +104,22 @@ def module_policy(module):
                 'nodetool_storyboard', 'nodetool_storyboardplugin', 'nodetool_storyboard_markdown',
             },
             'forbidden': FORBIDDEN_STORYBOARD,
+        }
+    if module.name == 'timeline-player':
+        return {
+            'subdirs': {'../ui_primitives', '../kernels'},
+            'qml_imports': {'NodeTool.UiPrimitives', 'NodeTool.TimelinePlayer'},
+            'targets': {
+                'nodetool_timeline_scene', 'yogacore',
+                'nodetool_timeline_decode', 'nodetool_timeline_audio',
+                'nodetool_timeline_player', 'nodetool_timeline_playerplugin', 'nodetool_timeline_player_server',
+                'nodetool_ui_primitives', 'nodetool_ui_primitivesplugin', 'nodetool_kernels',
+                'PkgConfig::FFMPEG',
+            },
+            'qt': {'GuiPrivate', 'Network', 'ShaderTools'},
+            'forbidden': FORBIDDEN_TIMELINE_PLAYER,
+            # Yoga's upstream build file, vendored unchanged and never added.
+            'unbuilt_cmake': {'third_party/yoga/yoga/CMakeLists.txt'},
         }
     return {
         'subdirs': set(),
@@ -258,7 +282,7 @@ def audit_module(module):
                         errors.append('{}: resource escapes module {}'.format(label, resource.text))
             except ET.ParseError:
                 errors.append('{}: malformed resource XML'.format(label))
-        if path.suffix == '.cmake' or path.name == 'CMakeLists.txt':
+        if (path.suffix == '.cmake' or path.name == 'CMakeLists.txt') and label not in policy.get('unbuilt_cmake', set()):
             errors.extend('{}: {}'.format(label, error) for error in cmake_path_errors(text, path, module, policy['subdirs']))
             for qt_target in re.findall(r'Qt6::([A-Za-z0-9_]+)', text):
                 if qt_target not in ALLOWED_QT | policy.get('qt', set()):
@@ -282,7 +306,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--module-root', type=Path, default=None)
     args = parser.parse_args()
-    roots = [args.module_root] if args.module_root is not None else [MODULE, MODULE.parent / 'media', MODULE.parent / 'entities', MODULE.parent / 'storyboard', MODULE.parent / 'files']
+    roots = [args.module_root] if args.module_root is not None else [MODULE, MODULE.parent / 'media', MODULE.parent / 'entities', MODULE.parent / 'storyboard', MODULE.parent / 'files', MODULE.parent / 'timeline-player']
     files = []
     errors = []
     for root in roots:

@@ -1,7 +1,3 @@
-nt_sources(core
-    src/preview/SceneEval.h
-    src/preview/SceneEval.cpp
-)
 nt_sources(decode
     src/preview/LayerSource.h
     src/preview/FrameRing.h

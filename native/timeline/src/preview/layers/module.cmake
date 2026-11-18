@@ -1,4 +1,3 @@
-nt_sources(core src/preview/layers/SceneHooks.h src/preview/layers/SceneHooks.cpp)
 nt_sources(decode src/preview/layers/LayerRegistry.h src/preview/layers/LayerRegistry.cpp)
 function(nt_layer_hook_tests)
     qt_add_executable(tst_layerhooks src/preview/layers/tst_layerhooks.cpp

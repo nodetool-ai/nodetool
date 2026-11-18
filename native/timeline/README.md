@@ -1397,9 +1397,9 @@ schema. It exits non-zero on a schema error or a mismatch, and when it compared
 matrix before it compares, and counts a layer only when every value matches.
 `--json` prints one object with the verdict and the result per fixture.
 Without `--bin` it runs the most recently built `build*/nodetool-timeline`.
-It refuses (exit 2) a binary older than any source of the plan (`src/scene`,
-`src/preview`, `src/model`, `src/server`, `src/main.cpp`, `third_party/yoga`),
-and names the newest such file.
+It refuses (exit 2) a binary older than any source of the plan (`src/preview`,
+`src/model`, `src/server`, `src/main.cpp`, and `src` and `third_party/yoga` in
+`native/timeline-player`), and names the newest such file.
 
 The excluded clips and their reasons must equal `fixtures/plan/exclusions.json`
 (rewrite it with `--update-exclusions` after a deliberate change). A flex

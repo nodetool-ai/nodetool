@@ -101,17 +101,6 @@ else()
 endif()
 add_compile_definitions(${NT_PLATFORM_DEFINES})
 
-# Yoga 3.2.1, the flex layout of the web scene model (third_party/yoga).
-# No fused multiply-add: the web runs it as WebAssembly, which has none.
-file(GLOB_RECURSE NT_YOGA_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/yoga/yoga/*.cpp)
-add_library(yogacore STATIC ${NT_YOGA_SOURCES})
-target_include_directories(yogacore PUBLIC third_party/yoga)
-target_compile_features(yogacore PUBLIC cxx_std_20)
-target_compile_options(yogacore PRIVATE ${NT_NO_WARNINGS})
-if(NOT MSVC)
-    target_compile_options(yogacore PRIVATE -ffp-contract=off)
-endif()
-
 # A module contributes to a target group or registers a test callback. All
 # app registration sources compile directly into each consuming executable.
 function(nt_sources group)
@@ -194,22 +183,17 @@ if(NOT TARGET nodetool_kernels)
     set_target_properties(nodetool_kernels PROPERTIES CXX_SCAN_FOR_MODULES OFF)
 endif()
 
-# Model and scene evaluation: no GUI, shared by the app and the tests.
+# The document model and scene evaluation (nodetool_timeline_scene) live in
+# native/timeline-player, which the node editor also builds.
+if(NOT TARGET nodetool_timeline_scene)
+    add_subdirectory(../timeline-player ${CMAKE_CURRENT_BINARY_DIR}/timeline-player)
+endif()
+
+# The timeline's Core-only code, shared by the app, timeline-ops and the tests.
 add_library(timeline_core STATIC ${NT_core})
 target_include_directories(timeline_core PUBLIC src)
-target_link_libraries(timeline_core PUBLIC Qt6::Core PRIVATE yogacore)
+target_link_libraries(timeline_core PUBLIC nodetool_timeline_scene Qt6::Core)
 target_compile_options(timeline_core PRIVATE ${NT_WARNINGS})
-# NodeTool.Timeline registers TimelineSource with QML_FOREIGN, which reads
-# these metatypes.
-qt_extract_metatypes(timeline_core)
-# The scene port computes what the web computes in JavaScript, one rounding
-# per operation: no fused multiply-add (Clang contracts by default).
-if(NOT MSVC)
-    set_source_files_properties(
-        src/scene/Animation.cpp src/scene/ClipScene.cpp src/scene/FlexLayout.cpp src/scene/SvgPath.cpp
-        src/scene/TextAnimation.cpp src/scene/TextBlock.cpp src/preview/SceneEval.cpp
-        TARGET_DIRECTORY timeline_core PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
-endif()
 
 # Decode and GPU sources: FFmpeg, QRhi textures, the source pool.
 add_library(timeline_decode STATIC ${NT_decode})

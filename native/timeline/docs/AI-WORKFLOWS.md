@@ -114,7 +114,7 @@ and attachment to the destination.
 
 Native integration builds on
 [`ServerClient`](../src/server/ServerClient.h),
-[`TimelineJson`](../src/model/TimelineJson.cpp), the edit registry and
+[`TimelineJson`](../../timeline-player/src/model/TimelineJson.cpp), the edit registry and
 [`external sync`](../src/server/sync/). Preserve unknown root, track and clip
 JSON while changing owned fields. Use server asset IDs and the asset cache for
 preview. Reuse server authentication. Provider credentials remain on the

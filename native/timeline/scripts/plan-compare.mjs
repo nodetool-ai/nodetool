@@ -136,7 +136,14 @@ export function newestBinary(root) {
 
 // What `--dump-plan` is built from: a binary older than any of these does
 // not show the current code.
-const PLAN_SOURCES = ["src/scene", "src/preview", "src/model", "src/server", "src/main.cpp", "third_party/yoga"];
+const PLAN_SOURCES = [
+  "src/preview",
+  "src/model",
+  "src/server",
+  "src/main.cpp",
+  "../timeline-player/src",
+  "../timeline-player/third_party/yoga"
+];
 
 /** The plan sources under `root` newer than the binary `bin`, newest first. */
 export function staleSources(root, bin) {

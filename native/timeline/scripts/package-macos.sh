@@ -90,7 +90,7 @@ cp ../ui_primitives/resources/licenses/LICENSE-MUI.txt "$lic/MUI-MIT.txt"
 cp ../ui_primitives/resources/licenses/LICENSE-Material-Icons.txt "$lic/Material-Icons-Apache-2.0.txt"
 cp ../ui_primitives/resources/licenses/MATERIAL-ICONS.md "$lic/Material-Icons-notice.md"
 cp ../ui_primitives/resources/icons/providers/README.md "$lic/Provider-Icons-notice.md"
-cp third_party/yoga/LICENSE "$lic/Yoga-MIT.txt"
+cp ../timeline-player/third_party/yoga/LICENSE "$lic/Yoga-MIT.txt"
 cp licenses/FilmCraft-MIT.txt "$lic/FilmCraft-MIT.txt"
 for f in "$lic"/*.txt; do [[ -s "$f" ]] || { echo "error: empty licence $f" >&2; exit 1; }; done
 # The corresponding source of the LGPL libraries. FFmpeg: the exact source

@@ -35,7 +35,7 @@ step 2 effects, all stylize modes, all generator modes, shape masks and mattes.
 clip. `visualFxFixtures` in `check-effects.mjs` lists every mode and frame.
 Animated stylize and generator effects receive clip evaluation time in seconds,
 stepped for leaves and unstepped for groups. The context hooks in
-[`SceneHooks.h`](../layers/SceneHooks.h) also carry the document, the clip's
+[`SceneHooks.h`](../../../../timeline-player/src/preview/layers/SceneHooks.h) also carry the document, the clip's
 track, clip evaluation time, sequence time, fps and sequence frame index.
 Fixed grain keeps its authored seed.
 Animated grain uses the context's sequence frame index,
