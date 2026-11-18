@@ -292,26 +292,48 @@ describe("receiving a cloud project", { timeout: 30_000 }, () => {
     expect(versions.some((version) => JSON.stringify(version.graph).includes('"one"'))).toBe(true);
   });
 
-  it("leaves a document changed locally after the review as it is, and lists it", async () => {
-    const document = cloud.putWorkflow("Edit", null);
+  it("applies nothing when a document changed locally after the review, and asks again (Y3, review F31)", async () => {
+    const changed = cloud.putWorkflow("Edit", null);
+    const other = cloud.putWorkflow("Other", null);
     await runReceive(cloud, (await captureReceive(cloud, link)).setId);
-    document.payload = workflowPayload("Edit", null, "cloud edit");
+    changed.payload = workflowPayload("Edit", null, "cloud edit");
+    other.payload = workflowPayload("Other", null, "cloud edit");
 
     const review = await captureReceive(cloud, link);
-    const local = await Workflow.get<Workflow>(document.id);
+    expect(review.documents.map((document) => document.status)).toEqual(["cloud_changed", "cloud_changed"]);
+    const local = await Workflow.get<Workflow>(changed.id);
     local!.graph = { nodes: [{ id: "n0", type: "nodetool.constant.String", data: { value: "local edit" } }], edges: [] };
     await local!.save();
 
-    const outcome = await runReceive(cloud, review.setId);
+    const refused = await runReceive(cloud, review.setId);
+    expect(refused).toMatchObject({
+      status: "waiting_for_review",
+      setId: review.setId,
+      documents: [
+        { cloudId: changed.id, status: "both_changed", decision: null },
+        { cloudId: other.id, status: "cloud_changed", decision: "receive" }
+      ]
+    });
+    // Nothing changed locally, and the staged documents stay for the next attempt.
+    expect(JSON.stringify((await Workflow.get<Workflow>(changed.id))?.graph)).toContain("local edit");
+    expect(JSON.stringify((await Workflow.get<Workflow>(other.id))?.graph)).not.toContain("cloud edit");
+    expect(existsSync(join(stagingRoot(), review.setId, "documents"))).toBe(true);
+    const reads = cloud.documentReads.length;
+
+    // The person keeps the local edit and receives the other document.
+    const outcome = await runReceive(cloud, review.setId, [
+      { kind: "workflow", document_id: changed.id, decision: "keep_local" }
+    ]);
     expect(outcome).toMatchObject({
       status: "finished",
-      result: { received: [], changedDuringReceive: [{ id: document.id }] }
+      result: { received: [{ id: other.id }], notReceived: [{ id: changed.id, status: "both_changed" }] }
     });
-    const after = await Workflow.get<Workflow>(document.id);
-    expect(JSON.stringify(after?.graph)).toContain("local edit");
-    // The base stays where it was, so the next capture still sees both sides changed.
-    expect((await getCloudLinkDocumentByCloudId(link.id, "workflow", document.id))?.base_content_hash).not.toBe(
-      identityHash(document.payload)
+    expect(cloud.documentReads).toHaveLength(reads);
+    expect(JSON.stringify((await Workflow.get<Workflow>(changed.id))?.graph)).toContain("local edit");
+    expect(JSON.stringify((await Workflow.get<Workflow>(other.id))?.graph)).toContain("cloud edit");
+    // The base of the kept document stays where it was, so the next capture still sees both sides changed.
+    expect((await getCloudLinkDocumentByCloudId(link.id, "workflow", changed.id))?.base_content_hash).not.toBe(
+      identityHash(changed.payload)
     );
   });
 

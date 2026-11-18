@@ -181,7 +181,13 @@ interface ReceivePlan {
 export type ReceiveOutcome =
   | { status: "finished"; setId: string; result: ReceiveResult }
   | { status: "expired"; setId: string }
-  | { status: "waiting_for_review"; setId: string };
+  /**
+   * The receive waits for the person's decisions. `documents` is the sheet
+   * to show again when a local document changed after the review: nothing
+   * was applied, the staged files are kept, and the changed documents carry
+   * their new status (Y3).
+   */
+  | { status: "waiting_for_review"; setId: string; documents?: PlannedDocument[] };
 
 function emptyResult(): ReceiveResult {
   return { received: [], changedDuringReceive: [], notReceived: [], keptBeside: [], missingFiles: [], fileKept: [] };
@@ -433,12 +439,36 @@ function targetPath(file: RevisionSetDocument["files"][number]): string {
 }
 
 /**
+ * The documents the person chose to receive whose local copy or link base
+ * changed since the sheet showed them.
+ */
+async function changedSinceReview(link: CloudLinkRow, plan: ReceivePlan): Promise<PlannedDocument[]> {
+  const changed: PlannedDocument[] = [];
+  for (const document of plan.documents) {
+    if (document.decision !== "receive") continue;
+    const localHash = await localHashOf(document.kind, document.localId, link.project_id);
+    const linked = await getCloudLinkDocumentByCloudId(link.id, document.kind, document.cloudId);
+    const baseHash = linked?.base_content_hash ?? null;
+    if (localHash === document.localHash && baseHash === document.baseHash) continue;
+    document.localHash = localHash;
+    document.baseHash = baseHash;
+    document.status = statusOf(document.contentHash, baseHash, localHash);
+    document.decision = defaultDecision(document.status);
+    changed.push(document);
+  }
+  return changed;
+}
+
+/**
  * Under the folder lock: compares the folder (CF1), then in one local
  * transaction checks every document against the hash the sheet showed and
  * writes the documents, asset rows, bases and placements, and sets state
- * `applied`.
+ * `applied`. When any document the person chose changed since the review,
+ * it writes nothing, keeps the staged files and returns the receive to the
+ * review with those documents' new status (Y3, review F31). Returns whether
+ * it applied.
  */
-async function commit(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePlan, dir: string): Promise<void> {
+async function commit(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePlan, dir: string): Promise<boolean> {
   await reconcileInBackground(link.project_id, link.user_id);
   const payloads = new Map<PlannedDocument, TransferPayloadContent>();
   for (const document of toWrite(plan)) {
@@ -452,8 +482,18 @@ async function commit(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePla
   for (const hash of neededFiles(plan).keys()) {
     if (await fileExists(stagedPath(dir, hash))) staged.add(hash);
   }
-  await withoutDocumentFileWrites(() =>
+  return withoutDocumentFileWrites(() =>
     withTransaction(async () => {
+      const changed = await changedSinceReview(link, plan);
+      if (changed.length > 0) {
+        plan.decided = false;
+        plan.result = {
+          ...emptyResult(),
+          changedDuringReceive: changed.map((document) => ({ kind: document.kind, id: document.localId, name: document.name }))
+        };
+        await updateCloudReceive(row.id, { state: "staging", plan });
+        return false;
+      }
       const result = emptyResult();
       const placements: PlannedPlacement[] = [];
       const written: PlannedDocument[] = [];
@@ -461,11 +501,6 @@ async function commit(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePla
         const entry = { kind: document.kind, id: document.localId, name: document.name };
         if (document.decision !== "receive") {
           result.notReceived.push({ ...entry, status: document.status });
-          continue;
-        }
-        const localHash = await localHashOf(document.kind, document.localId, link.project_id);
-        if (localHash !== document.localHash) {
-          result.changedDuringReceive.push(entry);
           continue;
         }
         const payload = payloads.get(document);
@@ -543,6 +578,7 @@ async function commit(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePla
       plan.placements = placements;
       plan.result = result;
       await updateCloudReceive(row.id, { state: "applied", plan });
+      return true;
     })
   );
 }
@@ -781,18 +817,20 @@ export async function runReceive(
   const current = row;
   // The commit and the placing take the folder lock again for the reconcile
   // and the document files.
-  await withProjectFolderLock(
+  const applied = await withProjectFolderLock(
     link.user_id,
     link.project_id,
     async () => {
       if (current.state === "installed") {
-        await commit(current, link, plan, dir);
+        if (!(await commit(current, link, plan, dir))) return false;
         await after("applied");
       }
       await place(current, link, plan, workspace, dir);
+      return true;
     },
     { allowNested: true }
   );
+  if (!applied) return { status: "waiting_for_review", setId, documents: plan.documents };
   await after("placed");
   await finish(transport, current, dir);
   return { status: "finished", setId, result: plan.result };
