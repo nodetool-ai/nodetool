@@ -15,6 +15,9 @@ Rectangle {
     required property AccountController account
     // The app's own server, which runs the transfer, and its token.
     required property url serverUrl
+    // The server this launch of the app started. Transfers run only when
+    // serverUrl is that server.
+    required property url bundledServerUrl
     property string serverToken: ""
     required property string projectId
     property string projectName: ""
@@ -34,6 +37,7 @@ Rectangle {
     property TransferController controller: TransferController {
         account: root.account
         serverUrl: root.serverUrl
+        bundledServerUrl: root.bundledServerUrl
         serverToken: root.serverToken
         projectId: root.projectId
         projectName: root.projectName

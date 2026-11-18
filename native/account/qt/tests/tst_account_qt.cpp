@@ -1391,6 +1391,7 @@ private slots:
     TransferController transfer(std::make_unique<SharedTransport>(server));
     transfer.setAccount(account.get());
     transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
     transfer.setServerToken("local-token");
     transfer.setProjectId(QString(32, 'p'));
     transfer.setLinked(true);
@@ -1481,6 +1482,7 @@ private slots:
     TransferController transfer(std::make_unique<SharedTransport>(server));
     transfer.setAccount(account.get());
     transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
     transfer.setServerToken("local-token");
     transfer.setProjectId(QString(32, 'p'));
     transfer.setLinked(true);
@@ -1529,6 +1531,33 @@ private slots:
     QVERIFY(server.calls().empty());
   }
 
+  // Another server on this computer is not the bundled server either: a
+  // loopback URL with another port, or any URL when the app started no
+  // bundled server, gets no request (review F53).
+  void transferRunsOnlyOnThisLaunchsServer() {
+    Computer computer;
+    computer.server.addCode("code-b", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-b");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+    QueueServer server;
+    const QUrl bundled(kLocalServer);
+    QUrl otherPort = bundled;
+    otherPort.setPort(bundled.port() + 1);
+    const std::vector<std::pair<QUrl, QUrl>> cases = {{otherPort, bundled}, {bundled, QUrl()}};
+    for (const auto& [url, started] : cases) {
+      TransferController transfer(std::make_unique<SharedTransport>(server));
+      transfer.setAccount(account.get());
+      transfer.setServerUrl(url);
+      transfer.setBundledServerUrl(started);
+      transfer.setServerToken("local-token");
+      transfer.setProjectId(QString(32, 'p'));
+      transfer.start();
+      QCOMPARE(transfer.stage(), TransferController::Stage::Failed);
+    }
+    QVERIFY(server.calls().empty());
+  }
+
   // Publish: a send the cloud refuses for a document changed since the
   // sheet was read asks again. Cancel ends the captured send. Signed out,
   // nothing is sent.
@@ -1555,6 +1584,7 @@ private slots:
     TransferController transfer(std::make_unique<SharedTransport>(server));
     transfer.setAccount(account.get());
     transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
     transfer.setProjectId(QString(32, 'p'));
     transfer.setProjectName("Film");
     transfer.start();
@@ -1614,6 +1644,7 @@ private slots:
     TransferController transfer(std::make_unique<SharedTransport>(server));
     transfer.setAccount(account.get());
     transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
     transfer.setProjectId(QString(32, 'p'));
     transfer.setLinked(true);
     transfer.start();
@@ -1654,6 +1685,7 @@ private slots:
     TransferController transfer(std::make_unique<SharedTransport>(server));
     transfer.setAccount(account.get());
     transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
     transfer.setProjectId(QString(32, 'p'));
     transfer.setLinked(true);
     transfer.start();
@@ -1716,6 +1748,7 @@ private slots:
     TransferController transfer(std::make_unique<SharedTransport>(server));
     transfer.setAccount(account.get());
     transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
     transfer.setProjectId(QString(32, 'p'));
     transfer.setLinked(true);
     transfer.start();
@@ -1790,6 +1823,7 @@ private slots:
     TransferController transfer(std::make_unique<SharedTransport>(server));
     transfer.setAccount(account.get());
     transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
     transfer.setProjectId(QString(32, 'p'));
     transfer.setLinked(true);
     transfer.start();
@@ -1837,6 +1871,7 @@ private slots:
     TransferController transfer(std::make_unique<SharedTransport>(server));
     transfer.setAccount(account.get());
     transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
     transfer.setProjectId(QString(32, 'p'));
     transfer.start();
     QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
@@ -1876,6 +1911,7 @@ private slots:
     TransferController transfer(std::make_unique<SharedTransport>(server));
     transfer.setAccount(account.get());
     transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
     transfer.setProjectId(QString(32, 'p'));
     transfer.start();
     QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
@@ -1925,6 +1961,7 @@ private slots:
     TransferController transfer(std::make_unique<SharedTransport>(server));
     transfer.setAccount(account.get());
     transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
     transfer.setProjectId(QString(32, 'p'));
     transfer.setLinked(true);
     transfer.start();
@@ -1961,6 +1998,7 @@ private slots:
     TransferController transfer(std::make_unique<SharedTransport>(server));
     transfer.setAccount(account.get());
     transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
     transfer.setProjectId(QString(32, 'p'));
     transfer.start();
     QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
@@ -2009,6 +2047,7 @@ private slots:
     auto transfer = std::make_unique<TransferController>(std::make_unique<SharedTransport>(server));
     transfer->setAccount(account.get());
     transfer->setServerUrl(QUrl(kLocalServer));
+    transfer->setBundledServerUrl(QUrl(kLocalServer));
     transfer->setProjectId(QString(32, 'p'));
     transfer->start();
     QTRY_VERIFY(server.started.load());

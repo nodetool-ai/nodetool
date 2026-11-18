@@ -48,6 +48,11 @@ class TransferController : public QObject {
   Q_PROPERTY(nodetool::account::qt::AccountController* account READ account WRITE setAccount NOTIFY accountChanged)
   // The app's own server, which runs the transfer.
   Q_PROPERTY(QUrl serverUrl READ serverUrl WRITE setServerUrl NOTIFY projectChanged)
+  // The server this launch of the app started (its bundled backend). The
+  // calls that carry the account's access token go to serverUrl only when
+  // it is this exact server, so another server on this computer never
+  // receives the token (review F53). The app sets it from its launcher.
+  Q_PROPERTY(QUrl bundledServerUrl READ bundledServerUrl WRITE setBundledServerUrl NOTIFY projectChanged)
   // The token of the app's own server. Sent to serverUrl's origin only.
   Q_PROPERTY(QString serverToken READ serverToken WRITE setServerToken NOTIFY projectChanged)
   Q_PROPERTY(QString projectId READ projectId WRITE setProjectId NOTIFY projectChanged)
@@ -98,6 +103,8 @@ public:
   void setAccount(AccountController* account);
   QUrl serverUrl() const { return serverUrl_; }
   void setServerUrl(const QUrl& url);
+  QUrl bundledServerUrl() const { return bundledServerUrl_; }
+  void setBundledServerUrl(const QUrl& url);
   QString serverToken() const { return serverToken_; }
   void setServerToken(const QString& token);
   QString projectId() const { return projectId_; }
@@ -149,6 +156,8 @@ private:
   std::shared_ptr<AccountSession> session() const;
   std::vector<std::pair<std::string, std::string>> headers() const;
   std::string origin() const;
+  // True when serverUrl is the bundled server this launch started.
+  bool onBundledServer() const;
   // Ends a captured send that will not run, on the task thread.
   void endSend(const std::string& transferId);
   // Ends a captured receive that will not run, on the task thread: the
@@ -166,6 +175,7 @@ private:
   std::unique_ptr<detail::TaskQueue> tasks_;
   QPointer<AccountController> account_;
   QUrl serverUrl_;
+  QUrl bundledServerUrl_;
   QString serverToken_;
   QString projectId_;
   QString projectName_;

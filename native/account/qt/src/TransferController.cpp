@@ -223,6 +223,22 @@ void TransferController::setServerUrl(const QUrl& url) {
   emit projectChanged();
 }
 
+void TransferController::setBundledServerUrl(const QUrl& url) {
+  if (bundledServerUrl_ == url) {
+    return;
+  }
+  bundledServerUrl_ = url;
+  emit projectChanged();
+}
+
+bool TransferController::onBundledServer() const {
+  if (!isLoopbackHttpOrigin(origin()) || !bundledServerUrl_.isValid()) {
+    return false;
+  }
+  const QUrl bundled = bundledServerUrl_.adjusted(QUrl::RemovePath | QUrl::RemoveQuery | QUrl::RemoveFragment);
+  return bundled.toString().toStdString() == origin();
+}
+
 void TransferController::setServerToken(const QString& token) {
   if (serverToken_ == token) {
     return;
@@ -332,9 +348,10 @@ void TransferController::start() {
     return;
   }
   // The app's bundled server runs the transfer and receives the account's
-  // access token. A project open on another server is not sent from it.
-  if (!isLoopbackHttpOrigin(origin())) {
-    fail(tr("Only projects on this computer can be published or synchronized."));
+  // access token. A project open on another server, also one on this
+  // computer, is not sent from it (review F53).
+  if (!onBundledServer()) {
+    fail(tr("Only projects on this app's own server can be published or synchronized."));
     return;
   }
   const quint64 sequence = ++sequence_;
@@ -447,6 +464,11 @@ void TransferController::apply() {
   const std::shared_ptr<AccountSession> current = session();
   if (!current) {
     message_ = failure(TransferStatus::SignedOut, {});
+    emit stateChanged();
+    return;
+  }
+  if (!onBundledServer()) {
+    message_ = tr("Only projects on this app's own server can be published or synchronized.");
     emit stateChanged();
     return;
   }
@@ -741,7 +763,7 @@ std::string TransferController::origin() const {
 
 void TransferController::endSend(const std::string& transferId) {
   const std::shared_ptr<AccountSession> current = session();
-  if (transferId.empty() || !current) {
+  if (transferId.empty() || !current || !onBundledServer()) {
     return;
   }
   tasks_->post([state = shared_, cancel = std::shared_ptr<const RequestCancel>(cancel_), current, origin = origin(), headers = headers(), transferId] {
@@ -751,7 +773,7 @@ void TransferController::endSend(const std::string& transferId) {
 
 void TransferController::endReceive(const std::string& setId) {
   const std::shared_ptr<AccountSession> current = session();
-  if (setId.empty() || !current) {
+  if (setId.empty() || !current || !onBundledServer()) {
     return;
   }
   tasks_->post([state = shared_, cancel = std::shared_ptr<const RequestCancel>(cancel_), current, origin = origin(),
