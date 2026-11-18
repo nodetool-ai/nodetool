@@ -535,17 +535,65 @@ void EditorWindow::persistTabs() const {
         if (tab == active) {
             activeEntry = entries.size();
         }
-        entries.append(QJsonObject{{"file", tab->file_},
-                                   {"workflow", tab->session_.serverBound()
-                                                    ? tab->session_.workflow()["id"].toString()
-                                                    : tab->requestedWorkflow_},
-                                   {"origin", tab->session_.serverUrl().toString()},
-                                   {"project", tab->projectKey()}});
+        // A cloud tab reopens from its server under the same account, never
+        // as a workflow of the local server. Its drafts stay on that server.
+        QJsonObject entry;
+        if (!tab->cloudId_.isEmpty()) {
+            entry = QJsonObject{{"cloud", tab->cloudId_},
+                                {"cloudServer", tab->cloudOrigin_},
+                                {"role", tab->cloudRole_},
+                                {"origin", tab->session_.serverUrl().toString()},
+                                {"project", tab->projectKey()}};
+        } else {
+            entry = QJsonObject{{"file", tab->file_},
+                                {"workflow", tab->session_.serverBound()
+                                                 ? tab->session_.workflow()["id"].toString()
+                                                 : tab->requestedWorkflow_},
+                                {"origin", tab->session_.serverUrl().toString()},
+                                {"project", tab->projectKey()}};
+        }
+        // Written on every record, so a record without it is from a launch
+        // before the key existed.
+        entry["bundled"] = !bundledServer_.isEmpty() && tab->session_.serverUrl() == bundledServer_;
+        entries.append(entry);
     }
     QSettings settings;
     settings.setValue("workflowTabs/documents",
                       QJsonDocument(entries).toJson(QJsonDocument::Compact));
     settings.setValue("workflowTabs/active", activeEntry);
+}
+void EditorWindow::setBundledServer(const QUrl &url) {
+    if (tabOwner_) {
+        tabOwner_->setBundledServer(url);
+        return;
+    }
+    bundledServer_ = url;
+}
+namespace {
+// Whether a saved tab was connected to the bundled server, as the record's
+// "bundled" key says. A record saved before the key existed names only an
+// origin, and a loopback port says nothing about who started the server
+// there, so it stays on the URL it names (review F54).
+bool usedBundledServer(const QJsonObject &entry) {
+    return entry["bundled"].toBool(false);
+}
+}  // namespace
+EditorWindow::SavedTabServers EditorWindow::savedTabServers() {
+    const auto entries =
+        QJsonDocument::fromJson(QSettings().value("workflowTabs/documents").toByteArray()).array();
+    SavedTabServers servers;
+    for (const auto &value : entries) {
+        const auto entry = value.toObject();
+        if (entry["origin"].toString().isEmpty()) {
+            continue;
+        }
+        if (usedBundledServer(entry)) {
+            servers.bundled = true;
+        } else {
+            servers.own = true;
+        }
+    }
+    return servers;
 }
 void EditorWindow::restoreTabs() {
     if (tabOwner_) {
@@ -570,11 +618,18 @@ void EditorWindow::restoreTabs() {
         tab->syncOpenProject();
         const auto path = entry["file"].toString();
         const auto id = entry["workflow"].toString();
-        if (!path.isEmpty())
+        const auto cloudId = entry["cloud"].toString();
+        // A tab of the bundled server reconnects to this launch's port, not
+        // the port the last launch had.
+        const QUrl origin = usedBundledServer(entry) && !bundledServer_.isEmpty()
+                                ? bundledServer_
+                                : QUrl(entry["origin"].toString());
+        if (!cloudId.isEmpty()) {
+            tab->restoreCloudDocument(origin, entry["cloudServer"].toString(), cloudId, entry["role"].toString());
+        } else if (!path.isEmpty())
             tab->openFile(path);
         else if (!id.isEmpty()) {
-            tab->session_.connectToServer(QUrl(entry["origin"].toString()),
-                                          qEnvironmentVariable("NODETOOL_TOKEN"));
+            tab->session_.connectToServer(origin, qEnvironmentVariable("NODETOOL_TOKEN"));
             tab->requestedWorkflow_ = id;
             tab->session_.openWorkflow(id);
         }
@@ -714,6 +769,11 @@ void EditorWindow::renameTab(int index, const QString &name) {
     const auto trimmed = name.trimmed();
     // A project folder's workflow file is named by its file name, which a rename would move.
     if (!target || target->childParent_ || target->projectWorkflowFile() || trimmed.isEmpty() || trimmed == target->workflowName()) {
+        return;
+    }
+    // A viewer's cloud workflow cannot be renamed. An editor's rename below
+    // changes the document, whose next draft carries the name to the cloud.
+    if (target->cloud_ && target->cloud_->readOnly()) {
         return;
     }
     if (target->session_.serverBound()) {

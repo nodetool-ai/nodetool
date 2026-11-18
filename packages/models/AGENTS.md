@@ -25,6 +25,16 @@ difference: row locks, synchronous SQLite transactions, dialect-specific raw
 SQL, or dialect-specific returning behavior. Use its narrowed transaction
 callback for `.for("update")` locking.
 
+Use `withTransaction(body)` when several writes, including those inside
+model methods, must commit together. Queries reach the open transaction
+through `getDatabase()` and `getPortableDb()`. On SQLite the one connection
+is shared by every request, so the body must await only database calls. A
+query from outside the body while it is open throws. Wrap a change of access
+(a grant, a share link, a document's project or its deleted state) in
+`changingAccess` from `src/access-epoch.ts`, and lock the epochs with
+`lockAccessEpochs` before an access check whose write must not outlive a
+revocation.
+
 ## Adding a Column
 
 1. Add the column to **both** schema files:

@@ -80,7 +80,14 @@ const TRPC_CODE_BY_API_CODE = {
   [ApiErrorCode.SCHEMA_DOWNGRADE]: "CONFLICT",
   [ApiErrorCode.CLIENT_TOO_OLD]: "PRECONDITION_FAILED",
   // The attach rule: the save names a file the writer may not read.
-  [ApiErrorCode.FILE_NOT_READABLE]: "FORBIDDEN"
+  [ApiErrorCode.FILE_NOT_READABLE]: "FORBIDDEN",
+  [ApiErrorCode.ATTEMPT_CONTENT_MISMATCH]: "CONFLICT",
+  [ApiErrorCode.REVISION_SET_EXPIRED]: "CONFLICT",
+  // The local server reached the cloud on the app's behalf. These describe
+  // the cloud's answer, not a fault of the local request.
+  [ApiErrorCode.CLOUD_SIGNED_OUT]: "PRECONDITION_FAILED",
+  [ApiErrorCode.CLOUD_UNREACHABLE]: "BAD_GATEWAY",
+  [ApiErrorCode.CLOUD_REFUSED]: "BAD_GATEWAY"
 } satisfies Record<ApiErrorCode, TRPCError["code"]>;
 
 /**

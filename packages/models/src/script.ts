@@ -19,6 +19,7 @@ import type {
   DocumentFileLocation,
   DocumentFileSync
 } from "./document-file-sync.js";
+import { changingAccess } from "./access-epoch.js";
 
 /** One word of a take with clip-local timing (mirrors timeline CaptionWord). */
 export interface ScriptCaptionWord {
@@ -288,11 +289,13 @@ export class Script extends DBModel {
    * Missing and not-yours are the same answer, so a caller cannot probe ids.
    */
   static async deleteOwned(userId: string, id: string): Promise<boolean> {
-    const row = await Script.findById(id);
-    if (!row || row.user_id !== userId) return false;
-    await row.delete();
-    await removeDocumentSharing("script", row.id);
-    return true;
+    return changingAccess([{ kind: "script", id }], async () => {
+      const row = await Script.findById(id);
+      if (!row || row.user_id !== userId) return false;
+      await row.delete();
+      await removeDocumentSharing("script", row.id);
+      return true;
+    });
   }
 
   static async findById(id: string): Promise<Script | null> {

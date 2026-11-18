@@ -74,7 +74,8 @@ list(APPEND node_editor_qml_files
     ../account/qt/qml/CloudDocumentsPanel.qml
     ../account/qt/qml/CloudSyncStatus.qml
     ../account/qt/qml/ShareDialog.qml
-    ../account/qt/qml/SharePanel.qml)
+    ../account/qt/qml/SharePanel.qml
+    ../account/qt/qml/TransferPanel.qml)
 foreach(file IN LISTS node_editor_qml_files)
     get_filename_component(name ${file} NAME)
     set_source_files_properties(${file} PROPERTIES QT_RESOURCE_ALIAS ${name})

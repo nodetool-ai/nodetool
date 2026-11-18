@@ -167,6 +167,19 @@ export async function publishSave(
 }
 
 /**
+ * {@link publishSave} for a document written elsewhere, such as by a
+ * transfer: loads the stored row first. Does nothing when it is gone.
+ */
+export async function publishStoredDocument(
+  kind: RefDocumentKind,
+  id: string,
+  toAdmit: readonly string[]
+): Promise<void> {
+  const document = await loadRefDocument(kind, id);
+  if (document) await publishSave(kind, document, toAdmit);
+}
+
+/**
  * Write the set of every saved version that has none, and remove the sets of
  * versions that no longer exist. A version never changes once written.
  */
@@ -241,6 +254,30 @@ export async function isFileInReadableSet(
     readableScopes(access),
     current
   );
+}
+
+/**
+ * The files among `files` that `access` may read through the sets of the
+ * document `id`, in their order. Empty when the document is gone. The sets
+ * are brought up to date first.
+ */
+export async function readableFilesOf(
+  kind: RefDocumentKind,
+  id: string,
+  access: EffectiveAccessItem,
+  files: readonly string[]
+): Promise<string[]> {
+  if (files.length === 0) return [];
+  const document = await loadRefDocument(kind, id);
+  if (!document) return [];
+  const current = await ensureCurrentSet(kind, document);
+  if (readsVersions(access)) await ensureVersionSets(kind, document);
+  const scopes = readableScopes(access);
+  const readable: string[] = [];
+  for (const file of files) {
+    if (await DocumentRefs.contains(kind, document.id, file, scopes, current)) readable.push(file);
+  }
+  return readable;
 }
 
 /** The workflows and timelines `userId` holds a grant on, each once. */

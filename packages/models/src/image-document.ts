@@ -15,6 +15,7 @@ import { getPortableDb } from "./db.js";
 import { imageDocuments } from "./schema/image-documents.js";
 import { ImageDocumentVersion } from "./image-document-version.js";
 import { removeDocumentSharing } from "./document-sharing.js";
+import { changingAccess } from "./access-epoch.js";
 
 export interface ImageDocumentData {
   sketch: SketchDocumentLike;
@@ -162,14 +163,16 @@ export class ImageDocument extends DBModel {
    * Missing and not-yours are the same answer, so a caller cannot probe ids.
    */
   static async deleteOwned(userId: string, id: string): Promise<boolean> {
-    const row = await ImageDocument.findById(id);
-    if (!row || row.user_id !== userId) return false;
-    await row.delete();
-    await removeDocumentSharing("sketch", row.id);
-    // Belt-and-braces with the FK cascade: version rows outliving their
-    // document would be unreachable garbage.
-    await ImageDocumentVersion.deleteForDocument(row.id);
-    return true;
+    return changingAccess([{ kind: "sketch", id }], async () => {
+      const row = await ImageDocument.findById(id);
+      if (!row || row.user_id !== userId) return false;
+      await row.delete();
+      await removeDocumentSharing("sketch", row.id);
+      // Belt-and-braces with the FK cascade: version rows outliving their
+      // document would be unreachable garbage.
+      await ImageDocumentVersion.deleteForDocument(row.id);
+      return true;
+    });
   }
 
   static async findById(id: string): Promise<ImageDocument | null> {

@@ -174,6 +174,18 @@ export function projectAssetFileStem(name: string, contentType: string): string 
 const folderQueues = new Map<string, Promise<unknown>>();
 
 /**
+ * Proof that a task holds one folder's lock, handed to the task by
+ * {@link withProjectFolderLock}. It is valid only while that task runs. A
+ * call that passes it as `under` runs inside the lock at once. Work the task
+ * leaves running, such as a timer it set, gets no pass unless the task gave
+ * it the hold, and once the task ends the hold lets nothing in (review F35).
+ */
+export interface FolderLockHold {
+  readonly key: string;
+  readonly held: boolean;
+}
+
+/**
  * Run `task` after every earlier task for the same project folder. Choosing a
  * free file name and writing the file are two steps, and two saves of the
  * same name that interleave would pick the same name and write one file over
@@ -187,15 +199,35 @@ const folderQueues = new Map<string, Promise<unknown>>();
  * at the head of the queue also holds the folder's lock file
  * (`folder-lock-file.ts`). A wait for another process gives up with a
  * `FolderLockTimeoutError`.
+ *
+ * `task` receives its hold. A call for the same folder made inside `task`
+ * queues like any other, unless it passes that hold as `under`: it then runs
+ * at once, inside the lock, so a receive can run the reconcile and write
+ * document files without letting another writer in between. A hold that is
+ * no longer held, or that is for another folder, is refused.
  */
 export function withProjectFolderLock<T>(
   userId: string,
   projectId: string,
-  task: () => Promise<T>
+  task: (hold: FolderLockHold) => Promise<T>,
+  options: { under?: FolderLockHold } = {}
 ): Promise<T> {
   const key = `${userId}\u0000${projectId}`;
+  if (options.under) {
+    if (options.under.key !== key || !options.under.held) {
+      return Promise.reject(new Error("The folder lock this call runs under is not held"));
+    }
+    return task(options.under);
+  }
   const previous = folderQueues.get(key) ?? Promise.resolve();
-  const locked = () => withFolderLockFile(userId, projectId, task);
+  const locked = async () => {
+    const hold = { key, held: true };
+    try {
+      return await withFolderLockFile(userId, projectId, () => task(hold));
+    } finally {
+      hold.held = false;
+    }
+  };
   const next = previous.then(locked, locked);
   const settled = next.catch(() => undefined);
   folderQueues.set(key, settled);
