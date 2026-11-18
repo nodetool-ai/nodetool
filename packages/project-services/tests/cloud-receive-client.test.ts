@@ -20,6 +20,7 @@ import {
   getCloudLinkFile,
   getCloudReceive,
   initTestDb,
+  listCloudReceives,
   listTransferPlacements,
   setWorkflowFileSync,
   Workflow,
@@ -83,11 +84,17 @@ interface CloudDocument {
 class FakeCloud implements ReceiveTransport {
   readonly documents = new Map<string, CloudDocument>();
   readonly blobs = new Map<string, Uint8Array>();
+  /** Hashes an owner erased: the cloud lists their files as missing. */
+  readonly erased = new Set<string>();
   readonly sets = new Map<string, CloudDocument[]>();
   readonly released: string[] = [];
   readonly downloads: string[] = [];
   readonly documentReads: string[] = [];
   expired = false;
+  /** Sets the cloud no longer serves. */
+  readonly expiredSets = new Set<string>();
+  /** After this many downloads, the set of the last one expires. */
+  expireAfterDownloads: number | null = null;
   failNextDownload = false;
 
   putWorkflow(name: string, file: { bytes: Uint8Array; name: string; path: string | null } | null, docId = id()) {
@@ -118,14 +125,15 @@ class FakeCloud implements ReceiveTransport {
         name: document.name,
         revision_id: id(),
         content_hash: identityHash(document.payload),
-        files: document.files,
-        missing_files: []
+        // A file whose bytes an owner erased is listed as missing, as the server does.
+        files: document.files.filter((file) => !this.erased.has(file.hash)),
+        missing_files: document.files.filter((file) => this.erased.has(file.hash)).map((file) => file.asset_id)
       }))
     };
   }
 
   async document(input: { set_id: string; kind: TransferDocumentKind; document_id: string }) {
-    if (this.expired) throw new ReceiveSetExpiredError();
+    if (this.expired || this.expiredSets.has(input.set_id)) throw new ReceiveSetExpiredError();
     const document = this.sets.get(input.set_id)?.find((entry) => entry.id === input.document_id);
     if (!document) throw new Error("not in the set");
     this.documentReads.push(document.id);
@@ -138,7 +146,7 @@ class FakeCloud implements ReceiveTransport {
   }
 
   async downloadFile(input: { set_id: string; hash: string }, destination: string): Promise<"ok" | "ERASED"> {
-    if (this.expired) throw new ReceiveSetExpiredError();
+    if (this.expired || this.expiredSets.has(input.set_id)) throw new ReceiveSetExpiredError();
     if (this.failNextDownload) {
       this.failNextDownload = false;
       throw new Error("The connection dropped");
@@ -147,6 +155,10 @@ class FakeCloud implements ReceiveTransport {
     if (!bytes) return "ERASED";
     this.downloads.push(input.hash);
     await writeFile(destination, bytes);
+    if (this.expireAfterDownloads !== null && this.downloads.length >= this.expireAfterDownloads) {
+      this.expiredSets.add(input.set_id);
+      this.expireAfterDownloads = null;
+    }
     return "ok";
   }
 
@@ -417,9 +429,10 @@ describe("receiving a cloud project", { timeout: 30_000 }, () => {
     }
   });
 
-  it("lists a file the cloud no longer holds as missing and still receives the document", async () => {
+  it("lists a file the cloud no longer held at capture as missing and still receives the document", async () => {
     const document = cloud.putWorkflow("Edit", { bytes: randomBytes(16), name: "gone.png", path: "gone.png" });
     cloud.blobs.clear();
+    cloud.erased.add(document.files[0]!.hash);
     const outcome = await runReceive(cloud, (await captureReceive(cloud, link)).setId);
     expect(outcome).toMatchObject({
       status: "finished",
@@ -428,13 +441,48 @@ describe("receiving a cloud project", { timeout: 30_000 }, () => {
     expect(await Asset.get<Asset>(document.files[0]!.asset_id)).toBeNull();
   });
 
-  it("drops the receive and writes nothing when the set expired during staging", async () => {
+  it("captures a new set when an owner erases a file during staging, and downloads no staged file again (Y7, AC74, review F32)", async () => {
+    const kept = cloud.putWorkflow("Kept", { bytes: randomBytes(16), name: "kept.png", path: "kept.png" });
+    const erased = cloud.putWorkflow("Erased", { bytes: randomBytes(16), name: "erased.png", path: "erased.png" });
+    const review = await captureReceive(cloud, link);
+    // The owner erases the second file after the capture.
+    cloud.blobs.delete(erased.files[0]!.hash);
+    cloud.erased.add(erased.files[0]!.hash);
+
+    const outcome = await runReceive(cloud, review.setId);
+    expect(outcome.status).toBe("finished");
+    if (outcome.status !== "finished") return;
+    expect(outcome.setId).not.toBe(review.setId);
+    expect(outcome.result.received.map((entry) => entry.id).sort()).toEqual([kept.id, erased.id].sort());
+    expect(outcome.result.missingFiles).toEqual([erased.files[0]!.asset_id]);
+    expect(cloud.downloads).toEqual([kept.files[0]!.hash]);
+    expect(cloud.released).toContain(review.setId);
+    expect(await getCloudReceive(review.setId)).toBeNull();
+    expect(existsSync(join(stagingRoot(), review.setId))).toBe(false);
+  });
+
+  it("captures a new set when the set expired during staging, and downloads no staged file again (Y7, review F32)", async () => {
+    const first = cloud.putWorkflow("First", { bytes: randomBytes(16), name: "first.png", path: "first.png" });
+    const second = cloud.putWorkflow("Second", { bytes: randomBytes(16), name: "second.png", path: "second.png" });
+    const review = await captureReceive(cloud, link);
+    cloud.expireAfterDownloads = 1;
+
+    const outcome = await runReceive(cloud, review.setId);
+    expect(outcome).toMatchObject({ status: "finished", result: { missingFiles: [] } });
+    expect(outcome.setId).not.toBe(review.setId);
+    expect([...cloud.downloads].sort()).toEqual([first.files[0]!.hash, second.files[0]!.hash].sort());
+    expect(Buffer.from((await folder.read("first.png"))!).length).toBe(16);
+    expect(Buffer.from((await folder.read("second.png"))!).length).toBe(16);
+    expect(await getCloudReceive(review.setId)).toBeNull();
+  });
+
+  it("gives up and writes nothing when every new set expires too", async () => {
     const document = cloud.putWorkflow("Edit", null);
     const review = await captureReceive(cloud, link);
     cloud.expired = true;
-    expect(await runReceive(cloud, review.setId)).toEqual({ status: "expired", setId: review.setId });
+    expect((await runReceive(cloud, review.setId)).status).toBe("expired");
     expect(await Workflow.get<Workflow>(document.id)).toBeNull();
-    expect(await getCloudReceive(review.setId)).toBeNull();
+    expect(await listCloudReceives(USER)).toEqual([]);
     expect(existsSync(join(stagingRoot(), review.setId))).toBe(false);
   });
 

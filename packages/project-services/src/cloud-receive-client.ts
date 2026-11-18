@@ -171,8 +171,6 @@ interface ReceivePlan {
   documents: PlannedDocument[];
   /** True once the person's decisions are recorded and the receive may download. */
   decided: boolean;
-  /** Hashes whose bytes the cloud no longer holds. */
-  erased: string[];
   placements: PlannedPlacement[];
   result: ReceiveResult;
 }
@@ -333,7 +331,6 @@ export async function captureReceive(
     set,
     documents,
     decided: false,
-    erased: [],
     placements: [],
     result: emptyResult()
   };
@@ -389,9 +386,7 @@ async function stage(transport: ReceiveTransport, row: CloudReceiveRow, plan: Re
     await flush(part);
     await rename(part, path);
   }
-  const erased = new Set(plan.erased);
   for (const [hash, files] of neededFiles(plan)) {
-    if (erased.has(hash)) continue;
     const path = stagedPath(dir, hash);
     if (await fileExists(path)) {
       // A crash can leave a staged file only after its rename, which follows its check.
@@ -402,11 +397,11 @@ async function stage(transport: ReceiveTransport, row: CloudReceiveRow, plan: Re
     if (held) continue;
     const part = `${path}.part`;
     const answer = await transport.downloadFile({ set_id: row.id, hash }, part);
+    // An owner erased the file after the capture. The set no longer is one
+    // moment, so it is treated as expired and captured again (Y7, review F32).
     if (answer === "ERASED") {
-      erased.add(hash);
-      plan.erased = [...erased];
-      await updateCloudReceive(row.id, { plan });
-      continue;
+      await rm(part, { force: true });
+      throw new ReceiveSetExpiredError("A file of the revision set was erased.");
     }
     await flush(part);
     if ((await contentHashOfFile(part)) !== hash) {
@@ -475,7 +470,6 @@ async function commit(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePla
     const text = await readFile(stagedPath(dir, "documents", `${document.kind}-${document.cloudId}.json`), "utf8");
     payloads.set(document, JSON.parse(text) as TransferPayloadContent);
   }
-  const erased = new Set(plan.erased);
   // A transaction on SQLite may await nothing but the database, so the
   // staged files are looked at before it.
   const staged = new Set<string>();
@@ -523,10 +517,6 @@ async function commit(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePla
         for (const file of document.files) {
           if (seen.has(file.asset_id)) continue;
           seen.add(file.asset_id);
-          if (erased.has(file.hash)) {
-            result.missingFiles.push(file.asset_id);
-            continue;
-          }
           const asset = await Asset.get<Asset>(file.asset_id);
           if (asset && asset.content_hash === file.hash && asset.project_id === link.project_id) {
             await setCloudLinkFileBase(link, { assetId: asset.id, cloudAssetId: file.asset_id, hash: file.hash });
@@ -764,6 +754,56 @@ async function abandon(row: CloudReceiveRow, dir: string): Promise<ReceiveOutcom
   return { status: "expired", setId: row.id };
 }
 
+/** How many new sets one receive captures after its set expired before it gives up. */
+const RECAPTURE_LIMIT = 3;
+
+/**
+ * Replaces a receive whose set expired, or named a file an owner erased,
+ * with a receive of a new set (Y7, AC74, review F32). Staged files the new
+ * set also names move to its staging folder after their hash is checked
+ * again, so they are not downloaded twice. A document keeps the person's
+ * decision when the new set shows it with the same status. When any
+ * document's status differs, or the set has documents the person did not
+ * see, the new receive waits for review. Nothing local was written.
+ */
+async function recapture(
+  transport: ReceiveTransport,
+  row: CloudReceiveRow,
+  link: CloudLinkRow,
+  plan: ReceivePlan,
+  workspace: Workspace,
+  dir: string
+): Promise<{ setId: string; reviewed: boolean; documents: PlannedDocument[] }> {
+  const next = await captureReceive(transport, link);
+  const nextRow = await getCloudReceive(next.setId);
+  if (!nextRow) throw new Error(`The receive ${next.setId} was not recorded`);
+  const nextPlan = parsePlan(nextRow);
+  let reviewed = plan.decided && nextPlan.documents.length === plan.documents.length;
+  for (const document of nextPlan.documents) {
+    const before = plan.documents.find((entry) => entry.kind === document.kind && entry.cloudId === document.cloudId);
+    if (before && before.status === document.status) {
+      document.decision = before.decision;
+    } else {
+      reviewed = false;
+    }
+  }
+  nextPlan.decided = reviewed;
+  const nextDir = stagingDir(workspace, next.setId);
+  for (const document of nextPlan.documents) {
+    for (const file of document.files) {
+      const staged = stagedPath(dir, file.hash);
+      if (!(await fileExists(staged)) || (await contentHashOfFile(staged)) !== file.hash) continue;
+      await mkdir(nextDir, { recursive: true });
+      await rename(staged, stagedPath(nextDir, file.hash));
+    }
+  }
+  await updateCloudReceive(next.setId, { plan: nextPlan });
+  await transport.release({ set_id: row.id }).catch(() => undefined);
+  await rm(dir, { recursive: true, force: true });
+  await deleteCloudReceive(row.id);
+  return { setId: next.setId, reviewed, documents: nextPlan.documents };
+}
+
 /** Options of {@link runReceive}. */
 export interface ReceiveRunOptions {
   /**
@@ -784,6 +824,16 @@ export async function runReceive(
   setId: string,
   decisions?: ReadonlyArray<{ kind: TransferDocumentKind; document_id: string; decision: ReceiveDecision }>,
   options: ReceiveRunOptions = {}
+): Promise<ReceiveOutcome> {
+  return runReceiveOf(transport, setId, decisions, options, 0);
+}
+
+async function runReceiveOf(
+  transport: ReceiveTransport,
+  setId: string,
+  decisions: ReadonlyArray<{ kind: TransferDocumentKind; document_id: string; decision: ReceiveDecision }> | undefined,
+  options: ReceiveRunOptions,
+  recaptures: number
 ): Promise<ReceiveOutcome> {
   const after = options.afterStep ?? (() => undefined);
   let row = await getCloudReceive(setId);
@@ -808,8 +858,11 @@ export async function runReceive(
     try {
       await stage(transport, row, plan, dir);
     } catch (error) {
-      if (error instanceof ReceiveSetExpiredError) return abandon(row, dir);
-      throw error;
+      if (!(error instanceof ReceiveSetExpiredError)) throw error;
+      if (recaptures >= RECAPTURE_LIMIT) return abandon(row, dir);
+      const next = await recapture(transport, row, link, plan, workspace, dir);
+      if (!next.reviewed) return { status: "waiting_for_review", setId: next.setId, documents: next.documents };
+      return runReceiveOf(transport, next.setId, undefined, options, recaptures + 1);
     }
     row = { ...row, state: "installed" };
     await after("installed");
