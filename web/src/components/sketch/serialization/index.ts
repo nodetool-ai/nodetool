@@ -6,6 +6,8 @@
  */
 
 import { setVectorSource } from "../rendering/vectorSource";
+import { resolveMediaUri } from "../../../utils/resolveMediaUri";
+import { assetIdFromLocator } from "../../../utils/mediaRef";
 import { drawWithTransform } from "../rendering/canvas2d/composite";
 
 import {
@@ -140,6 +142,9 @@ export function dataUrlToCanvas(
       }
       resolve(canvas);
     };
+    if (!dataUrl.startsWith("data:") && !dataUrl.startsWith("blob:")) {
+      img.crossOrigin = "anonymous";
+    }
     img.onerror = () => reject(new Error("Failed to load image data"));
     img.src = dataUrl;
   });
@@ -154,9 +159,18 @@ async function layerDataToCanvas(
   bounds: LayerRasterBounds;
 }> {
   const decoded = deserializeLayerData(data, fallbackWidth, fallbackHeight);
-  const canvas = decoded.image
+  // A layer can link its pixels as an `asset://` locator, which an <img>
+  // cannot load. Resolve it to the asset URL first.
+  const source =
+    decoded.image && assetIdFromLocator(decoded.image)
+      ? await resolveMediaUri(decoded.image)
+      : decoded.image;
+  if (decoded.image && !source) {
+    throw new Error(`Failed to resolve layer image ${decoded.image}`);
+  }
+  const canvas = source
     ? await dataUrlToCanvas(
-        decoded.image,
+        source,
         decoded.bounds.width,
         decoded.bounds.height
       )
