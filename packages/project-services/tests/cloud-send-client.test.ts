@@ -20,8 +20,10 @@ import {
   getCloudSend,
   DOCUMENT_FILE_MISSING,
   initTestDb,
+  updateCloudSend,
   Workflow
 } from "@nodetool-ai/models";
+import { CloudRequestError } from "../src/cloud-http-transport.js";
 import {
   createLocalWorkspace,
   setProjectFolderResolver,
@@ -69,6 +71,7 @@ class FakeCloud implements SendTransport {
   dropCommitAnswer = false;
 
   readonly opened = new Set<string>();
+  readonly cancels: string[] = [];
 
   async open(input: { transfer_id: string; project_id: string; first_publication: boolean; manifest: TransferManifest }) {
     this.opened.add(input.transfer_id);
@@ -157,8 +160,9 @@ class FakeCloud implements SendTransport {
   }
 
   async cancel(input: { transfer_id: string }) {
+    this.cancels.push(input.transfer_id);
     // The server knows no transfer it did not open.
-    if (!this.opened.has(input.transfer_id)) throw new Error("NOT_FOUND: Transfer not found");
+    if (!this.opened.has(input.transfer_id)) throw new CloudRequestError(404, "NOT_FOUND", "Transfer not found");
     const committed = this.attempts.get(input.transfer_id)?.find((attempt) => attempt.result.outcome === "committed");
     return committed ? { state: "committed" as const, result: committed.result } : { state: "cancelled" as const };
   }
@@ -527,5 +531,48 @@ describe("sending a project to the cloud", { timeout: 30_000 }, () => {
     expect(cloud.opened.has(refused.transferId)).toBe(true);
     expect(await cancelSend(cloud, refused.transferId)).toBe("cancelled");
     expect(await getCloudSend(refused.transferId)).toBeNull();
+  });
+
+  it("cancels on the cloud a send whose open answer was lost, and a send from before the open was recorded (review F52)", async () => {
+    await workflowWithFile(null);
+    const lost = await captureSend(TARGET);
+    const open = cloud.open.bind(cloud);
+    cloud.open = async (input) => {
+      await open(input);
+      throw new CloudRequestError(0, "HTTP_0", "The connection reset");
+    };
+    await expect(runSend(cloud, lost.transferId)).rejects.toThrow("The connection reset");
+    expect(cloud.opened.has(lost.transferId)).toBe(true);
+    expect(await cancelSend(cloud, lost.transferId)).toBe("cancelled");
+    expect(cloud.cancels).toContain(lost.transferId);
+    expect(await getCloudSend(lost.transferId)).toBeNull();
+
+    // An open that never reached the cloud: the cloud answers not found.
+    const unreached = await captureSend(TARGET);
+    cloud.open = async () => {
+      throw new CloudRequestError(0, "HTTP_0", "The connection reset");
+    };
+    await expect(runSend(cloud, unreached.transferId)).rejects.toThrow("The connection reset");
+    expect(await cancelSend(cloud, unreached.transferId)).toBe("cancelled");
+    expect(cloud.cancels).toContain(unreached.transferId);
+    expect(await getCloudSend(unreached.transferId)).toBeNull();
+    cloud.open = open;
+
+    // A plan written before the open was recorded may have been opened.
+    const legacy = await captureSend(TARGET);
+    await open({
+      transfer_id: legacy.transferId,
+      project_id: PROJECT,
+      first_publication: true,
+      manifest: { operations: [], required_files: [], file_operations: [] } as unknown as TransferManifest
+    });
+    const row = await getCloudSend(legacy.transferId);
+    const plan = JSON.parse(row!.plan) as Record<string, unknown>;
+    delete plan["openAttempted"];
+    delete plan["opened"];
+    await updateCloudSend(legacy.transferId, { plan });
+    expect(await cancelSend(cloud, legacy.transferId)).toBe("cancelled");
+    expect(cloud.cancels).toContain(legacy.transferId);
+    expect(await getCloudSend(legacy.transferId)).toBeNull();
   });
 });
