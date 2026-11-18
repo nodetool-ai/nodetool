@@ -10955,6 +10955,7 @@
       "levels_one": "Nível {{count}}",
       "levels_other": "{{count}} níveis",
       "allLevels": "Todos os níveis",
+      "anyDepth": "Qualquer profundidade",
       "spanName": "Nome do período",
       "focusSpan": "Extensão de foco",
       "wholeRun": "Corrida inteira",
@@ -11012,7 +11013,6 @@
       "noRecentRuns": "Nenhuma execução recente",
       "noMatchingSpans": "Nenhum período correspondente",
       "spanId": "Extensão {{id}}",
-      "olderRuns": "Corridas mais antigas",
       "noRecordedRuns": "Nenhuma corrida registrada",
       "noRunsDescription": "Inicie uma operação de aplicativo, fluxo de trabalho ou bate-papo para inspecionar seus rastreamentos e registros.",
       "runStatus": {
