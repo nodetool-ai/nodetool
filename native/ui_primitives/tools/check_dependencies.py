@@ -108,10 +108,11 @@ def module_policy(module):
     if module.name == 'timeline-player':
         return {
             'subdirs': {'../ui_primitives', '../kernels'},
+            'include_paths': {('nodetool_timeline_player_server', '../account/qt/include')},
             'qml_imports': {'NodeTool.UiPrimitives', 'NodeTool.TimelinePlayer'},
             'targets': {
                 'nodetool_timeline_scene', 'yogacore',
-                'nodetool_timeline_decode', 'nodetool_timeline_audio',
+                'nodetool_timeline_decode', 'nodetool_timeline_audio', 'nodetool_timeline_hooks',
                 'nodetool_timeline_player', 'nodetool_timeline_playerplugin', 'nodetool_timeline_player_server',
                 'nodetool_ui_primitives', 'nodetool_ui_primitivesplugin', 'nodetool_kernels',
                 'nodetool_timeline_effects_registrar', 'nodetool_timeline_render2d_registrar',
@@ -140,7 +141,7 @@ def module_policy(module):
     }
 
 
-def cmake_path_errors(text, path, module, allowed_subdirs=()):
+def cmake_path_errors(text, path, module, allowed_subdirs=(), allowed_include_paths=()):
     errors = []
     variables = {
         'CMAKE_CURRENT_SOURCE_DIR': str(path.parent),
@@ -227,6 +228,8 @@ def cmake_path_errors(text, path, module, allowed_subdirs=()):
                     check(arg)
         if command in {'target_sources', 'target_include_directories', 'qt_add_executable'}:
             for arg in args[1:]:
+                if command == 'target_include_directories' and (args[0], arg) in allowed_include_paths:
+                    continue
                 if arg not in {'PUBLIC', 'PRIVATE', 'INTERFACE', 'WIN32', 'MACOSX_BUNDLE', 'MANUAL_FINALIZATION'}:
                     check(arg)
     return errors
@@ -241,11 +244,25 @@ def cmake_link_errors(cmake_files, policy):
     variables = {match.group(1) for _, arg in links
                  if platform_links and (match := variable_ref.fullmatch(arg))}
     assigned = set()
+    link_properties = {'LINK_LIBRARIES', 'INTERFACE_LINK_LIBRARIES', 'INTERFACE_LINK_LIBRARIES_DIRECT'}
     errors = []
     # The audit visits every branch. A removal cannot make an earlier link
     # safe, so collect every value that can be introduced into a link list.
     for label, calls in cmake_files:
+        initialized = set()
+        scope_depth = 0
         for command, args in calls:
+            if command in {'endif', 'endforeach', 'endwhile', 'endfunction', 'endmacro', 'endblock'}:
+                scope_depth -= 1
+            properties = []
+            if command == 'set_property' and args[:1] == ['TARGET'] and 'PROPERTY' in args:
+                properties = args[args.index('PROPERTY') + 1:][:1]
+            elif command == 'set_target_properties' and 'PROPERTIES' in args:
+                properties = args[args.index('PROPERTIES') + 1::2]
+            if command == 'link_libraries' or any(name in link_properties or '$' in name for name in properties):
+                errors.append(f'{label}: use target_link_libraries() instead of {command}() to set link dependencies')
+            if command in {'if', 'foreach', 'while', 'function', 'macro', 'block'}:
+                scope_depth += 1
             # An indirect destination can name any of the tracked variables.
             destination = args[:1] if command in {'set', 'unset'} else args[1:2]
             mutates_destination = command in {'set', 'unset', 'list'} or (
@@ -258,17 +275,23 @@ def cmake_link_errors(cmake_files, policy):
                 continue
             if command == 'set' and args[0] in written:
                 name, *values = args
-                assigned.add(name)
                 if values[-1:] == ['PARENT_SCOPE']:
                     values.pop()
+                elif values and 'CACHE' not in values:
+                    assigned.add(name)
+                    if scope_depth == 0:
+                        initialized.add(name)
+                else:
+                    errors.append(f'{label}: set({name}) must assign a local link value')
             elif command == 'list' and len(args) >= 2 and args[1] in written:
                 action, name, *values = args
+                if name not in initialized:
+                    errors.append(f'{label}: set({name} "") before list({action}) of a link variable')
                 if action in {'REMOVE_ITEM', 'REMOVE_AT', 'REMOVE_DUPLICATES', 'REVERSE', 'SORT'}:
                     continue
                 if action not in {'APPEND', 'PREPEND', 'INSERT'}:
                     errors.append(f'{label}: unresolved list({action}) for link variable {name}')
                     continue
-                assigned.add(name)
                 if action == 'INSERT':
                     values = values[1:]
             else:
@@ -355,7 +378,8 @@ def audit_module(module):
             except ET.ParseError:
                 errors.append('{}: malformed resource XML'.format(label))
         if (path.suffix == '.cmake' or path.name == 'CMakeLists.txt') and label not in policy.get('unbuilt_cmake', set()):
-            errors.extend('{}: {}'.format(label, error) for error in cmake_path_errors(text, path, module, policy['subdirs']))
+            path_errors = cmake_path_errors(text, path, module, policy['subdirs'], policy.get('include_paths', set()))
+            errors.extend(f'{label}: {error}' for error in path_errors)
             for qt_target in re.findall(r'Qt6::([A-Za-z0-9_]+)', text):
                 if qt_target not in ALLOWED_QT | policy.get('qt', set()):
                     errors.append('{}: forbidden Qt dependency {}'.format(label, qt_target))

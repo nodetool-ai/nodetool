@@ -1,8 +1,7 @@
 #include "preview/PlaybackHooks.h"
 
 namespace {
-// Bind before Qt runs the effects registrars, so their decorators see a
-// reframed layer's source rectangle.
+// Install playback hooks for hosts that link the startup registrar.
 const bool registered = [] {
     nt::registerPlaybackHooks().keepForProcess();
     return true;

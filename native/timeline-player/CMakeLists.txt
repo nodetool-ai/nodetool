@@ -24,6 +24,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 if(PROJECT_IS_TOP_LEVEL)
     include(CTest)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+        add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fexperimental-library>)
+        add_link_options(-fexperimental-library)
+    endif()
 endif()
 
 # GuiPrivate carries the include path of the semi-public QRhi API (<rhi/qrhi.h>),
@@ -63,6 +67,7 @@ endif()
 add_library(nodetool_timeline_scene STATIC
     src/preview/StandardHooks.h
     src/preview/HookRegistrations.cpp
+    src/preview/ScenePlaybackHooks.h
     src/audio/automation/AutomationCurves.h
     src/audio/automation/AutomationCurves.cpp
     src/audio/automation/PictureAutomation.cpp
@@ -317,13 +322,18 @@ target_link_libraries(nodetool_timeline_audio
     PRIVATE nodetool_kernels ${NT_PLAYER_AUDIO_PLATFORM_LIBS})
 target_compile_options(nodetool_timeline_audio PRIVATE ${NT_PLAYER_WARNINGS})
 # Apple libc++ requires this flag for std::jthread.
-if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" AND NOT PROJECT_IS_TOP_LEVEL)
     target_compile_options(nodetool_timeline_audio PRIVATE -fexperimental-library)
     target_link_options(nodetool_timeline_audio INTERFACE -fexperimental-library)
 endif()
 set_source_files_properties(src/audio/miniaudio.cpp PROPERTIES COMPILE_OPTIONS "${NT_PLAYER_NO_WARNINGS}")
 add_library(nodetool_timeline_playback_registrar OBJECT src/preview/PlaybackStartup.cpp)
 target_link_libraries(nodetool_timeline_playback_registrar PUBLIC nodetool_timeline_audio)
+
+# Explicit registration works in a GUI process without a QML engine.
+add_library(nodetool_timeline_hooks STATIC src/preview/StandardHooks.cpp)
+target_link_libraries(nodetool_timeline_hooks PUBLIC nodetool_timeline_decode nodetool_timeline_audio)
+target_compile_options(nodetool_timeline_hooks PRIVATE ${NT_PLAYER_WARNINGS})
 
 # The QML module NodeTool.TimelinePlayer: PlaybackClock, PreviewCompositor
 # (a QQuickRhiItem), TimelineSource, TimelineDocumentLoader,
@@ -350,7 +360,6 @@ qt_add_qml_module(nodetool_timeline_player
         src/player/PlaybackArbiter.h
         src/player/TimelinePlayerController.h
         src/player/TimelinePlayerController.cpp
-        src/preview/StandardHooks.cpp
         src/preview/PreviewCompositor.h
         src/preview/PreviewCompositor.cpp
         src/preview/hw/HwWindow.h
@@ -360,7 +369,7 @@ qt_add_shaders(nodetool_timeline_player nodetool_timeline_player_shaders
     FILES shaders/composite.vert shaders/composite.frag shaders/monitorview.frag)
 target_link_libraries(nodetool_timeline_player
     PUBLIC nodetool_timeline_decode nodetool_ui_primitives Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick
-    PRIVATE nodetool_timeline_audio)
+    PRIVATE nodetool_timeline_audio nodetool_timeline_hooks)
 target_compile_options(nodetool_timeline_player PRIVATE ${NT_PLAYER_WARNINGS})
 # The generated type registration includes each header by its file name.
 target_include_directories(nodetool_timeline_player PRIVATE src/model src/playback src/player src/preview)
@@ -379,6 +388,7 @@ add_library(nodetool_timeline_player_server STATIC
     src/server/ServerTimelineLoader.h
     src/server/ServerTimelineLoader.cpp)
 set_target_properties(nodetool_timeline_player_server PROPERTIES AUTOMOC ON)
+target_include_directories(nodetool_timeline_player_server PRIVATE ../account/qt/include)
 target_link_libraries(nodetool_timeline_player_server PUBLIC nodetool_timeline_scene Qt6::Network)
 target_compile_options(nodetool_timeline_player_server PRIVATE ${NT_PLAYER_WARNINGS})
 
@@ -393,11 +403,14 @@ if(BUILD_TESTING)
     # registerStandardHooks() (src/preview/StandardHooks.h).
     qt_add_executable(tst_standardhooks tests/tst_standardhooks.cpp)
     target_compile_definitions(tst_standardhooks PRIVATE NT_STARTUP_REGISTRARS)
-    target_link_libraries(tst_standardhooks PRIVATE nodetool_timeline_player
+    target_link_libraries(tst_standardhooks PRIVATE nodetool_timeline_hooks
         nodetool_timeline_effects_registrar nodetool_timeline_render2d_registrar nodetool_timeline_playback_registrar Qt6::Test)
     qt_add_executable(tst_standardhooks_explicit tests/tst_standardhooks.cpp)
-    target_link_libraries(tst_standardhooks_explicit PRIVATE nodetool_timeline_player Qt6::Test)
-    foreach(test_name tst_standardhooks tst_standardhooks_explicit)
+    target_link_libraries(tst_standardhooks_explicit PRIVATE nodetool_timeline_hooks Qt6::Test)
+    qt_add_executable(tst_standardhooks_effects_first tests/tst_standardhooks.cpp)
+    target_compile_definitions(tst_standardhooks_effects_first PRIVATE NT_EFFECTS_STARTUP_ONLY)
+    target_link_libraries(tst_standardhooks_effects_first PRIVATE nodetool_timeline_hooks nodetool_timeline_effects_registrar Qt6::Test)
+    foreach(test_name tst_standardhooks tst_standardhooks_explicit tst_standardhooks_effects_first)
         set_target_properties(${test_name} PROPERTIES MACOSX_BUNDLE FALSE AUTOMOC ON)
         target_compile_options(${test_name} PRIVATE ${NT_PLAYER_WARNINGS})
         add_test(NAME ${test_name} COMMAND ${test_name})
@@ -419,6 +432,7 @@ if(BUILD_TESTING)
     endforeach()
     set_tests_properties(tst_timelineplayer PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    target_link_libraries(tst_timelineplayer_render PRIVATE nodetool_timeline_player_server)
     set_tests_properties(tst_timelineplayer_render PROPERTIES LABELS render
         ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
 

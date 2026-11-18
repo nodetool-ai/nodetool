@@ -367,7 +367,8 @@ private slots:
         const auto old = c.fetch("asset", "original", remote("/version.mp4", "v1", 100000));
         QVERIFY2(old.ok(), qPrintable(old.error));
         c.protect(old.path);
-        const auto current = c.fetch("asset", "original", remote("/version.mp4", "v2", 100000));
+        AssetCache other = cache();
+        const auto current = other.fetch("asset", "original", remote("/version.mp4", "v2", 100000));
         QVERIFY2(current.ok(), qPrintable(current.error));
         QVERIFY2(QFileInfo::exists(old.path), "a protected old version was deleted during stale cleanup");
         QVERIFY(QFileInfo::exists(current.path));
@@ -386,6 +387,28 @@ private slots:
         QVERIFY2(fetched.ok(), qPrintable(fetched.error));
         QVERIFY2(QFileInfo::exists(held.path), "another cache instance evicted active media");
         QVERIFY(QFileInfo::exists(fetched.path));
+    }
+
+    void leaseKeepsRootStateAliveAfterOwnerDestruction() {
+        m_http->setFile("/leased.mp4", ServedFile{pattern(100000, 24)});
+        AssetCache::Lease lease;
+        QString path;
+        {
+            const nt::server::AssetCacheRoot root(m_dir.path());
+            AssetCache cache(root, "server", "user");
+            const auto hit = cache.fetch("video", "original", remote("/leased.mp4", "v1", 100000));
+            QVERIFY2(hit.ok(), qPrintable(hit.error));
+            path = hit.path;
+            lease = root.lease(path);
+            root.evict(1, {});
+            QVERIFY(QFile::exists(path));
+        }
+        const nt::server::AssetCacheRoot independent(m_dir.path());
+        independent.evict(1, {});
+        QVERIFY(QFile::exists(path));
+        lease.reset();
+        independent.evict(1, {});
+        QVERIFY(!QFile::exists(path));
     }
 
     void releasedLeaseAllowsEviction() {

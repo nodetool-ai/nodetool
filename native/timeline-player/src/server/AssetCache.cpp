@@ -1,5 +1,6 @@
 #include "server/AssetCache.h"
 
+#include <QCryptographicHash>
 #include <QDateTime>
 #include <QDir>
 #include <QDirIterator>
@@ -14,6 +15,7 @@
 #include <QRegularExpression>
 #include <QThread>
 #include <QTimer>
+#include <QUuid>
 
 #include <algorithm>
 #include <map>
@@ -25,20 +27,6 @@ namespace {
 
 constexpr int kMaxAttempts = 4;
 
-// Thread-safe. The mutex guards the number of live leases for each path.
-struct ActiveLeases {
-    std::mutex mutex;
-    std::map<QString, size_t> counts;
-};
-
-const std::shared_ptr<ActiveLeases>& activeLeases() {
-    // native-rules #14: function-local registry, mutable global state
-    // A retiring decoder can release its lease after static teardown starts.
-    // Its LeaseHolder keeps the registry alive independently of this pointer.
-    static const auto registry = std::make_shared<ActiveLeases>();
-    return registry;
-}
-
 QString pathKey(const QString& path) {
     const QFileInfo info(path);
     const QString canonical = info.canonicalFilePath();
@@ -47,37 +35,13 @@ QString pathKey(const QString& path) {
     return QDir(parent.isEmpty() ? info.absolutePath() : parent).filePath(info.fileName());
 }
 
-// Shared across threads as an immutable path and registry reference.
-struct LeaseHolder {
-    explicit LeaseHolder(QString value) : path(std::move(value)) {
-        std::lock_guard lock(registry->mutex);
-        ++registry->counts[path];
-    }
-    ~LeaseHolder() {
-        std::lock_guard lock(registry->mutex);
-        auto it = registry->counts.find(path);
-        if (--it->second == 0) registry->counts.erase(it);
-    }
-    const std::shared_ptr<ActiveLeases> registry = activeLeases();
-    const QString path;
-};
-
-// One in-process mutex per variant folder. The lock file covers other
-// processes; this covers threads of this one.
-// native-rules #1: std::shared_ptr mutex, the comment explains the lock but not why it is shared
-std::shared_ptr<std::mutex> folderMutex(const QString& dir) {
-    // native-rules #14: function-local static mutex, global mutable state
-    static std::mutex guard;
-    // native-rules #14: function-local static mutex map, global mutable state
-    static std::map<QString, std::weak_ptr<std::mutex>> mutexes;
-    std::lock_guard lock(guard);
-    auto& weak = mutexes[pathKey(dir)];
-    auto m = weak.lock();
-    if (!m) {
-        m = std::make_shared<std::mutex>();
-        weak = m;
-    }
-    return m;
+// Hidden lock files let independently opened roots and path-only consumers
+// cooperate without a process singleton. The directory guard serializes pin
+// creation with removal of a payload. QLockFile clears pins of dead processes.
+QString pinPrefix(const QString& path) {
+    const auto name = QFileInfo(path).fileName();
+    const auto hash = QCryptographicHash::hash(name.toUtf8(), QCryptographicHash::Sha256).toHex();
+    return QStringLiteral(".lease-") + QString::fromLatin1(hash) + u'-';
 }
 
 struct Attempt {
@@ -315,7 +279,72 @@ QString safePathPart(const QString& s) {
     return out.left(64);
 }
 
-AssetCache::AssetCache(QString root, QString serverKey, QString userKey, Decorate decorate, Cancelled cancelled)
+// Thread-safe. The mutex guards pin counts, pin files and folder mutex lookup.
+struct AssetCacheRoot::Registry {
+    struct Pin {
+        size_t count = 0;
+        std::unique_ptr<QLockFile> file;
+    };
+    std::mutex mutex;
+    std::map<QString, Pin> pins;
+    std::map<QString, std::weak_ptr<std::mutex>> folders;
+};
+
+// The path is immutable. Creating or releasing a lease mutates the registry
+// under its mutex, including when the last reader finishes on a worker.
+struct AssetCacheRoot::LeaseHolder {
+    LeaseHolder(std::shared_ptr<Registry> owner, QString value)
+        : registry(std::move(owner)), path(std::move(value)) {
+        const std::lock_guard lock(registry->mutex);
+        auto& pin = registry->pins[path];
+        if (++pin.count != 1) {
+            return;
+        }
+
+        const QDir folder(QFileInfo(path).absolutePath());
+        QLockFile guard(folder.filePath(QStringLiteral(".lease-guard")));
+        guard.setStaleLockTime(0);
+        if (guard.lock()) {
+            auto file = std::make_unique<QLockFile>(
+                folder.filePath(pinPrefix(path) + QUuid::createUuid().toString(QUuid::Id128)));
+            file->setStaleLockTime(0);
+            if (file->tryLock(0)) {
+                pin.file = std::move(file);
+            }
+        }
+    }
+
+    ~LeaseHolder() {
+        const std::lock_guard lock(registry->mutex);
+        auto it = registry->pins.find(path);
+        if (--it->second.count == 0) {
+            registry->pins.erase(it);
+        }
+    }
+
+    // The last decoder may finish after its cache root handle is gone.
+    const std::shared_ptr<Registry> registry;
+    const QString path;
+};
+
+AssetCacheRoot::AssetCacheRoot(QString path)
+    : m_path(std::move(path)), m_registry(std::make_shared<Registry>()) {}
+
+std::shared_ptr<std::mutex> AssetCacheRoot::folderMutex(const QString& dir) const {
+    const auto key = pathKey(dir);
+    const std::lock_guard lock(m_registry->mutex);
+    auto& weak = m_registry->folders[key];
+    if (auto mutex = weak.lock()) {
+        return mutex;
+    }
+    // A fetch and an eviction can hold this lock independently of the
+    // registry lookup. The last one releases the mutex.
+    auto mutex = std::make_shared<std::mutex>();
+    weak = mutex;
+    return mutex;
+}
+
+AssetCache::AssetCache(AssetCacheRoot root, QString serverKey, QString userKey, Decorate decorate, Cancelled cancelled)
     : m_root(std::move(root)), m_serverKey(std::move(serverKey)), m_userKey(std::move(userKey)),
       m_decorate(std::move(decorate)), m_cancelled(std::move(cancelled)) {
     bool ok = false;
@@ -330,29 +359,60 @@ bool AssetCache::stopRequested() const {
 void AssetCache::protect(const QString& path) {
     if (path.isEmpty()) return;
     std::lock_guard lock(m_protected->mutex);
-    auto held = lease(path);
+    auto held = m_root.lease(path);
     const QString key = *held;
     m_protected->paths.try_emplace(key, std::move(held));
 }
 
 AssetCache::Lease AssetCache::lease(const QString& path) {
+    return AssetCacheRoot(QFileInfo(path).absolutePath()).lease(path);
+}
+
+AssetCacheRoot::Lease AssetCacheRoot::lease(const QString& path) const {
     if (path.isEmpty()) return {};
-    auto holder = std::make_shared<LeaseHolder>(pathKey(path));
+    auto holder = std::make_shared<LeaseHolder>(m_registry, pathKey(path));
     return Lease(holder, &holder->path);
 }
 
-bool AssetCache::removeIfUnprotected(const QString& path) {
-    const auto& registry = activeLeases();
-    std::lock_guard lock(registry->mutex);
-    return !registry->counts.contains(pathKey(path)) && QFile::remove(path);
+bool AssetCacheRoot::removeIfUnprotected(const QString& path) const {
+    const std::lock_guard lock(m_registry->mutex);
+    const auto key = pathKey(path);
+    if (m_registry->pins.contains(key)) {
+        return false;
+    }
+
+    const QDir folder(QFileInfo(key).absolutePath());
+    QLockFile guard(folder.filePath(QStringLiteral(".lease-guard")));
+    guard.setStaleLockTime(0);
+    if (!guard.tryLock(0)) {
+        return false;
+    }
+    const auto pins = folder.entryList({pinPrefix(key) + u'*'}, QDir::Files | QDir::Hidden);
+    for (const auto& name : pins) {
+        QLockFile pin(folder.filePath(name));
+        pin.setStaleLockTime(0);
+        if (!pin.tryLock(0)) {
+            return false;
+        }
+    }
+    return QFile::remove(path);
 }
 
 void AssetCache::evict(const QString& justFetched) const {
-    evictRoot(m_root, m_budgetBytes, justFetched, {}, true);
+    m_root.evict(m_budgetBytes, justFetched, {}, true);
 }
 
 void AssetCache::evictRoot(const QString& root, qint64 budget, const QString& justFetched,
-                           const std::function<void()>& afterScan, bool fetchedFolderLocked) {
+                           const std::function<void()>& afterScan) {
+    AssetCacheRoot(root).evict(budget, justFetched, afterScan);
+}
+
+void AssetCacheRoot::evict(qint64 budget, const QString& justFetched, const std::function<void()>& afterScan) const {
+    evict(budget, justFetched, afterScan, false);
+}
+
+void AssetCacheRoot::evict(qint64 budget, const QString& justFetched,
+                          const std::function<void()>& afterScan, bool fetchedFolderLocked) const {
     if (budget <= 0) return;
     struct Entry {
         QString path;
@@ -361,7 +421,7 @@ void AssetCache::evictRoot(const QString& root, qint64 budget, const QString& ju
     };
     std::vector<Entry> files;
     qint64 total = 0;
-    QDirIterator it(root, QDir::Files, QDirIterator::Subdirectories);
+    QDirIterator it(m_path, QDir::Files, QDirIterator::Subdirectories);
     while (it.hasNext()) {
         const QFileInfo info(it.next());
         const QString name = info.fileName();
@@ -392,7 +452,7 @@ void AssetCache::evictRoot(const QString& root, qint64 budget, const QString& ju
 }
 
 QString AssetCache::variantDir(const QString& assetId, const QString& variant) const {
-    return QDir(m_root).filePath(QStringLiteral("%1/%2/%3/%4")
+    return QDir(m_root.path()).filePath(QStringLiteral("%1/%2/%3/%4")
                                      .arg(safePathPart(m_serverKey), safePathPart(m_userKey), safePathPart(assetId),
                                           safePathPart(variant)));
 }
@@ -410,7 +470,7 @@ FetchResult AssetCache::fetch(const QString& assetId, const QString& variant, co
         return result;
     }
     const QString dir = variantDir(assetId, variant);
-    const auto threadLock = folderMutex(dir);
+    const auto threadLock = m_root.folderMutex(dir);
     // An interrupted loader must exit even when another fetch holds the variant.
     std::unique_lock inProcess(*threadLock, std::defer_lock);
     while (!inProcess.try_lock()) {
@@ -529,7 +589,7 @@ FetchResult AssetCache::fetch(const QString& assetId, const QString& variant, co
             result.error = QStringLiteral("downloaded %1 bytes, expected %2").arg(size).arg(want);
             return result;
         }
-        if (QFileInfo::exists(finalPath) && !removeIfUnprotected(finalPath)) {
+        if (QFileInfo::exists(finalPath) && !m_root.removeIfUnprotected(finalPath)) {
             result.error = QStringLiteral("cannot replace protected cache file %1").arg(finalPath);
             return result;
         }
@@ -541,7 +601,9 @@ FetchResult AssetCache::fetch(const QString& assetId, const QString& variant, co
         // The older versions of this asset and variant are stale now.
         for (const QString& name : QDir(dir).entryList(QDir::Files | QDir::Hidden)) {
             const QString path = QDir(dir).filePath(name);
-            if (path != finalPath && name != u".lock") removeIfUnprotected(path);
+            if (path != finalPath && name != u".lock" && !name.startsWith(u".lease-")) {
+                m_root.removeIfUnprotected(path);
+            }
         }
         result.path = finalPath;
         result.version = cur.version;

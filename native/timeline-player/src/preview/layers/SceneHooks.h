@@ -22,9 +22,13 @@ using ContextGroupDecorator = std::function<void(PrecompositeLayer&, const Clip&
 using ContextAdjustmentDecorator = std::function<bool(SceneAdjustment&, const Clip&, const SceneDecorationContext&)>;
 using SourceTimeMapper = std::function<std::optional<double>(const Clip&, double)>;
 using ClipAnimationProvider = std::function<std::optional<QJsonObject>(const Track&, const Clip&)>;
-SceneHookToken registerLayerDecorator(LayerDecorator decorator);
+// Geometry decorators set the source rectangle before effects read it.
+enum class LayerDecorationOrder { Geometry, Default };
+SceneHookToken registerLayerDecorator(LayerDecorator decorator,
+                                      LayerDecorationOrder order = LayerDecorationOrder::Default);
 SceneHookToken registerGroupDecorator(GroupDecorator decorator);
-SceneHookToken registerContextLayerDecorator(ContextLayerDecorator decorator);
+SceneHookToken registerContextLayerDecorator(ContextLayerDecorator decorator,
+                                             LayerDecorationOrder order = LayerDecorationOrder::Default);
 bool hasContextLayerDecorator(void (*decorate)(ActiveLayer&, const Clip&, const SceneDecorationContext&));
 SceneHookToken registerContextGroupDecorator(ContextGroupDecorator decorator);
 SceneHookToken registerContextAdjustmentDecorator(ContextAdjustmentDecorator decorator);

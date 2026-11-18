@@ -14,10 +14,14 @@
 #include <algorithm>
 #include <array>
 #include <string>
+#include <type_traits>
 
 using namespace Qt::StringLiterals;
 
+static_assert(!std::is_move_assignable_v<nt::HookRegistrations>);
+
 namespace {
+#ifndef NT_EFFECTS_STARTUP_ONLY
 // A video clip with a caption and a group with an effect: the effect
 // decorators mark the video layer and the group surface, and the render2d
 // decorator gives the caption layer its words.
@@ -31,6 +35,8 @@ nt::Timeline probeDocument() {
          "caption":{"words":[{"text":"hello","startMs":0,"endMs":1000}]}}]})")
                 .timeline;
 }
+
+#endif
 
 // Synthetic audio PCM and a square output with a two-to-one source.
 nt::Timeline playbackDocument() {
@@ -48,6 +54,7 @@ nt::Timeline playbackDocument() {
                 .timeline;
 }
 
+#ifndef NT_EFFECTS_STARTUP_ONLY
 // The decorators cannot be listed from the registries, so evaluate a scene.
 QStringList missingDecorators() {
     QStringList missing;
@@ -70,6 +77,7 @@ QStringList missingDecorators() {
 }
 
 QStringList allMissing() { return nt::missingStandardHooks() + missingDecorators(); }
+#endif
 }
 
 class TestStandardHooks : public QObject {
@@ -109,6 +117,14 @@ private slots:
         QCOMPARE(first.layers[0].sourceRect, firstCrop);
         QCOMPARE(middle.layers[0].sourceRect, middleCrop);
     }
+    void effectsUseTheCroppedSourceRectangle() {
+        const auto hooks = nt::registerStandardHooks();
+        auto document = playbackDocument();
+        document.clips.front().raw.insert("effects", QJsonArray{QJsonObject{{"enabled", true}, {"type", "invert"}}});
+        const auto frame = nt::evaluateScene(document, 500);
+        QCOMPARE(frame.layers.size(), std::size_t{1});
+        QCOMPARE(frame.layers[0].ext.value("effectSourceRect").toArray(), (QJsonArray{0.25, 0, 0.5, 1}));
+    }
 #ifdef NT_STARTUP_REGISTRARS
     void registrarsRegisterEveryHook() {
         const auto missing = allMissing();
@@ -120,7 +136,7 @@ private slots:
         QVERIFY(registrations.empty());
         QCOMPARE(nt::sceneHooks().layers.size(), layers);
     }
-#else
+#elif !defined(NT_EFFECTS_STARTUP_ONLY)
     void nothingRegisteredWithoutRegistrars() {
         const auto missing = allMissing();
         for (const auto mode : nt::effects::blendModes) {
@@ -143,24 +159,20 @@ private slots:
         QCOMPARE(allMissing(), missingBefore);
         QCOMPARE(nt::sceneHooks().layers.size(), layersBefore);
     }
-    void twoOwnersKeepHooksAlive() {
+    void singleApplicationOwner() {
         const auto missingBefore = allMissing();
-        auto first = nt::registerStandardHooks();
-        const auto layers = nt::sceneHooks().layers.size();
-        auto second = nt::registerStandardHooks();
-        QCOMPARE(nt::sceneHooks().layers.size(), layers);
-        first = {};
-        const auto missing = allMissing();
-        QVERIFY2(missing.isEmpty(), qPrintable(missing.join(u", ")));
-        second = {};
+        {
+            auto owner = nt::registerStandardHooks();
+            const auto layers = nt::sceneHooks().layers.size();
+            const auto redundant = nt::registerStandardHooks();
+            QVERIFY(redundant.empty());
+            const auto moved = std::move(owner);
+            QVERIFY(owner.empty());
+            QVERIFY(!moved.empty());
+            QCOMPARE(nt::sceneHooks().layers.size(), layers);
+            QVERIFY(allMissing().isEmpty());
+        }
         QCOMPARE(allMissing(), missingBefore);
-    }
-
-    void assignmentKeepsHooksAlive() {
-        auto hooks = nt::registerStandardHooks();
-        hooks = nt::registerStandardHooks();
-        const auto missing = allMissing();
-        QVERIFY2(missing.isEmpty(), qPrintable(missing.join(u", ")));
     }
 #endif
 };

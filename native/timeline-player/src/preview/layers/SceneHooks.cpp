@@ -1,5 +1,4 @@
 #include "preview/layers/SceneHooks.h"
-#include "preview/StandardHooks.h"
 #include <algorithm>
 #include <mutex>
 
@@ -8,6 +7,7 @@ namespace {
 struct Hook {
     SceneHookToken token = 0;
     LayerDecorator layer;
+    LayerDecorationOrder layerOrder = LayerDecorationOrder::Default;
     GroupDecorator group;
     scene::MeasureText measure;
     SourceTimeMapper mapper;
@@ -18,8 +18,6 @@ struct Registry {
     std::mutex mutex;
     std::vector<Hook> hooks;
     SceneHookToken next = 1;
-    // Read and written only on the UI thread.
-    std::weak_ptr<HookRegistrations> standardHooks;
 };
 // native-rules #14: static process-wide mutable registry
 Registry& registry() { static Registry value; return value; }
@@ -31,22 +29,11 @@ SceneHookToken add(Hook hook) {
     return r.hooks.back().token;
 }
 }
-std::shared_ptr<HookRegistrations> detail::shareStandardHooks(HookRegistrations (*install)()) {
-    auto& current = registry().standardHooks;
-    if (auto owner = current.lock()) {
-        return owner;
-    }
-    auto registrations = install();
-    if (registrations.empty()) {
-        return {};
-    }
-    auto owner = std::make_shared<HookRegistrations>(std::move(registrations));
-    current = owner;
-    return owner;
-}
-
-SceneHookToken registerLayerDecorator(LayerDecorator decorator) {
-    Hook hook; hook.layer = std::move(decorator); return add(std::move(hook));
+SceneHookToken registerLayerDecorator(LayerDecorator decorator, LayerDecorationOrder order) {
+    Hook hook;
+    hook.layer = std::move(decorator);
+    hook.layerOrder = order;
+    return add(std::move(hook));
 }
 SceneHookToken registerGroupDecorator(GroupDecorator decorator) {
     Hook hook; hook.group = std::move(decorator); return add(std::move(hook));
@@ -72,7 +59,14 @@ SceneHooks sceneHooks() {
     const std::scoped_lock lock(r.mutex);
     SceneHooks result;
     for (const auto& hook : r.hooks) {
-        if (hook.layer) { result.layers.push_back(hook.layer); }
+        if (hook.layer && hook.layerOrder == LayerDecorationOrder::Geometry) {
+            result.layers.push_back(hook.layer);
+        }
+    }
+    for (const auto& hook : r.hooks) {
+        if (hook.layer && hook.layerOrder == LayerDecorationOrder::Default) {
+            result.layers.push_back(hook.layer);
+        }
         if (hook.group) { result.groups.push_back(hook.group); }
         if (hook.measure) { result.measureText = hook.measure; }
         if (hook.clipAnimation) { result.clipAnimations.push_back(hook.clipAnimation); }

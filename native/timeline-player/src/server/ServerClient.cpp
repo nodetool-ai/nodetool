@@ -1,4 +1,6 @@
 #include "server/ServerClient.h"
+
+#include <nodetool/account/qt/ServerToken.h>
 #include "server/ServerIdentity/ServerIdentity.h"
 
 #include <QCryptographicHash>
@@ -92,9 +94,7 @@ QUrl ServerClient::resolve(const QString& urlOrPath) const {
 }
 
 bool ServerClient::isServerOrigin(const QUrl& url) const {
-    const auto port = [](const QUrl& u) { return u.port(u.scheme() == u"https" ? 443 : 80); };
-    return url.scheme() == m_base.scheme() && url.host().compare(m_base.host(), Qt::CaseInsensitive) == 0 &&
-           port(url) == port(m_base);
+    return url.scheme() == m_base.scheme() && nodetool::account::qt::sameServerOrigin(url, m_base);
 }
 
 void ServerClient::decorate(QNetworkRequest& request) const {
@@ -104,15 +104,7 @@ void ServerClient::decorate(QNetworkRequest& request) const {
     if (!isServerOrigin(request.url())) return;
     request.setRawHeader("X-Nodetool-Client", kClientHeader);
     RequestAuthorization authorization = m_authorizer ? m_authorizer() : RequestAuthorization{m_token, {}};
-    const auto scheme = m_base.scheme();
-    const bool httpOrigin = scheme == u"http" || scheme == u"https";
-    if (!authorization.token.isEmpty() && httpOrigin && !m_base.host().isEmpty()) {
-        request.setRawHeader("Authorization", "Bearer " + authorization.token.toUtf8());
-        const QVariant policy = request.attribute(QNetworkRequest::RedirectPolicyAttribute);
-        if (!policy.isValid() || policy.toInt() != QNetworkRequest::ManualRedirectPolicy) {
-            request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::SameOriginRedirectPolicy);
-        }
-    }
+    nodetool::account::qt::attachServerToken(request, m_base, authorization.token);
     if (m_authorizer) {
         const std::lock_guard lock(m_authMutex);
         m_signedOut = std::move(authorization.signedOut);

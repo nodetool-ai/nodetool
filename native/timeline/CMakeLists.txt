@@ -258,7 +258,7 @@ target_link_libraries(nodetool-timeline PRIVATE timeline_audio)
 find_package(Qt6 6.12 REQUIRED COMPONENTS Network WebSockets)
 add_library(timeline_server STATIC ${NT_server})
 target_link_libraries(timeline_server PUBLIC timeline_core timeline_decode nodetool_account_server_token Qt6::Network Qt6::WebSockets
-    PRIVATE nodetool_timeline_player_server)
+    nodetool_timeline_player_server)
 target_compile_options(timeline_server PRIVATE ${NT_WARNINGS})
 # QML controllers include server headers, including their WebSocket types.
 target_link_libraries(timeline_qml PUBLIC timeline_server)
@@ -295,6 +295,17 @@ if(NT_FUZZ)
 endif()
 if(NT_SANITIZER_PLANTS)
     add_subdirectory(tools/sanitizers/plants)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME timeline_player_first_configure COMMAND ${CMAKE_COMMAND}
+        -S ${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/player-first
+        -B ${CMAKE_CURRENT_BINARY_DIR}/player-first-configure
+        -G "${CMAKE_GENERATOR}"
+        "-DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}"
+        "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+        "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}"
+        "-DQt6_DIR=${Qt6_DIR}"
+        "-DFETCHCONTENT_SOURCE_DIR_NLOHMANN_JSON=${nlohmann_json_SOURCE_DIR}")
 endif()
 nt_sanitizer_test_checks()
 # Visual Studio does not emit compile_commands.json.

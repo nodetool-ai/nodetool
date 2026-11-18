@@ -9,18 +9,27 @@
 #include "player/TimelinePlayerController.h"
 #include "preview/PreviewCompositor.h"
 #include "preview/StandardHooks.h"
+#include "preview/SourcePool.h"
+#include "preview/StillImageSource.h"
+#include "server/AssetCache.h"
 #include "preview/SyntheticSource.h"
 #include "preview/hw/HwWindow.h"
 
+#include <QDir>
+#include <QFile>
 #include <QGuiApplication>
 #include <QImage>
 #include <QQuickItem>
 #include <QQuickView>
 #include <QPointer>
+#include <QScopeGuard>
+#include <QTemporaryDir>
 #include <QTest>
 #include <QTimer>
 
+#include <atomic>
 #include <cstdlib>
+#include <semaphore>
 #include <utility>
 
 namespace {
@@ -41,6 +50,13 @@ public:
         });
     }
     void cancel() override {}
+};
+
+// The test and worker share this barrier until a failed assertion or the
+// normal test path releases the worker to finish reading.
+struct ReadBarrier {
+    std::atomic<bool> entered{false};
+    std::binary_semaphore resume{0};
 };
 
 bool near(QRgb pixel, const QColor& color) {
@@ -125,6 +141,70 @@ private slots:
         QVERIFY(!controller->source()->snapshot());
         QVERIFY(!leaseAlive.expired());
         QTRY_VERIFY(leaseAlive.expired());
+    }
+
+    void reloadKeepsReadingWorkersPinned_data() {
+        QTest::addColumn<bool>("still");
+        QTest::newRow("ffmpeg") << false;
+        QTest::newRow("alpha-still") << true;
+    }
+
+    void reloadKeepsReadingWorkersPinned() {
+        QFETCH(bool, still);
+        QTemporaryDir directory;
+        QVERIFY(directory.isValid());
+        const nt::server::AssetCacheRoot cache(directory.path());
+        const QString folder = directory.filePath("server/user/clip/original");
+        QVERIFY(QDir().mkpath(folder));
+        const QString path = folder + (still ? "/v1.png" : "/v1.ppm");
+        QImage media(32, 32, QImage::Format_RGBA8888);
+        media.fill(QColor(64, 128, 192, still ? 128 : 255));
+        QVERIFY(media.save(path));
+
+        auto timeline = *FakeTimelineLoader::document(QStringLiteral("leased"));
+        auto& clip = timeline.clips.front();
+        clip.mediaPath = path.toStdString();
+        clip.mediaType = still ? nt::MediaType::Image : nt::MediaType::Video;
+        auto barrier = std::make_shared<ReadBarrier>();
+        const auto blockRead = [barrier] {
+            barrier->entered = true;
+            barrier->resume.acquire();
+        };
+        nt::SourcePool pool(still ? nt::SourcePool::WorkerReadProbes{.video = {}, .still = blockRead}
+                                  : nt::SourcePool::WorkerReadProbes{.video = blockRead, .still = {}});
+        auto unblock = qScopeGuard([barrier] { barrier->resume.release(); });
+        auto lease = std::make_shared<nt::server::AssetCacheRoot::Lease>(cache.lease(path));
+        const std::weak_ptr<void> readerLease = lease;
+        pool.update(timeline, 0.0, {}, lease);
+        if (still) {
+            const auto stillOpened = [&] {
+                pool.update(timeline, 0.0, {}, lease);
+                return dynamic_cast<nt::StillImageSource*>(pool.sourceFor(clip.id)) != nullptr;
+            };
+            QTRY_VERIFY(stillOpened());
+            // The FFmpeg probe has finished. Only the still worker should
+            // keep the lease after the reload.
+            QTRY_COMPARE(pool.openDecoders(), 0);
+        }
+        QTRY_VERIFY(barrier->entered);
+
+        auto reloaded = *FakeTimelineLoader::document(QStringLiteral("replacement"));
+        reloaded.clips.front().id = clip.id;
+        lease.reset();
+        pool.update(reloaded, 0.0);
+        cache.evict(1, {});
+        QVERIFY2(QFile::exists(path), "reload let eviction delete a file its worker may still read");
+
+        unblock.dismiss();
+        barrier->resume.release();
+        QTRY_VERIFY(readerLease.expired());
+        // The weak pointer can expire before the last owner's destructor
+        // releases the cache pin.
+        const auto evicted = [&] {
+            cache.evict(1, {});
+            return !QFile::exists(path);
+        };
+        QTRY_VERIFY(evicted());
     }
 
     void hidingAnAncestorPausesPlayback() {

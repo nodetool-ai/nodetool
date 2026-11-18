@@ -1,5 +1,5 @@
 #include "Reframe.h"
-#include "preview/PlaybackHooks.h"
+#include "preview/ScenePlaybackHooks.h"
 #include "preview/layers/SceneHooks.h"
 #include <QJsonArray>
 
@@ -43,7 +43,7 @@ void decorateCrop(ActiveLayer& layer, const Clip& clip, const SceneDecorationCon
 }
 }
 
-SceneHookToken registerCropDecorator() { return registerContextLayerDecorator(decorateCrop); }
+SceneHookToken registerCropDecorator() { return registerContextLayerDecorator(decorateCrop, LayerDecorationOrder::Geometry); }
 
 bool hasCropDecorator() { return hasContextLayerDecorator(decorateCrop); }
 }

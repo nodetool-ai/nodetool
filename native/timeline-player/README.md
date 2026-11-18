@@ -12,6 +12,7 @@ the native node editor. The
 | `nodetool_timeline_decode` | `nodetool_timeline_scene`, Qt Gui and GuiPrivate (QRhi), FFmpeg, HarfBuzz, FreeType, the platform's hardware decode libraries | The media sources and their pools (`FfmpegSource`, `SourcePool`, `FrameCache`, `SurfacePool`, `RetireQueue`), the hardware interop (`preview/hw/`), the layer and compose hook registries, the effects, render2d and the effect shaders (`shaders/effects/`) |
 | `nodetool_timeline_effects_registrar`, `nodetool_timeline_render2d_registrar`, `nodetool_timeline_playback_registrar` | `nodetool_timeline_decode` or `nodetool_timeline_audio` | Object libraries that register the [standard hooks](#standard-hooks) for the process lifetime |
 | `nodetool_timeline_audio` | `nodetool_timeline_scene`, FFmpeg, `nodetool_kernels`, miniaudio, platform audio libraries | The playback engine, mixer, audio sources, shuttle stretch, effects, mix and output-device hooks, time-remapped audio, mixer automation, and loudness processing |
+| `nodetool_timeline_hooks` | `nodetool_timeline_decode`, `nodetool_timeline_audio` | Explicit [standard hook](#standard-hooks) registration for hosts with or without QML |
 | `nodetool_timeline_player`, `nodetool_timeline_playerplugin` | `nodetool_timeline_decode`, `nodetool_timeline_audio`, `nodetool_ui_primitives`, Qt Qml and Quick | The [QML module](#qml-module) `NodeTool.TimelinePlayer`: `PlaybackClock`, `PreviewCompositor`, `HwWindow`, the composite shaders (`shaders/`), `TimelinePlayerController` and `TimelinePlayer.qml` |
 | `nodetool_timeline_player_server` | Qt Network, `nodetool_timeline_scene` | `ServerTimelineLoader`, tRPC, media resolution and cache leases |
 | `yogacore` | none | [Yoga 3.2.1](third_party/yoga/README.md), the flex layout engine, unchanged |
@@ -132,7 +133,8 @@ QGuiApplication app(argc, argv);
 nt::hw::selectGraphicsApi(false);
 const nt::HookRegistrations hooks = nt::registerStandardHooks();
 nt::server::ServerLoaderWorkers workers;
-nt::server::ServerTimelineLoader loader(workers, origin, token, cacheDir);
+const nt::server::AssetCacheRoot cache(cacheDir);
+nt::server::ServerTimelineLoader loader(workers, origin, token, cache);
 QQuickView view;
 nt::hw::prepareWindow(&view);
 view.setInitialProperties({{"loader", QVariant::fromValue<QObject*>(&loader)},
@@ -142,7 +144,7 @@ view.show();
 return app.exec();
 ```
 
-Keep `hooks` alive while players render. A loader destroyed first leaves its
+Keep the single `hooks` handle for the application lifetime. A loader destroyed first leaves its
 players in `Error`.
 
 ## Hardware decode
@@ -179,10 +181,12 @@ Link the three registrar object libraries for process-lifetime registration,
 as the timeline app does. Effects and render2d install at QGuiApplication
 startup. Playback hooks also work for headless mix and scene evaluation.
 
-A host can instead call `nt::registerStandardHooks()` on the UI thread.
-Keep the returned `HookRegistrations` while rendering. Explicit callers
-share the same registrations until the last handle is destroyed. Complete
-groups installed by startup registrars keep their process lifetime.
+A host can instead call `nt::registerStandardHooks()` once on the UI thread
+after constructing `QGuiApplication`. Link `nodetool_timeline_hooks` in a
+host without QML. Keep the move-only `HookRegistrations` until all rendering
+and mixing have stopped, and destroy it before the application. A redundant
+call skips complete groups and leaves their ownership with the original
+registrar or handle. Move construction transfers the registrations.
 
 `nt::missingStandardHooks()` names absent hooks.
 `tst_standardhooks` and `tst_standardhooks_explicit` cover both entry points
@@ -206,10 +210,9 @@ Miniaudio's license is at the end of
 ## Server loader
 
 Create a host-owned `nt::server::ServerLoaderWorkers` on the UI thread after
-the application. Pass it to each `ServerTimelineLoader`. Destroy the owner
-before `QCoreApplication` or call its `shutdown()` on the UI thread before
-application teardown. The stack order in the example handles this on exit
-from `app.exec()`.
+the application. Pass it to each `ServerTimelineLoader`. The owner drains
+workers at `QCoreApplication::aboutToQuit` and on destruction. Keep it alive
+until all loaders are gone and destroy it before the application.
 
 Destroying a loader requests interruption and returns immediately. The
 worker owner still holds its thread. Shutdown rejects new loads, interrupts
@@ -219,8 +222,12 @@ the process stops before Qt teardown.
 
 Call `load(id, request)` with a fresh `QUuid`. Both `loaded` and `failed`
 echo the ID and token on the UI thread. `loaded` delivers an immutable
-document and its media leases. Keep the leases while playback uses the cached
-files. A lease returned by a custom loader must support release from the UI,
+document and its media leases. Construct one `AssetCacheRoot` per cache
+directory and pass copies to loaders and anyone who evicts from that root.
+Every lease shares the registry and can outlive its loader and root handle.
+Transient lock files let independently constructed roots and existing
+path-only callers honor each other's leases. Keep the leases while playback
+uses the cached files. A lease returned by a custom loader must support release from the UI,
 render or decode thread. `cancel()` discards the pending result and requests worker
 interruption. A new load supersedes the previous one.
 

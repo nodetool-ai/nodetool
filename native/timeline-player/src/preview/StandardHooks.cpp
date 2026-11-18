@@ -6,21 +6,17 @@
 namespace nt {
 
 HookRegistrations registerStandardHooks() {
-    HookRegistrations handle;
-    handle.m_shared = detail::shareStandardHooks([] {
-        HookRegistrations registrations;
-        if (!missingPlaybackHooks().isEmpty()) {
-            registrations.append(registerPlaybackHooks());
-        }
-        if (!effects::missingEffectHooks().isEmpty()) {
-            registrations.append(effects::registerEffectHooks());
-        }
-        if (!render2d::missingRender2dHooks().isEmpty()) {
-            registrations.append(render2d::registerRender2dHooks());
-        }
-        return registrations;
-    });
-    return handle;
+    HookRegistrations registrations;
+    if (!missingPlaybackHooks().isEmpty()) {
+        registrations.append(registerPlaybackHooks());
+    }
+    if (!effects::missingEffectHooks().isEmpty()) {
+        registrations.append(effects::registerEffectHooks());
+    }
+    if (!render2d::missingRender2dHooks().isEmpty()) {
+        registrations.append(render2d::registerRender2dHooks());
+    }
+    return registrations;
 }
 
 QStringList missingStandardHooks() {

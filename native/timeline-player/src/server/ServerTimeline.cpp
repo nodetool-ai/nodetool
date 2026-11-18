@@ -168,7 +168,7 @@ static ServerOpenResult openServerTimelineImpl(const ServerOpenOptions& options,
          QJsonObject{{QStringLiteral("server"), options.server.toString()},
                      {QStringLiteral("timelineId"), options.timelineId},
                      {QStringLiteral("user"), client.userKey()},
-                     {QStringLiteral("cacheRoot"), options.cacheRoot}}},
+                     {QStringLiteral("cacheRoot"), options.cacheRoot.path()}}},
     };
     QJsonObject timings;
     auto fail = [&](const QString& error) {
@@ -194,7 +194,7 @@ static ServerOpenResult openServerTimelineImpl(const ServerOpenOptions& options,
     const QByteArray rawBytes = QJsonDocument(raw).toJson(QJsonDocument::Compact);
 
     // D4: the raw document of the last load stays on disk next to the cache.
-    const QString userDir = QDir(options.cacheRoot)
+    const QString userDir = QDir(options.cacheRoot.path())
                                 .filePath(safePathPart(client.serverKey()) + u'/' + safePathPart(client.userKey()));
     const QString rawPath = QDir(userDir).filePath(QStringLiteral("timelines/%1.json").arg(safePathPart(options.timelineId)));
     // Written to a temporary file and renamed into place, so a failure keeps
@@ -405,7 +405,7 @@ static ServerOpenResult openServerTimelineImpl(const ServerOpenOptions& options,
         FetchResult r = cache.fetch(p.need->ref.cacheId, variant, file, isAsset ? recheck : AssetCache::Recheck{},
             [&](const QString& path) {
                 cache.protect(path);
-                out.mediaLeases.push_back(AssetCache::lease(path));
+                out.mediaLeases.push_back(options.cacheRoot.lease(path));
             });
         if (r.ok()) {
             pathByKey[key] = r.path;
@@ -414,7 +414,7 @@ static ServerOpenResult openServerTimelineImpl(const ServerOpenOptions& options,
         return r;
     };
 
-    const QString missingDir = QDir(options.cacheRoot).filePath(QStringLiteral("missing"));
+    const QString missingDir = QDir(options.cacheRoot.path()).filePath(QStringLiteral("missing"));
     auto missingPath = [&missingDir](const QString& ref) {
         return QDir(missingDir).filePath(safePathPart(ref)).toStdString();
     };

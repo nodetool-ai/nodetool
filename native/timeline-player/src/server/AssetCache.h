@@ -58,8 +58,36 @@ struct FetchResult {
     bool ok() const { return !path.isEmpty(); }
 };
 
-// Fetches can run on multiple threads after configuration. Each fetching
-// thread owns its network objects. Callbacks must support that concurrency.
+// Cache handles and leases share a root's state. The registry mutex guards
+// its pin counts. The owner may go away while a worker still holds a lease.
+class AssetCacheRoot {
+public:
+    using Lease = std::shared_ptr<const QString>;
+
+    AssetCacheRoot(QString path = {});
+    const QString& path() const { return m_path; }
+    [[nodiscard]] Lease lease(const QString& path) const;
+    void evict(qint64 budget, const QString& justFetched,
+               const std::function<void()>& afterScan = {}) const;
+
+private:
+    friend class AssetCache;
+    struct Registry;
+    struct LeaseHolder;
+    void evict(qint64 budget, const QString& justFetched,
+               const std::function<void()>& afterScan, bool fetchedFolderLocked) const;
+    bool removeIfUnprotected(const QString& path) const;
+    std::shared_ptr<std::mutex> folderMutex(const QString& dir) const;
+
+    QString m_path;
+    // A cache and the decoders that use its files can finish independently.
+    std::shared_ptr<Registry> m_registry;
+};
+
+// Thread-safe after configuration. The folder mutex and QLockFile serialize
+// variant writes and eviction. The root registry mutex guards the leases,
+// and Protected::mutex guards the paths protected by this cache. Each fetch
+// owns its network objects. Callbacks must support concurrent fetches.
 class AssetCache {
 public:
     using Decorate = std::function<void(QNetworkRequest&)>;
@@ -70,22 +98,22 @@ public:
     using Cancelled = std::function<bool()>;
     // Readers of the same cached file can finish independently. The file
     // stays pinned until the last lease is released.
-    using Lease = std::shared_ptr<const QString>;
+    using Lease = AssetCacheRoot::Lease;
 
     // `cancelled` is asked before each request, redirect and retry, and
     // while a response arrives; a true answer aborts the reply and the
     // fetch fails, keeping a partial file to resume.
-    AssetCache(QString root, QString serverKey, QString userKey, Decorate decorate = {}, Cancelled cancelled = {});
+    AssetCache(AssetCacheRoot root, QString serverKey, QString userKey, Decorate decorate = {}, Cancelled cancelled = {});
 
     // <= 0: no limit. Default: NODETOOL_TIMELINE_CACHE_BUDGET_MB, else 20 GiB.
     void setBudgetBytes(qint64 bytes) { m_budgetBytes = bytes; }
     qint64 budgetBytes() const { return m_budgetBytes; }
     // Marks a file the current open uses; eviction keeps it.
     void protect(const QString& path);
-    // A copyable lease keeps a cached file until its last owner releases it.
+    // Compatibility for callers that only have a path. Prefer AssetCacheRoot::lease().
     static Lease lease(const QString& path);
     static void evictRoot(const QString& root, qint64 budget, const QString& justFetched,
-                          const std::function<void()>& afterScan = {}, bool fetchedFolderLocked = false);
+                          const std::function<void()>& afterScan = {});
 
     QString variantDir(const QString& assetId, const QString& variant) const;
     QString pathFor(const QString& assetId, const QString& variant, const RemoteFile& file) const;
@@ -100,20 +128,18 @@ private:
     void evict(const QString& justFetched) const;
     // The thread is interrupted, or `m_cancelled` answers true.
     bool stopRequested() const;
-    static bool removeIfUnprotected(const QString& path);
-
-    QString m_root;
+    AssetCacheRoot m_root;
     QString m_serverKey;
     QString m_userKey;
     Decorate m_decorate;
     Cancelled m_cancelled;
     qint64 m_budgetBytes = 0;
     struct Protected {
-        // native-rules #10: mutex does not say that it guards paths
+        // Guards paths.
         std::mutex mutex;
         std::map<QString, Lease> paths;
     };
-    // native-rules #1: std::shared_ptr Protected, no comment on why unique ownership is impossible
+    // Copies of the cache share the protection scope configured by their caller.
     std::shared_ptr<Protected> m_protected = std::make_shared<Protected>();
 };
 

@@ -113,7 +113,7 @@ public:
     // Starts the worker, which opens `path` and pre-rolls to `initialSec`.
     // `mode` overrides the --decode mode for this decoder.
     FfmpegDecoder(std::string path, double initialSec, std::optional<DecodeMode> mode = std::nullopt,
-                  std::shared_ptr<void> mediaLeases = {});
+                  std::shared_ptr<void> mediaLeases = {}, std::function<void()> beforeRead = {});
     // Stops the worker: an interrupt callback ends blocking FFmpeg I/O, then
     // the thread is joined. Call it off the render thread (SourcePool retires
     // decoders on its own thread).
@@ -188,6 +188,7 @@ private:
     // Shared with the preview snapshot. The decoder can outlive that
     // snapshot during retirement and still need to reopen the file.
     const std::shared_ptr<void> m_mediaLeases;
+    std::function<void()> m_beforeRead;
     std::string m_path;
     DecodeMode m_mode = DecodeMode::Software;
     int m_failAfterPackets = -1;  // test seam
@@ -261,7 +262,7 @@ private:
 class FfmpegSource final : public LayerSource {
 public:
     FfmpegSource(std::string path, double initialSec, QSize nominalSize,
-                 std::optional<DecodeMode> mode = std::nullopt, std::shared_ptr<void> mediaLeases = {});
+                 std::optional<DecodeMode> mode = std::nullopt, std::shared_ptr<void> mediaLeases = {}, std::function<void()> beforeRead = {});
     ~FfmpegSource() override;
 
     QSize frameSize() const override;

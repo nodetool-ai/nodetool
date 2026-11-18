@@ -34,7 +34,7 @@ compressed input correctly. No private Qt backend APIs are proposed.
 
 F4. Node editor links Qt Multimedia, not direct FFmpeg. Timeline already links
 libavformat, libavcodec, libavutil and libswresample through pkg-config.
-[AudioSource](../../timeline/src/audio/AudioSource.h) opens and seeks files and
+[AudioSource](../../timeline-player/src/audio/AudioSource.h) opens and seeks files and
 has whole-file operations. It is not a ready incremental transport decoder.
 Its ownership patterns are useful, but importing the timeline UI is unnecessary.
 Qt's bundled FFmpeg implementation does not imply a supported application

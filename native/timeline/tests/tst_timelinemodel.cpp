@@ -145,6 +145,19 @@ private slots:
         QVERIFY(model.moveClip(QStringLiteral("clip-1-1"), 0));
     }
 
+    void markerChangesNotifyTimelineSource() {
+        TimelineModel model;
+        load(model);
+        QSignalSpy changed(&model, &TimelineSource::sourceChanged);
+        const auto before = model.snapshot();
+        QVERIFY(!model.addMarker(1000, QStringLiteral("Cue")).isEmpty());
+        QVERIFY(model.snapshot() != before);
+        QCOMPARE(changed.count(), 1);
+        model.undoStack()->undo();
+        QVERIFY(model.markersJson().isEmpty());
+        QCOMPARE(changed.count(), 2);
+    }
+
     // The preview and the audio read the model as a TimelineSource: each
     // timelineChanged and previewChanged reaches them as sourceChanged.
     void sourceForwardsEveryChange() {

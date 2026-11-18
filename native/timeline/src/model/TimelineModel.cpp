@@ -504,6 +504,7 @@ bool TimelineModel::replaceMarkers(const QJsonArray& incoming) {
     // No clip changed: the clip change state and the takes stay.
     m_tracks->rebind(m_timeline.get());
     emit markersChanged();
+    emit sourceChanged();
     return true;
 }
 

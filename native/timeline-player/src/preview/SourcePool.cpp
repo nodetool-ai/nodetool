@@ -13,11 +13,16 @@
 #include <cmath>
 #include <chrono>
 #include <set>
+#include <utility>
 
 namespace nt {
 
 // native-rules #12: lambda captures raw this and runs on the reaper thread
 SourcePool::SourcePool() : m_reaper([this] { reapLoop(); }) {}
+
+SourcePool::SourcePool(WorkerReadProbes probes) : SourcePool() {
+    m_readProbes = std::move(probes);
+}
 
 SourcePool::~SourcePool() {
     clear();
@@ -120,7 +125,7 @@ void SourcePool::update(const Timeline& timeline, double timeMs, const std::set<
             // Pre-roll: decode from where the clip will start showing.
             const double startSourceMs = clip.inPointMs + std::max(0.0, timeMs - clip.startMs);
             e.decoder = std::make_unique<FfmpegSource>(clip.mediaPath, startSourceMs / 1000.0, e.nominal,
-                                                       modeFor(clip.mediaPath), mediaLeases);
+                                                       modeFor(clip.mediaPath), mediaLeases, m_readProbes.video);
             it = m_entries.emplace(clip.id, std::move(e)).first;
         }
         Entry& e = it->second;
@@ -133,7 +138,7 @@ void SourcePool::update(const Timeline& timeline, double timeMs, const std::set<
             retire(e, true);
             const double sourceMs = clip.inPointMs + std::max(0.0, timeMs - clip.startMs);
             e.decoder = std::make_unique<FfmpegSource>(clip.mediaPath, sourceMs / 1000.0, e.nominal,
-                                                       DecodeMode::Software, mediaLeases);
+                                                       DecodeMode::Software, mediaLeases, m_readProbes.video);
         }
         checkOpened(clip.id, e, clip.mediaPath, mediaLeases);
     }
@@ -162,7 +167,7 @@ void SourcePool::checkOpened(const std::string& clipId, Entry& e, const std::str
         StillImageSource::canRead(path)) {
         // The YUV path has no alpha plane. A still image needs no decoder:
         // one RGBA texture keeps its transparency.
-        e.still = std::make_unique<StillImageSource>(path, mediaLeases);
+        e.still = std::make_unique<StillImageSource>(path, mediaLeases, m_readProbes.still);
         MediaReport r;
         r.clipId = clipId;
         r.mediaPath = mediaPath;

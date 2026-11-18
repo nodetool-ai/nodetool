@@ -5,6 +5,7 @@
 #include <QImage>
 #include <QString>
 
+#include <functional>
 #include <memory>
 
 namespace nt {
@@ -16,7 +17,8 @@ namespace nt {
 // Render thread only. The worker shares the decode result under its mutex.
 class StillImageSource final : public LayerSource {
 public:
-    explicit StillImageSource(const QString& path, std::shared_ptr<void> mediaLeases = {});
+    explicit StillImageSource(const QString& path, std::shared_ptr<void> mediaLeases = {},
+                              std::function<void()> beforeRead = {});
     ~StillImageSource() override;
 
     QSize frameSize() const override { return m_size; }

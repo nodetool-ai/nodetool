@@ -1770,7 +1770,7 @@ folder. P1 replaces it with `live bench`.
 [img-filter]: ../../packages/image-nodes/src/nodes/lib-image-filter.ts
 [rt-audio]: ../../packages/audio-nodes/src/nodes/realtime-audio.ts
 [ne-readme]: ../../native/node-editor/README.md
-[tl-engine]: ../../native/timeline/src/audio/AudioEngine.h
+[tl-engine]: ../../native/timeline-player/src/audio/AudioEngine.h
 [tl-feed]: ../../native/timeline/src/playback/AudioClockFeed.h
 [tl-design]: ../../native/timeline/docs/DESIGN.md
 [native-rules]: ../../native/AGENTS.md

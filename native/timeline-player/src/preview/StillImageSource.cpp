@@ -29,7 +29,8 @@ bool StillImageSource::canRead(const QString& path) {
     return reader.canRead() && reader.size().isValid();
 }
 
-StillImageSource::StillImageSource(const QString& path, std::shared_ptr<void> mediaLeases)
+StillImageSource::StillImageSource(const QString& path, std::shared_ptr<void> mediaLeases,
+                                   std::function<void()> beforeRead)
     : m_decode(std::make_shared<Decode>()) {
     // A reader that cannot open its file instantiates every image format
     // plugin. Doing that on the detached worker races with the plugin
@@ -39,9 +40,13 @@ StillImageSource::StillImageSource(const QString& path, std::shared_ptr<void> me
     m_size = orientedSize(reader);
     // The thread owns its share of the result, so closing the clip never
     // waits for a decode.
-    std::thread([decode = m_decode, path, mediaLeases = std::move(mediaLeases)] {
+    std::thread([decode = m_decode, path, mediaLeases = std::move(mediaLeases),
+                 beforeRead = std::move(beforeRead)] {
         // The source can go away while the worker is still reading.
         (void)mediaLeases;
+        if (beforeRead) {
+            beforeRead();
+        }
         QImageReader worker(path);
         // EXIF orientation, as the browser applies it.
         worker.setAutoTransform(true);

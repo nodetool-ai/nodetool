@@ -1,6 +1,7 @@
 #pragma once
 
 #include "model/TimelineDocumentLoader.h"
+#include "server/AssetCache.h"
 
 #include <QPointer>
 #include <QUrl>
@@ -18,11 +19,11 @@ struct ServerOpenResult;
 // QCoreApplication. It owns the QThreads, even after their loaders go.
 class ServerLoaderWorkers final : public QObject {
 public:
+    ServerLoaderWorkers();
     ~ServerLoaderWorkers() override;
 
     // Stops admitting requests, interrupts outstanding network I/O and
-    // joins all workers. The destructor also calls this. Call on the UI
-    // thread before application teardown if the owner will outlive the app.
+    // joins all workers. aboutToQuit and the destructor call this on the UI thread.
     void shutdown();
 
 private:
@@ -38,7 +39,7 @@ class ServerTimelineLoader final : public TimelineDocumentLoader {
     Q_OBJECT
 
 public:
-    ServerTimelineLoader(ServerLoaderWorkers& workers, QUrl origin, QString token, QString cacheDir,
+    ServerTimelineLoader(ServerLoaderWorkers& workers, QUrl origin, QString token, AssetCacheRoot cache,
                          QObject* parent = nullptr);
     ~ServerTimelineLoader() override;
 
@@ -57,7 +58,7 @@ private:
     QPointer<ServerLoaderWorkers> m_workers;
     QUrl m_origin;
     QString m_token;
-    QString m_cacheDir;
+    AssetCacheRoot m_cache;
     QPointer<QThread> m_worker;
     std::optional<Request> m_pending;
     bool m_discard = false;

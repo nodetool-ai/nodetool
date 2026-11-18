@@ -25,6 +25,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <deque>
+#include <functional>
 #include <thread>
 #include <map>
 #include <memory>
@@ -56,7 +57,14 @@ struct MediaReport {
 // native-rules #9: shared with a retire thread and read from any thread, no thread affinity comment
 class SourcePool {
 public:
+    // Test probes run on the relevant worker before its first file read.
+    struct WorkerReadProbes {
+        std::function<void()> video;
+        std::function<void()> still;
+    };
+
     SourcePool();
+    explicit SourcePool(WorkerReadProbes probes);
     ~SourcePool();
 
     // Render thread, once per frame, before any sourceFor(): opens, keeps and
@@ -99,6 +107,7 @@ private:
     void reapLoop();
     std::optional<DecodeMode> modeFor(const std::string& mediaPath) const;
 
+    WorkerReadProbes m_readProbes;
     std::map<std::string, Entry> m_entries;
     std::atomic<int> m_open{0};
 

@@ -38,7 +38,7 @@ namespace nt::server {
 struct ServerOpenOptions {
     QUrl server;
     QString timelineId;
-    QString cacheRoot;
+    AssetCacheRoot cacheRoot;
     QString token;
     bool probeMedia = true;  // invoke the supplied D10a probe on each picture file
     QString expectedInstance;

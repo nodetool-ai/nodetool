@@ -21,6 +21,7 @@ extern "C" {
 #include <chrono>
 #include <cmath>
 #include <optional>
+#include <utility>
 
 namespace nt {
 
@@ -339,8 +340,9 @@ DecodedFrame::~DecodedFrame() {
 }
 
 FfmpegDecoder::FfmpegDecoder(std::string path, double initialSec, std::optional<DecodeMode> mode,
-                             std::shared_ptr<void> mediaLeases)
+                             std::shared_ptr<void> mediaLeases, std::function<void()> beforeRead)
     : m_mediaLeases(std::move(mediaLeases)),
+      m_beforeRead(std::move(beforeRead)),
       m_path(std::move(path)),
       m_mode(mode.value_or(decodeMode())),
       m_failAfterPackets(g_testFailAfterPackets.load()),
@@ -531,6 +533,9 @@ std::shared_ptr<DecodedFrame> FfmpegDecoder::frameAt(double targetSec, FrameAcce
 }
 
 void FfmpegDecoder::run() {
+    if (auto beforeRead = std::exchange(m_beforeRead, {})) {
+        beforeRead();
+    }
     g_decodeWorkerQos = cpu::currentThreadQos();
     const AVIOInterruptCB interrupt{&FfmpegDecoder::interruptCallback, this};
     const DecodeMode mode = m_mode;
@@ -1048,8 +1053,10 @@ void FfmpegDecoder::run() {
 }
 
 FfmpegSource::FfmpegSource(std::string path, double initialSec, QSize nominalSize,
-                           std::optional<DecodeMode> mode, std::shared_ptr<void> mediaLeases)
-    : m_decoder(std::make_unique<FfmpegDecoder>(std::move(path), initialSec, mode, std::move(mediaLeases))),
+                           std::optional<DecodeMode> mode, std::shared_ptr<void> mediaLeases,
+                           std::function<void()> beforeRead)
+    : m_decoder(std::make_unique<FfmpegDecoder>(std::move(path), initialSec, mode, std::move(mediaLeases),
+                                                std::move(beforeRead))),
       m_nominalSize(nominalSize) {}
 
 FfmpegSource::~FfmpegSource() {

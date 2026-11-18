@@ -9,6 +9,7 @@
 #include <QProcess>
 #include <QTemporaryDir>
 #include <QThread>
+#include <QTimer>
 #include <QtTest>
 
 #include <memory>
@@ -34,29 +35,32 @@ void stallTimeline(TestHttpServer& server, const QString& id) {
     server.setFile(kTimelinePath, std::move(stalled));
 }
 
-int exitWithStalledRequest(QCoreApplication& app) {
+int exitWithStalledRequest(QCoreApplication& app, bool drainOnQuit) {
     QTemporaryDir cache;
     ServerLoaderWorkers workers;
     TestHttpServer server;
     const QString id = QStringLiteral("closing");
     stallTimeline(server, id);
-    {
-        ServerTimelineLoader loader(workers, server.base(), {}, cache.path());
-        loader.load(id, QUuid::createUuid());
-        if (!QTest::qWaitFor([&server] { return server.countRequests("GET", kTimelinePath) == 1; })) {
-            qCritical("Fake server did not receive the request");
-            return 1;
-        }
+    auto loader = std::make_unique<ServerTimelineLoader>(workers, server.base(), QString(), cache.path());
+    loader->load(id, QUuid::createUuid());
+    if (!QTest::qWaitFor([&server] { return server.countRequests("GET", kTimelinePath) == 1; })) {
+        qCritical("Fake server did not receive the request");
+        return 1;
     }
 
-    // No event-loop turn separates destroying the loader and draining the
-    // worker. The fake server still has its ten-second reply pending.
+    // The fake server still has its ten-second reply pending.
     const auto threads = workers.findChildren<QThread*>(Qt::FindDirectChildrenOnly);
     if (threads.size() != 1) {
         qCritical("Expected one outstanding worker");
         return 1;
     }
-    workers.shutdown();
+    if (drainOnQuit) {
+        QTimer::singleShot(0, &app, &QCoreApplication::quit);
+        app.exec();
+    } else {
+        loader.reset();
+        workers.shutdown();
+    }
     if (!threads.front()->isFinished() ||
         !app.findChildren<QThread*>(Qt::FindDirectChildrenOnly).isEmpty()) {
         qCritical("Application teardown still owns a network worker");
@@ -77,6 +81,7 @@ private slots:
         QVERIFY(cache.isValid());
         ServerLoaderWorkers workers;
         TestHttpServer server;
+        const nt::server::AssetCacheRoot cacheRoot(cache.path());
         const QByteArray bytes("picture");
         const QString id = QStringLiteral("preview");
         server.setFile(kTimelinePath, ServedFile(document(id, QJsonArray{QJsonObject{
@@ -87,7 +92,7 @@ private slots:
         std::shared_ptr<void> leases;
         QString path;
         {
-            ServerTimelineLoader loader(workers, server.base(), QStringLiteral("local-token"), cache.path());
+            ServerTimelineLoader loader(workers, server.base(), QStringLiteral("local-token"), cacheRoot);
             QSignalSpy loaded(&loader, &ServerTimelineLoader::loaded);
             QSignalSpy failed(&loader, &ServerTimelineLoader::failed);
             const QUuid request = QUuid::createUuid();
@@ -115,10 +120,10 @@ private slots:
         QVERIFY(!requests.empty());
         QCOMPARE(requests.front().headers.value("authorization"), QByteArray("Bearer local-token"));
 
-        nt::server::AssetCache::evictRoot(cache.path(), 1, {});
+        cacheRoot.evict(1, {});
         QVERIFY(QFile::exists(path));
         leases.reset();
-        nt::server::AssetCache::evictRoot(cache.path(), 1, {});
+        cacheRoot.evict(1, {});
         QVERIFY(!QFile::exists(path));
     }
 
@@ -158,8 +163,7 @@ private slots:
         QCOMPARE(server.activeConnectionCount(), 1);
         loader.cancel();
         QTRY_COMPARE(server.activeConnectionCount(), 0);
-        // Allow the already-aborted worker's queued completion to reach the UI.
-        QTest::qWait(100);
+        QTRY_VERIFY(workers.findChildren<QThread*>().isEmpty());
         QCOMPARE(loaded.count(), 0);
         QCOMPARE(failed.count(), 0);
     }
@@ -196,6 +200,15 @@ private slots:
         QVERIFY2(child.exitStatus() == QProcess::NormalExit && child.exitCode() == 0, output.constData());
     }
 
+    void aboutToQuitDrainsOutstandingWorker() {
+        QProcess child;
+        child.setProcessChannelMode(QProcess::MergedChannels);
+        child.start(QCoreApplication::applicationFilePath(), {QStringLiteral("--quit-with-stalled-request")});
+        QVERIFY(child.waitForFinished(15000));
+        const auto output = child.readAll();
+        QVERIFY2(child.exitStatus() == QProcess::NormalExit && child.exitCode() == 0, output.constData());
+    }
+
     void shutdownRejectsNewRequests() {
         QTemporaryDir cache;
         ServerLoaderWorkers workers;
@@ -220,8 +233,6 @@ private slots:
         const QString id = QStringLiteral("closing");
         stallTimeline(server, id);
         auto loader = std::make_unique<ServerTimelineLoader>(workers, server.base(), QString(), cache.path());
-        QSignalSpy loaded(loader.get(), &ServerTimelineLoader::loaded);
-        QSignalSpy failed(loader.get(), &ServerTimelineLoader::failed);
         loader->load(id, QUuid::createUuid());
         QTRY_COMPARE(server.countRequests("GET", kTimelinePath), 1);
         QCOMPARE(server.activeConnectionCount(), 1);
@@ -230,16 +241,18 @@ private slots:
         loader.reset();
         QVERIFY2(elapsed.elapsed() < 1000, "Destructor waited on the worker");
         QTRY_COMPARE(server.activeConnectionCount(), 0);
-        QTest::qWait(100);
-        QCOMPARE(loaded.count(), 0);
-        QCOMPARE(failed.count(), 0);
+        QTRY_VERIFY(workers.findChildren<QThread*>().isEmpty());
+        QCOMPARE(server.countRequests("GET", kTimelinePath), 1);
     }
 };
 
 int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     if (app.arguments().contains(QStringLiteral("--exit-with-stalled-request"))) {
-        return exitWithStalledRequest(app);
+        return exitWithStalledRequest(app, false);
+    }
+    if (app.arguments().contains(QStringLiteral("--quit-with-stalled-request"))) {
+        return exitWithStalledRequest(app, true);
     }
     TestServerTimelineLoader test;
     return QTest::qExec(&test, argc, argv);

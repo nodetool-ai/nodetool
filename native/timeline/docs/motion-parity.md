@@ -260,7 +260,7 @@ src/render2d/tst_render2d.cpp
 src/scene/Animation.cpp
 src/scene/TextAnimation.cpp
 src/scene/TextAnimation.h
-src/server/FieldAudit.cpp
+../timeline-player/src/server/FieldAudit.cpp
 src/server/ServerTimeline.cpp
 src/server/ServerTimeline.h
 tests/tst_serverclient.cpp

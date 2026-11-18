@@ -2,6 +2,7 @@
 
 #include "server/ServerTimeline.h"
 
+#include <QCoreApplication>
 #include <QDeadlineTimer>
 #include <QThread>
 
@@ -21,6 +22,12 @@ struct WorkerResult {
 };
 
 }  // namespace
+
+ServerLoaderWorkers::ServerLoaderWorkers() {
+    auto* app = QCoreApplication::instance();
+    Q_ASSERT(app);
+    connect(app, &QCoreApplication::aboutToQuit, this, &ServerLoaderWorkers::shutdown);
+}
 
 ServerLoaderWorkers::~ServerLoaderWorkers() {
     shutdown();
@@ -51,9 +58,9 @@ QThread* ServerLoaderWorkers::makeWorker(std::function<void()> run) {
 }
 
 ServerTimelineLoader::ServerTimelineLoader(ServerLoaderWorkers& workers, QUrl origin, QString token,
-                                           QString cacheDir, QObject* parent)
+                                           AssetCacheRoot cache, QObject* parent)
     : TimelineDocumentLoader(parent), m_workers(&workers), m_origin(std::move(origin)), m_token(std::move(token)),
-      m_cacheDir(std::move(cacheDir)) {}
+      m_cache(std::move(cache)) {}
 
 ServerTimelineLoader::~ServerTimelineLoader() {
     cancel();
@@ -88,7 +95,7 @@ void ServerTimelineLoader::start(const Request& request) {
     ServerOpenOptions options;
     options.server = m_origin;
     options.timelineId = request.id;
-    options.cacheRoot = m_cacheDir;
+    options.cacheRoot = m_cache;
     options.token = m_token;
     // The worker and the queued completion share this storage. Either can
     // outlive the other when the loader is destroyed.
