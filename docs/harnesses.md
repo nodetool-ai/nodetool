@@ -2157,6 +2157,34 @@ survives. Manifest:
 `packages/runtime/src/providers/contract/probe-manifest.ts`. Details:
 [docs/provider-contract-probes.md](provider-contract-probes.md).
 
+### Pause points, races and process kills
+
+Crash and race tests for the cloud transfer and the access rules stop code at
+a named step. Server code marks the step with `await pausePoint("<step>")`
+from `@nodetool-ai/config/pause-points`. Outside a test it returns at once.
+
+- **Races in one process.** `PauseGate` from
+  `@nodetool-ai/config/testing/pause-harness` holds every caller that reaches
+  the named steps and releases them in an order the test picks
+  (`release(step, position)`). `repeatUnordered` runs the same concurrent
+  tasks many times with their start order shuffled.
+- **Crashes.** `startPausableProcess` starts a child with
+  `NODETOOL_PAUSE_AT=<step>`. The child writes `NODETOOL_PAUSED <step>` to
+  stderr and blocks. The test kills it with SIGKILL and starts a new process
+  on the same database and files. A thrown exception does not stand in for
+  the kill, because it runs rollback and cleanup code that a killed process
+  never runs. `NODETOOL_PAUSE_AT` is ignored when `NODE_ENV` is `production`.
+- **Races between processes.** `startPostgresServer` in
+  `packages/models/tests/helpers/postgres-server.ts` runs `initdb` and
+  `pg_ctl` on a temporary directory, so two server processes can wait on one
+  row lock. PGlite cannot show that, since it runs in one process. The CI
+  image installs the `postgresql` package. Elsewhere set
+  `NODETOOL_TEST_PG_BIN` to the server's `bin` directory.
+
+Tests: `packages/config/tests/pause-points.test.ts` and
+`packages/models/tests/two-process-postgres.test.ts`. Design:
+[technical design, Harnesses](https://github.com/nodetool-ai/nodetool/blob/main/docs/plans/native-cloud-sync/technical-design.md#harnesses).
+
 ### npm run crap (CRAP Scores for TypeScript)
 
 Scores each TypeScript function with `CRAP = CC² × (1 − coverage)³ + CC`, a
