@@ -260,8 +260,10 @@ const workflowHandler: TransferDocumentKindHandler = {
     if (!workflow) return null;
     const { graph, ...fields } = workflowPayload(workflow);
     const [newest] = await WorkflowVersion.listForWorkflow(workflow.id, { limit: 1 });
+    // An autosave is pruned by the autosave limit, so it is reused only as
+    // the content of a new version that nothing prunes (review F30).
     const revisionId =
-      newest && identityHash(newest.graph) === identityHash(graph)
+      newest && newest.save_type !== "autosave" && identityHash(newest.graph) === identityHash(graph)
         ? newest.id
         : // Manual, so the autosave limit never prunes it while the set lives.
           (
@@ -424,8 +426,9 @@ const timelineHandler: TransferDocumentKindHandler = {
     if (!timeline) return null;
     const { document, ...fields } = timelinePayload(timeline);
     const [newest] = await TimelineSequenceVersion.listForTimeline(timeline.id, { limit: 1 });
+    // An autosave is pruned by the autosave limit (review F30).
     const revisionId =
-      newest && newest.document === timeline.document
+      newest && newest.save_type !== "autosave" && newest.document === timeline.document
         ? newest.id
         : // Manual, so the autosave limit never prunes it while the set lives.
           (await TimelineSequenceVersion.snapshot(timeline, { saveType: "manual", name: HELD_VERSION_NAME })).id;
