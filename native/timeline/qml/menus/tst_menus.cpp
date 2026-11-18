@@ -924,8 +924,9 @@ private slots:
         QVERIFY2(problems.isEmpty(), qPrintable(problems.join("\n")));
         QVERIFY(ran > 40);
         // Off even with everything available: the trim mode items until it is on, the keyframe items
-        // while two clips are selected, and Remove Filler Words with no filler word.
-        if (rich) { QVERIFY2(off < 15, qPrintable(QString::number(off))); } else { QVERIFY(off > 10); }
+        // while two clips are selected, Remove Filler Words with no filler word, and File > Publish
+        // to Cloud and Synchronize with no account.
+        if (rich) { QVERIFY2(off < 17, qPrintable(QString::number(off))); } else { QVERIFY(off > 10); }
         source->setProperty("asset", QVariantMap{});
     }
     void toggleItemsShowACheckmark() {
