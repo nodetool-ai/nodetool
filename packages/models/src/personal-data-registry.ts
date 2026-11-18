@@ -879,6 +879,15 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "A download from a cloud project that has not finished: the captured document list and the person's choices on the review sheet. Short-lived operational state that ends with the download. Deleted with the account."
   },
   {
+    table: "cloud_sends",
+    schemaExport: "cloudSends",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "An upload to a cloud project that has not finished: the captured documents and file list, which the local project still holds. Short-lived operational state that ends with the upload. Deleted with the account."
+  },
+  {
     table: "worker_instances",
     schemaExport: "workerInstances",
     disposition: "not-personal",

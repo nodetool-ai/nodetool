@@ -777,6 +777,25 @@ const CLOUD_LINKS_DDL: readonly string[] = [
     ON cloud_receives (user_id, project_id)`
 ];
 
+const CLOUD_SENDS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS cloud_sends (
+    id TEXT PRIMARY KEY NOT NULL,
+    link_id TEXT,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    server_key TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    cloud_project_id TEXT NOT NULL,
+    state TEXT NOT NULL,
+    attempt_id TEXT,
+    plan TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_cloud_sends_user
+    ON cloud_sends (user_id, project_id)`
+];
+
 const REVISION_SETS_DDL: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS revision_sets (
     id TEXT PRIMARY KEY NOT NULL,
@@ -903,7 +922,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...TRANSFER_FILES_DDL,
   ...TRANSFER_ACTIVITY_DDL,
   ...REVISION_SETS_DDL,
-  ...CLOUD_LINKS_DDL
+  ...CLOUD_LINKS_DDL,
+  ...CLOUD_SENDS_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5489,6 +5509,18 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP TABLE IF EXISTS cloud_link_files");
       await db.execute("DROP TABLE IF EXISTS cloud_link_documents");
       await db.execute("DROP TABLE IF EXISTS cloud_links");
+    }
+  },
+  {
+    version: "20261130_000008",
+    name: "add_cloud_sends",
+    createsTables: ["cloud_sends"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of CLOUD_SENDS_DDL) await db.execute(statement);
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS cloud_sends");
     }
   }
 ];

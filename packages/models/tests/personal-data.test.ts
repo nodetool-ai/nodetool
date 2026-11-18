@@ -561,6 +561,7 @@ describe("exportPersonalData", () => {
       "cloud_link_files",
       "cloud_links",
       "cloud_receives",
+      "cloud_sends",
       "cloud_transfer_attempts",
       "cloud_transfers",
       "document_activity",
