@@ -6147,7 +6147,7 @@
         "createError": "Could not create the project: {{error}}",
         "openFolder": "Open folder…",
         "openFolderHint": "Already have a folder? Open it as a project. No files move.",
-        "openFolderTravels": "A folder copied from another machine opens with its workflows, timelines and assets. Chats, storyboards, scripts, sketches, apps and JS scripts do not travel with the folder.",
+        "openFolderTravels": "A folder copied from another machine opens with its documents and assets. Chats do not travel with the folder.",
         "openFolderError": "Could not open the folder: {{error}}"
       },
       "folder": {

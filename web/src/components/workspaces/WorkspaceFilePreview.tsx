@@ -1,7 +1,8 @@
 /**
  * A glance at the file selected in the Files panel, docked under the tree.
- * A media file shows through its asset (`workspace_path`), and a workflow or
- * timeline file through the project overview's document card picture. The
+ * A media file shows through its asset (`workspace_path`), a sketch file
+ * through the thumbnail inside it, and another document file through the
+ * project overview's document card picture. The
  * panel hides when the file has nothing to show.
  */
 import React, { memo } from "react";
@@ -58,7 +59,7 @@ export const mediaKindOf = (
 
 type FilePreview =
   | { kind: MediaKind; asset: Asset }
-  | { kind: "document"; document: ProjectDocument };
+  | { kind: "document"; document: ProjectDocument; thumbnail: string | null };
 
 const loadPreview = async (
   projectId: string,
@@ -70,11 +71,18 @@ const loadPreview = async (
       path
     });
     if (!found) { return null; }
-    const detail = await trpcClient.projects.get.query({ id: projectId });
+    const [detail, file] = await Promise.all([
+      trpcClient.projects.get.query({ id: projectId }),
+      found.type === "sketch"
+        ? trpcClient.projects.fileThumbnail.query({ id: projectId, path })
+        : Promise.resolve({ thumbnail: null })
+    ]);
     const document = detail.documents.find(
       (entry) => entry.ref === found.ref && entry.type === found.type
     );
-    return document ? { kind: "document", document } : null;
+    return document
+      ? { kind: "document", document, thumbnail: file.thumbnail }
+      : null;
   }
   const asset = await assetOfFile(projectId, path);
   if (!asset) { return null; }
@@ -115,7 +123,17 @@ const Media: React.FC<{ preview: FilePreview }> = ({ preview }) => {
     case "model3d":
       return <LazyModel3DViewer asset={preview.asset} compact />;
     case "document":
-      return <ProjectDocumentPreview document={preview.document} />;
+      // A data URL is its own locator.
+      return preview.thumbnail ? (
+        <ResponsiveImage
+          locator={preview.thumbnail}
+          alt={preview.document.name}
+          fit="contain"
+          sx={{ width: "100%", height: "100%" }}
+        />
+      ) : (
+        <ProjectDocumentPreview document={preview.document} />
+      );
   }
 };
 

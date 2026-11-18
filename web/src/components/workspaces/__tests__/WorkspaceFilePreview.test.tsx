@@ -8,13 +8,15 @@ import WorkspaceFilePreview, { mediaKindOf } from "../WorkspaceFilePreview";
 const assetsList = jest.fn();
 const documentByFile = jest.fn();
 const projectGet = jest.fn();
+const fileThumbnail = jest.fn();
 
 jest.mock("../../../trpc/client", () => ({
   trpcClient: {
     assets: { list: { query: (input: unknown) => assetsList(input) } },
     projects: {
       documentByFile: { query: (input: unknown) => documentByFile(input) },
-      get: { query: (input: unknown) => projectGet(input) }
+      get: { query: (input: unknown) => projectGet(input) },
+      fileThumbnail: { query: (input: unknown) => fileThumbnail(input) }
     }
   }
 }));
@@ -84,6 +86,19 @@ describe("WorkspaceFilePreview", () => {
     assetsList.mockReset();
     documentByFile.mockReset();
     projectGet.mockReset();
+    fileThumbnail.mockReset();
+  });
+
+  it("shows a sketch file through the thumbnail inside it", async () => {
+    const thumbnail = "data:image/png;base64,iVBORw0KGgo=";
+    documentByFile.mockResolvedValue({ type: "sketch", ref: "s1", name: "Fox" });
+    projectGet.mockResolvedValue({
+      documents: [{ type: "sketch", ref: "s1", name: "Fox", thumbnails: [] }]
+    });
+    fileThumbnail.mockResolvedValue({ thumbnail });
+    renderPreview("Sketches/Fox.sketch.ora");
+    expect(await screen.findByTestId("image")).toHaveAttribute("data-locator", thumbnail);
+    expect(fileThumbnail).toHaveBeenCalledWith({ id: "p1", path: "Sketches/Fox.sketch.ora" });
   });
 
   it("shows an image through its asset locator, with name, size and type", async () => {

@@ -124,18 +124,9 @@ describe("NewProjectDialog", () => {
 
     const note = screen.getByText(/do not travel with the folder/);
     expect(note).toHaveTextContent(
-      "A folder copied from another machine opens with its workflows, timelines and assets."
+      "A folder copied from another machine opens with its documents and assets."
     );
-    for (const kind of [
-      "Chats",
-      "storyboards",
-      "scripts",
-      "sketches",
-      "apps",
-      "JS scripts"
-    ]) {
-      expect(note).toHaveTextContent(kind);
-    }
+    expect(note).toHaveTextContent("Chats do not travel with the folder.");
   });
 
   it("has no Open folder entry on a production server", () => {

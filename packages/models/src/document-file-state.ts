@@ -15,6 +15,7 @@ import { storyboards } from "./schema/storyboards.js";
 import { scripts } from "./schema/scripts.js";
 import { applications } from "./schema/applications.js";
 import { jsScripts } from "./schema/js-scripts.js";
+import { imageDocuments } from "./schema/image-documents.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
 import { workflows } from "./schema/workflows.js";
 
@@ -60,7 +61,8 @@ const TABLES = {
   storyboard: storyboards,
   script: scripts,
   application: applications,
-  jsscript: jsScripts
+  jsscript: jsScripts,
+  sketch: imageDocuments
 } as const;
 
 /** A document kind that is a file in its project folder. */

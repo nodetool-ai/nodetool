@@ -174,7 +174,7 @@ export const projectDocumentType = z.enum([
 export type ProjectDocumentType = z.infer<typeof projectDocumentType>;
 
 /** The document kinds that are JSON files in the project folder. */
-export const fileDocumentType = z.enum(["workflow", "timeline", "storyboard", "script", "application", "jsscript"]);
+export const fileDocumentType = z.enum(["workflow", "timeline", "storyboard", "script", "application", "jsscript", "sketch"]);
 export type FileDocumentType = z.infer<typeof fileDocumentType>;
 
 /**
@@ -216,6 +216,13 @@ export type ProjectDocumentByFileInput = z.infer<
 >;
 
 /** A workflow or timeline and its file. */
+/** The thumbnail a document file carries: a sketch file's PNG. */
+export const projectFileThumbnail = z.object({
+  /** A `data:image/png;base64,` URL, or null when the file carries none. */
+  thumbnail: z.string().nullable()
+});
+export type ProjectFileThumbnail = z.infer<typeof projectFileThumbnail>;
+
 export const projectFileDocument = z.object({
   type: fileDocumentType,
   ref: z.string(),

@@ -36,6 +36,7 @@ import {
   Setting,
   Storyboard,
   JsScript,
+  ImageDocument,
   Application,
   Script,
   TimelineSequence,
@@ -61,6 +62,7 @@ import { migrateStoryboardFiles } from "./storyboard-file.js";
 import { migrateScriptFiles } from "./script-file.js";
 import { migrateAppFiles } from "./app-file.js";
 import { migrateJsScriptFiles } from "./js-script-file.js";
+import { migrateSketchFiles } from "./sketch-file.js";
 import { migrateWorkflowFiles } from "./workflow-file.js";
 import type { DocumentFileFailure } from "./document-file-sync.js";
 
@@ -323,6 +325,11 @@ const OTHER_DOCUMENT_KINDS: ReadonlyArray<{
     name: "JS scripts",
     unwritten: (userId) => JsScript.projectsWithUnwrittenFiles(userId),
     migrate: migrateJsScriptFiles
+  },
+  {
+    name: "sketches",
+    unwritten: (userId) => ImageDocument.projectsWithUnwrittenFiles(userId),
+    migrate: migrateSketchFiles
   }
 ];
 

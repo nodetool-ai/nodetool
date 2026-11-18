@@ -911,6 +911,7 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...documentFileDdl("scripts"),
   ...documentFileDdl("applications"),
   ...documentFileDdl("js_scripts"),
+  ...documentFileDdl("image_documents"),
   ...DELETED_DOCUMENTS_DDL,
   ...PROJECT_BLOBS_DDL,
   ...ACCESS_EPOCHS_DDL,
@@ -5384,6 +5385,8 @@ export const migrations: MigrationDef[] = [
 
   // A JS script is a JSON file in its project's folder.
   documentFileMigration("20261129_000003", "js_scripts"),
+  // A sketch is one OpenRaster file in its project's folder.
+  documentFileMigration("20261129_000004", "image_documents"),
 
   // Deleted documents kept for 30 days, so their owner can restore them
   // (docs/plans/native-cloud-sync/technical-design.md, WP2.2).

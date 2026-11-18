@@ -20,6 +20,10 @@ jest.mock("../SketchSurface", () => ({
   __esModule: true,
   default: () => <div>Sketch surface</div>
 }));
+jest.mock("../SkillSurface", () => ({
+  __esModule: true,
+  default: () => <div>Skill surface</div>
+}));
 jest.mock("../DocumentFileNotice", () => ({
   __esModule: true,
   default: (props: { type: string; refId: string; projectId?: string }) => (
@@ -74,9 +78,9 @@ describe("TabContent file notice", () => {
   });
 
   it("adds no file notice to a document that is not a file", async () => {
-    renderTab({ id: "sketch:a", type: "sketch", ref: "a", mode: "edit", title: "Draft" });
+    renderTab({ id: "skill:a", type: "skill", ref: "a", mode: "edit", title: "Draft" });
 
-    expect(await screen.findByText("Sketch surface")).toBeInTheDocument();
+    expect(await screen.findByText("Skill surface")).toBeInTheDocument();
     expect(screen.queryByTestId("file-notice")).toBeNull();
   });
 });
