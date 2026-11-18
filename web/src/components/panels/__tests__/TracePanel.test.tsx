@@ -239,3 +239,19 @@ it("focuses the span of the node that View logs named", async () => {
   await waitFor(() => expect(useTraceStore.getState().focusedSpanId).toBe(makeRecord(2).span_id));
   expect(useTraceStore.getState().pendingNodeId).toBeNull();
 });
+
+it("loads older runs when the run list is scrolled to its end and keeps the start time out of the summary line", async () => {
+  jest.mocked(trpcClient.runs.list.query)
+    .mockResolvedValueOnce({ runs: [makeTrace(a).run, { ...makeTrace(b).run, kind: "workflow" }], next_cursor: "older" })
+    .mockResolvedValueOnce({ runs: [{ ...makeTrace(c).run, kind: "chat" }], next_cursor: null });
+  renderPanel();
+  await screen.findByRole("list", { name: "Server spans" });
+  expect(screen.queryByRole("button", { name: "Older runs" })).not.toBeInTheDocument();
+  expect(screen.getByText(/3 spans · 1 event/)).not.toHaveTextContent("started");
+  fireEvent.mouseDown(screen.getByRole("combobox", { name: "Run" }));
+  const listbox = await screen.findByRole("listbox");
+  Object.defineProperties(listbox, { scrollHeight: { configurable: true, value: 400 }, clientHeight: { configurable: true, value: 200 }, scrollTop: { configurable: true, writable: true, value: 200 } });
+  fireEvent.scroll(listbox);
+  await waitFor(() => expect(trpcClient.runs.list.query).toHaveBeenCalledTimes(2));
+  expect(await screen.findByRole("option", { name: /Chat turn/ })).toBeInTheDocument();
+});

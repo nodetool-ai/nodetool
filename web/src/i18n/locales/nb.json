@@ -10789,6 +10789,7 @@
       "levels_one": "{{count}} nivå",
       "levels_other": "{{count}} nivåer",
       "allLevels": "Alle nivåer",
+      "anyDepth": "Vilken som helst dybde",
       "spanName": "Span navn",
       "focusSpan": "Fokusspenn",
       "wholeRun": "Hele løpeturen",
@@ -10846,7 +10847,6 @@
       "noRecentRuns": "Ingen nylige kjøringer",
       "noMatchingSpans": "Ingen samsvarende spenn",
       "spanId": "Spenn {{id}}",
-      "olderRuns": "Eldre løp",
       "noRecordedRuns": "Ingen registrerte løp",
       "noRunsDescription": "Start en appoperasjon, arbeidsflyt eller chattur for å inspisere sporingen og loggene.",
       "runStatus": {

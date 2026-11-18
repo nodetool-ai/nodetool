@@ -11121,6 +11121,7 @@
       "levels_one": "Poziom {{count}}",
       "levels_other": "{{count}} poziomu",
       "allLevels": "Wszystkie poziomy",
+      "anyDepth": "Dowolna głębokość",
       "spanName": "Nazwa zakresu",
       "focusSpan": "Rozpiętość ostrości",
       "wholeRun": "Cały bieg",
@@ -11178,7 +11179,6 @@
       "noRecentRuns": "Brak ostatnich uruchomień",
       "noMatchingSpans": "Brak pasujących zakresów",
       "spanId": "Rozpiętość {{id}}",
-      "olderRuns": "Starsze biegi",
       "noRecordedRuns": "Brak zarejestrowanych przebiegów",
       "noRunsDescription": "Rozpocznij działanie aplikacji, przepływ pracy lub turę na czacie, aby sprawdzić jego ślad i logi.",
       "runStatus": {

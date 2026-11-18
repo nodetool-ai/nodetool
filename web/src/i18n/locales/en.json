@@ -10789,6 +10789,7 @@
       "levels_one": "{{count}} level",
       "levels_other": "{{count}} levels",
       "allLevels": "All levels",
+      "anyDepth": "Any depth",
       "spanName": "Span name",
       "focusSpan": "Focus span",
       "wholeRun": "Whole run",
@@ -10846,7 +10847,6 @@
       "noRecentRuns": "No recent runs",
       "noMatchingSpans": "No matching spans",
       "spanId": "Span {{id}}",
-      "olderRuns": "Older runs",
       "noRecordedRuns": "No recorded runs",
       "noRunsDescription": "Start an app operation, workflow, or chat turn to inspect its trace and logs.",
       "runStatus": {

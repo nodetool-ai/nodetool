@@ -14,6 +14,9 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Label } from "./Label";
+import { BORDER_RADIUS, CONTROL, TYPOGRAPHY } from "./tokens";
+import { SPACING } from "./spacing";
+import { useFieldDensity } from "./fieldDensity";
 
 export interface AutocompleteOption {
   label: string;
@@ -34,6 +37,8 @@ export interface AutocompleteProps<
   placeholder?: string;
   /** Label for the input */
   label?: string;
+  /** Hide the visible label. The input keeps it as its accessible name. */
+  hideLabel?: boolean;
   /** Size variant */
   size?: "small" | "medium";
   /** Compact mode */
@@ -83,6 +88,7 @@ function AutocompleteInternal<
 >({
   placeholder,
   label,
+  hideLabel = false,
   size = "medium",
   compact = false,
   error,
@@ -100,23 +106,49 @@ function AutocompleteInternal<
   // label must target the Autocomplete id, not a TextField override.
   const fieldId = id ?? reactId;
 
-  const effectiveSize = compact ? "small" : size;
+  // A compact surface (FieldDensityContext) gives the field the same look
+  // TextInput and SelectField take there: control-size text, the small
+  // control height and the inspector field surface.
+  const dense = useFieldDensity() === "compact";
+  const effectiveSize = compact || dense ? "small" : size;
+  const showLabel = Boolean(label) && !hideLabel;
 
   const defaultRenderInput: MuiAutocompleteProps<T, Multiple, false, FreeSolo>["renderInput"] =
     (params) => (
       <TextField
         {...params}
+        inputProps={
+          !showLabel && label
+            ? { ...params.inputProps, "aria-label": label }
+            : params.inputProps
+        }
         placeholder={placeholder}
         size={effectiveSize}
         error={error}
         helperText={helperText}
         sx={{
           // Same form-control sizing as TextInput/SelectField: the value renders
-          // at the body token (15px) regardless of `compact` — compact only
-          // tightens height (via size="small"), never shrinks the text.
-          "& .MuiInputBase-input": {
-            fontSize: theme.fontSizeNormal || "15px",
-          },
+          // at the body token (15px), or at the control token (13px label) on a
+          // compact surface. The `compact` prop only tightens height (via
+          // size="small"), never shrinks the text.
+          "& .MuiInputBase-input": dense
+            ? TYPOGRAPHY.sans.label
+            : { fontSize: theme.fontSizeNormal || "15px" },
+          ...(dense && {
+            // Doubled class beats Autocomplete's own root padding, so the value
+            // starts at the same inset as a SelectField value.
+            "&& .MuiInputBase-root": {
+              minHeight: `${CONTROL.height.sm}px`,
+              py: 0,
+              pl: 0,
+              backgroundColor: theme.vars.palette.background.default,
+            },
+            "&& .MuiAutocomplete-input": { pl: SPACING.md },
+            "& .MuiOutlinedInput-notchedOutline": {
+              borderColor: theme.vars.palette.c_overlay,
+              borderRadius: BORDER_RADIUS.sm,
+            },
+          }),
           // The native placeholder should read as a muted hint, not entered text.
           "& .MuiInputBase-input::placeholder": {
             opacity: 0.6,
@@ -135,7 +167,7 @@ function AutocompleteInternal<
       style={style}
       sx={[{ display: "block" }, ...(Array.isArray(sx) ? sx : [sx])]}
     >
-      {label && (
+      {showLabel && (
         <Label htmlFor={fieldId} error={error}>
           {label}
         </Label>

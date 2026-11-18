@@ -10789,6 +10789,7 @@
       "levels_one": "{{count}} nivå",
       "levels_other": "{{count}} nivåer",
       "allLevels": "Alla nivåer",
+      "anyDepth": "Valfritt djup",
       "spanName": "Spännnamn",
       "focusSpan": "Fokusspann",
       "wholeRun": "Hela löpningen",
@@ -10846,7 +10847,6 @@
       "noRecentRuns": "Inga senaste körningar",
       "noMatchingSpans": "Inga matchande spann",
       "spanId": "Spännvidd {{id}}",
-      "olderRuns": "Äldre körningar",
       "noRecordedRuns": "Inga inspelade körningar",
       "noRunsDescription": "Starta en appoperation, arbetsflöde eller chattsväng för att inspektera dess spårning och loggar.",
       "runStatus": {
