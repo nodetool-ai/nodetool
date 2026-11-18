@@ -21,12 +21,15 @@
  * server.
  */
 import { mkdir, open, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { createLogger } from "@nodetool-ai/config";
+import { pausePoint } from "@nodetool-ai/config/pause-points";
 import {
   addTransferPlacements,
   Asset,
+  createTimeOrderedUuid,
   deleteCloudReceive,
+  deletedDocumentExists,
   deleteTransferPlacement,
   getCloudLinkById,
   getCloudLinkDocumentByCloudId,
@@ -52,10 +55,11 @@ import {
   requireProjectFolder,
   withWorkspaceFingerprint
 } from "@nodetool-ai/asset-services/project-asset-file";
-import type {
-  CaptureRevisionSetOutput,
-  ReceiveDocumentOutput,
-  RevisionSetDocument
+import {
+  captureRevisionSetOutput,
+  type CaptureRevisionSetOutput,
+  type ReceiveDocumentOutput,
+  type RevisionSetDocument
 } from "@nodetool-ai/protocol/api-schemas/receive.js";
 import type { TransferDocumentKind } from "@nodetool-ai/protocol/api-schemas/transfer.js";
 import { withoutDocumentFileWrites, writeDocumentFileUnderLock } from "./document-file-sync.js";
@@ -154,6 +158,11 @@ export interface ReceiveResult {
   missingFiles: string[];
   /** Documents whose file held an edit that is not valid, so the file was left as it was. */
   fileKept: Array<{ kind: TransferDocumentKind; id: string }>;
+  /**
+   * Local files a crash left moved aside while the received bytes took
+   * their path, put back beside it.
+   */
+  localKept?: Array<{ path: string; keptPath: string }>;
 }
 
 interface ReceivePlan {
@@ -202,6 +211,17 @@ function defaultDecision(status: ReceiveDocumentStatus): ReceiveDecision | null 
   }
 }
 
+/**
+ * Whether a local document other than this project's copy holds `id`: a
+ * document of another project or another user, or a deleted one that can
+ * still be restored. A cloud document is then received under a new id.
+ */
+async function idTakenElsewhere(kind: TransferDocumentKind, id: string, link: CloudLinkRow): Promise<boolean> {
+  const row = kind === "workflow" ? await Workflow.get<Workflow>(id) : await TimelineSequence.findById(id);
+  if (row) return row.project_id !== link.project_id || row.user_id !== link.user_id;
+  return deletedDocumentExists(kind, id);
+}
+
 async function localHashOf(kind: TransferDocumentKind, localId: string, projectId: string): Promise<string | null> {
   const payload = await transferPayloadOf(kind, localId);
   if (!payload) return null;
@@ -221,6 +241,23 @@ function stagingDir(workspace: Workspace, setId: string): string {
     throw new Error("A receive needs a project folder on this computer");
   }
   return join(workspace.localDir, ".nodetool", "cloud-staging", setId);
+}
+
+/**
+ * A path inside the staging folder. Each part is one plain name, such as a
+ * hash or a document id the cloud sent, so a part like `..` or `a/b` from a
+ * malformed answer can never reach outside the folder.
+ */
+function stagedPath(dir: string, ...parts: string[]): string {
+  for (const part of parts) {
+    if (!/^[A-Za-z0-9._-]+$/.test(part) || part === "." || part === "..") {
+      throw new Error(`Refused a staging name the cloud sent: ${JSON.stringify(part)}`);
+    }
+  }
+  const path = join(dir, ...parts);
+  const root = resolve(dir) + sep;
+  if (!resolve(path).startsWith(root)) throw new Error("Refused a staging path outside the staging folder");
+  return path;
 }
 
 /** The path on this computer of a file in a local project folder. */
@@ -255,11 +292,18 @@ export async function captureReceive(
   transport: ReceiveTransport,
   link: CloudLinkRow
 ): Promise<{ setId: string; documents: PlannedDocument[] }> {
-  const set = await transport.capture({ project_id: link.cloud_project_id });
+  // A self-hosted cloud can answer anything. Ids, hashes and paths name
+  // files on this computer, so the answer is checked before it is kept.
+  const set = captureRevisionSetOutput.parse(await transport.capture({ project_id: link.cloud_project_id }));
   const documents: PlannedDocument[] = [];
   for (const document of set.documents) {
     const linked = await getCloudLinkDocumentByCloudId(link.id, document.kind, document.document_id);
-    const localId = linked?.local_id ?? document.document_id;
+    // The plan keeps the pair, and the commit records it as the link document.
+    const localId =
+      linked?.local_id ??
+      ((await idTakenElsewhere(document.kind, document.document_id, link))
+        ? createTimeOrderedUuid()
+        : document.document_id);
     const baseHash = linked?.base_content_hash ?? null;
     const localHash = await localHashOf(document.kind, localId, link.project_id);
     const status = statusOf(document.content_hash, baseHash, localHash);
@@ -324,7 +368,7 @@ async function heldLocally(file: RevisionSetDocument["files"][number]): Promise<
 async function stage(transport: ReceiveTransport, row: CloudReceiveRow, plan: ReceivePlan, dir: string): Promise<void> {
   await mkdir(join(dir, "documents"), { recursive: true });
   for (const document of toWrite(plan)) {
-    const path = join(dir, "documents", `${document.kind}-${document.cloudId}.json`);
+    const path = stagedPath(dir, "documents", `${document.kind}-${document.cloudId}.json`);
     if (await fileExists(path)) continue;
     const received = await transport.document({
       set_id: row.id,
@@ -342,7 +386,7 @@ async function stage(transport: ReceiveTransport, row: CloudReceiveRow, plan: Re
   const erased = new Set(plan.erased);
   for (const [hash, files] of neededFiles(plan)) {
     if (erased.has(hash)) continue;
-    const path = join(dir, hash);
+    const path = stagedPath(dir, hash);
     if (await fileExists(path)) {
       // A crash can leave a staged file only after its rename, which follows its check.
       continue;
@@ -372,6 +416,10 @@ async function stage(transport: ReceiveTransport, row: CloudReceiveRow, plan: Re
 async function writeDocument(link: CloudLinkRow, document: PlannedDocument, payload: TransferPayloadContent): Promise<void> {
   const handler = TRANSFER_DOCUMENT_KINDS[document.kind];
   const current = await handler.lock(document.localId);
+  // Never replace a document of another project or person under the same id.
+  if (current && (current.projectId !== link.project_id || current.userId !== link.user_id)) {
+    throw new Error(`The local ${document.kind} ${document.localId} belongs to another project`);
+  }
   if (current) {
     await handler.replace(current, payload);
   } else {
@@ -394,7 +442,7 @@ async function commit(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePla
   await reconcileInBackground(link.project_id, link.user_id);
   const payloads = new Map<PlannedDocument, TransferPayloadContent>();
   for (const document of toWrite(plan)) {
-    const text = await readFile(join(dir, "documents", `${document.kind}-${document.cloudId}.json`), "utf8");
+    const text = await readFile(stagedPath(dir, "documents", `${document.kind}-${document.cloudId}.json`), "utf8");
     payloads.set(document, JSON.parse(text) as TransferPayloadContent);
   }
   const erased = new Set(plan.erased);
@@ -402,7 +450,7 @@ async function commit(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePla
   // staged files are looked at before it.
   const staged = new Set<string>();
   for (const hash of neededFiles(plan).keys()) {
-    if (await fileExists(join(dir, hash))) staged.add(hash);
+    if (await fileExists(stagedPath(dir, hash))) staged.add(hash);
   }
   await withoutDocumentFileWrites(() =>
     withTransaction(async () => {
@@ -514,6 +562,76 @@ async function keptPath(workspace: Workspace, path: string, now: Date): Promise<
   }
 }
 
+/** Where a replacement keeps the bytes it moved off a path until they are checked. */
+function displacedPath(dir: string, placementId: string): string {
+  return join(dir, `displaced-${placementId}`);
+}
+
+/**
+ * Replaces the file at `target` with the staged bytes only while it still
+ * holds `baseHash`. Another app can save the file at any moment, and the
+ * folder lock does not stop it, so the file is first moved aside in one
+ * rename and the moved bytes are checked. Bytes that changed go back to the
+ * path, or beside it when the path was taken meanwhile. Returns false when
+ * the staged bytes were not placed at `target`.
+ */
+async function replaceUnchanged(
+  workspace: Workspace,
+  dir: string,
+  placementId: string,
+  target: string,
+  staged: string,
+  baseHash: string
+): Promise<boolean> {
+  const displaced = displacedPath(dir, placementId);
+  try {
+    await rename(localPath(workspace, target), displaced);
+  } catch {
+    // The file went away after it was checked. The next pass sees a free path.
+    return false;
+  }
+  if ((await contentHashOfFile(displaced)) !== baseHash) {
+    if (await workspace.absorbNew(displaced, target)) await rm(displaced, { force: true });
+    return false;
+  }
+  const placed = await workspace.absorbNew(staged, target);
+  if (placed) await rm(displaced, { force: true });
+  return placed;
+}
+
+/**
+ * After a crash during {@link replaceUnchanged}, puts bytes it moved aside
+ * back: at the path when it is free, beside it otherwise. Bytes that equal
+ * the base are the ones the receive replaces and are dropped.
+ */
+async function restoreDisplaced(
+  workspace: Workspace,
+  dir: string,
+  placementId: string,
+  path: string,
+  baseHash: string | null,
+  now: Date,
+  plan: ReceivePlan
+): Promise<void> {
+  const displaced = displacedPath(dir, placementId);
+  if (!(await fileExists(displaced))) return;
+  if (baseHash !== null && (await contentHashOfFile(displaced)) === baseHash) {
+    await rm(displaced, { force: true });
+    return;
+  }
+  if (await workspace.absorbNew(displaced, path)) {
+    await rm(displaced, { force: true });
+    return;
+  }
+  const beside = await keptPath(workspace, path, now);
+  if (!(await workspace.absorbNew(displaced, beside))) {
+    throw new Error(`Could not put back the local file of ${path}`);
+  }
+  (plan.result.localKept ??= []).push({ path, keptPath: beside });
+  await updateCloudReceive(plan.set.set_id, { plan });
+  await rm(displaced, { force: true });
+}
+
 /**
  * Still under the lock: copies each staged file to its path when the path is
  * free or still holds the recorded bytes, and beside it otherwise. Then the
@@ -530,8 +648,9 @@ async function place(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePlan
       await deleteTransferPlacement(placement.id);
       continue;
     }
-    const staged = join(dir, placement.hash);
+    const staged = stagedPath(dir, placement.hash);
     let target = placement.path;
+    await restoreDisplaced(workspace, dir, placement.id, placement.path, planned.replaceIfHash, now, plan);
     const existing = (await workspace.exists(target)) ? await contentHashOfFile(localPath(workspace, target)) : null;
     let placed = false;
     if (existing === placement.hash) {
@@ -539,8 +658,8 @@ async function place(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePlan
     } else if (existing === null) {
       placed = await workspace.absorbNew(staged, target);
     } else if (existing === planned.replaceIfHash) {
-      await workspace.absorb(staged, target);
-      placed = true;
+      await pausePoint("receive.place.replacing");
+      placed = await replaceUnchanged(workspace, dir, placement.id, target, staged, planned.replaceIfHash);
     }
     if (!placed) {
       target = await keptPath(workspace, placement.path, now);

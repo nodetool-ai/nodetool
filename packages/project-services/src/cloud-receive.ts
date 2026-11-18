@@ -238,8 +238,19 @@ export async function receiveFile(
   const set = await liveSetOf(userId, input.set_id);
   const rows = await revisionSetFilesWithHash(set.id, input.hash);
   let authorized = false;
+  // The caller must still read this asset through the captured revision's
+  // reference sets, not only hold some role on the document: a reference
+  // that only an editor reads does not serve a viewer (Y6, SR29).
   for (const row of rows) {
-    if (await host.documentRole(userId, row.document_kind as TransferDocumentKind, row.document_id)) {
+    const kind = row.document_kind as TransferDocumentKind;
+    if (!(await host.documentRole(userId, kind, row.document_id))) continue;
+    const entry = await getRevisionSetEntry(set.id, kind, row.document_id);
+    if (!entry) continue;
+    const handler = TRANSFER_DOCUMENT_KINDS[kind];
+    const document = await handler.readRevision(entry.revision_id, JSON.parse(entry.fields) as Record<string, unknown>);
+    if (!document) continue;
+    const readable = await host.readableFiles(userId, kind, row.document_id, handler.content(document));
+    if (readable.some((file) => file.assetId === row.asset_id && file.hash === input.hash)) {
       authorized = true;
       break;
     }
