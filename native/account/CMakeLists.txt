@@ -40,6 +40,7 @@ add_library(nodetool_account STATIC
   src/cloud_listing.cpp
   src/cloud_sharing.cpp
   src/cloud_savers.cpp
+  src/cloud_transfer.cpp
   src/crypto.cpp
   src/http_token_endpoint.cpp
   src/origin.cpp
@@ -109,6 +110,12 @@ if(PROJECT_IS_TOP_LEVEL)
   target_link_libraries(account_cloud_tests PRIVATE nodetool_account nlohmann_json::nlohmann_json)
   target_include_directories(account_cloud_tests PRIVATE tests)
   add_test(NAME account_cloud_tests COMMAND account_cloud_tests)
+  # The transfer client of Publish and Synchronize and its review sheet
+  # (WP2.8), against a fake bundled server.
+  add_executable(account_transfer_tests tests/transfer.cpp)
+  target_link_libraries(account_transfer_tests PRIVATE nodetool_account nlohmann_json::nlohmann_json)
+  target_include_directories(account_transfer_tests PRIVATE tests)
+  add_test(NAME account_transfer_tests COMMAND account_transfer_tests)
   # The managed policy file, TC91's policy half.
   add_executable(account_policy_tests tests/policy.cpp)
   target_link_libraries(account_policy_tests PRIVATE nodetool_account)

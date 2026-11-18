@@ -20,4 +20,10 @@ std::optional<std::string> canonicalHttpsOrigin(std::string_view origin);
 // rules, except that a path, query and fragment are allowed.
 std::optional<std::string> httpsOriginOfUrl(std::string_view url);
 
+// Whether `origin` is the plain-HTTP origin of a server on this computer:
+// `http://127.0.0.1:<port>`, `http://localhost:<port>` or
+// `http://[::1]:<port>`, which may end in one `/`. The bundled server is
+// the only place an access token for a transfer may go (PRD SR3).
+bool isLoopbackHttpOrigin(std::string_view origin);
+
 } // namespace nodetool::account
