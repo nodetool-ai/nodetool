@@ -3,7 +3,7 @@
  * to one owner, the read rule and the cleanup.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { commitProjectBlobs, initTestDb } from "@nodetool-ai/models";
+import { commitProjectBlobs, initTestDb, recordRecoveryCopy } from "@nodetool-ai/models";
 import { PauseGate } from "@nodetool-ai/config/testing/pause-harness";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import {
@@ -15,7 +15,8 @@ import {
   hashesToSend,
   readBlob,
   stageBlob,
-  stageKnownBlob
+  stageKnownBlob,
+  storeNamedBlob
 } from "../src/blob-store.js";
 
 const BYTES = new Uint8Array([1, 2, 3, 4, 5]);
@@ -143,6 +144,34 @@ describe("blob store", () => {
     expect(await readBlob(storage, { projectId: "p1", hash: HASH, transferId: "t1" })).toEqual(BYTES);
     // A cleanup now finds the row and keeps the object.
     expect((await cleanupBlobs(storage, new Date(Date.now() + 2 * BLOB_CLEANUP_GRACE_MS))).objectsDeleted).toBe(0);
+  });
+
+  it("keeps a recovery copy whose hash a pausing cleanup was deleting (review F27)", async () => {
+    gate = new PauseGate(["blob.cleanup.deleting"]).install();
+    await storage.store(blobKey(HASH), BYTES);
+    const cleaned = cleanupBlobs(storage, new Date(Date.now() + 2 * BLOB_CLEANUP_GRACE_MS));
+    await gate.waitFor("blob.cleanup.deleting");
+    // A placement keeps the file it replaces: its row, then its bytes.
+    let recorded = false;
+    const kept = recordRecoveryCopy({
+      projectId: "p1",
+      userId: "u1",
+      transferId: "t1",
+      operation: "put_workspace_file",
+      workspacePath: "media/clip.bin",
+      blobHash: HASH,
+      size: BYTES.byteLength
+    })
+      .then(() => {
+        recorded = true;
+        return storeNamedBlob(storage, HASH, BYTES, "t1");
+      });
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(recorded).toBe(false);
+    gate.release("blob.cleanup.deleting");
+    expect((await cleaned).objectsDeleted).toBe(1);
+    expect(await kept).toBe("stored");
+    expect(await readBlob(storage, { projectId: "p1", hash: HASH })).toEqual(BYTES);
   });
 
   it("writes through a staging name and replaces a short object (F10)", async () => {

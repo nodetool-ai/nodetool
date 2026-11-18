@@ -572,8 +572,10 @@ describe("exportPersonalData", () => {
       "nodetool_team_tasks",
       "oauth_pending_entries",
       "project_blobs",
+      "recovery_copies",
       "resource_change_outbox",
       "run_inbox_messages",
+      "transfer_placements",
       "worker_instances",
       "worker_profiles"
     ]);

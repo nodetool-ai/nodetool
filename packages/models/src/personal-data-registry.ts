@@ -735,6 +735,24 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "The recorded result of each commit attempt of a transfer: a digest and the outcome with refusal codes and document ids. Operational state; deleted with the account."
   },
   {
+    table: "transfer_placements",
+    schemaExport: "transferPlacements",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "Files a committed transfer has yet to copy into its project's folder: a path and a hash. Short-lived operational state; the files are exported with the folder. Deleted with the account."
+  },
+  {
+    table: "recovery_copies",
+    schemaExport: "recoveryCopies",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "Which file a transfer replaced, with the hash of the replaced bytes, kept for 30 days. The bytes are in the blob store under that hash and go with the account's blob rows. Deleted with the account."
+  },
+  {
     table: "project_blobs",
     schemaExport: "projectBlobs",
     disposition: "delete",

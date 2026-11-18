@@ -110,24 +110,37 @@ export async function stageBlob(
     size: input.size,
     transferId: input.transferId
   });
+  return storeNamedBlob(adapter, input.hash, input.bytes, input.transferId);
+}
+
+/**
+ * Writes `bytes` under their hash, which a `project_blobs` row the caller
+ * wrote already names under the hash's lock. Writes through a staging name
+ * for `writerId`, and replaces an object that is shorter than the bytes.
+ * `bytes` must have the hash.
+ */
+export async function storeNamedBlob(
+  adapter: StorageAdapter,
+  hash: string,
+  bytes: Uint8Array,
+  writerId: string
+): Promise<"stored" | "already_present"> {
   // The row is written under the hash's lock, so a deletion of the object
   // that started before has ended, and none starts now.
-  const key = blobKey(input.hash);
+  const key = blobKey(hash);
   const uri = adapter.uriForKey(key);
   if (adapter.storeIfAbsent) {
-    const options = { stagingName: stagingName(input.hash, input.transferId) };
-    if ((await adapter.storeIfAbsent(key, input.bytes, undefined, options)) !== null) return "stored";
-    if (await isWhole(adapter, uri, input.size)) return "already_present";
+    const options = { stagingName: stagingName(hash, writerId) };
+    if ((await adapter.storeIfAbsent(key, bytes, undefined, options)) !== null) return "stored";
+    if (await isWhole(adapter, uri, bytes.byteLength)) return "already_present";
     // A short object is replaced. A writer racing this one writes the same
     // bytes, and the one that loses the second create finds them whole.
     await adapter.delete(uri);
-    return (await adapter.storeIfAbsent(key, input.bytes, undefined, options)) === null
-      ? "already_present"
-      : "stored";
+    return (await adapter.storeIfAbsent(key, bytes, undefined, options)) === null ? "already_present" : "stored";
   }
   // Two writers of one hash write the same bytes, so a lost race is harmless.
-  if (await isWhole(adapter, uri, input.size)) return "already_present";
-  await adapter.store(key, input.bytes);
+  if (await isWhole(adapter, uri, bytes.byteLength)) return "already_present";
+  await adapter.store(key, bytes);
   return "stored";
 }
 
