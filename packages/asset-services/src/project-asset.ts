@@ -192,14 +192,18 @@ const heldFolderLocks = new AsyncLocalStorage<ReadonlyMap<string, { held: boolea
  * (`folder-lock-file.ts`). A wait for another process gives up with a
  * `FolderLockTimeoutError`.
  *
- * A task that calls this again for the same folder runs at once, inside the
- * lock it already holds, so a receive can run the reconcile and write
- * document files without letting another writer in between.
+ * With `allowNested`, a call for the same folder made inside `task` runs at
+ * once, inside the lock `task` already holds, so a receive can run the
+ * reconcile and write document files without letting another writer in
+ * between. Work that `task` starts and leaves running gets the same pass
+ * while `task` runs, so a caller opts in only when it starts no such work.
+ * Without it, a call inside `task` queues like any other.
  */
 export function withProjectFolderLock<T>(
   userId: string,
   projectId: string,
-  task: () => Promise<T>
+  task: () => Promise<T>,
+  options: { allowNested?: boolean } = {}
 ): Promise<T> {
   const key = `${userId}\u0000${projectId}`;
   const holds = heldFolderLocks.getStore();
@@ -207,6 +211,7 @@ export function withProjectFolderLock<T>(
   if (holds?.get(key)?.held) return task();
   const previous = folderQueues.get(key) ?? Promise.resolve();
   const locked = async () => {
+    if (!options.allowNested) return withFolderLockFile(userId, projectId, task);
     const hold = { held: true };
     const held = new Map(holds ?? []);
     held.set(key, hold);
