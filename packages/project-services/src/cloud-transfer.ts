@@ -35,6 +35,7 @@ import {
   type AccessKey
 } from "@nodetool-ai/models";
 import type { StorageAdapter } from "@nodetool-ai/storage";
+import { pausePoint } from "@nodetool-ai/config/pause-points";
 import { hashesToSend, stageBlob, stageKnownBlob } from "@nodetool-ai/asset-services/blob-store";
 import type {
   CancelTransferOutput,
@@ -186,17 +187,30 @@ export async function transferStatus(userId: string, transferId: string): Promis
   };
 }
 
-/** Cancels an open transfer and drops what it staged. A committed one returns its result. */
+/**
+ * Cancels an open transfer and drops what it staged. A committed one returns
+ * its result. The transfer's row is locked and read again, so a cancel that
+ * meets a commit under way waits for it and then answers with its result,
+ * and never marks a committed transfer cancelled (review F28).
+ */
 export async function cancelTransfer(userId: string, transferId: string): Promise<CancelTransferOutput> {
-  const transfer = await ownedTransfer(userId, transferId);
-  if (transfer.state === "committed" && transfer.committed_attempt_id) {
-    const attempt = await findCloudTransferAttempt(transfer.id, transfer.committed_attempt_id);
-    if (attempt) return { state: "committed", result: parseResult(attempt.result) };
-  }
-  if (transfer.state === "open") {
+  const found = await ownedTransfer(userId, transferId);
+  const outcome = await withTransaction(async (): Promise<CancelTransferOutput | "dropped"> => {
+    const transfer = await lockCloudTransfer(found.id);
+    if (!transfer || transfer.user_id !== userId) {
+      throw new TransferRequestError("NOT_FOUND", "Transfer not found");
+    }
+    if (transfer.state === "committed" && transfer.committed_attempt_id) {
+      const attempt = await findCloudTransferAttempt(transfer.id, transfer.committed_attempt_id);
+      if (attempt) return { state: "committed", result: parseResult(attempt.result) };
+    }
+    if (transfer.state !== "open") return { state: "cancelled" };
     await setCloudTransferState(transfer.id, "cancelled");
-    await deleteStagedBlobsOfTransfer(transfer.id);
-  }
+    return "dropped";
+  });
+  if (outcome !== "dropped") return outcome;
+  // A commit refuses a cancelled transfer, so its staged rows can go.
+  await deleteStagedBlobsOfTransfer(found.id);
   return { state: "cancelled" };
 }
 
@@ -291,6 +305,7 @@ export async function commitTransfer(
     if (!transfer || transfer.user_id !== userId) {
       throw new TransferRequestError("NOT_FOUND", "Transfer not found");
     }
+    await pausePoint("transfer.commit.locked");
     // Step 1: an attempt id has one recorded result.
     const recorded = await findCloudTransferAttempt(transfer.id, input.attempt_id);
     if (recorded) {
