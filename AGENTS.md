@@ -151,7 +151,6 @@ document and nothing else in the directory reaches the product.
 
 | Task | Skill |
 |---|---|
-| Implement an existing spec or tickets | [implement](.claude/skills/implement/SKILL.md) |
 | Diagnose code failures or performance regressions | [diagnosing-bugs](.claude/skills/diagnosing-bugs/SKILL.md) |
 | Review a diff, branch, or PR | [code-review](.claude/skills/code-review/SKILL.md) |
 | Remove unnecessary code or prose from a requested change | [unslop](.claude/skills/unslop/SKILL.md) |
@@ -163,7 +162,6 @@ document and nothing else in the directory reaches the product.
 | Map source structure before reading selected code | [ast-grep-outline](.claude/skills/ast-grep-outline/SKILL.md) |
 | Write or modernize C++, such as `native/timeline/` | [modern-cpp](.claude/skills/modern-cpp/SKILL.md) |
 | Design module interfaces and test boundaries | [codebase-design](.claude/skills/codebase-design/SKILL.md) |
-| Turn an agreed discussion into a spec or dependent tickets | [to-spec](.claude/skills/to-spec/SKILL.md), [to-tickets](.claude/skills/to-tickets/SKILL.md) |
 | Create or edit a NodeTool workflow graph | [nodetool-workflow-builder](.claude/skills/nodetool-workflow-builder/SKILL.md) |
 | Create or update a NodeTool node implementation | [nodetool-custom-node-developer](.claude/skills/nodetool-custom-node-developer/SKILL.md) |
 | Higgsfield provider nodes | [higgsfield-nodes](packages/higgsfield-nodes/AGENTS.md) |
@@ -186,8 +184,7 @@ The full shipped set, including the model-line prompting guides and the motion
 craft skills, is in
 [packages/system-skills/README.md](packages/system-skills/README.md).
 
-Use [ask-matt](.claude/skills/ask-matt/SKILL.md) when the user asks which
-engineering workflow fits. See [skill maintenance guidance](.claude/README.md#maintaining-skills)
+See [skill maintenance guidance](.claude/README.md#maintaining-skills)
 when updating skills.
 
 ## Architecture

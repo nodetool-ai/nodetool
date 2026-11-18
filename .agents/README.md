@@ -19,23 +19,7 @@ without being told how.
 [mattpocock/skills](https://github.com/mattpocock/skills) (MIT), vendored at
 commit `8b36d4f` (license kept at `skills/LICENSE-mattpocock-skills`). They are adapted to NodeTool's repository rules and sit alongside its authoring skills.
 
-Type these to invoke them (`disable-model-invocation: true` — Claude never
-reaches for them on its own):
-
-| Skill | What it does |
-| :--- | :--- |
-| `/ask-matt` | Router over the other user-invoked skills — asks which one fits. |
-| `/setup-matt-pocock-skills` | One-time per-repo setup: issue tracker, triage labels, domain doc layout. |
-| `/grill-with-docs` | Interview that sharpens a plan and writes `CONTEXT.md` and ADRs as it goes. |
-| `/improve-codebase-architecture` | Scan for deepening opportunities, report them as HTML, grill through one. |
-| `/triage` | Move issues through a state machine of triage roles. |
-| `/to-spec` | Turn the conversation into a spec on the issue tracker. |
-| `/to-tickets` | Break a plan into tracer-bullet tickets with blocking edges. |
-| `/implement` | Build from a spec or tickets and verify against acceptance criteria. |
-| `/wayfinder` | Map work too big for one session as decision tickets, resolved one at a time. |
-
-The rest are model-invoked — Claude reaches for them when a task matches, and
-you can also type them:
+Claude reaches for them when a task matches, and you can also type them:
 
 | Skill | What it does |
 | :--- | :--- |
@@ -47,7 +31,6 @@ you can also type them:
 | `/prototype` | Throwaway prototype to answer a design question. |
 | `/research` | Investigate against primary sources, capture cited findings in the repo. |
 | `/resolving-merge-conflicts` | Work an in-progress merge or rebase hunk by hunk. |
-| `/wizard` | Generate a bash wizard for steps only a human can perform. |
 
 ## NodeTool skills ship with the product
 
