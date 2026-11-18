@@ -153,6 +153,62 @@ async function captureDocument(
   };
 }
 
+/** How often a project capture lists its documents again before it gives up (review F47). */
+const MEMBERSHIP_ATTEMPTS = 5;
+
+/** The documents of a project changed while a capture locked them, so it starts again. */
+class MembershipChanged extends Error {}
+
+/**
+ * Holds every document of the capture in one transaction. The documents of
+ * a project are listed, their access epochs and rows locked, and the list
+ * read again under those locks. A transfer that adds or moves documents
+ * while it changes listed ones has committed by then, so a list that
+ * differs starts the capture again with the new members, and the set never
+ * holds part of one commit (Y2, reviews F29, F47). Rows are locked in one
+ * order, as a commit's are.
+ */
+async function captureMembers(
+  host: ReceiveHost,
+  userId: string,
+  set: RevisionSetRow,
+  project: Project,
+  input: CaptureRevisionSetInput
+): Promise<RevisionSetDocument[]> {
+  const membersOf = async (): Promise<Array<{ kind: TransferDocumentKind; id: string }>> =>
+    "project_id" in input ? projectDocuments(project) : [{ kind: input.kind, id: input.document_id }];
+  const listed = (targets: Array<{ kind: TransferDocumentKind; id: string }>): string =>
+    targets.map(documentKey).sort().join(",");
+  let targets = await membersOf();
+  await pausePoint("receive.capture.members-listed");
+  for (let attempt = 1; ; attempt++) {
+    const ordered = [...targets].sort((a, b) => documentKey(a).localeCompare(documentKey(b)));
+    const keys: AccessKey[] = [{ kind: "project", id: project.id }, ...ordered.map((target) => ({ kind: target.kind, id: target.id }))];
+    try {
+      return await underAccessLock(keys, async () => {
+        for (const target of ordered) await lockTransferDocumentRow(target.kind, target.id);
+        const current = await membersOf();
+        if (listed(current) !== listed(targets)) {
+          targets = current;
+          throw new MembershipChanged();
+        }
+        const captured: RevisionSetDocument[] = [];
+        for (const target of targets) {
+          const document = await captureDocument(host, userId, set, target.kind, target.id);
+          if (document) captured.push(document);
+          await pausePoint("receive.capture.document-held");
+        }
+        return captured;
+      });
+    } catch (error) {
+      if (!(error instanceof MembershipChanged)) throw error;
+      if (attempt >= MEMBERSHIP_ATTEMPTS) {
+        throw new Error("The project's documents kept changing during the capture. Try again.");
+      }
+    }
+  }
+}
+
 /**
  * Captures a revision set of a whole project or one document. An entry
  * exists only for documents the caller may open now, and its files are those
@@ -167,25 +223,9 @@ export async function captureRevisionSet(
   const projectId = "project_id" in input ? input.project_id : await projectOfDocument(input.kind, input.document_id);
   const project = projectId ? await Project.get<Project>(projectId) : null;
   if (!project || project.deleted_at) throw new ReceiveRequestError("NOT_FOUND", "Not found");
-  const targets = "project_id" in input ? await projectDocuments(project) : [{ kind: input.kind, id: input.document_id }];
   const set = await createRevisionSet({ userId, projectId: project.id });
   try {
-    // Every document is held in one transaction, with the access epochs and
-    // the rows of all of them locked before the first is read, so a save or
-    // a transfer that changes several documents is captured whole or not at
-    // all (Y2, review F29). Rows are locked in one order, as a commit's are.
-    const ordered = [...targets].sort((a, b) => documentKey(a).localeCompare(documentKey(b)));
-    const keys: AccessKey[] = [{ kind: "project", id: project.id }, ...ordered.map((target) => ({ kind: target.kind, id: target.id }))];
-    const documents = await underAccessLock(keys, async () => {
-      for (const target of ordered) await lockTransferDocumentRow(target.kind, target.id);
-      const captured: RevisionSetDocument[] = [];
-      for (const target of targets) {
-        const document = await captureDocument(host, userId, set, target.kind, target.id);
-        if (document) captured.push(document);
-        await pausePoint("receive.capture.document-held");
-      }
-      return captured;
-    });
+    const documents = await captureMembers(host, userId, set, project, input);
     const ownsProject = "project_id" in input && project.user_id === userId;
     if (documents.length === 0 && !ownsProject) throw new ReceiveRequestError("NOT_FOUND", "Not found");
     return { set_id: set.id, project_id: project.id, expires_at: set.expires_at, documents };
