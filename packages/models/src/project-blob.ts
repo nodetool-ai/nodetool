@@ -156,7 +156,7 @@ type PortableDb = ReturnType<typeof getPortableDb>;
  * caller that waits longer than {@link BLOB_LOCK_TIMEOUT_MS} there fails,
  * and the client tries again.
  */
-async function withBlobLock<T>(hash: string, work: (db: PortableDb) => Promise<T>): Promise<T> {
+export async function withBlobLock<T>(hash: string, work: (db: PortableDb) => Promise<T>): Promise<T> {
   const previous = localLocks.get(hash) ?? Promise.resolve();
   let release: () => void = () => {};
   const held = new Promise<void>((resolve) => {
