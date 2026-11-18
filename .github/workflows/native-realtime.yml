@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - "native/realtime/**"
+      - "native/timeline-player/**"
       - "native/graph-runner/guest/host/gpu-catalog.mjs"
       - "packages/gpu/**"
       - "packages/realtime-compiler/**"
@@ -13,6 +14,7 @@ on:
     branches: [main]
     paths:
       - "native/realtime/**"
+      - "native/timeline-player/**"
       - "native/graph-runner/guest/host/gpu-catalog.mjs"
       - "packages/gpu/**"
       - "packages/realtime-compiler/**"

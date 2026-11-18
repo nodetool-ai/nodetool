@@ -156,6 +156,11 @@ export const PROJECTS = {
       "native/files"
     ]
   },
+  // The realtime tests include headers from native/timeline-player/src and
+  // compile its miniaudio.cpp (native/realtime/CMakeLists.txt).
+  realtime: {
+    sharedDirs: ["native/timeline-player"]
+  },
   // Built and tested only inside the timeline build.
   "timeline-player": {
     partOf: "timeline"
