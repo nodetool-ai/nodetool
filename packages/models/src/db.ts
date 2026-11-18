@@ -248,6 +248,15 @@ export function allowLegacyProjectWritesForTests(): boolean {
  */
 interface AmbientTransaction {
   connection: DatabaseConnection;
+  // False once the transaction committed or rolled back. Work the body
+  // started keeps this store after that, so every reader checks it.
+  active: boolean;
+}
+
+/** The transaction the caller runs in, while it is still open. */
+function activeTransaction(): AmbientTransaction | undefined {
+  const store = _ambient?.getStore();
+  return store?.active ? store : undefined;
 }
 
 // Created by the first transaction, so a host without node:async_hooks,
@@ -267,7 +276,7 @@ export function getDatabase(): DatabaseConnection {
   if (!_connection) {
     throw new Error("Database not initialized. Call initDb() or initPostgresDb() first.");
   }
-  const inside = _ambient?.getStore();
+  const inside = activeTransaction();
   if (inside) return inside.connection;
   if (_openSqliteTransaction) {
     throw new Error(
@@ -280,7 +289,7 @@ export function getDatabase(): DatabaseConnection {
 
 /** Whether the caller runs inside a `withTransaction` body. */
 export function inTransaction(): boolean {
-  return _ambient?.getStore() !== undefined;
+  return activeTransaction() !== undefined;
 }
 
 /**
@@ -302,19 +311,24 @@ export function inTransaction(): boolean {
  */
 export async function withTransaction<T>(body: () => Promise<T>): Promise<T> {
   const ambient = ambientStore();
-  if (ambient.getStore()) return body();
+  if (activeTransaction()) return body();
   const connection = getDatabase();
   if (connection.dialect === "postgres") {
-    return connection.db.transaction(async (tx) =>
-      ambient.run({ connection: { ...connection, db: tx } }, body)
-    );
+    return connection.db.transaction(async (tx) => {
+      const store: AmbientTransaction = { connection: { ...connection, db: tx }, active: true };
+      try {
+        return await ambient.run(store, body);
+      } finally {
+        store.active = false;
+      }
+    });
   }
   const sqlite = _sqlite;
   if (!sqlite) {
     throw new Error("withTransaction needs the SQLite connection that initDb() opened.");
   }
   await new Promise<void>((resolve) => setImmediate(resolve));
-  const store: AmbientTransaction = { connection };
+  const store: AmbientTransaction = { connection, active: true };
   sqlite.exec("BEGIN IMMEDIATE");
   _openSqliteTransaction = store;
   try {
@@ -325,6 +339,7 @@ export async function withTransaction<T>(body: () => Promise<T>): Promise<T> {
     if (sqlite.inTransaction) sqlite.exec("ROLLBACK");
     throw error;
   } finally {
+    store.active = false;
     _openSqliteTransaction = null;
   }
 }
