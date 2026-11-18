@@ -148,15 +148,6 @@ export type ReferenceSample = {
 /** Catalog Motion with References: one background and one prop image for the whole catalog. */
 export const REFERENCE_SAMPLES: readonly ReferenceSample[] = [
   {
-    title: "Trail Tumbler",
-    look: "Product in your scene",
-    product: `${MEDIA}/trail-tumbler.webp`,
-    background: `${MEDIA}/ref-background.webp`,
-    decoration: `${MEDIA}/ref-decoration.webp`,
-    clip: `${MEDIA}/ref-trail-tumbler.mp4`,
-    poster: `${MEDIA}/ref-trail-tumbler-poster.webp`,
-  },
-  {
     title: "Olive Travel Cup",
     look: "Styled tabletop",
     product: `${MEDIA}/olive-travel-cup.webp`,
