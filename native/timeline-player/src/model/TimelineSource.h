@@ -17,6 +17,16 @@ class TimelineSource : public QObject {
 public:
     using QObject::QObject;
 
+    // Immutable document and its file pins can outlive the UI source.
+    struct RenderState {
+        std::shared_ptr<const nt::Timeline> snapshot;
+        quint64 generation = 0;
+        std::shared_ptr<void> mediaLeases;
+    };
+
+    // The UI thread reads this value for the compositor handoff.
+    virtual RenderState renderState() const { return {snapshot(), documentGeneration(), {}}; }
+
     // The current snapshot, or null while the source holds no document. A
     // new document or edit makes a new snapshot; an old one stays valid
     // while held.

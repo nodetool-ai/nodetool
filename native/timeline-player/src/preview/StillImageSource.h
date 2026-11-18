@@ -13,9 +13,10 @@ namespace nt {
 // that the YUV decoder path rejects (D10a), so a transparent PNG draws as
 // the web preview does. A worker thread decodes the file. The render thread
 // uploads it once and then reuses the texture.
+// Render thread only. The worker shares the decode result under its mutex.
 class StillImageSource final : public LayerSource {
 public:
-    explicit StillImageSource(const QString& path);
+    explicit StillImageSource(const QString& path, std::shared_ptr<void> mediaLeases = {});
     ~StillImageSource() override;
 
     QSize frameSize() const override { return m_size; }

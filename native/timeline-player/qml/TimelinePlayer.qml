@@ -137,12 +137,14 @@ Item {
 
     // The clock samples its time once per frame while it plays.
     FrameAnimation {
-        running: playerController.playing && player.visible
+        running: playerController.playing
         onTriggered: playerController.clock.tick()
     }
 
     TimelinePlayerController {
         id: playerController
         window: player.Window.window
+        playbackVisible: player.visible && window !== null && window.visible
+                         && window.visibility !== Window.Minimized
     }
 }

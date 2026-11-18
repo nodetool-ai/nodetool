@@ -85,6 +85,7 @@ directly:
 |---|---|
 | `timelineId`, `loader` | Inputs. A change cancels the outstanding load and asks the loader for the new ID. |
 | `window` | The `QQuickWindow` the picture draws in. `TimelinePlayer` binds it. |
+| `playbackVisible` | Defaults to true for C++ hosts. `TimelinePlayer` binds it to effective item and window visibility. |
 | `audioMode` | `Off` runs the clock on the monotonic source. `Null` and `Device` open an `AudioEngine` on the first play, on miniaudio's null backend or the default output device, and make it the clock's master. |
 | `status`, `error` | `Idle` (no ID), `Loading`, `Ready`, `Error` with `error`, or `Unavailable` when `window` renders with the software scene graph. Nothing loads or draws while unavailable. |
 | `playing`, `positionMs`, `durationMs`, `fps`, `frame` | The transport. `durationMs` is the end of the last clip or the document's duration, whichever is later. `frame` is the frame shown at `positionMs`. |
@@ -97,15 +98,20 @@ Behaviour a host can rely on:
 - One controller plays at a time in a QML engine. `play()` pauses the one that
   played before and closes its audio. A controller with no QML engine
   (`qmlEngine()` null) takes no part.
-- A load result for another ID than the current one is dropped, and so is a
-  result that arrives after the controller is destroyed. Give each controller
-  its own loader, because a new `load()` supersedes the previous one.
-- The controller keeps the media leases of the last load until the next load
-  or its destruction. Its destructor stops the audio device callback and the
-  decode worker before it releases the leases, the source and the clock.
-- `StaticTimelineSource::setTimeline(nt::Timeline)` gives the document a new
-  revision and clip index and raises the generation. `clear()` leaves a null
-  snapshot, which `PreviewCompositor` draws as nothing.
+- The controller accepts a completion only for the outstanding timeline ID
+  and request token. Give each controller its own loader, because a new
+  `load()` supersedes the previous one.
+- Hiding the item, an ancestor or its window pauses playback and closes
+  audio. Playback stays paused when the item becomes visible again.
+- `StaticTimelineSource::setTimeline(timeline, mediaLeases)` gives the
+  document a new revision and clip index and raises the generation.
+  `clear()` leaves a null snapshot, which `PreviewCompositor` draws as
+  nothing.
+- The compositor reads `TimelineSource::renderState()` on the UI thread and
+  copies its snapshot, generation and leases during render synchronization.
+  Video and still-image decoders keep the leases through their last file
+  read. The controller stops its audio callback and decode worker before
+  clearing or destroying the source.
 
 A minimal host with the default server loader:
 
@@ -125,13 +131,15 @@ nodetool_use_ui_primitives(host)
 QGuiApplication app(argc, argv);
 nt::hw::selectGraphicsApi(false);
 const nt::HookRegistrations hooks = nt::registerStandardHooks();
-nt::server::ServerTimelineLoader loader(origin, token, cacheDir);
+nt::server::ServerLoaderWorkers workers;
+nt::server::ServerTimelineLoader loader(workers, origin, token, cacheDir);
 QQuickView view;
 nt::hw::prepareWindow(&view);
 view.setInitialProperties({{"loader", QVariant::fromValue<QObject*>(&loader)},
                            {"timelineId", timelineId}});
 view.loadFromModule("NodeTool.TimelinePlayer", "TimelinePlayer");
 view.show();
+return app.exec();
 ```
 
 Keep `hooks` alive while players render. A loader destroyed first leaves its
@@ -201,11 +209,24 @@ Miniaudio's license is at the end of
 
 ## Server loader
 
-Construct `nt::server::ServerTimelineLoader(origin, token, cacheDir)` on the
-UI thread and give it the host's lifetime. Call `load(id)` to receive an
-immutable document and its media leases on that thread. Keep the leases while
-playback uses the cached files. `cancel()` discards the pending result and
-requests worker interruption. A new load supersedes the previous one.
+Create a host-owned `nt::server::ServerLoaderWorkers` on the UI thread after
+the application. Pass it to each `ServerTimelineLoader`. Destroy the owner
+before `QCoreApplication` or call its `shutdown()` on the UI thread before
+application teardown. The stack order in the example handles this on exit
+from `app.exec()`.
+
+Destroying a loader requests interruption and returns immediately. The
+worker owner still holds its thread. Shutdown rejects new loads, interrupts
+pending network I/O and joins all outstanding workers before Qt tears down.
+The join has one five-second deadline. If an interrupted worker misses it,
+the process stops before Qt teardown.
+
+Call `load(id, request)` with a fresh `QUuid`. Both `loaded` and `failed`
+echo the ID and token on the UI thread. `loaded` delivers an immutable
+document and its media leases. Keep the leases while playback uses the cached
+files. A lease returned by a custom loader must support release from the UI,
+render or decode thread. `cancel()` discards the pending result and requests worker
+interruption. A new load supersedes the previous one.
 
 ## Build
 

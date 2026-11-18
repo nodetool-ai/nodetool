@@ -72,7 +72,8 @@ void SourcePool::reapLoop() {
     }
 }
 
-void SourcePool::update(const Timeline& timeline, double timeMs, const std::set<std::string>& required) {
+void SourcePool::update(const Timeline& timeline, double timeMs, const std::set<std::string>& required,
+                        const std::shared_ptr<void>& mediaLeases) {
     struct Want {
         const Clip* clip;
         double distanceMs;  // 0 when on screen
@@ -118,7 +119,8 @@ void SourcePool::update(const Timeline& timeline, double timeMs, const std::set<
             e.nominal = QSize(clip.width.value_or(timeline.width), clip.height.value_or(timeline.height));
             // Pre-roll: decode from where the clip will start showing.
             const double startSourceMs = clip.inPointMs + std::max(0.0, timeMs - clip.startMs);
-            e.decoder = std::make_unique<FfmpegSource>(clip.mediaPath, startSourceMs / 1000.0, e.nominal, modeFor(clip.mediaPath));
+            e.decoder = std::make_unique<FfmpegSource>(clip.mediaPath, startSourceMs / 1000.0, e.nominal,
+                                                       modeFor(clip.mediaPath), mediaLeases);
             it = m_entries.emplace(clip.id, std::move(e)).first;
         }
         Entry& e = it->second;
@@ -130,9 +132,10 @@ void SourcePool::update(const Timeline& timeline, double timeMs, const std::set<
             FrameCache::shared().eraseSource(clip.mediaPath);
             retire(e, true);
             const double sourceMs = clip.inPointMs + std::max(0.0, timeMs - clip.startMs);
-            e.decoder = std::make_unique<FfmpegSource>(clip.mediaPath, sourceMs / 1000.0, e.nominal, DecodeMode::Software);
+            e.decoder = std::make_unique<FfmpegSource>(clip.mediaPath, sourceMs / 1000.0, e.nominal,
+                                                       DecodeMode::Software, mediaLeases);
         }
-        checkOpened(clip.id, e, clip.mediaPath);
+        checkOpened(clip.id, e, clip.mediaPath, mediaLeases);
     }
     for (auto it = m_entries.begin(); it != m_entries.end();) {
         if (keep.count(it->first) == 0) {
@@ -149,7 +152,8 @@ void SourcePool::update(const Timeline& timeline, double timeMs, const std::set<
     m_open = open;
 }
 
-void SourcePool::checkOpened(const std::string& clipId, Entry& e, const std::string& mediaPath) {
+void SourcePool::checkOpened(const std::string& clipId, Entry& e, const std::string& mediaPath,
+                             const std::shared_ptr<void>& mediaLeases) {
     if (!e.decoder) return;
     const auto facts = e.decoder->decoder().facts();
     if (!facts) return;  // still opening
@@ -158,7 +162,7 @@ void SourcePool::checkOpened(const std::string& clipId, Entry& e, const std::str
         StillImageSource::canRead(path)) {
         // The YUV path has no alpha plane. A still image needs no decoder:
         // one RGBA texture keeps its transparency.
-        e.still = std::make_unique<StillImageSource>(path);
+        e.still = std::make_unique<StillImageSource>(path, mediaLeases);
         MediaReport r;
         r.clipId = clipId;
         r.mediaPath = mediaPath;

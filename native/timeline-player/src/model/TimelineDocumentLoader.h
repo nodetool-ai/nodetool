@@ -4,6 +4,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QUuid>
 
 #include <memory>
 
@@ -18,12 +19,14 @@ class TimelineDocumentLoader : public QObject {
 public:
     using QObject::QObject;
 
-    virtual void load(const QString& timelineId) = 0;
+    // Echo the request token in either completion signal. A completion can
+    // arrive after cancel() or after a new request for the same document.
+    virtual void load(const QString& timelineId, const QUuid& request) = 0;
     virtual void cancel() = 0;
 
 signals:
-    void loaded(QString id, std::shared_ptr<const nt::Timeline> doc, std::shared_ptr<void> mediaLeases);
-    void failed(QString id, QString message);
+    void loaded(QString id, QUuid request, std::shared_ptr<const nt::Timeline> doc, std::shared_ptr<void> mediaLeases);
+    void failed(QString id, QUuid request, QString message);
 };
 
 }  // namespace nt

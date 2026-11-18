@@ -17,13 +17,25 @@ class FakeTimelineLoader final : public nt::TimelineDocumentLoader {
 public:
     using nt::TimelineDocumentLoader::TimelineDocumentLoader;
 
-    void load(const QString& timelineId) override { requests.append(timelineId); }
+    void load(const QString& timelineId, const QUuid& request) override {
+        requests.append(timelineId);
+        tokens.append(request);
+    }
     void cancel() override { ++cancels; }
 
     void answer(const QString& id, std::shared_ptr<void> leases = {}) {
-        emit loaded(id, document(id), std::move(leases));
+        answerRequest(requests.lastIndexOf(id), std::move(leases));
     }
-    void reject(const QString& id, const QString& message) { emit failed(id, message); }
+    void reject(const QString& id, const QString& message) {
+        rejectRequest(requests.lastIndexOf(id), message);
+    }
+    void answerRequest(qsizetype index, std::shared_ptr<void> leases = {}) {
+        const auto id = requests.at(index);
+        emit loaded(id, tokens.at(index), document(id), std::move(leases));
+    }
+    void rejectRequest(qsizetype index, const QString& message = QStringLiteral("late")) {
+        emit failed(requests.at(index), tokens.at(index), message);
+    }
 
     // One video track with two clips that have no media, so the compositor
     // draws its synthetic test pattern: 25 fps, 4 s.
@@ -48,4 +60,7 @@ public:
 
     QStringList requests;
     int cancels = 0;
+
+private:
+    QList<QUuid> tokens;
 };

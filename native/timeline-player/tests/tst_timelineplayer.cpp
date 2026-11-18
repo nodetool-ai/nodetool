@@ -162,6 +162,45 @@ private slots:
         QCOMPARE(p.controller->source()->documentGeneration(), generation);
     }
 
+    void statusChangedCanReplaceTheRequest() {
+        FakeTimelineLoader loader;
+        TimelinePlayerController controller;
+        controller.setLoader(&loader);
+        connect(&controller, &TimelinePlayerController::statusChanged, this, [&controller] {
+            if (controller.status() == Status::Loading && controller.timelineId() == QStringLiteral("a")) {
+                controller.setTimelineId(QStringLiteral("b"));
+            }
+        });
+        controller.setTimelineId(QStringLiteral("a"));
+        QCOMPARE(loader.requests, QStringList{QStringLiteral("b")});
+        QCOMPARE(controller.status(), Status::Loading);
+        loader.answer(QStringLiteral("b"));
+        QCOMPARE(controller.status(), Status::Ready);
+    }
+
+    void aSupersededRequestForTheSameIdIsDropped_data() {
+        QTest::addColumn<bool>("success");
+        QTest::newRow("loaded") << true;
+        QTest::newRow("failed") << false;
+    }
+
+    void aSupersededRequestForTheSameIdIsDropped() {
+        QFETCH(bool, success);
+        Player p(QStringLiteral("a"), false);
+        p.controller->setTimelineId(QStringLiteral("b"));
+        p.controller->setTimelineId(QStringLiteral("a"));
+        QCOMPARE(p.loader.requests.size(), 3);
+        if (success) {
+            p.loader.answerRequest(0);
+        } else {
+            p.loader.rejectRequest(0);
+        }
+        QCOMPARE(p.controller->status(), Status::Loading);
+        QVERIFY(!p.controller->source()->snapshot());
+        p.loader.answerRequest(2);
+        QCOMPARE(p.controller->status(), Status::Ready);
+    }
+
     void aLateResultAfterDestructionIsDropped() {
         FakeTimelineLoader loader;
         auto controller = std::make_unique<TimelinePlayerController>();

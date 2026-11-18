@@ -5,6 +5,7 @@
 #include <atomic>
 #include <mutex>
 #include <thread>
+#include <utility>
 
 namespace nt {
 
@@ -28,7 +29,8 @@ bool StillImageSource::canRead(const QString& path) {
     return reader.canRead() && reader.size().isValid();
 }
 
-StillImageSource::StillImageSource(const QString& path) : m_decode(std::make_shared<Decode>()) {
+StillImageSource::StillImageSource(const QString& path, std::shared_ptr<void> mediaLeases)
+    : m_decode(std::make_shared<Decode>()) {
     // A reader that cannot open its file instantiates every image format
     // plugin. Doing that on the detached worker races with the plugin
     // teardown at exit (ThreadSanitizer). Instantiate them here, once.
@@ -37,7 +39,9 @@ StillImageSource::StillImageSource(const QString& path) : m_decode(std::make_sha
     m_size = orientedSize(reader);
     // The thread owns its share of the result, so closing the clip never
     // waits for a decode.
-    std::thread([decode = m_decode, path] {
+    std::thread([decode = m_decode, path, mediaLeases = std::move(mediaLeases)] {
+        // The source can go away while the worker is still reading.
+        (void)mediaLeases;
         QImageReader worker(path);
         // EXIF orientation, as the browser applies it.
         worker.setAutoTransform(true);

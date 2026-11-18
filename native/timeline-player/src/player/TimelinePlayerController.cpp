@@ -87,13 +87,14 @@ void TimelinePlayerController::setLoader(nt::TimelineDocumentLoader* loader) {
     if (loader == m_loader) {
         return;
     }
-    if (m_loader) {
-        if (m_loading) {
-            m_loader->cancel();
+    const QPointer previous = m_loader;
+    const bool wasLoading = std::exchange(m_loading, false);
+    if (previous) {
+        disconnect(previous, nullptr, this, nullptr);
+        if (wasLoading) {
+            previous->cancel();
         }
-        disconnect(m_loader, nullptr, this, nullptr);
     }
-    m_loading = false;
     m_loader = loader;
     if (m_loader) {
         connect(m_loader, &nt::TimelineDocumentLoader::loaded, this, &TimelinePlayerController::loaded);
@@ -135,6 +136,17 @@ void TimelinePlayerController::setAudioMode(AudioMode mode) {
     emit audioModeChanged();
 }
 
+void TimelinePlayerController::setPlaybackVisible(bool visible) {
+    if (visible == m_playbackVisible) {
+        return;
+    }
+    m_playbackVisible = visible;
+    if (!visible) {
+        yieldPlayback();
+    }
+    emit playbackVisibleChanged();
+}
+
 bool TimelinePlayerController::playing() const { return m_clock->playing(); }
 
 double TimelinePlayerController::positionMs() const { return m_clock->time(); }
@@ -155,39 +167,66 @@ void TimelinePlayerController::reload(bool force) {
     if (!force && unavailable == (m_status == Status::Unavailable)) {
         return;
     }
-    m_clock->pause();
-    closeAudio();
-    if (m_loading && m_loader) {
-        m_loader->cancel();
+    const QPointer self(this);
+    const QPointer loader = m_loader;
+    const QString id = m_timelineId;
+    const QUuid request = m_request = QUuid::createUuid();
+    const auto current = [&] { return self && m_request == request; };
+    if (std::exchange(m_loading, false) && loader) {
+        loader->cancel();
+        if (!current()) {
+            return;
+        }
     }
-    m_loading = false;
+    m_clock->pause();
+    if (!current()) {
+        return;
+    }
+    closeAudio();
+    if (!current()) {
+        return;
+    }
     m_source->clear();
-    m_leases.reset();
+    if (!current()) {
+        return;
+    }
     m_durationMs = 0.0;
     m_fps = 30.0;
     m_clock->setDurationMs(0.0);
+    if (!current()) {
+        return;
+    }
     m_clock->seek(0.0);
+    if (!current()) {
+        return;
+    }
     emit documentChanged();
+    if (!current()) {
+        return;
+    }
     if (unavailable) {
         setStatus(Status::Unavailable);
         return;
     }
-    if (m_timelineId.isEmpty()) {
+    if (id.isEmpty()) {
         setStatus(Status::Idle);
         return;
     }
-    if (!m_loader) {
+    if (!loader) {
         setStatus(Status::Error, tr("No timeline loader is set."));
         return;
     }
-    m_loading = true;
     setStatus(Status::Loading);
-    m_loader->load(m_timelineId);
+    if (current() && loader && loader == m_loader && id == m_timelineId) {
+        m_loading = true;
+        loader->load(id, request);
+    }
 }
 
-void TimelinePlayerController::loaded(const QString& id, const std::shared_ptr<const nt::Timeline>& doc,
+void TimelinePlayerController::loaded(const QString& id, const QUuid& request,
+                                      const std::shared_ptr<const nt::Timeline>& doc,
                                       const std::shared_ptr<void>& mediaLeases) {
-    if (!m_loading || id != m_timelineId) {
+    if (!m_loading || request != m_request || id != m_timelineId) {
         return;
     }
     m_loading = false;
@@ -195,24 +234,25 @@ void TimelinePlayerController::loaded(const QString& id, const std::shared_ptr<c
         setStatus(Status::Error, tr("The timeline is empty."));
         return;
     }
-    // Hold the new leases before the compositor can open their files.
-    m_leases = mediaLeases;
     double end = doc->durationMs;
     for (const auto& clip : doc->clips) {
         end = std::max(end, clip.endMs());
     }
     m_durationMs = std::isfinite(end) ? std::max(0.0, end) : 0.0;
     m_fps = std::isfinite(doc->fps) && doc->fps > 0.0 ? doc->fps : 30.0;
-    m_source->setTimeline(*doc);
+    m_source->setTimeline(*doc, mediaLeases);
     m_clock->setFps(m_fps);
     m_clock->setDurationMs(m_durationMs);
     m_clock->seek(0.0);
+    const QPointer self(this);
     emit documentChanged();
-    setStatus(Status::Ready);
+    if (self && request == m_request) {
+        setStatus(Status::Ready);
+    }
 }
 
-void TimelinePlayerController::failed(const QString& id, QString message) {
-    if (!m_loading || id != m_timelineId) {
+void TimelinePlayerController::failed(const QString& id, const QUuid& request, QString message) {
+    if (!m_loading || request != m_request || id != m_timelineId) {
         return;
     }
     m_loading = false;
@@ -240,7 +280,7 @@ void TimelinePlayerController::updateFrame() {
 }
 
 void TimelinePlayerController::play() {
-    if (m_status != Status::Ready || m_clock->playing()) {
+    if (!m_playbackVisible || m_status != Status::Ready || m_clock->playing()) {
         return;
     }
     if (QQmlEngine* engine = qmlEngine(this)) {
@@ -249,7 +289,9 @@ void TimelinePlayerController::play() {
     if (m_audioMode != AudioMode::Off && !m_audio && !openAudio()) {
         qWarning("TimelinePlayerController: audio did not open, playing without it");
     }
-    m_clock->play();
+    if (m_playbackVisible) {
+        m_clock->play();
+    }
 }
 
 void TimelinePlayerController::pause() {

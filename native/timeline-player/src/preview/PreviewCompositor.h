@@ -167,6 +167,7 @@ protected:
 
 private:
     void timelineEdited();
+    void timelineReplaced();
     friend class PreviewCompositorRenderer;
     friend class MonitorCompositorTest;
 
@@ -180,11 +181,11 @@ private:
     bool m_frameSettled = false;
     bool m_monitorPipelineCreated = false;
     QPointer<TimelineSource> m_timeline;
-    // The last snapshot seen by timelineEdited(), the revision that names its visible content,
-    // and the count of edits that changed it.
-    std::shared_ptr<const nt::Timeline> m_visualSnapshot;
+    // Published on the UI thread and copied in synchronize() while Qt
+    // blocks the UI thread. The serial distinguishes different sources.
+    TimelineSource::RenderState m_renderState;
+    quint64 m_sourceSerial = 0;
     std::uint64_t m_visualRevision = 0;
-    std::uint64_t m_visualGeneration = 0;
     int m_visualEdits = 0;
     // A host may destroy the clock first, as TimelinePlayer.qml can: the
     // compositor then shows time 0. The render thread reads it only in

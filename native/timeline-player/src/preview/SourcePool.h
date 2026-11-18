@@ -61,7 +61,8 @@ public:
 
     // Render thread, once per frame, before any sourceFor(): opens, keeps and
     // closes decoders for the media clips of `timeline` at `timeMs`.
-    void update(const Timeline& timeline, double timeMs, const std::set<std::string>& required = {});
+    void update(const Timeline& timeline, double timeMs, const std::set<std::string>& required = {},
+                const std::shared_ptr<void>& mediaLeases = {});
 
     // The source for a media clip, or null when none is open. A rejected or
     // failed clip returns its placeholder.
@@ -90,7 +91,8 @@ private:
         std::string label;
         QSize nominal;
     };
-    void checkOpened(const std::string& clipId, Entry& e, const std::string& mediaPath);
+    void checkOpened(const std::string& clipId, Entry& e, const std::string& mediaPath,
+                     const std::shared_ptr<void>& mediaLeases);
     // Render thread: drops the textures, hands the decoder to the retire thread.
     // A stalled decoder gets no grace time before it is abandoned.
     void retire(Entry& e, bool stalled = false);

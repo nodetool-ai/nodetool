@@ -48,6 +48,7 @@ class TimelinePlayerController : public QObject, public QQmlParserStatus {
     Q_PROPERTY(QString timelineId READ timelineId WRITE setTimelineId NOTIFY timelineIdChanged)
     Q_PROPERTY(nt::TimelineDocumentLoader* loader READ loader WRITE setLoader NOTIFY loaderChanged)
     Q_PROPERTY(QQuickWindow* window READ window WRITE setWindow NOTIFY windowChanged)
+    Q_PROPERTY(bool playbackVisible READ playbackVisible WRITE setPlaybackVisible NOTIFY playbackVisibleChanged)
     Q_PROPERTY(AudioMode audioMode READ audioMode WRITE setAudioMode NOTIFY audioModeChanged)
     Q_PROPERTY(Status status READ status NOTIFY statusChanged)
     Q_PROPERTY(QString error READ error NOTIFY statusChanged)
@@ -80,6 +81,9 @@ public:
 
     Status status() const { return m_status; }
     QString error() const { return m_error; }
+    bool playbackVisible() const { return m_playbackVisible; }
+    void setPlaybackVisible(bool visible);
+
     bool playing() const;
     double positionMs() const;
     double durationMs() const { return m_durationMs; }
@@ -107,6 +111,7 @@ signals:
     void audioModeChanged();
     void statusChanged();
     void playingChanged();
+    void playbackVisibleChanged();
     void positionMsChanged();
     void documentChanged();
     void frameChanged();
@@ -127,9 +132,9 @@ private:
     void reload(bool force);
     // Another player started: pause and close the audio device.
     void yieldPlayback();
-    void loaded(const QString& id, const std::shared_ptr<const nt::Timeline>& doc,
+    void loaded(const QString& id, const QUuid& request, const std::shared_ptr<const nt::Timeline>& doc,
                 const std::shared_ptr<void>& mediaLeases);
-    void failed(const QString& id, QString message);
+    void failed(const QString& id, const QUuid& request, QString message);
     void setStatus(Status status, const QString& error = {});
     void updateFrame();
     bool openAudio();
@@ -147,17 +152,15 @@ private:
     // componentComplete(), so a QML declaration sets every input, its window
     // included, before the first load.
     bool m_complete = true;
-    // A load() is outstanding on m_loader for m_timelineId.
+    // A new token identifies each reload, including before load() starts.
+    QUuid m_request;
     bool m_loading = false;
+    bool m_playbackVisible = true;
     double m_durationMs = 0.0;
     double m_fps = 30.0;
     int m_frame = 0;
-    // Declared before the engine and the leases, so they outlive both: the
-    // engine is stopped first, then the leases are released, then these go.
+    // The source pins its media until after the audio engine stops.
     std::unique_ptr<PlaybackClock> m_clock;
     std::unique_ptr<StaticTimelineSource> m_source;
-    // The loader hands the leases over as a type-erased shared_ptr. Keeping
-    // them keeps the cached media files of the document in place.
-    std::shared_ptr<void> m_leases;
     std::unique_ptr<nt::audio::AudioEngine> m_audio;
 };

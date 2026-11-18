@@ -25,15 +25,17 @@ namespace {
 
 constexpr int kMaxAttempts = 4;
 
-// native-rules #10: mutex below does not say that it guards counts
+// Thread-safe. The mutex guards the number of live leases for each path.
 struct ActiveLeases {
     std::mutex mutex;
     std::map<QString, size_t> counts;
 };
 
-ActiveLeases& activeLeases() {
-    // native-rules #14: function-local static ActiveLeases, mutable global state
-    static ActiveLeases registry;
+const std::shared_ptr<ActiveLeases>& activeLeases() {
+    // native-rules #14: function-local registry, mutable global state
+    // A retiring decoder can release its lease after static teardown starts.
+    // Its LeaseHolder keeps the registry alive independently of this pointer.
+    static const auto registry = std::make_shared<ActiveLeases>();
     return registry;
 }
 
@@ -45,19 +47,19 @@ QString pathKey(const QString& path) {
     return QDir(parent.isEmpty() ? info.absolutePath() : parent).filePath(info.fileName());
 }
 
+// Shared across threads as an immutable path and registry reference.
 struct LeaseHolder {
     explicit LeaseHolder(QString value) : path(std::move(value)) {
-        auto& registry = activeLeases();
-        std::lock_guard lock(registry.mutex);
-        ++registry.counts[path];
+        std::lock_guard lock(registry->mutex);
+        ++registry->counts[path];
     }
     ~LeaseHolder() {
-        auto& registry = activeLeases();
-        std::lock_guard lock(registry.mutex);
-        auto it = registry.counts.find(path);
-        if (--it->second == 0) registry.counts.erase(it);
+        std::lock_guard lock(registry->mutex);
+        auto it = registry->counts.find(path);
+        if (--it->second == 0) registry->counts.erase(it);
     }
-    QString path;
+    const std::shared_ptr<ActiveLeases> registry = activeLeases();
+    const QString path;
 };
 
 // One in-process mutex per variant folder. The lock file covers other
@@ -340,9 +342,9 @@ AssetCache::Lease AssetCache::lease(const QString& path) {
 }
 
 bool AssetCache::removeIfUnprotected(const QString& path) {
-    auto& registry = activeLeases();
-    std::lock_guard lock(registry.mutex);
-    return !registry.counts.contains(pathKey(path)) && QFile::remove(path);
+    const auto& registry = activeLeases();
+    std::lock_guard lock(registry->mutex);
+    return !registry->counts.contains(pathKey(path)) && QFile::remove(path);
 }
 
 void AssetCache::evict(const QString& justFetched) const {

@@ -6,13 +6,16 @@
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QProcess>
 #include <QTemporaryDir>
+#include <QThread>
 #include <QtTest>
 
 #include <memory>
 
 namespace {
 
+using nt::server::ServerLoaderWorkers;
 using nt::server::ServerTimelineLoader;
 using Snapshot = std::shared_ptr<const nt::Timeline>;
 
@@ -31,6 +34,37 @@ void stallTimeline(TestHttpServer& server, const QString& id) {
     server.setFile(kTimelinePath, std::move(stalled));
 }
 
+int exitWithStalledRequest(QCoreApplication& app) {
+    QTemporaryDir cache;
+    ServerLoaderWorkers workers;
+    TestHttpServer server;
+    const QString id = QStringLiteral("closing");
+    stallTimeline(server, id);
+    {
+        ServerTimelineLoader loader(workers, server.base(), {}, cache.path());
+        loader.load(id, QUuid::createUuid());
+        if (!QTest::qWaitFor([&server] { return server.countRequests("GET", kTimelinePath) == 1; })) {
+            qCritical("Fake server did not receive the request");
+            return 1;
+        }
+    }
+
+    // No event-loop turn separates destroying the loader and draining the
+    // worker. The fake server still has its ten-second reply pending.
+    const auto threads = workers.findChildren<QThread*>(Qt::FindDirectChildrenOnly);
+    if (threads.size() != 1) {
+        qCritical("Expected one outstanding worker");
+        return 1;
+    }
+    workers.shutdown();
+    if (!threads.front()->isFinished() ||
+        !app.findChildren<QThread*>(Qt::FindDirectChildrenOnly).isEmpty()) {
+        qCritical("Application teardown still owns a network worker");
+        return 1;
+    }
+    return 0;
+}
+
 }  // namespace
 
 // UI thread only. Each test owns its local HTTP server and cache directory.
@@ -41,6 +75,7 @@ private slots:
     void loadsSnapshotAndPinsMedia() {
         QTemporaryDir cache;
         QVERIFY(cache.isValid());
+        ServerLoaderWorkers workers;
         TestHttpServer server;
         const QByteArray bytes("picture");
         const QString id = QStringLiteral("preview");
@@ -52,21 +87,23 @@ private slots:
         std::shared_ptr<void> leases;
         QString path;
         {
-            ServerTimelineLoader loader(server.base(), QStringLiteral("local-token"), cache.path());
+            ServerTimelineLoader loader(workers, server.base(), QStringLiteral("local-token"), cache.path());
             QSignalSpy loaded(&loader, &ServerTimelineLoader::loaded);
             QSignalSpy failed(&loader, &ServerTimelineLoader::failed);
-            loader.load(id);
+            const QUuid request = QUuid::createUuid();
+            loader.load(id, request);
             QCOMPARE(loaded.count(), 0);
             QTRY_COMPARE(loaded.count() + failed.count(), 1);
             QCOMPARE(failed.count(), 0);
             const auto args = loaded.takeFirst();
             QCOMPARE(args.at(0).toString(), id);
-            const auto snapshot = args.at(1).value<Snapshot>();
+            QCOMPARE(args.at(1).toUuid(), request);
+            const auto snapshot = args.at(2).value<Snapshot>();
             QVERIFY(snapshot);
             QCOMPARE(snapshot->id, id.toStdString());
             QCOMPARE(snapshot->clips.size(), 1u);
             path = QString::fromStdString(snapshot->clips.front().mediaPath);
-            leases = args.at(2).value<std::shared_ptr<void>>();
+            leases = args.at(3).value<std::shared_ptr<void>>();
             QVERIFY(leases);
         }
 
@@ -88,30 +125,35 @@ private slots:
     void reportsFailure() {
         QTemporaryDir cache;
         QVERIFY(cache.isValid());
+        ServerLoaderWorkers workers;
         TestHttpServer server;
         server.setFile(kTimelinePath, ServedFile(
             R"({"error":{"message":"Timeline missing","data":{"code":"NOT_FOUND"}}})"));
         const QString id = QStringLiteral("missing");
-        ServerTimelineLoader loader(server.base(), {}, cache.path());
+        ServerTimelineLoader loader(workers, server.base(), {}, cache.path());
         QSignalSpy loaded(&loader, &ServerTimelineLoader::loaded);
         QSignalSpy failed(&loader, &ServerTimelineLoader::failed);
-        loader.load(id);
+        const QUuid request = QUuid::createUuid();
+        loader.load(id, request);
         QTRY_COMPARE(failed.count(), 1);
         QCOMPARE(loaded.count(), 0);
         QCOMPARE(failed.first().at(0).toString(), id);
-        QCOMPARE(failed.first().at(1).toString(), QStringLiteral("timeline.get: Timeline missing (NOT_FOUND)"));
+        QCOMPARE(failed.first().at(1).toUuid(), request);
+        QCOMPARE(failed.first().at(2).toString(), QStringLiteral("timeline.get: Timeline missing (NOT_FOUND)"));
     }
 
     void cancelsInFlightLoad() {
         QTemporaryDir cache;
         QVERIFY(cache.isValid());
+        ServerLoaderWorkers workers;
         TestHttpServer server;
         const QString id = QStringLiteral("cancelled");
         stallTimeline(server, id);
-        ServerTimelineLoader loader(server.base(), {}, cache.path());
+        ServerTimelineLoader loader(workers, server.base(), {}, cache.path());
         QSignalSpy loaded(&loader, &ServerTimelineLoader::loaded);
         QSignalSpy failed(&loader, &ServerTimelineLoader::failed);
-        loader.load(id);
+        const QUuid request = QUuid::createUuid();
+        loader.load(id, request);
         QTRY_COMPARE(server.countRequests("GET", kTimelinePath), 1);
         QCOMPARE(server.activeConnectionCount(), 1);
         loader.cancel();
@@ -125,33 +167,62 @@ private slots:
     void supersedesInFlightLoad() {
         QTemporaryDir cache;
         QVERIFY(cache.isValid());
+        ServerLoaderWorkers workers;
         TestHttpServer server;
         stallTimeline(server, QStringLiteral("old"));
         const QString newest = QStringLiteral("new");
-        ServerTimelineLoader loader(server.base(), {}, cache.path());
+        ServerTimelineLoader loader(workers, server.base(), {}, cache.path());
         QSignalSpy loaded(&loader, &ServerTimelineLoader::loaded);
         QSignalSpy failed(&loader, &ServerTimelineLoader::failed);
-        loader.load(QStringLiteral("old"));
+        loader.load(QStringLiteral("old"), QUuid::createUuid());
         QTRY_COMPARE(server.countRequests("GET", kTimelinePath), 1);
         server.setFile(kTimelinePath, ServedFile(document(newest)));
-        loader.load(QStringLiteral("superseded pending"));
-        loader.load(newest);
+        loader.load(QStringLiteral("superseded pending"), QUuid::createUuid());
+        const QUuid request = QUuid::createUuid();
+        loader.load(newest, request);
         QTRY_COMPARE(loaded.count(), 1);
         QCOMPARE(failed.count(), 0);
         QCOMPARE(loaded.first().at(0).toString(), newest);
+        QCOMPARE(loaded.first().at(1).toUuid(), request);
         QCOMPARE(server.countRequests("GET", kTimelinePath), 2);
+    }
+
+    void applicationExitDrainsWorkersAfterLoaderDestruction() {
+        QProcess child;
+        child.setProcessChannelMode(QProcess::MergedChannels);
+        child.start(QCoreApplication::applicationFilePath(), {QStringLiteral("--exit-with-stalled-request")});
+        QVERIFY(child.waitForFinished(15000));
+        const auto output = child.readAll();
+        QVERIFY2(child.exitStatus() == QProcess::NormalExit && child.exitCode() == 0, output.constData());
+    }
+
+    void shutdownRejectsNewRequests() {
+        QTemporaryDir cache;
+        ServerLoaderWorkers workers;
+        TestHttpServer server;
+        ServerTimelineLoader loader(workers, server.base(), {}, cache.path());
+        workers.shutdown();
+        QSignalSpy failed(&loader, &ServerTimelineLoader::failed);
+        const QString id = QStringLiteral("after-shutdown");
+        const QUuid request = QUuid::createUuid();
+        loader.load(id, request);
+        QCOMPARE(failed.count(), 1);
+        QCOMPARE(failed.first().at(0).toString(), id);
+        QCOMPARE(failed.first().at(1).toUuid(), request);
+        QCOMPARE(server.countRequests("GET", kTimelinePath), 0);
     }
 
     void destroysLoaderDuringLoad() {
         QTemporaryDir cache;
         QVERIFY(cache.isValid());
+        ServerLoaderWorkers workers;
         TestHttpServer server;
         const QString id = QStringLiteral("closing");
         stallTimeline(server, id);
-        auto loader = std::make_unique<ServerTimelineLoader>(server.base(), QString(), cache.path());
+        auto loader = std::make_unique<ServerTimelineLoader>(workers, server.base(), QString(), cache.path());
         QSignalSpy loaded(loader.get(), &ServerTimelineLoader::loaded);
         QSignalSpy failed(loader.get(), &ServerTimelineLoader::failed);
-        loader->load(id);
+        loader->load(id, QUuid::createUuid());
         QTRY_COMPARE(server.countRequests("GET", kTimelinePath), 1);
         QCOMPARE(server.activeConnectionCount(), 1);
         QElapsedTimer elapsed;
@@ -165,5 +236,12 @@ private slots:
     }
 };
 
-QTEST_GUILESS_MAIN(TestServerTimelineLoader)
+int main(int argc, char** argv) {
+    QCoreApplication app(argc, argv);
+    if (app.arguments().contains(QStringLiteral("--exit-with-stalled-request"))) {
+        return exitWithStalledRequest(app);
+    }
+    TestServerTimelineLoader test;
+    return QTest::qExec(&test, argc, argv);
+}
 #include "tst_servertimelineloader.moc"

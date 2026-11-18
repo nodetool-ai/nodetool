@@ -16,10 +16,12 @@
 #include <QImage>
 #include <QQuickItem>
 #include <QQuickView>
+#include <QPointer>
 #include <QTest>
 #include <QTimer>
 
 #include <cstdlib>
+#include <utility>
 
 namespace {
 
@@ -28,9 +30,14 @@ class DeferredLoader final : public nt::TimelineDocumentLoader {
     Q_OBJECT
 
 public:
-    void load(const QString& timelineId) override {
-        QTimer::singleShot(0, this, [this, timelineId] {
-            emit loaded(timelineId, FakeTimelineLoader::document(timelineId), {});
+    std::shared_ptr<void> nextLeases;
+
+    void load(const QString& timelineId, const QUuid& request) override {
+        const QPointer self(this);
+        QTimer::singleShot(0, this, [self, timelineId, request, leases = std::exchange(nextLeases, {})] {
+            if (self) {
+                emit self->loaded(timelineId, request, FakeTimelineLoader::document(timelineId), leases);
+            }
         });
     }
     void cancel() override {}
@@ -47,9 +54,12 @@ class TestTimelinePlayerRender : public QObject {
     Q_OBJECT
 
 private slots:
-    void playsThroughTheItem() {
+    void playsThroughTheItemAndPinsTheLastRenderedDocument() {
         const nt::HookRegistrations hooks = nt::registerStandardHooks();
         DeferredLoader loader;
+        auto lease = std::make_shared<int>(1);
+        const std::weak_ptr<int> leaseAlive = lease;
+        loader.nextLeases = std::move(lease);
         QQuickView view;
         nt::hw::prepareWindow(&view);
         view.setInitialProperties({{QStringLiteral("loader"), QVariant::fromValue<QObject*>(&loader)},
@@ -107,6 +117,52 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(compositor->framesRendered() > framesBefore + 5, 10000);
         controller->pause();
         QVERIFY(!controller->playing());
+
+        // Reload clears the UI snapshot synchronously. Until the next
+        // synchronize(), the renderer can still use the old document.
+        QVERIFY(!leaseAlive.expired());
+        controller->setTimelineId(QStringLiteral("t2"));
+        QVERIFY(!controller->source()->snapshot());
+        QVERIFY(!leaseAlive.expired());
+        QTRY_VERIFY(leaseAlive.expired());
+    }
+
+    void hidingAnAncestorPausesPlayback() {
+        DeferredLoader loader;
+        QQuickView view;
+        nt::hw::prepareWindow(&view);
+        view.setInitialProperties({{QStringLiteral("loader"), QVariant::fromValue<QObject*>(&loader)},
+                                   {QStringLiteral("timelineId"), QStringLiteral("t1")},
+                                   {QStringLiteral("audioMode"), int(TimelinePlayerController::AudioMode::Null)}});
+        view.loadFromModule("NodeTool.TimelinePlayer", "TimelinePlayer");
+        QCOMPARE(view.status(), QQuickView::Ready);
+        QQuickItem* root = view.rootObject();
+        QQuickItem ancestor(view.contentItem());
+        root->setParentItem(&ancestor);
+        view.resize(480, 340);
+        view.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&view));
+
+        auto* controller = root->property("controller").value<TimelinePlayerController*>();
+        QVERIFY(controller);
+        QTRY_COMPARE(controller->status(), TimelinePlayerController::Status::Ready);
+        controller->play();
+        QVERIFY(controller->playing());
+        QVERIFY(controller->audioEnabled());
+
+        ancestor.setVisible(false);
+        QVERIFY(!root->isVisible());
+        QVERIFY(!controller->playing());
+        QVERIFY(!controller->audioEnabled());
+
+        controller->play();
+        QVERIFY(!controller->playing());
+        ancestor.setVisible(true);
+        QTRY_VERIFY(root->isVisible());
+        QTRY_VERIFY(controller->playbackVisible());
+        QVERIFY(!controller->playing());
+        controller->play();
+        QVERIFY(controller->playing());
     }
 };
 

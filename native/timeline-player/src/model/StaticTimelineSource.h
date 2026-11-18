@@ -17,18 +17,18 @@ public:
     using TimelineSource::TimelineSource;
     ~StaticTimelineSource() override;
 
-    std::shared_ptr<const nt::Timeline> snapshot() const override { return m_snapshot; }
-    quint64 documentGeneration() const override { return m_generation; }
+    RenderState renderState() const override { return m_state; }
+    std::shared_ptr<const nt::Timeline> snapshot() const override { return m_state.snapshot; }
+    quint64 documentGeneration() const override { return m_state.generation; }
 
     // Replaces the document. The snapshot gets a new revision and its clip
     // index, and the generation goes up.
-    void setTimeline(nt::Timeline timeline);
+    void setTimeline(nt::Timeline timeline, std::shared_ptr<void> mediaLeases = {});
     // Drops the document. snapshot() is null afterwards.
     void clear();
 
 private:
-    // Shared with the render thread and the audio engine (DESIGN.md D8), so
-    // a snapshot stays valid while any of them holds it.
-    std::shared_ptr<const nt::Timeline> m_snapshot;
-    quint64 m_generation = 0;
+    // The renderer may keep a copy after the source is cleared. The audio
+    // engine stops before the controller clears or destroys the source.
+    RenderState m_state;
 };

@@ -106,7 +106,7 @@ void writeMatrix(LayerUniforms& u, const QMatrix4x4& m) {
 
 }  // namespace
 
-// native-rules #9: holds a mutex shared with the readback callback, no thread affinity comment
+// Render thread only. Readback callbacks share their result through a mutex.
 class PreviewCompositorRenderer final : public QQuickRhiItemRenderer {
 public:
     ~PreviewCompositorRenderer() override {
@@ -251,9 +251,8 @@ private:
     nt::SurfacePool<Surface> m_surfaces{[this](QSize size, nt::WorkingFormat) { return makeSurface(size); }, surfaceBudgetBytes()};
 
     // Snapshot from synchronize() (D8).
-    std::shared_ptr<const nt::Timeline> m_timeline;
-    QPointer<TimelineSource> m_sourceModel;
-    quint64 m_sourceGeneration = 0;
+    TimelineSource::RenderState m_renderState;
+    quint64 m_sourceSerial = 0;
     double m_timeMs = 0.0;
     double m_tapTimeMs = 0.0;
     double m_blurFrameTime = -1;
@@ -369,11 +368,14 @@ void PreviewCompositor::setTimeline(TimelineSource* timeline) {
         // TimelineModel forwards timelineChanged, which follows every clipsChanged, and
         // previewChanged, which covers transient steps.
         connect(m_timeline, &TimelineSource::sourceChanged, this, &PreviewCompositor::timelineEdited);
-        m_visualSnapshot = m_timeline->snapshot();
-        m_visualGeneration = m_timeline->documentGeneration();
-    } else {
-        m_visualSnapshot.reset();
+        connect(m_timeline, &QObject::destroyed, this, &PreviewCompositor::timelineReplaced);
     }
+    timelineReplaced();
+}
+
+void PreviewCompositor::timelineReplaced() {
+    m_renderState = m_timeline ? m_timeline->renderState() : TimelineSource::RenderState{};
+    ++m_sourceSerial;
     ++m_visualRevision;
     emit timelineChanged();
     update();
@@ -422,14 +424,14 @@ bool sameVisualContent(const nt::Timeline& a, const nt::Timeline& b) {
 
 void PreviewCompositor::timelineEdited() {
     if (!m_timeline) { return; }
-    auto next = m_timeline->snapshot();
-    const auto generation = m_timeline->documentGeneration();
-    if (m_visualSnapshot && next && generation == m_visualGeneration && sameVisualContent(*m_visualSnapshot, *next)) {
-        m_visualSnapshot = std::move(next);
+    auto next = m_timeline->renderState();
+    const bool samePicture = m_renderState.snapshot && next.snapshot &&
+        next.generation == m_renderState.generation && next.mediaLeases == m_renderState.mediaLeases &&
+        sameVisualContent(*m_renderState.snapshot, *next.snapshot);
+    m_renderState = std::move(next);
+    if (samePicture) {
         return;
     }
-    m_visualSnapshot = std::move(next);
-    m_visualGeneration = generation;
     ++m_visualRevision;
     ++m_visualEdits;
     update();
@@ -567,20 +569,10 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
     m_evaluatedClips.clear();
     m_precomposites.clear();
     m_playing = false;
-    // A source without a document, such as a StaticTimelineSource before its
-    // load, draws nothing.
-    if (!item->m_timeline || !item->m_timeline->snapshot()) {
-        m_timeline.reset();
-        m_tapTimes.clear();
-        m_blurFrameTime = -1;
-        m_blurRevision = 0;
-        m_blurIndex = 0;
-        m_blurComplete = false;
-        m_previousValid = false;
-        return;
-    }
-    TimelineSource* source = item->m_timeline.data();
-    const bool sourceChanged = m_sourceModel.data() != source || m_sourceGeneration != source->documentGeneration();
+    const auto& next = item->m_renderState;
+    const bool leasesChanged = m_renderState.mediaLeases != next.mediaLeases;
+    const bool sourceChanged = m_sourceSerial != item->m_sourceSerial ||
+                               m_renderState.generation != next.generation || leasesChanged;
     if (sourceChanged) {
         for (auto it = m_sources.begin(); it != m_sources.end();) {
             if (it->second.registered) {
@@ -590,12 +582,26 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
                 ++it;
             }
         }
-        m_sourceModel = source;
-        m_sourceGeneration = source->documentGeneration();
     }
-    m_timeline = source->snapshot();
-    m_documentSize = QSize(m_timeline->width, m_timeline->height);
-    m_fps = m_timeline->fps;
+    if (leasesChanged) {
+        // Retiring decoders keep their own pins through their last file read.
+        m_pool.clear();
+    }
+    m_sourceSerial = item->m_sourceSerial;
+    m_renderState = next;
+
+    // A source without a document draws nothing.
+    if (!m_renderState.snapshot) {
+        m_tapTimes.clear();
+        m_blurFrameTime = -1;
+        m_blurRevision = 0;
+        m_blurIndex = 0;
+        m_blurComplete = false;
+        m_previousValid = false;
+        return;
+    }
+    m_documentSize = QSize(m_renderState.snapshot->width, m_renderState.snapshot->height);
+    m_fps = m_renderState.snapshot->fps;
     const double clockTime = item->m_clock ? item->m_clock->currentTimeMs() : 0.0;
     m_playing = item->m_clock && item->m_clock->playing();
     const bool capturePending = m_captureWanted || m_captureInFlight;
@@ -630,7 +636,7 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
         m_blurRate = rate;
         m_blurIndex = 0;
         m_blurComplete = false;
-        m_shutter = nt::resolveFrameShutter(*m_timeline, m_blurFrameTime, frameMs);
+        m_shutter = nt::resolveFrameShutter(*m_renderState.snapshot, m_blurFrameTime, frameMs);
         m_tapTimes = nt::motion::shutterTimes(m_blurFrameTime, frameMs, m_shutter);
     }
     m_timeMs = m_blurFrameTime;
@@ -639,7 +645,7 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
 
 void PreviewCompositorRenderer::evaluateTap() {
     m_tapTimeMs = m_tapTimes[static_cast<size_t>(m_blurIndex)];
-    nt::SceneFrame scene = nt::evaluateSceneTap(*m_timeline, m_tapTimeMs, m_timeMs, m_blurIndex, m_shutter.samples);
+    nt::SceneFrame scene = nt::evaluateSceneTap(*m_renderState.snapshot, m_tapTimeMs, m_timeMs, m_blurIndex, m_shutter.samples);
     m_adjustments = std::move(scene.adjustments);
     m_layers = std::move(scene.layers);
     m_evaluatedClips = std::move(scene.evaluatedClips);
@@ -666,7 +672,7 @@ bool PreviewCompositorRenderer::decideCanvas() {
     m_fullCanvasRevision = m_blurRevision;
     if (needsFull && m_wantedCanvas != m_documentSize) {
         m_wantedCanvas = m_documentSize;
-        if (m_canvasSize != m_wantedCanvas && m_tapTimes.size() > 1 && m_timeline) {
+        if (m_canvasSize != m_wantedCanvas && m_tapTimes.size() > 1 && m_renderState.snapshot) {
             // The accumulation restarts on the new surfaces, from its first sample.
             m_blurIndex = 0;
             m_blurComplete = false;
@@ -956,16 +962,16 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
     for (const auto& layer : m_layers) { prepare.emplace_back(&layer, false); }
     std::map<const nt::ActiveLayer*, std::map<std::string, std::pair<std::string,double>>> requestedSources;
     const auto providers = nt::registeredSecondSourceProviders();
-    if (m_timeline) {
+    if (m_renderState.snapshot) {
         std::optional<nt::Timeline> poolTimeline;
         const auto writableTimeline = [&]() -> nt::Timeline& {
-            if (!poolTimeline) { poolTimeline = *m_timeline; }
+            if (!poolTimeline) { poolTimeline = *m_renderState.snapshot; }
             return *poolTimeline;
         };
         std::map<std::string, const nt::Clip*> clips;
         std::set<std::string> usedIds;
         std::set<std::string> requiredIds;
-        for (const auto& clip : m_timeline->clips) {
+        for (const auto& clip : m_renderState.snapshot->clips) {
             clips.emplace(clip.id, &clip);
             usedIds.insert(clip.id);
         }
@@ -1018,7 +1024,8 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
             }
         }
         // No handler/request: pass the original document, with no copy.
-        m_pool.update(poolTimeline ? *poolTimeline : *m_timeline, m_tapTimeMs, requiredIds);
+        m_pool.update(poolTimeline ? *poolTimeline : *m_renderState.snapshot, m_tapTimeMs, requiredIds,
+                      m_renderState.mediaLeases);
     } else {
         m_pool.update(nt::Timeline{}, 0.0);
     }

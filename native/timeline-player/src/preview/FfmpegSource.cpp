@@ -338,8 +338,10 @@ DecodedFrame::~DecodedFrame() {
     av_frame_free(&frame);
 }
 
-FfmpegDecoder::FfmpegDecoder(std::string path, double initialSec, std::optional<DecodeMode> mode)
-    : m_path(std::move(path)),
+FfmpegDecoder::FfmpegDecoder(std::string path, double initialSec, std::optional<DecodeMode> mode,
+                             std::shared_ptr<void> mediaLeases)
+    : m_mediaLeases(std::move(mediaLeases)),
+      m_path(std::move(path)),
       m_mode(mode.value_or(decodeMode())),
       m_failAfterPackets(g_testFailAfterPackets.load()),
       m_failHardwareOnOpen(g_testFailHardwareOnOpen.load()),
@@ -1045,8 +1047,10 @@ void FfmpegDecoder::run() {
     }
 }
 
-FfmpegSource::FfmpegSource(std::string path, double initialSec, QSize nominalSize, std::optional<DecodeMode> mode)
-    : m_decoder(std::make_unique<FfmpegDecoder>(std::move(path), initialSec, mode)), m_nominalSize(nominalSize) {}
+FfmpegSource::FfmpegSource(std::string path, double initialSec, QSize nominalSize,
+                           std::optional<DecodeMode> mode, std::shared_ptr<void> mediaLeases)
+    : m_decoder(std::make_unique<FfmpegDecoder>(std::move(path), initialSec, mode, std::move(mediaLeases))),
+      m_nominalSize(nominalSize) {}
 
 FfmpegSource::~FfmpegSource() {
     // The displayed hardware frame may still be sampled by a command buffer
