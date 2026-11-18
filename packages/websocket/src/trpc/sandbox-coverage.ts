@@ -45,6 +45,11 @@ const CLOUD_LOCAL_WITHHELD =
   "accepted a draft would change what the app sends to the person's cloud " +
   "account, or drop edits that exist nowhere else.";
 
+const CLOUD_TRANSFER_WITHHELD =
+  "The native app's transfer client. It sends local documents to, or " +
+  "receives them from, the person's cloud account with an access token only " +
+  "the app holds, after the person's review.";
+
 /**
  * Every tRPC procedure path, and what sandboxed code can do about it.
  *
@@ -415,6 +420,13 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "cloudLocal.drafts.put": { withheld: CLOUD_LOCAL_WITHHELD },
   "cloudLocal.openState.get": { withheld: CLOUD_LOCAL_WITHHELD },
   "cloudLocal.openState.record": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudTransfer.send.capture": { withheld: CLOUD_TRANSFER_WITHHELD },
+  "cloudTransfer.send.run": { withheld: CLOUD_TRANSFER_WITHHELD },
+  "cloudTransfer.send.cancel": { withheld: CLOUD_TRANSFER_WITHHELD },
+  "cloudTransfer.receive.capture": { withheld: CLOUD_TRANSFER_WITHHELD },
+  "cloudTransfer.receive.run": { withheld: CLOUD_TRANSFER_WITHHELD },
+  "cloudTransfer.receive.cancel": { withheld: CLOUD_TRANSFER_WITHHELD },
+  "cloudTransfer.resume": { withheld: CLOUD_TRANSFER_WITHHELD },
   "codeGen.generate": {
     elsewhere:
       "Sandboxed code authors node bodies with validate_code / " +

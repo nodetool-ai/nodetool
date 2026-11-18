@@ -220,6 +220,13 @@ hash and size.
 
 **Deliberately private hosts.** Reaching an internal address is the feature:
 
+- `packages/project-services/src/cloud-origin.ts` — the cloud server a native
+  app signed in to, which the app names when it hands its bundled local server
+  a short-lived access token for a transfer. A self-hosted server can sit on
+  the LAN. Plain http is allowed only to loopback. Every request must be on
+  that origin and no redirect is followed, so the token reaches no other host.
+  The `cloudTransfer` router that uses it answers only on a local server.
+
 - `packages/whisper-cpp/src/whisper-server-provider.ts` — the operator's
   `WHISPER_CPP_SERVER_URL`, normally localhost or the LAN. This local-only
   provider uses native fetch, following the llama.cpp server provider's policy.
