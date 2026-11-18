@@ -119,6 +119,7 @@ describe("TC117, FC31: the list of routes", () => {
     ["GET", "/api/assets/0123456789abcdef0123456789abcdef"],
     ["HEAD", "/api/assets/a1/peaks"],
     ["GET", "/api/sync/capabilities"],
+    ["GET", "/api/storage/u1/0123456789abcdef0123456789abcdef.png"],
   ])("allows %s %s", (method, path) => {
     expect(cloudRouteAllowed(method, path)).toBe(true);
   });
@@ -136,6 +137,9 @@ describe("TC117, FC31: the list of routes", () => {
     ["GET", "https://evil.example/api/assets/a"],
     ["GET", "/api/workflows"],
     ["GET", "/api/assets/"],
+    ["GET", "/api/storage/"],
+    ["POST", "/api/storage/u1/a.png"],
+    ["GET", "/api/storage/%2e%2e/secrets"],
     ["POST", "/api/assets/a"],
     ["DELETE", "/trpc/workflows.delete"],
     ["GET", "/api/assets/a#b"],
@@ -347,6 +351,8 @@ describe("TC121: nodetool-cloud: media", () => {
   test("maps the signed-in server's asset routes only", () => {
     expect(cloudMediaPath("nodetool-cloud://api.nodetool.ai/api/assets/a1", ORIGIN)).toBe("/api/assets/a1");
     expect(cloudMediaPath("nodetool-cloud://API.nodetool.ai/api/assets/a1?x=1", ORIGIN)).toBe("/api/assets/a1?x=1");
+    expect(cloudMediaPath("nodetool-cloud://api.nodetool.ai/api/storage/u1/a1.mp4", ORIGIN)).toBe("/api/storage/u1/a1.mp4");
+    expect(cloudMediaPath("nodetool-cloud://api.nodetool.ai/api/sync/capabilities", ORIGIN)).toBeNull();
     expect(cloudMediaPath("nodetool-cloud://evil.example/api/assets/a1", ORIGIN)).toBeNull();
     expect(cloudMediaPath("nodetool-cloud://api.nodetool.ai:8443/api/assets/a1", ORIGIN)).toBeNull();
     expect(cloudMediaPath("nodetool-cloud://u:p@api.nodetool.ai/api/assets/a1", ORIGIN)).toBeNull();

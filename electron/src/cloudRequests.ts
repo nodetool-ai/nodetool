@@ -105,6 +105,17 @@ const PROCEDURE = /^[A-Za-z][A-Za-z0-9]*(\.[A-Za-z][A-Za-z0-9]*)+$/;
  * sync capabilities. Anything else, another host, a dot segment, an encoded
  * slash or a fragment is refused (TC117).
  */
+/**
+ * The file routes: `/api/assets/<id>/...` and the bytes of a server whose
+ * storage has no signed URLs, `/api/storage/<key>`. The server checks the
+ * key against the caller's own and shared assets.
+ */
+function isMediaPath(pathname: string): boolean {
+  return ["/api/assets/", "/api/storage/"].some(
+    (prefix) => pathname.startsWith(prefix) && pathname.length > prefix.length,
+  );
+}
+
 export function cloudRouteAllowed(method: string, path: string): boolean {
   if (typeof path !== "string" || path.length === 0 || path.length > 8192) {
     return false;
@@ -137,7 +148,7 @@ export function cloudRouteAllowed(method: string, path: string): boolean {
       (name) => PROCEDURE.test(name) && !DENIED_PROCEDURE_PREFIXES.some((prefix) => name.startsWith(prefix)),
     );
   }
-  if (pathname.startsWith("/api/assets/") && pathname.length > "/api/assets/".length) {
+  if (isMediaPath(pathname)) {
     return method === "GET" || method === "HEAD";
   }
   if (pathname === "/api/sync/capabilities") {
@@ -572,7 +583,8 @@ const MEDIA_RESPONSE_HEADERS = new Set([
 /**
  * The asset route a `nodetool-cloud:` URL names on the signed-in server, or
  * null. `nodetool-cloud://api.nodetool.ai/api/assets/<id>` maps to
- * `https://api.nodetool.ai/api/assets/<id>`. Another host, a route off the
+ * `https://api.nodetool.ai/api/assets/<id>`, and `/api/storage/<key>` the
+ * same way. Another host, a route off the
  * list and user information in the URL are refused (TC121).
  */
 export function cloudMediaPath(url: string, serverOrigin: string | null): string | null {
@@ -595,7 +607,8 @@ export function cloudMediaPath(url: string, serverOrigin: string | null): string
     return null;
   }
   const path = parsed.pathname + parsed.search;
-  if (origin !== serverOrigin || !path.startsWith("/api/assets/") || !cloudRouteAllowed("GET", path)) {
+  const query = path.indexOf("?");
+  if (origin !== serverOrigin || !isMediaPath(query < 0 ? path : path.slice(0, query)) || !cloudRouteAllowed("GET", path)) {
     return null;
   }
   return path;
