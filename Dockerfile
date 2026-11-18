@@ -19,7 +19,7 @@ WORKDIR /app
 # reliability/harness is a workspace outside packages/ (see the root
 # package.json workspaces list) and a dependency of packages/cli, so its
 # manifest has to come along or npm resolves the graph without it.
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json .npmrc ./
 COPY --parents packages/*/package.json ./
 COPY --parents reliability/*/package.json ./
 COPY web/package.json web/
