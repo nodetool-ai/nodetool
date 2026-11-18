@@ -701,9 +701,46 @@ void cancelsAReceive(TestContext& t) {
   }
 }
 
+// The link query reads the bundled server only, with no token, and an
+// answer this client does not know is refused rather than read as unlinked.
+void readsTheLinkStatus(TestContext& t) {
+  SignedInApp app;
+  FakeTransport transport([](const HttpRequest& request) {
+    if (request.url.ends_with("/trpc/cloudTransfer.link")) {
+      const std::string project = json::parse(request.body)["project_id"];
+      if (project == "linked") {
+        return ok({{"state", "linked"}, {"cloud_project_id", "cloud-1"}});
+      }
+      if (project == "elsewhere") {
+        return ok({{"state", "linked_elsewhere"}});
+      }
+      if (project == "odd") {
+        return ok({{"state", "mystery"}});
+      }
+      return ok({{"state", "unlinked"}});
+    }
+    return refusal(404, "NOT_FOUND");
+  });
+  LocalTransferClient client(transport, kLocal, {}, *app.session);
+  const auto linked = client.linkStatus("linked");
+  CHECK(linked.status == TransferStatus::Ok && linked.link == LocalTransferClient::Link::Linked &&
+        linked.cloudProjectId == "cloud-1");
+  CHECK(client.linkStatus("elsewhere").link == LocalTransferClient::Link::LinkedElsewhere);
+  const auto unlinked = client.linkStatus("plain");
+  CHECK(unlinked.status == TransferStatus::Ok && unlinked.link == LocalTransferClient::Link::Unlinked);
+  const auto odd = client.linkStatus("odd");
+  CHECK(odd.status == TransferStatus::Refused && odd.reason == "INVALID_RESPONSE");
+  for (const HttpRequest& request : transport.sent()) {
+    const json body = json::parse(request.body);
+    CHECK(!body.contains("access_token"));
+    CHECK(body["origin"] == app.session->serverOrigin());
+  }
+}
+
 int main() {
   return account_test::runTests({
       {"callsTheLocalRouterForTheAccount", callsTheLocalRouterForTheAccount},
+      {"readsTheLinkStatus", readsTheLinkStatus},
       {"renewsTheTokenOnceWhenTheCloudRefusesIt", renewsTheTokenOnceWhenTheCloudRefusesIt},
       {"sortsFailures", sortsFailures},
       {"readsCollectFirstAndRefusedSends", readsCollectFirstAndRefusedSends},
