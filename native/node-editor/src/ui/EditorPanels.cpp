@@ -4,6 +4,7 @@
 // costs/WorkflowCostEstimatePanel.tsx and panels/PanelBottom.tsx.
 #include "EditorWindow.h"
 #include "nodetool/account/qt/QtHttpTransport.h"
+#include "nodetool/account/crypto.h"
 #include <QtMath>
 #include <QSettings>
 #include "graph/CanvasDropController.h"
@@ -456,9 +457,6 @@ void EditorWindow::openWorkflowDocument(const QJsonObject &workflow) {
 void EditorWindow::openCloudDocument(const QString &documentId, const QString &role) {
   if (!tabOwner_) { activeEditor_->openCloudDocument(documentId, role); return; }
   auto *owner = tabOwner_;
-  for (int i = 0; i < owner->tabs_.size(); ++i) {
-    if (owner->tabs_[i]->cloudId_ == documentId) { owner->activateSurface(i); return; }
-  }
   auto *account = owner->accountServers_->current();
   const auto session = account && account->state() == nodetool::account::qt::AccountController::State::SignedIn
                            ? account->session()
@@ -466,6 +464,18 @@ void EditorWindow::openCloudDocument(const QString &documentId, const QString &r
   if (!session) {
     notify("error", tr("Sign in to open cloud workflows."));
     return;
+  }
+  // A tab is the same document only on the same server and account: the
+  // same id on another server is another workflow, and another account's
+  // tab holds that account's edits.
+  const auto origin = QString::fromStdString(nodetool::account::serverKey(session->serverOrigin()));
+  const auto accountId = QString::fromStdString(session->accountId());
+  for (int i = 0; i < owner->tabs_.size(); ++i) {
+    const auto *tab = owner->tabs_[i];
+    if (tab->cloud_ && tab->cloudId_ == documentId && tab->cloudServerKey_ == origin && tab->cloudAccountId_ == accountId) {
+      owner->activateSurface(i);
+      return;
+    }
   }
   // The drafts live in the local server's store, so a tab without it cannot keep the edits.
   if (session_.serverUrl().isEmpty()) {
@@ -483,6 +493,8 @@ void EditorWindow::startCloudDocument(std::shared_ptr<nodetool::account::Account
   if (!session_.token().isEmpty()) { headers.emplace_back("Authorization", ("Bearer " + session_.token()).toStdString()); }
   const auto local = session_.serverUrl().adjusted(QUrl::RemovePath | QUrl::RemoveQuery | QUrl::RemoveFragment);
   cloudOrigin_ = QString::fromStdString(session->serverOrigin());
+  cloudServerKey_ = QString::fromStdString(account::serverKey(session->serverOrigin()));
+  cloudAccountId_ = QString::fromStdString(session->accountId());
   account::qt::CloudDocumentServices services;
   services.session = std::move(session);
   services.store = account::makeLocalServerDraftStore(std::make_unique<account::qt::QtHttpTransport>(),

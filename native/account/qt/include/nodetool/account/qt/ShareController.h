@@ -49,8 +49,15 @@ class ShareController : public QObject {
   // {exists, shareId, url, statement, history, download, duplicate}
   Q_PROPERTY(QVariantMap viewerLink READ viewerLink NOTIFY stateChanged)
   Q_PROPERTY(QVariantMap editorLink READ editorLink NOTIFY stateChanged)
-  // Each {userId, name, email, role}.
+  // Each {userId, name, email, role, history, download, duplicate,
+  // sources}: the effective role and options, and a sentence that names
+  // the grants that give them, such as "Joined through a disabled viewer
+  // link".
   Q_PROPERTY(QVariantList people READ people NOTIFY stateChanged)
+  // The disabled links people still hold access through, each {shareId,
+  // role, people, statement, history, download, duplicate}. Their options
+  // stay live, so the dialog manages them by share id (P3).
+  Q_PROPERTY(QVariantList disabledLinks READ disabledLinks NOTIFY stateChanged)
   // Each {kind, documentId, label, state, viewerUrl, editorUrl}. `state` is
   // `checking`, `shared` (it has a link of its own), `notShared` or
   // `unavailable` (this account cannot share it).
@@ -78,6 +85,7 @@ public:
   QVariantMap viewerLink() const { return linkMap("viewer"); }
   QVariantMap editorLink() const { return linkMap("editor"); }
   QVariantList people() const;
+  QVariantList disabledLinks() const;
   QVariantList linkedDocuments() const;
   QVariantList secretWarnings() const { return secrets_; }
 
@@ -89,6 +97,8 @@ public:
   Q_INVOKABLE void disableLink(const QString& role);
   // The options of the viewer link.
   Q_INVOKABLE void setViewerOptions(bool history, bool download, bool duplicate);
+  // The options of one link, enabled or disabled.
+  Q_INVOKABLE void setLinkOptions(const QString& shareId, bool history, bool download, bool duplicate);
   Q_INVOKABLE void setPersonRole(const QString& userId, const QString& role);
   Q_INVOKABLE void removePerson(const QString& userId);
   // Creates a link with `role` on a linked document (FR67).

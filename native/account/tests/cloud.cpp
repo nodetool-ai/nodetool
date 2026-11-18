@@ -919,6 +919,32 @@ void timelineSaverSendsTheDocument(TestContext& t) {
     CHECK(body["document"]["tracks"].is_array());
     CHECK(body["editingInstance"] == kInstance);
     CHECK(body["schemaVersion"] == kTimelineSchemaVersion);
+    CHECK(!body.contains("fps"));
+  }
+}
+
+// The frame rate and size travel as the sequence's columns, never inside
+// the document, where the server would ignore them.
+void timelineSaverSendsTheSequenceColumns(TestContext& t) {
+  SaverServer server;
+  server.reply = [](const nlohmann::json&) {
+    return HttpResponse{200, R"({"result":{"data":{"json":{"id":"t1","updatedAt":"r2"}}}})"};
+  };
+  TimelineCloudSaver saver(server.client);
+  const SaveResult result =
+      saver.save(kTimelineKey, kInstance, {"r1", "h1"}, R"({"tracks":[],"fps":24,"width":1920,"height":"tall"})");
+  CHECK(result.status == SaveStatus::Ok);
+  const auto sent = server.saves();
+  CHECK(sent.size() == 1);
+  if (!sent.empty()) {
+    const nlohmann::json body = nlohmann::json::parse(sent[0].body);
+    CHECK(body["fps"] == 24);
+    CHECK(body["width"] == 1920);
+    CHECK(!body.contains("height"));
+    CHECK(body["document"]["tracks"].is_array());
+    CHECK(!body["document"].contains("fps"));
+    CHECK(!body["document"].contains("width"));
+    CHECK(!body["document"].contains("height"));
   }
 }
 
@@ -1652,6 +1678,30 @@ void warnsOfValuesThatLookLikeSecrets(TestContext& t) {
   }
   CHECK(findSecretLike("script", "{\"text\":\"A normal script\"}").empty());
   CHECK(findSecretLike("script", "not json").empty());
+
+  // Each shape, and its near miss.
+  const auto shapeOf = [](const std::string& value) {
+    const auto found = findSecretLike("script", nlohmann::json{{"text", value}}.dump());
+    return found.empty() ? std::string() : found[0].looksLike;
+  };
+  CHECK(shapeOf("x sk-ant-" + std::string(20, 'a')) == "an Anthropic key");
+  CHECK(shapeOf("sk-" + std::string(19, 'a')).empty());
+  CHECK(shapeOf("AKIA" + std::string(15, 'A')).empty());
+  CHECK(shapeOf("ghp_" + std::string(36, 'a')) == "a GitHub token");
+  CHECK(shapeOf("ghx_" + std::string(36, 'a')).empty());
+  CHECK(shapeOf("xoxb-0123456789") == "a Slack token");
+  CHECK(shapeOf("AIza" + std::string(35, '_')) == "a Google API key");
+  CHECK(shapeOf("hf_" + std::string(30, 'a')) == "a Hugging Face token");
+  CHECK(shapeOf("r8_" + std::string(29, 'a')).empty());
+  CHECK(shapeOf("-----BEGIN RSA PRIVATE KEY-----\nabc") == "a private key");
+  CHECK(shapeOf("-----BEGIN PRIVATE KEY-----") == "a private key");
+  CHECK(shapeOf("-----BEGIN PUBLIC KEY-----").empty());
+  CHECK(shapeOf("BEARER abcdefghijklmnopqrst") == "a bearer token");
+
+  // A long value is scanned without recursion: std::regex overflowed the
+  // stack on this one (#7672 review).
+  CHECK(shapeOf("sk-proj-" + std::string(100000, 'a')) == "an OpenAI key");
+  CHECK(shapeOf(std::string(200000, 's') + "k-").empty());
 }
 
 } // namespace
@@ -1702,6 +1752,7 @@ int main() {
       {"oneInstancePerOpenDocument", oneInstancePerOpenDocument},
       {"workflowSaverSendsTheGraph", workflowSaverSendsTheGraph},
       {"timelineSaverSendsTheDocument", timelineSaverSendsTheDocument},
+      {"timelineSaverSendsTheSequenceColumns", timelineSaverSendsTheSequenceColumns},
       {"saveWithoutBaseIsRefused", saveWithoutBaseIsRefused},
       {"saverRefusesAnotherAccountsDraft", saverRefusesAnotherAccountsDraft},
       {"conflictIsSentAgainOnTheLatestRevision", conflictIsSentAgainOnTheLatestRevision},

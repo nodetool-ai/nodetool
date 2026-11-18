@@ -32,13 +32,28 @@ struct ShareLink {
   ShareOptions options;
 };
 
+// One grant that gives a person access (PRD P3, P6).
+struct ShareGrant {
+  // `invitation`, `link` or another source the server names.
+  std::string source;
+  // The link of a link grant, else empty.
+  std::string shareId;
+  std::string role;
+  ShareOptions options;
+  // A link grant whose link admits nobody new. Its options stay live.
+  bool linkDisabled = false;
+};
+
 struct SharePerson {
   std::string userId;
   std::string name;
   std::string email;
   // `editor` or `viewer`, the person's effective role.
   std::string role;
+  // The effective options: on when any grant turns them on.
   ShareOptions options;
+  // The grants that give the access.
+  std::vector<ShareGrant> grants;
 };
 
 struct SharingState {

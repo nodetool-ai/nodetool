@@ -36,6 +36,10 @@ class TimelineModel : public QObject {
     // The document's `markers` ({id, timeMs, label, color?, note?}), in
     // document order.
     Q_PROPERTY(QVariantList markers READ markers NOTIFY markersChanged)
+    // A read-only document takes no edit: applyEdit, commitEdit and the
+    // marker edits return no edit. A cloud timeline opened by a viewer, or
+    // one whose access was removed, is read-only.
+    Q_PROPERTY(bool readOnly READ readOnly NOTIFY readOnlyChanged)
 
 public:
     explicit TimelineModel(QObject* parent = nullptr);
@@ -118,6 +122,12 @@ public:
 
     Q_INVOKABLE quint64 applyEdit(const QString& name, const QJsonObject& payload);
 
+    bool readOnly() const { return m_readOnly; }
+    // Turning it on clears the undo history, so undo cannot change the
+    // document either. Asynchronous settles and adopted external changes
+    // still apply.
+    void setReadOnly(bool readOnly);
+
     // Only the command at the undo cursor updates the current document. Unknown,
     // superseded, discarded and previous-document tokens return false. A token
     // also becomes stale when a later command exists, including in redo history.
@@ -148,6 +158,7 @@ signals:
     // A new document replaced the old one (emitted before clipsChanged).
     void documentReplaced();
     void markersChanged();
+    void readOnlyChanged();
     // A transient snapshot for the preview (previewClips). The preview and
     // the audio follow it. timelineChanged and clipsChanged come later.
     void previewChanged();
@@ -178,6 +189,7 @@ private:
     std::shared_ptr<const nt::Timeline> m_timeline;
     TrackListModel* m_tracks;
     QUndoStack* m_undo;
+    bool m_readOnly = false;
     quint64 m_generation = 0;
     // The media the document's load resolved, per media identity of a clip
     // (its type, its raw `mediaPath` and `currentAssetId`): the picture and

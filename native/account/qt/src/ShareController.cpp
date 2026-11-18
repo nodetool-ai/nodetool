@@ -275,6 +275,19 @@ void ShareController::setViewerOptions(bool history, bool download, bool duplica
   });
 }
 
+void ShareController::setLinkOptions(const QString& shareId, bool history, bool download, bool duplicate) {
+  const std::string id = shareId.toStdString();
+  const bool known = std::any_of(state_.links.begin(), state_.links.end(),
+                                 [&](const nodetool::account::ShareLink& link) { return link.id == id; });
+  if (!known) {
+    return;
+  }
+  change([kind = kind_.toStdString(), documentId = documentId_.toStdString(), id,
+          options = ShareOptions{history, download, duplicate}](CloudClient& c) {
+    return nodetool::account::setLinkOptions(c, kind, documentId, id, options);
+  });
+}
+
 void ShareController::setPersonRole(const QString& userId, const QString& role) {
   change([kind = kind_.toStdString(), id = documentId_.toStdString(), user = userId.toStdString(),
           role = role.toStdString()](CloudClient& c) {
@@ -319,10 +332,54 @@ QVariantList ShareController::people() const {
     if (person.role == "owner") {
       continue;
     }
+    QStringList sources;
+    for (const nodetool::account::ShareGrant& grant : person.grants) {
+      QString source;
+      if (grant.source == "link") {
+        const QString role = grant.role == "editor" ? tr("editor") : tr("viewer");
+        source = grant.linkDisabled ? tr("Joined through a disabled %1 link").arg(role)
+                                    : tr("Joined through the %1 link").arg(role);
+      } else if (grant.source == "invitation") {
+        source = tr("Invited");
+      }
+      if (!source.isEmpty() && !sources.contains(source)) {
+        sources.append(source);
+      }
+    }
     out.append(QVariantMap{{QStringLiteral("userId"), QString::fromStdString(person.userId)},
                            {QStringLiteral("name"), QString::fromStdString(person.name)},
                            {QStringLiteral("email"), QString::fromStdString(person.email)},
-                           {QStringLiteral("role"), QString::fromStdString(person.role)}});
+                           {QStringLiteral("role"), QString::fromStdString(person.role)},
+                           {QStringLiteral("history"), person.options.history},
+                           {QStringLiteral("download"), person.options.download},
+                           {QStringLiteral("duplicate"), person.options.duplicate},
+                           {QStringLiteral("sources"), sources.join(QStringLiteral(". "))}});
+  }
+  return out;
+}
+
+QVariantList ShareController::disabledLinks() const {
+  QVariantList out;
+  for (const nodetool::account::ShareLink& link : state_.links) {
+    if (!link.disabled) {
+      continue;
+    }
+    int people = 0;
+    for (const nodetool::account::SharePerson& person : state_.people) {
+      const bool through = std::any_of(person.grants.begin(), person.grants.end(),
+                                       [&](const nodetool::account::ShareGrant& g) { return g.shareId == link.id; });
+      people += through ? 1 : 0;
+    }
+    if (people == 0) {
+      continue;
+    }
+    out.append(QVariantMap{{QStringLiteral("shareId"), QString::fromStdString(link.id)},
+                           {QStringLiteral("role"), QString::fromStdString(link.role)},
+                           {QStringLiteral("people"), people},
+                           {QStringLiteral("statement"), QString::fromStdString(linkStatement(link.role, link.options))},
+                           {QStringLiteral("history"), link.options.history},
+                           {QStringLiteral("download"), link.options.download},
+                           {QStringLiteral("duplicate"), link.options.duplicate}});
   }
   return out;
 }

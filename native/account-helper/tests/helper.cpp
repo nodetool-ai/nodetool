@@ -232,6 +232,85 @@ void offlineSignOutEndsLater(TestContext& t) {
   CHECK(!pc.server.grantActive(1));
 }
 
+// A server end the server holds does not hold a later sign-out: the other
+// app loses the credential at once.
+void heldServerEndDoesNotDelaySignOut(TestContext& t) {
+  Computer pc;
+  Outbox out;
+  AccountHelper helper(pc.helperOptions(), out.emit());
+  pc.signInElsewhere();
+  CHECK(out.waitForState([](const auto& s) { return signedInAs(s, "Ada"); }));
+
+  std::mutex holdMutex;
+  std::condition_variable holdSignal;
+  bool reached = false;
+  bool release = false;
+  pc.server.beforeEndSessionReturns = [&] {
+    std::unique_lock lock(holdMutex);
+    reached = true;
+    holdSignal.notify_all();
+    holdSignal.wait(lock, [&] { return release; });
+  };
+  const auto releaseHeld = [&] {
+    {
+      const std::lock_guard lock(holdMutex);
+      release = true;
+    }
+    holdSignal.notify_all();
+  };
+  helper.handle({{"type", "signOut"}});
+  {
+    std::unique_lock lock(holdMutex);
+    CHECK(holdSignal.wait_for(lock, std::chrono::seconds(3), [&] { return reached; }));
+  }
+
+  // The first server end is held. The account signs in again and the
+  // helper signs it out.
+  pc.signInElsewhere("u1", "Ada");
+  CHECK(out.waitForState([](const auto& s) { return signedInAs(s, "Ada"); }));
+  AccountSession qtApp(pc.keychain, pc.server, pc.sessionOptions());
+  CHECK(qtApp.credentialForRequest().status == CredentialStatus::Ready);
+  helper.handle({{"type", "signOut"}});
+  CHECK(out.waitForState(signedOut, std::chrono::milliseconds(1000)));
+  CHECK(qtApp.credentialForRequest().status == CredentialStatus::SignedOut);
+
+  releaseHeld();
+  CHECK(out.waitForState([](const auto& s) { return signedOut(s) && s["serverEndPending"] == false; }));
+  pc.server.beforeEndSessionReturns = nullptr;
+}
+
+// TC112: the helper never refreshes, also not an expired token at start.
+void helperNeverRefreshes(TestContext& t) {
+  Computer pc;
+  pc.signInElsewhere();
+  pc.clock.advance(60 * 60 * 1000);
+  Outbox out;
+  AccountHelper helper(pc.helperOptions(), out.emit());
+  CHECK(out.waitForState([](const auto& s) { return signedInAs(s, "Ada"); }));
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  CHECK(pc.server.refreshCalls.load() == 0);
+}
+
+// A helper without a keychain keeps its session in its own memory. It
+// leaves alone an account another app keeps in the keychain it can't read.
+void memoryStoreLeavesOtherAppsAlone(TestContext& t) {
+  Computer pc;
+  pc.signInElsewhere();
+  AccountSession qtApp(pc.keychain, pc.server, pc.sessionOptions());
+  CHECK(qtApp.credentialForRequest().status == CredentialStatus::Ready);
+
+  MemorySecretStore helperMemory;
+  HelperOptions options = pc.helperOptions();
+  options.store = &helperMemory;
+  options.keychainAvailable = false;
+  Outbox out;
+  AccountHelper helper(std::move(options), out.emit());
+  CHECK(out.waitForState(signedOut));
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  CHECK(qtApp.credentialForRequest().status == CredentialStatus::Ready);
+  CHECK(pc.record().state == SessionState::SignedIn);
+}
+
 // A policy that turns the cloud off refuses sign-in without a browser.
 void policyRefusesSignIn(TestContext& t) {
   Computer pc;
@@ -417,6 +496,9 @@ int main() {
       {"signOutElsewhereShowsHere", signOutElsewhereShowsHere},
       {"signOutDuringHeldRefresh", signOutDuringHeldRefresh},
       {"offlineSignOutEndsLater", offlineSignOutEndsLater},
+      {"heldServerEndDoesNotDelaySignOut", heldServerEndDoesNotDelaySignOut},
+      {"helperNeverRefreshes", helperNeverRefreshes},
+      {"memoryStoreLeavesOtherAppsAlone", memoryStoreLeavesOtherAppsAlone},
       {"policyRefusesSignIn", policyRefusesSignIn},
       {"noServerRefusesSignIn", noServerRefusesSignIn},
       {"browserNotOpened", browserNotOpened},
