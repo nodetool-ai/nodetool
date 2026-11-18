@@ -8,10 +8,11 @@
  */
 import { createHash, randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { setPauseHandler } from "@nodetool-ai/config/pause-points";
 import { PauseGate } from "@nodetool-ai/config/testing/pause-harness";
 import {
   Asset,
@@ -456,6 +457,40 @@ describe("receiving a cloud project", { timeout: 30_000 }, () => {
     } finally {
       gate.uninstall();
     }
+  });
+
+  it("places a conflict's received bytes and their asset once when a crash repeats the placement (review F48)", async () => {
+    const bytes = randomBytes(64);
+    const document = cloud.putWorkflow("Edit", { bytes, name: "still.png", path: "media/still.png" });
+    await runReceive(cloud, (await captureReceive(cloud, link)).setId);
+    const newer = randomBytes(64);
+    const file = document.files[0]!;
+    file.hash = sha(newer);
+    file.size = newer.byteLength;
+    cloud.blobs.set(file.hash, newer);
+    document.payload = workflowPayload("Edit", file.asset_id, "two");
+    const edited = randomBytes(32);
+    await folder.write("media/still.png", edited);
+
+    const review = await captureReceive(cloud, link);
+    // The process dies after the received bytes and their asset exist, before the placement is cleared.
+    setPauseHandler((name) => {
+      if (name === "receive.place.placed") throw new Error("killed");
+    });
+    try {
+      await expect(runReceive(cloud, review.setId)).rejects.toThrow("killed");
+    } finally {
+      setPauseHandler(null);
+    }
+    const [outcome] = await resumeReceives(() => cloud, USER);
+    if (outcome?.status !== "finished") throw new Error("expected a finished receive");
+    expect(outcome.result.keptBeside).toHaveLength(1);
+    const kept = outcome.result.keptBeside[0]!;
+    expect((await readdir(join(folder.localDir!, "media"))).sort()).toEqual(
+      ["still.png", kept.keptPath.slice("media/".length)].sort()
+    );
+    expect(Buffer.from((await folder.read(kept.keptPath))!).equals(newer)).toBe(true);
+    expect(await Asset.get<Asset>(kept.assetId)).toMatchObject({ workspace_path: kept.keptPath, content_hash: file.hash });
   });
 
   it("lists a file the cloud no longer held at capture as missing and still receives the document", async () => {
