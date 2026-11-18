@@ -393,7 +393,15 @@ describe("receiving a cloud project", { timeout: 30_000 }, () => {
     expect(kept.keptPath).toMatch(/^media\/still \(cloud \d{4}-\d{2}-\d{2}\)\.png$/);
     expect(Buffer.from((await folder.read("media/still.png"))!).equals(edited)).toBe(true);
     expect(Buffer.from((await folder.read(kept.keptPath))!).equals(newer)).toBe(true);
-    expect((await Asset.get<Asset>(file.asset_id))?.workspace_path).toBe(kept.keptPath);
+    // The local asset keeps its path and bytes, so documents that use it keep
+    // the local media, and the received bytes are a new asset (V22, review F34).
+    expect(await Asset.get<Asset>(file.asset_id)).toMatchObject({ workspace_path: "media/still.png", content_hash: sha(edited) });
+    expect(kept.assetId).not.toBe(file.asset_id);
+    expect(await Asset.get<Asset>(kept.assetId)).toMatchObject({
+      project_id: PROJECT,
+      workspace_path: kept.keptPath,
+      content_hash: file.hash
+    });
   });
 
   it("keeps a local file another app saves while the received bytes replace it (review F18)", async () => {

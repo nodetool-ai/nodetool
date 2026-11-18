@@ -138,6 +138,12 @@ interface PlannedPlacement {
   hash: string;
   /** The hash of the last exchange, which a target may still hold to be replaced. Null when none was exchanged. */
   replaceIfHash: string | null;
+  /**
+   * The asset existed locally before the receive. When its file cannot be
+   * replaced, it keeps its id, path and bytes, and the received bytes become
+   * a new asset beside it (V22).
+   */
+  existing?: boolean;
 }
 
 /** What a receive did, for the result sheet. */
@@ -534,8 +540,15 @@ async function commit(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePla
             // The file may be replaced only while it still has the bytes of the
             // last exchange. The row's own hash follows local edits.
             const base = await getCloudLinkFile(link.id, asset.id);
-            placements.push({ assetId: asset.id, path, hash: file.hash, replaceIfHash: base?.base_hash ?? null });
-            await asset.update({ workspace_path: path, content_hash: file.hash, size: file.size });
+            placements.push({
+              assetId: asset.id,
+              path,
+              hash: file.hash,
+              replaceIfHash: base?.base_hash ?? null,
+              existing: true
+            });
+            // The row keeps describing the local bytes until the received
+            // ones take its path, which the placing decides (review F34).
           } else {
             path = targetPath(file);
             placements.push({ assetId: file.asset_id, path, hash: file.hash, replaceIfHash: null });
@@ -692,20 +705,46 @@ async function place(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePlan
       if (!(await workspace.absorbNew(staged, target))) {
         throw new Error(`Could not place a received file beside ${placement.path}`);
       }
-      plan.result.keptBeside.push({ assetId: planned.assetId, path: placement.path, keptPath: target });
-      await updateCloudReceive(row.id, { plan });
     }
     const asset = await Asset.get<Asset>(planned.assetId);
     const fileStat = await workspace.stat(target);
-    if (asset && fileStat) {
-      await asset.update({
+    if (!fileStat) throw new Error(`The received file at ${target} is gone`);
+    const fingerprint = {
+      workspace_size: fileStat.size,
+      workspace_mtime: fileStat.modifiedAt,
+      workspace_hash: await partialContentHashOfFile(localPath(workspace, target))
+    };
+    if (!placed && planned.existing) {
+      // Both sides changed the file. The local asset keeps its id, path and
+      // bytes, so every document that uses it keeps the local media, and the
+      // received bytes become a new asset (V22, review F34).
+      const sibling = await Asset.create<Asset>({
+        id: createTimeOrderedUuid(),
+        user_id: link.user_id,
+        project_id: link.project_id,
+        parent_id: asset?.parent_id ?? link.user_id,
+        name: target.slice(target.lastIndexOf("/") + 1),
+        content_type: asset?.content_type ?? "application/octet-stream",
         workspace_path: target,
-        metadata: withWorkspaceFingerprint(asset.metadata, {
-          workspace_size: fileStat.size,
-          workspace_mtime: fileStat.modifiedAt,
-          workspace_hash: await partialContentHashOfFile(localPath(workspace, target))
-        })
+        size: fileStat.size,
+        content_hash: placement.hash,
+        metadata: withWorkspaceFingerprint(null, fingerprint)
       });
+      plan.result.keptBeside.push({ assetId: sibling.id, path: placement.path, keptPath: target });
+      await updateCloudReceive(row.id, { plan });
+    } else {
+      if (!placed) {
+        plan.result.keptBeside.push({ assetId: planned.assetId, path: placement.path, keptPath: target });
+        await updateCloudReceive(row.id, { plan });
+      }
+      if (asset) {
+        await asset.update({
+          workspace_path: target,
+          content_hash: placement.hash,
+          size: fileStat.size,
+          metadata: withWorkspaceFingerprint(asset.metadata, fingerprint)
+        });
+      }
     }
     await deleteTransferPlacement(placement.id);
   }
