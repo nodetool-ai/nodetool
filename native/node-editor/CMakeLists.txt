@@ -221,7 +221,8 @@ add_library(node_editor_core STATIC
  src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h
  src/media/VideoFrameView.cpp src/media/VideoFrameView.h
  src/ui/EditorChat.cpp src/ui/EditorChatTools.cpp src/ui/EditorChatSearch.cpp src/ui/EditorChatSearch.h
- src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/ChildSourceLoader.cpp src/ui/EditorComfy.cpp src/ui/CompositorLayoutDialog.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp src/ui/EditorPriceChip.cpp)
+ src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/ChildSourceLoader.cpp src/ui/EditorComfy.cpp src/ui/CompositorLayoutDialog.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp src/ui/EditorPriceChip.cpp
+ src/ui/CanvasCapture.cpp src/ui/CanvasCapture.h)
 target_include_directories(node_editor_core PUBLIC src)
 target_link_libraries(node_editor_core PRIVATE nodetool_graph_runner)
 target_link_libraries(node_editor_core PUBLIC nodetool_model_picker nodetool_model_pickerplugin nodetool_chat nodetool_chatplugin nodetool_media nodetool_mediaplugin nodetool_files nodetool_filesplugin nodetool_storyboard nodetool_storyboardplugin nodetool_script nodetool_scriptplugin nodetool_media_player nodetool_media_playerplugin QtNodes Qt6::Widgets Qt6::QuickWidgets Qt6::Svg Qt6::Network Qt6::WebSockets Qt6::Multimedia)
@@ -594,6 +595,36 @@ if(BUILD_TESTING)
  nodetool_use_ui_primitives(node_editor_canvas_media_host_tests)
  add_test(NAME node_editor_canvas_media_host COMMAND node_editor_canvas_media_host_tests)
  set_tests_properties(node_editor_canvas_media_host PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+# Scene capture against screen capture for overlays over a playing preview
+# (tests/ui/CompositionTest.cpp). The software entry is a gate.
+qt_add_executable(node_editor_composition_tests tests/ui/CompositionTest.cpp)
+target_link_libraries(node_editor_composition_tests PRIVATE node_editor_core Qt6::Test)
+target_compile_definitions(node_editor_composition_tests PRIVATE MEDIA_VIDEO_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/../timeline/src/preview/effects/fixtures/source-noise.mp4")
+nodetool_use_ui_primitives(node_editor_composition_tests)
+add_test(NAME node_editor_composition COMMAND node_editor_composition_tests)
+set_tests_properties(node_editor_composition PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+# The same cases on RHI. It fails on the QGraphicsView canvas and stays
+# disabled until the Quick canvas (plan Q3 to Q5) passes it. ctest does not
+# run a disabled entry, so run the binary under xvfb with a Vulkan driver,
+# for example lavapipe:
+#   VK_ICD_FILENAMES=<lvp_icd.json> VK_DRIVER_FILES=<lvp_icd.json> QT_QPA_PLATFORM=xcb \
+#   QSG_RHI_BACKEND=vulkan NODETOOL_COMPOSITION_BACKEND=rhi \
+#   xvfb-run -a -s "-screen 0 1920x1080x24" <build>/node_editor_composition_tests
+# Failure recorded on lavapipe Vulkan with Qt 6.12 (plan step Q0). The scene
+# capture is right in every case. The screen differs:
+#   mediaUnderCard:       6,754 of 6,771 pixels. The preview's controls draw
+#                         over the text card stacked above it
+#   mediaUnderChat:       2,132 of 23,580 pixels. The preview draws over the
+#                         chat window
+#   mediaUnderNoteEditor: 10,290 of 47,160 pixels. The preview draws over the
+#                         inline note editor, whose transparent parts go dark
+#   translucentOverlay:   1,732 of 1,792 pixels. The group header controls
+#                         are black where their overlay is transparent
+# The same binary passes on xcb with QT_QUICK_BACKEND=software.
+add_test(NAME node_editor_composition_rhi COMMAND node_editor_composition_tests)
+set_tests_properties(node_editor_composition_rhi PROPERTIES DISABLED TRUE LABELS render RUN_SERIAL TRUE
+    ENVIRONMENT "QT_QPA_PLATFORM=xcb;QSG_RHI_BACKEND=vulkan;NODETOOL_COMPOSITION_BACKEND=rhi"
+    ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
 endif()
 
 if(BUILD_TESTING)

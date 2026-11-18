@@ -128,6 +128,8 @@ CMake fetches [QtNodes](https://github.com/paceholder/nodeeditor/tree/829b18457d
 at immutable revision `829b18457d4e95ac17f4fdb01c6201125681729d`, under
 [BSD-3-Clause](https://github.com/paceholder/nodeeditor/blob/829b18457d4e95ac17f4fdb01c6201125681729d/LICENSE.rst).
 That is the first upstream commit with `setNodeGeometry`, and it is unmodified.
+The notice is in [`licenses/QtNodes-BSD-3-Clause.txt`](licenses/QtNodes-BSD-3-Clause.txt),
+which `scripts/package-macos.sh` copies into the app bundle.
 A build directory configured against an older revision needs a clean configure.
 The adapter uses its `AbstractGraphModel`, `BasicGraphicsScene`,
 `AbstractConnectionPainter`, and named-port projection. An existing checkout of that revision can be supplied through
@@ -527,6 +529,41 @@ EditorWindow visual parity. Run both with `ctest --test-dir <build> -R
 A separate synthetic test projects 1,000 nodes
 and 2,000 edges and checks their adjacency, without measuring input-to-paint
 latency. No performance target is claimed.
+
+### Large graph baseline
+
+[LargeGraphTest](tests/perf/LargeGraphTest.cpp) `panZoom` repeats the window
+parity fixture into a grid of 2,000 cards and 1,832 edges in a 1440 by 900
+window. Each step sends one input event and then paints the viewport, as the
+card drag measure does. A pan step is a 12-pixel middle-button drag move. A
+zoom step is one wheel notch (1.15) under the cursor, ten in from the fit view
+and ten out. The [Quick canvas plan](../../docs/plans/node-editor-quick-canvas/plan.md#large-graphs)
+compares its targets with these numbers. Three runs of
+`ctest --test-dir <build> -R '^node_editor_large_graph$' -V` on the software
+backend (offscreen, Linux, a shared machine under load) gave:
+
+| Measure | Cards on screen | Mean per step | Slowest step |
+|---|---|---|---|
+| Pan at zoom 1 | 5 | 8.4 to 12.7 ms | 12.9 to 21.5 ms |
+| Pan at the fit zoom (0.12) | 534 | 33.2 to 40.4 ms | 49.8 to 63.0 ms |
+| Zoom from the fit view | 534 at the start | 47.9 to 66.9 ms | 88.8 to 121.3 ms |
+
+`QGraphicsView` paints every step at once, so a zoom leaves no work behind:
+the event loop after the last notch took 33 to 45 µs. The test checks that
+the view moved and zoomed, and sets no time limit.
+
+### Composition
+
+[CompositionTest](tests/ui/CompositionTest.cpp) compares a scene capture
+(`QWidget::grab()`) with a screen capture (`QScreen::grabWindow()`) through
+[`CanvasCapture`](src/ui/CanvasCapture.h). It covers a playing media preview
+under a stacked card, under the chat window and under the inline note editor,
+and the translucent header controls of a group. `node_editor_composition`
+runs it on the software backend and passes. `node_editor_composition_rhi`
+runs it on Vulkan and is disabled: on the `QGraphicsView` canvas the preview
+draws over all three surfaces and the group controls show black where they
+are transparent. [CMakeLists.txt](CMakeLists.txt) records the failure and the
+command that runs it under `xvfb`.
 
 ## Live backend verification
 

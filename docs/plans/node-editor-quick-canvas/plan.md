@@ -161,9 +161,11 @@ measured on RHI after Q10.
   `node_editor_ui` and `node_editor_canvas_media_host`
   (`~/.cache/tp-native/logs/ne-ctest-software.log`). Each step records the
   failing set before it starts.
-- **F14. The editor package ships no license notices.**
-  `native/node-editor/scripts/package-macos.sh` says so in its header. QtNodes
-  is linked into the binary today, so the BSD notice is already owed.
+- **F14. The editor package shipped no license notices.** QtNodes is linked
+  into the binary, so the BSD notice was owed. Q0 added
+  `native/node-editor/licenses/QtNodes-BSD-3-Clause.txt`, which
+  `scripts/package-macos.sh` copies. The Windows build has no packaging step
+  that copies it yet.
 
 ## What depends on QtNodes and QGraphicsView
 
@@ -259,8 +261,8 @@ Measured today, from the spike logs of `node_editor_large_graph`
 | Card drag, 72 nodes, per pointer move | 31.6 ms (Vulkan on lavapipe), 80.8 ms (OpenGL). The test fails above 100 ms | UI thread work under 4 ms. The limit drops to 16 ms in Q5 |
 | Add a node with the window shown, 2,000 nodes | 623 to 725 µs | No slower |
 | Event loop after the batch of 2,000 | 221 to 239 ms | No slower |
-| Pan, 2,000 nodes | Not measured | No raster. UI thread work under 2 ms a frame |
-| Zoom settle, 2,000 nodes | Not measured | Raster spread over frames, at most 4 ms a frame |
+| Pan, 2,000 nodes | 8 to 13 ms a step at zoom 1, 33 to 40 ms at zoom 0.12 (software, [README](../../../native/node-editor/README.md#large-graph-baseline)) | No raster. UI thread work under 2 ms a frame |
+| Zoom settle, 2,000 nodes | 48 to 67 ms a wheel notch, painted at once with no settle work (software) | Raster spread over frames, at most 4 ms a frame |
 
 The frame budget is 16 ms at 60 FPS, with a few milliseconds for the UI
 thread ([rule 1](../../../native/ui_primitives/PERFORMANCE.md#frame-budget)).
