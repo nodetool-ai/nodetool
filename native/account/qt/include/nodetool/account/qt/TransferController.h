@@ -58,7 +58,8 @@ class TransferController : public QObject {
   Q_PROPERTY(bool linked READ linked WRITE setLinked NOTIFY projectChanged)
   Q_PROPERTY(Stage stage READ stage NOTIFY stateChanged)
   // Each {index, section, kind, documentId, name, detail, text, choice,
-  // confirmed, canKeepDeletion, canRestore}, grouped by section: choice,
+  // confirmed, canKeepDeletion, canRestore, canSendWithout}, grouped by
+  // section: choice,
   // receive, send, deletion, problem. `index` is what choose() and
   // confirmDeletion() take. `choice` is "", "receive" or "keepLocal".
   Q_PROPERTY(QVariantList rows READ rows NOTIFY rowsChanged)
@@ -121,6 +122,9 @@ public:
   // Keep local deletion on a deletion row, which deletes the cloud
   // document. Off restores the document from the cloud.
   Q_INVOKABLE bool confirmDeletion(int index, bool confirmed);
+  // Send without the missing file of a problem row (canSendWithout), for
+  // every document that needs it (X7).
+  Q_INVOKABLE bool confirmMissingFile(int index, bool confirmed);
   // Runs the transfer as the sheet shows it. Ignored until ready().
   Q_INVOKABLE void apply();
   // Closes the sheet without sending, and ends the captured send.

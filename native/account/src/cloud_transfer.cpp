@@ -269,7 +269,7 @@ SendCapture LocalTransferClient::captureSend(const std::string& projectId, const
     out.documents.push_back({str(item, "kind"), str(item, "local_id"), str(item, "cloud_id"), str(item, "name")});
   }
   for (const json& file : data.value("missing_files", json::array())) {
-    TransferMissingFile missing{str(file, "asset_id"), str(file, "reason"), {}};
+    TransferMissingFile missing{str(file, "asset_id"), str(file, "reason"), {}, file.dump()};
     for (const json& ref : file.value("documents", json::array())) {
       missing.documents.emplace_back(str(ref, "kind"), str(ref, "document_id"));
     }
@@ -285,7 +285,8 @@ SendCapture LocalTransferClient::captureSend(const std::string& projectId, const
 }
 
 SendRun LocalTransferClient::runSend(const std::string& transferId, const std::vector<KeepLocalDecision>& decisions,
-                                     const std::vector<std::string>& confirmDeletes) {
+                                     const std::vector<std::string>& confirmDeletes,
+                                     const std::vector<TransferMissingFile>& confirmMissing) {
   json input{{"transfer_id", transferId}};
   if (!decisions.empty()) {
     json list = json::array();
@@ -300,6 +301,13 @@ SendRun LocalTransferClient::runSend(const std::string& transferId, const std::v
   if (!confirmDeletes.empty()) {
     input["confirm_deletes"] = confirmDeletes;
   }
+  if (!confirmMissing.empty()) {
+    json list = json::array();
+    for (const TransferMissingFile& file : confirmMissing) {
+      list.push_back(json::parse(file.raw, nullptr, false));
+    }
+    input["confirm_missing_files"] = std::move(list);
+  }
   const Answer answer = mutate("cloudTransfer.send.run", input.dump(), true);
   SendRun out;
   out.status = answer.status;
@@ -312,6 +320,10 @@ SendRun LocalTransferClient::runSend(const std::string& transferId, const std::v
   if (status == "committed") {
     out.committed = true;
     out.cloudProjectId = str(data.value("result", json::object()), "project_id");
+    return out;
+  }
+  if (status == "missing_files_unconfirmed") {
+    out.missingUnconfirmed = true;
     return out;
   }
   if (status != "refused") {
@@ -516,6 +528,8 @@ TransferReview::TransferReview(const SendCapture& send, const ReceiveCapture& re
     row.detail = skipped.detail;
     rows_.push_back(std::move(row));
   }
+  // A missing file is sent without only once the person confirms it (X7).
+  missingFiles_ = send.missingFiles;
   for (const TransferMissingFile& missing : send.missingFiles) {
     for (const auto& [kind, id] : missing.documents) {
       ReviewRow row;
@@ -523,6 +537,14 @@ TransferReview::TransferReview(const SendCapture& send, const ReceiveCapture& re
       row.kind = kind;
       row.documentId = id;
       row.detail = "file " + missing.assetId + ": " + missing.reason;
+      row.assetId = missing.assetId;
+      rows_.push_back(std::move(row));
+    }
+    if (missing.documents.empty()) {
+      ReviewRow row;
+      row.section = ReviewSection::Problem;
+      row.detail = "file " + missing.assetId + ": " + missing.reason;
+      row.assetId = missing.assetId;
       rows_.push_back(std::move(row));
     }
   }
@@ -593,13 +615,38 @@ bool TransferReview::confirmDeletion(std::size_t index, bool confirmed) {
   return true;
 }
 
+bool TransferReview::confirmMissingFile(std::size_t index, bool confirmed) {
+  if (index >= rows_.size() || rows_[index].section != ReviewSection::Problem || rows_[index].assetId.empty()) {
+    return false;
+  }
+  const std::string assetId = rows_[index].assetId;
+  for (ReviewRow& row : rows_) {
+    if (row.section == ReviewSection::Problem && row.assetId == assetId) {
+      row.confirmed = confirmed;
+    }
+  }
+  return true;
+}
+
 bool TransferReview::ready() const {
   for (const ReviewRow& row : rows_) {
     if (row.section == ReviewSection::Choice && !row.choice) {
       return false;
     }
+    if (row.section == ReviewSection::Problem && !row.assetId.empty() && !row.confirmed) {
+      return false;
+    }
   }
   return true;
+}
+
+std::vector<TransferMissingFile> TransferReview::confirmedMissingFiles() const {
+  for (const ReviewRow& row : rows_) {
+    if (row.section == ReviewSection::Problem && !row.assetId.empty() && !row.confirmed) {
+      return {};
+    }
+  }
+  return missingFiles_;
 }
 
 std::vector<ReceiveDecision> TransferReview::receiveDecisions() const {

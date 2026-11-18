@@ -1633,6 +1633,51 @@ private slots:
     QVERIFY(transfer.result().value("sent").toBool());
   }
 
+  // A send with a missing file waits until the person confirms each file,
+  // then sends the capture's entry back as the confirmation (X7, review F36).
+  void publishWithoutAMissingFileOnlyOnceConfirmed() {
+    Computer computer;
+    computer.server.addCode("code-m", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-m");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    const std::string missing =
+        R"({"asset_id":"a1","reason":"missing_locally","documents":[{"kind":"workflow","document_id":"w1"}]})";
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":true,"operations":[)"
+                           R"({"op":"create_document","kind":"workflow","document_id":"w1"}],)"
+                           R"("documents":[{"kind":"workflow","local_id":"w1","cloud_id":"w1","name":"Flow"}],)"
+                           R"("missing_files":[)" + missing + R"(],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.send.run",
+                  trpcData(R"({"status":"committed","transfer_id":"t1","result":{"project_id":"p1"}})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    int problem = -1;
+    for (const QVariant& value : transfer.rows()) {
+      const QVariantMap row = value.toMap();
+      if (row.value("canSendWithout").toBool()) {
+        problem = row.value("index").toInt();
+      }
+    }
+    QVERIFY(problem >= 0);
+    QVERIFY(!transfer.ready());
+    transfer.apply();
+    QCOMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QVERIFY(transfer.confirmMissingFile(problem, true));
+    QVERIFY(transfer.ready());
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
+    const auto body = nlohmann::json::parse(server.body("cloudTransfer.send.run"));
+    QCOMPARE(body["confirm_missing_files"], nlohmann::json::array({nlohmann::json::parse(missing)}));
+  }
+
   // Closing the sheet while a long request runs returns at once: the
   // controller cancels the request before it joins its task thread, instead
   // of waiting out the request's deadline (review F42).

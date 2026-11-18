@@ -174,6 +174,13 @@ Rectangle {
                     onValueCommitted: value => root.controller.choose(row.modelData.index, value)
                 }
                 Ui.CheckBox {
+                    visible: row.modelData.canSendWithout
+                    objectName: "transfer-missing-" + row.modelData.index
+                    text: "Send without"
+                    checked: row.modelData.confirmed
+                    onToggled: root.controller.confirmMissingFile(row.modelData.index, checked)
+                }
+                Ui.CheckBox {
                     visible: row.modelData.section === "deletion"
                     objectName: "transfer-delete-" + row.modelData.index
                     text: "Keep deletion"
@@ -203,7 +210,7 @@ Rectangle {
                 text: root.linked ? "Synchronize" : "Publish"
                 variant: Ui.EditorButton.Primary
                 enabled: root.controller.ready
-                description: root.controller.ready ? "" : "Pick a version for each document changed on both sides."
+                description: root.controller.ready ? "" : "Pick a version for each document changed on both sides, and confirm each missing file."
                 onClicked: root.controller.apply()
             }
         }

@@ -88,6 +88,10 @@ struct TransferMissingFile {
   std::string reason;
   // The documents that refer to the file, as `kind` and id.
   std::vector<std::pair<std::string, std::string>> documents;
+  // The entry as the capture listed it. A confirmation sends it back
+  // unchanged, since a send commits only when the confirmed list is the
+  // captured one (X7, review F36).
+  std::string raw;
 };
 
 // A document whose file is invalid, sent from its last valid row (CF3).
@@ -149,6 +153,9 @@ struct SendRun {
   // True when the attempt committed. False with `failures` when the cloud
   // refused it and the review must ask again.
   bool committed = false;
+  // True when the send lists missing files the person did not confirm as
+  // listed. Nothing was sent (review F36).
+  bool missingUnconfirmed = false;
   std::string cloudProjectId;
   std::vector<TransferFailure> failures;
 };
@@ -226,8 +233,11 @@ public:
 
   SendCapture captureSend(const std::string& projectId, const std::string& projectName = {},
                           const std::string& deviceName = {});
+  // `confirmMissing` is the capture's list of missing files once the person
+  // confirmed each one, or empty.
   SendRun runSend(const std::string& transferId, const std::vector<KeepLocalDecision>& decisions,
-                  const std::vector<std::string>& confirmDeletes);
+                  const std::vector<std::string>& confirmDeletes,
+                  const std::vector<TransferMissingFile>& confirmMissing = {});
   // Ends a send before it commits. `committed` is true when it had already
   // committed.
   struct Cancel {
@@ -304,6 +314,9 @@ struct ReviewRow {
   // For a Choice row from the receive half: the hash of the cloud revision
   // the person saw.
   std::string seenHash;
+  // For a Problem row of a missing file: the file. `confirmed` is the
+  // person's confirmation that the send goes without it (X7).
+  std::string assetId;
 };
 
 // The review sheet of Publish and Synchronize (PRD "Link a local project"
@@ -331,9 +344,13 @@ public:
   // Confirms or withdraws the deletion of Deletion row `index`. Returns
   // false for another row.
   bool confirmDeletion(std::size_t index, bool confirmed);
+  // Confirms that the send goes without the missing file of Problem row
+  // `index`, for every document that needs it. Returns false for another
+  // row.
+  bool confirmMissingFile(std::size_t index, bool confirmed);
 
-  // True when every Choice row has a pick. Deletions and problems never
-  // block.
+  // True when every Choice row has a pick and every missing file is
+  // confirmed (X7). Deletions and other problems never block.
   bool ready() const;
 
   std::vector<ReceiveDecision> receiveDecisions() const;
@@ -341,9 +358,12 @@ public:
   // Local ids of the documents the person confirmed for deletion on the
   // cloud.
   std::vector<std::string> confirmedDeletes() const;
+  // The capture's missing files once each one is confirmed, or empty.
+  std::vector<TransferMissingFile> confirmedMissingFiles() const;
 
 private:
   std::vector<ReviewRow> rows_;
+  std::vector<TransferMissingFile> missingFiles_;
 };
 
 std::string receiveStateName(ReceiveState state);

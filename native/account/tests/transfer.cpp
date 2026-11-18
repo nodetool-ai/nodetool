@@ -334,6 +334,10 @@ void reviewListsEachDocumentOnce(TestContext& t) {
   const std::size_t choice = indexOf(review, ReviewSection::Choice);
   CHECK(!review.confirmDeletion(choice, true));
   CHECK(review.choose(choice, ReceiveChoice::KeepLocal));
+  // The missing file blocks too, until the person confirms the send goes
+  // without it (X7, review F36).
+  CHECK(!review.ready());
+  CHECK(review.confirmMissingFile(indexOf(review, ReviewSection::Problem) + 1, true));
   CHECK(review.ready());
 
   // Deletions are off by default: nothing is deleted on the cloud and the
@@ -487,6 +491,51 @@ void fileOnlyChangesAreSendWork(TestContext& t) {
   CHECK(changed.size() == 1);
 }
 
+// A send goes without a missing file only once the person confirms it, and
+// the confirmation is the capture's entry as listed (X7, review F36).
+void missingFilesNeedAConfirmation(TestContext& t) {
+  SignedInApp app;
+  const json listed{{"asset_id", "a1"},
+                    {"hash", std::string(64, 'f')},
+                    {"size", 12},
+                    {"reason", "missing_locally"},
+                    {"documents", json::array({{{"kind", "workflow"}, {"document_id", "w1"}},
+                                               {{"kind", "workflow"}, {"document_id", "w2"}}})}};
+  FakeTransport transport([&](const HttpRequest& request) {
+    if (request.url.ends_with("/trpc/cloudTransfer.send.capture")) {
+      return ok({{"status", "captured"},
+                 {"transfer_id", kTransfer},
+                 {"first_publication", false},
+                 {"operations", json::array()},
+                 {"documents", json::array()},
+                 {"missing_files", json::array({listed})},
+                 {"skipped", json::array()},
+                 {"deleted_locally", json::array()}});
+    }
+    const json body = json::parse(request.body);
+    if (!body.contains("confirm_missing_files")) {
+      return ok({{"status", "missing_files_unconfirmed"}, {"transfer_id", kTransfer}, {"missing_files", json::array({listed})}});
+    }
+    return ok({{"status", "committed"}, {"transfer_id", kTransfer}, {"result", json::object()}});
+  });
+  LocalTransferClient client(transport, kLocal, {}, *app.session);
+  const SendCapture send = client.captureSend(kProject);
+  TransferReview review(send, {});
+  CHECK(countOf(review, ReviewSection::Problem) == 2);
+  CHECK(!review.ready());
+  CHECK(review.confirmedMissingFiles().empty());
+  const SendRun refused = client.runSend(kTransfer, {}, {}, review.confirmedMissingFiles());
+  CHECK(refused.missingUnconfirmed && !refused.committed);
+  // One confirmation covers every document that needs the file.
+  CHECK(review.confirmMissingFile(indexOf(review, ReviewSection::Problem), true));
+  CHECK(review.ready());
+  const SendRun sent = client.runSend(kTransfer, {}, {}, review.confirmedMissingFiles());
+  CHECK(sent.committed);
+  const json body = json::parse(transport.sent().back().body);
+  CHECK(body["confirm_missing_files"] == json::array({listed}));
+  CHECK(!review.confirmMissingFile(review.rows().size(), true));
+}
+
 int main() {
   return account_test::runTests({
       {"callsTheLocalRouterForTheAccount", callsTheLocalRouterForTheAccount},
@@ -501,5 +550,6 @@ int main() {
       {"sendsNothingToAServerOffThisComputer", sendsNothingToAServerOffThisComputer},
       {"aRecaptureOnlyLeavesOutWhatWasReviewed", aRecaptureOnlyLeavesOutWhatWasReviewed},
       {"fileOnlyChangesAreSendWork", fileOnlyChangesAreSendWork},
+      {"missingFilesNeedAConfirmation", missingFilesNeedAConfirmation},
   });
 }

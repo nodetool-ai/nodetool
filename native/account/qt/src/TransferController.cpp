@@ -271,7 +271,8 @@ QVariantList TransferController::rows() const {
                              {QStringLiteral("choice"), choice},
                              {QStringLiteral("confirmed"), row.confirmed},
                              {QStringLiteral("canKeepDeletion"), row.sendListed},
-                             {QStringLiteral("canRestore"), row.receiveListed}});
+                             {QStringLiteral("canRestore"), row.receiveListed},
+                             {QStringLiteral("canSendWithout"), !row.assetId.empty()}});
     }
   }
   return out;
@@ -386,6 +387,17 @@ bool TransferController::choose(int index, const QString& choice) {
   return true;
 }
 
+bool TransferController::confirmMissingFile(int index, bool confirmed) {
+  if (index < 0 || stage_ != Stage::Reviewing) {
+    return false;
+  }
+  if (!review_.confirmMissingFile(static_cast<std::size_t>(index), confirmed)) {
+    return false;
+  }
+  emit rowsChanged();
+  return true;
+}
+
 bool TransferController::confirmDeletion(int index, bool confirmed) {
   if (index < 0 || stage_ != Stage::Reviewing) {
     return false;
@@ -455,14 +467,15 @@ void TransferController::apply() {
     if (sendWork) {
       std::vector<KeepLocalDecision> keep = review.keepLocalDecisions();
       const std::vector<std::string> deletes = review.confirmedDeletes();
-      SendRun run = client.runSend(transferId, keep, deletes);
+      const std::vector<TransferMissingFile> missing = review.confirmedMissingFiles();
+      SendRun run = client.runSend(transferId, keep, deletes, missing);
       if (run.status == TransferStatus::Ok && !run.committed) {
         // Documents kept local are refused once: their base is older than
         // the cloud revision the person saw.
         const std::vector<KeepLocalDecision> answered = review.answeredRefusals(run.failures);
         if (!answered.empty() && answered.size() == run.failures.size()) {
           keep.insert(keep.end(), answered.begin(), answered.end());
-          run = client.runSend(transferId, keep, deletes);
+          run = client.runSend(transferId, keep, deletes, missing);
         }
       }
       applied.send = std::move(run);
@@ -528,6 +541,14 @@ void TransferController::finishApply(quint64 sequence, const Applied& applied) {
     if (run.status != TransferStatus::Ok) {
       stage_ = Stage::Reviewing;
       message_ = failure(run.status, run.reason);
+      emit stateChanged();
+      return;
+    }
+    if (run.missingUnconfirmed) {
+      // The send lists other missing files than the sheet showed: show it
+      // again with them.
+      stage_ = Stage::Reviewing;
+      message_ = tr("Files this project needs are missing. Confirm each one to send without it.");
       emit stateChanged();
       return;
     }
