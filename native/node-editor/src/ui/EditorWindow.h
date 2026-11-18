@@ -35,6 +35,7 @@
 #include "server/ComfyBackend.h"
 #include "document/WorkflowDocument.h"
 #include "graph/WorkflowGraphModel.h"
+#include "canvas/CanvasInteraction.h"
 #include "server/WorkflowSession.h"
 #include "run/BugReport.h"
 #include "run/RunOutputModel.h"
@@ -77,7 +78,7 @@ class CardMediaLoader;
 class CanvasDropController;
 class CompatibleNodePicker;
 // UI thread only.
-class EditorWindow final : public QMainWindow {
+class EditorWindow final : public QMainWindow, private canvas::CanvasViewportHost {
   Q_OBJECT
   Q_PROPERTY(bool emptyCanvas READ emptyCanvas NOTIFY panelChanged)
   Q_PROPERTY(nodetool::node_editor::SetupController* setup READ setup CONSTANT)
@@ -224,7 +225,7 @@ public:
   std::optional<QString> editOpenWorkflow(const QString &id, const QVariantMap &patch);
   void deleteWorkflow(const QString &id, const QString &name);
   QVariantList outputMedia() const { return activeEditor() == this ? outputMedia_ : activeEditor()->outputMedia(); }
-  bool runActive() const;
+  bool runActive() const override;
   // The run queue the queue overlay shows through RunState. A change shows once the queue holds
   // for shownQueueDelayMs, so a burst of short preview runs does not flicker it.
   // The toolbars and the inspector read the same debounced state.
@@ -326,7 +327,7 @@ public:
     }
   void authoredAction(const QString &id, const QString &command, quint64 epoch, quint64 credentials);
   Q_INVOKABLE void showToolTip(const QString &text);
-  bool readOnly() const { return !readOnlyReason().isEmpty(); }
+  bool readOnly() const override { return !readOnlyReason().isEmpty(); }
   QString readOnlyReason() const;
   void presentation(const QVariantMap &roles);
   bool confirmOpen();
@@ -371,7 +372,7 @@ public:
   void addNode(const QString &type);
   void dragNode(const QString &type);
   bool catalogAtPointer() const { return activeEditor() == this ? catalogPoint_.has_value() : activeEditor()->catalogAtPointer(); }
-  Q_INVOKABLE void cancelCatalogPlacement();
+  Q_INVOKABLE void cancelCatalogPlacement() override;
   Q_INVOKABLE void focusCanvas();
   // The floating node menu (web components/node_menu/NodeMenu.tsx). It opens at
   // the armed pointer point, or in the canvas center without one.
@@ -391,7 +392,7 @@ public:
   // finished as the press that ended it selected another node.
   bool commitFinishedEdit(const QString &nodeId, const QString &name, const QVariant &value);
   bool removeProperty(const QString &nodeId, const QString &name);
-  Q_INVOKABLE void action(const QString &name);
+  Q_INVOKABLE void action(const QString &name) override;
   // An action that the user started from a button, menu or key. Zoom, fit and Focus
   // moves then animate as the web does. action() alone moves the view at once, so
   // harnesses and tests that read the result straight away see the final view.
@@ -406,7 +407,7 @@ public:
   // Theme.Scheme values are Dark 2 and Light 3 in NodeTool.UiPrimitives.
   void setDarkTheme(bool dark);
   void setCatalog(const QJsonArray &metadata);
-  QString shortcutCommand(int key, Qt::KeyboardModifiers modifiers) const;
+  QString shortcutCommand(int key, Qt::KeyboardModifiers modifiers) const override;
 signals:
   void catalogPlacementChanged();
   void catalogRecentChanged();
@@ -453,7 +454,7 @@ private:
   // body control still previews when the rerun runs in process, as the web's
   // live slider bodies do (web hooks/nodes/useLiveSliderWriter.ts).
   void scheduleInstantRerun(const QString &node, const QJsonObject &draft, bool cardBody, bool immediate);
-  void previewCardEdit(const QJsonArray &commands);
+  void previewCardEdit(const QJsonArray &commands) override;
   // Live property changes: a property edit made while a run is in progress
   // goes to that run, so a node that reads its properties while it runs,
   // such as a synthesis node, follows the edit at once.
@@ -471,9 +472,7 @@ private:
   EditorWindow(QWidget *parent, EditorWindow *tabOwner);
   EditorWindow *tabOwner_ = nullptr;
   std::optional<QPointF> catalogPoint_;
-  QString middleEdge_;
-  QPoint middlePress_;
-  void armCatalogPlacement(const QPointF &scenePosition);
+  void armCatalogPlacement(const QPointF &scenePosition) override;
   void rememberRecentNode(const QString &type);
   QList<EditorWindow *> tabs_;
   EditorWindow *activeEditor_ = nullptr;
@@ -556,11 +555,11 @@ private:
   void scheduleLineage();
   bool lineagePending_ = false;
   node_editor::LineageLayer *lineage_ = nullptr;
-  bool apply(const QJsonObject &command);
-  bool knownNodeType(const QString &type) const;
+  bool apply(const QJsonObject &command) override;
+  bool knownNodeType(const QString &type) const override;
   // clearOverlap moves the new card vertically off the top-level cards it would cover,
   // as a node menu add does (web hooks/useCreateNode.ts resolveVerticalOverlap).
-  bool addNodeAt(const QString &type, const QPointF &position, bool clearOverlap = false);
+  bool addNodeAt(const QString &type, const QPointF &position, bool clearOverlap = false) override;
   // The node type a quick-add command ("Add Prompt") creates, or empty.
   static QString quickAddNodeType(const QString &command) {
     if (command == QLatin1String("Add Prompt")) { return QStringLiteral("nodetool.text.Prompt"); }
@@ -572,7 +571,7 @@ private:
   // Web useAddConnectedNode: a node of `type` beside `sourceId`'s output, wired into `targetPort`.
   bool addConnectedNode(const QString &sourceId, const QString &outputName, const QString &type, const QString &targetPort);
   void autoLayout(bool selectedOnly);
-  void refresh();
+  void refresh() override;
   void showBrowser(bool visible);
   void loadBrowser();
   // Opens or closes the Examples panel, which shares the left side with the
@@ -589,7 +588,7 @@ private:
   void showSystemInformation();
   void syncRuntimePreviews();
   void syncSourcePreviews();
-  QStringList selectedIds() const;
+  QStringList selectedIds() const override;
   QList<bool> selectedRunnableStates() const;
   bool singleRunnableCardSelected() const;
   QQuickWidget *panel(const QString &file, const QVariantMap &properties = {});
@@ -628,17 +627,17 @@ private:
   bool historyWorkflowStale_ = true;
   bool selectingNode_ = false;
   void zoomBy(double factor);
-  void zoomUnderCursor(double factor);
-  void panBy(QPoint delta);
+  void zoomUnderCursor(double factor) override;
+  void panBy(QPoint delta) override;
   static bool mouseNavigation();
   void applyFit();
   void revealSelection();
   // Moves the view the least distance that shows the card whole.
   void revealNode(const QString &resourceId);
   // Opens the keyboard connection picker on the focused node's Tab-focused handle.
-  void openFocusedHandlePicker();
+  void openFocusedHandlePicker() override;
   // Pastes the example's graph with its first top-level node at `at`, as one step.
-  bool pasteExample(const QString &key, const QPointF &at);
+  bool pasteExample(const QString &key, const QPointF &at) override;
   // The view that fits every node, as the zoom and the scene point at the viewport center.
   struct ViewTarget { double zoom = 1; QPointF center; };
   ViewTarget fitTarget() const;
@@ -646,7 +645,7 @@ private:
   // durationMs with the web's cubic ease, and lands at once for a zero duration,
   // reduced motion or a hidden window. Any earlier move is dropped.
   void moveViewTo(double zoom, const QPointF &viewCenter, int durationMs);
-  void cancelViewAnimation();
+  void cancelViewAnimation() override;
   // The viewport center that puts a scene point in the middle of the canvas the overlays leave free.
   QPointF centerOnArea(const QPointF &scenePoint, double zoom) const;
   void zoomTo(double zoom);
@@ -685,7 +684,7 @@ private:
   QHash<QString, qint64> toolbarSelectedAt_;
   QElapsedTimer toolbarClock_;
   QTimer toolbarDelay_;
-  QJsonArray dragGroupCommands(const QJsonObject &positions, QtNodes::NodeId group, bool detach);
+  QJsonArray dragGroupCommands(const QJsonObject &positions, QtNodes::NodeId group, bool detach) override;
   QJsonArray expandParentCommands(const QJsonObject &positions, const QStringList &dragged, const QStringList &detached);
   void showActionMenu(const QString &kind, const QPoint &position);
   bool menuActionEnabled(const QString &name) const;
@@ -970,16 +969,18 @@ private:
     bool documentReplaced_ = false;
     void requestRefresh();
     void ensureProjected() const;
+  CanvasSurface &viewportSurface() const override;
+  bool usesMouseNavigation() const override;
+  int dragDistance() const override;
+  void clearLineageSelection() override;
+  void disableFit() override { fitActive_ = false; }
+  bool canvasKeysBlocked() const override;
+  void scheduleViewportRelease(quint64 epoch) override;
+  void clearBaseUndo() override;
   void invalidateGesture();
-  quint64 gestureEpoch_ = 0;
-  bool gesture_ = false;
-  QHash<QString, QPointF> gesturePositions_;
-  bool panning_ = false;
   bool rubberBandSelectionPending_ = false;
   QTimer *runPanelTimer_ = nullptr;
   std::optional<QPointF> lastPaste_;
   QPoint pasteMenuPosition_;
-  QPoint panPosition_;
-  QJsonArray gestureCommands_;
 };
 } // namespace nodetool

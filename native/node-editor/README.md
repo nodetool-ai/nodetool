@@ -16,10 +16,13 @@ left rail, workflow tab strip, status bar, and resizable docks frame the canvas.
 The floating toolbar and zoom readout are transparent Quick overlays. All panels
 share one QML engine and therefore one `Ui.Theme`.
 
-[`EditorScene`](src/graph/EditorScene.h) installs its geometry, node painter,
-and connection painter through the QtNodes extension points. It draws the node
-card, type-colored handles, inline scalar fields, the canvas grid, and wires.
-`wireCurve` is the one curve for wire painting and the hit stroke. QtNodes
+[`EditorScene`](src/graph/EditorScene.h) draws the grid and adapts QtNodes
+items to [`NodePainter`](src/canvas/NodePainter.h) and
+[`WirePainter`](src/canvas/WirePainter.h). Both painters take state structs.
+[`CanvasInteraction`](src/canvas/CanvasInteraction.h) handles canvas input
+through scene and viewport hosts.
+
+`wireCurve` supplies the data-wire path for painting and hit testing. QtNodes
 computes connection bounds from its own control points, so the bounds margin and
 a reverse-offset limit keep the curve inside them. A wire running backward by
 more than 1024 logical pixels therefore bends less than React Flow's.

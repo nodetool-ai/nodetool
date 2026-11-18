@@ -2758,9 +2758,17 @@ private slots:
         QCOMPARE(bars[200].toDouble(), 1.0);
         QCOMPARE(bars[0].toDouble(), 32768.0 / (98304 * 0.85));
         QCOMPARE(bars[100].toDouble(), 0.0);
+        // A preview image alone fills the histogram, while the result area remains blank
+        // until the node reports a run state.
+        const auto id = host.id("levels");
+        QVERIFY(host.model().runtimeState(id).isEmpty());
+        const auto resultArea = host.model().canvasResultRect(id);
+        QVERIFY(!resultArea.isEmpty());
+        const auto painted = host.render(QStringLiteral("levels"));
+        QCOMPARE(painted.pixelColor(resultArea.center().toPoint()), host.window.scene()->theme().node);
         if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
             QDir().mkpath(directory);
-            QVERIFY(host.render(QStringLiteral("levels")).save(directory + QStringLiteral("/Levels-dark.png")));
+            QVERIFY(painted.save(directory + QStringLiteral("/Levels-dark.png")));
         }
         // The channel never enters the document.
         QCOMPARE(host.undoCount(), undo);

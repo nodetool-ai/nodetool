@@ -194,6 +194,10 @@ add_library(node_editor_core STATIC
  src/graph/CardBodyPainter.cpp src/graph/CardBodyPainter.h
  src/graph/CardControls.cpp src/graph/CardControls.h
  src/graph/SynthModules.cpp src/graph/SynthModules.h
+ src/canvas/CanvasStyle.cpp src/canvas/CanvasStyle.h
+ src/canvas/NodePainter.cpp src/canvas/NodePainter.h
+ src/canvas/WirePainter.cpp src/canvas/WirePainter.h
+ src/canvas/CanvasInteraction.cpp src/canvas/CanvasInteraction.h
  src/graph/EditorScene.cpp src/graph/EditorScene.h
  src/graph/LineageLayer.cpp src/graph/LineageLayer.h src/graph/LineageCanvas.cpp
  src/graph/InlinePropertyPresenter.cpp src/graph/InlinePropertyPresenter.h
@@ -256,6 +260,10 @@ qt_add_resources(node_editor_core editor_examples PREFIX /editor/examples BASE e
 # The web data type icons from web/src/icons/data_types/nodetool, drawn in card headers.
 qt_add_resources(node_editor_core editor_type_icons PREFIX /editor/data_types BASE resources/data_types FILES resources/data_types/any.svg resources/data_types/asset.svg resources/data_types/assistant.svg resources/data_types/audio.svg resources/data_types/bool.svg resources/data_types/chunk.svg resources/data_types/database.svg resources/data_types/dataframe.svg resources/data_types/date.svg resources/data_types/datetime.svg resources/data_types/dict.svg resources/data_types/document.svg resources/data_types/enum.svg resources/data_types/file.svg resources/data_types/float.svg resources/data_types/flow.svg resources/data_types/folder.svg resources/data_types/help.svg resources/data_types/image_model.svg resources/data_types/image.svg resources/data_types/int.svg resources/data_types/language_model.svg resources/data_types/list.svg resources/data_types/model_3d.svg resources/data_types/model.svg resources/data_types/notype.svg resources/data_types/np_array.svg resources/data_types/preview.svg resources/data_types/star.svg resources/data_types/string.svg resources/data_types/str.svg resources/data_types/task.svg resources/data_types/tensor.svg resources/data_types/text.svg resources/data_types/thread_message.svg resources/data_types/thread.svg resources/data_types/union.svg resources/data_types/video.svg)
 if(BUILD_TESTING)
+    qt_add_executable(node_editor_canvas_interaction_tests tests/canvas/CanvasInteractionTest.cpp)
+    target_link_libraries(node_editor_canvas_interaction_tests PRIVATE node_editor_core Qt6::Test)
+    add_test(NAME node_editor_canvas_interaction COMMAND node_editor_canvas_interaction_tests)
+    set_tests_properties(node_editor_canvas_interaction PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     qt_add_executable(node_editor_run_trace_tests tests/ui/RunTraceTest.cpp)
     target_link_libraries(node_editor_run_trace_tests PRIVATE node_editor_core Qt6::Test)
     nodetool_use_ui_primitives(node_editor_run_trace_tests)

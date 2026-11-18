@@ -654,10 +654,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     });
   });
   model_.commit = [this](const auto &c) {
-    if (gesture_) {
-      gestureCommands_.append(c);
-      return true;
-    }
+    if (scene_->interaction().bufferViewportCommand(c)) { return true; }
     if (!apply(c)) { return false; }
     previewCardEdit(c["op"] == "batch" ? c["commands"].toArray() : QJsonArray{c});
     return true;
@@ -2539,10 +2536,7 @@ void EditorWindow::setCatalog(const QJsonArray &source) {
   scheduleViewportSettle(true);
 }
 void EditorWindow::invalidateGesture() {
-  ++gestureEpoch_;
-  gesture_ = false;
-  gestureCommands_ = {};
-  gesturePositions_.clear();
+  if (scene_) { scene_->interaction().invalidateViewportGesture(); }
 }
 void EditorWindow::refresh() {
     setup_.offerWorkflow(document_.snapshot(), metadata_);
@@ -4173,6 +4167,27 @@ void EditorWindow::openFocusedHandlePicker() {
     }
   }
 }
+CanvasSurface &EditorWindow::viewportSurface() const { return *canvas_; }
+
+bool EditorWindow::usesMouseNavigation() const { return mouseNavigation(); }
+
+int EditorWindow::dragDistance() const { return QApplication::startDragDistance(); }
+
+void EditorWindow::clearLineageSelection() { lineage_->setSelectedLinkIds({}); }
+
+bool EditorWindow::canvasKeysBlocked() const {
+  return QApplication::activePopupWidget() || inlinePresenter_->active() || inlineTitle_->active();
+}
+
+void EditorWindow::scheduleViewportRelease(quint64 epoch) {
+  const QPointer<EditorWindow> window(this);
+  QTimer::singleShot(0, this, [window, epoch] {
+    if (window && window->scene_) { window->scene_->interaction().finishViewportRelease(epoch, *window); }
+  });
+}
+
+void EditorWindow::clearBaseUndo() { scene_->undoStack().clear(); }
+
 bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
   // The catalog panel and the canvas column are watched only for these events. The
   // keyboard handling below is for the canvas.
@@ -4203,211 +4218,61 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
     }
     return false;
   }
-  if (object == &canvas_->viewportWidget() && (event->type() == QEvent::DragEnter || event->type() == QEvent::DragMove || event->type() == QEvent::Drop) && static_cast<QDropEvent *>(event)->mimeData()->hasFormat("application/x-nodetool-node-type")) {
-    auto drop = static_cast<QDropEvent *>(event);
-    const auto bytes = drop->mimeData()->data("application/x-nodetool-node-type");
-    const auto type = QString::fromUtf8(bytes);
-    if (readOnly() || bytes.isEmpty() || bytes.size() > 4096 || type.toUtf8() != bytes || !knownNodeType(type) || !(drop->possibleActions() & Qt::CopyAction)) {
-      drop->ignore(); return true;
-    }
-    if (event->type() != QEvent::Drop || addNodeAt(type, canvas_->mapToScene(drop->position().toPoint()))) {
-      drop->setDropAction(Qt::CopyAction); drop->accept();
-    } else { drop->ignore(); }
-    return true;
-  }
-  // ExamplesPanel.tsx drags an example card onto the canvas, which pastes a copy of
-  // its graph with the first node at the drop point (useDropHandler.ts pasteExampleGraph).
-  if (object == &canvas_->viewportWidget() && (event->type() == QEvent::DragEnter || event->type() == QEvent::DragMove || event->type() == QEvent::Drop)
-      && static_cast<QDropEvent *>(event)->mimeData()->hasFormat(node_editor::ExampleGallery::DragMime)) {
-    auto drop = static_cast<QDropEvent *>(event);
-    const auto key = QString::fromUtf8(drop->mimeData()->data(node_editor::ExampleGallery::DragMime));
-    if (readOnly() || key.isEmpty() || key.size() > 4096 || !(drop->possibleActions() & Qt::CopyAction)) {
-      drop->ignore(); return true;
-    }
-    if (event->type() != QEvent::Drop || pasteExample(key, canvas_->mapToScene(drop->position().toPoint()))) {
-      drop->setDropAction(Qt::CopyAction); drop->accept();
-    } else { drop->ignore(); }
-    return true;
-  }
-  if (event->type() == QEvent::Resize && object == &canvas_->viewportWidget()) {
-    layoutOverlays();
-    scheduleViewportSettle();
-  }
-  if (event->type() == QEvent::Wheel && object == &canvas_->viewportWidget()) {
-    auto wheel = static_cast<QWheelEvent *>(event);
-    // A physical wheel reports no scroll phase and no pixel delta, so it still zooms.
-    const bool physicalWheel = wheel->phase() == Qt::NoScrollPhase && wheel->pixelDelta().isNull();
-    if (mouseNavigation() || physicalWheel || wheel->modifiers().testAnyFlags(Qt::ControlModifier | Qt::MetaModifier)) {
-      if (wheel->angleDelta().y() != 0) { zoomUnderCursor(wheel->angleDelta().y() > 0 ? 1.15 : 1.0 / 1.15); }
-    } else {
-      panBy(wheel->pixelDelta().isNull() ? wheel->angleDelta() / 2 : wheel->pixelDelta());
-    }
-    return true;
-  }
-  if (event->type() == QEvent::NativeGesture && object == &canvas_->viewportWidget()) {
-    auto gesture = static_cast<QNativeGestureEvent *>(event);
-    if (gesture->gestureType() != Qt::ZoomNativeGesture) { return false; }
-    zoomUnderCursor(1.0 + gesture->value());
-    return true;
-  }
-  if (event->type() == QEvent::MouseButtonPress &&
-      object == &canvas_->viewportWidget()) {
-    auto mouse = static_cast<QMouseEvent *>(event);
-    // A pane press closes the web node menu (usePaneEvents.ts handlePaneClick).
-    cancelCatalogPlacement();
-    if (mouse->button() == Qt::LeftButton && !mouse->modifiers().testAnyFlags(Qt::ShiftModifier | Qt::ControlModifier | Qt::MetaModifier)) {
-      lineage_->setSelectedLinkIds({});
-    }
-    // Applied per press so that every open tab follows the one setting.
-    canvas_->setHandDrag(mouseNavigation());
-    if (mouseNavigation() && mouse->button() == Qt::LeftButton && !canvas_->hasItemAt(mouse->position().toPoint())) { fitActive_ = false; cancelViewAnimation(); }
-    if (mouse->button() == Qt::MiddleButton) {
-      const auto point = mouse->position().toPoint();
-      if (canvas_->lineageAt(point)) { return false; }
-      // A middle click on a wire deletes it (web hooks/handlers/useEdgeHandlers.ts:116-126).
-      middleEdge_.clear();
-      if (const auto edge = canvas_->edgeAt(point); edge && !readOnly()) {
-        middleEdge_ = model_.edge(*edge)["id"].toString();
-        middlePress_ = mouse->position().toPoint();
-      }
-      panning_ = true;
-      fitActive_ = false;
-      cancelViewAnimation();
-      panPosition_ = mouse->position().toPoint();
-      return true;
-    }
-  }
-  if (event->type() == QEvent::MouseMove && panning_) {
-    auto mouse = static_cast<QMouseEvent *>(event);
-    auto delta = mouse->position().toPoint() - panPosition_;
-    panPosition_ = mouse->position().toPoint();
-    canvas_->panBy(delta);
-    return true;
-  }
-  if (event->type() == QEvent::MouseButtonRelease && panning_) {
-    panning_ = false;
-    const auto mouse = static_cast<QMouseEvent *>(event);
-    const auto edge = std::exchange(middleEdge_, QString());
-    if (!edge.isEmpty() && mouse->button() == Qt::MiddleButton && (mouse->position().toPoint() - middlePress_).manhattanLength() < QApplication::startDragDistance()) {
-      apply({{"op", "removeEdge"}, {"id", edge}});
-    }
-    return true;
-  }
-  if (event->type() == QEvent::MouseButtonPress &&
-      object == &canvas_->viewportWidget()) {
-    ++gestureEpoch_;
-    gesture_ = true;
-    gestureCommands_ = {};
-    gesturePositions_.clear();
-    for (auto id : model_.allNodeIds()) {
-      gesturePositions_.insert(model_.resourceId(id), model_.nodeData(id, QtNodes::NodeRole::Position).toPointF());
-    }
-  }
-  if (event->type() == QEvent::MouseButtonRelease &&
-      object == &canvas_->viewportWidget()) {
-    const auto epoch = gestureEpoch_;
-    QTimer::singleShot(0, this, [this, epoch] {
-      if (!gesture_ || epoch != gestureEpoch_) { return; }
-      QJsonObject positions;
-      for (auto id : model_.allNodeIds()) {
-        auto p = model_.nodeData(id, QtNodes::NodeRole::Position).toPointF();
-        const auto resource = model_.resourceId(id);
-        if (gesturePositions_.contains(resource) && p != gesturePositions_.value(resource)) {
-          positions[model_.resourceId(id)] =
-              QJsonObject{{"x", p.x()}, {"y", p.y()}};
-        }
-      }
-      const auto outcome = scene_->takeDragOutcome();
-      if (!positions.isEmpty()) {
-        fitActive_ = false;
-        // The drag's group changes and its new positions are one undo step.
-        for (const auto &command : dragGroupCommands(positions, outcome.group, outcome.detach)) { gestureCommands_.append(command); }
-        gestureCommands_.append(
-            QJsonObject{{"op", "moveNodes"}, {"positions", positions}, {"space", "absolute"}});
-      }
-      gesture_ = false;
-      gesturePositions_.clear();
-      bool detachOnly = !gestureCommands_.isEmpty();
-      for (auto v : gestureCommands_) {
-        if (v.toObject()["op"] != "removeEdge") {
-          detachOnly = false;
-        }
-      }
-      if (detachOnly) {
-        gestureCommands_ = {};
-        refresh();
-      }
-      if (!gestureCommands_.isEmpty()) {
-        // apply() resets the gesture state, so the commands are taken first.
-        const auto commands = std::exchange(gestureCommands_, {});
-        if (apply({{"op", "batch"}, {"commands", commands}})) { previewCardEdit(commands); }
-      }
-      scene_->undoStack().clear();
-    });
-  }
-  if (event->type() == QEvent::KeyPress) {
-    if (QApplication::activePopupWidget() || inlinePresenter_->active() || inlineTitle_->active()) { return false; }
-    auto key = static_cast<QKeyEvent *>(event);
-    if (key->modifiers() == Qt::NoModifier &&
-        (key->key() == Qt::Key_Left || key->key() == Qt::Key_Right ||
-         key->key() == Qt::Key_Up || key->key() == Qt::Key_Down)) {
-      const auto selected = selectedIds();
-      if (!selected.isEmpty()) {
-        const QSet<QString> ids(selected.cbegin(), selected.cend());
-        const QPointF delta(key->key() == Qt::Key_Left ? -10 : key->key() == Qt::Key_Right ? 10 : 0,
-                            key->key() == Qt::Key_Up ? -10 : key->key() == Qt::Key_Down ? 10 : 0);
-        QJsonObject positions;
-        for (const auto id : model_.allNodeIds()) {
-          const auto resource = model_.resourceId(id);
-          if (!ids.contains(resource)) { continue; }
-          const auto position = model_.nodeData(id, QtNodes::NodeRole::Position).toPointF() + delta;
-          positions.insert(resource, QJsonObject{{"x", position.x()}, {"y", position.y()}});
-        }
-        if (apply({{"op", "moveNodes"}, {"positions", positions}, {"space", "absolute"}})) { fitActive_ = false; }
+  auto &interaction = scene_->interaction();
+  const auto type = event->type();
+  if (object == &canvas_->viewportWidget()) {
+    if (type == QEvent::DragEnter || type == QEvent::DragMove || type == QEvent::Drop) {
+      auto &drop = *static_cast<QDropEvent *>(event);
+      const auto &mime = *drop.mimeData();
+      constexpr auto nodeTypeMime = "application/x-nodetool-node-type";
+      using canvas::CanvasDropKind;
+      const bool nodeType = mime.hasFormat(nodeTypeMime);
+      if (nodeType || mime.hasFormat(node_editor::ExampleGallery::DragMime)) {
+        const auto kind = nodeType ? CanvasDropKind::NodeType : CanvasDropKind::Example;
+        const auto bytes = mime.data(nodeType ? nodeTypeMime : node_editor::ExampleGallery::DragMime);
+        const bool accepted = interaction.viewportDrop(kind, bytes, drop.possibleActions(), type == QEvent::Drop,
+                                                        canvas_->mapToScene(drop.position().toPoint()), *this);
+        if (accepted) { drop.setDropAction(Qt::CopyAction); drop.accept(); }
+        else { drop.ignore(); }
         return true;
       }
     }
-    // HandleTooltip.tsx: with a node focused, Tab and Shift+Tab walk its handles,
-    // and Enter or Space on a handle opens the keyboard connection picker.
-    const auto modifiers = key->modifiers() & ~Qt::KeypadModifier;
-    if (!model_.focusedNode().isEmpty() && (key->key() == Qt::Key_Tab || key->key() == Qt::Key_Backtab)
-        && !(modifiers & (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier))) {
-      model_.focusNextHandle(key->key() == Qt::Key_Backtab || (modifiers & Qt::ShiftModifier));
+    if (type == QEvent::Resize) {
+      layoutOverlays();
+      scheduleViewportSettle();
+    }
+    if (type == QEvent::Wheel) {
+      const auto &wheel = *static_cast<QWheelEvent *>(event);
+      interaction.viewportWheel(wheel.pixelDelta(), wheel.angleDelta(), wheel.phase(), wheel.modifiers(), *this);
       return true;
     }
-    if (model_.focusedHandle().side != QtNodes::PortType::None && modifiers == Qt::NoModifier) {
-      if (key->key() == Qt::Key_Return || key->key() == Qt::Key_Enter || key->key() == Qt::Key_Space) {
-        openFocusedHandlePicker();
-        return true;
-      }
-      if (key->key() == Qt::Key_Escape) {
-        model_.setFocusedHandle(QtNodes::PortType::None, {});
-        return true;
-      }
-    }
-    QString command;
-    if (key->key() == Qt::Key_Escape) {
-        if (runActive()) {
-            action("Stop");
-        }
-      invalidateGesture();
-      scene_->resetDraftConnection();
-      refresh();
+    if (type == QEvent::NativeGesture) {
+      const auto &gesture = *static_cast<QNativeGestureEvent *>(event);
+      if (gesture.gestureType() != Qt::ZoomNativeGesture) { return false; }
+      zoomUnderCursor(1.0 + gesture.value());
       return true;
     }
-    if (QApplication::activePopupWidget()) { return false; }
-    command = shortcutCommand(key->key(), key->modifiers());
-    // Enter is free for the canvas until navigation has focused a node.
-    if (command == "Select focused node" && model_.focusedNode().isEmpty()) { command.clear(); }
-    if (command == "Add node" && !readOnly()) {
-      // Space opens the node menu where the pointer is (web useNodeEditorShortcuts.ts).
-      const auto pointer = canvas_->viewportWidget().mapFromGlobal(QCursor::pos());
-      if (canvas_->viewportWidget().rect().contains(pointer)) { armCatalogPlacement(canvas_->mapToScene(pointer)); }
-    }
-    if (!command.isEmpty()) {
-      action(command);
+  }
+  const bool onViewport = object == &canvas_->viewportWidget();
+  if ((onViewport && type == QEvent::MouseButtonPress) || type == QEvent::MouseMove || type == QEvent::MouseButtonRelease) {
+    const auto &mouse = *static_cast<QMouseEvent *>(event);
+    const auto position = mouse.position().toPoint();
+    using canvas::PointerAction;
+    const auto action = type == QEvent::MouseButtonPress ? PointerAction::Press
+                      : type == QEvent::MouseButtonRelease ? PointerAction::Release : PointerAction::Move;
+    // Only the viewport's releases finish a document gesture. A middle-button
+    // pan can end on the host widget as well.
+    if (interaction.viewportPointerEvent(action, {canvas_->mapToScene(position), mouse.globalPosition().toPoint(),
+            mouse.button(), mouse.buttons(), mouse.modifiers(), canvas_->zoom()}, position, *this, onViewport)) {
       return true;
     }
+  }
+  if (type == QEvent::KeyPress) {
+    const auto &key = *static_cast<QKeyEvent *>(event);
+    const auto &viewport = canvas_->viewportWidget();
+    const auto pointer = viewport.mapFromGlobal(QCursor::pos());
+    const auto scenePointer = viewport.rect().contains(pointer) ? std::optional{canvas_->mapToScene(pointer)} : std::nullopt;
+    if (interaction.viewportKeyPress(key.key(), key.modifiers(), scenePointer, *this)) { return true; }
   }
   return QMainWindow::eventFilter(object, event);
 }

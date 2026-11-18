@@ -47,7 +47,7 @@ QString audioUri() {
   return "data:audio/wav;base64," + QString::fromLatin1(bytes.toBase64());
 }
 QJsonObject media(const QString &kind, const QString &uri) { return {{"type", kind}, {"uri", uri}}; }
-QQuickWidget *canvas(EditorWindow &window) {
+QQuickWidget *canvasGalleryWidget(EditorWindow &window) {
   for (auto widget : window.findChildren<QQuickWidget *>()) {
     if (widget->isVisible() && widget->objectName() == "canvas-media-" + NodeId) { return widget; }
   }
@@ -296,14 +296,14 @@ private slots:
     const auto id = *model.allNodeIds().begin();
     auto node = nodetool::test::graphicsNode(*window.scene(), id); QVERIFY(node);
     QTRY_VERIFY(!model.canvasResultRect(id).isEmpty());
-    QVERIFY(!canvas(window));
+    QVERIFY(!canvasGalleryWidget(window));
     const auto point = view->mapFromScene(node->mapToScene(model.canvasResultRect(id).center()));
     const auto snapshot = window.document()->snapshot();
     const auto undo = window.document()->undoStack()->count();
     QTest::mouseDClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, point);
     QTRY_VERIFY(imageViewer());
     QCOMPARE(imageViewer()->transientParent(), window.windowHandle());
-    QVERIFY(!canvas(window));
+    QVERIFY(!canvasGalleryWidget(window));
     auto modal = imageViewer();
     QWidget unrelatedWindow;
     ShortcutProbe unrelatedProbe;
@@ -346,7 +346,7 @@ private slots:
     QTRY_VERIFY(imageViewer());
     window.session()->disconnectFromServer();
     QTRY_VERIFY(!imageViewer());
-    QVERIFY(!canvas(window));
+    QVERIFY(!canvasGalleryWidget(window));
   }
   void rasterCanvasRespectsTopCardAndCollapse() {
     EditorWindow window; setup(window);
@@ -405,7 +405,7 @@ private slots:
     output(window, "single-image", media("image", imageUri(Qt::blue)));
     window.action("Output"); window.fit();
     QTRY_VERIFY(gallery(panel(window)));
-    QVERIFY(!canvas(window));
+    QVERIFY(!canvasGalleryWidget(window));
     auto widget = panel(window);
     QQuickItem *download = nullptr;
     QQuickItem *image = nullptr;
@@ -428,7 +428,7 @@ private slots:
     QVERIFY(QMetaObject::invokeMethod(dialog, "close"));
     QCOMPARE(window.document()->snapshot(), before);
     QCOMPARE(window.document()->undoStack()->count(), undoCount);
-    QVERIFY(!canvas(window));
+    QVERIFY(!canvasGalleryWidget(window));
   }
   void compactVideoFillsTheGallery() {
     QFile file(QStringLiteral(MEDIA_VIDEO_FIXTURE)); QVERIFY(file.open(QIODevice::ReadOnly));
@@ -439,10 +439,10 @@ private slots:
     auto ui = window.document()->node(NodeId)["ui_properties"].toObject(); ui["width"] = 480; ui["height"] = 640;
     QVERIFY(window.document()->applyCommand({{"op", "setNodeField"}, {"id", NodeId}, {"field", "ui_properties"}, {"value", ui}}));
     window.resize(1400, 1000); window.fit();
-    QTRY_VERIFY(canvas(window) && gallery(canvas(window)) && control(canvas(window), "preview-video"));
-    QTRY_VERIFY(gallery(canvas(window))->height() > 300);
-    const auto view = gallery(canvas(window));
-    const auto video = control(canvas(window), "preview-video");
+    QTRY_VERIFY(canvasGalleryWidget(window) && gallery(canvasGalleryWidget(window)) && control(canvasGalleryWidget(window), "preview-video"));
+    QTRY_VERIFY(gallery(canvasGalleryWidget(window))->height() > 300);
+    const auto view = gallery(canvasGalleryWidget(window));
+    const auto video = control(canvasGalleryWidget(window), "preview-video");
     // The video takes the rest of the card, not a fixed compact strip.
     QTRY_VERIFY2(video->height() > view->height() / 2, qPrintable(QString("video %1 of gallery %2").arg(video->height()).arg(view->height())));
   }
@@ -456,19 +456,19 @@ private slots:
     window.runOutput()->beginRun("gallery");
     output(window, "gallery", QJsonArray{red, red, "Mixed caption retained", blue, media("audio", audioUri()), media("video", movie)});
     window.fit();
-    QTRY_VERIFY(canvas(window) && gallery(canvas(window)));
-    QPointer<QQuickWidget> widget = canvas(window);
+    QTRY_VERIFY(canvasGalleryWidget(window) && gallery(canvasGalleryWidget(window)));
+    QPointer<QQuickWidget> widget = canvasGalleryWidget(window);
     auto view = gallery(widget);
     QCOMPARE(view->property("count").toInt(), 6);
     QCOMPARE(window.outputMedia().size(), 5);
     QTRY_VERIFY(control(widget, "gallery-tile-0") && control(widget, "gallery-tile-1"));
     QTRY_VERIFY(([&] {
-      const auto current = canvas(window);
+      const auto current = canvasGalleryWidget(window);
       const auto first = findItem(control(current, "gallery-tile-0"), "preview-image");
       const auto repeated = findItem(control(current, "gallery-tile-1"), "preview-image");
       return first && repeated && first->property("status").toInt() == 1 && repeated->property("status").toInt() == 1;
     })());
-    widget = canvas(window);
+    widget = canvasGalleryWidget(window);
     const auto firstImage = findItem(control(widget, "gallery-tile-0"), "preview-image");
     const auto repeatedImage = findItem(control(widget, "gallery-tile-1"), "preview-image");
     QVERIFY(firstImage); QVERIFY(repeatedImage);
@@ -484,7 +484,7 @@ private slots:
       window.setDarkTheme(dark); QTest::qWait(50);
       QVERIFY(capture(window, QString("node-editor-gallery-host-%1.png").arg(dark ? "dark" : "light")));
     }
-    widget = canvas(window); QVERIFY(widget);
+    widget = canvasGalleryWidget(window); QVERIFY(widget);
     QVERIFY(click(widget, "gallery-tile-1"));
     QVERIFY(!gallery(widget)->property("singleView").toBool());
     QVERIFY(openTile(widget, "gallery-tile-1"));
@@ -524,12 +524,12 @@ private slots:
     QCOMPARE(window.document()->snapshot(), before); QCOMPARE(window.document()->undoStack()->count(), undoCount);
     previous = player(widget);
     window.runOutput()->beginRun("empty");
-    QTRY_VERIFY(!canvas(window)); QTRY_VERIFY(previous.isNull());
+    QTRY_VERIFY(!canvasGalleryWidget(window)); QTRY_VERIFY(previous.isNull());
     window.runOutput()->selectRun("gallery");
-    QTRY_VERIFY(canvas(window));
-    QCOMPARE(gallery(canvas(window))->property("count").toInt(), 6);
+    QTRY_VERIFY(canvasGalleryWidget(window));
+    QCOMPARE(gallery(canvasGalleryWidget(window))->property("count").toInt(), 6);
     window.session()->disconnectFromServer();
-    QTRY_VERIFY(!canvas(window));
+    QTRY_VERIFY(!canvasGalleryWidget(window));
     QVERIFY(!QFile::exists(cachePath));
     output(window, "gallery", red);
     QVERIFY(window.outputMedia().isEmpty());
@@ -540,29 +540,29 @@ private slots:
     QJsonArray images;
     for (int i = 0; i < 60; ++i) { images.append(media("image", imageUri(i % 2 ? Qt::blue : Qt::red))); }
     output(window, "responsive", images); window.fit();
-    QTRY_VERIFY(canvas(window) && gallery(canvas(window)));
-    QCOMPARE(gallery(canvas(window))->property("count").toInt(), 60);
-    QPointer<QQuickItem> grid = control(canvas(window), "gallery-grid-scroll");
+    QTRY_VERIFY(canvasGalleryWidget(window) && gallery(canvasGalleryWidget(window)));
+    QCOMPARE(gallery(canvasGalleryWidget(window))->property("count").toInt(), 60);
+    QPointer<QQuickItem> grid = control(canvasGalleryWidget(window), "gallery-grid-scroll");
     QVERIFY2(grid, "Multiple outputs need a responsive scrollable grid, not fixed pages");
-    QTRY_VERIFY(control(canvas(window), "gallery-tile-0"));
-    const auto tile = control(canvas(window), "gallery-tile-0");
+    QTRY_VERIFY(control(canvasGalleryWidget(window), "gallery-tile-0"));
+    const auto tile = control(canvasGalleryWidget(window), "gallery-tile-0");
     QCOMPARE(tile->width(), tile->height());
     QCOMPARE(grid->property("minimumTileWidth").toDouble(), 96.0);
     QVERIFY(tile->width() >= 96);
     QVERIFY(grid->property("contentHeight").toDouble() > grid->height());
-    QVERIFY(!control(canvas(window), "gallery-next")->isVisible());
-    QVERIFY(resolvedImages(canvas(window)->rootObject()) <= 6);
-    QVERIFY(scrollGrid(canvas(window), -10000));
+    QVERIFY(!control(canvasGalleryWidget(window), "gallery-next")->isVisible());
+    QVERIFY(resolvedImages(canvasGalleryWidget(window)->rootObject()) <= 6);
+    QVERIFY(scrollGrid(canvasGalleryWidget(window), -10000));
     QTRY_VERIFY(grid && grid->property("contentY").toDouble() > 0);
-    QVERIFY(scrollToEnd(canvas(window)));
-    QTRY_VERIFY(control(canvas(window), "gallery-tile-59") && control(canvas(window), "gallery-tile-59")->property("inViewport").toBool());
-    QCOMPARE(gallery(canvas(window))->property("count").toInt(), 60);
-    QVERIFY(resolvedImages(canvas(window)->rootObject()) <= 6);
-    QVERIFY(click(canvas(window), "gallery-tile-59"));
-    QVERIFY(!gallery(canvas(window))->property("singleView").toBool());
-    QVERIFY(openTile(canvas(window), "gallery-tile-59"));
-    QTRY_VERIFY(gallery(canvas(window))->property("singleView").toBool());
-    QTRY_VERIFY(control(canvas(window), "preview-image") && control(canvas(window), "preview-image")->property("paintedHeight").toDouble() > 100);
+    QVERIFY(scrollToEnd(canvasGalleryWidget(window)));
+    QTRY_VERIFY(control(canvasGalleryWidget(window), "gallery-tile-59") && control(canvasGalleryWidget(window), "gallery-tile-59")->property("inViewport").toBool());
+    QCOMPARE(gallery(canvasGalleryWidget(window))->property("count").toInt(), 60);
+    QVERIFY(resolvedImages(canvasGalleryWidget(window)->rootObject()) <= 6);
+    QVERIFY(click(canvasGalleryWidget(window), "gallery-tile-59"));
+    QVERIFY(!gallery(canvasGalleryWidget(window))->property("singleView").toBool());
+    QVERIFY(openTile(canvasGalleryWidget(window), "gallery-tile-59"));
+    QTRY_VERIFY(gallery(canvasGalleryWidget(window))->property("singleView").toBool());
+    QTRY_VERIFY(control(canvasGalleryWidget(window), "preview-image") && control(canvasGalleryWidget(window), "preview-image")->property("paintedHeight").toDouble() > 100);
     window.action("Output"); window.fit();
     QTRY_VERIFY(control(panel(window), "gallery-grid-scroll"));
     QCOMPARE(control(panel(window), "gallery-grid-scroll")->property("minimumTileWidth").toDouble(), 128.0);
@@ -602,17 +602,17 @@ private slots:
       auto ui = window.document()->node(NodeId)["ui_properties"].toObject(); ui["width"] = width;
       QVERIFY(window.document()->applyCommand({{"op", "setNodeField"}, {"id", NodeId}, {"field", "ui_properties"}, {"value", ui}}));
       window.resize(width == 500 ? 1400 : 900, width == 500 ? 1000 : 800); window.fit();
-      QTRY_VERIFY(canvas(window) && control(canvas(window), "gallery-grid-scroll"));
+      QTRY_VERIFY(canvasGalleryWidget(window) && control(canvasGalleryWidget(window), "gallery-grid-scroll"));
       // An incremental projection keeps the canvas gallery and its open item.
-      if (gallery(canvas(window))->property("singleView").toBool()) { QVERIFY(click(canvas(window), "gallery-grid")); }
-      QTRY_VERIFY(!gallery(canvas(window))->property("singleView").toBool());
-      QTRY_COMPARE(control(canvas(window), "gallery-grid-scroll")->property("columns").toInt(), width == 500 ? 4 : 1);
+      if (gallery(canvasGalleryWidget(window))->property("singleView").toBool()) { QVERIFY(click(canvasGalleryWidget(window), "gallery-grid")); }
+      QTRY_VERIFY(!gallery(canvasGalleryWidget(window))->property("singleView").toBool());
+      QTRY_COMPARE(control(canvasGalleryWidget(window), "gallery-grid-scroll")->property("columns").toInt(), width == 500 ? 4 : 1);
       for (const auto dark : {true, false}) {
         window.setDarkTheme(dark); QTest::qWait(50);
         QVERIFY(capture(window, QString("node-editor-gallery-responsive-%1-%2.png").arg(width == 500 ? "wide" : "narrow", dark ? "dark" : "light")));
       }
-      QVERIFY(openTile(canvas(window), "gallery-tile-0"));
-      QTRY_VERIFY(control(canvas(window), "preview-image") && control(canvas(window), "preview-image")->property("paintedHeight").toDouble() > 80);
+      QVERIFY(openTile(canvasGalleryWidget(window), "gallery-tile-0"));
+      QTRY_VERIFY(control(canvasGalleryWidget(window), "preview-image") && control(canvasGalleryWidget(window), "preview-image")->property("paintedHeight").toDouble() > 80);
       for (const auto dark : {true, false}) {
         window.setDarkTheme(dark); QTest::qWait(50);
         QVERIFY(capture(window, QString("node-editor-gallery-responsive-selected-%1-%2.png").arg(width == 500 ? "wide" : "narrow", dark ? "dark" : "light")));
@@ -625,9 +625,9 @@ private slots:
     window.runOutput()->beginRun("stream");
     const auto sound = media("audio", audioUri());
     output(window, "stream", sound); window.fit();
-    QTRY_VERIFY(canvas(window) && player(canvas(window)) && player(panel(window)));
-    QTRY_VERIFY(player(canvas(window))->duration() > 1000 && player(panel(window))->duration() > 1000);
-    QPointer<QQuickWidget> card = canvas(window), bottom = panel(window);
+    QTRY_VERIFY(canvasGalleryWidget(window) && player(canvasGalleryWidget(window)) && player(panel(window)));
+    QTRY_VERIFY(player(canvasGalleryWidget(window))->duration() > 1000 && player(panel(window))->duration() > 1000);
+    QPointer<QQuickWidget> card = canvasGalleryWidget(window), bottom = panel(window);
     QVERIFY(click(card, "preview-compact-play")); QVERIFY(click(bottom, "preview-play"));
     QTRY_COMPARE(player(card)->playbackState(), QMediaPlayer::PlayingState);
     QTRY_COMPARE(player(bottom)->playbackState(), QMediaPlayer::PlayingState);
@@ -636,7 +636,7 @@ private slots:
     output(window, "stream", sound);
     QTRY_VERIFY(gallery(card) && gallery(card)->property("count").toInt() == 2);
     QTRY_VERIFY(gallery(bottom) && gallery(bottom)->property("count").toInt() == 2);
-    QCOMPARE(canvas(window), card);
+    QCOMPARE(canvasGalleryWidget(window), card);
     QCOMPARE(player(card), cardPlayer.data()); QCOMPARE(player(bottom), panelPlayer.data());
     QCOMPARE(cardPlayer->playbackState(), QMediaPlayer::PlayingState); QCOMPARE(panelPlayer->playbackState(), QMediaPlayer::PlayingState);
     output(window, "stream", "Stream caption preserved");
@@ -644,7 +644,7 @@ private slots:
     QCOMPARE(player(card), cardPlayer.data()); QCOMPARE(cardPlayer->playbackState(), QMediaPlayer::PlayingState);
     window.runOutput()->beginRun("new-scope");
     QTRY_VERIFY(cardPlayer.isNull() && panelPlayer.isNull());
-    QVERIFY(!canvas(window));
+    QVERIFY(!canvasGalleryWidget(window));
   }
 };
 int main(int argc, char **argv) {
