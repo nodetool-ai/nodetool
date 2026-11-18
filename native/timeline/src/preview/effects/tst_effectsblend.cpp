@@ -1,6 +1,7 @@
 #include "preview/compose/ComposeRegistry.h"
 #include "preview/effects/ClipEffects.h"
 #include "preview/layers/SceneHooks.h"
+#include "model/TimelineModel.h"
 #include "preview/layers/TestStill.h"
 #include "model/TimelineJson.h"
 #include <QGuiApplication>

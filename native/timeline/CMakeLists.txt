@@ -199,6 +199,9 @@ add_library(timeline_core STATIC ${NT_core})
 target_include_directories(timeline_core PUBLIC src)
 target_link_libraries(timeline_core PUBLIC Qt6::Core PRIVATE yogacore)
 target_compile_options(timeline_core PRIVATE ${NT_WARNINGS})
+# NodeTool.Timeline registers TimelineSource with QML_FOREIGN, which reads
+# these metatypes.
+qt_extract_metatypes(timeline_core)
 # The scene port computes what the web computes in JavaScript, one rounding
 # per operation: no fused multiply-add (Clang contracts by default).
 if(NOT MSVC)

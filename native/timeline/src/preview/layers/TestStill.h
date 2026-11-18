@@ -1,5 +1,6 @@
 #pragma once
-#include "model/TimelineModel.h"
+#include "model/TimelineSource.h"
+#include "model/TimelineTypes.h"
 #include "preview/PreviewCompositor.h"
 #include "preview/layers/LayerRegistry.h"
 #include "preview/hw/HwWindow.h"
@@ -42,12 +43,13 @@ public:
     // native-rules #2: naked delete
     // native-rules #3: object has a Qt parent (contentItem) and is also deleted by hand
     ~Still() { delete m_compositor; }
-    bool initialize(TimelineModel& model) {
+    bool initialize(TimelineSource& source) {
         hw::prepareWindow(&m_window);
-        const QSize size(model.canvasWidth(), model.canvasHeight());
+        const auto snapshot = source.snapshot();
+        const QSize size(snapshot->width, snapshot->height);
         m_window.resize(size);
         m_compositor = new PreviewCompositor(m_window.contentItem());
-        m_compositor->setTimeline(&model);
+        m_compositor->setTimeline(&source);
         m_compositor->setSize(size);
         m_compositor->setCollectFrameStats(true);
         if (!m_control.initialize()) { return false; }

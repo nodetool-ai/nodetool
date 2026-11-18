@@ -123,10 +123,13 @@ private:
 }  // namespace
 
 TimelineModel::TimelineModel(QObject* parent)
-    : QObject(parent),
+    : TimelineSource(parent),
       m_timeline(std::make_shared<const nt::Timeline>()),
       m_tracks(new TrackListModel(this)),
-      m_undo(new QUndoStack(this)) {}
+      m_undo(new QUndoStack(this)) {
+    connect(this, &TimelineModel::timelineChanged, this, &TimelineSource::sourceChanged);
+    connect(this, &TimelineModel::previewChanged, this, &TimelineSource::sourceChanged);
+}
 
 void TimelineModel::setEffectMattePreview(const QString& clipId, const QString& effectId) {
     auto nextClip=clipId.toStdString(), nextEffect=effectId.toStdString();

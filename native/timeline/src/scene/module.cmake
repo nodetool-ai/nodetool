@@ -13,6 +13,8 @@ nt_sources(core
     src/scene/TextAnimation.cpp
     src/scene/TextBlock.h
     src/scene/TextBlock.cpp
+    src/scene/TimeRemap.h
+    src/scene/TimeRemap.cpp
 )
 
 function(nt_scene_tests)

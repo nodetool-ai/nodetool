@@ -3,7 +3,7 @@
 #include "aiassist/AssistDocument.h"
 #include "aiassist/LinkedWorkflow.h"
 #include "app/EditRegistry.h"
-#include "edit/speed/TimeRemap.h"
+#include "scene/TimeRemap.h"
 #include "edit/EditActions.h"
 #include "server/ServerSource.h"
 #include "server/ServerClient.h"

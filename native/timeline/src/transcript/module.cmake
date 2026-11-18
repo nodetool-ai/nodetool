@@ -1,4 +1,5 @@
-nt_sources(core src/transcript/TranscriptDocument.h src/transcript/TranscriptDocument.cpp)
+nt_sources(core src/transcript/CaptionCues.h src/transcript/CaptionCues.cpp
+    src/transcript/TranscriptDocument.h src/transcript/TranscriptDocument.cpp)
 function(nt_transcript_tests)
     qt_add_executable(tst_transcript src/transcript/tst_transcript.cpp
         src/edit/targeting/TargetingEditRegistrations.cpp src/app/BuiltinEdits.cpp)

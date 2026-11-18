@@ -1,5 +1,4 @@
-nt_sources(core src/edit/speed/SpeedOperations.h src/edit/speed/SpeedOperations.cpp
-    src/edit/speed/TimeRemap.h src/edit/speed/TimeRemap.cpp)
+nt_sources(core src/edit/speed/SpeedOperations.h src/edit/speed/SpeedOperations.cpp)
 nt_sources(ops src/edit/speed/SpeedSourceRegistration.cpp)
 # Registrars compile into executables so static-library linking cannot drop them.
 nt_sources(app src/edit/speed/SpeedRegistrations.cpp src/edit/speed/SpeedMixRegistration.cpp)

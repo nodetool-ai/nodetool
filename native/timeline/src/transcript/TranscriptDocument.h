@@ -10,6 +10,8 @@
 // licenses/FilmCraft-MIT.txt): a word belongs to a clip when its midpoint lies in the clip,
 // its bounds are clamped to the clip, the search ignores case and punctuation and the last query
 // word may be a prefix, and a selection snaps outward to frames.
+#include "transcript/CaptionCues.h"
+
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QString>
@@ -60,8 +62,6 @@ struct Cue {
 };
 
 inline constexpr double PARAGRAPH_GAP_MS = 1500;
-inline constexpr double CUE_GAP_MS = 700;  // CAPTION_CUE_GAP_MS in packages/timeline/src/render/sceneModel.ts
-inline constexpr int CUE_MAX_WORDS = 10;   // CAPTION_CUE_MAX_WORDS
 
 // Lowercase, with punctuation trimmed from both ends.
 QString normalizedWord(const QString& text);
@@ -82,8 +82,6 @@ std::vector<WordRange> search(const std::vector<Word>& words, const QString& que
 // The span of words first to last, in either order, snapped outward to frames.
 std::optional<TimeSpan> wordSpan(const std::vector<Word>& words, int first, int last, double fps);
 
-// The raw indices of each cue in caption.words: the rules of captionCues in sceneModel.ts.
-std::vector<std::vector<int>> captionCues(const QJsonArray& words, double durationMs);
 std::vector<Cue> sequenceCues(const QJsonObject& document);
 
 // Pure caption edits. Each returns the document unchanged when it refuses. The clip must be

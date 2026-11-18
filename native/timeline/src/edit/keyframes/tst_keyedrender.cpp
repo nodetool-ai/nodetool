@@ -8,6 +8,7 @@
 #include "preview/SceneEval.h"
 #include "preview/crop/Reframe.h"
 #include "scene/ParamCurves.h"
+#include "model/TimelineModel.h"
 #include "preview/layers/TestStill.h"
 #include <QJsonArray>
 #include <QJsonDocument>

@@ -1,7 +1,9 @@
 #pragma once
+#include "model/TimelineSource.h"
 #include "preview/WorkingFormat.h"
 
 #include <QImage>
+#include <QPointer>
 #include <QRectF>
 #include <QQuickRhiItem>
 #include <QString>
@@ -37,7 +39,6 @@ void unregisterBackdropStage(BackdropStageToken token);
 std::vector<std::unique_ptr<BackdropStage>> registeredBackdropStages();
 }
 
-class TimelineModel;
 class PlaybackClock;
 
 // One composited frame, measured on the render thread.
@@ -95,7 +96,7 @@ struct MediaReportEntry {
 class PreviewCompositor : public QQuickRhiItem {
     Q_OBJECT
     QML_ELEMENT
-    Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY timelineChanged)
+    Q_PROPERTY(TimelineSource* timeline READ timeline WRITE setTimeline NOTIFY timelineChanged)
     Q_PROPERTY(PlaybackClock* clock READ clock WRITE setClock NOTIFY clockChanged)
     Q_PROPERTY(QRectF canvasRegion READ canvasRegion WRITE setCanvasRegion NOTIFY canvasRegionChanged)
     Q_PROPERTY(int playbackResolution READ playbackResolution WRITE setPlaybackResolution NOTIFY playbackResolutionChanged)
@@ -111,8 +112,8 @@ public:
     explicit PreviewCompositor(QQuickItem* parent = nullptr);
     void setWorkingFormat(nt::WorkingFormat format) { m_workingFormat = format; update(); }
 
-    TimelineModel* timeline() const { return m_timeline; }
-    void setTimeline(TimelineModel* timeline);
+    TimelineSource* timeline() const { return m_timeline; }
+    void setTimeline(TimelineSource* timeline);
     PlaybackClock* clock() const { return m_clock; }
     void setClock(PlaybackClock* clock);
 
@@ -201,7 +202,7 @@ private:
     QSize m_lastCanvasSize;
     bool m_frameSettled = false;
     bool m_monitorPipelineCreated = false;
-    TimelineModel* m_timeline = nullptr;
+    QPointer<TimelineSource> m_timeline;
     // The last snapshot seen by timelineEdited(), the revision that names its visible content,
     // and the count of edits that changed it.
     std::shared_ptr<const nt::Timeline> m_visualSnapshot;

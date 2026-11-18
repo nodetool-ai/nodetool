@@ -7,6 +7,7 @@
 #include "model/TimelineJson.h"
 #include "preview/FfmpegSource.h"
 #include "preview/hw/HwWindow.h"
+#include "model/TimelineModel.h"
 #include "preview/layers/TestStill.h"
 #include <QElapsedTimer>
 #include <QFile>

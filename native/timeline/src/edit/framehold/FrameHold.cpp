@@ -1,7 +1,7 @@
 // Behaviour ported from FilmCraft (https://github.com/storytold/filmcraft), MIT OR Apache-2.0.
 #include "FrameHold.h"
 #include "edit/clipboard/RawDocument.h"
-#include "edit/speed/TimeRemap.h"
+#include "scene/TimeRemap.h"
 #include "edit/targeting/TargetingEdits.h"
 #include <algorithm>
 #include <cmath>

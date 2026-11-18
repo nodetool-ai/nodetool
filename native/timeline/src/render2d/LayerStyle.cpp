@@ -2,7 +2,7 @@
 #include "render2d/Paint.h"
 #include "render2d/Rasterizer.h"
 #include "scene/TextAnimation.h"
-#include "transcript/TranscriptDocument.h"
+#include "transcript/CaptionCues.h"
 #include <QJsonArray>
 #include <QRegularExpression>
 #include <algorithm>

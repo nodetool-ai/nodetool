@@ -1,7 +1,8 @@
 #include "preview/PreviewCompositor.h"
 #include "motion/wipe/Wipe.h"
 
-#include "model/TimelineModel.h"
+#include "model/TimelineSource.h"
+#include "model/TimelineTypes.h"
 #include "playback/PlaybackClock.h"
 #include "preview/SceneEval.h"
 #include "motion/blur/Shutter.h"
@@ -290,7 +291,7 @@ private:
 
     // Snapshot from synchronize() (D8).
     std::shared_ptr<const nt::Timeline> m_timeline;
-    QPointer<TimelineModel> m_sourceModel;
+    QPointer<TimelineSource> m_sourceModel;
     quint64 m_sourceGeneration = 0;
     double m_timeMs = 0.0;
     double m_tapTimeMs = 0.0;
@@ -395,7 +396,7 @@ void PreviewCompositor::setTransparencyGrid(bool on) {
     update();
 }
 
-void PreviewCompositor::setTimeline(TimelineModel* timeline) {
+void PreviewCompositor::setTimeline(TimelineSource* timeline) {
     if (timeline == m_timeline) {
         return;
     }
@@ -404,9 +405,9 @@ void PreviewCompositor::setTimeline(TimelineModel* timeline) {
     }
     m_timeline = timeline;
     if (m_timeline) {
-        // timelineChanged follows every clipsChanged, and previewChanged covers transient steps.
-        connect(m_timeline, &TimelineModel::timelineChanged, this, &PreviewCompositor::timelineEdited);
-        connect(m_timeline, &TimelineModel::previewChanged, this, &PreviewCompositor::timelineEdited);
+        // TimelineModel forwards timelineChanged, which follows every clipsChanged, and
+        // previewChanged, which covers transient steps.
+        connect(m_timeline, &TimelineSource::sourceChanged, this, &PreviewCompositor::timelineEdited);
         m_visualSnapshot = m_timeline->snapshot();
         m_visualGeneration = m_timeline->documentGeneration();
     } else {
@@ -615,7 +616,8 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
         m_previousValid = false;
         return;
     }
-    const bool sourceChanged = m_sourceModel != item->m_timeline || m_sourceGeneration != item->m_timeline->documentGeneration();
+    TimelineSource* source = item->m_timeline.data();
+    const bool sourceChanged = m_sourceModel.data() != source || m_sourceGeneration != source->documentGeneration();
     if (sourceChanged) {
         for (auto it = m_sources.begin(); it != m_sources.end();) {
             if (it->second.registered) {
@@ -625,10 +627,10 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
                 ++it;
             }
         }
-        m_sourceModel = item->m_timeline;
-        m_sourceGeneration = item->m_timeline->documentGeneration();
+        m_sourceModel = source;
+        m_sourceGeneration = source->documentGeneration();
     }
-    m_timeline = item->m_timeline->snapshot();
+    m_timeline = source->snapshot();
     m_documentSize = QSize(m_timeline->width, m_timeline->height);
     m_fps = m_timeline->fps;
     const double clockTime = item->m_clock ? item->m_clock->currentTimeMs() : 0.0;

@@ -1,7 +1,7 @@
 #include "model/TimelineJson.h"
 
 #include "scene/ClipScene.h"
-#include "edit/speed/TimeRemap.h"
+#include "scene/TimeRemap.h"
 
 #include <QDir>
 #include <QFile>

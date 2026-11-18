@@ -1,4 +1,5 @@
 #include "SourceMonitor.h"
+#include "model/TimelineModel.h"
 #include "preview/layers/TestStill.h"
 #include <QtTest>
 #include <QTemporaryDir>

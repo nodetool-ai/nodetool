@@ -144,6 +144,29 @@ private slots:
         model.setReadOnly(false);
         QVERIFY(model.moveClip(QStringLiteral("clip-1-1"), 0));
     }
+
+    // The preview and the audio read the model as a TimelineSource: each
+    // timelineChanged and previewChanged reaches them as sourceChanged.
+    void sourceForwardsEveryChange() {
+        TimelineModel model;
+        TimelineSource& source = model;
+        QSignalSpy sourceChanged(&source, &TimelineSource::sourceChanged);
+        QSignalSpy timelineChanged(&model, &TimelineModel::timelineChanged);
+        QSignalSpy previewChanged(&model, &TimelineModel::previewChanged);
+        load(model);
+        QCOMPARE(sourceChanged.count(), 1);
+        QCOMPARE(source.documentGeneration(), model.documentGeneration());
+        QVERIFY(model.moveClip(QStringLiteral("clip-1-1"), 4000));
+        QCOMPARE(sourceChanged.count(), 2);
+        QCOMPARE(source.snapshot(), model.snapshot());
+        QJsonObject clip = model.findClip(QStringLiteral("clip-0-0"))->raw;
+        clip["startMs"] = 500;
+        QVERIFY(model.previewClips(QJsonArray{clip}));
+        QCOMPARE(previewChanged.count(), 1);
+        QCOMPARE(sourceChanged.count(), 3);
+        QCOMPARE(source.snapshot()->findClip("clip-0-0")->startMs, 500.0);
+        QCOMPARE(sourceChanged.count(), timelineChanged.count() + previewChanged.count());
+    }
 };
 
 QTEST_GUILESS_MAIN(TestTimelineModel)
