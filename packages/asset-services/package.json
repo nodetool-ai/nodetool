@@ -103,6 +103,11 @@
       "types": "./dist/external-asset-lookup.d.ts",
       "import": "./dist/external-asset-lookup.js"
     },
+    "./blob-store": {
+      "nodetool-dev": "./src/blob-store.ts",
+      "types": "./dist/blob-store.d.ts",
+      "import": "./dist/blob-store.js"
+    },
     "./scratch-keys": {
       "nodetool-dev": "./src/scratch-keys.ts",
       "types": "./dist/scratch-keys.d.ts",

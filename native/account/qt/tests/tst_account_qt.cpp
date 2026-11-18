@@ -13,6 +13,7 @@
 #include "nodetool/account/qt/QtHttpTransport.h"
 #include "nodetool/account/qt/ServerToken.h"
 #include "nodetool/account/qt/ShareController.h"
+#include "nodetool/account/qt/TransferController.h"
 #include "test_support.h"
 
 #include <QNetworkAccessManager>
@@ -23,10 +24,13 @@
 #include <QTest>
 #include <QUrlQuery>
 
+#include <nlohmann/json.hpp>
+
 #include <atomic>
 #include <map>
 #include <chrono>
 #include <condition_variable>
+#include <deque>
 #include <future>
 #include <mutex>
 #include <vector>
@@ -38,6 +42,8 @@ using namespace nodetool::account::qt;
 namespace {
 
 constexpr const char* kServer = "https://nt.example";
+// The app's bundled server, where a transfer runs.
+constexpr const char* kLocalServer = "http://127.0.0.1:7777";
 
 // A local HTTP server that answers every request with one canned response,
 // and records the last request's head. An empty response never answers. A
@@ -205,6 +211,14 @@ void completeInBrowser(const QUrl& authorize, const QString& code) {
 // document. Thread-safe: `mutex_` guards the answers and the log.
 class ProcedureServer final : public HttpTransport {
 public:
+  // The signed-in account owns every document unless a test answers the
+  // access procedures itself (review F25 opens a document read-only when
+  // its access read is refused).
+  ProcedureServer() {
+    const HttpResponse owner{200, R"({"result":{"data":{"access":{"role":"owner"}}}})"};
+    answers_["workflows.sharing.access"] = owner;
+    answers_["documentSharing.access"] = owner;
+  }
   void answer(const std::string& procedure, HttpResponse response) {
     const std::lock_guard lock(mutex_);
     answers_[procedure] = std::move(response);
@@ -246,6 +260,66 @@ private:
   std::map<std::string, HttpResponse> answers_;
   std::vector<HttpRequest> sent_;
 };
+
+// Answers each procedure from a queue: the next answer per call, and the
+// last one again once the queue is down to it. Records every request.
+//
+// Thread affinity: thread-safe. `mutex_` guards the queues and the record.
+class QueueServer final : public HttpTransport {
+public:
+  void answer(const std::string& procedure, HttpResponse response) {
+    const std::lock_guard lock(mutex_);
+    answers_[procedure].push_back(std::move(response));
+  }
+  HttpResponse send(const HttpRequest& request) override {
+    const std::lock_guard lock(mutex_);
+    // The path after the origin, whichever server the request went to.
+    const auto host = request.url.find("://");
+    const auto slash = host == std::string::npos ? std::string::npos : request.url.find('/', host + 3);
+    std::string path = slash == std::string::npos ? std::string() : request.url.substr(slash);
+    if (path.starts_with("/trpc/")) {
+      path = path.substr(6);
+    }
+    sent_.emplace_back(path, request.body);
+    auto& queue = answers_[path];
+    if (queue.empty()) {
+      return {404, "{}"};
+    }
+    HttpResponse response = queue.front();
+    if (queue.size() > 1) {
+      queue.pop_front();
+    }
+    return response;
+  }
+  // The procedures called, in order.
+  std::vector<std::string> calls() {
+    const std::lock_guard lock(mutex_);
+    std::vector<std::string> out;
+    for (const auto& [path, body] : sent_) {
+      out.push_back(path);
+    }
+    return out;
+  }
+  // The body of the `n`th call of `procedure`, from 0.
+  std::string body(const std::string& procedure, std::size_t n = 0) {
+    const std::lock_guard lock(mutex_);
+    for (const auto& [path, body] : sent_) {
+      if (path == procedure && n-- == 0) {
+        return body;
+      }
+    }
+    return {};
+  }
+
+private:
+  std::mutex mutex_;
+  std::map<std::string, std::deque<HttpResponse>> answers_;
+  std::vector<std::pair<std::string, std::string>> sent_;
+};
+
+HttpResponse trpcData(const std::string& json) {
+  return {200, R"({"result":{"data":)" + json + "}}"};
+}
 
 // Forwards to a ProcedureServer the test keeps.
 class SharedTransport final : public HttpTransport {
@@ -1084,6 +1158,83 @@ private slots:
     QCOMPARE(server.count("workflows.autosave", "POST"), 0);
   }
 
+  // A reopened tab passes the role it kept. The server's current role
+  // replaces it, so a role taken away since then is never used (review F4).
+  void reopenUsesTheCurrentRole() {
+    Computer computer;
+    computer.server.addCode("code-r", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-r");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+    ProcedureServer server;
+    server.answer("/api/sync/capabilities", {200, kCapabilities});
+    server.answer("workflows.get", {200, R"({"result":{"data":{"id":"w1","name":"Theirs",)"
+                                         R"("updated_at":"2026-11-16T00:00:00Z","graph":{"nodes":[],"edges":[]}}}})"});
+    const auto openAs = [&](const std::string& keptRole) {
+      CloudDocumentServices services;
+      services.session = account->session();
+      services.store = std::make_unique<MemoryDrafts>();
+      services.kind = "workflow";
+      services.documentId = "w1";
+      services.role = keptRole;
+      services.transport = std::make_unique<SharedTransport>(server);
+      return std::make_unique<CloudDocument>(std::move(services));
+    };
+
+    // Lowered from editor to viewer: the tab opens read-only.
+    server.answer("workflows.sharing.access", {200, R"({"result":{"data":{"access":{"role":"viewer"}}}})"});
+    auto lowered = openAs("editor");
+    QSignalSpy opened(lowered.get(), &CloudDocument::opened);
+    lowered->open();
+    QTRY_COMPARE(opened.count(), 1);
+    QCOMPARE(lowered->role(), QString("viewer"));
+    QVERIFY(lowered->readOnly());
+    lowered->edit(R"({"nodes":[{"id":"n1"}],"edges":[]})");
+    QCOMPARE(server.count("workflows.autosave", "POST"), 0);
+
+    // Access removed: the tab does not open.
+    server.answer("workflows.sharing.access", {200, R"({"result":{"data":{"access":null}}})"});
+    auto removed = openAs("owner");
+    QSignalSpy failed(removed.get(), &CloudDocument::openFailed);
+    removed->open();
+    QTRY_COMPARE(failed.count(), 1);
+    QCOMPARE(removed->syncStatus(), CloudDocument::SyncStatus::NotOpened);
+    QCOMPARE(server.count("workflows.get"), 1);
+
+    // The server cannot answer the access read: the kept role is the hint.
+    server.answer("workflows.sharing.access", {503, "{}"});
+    auto offline = openAs("viewer");
+    QSignalSpy offlineOpened(offline.get(), &CloudDocument::opened);
+    offline->open();
+    QTRY_COMPARE(offlineOpened.count(), 1);
+    QCOMPARE(offline->role(), QString("viewer"));
+    QVERIFY(offline->readOnly());
+
+    // A kept role this app does not know opens read-only (review F55).
+    auto unknownKept = openAs("admin");
+    QSignalSpy unknownOpened(unknownKept.get(), &CloudDocument::opened);
+    unknownKept->open();
+    QTRY_COMPARE(unknownOpened.count(), 1);
+    QVERIFY(unknownKept->readOnly());
+
+    // The server refuses the access read or answers something unreadable,
+    // and the document read still works: a kept editor role is not used
+    // (review F25). A role the app does not know is unreadable too (review F55).
+    for (const HttpResponse& answer : {HttpResponse{403, R"({"error":{"json":{"data":{"apiCode":"FORBIDDEN"}}}})"},
+                                       HttpResponse{200, R"({"result":{"data":{"nothing":1}}})"},
+                                       HttpResponse{200, R"({"result":{"data":{"access":{"role":"admin"}}}})"}}) {
+      server.answer("workflows.sharing.access", answer);
+      auto refused = openAs("editor");
+      QSignalSpy refusedOpened(refused.get(), &CloudDocument::opened);
+      refused->open();
+      QTRY_COMPARE(refusedOpened.count(), 1);
+      QVERIFY(refused->readOnly());
+      refused->edit(R"({"nodes":[{"id":"n2"}],"edges":[]})");
+      QTest::qWait(300);
+      QCOMPARE(server.count("workflows.autosave", "POST"), 0);
+    }
+  }
+
   // A viewer's document opens read-only and sends nothing. A draft left in
   // the local store opens over the revision.
   void viewerAndResumedDocuments() {
@@ -1109,6 +1260,7 @@ private slots:
       return std::make_unique<CloudDocument>(std::move(services));
     };
 
+    server.answer("documentSharing.access", {200, R"({"result":{"data":{"access":{"role":"viewer"}}}})"});
     auto viewer = open("viewer");
     QSignalSpy viewerOpened(viewer.get(), &CloudDocument::opened);
     viewer->open();
@@ -1122,6 +1274,7 @@ private slots:
 
     const std::shared_ptr<AccountSession> session = account->session();
     drafts.put({serverKey(kServer), session->accountId(), "timeline", "t1"}, {"r1", "h1"}, R"({"tracks":[1]})");
+    server.answer("documentSharing.access", {200, R"({"result":{"data":{"access":{"role":"editor"}}}})"});
     auto editor = open("editor");
     QSignalSpy editorOpened(editor.get(), &CloudDocument::opened);
     editor->open();
@@ -1222,6 +1375,773 @@ private slots:
     QVERIFY(!unwritable->writeLocally());
     QVERIFY(unwritableStore->writes.load() > 0);
     QTRY_COMPARE(unwritable->syncStatus(), CloudDocument::SyncStatus::NotSaving);
+  }
+
+  // Synchronize: the receive runs first with the person's choices by cloud
+  // id, the send is captured again because the receive replaced a document
+  // it carried, and the refusal of the document kept local is answered with
+  // the revision the sheet showed, without asking again.
+  void synchronizeReceivesThenSends() {
+    Computer computer;
+    computer.server.addCode("code-t", "u1", "Ada");
+    auto account = computer.app("timeline");
+    signInWith(this, *account, "code-t");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    const std::string h1(64, '1');
+    const std::string h2(64, '2');
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[)"
+                           R"({"op":"replace_document","kind":"workflow","document_id":"c1"},)"
+                           R"({"op":"replace_document","kind":"workflow","document_id":"c2"}],)"
+                           R"("documents":[{"kind":"workflow","local_id":"l1","cloud_id":"c1","name":"Mine"},)"
+                           R"({"kind":"workflow","local_id":"l2","cloud_id":"c2","name":"Theirs"}],)"
+                           R"("missing_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t2","first_publication":false,"operations":[)"
+                           R"({"op":"replace_document","kind":"workflow","document_id":"c1"}],)"
+                           R"("documents":[{"kind":"workflow","local_id":"l1","cloud_id":"c1","name":"Mine"}],)"
+                           R"("missing_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.receive.capture",
+                  trpcData(R"({"set_id":"s1","documents":[)"
+                           R"({"kind":"workflow","cloud_id":"c1","local_id":"l1","name":"Mine","content_hash":")" + h1 +
+                           R"(","status":"both_changed","decision":null,"files":[],"missing_files":[]},)"
+                           R"({"kind":"workflow","cloud_id":"c2","local_id":"l2","name":"Theirs","content_hash":")" + h2 +
+                           R"(","status":"both_changed","decision":null,"files":[],"missing_files":[]},)"
+                           R"({"kind":"timeline","cloud_id":"c3","local_id":"c3","name":"Cut","content_hash":")" + h2 +
+                           R"(","status":"cloud_changed","decision":"receive","files":[],"missing_files":[]}]})"));
+    server.answer("cloudTransfer.receive.run",
+                  trpcData(R"({"status":"finished","set_id":"s1","result":{"received":[)"
+                           R"({"kind":"workflow","id":"l2","name":"Theirs"},{"kind":"timeline","id":"c3","name":"Cut"}],)"
+                           R"("changed_during_receive":[],"not_received":[],"kept_beside":[],"missing_files":[],)"
+                           R"("file_kept":[]}})"));
+    server.answer("cloudTransfer.send.cancel", trpcData(R"({"state":"cancelled"})"));
+    server.answer("cloudTransfer.send.run",
+                  trpcData(R"({"status":"refused","transfer_id":"t2","failures":[{"code":"BASE_CHANGED",)"
+                           R"("kind":"workflow","document_id":"c1","stored_hash":")" + h1 + R"(","message":"changed"}]})"));
+    server.answer("cloudTransfer.send.run", trpcData(R"({"status":"committed","transfer_id":"t2","result":{}})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
+    transfer.setServerToken("local-token");
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setLinked(true);
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+
+    // Two choices, one receive, two sends. Nothing runs until both choices
+    // are made.
+    const auto sections = [&] {
+      QStringList out;
+      for (const QVariant& row : transfer.rows()) {
+        out.append(row.toMap().value("section").toString());
+      }
+      return out;
+    };
+    QCOMPARE(sections(), (QStringList{"choice", "choice", "receive", "send", "send"}));
+    QCOMPARE(transfer.rows().at(3).toMap().value("name").toString(), QString("Mine"));
+    QCOMPARE(transfer.rows().at(0).toMap().value("text").toString(), QString("Changed here and in the cloud"));
+    QVERIFY(!transfer.ready());
+    transfer.apply();
+    QCOMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QVERIFY(!transfer.choose(2, "receive"));
+    QVERIFY(transfer.choose(0, "keepLocal"));
+    QVERIFY(transfer.choose(1, "receive"));
+    QVERIFY(transfer.ready());
+
+    QSignalSpy finished(&transfer, &TransferController::finished);
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
+    QCOMPARE(finished.count(), 1);
+    QCOMPARE(server.calls(), (std::vector<std::string>{"cloudTransfer.send.capture", "cloudTransfer.receive.capture",
+                                                        "cloudTransfer.receive.run", "cloudTransfer.send.cancel",
+                                                        "cloudTransfer.send.capture", "cloudTransfer.send.run",
+                                                        "cloudTransfer.send.run"}));
+    // The receive names the documents by cloud id.
+    const auto receive = nlohmann::json::parse(server.body("cloudTransfer.receive.run"));
+    QCOMPARE(receive["decisions"].size(), std::size_t(2));
+    QCOMPARE(receive["decisions"][0]["document_id"].get<std::string>(), std::string("c1"));
+    QCOMPARE(receive["decisions"][0]["decision"].get<std::string>(), std::string("keep_local"));
+    QCOMPARE(receive["decisions"][1]["document_id"].get<std::string>(), std::string("c2"));
+    QCOMPARE(nlohmann::json::parse(server.body("cloudTransfer.send.cancel"))["transfer_id"].get<std::string>(),
+             std::string("t1"));
+    const auto first = nlohmann::json::parse(server.body("cloudTransfer.send.run", 0));
+    QCOMPARE(first["transfer_id"].get<std::string>(), std::string("t2"));
+    QVERIFY(!first.contains("decisions"));
+    const auto second = nlohmann::json::parse(server.body("cloudTransfer.send.run", 1));
+    QCOMPARE(second["decisions"][0]["document_id"].get<std::string>(), std::string("c1"));
+    QCOMPARE(second["decisions"][0]["cloud_hash"].get<std::string>(), h1);
+    QCOMPARE(transfer.result().value("received").toStringList(), (QStringList{"Theirs", "Cut"}));
+    QVERIFY(!transfer.result().value("published").toBool());
+  }
+
+  // A workflow created here while the sheet was open shows up in the send
+  // captured again after the receive. Nothing is sent until the sheet shows
+  // it (review F22).
+  void sendsNothingTheSheetDidNotShow() {
+    Computer computer;
+    computer.server.addCode("code-n", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-n");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    const std::string h1(64, '1');
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[)"
+                           R"({"op":"replace_document","kind":"workflow","document_id":"c1","captured_hash":"a",)"
+                           R"("base_hash":"b"}],"documents":[{"kind":"workflow","local_id":"l1","cloud_id":"c1",)"
+                           R"("name":"Mine"}],"missing_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t2","first_publication":false,"operations":[)"
+                           R"({"op":"replace_document","kind":"workflow","document_id":"c1","captured_hash":"a",)"
+                           R"("base_hash":"b"},{"op":"create_document","kind":"workflow","document_id":"n1",)"
+                           R"("captured_hash":"n"}],"documents":[{"kind":"workflow","local_id":"l1","cloud_id":"c1",)"
+                           R"("name":"Mine"},{"kind":"workflow","local_id":"n1","cloud_id":"n1","name":"New"}],)"
+                           R"("missing_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.receive.capture",
+                  trpcData(R"({"set_id":"s1","documents":[{"kind":"timeline","cloud_id":"c3","local_id":"c3",)"
+                           R"("name":"Cut","content_hash":")" + h1 +
+                           R"(","status":"cloud_changed","decision":"receive","files":[],"missing_files":[]}]})"));
+    server.answer("cloudTransfer.receive.run",
+                  trpcData(R"({"status":"finished","set_id":"s1","result":{"received":[)"
+                           R"({"kind":"timeline","id":"c3","name":"Cut"}],"changed_during_receive":[],)"
+                           R"("not_received":[],"kept_beside":[],"missing_files":[],"file_kept":[]}})"));
+    server.answer("cloudTransfer.send.cancel", trpcData(R"({"state":"cancelled"})"));
+    server.answer("cloudTransfer.send.run", trpcData(R"({"status":"committed","transfer_id":"t2","result":{}})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
+    transfer.setServerToken("local-token");
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setLinked(true);
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QVERIFY(!transfer.message().isEmpty());
+    const auto calls = server.calls();
+    QVERIFY(std::find(calls.begin(), calls.end(), "cloudTransfer.send.run") == calls.end());
+    QStringList names;
+    for (const QVariant& row : transfer.rows()) {
+      names.append(row.toMap().value("name").toString());
+    }
+    QVERIFY(names.contains("New"));
+
+    // Seen now, the second apply only sends.
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
+    QCOMPARE(server.calls().back(), std::string("cloudTransfer.send.run"));
+    QCOMPARE(nlohmann::json::parse(server.body("cloudTransfer.send.run"))["transfer_id"].get<std::string>(),
+             std::string("t2"));
+    const auto all = server.calls();
+    QCOMPARE(std::count(all.begin(), all.end(), std::string("cloudTransfer.receive.run")), std::ptrdiff_t(1));
+  }
+
+  // A transfer runs only through the app's bundled server. A server off
+  // this computer, such as an editor's remote server, gets no request and
+  // so never sees the account's access token (review F16).
+  void transferRunsOnlyOnTheBundledServer() {
+    Computer computer;
+    computer.server.addCode("code-r", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-r");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+    QueueServer server;
+    for (const char* url : {"https://editor.example", "http://192.168.1.4:7777", kServer}) {
+      TransferController transfer(std::make_unique<SharedTransport>(server));
+      transfer.setAccount(account.get());
+      transfer.setServerUrl(QUrl(url));
+      transfer.setServerToken("local-token");
+      transfer.setProjectId(QString(32, 'p'));
+      transfer.start();
+      QCOMPARE(transfer.stage(), TransferController::Stage::Failed);
+    }
+    QVERIFY(server.calls().empty());
+  }
+
+  // Another server on this computer is not the bundled server either: a
+  // loopback URL with another port, or any URL when the app started no
+  // bundled server, gets no request (review F53).
+  void transferRunsOnlyOnThisLaunchsServer() {
+    Computer computer;
+    computer.server.addCode("code-b", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-b");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+    QueueServer server;
+    const QUrl bundled(kLocalServer);
+    QUrl otherPort = bundled;
+    otherPort.setPort(bundled.port() + 1);
+    const std::vector<std::pair<QUrl, QUrl>> cases = {{otherPort, bundled}, {bundled, QUrl()}};
+    for (const auto& [url, started] : cases) {
+      TransferController transfer(std::make_unique<SharedTransport>(server));
+      transfer.setAccount(account.get());
+      transfer.setServerUrl(url);
+      transfer.setBundledServerUrl(started);
+      transfer.setServerToken("local-token");
+      transfer.setProjectId(QString(32, 'p'));
+      transfer.start();
+      QCOMPARE(transfer.stage(), TransferController::Stage::Failed);
+    }
+    QVERIFY(server.calls().empty());
+  }
+
+  // Publish: a send the cloud refuses for a document changed since the
+  // sheet was read asks again. Cancel ends the captured send. Signed out,
+  // nothing is sent.
+  void publishAsksAgainAndCancels() {
+    Computer computer;
+    computer.server.addCode("code-p", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-p");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":true,"operations":[)"
+                           R"({"op":"create_document","kind":"workflow","document_id":"w1"}],)"
+                           R"("documents":[{"kind":"workflow","local_id":"w1","cloud_id":"w1","name":"Flow"}],)"
+                           R"("missing_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.send.run",
+                  trpcData(R"({"status":"refused","transfer_id":"t1","failures":[{"code":"BASE_CHANGED",)"
+                           R"("kind":"workflow","document_id":"w1","stored_hash":"s9","message":"changed"}]})"));
+    server.answer("cloudTransfer.send.run",
+                  trpcData(R"({"status":"committed","transfer_id":"t1","result":{"project_id":"p1"}})"));
+    server.answer("cloudTransfer.send.cancel", trpcData(R"({"state":"cancelled"})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setProjectName("Film");
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QCOMPARE(transfer.rows().size(), 1);
+    QVERIFY(transfer.ready());
+    QCOMPARE(nlohmann::json::parse(server.body("cloudTransfer.send.capture"))["project_name"].get<std::string>(),
+             std::string("Film"));
+
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QVERIFY(!transfer.message().isEmpty());
+    QCOMPARE(transfer.rows().at(0).toMap().value("section").toString(), QString("choice"));
+    QVERIFY(!transfer.ready());
+    QVERIFY(transfer.choose(0, "keepLocal"));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
+    QVERIFY(transfer.result().value("published").toBool());
+    const auto again = nlohmann::json::parse(server.body("cloudTransfer.send.run", 1));
+    QCOMPARE(again["decisions"][0]["cloud_hash"].get<std::string>(), std::string("s9"));
+
+    // Cancel from the sheet ends the captured send.
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    transfer.cancel();
+    QCOMPARE(transfer.stage(), TransferController::Stage::Idle);
+    QTRY_COMPARE(server.body("cloudTransfer.send.cancel").empty(), false);
+
+    account->signOut();
+    QTRY_COMPARE(account->state(), AccountController::State::SignedOut);
+    const std::size_t before = server.calls().size();
+    transfer.start();
+    QCOMPARE(transfer.stage(), TransferController::Stage::Failed);
+    QVERIFY(!transfer.message().isEmpty());
+    QCOMPARE(server.calls().size(), before);
+  }
+
+  // Closing a Synchronize sheet ends both captures: the send, and the
+  // receive set with its local row (review F41).
+  void closingASheetEndsTheSendAndTheReceive() {
+    Computer computer;
+    computer.server.addCode("code-e", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-e");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[)"
+                           R"({"op":"replace_document","kind":"workflow","document_id":"c1"}],)"
+                           R"("documents":[{"kind":"workflow","local_id":"l1","cloud_id":"c1","name":"Mine"}],)"
+                           R"("missing_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.receive.capture", trpcData(R"({"set_id":"s1","documents":[]})"));
+    server.answer("cloudTransfer.send.cancel", trpcData(R"({"state":"cancelled"})"));
+    server.answer("cloudTransfer.receive.cancel", trpcData(R"({"state":"cancelled"})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setLinked(true);
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    transfer.cancel();
+    QTRY_COMPARE(server.body("cloudTransfer.receive.cancel").empty(), false);
+    QCOMPARE(nlohmann::json::parse(server.body("cloudTransfer.receive.cancel"))["set_id"].get<std::string>(),
+             std::string("s1"));
+    QTRY_COMPARE(server.body("cloudTransfer.send.cancel").empty(), false);
+  }
+
+  // When the send a receive made stale cannot be ended, it is not captured
+  // again beside it: the sheet says so and nothing is sent (review F41).
+  void aSendThatCannotEndIsNotCapturedAgain() {
+    Computer computer;
+    computer.server.addCode("code-f", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-f");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[)"
+                           R"({"op":"replace_document","kind":"workflow","document_id":"c1"}],)"
+                           R"("documents":[{"kind":"workflow","local_id":"l1","cloud_id":"c1","name":"Mine"}],)"
+                           R"("missing_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.receive.capture",
+                  trpcData(R"({"set_id":"s1","documents":[)"
+                           R"({"kind":"workflow","cloud_id":"c2","local_id":"l2","name":"Theirs","content_hash":"h2",)"
+                           R"("status":"cloud_changed","decision":"receive","files":[],"missing_files":[]}]})"));
+    server.answer("cloudTransfer.receive.run",
+                  trpcData(R"({"status":"finished","set_id":"s1","result":{"received":[)"
+                           R"({"kind":"workflow","id":"l2","name":"Theirs"}],)"
+                           R"("changed_during_receive":[],"not_received":[],"kept_beside":[],"missing_files":[],)"
+                           R"("file_kept":[]}})"));
+    // send.cancel has no answer: the local router answers 404.
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setLinked(true);
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Failed);
+    QVERIFY(!transfer.message().isEmpty());
+    std::size_t captures = 0;
+    std::size_t runs = 0;
+    for (const auto& call : server.calls()) {
+      captures += call == "cloudTransfer.send.capture" ? 1 : 0;
+      runs += call == "cloudTransfer.send.run" ? 1 : 0;
+    }
+    QCOMPARE(captures, std::size_t(1));
+    QCOMPARE(runs, std::size_t(0));
+  }
+
+  // After the cloud refuses a send for a newer cloud revision, Receive on
+  // that row captures a set for the new revision and receives that document
+  // alone. The stale replace is captured away and nothing else is sent
+  // (review F39).
+  void receivingARefusedDocumentReceivesTheNewRevision() {
+    Computer computer;
+    computer.server.addCode("code-r", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-r");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[)"
+                           R"({"op":"replace_document","kind":"workflow","document_id":"c1","captured_hash":"lh1"}],)"
+                           R"("documents":[{"kind":"workflow","local_id":"l1","cloud_id":"c1","name":"Mine"}],)"
+                           R"("missing_files":[],"skipped":[],"deleted_locally":[]})"));
+    // After the receive, the document equals the cloud: nothing to send.
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t2","first_publication":false,"operations":[],)"
+                           R"("documents":[],"missing_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.receive.capture", trpcData(R"({"set_id":"s1","documents":[]})"));
+    server.answer("cloudTransfer.receive.capture",
+                  trpcData(R"({"set_id":"s2","documents":[)"
+                           R"({"kind":"workflow","cloud_id":"c1","local_id":"l1","name":"Mine","content_hash":"n1","local_hash":"lh1",)"
+                           R"("status":"both_changed","decision":null,"files":[],"missing_files":[]},)"
+                           R"({"kind":"workflow","cloud_id":"c9","local_id":"l9","name":"Unseen","content_hash":"n9",)"
+                           R"("status":"cloud_changed","decision":"receive","files":[],"missing_files":[]},)"
+                           // Only a file of this one changed in the cloud (review F51).
+                           R"({"kind":"workflow","cloud_id":"c8","local_id":"l8","name":"Media","content_hash":"n8",)"
+                           R"("local_hash":"n8","status":"same","decision":"receive","changed_files":1,)"
+                           R"("files":[],"missing_files":[]}]})"));
+    server.answer("cloudTransfer.receive.run",
+                  trpcData(R"({"status":"finished","set_id":"s1","result":{"received":[],)"
+                           R"("changed_during_receive":[],"not_received":[],"kept_beside":[],"missing_files":[],)"
+                           R"("file_kept":[]}})"));
+    server.answer("cloudTransfer.receive.run",
+                  trpcData(R"({"status":"finished","set_id":"s2","result":{"received":[)"
+                           R"({"kind":"workflow","id":"l1","name":"Mine"}],)"
+                           R"("changed_during_receive":[],"not_received":[],"kept_beside":[],"missing_files":[],)"
+                           R"("file_kept":[]}})"));
+    server.answer("cloudTransfer.send.cancel", trpcData(R"({"state":"cancelled"})"));
+    server.answer("cloudTransfer.send.run",
+                  trpcData(R"({"status":"refused","transfer_id":"t1","failures":[{"code":"BASE_CHANGED",)"
+                           R"("kind":"workflow","document_id":"c1","stored_hash":"n1","message":"changed"}]})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setLinked(true);
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QCOMPARE(transfer.rows().size(), 1);
+    QCOMPARE(transfer.rows().at(0).toMap().value("section").toString(), QString("choice"));
+    QVERIFY(transfer.choose(0, "receive"));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
+
+    const auto received = nlohmann::json::parse(server.body("cloudTransfer.receive.run", 1));
+    QCOMPARE(received["set_id"].get<std::string>(), std::string("s2"));
+    // The refused document is received. The document the sheet never
+    // showed stays as it is here.
+    QCOMPARE(received["decisions"].size(), std::size_t(3));
+    for (const auto& decision : received["decisions"]) {
+      const std::string id = decision["document_id"].get<std::string>();
+      QCOMPARE(decision["decision"].get<std::string>(), std::string(id == "c1" ? "receive" : "keep_local"));
+    }
+    // The stale replace went no further than the first refusal.
+    std::size_t runs = 0;
+    for (const auto& call : server.calls()) {
+      runs += call == "cloudTransfer.send.run" ? 1 : 0;
+    }
+    QCOMPARE(runs, std::size_t(1));
+    QCOMPARE(transfer.result().value("received").toStringList(), QStringList{"Mine"});
+  }
+
+  // Receive on a refused document is an approval of two revisions: the
+  // cloud revision the refusal named and the local copy the sheet was about
+  // to send. When either changed before Apply, nothing is received and the
+  // sheet asks again (review F46).
+  void receivingARefusedDocumentAsksAgainWhenEitherSideChanged_data() {
+    QTest::addColumn<QString>("cloudHash");
+    QTest::addColumn<QString>("localHash");
+    QTest::newRow("local edited") << "n1" << "lh2";
+    QTest::newRow("cloud edited") << "n2" << "lh1";
+  }
+
+  void receivingARefusedDocumentAsksAgainWhenEitherSideChanged() {
+    QFETCH(QString, cloudHash);
+    QFETCH(QString, localHash);
+    Computer computer;
+    computer.server.addCode("code-g", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-g");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[)"
+                           R"({"op":"replace_document","kind":"workflow","document_id":"c1","captured_hash":"lh1"}],)"
+                           R"("documents":[{"kind":"workflow","local_id":"l1","cloud_id":"c1","name":"Mine"}],)"
+                           R"("missing_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.receive.capture", trpcData(R"({"set_id":"s1","documents":[]})"));
+    server.answer("cloudTransfer.receive.capture",
+                  trpcData(R"({"set_id":"s2","documents":[)"
+                           R"({"kind":"workflow","cloud_id":"c1","local_id":"l1","name":"Mine","content_hash":")" +
+                           cloudHash.toStdString() + R"(","local_hash":")" + localHash.toStdString() +
+                           R"(","status":"both_changed","decision":null,"files":[],"missing_files":[]}]})"));
+    server.answer("cloudTransfer.receive.run",
+                  trpcData(R"({"status":"finished","set_id":"s1","result":{"received":[],)"
+                           R"("changed_during_receive":[],"not_received":[],"kept_beside":[],"missing_files":[],)"
+                           R"("file_kept":[]}})"));
+    server.answer("cloudTransfer.receive.cancel", trpcData(R"({"state":"cancelled"})"));
+    server.answer("cloudTransfer.send.run",
+                  trpcData(R"({"status":"refused","transfer_id":"t1","failures":[{"code":"BASE_CHANGED",)"
+                           R"("kind":"workflow","document_id":"c1","stored_hash":"n1","message":"changed"}]})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setLinked(true);
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QVERIFY(transfer.choose(0, "receive"));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    // Only the first set was received, and the new one was released.
+    std::size_t receives = 0;
+    for (const auto& call : server.calls()) {
+      receives += call == "cloudTransfer.receive.run" ? 1 : 0;
+    }
+    QCOMPARE(receives, std::size_t(1));
+    QCOMPARE(nlohmann::json::parse(server.body("cloudTransfer.receive.cancel"))["set_id"].get<std::string>(),
+             std::string("s2"));
+    // The row asks again, for the cloud revision as it is now.
+    const QVariantMap row = transfer.rows().at(0).toMap();
+    QCOMPARE(row.value("section").toString(), QString("choice"));
+    QVERIFY(row.value("choice").toString().isEmpty());
+    QVERIFY(!transfer.ready());
+  }
+
+  // A receive the router returns for review again goes on with the set it
+  // names: the sheet shows that set's documents, and the next Apply runs
+  // it instead of telling the person to start over (review F50).
+  void aReceiveWaitingForReviewContinuesWithItsSet() {
+    Computer computer;
+    computer.server.addCode("code-v", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-v");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[],)"
+                           R"("documents":[],"missing_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.receive.capture",
+                  trpcData(R"({"set_id":"s1","documents":[)"
+                           R"({"kind":"workflow","cloud_id":"c1","local_id":"l1","name":"Mine","content_hash":"h1",)"
+                           R"("local_hash":"l-1","status":"both_changed","decision":null,"files":[],"missing_files":[]}]})"));
+    server.answer("cloudTransfer.receive.run",
+                  trpcData(R"({"status":"waiting_for_review","set_id":"s2","documents":[)"
+                           R"({"kind":"workflow","cloud_id":"c1","local_id":"l1","name":"Mine","content_hash":"h2",)"
+                           R"("local_hash":"l-2","status":"both_changed","decision":null,"files":[],"missing_files":[]}]})"));
+    server.answer("cloudTransfer.receive.run",
+                  trpcData(R"({"status":"finished","set_id":"s2","result":{"received":[)"
+                           R"({"kind":"workflow","id":"l1","name":"Mine"}],)"
+                           R"("changed_during_receive":[],"not_received":[],"kept_beside":[],"missing_files":[],)"
+                           R"("file_kept":[]}})"));
+    server.answer("cloudTransfer.send.cancel", trpcData(R"({"state":"cancelled"})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setLinked(true);
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QVERIFY(transfer.choose(0, "receive"));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QVERIFY(!transfer.message().isEmpty());
+    QCOMPARE(transfer.rows().size(), 1);
+    QVERIFY(transfer.rows().at(0).toMap().value("choice").toString().isEmpty());
+    QVERIFY(transfer.choose(0, "receive"));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
+    QCOMPARE(nlohmann::json::parse(server.body("cloudTransfer.receive.run", 1))["set_id"].get<std::string>(),
+             std::string("s2"));
+  }
+
+  // After a refused attempt, withdrawing the last deletion confirmation
+  // sends an empty list, which the router takes as no deletion (review F43).
+  void aWithdrawnDeletionIsNotSent() {
+    Computer computer;
+    computer.server.addCode("code-w", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-w");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[],)"
+                           R"("documents":[],"missing_files":[],"skipped":[],"deleted_locally":[)"
+                           R"({"kind":"workflow","local_id":"w1","cloud_id":"cw1","base_hash":"b1"}]})"));
+    server.answer("cloudTransfer.send.run",
+                  trpcData(R"({"status":"refused","transfer_id":"t1","failures":[{"code":"QUOTA",)"
+                           R"("kind":"workflow","document_id":"cw1","message":"full"}]})"));
+    server.answer("cloudTransfer.send.run",
+                  trpcData(R"({"status":"committed","transfer_id":"t1","result":{"project_id":"p1"}})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QVERIFY(transfer.confirmDeletion(0, true));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QVERIFY(transfer.confirmDeletion(0, false));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
+    const auto again = nlohmann::json::parse(server.body("cloudTransfer.send.run", 1));
+    QVERIFY(again.contains("confirm_deletes"));
+    QCOMPARE(again["confirm_deletes"], nlohmann::json::array());
+  }
+
+  // A confirmed deletion names the cloud revision the sheet showed. When the
+  // cloud refuses it because the document changed there since, the sheet
+  // withdraws the confirmation and asks again for the newer revision
+  // (V4, review F40).
+  void aRefusedDeletionIsConfirmedAgain() {
+    Computer computer;
+    computer.server.addCode("code-x", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-x");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[],)"
+                           R"("documents":[],"missing_files":[],"skipped":[],"deleted_locally":[)"
+                           R"({"kind":"workflow","local_id":"w1","cloud_id":"cw1","base_hash":"b1"}]})"));
+    server.answer("cloudTransfer.send.run",
+                  trpcData(R"({"status":"refused","transfer_id":"t1","failures":[{"code":"BASE_CHANGED",)"
+                           R"("kind":"workflow","document_id":"cw1","stored_hash":"s2","message":"changed"}]})"));
+    server.answer("cloudTransfer.send.run",
+                  trpcData(R"({"status":"committed","transfer_id":"t1","result":{"project_id":"p1"}})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QCOMPARE(transfer.rows().size(), 1);
+    QVERIFY(transfer.confirmDeletion(0, true));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    const QVariantMap row = transfer.rows().at(0).toMap();
+    QCOMPARE(row.value("section").toString(), QString("deletion"));
+    QVERIFY(!row.value("confirmed").toBool());
+    const auto first = nlohmann::json::parse(server.body("cloudTransfer.send.run", 0));
+    QCOMPARE(first["confirm_deletes"][0]["cloud_hash"].get<std::string>(), std::string("b1"));
+
+    QVERIFY(transfer.confirmDeletion(0, true));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
+    const auto again = nlohmann::json::parse(server.body("cloudTransfer.send.run", 1));
+    QCOMPARE(again["confirm_deletes"][0]["cloud_id"].get<std::string>(), std::string("cw1"));
+    QCOMPARE(again["confirm_deletes"][0]["cloud_hash"].get<std::string>(), std::string("s2"));
+  }
+
+  // A media file changed in place while its workflow stayed the same is
+  // work to send: the sheet shows it and Synchronize sends it (review F33).
+  void synchronizeSendsAFileOnlyChange() {
+    Computer computer;
+    computer.server.addCode("code-f", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-f");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    const std::string before(64, 'b');
+    const std::string after(64, 'a');
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[],)"
+                           R"("file_operations":[{"op":"put_asset_file","asset_id":"a1","path":"media/still.png",)"
+                           R"("hash":")" + after + R"(","size":4,"base_hash":")" + before +
+                           R"(","name":"still.png","content_type":"image/png"}],"documents":[],)"
+                           R"("missing_files":[],"missing_document_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.receive.capture", trpcData(R"({"set_id":"s1","documents":[]})"));
+    server.answer("cloudTransfer.receive.run",
+                  trpcData(R"({"status":"finished","set_id":"s1","result":{"received":[],)"
+                           R"("changed_during_receive":[],"not_received":[],"kept_beside":[],"missing_files":[],)"
+                           R"("file_kept":[]}})"));
+    server.answer("cloudTransfer.send.run", trpcData(R"({"status":"committed","transfer_id":"t1","result":{}})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setLinked(true);
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QCOMPARE(transfer.rows().size(), 1);
+    QCOMPARE(transfer.rows().at(0).toMap().value("section").toString(), QString("send"));
+    QCOMPARE(transfer.rows().at(0).toMap().value("name").toString(), QString("media/still.png"));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
+    QCOMPARE(server.calls().back(), std::string("cloudTransfer.send.run"));
+    QVERIFY(transfer.result().value("sent").toBool());
+  }
+
+  // A send with a missing file waits until the person confirms each file,
+  // then sends the capture's entry back as the confirmation (X7, review F36).
+  void publishWithoutAMissingFileOnlyOnceConfirmed() {
+    Computer computer;
+    computer.server.addCode("code-m", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-m");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    const std::string missing =
+        R"({"asset_id":"a1","reason":"missing_locally","documents":[{"kind":"workflow","document_id":"w1"}]})";
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":true,"operations":[)"
+                           R"({"op":"create_document","kind":"workflow","document_id":"w1"}],)"
+                           R"("documents":[{"kind":"workflow","local_id":"w1","cloud_id":"w1","name":"Flow"}],)"
+                           R"("missing_files":[)" + missing + R"(],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.send.run",
+                  trpcData(R"({"status":"committed","transfer_id":"t1","result":{"project_id":"p1"}})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    int problem = -1;
+    for (const QVariant& value : transfer.rows()) {
+      const QVariantMap row = value.toMap();
+      if (row.value("canSendWithout").toBool()) {
+        problem = row.value("index").toInt();
+      }
+    }
+    QVERIFY(problem >= 0);
+    QVERIFY(!transfer.ready());
+    transfer.apply();
+    QCOMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QVERIFY(transfer.confirmMissingFile(problem, true));
+    QVERIFY(transfer.ready());
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
+    const auto body = nlohmann::json::parse(server.body("cloudTransfer.send.run"));
+    QCOMPARE(body["confirm_missing_files"], nlohmann::json::array({nlohmann::json::parse(missing)}));
+  }
+
+  // Closing the sheet while a long request runs returns at once: the
+  // controller cancels the request before it joins its task thread, instead
+  // of waiting out the request's deadline (review F42).
+  void closingCancelsARunningRequest() {
+    Computer computer;
+    computer.server.addCode("code-c", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-c");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+    // Answers only once the request is cancelled, or after 20 seconds.
+    class UntilCancelled final : public HttpTransport {
+    public:
+      std::atomic<bool> started{false};
+      HttpResponse send(const HttpRequest& request) override {
+        started = true;
+        const auto until = std::chrono::steady_clock::now() + std::chrono::seconds(20);
+        while (std::chrono::steady_clock::now() < until && !(request.cancel && request.cancel->cancelled())) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+        return {0, {}};
+      }
+    };
+    UntilCancelled server;
+    auto transfer = std::make_unique<TransferController>(std::make_unique<SharedTransport>(server));
+    transfer->setAccount(account.get());
+    transfer->setServerUrl(QUrl(kLocalServer));
+    transfer->setBundledServerUrl(QUrl(kLocalServer));
+    transfer->setProjectId(QString(32, 'p'));
+    transfer->start();
+    QTRY_VERIFY(server.started.load());
+    const auto before = std::chrono::steady_clock::now();
+    transfer.reset();
+    QVERIFY(std::chrono::steady_clock::now() - before < std::chrono::seconds(5));
   }
 
   void statusSentences() {

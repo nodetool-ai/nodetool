@@ -97,6 +97,17 @@ For AtlasCloud enhancement:
 - Update `scripts/recipes.mjs` with the actual enhanced dimensions and measured
   media facts, then regenerate the recipe catalog.
 
+## Web Image Copies
+
+Pages show resized WebP copies of large stills, not the source PNG or JPEG.
+`scripts/generate-web-images.mjs` lists each source, its copy and the copy's
+width. Run `npm run gen:web-images` after adding an entry, and delete a copy to
+regenerate it after its source changes. Point share images (`ogImage`) at the
+source file. Keep any image a page loads under 400 KB, which
+`tests/e2e/image-weight.spec.ts` checks on the pages Search Console flagged
+for slow mobile LCP. Give a video with controls `preload="none"`, so the
+file does not load before the reader presses play.
+
 ## Ad Library Videos
 
 Each concept in `src/data/adLibrary.json` plays a video rendered from a

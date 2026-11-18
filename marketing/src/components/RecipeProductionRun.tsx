@@ -40,7 +40,7 @@ export default function RecipeProductionRun({ run }: RecipeProductionRunProps) {
                 aria-label={run.video.caption}
                 className="max-h-[640px] w-full rounded-xl bg-slate-900/40 object-contain"
                 poster={run.video.poster}
-                preload="metadata"
+                preload="none"
                 playsInline
                 controls
                 muted={!run.video.hasAudio}

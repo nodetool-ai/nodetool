@@ -142,7 +142,7 @@ export default async function RecipePage({ params }: RecipePageProps) {
                         : "(min-width: 1024px) 640px, calc(100vw - 48px)"
                     }
                     priority
-                    className={`rounded-xl border border-white/15 bg-slate-950 ${heroIsPortrait ? "h-auto max-h-[560px] w-auto max-w-full object-contain" : "h-auto w-full"}`}
+                    className={`rounded-xl border border-white/15 bg-slate-950 ${heroIsPortrait ? "h-[560px] w-auto max-w-full object-contain" : "h-auto w-full"}`}
                   />
                 </figure>
               )}

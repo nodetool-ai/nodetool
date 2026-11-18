@@ -21,6 +21,7 @@ import {
   isReservedWorkspaceKey,
   type Workspace
 } from "@nodetool-ai/runtime";
+import type { FolderLockHold } from "@nodetool-ai/asset-services/project-asset";
 
 export { NestedFolders };
 
@@ -227,6 +228,12 @@ export interface ReconcileOptions {
    * it the whole folder is scanned.
    */
   paths?: Iterable<string>;
+  /**
+   * The folder lock the caller holds. The reconcile then runs inside it
+   * instead of waiting for it. Only a caller that awaits the reconcile
+   * passes it, so nothing the reconcile schedules for later inherits it.
+   */
+  under?: FolderLockHold;
 }
 
 /**

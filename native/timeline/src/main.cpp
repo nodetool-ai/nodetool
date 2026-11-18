@@ -1134,8 +1134,11 @@ int main(int argc, char** argv) {
     std::unique_ptr<nt::server::AutosaveController> autosave;
     std::unique_ptr<nt::motion::MatteResolver> matteResolver;
     std::unique_ptr<nt::app::LocalDocumentSaver> localSaver;
+    // Mattes are read from the server the timeline came from, the cloud included.
+    if (const auto media = nt::server::mediaSource()) {
+        matteResolver = std::make_unique<nt::motion::MatteResolver>(model, *media);
+    }
     if (const auto target = nt::server::serverSaveTarget()) {
-        matteResolver = std::make_unique<nt::motion::MatteResolver>(model, *target);
         autosave = std::make_unique<nt::server::AutosaveController>(
             *target, model.undoStack(), [&model]() { return model.timeline().raw; },
             loaded.timeline->raw.value(u"updatedAt").toString());

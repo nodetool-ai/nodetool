@@ -57,7 +57,8 @@ import {
   Asset,
   Project,
   Workspace as WorkspaceRow,
-  moveTargetOf
+  moveTargetOf,
+  pendingPlacementPaths
 } from "@nodetool-ai/models";
 import type { Workspace } from "@nodetool-ai/runtime";
 import { normalizeAssetContentType } from "@nodetool-ai/asset-services/asset-paths";
@@ -684,10 +685,14 @@ async function reconcileAndScan(
     // the copy is verified. A collect that crashed during the copy leaves it
     // behind, partly written, and the next collect writes it again.
     const collecting = await pendingCollectReservations(userId, project);
+    // A path a transfer commit wrote a row for and has not placed yet. Its
+    // file is the old one or none until the placement runs (WP2.4).
+    const placing = await pendingPlacementPaths(project);
     const inFlux = (path: string): boolean =>
       isProjectAssetPathInFlux(userId, project, path) ||
       moving.has(path) ||
-      collecting.has(path);
+      collecting.has(path) ||
+      placing.has(path);
 
     const projectKey = scheduleKey(project, userId);
     const waitingSince = waitingCopies.get(projectKey);
@@ -865,7 +870,7 @@ async function reconcileAndScan(
 
     if (!options.paths) lastReconciled.set(projectKey, Date.now());
     return report;
-  });
+  }, { under: options.under });
 
   await notifyFileChanged(changed);
   return { report, scanned };
@@ -982,7 +987,9 @@ export async function reconcileInBackground(
       userId,
       {
         scanned,
-        // A copy of a document file waits to be told apart from a move.
+        under: options.under,
+        // A copy of a document file waits to be told apart from a move. The
+        // follow-up runs later, so it queues for the lock like any caller.
         onDeferred: () => scheduleFollowUp(report.projectId, userId)
       }
     );

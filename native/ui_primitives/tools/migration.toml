@@ -2933,6 +2933,16 @@ qml_callers = ["native/account/qt/qml/ShareDialog.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.ScrollArea, Ui.PanelHeader, Ui.Text, Ui.TextField, Ui.EditorButton, Ui.Toggle, Ui.Select, Ui.Banner, Ui.BusyIndicator"
 
 [[file]]
+path = "native/account/qt/qml/TransferPanel.qml"
+category = "chrome"
+controls = ["TransferController", "ColumnLayout", "RowLayout", "ListView", "Item", "Ui.ScrollBar", "Ui.PanelHeader", "Ui.Text", "Ui.SegmentedControl", "Ui.CheckBox", "Ui.EditorButton", "Ui.Banner", "Ui.BusyIndicator", "Ui.EmptyState"]
+signals = ["closeRequested"]
+test_host = "native/node-editor/tests/ui/AccountControlComponentTest.cpp"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.ScrollBar, Ui.PanelHeader, Ui.Text, Ui.SegmentedControl, Ui.CheckBox, Ui.EditorButton, Ui.Banner, Ui.BusyIndicator, Ui.EmptyState"
+
+[[file]]
 path = "native/node-editor/qml/ActionPanel.qml"
 category = "pending"
 controls = ["Rectangle", "ColumnLayout", "RowLayout", "Ui.Text", "Ui.EditorButton", "Flow", "Ui.SegmentedControl", "ShortcutKeyboard", "Ui.TextField", "ListView", "Ui.ScrollBar", "Ui.ListRow"]
