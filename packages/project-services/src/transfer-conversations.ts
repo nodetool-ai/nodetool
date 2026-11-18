@@ -65,35 +65,40 @@ export async function applyConversations(
       pairs.push({ source_thread_id: entry.thread_id, thread_id: earlier });
       continue;
     }
-    // Model create is an upsert, so a taken id must be found first.
-    const threadId = (await Thread.get<Thread>(entry.thread_id)) ? createTimeOrderedUuid() : entry.thread_id;
+    // Insert-only: a thread or message id another writer holds, now or in a
+    // transaction still open, gets a new id instead of being taken over.
     const stamp = context.now.toISOString();
-    await Thread.create<Thread>({
-      id: threadId,
-      user_id: context.userId,
-      project_id: context.projectId,
-      title: payload.title,
-      kind: payload.kind,
-      created_at: payload.messages[0]?.created_at ?? stamp,
-      updated_at: stamp
-    });
-    for (const message of payload.messages) {
-      const id = threadId === entry.thread_id && !(await Message.get<Message>(message.id)) ? message.id : createTimeOrderedUuid();
-      await Message.create<Message>({
+    let threadId = entry.thread_id;
+    const thread = (id: string) =>
+      new Thread({
         id,
         user_id: context.userId,
-        thread_id: threadId,
-        role: message.role,
-        name: message.name ?? null,
-        content: message.content ?? null,
-        tool_calls: message.tool_calls ?? null,
-        tool_call_id: message.tool_call_id ?? null,
-        input_files: message.input_files ?? null,
-        output_files: message.output_files ?? null,
-        provider: message.provider ?? null,
-        model: message.model ?? null,
-        created_at: message.created_at
+        project_id: context.projectId,
+        title: payload.title,
+        kind: payload.kind,
+        created_at: payload.messages[0]?.created_at ?? stamp,
+        updated_at: stamp
       });
+    while (!(await thread(threadId).insertIfAbsent())) threadId = createTimeOrderedUuid();
+    for (const message of payload.messages) {
+      let id = threadId === entry.thread_id ? message.id : createTimeOrderedUuid();
+      const row = (key: string) =>
+        new Message({
+          id: key,
+          user_id: context.userId,
+          thread_id: threadId,
+          role: message.role,
+          name: message.name ?? null,
+          content: message.content ?? null,
+          tool_calls: message.tool_calls ?? null,
+          tool_call_id: message.tool_call_id ?? null,
+          input_files: message.input_files ?? null,
+          output_files: message.output_files ?? null,
+          provider: message.provider ?? null,
+          model: message.model ?? null,
+          created_at: message.created_at
+        });
+      while (!(await row(id).insertIfAbsent())) id = createTimeOrderedUuid();
     }
     await recordTransferredConversation(
       {
