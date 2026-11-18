@@ -47,7 +47,6 @@ import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import {
   Caption,
   Slider,
-  SelectField,
   ToolbarIconButton,
   focusRing,
   SPACING,
@@ -75,7 +74,6 @@ import { PreviewCompositor } from "./PreviewCompositor";
 import { getAssetMediaUrl } from "../../../utils/assetHelpers";
 import { useCombo } from "../../../stores/KeyPressedStore";
 import { formatTimecode } from "../Inspector/InspectorPrimitives.helpers";
-import { previewQualityScale } from "./previewQuality";
 import type { PreviewQuality } from "./previewQuality";
 import { resolvePlayStartMs } from "./playbackSync";
 import { useSettingsStore } from "../../../stores/SettingsStore";
@@ -220,11 +218,6 @@ const controlBarStyles = (theme: Theme) =>
     containerType: "inline-size",
     containerName: "timelinePreviewControls",
     ".toolbar-icon-button": {
-      flexShrink: 0
-    },
-    ".timeline-preview__quality": {
-      // Fits the longest option, "Auto (Half)", next to the arrow.
-      width: theme.spacing(SPACING.xxxl * 3 + SPACING.xl),
       flexShrink: 0
     },
     ".timeline-preview__volume": {
@@ -1332,13 +1325,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     const containerRef = useRef<HTMLDivElement>(null);
     const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
-    const [previewQuality, setPreviewQuality] = useState<PreviewQuality>("auto");
-    const autoQualityLabel = previewQualityScale(
-      "auto",
-      sequenceWidth,
-      sequenceHeight,
-      isPlaying
-    ) === 1 ? t("i18n-next6.preview.full") : t("i18n-next6.preview.half");
+    const previewQuality: PreviewQuality = "auto";
     const isFullscreen = isNativeFullscreen || isExpanded;
     const [scrubMs, setScrubMs] = useState<number | null>(null);
 
@@ -1660,27 +1647,6 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             <Caption css={fpsCss} className="timeline-preview__fps">
               {t("i18n-next6.preview.framesPerSecond", { count: fps })}
             </Caption>
-          )}
-
-          {!simple && (
-          <SelectField
-            label={t("i18n-next6.preview.previewQuality")}
-            hideLabel
-            size="small"
-            value={previewQuality}
-            onChange={(value) => {
-              if (value === "auto" || value === "full" || value === "half" || value === "quarter") {
-                setPreviewQuality(value);
-              }
-            }}
-            options={[
-              { value: "auto", label: t("i18n-next6.preview.autoQuality", { quality: autoQualityLabel }) },
-              { value: "full", label: t("i18n-next6.preview.full") },
-              { value: "half", label: t("i18n-next6.preview.half") },
-              { value: "quarter", label: t("i18n-next6.preview.quarter") }
-            ]}
-            className="timeline-preview__quality"
-          />
           )}
 
           <ToolbarIconButton
