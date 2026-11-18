@@ -35,6 +35,7 @@ export * as cloudLocal from "./cloud-local.js";
 export * as deletedDocuments from "./deleted-documents.js";
 export * as transfer from "./transfer.js";
 export * as receive from "./receive.js";
+export * as cloudTransferLocal from "./cloud-transfer-local.js";
 export * as errorTraces from "./error-traces.js";
 export * as bugReports from "./bug-reports.js";
 export * as users from "./users.js";
