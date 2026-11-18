@@ -265,6 +265,19 @@ describe("receiving a cloud project", { timeout: 30_000 }, () => {
     expect(again.documents).toMatchObject([{ localId: planned?.localId, status: "same" }]);
   });
 
+  it("refuses a capture whose file hash or path would leave the staging or project folder (review F17)", async () => {
+    const bad = cloud.putWorkflow("Edit", { bytes: randomBytes(16), name: "still.png", path: "media/still.png" });
+    bad.files[0]!.hash = "../../escape";
+    await expect(captureReceive(cloud, link)).rejects.toThrow();
+    bad.files[0]!.hash = sha(randomBytes(4));
+    bad.files[0]!.path = "../outside.png";
+    await expect(captureReceive(cloud, link)).rejects.toThrow();
+    bad.files[0]!.path = null;
+    bad.files[0]!.name = "../outside.png";
+    await expect(captureReceive(cloud, link)).rejects.toThrow();
+    expect(await getCloudReceive(cloud.sets.keys().next().value ?? "")).toBeNull();
+  });
+
   it("takes a cloud change over an unchanged local copy and keeps the local revision as a version", async () => {
     const document = cloud.putWorkflow("Edit", null);
     await runReceive(cloud, (await captureReceive(cloud, link)).setId);

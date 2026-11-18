@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { transferDocumentKind } from "./transfer.js";
+import { transferDocumentKind, workspacePath } from "./transfer.js";
 
 // Receiving from a cloud project (docs/plans/native-cloud-sync/
 // technical-design.md, "Receiving: revision set, stage, check, apply",
@@ -20,15 +20,22 @@ export const captureRevisionSetInput = z.union([
 export type CaptureRevisionSetInput = z.infer<typeof captureRevisionSetInput>;
 
 /** A file a captured revision needs. */
-export const revisionSetFile = z.object({
-  asset_id: fullId,
-  hash: sha256,
-  size: z.number().int().nonnegative(),
-  name: z.string(),
-  content_type: z.string(),
-  /** The path in the cloud project's folder, or null for a file stored outside one. */
-  path: z.string().nullable()
-});
+export const revisionSetFile = z
+  .object({
+    asset_id: fullId,
+    hash: sha256,
+    size: z.number().int().nonnegative(),
+    name: z.string(),
+    content_type: z.string(),
+    /** The path in the cloud project's folder, or null for a file stored outside one. */
+    path: workspacePath.nullable()
+  })
+  // A file outside the cloud folder is placed under its name at the root,
+  // so the name must be one plain segment.
+  .refine((file) => file.path !== null || workspacePath.safeParse(file.name).success && !file.name.includes("/"), {
+    message: "A file without a path needs a plain file name",
+    path: ["name"]
+  });
 export type RevisionSetFile = z.infer<typeof revisionSetFile>;
 
 /** One document of a set, at the revision captured for it. */

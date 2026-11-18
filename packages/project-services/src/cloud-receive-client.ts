@@ -21,7 +21,7 @@
  * server.
  */
 import { mkdir, open, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { createLogger } from "@nodetool-ai/config";
 import { pausePoint } from "@nodetool-ai/config/pause-points";
 import {
@@ -55,10 +55,11 @@ import {
   requireProjectFolder,
   withWorkspaceFingerprint
 } from "@nodetool-ai/asset-services/project-asset-file";
-import type {
-  CaptureRevisionSetOutput,
-  ReceiveDocumentOutput,
-  RevisionSetDocument
+import {
+  captureRevisionSetOutput,
+  type CaptureRevisionSetOutput,
+  type ReceiveDocumentOutput,
+  type RevisionSetDocument
 } from "@nodetool-ai/protocol/api-schemas/receive.js";
 import type { TransferDocumentKind } from "@nodetool-ai/protocol/api-schemas/transfer.js";
 import { withoutDocumentFileWrites, writeDocumentFileUnderLock } from "./document-file-sync.js";
@@ -242,6 +243,23 @@ function stagingDir(workspace: Workspace, setId: string): string {
   return join(workspace.localDir, ".nodetool", "cloud-staging", setId);
 }
 
+/**
+ * A path inside the staging folder. Each part is one plain name, such as a
+ * hash or a document id the cloud sent, so a part like `..` or `a/b` from a
+ * malformed answer can never reach outside the folder.
+ */
+function stagedPath(dir: string, ...parts: string[]): string {
+  for (const part of parts) {
+    if (!/^[A-Za-z0-9._-]+$/.test(part) || part === "." || part === "..") {
+      throw new Error(`Refused a staging name the cloud sent: ${JSON.stringify(part)}`);
+    }
+  }
+  const path = join(dir, ...parts);
+  const root = resolve(dir) + sep;
+  if (!resolve(path).startsWith(root)) throw new Error("Refused a staging path outside the staging folder");
+  return path;
+}
+
 /** The path on this computer of a file in a local project folder. */
 function localPath(workspace: Workspace, path: string): string {
   return join(workspace.localDir ?? "", workspace.key(path));
@@ -274,7 +292,9 @@ export async function captureReceive(
   transport: ReceiveTransport,
   link: CloudLinkRow
 ): Promise<{ setId: string; documents: PlannedDocument[] }> {
-  const set = await transport.capture({ project_id: link.cloud_project_id });
+  // A self-hosted cloud can answer anything. Ids, hashes and paths name
+  // files on this computer, so the answer is checked before it is kept.
+  const set = captureRevisionSetOutput.parse(await transport.capture({ project_id: link.cloud_project_id }));
   const documents: PlannedDocument[] = [];
   for (const document of set.documents) {
     const linked = await getCloudLinkDocumentByCloudId(link.id, document.kind, document.document_id);
@@ -348,7 +368,7 @@ async function heldLocally(file: RevisionSetDocument["files"][number]): Promise<
 async function stage(transport: ReceiveTransport, row: CloudReceiveRow, plan: ReceivePlan, dir: string): Promise<void> {
   await mkdir(join(dir, "documents"), { recursive: true });
   for (const document of toWrite(plan)) {
-    const path = join(dir, "documents", `${document.kind}-${document.cloudId}.json`);
+    const path = stagedPath(dir, "documents", `${document.kind}-${document.cloudId}.json`);
     if (await fileExists(path)) continue;
     const received = await transport.document({
       set_id: row.id,
@@ -366,7 +386,7 @@ async function stage(transport: ReceiveTransport, row: CloudReceiveRow, plan: Re
   const erased = new Set(plan.erased);
   for (const [hash, files] of neededFiles(plan)) {
     if (erased.has(hash)) continue;
-    const path = join(dir, hash);
+    const path = stagedPath(dir, hash);
     if (await fileExists(path)) {
       // A crash can leave a staged file only after its rename, which follows its check.
       continue;
@@ -422,7 +442,7 @@ async function commit(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePla
   await reconcileInBackground(link.project_id, link.user_id);
   const payloads = new Map<PlannedDocument, TransferPayloadContent>();
   for (const document of toWrite(plan)) {
-    const text = await readFile(join(dir, "documents", `${document.kind}-${document.cloudId}.json`), "utf8");
+    const text = await readFile(stagedPath(dir, "documents", `${document.kind}-${document.cloudId}.json`), "utf8");
     payloads.set(document, JSON.parse(text) as TransferPayloadContent);
   }
   const erased = new Set(plan.erased);
@@ -430,7 +450,7 @@ async function commit(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePla
   // staged files are looked at before it.
   const staged = new Set<string>();
   for (const hash of neededFiles(plan).keys()) {
-    if (await fileExists(join(dir, hash))) staged.add(hash);
+    if (await fileExists(stagedPath(dir, hash))) staged.add(hash);
   }
   await withoutDocumentFileWrites(() =>
     withTransaction(async () => {
@@ -628,7 +648,7 @@ async function place(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePlan
       await deleteTransferPlacement(placement.id);
       continue;
     }
-    const staged = join(dir, placement.hash);
+    const staged = stagedPath(dir, placement.hash);
     let target = placement.path;
     await restoreDisplaced(workspace, dir, placement.id, placement.path, planned.replaceIfHash, now, plan);
     const existing = (await workspace.exists(target)) ? await contentHashOfFile(localPath(workspace, target)) : null;

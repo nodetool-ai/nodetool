@@ -84,7 +84,7 @@ export type TransferOperation = z.infer<typeof transferOperation>;
  * A path relative to the project folder. It names a file inside the folder,
  * never `.nodetool/`, which NodeTool keeps for itself.
  */
-const workspacePath = z
+export const workspacePath = z
   .string()
   .min(1)
   .max(1024)
