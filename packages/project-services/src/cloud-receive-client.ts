@@ -185,6 +185,13 @@ interface ReceivePlan {
   decided: boolean;
   placements: PlannedPlacement[];
   result: ReceiveResult;
+  /**
+   * Where the received bytes of a file went when its path held other
+   * content, by cloud asset id and hash, and the id of the asset they became
+   * when both sides changed the file. Recorded before the bytes are placed,
+   * so a run after a crash reuses the path and the asset (review F48).
+   */
+  keptPlacements?: Record<string, { path: string; siblingId: string | null }>;
 }
 
 /** What {@link runReceive} ended with. */
@@ -666,6 +673,7 @@ async function replaceUnchanged(
     // The file went away after it was checked. The next pass sees a free path.
     return false;
   }
+  await pausePoint("receive.place.moved-aside");
   if ((await contentHashOfFile(displaced)) !== baseHash) {
     if (await workspace.absorbNew(displaced, target)) await rm(displaced, { force: true });
     return false;
@@ -709,6 +717,55 @@ async function restoreDisplaced(
 }
 
 /**
+ * Puts the staged bytes beside `path` and returns where. The path is
+ * recorded before the bytes go there, with the id of the asset they become
+ * when the local file is a changed asset, and a later run reuses both
+ * (review F48).
+ */
+async function keepBeside(
+  workspace: Workspace,
+  row: CloudReceiveRow,
+  plan: ReceivePlan,
+  key: string,
+  path: string,
+  hash: string,
+  staged: string,
+  existing: boolean,
+  now: Date
+): Promise<string> {
+  const recorded = plan.keptPlacements?.[key];
+  if (recorded && (await workspace.exists(recorded.path))) {
+    if ((await contentHashOfFile(localPath(workspace, recorded.path))) === hash) return recorded.path;
+  } else if (recorded) {
+    if (await workspace.absorbNew(staged, recorded.path)) return recorded.path;
+  }
+  // No path is recorded, or another app took the recorded one.
+  const target = await keptPath(workspace, path, now);
+  (plan.keptPlacements ??= {})[key] = {
+    path: target,
+    siblingId: recorded?.siblingId ?? (existing ? createTimeOrderedUuid() : null)
+  };
+  await updateCloudReceive(row.id, { plan });
+  if (!(await workspace.absorbNew(staged, target))) {
+    throw new Error(`Could not place a received file beside ${path}`);
+  }
+  return target;
+}
+
+/** Lists a file kept beside its path once, however often a run after a crash places it. */
+async function reportKeptBeside(
+  row: CloudReceiveRow,
+  plan: ReceivePlan,
+  entry: { assetId: string; path: string; keptPath: string }
+): Promise<void> {
+  const listed = plan.result.keptBeside.findIndex((kept) => kept.assetId === entry.assetId);
+  if (listed >= 0 && plan.result.keptBeside[listed]!.keptPath === entry.keptPath) return;
+  if (listed >= 0) plan.result.keptBeside[listed] = entry;
+  else plan.result.keptBeside.push(entry);
+  await updateCloudReceive(row.id, { plan });
+}
+
+/**
  * Still under the lock: copies each staged file to its path when the path is
  * free or still holds the recorded bytes, and beside it otherwise. Then the
  * file of each written document goes through the document file sync, which
@@ -737,11 +794,9 @@ async function place(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePlan
       await pausePoint("receive.place.replacing");
       placed = await replaceUnchanged(workspace, dir, placement.id, target, staged, planned.replaceIfHash);
     }
+    const keyOf = `${planned.assetId}:${placement.hash}`;
     if (!placed) {
-      target = await keptPath(workspace, placement.path, now);
-      if (!(await workspace.absorbNew(staged, target))) {
-        throw new Error(`Could not place a received file beside ${placement.path}`);
-      }
+      target = await keepBeside(workspace, row, plan, keyOf, placement.path, placement.hash, staged, planned.existing === true, now);
     }
     const asset = await Asset.get<Asset>(planned.assetId);
     const fileStat = await workspace.stat(target);
@@ -751,29 +806,29 @@ async function place(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePlan
       workspace_mtime: fileStat.modifiedAt,
       workspace_hash: await partialContentHashOfFile(localPath(workspace, target))
     };
-    if (!placed && planned.existing) {
+    const siblingId = placed ? null : (plan.keptPlacements?.[keyOf]?.siblingId ?? null);
+    if (siblingId) {
       // Both sides changed the file. The local asset keeps its id, path and
       // bytes, so every document that uses it keeps the local media, and the
-      // received bytes become a new asset (V22, review F34).
-      const sibling = await Asset.create<Asset>({
-        id: createTimeOrderedUuid(),
-        user_id: link.user_id,
-        project_id: link.project_id,
-        parent_id: asset?.parent_id ?? link.user_id,
-        name: target.slice(target.lastIndexOf("/") + 1),
-        content_type: asset?.content_type ?? "application/octet-stream",
-        workspace_path: target,
-        size: fileStat.size,
-        content_hash: placement.hash,
-        metadata: withWorkspaceFingerprint(null, fingerprint)
-      });
-      plan.result.keptBeside.push({ assetId: sibling.id, path: placement.path, keptPath: target });
-      await updateCloudReceive(row.id, { plan });
-    } else {
-      if (!placed) {
-        plan.result.keptBeside.push({ assetId: planned.assetId, path: placement.path, keptPath: target });
-        await updateCloudReceive(row.id, { plan });
+      // received bytes become a new asset (V22, review F34). Its id was
+      // recorded with the path, so a run after a crash finds it (review F48).
+      if (!(await Asset.get<Asset>(siblingId))) {
+        await Asset.create<Asset>({
+          id: siblingId,
+          user_id: link.user_id,
+          project_id: link.project_id,
+          parent_id: asset?.parent_id ?? link.user_id,
+          name: target.slice(target.lastIndexOf("/") + 1),
+          content_type: asset?.content_type ?? "application/octet-stream",
+          workspace_path: target,
+          size: fileStat.size,
+          content_hash: placement.hash,
+          metadata: withWorkspaceFingerprint(null, fingerprint)
+        });
       }
+      await reportKeptBeside(row, plan, { assetId: siblingId, path: placement.path, keptPath: target });
+    } else {
+      if (!placed) await reportKeptBeside(row, plan, { assetId: planned.assetId, path: placement.path, keptPath: target });
       if (asset) {
         await asset.update({
           workspace_path: target,
@@ -783,6 +838,10 @@ async function place(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePlan
         });
       }
     }
+    // Local bytes a failed replacement moved aside go back before the
+    // placement that names them is cleared (review F49).
+    await restoreDisplaced(workspace, dir, placement.id, placement.path, planned.replaceIfHash, now, plan);
+    await pausePoint("receive.place.placed");
     await deleteTransferPlacement(placement.id);
   }
   for (const entry of plan.result.received) {
