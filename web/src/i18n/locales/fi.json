@@ -15793,7 +15793,9 @@
       "showDetails": "Näytä tiedot",
       "collapseDetails": "Piilota tiedot",
       "input": "Syöte",
-      "output": "Tuloste"
+      "output": "Tuloste",
+      "basic": "Perus",
+      "basicNode": "Perus · {{title}}-solmu"
     },
     "favorites": {
       "title": "Suosikit",
@@ -15823,6 +15825,7 @@
       "resizeHeight": "Muuta solmuvalikon korkeutta"
     },
     "quickActions": {
+      "basics": "Perusteet",
       "aiNodes": "Tekoälysolmut",
       "providerModels": "Palveluntarjoajien mallit",
       "constants": "Vakiot",
@@ -15860,7 +15863,13 @@
         "constant-list": "Lista",
         "constant-model-3d": "3D-malli",
         "constant-string": "Merkkijono",
-        "constant-video": "Video"
+        "constant-video": "Video",
+        "basic-text": "Teksti",
+        "basic-generate-text": "Luo tekstiä",
+        "basic-generate-image": "Luo kuva",
+        "basic-edit-image": "Muokkaa kuvaa",
+        "basic-generate-video": "Luo video",
+        "basic-edit-video": "Muokkaa videota"
       }
     },
     "recent": {

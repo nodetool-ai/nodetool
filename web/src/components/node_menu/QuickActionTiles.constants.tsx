@@ -18,6 +18,7 @@ import CollectionsIcon from "@mui/icons-material/Collections";
 import { colorForType } from "../../config/data_types";
 import { IconForType } from "../../config/IconForType";
 import type { QuickActionNodeType } from "../../config/quickActionNodeTypes";
+import { BASIC_NODES } from "../../config/basicNodes";
 
 export type QuickActionDefinition = {
   key: string;
@@ -79,9 +80,17 @@ export const QUICK_ACTION_BUTTONS: QuickActionDefinition[] = [
   buildQuickAction("replicate-dynamic", "Replicate", "replicate.DynamicReplicate", <ApiIcon />, rgb(59, 130, 246), rgb(129, 140, 248), "#2563eb")
 ];
 
-/** Task tiles (Text to image, Upscale, …) shown under "AI nodes". */
+const BASIC_NODE_TYPES = new Set<string>(
+  BASIC_NODES.map((basic) => basic.nodeType)
+);
+
+/**
+ * Specialized task tiles (Upscale, Lip sync, …) shown under "AI nodes". The
+ * nodes behind the Basics row stay out of it, so each appears once.
+ */
 export const AI_TASK_ACTIONS = QUICK_ACTION_BUTTONS.filter(
-  (action) => !action.key.endsWith("-dynamic")
+  (action) =>
+    !action.key.endsWith("-dynamic") && !BASIC_NODE_TYPES.has(action.nodeType)
 );
 
 /** Provider tiles (FalAI, KieAI, Replicate) that run any model of that provider. */
@@ -233,3 +242,19 @@ export const CONSTANT_NODES: QuickActionDefinition[] = [
     iconType: "video"
   })
 ].sort((a, b) => a.label.localeCompare(b.label));
+
+/**
+ * The first tile row: text, image and video basics under task names, with
+ * the look of the tile each node already has.
+ */
+export const BASIC_ACTIONS: QuickActionDefinition[] = BASIC_NODES.map(
+  (basic) => {
+    const tile = [...QUICK_ACTION_BUTTONS, ...CONSTANT_NODES].find(
+      (action) => action.nodeType === basic.nodeType
+    );
+    if (!tile) {
+      throw new Error(`No tile for basic node ${basic.nodeType}`);
+    }
+    return { ...tile, key: basic.key, label: basic.label };
+  }
+);

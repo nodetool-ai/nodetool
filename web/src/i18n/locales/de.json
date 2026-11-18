@@ -15793,7 +15793,9 @@
       "showDetails": "Details anzeigen",
       "collapseDetails": "Details einklappen",
       "input": "Eingabe",
-      "output": "Ausgabe"
+      "output": "Ausgabe",
+      "basic": "Grundlage",
+      "basicNode": "Grundlage · Knoten {{title}}"
     },
     "favorites": {
       "title": "Favoriten",
@@ -15823,6 +15825,7 @@
       "resizeHeight": "Höhe des Knotenmenüs ändern"
     },
     "quickActions": {
+      "basics": "Grundlagen",
       "aiNodes": "KI-Knoten",
       "providerModels": "Anbietermodelle",
       "constants": "Konstanten",
@@ -15860,7 +15863,13 @@
         "constant-list": "Liste",
         "constant-model-3d": "3D-Modell",
         "constant-string": "Zeichenfolge",
-        "constant-video": "Video"
+        "constant-video": "Video",
+        "basic-text": "Text",
+        "basic-generate-text": "Text generieren",
+        "basic-generate-image": "Bild generieren",
+        "basic-edit-image": "Bild bearbeiten",
+        "basic-generate-video": "Video generieren",
+        "basic-edit-video": "Video bearbeiten"
       }
     },
     "recent": {

@@ -15793,7 +15793,9 @@
       "showDetails": "显示详情",
       "collapseDetails": "收起详情",
       "input": "输入",
-      "output": "输出"
+      "output": "输出",
+      "basic": "基础",
+      "basicNode": "基础 · {{title}} 节点"
     },
     "favorites": {
       "title": "收藏夹",
@@ -15823,6 +15825,7 @@
       "resizeHeight": "调整节点菜单高度"
     },
     "quickActions": {
+      "basics": "基础",
       "aiNodes": "AI 节点",
       "providerModels": "提供商模型",
       "constants": "常量",
@@ -15860,7 +15863,13 @@
         "constant-list": "列表",
         "constant-model-3d": "3D 模型",
         "constant-string": "字符串",
-        "constant-video": "视频"
+        "constant-video": "视频",
+        "basic-text": "文本",
+        "basic-generate-text": "生成文本",
+        "basic-generate-image": "生成图像",
+        "basic-edit-image": "编辑图像",
+        "basic-generate-video": "生成视频",
+        "basic-edit-video": "编辑视频"
       }
     },
     "recent": {

@@ -10,6 +10,7 @@ import { getProviderKindForNamespace } from "./nodeProvider";
 import { rankNodeMetadata, searchTermsFromQuery } from "./nodeRanking";
 import { QUICK_ACTION_NODE_TYPES } from "../config/quickActionNodeTypes";
 import { BM25Index, buildNodeBM25Index } from "./bm25";
+import { matchBasicNodes } from "../config/basicNodes";
 
 export type SearchResultGroup = {
   title: string;
@@ -393,6 +394,45 @@ export function rankSearchNodes(
   }));
 }
 
+/**
+ * Moves the basic operations the query names (see `matchBasicNodes`) to the
+ * top, in their fixed order, and marks them `pinnedAsBasic`. "text"
+ * otherwise ranks dozens of specialized text nodes above the plain Text node.
+ * A basic node the filters excluded stays excluded.
+ */
+export function pinBasicNodes(
+  ranked: NodeMetadata[],
+  available: NodeMetadata[],
+  term: string
+): NodeMetadata[] {
+  const basics = matchBasicNodes(term);
+  if (basics.length === 0) {
+    return ranked;
+  }
+  const pinned: NodeMetadata[] = [];
+  const pinnedTypes = new Set<string>();
+  for (const basic of basics) {
+    const node =
+      ranked.find((candidate) => candidate.node_type === basic.nodeType) ??
+      available.find(
+        (candidate) =>
+          candidate.node_type === basic.nodeType && !candidate.hidden
+      );
+    if (!node) {
+      continue;
+    }
+    pinned.push({
+      ...node,
+      searchInfo: { ...node.searchInfo, pinnedAsBasic: true }
+    });
+    pinnedTypes.add(node.node_type);
+  }
+  return [
+    ...pinned,
+    ...ranked.filter((node) => !pinnedTypes.has(node.node_type))
+  ];
+}
+
 export function computeSearchResults(
   metadata: NodeMetadata[],
   term: string,
@@ -460,10 +500,10 @@ export function computeSearchResults(
     };
   }
 
-  const sortedResults = rankSearchNodes(
+  const sortedResults = pinBasicNodes(
+    rankSearchNodes(pathFilteredMetadata, term, recentNodeTypes),
     pathFilteredMetadata,
-    term,
-    recentNodeTypes
+    term
   );
 
   return {

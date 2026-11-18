@@ -15793,7 +15793,9 @@
       "showDetails": "Visa detaljer",
       "collapseDetails": "Komprimera detaljer",
       "input": "Ingång",
-      "output": "Utgång"
+      "output": "Utgång",
+      "basic": "Grund",
+      "basicNode": "Grund · noden {{title}}"
     },
     "favorites": {
       "title": "Favoriter",
@@ -15823,6 +15825,7 @@
       "resizeHeight": "Ändra storlek på nodmenyns höjd"
     },
     "quickActions": {
+      "basics": "Grunder",
       "aiNodes": "AI-noder",
       "providerModels": "Leverantörsmodeller",
       "constants": "Konstanter",
@@ -15860,7 +15863,13 @@
         "constant-list": "Lista",
         "constant-model-3d": "3D-modell",
         "constant-string": "Sträng",
-        "constant-video": "Video"
+        "constant-video": "Video",
+        "basic-text": "Text",
+        "basic-generate-text": "Generera text",
+        "basic-generate-image": "Generera bild",
+        "basic-edit-image": "Redigera bild",
+        "basic-generate-video": "Generera video",
+        "basic-edit-video": "Redigera video"
       }
     },
     "recent": {

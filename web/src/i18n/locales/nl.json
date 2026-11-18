@@ -15793,7 +15793,9 @@
       "showDetails": "Details tonen",
       "collapseDetails": "Details samenvouwen",
       "input": "Invoer",
-      "output": "Uitvoer"
+      "output": "Uitvoer",
+      "basic": "Basis",
+      "basicNode": "Basis · node {{title}}"
     },
     "favorites": {
       "title": "Favorieten",
@@ -15823,6 +15825,7 @@
       "resizeHeight": "Wijzig de hoogte van het knooppuntmenu"
     },
     "quickActions": {
+      "basics": "Basis",
       "aiNodes": "AI-knooppunten",
       "providerModels": "Provider-modellen",
       "constants": "Constanten",
@@ -15860,7 +15863,13 @@
         "constant-list": "Lijst",
         "constant-model-3d": "3D-model",
         "constant-string": "Snaar",
-        "constant-video": "Video"
+        "constant-video": "Video",
+        "basic-text": "Tekst",
+        "basic-generate-text": "Tekst genereren",
+        "basic-generate-image": "Afbeelding genereren",
+        "basic-edit-image": "Afbeelding bewerken",
+        "basic-generate-video": "Video genereren",
+        "basic-edit-video": "Video bewerken"
       }
     },
     "recent": {

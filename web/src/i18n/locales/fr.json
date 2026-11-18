@@ -16068,7 +16068,9 @@
       "showDetails": "Afficher les détails",
       "collapseDetails": "Réduire les détails",
       "input": "Entrée",
-      "output": "Sortie"
+      "output": "Sortie",
+      "basic": "Essentiel",
+      "basicNode": "Essentiel · nœud {{title}}"
     },
     "favorites": {
       "title": "Favoris",
@@ -16098,6 +16100,7 @@
       "resizeHeight": "Redimensionner la hauteur du menu du nœud"
     },
     "quickActions": {
+      "basics": "Essentiels",
       "aiNodes": "Nœuds IA",
       "providerModels": "Modèles de fournisseurs",
       "constants": "Constantes",
@@ -16135,7 +16138,13 @@
         "constant-list": "Liste",
         "constant-model-3d": "Modèle 3D",
         "constant-string": "Chaîne",
-        "constant-video": "Vidéo"
+        "constant-video": "Vidéo",
+        "basic-text": "Texte",
+        "basic-generate-text": "Générer du texte",
+        "basic-generate-image": "Générer une image",
+        "basic-edit-image": "Modifier une image",
+        "basic-generate-video": "Générer une vidéo",
+        "basic-edit-video": "Modifier une vidéo"
       }
     },
     "recent": {
