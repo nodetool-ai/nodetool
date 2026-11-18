@@ -20,6 +20,8 @@ ARG DEBIAN_FRONTEND=noninteractive
 #   libsecret-1-0 / -dev  keytar
 #   mesa-vulkan-drivers   lavapipe, the CPU Vulkan ICD Dawn uses for WebGPU
 #   libgl1 ... libxxf86vm1  the headless GL stack the node packages' suites load
+#   postgresql            initdb and pg_ctl for the race tests between two
+#                         server processes on one real PostgreSQL instance
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       ca-certificates curl gnupg git openssh-client sudo \
@@ -28,7 +30,7 @@ RUN apt-get update \
       gdb xvfb xauth fontconfig fonts-dejavu-core vulkan-tools \
       libsecret-1-0 libsecret-1-dev \
       mesa-vulkan-drivers libgl1 libegl1 libsm6 libxi6 libxrender1 libxfixes3 \
-      libxkbcommon0 libxxf86vm1 gh \
+      libxkbcommon0 libxxf86vm1 gh postgresql \
  && rm -rf /var/lib/apt/lists/*
 
 # Chromium's and WebKit's shared libraries and fonts, as `playwright install

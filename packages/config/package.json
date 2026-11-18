@@ -44,6 +44,18 @@
       "import": "./dist/wan2gp-runtime.js",
       "default": "./dist/wan2gp-runtime.js"
     },
+    "./pause-points": {
+      "nodetool-dev": "./src/pause-points.ts",
+      "types": "./dist/pause-points.d.ts",
+      "import": "./dist/pause-points.js",
+      "default": "./dist/pause-points.js"
+    },
+    "./testing/pause-harness": {
+      "nodetool-dev": "./src/testing/pause-harness.ts",
+      "types": "./dist/testing/pause-harness.d.ts",
+      "import": "./dist/testing/pause-harness.js",
+      "default": "./dist/testing/pause-harness.js"
+    },
     "./threadpool": {
       "nodetool-dev": "./src/threadpool.ts",
       "types": "./dist/threadpool.d.ts",
