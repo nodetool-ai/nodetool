@@ -217,6 +217,7 @@ Controls.Control {
                 cloudDocument: root.cloudDocument
                 cloudAccount: root.cloudAccount
                 accountServers: root.accountServers
+                projectFolder: root.projectFolder
                 DockLayoutMenu {
                     anchors.verticalCenter: parent.verticalCenter
                     store: layoutStore

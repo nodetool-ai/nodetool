@@ -1,10 +1,12 @@
 #include "server/projectfolder/ProjectFolderState.h"
 
+#include "server/BundledServer.h"
 #include "server/ServerSource.h"
 
 #include <QDesktopServices>
 #include <QFileInfo>
 #include <QJsonArray>
+#include <QRegularExpression>
 
 namespace {
 bool loose(const QString& projectId) { return projectId.isEmpty() || projectId == u"default"; }
@@ -25,6 +27,17 @@ void ProjectFolderState::Worker::run() {
     nt::server::ServerClient client(m_target.server, m_target.token, 10000);
     client.setExpectedInstance(m_target.expectedInstance);
     result = m_work(client);
+}
+
+QUrl ProjectFolderState::bundledServerUrl() { return nt::server::bundledServerUrl(); }
+
+bool ProjectFolderState::canTransfer() const {
+    // A project folder has a generated id. Personal and a loose timeline have none to link.
+    static const QRegularExpression fullId(QStringLiteral("^[0-9a-f]{32}$"));
+    const auto bundled = bundledServerUrl();
+    return m_loaded && m_target && hasFolder() && bundled.isValid() && !bundled.isEmpty()
+           && m_target->server.adjusted(QUrl::StripTrailingSlash) == bundled.adjusted(QUrl::StripTrailingSlash)
+           && fullId.match(m_projectId).hasMatch();
 }
 
 ProjectFolderState::ProjectFolderState(QObject* parent)

@@ -23,6 +23,10 @@ Rectangle {
     // which shows the current server's account.
     property AccountServers accountServers: null
     readonly property AccountController account: accountServers ? accountServers.current : null
+    // The folder of the open server timeline's project. With an account and
+    // a project folder on the bundled server, File > Publish to Cloud and
+    // Synchronize open the review sheet.
+    property ProjectFolderState projectFolder: null
     // Controls after Undo and Redo, such as the layout menu.
     default property alias leading: leadingRow.data
 
@@ -135,6 +139,28 @@ Rectangle {
                     open()
                 }
                 onClosed: shareDialog.active = false
+            }
+        }
+        // Made on first use from the File menu (TransferMenu.cpp).
+        Loader {
+            id: transferDialog
+            objectName: "transferDialog"
+            readonly property bool available: bar.account !== null && bar.projectFolder !== null && bar.projectFolder.canTransfer
+            function openSheet() {
+                if (!available) return false
+                active = true
+                return true
+            }
+            active: false
+            sourceComponent: TransferDialog {
+                account: bar.account
+                serverUrl: bar.projectFolder.serverUrl
+                bundledServerUrl: bar.projectFolder.bundledServerUrl
+                serverToken: bar.projectFolder.serverToken
+                projectId: bar.projectFolder.projectId
+                projectName: bar.projectFolder.projectName
+                Component.onCompleted: open()
+                onClosed: transferDialog.active = false
             }
         }
         Loader {
