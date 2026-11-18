@@ -39,6 +39,7 @@ import type {
 } from "@nodetool-ai/protocol/api-schemas/receive.js";
 import type { TransferDocumentKind } from "@nodetool-ai/protocol/api-schemas/transfer.js";
 import {
+  cancelReceive,
   captureReceive,
   ReceiveSetExpiredError,
   resumeReceives,
@@ -607,4 +608,16 @@ describe("receiving a cloud project", { timeout: 30_000 }, () => {
     const versions = await WorkflowVersion.listForWorkflow(document.id);
     expect(versions.some((version) => JSON.stringify(version.graph).includes("file edit"))).toBe(true);
   });
+
+  it("releases the set and clears the local receive when the person closes the review (review F41)", async () => {
+    const document = cloud.putWorkflow("Edit", { bytes: randomBytes(16), name: "still.png", path: "media/still.png" });
+    const review = await captureReceive(cloud, link);
+    expect(await cancelReceive(cloud, review.setId)).toBe("cancelled");
+    expect(cloud.released).toEqual([review.setId]);
+    expect(await getCloudReceive(review.setId)).toBeNull();
+    expect(existsSync(join(stagingRoot(), review.setId))).toBe(false);
+    expect(await Workflow.get<Workflow>(document.id)).toBeNull();
+    expect(await cancelReceive(cloud, review.setId)).toBe("cancelled");
+  });
 });
+

@@ -150,6 +150,8 @@ interface SendPlan {
   decisions: TransferDecision[];
   /** The person confirmed `missingFiles` exactly as listed, so an attempt may send without them. */
   missingConfirmed?: boolean;
+  /** The cloud opened the transfer. Until then the send exists only here (review F41). */
+  opened?: boolean;
 }
 
 /** What {@link captureSend} found, for the review sheet. */
@@ -639,6 +641,10 @@ export async function runSend(transport: SendTransport, transferId: string, opti
     first_publication: plan.firstPublication,
     manifest: plan.manifest
   });
+  if (!plan.opened) {
+    plan.opened = true;
+    await updateCloudSend(transferId, { plan });
+  }
   const needed = new Set(opened.needed_hashes);
   if (needed.size > 0) {
     const { workspace } = await requireProjectFolder(row.project_id, row.user_id);
@@ -684,10 +690,18 @@ async function recordedResult(
   return status.attempts.find((attempt) => attempt.attempt_id === attemptId)?.result ?? null;
 }
 
-/** Cancels a send. A transfer that committed already only updates the local bases. */
+/**
+ * Cancels a send. A send the cloud never opened, such as one whose review
+ * was closed, is only deleted here. A transfer that committed already only
+ * updates the local bases.
+ */
 export async function cancelSend(transport: SendTransport, transferId: string): Promise<"cancelled" | "committed"> {
   const row = await getCloudSend(transferId);
   if (!row) return "cancelled";
+  if (!parsePlan(row).opened) {
+    await deleteCloudSend(transferId);
+    return "cancelled";
+  }
   const answer = await transport.cancel({ transfer_id: transferId });
   if (answer.state === "committed" && answer.result.outcome === "committed") {
     await finishCommitted(row, parsePlan(row), answer.result);

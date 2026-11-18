@@ -868,6 +868,28 @@ async function recapture(
   return { setId: next.setId, reviewed, documents: nextPlan.documents };
 }
 
+/**
+ * Cancels a receive the person closed before it was applied: releases the
+ * set, deletes the staging folder and the receive's row (review F41). A
+ * receive that applied its commit already only has its files left to place,
+ * so it is left for {@link runReceive} or {@link resumeReceives}, and the
+ * answer is `applied`.
+ */
+export async function cancelReceive(transport: ReceiveTransport, setId: string): Promise<"cancelled" | "applied"> {
+  const row = await getCloudReceive(setId);
+  if (!row) return "cancelled";
+  if (row.state === "applied") return "applied";
+  const link = await getCloudLinkById(row.link_id);
+  const folder = link ? await requireProjectFolder(link.project_id, link.user_id).catch(() => null) : null;
+  if (folder) {
+    await finish(transport, row, stagingDir(folder.workspace, setId));
+  } else {
+    await transport.release({ set_id: setId }).catch(() => undefined);
+    await deleteCloudReceive(setId);
+  }
+  return "cancelled";
+}
+
 /** Options of {@link runReceive}. */
 export interface ReceiveRunOptions {
   /**

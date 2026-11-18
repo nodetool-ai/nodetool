@@ -68,7 +68,10 @@ class FakeCloud implements SendTransport {
   projectExists = false;
   dropCommitAnswer = false;
 
+  readonly opened = new Set<string>();
+
   async open(input: { transfer_id: string; project_id: string; first_publication: boolean; manifest: TransferManifest }) {
+    this.opened.add(input.transfer_id);
     expect(input.project_id).toBe(PROJECT);
     expect(input.first_publication).toBe(!this.projectExists);
     const staged = this.staged.get(input.transfer_id) ?? new Set<string>();
@@ -154,6 +157,8 @@ class FakeCloud implements SendTransport {
   }
 
   async cancel(input: { transfer_id: string }) {
+    // The server knows no transfer it did not open.
+    if (!this.opened.has(input.transfer_id)) throw new Error("NOT_FOUND: Transfer not found");
     const committed = this.attempts.get(input.transfer_id)?.find((attempt) => attempt.result.outcome === "committed");
     return committed ? { state: "committed" as const, result: committed.result } : { state: "cancelled" as const };
   }
@@ -459,5 +464,24 @@ describe("sending a project to the cloud", { timeout: 30_000 }, () => {
       { op: "delete_document", document_id: workflow.id, base_hash: newer, confirmed: true }
     ]);
     expect(cloud.documents.has(workflow.id)).toBe(false);
+  });
+
+  it("cancels a send the cloud never opened here alone, and an opened one on the cloud too (review F41)", async () => {
+    await workflowWithFile(null);
+    const captured = await captureSend(TARGET);
+    expect(await cancelSend(cloud, captured.transferId)).toBe("cancelled");
+    expect(await getCloudSend(captured.transferId)).toBeNull();
+
+    const refused = await captureSend(TARGET);
+    const original = cloud.commit.bind(cloud);
+    cloud.commit = async (input) => {
+      cloud.commits.push(input);
+      return { outcome: "refused", failures: [{ code: "QUOTA", message: "full" }] };
+    };
+    expect((await runSend(cloud, refused.transferId)).status).toBe("refused");
+    cloud.commit = original;
+    expect(cloud.opened.has(refused.transferId)).toBe(true);
+    expect(await cancelSend(cloud, refused.transferId)).toBe("cancelled");
+    expect(await getCloudSend(refused.transferId)).toBeNull();
   });
 });
