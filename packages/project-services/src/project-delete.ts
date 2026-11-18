@@ -35,6 +35,9 @@ import {
   registerDeletedDocumentKind,
   restoreDeletedDocument,
   retainDeletedProject,
+  projectMembers,
+  leaveDeletedProject,
+  interruptedProjectRestores,
   type DeletedDocumentMember
 } from "@nodetool-ai/models";
 import { RESERVED_WORKSPACE_DIR } from "@nodetool-ai/runtime";
@@ -315,33 +318,69 @@ async function removeProjectContent(
  */
 async function keepProjectForRestore(userId: string, project: Project): Promise<string> {
   const id = project.id;
-  // The documents this delete moves. A restore of the project brings back
-  // these, and none that was deleted on its own before (F8).
-  const members: DeletedDocumentMember[] = [];
-  for (const workflow of await Workflow.listForProjects(userId, [id])) {
-    if (await Workflow.deleteOwned(userId, workflow.id)) {
-      members.push({ kind: "workflow", documentId: workflow.id });
-    }
-  }
-  // listByProject pages, so it is read until empty.
-  for (;;) {
-    const timelines = await TimelineSequence.listByProject(id, userId, 200);
-    if (timelines.length === 0) break;
-    for (const timeline of timelines) {
-      if (await TimelineSequence.deleteOwned(userId, timeline.id)) {
-        members.push({ kind: "timeline", documentId: timeline.id });
-      }
-    }
-  }
+  // The project's record is kept first, and each document records the delete
+  // that moved it, so a delete that stops part way loses no member: a retry
+  // finds the project tombstoned and moves the rest (review F26). A restore
+  // of the project brings back these, and none that was deleted on its own
+  // before (F8).
   const purgeAt = await retainDeletedProject({
     kind: "project",
     documentId: id,
     userId,
     projectId: id,
     name: project.name,
-    payload: { row: project.toRow(), dependents: {}, members }
+    payload: { row: project.toRow(), dependents: {}, members: [] }
   });
+  for (const workflow of await Workflow.listForProjects(userId, [id])) {
+    await Workflow.deleteOwned(userId, workflow.id, { deletedWithProject: id });
+  }
+  // listByProject pages, so it is read until empty.
+  for (;;) {
+    const timelines = await TimelineSequence.listByProject(id, userId, 200);
+    if (timelines.length === 0) break;
+    for (const timeline of timelines) {
+      await TimelineSequence.deleteOwned(userId, timeline.id, { deletedWithProject: id });
+    }
+  }
   return purgeAt ?? new Date().toISOString();
+}
+
+/**
+ * Brings back the documents a delete of the live project moved. Each member
+ * keeps its record until its own restore deletes it, so a restore that stops
+ * part way resumes here: from the project's restore, or from the purge job
+ * through {@link resumeProjectRestores}. A member that cannot come back
+ * leaves the project's delete and stays in the deleted list on its own.
+ */
+async function restoreProjectMembers(userId: string, projectId: string, legacy: readonly DeletedDocumentMember[]): Promise<void> {
+  const members = new Map<string, DeletedDocumentMember>();
+  for (const member of [...legacy, ...(await projectMembers(userId, projectId))]) {
+    members.set(`${member.kind}\u0000${member.documentId}`, member);
+  }
+  for (const member of members.values()) {
+    const outcome = await restoreDeletedDocument(userId, member.kind, member.documentId);
+    if (outcome.outcome === "failed") {
+      await leaveDeletedProject(userId, member.kind, member.documentId);
+      log.warn("A document of a restored project stayed deleted", {
+        projectId,
+        kind: member.kind,
+        documentId: member.documentId,
+        reason: outcome.reason
+      });
+    }
+  }
+}
+
+/**
+ * Finishes project restores that stopped before they brought back every
+ * member. The purge job calls it. Returns how many projects it resumed.
+ */
+export async function resumeProjectRestores(): Promise<number> {
+  const interrupted = await interruptedProjectRestores();
+  for (const { userId, projectId } of interrupted) {
+    await restoreProjectMembers(userId, projectId, []);
+  }
+  return interrupted.length;
 }
 
 registerDeletedDocumentKind("project", {
@@ -353,22 +392,9 @@ registerDeletedDocumentKind("project", {
   },
 
   async restored(payload) {
-    const userId = String(payload.row["user_id"]);
-    const id = String(payload.row["id"]);
     // The project is live again, so the documents its delete moved restore
-    // too. A document that cannot come back stays in the deleted list on
-    // its own.
-    for (const member of payload.members ?? []) {
-      const outcome = await restoreDeletedDocument(userId, member.kind, member.documentId);
-      if (outcome.outcome === "failed") {
-        log.warn("A document of a restored project stayed deleted", {
-          projectId: id,
-          kind: member.kind,
-          documentId: member.documentId,
-          reason: outcome.reason
-        });
-      }
-    }
+    // too. Records from before review F26 list them in `members`.
+    await restoreProjectMembers(String(payload.row["user_id"]), String(payload.row["id"]), payload.members ?? []);
   },
 
   // Runs under the purge claim, which a restore cannot take. Every step is
