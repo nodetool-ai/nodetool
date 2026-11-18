@@ -539,7 +539,11 @@ export class TimelineSequence extends DBModel {
    * capability — and a delete is not a place for two copies of one rule.
    * Missing and not-yours are the same answer, so a caller cannot probe ids.
    */
-  static async deleteOwned(userId: string, id: string): Promise<boolean> {
+  static async deleteOwned(
+    userId: string,
+    id: string,
+    options: { deletedWithProject?: string } = {}
+  ): Promise<boolean> {
     const row = await TimelineSequence.findById(id);
     if (!row || row.user_id !== userId) return false;
     // The row, its versions, grants and references go in one transaction,
@@ -552,6 +556,7 @@ export class TimelineSequence extends DBModel {
       where: and(eq(timelineSequences.id, row.id), eq(timelineSequences.user_id, userId)) as SQL,
       dependents: timelineDependents(row.id),
       grants: "document_collaborators",
+      deletedWithProject: options.deletedWithProject,
       describe: (kept) => ({
         documentId: String(kept["id"]),
         projectId: (kept["project_id"] as string | null) ?? null,
