@@ -1027,6 +1027,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "through its own `list_*` capability today; what it cannot do is " +
       "ask which of them belong together."
   },
+  "projects.fileThumbnail": {
+    elsewhere:
+      "A sketch file's thumbnail is a PNG inside its `.sketch.ora` zip. A run " +
+      "reads the file through its workspace, and `render_sketch` renders a " +
+      "sketch it needs to see."
+  },
   "projects.get": {
     gap:
       "Same grouping surface as `projects.create`. Carries the derived " +
