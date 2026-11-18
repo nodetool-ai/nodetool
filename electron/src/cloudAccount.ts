@@ -20,6 +20,7 @@ import { existsSync } from "fs";
 import * as path from "path";
 import { createInterface } from "readline";
 import { app, BrowserWindow, net, protocol, shell } from "electron";
+import WebSocket from "ws";
 import { z } from "zod";
 import {
   CLOUD_MEDIA_SCHEME,
@@ -31,6 +32,7 @@ import {
   type SocketTokenResult,
   type TransferResult,
 } from "./cloudRequests";
+import { CloudSockets, MAX_SOCKET_FRAME_BYTES } from "./cloudSocket";
 import { getLocalClientToken } from "./localClientToken";
 import { logMessage } from "./logger";
 import { serverState } from "./state";
@@ -315,6 +317,7 @@ export class CloudAccount {
   private readonly inFlight = new Map<number, AbortController>();
   private current: CloudAccountState;
   private readonly requests: CloudRequests;
+  private readonly stateListeners = new Set<(state: CloudAccountState) => void>();
 
   constructor(private readonly deps: CloudAccountDeps) {
     this.origin = canonicalHttpsOrigin(deps.server);
@@ -343,6 +346,12 @@ export class CloudAccount {
 
   state(): CloudAccountState {
     return this.current;
+  }
+
+  /** Calls `listener` with every new state. Returns the function that stops it. */
+  onStateChange(listener: (state: CloudAccountState) => void): () => void {
+    this.stateListeners.add(listener);
+    return () => this.stateListeners.delete(listener);
   }
 
   /** The canonical origin of the configured server, or null. */
@@ -428,6 +437,9 @@ export class CloudAccount {
       this.requests.signedOut();
     }
     this.deps.onState(next);
+    for (const listener of [...this.stateListeners]) {
+      listener(next);
+    }
   }
 
   private onLine(line: string): void {
@@ -586,7 +598,39 @@ export function handleCloudMediaScheme(): void {
   protocol.handle(CLOUD_MEDIA_SCHEME, (request) => cloudMediaResponse(request, getCloudAccount()));
 }
 
+let sharedSockets: CloudSockets | null = null;
+
+/**
+ * The workflow sockets of cloud documents (D25). Each belongs to the window
+ * that opened it and closes when that window goes away or the account signs
+ * out.
+ */
+export function getCloudSockets(): CloudSockets {
+  if (!sharedSockets) {
+    const account = getCloudAccount();
+    const sockets = new CloudSockets({
+      account,
+      connect: (url, headers) =>
+        new WebSocket(url, { headers, followRedirects: false, maxPayload: MAX_SOCKET_FRAME_BYTES }),
+      deliver: (owner, event) => {
+        const window = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed() && w.webContents.id === owner);
+        window?.webContents.send(IpcChannels.CLOUD_SOCKET_EVENT, event);
+      },
+      log: (message, level) => logMessage(message, level),
+    });
+    account.onStateChange((state) => {
+      if (state.state !== "signedIn") {
+        sockets.signedOut();
+      }
+    });
+    sharedSockets = sockets;
+  }
+  return sharedSockets;
+}
+
 export function disposeCloudAccount(): void {
+  sharedSockets?.dispose();
+  sharedSockets = null;
   shared?.dispose();
   shared = null;
 }

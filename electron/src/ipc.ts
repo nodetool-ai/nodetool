@@ -44,7 +44,7 @@ import { applyVaultSwitch } from "./vaultSwitch";
 import { setMenuSnapToGrid } from "./menu";
 import { installMcpBundle } from "./mcpBundle";
 import { getVstHost } from "./vstHost";
-import { getCloudAccount } from "./cloudAccount";
+import { getCloudAccount, getCloudSockets } from "./cloudAccount";
 import { showSystemNotification } from "./systemNotifications";
 import { IpcRequest } from "./types.d";
 import {
@@ -101,6 +101,15 @@ const cloudTransferSchema = z
     input: z.record(z.string(), z.unknown()),
   })
   .strict();
+const cloudSocketSendSchema = z
+  .object({
+    id: z.number().int().positive(),
+    data: z.union([z.string(), z.instanceof(Uint8Array)]),
+  })
+  .strict();
+const cloudSocketCloseSchema = z.object({ id: z.number().int().positive() }).strict();
+// The windows whose sockets close when they are destroyed.
+const watchedSocketOwners = new Set<number>();
 const nodePackUninstallRequestSchema = z.object({ name: z.string() }).strict();
 const nodePackTrustRequestSchema = z.object({ name: z.string() }).strict();
 
@@ -176,6 +185,8 @@ const QUIET_CHANNELS = [
   // content, so they are never logged.
   "cloud-request",
   "cloud-transfer",
+  // One per frame of a cloud document's run.
+  "cloud-socket-send",
 ];
 /**
  * Defense-in-depth check for URLs passed to `shell.openExternal` / browser.
@@ -1065,6 +1076,31 @@ export function initializeIpcHandlers(): void {
       return { status: "refused", reason: "INVALID", data: null } as const;
     }
     return getCloudAccount().transfer(parsed.data.procedure, parsed.data.input);
+  });
+  // The workflow socket of a cloud document (D25). The window that opens a
+  // socket is the only one that can send on it or close it.
+  createIpcMainHandler(IpcChannels.CLOUD_SOCKET_OPEN, async (event) => {
+    const sender = event.sender;
+    const sockets = getCloudSockets();
+    const result = await sockets.open(sender.id);
+    if (result.ok && !watchedSocketOwners.has(sender.id)) {
+      watchedSocketOwners.add(sender.id);
+      sender.once("destroyed", () => {
+        watchedSocketOwners.delete(sender.id);
+        sockets.closeOwner(sender.id);
+      });
+    }
+    return result;
+  });
+  createIpcMainHandler(IpcChannels.CLOUD_SOCKET_SEND, async (event, request) => {
+    const parsed = cloudSocketSendSchema.safeParse(request);
+    return parsed.success ? getCloudSockets().send(event.sender.id, parsed.data.id, parsed.data.data) : false;
+  });
+  createIpcMainHandler(IpcChannels.CLOUD_SOCKET_CLOSE, async (event, request) => {
+    const parsed = cloudSocketCloseSchema.safeParse(request);
+    if (parsed.success) {
+      getCloudSockets().close(event.sender.id, parsed.data.id);
+    }
   });
 
   createIpcMainHandler(IpcChannels.SHELL_BEEP, async () => {

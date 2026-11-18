@@ -552,6 +552,10 @@ export enum IpcChannels {
   // Cloud requests and transfer calls, sent with the account by the helper
   CLOUD_REQUEST = "cloud-request",
   CLOUD_TRANSFER = "cloud-transfer",
+  CLOUD_SOCKET_OPEN = "cloud-socket-open",
+  CLOUD_SOCKET_SEND = "cloud-socket-send",
+  CLOUD_SOCKET_CLOSE = "cloud-socket-close",
+  CLOUD_SOCKET_EVENT = "cloud-socket-event",
   // Native OS notifications, shown while no app window is focused
   SYSTEM_NOTIFICATION_SHOW = "system-notification-show",
 }
@@ -597,6 +601,24 @@ export type CloudRequestError = "SIGNED_OUT" | "OFFLINE" | "REFUSED" | "CANCELLE
 export type CloudResponse =
   | { ok: true; status: number; headers: [string, string][]; body: Uint8Array }
   | { ok: false; error: CloudRequestError };
+
+/** The workflow socket of a cloud document, opened by the main process (D25). */
+export type CloudSocketOpenResult = { ok: true; id: number } | { ok: false; error: "SIGNED_OUT" | "OFFLINE" | "BUSY" };
+
+export interface CloudSocketSendInput {
+  id: number;
+  data: Uint8Array | string;
+}
+
+export interface CloudSocketCloseInput {
+  id: number;
+}
+
+/** A frame or a change of a cloud socket. `close` ends it. */
+export type CloudSocketEvent =
+  | { id: number; kind: "open" }
+  | { id: number; kind: "message"; data: Uint8Array | string }
+  | { id: number; kind: "close"; code: number; reason: string };
 
 /** A call of the local server's `cloudTransfer` router, without account or token. */
 export interface CloudTransferInput {
@@ -864,6 +886,9 @@ export interface IpcRequest {
   [IpcChannels.CLOUD_ACCOUNT_SIGN_OUT]: void;
   [IpcChannels.CLOUD_REQUEST]: CloudRequestInput;
   [IpcChannels.CLOUD_TRANSFER]: CloudTransferInput;
+  [IpcChannels.CLOUD_SOCKET_OPEN]: void;
+  [IpcChannels.CLOUD_SOCKET_SEND]: CloudSocketSendInput;
+  [IpcChannels.CLOUD_SOCKET_CLOSE]: CloudSocketCloseInput;
   [IpcChannels.SYSTEM_NOTIFICATION_SHOW]: SystemNotificationRequest;
 }
 
@@ -973,6 +998,9 @@ export interface IpcResponse {
   [IpcChannels.CLOUD_ACCOUNT_SIGN_OUT]: void;
   [IpcChannels.CLOUD_REQUEST]: CloudResponse;
   [IpcChannels.CLOUD_TRANSFER]: TransferResult;
+  [IpcChannels.CLOUD_SOCKET_OPEN]: CloudSocketOpenResult;
+  [IpcChannels.CLOUD_SOCKET_SEND]: boolean;
+  [IpcChannels.CLOUD_SOCKET_CLOSE]: void;
   [IpcChannels.SYSTEM_NOTIFICATION_SHOW]: boolean;
 }
 
@@ -989,6 +1017,7 @@ export interface IpcEvents {
   [IpcChannels.PACKAGE_UPDATES_AVAILABLE]: PackageUpdateInfo[];
   [IpcChannels.VST_EVENT]: VstHostEvent;
   [IpcChannels.CLOUD_ACCOUNT_EVENT]: CloudAccountState;
+  [IpcChannels.CLOUD_SOCKET_EVENT]: CloudSocketEvent;
 }
 
 export type PythonPackages = string[];
