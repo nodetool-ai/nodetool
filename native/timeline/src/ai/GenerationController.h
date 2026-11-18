@@ -151,6 +151,5 @@ private:
     PlaybackClock* m_previewClock;
     QString m_previewAudioMode = QStringLiteral("none");
     std::unique_ptr<nt::audio::AppAudio> m_previewAudio;
-    // native-rules #1: std::shared_ptr MediaProtection, no comment on why unique ownership is impossible
     nt::ai::WorkflowGeneration* m_workflow;
 };

@@ -92,7 +92,6 @@ private:
     QPointer<TimelineModel> m_model;
     Call m_call;
     MediaResolver m_mediaResolver;
-    // The worker keeps its own protection handle while the controller can close.
     bool m_busy = false;
     bool m_offline = false;
     bool m_documentOnly = false;

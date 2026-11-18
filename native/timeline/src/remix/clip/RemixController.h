@@ -177,7 +177,6 @@ private:
     mutable bool m_serverBackendResolved = false;
     bool m_backendSet = false;
     // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
-    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     std::shared_ptr<RemixRelay> m_relay;
     QString m_clipId, m_clipName, m_currentAsset;
     QString m_state = QStringLiteral("closed");

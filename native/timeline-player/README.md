@@ -229,7 +229,8 @@ directory. Every lease shares the in-memory registry and can outlive its
 loader and root handle. Acquisition and release never write files beside the
 media. Lease keys are lexical. Cache paths must use the root's configured
 or canonical spelling. Other symlink aliases, including symlinks below the
-root, have separate lease keys. Eviction honors leases from the same registry.
+root, have separate lease keys, and so do spellings that differ only in
+case on a case-insensitive volume. Eviction honors leases from the same registry.
 Keep the leases while playback uses the cached files. A lease returned by a
 custom loader must support release from the UI, render or decode thread.
 `cancel()` discards the pending result and requests worker interruption. A

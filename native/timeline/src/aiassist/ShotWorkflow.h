@@ -52,7 +52,6 @@ private:
     friend class ShotWorkflowTest;
     Call m_call;
     MediaResolver m_mediaResolver;
-    // native-rules #1: std::shared_ptr MediaProtection, no comment on why unique ownership is impossible
     void receive(const QJsonObject& frame);
     void persist(const QJsonObject& board, const QJsonObject& localEdit = {});
     void fail(const QString& error);

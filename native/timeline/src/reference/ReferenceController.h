@@ -135,7 +135,6 @@ private:
     QPointer<TimelineModel> m_observed;
     QTimer m_timer;
     std::optional<Target> m_target;
-    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     TakeMediaResolver m_resolver;
     QImage m_image;
     double m_imageTimeMs = -1;

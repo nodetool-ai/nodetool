@@ -8,6 +8,7 @@
 #include "server/AutosaveController.h"
 #include "server/ServerTimelineProbe.h"
 #include "server/ServerSource.h"
+#include "takes/TakeSwitcher.h"
 
 #include <QCommandLineParser>
 #include <QDir>
@@ -90,6 +91,7 @@ int main(int argc, char** argv) {
     }
     QQuickView view;
     nt::server::TimelineAssetCacheContext::install(*view.engine(), cache);
+    TakeSwitcher::attach(model, cache);
     nt::hw::prepareWindow(&view);
     view.setResizeMode(QQuickView::SizeRootObjectToView);
     view.setInitialProperties({{"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)}});

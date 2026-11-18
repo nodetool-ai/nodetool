@@ -64,7 +64,6 @@ private:
                               auto& protection, quint64 generation) {
         return nt::assets::resolveDroppedMedia(client, asset, clip, protection, generation);
     };
-    // The worker keeps its own protection handle while the controller can close.
     QString m_requestId;
     QString m_lineId;
     QString m_assetId;
